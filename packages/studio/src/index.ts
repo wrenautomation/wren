@@ -174,6 +174,20 @@ export {
   renderStills,
 } from "./remotion.js";
 export {
+  CUT_HASH,
+  changedSince,
+  coverHash,
+  cutHash,
+  hasHashes,
+  hashFiles,
+  hashKey,
+  isWanted,
+  outputHashes,
+  RENDER_PARTS,
+  RENDER_VERSION,
+  type RenderPart,
+} from "./render-hash.js";
+export {
   addMask,
   covered,
   fitRect,

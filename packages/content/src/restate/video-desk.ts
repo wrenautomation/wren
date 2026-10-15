@@ -18,6 +18,7 @@ import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
 import { getEdit, setCut, setEdit, setLine, setRender, setWords } from "@wren/studio/edit";
+import { RENDER_PARTS } from "@wren/studio/hash";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -48,7 +49,7 @@ export const VIDEO_DESK = { name: "VideoDesk" } as const;
 /** The Mac's render, as autobrowse's desk serves it; no import from that repo. */
 export const STUDIO = { name: "studio" } as const;
 export type StudioService = {
-  render: (ctx: restate.Context, req: { id: number }) => Promise<{ ms: number }>;
+  render: (ctx: restate.Context, req: { id: number; only?: string }) => Promise<{ ms: number }>;
 };
 
 const ID = { id: z.number().int().positive(), viewer: PORTAL_FIELDS.viewer };
@@ -58,7 +59,7 @@ type Passed = { id: number; by: string; note: string | null };
 type Self = {
   answer: (ctx: restate.Context, req: { run: string }) => Promise<void>;
   editing: (ctx: restate.Context, req: { run: string }) => Promise<void>;
-  rendering: (ctx: restate.Context, req: { id: number }) => Promise<void>;
+  rendering: (ctx: restate.Context, req: { id: number; only?: string }) => Promise<void>;
 };
 
 /** A refusal is the person's to fix: it fails the call instead of retrying (a conflict keeps its code). */
@@ -211,10 +212,13 @@ export function makeVideoDesk(db: Db) {
         },
       ),
 
-      /** Queue a render on the Mac: cut, render, previews to S3. Its state shows on the row. */
+      /**
+       * Queue a render on the Mac: cut, render what changed, previews to S3. Its state shows on
+       * the row. `only` narrows it to one format, the Shorts or the thumbnails.
+       */
       render: serviceHandler(
-        { input: z.looseObject(ID) },
-        async (ctx: restate.Context, req: One) => {
+        { input: z.looseObject({ ...ID, only: z.enum(RENDER_PARTS).optional() }) },
+        async (ctx: restate.Context, req: One & { only?: string }) => {
           await ctx.run("queue", () =>
             told(
               (async () => {
@@ -229,7 +233,10 @@ export function makeVideoDesk(db: Db) {
               })(),
             ),
           );
-          ctx.serviceSendClient<Self>(VIDEO_DESK).rendering({ id: req.id });
+          ctx.serviceSendClient<Self>(VIDEO_DESK).rendering({
+            id: req.id,
+            ...(req.only ? { only: req.only } : {}),
+          });
           return { queued: true };
         },
       ),
@@ -292,9 +299,12 @@ export function makeVideoDesk(db: Db) {
       // Only `render` sends it: waits on the Mac, and says why when the render fails.
       rendering: restate.handlers.handler(
         { ingressPrivate: true },
-        async (ctx: restate.Context, req: { id: number }) => {
+        async (ctx: restate.Context, req: { id: number; only?: string }) => {
           try {
-            await ctx.serviceClient<StudioService>(STUDIO).render({ id: req.id });
+            await ctx.serviceClient<StudioService>(STUDIO).render({
+              id: req.id,
+              ...(req.only ? { only: req.only } : {}),
+            });
           } catch (err) {
             if (!(err instanceof restate.TerminalError)) throw err;
             const why = err.message.slice(-500);

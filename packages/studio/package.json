@@ -9,7 +9,8 @@
     "./cuts": "./src/cuts.ts",
     "./finish": "./src/finish.ts",
     "./edit": "./src/edit.ts",
-    "./sentences": "./src/sentences.ts"
+    "./sentences": "./src/sentences.ts",
+    "./hash": "./src/render-hash.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",

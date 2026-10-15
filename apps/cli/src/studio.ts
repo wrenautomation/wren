@@ -26,6 +26,9 @@ import {
   CAPTION_STYLES,
   CROPPED,
   type CroppedFormat,
+  CUT_HASH,
+  coverHash,
+  cutHash,
   cutKnobs,
   cutTracks,
   cutTranscript,
@@ -40,6 +43,8 @@ import {
   fromCutTime,
   geminiLooker,
   getEdit,
+  hashFiles,
+  hashKey,
   isCap,
   isOpen,
   keepCut,
@@ -53,12 +58,14 @@ import {
   obsRecordingDir,
   onCut,
   openStudio,
+  outputHashes,
   preview,
   promoProps,
   promoScript,
   proposeStress,
   proxy360,
   punctuate,
+  RENDER_PARTS,
   type RenderJob,
   redoSilence,
   renderAll,
@@ -107,7 +114,7 @@ lined up by their audio. Or a Cap project (<name>.cap): its screen, mic and came
 up by Cap's start times. Needs: brew install whisper-cpp, and the model in ~/.cache/wren/whisper.`;
 
 /** What `render --only` takes: a format, or the Shorts or thumbnails alone. */
-const PARTS = ["long", "vertical", "square", "portrait", "shorts", "thumbs"] as const;
+const PARTS = RENDER_PARTS;
 const isFormat = (p: string) => p === "long" || (CROPPED as readonly string[]).includes(p);
 
 const id = (v: string) => {
@@ -128,21 +135,32 @@ type RenderOpts = {
   short?: number;
   only?: string;
   cut?: boolean;
+  again?: boolean;
   upload?: boolean;
   still?: number;
 };
 
-/** What the job would render that out/ already holds, by output name (`--upload`). */
-function rendered(out: string, job: RenderJob): Record<string, string> {
-  const videos = [
-    ...(job.long ? ["long"] : []),
-    ...Object.keys(job.framed ?? {}),
-    ...[...(job.shorts?.keys() ?? [])].map((n) => `short-${n}`),
-  ].map((n) => [n, join(out, `${n}.mp4`)] as const);
-  const thumbs = (job.thumbnails ?? []).map(
-    (p) => [`thumb-${p.variant}`, join(out, `thumb-${p.variant}.jpg`)] as const,
+/** Each output's file in out/: a video, or a thumbnail's jpg. */
+const outFile = (out: string, name: string) =>
+  join(out, name.startsWith("thumb-") ? `${name}.jpg` : `${name}.mp4`);
+
+/** Which of `names` out/ already holds, by output name (`--upload`, and to tell a render is lost). */
+const onDisk = (out: string, names: readonly string[]): Record<string, string> =>
+  Object.fromEntries(
+    names.map((n) => [n, outFile(out, n)] as const).filter(([, f]) => existsSync(f)),
   );
-  return Object.fromEntries([...videos, ...thumbs].filter(([, f]) => existsSync(f)));
+
+/**
+ * What each file in out/ was rendered from (the output's hash), kept beside the files: a render
+ * whose upload failed leaves them here, and `--upload` stores them with the files it uploads.
+ */
+const HASHES = "hashes.json";
+async function readHashes(out: string): Promise<Record<string, string>> {
+  try {
+    return JSON.parse(await readFile(join(out, HASHES), "utf8")) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }
 
 export function registerStudio(
@@ -536,8 +554,23 @@ export function registerStudio(
         }),
     );
 
-  /** The cut pass: both tracks cut to the edit's cuts, the files on the row. */
-  async function cutPass(db: Db, e: VideoEdit) {
+  /**
+   * The cut pass: both tracks cut to the edit's cuts, the files on the row. With `reuse`, skipped
+   * when the cuts and recordings are what the cut files on disk were made from.
+   */
+  async function cutPass(db: Db, e: VideoEdit, reuse = false) {
+    const same = cutHash(e);
+    const have = [e.files.cutMain, e.tracks.cam ? e.files.cutCam : undefined];
+    if (
+      reuse &&
+      e.files[CUT_HASH] === same &&
+      have[0] &&
+      existsSync(have[0]) &&
+      (!e.tracks.cam || (have[1] && existsSync(have[1])))
+    ) {
+      console.log("cuts unchanged; keeping the cut files");
+      return;
+    }
     const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
     const started = Date.now();
     const { stats } = await recordedRun(
@@ -545,7 +578,7 @@ export function registerStudio(
       { command: "video cut", argv: { id: e.id, segments: keep.length } },
       async () => {
         const files = await cutTracks(e.tracks, keep, e.dir, settings.ffmpeg);
-        await setFiles(db, e.id, files);
+        await setFiles(db, e.id, { ...files, [CUT_HASH]: same });
         return { files, seconds: Math.round((Date.now() - started) / 1000) };
       },
     );
@@ -577,14 +610,18 @@ export function registerStudio(
   video
     .command("render <id>")
     .description(
-      "Remotion render to <dir>/out: the edit's formats (long 16:9, vertical 9:16, square 1:1, portrait 4:5), Shorts 9:16, 3 thumbnails; previews and stills to S3",
+      "Remotion render to <dir>/out of what changed since each output's last render: the edit's formats (long 16:9, vertical 9:16, square 1:1, portrait 4:5), Shorts 9:16, 3 thumbnails; previews and stills to S3",
     )
     .option("--short <n>", "only Short n", id)
     .option(
       "--only <part>",
       `${PARTS.join(", ")} (a format renders even if the edit doesn't list it)`,
     )
-    .option("--cut", "run the cut pass first (the page's Render does)")
+    .option(
+      "--cut",
+      "run the cut pass first (the page's Render does), unless the cuts are unchanged",
+    )
+    .option("--again", "render every output again, changed or not (default: only what changed)")
     .option("--upload", "no render: upload what out/ already holds and mark it rendered")
     .option(
       "--still <s>",
@@ -703,7 +740,7 @@ export function registerStudio(
     if (o.upload && o.cut) throw new Error("--upload uploads what is rendered; drop --cut");
     // A long render that can't upload at its end is lost time: check the session first.
     if (settings.mediaBucket) await checkMediaStore({ bucket: settings.mediaBucket });
-    if (o.cut) await cutPass(db, await getEdit(db, id(v)));
+    if (o.cut) await cutPass(db, await getEdit(db, id(v)), !o.again);
     const e = await getEdit(db, id(v));
     if (o.only && !PARTS.includes(o.only as (typeof PARTS)[number]))
       throw new Error(`--only is ${PARTS.join(", ")}`);
@@ -712,43 +749,110 @@ export function registerStudio(
     const want = (p: string) =>
       part ? part === p : isFormat(p) ? e.formats.includes(p as Format) : true;
     const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
-    const thumbs = want("thumbs") ? thumbnailProps(e) : null;
-    if (want("thumbs") && !thumbs)
+    if (want("thumbs") && !e.thumbnail)
       console.log(`no thumbnail set; skipped (wren video set ${e.id} with "thumbnail")`);
-    const videos = want("long") || CROPPED.some(want) || want("shorts");
+    const out = join(e.dir, "out");
+    // Every output this run is about, and which of them changed since their last render.
+    const names = [
+      ...(want("long") ? ["long"] : []),
+      ...CROPPED.filter(want),
+      ...(want("shorts") ? numbers.map((n) => `short-${n}`) : []),
+      ...(want("thumbs") && e.thumbnail ? [1, 2, 3].map((n) => `thumb-${n}`) : []),
+    ];
+    if (!o.upload && !e.files.cutMain)
+      throw new Error(`video ${e.id}: not cut yet; run wren video cut ${e.id}`);
+    const hashes = o.upload ? await readHashes(out) : outputHashes(e);
+    const todo = o.upload
+      ? names
+      : names.filter(
+          (n) => o.again || hashes[n] !== e.files[hashKey(n)] || !existsSync(outFile(out, n)),
+        );
+    const kept = names.filter((n) => !todo.includes(n));
+    if (kept.length) console.log(`unchanged since their last render: ${kept.join(", ")}`);
+    // The long video's English subtitles, for YouTube's CC (approve sends them): the desk
+    // reads this Mac's path. Written every run: it is the words, and costs nothing.
+    const srt = want("long") ? join(out, "long.en.srt") : null;
+    if (srt) {
+      await mkdir(out, { recursive: true });
+      await writeFile(srt, longSrt(e));
+    }
+    if (!o.upload && !todo.length) {
+      if (srt) await setFiles(db, e.id, { captions: srt });
+      await setRender(db, e.id, null);
+      console.log(`video ${e.id}: nothing changed since the last render (--again renders anyway)`);
+      return;
+    }
+    const go = (n: string) => todo.includes(n);
+    const videos = names.some((n) => !n.startsWith("thumb-") && go(n));
     const mattes = videos && !o.upload ? await mattesFor(e) : [];
-    const job: RenderJob = {
-      ...(want("long") ? { long: longProps(e, mattes, { skip: unread }) } : {}),
-      framed: framedJob(e, mattes, want),
-      ...(want("shorts")
-        ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n, mattes, { skip: unread })])) }
-        : {}),
-      ...(thumbs ? { thumbnails: thumbs } : {}),
-    };
+    const job: RenderJob = o.upload
+      ? {}
+      : {
+          ...(go("long") ? { long: longProps(e, mattes, { skip: unread }) } : {}),
+          framed: framedJob(e, mattes, go),
+          ...(numbers.some((n) => go(`short-${n}`))
+            ? {
+                shorts: new Map(
+                  numbers
+                    .filter((n) => go(`short-${n}`))
+                    .map((n) => [n, shortProps(e, n, mattes, { skip: unread })]),
+                ),
+              }
+            : {}),
+          ...(todo.some((n) => n.startsWith("thumb-"))
+            ? {
+                thumbnails: (thumbnailProps(e) ?? []).filter((p) => go(`thumb-${p.variant}`)),
+              }
+            : {}),
+        };
     const started = Date.now();
     const { stats } = await recordedRun(
       db,
       {
         command: "video render",
-        argv: { id: e.id, short: o.short ?? null, only: part ?? null, upload: !!o.upload },
+        argv: {
+          id: e.id,
+          short: o.short ?? null,
+          only: part ?? null,
+          upload: !!o.upload,
+          again: !!o.again,
+          outputs: todo,
+        },
       },
       async () => {
         const { files, seconds } = o.upload
-          ? { files: await rendered(join(e.dir, "out"), job), seconds: {} }
+          ? { files: onDisk(out, todo), seconds: {} }
           : await renderAll(studioDir, e.dir, job, (l) => console.log(l), settings.ffmpeg);
         if (o.upload && !Object.keys(files).length)
-          throw new Error(
-            `nothing rendered in ${join(e.dir, "out")}: run wren video render ${e.id}`,
+          throw new Error(`nothing rendered in ${out}: run wren video render ${e.id}`);
+        // What each file in out/ was made from, kept with it until the upload is done.
+        const made = { ...(await readHashes(out)), ...(o.upload ? {} : hashes) };
+        if (!o.upload)
+          await writeFile(
+            join(out, HASHES),
+            JSON.stringify({
+              ...(await readHashes(out)),
+              ...Object.fromEntries(Object.keys(files).map((n) => [n, hashes[n]])),
+            }),
           );
         // Previews (540p) and stills to the private media bucket, keyed by content hash. Each
         // full Short goes up too, as its Instagram Reel: Graph fetches a URL, not a Mac path.
         const keys: Record<string, string> = {};
+        const covers: Record<string, string> = {};
         const bucket = settings.mediaBucket;
         if (bucket)
           try {
+            // His cover frame, exactly as the render drew it (Reels' cover picture).
+            const cover = async (name: CroppedFormat, file: string) => {
+              if (!e.thumbnail) return;
+              const at = onCut(e.thumbnail.at, keepSegments(e.cuts, e.tracks.main.durationS, FPS));
+              const jpg = await frameAt(file, at, join(out, `cover-${name}.jpg`), settings.ffmpeg);
+              keys[`cover-${name}`] = await uploadMedia(jpg, { bucket });
+              covers[hashKey(`cover-${name}`)] = coverHash(made[name], e.thumbnail.at);
+            };
             for (const [name, file] of Object.entries(files)) {
               const up = file.endsWith(".mp4")
-                ? await preview(file, join(e.dir, "out", `${name}-540.mp4`), settings.ffmpeg)
+                ? await preview(file, join(out, `${name}-540.mp4`), settings.ffmpeg)
                 : file;
               keys[name] = await uploadMedia(up, { bucket });
               const short = /^short-(\d+)$/.exec(name);
@@ -756,21 +860,17 @@ export function registerStudio(
               if (short || framed)
                 keys[reelKey(short ? Number(short[1]) : (framed as CroppedFormat))] =
                   await uploadMedia(file, { bucket });
-              // His cover frame, exactly as the render drew it (Reels' cover picture).
-              if (framed && e.thumbnail) {
-                const at = onCut(
-                  e.thumbnail.at,
-                  keepSegments(e.cuts, e.tracks.main.durationS, FPS),
-                );
-                const jpg = await frameAt(
-                  file,
-                  at,
-                  join(e.dir, "out", `cover-${name}.jpg`),
-                  settings.ffmpeg,
-                );
-                keys[`cover-${name}`] = await uploadMedia(jpg, { bucket });
-              }
+              if (framed) await cover(framed, file);
             }
+            // A cover moved on a format not rendered again: the frame comes from its file.
+            for (const f of CROPPED.filter(want))
+              if (
+                !files[f] &&
+                e.thumbnail &&
+                existsSync(outFile(out, f)) &&
+                e.files[hashKey(`cover-${f}`)] !== coverHash(e.files[hashKey(f)], e.thumbnail.at)
+              )
+                await cover(f, outFile(out, f));
             await finishMedia(db, e, bucket);
           } catch (err) {
             // The render is good and stays in out/: only the upload needs doing again.
@@ -780,13 +880,17 @@ export function registerStudio(
             );
           }
         else console.log("WREN_MEDIA_BUCKET unset: previews and Reels not uploaded");
-        // The long video's English subtitles, for YouTube's CC (approve sends them): the desk
-        // reads this Mac's path.
-        if (want("long")) {
-          files.captions = join(e.dir, "out", "long.en.srt");
-          await writeFile(files.captions, longSrt(e));
-        }
-        await setRendered(db, e.id, files, keys);
+        await setRendered(
+          db,
+          e.id,
+          {
+            ...files,
+            ...hashFiles(made, Object.keys(files)),
+            ...covers,
+            ...(srt ? { captions: srt } : {}),
+          },
+          keys,
+        );
         return {
           files,
           seconds,
@@ -797,7 +901,7 @@ export function registerStudio(
     );
     for (const f of Object.values(stats.files)) console.log(f);
     console.log(
-      `video ${e.id}: ${o.upload ? "uploaded from out/" : "rendered"} in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
+      `video ${e.id}: ${o.upload ? "uploaded from out/" : "rendered"} ${todo.join(", ")} in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
     );
   }
 

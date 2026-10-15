@@ -78,6 +78,8 @@ export type FinishData = {
   picture: { source: "main" | "cam"; centre: Point };
   lines: CaptionLine[];
   rendered: Format[];
+  /** The renders the edit has since changed, by output name; null when that can't be told. */
+  stale: string[] | null;
   covers: Partial<Record<CroppedFormat, string>>;
   saved: FinishEdit;
 };
@@ -600,6 +602,7 @@ export function Finish({
             <ShapesPanel
               draw={draw}
               rendered={data.rendered}
+              stale={data.stale}
               view={view}
               onView={setView}
               commit={commit}
@@ -1676,12 +1679,14 @@ function CoverPanel({
 function ShapesPanel({
   draw,
   rendered,
+  stale,
   view,
   onView,
   commit,
 }: {
   draw: FinishEdit;
   rendered: readonly Format[];
+  stale: readonly string[] | null;
   view: Format;
   onView: (f: Format) => void;
   commit: (v: FinishEdit) => void;
@@ -1723,7 +1728,13 @@ function ShapesPanel({
               </button>
               <span className="ml-auto flex items-center gap-2">
                 {rendered.includes(f) ? (
-                  <span className="text-[12px] text-(--ui-good-ink)">Rendered</span>
+                  stale?.includes(f) ? (
+                    <span className="text-[12px] text-(--ui-warn-ink)">
+                      Changed since it rendered
+                    </span>
+                  ) : (
+                    <span className="text-[12px] text-(--ui-good-ink)">Rendered</span>
+                  )
                 ) : null}
                 {moved ? (
                   <Button

@@ -308,7 +308,13 @@ export function videoChecks(
     "title" | "description" | "chapters" | "cuts" | "words" | "state" | "render" | "files"
   > &
     Partial<Pick<VideoEdit, "shorts" | "tracks">>,
-  o: { chaptersShown: number; lastChange: string | null; lastRender: string | null; now?: number },
+  o: {
+    chaptersShown: number;
+    lastChange: string | null;
+    lastRender: string | null;
+    now?: number;
+    stale?: readonly string[] | null;
+  },
 ): VideoCheck[] {
   const out: VideoCheck[] = [];
   const now = o.now ?? Date.now();
@@ -367,13 +373,51 @@ export function videoChecks(
   return out;
 }
 
+/** What the Finish view calls each output. */
+const OUTPUT_NAMES: Record<string, string> = {
+  long: "Long",
+  vertical: "9:16",
+  square: "1:1",
+  portrait: "4:5",
+};
+
+/**
+ * Outputs by name (`long`, `short-2`, `thumb-1`) as a short phrase: "Long, 9:16 and Shorts 1
+ * and 3". Thumbnails count once.
+ */
+export function describeOutputs(names: readonly string[]): string {
+  const shorts = names
+    .map((n) => /^short-(\d+)$/.exec(n)?.[1])
+    .filter((n): n is string => !!n)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const parts = [
+    ...names.filter((n) => OUTPUT_NAMES[n]).map((n) => OUTPUT_NAMES[n] as string),
+    ...(shorts.length ? [`${shorts.length === 1 ? "Short" : "Shorts"} ${list(shorts)}`] : []),
+    ...(names.some((n) => n.startsWith("thumb-")) ? ["the thumbnails"] : []),
+  ];
+  return list(parts);
+}
+
+/** "a", "a and b", "a, b and c". */
+function list(items: readonly (string | number)[]): string {
+  return items.length < 2
+    ? items.join("")
+    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
 /**
  * What the preview is, beside it: the latest render, older than the last change, rendering, or
  * none yet. Null when the video is past rendering (approved, uploaded).
  */
 export function previewCheck(
   e: Pick<VideoEdit, "render" | "files" | "state">,
-  o: { lastChange: string | null; lastRender: string | null; now?: number },
+  o: {
+    lastChange: string | null;
+    lastRender: string | null;
+    now?: number;
+    stale?: readonly string[] | null;
+  },
 ): VideoCheck | null {
   return renderCheck(e.render, e.files, e.state, o, o.now ?? Date.now())[0] ?? null;
 }
@@ -382,7 +426,12 @@ function renderCheck(
   render: RenderState | null,
   files: Record<string, string>,
   state: string,
-  o: { lastChange: string | null; lastRender: string | null },
+  o: {
+    lastChange: string | null;
+    lastRender: string | null;
+    /** The outputs whose render is out of date, when the hashes can tell; null when they can't. */
+    stale?: readonly string[] | null;
+  },
   now: number,
 ): VideoCheck[] {
   if (render?.state === "failed")
@@ -395,6 +444,16 @@ function renderCheck(
     return [{ tone: "neutral", say: "The render waits for the Mac." }];
   if (!files.long && !files.vertical) return [{ tone: "warn", say: "Not rendered yet." }];
   if (!RENDERABLE.includes(state)) return [];
+  // Hashes know which outputs moved on; without them, the clock says only that something did.
+  if (o.stale)
+    return o.stale.length
+      ? [
+          {
+            tone: "warn",
+            say: `Changed since the last render: ${describeOutputs(o.stale)}. Render again to see it.`,
+          },
+        ]
+      : [{ tone: "good", say: "The preview is the latest render." }];
   if (o.lastChange && (!o.lastRender || o.lastChange > o.lastRender))
     return [{ tone: "warn", say: "Changed since the last render. Render again to see it." }];
   return [{ tone: "good", say: "The preview is the latest render." }];

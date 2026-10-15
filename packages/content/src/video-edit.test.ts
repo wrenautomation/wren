@@ -2,6 +2,7 @@
 import type { VideoEdit } from "@wren/studio/schema";
 import { describe, expect, it } from "vitest";
 import {
+  describeOutputs,
   editPrompt,
   passOf,
   previewCheck,
@@ -184,5 +185,29 @@ describe("videoChecks", () => {
       lastRender: "2026-10-14T11:00:00Z",
     });
     expect(latest?.say).toBe("The preview is the latest render.");
+  });
+
+  it("names the outputs that moved on once hashes can tell", () => {
+    const e = edit({ files: { long: "long.mp4" }, state: "rendered" });
+    const o = { lastChange: "2026-10-14T10:00:00Z", lastRender: "2026-10-14T11:00:00Z" };
+    expect(previewCheck(e, { ...o, stale: ["long", "short-2"] })?.say).toBe(
+      "Changed since the last render: Long and Short 2. Render again to see it.",
+    );
+    // The hashes win over the clock, both ways.
+    expect(previewCheck(e, { ...o, lastChange: "2026-10-14T12:00:00Z", stale: [] })?.say).toBe(
+      "The preview is the latest render.",
+    );
+    expect(previewCheck(e, { ...o, stale: null })?.say).toBe("The preview is the latest render.");
+  });
+});
+
+describe("describeOutputs", () => {
+  it("reads like a sentence", () => {
+    expect(describeOutputs(["long"])).toBe("Long");
+    expect(describeOutputs(["vertical", "long"])).toBe("9:16 and Long");
+    expect(describeOutputs(["short-3", "short-1", "long"])).toBe("Long and Shorts 1 and 3");
+    expect(describeOutputs(["square", "portrait", "short-2"])).toBe("1:1, 4:5 and Short 2");
+    expect(describeOutputs(["thumb-1", "thumb-2", "thumb-3"])).toBe("the thumbnails");
+    expect(describeOutputs([])).toBe("");
   });
 });

@@ -78,10 +78,10 @@ to Instagram's `thumbOffset` and `cover`, and TikTok's `coverMs`.
 
 ## Left
 
-- Render only what changed (props hash per output).
 - A crop per Short.
 
 ## Log
 
 - 2026-10-15: written.
 - 2026-10-15: built (edit, render, approve, then the portal view; migration renumbered 0267 after lane B). Tested on a local preview with synthetic media.
+- 2026-10-15: render only what changed. `render-hash.ts` hashes each output's real props (no mattes) and the render stores it as `files["<output>.hash"]`; `wren video render` redoes only outputs whose hash differs, is missing or whose file is gone (`--again` forces), skips an unchanged cut pass, re-cuts a moved cover from the rendered file. `VideoDesk.render` takes `only`. The Finish preview note and the Shapes panel name the stale outputs. Renders from before hashes redo once. The Mac service (autobrowse `src/studio/service.ts`) must pass `only` on as `--only`; today it drops it.

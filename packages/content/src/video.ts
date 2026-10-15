@@ -22,6 +22,7 @@ import {
   formatFor,
   pictureOf,
 } from "@wren/studio/finish";
+import { changedSince } from "@wren/studio/hash";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
@@ -738,6 +739,15 @@ export const cutRows = (e: Pick<VideoEdit, "cuts" | "words">) =>
     after: r.after,
   }));
 
+/** The outputs a render made that the edit has since changed (null: can't tell). */
+function staleOf(e: VideoEdit): string[] | null {
+  try {
+    return changedSince(e);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * What the finishing view edits (designs/2026-10-15-video-finishing.md): the raw recording's
  * playback copies and filmstrip, the fields it saves as they are stored (its `expect`), the
@@ -762,6 +772,8 @@ async function finishOf(
     picture: pictureOf(e.tracks),
     lines: captionLines(e.words, e.cuts, main.durationS),
     rendered: [...CROPPED, "long" as const].filter((f) => !!e.files[f]),
+    // Which formats' renders the edit has since changed; null when the renders predate hashes.
+    stale: staleOf(e),
     covers: Object.fromEntries(covers.filter(([, url]) => url)),
     saved: {
       cuts: e.cuts,
@@ -961,9 +973,9 @@ export const videoRecord = (signer?: VideoSigner) => {
           state: e.state,
           turns: await videoTurns(db, e.id),
           steps,
-          checks: videoChecks(e, { chaptersShown, ...renderTimes(steps) }),
+          checks: videoChecks(e, { chaptersShown, ...renderTimes(steps), stale: staleOf(e) }),
           // The line beside the preview: whether it shows the last change.
-          fresh: previewCheck(e, renderTimes(steps)),
+          fresh: previewCheck(e, { ...renderTimes(steps), stale: staleOf(e) }),
           shorts: await Promise.all(
             e.shorts.map(async (s, i) => ({
               title: s.title,
