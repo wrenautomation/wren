@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-07 @ 42b1013e (facts guard: grounded-drafts)
+verified: 2026-10-15 @ 4049da4d (accounts first class)
 entity: packages/outreach/src/schema.ts:414
 ---
 
@@ -25,6 +25,7 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 - Caps: a used daily cap (autobrowse's 429 with a wait of hours, `capWaitMs`) holds that reader until it resets, in the object's state `capHolds` (`reddit-public`, or an account), so no pass asks it again (2026-10-15). No error and no 6-hour sleep: while signed out is held, places, listings, people and scores wait; a draft reads its thread signed in as its account, a thread with no account waits. `place` lets a cap end the read instead of reading about and rules as unknown
 - Per client: `RedditReads/<c>/daily` on the client's own About (never Wren's default), into its database, reads metered on its `reddit` and `exa` vendors, model on `models`; posting a comment waits on its live flag
 - Loop: `RedditReads/wren` (`restate/discovery.ts:92`); desk handlers on `ReachDesk` (`discoveryHandlers`, `:259`): `watchPlace`, `skipPlace`, `movePlace`, `commentThread` (effect sends), `skipThread`. One pass on demand: `wren reach discovery run` (alias of `sync`) and Places/Thread replies → Read now (`RedditReads/wren/sync` through `ConsolePortal.call`); neither starts the loop
+- Account per draft (designs/2026-10-15-accounts-first-class.md): a pick in `draft_accounts` (`thread:<id>`, `packages/outreach/src/draft-accounts.ts`) sends the comment from that account; it skips the numeric karma/age gate (warned on the picker, `warnOf`) but not a sub's hold. `movePlace` takes `{subreddit, account}`; Places edits the account inline, `wren accounts assign` from a terminal
 - Paste: `ReachDesk.paste` (Marketing → Engage) watches a pasted subreddit, or reads a pasted thread signed out and queues it fit 10, angle "you pasted it" (`queuePastedThread`), then wakes `RedditReads/wren` to draft it
 - Console: records `marketing.place`, `marketing.thread` (Marketing → Places, Thread replies); queued threads also wait in `marketing.engage`; component `reddit.discovery` (settings: about, topics, subreddits, floors, `exaSearches`, in `wren_settings` via `settingsFor(db, null)`)
 

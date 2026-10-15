@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-06 @ f25d7ac (Ask Claude rows: content-desk-ask)
+verified: 2026-10-15 @ 4049da4d (accounts first class)
 entity: packages/content/src/schema.ts:76
 ---
 
@@ -20,6 +20,7 @@ Per client: the same table in the client's own database. `ContentPlanner/<c>/dai
 ## Shape
 
 - `idea_id`, `platform`, `text`, `title`, `media`, `extra` (the platform's post shape, `SHAPES` in `packages/core/src/content/shapes.ts`: checked by `setFields` on save, by approve for required fields, by `postOf` before publish), `status` (`DRAFT_STATUSES`, `:28`), `edited`, `scheduled_for`, `approved_at`, `published_at`, `published_id`, `url`, `error`, `redraft_of`, `note`, `prompt_version`, `playbook_id` (the [[content/playbook]] the prompt carried), `llm` (`schema.ts:76`–`112`)
+- Send as: a draft box on a platform with two or more logins shows `AccountPicker` (`packages/ui/src/draft.tsx`); the pick goes through `DraftAsk.set` with `account` into `draft_accounts` (`draft:<uuid>`, migration 0274), and `ContentScheduler` publishes as it (`pickedAccount`, `restate/scheduler.ts`; designs/2026-10-15-accounts-first-class.md)
 
 Citations: `packages/content/src/schema.ts:76`
 
