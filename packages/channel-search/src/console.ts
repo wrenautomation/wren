@@ -1,13 +1,14 @@
 /**
- * Google Search Console over `fetch`: search analytics, URL inspection and the
- * sitemap list. Read-only (`webmasters.readonly`); the service account is a
- * site owner, so no delegation. There is no API to request indexing: that
- * stays a button in the console. The bearer never appears in an error.
+ * Google Search Console over `fetch`: search analytics, URL inspection, the
+ * sitemap list and one write, submitting the sitemap (`webmasters`); the
+ * service account is a site owner, so no delegation. There is no API to
+ * request indexing one page: a submitted sitemap is how Google hears of a new
+ * one. The bearer never appears in an error.
  */
 import { type FetchLike, type ServiceAccountKey, serviceAccountToken } from "@wren/channel-email";
 import { INSPECTION_VERDICTS, type InspectionVerdict } from "./schema.js";
 
-export const SEARCH_CONSOLE_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
+export const SEARCH_CONSOLE_SCOPE = "https://www.googleapis.com/auth/webmasters";
 const API = "https://searchconsole.googleapis.com";
 const WEBMASTERS = `${API}/webmasters/v3`;
 /** Google's cap on rows per analytics request; `startRow` pages past it. */
@@ -58,7 +59,7 @@ type Json = Record<string, unknown>;
 
 async function call(
   c: SearchConsoleClient,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PUT",
   url: string,
   body?: Json,
 ): Promise<Json> {
@@ -136,6 +137,22 @@ export async function sitemapUrls(fetch: FetchLike, sitemap: string): Promise<st
     throw new SearchConsoleError(res.status, `sitemap ${sitemap} answered ${res.status}`);
   return [...(await res.text()).matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(
     (m) => m[1] as string,
+  );
+}
+
+/**
+ * Tells Google to read the sitemap again: how it hears of pages it has never seen ("URL is
+ * unknown to Google"). Bing and the IndexNow engines hear from the lander's deploy instead.
+ */
+export async function submitSitemap(
+  c: SearchConsoleClient,
+  site: string,
+  sitemap: string,
+): Promise<void> {
+  await call(
+    c,
+    "PUT",
+    `${WEBMASTERS}/sites/${encodeURIComponent(site)}/sitemaps/${encodeURIComponent(sitemap)}`,
   );
 }
 

@@ -13,7 +13,7 @@ Every comment on our posts and every answer to our comments. Two sources (`chann
 
 ## Why this shape
 
-Comments work like a webhook (William, 2026-10-05): the reader is a source, reach is one subscriber. One inbox read per account serves DMs and comments, and marks nothing read. Reads follow the warm cadence (William, 2026-10-06: "frequent checks at first, then decays"): every 2 minutes for 15 minutes after the account's last touch (a DM either way, a comment, our answer, a post on its platform), every 5 to the hour, every 15 to 6 hours, then every 30, each ±20%. A send, an answer or a post wakes the watch. Health stays every 30. Our two Reddit accounts never write in one thread, so an answer reads the thread's authors first.
+Comments work like a webhook (William, 2026-10-05): the reader is a source, reach is one subscriber. One inbox read per account serves DMs and comments, and marks nothing read. Reads follow the warm cadence (William, 2026-10-06: "frequent checks at first, then decays"): every 2 minutes for 15 minutes after the account's last touch (a DM either way, a comment, our answer, a post on its platform), every 5 to the hour, every 15 to 6 hours, then every 30, each ±20%. LinkedIn never reads sooner than every 36 minutes (its 48 a day inbox cap, 8 kept spare). A used daily cap is no error: that account's next read waits until the cap resets (`capWaitMs`, 2026-10-15). A send, an answer or a post wakes the watch. Health stays every 30. Our two Reddit accounts never write in one thread, so an answer reads the thread's authors first.
 
 ## Shape
 

@@ -28,7 +28,7 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
-import { isRefusal } from "@wren/core/content/restate";
+import { capWaitMs, isRefusal } from "@wren/core/content/restate";
 import type { Scorecard } from "@wren/core/draft-models";
 import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
@@ -246,6 +246,12 @@ export function reachDelayMs(
 const WATCH_FLOOR_MS = 60 * 1000;
 /** Restate state on `ReachWatch/daily`: each account's last read, epoch ms by account id. */
 const READS = "reads";
+/**
+ * The least time between two inbox reads on a platform whose login has a daily inbox cap:
+ * LinkedIn's 48 a day (autobrowse `src/sites/linkedin.ts`) is one every 30 minutes; every 36
+ * keeps 8 for other readers, and warm reads never spend it by noon.
+ */
+const READ_FLOOR_MS: Partial<Record<string, number>> = { linkedin: 36 * 60_000 };
 /** The same for health: it stays on the cold cadence, whatever the inbox does. */
 const HEALTH = "health";
 /** And for the invites sweep, every 6 hours. */
@@ -751,7 +757,8 @@ async function watchPass(
   const everyOf = new Map(
     live.map((a) => {
       const t = view.watched.includes(a.platform) ? null : touches[a.id];
-      return [a.id, warmEveryMs(t ? new Date(t) : null, now, ctx.rand.random())];
+      const warm = warmEveryMs(t ? new Date(t) : null, now, ctx.rand.random());
+      return [a.id, Math.max(warm, READ_FLOOR_MS[a.platform] ?? 0)];
     }),
   );
   const isDue = (a: ReachAccount) =>
@@ -766,6 +773,13 @@ async function watchPass(
   let stopped: string | null = null;
   const stop = (err: unknown) => {
     if (isVendorStop(err)) stopped ??= err.why;
+  };
+  // A used daily cap is no error: the account's next read waits until the cap resets.
+  const capped = (a: ReachAccount, err: unknown) => {
+    const wait = capWaitMs(err);
+    if (wait === null) return false;
+    reads[a.id] = now.getTime() + wait - (everyOf.get(a.id) ?? 0);
+    return true;
   };
   for (const a of live.filter(isDue)) {
     if (stopped) break;
@@ -786,7 +800,7 @@ async function watchPass(
           for (const id of r.replied ?? []) deps.fire(ctx, replyFired(scope.client, "dm", id));
       } catch (err) {
         stop(err);
-        replies.errors.push(`${a.account}: ${errorText(err)}`);
+        if (!capped(a, err)) replies.errors.push(`${a.account}: ${errorText(err)}`);
       }
     // The same inbox read: the adapter asks the platform once for both.
     if (scope.comments && ch.comments && !stopped)
@@ -805,7 +819,7 @@ async function watchPass(
           });
       } catch (err) {
         stop(err);
-        kept.errors.push(`${a.account}: ${errorText(err)}`);
+        if (!capped(a, err)) kept.errors.push(`${a.account}: ${errorText(err)}`);
       }
     if (stopped || now.getTime() - (checked[a.id] ?? 0) < COLD_EVERY_MS) continue;
     checked[a.id] = now.getTime();

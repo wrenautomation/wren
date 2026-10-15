@@ -220,6 +220,18 @@ const waitOf = (message: string) => {
 };
 
 /**
+ * How long a used daily cap holds (a 429 whose wait is hours, as `sites` or a terminal error
+ * carrying its message says it), or null for anything else. A poller waits it out instead of
+ * asking again and calling the refusal an error.
+ */
+export function capWaitMs(err: unknown): number | null {
+  const message = err instanceof Error ? err.message : String(err);
+  if (!/\b429\b/.test(message)) return null;
+  const wait = waitOf(message);
+  return wait !== null && wait > LONG_WAIT_S ? wait * 1000 : null;
+}
+
+/**
  * A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408 and
  * a short 429 can; a 429 whose wait is hours (a used daily cap) cannot, and retrying it would
  * pause the caller's loop until someone resumes it. A 501 (no leg, no recorded workflow yet)

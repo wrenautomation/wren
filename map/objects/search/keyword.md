@@ -20,6 +20,7 @@ AI engines split a question into narrower searches and cite whoever answers the 
 - `search_keywords`: `phrase` unique, `page`, `source` seed / fanout / query, `parent_id`, `retired_at` (`schema.ts:85`)
 - `search_days`: day × query × page, clicks, impressions, position (`schema.ts:28`)
 - `search_pages`: URL × day inspected, verdict, coverage (`schema.ts:55`)
+- Index notices (2026-10-15): a page that flips in or out of the index, or a new page still out 14 days after its first check (`STALE_DAYS`, `sync.ts`). A new page alone is no notice: the watch submits the sitemap to Google (`submitSitemap`, `console.ts`, scope `webmasters`).
 - `search_answers`: engine × keyword × day, cited, rank, sources, "People also ask" (`schema.ts:121`)
 
 Citations: `packages/channel-search/src/schema.ts:85`, `packages/channel-search/src/keywords.ts:69`

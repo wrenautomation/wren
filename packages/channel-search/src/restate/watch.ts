@@ -42,7 +42,7 @@ import { importLanderClicks } from "@wren/sites/store";
 import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
 import { SEARCH_COMPONENT, SEARCH_COMPONENTS, searchSettingsSchema } from "../components.js";
-import { type SearchConsoleClient, sitemapUrls } from "../console.js";
+import { type SearchConsoleClient, sitemapUrls, submitSitemap } from "../console.js";
 import { decideExperiments } from "../experiments.js";
 import { rollupFlags } from "../flag-days.js";
 import { rollupHeat, writeHeatDays } from "../heat.js";
@@ -109,6 +109,8 @@ type WatchStats = SyncStats & {
   heat?: Step<{ rows: number }>;
   clicks?: Step<{ rows: number }>;
   experiments?: Step<{ moved: number; settled: number }>;
+  /** The sitemap URL Google was asked to read again, on a pass that saw new pages. */
+  submitted?: string | { error: string };
 };
 
 /** The site a property names: `sc-domain:example.com` is https://example.com; a URL is its own. */
@@ -276,6 +278,25 @@ export function makeSearchWatch(deps: SearchDeps) {
     if (outcome.stats) outcome.stats.experiments = moved;
     const edge = deps.edge;
     if (edge) await ctx.run("edge flags", () => pushEdge(deps.db, edge));
+    // New pages: Google hears of them by reading the sitemap again, so ask it to.
+    if (outcome.stats?.added?.length) {
+      const sitemap = new URL("/sitemap.xml", deps.origin).href;
+      const sent = await ctx.run("submit sitemap", async () => {
+        try {
+          await submitSitemap(deps.console, deps.site, sitemap);
+          return { ok: true as const };
+        } catch (err) {
+          return { error: errorText(err) };
+        }
+      });
+      outcome.stats.submitted = "error" in sent ? { error: sent.error } : sitemap;
+      if ("error" in sent && deps.notifier) {
+        const notifier = deps.notifier;
+        await ctx.run("notify submit", () =>
+          notifier.notify("search: sitemap submit to Google failed", sent.error, "warning"),
+        );
+      }
+    }
     const changes = outcome.stats?.changes ?? [];
     if (deps.notifier && changes.length) {
       const notifier = deps.notifier;
