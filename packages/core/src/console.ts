@@ -30,6 +30,7 @@ import {
   serializable,
   setAuditActor,
   snapshot,
+  type Tx,
 } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -119,6 +120,7 @@ import {
   workflowRecord,
 } from "./library.js";
 import { doorOf, LOGIC, logicOf, startWith, UNTIL_LABELS, UNTILS } from "./logic.js";
+import { staleRefusal } from "./refusal.js";
 import {
   accessOf,
   answer,
@@ -194,6 +196,7 @@ import {
   SPINE,
   type SpineEvent,
   type SpineService,
+  lockWorkflowSaves,
   savedWorkflows,
   type WorkflowVersion,
   workflowHistory,
@@ -380,6 +383,25 @@ export interface WorkflowSaveRequest extends PortalRequest {
   name?: unknown;
   /** The workflow's id, typed: a workflow with a node that sends, posts or spends needs it. */
   confirm?: string;
+  /**
+   * The newest save the editor read (its draft's or live's id; 0 for none). A save made since
+   * refuses this one as changed elsewhere. Absent: no check (the CLI).
+   */
+  expect?: unknown;
+}
+
+/** The editor's base, checked against the newest save under the lock. */
+async function checkWorkflowBase(
+  tx: Tx,
+  client: string | null,
+  workflow: string,
+  expect: unknown,
+): Promise<void> {
+  const newest = await lockWorkflowSaves(tx, client, workflow);
+  if (expect === undefined || expect === null) return;
+  if (typeof expect !== "number" || !Number.isInteger(expect))
+    throw new PortalRefusal("expect is a save's number", 400, "expect");
+  if (newest !== expect) throw staleRefusal("workflow");
 }
 
 /** A door of a workflow's node: its id, for Reveal and Rotate. */
@@ -3150,6 +3172,7 @@ export function consoleApi({
         ? (flowsWith(workflows, { [w.id]: edits }, components).broken[w.id] ?? [])
         : [];
       const id = await atomic(main, async (tx) => {
+        await checkWorkflowBase(tx, client, w.id, req.expect);
         // One draft at a time: the newer one replaces it.
         await tx.execute(sql`DELETE FROM workflow_saves WHERE NOT live AND workflow = ${w.id}
           AND client IS NOT DISTINCT FROM ${client}`);
@@ -3181,22 +3204,24 @@ export function consoleApi({
         const asked = await askTemplate(main, t, { client, by });
         return { id: 0, asked: asked.id };
       }
-      const { draft } = await workflowHistory(main, client, w.id);
-      if (!draft) throw new PortalRefusal("there's no draft to publish", 409);
-      const next = flowsWith(workflows, draft.edits ? { [w.id]: draft.edits } : {}, components);
-      const bad = next.broken[w.id];
-      if (bad) throw new PortalRefusal(bad.join("; "), 400);
-      const effects = workflowEffects(w.id, next.flows, components);
-      if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
-        throw new PortalRefusal("it sends: only an admin can make it live", 403);
-      if (effects.includes("spends") && !teamCan(req, "money", WREN))
-        throw new PortalRefusal("it spends: only an admin can make it live", 403);
-      if (effects.length && req.confirm !== w.id)
-        throw new PortalRefusal(`it ${effects.join(" and ")}: type ${w.id} to confirm`, 400);
-      // Publishing keeps the switch where it was: an off workflow stays off.
-      const wasOff = (await savedWorkflows(main, client))[w.id]?.edits?.off === true;
-      const edits = wasOff && draft.edits ? { ...draft.edits, off: true } : draft.edits;
+      // The draft read under the lock, so a save landing meanwhile is never published stale.
       return atomic(main, async (tx) => {
+        await checkWorkflowBase(tx, client, w.id, req.expect);
+        const { draft } = await workflowHistory(tx, client, w.id);
+        if (!draft) throw new PortalRefusal("there's no draft to publish", 409);
+        const next = flowsWith(workflows, draft.edits ? { [w.id]: draft.edits } : {}, components);
+        const bad = next.broken[w.id];
+        if (bad) throw new PortalRefusal(bad.join("; "), 400);
+        const effects = workflowEffects(w.id, next.flows, components);
+        if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
+          throw new PortalRefusal("it sends: only an admin can make it live", 403);
+        if (effects.includes("spends") && !teamCan(req, "money", WREN))
+          throw new PortalRefusal("it spends: only an admin can make it live", 403);
+        if (effects.length && req.confirm !== w.id)
+          throw new PortalRefusal(`it ${effects.join(" and ")}: type ${w.id} to confirm`, 400);
+        // Publishing keeps the switch where it was: an off workflow stays off.
+        const wasOff = (await savedWorkflows(tx, client))[w.id]?.edits?.off === true;
+        const edits = wasOff && draft.edits ? { ...draft.edits, off: true } : draft.edits;
         const [row] = await tx
           .insert(workflowSaves)
           .values({ client, workflow: w.id, edits, live: true, by })
@@ -3225,26 +3250,30 @@ export function consoleApi({
       const on = req.on;
       if (!isMade(w.id))
         throw new PortalRefusal("a built-in workflow runs by its loops: switch those", 409);
-      const live = (await savedWorkflows(main, client))[w.id];
-      if (!live?.edits) throw new PortalRefusal("it isn't live yet: publish it first", 409);
-      const next = flowsWith(workflows, { [w.id]: live.edits }, components);
-      const flow = next.flows.find((f) => f.id === w.id) as Workflow;
-      if (on) {
-        const effects = workflowEffects(w.id, next.flows, components);
-        if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
-          throw new PortalRefusal("it sends: only an admin can switch it on", 403);
-        if (effects.includes("spends") && !teamCan(req, "money", WREN))
-          throw new PortalRefusal("it spends: only an admin can switch it on", 403);
-      }
-      if ((live.edits.off === true) === !on) return { id: live.id, on, start: [], stop: [] };
-      const { off: _, ...rest } = live.edits;
-      const edits: WorkflowEdits = on ? rest : { ...rest, off: true };
-      const [row] = await main
-        .insert(workflowSaves)
-        .values({ client, workflow: w.id, edits, live: true, by })
-        .returning({ id: workflowSaves.id });
-      const clocks = clocksOf(client, flow);
-      return { id: row?.id ?? 0, on, start: on ? clocks : [], stop: on ? [] : clocks };
+      // Under the lock: a publish landing meanwhile is switched, never reverted to the old graph.
+      return atomic(main, async (tx) => {
+        await lockWorkflowSaves(tx, client, w.id);
+        const live = (await savedWorkflows(tx, client))[w.id];
+        if (!live?.edits) throw new PortalRefusal("it isn't live yet: publish it first", 409);
+        const next = flowsWith(workflows, { [w.id]: live.edits }, components);
+        const flow = next.flows.find((f) => f.id === w.id) as Workflow;
+        if (on) {
+          const effects = workflowEffects(w.id, next.flows, components);
+          if (effects.some((e) => e !== "spends") && !teamCan(req, "effect", WREN))
+            throw new PortalRefusal("it sends: only an admin can switch it on", 403);
+          if (effects.includes("spends") && !teamCan(req, "money", WREN))
+            throw new PortalRefusal("it spends: only an admin can switch it on", 403);
+        }
+        if ((live.edits.off === true) === !on) return { id: live.id, on, start: [], stop: [] };
+        const { off: _, ...rest } = live.edits;
+        const edits: WorkflowEdits = on ? rest : { ...rest, off: true };
+        const [row] = await tx
+          .insert(workflowSaves)
+          .values({ client, workflow: w.id, edits, live: true, by })
+          .returning({ id: workflowSaves.id });
+        const clocks = clocksOf(client, flow);
+        return { id: row?.id ?? 0, on, start: on ? clocks : [], stop: on ? [] : clocks };
+      });
     },
     /** The doors into a workflow, for its node panel: masked, with their calls. */
     async workflowDoors(req: DoorRequest): Promise<Door[]> {
@@ -3291,10 +3320,13 @@ export function consoleApi({
       const { w, client } = await workflowFor(req);
       if (isMade(w.id) && !(await savedWorkflows(main, client))[w.id])
         throw new PortalRefusal("it was never published: delete it instead", 409);
-      const gone = (await main.execute(sql`DELETE FROM workflow_saves WHERE NOT live
-        AND workflow = ${w.id} AND client IS NOT DISTINCT FROM ${client}
-        RETURNING id`)) as unknown as unknown[];
-      return { done: gone.length };
+      return atomic(main, async (tx) => {
+        await checkWorkflowBase(tx, client, w.id, req.expect);
+        const gone = (await tx.execute(sql`DELETE FROM workflow_saves WHERE NOT live
+          AND workflow = ${w.id} AND client IS NOT DISTINCT FROM ${client}
+          RETURNING id`)) as unknown as unknown[];
+        return { done: gone.length };
+      });
     },
     /**
      * Ask Claude on the graph: the run row holding the prompt, for `Ask/edit` to answer with the

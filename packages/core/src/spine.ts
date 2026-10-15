@@ -8,7 +8,7 @@
  */
 
 import * as restate from "@restatedev/restate-sdk";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, desc, eq, isNull, type SQL, sql } from "drizzle-orm";
 import { CODE_STEPS } from "./code-step.js";
@@ -706,7 +706,7 @@ export interface SavedWorkflow {
 
 /** The newest save of each workflow for `client` (null: Wren's), by workflow id. */
 export async function savedWorkflows(
-  db: Db,
+  db: Queryable,
   client: string | null,
 ): Promise<Record<string, SavedWorkflow>> {
   const rows = await db
@@ -772,6 +772,25 @@ export async function workflowHistory(
       .slice(0, 15)
       .map(one),
   };
+}
+
+/**
+ * One writer at a time on a workflow's saves, until `tx` ends; answers its newest save's id (a
+ * draft or live; 0 for none), the base an editor sends back as `expect`.
+ */
+export async function lockWorkflowSaves(
+  tx: Tx,
+  client: string | null,
+  workflow: string,
+): Promise<number> {
+  await tx.execute(
+    sql`SELECT pg_advisory_xact_lock(hashtext(${`workflow_saves:${client ?? ""}:${workflow}`}))`,
+  );
+  const rows = (await tx.execute(sql`SELECT coalesce(max(id), 0)::int AS id FROM workflow_saves
+    WHERE workflow = ${workflow} AND client IS NOT DISTINCT FROM ${client}`)) as unknown as {
+    id: number;
+  }[];
+  return Number(rows[0]?.id ?? 0);
 }
 
 /** One save's wiring, live or not: what a subject that entered on it still walks. */
@@ -847,14 +866,18 @@ export async function dropMade(
     client === null ? isNull(workflowSaves.client) : eq(workflowSaves.client, client),
     eq(workflowSaves.workflow, workflow),
   );
-  const [live] = await db
-    .select({ id: workflowSaves.id })
-    .from(workflowSaves)
-    .where(and(at, eq(workflowSaves.live, true)))
-    .limit(1);
-  if (live) throw new MadeLive();
-  const gone = await db.delete(workflowSaves).where(at).returning({ id: workflowSaves.id });
-  return { done: gone.length };
+  // Locked, so a publish can't land between the check and the delete.
+  return atomic(db, async (tx) => {
+    await lockWorkflowSaves(tx, client, workflow);
+    const [live] = await tx
+      .select({ id: workflowSaves.id })
+      .from(workflowSaves)
+      .where(and(at, eq(workflowSaves.live, true)))
+      .limit(1);
+    if (live) throw new MadeLive();
+    const gone = await tx.delete(workflowSaves).where(at).returning({ id: workflowSaves.id });
+    return { done: gone.length };
+  });
 }
 
 /** Deleting a workflow that runs: publish it empty first, so nothing new enters it. */

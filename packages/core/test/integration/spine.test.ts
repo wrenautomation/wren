@@ -226,6 +226,43 @@ describe("workflow saves", () => {
     expect(await pg.db.select().from(workflowSaves)).toHaveLength(2);
   });
 
+  it("refuses a save, publish or discard over a base that moved, in plain words", async () => {
+    const g = defineWorkflow({ ...flow, id: "g", name: "G" });
+    const api = consoleApi({ main: pg.db, views: [], components: [part], workflows: [g] });
+    const wires = [{ from: "n.replied", to: "out.replied", via: "events", label: "replies" }];
+    const mine = { ...operator, workflow: "g", wires, steps: [] };
+    // Opened with nothing saved: base 0.
+    const first = await api.workflowSave({ ...mine, expect: 0 });
+    // A second tab saved since it opened: refused, nothing written.
+    await expect(api.workflowSave({ ...mine, expect: 0 })).rejects.toThrow(
+      "This workflow changed since you opened it. Look again.",
+    );
+    await expect(api.workflowPublish({ ...operator, workflow: "g", expect: 0 })).rejects.toThrow(
+      "changed since you opened it",
+    );
+    await expect(api.workflowDiscard({ ...operator, workflow: "g", expect: 0 })).rejects.toThrow(
+      "changed since you opened it",
+    );
+    // On the save it read, each goes ahead.
+    const next = await api.workflowSave({ ...mine, expect: first.id });
+    const live = await api.workflowPublish({ ...operator, workflow: "g", expect: next.id });
+    expect((await savedWorkflows(pg.db, null)).g?.id).toBe(live.id);
+    await expect(api.workflowSave({ ...mine, expect: "1" })).rejects.toThrow(
+      "expect is a save's number",
+    );
+    // Two saves at once on the same base: one lands, the other is told.
+    const both = await Promise.allSettled([
+      api.workflowSave({ ...mine, expect: live.id }),
+      api.workflowSave({ ...mine, expect: live.id }),
+    ]);
+    expect(both.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const drafts = await pg.db
+      .select()
+      .from(workflowSaves)
+      .where(sql`workflow = 'g' AND NOT live`);
+    expect(drafts).toHaveLength(1);
+  });
+
   it("asks a sending workflow's id typed back before it goes live", async () => {
     const sends = defineComponent({ ...part, id: "s", effects: ["sends"] });
     const loud = defineWorkflow({ ...flow, id: "loud", nodes: [{ id: "n", uses: "s" }] });
