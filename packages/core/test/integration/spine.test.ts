@@ -256,10 +256,7 @@ describe("workflow saves", () => {
       api.workflowSave({ ...mine, expect: live.id }),
     ]);
     expect(both.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-    const drafts = await pg.db
-      .select()
-      .from(workflowSaves)
-      .where(sql`workflow = 'g' AND NOT live`);
+    const drafts = await pg.db.select().from(workflowSaves).where(sql`workflow = 'g' AND NOT live`);
     expect(drafts).toHaveLength(1);
   });
 
