@@ -46,7 +46,15 @@ import {
   useRun,
 } from "./action.js";
 import { CardHead, CardStrip, FormSwitch, GRID, morphTo, RecordCard } from "./card-grid.js";
-import { type CardOption, cardOf, type ListForm, listFormOf, listFormParam } from "./cards.js";
+import {
+  type CardOption,
+  cardOf,
+  cardWords,
+  type ListForm,
+  listFormOf,
+  listFormParam,
+  opensAs,
+} from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
@@ -1189,7 +1197,8 @@ function List({
   // The page the address names: `pg` from 1, read as rows to skip.
   const at = pageAt(params.get("pg"));
   // Rows or cards: the address's, drawn from `form` so a switch moves each row into its card.
-  const wanted = listFormOf(params, card);
+  const narrow = useNarrow();
+  const wanted = listFormOf(params, card, narrow);
   const [form, setForm] = useState(wanted);
   useEffect(() => setForm(wanted), [wanted]);
   const spec = card === false ? undefined : card;
@@ -1255,7 +1264,6 @@ function List({
   /** Whether a row waits on the viewer; null where the page names nothing that waits. */
   const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
   const pages = pagesOf(page.data?.total ?? 0);
-  const narrow = useNarrow();
   const cols = shownColumns(meta, columnsOf(meta, params, columns), rows, {
     byHand: params.has("cols"),
     narrow,
@@ -1306,7 +1314,7 @@ function List({
     morphTo(
       frame.current,
       () => setForm(to),
-      () => place.go(place.link(listFormParam(to)), true),
+      () => place.go(place.link(listFormParam(to, opensAs(card, narrow))), true),
     );
   };
   const saved = useSavedViews(api.keep, meta.id);
@@ -1647,6 +1655,7 @@ function List({
                       const waiting = waits(r);
                       const replies = replyOn(r);
                       const { main, more } = rowActsOf(actions, r, !!replies);
+                      const said = cardWords(parts, (key) => wordsOf(meta, r, key));
                       return (
                         <Fragment key={id}>
                           {split > 0 && (i === 0 || i === split) ? (
@@ -1671,9 +1680,10 @@ function List({
                             parts={parts}
                             thumb={thumbs?.[id]}
                             pending={pictured && !thumbs}
-                            title={titleOf(meta, r)}
+                            title={said.title}
                             titleClass={TITLE_WEIGHT[String(waiting)] ?? ""}
-                            body={parts.body ? firstWords(textOf(r[parts.body.key])) : ""}
+                            body={firstWords(said.body)}
+                            spent={said.spent}
                             quiet={waiting === false}
                             href={place.link({ [meta.name.one]: id, tab: null })}
                             cursor={i === cursor}

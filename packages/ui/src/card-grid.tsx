@@ -211,6 +211,7 @@ export function RecordCard({
   title,
   titleClass,
   body,
+  spent,
   quiet,
   href,
   cursor,
@@ -233,6 +234,8 @@ export function RecordCard({
   title: string;
   titleClass: string;
   body: string;
+  /** Fields the title and body already said: the facts leave them out. */
+  spent: readonly string[];
   /** For info: its words read quieter. */
   quiet: boolean;
   href: string;
@@ -250,7 +253,7 @@ export function RecordCard({
   const value = (f: FieldMeta | null) => (f ? row[f.key] : undefined);
   const mark = parts.mark ? cueOf(parts.mark, String(value(parts.mark) ?? "")) : null;
   const badge = parts.badge && !blank(value(parts.badge)) ? parts.badge : null;
-  const facts = parts.facts.filter((f) => !blank(row[f.key]));
+  const facts = parts.facts.filter((f) => !blank(row[f.key]) && !spent.includes(f.key));
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: the list's keys walk and open it; its title is the link.
     <li
@@ -301,7 +304,12 @@ export function RecordCard({
       </label>
       <div className="grid min-w-0 gap-2 p-3">
         {mark || badge ? (
-          <div className={cn("flex min-w-0 items-center gap-2 text-[12.5px]", !media && "pr-8")}>
+          <div
+            className={cn(
+              "flex min-w-0 items-center gap-2 text-[12.5px]",
+              !media && "pr-8 pointer-coarse:pr-13",
+            )}
+          >
             {mark ? (
               <span className="inline-flex shrink-0" {...tipProps(mark.label)}>
                 <Cue state={mark} size={16} />
@@ -318,6 +326,7 @@ export function RecordCard({
           href={href}
           className={cn(
             "line-clamp-2 text-[14px] leading-snug no-underline wrap-anywhere",
+            !media && "pointer-coarse:pr-13",
             !media && !mark && !badge && "pr-8",
             titleClass,
           )}

@@ -1,7 +1,7 @@
 /** A list's cards: what each card shows by default, the address's form, and what a list keeps. */
 import { date, defineRecord, metaOf, name, number, prose, status, text } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
-import { cardOf, listFormOf, listFormParam } from "./cards.js";
+import { cardOf, cardWords, listFormOf, listFormParam, opensAs } from "./cards.js";
 import { keptOf, lastOf, restoreOf } from "./list-bar.js";
 
 const two = {
@@ -100,6 +100,33 @@ describe("cardOf with a spec", () => {
   });
 });
 
+describe("cardOf with fields tried in turn", () => {
+  it("a title and a body from the first field a row fills, the record's title last", () => {
+    const meta = rec({ site: true });
+    const card = cardOf(meta, columns(meta), { title: ["city", "note"], body: ["note", "city"] });
+    expect(keys(card.titles)).toEqual(["city", "note", "who"]);
+    expect(card.title?.key).toBe("city");
+    expect(keys(card.bodies)).toEqual(["note", "city"]);
+    expect(card.body?.key).toBe("note");
+  });
+  it("the words come from the first filled field, and those fields are spent", () => {
+    const meta = rec({ site: true });
+    const card = cardOf(meta, columns(meta), { title: "city", body: ["note", "city"] });
+    const row: Record<string, string> = { who: "Ann", city: "", note: "hello" };
+    const read = (k: string) => row[k] ?? "";
+    expect(cardWords(card, read)).toEqual({ title: "Ann", body: "hello", spent: ["who", "note"] });
+    row.city = "Oslo";
+    row.note = "";
+    expect(cardWords(card, read)).toEqual({ title: "Oslo", body: "Oslo", spent: ["city", "city"] });
+  });
+  it("a spec that names neither reads the record's title", () => {
+    const meta = rec({});
+    const card = cardOf(meta, columns(meta));
+    expect(keys(card.titles)).toEqual(["who"]);
+    expect(card.bodies).toEqual([]);
+  });
+});
+
 describe("listFormOf", () => {
   const p = (s: string) => new URLSearchParams(s);
   it("cards only when the address says so and the page has them", () => {
@@ -112,6 +139,29 @@ describe("listFormOf", () => {
   it("rows leave the address", () => {
     expect(listFormParam("rows")).toEqual({ as: null });
     expect(listFormParam("cards")).toEqual({ as: "cards" });
+  });
+  it("a page that asks opens as cards on a phone only", () => {
+    const queue = { phone: "cards" as const };
+    expect(opensAs(queue, true)).toBe("cards");
+    expect(opensAs(queue, false)).toBe("rows");
+    expect(opensAs({}, true)).toBe("rows");
+    expect(opensAs(undefined, true)).toBe("rows");
+    expect(opensAs(false, true)).toBe("rows");
+    expect(listFormOf(p(""), queue, true)).toBe("cards");
+    expect(listFormOf(p(""), queue, false)).toBe("rows");
+    expect(listFormOf(p(""), {}, true)).toBe("rows");
+  });
+  it("his pick on a phone wins, rows too", () => {
+    const queue = { phone: "cards" as const };
+    expect(listFormOf(p("as=rows"), queue, true)).toBe("rows");
+    expect(listFormOf(p("as=cards"), queue, true)).toBe("cards");
+    expect(listFormOf(p("as=cards"), queue, false)).toBe("cards");
+    expect(listFormOf(p("as=cards"), false, true)).toBe("rows");
+  });
+  it("the form a page opens as leaves the address; the other one names itself", () => {
+    expect(listFormParam("cards", "cards")).toEqual({ as: null });
+    expect(listFormParam("rows", "cards")).toEqual({ as: "rows" });
+    expect(listFormParam("rows", "rows")).toEqual({ as: null });
   });
 });
 
@@ -151,6 +201,15 @@ describe("rows or cards as a list pref", () => {
     expect(restoreOf({ sv: 4, as: "cards" }, p(""), false, new Set([4]))).toEqual({ sv: 4 });
     expect(restoreOf({ sv: 4, as: "cards" }, p(""), false, new Set())).toEqual({
       change: { view: null, sort: null, cols: null, as: "cards" },
+    });
+  });
+  it("a rows pick on a phone page is kept and restored like cards", () => {
+    expect(lastOf(p("as=rows"))).toEqual({ as: "rows" });
+    expect(restoreOf({ as: "rows" }, p(""), false)).toEqual({
+      change: { view: null, sort: null, cols: null, as: "rows" },
+    });
+    expect(restoreOf({ as: "rows" }, p("view=waiting"), false)).toEqual({
+      change: { as: "rows" },
     });
   });
   it("nothing kept, nothing changed", () => {
