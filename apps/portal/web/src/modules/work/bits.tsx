@@ -42,13 +42,15 @@ export function dayLabel(day: string | null, thisYear = new Date().getFullYear()
   return Number(y) === thisYear ? md : `${md}, ${y}`;
 }
 
-/** The client's engagements, reloaded after a write (`reload`). */
+/**
+ * The client's engagements, read again after a write (`reload`). One key for every read, so a
+ * reload replaces the kept answer rather than leaving an old one a page load would draw.
+ */
 export function useWork({ client, team }: PageProps) {
-  const [nonce, setNonce] = useState(0);
-  const home = useCall(`work:${client}:${team}:${nonce}`, () =>
+  const home = useCall(`work:${client}:${team}`, () =>
     call<DeliveryHome>("delivery/home", { client, asClient: !team }),
   );
-  return { ...home, reload: () => setNonce((n) => n + 1) };
+  return { ...home, reload: home.retry };
 }
 
 /** The engagements this app shows: a product's app its own, the work app all of them. */

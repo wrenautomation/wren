@@ -23,8 +23,8 @@ import { at } from "./nav.js";
 
 export function Contract(props: PageProps) {
   const engagementId = Number(props.params.get("e")) || undefined;
-  const [nonce, setNonce] = useState(0);
-  const c = useCall(`contract:${props.client}:${props.team}:${engagementId}:${nonce}`, () =>
+  // One key for every read: a reload replaces the kept answer, never adds a new one.
+  const c = useCall(`contract:${props.client}:${props.team}:${engagementId}`, () =>
     call<ContractView>("delivery/contract", {
       client: props.client,
       asClient: !props.team,
@@ -90,9 +90,7 @@ export function Contract(props: PageProps) {
           </p>
         </div>
       </article>
-      {!k.signed && !props.team ? (
-        <Sign k={k} props={props} onSigned={() => setNonce((n) => n + 1)} />
-      ) : null}
+      {!k.signed && !props.team ? <Sign k={k} props={props} onSigned={c.retry} /> : null}
     </>
   );
 }
