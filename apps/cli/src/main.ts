@@ -53,6 +53,7 @@ import { registerPeople } from "./people.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
+import { registerSegments } from "./segments.js";
 import { registerSitePages } from "./site-pages.js";
 import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
@@ -127,6 +128,8 @@ const CLIENT_SCOPED = new Set([
   "learn",
   "notes",
   "people",
+  "segments",
+  "channels",
   "sites",
   "templates",
   "workflows",
@@ -315,6 +318,7 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
+registerSegments(program, { withDb });
 registerPeople(program, {
   withDb,
   withMainDb,

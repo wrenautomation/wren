@@ -158,6 +158,17 @@ Notes has a kanban Board. A card is a note, so it keeps a body, comments and his
 
 On the page, Board has Export CSV and Import. Import takes a CSV or a table pasted from Sheets, asks which column is which once, and updates the card when a row's link points at one.
 
+## Segments and channels
+
+A segment's rule reads as text, so agents write it the way the portal stores it:
+`all(trait persona is "agency owner", step saw on reddit in 30d, not message opened on email ever)`.
+`wren segments check|count <rule>` reads one and counts it; `save <name> --rule <rule>` makes or
+changes one (each save is a version, `history <segment>` lists them); `list`, `show`, `members`,
+and `in <segment> <id|email>` (exits 1 when not). A rule can be inline, `@file` or `-` for stdin.
+`wren channels` prints each channel's funnel, reached to paid (`--by source|trait:<key>`,
+`--channel`, `--days`, `--segment`, `--rule`, `--attribution any|first|last`,
+`--people <key>:<step>` for the people behind one number, `--json`).
+
 ## SOPs
 
 `wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n] [--no-screen]`

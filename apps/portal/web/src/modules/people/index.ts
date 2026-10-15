@@ -1,11 +1,12 @@
 /**
  * People (designs/2026-10-14-customerio-audit.md, B1): one profile per person in the workspace,
- * every address it goes by, its traits and its timeline. B2's sent log, B5's segments and B6's
- * broadcasts live here too.
+ * every address it goes by, its traits and its timeline. B2's sent log, B5's segments, B6's
+ * broadcasts and Channels (each channel's funnel) live here too.
  * One address, two apps: a client's own people and Wren's.
  */
 import type { Module, ModulePage } from "../../module.js";
 import { broadcastsPage, recipientsPage } from "./broadcasts.js";
+import { channelsPage } from "./channels.js";
 import { PERSON_CARD } from "./cards.js";
 import { importPage } from "./import.js";
 import { addToSegment, membersPage, segmentsPage } from "./segments.js";
@@ -48,6 +49,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
   },
   sentPage,
   segmentsPage,
+  channelsPage,
   broadcastsPage,
   recipientsPage,
   {

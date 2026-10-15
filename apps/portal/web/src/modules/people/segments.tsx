@@ -5,7 +5,13 @@
  * came and went, and edits it. Nothing here sends.
  */
 
-import { TIMELINE_KIND_NAMES, TIMELINE_KINDS } from "@wren/core/profiles-schema";
+import {
+  FUNNEL_STEP_NAMES,
+  FUNNEL_STEPS,
+  STAT_CHANNEL_NAMES,
+  STAT_CHANNELS,
+} from "@wren/core/channel-stats-schema";
+import { TIMELINE_KIND_NAMES, TIMELINE_KINDS, type TimelineKind } from "@wren/core/profiles-schema";
 import type { SegmentDetail } from "@wren/core/segment-records";
 import {
   CONSENT_CHANNELS,
@@ -17,8 +23,10 @@ import {
   type Node,
   RULE_MOST,
   type Rule,
+  type SegmentVersion,
   TRAIT_OPS,
 } from "@wren/core/segments";
+import { parseRule, ruleText } from "@wren/core/segments-text";
 import type { Action } from "@wren/ui";
 import { ACTIONS, Button, Input, type RecordAct, type RecordExtras, Tag, Textarea } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
@@ -71,6 +79,7 @@ const CONDITION_KINDS: Record<Condition["kind"], string> = {
   message: "A message we sent",
   consent: "Consent",
   segment: "In a segment",
+  step: "Funnel step",
 };
 const CONSENT_LABELS: Record<string, string> = {
   confirmed: "said yes",
@@ -85,6 +94,14 @@ const CHANNEL_LABELS: Record<string, string> = {
   linkedin: "LinkedIn",
   reddit: "Reddit",
   x: "X",
+  instagram: "Instagram",
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+};
+const ANCHORS: Record<string, string> = {
+  "": "any time",
+  ...Object.fromEntries(TIMELINE_KINDS.map((k) => [k, `their first ${TIMELINE_KIND_NAMES[k]}`])),
 };
 const EMPTY: Rule = { kind: "group", match: "all", of: [] };
 
@@ -101,6 +118,8 @@ function fresh(kind: Condition["kind"], c: Context): Condition {
       return { kind, channel: "email", state: "confirmed" };
     case "segment":
       return { kind, segment: c.segments[0]?.id ?? 0 };
+    case "step":
+      return { kind, step: "replied", days: 30 };
   }
 }
 
@@ -147,28 +166,54 @@ function Pick<T extends string>({
   );
 }
 
-/** "at least N times in the last D days"; an empty D is ever. */
-function Times({
-  atLeast,
-  days,
-  set,
-}: {
-  atLeast: number;
-  days: number | null;
-  set: (p: { atLeast?: number; days?: number | null }) => void;
-}) {
+type Count = { atLeast: number; atMost?: number | undefined; days: number | null };
+const HOW: Record<string, string> = { least: "at least", most: "at most", never: "never" };
+
+/** "at least N times", "at most N times" or "never", in the last D days; an empty D is ever. */
+function Times({ atLeast, atMost, days, set }: Count & { set: (p: Partial<Count>) => void }) {
+  const how = atMost === 0 ? "never" : atMost !== undefined ? "most" : "least";
+  const n = how === "most" ? (atMost ?? 1) : atLeast;
   return (
     <>
-      <span className={QUIET}>at least</span>
-      <Input
-        aria-label="At least how many times"
-        className={NUM}
-        type="number"
-        min={1}
-        value={atLeast}
-        onChange={(e) => set({ atLeast: Math.max(1, Number(e.target.value) || 1) })}
+      <Pick
+        label="How often"
+        value={how}
+        options={HOW}
+        onChange={(v) =>
+          set(
+            v === "never"
+              ? { atLeast: 0, atMost: 0 }
+              : v === "most"
+                ? { atLeast: 0, atMost: Math.max(1, n) }
+                : { atLeast: Math.max(1, n), atMost: undefined },
+          )
+        }
       />
-      <span className={QUIET}>times in the last</span>
+      {how === "never" ? null : (
+        <>
+          <Input
+            aria-label="How many times"
+            className={NUM}
+            type="number"
+            min={1}
+            value={n}
+            onChange={(e) => {
+              const v = Math.max(1, Number(e.target.value) || 1);
+              set(how === "most" ? { atMost: v } : { atLeast: v });
+            }}
+          />
+          <span className={QUIET}>times</span>
+        </>
+      )}
+      <span className={QUIET}>in the last</span>
+      <Days days={days} set={set} />
+    </>
+  );
+}
+
+function Days({ days, set }: { days: number | null; set: (p: { days: number | null }) => void }) {
+  return (
+    <>
       <Input
         aria-label="In the last how many days (empty is ever)"
         className={NUM}
@@ -180,6 +225,29 @@ function Times({
       />
       <span className={QUIET}>days</span>
     </>
+  );
+}
+
+/** Free words a condition narrows by: a channel, a subject, a campaign. Empty is any. */
+function Words({
+  label,
+  value,
+  placeholder,
+  set,
+}: {
+  label: string;
+  value: string | undefined;
+  placeholder: string;
+  set: (v: string | undefined) => void;
+}) {
+  return (
+    <Input
+      aria-label={label}
+      className="w-36 max-sm:w-full"
+      placeholder={placeholder}
+      value={value ?? ""}
+      onChange={(e) => set(e.target.value.trim() ? e.target.value : undefined)}
+    />
   );
 }
 
@@ -235,7 +303,13 @@ function ConditionRow({
               aria-label="Value"
               className="w-40 max-sm:w-full"
               type={["gt", "lt", "in_next", "in_last"].includes(c.op) ? "number" : "text"}
-              placeholder={["before", "after"].includes(c.op) ? "2026-12-31" : ""}
+              placeholder={
+                ["before", "after"].includes(c.op)
+                  ? "2026-12-31"
+                  : c.op === "one_of"
+                    ? "a, b, c"
+                    : ""
+              }
               value={c.value ?? ""}
               onChange={(e) =>
                 set({
@@ -256,7 +330,34 @@ function ConditionRow({
             options={Object.fromEntries(TIMELINE_KINDS.map((k) => [k, TIMELINE_KIND_NAMES[k]]))}
             onChange={(event) => set({ event })}
           />
-          <Times atLeast={c.atLeast} days={c.days} set={set} />
+          <span className={QUIET}>on</span>
+          <Words
+            label="Channel"
+            value={c.channel}
+            placeholder="any channel"
+            set={(v) => set({ channel: v?.trim().toLowerCase() })}
+          />
+          <Words
+            label="Matching words"
+            value={c.match}
+            placeholder="matching words"
+            set={(match) => set({ match })}
+          />
+          <Times atLeast={c.atLeast} atMost={c.atMost} days={c.days} set={set} />
+          <span className={QUIET}>after</span>
+          <Pick
+            label="Only after"
+            value={c.after?.event ?? ""}
+            options={ANCHORS}
+            onChange={(v) => set({ after: v ? { event: v as TimelineKind } : undefined })}
+          />
+          <span className={QUIET}>before</span>
+          <Pick
+            label="Only before"
+            value={c.before?.event ?? ""}
+            options={ANCHORS}
+            onChange={(v) => set({ before: v ? { event: v as TimelineKind } : undefined })}
+          />
         </>
       ) : null}
       {c.kind === "message" ? (
@@ -274,7 +375,41 @@ function ConditionRow({
             options={Object.fromEntries(MESSAGE_CHANNELS.map((k) => [k, CHANNEL_LABELS[k] ?? k]))}
             onChange={(channel) => set({ channel })}
           />
-          <Times atLeast={c.atLeast} days={c.days} set={set} />
+          <Words
+            label="Campaign"
+            value={c.campaign}
+            placeholder="any campaign"
+            set={(campaign) => set({ campaign })}
+          />
+          <Times atLeast={c.atLeast} atMost={c.atMost} days={c.days} set={set} />
+        </>
+      ) : null}
+      {c.kind === "step" ? (
+        <>
+          <Pick
+            label="Step"
+            value={c.step}
+            options={Object.fromEntries(FUNNEL_STEPS.map((k) => [k, FUNNEL_STEP_NAMES[k]]))}
+            onChange={(step) => set({ step })}
+          />
+          <span className={QUIET}>on</span>
+          <Pick
+            label="Channel"
+            value={c.channel ?? ""}
+            options={{
+              "": "any channel",
+              ...Object.fromEntries(STAT_CHANNELS.map((k) => [k, STAT_CHANNEL_NAMES[k]])),
+            }}
+            onChange={(v) => set({ channel: v || undefined })}
+          />
+          <Words
+            label="From"
+            value={c.source}
+            placeholder="any campaign or post"
+            set={(source) => set({ source })}
+          />
+          <span className={QUIET}>in the last</span>
+          <Days days={c.days} set={set} />
         </>
       ) : null}
       {c.kind === "consent" ? (
@@ -436,6 +571,9 @@ export function SegmentEditor({
   const [unready, setUnready] = useState<string | null>(null);
   const [busy, setBusy] = useState<"describe" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** The rule as text while it's edited that way; null shows the boxes. */
+  const [text, setText] = useState<string | null>(null);
+  const [textProblems, setTextProblems] = useState<string[]>([]);
   const asked = useRef(0);
   /** One save at a time, whatever the render says. */
   const saving = useRef(false);
@@ -525,7 +663,7 @@ export function SegmentEditor({
     );
   const others = { ...ctx, segments: ctx.segments.filter((s) => s.id !== start.id) };
   const n = count(rule);
-  const canSave = !!name.trim() && (!ruled || n > 0) && !busy;
+  const canSave = !!name.trim() && (!ruled || n > 0) && !busy && text === null;
 
   return (
     <div className="flex w-full min-w-0 basis-full flex-col gap-4 border border-(--ui-hair) p-3">
@@ -608,7 +746,60 @@ export function SegmentEditor({
           ) : null}
           <fieldset className="m-0 min-w-0 border-0 p-0">
             <legend className="mb-2 p-0 text-[13px] font-medium">Rule</legend>
-            <GroupBox g={rule} ctx={others} depth={0} total={n} onChange={setRule} />
+            {text === null ? (
+              <GroupBox g={rule} ctx={others} depth={0} total={n} onChange={setRule} />
+            ) : (
+              <div className="flex min-w-0 flex-col gap-2">
+                <Textarea
+                  aria-label="Rule as text"
+                  rows={Math.min(14, text.split("\n").length + 2)}
+                  className="font-mono text-[13px]"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                />
+                {textProblems.length ? (
+                  <ul className={`m-0 list-none p-0 ${ERROR}`} role="alert">
+                    {textProblems.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 pt-2">
+              {text === null ? (
+                <Button
+                  size="dense"
+                  tone="quiet"
+                  onClick={() => {
+                    setText(
+                      ruleText(pruned(rule), new Map(ctx.segments.map((s) => [s.id, s.name]))),
+                    );
+                    setTextProblems([]);
+                  }}
+                >
+                  Edit as text
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="dense"
+                    onClick={() => {
+                      const got = parseRule(text, new Map(ctx.segments.map((s) => [s.name, s.id])));
+                      if ("problems" in got) return setTextProblems(got.problems);
+                      setRule(got.rule);
+                      setText(null);
+                      setTextProblems([]);
+                    }}
+                  >
+                    Use this text
+                  </Button>
+                  <Button size="dense" tone="quiet" onClick={() => setText(null)}>
+                    Back to boxes
+                  </Button>
+                </>
+              )}
+            </div>
           </fieldset>
           {preview ? (
             <div className="grid gap-1 text-[14px]" role="status">
@@ -728,7 +919,49 @@ function RuleSection({
           </Button>
         </div>
       ) : null}
+      <Versions client={client} id={Number(row.id)} at={d.version} />
     </div>
+  );
+}
+
+/** Every save of a segment, newest first, each rule as text. */
+function Versions({ client, id, at }: { client: string; id: number; at: string }) {
+  const [list, setList] = useState<SegmentVersion[] | null>(null);
+  const [open, setOpen] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: again after each save
+  useEffect(() => {
+    if (!open) return;
+    call<{ versions: SegmentVersion[] }>("people/segmentVersions", { ...atOf(client), id }).then(
+      (g) => setList(g.versions),
+      () => setList([]),
+    );
+  }, [open, id, at]);
+  if (!open)
+    return (
+      <div>
+        <Button size="dense" tone="quiet" onClick={() => setOpen(true)}>
+          Past versions
+        </Button>
+      </div>
+    );
+  if (!list) return <Tag tone="neutral">Loading</Tag>;
+  return (
+    <ol className="m-0 grid list-none gap-3 p-0 text-[13.5px]">
+      {list.map((v) => (
+        <li key={v.version} className="grid gap-1">
+          <span>
+            <span className="tabular-nums">v{v.version}</span>{" "}
+            <span className={QUIET}>
+              {new Date(v.at).toLocaleDateString("en-CA")}, {v.by}
+              {v.name ? `, ${v.name}` : ""}
+            </span>
+          </span>
+          <pre className="m-0 overflow-x-auto whitespace-pre-wrap font-mono text-[12.5px] text-(--ui-ink-2)">
+            {v.rule ? ruleText(v.rule) : "People added by hand."}
+          </pre>
+        </li>
+      ))}
+    </ol>
   );
 }
 

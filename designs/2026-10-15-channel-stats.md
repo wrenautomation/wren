@@ -74,7 +74,7 @@ What a channel can't prove shows as a dash, not a zero. Texts and DMs have no op
 
 ## Spine hook
 
-`logic.segment` (In segment): settings `segment`; ports yes, no, skip. The step finds the person from the subject: `profile:<id>`, an email enrollment (`<kind>:email:<id>`), a text contact (`<kind>:sms:<id>`), else `data.email` or `data.phone`. No person means skip. A live segment is checked now, by its rule; a manual or snapshot one by its members. A dry run says what it would check and goes yes.
+`logic.segment` (In segment): settings `segment`; ports yes, no, skip. The step finds the person from the subject: `data.profile`, `profile:<id>`, else the event's email or phone (`personOf`, as Send message reads it). Built 10-15 without the enrollment and text-contact subject lookups; add them if a trigger's events carry neither. No person means skip. A live segment is checked now, by its rule; a manual or snapshot one by its members. A dry run says what it would check and goes yes.
 
 ## Open calls I made
 
