@@ -50,6 +50,7 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 |---|---|
 | `wren templates ls\|get\|set\|diff\|history\|restore\|reset` (`apps/cli/src/templates.ts`) | reads all kinds; writes email, posts and prompts, `set --publish` asks |
 | `wren templates sync\|install` | defaults into every database (deploy), a client's parts |
+| `wren templates prune [--apply]` (`apps/cli/src/template-prune.ts`) | main only: a niche's email row with no default file; never sent is deleted, sent is emptied into `retired/`; dry run by default |
 | marketing Texts and DMs pages | save texts and DMs with each slot's rules |
 | `TemplatesConsole` (`packages/core/src/templates-console.ts`, routes `templates/*`) | the Library's reads and writes; checks `act` at each template's app and channel (`templateAt`) |
 | Marketing To approve (`marketing.approval`, ids `template:<id>:<n>`) | a person approves or declines a waiting version (`waitingAsks`) |

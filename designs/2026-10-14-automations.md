@@ -107,7 +107,7 @@ A test run plays the walk with nothing sent ("Would send …").
 
 1. `console.automation` and All. ✔
 2. On/off for made workflows and keywords; Test run from the row. ✔ Loop keys keep their switch on Loops.
-3. Send message and Notify me, and the New page with the four templates. ✔ Templates live in `packages/core/src/automation-templates.ts`; `workflowBuild {template}` makes the draft.
+3. Send message and Notify me, and the New page with the four templates. ✔ Replaced 2026-10-15: New lists the Shop's real templates (designs/2026-10-15-template-tidy.md).
 4. Hide Events and Library → Workflows; move Handlers to Tools; map cards. ✔
 
 ## Decision log
