@@ -48,20 +48,24 @@ const savedLine = (s: Saved) =>
 export function SaveBox({ reload }: { reload?: () => void }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string } | null>(null);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!url.trim() || busy) return;
+    if (!url.trim() || flying.current) return;
+    flying.current = true;
     setBusy(true);
     setSaid(null);
+    const sent = url;
     try {
       const s = await call<Saved>("learn/save", { url: url.trim() });
-      setUrl("");
+      setUrl((v) => (v === sent ? "" : v));
       setSaid({ ok: true, line: savedLine(s) });
       reload?.();
     } catch (err) {
       setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };

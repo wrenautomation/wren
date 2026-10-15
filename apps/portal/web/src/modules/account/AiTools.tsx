@@ -5,12 +5,23 @@
  * access and apps cap it lower: read only by default.
  */
 import { APPS } from "@wren/core/access";
-import { Button, cx, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import {
+  ACTIONS,
+  Button,
+  cx,
+  Empty,
+  Input,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  Tag,
+} from "@wren/ui";
+import { type FormEvent, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, FIELD, QUIET, TOOLS } from "../work/bits.js";
+import { ERROR, FIELD, QUIET, resetSent, TOOLS } from "../work/bits.js";
 import { Secret } from "./Webhooks.js";
 
 interface Token {
@@ -56,17 +67,25 @@ export function AiTools(props: PageProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [made, setMade] = useState<string | null>(null);
+  // One write at a time; a second press of the same one is one action (its request id).
+  const flying = useRef(false);
   const run = async <T,>(route: string, body: Record<string, unknown>): Promise<T | null> => {
+    if (flying.current) return null;
+    flying.current = true;
     setBusy(true);
     setError(null);
     try {
-      const got = await call<T>(`console/${route}`, { ...where, ...body });
+      const got = await ACTIONS.run(
+        `console/${route}:${props.client}:${JSON.stringify(body)}`,
+        (requestId) => call<T>(`console/${route}`, { ...where, ...body, requestId }),
+      );
       setNonce((n) => n + 1);
       return got;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
       return null;
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
@@ -85,7 +104,7 @@ export function AiTools(props: PageProps) {
     });
     if (got) {
       setMade(got.token);
-      form.reset();
+      resetSent(form, f);
     }
   };
   const host = location.origin;

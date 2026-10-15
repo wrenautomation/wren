@@ -2,7 +2,7 @@
  * What the work's and the account's pages share: the client's engagements, a write that
  * reloads them, a small form, dates as the client reads them, and the classes they draw with.
  */
-import { Button, DictateField, Empty, LoadFailed, Loading, Textarea } from "@wren/ui";
+import { ACTIONS, Button, DictateField, Empty, LoadFailed, Loading, Textarea } from "@wren/ui";
 import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
 import {
   ApiError,
@@ -82,21 +82,55 @@ export function Engagements({
 export function useAct(props: PageProps, reload: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One write at a time; a second press of the same one is the same action (its request id).
+  const flying = useRef(false);
   const run = async (route: string, body: Record<string, unknown>): Promise<boolean> => {
+    if (flying.current) return false;
+    flying.current = true;
     setBusy(true);
     setError(null);
     try {
-      await call(`delivery/${route}`, { client: props.client, ...body });
+      await ACTIONS.run(`delivery/${route}:${props.client}:${JSON.stringify(body)}`, (requestId) =>
+        call(`delivery/${route}`, { client: props.client, ...body, requestId }),
+      );
       reload();
       return true;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
       return false;
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
   return { busy, error, run };
+}
+
+/**
+ * After a send worked: each field back to its start, unless it changed since `sent` was read
+ * (typing while it went stays).
+ */
+export function resetSent(form: HTMLFormElement, sent: FormData) {
+  for (const el of Array.from(form.elements)) {
+    if (
+      !(
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el instanceof HTMLSelectElement
+      ) ||
+      !el.name
+    )
+      continue;
+    if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) {
+      if (el.checked === sent.getAll(el.name).includes(el.value)) el.checked = el.defaultChecked;
+      continue;
+    }
+    if (el.value !== String(sent.get(el.name) ?? "")) continue;
+    if (el instanceof HTMLSelectElement) {
+      const start = Array.from(el.options).findIndex((o) => o.defaultSelected);
+      el.selectedIndex = start < 0 ? 0 : start;
+    } else el.value = el.defaultValue;
+  }
 }
 
 /** A small form: submit runs `onSubmit`, cleared when it worked. */
@@ -116,7 +150,8 @@ export function Form({
   const sent = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    if (await onSubmit(new FormData(form))) form.reset();
+    const data = new FormData(form);
+    if (await onSubmit(data)) resetSent(form, data);
   };
   return (
     <form className={FORM} aria-label={label} onSubmit={sent}>

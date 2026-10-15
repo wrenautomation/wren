@@ -3,8 +3,8 @@
  * template (`sms/askReview`). The ask goes out under the same rules as any other: texting hours,
  * opt-outs, once per customer, the client's sends switch.
  */
-import { Button, Input, Tag } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import { ACTIONS, Button, Input, Tag } from "@wren/ui";
+import { type FormEvent, useRef, useState } from "react";
 import { call } from "../../api.js";
 
 export function AskReview({ client, reload }: { client: string; reload: () => void }) {
@@ -13,27 +13,35 @@ export function AskReview({ client, reload }: { client: string; reload: () => vo
   const [email, setEmail] = useState("");
   const any = !!(phone.trim() || email.trim());
   const [busy, setBusy] = useState(false);
+  const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string } | null>(null);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!any || busy) return;
+    if (!any || flying.current) return;
+    flying.current = true;
     setBusy(true);
     setSaid(null);
+    const sent = { name, phone, email };
     try {
-      await call("sms/askReview", {
-        client,
-        name: name.trim() || null,
-        phone: phone.trim() || null,
-        email: email.trim() || null,
-      });
-      setName("");
-      setPhone("");
-      setEmail("");
+      await ACTIONS.run(`ask-review:${client}`, (requestId) =>
+        call("sms/askReview", {
+          client,
+          name: name.trim() || null,
+          phone: phone.trim() || null,
+          email: email.trim() || null,
+          requestId,
+        }),
+      );
+      // Clear what was sent; anything typed meanwhile stays.
+      setName((v) => (v === sent.name ? "" : v));
+      setPhone((v) => (v === sent.phone ? "" : v));
+      setEmail((v) => (v === sent.email ? "" : v));
       setSaid({ ok: true, line: "Asked. It shows here in a moment." });
       setTimeout(reload, 1500);
     } catch (err) {
       setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };

@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import {
@@ -117,19 +117,23 @@ function Follow() {
   const [url, setUrl] = useState("");
   const [tell, setTell] = useState("top");
   const [busy, setBusy] = useState(false);
+  const flying = useRef(false);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!url.trim() || busy) return;
+    if (!url.trim() || flying.current) return;
+    flying.current = true;
     setBusy(true);
+    const sent = url;
     try {
       const f = await learn.follow(url.trim(), tell);
-      setUrl("");
+      setUrl((v) => (v === sent ? "" : v));
       say.done(
         `Following ${f.name}. ${f.items ? `Its last ${f.items} posts are in Archived; new ones` : "Its next posts"} land in your Inbox.`,
       );
     } catch (err) {
       say.failed(err);
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };

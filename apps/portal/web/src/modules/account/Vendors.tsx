@@ -11,7 +11,7 @@ import { call } from "../../api.js";
 import { saveKey } from "../../keys.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, ERROR, FIELD, field, QUIET, SELECT } from "../work/bits.js";
+import { dayLabel, ERROR, FIELD, field, QUIET, resetSent, SELECT } from "../work/bits.js";
 import { ownerOf, useAccountsAct } from "./Accounts.js";
 import { dollars, modeTag, roomText, unitsText, type VendorRow } from "./setups.js";
 
@@ -112,7 +112,8 @@ function SetMode({
       onSubmit={(e) => {
         e.preventDefault();
         const form = e.currentTarget;
-        void save(new FormData(form)).then((ok) => ok && form.reset());
+        const sent = new FormData(form);
+        void save(sent).then((ok) => ok && resetSent(form, sent));
       }}
     >
       <label className={FIELD}>

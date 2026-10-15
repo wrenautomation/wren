@@ -5,7 +5,7 @@
  * the connect call gets its ref. A key is never shown again, only its last 4.
  */
 import { Button, Input, Tag } from "@wren/ui";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { saveKey } from "../../keys.js";
 
@@ -38,6 +38,7 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
   const [key, setKey] = useState("");
   const [secret, setSecret] = useState("");
   const [busy, setBusy] = useState(false);
+  const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string; url?: string } | null>(null);
   const load = useCallback(
     () =>
@@ -52,17 +53,21 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (busy || (!key.trim() && !secret.trim())) return;
+    if (flying.current || (!key.trim() && !secret.trim())) return;
+    flying.current = true;
     setBusy(true);
     setSaid(null);
     try {
+      const sentKey = key;
+      const sentSecret = secret;
       const keyRef = key.trim() ? (await saveKey(client, "STRIPE_SECRET_KEY", key)).ref : null;
       const secretRef = secret.trim()
         ? (await saveKey(client, "STRIPE_WEBHOOK_SECRET", secret)).ref
         : null;
       const r = await call<Connected>("payments/connect", { client, keyRef, secretRef });
-      setKey("");
-      setSecret("");
+      // Clear what was sent; a key typed meanwhile stays.
+      setKey((k) => (k === sentKey ? "" : k));
+      setSecret((x) => (x === sentSecret ? "" : x));
       setSaid(
         r.webhook
           ? { ok: true, line: "Connected. Paid links now show here." }
@@ -77,6 +82,7 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
     } catch (err) {
       setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };

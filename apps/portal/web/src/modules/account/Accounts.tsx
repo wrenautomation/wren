@@ -5,6 +5,7 @@
  */
 import type { AccountsView } from "@wren/core/accounts/console";
 import {
+  ACTIONS,
   Button,
   Callout,
   Empty,
@@ -19,7 +20,7 @@ import {
   soon,
   Tag,
 } from "@wren/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
@@ -33,17 +34,24 @@ export const ownerOf = (client: string) => (client === WREN.id ? "wren" : client
 export function useAccountsAct(client: string, reload: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One write at a time; a second press of the same one is one action (its request id).
+  const flying = useRef(false);
   const run = async (route: string, body: Record<string, unknown>): Promise<boolean> => {
+    if (flying.current) return false;
+    flying.current = true;
     setBusy(true);
     setError(null);
     try {
-      await call(`accounts/${route}`, { client: ownerOf(client), ...body });
+      await ACTIONS.run(`accounts/${route}:${client}:${JSON.stringify(body)}`, (requestId) =>
+        call(`accounts/${route}`, { client: ownerOf(client), ...body, requestId }),
+      );
       reload();
       return true;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
       return false;
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };

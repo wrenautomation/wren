@@ -5,6 +5,7 @@
  * runs, and a URL that fails for 5 days is turned off until someone turns it back on.
  */
 import {
+  ACTIONS,
   Button,
   CopyButton,
   cx,
@@ -21,7 +22,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, FIELD, QUIET, TOOLS } from "../work/bits.js";
+import { ERROR, FIELD, QUIET, resetSent, TOOLS } from "../work/bits.js";
 
 interface Hook {
   id: string;
@@ -101,17 +102,25 @@ const answerOf = (d: { status: number | null; latencyMs: number | null; error: s
 function useRun(props: PageProps, reload: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One write at a time; a second press of the same one is one action (its request id).
+  const flying = useRef(false);
   const run = async <T,>(route: string, body: Record<string, unknown>): Promise<T | null> => {
+    if (flying.current) return null;
+    flying.current = true;
     setBusy(true);
     setError(null);
     try {
-      const got = await call<T>(`delivery/${route}`, { client: props.client, ...body });
+      const got = await ACTIONS.run(
+        `delivery/${route}:${props.client}:${JSON.stringify(body)}`,
+        (requestId) => call<T>(`delivery/${route}`, { client: props.client, ...body, requestId }),
+      );
       reload();
       return got;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
       return null;
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
@@ -174,7 +183,7 @@ export function Webhooks(props: PageProps) {
     });
     if (got) {
       setSecret(got.secret);
-      form.reset();
+      resetSent(form, f);
     }
   };
   const test = async (h: Hook) => {

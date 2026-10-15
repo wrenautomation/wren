@@ -5,13 +5,23 @@
  * are edited on each record. The console checks `manage` on every change.
  */
 import type { CustomField, CustomValue } from "@wren/core/custom-schema";
-import { Button, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import {
+  ACTIONS,
+  Button,
+  Empty,
+  Input,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  Tag,
+} from "@wren/ui";
+import { type FormEvent, useRef, useState } from "react";
 import { ApiError } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { consoleIn } from "../access/PersonAccess.js";
-import { ERROR, FIELD, FORM, LIST, QUIET, SELECT, SPLIT, TOOLS } from "../work/bits.js";
+import { ERROR, FIELD, FORM, LIST, QUIET, resetSent, SELECT, SPLIT, TOOLS } from "../work/bits.js";
 
 interface FieldsView {
   records: { id: string; name: { one: string; many: string } }[];
@@ -44,17 +54,24 @@ const optionsFrom = (s: string, old: CustomField["options"]) =>
 function useWrite(client: string, reload: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One write at a time; a second press of the same one is one action (its request id).
+  const flying = useRef(false);
   const run = async (handler: string, body: Record<string, unknown>) => {
+    if (flying.current) return false;
+    flying.current = true;
     setBusy(true);
     setError(null);
     try {
-      await consoleIn(client, handler, body);
+      await ACTIONS.run(`console/${handler}:${client}:${JSON.stringify(body)}`, (requestId) =>
+        consoleIn(client, handler, { ...body, requestId }),
+      );
       reload();
       return true;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
       return false;
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
@@ -131,7 +148,6 @@ function FieldRow({
               void write.run("customFieldSave", {
                 id: f.id,
                 record,
-                label: f.label,
                 archived: !f.archivedAt,
               })
             }
@@ -193,7 +209,7 @@ export function Fields(props: PageProps) {
       ...(kind === "choice" ? { options: optionsFrom(String(d.get("options") ?? ""), null) } : {}),
     });
     if (ok) {
-      form.reset();
+      resetSent(form, d);
       setKind("text");
     }
   };
@@ -319,7 +335,7 @@ export function Facts(props: PageProps) {
       label: String(d.get("label") ?? "").trim(),
       value: String(d.get("value") ?? "").trim(),
     });
-    if (ok) form.reset();
+    if (ok) resetSent(form, d);
   };
   const copy = (key: string) =>
     void navigator.clipboard.writeText(`{biz.${key}}`).then(() => setCopied(key));
