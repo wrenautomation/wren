@@ -84,7 +84,10 @@ export function Button({
   type = "button",
   ...rest
 }: ButtonLook & {
-  /** It was pressed and its work is running: it stays solid, with a bar under the label. */
+  /**
+   * It was pressed and its work is running: it stays solid, with a bar under the label, and is
+   * turned off, so neither a click nor Enter presses it again.
+   */
   busy?: boolean | undefined;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
   const l: ButtonLook = {
@@ -93,16 +96,15 @@ export function Button({
     icon,
     arrow,
     children,
-    className: cn(busy && "pointer-events-none relative overflow-hidden", className),
+    className: cn(busy && "relative overflow-hidden disabled:opacity-100", className),
   };
   return (
     <ShadButton
       type={type}
       className={look(l)}
-      disabled={busy ? undefined : disabled}
-      aria-busy={busy || undefined}
-      aria-disabled={busy || undefined}
       {...rest}
+      disabled={busy || disabled}
+      aria-busy={busy || undefined}
     >
       {inside(l)}
       {busy ? (
