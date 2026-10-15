@@ -4,7 +4,7 @@ Living doc. Started 2026-10-15 (bead wa-3h8). William: "we have two reddit profi
 
 ## Answer first
 
-Every record that sends from an account now says which field holds it. From that one line it gets the Account filter, the account column, Group by account and saved views. Every draft box on a platform with two or more accounts gets a "Send as" picker. The pick is saved with the draft, and the send goes out from it. Marketing → Accounts lists every account in one place. `wren accounts` does the same in a terminal.
+Every record that sends from an account now says which field holds it. From that one line it gets the Account filter, the account column, Group by account and saved views. Every draft box on a platform with two or more accounts gets a "Send as" picker. The pick is saved with the draft, and the send goes out from it. It saves through `callOnce`, so it rides the one write path (`WRITES`). Until the server holds it, the pick sits in the edits store (`useEdit`, key `draft:<id>:account`) and reads "Not saved yet". A reload or a failed save gives it back, and it goes again once. Marketing → Accounts lists every account in one place. `wren accounts` does the same in a terminal.
 
 ## The model
 
