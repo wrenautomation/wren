@@ -45,7 +45,7 @@ import {
   WREN_ABOUT,
   watchPlace,
 } from "../discovery/places.js";
-import { reader } from "../discovery/reads.js";
+import { reader, SUBS_PER_READ } from "../discovery/reads.js";
 import { ThreadHeld } from "../discovery/requirements.js";
 import {
   draftThread,
@@ -77,9 +77,12 @@ import { fireSlots } from "./schedule.js";
 
 export const READS_KEY = "wren";
 const HOUR = 3_600_000;
-export const THREADS_EVERY_MS = 2 * HOUR;
+/** One listing reads every watched sub at once, so threads are read often for little. */
+export const THREADS_EVERY_MS = HOUR / 2;
 /** Per pass, so one pass stays a few minutes of reads at the desk's pace. */
 const PLACES_PER_PASS = 3;
+/** Watched places whose threads a pass reads, in listings of SUBS_PER_READ. */
+const PLACES_MAX = 100;
 const DRAFTS_PER_PASS = 5;
 /** Commenters on our posts and DM contacts read a pass: 3 reads each. */
 const PEOPLE_PER_PASS = 5;
@@ -260,32 +263,52 @@ async function readsPass(
       }
     });
 
-  // Threads: each watched place's new posts every 2 hours.
-  const due = await step("places due", () => placesDue(db, now, THREADS_EVERY_MS, PLACES_PER_PASS));
-  for (const p of due)
-    await reading(`r/${p.subreddit} new`, async () => {
-      const posts = await r.latest(p.subreddit);
-      const fresh = await step(`keep r/${p.subreddit}`, async () => {
-        const ids = await keepThreads(db, p.subreddit, posts, { now, ours, judged: p.judged });
-        await threadsRead(db, p.subreddit, now);
-        return ids;
-      });
-      s.kept += fresh.length;
-      const llm = d.llm;
-      const unranked = llm
-        ? await step(`unranked r/${p.subreddit}`, () => unrankedThreads(db, p.subreddit))
-        : [];
-      if (llm)
-        for (let i = 0; i < unranked.length; i += RANK_BATCH) {
-          const batch = unranked.slice(i, i + RANK_BATCH);
-          s.ranked += await step(`rank r/${p.subreddit} ${i}`, () =>
-            rankThreads(db, llm, batch, audience),
-          );
-        }
-      s.queued += (
-        await step(`queue r/${p.subreddit}`, () => queueThreads(db, p.subreddit, now))
-      ).length;
+  // Threads: every watched place's new posts in one listing (r/a+b+c/new), each half hour.
+  const due = await step("places due", () => placesDue(db, now, THREADS_EVERY_MS, PLACES_MAX));
+  for (let at = 0; at < due.length; at += SUBS_PER_READ) {
+    const group = due.slice(at, at + SUBS_PER_READ);
+    // Back to the oldest last read in the group (a day for a new place), so no post is missed.
+    const since = Math.min(
+      ...group.map((p) => p.threadsAt?.getTime() ?? now.getTime() - 24 * HOUR),
+    );
+    await reading(`r/${group.map((p) => p.subreddit).join("+")} new`, async () => {
+      const posts = await r.latest(
+        group.map((p) => p.subreddit),
+        since,
+      );
+      const bySub = new Map<string, typeof posts>();
+      for (const x of posts) {
+        const k = (x.subreddit ?? "").toLowerCase();
+        bySub.set(k, [...(bySub.get(k) ?? []), x]);
+      }
+      for (const p of group) {
+        const fresh = await step(`keep r/${p.subreddit}`, async () => {
+          const ids = await keepThreads(db, p.subreddit, bySub.get(p.subreddit) ?? [], {
+            now,
+            ours,
+            judged: p.judged,
+          });
+          await threadsRead(db, p.subreddit, now);
+          return ids;
+        });
+        s.kept += fresh.length;
+        const llm = d.llm;
+        const unranked = llm
+          ? await step(`unranked r/${p.subreddit}`, () => unrankedThreads(db, p.subreddit))
+          : [];
+        if (llm)
+          for (let i = 0; i < unranked.length; i += RANK_BATCH) {
+            const batch = unranked.slice(i, i + RANK_BATCH);
+            s.ranked += await step(`rank r/${p.subreddit} ${i}`, () =>
+              rankThreads(db, llm, batch, audience),
+            );
+          }
+        s.queued += (
+          await step(`queue r/${p.subreddit}`, () => queueThreads(db, p.subreddit, now))
+        ).length;
+      }
     });
+  }
 
   // Drafts, with research: the whole thread, the OP, our facts.
   const llm = d.llm;
@@ -366,7 +389,6 @@ async function readsPass(
   const more =
     !s.capped &&
     (toRead.length === PLACES_PER_PASS ||
-      due.length === PLACES_PER_PASS ||
       s.queued > 0 ||
       s.drafted === DRAFTS_PER_PASS ||
       s.people === PEOPLE_PER_PASS);

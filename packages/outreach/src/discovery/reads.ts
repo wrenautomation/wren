@@ -61,12 +61,23 @@ export interface Reader {
   /** Subreddit names in the reddit.com results of an Exa search for a topic. */
   exaPlaces(topic: string): Promise<string[]>;
   place(sub: string): Promise<PlaceRead>;
-  latest(sub: string): Promise<Post[]>;
+  /**
+   * The newest posts of several subreddits in one listing (`r/a+b+c/new`, 100 a fetch), paged
+   * back until a post older than `since` (ms) shows or `pages` run out. Each post names its sub.
+   */
+  latest(subs: readonly string[], since: number, pages?: number): Promise<Post[]>;
   /** The post and every comment under it, flattened, top-level first. */
   thread(id: string): Promise<{ post: Post; comments: (Thing & { depth: number })[] }>;
   /** Things by fullname (our comments, for their score). */
   info(ids: string[]): Promise<Thing[]>;
 }
+
+/** Reddit's most per listing fetch. */
+const PAGE = 100;
+/** A pass reads at most this many pages of new posts: 300 posts, a day of 16 subs. */
+const LATEST_PAGES = 3;
+/** Subs per listing: keeps the path short; more go in another fetch. */
+export const SUBS_PER_READ = 25;
 
 const SUB_URL = /^https?:\/\/(?:[a-z]+\.)?reddit\.com\/r\/([A-Za-z0-9_]{2,21})(?:[/?#]|$)/i;
 
@@ -121,7 +132,22 @@ export function reader(sites: SiteClient, as?: string): Reader {
       const latest = itemsOf<Post>(await call<Listing>(`/r/${sub}/new`, { limit: 25 }));
       return { about, rules, top, latest };
     },
-    latest: async (sub) => itemsOf<Post>(await call<Listing>(`/r/${sub}/new`, { limit: 50 })),
+    async latest(subs, since, pages = LATEST_PAGES) {
+      const out: Post[] = [];
+      let after: string | undefined;
+      for (let i = 0; i < pages && subs.length; i++) {
+        const l = await call<Listing & { data?: { after?: string | null } }>(
+          `/r/${subs.join("+")}/new`,
+          { limit: PAGE, ...(after ? { after } : {}) },
+        );
+        const posts = itemsOf<Post>(l);
+        out.push(...posts);
+        after = l?.data?.after ?? undefined;
+        const oldest = (posts.at(-1)?.created_utc ?? 0) * 1000;
+        if (!after || posts.length < PAGE || oldest <= since) break;
+      }
+      return out;
+    },
     async thread(id) {
       const [head, tree] = await call<[Listing, Listing]>(`/comments/${id.replace(/^t3_/, "")}`, {
         limit: 100,
