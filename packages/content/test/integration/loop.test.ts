@@ -58,6 +58,8 @@ const insightReads: unknown[] = [];
 /** Whether the stand-in channels have a batch read, the batches asked, and the posts read alone. */
 let batching = false;
 let batchFails = false;
+/** Platforms whose desk browser stays busy past autobrowse's wait. */
+const browserBusy = new Set<Platform>();
 const leftOut = new Set<string>();
 const batches: { platform: Platform; ids: string[] }[] = [];
 const singles: string[] = [];
@@ -69,6 +71,11 @@ const fakeContent = restate.service({
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
           errorCode: 404,
         });
+      if (browserBusy.has(req.platform))
+        throw new restate.TerminalError(
+          `${req.platform} POST /web/posts: 503 not sent: profile google@test is busy (explore:9092); waited 5 min for it, try again`,
+          { errorCode: 503 },
+        );
       posted.push(req);
       return {
         id: `${req.platform}-${posted.length}`,
@@ -206,6 +213,7 @@ beforeEach(async () => {
   prompts.length = 0;
   views.clear();
   refuse.clear();
+  browserBusy.clear();
   batching = false;
   batchFails = false;
   leftOut.clear();
@@ -320,6 +328,34 @@ describe("content loop", () => {
     const again = await sync();
     expect(again.stats?.published.map((p) => p.platform)).toEqual(["x"]);
     expect(posted).toHaveLength(3);
+  });
+
+  it("a busy desk browser keeps the draft approved in its slot, says why, and posts it next pass", async () => {
+    const out = await desk().add({ text: "a note on busy browsers" });
+    const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    browserBusy.add("x");
+    const pass = await sync();
+    expect(pass.stats?.failed).toEqual([]);
+    expect(pass.stats?.waiting).toMatchObject([{ platform: "x" }]);
+    expect(pass.delayMs).toBe(60_000);
+    const x = (await listDrafts(pg.db, { ideaId: out.idea.id })).find((d) => d.platform === "x");
+    expect(x).toMatchObject({
+      status: "approved",
+      error: expect.stringMatching(
+        /^Waiting for the browser: .*not sent: profile google@test is busy/,
+      ),
+    });
+    expect(notes.some((n) => /failed/.test(n) && !/0 failed/.test(n))).toBe(false);
+    browserBusy.clear();
+    const again = await sync();
+    expect(again.stats?.published.map((p) => p.platform)).toEqual(["x"]);
+    const done = (await listDrafts(pg.db, { ideaId: out.idea.id })).find((d) => d.platform === "x");
+    expect(done).toMatchObject({ status: "published", error: null });
   });
 
   it("a failure that may have posted is approved again only after a person is told to check", async () => {

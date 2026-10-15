@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   asAccount,
   autobrowseSites,
+  browserBusy,
   type CapHolds,
   capHeld,
   capWaitMs,
@@ -10,6 +11,8 @@ import {
   liveHolds,
   SiteCallError,
   type SiteClient,
+  saysBrowserBusy,
+  sentState,
 } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
 import {
@@ -328,6 +331,56 @@ describe("restateSites over a named service", () => {
       .call("x", "GET", "/2/tweets/1")
       .catch(() => null);
     expect(refused.calls.filter((c) => c.handler === "call")).toHaveLength(1);
+  });
+
+  it("a failed post keeps autobrowse's words: not sent, or may have gone through; untagged reads as maybe", async () => {
+    const said = async (message: string, errorCode: number): Promise<SiteCallError> => {
+      const c = ctxOf(() => {
+        throw new restate.TerminalError(message, { errorCode });
+      });
+      const err = await restateSites(c.ctx, { caller: "test", service: DESK })
+        .call("tiktok", "POST", "/web/posts", { text: "hi" })
+        .catch((e: unknown) => e);
+      if (!(err instanceof SiteCallError)) throw new Error("expected a SiteCallError");
+      return err;
+    };
+    const busy = await said(
+      "not sent: profile google@test is busy (explore:9092); waited 5 min for it, try again",
+      503,
+    );
+    expect(busy).toMatchObject({ status: 503, journaled: true });
+    expect(busy.message).not.toContain("may have gone through");
+    expect(browserBusy(busy)).toBe(true);
+    expect(sentState(busy.message)).toBe("no");
+
+    const before = await said("not sent: the composer never opened", 500);
+    expect(sentState(before.message)).toBe("no");
+    expect(browserBusy(before)).toBe(false);
+
+    const after = await said("page closed after Post; may have gone through", 500);
+    expect(sentState(after.message)).toBe("maybe");
+    expect(after.message.match(/may have gone through/g)).toHaveLength(1);
+
+    // An older desk says neither: a write that failed may be live.
+    const legacy = await said("profile google@test is open in pid 11913 (explore:9092)", 500);
+    expect(sentState(legacy.message)).toBe("maybe");
+    expect(browserBusy(legacy)).toBe(false);
+  });
+
+  it("browserBusy needs the status and the words; the words alone serve a stored reason", () => {
+    const words = "x POST /2/tweets: 503 not sent: profile x@test is busy (cli); waited 5 min";
+    expect(
+      browserBusy(
+        new SiteCallError("x", "POST", "/2/tweets", 503, "not sent: profile x@test is busy (cli)"),
+      ),
+    ).toBe(true);
+    expect(browserBusy(new restate.TerminalError(words, { errorCode: 503 }))).toBe(true);
+    expect(browserBusy(new restate.TerminalError(words, { errorCode: 500 }))).toBe(false);
+    expect(
+      browserBusy(new restate.TerminalError("HTTP 503 service unavailable", { errorCode: 503 })),
+    ).toBe(false);
+    expect(saysBrowserBusy(words)).toBe(true);
+    expect(saysBrowserBusy("send failed: HTTP 426")).toBe(false);
   });
 
   it("via reads one status per site and keeps each site's apart", async () => {

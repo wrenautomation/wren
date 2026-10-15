@@ -99,6 +99,24 @@ export async function noteOnDraft(db: Queryable, id: string, note: string): Prom
     .where(eq(contentDrafts.id, id));
 }
 
+/** Starts a draft's error while the desk's browser is busy: it stays approved and goes next pass. */
+export const WAITING_FOR_BROWSER = "Waiting for the browser";
+
+/**
+ * publishing → approved: the desk's browser profile was busy and nothing was sent. Its slot
+ * stays; the next pass takes it. The error line says why, until a claim clears it.
+ */
+export async function markWaiting(db: Queryable, id: string, why: string): Promise<void> {
+  await db
+    .update(contentDrafts)
+    .set({ status: "approved", error: `${WAITING_FOR_BROWSER}: ${why}`.slice(0, 1000) })
+    .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")));
+}
+
+/** A draft held by a busy browser, by its row. */
+export const waitingForBrowser = (d: { status: string; error: string | null }): boolean =>
+  d.status === "approved" && !!d.error?.startsWith(WAITING_FOR_BROWSER);
+
 export async function markFailed(db: Queryable, id: string, error: string): Promise<void> {
   const [d] = await db
     .update(contentDrafts)

@@ -19,6 +19,7 @@
  * and queues the next (`touch`). After the last, the contact is `finished`.
  * The live gate off holds every sequence and follow-up row; a manual row is William's own yes and
  * goes, from an active or a warming account (its rung's caps still apply).
+ * The desk's browser busy (`browserBusy`) holds the row five minutes: nothing was sent.
  * A used daily cap (a 429 whose wait is hours) holds the row, and the account's other rows on
  * that cap, until it resets; a short 429 holds the row an hour; any other 4xx fails it and ends
  * the contact as `unreachable`; anything else leaves `unknown`.
@@ -26,7 +27,7 @@
  * the row is `skipped`, counts toward no cap and no failure, and the contact is never invited
  * again (`noInvite`).
  */
-import { capWaitMs, mayHavePosted, SiteCallError } from "@wren/core/content";
+import { browserBusy, capWaitMs, mayHavePosted, SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
 import {
   campaignOfRef,
@@ -58,6 +59,8 @@ import { keepTouch, touchFromMessage } from "./touches.js";
 export const STALE_SENDING_MS = 10 * 60 * 1000;
 const DAY_MS = 86_400_000;
 const HOLD_MS = 60 * 60 * 1000;
+/** The desk's browser was busy and nothing was sent: the row goes again this soon. */
+const BROWSER_HOLD_MS = 5 * 60 * 1000;
 const SCAN = 100;
 
 export interface TickOptions {
@@ -569,6 +572,14 @@ export async function recordFailure(
         ),
       );
     hold(stats, "cap");
+    return;
+  }
+  if (browserBusy(err)) {
+    await db
+      .update(reachMessages)
+      .set({ state: "queued", dueAt: new Date(now.getTime() + BROWSER_HOLD_MS), stateReason: text })
+      .where(eq(reachMessages.id, c.row.id));
+    hold(stats, "browser");
     return;
   }
   if (err instanceof SiteCallError && err.status === 429) {

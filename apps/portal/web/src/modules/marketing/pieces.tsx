@@ -104,6 +104,7 @@ export function stateOf(b: Branch, now = new Date()): { label: string; tone: Tag
     case "failed":
       return { label: "Failed", tone: "warn" };
     case "queued":
+      if (b.waitingForBrowser) return { label: "Waiting for the browser", tone: "neutral" };
       return {
         label: b.at ? `Queued, ${soon(b.at, now) ?? "next slot"}` : "Queued, next slot",
         tone: "neutral",

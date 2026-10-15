@@ -22,6 +22,7 @@ import {
   type SiteClient,
   type SiteMethod,
   type SiteStatus,
+  sentState,
   viaOf,
 } from "./autobrowse.js";
 import type {
@@ -203,9 +204,13 @@ const CALL_PAUSE_MS = 30_000;
 const safeToRepeat = (method: SiteMethod, path: string) =>
   method === "GET" || /\/upload\b/.test(path);
 
-/** A write that failed in passing: it may have reached the platform, so it says so. */
+/**
+ * A write that failed in passing: it may have reached the platform, so it says so. autobrowse
+ * says which itself (`not sent: …` or `…; may have gone through`); its words stand. Untagged
+ * words (an older desk) still read as maybe.
+ */
 function unsure(e: SiteCallError, site: string, method: string, path: string): SiteCallError {
-  if (mayHavePosted(e.message)) return e;
+  if (mayHavePosted(e.message) || sentState(e.message) !== null) return e;
   const prefix = `${site} ${method} ${path}: ${e.status} `;
   const said = e.message.startsWith(prefix) ? e.message.slice(prefix.length) : e.message;
   return new SiteCallError(site, method, path, e.status, `${said}; ${MAY_HAVE_POSTED}`);
@@ -253,9 +258,13 @@ export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteCli
             if (safeToRepeat(method, path) || nothingSent(err)) throw err;
             const status = err instanceof SiteCallError ? err.status : 502;
             const said = err instanceof Error ? err.message : String(err);
-            throw new restate.TerminalError(`${said}; ${MAY_HAVE_POSTED}`, {
-              errorCode: status >= 400 ? status : 502,
-            });
+            // autobrowse's own words say whether it left; untagged ones read as maybe.
+            throw new restate.TerminalError(
+              sentState(said) ? said : `${said}; ${MAY_HAVE_POSTED}`,
+              {
+                errorCode: status >= 400 ? status : 502,
+              },
+            );
           }
         })) as never;
       } catch (err) {

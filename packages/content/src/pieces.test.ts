@@ -258,4 +258,30 @@ describe("piecesOf", () => {
     expect(titleOf(`  ${"a".repeat(120)}\nnext`)).toHaveLength(90);
     expect(titleOf("Short\nsecond")).toBe("Short");
   });
+
+  it("an approved draft held by a busy browser says so; a plain approved one is queued", () => {
+    const [p] = piecesOf(
+      rows({
+        ideas: [{ id: "i1", text: "A post", ref: null, created_at: "2026-10-10T12:00:00Z" }],
+        drafts: [
+          draft({
+            id: "t",
+            idea_id: "i1",
+            platform: "tiktok",
+            status: "approved",
+            scheduled_for: "2026-10-15T17:00:00Z",
+            error: "Waiting for the browser: not sent: profile google@test is busy (explore:9092)",
+          }),
+          draft({ id: "x", idea_id: "i1", platform: "x", status: "approved" }),
+        ],
+      }),
+    );
+    expect(p?.branches.find((b) => b.id === "t")).toMatchObject({
+      state: "queued",
+      waitingForBrowser: true,
+      error: null,
+    });
+    expect(p?.branches.find((b) => b.id === "x")?.waitingForBrowser).toBeUndefined();
+    expect(waitingOf(p as never)).toEqual([]);
+  });
 });

@@ -22,6 +22,7 @@ Every adapter speaks the platform's own REST shape through autobrowse's `sites` 
 - `PLATFORM_SPECS` (`packages/content/src/platforms.ts:23`); default slots (`packages/content/src/slots.ts`)
 - adapters: `packages/channel-{linkedin,youtube,x,tiktok,meta,reddit}/src/content.ts`; Instagram via the box composer `channel-meta/src/content-web.ts`; Wren's own TikTok posts via the box's Studio flow (`/web/posts`) while `WREN_TIKTOK_POST_VIA=web` (default, until the app is audited), reads stay API; Threads `channel-meta/src/threads.ts`
 - wired per settings in `apps/worker/src/services.ts` (`contentFor`)
+- A failed write's words come from autobrowse: `not sent: …` (never left) or `…; may have gone through` (`sentState`, `packages/core/src/content/autobrowse.ts`); `restateSites` keeps them and appends "may have gone through" only to untagged words (an older desk). 503 + `not sent: profile … is busy` is `browserBusy`: the desk's browser was held past its 5 min wait; callers try again (autobrowse designs/2026-10-15-profile-wait.md)
 
 Citations: `packages/core/src/content/index.ts:12`, `:122`
 

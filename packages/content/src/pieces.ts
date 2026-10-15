@@ -9,6 +9,7 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { type BlogRow, blogRows } from "./blog.js";
+import { waitingForBrowser } from "./queue.js";
 import { formatSql } from "./schema.js";
 
 export const PIECE_KINDS = ["long", "vertical", "written", "story", "blog"] as const;
@@ -46,6 +47,8 @@ export interface Branch {
   /** Reactions, comments and shares, newest look. */
   engaged: number | null;
   error: string | null;
+  /** Queued and due, but the desk's browser was busy (`markWaiting`): it goes on the next pass. */
+  waitingForBrowser?: true;
 }
 
 export interface Piece {
@@ -153,6 +156,7 @@ function branchOf(d: DraftRow): Branch {
     views: d.views,
     engaged: d.engaged,
     error: d.status === "failed" ? d.error : null,
+    ...(waitingForBrowser(d) ? { waitingForBrowser: true as const } : {}),
   };
 }
 

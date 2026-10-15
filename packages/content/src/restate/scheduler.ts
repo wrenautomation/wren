@@ -14,10 +14,15 @@
  * nothing is claimed, the pass says how many are held. Posts carry no link to Wren's lander.
  *
  * A post's link is its funnel's (`funnel.ts`): read when it is claimed, appended on its own line.
+ *
+ * The desk's browser busy past autobrowse's wait (`browserBusy`: 503, `not sent`): the draft goes
+ * back to approved, its slot kept, "Waiting for the browser" on it; the rest of the pass skips
+ * that platform, and the next pass comes in a minute. Never a failed draft, never a notice.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
 import type { Platform, Post, Published } from "@wren/core/content";
+import { browserBusy } from "@wren/core/content";
 import { ShapeError } from "@wren/core/content/shapes";
 import type { Notifier } from "@wren/core/notify";
 import {
@@ -33,7 +38,15 @@ import { pickedAccount } from "@wren/outreach";
 import { clientContent } from "../clients.js";
 import { postedLinks } from "../funnel.js";
 import { postOf } from "../platforms.js";
-import { claim, dueDrafts, markFailed, markPublished, nextDue, noteOnDraft } from "../queue.js";
+import {
+  claim,
+  dueDrafts,
+  markFailed,
+  markPublished,
+  markWaiting,
+  nextDue,
+  noteOnDraft,
+} from "../queue.js";
 
 export const SCHEDULER_KEY = "default";
 const DEFAULT_IDLE_MS = 15 * 60 * 1000;
@@ -76,6 +89,8 @@ export interface PublishStats {
   remaining: number;
   /** A client's due drafts held because its sends are off. */
   held?: number;
+  /** Drafts put back because the desk's browser was busy: they go next pass. */
+  waiting?: { id: string; platform: Platform }[];
 }
 
 export function makeContentScheduler(deps: ContentSchedulerDeps) {
@@ -121,7 +136,10 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     const due = await ctx.run("due drafts", () => dueDrafts(o.db, now, MAX_PER_PASS + 1));
     const batch = due.slice(0, MAX_PER_PASS);
     const stats: PublishStats = { published: [], failed: [], remaining: due.length - batch.length };
+    /** Platforms whose browser was busy this pass: their other drafts wait for the next. */
+    const busy = new Set<Platform>();
     for (const draft of batch) {
+      if (busy.has(draft.platform)) continue;
       const claimed = await ctx.run(`claim ${draft.id}`, () => claim(o.db, draft.id));
       if (!claimed) continue;
       // A client's posts carry no Wren link; Wren's carry their funnel's, in the text or
@@ -170,13 +188,19 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
         // problem: recorded on the row, the pass moves on. Anything else retries.
         if (!(err instanceof restate.TerminalError) && !(err instanceof ShapeError)) throw err;
         const error = errorText(err);
+        if (browserBusy(err)) {
+          await ctx.run(`waiting ${draft.id}`, () => markWaiting(o.db, draft.id, error));
+          busy.add(draft.platform);
+          stats.waiting = [...(stats.waiting ?? []), { id: draft.id, platform: draft.platform }];
+          continue;
+        }
         await ctx.run(`failed ${draft.id}`, () => markFailed(o.db, draft.id, error));
         stats.failed.push({ id: draft.id, platform: draft.platform, error });
       }
     }
     const next = await ctx.run("next due", () => nextDue(o.db, now));
     const delayMs =
-      stats.remaining > 0
+      stats.remaining > 0 || busy.size > 0
         ? BUSY_MS
         : next
           ? Math.max(BUSY_MS, Math.min(idleMs, new Date(next).getTime() - now.getTime()))

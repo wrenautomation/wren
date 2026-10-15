@@ -6,7 +6,7 @@
  */
 
 import { warmupOf } from "@wren/channel-reddit";
-import { mayHavePosted } from "@wren/core/content";
+import { mayHavePosted, saysBrowserBusy } from "@wren/core/content";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
@@ -221,6 +221,14 @@ export async function sendFailed(
 ): Promise<"retry" | "skipped"> {
   if (kind === "thread") {
     await db.update(redditThreads).set({ sendAt: null }).where(eq(redditThreads.id, id));
+    return "retry";
+  }
+  // The desk's browser was busy: nothing was sent, so it spends no retry.
+  if (saysBrowserBusy(why)) {
+    await db
+      .update(reachPosts)
+      .set({ sendAt: null, stateReason: `Waiting for the browser: ${why}`.slice(0, 500) })
+      .where(and(eq(reachPosts.id, Number(id)), eq(reachPosts.state, "queued")));
     return "retry";
   }
   const [r] = await db
