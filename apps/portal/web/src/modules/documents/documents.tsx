@@ -19,8 +19,21 @@ import {
   totalsOf,
 } from "@wren/documents/lines";
 import type { Action, RecordAct, RecordExtras } from "@wren/ui";
-import { Button, CopyButton, cx, Input, Section, Tag, Textarea, tipProps } from "@wren/ui";
-import { type FormEvent, type ReactNode, useRef, useState } from "react";
+import {
+  ACTIONS,
+  Button,
+  CopyButton,
+  cx,
+  Input,
+  SaveConflict,
+  SaveStatus,
+  Section,
+  Tag,
+  Textarea,
+  tipProps,
+  useSaved,
+} from "@wren/ui";
+import { type FormEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { ListPage } from "../../module.js";
@@ -37,6 +50,8 @@ interface Template {
   lines: DocLine[];
   depositPct: number | null;
   expiresDays: number;
+  /** What a save sends back as `expect`. */
+  version?: string;
 }
 interface Templates {
   templates: Template[];
@@ -56,6 +71,8 @@ interface Editable {
   depositPct: number | null;
   expiresDays: number;
   currency: string;
+  /** What a save sends back as `expect`. */
+  version?: string;
 }
 interface Detail {
   steps?: { step: string; at: string; by: string | null; from: string | null }[];
@@ -360,87 +377,152 @@ function Lines({
   );
 }
 
+/** Everything the editor holds, as typed. */
+interface Fields {
+  template: string;
+  kind: DocKind;
+  title: string;
+  body: string;
+  lines: LineDraft[];
+  deposit: string;
+  expires: string;
+  channel: "email" | "sms";
+  name: string;
+  email: string;
+  phone: string;
+}
+const fieldsOf = (doc: Editable | null): Fields => ({
+  template: doc?.template ?? "",
+  kind: doc?.kind ?? "estimate",
+  title: doc?.title ?? "",
+  body: doc?.body ?? "",
+  lines: doc ? doc.lines.map(draftOf) : [blankLine()],
+  deposit: doc?.depositPct ? String(doc.depositPct) : "",
+  expires: String(doc?.expiresDays ?? 30),
+  channel: doc?.channel ?? "email",
+  name: doc?.name ?? "",
+  email: doc?.email ?? "",
+  phone: "",
+});
+/** What a save sends: the server trims and checks each again. */
+const payloadOf = (f: Fields, fresh: boolean, contact: number | null) => ({
+  ...(fresh ? { template: f.template || null, kind: f.kind } : {}),
+  title: f.title,
+  body: f.body,
+  lines: linesFrom(f.lines),
+  depositPct: f.deposit.trim() ? Number(f.deposit) : null,
+  expiresDays: Number(f.expires),
+  name: f.name.trim() || null,
+  email: f.email.trim() || null,
+  channel: f.channel,
+  ...(!contact && f.channel === "sms" && f.phone.trim() ? { phone: f.phone.trim() } : {}),
+});
+
 /**
- * A new document or a draft: its words, lines, deposit and who it goes to. Saves, then sends
- * when asked. `save` writes it and answers its id.
+ * A new document or a draft: its words, lines, deposit and who it goes to. What's typed is kept
+ * on this device until it's saved, so a reload or a closed tab gives it back. A draft saves over
+ * the version it opened on (`expect`); a change since shows both. A new one is made once, then
+ * sent when asked.
  */
 function DocForm({
   doc,
+  keyOf,
   templates,
   save,
+  create,
   send,
   cancel,
 }: {
   doc: Editable | null;
+  /** Where the typing is kept on this device. */
+  keyOf: string;
   templates: Template[];
-  save: (fields: Record<string, unknown>) => Promise<string>;
+  /** A draft's save: answers its new version. */
+  save?: (fields: Record<string, unknown>) => Promise<string | undefined>;
+  /** A new one's: answers its id. */
+  create?: (fields: Record<string, unknown>, requestId: string) => Promise<string>;
   /** Left out on a draft's page: its head's Send sends it. */
   send?: (id: string) => Promise<Sent | null>;
   cancel?: () => void;
 }) {
-  const [template, setTemplate] = useState(doc?.template ?? "");
-  const [kind, setKind] = useState<DocKind>(doc?.kind ?? "estimate");
-  const [title, setTitle] = useState(doc?.title ?? "");
-  const [body, setBody] = useState(doc?.body ?? "");
-  const [lines, setLines] = useState<LineDraft[]>(doc ? doc.lines.map(draftOf) : [blankLine()]);
-  const [deposit, setDeposit] = useState(doc?.depositPct ? String(doc.depositPct) : "");
-  const [expires, setExpires] = useState(String(doc?.expiresDays ?? 30));
-  const [channel, setChannel] = useState<"email" | "sms">(doc?.channel ?? "email");
-  const [name, setName] = useState(doc?.name ?? "");
-  const [email, setEmail] = useState(doc?.email ?? "");
-  const [phone, setPhone] = useState("");
+  const server = useMemo(() => fieldsOf(doc), [doc]);
+  const contact = doc?.contact ?? null;
+  const kept = useSaved<Fields>({
+    key: keyOf,
+    server,
+    version: doc?.version,
+    delay: null,
+    same: (a, b) =>
+      JSON.stringify(payloadOf(a, !doc, contact)) === JSON.stringify(payloadOf(b, !doc, contact)),
+    save: async (v, { expect, request }) => {
+      if (!save) return { value: v };
+      const version = await save({ ...payloadOf(v, false, contact), expect, requestId: request });
+      return version ? { value: v, version } : { value: v };
+    },
+  });
+  const f = kept.value;
+  const put = (patch: Partial<Fields>) => kept.set({ ...kept.value, ...patch });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [out, setOut] = useState<Sent | null>(null);
   /** Which button submitted: Save, or Save and send. */
   const andSend = useRef(false);
+  /** One submit at a time, whatever the render says. */
+  const flying = useRef(false);
+  /** A new one made already: a retry of Save and send sends it, never makes a second. */
+  const made = useRef<string | null>(null);
   const currency = doc?.currency ?? "usd";
 
   const pick = (id: string) => {
-    setTemplate(id);
     const t = templates.find((x) => x.id === id);
-    if (!t) return;
-    setKind(t.kind);
-    setTitle((was) => was || t.name);
-    setBody(t.body);
-    setLines(t.lines.length ? t.lines.map(draftOf) : [blankLine()]);
-    setDeposit(t.depositPct ? String(t.depositPct) : "");
-    setExpires(String(t.expiresDays));
+    if (!t) return put({ template: id });
+    put({
+      template: id,
+      kind: t.kind,
+      title: f.title || t.name,
+      body: t.body,
+      lines: t.lines.length ? t.lines.map(draftOf) : [blankLine()],
+      deposit: t.depositPct ? String(t.depositPct) : "",
+      expires: String(t.expiresDays),
+    });
   };
-  const total = totalsOf(previewLines(lines)).totalCents;
-  const pct = Number(deposit);
+  const total = totalsOf(previewLines(f.lines)).totalCents;
+  const pct = Number(f.deposit);
   const depositCents =
-    deposit.trim() && Number.isInteger(pct) && pct >= 1 && pct <= 100
+    f.deposit.trim() && Number.isInteger(pct) && pct >= 1 && pct <= 100
       ? depositOf(total, pct)
       : null;
-  const left = slotsLeft(title, body).filter(
+  const left = slotsLeft(f.title, f.body).filter(
     (s) => !(s.slice(1, -1) in SLOT_NAMES) && !s.startsWith("{biz."),
   );
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (busy) return;
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true);
     setError(null);
     setOut(null);
     try {
-      const id = await save({
-        ...(doc ? {} : { template: template || null, kind }),
-        title,
-        body,
-        lines: linesFrom(lines),
-        depositPct: deposit.trim() ? pct : null,
-        expiresDays: Number(expires),
-        name: name.trim() || null,
-        email: email.trim() || null,
-        channel,
-        ...(!doc?.contact && channel === "sms" && phone.trim() ? { phone: phone.trim() } : {}),
-      });
+      let id = made.current ?? "";
+      if (doc) {
+        if (!(await kept.flush())) return;
+      } else if (!id) {
+        const typed = kept.value;
+        const make = create as NonNullable<typeof create>;
+        id = await ACTIONS.run(`doc-create:${keyOf}`, (request) =>
+          make(payloadOf(typed, true, null), request),
+        );
+        made.current = id;
+        // Made: what's kept here is done with, unless he typed on meanwhile.
+        if (kept.value === typed) kept.set(server);
+      }
       if (andSend.current && send) setOut(await send(id));
       else if (!doc) cancel?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
@@ -455,7 +537,7 @@ function DocForm({
         {doc ? null : (
           <label className={FIELD}>
             <span>Start from</span>
-            <select className={SELECT} value={template} onChange={(e) => pick(e.target.value)}>
+            <select className={SELECT} value={f.template} onChange={(e) => pick(e.target.value)}>
               <option value="">Blank</option>
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -469,9 +551,9 @@ function DocForm({
           <span>Kind</span>
           <select
             className={SELECT}
-            value={kind}
+            value={f.kind}
             disabled={!!doc}
-            onChange={(e) => setKind(e.target.value as DocKind)}
+            onChange={(e) => put({ kind: e.target.value as DocKind })}
           >
             {DOC_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -485,8 +567,8 @@ function DocForm({
           <Input
             required
             maxLength={200}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={f.title}
+            onChange={(e) => put({ title: e.target.value })}
             placeholder="Kitchen repaint"
           />
         </label>
@@ -498,8 +580,8 @@ function DocForm({
           <span>Send by</span>
           <select
             className={SELECT}
-            value={channel}
-            onChange={(e) => setChannel(e.target.value as "email" | "sms")}
+            value={f.channel}
+            onChange={(e) => put({ channel: e.target.value as "email" | "sms" })}
           >
             <option value="email">Email</option>
             <option value="sms">Text</option>
@@ -507,18 +589,18 @@ function DocForm({
         </label>
         <label className={cx(FIELD, "grow basis-[180px]")}>
           <span>Name</span>
-          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
+          <Input value={f.name} onChange={(e) => put({ name: e.target.value })} maxLength={200} />
         </label>
         <label className={cx(FIELD, "grow basis-[220px]")}>
           <span>Email</span>
           <Input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={channel === "email" ? "Required to send by email" : "Optional"}
+            value={f.email}
+            onChange={(e) => put({ email: e.target.value })}
+            placeholder={f.channel === "email" ? "Required to send by email" : "Optional"}
           />
         </label>
-        {channel === "sms" ? (
+        {f.channel === "sms" ? (
           doc?.contact ? (
             <p className={cx("basis-full text-[13px]", QUIET)}>
               Goes to the texting thread it was made from.
@@ -528,8 +610,8 @@ function DocForm({
               <span>Mobile</span>
               <Input
                 type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={f.phone}
+                onChange={(e) => put({ phone: e.target.value })}
                 placeholder="A number you've texted"
               />
             </label>
@@ -537,22 +619,22 @@ function DocForm({
         ) : null}
       </fieldset>
 
-      <Words value={body} onChange={setBody} />
+      <Words value={f.body} onChange={(body) => put({ body })} />
       {left.length ? (
         <p className={cx("text-[12.5px]", QUIET)}>
           Not a slot we know: {left.join(", ")}. It stays as typed.
         </p>
       ) : null}
 
-      <Lines lines={lines} set={setLines} currency={currency} />
+      <Lines lines={f.lines} set={(lines) => put({ lines })} currency={currency} />
 
       <div className="flex flex-wrap gap-3">
         <label className={FIELD}>
           <span>Deposit %</span>
           <Input
             inputMode="numeric"
-            value={deposit}
-            onChange={(e) => setDeposit(e.target.value)}
+            value={f.deposit}
+            onChange={(e) => put({ deposit: e.target.value })}
             placeholder="None"
             className="w-28"
           />
@@ -561,8 +643,8 @@ function DocForm({
           <span>Expires after (days)</span>
           <Input
             inputMode="numeric"
-            value={expires}
-            onChange={(e) => setExpires(e.target.value)}
+            value={f.expires}
+            onChange={(e) => put({ expires: e.target.value })}
             className="w-28"
           />
         </label>
@@ -573,6 +655,16 @@ function DocForm({
         </p>
       </div>
 
+      {kept.restored && kept.dirty ? (
+        <p className={cx("text-[13px]", QUIET)}>Your unsaved changes are back.</p>
+      ) : null}
+      {kept.conflict ? (
+        <SaveConflict
+          conflict={kept.conflict}
+          onKeepMine={() => void kept.keepMine()}
+          onTakeTheirs={kept.takeTheirs}
+        />
+      ) : null}
       {error ? <p className={ERROR}>{error}</p> : null}
       {out ? <SentLine sent={out} /> : null}
       <div className="flex flex-wrap items-center gap-2">
@@ -587,6 +679,7 @@ function DocForm({
         >
           {doc ? "Save" : "Save as draft"}
         </Button>
+        {doc ? <SaveStatus state={kept} onRetry={() => void kept.retry()} /> : null}
         {send ? (
           <Button
             tone="primary"
@@ -654,9 +747,14 @@ function NewDocumentForm({
         ) : (
           <DocForm
             doc={null}
+            keyOf={`doc-new:${client}`}
             templates={t.data.templates}
-            save={async (f) => {
-              const r = await call<{ doc: { id: string } }>("documents/create", { client, ...f });
+            create={async (f, requestId) => {
+              const r = await call<{ doc: { id: string } }>("documents/create", {
+                client,
+                ...f,
+                requestId,
+              });
               reload();
               return r.doc.id;
             }}
@@ -848,15 +946,26 @@ function PdfButton({ client, id }: { client: string; id: string }) {
 }
 
 /** A draft's editor: saved in place, the record read again; Send is in its head. */
-function DraftEditor({ d, act, id }: { d: Editable; act: RecordAct; id: string }) {
+function DraftEditor({
+  d,
+  act,
+  id,
+  client,
+}: {
+  d: Editable;
+  act: RecordAct;
+  id: string;
+  client: string;
+}) {
   return (
     <DocForm
       key={id}
       doc={d}
+      keyOf={`doc:${client}:${id}`}
       templates={[]}
       save={async (f) => {
-        await act("documents.save", f);
-        return id;
+        const out = (await act("documents.save", f)) as { doc?: { version?: string } } | undefined;
+        return out?.doc?.version;
       }}
     />
   );
@@ -868,7 +977,8 @@ export const docExtras: NonNullable<ListPage["extras"]> = (detail, { row, act, c
   const status = String(row.status ?? "");
   const out: RecordExtras = { sections: [] };
   const sections = out.sections as [string, ReactNode][];
-  if (d.edit && status === "draft") out.form = <DraftEditor d={d.edit} act={act} id={id} />;
+  if (d.edit && status === "draft")
+    out.form = <DraftEditor d={d.edit} act={act} id={id} client={client} />;
   if (d.edit) {
     out.aside = <DocPreview d={d.edit} row={row} />;
     out.drawn = ["body"];
@@ -894,43 +1004,92 @@ export const documentsHead: NonNullable<ListPage["head"]> = (_meta, reload, at) 
 
 // ---- Templates ----
 
+/** A template as its editor holds it. */
+interface TemplateFields {
+  kind: DocKind;
+  name: string;
+  body: string;
+  lines: LineDraft[];
+  deposit: string;
+  expires: string;
+}
+const templateFieldsOf = (t: Template | null): TemplateFields => ({
+  kind: t?.kind ?? "estimate",
+  name: t?.name ?? "",
+  body: t?.body ?? "",
+  lines: t ? t.lines.map(draftOf) : [],
+  deposit: t?.depositPct ? String(t.depositPct) : "",
+  expires: String(t?.expiresDays ?? 30),
+});
+const templatePayload = (f: TemplateFields) => ({
+  kind: f.kind,
+  name: f.name,
+  body: f.body,
+  lines: linesFrom(f.lines),
+  depositPct: f.deposit.trim() ? Number(f.deposit) : null,
+  expiresDays: Number(f.expires),
+});
+
+/**
+ * A template's words, lines and deposit. Typing is kept on this device until it's saved; a
+ * saved one saves over the version it opened on, so a change since shows both.
+ */
 function TemplateForm({
   t,
+  keyOf,
   save,
   cancel,
 }: {
   t: Template | null;
-  save: (fields: Record<string, unknown>) => Promise<void>;
+  keyOf: string;
+  /** Answers the template's new version. */
+  save: (fields: Record<string, unknown>) => Promise<string | undefined>;
   cancel?: () => void;
 }) {
-  const [kind, setKind] = useState<DocKind>(t?.kind ?? "estimate");
-  const [name, setName] = useState(t?.name ?? "");
-  const [body, setBody] = useState(t?.body ?? "");
-  const [lines, setLines] = useState<LineDraft[]>(t ? t.lines.map(draftOf) : []);
-  const [deposit, setDeposit] = useState(t?.depositPct ? String(t.depositPct) : "");
-  const [expires, setExpires] = useState(String(t?.expiresDays ?? 30));
+  const server = useMemo(() => templateFieldsOf(t), [t]);
+  const kept = useSaved<TemplateFields>({
+    key: keyOf,
+    server,
+    version: t?.version,
+    delay: null,
+    same: (x, y) => JSON.stringify(templatePayload(x)) === JSON.stringify(templatePayload(y)),
+    save: async (v, { expect, request }) => {
+      const version = await save({
+        id: t?.id,
+        ...templatePayload(v),
+        expect,
+        requestId: request,
+      });
+      return version ? { value: v, version } : { value: v };
+    },
+  });
+  const { kind, name, body, lines, deposit, expires } = kept.value;
+  const put = (patch: Partial<TemplateFields>) => kept.set({ ...kept.value, ...patch });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const flying = useRef(false);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true);
     setError(null);
     setSaved(false);
     try {
-      await save({
-        ...(t ? { id: t.id } : {}),
-        kind,
-        name,
-        body,
-        lines: linesFrom(lines),
-        depositPct: deposit.trim() ? Number(deposit) : null,
-        expiresDays: Number(expires),
-      });
-      setSaved(true);
+      if (t) setSaved(await kept.flush());
+      else {
+        const typed = kept.value;
+        await ACTIONS.run(`doc-template-new:${keyOf}`, (request) =>
+          save({ ...templatePayload(typed), requestId: request }),
+        );
+        if (kept.value === typed) kept.set(server);
+        setSaved(true);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
     } finally {
+      flying.current = false;
       setBusy(false);
     }
   };
@@ -943,14 +1102,19 @@ function TemplateForm({
       <div className="flex flex-wrap gap-3">
         <label className={cx(FIELD, "grow basis-[240px]")}>
           <span>Name</span>
-          <Input required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            required
+            maxLength={120}
+            value={name}
+            onChange={(e) => put({ name: e.target.value })}
+          />
         </label>
         <label className={FIELD}>
           <span>Kind</span>
           <select
             className={SELECT}
             value={kind}
-            onChange={(e) => setKind(e.target.value as DocKind)}
+            onChange={(e) => put({ kind: e.target.value as DocKind })}
           >
             {DOC_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -964,7 +1128,7 @@ function TemplateForm({
           <Input
             inputMode="numeric"
             value={deposit}
-            onChange={(e) => setDeposit(e.target.value)}
+            onChange={(e) => put({ deposit: e.target.value })}
             placeholder="None"
             className="w-28"
           />
@@ -974,19 +1138,31 @@ function TemplateForm({
           <Input
             inputMode="numeric"
             value={expires}
-            onChange={(e) => setExpires(e.target.value)}
+            onChange={(e) => put({ expires: e.target.value })}
             className="w-28"
           />
         </label>
       </div>
-      <Words value={body} onChange={setBody} />
-      <Lines lines={lines} set={setLines} currency="usd" />
-      {error ? <p className={ERROR}>{error}</p> : null}
+      <Words value={body} onChange={(v) => put({ body: v })} />
+      <Lines lines={lines} set={(v) => put({ lines: v })} currency="usd" />
+      {kept.restored && kept.dirty ? (
+        <p className={cx("text-[13px]", QUIET)}>Your unsaved changes are back.</p>
+      ) : null}
+      {kept.conflict ? (
+        <SaveConflict
+          conflict={kept.conflict}
+          onKeepMine={() => void kept.keepMine()}
+          onTakeTheirs={kept.takeTheirs}
+        />
+      ) : null}
+      {error || kept.error ? <p className={ERROR}>{error ?? kept.error}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button tone="primary" type="submit" size="dense" busy={busy}>
           {t ? "Save" : "Add template"}
         </Button>
-        {saved ? <span className={QUIET}>Saved. New documents start from this.</span> : null}
+        {saved && !kept.dirty ? (
+          <span className={QUIET}>Saved. New documents start from this.</span>
+        ) : null}
         {cancel ? (
           <Button type="button" size="dense" tone="quiet" onClick={cancel}>
             Cancel
@@ -999,8 +1175,7 @@ function TemplateForm({
 
 /** A template's editor: its lines are read from the picker list, which carries them whole. */
 function TemplateEditor({ client, id, act }: { client: string; id: string; act: RecordAct }) {
-  const [nonce, setNonce] = useState(0);
-  const got = useCall(`doc-template:${client}:${id}:${nonce}`, () =>
+  const got = useCall(`doc-template:${client}:${id}`, () =>
     call<Templates>("documents/templates", { client }),
   );
   const t = got.data?.templates.find((x) => x.id === id);
@@ -1009,11 +1184,14 @@ function TemplateEditor({ client, id, act }: { client: string; id: string; act: 
   if (!t) return <p className={QUIET}>Archived.</p>;
   return (
     <TemplateForm
-      key={`${t.id}:${nonce}`}
+      key={t.id}
       t={t}
+      keyOf={`doc-template:${client}:${t.id}`}
       save={async (f) => {
-        await act("documents.templateSave", f);
-        setNonce((n) => n + 1);
+        const out = (await act("documents.templateSave", f)) as
+          | { template?: { version?: string } }
+          | undefined;
+        return out?.template?.version;
       }}
     />
   );
@@ -1040,10 +1218,12 @@ function NewTemplate({ client, reload }: { client: string; reload: () => void })
       >
         <TemplateForm
           t={null}
+          keyOf={`doc-template-new:${client}`}
           save={async (f) => {
             await call("documents/templateSave", { client, ...f });
             reload();
             setOpen(false);
+            return undefined;
           }}
           cancel={() => setOpen(false)}
         />
