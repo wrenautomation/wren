@@ -187,6 +187,8 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       created: date("Drafted"),
       // Its slot once scheduled, else when it was drafted: what "Up next" sorts by.
       due: date("Due", { listed: false }),
+      // Its words hashed: Approve sends the one on screen, so a change since refuses it.
+      version: text("Version", { listed: false }),
     },
     views: [
       {

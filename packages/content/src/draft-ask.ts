@@ -38,7 +38,7 @@ import {
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import { GONE, PLATFORM_SPECS } from "./platforms.js";
 import { commentGuide, dmGuide, playbookFor } from "./playbook.js";
-import { editDraft } from "./review.js";
+import { draftVersion, editDraft } from "./review.js";
 import { contentDrafts, contentIdeas } from "./schema.js";
 
 /** What `wren drafts list --type` names: a post is an Inbox `draft:`. */
@@ -502,7 +502,9 @@ export async function writeDraft(
     });
     // The turn as the draft's thread reads it, so the page adds "Edited by" without reading again.
     const [turn] = (await draftTurns(tx, record, id)).filter((t) => t.id === String(run));
-    return { run, before: now.draft, turn: turn ?? null };
+    // A post's new version, so the page's Approve names it without reading again.
+    const version = record === "draft" && text ? draftVersion(text.trim()) : null;
+    return { run, before: now.draft, turn: turn ?? null, version };
   });
 }
 

@@ -185,6 +185,8 @@ const DRAFT_ACTIONS: Action[] = [
     blocked: {
       missing: { privacy: "Pick who can see it first.", disclosure: TIKTOK_COPY.pickOne },
     },
+    // Over the words on screen: words written since refuse it.
+    expect: true,
     done: said("Scheduled at its next slot"),
   },
   {
@@ -200,6 +202,7 @@ const DRAFT_ACTIONS: Action[] = [
     blocked: {
       missing: { privacy: "Pick who can see it first.", disclosure: TIKTOK_COPY.pickOne },
     },
+    expect: true,
     done: said("Scheduled"),
   },
   {
@@ -211,6 +214,7 @@ const DRAFT_ACTIONS: Action[] = [
     blocked: {
       missing: { privacy: "Pick who can see it first.", disclosure: TIKTOK_COPY.pickOne },
     },
+    expect: true,
     done: said("Posting on the next pass"),
   },
   {

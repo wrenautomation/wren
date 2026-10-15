@@ -17,6 +17,7 @@ import { SHAPES } from "@wren/core/content/shapes";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { KeyStore } from "@wren/core/keys";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
+import { PortalRefusal, terminalOf } from "@wren/core/portal";
 import { clientOfKey, exclusiveHandler, PORTAL_FIELDS, sharedHandler } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
@@ -253,6 +254,10 @@ const IDS = z.looseObject({
 const APPROVE = IDS.extend({
   now: z.boolean().nullish().describe("On the next pass instead of the next slot"),
   at: z.iso.datetime({ offset: true }).nullish().describe("Post at this time instead (ISO)"),
+  expect: z
+    .string()
+    .nullish()
+    .describe("For one draft: the version on screen; a change since refuses it"),
 });
 const SWAP = z.looseObject({
   draftId: z.string().describe("A published post's draft id"),
@@ -394,6 +399,8 @@ const verdict = async (f: () => Promise<{ id: string }[]>): Promise<{ done: stri
   try {
     return { done: (await f()).map((d) => d.id) };
   } catch (err) {
+    // A coded refusal (words that moved since the page drew them) keeps its code.
+    if (err instanceof PortalRefusal) throw terminalOf(err);
     throw new restate.TerminalError((err as Error).message, { errorCode: 409 });
   }
 };
@@ -658,7 +665,13 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         { input: APPROVE },
         async (
           ctx: restate.ObjectContext,
-          req: { ids: string[]; now?: boolean | null; at?: string | null; viewer?: unknown },
+          req: {
+            ids: string[];
+            now?: boolean | null;
+            at?: string | null;
+            expect?: string | null;
+            viewer?: unknown;
+          },
         ) => {
           const { db } = await scopeOf(ctx);
           const slots = await slotsHere(ctx);
@@ -674,6 +687,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
                 slots,
                 asap: req.now === true,
                 ...(at ? { at } : {}),
+                ...(req.expect ? { expect: req.expect } : {}),
                 by: byOf(req),
               });
             }),

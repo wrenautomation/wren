@@ -12,6 +12,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PLATFORM_SPECS } from "../../src/platforms.js";
 import { draftRecord, postRecord } from "../../src/records.js";
+import { draftVersion } from "../../src/review.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
 import { AD_FORMAT_SEED, adFormatRecord } from "../../src/social/ad-formats.js";
 import { doneRecord } from "../../src/social/done-record.js";
@@ -122,7 +123,11 @@ describe("marketing.draft", () => {
       }),
       ask: [],
       record: null,
+      // The same idea's other drafts, a click apart in the editor.
+      siblings: [{ id: gone?.id, platform: "x", state: "published", title: "a published post" }],
     });
+    // The row names its words' version: Approve sends it, so a change since refuses the yes.
+    expect(one.row.version).toBe(draftVersion("a draft post"));
     // Every field X takes, as the editor draws it; nothing set yet.
     const shape = (one.detail as { shape: { fields: { key: string; status: string }[] } }).shape;
     expect(shape.fields.map((f) => f.key)).toContain("replySettings");

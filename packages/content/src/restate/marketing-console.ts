@@ -105,6 +105,7 @@ export interface DraftsRequest extends PortalRequest {
 export interface ApproveRequest extends DraftsRequest {
   at?: string | null;
   now?: boolean | null;
+  expect?: string | null;
 }
 export interface RejectRequest extends DraftsRequest {
   reason?: string | null;
@@ -324,6 +325,7 @@ const APPROVE = {
     ids: z.array(z.union([z.string(), z.number()])).describe("Draft ids"),
     at: z.iso.datetime({ offset: true }).nullish().describe("Post at this time (ISO)"),
     now: z.boolean().nullish().describe("Post on the next pass"),
+    expect: z.string().nullish().describe("For one draft: the version on screen"),
   }),
 };
 const REJECT = {
@@ -381,7 +383,16 @@ async function desk<T>(go: () => Promise<T>): Promise<T> {
   try {
     return await go();
   } catch (err) {
-    if (err instanceof restate.TerminalError) throw new PortalRefusal(err.message, 409);
+    if (err instanceof restate.TerminalError) {
+      // A coded no (words that moved since the page drew them) keeps its code and field.
+      const m = err.metadata ?? {};
+      throw new PortalRefusal(
+        err.message,
+        409,
+        m.field,
+        m.code === "conflict" ? "conflict" : undefined,
+      );
+    }
     throw err;
   }
 }
@@ -457,6 +468,7 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
               viewer: req.viewer,
               ...(req.at ? { at: req.at } : {}),
               ...(req.now ? { now: true } : {}),
+              ...(req.expect ? { expect: req.expect } : {}),
             }),
           );
         }),

@@ -171,6 +171,19 @@ describe("a draft's verdict", () => {
     const [id] = (await kappa.select({ id: contentDrafts.id }).from(contentDrafts)).map(
       (d) => d.id,
     );
+    // Over words the page never drew: refused by name, coded conflict, and nothing moves.
+    const res = await fetch(`${env.baseUrl()}/MarketingConsole/approveDraft`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...operator, client: "kappa", ids: [String(id)], expect: "0ld" }),
+    });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { message: string; metadata?: unknown };
+    expect(body.message).toBe(
+      '"Kappa cut denials by a third" on LinkedIn changed since you opened it. Read it again, then approve.',
+    );
+    expect(body.metadata).toEqual({ code: "conflict" });
+    expect(await states(kappa)).toEqual(["Kappa cut denials by a third: draft"]);
     const out = await svc().approveDraft({ ...operator, client: "kappa", ids: [String(id)] });
     expect(out).toEqual({ done: [id] });
     expect(await states(kappa)).toEqual(["Kappa cut denials by a third: approved"]);

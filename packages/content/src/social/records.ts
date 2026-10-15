@@ -214,7 +214,7 @@ const mailState = (m: Record<string, unknown>) =>
 const draftRows = (db: Queryable) =>
   rowsOf(
     db,
-    sql`select id, platform, title, text, format, missing, scheduled, created
+    sql`select id, platform, title, text, format, missing, scheduled, created, version
       from marketing_draft_records
       where state = 'draft' order by created desc limit ${ACTIVITY_ROWS}`,
   );
@@ -786,6 +786,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           kind: "post",
           format: p.format,
           missing: p.missing,
+          // Its words hashed: Approve sends the one on screen, so a change since refuses it.
+          version: p.version,
           state: "waiting",
           body: p.text,
           post_title: null,
@@ -1010,6 +1012,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       state: STATES,
       format: status(FORMATS, "Format", { listed: false }),
       missing: status(MISSING_PICKS, "Pick first", { listed: false }),
+      version: text("Version", { listed: false }),
       body: prose("Words"),
       postTitle: text("Post"),
       why: text("Picked for"),

@@ -2553,6 +2553,8 @@ export function RecordBody({
       f.kind !== "prose" &&
       f.key !== meta.title &&
       f.key !== box?.field &&
+      // The record's version is what a yes names, never a fact to read.
+      f.key !== "version" &&
       !own.has(f.key) &&
       row[f.key] != null &&
       row[f.key] !== "" &&
@@ -2820,8 +2822,11 @@ export function RecordBody({
               actions={inline}
               call={acts?.call ?? NO_CALL}
               changed={acted}
-              wrote={(text) =>
-                patchRecord(api, meta.id, row.id as string | number, { [box.field]: text })
+              wrote={(text, v) =>
+                patchRecord(api, meta.id, row.id as string | number, {
+                  [box.field]: text,
+                  ...(v ? { version: v } : {}),
+                })
               }
               at={got.at}
               send={sendAction ? () => runHead(sendAction) : undefined}

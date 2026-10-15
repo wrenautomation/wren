@@ -25,11 +25,13 @@ import {
   reachPosts,
   receive,
 } from "@wren/outreach";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addIdea,
+  approveDrafts,
   contentDrafts,
+  draftVersion,
   editDraft,
   listEdits,
   listWaiting,
@@ -170,6 +172,30 @@ describe("DraftAsk", () => {
       }),
     ).rejects.toMatchObject({ code: "conflict", message: expect.stringMatching(/changed since/) });
     expect((await readDraft(pg.db, `draft:${id}`)).draft).toBe("His own words.");
+  });
+
+  it("a save names the post's new version; Approve over older words is refused by name", async () => {
+    const id = await post("Words he saw.");
+    const seen = await pg.db.execute<{ version: string }>(
+      sql`select version from marketing_draft_records where id = ${id}`,
+    );
+    const shown = seen[0]?.version ?? "";
+    expect(shown).toBe(draftVersion("Words he saw."));
+    // Claude, or another tab, writes after the page drew it.
+    const saved = await desk().set({ record: "draft", id, text: "  Newer words.  " });
+    expect(saved.version).toBe(draftVersion("Newer words."));
+    await expect(
+      approveDrafts(pg.db, [id], { now: new Date(), expect: shown }),
+    ).rejects.toMatchObject({
+      code: "conflict",
+      message: expect.stringMatching(/^"Newer words\." on LinkedIn changed since you opened it/),
+    });
+    const [held] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
+    expect(held?.status).toBe("draft");
+    // The version the save answered with is the one on screen now: its yes goes.
+    await approveDrafts(pg.db, [id], { now: new Date(), expect: saved.version ?? "" });
+    const [done] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
+    expect(done?.status).toBe("approved");
   });
 
   it("refuses an empty ask, a missing draft and an answered comment", async () => {

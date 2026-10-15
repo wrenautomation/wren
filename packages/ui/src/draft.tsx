@@ -195,8 +195,11 @@ export function DraftBox({
   actions: readonly Action[];
   call: Call;
   changed: (ids: (string | number)[]) => void;
-  /** The server holds `text` now: show it wherever the page shows this draft (write-through). */
-  wrote?: ((text: string) => void) | undefined;
+  /**
+   * The server holds `text` now, at `version` when the save names one: show it wherever the page
+   * shows this draft (write-through), so Approve names the words just saved.
+   */
+  wrote?: ((text: string, version: string | null) => void) | undefined;
   /** The tick when the read of `draft.text` left (`useLoad`'s `at`): older reads never land. */
   at?: number | undefined;
   send?: (() => void) | undefined;

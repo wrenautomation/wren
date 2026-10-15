@@ -102,7 +102,7 @@ export function makeDraftAsk(db: Db) {
               by: whoOf(req),
               ...(req.expect !== undefined ? { expect: req.expect } : {}),
             })
-              .then(({ run, turn }) => ({ run, turn }))
+              .then(({ run, turn, version }) => ({ run, turn, version }))
               .catch((err) => {
                 // Over the cap, or gone: words to fix, never a conflict.
                 throw refuse(err, 400);

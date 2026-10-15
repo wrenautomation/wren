@@ -3,6 +3,7 @@
  * Nothing here publishes. An edit puts an approved draft back to `draft` so
  * what goes out is always something a person approved as written.
  */
+import { createHash } from "node:crypto";
 import type { Platform } from "@wren/core/content";
 import {
   consented,
@@ -14,6 +15,7 @@ import {
 import { carouselUnfit, isCarousel } from "@wren/core/content/slides";
 import { isThread, threadPosts, threadUnfit } from "@wren/core/content/thread";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
+import { PortalRefusal } from "@wren/core/refusal";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { postedLink, refuseUnlinked } from "./funnel.js";
@@ -84,15 +86,46 @@ async function moveAll(
 }
 
 /**
+ * A draft's version: its words, hashed (`left(md5(text), 12)` in `marketing_draft_records`). A
+ * yes names the one on screen, so words Claude or someone else wrote since are never approved
+ * unread.
+ */
+export const draftVersion = (text: string): string =>
+  createHash("md5").update(text).digest("hex").slice(0, 12);
+
+/** The one draft's words moved since the page drew `expect`: a coded conflict, named. */
+async function refuseMoved(db: Queryable, ids: readonly string[], expect?: string | null) {
+  const [id] = ids;
+  if (!expect || ids.length !== 1 || id === undefined) return;
+  const [r] = await db.select().from(contentDrafts).where(eq(contentDrafts.id, id)).limit(1);
+  if (!r || draftVersion(r.text) === expect) return;
+  throw new PortalRefusal(
+    `${named(r)} changed since you opened it. Read it again, then approve.`,
+    409,
+    undefined,
+    "conflict",
+  );
+}
+
+/**
  * Approve. `at` schedules; `now: true` posts on the next pass; otherwise each
  * draft takes its platform's next free slot on `zone`'s clock: the planner's
- * (`slots`), else the defaults.
+ * (`slots`), else the defaults. `expect`, for one draft: the version the person saw.
  */
 export async function approveDrafts(
   db: Queryable,
   ids: readonly string[],
-  o: { now: Date; at?: Date | null; zone?: string; asap?: boolean; slots?: Slots; by?: string },
+  o: {
+    now: Date;
+    at?: Date | null;
+    zone?: string;
+    asap?: boolean;
+    slots?: Slots;
+    by?: string;
+    expect?: string | null;
+  },
 ): Promise<ContentDraft[]> {
+  await refuseMoved(db, ids, o.expect);
   const rows = await approveAll(db, ids, o);
   for (const r of rows)
     await recordDraft(db, {

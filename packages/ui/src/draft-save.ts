@@ -18,8 +18,8 @@ export interface DraftSaving {
   call: Call;
   /** Read the record again: only on a conflict, to show theirs. */
   changed: (ids: (string | number)[]) => void;
-  /** Write-through: the server holds `text` now. */
-  wrote?: ((text: string) => void) | undefined;
+  /** Write-through: the server holds `text` now, at `version` when its answer names one. */
+  wrote?: ((text: string, version: string | null) => void) | undefined;
   /** The save's own line in the draft's thread ("Edited by"), when its answer carries one. */
   turned?: ((turn: DraftTurnLine) => void) | undefined;
 }
@@ -30,6 +30,12 @@ export const turnOf = (out: unknown): DraftTurnLine | null => {
   return t && typeof t === "object" && typeof (t as DraftTurnLine).id === "string"
     ? (t as DraftTurnLine)
     : null;
+};
+
+/** The record's version a save answers with (a post's words hashed), if any. */
+export const versionOfAnswer = (out: unknown): string | null => {
+  const v = (out as { version?: unknown } | null)?.version;
+  return typeof v === "string" && v ? v : null;
 };
 
 /** The read's turns, then the ones saves added since that the read doesn't hold yet. */
@@ -45,6 +51,8 @@ export const withTurns = (read: readonly DraftTurnLine[], mine: readonly DraftTu
  */
 export function draftSaving(o: DraftSaving): SaverOptions<string> {
   const { handler } = o;
+  // The last save's version: one save is out at a time, and `onSaved` follows it.
+  let version: string | null = null;
   return {
     key: handler ? o.key : null,
     server: o.server,
@@ -63,9 +71,10 @@ export function draftSaving(o: DraftSaving): SaverOptions<string> {
       });
       const turn = turnOf(out);
       if (turn) o.turned?.(turn);
+      version = versionOfAnswer(out);
       return { value: words };
     },
-    onSaved: (text) => o.wrote?.(text),
+    onSaved: (text) => o.wrote?.(text, version),
     // Claude or someone wrote meanwhile: read theirs so both show.
     onConflict: () => o.changed([]),
   };

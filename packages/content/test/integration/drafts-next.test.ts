@@ -52,8 +52,9 @@ describe("Drafts, up next", () => {
 
     const view = draftRecordOf().views.find((v) => v.id === "next");
     expect(draftRecordOf().views[0]?.id).toBe("next");
-    expect(view?.sort).toBe("due");
-    const states = (view?.where as { state: string[] }).state;
+    if (!view) throw new Error("no Up next view");
+    expect(view.sort).toBe("due");
+    const states = (view.where as { state: string[] }).state;
     const got = await pg.db.execute<{ text: string }>(
       sql`select text from marketing_draft_records
         where state in (${sql.join(

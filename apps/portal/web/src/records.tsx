@@ -288,10 +288,12 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("Ads", "resume", { campaignId: head(id, 1)[0] }, { confirm: "resume" }),
   "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: num(id) }),
   // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
-  "marketing/approveDraft": (id) => desk("approve", { ids: [bare(id)] }),
-  "marketing/scheduleDraft": (id, { day, time }) =>
-    desk("approve", { ids: [bare(id)], at: localTime(day, time) }),
-  "marketing/postNow": (id) => desk("approve", { ids: [bare(id)], now: true }),
+  "marketing/approveDraft": (id, { expect }) =>
+    desk("approve", { ids: [bare(id)], ...seen(expect) }),
+  "marketing/scheduleDraft": (id, { day, time, expect }) =>
+    desk("approve", { ids: [bare(id)], at: localTime(day, time), ...seen(expect) }),
+  "marketing/postNow": (id, { expect }) =>
+    desk("approve", { ids: [bare(id)], now: true, ...seen(expect) }),
   "marketing/rejectDraft": (id, { reason, note }) =>
     desk("reject", { ids: [bare(id)], reason, note }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
@@ -526,6 +528,8 @@ const bare = (id: string) => id.slice(id.indexOf(":") + 1);
 const num = (id: string) => Number(bare(id));
 /** A post draft's id from any page's: "draft:<id>" (To approve), "idea/platform/<id>" (Posts). */
 const draftOf = (id: string) => bare(id.slice(id.lastIndexOf("/") + 1));
+/** The version the page drew (an action with `expect`): the server refuses one that moved since. */
+const seen = (expect: unknown) => (typeof expect === "string" && expect ? { expect } : {});
 /** The words when typed; an untouched draft is left out and the desk sends the one it holds. */
 const words = (body: unknown) => (typeof body === "string" ? { body } : {});
 /** The Promote form's pick: one piece, or all three. Nothing picked: the posts. */
@@ -581,12 +585,18 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
   "marketing/inboxWake": (id) => ["marketing/inboxSnooze", { thread: id, until: null }],
   "marketing/inboxReplyApprove": (id) => ["marketing/inboxApprove", { id: num(id) }],
   "marketing/inboxReplyDrop": (id) => ["marketing/inboxDrop", { id: num(id) }],
-  "marketing/approveDraft": (id) => ["marketing/approveDraft", { ids: [bare(id)] }],
-  "marketing/scheduleDraft": (id, { day, time }) => [
+  "marketing/approveDraft": (id, { expect }) => [
     "marketing/approveDraft",
-    { ids: [bare(id)], at: localTime(day, time) },
+    { ids: [bare(id)], ...seen(expect) },
   ],
-  "marketing/postNow": (id) => ["marketing/approveDraft", { ids: [bare(id)], now: true }],
+  "marketing/scheduleDraft": (id, { day, time, expect }) => [
+    "marketing/approveDraft",
+    { ids: [bare(id)], at: localTime(day, time), ...seen(expect) },
+  ],
+  "marketing/postNow": (id, { expect }) => [
+    "marketing/approveDraft",
+    { ids: [bare(id)], now: true, ...seen(expect) },
+  ],
   "marketing/rejectDraft": (id, { reason, note }) => [
     "marketing/rejectDraft",
     { ids: [bare(id)], reason, note },

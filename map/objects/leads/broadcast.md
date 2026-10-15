@@ -27,7 +27,7 @@ Results are the [[leads/sent-log]]'s rows for it (`broadcast` column), counted o
 - `broadcast_recipients` (`:113`): `broadcast_id`, `profile_id` (unique pair), `address`, `zone`, `state` due|held|sent|queued|skipped|failed, `due_at`, `why`, `sent_at`, `message_id` (email, migration 0258).
 - Views `broadcast_records`, `broadcast_recipient_records` (`:149`, `:202`). Records `people.broadcast`, `people.recipient` (`packages/core/src/broadcast-records.ts:69`).
 - Words: `checkWords` (`broadcasts.ts:69`): email needs a subject; a text needs STOP and at most 459 characters; only `first_name`, `name`.
-- Portal: `PeopleConsole` routes `broadcastContext`, `broadcastPreview`, `broadcastMonth` (read), `broadcastSave`, `broadcastAsk`, `broadcastApprove`, `broadcastDecline`, `broadcastCancel`, `broadcastRestore`, `broadcastTest` (`packages/core/src/people-console.ts:285`). To approve lists waiting ones (`packages/content/src/social/records.ts:1419`).
+- Portal: `PeopleConsole` routes `broadcastContext`, `broadcastPreview`, `broadcastMonth` (read), `broadcastSave`, `broadcastAsk`, `broadcastApprove`, `broadcastDecline`, `broadcastCancel`, `broadcastRestore`, `broadcastTest` (`packages/core/src/people-console.ts:285`). To approve lists waiting ones (`packages/content/src/social/records.ts:1447`).
 - Test send: one copy marked [test] to one address; a text test goes only to the operator's own thread. Recorded only as the last test.
 - Its segment use is written on each segments pass (`broadcastUses`, `broadcasts.ts:876`; `packages/core/src/segments-pass.ts:245`).
 

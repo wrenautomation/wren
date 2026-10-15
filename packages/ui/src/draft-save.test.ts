@@ -104,6 +104,27 @@ describe("a draft box under a burst of typing", () => {
     expect(b.changed).not.toHaveBeenCalled();
   });
 
+  it("hands the page the version its save answered with, so Approve names it", async () => {
+    const wrote = vi.fn();
+    const call: Call = async () => ({ run: 1, turn: null, version: "a1b2c3d4e5f6" });
+    const saver = new Saver<string>({
+      ...draftSaving({
+        handler: "Draft/set",
+        id: n,
+        key: `draft:version:${n}`,
+        server: "",
+        call,
+        changed: vi.fn(),
+        wrote,
+      }),
+      env: fakeEnv().env,
+    });
+    saver.open();
+    await type(saver, "", "Short.");
+    await vi.advanceTimersByTimeAsync(1300);
+    expect(wrote).toHaveBeenCalledWith("Short.", "a1b2c3d4e5f6");
+  });
+
   it("typing through a slow save adds one save after it, not one per key", async () => {
     const { calls, call } = counted(3000);
     const saver = new Saver<string>({
