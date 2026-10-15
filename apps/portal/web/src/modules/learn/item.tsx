@@ -9,6 +9,7 @@ import {
   Button,
   cx,
   GROUP_LABEL,
+  LATEST,
   LoadFailed,
   Loading,
   PAGE_TITLE,
@@ -675,9 +676,10 @@ export function ItemView({ id, back }: { id: string; back: string }) {
       const due = !playing || Date.now() - saved.current.at > 15_000;
       if (due && Math.abs(t - saved.current.t) >= 3) {
         saved.current = { at: Date.now(), t };
-        void learn
-          .progress(item.id, Math.floor(t), duration ? Math.round(duration) : null)
-          .catch(() => {});
+        // One at a time, the newest last: a slow write can't move the place back.
+        void LATEST.write(`learn.progress:${item.id}`, Math.floor(t), (at) =>
+          learn.progress(item.id, at, duration ? Math.round(duration) : null),
+        );
       }
     },
     [item],
