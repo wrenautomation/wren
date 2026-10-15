@@ -3,13 +3,13 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 28823cd (+ fetch budget)
 entity: packages/core/src/content/index.ts:12
 ---
 
 # platform
 
-One of nine places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits. Optional reads: `activity(q?)` (follows, mentions, notices, newest first; `at` may be null) and `audience()` (follower count; X `users/me`, TikTok `user/info`, both daily).
+One of nine places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits. Optional reads: `activity(q?)` (follows, mentions, notices, newest first; `at` may be null) and `audience()` (follower count; X `users/me`, TikTok `user/info`, both daily). Two optional batch reads save calls (designs/2026-10-15-fetch-budget.md): `metricsMany(posts)` (several posts' numbers in as few platform reads as it can: X one timeline page, YouTube 50 ids a call, TikTok 20, Reddit 100, Facebook the Page's `/posts` listing, Instagram the full metric list once) and `commentCounts(ids)` (every post's comment count in one read; the `SocialWatch` probe). A post either leaves out is read with `metrics` or `comments`. Instagram's `Metrics.read` carries its full metric answer to `insights`.
 
 ## Why this shape
 
@@ -41,8 +41,8 @@ Citations: `packages/core/src/content/index.ts:12`, `:122`
 
 | Surface | Role |
 |---|---|
-| `Content` service (publish, update, list, metrics, comments, reply, activity, audience; `update` changes a live post's title, hook or thumbnail, YouTube only, 501 elsewhere; the last two null when the adapter lacks them, an `audience` failure terminal) | calls |
-| `SocialWatch/wren` (`packages/content/src/restate/social.ts`) | reads comments, activity, audience into `comments`, `social_activity`, `social_days`; never the audience of `AUDIENCE_ON_DEMAND` (LinkedIn: autobrowse `GET /audience` as `linkedin@wren`), read only by `SocialDesk.readAudience` (`wren social audience linkedin`, Followers → Read now), which replaces the day's row |
+| `Content` service (publish, update, list, metrics, metricsMany, commentCounts, comments, reply, activity, audience; the two batch reads answer null when the adapter lacks them and any failure in them is terminal, so the caller reads one by one; `update` changes a live post's title, hook or thumbnail, YouTube only, 501 elsewhere; the last two null when the adapter lacks them, an `audience` failure terminal) | calls |
+| `SocialWatch/wren` (`packages/content/src/restate/social.ts`) | counts comments once per platform per pass and reads the posts whose count moved (see [[content/comment]]), reads comments, activity, audience into `comments`, `social_activity`, `social_days`; never the audience of `AUDIENCE_ON_DEMAND` (LinkedIn: autobrowse `GET /audience` as `linkedin@wren`), read only by `SocialDesk.readAudience` (`wren social audience linkedin`, Followers → Read now), which replaces the day's row |
 | `TokenRenewal/box` | keeps their tokens alive |
 
 ## See
