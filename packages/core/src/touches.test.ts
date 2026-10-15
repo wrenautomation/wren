@@ -32,6 +32,12 @@ const line = (o: Partial<TouchLine>): TouchLine => ({
 });
 
 describe("normalizeHandle", () => {
+  it("keeps a YouTube channel id's case, bare or in a URL", () => {
+    const id = "UCabcDEF0123456789_-xyzA";
+    expect(normalizeHandle("youtube", id)?.handle).toBe(id);
+    expect(normalizeHandle("youtube", `https://www.youtube.com/channel/${id}`)?.handle).toBe(id);
+    expect(normalizeHandle("youtube", "@SomeChannel")?.handle).toBe("@somechannel");
+  });
   it("keys LinkedIn on the vanity, any URL shape, and keeps a URN", () => {
     for (const raw of [
       "https://www.linkedin.com/in/Sam-Rivera/",

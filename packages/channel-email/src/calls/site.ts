@@ -126,3 +126,11 @@ export function landerVisitLines(
     }
   };
 }
+
+/** The people map's reader (designs/2026-10-15-people-map.md): one visitor's hits, page and time only. */
+export function landerHits(
+  site: Site,
+): (visitor: string) => Promise<{ ts: string; page: string }[]> {
+  return async (visitor) =>
+    (await siteExport("hits", { ...site, visitor })).map((h) => ({ ts: h.ts, page: h.page }));
+}

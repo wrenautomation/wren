@@ -24,6 +24,7 @@ import {
   sealAudit,
   verifyAudit,
 } from "@wren/db";
+import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAds } from "./ads.js";
@@ -318,6 +319,11 @@ registerPeople(program, {
   withDb,
   withMainDb,
   client: () => program.opts<{ client?: string }>().client,
+  llm: (name) => {
+    // Provider keys load from the model keys file (or the host's env); never logged.
+    loadLlmEnv(settings.llmEnvPath, rootDir);
+    return makeLlm(name, process.env);
+  },
 });
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);

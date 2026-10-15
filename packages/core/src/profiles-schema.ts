@@ -408,7 +408,10 @@ export const profileTraitActivity = pgView("profile_trait_activity", {
     coalesce(e.old::text, 'none') || ' to ' || e.new::text what
   from profile_trait_events e`);
 
-/** Live profiles as the People list reads them: addresses, channels and consent on the row. */
+/**
+ * Live profiles as the People list reads them: addresses, channels and consent on the row, and
+ * the people map's stage, warmth and persona (`profile_rollups`; defaults before its first pass).
+ */
 export const profileRecords = pgView("profile_records", {
   id: integer("id"),
   name: text("name"),
@@ -422,6 +425,23 @@ export const profileRecords = pgView("profile_records", {
   keys: integer("keys"),
   traits: integer("traits"),
   merged: integer("merged"),
+  stage: text("stage"),
+  warmth: text("warmth"),
+  why: text("why"),
+  warmthLine: text("warmth_line"),
+  warmSince: timestamp("warm_since", { withTimezone: true }),
+  persona: text("persona"),
+  personaRole: text("persona_role"),
+  personaNiche: text("persona_niche"),
+  personaSize: text("persona_size"),
+  subscriptions: text("subscriptions"),
+  replies: integer("replies"),
+  repliedLast: timestamp("replied_last", { withTimezone: true }),
+  repliedChannel: text("replied_channel"),
+  firstChannel: text("first_channel"),
+  lastTouchAt: timestamp("last_touch_at", { withTimezone: true }),
+  lastChannel: text("last_channel"),
+  cameFrom: text("came_from"),
 }).as(sql`
   select p.id, coalesce(p.name, (select k.value from profile_keys k where k.profile_id = p.id
       order by k.kind <> 'email', k.kind <> 'phone', k.id limit 1), '#' || p.id) "name",
@@ -446,8 +466,16 @@ export const profileRecords = pgView("profile_records", {
     p.first_seen, p.last_seen,
     (select count(*)::int from profile_keys k where k.profile_id = p.id) keys,
     (select count(*)::int from profile_traits t where t.profile_id = p.id) traits,
-    (select count(*)::int from profile_merges m where m.into_id = p.id) merged
+    (select count(*)::int from profile_merges m where m.into_id = p.id) merged,
+    coalesce(r.stage, 'stranger') stage, coalesce(r.warmth, 'cold') warmth, r.why, r.warmth_line,
+    r.warm_since, coalesce(r.persona, 'unknown') persona,
+    coalesce(r.persona_role, 'unknown') persona_role,
+    coalesce(r.persona_niche, 'unknown') persona_niche,
+    coalesce(r.persona_size, 'unknown') persona_size, r.subscriptions,
+    coalesce(r.replied_n, 0) replies, r.replied_last, r.replied_last_channel replied_channel,
+    r.first_channel, r.last_touch_at, r.last_channel, r.came_from
   from profiles p
+  left join profile_rollups r on r.profile_id = p.id
   where p.merged_into is null`);
 
 /** Each trait as a row: its value as text for the list, the whole JSON for the page. */

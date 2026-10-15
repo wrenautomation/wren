@@ -6,7 +6,7 @@
  * what happened, only who it happened to.
  */
 import { atomic, type Queryable } from "@wren/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
 import {
   profileEvents,
   profileKeys,
@@ -324,6 +324,51 @@ export async function setTraits(
     if (await putTrait(db, profileId, key, value, source, at)) n += 1;
   }
   return n;
+}
+
+/**
+ * Derived traits set in one statement: `rows` is a query of `(profile_id, key, v)` text rows.
+ * A row at its key's default is written only over a held trait (so absent means the default);
+ * every change is kept in `profile_trait_events`. Returns the traits changed.
+ */
+export async function syncTraits(
+  db: Queryable,
+  rows: SQL,
+  source: string,
+  defaults: Readonly<Record<string, string>>,
+  at = new Date(),
+): Promise<number> {
+  const keys = Object.keys(defaults).filter((k) => TRAIT_KEY.test(k));
+  if (!keys.length) return 0;
+  const defs = sql.join(
+    keys.map((k) => sql`(${k}, ${defaults[k] as string})`),
+    sql`, `,
+  );
+  const when = at.toISOString();
+  const [r] = await db.execute<{ n: number }>(sql`
+    with d (key, v) as (values ${defs}),
+    want as (
+      select w.profile_id, w.key, to_jsonb(w.v::text) value
+      from (${rows}) w join d on d.key = w.key
+      left join profile_traits t on t.profile_id = w.profile_id and t.key = w.key
+      where w.v is not null and (t.profile_id is not null or w.v <> d.v)
+        and t.value is distinct from to_jsonb(w.v::text)),
+    old as (
+      select t.profile_id, t.key, t.value from profile_traits t
+      join want w on w.profile_id = t.profile_id and w.key = t.key),
+    up as (
+      insert into profile_traits (profile_id, key, value, source, at)
+      select profile_id, key, value, ${source}, ${when}::timestamptz from want
+      on conflict (profile_id, key) do update
+        set value = excluded.value, source = excluded.source, at = excluded.at
+      returning profile_id, key, value),
+    ev as (
+      insert into profile_trait_events (profile_id, key, old, new, source, at)
+      select up.profile_id, up.key, old.value, up.value, ${source}, ${when}::timestamptz
+      from up left join old on old.profile_id = up.profile_id and old.key = up.key
+      returning 1)
+    select count(*)::int n from ev`);
+  return Number(r?.n ?? 0);
 }
 
 /**

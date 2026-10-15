@@ -37,6 +37,9 @@ const TABLES = [
   "reach_accounts",
   "templates",
   "template_versions",
+  // A reply's touch makes the handle warm (the people map); each test starts cold.
+  "social_handles",
+  "profiles",
 ];
 const POLICY: ReachPolicy = { ...DEFAULT_POLICY, gapSeconds: 0 };
 // Thursday 14:00 New York.

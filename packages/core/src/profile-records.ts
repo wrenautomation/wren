@@ -7,6 +7,8 @@
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { REASON_WORDS, STAGE_WORDS, warmthOf } from "./people-map.js";
+import { WARM_REASONS } from "./people-map-schema.js";
 import { TIMELINE_KIND_NAMES, type TimelineKind } from "./profiles-schema.js";
 import {
   cued,
@@ -43,9 +45,56 @@ const CHANNELS = cued({
   tiktok: { label: "TikTok", tone: "neutral" },
   google_business: { label: "Google", tone: "neutral" },
   site: { label: "Site", tone: "neutral" },
+  chat: { label: "Site chat", tone: "neutral" },
   calendar: { label: "Calendar", tone: "neutral" },
   workflow: { label: "Workflow", tone: "neutral" },
   profile: { label: "Profile", tone: "neutral" },
+} as const);
+
+const STAGE_STATES = cued({
+  stranger: {
+    label: "Stranger",
+    tone: "neutral",
+    about: "An address only: never reached, never came to us.",
+  },
+  lead: { label: "Lead", tone: "neutral", about: "We reached them, or they showed a warm sign." },
+  replied: {
+    label: "Replied",
+    tone: "good",
+    about: "Wrote back on any channel, sent a form or chatted.",
+  },
+  booked: { label: "Booked", tone: "good", about: "Booked a call that wasn't cancelled." },
+  client: {
+    label: "Client",
+    tone: "good",
+    about: "Paid, signs in to a workspace, or marked a client.",
+  },
+  past_client: { label: "Past client", tone: "neutral", about: "Marked a past client." },
+} as const);
+
+const WARMTH = cued({
+  warm: {
+    label: "Warm",
+    tone: "good",
+    about: "Did something toward us: never send a cold opener.",
+  },
+  cold: { label: "Cold", tone: "neutral", about: "Never came toward us." },
+} as const);
+
+const ROLES = cued({
+  owner: { label: "Owner", tone: "neutral" },
+  executive: { label: "Executive", tone: "neutral" },
+  manager: { label: "Manager", tone: "neutral" },
+  staff: { label: "Staff", tone: "neutral" },
+  unknown: { label: "Unknown", tone: "neutral" },
+} as const);
+
+const SIZES = cued({
+  solo: { label: "Solo", tone: "neutral", about: "One person." },
+  small: { label: "Small", tone: "neutral", about: "2 to 9 people." },
+  mid: { label: "Mid", tone: "neutral", about: "10 to 49 people." },
+  large: { label: "Large", tone: "neutral", about: "50 or more." },
+  unknown: { label: "Unknown", tone: "neutral" },
 } as const);
 
 /** One visit line: a page seen or a recorded session, from Wren's site log (B7). */
@@ -73,6 +122,49 @@ export interface ProfileDetail {
   href: string;
   /** Its site visits, read live; null where no reader is set or it has no visitor key. */
   visits: VisitLine[] | null;
+  /** Where they stand and why, read live from the sources (the people map). */
+  warmth: WarmthDetail | null;
+}
+
+/** The person page's Warmth section: the map's row for one profile, in words. */
+export interface WarmthDetail {
+  stage: string;
+  warmth: "warm" | "cold";
+  line: string | null;
+  /** Each thing they did toward us, and what we sent them, counted. */
+  counts: { label: string; n: number; first: string | null; last: string | null }[];
+  subscriptions: string | null;
+  repliedOn: string | null;
+  first: { at: string; channel: string | null; what: string | null } | null;
+  last: { at: string; channel: string | null; what: string | null } | null;
+  cameFrom: string | null;
+  persona: string;
+  role: string;
+  niche: string;
+  size: string;
+}
+
+async function warmthDetail(db: Queryable, id: number): Promise<WarmthDetail | null> {
+  const [r] = await warmthOf(db, [id]);
+  if (!r) return null;
+  return {
+    stage: STAGE_WORDS[r.stage],
+    warmth: r.warmth,
+    line: r.warmthLine,
+    counts: [
+      ...WARM_REASONS.map((k) => ({ label: REASON_WORDS[k], ...r.counts[k] })),
+      { label: "we reached out", ...r.counts.contacted },
+    ].filter((c) => c.n > 0),
+    subscriptions: r.subscriptions,
+    repliedOn: r.repliedChannels,
+    first: r.firstTouch,
+    last: r.lastTouch,
+    cameFrom: r.cameFrom,
+    persona: r.persona,
+    role: r.personaRole,
+    niche: r.personaNiche,
+    size: r.personaSize,
+  };
 }
 
 /** The Timeline page's address for one profile's lines, of one kind when given. */
@@ -107,6 +199,7 @@ async function profileDetail(
     total: timeline.reduce((n, t) => n + t.count, 0),
     href: timelineHref(id),
     visits: visits ? await visitsOf(db, Number(id), visits) : null,
+    warmth: await warmthDetail(db, Number(id)),
   };
 }
 
@@ -128,19 +221,59 @@ export const profileRecord = defineRecord({
   subtitle: "emails",
   fields: {
     name: name(),
+    stage: status(STAGE_STATES, "Stage"),
+    warmth: status(WARMTH, "Warmth"),
+    warmthLine: text("What they did"),
+    persona: text("Persona"),
     emails: text("Emails"),
     phones: text("Phones"),
     handles: text("Handles"),
     channels: text("Channels"),
     consent: text("Consent"),
+    subscriptions: text("Subscriptions"),
+    replies: number("Replies"),
+    repliedLast: date("Last reply"),
+    repliedChannel: status(CHANNELS, "Replied on"),
+    lastTouchAt: date("Last touch"),
+    lastChannel: status(CHANNELS, "Last touch on"),
+    firstChannel: status(CHANNELS, "First touch on"),
+    cameFrom: text("Came from"),
+    warmSince: date("Warm since"),
+    why: text("Why warm", { listed: false }),
+    personaRole: status(ROLES, "Role"),
+    personaNiche: text("Niche"),
+    personaSize: status(SIZES, "Size"),
     lastSeen: date("Last seen"),
     firstSeen: date("First seen"),
     keys: number("Addresses"),
     traits: number("Traits"),
     merged: number("Merged in"),
   },
+  quick: ["stage", "warmth", "personaRole", "personaSize", "firstChannel"],
   views: [
     { id: "all", label: "All", sort: "-lastSeen", at: "firstSeen" },
+    {
+      id: "warm",
+      label: "Warm",
+      where: { warmth: "warm" },
+      sort: "-warmSince",
+      hint: "Did something toward us: subscribed, replied, booked, visited, opened, engaged.",
+    },
+    { id: "replied", label: "Replied", where: { replies: { gte: 1 } }, sort: "-repliedLast" },
+    { id: "booked", label: "Booked", where: { stage: "booked" }, sort: "-lastTouchAt" },
+    {
+      id: "clients",
+      label: "Clients",
+      where: { stage: ["client", "past_client"] },
+      sort: "-lastTouchAt",
+    },
+    { id: "cold", label: "Cold", where: { warmth: "cold" }, sort: "-lastTouchAt" },
+    {
+      id: "subscribed",
+      label: "Subscribed",
+      where: { subscriptions: { empty: false } },
+      sort: "-lastTouchAt",
+    },
     { id: "email", label: "With email", where: { emails: { empty: false } }, sort: "-lastSeen" },
     { id: "phone", label: "With phone", where: { phones: { empty: false } }, sort: "-lastSeen" },
     { id: "merged", label: "Merged", where: { merged: { gte: 1 } }, sort: "-lastSeen" },

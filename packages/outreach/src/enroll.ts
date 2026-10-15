@@ -109,7 +109,9 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
   let leadBusy = 0;
   for (const c of candidates) {
     if (o.take !== undefined && enrolled >= o.take) break;
-    const busy = await leadRefusal(db, c, "dm", o.now);
+    const busy = await leadRefusal(db, c, "dm", o.now, [
+      { kind: `handle:${c.platform}`, value: c.handle },
+    ]);
     if (busy) {
       await db.update(reachContacts).set({ stateReason: busy }).where(eq(reachContacts.id, c.id));
       leadBusy++;

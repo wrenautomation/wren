@@ -95,6 +95,7 @@ import {
   briefSettingsOf,
   briefStep,
   CALL_BRIEF,
+  landerHits,
   landerVisitLines,
   landerVisits,
   makeCallBriefs,
@@ -299,6 +300,8 @@ import { messageStep, notifyStep } from "@wren/core/message-step";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { makePeopleConsole, PEOPLE_RECORDS } from "@wren/core/people/console";
+import { siteCountReader } from "@wren/core/people-map";
+import { makePeopleMap, makePeopleMapNet } from "@wren/core/people-map-pass";
 import { PortalRefusal } from "@wren/core/portal";
 import { profileRecords } from "@wren/core/profile-records";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
@@ -2245,6 +2248,21 @@ export async function buildServices(
         clients: async () => (await listClients(db)).map((c) => c.id),
       };
       return [makeSegments(segments), makeSegmentsNet(segments)];
+    })(),
+    // People map: each profile's stage, warmth and persona rebuilt; the net every 15 minutes.
+    // Wren's site counts come from the lander's log, 200 visitors a pass.
+    ...(() => {
+      const map = {
+        main: db,
+        clientDb,
+        clients: async () => (await listClients(db)).map((c) => c.id),
+        site: settings.siteExportToken
+          ? siteCountReader(
+              landerHits({ baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }),
+            )
+          : null,
+      };
+      return [makePeopleMap(map), makePeopleMapNet(map)];
     })(),
     // Broadcasts (B6): each approved one started on its time and sent a batch per run.
     makeBroadcast({ main: db, clientDb, mail: (client, cdb) => mailOf(client, cdb) }),

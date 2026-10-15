@@ -170,7 +170,9 @@ export async function messageAccount(
       `${c.accountId ? "their account" : PERSON_ACCOUNTS[platform]} isn't live in reach`,
     );
   checkCanDm(a, now);
-  const busy = await leadRefusal(db, c, "dm", now);
+  const busy = await leadRefusal(db, c, "dm", now, [
+    { kind: `handle:${c.platform}`, value: c.handle },
+  ]);
   if (busy) throw new ReachRefusal(busy);
   return a;
 }

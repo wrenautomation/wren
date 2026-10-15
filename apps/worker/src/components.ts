@@ -69,6 +69,8 @@ export const PLATFORM = {
     Segments:
       "a workspace's segments kept true; entries, exits, traits and dates told to the spine",
     SegmentsNet: "wakes every workspace's segments pass every 15 minutes",
+    PeopleMap: "a workspace's people map: each person's stage, warmth and persona rebuilt",
+    PeopleMapNet: "wakes every workspace's people map every 15 minutes",
     Broadcast: "one approved broadcast: started on its time, then a batch of its people per run",
     MailAccess: "Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in",
     MailCallback: "where Google and Microsoft send a mailbox's sign-in and an admin's consent back",

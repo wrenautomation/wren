@@ -1898,6 +1898,13 @@
       "when": 1792072298989,
       "tag": "0270_reddit_places_joined",
       "breakpoints": true
+    },
+    {
+      "idx": 271,
+      "version": "7",
+      "when": 1792077982739,
+      "tag": "0271_people_map",
+      "breakpoints": true
     }
   ]
 }

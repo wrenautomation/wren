@@ -136,7 +136,9 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       continue;
     }
     // An applicant who just filled the form is answered now, whatever else runs at the firm.
-    const busy = ASKED.has(c.sourceKind) ? null : await leadRefusal(db, c, "text", opts.now);
+    const busy = ASKED.has(c.sourceKind)
+      ? null
+      : await leadRefusal(db, c, "text", opts.now, [{ kind: "phone", value: c.e164 }]);
     if (busy) {
       await db.update(smsContacts).set({ stateReason: busy }).where(eq(smsContacts.id, c.id));
       stats.leadBusy += 1;

@@ -91,6 +91,7 @@ curl -X POST -H "$H" $U/AdsWatch/default/start          # daily ads guard: pause
 curl -X POST -H "$H" $U/RedditReads/wren/start           # Reddit discovery, signed out: places monthly, watched places every 2 h, drafts to Marketing → Threads; posts nothing (`wren reach discovery start`)
 curl -X POST -H "$H" $U/PayReconcile/all/start          # daily: each Stripe-connected client's links of 120 days held against Stripe; heals missed webhooks, flags drift; reads Stripe only
 curl -X POST -H "$H" $U/SegmentsNet/all/start           # every 15 min: wakes Segments/fleet and each <client>/fleet (People → Segments kept true, segment/trait/date triggers fired); row triggers wake it at commit too; Segments/<key>/status shows the cursor
+curl -X POST -H "$H" $U/PeopleMapNet/all/start          # every 15 min: wakes PeopleMap/fleet and each <client>/fleet (People: stage, warmth, persona rebuilt; loose handles keyed; Wren's site counts); PeopleMap/<key>/status shows the last pass
 # `Ads` is a plain service (no scheduler): `wren ads launch|start|stop|insights` call it through the ingress; it writes `ad_launches`.
 ```
 

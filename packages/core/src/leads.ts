@@ -7,6 +7,8 @@
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { coldOpenerRefusal } from "./people-map.js";
+import type { ProfileKey } from "./profiles.js";
 
 export type LeadChannel = "email" | "text" | "dm";
 
@@ -27,18 +29,23 @@ export const leadKey = (l: Lead): string | null =>
 export const FIRST_TOUCH_GAP_MS = 86_400_000;
 
 /**
- * Why `lead` can't start a `channel` sequence now, or null. Two rules over the other channels:
- * the lead is in one active sequence at a time, and its firm got no first touch in the last day.
- * A first touch is a text or DM enroll (their opener queues then) or a sent email opener.
+ * Why `lead` can't start a `channel` sequence now, or null. Three rules: the lead is in one
+ * active sequence at a time; a warm person (by their person row or `keys`, the address this
+ * channel reaches) never gets a cold opener (`coldOpenerRefusal`); and its firm got no first
+ * touch on another channel in the last day. A first touch is a text or DM enroll (their opener
+ * queues then) or a sent email opener.
  */
 export async function leadRefusal(
   db: Queryable,
   lead: Lead,
   channel: LeadChannel,
   now: Date,
+  keys: readonly ProfileKey[] = [],
 ): Promise<string | null> {
   const busy = await activeElsewhere(db, lead, channel);
   if (busy) return busy;
+  const warm = await coldOpenerRefusal(db, { personId: lead.personId, keys });
+  if (warm) return warm;
   return lead.companyId === null ? null : firstTouchElsewhere(db, lead.companyId, channel, now);
 }
 

@@ -25,6 +25,7 @@ import { randomUUID } from "node:crypto";
 import { companies, type Suppression } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { firstTouchElsewhere } from "@wren/core/leads";
+import { coldOpenerRefusal, WARM_SEQUENCES } from "@wren/core/people-map";
 import { pyReprStr } from "@wren/core/slots";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import {
@@ -109,6 +110,7 @@ export const STAT_KEYS = [
   "gap_waiting",
   "openers_capped",
   "first_touch_waiting",
+  "stopped_warm",
   "waiting_touch",
   "page_not_live",
   "raced",
@@ -359,6 +361,19 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     if (opening && (await firstTouchElsewhere(db, enrollment.companyId, "email", now)) !== null) {
       stats.first_touch_waiting += 1;
       continue;
+    }
+    // A warm person never gets a cold opener (designs/2026-10-15-people-map.md): the enrollment
+    // stops, its address stays mailable. Reactivation's opener is written to someone who knows us.
+    if (opening && !WARM_SEQUENCES.has(enrollment.sequenceName)) {
+      const warm = await coldOpenerRefusal(db, {
+        personId: enrollment.personId,
+        keys: [{ kind: "email", value: enrollment.toEmail }],
+      });
+      if (warm !== null) {
+        await atomic(db, (tx) => recordStop(tx, enrollment, "manual", { detail: warm, now }));
+        stats.stopped_warm += 1;
+        continue;
+      }
     }
     const conflict = await cooldownConflict(db, enrollment, policy, now);
     if (conflict !== null) {

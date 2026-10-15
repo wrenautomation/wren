@@ -125,6 +125,9 @@ function reddit(text: string): HandleRef | null {
   return { platform: "reddit", handle: h, url: `https://www.reddit.com/user/${h}` };
 }
 
+/** A YouTube channel id: `UC` and 22 more. */
+const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
+
 function youtube(text: string): HandleRef | null {
   const segs = pathOf(text, /(^|\.)youtube\.com$/i);
   if (segs?.[0] === "channel" && segs[1])
@@ -133,7 +136,11 @@ function youtube(text: string): HandleRef | null {
       handle: segs[1],
       url: `https://www.youtube.com/channel/${segs[1]}`,
     };
-  const h = (segs ? (segs[0] ?? "") : text).trim().toLowerCase();
+  const raw = (segs ? (segs[0] ?? "") : text).trim();
+  // A bare channel id keeps its case, as from a /channel/ URL: ids are case-sensitive.
+  if (CHANNEL_ID.test(raw))
+    return { platform: "youtube", handle: raw, url: `https://www.youtube.com/channel/${raw}` };
+  const h = raw.toLowerCase();
   if (!h || h.length > 100 || /[/?#]/.test(h)) return null;
   return {
     platform: "youtube",
