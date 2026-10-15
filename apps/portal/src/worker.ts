@@ -61,6 +61,8 @@ import { goRoute, sitesRoute } from "./sites.js";
 export { NoteRoom };
 
 const MAX_BODY = 16 * 1024;
+/** What a request id may be: the web's own (a UUID), or any short token. */
+const REQUEST_ID = /^[A-Za-z0-9_-]{8,100}$/;
 const DEMO_CACHE_SECONDS = 300;
 /** The run feed changes by the second: a few seconds of cache, or a live run looks stuck. */
 const RUN_CACHE_SECONDS = 2;
@@ -144,6 +146,11 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
   const viewAs = (input as { viewAs?: unknown }).viewAs;
   if (viewAs !== undefined && viewAs !== null && viewAs !== "" && svc.writes.has(route))
     return json({ error: "View as is read-only." }, 403);
+  // An action's request id (`requestId`): sent again on a double click or a retry, it runs once.
+  const { requestId, ...unkeyed } = input as { requestId?: unknown } & Record<string, unknown>;
+  if (requestId !== undefined && requestId !== null && !REQUEST_ID.test(String(requestId)))
+    return json({ error: "A request id is 8 to 100 letters, digits, - or _." }, 400);
+  input = unkeyed;
   const viewer = await viewerOf(req, env);
   if (viewer instanceof Response) return viewer;
   if (!("demo" in viewer)) {
@@ -155,7 +162,17 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
     };
     // A client's host shows that client only, as the client sees it.
     const pin = site.kind === "client" ? { client: site.client, asClient: true } : {};
-    return forward(env, target, JSON.stringify({ ...(input as object), ...pin, viewer, origin }));
+    // Restate keeps the first answer a day. The key names who asked, so another login's id is theirs alone.
+    const once =
+      requestId && svc.writes.has(route)
+        ? `portal:${await sha256(`${viewer.email}\n${"client" in pin ? pin.client : ""}\n${requestId}`)}`
+        : undefined;
+    return forward(
+      env,
+      target,
+      JSON.stringify({ ...(input as object), ...pin, viewer, origin }),
+      once,
+    );
   }
   const body = JSON.stringify({ ...(input as Record<string, unknown>), viewer });
   // The service refuses too; this keeps a demo write out of the cache and off the wire.

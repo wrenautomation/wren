@@ -11,8 +11,16 @@ export function json(body: unknown, status = 200): Response {
 const ingress = (env: Env, path: string) =>
   `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`;
 
-/** A POST to `<service>/<handler>` on the ingress, its answer passed through. */
-export async function forward(env: Env, path: string, body: string): Promise<Response> {
+/**
+ * A POST to `<service>/<handler>` on the ingress, its answer passed through. With an idempotency
+ * key, Restate runs the call once: a second request with the key gets the first one's answer.
+ */
+export async function forward(
+  env: Env,
+  path: string,
+  body: string,
+  idempotencyKey?: string,
+): Promise<Response> {
   let res: Response;
   try {
     res = await fetch(ingress(env, path), {
@@ -20,6 +28,7 @@ export async function forward(env: Env, path: string, body: string): Promise<Res
       headers: {
         "content-type": "application/json",
         ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+        ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}),
       },
       body,
     });

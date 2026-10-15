@@ -13,7 +13,7 @@ import worker from "../src/worker.js";
 const AUTH = "https://auth.test";
 const AUD = "wren";
 let keys: CryptoKeyPair;
-let restate: { url: string; body: Record<string, unknown> }[];
+let restate: { url: string; body: Record<string, unknown>; key: string | null }[];
 let restateStatus: number;
 let certFetches: number;
 
@@ -75,7 +75,11 @@ beforeEach(() => {
       // As Better Auth publishes it: alg EdDSA (WebCrypto exports Ed25519).
       return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
     }
-    restate.push({ url, body: JSON.parse(String(init?.body)) });
+    restate.push({
+      url,
+      body: JSON.parse(String(init?.body)),
+      key: new Headers(init?.headers).get("idempotency-key"),
+    });
     return Response.json({ ok: true, route: url.split("/").at(-1) }, { status: restateStatus });
   });
 });
@@ -200,6 +204,7 @@ describe("the demo host", () => {
       {
         url: "https://restate.test:8080/ReactivationPortal/recordsList",
         body: { viewer: { demo: true } },
+        key: null,
       },
     ]);
   });
@@ -325,6 +330,35 @@ describe("the app host", () => {
       );
     }
     expect(certFetches).toBe(1);
+  });
+
+  it("an action's request id becomes Restate's idempotency key, per login, and leaves the body", async () => {
+    const auth = { authorization: `Bearer ${await token({})}` };
+    const send = (route: string, body: Record<string, unknown>, a = auth) =>
+      worker.fetch(post("app.test", route, body, a), env());
+    expect((await send("documents/send", { id: "d1", requestId: "req-0001" })).status).toBe(200);
+    await send("documents/send", { id: "d1", requestId: "req-0001" });
+    const other = { authorization: `Bearer ${await token({ email: "else@client.example" })}` };
+    await send("documents/send", { id: "d1", requestId: "req-0001" }, other);
+    // A read keeps no key; a write without an id has none.
+    await send("documents/templates", { requestId: "req-0001" });
+    await send("documents/send", { id: "d1" });
+    const [a, b, c, read, plain] = restate;
+    expect(a?.key).toMatch(/^portal:[0-9a-f]{64}$/);
+    expect(b?.key).toBe(a?.key);
+    expect(c?.key).not.toBe(a?.key);
+    expect(read?.key).toBeNull();
+    expect(plain?.key).toBeNull();
+    for (const r of restate) expect(r.body).not.toHaveProperty("requestId");
+  });
+
+  it("refuses a request id that isn't a short token", async () => {
+    const auth = { authorization: `Bearer ${await token({})}` };
+    for (const requestId of ["short", "has space here", "x".repeat(101), 12])
+      expect(
+        (await worker.fetch(post("app.test", "documents/send", { requestId }, auth), env())).status,
+      ).toBe(400);
+    expect(restate).toEqual([]);
   });
 
   it("passes Restate's refusal through", async () => {
