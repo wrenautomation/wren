@@ -34,6 +34,7 @@ import {
   type RecordType,
   type SavedView,
   sortOf,
+  type Thumb,
 } from "./records.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
 import { jsonl, type TrainRecord, trainRecords } from "./train.js";
@@ -60,6 +61,8 @@ export interface ListAsk {
   of?: { record: string; id: string | number };
   /** Also count each state of every status, tags, verdict and choice field: Shop, Filter. */
   facets?: boolean;
+  /** Also each row's picture, where the type has them: a card view. */
+  thumbs?: boolean;
 }
 export interface RecordsPage {
   record: string;
@@ -76,6 +79,8 @@ export interface RecordsPage {
    * every filter but that field's own, so a picked state never zeroes its siblings.
    */
   facets?: Record<string, Record<string, number>>;
+  /** Asked for: the rows' pictures by id, those that have one (`RecordType.thumbs`). */
+  thumbs?: Record<string, Thumb>;
 }
 /**
  * A list column's footer: money sums (one currency), a rate pools n of m, a verdict is valid of
@@ -777,6 +782,16 @@ export function serveRecords(
           from ${await source(p.t)} where ${p.base}`);
         const facets = ask.facets ? await facetsOf(p) : undefined;
         const page = raw.slice(0, limit);
+        // Pictures are extra: one that can't be read leaves its card without, never the list.
+        const thumbs =
+          ask.thumbs && p.t.thumbs && !demo && page.length
+            ? await p.t
+                .thumbs(
+                  db,
+                  page.map((r) => String(r.__key)),
+                )
+                .catch(() => ({}))
+            : undefined;
         const last = raw.length > limit ? page.at(-1) : undefined;
         return {
           record: p.t.id,
@@ -786,6 +801,7 @@ export function serveRecords(
           counts: Object.fromEntries(views.map((v, i) => [v.id, Number(n?.[`c${i}`] ?? 0)])),
           totals: n ? totals.read(n) : {},
           ...(facets ? { facets } : {}),
+          ...(thumbs ? { thumbs } : {}),
           next: last
             ? encode([
                 p.sortKey,

@@ -41,6 +41,7 @@ import { queuedReplies, waitingReplies } from "../inbox/send.js";
 import { statusOf, threadStates, typed } from "../inbox/threads.js";
 import type { InboxReply } from "../schema.js";
 import { shapeView } from "../shape-view.js";
+import { mixedThumbs } from "../thumbs.js";
 import type { VideoSigner } from "../video.js";
 import { adFormatRecord } from "./ad-formats.js";
 import { doneRecord } from "./done-record.js";
@@ -1123,6 +1124,10 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "InboxDesk/approve": "id",
       "InboxDesk/drop": "id",
     },
+    thumbs: mixedThumbs((id) => {
+      const [type, rest] = typed(id);
+      return type === "draft" ? { draft: rest } : type === "video" ? { video: rest } : null;
+    }, signer),
     /** An accepted invite's messages; a draft's Ask Claude thread. */
     load: async (db, id) => {
       const [type, rest] = typed(id);

@@ -26,6 +26,7 @@ import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/sc
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
+import { videoThumbs } from "./thumbs.js";
 import { videoTurns } from "./video-ask.js";
 import {
   previewCheck,
@@ -871,6 +872,7 @@ export const videoRecord = (signer?: VideoSigner) => {
     ],
     activity: { view: "draft_activity", by: "video", seq: "seq" },
     drafts: (id) => [`video:${id}`],
+    thumbs: (db, ids) => videoThumbs(db, ids, signer),
     actions: [
       "marketing.videoRender",
       "marketing.videoApprove",

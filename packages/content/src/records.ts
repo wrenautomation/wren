@@ -27,6 +27,7 @@ import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
 import { shapeView } from "./shape-view.js";
 import { FORMATS, MISSING_PICKS } from "./social/records.js";
+import { draftThumbs, mixedThumbs } from "./thumbs.js";
 import type { VideoSigner } from "./video.js";
 
 const NAMES: Record<Platform, string> = {
@@ -245,6 +246,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       "marketing.draftSlides",
     ],
     calls: DRAFT_CALLS,
+    thumbs: (db, ids) => draftThumbs(db, ids, signer),
     /** The preview, its fields, and Ask Claude's thread on it. */
     load: async (db, id) => ({
       post: await postOf(db, id),
@@ -341,6 +343,10 @@ export const postRecordOf = (signer?: VideoSigner) =>
     activity: { view: "draft_activity", by: "post", seq: "seq" },
     drafts: (id) => [`draft:${id.split("/").at(-1)}`],
     actions: ["marketing.draftAgain", "marketing.postPromote", "marketing.swapAsk"],
+    thumbs: mixedThumbs((id) => {
+      const draft = id.split("/")[2];
+      return draft ? { draft } : null;
+    }, signer),
     load: async (db, id) => ({
       post: await postOf(db, id.split("/")[2] ?? ""),
       shape: await shapeView(db, id.split("/")[2] ?? "", signer),

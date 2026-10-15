@@ -602,6 +602,12 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   drafts?: (id: string) => readonly string[];
   /** What the detail adds past the row (a brief's sources); null when there's none. */
   load?: (db: Queryable, id: string) => Promise<object | null>;
+  /**
+   * A picture per row for a list's cards (a draft's image or poster, a video's cover): a link
+   * for each of the page's rows that has one, by id. Read only when a card view asks
+   * (`ListAsk.thumbs`), never for the demo.
+   */
+  thumbs?: (db: Queryable, ids: readonly string[]) => Promise<Record<string, Thumb>>;
   /** What a person or Claude may change on it; absent, it's read only. */
   edits?: RecordEdits;
   /** The app it belongs to (`APPS` in `./access.ts`): what a grant's `apps` names. */
@@ -633,6 +639,12 @@ export interface RecordDecl<F extends Record<string, Draft>> {
 export const customColumn = (key: string) => `x_${key}`;
 /** The currency column a custom money field reads. */
 export const CUSTOM_CURRENCY = "x__currency";
+/** A row's picture on its card: a link the browser opens, and whether it plays. */
+export interface Thumb {
+  url: string;
+  kind: "image" | "video";
+}
+
 /** A record type's channel: one, a field holding it, or none. */
 export type RecordChannel = string | { field: string } | null;
 export type RecordType = Omit<RecordDecl<Record<string, Draft>>, "fields"> & {
@@ -859,6 +871,8 @@ export interface RecordMeta {
   detail: boolean;
   /** Its rows are drafts: the list offers Export JSONL with their training records. */
   drafts?: boolean;
+  /** Its rows may carry a picture (`thumbs`): a card view asks for them. */
+  thumbs?: boolean;
   /** The fields a person edits in place; absent or null when it's read only. Ask Claude comes with it. */
   edits?: readonly string[] | null;
   /** What editing needs, when it isn't `run`. */
@@ -929,6 +943,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     ...(type.activity?.label ? { activityLabel: type.activity.label } : {}),
     ...(type.activity?.empty ? { activityEmpty: type.activity.empty } : {}),
     ...(type.drafts ? { drafts: true } : {}),
+    ...(type.thumbs && !demo ? { thumbs: true } : {}),
     detail: !!type.load,
     // The demo reads only: its edits would land nowhere.
     edits: type.edits && !demo ? type.edits.fields : null,
