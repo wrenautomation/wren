@@ -184,7 +184,7 @@ import {
 import { tiktokContent, tiktokCreator } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
-import { ingressOf, type Settings } from "@wren/config";
+import { CONTENT_CHANNELS, ingressOf, type Settings } from "@wren/config";
 import {
   connectorAccess,
   connectorAppsFrom,
@@ -210,6 +210,7 @@ import {
   loginOf,
   makeSocialAccess,
   makeSocialCallback,
+  ownSwitchesOf,
   socialAccess,
   socialAppsFrom,
   socialChecks,
@@ -2298,7 +2299,16 @@ export async function buildServices(
       sender: (client, address) => clientMail.senderOf(client, address),
     }),
     // Account → Social, its callback, and a client's DMs and comment answers on its own accounts.
-    makeSocialAccess({ main: db, access: clientSocial }),
+    makeSocialAccess({
+      main: db,
+      access: clientSocial,
+      // Wren's own channels on its Account → Social: config as `contentFor` reads it.
+      own: {
+        switches: ownSwitchesOf(settings),
+        known: CONTENT_CHANNELS,
+        box: sitesHost(settings.autobrowseInstanceId),
+      },
+    }),
     makeSocialCallback({ main: db, access: clientSocial }),
     // Account → Connectors, its callback, and each connected app's hourly read into the CRM.
     makeConnectors({ main: db, access: clientConnectors }),

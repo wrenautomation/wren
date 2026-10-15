@@ -26,7 +26,8 @@ GHL's Social Planner, on official APIs only. One app per platform, one sign-in p
 - Business Profile (`business.ts`): `businessProfileContent` posts local posts, reads reviews as comments on the location (`ContentChannel.reviews`), answers a review
 - `clientContent` gives each channel's `connected` account (a company page ahead of a profile), and which channels read `comments` and `reviews`; SocialWatch reads only those, and connected accounts don't wait on `WREN_CONTENT_CHANNELS`
 - DMs (`dms.ts`): Facebook, Instagram, X. `readDms` + `keepDms` into the client's `reach_contacts`/`reach_messages` (a `theirs` touch each); `planDm` (Meta's 24 h window, opt-outs), `sendDm`, `sentDm` (an `ours` touch, draft log)
-- Services: `SocialAccess` (`console.ts:125`, routes `console-routes.ts`), `SocialCallback/land` (`console.ts:192`, private; portal Worker `/oauth/social/<platform>`, `apps/portal/src/oauth-landing.ts`), `SocialInbox` read/send/answer (`packages/content/src/restate/social-inbox.ts:71`)
+- Wren's own channels (`own.ts`): in Wren's workspace, for the team only, `SocialAccess.social` returns `own`, one row per `WREN_CONTENT_CHANNELS` channel: account, how it posts (setting names only, never values), token lapse and last renewal from `sites renew` runs, last post (`content_drafts`) and last failure (`draft_events`). `ownCheck` runs autobrowse's site check (`sites/status`, then one GET of its probe) on the box or desk; read only
+- Services: `SocialAccess` (`console.ts:173`, routes `console-routes.ts`), `SocialCallback/land` (`console.ts:260`, private; portal Worker `/oauth/social/<platform>`, `apps/portal/src/oauth-landing.ts`), `SocialInbox` read/send/answer (`packages/content/src/restate/social-inbox.ts:71`)
 - Setup: `setup.social`, check `social.token` hourly (`setups.ts`)
 - App reviews (`app-reviews.ts`, designs/2026-10-09-app-reviews.md): `REVIEWS` (each platform review: fields, permission text from `SOCIAL`'s scopes, screencast, open items, what it unlocks), `checkReview` (public pages for their words, callbacks served, prod keys, the 1024 icon at `deploy/reviews/`), `packetOf`. The mail apps' Google verification and Microsoft publisher verification sit in the same table. Filing is a person's act; a pass goes into `WREN_SOCIAL_LIVE`
 
@@ -48,6 +49,7 @@ Citations: `packages/content/src/connect/schema.ts:30`, `:68`; `packages/content
 | Surface | Role |
 |---|---|
 | Account → Social (client owners and admins; Wren's team for any client) | reads, writes (connect, check, turn off) |
+| Account → Social in Wren's workspace (team only) | reads Wren's own channels; Check probes one through autobrowse |
 | `/oauth/social/<platform>` (portal Worker) | writes (lands a grant) |
 | SetupWatch, `social.token` hourly | checks, marks broken |
 | SocialWatch client pass | reads comments, Business Profile reviews, and DMs through `SocialInbox.read` |

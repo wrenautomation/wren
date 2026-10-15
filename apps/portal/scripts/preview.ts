@@ -29,7 +29,7 @@ import { callRecord, firmRecord, replyRecord } from "@wren/channel-email/records
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
 import { smsConsoleApi } from "@wren/channel-sms/restate";
-import { loadEnvFile, loadSettings } from "@wren/config";
+import { CONTENT_CHANNELS, loadEnvFile, loadSettings } from "@wren/config";
 import {
   CONNECTOR_APPS,
   connectorAccess,
@@ -39,6 +39,8 @@ import {
 import { CONNECTORS_APPS, CONNECTORS_ROUTES } from "@wren/connectors/console-routes";
 import {
   liveFrom,
+  type OwnSites,
+  ownSwitchesOf,
   SOCIAL_ACCESS_APPS,
   SOCIAL_ACCESS_ROUTES,
   SOCIAL_APPS,
@@ -123,6 +125,21 @@ const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
+const standIns = process.env.WREN_PREVIEW_SOCIAL_APPS === "true";
+/** autobrowse for Wren's own Check in the preview: every site signed in, one who-am-I route. */
+const standInSites: OwnSites = {
+  status: async () => ({
+    authed: true,
+    routes: [
+      { method: "GET", path: "/me", via: "api" },
+      { method: "POST", path: "/posts", via: "browser" },
+    ],
+    probe: { path: "/me" },
+  }),
+  read: async () => ({ data: { username: "wren_preview" } }),
+  renewDry: async () => ({ due: [], next: null }),
+  now: async () => Date.now(),
+};
 const main = createDb(settings.databaseUrl, { max: 2 }).db;
 /** The key store with a key pair made at start: keys saved in an earlier run won't open. */
 const ring = throwawayRing("dev");
@@ -301,12 +318,24 @@ const SERVICES: Record<
     }),
   },
   // Account → Social. No network: Connect can't reach a platform here. Wren's apps from the key
-  // store, or stand-ins with WREN_PREVIEW_SOCIAL_APPS=true to see every state.
+  // store, or stand-ins with WREN_PREVIEW_SOCIAL_APPS=true to see every state (and, on Wren's own
+  // page, every channel with a Check that answers from a stand-in autobrowse).
   social: {
     routes: Object.keys(SOCIAL_ACCESS_ROUTES),
     guard: { needs: SOCIAL_ACCESS_ROUTES, apps: SOCIAL_ACCESS_APPS, unnamed: "first" },
     api: socialConsoleApi({
       main,
+      own: {
+        switches: ownSwitchesOf({
+          ...settings,
+          contentChannels:
+            settings.contentChannels.length || !standIns
+              ? settings.contentChannels
+              : CONTENT_CHANNELS,
+        }),
+        known: CONTENT_CHANNELS,
+        ...(standIns ? { sites: standInSites } : {}),
+      },
       access: socialAccess({
         main,
         apps:

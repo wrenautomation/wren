@@ -20,6 +20,7 @@ import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { OwnSocial } from "./OwnSocial.js";
 import { socialTag } from "./setups.js";
 
 type View = Extract<SocialPageView, { wren: false }>;
@@ -186,18 +187,27 @@ export function Social(props: PageProps) {
   const act = useSocialAct(props.client, () => setNonce((n) => n + 1));
   const data = load.data;
   const view = data && !data.wren ? (data as View) : null;
+  const own = data?.wren ? data.own : null;
   return (
     <>
       <PageHeader
         title="Social"
-        lede="The accounts Wren posts from and answers on. Each takes one sign-in. Posts and replies wait in To approve before they go."
+        lede={
+          own
+            ? "Each channel Wren posts to, with its account, token, last post and last failure. Check asks the account if it still answers."
+            : "The accounts Wren posts from and answers on. Each takes one sign-in. Posts and replies wait in To approve before they go."
+        }
       />
       {load.error && !data ? (
         <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !data ? (
         <Loading lines={6} />
       ) : data.wren ? (
-        <Empty>Wren's own accounts are its channels. Open a client to see theirs.</Empty>
+        own ? (
+          <OwnSocial own={own} client={props.client} mayAct={data.mayAct} />
+        ) : (
+          <Empty>Wren's own accounts are its channels. Open a client to see theirs.</Empty>
+        )
       ) : view ? (
         <>
           {Object.values(view.apps).every((on) => !on) ? (

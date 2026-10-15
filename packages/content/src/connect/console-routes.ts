@@ -10,6 +10,8 @@ export const SOCIAL_ACCESS_ROUTES = {
   connect: "act",
   check: "act",
   disconnect: "act",
+  /** Wren's own channel, checked now (team only, on Wren's Account → Social). */
+  ownCheck: "act",
 } as const satisfies Record<string, Need>;
 export const SOCIAL_ACCESS_APPS = {
   "*": "account",
@@ -18,4 +20,5 @@ export const SOCIAL_ACCESS_WRITES: readonly (keyof typeof SOCIAL_ACCESS_ROUTES)[
   "connect",
   "check",
   "disconnect",
+  "ownCheck",
 ];

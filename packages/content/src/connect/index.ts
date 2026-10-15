@@ -4,6 +4,7 @@ export * from "./console.js";
 export * from "./console-routes.js";
 export * from "./dms.js";
 export * from "./oauth.js";
+export * from "./own.js";
 export * from "./platforms.js";
 export * from "./schema.js";
 export * from "./setups.js";

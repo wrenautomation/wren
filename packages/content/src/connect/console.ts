@@ -6,6 +6,8 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
+import type { Platform } from "@wren/core/content";
+import type { SitesHost } from "@wren/core/content/restate";
 import { noRawKeys } from "@wren/core/key-refs";
 import {
   answer,
@@ -25,6 +27,17 @@ import type { Db } from "@wren/db";
 import { z } from "zod";
 import type { SocialAccessApi } from "./access.js";
 import { SOCIAL_ACCESS_APPS, SOCIAL_ACCESS_ROUTES } from "./console-routes.js";
+import {
+  checkOwn,
+  type OwnCheck,
+  type OwnSites,
+  type OwnSwitches,
+  type OwnView,
+  ownChannels,
+  ownView,
+  readOwnRows,
+  restateOwnSites,
+} from "./own.js";
 import { SOCIAL_PLATFORMS, type SocialPlatform } from "./platforms.js";
 import { SOCIAL_SETUP } from "./setups.js";
 
@@ -34,6 +47,12 @@ export interface SocialConsoleDeps {
   /** The worker's copy of the setup; the module's own when absent. */
   setup?: Setup;
   now?: () => Date;
+  /**
+   * Wren's own channels, for the team on Wren's Account → Social: config as the worker reads it,
+   * every platform Wren could post to, and where the Check reaches autobrowse (`sitesHost`). The
+   * preview passes `sites`, a stand-in, instead of a host.
+   */
+  own?: { switches: OwnSwitches; known: readonly Platform[]; box?: SitesHost; sites?: OwnSites };
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email ?? "unknown";
@@ -57,6 +76,14 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
     if (!(await mayAct(req, c.id))) throw new PortalRefusal("your role can't do that", 403);
     return c;
   };
+  const ownOf = async (switches: OwnSwitches, known: readonly Platform[]) => {
+    const channels = ownChannels(switches);
+    const rows = await readOwnRows(
+      main,
+      channels.map((c) => c.platform),
+    );
+    return ownView(channels, rows, known);
+  };
   const mine = async (client: string, id: number) => {
     const c = await access.connection(Number(id));
     if (!c || c.client !== client) throw new PortalRefusal("no such account", 404);
@@ -66,8 +93,18 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
   return {
     /** Every platform with its state, its accounts and the next step. */
     async social(req: PortalRequest) {
-      if (req.client === WREN)
-        return { owner: { id: null, name: "Wren" }, wren: true as const, mayAct: false };
+      if (req.client === WREN) {
+        // Wren's own channels are the team's, for debugging: a client's people never see them.
+        const team = teamCan(req, "read", WREN) && deps.own !== undefined;
+        const own: OwnView | null =
+          team && deps.own ? await ownOf(deps.own.switches, deps.own.known) : null;
+        return {
+          owner: { id: null, name: "Wren" },
+          wren: true as const,
+          mayAct: team && teamCan(req, "act", WREN),
+          own,
+        };
+      }
       const c = await owner(req);
       const v = await access.view(c.id);
       return {
@@ -98,6 +135,26 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
         };
       const emit = await checkNow(main, setup, { accountId: a.id, now: now() });
       return { emits: emit ? [emit] : [] };
+    },
+
+    /**
+     * Wren's own channel, checked now: autobrowse's site check through `sites`/`desk` (status,
+     * one who-am-I read, a dry renew). Team only. `sites` is the invocation's; the deps' otherwise.
+     */
+    async ownCheck(
+      req: PortalRequest & { platform: string; requestId?: string },
+      sites?: OwnSites,
+    ): Promise<OwnCheck> {
+      if (req.client !== WREN)
+        throw new PortalRefusal("only Wren's own channels are checked here", 409);
+      if (isDemo(req.viewer) || !teamCan(req, "act", WREN))
+        throw new PortalRefusal("your role can't do that", 403);
+      if (!deps.own) throw new PortalRefusal("Wren's channels aren't wired here", 503);
+      const c = ownChannels(deps.own.switches).find((x) => x.platform === req.platform);
+      if (!c) throw new PortalRefusal(`Wren doesn't post to ${req.platform}`, 404);
+      const via = sites ?? deps.own.sites;
+      if (!via) throw new PortalRefusal("autobrowse can't be reached from here", 503);
+      return checkOwn(via, c);
     },
 
     /** Off: its token deleted. Nothing posts or reads as it again until it's connected again. */
@@ -160,6 +217,26 @@ export function makeSocialAccess(deps: SocialConsoleDeps) {
       disconnect: serviceHandler(
         { input: noRawKeys(z.looseObject({ ...PORTAL_FIELDS, id: ID })) },
         write("disconnect", api.disconnect),
+      ),
+      // Its calls are durable calls to autobrowse, each capped; nothing here posts or writes.
+      ownCheck: serviceHandler(
+        {
+          input: noRawKeys(
+            z.looseObject({
+              ...PORTAL_FIELDS,
+              platform: z
+                .string()
+                .min(1)
+                .max(32)
+                .describe("One of Wren's own channels: x, linkedin"),
+              requestId: z.string().max(100).optional().describe("The press's id"),
+            }),
+          ),
+        },
+        (ctx: restate.Context, req: PortalRequest & { platform: string; requestId?: string }) =>
+          answer(() =>
+            api.ownCheck(req, deps.own?.box ? restateOwnSites(ctx, deps.own.box) : undefined),
+          ),
       ),
     },
   });
