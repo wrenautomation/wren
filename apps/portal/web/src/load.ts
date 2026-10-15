@@ -1,5 +1,6 @@
 /** Loading a portal call into a component. */
 import { onWrite, type Patch, useLoad, writeThrough } from "@wren/ui";
+import { useEffect, useState } from "react";
 import { ApiError, device, deviceOwner, viewingAs } from "./api.js";
 import { readSnapshot, writeSnapshot } from "./snapshot.js";
 
@@ -81,4 +82,17 @@ export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
   ) as Load<T>;
   if (load.data !== null || !kept.has(key)) return load;
   return { ...load, data: kept.get(key) as T };
+}
+
+/**
+ * `value` once it has held still for `ms`: a search box's words, so a read goes per pause, not
+ * per key. The first value counts at once.
+ */
+export function useSettled<T>(value: T, ms = 250): T {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return settled;
 }

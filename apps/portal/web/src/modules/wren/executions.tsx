@@ -21,7 +21,7 @@ import {
 } from "@wren/ui";
 import { useMemo, useState } from "react";
 import { call } from "../../api.js";
-import { useCall } from "../../load.js";
+import { useCall, useSettled } from "../../load.js";
 import type { ListPage } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import type { Drawn } from "../marketplace/boxes.js";
@@ -93,12 +93,14 @@ export function Executions({
   const [q, setQ] = useState(params.get("q") ?? "");
   const [nonce, setNonce] = useState(0);
   const here = location.pathname;
-  const list = useCall(`executions:${w.id}:${view}:${q}:${nonce}`, () =>
+  // A read per pause in the search box, not per key.
+  const asked = useSettled(q.trim());
+  const list = useCall(`executions:${w.id}:${view}:${asked}:${nonce}`, () =>
     call<RecordsPage>("console/recordsList", {
       record: "console.execution",
       view,
       where: { workflow: w.id },
-      ...(q.trim() ? { q: q.trim() } : {}),
+      ...(asked ? { q: asked } : {}),
       limit: 50,
     }),
   );

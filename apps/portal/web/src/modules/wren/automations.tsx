@@ -22,7 +22,7 @@ import {
 } from "@wren/ui";
 import { type ReactNode, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
-import { useCall } from "../../load.js";
+import { useCall, useSettled } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { QUIET } from "../work/bits.js";
@@ -366,11 +366,13 @@ export function Automations({ params }: PageProps) {
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const flying = useRef(new Set<string>());
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const list = useCall(`automations:${view}:${q.trim()}:${nonce}`, () =>
+  // A read per pause in the search box, not per key.
+  const asked = useSettled(q.trim());
+  const list = useCall(`automations:${view}:${asked}:${nonce}`, () =>
     call<RecordsPage>("console/recordsList", {
       record: "console.automation",
       view,
-      ...(q.trim() ? { q: q.trim() } : {}),
+      ...(asked ? { q: asked } : {}),
       limit: 200,
     }),
   );
