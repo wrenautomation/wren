@@ -29,6 +29,7 @@ import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
 import { cardFor } from "./cards.js";
+import { useFlags } from "./flags.js";
 import { inLane } from "./lanes.js";
 import {
   type DayPage,
@@ -745,6 +746,7 @@ export function TemplatePage({
   app: string;
 }) {
   const { params } = props;
+  const flags = useFlags();
   const old = ("legacy" in page && page.legacy?.(params)) || null;
   useEffect(() => {
     if (old) navigate(href(path, old, params), true);
@@ -802,6 +804,8 @@ export function TemplatePage({
     demo: props.demo,
     ...(props.can ? { can: props.can } : {}),
     ...(props.who !== undefined ? { who: props.who } : {}),
+    // A button behind a flag (a client's Post now) shows where the flag is on.
+    flags,
   };
   const local = props.demo && client ? localOf(product, client, scope) : null;
   const api = local?.api ?? apiOf(product, client, scope);
