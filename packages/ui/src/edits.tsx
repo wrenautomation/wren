@@ -28,6 +28,11 @@ export interface Editing {
   undo(change: number): Promise<void>;
   /** Ask Claude; absent where the records' server has none. */
   ask?(message: string): Promise<void>;
+  /**
+   * Someone changed it since: read the record again, so the conflict shows theirs and Keep mine
+   * names the newer version rather than the stale one forever.
+   */
+  reread?(): void;
 }
 
 const when = (at: string) =>
@@ -83,12 +88,14 @@ export function fieldSaving(
   save: (v: unknown) => Promise<void>,
   key: string | null,
   at?: number,
+  onConflict?: () => void,
 ): SaverOptions<string> {
   return {
     key,
     server: inputOf(field, value),
     at,
     delay: null,
+    onConflict,
     same: (a, b) =>
       JSON.stringify(typedValue(field, a) ?? "") === JSON.stringify(typedValue(field, b) ?? ""),
     save: async (typed) => {
@@ -108,6 +115,7 @@ export function EditField({
   save,
   saveKey = null,
   at,
+  onConflict,
   children,
 }: {
   field: FieldMeta;
@@ -118,10 +126,12 @@ export function EditField({
   saveKey?: string | null | undefined;
   /** The tick when the read of `value` left (`useLoad`'s `at`). */
   at?: number | undefined;
+  /** A save refused as stale: read the record again (`Editing.reread`). */
+  onConflict?: (() => void) | undefined;
   /** How the value reads when not editing; its words when left out. */
   children?: ReactNode;
 }) {
-  const s = useSaved<string>(fieldSaving(field, value, save, saveKey, at));
+  const s = useSaved<string>(fieldSaving(field, value, save, saveKey, at, onConflict));
   // Typing a reload gave back opens the field with it.
   const [open, setOpen] = useState(() => s.restored);
   const typed = s.value;
@@ -305,6 +315,7 @@ export function EditFields({
     save: saveOf(f),
     saveKey: id === undefined ? null : `edit:${meta.id}:${id}:${f.key}`,
     at,
+    onConflict: editing.reread,
   });
   const short = fields.filter((f) => f.kind !== "prose");
   return (

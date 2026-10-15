@@ -145,6 +145,35 @@ describe("a record field under a burst of typing", () => {
   });
 });
 
+describe("a record field someone else changed", () => {
+  const field = { key: "name", kind: "text", label: "Name" } as FieldMeta;
+
+  it("reads it again on the conflict, so Keep mine names the newer version", async () => {
+    // RecordBody's live version: a read moves it.
+    let version = "v1";
+    const sent: string[] = [];
+    const save = vi.fn(async () => {
+      sent.push(version);
+      if (version === "v1")
+        throw Object.assign(new Error("changed since"), { status: 409, code: "conflict" });
+    });
+    const reread = vi.fn(() => {
+      version = "v2";
+    });
+    const saver = new Saver<string>({
+      ...fieldSaving(field, "Acme", save, `edit:deals:${n}:name`, undefined, reread),
+      env: fakeEnv().env,
+    });
+    saver.open();
+    saver.set("Acme Co");
+    expect(await saver.flush()).toBe(false);
+    expect(reread).toHaveBeenCalledOnce();
+    saver.read("Acme Inc", { at: Date.now() });
+    expect(await saver.keepMine()).toBe(true);
+    expect(sent).toEqual(["v1", "v2"]);
+  });
+});
+
 describe("the live words beside the box", () => {
   it("tell only their readers, once per change", () => {
     const live = liveText();

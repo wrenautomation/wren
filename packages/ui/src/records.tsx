@@ -2455,6 +2455,8 @@ export function RecordBody({
             await api.undo?.({ record: meta.id, id, change });
             acted([id]);
           },
+          // A stale save: theirs read again, so Keep mine names the version it now sees.
+          reread: () => got.retry(),
           ...(api.ask
             ? {
                 ask: async (message: string) => {
