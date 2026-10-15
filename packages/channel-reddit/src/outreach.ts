@@ -6,11 +6,13 @@
  * find: `r/<sub> words` reads that subreddit's search (or its newest posts
  * with no words); bare words read site-wide search. Prospects are the posts'
  * authors, one row each, `foundIn` = the subreddit. enrich: the user's card
- * plus their last posts and comments. message: a private message
+ * plus their last posts and comments (one overview read; the card comes with many others' in one
+ * read when `find` or `learn` showed their ids). message: a private message
  * (`/api/compose`, not chat). replies and comments: one read of the inbox per adapter, nothing
  * marked read; DMs are replies, comment answers and post replies are comments. comment: an answer
  * under a comment or a post. Reddit has no connect step, so `relationship`/`connect` are absent.
  */
+import { SiteCallError } from "@wren/core/content";
 import {
   type AccountHealth,
   type CommentIn,
@@ -76,6 +78,11 @@ export const postOf = (context: string | undefined) => {
   return m ? `t3_${m[1]}` : null;
 };
 const RECENT = 10;
+/** Accounts whose cards one `user_data_by_account_ids` read returns. */
+const CARDS_PER_READ = 100;
+/** Ids remembered for a read-ahead; the oldest go first. */
+const KNOWN_MAX = 1000;
+const T2 = /^t2_[a-z0-9]+$/;
 
 /** `r/startups hiring` → { sr: "startups", words: "hiring" }; `hiring` → { sr: null, words: "hiring" }. */
 export function parseFindQuery(query: string): { sr: string | null; words: string } {
@@ -91,10 +98,25 @@ const items = <T>(l: Listing | undefined): T[] =>
 const after = (l: Listing | undefined): string | null =>
   ((l?.data as { after?: string | null } | undefined)?.after ?? null) || null;
 
+/** The channel, plus a way to tell it whose ids a listing showed (see `learn`). */
+export type RedditOutreach = OutreachChannel & {
+  /**
+   * Who a listing's things came from (`author` and `author_fullname`). `enrich` then reads the
+   * card of everyone remembered and not yet read in one read, instead of one `about` each.
+   */
+  learn(
+    people: ReadonlyArray<{ handle?: string | null | undefined; id?: string | null | undefined }>,
+  ): void;
+};
+
+/** Reddit answered 403: an endpoint closed to this reader, not a bad request or a spent cap. */
+const closed = (err: unknown) =>
+  err instanceof SiteCallError && (err.status === 403 || /HTTP 403/.test(err.message));
+
 export function redditOutreach(
   sites: import("@wren/core/content").SiteClient,
   o: RedditOutreachOptions,
-): OutreachChannel {
+): RedditOutreach {
   const now = o.now ?? (() => new Date());
   const call = <T>(
     method: "GET" | "POST",
@@ -128,9 +150,68 @@ export function redditOutreach(
     return h;
   };
 
+  // Cards. A card is read once per run: kept here. Ids a listing showed wait in `ids`, and the
+  // first card asked for takes up to 100 of them along in one read.
+  const ids = new Map<string, string>();
+  const cards = new Map<string, UserAbout>();
+  // An endpoint Reddit closed to this reader is asked once per run, not once per person.
+  let batchClosed = false;
+  let aboutClosed = false;
+  const learn: RedditOutreach["learn"] = (people) => {
+    for (const p of people) {
+      const k = p.handle?.toLowerCase();
+      if (!k || AUTHOR_SKIP.has(p.handle as string) || !p.id || !T2.test(p.id)) continue;
+      if (ids.has(k) || cards.has(k)) continue;
+      ids.set(k, p.id);
+      if (ids.size > KNOWN_MAX) ids.delete(ids.keys().next().value as string);
+    }
+  };
+  const cardOf = async (h: string): Promise<UserAbout | null> => {
+    const k = h.toLowerCase();
+    const kept = cards.get(k);
+    if (kept) return kept;
+    const id = ids.get(k);
+    if (id && !batchClosed) {
+      const batch = [...ids].filter(([name]) => name !== k && !cards.has(name));
+      const asked = [[k, id] as const, ...batch].slice(0, CARDS_PER_READ);
+      try {
+        const got = await call<Record<string, UserAbout>>("GET", "/api/user_data_by_account_ids", {
+          ids: asked.map(([, tid]) => tid).join(","),
+          raw_json: 1,
+        });
+        for (const [name, tid] of asked) {
+          ids.delete(name);
+          const c = got?.[tid];
+          if (c) cards.set(name, { ...c, id: tid.slice(3) });
+        }
+      } catch (err) {
+        if (err instanceof SiteCallError && err.status === 429) throw err;
+        batchClosed = true;
+      }
+      const hit = cards.get(k);
+      if (hit) return hit;
+    }
+    if (aboutClosed) return null;
+    try {
+      const about = await call<{ data?: UserAbout } | UserAbout>("GET", `/user/${h}/about`, {
+        raw_json: 1,
+      });
+      const card = ("data" in about && about.data ? about.data : about) as UserAbout;
+      cards.set(k, card);
+      return card;
+    } catch (err) {
+      // Signed out, Reddit answers 403 for a user's card (no feed twin): the person is read
+      // without it, and the card is not asked for again this run.
+      if (!closed(err)) throw err;
+      aboutClosed = true;
+      return null;
+    }
+  };
+
   return {
     platform: "reddit",
     account: o.account,
+    learn,
 
     async find(q: FindQuery): Promise<Found> {
       const { sr, words } = parseFindQuery(q.query);
@@ -155,9 +236,11 @@ export function redditOutreach(
         listing = await call<Listing>("GET", "/search", { ...page, q: words, sort: "new" });
       }
       const seen = new Set<string>();
-      const prospects = items<Thing & { subreddit?: string; author_flair_text?: string | null }>(
+      const things = items<Thing & { subreddit?: string; author_flair_text?: string | null }>(
         listing,
-      ).flatMap((t) => {
+      );
+      learn(things.map((t) => ({ handle: t.author, id: t.author_fullname })));
+      const prospects = things.flatMap((t) => {
         const a = t.author;
         if (!a || AUTHOR_SKIP.has(a) || seen.has(a)) return [];
         seen.add(a);
@@ -176,29 +259,40 @@ export function redditOutreach(
 
     async enrich(handle: string): Promise<Profile> {
       const h = user(handle);
-      const [about, posts, comments] = await Promise.all([
-        call<{ data?: UserAbout } | UserAbout>("GET", `/user/${h}/about`, { raw_json: 1 }),
-        call<Listing>("GET", `/user/${h}/submitted`, { limit: RECENT, sort: "new", raw_json: 1 }),
-        call<Listing>("GET", `/user/${h}/comments`, { limit: RECENT, sort: "new", raw_json: 1 }),
+      // One overview read lists their posts and comments together; the card comes from the kept
+      // batch when their id is known.
+      const [card, overview] = await Promise.all([
+        cardOf(h),
+        call<Listing>("GET", `/user/${h}/overview`, {
+          limit: RECENT * 2,
+          sort: "new",
+          raw_json: 1,
+        }),
       ]);
-      const card = ("data" in about && about.data ? about.data : about) as UserAbout;
-      const recent = [
-        ...items<Thing & { subreddit?: string }>(posts).map((t) => ({
-          at: iso(t.created_utc, now),
-          where: `r/${t.subreddit ?? "?"}`,
-          text: [t.title, t.selftext].filter(Boolean).join("\n").slice(0, 1000),
-          url: t.permalink ? redditUrl(t.permalink) : null,
-        })),
-        ...items<Thing & { subreddit?: string; link_title?: string }>(comments).map((t) => ({
-          at: iso(t.created_utc, now),
-          where: `r/${t.subreddit ?? "?"} · ${t.link_title ?? "comment"}`,
-          text: (t.body ?? "").slice(0, 1000),
-          url: t.permalink ? redditUrl(t.permalink) : null,
-        })),
-      ].sort((a, b) => b.at.localeCompare(a.at));
+      const things = (overview?.data?.children ?? []) as Array<{
+        kind: string;
+        data: Thing & { subreddit?: string; link_title?: string };
+      }>;
+      const recent = things
+        .map(({ kind, data: t }) =>
+          kind === "t1"
+            ? {
+                at: iso(t.created_utc, now),
+                where: `r/${t.subreddit ?? "?"} · ${t.link_title ?? "comment"}`,
+                text: (t.body ?? "").slice(0, 1000),
+                url: t.permalink ? redditUrl(t.permalink) : null,
+              }
+            : {
+                at: iso(t.created_utc, now),
+                where: `r/${t.subreddit ?? "?"}`,
+                text: [t.title, t.selftext].filter(Boolean).join("\n").slice(0, 1000),
+                url: t.permalink ? redditUrl(t.permalink) : null,
+              },
+        )
+        .sort((a, b) => b.at.localeCompare(a.at));
       return {
-        handle: card.name ?? h,
-        url: `https://www.reddit.com/user/${card.name ?? h}`,
+        handle: card?.name ?? h,
+        url: `https://www.reddit.com/user/${card?.name ?? h}`,
         name: null,
         headline: null,
         foundIn: "enrich",
@@ -209,7 +303,7 @@ export function redditOutreach(
         recent,
         raw: { about: card },
         fetchedAt: now().toISOString(),
-        fetchedWith: await via("GET", "/user/{username}/about"),
+        fetchedWith: await via("GET", "/user/{username}/overview"),
       };
     },
 
