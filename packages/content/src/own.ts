@@ -39,6 +39,8 @@ export async function writeOwn(
     from?: string | null;
     /** The file a platform that needs one posts (TikTok's video): on the idea and each draft. */
     media?: Media | null;
+    /** A time to post: approving keeps it while it is ahead and free (else the next slot). */
+    at?: Date | null;
   },
 ): Promise<{ idea: ContentIdea; results: DraftResult[] }> {
   const idea = await addIdea(db, o.text, o.source ?? "cli", o.media ?? null, refFrom(o.from));
@@ -56,6 +58,7 @@ export async function writeOwn(
         platform,
         text: v.text,
         title: v.title,
+        ...(o.at ? { scheduledFor: o.at } : {}),
         ...(PLATFORM_SPECS[platform].needsMedia && o.media ? { media: o.media } : {}),
         ...(v.extra ? { extra: v.extra } : {}),
         promptVersion: OWN_WORDS,

@@ -23,10 +23,11 @@ export function registerWrite(program: Command, withDb: WithDb, settings: Settin
     .option("--media <path>", "a video or image file, URL or s3:// object")
     .option("--kind <kind>", "video | image (default: by extension)")
     .option("--title <text>", "the title, where the platform has one")
+    .option("--at <time>", "post at this time once approved (ISO), if it is ahead and free")
     .action(
       async (
         text: string,
-        o: { platforms: string; media?: string; kind?: string; title?: string },
+        o: { platforms: string; media?: string; kind?: string; title?: string; at?: string },
       ) => {
         const platforms = o.platforms
           .split(",")
@@ -41,8 +42,11 @@ export function registerWrite(program: Command, withDb: WithDb, settings: Settin
           { ...(o.media ? { media: o.media } : {}), ...(o.kind ? { kind: o.kind } : {}) },
           settings.mediaBucket,
         );
+        const at = o.at ? new Date(o.at) : null;
+        if (at && Number.isNaN(at.getTime()))
+          throw new Error("--at must be a time, like 2026-10-14T21:30:00-04:00");
         const made = await withDb((db) =>
-          writeOwn(db, { text, title: o.title ?? null, platforms, by: "cli", media }),
+          writeOwn(db, { text, title: o.title ?? null, platforms, by: "cli", media, at }),
         );
         for (const r of made.results)
           console.log(r.ok ? `${r.platform}: draft ${r.draft.id}` : `${r.platform}: ${r.reason}`);
