@@ -247,3 +247,48 @@ describe("approval, void and expiry", () => {
     expect(row?.sha256).toBe(shaOf(row as never));
   });
 });
+
+describe("saves over the version the editor opened", () => {
+  it("refuses a draft or template save over a change since, in plain words", async () => {
+    const LATER = new Date("2026-10-09T15:05:00Z");
+    const made = await api().create(
+      { ...ADA, kind: "estimate", title: "Roof", lines: [{ name: "A", price: 10 }] },
+      NOW,
+    );
+    const opened = made.doc.version;
+    const mine = await api().update(
+      { ...ADA, id: made.doc.id, title: "Roof, mine", expect: opened },
+      LATER,
+    );
+    expect(mine.doc.version).not.toBe(opened);
+    // The other tab opened it before that save.
+    await expect(
+      api().update({ ...ADA, id: made.doc.id, title: "Roof, theirs", expect: opened }, LATER),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "This document changed since you opened it. Look again.",
+    });
+    expect((await docById(pg.db, made.doc.id))?.title).toBe("Roof, mine");
+    // The new version saves; no expect saves as before.
+    await api().update(
+      { ...ADA, id: made.doc.id, title: "Roof 2", expect: mine.doc.version },
+      LATER,
+    );
+    await expect(
+      api().update({ ...ADA, id: made.doc.id, expect: "not a date" }, LATER),
+    ).rejects.toMatchObject({ status: 400, field: "expect" });
+
+    const t = await api().templateSave({ ...ADA, kind: "estimate", name: "Gutter" }, NOW);
+    const back = await api().templateSave(
+      { ...ADA, id: t.template.id, name: "Gutter 2", expect: t.template.version },
+      LATER,
+    );
+    await expect(
+      api().templateSave(
+        { ...ADA, id: t.template.id, name: "Gutter 3", expect: t.template.version },
+        LATER,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(back.template.name).toBe("Gutter 2");
+  });
+});

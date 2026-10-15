@@ -5,9 +5,9 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { clients } from "@wren/core/clients";
-import { PortalRefusal } from "@wren/core/refusal";
+import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable } from "@wren/db";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { type AnyColumn, and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   depositOf as depositShare,
   fillSlots,
@@ -36,6 +36,21 @@ export * from "./lines.js";
 
 /** A refusal the person asking can act on, with its HTTP status. */
 export class DocRefusal extends PortalRefusal {}
+
+/** A row's version for an editor: when it last changed, to the millisecond. */
+export const versionAt = (at: Date): string => at.toISOString();
+
+/** An editor's `expect` as a version, or null when it sent none (no check). */
+function expectedAt(expect: unknown): string | null {
+  if (expect === undefined || expect === null) return null;
+  if (typeof expect !== "string" || Number.isNaN(Date.parse(expect)))
+    throw new DocRefusal("expect is a version", 400, "expect");
+  return new Date(expect).toISOString();
+}
+
+/** The column still holds the version the editor opened on. */
+const stillAt = (column: AnyColumn, at: string) =>
+  sql`date_trunc('milliseconds', ${column}) = ${at}::timestamptz`;
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -164,6 +179,8 @@ export interface TemplateInput {
   lines?: unknown;
   depositPct?: unknown;
   expiresDays?: unknown;
+  /** The version the editor opened on; a change since refuses. */
+  expect?: unknown;
 }
 
 const pctOf = (v: unknown): number | null => {
@@ -305,14 +322,25 @@ export async function saveTemplate(
     updatedBy: by,
   };
   if (input.id) {
-    const was = await templateById(main, client, String(input.id));
-    if (!was) throw new DocRefusal("no such template", 404);
-    const [row] = await main
-      .update(docTemplates)
-      .set(values)
-      .where(eq(docTemplates.id, was.id))
-      .returning();
-    return row as DocTemplate;
+    // One statement: the client's own template, still as the editor read it.
+    const at = expectedAt(input.expect);
+    const id = String(input.id);
+    const [row] = UUID.test(id)
+      ? await main
+          .update(docTemplates)
+          .set(values)
+          .where(
+            and(
+              eq(docTemplates.id, id),
+              eq(docTemplates.client, client),
+              ...(at === null ? [] : [stillAt(docTemplates.updatedAt, at)]),
+            ),
+          )
+          .returning()
+      : [];
+    if (row) return row;
+    if (!(await templateById(main, client, id))) throw new DocRefusal("no such template", 404);
+    throw staleRefusal("template");
   }
   if (!isKind(input.kind)) throw new DocRefusal("pick contract, proposal or estimate");
   const [row] = await main
@@ -494,9 +522,14 @@ export interface DocPatch {
   email?: unknown;
   contact?: number | null | undefined;
   channel?: unknown;
+  /** The version the editor opened on; a change since refuses. */
+  expect?: unknown;
 }
 
 /** A change to a draft (or one that failed to send). A sent one never changes: duplicate it. */
+/** The fields a draft's editor always sends; with all of them a save needs no read first. */
+const WHOLE = ["title", "body", "lines", "depositPct", "expiresDays", "name", "email", "channel"];
+
 export async function editDoc(
   main: Queryable,
   client: string,
@@ -504,53 +537,79 @@ export async function editDoc(
   p: DocPatch,
   now: Date,
 ): Promise<Doc> {
-  const d = await docOf(main, client, id);
-  if (d.status !== "draft" && d.status !== "failed")
+  const at = expectedAt(p.expect);
+  if (!UUID.test(id)) throw new DocRefusal("no such document", 404);
+  const whole = WHOLE.every((k) => p[k as keyof DocPatch] !== undefined);
+  // A partial change reads the row for what it leaves out; the editor's whole one doesn't.
+  const d = whole ? null : await docOf(main, client, id);
+  if (d && d.status !== "draft" && d.status !== "failed")
     throw new DocRefusal("only a draft changes; duplicate this one to change it", 409);
-  const lines = p.lines !== undefined ? linesOf(p.lines) : d.lines;
+  const lines = p.lines !== undefined || !d ? linesOf(p.lines) : d.lines;
   const totals = totalsOf(lines);
   const pct =
-    p.depositPct !== undefined
+    p.depositPct !== undefined || !d
       ? pctOf(p.depositPct)
       : d.depositCents && d.totalCents
         ? Math.round((d.depositCents * 100) / d.totalCents)
         : null;
   const email =
-    p.email !== undefined
+    p.email !== undefined || !d
       ? String(p.email ?? "")
           .trim()
           .toLowerCase() || null
       : d.email;
   if (email && !EMAIL.test(email)) throw new DocRefusal("that email doesn't look right");
-  const title = p.title !== undefined ? String(p.title ?? "").trim() : d.title;
+  const title = p.title !== undefined || !d ? String(p.title ?? "").trim() : d.title;
   if (!title) throw new DocRefusal("give it a title");
   const channel =
-    p.channel === "email" || p.channel === "sms" ? (p.channel as DocChannel) : d.channel;
+    p.channel === "email" || p.channel === "sms"
+      ? (p.channel as DocChannel)
+      : (d?.channel ?? "email");
+  const contact = p.contact !== undefined ? p.contact : d?.contact;
   const [row] = await main
     .update(docs)
     .set({
       title: title.slice(0, 200),
-      body: p.body !== undefined ? bodyOf(p.body) : d.body,
+      body: p.body !== undefined || !d ? bodyOf(p.body) : d.body,
       lines,
       ...totals,
       depositCents: depositOf(totals.totalCents, pct),
-      expiresDays: p.expiresDays !== undefined ? daysOf(p.expiresDays) : d.expiresDays,
+      expiresDays: p.expiresDays !== undefined || !d ? daysOf(p.expiresDays) : d.expiresDays,
       name:
-        p.name !== undefined
+        p.name !== undefined || !d
           ? String(p.name ?? "")
               .trim()
               .slice(0, 200) || null
           : d.name,
       email,
-      contact: p.contact !== undefined ? p.contact : d.contact,
+      ...(contact !== undefined ? { contact } : {}),
       channel,
       status: "draft",
       why: null,
       updatedAt: now,
     })
-    .where(eq(docs.id, d.id))
+    // One statement: the client's, still a draft and still as read, so a send or another save
+    // landing meanwhile is never overwritten (and a sent document never flips back to a draft).
+    .where(
+      and(
+        eq(docs.id, id),
+        eq(docs.client, client),
+        inArray(docs.status, ["draft", "failed"]),
+        ...(at === null ? [] : [stillAt(docs.updatedAt, at)]),
+      ),
+    )
     .returning();
-  return row as Doc;
+  if (row) return row;
+  // Refused: read it once to say why.
+  const was = await docOf(main, client, id);
+  if (was.status !== "draft" && was.status !== "failed")
+    throw new DocRefusal(
+      d
+        ? "it went out meanwhile; duplicate it to change it"
+        : "only a draft changes; duplicate this one to change it",
+      409,
+    );
+  throw staleRefusal("document");
 }
 
 /** Why Send can't go yet: a slot with no value, or nowhere to send it. Null: it can. */

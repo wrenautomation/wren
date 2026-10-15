@@ -17,7 +17,7 @@ import type { Queryable } from "@wren/db";
 import { payLinks } from "@wren/payments/schema";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { docEvents, docs, docTemplates } from "./schema.js";
-import { KIND_NAME } from "./store.js";
+import { KIND_NAME, versionAt } from "./store.js";
 
 export const DOC_RECORD = "documents.document";
 export const TEMPLATE_RECORD = "documents.template";
@@ -202,6 +202,8 @@ export function documentRecordFor(client: string): RecordType {
                   : null,
               expiresDays: raw.expiresDays,
               currency: raw.currency,
+              /** What the editor sends back as `expect`. */
+              version: versionAt(raw.updatedAt),
             }
           : null,
       };

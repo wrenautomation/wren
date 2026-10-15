@@ -74,6 +74,7 @@ import {
   saveTemplate,
   sendBlocker,
   UUID,
+  versionAt,
   voidDocs,
 } from "./store.js";
 
@@ -95,6 +96,8 @@ export interface DocFields {
   /** A texting thread's id, as the Texts record shows it. */
   contact?: number | string | null;
   channel?: string | null;
+  /** The version the editor opened on (`version` in the record's detail). */
+  expect?: unknown;
 }
 export interface CreateRequest extends PortalRequest, DocFields {}
 export interface UpdateRequest extends PortalRequest, DocFields {
@@ -114,6 +117,8 @@ export interface TemplateRequest extends PortalRequest {
   lines?: unknown;
   depositPct?: number | string | null;
   expiresDays?: number | string | null;
+  /** The version the editor opened on; a change since refuses. */
+  expect?: unknown;
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
@@ -216,6 +221,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
           lines: t.lines,
           depositPct: t.depositPct,
           expiresDays: t.expiresDays,
+          version: versionAt(t.updatedAt),
         })),
         approves: await approves(req, client),
       };
@@ -267,6 +273,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
           email: req.email === undefined ? undefined : req.email,
           contact: thread === undefined ? undefined : (thread?.id ?? null),
           channel: req.channel ?? undefined,
+          expect: req.expect,
         },
         now,
       );
@@ -331,7 +338,9 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
     templateSave: async (req: TemplateRequest, now: Date) => {
       const { client, viewer } = await pickForWrite(main, req);
       const t = await saveTemplate(main, client.id, req, viewer.email, now);
-      return { template: { id: t.id, name: t.name, kind: t.kind } };
+      return {
+        template: { id: t.id, name: t.name, kind: t.kind, version: versionAt(t.updatedAt) },
+      };
     },
     templateArchive: async (req: IdsRequest, now: Date) => {
       const { client } = await pickForWrite(main, req);
@@ -366,6 +375,7 @@ const brief = (d: Doc) => ({
   number: d.number,
   status: d.status,
   blocked: d.status === "draft" ? sendBlocker(d) : null,
+  version: versionAt(d.updatedAt),
 });
 
 const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
