@@ -125,10 +125,13 @@ describe("marketing.video", () => {
       text: `The one trick\n\nWhat it does.\n\nwrenautomation.com, link in bio\n\n${BIO}`,
       media: { kind: "video", source: "s3://media/studio/1/reel-1.mp4" },
     });
+    // Its TikTok, X, Facebook and LinkedIn drafts came with it; approving again adds none.
+    expect(short.also?.map((x) => x.platform)).toEqual(["tiktok", "x", "facebook", "linkedin"]);
     expect(await approveVideo(pg.db, id, { source: "api", short: 1 })).toEqual({
       id: short.id,
       again: true,
       reel: { id: reelId, again: true },
+      also: [],
     });
     const reels = await serveRecords([approvalRecord], pg.db).list({
       record: approvalRecord.id,
@@ -227,10 +230,12 @@ describe("marketing.video", () => {
       media: { source: "s3://media/v.mp4" },
       extra: { shareToFeed: true },
     });
+    expect(v.also).toHaveLength(4);
     expect(await approveVideo(pg.db, both.id, { source: "api", vertical: true })).toEqual({
       id: v.id,
       again: true,
       reel: { id: v.reel.id, again: true },
+      also: [],
     });
     // The long video is its own draft.
     expect((await approveVideo(pg.db, both.id, { source: "cli" })).id).not.toBe(v.id);
