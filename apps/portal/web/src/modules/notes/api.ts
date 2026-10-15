@@ -19,6 +19,12 @@ export type NoteShare = NoteOpen["shares"][number];
 export type NoteBacklink = Out<"backlinks">["notes"][number];
 export type NoteComments = Out<"comments">;
 export type NoteMention = Out<"mentions">["mentions"][number];
+export type BoardList = Out<"boards">;
+export type BoardInfo = BoardList["boards"][number];
+export type BoardOpen = Out<"board">;
+export type Card = BoardOpen["cards"][number];
+export type CardOpen = Out<"task">;
+export type CardMoves = Out<"taskMoves">["moves"];
 
 /** A call in `client`'s workspace. */
 export const notes = <K extends keyof NotesApi>(

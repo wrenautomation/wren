@@ -5,6 +5,7 @@
  */
 import { lazy } from "react";
 import type { Module } from "../../module.js";
+import { BoardPage, waitingCards } from "./board.js";
 import { NotesHome } from "./home.js";
 import { NoteMentions, unseenMentions } from "./mentions.js";
 
@@ -13,6 +14,14 @@ const NoteDoc = lazy(() => import("./doc.js").then((m) => ({ default: m.NoteDoc 
 
 const pages: Module["pages"] = [
   { id: "home", label: "Notes", about: "Your notes, plans and docs.", Page: NotesHome, wide: true },
+  {
+    id: "board",
+    label: "Board",
+    about: "Cards in columns, each one a note.",
+    Page: BoardPage,
+    badge: waitingCards,
+    wide: true,
+  },
   {
     id: "mentions",
     label: "Mentions",

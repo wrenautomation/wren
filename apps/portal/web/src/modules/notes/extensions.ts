@@ -20,6 +20,7 @@ import { Y_BODY } from "@wren/notes/types";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { hueClass } from "./api.js";
+import { CARD_LABEL } from "./cards.js";
 import { CommentMarks } from "./comments.js";
 import { SuggestAdd, SuggestDel, Suggesting } from "./suggesting.js";
 
@@ -240,6 +241,11 @@ export function extensionsOf(o: {
       HTMLAttributes: { class: "note-mention" },
       renderText: ({ node }: { node: { attrs: { label?: string; id?: string } } }) =>
         `@${node.attrs.label ?? node.attrs.id}`,
+      // A card's link on a checklist line reads "Card: To do", not "@Card: To do".
+      renderLabel: ({ node }: { node: { attrs: { label?: string; id?: string } } }) =>
+        String(node.attrs.label ?? "").startsWith(CARD_LABEL)
+          ? String(node.attrs.label)
+          : `@${node.attrs.label ?? node.attrs.id}`,
       ...(o.mention
         ? {
             suggestion: {

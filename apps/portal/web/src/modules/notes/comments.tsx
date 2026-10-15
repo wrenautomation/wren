@@ -552,6 +552,7 @@ export function CommentsPanel({
   draft,
   active,
   canAccept,
+  card,
   me,
   people,
   onDraftDone,
@@ -566,6 +567,8 @@ export function CommentsPanel({
   draft: { anchor: Anchor; quote: string } | null;
   active: string | null;
   canAccept: boolean;
+  /** A card's discussion: top-level comments need no selected words. */
+  card?: boolean;
   me: string;
   people: () => Promise<NotePeople | null>;
   onDraftDone: () => void;
@@ -640,6 +643,27 @@ export function CommentsPanel({
             />
           </div>
         ) : null}
+        {card && !draft && data?.canComment ? (
+          <Compose
+            people={people}
+            placeholder="Add a comment"
+            busy={busy}
+            submit={async (body) => {
+              setBusy(true);
+              try {
+                const c = await notes(client, "comment", { id: noteId, body });
+                onChanged();
+                onPick(c.id);
+                return true;
+              } catch (err) {
+                say.failed(err);
+                return false;
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        ) : null}
         {suggestions.length && editor ? (
           <section aria-label="Suggestions" className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -700,7 +724,9 @@ export function CommentsPanel({
         ) : !draft && !suggestions.length ? (
           <p className="m-0 text-[13px] text-(--ui-ink-2)">
             {data.canComment
-              ? "No comments yet. Select words in the note, then Comment."
+              ? card
+                ? "No comments yet."
+                : "No comments yet. Select words in the note, then Comment."
               : "No comments yet."}
           </p>
         ) : null}

@@ -2,7 +2,7 @@
  * "Notes" on a record's page: the notes that @ it, which this viewer may open. A note links a
  * record by `@`; the server keeps the links as the note saves.
  */
-import { can, relative } from "@wren/ui";
+import { can, relative, Tag } from "@wren/ui";
 import type { ReactNode } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -26,6 +26,12 @@ function Backlinks({ client, target }: { client: string; target: string }) {
           <a href={docPath(n.id)} className="font-medium text-(--ui-ink)">
             {n.name}
           </a>
+          {n.card ? (
+            <>
+              {" "}
+              <Tag tone={n.card.closed ? "green" : "neutral"}>Card: {n.card.column}</Tag>
+            </>
+          ) : null}
           <span className="text-[12px] text-(--ui-ink-2)">
             {" "}
             · edited {relative(new Date(n.updatedAt))}

@@ -20,6 +20,12 @@ export const capture = (client: string, words: string) =>
     .then(() => say.done("Added to your Dump note."))
     .catch(say.failed);
 
+/** A card on the Work board, from a title. */
+export const makeCard = (client: string, title: string) =>
+  notes(client, "taskAdd", { title })
+    .then(() => say.done("Card added to the Work board."))
+    .catch(say.failed);
+
 export function QuickNote({
   client,
   open,
@@ -33,10 +39,41 @@ export function QuickNote({
 }) {
   const [words, setWords] = useState("");
   const [busy, setBusy] = useState<"dump" | "note" | null>(null);
+  // The "Card" switch: the words become a card on the Work board instead.
+  const [asCard, setAsCard] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
   const save = (asNote: boolean) => {
     if (!words.trim()) return;
     setBusy(asNote ? "note" : "dump");
+    if (asCard) {
+      // The first line is the title; any more become its details.
+      const [title = "", ...more] = words.trim().split("\n");
+      const rest = more.map((l) => l.trim()).filter(Boolean);
+      notes(client, "taskAdd", {
+        title,
+        ...(rest.length
+          ? {
+              body: {
+                type: "doc",
+                content: rest.map((t) => ({
+                  type: "paragraph",
+                  content: [{ type: "text", text: t }],
+                })),
+              },
+            }
+          : {}),
+      })
+        .then((c) => {
+          setWords("");
+          onOpenChange(false);
+          onSaved?.();
+          if (asNote) navigate(docPath(c.id));
+          else say.done("Card added to the Work board.");
+        })
+        .catch(say.failed)
+        .finally(() => setBusy(null));
+      return;
+    }
     notes(client, "capture", { words, open: asNote })
       .then((r) => {
         setWords("");
@@ -52,9 +89,11 @@ export function QuickNote({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Quick note</DialogTitle>
+          <DialogTitle>{asCard ? "Quick card" : "Quick note"}</DialogTitle>
           <DialogDescription>
-            It goes at the end of your Dump note, with the time.
+            {asCard
+              ? "The first line is the title. It goes on the Work board."
+              : "It goes at the end of your Dump note, with the time."}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -82,6 +121,14 @@ export function QuickNote({
             />
           </DictateField>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="mr-auto flex items-center gap-1.5 text-[13px]">
+              <input
+                type="checkbox"
+                checked={asCard}
+                onChange={(e) => setAsCard(e.target.checked)}
+              />
+              Card
+            </label>
             <Button
               tone="secondary"
               size="dense"
@@ -90,7 +137,7 @@ export function QuickNote({
               disabled={!words.trim() || busy !== null}
               onClick={() => save(true)}
             >
-              Make it a note
+              {asCard ? "Add and open" : "Make it a note"}
             </Button>
             <Button
               tone="primary"
@@ -99,7 +146,7 @@ export function QuickNote({
               busy={busy === "dump"}
               disabled={!words.trim() || busy !== null}
             >
-              Add to Dump
+              {asCard ? "Add card" : "Add to Dump"}
             </Button>
           </div>
         </form>

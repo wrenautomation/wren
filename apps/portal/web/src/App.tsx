@@ -52,7 +52,7 @@ import { LookProvider } from "./look-pref.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
-import { capture, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
+import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
 import { HandSwitch, keepOf, TemplatePage } from "./records.js";
@@ -713,6 +713,7 @@ export function App() {
             items={jumps(apps, launcher, keys)}
             onPick={(href) => navigate(href)}
             capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
+            card={noteAt ? (title) => void makeCard(noteAt, title) : undefined}
             find={finder}
             recentKey={finder ? current?.id : undefined}
             ask={

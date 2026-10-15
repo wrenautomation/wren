@@ -12,7 +12,9 @@ import type * as Y from "yjs";
 import { ApiError } from "../../api.js";
 import { navigate } from "../../route.js";
 import { mentionHref, type NotePeople, notes } from "./api.js";
+import { cardLines, makeCards } from "./cards.js";
 import { extensionsOf, FILE_SRC, find, type MenuItem, type Render, replace } from "./extensions.js";
+import { pasteFileLink } from "./filelinks.js";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
@@ -262,6 +264,7 @@ function Toolbar({
   onLink,
   onImage,
   onComment,
+  onCards,
   mode,
 }: {
   editor: Editor;
@@ -269,6 +272,8 @@ function Toolbar({
   onLink: () => void;
   onImage: (() => void) | null;
   onComment: (() => void) | null;
+  /** Make cards from the lines picked; null where this person can't write cards. */
+  onCards: (() => void) | null;
   mode: Mode | null;
 }) {
   const s = useEditorState({
@@ -278,6 +283,7 @@ function Toolbar({
       undo: e.can().undo(),
       redo: e.can().redo(),
       selected: !e.state.selection.empty,
+      lines: cardLines(e).length,
     }),
   });
   const c = () => editor.chain().focus();
@@ -317,6 +323,15 @@ function Toolbar({
           >
             <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" />
           </svg>
+        </Tool>
+      ) : null}
+      {onCards && !suggesting ? (
+        <Tool
+          label={s.lines > 1 ? "Make cards" : "Make card"}
+          run={onCards}
+          disabled={s.lines === 0}
+        >
+          <Icon name="board" />
         </Tool>
       ) : null}
       <Tool label="Find and replace" keys="⌘F" run={onFind}>
@@ -701,6 +716,7 @@ export function NoteEditor({
   mode,
   onComment,
   onPickComment,
+  cards,
 }: {
   client: string;
   id: string;
@@ -714,6 +730,8 @@ export function NoteEditor({
   mode: Mode | null;
   onComment: (() => void) | null;
   onPickComment: (id: string) => void;
+  /** This person can make cards from lines (they may write on the workspace's board). */
+  cards: boolean;
 }) {
   // The editor is made once per doc: what it asks later reads these.
   const modeRef = useRef(mode);
@@ -778,7 +796,10 @@ export function NoteEditor({
           const files = [...(event.clipboardData?.files ?? [])].filter((f) =>
             IMAGE_TYPES.has(f.type),
           );
-          if (!files.length) return false;
+          if (!files.length)
+            return modeRef.current?.suggesting
+              ? false
+              : pasteFileLink(_v, client, event.clipboardData?.getData("text/plain") ?? "");
           void putImages(files);
           return true;
         },
@@ -839,6 +860,7 @@ export function NoteEditor({
             onLink={() => setBar(bar === "link" ? null : "link")}
             onImage={() => picker.current?.click()}
             onComment={onComment}
+            onCards={cards ? () => void makeCards(editor, client, id) : null}
             mode={mode}
           />
           {bar === "find" ? <FindBar editor={editor} onClose={() => setBar(null)} /> : null}

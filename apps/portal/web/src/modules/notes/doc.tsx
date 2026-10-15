@@ -36,6 +36,8 @@ import {
   type NoteVersions,
   notes,
 } from "./api.js";
+import { CardStrip, TimelinePanel } from "./card.js";
+import { makeCards } from "./cards.js";
 import { type Anchor, anchorOf, CommentsPanel, goTo, showThreads } from "./comments.js";
 import { type Heading, type Mode, NoteEditor, outlineOf, wordsIn } from "./editor.js";
 import { download, downloadDocx, fileName } from "./files.js";
@@ -204,7 +206,12 @@ function Doc({
   const [editor, setEditor] = useState<Editor | null>(null);
   const [heads, setHeads] = useState<Heading[]>([]);
   const [words, setWords] = useState(0);
-  const [panel, setPanel] = useState<"history" | "comments" | null>(focus ? "comments" : null);
+  const [panel, setPanel] = useState<"history" | "comments" | "timeline" | null>(
+    focus ? "comments" : null,
+  );
+  // A card (a note on a board) has a strip and a Timeline; an edit there bumps the tick.
+  const isCard = note.kind === "task";
+  const [tick, setTick] = useState(0);
   const [outline, setOutline] = useState(true);
   const [shown, setShown] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
@@ -455,6 +462,20 @@ function Doc({
           >
             History
           </Button>
+          {isCard ? (
+            <Button
+              tone="secondary"
+              size="dense"
+              icon="board"
+              aria-pressed={panel === "timeline"}
+              onClick={() => {
+                setPanel(panel === "timeline" ? null : "timeline");
+                setShown(null);
+              }}
+            >
+              Timeline
+            </Button>
+          ) : null}
           <Button tone="primary" size="dense" icon="people" onClick={() => setSharing(true)}>
             Share
           </Button>
@@ -475,7 +496,14 @@ function Doc({
                     },
                     { label: "Add to an SOP…", run: () => setSopFor(selectedWords(editor)) },
                   ]),
-              { label: "Make a task", soon: true },
+              ...(canEdit && editor
+                ? [
+                    {
+                      label: "Make cards from the lines picked",
+                      run: () => void makeCards(editor, client, note.id),
+                    },
+                  ]
+                : []),
               null,
               ...(owner
                 ? [
@@ -522,6 +550,15 @@ function Doc({
           {note.agent ? " Written with Claude." : ""}
         </p>
       </header>
+      {isCard ? (
+        <CardStrip
+          client={client}
+          id={note.id}
+          me={note.me}
+          people={loadPeople}
+          changed={() => setTick((n) => n + 1)}
+        />
+      ) : null}
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {outline && heads.length ? (
           <nav
@@ -581,6 +618,7 @@ function Doc({
                 mode={mode}
                 onComment={comments?.canComment ? startComment : null}
                 onPickComment={pick}
+                cards={canEdit}
               />
             </div>
           )}
@@ -610,6 +648,7 @@ function Doc({
             draft={draft}
             active={active}
             canAccept={canEdit}
+            card={isCard}
             me={note.me}
             people={loadPeople}
             onDraftDone={() => setDraft(null)}
@@ -621,6 +660,9 @@ function Doc({
               setActive(null);
             }}
           />
+        ) : null}
+        {panel === "timeline" ? (
+          <TimelinePanel client={client} id={note.id} tick={tick} onClose={() => setPanel(null)} />
         ) : null}
         {panel === "history" ? (
           <VersionsPanel
