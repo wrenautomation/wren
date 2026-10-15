@@ -165,7 +165,10 @@ describe("funnel", () => {
       subreddit: "SomeSub",
       alsoTo: ["OtherSub", "r/ThirdSub", "somesub", "othersub"],
     });
-    await pg.db.update(contentDrafts).set({ title: "Cut the demo" }).where(eq(contentDrafts.id, d.id));
+    await pg.db
+      .update(contentDrafts)
+      .set({ title: "Cut the demo" })
+      .where(eq(contentDrafts.id, d.id));
     const at = new Date("2030-01-02T15:00:00Z");
     const rows = await approveDrafts(pg.db, [d.id], { now: new Date(), at });
     expect(rows).toHaveLength(3);
