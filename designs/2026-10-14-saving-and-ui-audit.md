@@ -90,6 +90,46 @@ editing. feels almost like the write tab needs to be folded into the studio expe
   style captions, pick the cover frame, see each format's crop, render the changed parts. Each
   change is an edit to the video's cut list the render path already reads.
 
+### What lane D needs from the render path
+
+The finishing view sits in the video editor right after the preview (`videoExtras` in
+`apps/portal/web/src/modules/marketing/videos.tsx` marks the slot). The render
+path is `packages/studio`: `video_edits` holds the edit, `props.ts` turns it into each
+composition's props, `remotion.ts` `renderAll` renders on the Mac (`studio.render {id}`, queued by
+`VideoDesk/render`). Times in the edit are seconds on the raw main track; the cut timeline comes
+from `keepSegments`, `toCutTime` and `onCut` (`@wren/studio/cuts`, already pure, safe in the
+browser). What each tool needs:
+
+- **Timeline, drag a cut's edges.** Nothing new on the server: a drag writes `cuts[i].from/to`
+  through `VideoDesk` `set`, as Cuts does now. The browser needs the words, the cuts and
+  `tracks.main.durationS` on the record (it has them) and imports `@wren/studio/cuts` to draw kept
+  and cut spans. Snap edges to word bounds (`words[i].s/e`) so a drag never cuts mid-word.
+- **Text on the video.** New. A `video_edits.overlays` jsonb: `{ from, to, text, x, y, size,
+  style }[]` in raw seconds, x/y as 0..1 of the frame. `longProps`, `verticalProps` and
+  `shortProps` move each onto the cut timeline (drop ones fully inside a cut) and pass it; the
+  `Long`, `Vertical` and `Short` compositions in `packages/studio/remotion/index.tsx` draw a text
+  layer. Checked in `edit.ts` like the other fields (text under 120 characters, inside the frame).
+- **Captions placement and style.** Style and per-format show (`captions.style`, `long`/`short`:
+  `screen` or `track`) exist. Placement doesn't: the line's height is fixed per format (`BIG.y`,
+  `REEL` rules). Add `captions.place?: { long?: number; vertical?: number; short?: number }` (0..1
+  from the top), read by `placeWord` and the caption layer, kept clear of the safe zones
+  (`safe-zones.ts`).
+- **Cover frame.** The long video's is `thumbnail.at` (raw seconds) and `thumbnail.text`;
+  `thumbnailProps` reads it. Shorts, Reels and TikTok take a cover on their drafts' fields
+  (`coverMs`, `thumbOffset`). Picking a frame writes `thumbnail.at`, and for each clip's draft its
+  cover field through `ContentDesk/fields`. A still at that frame needs a Mac call that exists
+  (`renderStill`), exposed as `studio.still {id, at, format}` writing a preview key to S3.
+- **Each format's crop.** The vertical window is `verticalWindow(w, h, cx)` with `cx` from the
+  camera box or the middle. Add `video_edits.crop?: { vertical?: number; shorts?: Record<n,
+  number> }` (cx in source pixels) that `verticalProps` and `shortProps` use before the face. The
+  browser draws the crop over the long preview with the same `verticalWindow` math (move it to a
+  browser-safe export).
+- **Render only what changed.** `renderAll` renders every format the job names. Store each
+  output's props hash in `files` (`long.props: <sha>`), and have `studio.render` take `{ id,
+  only?: string[] }`; the desk compares hashes and names only the changed outputs. The preview's
+  "changed since the last render" check already exists (`videoChecks`), and it should say which
+  formats are stale.
+
 ### One sidebar (main session)
 
 William: "not sure about the nested sidebar experience, it's taking up too much width." The pages
@@ -111,3 +151,13 @@ closed app's pages show on hover as now. Same information, one sidebar's width.
 
 - 2026-10-14: written; lanes A, B, C started on Sonnet, restarted on Opus for this wave (William).
   Studio and sidebar added; lane D (video finishing view) starts when lane A lands.
+- 2026-10-15: lane B. Refusals name the post; a repeat click is no refusal. Reddit drafts get a
+  subreddit when made and at Approve; the panel marks required fields. Schedule and Post now on
+  the draft. Drafts opens on Up next. Studio at `/marketing/studio` takes in Write (its id
+  redirects), adds Thread, shows the plan's To make and the newest recordings; its board saves
+  through the engine. The draft's editor lists the idea's other platforms. Video fields save
+  through the engine; the preview says when it's older than the last change. Post fields, slides,
+  the TikTok panel and the carousel, story and blog makers save through the engine too. A stale
+  draft save is `staleRefusal`, and its answer carries the new "Edited by" line. The sandbox
+  can't connect a social account. Left: the record head flushes only the draft box before Approve,
+  not fields or slides; a record act still reads the record again after a save.
