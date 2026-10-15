@@ -16,6 +16,7 @@
     "./records": "./src/records.ts",
     "./room": "./src/room.ts",
     "./schema": "./src/schema.ts",
+    "./sheet": "./src/sheet.ts",
     "./suggest": "./src/suggest.ts",
     "./types": "./src/types.ts",
     "./train": "./src/train.ts"

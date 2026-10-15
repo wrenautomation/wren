@@ -3,7 +3,6 @@
  * in columns and their order, the move history, closing and reopening, an agent's limit,
  * blockers and the ready list, and who may open a board's cards. Synthetic logins throughout.
  */
-import { createDb, type DbHandle, migrate } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {

@@ -19,11 +19,25 @@ import {
   portalService,
   whoIs,
 } from "@wren/core/portal";
+import { metaOf } from "@wren/core/records";
+import {
+  type ExportAsk,
+  fenceFor,
+  type GetAsk,
+  type ListAsk,
+  meOf,
+  opens,
+  type RecordsApi,
+  type StatsAsk,
+  serveRecords,
+} from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import type { Db } from "@wren/db";
+import { type Db, snapshot } from "@wren/db";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { atLeast, clientWho, effectiveRole, isShareRole, type Reader, TEAM } from "./access.js";
+import { boardById } from "./boards.js";
+import { boardsApi } from "./console-boards.js";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "./console-routes.js";
 import { blame, counts } from "./diff.js";
 import {
@@ -38,7 +52,7 @@ import {
 import { driveIdOf, type NoteDrive } from "./drive.js";
 import { inboxMentionsOf, unseenInboxMentions } from "./inbox.js";
 import { mailMentions, type SendMention } from "./mention-mail.js";
-import { type Note, type NoteComment, noteStars } from "./schema.js";
+import { type Board, type Note, type NoteComment, noteStars } from "./schema.js";
 import {
   addComment,
   appendNote,
@@ -80,6 +94,7 @@ import {
   versionRange,
   versionsOf,
 } from "./store.js";
+import { taskRecordFor } from "./task-records.js";
 import {
   COMMENT_MAX,
   type CommentAnchor,
@@ -352,7 +367,30 @@ export function notesApi(deps: NotesDeps) {
   const sharesOut = async (db: Db, id: string) =>
     (await sharesOf(db, id)).map((s) => ({ who: s.who, role: s.role, by: s.by, at: iso(s.at) }));
 
+  const boards = boardsApi({ main, placeOf, readerOf, byOf, locate });
+
+  /** The cards as records, over this workspace's database, for the Board's List. */
+  const cardRecords = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
+    const place = await placeOf(req);
+    const type = taskRecordFor(place.client?.id ?? null);
+    return snapshot(place.db, (tx) =>
+      use(serveRecords([type], tx, undefined, fenceFor(req, place.ws), meOf(req))),
+    );
+  };
+
   return {
+    ...boards,
+    async recordsTypes(req: PortalRequest) {
+      const place = await placeOf(req);
+      const type = taskRecordFor(place.client?.id ?? null);
+      const fence = fenceFor(req, place.ws);
+      return [type].filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
+    },
+    recordsList: (req: PortalRequest & ListAsk) => cardRecords(req, (r) => r.list(req)),
+    recordsGet: (req: PortalRequest & GetAsk) => cardRecords(req, (r) => r.get(req)),
+    recordsExport: (req: PortalRequest & ExportAsk) => cardRecords(req, (r) => r.export(req)),
+    recordsStats: (req: PortalRequest & StatsAsk) => cardRecords(req, (r) => r.stats(req)),
+
     /** Notes' home: a view (Recent, Mine, Shared with me, Starred, Archived) or a search. */
     async home(req: Req<{ view?: unknown; q?: unknown; limit?: unknown; parentId?: unknown }>) {
       const place = await placeOf(req);
@@ -534,6 +572,10 @@ export function notesApi(deps: NotesDeps) {
       const place = await placeOf(req);
       const reader = await readerOf(req, place);
       const rows = await backlinks(place.db, reader, target);
+      // A card says where it stands: its column, or Closed.
+      const boardIds = [...new Set(rows.flatMap((r) => (r.boardId ? [r.boardId] : [])))];
+      const columns = new Map<string, Board["columns"]>();
+      for (const id of boardIds) columns.set(id, (await boardById(place.db, id))?.columns ?? []);
       return {
         notes: rows.map((r) => ({
           id: r.id,
@@ -541,6 +583,14 @@ export function notesApi(deps: NotesDeps) {
           excerpt: r.text.replace(/\s+/g, " ").slice(0, 200),
           owner: r.owner,
           updatedAt: iso(r.updatedAt) as string,
+          card:
+            r.kind === "task" && r.boardId
+              ? {
+                  column:
+                    columns.get(r.boardId)?.find((c) => c.id === r.columnId)?.name ?? r.columnId,
+                  closed: r.closedAt !== null,
+                }
+              : null,
         })),
       };
     },
@@ -693,7 +743,9 @@ export function notesApi(deps: NotesDeps) {
         parentId = parent.id;
       }
       const anchor = parentId ? null : anchorOf(req.anchor);
-      if (!parentId && !anchor) throw new PortalRefusal("select the words to comment on", 400);
+      // A card's talk sits under its title, on no range.
+      if (!parentId && !anchor && note.kind !== "task")
+        throw new PortalRefusal("select the words to comment on", 400);
       const c = await addComment(db, {
         noteId: note.id,
         by,
@@ -805,6 +857,17 @@ export function notesApi(deps: NotesDeps) {
       if (!id) throw new PortalRefusal("Paste a Google Docs or Drive link.", 400);
       const file = await deps.drive.get(id);
       return { name: file.name, data: toB64(file.bytes) };
+    },
+
+    /** A Drive link's file name, for the chip a pasted link becomes; null when it isn't readable. */
+    async driveTitle(req: Req<{ link?: unknown }>) {
+      byOf(req);
+      const place = await placeOf(req);
+      const reader = await readerOf(req, place);
+      if (reader.cap !== "edit") throw new PortalRefusal("your role can't do that", 403);
+      const id = driveIdOf(str(req.link, 2000, "the link"));
+      if (!deps.drive || !id) return { title: null };
+      return { title: await deps.drive.title(id).catch(() => null) };
     },
 
     /** Quick capture: a timestamped line at the end of the person's Dump note, or a new note. */
@@ -1114,6 +1177,7 @@ const INPUTS = {
     from: z.string().max(200).optional().describe("The file it came from: an import version"),
   },
   drive: { link: z.string().max(2000).describe("A Google Docs or Drive link") },
+  driveTitle: { link: z.string().max(2000).describe("A Google Docs, Sheets or Drive link") },
   create: {
     title: z.string().max(300).optional(),
     markdown: z.string().optional().describe("The body, as Markdown"),
@@ -1142,6 +1206,114 @@ const INPUTS = {
     id: ID,
     text: z.string().max(200_000).optional().describe("The selection; none is the note"),
     sop: z.string().max(64).describe("The SOP's name: lowercase letters, digits and dashes"),
+  },
+  boards: {},
+  needsYou: {},
+  board: { id: ID.describe("The board's id") },
+  task: { id: ID.describe("The card's id") },
+  taskMoves: { id: ID.describe("The card's id") },
+  taskExport: { id: ID.describe("The board's id") },
+  recordsTypes: {},
+  recordsList: {},
+  recordsGet: {},
+  recordsExport: {},
+  recordsStats: {},
+  boardCreate: {
+    name: z.string().max(120),
+    columns: z
+      .array(
+        z.object({
+          id: z.string().max(40).optional(),
+          name: z.string().max(60),
+          done: z.boolean(),
+        }),
+      )
+      .max(12)
+      .optional()
+      .describe("Ordered; at least one done and one open. Left out: To do, Doing, Done"),
+  },
+  boardSave: {
+    id: ID.describe("The board's id"),
+    name: z.string().max(120).optional(),
+    columns: z
+      .array(
+        z.object({
+          id: z.string().max(40).optional(),
+          name: z.string().max(60),
+          done: z.boolean(),
+        }),
+      )
+      .max(12)
+      .optional(),
+  },
+  boardShare: {
+    id: ID.describe("The board's id"),
+    who: z.string().max(320).describe("An email, `team` or `client:<id>`"),
+    role: ROLE.nullable().describe("None removes them"),
+  },
+  boardGeneral: {
+    id: ID.describe("The board's id"),
+    general: z.enum(["private", "workspace"]),
+    role: ROLE,
+  },
+  boardArchive: { id: ID.describe("The board's id"), on: ON },
+  taskAdd: {
+    title: z.string().max(300),
+    board: ID.optional().describe("A board id; the Work board when left out"),
+    column: z
+      .string()
+      .max(60)
+      .optional()
+      .describe("A column's id or name; the first open one when left out"),
+    assignee: z.string().max(200).nullable().optional().describe("An email or `agent:<name>`"),
+    due: z.string().max(10).nullable().optional().describe("YYYY-MM-DD"),
+    blockedBy: z.array(ID).max(20).optional().describe("Cards it waits on"),
+    body: z.unknown().optional().describe("Editor JSON: the card's details"),
+  },
+  taskMove: {
+    id: ID.describe("The card's id"),
+    column: z
+      .string()
+      .max(60)
+      .optional()
+      .describe("A column's id or name; the card's own to reorder"),
+    before: ID.nullable().optional().describe("Just above this card"),
+    after: ID.nullable().optional().describe("Just below this card"),
+    why: z.string().max(300).optional(),
+  },
+  taskEdit: {
+    id: ID.describe("The card's id"),
+    assignee: z
+      .string()
+      .max(200)
+      .nullable()
+      .optional()
+      .describe("An email or `agent:<name>`; null takes the owner off"),
+    due: z.string().max(10).nullable().optional().describe("YYYY-MM-DD; null clears it"),
+    board: ID.optional().describe("Move it to this board"),
+    column: z.string().max(60).optional().describe("With board: the column there"),
+  },
+  taskClose: {
+    id: ID.describe("The card's id"),
+    on: z.boolean().optional().describe("False reopens it"),
+    why: z.string().max(300).optional(),
+  },
+  taskBlock: {
+    id: ID.describe("The card's id"),
+    blockedBy: ID.describe("The card it waits on"),
+    on: z.boolean().optional().describe("False stops waiting"),
+  },
+  taskFromLine: {
+    id: ID.describe("The note the lines are in"),
+    lines: z.array(z.string().max(500)).min(1).max(50).describe("One card each"),
+  },
+  taskImport: {
+    id: ID.describe("The board's id"),
+    rows: z
+      .array(z.record(z.string(), z.string().max(2000)))
+      .min(1)
+      .max(200)
+      .describe("Rows by field: title, column, owner, due, blocked by, link"),
   },
 } as const satisfies Record<keyof typeof NOTES_CONSOLE_ROUTES, z.ZodRawShape>;
 const input = (route: keyof typeof INPUTS) => ({
@@ -1190,6 +1362,7 @@ export function makeNotesConsole(deps: NotesDeps) {
       resolve: write("resolve", "resolve"),
       // A Drive read: big bytes and no write, so no journal.
       drive: read("drive"),
+      driveTitle: read("driveTitle"),
       append: write("append", "append"),
       create: write("create", "create"),
       capture: write("capture", "capture"),
@@ -1216,6 +1389,29 @@ export function makeNotesConsole(deps: NotesDeps) {
           }),
       ),
       toSop: write("toSop", "to sop"),
+      boards: read("boards"),
+      needsYou: read("needsYou"),
+      board: read("board"),
+      task: read("task"),
+      taskMoves: read("taskMoves"),
+      taskExport: read("taskExport"),
+      recordsTypes: read("recordsTypes"),
+      recordsList: read("recordsList"),
+      recordsGet: read("recordsGet"),
+      recordsExport: read("recordsExport"),
+      recordsStats: read("recordsStats"),
+      boardCreate: write("boardCreate", "board create"),
+      boardSave: write("boardSave", "board save"),
+      boardShare: write("boardShare", "board share"),
+      boardGeneral: write("boardGeneral", "board general"),
+      boardArchive: write("boardArchive", "board archive"),
+      taskAdd: write("taskAdd", "task add"),
+      taskMove: write("taskMove", "task move"),
+      taskEdit: write("taskEdit", "task edit"),
+      taskClose: write("taskClose", "task close"),
+      taskBlock: write("taskBlock", "task block"),
+      taskFromLine: write("taskFromLine", "task from line"),
+      taskImport: write("taskImport", "task import"),
     },
   });
 }

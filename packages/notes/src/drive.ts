@@ -21,6 +21,8 @@ export interface NoteDrive {
   /** The service account's email, to share a private doc with; null without one. */
   who: () => string | null;
   get: (id: string) => Promise<DriveFile>;
+  /** A file's name (a Doc, a Sheet, any file), for a link chip; null when Google won't say. */
+  title: (id: string) => Promise<string | null>;
 }
 
 /** Said to the person: why the file didn't come in. */
@@ -105,8 +107,51 @@ export function googleDrive(o: {
     return null;
   }
 
+  /** The name, as the account sees it. */
+  async function nameAsAccount(id: string): Promise<string | null> {
+    if (!o.token) return null;
+    try {
+      const bearer = await o.token();
+      const res = await get(
+        `https://www.googleapis.com/drive/v3/files/${id}?fields=name&supportsAllDrives=true`,
+        { headers: { authorization: `Bearer ${bearer}` } },
+      );
+      if (!res.ok) return null;
+      const m = (await res.json()) as { name?: string };
+      return m.name ? nameOf(m.name) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** The name, from the page a shared link opens (its tab title). */
+  async function nameAsLink(id: string): Promise<string | null> {
+    const res = await get(`https://drive.google.com/file/d/${id}/view`, {
+      redirect: "follow",
+    }).catch(() => null);
+    if (!res?.ok) return null;
+    const head = (await res.text()).slice(0, 30_000);
+    const raw = /<title>([^<]{1,300})<\/title>/i.exec(head)?.[1];
+    if (!raw) return null;
+    const text = raw
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/ - Google (Drive|Docs|Sheets|Slides)$/, "")
+      .trim();
+    return !text || /^(Google Drive|Sign in|Error|Meet Google Drive)/i.test(text)
+      ? null
+      : nameOf(text);
+  }
+
   return {
     who,
+    async title(id) {
+      if (!ID.test(id)) return null;
+      return (await nameAsAccount(id)) ?? (await nameAsLink(id));
+    },
     async get(id) {
       if (!ID.test(id)) throw new DriveRefusal("Paste a Google Docs or Drive link.");
       const file = (await asAccount(id)) ?? (await asLink(id));

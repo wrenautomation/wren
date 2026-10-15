@@ -83,4 +83,21 @@ describe("googleDrive", () => {
     expect(err).toBeInstanceOf(DriveRefusal);
     expect((err as Error).message).toBe("Files from Drive go up to 4 MB.");
   });
+
+  it("names a file for its chip: as the account, else from the shared page's title", async () => {
+    const acct = fake(() => Response.json({ name: "Launch numbers" }));
+    expect(await googleDrive({ token: async () => "tok", fetch: acct.fetch }).title(ID)).toBe(
+      "Launch numbers",
+    );
+    const page = fake((url) =>
+      url.startsWith("https://www.googleapis.com")
+        ? new Response("{}", { status: 404 })
+        : new Response("<html><title>Q4 plan &amp; budget - Google Drive</title>"),
+    );
+    expect(await googleDrive({ token: async () => "tok", fetch: page.fetch }).title(ID)).toBe(
+      "Q4 plan & budget",
+    );
+    const signin = fake(() => new Response("<title>Sign in - Google Accounts</title>"));
+    expect(await googleDrive({ fetch: signin.fetch }).title(ID)).toBeNull();
+  });
 });

@@ -17,6 +17,7 @@ import type { Queryable } from "@wren/db";
 import { nameOf } from "./doc.js";
 import { inboxMentionsOf } from "./inbox.js";
 import { mentionsOf } from "./store.js";
+import { taskRecord } from "./task-records.js";
 
 export const MENTION = "notes.mention";
 
@@ -103,4 +104,4 @@ export const mentionRecord: RecordType = defineRecord({
   actions: ["notes.mentionRead"],
 });
 
-export const NOTES_RECORDS: readonly RecordType[] = [mentionRecord];
+export const NOTES_RECORDS: readonly RecordType[] = [mentionRecord, taskRecord];
