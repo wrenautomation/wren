@@ -153,7 +153,8 @@ export function customFieldsOf(
 export interface FieldInput {
   id?: string;
   record: string;
-  label: string;
+  /** Left out on a change: the name stays. */
+  label?: string | null;
   key?: string;
   kind?: string;
   options?: readonly { key?: string; label: string }[];
@@ -187,8 +188,10 @@ export async function saveCustomField(
   input: FieldInput,
   by: string,
 ): Promise<CustomField> {
+  // A change that leaves the name out (Archive, Bring back) keeps the stored one.
+  const named = !input.id || (input.label !== undefined && input.label !== null);
   const label = String(input.label ?? "").trim();
-  if (!label) refuse("name the field");
+  if (named && !label) refuse("name the field");
   if (label.length > 80) refuse("a field's name is over 80 characters");
   if (!input.id) {
     const kind = (input.kind ?? "text") as CustomKind;
@@ -251,7 +254,7 @@ export async function saveCustomField(
   const [saved] = await db
     .update(customFields)
     .set({
-      label,
+      ...(named ? { label } : {}),
       options,
       ...(archive === undefined ? {} : { archivedAt: archive ? sql`now()` : null }),
       updatedAt: sql`now()`,

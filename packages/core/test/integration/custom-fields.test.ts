@@ -107,6 +107,15 @@ describe("fields", () => {
     );
     expect((await customFieldsOf(pg.db, null, RECORD)).map((f) => f.key)).toEqual(["b"]);
     expect(await customFieldsOf(pg.db, null, RECORD, { archived: true })).toHaveLength(2);
+    // Renamed in another tab, then brought back from a list read before: the name stays.
+    await saveCustomField(pg.db, null, { id: a.id, record: RECORD, label: "Alpha" }, by);
+    const back = await saveCustomField(
+      pg.db,
+      null,
+      { id: a.id, record: RECORD, archived: false },
+      by,
+    );
+    expect(back).toMatchObject({ label: "Alpha", archivedAt: null });
   });
 });
 
