@@ -1,6 +1,6 @@
 # Recruiting templates
 
-Syntax: `../sec_ria/README.md`.
+Syntax: the four marks in `packages/channel-email/src/outreach/authoring.ts` (map card `email/template`).
 
 Reader: the owner, CEO or MD of a midsize recruiting firm. Two cares:
 more business (job orders, a pipeline that doesn't hang on one

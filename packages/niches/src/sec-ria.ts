@@ -1,5 +1,5 @@
-/** SEC-registered investment advisers: regulator bulk files, two hook arms. */
-import { threeEmailSequence, twoEmailSequence } from "@wren/channel-email";
+/** SEC-registered investment advisers: regulator bulk files, one arm. */
+import { twoEmailSequence } from "@wren/channel-email";
 import { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
 import { SEC_DATASETS } from "./sec-ria/datasets.js";
 import { AdvFilingDataSource } from "./sec-ria/filing-data.js";
@@ -44,14 +44,8 @@ export const secRia = defineNiche({
     "global",
   ],
   templatesDir: templatesDir("sec_ria"),
-  sequences: [
-    threeEmailSequence("documents/opener", "documents/followup", "final_followup"),
-    threeEmailSequence("operations/opener", "operations/followup", "final_followup"),
-    twoEmailSequence("documents/opener", "documents/followup"),
-    twoEmailSequence("operations/opener", "operations/followup"),
-  ],
-  // Both arms end on the free audit; they differ in the hook, not the offer.
-  offers: { documents: "ops-audit", operations: "ops-audit" },
+  sequences: [twoEmailSequence("operations/opener", "operations/followup")],
+  offers: { operations: "ops-audit" },
   // One arm until the RIA copy is re-read for role inboxes (its openers still assume a name).
   plan: [{ sequence: "operations-days-0-5" }],
   mailsRoleInboxes: false,

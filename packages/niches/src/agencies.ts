@@ -1,6 +1,6 @@
 /** Marketing / build agencies: directory-sourced firms, people crawled from their sites. */
 import { join } from "node:path";
-import { threeEmailSequence, twoEmailSequence } from "@wren/channel-email";
+import { twoEmailSequence } from "@wren/channel-email";
 import { ClutchPagesSource } from "./agencies/clutch-pages.js";
 import { AgencyDirectoryCsvSource, DIRECTORY_DOMAINS } from "./agencies/directory.js";
 import { shopifyProfileDataset } from "./agencies/profiles.js";
@@ -55,10 +55,7 @@ export const agencies = defineNiche({
     "partners",
   ],
   templatesDir: templatesDir("agencies"),
-  sequences: ARMS.flatMap((arm) => [
-    threeEmailSequence(`${arm}/opener`, `${arm}/followup`, "final_followup"),
-    twoEmailSequence(`${arm}/opener`, `${arm}/followup`),
-  ]),
+  sequences: ARMS.map((arm) => twoEmailSequence(`${arm}/opener`, `${arm}/followup`)),
   offers: { marketing: "ops-audit", build: "ops-audit" },
   // The arm follows the firm's own service mix (`agency_facts.segment`, from the directory
   // listing): marketing shops hear about month end, build shops about the invoice. A firm

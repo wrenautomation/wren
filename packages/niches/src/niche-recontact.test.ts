@@ -1,5 +1,5 @@
 /** defineNiche merges a niche's `recontact` overrides over the lead-recycling defaults. */
-import { DEFAULT_RECONTACT, threeEmailSequence } from "@wren/channel-email";
+import { DEFAULT_RECONTACT, twoEmailSequence } from "@wren/channel-email";
 import { describe, expect, it } from "vitest";
 import { agencies, defineNiche, NICHES, templatesDir } from "./index.js";
 
@@ -11,8 +11,8 @@ const spec = {
   crawlHints: [],
   discoveryGenericWords: [],
   templatesDir: templatesDir("agencies"),
-  sequences: [threeEmailSequence("build/opener", "build/followup", "final_followup")],
-  plan: [{ sequence: "build-days-0-3-7" }],
+  sequences: [twoEmailSequence("build/opener", "build/followup")],
+  plan: [{ sequence: "build-days-0-5" }],
   mailsRoleInboxes: true,
   offers: { build: "ops-audit" },
   companyLocation: () => null,

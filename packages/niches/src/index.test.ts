@@ -9,7 +9,6 @@ import {
   enumerateRenders,
   placeholderFacts,
   render,
-  threeEmailSequence,
   toSource,
   twoEmailSequence,
   variantCounts,
@@ -115,8 +114,8 @@ describe("registry", () => {
     expect(secRia.lander).toBe("/");
     expect(agencies.lander).toBe("/agencies");
     expect(recruiting.lander).toBe("/recruiting/lead-reactivation");
-    expect(TEMPLATES_BY_NICHE.get("agencies")?.size).toBe(5);
-    expect(SEQUENCES_BY_NICHE.get("sec_ria")?.size).toBe(4);
+    expect(TEMPLATES_BY_NICHE.get("agencies")?.size).toBe(4);
+    expect(SEQUENCES_BY_NICHE.get("sec_ria")?.size).toBe(1);
   });
   it("requireNiche refuses a typo and passes null", () => {
     expect(requireNiche(null)).toBeNull();
@@ -159,8 +158,8 @@ describe("offers", () => {
     crawlHints: [],
     discoveryGenericWords: [],
     templatesDir: templatesDir("agencies"),
-    sequences: [threeEmailSequence("build/opener", "build/followup", "final_followup")],
-    plan: [{ sequence: "build-days-0-3-7" }],
+    sequences: [twoEmailSequence("build/opener", "build/followup")],
+    plan: [{ sequence: "build-days-0-5" }],
     mailsRoleInboxes: true,
     companyLocation: () => null,
   };
@@ -172,7 +171,7 @@ describe("offers", () => {
   });
   it("maps a sequence to its arm's offer", () => {
     const n = defineNiche({ ...spec, offers: { build: "ops-audit" } });
-    expect(n.offers.get("build-days-0-3-7")).toBe("ops-audit");
+    expect(n.offers.get("build-days-0-5")).toBe("ops-audit");
   });
   it("refuses an arm with no offer", () => {
     expect(() => defineNiche({ ...spec, offers: {} })).toThrow(/arm 'build' names no offer/);
