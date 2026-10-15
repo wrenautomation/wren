@@ -17,7 +17,7 @@ Snapshots for a post's first 30 days (`metrics.ts:16`), so "what worked" is a qu
 
 ## Shape
 
-- `draft_id` (cascade), `as_of`, `views`, `reactions`, `comments`, `shares`, `follows` (null where the platform gives none: Instagram only today), `fetched_with` (`schema.ts:131`–`171`)
+- `draft_id` (cascade), `as_of`, `views`, `reactions`, `comments`, `shares`, `follows` (null: no `metrics` read fills it now; a post's follows are its `follows` insights day rows, which `draft_outcomes` reads), `fetched_with` (`schema.ts:131`–`171`)
 
 Citations: `packages/content/src/schema.ts:127`
 

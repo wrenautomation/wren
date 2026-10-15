@@ -91,12 +91,10 @@ describe("instagram content channel", () => {
     });
     expect(slept).toEqual([10_000, 15_000, 20_000]);
     expect((await ch.list()).map((r) => r.url)).toEqual(["https://www.instagram.com/reel/x/"]);
-    expect(await ch.metrics("p1")).toMatchObject({
-      views: 40,
-      reactions: 4,
-      comments: 0,
-      follows: 2,
-    });
+    const before = calls.length;
+    expect(await ch.metrics("p1")).toMatchObject({ views: 40, reactions: 4, comments: 0 });
+    // One read: follows comes with the post's insights (a Reel refuses it either way).
+    expect(calls.slice(before).map((c) => `${c[0]} ${c[1]}`)).toEqual(["GET /p1/insights"]);
     expect((await ch.comments("p1")).map((c) => c.author)).toEqual(["bob"]);
     await ch.reply?.("c9", "ty");
     expect(calls.filter((c) => c[1] === "/me/accounts")).toHaveLength(1);
