@@ -108,7 +108,8 @@ const TIKTOK_WHY: Record<string, string> = {
     "Shows the account's follower, like and video counts on its Social page and in reports.",
   "video.list":
     "Lists the account's newest videos with their views on its Social page and in reports.",
-  "video.upload": "Sends an approved video to the creator's TikTok inbox as a draft.",
+  "video.upload":
+    "Comes with the Content Posting API. Wren posts by Direct Post and sends nothing to the TikTok inbox.",
   "video.publish":
     "Posts an approved video directly, with the settings the creator picks on the post page.",
 };
@@ -306,7 +307,7 @@ export const REVIEWS: readonly Review[] = [
       "Account, Social: Connect TikTok. TikTok's authorize page lists each scope. Authorize.",
       "Back on Account, Social, the account shows Connected with its name and avatar (user.info.basic). Below them are its followers, likes and video count (user.info.stats) and its newest videos with their views (video.list).",
       "Marketing, Drafts: open a TikTok video draft. Its post page shows the creator's name and avatar and the privacy choice with nothing picked. Comments, duet and stitch are off, and the commercial content disclosure is there.",
-      "Pick a privacy level, tick the declaration and press Post now. It posts on the next pass, within 15 minutes (video.publish, video.upload).",
+      "Pick a privacy level, tick the declaration and press Post now. It posts on the next pass, within 15 minutes (video.publish).",
       "Keep recording or cut to the end of the wait. The draft shows Posted. Open the video on TikTok.",
       "Back on Account, Social, the new video is first in the newest videos, with its views (video.list).",
     ],
