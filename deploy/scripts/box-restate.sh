@@ -1,7 +1,8 @@
 #!/bin/bash
 # Runs ON the Postgres box (first boot, CI over SSM, or by hand over SSM): the Restate
-# server, Caddy in front of its ingress, the hop to the desk's Cloudflare Tunnel, and the
-# nightly Restate backup. Idempotent: a container restarts only when its config changed.
+# server, Caddy in front of its ingress and the box's browser (/cdp), the hop to the desk's
+# Cloudflare Tunnel, and the nightly Restate backup. Idempotent: a container restarts only
+# when its config changed.
 # Usage: box-restate.sh <region> <backups-bucket> [param]
 # The param is SecureString JSON {"token": ingress bearer, "identity_pem": request-signing key}.
 set -euo pipefail
@@ -44,9 +45,14 @@ EOF
 # The bearer opens the ingress, two admin reads the console needs (SQL over state,
 # the service list) and the dead-letter queue's two writes (resume or kill a paused call:
 # the bearer already reaches every handler). Every other admin call stays loopback-only:
-# CI and the desk register over SSM.
+# CI and the desk register over SSM. /cdp is the box's browser (browserless on loopback
+# 3000) over TLS: it checks its own token in the URL, so it sits before the bearer.
 cat > "$D/Caddyfile.new" <<EOF
 $HOST {
+	handle /cdp {
+		uri strip_prefix /cdp
+		reverse_proxy 127.0.0.1:3000
+	}
 	@authed header Authorization "Bearer {\$RESTATE_AUTH_TOKEN}"
 	@query {
 		method POST

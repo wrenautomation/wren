@@ -53,13 +53,14 @@ docker run -d --name wren-pg --restart unless-stopped \
   -c shared_buffers=256MB -c max_connections=60
 unset PW
 
-# The render tier: browserless chromium, token-gated, when a token was provisioned.
+# The render tier: browserless chromium, token-gated, when a token was provisioned. Loopback
+# only: Caddy (box-restate.sh) serves it over TLS as wss://restate.wrenautomation.com/cdp.
 if [ -n "${browser_token_param}" ]; then
   TOKEN="$(aws ssm get-parameter --region "${region}" --name "${browser_token_param}" --with-decryption \
     --query Parameter.Value --output text)"
   docker rm -f wren-browser >/dev/null 2>&1 || true
   docker run -d --name wren-browser --restart unless-stopped \
-    -p 3000:3000 -e TOKEN="$TOKEN" -e CONCURRENT=2 -e TIMEOUT=60000 \
+    -p 127.0.0.1:3000:3000 -e TOKEN="$TOKEN" -e CONCURRENT=2 -e TIMEOUT=60000 \
     --shm-size=512m ghcr.io/browserless/chromium:latest
   unset TOKEN
 fi

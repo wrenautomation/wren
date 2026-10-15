@@ -112,8 +112,9 @@ later release) so the version still serving does not break.
 - Secrets live in one SSM SecureString the Lambda role alone can read; never in Terraform state
   except `pg_password` (state is local and gitignored).
 - The Restate invoker role can only invoke this function; the CI role can only replace its code.
-- The browser container listens on 3000 behind a token in the URL, over plain `ws://`. It
-  renders public web pages and nothing else; Lambda → EC2 in one region stays on AWS's network.
+- The browser container listens on loopback 3000 only. Caddy serves it over TLS at
+  `wss://restate.wrenautomation.com/cdp`, outside the bearer: browserless checks its own token
+  in the URL. It renders public web pages and nothing else.
 
 ## Later
 

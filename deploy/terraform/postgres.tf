@@ -111,17 +111,8 @@ resource "aws_security_group" "pg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  dynamic "ingress" {
-    for_each = var.browser_token == "" ? [] : [1]
-    content {
-      description = "browserless CDP (token in the URL)"
-      from_port   = 3000
-      to_port     = 3000
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-  # Caddy: Restate's ingress over TLS (bearer-checked); 80 answers ACME and redirects.
+  # Caddy: Restate's ingress over TLS (bearer-checked) and the browser at /cdp (its own
+  # token; browserless binds loopback 3000); 80 answers ACME and redirects.
   dynamic "ingress" {
     for_each = [80, 443]
     content {

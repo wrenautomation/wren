@@ -38,7 +38,7 @@ Restate (box) ──127.0.0.1:9080──▶ box worker; ──cloudflared hop 12
 Lambda, box ──TLS 6432──▶ PgBouncer ──▶ Postgres on EC2
 Lambda, box, CLI ──TLS 6380──▶ Valkey cache on EC2
 CLI, migrations ──TLS 5432──▶ Postgres on EC2
-Lambda, box ──CDP :3000──▶ browserless
+Lambda, box ──wss /cdp, token──▶ Caddy ──127.0.0.1:3000──▶ browserless
 Resolution (box) ──HTTPS──▶ prober (RackNerd) ──port 25──▶ mail servers
 Lambda ──Gmail API (domain-wide delegation)──▶ Gmail
 GitHub Actions (main) ──OIDC role──▶ Lambda versions, box worker, Cloudflare Workers
@@ -55,7 +55,7 @@ costs nothing and has no process to crash.
 | EC2 `t4g.medium` (AL2023 ARM) | Postgres, browserless and Restate in Docker | $24 |
 | EBS gp3 20 GB | DB data, survives instance rebuild | $2 |
 | Elastic IP | fixed DB address | $0 while attached |
-| Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer), 6380 (TLS Valkey) and 3000 (browser, token) only | $0 |
+| Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer), 6380 (TLS Valkey), 80/443 (Caddy: Restate ingress, browser at `/cdp`) only | $0 |
 | S3 bucket | nightly `pg_dump -Fc`, 30-day lifecycle | pennies |
 | Lambda `wren-prod-worker` + log group | the worker | ≈ $0 at this volume |
 | SSM params `/wren/prod/{pg_password,browser_token,env}` | secrets | $0 |
