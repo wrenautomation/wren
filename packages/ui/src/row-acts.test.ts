@@ -72,3 +72,10 @@ describe("held: set aside at once, undone from the toast", () => {
     expect(held(APPROVE)).toBe(false);
   });
 });
+
+describe("iconOf", () => {
+  it("tells passing on a person apart from skipping one item", () => {
+    expect(iconOf("Pass on them")).not.toBe(iconOf("Skip"));
+    expect(iconOf("Skip")).toBe(iconOf("Dismiss"));
+  });
+});

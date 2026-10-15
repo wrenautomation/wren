@@ -39,6 +39,7 @@ import {
   Trophy,
   Upload,
   UserPlus,
+  UserX,
   X,
 } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from "react";
@@ -62,6 +63,8 @@ const VERBS: readonly (readonly [RegExp, LucideIcon])[] = [
   [/archive|retire/i, Archive],
   [/delete|remove|take out|void/i, Trash2],
   [/unpublish/i, EyeOff],
+  // Closes a person for good, apart from skipping one item.
+  [/pass on/i, UserX],
   [/skip|pass|don't|drop|dismiss|decline|reject|withdraw|hide|no-show|^clear$/i, X],
   [/snooze|not yet/i, Clock],
   [/pause/i, Pause],

@@ -328,12 +328,12 @@ const COMMENT_ACTIONS: Action[] = [
   },
   {
     id: "marketing.commentDrop",
-    label: "Drop",
+    label: "Skip",
     handler: "marketing/commentDrop",
     bulk: true,
     key: "e",
     when: { state: ["new", "waiting"] },
-    done: said("Dropped"),
+    done: said("Skipped. They can still show up again."),
   },
 ];
 /** Comments waiting on him: the draft answer in its box. */
@@ -980,11 +980,11 @@ const ASKED_REPLY_ACTIONS: Action[] = [
   },
   {
     id: "inbox.replyDrop",
-    label: "Drop",
+    label: "Skip",
     handler: "inbox/replyDrop",
     key: "x",
     when: { state: ["waiting", "queued"] },
-    done: said("Dropped. Nothing was sent."),
+    done: said("Skipped. Nothing was sent."),
   },
 ];
 /** To approve: what we'd send, each with its own page's yes and edit. */
