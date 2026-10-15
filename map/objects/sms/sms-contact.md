@@ -39,7 +39,7 @@ Citations: `packages/channel-sms/src/schema.ts:149`
 | Surface | Role |
 |---|---|
 | `SmsDesk.lift/addContact/enroll` (with `client`: that client's database, needs `sms.texts`) | writes |
-| `SmsForms` (lander push), `SmsWatch` form pass, `SmsDesk.forms`, `wren sms forms` | writes form applicants (any country in `WREN_SMS_FORM_COUNTRIES`; cold stays US/CA) |
+| `SmsForms` (lander push), `SmsWatch` form pass, `SmsDesk.forms`, `wren sms forms` | writes form applicants (any country in `WREN_SMS_FORM_COUNTRIES`, default US/CA; cold stays US/CA) |
 | `SmsEvents.ingest` | writes state on STOP/reply |
 | phone PWA, `wren [--client X] sms threads` | read, mark read |
 | portal app `texts`, `SmsConsole.records*` / `reply` (team only) / `callDone` | reads `sms.thread`, replies, closes Call now |

@@ -12,7 +12,8 @@
  * SmsWatch pass (`followUpForms`) reads the lander's export every 30 minutes as the net under
  * the push. A booking under their email ends the thread before anything is sent; fits and the
  * rest get different texts (`form-fit`, `form-not-fit`), and an empty one sends nothing. The
- * phone may be in any country `WREN_SMS_FORM_COUNTRIES` lists; cold texts stay US and Canada.
+ * phone may be in any country `WREN_SMS_FORM_COUNTRIES` lists (unset = US and Canada); any other
+ * number gets the email only, about two minutes after they apply. Cold texts stay US and Canada.
  *
  * Every application has a speed run (`site.forms`, `site:applications:<id>`): when the first
  * text was due and left, the email, and why not when it didn't. An applicant who ticked the box
@@ -419,12 +420,13 @@ async function cursor(db: Queryable): Promise<number | null> {
   return row?.newest === null || row?.newest === undefined ? null : Number(row.newest);
 }
 
+/** What the first pass writes on each run it records: no text and no email ever go to them. */
+export const SEEDED = "applied before form texts were on: not texted";
+
 /** The first pass: every application already on the site, recorded and never texted. */
 async function seed(db: Queryable, apps: readonly FormApplication[]) {
   for (const app of apps)
-    await runOf(db, app, app.sms_consent === 1 ? "refused" : "no_consent", {
-      detail: "applied before form texts were on: not texted",
-    });
+    await runOf(db, app, app.sms_consent === 1 ? "refused" : "no_consent", { detail: SEEDED });
 }
 
 /** The net under the push: every application past the cursor, each through `formStep`. */

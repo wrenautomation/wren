@@ -48,7 +48,9 @@ push that didn't land. Fits get `form-fit#1`, the rest `form-not-fit#1` (default
 booking link goes from `WREN_FORM_MAIL_FROM` (`email/forms/form-booking`). Then
 `follow-up#1` on day 1 and `follow-up#2` on day 3, until they reply or book. No text 10
 minutes after it was due: one notice saying why. Phones may be in any country in
-`WREN_SMS_FORM_COUNTRIES` (US,CA,IN). Needs `WREN_SITE_EXPORT_TOKEN`, the same value as
+`WREN_SMS_FORM_COUNTRIES` (US,CA). Anyone else (another country, box unticked, a landline)
+gets the email alone (`email/forms/form-booking-no-text`) 2 minutes after applying, no
+notice for the country rule; a booking stops it. Needs `WREN_SITE_EXPORT_TOKEN`, the same value as
 the Worker's `SITE_EXPORT_TOKEN`. `wren sms forms` runs a pass now; `wren sms stats`
 shows minutes to the text and the email.
 
@@ -90,5 +92,5 @@ only Wren's team texts back.
 `WREN_SMS_MONTHLY_PER_CONTACT` (4 in any 31 days, never more).
 Form leads (speed to lead): `WREN_SMS_FORM_WINDOW` (08:00-21:00, held to 20:00),
 `WREN_SMS_FORM_DAYS` (1-7), `WREN_SMS_BOOKING_LINK` (Wren's `{booking_link}`),
-`WREN_SMS_FORM_COUNTRIES` (US,CA,IN), `WREN_FORM_MAIL_FROM` (william@wrenautomation.com),
+`WREN_SMS_FORM_COUNTRIES` (US,CA), `WREN_FORM_MAIL_FROM` (william@wrenautomation.com),
 `WREN_FORM_MAIL_NAME` (William Jin).

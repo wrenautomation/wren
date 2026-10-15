@@ -2,28 +2,44 @@
  * After a site applicant's first text (form.ts): the email with the booking link, and the one
  * notice when no text went.
  *
- * The email goes a few minutes after the text left, from William's address
- * (`WREN_FORM_MAIL_FROM`), in the `email/forms/form-booking` template's words: what he calls
- * the calendar confirmation. None to someone who booked by then. It's claimed on its run before
- * it's sent, so the push and the pass never send it twice; a failed send lets go of the claim
- * and the next run tries again.
+ * The email goes from William's address (`WREN_FORM_MAIL_FROM`): what he calls the calendar
+ * confirmation. After a text, a few minutes after it left, in `email/forms/form-booking`'s
+ * words. With no text (no box ticked, a number abroad, a landline, a refusal), two minutes after
+ * they applied, in `email/forms/form-booking-no-text`'s. None to someone who booked by then. It's
+ * claimed on its run before it's sent, so the push and the pass never send it twice; a failed
+ * send lets go of the claim and the next run tries again.
  *
  * The notice: an applicant who ticked the texts box and got no text 10 minutes after it was due
- * gets one notice to William naming why (their country, a landline, Telnyx refused it, an empty
- * template, or the texting window, until when). Never twice: `notice_at` is claimed first.
+ * gets one notice to William naming why (a landline, Telnyx refused it, an empty template, or the
+ * texting window, until when). Not for a number in a country form texts skip: that's the rule
+ * (`WREN_SMS_FORM_COUNTRIES`), and the email covers them. Never twice: `notice_at` is claimed first.
  */
 import type { Notifier } from "@wren/core/notify";
 import { renderKind } from "@wren/core/slots";
 import type { TemplateRef } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import type { Db, Queryable } from "@wren/db";
-import { and, desc, eq, gte, isNull, lte, notInArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, ne, notInArray, or } from "drizzle-orm";
 import type { Bookings } from "./bookings.js";
-import { FORM_WORKFLOW } from "./form.js";
+import {
+  FIRST_TEXT_AFTER_MS,
+  FORM_WORKFLOW,
+  formBookingLink,
+  readApplication,
+  SEEDED,
+  type SiteSource,
+} from "./form.js";
 import { countryOf, phoneCountry } from "./phone.js";
 import { inWindow, nextOpen, policyFor, type SmsPolicy } from "./policy.js";
 import type { SendMail } from "./reviews.js";
-import { type SmsContact, type SpeedRun, smsContacts, smsMessages, speedRuns } from "./schema.js";
+import {
+  type FirstTouch,
+  type SmsContact,
+  type SpeedRun,
+  smsContacts,
+  smsMessages,
+  speedRuns,
+} from "./schema.js";
 import { firstName } from "./templates.js";
 
 /** The email waits this long after the text, so it reads as a follow-on, not a duplicate. */
@@ -37,6 +53,21 @@ const SWEEP_WITHIN_MS = 86_400_000;
 export const FORM_EMAILS = "forms";
 export const FORM_EMAIL = "form-booking";
 export const formEmailRef: TemplateRef = { kind: "email", system: FORM_EMAILS, name: FORM_EMAIL };
+/** The same email to an applicant who got no text: it doesn't say "I texted you". */
+export const FORM_EMAIL_NO_TEXT = "form-booking-no-text";
+export const formNoTextEmailRef: TemplateRef = {
+  kind: "email",
+  system: FORM_EMAILS,
+  name: FORM_EMAIL_NO_TEXT,
+};
+
+/** How a run ends with no text that still gets the email (a seeded run never does). */
+const NO_TEXT: readonly FirstTouch[] = ["no_consent", "no_phone", "refused"];
+
+/** A number in a country form texts skip: email only, by rule, so no notice. */
+export function emailOnlyByCountry(run: Pick<SpeedRun, "firstTouch" | "phone">): boolean {
+  return run.firstTouch === "no_phone" && !!run.phone && phoneCountry(run.phone) !== null;
+}
 
 export interface AfterOptions {
   /** Plain mail from William's address (the worker's `plainMailer`). Null = no email goes. */
@@ -46,6 +77,8 @@ export interface AfterOptions {
   senderName: string;
   notifier: Notifier | null;
   policy: SmsPolicy;
+  /** The site, for the booking link of an applicant with no text thread. Null = no such email. */
+  site?: SiteSource | null;
   now: Date;
 }
 
@@ -76,9 +109,18 @@ async function emailDone(db: Queryable, runId: number, detail: string, at: Date 
     .where(eq(speedRuns.id, runId));
 }
 
+/** The booking link of an applicant with no text thread: the site's page for their offer. */
+async function siteLink(site: SiteSource | null | undefined, run: SpeedRun) {
+  const id = Number(run.subject.split(":")[2]);
+  if (!site || !Number.isInteger(id)) return null;
+  const app = await readApplication(site, id);
+  return app ? formBookingLink(site.baseUrl, app) : null;
+}
+
 /**
- * The email after one run's first text: sent, skipped for a booking, or not yet (the text
- * hasn't left, or left under EMAIL_AFTER_MS ago). A failed send throws, unclaimed.
+ * The email after one run's first text, or in place of one: sent, skipped for a booking, or
+ * not yet (the text hasn't left, or left under EMAIL_AFTER_MS ago; or, with no text, they
+ * applied under FIRST_TEXT_AFTER_MS ago). A failed send throws, unclaimed.
  */
 export async function formEmail(db: Db, runId: number, o: AfterOptions): Promise<EmailOutcome> {
   const row = await runById(db, runId);
@@ -86,8 +128,15 @@ export async function formEmail(db: Db, runId: number, o: AfterOptions): Promise
   if (!run || run.workflow !== FORM_WORKFLOW || run.emailDetail !== null || !run.email)
     return "skipped";
   if (run.firstTouch === "queued") return "not_yet";
-  if (run.firstTouch !== "sent" || !run.firstTouchAt) return "skipped";
-  if (o.now.getTime() - run.firstTouchAt.getTime() < EMAIL_AFTER_MS) return "not_yet";
+  const texted = run.firstTouch === "sent" && run.firstTouchAt !== null;
+  if (texted) {
+    if (o.now.getTime() - (run.firstTouchAt as Date).getTime() < EMAIL_AFTER_MS) return "not_yet";
+  } else {
+    if (!NO_TEXT.includes(run.firstTouch) || run.firstTouchDetail === SEEDED) return "skipped";
+    const since = o.now.getTime() - run.leadAt.getTime();
+    if (since < FIRST_TEXT_AFTER_MS) return "not_yet";
+    if (since > SWEEP_WITHIN_MS) return "skipped";
+  }
   const send = o.send;
   if (!send) return "skipped";
   const claimed = await db
@@ -101,10 +150,11 @@ export async function formEmail(db: Db, runId: number, o: AfterOptions): Promise
       await emailDone(db, run.id, `booked a call on ${o.bookings.name} first: no email`, null);
       return "booked";
     }
-    const link = row.contact?.bookingLink;
-    const words = await liveOrDefault(db, formEmailRef);
+    const link = row.contact?.bookingLink ?? (texted ? null : await siteLink(o.site, run));
+    const ref = texted ? formEmailRef : formNoTextEmailRef;
+    const words = await liveOrDefault(db, ref);
     const why = !words
-      ? `the ${FORM_EMAILS}/${FORM_EMAIL} email template is empty`
+      ? `the ${FORM_EMAILS}/${ref.name} email template is empty`
       : !link
         ? "no booking link on their thread"
         : null;
@@ -148,10 +198,20 @@ export async function formAfter(db: Db, o: AfterOptions): Promise<AfterStats> {
     .where(
       and(
         eq(speedRuns.workflow, FORM_WORKFLOW),
-        eq(speedRuns.firstTouch, "sent"),
         isNull(speedRuns.emailDetail),
-        lte(speedRuns.firstTouchAt, new Date(o.now.getTime() - EMAIL_AFTER_MS)),
-        gte(speedRuns.firstTouchAt, recent),
+        or(
+          and(
+            eq(speedRuns.firstTouch, "sent"),
+            lte(speedRuns.firstTouchAt, new Date(o.now.getTime() - EMAIL_AFTER_MS)),
+            gte(speedRuns.firstTouchAt, recent),
+          ),
+          and(
+            inArray(speedRuns.firstTouch, [...NO_TEXT]),
+            or(isNull(speedRuns.firstTouchDetail), ne(speedRuns.firstTouchDetail, SEEDED)),
+            lte(speedRuns.leadAt, new Date(o.now.getTime() - FIRST_TEXT_AFTER_MS)),
+            gte(speedRuns.leadAt, recent),
+          ),
+        ),
       ),
     );
   if (o.send)
@@ -238,6 +298,7 @@ export async function noTextNotice(
   const run = row?.run;
   if (!run || run.workflow !== FORM_WORKFLOW || !run.consent || run.noticeAt) return "skipped";
   if (["sent", "booked", "no_consent", "would_send"].includes(run.firstTouch)) return "skipped";
+  if (emailOnlyByCountry(run)) return "skipped";
   if (!run.firstDueAt || o.now.getTime() - run.firstDueAt.getTime() < NOTICE_AFTER_MS)
     return "not_yet";
   if (!o.notifier) return "skipped";

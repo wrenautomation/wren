@@ -1,7 +1,8 @@
 /**
  * The lander's push on a Restate test environment (always replaying): `SmsForms/applied` reads
  * the one application from the site's export and steps it now. A due applicant's first text is
- * queued at once; a repeat push is a no-op; an id the site doesn't have yet waits for the pass.
+ * queued at once; a repeat push is a no-op; an id the site doesn't have yet waits for the pass;
+ * an applicant with no text (unticked, a country form texts skip) gets the email alone.
  * Synthetic applicants and a fake carrier; nothing leaves.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -21,6 +22,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 const provider = new FakeProvider();
 const n = notes();
+const mailed: { to: string; subject: string; text: string }[] = [];
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 
 /** The site: one old application (texts start after it) and the pushed ones. */
@@ -59,6 +61,9 @@ beforeAll(async () => {
         senderName: "William",
         heldNiches: [],
         notifier: n.notifier,
+        formMail: async (m: { to: string; subject: string; text: string }) => {
+          mailed.push(m);
+        },
         llm: null,
         site: { baseUrl: "https://wrenautomation.com", exportToken: "t", fetch },
         formCountries: ["US", "CA", "IN"],
@@ -81,6 +86,7 @@ beforeEach(async () => {
   });
   await numbers(pg.db, provider, ["+13125550001"]);
   apps.length = 0;
+  mailed.length = 0;
 });
 
 describe("SmsForms", () => {
@@ -102,10 +108,29 @@ describe("SmsForms", () => {
     expect(await pg.db.select().from(speedRuns)).toEqual([]);
   });
 
-  it("an unticked box is recorded and goes no further", async () => {
+  it("a number in a country form texts skip gets the email alone, two minutes after applying", async () => {
+    // A placeholder UK mobile (Ofcom's drama range): not on the list, so no text.
+    apps.push(application(6, { phone: "+44 7700 900123" }));
+    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsForms" });
+    expect(await forms.applied({ application: 6 })).toMatchObject({ kind: "no_phone" });
+    for (let i = 0; i < 100 && mailed.length === 0; i++)
+      await new Promise((r) => setTimeout(r, 100));
+    expect(mailed).toHaveLength(1);
+    expect(mailed[0]).toMatchObject({ to: "a6@x.test" });
+    expect(mailed[0]?.text).toContain("https://wrenautomation.com/book/recruiting?application=6");
+    expect(mailed[0]?.text).not.toContain("texted");
+    expect(await pg.db.select().from(smsMessages)).toEqual([]);
+    const [run] = await pg.db.select().from(speedRuns);
+    expect(run).toMatchObject({ firstTouch: "no_phone", emailDetail: "sent" });
+  });
+
+  it("an unticked box is recorded and gets the email, never a text", async () => {
     apps.push(application(5, { sms_consent: 0 }));
     const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsForms" });
     expect(await forms.applied({ application: 5 })).toEqual({ kind: "no_consent" });
+    for (let i = 0; i < 100 && mailed.length === 0; i++)
+      await new Promise((r) => setTimeout(r, 100));
+    expect(mailed.map((m) => m.to)).toEqual(["a5@x.test"]);
     expect(await pg.db.select().from(smsMessages)).toEqual([]);
   });
 });

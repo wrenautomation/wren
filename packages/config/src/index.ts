@@ -434,13 +434,13 @@ export const settingsSchema = z.object({
     .transform((s) => s.split(",").map((x) => Number(x.trim())))
     .pipe(z.array(z.number().int().min(1).max(7)).min(1)),
   /**
-   * Countries a site applicant's phone may be in to get texts (ISO codes). Cold texts stay US
-   * and Canada whatever this says; each other country needs a zone in channel-sms COUNTRY_ZONES
-   * and the Telnyx messaging profile's allow list.
+   * Countries a site applicant's phone may be in to get texts (ISO codes). Any other number gets
+   * the email only. Cold texts stay US and Canada whatever this says; each other country needs a
+   * zone in channel-sms COUNTRY_ZONES and the Telnyx messaging profile's allow list.
    */
   smsFormCountries: z
     .string()
-    .default("US,CA,IN")
+    .default("US,CA")
     .transform((s) =>
       s
         .split(",")

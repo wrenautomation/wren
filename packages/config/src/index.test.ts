@@ -9,6 +9,8 @@ describe("loadSettings", () => {
     expect(s.llm).toBe("fake");
     expect(s.robotsMode).toBe("warn");
     expect(s.fetchContact).toBeUndefined();
+    // Form texts: US and Canada only; any other number gets the email alone.
+    expect(s.smsFormCountries).toEqual(["US", "CA"]);
   });
   it("reads the enrichment settings", () => {
     const s = loadSettings({

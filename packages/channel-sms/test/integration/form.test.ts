@@ -162,9 +162,11 @@ describe("the first pass", () => {
     const n = notes();
     expect(await followUpForms(db(), opts(s, OPEN))).toMatchObject({ read: 0 });
     expect(s.asked).toEqual([0, 3]);
-    expect(await formAfter(db(), afterOpts(at(OPEN, 60), { notifier: n.notifier }))).toMatchObject({
-      noticed: 0,
-    });
+    const m = mail();
+    expect(
+      await formAfter(db(), afterOpts(at(OPEN, 60), { notifier: n.notifier, send: m.send })),
+    ).toMatchObject({ noticed: 0, emailed: 0 });
+    expect(m.sent).toEqual([]);
   });
 });
 
@@ -342,32 +344,58 @@ describe("an applicant abroad", () => {
     expect(provider.sent[0]?.to).toBe(INDIA_E164);
   });
 
-  it("a country left off the list is recorded, and noticed once, by name", async () => {
+  it("a number outside US and Canada gets the email only, two minutes on, and no notice", async () => {
     const s = site([application(1, { ts: at(OPEN, -60).toISOString() })]);
     await seeded(s);
     const app = application(2, { ts: OPEN.toISOString(), phone: INDIA });
-    const usOnly = { ...opts(s, at(OPEN, 2)), countries: ["US", "CA"] };
+    s.source.fetch = site([application(1, { ts: at(OPEN, -60).toISOString() }), app]).source.fetch;
+    // No `countries`: the default, US and Canada.
+    const { countries: _, ...usOnly } = opts(s, at(OPEN, 0.1));
     expect(await formStep(db(), app, usOnly)).toMatchObject({ kind: "no_phone" });
-    const n = notes();
+    expect(await contacts()).toEqual([]);
     const run = (await runFor(2))?.id as number;
-    expect(await noTextNotice(db(), run, afterOpts(at(OPEN, 5), { notifier: n.notifier }))).toBe(
-      "not_yet",
-    );
-    const late = at(OPEN, 2 + NOTICE_AFTER_MS / 60_000);
-    expect(await formAfter(db(), afterOpts(late, { notifier: n.notifier }))).toMatchObject({
-      noticed: 1,
-    });
-    expect(await formAfter(db(), afterOpts(at(late, 30), { notifier: n.notifier }))).toMatchObject({
-      noticed: 0,
-    });
-    expect(n.seen).toHaveLength(1);
-    expect(n.seen[0]).toMatchObject({ title: "No text to a site applicant", level: "action" });
-    expect(n.seen[0]?.body).toContain(
-      "Country: a IN number, and form texts go only to US, CA (WREN_SMS_FORM_COUNTRIES).",
-    );
-    // Never their phone or email.
-    expect(n.seen[0]?.body).not.toContain("98765");
-    expect(n.seen[0]?.body).not.toContain("a2@x.test");
+    const m = mail();
+    const n = notes();
+    const withMail = (now: Date) =>
+      afterOpts(now, { send: m.send, notifier: n.notifier, site: s.source });
+    expect(await formEmail(db(), run, withMail(at(OPEN, 1)))).toBe("not_yet");
+    expect(await formEmail(db(), run, withMail(at(OPEN, 2)))).toBe("sent");
+    expect(m.sent).toEqual([
+      {
+        to: "a2@x.test",
+        subject: "Your form on wrenautomation.com",
+        text: "Hi Dana,\n\nThanks for filling out the form. Here's my calendar, pick any time that works: https://wrenautomation.com/book/recruiting?application=2\n\nWilliam",
+      },
+    ]);
+    expect(await runFor(2)).toMatchObject({ emailDetail: "sent", emailAt: at(OPEN, 2) });
+    // Once; the seeded run is never mailed; and no notice: email only is the rule, not a miss.
+    const late = at(OPEN, 2 + NOTICE_AFTER_MS / 60_000 + 5);
+    expect(await formAfter(db(), withMail(late))).toMatchObject({ emailed: 0, noticed: 0 });
+    expect(await noTextNotice(db(), run, withMail(late))).toBe("skipped");
+    expect(m.sent).toHaveLength(1);
+    expect(provider.sent).toEqual([]);
+    expect(n.seen).toEqual([]);
+  });
+
+  it("the email in place of a text: the pass sends it, a booking stops it", async () => {
+    const old = application(1, { ts: at(OPEN, -60).toISOString() });
+    const s = site([old]);
+    await seeded(s);
+    const unticked = application(2, { ts: OPEN.toISOString(), sms_consent: 0 });
+    const abroad = application(3, { ts: OPEN.toISOString(), phone: INDIA });
+    const booker = application(4, { ts: OPEN.toISOString(), phone: INDIA });
+    s.source.fetch = site([old, unticked, abroad, booker]).source.fetch;
+    const usOnly = { ...opts(s, at(OPEN, 3)), countries: ["US", "CA"] };
+    expect(await followUpForms(db(), usOnly)).toMatchObject({ added: 3, noPhone: 2, texted: 0 });
+    const m = mail();
+    const bookings = new FakeBookings(["a4@x.test"]);
+    const now = at(OPEN, 3);
+    expect(
+      await formAfter(db(), afterOpts(now, { send: m.send, bookings, site: s.source })),
+    ).toMatchObject({ emailed: 2, booked: 1 });
+    expect(m.sent.map((x) => x.to).sort()).toEqual(["a2@x.test", "a3@x.test"]);
+    expect((await runFor(4))?.emailDetail).toMatch(/^booked a call on fake/);
+    expect((await runFor(1))?.emailDetail).toBeNull();
   });
 
   it("a carrier refusal says so in plain words", async () => {
