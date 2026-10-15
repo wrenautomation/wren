@@ -1,8 +1,8 @@
 /**
  * Approved comments on a schedule: each drafted, queued comment gets a slot on its account's lane
  * (`pacing.ts`), kept in `send_at`. Comments on others' posts share one lane per platform (the
- * settings' account); Reddit threads one per account, under its warm-up cap and before the thread
- * goes stale. What can't fit stays waiting for his click.
+ * settings' account); Reddit threads one per account, under its warm-up cap, within ten days of
+ * the thread (a drafted comment never goes stale once slotted). What can't fit stays waiting for his click.
  */
 
 import { warmupOf } from "@wren/channel-reddit";
@@ -10,7 +10,7 @@ import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { applyGates } from "./discovery/requirements.js";
-import { STALE_MS } from "./discovery/threads.js";
+import { SLOT_WITHIN_MS } from "./discovery/threads.js";
 import { type Pace, sendSlots, ZONE } from "./pacing.js";
 import type { CommentsSettings } from "./reach-posts.js";
 import {
@@ -168,7 +168,7 @@ export async function scheduleThreads(
         taken: lane.map((r) => new Date(r.at)),
         pace: { ...THREAD_PACE, perDay: w.caps.comments },
         rand: o.rand,
-        latest: (t) => t.postedAt.getTime() + STALE_MS,
+        latest: (t) => t.postedAt.getTime() + SLOT_WITHIN_MS,
       },
     );
     for (const { item, at } of slots)
