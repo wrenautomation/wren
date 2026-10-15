@@ -50,3 +50,10 @@ export const marketplace: Module = {
     },
   ],
 };
+
+/** The same shop in Wren's own workspace: every part, template and workflow, none installed here. */
+export const wrenMarketplace: Module = {
+  ...marketplace,
+  blurb: "Everything Wren can run for a client, and what each part needs.",
+  requires: { audience: "team" },
+};

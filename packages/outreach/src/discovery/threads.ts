@@ -53,7 +53,7 @@ export const MAX_COMMENTS = 40;
 /** A queued thread not answered by then has gone stale. */
 export const STALE_MS = 36 * HOUR;
 /** How long after a thread is posted a drafted comment may still take a send slot: the whole drafted queue goes out under the cap. */
-export const SLOT_WITHIN_MS = 10 * 24 * HOUR;
+export const SLOT_WITHIN_MS = 14 * 24 * HOUR;
 /** Ranked at or above this fit goes to the queue. */
 export const QUEUE_FIT = 6;
 /** With no pool account yet, the queue still shows this many a day to read and learn from. */
