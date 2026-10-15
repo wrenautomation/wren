@@ -19,7 +19,14 @@ import { and, desc, eq, like, sql } from "drizzle-orm";
 import { promosOf, videoDraftOf } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
 import { videoTurns } from "./video-ask.js";
-import { renderTimes, videoChecks, videoName, videoState, videoSteps } from "./video-edit.js";
+import {
+  previewCheck,
+  renderTimes,
+  videoChecks,
+  videoName,
+  videoState,
+  videoSteps,
+} from "./video-edit.js";
 
 /** The idea's ref: one draft per video, per Short and per vertical cut, ever. */
 export const videoRef = (id: number, short?: number | "vertical") =>
@@ -878,6 +885,8 @@ export const videoRecord = (signer?: VideoSigner) => {
           turns: await videoTurns(db, e.id),
           steps,
           checks: videoChecks(e, { chaptersShown, ...renderTimes(steps) }),
+          // The line beside the preview: whether it shows the last change.
+          fresh: previewCheck(e, renderTimes(steps)),
           shorts: await Promise.all(
             e.shorts.map(async (s, i) => ({
               title: s.title,

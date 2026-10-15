@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   editPrompt,
   passOf,
+  previewCheck,
   RENDER_STALE_MS,
   renderRefusal,
   renderTimes,
@@ -169,5 +170,19 @@ describe("videoChecks", () => {
     expect(says(videoChecks(edit({ files: {}, state: "edited" }), o))).toContain(
       "warn: Not rendered yet.",
     );
+  });
+
+  it("tells the preview when it is older than the last change", () => {
+    const e = edit({ files: { long: "long.mp4" }, state: "rendered" });
+    const older = previewCheck(e, {
+      lastChange: "2026-10-14T12:00:00Z",
+      lastRender: "2026-10-14T11:00:00Z",
+    });
+    expect(older?.say).toBe("Changed since the last render. Render again to see it.");
+    const latest = previewCheck(e, {
+      lastChange: "2026-10-14T10:00:00Z",
+      lastRender: "2026-10-14T11:00:00Z",
+    });
+    expect(latest?.say).toBe("The preview is the latest render.");
   });
 });

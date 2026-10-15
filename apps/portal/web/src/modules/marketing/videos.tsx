@@ -11,15 +11,20 @@
  */
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
 import {
+  ACTIONS,
   Button,
   cx,
   DictateField,
   DraftTurns,
   Empty,
   Input,
+  SaveConflict,
+  SaveStatus,
   Tag,
   Textarea,
   tipProps,
+  useKeptForm,
+  useSaved,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
@@ -88,6 +93,8 @@ type Video = {
   steps?: Step[];
   /** What to look at before Approve (content `videoChecks`). */
   checks?: Check[];
+  /** Beside the preview: whether it shows the last change. */
+  fresh?: Check | null;
 };
 type Step = {
   id: string;
@@ -130,6 +137,15 @@ const seconds = (t: string) => {
 };
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
+/**
+ * One press of an edit action: a second press while it's out gets the first's answer, and the
+ * call carries a `requestId` that stays the same on a retry.
+ */
+const once = (act: RecordAct, action: string, input: Record<string, unknown> = {}) =>
+  ACTIONS.run(`video:${action}:${JSON.stringify(input)}`, (requestId) =>
+    act(action, { ...input, requestId }),
+  );
+
 const Player = ({ src }: { src: string | null }) =>
   src ? (
     // biome-ignore lint/a11y/useMediaCaption: captions are burned in or a YouTube CC track.
@@ -139,10 +155,12 @@ const Player = ({ src }: { src: string | null }) =>
   );
 
 /**
- * One field of the edit, saved on blur (and Enter, one line). `patch` turns the text into the
- * change, or throws why it can't; unchanged text saves nothing.
+ * One field of the edit, saved through the engine on blur, Enter (one line), a hidden tab or a
+ * closed page; what he typed waits on the device until the server holds it. `patch` turns the
+ * text into the change, or throws why it can't; unchanged text saves nothing.
  */
 function Field({
+  video,
   label,
   value,
   patch,
@@ -151,6 +169,8 @@ function Field({
   hint,
   max,
 }: {
+  /** The video's id: the field's journal is per video. */
+  video: string;
   label: string;
   value: string;
   patch: (text: string) => Record<string, unknown>;
@@ -159,34 +179,24 @@ function Field({
   hint?: string;
   max?: number;
 }) {
-  const [text, setText] = useState(value);
-  const [said, setSaid] = useState<string | null>(null);
-  const [bad, setBad] = useState(false);
-  const dirty = text !== value;
-  const live = useRef(dirty);
-  live.current = dirty;
-  // A new read (Claude, an undo) shows unless he is mid-edit.
-  useEffect(() => {
-    if (!live.current) setText(value);
-  }, [value]);
-  const save = async () => {
-    if (text.trim() === value.trim()) return;
-    setSaid("Saving…");
-    setBad(false);
-    try {
-      await act(SET, { patch: patch(text.trim()) });
-      setSaid("Saved");
-    } catch (err) {
-      setSaid(errorOf(err));
-      setBad(true);
-    }
-  };
+  const s = useSaved<string>({
+    key: `video:${video}:${label}`,
+    server: value,
+    same: (a, b) => a.trim() === b.trim(),
+    // One save when he leaves the field, never one per pause: each save renders a new preview.
+    delay: null,
+    save: async (text, { request }) => {
+      const words = text.trim();
+      await act(SET, { patch: patch(words), requestId: request });
+      return { value: words };
+    },
+  });
   const id = `video-${label.toLowerCase().replaceAll(" ", "-")}`;
   const common = {
     id,
-    value: text,
+    value: s.value,
     maxLength: max,
-    onBlur: () => void save(),
+    onBlur: () => void s.flush(),
     className: "text-[14px]",
   };
   return (
@@ -195,37 +205,25 @@ function Field({
         <label htmlFor={id} className="text-[13px] font-medium text-(--ui-ink-2)">
           {label}
         </label>
-        <span
-          aria-live="polite"
-          className={bad ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
-        >
-          {said ?? (dirty ? "Edited" : "")}
-        </span>
+        <SaveStatus state={s} onRetry={s.retry} idle={s.dirty ? "Edited" : null} />
       </div>
       {lines > 1 ? (
-        <Textarea
-          {...common}
-          rows={lines}
-          onChange={(e) => {
-            setText(e.target.value);
-            setSaid(null);
-          }}
-        />
+        <Textarea {...common} rows={lines} onChange={(e) => s.set(e.target.value)} />
       ) : (
         <Input
           {...common}
-          onChange={(e) => {
-            setText(e.target.value);
-            setSaid(null);
-          }}
+          onChange={(e) => s.set(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.nativeEvent.isComposing) {
               e.preventDefault();
-              void save();
+              void s.flush();
             }
           }}
         />
       )}
+      {s.conflict ? (
+        <SaveConflict conflict={s.conflict} onKeepMine={s.keepMine} onTakeTheirs={s.takeTheirs} />
+      ) : null}
       {hint ? <span className="text-[12px] text-(--ui-ink-3)">{hint}</span> : null}
     </div>
   );
@@ -251,43 +249,45 @@ const FORMATS: [Format, string, string][] = [
 ];
 
 /** Which shapes Render makes; at least one. Saved on each tick. */
-function Formats({ formats, act }: { formats: Format[]; act: RecordAct }) {
-  const [said, setSaid] = useState<string | null>(null);
-  const [bad, setBad] = useState(false);
-  const flip = async (f: Format, on: boolean) => {
-    const next = FORMATS.map(([x]) => x).filter((x) => (x === f ? on : formats.includes(x)));
-    if (!next.length) {
-      setSaid("Keep at least one.");
-      setBad(true);
-      return;
-    }
-    setSaid("Saving…");
-    setBad(false);
-    try {
-      await act(SET, { patch: { formats: next } });
-      setSaid("Saved. Render again to make it.");
-    } catch (err) {
-      setSaid(errorOf(err));
-      setBad(true);
-    }
+/** One choice of the edit saved through the engine: on a quick run of clicks, one save. */
+function useChoiceSaved<T>(key: string, server: T, act: RecordAct, patch: (v: T) => object) {
+  return useSaved<T>({
+    key,
+    server,
+    delay: 600,
+    save: async (value, { request }) => {
+      await act(SET, { patch: patch(value), requestId: request });
+      return { value };
+    },
+  });
+}
+
+function Formats({ video, formats, act }: { video: string; formats: Format[]; act: RecordAct }) {
+  const s = useChoiceSaved(`video:${video}:formats`, formats, act, (formats) => ({ formats }));
+  const [none, setNone] = useState(false);
+  const flip = (f: Format, on: boolean) => {
+    const next = FORMATS.map(([x]) => x).filter((x) => (x === f ? on : s.value.includes(x)));
+    setNone(!next.length);
+    if (next.length) s.set(next);
   };
   return (
     <fieldset className="grid min-w-0 gap-2">
       <div className="flex items-baseline justify-between gap-3">
         <legend className="text-[13px] font-medium text-(--ui-ink-2)">Formats</legend>
-        <span
-          aria-live="polite"
-          className={bad ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
-        >
-          {said ?? ""}
-        </span>
+        {none ? (
+          <span aria-live="polite" className="text-[12px] text-(--ui-bad)">
+            Keep at least one.
+          </span>
+        ) : (
+          <SaveStatus state={s} onRetry={s.retry} />
+        )}
       </div>
       {FORMATS.map(([f, label, hint]) => (
         <label key={f} className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            checked={formats.includes(f)}
-            onChange={(e) => void flip(f, e.target.checked)}
+            checked={s.value.includes(f)}
+            onChange={(e) => flip(f, e.target.checked)}
             className="mt-1 size-4 accent-(--ui-active)"
           />
           <span className="grid gap-0.5">
@@ -323,31 +323,24 @@ const shown = (c: Captions, f: "long" | "short") =>
     ? c.long === "screen"
     : (c.short ?? (c.on === false ? "track" : "screen")) === "screen";
 
-/** The caption style, where they show, and the stressed words behind him. Saved on each change. */
-function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct }) {
-  const [said, setSaid] = useState<string | null>(null);
-  const [bad, setBad] = useState(false);
-  const save = async (next: Captions) => {
-    setSaid("Saving…");
-    setBad(false);
-    try {
-      await act(SET, { patch: { captions: next } });
-      setSaid("Saved. Render again to see it.");
-    } catch (err) {
-      setSaid(errorOf(err));
-      setBad(true);
-    }
-  };
+/** The caption style, where they show, and the stressed words behind him. Saved as he picks. */
+function CaptionStyle({
+  video,
+  captions: server,
+  act,
+}: {
+  video: string;
+  captions: Captions;
+  act: RecordAct;
+}) {
+  const s = useChoiceSaved(`video:${video}:captions`, server, act, (captions) => ({ captions }));
+  const captions = s.value;
+  const save = (next: Captions) => s.set(next);
   return (
     <fieldset className="grid min-w-0 gap-2">
       <div className="flex items-baseline justify-between gap-3">
         <legend className="text-[13px] font-medium text-(--ui-ink-2)">Captions</legend>
-        <span
-          aria-live="polite"
-          className={bad ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
-        >
-          {said ?? ""}
-        </span>
+        <SaveStatus state={s} onRetry={s.retry} />
       </div>
       {STYLES.map(([style, label, hint]) => (
         <label key={style} className="flex cursor-pointer items-start gap-3">
@@ -355,7 +348,7 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
             type="radio"
             name="caption-style"
             checked={captions.style === style}
-            onChange={() => void save({ ...captions, style })}
+            onChange={() => save({ ...captions, style })}
             className="mt-1 size-4 accent-(--ui-active)"
           />
           <span className="grid gap-0.5">
@@ -369,7 +362,7 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
           <input
             type="checkbox"
             checked={shown(captions, f)}
-            onChange={(e) => void save({ ...captions, [f]: e.target.checked ? "screen" : "track" })}
+            onChange={(e) => save({ ...captions, [f]: e.target.checked ? "screen" : "track" })}
             className="mt-1 size-4 accent-(--ui-active)"
           />
           <span className="grid gap-0.5">
@@ -382,7 +375,7 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
         <input
           type="checkbox"
           checked={!!captions.behind}
-          onChange={(e) => void save({ ...captions, behind: e.target.checked })}
+          onChange={(e) => save({ ...captions, behind: e.target.checked })}
           className="mt-1 size-4 accent-(--ui-active)"
         />
         <span className="grid gap-0.5">
@@ -396,14 +389,22 @@ function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct })
   );
 }
 
-function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
+function Fields({ id, edit, act }: { id: string; edit: Edit; act: RecordAct }) {
   const thumb = edit.thumbnail;
   return (
     <div className="grid gap-4">
-      <Formats formats={edit.formats} act={act} />
-      <CaptionStyle captions={edit.captions ?? { style: "word" }} act={act} />
-      <Field label="Title" value={edit.title} max={100} act={act} patch={(title) => ({ title })} />
+      <Formats video={id} formats={edit.formats} act={act} />
+      <CaptionStyle video={id} captions={edit.captions ?? { style: "word" }} act={act} />
       <Field
+        video={id}
+        label="Title"
+        value={edit.title}
+        max={100}
+        act={act}
+        patch={(title) => ({ title })}
+      />
+      <Field
+        video={id}
         label="Description"
         value={edit.description}
         max={5000}
@@ -412,6 +413,7 @@ function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
         patch={(description) => ({ description })}
       />
       <Field
+        video={id}
         label="Tags"
         value={edit.tags.join(", ")}
         hint="Comma between tags."
@@ -424,6 +426,7 @@ function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
         })}
       />
       <Field
+        video={id}
         label="Chapters"
         value={edit.chapters.map((c) => `${clock(c.at)} ${c.title}`).join("\n")}
         lines={4}
@@ -433,6 +436,7 @@ function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
       />
       {edit.shorts.map((s, i) => (
         <Field
+          video={id}
           key={`${s.from}-${s.to}`}
           label={`Short ${i + 1} title`}
           value={s.title}
@@ -445,6 +449,7 @@ function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
         />
       ))}
       <Field
+        video={id}
         label="Thumbnail text"
         value={thumb?.text ?? ""}
         max={60}
@@ -475,7 +480,7 @@ function CutLine({ c, act }: { c: CutRow; act: RecordAct }) {
     setBusy(state);
     setError(null);
     try {
-      await act(CUT, { from: c.from, to: c.to, state });
+      await once(act, CUT, { from: c.from, to: c.to, state });
     } catch (err) {
       setError(errorOf(err));
     } finally {
@@ -592,7 +597,7 @@ function Transcript({
     setBusy(true);
     setError(null);
     try {
-      await act(CUT, { from: first.s, to: last.e, state: "cut" });
+      await once(act, CUT, { from: first.s, to: last.e, state: "cut" });
       document.getSelection()?.removeAllRanges();
       setSpan(null);
     } catch (err) {
@@ -611,7 +616,7 @@ function Transcript({
     try {
       const i = span[0];
       const next = stressed ? stress.filter((x) => x !== i) : [...stress, i];
-      await act(SET, { patch: { stress: next } });
+      await once(act, SET, { patch: { stress: next } });
       document.getSelection()?.removeAllRanges();
       setSpan(null);
     } catch (err) {
@@ -627,7 +632,7 @@ function Transcript({
     setBusy(true);
     setError(null);
     try {
-      await act(WORDS, { at: (first.s + first.e) / 2, text: fix.trim() });
+      await once(act, WORDS, { at: (first.s + first.e) / 2, text: fix.trim() });
       setFix("");
       document.getSelection()?.removeAllRanges();
       setSpan(null);
@@ -715,7 +720,7 @@ function FixEvery({ act }: { act: RecordAct }) {
     setSaid(null);
     setBad(false);
     try {
-      const r = (await act(WORDS, { wrong: wrong.trim(), right: right.trim() })) as
+      const r = (await once(act, WORDS, { wrong: wrong.trim(), right: right.trim() })) as
         | { n?: number }
         | undefined;
       setSaid(r?.n ? `Fixed in ${r.n} ${r.n === 1 ? "place" : "places"}.` : "Fixed.");
@@ -838,12 +843,14 @@ function Pass({ p }: { p: Step }) {
  * note it acts on. A pass that changes something renders again on the Mac.
  */
 function Agent({
+  video,
   steps,
   checks,
   edit,
   act,
   narrow = false,
 }: {
+  video: string;
   steps: Step[];
   checks: Check[];
   edit: boolean;
@@ -851,7 +858,10 @@ function Agent({
   /** A phone: Ask for changes sits right under the checks, the passes after it. */
   narrow?: boolean;
 }) {
-  const [note, setNote] = useState("");
+  // What he types for the agent stays on the device until it's sent.
+  const kept = useKeptForm(`video:${video}:agent`);
+  const note = kept.values.note ?? "";
+  const setNote = (t: string) => kept.set("note", t);
   const box = useRef<HTMLTextAreaElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -861,8 +871,8 @@ function Agent({
     setBusy(true);
     setError(null);
     try {
-      await act(AGENT, { note: note.trim() });
-      setNote("");
+      await once(act, AGENT, { note: note.trim() });
+      kept.clear();
     } catch (err) {
       setError(errorOf(err));
     } finally {
@@ -948,8 +958,10 @@ const Steps = ({ steps }: { steps: Step[] }) => (
 );
 
 /** Ask Claude on the video: his words go with the edit; Wren writes what Claude answers. */
-function Ask({ turns, act }: { turns: Turn[]; act: RecordAct }) {
-  const [message, setMessage] = useState("");
+function Ask({ video, turns, act }: { video: string; turns: Turn[]; act: RecordAct }) {
+  const kept = useKeptForm(`video:${video}:ask`);
+  const message = kept.values.message ?? "";
+  const setMessage = (t: string) => kept.set("message", t);
   const askBox = useRef<HTMLInputElement>(null);
   const [asking, setAsking] = useState(false);
   const [undoing, setUndoing] = useState(false);
@@ -960,8 +972,8 @@ function Ask({ turns, act }: { turns: Turn[]; act: RecordAct }) {
     (what === "ask" ? setAsking : setUndoing)(true);
     setError(null);
     try {
-      await act(what === "ask" ? ASK : UNDO, what === "ask" ? { message: said } : {});
-      if (what === "ask") setMessage("");
+      await once(act, what === "ask" ? ASK : UNDO, what === "ask" ? { message: said } : {});
+      if (what === "ask") kept.clear();
     } catch (err) {
       setError(errorOf(err));
     } finally {
@@ -1191,11 +1203,21 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
   const steps = v.steps ?? [];
   const narrow = isNarrow();
   const sections: [string, ReactNode][] = [
-    ["Preview", <Player key="p" src={v.preview} />],
+    [
+      "Preview",
+      <div key="p" className="grid gap-2">
+        <Player src={v.preview} />
+        {v.fresh && v.preview ? <Checks checks={[v.fresh]} /> : null}
+      </div>,
+    ],
+    // Lane D's finishing view (timeline, text on the video, captions placement, cover frame,
+    // crops) goes here, after the preview: designs/2026-10-14-saving-and-ui-audit.md, "What lane
+    // D needs from the render path".
     [
       narrow ? "Review" : "Editing agent",
       <Agent
         key="ag"
+        video={String(row.id)}
         steps={steps}
         checks={v.checks ?? []}
         edit={edit}
@@ -1230,7 +1252,10 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
     ]);
   editing.push(
     edit
-      ? ["Title, description and the rest", <Fields key="f" edit={v.edit} act={act} />]
+      ? [
+          "Title, description and the rest",
+          <Fields key="f" id={String(row.id)} edit={v.edit} act={act} />,
+        ]
       : [
           "Title and description",
           <div key="f" className="grid gap-2 text-[14px]">
@@ -1244,7 +1269,8 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act, row 
     "Transcript",
     <Transcript key="t" words={v.words} act={act} edit={edit} stress={v.edit.stress ?? []} />,
   ]);
-  if (edit) editing.push(["Ask Claude", <Ask key="a" turns={v.turns} act={act} />]);
+  if (edit)
+    editing.push(["Ask Claude", <Ask key="a" video={String(row.id)} turns={v.turns} act={act} />]);
   if (!narrow) sections.push(...editing);
   if (v.shorts.length) sections.push(["Shorts", <Shorts key="s" shorts={v.shorts} />]);
   if (v.promos) sections.push(["Promos", <Promos key="pr" promos={v.promos} />]);

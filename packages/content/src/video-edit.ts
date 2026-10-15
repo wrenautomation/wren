@@ -365,6 +365,17 @@ export function videoChecks(
   return out;
 }
 
+/**
+ * What the preview is, beside it: the latest render, older than the last change, rendering, or
+ * none yet. Null when the video is past rendering (approved, uploaded).
+ */
+export function previewCheck(
+  e: Pick<VideoEdit, "render" | "files" | "state">,
+  o: { lastChange: string | null; lastRender: string | null; now?: number },
+): VideoCheck | null {
+  return renderCheck(e.render, e.files, e.state, o, o.now ?? Date.now())[0] ?? null;
+}
+
 function renderCheck(
   render: RenderState | null,
   files: Record<string, string>,
