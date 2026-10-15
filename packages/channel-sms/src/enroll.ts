@@ -18,12 +18,12 @@ import { atomic, type Db } from "@wren/db";
 import { and, asc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
 import { ASKED, type SmsPolicy } from "./policy.js";
-import { pickNumber } from "./pool.js";
+import { pickNumber, pickSender } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import { type LineType, type SmsContact, smsContacts, smsMessages } from "./schema.js";
 import { fieldsFor, liveTexts } from "./template-store.js";
-import { render, type SmsSequence, stepKey, textSeed } from "./templates.js";
+import { render, type SmsSequence, stepTemplate, textSeed } from "./templates.js";
 
 /** Line types that take a text. VoIP business lines usually do; landlines and switchboards never. */
 export const TEXTABLE: ReadonlySet<LineType> = new Set(["mobile", "voip"]);
@@ -93,7 +93,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     noNumber: false,
     lookupErrors: [],
   };
-  const keys = opts.sequence.steps.map((s) => stepKey(opts.sequence.name, s.step));
+  const keys = opts.sequence.steps.map((s) => stepTemplate(opts.sequence, s.step));
   const bodies = await liveTexts(db, keys);
   const empty = keys.filter((k) => !bodies.has(k));
   if (empty.length > 0)
@@ -145,8 +145,15 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       continue;
     }
     // A number first: a lookup for a phone no pool number can text is money for nothing.
+    // Cold texts stay in the US and Canada; someone who asked may be anywhere the form allows.
     const country = countryOf(c.e164);
-    const number = c.numberId ? { id: c.numberId } : country ? await pickNumber(db, country) : null;
+    const number = c.numberId
+      ? { id: c.numberId }
+      : ASKED.has(c.sourceKind)
+        ? await pickSender(db, c.e164)
+        : country
+          ? await pickNumber(db, country)
+          : null;
     if (!number) {
       stats.noNumber = true;
       continue;
@@ -185,8 +192,8 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       textSeed(c.id),
     );
     try {
-      await atomic(db, async (tx) => {
-        await tx
+      const took = await atomic(db, async (tx) => {
+        const won = await tx
           .update(smsContacts)
           .set({
             state: "enrolled",
@@ -195,7 +202,10 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
             sequence: opts.sequence.name,
             enrolledAt: opts.now,
           })
-          .where(and(eq(smsContacts.id, c.id), eq(smsContacts.state, "new")));
+          .where(and(eq(smsContacts.id, c.id), eq(smsContacts.state, "new")))
+          .returning({ id: smsContacts.id });
+        // Another pass (the push and the safety net) enrolled it first: one opener, never two.
+        if (won.length === 0) return false;
         await tx.insert(smsMessages).values({
           contactId: c.id,
           direction: "out",
@@ -211,8 +221,9 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
           dueAt: opts.now,
           runId: opts.runId ?? null,
         });
+        return true;
       });
-      stats.enrolled += 1;
+      if (took) stats.enrolled += 1;
     } catch (err) {
       // The same phone is already running under another company (the partial unique index).
       if (

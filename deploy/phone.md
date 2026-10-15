@@ -39,6 +39,9 @@ from `apps/phone/`:
     printf %s "$CALCOM_WEBHOOK_SECRET" | npx wrangler secret put CALCOM_WEBHOOK_SECRET
     # Clients' cal.com secrets, one JSON object {"<client>": "<secret>"}. A client not in it gets 404.
     printf %s "$CALCOM_WEBHOOK_SECRETS" | npx wrangler secret put CALCOM_WEBHOOK_SECRETS
+    # The lander's EXPORT_TOKEN (wren's WREN_SITE_EXPORT_TOKEN): it signs each application the
+    # lander pushes to /webhooks/site. Until set, those get 503 and the 30-minute pass finds them.
+    printf %s "$WREN_SITE_EXPORT_TOKEN" | npx wrangler secret put SITE_EXPORT_TOKEN
     npx wrangler deploy
 
 The worker (Lambda) must already serve `SmsDesk` and `SmsEvents`, and migration

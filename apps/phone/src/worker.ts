@@ -25,6 +25,10 @@
  * - `/webhooks/meta`: Meta's webhooks (Page feed and messages, Instagram). GET answers the
  *   handshake against `META_WEBHOOK_TOKEN`; POST is checked against the app secret, then
  *   `SocialPush/meta/send` keyed by the body's digest (designs/2026-10-12-push-everywhere.md).
+ * - `/webhooks/site`: the lander's push of one site application (`{application, at}`), hex HMAC
+ *   of the body in `x-wren-signature-256` against `SITE_EXPORT_TOKEN` (the lander's
+ *   `EXPORT_TOKEN`), `at` within 5 minutes, then `SmsForms/applied/send` keyed by the
+ *   application: its first text runs now, not on the 30-minute pass. Restate down = 502.
  * - `/webhooks/gbp`: Business Profile's review notices through Pub/Sub, `?token=` checked against
  *   `GBP_PUSH_TOKEN`, then `SocialPush/gbp/send` keyed by Pub/Sub's message id.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
@@ -417,6 +421,41 @@ async function gbpWebhook(req: Request, env: Env): Promise<Response> {
   if (typeof id !== "string" || id === "" || !note || typeof note !== "object")
     return json({ error: "not a Pub/Sub push" }, 400);
   return toRestate(env, "SocialPush/gbp/send", `gbp-${id}`, JSON.stringify(note));
+}
+
+/** A site push older (or newer) than this is refused: a replayed body goes nowhere. */
+export const SITE_FRESH_MS = 5 * 60 * 1000;
+
+/**
+ * The lander's push: one application, signed with the export token it shares with wren. Only
+ * the id crosses: the service reads the application from the site's export itself.
+ */
+async function siteWebhook(req: Request, env: Env): Promise<Response> {
+  if (!env.SITE_EXPORT_TOKEN) return json({ error: "webhooks off: no SITE_EXPORT_TOKEN" }, 503);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  if (!(await hmacSigned(env.SITE_EXPORT_TOKEN, raw, req.headers.get(LINK_SIGNATURE)))) {
+    return json({ error: "bad signature" }, 401);
+  }
+  let body: { application?: unknown; at?: unknown };
+  try {
+    body = JSON.parse(raw) as typeof body;
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
+  const id = body.application;
+  if (typeof id !== "number" || !Number.isInteger(id) || id <= 0) {
+    return json({ error: "no application id" }, 400);
+  }
+  if (typeof body.at !== "number" || Math.abs(Date.now() - body.at) > SITE_FRESH_MS) {
+    return json({ error: "stale" }, 401);
+  }
+  return toRestate(
+    env,
+    "SmsForms/applied/send",
+    `site-application-${id}`,
+    JSON.stringify({ application: id }),
+  );
 }
 
 /** One send into Restate; 502 when it fails, so the vendor retries. */
@@ -852,6 +891,9 @@ export default {
     }
     if (pathname === "/webhooks/gmail") {
       return req.method === "POST" ? gmailWebhook(req, env) : json({ error: "POST only" }, 405);
+    }
+    if (pathname === "/webhooks/site") {
+      return req.method === "POST" ? siteWebhook(req, env) : json({ error: "POST only" }, 405);
     }
     if (pathname === "/webhooks/meta") return metaWebhook(req, env);
     if (pathname === "/webhooks/gbp") {

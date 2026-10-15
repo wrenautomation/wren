@@ -24,7 +24,7 @@ import { endContact } from "./deliver.js";
 import { ASKED } from "./policy.js";
 import { smsCalls, smsContacts, smsMessages, speedRuns } from "./schema.js";
 import { fieldsFor, liveTexts, textRef } from "./template-store.js";
-import { render, type SmsSequence, stepKey, textSeed } from "./templates.js";
+import { render, type SmsSequence, stepTemplate, textSeed } from "./templates.js";
 
 /** One text contact as a lead on the spine. */
 export const textLead = (contactId: number): SpineEvent => ({
@@ -42,7 +42,7 @@ export function textCadence(seq: SmsSequence): Workflow {
     for: "wren",
     steps: seq.steps.map((s) => ({
       touch: TOUCH,
-      template: textRef(stepKey(seq.name, s.step)),
+      template: textRef(stepTemplate(seq, s.step)),
       with: { step: s.step },
       ...(s.afterDays > 0 ? { after: `${s.afterDays} day${s.afterDays === 1 ? "" : "s"}` } : {}),
     })),
@@ -106,7 +106,7 @@ export async function touch(
     }
   }
   const seq = c.sequence ? opts.sequences.get(c.sequence) : undefined;
-  const key = seq?.steps.some((s) => s.step === step) ? stepKey(seq.name, step) : null;
+  const key = seq?.steps.some((s) => s.step === step) ? stepTemplate(seq, step) : null;
   const words = key ? (await liveTexts(db, [key])).get(key) : undefined;
   if (!key || words === undefined) {
     const why = key ? `template ${key} is empty` : `${c.sequence} has no step ${step}`;

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { countryOf, formatPhone, isTollFree, toPhoneE164, toUsE164 } from "./phone.js";
+import {
+  COUNTRY_ZONES,
+  countryOf,
+  formatPhone,
+  isTollFree,
+  phoneCountry,
+  toPhoneE164,
+  toUsE164,
+  zoneOfPhone,
+} from "./phone.js";
 
 describe("toUsE164", () => {
   it("reads the ways a page writes a US number", () => {
@@ -43,5 +52,27 @@ describe("isTollFree / formatPhone", () => {
   });
   it("formats for reading", () => {
     expect(formatPhone("+12125550187")).toBe("(212) 555-0187");
+  });
+});
+
+describe("other countries (site applicants)", () => {
+  // A placeholder Indian mobile, the kind every example uses.
+  const india = "+91 98765 43210";
+  it("takes a +91 number only when India is named", () => {
+    expect(toPhoneE164(india)).toBeNull();
+    expect(toPhoneE164(india, ["US", "CA", "IN"])).toBe("+919876543210");
+    expect(toPhoneE164("(212) 555-0187", ["US", "CA", "IN"])).toBe("+12125550187");
+  });
+  it("names any valid number's country, and its clock when it has one", () => {
+    expect(phoneCountry(india)).toBe("IN");
+    expect(phoneCountry("+12125550187")).toBe("US");
+    expect(phoneCountry("+91 123")).toBeNull();
+    expect(zoneOfPhone("+919876543210")).toBe("Asia/Kolkata");
+    expect(zoneOfPhone("+12125550187")).toBeNull();
+    expect(countryOf("+919876543210")).toBeNull();
+  });
+  it("every zone listed is one the runtime knows", () => {
+    for (const zone of Object.values(COUNTRY_ZONES))
+      expect(() => new Intl.DateTimeFormat("en-US", { timeZone: zone })).not.toThrow();
   });
 });

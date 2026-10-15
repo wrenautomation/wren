@@ -265,7 +265,9 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
 
   cmd
     .command("stats")
-    .description("Delivery, reply, interested and opt-out rates with intervals, and spend")
+    .description(
+      "Delivery, reply, interested and opt-out rates with intervals, spend, and minutes to a lead's first text and email",
+    )
     .option("--days <n>", "window", "30")
     .option("--niche <niche>")
     .option("--json", "raw")
@@ -279,6 +281,11 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
       console.log(`interested  ${s.interested.text}`);
       console.log(`opted out   ${s.optOut.text}`);
       if (s.costPerReplyUsd !== null) console.log(`per reply   $${s.costPerReplyUsd.toFixed(2)}`);
+      const sp = s.speed;
+      if (sp.leads > 0)
+        console.log(
+          `speed       ${sp.texted}/${sp.leads} leads texted${sp.textMinutes !== null ? `, median ${sp.textMinutes} min to the text` : ""}; ${sp.emailed} emailed${sp.emailMinutes !== null ? `, median ${sp.emailMinutes} min to the email` : ""}`,
+        );
       for (const r of s.steps)
         console.log(
           `  ${r.sequence ?? "manual"} #${r.step ?? "-"}: ${r.sent} sent, ${r.delivered} delivered, ${r.failed} failed`,

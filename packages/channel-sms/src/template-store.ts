@@ -63,10 +63,11 @@ export function slotsOf(sequences: Iterable<SmsSequence>): TemplateSlot[] {
   ];
 }
 
-/** What a sequence text fills in for this contact. */
+/** What a sequence text fills in for this contact: its own booking link over the sender's. */
 export async function fieldsFor(
   db: Queryable,
-  contact: Pick<SmsContact, "companyId" | "personId" | "name">,
+  contact: Pick<SmsContact, "companyId" | "personId" | "name"> &
+    Partial<Pick<SmsContact, "bookingLink">>,
   sender: string,
   bookingLink: string | null = null,
 ): Promise<RenderFields> {
@@ -84,7 +85,7 @@ export async function fieldsFor(
     company: company?.name ?? null,
     sender,
     time: null,
-    booking_link: bookingLink,
+    booking_link: contact.bookingLink ?? bookingLink,
   };
 }
 

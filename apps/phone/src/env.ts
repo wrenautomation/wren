@@ -25,6 +25,8 @@ export interface Env {
   INSTAGRAM_APP_SECRET?: string;
   /** The token in Business Profile's Pub/Sub push URL (`?token=`). Unset = refused. */
   GBP_PUSH_TOKEN?: string;
+  /** The lander's export token (its `EXPORT_TOKEN`, wren's `WREN_SITE_EXPORT_TOKEN`): it signs each application push. Unset = refused. */
+  SITE_EXPORT_TOKEN?: string;
   /** Restate Cloud ingress, e.g. https://<env>.env.<region>.restate.cloud:8080 */
   RESTATE_INGRESS_URL: string;
   RESTATE_AUTH_TOKEN?: string;

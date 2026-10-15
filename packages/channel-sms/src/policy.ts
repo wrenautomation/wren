@@ -117,6 +117,28 @@ export function inWindow(zone: string | null, at: Date, policy: SmsPolicy): bool
   return UNKNOWN_ZONE_CHECKS.every((z) => openIn(z, at, policy));
 }
 
+const MINUTE_MS = 60_000;
+const COARSE_MS = 15 * MINUTE_MS;
+/** How far ahead `nextOpen` looks: past any weekend and the widest gap a window list allows. */
+const LOOKAHEAD_MS = 8 * 86_400_000;
+
+/**
+ * The first instant at or after `from` when a text may reach a lead in `zone` (null = both US
+ * coasts), to the minute; null when the window never opens in the next 8 days. Windows are
+ * whole minutes and longer than 15, so a 15-minute scan then a minute one finds the start.
+ */
+export function nextOpen(zone: string | null, from: Date, policy: SmsPolicy): Date | null {
+  if (inWindow(zone, from, policy)) return from;
+  const start = Math.ceil(from.getTime() / MINUTE_MS) * MINUTE_MS;
+  for (let at = start; at <= start + LOOKAHEAD_MS; at += COARSE_MS) {
+    if (!inWindow(zone, new Date(at), policy)) continue;
+    for (let m = Math.max(start, at - COARSE_MS + MINUTE_MS); m < at; m += MINUTE_MS)
+      if (inWindow(zone, new Date(m), policy)) return new Date(m);
+    return new Date(at);
+  }
+  return null;
+}
+
 /** The fleet day an instant falls on, "YYYY-MM-DD" in Eastern time: what the daily caps count. */
 export function fleetDay(at: Date): string {
   const w = wallClock(FLEET_ZONE, at);

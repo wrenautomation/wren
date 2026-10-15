@@ -148,6 +148,7 @@ import {
   clientSms,
   findPlace,
   firstTextStep,
+  formCountriesFrom,
   healthFrom,
   keyedProvider,
   LINK_ORIGIN,
@@ -179,6 +180,7 @@ import {
   makeSmsConsole,
   makeSmsDesk,
   makeSmsEvents,
+  makeSmsForms,
   makeSmsSender,
   makeSmsWatch,
   SENDER_KEY,
@@ -1561,6 +1563,13 @@ export async function buildServices(
     site: settings.siteExportToken
       ? { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }
       : null,
+    // Site applicants: the countries their texts may go to, and the email from William after.
+    formCountries: formCountriesFrom(settings),
+    formMail: plainMailer(gmail, {
+      mailbox: settings.formMailFrom,
+      from: settings.formMailFrom,
+      name: settings.formMailName,
+    }),
     // Calls on our calendar and, while it still takes them, cal.com.
     bookings: new AllBookings([
       new CalendarBookings(db),
@@ -1664,6 +1673,8 @@ export async function buildServices(
     makeReviews({ main: db, clientDb }),
     makeSmsDesk(clientTexts),
     makeSmsWatch(clientTexts),
+    // The lander's push: each site application stepped at once (form.ts).
+    makeSmsForms(sms),
     makeSmsConsole({ db, open: openClient }),
     // A client's People (the sent log, profiles, segments) from its own database; Wren's segments.
     makePeopleConsole({

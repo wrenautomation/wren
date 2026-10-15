@@ -4,6 +4,7 @@ import {
   DEFAULT_POLICY,
   fleetDay,
   inWindow,
+  nextOpen,
   numberCapOn,
   parseClock,
   policyFor,
@@ -60,5 +61,32 @@ describe("caps", () => {
   it("parses clock times", () => {
     expect(parseClock("09:30")).toBe(570);
     expect(() => parseClock("9h")).toThrow();
+  });
+});
+
+describe("nextOpen", () => {
+  const asked = policyFor("form", DEFAULT_POLICY);
+  it("is now when the window is open on their clock", () => {
+    // 09:30 IST.
+    const at = new Date("2026-10-15T04:00:00Z");
+    expect(nextOpen("Asia/Kolkata", at, asked)).toEqual(at);
+  });
+  it("clamps an IST night to 08:00 IST the next morning", () => {
+    // 21:10 IST Thu = 15:40Z; next open 08:00 IST Fri = 02:30Z.
+    const at = new Date("2026-10-15T15:40:00Z");
+    expect(inWindow("Asia/Kolkata", at, asked)).toBe(false);
+    expect(nextOpen("Asia/Kolkata", at, asked)?.toISOString()).toBe("2026-10-16T02:30:00.000Z");
+  });
+  it("waits past an early IST morning to 08:00 the same day", () => {
+    // 06:00 IST = 00:30Z.
+    expect(nextOpen("Asia/Kolkata", new Date("2026-10-16T00:30:00Z"), asked)?.toISOString()).toBe(
+      "2026-10-16T02:30:00.000Z",
+    );
+  });
+  it("cold texts skip the weekend: Saturday waits for Monday 10:00 on both coasts", () => {
+    // Sat 2026-10-17 12:00 ET; Mon 10:00 PT = 17:00Z is the first minute both coasts are open.
+    expect(nextOpen(null, new Date("2026-10-17T16:00:00Z"), P)?.toISOString()).toBe(
+      "2026-10-19T17:00:00.000Z",
+    );
   });
 });

@@ -433,6 +433,28 @@ export const settingsSchema = z.object({
     .default("1,2,3,4,5,6,7")
     .transform((s) => s.split(",").map((x) => Number(x.trim())))
     .pipe(z.array(z.number().int().min(1).max(7)).min(1)),
+  /**
+   * Countries a site applicant's phone may be in to get texts (ISO codes). Cold texts stay US
+   * and Canada whatever this says; each other country needs a zone in channel-sms COUNTRY_ZONES
+   * and the Telnyx messaging profile's allow list.
+   */
+  smsFormCountries: z
+    .string()
+    .default("US,CA,IN")
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim().toUpperCase())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().regex(/^[A-Z]{2}$/)).min(1)),
+  /**
+   * The address a site applicant's email after the first text comes from (and the mailbox the
+   * service account sends it as). Unset = william@wrenautomation.com.
+   */
+  formMailFrom: z.string().email().default("william@wrenautomation.com"),
+  /** The name on that email. */
+  formMailName: z.string().min(1).default("William Jin"),
   /** The booking link Wren's texts quote as `{booking_link}`; a client's is its texts setting. */
   smsBookingLink: z.string().url().optional(),
   /** Least seconds between two texts from one number. */
@@ -697,6 +719,9 @@ export const ENV_KEYS = {
   smsGapSeconds: "WREN_SMS_GAP_SECONDS",
   smsFormWindow: "WREN_SMS_FORM_WINDOW",
   smsFormDays: "WREN_SMS_FORM_DAYS",
+  smsFormCountries: "WREN_SMS_FORM_COUNTRIES",
+  formMailFrom: "WREN_FORM_MAIL_FROM",
+  formMailName: "WREN_FORM_MAIL_NAME",
   smsBookingLink: "WREN_SMS_BOOKING_LINK",
   smsSenderName: "WREN_SMS_SENDER_NAME",
   calcomApiKey: "WREN_CALCOM_API_KEY",

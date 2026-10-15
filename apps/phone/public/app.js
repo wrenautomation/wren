@@ -542,6 +542,19 @@ async function stats() {
       kv("Spend", `$${s.costUsd.toFixed(2)}`),
       s.costPerReplyUsd !== null ? kv("Per reply", `$${s.costPerReplyUsd.toFixed(2)}`) : null,
     ),
+    ...(s.speed?.leads
+      ? [
+          h(
+            "div",
+            { class: "card" },
+            h("h2", {}, "Speed to lead"),
+            kv("Texted", `${s.speed.texted} of ${s.speed.leads}`),
+            s.speed.textMinutes !== null ? kv("To first text", `${s.speed.textMinutes} min`) : null,
+            kv("Emailed", String(s.speed.emailed)),
+            s.speed.emailMinutes !== null ? kv("To email", `${s.speed.emailMinutes} min`) : null,
+          ),
+        ]
+      : []),
     h(
       "div",
       { class: "card" },

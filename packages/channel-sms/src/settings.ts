@@ -2,6 +2,7 @@
 import type { Settings } from "@wren/config";
 import { DEFAULT_HEALTH, type HealthPolicy } from "./health.js";
 import { LinqProvider } from "./linq.js";
+import { COUNTRY_ZONES } from "./phone.js";
 import { parseClock, type SmsPolicy } from "./policy.js";
 import { FakeProvider, NoProvider, type SmsProvider } from "./provider.js";
 import { type Pusher, WebPusher } from "./push.js";
@@ -29,6 +30,19 @@ export function policyFrom(s: Settings): SmsPolicy {
     maxNumbers: s.smsMaxNumbers,
     bases: s.smsBases,
   };
+}
+
+/**
+ * The countries a site applicant may be texted in. Each beyond the US and Canada needs its one
+ * clock in COUNTRY_ZONES, so a text there lands in their hours: a loud error at start if not.
+ */
+export function formCountriesFrom(s: Pick<Settings, "smsFormCountries">): readonly string[] {
+  for (const c of s.smsFormCountries)
+    if (c !== "US" && c !== "CA" && !COUNTRY_ZONES[c])
+      throw new Error(
+        `WREN_SMS_FORM_COUNTRIES has ${c}, which has no single time zone in channel-sms COUNTRY_ZONES`,
+      );
+  return s.smsFormCountries;
 }
 
 export function healthFrom(s: Settings): HealthPolicy {

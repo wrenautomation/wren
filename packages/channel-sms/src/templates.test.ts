@@ -10,6 +10,7 @@ import {
   render,
   segments,
   sequenceSlots,
+  stepTemplate,
 } from "./templates.js";
 
 const fields: RenderFields = {
@@ -115,5 +116,22 @@ describe("firstName", () => {
     expect(firstName("dana smith")).toBe("Dana");
     expect(firstName("J. Smith")).toBeNull();
     expect(firstName(null)).toBeNull();
+  });
+});
+
+describe("borrowed steps", () => {
+  const seq = {
+    name: "form-fit",
+    steps: [
+      { step: 1, afterDays: 0 },
+      { step: 2, afterDays: 1, template: "follow-up#1" },
+    ],
+  };
+  it("a step names the template it borrows; its own otherwise", () => {
+    expect(stepTemplate(seq, 1)).toBe("form-fit#1");
+    expect(stepTemplate(seq, 2)).toBe("follow-up#1");
+  });
+  it("only the sequence's own steps are its slots", () => {
+    expect(sequenceSlots(seq).map((s) => s.key)).toEqual(["form-fit#1"]);
   });
 });

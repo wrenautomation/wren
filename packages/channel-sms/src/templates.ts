@@ -25,6 +25,11 @@ export interface SmsStep {
   step: number;
   /** Days after the previous step was sent (step 1: 0). */
   afterDays: number;
+  /**
+   * Another slot's words, kept where they live (a form applicant's follow-ups are the
+   * Follow-up's `follow-up#1`). Unset = its own slot, `<sequence>#<step>`.
+   */
+  template?: string;
 }
 
 export interface SmsSequence {
@@ -189,19 +194,27 @@ export function stepKey(sequence: string, step: number): string {
   return `${sequence}#${step}`;
 }
 
+/** The slot whose words a step sends: its own, or the one it borrows. */
+export function stepTemplate(seq: SmsSequence, step: number): string {
+  return seq.steps.find((s) => s.step === step)?.template ?? stepKey(seq.name, step);
+}
+
+/** A sequence's own slots; a step that borrows another's words is edited where those live. */
 export function sequenceSlots(seq: SmsSequence): TemplateSlot[] {
-  return seq.steps.map((s) => ({
-    key: stepKey(seq.name, s.step),
-    purpose: `${seq.label ?? seq.name}: ${s.step === 1 ? "first text" : `text ${s.step}`}`,
-    goes:
-      s.step === 1
-        ? (seq.firstGoes ?? "First, to someone who has not texted us")
-        : `${s.afterDays} ${s.afterDays === 1 ? "day" : "days"} after the last one`,
-    fields: seq.fields ?? SEQUENCE_FIELDS,
-    mustSayStop: s.step === 1,
-    ...(s.step === 1 && seq.namesSender ? { mustUse: ["sender" as const] } : {}),
-    minLength: 1,
-  }));
+  return seq.steps
+    .filter((s) => !s.template)
+    .map((s) => ({
+      key: stepKey(seq.name, s.step),
+      purpose: `${seq.label ?? seq.name}: ${s.step === 1 ? "first text" : `text ${s.step}`}`,
+      goes:
+        s.step === 1
+          ? (seq.firstGoes ?? "First, to someone who has not texted us")
+          : `${s.afterDays} ${s.afterDays === 1 ? "day" : "days"} after the last one`,
+      fields: seq.fields ?? SEQUENCE_FIELDS,
+      mustSayStop: s.step === 1,
+      ...(s.step === 1 && seq.namesSender ? { mustUse: ["sender" as const] } : {}),
+      minLength: 1,
+    }));
 }
 
 /** Throws on the first thing wrong with a sequence's shape, so a bad one never loads. */

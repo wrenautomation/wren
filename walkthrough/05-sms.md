@@ -40,10 +40,17 @@ from a real provider's webhooks.
 
 ## Site applicants
 
-An application on the site with the texts box ticked gets a text about 20 minutes
-later, unless they booked on cal.com by then. Fits get `form-fit#1`, the rest
-`form-not-fit#1`. Both are empty until you write them, and an empty one sends nothing.
-Needs `WREN_SITE_EXPORT_TOKEN` and `WREN_CALCOM_API_KEY`. `wren sms forms` runs a pass now.
+An application on the site with the texts box ticked gets a text about 2 minutes
+later, in texting hours on their clock, unless they booked by then. The lander pushes
+each one through the phone Worker (`/webhooks/site`); the 30-minute pass catches any
+push that didn't land. Fits get `form-fit#1`, the rest `form-not-fit#1` (defaults in
+`packages/templates/defaults/sms/texts`). Five minutes after the text, an email with the
+booking link goes from `WREN_FORM_MAIL_FROM` (`email/forms/form-booking`). Then
+`follow-up#1` on day 1 and `follow-up#2` on day 3, until they reply or book. No text 10
+minutes after it was due: one notice saying why. Phones may be in any country in
+`WREN_SMS_FORM_COUNTRIES` (US,CA,IN). Needs `WREN_SITE_EXPORT_TOKEN`, the same value as
+the Worker's `SITE_EXPORT_TOKEN`. `wren sms forms` runs a pass now; `wren sms stats`
+shows minutes to the text and the email.
 
 ## Call reminders
 
@@ -82,4 +89,6 @@ only Wren's team texts back.
 `WREN_SMS_LOW_BALANCE_USD` (5), `WREN_SMS_HELD_NICHES` (sec_ria),
 `WREN_SMS_MONTHLY_PER_CONTACT` (4 in any 31 days, never more).
 Form leads (speed to lead): `WREN_SMS_FORM_WINDOW` (08:00-21:00, held to 20:00),
-`WREN_SMS_FORM_DAYS` (1-7), `WREN_SMS_BOOKING_LINK` (Wren's `{booking_link}`).
+`WREN_SMS_FORM_DAYS` (1-7), `WREN_SMS_BOOKING_LINK` (Wren's `{booking_link}`),
+`WREN_SMS_FORM_COUNTRIES` (US,CA,IN), `WREN_FORM_MAIL_FROM` (william@wrenautomation.com),
+`WREN_FORM_MAIL_NAME` (William Jin).

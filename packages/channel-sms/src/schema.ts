@@ -221,6 +221,8 @@ export const smsContacts = pgTable(
     email: text("email"),
     /** Their own time zone, when the form said it; else the company's, else both US coasts. */
     zone: varchar("zone", { length: 64 }),
+    /** Their own `{booking_link}` (a form applicant's `/book/<offer>` page); null = the sender's. */
+    bookingLink: text("booking_link"),
     basis: varchar("basis", { length: 16, enum: CONTACT_BASES }).notNull(),
     basisDetail: text("basis_detail"),
     lineType: varchar("line_type", { length: 16, enum: LINE_TYPES }).notNull().default("unknown"),
@@ -485,7 +487,10 @@ export const marketingTextContactRecords = pgView("marketing_text_contact_record
     where contact_id = c.id and direction = 'in' and disposition is not null
     order by received_at desc limit 1) r on true`);
 
-/** How a speed-to-lead run's first text went (speed.ts). Only `sent` and `would_send` are a touch. */
+/**
+ * How a speed-to-lead run's first text went (speed.ts, form.ts). Only `sent` and `would_send`
+ * are a touch; `booked` = they booked a call before it was due, so none went.
+ */
 export const FIRST_TOUCHES = [
   "queued",
   "sent",
@@ -493,6 +498,7 @@ export const FIRST_TOUCHES = [
   "no_consent",
   "no_phone",
   "refused",
+  "booked",
 ] as const;
 export type FirstTouch = (typeof FIRST_TOUCHES)[number];
 
@@ -518,7 +524,7 @@ export const speedRuns = pgTable(
     /** When the lead came through the door. */
     leadAt: timestamp("lead_at", { withTimezone: true }).notNull(),
     name: text("name"),
-    /** As the form wrote it; `e164` once it reads as a US or Canadian number. */
+    /** As the form wrote it; `e164` once it reads as a number in a country we text. */
     phone: varchar("phone", { length: 64 }),
     e164: varchar("e164", { length: 16 }),
     email: text("email"),
@@ -531,6 +537,13 @@ export const speedRuns = pgTable(
     /** The text left, or "would send" was recorded with texts off. */
     firstTouchAt: timestamp("first_touch_at", { withTimezone: true }),
     firstTouchDetail: text("first_touch_detail"),
+    /** When the first text may go: a site applicant's, two minutes on, inside their window (form.ts). */
+    firstDueAt: timestamp("first_due_at", { withTimezone: true }),
+    /** The email after the first text left (`email_at - lead_at` is its metric), or why none. */
+    emailAt: timestamp("email_at", { withTimezone: true }),
+    emailDetail: text("email_detail"),
+    /** The one "no text" notice went to William: never twice. */
+    noticeAt: timestamp("notice_at", { withTimezone: true }),
     call: varchar("call", { length: 16, enum: SPEED_CALLS }),
     callAt: timestamp("call_at", { withTimezone: true }),
     callDetail: text("call_detail"),

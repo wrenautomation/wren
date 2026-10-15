@@ -361,6 +361,59 @@ describe("cal.com webhook", () => {
   });
 });
 
+describe("site application push", () => {
+  const TOKEN = "site-token";
+  const sign = async (body: string, secret = TOKEN) => {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(body)));
+    return [...mac].map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+  const push = (body: string, signature?: string) =>
+    call("/webhooks/site", {
+      method: "POST",
+      headers: signature ? { [LINK_SIGNATURE]: signature } : {},
+      body,
+    });
+  beforeEach(() => {
+    env.SITE_EXPORT_TOKEN = TOKEN;
+  });
+
+  it("hands a signed, fresh application to SmsForms, keyed by its id", async () => {
+    const body = JSON.stringify({ application: 7, at: Date.now() });
+    expect((await push(body, await sign(body))).status).toBe(200);
+    expect(restateCalls).toHaveLength(1);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsForms/applied/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("site-application-7");
+    expect(JSON.parse(restateCalls[0]?.body ?? "{}")).toEqual({ application: 7 });
+  });
+
+  it("refuses a bad signature, a stale push and a missing id, and forwards nothing", async () => {
+    const body = JSON.stringify({ application: 7, at: Date.now() });
+    expect((await push(body)).status).toBe(401);
+    expect((await push(body, await sign(body, "other"))).status).toBe(401);
+    const old = JSON.stringify({ application: 7, at: Date.now() - 10 * 60 * 1000 });
+    expect((await push(old, await sign(old))).status).toBe(401);
+    const none = JSON.stringify({ at: Date.now() });
+    expect((await push(none, await sign(none))).status).toBe(400);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("answers 502 when Restate fails and 503 with no token set", async () => {
+    const body = JSON.stringify({ application: 8, at: Date.now() });
+    restateStatus = 500;
+    expect((await push(body, await sign(body))).status).toBe(502);
+    delete env.SITE_EXPORT_TOKEN;
+    expect((await push(body, await sign(body))).status).toBe(503);
+  });
+});
+
 describe("linq webhook", () => {
   // Synthetic: a made-up secret in Linq's `whsec_` form.
   const SECRET = `whsec_${btoa("synthetic-linq-secret-32-bytes!!")}`;

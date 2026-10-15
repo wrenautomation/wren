@@ -28,9 +28,8 @@ import {
 } from "@wren/core/message-settings";
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, desc, eq, gt, gte, inArray, lt, lte, sql } from "drizzle-orm";
-import { countryOf } from "./phone.js";
 import { ASKED, inWindow, policyFor, type SmsPolicy } from "./policy.js";
-import { cannotReach, numberReady, poolToday } from "./pool.js";
+import { cannotReach, numberReady, poolToday, wrongCountry } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import {
@@ -162,6 +161,18 @@ export async function endContact(
   await skipQueued(db, contactId, `contact ${state}: ${reason}`);
 }
 
+/** Contacts a speed run follows: a door lead (`hook`), a site applicant (`form`). */
+const RUN_KINDS: ReadonlySet<string> = new Set(["hook", "form"]);
+
+/** The carrier refused a lead's first text: its run says so, in the words it came with. */
+async function refusedRun(db: Queryable, contact: SmsContact, detail: string) {
+  if (!RUN_KINDS.has(contact.sourceKind)) return;
+  await db
+    .update(speedRuns)
+    .set({ firstTouch: "refused", firstTouchDetail: `Telnyx refused the text: ${detail}` })
+    .where(and(eq(speedRuns.smsContactId, contact.id), eq(speedRuns.firstTouch, "queued")));
+}
+
 /** A sequence step went: list it for the spine, and finish the contact after the last. */
 async function stepped(
   db: Queryable,
@@ -172,8 +183,9 @@ async function stepped(
 ) {
   if (msg.kind !== "sequence" || msg.step === null || !contact.sequence) return;
   const step = msg.step;
-  // A door lead's first text left: its speed run's first touch, the metric (speed.ts).
-  if (step === 1 && contact.sourceKind === "hook")
+  // A door lead's or a site applicant's first text left: its speed run's first touch, the
+  // metric (speed.ts, form.ts).
+  if (step === 1 && RUN_KINDS.has(contact.sourceKind))
     await db
       .update(speedRuns)
       .set({ firstTouch: "sent", firstTouchAt: opts.now })
@@ -529,6 +541,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
         await endContact(db, contact.id, "opted_out", `carrier: ${result.detail}`, now);
       } else if (msg.kind === "sequence") {
         await endContact(db, contact.id, "unreachable", `refused: ${result.detail}`, now);
+        if (msg.step === 1) await refusedRun(db, contact, result.detail);
       }
     }
   }
@@ -588,7 +601,7 @@ export async function queueManual(
   }
   // Another country is never; an unregistered US number queues and waits for the carriers.
   const [number] = await db.select().from(smsNumbers).where(eq(smsNumbers.id, contact.numberId));
-  if (number && countryOf(contact.e164) !== number.country)
+  if (number && wrongCountry(number, contact.e164))
     throw new SmsRefusal(cannotReach(number, contact.e164) as string);
   const [row] = await db
     .insert(smsMessages)

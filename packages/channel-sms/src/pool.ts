@@ -11,7 +11,7 @@
 import { zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq, gte, inArray, isNull, max, ne, sql } from "drizzle-orm";
-import { countryOf } from "./phone.js";
+import { countryOf, phoneCountry } from "./phone.js";
 import { FLEET_ZONE, fleetDay, numberCapOn, type SmsPolicy } from "./policy.js";
 import type { SmsProvider } from "./provider.js";
 import {
@@ -93,20 +93,39 @@ export function numberReady(n: NumberToday, now: Date, policy: SmsPolicy): boole
   return now.getTime() - n.lastAttemptAt.getTime() >= policy.gapSeconds * 1000;
 }
 
+/** True when `number` may never text `to`: the other +1 country, or not a valid number. */
+export function wrongCountry(number: Pick<SmsNumber, "country">, to: string): boolean {
+  const country = countryOf(to);
+  return country ? country !== number.country : phoneCountry(to) === null;
+}
+
 /**
- * Why `number` may not text `to` yet, or null when it may. Another country is
- * never; an unregistered US number is until the carriers attach it.
+ * Why `number` may not text `to` yet, or null when it may. The other +1 country is
+ * never; an unregistered US number is until the carriers attach it. A phone outside
+ * the US and Canada (a site applicant's) goes from any number, abroad, where 10DLC
+ * doesn't apply.
  */
 export function cannotReach(
   number: Pick<SmsNumber, "e164" | "country" | "registeredAt">,
   to: string,
 ): string | null {
   const country = countryOf(to);
-  if (country !== number.country)
-    return `${number.e164} is a ${number.country} number; ${to} is ${country ?? "not US or CA"}`;
+  if (wrongCountry(number, to))
+    return `${number.e164} is a ${number.country} number; ${to} is ${country ?? "not a valid number"}`;
   if (country === "US" && number.registeredAt === null)
     return `${number.e164} waits on the 10DLC campaign (carrier review)`;
   return null;
+}
+
+/**
+ * The number a new contact `to` is texted from: one in its own country for the US and
+ * Canada, a US one (else a Canadian one) for anywhere else. Null when there is none.
+ */
+export async function pickSender(db: Queryable, to: string): Promise<SmsNumber | null> {
+  const country = countryOf(to);
+  if (country) return pickNumber(db, country);
+  if (!phoneCountry(to)) return null;
+  return (await pickNumber(db, "US")) ?? pickNumber(db, "CA");
 }
 
 /** The active number in `country` carrying the fewest running threads, for a new contact; null when there is none. */

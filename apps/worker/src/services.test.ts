@@ -247,6 +247,7 @@ describe("handler forms", () => {
     "SmsDesk/enroll": "sends",
     "SmsDesk/reply": "sends",
     "SmsDesk/start": "sends",
+    "SmsForms/applied": "sends",
     "SmsConsole/reply": "sends",
     "Content/publish": "posts",
     "Content/reply": "posts",

@@ -17,7 +17,7 @@ Consent basis is a column, not a comment: `published` (the business put the numb
 
 ## Shape
 
-- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind` (`tel_link`/`page_text`/`manual`/`inbound`/`form`/`hook`), `source_ref` (the site application id, or the speed run's id for `hook`), `name`, `email` (form applicants), `zone` (the lead's own time zone, from the form), `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `imessage` (reachable on iMessage, from Linq's check at lookup; null on Telnyx; migration 0232), `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `enrolled_at`, `ended_at`, `read_at`, `paid_cents` and `paid_at` (text-to-pay, [[platform/pay-link]], migration 0183) (`schema.ts:152`–`182`)
+- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind` (`tel_link`/`page_text`/`manual`/`inbound`/`form`/`hook`), `source_ref` (the site application id, or the speed run's id for `hook`), `name`, `email` (form applicants), `zone` (the lead's own time zone, from the form or the number's country), `booking_link` (a form applicant's own `/book/<offer>?application=<id>`, `{booking_link}` in their texts; migration 0273), `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `imessage` (reachable on iMessage, from Linq's check at lookup; null on Telnyx; migration 0232), `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `enrolled_at`, `ended_at`, `read_at`, `paid_cents` and `paid_at` (text-to-pay, [[platform/pay-link]], migration 0183) (`schema.ts:152`–`182`)
 - one enrolled row per number (`uq_sms_contacts_enrolled_e164`, `:189`); one row per site application (`uq_sms_contacts_source_ref`, `:187`)
 
 Citations: `packages/channel-sms/src/schema.ts:149`
@@ -39,7 +39,7 @@ Citations: `packages/channel-sms/src/schema.ts:149`
 | Surface | Role |
 |---|---|
 | `SmsDesk.lift/addContact/enroll` (with `client`: that client's database, needs `sms.texts`) | writes |
-| `SmsWatch` form pass, `SmsDesk.forms`, `wren sms forms` | writes form applicants |
+| `SmsForms` (lander push), `SmsWatch` form pass, `SmsDesk.forms`, `wren sms forms` | writes form applicants (any country in `WREN_SMS_FORM_COUNTRIES`; cold stays US/CA) |
 | `SmsEvents.ingest` | writes state on STOP/reply |
 | phone PWA, `wren [--client X] sms threads` | read, mark read |
 | portal app `texts`, `SmsConsole.records*` / `reply` (team only) / `callDone` | reads `sms.thread`, replies, closes Call now |

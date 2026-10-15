@@ -8,10 +8,13 @@
  *   provider's event id as the idempotency key. Applying is idempotent anyway.
  * - `SmsDesk`: the operator's reads and writes, for the phone app and the CLI.
  * - `SmsWatch/daily`: every 30 minutes, attaches waiting US numbers to the
- *   10DLC campaign once carriers approve it, follows up site applicants who
- *   ticked the texts box (form.ts), queues day-before reminders for booked
+ *   10DLC campaign once carriers approve it, steps site applicants the push
+ *   missed and sends their emails and no-text notices (form.ts, form-after.ts),
+ *   queues day-before reminders for booked
  *   calls (reminders.ts), labels new replies and runs the health checks; once
  *   a fleet day, one summary line.
+ * - `SmsForms`: the lander's push of one site application (forms.ts): its first text
+ *   now or when due, then the email and the 10-minute check.
  *
  * A client's texts (`sms.texts`) run as `SmsSender/<client>/fleet` and
  * `SmsWatch/<client>/daily` on its database and numbers; its webhooks come in
@@ -49,7 +52,8 @@ import { queueManual, type TickStats, tick } from "../deliver.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { applyEvent } from "../events.js";
 import { textLead } from "../follow.js";
-import { type FormOptions, type FormStats, followUpForms, type SiteSource } from "../form.js";
+import { type FormStats, followUpForms, type SiteSource } from "../form.js";
+import { type AfterStats, formAfter } from "../form-after.js";
 import { checkHealth, type HealthPolicy, type HealthReport } from "../health.js";
 import { type LiftStats, liftPhones } from "../lift.js";
 import { formatPhone } from "../phone.js";
@@ -66,6 +70,7 @@ import {
 import { SmsRefusal } from "../refusal.js";
 import { type RegistrationStats, watchRegistration } from "../registration.js";
 import { type ReminderStats, remindBookings } from "../reminders.js";
+import type { SendMail } from "../reviews.js";
 import { CONTACT_BASES, type ContactBasis, DISPOSITIONS, type Disposition } from "../schema.js";
 import { type Signer, telnyxSigner } from "../signer.js";
 import { type SmsStats, smsStats } from "../stats.js";
@@ -86,6 +91,7 @@ import {
   type ThreadSummary,
 } from "../threads.js";
 import type { CallHooks } from "./answers.js";
+import { afterOptionsOf, formOptionsOf } from "./forms.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
@@ -129,6 +135,10 @@ export interface SmsDeps {
   heldNiches: readonly string[];
   /** The lander's export, read for form opt-ins. Null = no form follow-up. */
   site?: SiteSource | null;
+  /** Countries a site applicant's phone may be in (`WREN_SMS_FORM_COUNTRIES`); unset = US, CA. */
+  formCountries?: readonly string[];
+  /** The email after an applicant's first text, from `WREN_FORM_MAIL_FROM`. Null = none. */
+  formMail?: SendMail | null;
   /** Asked before a form applicant's first text, and listed for reminders. Null = neither. */
   bookings?: Bookings | null;
   notifier?: Notifier;
@@ -169,25 +179,6 @@ async function nowFor(
   clock?: () => Date,
 ): Promise<Date> {
   return clock ? clock() : new Date(await ctx.date.now());
-}
-
-function formOptions(
-  deps: SmsDeps,
-  site: SiteSource,
-  now: Date,
-  runId: string | null,
-): FormOptions {
-  return {
-    site,
-    bookings: deps.bookings ?? null,
-    sequences: deps.sequences,
-    policy: deps.policy,
-    provider: deps.provider,
-    senderName: deps.senderName,
-    heldNiches: deps.heldNiches,
-    now,
-    runId,
-  };
 }
 
 /** A new or resumed number: the sender may be in its 6 h sleep. */
@@ -774,7 +765,7 @@ export function makeSmsDesk(deps: SmsDeps) {
           return ctx.run("forms", async () => {
             const { stats } = await terminal(() =>
               recordedRun(deps.db, { command: "sms forms", argv: {} }, (run) =>
-                followUpForms(deps.db, formOptions(deps, site, now, run.id)),
+                followUpForms(deps.db, formOptionsOf(deps, site, now, run.id)),
               ),
             );
             return stats;
@@ -859,6 +850,8 @@ export interface WatchStats {
   registration: RegistrationStats;
   /** Null = no site to read, or `formsError` says why the read failed. */
   forms: FormStats | null;
+  /** The emails and notices after first texts; null with no site. */
+  formsAfter: AfterStats | null;
   formsError?: string;
   /** Null = no cal.com key, or `remindersError` says why the pass failed. */
   reminders: ReminderStats | null;
@@ -884,12 +877,19 @@ export function makeSmsWatch(wren: SmsDeps) {
         await noticeRegistered(deps.notifier, registration);
         // A site outage costs this pass its form follow-up, not its health checks.
         let forms: FormStats | null = null;
+        let formsAfter: AfterStats | null = null;
         let formsError: string | undefined;
         if (deps.site) {
           try {
-            forms = await followUpForms(deps.db, formOptions(deps, deps.site, now, runId));
+            forms = await followUpForms(deps.db, formOptionsOf(deps, deps.site, now, runId));
           } catch (err) {
             formsError = err instanceof Error ? err.message : String(err);
+          }
+          // The emails and notices a push left behind (form-after.ts).
+          try {
+            formsAfter = await formAfter(deps.db, afterOptionsOf(deps, now));
+          } catch (err) {
+            formsError = `${formsError ? `${formsError}; ` : ""}${err instanceof Error ? err.message : String(err)}`;
           }
         }
         let reminders: ReminderStats | null = null;
@@ -917,6 +917,7 @@ export function makeSmsWatch(wren: SmsDeps) {
         return {
           registration,
           forms,
+          formsAfter,
           ...(formsError ? { formsError } : {}),
           reminders,
           ...(remindersError ? { remindersError } : {}),
@@ -993,4 +994,5 @@ export {
   REVIEWS_FLOW,
 } from "./answers.js";
 export { makeSmsConsole, type SmsConsoleService, smsConsoleApi } from "./console.js";
+export { FORMS_SERVICE, makeSmsForms, type SmsFormsService } from "./forms.js";
 export type SmsWatchObject = ReturnType<typeof makeSmsWatch>;
