@@ -9,6 +9,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { channelPeople, channelStats, type StatsQuery } from "../../src/channel-stats.js";
 import { mergeProfiles, resolveProfile, setTraits } from "../../src/profiles.js";
+import { profileOfEvent } from "../../src/segment-step.js";
 import {
   addMembers,
   inSegment,
@@ -48,6 +49,9 @@ beforeEach(async () => {
     "sms_contacts",
     "touches",
     "social_handles",
+    "enrollments",
+    "reach_contacts",
+    "companies",
   ]);
 });
 
@@ -204,6 +208,42 @@ describe("versions and inSegment", () => {
     // Cy merged into Ann answers as Ann.
     await mergeProfiles(pg.db, ann, cy, "t", "test", NOW);
     expect(await inSegment(pg.db, cy, hand, NOW)).toBe(true);
+  });
+});
+
+describe("In segment finds the person", () => {
+  it("from an email enrollment, a text contact or a DM contact, by subject or data", async () => {
+    const { ann, bo, cy } = await world();
+    const company = (
+      await one(sql`insert into companies (domain) values ('firm.example.test') returning id`)
+    ).id as number;
+    const enrollment = (
+      await one(sql`insert into enrollments
+        (niche, sequence_name, sequence_snapshot, offer, state, company_id, kind, to_email, sender)
+        values ('plumbing', 'cold_intro', '{}'::jsonb, 'offer', 'active', ${company},
+          'role_inbox', 'Ann@Example.test', 'sender@example.test') returning id`)
+    ).id as number;
+    const contact = (await one(sql`select id from sms_contacts where e164 = '+15550100002'`))
+      .id as number;
+    const dm = (
+      await one(sql`insert into reach_contacts (platform, handle, url, found_in)
+        values ('reddit', 'cy_r', 'https://reddit.example/u/cy_r', 'test') returning id`)
+    ).id as number;
+    const at = (subject: string, data: Record<string, unknown> = {}) =>
+      profileOfEvent(pg.db, { subject, kind: "lead", data });
+
+    expect(await at(`lead:email:${enrollment}`)).toBe(ann);
+    expect(await at(`reply:email:${enrollment}`)).toBe(ann);
+    expect(await at(`lead:sms:${contact}`)).toBe(bo);
+    expect(await at(`reply:sms:${contact}`)).toBe(bo);
+    expect(await at(`reply:reach:${dm}`)).toBe(cy);
+    // A trigger's own subject, the thread in its data.
+    expect(await at("form:site:1", { enrollmentId: enrollment })).toBe(ann);
+    expect(await at("call:9", { contactId: dm, channel: "dm" })).toBe(cy);
+    // Its own fields first; nothing known is no one.
+    expect(await at(`lead:sms:${contact}`, { email: "ann@example.test" })).toBe(ann);
+    expect(await at("lead:email:999999")).toBeNull();
+    expect(await at("form:site:2")).toBeNull();
   });
 });
 
