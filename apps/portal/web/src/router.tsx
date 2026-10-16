@@ -10,7 +10,8 @@
  *
  * The address keeps its plain shape (`?status=open&sort=-at`), not the router's JSON one, so
  * every link, saved view and mail link from before still opens. An old page's address
- * (`ListPage.legacy`) redirects to its new one before anything draws.
+ * (`ListPage.legacy`) and a page that moved apps (`./moved.ts`) redirect to the new one before
+ * anything draws.
  */
 import {
   createRootRoute,
@@ -26,6 +27,7 @@ import { App } from "./App.js";
 import { call, type Me } from "./api.js";
 import { readCall } from "./load.js";
 import { MODULES } from "./modules/index.js";
+import { movedTo } from "./moved.js";
 import { prefetchPage } from "./records.js";
 import { bindRouter, href, navigate, workspace } from "./route.js";
 
@@ -110,6 +112,8 @@ const page = createRoute({
   getParentRoute: () => app,
   path: "$page",
   beforeLoad: ({ params, location }) => {
+    const moved = movedTo(location.href);
+    if (moved) throw redirect({ href: moved, replace: true });
     const found = pageOf(params.app, params.page);
     if (!found || !("legacy" in found) || !found.legacy) return;
     const search = paramsOf(location.search as Record<string, unknown>);

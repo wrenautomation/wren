@@ -27,7 +27,8 @@ describe("areas", () => {
     const wren = [
       { id: "notes", pages: pages("home") },
       { id: "inbox", pages: pages("overview") },
-      { id: "marketing", pages: pages("plan", "studio", "engage") },
+      { id: "marketing", pages: pages("plan", "studio", "pieces") },
+      { id: "outreach", pages: pages("engage", "dms") },
     ];
     expect(dockOf(wren).map((d) => d.pick.page ?? d.app.id)).toEqual(["inbox", "studio", "engage"]);
     const client = [
@@ -47,16 +48,25 @@ describe("phoneTabsOf", () => {
     ...(count !== undefined ? { count } : {}),
   });
   it("leads with an app's picks, then a tab per page or group", () => {
-    const tabs = [t("pieces"), t("plan"), t("studio"), t("engage"), t("a", "G", 2), t("b", "G", 3)];
+    const tabs = [t("feed"), t("plan"), t("studio"), t("pieces"), t("a", "G", 2), t("b", "G", 3)];
     const out = phoneTabsOf("marketing", tabs);
     expect(out.map((x) => [x.id, x.label, x.holds])).toEqual([
       ["plan", "plan", ["plan"]],
       ["studio", "studio", ["studio"]],
-      ["engage", "engage", ["engage"]],
       ["pieces", "pieces", ["pieces"]],
+      ["feed", "feed", ["feed"]],
       ["a", "G", ["a", "b"]],
     ]);
     expect(out[4]?.count).toBe(5);
+  });
+  it("gives Outreach its daily three: Engage, DMs, Invites", () => {
+    const tabs = [t("people"), t("invites"), t("dms"), t("engage")];
+    expect(phoneTabsOf("outreach", tabs).map((x) => x.label)).toEqual([
+      "engage",
+      "DMs",
+      "invites",
+      "people",
+    ]);
   });
   it("skips picks the workspace lacks", () => {
     expect(phoneTabsOf("inbox", [t("overview"), t("done")]).map((x) => x.label)).toEqual([

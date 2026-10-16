@@ -1,13 +1,14 @@
 /**
- * Marketing → Engage's head (`marketing.engage` is the queue under it): the paste box and the
- * invites still waiting. A subreddit or an account gets watched, a thread or a post gets a reply
- * drafted, all by `ReachDesk.paste`; the result shows here and the row joins the queue.
+ * Outreach → Engage's head (`marketing.engage` is the queue under it): the paste box. A subreddit
+ * or an account gets watched, a thread or a post gets a reply drafted, all by `ReachDesk.paste`;
+ * the result shows here and the row joins the queue. Invites wait on Outreach → Invites, counted
+ * on its tab.
  */
-import { Button, cx, Input, useEdit } from "@wren/ui";
-import { useEffect, useState } from "react";
+import { Button, Input, useEdit } from "@wren/ui";
+import { useState } from "react";
 import { ApiError, call } from "../../api.js";
+import { DraftModels } from "../marketing/draft-models.js";
 import { ERROR, QUIET } from "../work/bits.js";
-import { DraftModels } from "./draft-models.js";
 
 interface Pasted {
   did: string;
@@ -16,10 +17,6 @@ interface Pasted {
 }
 
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
-const INVITES = {
-  record: "marketing.approval",
-  where: { type: ["invite", "connect"], state: ["waiting"] },
-};
 
 export function EngageHead(props: { reload: () => void; demo: boolean }) {
   // The link stays until it is added: another page and back gives it again.
@@ -28,15 +25,6 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [said, setSaid] = useState<{ n: number; text: string }[]>([]);
-  const [invites, setInvites] = useState(0);
-
-  useEffect(() => {
-    if (props.demo) return;
-    call<{ total: number }>("console/recordsList", { ...INVITES, limit: 1 }).then(
-      (r) => setInvites(r.total),
-      () => setInvites(0),
-    );
-  }, [props.demo]);
 
   const paste = async () => {
     const sent = url.trim();
@@ -93,15 +81,6 @@ export function EngageHead(props: { reload: () => void; demo: boolean }) {
             </li>
           ))}
         </ul>
-      ) : null}
-      {invites ? (
-        <p className={cx("m-0 text-[13.5px]", QUIET)}>
-          {invites} LinkedIn {invites === 1 ? "invite waits" : "invites wait"} in{" "}
-          <a href="/inbox/approve?view=invites" className="font-medium">
-            To approve
-          </a>
-          .
-        </p>
       ) : null}
       <DraftModels demo={props.demo} />
     </div>

@@ -14,6 +14,7 @@ import { library } from "./library/index.js";
 import { ads, clientMarketing, marketing } from "./marketing/index.js";
 import { marketplace, wrenMarketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
+import { outreach } from "./outreach/index.js";
 import { payments } from "./payments/index.js";
 import { clientPeople, people } from "./people/index.js";
 import { reactivation } from "./reactivation/index.js";
@@ -44,6 +45,7 @@ export const MODULES: Module[] = [
   // One address, two apps: a client's own (its workspace) and Wren's (Wren's).
   clientMarketing,
   marketing,
+  outreach,
   ads,
   ...WREN_APPS,
   // One address, two apps, as Marketing.

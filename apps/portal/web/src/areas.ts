@@ -21,7 +21,7 @@ export const AREAS: readonly Area[] = [
     label: "Leads",
     apps: ["pipeline", "leads", "people", "outbound", "deals", "calls", "reactivation"],
   },
-  { id: "marketing", label: "Marketing", apps: ["marketing", "ads", "sites", "learn"] },
+  { id: "marketing", label: "Marketing", apps: ["marketing", "outreach", "ads", "sites", "learn"] },
   {
     id: "automations",
     label: "Automations",
@@ -68,7 +68,7 @@ export interface DockPick {
 export const DOCK: readonly DockPick[] = [
   { app: "inbox" },
   { app: "marketing", page: "studio", label: "Studio", icon: "write" },
-  { app: "marketing", page: "engage", label: "Engage", icon: "reply" },
+  { app: "outreach", page: "engage", label: "Engage", icon: "reply" },
 ];
 
 /**
@@ -108,7 +108,12 @@ export const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
   marketing: [
     { page: "plan", icon: "calendar" },
     { page: "studio", icon: "write" },
+    { page: "pieces", icon: "write" },
+  ],
+  outreach: [
     { page: "engage", icon: "reply" },
+    { page: "dms", label: "DMs", icon: "chat" },
+    { page: "invites", icon: "people" },
   ],
   inbox: [
     { page: "overview", label: "All", icon: "inbox" },

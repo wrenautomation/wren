@@ -222,8 +222,9 @@ export const CONTENT_COMPONENTS = [
         "marketing.survey_answer",
         "marketing.heat",
       ],
-      // Ads is Wren's own, split from Marketing (designs/2026-10-11-split-marketing.md).
-      apps: ["marketing", "ads"],
+      // Ads and Outreach are Wren's own, split from Marketing (designs/2026-10-11-split-marketing.md,
+      // 2026-10-16-outreach-app.md).
+      apps: ["marketing", "outreach", "ads"],
     },
     hypothesis: {
       from: "Wren's marketing, 2026-09",

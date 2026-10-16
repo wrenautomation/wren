@@ -9,7 +9,6 @@ import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import type { Action, FormField } from "@wren/ui";
 import { createElement } from "react";
-import { findRecords } from "../../find.js";
 import type { DayPage, ListPage, Module, ModulePage } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
@@ -24,17 +23,15 @@ import {
   ASKED_REPLY_CARD,
   COMMENT_CARD,
   DRAFT_CARD,
-  ENGAGE_CARD,
   INBOX_CARD,
   POST_CARD,
   VIDEO_CARD,
 } from "./cards.js";
 import { NumbersBelow } from "./chart.js";
 import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
-import { copyExtras, dmExtras, dmLooks } from "./dms.js";
-import { EngageHead } from "./engage.js";
+import { dmExtras, dmLooks } from "./dms.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
-import { FactsPage, factsDropped } from "./facts.js";
+import { FactsPage } from "./facts.js";
 import { FeedPage, FeedTabs } from "./feed.js";
 import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
@@ -43,7 +40,6 @@ import { type MoreGroup, MorePage } from "./more.js";
 import { PiecesPage } from "./pieces.js";
 import { PlanPage } from "./plan.js";
 import { postExtras, postLooks } from "./posts.js";
-import { withProof } from "./proof.js";
 import { ReportsPage } from "./reports.js";
 import { sessionExtras } from "./sessions.js";
 import { withSiblings } from "./siblings.js";
@@ -308,7 +304,7 @@ const TEXT_ACTIONS: Action[] = [
   },
 ];
 
-const DM_ACTIONS: Action[] = [
+export const DM_ACTIONS: Action[] = [
   {
     id: "marketing.dmReply",
     label: "Reply",
@@ -635,7 +631,7 @@ const DISCOVERY_READ = readNow(
   () => "Reading. Places and Thread replies fill in over a few minutes.",
 );
 
-const PLACE_ACTIONS: Action[] = [
+export const PLACE_ACTIONS: Action[] = [
   {
     id: "marketing.placeWatch",
     label: "Watch",
@@ -672,7 +668,7 @@ const PLACE_ACTIONS: Action[] = [
   DISCOVERY_READ,
 ];
 
-const INVITE_ACTIONS: Action[] = [
+export const INVITE_ACTIONS: Action[] = [
   {
     id: "marketing.inviteMessage",
     label: "Message",
@@ -702,7 +698,7 @@ const INVITE_ACTIONS: Action[] = [
 ];
 
 /** An invite the sweep proposed: only his yes sends it, under the day's cap. */
-const CONNECT_ACTIONS: Action[] = [
+export const CONNECT_ACTIONS: Action[] = [
   {
     id: "marketing.connectApprove",
     label: "Send invite",
@@ -760,7 +756,7 @@ const ONPOST_ACTIONS: Action[] = [
   },
 ];
 
-const THREAD_ACTIONS: Action[] = [
+export const THREAD_ACTIONS: Action[] = [
   {
     id: "marketing.threadComment",
     label: "Comment",
@@ -1070,19 +1066,19 @@ const COMMENT_DRAFT: DraftOf = {
   label: "Your answer, posted under their comment",
   send: "marketing.commentAnswer",
 };
-const DM_DRAFT: DraftOf = {
+export const DM_DRAFT: DraftOf = {
   field: "draft",
   label: "Your reply",
   send: "marketing.dmReply",
   preview: dmLooks,
 };
-const INVITE_DRAFT: DraftOf = {
+export const INVITE_DRAFT: DraftOf = {
   field: "draft",
   label: "Your message",
   send: "marketing.inviteMessage",
   preview: dmLooks,
 };
-const THREAD_DRAFT: DraftOf = {
+export const THREAD_DRAFT: DraftOf = {
   field: "draft",
   label: "Your comment, posted in the thread",
   send: "marketing.threadComment",
@@ -1106,14 +1102,11 @@ const APPROVAL_DRAFT: Record<string, DraftOf> = {
   connect: NOTE_DRAFT,
 };
 
-/** Engage's row type picks its box, as on each kind's own page. */
-const ENGAGE_DRAFT: Record<string, DraftOf> = {
+/** Outreach → Engage's row type picks its box, as on each kind's own page. */
+export const ENGAGE_DRAFT: Record<string, DraftOf> = {
   thread: THREAD_DRAFT,
   onpost: ONPOST_DRAFT,
-  comment: COMMENT_DRAFT,
-  dm: DM_DRAFT,
 };
-/** Each reply's own page's actions, on its rows only; the typed-id box, as To approve's. */
 /** DM the author of a thread or post. On LinkedIn before they accept, an invite goes first. */
 const DM_FROM_ACTION: Action = {
   id: "marketing.messageFrom",
@@ -1126,59 +1119,15 @@ const DM_FROM_ACTION: Action = {
   ),
 };
 
-const ENGAGE_ACTIONS: Action[] = [
+/** Outreach → Engage's actions: each kind's own, on its rows; the typed-id box, as To approve's. */
+export const ENGAGE_ACTIONS: Action[] = [
   ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, threadWhen(a))),
   ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
   only("thread", DM_FROM_ACTION, WAITS),
   only("onpost", DM_FROM_ACTION, WAITS),
-  ...COMMENT_ACTIONS.filter(own).map((a) => only("comment", a)),
-  ...THREAD_VIEW_ACTIONS.map((a) => only("comment", a)),
-  ...DM_ACTIONS.filter(own).map((a) => only("dm", a, WAITS)),
   PASS_ACTION,
-  ...draftActions("inbox", {
-    type: ["thread", "onpost", "comment", "dm"],
-    state: ["new", "waiting", "read"],
-  }),
+  ...draftActions("inbox", { type: ["thread", "onpost"], state: ["waiting"] }),
 ];
-/**
- * Marketing → Engage (`marketing.engage`): every reply he might write in one queue, and the
- * paste box that adds to it. Invites go on their own; only their count shows.
- */
-const ENGAGE_PAGE: ListPage = {
-  id: "engage",
-  label: "Engage",
-  about: "Every reply you might write, in one queue.",
-  group: "Content",
-  template: "list",
-  record: "marketing.engage",
-  card: ENGAGE_CARD,
-  columns: ["who", "platform", "type", "state", "held", "proof", "at"],
-  empty: {
-    waiting: "Nothing waits on a reply. Paste a link above to add one.",
-    held: "No comment is held. One shows here when its subreddit asks for more karma or an older account than ours has.",
-    posted: "Comments and replies we send show here, each checked for a signed-out reader.",
-    notlive: "Every sent comment checked so far is live for strangers.",
-    threads: "No Reddit thread waits. Paste a subreddit to watch it, or a thread to answer it.",
-    posts: "No one else's post waits. Paste one, or an account to follow.",
-    ours: "Comments on our posts show here.",
-    dms: "DMs show here once someone writes back.",
-    all: "Reddit threads, others' posts, comments on ours and DMs show here.",
-  },
-  actions: ENGAGE_ACTIONS,
-  extras: withDraft(
-    (row) => ENGAGE_DRAFT[String(row.type)] ?? null,
-    withThread(
-      withProof((detail, at) =>
-        (detail as { messages?: unknown } | null)?.messages
-          ? dmExtras(detail, at)
-          : { sections: [] },
-      ),
-    ),
-  ),
-  head: (_meta, reload, at) => createElement(EngageHead, { reload, demo: !!at.demo }),
-  count: { state: ["new", "waiting"] },
-};
-
 /** Explore's picks: as if pasted (`ReachDesk.pick`), so a reply waits in Engage. */
 const EXPLORE_ACTIONS: Action[] = [
   {
@@ -1340,44 +1289,6 @@ export const APPROVAL_PAGE: ListPage = {
   count: { state: ["new", "waiting"] },
 };
 
-const PERSON_ACTIONS: Action[] = [
-  {
-    id: "marketing.personDraft",
-    label: "Draft",
-    handler: "marketing/personDraft",
-    key: "d",
-    when: { can: ["message"] },
-    done: said("Drafted. Message opens with it."),
-  },
-  {
-    id: "marketing.personMessage",
-    label: "Message",
-    handler: "marketing/personMessage",
-    ask: { field: "body", label: "Your message", from: "draft" },
-    key: "r",
-    when: { can: ["message"] },
-    done: said("Queued. It leaves on the next tick."),
-  },
-  {
-    id: "marketing.personInvite",
-    label: "Invite",
-    handler: "marketing/personInvite",
-    confirm: "Send them a LinkedIn invite?",
-    key: "i",
-    when: { can: ["invite"] },
-    done: said("Queued. It leaves under the day's invite cap."),
-  },
-  {
-    id: "marketing.personFollow",
-    label: "Follow",
-    handler: "marketing/personFollow",
-    confirm: "Follow them from Wren's account?",
-    key: "f",
-    when: { platform: ["linkedin", "x", "instagram"] },
-    done: said("Followed."),
-  },
-];
-
 // Texts and DM slots edit in place (the record's `edits`): History, Undo, Ask Claude. A keyword
 // reply keeps Edit, since saving it sets the provider's answer too.
 const TEXT_COPY_ACTIONS: Action[] = [
@@ -1445,7 +1356,7 @@ const TODAY: DayPage = {
       at: "lastAt",
       carry: true,
       action: "marketing.dmReply",
-      open: "/marketing/dms",
+      open: "/outreach/dms",
     },
     {
       record: "marketing.video",
@@ -1490,7 +1401,7 @@ const REVIEWS_PAGE: ListPage = {
  * Marketing's pages (designs/2026-10-13-primitives-first.md, 2026-10-14-content-types.md): Today
  * (what to make, what waits, what went out), Drafts (every post draft, edit and approve), Studio
  * (make anything new, finish what waits; Write and the recordings, `videos`, open from it),
- * Engage, Pieces (each thing made, with everywhere it went), Numbers, and More,
+ * Pieces (each thing made, with everywhere it went), Numbers, and More,
  * which lists the rest by what each is for. Ids stay, so old links and pings keep landing; a page
  * past the main ones lights More.
  */
@@ -1498,14 +1409,13 @@ const MAIN: Readonly<Record<string, string>> = {
   plan: "Today",
   drafts: "Drafts",
   studio: "Studio",
-  engage: "Engage",
   pieces: "Pieces",
   overview: "Numbers",
 };
 /** More's headings for the old sidebar groups. */
 const MORE_GROUPS: Readonly<Record<string, string>> = {
   Content: "Content",
-  Reach: "People and replies",
+  Reach: "Replies and audience",
   Numbers: "Numbers",
   "Ads & Site": "Ads and site",
 };
@@ -1692,9 +1602,8 @@ export const marketing: Module = {
   name: "Marketing",
   component: "marketing.stats",
   icon: "megaphone",
-  blurb: "Every platform's posts, comments, DMs and their numbers in one place.",
+  blurb: "Every platform's posts, the comments on them and their numbers in one place.",
   requires: { audience: "team" },
-  find: findRecords({ record: "marketing.person", path: "/marketing/people", kind: "Person" }),
   pages: mainPlusMore([
     // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
     { id: "inbox", ...INBOX_PAGE, hidden: true },
@@ -1756,7 +1665,6 @@ export const marketing: Module = {
       lights: "studio",
       Page: WritePage,
     },
-    ENGAGE_PAGE,
     {
       id: "feed",
       label: "Feed",
@@ -1872,61 +1780,6 @@ export const marketing: Module = {
       Page: FactsPage,
     },
     {
-      id: "people",
-      label: "People",
-      about: "People you can message, and what's open with each.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.person",
-      empty: {
-        message: "No one to message yet. Accepted invites and Reddit people show here.",
-        invite: "No one to invite. People with a LinkedIn page show here.",
-        all: "People with a LinkedIn page or a Reddit read show here.",
-      },
-      actions: PERSON_ACTIONS,
-    },
-    {
-      id: "dms",
-      label: "DMs",
-      about: "Direct messages waiting on your reply.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.dm",
-      empty: {
-        waiting: "No DM waits on you.",
-        replied: "Threads where they wrote back show here.",
-        all: "Threads show here once reach messages someone.",
-      },
-      actions: [
-        ...DM_ACTIONS,
-        ...draftActions("dm", { state: ["new", "enrolled", "connected", "replied", "finished"] }),
-      ],
-      extras: withDraft(DM_DRAFT, dmExtras),
-    },
-    {
-      id: "invites",
-      label: "Invites",
-      about: "Connection invites waiting on your yes.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.invite",
-      empty: {
-        proposed: "No invite waits on you. The sweep proposes the day's every 6 hours.",
-        queued: "Nothing to send. Invites queue once you approve them.",
-        pending: "No invite waits on an answer.",
-        accepted: "Accepted invites show here, ready for a first message.",
-        withdrawn: "Withdrawn and ended invites show here.",
-        all: "LinkedIn invites show here.",
-      },
-      actions: [
-        ...CONNECT_ACTIONS,
-        ...INVITE_ACTIONS,
-        ...draftActions("invite", { status: ["accepted"] }),
-      ],
-      // Only an accepted invite takes a message.
-      extras: withDraft((row) => (row.status === "accepted" ? INVITE_DRAFT : null)),
-    },
-    {
       id: "followers",
       label: "Followers",
       about: "Your followers on each platform, and the change in a week.",
@@ -1949,70 +1802,6 @@ export const marketing: Module = {
         withdrawn: "No one has left.",
         paused: "No one has paused.",
         all: "Signups show here from the site, forms and texts.",
-      },
-    },
-    {
-      id: "dm-copy",
-      label: "DM copy",
-      about: "The words each DM sends, slot by slot.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.dm_copy",
-      empty: { empty: "Every slot has words.", all: "No reach sequence has slots." },
-      extras: copyExtras,
-    },
-    {
-      id: "threads",
-      label: "Thread replies",
-      about: "New posts in the places you watch, each with a reply drafted.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.thread",
-      empty: {
-        queued: "No thread to answer. Watch a place to read its new posts.",
-        commented: "Threads we commented in show here.",
-        all: "New posts in watched places show here.",
-      },
-      actions: THREAD_ACTIONS,
-      extras: withDraft(THREAD_DRAFT, factsDropped("dropped", "Dropped because")),
-    },
-    {
-      id: "places",
-      label: "Places",
-      about: "Subreddits worth posting in, and what each one wants.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.place",
-      empty: {
-        found: "Nothing to pick. Places are found once a month from the audience.",
-        watching: "No place watched yet. Pick one under To pick.",
-        held: "No subreddit holds our comments back. One shows here when it asks for more karma or an older account than we have.",
-        all: "Subreddits found for the audience show here.",
-      },
-      actions: PLACE_ACTIONS,
-    },
-    {
-      id: "accounts",
-      label: "Accounts",
-      about: "Every account we post and reply as: health, warm-up, today's sends, and its places.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.account",
-      columns: [
-        "name",
-        "platform",
-        "state",
-        "health",
-        "stage",
-        "karma",
-        "ageDays",
-        "today",
-        "placeCount",
-        "lastSent",
-      ],
-      empty: {
-        live: "No account yet. Each login we post or reply as shows here once it is set up.",
-        all: "Our accounts show here once reach has one.",
       },
     },
     {
@@ -2134,12 +1923,6 @@ export const marketing: Module = {
           label: "Texts waiting",
           record: "marketing.text_contact",
           href: "/marketing/texts?view=waiting",
-          needs: true,
-        },
-        {
-          label: "DMs waiting",
-          record: "marketing.dm",
-          href: "/marketing/dms?view=waiting",
           needs: true,
         },
         {

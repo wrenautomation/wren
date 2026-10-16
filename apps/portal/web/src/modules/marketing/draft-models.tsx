@@ -1,5 +1,5 @@
 /**
- * Marketing → Engage: which model writes reach drafts, and how each one's drafts fared
+ * Outreach → Engage: which model writes reach drafts, and how each one's drafts fared
  * (designs/2026-10-14-draft-models.md). Shut by default; it reads when opened. The table is
  * `ReachDesk.draftModels`; the arms are set with `wren drafts models set`.
  */

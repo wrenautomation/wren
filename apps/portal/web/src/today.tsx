@@ -104,12 +104,21 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
   );
 }
 
-/** To approve's other kinds: their name, where they list, and whether `who` is a person. */
-const ASKS: Record<string, { label: string; view: string; person?: boolean }> = {
-  invite: { label: "First messages to new connections", view: "invites", person: true },
-  connect: { label: "Connection notes", view: "invites", person: true },
-  thread: { label: "Reddit thread comments", view: "threads" },
-  onpost: { label: "Comments on others' posts", view: "comments" },
+/**
+ * To approve's other kinds: their name, where they list, and whether `who` is a person. `app`:
+ * the app whose own tabs count them too (Outreach's Engage and Invites), which then lists them
+ * once, not twice.
+ */
+const ASKS: Record<string, { label: string; view: string; person?: boolean; app?: string }> = {
+  invite: {
+    label: "First messages to new connections",
+    view: "invites",
+    person: true,
+    app: "outreach",
+  },
+  connect: { label: "Connection notes", view: "invites", person: true, app: "outreach" },
+  thread: { label: "Reddit thread comments", view: "threads", app: "outreach" },
+  onpost: { label: "Comments on others' posts", view: "comments", app: "outreach" },
   reply: { label: "Inbox replies", view: "replies", person: true },
   video: { label: "Videos", view: "videos" },
   template: { label: "Template versions", view: "templates" },
@@ -164,9 +173,12 @@ async function asksOf(apps: Module[], waiting: Waiting): Promise<Ask[]> {
           limit: 200,
         });
         const by = new Map<string, Row[]>();
+        const has = new Set(apps.map((x) => x.id));
         for (const r of rows) {
           const t = String(r.type);
           if (t === "draft") continue;
+          const own = ASKS[t]?.app;
+          if (own && has.has(own)) continue;
           by.set(t, [...(by.get(t) ?? []), r]);
         }
         return [...by].map(([t, rs]) => {
