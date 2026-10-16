@@ -122,7 +122,7 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 ./bin/wren --client <id> delivery result meetings 3      # only the offer's measures
 ./bin/wren --client <id> delivery hide <updateId>        # off their timeline, kept on record
 ./bin/wren --client <id> delivery comment "388 of them." --update <id> | --deliverable <id>   # reply in a thread
-./bin/wren --client <id> delivery invoice 1000 --for "Setup" --due 2026-10-15 [--currency USD] [--setup] [--period 2026-11 --units 3]   # numbered WREN-n
+./bin/wren --client <id> delivery invoice 1000 --for "Setup" [--due 2026-10-15] [--currency USD] [--setup] [--period 2026-11 --units 3]   # numbered WREN-n; due the day it's issued unless --due
 ./bin/wren --client <id> delivery bill-to [--name "Acme Pvt Ltd"] [--address "1 Main St" "Pune, India"] [--email pay@acme.com] [--tax-number X]   # printed under "Bill to"; none given prints it
 ./bin/wren --client <id> delivery paid WREN-1001 [--on <date>] [--undo]    # void WREN-1001 cancels it
 ./bin/wren delivery wise [--status review] [--all]       # money in from Wise, what each paid

@@ -525,7 +525,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
       "An invoice, numbered WREN-n: BillingWatch mails its PDF with our bank details to the client's owners, matches the transfer, pings when it's late",
     )
     .requiredOption("--for <text>", "what it's for, as the client reads it")
-    .requiredOption("--due <date>", "YYYY-MM-DD")
+    .option("--due <date>", "YYYY-MM-DD (default: the day it's issued, as paid in full is)")
     .option("--issued <date>", "YYYY-MM-DD (default: today)")
     .option("--currency <code>", "three letters", "USD")
     .option("--setup", "the setup fee: paid, with the contract signed, it starts the plan")
@@ -536,7 +536,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         amount: string,
         opts: Opts & {
           for: string;
-          due: string;
+          due?: string;
           issued?: string;
           currency: string;
           setup?: boolean;
@@ -550,7 +550,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
             cents: centsOf(amount),
             currency: opts.currency,
             issuedOn: opts.issued,
-            dueOn: opts.due,
+            dueOn: opts.due ?? opts.issued ?? todayUtc(),
             setup: opts.setup,
             period: opts.period,
             units: opts.units === undefined ? undefined : Number(opts.units),
