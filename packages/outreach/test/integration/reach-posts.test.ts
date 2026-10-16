@@ -864,12 +864,23 @@ describe("his Comment, with a like and a follow", () => {
     routes["/web/p/AAA111/like"] = () => {
       throw new SiteCallError("instagram", "POST", "/web/p/AAA111/like", 429, "like: cap");
     };
+    // The look first reads the post's comments as the same account: the whole list, none ours.
+    routes["/web/p/AAA111/comments"] = (i) =>
+      i.text
+        ? {}
+        : { url: "https://example.test/p", viewer: "our_acct", more: false, comments: [] };
     const p = await queuedOn("instagram", "AAA111", "founder.one");
     await desk().commentPost({ id: p.id, body: "His words." });
     expect(replies).toEqual([]);
-    expect(calls.map((c) => [c.path, c.input, c.account])).toEqual([
-      ["/web/p/AAA111/comments", { shortcode: "AAA111", text: "His words." }, "instagram@wren"],
-      ["/web/p/AAA111/like", { shortcode: "AAA111" }, "instagram@wren"],
+    expect(calls.map((c) => [c.method, c.path, c.input, c.account])).toEqual([
+      ["GET", "/web/p/AAA111/comments", { shortcode: "AAA111" }, "instagram@wren"],
+      [
+        "POST",
+        "/web/p/AAA111/comments",
+        { shortcode: "AAA111", text: "His words." },
+        "instagram@wren",
+      ],
+      ["POST", "/web/p/AAA111/like", { shortcode: "AAA111" }, "instagram@wren"],
     ]);
     const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, p.id));
     expect(after).toMatchObject({ state: "commented", comment: "His words.", likedAt: null });

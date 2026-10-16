@@ -32,6 +32,7 @@
     "./content": "./src/content/index.ts",
     "./content/box": "./src/content/box.ts",
     "./content/ingress": "./src/content/ingress.ts",
+    "./content/page-inbox": "./src/content/page-inbox.ts",
     "./testing": "./src/testing.ts",
     "./content/restate": "./src/content/restate.ts",
     "./content/shapes": "./src/content/shapes.ts",

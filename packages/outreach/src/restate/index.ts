@@ -27,6 +27,7 @@ import { type Platform as ContentPlatform, capWaitMs, type SiteClient } from "@w
 import { isRefusal } from "@wren/core/content/restate";
 import type { Scorecard } from "@wren/core/draft-models";
 import { rejectWhy } from "@wren/core/draft-record";
+import type { Seen } from "@wren/core/maybe-sent";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
 import type { OurPost } from "@wren/core/our-posts";
@@ -44,6 +45,10 @@ type ContentReply = {
     ctx: restate.Context,
     req: { platform: ContentPlatform; commentId: string; text: string },
   ) => Promise<{ ref: string | null }>;
+  findPrivateReply: (
+    ctx: restate.Context,
+    req: { platform: ContentPlatform; commentId: string; to: string; text: string; since: string },
+  ) => Promise<Seen>;
   arm: (
     ctx: restate.Context,
     req: { platform: ContentPlatform; commentId: string; postId?: string | null; text: string },
@@ -234,7 +239,13 @@ import {
 } from "../threads.js";
 import { nextDue, type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
-import { contentLook, isSendUnsure, sendAtMostOnce, sendError } from "./maybe-sent.js";
+import {
+  contentLook,
+  igCommentLook,
+  isSendUnsure,
+  sendAtMostOnce,
+  sendError,
+} from "./maybe-sent.js";
 import { pasteHandlers } from "./paste.js";
 import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
@@ -1762,8 +1773,10 @@ export function makeReachDesk(deps: ReachDeps) {
           const c = await ctx.run("comment", () => terminal(() => commentById(deps.db, req.id)));
           if (!c.accountId) {
             await ctx.run("plan", () => terminal(() => planPrivateReply(deps.db, req.id, now)));
-            // At most once (designs/2026-10-16-maybe-sent.md). Nothing reads a Page's messages
-            // back on this path, so a lost outcome is unsure and waits on a person.
+            // At most once (designs/2026-10-16-maybe-sent.md): a lost outcome is looked for in
+            // the Page's inbox, in the author's conversation; unsure when that read can't tell.
+            const content = () => ctx.serviceClient<ContentReply>({ name: "Content" });
+            const to = c.author;
             const sent = await sendAtMostOnce(ctx, deps.db, {
               item: `private:${c.id}`,
               platform: c.platform,
@@ -1772,10 +1785,18 @@ export function makeReachDesk(deps: ReachDeps) {
               target: c.ref,
               url: c.url,
               again: req.again === true,
+              look: to
+                ? (since) =>
+                    content().findPrivateReply({
+                      platform: c.platform,
+                      commentId: c.ref,
+                      to,
+                      text: body,
+                      since,
+                    })
+                : undefined,
               send: () =>
-                ctx
-                  .serviceClient<ContentReply>({ name: "Content" })
-                  .privateReply({ platform: c.platform, commentId: c.ref, text: body }),
+                content().privateReply({ platform: c.platform, commentId: c.ref, text: body }),
             }).catch(failed);
             return ctx.run("sent", () =>
               privateReplied(deps.db, c, { body, ref: sent.ref, now, by: byOf(req) }),
@@ -1922,8 +1943,8 @@ export function makeReachDesk(deps: ReachDeps) {
               throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
             const viaSite = acts.comment;
             // At most once (designs/2026-10-16-maybe-sent.md). Instagram's comment goes through
-            // the site with nothing to read it back by; LinkedIn and X through `Content.reply`,
-            // X's read back by a search of our own posts.
+            // the site, read back off the post page as the same account; LinkedIn and X through
+            // `Content.reply`, X's read back by a search of our own posts.
             await sendAtMostOnce(ctx, deps.db, {
               item,
               platform: post.platform,
@@ -1933,7 +1954,9 @@ export function makeReachDesk(deps: ReachDeps) {
               url: post.url,
               again: req.again === true,
               look: viaSite
-                ? undefined
+                ? post.platform === "instagram"
+                  ? igCommentLook(sites, { shortcode: post.ref, text: body, account })
+                  : undefined
                 : contentLook(ctx, {
                     platform: post.platform,
                     post: post.ref,

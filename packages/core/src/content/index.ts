@@ -199,6 +199,17 @@ export interface ReplyQuery {
   since: string;
 }
 
+/** Our private reply looked for after its outcome was lost (designs/2026-10-16-maybe-sent.md). */
+export interface PrivateReplyQuery {
+  /** The comment we answered. */
+  commentId: string;
+  /** Its author as the comment shows them: a handle on Instagram, a name on Facebook. */
+  to: string;
+  text: string;
+  /** When the send began, ISO. */
+  since: string;
+}
+
 export interface ContentChannel {
   readonly platform: Platform;
   /** Irreversible: an orchestrator gates it like any other irreversible step. */
@@ -230,6 +241,8 @@ export interface ContentChannel {
    * per comment, within 7 days of it). The message's id. Absent = the platform has no such door.
    */
   privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>;
+  /** Our private reply read back from the inbox it went to. Absent = nothing here reads it. */
+  findPrivateReply?(q: PrivateReplyQuery): Promise<Seen>;
   /**
    * Our own reply under `on`, as this account: for a platform whose `comments` can't mark ours
    * (`mine`). Absent = nothing here reads it back.

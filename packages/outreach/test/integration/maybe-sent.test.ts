@@ -4,10 +4,12 @@
  * sent once more; unreadable parks unsure with no send; a second invocation meanwhile sends
  * nothing. The sender's DMs, a person's Mark posted and the scheduler's hands-off follow. Then the
  * newer keys: an X reply read back by `Content.findReply`, a private reply (`private:`) with no
- * read, and a client's DM answer (`sdm:`) read back from its conversation.
+ * read and read back from the Page's inbox, an Instagram comment (`onpost:`) read back off the
+ * post page, and a client's DM answer (`sdm:`) read back from its conversation.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import { type CommentRow, SiteCallError } from "@wren/core/content";
+import { type CommentRow, SiteCallError, type SiteClient } from "@wren/core/content";
+import { pageInboxOf, seenPrivateReply } from "@wren/core/content/page-inbox";
 import { type Seen, seenInMessages } from "@wren/core/maybe-sent";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -21,6 +23,7 @@ import { DEFAULT_POLICY } from "../../src/policy.js";
 import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
 import {
   contentLook,
+  igCommentLook,
   isSendTaken,
   isSendUnsure,
   sendAtMostOnce,
@@ -444,6 +447,150 @@ describe("a private reply (private:), with nothing to read it back", () => {
     release();
     expect(await first).toMatchObject({ ref: "m_1", found: false });
     expect(sent).toBe(1);
+  });
+});
+
+describe("a private reply (private:), read back from the Page's inbox", () => {
+  const WORDS = "Here is the setup guide you asked for.";
+  const META_MAYBE = new SiteCallError("meta", "POST", "/p1/messages", 504, "timed out");
+  /** The Page's inbox as `Content.findPrivateReply` reads it; null = the read fails. */
+  let inbox: unknown = null;
+  let sent = 0;
+  const ours = (at: string) => ({
+    data: [
+      {
+        participants: { data: [{ id: "p1" }, { id: "u1", username: "reader1" }] },
+        updated_time: at,
+        messages: { data: [{ id: "m_7", message: WORDS, from: { id: "p1" }, created_time: at }] },
+      },
+    ],
+  });
+  const privately = (landed: unknown) =>
+    sendAtMostOnce(ctxOf().ctx, db(), {
+      item: "private:9",
+      platform: "instagram",
+      account: null,
+      words: WORDS,
+      target: "c1",
+      url: "https://example.test/c1",
+      look: async (since) => {
+        if (!inbox) throw new Error("conversations: 403");
+        return seenPrivateReply(pageInboxOf(inbox, "p1"), { to: "reader1", text: WORDS, since });
+      },
+      send: async () => {
+        sent += 1;
+        inbox = landed;
+        throw META_MAYBE;
+      },
+    });
+  beforeEach(() => {
+    inbox = { data: [] };
+    sent = 0;
+  });
+
+  it("in their conversation after an unknown outcome: marked once with the message's id", async () => {
+    expect(await privately(ours("2026-10-01T18:00:05+0000"))).toMatchObject({
+      ref: "m_7",
+      found: true,
+    });
+    expect(await sendAttempt(db(), "private:9")).toMatchObject({ state: "sent", ref: "m_7" });
+    expect(sent).toBe(1);
+  });
+
+  it("a whole inbox without it: sent once more, then unsure; a failed read: unsure at once", async () => {
+    expect(isSendUnsure(await privately({ data: [] }).catch((e: unknown) => e))).toBe(true);
+    expect(sent).toBe(2);
+    await db().delete(sendAttempts);
+    sent = 0;
+    expect(isSendUnsure(await privately(null).catch((e: unknown) => e))).toBe(true);
+    expect(sent).toBe(1);
+    expect(await sendAttempt(db(), "private:9")).toMatchObject({ state: "unsure" });
+  });
+});
+
+describe("an Instagram comment (onpost:), read back off the post page", () => {
+  const WORDS = "Lovely light in this one, where was it taken?";
+  const IG_MAYBE = new SiteCallError(
+    "instagram",
+    "POST",
+    "/web/p/AbC123/comments",
+    504,
+    "timed out",
+  );
+  /** The post's comments as autobrowse reads them as our account. */
+  const page = {
+    landed: false,
+    /** Our comment shows in the read once it lands. */
+    shows: true,
+    viewer: "our_acct" as string | null,
+    more: false,
+    posted: 0,
+  };
+  const asked: unknown[] = [];
+  const sites = {
+    call: async (_site: string, method: string, path: string, input: unknown, account?: string) => {
+      asked.push([method, path, input, account]);
+      return {
+        url: "https://www.instagram.com/p/AbC123/",
+        viewer: page.viewer,
+        more: page.more,
+        comments: [
+          { id: "1", text: "Nice", at: "2026-10-01T17:00:00.000Z", mine: false },
+          ...(page.landed && page.shows
+            ? [{ id: "2", text: WORDS, at: "2026-10-01T18:00:04.000Z", mine: true }]
+            : []),
+        ],
+      };
+    },
+  } as unknown as SiteClient;
+  const comment = () =>
+    sendAtMostOnce(ctxOf().ctx, db(), {
+      item: "onpost:8",
+      platform: "instagram",
+      account: "instagram@alt",
+      words: WORDS,
+      target: "AbC123",
+      url: "https://www.instagram.com/p/AbC123/",
+      look: igCommentLook(sites, { shortcode: "AbC123", text: WORDS, account: "instagram@alt" }),
+      send: async () => {
+        page.posted += 1;
+        page.landed = true;
+        throw IG_MAYBE;
+      },
+    });
+  beforeEach(() => {
+    Object.assign(page, { landed: false, shows: true, viewer: "our_acct", more: false, posted: 0 });
+    asked.length = 0;
+  });
+
+  it("ours after an unknown outcome: marked once, read as the sending account", async () => {
+    expect(await comment()).toMatchObject({ ref: "2", found: true });
+    expect(asked[0]).toEqual([
+      "GET",
+      "/web/p/AbC123/comments",
+      { shortcode: "AbC123" },
+      "instagram@alt",
+    ]);
+    expect(await sendAttempt(db(), "onpost:8")).toMatchObject({ state: "sent", ref: "2" });
+    expect(page.posted).toBe(1);
+  });
+
+  it("not in the whole list: sent once more, then unsure", async () => {
+    page.shows = false;
+    expect(isSendUnsure(await comment().catch((e: unknown) => e))).toBe(true);
+    expect(page.posted).toBe(2);
+  });
+
+  it("a ranked list cut short, or no viewer: unsure, never a second send", async () => {
+    page.shows = false;
+    page.more = true;
+    expect(isSendUnsure(await comment().catch((e: unknown) => e))).toBe(true);
+    expect(page.posted).toBe(1);
+    await db().delete(sendAttempts);
+    Object.assign(page, { more: false, viewer: null, posted: 0 });
+    expect(isSendUnsure(await comment().catch((e: unknown) => e))).toBe(true);
+    expect(page.posted).toBe(1);
+    expect(await sendAttempt(db(), "onpost:8")).toMatchObject({ state: "unsure" });
   });
 });
 

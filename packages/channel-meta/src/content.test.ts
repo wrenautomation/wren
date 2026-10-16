@@ -517,3 +517,84 @@ describe("a configured Page: /me/accounts is not read", () => {
     expect(accounts(calls)).toBe(0);
   });
 });
+
+describe("our private reply, read back from the Page's inbox", () => {
+  const since = "2026-09-22T10:00:00Z";
+  const conv = (
+    them: Record<string, string>,
+    self: string,
+    msgs: Array<[string, string, string]>,
+  ) => ({
+    participants: { data: [{ id: self }, them] },
+    updated_time: msgs.at(0)?.[2] ?? since,
+    messages: {
+      data: msgs.map(([id, from, at], i) => ({
+        id,
+        message: i === 0 ? "Thanks for asking, here is the price list" : "how much?",
+        from: { id: from },
+        created_time: at,
+      })),
+    },
+  });
+
+  it("Instagram: finds it in the author's conversation, by handle", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /111/conversations": () => ({
+        data: [
+          conv({ id: "u7", username: "sam_test" }, "ig9", [
+            ["m2", "ig9", "2026-09-22T10:00:05+0000"],
+          ]),
+        ],
+      }),
+    });
+    const ch = instagramContent(sites, { now, pageId: "111", igId: "ig9" });
+    const got = await ch.findPrivateReply?.({
+      commentId: "c9",
+      to: "Sam_Test",
+      text: "Thanks for asking, here is the price list",
+      since,
+    });
+    expect(got).toMatchObject({ kind: "found", ref: "m2" });
+    expect(calls[0]?.[2]).toMatchObject({ platform: "instagram", limit: 25 });
+  });
+
+  it("Facebook: absent when the author's whole conversation holds no such words", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /111/conversations": () => ({
+        data: [
+          conv({ id: "u8", name: "Sam Test" }, "111", [["m1", "u8", "2026-09-22T09:00:00+0000"]]),
+        ],
+      }),
+    });
+    const fb = facebookContent(sites, { now, pageId: "111" });
+    const got = await fb.findPrivateReply?.({
+      commentId: "c9",
+      to: "Sam Test",
+      text: "A different note entirely",
+      since,
+    });
+    expect(got).toEqual({ kind: "absent" });
+    expect(calls[0]?.[2]).toMatchObject({ platform: "messenger" });
+  });
+
+  it("no conversation with them: absent on a whole inbox, unclear on a recent partial one", async () => {
+    const other = conv({ id: "u5", name: "Kim Test" }, "111", [
+      ["m3", "u5", "2026-09-22T10:01:00+0000"],
+    ]);
+    const whole = fakeSites({ "GET /111/conversations": () => ({ data: [other] }) });
+    const q = { commentId: "c9", to: "Sam Test", text: "hi there", since };
+    expect(
+      await facebookContent(whole.sites, { now, pageId: "111" }).findPrivateReply?.(q),
+    ).toEqual({
+      kind: "absent",
+    });
+    const part = fakeSites({
+      "GET /111/conversations": () => ({ data: [other], paging: { next: "https://graph.test/n" } }),
+    });
+    expect(
+      await facebookContent(part.sites, { now, pageId: "111" }).findPrivateReply?.(q),
+    ).toMatchObject({
+      kind: "unclear",
+    });
+  });
+});

@@ -7,6 +7,7 @@
 
 import { keepSentEdit } from "@wren/core/ask";
 import type { SiteClient } from "@wren/core/content";
+import { pageInboxOf, pageInboxQuery } from "@wren/core/content/page-inbox";
 import { recordDraft } from "@wren/core/draft-record";
 import { type Seen, seenInMessages } from "@wren/core/maybe-sent";
 import { recordTouch } from "@wren/core/touches";
@@ -63,38 +64,17 @@ export async function readDms(sites: SiteClient, c: DmAccount): Promise<DmThread
     const pageId = c.extra.pageId;
     if (!pageId) return [];
     const self = c.platform === "instagram" ? c.extra.igUserId : pageId;
-    const r = await sites.call<Json>(
+    const r = await sites.call<unknown>(
       "meta",
       "GET",
       `/${pageId}/conversations`,
-      {
-        platform: c.platform === "instagram" ? "instagram" : "messenger",
-        fields: `participants,updated_time,messages.limit(${TAIL}){id,message,from,created_time}`,
-        limit: 25,
-      },
+      pageInboxQuery(c.platform),
       account,
     );
-    return listOf(r).flatMap((conv): DmThread[] => {
-      const people = listOf(conv.participants);
-      const them = people.find((p) => String(p.id) !== self);
-      if (!them) return [];
-      const messages = listOf(conv.messages).map((m) => ({
-        id: String(m.id),
-        text: String(m.message ?? ""),
-        at: String(m.created_time ?? ""),
-        mine: String((m.from as Json | undefined)?.id ?? "") === self,
-      }));
-      return [
-        {
-          them: {
-            id: String(them.id),
-            handle: str(them.username) ?? String(them.id),
-            name: str(them.name) ?? str(them.username),
-          },
-          messages: messages.filter((m) => m.text).reverse(),
-        },
-      ];
-    });
+    return pageInboxOf(r, String(self ?? "")).threads.map((t) => ({
+      them: t.them,
+      messages: t.messages,
+    }));
   }
   if (c.platform === "x") {
     const r = await sites.call<Json>(

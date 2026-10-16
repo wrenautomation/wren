@@ -41,6 +41,7 @@ import type {
   Platform,
   Post,
   PostPatch,
+  PrivateReplyQuery,
   ReportDays,
 } from "./index.js";
 import { PLATFORMS } from "./index.js";
@@ -630,6 +631,42 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             return await ch.findReply({
               on: req.on,
               to: req.to ?? null,
+              text: req.text,
+              since: req.since,
+            });
+          } catch (err) {
+            const why = err instanceof Error ? err.message : String(err);
+            return { kind: "unclear", why: `the read failed: ${why.slice(0, 200)}` };
+          }
+        },
+      ),
+      /**
+       * Our private reply to a comment, read back from the Page's inbox after its send's outcome
+       * was lost (designs/2026-10-16-maybe-sent.md). A read: any failure, or a channel with no
+       * such read, answers unclear, never an error.
+       */
+      findPrivateReply: serviceHandler(
+        {
+          input: z.looseObject({
+            platform: PLATFORM,
+            commentId: z.string().describe("The comment we answered"),
+            to: z.string().describe("Its author: a handle on Instagram, a name on Facebook"),
+            text: z.string(),
+            since: z.string().describe("When the send began, ISO"),
+            client: CLIENT,
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform } & PrivateReplyQuery & ForClient,
+        ): Promise<Seen> => {
+          try {
+            const ch = await pick(ctx, req.platform, req.client, "content.social");
+            if (!ch.findPrivateReply)
+              return { kind: "unclear", why: `${req.platform} can't read a private reply back` };
+            return await ch.findPrivateReply({
+              commentId: req.commentId,
+              to: req.to,
               text: req.text,
               since: req.since,
             });

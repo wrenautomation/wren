@@ -8,6 +8,7 @@ import {
   type CommentRow,
   type Platform as ContentPlatform,
   SiteCallError,
+  type SiteClient,
 } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
 import { type Seen, sameWords, sendOnce, unclear } from "@wren/core/maybe-sent";
@@ -184,5 +185,41 @@ export function contentLook(
     return hit
       ? { kind: "found", ref: hit.id, at: hit.at, url: hit.url ?? null }
       : unclear("our words are not in the post's comments as read");
+  };
+}
+
+/** autobrowse `instagram GET /web/p/{shortcode}/comments`, the parts a look reads. */
+interface IgPostComments {
+  url: string;
+  /** The signed-in account; null when the page did not show it. */
+  viewer: string | null;
+  comments: Array<{ id: string; text: string; at: string; mine: boolean }>;
+  /** Instagram holds comments the read did not reach (it ranks them). */
+  more: boolean;
+}
+
+/**
+ * Our comment on someone else's Instagram post, read off the post page as the account that sent
+ * it: found when one of its comments has our words; absent only when the whole list was read and
+ * the page showed who we are; else unclear. A failed read is unclear (`sendOnce`).
+ */
+export function igCommentLook(
+  sites: Pick<SiteClient, "call">,
+  q: { shortcode: string; text: string; account: string | null },
+): () => Promise<Seen> {
+  return async () => {
+    const r = await sites.call<Partial<IgPostComments> | null>(
+      "instagram",
+      "GET",
+      `/web/p/${encodeURIComponent(q.shortcode)}/comments`,
+      { shortcode: q.shortcode },
+      q.account ?? undefined,
+    );
+    const hit = (r?.comments ?? []).find((c) => c.mine && sameWords(c.text, q.text));
+    if (hit) return { kind: "found", ref: hit.id, at: hit.at || null, url: r?.url ?? null };
+    if (!r?.viewer) return unclear("the post page did not show which account is signed in");
+    if (r.more !== false)
+      return unclear("Instagram ranks comments and the read did not reach them all");
+    return { kind: "absent" };
   };
 }
