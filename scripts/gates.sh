@@ -78,10 +78,13 @@ schema() {
 # Every template option through SpamAssassin (designs/2026-10-05-deliverability-tests.md); one over 2.0 fails.
 # The CLI wants a database URL at start; spamcheck reads none without --drafts, and CI has none.
 spam() { echo "==> spam score (needs Docker)" && WREN_DATABASE_URL="${WREN_DATABASE_URL:-postgres://unused@127.0.0.1:1/unused}" ./bin/wren email spamcheck; }
-# A builder's loop: typecheck and unit tests for the packages changed since origin/main and what
-# depends on them. The full gate runs once, at hand-off; unchanged packages are cache hits there.
+# A builder's loop: Biome on the files changed since origin/main, then typecheck and unit tests
+# for the packages changed and what depends on them. The full gate runs once, at hand-off;
+# unchanged packages are cache hits there.
 changed() {
-  echo "==> typecheck + unit, changed since origin/main" &&
+  echo "==> biome, changed since origin/main" &&
+    pnpm -s biome check --changed --since=origin/main --no-errors-on-unmatched &&
+    echo "==> typecheck + unit, changed since origin/main" &&
     pnpm turbo run typecheck test:unit --filter="...[origin/main]" --output-logs=errors-only
 }
 case "${1:-all}" in
