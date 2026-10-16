@@ -22,13 +22,13 @@ import {
 } from "@wren/core/people-map";
 import { peopleMapPass } from "@wren/core/people-map-pass";
 import { STAGES, WARM_REASONS } from "@wren/core/people-map-schema";
+import { mergeProfiles } from "@wren/core/profiles";
 import {
   type BackfillCount,
   backfillClientRows,
   backfillProfiles,
   PROFILE_SOURCES,
 } from "@wren/core/profiles-backfill";
-import { mergeProfiles } from "@wren/core/profiles";
 import { bulkBackfillProfiles } from "@wren/core/profiles-bulk";
 import { linkBookers } from "@wren/core/profiles-link";
 import type { Db } from "@wren/db";
