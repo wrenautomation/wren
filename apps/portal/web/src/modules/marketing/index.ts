@@ -2141,7 +2141,8 @@ export const clientMarketing: Module = {
     // Its own threads: reply, Suggest, notes, assign, close and snooze.
     asClient("inbox", {
       actions: INBOX_THREAD_ACTIONS.map(clientInbox),
-      extras: conversationExtras,
+      // A comment's whole thread, read only: its reply box answers the comment.
+      extras: withThread(conversationExtras, { readOnly: true }),
       reply: conversationReply,
     }),
     {

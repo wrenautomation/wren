@@ -357,6 +357,18 @@ describe("a client's DMs and comments, on its own accounts", () => {
     expect(await askedReplyRecord.rows?.(kappa)).toEqual([]);
   });
 
+  it("a comment's whole thread comes from the client's own database", async () => {
+    const out = await api().recordsGet({
+      ...as(BO),
+      record: "marketing.inbox",
+      id: `comment:${k.commentId}`,
+    });
+    const ctx = (out.detail as { context?: { nodes: { ref: string; ours: boolean }[] } | null })
+      .context;
+    expect(ctx?.nodes.length).toBeGreaterThan(0);
+    expect(ctx?.nodes.some((n) => !n.ours)).toBe(true);
+  });
+
   it("LinkedIn DMs: not available yet, with why", async () => {
     expect(await replyOf(`dm:${k.reachId}`)).toMatchObject({
       off: "Not available yet. LinkedIn has no messaging API.",

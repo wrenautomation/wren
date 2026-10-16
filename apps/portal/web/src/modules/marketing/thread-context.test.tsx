@@ -106,3 +106,18 @@ describe("ThreadView", () => {
     expect(html).toContain("Refresh");
   });
 });
+
+describe("ThreadView, read only (a client's Inbox)", () => {
+  const html = renderToStaticMarkup(<ThreadView c={CTX} act={act} accounts={null} readOnly />);
+  it("draws the same nested thread with Open on site", () => {
+    expect(html).toContain('data-node="c_b1"');
+    expect(html).toContain("Open on site");
+  });
+  it("offers no Reply from Wren and no Refresh: both run on Wren's own desk", () => {
+    const full = renderToStaticMarkup(<ThreadView c={CTX} act={act} accounts={null} />);
+    expect(full).toContain("Reply from Wren");
+    expect(full).toContain(">Refresh<");
+    expect(html).not.toContain("Reply from Wren");
+    expect(html).not.toContain(">Refresh<");
+  });
+});

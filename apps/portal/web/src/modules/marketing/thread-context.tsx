@@ -173,6 +173,7 @@ function Node({
   accounts,
   replying,
   setReplying,
+  readOnly,
 }: {
   t: Tree;
   depth: number;
@@ -182,6 +183,7 @@ function Node({
   accounts: AccountPick | null;
   replying: string | null;
   setReplying: (ref: string | null) => void;
+  readOnly: boolean;
 }) {
   const n = t.node;
   const gone = DELETED.has(n.handle) || DELETED.has(n.text.trim());
@@ -221,7 +223,7 @@ function Node({
           {gone ? <span className="text-(--ui-ink-3)">Deleted</span> : n.text}
         </p>
         <div className="flex flex-wrap items-center gap-3 text-[12.5px]">
-          {!n.ours && !gone ? (
+          {!n.ours && !gone && !readOnly ? (
             <button
               type="button"
               className="border-0 bg-transparent p-0 text-(--ui-ink-2) underline-offset-2 hover:text-(--ui-ink) hover:underline"
@@ -242,7 +244,7 @@ function Node({
             </a>
           ) : null}
         </div>
-        {replying === n.ref ? (
+        {replying === n.ref && !readOnly ? (
           <NodeReply node={n} act={act} accounts={accounts} onDone={() => setReplying(null)} />
         ) : null}
       </div>
@@ -259,6 +261,7 @@ function Node({
               accounts={accounts}
               replying={replying}
               setReplying={setReplying}
+              readOnly={readOnly}
             />
           ))}
         </ol>
@@ -332,7 +335,7 @@ function PostHead({ c }: { c: ThreadContext }) {
 }
 
 /** When it was read, what the site held back, and Refresh. */
-function ReadLine({ c, act }: { c: ThreadContext; act: RecordAct }) {
+function ReadLine({ c, act, readOnly }: { c: ThreadContext; act: RecordAct; readOnly: boolean }) {
   const [busy, setBusy] = useState(false);
   // Our own post's read keeps no thread snapshot: a Refresh here says when it ran.
   const [checked, setChecked] = useState<string | null>(null);
@@ -367,7 +370,7 @@ function ReadLine({ c, act }: { c: ThreadContext; act: RecordAct }) {
           see them.
         </span>
       ) : null}
-      {c.refresh ? (
+      {c.refresh && !readOnly ? (
         <Button tone="quiet" size="dense" onClick={() => void refresh()} disabled={busy}>
           {busy ? "Checking" : "Refresh"}
         </Button>
@@ -381,10 +384,13 @@ export function ThreadView({
   c,
   act,
   accounts,
+  readOnly = false,
 }: {
   c: ThreadContext;
   act: RecordAct;
   accounts: AccountPick | null;
+  /** No Reply from Wren and no Refresh: a client's Inbox, whose replies go out from its own row. */
+  readOnly?: boolean;
 }) {
   const [replying, setReplying] = useState<string | null>(null);
   const roots = treeOf(c.nodes);
@@ -392,7 +398,7 @@ export function ThreadView({
   return (
     <section className="grid gap-3" data-thread-view="">
       <PostHead c={c} />
-      <ReadLine c={c} act={act} />
+      <ReadLine c={c} act={act} readOnly={readOnly} />
       {roots.length ? (
         <ol className="grid gap-2">
           {roots.map((t) => (
@@ -406,6 +412,7 @@ export function ThreadView({
               accounts={accounts}
               replying={replying}
               setReplying={setReplying}
+              readOnly={readOnly}
             />
           ))}
         </ol>
@@ -421,15 +428,17 @@ function ThreadPanel({
   c,
   act,
   accounts,
+  readOnly,
 }: {
   c: ThreadContext;
   act: RecordAct;
   accounts: AccountPick | null;
+  readOnly: boolean;
 }) {
   const phone = usePhone();
   const [open, setOpen] = useState(false);
   const replies = c.nodes.filter((n) => !n.ours).length;
-  if (!phone) return <ThreadView c={c} act={act} accounts={accounts} />;
+  if (!phone) return <ThreadView c={c} act={act} accounts={accounts} readOnly={readOnly} />;
   return (
     <>
       <Button
@@ -448,7 +457,7 @@ function ThreadPanel({
           onClose={() => setOpen(false)}
         >
           <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
-            <ThreadView c={c} act={act} accounts={accounts} />
+            <ThreadView c={c} act={act} accounts={accounts} readOnly={readOnly} />
           </div>
         </BottomSheet>
       ) : null}
@@ -459,15 +468,27 @@ function ThreadPanel({
 /**
  * Adds a comment row's whole thread to a page's extras: it leads the detail, or follows what
  * already leads it (the Inbox's conversation). It draws their messages itself, so the row's own
- * list of them is left out.
+ * list of them is left out. `readOnly` (a client's Inbox) draws the thread with no Reply from Wren
+ * or Refresh: both run on Wren's own desk, and the client's reply box answers the comment.
  */
 export const withThread =
-  <A extends { act: RecordAct }>(extras: (detail: unknown, at: A) => RecordExtras) =>
+  <A extends { act: RecordAct }>(
+    extras: (detail: unknown, at: A) => RecordExtras,
+    { readOnly = false }: { readOnly?: boolean } = {},
+  ) =>
   (detail: unknown, at: A): RecordExtras => {
     const base = extras(detail, at);
     const c = contextOf(detail);
     if (!c) return base;
-    const panel = <ThreadPanel key="thread" c={c} act={at.act} accounts={accountsOf(detail)} />;
+    const panel = (
+      <ThreadPanel
+        key="thread"
+        c={c}
+        act={at.act}
+        accounts={accountsOf(detail)}
+        readOnly={readOnly}
+      />
+    );
     const drawn = [...(base.drawn ?? []), "messages"];
     return base.lead
       ? { ...base, drawn, sections: [["The whole thread", panel], ...(base.sections ?? [])] }
