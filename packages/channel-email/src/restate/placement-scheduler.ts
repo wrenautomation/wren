@@ -9,12 +9,17 @@
  * domain (`inbox/placement.ts`): a failing plain test pauses it, a passing one
  * lifts that pause. Never a lead row, a `messages` row or a send cap.
  * designs/2026-10-05-deliverability-tests.md.
+ *
+ * Each Gmail read waits at most its `sites` client's `limitMs` (the worker passes `LIMITS.read`).
+ * A check that gets no answer is asked again next pass; one that gets none three passes in a row
+ * is held (`unit_holds`, stage `loop.placement-scheduler/fleet`). A seed that times out twice in
+ * a pass with nothing answered is left out for the rest of it, its checks not blamed.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
 import { type Notifier, plural } from "@wren/core/notify";
-import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
+import { CallTimeout, errorText, makeLoopObject, runPass, unitLimits } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { and, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
 import {
@@ -93,7 +98,7 @@ export interface PlacementSchedulerDeps {
   /** Each inbox's roster niches (null = all): where its opener comes from before it has leads. */
   niches: Readonly<Record<string, readonly string[] | null>>;
   seeds: readonly string[];
-  /** autobrowse's `sites` for this invocation. */
+  /** autobrowse's `sites` for this invocation, each call under a time limit (`limitMs`). */
   sitesFor: (ctx: restate.Context) => SiteClient;
   /** Told when a domain is paused or lifted, or a test turns bad. */
   notifier?: Notifier;
@@ -106,7 +111,7 @@ export interface PlacementStats {
   checked: number;
   /** Checks a seed's Gmail refused (4xx): nothing recorded but why. */
   refused: string[];
-  /** Checks that failed otherwise: asked again on a later pass. */
+  /** Checks that failed otherwise, or gave no answer in time: asked again on a later pass. */
   retrying: number;
   /** Domains paused and lifted by this pass's verdict. */
   paused: string[];
@@ -311,6 +316,7 @@ export function makePlacementScheduler(deps: PlacementSchedulerDeps) {
     // The checks call `sites` from the handler, outside any step; each answer is journaled.
     const sites = deps.sitesFor(ctx);
     const due = await ctx.run("due checks", () => dueChecks(deps.db, now));
+    const limits = await unitLimits(ctx, deps.db, "PlacementScheduler");
     let checked = 0;
     let retrying = 0;
     const refused: string[] = [];
@@ -321,13 +327,27 @@ export function makePlacementScheduler(deps: PlacementSchedulerDeps) {
         eq(placementChecks.day, c.day),
         eq(placementChecks.kind, c.kind),
       );
+      const unit = `${c.sender} ${c.seed} ${c.kind} ${c.day}`;
+      // Held, or its seed's Gmail gave nothing this pass: asked on a later one.
+      if (limits.skip(unit, c.seed)) {
+        retrying += 1;
+        continue;
+      }
       try {
-        const { landed, auth } = await landedAt(sites, c.seed, c.messageId);
+        const { landed, auth } = await limits.guard(
+          unit,
+          () => landedAt(sites, c.seed, c.messageId),
+          c.seed,
+        );
         await ctx.run(`landed ${c.sender} ${c.seed} ${c.kind}`, async () => {
           await deps.db.update(placementChecks).set({ landed, auth, checkedAt: now }).where(where);
         });
         checked += 1;
       } catch (err) {
+        if (err instanceof CallTimeout) {
+          retrying += 1;
+          continue;
+        }
         if (!(err instanceof SiteCallError)) throw err;
         // A refusal will say the same tomorrow: no landing, just why. Anything else asks again.
         if (!isRefusal(err)) {

@@ -43,11 +43,18 @@
  * With `research.social` installed it also reads YouTube and Instagram for the client's firms,
  * and with `research.signals` it runs the free collectors on them
  * (designs/2026-10-07-per-client-runs.md).
+ *
+ * Each stage call waits at most `STAGE_WAIT_MS` (designs/2026-10-16-loop-watchdog.md). Past it
+ * the call is cancelled and the stage counts as failed this pass; the rest of that object's
+ * stages (`Enrichment/<key>` is one lock) wait for the next pass. A stage that times out three
+ * passes in a row is held (`unit_holds`, stage `loop.pool-scheduler/<key>`), then tried again
+ * after its hold.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
 import {
+  CallTimeout,
   clientOfKey,
   errorText,
   failuresInARow,
@@ -56,6 +63,7 @@ import {
   type PassOutcome,
   retryDelayMs,
   setLastPass,
+  unitLimits,
 } from "@wren/core/restate";
 import type { Db, Queryable } from "@wren/db";
 import {
@@ -289,6 +297,25 @@ export interface PoolSchedulerDeps {
   retryMs?: number;
   /** A client's database, for `<client>/...` keys; absent, those keys refuse. */
   clientDb?: ((client: string) => Db) | null;
+  /** How long a pass waits on one stage call (default `STAGE_WAIT_MS`); tests shorten it. */
+  stageWaitMs?: number;
+}
+
+/**
+ * The longest a pass waits on one stage. A stage is bounded by its per-pass `limit` and seen to
+ * run minutes (a crawl of 50 firms, a mail-server batch), so an hour is far past a healthy one.
+ * Cancelled past it, not left running: the stages of one object share its key's lock, and a
+ * call left running (or paused by Restate) would queue every later stage behind it. Its
+ * finished units are journaled and kept; the rest go next pass.
+ */
+export const STAGE_WAIT_MS = 60 * 60_000;
+
+/** The object and handler a stage calls, for its timeout's name. */
+function callOf(stage: Stage): { service: string; handler: string } {
+  if (stage === "discover" || stage === "verify") return { service: "Discovery", handler: stage };
+  if (stage === "resolveMailboxes") return { service: "Resolution", handler: "resolveNewDomains" };
+  if (stage === "verifyMailboxes") return { service: "Resolution", handler: "verifyLeads" };
+  return { service: "Enrichment", handler: stage };
 }
 
 /** Firms a client's signals stage considers a pass; the collectors take the due ones. */
@@ -492,42 +519,59 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, ctx.key);
     const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, ctx.key);
     const resolution = ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
+    const waits = await unitLimits(ctx, deps.db, "PoolScheduler");
+    const stageWaitMs = deps.stageWaitMs ?? STAGE_WAIT_MS;
+    const limited = <T extends object>(stage: Stage, p: restate.InvocationPromise<T>) => {
+      const c = callOf(stage);
+      return waits.within(stage, p, { ms: stageWaitMs, call: `${c.service}/${c.handler}` });
+    };
     const words = sheet?.genericWords.length ? { genericWords: sheet.genericWords } : {};
     const hints = sheet?.crawlHints.length ? { extraHints: sheet.crawlHints } : {};
     // Absent niche = every niche's leads, which is a client's `all`.
     const on = { ...(client !== null ? { client } : {}), ...(niche !== null ? { niche } : {}) };
     const calls: Record<Stage, () => Promise<object>> = {
-      adLibrary: () => enrichment.adLibrary({ limit: limits.adLibrary }),
-      fbGroups: () => enrichment.fbGroups({ limit: limits.fbGroups }),
-      exaSearch: () => enrichment.exaSearch({ limit: limits.exaSearch }),
-      youtubeSearch: () => enrichment.youtubeSearch({ limit: limits.youtubeSearch }),
-      triggers: () => enrichment.triggers({ limit: limits.triggers }),
-      discover: () => discovery.discover({ limit: limits.discover, ...words }),
-      verify: () => discovery.verify({ limit: limits.verify, ...words }),
-      crawl: () => enrichment.crawl({ limit: limits.crawl, ...hints }),
-      render: () => enrichment.render({ limit: limits.render, ...hints }),
-      scan: () => enrichment.scan({ limit: limits.scan }),
-      contacts: () => enrichment.contacts({ limit: limits.contacts }),
-      extract: () => enrichment.extract({ limit: limits.extract }),
-      pick: () => enrichment.pick({ limit: limits.pick, rules: deps.modelStages === "none" }),
-      applyPicks: () => enrichment.applyPicks({}),
+      adLibrary: () => limited("adLibrary", enrichment.adLibrary({ limit: limits.adLibrary })),
+      fbGroups: () => limited("fbGroups", enrichment.fbGroups({ limit: limits.fbGroups })),
+      exaSearch: () => limited("exaSearch", enrichment.exaSearch({ limit: limits.exaSearch })),
+      youtubeSearch: () =>
+        limited("youtubeSearch", enrichment.youtubeSearch({ limit: limits.youtubeSearch })),
+      triggers: () => limited("triggers", enrichment.triggers({ limit: limits.triggers })),
+      discover: () => limited("discover", discovery.discover({ limit: limits.discover, ...words })),
+      verify: () => limited("verify", discovery.verify({ limit: limits.verify, ...words })),
+      crawl: () => limited("crawl", enrichment.crawl({ limit: limits.crawl, ...hints })),
+      render: () => limited("render", enrichment.render({ limit: limits.render, ...hints })),
+      scan: () => limited("scan", enrichment.scan({ limit: limits.scan })),
+      contacts: () => limited("contacts", enrichment.contacts({ limit: limits.contacts })),
+      extract: () => limited("extract", enrichment.extract({ limit: limits.extract })),
+      pick: () =>
+        limited(
+          "pick",
+          enrichment.pick({ limit: limits.pick, rules: deps.modelStages === "none" }),
+        ),
+      applyPicks: () => limited("applyPicks", enrichment.applyPicks({})),
       resolveMailboxes: () =>
-        resolution.resolveNewDomains({
-          ...on,
-          limitDomains: limits.resolveMailboxes,
-          concurrency: PROBE_WIDTH,
-          domainBudget: FREE_DOMAIN_BUDGET,
-        }),
+        limited(
+          "resolveMailboxes",
+          resolution.resolveNewDomains({
+            ...on,
+            limitDomains: limits.resolveMailboxes,
+            concurrency: PROBE_WIDTH,
+            domainBudget: FREE_DOMAIN_BUDGET,
+          }),
+        ),
       verifyMailboxes: () => {
         const policy = client === null && niche !== null ? deps.recheck?.policy(niche) : undefined;
-        return resolution.verifyLeads({
-          ...on,
-          limit: limits.verifyMailboxes,
-          concurrency: PROBE_WIDTH,
-          ...(deps.recheck && policy
-            ? { recheckReturning: { policy, olderThanDays: deps.recheck.horizonDays } }
-            : {}),
-        });
+        return limited(
+          "verifyMailboxes",
+          resolution.verifyLeads({
+            ...on,
+            limit: limits.verifyMailboxes,
+            concurrency: PROBE_WIDTH,
+            ...(deps.recheck && policy
+              ? { recheckReturning: { policy, olderThanDays: deps.recheck.horizonDays } }
+              : {}),
+          }),
+        );
       },
       team: async () => {
         if (!deps.profiles || niche === null) throw new restate.TerminalError("team stage is off");
@@ -535,7 +579,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         const companyIds = await ctx.run("team queue", () =>
           nextTeamFirms(deps.db, { niche, limit: n }),
         );
-        return enrichment.team({ companyIds, limit: n });
+        return limited("team", enrichment.team({ companyIds, limit: n }));
       },
       youtube: async () => {
         // A busy loop passes every minute and the bucket refills a firm at a time: one step
@@ -546,7 +590,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           youtubeReadRoom(db, deps.db, client, now),
         );
         if (room < Math.min(n, YOUTUBE_MIN_BATCH)) return { read: 0, missing: 0, room };
-        return enrichment.youtube({ limit: n });
+        return limited("youtube", enrichment.youtube({ limit: n }));
       },
       instagram: async () => {
         // As youtube: skip the Enrichment call while the bucket is low.
@@ -555,7 +599,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           instagramRoom(db, now, undefined, also),
         );
         if (room < Math.min(n, INSTAGRAM_MIN_BATCH)) return { read: 0, missing: 0, room };
-        return enrichment.instagram({ limit: n });
+        return limited("instagram", enrichment.instagram({ limit: n }));
       },
       profiles: async () => {
         const p = deps.profiles;
@@ -567,11 +611,14 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
             companies: await p.ahead(niche, now),
           }),
         );
-        return enrichment.profiles({
-          personIds,
-          limit: limits.profiles,
-          timezone: deps.policy.timezone,
-        });
+        return limited(
+          "profiles",
+          enrichment.profiles({
+            personIds,
+            limit: limits.profiles,
+            timezone: deps.policy.timezone,
+          }),
+        );
       },
       signals: async () => {
         const p = deps.signals;
@@ -580,12 +627,15 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           const companyIds = await ctx.run("signal queue", () =>
             queuedFirms(db, CLIENT_SIGNAL_QUEUE),
           );
-          return enrichment.signals({
-            personIds: [],
-            companyIds,
-            limit: limits.signals,
-            timezone: deps.policy.timezone,
-          });
+          return limited(
+            "signals",
+            enrichment.signals({
+              personIds: [],
+              companyIds,
+              limit: limits.signals,
+              timezone: deps.policy.timezone,
+            }),
+          );
         }
         if (!p || niche === null) throw new restate.TerminalError("signals stage is off");
         const personIds = await ctx.run("signal queue", async () =>
@@ -595,11 +645,10 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
             companies: await p.ahead(niche, now),
           }),
         );
-        return enrichment.signals({
-          personIds,
-          limit: limits.signals,
-          timezone: deps.policy.timezone,
-        });
+        return limited(
+          "signals",
+          enrichment.signals({ personIds, limit: limits.signals, timezone: deps.policy.timezone }),
+        );
       },
     };
 
@@ -635,9 +684,19 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       progress: 0,
       failed: 0,
     };
+    /** Objects a stage timed out on this pass: their lock may still be held, so their later stages wait. */
+    const blocked = new Set<string>();
     for (const stage of STAGES) {
       if (!runnable.has(stage)) {
         stats.stages.push({ stage, progress: 0, stats: null, error: null, skipped: true });
+        continue;
+      }
+      const { service } = callOf(stage);
+      if (waits.skip(stage) || blocked.has(service)) {
+        const error = blocked.has(service)
+          ? `waits: an earlier ${service} stage gave no answer this pass`
+          : "held: it gave no answer pass after pass (Console > Holds)";
+        stats.stages.push({ stage, progress: 0, stats: null, error, skipped: true });
         continue;
       }
       // A stage that refuses (TerminalError: no fetch contact, no render tier) is that
@@ -649,6 +708,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         stats.progress += progress;
       } catch (err) {
         if (!(err instanceof restate.TerminalError)) throw err;
+        if (err instanceof CallTimeout) blocked.add(service);
         stats.stages.push({
           stage,
           progress: 0,

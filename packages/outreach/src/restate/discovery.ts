@@ -7,6 +7,12 @@
  * A used daily cap (the desk's 429 waiting hours) holds that identity's reads until it resets, on
  * the object's state: no pass asks it before then, and it is no error. Signed out held, drafts read
  * signed in as the thread's account.
+ *
+ * Each desk call waits at most the `sites` client's `limitMs` (the worker passes `LIMITS.desk`).
+ * A read that gets no answer is noted and passed; one that gets none three passes in a row is held
+ * (`unit_holds`, stage `loop.reddit-reads/<key>`). Two in a pass with nothing answered: the desk is
+ * down, and the pass's other signed-out reads wait for the next one. The topics model call is cut
+ * at `TOPICS_WAIT_MS` a try, three tries; a miss leaves the month's search for the next pass.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf, keepSentEdit } from "@wren/core/ask";
@@ -14,14 +20,18 @@ import { type CapHolds, capHeld, holdCap, liveHolds } from "@wren/core/content";
 import { isVendorStop } from "@wren/core/metered";
 import type { OurPost } from "@wren/core/our-posts";
 import {
+  CallTimeout,
   clientOfKey,
   errorText,
+  LIMITS,
   lastPass,
+  limitedRun,
   makeLoopObject,
   type PassOutcome,
   serviceHandler,
   setLastPass,
   stoppedPass,
+  unitLimits,
 } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { LlmClient } from "@wren/llm";
@@ -93,6 +103,8 @@ const PEOPLE_PER_PASS = 5;
 const BUSY_MS = 2 * 60_000;
 const IDLE_MS = 30 * 60_000;
 const FOUND_AT = "foundAt";
+/** One try of the topics model call: a short completion, seconds when the model is up. */
+const TOPICS_WAIT_MS = LIMITS.http;
 /** Object state: reads a used daily cap holds, until it resets (ms): `reddit-public`, or an account. */
 const CAP_HOLDS = "capHolds";
 
@@ -217,11 +229,15 @@ async function readsPass(
   /** `err` used `who`'s daily cap: hold it, no error. */
   const spent = (who: string, err: unknown) => holdCap(holds, who, err, now.getTime());
   s.capped = held(PUBLIC_SITE);
-  /** One unit of signed-out reads; a used cap stops the rest, anything else is noted and passed. */
+  const limits = await unitLimits(ctx, db, "RedditReads");
+  /**
+   * One unit of signed-out reads; a used cap stops the rest, anything else is noted and passed.
+   * Its no-answers count as strikes on the unit, or on the desk when nothing else answered.
+   */
   const reading = async (what: string, fn: () => Promise<void>) => {
-    if (s.capped) return;
+    if (s.capped || limits.skip(what, PUBLIC_SITE)) return;
     try {
-      await fn();
+      await limits.guard(what, fn, PUBLIC_SITE);
     } catch (err) {
       if (spent(PUBLIC_SITE, err)) {
         s.capped = true;
@@ -235,7 +251,16 @@ async function readsPass(
   // Places: found once a month, each judged when unread or a month old.
   const foundAt = (await ctx.get<number>(FOUND_AT)) ?? 0;
   if (!s.capped && now.getTime() - foundAt >= PLACE_FRESH_MS) {
-    const topics = await step("topics", () => topicsOf(d.llm, audience));
+    // A model call: cut a try at its limit, and after three the month's search waits a pass.
+    let searched = true;
+    const topics = await limitedRun(ctx, "topics", () => topicsOf(d.llm, audience), {
+      ms: TOPICS_WAIT_MS,
+    }).catch((err) => {
+      if (!(err instanceof restate.TerminalError)) throw err;
+      s.errors.push(`topics: ${errorText(err)}`);
+      searched = false;
+      return [] as string[];
+    });
     const found: { name: string; foundBy: string; subscribers?: number }[] =
       audience.subreddits.map((n) => ({ name: n, foundBy: "named" }));
     for (const t of topics)
@@ -254,7 +279,7 @@ async function readsPass(
     for (const n of await step("people places", () => placesOfPeople(db)))
       found.push({ name: n, foundBy: "people" });
     s.found = await step("add places", () => addPlaces(db, found));
-    if (!s.capped) ctx.set(FOUND_AT, now.getTime());
+    if (!s.capped && searched) ctx.set(FOUND_AT, now.getTime());
   }
   const toRead = await step("places to read", () => placesToRead(db, now, PLACES_PER_PASS));
   for (const p of toRead)
@@ -272,7 +297,8 @@ async function readsPass(
         );
         s.judged++;
       } catch (err) {
-        if (spent(PUBLIC_SITE, err)) throw err;
+        // No answer is no verdict on the place: read again next pass, held after three.
+        if (spent(PUBLIC_SITE, err) || err instanceof CallTimeout) throw err;
         await step(`fail r/${p.subreddit}`, () => failPlace(db, p.subreddit, errorText(err), now));
         throw err;
       }

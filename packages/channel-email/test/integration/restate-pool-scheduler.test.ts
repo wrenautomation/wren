@@ -1,7 +1,7 @@
 /**
  * The pool-feeder over stand-in Discovery/Enrichment objects: stage order, the
  * spend gate, progress → short delay, idle → next day, a refusing stage → retry,
- * and `profiles` reading compose's queue.
+ * a hung stage → cut at its wait and held on its third, and `profiles` reading compose's queue.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -30,6 +30,7 @@ const answers = {
   resolve: { domains_processed: 0, credits_spent: 0, dead_domains: 0 },
   verify: { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 },
   crawlRefuses: false,
+  crawlHangs: false,
 };
 const called: string[] = [];
 /** What `profiles` was asked last. */
@@ -52,10 +53,18 @@ const fakeDiscovery = restate.object({
 const fakeEnrichment = restate.object({
   name: "Enrichment",
   handlers: {
-    crawl: stage("crawl", () => {
+    crawl: async (ctx: restate.ObjectContext) => {
+      // A crawl Restate paused: it waits on an awakeable no one resolves.
+      if (answers.crawlHangs) {
+        await ctx.run("hung", () => {
+          called.push("crawl hangs");
+        });
+        await ctx.awakeable<string>().promise;
+      }
+      called.push("crawl");
       if (answers.crawlRefuses) throw new restate.TerminalError("WREN_FETCH_CONTACT is not set");
       return answers.crawl;
-    }),
+    },
     render: stage("render", () => ({ companies_rendered: 0 })),
     scan: stage("scan", () => ({ scanned: 0 })),
     contacts: stage("contacts", () => ({ scanned: 0 })),
@@ -102,6 +111,7 @@ beforeAll(async () => {
         freeVerifier: true,
         profiles: { ahead: () => 2, horizonDays: 45 },
         busyMs: 5_000,
+        stageWaitMs: 1_500,
       }),
     ],
     alwaysReplay: true,
@@ -112,7 +122,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, ["runs"]);
+  await truncate(pg.db, ["runs", "unit_holds"]);
   called.length = 0;
   profilesInput = null;
   teamInput = null;
@@ -121,6 +131,7 @@ beforeEach(async () => {
   answers.resolve = { domains_processed: 0, credits_spent: 0, dead_domains: 0 };
   answers.verify = { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 };
   answers.crawlRefuses = false;
+  answers.crawlHangs = false;
 });
 
 type Pool = ReturnType<typeof makePoolScheduler>;
@@ -271,6 +282,45 @@ describe("PoolScheduler", () => {
     expect(await sync()).toMatchObject({ failures: 2, delayMs: 30_000 });
     answers.crawlRefuses = false;
     expect(await sync()).toMatchObject({ failures: 0 });
+  });
+
+  it("cuts a hung stage at its wait, leaves that object's later stages, and holds it on the third", async () => {
+    answers.crawlHangs = true;
+    const key = "hang_ria";
+    const out = await sync(key);
+    const crawl = out.stats?.stages.find((s) => s.stage === "crawl");
+    expect(crawl?.error).toMatch(/Enrichment\/crawl gave no answer in 2 s/);
+    // Enrichment's lock may still be held: its later stages wait; Resolution's run.
+    expect(out.stats?.stages.find((s) => s.stage === "render")).toMatchObject({
+      skipped: true,
+      error: expect.stringMatching(/earlier Enrichment stage/),
+    });
+    expect(called).toEqual(
+      expect.arrayContaining(["discover", "resolveNewDomains", "verifyLeads"]),
+    );
+    expect(called).not.toContain("render");
+    expect(out).toMatchObject({ failures: 1 });
+    const status = (await client(key).status()) as LoopStatus<FeedStats> & {
+      last?: { timeouts?: { call: string; unit: string | null }[] };
+    };
+    expect(status.last?.timeouts).toMatchObject([{ call: "Enrichment/crawl", unit: "crawl" }]);
+    await sync(key);
+    await sync(key);
+    const held = (await client(key).status()) as typeof status;
+    expect(held.last?.timeouts).toMatchObject([{ unit: "crawl", held: true }]);
+    const holds = await pg.db.execute<{ stage: string; subject: string }>(
+      sql`select stage, subject from unit_holds`,
+    );
+    expect([...holds]).toEqual([{ stage: "loop.pool-scheduler/hang_ria", subject: "crawl" }]);
+    // Held: the next pass leaves crawl out and walks the rest.
+    called.length = 0;
+    const after = await sync(key);
+    expect(after.stats?.stages.find((s) => s.stage === "crawl")).toMatchObject({
+      skipped: true,
+      error: expect.stringMatching(/held/),
+    });
+    expect(called).not.toContain("crawl hangs");
+    expect(called).toContain("render");
   });
 
   it("narrows a niche's loop to the stages start was given, and {} widens it back", async () => {

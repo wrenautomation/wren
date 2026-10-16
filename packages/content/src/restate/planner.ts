@@ -10,6 +10,11 @@
  * `start {"platforms":["linkedin","reddit"],"draft":true}`.
  * Design: designs/2026-10-06-social-inbox.md (Daily drafts).
  *
+ * A draft waits at most `DRAFT_WAIT_MS` (designs/2026-10-16-loop-watchdog.md): past it the desk's
+ * call runs on alone (it writes the draft) and the pass drafts no more, since the desk's one lock
+ * is that call's. The next pass starts past it. An idea that times out three passes in a row is
+ * held (`unit_holds`, stage `loop.content-planner/<key>`), and the next idea goes first.
+ *
  * `ContentPlanner/<client>/daily`: the same for a client with Content plan installed, on its own
  * logins' platforms, into its own database, drafted by `ContentDesk/<client>/desk` as the client.
  * Its block (`content.planner`) is the settings; its ideas are its own and its readers'
@@ -19,6 +24,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import {
+  CallTimeout,
   clientKey,
   clientOfKey,
   loopSettings,
@@ -26,6 +32,7 @@ import {
   type PassOutcome,
   setLastPass,
   stoppedPass,
+  unitLimits,
 } from "@wren/core/restate";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
@@ -51,6 +58,8 @@ export const DEFAULT_PLAN_PLATFORMS: readonly Platform[] = ["linkedin", "reddit"
 const DEFAULT_HOUR = 17;
 /** Ideas tried per pass: a run of ideas that all fail to draft stops here. */
 const MAX_IDEAS = 6;
+/** The longest a pass waits on one idea's drafts: a model call per platform, a minute or two each. */
+export const DRAFT_WAIT_MS = 15 * 60_000;
 
 export interface ContentPlannerDeps {
   db: Db;
@@ -63,6 +72,8 @@ export interface ContentPlannerDeps {
   clientDb?: ((client: string) => Db) | null;
   /** Slots under every key's own, replacing the platforms' defaults (tests: any weekday). */
   slots?: Partial<Record<Platform, Slot[]>>;
+  /** How long a pass waits on one idea's drafts (default `DRAFT_WAIT_MS`); tests shorten it. */
+  draftWaitMs?: number;
 }
 
 export interface PlannerSettings {
@@ -178,11 +189,13 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
       });
       const short = () => platforms.filter((p) => (open[p]?.length ?? 0) > 0);
       const tried: string[] = [];
+      const limits = await unitLimits(ctx, deps.db, "ContentPlanner");
       const desk = ctx.objectClient<ContentDesk>(
         { name: "ContentDesk" },
         client ? clientKey(client, DESK_UNIT) : DESK_KEY,
       );
-      for (let i = 0; i < MAX_IDEAS && short().length > 0; i++) {
+      let tries = 0;
+      for (let i = 0; tries < MAX_IDEAS && short().length > 0; i++) {
         const next = await ctx.run(`idea ${i}`, () =>
           nextIdea(db, {
             now,
@@ -193,10 +206,24 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
         if (!next.idea) break;
         const idea = next.idea;
         tried.push(idea.id);
+        const unit = `idea ${idea.id}`;
+        // Held after timing out pass after pass: the next idea instead, not counted as a try.
+        if (limits.skip(unit)) continue;
+        tries++;
         let report: Awaited<ReturnType<typeof desk.draft>>;
         try {
-          report = await desk.draft({ ideaId: idea.id, platforms: short() });
+          report = await limits.within(
+            unit,
+            desk.draft({ ideaId: idea.id, platforms: short() }),
+            // A draft past its wait still lands as a row: left running, never asked twice.
+            { ms: deps.draftWaitMs ?? DRAFT_WAIT_MS, call: "ContentDesk/draft", keep: true },
+          );
         } catch (err) {
+          // Still running on the desk's lock: the next idea would wait behind it.
+          if (err instanceof CallTimeout) {
+            skipped.push(`drafting ${idea.source} ${idea.id}: ${err.message}`);
+            break;
+          }
           // The desk said no for good (a client's About, its model gate): said, and no more ideas.
           if (!(err instanceof restate.TerminalError)) throw err;
           skipped.push(`drafting: ${err.message}`);

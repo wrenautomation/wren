@@ -5,10 +5,21 @@
  * retry never stops twice), and every pass with active launches is one
  * message to the channel. It only ever stops spend. The 7 days it reads are
  * kept in `ad_days`, one row per ad set and day, for the Marketing app.
+ *
+ * Each call waits at most its limit (designs/2026-10-16-loop-watchdog.md): insights `LIMITS.read`
+ * (cancelled past it; the pass has nothing to judge and says so), a stop or an idea `LIMITS.read`
+ * left running (a write that may still land; the campaign is skipped this pass).
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
+import {
+  errorText,
+  LIMITS,
+  makeLoopObject,
+  type PassOutcome,
+  setLastPass,
+  within,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { InsightRow } from "./ads.js";
 import { ideaFromVerdict, isWinner } from "./bridge.js";
@@ -45,6 +56,8 @@ export interface AdsWatchDeps {
   /** Spend in the 7-day window that, with nothing to show, pauses the launch (default $50). */
   pauseAfterUsd?: number;
   notifier?: Notifier;
+  /** How long a pass waits on one `Ads` or desk call (default `LIMITS.read`); tests shorten it. */
+  limitMs?: number;
 }
 
 export interface WatchStats {
@@ -62,11 +75,14 @@ export interface WatchStats {
   failed: { campaignId: string; error: string }[];
   /** Winners handed to the content loop this pass, as idea ids. */
   ideas: { campaignId: string; ideaId: string }[];
+  /** Why the pass judged nothing: the insights read gave no answer in time, or refused. */
+  insightsError?: string;
 }
 
 export function makeAdsWatch(deps: AdsWatchDeps) {
   const everyMs = deps.everyMs ?? DEFAULT_EVERY_MS;
   const pauseAfterUsd = deps.pauseAfterUsd ?? DEFAULT_PAUSE_AFTER_USD;
+  const limitMs = deps.limitMs ?? LIMITS.read;
   return makeLoopObject("AdsWatch", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const ads = ctx.serviceClient<AdsService>({ name: "Ads" });
@@ -79,15 +95,33 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
       ideas: [],
     };
     let verdicts: Verdict[] = [];
-    if (launches.length > 0) {
-      const rows = await ads.insights({ preset: "last_7d", level: "adset", daily: true });
-      stats.days = await ctx.run("ad days", () => upsertAdDays(deps.db, rows));
-      verdicts = judge(launches, rows, { pauseAfterUsd });
+    let rows: InsightRow[] | null = null;
+    if (launches.length > 0)
+      try {
+        rows = await within(ctx, ads.insights({ preset: "last_7d", level: "adset", daily: true }), {
+          ms: limitMs,
+          call: "Ads/insights",
+        });
+      } catch (err) {
+        // No numbers, nothing to judge: tomorrow's pass reads them again.
+        if (!(err instanceof restate.TerminalError)) throw err;
+        stats.insightsError = errorText(err);
+      }
+    if (rows) {
+      const read = rows;
+      stats.days = await ctx.run("ad days", () => upsertAdDays(deps.db, read));
+      verdicts = judge(launches, read, { pauseAfterUsd });
       for (const v of verdicts) {
         let paused = false;
         if (v.pause) {
           try {
-            await ads.stop({ campaignId: v.launch.campaignId, reason: v.pause });
+            // A stop past its wait may still land: left running, journaled, never sent twice.
+            await within(ctx, ads.stop({ campaignId: v.launch.campaignId, reason: v.pause }), {
+              ms: limitMs,
+              call: "Ads/stop",
+              unit: v.launch.campaignId,
+              keep: true,
+            });
             paused = true;
           } catch (err) {
             if (!(err instanceof restate.TerminalError)) throw err;
@@ -110,7 +144,11 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
         const id = v.launch.campaignId;
         if (!isWinner(v) || suggested.includes(id)) continue;
         try {
-          const out = await desk.add({ text: ideaFromVerdict(v), draft: false, source: "ads" });
+          const out = await within(
+            ctx,
+            desk.add({ text: ideaFromVerdict(v), draft: false, source: "ads" }),
+            { ms: limitMs, call: "ContentDesk/add", unit: id, keep: true },
+          );
           suggested.push(id);
           stats.ideas.push({ campaignId: id, ideaId: out.idea.id });
         } catch (err) {
@@ -130,7 +168,7 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
     }
     const outcome: PassOutcome<WatchStats> = {
       stats,
-      error: null,
+      error: stats.insightsError ? `insights: ${stats.insightsError}` : null,
       failures: 0,
       delayMs: everyMs,
       now: now.toISOString(),

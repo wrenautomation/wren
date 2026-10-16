@@ -12,7 +12,7 @@ A spec becomes a paused Meta ad ladder; a person starts it with a budget; a dail
 
 ## Input → Movement → Output
 
-A `LaunchSpec` from `wren ads launch`. `Ads.launch` makes campaign → ad set → creative → ad, PAUSED, each Graph call journaled through autobrowse's `meta` site, and records the ladder in `ad_launches`. `Ads.start` names the daily budget and flips ACTIVE (the box's spend gate asks a person). `AdsWatch/default` reads seven days of insights daily, pauses a launch that spent the guard with no clicks or results, adds an idea for a winner, and posts one line.
+A `LaunchSpec` from `wren ads launch`. `Ads.launch` makes campaign → ad set → creative → ad, PAUSED, each Graph call journaled through autobrowse's `meta` site, and records the ladder in `ad_launches`. `Ads.start` names the daily budget and flips ACTIVE (the box's spend gate asks a person). `AdsWatch/default` reads seven days of insights daily, pauses a launch that spent the guard with no clicks or results, adds an idea for a winner, and posts one line. Each call waits at most `LIMITS.read` (5 min): insights past it is cancelled and the pass judges nothing (`insightsError`); `Ads.stop` and `ContentDesk.add` are left running past it (`keep`), since they may land (`watch.ts`).
 
 ## Why this shape
 

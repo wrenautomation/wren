@@ -16,7 +16,7 @@ import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { eq, sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { chapterIdea } from "../../src/ideas/chapters.js";
 import {
   addIdea,
@@ -169,6 +169,8 @@ const fakeContent = restate.service({
 const prompts: string[] = [];
 const llm = new FakeLlm({
   respond: async (prompt) => {
+    // A draft that outlasts the planner's wait, then lands.
+    if (prompt.includes("a slow idea")) await new Promise((r) => setTimeout(r, 2_500));
     calls += 1;
     prompts.push(prompt);
     const reddit = prompt.includes("a Reddit text post");
@@ -205,6 +207,7 @@ beforeAll(async () => {
         db: pg.db,
         zone: "UTC",
         notifier,
+        draftWaitMs: 1_500,
       }),
     ],
     alwaysReplay: true,
@@ -222,6 +225,7 @@ beforeEach(async () => {
     "content_playbooks",
     "runs",
     "reach_accounts",
+    "unit_holds",
   ]);
   posted.length = 0;
   replied.length = 0;
@@ -873,6 +877,55 @@ describe("daily drafts (ContentPlanner with draft on)", () => {
     expect(await chapterIdea(pg.db)).toBeNull();
     await pg.db.execute(sql`delete from video_edits`);
   });
+
+  it("stops drafting at a draft past its wait, and holds the idea on its third", async () => {
+    const slow = await addIdea(pg.db, "a slow idea", "cli");
+    await addIdea(pg.db, "second idea", "cli");
+    const one = {
+      platforms: ["linkedin"],
+      draft: true,
+      slots: { linkedin: [{ hour: 8, minute: 30 }] },
+    };
+    await planner().start(one);
+    await planner().stop();
+    type Last = PassOutcome<PlannerStats> & {
+      timeouts?: { call: string; unit: string | null; held?: boolean }[];
+    };
+    const last = async () => (await planner().status()).last as Last;
+    // The late draft lands on its own; the idea is opened again, as if it had failed.
+    const reopen = async () => {
+      await vi.waitFor(
+        async () => expect(await listDrafts(pg.db, { ideaId: slow.id })).not.toHaveLength(0),
+        { timeout: 10_000, interval: 200 },
+      );
+      await pg.db.delete(contentDrafts).where(eq(contentDrafts.ideaId, slow.id));
+      await pg.db.update(contentIdeas).set({ status: "open" }).where(eq(contentIdeas.id, slow.id));
+    };
+    const first = await last();
+    expect(first.stats?.drafted).toEqual([]);
+    expect(first.stats?.skipped).toEqual([
+      expect.stringMatching(/ContentDesk\/draft gave no answer in 2 s/),
+    ]);
+    expect(first.timeouts).toMatchObject([{ call: "ContentDesk/draft", unit: `idea ${slow.id}` }]);
+    // The next idea was never asked: it would have waited on the desk's lock.
+    expect(prompts.some((p) => p.includes("second idea"))).toBe(false);
+    for (let n = 2; n <= 3; n++) {
+      await reopen();
+      await planner().sync();
+    }
+    expect((await last()).timeouts).toMatchObject([{ unit: `idea ${slow.id}`, held: true }]);
+    const holds = await pg.db.execute<{ stage: string; subject: string }>(
+      sql`select stage, subject from unit_holds`,
+    );
+    expect([...holds]).toEqual([
+      { stage: `loop.content-planner/${PLANNER_KEY}`, subject: `idea ${slow.id}` },
+    ]);
+    // Held: the next pass passes it over and drafts the next idea.
+    await reopen();
+    const after = (await planner().sync()) as PassOutcome<PlannerStats>;
+    expect(after.stats?.drafted.map((d) => d.platform)).toEqual(["linkedin"]);
+    expect(await listDrafts(pg.db, { ideaId: slow.id })).toEqual([]);
+  }, 60_000);
 
   it("old drafts wait in To approve without filling tomorrow; approve uses the planner's slots", async () => {
     // Two unapproved drafts from earlier days: one never slotted, one on a past slot.

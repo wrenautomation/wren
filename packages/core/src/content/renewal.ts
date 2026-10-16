@@ -10,12 +10,18 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import type { Notifier } from "../notify.js";
-import { errorText, makeLoopObject, type PassOutcome, runPass } from "../restate/index.js";
+import { errorText, makeLoopObject, type PassOutcome, runPass, within } from "../restate/index.js";
 import { SITES, type SitesHost } from "./restate.js";
 
 export const RENEWAL_KEY = "box";
 export const RENEWAL_COMMAND = "sites renew";
 const DAY_MS = 86_400_000;
+/**
+ * The longest a pass waits on `sites/renew`: it signs in a browser consent per refused or
+ * lapsing token, minutes each. Past it the call runs on alone (it writes tokens) and the pass
+ * says so; tomorrow's asks again.
+ */
+export const RENEW_WAIT_MS = 30 * 60_000;
 
 /** What autobrowse's `sites/renew` answers (names, dates and lines; never a value). */
 export interface RenewReport {
@@ -40,6 +46,8 @@ export interface TokenRenewalDeps {
   /** Where `sites/renew` runs (`sitesHost`); the box by default. */
   host?: SitesHost;
   notifier?: Notifier;
+  /** How long a pass waits on `sites/renew` (default `RENEW_WAIT_MS`); tests shorten it. */
+  limitMs?: number;
 }
 
 export function makeTokenRenewal(deps: TokenRenewalDeps) {
@@ -51,9 +59,14 @@ export function makeTokenRenewal(deps: TokenRenewalDeps) {
     let report: RenewReport | null = null;
     let refused: string | null = null;
     try {
-      report = await ctx.serviceClient<SitesRenew>(service).renew({});
+      report = await within(ctx, ctx.serviceClient<SitesRenew>(service).renew({}), {
+        ms: deps.limitMs ?? RENEW_WAIT_MS,
+        call: `${service.name}/renew`,
+        keep: true,
+      });
     } catch (err) {
-      // An old box without `renew`, or a bad request: this pass's problem, asked again tomorrow.
+      // An old box without `renew`, a bad request, or no answer in time: this pass's problem,
+      // asked again tomorrow.
       if (!(err instanceof restate.TerminalError)) throw err;
       refused = errorText(err);
     }

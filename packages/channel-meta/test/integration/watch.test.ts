@@ -2,7 +2,8 @@
  * The ads ledger and the guard against Postgres and a Restate test
  * environment: `Ads.launch/start/stop` write `ad_launches` (the Graph calls
  * go to a fake site), and one `AdsWatch` pass stops the launch that spent
- * the guard with nothing to show, through `Ads.stop`, with one message.
+ * the guard with nothing to show, through `Ads.stop`, with one message. A hung
+ * insights read is cut at the watch's wait and the pass ends without a verdict.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -13,7 +14,7 @@ import { serveRecords } from "@wren/core/records/serve";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { InsightRow, LaunchSpec } from "../../src/ads.js";
 import { listLaunches } from "../../src/launches.js";
 import { adDayRecord } from "../../src/records.js";
@@ -25,6 +26,9 @@ const writes: { path: string; input: Record<string, unknown> }[] = [];
 let insights: InsightRow[] = [];
 const notes: { title: string; body: string; level?: string }[] = [];
 let n = 0;
+/** Set: the insights read hangs until the test lets it go. */
+let hangInsights = false;
+let letGo: () => void = () => {};
 const sites: SiteClient = {
   async call(_site, method, path, input = {}) {
     if (method === "POST") {
@@ -32,7 +36,10 @@ const sites: SiteClient = {
       n += 1;
       return { id: `${path.split("/").at(-1)}-${n}` } as never;
     }
-    if (path.endsWith("/insights")) return { data: insights } as never;
+    if (path.endsWith("/insights")) {
+      if (hangInsights) await new Promise<void>((resolve) => (letGo = resolve));
+      return { data: insights } as never;
+    }
     return { data: [] } as never;
   },
   async via() {
@@ -73,6 +80,7 @@ beforeAll(async () => {
       makeAdsWatch({
         db: pg.db,
         pauseAfterUsd: 50,
+        limitMs: 1_500,
         notifier: {
           name: "test",
           notify: async (title, body = "", level) => {
@@ -95,7 +103,9 @@ beforeEach(async () => {
   notes.length = 0;
   ideas.length = 0;
   insights = [];
+  hangInsights = false;
 });
+afterEach(() => letGo());
 
 const ads = () =>
   clients
@@ -192,6 +202,27 @@ describe("ads ledger and watch", () => {
     expect(again.stats?.verdicts.every((v) => !v.paused)).toBe(true);
     expect(again.stats?.ideas).toEqual([]);
     expect(ideas).toHaveLength(1);
+  });
+
+  it("cuts a hung insights read at its wait: no verdict, nothing stopped, the pass ends", async () => {
+    const dead = await ads().launch(spec);
+    await ads().start({ ...dead, dailyBudgetUsd: 10 });
+    insights = [
+      { adset_id: dead.adsetId, campaign_id: dead.campaignId, spend: "55.10", clicks: "0" },
+    ];
+    writes.length = 0;
+    hangInsights = true;
+    const out = await pass();
+    expect(out.stats).toMatchObject({ active: 1, verdicts: [], ideas: [] });
+    expect(out.stats?.insightsError).toMatch(/Ads\/insights gave no answer in 2 s/);
+    expect(out.error).toMatch(/^insights: /);
+    expect(writes).toEqual([]);
+    expect((await listLaunches(pg.db))[0]?.status).toBe("active");
+    // Answered next pass: judged as usual.
+    letGo();
+    hangInsights = false;
+    const next = await pass();
+    expect(next.stats?.verdicts.map((v) => v.paused)).toEqual([true]);
   });
 
   it("keeps each ad set day in ad_days, sums days to judge, and a re-read never adds", async () => {
