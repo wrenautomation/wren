@@ -411,11 +411,17 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
         from?: { id?: string };
         replies?: Edge<IgComment>;
       };
-      const r = await sites.call<Edge<IgComment>>("meta", "GET", `/${id}/comments`, {
-        // Without fields the Graph API leaves out who wrote it.
-        fields: `${IG_COMMENT_FIELDS},replies{${IG_COMMENT_FIELDS}}`,
-        limit: Math.min(q.limit ?? 100, 100),
-      });
+      const r = await sites
+        .call<Edge<IgComment>>("meta", "GET", `/${id}/comments`, {
+          // Without fields the Graph API leaves out who wrote it.
+          fields: `${IG_COMMENT_FIELDS},replies{${IG_COMMENT_FIELDS}}`,
+          limit: Math.min(q.limit ?? 100, 100),
+        })
+        .catch((err: unknown) => {
+          // A story takes no comments: Graph answers code 10, and there is nothing to read.
+          if (isStoryMedia(err)) return { data: [] } as Edge<IgComment>;
+          throw err;
+        });
       const self = await igUser().catch(() => null);
       const row = (c: IgComment, parentId?: string): CommentRow => ({
         id: c.id,
@@ -686,4 +692,10 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
     },
     privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
   };
+}
+
+/** Graph's answer for a comments read on story media (code 10): a story takes no comments. */
+export function isStoryMedia(err: unknown): boolean {
+  const text = err instanceof Error ? err.message : String(err);
+  return /graph code 10\b/.test(text) && /story media/i.test(text);
 }

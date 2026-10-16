@@ -397,6 +397,22 @@ describe("facebook content channel", () => {
   });
 });
 
+describe("instagram story media", () => {
+  it("reads no comments on a story, and still throws any other refusal", async () => {
+    const refusal = (why: string) => () => {
+      throw new Error(`meta GET: 400 CALL https://graph.test: HTTP 400 graph code ${why}`);
+    };
+    const { sites } = fakeSites({
+      "GET /me/accounts": pages,
+      "GET /s1/comments": refusal("10: (#10) Comments cannot be made on story media."),
+      "GET /p2/comments": refusal("100: (#100) Unsupported get request."),
+    });
+    const ch = instagramContent(sites, { now, host });
+    expect(await ch.comments("s1")).toEqual([]);
+    await expect(ch.comments("p2")).rejects.toThrow(/code 100/);
+  });
+});
+
 describe("facebook Page comments", () => {
   it("reads none unless its token reads them; a connected Page reads and replies", async () => {
     const { sites, calls } = fakeSites({
