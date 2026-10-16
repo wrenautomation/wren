@@ -65,24 +65,32 @@ function write(p: Pen, text: string, o: { bold?: boolean; size?: number; gap?: n
 }
 
 /** A row of cells at fixed x, right-aligned past the first. */
+/** One table row; the first cell wraps onto more lines rather than being cut. */
 function row(p: Pen, cells: string[], bold = false) {
   const xs = [M, 330, 400, 470, W - M];
-  if (p.y < M + LEAD) newPage(p);
   const font = bold ? p.bold : p.font;
-  cells.forEach((c, i) => {
-    const t = ansi(c);
-    if (i === 0) {
-      const max = 330 - M - 8;
-      let s = t;
-      while (s.length > 1 && font.widthOfTextAtSize(s, SIZE) > max) s = s.slice(0, -1);
-      p.page.drawText(s === t ? s : `${s.slice(0, -1)}.`, { x: M, y: p.y, size: SIZE, font });
-    } else {
-      const right = xs[i + 1] ?? W - M;
-      const x = Math.min(right, W - M) - font.widthOfTextAtSize(t, SIZE);
-      p.page.drawText(t, { x, y: p.y, size: SIZE, font });
-    }
+  const max = 330 - M - 8;
+  const first: string[] = [];
+  let line = "";
+  for (const w of ansi(cells[0] ?? "").split(" ")) {
+    const next = line ? `${line} ${w}` : w;
+    if (font.widthOfTextAtSize(next, SIZE) > max && line) {
+      first.push(line);
+      line = w;
+    } else line = next;
+  }
+  first.push(line);
+  if (p.y < M + LEAD * first.length) newPage(p);
+  first.forEach((l, n) => {
+    p.page.drawText(l, { x: M, y: p.y - n * LEAD, size: SIZE, font });
   });
-  p.y -= LEAD;
+  cells.slice(1).forEach((c, k) => {
+    const t = ansi(c);
+    const right = xs[k + 2] ?? W - M;
+    const x = Math.min(right, W - M) - font.widthOfTextAtSize(t, SIZE);
+    p.page.drawText(t, { x, y: p.y, size: SIZE, font });
+  });
+  p.y -= LEAD * first.length;
 }
 
 const when = (d: Date | string | null) =>
@@ -178,8 +186,10 @@ export interface InvoicePdf {
   issuedOn: string;
   dueOn: string;
   currency: string;
-  from: { name: string; place?: string; email?: string };
-  to: string;
+  /** Us; the tax number is our GST/HST registration. */
+  from: { name: string; place?: string; email?: string; taxNumber?: string };
+  /** Who pays: a name, then any address lines, email and tax number they gave. */
+  to: { name: string; address?: string[]; email?: string; taxNumber?: string };
   lines: { what: string; amount: string }[];
   total: string;
   /** The memo the payer types, so the payment finds its invoice. */
@@ -207,9 +217,14 @@ export async function invoicePdf(i: InvoicePdf): Promise<Uint8Array> {
   };
   write(p, i.from.name, { bold: true, size: 12 });
   for (const l of [i.from.place, i.from.email]) if (l) write(p, l, { size: 10 });
+  if (i.from.taxNumber) write(p, `GST/HST no. ${i.from.taxNumber}`, { size: 10 });
   p.y -= 14;
   write(p, `Invoice ${i.number}`, { bold: true, size: 20, gap: 6 });
-  write(p, `To: ${i.to}`);
+  write(p, "Bill to", { bold: true });
+  write(p, i.to.name);
+  for (const l of [...(i.to.address ?? []), i.to.email]) if (l) write(p, l, { size: 10 });
+  if (i.to.taxNumber) write(p, `Tax no. ${i.to.taxNumber}`, { size: 10 });
+  p.y -= 6;
   write(p, `Issued: ${i.issuedOn}`);
   write(p, `Due: ${i.dueOn}`, { bold: true, gap: 12 });
   row(p, ["Item", "", "", "Amount"], true);

@@ -55,7 +55,7 @@ import {
 } from "@wren/core/records/serve";
 import { WEBHOOKS, type WebhooksService } from "@wren/core/webhooks";
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
-import { invoiceFile, pdfName } from "./billing/mail.js";
+import { billToOf, invoiceFile, pdfName } from "./billing/mail.js";
 import type { ReceiveDetails } from "./billing/receive.js";
 import { domainsApi } from "./domains.js";
 import { type FileStore, newFileKey } from "./files.js";
@@ -119,6 +119,8 @@ export interface DeliveryDeps {
   readers?: (client: string) => Promise<string[]>;
   /** Where clients wire us, per currency (`WISE_RECEIVE_DETAILS`): on Billing and the PDF. */
   receive?: ReceiveDetails;
+  /** Our GST/HST registration (`WREN_TAX_NUMBER`), on the PDF. */
+  taxNumber?: string;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -530,7 +532,7 @@ export function deliveryApi(deps: DeliveryDeps) {
         throw new PortalRefusal("billing is for this account's owners", 403);
       const i = (await invoicesOf(deps.main, client.id)).find((x) => x.id === Number(req.id));
       if (!i) throw new PortalRefusal("no such invoice", 404);
-      const bytes = await invoiceFile(i, client.name, deps.receive ?? {});
+      const bytes = await invoiceFile(i, billToOf(client), deps.receive ?? {}, deps.taxNumber);
       return { name: pdfName(i), base64: Buffer.from(bytes).toString("base64") };
     },
     account: async (req: PortalRequest): Promise<AccountView> => {

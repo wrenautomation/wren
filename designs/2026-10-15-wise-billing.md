@@ -34,6 +34,7 @@ By hand (`matchByHand`): counts the whole amount sent toward the invoice. Refuse
 - `WISE_API_TOKEN`: a personal token, **read only**. `wiseReader` only sends GET: `/v4/profiles/{id}/balances` then `/v1/profiles/{id}/balance-statements/{balance}/statement.json` (COMPACT) per balance. No Wise SDK for Node exists; three GETs need none. Errors name the path and status, never the token.
 - `WISE_PROFILE_ID`: the business profile.
 - `WISE_RECEIVE_DETAILS`: JSON per currency (`name`, `bank`, `address`, `routing`, `institution`, `transit`, `sortCode`, `account`, `iban`, `swift`). The read-only token gets 403 on `account-details`, so these are stored. They came from the statement's `bankDetails`. USD, CAD, EUR and GBP are set.
+- `WREN_TAX_NUMBER`: our GST/HST registration, printed under our name on every invoice (env-2). Unset prints none.
 - All three live in `/wren/prod/env-2` (JSON). Never in the repo. Read at runtime by `@wren/config`. A malformed value prints no bank numbers at all.
 - **Webhook:** `POST /v3/profiles/{id}/subscriptions` for `balances#credit` returned 403 with this token. So there is no receiver: BillingWatch polls. A token that can make subscriptions could also move money, so we keep polling.
 
@@ -62,3 +63,4 @@ Its first pass bills the current month for every signed, running agreement (`bil
 - Billing contacts are the client's owners, as for reminders.
 - Mail goes from portal@ through the portal mailbox, with nodemailer's MailComposer for the attachment.
 - Contract text ("We bill through Wise") is unchanged: it is still true and is versioned legal text.
+- 2026-10-16 (William: first client invoice with his tax number and the client's details): the PDF prints our GST/HST number and a "Bill to" block from the client's `delivery.invoices` block, `billTo` (name, address lines, email, their tax number; `delivery bill-to`). No migration: the product owns its block. The name falls back to the client's. No GST/HST is charged: the first clients are outside Canada, where services are zero-rated; a Canadian client needs a tax line first. Long item text wraps instead of being cut.

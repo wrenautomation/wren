@@ -297,6 +297,8 @@ export const settingsSchema = z.object({
   wiseApiToken: z.string().min(1).optional(),
   wiseProfileId: z.string().regex(/^\d+$/).optional(),
   wiseReceiveDetails: z.string().min(2).optional(),
+  /** Our GST/HST registration, printed on every invoice. Unset = none printed. */
+  taxNumber: z.string().min(1).optional(),
   /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video demo render` refuses. */
   videosBucket: z.string().min(1).optional(),
   /** Where the CDN serves that bucket, no trailing slash ("https://d123.cloudfront.net"). */
@@ -686,6 +688,7 @@ export const ENV_KEYS = {
   wiseApiToken: "WISE_API_TOKEN",
   wiseProfileId: "WISE_PROFILE_ID",
   wiseReceiveDetails: "WISE_RECEIVE_DETAILS",
+  taxNumber: "WREN_TAX_NUMBER",
   videosBucket: "WREN_VIDEOS_BUCKET",
   videosOrigin: "WREN_VIDEOS_ORIGIN",
   videosWatchBase: "WREN_VIDEOS_WATCH_BASE",

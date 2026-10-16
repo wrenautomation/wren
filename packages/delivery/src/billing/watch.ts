@@ -35,6 +35,8 @@ export interface BillingDeps {
   send: ((m: PortalMail) => Promise<void>) | null;
   /** Where clients wire us, per currency, from the environment. */
   receive: ReceiveDetails;
+  /** Our GST/HST registration (`WREN_TAX_NUMBER`), on every invoice. */
+  taxNumber?: string;
   /** The portal, for the Billing link: `https://app.<domain>`. */
   app: string;
   /** The fleet's clock: the 1st's bills. */
@@ -81,7 +83,7 @@ export async function billingPass(deps: BillingDeps, now: Date): Promise<Billing
     lastError: null,
   };
   if (deps.send) {
-    const m = await mailInvoices(deps.main, deps.send, deps.receive, deps.app, now);
+    const m = await mailInvoices(deps.main, deps.send, deps.receive, deps.app, now, deps.taxNumber);
     stats.mailed = m.mailed;
     stats.failed += m.failed;
     stats.lastError = m.lastError;

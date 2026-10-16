@@ -1881,6 +1881,7 @@ export async function buildServices(
               })
             : null,
         receive: parseReceive(settings.wiseReceiveDetails),
+        ...(settings.taxNumber ? { taxNumber: settings.taxNumber } : {}),
         app: portal,
         zone: settings.sendTimezone,
         ...(settings.notify === "none" ? {} : { notifier }),
@@ -2014,6 +2015,7 @@ export async function buildServices(
       zone: settings.sendTimezone,
       app: portal ?? undefined,
       receive: parseReceive(settings.wiseReceiveDetails),
+      ...(settings.taxNumber ? { taxNumber: settings.taxNumber } : {}),
       domains: customDomains(),
       // The message rules on Account live in each client's own database.
       open: openClient,

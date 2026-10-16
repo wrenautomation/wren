@@ -52,11 +52,13 @@ import {
   BILLING_KEY,
   BILLING_WATCH,
   type BillingWatch,
+  billToOf,
   CREDIT_STATUSES_SHOWN,
   type CreditView,
   creditsList,
   dismissCredit,
   matchByHand,
+  setBillTo,
 } from "@wren/delivery/billing";
 import { MAX_FILE_BYTES, newFileKey, s3Files, typeOfName } from "@wren/delivery/files";
 import { type DeliveryWatch, WATCH, WATCH_KEY } from "@wren/delivery/restate";
@@ -558,6 +560,27 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         console.log(
           `invoice ${i.number} open, due ${i.dueOn}${i.setup ? " (setup fee)" : ""}; BillingWatch mails it on its next pass (delivery billing sync)`,
         );
+      },
+    );
+
+  cmd
+    .command("bill-to")
+    .description(
+      "Who the client's invoices are billed to (name, address, email, their tax number); none given prints it",
+    )
+    .option("--name <text>", "legal or business name (default: the client's name)")
+    .option("--address <line...>", "address lines, in order")
+    .option("--email <address>", "billing email printed on the invoice")
+    .option("--tax-number <id>", "their tax or GST number, if they gave one")
+    .action(
+      async (opts: { name?: string; address?: string[]; email?: string; taxNumber?: string }) => {
+        const set = opts.name || opts.address || opts.email || opts.taxNumber;
+        const b = await withMainDb(async (main) => {
+          const client = await getClient(main, clientId());
+          if (!set) return billToOf(client);
+          return setBillTo(main, client.id, opts);
+        });
+        console.log(JSON.stringify(b, null, 2));
       },
     );
 

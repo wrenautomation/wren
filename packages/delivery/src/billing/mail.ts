@@ -5,13 +5,70 @@
  */
 import { clientMembers, clients } from "@wren/core/clients";
 import { errorText } from "@wren/core/restate";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { invoicePdf } from "@wren/documents/pdf";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { amount, WREN_PARTY } from "../contract.js";
 import { engagements, type Invoice, invoices } from "../schema.js";
 import type { PortalMail } from "../watch.js";
 import { payFields, type ReceiveDetails } from "./receive.js";
+
+/** Who an invoice is billed to: the client's `delivery.invoices` block, `billTo`. */
+export interface BillTo {
+  name?: string;
+  address?: string[];
+  email?: string;
+  taxNumber?: string;
+}
+
+const textOr = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+
+/** Bill-to details from untrusted JSON: trimmed text only, empty fields dropped. */
+export function parseBillTo(raw: unknown): BillTo {
+  const b = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const address = Array.isArray(b.address)
+    ? b.address.map(textOr).filter((l): l is string => l !== undefined)
+    : [];
+  const name = textOr(b.name);
+  const email = textOr(b.email);
+  const taxNumber = textOr(b.taxNumber);
+  return {
+    ...(name ? { name } : {}),
+    ...(address.length ? { address } : {}),
+    ...(email ? { email } : {}),
+    ...(taxNumber ? { taxNumber } : {}),
+  };
+}
+
+/** The client's bill-to details; the name falls back to the client's own. */
+export function billToOf(c: {
+  name: string;
+  products: Record<string, unknown>;
+}): BillTo & { name: string } {
+  const block = c.products["delivery.invoices"];
+  const b = parseBillTo(
+    block && typeof block === "object" ? (block as { billTo?: unknown }).billTo : null,
+  );
+  return { ...b, name: b.name ?? c.name };
+}
+
+/** Changes the client's bill-to details: the fields given replace theirs, the rest stay. */
+export async function setBillTo(
+  db: Queryable,
+  clientId: string,
+  change: BillTo,
+): Promise<BillTo & { name: string }> {
+  const patch = JSON.stringify(parseBillTo(change));
+  const [row] = await db
+    .update(clients)
+    .set({
+      products: sql`jsonb_set(${clients.products}, '{delivery.invoices}', coalesce(${clients.products} -> 'delivery.invoices', '{}'::jsonb) || jsonb_build_object('billTo', coalesce(${clients.products} #> '{delivery.invoices,billTo}', '{}'::jsonb) || ${patch}::jsonb))`,
+    })
+    .where(eq(clients.id, clientId))
+    .returning({ name: clients.name, products: clients.products });
+  if (!row) throw new Error(`no client ${clientId}`);
+  return billToOf(row);
+}
 
 /** The PDF's file name. */
 export const pdfName = (i: Pick<Invoice, "number">) => `${i.number}.pdf`;
@@ -22,8 +79,10 @@ export function invoiceFile(
     Invoice,
     "number" | "issuedOn" | "dueOn" | "currency" | "cents" | "lines" | "description"
   >,
-  clientName: string,
+  to: BillTo & { name: string },
   receive: ReceiveDetails,
+  /** Our GST/HST registration (`WREN_TAX_NUMBER`), printed under our name. */
+  taxNumber?: string,
 ): Promise<Uint8Array> {
   const lines = i.lines.length ? i.lines : [{ what: i.description, cents: i.cents }];
   return invoicePdf({
@@ -31,8 +90,13 @@ export function invoiceFile(
     issuedOn: i.issuedOn,
     dueOn: i.dueOn,
     currency: i.currency,
-    from: { name: WREN_PARTY.name, place: WREN_PARTY.place, email: WREN_PARTY.email },
-    to: clientName,
+    from: {
+      name: WREN_PARTY.name,
+      place: WREN_PARTY.place,
+      email: WREN_PARTY.email,
+      ...(taxNumber ? { taxNumber } : {}),
+    },
+    to,
     lines: lines.map((l) => ({ what: l.what, amount: amount(l.cents, i.currency) })),
     total: amount(i.cents, i.currency),
     reference: i.number,
@@ -75,11 +139,17 @@ export async function mailInvoices(
   receive: ReceiveDetails,
   app: string,
   now: Date,
+  taxNumber?: string,
 ): Promise<MailStats & { sent: { number: string; client: string }[] }> {
   const stats = { mailed: 0, failed: 0, lastError: null as string | null };
   const sent: { number: string; client: string }[] = [];
   const due = await main
-    .select({ i: invoices, clientId: clients.id, clientName: clients.name })
+    .select({
+      i: invoices,
+      clientId: clients.id,
+      clientName: clients.name,
+      products: clients.products,
+    })
     .from(invoices)
     .innerJoin(engagements, eq(engagements.id, invoices.engagementId))
     .innerJoin(clients, eq(clients.id, engagements.clientId))
@@ -92,13 +162,14 @@ export async function mailInvoices(
       ),
     )
     .orderBy(asc(invoices.id));
-  for (const { i, clientId, clientName } of due) {
+  for (const { i, clientId, clientName, products } of due) {
     const owners = await main
       .select({ email: clientMembers.email })
       .from(clientMembers)
       .where(and(eq(clientMembers.clientId, clientId), eq(clientMembers.role, "owner")));
     if (owners.length === 0) continue;
-    const content = await invoiceFile(i, clientName, receive);
+    const to = billToOf({ name: clientName, products });
+    const content = await invoiceFile(i, to, receive, taxNumber);
     const text = invoiceText(i, clientId, receive, app);
     let ok = true;
     for (const { email } of owners) {
