@@ -143,6 +143,20 @@ wren drafts edits --type dm --limit 5        # how William changed drafts, befor
 node scripts/prod-wren.mjs drafts list       # on prod
 ```
 
+## Decide
+
+Machine calls beside William's (designs/2026-10-16-decide.md). Jev judges drafted comments
+(send, edit, drop) and Learn items (worth, skip); his send, drop, star or archive is logged next
+to it. `Decide/wren` runs every 10 minutes. The Agents page shows the same numbers.
+
+```bash
+wren decide stats                   # per kind: mode, his calls, agreement, overrides, tokens, $
+wren decide mode learn_worth shadow # off, shadow, recommend (a chip), gate (refused until built)
+wren decide export --called --out decisions.jsonl   # wren.decision/1: the distill set
+wren decide backfill [--dry-run] [--sample 100 --max-usd 2]   # history's calls; a Jev sample
+wren decide pass                    # one pass here
+```
+
 ## Accounts
 
 Every account we post and reply as, the same rows as Outreach → Accounts. A draft on a platform

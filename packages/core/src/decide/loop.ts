@@ -18,7 +18,7 @@ import {
   decideSettings,
   spentToday,
 } from "./decide.js";
-import type { DecisionKind } from "./kinds.js";
+import type { DecideMode, DecisionKind } from "./kinds.js";
 
 export interface DecideSubject {
   subject: string;
@@ -58,6 +58,10 @@ export async function decidePass(
     max?: number;
     budgetMs?: number;
     limitMs?: number;
+    /** This pass's own spend limit, in place of the daily cap: a sample William set. */
+    maxUsd?: number;
+    /** Every decision's mode, in place of each kind's: `shadow` for a sample he never sees. */
+    mode?: DecideMode;
   },
 ): Promise<DecidePassStats> {
   const s: DecidePassStats = {
@@ -74,15 +78,15 @@ export async function decidePass(
   const t0 = Date.now();
   if (!o.backends.chain.length) return { ...s, stopped: o.backends.note ?? "no backend" };
   const modes = await decideModes(db);
-  const cap = (await decideSettings(db)).dailyUsd ?? DEFAULT_DAILY_USD;
-  let spent = await spentToday(db, now);
+  const cap = o.maxUsd ?? (await decideSettings(db)).dailyUsd ?? DEFAULT_DAILY_USD;
+  let spent = o.maxUsd !== undefined ? 0 : await spentToday(db, now);
   let left = o.max ?? DECIDE_MAX;
   outer: for (const src of o.sources) {
-    const mode = modes[src.kind];
+    const mode = modes[src.kind] === "off" ? "off" : (o.mode ?? modes[src.kind]);
     if (mode === "off" || left <= 0) continue;
     for (const sub of await src.due(db, now, left)) {
       if (spent >= cap) {
-        s.stopped = `daily cap $${cap} reached`;
+        s.stopped = `${o.maxUsd !== undefined ? "spend limit" : "daily cap"} $${cap} reached`;
         break outer;
       }
       if (Date.now() - t0 > (o.budgetMs ?? DECIDE_BUDGET_MS)) {

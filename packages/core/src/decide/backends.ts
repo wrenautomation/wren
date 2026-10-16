@@ -195,9 +195,14 @@ export function backendsFromEnv(
   if (spec === "off") return { chain: [], note: "WREN_DECIDE=off" };
   const [head, ...rest] = spec.split(":");
   const model = rest.join(":") || undefined;
-  const gateway = llm
-    ? gatewayBackend(llm(head === "gateway" && model ? `gateway:${model}` : "gateway"))
-    : null;
+  let gateway: DecideBackend | null = null;
+  try {
+    // No gateway keys here (a laptop without them): Jev runs alone.
+    if (llm)
+      gateway = gatewayBackend(llm(head === "gateway" && model ? `gateway:${model}` : "gateway"));
+  } catch {
+    gateway = null;
+  }
   if (head === "gateway")
     return gateway ? { chain: [gateway], note: null } : { chain: [], note: "no gateway client" };
   const key = env.TYPESAFE_API_KEY;

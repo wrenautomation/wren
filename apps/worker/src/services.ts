@@ -291,6 +291,7 @@ import {
 } from "@wren/core/content/restate";
 import { setFieldStep } from "@wren/core/custom-fields";
 import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
+import { backendsFromEnv, makeDecide } from "@wren/core/decide";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
@@ -358,6 +359,7 @@ import {
   type VideoReader,
 } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
+import { learnSource } from "@wren/learn/decide";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { gatewayEmbed, llmForKey, loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
@@ -386,6 +388,7 @@ import {
   sortStep,
   WREN_AUDIENCE,
 } from "@wren/outreach";
+import { commentSource } from "@wren/outreach/decide";
 import {
   makeCommentProofs,
   makeReachDesk,
@@ -2317,6 +2320,13 @@ export async function buildServices(
       };
       return [makePeopleMap(map), makePeopleMapNet(map)];
     })(),
+    // Decide (designs/2026-10-16-decide.md): drafted comments and Learn items judged by Jev every
+    // 10 minutes, each answer logged beside his call; the gateway answers when Jev is down.
+    makeDecide({
+      main: db,
+      sources: [commentSource, learnSource],
+      backends: () => backendsFromEnv(process.env, (spec) => makeLlm(spec, process.env)),
+    }),
     // Broadcasts (B6): each approved one started on its time and sent a batch per run.
     makeBroadcast({ main: db, clientDb, mail: (client, cdb) => mailOf(client, cdb) }),
     makeWebhooks({

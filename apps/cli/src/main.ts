@@ -37,6 +37,7 @@ import { guardClient } from "./client-scope.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
 import { registerCrm } from "./crm.js";
+import { registerDecide } from "./decide.js";
 import { registerDelivery } from "./delivery.js";
 import { registerDlq } from "./dlq.js";
 import { registerDossier } from "./dossier.js";
@@ -244,6 +245,7 @@ registerPages(program, withMainDb, settings);
 registerContent(program, withMainDb, settings);
 registerWrite(program, withDb, settings);
 registerDrafts(program, withMainDb);
+registerDecide(program, withMainDb, { llmEnvPath: settings.llmEnvPath, rootDir });
 registerTrain(program, withMainDb, (database, fn) =>
   open(clientDatabaseUrl(settings.databaseUrl, database), fn),
 );
