@@ -20,6 +20,8 @@ import { emailClicks, enrollments, messages } from "../schema.js";
 
 /** Rows per request; the lander caps at 5000. */
 export const SITE_PAGE = 5000;
+/** One page of a lander table (up to `SITE_PAGE` rows, a replay's events among them). */
+const SITE_EXPORT_LIMIT_MS = 2 * 60_000;
 /** Requests per table per run: a ceiling, so a bad cursor can't loop against the site. */
 export const SITE_MAX_PAGES = 20;
 
@@ -152,6 +154,7 @@ export async function sitePage<T extends keyof SiteTables>(
   try {
     response = await fetchImpl(url.toString(), {
       headers: { Authorization: `Bearer ${opts.exportToken}` },
+      signal: AbortSignal.timeout(SITE_EXPORT_LIMIT_MS),
     });
   } catch (err) {
     throw new SiteExportError(`site unreachable: ${(err as Error).message}`);

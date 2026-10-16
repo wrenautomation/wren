@@ -24,6 +24,8 @@ import { messages, openEvents, openSyncs } from "../schema.js";
 
 /** How many rows one request asks for. The host caps at 5000. */
 export const PAGE = 1000;
+/** One export page off the pixel host; past it the pass fails and the next reads on from the same id. */
+const EXPORT_LIMIT_MS = 60_000;
 /** Requests per run. A ceiling, not a target: an unbounded loop against a remote host is how a sync run becomes an incident. */
 export const MAX_PAGES = 50;
 
@@ -60,7 +62,10 @@ async function rows(
   url.searchParams.set("limit", String(PAGE));
   let response: Response;
   try {
-    response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(EXPORT_LIMIT_MS),
+    });
   } catch (err) {
     throw new OpenSyncError(`pixel host unreachable: ${(err as Error).message}`);
   }

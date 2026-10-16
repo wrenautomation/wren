@@ -4,6 +4,7 @@
  * files as the pages). Read live, so a proposal quotes what is up now.
  */
 import type { FetchLike } from "@wren/channel-email";
+import { PAGE_LIMIT_MS } from "./console.js";
 
 const decode = (s: string) =>
   s
@@ -20,7 +21,7 @@ export async function siteText(
 ): Promise<string> {
   const heads: string[] = [];
   for (const url of urls) {
-    const res = await fetch(url, { method: "GET" });
+    const res = await fetch(url, { method: "GET", signal: AbortSignal.timeout(PAGE_LIMIT_MS) });
     if (!res.ok) continue;
     const html = await res.text();
     const title = /<title>([^<]*)<\/title>/i.exec(html)?.[1] ?? "";
@@ -29,6 +30,9 @@ export async function siteText(
       `Page ${new URL(url).pathname}\ntitle: ${decode(title)}\ndescription: ${decode(description)}`,
     );
   }
-  const llms = await fetch(new URL("/llms.txt", origin).href, { method: "GET" });
+  const llms = await fetch(new URL("/llms.txt", origin).href, {
+    method: "GET",
+    signal: AbortSignal.timeout(PAGE_LIMIT_MS),
+  });
   return [...heads, "", llms.ok ? await llms.text() : ""].join("\n\n");
 }

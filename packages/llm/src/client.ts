@@ -103,6 +103,9 @@ function rootCause(err: unknown): unknown {
  * Anthropic's vocabulary (input_tokens/output_tokens/stop_reason) plus the response
  * ids, so audit reads it with the same code path as legacy rows.
  */
+/** One completion, the SDK's own retries included: a long draft takes a minute or two. */
+export const LLM_LIMIT_MS = 5 * 60_000;
+
 export class AiSdkLlm implements LlmClient {
   readonly name: string;
   constructor(
@@ -128,6 +131,8 @@ export class AiSdkLlm implements LlmClient {
         ...(opts.system ? { system: wellFormed(opts.system) } : {}),
         prompt: wellFormed(prompt),
         maxOutputTokens: Math.max(opts.maxTokens ?? 0, DEFAULT_MAX_TOKENS) + this.thinking,
+        // Its retries included: a model that never answers would hold the caller's step.
+        abortSignal: AbortSignal.timeout(LLM_LIMIT_MS),
       });
     } catch (err) {
       const cause = rootCause(err);

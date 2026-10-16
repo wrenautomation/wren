@@ -42,6 +42,7 @@
     "./edits": "./src/edits.ts",
     "./emails": "./src/emails.ts",
     "./feed": "./src/feed.ts",
+    "./fetch-limit": "./src/fetch-limit.ts",
     "./follow": "./src/follow.ts",
     "./flags": "./src/flags.ts",
     "./experiment-store": "./src/experiment-store.ts",

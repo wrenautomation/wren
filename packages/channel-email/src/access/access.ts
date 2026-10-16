@@ -6,6 +6,7 @@
  */
 import { createHash } from "node:crypto";
 import { WREN } from "@wren/core/access";
+import { timedFetch } from "@wren/core/fetch-limit";
 import type { KeyStore } from "@wren/core/keys";
 import type { Mailbox, MailSender } from "@wren/core/mailbox";
 import { OAuthError, pkceVerifier, randomState } from "@wren/core/oauth";
@@ -267,8 +268,13 @@ export function mailboxStates(
   return { mailboxes, orgs };
 }
 
+/** One Gmail or Graph call, a raw message included. */
+const MAIL_LIMIT_MS = 2 * 60_000;
+
 /** The plumbing: grants, the callback, tokens, the checks' reads. */
-export function mailAccess(deps: MailDeps) {
+export function mailAccess(given: MailDeps) {
+  // Every mailbox call (token, read, send) is cut at its limit: a hung one would hold a step.
+  const deps: MailDeps = { ...given, fetch: timedFetch(MAIL_LIMIT_MS, given.fetch) };
   const { main } = deps;
   const now = () => deps.now?.() ?? new Date();
   const cache = new Map<number, { token: string; until: number }>();

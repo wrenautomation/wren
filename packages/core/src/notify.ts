@@ -45,6 +45,8 @@ export class ConsoleNotifier implements Notifier {
 
 /** Discord rejects content over 2000 chars; a long digest is cut, never refused. */
 const DISCORD_CONTENT_LIMIT = 1900;
+/** A webhook post answers in well under a second; past this a loop's step gives up on it. */
+const DISCORD_LIMIT_MS = 30_000;
 const MARK: Record<NotifyLevel, string> = { info: "", action: "🔔 ", warning: "⚠️ " };
 /** Discord's @silent: the post lands, no push or sound. */
 const SUPPRESS_NOTIFICATIONS = 1 << 12;
@@ -69,6 +71,7 @@ export class DiscordNotifier implements Notifier {
     try {
       const res = await this.http(this.webhookUrl, {
         method: "POST",
+        signal: AbortSignal.timeout(DISCORD_LIMIT_MS),
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           content: text,

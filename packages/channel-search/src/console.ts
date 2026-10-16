@@ -23,6 +23,11 @@ export class SearchConsoleError extends Error {
   }
 }
 
+/** One Search Console call: an analytics query or a URL inspection. */
+const SEARCH_CONSOLE_LIMIT_MS = 60_000;
+/** One page of our own site (the sitemap, a page head, llms.txt). */
+export const PAGE_LIMIT_MS = 30_000;
+
 export interface SearchConsoleClient {
   fetch: FetchLike;
   /** A bearer supplier (`serviceAccountToken`); a long pass outlives one token. */
@@ -67,7 +72,12 @@ async function call(
   if (body) headers["Content-Type"] = "application/json";
   let res: Response;
   try {
-    res = await c.fetch(url, { method, headers, ...(body ? { body: JSON.stringify(body) } : {}) });
+    res = await c.fetch(url, {
+      method,
+      headers,
+      signal: AbortSignal.timeout(SEARCH_CONSOLE_LIMIT_MS),
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
   } catch (err) {
     throw new SearchConsoleError(0, `Search Console unreachable: ${(err as Error).message}`);
   }
@@ -132,7 +142,7 @@ export async function inspectUrl(
 
 /** The URLs a sitemap lists (`<loc>`), read from the live site. */
 export async function sitemapUrls(fetch: FetchLike, sitemap: string): Promise<string[]> {
-  const res = await fetch(sitemap, { method: "GET" });
+  const res = await fetch(sitemap, { method: "GET", signal: AbortSignal.timeout(PAGE_LIMIT_MS) });
   if (!res.ok)
     throw new SearchConsoleError(res.status, `sitemap ${sitemap} answered ${res.status}`);
   return [...(await res.text()).matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(

@@ -73,6 +73,9 @@ export function creditOf(balanceId: string, t: Record<string, unknown>): CreditI
   };
 }
 
+/** One Wise read: a small JSON page. */
+const WISE_LIMIT_MS = 30_000;
+
 export function wiseReader(o: {
   token: string;
   profileId: string;
@@ -84,6 +87,7 @@ export function wiseReader(o: {
   const get = async <T>(path: string): Promise<T> => {
     const r = await f(`${base}${path}`, {
       method: "GET",
+      signal: AbortSignal.timeout(WISE_LIMIT_MS),
       headers: { authorization: `Bearer ${o.token}`, accept: "application/json" },
     });
     if (!r.ok) throw new WiseError(`Wise ${path.split("?")[0]}: ${r.status}`);

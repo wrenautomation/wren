@@ -23,12 +23,15 @@ export const DEAD_LETTERS_EVERY_MS = 10 * 60_000;
 
 /** A write to Restate's admin API: `PATCH <admin>/invocations/<id>/resume?deployment=latest`. */
 export type RestateAdminPatch = (path: string) => Promise<void>;
+/** A resume or kill is one small admin write. */
+const ADMIN_PATCH_LIMIT_MS = 30_000;
 
 export const restateAdminPatch =
   (url: string, token?: string): RestateAdminPatch =>
   async (path) => {
     const res = await fetch(`${url.replace(/\/$/, "")}${path}`, {
       method: "PATCH",
+      signal: AbortSignal.timeout(ADMIN_PATCH_LIMIT_MS),
       headers: token ? { authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error(`restate admin ${path}: ${res.status} ${await res.text()}`);

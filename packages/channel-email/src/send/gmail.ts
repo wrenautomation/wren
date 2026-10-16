@@ -7,6 +7,7 @@
  * decides) or definitively did not (`TransportRefused` → re-armable).
  */
 
+import { timedFetch } from "@wren/core/fetch-limit";
 import MailComposer from "nodemailer/lib/mail-composer";
 import {
   type FetchLike,
@@ -29,6 +30,8 @@ import {
 } from "./transport.js";
 
 export const GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me";
+/** One Gmail call, a raw message with attachments included. A send cut here reads as unsure, never as unsent. */
+export const GMAIL_LIMIT_MS = 2 * 60_000;
 /** What the outbox needs end to end: send, then read the same mailbox back. */
 export const SEND_AND_READ_SCOPES: readonly string[] = [GMAIL_SEND_SCOPE, GMAIL_MODIFY_SCOPE];
 
@@ -154,7 +157,8 @@ export class GmailClient {
   private readonly tokens = new Map<string, TokenSupplier>();
 
   constructor(opts: GmailClientOptions) {
-    this.fetch = opts.fetch ?? ((input, init) => fetch(input, init));
+    // Every Gmail call, the token exchange too, is cut at its limit: a hung one would hold a step.
+    this.fetch = timedFetch(GMAIL_LIMIT_MS, opts.fetch ?? ((input, init) => fetch(input, init)));
     const scopes = opts.scopes ?? SEND_AND_READ_SCOPES;
     let key = opts.key ?? null;
     this.tokenFactory =

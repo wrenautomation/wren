@@ -118,6 +118,8 @@ const RETRYABLE = new Set([429, 503]);
 const RETRY_ATTEMPTS = 4;
 /** A server-named wait is honoured, but never past this. */
 const MAX_RETRY_WAIT_MS = 60_000;
+/** One Postmaster read: a small JSON answer. */
+const POSTMASTER_LIMIT_MS = 30_000;
 
 export type Sleep = (ms: number) => Promise<void>;
 const realSleep: Sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -147,9 +149,11 @@ async function request(
   const bearer = typeof client.token === "string" ? client.token : await client.token();
   const headers: Record<string, string> = { Authorization: `Bearer ${bearer}` };
   try {
-    if (body === null) return await client.fetch(url, { method: "GET", headers });
+    const signal = AbortSignal.timeout(POSTMASTER_LIMIT_MS);
+    if (body === null) return await client.fetch(url, { method: "GET", headers, signal });
     return await client.fetch(url, {
       method: "POST",
+      signal,
       headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
