@@ -56,6 +56,13 @@ data "aws_iam_policy_document" "worker_files" {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.files.arn}/calls/*"]
   }
+  # Images pasted into Notes (packages/notes/src/console.ts): the browser PUTs and GETs them
+  # with links the worker signs.
+  statement {
+    sid       = "NoteImages"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["${aws_s3_bucket.files.arn}/notes/*"]
+  }
 }
 
 resource "aws_iam_role_policy" "worker_files" {
