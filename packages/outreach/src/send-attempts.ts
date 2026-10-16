@@ -131,7 +131,12 @@ export async function forgetUnsure(db: Queryable, item: string): Promise<void> {
 /** Park an item the sender already marked unknown (a DM): unsure, waiting on a person. */
 export async function parkUnsure(
   db: Queryable,
-  a: Omit<SendClaim, "invocation" | "again"> & { why: string; tries: number },
+  a: Omit<SendClaim, "invocation" | "again"> & {
+    why: string;
+    tries: number;
+    /** When the send began, where it is not `now`: a look on Mark posted reads from it. */
+    since?: Date;
+  },
 ): Promise<void> {
   const row = {
     state: "unsure" as const,
@@ -146,7 +151,7 @@ export async function parkUnsure(
   };
   await db
     .insert(sendAttempts)
-    .values({ item: a.item, startedAt: a.now, ...row })
+    .values({ item: a.item, startedAt: a.since ?? a.now, ...row })
     .onConflictDoUpdate({ target: sendAttempts.item, set: row });
 }
 

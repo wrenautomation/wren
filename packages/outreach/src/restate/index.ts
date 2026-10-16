@@ -1246,6 +1246,13 @@ type DeskSends = {
     req: { id: number; body: string; again: true; viewer?: unknown },
   ) => Promise<unknown>;
 };
+/** `ContentDesk/<key>/settlePost` as the content package serves it; no import from there. */
+export type PostSettle = {
+  settlePost: (
+    ctx: restate.ObjectContext,
+    req: { id: string; outcome: "posted" | "again"; by: string },
+  ) => Promise<{ id: string; outcome: "posted" | "again"; found: boolean }>;
+};
 const THREAD_REPLY = COMMENT.extend({
   ref: z.string().min(1).max(200).describe("The platform id of the comment to reply to"),
   body: z.string().nullish().describe("The words"),
@@ -2011,7 +2018,8 @@ export function makeReachDesk(deps: ReachDeps) {
       /**
        * Settle a send that may have gone through and no read could tell (it waits in To approve):
        * `posted` records it as sent; `again` sends it once more through its own handler, which
-       * reads the site first. Wren's own sends only.
+       * reads the site first. Wren's own sends only. A post of ours on our own channel (`draft:`)
+       * settles in `ContentDesk/default/settlePost`, which reads our listing first.
        */
       settleSend: serviceHandler(
         { input: SETTLE_SEND, effect: "sends" },
@@ -2029,6 +2037,12 @@ export function makeReachDesk(deps: ReachDeps) {
               return { ...it, words: a.words };
             }),
           );
+          if (kind === "draft") {
+            await ctx
+              .objectClient<PostSettle>({ name: "ContentDesk" }, "default")
+              .settlePost({ id, outcome: req.outcome, by: byOf(req) });
+            return { item: req.item, outcome: req.outcome };
+          }
           if (req.outcome === "posted") {
             const stats = await ctx.run("posted", () =>
               terminal(() =>

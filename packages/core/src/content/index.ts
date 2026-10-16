@@ -215,6 +215,12 @@ export interface ContentChannel {
   /** Irreversible: an orchestrator gates it like any other irreversible step. */
   publish(post: Post): Promise<Published>;
   list(q?: ListQuery): Promise<PublishedRow[]>;
+  /**
+   * Why `list` may not show a fresh post of this kind yet (a video still processing, a private
+   * one): a look after a lost publish then never takes its absence as proof. Absent = it lists
+   * a post as soon as the publish answers.
+   */
+  listsLate?(media: Media["kind"] | null): string | null;
   metrics(id: string): Promise<Metrics>;
   /**
    * These posts' numbers in as few reads as the platform allows (one listing, one batch query).

@@ -8,6 +8,7 @@ import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { keepFirstVariants } from "./analytics/variants.js";
+import { MAY_HAVE_GONE_OUT } from "./platforms.js";
 import { type ContentDraft, contentDrafts } from "./schema.js";
 
 const dueAt = (now: Date) =>
@@ -51,38 +52,88 @@ export async function markPublished(
   published: Published,
   /** The funnel link appended to the text, for the record. */
   link?: string | null,
+  /** Who records it: the scheduler, or a person whose word on an unsure post found it. */
+  by = "scheduler",
+): Promise<void> {
+  await stamp(db, id, {
+    at: new Date(published.publishedAt),
+    publishedId: published.id,
+    url: published.url,
+    notes: published.notes ?? [],
+    // What the platform refused after the post went up, where he sees it.
+    error: published.notes?.length ? published.notes.join("; ").slice(0, 1000) : null,
+    link: link ?? null,
+    via: by === "scheduler" ? "wren" : "person",
+    by,
+  });
+}
+
+/**
+ * Published on a person's word (designs/2026-10-16-maybe-sent.md): he saw it on the site and no
+ * read found it, so it has no platform id and its numbers are not read until one is set.
+ */
+export async function markPostedBy(
+  db: Queryable,
+  id: string,
+  o: { by: string; at: Date },
+): Promise<void> {
+  await stamp(db, id, {
+    at: o.at,
+    publishedId: null,
+    url: null,
+    notes: [],
+    error: `Marked posted by ${o.by}. No read found it, so its numbers are not read.`,
+    link: null,
+    via: "person",
+    by: o.by,
+  });
+}
+
+/** The row stamped published, its first variants kept, its words frozen in the draft record. */
+async function stamp(
+  db: Queryable,
+  id: string,
+  p: {
+    at: Date;
+    publishedId: string | null;
+    url: string | null;
+    notes: readonly string[];
+    error: string | null;
+    link: string | null;
+    via: "wren" | "person";
+    by: string;
+  },
 ): Promise<void> {
   const [d] = await db
     .update(contentDrafts)
     .set({
       status: "published",
-      publishedAt: new Date(published.publishedAt),
-      publishedId: published.id,
-      url: published.url,
-      // What the platform refused after the post went up, where he sees it.
-      error: published.notes?.length ? published.notes.join("; ").slice(0, 1000) : null,
+      publishedAt: p.at,
+      publishedId: p.publishedId,
+      url: p.url,
+      error: p.error,
     })
     .where(eq(contentDrafts.id, id))
     .returning();
   if (!d) return;
   // Its title, thumbnail and hook as they went out: the first window of each.
-  await keepFirstVariants(db, d, new Date(published.publishedAt), published.notes ?? []);
+  await keepFirstVariants(db, d, p.at, p.notes);
   // The words as they went out, frozen with the platform's id.
   await recordDraft(db, {
     item: `draft:${id}`,
     platform: d.platform,
     event: "sent",
-    via: "wren",
-    by: "scheduler",
+    via: p.via,
+    by: p.by,
     text: d.text,
     title: d.title,
-    externalId: published.id,
-    url: published.url,
+    externalId: p.publishedId,
+    url: p.url,
     // The fields as they went out, and any the platform refused after.
     meta: {
       fields: d.extra,
-      ...(link ? { link } : {}),
-      ...(published.notes?.length ? { notes: published.notes } : {}),
+      ...(p.link ? { link: p.link } : {}),
+      ...(p.notes.length ? { notes: p.notes } : {}),
     },
     // A journaled step that runs again keeps one.
     ref: `sent:draft:${id}`,
@@ -132,4 +183,28 @@ export async function markFailed(db: Queryable, id: string, error: string): Prom
       by: "scheduler",
       note: error.slice(0, 1000),
     });
+}
+
+/**
+ * A publish that may have gone out and no read could tell: the draft stays `publishing`, so no
+ * pass claims it, and its line says why. Its ledger row (`draft:<id>`) waits in To approve.
+ */
+export async function markUnsure(db: Queryable, id: string, why: string): Promise<void> {
+  await db
+    .update(contentDrafts)
+    .set({ error: `${MAY_HAVE_GONE_OUT}: ${why}. It waits in To approve.`.slice(0, 1000) })
+    .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")));
+}
+
+/**
+ * publishing → approved on a person's Send again, after a look did not find it: the next pass
+ * posts it. Null when the draft is no longer waiting on that word.
+ */
+export async function sendAgain(db: Queryable, id: string): Promise<ContentDraft | null> {
+  const [row] = await db
+    .update(contentDrafts)
+    .set({ status: "approved", error: null })
+    .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")))
+    .returning();
+  return row ?? null;
 }

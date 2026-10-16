@@ -7,6 +7,9 @@
  *
  * `ContentDesk/<client>/desk`: the same over a client's own database. Its drafts speak as the
  * client (its plan's About and voice), on its own `models` vendor; they wait in its To approve.
+ *
+ * `settlePost` settles a post that may have gone out (designs/2026-10-16-maybe-sent.md): our
+ * listing is read first, then the person's word.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -16,12 +19,20 @@ import { PLATFORMS } from "@wren/core/content";
 import { SHAPES } from "@wren/core/content/shapes";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { KeyStore } from "@wren/core/keys";
+import type { Seen } from "@wren/core/maybe-sent";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { PortalRefusal, terminalOf } from "@wren/core/portal";
-import { clientOfKey, exclusiveHandler, PORTAL_FIELDS, sharedHandler } from "@wren/core/restate";
+import {
+  clientKey,
+  clientOfKey,
+  exclusiveHandler,
+  PORTAL_FIELDS,
+  sharedHandler,
+} from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, llmForKey, type Tracer } from "@wren/llm";
+import { forgetUnsure, settleSent, unsureItem } from "@wren/outreach";
 import { z } from "zod";
 import { askSwap, planSwap, skipSwaps, startSwap } from "../analytics/variants.js";
 import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
@@ -41,7 +52,8 @@ import { type FunnelPatch, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
 import { FROM, refFrom, splitPosts, waitingIdeas, writeOwn } from "../own.js";
-import { aboutDraft } from "../platforms.js";
+import { POSTS_UNIT } from "../components.js";
+import { aboutDraft, lookWords } from "../platforms.js";
 import {
   draftCarousel,
   draftPromo,
@@ -53,6 +65,7 @@ import {
   promoBase,
   videoDraftOf,
 } from "../promo.js";
+import { markPostedBy, markPublished, sendAgain } from "../queue.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts, setFields } from "../review.js";
 import {
   type ContentIdea,
@@ -264,6 +277,27 @@ const APPROVE = IDS.extend({
     .nullish()
     .describe("For one draft: the version on screen; a change since refuses it"),
 });
+const SETTLE_POST = z.looseObject({
+  id: z.string().describe("The draft that may have gone out"),
+  outcome: z.enum(["posted", "again"]).describe("He saw it up, or it should go out once more"),
+  by: z.string().describe("Who decides"),
+});
+/** `Content/findPost` as the core serves it. */
+type ContentLook = {
+  findPost: (
+    ctx: restate.Context,
+    req: {
+      platform: Platform;
+      words: string[];
+      since: string;
+      media?: "image" | "video" | null;
+      client?: string;
+      account?: string;
+    },
+  ) => Promise<Seen>;
+};
+/** The loop that posts it: woken after a Send again, so it goes out now, not after a long sleep. */
+type SchedulerWake = { wake: (ctx: restate.ObjectContext) => Promise<boolean> };
 const SWAP = z.looseObject({
   draftId: z.string().describe("A published post's draft id"),
   field: z.enum(VARIANT_FIELDS).describe("What changes: title, thumbnail or hook"),
@@ -709,6 +743,73 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               });
             }),
           );
+        },
+      ),
+      /**
+       * A post that may have gone out, settled (from its To approve row): our listing is read
+       * for it first. Found: published with the platform's id, whatever he chose. Else `posted`
+       * marks it published on his word (no id, so no numbers); `again` puts it back in the queue
+       * and wakes the loop. Only `ReachDesk` and `SocialInbox` call it.
+       */
+      settlePost: exclusiveHandler(
+        { input: SETTLE_POST, effect: "posts", ingressPrivate: true },
+        async (
+          ctx: restate.ObjectContext,
+          req: { id: string; outcome: "posted" | "again"; by: string },
+        ): Promise<{ id: string; outcome: "posted" | "again"; found: boolean }> => {
+          const { db } = await scopeOf(ctx);
+          const client = clientOfKey(ctx.key)?.client ?? null;
+          const item = `draft:${req.id}`;
+          const look = await ctx.run("item", () =>
+            verdictOf(async () => {
+              const a = await unsureItem(db, item);
+              const d = await getDraft(db, req.id);
+              if (d.status !== "publishing")
+                throw new Error(`That post is ${d.status} now; nothing waits on it.`);
+              return {
+                platform: d.platform,
+                words: lookWords(d, { text: a.words }),
+                since: a.startedAt.toISOString(),
+                media: d.media?.kind ?? null,
+                ...(client ? { client } : {}),
+                ...(a.account ? { account: a.account } : {}),
+              };
+            }),
+          );
+          const seen = await ctx.serviceClient<ContentLook>({ name: "Content" }).findPost(look);
+          const now = new Date(await ctx.date.now());
+          if (seen.kind === "found") {
+            await ctx.run("found", async () => {
+              const at = seen.at ?? now.toISOString();
+              await markPublished(
+                db,
+                req.id,
+                { id: seen.ref ?? "", url: seen.url ?? "", publishedAt: at, fetchedWith: "api" },
+                null,
+                req.by,
+              );
+              await settleSent(db, item, { ref: seen.ref, at: new Date(at), by: "found", now });
+            });
+            return { id: req.id, outcome: req.outcome, found: true };
+          }
+          if (req.outcome === "posted") {
+            await ctx.run("posted", async () => {
+              await markPostedBy(db, req.id, { by: req.by, at: now });
+              await settleSent(db, item, { ref: null, at: now, by: req.by, now });
+            });
+            return { id: req.id, outcome: "posted", found: false };
+          }
+          await ctx.run("again", async () => {
+            await sendAgain(db, req.id);
+            await forgetUnsure(db, item);
+          });
+          ctx
+            .objectSendClient<SchedulerWake>(
+              { name: "ContentScheduler" },
+              client ? clientKey(client, POSTS_UNIT) : "default",
+            )
+            .wake();
+          return { id: req.id, outcome: "again", found: false };
         },
       ),
       /** His yes on a rendered video, one Short or the vertical: a YouTube draft (private unless asked), posted on the next pass. */

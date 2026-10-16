@@ -9,8 +9,10 @@
  * The box has none of our files: a stored object goes as a signed URL,
  * which the box downloads before it uploads.
  *
- * Reading back is still the API's: the composer has no listing route, so
- * `list`, `metrics` and `comments` want the token and say so plainly.
+ * Reading back is the API's. `list` reads the account's posts on the
+ * Instagram login token (`GET /me`, then `/{igUserId}/media`), so a lost
+ * publish can be looked for; `metrics` and `comments` want the Graph path
+ * and say so plainly.
  */
 import {
   type CommentRow,
@@ -22,6 +24,8 @@ import {
   type Post,
   type Published,
   type PublishedRow,
+  pageOf,
+  previewOf,
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
@@ -65,8 +69,32 @@ export function instagramWebContent(
       if (!id) throw new Error("instagram: the composer published but named no post");
       return { id, url: url ?? "", publishedAt: now().toISOString(), fetchedWith: "browser" };
     },
-    async list(_q: ListQuery = {}): Promise<PublishedRow[]> {
-      throw new Error(NO_READ);
+    // A reel shows on the profile once Instagram has processed it.
+    listsLate: (media) =>
+      media === "video" ? "Instagram lists a reel only once it is processed" : null,
+    async list(q: ListQuery = {}): Promise<PublishedRow[]> {
+      const me = await sites.call<{ user_id?: string | number }>("instagram", "GET", "/me", {});
+      if (!me.user_id) throw new Error("instagram: the token named no account");
+      const ig = String(me.user_id);
+      const r = await sites.call<{
+        data?: Array<{ id: string; caption?: string; permalink?: string; timestamp?: string }>;
+      }>("instagram", "GET", `/${ig}/media`, {
+        fields: "id,caption,permalink,timestamp",
+        limit: Math.min(q.limit ?? 100, 100),
+      });
+      return pageOf(
+        (r.data ?? []).map((m) => ({
+          id: m.id,
+          url: m.permalink ?? `https://www.instagram.com/p/${m.id}/`,
+          // Graph's `+0000` offset, made ISO so rows sort and compare by time.
+          publishedAt: m.timestamp
+            ? new Date(m.timestamp.replace(/([+-]\d\d)(\d\d)$/, "$1:$2")).toISOString()
+            : now().toISOString(),
+          fetchedWith: "api" as const,
+          preview: previewOf(m.caption ?? ""),
+        })),
+        q,
+      );
     },
     async metrics(_id: string): Promise<Metrics> {
       throw new Error(NO_READ);

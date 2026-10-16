@@ -9,7 +9,7 @@ import { findClient, sendsOn } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
 import { SENDS_OFF } from "@wren/core/content/restate";
 import { noRawKeys } from "@wren/core/key-refs";
-import { errorText, serviceHandler } from "@wren/core/restate";
+import { clientKey, errorText, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import {
   itemOf,
@@ -20,7 +20,13 @@ import {
   settleSent,
   unsureItem,
 } from "@wren/outreach";
-import { contentLook, isSendTaken, isSendUnsure, sendAtMostOnce } from "@wren/outreach/restate";
+import {
+  contentLook,
+  isSendTaken,
+  isSendUnsure,
+  type PostSettle,
+  sendAtMostOnce,
+} from "@wren/outreach/restate";
 import { z } from "zod";
 import { liveConnections, loginOf, type SocialAccessApi } from "../connect/access.js";
 import {
@@ -276,7 +282,8 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
 
       /**
        * A person's word on an unsure send of the client's, from its To approve: posted records
-       * it as its send would; again sends it once more through `send` or `answer`.
+       * it as its send would; again sends it once more through `send` or `answer`. A post on its
+       * own channel (`draft:`) settles in its `ContentDesk`, which reads the listing first.
        */
       settle: serviceHandler(
         { input: noRawKeys(SETTLE), effect: "sends" },
@@ -291,13 +298,20 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             terminal(async () => {
               const a = await unsureItem(db, req.item);
               const it = itemOf(req.item);
-              if (it.kind !== "sdm" && it.kind !== "comment")
+              if (it.kind !== "sdm" && it.kind !== "comment" && it.kind !== "draft")
                 throw new ReachRefusal(`a ${it.kind} send settles in Wren's own To approve`);
               const contactId =
                 it.kind === "sdm" ? (await dmPlanOf(db, Number(it.id))).contactId : null;
               return { ...it, words: a.words, ref: a.ref, contactId };
             }),
           );
+          // A post of the client's on its own channel: its desk reads the listing first.
+          if (kind === "draft") {
+            await ctx
+              .objectClient<PostSettle>({ name: "ContentDesk" }, clientKey(req.client, "desk"))
+              .settlePost({ id, outcome: req.outcome, by });
+            return { item: req.item, outcome: req.outcome };
+          }
           if (req.outcome === "posted") {
             await ctx.run("posted", () =>
               terminal(async () => {

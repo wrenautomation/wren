@@ -8,6 +8,7 @@
  * approve until its approver settles it (designs/2026-10-16-maybe-sent.md). Synthetic clients
  * and ids only; no network.
  */
+import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
@@ -21,7 +22,7 @@ import { touches } from "@wren/core/touches-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { reachContacts, reachMessages, sendAttempt } from "@wren/outreach";
+import { parkUnsure, reachContacts, reachMessages, sendAttempt } from "@wren/outreach";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent } from "../../src/clients.js";
@@ -111,6 +112,20 @@ const at = () => new Date();
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 let kappa: Db;
+/** What the client's desk was asked to settle: a post of its own that may have gone out. */
+const settled: { key: string; id: string; outcome: string; by: string }[] = [];
+const fakeDesk = restate.object({
+  name: "ContentDesk",
+  handlers: {
+    settlePost: async (
+      ctx: restate.ObjectContext,
+      req: { id: string; outcome: "posted" | "again"; by: string },
+    ) => {
+      settled.push({ key: ctx.key, ...req });
+      return { ...req, found: false };
+    },
+  },
+});
 let access: ReturnType<typeof socialAccess>;
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 const apps = async () => ({ x: { id: "x-app", secret: "x-secret" } });
@@ -152,6 +167,7 @@ beforeAll(async () => {
   access = accessOf();
   env = await startTestRestate({
     services: [
+      fakeDesk,
       makeSocialInbox({
         main: pg.db,
         clientDb: open,
@@ -348,6 +364,28 @@ describe("a DM answer whose outcome is lost", () => {
     expect(await sendAttempt(kappa, item)).toMatchObject({ state: "sent", settledBy: AMY });
     const ours = await kappa.select().from(touches).where(eq(touches.text, "Bring your card."));
     expect(ours).toMatchObject([{ kind: "dm", direction: "ours" }]);
+  }, 120_000);
+});
+
+describe("a post of the client's own that may have gone out", () => {
+  it("waits in its To approve, and its word goes to its own desk, which reads first", async () => {
+    const id = "00000000-0000-4000-8000-0000000000d1";
+    const item = `draft:${id}`;
+    await parkUnsure(kappa, {
+      item,
+      platform: "x",
+      account: null,
+      words: "Open late on Fridays.",
+      target: "Open late on Fridays.",
+      url: null,
+      tries: 1,
+      why: "may have gone through; the read failed",
+      now: new Date(),
+    });
+    const rows = (await askedReplyRecord.rows?.(kappa)) ?? [];
+    expect(rows).toContainEqual(expect.objectContaining({ id: `unsure:${item}`, kind: "unsure" }));
+    await console_().sendSettle({ ...as(AMY), item, outcome: "posted" });
+    expect(settled).toEqual([{ key: "kappa/desk", id, outcome: "posted", by: AMY }]);
   }, 120_000);
 });
 

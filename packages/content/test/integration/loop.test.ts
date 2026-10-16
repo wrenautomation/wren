@@ -14,7 +14,9 @@ import { MAY_HAVE_POSTED, type Platform, type Post } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { Seen } from "@wren/core/maybe-sent";
 import { FakeLlm } from "@wren/llm";
+import { sendAttempt } from "@wren/outreach";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { chapterIdea } from "../../src/ideas/chapters.js";
@@ -68,10 +70,31 @@ const batches: { platform: Platform; ids: string[] }[] = [];
 const singles: string[] = [];
 /** Posts whose counts read never answers. */
 const hangMetrics = new Set<string>();
+/** Platforms whose next publishes lose their answer after the post went out (autobrowse's words). */
+const lose = new Map<Platform, number>();
+/** Every publish asked, answered or not. */
+const tried: Platform[] = [];
+/** What a look at our own listing answers, and the looks asked. */
+let listing: Seen["kind"] = "unclear";
+const looks: { platform: Platform; words: string[]; since: string }[] = [];
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
     publish: async (ctx: restate.Context, req: { platform: Platform; post: Post }) => {
+      await ctx.run("tried", () => {
+        tried.push(req.platform);
+      });
+      const lost = await ctx.run("lose", () => {
+        const left = lose.get(req.platform) ?? 0;
+        if (left > 0) lose.set(req.platform, left - 1);
+        return left > 0;
+      });
+      if (lost) {
+        throw new restate.TerminalError(
+          `${req.platform} POST /web/posts: 500 "post the video" already went through on an earlier try of this step; check it before running again; ${MAY_HAVE_POSTED}`,
+          { errorCode: 500 },
+        );
+      }
       if (hang.has(req.platform)) {
         const { id, promise } = ctx.awakeable<string>();
         await ctx.run("hung", () => {
@@ -159,6 +182,23 @@ const fakeContent = restate.service({
         asOf: new Date().toISOString(),
       };
     },
+    findPost: async (
+      ctx: restate.Context,
+      req: { platform: Platform; words: string[]; since: string },
+    ): Promise<Seen> => {
+      await ctx.run("look", () => {
+        looks.push(req);
+      });
+      if (listing === "found")
+        return {
+          kind: "found",
+          ref: `${req.platform}-listed`,
+          at: new Date().toISOString(),
+          url: `https://${req.platform}.test/p/listed`,
+        };
+      if (listing === "absent") return { kind: "absent" };
+      return { kind: "unclear", why: "the read failed: a synthetic outage" };
+    },
     platforms: async () => reportPlatforms,
     accountInsights: async () => null,
     // A platform with a report that has nothing new.
@@ -196,6 +236,17 @@ const notifier = {
     return true;
   },
 };
+/** Stands in for ReachDesk/settleSend: `settlePost` takes calls from other services only. */
+type DeskObj = ReturnType<typeof makeContentDesk>;
+const settleForward = restate.service({
+  name: "SettleForward",
+  handlers: {
+    settle: async (
+      ctx: restate.Context,
+      req: { id: string; outcome: "posted" | "again"; by: string },
+    ) => ctx.objectClient<DeskObj>({ name: "ContentDesk" }, DESK_KEY).settlePost(req),
+  },
+});
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
@@ -203,8 +254,9 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       fakeContent,
+      settleForward,
       makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"], zone: "UTC" }),
-      makeContentScheduler({ db: pg.db, idleMs: 60_000, publishWaitMs: 3_000 }),
+      makeContentScheduler({ db: pg.db, idleMs: 60_000, publishWaitMs: 3_000, settleMs: 10 }),
       makeContentMetrics({ db: pg.db, notifier, limits: { read: 1_500, batch: 1_500 } }),
       makeContentPlanner({
         db: pg.db,
@@ -229,7 +281,13 @@ beforeEach(async () => {
     "runs",
     "reach_accounts",
     "unit_holds",
+    "send_attempts",
+    "draft_events",
   ]);
+  lose.clear();
+  tried.length = 0;
+  listing = "unclear";
+  looks.length = 0;
   posted.length = 0;
   replied.length = 0;
   notes.length = 0;
@@ -429,6 +487,160 @@ describe("content loop", () => {
       { platform: "x", error: expect.stringContaining("the platform said no") },
     ]);
     expect((await getDraft(pg.db, x.id))?.status).toBe("failed");
+  });
+
+  it("a publish that may have gone through and is on our listing is published with its id, never sent again", async () => {
+    const out = await desk().add({ text: "a post whose answer is lost", platforms: ["x"] });
+    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!x) throw new Error("no x draft");
+    lose.set("x", 1);
+    listing = "found";
+    const before = Date.now();
+    await approveDrafts(pg.db, [x.id], { now: new Date() });
+    const pass = await sync();
+    expect(pass.stats?.failed).toEqual([]);
+    expect(pass.stats?.published).toMatchObject([{ platform: "x", url: "https://x.test/p/listed" }]);
+    expect(tried).toEqual(["x"]);
+    // The look reads for the words it went out with, from the start of the send.
+    expect(looks).toHaveLength(1);
+    expect(looks[0]?.words).toContain(x.text);
+    expect(new Date(looks[0]?.since ?? 0).getTime()).toBeLessThanOrEqual(Date.now());
+    expect(new Date(looks[0]?.since ?? 0).getTime()).toBeGreaterThan(before - 60_000);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "published",
+      publishedId: "x-listed",
+      url: "https://x.test/p/listed",
+      error: expect.stringMatching(/^Found on X after the publish said it may have gone through/),
+    });
+    // Its words are frozen as sent, with the platform's id, as a publish that answered.
+    const sent = await pg.db.execute<{ external_id: string }>(
+      sql`select external_id from draft_events where item = ${`draft:${x.id}`} and event = 'sent'`,
+    );
+    expect([...sent]).toEqual([{ external_id: "x-listed" }]);
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
+  });
+
+  it("a lost publish provably not on our listing is sent once more, and only once", async () => {
+    const out = await desk().add({ text: "a post that never landed", platforms: ["x"] });
+    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!x) throw new Error("no x draft");
+    lose.set("x", 1);
+    listing = "absent";
+    await approveDrafts(pg.db, [x.id], { now: new Date() });
+    const pass = await sync();
+    expect(tried).toEqual(["x", "x"]);
+    expect(pass.stats?.published).toMatchObject([{ platform: "x" }]);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "published",
+      publishedId: "x-1",
+    });
+
+    // Lost twice and absent twice: never a third, it waits on a person.
+    const out2 = await desk().add({ text: "a post lost two times", platforms: ["x"] });
+    const [y] = await listDrafts(pg.db, { ideaId: out2.idea.id });
+    if (!y) throw new Error("no x draft");
+    lose.set("x", 2);
+    tried.length = 0;
+    await approveDrafts(pg.db, [y.id], { now: new Date() });
+    const second = await sync();
+    expect(tried).toEqual(["x", "x"]);
+    expect(second.stats?.failed).toEqual([]);
+    expect(second.stats?.unsure).toMatchObject([
+      { platform: "x", why: expect.stringContaining("not on X after two tries") },
+    ]);
+    expect(await sendAttempt(pg.db, `draft:${y.id}`)).toMatchObject({ state: "unsure", tries: 2 });
+  });
+
+  it("a lost publish no read can tell waits in To approve, never failed, and settles on his word", async () => {
+    const out = await desk().add({ text: "a post nobody can see", platforms: ["x"] });
+    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!x) throw new Error("no x draft");
+    lose.set("x", 1);
+    listing = "unclear";
+    await approveDrafts(pg.db, [x.id], { now: new Date() });
+    const pass = await sync();
+    expect(pass.stats?.failed).toEqual([]);
+    expect(pass.stats?.unsure).toMatchObject([
+      { platform: "x", why: expect.stringContaining("a synthetic outage") },
+    ]);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "publishing",
+      error: expect.stringMatching(/^May have gone out: .*It waits in To approve\.$/),
+    });
+    const row = await sendAttempt(pg.db, `draft:${x.id}`);
+    expect(row).toMatchObject({
+      state: "unsure",
+      platform: "x",
+      words: expect.stringContaining(x.text),
+      tries: 1,
+    });
+    // An edit says where it waits, not that it is posting.
+    await expect(editDraft(pg.db, x.id, { text: "changed" })).rejects.toThrow(
+      /may have gone out, so it can't be edited\. Check it in To approve first/,
+    );
+    // No later pass takes it again while it waits.
+    await sync();
+    expect(tried).toEqual(["x"]);
+
+    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    const settle = (outcome: "posted" | "again") =>
+      ingress
+        .serviceClient<typeof settleForward>({ name: "SettleForward" })
+        .settle({ id: x.id, outcome, by: "william" });
+    // Send again: the look still can't find it, so it goes back to the queue and posts once.
+    listing = "absent";
+    expect(await settle("again")).toMatchObject({ outcome: "again", found: false });
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
+    expect((await getDraft(pg.db, x.id)).status).toBe("approved");
+    await sync();
+    expect(tried).toEqual(["x", "x"]);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "published", publishedId: "x-1" });
+  });
+
+  it("Mark posted on a lost publish: the listing's id when found, his word when not", async () => {
+    const out = await desk().add({ text: "two posts he checks", platforms: ["x", "linkedin"] });
+    const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
+    lose.set("x", 1);
+    lose.set("linkedin", 1);
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    expect((await sync()).stats?.unsure).toHaveLength(2);
+    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    const settle = (id: string) =>
+      ingress
+        .serviceClient<typeof settleForward>({ name: "SettleForward" })
+        .settle({ id, outcome: "posted", by: "william" });
+    const [x, li] = ["x", "linkedin"].map((p) => drafts.find((d) => d.platform === p)?.id ?? "");
+    // The read is back: it finds the post, so it gets the platform's id and its numbers.
+    listing = "found";
+    expect(await settle(x as string)).toMatchObject({ found: true });
+    expect(await getDraft(pg.db, x as string)).toMatchObject({
+      status: "published",
+      publishedId: "x-listed",
+    });
+    expect(await sendAttempt(pg.db, `draft:${x}`)).toMatchObject({
+      state: "sent",
+      ref: "x-listed",
+      settledBy: "found",
+    });
+    // Still nothing to read: published on his word, with no id.
+    listing = "unclear";
+    expect(await settle(li as string)).toMatchObject({ found: false });
+    expect(await getDraft(pg.db, li as string)).toMatchObject({
+      status: "published",
+      publishedId: null,
+      error: expect.stringMatching(/^Marked posted by william/),
+    });
+    expect(await sendAttempt(pg.db, `draft:${li}`)).toMatchObject({
+      state: "sent",
+      settledBy: "william",
+    });
+    // A second word on a settled post is refused, never run twice.
+    await expect(settle(li as string)).rejects.toThrow(/that send is sent/);
+    expect(tried.sort()).toEqual(["linkedin", "x"]);
   });
 
   it("a failure that may have posted is approved again only after a person is told to check", async () => {

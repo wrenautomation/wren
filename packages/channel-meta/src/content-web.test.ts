@@ -57,10 +57,40 @@ describe("instagram through the browser", () => {
     expect(calls).toEqual([]);
   });
 
-  it("says plainly that reading back wants the API", async () => {
+  it("lists the account's posts on the login token, newest first, with ISO times", async () => {
+    const calls: Array<{ path: string; input?: unknown }> = [];
+    const sites: SiteClient = {
+      call: async (_site, _method, path, input) => {
+        calls.push({ path, input });
+        if (path === "/me") return { user_id: "900" } as never;
+        return {
+          data: [
+            { id: "m1", caption: "older words", timestamp: "2026-09-22T10:00:00+0000" },
+            {
+              id: "m2",
+              caption: "newer words",
+              permalink: "https://www.instagram.com/p/S2/",
+              timestamp: "2026-09-22T17:00:00+0000",
+            },
+          ],
+        } as never;
+      },
+      via: async () => "api",
+    };
+    const rows = await instagramWebContent(sites, { now: NOW }).list({ limit: 20 });
+    expect(calls.map((c) => c.path)).toEqual(["/me", "/900/media"]);
+    expect(calls[1]?.input).toMatchObject({ limit: 20 });
+    expect(rows.map((r) => [r.id, r.publishedAt, r.preview])).toEqual([
+      ["m2", "2026-09-22T17:00:00.000Z", "newer words"],
+      ["m1", "2026-09-22T10:00:00.000Z", "older words"],
+    ]);
+    expect(instagramWebContent(sites).listsLate?.("video")).toMatch(/reel/);
+    expect(instagramWebContent(sites).listsLate?.("image")).toBeNull();
+  });
+
+  it("says plainly that numbers and comments want the API", async () => {
     const { sites } = fakeSites({});
     const c = instagramWebContent(sites);
-    await expect(c.list()).rejects.toThrow(/needs the API/);
     await expect(c.metrics("x")).rejects.toThrow(/needs the API/);
     await expect(c.comments("x")).rejects.toThrow(/needs the API/);
   });

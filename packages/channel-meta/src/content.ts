@@ -633,6 +633,8 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
         fetchedWith: await via("POST", path),
       };
     },
+    listsLate: (media) =>
+      media === "video" ? "Facebook lists a video post only once it is processed" : null,
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const p = await page();
       const r = await sites.call<

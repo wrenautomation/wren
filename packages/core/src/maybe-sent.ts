@@ -9,6 +9,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { browserBusy, mayHavePosted, NOT_SENT, SiteCallError } from "./content/autobrowse.js";
+import type { ContentChannel, Media, PublishedRow } from "./content/index.js";
 import { isRefusal } from "./content/restate.js";
 import { CallTimeout } from "./restate/limits.js";
 import { isVendorStop } from "./vendor-stop.js";
@@ -139,10 +140,12 @@ const PREFIX_MAX = 120;
  * site's trim) over enough of it to be ours.
  */
 export function sameWords(theirs: string, ours: string): boolean {
-  const a = wordsOf(theirs);
   const b = wordsOf(ours);
-  if (!a || !b) return false;
-  if (a === b) return true;
+  const whole = wordsOf(theirs);
+  if (!whole || !b) return false;
+  if (whole === b) return true;
+  // A listing's preview ends its cut with an ellipsis: the words before it are the site's.
+  const a = whole.replace(/\s*…$/, "");
   const n = Math.min(a.length, b.length, PREFIX_MAX);
   if (n < Math.min(PREFIX_MIN, b.length)) return false;
   return a.slice(0, n) === b.slice(0, n);
@@ -201,4 +204,51 @@ export function seenInMessages(
     at: (m) => m.at || null,
     found: (m) => ({ kind: "found", ref: m.id, at: m.at || null, url: o.url ?? null }),
   });
+}
+
+/** Our own post looked for after its publish's outcome was lost (designs/2026-10-16-maybe-sent.md). */
+export interface PostLook {
+  /** Words the post may show: the text as sent, the draft's own text, its title. */
+  words: readonly (string | null | undefined)[];
+  /** When the publish began, ISO. */
+  since: string;
+  /** The post's file, when it has one: some sites list a fresh video late. */
+  media?: Media["kind"] | null;
+}
+
+/** Rows a look reads: within every channel's page, so a short page never reads as more. */
+export const POST_LOOK_ROWS = 20;
+
+/**
+ * Our post in a newest-first listing of our own posts: found when a row since the send shows
+ * our words; absent when the listing reaches back past the send; else unclear. `late` says why
+ * this site may not list a fresh post yet, and then absent is unclear: never proof.
+ */
+export function seenPost(rows: readonly PublishedRow[], q: PostLook & { late?: string | null }): Seen {
+  const words = q.words.filter((w): w is string => !!w?.trim());
+  if (!words.length) return unclear("no words to look for");
+  const floor = new Date(q.since).getTime() - CLOCK_SLACK_MS;
+  const s = seenIn(rows, {
+    since: q.since,
+    full: false,
+    match: (r) =>
+      new Date(r.publishedAt).getTime() >= floor && words.some((w) => sameWords(r.preview, w)),
+    at: (r) => r.publishedAt || null,
+    found: (r) => ({ kind: "found", ref: r.id, at: r.publishedAt || null, url: r.url || null }),
+  });
+  return s.kind === "absent" && q.late ? unclear(q.late) : s;
+}
+
+/** Our post read back through the channel's own listing. A failed read is unclear. */
+export async function findPost(
+  ch: Pick<ContentChannel, "list" | "listsLate">,
+  q: PostLook,
+): Promise<Seen> {
+  let rows: PublishedRow[];
+  try {
+    rows = await ch.list({ limit: POST_LOOK_ROWS });
+  } catch (err) {
+    return unclear(`the read failed: ${said(err).slice(0, 200)}`);
+  }
+  return seenPost(rows, { ...q, late: ch.listsLate?.(q.media ?? null) ?? null });
 }

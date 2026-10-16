@@ -21,9 +21,10 @@ import {
 
 /**
  * The item kinds a send ledger row can name: `private` a DM from a comment on our own post,
- * `sdm` a client's DM answer through its connected account (SocialInbox settles that one).
+ * `sdm` a client's DM answer through its connected account (SocialInbox settles that one),
+ * `draft` a post of ours on our own channel (`ContentDesk/settlePost` settles that one).
  */
-export const SEND_ITEMS = ["thread", "comment", "onpost", "dm", "private", "sdm"] as const;
+export const SEND_ITEMS = ["thread", "comment", "onpost", "dm", "private", "sdm", "draft"] as const;
 export type SendItem = (typeof SEND_ITEMS)[number];
 
 export function itemOf(item: string): { kind: SendItem; id: string } {
@@ -87,6 +88,7 @@ export async function markPosted(
     });
   else if (kind === "sdm")
     throw new ReachRefusal("a connected account's answer settles in its Inbox");
+  else if (kind === "draft") throw new ReachRefusal("a post of ours settles in ContentDesk");
   else {
     const { sequences, sender } = o;
     if (!sequences || !sender) throw new ReachRefusal("a DM settles in ReachDesk");

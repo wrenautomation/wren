@@ -3,13 +3,13 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd (+ fetch budget)
+verified: 2026-10-16 (+ fetch budget, own-post look)
 entity: packages/core/src/content/index.ts:12
 ---
 
 # platform
 
-One of nine places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits. Optional reads: `activity(q?)` (follows, mentions, notices, newest first; `at` may be null) and `audience()` (follower count; X `users/me`, TikTok `user/info`, both daily). Two optional batch reads save calls (designs/2026-10-15-fetch-budget.md): `metricsMany(posts)` (several posts' numbers in as few platform reads as it can: X one timeline page, YouTube 50 ids a call, TikTok 20, Reddit 100, Facebook the Page's `/posts` listing, Instagram the full metric list once) and `commentCounts(ids)` (every post's comment count in one read; the `SocialWatch` probe). A post either leaves out is read with `metrics` or `comments`. `findReply(q)` reads our own reply back after its send's outcome was lost, where `comments` can't mark ours (X: a search of our own posts; designs/2026-10-16-maybe-sent.md). `findPrivateReply(q)` reads our private reply to a comment back from the Page's inbox (Facebook and Instagram: autobrowse `meta GET /{pageId}/conversations` on the Page token). Instagram's `Metrics.read` carries its full metric answer to `insights`.
+One of nine places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits. Optional reads: `activity(q?)` (follows, mentions, notices, newest first; `at` may be null) and `audience()` (follower count; X `users/me`, TikTok `user/info`, both daily). Two optional batch reads save calls (designs/2026-10-15-fetch-budget.md): `metricsMany(posts)` (several posts' numbers in as few platform reads as it can: X one timeline page, YouTube 50 ids a call, TikTok 20, Reddit 100, Facebook the Page's `/posts` listing, Instagram the full metric list once) and `commentCounts(ids)` (every post's comment count in one read; the `SocialWatch` probe). A post either leaves out is read with `metrics` or `comments`. `findReply(q)` reads our own reply back after its send's outcome was lost, where `comments` can't mark ours (X: a search of our own posts; designs/2026-10-16-maybe-sent.md). `list` also finds our own post after its publish's answer was lost (`Content/findPost`, `findPost` in `packages/core/src/maybe-sent.ts`); `listsLate(media)` says why a channel's listing can't prove it absent (TikTok, YouTube, Facebook and Instagram video). Instagram on the web login lists through `graph.instagram.com` `/me` then `/{user_id}/media` (`content-web.ts`). `findPrivateReply(q)` reads our private reply to a comment back from the Page's inbox (Facebook and Instagram: autobrowse `meta GET /{pageId}/conversations` on the Page token). Instagram's `Metrics.read` carries its full metric answer to `insights`.
 
 ## Why this shape
 

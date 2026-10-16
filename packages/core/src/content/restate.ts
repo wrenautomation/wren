@@ -12,7 +12,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { z } from "zod";
-import type { Seen } from "../maybe-sent.js";
+import { findPost, type Seen } from "../maybe-sent.js";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import { CallTimeout, within } from "../restate/limits.js";
@@ -634,6 +634,44 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
               text: req.text,
               since: req.since,
             });
+          } catch (err) {
+            const why = err instanceof Error ? err.message : String(err);
+            return { kind: "unclear", why: `the read failed: ${why.slice(0, 200)}` };
+          }
+        },
+      ),
+      /**
+       * Our own post, read back from the channel's listing after its publish's outcome was lost
+       * (designs/2026-10-16-maybe-sent.md): as the account it went out as. A read: any failure
+       * answers unclear, never an error.
+       */
+      findPost: serviceHandler(
+        {
+          input: z.looseObject({
+            platform: PLATFORM,
+            words: z
+              .array(z.string().nullish())
+              .max(5)
+              .describe("Words the post may show: as sent, the draft's text, its title"),
+            since: z.string().describe("When the publish began, ISO"),
+            media: z.enum(["image", "video"]).nullish().describe("The post's file kind"),
+            client: CLIENT,
+            account: ACCOUNT,
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: {
+            platform: Platform;
+            words: (string | null | undefined)[];
+            since: string;
+            media?: "image" | "video" | null;
+          } & ForClient &
+            AsAccount,
+        ): Promise<Seen> => {
+          try {
+            const ch = await pick(ctx, req.platform, req.client, "content.posting", req.account);
+            return await findPost(ch, { words: req.words, since: req.since, media: req.media ?? null });
           } catch (err) {
             const why = err instanceof Error ? err.message : String(err);
             return { kind: "unclear", why: `the read failed: ${why.slice(0, 200)}` };
