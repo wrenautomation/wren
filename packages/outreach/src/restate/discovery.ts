@@ -68,14 +68,8 @@ import {
 import { ReachRefusal } from "../refusal.js";
 import { scheduleThreads, sendFailed, stillDue, unschedule } from "../scheduled.js";
 import { reachAccounts } from "../schema.js";
-import {
-  channelsFor,
-  clientDeps,
-  finalRefusal,
-  type ReachDeps,
-  terminalWhy,
-  wakeWatch,
-} from "./index.js";
+import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
+import { isSendUnsure, type Landed, sendAtMostOnce, sendError } from "./maybe-sent.js";
 import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
 
@@ -520,7 +514,7 @@ export function discoveryHandlers(deps: ReachDeps) {
       { input: COMMENT, effect: "sends" },
       async (
         ctx: restate.Context,
-        req: { id: string; body?: string | null; at?: string | null },
+        req: { id: string; body?: string | null; at?: string | null; again?: boolean },
       ): Promise<{ ref: string | null; held?: string }> => {
         const now = await nowOf(ctx);
         const at = req.at;
@@ -545,26 +539,45 @@ export function discoveryHandlers(deps: ReachDeps) {
         const body = (req.body ?? plan.thread.draft ?? "").trim();
         if (!body) throw new restate.TerminalError("the comment is empty");
         const ch = channelsFor(deps, ctx)(plan.account);
-        if (!ch?.comment) throw new restate.TerminalError("this account can't comment");
-        // The guard again at send: none of ours may already be in the thread.
-        const authors =
-          (await ch.threadAuthors?.(plan.thread.id).catch((err) => {
-            throw finalRefusal(err);
-          })) ?? [];
-        const met = plan.others.find((o) =>
-          authors.some((a) => a.toLowerCase() === o.toLowerCase()),
-        );
-        if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
-        const sent = await ch
-          .comment(plan.thread.target ?? plan.thread.id, body)
-          .catch(async (thrown) => {
-            const err = finalRefusal(thrown);
-            if (at && err instanceof restate.TerminalError)
-              await ctx.run("send failed", () =>
-                sendFailed(deps.db, "thread", req.id, err.message),
+        const comment = ch?.comment;
+        if (!ch || !comment) throw new restate.TerminalError("this account can't comment");
+        const target = plan.thread.target ?? plan.thread.id;
+        const findSent = ch.findSent;
+        let sent: Landed;
+        try {
+          // At most once (designs/2026-10-16-maybe-sent.md): our words already there are
+          // recorded, not sent again; a send that may have gone through is looked for.
+          sent = await sendAtMostOnce(ctx, deps.db, {
+            item: `thread:${req.id}`,
+            platform: "reddit",
+            account: plan.account.account,
+            words: body,
+            target,
+            url: plan.thread.url,
+            again: req.again === true,
+            look:
+              findSent && ((since) => findSent({ kind: "comment", to: target, text: body, since })),
+            // The guard again at send: none of ours may already be in the thread.
+            before: async () => {
+              const authors = (await ch.threadAuthors?.(plan.thread.id)) ?? [];
+              const met = plan.others.find((o) =>
+                authors.some((a) => a.toLowerCase() === o.toLowerCase()),
               );
-            throw err;
+              if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
+            },
+            send: () => comment(target, body),
           });
+        } catch (thrown) {
+          // Unsure waits on a person in To approve; its slot leaves the schedule.
+          if (isSendUnsure(thrown)) {
+            if (at) await ctx.run("hold", () => unschedule(deps.db, { threads: [req.id] }));
+            throw thrown;
+          }
+          const err = sendError(thrown);
+          if (at && err instanceof restate.TerminalError)
+            await ctx.run("send failed", () => sendFailed(deps.db, "thread", req.id, err.message));
+          throw err;
+        }
         await ctx.run("commented", async () => {
           // Words that differ from the draft are his edit.
           await keepSentEdit(deps.db, {

@@ -32,6 +32,7 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 ## Connected to
 
 - **joins:** [[content/reddit-requirement]] (a sub's karma, age or unknown-gate hold: the comment stays queued, none sent, or goes from the other account)
+- **joins:** [[content/send-attempt]] (`commentThread` claims `thread:<id>` before sending; an unknown outcome is found on the site, sent once more, or waits in To approve)
 - **joins:** [[content/comment-proof]] (each sent comment checked at 2 min, 1 h, 24 h: live, hidden or missing)
 - **joins:** [[leads/touch]] (our comment is an ours touch `rt:<id>` on the OP, or a reply to the commenter who asked)
 - **joins:** [[content/comment]] (replies to our thread comments come back as comments; one daily cap counts both, `commentsToday`; a comment's author is read into `reddit_people`, shown as "Who they are" and in Replies)

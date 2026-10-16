@@ -13,6 +13,7 @@
  * under a comment or a post. Reddit has no connect step, so `relationship`/`connect` are absent.
  */
 import { SiteCallError } from "@wren/core/content";
+import { sameWords, seenIn, unclear } from "@wren/core/maybe-sent";
 import {
   type AccountHealth,
   type CommentIn,
@@ -84,6 +85,8 @@ export const postOf = (context: string | undefined) => {
   return m ? `t3_${m[1]}` : null;
 };
 const RECENT = 10;
+/** Our newest comments or sent messages read to find one whose outcome was lost. */
+const FIND_PAGE = 25;
 /** Accounts whose cards one `user_data_by_account_ids` read returns. */
 const CARDS_PER_READ = 100;
 /** Ids remembered for a read-ahead; the oldest go first. */
@@ -395,6 +398,53 @@ export function redditOutreach(
     },
 
     thread: (post, focus) => thread(post, focus),
+
+    // Our own newest comments (or sent messages), signed in as this account: a listing that
+    // reaches back past the send proves our words absent (designs/2026-10-16-maybe-sent.md).
+    async findSent(q) {
+      const self = (await whoami()).name;
+      if (!self) return unclear("reddit did not say whose account this is");
+      const at = (t: { created_utc?: number }) => (t.created_utc ? iso(t.created_utc, now) : null);
+      if (q.kind === "comment") {
+        const parent = /^t[13]_/.test(q.to) ? q.to : `t3_${q.to}`;
+        const l = await call<Listing>("GET", `/user/${self}/comments`, {
+          limit: FIND_PAGE,
+          sort: "new",
+          raw_json: 1,
+        });
+        const list = items<Thing & { parent_id?: string }>(l);
+        return seenIn(list, {
+          since: q.since,
+          full: list.length < FIND_PAGE && !after(l),
+          match: (t) => t.parent_id === parent && sameWords(t.body ?? "", q.text),
+          at,
+          found: (t) => ({
+            kind: "found",
+            ref: t.name,
+            at: at(t),
+            url: t.permalink ? redditUrl(t.permalink) : null,
+          }),
+        });
+      }
+      if (q.kind === "message") {
+        const to = user(q.to).toLowerCase();
+        const l = await call<Listing>("GET", "/message/sent", { limit: FIND_PAGE, raw_json: 1 });
+        const list = items<Message>(l);
+        return seenIn(list, {
+          since: q.since,
+          full: list.length < FIND_PAGE && !after(l),
+          match: (m) => m.dest?.toLowerCase() === to && sameWords(m.body ?? "", q.text),
+          at,
+          found: (m) => ({
+            kind: "found",
+            ref: m.name,
+            at: at(m),
+            url: `https://www.reddit.com/message/messages/${m.id}`,
+          }),
+        });
+      }
+      return unclear("reddit has no invites");
+    },
 
     async commentCounts(posts): Promise<Record<string, number>> {
       const ids = [...new Set(posts.map((p) => `t3_${p.replace(/^t3_/, "")}`))];

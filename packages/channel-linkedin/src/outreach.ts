@@ -16,6 +16,7 @@
  * preview is the text we have).
  */
 import type { SiteClient } from "@wren/core/content";
+import { type Seen, sameWords, unclear } from "@wren/core/maybe-sent";
 import {
   type AccountHealth,
   type FindQuery,
@@ -205,6 +206,36 @@ export function linkedinOutreach(sites: SiteClient, o: LinkedInOutreachOptions):
         at: now().toISOString(),
         fetchedWith: await via("POST", "/in/{vanity}/message"),
       };
+    },
+
+    // A send whose outcome was lost (designs/2026-10-16-maybe-sent.md). An invite reads the
+    // relationship: out or accepted = found, none = absent. A message reads the inbox list: its
+    // preview shows our words only while ours is the last, so a miss can't prove absence.
+    async findSent(q): Promise<Seen> {
+      const vanity = vanityOf(q.to);
+      if (q.kind === "connect") {
+        const r =
+          (await call<{ relationship: Relationship }>("GET", `/in/${vanity}/relationship`))
+            .relationship ?? "unknown";
+        if (r === "pending" || r === "connected")
+          return {
+            kind: "found",
+            ref: null,
+            at: null,
+            url: `https://www.linkedin.com/in/${vanity}/`,
+          };
+        return r === "none" ? { kind: "absent" } : unclear(`the relationship reads ${r}`);
+      }
+      if (q.kind !== "message") return unclear("linkedin comments are read elsewhere");
+      const r = await call<{ conversations: Conversation[] }>("GET", "/messaging", {});
+      const c = r.conversations.find(
+        (x) =>
+          x.vanity?.toLowerCase() === vanity.toLowerCase() &&
+          sameWords(x.preview.replace(/^you:\s*/i, ""), q.text),
+      );
+      return c
+        ? { kind: "found", ref: null, at: null, url: c.url }
+        : unclear("not the last message in its conversation");
     },
 
     async replies(): Promise<Reply[]> {

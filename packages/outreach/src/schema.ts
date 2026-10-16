@@ -853,3 +853,50 @@ export const commentProofs = pgTable(
 );
 
 export type CommentProofRow = typeof commentProofs.$inferSelect;
+
+/**
+ * One send that must land at most once (designs/2026-10-16-maybe-sent.md): a thread comment, an
+ * answer, a comment on someone's post, a DM. `sending` while a call is out (a second invocation
+ * is refused); `sent` once it went out or our words were found on the site; `unsure` when a send
+ * may have gone through and no read could tell. Unsure waits in To approve for a person: open it
+ * on the site, mark it posted, or send it again. Nothing resends it by itself.
+ */
+export const SEND_ATTEMPT_STATES = ["sending", "sent", "unsure"] as const;
+export type SendAttemptState = (typeof SEND_ATTEMPT_STATES)[number];
+export const sendAttempts = pgTable(
+  "send_attempts",
+  {
+    /** The item's typed id: `thread:<id>`, `comment:<id>`, `onpost:<id>`, `dm:<message id>`. */
+    item: varchar("item", { length: 80 }).notNull(),
+    state: varchar("state", { length: 12, enum: SEND_ATTEMPT_STATES }).notNull(),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    /** The login it went out as (`reddit@alt`); null = the platform's default. */
+    account: varchar("account", { length: 80 }),
+    /** The words sent, as sent. */
+    words: text("words").notNull(),
+    /** Where: a post or comment ref, or a handle. */
+    target: varchar("target", { length: 200 }).notNull(),
+    /** The page to check it on. */
+    url: text("url"),
+    /** Calls made to the site: at most two before a person decides. */
+    tries: smallint("tries").notNull().default(0),
+    /** The invocation holding it while `sending`. */
+    invocation: varchar("invocation", { length: 120 }),
+    /** The platform's id for what went out, when found or given. */
+    ref: varchar("ref", { length: 200 }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** Why it is unsure: the failure's words and what the read said. */
+    why: text("why"),
+    /** `found` (read back on the site), `sent`, or the person who marked it. */
+    settledBy: varchar("settled_by", { length: 120 }),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.item], name: "pk_send_attempts" }),
+    index("ix_send_attempts_state").on(t.state),
+    oneOf("ck_send_attempts_state", t.state, SEND_ATTEMPT_STATES),
+  ],
+);
+
+export type SendAttempt = typeof sendAttempts.$inferSelect;

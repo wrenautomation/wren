@@ -322,3 +322,77 @@ describe("reddit outreach enrich", () => {
     ).rejects.toThrow(/boom/);
   });
 });
+
+describe("reddit findSent", () => {
+  const now = () => new Date("2026-10-16T12:10:00Z");
+  const since = "2026-10-16T12:00:00Z";
+  const utc = (iso: string) => new Date(iso).getTime() / 1000;
+  const me = { "GET /api/v1/me": () => ({ name: "OurAccount" }) };
+
+  it("finds our comment under its parent in our newest comments", async () => {
+    const { sites, calls } = fakeSites({
+      ...me,
+      "GET /user/OurAccount/comments": () =>
+        listing([
+          [
+            "t1",
+            {
+              id: "c9",
+              name: "t1_c9",
+              parent_id: "t3_p1",
+              body: "Tom &amp; Jerry, our words",
+              permalink: "/r/x/comments/p1/t/c9/",
+              created_utc: utc("2026-10-16T12:00:30Z"),
+            },
+          ],
+        ]),
+    });
+    const ch = redditOutreach(sites, { account: "reddit@alt", now });
+    expect(
+      await ch.findSent?.({ kind: "comment", to: "p1", text: "Tom & Jerry, our words", since }),
+    ).toEqual({
+      kind: "found",
+      ref: "t1_c9",
+      at: "2026-10-16T12:00:30.000Z",
+      url: "https://www.reddit.com/r/x/comments/p1/t/c9/",
+    });
+    expect(calls.at(-1)?.[2]).toMatchObject({ sort: "new" });
+  });
+
+  it("absent when the listing reaches back past the send; unclear when it does not", async () => {
+    const full = Array.from({ length: 25 }, (_, i): [string, Record<string, unknown>] => [
+      "t1",
+      { id: `c${i}`, name: `t1_c${i}`, parent_id: "t3_other", body: "else", created_utc: 0 },
+    ]);
+    const old = full.map(([k, d]) => [k, { ...d, created_utc: utc("2026-10-15T00:00:00Z") }]);
+    const fresh = full.map(([k, d]) => [k, { ...d, created_utc: utc("2026-10-16T12:01:00Z") }]);
+    for (const [rows, kind] of [
+      [old, "absent"],
+      [fresh, "unclear"],
+    ] as const) {
+      const { sites } = fakeSites({
+        ...me,
+        "GET /user/OurAccount/comments": () =>
+          listing(rows as Array<[string, Record<string, unknown>]>),
+      });
+      const ch = redditOutreach(sites, { account: "reddit@alt", now });
+      expect(
+        (await ch.findSent?.({ kind: "comment", to: "t3_p1", text: "ours", since }))?.kind,
+      ).toBe(kind);
+    }
+  });
+
+  it("finds a DM in our sent messages", async () => {
+    const { sites } = fakeSites({
+      ...me,
+      "GET /message/sent": () =>
+        listing([
+          ["t4", { id: "m3", name: "t4_m3", dest: "Dana", body: "hi there", created_utc: 1 }],
+        ]),
+    });
+    const ch = redditOutreach(sites, { account: "reddit@alt", now });
+    expect(
+      await ch.findSent?.({ kind: "message", to: "dana", text: "hi there", since }),
+    ).toMatchObject({ kind: "found", ref: "t4_m3" });
+  });
+});

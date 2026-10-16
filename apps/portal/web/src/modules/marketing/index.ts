@@ -116,6 +116,26 @@ const SWAP_ACTIONS: Action[] = [
   },
 ];
 
+/** A send that may have gone out (designs/2026-10-16-maybe-sent.md): he checks the site. */
+const UNSURE_ACTIONS: Action[] = [
+  {
+    id: "marketing.sendPosted",
+    label: "Mark posted",
+    handler: "marketing/sendPosted",
+    confirm: "Did you see it on the site? We'll record it as sent and never send it again.",
+    key: "a",
+    done: said("Marked posted."),
+  },
+  {
+    id: "marketing.sendAgain",
+    label: "Send again",
+    handler: "marketing/sendAgain",
+    confirm:
+      "Send it again? We check the site first, but if it went out and we still can't see it, it posts twice.",
+    done: said("Sending again."),
+  },
+];
+
 const POST_ACTIONS: Action[] = [
   {
     id: "marketing.draftAgain",
@@ -1019,6 +1039,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ...ONPOST_ACTIONS.map((a) => only("onpost", a, WAITS)),
   ...ASKED_REPLY_ACTIONS.map((a) => only("reply", a)),
   ...SWAP_ACTIONS.map((a) => only("swap", a, WAITS)),
+  ...UNSURE_ACTIONS.map((a) => only("unsure", a, WAITS)),
   // Payments: a pay link or a document someone without the yes asked to send.
   ...PAY_ACTIONS.map((a) => only("pay", a, WAITS)),
   // A bank transfer that waits: put it on its likely invoice, or another, or set it aside.

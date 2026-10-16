@@ -292,6 +292,8 @@ export const SEND_HANDLERS: ReadonlySet<string> = new Set([
   "ReachDesk/answerComment",
   "ReachDesk/replyInThread",
   "ReachDesk/dmComment",
+  // Mark posted or Send again on a send that may have gone out.
+  "ReachDesk/settleSend",
 ]);
 
 /** Whether this call is a send: by its route, or for `console/call` by the handler it names. */

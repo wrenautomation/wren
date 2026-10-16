@@ -120,3 +120,49 @@ describe("linkedin outreach", () => {
     expect(r[0]?.ref).toBe("/messaging/thread/1/#2h");
   });
 });
+
+describe("linkedin findSent", () => {
+  const since = "2026-10-16T12:00:00Z";
+  it("an invite: pending is found, none is absent", async () => {
+    for (const [relationship, kind] of [
+      ["pending", "found"],
+      ["none", "absent"],
+      ["unknown", "unclear"],
+    ] as const) {
+      const { sites } = fakeSites({ "GET /in/jane-doe/relationship": { relationship } });
+      const ch = linkedinOutreach(sites, { account: "linkedin@test" });
+      expect(
+        (await ch.findSent?.({ kind: "connect", to: "jane-doe", text: "", since }))?.kind,
+      ).toBe(kind);
+    }
+  });
+
+  it("a message: found as the last preview, else unclear", async () => {
+    const { sites } = fakeSites({
+      "GET /messaging": {
+        conversations: [
+          {
+            url: "https://www.linkedin.com/messaging/thread/1/",
+            name: "Jane",
+            vanity: "jane-doe",
+            preview: "You: thanks for the note, see you then",
+            when: "now",
+            unread: false,
+          },
+        ],
+      },
+    });
+    const ch = linkedinOutreach(sites, { account: "linkedin@test" });
+    expect(
+      await ch.findSent?.({
+        kind: "message",
+        to: "jane-doe",
+        text: "thanks for the note, see you then",
+        since,
+      }),
+    ).toMatchObject({ kind: "found", url: "https://www.linkedin.com/messaging/thread/1/" });
+    expect(
+      (await ch.findSent?.({ kind: "message", to: "jane-doe", text: "other words", since }))?.kind,
+    ).toBe("unclear");
+  });
+});

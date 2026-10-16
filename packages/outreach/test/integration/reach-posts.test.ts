@@ -100,6 +100,8 @@ const fakeContent = restate.service({
     ) => {
       replies.push(req);
     },
+    // The look before a send (designs/2026-10-16-maybe-sent.md): none of ours there yet.
+    comments: async () => [],
   },
 });
 /** The comment the fake model writes next; `invent` makes it make things up. */
@@ -183,6 +185,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, [
+    "send_attempts",
     "reach_posts",
     "reach_accounts",
     "reach_contacts",

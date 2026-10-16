@@ -29,6 +29,7 @@
  */
 import { browserBusy, capWaitMs, mayHavePosted, SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
+import { sendOnce } from "@wren/core/maybe-sent";
 import {
   campaignOfRef,
   capCheck,
@@ -51,6 +52,7 @@ import {
   reachContacts,
   reachMessages,
 } from "./schema.js";
+import { parkUnsure } from "./send-attempts.js";
 import { dmSeed, type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
 import { liveDms } from "./store.js";
 import { keepTouch, touchFromMessage } from "./touches.js";
@@ -81,6 +83,11 @@ export interface TickOptions {
   linkSource?: string | null;
   now: Date;
   runId?: string | null;
+  /**
+   * Wait before reading back a send that may have gone through (designs/2026-10-16-maybe-sent.md):
+   * on Restate a durable sleep. Absent: read at once.
+   */
+  settle?: (ms: number) => Promise<void>;
 }
 
 export interface TickStats {
@@ -539,6 +546,36 @@ export async function recordNoInvite(
   stats.noInvite++;
 }
 
+/**
+ * Step 4c: it may have gone through and no read could tell. `unknown`, never resent; the item
+ * waits unsure in To approve for a person to mark it sent or send it again.
+ */
+export async function recordUnsure(
+  db: Queryable,
+  c: Candidate,
+  words: string,
+  why: string,
+  now: Date,
+  stats: TickStats,
+): Promise<void> {
+  await db
+    .update(reachMessages)
+    .set({ state: "unknown", stateReason: why.slice(0, 500) })
+    .where(eq(reachMessages.id, c.row.id));
+  await parkUnsure(db, {
+    item: `dm:${c.row.id}`,
+    platform: c.account.platform,
+    account: c.account.account,
+    words,
+    target: c.contact.handle,
+    url: c.contact.url ?? null,
+    why,
+    tries: 1,
+    now,
+  });
+  stats.failed++;
+}
+
 /** Step 4b: the platform did not take it, or we do not know. */
 export async function recordFailure(
   db: Queryable,
@@ -661,25 +698,49 @@ export async function tick(
       if (verdict.v !== "send") continue;
     }
     await run(`sending ${c.row.id}`, () => markSending(db, c.row.id));
+    const words =
+      c.row.kind === "connect"
+        ? c.row.body || null
+        : tagFor && (c.row.kind === "sequence" || c.row.kind === "follow_up")
+          ? tagLinks(c.row.body, {
+              source: o.linkSource as string,
+              medium: "dm",
+              campaign: followCampaign(c.row) ?? c.contact.sequence,
+            })
+          : c.row.body;
+    const findSent = channel.findSent;
+    const kind = c.row.kind === "connect" ? "connect" : "message";
     let sent: Sent | NoInvite;
     try {
+      // A send that may have gone through is looked for on the site: found = sent, absent =
+      // once more, else unsure and never resent (designs/2026-10-16-maybe-sent.md).
+      const got = await sendOnce<Sent | NoInvite>({
+        send: () =>
+          c.row.kind === "connect"
+            ? (channel.connect as NonNullable<typeof channel.connect>)(c.contact.handle, words)
+            : channel.message(c.contact.handle, words ?? "", c.row.subject),
+        look:
+          findSent &&
+          (() =>
+            findSent({
+              kind,
+              to: c.contact.handle,
+              text: words ?? "",
+              since: o.now.toISOString(),
+            })),
+        settle: o.settle ?? (async () => {}),
+      });
+      if (got.kind === "unsure") {
+        const why = got.why;
+        await stepStats(`unsure ${c.row.id}`, (s) =>
+          recordUnsure(db, c, words ?? "", why, o.now, s),
+        );
+        continue;
+      }
       sent =
-        c.row.kind === "connect"
-          ? await (channel.connect as NonNullable<typeof channel.connect>)(
-              c.contact.handle,
-              c.row.body || null,
-            )
-          : await channel.message(
-              c.contact.handle,
-              tagFor && (c.row.kind === "sequence" || c.row.kind === "follow_up")
-                ? tagLinks(c.row.body, {
-                    source: o.linkSource as string,
-                    medium: "dm",
-                    campaign: followCampaign(c.row) ?? c.contact.sequence,
-                  })
-                : c.row.body,
-              c.row.subject,
-            );
+        got.kind === "sent"
+          ? got.sent
+          : { ref: got.seen.ref, at: got.seen.at ?? o.now.toISOString(), fetchedWith: "browser" };
     } catch (err) {
       await stepStats(`failed ${c.row.id}`, (s) => recordFailure(db, c, err, o.now, s));
       continue;

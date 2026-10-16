@@ -23,12 +23,7 @@ import { redditOutreach } from "@wren/channel-reddit";
 import { finishRun, openRun } from "@wren/core";
 import { byOf, keepSentEdit } from "@wren/core/ask";
 import { sendsOn } from "@wren/core/clients";
-import {
-  type Platform as ContentPlatform,
-  capWaitMs,
-  SiteCallError,
-  type SiteClient,
-} from "@wren/core/content";
+import { type Platform as ContentPlatform, capWaitMs, type SiteClient } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
 import type { Scorecard } from "@wren/core/draft-models";
 import { rejectWhy } from "@wren/core/draft-record";
@@ -223,6 +218,7 @@ import {
   reachContacts,
 } from "../schema.js";
 import { type ReachSequence, slotsOf } from "../sequences.js";
+import { itemOf, markPosted, requeueDm, unsureItem } from "../settle-send.js";
 import { listTemplates, type SetTemplate, type SlotView, setTemplate } from "../store.js";
 import {
   getThread,
@@ -236,6 +232,7 @@ import {
 } from "../threads.js";
 import { nextDue, type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
+import { contentLook, isSendUnsure, sendAtMostOnce, sendError } from "./maybe-sent.js";
 import { pasteHandlers } from "./paste.js";
 import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
@@ -466,6 +463,7 @@ async function senderPass(
         linkSource: scope.client ?? "wren",
         now,
         runId,
+        settle: (ms) => ctx.sleep(ms),
       },
       (name, fn) => ctx.run(name, fn),
     );
@@ -1170,6 +1168,20 @@ const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
 const DM = COMMENT.extend({ body: z.string() });
+/** A person's word on an unsure send (designs/2026-10-16-maybe-sent.md). */
+const SETTLE_SEND = z.looseObject({
+  item: z.string().min(3).max(80).describe("The send's typed id: thread:, comment:, onpost:, dm:"),
+  outcome: z
+    .enum(["posted", "again"])
+    .describe("posted: he saw it on the site; again: send it once more"),
+});
+/** ReachDesk's own sends, called again on a person's Send again. */
+type DeskSends = {
+  [K in "commentThread" | "answerComment" | "commentPost"]: (
+    ctx: restate.Context,
+    req: { id: string | number; again: true; viewer?: unknown },
+  ) => Promise<unknown>;
+};
 const THREAD_REPLY = COMMENT.extend({
   ref: z.string().min(1).max(200).describe("The platform id of the comment to reply to"),
   body: z.string().nullish().describe("The words"),
@@ -1244,6 +1256,7 @@ export function makeReachDesk(deps: ReachDeps) {
     id: number,
     given: string | null,
     by: ReturnType<typeof byOf>,
+    again = false,
   ): Promise<{ ref: string | null }> => {
     const now = await nowOf(ctx);
     const plan = await ctx.run("plan", () => terminal(() => planAnswer(deps.db, id, now)));
@@ -1261,32 +1274,61 @@ export function makeReachDesk(deps: ReachDeps) {
         });
         await markAnswered(deps.db, id, { body, ref, now, by });
       });
+    const item = `comment:${id}`;
+    /** Unsure waits on a person; any other failure as the handler throws it. */
+    const failed = (err: unknown): never => {
+      throw isSendUnsure(err) ? err : sendError(err);
+    };
     if (!plan.account) {
       // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
       const { target, text } = answerFor(plan.comment, words);
-      await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
-        platform: plan.comment.platform,
-        commentId: target,
-        // LinkedIn names a member comment by its post and its bare id.
-        postId: plan.comment.post,
-        text,
-      });
-      await answered(null, text);
-      scheduleProofs(ctx, `comment:${id}`);
-      return { ref: null };
+      const platform = plan.comment.platform;
+      const sent = await sendAtMostOnce(ctx, deps.db, {
+        item,
+        platform,
+        account: null,
+        words: text,
+        target,
+        url: plan.comment.url,
+        again,
+        look: contentLook(ctx, { platform, post: plan.comment.post, parent: target, text }),
+        send: async () => {
+          await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
+            platform,
+            commentId: target,
+            // LinkedIn names a member comment by its post and its bare id.
+            postId: plan.comment.post,
+            text,
+          });
+          return { ref: null };
+        },
+      }).catch(failed);
+      await answered(sent.ref, text);
+      scheduleProofs(ctx, item);
+      return { ref: sent.ref };
     }
     const ch = channelsFor(deps, ctx)(plan.account);
-    if (!ch?.comment) throw new restate.TerminalError("this site can't answer comments");
-    const authors =
-      (await ch.threadAuthors?.(plan.comment.post).catch((err) => {
-        throw finalRefusal(err);
-      })) ?? [];
-    await terminal(async () => checkThread(authors, plan.others));
-    const sent = await ch.comment(plan.comment.ref, words).catch((err) => {
-      throw finalRefusal(err);
-    });
+    const comment = ch?.comment;
+    if (!ch || !comment) throw new restate.TerminalError("this site can't answer comments");
+    const findSent = ch.findSent;
+    const to = plan.comment.ref;
+    const sent = await sendAtMostOnce(ctx, deps.db, {
+      item,
+      platform: plan.account.platform,
+      account: plan.account.account,
+      words,
+      target: to,
+      url: plan.comment.url,
+      again,
+      look: findSent && ((since) => findSent({ kind: "comment", to, text: words, since })),
+      before: async () => {
+        const authors = (await ch.threadAuthors?.(plan.comment.post)) ?? [];
+        await terminal(async () => checkThread(authors, plan.others));
+      },
+      send: () => comment(to, words),
+    }).catch(failed);
     await answered(sent.ref, words);
-    scheduleProofs(ctx, `comment:${id}`);
+    scheduleProofs(ctx, item);
     wakeWatch(ctx);
     return { ref: sent.ref };
   };
@@ -1547,8 +1589,8 @@ export function makeReachDesk(deps: ReachDeps) {
        */
       answerComment: serviceHandler(
         { input: ANSWER, effect: "sends" },
-        (ctx: restate.Context, req: { id: number; body?: string | null }) =>
-          answerOne(ctx, req.id, req.body ?? null, byOf(req)),
+        (ctx: restate.Context, req: { id: number; body?: string | null; again?: boolean }) =>
+          answerOne(ctx, req.id, req.body ?? null, byOf(req), req.again === true),
       ),
       /**
        * Reply to any comment in a thread's conversation (designs/2026-10-15-engage-threads.md):
@@ -1777,7 +1819,7 @@ export function makeReachDesk(deps: ReachDeps) {
         { input: POST, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { id: number; body?: string | null; at?: string | null },
+          req: { id: number; body?: string | null; at?: string | null; again?: boolean },
         ): Promise<{ commented: number; held?: string }> => {
           const now = await nowOf(ctx);
           const at = req.at;
@@ -1801,18 +1843,46 @@ export function makeReachDesk(deps: ReachDeps) {
           const account = picked || settings.account || null;
           const acts = postActs(post, settings, body);
           const sites = deps.sitesFor(ctx);
+          const item = `onpost:${post.id}`;
           try {
-            if (acts.comment) {
-              if (!account)
-                throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
-              const [site, method, path, input] = acts.comment;
-              await sites.call(site, method, path, input, account);
-            } else
-              await ctx
-                .serviceClient<ContentReply>({ name: "Content" })
-                .reply({ platform: post.platform, commentId: post.ref, text: body });
+            if (acts.comment && !account)
+              throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
+            const viaSite = acts.comment;
+            // At most once (designs/2026-10-16-maybe-sent.md). Instagram's comment goes through
+            // the site with nothing to read it back by; LinkedIn and X through `Content.reply`.
+            await sendAtMostOnce(ctx, deps.db, {
+              item,
+              platform: post.platform,
+              account,
+              words: body,
+              target: post.ref,
+              url: post.url,
+              again: req.again === true,
+              look: viaSite
+                ? undefined
+                : contentLook(ctx, {
+                    platform: post.platform,
+                    post: post.ref,
+                    parent: null,
+                    text: body,
+                  }),
+              send: async () => {
+                if (viaSite) {
+                  const [site, method, path, input] = viaSite;
+                  await sites.call(site, method, path, input, account ?? undefined);
+                } else
+                  await ctx
+                    .serviceClient<ContentReply>({ name: "Content" })
+                    .reply({ platform: post.platform, commentId: post.ref, text: body });
+                return { ref: null };
+              },
+            });
           } catch (thrown) {
-            const err = finalRefusal(thrown);
+            if (isSendUnsure(thrown)) {
+              if (at) await ctx.run("hold", () => unschedule(deps.db, { posts: [post.id] }));
+              throw thrown;
+            }
+            const err = sendError(thrown);
             // A slot that fails for good leaves the schedule, or it would sit queued forever.
             if (at && err instanceof restate.TerminalError)
               await ctx.run("send failed", () =>
@@ -1823,7 +1893,7 @@ export function makeReachDesk(deps: ReachDeps) {
           await ctx.run("commented", () =>
             markPostCommented(deps.db, post, { body, by: byOf(req), now }),
           );
-          scheduleProofs(ctx, `onpost:${post.id}`);
+          scheduleProofs(ctx, item);
           for (const [what, act] of [
             ["like", acts.like],
             ["follow", acts.follow],
@@ -1838,6 +1908,59 @@ export function makeReachDesk(deps: ReachDeps) {
             }
           }
           return { commented: post.id };
+        },
+      ),
+      /**
+       * Settle a send that may have gone through and no read could tell (it waits in To approve):
+       * `posted` records it as sent; `again` sends it once more through its own handler, which
+       * reads the site first. Wren's own sends only.
+       */
+      settleSend: serviceHandler(
+        { input: SETTLE_SEND, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { item: string; outcome: "posted" | "again"; viewer?: unknown },
+        ): Promise<{ item: string; outcome: "posted" | "again" }> => {
+          const now = await nowOf(ctx);
+          const { kind, id } = await ctx.run("item", () =>
+            terminal(async () => {
+              await unsureItem(deps.db, req.item);
+              return itemOf(req.item);
+            }),
+          );
+          if (req.outcome === "posted") {
+            const stats = await ctx.run("posted", () =>
+              terminal(() =>
+                markPosted(deps.db, req.item, {
+                  sequences: deps.sequences,
+                  sender: deps.senderName,
+                  by: byOf(req),
+                  now,
+                }),
+              ),
+            );
+            // A DM's sequence step leaves its node, as the sender's would.
+            for (const s of stats.stepped)
+              spineEmit(ctx, {
+                client: null,
+                workflow: cadenceId(s.sequence),
+                from: `s${s.step}.sent`,
+                events: [reachLead(s.contactId)],
+              });
+            if (kind !== "dm") scheduleProofs(ctx, req.item);
+            return { item: req.item, outcome: "posted" };
+          }
+          if (kind === "dm") {
+            await ctx.run("requeue", () => terminal(() => requeueDm(deps.db, Number(id), now)));
+            nudge(ctx);
+            return { item: req.item, outcome: "again" };
+          }
+          const desk = ctx.serviceClient<DeskSends>({ name: "ReachDesk" });
+          const again = { again: true as const, viewer: req.viewer };
+          if (kind === "thread") await desk.commentThread({ id, ...again });
+          else if (kind === "comment") await desk.answerComment({ id: Number(id), ...again });
+          else await desk.commentPost({ id: Number(id), ...again });
+          return { item: req.item, outcome: "again" };
         },
       ),
       /**

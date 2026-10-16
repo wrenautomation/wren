@@ -52,6 +52,7 @@
     "./tokens": "./src/tokens.ts",
     "./surveys": "./src/surveys.ts",
     "./outreach": "./src/outreach/index.ts",
+    "./maybe-sent": "./src/maybe-sent.ts",
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",
     "./in-house": "./src/in-house.ts",

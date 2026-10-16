@@ -33,7 +33,7 @@ import { creditsList } from "@wren/delivery/billing";
 import { creditApprovalId } from "@wren/delivery/billing/console";
 import { KIND_NAME } from "@wren/documents/lines";
 import { docApprovalId, waitingDocs } from "@wren/documents/store";
-import { accountPickFor, threadContextOf } from "@wren/outreach";
+import { accountPickFor, type SendAttempt, threadContextOf, unsureSends } from "@wren/outreach";
 import {
   COMMENT_FOLD,
   commentRecord,
@@ -456,6 +456,37 @@ const dmItem = (d: Row) => ({
 });
 
 /**
+ * A send that may have gone out and no read could tell (designs/2026-10-16-maybe-sent.md): its
+ * own row, over the queued one it came from (`thread:`, `onpost:`), which nothing sends meanwhile.
+ */
+const unsureItem = (u: SendAttempt, from: Row | undefined) => ({
+  ...(from ?? {}),
+  id: `unsure:${u.item}`,
+  type: "unsure",
+  who: from?.who ?? u.target,
+  platform: u.platform,
+  kind: "unsure",
+  state: "waiting",
+  body: u.words,
+  draft: null,
+  unsure: u.why,
+  account: u.account,
+  at: u.updatedAt,
+  due: u.updatedAt,
+  send_at: null,
+  on_site: u.url,
+});
+/** Rows an unsure send stands in for leave the list; its own row takes their place. */
+const unsureOver = (us: SendAttempt[], rows: Row[]): Row[] => {
+  const by = new Map(rows.map((r) => [String(r.id), r]));
+  return us.map((u) => unsureItem(u, by.get(u.item)));
+};
+const notParked = (us: SendAttempt[]) => {
+  const parked = new Set(us.map((u) => u.item));
+  return (r: Row) => !parked.has(String(r.id));
+};
+
+/**
  * What other people sent us, as one list. Ids carry their type (`comment:12`, `dm:5`, `email:4`
  * (a call invite), `reply:6` (a reply with none), `text:8`, `chat:3`, `activity:9`); each action reads the
  * id after the colon. `due` orders "Waiting on you": when it came.
@@ -831,7 +862,11 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const sws = await waitingSwaps(db);
       const bcs = await waitingBroadcasts(db);
       const crs = await creditsList(db, { status: ["review"], limit: 200 });
+      const uss = await unsureSends(db);
+      const sends = [...ts.map(threadItem), ...ls.map(onPostItem)];
       return [
+        // A send that may have gone out: he checks the site, marks it posted or sends it again.
+        ...unsureOver(uss, sends),
         // A broadcast to a segment (People → Broadcasts): a yes schedules it; nothing sends before.
         ...bcs.map(broadcastItem),
         // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
@@ -872,7 +907,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: v.at,
           url: `/marketing/videos/${v.id}`,
         })),
-        ...ts.map(threadItem),
+        ...ts.map(threadItem).filter(notParked(uss)),
         ...is.map((i) => ({
           id: `invite:${i.id}`,
           type: "invite",
@@ -888,7 +923,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: i.at,
           url: i.url,
         })),
-        ...ls.map(onPostItem),
+        ...ls.map(onPostItem).filter(notParked(uss)),
         ...cs.map((c) => ({
           id: `connect:${c.id}`,
           type: "connect",
@@ -1061,6 +1096,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           credit: neutral("Payment in"),
           swap: neutral("Swap"),
           broadcast: neutral("Broadcast"),
+          unsure: neutral("Check"),
         }),
         "Type",
       ),
@@ -1086,6 +1122,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           credit: neutral("Payment to match"),
           swap: neutral("Swap on a live post"),
           broadcast: neutral("Broadcast to send"),
+          unsure: neutral("May have gone out"),
         }),
         "Kind",
       ),
@@ -1102,12 +1139,21 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       draft: prose("Our draft"),
       account: accountField("On"),
       askedBy: text("Asked by"),
+      unsure: text("Why we're unsure"),
       at: date("When"),
       due: date("Due"),
       url: link("Open"),
+      onSite: link("Open on site"),
     },
     views: [
       { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+      {
+        id: "unsure",
+        label: "May have gone out",
+        where: { type: "unsure" },
+        sort: "-at",
+        at: "at",
+      },
       // Said yes to, held by the frequency cap: each sends itself at its time.
       // Also the comments a subreddit's rules hold back: each says which rule.
       {
@@ -1156,7 +1202,11 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       { id: "all", label: "All", sort: "-at", at: "at" },
     ],
     activity: { view: "draft_activity", by: "item", seq: "seq" },
-    drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
+    // An unsure send's history is its item's (`unsure:thread:9` is `thread:9`).
+    drafts: (id) => {
+      const [type, rest] = typed(id.startsWith("unsure:") ? id.slice("unsure:".length) : id);
+      return draftItemsOf(type, rest);
+    },
     actions: [
       "marketing.approveDraft",
       "marketing.redraft",
@@ -1199,6 +1249,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "marketing.swapSkip",
       "people.broadcastApprove",
       "people.broadcastDecline",
+      "marketing.sendPosted",
+      "marketing.sendAgain",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
     calls: {
@@ -1224,7 +1276,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         type === "doc" ||
         type === "credit" ||
         type === "swap" ||
-        type === "broadcast"
+        type === "broadcast" ||
+        type === "unsure"
       )
         return null;
       // An asked reply: the conversation it answers.
@@ -1264,9 +1317,11 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       const ds = (await dmRecord.rows?.(db)) ?? [];
       const ss = await sentRows(db);
       const proved = withProof(await proofsBy(db, signer));
+      // A send that may have gone out waits in To approve, not here.
+      const parked = notParked(await unsureSends(db));
       return [
-        ...ts.map(threadItem),
-        ...ls.map(onPostItem),
+        ...ts.map(threadItem).filter(parked),
+        ...ls.map(onPostItem).filter(parked),
         ...cs.map(commentItem).map(proved),
         ...ds.map(dmItem),
         ...ss.map((r) =>

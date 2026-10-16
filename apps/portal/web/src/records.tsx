@@ -442,6 +442,21 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { key: "default", confirm: "swapApprove" },
     ),
   "marketing/swapSkip": (id) => desk("swapSkip", { ids: [num(id)] }),
+  // A send that may have gone out (`unsure:thread:9` in To approve): his word on it.
+  "marketing/sendPosted": (id) =>
+    handlerCall(
+      "ReachDesk",
+      "settleSend",
+      { item: bare(id), outcome: "posted" },
+      { confirm: "settleSend" },
+    ),
+  "marketing/sendAgain": (id) =>
+    handlerCall(
+      "ReachDesk",
+      "settleSend",
+      { item: bare(id), outcome: "again" },
+      { confirm: "settleSend" },
+    ),
   "marketing/placeWatch": (id) => handlerCall("ReachDesk", "watchPlace", { subreddit: id }),
   "marketing/placeSkip": (id) => handlerCall("ReachDesk", "skipPlace", { subreddit: id }),
   "marketing/placeMove": (id, { account }) =>

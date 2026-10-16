@@ -26,6 +26,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import {
   answerComment,
   comments,
+  parkUnsure,
   planAnswer,
   reachContacts,
   reachMessages,
@@ -33,6 +34,7 @@ import {
   redditPlaces,
   redditRequirements,
   redditThreads,
+  sendAttempts,
 } from "@wren/outreach";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -148,6 +150,7 @@ beforeEach(async () => {
     "reddit_requirements",
     "reddit_threads",
     "reddit_places",
+    "send_attempts",
   ]);
   emitted.length = 0;
   pings.length = 0;
@@ -444,6 +447,29 @@ describe("SocialWatch", () => {
       send_at: null,
     });
     await pg.db.delete(redditRequirements);
+    // A comment that may have gone out takes its thread's place, with the link to check it.
+    await parkUnsure(pg.db, {
+      item: "thread:t3_q1",
+      platform: "reddit",
+      account: "reddit@alt",
+      words: "We send them from the CRM.",
+      target: "t3_q1",
+      url: "https://www.reddit.com/r/agency/comments/q1/",
+      why: "our words are not in the account's comments as read",
+      tries: 1,
+      now: new Date(),
+    });
+    const unsure = (await approvalRecord.rows?.(pg.db)) ?? [];
+    expect(unsure.find((r) => r.id === "thread:t3_q1")).toBeUndefined();
+    expect(unsure.find((r) => r.id === "unsure:thread:t3_q1")).toMatchObject({
+      type: "unsure",
+      kind: "unsure",
+      state: "waiting",
+      who: "cfo_jane",
+      body: "We send them from the CRM.",
+      on_site: "https://www.reddit.com/r/agency/comments/q1/",
+    });
+    await pg.db.delete(sendAttempts);
     const inboxAfter = (await inboxRecord.rows?.(pg.db)) ?? [];
     expect(inboxAfter.find((r) => String(r.id).startsWith("thread:"))).toBeUndefined();
     expect(inboxAfter.find((r) => String(r.id).startsWith("onpost:"))).toBeUndefined();

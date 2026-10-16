@@ -11,6 +11,7 @@
  * own caps ledger refuses past them with a 429 either way.
  */
 import type { FetchedWith } from "../content/index.js";
+import type { Seen } from "../maybe-sent.js";
 
 export type ReachPlatform = "reddit" | "linkedin";
 export const REACH_PLATFORMS: readonly ReachPlatform[] = ["reddit", "linkedin"];
@@ -155,6 +156,16 @@ export interface Found {
   fetchedWith: FetchedWith;
 }
 
+/** A send looked for on the site after its outcome was lost (designs/2026-10-16-maybe-sent.md). */
+export interface SentQuery {
+  kind: "comment" | "message" | "connect";
+  /** A comment's parent (a post or comment ref); a message's or an invite's handle. */
+  to: string;
+  text: string;
+  /** When the send began, ISO: a listing that reaches back past it proves our words absent. */
+  since: string;
+}
+
 export interface OutreachChannel {
   readonly platform: ReachPlatform;
   /** The autobrowse credential this adapter speaks as (`reddit@alt`). */
@@ -186,6 +197,8 @@ export interface OutreachChannel {
   thread?(post: string, focus?: string | null): Promise<ThreadRead>;
   /** Each post's comment count in one read: a watch reads a thread again only when it moved. */
   commentCounts?(posts: readonly string[]): Promise<Record<string, number>>;
+  /** Our own words on the site, as this account. Absent: no read here can tell. */
+  findSent?(q: SentQuery): Promise<Seen>;
   health(): Promise<AccountHealth>;
 }
 
@@ -232,6 +245,13 @@ export function fakeOutreachChannel(
   conversations: Map<string, ThreadRead>;
   /** Reads `thread` and `commentCounts` made, in order. */
   reads: string[];
+  /**
+   * The next sends' failures, first first: `landed` = it reached the site before the error
+   * (the maybe-sent case). Each send takes one while any are left.
+   */
+  faults: Array<{ err: Error; landed: boolean }>;
+  /** What `findSent` can tell: `blind` answers unclear. */
+  sight: { blind: boolean };
   setHealth(h: Partial<AccountHealth>): void;
 } {
   const now = o.now ?? (() => new Date());
@@ -261,6 +281,15 @@ export function fakeOutreachChannel(
     at: now().toISOString(),
     fetchedWith: "api",
   });
+  const faults: Array<{ err: Error; landed: boolean }> = [];
+  const sight = { blind: false };
+  /** A send through the fault queue: kept when it lands, thrown when a fault says so. */
+  const send = (kind: "connect" | "message" | "comment", handle: string, text: string | null) => {
+    const f = faults.shift();
+    if (!f || f.landed) sent.push({ kind, handle, text });
+    if (f) throw f.err;
+    return sentNow();
+  };
   const base: OutreachChannel = {
     platform,
     account: o.account ?? `${platform}@fake`,
@@ -291,8 +320,7 @@ export function fakeOutreachChannel(
       };
     },
     async message(handle, text) {
-      sent.push({ kind: "message", handle, text });
-      return sentNow();
+      return send("message", handle, text);
     },
     async replies(since) {
       return replies.filter((r) => !since || r.at > since.toISOString());
@@ -301,8 +329,17 @@ export function fakeOutreachChannel(
       return inbox;
     },
     async comment(parent, text) {
-      sent.push({ kind: "comment", handle: parent, text });
-      return sentNow();
+      return send("comment", parent, text);
+    },
+    async findSent(q) {
+      reads.push(`find ${q.kind} ${q.to}`);
+      if (sight.blind) return { kind: "unclear", why: "fake: blind" };
+      const i = sent.findIndex(
+        (x) => x.kind === q.kind && x.handle === q.to && (x.text ?? "") === q.text,
+      );
+      return i < 0
+        ? { kind: "absent" }
+        : { kind: "found", ref: `fake_${i + 1}`, at: now().toISOString(), url: null };
     },
     async threadAuthors(post) {
       const read = conversations.get(post);
@@ -341,9 +378,12 @@ export function fakeOutreachChannel(
           const was = relationships.get(handle);
           if (was === "connected" || was === "pending")
             return { noInvite: was, at: now().toISOString(), fetchedWith: "api" as const };
-          sent.push({ kind: "connect", handle, text: note });
-          relationships.set(handle, "pending");
-          return sentNow();
+          const before = sent.length;
+          try {
+            return send("connect", handle, note);
+          } finally {
+            if (sent.length > before) relationships.set(handle, "pending");
+          }
         },
         async connections() {
           return [...relationships].filter(([, r]) => r === "connected").map(([h]) => h);
@@ -365,6 +405,8 @@ export function fakeOutreachChannel(
     threads,
     conversations,
     reads,
+    faults,
+    sight,
     receive: (r) => {
       replies.push(r);
     },

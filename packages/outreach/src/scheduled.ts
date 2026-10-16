@@ -21,6 +21,7 @@ import {
   redditPlaces,
   redditThreads,
 } from "./schema.js";
+import { sendOpen } from "./send-attempts.js";
 
 const HOUR = 3_600_000;
 /** Sends looked back on for spacing and the day's count. */
@@ -87,6 +88,8 @@ export async function schedulePosts(
         eq(reachPosts.state, "queued"),
         isNotNull(reachPosts.draft),
         isNull(reachPosts.sendAt),
+        // One that may have gone through waits on a person (designs/2026-10-16-maybe-sent.md).
+        sql`not ${sendOpen(sql`'onpost:' || ${reachPosts.id}`)}`,
       ),
     )
     .orderBy(desc(reachPosts.fit), reachPosts.id);
@@ -159,6 +162,7 @@ export async function scheduleThreads(
           eq(redditThreads.state, "queued"),
           isNotNull(redditThreads.draft),
           isNull(redditThreads.sendAt),
+          sql`not ${sendOpen(sql`'thread:' || ${redditThreads.id}`)}`,
         ),
       )
       .orderBy(desc(redditThreads.fit), redditThreads.id);
@@ -211,7 +215,8 @@ const SEND_FAILED = "send failed: ";
 /**
  * A slot's send failed for good. The row leaves the schedule so the next pass slots it again;
  * a post failing its second slot, or one that may have posted, is skipped. A thread retries
- * until it goes stale; its send reads the thread first, so ours never lands twice.
+ * until it goes stale. One that may have gone through never comes here: it waits unsure in
+ * To approve (`send_attempts`), and the scheduler leaves it alone.
  */
 export async function sendFailed(
   db: Queryable,
