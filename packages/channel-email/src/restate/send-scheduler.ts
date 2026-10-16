@@ -5,7 +5,10 @@
  * paced walk restricted to this inbox), then schedules the next `loop` with a durable delay:
  * the per-inbox gap after a send, the tick interval while waiting, or straight to the next
  * window open. Restate owns the timer, so a worker dying (or a laptop closing) loses nothing.
- * `sync` runs one tick without touching the loop.
+ * `sync` runs one tick without touching the loop (`tick` too, its old name, until 2026-10-30).
+ *
+ * The state is the same `loop` key the object had before it moved here (`loopState`): a key
+ * that was running stays running, and its queued `loop` call makes the next pass.
  *
  * The tick body is one journaled step over its own transactions: a retry after a crash re-runs
  * `sendTick`, which is safe by construction (intent before act; reconcile resolves the row a
@@ -156,7 +159,11 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     return outcome;
   };
 
-  return makeLoopObject("SendScheduler", pass, { effect: "sends" });
+  return makeLoopObject("SendScheduler", pass, {
+    effect: "sends",
+    // `tick` is the old name of `sync`, kept for calls queued before this change. Remove after 2026-10-30.
+    syncAliases: ["tick"],
+  });
 }
 
 const sameMailbox = (sender: string, key: string) =>

@@ -1,8 +1,11 @@
 /** The SendScheduler virtual object: one tick per key, durable loop, status. */
+import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
+import { restateAdmin } from "@wren/core/console";
+import { LOOP } from "@wren/core/restate";
 import { spineRecorder, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -22,6 +25,8 @@ import { makeCompany, makePerson, messagesOf, runCompose, TABLES } from "./compo
 
 const SENDER_A = "ada@wren-automation.test";
 const SENDER_B = "bo@wren-automation.test";
+/** Its state was written by the SendScheduler before it moved onto `makeLoopObject`. */
+const SENDER_OLD = "di@wren-automation.test";
 /** Its scope read always throws: the database is down for it. */
 const BROKEN = "cy@wren-automation.test";
 const OPEN = SendPolicy.fromSettings(
@@ -38,8 +43,8 @@ const OPEN = SendPolicy.fromSettings(
   }),
 );
 const FLEET: Fleet = {
-  senders: [SENDER_A, SENDER_B],
-  domainFleet: [SENDER_A, SENDER_B],
+  senders: [SENDER_A, SENDER_B, SENDER_OLD],
+  domainFleet: [SENDER_A, SENDER_B, SENDER_OLD],
   fromNames: { [SENDER_A]: "Ada", [SENDER_B]: null },
   signatureHtml: {},
   pages: {},
@@ -49,20 +54,28 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 const transport = new ConsoleTransport({ write: () => {} });
 const spine = spineRecorder();
+let scheduler: SendScheduler;
+/** The old code's delayed self-call, as it sits queued on prod: `loop(generation)`. */
+const queued = restate.service({
+  name: "QueuedLoop",
+  handlers: {
+    send: async (ctx: restate.Context, req: { key: string; generation: number }) => {
+      ctx.objectSendClient<SendScheduler>({ name: "SendScheduler" }, req.key).loop(req.generation);
+    },
+  },
+});
 beforeAll(async () => {
   pg = await startTestPostgres();
+  scheduler = makeSendScheduler({
+    transport,
+    scopeOf: (key) =>
+      key === BROKEN
+        ? Promise.reject(new Error("database is down"))
+        : oneScope({ db: pg.db, policy: OPEN, fleet: FLEET })(key),
+    tickMs: 5_000,
+  });
   env = await startTestRestate({
-    services: [
-      spine.service,
-      makeSendScheduler({
-        transport,
-        scopeOf: (key) =>
-          key === BROKEN
-            ? Promise.reject(new Error("database is down"))
-            : oneScope({ db: pg.db, policy: OPEN, fleet: FLEET })(key),
-        tickMs: 5_000,
-      }),
-    ],
+    services: [spine.service, scheduler, queued],
     alwaysReplay: true,
   });
 });
@@ -168,6 +181,47 @@ describe("SendScheduler", () => {
     expect(await client(BROKEN).wake()).toBe(true);
     await client(BROKEN).stop();
     expect(await client(BROKEN).wake()).toBe(false);
+  });
+
+  it("a key the old code left running keeps running: its queued loop and a queued tick each pass", async () => {
+    // The old shape: the same `loop` key, its `last` without `error` or `failures`.
+    const before = "2026-10-15T12:00:00.000Z";
+    await env.stateOf(scheduler, SENDER_OLD).set(LOOP, {
+      running: true,
+      generation: 3,
+      last: { stats: emptySendStats(), newPauses: 0, delayMs: 60_000, now: before },
+    });
+    const mine = await enrollOne("old.example", "d@old.example", SENDER_OLD);
+    const status = await client(SENDER_OLD).status();
+    expect(status.running).toBe(true);
+    expect(status.last?.now).toBe(before);
+
+    // The queued call lands on the new code: no `start`, and it sends.
+    await clients
+      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .serviceClient<typeof queued>({ name: "QueuedLoop" })
+      .send({ key: SENDER_OLD, generation: 3 });
+    let after = await client(SENDER_OLD).status();
+    for (let i = 0; i < 100 && after.last?.now === before; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      after = await client(SENDER_OLD).status();
+    }
+    expect(after.running).toBe(true);
+    expect(after.last).toMatchObject({ error: null, failures: 0 });
+    expect(after.last?.stats?.sent).toBe(1);
+    expect((await messagesOf(db(), mine))[0]?.state).toBe("sent");
+    // The chain goes on: its next `loop` waits on a timer.
+    const next = await restateAdmin(env.adminAPIBaseUrl())(
+      `SELECT id FROM sys_invocation WHERE target_service_name = 'SendScheduler' AND target_service_key = '${SENDER_OLD}' AND target_handler_name = 'loop' AND status = 'scheduled'`,
+    );
+    expect(next).toHaveLength(1);
+
+    // A `tick` queued before the deploy still makes a pass.
+    const ticked = await client(SENDER_OLD).tick();
+    expect(ticked.error).toBeNull();
+    expect(ticked.stats?.sent).toBe(0);
+    expect((await client(SENDER_OLD).status()).last?.now).toBe(ticked.now);
+    await client(SENDER_OLD).stop();
   });
 
   it("nextDelay: gap after a send, next open when closed or capped, tick interval otherwise", () => {

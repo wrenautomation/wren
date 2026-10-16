@@ -308,11 +308,16 @@ export async function notifyErrorEdges<S>(
 /** The self-send a loop makes, typed by name: the definition's own type is not yet known inside its factory. */
 type LoopSelf = { loop: (ctx: restate.ObjectContext, generation?: number) => Promise<void> };
 
-export interface LoopHooks {
+export interface LoopHooks<A extends string = never> {
   /** Runs inside `stop`, after the key is marked stopped: for what the loop started elsewhere. */
   onStop?: (ctx: restate.ObjectContext) => Promise<void>;
   /** What one pass does outside wren (`sends` for a send loop): `sync`'s form says so. */
   effect?: Effect;
+  /**
+   * Old names of `sync` that do what it does: a loop moved onto this object keeps them for the
+   * calls queued to them before the move. Each one names the day it may go.
+   */
+  syncAliases?: readonly A[];
 }
 
 /** A loop's settings: any object (`{}` = back to defaults); none keeps the stored ones. */
@@ -363,20 +368,27 @@ export async function passOrFailed<S>(
 }
 
 /** The start/stop/loop/status handlers around one `pass`. */
-export function makeLoopObject<S extends object>(
+export function makeLoopObject<S extends object, A extends string = never>(
   name: string,
   pass: (ctx: restate.ObjectContext) => Promise<PassOutcome<S>>,
-  hooks: LoopHooks = {},
+  hooks: LoopHooks<A> = {},
 ) {
   const self = (ctx: restate.ObjectContext) => ctx.objectSendClient<LoopSelf>({ name }, ctx.key);
+  const sync = () =>
+    exclusiveHandler(
+      { input: NO_INPUT, ...(hooks.effect ? { effect: hooks.effect } : {}) },
+      async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => pass(ctx),
+    );
+  const aliases = Object.fromEntries((hooks.syncAliases ?? []).map((a) => [a, sync()])) as Record<
+    A,
+    ReturnType<typeof sync>
+  >;
   const object = restate.object({
     name,
     handlers: {
+      ...aliases,
       /** One pass now; the loop (if any) is untouched. */
-      sync: exclusiveHandler(
-        { input: NO_INPUT, ...(hooks.effect ? { effect: hooks.effect } : {}) },
-        async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => pass(ctx),
-      ),
+      sync: sync(),
 
       /**
        * Begin looping; a no-op when already running. A body replaces this key's

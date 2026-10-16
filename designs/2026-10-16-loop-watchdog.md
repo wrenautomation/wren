@@ -108,7 +108,9 @@ show one unbroken chain.
   - `SendScheduler`: on `makeLoopObject` (10-16, wa-jsi). The tick step has 3 tries, then
     `passOrFailed` keeps it as a failed pass with its backoff; `wake` restarts a dead chain. The
     transport carries its own limits (Gmail `timedFetch`, SMTP socket timeouts). The tick itself
-    is not cut: a cut tick could run beside its retry. `tick` is now `sync`.
+    is not cut: a cut tick could run beside its retry. `tick` is now `sync`; `tick` stays as
+    an alias for calls queued before the deploy, to remove after 2026-10-30. The state is the
+    same `loop` key, so a running key stays running.
   - HTTP clients (Discord, Restate admin, Gmail, mailbox access, pixel and lander exports,
     Postmaster, Wise, Search Console, sitemap) 30 s to 2 min; a model call 5 min.
 

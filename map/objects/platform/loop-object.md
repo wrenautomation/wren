@@ -22,7 +22,7 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 
 - time limits (`packages/core/src/restate/limits.ts`): `within` on each Restate call, `limitedRun` on HTTP steps, `unitLimits` strikes a unit three passes in a row into [[platform/checks]] (stage `loop.<service>/<key>`); the pass keeps them as `last.timeouts`
 
-- `SendScheduler` is one too since 2026-10-16 (wa-jsi): its tick step has 3 tries, then `passOrFailed` keeps it as a failed pass; `sync` replaced `tick`; a gone scope is a `stopped` pass
+- `SendScheduler` is one too since 2026-10-16 (wa-jsi): its tick step has 3 tries, then `passOrFailed` keeps it as a failed pass; `sync` replaced `tick`; a gone scope is a `stopped` pass. `hooks.syncAliases` keeps old names of `sync` for calls queued before a move (`tick` on `SendScheduler`, until 2026-10-30). The state key is the same `loop`, so a running key stays running with no `start`
 
 Citations: `packages/core/src/restate/loop.ts:366`, `packages/channel-email/src/restate/send-scheduler.ts:80`
 
