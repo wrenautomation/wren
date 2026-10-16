@@ -79,6 +79,7 @@
     "./people-map-pass": "./src/people-map-pass.ts",
     "./profiles-backfill": "./src/profiles-backfill.ts",
     "./profiles-bulk": "./src/profiles-bulk.ts",
+    "./profiles-link": "./src/profiles-link.ts",
     "./profile-records": "./src/profile-records.ts",
     "./segments": "./src/segments.ts",
     "./segments-schema": "./src/segments-schema.ts",

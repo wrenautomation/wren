@@ -29,6 +29,7 @@ import {
   PROFILE_SOURCES,
 } from "@wren/core/profiles-backfill";
 import { bulkBackfillProfiles } from "@wren/core/profiles-bulk";
+import { linkBookers } from "@wren/core/profiles-link";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { type Command, InvalidArgumentError } from "commander";
@@ -158,6 +159,13 @@ export function registerPeople(
           console.log(
             `${c.source.padEnd(14)} ${String(c.rows).padStart(7)} rows  ${c.created} made  ${c.merged} merged  ${c.skipped} skipped${c.chunks === undefined ? "" : `  (${c.chunks} chunks, ${c.perRow} one by one)`}`,
           );
+        // Bookers we reached under another address join that profile (by name and domain).
+        if (!a.dryRun && (!a.only || a.only.some((x) => x.includes("booking")))) {
+          const linked = await linkBookers(db);
+          const merged = linked.reduce((n, l) => n + l.merged.length, 0);
+          const maybe = linked.reduce((n, l) => n + l.maybe.length, 0);
+          console.log(`bookers linked  ${merged} merged  ${maybe} left to judge`);
+        }
         const client = o.client();
         if (!client || a.only) return;
         const kept = await o.withMainDb((main) =>

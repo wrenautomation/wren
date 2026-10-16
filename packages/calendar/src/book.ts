@@ -10,6 +10,7 @@ import { applyBooking, type BookingChange, type BookingOutcome } from "@wren/cha
 import { callBookings } from "@wren/channel-email/schema";
 import type { MeetingOutcome } from "@wren/core/calls";
 import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
+import { linkByName } from "@wren/core/profiles-link";
 import { type Db, type Queryable, serializable, sqlState } from "@wren/db";
 import { and, asc, eq, gt, lt, ne, sql } from "drizzle-orm";
 import type { Rules } from "./rules.js";
@@ -135,7 +136,7 @@ export async function claim(
     });
     // The booker joins their profile (People) in this calendar's own database: Wren's, or the
     // client's workspace for its calendar.
-    await noteProfileFrom(
+    const got = await noteProfileFrom(
       db,
       "booking",
       profileFrom.booking({
@@ -145,6 +146,8 @@ export async function claim(
         at: booked.createdAt,
       }),
     );
+    // Booked under a new email by someone we reached elsewhere: one profile (`linkByName`).
+    if (got) await linkByName(db, got.id, "booking", booked.createdAt);
     return booked;
   } catch (err) {
     if (sqlState(err) === "23505") throw new SlotTaken();

@@ -8,6 +8,7 @@
  */
 
 import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
+import { linkByName } from "@wren/core/profiles-link";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { callBookings, enrollments, messages } from "../schema.js";
@@ -143,14 +144,17 @@ export async function applyBooking(
   e: BookingEvent,
   opts: { now: Date },
 ): Promise<BookingOutcome> {
-  // A booker joins their profile (People); Wren's own calendar's mirror rows (`wren-`) are
+  // A booker joins their profile (People), and by the name it booked under, the profile we
+  // reached them by (an invite on LinkedIn). Wren's own calendar's mirror rows (`wren-`) are
   // noted where that calendar books.
-  if (e.email && !e.uid.startsWith("wren-"))
-    await noteProfileFrom(
+  if (e.email && !e.uid.startsWith("wren-")) {
+    const got = await noteProfileFrom(
       db,
       "call_booking",
       profileFrom.booking({ email: e.email, name: e.name, at: e.bookedAt ?? opts.now }),
     );
+    if (got) await linkByName(db, got.id, "call_booking", opts.now);
+  }
   return serializable(db, async (tx) => {
     const state = e.change === "cancelled" ? "cancelled" : "booked";
     const fields = {
