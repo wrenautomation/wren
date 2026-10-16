@@ -14,6 +14,7 @@ import { clientMembers, clients, operators } from "@wren/core/clients";
 import { grantsFor } from "@wren/core/grants";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, asc, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { type LearnPick, withLearnPicks } from "./decide.js";
 import {
   ALERTS_PER_HOUR,
   type AlertPick,
@@ -306,6 +307,8 @@ export interface TodayLine {
   /** In your bell (bell), held back for the hour's limit (digest), or not alerted (null). */
   told: AlertState | null;
   read: boolean;
+  /** Decide's pick on Wren's item, while Learn shows picks. */
+  pick?: LearnPick | null;
   at: string;
 }
 
@@ -353,18 +356,22 @@ export async function todayOf(
     since: since.toISOString(),
     total: rows.length,
     held: rows.filter((r) => r.told === "digest").length,
-    items: rows.slice(0, TODAY_SHOWN).map((r) => ({
-      id: r.id,
-      title: r.title,
-      type: r.type,
-      url: r.url,
-      source: r.source,
-      score: r.score,
-      line: oneLine(r.summary) ?? oneLine(r.why),
-      told: r.told,
-      read: r.read,
-      at: new Date(r.at).toISOString(),
-    })),
+    items: await withLearnPicks(
+      db,
+      client,
+      rows.slice(0, TODAY_SHOWN).map((r) => ({
+        id: r.id,
+        title: r.title,
+        type: r.type,
+        url: r.url,
+        source: r.source,
+        score: r.score,
+        line: oneLine(r.summary) ?? oneLine(r.why),
+        told: r.told,
+        read: r.read,
+        at: new Date(r.at).toISOString(),
+      })),
+    ),
   };
 }
 

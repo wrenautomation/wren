@@ -100,7 +100,7 @@ describe("Learn calls", () => {
     expect(due.length).toBeGreaterThanOrEqual(2);
     const first = due[0];
     expect(first?.state).toMatchObject({ item: { title: "Synthetic item 1", kind: "article" } });
-    expect((first?.state.focus as string[]).length).toBeGreaterThan(3);
+    expect((first?.state.focus as string[] | undefined)?.length).toBeGreaterThan(3);
     expect(JSON.stringify(first?.state)).not.toContain("Some Creator");
     expect(due.every((d) => !d.subject.includes("client"))).toBe(true);
   });

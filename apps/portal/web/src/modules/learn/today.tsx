@@ -37,7 +37,7 @@ import {
   onChanged,
   type TodayLine,
 } from "./api.js";
-import { ScoreBadge, TypeMark } from "./kinds.js";
+import { PickBadge, ScoreBadge, TypeMark } from "./kinds.js";
 import { act } from "./menus.js";
 
 /** Each pick as a person reads it. */
@@ -203,6 +203,7 @@ function Line({ i }: { i: TodayLine }) {
           <span className="truncate">{i.source}</span>
           <span aria-hidden="true">·</span>
           <span className="shrink-0">{relative(new Date(i.at))}</span>
+          <PickBadge pick={i.pick} className="ml-1 shrink-0" />
         </p>
       </div>
       {told ? (

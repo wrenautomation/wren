@@ -228,6 +228,7 @@ export interface TodayLine {
   line: string | null;
   told: "bell" | "digest" | null;
   read: boolean;
+  pick?: "worth" | "skip" | null;
   at: string;
 }
 export interface Today {
