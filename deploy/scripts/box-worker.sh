@@ -5,7 +5,6 @@
 # Restate Cloud's tunnel when /wren/prod/box names one.
 set -euo pipefail
 bucket="$1" key="$2"
-dir=/opt/wren-worker
 
 # Headroom beside Postgres, Restate and the browser on a 4 GB box: a 2 GB swap file on the
 # data volume (the 8 GB root has no room for it). Swap is the crash buffer, not memory to
@@ -24,31 +23,55 @@ fi
 echo "vm.swappiness = 10" > /etc/sysctl.d/90-wren-swap.conf
 sysctl -q -p /etc/sysctl.d/90-wren-swap.conf
 
+# Two slots (apps/worker/src/box-slot.ts): the new build starts beside the live one, on the
+# other port, so it is a new Restate deployment. A call pinned to the live build finishes on
+# its code; one URL for every build replayed such calls on new code (journal mismatch, 10-16).
+# The live container is always `wren-worker`; the one before it, `wren-worker-old`, serves its
+# pinned calls until the next deploy replaces it.
+live_port=9080 live_dir=""
+if docker inspect wren-worker >/dev/null 2>&1; then
+  live_port="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' wren-worker | sed -n 's/^WREN_BOX_PORT=//p')"
+  live_port="${live_port:-9080}"
+  live_dir="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app"}}{{.Source}}{{end}}{{end}}' wren-worker)"
+fi
+if [ "$live_port" = 9080 ]; then port=9081; else port=9080; fi
+dir="/opt/wren-worker-$port"
+
 aws s3 cp --only-show-errors "s3://$bucket/$key" /tmp/wren-worker.zip
-rm -rf "$dir.new" && mkdir -p "$dir.new"
-python3 -m zipfile -e /tmp/wren-worker.zip "$dir.new"
+rm -rf /opt/wren-worker.new && mkdir -p /opt/wren-worker.new
+python3 -m zipfile -e /tmp/wren-worker.zip /opt/wren-worker.new
 rm -f /tmp/wren-worker.zip
 
 # The same bundle and script as the running worker: leave it be. A restart cuts any call
 # mid-run, and Restate can leave such a call stuck, holding its object's lock.
 script="$(sha256sum "$0" | cut -c1-64)"
-if [ -d "$dir" ] && [ "$(cat "$dir.script" 2>/dev/null)" = "$script" ] &&
-  diff -rq "$dir" "$dir.new" >/dev/null 2>&1 &&
+if [ -n "$live_dir" ] && [ "$(cat /opt/wren-worker.script 2>/dev/null)" = "$script" ] &&
+  diff -rq "$live_dir" /opt/wren-worker.new >/dev/null 2>&1 &&
   [ "$(docker inspect -f '{{.State.Running}}' wren-worker 2>/dev/null)" = true ]; then
-  rm -rf "$dir.new"
+  rm -rf /opt/wren-worker.new
   echo "box worker unchanged, left running"
   exit 0
 fi
-rm -rf "$dir.old" && { [ -d "$dir" ] && mv "$dir" "$dir.old" || true; } && mv "$dir.new" "$dir"
 
-# stop, not rm -f: SIGTERM lets the tunnel drain in-flight invocations first.
-docker stop wren-worker >/dev/null 2>&1 || true
-docker rm wren-worker >/dev/null 2>&1 || true
-docker run -d --name wren-worker --restart unless-stopped --init \
+# The slot's build from two deploys ago: calls still pinned to it replay on this build.
+q="select count(*) as n from sys_invocation i join sys_deployment d on d.id = i.pinned_deployment_id where i.status <> 'completed' and d.endpoint = 'http://127.0.0.1:$port/'"
+left="$(curl -sS -m 30 -X POST http://127.0.0.1:9070/query -H content-type:application/json -H accept:application/json \
+  -d "$(python3 -c 'import json,sys; print(json.dumps({"query": sys.argv[1]}))' "$q")" |
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["rows"][0]["n"])' 2>/dev/null || echo "?")"
+echo "slot $port: $left calls still pinned to its last build"
+# stop, not rm -f: SIGTERM lets it drain in-flight invocations first.
+for c in wren-worker-new wren-worker-old; do
+  docker stop "$c" >/dev/null 2>&1 || true
+  docker rm "$c" >/dev/null 2>&1 || true
+done
+rm -rf "$dir" && mv /opt/wren-worker.new "$dir"
+
+docker run -d --name wren-worker-new --restart unless-stopped --init \
   --network host --memory 640m --stop-timeout 60 \
   --log-opt max-size=20m --log-opt max-file=3 \
   -v "$dir":/app:ro -w /app \
   -e AWS_REGION=us-east-1 \
+  -e WREN_BOX_PORT="$port" \
   -e WREN_BUNDLE_ROOT=/app \
   -e WREN_SSM_ENV_PARAM=/wren/prod/env,/wren/prod/env-2,/wren/prod/keystore \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \
@@ -59,7 +82,6 @@ docker run -d --name wren-worker --restart unless-stopped --init \
   -e WREN_LOG_LEVEL=info \
   -e NODE_OPTIONS=--max-old-space-size=448 \
   node:22-slim node app/box.mjs >/dev/null
-echo "$script" > "$dir.script"
 
 # Up = registered with Restate. CI logs are public: print names and messages only.
 brief='import json,sys
@@ -70,11 +92,28 @@ for l in sys.stdin:
     print(j.get("msg",""), j.get("deployment",""), ",".join(j.get("services",[])), e[:200])'
 for _ in $(seq 1 30); do
   sleep 2
-  if docker logs wren-worker 2>&1 | grep -q '"box ready"'; then
-    docker logs wren-worker 2>&1 | grep '"box ready"' | tail -1 | python3 -c "$brief"
+  if docker logs wren-worker-new 2>&1 | grep -q '"box ready"'; then
+    docker logs wren-worker-new 2>&1 | grep '"box ready"' | tail -1 | python3 -c "$brief"
+    # The live build becomes the old one: it never restarts on its own (a restart would
+    # register its code over this build's), and the next deploy removes it.
+    if docker inspect wren-worker >/dev/null 2>&1; then
+      docker update --restart=no wren-worker >/dev/null
+      docker rename wren-worker wren-worker-old
+    fi
+    docker rename wren-worker-new wren-worker
+    echo "$script" > /opt/wren-worker.script
+    # Bundles no container runs (the one-slot layout's included).
+    keep="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app"}}{{.Source}}{{end}}{{end}}' wren-worker wren-worker-old 2>/dev/null || true)"
+    for d in /opt/wren-worker /opt/wren-worker.old /opt/wren-worker-9080 /opt/wren-worker-9081; do
+      if [ -d "$d" ] && ! grep -qx "$d" <<<"$keep"; then rm -rf "$d"; fi
+    done
     exit 0
   fi
-  [ "$(docker inspect -f '{{.State.Running}}' wren-worker)" = true ] || break
+  [ "$(docker inspect -f '{{.State.Running}}' wren-worker-new)" = true ] || break
 done
-docker logs --tail 40 wren-worker 2>&1 | python3 -c "$brief"
+docker logs --tail 40 wren-worker-new 2>&1 | python3 -c "$brief"
+# The new build never came up: the live one keeps the services. A restart registers it again
+# in case the new one got as far as registering.
+docker rm -f wren-worker-new >/dev/null 2>&1 || true
+docker restart wren-worker >/dev/null 2>&1 || true
 exit 1

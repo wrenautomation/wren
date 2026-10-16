@@ -9,7 +9,7 @@ entity: apps/worker/src/lambda.ts:16
 
 # worker
 
-`apps/worker`: the Restate endpoint. `main.ts` serves on :9080 locally; `lambda.ts` serves the same services to Restate from AWS Lambda; `box.ts` serves the box's on 127.0.0.1:9080. Not the Cloudflare Workers.
+`apps/worker`: the Restate endpoint. `main.ts` serves on :9080 locally; `lambda.ts` serves the same services to Restate from AWS Lambda; `box.ts` serves the box's on 127.0.0.1:9080 or :9081: each deploy takes the other slot, a new Restate deployment, so calls pinned to the last build finish on it (`box-slot.ts:1`). Not the Cloudflare Workers.
 
 ## Why this shape
 

@@ -13,6 +13,7 @@ import { connectTunnel } from "@restatedev/restate-sdk-tunnel";
 import { ingressOf, loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
 import pino from "pino";
+import { type AdminQuery, boxPort, boxUrl, watchSuperseded } from "./box-slot.js";
 import { buildServices, servicesFor } from "./services.js";
 import { startWakes } from "./wake.js";
 
@@ -39,9 +40,10 @@ const built = await buildServices(settings, log, { rootDir: ROOT, dbPoolMax: 6 }
 const services = servicesFor(built.services, "box");
 // Rows that wake loops (designs/2026-10-11-push-not-poll.md): this box holds the LISTENs, on
 // its own connections straight to Postgres, never through PgBouncer.
+let wakes: { close(): Promise<void> } | null = null;
 if (process.env.WREN_DATABASE_URL) {
   const { url, headers } = ingressOf(settings);
-  await startWakes({
+  wakes = await startWakes({
     databaseUrl: process.env.WREN_DATABASE_URL,
     ingress: { url, ...(headers ? { headers } : {}) },
     log,
@@ -59,25 +61,53 @@ const identityKeys = need("WREN_RESTATE_IDENTITY_KEY")
   .map((k) => k.trim());
 
 if (!process.env.RESTATE_TUNNEL_NAME) {
-  // Same URL every start, so `force` updates one deployment in place: nothing strands.
-  const LOCAL = "http://127.0.0.1:9080";
+  // This slot's URL (`box-slot.ts`): a deploy's build is a new deployment beside the last one,
+  // so calls pinned to the last one finish on its code. `force`: a restart of this build, or
+  // the slot's build from two deploys ago, takes this build's handlers in place.
+  const ADMIN = "http://127.0.0.1:9070";
+  const port = boxPort();
   await new Promise<void>((ok) =>
     http2
       .createServer(restate.createEndpointHandler({ services, identityKeys }))
-      .listen(9080, "127.0.0.1", ok),
+      .listen(port, "127.0.0.1", ok),
   );
-  const res = await fetch("http://127.0.0.1:9070/deployments", {
+  const res = await fetch(`${ADMIN}/deployments`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ uri: LOCAL, force: true }),
+    body: JSON.stringify({ uri: boxUrl(port), force: true }),
   });
   if (!res.ok)
     throw new Error(`restate register: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
   const reg = (await res.json()) as { id: string; services: { name: string }[] };
   log.info(
-    { deployment: reg.id, services: reg.services.map((s) => s.name), ...built.summary },
+    { deployment: reg.id, port, services: reg.services.map((s) => s.name), ...built.summary },
     "box ready",
   );
+  const query: AdminQuery = async (sql) => {
+    const r = await fetch(`${ADMIN}/query`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ query: sql }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!r.ok) throw new Error(`restate query: HTTP ${r.status}`);
+    return ((await r.json()) as { rows: Record<string, unknown>[] }).rows;
+  };
+  const first = reg.services[0]?.name;
+  if (first)
+    watchSuperseded({
+      query,
+      deployment: reg.id,
+      service: first,
+      everyMs: 30_000,
+      // A later build took the services: it holds the wakes now. This one serves its pinned calls.
+      async onSuperseded(pinned) {
+        await wakes?.close();
+        wakes = null;
+        log.info({ deployment: reg.id, pinned }, "box superseded: serving pinned calls only");
+      },
+      onError: (err) => log.warn({ err: String(err) }, "box superseded check failed"),
+    });
 } else {
   const environmentId = need("RESTATE_ENVIRONMENT_ID");
   const region = need("RESTATE_CLOUD_REGION");
