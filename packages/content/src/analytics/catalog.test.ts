@@ -2,8 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ANALYTICS_CATALOG,
+  CADENCE_GOALS,
   CATALOG_TABLES,
   catalogCounts,
+  countsFor,
   entriesFor,
   formatOf,
   NEEDS,
@@ -122,5 +124,20 @@ describe("analytics catalog", () => {
     const followers = ANALYTICS_CATALOG.find((e) => e.platform === "x" && e.group === "account");
     if (!followers) throw new Error("x followers row");
     expect(stateOf(followers, new Map([src("account.followers", "live")])).state).toBe("live");
+  });
+});
+
+describe("what counts toward a posting goal", () => {
+  it("a Facebook Page post and a Business Profile post each count on their own platform", () => {
+    const page = CADENCE_GOALS.find((g) => g.id === "facebook-post");
+    expect(page && countsFor(page, "facebook", "post")).toBe(true);
+    expect(page && countsFor(page, "facebook", "reel")).toBe(false);
+    const profile = {
+      ...(page as NonNullable<typeof page>),
+      id: "gbp",
+      platform: "google_business",
+    };
+    expect(countsFor(profile, "google_business", "post")).toBe(true);
+    expect(countsFor(profile, "facebook", "post")).toBe(false);
   });
 });
