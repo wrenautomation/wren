@@ -27,7 +27,7 @@ import {
   whyOf,
 } from "../../src/invites.js";
 import { DEFAULT_POLICY, type ReachPolicy } from "../../src/policy.js";
-import { inviteRecord } from "../../src/records.js";
+import { dmRecord, inviteRecord } from "../../src/records.js";
 import { type ReachAccount, reachContacts, reachMessages } from "../../src/schema.js";
 import { CONNECT_NOTE, REACH_SEQUENCES, slotsOf } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
@@ -277,6 +277,8 @@ describe("linkedin invites", () => {
       "proposed",
       "Founder at alice-a Co, 50-249 people.",
     ]);
+    // Outreach → Invites counts what waits on him: a proposed one waits on his yes.
+    expect(rows.find((r) => r.who === "Alice Test")).toMatchObject({ next: "approve" });
 
     const b = await contactOf("bob-d");
     expect(await skipInvites(db(), [b.id], OPEN)).toEqual([b.id]);
@@ -334,6 +336,23 @@ describe("linkedin invites", () => {
       ["Bob Test", "withdrawn"],
       ["Alice Test", "accepted"],
     ]);
+    // Accepted with no message either way: To message. Withdrawn waits on nothing.
+    expect(rows.map((r) => [r.who, r.next])).toEqual([
+      ["Bob Test", null],
+      ["Alice Test", "message"],
+    ]);
+    // A bare invite is no DM sent: DMs' Sent leaves it to Invites.
+    const dms = (await dmRecord.rows?.(db())) ?? [];
+    expect(dms.find((r) => r.id === a.id)).toMatchObject({ turn: null });
+    await db().insert(reachMessages).values({
+      contactId: a.id,
+      direction: "in",
+      kind: "inbound",
+      body: "Thanks for the invite.",
+      state: "received",
+    });
+    const after = (await inviteRecord.rows?.(db())) ?? [];
+    expect(after.find((r) => r.who === "Alice Test")).toMatchObject({ next: null });
   });
 
   it("an invite LinkedIn does not offer is no failure and never proposed again", async () => {

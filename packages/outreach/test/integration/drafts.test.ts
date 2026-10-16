@@ -193,7 +193,11 @@ describe("Message from People", () => {
       .returning();
     const pid = (p as { id: number }).id;
     const rows = (await personRecord.rows?.(db())) ?? [];
-    expect(rows.find((x) => x.id === `li:${pid}`)).toMatchObject({ can: "invite" });
+    // No thread yet: People's LinkedIn account would write first.
+    expect(rows.find((x) => x.id === `li:${pid}`)).toMatchObject({
+      can: "invite",
+      account: "linkedin@wren",
+    });
     expect(rows.find((x) => x.id === "reddit:cfo_test")).toBeUndefined();
 
     const l = await personContact(db(), `li:${pid}`);
@@ -209,7 +213,11 @@ describe("Message from People", () => {
       .set({ accountId: linkedin.id, state: "connected", connectedAt: NOW })
       .where(eq(reachContacts.id, l.id));
     const after = (await personRecord.rows?.(db())) ?? [];
-    expect(after.find((x) => x.id === `li:${pid}`)).toMatchObject({ can: "message" });
+    // Their thread's account writes from then on.
+    expect(after.find((x) => x.id === `li:${pid}`)).toMatchObject({
+      can: "message",
+      account: linkedin.account,
+    });
     expect((await messageAccount(db(), await contactById(db(), l.id), NOW)).id).toBe(linkedin.id);
 
     await db().update(reachContacts).set({ state: "opted_out" }).where(eq(reachContacts.id, r.id));

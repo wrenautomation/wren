@@ -2,7 +2,7 @@
  * DMs as console records for the Marketing app: each person's thread (`marketing.dm`), each
  * template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them,
  * each comment on our posts (`marketing.comment`), each LinkedIn invite (`marketing.invite`), and
- * the people we can write to from Marketing → People (`marketing.person`).
+ * the people we can write to from Outreach → People (`marketing.person`).
  */
 
 import { warmupOf } from "@wren/channel-reddit";
@@ -31,6 +31,7 @@ import { gatesFor, holdsThread } from "./discovery/requirements.js";
 import { commentsToday } from "./discovery/threads.js";
 import { accountPickFor, pickedAccounts, pickedReachAccount } from "./draft-accounts.js";
 import { threadContextOf } from "./follow-ups.js";
+import { PERSON_ACCOUNTS } from "./from-people.js";
 import { VANITY } from "./invites.js";
 import { DEFAULT_POLICY, type ReachPolicy } from "./policy.js";
 import { type DmPlatform, type PlaceJudged, type RedditPerson, redditPeople } from "./schema.js";
@@ -84,6 +85,20 @@ export const COMMENT_FOLD: RecordFold = {
   into: "messages",
 };
 
+/**
+ * What a DM thread waits on (designs/2026-10-16-outreach-app.md): their unread reply, else a
+ * draft of ours not sent, else nothing once ours is the last word.
+ */
+export function turnOf(
+  unread: boolean,
+  draft: string | null | undefined,
+  last: string | null,
+): "reply" | "draft" | "sent" | null {
+  if (unread) return "reply";
+  if (draft?.trim()) return "draft";
+  return last === "out" ? "sent" : null;
+}
+
 export const dmRecord = defineRecord({
   id: "marketing.dm",
   app: "marketing",
@@ -117,6 +132,12 @@ export const dmRecord = defineRecord({
       last_at: t.last?.sentAt ?? t.last?.createdAt ?? null,
       direction: t.last?.direction ?? null,
       waiting: t.unread ? "waiting" : "read",
+      // An invite alone is no DM sent: Invites holds it.
+      turn: turnOf(
+        t.unread,
+        t.contact.draft,
+        t.last?.kind === "connect" ? null : (t.last?.direction ?? null),
+      ),
       draft: t.contact.draft,
     }));
   },
@@ -155,9 +176,25 @@ export const dmRecord = defineRecord({
     lastBody: text("Last message"),
     lastAt: date("When"),
     waiting: status({ waiting: { label: "Unread", tone: "warn" }, read: neutral("Read") }, "Read"),
+    turn: status(
+      {
+        reply: { label: "To answer", tone: "warn" },
+        draft: { label: "Draft to send", tone: "warn" },
+        sent: neutral("Sent"),
+      },
+      "To do",
+    ),
     draft: prose("Draft reply"),
   },
   views: [
+    {
+      id: "todo",
+      label: "To do",
+      where: { turn: ["reply", "draft"] },
+      sort: "-lastAt",
+      at: "lastAt",
+    },
+    { id: "sent", label: "Sent", where: { turn: "sent" }, sort: "-lastAt", at: "lastAt" },
     {
       id: "waiting",
       label: "Unread",
@@ -650,7 +687,11 @@ export const inviteRecord = defineRecord({
       select i.contact_id id, coalesce(i.name, i.handle) who, i.headline, i.niche, i.status,
         i.state_reason, i.note, coalesce(da.account, a.account) account, i.queued_at, i.sent_at, i.connected_at, i.withdrawn_at,
         i.url, extract(day from coalesce(i.connected_at, i.withdrawn_at, now()) - i.sent_at)::int days,
-        c.draft, i.fit->>'why' why, i.fit->>'company' company, i.fit->>'size' size
+        c.draft, i.fit->>'why' why, i.fit->>'company' company, i.fit->>'size' size,
+        case when i.status = 'proposed' then 'approve'
+          when i.status = 'accepted' and c.state not in ('opted_out', 'blocked')
+            and not exists (select 1 from reach_messages m where m.contact_id = c.id
+              and (m.direction = 'in' or m.kind <> 'connect')) then 'message' end next
       from reach_invites i
       join reach_contacts c on c.id = i.contact_id
       left join reach_accounts a on a.id = i.account_id
@@ -684,6 +725,14 @@ export const inviteRecord = defineRecord({
       unknown: { label: "Unknown", tone: "bad" },
       skipped: neutral("Skipped"),
     }),
+    // What it waits on from us: a yes, or a first message once they accepted.
+    next: status(
+      {
+        approve: { label: "To approve", tone: "warn" },
+        message: { label: "To message", tone: "warn" },
+      },
+      "Waits on",
+    ),
     why: text("Picked for"),
     company: text("Company"),
     size: text("People"),
@@ -701,7 +750,15 @@ export const inviteRecord = defineRecord({
   views: [
     { id: "proposed", label: "To approve", where: { status: "proposed" }, sort: "queuedAt" },
     { id: "queued", label: "To send", where: { status: "queued" }, sort: "queuedAt" },
-    { id: "pending", label: "Pending", where: { status: "pending" }, sort: "sentAt", at: "sentAt" },
+    { id: "pending", label: "Sent", where: { status: "pending" }, sort: "sentAt", at: "sentAt" },
+    // Accepted, and no message either way past the invite: To approve's "Accepted your invite".
+    {
+      id: "message",
+      label: "To message",
+      where: { next: "message" },
+      sort: "-connectedAt",
+      at: "connectedAt",
+    },
     {
       id: "accepted",
       label: "Accepted",
@@ -760,10 +817,13 @@ export const personRecord = defineRecord({
           when rc.id is null or rc.state = 'new' then 'invite' else 'invited' end can,
         coalesce(tl.n, 0) touches, tl.last touched,
         (select '/people/people/' || pk.profile_id from profile_keys pk
-          where pk.kind = 'person' and pk.value = p.id::text) profile
+          where pk.kind = 'person' and pk.value = p.id::text) profile,
+        coalesce(da.account, ra.account, ${PERSON_ACCOUNTS.linkedin}) account
       from people p
       join companies co on co.id = p.company_id
       left join reach_contacts rc on rc.platform = 'linkedin' and lower(rc.handle) = ${VANITY}
+      left join reach_accounts ra on ra.id = rc.account_id
+      left join draft_accounts da on da.item = 'dm:' || rc.id
       left join tl on tl.person = 'li:' || p.id
       where p.linkedin_url ~* 'linkedin\\.com/in/[^/?#]+'
       order by p.id desc limit ${PEOPLE_ROWS})
@@ -774,9 +834,12 @@ export const personRecord = defineRecord({
         case when rc.state in ('opted_out', 'blocked') then 'stopped' else 'message' end,
         coalesce(tl.n, 0), tl.last,
         (select '/people/people/' || pk.profile_id from profile_keys pk
-          where pk.kind = 'handle:reddit' and pk.value = rp.handle)
+          where pk.kind = 'handle:reddit' and pk.value = rp.handle),
+        coalesce(da.account, ra.account, ${PERSON_ACCOUNTS.reddit})
       from reddit_people rp
       left join reach_contacts rc on rc.platform = 'reddit' and lower(rc.handle) = rp.handle
+      left join reach_accounts ra on ra.id = rc.account_id
+      left join draft_accounts da on da.item = 'dm:' || rc.id
       left join tl on tl.person = 'reddit:' || rp.handle
       order by rp.read_at desc limit ${PEOPLE_ROWS})
       union all
@@ -790,11 +853,16 @@ export const personRecord = defineRecord({
         coalesce(tl.n, 0), tl.last,
         (select '/people/people/' || pk.profile_id from profile_keys pk
           where (pk.kind, pk.value) in (('person', h.person_id::text),
-            ('handle:' || h.platform, h.handle)) limit 1)
+            ('handle:' || h.platform, h.handle)) limit 1),
+        coalesce(da.account, ra.account, case h.platform
+          when 'linkedin' then ${PERSON_ACCOUNTS.linkedin}
+          when 'reddit' then ${PERSON_ACCOUNTS.reddit} end)
       from social_handles h
       left join people p on p.id = h.person_id
       left join companies co on co.id = p.company_id
       left join reach_contacts rc on rc.platform = h.platform and lower(rc.handle) = h.handle
+      left join reach_accounts ra on ra.id = rc.account_id
+      left join draft_accounts da on da.item = 'dm:' || rc.id
       left join tl on tl.person = h.platform || ':' || h.handle
       where not (h.platform = 'reddit'
           and exists (select 1 from reddit_people rp where rp.handle = h.handle))
@@ -804,11 +872,14 @@ export const personRecord = defineRecord({
     >,
   key: "id",
   title: "who",
+  account: "account",
   subtitle: "headline",
   fields: {
     who: name("Who"),
     headline: text(),
     company: text("Company"),
+    // Who writes to them: their thread's account (or its pick), else People's per site.
+    account: accountField("From"),
     platform: status(
       cued({
         reddit: neutral("Reddit"),

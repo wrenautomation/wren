@@ -279,7 +279,7 @@ describe("marketing.approval: what we'd send", () => {
   });
 });
 
-describe("marketing.engage: every reply in one queue", () => {
+describe("marketing.engage: outbound comments in one queue", () => {
   it("holds others' posts with our comment drafted; a post draft waits elsewhere", async () => {
     const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,
         found_by, account, fit, why, state, draft, queued_at, raw)
@@ -300,16 +300,13 @@ describe("marketing.engage: every reply in one queue", () => {
         draft: "our synthetic comment",
       }),
     );
-    expect(
-      waiting.every((r) => ["thread", "onpost", "comment", "dm"].includes(String(r.type))),
-    ).toBe(true);
-    // Replies + DMs are people talking to us; Our comments are what we write on their ground.
-    const inbound = (await api.list({ record: engageRecord.id, view: "inbound", limit: 50 })).rows;
-    expect(inbound.every((r) => ["comment", "dm"].includes(String(r.type)))).toBe(true);
-    const outbound = (await api.list({ record: engageRecord.id, view: "outbound", limit: 50 }))
-      .rows;
-    expect(outbound.every((r) => ["thread", "onpost"].includes(String(r.type)))).toBe(true);
-    expect(outbound.map((r) => r.id)).toContain(`onpost:${p!.id}`);
+    // Outreach's: what we write on their ground. Comments to us and DMs live elsewhere.
+    expect(waiting.every((r) => ["thread", "onpost"].includes(String(r.type)))).toBe(true);
+    const all = (await api.list({ record: engageRecord.id, view: "all", limit: 50 })).rows;
+    expect(all.some((r) => r.type === "dm")).toBe(false);
+    expect(all.every((r) => r.type !== "comment" || r.state === "answered")).toBe(true);
+    const posts = (await api.list({ record: engageRecord.id, view: "posts", limit: 50 })).rows;
+    expect(posts.map((r) => r.id)).toContain(`onpost:${p!.id}`);
     expect(await engageRecord.load?.(pg.db, `onpost:${p!.id}`)).toMatchObject({ ask: [] });
   });
 });
@@ -338,9 +335,8 @@ describe("marketing.engage: Posted and Not live (comment proofs)", () => {
     const notLive = (await api.list({ record: engageRecord.id, view: "notlive", limit: 50 })).rows;
     expect(notLive.map((r) => r.id)).toContain(item);
     // A sent comment is no longer one to write.
-    const outbound = (await api.list({ record: engageRecord.id, view: "outbound", limit: 50 }))
-      .rows;
-    expect(outbound.map((r) => r.id)).not.toContain(item);
+    const waiting = (await api.list({ record: engageRecord.id, view: "waiting", limit: 50 })).rows;
+    expect(waiting.map((r) => r.id)).not.toContain(item);
   });
 });
 

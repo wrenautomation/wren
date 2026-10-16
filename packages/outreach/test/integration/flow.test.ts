@@ -458,6 +458,12 @@ describe("console records", () => {
     for (const v of dmRecord.views) await api.list({ record: dmRecord.id, view: v.id, limit: 9 });
     const all = await api.list({ record: dmRecord.id, view: "all", limit: 9 });
     expect(all.rows.map((r) => r.id)).toEqual([String(c.id)]);
+    // Ours is the last word: Sent, not To do.
+    expect(all.rows[0]).toMatchObject({ turn: "sent" });
+    const sent = await api.list({ record: dmRecord.id, view: "sent", limit: 9 });
+    expect(sent.rows.map((r) => r.id)).toEqual([String(c.id)]);
+    const todo = await api.list({ record: dmRecord.id, view: "todo", limit: 9 });
+    expect(todo.rows).toEqual([]);
     const one = await api.get({ record: dmRecord.id, id: String(c.id) });
     const detail = one.detail as { messages: { body: string }[]; dm: unknown };
     expect(detail.messages[0]?.body).toContain("Hi there");

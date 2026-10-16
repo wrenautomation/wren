@@ -842,6 +842,18 @@ const replyItem = (r: InboxReply) => ({
 });
 
 /**
+ * Where an outbound item lives in Outreach (designs/2026-10-16-outreach-app.md): a comment to
+ * write in Engage, an invite in Invites; null for the rest.
+ */
+export function outreachOf(id: string): string | null {
+  const [type, rest] = typed(id);
+  if (type === "thread" || type === "onpost") return `/outreach/engage/${encodeURIComponent(id)}`;
+  if (type === "invite" || type === "connect")
+    return `/outreach/invites/${encodeURIComponent(rest)}`;
+  return null;
+}
+
+/**
  * What we'd send, waiting on William's yes, as one list. Ids carry their type (`draft:3`,
  * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7` (accepted), `connect:7` (a
  * proposed invite, by contact), `onpost:9` (a comment drafted on someone else's post),
@@ -875,7 +887,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const crs = await creditsList(db, { status: ["review"], limit: 200 });
       const uss = await unsureSends(db);
       const sends = [...ts.map(threadItem), ...ls.map(onPostItem)];
-      return [
+      const rows: Row[] = [
         // A send that may have gone out: he checks the site, marks it posted or sends it again.
         ...unsureOver(uss, sends),
         // A broadcast to a segment (People → Broadcasts): a yes schedules it; nothing sends before.
@@ -1082,6 +1094,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           url: `/money/payments-in/${c.id}`,
         })),
       ];
+      return rows.map((r) => ({ ...r, outreach: outreachOf(String(r.id)) }));
     },
     key: "id",
     title: "who",
@@ -1154,6 +1167,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       at: date("When"),
       due: date("Due"),
       url: link("Open"),
+      outreach: link("In Outreach"),
       onSite: link("Open on site"),
     },
     views: [
@@ -1310,9 +1324,11 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
 export const approvalRecord = approvalRecordOf();
 
 /**
- * Marketing → Engage: every reply he might write, in one queue. Reddit threads and others' posts
- * with our comment drafted (as To approve has them), comments on ours and DMs (as the Inbox has
- * them). Each row keeps its own page's actions; links he pastes land here too (`ReachDesk.paste`).
+ * Outreach → Engage (designs/2026-10-16-outreach-app.md): what we write on others' ground, in one
+ * queue. Reddit threads and others' posts with our comment drafted (as To approve has them), and
+ * what went out, with its proof: those comments and our answers under comments. Comments waiting
+ * on us stay in Marketing → Comments and the Inbox; DMs are Outreach → DMs. Each row keeps its
+ * own page's actions; links he pastes land here too (`ReachDesk.paste`).
  */
 /** Engage; a sent comment's shot signed by `signer`. */
 export const engageRecordOf = (signer?: VideoSigner) =>
@@ -1324,8 +1340,8 @@ export const engageRecordOf = (signer?: VideoSigner) =>
     rows: async (db) => {
       const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
       const ls = await onPostRows(db);
-      const cs = (await commentRecord.rows?.(db)) ?? [];
-      const ds = (await dmRecord.rows?.(db)) ?? [];
+      // Our answers under comments: sent, so they're ours to prove.
+      const cs = ((await commentRecord.rows?.(db)) ?? []).filter((c) => c.state === "answered");
       const ss = await sentRows(db);
       const proved = withProof(await proofsBy(db, signer));
       // A send that may have gone out waits in To approve, not here.
@@ -1334,7 +1350,6 @@ export const engageRecordOf = (signer?: VideoSigner) =>
         ...ts.map(threadItem).filter(parked),
         ...ls.map(onPostItem).filter(parked),
         ...cs.map(commentItem).map(proved),
-        ...ds.map(dmItem),
         ...ss.map((r) =>
           proved({ ...r, id: String(r.id), kind: r.type, state: "sent", due: r.sent }),
         ),
@@ -1353,7 +1368,6 @@ export const engageRecordOf = (signer?: VideoSigner) =>
           thread: neutral("Reddit thread"),
           onpost: neutral("Their post"),
           comment: neutral("On our post"),
-          dm: neutral("DM"),
         }),
         "Type",
       ),
@@ -1380,11 +1394,11 @@ export const engageRecordOf = (signer?: VideoSigner) =>
     views: [
       {
         id: "waiting",
-        label: "Waiting on you",
+        label: "To do",
         where: INBOX_WAITING,
         sort: "due",
         at: "due",
-        hint: "Everything with a reply, comment or DM drafted for your yes, most overdue first",
+        hint: "Comments drafted for your yes, most overdue first",
       },
       {
         id: "scheduled",
@@ -1402,24 +1416,6 @@ export const engageRecordOf = (signer?: VideoSigner) =>
         sort: "due",
         at: "due",
         hint: "Comments waiting on a subreddit's karma or account-age rule; each sends itself once we meet it",
-      },
-      // People talking to us: comments on our posts and DMs.
-      {
-        id: "inbound",
-        label: "Replies + DMs",
-        where: { type: ["comment", "dm"] },
-        sort: "-at",
-        at: "at",
-        hint: "Comments on our posts and DMs, newest first",
-      },
-      // What we write on others' ground: Reddit threads and their posts.
-      {
-        id: "outbound",
-        label: "Our comments",
-        where: { type: ["thread", "onpost"], state: ["waiting", "scheduled", "held"] },
-        sort: "due",
-        at: "due",
-        hint: "Comments we write on Reddit threads and on other people's posts, due soonest first",
       },
       // What went out, and whether a stranger sees it (designs/2026-10-14-comment-proof.md).
       {
@@ -1454,22 +1450,6 @@ export const engageRecordOf = (signer?: VideoSigner) =>
         at: "due",
         hint: "Other people's posts we drafted a comment on, due soonest first",
       },
-      {
-        id: "ours",
-        label: "On our posts",
-        where: { type: "comment" },
-        sort: "-at",
-        at: "at",
-        hint: "Comments people left on our posts, newest first",
-      },
-      {
-        id: "dms",
-        label: "DMs",
-        where: { type: "dm" },
-        sort: "-at",
-        at: "at",
-        hint: "Direct messages to and from us, newest first",
-      },
       { id: "all", label: "All", sort: "-at", at: "at", hint: "Every item above, newest first" },
     ],
     activity: { view: "draft_activity", by: "item", seq: "seq" },
@@ -1481,23 +1461,16 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       "marketing.onpostLike",
       "marketing.onpostFollow",
       "marketing.onpostSkip",
-      "marketing.commentAnswer",
-      "marketing.threadReply",
-      "marketing.threadRead",
-      "marketing.commentDm",
-      "marketing.commentDrop",
-      "marketing.dmReply",
-      "marketing.dmRead",
       "marketing.messageFrom",
       "marketing.pass",
       "marketing.draftSet",
       "marketing.draftAsk",
       "marketing.draftUndo",
     ],
-    /** Comments and DMs as the Inbox opens them; threads and posts as To approve does. */
+    /** An answered comment as the Inbox opens it; threads and posts as To approve does. */
     load: async (db, id) => {
       const [type] = typed(id);
-      const from = type === "comment" || type === "dm" ? inboxRecord : approvalRecord;
+      const from = type === "comment" ? inboxRecord : approvalRecord;
       return (await from.load?.(db, id)) ?? null;
     },
   });
