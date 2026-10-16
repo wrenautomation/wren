@@ -12,6 +12,7 @@ export {
 } from "./local.js";
 export {
   cachedOf,
+  dropCached,
   FOCUS_STALE_MS,
   keyOf,
   type Load,

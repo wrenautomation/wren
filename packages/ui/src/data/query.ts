@@ -250,6 +250,11 @@ export function readCached<T>(
   });
 }
 
+/** Forget the answer of `key` under `scope`: the next ask reads it from the server. */
+export function dropCached(scope: object, key: string) {
+  QUERIES.removeQueries({ queryKey: keyOf(scope, key), exact: true });
+}
+
 /**
  * Read everything on screen again (a pull to refresh, a write that landed); done when every read
  * has answered. What isn't on screen is marked old and reads on its next mount.

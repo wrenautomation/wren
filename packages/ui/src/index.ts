@@ -55,6 +55,7 @@ export {
 } from "./customize.js";
 export {
   cachedOf,
+  dropCached,
   dropLocalCopy,
   EDITS,
   type Edit,
@@ -202,6 +203,16 @@ export {
 export { type HandlerCall, HandlerForm } from "./handler.js";
 export { clipProps, type TipOptions, type TipProps, tipProps, whenTip } from "./hint.js";
 export { HintLayer, Why } from "./hint-layer.js";
+export {
+  HOVER_CLOSE_MS,
+  HOVER_OPEN_MS,
+  type HoverPop,
+  SUB_OPEN_MS,
+  typingInPopup,
+  useHoverPop,
+  useHovers,
+  useSubmenus,
+} from "./hover-pop.js";
 export { Icon, type IconName, isIconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export {
@@ -287,6 +298,7 @@ export {
 } from "./record-patch.js";
 export {
   type ActPatch,
+  type EntryKeep,
   type Load,
   type Needs,
   Panel as RecordPanel,
@@ -420,6 +432,20 @@ export {
 } from "./sources.js";
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
 export { TabBar } from "./tab-bar.js";
+export {
+  cellsOf,
+  DataTable,
+  FactsTable,
+  type ListLine,
+  type ListTable,
+  type RowAttrs,
+  sortingOf,
+  TABLE_FEATURES,
+  type TableColumn,
+  useLines,
+  useListTable,
+  VIRTUAL_FROM,
+} from "./table.js";
 export {
   applyTheme,
   BASE,

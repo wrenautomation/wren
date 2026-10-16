@@ -11,6 +11,7 @@ import { Check, ChevronDown, TriangleAlert, User } from "lucide-react";
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { tipProps } from "./hint.js";
+import { useHoverPop } from "./hover-pop.js";
 import { PlatformMark, TintSwatch } from "./marks.js";
 import type { Place } from "./records.js";
 
@@ -67,7 +68,7 @@ export function AccountBadge({
  * so saved views keep it.
  */
 export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place }) {
-  const [open, setOpen] = useState(false);
+  const pop = useHoverPop();
   const field = accountFieldOf(meta);
   const states = Object.entries(field?.states ?? {});
   if (!field || states.length < 2) return null;
@@ -75,15 +76,16 @@ export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place 
   const picked = raw.split(",").filter((k) => field.states?.[k]);
   const one = picked.length === 1 ? (picked[0] ?? null) : null;
   const pick = (key: string | null) => {
-    setOpen(false);
+    pop.setOpen(false);
     place.go(place.link({ [field.key]: key, pg: null }), true);
   };
   const ordered = [...states].sort(([, a], [, b]) =>
     `${a.mark ?? ""}${a.label}`.localeCompare(`${b.mark ?? ""}${b.label}`),
   );
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover {...pop.root}>
       <PopoverTrigger
+        {...pop.trigger}
         aria-label={`${field.label}: ${one ? accountState(field, one).label : picked.length ? `${picked.length} accounts` : "all"}`}
         className={cn(CHIP, picked.length && "text-(--ui-ink)")}
         data-account-filter=""

@@ -9,6 +9,7 @@ import {
   Button,
   clipProps,
   cx,
+  DataTable,
   Empty,
   Input,
   LoadFailed,
@@ -1084,103 +1085,111 @@ function ListTable({
   pickAll,
   ...r
 }: RowProps & { items: Card[]; all: boolean; pickAll: (on: boolean) => void }) {
-  const th = "h-9 px-2 text-left font-medium text-[12px] text-(--ui-ink-2)";
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full table-fixed border-collapse text-[13.5px]">
-        <thead className="border-(--ui-hair) border-b">
-          <tr>
-            <th className={cx(th, "w-9")}>
-              <Box
-                on={all}
-                label={all ? "Unselect all" : "Select all"}
-                onPick={() => pickAll(!all)}
-              />
-            </th>
-            <th className={th}>Title</th>
-            <th className={cx(th, "hidden w-44 md:table-cell")}>Source</th>
-            <th className={cx(th, "hidden w-24 sm:table-cell")}>Length</th>
-            <th className={cx(th, "w-14")}>Score</th>
-            <th className={cx(th, "hidden w-24 lg:table-cell")}>Status</th>
-            <th className={cx(th, "hidden w-28 sm:table-cell")}>Added</th>
-            <th className="w-10" />
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((c) => {
-            const on = r.sel.has(c.id);
-            return (
-              <tr
-                key={c.id}
-                data-item={c.id}
-                draggable
-                onDragStart={(e) => r.drag(e, c)}
-                onFocusCapture={() => r.onFocus(c.id)}
+    <DataTable
+      look="list"
+      data={items}
+      rowKey={(c) => c.id}
+      rowProps={(c) => ({
+        "data-item": c.id,
+        draggable: true,
+        onDragStart: (e) => r.drag(e, c),
+        onFocusCapture: () => r.onFocus(c.id),
+        className: cx(
+          r.sel.has(c.id) && "bg-(--ui-accent-wash)",
+          r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-active)]",
+        ),
+      })}
+      columns={[
+        {
+          key: "pick",
+          className: "w-9",
+          label: (
+            <Box
+              on={all}
+              label={all ? "Unselect all" : "Select all"}
+              onPick={() => pickAll(!all)}
+            />
+          ),
+          cell: (c) => <PickBox c={c} on={r.sel.has(c.id)} toggle={r.toggle} />,
+        },
+        {
+          key: "title",
+          label: "Title",
+          className: "min-w-0",
+          cell: (c) => (
+            <div className="flex min-w-0 items-center gap-2">
+              <TypeMark type={c.type} size={15} label={TYPES[c.type]?.label} />
+              <Dot c={c} />
+              <a
+                href={itemHref(c.id, r.params)}
+                draggable={false}
                 className={cx(
-                  "border-(--ui-hair) border-b transition-colors duration-100 hover:bg-(--ui-wash)",
-                  on && "bg-(--ui-accent-wash)",
-                  r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-active)]",
+                  "truncate no-underline hover:underline",
+                  c.status === "unread" ? "font-semibold text-(--ui-ink)" : "text-(--ui-ink)",
                 )}
+                {...clipProps()}
               >
-                <td className="px-2 py-2">
-                  <PickBox c={c} on={on} toggle={r.toggle} />
-                </td>
-                <td className="min-w-0 px-2 py-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <TypeMark type={c.type} size={15} label={TYPES[c.type]?.label} />
-                    <Dot c={c} />
-                    <a
-                      href={itemHref(c.id, r.params)}
-                      draggable={false}
-                      className={cx(
-                        "truncate no-underline hover:underline",
-                        c.status === "unread" ? "font-semibold text-(--ui-ink)" : "text-(--ui-ink)",
-                      )}
-                      {...clipProps()}
-                    >
-                      {c.title}
-                    </a>
-                    {c.pinned ? <Pin size={12} className="shrink-0 text-(--ui-ink-2)" /> : null}
-                    {c.starred ? (
-                      <Star size={12} fill="currentColor" className="shrink-0 text-(--ui-warn)" />
-                    ) : null}
-                    {c.tags.slice(0, 2).map((t) => (
-                      <span
-                        key={t}
-                        className="hidden shrink-0 bg-(--ui-tile) px-1.5 text-[11.5px] text-(--ui-ink-2) xl:inline"
-                      >
-                        #{t}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="hidden px-2 py-2 md:table-cell">
-                  <span className="flex min-w-0 items-center gap-1.5 text-(--ui-ink-2)">
-                    <Avatar url={c.source?.avatar ?? null} name={sourceName(c)} size={16} />
-                    <span className="truncate">{sourceName(c)}</span>
-                  </span>
-                </td>
-                <td className="hidden px-2 py-2 text-(--ui-ink-2) tabular-nums sm:table-cell">
-                  {lengthOf(c) ?? ""}
-                </td>
-                <td className="px-2 py-2">
-                  <ScoreBadge score={c.score} />
-                </td>
-                <td className="hidden px-2 py-2 text-(--ui-ink-2) lg:table-cell">
-                  {c.status === "unread" ? "New" : c.status === "read" ? "Read" : "Archived"}
-                </td>
-                <td className="hidden px-2 py-2 text-(--ui-ink-2) sm:table-cell">
-                  {relative(new Date(c.at))}
-                </td>
-                <td className="px-1 py-1">
-                  <ItemMenu c={c} place={r.place} dialog={r.dialog} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                {c.title}
+              </a>
+              {c.pinned ? <Pin size={12} className="shrink-0 text-(--ui-ink-2)" /> : null}
+              {c.starred ? (
+                <Star size={12} fill="currentColor" className="shrink-0 text-(--ui-warn)" />
+              ) : null}
+              {c.tags.slice(0, 2).map((t) => (
+                <span
+                  key={t}
+                  className="hidden shrink-0 bg-(--ui-tile) px-1.5 text-[11.5px] text-(--ui-ink-2) xl:inline"
+                >
+                  #{t}
+                </span>
+              ))}
+            </div>
+          ),
+        },
+        {
+          key: "source",
+          label: "Source",
+          className: "hidden w-44 md:table-cell",
+          cell: (c) => (
+            <span className="flex min-w-0 items-center gap-1.5 text-(--ui-ink-2)">
+              <Avatar url={c.source?.avatar ?? null} name={sourceName(c)} size={16} />
+              <span className="truncate">{sourceName(c)}</span>
+            </span>
+          ),
+        },
+        {
+          key: "length",
+          label: "Length",
+          className: "hidden w-24 text-(--ui-ink-2) tabular-nums sm:table-cell",
+          cell: (c) => lengthOf(c) ?? "",
+        },
+        {
+          key: "score",
+          label: "Score",
+          className: "w-14",
+          cell: (c) => <ScoreBadge score={c.score} />,
+        },
+        {
+          key: "status",
+          label: "Status",
+          className: "hidden w-24 text-(--ui-ink-2) lg:table-cell",
+          cell: (c) => (c.status === "unread" ? "New" : c.status === "read" ? "Read" : "Archived"),
+        },
+        {
+          key: "added",
+          label: "Added",
+          className: "hidden w-28 text-(--ui-ink-2) sm:table-cell",
+          cell: (c) => relative(new Date(c.at)),
+        },
+        {
+          key: "menu",
+          label: "",
+          className: "w-10 px-1 py-1",
+          cell: (c) => <ItemMenu c={c} place={r.place} dialog={r.dialog} />,
+        },
+      ]}
+    />
   );
 }
 

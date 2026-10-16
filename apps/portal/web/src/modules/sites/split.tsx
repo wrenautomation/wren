@@ -11,6 +11,7 @@ import {
   Button,
   clipProps,
   EditConflict,
+  FactsTable,
   Input,
   num,
   type RecordAct,
@@ -21,7 +22,7 @@ import {
 import { useState } from "react";
 import { useEditJson } from "../people/edit-json.js";
 import { QUIET } from "../work/bits.js";
-import { Said, Table, useRun } from "./detail.js";
+import { Said, useRun } from "./detail.js";
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
@@ -77,7 +78,7 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
           {s.split.startedBy}. Bots see A and aren't counted.
         </p>
       </div>
-      <Table
+      <FactsTable
         stack
         head={[
           "Version",

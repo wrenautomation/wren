@@ -369,12 +369,15 @@ export function SwipeRow({
   className,
   onTap,
   children,
+  measure,
   ...rest
 }: {
   swipes: Swipes | null;
   className?: string | undefined;
   onTap?: ((e: React.MouseEvent<HTMLLIElement>) => void) | undefined;
   children: ReactNode;
+  /** Told the row's element: a long list measures each row it draws. */
+  measure?: ((el: HTMLLIElement | null) => void) | undefined;
 } & Omit<React.LiHTMLAttributes<HTMLLIElement>, "onClick" | "className">) {
   const li = useRef<HTMLLIElement>(null);
   const face = useRef<HTMLDivElement>(null);
@@ -513,7 +516,10 @@ export function SwipeRow({
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: the row's title is its link; this widens the tap.
     <li
-      ref={li}
+      ref={(el) => {
+        li.current = el;
+        measure?.(el);
+      }}
       {...rest}
       className={cn("relative overflow-hidden", className)}
       onClick={(e) => {

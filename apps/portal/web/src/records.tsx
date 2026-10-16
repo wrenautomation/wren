@@ -33,6 +33,7 @@ import { call, uploadFile, viewingAs } from "./api.js";
 import { cardFor } from "./cards.js";
 import { useFlags } from "./flags.js";
 import { inLane } from "./lanes.js";
+import { dropCall, patchCalls, readCall } from "./load.js";
 import {
   type DayPage,
   type ListPage,
@@ -44,7 +45,7 @@ import {
 } from "./module.js";
 import { notesSection } from "./modules/notes/backlinks.js";
 import { recordsApi } from "./records-api.js";
-import { href, navigate } from "./route.js";
+import { ENTRY, href, navigate } from "./route.js";
 
 type HeadMeta = Parameters<NonNullable<ListPage["head"]>>[0];
 
@@ -101,6 +102,8 @@ function accessOf(client: string | null, scope: Scope): AccessApi {
 }
 
 const KEEPS = new Map<string, KeepApi>();
+/** How long a read of prefs or saved views stands before a list asks again. */
+const KEEP_FRESH_MS = 5 * 60_000;
 /**
  * What the viewer keeps in this workspace (saved views, prefs), served by the console for any
  * product: Wren's own apps with no client, else that client.
@@ -111,58 +114,51 @@ export function keepOf(client: string | null, scope: Scope): KeepApi {
   if (!keep) {
     const ask = <T,>(handler: string, body: Record<string, unknown>) =>
       call<T>(`console/${handler}`, client ? { client, asClient: scope.asClient, ...body } : body);
-    // One read of every pref and of each record's views per load; writes update the copy.
-    let prefsAll: Promise<Record<string, unknown>> | null = null;
-    const viewsOf = new Map<string, Promise<SavedViewLine[]>>();
-    const readPrefs = () => {
-      const got = prefsAll ?? ask<Record<string, unknown>>("prefs", {});
-      prefsAll = got;
-      got.catch(() => {
-        if (prefsAll === got) prefsAll = null;
-      });
-      return got;
-    };
+    // Prefs and each record's views live in the data layer, under keys of this workspace: one
+    // read shared by every list, kept on the device, patched in place by a write.
+    const at = (what: string) => `keep:${key}:${what}`;
+    const viewsAt = (record: string) => at(`views:${record}`);
+    const readPrefs = () =>
+      readCall(at("prefs"), () => ask<Record<string, unknown>>("prefs", {}), KEEP_FRESH_MS);
     keep = {
-      views: (record) => {
-        let got = viewsOf.get(record);
-        if (!got) {
-          const read = ask<SavedViewLine[]>("savedViews", { record });
-          got = read;
-          read.catch(() => viewsOf.delete(record));
-          viewsOf.set(record, read);
-        }
-        return got.then((lines) => [...lines]);
-      },
-      save: (v) => {
-        viewsOf.delete(v.record);
-        return ask("saveView", { ...v });
-      },
-      remove: (id) => {
-        viewsOf.clear();
-        return ask("removeView", { id });
-      },
-      move: (record, ids) => {
-        viewsOf.delete(record);
-        return ask<SavedViewLine[]>("moveViews", { record, ids }).then((lines) => {
-          viewsOf.set(record, Promise.resolve(lines));
+      views: (record) =>
+        readCall(
+          viewsAt(record),
+          () => ask<SavedViewLine[]>("savedViews", { record }),
+          KEEP_FRESH_MS,
+        ).then((lines) => [...lines]),
+      save: (v) =>
+        ask<SavedViewLine>("saveView", { ...v }).finally(() => dropCall(viewsAt(v.record))),
+      remove: (id) =>
+        ask("removeView", { id }).finally(() =>
+          patchCalls((k, data) =>
+            k.startsWith(at("views:")) && Array.isArray(data)
+              ? data.filter((l: SavedViewLine) => l.id !== id)
+              : data,
+          ),
+        ),
+      move: (record, ids) =>
+        ask<SavedViewLine[]>("moveViews", { record, ids }).then((lines) => {
+          patchCalls((k, data) => (k === viewsAt(record) ? lines : data));
           return [...lines];
-        });
-      },
+        }),
       prefs: (keys) =>
         readPrefs().then((all) =>
           keys
             ? Object.fromEntries(keys.filter((k) => k in all).map((k) => [k, all[k]]))
             : { ...all },
         ),
-      setPref: (key, value) => {
+      setPref: (pref, value) => {
         // The copy changes at once; a failed write drops it so the next read starts over.
-        if (prefsAll)
-          void prefsAll.then((all) => {
-            if (value === null || value === undefined) delete all[key];
-            else all[key] = value;
-          });
-        return ask("setPref", { key, value }).catch((err: unknown) => {
-          prefsAll = null;
+        patchCalls((k, data) => {
+          if (k !== at("prefs") || !data || typeof data !== "object") return data;
+          const next = { ...(data as Record<string, unknown>) };
+          if (value === null || value === undefined) delete next[pref];
+          else next[pref] = value;
+          return next;
+        });
+        return ask("setPref", { key: pref, value }).catch((err: unknown) => {
+          dropCall(at("prefs"));
           throw err;
         });
       },
@@ -764,6 +760,7 @@ export function HandSwitch({
     page: (rid) => `${path}/${encodeURIComponent(String(rid))}`,
     list: path,
     go: navigate,
+    entry: ENTRY,
   };
   return (
     <RecordSwitch
@@ -867,6 +864,7 @@ export function TemplatePage({
     page: (rid) => `${path}/${encodeURIComponent(String(rid))}`,
     list: path,
     go: navigate,
+    entry: ENTRY,
   };
   // Each action needs what its route needs, unless it says otherwise: a button the login can't
   // press is hidden.

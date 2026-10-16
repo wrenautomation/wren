@@ -5,7 +5,7 @@
  * the result is a row in the list below. The head asks `importPreview` again on each change; only
  * the button writes (`importRun`). Loading people sends nothing.
  */
-import { ACTIONS, Button, Tag } from "@wren/ui";
+import { ACTIONS, Button, DataTable, type TableColumn, Tag } from "@wren/ui";
 import { useRef, useState } from "react";
 import { ApiError, call, type ImportPreview, type ImportResult } from "../../api.js";
 import type { ListPage } from "../../module.js";
@@ -29,13 +29,6 @@ interface Picked {
 }
 
 const said = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
-/**
- * A table cell; on a phone each row is a stack, a cell a line led by its column's name, so the
- * Result never sits past the edge. An empty cell leaves its line out.
- */
-const CELL =
-  "py-1.5 pr-3 align-top max-sm:block max-sm:py-0.5 max-sm:pr-0 max-sm:empty:hidden max-sm:before:mr-2 max-sm:before:text-(--ui-ink-3) max-sm:before:content-[attr(data-label)]";
-
 /** The field's column, chosen from the file's own. "" is unused. */
 function ColumnPick({
   label,
@@ -68,45 +61,32 @@ function ColumnPick({
 }
 
 function Sample({ p }: { p: ImportPreview }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-[13.5px] sm:min-w-[520px] max-sm:block">
-        <thead className={`${QUIET} max-sm:sr-only`}>
-          <tr className="border-b border-(--ui-hair)">
-            {["Row", "Name", "Company", "Email", "Job title", "Result"].map((h) => (
-              <th key={h} className="py-1.5 pr-3 font-normal">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="max-sm:block">
-          {p.sample.map((r) => (
-            <tr key={r.row} className="border-b border-(--ui-hair) max-sm:block max-sm:py-2">
-              <td data-label="Row" className={`${CELL} tabular-nums ${QUIET}`}>
-                {r.row}
-              </td>
-              <td data-label="Name" className={CELL}>
-                {r.name ?? ""}
-              </td>
-              <td data-label="Company" className={CELL}>
-                {r.company ?? ""}
-              </td>
-              <td data-label="Email" className={`${CELL} break-all`}>
-                {r.email ?? ""}
-              </td>
-              <td data-label="Job title" className={CELL}>
-                {r.title ?? ""}
-              </td>
-              <td data-label="Result" className={`${CELL} ${r.skip ? "text-(--ui-bad)" : QUIET}`}>
-                {r.skip ? `Left out: ${r.skip}` : (r.note ?? "Loads")}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  type R = ImportPreview["sample"][number];
+  const columns: TableColumn<R>[] = [
+    {
+      key: "row",
+      label: "Row",
+      cell: (r) => <span className={`tabular-nums ${QUIET}`}>{r.row}</span>,
+    },
+    { key: "name", label: "Name", cell: (r) => r.name ?? "" },
+    { key: "company", label: "Company", cell: (r) => r.company ?? "" },
+    {
+      key: "email",
+      label: "Email",
+      cell: (r) => <span className="break-all">{r.email ?? ""}</span>,
+    },
+    { key: "title", label: "Job title", cell: (r) => r.title ?? "" },
+    {
+      key: "result",
+      label: "Result",
+      cell: (r) => (
+        <span className={r.skip ? "text-(--ui-bad)" : QUIET}>
+          {r.skip ? `Left out: ${r.skip}` : (r.note ?? "Loads")}
+        </span>
+      ),
+    },
+  ];
+  return <DataTable columns={columns} data={p.sample} rowKey={(r) => String(r.row)} stack />;
 }
 
 export function ImportPanel({ client, reload }: { client: string; reload: () => void }) {

@@ -13,7 +13,15 @@ import {
   STAT_CHANNELS,
 } from "@wren/core/channel-stats-schema";
 import type { Rule } from "@wren/core/segments";
-import { Button, LoadFailed, Loading, PageHeader, Section } from "@wren/ui";
+import {
+  Button,
+  DataTable,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  type TableColumn,
+} from "@wren/ui";
 import { useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -206,98 +214,91 @@ function Table({
       </p>
     );
   const views = stats.rows.some((r) => r.views !== null || r.visits !== null);
-  const TH = "py-1.5 pr-3 text-right font-normal";
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-[13.5px]">
-        <thead className={QUIET}>
-          <tr className="border-b border-(--ui-hair)">
-            <th className="py-1.5 pr-3 font-normal">
-              {by === "channel" ? "Channel" : by === "source" ? "Source" : by.slice(6)}
-            </th>
-            {FUNNEL_STEPS.map((s) => (
-              <th key={s} className={TH}>
-                {FUNNEL_STEP_NAMES[s]}
-              </th>
-            ))}
-            <th className={TH}>Sends</th>
-            <th className={TH}>Cost</th>
-            {views ? (
-              <>
-                <th className={TH}>Views</th>
-                <th className={TH}>Visits</th>
-              </>
-            ) : null}
-          </tr>
-        </thead>
-        <tbody>
-          {stats.rows.map((r) => (
-            <tr key={r.key} className="border-b border-(--ui-hair) align-top">
-              <td className="py-1.5 pr-3">
-                {by === "channel" ? (
-                  <button
-                    type="button"
-                    className="text-left underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
-                    title="By campaign, post or link"
-                    onClick={() => onDrill(r)}
-                  >
-                    {r.label}
-                  </button>
-                ) : (
-                  <span className="break-words">{r.label}</span>
-                )}
-                {by === "source" && r.channel ? (
-                  <span className={`block text-[12.5px] ${QUIET}`}>
-                    {STAT_CHANNEL_NAMES[r.channel as keyof typeof STAT_CHANNEL_NAMES] ?? r.channel}
-                    {r.sourceKind ? `, ${r.sourceKind}` : ""}
-                  </span>
-                ) : null}
-              </td>
-              {FUNNEL_STEPS.map((s) => {
-                const n = r.people[s];
-                return (
-                  <td key={s} className="py-1.5 pr-3 text-right tabular-nums">
-                    {n === null ? (
-                      <span className={QUIET}>—</span>
-                    ) : n === 0 ? (
-                      "0"
-                    ) : (
-                      <button
-                        type="button"
-                        className="tabular-nums underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
-                        title={`See the ${n.toLocaleString()} ${n === 1 ? "person" : "people"}`}
-                        onClick={() => onOpen(r, s)}
-                      >
-                        {n.toLocaleString()}
-                      </button>
-                    )}
-                    {s !== "reached" && n ? (
-                      <span className={`block text-[12px] ${QUIET}`}>{pct(r.rates[s])}</span>
-                    ) : null}
-                  </td>
-                );
-              })}
-              <td className="py-1.5 pr-3 text-right tabular-nums">{r.sends.toLocaleString()}</td>
-              <td className="py-1.5 pr-3 text-right tabular-nums">{usd(r.costUsd)}</td>
-              {views ? (
-                <>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">
-                    {r.views?.toLocaleString() ?? "—"}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">
-                    {r.visits?.toLocaleString() ?? "—"}
-                  </td>
-                </>
+  const columns: TableColumn<StatsRow>[] = [
+    {
+      key: "row",
+      label: by === "channel" ? "Channel" : by === "source" ? "Source" : by.slice(6),
+      cell: (r) => (
+        <>
+          {by === "channel" ? (
+            <button
+              type="button"
+              className="text-left underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
+              title="By campaign, post or link"
+              onClick={() => onDrill(r)}
+            >
+              {r.label}
+            </button>
+          ) : (
+            <span className="break-words">{r.label}</span>
+          )}
+          {by === "source" && r.channel ? (
+            <span className={`block text-[12.5px] ${QUIET}`}>
+              {STAT_CHANNEL_NAMES[r.channel as keyof typeof STAT_CHANNEL_NAMES] ?? r.channel}
+              {r.sourceKind ? `, ${r.sourceKind}` : ""}
+            </span>
+          ) : null}
+        </>
+      ),
+    },
+    ...FUNNEL_STEPS.map(
+      (s): TableColumn<StatsRow> => ({
+        key: `step:${s}`,
+        label: FUNNEL_STEP_NAMES[s],
+        end: true,
+        cell: (r) => {
+          const n = r.people[s];
+          return (
+            <>
+              {n === null ? (
+                <span className={QUIET}>—</span>
+              ) : n === 0 ? (
+                "0"
+              ) : (
+                <button
+                  type="button"
+                  className="tabular-nums underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
+                  title={`See the ${n.toLocaleString()} ${n === 1 ? "person" : "people"}`}
+                  onClick={() => onOpen(r, s)}
+                >
+                  {n.toLocaleString()}
+                </button>
+              )}
+              {s !== "reached" && n ? (
+                <span className={`block text-[12px] ${QUIET}`}>{pct(r.rates[s])}</span>
               ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </>
+          );
+        },
+      }),
+    ),
+    { key: "sends", label: "Sends", end: true, cell: (r) => r.sends.toLocaleString() },
+    { key: "cost", label: "Cost", end: true, cell: (r) => usd(r.costUsd) },
+    ...(views
+      ? [
+          {
+            key: "views",
+            label: "Views",
+            end: true,
+            cell: (r: StatsRow) => r.views?.toLocaleString() ?? "—",
+          },
+          {
+            key: "visits",
+            label: "Visits",
+            end: true,
+            cell: (r: StatsRow) => r.visits?.toLocaleString() ?? "—",
+          },
+        ]
+      : []),
+  ];
+  return (
+    <>
+      <DataTable columns={columns} data={stats.rows} rowKey={(r) => r.key} />
       <p className={`mt-3 text-[13px] ${QUIET}`}>
         Each row counts people first reached there in the window, then what they did after. Views
         and visits aren't tied to a person, so they're not in the funnel.
       </p>
-    </div>
+    </>
   );
 }
 

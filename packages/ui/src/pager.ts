@@ -7,6 +7,15 @@
 /** Rows a list page asks for; the server's own default. */
 export const PAGE_SIZE = 50;
 
+/** The page sizes a viewer may pick (`size`); the server serves 200 at most. */
+export const PAGE_SIZES = [50, 100, 200] as const;
+
+/** The page size an address names (`size`), else the default. */
+export function sizeOf(params: URLSearchParams): number {
+  const n = Number(params.get("size"));
+  return (PAGE_SIZES as readonly number[]).includes(n) ? n : PAGE_SIZE;
+}
+
 /** A page number, or a gap on the low (`before`) or high (`after`) side of the window. */
 export type Slot = number | "before" | "after";
 

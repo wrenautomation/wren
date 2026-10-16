@@ -1,5 +1,5 @@
 /** Loading a portal call into a component: a TanStack Query read (`@wren/ui` data layer). */
-import { nameScope, type Patch, readCached, useLoad, writeThrough } from "@wren/ui";
+import { dropCached, nameScope, type Patch, readCached, useLoad, writeThrough } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { ApiError } from "./api.js";
 
@@ -23,6 +23,9 @@ export const PORTAL = nameScope({}, "portal");
 export function patchCalls(patch: Patch) {
   writeThrough(PORTAL, patch);
 }
+
+/** Forget a portal call's answer: the next ask reads it again. */
+export const dropCall = (key: string) => dropCached(PORTAL, key);
 
 const asApiError = (err: unknown): never => {
   throw err instanceof ApiError ? err : new ApiError(String(err), 0);

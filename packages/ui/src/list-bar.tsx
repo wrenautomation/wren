@@ -15,6 +15,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   CircleDot,
   Hash,
   ListFilter,
@@ -49,6 +50,7 @@ import { useEdit } from "./data/use-edit.js";
 import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
 import { tipProps } from "./hint.js";
+import { useHoverPop, useSubmenus } from "./hover-pop.js";
 import { Segmented } from "./phone.js";
 import type { Place } from "./records.js";
 import { TabBar } from "./tab-bar.js";
@@ -132,7 +134,7 @@ export function siteField(meta: RecordMeta): FieldMeta | null {
 }
 
 /** The address keys a list's state rides in; `as` is rows or cards (`./cards.ts`). */
-const STATE = ["view", "q", "sort", "group", "cols", "as"];
+const STATE = ["view", "q", "sort", "group", "cols", "as", "size"];
 const keysOf = (meta: RecordMeta) => [...STATE, ...filtersOf(meta).map((f) => f.key)];
 
 /** What a saved view keeps of the address, keys in order so two read the same. */
@@ -315,12 +317,13 @@ interface MoreView {
 
 /** The views past the tabs, behind one button that names the open one when it's among them. */
 function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
-  const [open, setOpen] = useState(false);
+  const pop = useHoverPop();
   if (!views.length) return null;
   const on = views.find((v) => v.on);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover {...pop.root}>
       <PopoverTrigger
+        {...pop.trigger}
         className={cn(
           phone
             ? "flex min-h-10 shrink-0 items-center gap-1 rounded-lg border-0 bg-(--ui-fill) px-3 text-[14px] font-medium text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
@@ -342,7 +345,7 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
               href={v.href}
               aria-current={v.on ? "page" : undefined}
               {...tipProps(v.tip)}
-              onClick={() => setOpen(false)}
+              onClick={() => pop.setOpen(false)}
               className={cn(
                 ITEM,
                 "justify-between no-underline aria-[current=page]:font-semibold",
@@ -496,10 +499,11 @@ function SavedMenu({
   keep: KeepApi;
   saved: Saved;
 }) {
-  const [open, setOpen] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+  const pop = useHoverPop({ onOpen: () => setSaid(null) });
+  const setOpen = pop.setOpen;
   const named = useEdit(`view:${view.id}:name`, view.name);
   const name = named.value;
-  const [said, setSaid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const run = async (fn: () => Promise<unknown>, close = true) => {
     setBusy(true);
@@ -522,14 +526,9 @@ function SavedMenu({
     return run(() => keep.move(meta.id, next), false);
   };
   return (
-    <Popover
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (o) setSaid(null);
-      }}
-    >
+    <Popover {...pop.root}>
       <PopoverTrigger
+        {...pop.trigger}
         aria-label={`${view.name}: options`}
         {...tipProps("Options", { as: "none" })}
         className="inline-flex size-6 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
@@ -610,11 +609,17 @@ function SaveView({
   keep: KeepApi;
   saved: Saved;
 }) {
-  const [open, setOpen] = useState(false);
-  const named = useEdit(`view:new:${meta.id}:name`, "");
-  const name = named.value;
   const [shared, setShared] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
+  const pop = useHoverPop({
+    onOpen: () => {
+      setShared(false);
+      setSaid(null);
+    },
+  });
+  const setOpen = pop.setOpen;
+  const named = useEdit(`view:new:${meta.id}:name`, "");
+  const name = named.value;
   const [busy, setBusy] = useState(false);
   const kept = keptOf(meta, place.params);
   const sv = saved.lines.find((v) => String(v.id) === place.params.get("sv"));
@@ -635,17 +640,8 @@ function SaveView({
     }
   };
   return (
-    <Popover
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (o) {
-          setShared(false);
-          setSaid(null);
-        }
-      }}
-    >
-      <PopoverTrigger className={CHIP}>
+    <Popover {...pop.root}>
+      <PopoverTrigger {...pop.trigger} className={CHIP}>
         <Bookmark className="size-3.5" />
         Save view
       </PopoverTrigger>
@@ -741,6 +737,65 @@ function KindIcon({ field: f }: { field: FieldMeta }) {
  * then the hidden ones, then a search for the typed text), then the picked one's control. Arrow
  * keys and Enter move and pick; Back returns to the fields. Each change applies at once.
  */
+/** One field's choices: its name, Clear when set, and its editor. `back` returns to the fields. */
+function FieldEditor({
+  field,
+  place,
+  facets,
+  back,
+}: {
+  field: FieldMeta;
+  place: Place;
+  facets: (() => Promise<Facets | undefined>) | undefined;
+  back?: () => void;
+}) {
+  const [counts, setCounts] = useState<Facets[string] | undefined>();
+  const value = place.params.get(field.key);
+  const set = (next: string | null) => place.go(place.link({ [field.key]: next, pg: null }), true);
+
+  // read-ok: `facets` is the list's own read (its records api); this takes one field's counts.
+  useEffect(() => {
+    if (filterShape(field) !== "states" || !facets) return;
+    let live = true;
+    facets().then((all) => live && setCounts(all?.[field.key]));
+    return () => {
+      live = false;
+    };
+  }, [field, facets]);
+
+  return (
+    <div className="grid" data-filter-editor={field.key}>
+      <div className="flex h-10 items-center gap-1.5 border-b border-(--ui-hair) px-1">
+        {back ? (
+          <button
+            type="button"
+            aria-label="Back to fields"
+            {...tipProps("Back to fields", { as: "none" })}
+            onClick={back}
+            className="inline-flex size-7 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        ) : (
+          <span className="w-1.5" />
+        )}
+        <KindIcon field={field} />
+        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{field.label}</span>
+        {value ? (
+          <button
+            type="button"
+            onClick={() => set(null)}
+            className="h-7 border-0 bg-transparent px-2 text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink)"
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+      <FieldFilter key={field.key} field={field} value={value} counts={counts} onChange={set} />
+    </div>
+  );
+}
+
 function FilterPanel({
   filters,
   shown,
@@ -751,6 +806,7 @@ function FilterPanel({
   facets,
   close,
   phone,
+  byHover,
 }: {
   filters: FieldMeta[];
   shown: Set<string>;
@@ -763,26 +819,17 @@ function FilterPanel({
   start: FieldMeta | null;
   facets: (() => Promise<Facets | undefined>) | undefined;
   close: () => void;
-  /** In the phone's sheet: no keyboard on open, and the sheet scrolls. */
-  phone?: boolean;
+  /** In the phone's sheet: no keyboard on open, rows drill in, and the sheet scrolls. */
+  phone?: boolean | undefined;
+  /** Opened by the pointer resting on Filter: focus stays where it was. */
+  byHover?: boolean | undefined;
 }) {
   const [field, setField] = useState<FieldMeta | null>(start);
   const [text, setText] = useState("");
-  const [counts, setCounts] = useState<{ key: string; of: Facets[string] | undefined }>();
   const id = useId();
   const { params } = place;
-  const set = (f: FieldMeta, next: string | null) =>
-    place.go(place.link({ [f.key]: next, pg: null }), true);
-
-  // read-ok: `facets` is the list's own read (its records api); this takes one field's counts.
-  useEffect(() => {
-    if (!field || filterShape(field) !== "states" || !facets) return;
-    let live = true;
-    facets().then((all) => live && setCounts({ key: field.key, of: all?.[field.key] }));
-    return () => {
-      live = false;
-    };
-  }, [field, facets]);
+  // With a mouse, each field's choices open beside its row; keys and taps drill in.
+  const subs = useSubmenus();
 
   const t = text.trim().toLowerCase();
   const lead = (f: FieldMeta) => (first?.has(f.key) ? 0 : 1);
@@ -806,45 +853,18 @@ function FilterPanel({
     else if (searching) search();
   };
 
-  if (field) {
-    const value = params.get(field.key);
+  if (field)
     return (
-      <div className="grid">
-        <div className="flex h-10 items-center gap-1.5 border-b border-(--ui-hair) px-1">
-          <button
-            type="button"
-            aria-label="Back to fields"
-            {...tipProps("Back to fields", { as: "none" })}
-            onClick={() => {
-              setField(null);
-              setText("");
-            }}
-            className="inline-flex size-7 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <KindIcon field={field} />
-          <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{field.label}</span>
-          {value ? (
-            <button
-              type="button"
-              onClick={() => set(field, null)}
-              className="h-7 border-0 bg-transparent px-2 text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink)"
-            >
-              Clear
-            </button>
-          ) : null}
-        </div>
-        <FieldFilter
-          key={field.key}
-          field={field}
-          value={value}
-          counts={counts?.key === field.key ? counts.of : undefined}
-          onChange={(next) => set(field, next)}
-        />
-      </div>
+      <FieldEditor
+        field={field}
+        place={place}
+        facets={facets}
+        back={() => {
+          setField(null);
+          setText("");
+        }}
+      />
     );
-  }
 
   const option = (i: number) => `${id}-${i}`;
   return (
@@ -854,7 +874,7 @@ function FilterPanel({
         <input
           // edit-ok: search box
           // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
-          autoFocus={!phone}
+          autoFocus={!phone && !byHover}
           role="combobox"
           aria-expanded
           aria-controls={id}
@@ -883,20 +903,8 @@ function FilterPanel({
               {fields.map((f) => {
                 const i = order.indexOf(f);
                 const v = params.get(f.key);
-                return (
-                  // biome-ignore lint/a11y/useKeyWithClickEvents: the box's keys pick it.
-                  <div
-                    key={f.key}
-                    id={option(i)}
-                    role="option"
-                    tabIndex={-1}
-                    aria-selected={i === nav.at}
-                    ref={inSight(i === nav.at)}
-                    onMouseMove={() => nav.setAt(i)}
-                    onClick={() => setField(f)}
-                    {...tipProps(v ? sayRaw(f, v) : undefined)}
-                    className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
-                  >
+                const face = (
+                  <>
                     <KindIcon field={f} />
                     <span className="min-w-0 flex-1 truncate">{f.label}</span>
                     {v ? (
@@ -904,7 +912,47 @@ function FilterPanel({
                         {filterParts(f, v).value}
                       </span>
                     ) : null}
-                  </div>
+                    {phone ? null : (
+                      <ChevronRight aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
+                    )}
+                  </>
+                );
+                const row = {
+                  id: option(i),
+                  role: "option",
+                  tabIndex: -1,
+                  "aria-selected": i === nav.at,
+                  ref: inSight(i === nav.at),
+                  onMouseMove: () => nav.setAt(i),
+                  ...tipProps(v ? sayRaw(f, v) : undefined),
+                  className: cn(ROW, i === nav.at && "bg-(--ui-hover)"),
+                } as const;
+                if (phone)
+                  return (
+                    // biome-ignore lint/a11y/useKeyWithClickEvents: the box's keys pick it.
+                    <div
+                      key={f.key}
+                      {...row}
+                      role="option"
+                      tabIndex={-1}
+                      onClick={() => setField(f)}
+                    >
+                      {face}
+                    </div>
+                  );
+                return (
+                  <Popover key={f.key} {...subs.rootOf(f.key)}>
+                    <PopoverTrigger
+                      {...subs.trigger}
+                      nativeButton={false}
+                      render={<div {...row} data-filter-field={f.key} />}
+                    >
+                      {face}
+                    </PopoverTrigger>
+                    <PopoverContent side="right" align="start" sideOffset={2} className={POP}>
+                      <FieldEditor field={f} place={place} facets={facets} />
+                    </PopoverContent>
+                  </Popover>
                 );
               })}
             </div>
@@ -950,9 +998,9 @@ function FilterPill({
   place: Place;
   /** At phone width: the sheet opens on this field instead. */
   onOpen?: (() => void) | undefined;
-  panel: (close: () => void) => ReactNode;
+  panel: (close: () => void, byHover: boolean) => ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const pop = useHoverPop();
   const raw = place.params.get(field.key) ?? "";
   const { op, value } = filterParts(field, raw);
   // The picked platforms' marks or kinds' tints lead the value: "Platform is [YT] YouTube".
@@ -983,12 +1031,12 @@ function FilterPill({
           {face}
         </button>
       ) : (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger {...tip} className={faceClass}>
+        <Popover {...pop.root}>
+          <PopoverTrigger {...pop.trigger} {...tip} className={faceClass}>
             {face}
           </PopoverTrigger>
           <PopoverContent align="start" className={POP}>
-            {panel(() => setOpen(false))}
+            {panel(() => pop.setOpen(false), pop.byHover)}
           </PopoverContent>
         </Popover>
       )}
@@ -1057,7 +1105,7 @@ export function ListBar({
     ) : null;
   const first = useMemo(() => new Set(quickFilters(meta).map((f) => f.key)), [meta]);
   const narrowed = !!params.get("q") || on.length > 0;
-  const [picker, setPicker] = useState(false);
+  const picker = useHoverPop();
   const [sheet, setSheet] = useState<{ open: boolean; start: FieldMeta | null; n: number }>({
     open: false,
     start: null,
@@ -1082,7 +1130,11 @@ export function ListBar({
     };
   }, [key, has]);
 
-  const panel = (start: FieldMeta | null, close: () => void, phone = false) => (
+  const panel = (
+    start: FieldMeta | null,
+    close: () => void,
+    o: { phone?: boolean; byHover?: boolean } = {},
+  ) => (
     <FilterPanel
       filters={filters}
       shown={shown}
@@ -1092,7 +1144,8 @@ export function ListBar({
       start={start}
       facets={counts}
       close={close}
-      phone={phone}
+      phone={o.phone}
+      byHover={o.byHover}
     />
   );
   const filter = !filters.length ? null : narrow ? (
@@ -1105,15 +1158,16 @@ export function ListBar({
       <FilterFace on={on.length} />
     </button>
   ) : (
-    <Popover open={picker} onOpenChange={setPicker}>
+    <Popover {...picker.root}>
       <PopoverTrigger
+        {...picker.trigger}
         {...tipProps(sayFilters(params, filters))}
         className={cn(CHIP, on.length && "text-(--ui-ink)")}
       >
         <FilterFace on={on.length} />
       </PopoverTrigger>
       <PopoverContent align="start" className={POP}>
-        {panel(null, () => setPicker(false))}
+        {panel(null, () => picker.setOpen(false), { byHover: picker.byHover })}
       </PopoverContent>
     </Popover>
   );
@@ -1125,7 +1179,7 @@ export function ListBar({
         field={f}
         place={place}
         onOpen={narrow ? () => openSheet(f) : undefined}
-        panel={(close) => panel(f, close)}
+        panel={(close, byHover) => panel(f, close, { byHover })}
       />
     ));
   const clear = narrowed ? (
@@ -1185,7 +1239,7 @@ export function ListBar({
             <SheetTitle className="text-[15px] font-semibold">Filter</SheetTitle>
           </SheetHeader>
           <div key={sheet.n} className="min-h-0 flex-1 overflow-y-auto">
-            {panel(sheet.start, shut, true)}
+            {panel(sheet.start, shut, { phone: true })}
           </div>
           <SheetFooter className="flex-row justify-between border-t border-(--ui-hair) p-4">
             <Button

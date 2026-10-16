@@ -21,6 +21,7 @@ import {
 } from "@wren/sites/templates";
 import {
   Button,
+  FactsTable,
   Fieldset,
   FRAME,
   FRAME_BODY,
@@ -55,8 +56,6 @@ import { Split } from "./split.js";
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
-const TH = "py-1.5 pr-3 font-normal";
-const TD = "py-1.5 pr-3 tabular-nums";
 
 const SELECT =
   "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
@@ -775,76 +774,6 @@ function InCode({ d, url }: { d: PageDetail; url: string }) {
   );
 }
 
-/**
- * Numbers as a table. With `stack`, a phone gets each row as a card instead (its first cell on
- * top, the rest as label and value), so the name column isn't crushed.
- */
-export function Table({
-  head,
-  rows,
-  stack = false,
-}: {
-  head: (string | [string, "r"])[];
-  rows: ReactNode[][];
-  stack?: boolean;
-}) {
-  const labels = head.map((h) => (Array.isArray(h) ? h[0] : h));
-  return (
-    <>
-      <div className={stack ? "hidden overflow-x-auto sm:block" : "overflow-x-auto"}>
-        <table className="w-full text-left text-[13.5px]">
-          <thead className={QUIET}>
-            <tr className="border-b border-(--ui-hair)">
-              {head.map((h) => {
-                const [label, right] = Array.isArray(h) ? h : [h, null];
-                return (
-                  <th key={label} className={right ? `${TH} text-right` : TH}>
-                    {label}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: rows are drawn once, in order.
-              <tr key={i} className="border-b border-(--ui-hair) align-top">
-                {r.map((c, j) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional.
-                  <td key={j} className={j === 0 ? "py-1.5 pr-3" : `${TD} text-right`}>
-                    {c}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {stack ? (
-        <ul className="grid gap-3 sm:hidden">
-          {rows.map((r, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: rows are drawn once, in order.
-            <li key={i} className="grid gap-2 border-b border-(--ui-hair) pb-3 text-[14px]">
-              <div>{r[0]}</div>
-              <dl className="grid grid-cols-3 gap-x-3 gap-y-1.5">
-                {r.slice(1).map((c, j) =>
-                  c === "" || c === null ? null : (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional.
-                    <div key={j} className="grid gap-0.5">
-                      <dt className={HINT}>{labels[j + 1]}</dt>
-                      <dd className="tabular-nums">{c}</dd>
-                    </div>
-                  ),
-                )}
-              </dl>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </>
-  );
-}
-
 function Numbers({ d }: { d: PageDetail }) {
   if (!d.days.length) return <p className={QUIET}>No visits in the last 30 days.</p>;
   return (
@@ -859,7 +788,7 @@ function Numbers({ d }: { d: PageDetail }) {
 function Sources({ d }: { d: PageDetail }) {
   if (!d.sources.length) return <p className={QUIET}>No visits counted.</p>;
   return (
-    <Table
+    <FactsTable
       head={["Source", ["Visits", "r"], ["Forms", "r"], ["Bookings", "r"]]}
       rows={d.sources.map((s) => [
         [s.channel, s.source, s.campaign].filter(Boolean).join(" · "),
@@ -905,7 +834,7 @@ function Ads({ ads }: { ads: AdIn[] }) {
   ];
   return (
     <div className="grid gap-2">
-      <Table
+      <FactsTable
         stack
         head={[
           "Ad",
@@ -937,7 +866,7 @@ function Ads({ ads }: { ads: AdIn[] }) {
 
 function Variants({ vs, here }: { vs: Variant[]; here: string }) {
   return (
-    <Table
+    <FactsTable
       head={[
         "Variant",
         ["Visits", "r"],

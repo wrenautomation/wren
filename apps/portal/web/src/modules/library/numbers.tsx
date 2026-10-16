@@ -3,52 +3,46 @@
  * point's options by reply rate, and the campaigns that sent it (`templates.template` detail).
  */
 import type { TemplateDetail } from "@wren/core/templates/edits";
-import { BarsChart, type BarsRow, Tag } from "@wren/ui";
+import { BarsChart, type BarsRow, DataTable, type TableColumn, Tag } from "@wren/ui";
 import { QUIET } from "../work/bits.js";
 import { replyRate } from "./sequence.js";
 
 const when = (at: string | null) => (at ? new Date(at).toLocaleDateString("en-CA") : "");
 
 function Versions({ d }: { d: TemplateDetail }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-[13.5px]">
-        <thead className={QUIET}>
-          <tr className="border-b border-(--ui-hair)">
-            <th className="py-1.5 pr-3 font-normal">Version</th>
-            <th className="py-1.5 pr-3 font-normal">Saved</th>
-            <th className="py-1.5 pr-3 text-right font-normal">Sent</th>
-            <th className="py-1.5 pr-3 text-right font-normal">Replied</th>
-            {d.kind === "email" ? <th className="py-1.5 text-right font-normal">Booked</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {d.versions.map((v) => (
-            <tr key={v.number} className="border-b border-(--ui-hair) align-top">
-              <td className="py-1.5 pr-3">
-                <span className="tabular-nums">v{v.number}</span>{" "}
-                {v.state === "kept" ? null : (
-                  <Tag tone={v.state === "live" ? "green" : "accent"}>
-                    {v.state === "live" ? "Live" : v.state === "waiting" ? "Waiting" : "Draft"}
-                  </Tag>
-                )}
-              </td>
-              <td className={`py-1.5 pr-3 ${QUIET}`}>
-                {[when(v.at), v.by].filter(Boolean).join(", ")}
-              </td>
-              <td className="py-1.5 pr-3 text-right tabular-nums">{v.sends.toLocaleString()}</td>
-              <td className="py-1.5 pr-3 text-right tabular-nums">
-                {v.sends ? `${v.replies} · ${replyRate(v.replies, v.sends)}` : "—"}
-              </td>
-              {d.kind === "email" ? (
-                <td className="py-1.5 text-right tabular-nums">{v.booked ?? "—"}</td>
-              ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  type V = TemplateDetail["versions"][number];
+  const columns: TableColumn<V>[] = [
+    {
+      key: "version",
+      label: "Version",
+      cell: (v) => (
+        <>
+          <span className="tabular-nums">v{v.number}</span>{" "}
+          {v.state === "kept" ? null : (
+            <Tag tone={v.state === "live" ? "green" : "accent"}>
+              {v.state === "live" ? "Live" : v.state === "waiting" ? "Waiting" : "Draft"}
+            </Tag>
+          )}
+        </>
+      ),
+    },
+    {
+      key: "saved",
+      label: "Saved",
+      cell: (v) => <span className={QUIET}>{[when(v.at), v.by].filter(Boolean).join(", ")}</span>,
+    },
+    { key: "sent", label: "Sent", end: true, cell: (v) => v.sends.toLocaleString() },
+    {
+      key: "replied",
+      label: "Replied",
+      end: true,
+      cell: (v) => (v.sends ? `${v.replies} · ${replyRate(v.replies, v.sends)}` : "—"),
+    },
+    ...(d.kind === "email"
+      ? [{ key: "booked", label: "Booked", end: true, cell: (v: V) => v.booked ?? "—" }]
+      : []),
+  ];
+  return <DataTable columns={columns} data={d.versions} rowKey={(v) => String(v.number)} />;
 }
 
 /** Each variant point's options by reply rate on the live version. */

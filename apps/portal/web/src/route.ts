@@ -5,7 +5,7 @@
  * reads where we are. Links are plain <a href>; `./router.tsx` hands a click on one to the router.
  */
 import { type AnyRouter, useLocation, useSearch } from "@tanstack/react-router";
-import { paramsOf } from "@wren/ui";
+import { type EntryKeep, paramsOf } from "@wren/ui";
 import { useMemo } from "react";
 
 export interface Route {
@@ -76,6 +76,22 @@ export function navigate(to: string, replace = false) {
     resetScroll: false,
   });
 }
+
+/**
+ * What the current history entry keeps beside its address (a list's picked rows). It rides in
+ * the entry's state, which the browser keeps across a reload and gives back on back and forward;
+ * a link carries none of it. Written in place: keeping a pick is not a move, so the router isn't
+ * told and nothing reads again.
+ */
+export const ENTRY: EntryKeep = {
+  get: (key) => (history.state as Record<string, unknown> | null)?.[key],
+  set: (key, value) => {
+    const state = { ...((history.state as Record<string, unknown> | null) ?? {}) };
+    if (value === undefined) delete state[key];
+    else state[key] = value;
+    history.replaceState(state, "");
+  },
+};
 
 /** Change some params of `path`, keeping the rest of `keep`. */
 export function go(path: string, params: Params, keep?: URLSearchParams) {

@@ -193,7 +193,9 @@ async function serveCall(page: Page, path: string, serve: Serve): Promise<() => 
   const alone = new RegExp(`/api/${path.replace("/", "\\/")}$`);
   const one = async (route: Route) => {
     const body = (route.request().postDataJSON() ?? {}) as Record<string, unknown>;
-    const json = await serve(body, async () => (await route.fetch()).json());
+    // A read still out when the test closes its page: nothing left to answer.
+    const json = await serve(body, async () => (await route.fetch()).json()).catch(() => null);
+    if (json === null) return;
     return route.fulfill({ json }).catch(() => undefined);
   };
   const pulse = async (route: Route) => {
@@ -201,7 +203,8 @@ async function serveCall(page: Page, path: string, serve: Serve): Promise<() => 
       calls: { path: string; body: Record<string, unknown> }[];
     };
     if (!calls.some((c) => c.path === path)) return route.fallback();
-    const res = await route.fetch();
+    const res = await route.fetch().catch(() => null);
+    if (!res) return;
     const got = (await res.json()) as { answers: { status: number; body: unknown }[] };
     got.answers = await Promise.all(
       got.answers.map(async (a, i) => {

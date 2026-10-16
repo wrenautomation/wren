@@ -32,7 +32,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
 import { accountFieldOf } from "./accounts.js";
 import {
@@ -95,6 +95,7 @@ import { linkLabel, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
+import { useHoverPop } from "./hover-pop.js";
 import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
@@ -108,7 +109,7 @@ import {
   ViewTabs,
 } from "./list-bar.js";
 import { PageBar } from "./page-bar.js";
-import { offsetOf, PAGE_SIZE, pageAt, pagesOf } from "./pager.js";
+import { offsetOf, PAGE_SIZE, PAGE_SIZES, pageAt, pagesOf, sizeOf } from "./pager.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
 import { BottomSheet, SwipeRow, type Swipes, toneOf, useSheet } from "./phone.js";
 import { usePhone } from "./phone-shell.js";
@@ -126,6 +127,7 @@ import { SaveScope, useSavePage } from "./save/react.js";
 import { recordKey } from "./save/writes.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { TabBar } from "./tab-bar.js";
+import { DataTable, type ListLine, useLines, useListTable } from "./table.js";
 import { sortTip } from "./view-says.js";
 
 /** The four record calls, bound to a workspace. */
@@ -158,6 +160,45 @@ export interface Place {
   /** The list a record's page came from. */
   list: string;
   go(to: string, replace?: boolean): void;
+  /** What this history entry keeps beside its address: back there, or on a reload, it returns. */
+  entry?: EntryKeep;
+}
+
+/** A history entry's own keep (the router's state): never in a link someone else opens. */
+export interface EntryKeep {
+  get(key: string): unknown;
+  set(key: string, value: unknown): void;
+}
+
+/** The rows picked on this history entry, as kept there. */
+function keptPicks(place: Place): Set<string> | null {
+  const kept = place.entry?.get("picked");
+  return Array.isArray(kept) ? new Set(kept.map(String)) : null;
+}
+
+/**
+ * The rows picked, kept on the history entry: a reload or back to it picks them again, and a
+ * link someone else opens picks none.
+ */
+function usePicked(place: Place): [Set<string>, (next: Set<string>) => void] {
+  const [picked, setPicked] = useState<Set<string>>(() => keptPicks(place) ?? new Set());
+  const now = useRef(picked);
+  now.current = picked;
+  const set = useCallback(
+    (next: Set<string>) => {
+      setPicked(next);
+      place.entry?.set("picked", next.size ? [...next] : undefined);
+    },
+    [place.entry],
+  );
+  // Another entry (back, forward, a new filter): its own picks, else these carry onto it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a move gives a new params object.
+  useEffect(() => {
+    const kept = keptPicks(place);
+    if (kept) setPicked(kept);
+    else if (now.current.size) place.entry?.set("picked", [...now.current]);
+  }, [place.params]);
+  return [picked, set];
 }
 
 /** One source card, with the mark a cited field points at it by. */
@@ -559,12 +600,24 @@ export function Bulk({
 export const ROOT =
   "[--ui-button-case:none] [--ui-button-tracking:0] [--ui-button-weight:500] text-[14px] text-(--ui-ink) [font-variant-numeric:tabular-nums]";
 
-/** Which columns show: the address's `cols`, else the page's, else every field that has one. */
-function columnsOf(meta: RecordMeta, params: URLSearchParams, columns?: string[]): FieldMeta[] {
+/**
+ * Which columns show: the address's `cols` in its order (the title first), else the page's,
+ * else every field that has one.
+ */
+export function columnsOf(
+  meta: RecordMeta,
+  params: URLSearchParams,
+  columns?: string[],
+): FieldMeta[] {
   const all = meta.fields.filter((f) => f.column);
   const cols = params.get("cols")?.split(",");
+  if (cols) {
+    const title = all.filter((f) => f.key === meta.title);
+    const rest = cols.flatMap((k) => all.filter((f) => f.key === k && f.key !== meta.title));
+    return [...title, ...rest];
+  }
   // A page's own columns always carry the record's declared account; a viewer may take it off.
-  const picked = cols ?? (columns && meta.account ? [...columns, meta.account] : columns);
+  const picked = columns && meta.account ? [...columns, meta.account] : columns;
   if (!picked) return all;
   return all.filter((f) => f.key === meta.title || picked.includes(f.key));
 }
@@ -590,6 +643,7 @@ function ListDisplay({
   cards: boolean | null;
 }) {
   const shell = useFrame();
+  const pop = useHoverPop();
   const frame = cards === null ? shell : null;
   const site = siteField(meta);
   const all =
@@ -603,19 +657,34 @@ function ListDisplay({
     .map((f) => f.key)
     .filter((k) => k !== meta.title)
     .join(",");
-  const flip = (key: string) => {
-    const next = all
-      .filter((f) => (f.key === key ? !shown.has(key) : shown.has(f.key)))
-      .map((f) => f.key)
-      .join(",");
+  // The shown columns in their order, then the rest; each change writes the order to `cols`.
+  const order = columnsOf(meta, place.params, columns)
+    .map((f) => f.key)
+    .filter((k) => k !== meta.title);
+  const listed = [
+    ...order.flatMap((k) => all.filter((f) => f.key === k)),
+    ...all.filter((f) => !order.includes(f.key)),
+  ];
+  const write = (keys: string[]) => {
+    const next = keys.join(",");
     place.go(place.link({ cols: next === fallback ? null : next || "none" }), true);
+  };
+  const flip = (key: string) =>
+    write(shown.has(key) ? order.filter((k) => k !== key) : [...order, key]);
+  const raise = (key: string) => {
+    const i = order.indexOf(key);
+    if (i < 1) return;
+    const next = [...order];
+    next.splice(i - 1, 2, key, order[i - 1] as string);
+    write(next);
   };
   const grouping = groups.some((f) => place.params.get("group") === f.key);
   const label =
     "flex h-8 pointer-coarse:h-11 cursor-pointer items-center gap-2.5 px-1.5 text-[13px] hover:bg-(--ui-hover)";
   return (
-    <Popover>
+    <Popover {...pop.root}>
       <PopoverTrigger
+        {...pop.trigger}
         className={cn(CHIP, (grouping || place.params.has("cols")) && "text-(--ui-ink)")}
       >
         <SlidersHorizontal className="size-3.5" />
@@ -633,6 +702,14 @@ function ListDisplay({
             onChange={(density) => frame.set({ density })}
           />
         ) : null}
+        <Choice
+          label="Per page"
+          value={String(sizeOf(place.params))}
+          options={PAGE_SIZES.map((n) => [String(n), String(n)] as const)}
+          onChange={(n) =>
+            place.go(place.link({ size: Number(n) === PAGE_SIZE ? null : n, pg: null }), true)
+          }
+        />
         {groups.map((g) => {
           const on = place.params.get("group") === g.key;
           return (
@@ -652,16 +729,29 @@ function ListDisplay({
             <legend className="mb-1.5 p-0 text-[12.5px] font-medium text-(--ui-ink-2)">
               {cards ? "On cards" : "Columns"}
             </legend>
-            {all.map((f) => (
-              <label key={f.key} className={cn(label, "-mx-1.5")}>
-                <input
-                  type="checkbox"
-                  checked={shown.has(f.key)}
-                  onChange={() => flip(f.key)}
-                  className="size-3.5 accent-(--ui-ink)"
-                />
-                {f.label}
-              </label>
+            {listed.map((f) => (
+              <div key={f.key} className="-mx-1.5 flex items-center">
+                <label className={cn(label, "min-w-0 flex-1")}>
+                  <input
+                    type="checkbox"
+                    checked={shown.has(f.key)}
+                    onChange={() => flip(f.key)}
+                    className="size-3.5 accent-(--ui-ink)"
+                  />
+                  {f.label}
+                </label>
+                {order.indexOf(f.key) > 0 ? (
+                  <button
+                    type="button"
+                    aria-label={`Move ${f.label.toLowerCase()} left`}
+                    {...tipProps("Move left")}
+                    onClick={() => raise(f.key)}
+                    className="grid size-7 pointer-coarse:size-11 place-items-center text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+                  >
+                    <ArrowUp className="size-3.5" aria-hidden />
+                  </button>
+                ) : null}
+              </div>
             ))}
           </fieldset>
         ) : null}
@@ -670,12 +760,25 @@ function ListDisplay({
   );
 }
 
+/** A drawn line's place in a long list: its index, and the ref that measures it. */
+type LineProps = { "data-index": number; ref: (el: Element | null) => void };
+
 /** A group's first row: its mark and label across the table, as a band. */
-function GroupHead({ field, value, span }: { field: FieldMeta; value: string; span: number }) {
+function GroupHead({
+  field,
+  value,
+  span,
+  line,
+}: {
+  field: FieldMeta;
+  value: string;
+  span: number;
+  line?: LineProps;
+}) {
   const state = field.states?.[value];
   const cue = cueOf(field, value);
   return (
-    <tr className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
+    <tr {...line} className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
       <td colSpan={span} className="px-3 text-[12px] font-semibold text-(--ui-ink-2)">
         <span className="inline-flex items-center gap-1.5">
           {cue ? <Cue state={cue} /> : null}
@@ -709,9 +812,19 @@ export function TierLabel({ needs, n }: { needs: boolean; n: number }) {
 }
 
 /** The band over a tier of rows. */
-function TierHead({ needs, n, span }: { needs: boolean; n: number; span: number }) {
+function TierHead({
+  needs,
+  n,
+  span,
+  line,
+}: {
+  needs: boolean;
+  n: number;
+  span: number;
+  line?: LineProps;
+}) {
   return (
-    <tr className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
+    <tr {...line} className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
       <th
         colSpan={span}
         scope="colgroup"
@@ -746,7 +859,8 @@ export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
 /** The page of rows an address asks for: its filters, sort and group, `pg`'s slice. */
 export function pageAskOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   const at = pageAt(params.get("pg"));
-  return { ...askOf(meta, params), limit: PAGE_SIZE, ...(at > 1 ? { offset: offsetOf(at) } : {}) };
+  const size = sizeOf(params);
+  return { ...askOf(meta, params), limit: size, ...(at > 1 ? { offset: offsetOf(at, size) } : {}) };
 }
 
 /**
@@ -792,13 +906,16 @@ function SortHead({
   field,
   place,
   sort,
+  dir,
 }: {
   field: FieldMeta;
   place: Place;
   sort: string | undefined;
+  /** Which way the table sorts by this column, if it does. */
+  dir: false | "asc" | "desc";
 }) {
-  const on = sort === field.key || sort === `-${field.key}`;
-  const desc = sort === `-${field.key}`;
+  const on = dir !== false;
+  const desc = dir === "desc";
   const end = field.column?.align === "end";
   if (!field.sortable)
     return (
@@ -1207,7 +1324,7 @@ function List({
   const actions = actsOf(meta, acts);
   /** The rows the last action changed: they wash once the list has read them again. */
   const [changed, setChanged] = useState<Set<string>>(new Set());
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [picked, setPicked] = usePicked(place);
   const [rev, setRev] = useState(0);
   const acted = (ids: (string | number)[]) => {
     page.retry();
@@ -1231,7 +1348,7 @@ function List({
   });
   // What waits on the viewer comes first; `split` is where "For info" starts.
   const loaded = page.data?.rows;
-  const { rows, split } = useMemo(
+  const { rows: tiered, split } = useMemo(
     () =>
       tiersOf(
         (loaded ?? []).filter((r) => !held.ids.has(String(r.id))),
@@ -1242,20 +1359,36 @@ function List({
   );
   /** Whether a row waits on the viewer; null where the page names nothing that waits. */
   const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
-  const pages = pagesOf(page.data?.total ?? 0);
-  const cols = shownColumns(meta, columnsOf(meta, params, columns), rows, {
-    byHand: params.has("cols"),
-    narrow,
+  const size = sizeOf(params);
+  const pages = pagesOf(page.data?.total ?? 0, size);
+  const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
+  // The rows on TanStack Table: it groups them (a group's band, or "Needs you" and "For info"),
+  // orders the columns as the address says, and keeps which rows are picked.
+  const table = useListTable({
+    meta,
+    rows: tiered,
+    cols: shownColumns(meta, columnsOf(meta, params, columns), tiered, {
+      byHand: params.has("cols"),
+      narrow,
+    }),
+    sort,
+    group: grouped,
+    split,
+    picked,
+    onPicked: setPicked,
   });
+  const { rows, cols } = table;
   // A prose subtitle (a comment's words, a DM) previews under each row's title.
   const preview = meta.fields.find((f) => f.key === meta.subtitle && f.kind === "prose");
   const totals = page.data?.totals;
   const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
   const [scroller, room] = useRoom();
   const frame = useRef<HTMLDivElement | null>(null);
+  const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null);
   const frameRef = useCallback(
     (el: HTMLDivElement | null) => {
       frame.current = el;
+      setFrameEl(el);
       scroller(el);
     },
     [scroller],
@@ -1300,7 +1433,6 @@ function List({
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
   const narrowed = !!ask.q || !!ask.where;
-  const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
   const openId = params.get(meta.name.one);
   const [cursor, setCursor] = useState(-1);
   const [busy, setBusy] = useState<string | null>(null);
@@ -1349,6 +1481,32 @@ function List({
     );
   };
 
+  const linesRoot = useCallback(() => body.current ?? cards.current, []);
+  // The bands and rows to draw, a row's open box (a reason, a reply) as its own line under it.
+  const drawn: (ListLine | { kind: "box"; key: string; row: Row })[] = [];
+  /** Each row's line, by its place among the rows. */
+  const rowLine: number[] = [];
+  for (const l of table.lines) {
+    drawn.push(l);
+    if (l.kind !== "row") continue;
+    rowLine[l.index] = drawn.length - 1;
+    if (boxed?.id === l.key) drawn.push({ kind: "box", key: `box:${l.key}`, row: l.row });
+  }
+  // A long list draws the lines in view: the panel scrolls them, on a phone the page does.
+  const lines = useLines({
+    count: cardsOn ? 0 : drawn.length,
+    scroller: narrow ? "window" : frameEl,
+    root: linesRoot,
+    estimate: narrow ? 76 : 40,
+  });
+  const span = cols.length + 2;
+  /** Scroll row `i` into view, drawing it first in a long list. */
+  const reveal = (i: number) => {
+    if (cardsOn)
+      cards.current?.querySelector(`[data-row="${i}"]`)?.scrollIntoView({ block: "nearest" });
+    else lines.reveal(rowLine[i] ?? i);
+  };
+
   const openAt = (i: number, replace = false) => {
     const r = rows[i];
     if (r) place.go(place.link({ [meta.name.one]: String(r.id), tab: null }), replace);
@@ -1373,6 +1531,7 @@ function List({
     run,
     rowRun,
     replyOn,
+    reveal,
   });
   keys.current = {
     cursor,
@@ -1385,6 +1544,7 @@ function List({
     run,
     rowRun,
     replyOn,
+    reveal,
   };
   useEffect(() => {
     const press = (e: KeyboardEvent) => {
@@ -1397,9 +1557,7 @@ function List({
         const next = Math.max(0, Math.min(k.rows.length - 1, at + step));
         setCursor(next);
         if (k.openIndex >= 0) k.openAt(next, true);
-        (body.current ?? cards.current)
-          ?.querySelector(`[data-row="${next}"]`)
-          ?.scrollIntoView({ block: "nearest" });
+        k.reveal(next);
       } else if (e.key === "Enter" && k.openIndex < 0 && at >= 0) k.openAt(at);
       else if (e.key === "Escape" && k.openIndex >= 0)
         k.place.go(k.place.link({ [k.one]: null, tab: null }), true);
@@ -1488,15 +1646,6 @@ function List({
         : undefined,
     }),
   );
-  const allPicked = rows.length > 0 && rows.every((r) => picked.has(String(r.id)));
-  const pick = (id: string) =>
-    setPicked((s) => {
-      const n = new Set(s);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
-
   const headed = head?.(meta, () => acted([]));
   const forms = actions.filter((a) => a.form && !a.each);
   // Its rows' keys sit in the sheet on ?, not under the list.
@@ -1614,11 +1763,9 @@ function List({
                   meta={meta}
                   place={place}
                   sort={sort}
-                  all={allPicked}
-                  some={picked.size > 0}
-                  onAll={() =>
-                    setPicked(allPicked ? new Set() : new Set(rows.map((r) => String(r.id))))
-                  }
+                  all={table.all}
+                  some={table.some}
+                  onAll={table.toggleAll}
                 />
               ) : null}
               <ul ref={cards} className={cn(GRID, page.data && !rows.length && "hidden")}>
@@ -1630,145 +1777,162 @@ function List({
                         <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
                       </li>
                     ))
-                  : rows.map((r, i) => {
-                      const id = String(r.id);
-                      const g = grouped ? String(r[grouped.key] ?? "") : null;
+                  : drawn.map((l) => {
+                      if (l.kind === "tier")
+                        return (
+                          <CardHead key={l.key}>
+                            <TierLabel needs={l.needs} n={l.n} />
+                          </CardHead>
+                        );
+                      if (l.kind === "group")
+                        return (
+                          <CardHead key={l.key}>
+                            <span className="inline-flex items-center gap-1.5">
+                              <FieldCell field={l.field} cell={l.first[l.field.key]} />
+                            </span>
+                          </CardHead>
+                        );
+                      if (l.kind === "box")
+                        return (
+                          <li
+                            key={l.key}
+                            className="col-span-full rounded-(--ui-radius-panel) border border-(--ui-hair) bg-(--ui-wash) px-3 py-3"
+                          >
+                            {boxFor(l.row)}
+                          </li>
+                        );
+                      const { row: r, index: i } = l;
+                      const id = l.key;
                       const waiting = waits(r);
                       const replies = replyOn(r);
                       const { main, more } = rowActsOf(actions, r, !!replies);
                       const said = cardWords(parts, (key) => wordsOf(meta, r, key));
+                      const fold = foldOf(meta, r);
                       return (
-                        <Fragment key={id}>
-                          {split > 0 && (i === 0 || i === split) ? (
-                            <CardHead>
-                              <TierLabel
-                                needs={i === 0}
-                                n={i === 0 ? split : rows.length - split}
+                        <RecordCard
+                          key={id}
+                          row={r}
+                          index={i}
+                          parts={parts}
+                          thumb={thumbs?.[id]}
+                          pending={pictured && !thumbs}
+                          title={said.title}
+                          titleClass={TITLE_WEIGHT[String(waiting)] ?? ""}
+                          body={firstWords(said.body)}
+                          fold={
+                            fold ? (
+                              <FoldPreview messages={fold} lines={3} quiet={waiting === false} />
+                            ) : undefined
+                          }
+                          spent={said.spent}
+                          quiet={waiting === false}
+                          href={place.link({ [meta.name.one]: id, tab: null })}
+                          cursor={i === cursor}
+                          open={id === openId}
+                          changed={changed.has(id) && !page.loading}
+                          picked={table.picked(id)}
+                          anyPicked={picked.size > 0}
+                          onPick={() => table.toggle(id)}
+                          onOpen={() => {
+                            setCursor(i);
+                            openAt(i);
+                          }}
+                          onSettled={() => setChanged(new Set())}
+                          actions={
+                            main.length || more.length || replies ? (
+                              <RowActions
+                                still
+                                title={titleOf(meta, r)}
+                                main={main}
+                                more={more}
+                                reply={replies}
+                                page={place.page(id)}
+                                busy={acting}
+                                run={(a) => rowRun(a, r)}
                               />
-                            </CardHead>
-                          ) : null}
-                          {grouped &&
-                          (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
-                            <CardHead>
-                              <span className="inline-flex items-center gap-1.5">
-                                <FieldCell field={grouped} cell={r[grouped.key]} />
-                              </span>
-                            </CardHead>
-                          ) : null}
-                          <RecordCard
-                            row={r}
-                            index={i}
-                            parts={parts}
-                            thumb={thumbs?.[id]}
-                            pending={pictured && !thumbs}
-                            title={said.title}
-                            titleClass={TITLE_WEIGHT[String(waiting)] ?? ""}
-                            body={firstWords(said.body)}
-                            fold={
-                              foldOf(meta, r) ? (
-                                <FoldPreview
-                                  messages={foldOf(meta, r) ?? []}
-                                  lines={3}
-                                  quiet={waiting === false}
-                                />
-                              ) : undefined
-                            }
-                            spent={said.spent}
-                            quiet={waiting === false}
-                            href={place.link({ [meta.name.one]: id, tab: null })}
-                            cursor={i === cursor}
-                            open={id === openId}
-                            changed={changed.has(id) && !page.loading}
-                            picked={picked.has(id)}
-                            anyPicked={picked.size > 0}
-                            onPick={() => pick(id)}
-                            onOpen={() => {
-                              setCursor(i);
-                              openAt(i);
-                            }}
-                            onSettled={() => setChanged(new Set())}
-                            actions={
-                              main.length || more.length || replies ? (
-                                <RowActions
-                                  still
-                                  title={titleOf(meta, r)}
-                                  main={main}
-                                  more={more}
-                                  reply={replies}
-                                  page={place.page(id)}
-                                  busy={acting}
-                                  run={(a) => rowRun(a, r)}
-                                />
-                              ) : null
-                            }
-                          />
-                          {boxed?.id === id ? (
-                            <li className="col-span-full rounded-(--ui-radius-panel) border border-(--ui-hair) bg-(--ui-wash) px-3 py-3">
-                              {boxFor(r)}
-                            </li>
-                          ) : null}
-                        </Fragment>
+                            ) : null
+                          }
+                        />
                       );
                     })}
               </ul>
             </>
           ) : narrow ? (
             <ul ref={cards} className={cn("list-none", page.data && !rows.length && "hidden")}>
-              {!page.data
-                ? Array.from({ length: 8 }, (_, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-                    <li key={i} className="grid gap-2 border-b border-(--ui-hair) px-4 py-4">
-                      <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
-                      <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
-                    </li>
-                  ))
-                : rows.map((r, i) => {
-                    const id = String(r.id);
-                    const g = grouped ? String(r[grouped.key] ?? "") : null;
-                    return (
-                      <Fragment key={id}>
-                        {split > 0 && (i === 0 || i === split) ? (
-                          <li className="sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)">
-                            <TierLabel needs={i === 0} n={i === 0 ? split : rows.length - split} />
-                          </li>
-                        ) : null}
-                        {grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
-                          <li className="sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)">
+              {!page.data ? (
+                Array.from({ length: 8 }, (_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
+                  <li key={i} className="grid gap-2 border-b border-(--ui-hair) px-4 py-4">
+                    <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
+                    <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
+                  </li>
+                ))
+              ) : (
+                <>
+                  {lines.before ? <li aria-hidden style={{ height: lines.before }} /> : null}
+                  {lines.shown.map((at) => {
+                    const l = drawn[at];
+                    if (!l) return null;
+                    const line = { "data-index": at, ref: lines.measure };
+                    if (l.kind === "tier" || l.kind === "group")
+                      return (
+                        <li
+                          key={l.key}
+                          {...line}
+                          className="sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)"
+                        >
+                          {l.kind === "tier" ? (
+                            <TierLabel needs={l.needs} n={l.n} />
+                          ) : (
                             <span className="inline-flex items-center gap-1.5">
-                              <FieldCell field={grouped} cell={r[grouped.key]} />
+                              <FieldCell field={l.field} cell={l.first[l.field.key]} />
                             </span>
-                          </li>
-                        ) : null}
-                        <RowCard
-                          meta={meta}
-                          row={r}
-                          index={i}
-                          fields={cols.filter((f) => f.key !== meta.title)}
-                          preview={preview}
-                          waits={waits(r)}
-                          href={place.link({ [meta.name.one]: id, tab: null })}
-                          open={id === openId}
-                          changed={changed.has(id) && !page.loading}
-                          picked={picked.has(id)}
-                          onPick={() => pick(id)}
-                          onOpen={() => {
-                            setCursor(i);
-                            openAt(i);
-                          }}
-                          onSettled={() => setChanged(new Set())}
-                          swipes={withReply(
-                            swipesOf(actions, r, (a) => rowRun(a, r)),
-                            replyOn(r),
                           )}
-                        />
-                        {boxed?.id === id ? (
-                          <li className="border-b border-(--ui-hair) bg-(--ui-wash) px-4 py-3">
-                            {boxFor(r)}
-                          </li>
-                        ) : null}
-                      </Fragment>
+                        </li>
+                      );
+                    if (l.kind === "box")
+                      return (
+                        <li
+                          key={l.key}
+                          {...line}
+                          className="border-b border-(--ui-hair) bg-(--ui-wash) px-4 py-3"
+                        >
+                          {boxFor(l.row)}
+                        </li>
+                      );
+                    const { row: r, index: i } = l;
+                    const id = l.key;
+                    return (
+                      <RowCard
+                        key={id}
+                        meta={meta}
+                        row={r}
+                        index={i}
+                        line={at}
+                        measure={lines.measure}
+                        fields={cols.filter((f) => f.key !== meta.title)}
+                        preview={preview}
+                        waits={waits(r)}
+                        href={place.link({ [meta.name.one]: id, tab: null })}
+                        open={id === openId}
+                        changed={changed.has(id) && !page.loading}
+                        picked={table.picked(id)}
+                        onPick={() => table.toggle(id)}
+                        onOpen={() => {
+                          setCursor(i);
+                          openAt(i);
+                        }}
+                        onSettled={() => setChanged(new Set())}
+                        swipes={withReply(
+                          swipesOf(actions, r, (a) => rowRun(a, r)),
+                          replyOn(r),
+                        )}
+                      />
                     );
                   })}
+                  {lines.after ? <li aria-hidden style={{ height: lines.after }} /> : null}
+                </>
+              )}
             </ul>
           ) : (
             <table
@@ -1778,13 +1942,9 @@ function List({
                 page.data && !rows.length && "hidden",
               )}
               style={{
-                minWidth: narrow
-                  ? undefined
-                  : 72 +
-                    cols.reduce(
-                      (n, f) => n + (widths[f.key] ?? widthOf(f, f.key === meta.title)),
-                      0,
-                    ),
+                minWidth:
+                  72 +
+                  cols.reduce((n, f) => n + (widths[f.key] ?? widthOf(f, f.key === meta.title)), 0),
               }}
             >
               <colgroup>
@@ -1804,10 +1964,8 @@ function List({
                     <input
                       type="checkbox"
                       aria-label={`Select every ${meta.name.one} shown`}
-                      checked={allPicked}
-                      onChange={() =>
-                        setPicked(allPicked ? new Set() : new Set(rows.map((r) => String(r.id))))
-                      }
+                      checked={table.all}
+                      onChange={table.toggleAll}
                       className="size-3.5 align-middle accent-(--ui-ink)"
                     />
                   </th>
@@ -1821,157 +1979,175 @@ function List({
                         f.column?.align === "end" ? "text-right" : "text-left",
                       )}
                     >
-                      <SortHead field={f} place={place} sort={sort} />
+                      <SortHead field={f} place={place} sort={sort} dir={table.sorted(f.key)} />
                     </th>
                   ))}
                   <th className="sticky top-0 z-10 border-b border-(--ui-edge) bg-(--ui-band)" />
                 </tr>
               </thead>
               <tbody ref={body}>
-                {!page.data
-                  ? Array.from({ length: 10 }, (_, i) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-                      <tr key={i} className="h-(--layout-row) border-b border-(--ui-hair)">
-                        <td colSpan={cols.length + 2} className="px-3">
-                          <div className="h-3 w-2/3 animate-pulse bg-(--ui-fill)" />
-                        </td>
+                {!page.data ? (
+                  Array.from({ length: 10 }, (_, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
+                    <tr key={i} className="h-(--layout-row) border-b border-(--ui-hair)">
+                      <td colSpan={span} className="px-3">
+                        <div className="h-3 w-2/3 animate-pulse bg-(--ui-fill)" />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <>
+                    {lines.before ? (
+                      <tr aria-hidden style={{ height: lines.before }}>
+                        <td colSpan={span} />
                       </tr>
-                    ))
-                  : rows.map((r, i) => {
-                      const id = String(r.id);
-                      const open = id === openId;
-                      const g = grouped ? String(r[grouped.key] ?? "") : null;
-                      const head =
-                        grouped && (i === 0 || String(rows[i - 1]?.[grouped.key] ?? "") !== g) ? (
-                          <GroupHead field={grouped} value={g ?? ""} span={cols.length + 2} />
-                        ) : split > 0 && (i === 0 || i === split) ? (
-                          <TierHead
-                            needs={i === 0}
-                            n={i === 0 ? split : rows.length - split}
-                            span={cols.length + 2}
+                    ) : null}
+                    {lines.shown.map((at) => {
+                      const l = drawn[at];
+                      if (!l) return null;
+                      const line = { "data-index": at, ref: lines.measure };
+                      if (l.kind === "group")
+                        return (
+                          <GroupHead
+                            key={l.key}
+                            line={line}
+                            field={l.field}
+                            value={l.value}
+                            span={span}
                           />
-                        ) : null;
+                        );
+                      if (l.kind === "tier")
+                        return (
+                          <TierHead key={l.key} line={line} needs={l.needs} n={l.n} span={span} />
+                        );
+                      if (l.kind === "box")
+                        return (
+                          <tr
+                            key={l.key}
+                            {...line}
+                            className="border-b border-(--ui-hair) bg-(--ui-wash)"
+                          >
+                            <td />
+                            <td colSpan={cols.length + 1} className="px-3 py-3">
+                              {boxFor(l.row)}
+                            </td>
+                          </tr>
+                        );
+                      const { row: r, index: i } = l;
+                      const id = l.key;
+                      const open = id === openId;
                       const waiting = waits(r);
                       const replies = replyOn(r);
                       const { main, more } = rowActsOf(actions, r, !!replies);
+                      const fold = foldOf(meta, r);
                       return (
-                        <Fragment key={id}>
-                          {head}
-                          <tr
-                            data-row={i}
-                            data-cursor={i === cursor && !open ? "" : undefined}
-                            onClick={(e) => {
-                              // Its checkbox, links and buttons do their own thing.
-                              if ((e.target as Element).closest("input, a, button")) return;
-                              setCursor(i);
-                              openAt(i);
-                            }}
-                            onAnimationEnd={(e) => {
-                              if (e.animationName === "ui-changed") setChanged(new Set());
-                            }}
-                            className={cn(
-                              "group h-(--layout-row) cursor-pointer border-b pointer-coarse:h-12 border-(--ui-hair)",
-                              // The row's ground, which its actions sit over at its right end.
-                              open
-                                ? "bg-(--ui-fill) [--row-ground:color-mix(in_srgb,var(--ui-ink)_6%,var(--ui-paper))]"
-                                : i === cursor
-                                  ? "bg-(--ui-hover) [--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]"
-                                  : "[--row-ground:var(--ui-paper)] hover:bg-(--ui-hover) hover:[--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]",
-                              changed.has(id) && !page.loading && "animate-ui-changed",
-                            )}
-                          >
-                            <td className="pl-2.5">
-                              <input
-                                type="checkbox"
-                                aria-label={`Select ${titleOf(meta, r)}`}
-                                checked={picked.has(id)}
-                                onChange={() => pick(id)}
-                                className="size-3.5 align-middle accent-(--ui-ink)"
-                              />
+                        <tr
+                          key={id}
+                          {...line}
+                          data-row={i}
+                          data-cursor={i === cursor && !open ? "" : undefined}
+                          onClick={(e) => {
+                            // Its checkbox, links and buttons do their own thing.
+                            if ((e.target as Element).closest("input, a, button")) return;
+                            setCursor(i);
+                            openAt(i);
+                          }}
+                          onAnimationEnd={(e) => {
+                            if (e.animationName === "ui-changed") setChanged(new Set());
+                          }}
+                          className={cn(
+                            "group h-(--layout-row) cursor-pointer border-b pointer-coarse:h-12 border-(--ui-hair)",
+                            // The row's ground, which its actions sit over at its right end.
+                            open
+                              ? "bg-(--ui-fill) [--row-ground:color-mix(in_srgb,var(--ui-ink)_6%,var(--ui-paper))]"
+                              : i === cursor
+                                ? "bg-(--ui-hover) [--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]"
+                                : "[--row-ground:var(--ui-paper)] hover:bg-(--ui-hover) hover:[--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]",
+                            changed.has(id) && !page.loading && "animate-ui-changed",
+                          )}
+                        >
+                          <td className="pl-2.5">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${titleOf(meta, r)}`}
+                              checked={table.picked(id)}
+                              onChange={() => table.toggle(id)}
+                              className="size-3.5 align-middle accent-(--ui-ink)"
+                            />
+                          </td>
+                          {cols.map((f) => (
+                            <td
+                              key={f.key}
+                              {...clipProps()}
+                              className={cn(
+                                // A cut cell drops its break chances: Chrome breaks at <wbr> even
+                                // under nowrap, so "example.com" wrapped onto two lines.
+                                "truncate px-3 [&_wbr]:hidden",
+                                f.key === meta.title && preview && "py-1.5",
+                                f.column?.align === "end" ? "text-right" : "text-left",
+                                // When it happened reads quieter than what it is.
+                                f.key !== meta.title &&
+                                  (f.kind === "date"
+                                    ? "text-(--ui-ink-3) tabular-nums"
+                                    : "text-(--ui-ink-2)"),
+                              )}
+                            >
+                              {f.key === meta.title ? (
+                                <a
+                                  href={place.link({ [meta.name.one]: id, tab: null })}
+                                  {...clipProps()}
+                                  className={cn(
+                                    // Cut inside the link, so focusing it never scrolls the cell sideways.
+                                    "block truncate no-underline",
+                                    TITLE_WEIGHT[String(waiting)],
+                                  )}
+                                >
+                                  {titleOf(meta, r) || <span className="text-(--ui-ink-3)">-</span>}
+                                </a>
+                              ) : null}
+                              {f.key === meta.title && fold ? (
+                                // One person's messages in one thread: the newest, each marked.
+                                <FoldPreview
+                                  messages={fold}
+                                  quiet={waiting === false}
+                                  className="text-[12.5px]"
+                                />
+                              ) : f.key === meta.title && preview ? (
+                                // A message's first words under who sent it, as a mail list shows.
+                                <span
+                                  className={cn(
+                                    "block truncate text-[12.5px]",
+                                    waiting === false ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
+                                  )}
+                                >
+                                  {firstWords(textOf(r[preview.key]))}
+                                </span>
+                              ) : f.key === meta.title ? null : (
+                                <FieldCell field={f} cell={r[f.key]} />
+                              )}
                             </td>
-                            {cols.map((f) => (
-                              <td
-                                key={f.key}
-                                {...(narrow && f.key === meta.title ? {} : clipProps())}
-                                className={cn(
-                                  "px-3",
-                                  // On a phone the title takes two lines before it cuts.
-                                  // A cut cell drops its break chances: Chrome breaks at <wbr> even
-                                  // under nowrap, so "example.com" wrapped onto two lines.
-                                  narrow && f.key === meta.title
-                                    ? "py-2"
-                                    : "truncate [&_wbr]:hidden",
-                                  !narrow && f.key === meta.title && preview && "py-1.5",
-                                  f.column?.align === "end" ? "text-right" : "text-left",
-                                  // When it happened reads quieter than what it is.
-                                  f.key !== meta.title &&
-                                    (f.kind === "date"
-                                      ? "text-(--ui-ink-3) tabular-nums"
-                                      : "text-(--ui-ink-2)"),
-                                )}
-                              >
-                                {f.key === meta.title ? (
-                                  <a
-                                    href={place.link({ [meta.name.one]: id, tab: null })}
-                                    {...clipProps()}
-                                    className={cn(
-                                      "no-underline",
-                                      TITLE_WEIGHT[String(waiting)],
-                                      // Cut inside the link, so focusing it never scrolls the cell sideways.
-                                      // A phone breaks a long word (an address) rather than clip it.
-                                      narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
-                                    )}
-                                  >
-                                    {titleOf(meta, r) || (
-                                      <span className="text-(--ui-ink-3)">-</span>
-                                    )}
-                                  </a>
-                                ) : null}
-                                {f.key === meta.title && foldOf(meta, r) ? (
-                                  // One person's messages in one thread: the newest, each marked.
-                                  <FoldPreview
-                                    messages={foldOf(meta, r) ?? []}
-                                    quiet={waiting === false}
-                                    className="text-[12.5px]"
-                                  />
-                                ) : f.key === meta.title && preview ? (
-                                  // A message's first words under who sent it, as a mail list shows.
-                                  <span
-                                    className={cn(
-                                      "block truncate text-[12.5px]",
-                                      waiting === false ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
-                                    )}
-                                  >
-                                    {firstWords(textOf(r[preview.key]))}
-                                  </span>
-                                ) : f.key === meta.title ? null : (
-                                  <FieldCell field={f} cell={r[f.key]} />
-                                )}
-                              </td>
-                            ))}
-                            <td className="relative pr-2 text-right">
-                              <RowActions
-                                title={titleOf(meta, r)}
-                                main={main}
-                                more={more}
-                                reply={replies}
-                                page={place.page(id)}
-                                busy={acting}
-                                run={(a) => rowRun(a, r)}
-                              />
-                            </td>
-                          </tr>
-                          {boxed?.id === id ? (
-                            <tr className="border-b border-(--ui-hair) bg-(--ui-wash)">
-                              <td />
-                              <td colSpan={cols.length + 1} className="px-3 py-3">
-                                {boxFor(r)}
-                              </td>
-                            </tr>
-                          ) : null}
-                        </Fragment>
+                          ))}
+                          <td className="relative pr-2 text-right">
+                            <RowActions
+                              title={titleOf(meta, r)}
+                              main={main}
+                              more={more}
+                              reply={replies}
+                              page={place.page(id)}
+                              busy={acting}
+                              run={(a) => rowRun(a, r)}
+                            />
+                          </td>
+                        </tr>
                       );
                     })}
+                    {lines.after ? (
+                      <tr aria-hidden style={{ height: lines.after }}>
+                        <td colSpan={span} />
+                      </tr>
+                    ) : null}
+                  </>
+                )}
               </tbody>
               {footed ? (
                 <tfoot>
@@ -2022,7 +2198,7 @@ function List({
         pages={pages}
         total={page.data?.total ?? 0}
         shown={rows.length}
-        size={PAGE_SIZE}
+        size={size}
         narrow={narrow}
       />
 
@@ -2194,10 +2370,15 @@ function RowCard({
   onOpen,
   onSettled,
   swipes,
+  line,
+  measure,
 }: {
   meta: RecordMeta;
   row: Row;
   index: number;
+  /** Its line in a long list, and the ref that measures it. */
+  line?: number;
+  measure?: (el: Element | null) => void;
   fields: FieldMeta[];
   preview: FieldMeta | undefined;
   /** It waits on the viewer (true), is for info (false), or the page names nothing waiting. */
@@ -2216,6 +2397,8 @@ function RowCard({
     <SwipeRow
       swipes={swipes}
       data-row={index}
+      data-index={line}
+      measure={measure}
       onTap={(e) => {
         // Its box, links and buttons do their own thing.
         if ((e.target as Element).closest("input, a, button, label")) return;
@@ -3262,41 +3445,16 @@ function Related({
     );
   const cols = meta.fields.filter((f) => f.column).slice(0, 4);
   return (
-    <table className="w-full table-fixed border-collapse border border-(--ui-hair) text-[13px] [&_tbody>tr:last-child]:border-b-0">
-      <thead>
-        <tr className="bg-(--ui-band) text-[12px] text-(--ui-ink-2)">
-          {cols.map((f) => (
-            <th
-              key={f.key}
-              className={cn(
-                "h-8 truncate border-b border-(--ui-edge) px-2 font-semibold first:w-1/2 first:pl-3",
-                f.column?.align === "end" ? "text-right" : "text-left",
-              )}
-            >
-              {f.label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {page.data.rows.map((r) => (
-          <tr key={String(r.id)} className="h-(--layout-row) border-b border-(--ui-hair)">
-            {cols.map((f, i) => (
-              <td
-                key={f.key}
-                className={cn(
-                  "px-2 first:pl-3 last:pr-3",
-                  f.column?.align === "end" ? "text-right" : "text-left",
-                  // The title wraps: a cut-off name or copy line says nothing.
-                  i > 0 ? "truncate text-(--ui-ink-2)" : "py-2 break-words",
-                )}
-              >
-                <FieldCell field={f} cell={r[f.key]} />
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <DataTable
+      look="framed"
+      data={page.data.rows}
+      rowKey={(r) => String(r.id)}
+      columns={cols.map((f) => ({
+        key: f.key,
+        label: f.label,
+        end: f.column?.align === "end",
+        cell: (r: Row) => <FieldCell field={f} cell={r[f.key]} />,
+      }))}
+    />
   );
 }

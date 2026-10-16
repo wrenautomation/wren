@@ -7,6 +7,7 @@
  */
 import type { RecordMeta } from "@wren/core/records";
 import { z } from "zod";
+import { PAGE_SIZES } from "./pager.js";
 
 const word = z.string().trim().min(1);
 /** A field key, "-" first for descending. */
@@ -38,6 +39,12 @@ export const LIST_SEARCH = z.looseObject({
   as: z.enum(LIST_FORMS).optional().catch(undefined),
   /** The page, from 1. */
   pg: count.optional().catch(undefined),
+  /** Rows a page holds, past the default: one of `PAGE_SIZES`. */
+  size: z.coerce
+    .number()
+    .refine((n) => (PAGE_SIZES as readonly number[]).includes(n))
+    .optional()
+    .catch(undefined),
   /** The open record's tab. */
   tab: word.optional().catch(undefined),
 });
@@ -96,6 +103,7 @@ export function listStateOf(
     cols: shared.cols,
     as: shared.as,
     pg: shared.pg,
+    size: shared.size,
     tab: shared.tab,
     open,
     account,

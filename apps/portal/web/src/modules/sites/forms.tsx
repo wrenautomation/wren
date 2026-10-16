@@ -25,6 +25,7 @@ import {
   Button,
   CodeBlock,
   DeviceFrame,
+  FactsTable,
   Input,
   num,
   type RecordAct,
@@ -40,7 +41,7 @@ import {
 import { createContext, type ReactNode, useContext, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
-import { Said, Table, useRun } from "./detail.js";
+import { Said, useRun } from "./detail.js";
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
@@ -928,7 +929,7 @@ function Test({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) {
         Judged on sends per view. Started {day(test.startedAt)} by {test.startedBy}. Bots see A and
         aren't counted.
       </p>
-      <Table
+      <FactsTable
         head={[
           "Version",
           ["Views", "r"],
@@ -1016,7 +1017,7 @@ function Steps({ d }: { d: FormDetail }) {
     ["Sent", sum("submits")],
   ];
   return (
-    <Table
+    <FactsTable
       head={["", ["Views", "r"], ["Of opened", "r"]]}
       rows={rows.map(([what, n]) => [what, num(n), views ? rate(n / views) : ""])}
     />
@@ -1026,7 +1027,7 @@ function Steps({ d }: { d: FormDetail }) {
 function Sources({ d }: { d: FormDetail }) {
   if (!d.sources.length) return <p className={QUIET}>No views counted.</p>;
   return (
-    <Table
+    <FactsTable
       head={["Source", ["Views", "r"], ["Starts", "r"], ["Submits", "r"], ["Conversion", "r"]]}
       rows={d.sources.map((s) => [
         [s.channel, s.source, s.campaign].filter(Boolean).join(" · "),
