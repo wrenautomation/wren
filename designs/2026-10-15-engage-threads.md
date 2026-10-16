@@ -66,11 +66,13 @@ Not read at all: replies to our comments on other people's LinkedIn, X and Insta
 - Fixed (wa-ipi): Inbox team state (assignee, closed) is keyed by row id, so a follow-up that became the group's newest row lost its assignee. A row with no state of its own now takes the newest one any comment in its fold group has; a new word from them still reopens it, as a help desk does.
 - Fixed (wa-ipi): a client's Inbox draws a comment's whole thread from its own database, read only. Reply from Wren and Refresh run on Wren's desk, so the client view leaves them out; its reply box answers the comment from the client's own account.
 - autobrowse needs a desk deploy for focused reads. Until then a plain read still works.
+- Fixed (wa-jsi): no test ran a whole `ReachWatch` pass over a thread through Restate. `engage-threads-pass.test.ts` does now.
 
 ## Tests
 
 - `packages/outreach/src/follow-ups.test.ts`: self-reply caught, deep third-person reply caught, strangers and ours left out, no doubles, deleted, parent loops, cadence.
 - `packages/outreach/test/integration/engage-threads.test.ts`: watch window, keep once, fold of 2 newest first, context nested, reply targets the right node.
+- `packages/outreach/test/integration/engage-threads-pass.test.ts`: whole `ReachWatch` passes through Restate. The inbox reply, then the probe and full read keep the 2 follow-ups, folded newest first; a held count is not read again; a moved count is, and its new message folds in first.
 - `packages/core/src/records-fold.test.ts` and `test/integration/records-fold.test.ts`: fold, counts, get by an older id.
 - `apps/portal/web/src/modules/marketing/thread-context.test.tsx`: the nested tree renders; read only, no Reply from Wren or Refresh.
 - `packages/content/test/integration/inbox-client.test.ts`: a client's comment carries its thread from its own database.
