@@ -74,13 +74,13 @@ What a channel can't prove shows as a dash, not a zero. Texts and DMs have no op
 
 ## Spine hook
 
-`logic.segment` (In segment): settings `segment`; ports yes, no, skip. The step finds the person from the subject: `data.profile`, `profile:<id>`, else the event's email or phone (`personOf`, as Send message reads it). Built 10-15 without the enrollment and text-contact subject lookups; add them if a trigger's events carry neither. No person means skip. A live segment is checked now, by its rule; a manual or snapshot one by its members. A dry run says what it would check and goes yes.
+`logic.segment` (In segment): settings `segment`; ports yes, no, skip. The step finds the person from the subject: `data.profile`, `profile:<id>`, else the event's email or phone (`personOf`, as Send message reads it), else the thread it rides on (`lead:email:<enrollment>`, `lead:sms:<contact>`, `reply:reach:<contact>`, or the `enrollmentId` or `contactId` in its data), by that row's person, then its address (added 10-16). No person means skip. A live segment is checked now, by its rule; a manual or snapshot one by its members. A dry run says what it would check and goes yes.
 
 ## Open calls I made
 
 - Funnels are cohorts by first reach, so a channel's rates read "of those reached in the window". Totals by event day can come later.
 - Bookings and payments carry no channel, so they are attributed at read time. `any` is the default because cold email and content often reach the same person.
-- No new table for stats. The view reads the sources live, like the timeline does. At prod size (about 1.4k sent rows, 53 touches) it reads in well under a second. A rollup table comes when it doesn't.
+- No new table for stats. The view reads the sources live, like the timeline does. `channelStats` reads it once per query (10-16: a subquery per person and step re-read it, 93 s on prod; now 0.85 s). A rollup table comes when that grows.
 - Site visits per person stay with the lander (the 09-29 rule). A person's visit counts only through a form.
 - Ad spend stays in Marketing. People can't be tied to a Meta ad yet, so it isn't a channel row here.
 - Traits like stage, persona and warmth come from wa-sf5 (the people rollup). They're read by key, so nothing here waits on it.
@@ -88,3 +88,4 @@ What a channel can't prove shows as a dash, not a zero. Texts and DMs have no op
 ## Decision log
 
 - 2026-10-15: extend B5 in place, per the coordinator. No second segment system.
+- 2026-10-16 (wa-llm): `channelStats` timed on prod at 93 s, from a subquery per cohort row and step over the view. It now reads the view once and joins: 0.85 s, same numbers. Most of what's left is the timeline's booking and payment lines (its `distinct on` branch blocks the `kind` filter from reaching each branch). The In segment step resolves thread subjects. Enrollments get an index on `lower(to_email)`, which every read by address joins on.

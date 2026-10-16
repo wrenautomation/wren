@@ -23,11 +23,11 @@ The same step is a segment condition (`kind: "step"`), so a number saves as a li
 
 - `profile_steps` (`packages/core/src/channel-stats-schema.ts:92`): `profile_id`, `channel`, `source_kind`, `source`, `step`, `at`, `ref`, `cost_usd`, `sends`. A view in every workspace database (migration 0270).
 - `FUNNEL_STEPS`, `STAT_CHANNELS` with names, `provesOf` (`:75`).
-- `channelStats(db, {by: channel|source|trait:<key>, channel, days, segment, rule, attribution}, now)` (`packages/core/src/channel-stats.ts:251`): rows with people, rates, sends, cost, views, visits.
-- `channelPeople` (`:327`): the people behind one row and step, latest 500. `stepRule` turns a row and step into a segment rule.
+- `channelStats(db, {by: channel|source|trait:<key>, channel, days, segment, rule, attribution}, now)` (`packages/core/src/channel-stats.ts:255`): rows with people, rates, sends, cost, views, visits. Reads the view once (`steps`, materialized) and joins each cohort row to its later steps; 0.85 s on prod (2026-10-16), was 93 s with a subquery per row and step.
+- `channelPeople` (`:331`): the people behind one row and step, latest 500. `stepRule` turns a row and step into a segment rule.
 - Portal: `PeopleConsole` `channelStats`, `channelPeople` (read). Page `apps/portal/web/src/modules/people/channels.tsx`.
 
-Citations: `packages/core/src/channel-stats-schema.ts:92`, `packages/core/src/channel-stats.ts:251`, `packages/core/src/channel-stats.ts:327`
+Citations: `packages/core/src/channel-stats-schema.ts:92`, `packages/core/src/channel-stats.ts:255`, `packages/core/src/channel-stats.ts:331`
 
 ## Connected to
 

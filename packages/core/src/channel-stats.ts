@@ -132,15 +132,15 @@ function onRow(plan: Plan, alias: string): SQL {
   return plan.channel ? sql`${x}.channel = ${plan.channel}` : sql`${x}.channel is not null`;
 }
 
-/** Whose an outcome (`o`) is, by the plan's attribution. */
+/** Whose an outcome (`x`) is, by the plan's attribution. */
 function owns(plan: Plan): SQL {
   if (plan.attribution === "first")
-    return sql`and c.first_at = (select min(r.at) from profile_steps r
+    return sql`and c.first_at = (select min(r.at) from steps r
       where r.profile_id = c.profile_id and r.step = 'reached' and r.channel is not null)`;
   if (plan.attribution === "last")
-    return sql`and coalesce((select ${onRow(plan, "r")} from profile_steps r
+    return sql`and coalesce((select ${onRow(plan, "r")} from steps r
       where r.profile_id = c.profile_id and r.step = 'reached' and r.channel is not null
-        and r.at <= o.at order by r.at desc limit 1), false)`;
+        and r.at <= x.at order by r.at desc limit 1), false)`;
   return sql``;
 }
 
@@ -155,19 +155,20 @@ function hitsSql(plan: Plan): SQL {
   const trait = plan.trait
     ? sql`left join profile_traits t on t.profile_id = s.profile_id and t.key = ${plan.trait}`
     : sql``;
+  // Each later step: the first one from their reach to now, on the row's channel (booked and
+  // paid by the attribution), from one join over `steps`.
   const step = (name: FunnelStep) => {
     if (name === "reached") return sql`c.first_at`;
-    if (name === "booked" || name === "paid")
-      return sql`(select min(o.at) from profile_steps o where o.profile_id = c.profile_id
-        and o.step = ${name} and o.at >= c.first_at and o.at <= ${plan.to}::timestamptz
-        ${owns(plan)})`;
-    return sql`(select min(x.at) from profile_steps x where x.profile_id = c.profile_id
-      and x.step = ${name} and x.at >= c.first_at and x.at <= ${plan.to}::timestamptz
-      and ${onRow(plan, "x")})`;
+    const on = name === "booked" || name === "paid" ? owns(plan) : sql`and ${onRow(plan, "x")}`;
+    return sql`min(x.at) filter (where x.step = ${name} ${on})`;
   };
-  return sql`with reach as (
+  // `steps` reads the view once: a subquery per cohort row per step re-ran it each time, 93 s
+  // on prod for 544 people (2026-10-16).
+  return sql`with steps as materialized (
+      select profile_id, channel, source_kind, source, step, at, sends, cost_usd from profile_steps
+    ), reach as (
       select s.profile_id, ${key} key, s.channel, s.source_kind, s.source, s.at, s.sends, s.cost_usd
-      from profile_steps s
+      from steps s
       join profiles p on p.id = s.profile_id and p.merged_into is null
       ${trait}
       where s.step = 'reached' and s.channel is not null and s.at <= ${plan.to}::timestamptz
@@ -187,6 +188,9 @@ function hitsSql(plan: Plan): SQL {
           sql`, `,
         )}
       from cohort c
+      left join steps x on x.profile_id = c.profile_id and x.step <> 'reached'
+        and x.at >= c.first_at and x.at <= ${plan.to}::timestamptz
+      group by c.key, c.profile_id, c.channel, c.source_kind, c.source, c.sends, c.cost, c.first_at
     )`;
 }
 
