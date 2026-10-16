@@ -1,5 +1,6 @@
 /**
- * Engage's threads in a real browser (designs/2026-10-15-engage-threads.md), on a local preview
+ * Comment threads in a real browser (designs/2026-10-15-engage-threads.md), on Marketing →
+ * Comments since Engage went outbound only (2026-10-16-outreach-app.md), on a local preview
  * seeded by `packages/content/test/threads-preview.ts`: one person's two comments show as one
  * row, newest first; the row's whole thread draws nested; Reply from Wren on a deep reply sends
  * that comment's ref, once however often it's pressed; and on a phone the thread opens as its own
@@ -64,7 +65,7 @@ async function open(browser: Browser, width: number, height: number) {
   const page = await context.newPage();
   page.setDefaultTimeout(T);
   const calls = await fake(page);
-  await page.goto(`${url}/marketing/engage`);
+  await page.goto(`${url}/marketing/comments`);
   await page.getByText("harbor_plumbing").first().waitFor();
   return { context, page, calls };
 }
