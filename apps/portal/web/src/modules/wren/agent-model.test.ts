@@ -23,6 +23,7 @@ const loop = (service: string, o: Partial<LoopRow> = {}): LoopRow => ({
   error: null,
   nextAt: null,
   delayMs: null,
+  timeouts: [],
   ...o,
 });
 

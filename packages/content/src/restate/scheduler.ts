@@ -33,10 +33,12 @@ import type { Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
   errorText,
+  LIMITS,
   makeLoopObject,
   type PassOutcome,
   setLastPass,
   stoppedPass,
+  within,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { pickedAccount } from "@wren/outreach";
@@ -58,9 +60,9 @@ const DEFAULT_IDLE_MS = 15 * 60 * 1000;
 const BUSY_MS = 60 * 1000;
 const MAX_PER_PASS = 10;
 /** The longest a pass waits on one publish before it moves on. */
-export const PUBLISH_WAIT_MS = 15 * 60 * 1000;
+export const PUBLISH_WAIT_MS = LIMITS.publish;
 /** A first comment is a nicety: waited on this long, then noted on the draft. */
-const COMMENT_WAIT_MS = 5 * 60 * 1000;
+const COMMENT_WAIT_MS = LIMITS.read;
 /** How long a pass looks at a publish it moved on from. */
 const SETTLE_LOOK_MS = 1000;
 /** State key: the publishes a pass moved on from, still to settle. */
@@ -198,18 +200,20 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     if (p.comment) {
       // The post is up either way: a comment that fails or hangs is noted on the draft, never
       // retried into a second one.
-      const commented = await content
-        .reply({
+      const commented = await within(
+        ctx,
+        content.reply({
           platform: p.platform,
           commentId: published.id,
           text: p.comment,
           ...(p.account ? { account: p.account } : {}),
-        })
-        .orTimeout(COMMENT_WAIT_MS)
-        .then(
-          () => null,
-          (err: unknown) => errorText(err),
-        );
+        }),
+        // A write: left running past the wait, since it may still land.
+        { ms: COMMENT_WAIT_MS, call: "Content/reply", unit: p.draftId, keep: true },
+      ).then(
+        () => null,
+        (err: unknown) => errorText(err),
+      );
       if (commented)
         await ctx.run(`comment failed ${p.draftId}`, () =>
           noteOnDraft(o.db, p.draftId, `First comment with the link failed: ${commented}`),
@@ -287,7 +291,13 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
         since: now.toISOString(),
       };
       try {
-        await finish(ctx, o, content, p, await call.orTimeout(publishWaitMs), stats);
+        const published = await within(ctx, call, {
+          ms: publishWaitMs,
+          call: "Content/publish",
+          unit: draft.id,
+          keep: true,
+        });
+        await finish(ctx, o, content, p, published, stats);
       } catch (err) {
         if (err instanceof restate.TimeoutError) {
           // Still running (or paused by Restate): it settles on a later pass, and the queue moves on.

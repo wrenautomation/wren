@@ -66,6 +66,8 @@ const browserBusy = new Set<Platform>();
 const leftOut = new Set<string>();
 const batches: { platform: Platform; ids: string[] }[] = [];
 const singles: string[] = [];
+/** Posts whose counts read never answers. */
+const hangMetrics = new Set<string>();
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
@@ -126,8 +128,9 @@ const fakeContent = restate.service({
           fetchedWith: "api" as const,
         }));
     },
-    metrics: async (_ctx: restate.Context, req: { platform: Platform; id: string }) => {
+    metrics: async (ctx: restate.Context, req: { platform: Platform; id: string }) => {
       singles.push(req.id);
+      if (hangMetrics.has(req.id)) await ctx.awakeable<void>().promise;
       if (refuse.has(req.platform))
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
           errorCode: 404,
@@ -202,7 +205,7 @@ beforeAll(async () => {
       fakeContent,
       makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"], zone: "UTC" }),
       makeContentScheduler({ db: pg.db, idleMs: 60_000, publishWaitMs: 3_000 }),
-      makeContentMetrics({ db: pg.db, notifier }),
+      makeContentMetrics({ db: pg.db, notifier, limits: { read: 1_500, batch: 1_500 } }),
       makeContentPlanner({
         db: pg.db,
         zone: "UTC",
@@ -239,6 +242,7 @@ beforeEach(async () => {
   batching = false;
   batchFails = false;
   leftOut.clear();
+  hangMetrics.clear();
   batches.length = 0;
   singles.length = 0;
   calls = 0;
@@ -556,6 +560,34 @@ describe("content loop", () => {
     expect(batches).toEqual([]);
     expect(singles).toEqual(["linkedin-1"]);
     expect(pass.stats?.looked).toHaveLength(1);
+  });
+
+  it("a read that never answers is cut at its limit, its post skipped, the rest looked at", async () => {
+    const a = await desk().add({ text: "first x post", platforms: ["x"] });
+    const b = await desk().add({ text: "second x post", platforms: ["x"] });
+    const drafts = [
+      ...(await listDrafts(pg.db, { ideaId: a.idea.id })),
+      ...(await listDrafts(pg.db, { ideaId: b.idea.id })),
+    ];
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    hangMetrics.add("x-1");
+    const pass = await look();
+    expect(pass.stats?.looked.map((l) => l.platform)).toEqual(["x"]);
+    expect(pass.stats?.failed).toMatchObject([
+      { platform: "x", error: expect.stringContaining("Content/metrics gave no answer in 2 s") },
+    ]);
+    const met = clients
+      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .objectClient<Met>({ name: "ContentMetrics" }, METRICS_KEY);
+    // LoopWatch reads it off the loop's state: the call, and the post it was for.
+    expect((await met.status()).last).toMatchObject({
+      timeouts: [{ call: "Content/metrics", unit: "metrics x:x-1", ms: 1_500 }],
+    });
   });
 
   it("reads a report that has nothing new once, not every pass", async () => {

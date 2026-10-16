@@ -15,6 +15,7 @@ import { inArray } from "drizzle-orm";
 import { LOOPS_SQL, type LoopRow, loopsOf, type RestateAdmin } from "./console.js";
 import { deadLetters } from "./dead-letter-schema.js";
 import type { Notifier, NotifyLevel } from "./notify.js";
+import type { TimedOut } from "./restate/limits.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 
 export const LOOP_WATCH_KEY = "all";
@@ -77,6 +78,8 @@ export interface LoopHealth {
   blocker: OpenCall | null;
   lastAt: string | null;
   nextAt: string | null;
+  /** Calls its last pass stopped waiting on: each unit skipped, the loop went on. */
+  timeouts: TimedOut[];
 }
 
 const minutes = (ms: number) => `${Math.max(Math.round(ms / MIN), 0)} min`;
@@ -90,6 +93,7 @@ export function healthOf(l: LoopView, now: Date, ex: LoopExpect = expectOf(l.ser
     blocker: null,
     lastAt: l.lastAt,
     nextAt: l.nextAt,
+    timeouts: l.timeouts,
   };
   if (!l.running) return { ...base, health: "stopped", why: "stopped" };
   const t = now.getTime();
@@ -349,9 +353,20 @@ export interface LoopWatchPass {
   notices: Notice[];
   /** Open incidents after this check, by loop id; `status` shows them. */
   incidents: Record<string, Incident>;
+  /** Loops whose last pass timed out calls, by loop id: how many, and how many units it held. */
+  timedOut: Record<string, { calls: number; held: number }>;
 }
 
 const INCIDENTS = "incidents";
+
+/** Each loop whose last pass gave up on a call, with the count and the units it held. */
+export function timedOutOf(health: readonly LoopHealth[]): LoopWatchPass["timedOut"] {
+  const out: LoopWatchPass["timedOut"] = {};
+  for (const h of health)
+    if (h.timeouts.length)
+      out[h.id] = { calls: h.timeouts.length, held: h.timeouts.filter((t) => t.held).length };
+  return out;
+}
 
 /** One check: read, sort, plan; the letters of new stuck loops looked up. No Restate calls. */
 export async function loopWatchCheck(
@@ -380,6 +395,7 @@ export async function loopWatchCheck(
     restart: plan.restart,
     notices: noticesOf(plan),
     incidents: plan.incidents,
+    timedOut: timedOutOf(health),
   };
 }
 

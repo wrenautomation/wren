@@ -126,6 +126,7 @@ describe("ConsolePortal loops", () => {
         error: null,
         nextAt: null,
         delayMs: 60_000,
+        timeouts: [],
       },
       {
         service: "Alpha",
@@ -136,6 +137,7 @@ describe("ConsolePortal loops", () => {
         error: null,
         nextAt: "2026-01-02T10:00:00.000Z",
         delayMs: 60_000,
+        timeouts: [],
       },
       {
         service: "Gamma",
@@ -146,6 +148,7 @@ describe("ConsolePortal loops", () => {
         error: null,
         nextAt: "2026-01-02T11:00:00.000Z",
         delayMs: null,
+        timeouts: [],
       },
     ]);
   });
@@ -156,7 +159,10 @@ describe("ConsolePortal loops", () => {
       state("Delta", "d", "loop", {
         running: true,
         generation: 2,
-        last: pass("2026-01-02T09:00:00.000Z", 1, "boom"),
+        last: {
+          ...pass("2026-01-02T09:00:00.000Z", 1, "boom"),
+          timeouts: [{ call: "Content/metrics", unit: "post 1", ms: 300_000, held: true }],
+        },
       }),
     ];
     expect(loopsOf(rows)).toEqual<LoopRow[]>([
@@ -169,6 +175,7 @@ describe("ConsolePortal loops", () => {
         error: "boom",
         nextAt: null,
         delayMs: 60_000,
+        timeouts: [{ call: "Content/metrics", unit: "post 1", ms: 300_000, held: true }],
       },
     ]);
   });

@@ -52,7 +52,7 @@ Citations: `packages/content/src/schema.ts:76`
 | `ContentDesk.fields` / `attach` (`marketing/draftFields`, `marketing/draftAttach`), `wren content fields <id> key=value` | write `extra` and the title through `setFields`; attach puts a thumbnail, cover or subtitles file (2 MB) in [[content/media]] first. The detail's `shape` (`shapeView`, `packages/content/src/shape-view.ts`) feeds the field editor (Basics, Media, Details) and the live platform preview on Drafts, To approve and Posts (`withShape` in `apps/portal/web/src/modules/marketing/fields.tsx`, previews in `shape-preview.tsx`); the record detail draws it as `RecordExtras.form` and `aside` (`packages/ui/src/records.tsx`, `Beside`: two columns on a wide page, Preview button on a phone) |
 | `ContentScheduler/default`, `ContentScheduler/<c>/posts` | moves to published/failed; a client's waits on its live flag |
 | `ContentPlanner` | reads slots; with `draft` on, gives each new draft its slot |
-| `ContentMetrics` | reads |
+| `ContentMetrics` (each read cut at its limit, its post skipped; 3 in a row held, stage `loop.content-metrics/<key>`) | reads |
 | `wren status` (`packages/content/src/status.ts`) | reads counts, oldest draft, this month's tokens |
 
 ## See

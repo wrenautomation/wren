@@ -16,6 +16,11 @@
  * (YouTube's reach report: impressions and CTR per video per day) from where the last left off,
  * unless the last read found nothing new less than 6 hours ago.
  * Monday's pass keeps the week's digest.
+ *
+ * Every `Content` call waits at most its limit (`LIMITS`, designs/2026-10-16-loop-watchdog.md):
+ * a read that gives no answer is cancelled and its post skipped till the next pass. A platform
+ * that times out twice in a pass is left for the next; a post that times out three passes in a
+ * row is held (`unit_holds`, stage `loop.content-metrics/<key>`).
  */
 import * as restate from "@restatedev/restate-sdk";
 import type {
@@ -30,10 +35,14 @@ import type { Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
   errorText,
+  type Limits,
+  limitsWith,
   makeLoopObject,
   type PassOutcome,
   setLastPass,
   stoppedPass,
+  unitLimits,
+  within,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { writeDigest } from "../analytics/digest.js";
@@ -119,6 +128,8 @@ export interface ContentMetricsDeps {
   notifier?: Notifier;
   /** A client's database; absent, a client's key stops. */
   clientDb?: ((client: string) => Db) | null;
+  /** Each call's limit over `LIMITS` (tests shorten them). */
+  limits?: Partial<Limits>;
 }
 
 export interface MetricsStats {
@@ -130,6 +141,8 @@ export interface MetricsStats {
   /** Account rows written per platform, once a day; an error's text where a read failed. */
   accounts?: Partial<Record<Platform, number | string>>;
   digest?: boolean;
+  /** Reads left out: their post is held, or their platform timed out twice this pass. */
+  skipped?: number;
 }
 
 /** The week label a Monday report belongs to (ISO date of that Monday). */
@@ -142,6 +155,7 @@ export function weekOf(now: Date): string {
 
 export function makeContentMetrics(deps: ContentMetricsDeps) {
   const everyMs = deps.everyMs ?? DEFAULT_EVERY_MS;
+  const L = limitsWith(deps.limits);
   return makeLoopObject("ContentMetrics", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const content = ctx.serviceClient<ContentService>({ name: "Content" });
@@ -153,8 +167,15 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       if (plan.kind === "gone") return stoppedPass<MetricsStats>(ctx, now, plan.why);
     }
     const db = client && deps.clientDb ? deps.clientDb(client) : deps.db;
+    const limits = await unitLimits(ctx, deps.db, "ContentMetrics");
     const due = await ctx.run("metrics due", () => metricsDue(db, now));
     const stats: MetricsStats = { looked: [], failed: [], reported: false };
+    /** A read's unit, or false (and counted) when this pass leaves it out. */
+    const go = (unit: string, platform: Platform) => {
+      if (!limits.skip(unit, platform)) return true;
+      stats.skipped = (stats.skipped ?? 0) + 1;
+      return false;
+    };
     // One read a platform for all its due posts, where the channel has one: the counts come
     // back by id. A post it left out, or a platform whose batch refused, is read alone below.
     const batched = new Map<string, Metrics>();
@@ -162,15 +183,21 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     for (const d of due)
       if (d.publishedId) byPlatform.set(d.platform, [...(byPlatform.get(d.platform) ?? []), d]);
     for (const [platform, drafts] of byPlatform) {
+      const unit = `batch ${platform}`;
+      if (!go(unit, platform)) continue;
       try {
-        const got = await content.metricsMany({
-          platform,
-          posts: drafts.map((d) => ({
-            id: d.publishedId as string,
-            kind: typeof d.extra?.kind === "string" ? d.extra.kind : null,
-          })),
-          ...(client ? { client } : {}),
-        });
+        const got = await limits.within(
+          unit,
+          content.metricsMany({
+            platform,
+            posts: drafts.map((d) => ({
+              id: d.publishedId as string,
+              kind: typeof d.extra?.kind === "string" ? d.extra.kind : null,
+            })),
+            ...(client ? { client } : {}),
+          }),
+          { ms: L.batch, call: "Content/metricsMany", group: platform },
+        );
         for (const m of got ?? []) batched.set(`${platform}:${m.id}`, m);
       } catch (err) {
         if (!(err instanceof restate.TerminalError)) throw err;
@@ -179,29 +206,37 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     for (const draft of due) {
       const id = draft.publishedId;
       if (!id) continue;
+      const post = `${draft.platform}:${id}`;
+      const read = batched.get(post);
+      if (!read && !go(`metrics ${post}`, draft.platform)) continue;
       try {
         const m =
-          batched.get(`${draft.platform}:${id}`) ??
-          (await content.metrics({
-            platform: draft.platform,
-            id,
-            ...(client ? { client } : {}),
-          }));
+          read ??
+          (await limits.within(
+            `metrics ${post}`,
+            content.metrics({ platform: draft.platform, id, ...(client ? { client } : {}) }),
+            { ms: L.read, call: "Content/metrics", group: draft.platform },
+          ));
         await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, m));
         // Insights after the counts: a refusal here costs the deeper numbers, never the look.
         let i: Insights | null = null;
         try {
-          i = await content.insights({
-            platform: draft.platform,
-            id,
-            // Journaled rows come back as JSON: a date is a string.
-            published: draft.publishedAt ? new Date(draft.publishedAt).toISOString() : null,
-            kind: typeof draft.extra?.kind === "string" ? draft.extra.kind : null,
-            media: draft.media?.kind ?? null,
-            // What the counts read answered: a channel reuses it rather than read the post again.
-            read: m.read,
-            ...(client ? { client } : {}),
-          });
+          if (go(`insights ${post}`, draft.platform))
+            i = await limits.within(
+              `insights ${post}`,
+              content.insights({
+                platform: draft.platform,
+                id,
+                // Journaled rows come back as JSON: a date is a string.
+                published: draft.publishedAt ? new Date(draft.publishedAt).toISOString() : null,
+                kind: typeof draft.extra?.kind === "string" ? draft.extra.kind : null,
+                media: draft.media?.kind ?? null,
+                // What the counts read answered: a channel reuses it rather than read the post again.
+                read: m.read,
+                ...(client ? { client } : {}),
+              }),
+              { ms: L.read, call: "Content/insights", group: draft.platform },
+            );
         } catch (err) {
           if (!(err instanceof restate.TerminalError)) throw err;
         }
@@ -222,14 +257,28 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       }
     }
     // Reports' new days and the accounts' (once a UTC day): Wren's own only.
-    const platforms = client ? [] : await content.platforms();
+    const platforms = client
+      ? []
+      : await within(ctx, content.platforms(), {
+          ms: L.quick,
+          call: "Content/platforms",
+        }).catch((err: unknown) => {
+          if (!(err instanceof restate.TerminalError)) throw err;
+          return [] as Platform[];
+        });
     for (const platform of platforms) {
+      const unit = `reports ${platform}`;
+      if (!go(unit, platform)) continue;
       try {
         // A read that found nothing new waits REPORTS_EVERY_MS: reports land once a day.
         const quiet = await ctx.get<string>(`${REPORTS_QUIET}${platform}`);
         if (quiet && now.getTime() - new Date(quiet).getTime() < REPORTS_EVERY_MS) continue;
         const after = await ctx.get<string>(`${REPORTS}${platform}`);
-        const r = await content.reportDays({ platform, after: after ?? null });
+        const r = await limits.within(
+          unit,
+          content.reportDays({ platform, after: after ?? null }),
+          { ms: L.read, call: "Content/reportDays", group: platform },
+        );
         if (!r?.rows.length) ctx.set(`${REPORTS_QUIET}${platform}`, now.toISOString());
         if (!r) continue;
         stats.reports ??= {};
@@ -247,8 +296,14 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     if (!client && (await ctx.get<string>(ACCOUNTS)) !== today) {
       stats.accounts = {};
       for (const platform of platforms) {
+        const unit = `account ${platform}`;
+        if (!go(unit, platform)) continue;
         try {
-          const a = await content.accountInsights({ platform });
+          const a = await limits.within(unit, content.accountInsights({ platform }), {
+            ms: L.read,
+            call: "Content/accountInsights",
+            group: platform,
+          });
           if (!a) continue;
           stats.accounts[platform] = await ctx.run(`account ${platform}`, () =>
             writeAccountInsights(db, platform, a, now),

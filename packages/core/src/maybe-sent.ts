@@ -10,6 +10,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { browserBusy, mayHavePosted, NOT_SENT, SiteCallError } from "./content/autobrowse.js";
 import { isRefusal } from "./content/restate.js";
+import { CallTimeout } from "./restate/limits.js";
 import { isVendorStop } from "./vendor-stop.js";
 
 /** What a read of the site says about our words. */
@@ -100,6 +101,9 @@ export async function sendOnce<S>(o: SendOnce<S>): Promise<SendOutcome<S>> {
       if (s.kind === "found") return { kind: "found", seen: s };
       const why = said(err).slice(0, 300);
       if (s.kind === "unclear") return { kind: "unsure", why: `${why}; ${s.why}` };
+      // Past its time limit the call runs on (`within` keeps a write): a second would be twice.
+      if (err instanceof CallTimeout)
+        return { kind: "unsure", why: `${why}; still running, never sent twice` };
       // Absent after the settle: it never landed. Once more, and only once.
       if (tries >= 2) return { kind: "unsure", why: `${why}; not on the site after two tries` };
     }

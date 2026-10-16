@@ -307,7 +307,7 @@ import { siteCountReader } from "@wren/core/people-map";
 import { makePeopleMap, makePeopleMapNet } from "@wren/core/people-map-pass";
 import { PortalRefusal } from "@wren/core/portal";
 import { profileRecords } from "@wren/core/profile-records";
-import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
+import { clientKey, clientOfKey, ingressSend, LIMITS, within } from "@wren/core/restate";
 import { SEGMENT_RECORDS } from "@wren/core/segment-records";
 import { segmentStep } from "@wren/core/segment-step";
 import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
@@ -1254,6 +1254,7 @@ export async function buildServices(
         restateSites(ctx, {
           caller: "wren:placement",
           ...sitesHost(settings.autobrowseInstanceId),
+          limitMs: LIMITS.read,
         }),
     }),
   );
@@ -1405,7 +1406,8 @@ export async function buildServices(
       // A client's Google reviews off Maps, by its Place ID, when its Profile can't read them.
       maps: {
         placeId: (client) => placeIdOf(db, client),
-        sites: (ctx) => restateSites(ctx, { caller: "wren:reviews", service: DESK }),
+        sites: (ctx) =>
+          restateSites(ctx, { caller: "wren:reviews", service: DESK, limitMs: LIMITS.desk }),
       },
       // Tab watchers on the desk: LinkedIn and X push us nothing (designs/2026-10-12-push-everywhere.md).
       watched: { linkedin: "linkedin@wren", x: "x@wren" },
@@ -1716,10 +1718,15 @@ export async function buildServices(
     live: settings.reachLive,
     senderName: settings.smsSenderName,
     heldNiches: settings.reachHeldNiches,
-    sitesFor: (ctx: Context) => restateSites(ctx, { caller: "wren:reach", service: DESK }),
+    // Each desk call waits at most `LIMITS.desk`: a paused one never holds a reach loop's key.
+    sitesFor: (ctx: Context) =>
+      restateSites(ctx, { caller: "wren:reach", service: DESK, limitMs: LIMITS.desk }),
     // Pushes and tab watchers on our logins (designs/2026-10-12-push-everywhere.md).
     pushes: (ctx: ObjectContext) =>
-      ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).reach(),
+      within(ctx, ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).reach(), {
+        ms: LIMITS.quick,
+        call: "SocialPushed/reach",
+      }),
     postedAt: async (p: "reddit" | "linkedin") => {
       const [r] = await db
         .select({ at: max(contentDrafts.publishedAt) })

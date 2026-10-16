@@ -67,11 +67,51 @@ show one unbroken chain.
 - **CLI** `wren loops [--all] [--json]`: every loop with its health, why, the next call and the
   blocker. `wren loops watch start|stop|status|sync` drives the loop.
 
+- **Every call a loop pass makes has a time limit** (10-16, bead wa-vfd; `core/restate/limits.ts`).
+  - `within(ctx, call, { ms, call })`: a Restate call (a `Content` read, a desk or `sites`
+    call). Past its limit the call is cancelled, or left running with `keep` when it is a write
+    that may land. The pass gets `CallTimeout`, a terminal error, so the unit's usual catch skips
+    it and the pass goes on. `restateSites(ctx, { limitMs })` puts every desk call through it; a
+    write past its limit says it may have posted, and `sendOnce` answers unsure, never twice.
+  - `limitedRun(ctx, name, fn, { ms })`: a `ctx.run` around outbound HTTP. Each try is cut at
+    its limit; after 3 tries the step fails terminally instead of retrying until Restate pauses
+    the pass. HTTP clients carry their own limits too (`core/fetch-limit.ts`).
+  - `LIMITS`: read 5 min, batch 10, desk 10, publish 15, quick 1, http 2. A loop takes
+    `limits` in its deps (tests shorten them).
+  - `unitLimits(ctx, db, service)`: a unit (post, account, stage, idea) that times out 3 passes
+    in a row is held in Checks' `unit_holds` (stage `loop.<service>/<key>`): 7 days, one more
+    try, then a person. Units sit in a group (their platform). A timeout counts against its unit
+    only once the group answered something this pass; two unanswered timeouts in a group leave
+    the group out until the next pass. So a platform that is down never gets its posts held.
+  - Each pass keeps its timeouts in `last.timeouts`. `wren loops` prints them under the loop;
+    `LoopWatch` keeps a count per loop (`timedOut`, with how many units it held).
+- **A pass that throws is a failed pass, not a parked loop** (`passOrFailed`). A terminal error,
+  or a plain one rethrown from replayed results (SocialWatch's journaled 429, 10-15, DLQ #11501),
+  is kept as `last.error` with the usual backoff, and the next pass is queued. Only Restate's own
+  signals (suspend, cancel) go through.
+- **Loops and their limits:**
+  - `ContentScheduler`: publish 15 min (`keep`), first comment 5 min (`keep`).
+  - `ContentMetrics`: batch read 10 min, counts and insights 5 min, reports 5 min, account
+    reads 5 min, `platforms` 1 min. Unit: the post; group: its platform.
+  - `SocialWatch`: comments, counts, reviews, activity, audience 5 min; `SocialInbox.read` 10;
+    `SocialPushed.take` 1; Maps reviews through the desk 10.
+  - `ReachWatch`: every desk read 10 min (`sitesFor`); `SocialPushed.reach` 1 min. Units:
+    each account's replies, comments, health, threads; invites; posts. Group: the platform.
+  - `ReachSender`: each desk call 10 min. A send past it is recorded unsure, never resent.
+  - `RedditReads`: desk reads 10 min, grouped by signed-out; topics model call `limitedRun`.
+  - `PoolScheduler`: each stage call 60 min, cancelled; a timed-out stage waits its later ones.
+  - `PlacementScheduler`: Gmail reads 5 min, unit per seed and day.
+  - `AdsWatch`: insights 5 min, cancelled; stop and add 5 min with `keep`.
+  - `ContentPlanner`: a draft 15 min with `keep`; a timeout ends drafting for the pass (the
+    desk's lock is still held), held on its third.
+  - `TokenRenewal`: a renew 30 min with `keep`.
+  - HTTP clients (Discord, Restate admin, Gmail, mailbox access, pixel and lander exports,
+    Postmaster, Wise, Search Console, sitemap) 30 s to 2 min; a model call 5 min.
+
 ## Not done
 
-- Other loops make the same unbounded calls: `ContentMetrics` → `Content.metrics`, `SocialWatch`
-  → `Content.comments`, `ReachWatch` → desk calls. The watchdog now names them when they stick.
-  Bounding each one is its own change.
+- `SendScheduler` is its own loop (not `makeLoopObject`): its pass is not under `passOrFailed`.
+- No integration test for `TokenRenewal`'s limit or RedditReads' topics `limitedRun`.
 - Ending a paused blocker on its own (kill, then `wake`) is a judgment call per loop. It stays a
   person's or an agent's, through `wren dlq`.
 

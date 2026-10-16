@@ -10,7 +10,7 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
-import type { PassOutcome } from "@wren/core/restate";
+import { type PassOutcome, within } from "@wren/core/restate";
 import { spineRecorder, startTestRestate } from "@wren/core/testing";
 import { vendorUsage } from "@wren/core/vendor-schema";
 import { setManaged } from "@wren/core/vendors";
@@ -46,6 +46,8 @@ import type { TickStats } from "../../src/tick.js";
 const calls: { site: string; path: string; account: string | undefined }[] = [];
 /** The signed-out daily cap is used: every `reddit-public` read answers 429 until noon. */
 let publicCapped = false;
+/** Logins whose desk inbox read never answers. */
+const inboxHangs = new Set<string>();
 const NOW_S = Math.floor(Date.parse("2026-10-07T15:00:00Z") / 1000);
 
 /** The desk, faked: one comment in every inbox, a small public subreddit. */
@@ -171,14 +173,20 @@ beforeAll(async () => {
     // Journaled like the desk's calls: a replay reads the journal, not the desk again.
     sitesFor: (ctx) => ({
       call: <T>(...a: Parameters<SiteClient["call"]>) =>
-        ctx.run(`site ${a[2]}`, () =>
-          sites.call(...a).catch((err) => {
-            // A refusal ends the step for good, as `journaledSites` does.
-            if (err instanceof SiteCallError)
-              throw new restate.TerminalError(err.message, { errorCode: err.status });
-            throw err;
-          }),
-        ) as Promise<T>,
+        // A desk call past `restateSites`' limit: no answer within 1 s.
+        a[2] === "/message/inbox" && inboxHangs.has(a[4] ?? "")
+          ? within(ctx, ctx.awakeable<T>().promise, {
+              ms: 1_000,
+              call: `Desk/call ${a[0]} ${a[1]} ${a[2]}`,
+            })
+          : (ctx.run(`site ${a[2]}`, () =>
+              sites.call(...a).catch((err) => {
+                // A refusal ends the step for good, as `journaledSites` does.
+                if (err instanceof SiteCallError)
+                  throw new restate.TerminalError(err.message, { errorCode: err.status });
+                throw err;
+              }),
+            ) as Promise<T>),
       via: sites.via,
     }),
     clients: { clientDb: open, llm: null },
@@ -283,6 +291,42 @@ describe("the comment reader per client", () => {
     expect((await kappa.select().from(reachAccounts)).map((a) => a.account)).toEqual([
       "reddit@kappa",
     ]);
+  });
+});
+
+describe("a desk read that never answers", () => {
+  it("is cut at its limit and counted; the pass goes on and ends", async () => {
+    await addClient(pg.db, pg.url, {
+      id: "rho",
+      name: "Rho",
+      accounts: { reddit: "reddit@rho" },
+      products: { "reach.outreach": {}, "comments.read": {} },
+    });
+    await setManaged(pg.db, {
+      client: "rho",
+      vendor: "reddit",
+      perDay: 100,
+      capCents: 0,
+      by: "test",
+    });
+    inboxHangs.add("reddit@rho");
+    try {
+      const out = await watch("rho/daily");
+      expect(out.stats?.replies.errors).toEqual([
+        expect.stringContaining("Desk/call reddit GET /message/inbox gave no answer in 1 s"),
+      ]);
+      const last = (
+        await ingress()
+          .objectClient<ReturnType<typeof makeReachWatch>>({ name: "ReachWatch" }, "rho/daily")
+          .status()
+      ).last;
+      expect(last?.timeouts?.[0]).toMatchObject({
+        call: "Desk/call reddit GET /message/inbox",
+        unit: "replies reddit@rho",
+      });
+    } finally {
+      inboxHangs.clear();
+    }
   });
 });
 

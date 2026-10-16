@@ -25,6 +25,7 @@ const view = (o: Partial<LoopView> = {}): LoopView => ({
   error: null,
   nextAt: null,
   delayMs: 10 * 60_000,
+  timeouts: [],
   open: [],
   waitsOn: [],
   ...o,
@@ -86,6 +87,7 @@ const sick = (health: LoopHealth["health"], o: Partial<LoopHealth> = {}): LoopHe
   blocker: null,
   lastAt: null,
   nextAt: null,
+  timeouts: [],
   ...o,
 });
 

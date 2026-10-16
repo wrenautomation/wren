@@ -14,6 +14,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { z } from "zod";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
+import { CallTimeout, within } from "../restate/limits.js";
 import {
   capWaitMs,
   MAY_HAVE_POSTED,
@@ -129,12 +130,14 @@ export type Wake = () => Promise<"started" | "running">;
  * the call until the worker is back on the tunnel. `service`: `SITES` (the
  * box) or `DESK` (the Mac, never woken: it is on while the Mac is). `caller`
  * rides on every call, so autobrowse can say who spent a capped site's reads.
+ * `limitMs`: a loop's client waits on each call at most this long; past it the call is
+ * cancelled and `CallTimeout` (terminal) thrown, never tried again in this pass.
  */
 export function restateSites(
   ctx: restate.Context,
-  o: { caller: string } & Partial<SitesHost>,
+  o: { caller: string; limitMs?: number } & Partial<SitesHost>,
 ): SiteClient {
-  const { caller, wake, service = SITES, arm = false } = o;
+  const { caller, wake, service = SITES, arm = false, limitMs } = o;
   const client = ctx.serviceClient<SitesService>(service);
   const statuses = new Map<string, Promise<SiteStatus>>();
   let woken: Promise<unknown> | null = null;
@@ -159,15 +162,24 @@ export function restateSites(
       await awake();
       for (let attempt = 1; ; attempt++) {
         try {
-          return (await client.call({
+          const call = client.call({
             site,
             method,
             path,
             input,
             ...(account ? { account } : {}),
             caller,
-          })) as never;
+          });
+          return (await (limitMs === undefined
+            ? call
+            : within(ctx, call, {
+                ms: limitMs,
+                call: `${service.name}/call ${site} ${method} ${path}`,
+                // A write past its wait may still land: left running, never sent again.
+                ...(safeToRepeat(method, path) ? {} : { keep: true, note: MAY_HAVE_POSTED }),
+              }))) as never;
         } catch (err) {
+          if (err instanceof CallTimeout) throw err;
           const e = siteCallErrorFrom(err, site, method, path);
           if (!(e instanceof SiteCallError)) throw e;
           if (attempt < CALL_TRIES && !isRefusal(e) && safeToRepeat(method, path)) {

@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { Notifier } from "../notify.js";
 import { type RunOptions, recordedRun } from "../runs.js";
 import { exclusiveHandler, NO_INPUT, sharedHandler } from "./form.js";
+import { type TimedOut, timeoutsOf } from "./limits.js";
 
 /**
  * The one state key a loop keeps: running, generation and the last pass. A pass reads
@@ -96,9 +97,14 @@ export async function lastPass<L = PassOutcome<unknown>>(ctx: AnyObjectContext):
   return (await loopState<L>(ctx)).last;
 }
 
-/** Keep `outcome` as the last pass; `status` shows it. */
+/** Keep `outcome` as the last pass, with the calls it stopped waiting on (`timeouts`); `status` shows it. */
 export async function setLastPass<L>(ctx: restate.ObjectContext, outcome: L): Promise<void> {
-  await writeLoop<L>(ctx, { last: outcome });
+  const timeouts = timeoutsOf(ctx);
+  const last =
+    timeouts.length && outcome !== null && typeof outcome === "object"
+      ? { ...outcome, timeouts }
+      : outcome;
+  await writeLoop<L>(ctx, { last });
 }
 /** Object state key holding what `start` was last given; a pass reads it with `loopSettings`. */
 const SETTINGS = "settings";
@@ -171,6 +177,8 @@ export interface PassOutcome<S> {
   stopped?: string;
   /** Set when a fact its part needs is lost: nothing ran, the loop looks again later. */
   paused?: string;
+  /** Calls this pass stopped waiting on (`within`, `limitedRun`): their units were skipped. */
+  timeouts?: TimedOut[];
 }
 
 export interface LoopStatus<S> {
@@ -311,6 +319,47 @@ const START_INPUT = z
   .nullish()
   .describe("Settings for this key; {} = back to defaults; empty keeps them");
 
+/** The longest wait after passes that threw (`passOrFailed`). */
+export const THROWN_RETRY_MS = 60 * 60_000;
+
+/**
+ * An error the loop takes as a failed pass. A terminal error, or a plain one thrown from replayed
+ * results (a journaled 429 rethrown as a site error), would fail the same way on every retry:
+ * Restate retries it until it pauses the pass, and the key stays locked (SocialWatch/wren,
+ * 2026-10-15). A cancel, and the SDK's own signals (suspended, closed), go through.
+ */
+export function failsThePass(err: unknown): boolean {
+  if (err instanceof restate.CancelledError) return false;
+  if (err instanceof restate.TerminalError) return true;
+  return !(err instanceof restate.RestateError);
+}
+
+/**
+ * One pass for the chain: a pass that throws is kept as a failed one (its error in `last`, the
+ * backoff of `retryDelayMs`), and the chain goes on. Never parked behind its own retries.
+ */
+export async function passOrFailed<S>(
+  ctx: restate.ObjectContext,
+  pass: (ctx: restate.ObjectContext) => Promise<PassOutcome<S>>,
+): Promise<PassOutcome<S>> {
+  try {
+    return await pass(ctx);
+  } catch (err) {
+    if (!failsThePass(err)) throw err;
+    const now = new Date(await ctx.date.now());
+    const failures = (await failuresInARow(ctx, true)) as number;
+    const outcome: PassOutcome<S> = {
+      stats: null,
+      error: errorText(err),
+      failures,
+      delayMs: Math.max(retryDelayMs(failures, THROWN_RETRY_MS), MIN_DELAY_MS),
+      now: now.toISOString(),
+    };
+    await setLastPass(ctx, outcome);
+    return outcome;
+  }
+}
+
 /** The start/stop/loop/status handlers around one `pass`. */
 export function makeLoopObject<S extends object>(
   name: string,
@@ -386,7 +435,7 @@ export function makeLoopObject<S extends object>(
           if (!running) return;
           // A call from before the last stop: its chain ended there.
           if ((generation ?? 0) !== current) return;
-          const outcome = await pass(ctx);
+          const outcome = await passOrFailed(ctx, pass);
           if (outcome.stopped !== undefined) await writeLoop(ctx, { running: false });
           else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
         },

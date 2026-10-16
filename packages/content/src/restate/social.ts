@@ -13,6 +13,11 @@
  * tab's unread count pushes a pass at once (designs/2026-10-12-push-everywhere.md). The lease runs
  * past the next pass, so a loop that stops leaves no tab open.
  *
+ * Every read waits at most its limit (`LIMITS`, designs/2026-10-16-loop-watchdog.md): one that
+ * gives no answer is cancelled and said in `errors`; a platform that times out twice in a pass is
+ * left for the next; a post or read that times out three passes in a row is held (`unit_holds`,
+ * stage `loop.social-watch/<key>`).
+ *
  * `SocialDesk` is Marketing → Inbox's activity actions (mark seen, mark all seen) and Followers'
  * "Read now": a follower count read once, for a platform the loop never reads one on (LinkedIn).
  */
@@ -35,12 +40,16 @@ import { DESK, MANY_POSTS } from "@wren/core/content/restate";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
+  type Limits,
+  limitsWith,
   makeLoopObject,
   NO_INPUT,
   type PassOutcome,
   serviceHandler,
   setLastPass,
   stoppedPass,
+  unitLimits,
+  within,
 } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
@@ -157,6 +166,8 @@ export interface SocialWatchDeps {
   };
   /** Our logins autobrowse's desk keeps a tab watcher on (`linkedin` → `linkedin@wren`). */
   watched?: Partial<Record<Platform, string>>;
+  /** Each call's limit over `LIMITS` (tests shorten them). */
+  limits?: Partial<Limits>;
 }
 
 /** autobrowse's `desk/watch`, as it serves it; no import from that repo. */
@@ -195,6 +206,8 @@ export interface SocialStats {
   missed: string[];
   /** Reads a used daily cap holds until it resets (`x comments`): no error, asked after the reset. */
   held: string[];
+  /** Reads left out: held after timing out pass after pass, or their platform timed out twice. */
+  slow?: number;
   errors: string[];
 }
 
@@ -216,6 +229,7 @@ const postTail = (id: string) => id.slice(id.indexOf("_") + 1);
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 export function makeSocialWatch(deps: SocialWatchDeps) {
+  const L = limitsWith(deps.limits);
   return makeLoopObject("SocialWatch", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const content = ctx.serviceClient<ContentReads>({ name: "Content" });
@@ -249,10 +263,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       }
     }
     // What was pushed since the last pass (designs/2026-10-12-push-everywhere.md): read now, due or not.
-    const pushed: Pushed[] = await ctx
-      .objectClient<SocialPushed>({ name: "SocialPushed" }, client ?? SOCIAL_KEY)
-      .take()
-      .catch(() => []);
+    const pushed: Pushed[] = await within(
+      ctx,
+      ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, client ?? SOCIAL_KEY).take(),
+      { ms: L.quick, call: "SocialPushed/take" },
+    ).catch(() => []);
+    const limits = await unitLimits(ctx, deps.db, "SocialWatch");
     const pushedPosts = new Set(
       pushed.flatMap((p) =>
         p.post ? [`${p.platform}:${p.post}`, `${p.platform}:${postTail(p.post)}`] : [],
@@ -274,6 +290,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       missed: [],
       held: [],
       errors: [],
+    };
+    /** A read this pass makes, or false (and counted) when it is left out. */
+    const go = (unit: string, platform: Platform) => {
+      if (!limits.skip(unit, platform)) return true;
+      stats.slow = (stats.slow ?? 0) + 1;
+      return false;
     };
     const kept: KeptComment[] = [];
     const happened: { kind: ActivityRow["kind"] }[] = [];
@@ -320,13 +342,18 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const probed: Record<string, number> = {};
     for (const platform of new Set(due.filter((d) => !d.wasPushed).map((d) => d.p.platform))) {
       const ids = due.filter((d) => d.p.platform === platform).map((d) => d.p.id);
-      for (let i = 0; i < ids.length && !held(`${platform} counts`); i += MANY_POSTS)
+      const unit = `counts ${platform}`;
+      for (
+        let i = 0;
+        i < ids.length && !held(`${platform} counts`) && go(unit, platform);
+        i += MANY_POSTS
+      )
         try {
-          const got = await content.commentCounts({
-            platform,
-            ids: ids.slice(i, i + MANY_POSTS),
-            ...mine,
-          });
+          const got = await limits.within(
+            unit,
+            content.commentCounts({ platform, ids: ids.slice(i, i + MANY_POSTS), ...mine }),
+            { ms: L.read, call: "Content/commentCounts", group: platform },
+          );
           for (const [id, n] of Object.entries(got ?? {})) probed[`${platform}:${id}`] = n;
         } catch (err) {
           if (!held(`${platform} counts`, err))
@@ -342,10 +369,16 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       }
       // A used cap: the post stays due, read once the cap resets.
       if (held(`${p.platform} comments`)) continue;
+      // Held after timeouts, or its platform slow this pass: it stays due.
+      if (!go(`comments ${key}`, p.platform)) continue;
       reads[key] = now.getTime();
       stats.posts += 1;
       try {
-        const got = await content.comments({ platform: p.platform, id: p.id, ...mine });
+        const got = await limits.within(
+          `comments ${key}`,
+          content.comments({ platform: p.platform, id: p.id, ...mine }),
+          { ms: L.read, call: "Content/comments", group: p.platform },
+        );
         const rows = await ctx.run(`comments ${key}`, () => keepPostComments(db, p, got));
         kept.push(...rows);
         fulls[key] = now.getTime();
@@ -379,7 +412,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const reviewsBefore = kept.length;
     for (const platform of reviewed)
       try {
-        const rows = await content.reviews({ platform, ...mine });
+        if (!go(`reviews ${platform}`, platform)) continue;
+        const rows = await limits.within(
+          `reviews ${platform}`,
+          content.reviews({ platform, ...mine }),
+          { ms: L.read, call: "Content/reviews", group: platform },
+        );
         if (rows?.length)
           kept.push(
             ...(await ctx.run(`reviews ${platform}`, () => keepReviews(db, platform, rows, now))),
@@ -443,14 +481,14 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         pushedActivity.has(platform) || now.getTime() - (lastActivity[platform] ?? 0) >= every;
       if (due) lastActivity[platform] = now.getTime();
       // Rows with no time (YouTube's subscribers) pass any `since`; the unique ref keeps them once.
-      if (due)
+      if (due && go(`activity ${platform}`, platform))
         try {
           const since = await ctx.run(`since ${platform}`, () => newestActivityAt(db, platform));
-          const rows = await content.activity({
-            platform,
-            ...(since ? { q: { since } } : {}),
-            ...mine,
-          });
+          const rows = await limits.within(
+            `activity ${platform}`,
+            content.activity({ platform, ...(since ? { q: { since } } : {}), ...mine }),
+            { ms: L.read, call: "Content/activity", group: platform },
+          );
           if (rows?.length)
             happened.push(
               ...(await ctx.run(`activity ${platform}`, () =>
@@ -464,7 +502,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       if (AUDIENCE_ON_DEMAND.includes(platform)) continue;
       try {
         if (await ctx.run(`day ${platform}`, () => hasDay(db, platform, day))) continue;
-        const a = await content.audience({ platform, ...mine });
+        if (!go(`audience ${platform}`, platform)) continue;
+        const a = await limits.within(
+          `audience ${platform}`,
+          content.audience({ platform, ...mine }),
+          { ms: L.read, call: "Content/audience", group: platform },
+        );
         if (a && (await ctx.run(`keep day ${platform}`, () => keepDay(db, platform, day, a))))
           stats.audience.push(platform);
       } catch (err) {
@@ -476,9 +519,11 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     // A client's DMs on its connected Page, Instagram and X, into its Inbox.
     if (client && dms)
       try {
-        const r = await ctx
-          .serviceClient<SocialInboxRead>({ name: "SocialInbox" })
-          .read({ client });
+        const r = await limits.within(
+          "dms",
+          ctx.serviceClient<SocialInboxRead>({ name: "SocialInbox" }).read({ client }),
+          { ms: L.batch, call: "SocialInbox/read" },
+        );
         stats.dms = r.messages;
         stats.errors.push(...r.errors.map((e) => `dms ${e}`));
       } catch (err) {

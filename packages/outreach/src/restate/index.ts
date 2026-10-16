@@ -63,6 +63,8 @@ import {
   serviceHandler,
   setLastPass,
   stoppedPass,
+  type UnitLimits,
+  unitLimits,
 } from "@wren/core/restate";
 import { type FireTriggers, replyFired, spineEmit } from "@wren/core/spine";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
@@ -523,6 +525,8 @@ export interface WatchStats {
   posts: PostsStats[];
   /** A client's vendor gate said no: why, and the pass read no more. */
   stopped: string | null;
+  /** Reads left out: held after timing out pass after pass, or their platform slow this pass. */
+  skipped?: number;
 }
 
 /** The invites account (settings) when it's an active LinkedIn row, else null. */
@@ -766,6 +770,7 @@ async function threadsPass(
   channelFor: (a: ReachAccount) => OutreachChannel | null,
   ours: readonly string[],
   stop: (err: unknown) => void,
+  limits: UnitLimits,
 ): Promise<ThreadsStats> {
   const out: ThreadsStats = { probed: 0, read: 0, kept: 0, answered: 0, errors: [] };
   const readers = live.filter((a) => channelFor(a)?.thread);
@@ -786,43 +791,52 @@ async function threadsPass(
   for (const a of readers) {
     const mine = due.filter((t) => t.accountId === a.id);
     const ch = channelFor(a);
-    if (!mine.length || !ch?.thread) continue;
+    const thread = ch?.thread;
+    if (!mine.length || !ch || !thread) continue;
     const handles = ours.filter(Boolean);
+    const unit = `threads ${a.account}`;
+    if (limits.skip(unit, a.platform)) continue;
     try {
-      const counts = ch.commentCounts ? await ch.commentCounts(mine.map((t) => t.post)) : {};
-      out.probed += mine.length;
-      for (const t of mine) {
-        const r = ctx.rand.random();
-        const count = counts[t.post];
-        if (!needsRead(t, count, now)) {
-          await ctx.run(`probed ${t.id}`, () =>
-            probed(deps.db, t.id, nextCheckAt(t.activeAt, now, r)),
-          );
-          continue;
-        }
-        // Out of reads this pass: it stays due and goes first next pass.
-        if (budget <= 0) continue;
-        budget -= 1;
-        let read = await ch.thread(t.post);
-        out.read += 1;
-        if (read.more > 0)
-          for (const focus of focusesOf(read, handles)) {
-            read = mergeReads(read, [await ch.thread(t.post, focus)]);
+      await limits.guard(
+        unit,
+        async () => {
+          const counts = ch.commentCounts ? await ch.commentCounts(mine.map((t) => t.post)) : {};
+          out.probed += mine.length;
+          for (const t of mine) {
+            const r = ctx.rand.random();
+            const count = counts[t.post];
+            if (!needsRead(t, count, now)) {
+              await ctx.run(`probed ${t.id}`, () =>
+                probed(deps.db, t.id, nextCheckAt(t.activeAt, now, r)),
+              );
+              continue;
+            }
+            // Out of reads this pass: it stays due and goes first next pass.
+            if (budget <= 0) continue;
+            budget -= 1;
+            let read = await thread(t.post);
             out.read += 1;
+            if (read.more > 0)
+              for (const focus of focusesOf(read, handles)) {
+                read = mergeReads(read, [await thread(t.post, focus)]);
+                out.read += 1;
+              }
+            const got = await ctx.run(`thread ${t.id}`, () =>
+              applyThread(deps.db, t, a, read, handles, now, r, days),
+            );
+            out.kept += got.kept.length;
+            out.answered += got.answered.length;
+            if (got.kept.length)
+              spineEmit(ctx, {
+                client: scope.client,
+                workflow: COMMENTS_FLOW,
+                from: COMMENTS_FROM,
+                events: got.kept.map(commentEvent),
+              });
           }
-        const got = await ctx.run(`thread ${t.id}`, () =>
-          applyThread(deps.db, t, a, read, handles, now, r, days),
-        );
-        out.kept += got.kept.length;
-        out.answered += got.answered.length;
-        if (got.kept.length)
-          spineEmit(ctx, {
-            client: scope.client,
-            workflow: COMMENTS_FLOW,
-            from: COMMENTS_FROM,
-            events: got.kept.map(commentEvent),
-          });
-      }
+        },
+        a.platform,
+      );
     } catch (err) {
       stop(err);
       if (capWaitMs(err) === null && !isVendorStop(err))
@@ -842,6 +856,15 @@ async function watchPass(
   scope: WatchScope,
 ): Promise<PassOutcome<WatchStats>> {
   const channelFor = channelsFor(deps, ctx);
+  // Every desk read waits at most `LIMITS.desk` (`sitesFor`); a read that times out pass after
+  // pass is held, and a platform whose reads time out twice is left for the next pass.
+  const limits = await unitLimits(ctx, deps.db, "ReachWatch");
+  let skipped = 0;
+  const go = (unit: string, group: string) => {
+    if (!limits.skip(unit, group)) return true;
+    skipped += 1;
+    return false;
+  };
   const accounts = await ctx.run("accounts", () => listAccounts(deps.db));
   const live = accounts.filter(
     (a) =>
@@ -899,9 +922,9 @@ async function watchPass(
     const ch = channelFor(a);
     if (!ch) continue;
     reads[a.id] = now.getTime();
-    if (scope.replies)
+    if (scope.replies && go(`replies ${a.account}`, a.platform))
       try {
-        const got = await ch.replies(null);
+        const got = await limits.guard(`replies ${a.account}`, () => ch.replies(null), a.platform);
         const r = await ctx.run(`replies ${a.account}`, () =>
           pullReplies(deps.db, [a], () => ({ ...ch, replies: async () => got }), now),
         );
@@ -916,9 +939,10 @@ async function watchPass(
         if (!capped(a, err)) replies.errors.push(`${a.account}: ${errorText(err)}`);
       }
     // The same inbox read: the adapter asks the platform once for both.
-    if (scope.comments && ch.comments && !stopped)
+    const readComments = ch.comments;
+    if (scope.comments && readComments && !stopped && go(`comments ${a.account}`, a.platform))
       try {
-        const got = await ch.comments();
+        const got = await limits.guard(`comments ${a.account}`, () => readComments(), a.platform);
         const rows = await ctx.run(`comments ${a.account}`, () =>
           keepComments(deps.db, a, got, ours),
         );
@@ -935,9 +959,10 @@ async function watchPass(
         if (!capped(a, err)) kept.errors.push(`${a.account}: ${errorText(err)}`);
       }
     if (stopped || now.getTime() - (checked[a.id] ?? 0) < COLD_EVERY_MS) continue;
+    if (!go(`health ${a.account}`, a.platform)) continue;
     checked[a.id] = now.getTime();
     try {
-      const h = await ch.health();
+      const h = await limits.guard(`health ${a.account}`, () => ch.health(), a.platform);
       const r = await ctx.run(`health ${a.account}`, () =>
         refreshHealth(deps.db, [a], () => ({ ...ch, health: async () => h }), now),
       );
@@ -950,17 +975,21 @@ async function watchPass(
   }
   const threads: ThreadsStats =
     scope.comments && !stopped
-      ? await threadsPass(deps, ctx, now, scope, live, channelFor, ours, stop)
+      ? await threadsPass(deps, ctx, now, scope, live, channelFor, ours, stop, limits)
       : { probed: 0, read: 0, kept: 0, answered: 0, errors: [] };
   let invites: InvitesPass | null = null;
   const swept = (await ctx.get<number>(INVITES)) ?? 0;
   if (!stopped && now.getTime() - swept >= INVITES_EVERY_MS) {
     const settings = await ctx.run("invite settings", () => scope.invites());
     const a = settings && invitesAccount(live, settings);
-    if (settings && a) {
+    if (settings && a && go(`invites ${a.account}`, a.platform)) {
       ctx.set(INVITES, now.getTime());
       try {
-        invites = await invitesPass(deps, ctx, a, settings, now);
+        invites = await limits.guard(
+          `invites ${a.account}`,
+          () => invitesPass(deps, ctx, a, settings, now),
+          a.platform,
+        );
       } catch (err) {
         stop(err);
         health.errors.push(`invites ${a.account}: ${errorText(err)}`);
@@ -976,9 +1005,16 @@ async function watchPass(
       const key = postsKey(platform);
       const at = (await ctx.get<number>(key)) ?? 0;
       if (!settings.account || now.getTime() - at < POSTS_EVERY_MS) continue;
+      if (!go(`posts ${platform}`, platform)) continue;
       ctx.set(key, now.getTime());
       try {
-        posts.push(await postsFor(deps, ctx, platform, settings, now));
+        posts.push(
+          await limits.guard(
+            `posts ${platform}`,
+            () => postsFor(deps, ctx, platform, settings, now),
+            platform,
+          ),
+        );
       } catch (err) {
         health.errors.push(`posts ${platform}: ${errorText(err)}`);
       }
@@ -995,6 +1031,7 @@ async function watchPass(
     drafts,
     posts,
     stopped,
+    ...(skipped ? { skipped } : {}),
   };
   const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
   const outcome: PassOutcome<WatchStats> = {

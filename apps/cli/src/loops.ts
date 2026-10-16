@@ -31,10 +31,16 @@ export function registerLoops(program: Command, settings: Settings) {
         )
       ).filter((h) => o.all || h.health !== "stopped");
       if (o.json) return console.log(JSON.stringify(rows, null, 2));
-      for (const h of rows)
+      for (const h of rows) {
         console.log(
           `${h.health.padEnd(7)} ${h.id}  last ${when(h.lastAt)}, next ${when(h.nextAt)}  ${h.why}${h.blocker ? `  [${h.blocker.id}]` : ""}`,
         );
+        // The last pass's calls past their limit: each unit skipped, held ones in Checks.
+        for (const t of h.timeouts)
+          console.log(
+            `        timed out ${t.call}${t.unit ? ` (${t.unit})` : ""} after ${Math.round(t.ms / 1000)} s${t.held ? ", held" : ""}`,
+          );
+      }
       const bad = rows.filter((h) => h.health === "dead" || h.health === "stuck").length;
       console.log(bad ? `${bad} need a look` : "all running loops alive");
     });

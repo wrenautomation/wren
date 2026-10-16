@@ -133,6 +133,11 @@ and names a stuck one with its blocker, once per incident. It never ends a block
 `wren dlq` (designs/2026-10-16-loop-watchdog.md). `scripts/restate-lag.mjs` says when
 LoopWatch itself has no next check.
 
+Every call a pass waits on has a time limit, so stuck should be rare now. A call past its limit
+is cancelled (a write is left running) and its unit skipped; `wren loops` prints it under the
+loop. A unit that times out 3 passes in a row is held in Checks (stage `loop.<service>/<key>`;
+release it there). A pass that throws is kept as a failed pass and the chain goes on.
+
 ```sh
 wren loops [--all] [--json]          # every loop: alive, dead, stuck (stopped with --all)
 wren loops watch start|status|sync   # the watchdog loop

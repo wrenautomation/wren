@@ -21,6 +21,7 @@ A step that throws is retried; a step that returns a wrong answer counts as done
 - `check_outcomes` (`schema.ts:152`): stage, source, check, subject, ok, reason
 - Views: `unit_holds_now` (`:171`, state held/due/stuck/paused/released; `title` is the unit and its stage, "Acme Co: Team", from companies, documents, people, social posts, the query, or a signal's company, person or Reddit thread; migrations 0153, 0156; the Why column reads as words through `reasonLabel`, `packages/core/src/reason-labels.ts`, raw on hover), `check_rates` (`:190`, 30 days)
 - Code: `packages/core/src/checks.ts`: `hold` (`:45`), `settle` (`:69`), `release` (`:87`), `holdsOn` (`:99`), `counted` (`:118`), `pausedSources` (`:155`)
+- Loop units (stage `loop.<service>/<key>`, `unitLimits` in `packages/core/src/restate/limits.ts`): a post, account, stage or idea whose call timed out 3 passes in a row
 - Restate units: `stageHolds`, `notHeld`, `unitBatches({holds})` in `packages/research/src/restate/units.ts`
 
 ## Connected to

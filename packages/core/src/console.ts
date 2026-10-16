@@ -170,6 +170,7 @@ import {
   toCsv,
 } from "./records-serve.js";
 import { staleRefusal } from "./refusal.js";
+import type { TimedOut } from "./restate/limits.js";
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
 import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from "./saved-views.js";
@@ -299,6 +300,8 @@ export interface LoopRow {
   nextAt: string | null;
   /** The gap the last pass asked for before the next; null before the first. */
   delayMs: number | null;
+  /** Calls the last pass stopped waiting on (`within`, `limitedRun`); `held` ones are in Checks. */
+  timeouts: TimedOut[];
 }
 /**
  * One part that runs for Wren, as the Agents page draws it: its loops (their state is `loops`)
@@ -609,11 +612,15 @@ export const restateAdminGet = (
           ...(token ? { authorization: `Bearer ${token}` } : {}),
           accept: "application/json",
         },
+        signal: AbortSignal.timeout(ADMIN_LIMIT_MS),
       });
       if (!res.ok) throw new Error(`restate admin GET ${path}: ${res.status} ${await res.text()}`);
       return (await res.json()) as unknown;
     });
 };
+
+/** One admin API call (LoopWatch, DeadLetters, Console): a hung one never holds a pass. */
+const ADMIN_LIMIT_MS = 30_000;
 
 export const restateAdmin =
   (url: string, token?: string): RestateAdmin =>
@@ -626,6 +633,7 @@ export const restateAdmin =
         accept: "application/json",
       },
       body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(ADMIN_LIMIT_MS),
     });
     if (!res.ok) throw new Error(`restate admin query: ${res.status} ${await res.text()}`);
     return ((await res.json()) as { rows: Record<string, unknown>[] }).rows;
@@ -673,6 +681,7 @@ export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
       error: last?.error ?? null,
       nextAt: next,
       delayMs: typeof last?.delayMs === "number" ? last.delayMs : null,
+      timeouts: Array.isArray(last?.timeouts) ? last.timeouts : [],
     });
   }
   const failing = (l: LoopRow) => (l.failures > 0 || l.error !== null ? 0 : 1);
