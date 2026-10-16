@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-10-14 @ 44aee717
+verified: 2026-10-15 @ a72bdff2
 consumes: ["[[clients/engagement]]", "[[clients/client-member]]"]
 produces: ["[[clients/engagement]]", "[[clients/client-health]]", "[[clients/client-flag]]", "[[ledger/run]]"]
 ---
@@ -12,7 +12,7 @@ Each hour, every live project's people get the mail they asked for, each client 
 
 ## Input → Movement → Output
 
-Onboarding and active engagements of non-demo clients with `delivery.portal` installed (review asks need `delivery.reviews`, due-invoice mail `delivery.invoices`, the signed copy `delivery.contract`; a project's start installs all four) (activity flags and the digest: active only) and their members; the demo's sample. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:1346`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then health and flags: urgent flags at once, the rest in one digest a day. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
+Onboarding and active engagements of non-demo clients with `delivery.portal` installed (review asks need `delivery.reviews`, due-invoice mail `delivery.invoices`, the signed copy `delivery.contract`; a project's start installs all four) (activity flags and the digest: active only) and their members; the demo's sample. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:1409`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then health and flags: urgent flags at once, the rest in one digest a day. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
 
 ## Why this shape
 
@@ -24,7 +24,7 @@ One pass over the database finds everything, so a missed hour costs nothing: the
 2. `watchPass` (`watch.ts:212`): live engagements, people with their level.
 3. `mailContracts` (`watch.ts:488`): a signed contract not yet mailed goes to the signer, every owner and Wren, with the signature and fingerprint; `mailed_at` marks it.
 4. `mailPeople` (`watch.ts:556`): welcome once; level `all` gets new asks, deliverables and Wren's comments since `told_through`; Friday after 15:00 (send zone) everyone not `off` gets `digestOf` (`watch.ts:765`) once (`digest_on`). A failed send keeps the mark, so it retries next pass.
-5. `problems` (`watch.ts:872`): quiet 3 business days, step past due, ask overdue, pulse ≤3, nobody signed in 14 days, a client comment with no Wren reply after it (one per thread), an invoice unpaid past its due day (on any engagement, running or not), an invoice with a chargeback still open (urgent, `dispute:<id>`; a lost one pauses the plan, see `stopIfReversed` in [[clients/engagement]]). Onboarding ones get paperwork flags only: contract unsigned 3 days, signed with a setup fee and no setup invoice on record, access declined or unanswered 3 days. `flagClients` (`watch.ts:1169`) syncs them as `delivery` flags (`syncFlags`, `health/flags.ts:51`) with new reviews and interests (`heardFlags`, `watch.ts:410`: an interest or a 4-5 review is an opportunity, 2 or lower an urgent risk). Then `healthPass` scores each client for the day (`health/pass.ts:375`, [[clients/client-health]]) and syncs its `health` flags; `failingRuns` (`watch.ts:1182`, the worker's `failures` dep over `failedRuns`) syncs each client's failed workflow runs as `workflows` flags and keeps Wren's own as digest lines; `tellFlags` (`health/flags.ts:203`) sends urgent ones now and the rest in one digest after 09:00, once a day (`flag_digests`); `flagsToFire` (`:317`) hands raised and cleared flags to the spine.
+5. `problems` (`watch.ts:893`): quiet 3 business days, step past due, ask overdue, pulse ≤3, nobody signed in 14 days, a client comment with no Wren reply after it (one per thread), an invoice unpaid past its due day (on any engagement, running or not), an invoice with a dispute still open (a client contesting a paid invoice, recorded by hand; urgent, `dispute:<id>`; a lost one pauses the plan, see `stopIfReversed` in [[clients/engagement]]). Onboarding ones get paperwork flags only: contract unsigned 3 days, signed with a setup fee and no setup invoice on record (`delivery onboard` makes it), access declined or unanswered 3 days. `flagClients` (`watch.ts:1169`) syncs them as `delivery` flags (`syncFlags`, `health/flags.ts:51`) with new reviews and interests (`heardFlags`, `watch.ts:410`: an interest or a 4-5 review is an opportunity, 2 or lower an urgent risk). Then `healthPass` scores each client for the day (`health/pass.ts:375`, [[clients/client-health]]) and syncs its `health` flags; `failingRuns` (`watch.ts:1182`, the worker's `failures` dep over `failedRuns`) syncs each client's failed workflow runs as `workflows` flags and keeps Wren's own as digest lines; `tellFlags` (`health/flags.ts:203`) sends urgent ones now and the rest in one digest after 09:00, once a day (`flag_digests`); `flagsToFire` (`:317`) hands raised and cleared flags to the spine.
 6. An invite or a signature through the portal kicks a pass (`service.ts`, `watched`), so a welcome lands in seconds.
 7. The ops board (`opsBoard`, `watch.ts:1245`) reads the same `problems` on demand, so the board's risks and the flags never disagree.
 
@@ -41,6 +41,7 @@ One pass over the database finds everything, so a missed hour costs nothing: the
 
 ## See
 
-- Objects: [[clients/engagement]], [[clients/client-member]], [[clients/client-health]], [[clients/client-flag]]
+- Objects: [[clients/engagement]], [[clients/client-member]], [[clients/client-health]], [[clients/client-flag]], [[clients/invoice]]
+- Billing itself (make, mail, match): [[processes/billing-watch]]
 - Design: `designs/2026-09-30-client-delivery-portal.md` (D8–D10), `designs/2026-10-07-health.md`
 - Tests: `packages/delivery/test/integration/watch.test.ts`, `health.test.ts`

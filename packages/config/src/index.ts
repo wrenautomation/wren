@@ -289,6 +289,14 @@ export const settingsSchema = z.object({
   portalMailbox: z.string().email().optional(),
   /** `on` mails client reports from portal@; anything else keeps each run unmailed. */
   clientReportsMail: z.enum(["on", "off"]).optional(),
+  /**
+   * Wise, where clients wire Wren's invoices (designs/2026-10-15-wise-billing.md): a READ-ONLY
+   * personal token, the business profile and the receive details per currency as JSON
+   * (`{"USD":{"name":..,"account":..}}`). Unset = no BillingWatch reads and no bank details printed.
+   */
+  wiseApiToken: z.string().min(1).optional(),
+  wiseProfileId: z.string().regex(/^\d+$/).optional(),
+  wiseReceiveDetails: z.string().min(2).optional(),
   /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video demo render` refuses. */
   videosBucket: z.string().min(1).optional(),
   /** Where the CDN serves that bucket, no trailing slash ("https://d123.cloudfront.net"). */
@@ -675,6 +683,9 @@ export const ENV_KEYS = {
   portalFrom: "WREN_PORTAL_FROM",
   portalMailbox: "WREN_PORTAL_MAILBOX",
   clientReportsMail: "WREN_CLIENT_REPORTS_MAIL",
+  wiseApiToken: "WISE_API_TOKEN",
+  wiseProfileId: "WISE_PROFILE_ID",
+  wiseReceiveDetails: "WISE_RECEIVE_DETAILS",
   videosBucket: "WREN_VIDEOS_BUCKET",
   videosOrigin: "WREN_VIDEOS_ORIGIN",
   videosWatchBase: "WREN_VIDEOS_WATCH_BASE",

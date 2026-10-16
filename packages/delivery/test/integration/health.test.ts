@@ -86,7 +86,6 @@ beforeAll(async () => {
   await pg.db.execute(sql`insert into delivery.pulses (engagement_id, email, week, score, at)
     values (${e.id}, 'amy@acme.example', '2026-10-26', 4, '2026-10-28T09:00:00Z')`);
   await addInvoice(pg.db, e, {
-    number: "T-1",
     description: "Setup",
     cents: 100_000,
     issuedOn: "2026-10-06",
@@ -110,14 +109,14 @@ describe("health", () => {
     expect(h?.parts.engagement).toMatchObject({ score: 25, why: "1 day with a visit" });
     // Amy's 4 and Wren's 2: (75 + 25) / 2.
     expect(h?.parts.sentiment).toMatchObject({ score: 50, stale: false });
-    // T-1 is 13 days late.
+    // The setup invoice is 13 days late.
     expect(h?.parts.money).toMatchObject({ score: 30 });
     expect(h?.inputs.map((i) => [i.part, i.what, i.value])).toEqual([
       ["results", "Meetings booked, Lead reactivation", "3 of 4.7 expected by day 32"],
       ["engagement", "Days with a visit", "1 in the last 30 (4 wanted)"],
       ["sentiment", "Weekly rating, amy@acme.example", "4 of 5"],
       ["sentiment", "Wren's rating", "2 of 5: Slow to answer"],
-      ["money", "Invoice T-1", "13 days late"],
+      ["money", expect.stringMatching(/^Invoice WREN-\d+$/), "13 days late"],
     ]);
     expect(h?.inputs[0]?.href).toBe("/reactivation/results?client=acme");
   });

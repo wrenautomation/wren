@@ -11,7 +11,6 @@ import {
   actor,
   date,
   defineRecord,
-  link,
   money,
   number,
   prose,
@@ -22,6 +21,7 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { payFields, type ReceiveDetails } from "./billing/receive.js";
 import {
   amount,
   type DeliveryHome,
@@ -195,6 +195,8 @@ export function deliveryRecords(
   manages: () => Promise<boolean> = async () => operator,
   /** `senderReads` false: the sender is connected to send only, so its bounces aren't read. */
   messaging?: () => Promise<MessageSettings & { senderReads?: boolean }>,
+  /** Where clients wire us, per currency: an invoice's detail shows them. */
+  receive: ReceiveDetails = {},
 ): RecordType[] {
   let home: Promise<DeliveryHome> | undefined;
   const es = async () => {
@@ -491,7 +493,7 @@ export function deliveryRecords(
         offer: i.offer,
         sent: i.issuedOn,
         paid: i.paidOn,
-        link: i.link,
+        received: i.receivedCents / 100,
         lines: i.lines.map((l) => `${l.what}: ${amount(l.cents, i.currency)}`).join("\n"),
       }));
     },
@@ -507,13 +509,28 @@ export function deliveryRecords(
       offer: text("Offer"),
       sent: date("Sent"),
       paid: date("Paid"),
+      received: money("Received"),
       lines: prose("Lines"),
-      link: link("In Wise"),
     },
     views: [
       { id: "all", label: "All invoices", sort: "-sent", at: "sent" },
       { id: "open", label: "To pay", where: { status: ["open", "overdue"] }, sort: "due" },
     ],
+    // How to pay it: the reference for the memo and our bank details in its currency.
+    load: async (_db, id) => {
+      if (!(await bills())) throw new PortalRefusal("billing is for this account's owners", 403);
+      const i = (await invoicesOf(db, clientId)).find((x) => String(x.id) === String(id));
+      if (!i) return null;
+      return {
+        pay: {
+          open: i.status === "open" || i.status === "overdue",
+          reference: i.number,
+          currency: i.currency,
+          due: amount(Math.max(0, i.cents - i.receivedCents), i.currency),
+          fields: payFields(receive, i.currency),
+        },
+      };
+    },
   });
 
   const change = defineRecord({

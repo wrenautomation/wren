@@ -67,6 +67,11 @@ import {
   DEALS_CONSOLE_WRITES,
 } from "@wren/deals/console-routes";
 import {
+  BILLING_CONSOLE_APPS,
+  BILLING_CONSOLE_ROUTES,
+  BILLING_CONSOLE_WRITES,
+} from "@wren/delivery/billing/console-routes";
+import {
   HEALTH_CONSOLE_APPS,
   HEALTH_CONSOLE_ROUTES,
   HEALTH_CONSOLE_WRITES,
@@ -186,6 +191,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     HEALTH_CONSOLE_ROUTES,
     HEALTH_CONSOLE_APPS,
     HEALTH_CONSOLE_WRITES,
+  ),
+  // Money in by bank transfer: put a credit on an invoice, or set it aside.
+  billing: service(
+    "BillingConsole",
+    BILLING_CONSOLE_ROUTES,
+    BILLING_CONSOLE_APPS,
+    BILLING_CONSOLE_WRITES,
   ),
   // Booking calendars, Wren's and each client's: the week, the calls, how one went, cancel.
   calendar: service(

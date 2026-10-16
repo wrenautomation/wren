@@ -210,15 +210,14 @@ describe("onboarding", () => {
   it("signed alone isn't enough: the setup fee paid starts the plan from today", async () => {
     expect((await engagementOf(pg.db, "acme")).status).toBe("onboarding");
     const e = await engagementOf(pg.db, "acme");
-    await addInvoice(pg.db, e, {
-      number: "W-1",
+    const setup = await addInvoice(pg.db, e, {
       description: "Setup",
       cents: 100_000,
       dueOn: "2026-12-01",
       setup: true,
       by: "ops@wren.example",
     });
-    await markInvoice(pg.db, "acme", "W-1", "paid");
+    await markInvoice(pg.db, "acme", setup.number, "paid");
     const started = await engagementOf(pg.db, "acme");
     expect(started.status).toBe("active");
     expect(started.startsOn).toBe(todayUtc());

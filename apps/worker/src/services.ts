@@ -335,6 +335,9 @@ import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } fr
 import { makeDealsConsole } from "@wren/deals/console";
 import { dealRecordFor } from "@wren/deals/records";
 import { engagementOf, postUpdate } from "@wren/delivery";
+import { makeBillingWatch, parseReceive, wiseReader } from "@wren/delivery/billing";
+import { makeBillingConsole } from "@wren/delivery/billing/console";
+import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { s3Files } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { makeHealthConsole } from "@wren/delivery/health/console";
@@ -1858,6 +1861,31 @@ export async function buildServices(
       }),
     );
   else log.info("WREN_PORTAL_ORIGIN unset: no DeliveryWatch");
+  // Wren's own billing by bank transfer (designs/2026-10-15-wise-billing.md): bills, mails and
+  // reads money in from our Wise account. The token is read only; it never moves money.
+  if (portal)
+    services.push(
+      makeBillingWatch({
+        main: db,
+        wise:
+          settings.wiseApiToken && settings.wiseProfileId
+            ? wiseReader({ token: settings.wiseApiToken, profileId: settings.wiseProfileId })
+            : null,
+        send:
+          settings.portalFrom && settings.portalMailbox
+            ? plainMailer(gmail, {
+                mailbox: settings.portalMailbox,
+                from: settings.portalFrom,
+                name: "Wren",
+              })
+            : null,
+        receive: parseReceive(settings.wiseReceiveDetails),
+        app: portal,
+        zone: settings.sendTimezone,
+        ...(settings.notify === "none" ? {} : { notifier }),
+      }),
+    );
+  services.push(makeBillingConsole(db));
   // What account setups check: DNS over HTTPS, Telnyx's 10DLC status, the roster's warmup and
   // the placement tests, Search Console's property list, a calendar's free/busy as its address,
   // and the client's ad account through autobrowse's `meta`. Free reads, all of them.
@@ -1984,6 +2012,7 @@ export async function buildServices(
       watched: portal !== null,
       zone: settings.sendTimezone,
       app: portal ?? undefined,
+      receive: parseReceive(settings.wiseReceiveDetails),
       domains: customDomains(),
       // The message rules on Account live in each client's own database.
       open: openClient,
@@ -2451,6 +2480,8 @@ export async function buildServices(
         clientRecord,
         // Each client's health and the flags about it (Clients).
         ...HEALTH_RECORDS,
+        // Money in by bank transfer, and the invoice each paid (Money).
+        ...BILLING_RECORDS,
         // Where you were @ed in Wren's notes: yours only (the Inbox's Mentions).
         ...NOTES_RECORDS,
         // Every page we run and its numbers by source (Sites).

@@ -80,6 +80,12 @@ import { viewAsApi } from "@wren/core/view-as";
 import { actingAs, cachedDb, clientDatabaseName, createDb } from "@wren/db";
 import { dealsConsoleApi } from "@wren/deals/console";
 import { DEALS_CONSOLE_APPS, DEALS_CONSOLE_ROUTES } from "@wren/deals/console-routes";
+import { billingConsoleApi } from "@wren/delivery/billing/console";
+import {
+  BILLING_CONSOLE_APPS,
+  BILLING_CONSOLE_ROUTES,
+} from "@wren/delivery/billing/console-routes";
+import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { healthConsoleApi } from "@wren/delivery/health/console";
@@ -274,6 +280,8 @@ const SERVICES: Record<
           ...VOICE_RECORDS,
           // Clients' health and flags.
           ...HEALTH_RECORDS,
+          // Money in by bank transfer.
+          ...BILLING_RECORDS,
           // The Inbox's Mentions: the signed-in person's own.
           ...NOTES_RECORDS,
           // Learn, with the SOP library read from the local folders.
@@ -436,6 +444,12 @@ const SERVICES: Record<
     routes: Object.keys(HEALTH_CONSOLE_ROUTES),
     guard: { needs: HEALTH_CONSOLE_ROUTES, apps: HEALTH_CONSOLE_APPS, unnamed: "wren" },
     api: healthConsoleApi(main),
+  },
+  // Money in by bank transfer: match, set aside.
+  billing: {
+    routes: Object.keys(BILLING_CONSOLE_ROUTES),
+    guard: { needs: BILLING_CONSOLE_ROUTES, apps: BILLING_CONSOLE_APPS, unnamed: "wren" },
+    api: billingConsoleApi(main),
   },
   notes: {
     routes: Object.keys(NOTES_CONSOLE_ROUTES),

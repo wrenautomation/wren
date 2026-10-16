@@ -31,6 +31,7 @@
     "@wren/channel-sms": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/delivery": "workspace:*",
     "@wren/documents": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/notes": "workspace:*",

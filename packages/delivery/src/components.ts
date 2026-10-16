@@ -43,7 +43,7 @@ export const DELIVERY_COMPONENTS = [
     stage: "deliver",
     channels: ["email"],
     name: "Invoices",
-    blurb: "Each invoice with a link to pay, and a nudge when one is due.",
+    blurb: "Each invoice as a PDF with our bank details, and a nudge when one is due.",
     icon: "money",
     for: "client",
     ready: true,
@@ -64,7 +64,7 @@ export const DELIVERY_COMPONENTS = [
       guesses: [
         { is: "change", says: "How a client pays: bank transfer now, cards later.", built: null },
         { is: "change", says: "When the nudge goes.", built: null },
-        { is: "fixed", says: "Every invoice carries a link to pay." },
+        { is: "fixed", says: "Every invoice carries its number to put in the transfer memo." },
       ],
     },
   }),

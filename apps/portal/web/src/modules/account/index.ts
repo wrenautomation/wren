@@ -5,6 +5,7 @@ import type { ListPage, Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { Accounts } from "./Accounts.js";
 import { AiTools } from "./AiTools.js";
+import { invoiceExtras } from "./billing.js";
 import { Connectors } from "./Connectors.js";
 import { Domain } from "./Domain.js";
 import { Facts, Fields } from "./Fields.js";
@@ -195,10 +196,11 @@ export const account: Module = {
       template: "list",
       record: "delivery.invoice",
       empty: {
-        all: "Invoices show here when Wren sends one. Each also comes by email with a link to pay in Wise.",
+        all: "Your invoices from Wren show up here. We email each one too, with the bank details to pay it.",
         open: "Nothing to pay.",
       },
-      columns: ["status", "amount", "due", "description", "link"],
+      columns: ["status", "amount", "due", "description"],
+      extras: invoiceExtras,
       head: (_meta, _reload, { client }) => createElement(Included, { client }),
     },
     ...inGroup(inboxPages(), "Activity", "issues"),

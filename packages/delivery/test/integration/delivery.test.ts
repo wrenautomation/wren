@@ -557,17 +557,18 @@ describe("comments", () => {
 
 describe("billing and the account", () => {
   const CY: Viewer = { email: "cy@acme.example" };
-  const bill = async (number: string, over: Partial<Parameters<typeof addInvoice>[2]> = {}) =>
+  const bill = async (over: Partial<Parameters<typeof addInvoice>[2]> = {}) =>
     addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
-      number,
       description: "Setup",
       cents: 100_000,
       issuedOn: "2026-09-01",
       dueOn: "2026-09-15",
-      link: "https://wise.com/pay/r/abc",
       by: "ops@wren.example",
       ...over,
     });
+  // Our own numbers, from the sequence: WREN-1001 on, never typed.
+  let first = "";
+  let second = "";
   const status = async (p: Promise<unknown>) => {
     try {
       await p;
@@ -579,16 +580,20 @@ describe("billing and the account", () => {
   };
 
   it("an owner sees what we billed, late ones as overdue; a member and another client don't", async () => {
-    await bill("WREN-1");
-    await bill("WREN-2", {
-      description: "Meetings booked in October",
-      cents: 250_050,
-      dueOn: "2099-01-01",
-    });
+    first = (await bill()).number;
+    second = (
+      await bill({
+        description: "Meetings booked in October",
+        cents: 250_050,
+        dueOn: "2099-01-01",
+      })
+    ).number;
+    expect(first).toMatch(/^WREN-\d+$/);
+    expect(Number(second.slice(5))).toBe(Number(first.slice(5)) + 1);
     const seen = (await bills(AMY)).rows;
     expect(seen.map((i) => [i.number, i.status, i.amount, i.offer])).toEqual([
-      ["WREN-1", "overdue", { amount: 1000, currency: "USD" }, "Lead reactivation"],
-      ["WREN-2", "open", { amount: 2500.5, currency: "USD" }, "Lead reactivation"],
+      [first, "overdue", { amount: 1000, currency: "USD" }, "Lead reactivation"],
+      [second, "open", { amount: 2500.5, currency: "USD" }, "Lead reactivation"],
     ]);
     expect((await bills(OPS, acme)).rows).toHaveLength(2);
     expect((await bills(OPS, beta)).rows).toEqual([]);
@@ -600,28 +605,26 @@ describe("billing and the account", () => {
   });
 
   it("paid, void and open again; never another client's", async () => {
-    expect((await markInvoice(pg.db, "acme", "WREN-1", "paid", "2026-10-20")).paidOn).toBe(
+    expect((await markInvoice(pg.db, "acme", first, "paid", "2026-10-20")).paidOn).toBe(
       "2026-10-20",
     );
     expect((await bills(AMY)).rows[0]?.status).toBe("paid");
-    expect((await markInvoice(pg.db, "acme", "WREN-1", "open")).paidOn).toBeNull();
-    expect((await markInvoice(pg.db, "acme", "WREN-1", "void")).status).toBe("void");
-    expect(await status(markInvoice(pg.db, "beta", "WREN-1", "paid"))).toBe(404);
-    expect(await status(markInvoice(pg.db, "acme", "WREN-1", "gone"))).toBe(400);
+    expect((await markInvoice(pg.db, "acme", first, "open")).paidOn).toBeNull();
+    expect((await markInvoice(pg.db, "acme", first, "void")).status).toBe("void");
+    expect(await status(markInvoice(pg.db, "beta", first, "paid"))).toBe(404);
+    expect(await status(markInvoice(pg.db, "acme", first, "gone"))).toBe(400);
   });
 
-  it("refuses a number twice, a bad amount, currency, dates or link", async () => {
-    expect(await status(bill("WREN-1"))).toBe(409);
+  it("refuses a bad amount, currency or dates", async () => {
     for (const over of [
       { cents: 0 },
       { cents: 10.5 },
       { currency: "dollars" },
       { dueOn: "2026-08-31" },
       { dueOn: "soon" },
-      { link: "javascript:alert(1)" },
       { description: " " },
     ])
-      expect(await status(bill("WREN-9", over))).toBe(400);
+      expect(await status(bill(over))).toBe(400);
   });
 
   it("the account: who they are, what they bought, billing for owners only", async () => {

@@ -21,6 +21,7 @@ import { Agents } from "./Agents.js";
 import { Ask } from "./ask.js";
 import { Automations, NewAutomation } from "./automations.js";
 import { LOOP_CARD } from "./cards.js";
+import { CREDIT_ACTIONS } from "./credits.js";
 import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
 import { FLAG_ACTIONS } from "./flags.js";
@@ -648,6 +649,22 @@ export const money: Module = {
       record: "email.model",
       empty: "Model calls show here once a run makes them.",
       head: () => createElement(AiSpend),
+    },
+    {
+      id: "payments-in",
+      label: "Payments in",
+      about: "Bank transfers from clients, and the invoice each one paid.",
+      template: "list",
+      record: "console.credit",
+      actions: CREDIT_ACTIONS,
+      count: { status: ["review"] },
+      empty: {
+        review: "No payments waiting.",
+        matched: "Paid invoices show here.",
+        all: "Payments show here when a client sends one.",
+        own: "Transfers between our own balances show here.",
+      },
+      columns: ["status", "amount", "invoice", "client", "why", "at"],
     },
     {
       id: "subscriptions",

@@ -57,8 +57,9 @@ function Guide({ e }: { e: EngagementView }) {
           ) : null}
           {e.paperwork.setupPaid !== null ? (
             <li>
-              We send the setup invoice through Wise. You'll see it under{" "}
-              <a href="/account/billing">Billing</a> too.
+              We email you the setup invoice. Pay it by bank transfer, with the invoice number as
+              the reference. The bank details are on it and under{" "}
+              <a href="/account/billing">Billing</a>.
             </li>
           ) : null}
           {e.paperwork.access.length ? (

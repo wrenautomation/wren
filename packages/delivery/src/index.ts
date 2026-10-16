@@ -712,22 +712,23 @@ export async function mailLevelOf(
   return row?.level ?? "all";
 }
 
-// --- billing: invoices we sent through Wise ----------------------------------------
+// --- billing: our invoices, paid by bank transfer into Wise --------------------------
 
 const CURRENCY = /^[A-Z]{3}$/;
 
-/** An invoice we sent through Wise, put on the engagement's record. */
+/**
+ * A new invoice on the engagement's record, numbered by us (`WREN-1001`). BillingWatch mails its
+ * PDF to the client's billing people on its next pass (designs/2026-10-15-wise-billing.md).
+ */
 export async function addInvoice(
   db: Queryable,
   e: Engagement,
   input: {
-    number: string;
     description: string;
     cents: number;
     currency?: string | undefined;
     issuedOn?: string | undefined;
     dueOn: string;
-    link?: string | undefined;
     /** The setup fee: paid with the contract signed, the plan starts. */
     setup?: boolean | undefined;
     /** The month a recurring bill is for, `2026-11`. */
@@ -737,7 +738,6 @@ export async function addInvoice(
     by: string;
   },
 ): Promise<Invoice> {
-  const number = textIn(input.number, "the invoice number", 64);
   if (!Number.isSafeInteger(input.cents) || input.cents <= 0)
     throw bad("the amount must be over 0, in whole cents");
   const currency = (input.currency ?? "USD").trim().toUpperCase();
@@ -745,11 +745,6 @@ export async function addInvoice(
   const issuedOn = dayOf(input.issuedOn ?? todayUtc(), "the issue date");
   const dueOn = dayOf(input.dueOn, "the due date");
   if (dueOn < issuedOn) throw bad("it can't be due before it's issued");
-  const [taken] = await db
-    .select({ id: invoices.id })
-    .from(invoices)
-    .where(eq(invoices.number, number));
-  if (taken) throw new DeliveryRefusal(`invoice ${number} is already on record`, 409);
   const period = input.period ?? null;
   if (period !== null) {
     if (!PERIOD.test(period)) throw bad("the period is a month, like 2026-11");
@@ -778,13 +773,11 @@ export async function addInvoice(
     .insert(invoices)
     .values({
       engagementId: e.id,
-      number,
       description,
       cents: input.cents,
       currency,
       issuedOn,
       dueOn,
-      link: input.link?.trim() ? linkOf(input.link, "link") : null,
       setup: input.setup === true,
       period,
       units: input.units ?? null,
@@ -993,6 +986,56 @@ export async function billsDue(db: Queryable, period: string): Promise<Bill[]> {
   });
 }
 
+/**
+ * The month's bills as invoices (D15), made by BillingWatch from the 1st: each signed contract's
+ * bill for `period`, due its pay days after `today`. A month with an invoice already is skipped,
+ * so a pass run twice bills once.
+ */
+export async function billMonth(
+  db: Queryable,
+  period: string,
+  today: string,
+  by: string,
+): Promise<Invoice[]> {
+  const out: Invoice[] = [];
+  for (const b of await billsDue(db, period)) {
+    const e = await engagementOf(db, b.clientId, b.engagementId);
+    out.push(
+      await addInvoice(db, e, {
+        description: monthName(period),
+        cents: billCents(b),
+        currency: b.currency,
+        issuedOn: today,
+        dueOn: addDays(today, b.payDays),
+        period,
+        units: b.units,
+        by,
+      }),
+    );
+  }
+  return out;
+}
+
+/** The setup fee's invoice, from the contract's terms; none when there's no fee. */
+export async function setupInvoice(
+  db: Queryable,
+  e: Engagement,
+  terms: Pick<Terms, "setupCents" | "currency" | "payDays">,
+  by: string,
+  today = todayUtc(),
+): Promise<Invoice | null> {
+  if (terms.setupCents <= 0) return null;
+  return addInvoice(db, e, {
+    description: "Setup",
+    cents: terms.setupCents,
+    currency: terms.currency,
+    issuedOn: today,
+    dueOn: addDays(today, terms.payDays),
+    setup: true,
+    by,
+  });
+}
+
 /** Paid on a day (today by default), void, or open again. A paid setup fee may start the plan. */
 export async function markInvoice(
   db: Queryable,
@@ -1020,7 +1063,7 @@ export async function markInvoice(
 }
 
 /**
- * A setup fee that still holds: paid, and not refunded in full or lost to a chargeback. The
+ * A setup fee that still holds: paid, and not refunded in full or lost in a dispute. The
  * forward gate (`startIfReady`) starts the plan on it; the reverse (`stopIfReversed`) ends it.
  */
 const setupHolds = and(
@@ -1033,14 +1076,14 @@ const setupHolds = and(
 /** Why a paid invoice no longer stands, or null while it does. A partial refund or open dispute doesn't end it. */
 const reversal = (i: Pick<Invoice, "cents" | "refundedCents" | "dispute">): string | null =>
   i.dispute === "lost"
-    ? "lost to a chargeback"
+    ? "lost in a dispute"
     : i.refundedCents >= i.cents
       ? "refunded in full"
       : null;
 
 /**
- * The reverse of `startIfReady`: a running plan whose setup fee was refunded in full or lost to a
- * chargeback is paused. A partial refund leaves it running, and so does an open dispute (that one
+ * The reverse of `startIfReady`: a running plan whose setup fee was refunded in full or lost in a
+ * dispute is paused. A partial refund leaves it running, and so does an open dispute (that one
  * is a flag, see `problems`). The pause is the engagement's own `paused` status; nothing resumes
  * it but `wren delivery engagement active`, once the money is settled. An onboarding plan needs
  * no pause: `startIfReady` won't start it without a fee that holds.
@@ -1112,7 +1155,7 @@ export async function refundInvoice(
   return { invoice, paused: await reverseGate(db, clientId, invoice, by) };
 }
 
-/** A chargeback on a paid invoice: open, won or lost (null clears it). Lost, a setup fee's plan pauses. */
+/** A contested payment on a paid invoice, kept by hand: open, won or lost (null clears it). Lost, a setup fee's plan pauses. */
 export async function disputeInvoice(
   db: Queryable,
   clientId: string,
@@ -1816,7 +1859,7 @@ export type InvoiceView = Pick<
   | "paidOn"
   | "refundedCents"
   | "dispute"
-  | "link"
+  | "receivedCents"
   | "lines"
 > & {
   /** Overdue: open and past its due day. */
@@ -1848,7 +1891,7 @@ export async function invoicesOf(
     paidOn: i.paidOn,
     refundedCents: i.refundedCents,
     dispute: i.dispute,
-    link: i.link,
+    receivedCents: i.receivedCents,
     lines: i.lines,
     status: i.status === "open" && i.dueOn < today ? "overdue" : i.status,
     offer: offerFor(offerId).name,

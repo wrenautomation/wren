@@ -37,6 +37,7 @@ import { type FormEvent, type ReactNode, useMemo, useRef, useState } from "react
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { ListPage } from "../../module.js";
+import { PdfButton } from "../../pdf-button.js";
 import { ERROR, FIELD, QUIET, SELECT } from "../work/bits.js";
 
 const said = (line: string) => () => line;
@@ -941,38 +942,6 @@ function Steps({ steps }: { steps: NonNullable<Detail["steps"]> }) {
   );
 }
 
-/** The signed copy: a PDF the server draws, saved by the browser. */
-function PdfButton({ client, id }: { client: string; id: string }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const get = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await call<{ name: string; base64: string }>("documents/pdf", { client, id });
-      const bytes = Uint8Array.from(atob(r.base64), (c) => c.charCodeAt(0));
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = r.name;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <span className="flex flex-wrap items-center gap-2">
-      <Button size="dense" tone="quiet" busy={busy} onClick={() => void get()}>
-        Download PDF
-      </Button>
-      {error ? <span className={ERROR}>{error}</span> : null}
-    </span>
-  );
-}
-
 /** A draft's editor: saved in place, the record read again; Send is in its head. */
 function DraftEditor({
   d,
@@ -1022,7 +991,10 @@ export const docExtras: NonNullable<ListPage["extras"]> = (detail, { row, act, c
       </p>,
     ]);
   if (status === "signed")
-    sections.push(["Signed copy", <PdfButton key="pdf" client={client} id={id} />]);
+    sections.push([
+      "Signed copy",
+      <PdfButton key="pdf" handler="documents/pdf" body={{ client, id }} />,
+    ]);
   sections.push(["Steps", <Steps key="steps" steps={d.steps ?? []} />]);
   return out;
 };

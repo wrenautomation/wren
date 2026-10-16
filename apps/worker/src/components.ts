@@ -83,6 +83,9 @@ export const PLATFORM = {
     SocialInbox: "a client's DMs in, and its DM and comment answers out, on its own accounts",
     NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
     HealthConsole: "each client's health and the flags about it: rate, override, raise, clear",
+    BillingWatch:
+      "Wren's own billing: the month's invoices made and mailed, money in read from Wise and matched",
+    BillingConsole: "money in by bank transfer: put a credit on an invoice, or set it aside",
     Webhooks:
       "a client's own URLs hear its events: subscriptions, signed deliveries, the retry ladder",
   },

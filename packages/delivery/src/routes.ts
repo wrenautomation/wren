@@ -36,6 +36,8 @@ export const DELIVERY_ROUTES = {
   remove: "manage",
   upload: "act",
   file: "read",
+  // An invoice's PDF: who may see billing.
+  invoicePdf: "money",
   pulse: "act",
   review: "act",
   interest: "act",
@@ -79,6 +81,7 @@ export const DELIVERY_APPS = {
   start: "account",
   contract: "account",
   sign: "account",
+  invoicePdf: "account",
   domains: "account",
   addDomain: "account",
   removeDomain: "account",

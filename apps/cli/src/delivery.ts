@@ -42,11 +42,22 @@ import {
   requestAccess,
   setEngagementSource,
   setEngagementStatus,
+  setupInvoice,
   slipMilestone,
   sourceHints,
   startEngagement,
   todayUtc,
 } from "@wren/delivery";
+import {
+  BILLING_KEY,
+  BILLING_WATCH,
+  type BillingWatch,
+  CREDIT_STATUSES_SHOWN,
+  type CreditView,
+  creditsList,
+  dismissCredit,
+  matchByHand,
+} from "@wren/delivery/billing";
 import { MAX_FILE_BYTES, newFileKey, s3Files, typeOfName } from "@wren/delivery/files";
 import { type DeliveryWatch, WATCH, WATCH_KEY } from "@wren/delivery/restate";
 import { seedSample } from "@wren/delivery/sample";
@@ -235,11 +246,15 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
           payDays: string;
         },
       ) => {
-        const { engagement: e, agreement: a } = await withMainDb(async (main) => {
+        const {
+          engagement: e,
+          agreement: a,
+          setup,
+        } = await withMainDb(async (main) => {
           const client = await getClient(main, clientId());
           const author = await authorOf(main, opts.by);
-          return serializable(main, (tx) =>
-            onboard(tx, {
+          return serializable(main, async (tx) => {
+            const made = await onboard(tx, {
               clientId: client.id,
               offerId,
               startsOn: opts.start ?? todayUtc(),
@@ -255,16 +270,19 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
               },
               flat: opts.flat === true,
               by: author,
-            }),
-          );
+            });
+            // The setup fee's invoice, at once: BillingWatch mails it on its next pass.
+            const setup = await setupInvoice(tx, made.engagement, made.agreement.terms, author);
+            return { ...made, setup };
+          });
         });
         const t = a.terms;
         console.log(
           [
             `onboarding #${e.id}: ${offerId}, aiming to start ${e.startsOn}`,
             `contract ${a.version} issued; an owner signs it in the portal`,
-            t.setupCents > 0
-              ? `setup ${money(t.setupCents, t.currency)}: send it through Wise, then \`delivery invoice <number> <amount> --setup --for "Setup" --due <date>\``
+            setup
+              ? `setup ${money(t.setupCents, t.currency)}: invoice ${setup.number}, due ${setup.dueOn}; BillingWatch mails it on its next pass`
               : "no setup fee: signing starts the plan",
           ].join("\n"),
         );
@@ -500,28 +518,25 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
       console.log(`commented #${c.id}`);
     });
 
-  onEngagement(cmd.command("invoice <number> <amount>"))
+  onEngagement(cmd.command("invoice <amount>"))
     .description(
-      "An invoice we sent through Wise: the client's owners see it, we're pinged when it's late",
+      "An invoice, numbered WREN-n: BillingWatch mails its PDF with our bank details to the client's owners, matches the transfer, pings when it's late",
     )
     .requiredOption("--for <text>", "what it's for, as the client reads it")
     .requiredOption("--due <date>", "YYYY-MM-DD")
     .option("--issued <date>", "YYYY-MM-DD (default: today)")
     .option("--currency <code>", "three letters", "USD")
-    .option("--link <url>", "Wise's page for it, to view and pay")
     .option("--setup", "the setup fee: paid, with the contract signed, it starts the plan")
     .option("--period <month>", "the month a recurring bill is for, YYYY-MM (stops the 1st's ping)")
     .option("--units <n>", "how many per-unit fees it bills (meetings booked)")
     .action(
       async (
-        number: string,
         amount: string,
         opts: Opts & {
           for: string;
           due: string;
           issued?: string;
           currency: string;
-          link?: string;
           setup?: boolean;
           period?: string;
           units?: string;
@@ -529,20 +544,20 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
       ) => {
         const i = await change(opts, (db, e, author) =>
           addInvoice(db, e, {
-            number,
             description: opts.for,
             cents: centsOf(amount),
             currency: opts.currency,
             issuedOn: opts.issued,
             dueOn: opts.due,
-            link: opts.link,
             setup: opts.setup,
             period: opts.period,
             units: opts.units === undefined ? undefined : Number(opts.units),
             by: author,
           }),
         );
-        console.log(`invoice ${i.number} open, due ${i.dueOn}${i.setup ? " (setup fee)" : ""}`);
+        console.log(
+          `invoice ${i.number} open, due ${i.dueOn}${i.setup ? " (setup fee)" : ""}; BillingWatch mails it on its next pass (delivery billing sync)`,
+        );
       },
     );
 
@@ -575,7 +590,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
 
   by(cmd.command("dispute <number> <state>"))
     .description(
-      `A chargeback on a paid invoice: ${INVOICE_DISPUTES.join(", ")}, or none. Open flags it for you; lost on a setup fee pauses the plan`,
+      `A client contests a paid invoice (a bank transfer has no chargeback: this records what you settle): ${INVOICE_DISPUTES.join(", ")}, or none. Open flags it for you; lost on a setup fee pauses the plan`,
     )
     .action(async (number: string, state: string, opts: Opts) => {
       if (state !== "none" && !INVOICE_DISPUTES.includes(state as InvoiceDispute))
@@ -646,4 +661,63 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
   w.command("sync")
     .description("one pass now")
     .action(async () => print(await watch().sync()));
+
+  // Wren's own billing by bank transfer, every client at once (designs/2026-10-15-wise-billing.md).
+  const billing = () =>
+    restateClients
+      .connect(ingressOf(settings))
+      .objectClient<BillingWatch>({ name: BILLING_WATCH }, BILLING_KEY);
+  const b = cmd
+    .command("billing")
+    .description(
+      "BillingWatch: the 1st's bills, invoice mail, money in from Wise, every 15 min; off until started",
+    );
+  b.command("status").action(async () => print(await billing().status()));
+  b.command("start").action(async () => print(await billing().start()));
+  b.command("stop").action(async () => print(await billing().stop()));
+  b.command("sync")
+    .description("one pass now")
+    .action(async () => print(await billing().sync()));
+
+  const renderCredit = (c: CreditView) =>
+    `  ${c.id} ${c.status.toUpperCase()} · ${c.at.slice(0, 10)} · ${c.currency} ${((c.cents + c.feeCents) / 100).toFixed(2)}${c.feeCents ? ` (fee ${(c.feeCents / 100).toFixed(2)})` : ""} · ${c.payer ?? c.kind}${c.invoice ? ` → ${c.invoice}${c.client ? ` (${c.client})` : ""}` : ""}${c.why ? ` · ${c.why}` : ""}${c.memo ? ` · memo "${c.memo}"` : ""}`;
+  cmd
+    .command("wise")
+    .description("Money in from Wise, newest first: what each credit paid, or why it waits")
+    .option("--status <s>", `one of ${CREDIT_STATUSES_SHOWN.join(", ")}, ignored`)
+    .option("--all", "with our own moves (conversions, top-ups)")
+    .option("--limit <n>", "how many", "50")
+    .option("--json")
+    .action(async (opts: { status?: string; all?: boolean; limit: string; json?: boolean }) => {
+      const status = opts.status
+        ? [opts.status as CreditView["status"]]
+        : opts.all
+          ? [...CREDIT_STATUSES_SHOWN, "ignored" as const]
+          : undefined;
+      const rows = await withMainDb((main) =>
+        creditsList(main, { ...(status ? { status } : {}), limit: idOf(opts.limit) }),
+      );
+      if (opts.json) return print(rows);
+      console.log(rows.length ? rows.map(renderCredit).join("\n") : "no credits yet");
+    });
+  by(cmd.command("match <credit> <invoice>"))
+    .description(
+      "Put a credit on an invoice by hand (WREN-n): counts it in full, paid once covered",
+    )
+    .action(async (credit: string, invoice: string, opts: Opts) => {
+      const t = await withMainDb(async (main) =>
+        matchByHand(main, idOf(credit), invoice, await authorOf(main, opts.by)),
+      );
+      console.log(
+        `credit ${t.credit.id} on ${t.invoice?.number ?? invoice}: ${t.invoice?.status === "paid" ? `paid ${t.invoice.paidOn}` : "still open, part paid"}`,
+      );
+    });
+  by(cmd.command("dismiss <credit>"))
+    .description("Set a waiting credit aside: kept on record, on no invoice")
+    .action(async (credit: string, opts: Opts) => {
+      const c = await withMainDb(async (main) =>
+        dismissCredit(main, idOf(credit), await authorOf(main, opts.by)),
+      );
+      console.log(`credit ${c.id} set aside`);
+    });
 }

@@ -240,7 +240,8 @@ export const AUDIT_FUNCTION_STATEMENTS = [
     e.acting_as "as",
     e.table_name "table",
     CASE WHEN e.table_name LIKE 'books.%'
-        OR e.table_name IN ('delivery.invoices', 'delivery.agreements', 'ad_launches') THEN 'money'
+        OR e.table_name IN ('delivery.invoices', 'delivery.wise_credits', 'delivery.agreements', 'ad_launches')
+        THEN 'money'
       WHEN e.table_name LIKE 'delivery.%' OR e.table_name IN ('clients', 'client_members') THEN 'client'
       WHEN e.table_name = 'operators' THEN 'team'
       ELSE 'data' END area,

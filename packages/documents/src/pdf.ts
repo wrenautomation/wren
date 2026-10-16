@@ -167,3 +167,62 @@ export async function docPdf(
   }
   return pdf.save({ useObjectStreams: false });
 }
+
+/**
+ * A bill as the payer reads it (designs/2026-10-15-wise-billing.md): who it's from and to, the
+ * lines and total, the due day, then how to pay by bank transfer with the reference to quote.
+ * Amounts come formatted; the bank details come from the caller at runtime, never from here.
+ */
+export interface InvoicePdf {
+  number: string;
+  issuedOn: string;
+  dueOn: string;
+  currency: string;
+  from: { name: string; place?: string; email?: string };
+  to: string;
+  lines: { what: string; amount: string }[];
+  total: string;
+  /** The memo the payer types, so the payment finds its invoice. */
+  reference: string;
+  /** Receive details for the invoice's currency, label then value; empty prints a line to ask. */
+  pay: [string, string][];
+}
+
+/** The invoice's bytes. The same input always gives the same bytes. */
+export async function invoicePdf(i: InvoicePdf): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  pdf.setTitle(ansi(`Invoice ${i.number}`));
+  pdf.setAuthor(ansi(i.from.name));
+  pdf.setProducer("Wren");
+  pdf.setCreator("Wren");
+  const day = new Date(`${i.issuedOn}T00:00:00Z`);
+  pdf.setCreationDate(day);
+  pdf.setModificationDate(day);
+  const p: Pen = {
+    pdf,
+    page: pdf.addPage([W, H]),
+    y: H - M,
+    font: await pdf.embedFont(StandardFonts.Helvetica),
+    bold: await pdf.embedFont(StandardFonts.HelveticaBold),
+  };
+  write(p, i.from.name, { bold: true, size: 12 });
+  for (const l of [i.from.place, i.from.email]) if (l) write(p, l, { size: 10 });
+  p.y -= 14;
+  write(p, `Invoice ${i.number}`, { bold: true, size: 20, gap: 6 });
+  write(p, `To: ${i.to}`);
+  write(p, `Issued: ${i.issuedOn}`);
+  write(p, `Due: ${i.dueOn}`, { bold: true, gap: 12 });
+  row(p, ["Item", "", "", "Amount"], true);
+  for (const l of i.lines) row(p, [l.what, "", "", l.amount]);
+  p.y -= 6;
+  row(p, ["Total due", "", "", i.total], true);
+  p.y -= 18;
+  write(p, "Pay by bank transfer", { bold: true, size: 14, gap: 4 });
+  write(p, `Put this reference in the transfer's memo: ${i.reference}`, { bold: true, gap: 6 });
+  if (i.pay.length === 0)
+    write(p, `Ask ${i.from.email ?? i.from.name} for the bank details.`, { gap: 6 });
+  for (const [label, value] of i.pay) write(p, `${label}: ${value}`);
+  p.y -= 10;
+  write(p, `Please send the total in ${i.currency}, the currency it's billed in.`, { size: 10 });
+  return pdf.save({ useObjectStreams: false });
+}

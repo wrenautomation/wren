@@ -14,6 +14,7 @@ import type { DayPage, ListPage, Module, ModulePage } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
 import { BROADCAST_DECIDE_ACTIONS } from "../people/broadcasts.js";
+import { CREDIT_ACTIONS } from "../wren/credits.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
@@ -1009,6 +1010,8 @@ const APPROVAL_ACTIONS: Action[] = [
   ...SWAP_ACTIONS.map((a) => only("swap", a, WAITS)),
   // Payments: a pay link or a document someone without the yes asked to send.
   ...PAY_ACTIONS.map((a) => only("pay", a, WAITS)),
+  // A bank transfer that waits: put it on its likely invoice, or another, or set it aside.
+  ...CREDIT_ACTIONS.map((a) => only("credit", a, WAITS)),
   // A broadcast to a segment: People's own yes and no.
   ...BROADCAST_DECIDE_ACTIONS.map((a) => only("broadcast", a, WAITS)),
   ...DOC_ACTIONS.filter((a) => a.id === "documents.approve" || a.id === "documents.decline").map(

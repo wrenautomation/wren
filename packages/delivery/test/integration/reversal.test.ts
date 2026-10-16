@@ -1,5 +1,5 @@
 /**
- * The reverse gate: a setup fee refunded in full or lost to a chargeback pauses a running
+ * The reverse gate: a setup fee refunded in full or lost in a dispute pauses a running
  * plan; a partial refund doesn't; an open dispute only flags. Nothing resumes by itself.
  */
 import { clients } from "@wren/core/clients";
@@ -54,7 +54,11 @@ async function refused(p: Promise<unknown>): Promise<number> {
   throw new Error("expected a refusal");
 }
 
-/** A client with a running plan and its setup fee paid (invoice `<id>-S`, 1000.00). */
+/** Each client's setup invoice number, from the sequence. */
+const setups = new Map<string, string>();
+const S = (id: string) => setups.get(id) ?? "none";
+
+/** A client with a running plan and its setup fee paid (invoice `S(id)`, 1000.00). */
 async function running(id: string) {
   await pg.db.insert(clients).values({ id, name: `Client ${id}`, database: `wren_client_${id}` });
   const e = await startEngagement(pg.db, {
@@ -64,15 +68,15 @@ async function running(id: string) {
     by: BY,
     status: "active",
   });
-  await addInvoice(pg.db, e, {
-    number: `${id}-S`,
+  const i = await addInvoice(pg.db, e, {
     description: "Setup",
     cents: 100_000,
     dueOn: "2026-12-01",
     setup: true,
     by: BY,
   });
-  await markInvoice(pg.db, id, `${id}-S`, "paid");
+  setups.set(id, i.number);
+  await markInvoice(pg.db, id, i.number, "paid");
   return e;
 }
 
@@ -102,15 +106,15 @@ describe("the reverse gate", () => {
   it("a setup fee refunded in full pauses the plan, and says why to the team only", async () => {
     await running("full");
     expect(await statusOf("full")).toBe("active");
-    const r = await refundInvoice(pg.db, "full", "full-S", 100_000, BY);
+    const r = await refundInvoice(pg.db, "full", S("full"), 100_000, BY);
     expect(r).toMatchObject({ paused: true, invoice: { refundedCents: 100_000 } });
     expect(await statusOf("full")).toBe("paused");
     const [note, ...rest] = await notes("full");
     expect(rest).toEqual([]);
     expect(note).toMatchObject({ author: BY, internal: true });
-    expect(note?.body).toContain("full-S was refunded in full");
+    expect(note?.body).toContain(`${S("full")} was refunded in full`);
     // It stays down until someone resumes it: clearing the refund doesn't.
-    expect((await refundInvoice(pg.db, "full", "full-S", 0, BY)).paused).toBe(false);
+    expect((await refundInvoice(pg.db, "full", S("full"), 0, BY)).paused).toBe(false);
     expect(await statusOf("full")).toBe("paused");
     const [{ id } = { id: 0 }] = await pg.db.execute<{ id: number }>(
       sql`select id from delivery.engagements where client_id = 'full'`,
@@ -121,9 +125,9 @@ describe("the reverse gate", () => {
 
   it("a partial refund doesn't, however it grows, until it is all of it", async () => {
     await running("part");
-    expect((await refundInvoice(pg.db, "part", "part-S", 99_999, BY)).paused).toBe(false);
+    expect((await refundInvoice(pg.db, "part", S("part"), 99_999, BY)).paused).toBe(false);
     expect(await statusOf("part")).toBe("active");
-    expect((await refundInvoice(pg.db, "part", "part-S", 100_000, BY)).paused).toBe(true);
+    expect((await refundInvoice(pg.db, "part", S("part"), 100_000, BY)).paused).toBe(true);
     expect(await statusOf("part")).toBe("paused");
   });
 
@@ -131,13 +135,13 @@ describe("the reverse gate", () => {
     await running("lost");
     await running("won");
     await running("open");
-    expect((await disputeInvoice(pg.db, "open", "open-S", "open", BY)).paused).toBe(false);
-    expect((await disputeInvoice(pg.db, "won", "won-S", "open", BY)).paused).toBe(false);
-    expect((await disputeInvoice(pg.db, "won", "won-S", "won", BY)).paused).toBe(false);
-    expect((await disputeInvoice(pg.db, "lost", "lost-S", "open", BY)).paused).toBe(false);
-    expect((await disputeInvoice(pg.db, "lost", "lost-S", "lost", BY)).paused).toBe(true);
+    expect((await disputeInvoice(pg.db, "open", S("open"), "open", BY)).paused).toBe(false);
+    expect((await disputeInvoice(pg.db, "won", S("won"), "open", BY)).paused).toBe(false);
+    expect((await disputeInvoice(pg.db, "won", S("won"), "won", BY)).paused).toBe(false);
+    expect((await disputeInvoice(pg.db, "lost", S("lost"), "open", BY)).paused).toBe(false);
+    expect((await disputeInvoice(pg.db, "lost", S("lost"), "lost", BY)).paused).toBe(true);
     expect(await statusOf("lost")).toBe("paused");
-    expect((await notes("lost"))[0]?.body).toContain("lost to a chargeback");
+    expect((await notes("lost"))[0]?.body).toContain("lost in a dispute");
     expect(await statusOf("won")).toBe("active");
     expect(await statusOf("open")).toBe("active");
   });
@@ -152,9 +156,9 @@ describe("the reverse gate", () => {
     const [f, ...rest] = await flagged();
     expect(rest).toEqual([]);
     expect(f).toMatchObject({ client_id: "open", urgent: true });
-    expect(f?.what).toContain("open-S");
-    expect(pinged.some((p) => p.body.includes("disputed with the card issuer"))).toBe(true);
-    await disputeInvoice(pg.db, "open", "open-S", "won", BY);
+    expect(f?.what).toContain(S("open"));
+    expect(pinged.some((p) => p.body.includes("is disputed"))).toBe(true);
+    await disputeInvoice(pg.db, "open", S("open"), "won", BY);
     await pass("2026-10-14T20:50:00Z");
     expect(await flagged()).toEqual([]);
     expect(await statusOf("open")).toBe("active");
@@ -162,24 +166,23 @@ describe("the reverse gate", () => {
 
   it("only a paid invoice can be refunded or disputed, by up to what it was", async () => {
     const e = await running("odd");
-    await addInvoice(pg.db, e, {
-      number: "odd-M",
+    const { number: oddM } = await addInvoice(pg.db, e, {
       description: "Month",
       cents: 30_000,
       dueOn: "2026-12-01",
       by: BY,
     });
-    expect(await refused(refundInvoice(pg.db, "odd", "odd-M", 1_000, BY))).toBe(409);
-    expect(await refused(disputeInvoice(pg.db, "odd", "odd-M", "open", BY))).toBe(409);
-    expect(await refused(refundInvoice(pg.db, "odd", "odd-S", 100_001, BY))).toBe(400);
-    expect(await refused(refundInvoice(pg.db, "odd", "odd-S", -1, BY))).toBe(400);
+    expect(await refused(refundInvoice(pg.db, "odd", oddM, 1_000, BY))).toBe(409);
+    expect(await refused(disputeInvoice(pg.db, "odd", oddM, "open", BY))).toBe(409);
+    expect(await refused(refundInvoice(pg.db, "odd", S("odd"), 100_001, BY))).toBe(400);
+    expect(await refused(refundInvoice(pg.db, "odd", S("odd"), -1, BY))).toBe(400);
     expect(await refused(refundInvoice(pg.db, "odd", "nope", 1, BY))).toBe(404);
-    expect(await refused(refundInvoice(pg.db, "full", "odd-S", 1, BY))).toBe(404);
+    expect(await refused(refundInvoice(pg.db, "full", S("odd"), 1, BY))).toBe(404);
     // Not the setup fee: recorded, never a pause.
-    await markInvoice(pg.db, "odd", "odd-M", "paid");
-    const r = await refundInvoice(pg.db, "odd", "odd-M", 30_000, BY);
+    await markInvoice(pg.db, "odd", oddM, "paid");
+    const r = await refundInvoice(pg.db, "odd", oddM, 30_000, BY);
     expect(r).toMatchObject({ paused: false, invoice: { refundedCents: 30_000 } });
-    expect((await disputeInvoice(pg.db, "odd", "odd-M", "lost", BY)).paused).toBe(false);
+    expect((await disputeInvoice(pg.db, "odd", oddM, "lost", BY)).paused).toBe(false);
     expect(await statusOf("odd")).toBe("active");
   });
 
@@ -194,16 +197,15 @@ describe("the reverse gate", () => {
       terms: { setupCents: 100_000 },
       by: BY,
     });
-    await addInvoice(pg.db, engagement, {
-      number: "late-S",
+    const { number: late } = await addInvoice(pg.db, engagement, {
       description: "Setup",
       cents: 100_000,
       dueOn: "2026-12-01",
       setup: true,
       by: BY,
     });
-    await markInvoice(pg.db, "late", "late-S", "paid");
-    await refundInvoice(pg.db, "late", "late-S", 100_000, BY);
+    await markInvoice(pg.db, "late", late, "paid");
+    await refundInvoice(pg.db, "late", late, 100_000, BY);
     await signAgreement(pg.db, engagement, {
       sha256: agreement.sha256,
       name: "Lee Late",
@@ -212,15 +214,15 @@ describe("the reverse gate", () => {
     });
     expect(await statusOf("late")).toBe("onboarding");
     // Undone, the same payment starts it on the next look.
-    await refundInvoice(pg.db, "late", "late-S", 0, BY);
-    await markInvoice(pg.db, "late", "late-S", "paid");
+    await refundInvoice(pg.db, "late", late, 0, BY);
+    await markInvoice(pg.db, "late", late, "paid");
     expect(await statusOf("late")).toBe("active");
   });
 
   it("the audit log holds who did it, the refund and the pause", async () => {
     await running("trail");
     await serializable(pg.db, (tx) =>
-      refundInvoice(tx, "trail", "trail-S", 100_000, "amy@wren.example"),
+      refundInvoice(tx, "trail", S("trail"), 100_000, "amy@wren.example"),
     );
     const rows = await pg.db.execute<{ actor: string; table_name: string }>(
       sql`select distinct table_name, actor from audit_events

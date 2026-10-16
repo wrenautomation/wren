@@ -343,7 +343,10 @@ export type Comment = typeof comments.$inferSelect;
 export const INVOICE_STATUSES = ["open", "paid", "void"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
-/** A chargeback on an invoice's payment: `open` until the card issuer decides, then `won` or `lost`. */
+/**
+ * A payment the client contests, kept by hand: `open` until it's settled, then `won` or `lost`.
+ * A bank transfer has no chargeback, so this is a record of what was agreed, not a card dispute.
+ */
 export const INVOICE_DISPUTES = ["open", "won", "lost"] as const;
 export type InvoiceDispute = (typeof INVOICE_DISPUTES)[number];
 
@@ -357,18 +360,24 @@ export interface InvoiceLine {
   usage?: { vendor: string; month: string };
 }
 
+/** Our invoice numbers, across all clients: `WREN-1001`, then up. */
+export const invoiceNumbers = delivery.sequence("invoice_number", { startWith: 1001 });
+
 /**
- * An invoice we sent through Wise for an engagement, tracked here so the client
- * sees what's owed and we see what's late. Wise holds the invoice itself; `link`
- * is its page to view and pay. Overdue is an open one past `due_on`.
+ * An invoice Wren makes for an engagement (designs/2026-10-15-wise-billing.md): we number it,
+ * draw its PDF, mail it, and the client pays by bank transfer into our Wise account with the
+ * number as the memo. BillingWatch reads the credits and marks it paid. Overdue is an open one
+ * past `due_on`.
  */
 export const invoices = delivery.table(
   "invoices",
   {
     id: serial("id").notNull(),
     engagementId: integer("engagement_id").notNull(),
-    /** The number printed on the Wise invoice. */
-    number: varchar("number", { length: 64 }).notNull(),
+    /** Ours, from `invoice_number`: `WREN-1001`. The payer puts it in the transfer's memo. */
+    number: varchar("number", { length: 64 })
+      .default(sql`'WREN-' || nextval('delivery.invoice_number')`)
+      .notNull(),
     /** What it's for, as the client reads it: "Setup", "Meetings booked in October". */
     description: text("description").notNull(),
     cents: integer("cents").notNull(),
@@ -377,14 +386,17 @@ export const invoices = delivery.table(
     dueOn: date("due_on").notNull(),
     status: varchar("status", { length: 16, enum: INVOICE_STATUSES }).default("open").notNull(),
     paidOn: date("paid_on"),
-    link: text("link"),
+    /** What came in for it, a running total of matched credits (`wise_credits`). */
+    receivedCents: integer("received_cents").default(0).notNull(),
+    /** When its PDF went to the client's billing people; null = not yet. */
+    mailedAt: timestamp("mailed_at", { withTimezone: true }),
     /** When the client's people were reminded it's coming due (D13). */
     remindedAt: timestamp("reminded_at", { withTimezone: true }),
     /** The setup fee: paying it (with the contract signed) starts the plan. */
     setup: boolean("setup").default(false).notNull(),
-    /** Money handed back, a running total (as Stripe counts a refund). All of it reverses the setup gate. */
+    /** Money handed back by transfer, a running total. All of it reverses the setup gate. */
     refundedCents: integer("refunded_cents").default(0).notNull(),
-    /** A chargeback on the payment; lost, it reverses the setup gate. Null: none. */
+    /** A contested payment, kept by hand; lost, it reverses the setup gate. Null: none. */
     dispute: varchar("dispute", { length: 8, enum: INVOICE_DISPUTES }),
     /** The month a recurring bill is for, `2026-11` (D15): one per engagement, void ones aside. */
     period: varchar("period", { length: 7 }),
@@ -402,18 +414,78 @@ export const invoices = delivery.table(
       foreignColumns: [engagements.id],
       name: "fk_invoices_engagement",
     }).onDelete("cascade"),
-    // Wise numbers its invoices across all our clients.
+    // One number across all our clients: it's the transfer memo a credit is matched by.
     unique("uq_invoices_number").on(t.number),
     index("ix_invoices_engagement").on(t.engagementId),
     oneOf("ck_invoices_status", t.status, INVOICE_STATUSES),
     oneOf("ck_invoices_dispute", t.dispute, INVOICE_DISPUTES),
     check("ck_invoices_cents", sql`${t.cents} > 0`),
     check("ck_invoices_refunded", sql`${t.refundedCents} between 0 and ${t.cents}`),
+    check("ck_invoices_received", sql`${t.receivedCents} >= 0`),
     check("ck_invoices_currency", sql`${t.currency} ~ '^[A-Z]{3}$'`),
     check("ck_invoices_paid", sql`(${t.status} = 'paid') = (${t.paidOn} is not null)`),
   ],
 );
 export type Invoice = typeof invoices.$inferSelect;
+
+/**
+ * `matched`: on an invoice. `review`: waits on William in To approve (partial, over, no match,
+ * wrong currency); never applied by itself. `ignored`: our own money moving (a conversion, a top
+ * up). `dismissed`: looked at and set aside.
+ */
+export const CREDIT_STATUSES = ["matched", "review", "ignored", "dismissed"] as const;
+export type CreditStatus = (typeof CREDIT_STATUSES)[number];
+
+/**
+ * Money that came into a Wise balance, read from its statement by BillingWatch. One row per Wise
+ * transaction (`wise_id`, its reference number), so a pass read twice adds nothing.
+ */
+export const wiseCredits = delivery.table(
+  "wise_credits",
+  {
+    id: serial("id").notNull(),
+    /** Wise's reference number for the transaction: `DEPOSIT-123`, `TRANSFER-456`. */
+    wiseId: varchar("wise_id", { length: 128 }).notNull(),
+    balanceId: varchar("balance_id", { length: 32 }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull(),
+    /** What landed in the balance, after Wise's fee. */
+    cents: integer("cents").notNull(),
+    feeCents: integer("fee_cents").default(0).notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    /** Wise's kind for it: DEPOSIT, MONEY_ADDED, CONVERSION. */
+    kind: varchar("kind", { length: 40 }).notNull(),
+    payer: text("payer"),
+    /** The transfer's memo, where the invoice number should be. */
+    memo: text("memo"),
+    description: text("description"),
+    status: varchar("status", { length: 16, enum: CREDIT_STATUSES }).notNull(),
+    /** The invoice it paid toward (matched), or the one it most likely is (review). */
+    invoiceId: integer("invoice_id"),
+    /** Why it waits, or how it matched: "reference", "amount and payer", "partial". */
+    why: text("why"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    /** The statement line as Wise sent it. */
+    raw: jsonb("raw").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_wise_credits" }),
+    unique("uq_wise_credits_wise_id").on(t.wiseId),
+    foreignKey({
+      columns: [t.invoiceId],
+      foreignColumns: [invoices.id],
+      name: "fk_wise_credits_invoice",
+    }).onDelete("set null"),
+    index("ix_wise_credits_status").on(t.status, t.at),
+    index("ix_wise_credits_invoice").on(t.invoiceId),
+    oneOf("ck_wise_credits_status", t.status, CREDIT_STATUSES),
+    check("ck_wise_credits_cents", sql`${t.cents} > 0`),
+    check("ck_wise_credits_currency", sql`${t.currency} ~ '^[A-Z]{3}$'`),
+    check("ck_wise_credits_matched", sql`${t.status} <> 'matched' or ${t.invoiceId} is not null`),
+  ],
+);
+export type WiseCredit = typeof wiseCredits.$inferSelect;
 
 /**
  * A moment worth marking (D12): a first result ("first:meetings"), "halfway" or

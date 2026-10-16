@@ -111,6 +111,8 @@ export interface PortalMail {
   to: string;
   subject: string;
   text: string;
+  /** Files with it: an invoice's PDF. */
+  attachments?: readonly { filename: string; contentType: string; content: Uint8Array }[];
 }
 
 export interface WatchDeps {
@@ -392,8 +394,8 @@ async function remindInvoices(
       `Invoice ${i.number} for ${amount(i.cents, i.currency)} is due ${i.dueOn}, in ${days === 1 ? "1 day" : `${days} days`}.`,
       i.description,
       "",
-      ...(i.link ? [`Pay with Wise: ${i.link}`] : []),
-      `Your invoices: ${app}/account/billing?client=${clientId}`,
+      `Pay by bank transfer with ${i.number} in the memo. The bank details are on the invoice and here:`,
+      `${app}/account/billing?client=${clientId}`,
       "",
       "Paid already? Thank you, and ignore this.",
     ].join("\n");
@@ -1088,7 +1090,7 @@ async function problems(
         ...base,
         about: "setup",
         what: `no setup invoice on record (${amount(a.terms.setupCents, a.terms.currency)})`,
-        how: "Send it through Wise, then `wren delivery invoice --setup`",
+        how: `\`wren --client ${clientId} delivery invoice ${a.terms.setupCents / 100} --setup --for Setup --due <date>\``,
       });
   }
   for (const { r, clientId } of access)
@@ -1115,8 +1117,8 @@ async function problems(
       clientId,
       what: `invoice ${i.number} (${i.currency} ${(i.cents / 100).toFixed(2)}) unpaid, due ${i.dueOn}`,
     });
-  // A chargeback still open: answer it before the card issuer decides. A lost one pauses the
-  // plan by itself (`stopIfReversed`); an open one only asks for a look.
+  // A contested payment still open, kept by hand: settle it with the client. A lost one pauses
+  // the plan by itself (`stopIfReversed`); an open one only asks for a look.
   const disputed = await main
     .select({ i: invoices, clientId: engagements.clientId })
     .from(invoices)
@@ -1128,8 +1130,8 @@ async function problems(
       engagementId: i.engagementId,
       about: `dispute:${i.id}`,
       clientId,
-      what: `invoice ${i.number} (${i.currency} ${(i.cents / 100).toFixed(2)}) is disputed with the card issuer`,
-      how: `Send the issuer our evidence, then \`wren delivery dispute ${i.number} won\` or \`lost\``,
+      what: `invoice ${i.number} (${i.currency} ${(i.cents / 100).toFixed(2)}) is disputed`,
+      how: `Settle it with the client, then \`wren --client ${clientId} delivery dispute ${i.number} won\` or \`lost\``,
       urgent: true,
     });
   found.push(...(await billing(main, today)));
@@ -1137,15 +1139,15 @@ async function problems(
 }
 
 /**
- * The 1st's bills (D15): a heads-up two days before, then from the 1st a ping each day of
- * the first week, weekly after, until the invoice is on record with its month.
+ * The 1st's bills (D15): a heads-up two days before. BillingWatch makes and mails them from
+ * the 1st; one still unmade (BillingWatch off) pings each day of the first week, weekly after.
  */
 async function billing(main: Db, today: string): Promise<Found[]> {
   const period = today.slice(0, 7);
   const day = Number(today.slice(8));
   const next = addDays(`${period}-01`, 32).slice(0, 7);
   const soon = addDays(today, BILL_HEADS_UP_DAYS) >= `${next}-01`;
-  // Line for line, so the Wise invoice is typed from it.
+  // Line for line, as the invoice will read.
   const said = (b: Bill) =>
     billLines(b)
       .map((l) => `${l.what} (${amount(l.cents, b.currency)})`)
@@ -1157,7 +1159,7 @@ async function billing(main: Db, today: string): Promise<Found[]> {
       about: `bill:${period}`,
       everyDays: day <= 7 ? 1 : REPING_DAYS,
       what: `bill ${period}: ${said(b)} = ${amount(billCents(b), b.currency)}`,
-      how: `Send it through Wise, then \`wren --client ${b.clientId} delivery invoice <number> ${billCents(b) / 100} --for "${monthName(period)}" --due ${addDays(today, b.payDays)} --period ${period}${b.units ? ` --units ${b.units}` : ""}\``,
+      how: "BillingWatch makes and mails it: `wren delivery billing sync`",
     }),
   );
   const ahead = soon
@@ -1190,8 +1192,6 @@ const MONTH_NAMES = [
 /** A day as a person says it: "2026-10-09" to "October 9". */
 const dayWords = (day: string) =>
   `${MONTH_NAMES[Number(day.slice(5, 7)) - 1]} ${Number(day.slice(8, 10))}`;
-const monthName = (period: string) =>
-  `${MONTH_NAMES[Number(period.slice(5)) - 1]} ${period.slice(0, 4)}`;
 
 /**
  * Failed workflow runs: a flag per client and workflow, and Wren's own as digest lines. A client

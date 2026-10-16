@@ -60,6 +60,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | who is warm, a person's stage or persona, or the warm gate before an opener | [[leads/people-map]] | [[leads/profile]], [[leads/segment]], `leadRefusal` (`packages/core/src/leads.ts`), email `sendDue` (`packages/channel-email/src/send/deliver.ts`), `apps/portal/web/src/modules/people/` |
 | a record type, a field kind, or a portal table | [[platform/records]] | [[processes/migrate]] (its view), [[reactivation/crm-contact]], the portal Worker routes (`packages/reactivation/src/portal/routes.ts`) |
 | a bill, a vendor's rules, or how bills post | [[books/bill]], [[books/vendor]] | [[processes/books-import]], [[books/entry]], [[processes/migrate]] |
+| Wren's own invoices, how clients pay us, Wise credits or matching | [[clients/invoice]] | [[processes/billing-watch]], [[processes/delivery-watch]], `WISE_*` in `/wren/prod/env-2` (outside the tree), [[processes/migrate]] |
 | unit economics: spend buckets, invoices, an engagement's end or source | [[books/entry]], [[clients/engagement]] | `packages/books/src/economics.ts`, [[processes/migrate]] |
 | a keyword, the engine checks, or how proposals reach the site | [[search/keyword]], [[search/proposal]] | [[processes/search-loop]], [[processes/migrate]] |
 | a Restate service name or handler | [[platform/restate-services]] | [[platform/loop-object]], [[platform/cli]], [[platform/phone-worker]], `docs/restate-operations.md` |

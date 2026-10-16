@@ -28,6 +28,8 @@ import { refText, waitingAsks } from "@wren/core/templates";
 import { approvalId, templateAt } from "@wren/core/templates/console";
 import { installApprovalId, waitingInstalls } from "@wren/core/templates/install";
 import type { Queryable } from "@wren/db";
+import { creditsList } from "@wren/delivery/billing";
+import { creditApprovalId } from "@wren/delivery/billing/console";
 import { KIND_NAME } from "@wren/documents/lines";
 import { docApprovalId, waitingDocs } from "@wren/documents/store";
 import { accountPickFor } from "@wren/outreach";
@@ -785,6 +787,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const dcs = await waitingDocs(db);
       const sws = await waitingSwaps(db);
       const bcs = await waitingBroadcasts(db);
+      const crs = await creditsList(db, { status: ["review"], limit: 200 });
       return [
         // A broadcast to a segment (People → Broadcasts): a yes schedules it; nothing sends before.
         ...bcs.map(broadcastItem),
@@ -973,6 +976,22 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: d.at,
           url: `/documents/all/${d.id}?client=${encodeURIComponent(d.client)}`,
         })),
+        // Money in by bank transfer that BillingWatch wouldn't put on an invoice by itself.
+        ...crs.map((c) => ({
+          id: creditApprovalId(c.id),
+          type: "credit",
+          who: `${c.payer ?? "Unknown payer"}: ${money(c.cents + c.feeCents, c.currency)}`,
+          platform: null,
+          kind: "credit",
+          state: "waiting",
+          body: `${c.why ?? "No invoice fits"}.${c.invoice ? ` Likely ${c.invoice}${c.clientName ? ` (${c.clientName})` : ""}.` : ""}${c.memo ? ` Memo: ${c.memo}` : ""}`,
+          post_title: c.invoice,
+          draft: null,
+          account: null,
+          at: c.at,
+          due: c.at,
+          url: `/money/payments-in/${c.id}`,
+        })),
       ];
     },
     key: "id",
@@ -996,6 +1015,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           reply: neutral("Reply"),
           pay: neutral("Payment"),
           doc: neutral("Document"),
+          credit: neutral("Payment in"),
           swap: neutral("Swap"),
           broadcast: neutral("Broadcast"),
         }),
@@ -1020,6 +1040,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           reply: neutral("Reply to send"),
           pay: neutral("Pay link to send"),
           doc: neutral("Document to send"),
+          credit: neutral("Payment to match"),
           swap: neutral("Swap on a live post"),
           broadcast: neutral("Broadcast to send"),
         }),
@@ -1084,7 +1105,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       {
         id: "payments",
         label: "Payments",
-        where: { type: ["pay", "doc"] },
+        where: { type: ["pay", "doc", "credit"] },
         sort: "-at",
         at: "at",
       },
@@ -1129,6 +1150,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "payments.decline",
       "documents.approve",
       "documents.decline",
+      "billing.match",
+      "billing.dismiss",
       "marketing.swapApprove",
       "marketing.swapSkip",
       "people.broadcastApprove",
@@ -1156,6 +1179,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         type === "retire" ||
         type === "pay" ||
         type === "doc" ||
+        type === "credit" ||
         type === "swap" ||
         type === "broadcast"
       )

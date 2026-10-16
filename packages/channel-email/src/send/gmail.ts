@@ -6,6 +6,8 @@
  * whether the request left the socket (`TransportAmbiguous` → reconcile
  * decides) or definitively did not (`TransportRefused` → re-armable).
  */
+
+import MailComposer from "nodemailer/lib/mail-composer";
 import {
   type FetchLike,
   GMAIL_MODIFY_SCOPE,
@@ -73,6 +75,42 @@ export interface PlainMail {
   headers?: readonly (readonly [string, string])[];
   /** Its Message-ID, when the caller keeps it (marketing mail, for bounces); else one is minted. */
   messageId?: string;
+  /** Files sent with it: an invoice's PDF. */
+  attachments?: readonly MailFile[];
+}
+
+/** One attached file. */
+export interface MailFile {
+  filename: string;
+  contentType: string;
+  content: Uint8Array;
+}
+
+/**
+ * A message with files, through nodemailer's composer (multipart is its job, not ours): the
+ * plain path keeps `buildMime`, which writes text only.
+ */
+function mimeWithFiles(
+  o: { from: string; name: string },
+  m: PlainMail & { attachments: readonly MailFile[] },
+  messageId: string,
+): Promise<Buffer> {
+  const mail = new MailComposer({
+    from: { name: o.name, address: o.from },
+    to: m.to,
+    subject: m.subject,
+    text: m.text,
+    messageId,
+    ...(m.headers ? { headers: m.headers.map(([key, value]) => ({ key, value })) } : {}),
+    attachments: m.attachments.map((f) => ({
+      filename: f.filename,
+      contentType: f.contentType,
+      content: Buffer.from(f.content),
+    })),
+  });
+  return new Promise((resolve, reject) =>
+    mail.compile().build((err, out) => (err ? reject(err) : resolve(out))),
+  );
 }
 
 /**
@@ -84,16 +122,19 @@ export function plainMailer(
   o: { mailbox: string; from: string; name: string },
 ): (m: PlainMail) => Promise<void> {
   return async (m) => {
-    const mime = buildMime({
-      fromAddress: o.from,
-      fromName: o.name,
-      to: m.to,
-      subject: m.subject,
-      replySubject: null,
-      body: m.text,
-      messageId: m.messageId ?? `<${crypto.randomUUID()}@${o.from.split("@")[1]}>`,
-      ...(m.headers ? { headers: m.headers } : {}),
-    });
+    const messageId = m.messageId ?? `<${crypto.randomUUID()}@${o.from.split("@")[1]}>`;
+    const mime = m.attachments?.length
+      ? await mimeWithFiles(o, { ...m, attachments: m.attachments }, messageId)
+      : buildMime({
+          fromAddress: o.from,
+          fromName: o.name,
+          to: m.to,
+          subject: m.subject,
+          replySubject: null,
+          body: m.text,
+          messageId,
+          ...(m.headers ? { headers: m.headers } : {}),
+        });
     await gmail.sendRaw(o.mailbox, mime);
   };
 }

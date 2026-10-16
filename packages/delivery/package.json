@@ -16,7 +16,11 @@
     "./sample": "./src/sample.ts",
     "./health": "./src/health/index.ts",
     "./health/console": "./src/health/console.ts",
-    "./health/console-routes": "./src/health/console-routes.ts"
+    "./health/console-routes": "./src/health/console-routes.ts",
+    "./billing": "./src/billing/index.ts",
+    "./billing/console": "./src/billing/console.ts",
+    "./billing/console-routes": "./src/billing/console-routes.ts",
+    "./billing/records": "./src/billing/records.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",
@@ -30,6 +34,7 @@
     "@wren/books": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/documents": "workspace:*",
     "@wren/offers": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

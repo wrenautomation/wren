@@ -306,8 +306,7 @@ describe("flags", () => {
   });
 
   it("an invoice past its due day waits for the next digest, and clears when paid", async () => {
-    await addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
-      number: "WREN-7",
+    const late = await addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
       description: "Setup",
       cents: 100_000,
       issuedOn: "2026-09-25",
@@ -318,7 +317,7 @@ describe("flags", () => {
     // Today's digest went this morning.
     expect(take(pinged)).toEqual([]);
     expect(await open()).toContainEqual(expect.stringMatching(/^invoice:\d+$/));
-    await markInvoice(pg.db, "acme", "WREN-7", "paid", "2026-10-09");
+    await markInvoice(pg.db, "acme", late.number, "paid", "2026-10-09");
     await pass("2026-10-09T20:50:00Z");
     expect((await open()).filter((c) => c.startsWith("invoice:"))).toEqual([]);
   });
@@ -328,8 +327,7 @@ describe("moments, reviews and reminders (D13)", () => {
   const titled = (subject: string) => take(mail).filter((m) => m.subject === subject);
 
   it("reminds an owner once, in the morning, a few days before an invoice is due", async () => {
-    await addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
-      number: "WREN-8",
+    const { number: n } = await addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
       description: "Meetings, week 1",
       cents: 50_000,
       issuedOn: "2026-10-09",
@@ -337,16 +335,17 @@ describe("moments, reviews and reminders (D13)", () => {
       by: "ops@wren.example",
     });
     await pass("2026-10-12T08:00:00Z");
-    expect(titled("Acme Staffing: invoice WREN-8 due in 4 days")).toEqual([]);
+    expect(titled(`Acme Staffing: invoice ${n} due in 4 days`)).toEqual([]);
     await pass("2026-10-12T10:00:00Z");
-    const [told, ...rest] = titled("Acme Staffing: invoice WREN-8 due in 4 days");
+    const [told, ...rest] = titled(`Acme Staffing: invoice ${n} due in 4 days`);
     expect(rest).toEqual([]);
     expect(told?.to).toBe("amy@acme.example");
-    expect(told?.text).toContain("Invoice WREN-8 for USD 500 is due 2026-10-16, in 4 days.");
+    expect(told?.text).toContain(`Invoice ${n} for USD 500 is due 2026-10-16, in 4 days.`);
+    expect(told?.text).toContain(`Pay by bank transfer with ${n} in the memo.`);
     expect(told?.text).toContain("https://app.example/account/billing?client=acme");
     await pass("2026-10-13T10:00:00Z");
-    expect(titled("Acme Staffing: invoice WREN-8 due in 3 days")).toEqual([]);
-    await markInvoice(pg.db, "acme", "WREN-8", "paid", "2026-10-13");
+    expect(titled(`Acme Staffing: invoice ${n} due in 3 days`)).toEqual([]);
+    await markInvoice(pg.db, "acme", n, "paid", "2026-10-13");
   });
 
   it("the first meeting is a moment: one review mail each, once", async () => {
@@ -479,15 +478,14 @@ describe("the 1st's bills (D15)", () => {
     const [bill, ...rest] = bills();
     expect(rest).toEqual([]);
     expect(bill).toContain("Bill 2026-12:");
-    expect(bill).toContain("delivery invoice <number> 1800 ");
-    expect(bill).toContain("--period 2026-12 --units 3");
+    expect(bill).toContain("= USD 1,800");
+    expect(bill).toContain("BillingWatch makes and mails it");
     await pass("2026-12-01T12:00:00Z");
     expect(bills()).toEqual([]);
     await pass("2026-12-02T10:00:00Z");
     expect(bills()).toHaveLength(1);
 
     const invoice = {
-      number: "BOLT-12",
       description: "December 2026",
       cents: 180_000,
       dueOn: "2026-12-16",
@@ -496,12 +494,12 @@ describe("the 1st's bills (D15)", () => {
       by: "ops@wren.example",
     };
     await addInvoice(pg.db, e, invoice);
-    await expect(addInvoice(pg.db, e, { ...invoice, number: "BOLT-13" })).rejects.toMatchObject({
+    await expect(addInvoice(pg.db, e, invoice)).rejects.toMatchObject({
       status: 409,
     });
-    await expect(
-      addInvoice(pg.db, e, { ...invoice, number: "B", period: "12-2026" }),
-    ).rejects.toMatchObject({ status: 400 });
+    await expect(addInvoice(pg.db, e, { ...invoice, period: "12-2026" })).rejects.toMatchObject({
+      status: 400,
+    });
     await pass("2026-12-03T10:00:00Z");
     expect(bills()).toEqual([]);
   });
@@ -528,7 +526,6 @@ describe("the 1st's bills (D15)", () => {
     ]);
     const e = await engagementOf(pg.db, "bolt");
     const invoice = {
-      number: "BOLT-01",
       description: "January 2027",
       cents: billCents(bill as Bill),
       dueOn: "2027-01-15",
@@ -549,7 +546,7 @@ describe("the 1st's bills (D15)", () => {
     expect(await state()).toBe("on_invoice");
     expect((await billsDue(pg.db, "2027-02"))[0]?.usage.map((u) => u.month)).toEqual(["2027-01"]);
 
-    await markInvoice(pg.db, "bolt", "BOLT-01", "void");
+    await markInvoice(pg.db, "bolt", made.number, "void");
     expect(await state()).toBe("draft");
     expect((await billsDue(pg.db, "2027-02"))[0]?.usage.map((u) => u.month)).toEqual([
       "2026-12",
@@ -557,7 +554,7 @@ describe("the 1st's bills (D15)", () => {
     ]);
 
     // An amount that isn't the bill is one line, and the usage waits.
-    const other = await addInvoice(pg.db, e, { ...invoice, number: "BOLT-01B", cents: 100 });
+    const other = await addInvoice(pg.db, e, { ...invoice, cents: 100 });
     expect(other.lines).toEqual([{ what: "January 2027", cents: 100 }]);
     expect(await state()).toBe("draft");
   });

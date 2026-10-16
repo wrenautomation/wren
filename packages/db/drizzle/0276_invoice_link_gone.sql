@@ -1,0 +1,1 @@
+ALTER TABLE "delivery"."invoices" DROP COLUMN "link";

@@ -122,8 +122,11 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 ./bin/wren --client <id> delivery result meetings 3      # only the offer's measures
 ./bin/wren --client <id> delivery hide <updateId>        # off their timeline, kept on record
 ./bin/wren --client <id> delivery comment "388 of them." --update <id> | --deliverable <id>   # reply in a thread
-./bin/wren --client <id> delivery invoice WREN-12 1000 --for "Setup" --due 2026-10-15 [--link <wise url>] [--currency USD] [--setup] [--period 2026-11 --units 3]
-./bin/wren --client <id> delivery paid WREN-12 [--on <date>] [--undo]    # void WREN-12 cancels it
+./bin/wren --client <id> delivery invoice 1000 --for "Setup" --due 2026-10-15 [--currency USD] [--setup] [--period 2026-11 --units 3]   # numbered WREN-n
+./bin/wren --client <id> delivery paid WREN-1001 [--on <date>] [--undo]    # void WREN-1001 cancels it
+./bin/wren delivery wise [--status review] [--all]       # money in from Wise, what each paid
+./bin/wren delivery match <credit> WREN-1001 | dismiss <credit>   # a waiting credit by hand
+./bin/wren delivery billing status|start|stop|sync       # BillingWatch
 ```
 
 - Write posts and ask text as the client reads them: plain, short, no internal names. `--internal` is for Wren only.
@@ -131,8 +134,8 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 - `--by <email>` picks the operator it's from; with one operator it's them.
 - `--engagement <id>` when the client has more than one running.
 - Reactivation fills contacts reached, replies and meetings (with the bill) itself each pass, plus a daily line. Record only job orders and fees by hand.
-- New client: `onboard`, not `start`. An owner signs in the portal (their product app → Paperwork); we get the signed copy by email. Then send the setup invoice through Wise and record it with `invoice --setup`; `paid` on it starts the plan. Terms default to the offer's price; flags override. Don't promise terms the flags can't express: a new contract version is a code change.
-- Billing: Wise sends the invoice and takes the payment. Record each one with `delivery invoice` (number as Wise shows it, amount in dollars, its Wise link), and `paid` when it clears. The account's owners see them under Account → Billing. One unpaid past its due day pings us. On the 1st we get a ping per signed client with the month's amount (monthly fee + unbilled units, capped) and the exact `invoice ... --period --units` command; it repeats daily until recorded.
+- New client: `onboard`, not `start`. An owner signs in the portal (their product app → Paperwork); we get the signed copy by email. `onboard` makes the setup invoice; BillingWatch mails it, and once it's paid the plan starts. Terms default to the offer's price; flags override. Don't promise terms the flags can't express: a new contract version is a code change.
+- Billing (designs/2026-10-15-wise-billing.md): clients pay by bank transfer into our Wise account. Wren numbers each invoice (`WREN-n`, also the memo reference), and BillingWatch mails its PDF with our bank details to the owners, makes the month's bills on the 1st, and reads Wise every 15 minutes. A credit naming its invoice, or the exact amount from a payer named like the client, marks it paid. Partial, over, wrong currency or unknown credits wait in To approve and `delivery wise`; never mark those by guess. The owners see invoices under Account → Billing. One unpaid past its due day pings us. BillingWatch is off until started: its first pass bills every signed client for the month, so check first.
 - Every client at a glance: `app.wrenautomation.com/ops/clients` (operators only), at risk first.
 - The demo's project is a labeled sample that DeliveryWatch keeps fresh. `./bin/wren --client demo delivery sample` reseeds it now.
 - Their people get mail from `portal@`: a welcome, anything that needs them, and a Friday recap. Each picks their level in Account → Your settings. A low weekly pulse, a quiet 3 days, a late step or ask, a client comment with no reply, an overdue invoice, or nobody signing in pings us. `delivery status` shows the threads.

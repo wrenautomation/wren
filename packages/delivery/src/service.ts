@@ -55,6 +55,8 @@ import {
 } from "@wren/core/records/serve";
 import { WEBHOOKS, type WebhooksService } from "@wren/core/webhooks";
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
+import { invoiceFile, pdfName } from "./billing/mail.js";
+import type { ReceiveDetails } from "./billing/receive.js";
 import { domainsApi } from "./domains.js";
 import { type FileStore, newFileKey } from "./files.js";
 import {
@@ -115,6 +117,8 @@ export interface DeliveryDeps {
   senders?: (client: string) => Promise<string[]>;
   /** A client's mailboxes connected to read: a sender not among them has its bounces unread. */
   readers?: (client: string) => Promise<string[]>;
+  /** Where clients wire us, per currency (`WISE_RECEIVE_DETAILS`): on Billing and the PDF. */
+  receive?: ReceiveDetails;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -162,6 +166,7 @@ const recordsOf = (deps: DeliveryDeps, c: Client, operator: boolean, req: Record
     () => mayOn(deps.main, req, "money", c.id),
     () => mayOn(deps.main, req, "manage", c.id),
     opener && !isDemo(req.viewer) ? () => messagingOf(deps, opener(c), c.id) : undefined,
+    deps.receive,
   );
 };
 
@@ -518,6 +523,16 @@ export function deliveryApi(deps: DeliveryDeps) {
       if (!key) throw new PortalRefusal("no such file", 404);
       return { url: await files.getUrl(key) };
     },
+    /** One of the client's invoices as its PDF, for its billing people. */
+    invoicePdf: async (req: PortalRequest & { id?: unknown }) => {
+      const client = await pickClient(deps.main, req);
+      if (!(await mayOn(deps.main, req, "money", client.id)))
+        throw new PortalRefusal("billing is for this account's owners", 403);
+      const i = (await invoicesOf(deps.main, client.id)).find((x) => x.id === Number(req.id));
+      if (!i) throw new PortalRefusal("no such invoice", 404);
+      const bytes = await invoiceFile(i, client.name, deps.receive ?? {});
+      return { name: pdfName(i), base64: Buffer.from(bytes).toString("base64") };
+    },
     account: async (req: PortalRequest): Promise<AccountView> => {
       const client = await pickClient(deps.main, req);
       const viewer = req.viewer;
@@ -827,6 +842,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       remove: (_: restate.Context, req: Req<"remove">) => answer(() => api.remove(req)),
       upload: (_: restate.Context, req: Req<"upload">) => answer(() => api.upload(req)),
       file: (_: restate.Context, req: Req<"file">) => answer(() => api.file(req)),
+      invoicePdf: (_: restate.Context, req: Req<"invoicePdf">) => answer(() => api.invoicePdf(req)),
       pulse: (_: restate.Context, req: Req<"pulse">) => answer(() => api.pulse(req)),
       mail: (_: restate.Context, req: Req<"mail">) => answer(() => api.mail(req)),
       // Wren hears about a review or an interest on the next pass: ask for it now.
