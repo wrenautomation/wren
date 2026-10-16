@@ -43,8 +43,8 @@ export async function upcomingCalls(
       coalesce(nullif(cb.name, ''), cb.email, 'a booked call')::text who
     from call_bookings cb
     left join calendar.bookings b on cb.uid = 'wren-' || b.id::text
-    where cb.state = 'booked' and cb.start is not null and cb.start < ${until}
-      and coalesce(b."end", cb.start + make_interval(mins => ${DEFAULT_CALL_MIN})) > ${now}
+    where cb.state = 'booked' and cb.start is not null and cb.start < ${until.toISOString()}::timestamptz
+      and coalesce(b."end", cb.start + make_interval(mins => ${DEFAULT_CALL_MIN})) > ${now.toISOString()}::timestamptz
     order by cb.start`,
   );
   const iso = (v: Date | string) => new Date(v).toISOString();
@@ -65,9 +65,9 @@ export async function matchBooking(db: Queryable, startedAt: Date): Promise<numb
     db,
     sql`
     select id from call_bookings
-    where state = 'booked' and start between ${new Date(startedAt.getTime() - 3_600_000)}
-      and ${new Date(startedAt.getTime() + 15 * 60_000)}
-    order by abs(extract(epoch from start - ${startedAt}::timestamptz)) limit 1`,
+    where state = 'booked' and start between ${new Date(startedAt.getTime() - 3_600_000).toISOString()}::timestamptz
+      and ${new Date(startedAt.getTime() + 15 * 60_000).toISOString()}::timestamptz
+    order by abs(extract(epoch from start - ${startedAt.toISOString()}::timestamptz)) limit 1`,
   );
   return row ? Number(row.id) : null;
 }

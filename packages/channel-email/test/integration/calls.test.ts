@@ -12,6 +12,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { briefOf, buildBrief, markSent, saveBrief } from "../../src/calls/brief.js";
 import { setCallOutcome } from "../../src/calls/outcome.js";
+import { matchBooking, upcomingCalls } from "../../src/calls/recording.js";
 import { emailConsoleApi } from "../../src/restate/console.js";
 import { callBookings, threadEvents } from "../../src/schema.js";
 import { SendPolicy } from "../../src/send/policy.js";
@@ -186,5 +187,28 @@ describe("a client's Calls app", () => {
     await expect(api().callsOf({ ...operator, client: "delta", ids: [1] })).rejects.toMatchObject({
       status: 404,
     });
+  });
+});
+
+describe("calls the Mac records", () => {
+  it("lists a booked call that has not ended, on the real driver's parameters", async () => {
+    const call = await bookedCall();
+    const soon = await upcomingCalls(pg.db, new Date("2026-10-08T14:00:00Z"), 24);
+    expect(soon).toEqual([
+      {
+        id: call.id,
+        start: "2026-10-08T15:00:00.000Z",
+        end: "2026-10-08T15:30:00.000Z",
+        who: "Ana Example",
+      },
+    ]);
+    expect(await upcomingCalls(pg.db, new Date("2026-10-08T16:00:00Z"), 24)).toEqual([]);
+    expect(await upcomingCalls(pg.db, NOW, 2)).toEqual([]);
+  });
+
+  it("matches a recording to the booked call it started near", async () => {
+    const call = await bookedCall();
+    expect(await matchBooking(pg.db, new Date("2026-10-08T15:04:00Z"))).toBe(call.id);
+    expect(await matchBooking(pg.db, new Date("2026-10-08T18:00:00Z"))).toBeNull();
   });
 });
