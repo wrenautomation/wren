@@ -129,10 +129,13 @@ export const recordingRecord = (signGet?: (key: string) => Promise<string>) =>
       started: date("When"),
       mins: number("Minutes"),
       summary: text("Summary"),
-      by: status({
-        desk: { label: "Booked call", tone: "neutral" },
-        manual: { label: "Record now", tone: "neutral" },
-      }, "Started by"),
+      by: status(
+        {
+          desk: { label: "Booked call", tone: "neutral" },
+          manual: { label: "Record now", tone: "neutral" },
+        },
+        "Started by",
+      ),
       email: text("Email"),
     },
     views: [{ id: "all", label: "All", sort: "-started", at: "started" }],

@@ -273,8 +273,13 @@ export function callExtras(
       className="grid gap-3 rounded-(--ui-radius) border border-(--ui-hair) px-4 py-3"
     >
       <h3 className="flex flex-wrap items-baseline gap-x-3 text-[13px] font-medium text-(--ui-ink-2)">
-        <span>Recorded {dayOf(rec.startedAt)}, {Math.max(1, Math.round(rec.durationS / 60))} min</span>
-        <a href={`/calendar/recordings/${rec.id}`} className="font-normal underline underline-offset-2">
+        <span>
+          Recorded {dayOf(rec.startedAt)}, {Math.max(1, Math.round(rec.durationS / 60))} min
+        </span>
+        <a
+          href={`/calendar/recordings/${rec.id}`}
+          className="font-normal underline underline-offset-2"
+        >
           Watch and read it
         </a>
       </h3>

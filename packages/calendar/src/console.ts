@@ -244,7 +244,8 @@ export function makeCalendarConsole(deps: CalendarConsoleDeps) {
   /** The Mac's recorder: Wren's own calls, so Wren's team only. */
   const recorder = (ctx: restate.Context, req: PortalRequest, what: keyof RecorderCalls) =>
     answer(async () => {
-      if (!isWren(req) || !seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
+      if (!isWren(req) || !seesInternal(req))
+        throw new PortalRefusal("that's for Wren's team", 403);
       return askRecorder(ctx, what, by(req));
     });
   return portalService({

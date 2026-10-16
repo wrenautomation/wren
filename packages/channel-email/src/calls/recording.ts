@@ -35,7 +35,9 @@ export async function upcomingCalls(
   aheadH = 24,
 ): Promise<UpcomingCall[]> {
   const until = new Date(now.getTime() + aheadH * 3_600_000);
-  const got = await rows<{ id: number; start: Date | string; end: Date | string; who: string }>(db, sql`
+  const got = await rows<{ id: number; start: Date | string; end: Date | string; who: string }>(
+    db,
+    sql`
     select cb.id, cb.start,
       coalesce(b."end", cb.start + make_interval(mins => ${DEFAULT_CALL_MIN})) "end",
       coalesce(nullif(cb.name, ''), cb.email, 'a booked call')::text who
@@ -43,7 +45,8 @@ export async function upcomingCalls(
     left join calendar.bookings b on cb.uid = 'wren-' || b.id::text
     where cb.state = 'booked' and cb.start is not null and cb.start < ${until}
       and coalesce(b."end", cb.start + make_interval(mins => ${DEFAULT_CALL_MIN})) > ${now}
-    order by cb.start`);
+    order by cb.start`,
+  );
   const iso = (v: Date | string) => new Date(v).toISOString();
   return got.map((r) => ({
     id: Number(r.id),
@@ -58,11 +61,14 @@ export async function upcomingCalls(
  * before the recording's start, nearest first. Null when none is.
  */
 export async function matchBooking(db: Queryable, startedAt: Date): Promise<number | null> {
-  const [row] = await rows<{ id: number }>(db, sql`
+  const [row] = await rows<{ id: number }>(
+    db,
+    sql`
     select id from call_bookings
     where state = 'booked' and start between ${new Date(startedAt.getTime() - 3_600_000)}
       and ${new Date(startedAt.getTime() + 15 * 60_000)}
-    order by abs(extract(epoch from start - ${startedAt}::timestamptz)) limit 1`);
+    order by abs(extract(epoch from start - ${startedAt}::timestamptz)) limit 1`,
+  );
   return row ? Number(row.id) : null;
 }
 
@@ -146,7 +152,10 @@ export interface NewRecording {
 }
 
 /** Its line on the person's timeline: the summary, with the notes in full under it. */
-export function recordingLine(id: number, r: Pick<NewRecording, "startedAt" | "durationS" | "notes">): ElsewhereLine {
+export function recordingLine(
+  id: number,
+  r: Pick<NewRecording, "startedAt" | "durationS" | "notes">,
+): ElsewhereLine {
   const mins = Math.max(1, Math.round(r.durationS / 60));
   const n = r.notes;
   const list = (title: string, items: string[] | undefined) =>
@@ -191,15 +200,24 @@ export async function saveRecording(db: Queryable, r: NewRecording): Promise<num
     .returning({ id: callRecordings.id });
   const id = row!.id;
   if (r.callBookingId !== null) {
-    const [b] = await rows<{ email: string | null; name: string | null; person: number | null }>(db, sql`
+    const [b] = await rows<{ email: string | null; name: string | null; person: number | null }>(
+      db,
+      sql`
       select cb.email::text email, cb.name, e.person_id person
       from call_bookings cb left join enrollments e on e.id = cb.enrollment_id
-      where cb.id = ${r.callBookingId}`);
+      where cb.id = ${r.callBookingId}`,
+    );
     if (b) {
       const keys: ProfileKey[] = [];
       if (b.email) keys.push({ kind: "email", value: b.email });
       if (b.person != null) keys.push({ kind: "person", value: Number(b.person) });
-      await noteElsewhere(db, keys, "calendar", { name: b.name, at: r.startedAt }, recordingLine(id, r));
+      await noteElsewhere(
+        db,
+        keys,
+        "calendar",
+        { name: b.name, at: r.startedAt },
+        recordingLine(id, r),
+      );
     }
   }
   return id;
@@ -214,7 +232,10 @@ export interface RecordingNote {
 }
 
 /** A booked call's newest recording, or null. */
-export async function recordingOf(db: Queryable, callBookingId: number): Promise<RecordingNote | null> {
+export async function recordingOf(
+  db: Queryable,
+  callBookingId: number,
+): Promise<RecordingNote | null> {
   const [r] = await db
     .select({
       id: callRecordings.id,

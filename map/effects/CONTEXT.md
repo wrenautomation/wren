@@ -20,6 +20,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | spam score | [[email/spam-score]] | [[email/template]], the gates |
 | message or enrollment states | [[email/message]], [[email/enrollment]] | `packages/channel-email/src/state.ts`, [[processes/send-tick]], every view in `packages/channel-email/src/views.ts` |
 | a call booked on cal.com | [[email/call-booking]] | [[platform/phone-worker]], [[email/enrollment]], `packages/books/src/economics.ts` |
+| a call's recording, its notes, or Record now | [[email/call-recording]] | [[email/call-booking]], [[leads/profile]] (timeline line), autobrowse `src/calls/` (outside the tree), `deploy/terraform/files.tf` (`calls/*`) |
 | how a call went, or its pre-call brief | [[email/call-booking]], [[email/call-brief]] | [[calendar/booking]] (mirror and view), [[platform/spine]] (`close`, `onboarding`), `packages/core/src/calls.ts`, `apps/portal/web/src/modules/calls` |
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
@@ -86,6 +87,7 @@ Nothing in this repo references these; they break silently.
 | `../lander/functions/go/[[path]].ts` (`?v=<YouTube id>`) | `targetLink` in `packages/content/src/funnel.ts` writes `/go/<code>/<stage>/<id8>?v=<id>` on Wren's video posts; the lander records a `hits` row (page `youtube:<id>`) and 302s to YouTube. Deploy the lander first | [[content/funnel]] |
 | `../lander/functions/v/[id].ts` (`VIDEOS_ORIGIN` in `wrangler.toml`) | `<VIDEOS_ORIGIN>/v/<id>.json` as `packages/video/src/publish.ts` writes it; the CloudFront domain from `deploy/terraform/videos.tf` | [[reactivation/demo-video]] |
 | `../autobrowse/walkthrough/03-meta-app.md` | `walkthrough/02-meta-ads.md` (link) | [[ads/ad-launch]] |
+| autobrowse's desk `calls` service and recorder (`src/calls/`) | `CALL_RECORDER` handlers status/start/stop (`packages/calendar/src/recorder.ts`); `wren calls upcoming` JSON and `wren calls add` args (`apps/cli/src/calls.ts`) | [[email/call-recording]] |
 | autobrowse's `sites` service (same Restate, on the box) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |
 | autobrowse's `gmail` site, each seed's Gmail consent | `PlacementScheduler` reads `/gmail/v1/users/me/messages` as the seed (`restate/placement-scheduler.ts:72`) | [[email/placement-check]] |
 | the channel readers `activity`/`audience` (O1-O4, each `channel-*` over autobrowse `sites`/`desk`) | `ContentChannel.activity?`/`audience?` in `packages/core/src/content/index.ts`; `SocialWatch` reads them | [[content/platform]] |

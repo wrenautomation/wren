@@ -172,6 +172,10 @@ Notes has a kanban Board. A card is a note, so it keeps a body, comments and his
 
 On the page, Board has Export CSV and Import. Import takes a CSV or a table pasted from Sheets, asks which column is which once, and updates the card when a row's link points at one.
 
+## Call recordings
+
+The desk on William's Mac records each booked call with OBS. It starts 5 minutes before the call if a Meet or Zoom window is open. It stops 3 minutes after the window closes. Record now and Stop recording sit on Calendar > Calls and Inbox > Calls. The desk asks `wren calls upcoming` what to wait for, and runs `wren calls add <file>` on each finished file. That command encodes a 720p mp4 and transcribes it on the Mac. It writes the notes, uploads the video and puts a line on the person's timeline. Calendar > Recordings lists every recording. Setup and the desk side live in autobrowse (`autobrowse calls setup`); the design is `designs/2026-10-16-call-recording.md`.
+
 ## Segments and channels
 
 A segment's rule reads as text, so agents write it the way the portal stores it:

@@ -18,18 +18,23 @@ a paid Workspace tier. OBS 32 is on William's Mac, and the desk (autobrowse) alr
   switches to `Wren call`, unmutes, records, then puts all three back. The record path is never
   touched, so his profile stays as it is.
 - **The file moves out at once.** OBS writes into its usual folder; on stop the desk moves the
-  file to `~/Movies/Wren calls/`. `wren video watch` only takes files quiet for 60 s, so a call
+  file to `~/Movies/Wren calls/` and queues it a minute later (OBS finishes the file after
+  StopRecord answers). `wren video watch` only takes files quiet for 60 s, so a call
   never becomes a video.
 - **When it records.** The desk reads `wren calls upcoming` every 5 minutes (cal.com's and our
   calendar's calls, one table: `call_bookings`). From 5 minutes before a call to its end, it
   checks the screen every 15 s for a call window: a Meet tab, a Zoom meeting or a Teams call,
-  by window title (CoreGraphics' window list through `osascript`, read only). Seen: record.
+  by window title. Seen: record. The titles come from OBS's own window list over the
+  websocket: the desk runs under launchd without Screen Recording, so CoreGraphics gives it no
+  titles (tried). The desk opens OBS in the background for this (`open -g`), and quits it after
+  only if it opened it.
 - **When it stops.** No call window for 3 minutes, or 30 minutes past the booked end, or OBS
   stopped by hand. A manual recording stops on Stop, on 3 minutes without a call window once
   one was seen, or after 3 hours.
 - **Manual.** `autobrowse calls start|stop|status`, and Record now / Stop on Calendar > Calls
   and Inbox > Calls (`CalendarConsole.record|stopRecording|recorder` → the desk's `calls`
-  service). A start the Mac doesn't take within 10 s is cancelled, so it never starts late.
+  service). Each ask waits a few seconds (status 8, start 30, stop 15), then is cancelled. The
+  desk refuses an ask older than a minute, so a sleeping Mac never starts late.
 - **State on disk.** The recording in progress is a file
   (`~/.config/autobrowse/call-recording.json`). The desk restarts on every autobrowse commit; a
   restart mid-call picks the recording back up.

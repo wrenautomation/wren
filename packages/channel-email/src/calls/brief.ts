@@ -8,10 +8,10 @@
 import { platformLabel, touchesFor, touchText } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
-import { type RecordingNote, recordingOf } from "./recording.js";
 import { dossiers, type Fact, recentPosts } from "@wren/research/dossier";
 import { eq, sql } from "drizzle-orm";
 import { callBriefs } from "../schema.js";
+import { type RecordingNote, recordingOf } from "./recording.js";
 
 /** One line of the brief: what it says, where it came from, and when. */
 export interface Cited {

@@ -36,7 +36,8 @@ export function whenOn(zone: string, at: Date): string {
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? "";
 
 /** The consent line on a recorded calendar's booked and moved mails. */
-export const RECORDED = "I record calls so I can keep good notes. If you'd rather I didn't, say so at the start.";
+export const RECORDED =
+  "I record calls so I can keep good notes. If you'd rather I didn't, say so at the start.";
 
 /**
  * One mail about `b`. `manage` is its signed link; `rebook` is where to book again; `signer`

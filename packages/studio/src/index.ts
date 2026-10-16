@@ -129,7 +129,6 @@ export {
   wav16k,
 } from "./media.js";
 export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
-export { transcribe } from "./whisper.js";
 export {
   type PromoProps,
   type PromoScene,
@@ -228,4 +227,5 @@ export {
   withFallback,
   wordAt,
 } from "./stress.js";
+export { transcribe } from "./whisper.js";
 export { fixWordAt, fixWords } from "./words.js";

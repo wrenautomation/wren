@@ -32,7 +32,7 @@ Citations: `packages/channel-email/src/schema.ts:639`, `packages/channel-email/s
 - **owned-by:** [[email/enrollment]], [[email/message]] (by `link_code`)
 - **joins:** [[platform/phone-worker]]
 - **joins:** [[calendar/booking]] (writes here through `applyBooking`, `packages/calendar/src/book.ts:206`)
-- **owns:** [[email/call-brief]]
+- **owns:** [[email/call-brief]], [[email/call-recording]]
 - **joins:** [[platform/spine]] (`close`, `onboarding`)
 - **looks-like-but-is-not:** `call_invites` (a reply's proposed slot, booked through the API on William's approve)
 
