@@ -11,16 +11,19 @@ import { guardClient } from "./client-scope.js";
 /** `args` parsed by a program with the CLI's audit commands; what ran, and the path it saw. */
 async function run(args: string[]): Promise<{ ran: string[]; path: string[] }> {
   const ran: string[] = [];
+  const did = (what: string) => () => {
+    ran.push(what);
+  };
   let path: string[] = [];
   const program = new Command("wren").option("--client <id>").exitOverride();
   guardClient(program, (p) => {
     path = p;
   });
   const audit = program.command("audit");
-  audit.command("seal").action(() => ran.push("seal"));
+  audit.command("seal").action(did("seal"));
   const sealer = audit.command("sealer");
-  for (const verb of ["status", "start"]) sealer.command(verb).action(() => ran.push(verb));
-  program.command("status").action(() => ran.push("content status"));
+  for (const verb of ["status", "start"]) sealer.command(verb).action(did(verb));
+  program.command("status").action(did("content status"));
   await program.parseAsync(args, { from: "user" });
   return { ran, path };
 }
