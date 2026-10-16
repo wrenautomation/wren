@@ -33,6 +33,7 @@ import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
 import { registerCalendar } from "./calendar.js";
 import { registerCalls } from "./calls.js";
+import { guardClient } from "./client-scope.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
 import { registerCrm } from "./crm.js";
@@ -115,53 +116,13 @@ async function withClientDb<T>(fn: (db: Db, client: Client) => Promise<T>): Prom
   return open(clientUrl(settings.databaseUrl, client), (db) => fn(db, client));
 }
 
-/**
- * Commands that honour `--client`. Everything else runs Wren's own loops or the
- * registry, so `--client` there is refused rather than silently ignored.
- */
-const CLIENT_SCOPED = new Set([
-  "db",
-  "email",
-  "crm",
-  "audit",
-  "delivery",
-  "sms",
-  "hooks",
-  "lake",
-  "learn",
-  "notes",
-  "people",
-  "segments",
-  "channels",
-  "sites",
-  "templates",
-  "workflows",
-  "write",
-]);
-/** Under a client-scoped command, the parts that cover every database or only Wren's. */
-const NOT_PER_CLIENT = new Set([
-  "audit sealer",
-  "sms numbers",
-  "sms forms",
-  "templates sync",
-  "lake build",
-  "lake sql",
-  "lake status",
-]);
-
 const program = new Command("wren")
   .description("Wren automation ops")
   .option("--client <id>", "run against this client's database (see `wren clients list`)")
   .showHelpAfterError();
 
-program.hook("preAction", (_root, action) => {
-  const path: string[] = [];
-  for (let c: Command | null = action; c && c !== program; c = c.parent) path.unshift(c.name());
+guardClient(program, (path) => {
   app = `wren-cli:${path.join(" ")}`;
-  if (!program.opts<{ client?: string }>().client) return;
-  const top = path[0] ?? "";
-  if (!CLIENT_SCOPED.has(top) || NOT_PER_CLIENT.has(path.slice(0, 2).join(" ")))
-    throw new Error(`\`wren ${path.slice(0, 2).join(" ")}\` does not take --client`);
 });
 
 program

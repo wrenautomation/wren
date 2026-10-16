@@ -4,7 +4,7 @@ cluster: platform
 universe: live
 status: verified
 verified: 2026-09-28 @ 83459e9
-entity: apps/cli/src/main.ts:62
+entity: apps/cli/src/main.ts:118
 ---
 
 # cli
@@ -21,7 +21,7 @@ Reads go straight to Postgres; writes that are one-row operator facts (approve, 
 - `walkthrough/demos/prod.sh` points one command at prod, read-only
 - `~/.local/bin/wren` links to `bin/wren` (outside the repo)
 
-Citations: `apps/cli/src/main.ts:62`
+Citations: `apps/cli/src/main.ts:118`
 
 ## Connected to
 

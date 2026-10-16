@@ -1,76 +1,55 @@
 /**
- * The `--client` guard on the CLI. `wren audit sealer` runs across every
- * database, so it refuses `--client`; `wren audit seal` is per-database, so it
- * accepts it. Spawned as a real process against an unreachable database, so the
- * guard is what we see, not a connection. Nothing here is expected to fail.
+ * The `--client` guard on the CLI. `wren audit sealer` runs across every database, so it refuses
+ * `--client`; `wren audit seal` is per-database, so it accepts it. The guard runs on a commander
+ * program shaped like the CLI's, in process: spawning the whole CLI under tsx took most of a
+ * minute on a loaded machine.
  */
-import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Command } from "commander";
+import { describe, expect, it } from "vitest";
+import { guardClient } from "./client-scope.js";
 
-const srcDir = import.meta.dirname;
-const mainTs = join(srcDir, "main.ts");
-// apps/cli/src -> repo root -> a tsx that resolves the workspace packages.
-const tsx = join(srcDir, "..", "..", "..", "packages", "db", "node_modules", ".bin", "tsx");
-
-let root = "";
-let home = "";
-let work = "";
-
-/** Run the CLI with a minimal env and an unreachable database; never a real .env. */
-function runCli(args: string[]): Promise<{ code: number; out: string }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(tsx, [mainTs, ...args], {
-      cwd: work,
-      env: {
-        PATH: process.env.PATH,
-        HOME: home,
-        WREN_ROOT: root,
-        WREN_DATABASE_URL: "postgres://x:y@127.0.0.1:1/none",
-      },
-    });
-    let out = "";
-    child.stdout.on("data", (d) => {
-      out += d;
-    });
-    child.stderr.on("data", (d) => {
-      out += d;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => resolve({ code: code ?? -1, out }));
+/** `args` parsed by a program with the CLI's audit commands; what ran, and the path it saw. */
+async function run(args: string[]): Promise<{ ran: string[]; path: string[] }> {
+  const ran: string[] = [];
+  let path: string[] = [];
+  const program = new Command("wren").option("--client <id>").exitOverride();
+  guardClient(program, (p) => {
+    path = p;
   });
+  const audit = program.command("audit");
+  audit.command("seal").action(() => ran.push("seal"));
+  const sealer = audit.command("sealer");
+  for (const verb of ["status", "start"]) sealer.command(verb).action(() => ran.push(verb));
+  program.command("status").action(() => ran.push("content status"));
+  await program.parseAsync(args, { from: "user" });
+  return { ran, path };
 }
-
-beforeAll(async () => {
-  root = await mkdtemp(join(tmpdir(), "wren-cli-root-"));
-  home = await mkdtemp(join(tmpdir(), "wren-cli-home-"));
-  work = await mkdtemp(join(tmpdir(), "wren-cli-work-"));
-});
-afterAll(async () => {
-  for (const d of [root, home, work]) if (d) await rm(d, { recursive: true, force: true });
-});
 
 const REFUSAL = "`wren audit sealer` does not take --client";
 
 describe("`wren audit sealer` covers every database, so it refuses --client", () => {
-  it("refuses `--client` on `audit sealer status`", async () => {
-    const { code, out } = await runCli(["--client", "acme", "audit", "sealer", "status"]);
-    expect(out).toContain(REFUSAL);
-    expect(code).toBe(1);
-  }, 60_000);
+  it.each(["status", "start"])("refuses `--client` on `audit sealer %s`", async (verb) => {
+    await expect(run(["--client", "acme", "audit", "sealer", verb])).rejects.toThrow(REFUSAL);
+  });
 
-  it("refuses `--client` on `audit sealer start`", async () => {
-    const { code, out } = await runCli(["--client", "acme", "audit", "sealer", "start"]);
-    expect(out).toContain(REFUSAL);
-    expect(code).toBe(1);
-  }, 60_000);
+  it("runs `audit sealer status` without --client", async () => {
+    expect(await run(["audit", "sealer", "status"])).toEqual({
+      ran: ["status"],
+      path: ["audit", "sealer", "status"],
+    });
+  });
 });
 
 describe("`wren audit seal` is per-database, so --client is allowed", () => {
-  it("does not refuse `--client` on `audit seal` (it reaches the database instead)", async () => {
-    const { out } = await runCli(["audit", "seal", "--client", "acme"]);
-    expect(out).not.toContain("does not take --client");
-  }, 60_000);
+  it("does not refuse `--client` on `audit seal`", async () => {
+    expect((await run(["audit", "seal", "--client", "acme"])).ran).toEqual(["seal"]);
+  });
+});
+
+describe("a command outside the client-scoped set", () => {
+  it("refuses `--client` rather than ignore it", async () => {
+    await expect(run(["--client", "acme", "status"])).rejects.toThrow(
+      "`wren status` does not take --client",
+    );
+  });
 });
