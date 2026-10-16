@@ -297,6 +297,8 @@ export interface LoopRow {
   error: string | null;
   /** When the next `loop` call is due; null when none is queued. */
   nextAt: string | null;
+  /** The gap the last pass asked for before the next; null before the first. */
+  delayMs: number | null;
 }
 /**
  * One part that runs for Wren, as the Agents page draws it: its loops (their state is `loops`)
@@ -630,7 +632,7 @@ export const restateAdmin =
   };
 
 /** `scheduled_at` rides along: without it Restate leaves `scheduled_start_at` out of the answer. */
-const LOOPS_SQL = `SELECT s.service_name, s.service_key, s.key, s.value_utf8, i.scheduled_at, i.scheduled_start_at
+export const LOOPS_SQL = `SELECT s.service_name, s.service_key, s.key, s.value_utf8, i.scheduled_at, i.scheduled_start_at
 FROM state s
 LEFT JOIN sys_invocation i ON i.target_service_name = s.service_name AND i.target_service_key = s.service_key
   AND i.target_handler_name = 'loop' AND i.status = 'scheduled'
@@ -670,6 +672,7 @@ export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
       failures: last?.failures ?? 0,
       error: last?.error ?? null,
       nextAt: next,
+      delayMs: typeof last?.delayMs === "number" ? last.delayMs : null,
     });
   }
   const failing = (l: LoopRow) => (l.failures > 0 || l.error !== null ? 0 : 1);

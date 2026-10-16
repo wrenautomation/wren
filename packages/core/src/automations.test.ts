@@ -105,6 +105,7 @@ describe("automationRows", () => {
           failures: 0,
           error: null,
           nextAt: at(5),
+          delayMs: null,
         },
         {
           service: "SmsSender",
@@ -114,6 +115,7 @@ describe("automationRows", () => {
           failures: 2,
           error: "down",
           nextAt: at(4),
+          delayMs: null,
         },
         {
           service: "Other",
@@ -123,6 +125,7 @@ describe("automationRows", () => {
           failures: 0,
           error: null,
           nextAt: null,
+          delayMs: null,
         },
       ],
     });

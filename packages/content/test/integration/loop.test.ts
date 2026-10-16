@@ -48,6 +48,9 @@ const posted: { platform: Platform; post: Post }[] = [];
 /** Comments the scheduler left under posts (a LinkedIn video's funnel link). */
 const replied: { platform: Platform; commentId: string; text: string }[] = [];
 const refuse = new Set<Platform>();
+/** Platforms whose publish hangs on an awakeable, and the awakeables, until the test ends them. */
+const hang = new Set<Platform>();
+const hung: string[] = [];
 const views = new Map<string, number>();
 const notes: string[] = [];
 let calls = 0;
@@ -66,7 +69,20 @@ const singles: string[] = [];
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
-    publish: async (_ctx: restate.Context, req: { platform: Platform; post: Post }) => {
+    publish: async (ctx: restate.Context, req: { platform: Platform; post: Post }) => {
+      if (hang.has(req.platform)) {
+        const { id, promise } = ctx.awakeable<string>();
+        await ctx.run("hung", () => {
+          hung.push(id);
+        });
+        const verdict = await promise;
+        return {
+          id: `${req.platform}-late`,
+          url: `https://${req.platform}.test/p/${verdict}`,
+          publishedAt: new Date().toISOString(),
+          fetchedWith: "api" as const,
+        };
+      }
       if (refuse.has(req.platform))
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
           errorCode: 404,
@@ -183,7 +199,7 @@ beforeAll(async () => {
     services: [
       fakeContent,
       makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"], zone: "UTC" }),
-      makeContentScheduler({ db: pg.db, idleMs: 60_000 }),
+      makeContentScheduler({ db: pg.db, idleMs: 60_000, publishWaitMs: 3_000 }),
       makeContentMetrics({ db: pg.db, notifier }),
       makeContentPlanner({
         db: pg.db,
@@ -213,6 +229,8 @@ beforeEach(async () => {
   prompts.length = 0;
   views.clear();
   refuse.clear();
+  hang.clear();
+  hung.length = 0;
   browserBusy.clear();
   batching = false;
   batchFails = false;
@@ -356,6 +374,53 @@ describe("content loop", () => {
     expect(again.stats?.published.map((p) => p.platform)).toEqual(["x"]);
     const done = (await listDrafts(pg.db, { ideaId: out.idea.id })).find((d) => d.platform === "x");
     expect(done).toMatchObject({ status: "published", error: null });
+  });
+
+  it("moves on from a publish that hangs, and settles it on a later pass", async () => {
+    const out = await desk().add({ text: "a post that hangs", platforms: ["x", "linkedin"] });
+    const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
+    hang.add("x");
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    // The hung X call no longer holds the pass: LinkedIn posts, X waits.
+    const first = await sync();
+    expect(first.stats?.published.map((p) => p.platform)).toEqual(["linkedin"]);
+    expect(first.stats?.posting?.map((w) => w.platform)).toEqual(["x"]);
+    const x = drafts.find((d) => d.platform === "x");
+    if (!x) throw new Error("no x draft");
+    expect((await getDraft(pg.db, x.id))?.status).toBe("publishing");
+    // Still running: the next pass leaves it, and never claims the draft again.
+    const second = await sync();
+    expect(second.stats?.posting).toHaveLength(1);
+    expect(hung).toHaveLength(1);
+    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    await ingress.resolveAwakeable(hung[0] as string, "late");
+    const third = await sync();
+    expect(third.stats?.published).toMatchObject([{ platform: "x", url: "https://x.test/p/late" }]);
+    expect(third.stats?.posting).toBeUndefined();
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "published",
+      url: "https://x.test/p/late",
+    });
+  });
+
+  it("marks a publish failed when it ends in a refusal after the pass moved on", async () => {
+    const out = await desk().add({ text: "a post that hangs then fails", platforms: ["x"] });
+    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!x) throw new Error("no x draft");
+    hang.add("x");
+    await approveDrafts(pg.db, [x.id], { now: new Date() });
+    expect((await sync()).stats?.posting).toHaveLength(1);
+    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    await ingress.rejectAwakeable(hung[0] as string, "the platform said no");
+    const after = await sync();
+    expect(after.stats?.failed).toMatchObject([
+      { platform: "x", error: expect.stringContaining("the platform said no") },
+    ]);
+    expect((await getDraft(pg.db, x.id))?.status).toBe("failed");
   });
 
   it("a failure that may have posted is approved again only after a person is told to check", async () => {

@@ -7,6 +7,8 @@
 // CI runs it hourly (.github/workflows/restate-lag.yml). Env: RESTATE_HOST (default prod's, as
 // scripts/ingress.mjs), RESTATE_AUTH_TOKEN, WREN_DISCORD_WEBHOOK_URL (unset: print only),
 // LAG_MINUTES (default 15).
+// It also watches the watchdog: `LoopWatch/all` wakes every other dead loop
+// (designs/2026-10-16-loop-watchdog.md), so its own lost chain is told here.
 const host = process.env.RESTATE_HOST ?? "restate.wrenautomation.com";
 // Cloud's admin API is public on :9070; the box's Caddy serves its query under /admin.
 const admin = host.endsWith(".restate.cloud") ? `https://${host}:9070` : `https://${host}/admin`;
@@ -19,6 +21,9 @@ FROM sys_invocation WHERE target_handler_name = 'loop' AND status = 'scheduled'`
 // Paused calls are the DeadLetters loop's (`wren dlq`): told there once, not here hourly.
 const STUCK = `SELECT id, target, status, modified_at FROM sys_invocation
 WHERE status IN ('ready', 'running', 'backing-off')`;
+const WATCH = `SELECT s.value_utf8, (SELECT count(*) FROM sys_invocation i
+  WHERE i.target_service_name = 'LoopWatch' AND i.target_service_key = 'all' AND i.status <> 'completed') AS calls
+FROM state s WHERE s.service_name = 'LoopWatch' AND s.service_key = 'all' AND s.key = 'loop'`;
 
 async function say(text) {
   console.log(text);
@@ -47,8 +52,9 @@ async function query(sql) {
 
 let rows;
 let open;
+let watch;
 try {
-  [rows, open] = await Promise.all([query(SQL), query(STUCK)]);
+  [rows, open, watch] = await Promise.all([query(SQL), query(STUCK), query(WATCH)]);
 } catch (err) {
   await say(
     `Restate admin did not answer: ${err.message}. Throttled? See the self-host design doc.`,
@@ -80,3 +86,10 @@ if (stuck.length)
     `Restate has ${stuck.length} calls that stopped moving.\n${stuck.slice(0, 20).join("\n")}\nResume or kill each on the admin API: PATCH /invocations/<id>/resume or /kill. A kill fails its caller's step, which retries on its next pass.`,
   );
 else console.log(`${open.length} open calls, none stuck`);
+
+const watchdog = watch[0];
+if (watchdog && JSON.parse(watchdog.value_utf8).running && Number(watchdog.calls) === 0)
+  await say(
+    "LoopWatch/all is running but has no next check: no dead loop gets woken. `wren loops watch stop`, then `start`.",
+  );
+else console.log(watchdog ? "LoopWatch has its next check" : "LoopWatch not started");

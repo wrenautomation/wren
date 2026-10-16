@@ -63,6 +63,7 @@ export const PLATFORM = {
     TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
     SetupWatch: "checks every set-up account again on its repeat, and starts a lost one over",
     DeadLetters: "files every call Restate gave up on as a dead letter and tells Discord once",
+    LoopWatch: "wakes a loop that stopped on its own and names one stuck behind a call, once each",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
     PeopleConsole: "People in every workspace: records, segments, Describe segment, broadcasts",

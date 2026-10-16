@@ -294,6 +294,7 @@ import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
+import { makeLoopWatch } from "@wren/core/loop-watch";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { linkKey, marketingEnvelope } from "@wren/core/marketing";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
@@ -2323,6 +2324,12 @@ export async function buildServices(
             main: db,
             admin: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
             patch: restateAdminPatch(settings.restateAdminUrl, settings.restateAuthToken),
+            ...notify,
+          }),
+          // Wakes a loop whose chain ended; names one stuck behind a call (designs/2026-10-16-loop-watchdog.md).
+          makeLoopWatch({
+            main: db,
+            admin: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
             ...notify,
           }),
         ]

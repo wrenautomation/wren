@@ -16,7 +16,7 @@ An idea (CLI, or minted by AdsWatch). `ContentDesk.draft` pays once per platform
 
 ## Why this shape
 
-Approving is publishing, so it stays a person's call; the loops only move approved rows. Drafting runs on the worker's LLM (Cohere, $0), so the planner may draft, but its drafts wait as `draft` like any other. A draft edited after approval goes back to `draft`. A crash between the two row moves leaves a visible `publishing` row and never posts twice.
+Approving is publishing, so it stays a person's call; the loops only move approved rows. Drafting runs on the worker's LLM (Cohere, $0), so the planner may draft, but its drafts wait as `draft` like any other. A draft edited after approval goes back to `draft`. A crash between the two row moves leaves a visible `publishing` row and never posts twice. A pass waits on one publish at most 15 min (`PUBLISH_WAIT_MS`, `restate/scheduler.ts:61`): a call Restate paused never answers and once held the scheduler's lock for hours. Past that the draft stays `publishing`, the call's id is kept in `publishing` state, and later passes settle it (`settleOpen`, `:162`).
 
 ## Steps
 

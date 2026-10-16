@@ -125,6 +125,19 @@ wren dlq drop <id>               # handled some other way; Restate left alone
 wren dlq sweep start|status|sync # the loop
 ```
 
+### Loop health
+
+A loop is dead when its chain ended (running, no next call) and stuck when its pass waits on
+a call that won't answer. `LoopWatch/all` checks every loop every 10 minutes, wakes a dead one
+and names a stuck one with its blocker, once per incident. It never ends a blocker: that's
+`wren dlq` (designs/2026-10-16-loop-watchdog.md). `scripts/restate-lag.mjs` says when
+LoopWatch itself has no next check.
+
+```sh
+wren loops [--all] [--json]          # every loop: alive, dead, stuck (stopped with --all)
+wren loops watch start|status|sync   # the watchdog loop
+```
+
 ### Logs
 
 ```sh

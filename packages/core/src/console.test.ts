@@ -125,6 +125,7 @@ describe("ConsolePortal loops", () => {
         failures: 3,
         error: null,
         nextAt: null,
+        delayMs: 60_000,
       },
       {
         service: "Alpha",
@@ -134,6 +135,7 @@ describe("ConsolePortal loops", () => {
         failures: 0,
         error: null,
         nextAt: "2026-01-02T10:00:00.000Z",
+        delayMs: 60_000,
       },
       {
         service: "Gamma",
@@ -143,6 +145,7 @@ describe("ConsolePortal loops", () => {
         failures: 0,
         error: null,
         nextAt: "2026-01-02T11:00:00.000Z",
+        delayMs: null,
       },
     ]);
   });
@@ -165,6 +168,7 @@ describe("ConsolePortal loops", () => {
         failures: 1,
         error: "boom",
         nextAt: null,
+        delayMs: 60_000,
       },
     ]);
   });

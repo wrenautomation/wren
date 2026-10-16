@@ -18,6 +18,11 @@
  * The desk's browser busy past autobrowse's wait (`browserBusy`: 503, `not sent`): the draft goes
  * back to approved, its slot kept, "Waiting for the browser" on it; the rest of the pass skips
  * that platform, and the next pass comes in a minute. Never a failed draft, never a notice.
+ *
+ * A pass waits on one publish at most `PUBLISH_WAIT_MS` (designs/2026-10-16-loop-watchdog.md). A
+ * publish Restate paused never answers, and a pass waiting on it held this key's lock for hours.
+ * Past the wait the call runs on alone: the draft stays `publishing`, its invocation id is kept
+ * in `publishing` state, and each later pass looks at it for a moment and settles the row.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
@@ -52,6 +57,26 @@ export const SCHEDULER_KEY = "default";
 const DEFAULT_IDLE_MS = 15 * 60 * 1000;
 const BUSY_MS = 60 * 1000;
 const MAX_PER_PASS = 10;
+/** The longest a pass waits on one publish before it moves on. */
+export const PUBLISH_WAIT_MS = 15 * 60 * 1000;
+/** A first comment is a nicety: waited on this long, then noted on the draft. */
+const COMMENT_WAIT_MS = 5 * 60 * 1000;
+/** How long a pass looks at a publish it moved on from. */
+const SETTLE_LOOK_MS = 1000;
+/** State key: the publishes a pass moved on from, still to settle. */
+const PUBLISHING = "publishing";
+
+/** A publish still running after its pass moved on. */
+export interface OpenPublish {
+  invocationId: string;
+  draftId: string;
+  platform: Platform;
+  /** The funnel link, for the row and the first comment. */
+  link: string | null;
+  comment: string | null;
+  account: string | null;
+  since: string;
+}
 
 /** The `Content` service's publish handler as the worker serves it. */
 type ContentService = {
@@ -80,6 +105,8 @@ export interface ContentSchedulerDeps {
   posted?: (ctx: restate.ObjectContext, platform: Platform, client: string | null) => void;
   /** A client's database; absent, a client's key stops. */
   clientDb?: ((client: string) => Db) | null;
+  /** How long a pass waits on one publish (default `PUBLISH_WAIT_MS`); tests shorten it. */
+  publishWaitMs?: number;
 }
 
 export interface PublishStats {
@@ -91,10 +118,13 @@ export interface PublishStats {
   held?: number;
   /** Drafts put back because the desk's browser was busy: they go next pass. */
   waiting?: { id: string; platform: Platform }[];
+  /** Publishes still running past the wait; a later pass settles them. */
+  posting?: { id: string; platform: Platform; since: string }[];
 }
 
 export function makeContentScheduler(deps: ContentSchedulerDeps) {
   const idleMs = deps.idleMs ?? DEFAULT_IDLE_MS;
+  const publishWaitMs = deps.publishWaitMs ?? PUBLISH_WAIT_MS;
   return makeLoopObject("ContentScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const owner = clientOfKey(ctx.key);
@@ -125,6 +155,94 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     return publishPass(ctx, now, { db, client: id });
   });
 
+  /**
+   * The publishes earlier passes moved on from: each looked at for a moment. Done: the row
+   * settles as if the pass had waited. Still running: kept for the next pass.
+   */
+  async function settleOpen(
+    ctx: restate.ObjectContext,
+    o: { db: Db; client: string | null },
+    content: restate.Client<ContentService>,
+    stats: PublishStats,
+    busy: Set<Platform>,
+  ): Promise<OpenPublish[]> {
+    const still: OpenPublish[] = [];
+    for (const p of (await ctx.get<OpenPublish[]>(PUBLISHING)) ?? []) {
+      try {
+        const published = await ctx
+          .invocation(restate.InvocationIdParser.fromString(p.invocationId))
+          .attach<Published>()
+          .orTimeout(SETTLE_LOOK_MS);
+        await finish(ctx, o, content, p, published, stats);
+      } catch (err) {
+        if (err instanceof restate.TimeoutError) still.push(p);
+        else await ended(ctx, o, p, err, stats, busy);
+      }
+    }
+    return still;
+  }
+
+  /** A publish that answered: the row marked, the first comment, the warm-replies hook. */
+  async function finish(
+    ctx: restate.ObjectContext,
+    o: { db: Db; client: string | null },
+    content: restate.Client<ContentService>,
+    p: OpenPublish,
+    published: Published,
+    stats: PublishStats,
+  ): Promise<void> {
+    await ctx.run(`published ${p.draftId}`, () =>
+      markPublished(o.db, p.draftId, published, p.link),
+    );
+    stats.published.push({ id: p.draftId, platform: p.platform, url: published.url });
+    if (p.comment) {
+      // The post is up either way: a comment that fails or hangs is noted on the draft, never
+      // retried into a second one.
+      const commented = await content
+        .reply({
+          platform: p.platform,
+          commentId: published.id,
+          text: p.comment,
+          ...(p.account ? { account: p.account } : {}),
+        })
+        .orTimeout(COMMENT_WAIT_MS)
+        .then(
+          () => null,
+          (err: unknown) => errorText(err),
+        );
+      if (commented)
+        await ctx.run(`comment failed ${p.draftId}`, () =>
+          noteOnDraft(o.db, p.draftId, `First comment with the link failed: ${commented}`),
+        );
+    }
+    deps.posted?.(ctx, p.platform, o.client);
+  }
+
+  /**
+   * A publish that ended in an error. A terminal refusal (no channel, the platform said no,
+   * killed) is this draft's problem: recorded on the row, the pass moves on. The desk's browser
+   * busy: back to approved, the platform skipped this pass. Anything else retries the pass.
+   */
+  async function ended(
+    ctx: restate.ObjectContext,
+    o: { db: Db },
+    p: OpenPublish,
+    err: unknown,
+    stats: PublishStats,
+    busy: Set<Platform>,
+  ): Promise<void> {
+    if (!(err instanceof restate.TerminalError) && !(err instanceof ShapeError)) throw err;
+    const error = errorText(err);
+    if (browserBusy(err)) {
+      await ctx.run(`waiting ${p.draftId}`, () => markWaiting(o.db, p.draftId, error));
+      busy.add(p.platform);
+      stats.waiting = [...(stats.waiting ?? []), { id: p.draftId, platform: p.platform }];
+      return;
+    }
+    await ctx.run(`failed ${p.draftId}`, () => markFailed(o.db, p.draftId, error));
+    stats.failed.push({ id: p.draftId, platform: p.platform, error });
+  }
+
   /** One pass: due drafts claimed, posted through `Content`, marked. */
   async function publishPass(
     ctx: restate.ObjectContext,
@@ -132,12 +250,14 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     o: { db: Db; client: string | null; notifier?: Notifier | undefined },
   ): Promise<PassOutcome<PublishStats>> {
     const content = ctx.serviceClient<ContentService>({ name: "Content" });
+    const stats: PublishStats = { published: [], failed: [], remaining: 0 };
+    /** Platforms whose browser was busy this pass: their other drafts wait for the next. */
+    const busy = new Set<Platform>();
+    const open = await settleOpen(ctx, o, content, stats, busy);
     // Rows cross the journal as JSON: their Date columns are strings here; only id/platform/text/title/media/extra are read.
     const due = await ctx.run("due drafts", () => dueDrafts(o.db, now, MAX_PER_PASS + 1));
     const batch = due.slice(0, MAX_PER_PASS);
-    const stats: PublishStats = { published: [], failed: [], remaining: due.length - batch.length };
-    /** Platforms whose browser was busy this pass: their other drafts wait for the next. */
-    const busy = new Set<Platform>();
+    stats.remaining = due.length - batch.length;
     for (const draft of batch) {
       if (busy.has(draft.platform)) continue;
       const claimed = await ctx.run(`claim ${draft.id}`, () => claim(o.db, draft.id));
@@ -147,57 +267,46 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       const links = o.client
         ? { text: null, comment: null }
         : await ctx.run(`link ${draft.id}`, () => postedLinks(o.db, claimed));
-      const link = links.text ?? links.comment;
       // A person's pick on the draft posts it as that login; none, the platform's default.
       const account = o.client
         ? null
         : await ctx.run(`account ${draft.id}`, () => pickedAccount(o.db, `draft:${draft.id}`));
+      const call = content.publish({
+        platform: draft.platform,
+        post: postOf(claimed, links.text),
+        ...(o.client ? { client: o.client } : {}),
+        ...(account ? { account } : {}),
+      });
+      const p: OpenPublish = {
+        invocationId: await call.invocationId,
+        draftId: draft.id,
+        platform: draft.platform,
+        link: links.text ?? links.comment,
+        comment: links.comment,
+        account,
+        since: now.toISOString(),
+      };
       try {
-        const published = await content.publish({
-          platform: draft.platform,
-          post: postOf(claimed, links.text),
-          ...(o.client ? { client: o.client } : {}),
-          ...(account ? { account } : {}),
-        });
-        await ctx.run(`published ${draft.id}`, () =>
-          markPublished(o.db, draft.id, published, link),
-        );
-        stats.published.push({ id: draft.id, platform: draft.platform, url: published.url });
-        if (links.comment) {
-          // The post is up either way: a comment that fails is noted on the draft, never retried
-          // into a second one.
-          const commented = await content
-            .reply({
-              platform: draft.platform,
-              commentId: published.id,
-              text: links.comment,
-              ...(account ? { account } : {}),
-            })
-            .then(
-              () => null,
-              (err: unknown) => errorText(err),
-            );
-          if (commented)
-            await ctx.run(`comment failed ${draft.id}`, () =>
-              noteOnDraft(o.db, draft.id, `First comment with the link failed: ${commented}`),
-            );
-        }
-        deps.posted?.(ctx, draft.platform, o.client);
+        await finish(ctx, o, content, p, await call.orTimeout(publishWaitMs), stats);
       } catch (err) {
-        // A terminal refusal (no channel, the platform said no) is this draft's
-        // problem: recorded on the row, the pass moves on. Anything else retries.
-        if (!(err instanceof restate.TerminalError) && !(err instanceof ShapeError)) throw err;
-        const error = errorText(err);
-        if (browserBusy(err)) {
-          await ctx.run(`waiting ${draft.id}`, () => markWaiting(o.db, draft.id, error));
-          busy.add(draft.platform);
-          stats.waiting = [...(stats.waiting ?? []), { id: draft.id, platform: draft.platform }];
+        if (err instanceof restate.TimeoutError) {
+          // Still running (or paused by Restate): it settles on a later pass, and the queue moves on.
+          await ctx.run(`still posting ${draft.id}`, () =>
+            noteOnDraft(
+              o.db,
+              draft.id,
+              `Still posting after ${Math.round(publishWaitMs / 60_000)} min; the scheduler moved on and settles it when the call ends.`,
+            ),
+          );
+          open.push(p);
           continue;
         }
-        await ctx.run(`failed ${draft.id}`, () => markFailed(o.db, draft.id, error));
-        stats.failed.push({ id: draft.id, platform: draft.platform, error });
+        await ended(ctx, o, p, err, stats, busy);
       }
     }
+    ctx.set(PUBLISHING, open);
+    if (open.length)
+      stats.posting = open.map((p) => ({ id: p.draftId, platform: p.platform, since: p.since }));
     const next = await ctx.run("next due", () => nextDue(o.db, now));
     const delayMs =
       stats.remaining > 0 || busy.size > 0
@@ -218,6 +327,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       const lines = [
         ...stats.published.map((p) => `posted on ${p.platform}: ${p.url}`),
         ...stats.failed.map((f) => `${f.platform} failed: ${f.error}`),
+        ...(stats.posting ?? []).map((w) => `${w.platform} still posting since ${w.since}`),
       ];
       await ctx.run("notify", () =>
         notifier.notify(
