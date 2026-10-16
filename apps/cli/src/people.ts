@@ -28,6 +28,7 @@ import {
   backfillProfiles,
   PROFILE_SOURCES,
 } from "@wren/core/profiles-backfill";
+import { mergeProfiles } from "@wren/core/profiles";
 import { bulkBackfillProfiles } from "@wren/core/profiles-bulk";
 import { linkBookers } from "@wren/core/profiles-link";
 import type { Db } from "@wren/db";
@@ -203,6 +204,22 @@ export function registerPeople(
         if (!id) return console.log("cold (no profile)");
         const [r] = await warmthOf(db, [id]);
         console.log(r?.warmth === "warm" ? `warm: ${r.warmthLine}` : "cold");
+      });
+    });
+  // The answer to a "may be the same person" line on a timeline: a person judged, so the two join.
+  people
+    .command("merge <from> <into>")
+    .description(
+      "one person under two profiles: from joins into (keys, lines and traits move; nothing is deleted)",
+    )
+    .action(async (fromWho: string, intoWho: string) => {
+      await o.withDb(async (db) => {
+        const from = await findProfile(db, fromWho);
+        const into = await findProfile(db, intoWho);
+        if (!from || !into) throw new Error(`no profile for ${from ? intoWho : fromWho}`);
+        if (from === into) throw new Error(`#${from} is already one profile`);
+        const got = await mergeProfiles(db, into, from, "a person: wren people merge", "person");
+        console.log(`#${from} joined #${into}: ${got.keys} keys, ${got.traits} traits`);
       });
     });
   people
