@@ -17,6 +17,7 @@ import {
   name,
   number,
   prose,
+  type RecordFold,
   score,
   status,
   text,
@@ -29,6 +30,7 @@ import { movePlace } from "./discovery/places.js";
 import { gatesFor } from "./discovery/requirements.js";
 import { commentsToday } from "./discovery/threads.js";
 import { accountPickFor, pickedAccounts, pickedReachAccount } from "./draft-accounts.js";
+import { threadContextOf } from "./follow-ups.js";
 import { VANITY } from "./invites.js";
 import { DEFAULT_POLICY, type ReachPolicy } from "./policy.js";
 import { type DmPlatform, type PlaceJudged, type RedditPerson, redditPeople } from "./schema.js";
@@ -60,7 +62,26 @@ const neutral = (label: string) => ({ label, tone: "neutral" as const });
 const COMMENT_KIND_LABELS = {
   post_reply: neutral("On our post"),
   comment_reply: neutral("Under our comment"),
+  thread_reply: neutral("Follow-up in the thread"),
   username_mention: neutral("Mention"),
+};
+
+/**
+ * One person's comments in one thread show as one row (designs/2026-10-15-engage-threads.md):
+ * their latest unanswered one stands for the group, every message rides along newest first.
+ * Declared once; every comment list (Comments, Engage, Inbox) folds with it.
+ */
+export const COMMENT_FOLD: RecordFold = {
+  by: (r) =>
+    (r.type === undefined || r.type === "comment") && r.post && r.who
+      ? `${r.platform}|${r.channel}|${r.post}|${String(r.who).toLowerCase()}`
+      : null,
+  at: "at",
+  open: (r) => r.state === "new" || r.state === "waiting",
+  text: "body",
+  state: "state",
+  due: "due",
+  into: "messages",
 };
 
 export const dmRecord = defineRecord({
@@ -208,7 +229,7 @@ export const commentRecord = defineRecord({
   rows: async (db) =>
     (
       (await db.execute(sql`
-      select c.id, c.author who, c.platform, c.channel, c.kind, c.place, c.post_title, c.body,
+      select c.id, c.author who, c.platform, c.channel, c.kind, c.place, c.post, c.post_title, c.body,
         c.sort, c.why, c.draft, c.state, c.answer, c.at, c.answered_at, c.url,
         coalesce(da.account, a.account) account,
         c.contact_id, p.read p_read, p.fit p_fit, p.site p_site,
@@ -231,6 +252,7 @@ export const commentRecord = defineRecord({
   title: "who",
   account: "account",
   subtitle: "body",
+  fold: COMMENT_FOLD,
   fields: {
     who: name("Who"),
     about: text("Who they are"),
@@ -247,6 +269,7 @@ export const commentRecord = defineRecord({
     place: text("Place"),
     postTitle: text("Post"),
     body: prose("Their words"),
+    messages: text("Their messages", { listed: false }),
     sort: status(
       {
         asked: { label: "Asked", tone: "good" },
@@ -289,6 +312,8 @@ export const commentRecord = defineRecord({
   drafts: (id) => [`comment:${id}`],
   actions: [
     "marketing.commentAnswer",
+    "marketing.threadReply",
+    "marketing.threadRead",
     "marketing.commentDm",
     "marketing.commentDrop",
     "marketing.draftSet",
@@ -300,6 +325,7 @@ export const commentRecord = defineRecord({
     accounts: await accountPickFor(db, `comment:${id}`),
     ask: await draftTurns(db, "comment", id),
     record: await recordOfPage(db, "comment", id),
+    context: await threadContextOf(db, Number(id)),
   }),
 });
 

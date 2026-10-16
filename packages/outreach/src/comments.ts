@@ -18,7 +18,7 @@ import { whereSent } from "@wren/core/sent-url";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { commentsToday } from "./discovery/threads.js";
@@ -168,11 +168,16 @@ no pitch, no emojis; for asked, say you'll DM them. Otherwise answer "". Answer 
 {"sort": "asked" | "question" | "chat" | "hostile", "why": "<one short line>", "answer": "<text>"}
 ${factsBlock(facts)}${guide.trim() ? `\n\nHow we write here; answers follow it:\n${guide.trim()}` : ""}`;
 
+const WHERE: Partial<Record<CommentKind, string>> = {
+  comment_reply: "Under our comment",
+  thread_reply: "In the thread under our comment, following up",
+};
+
 export const promptFor = (c: Comment) => {
   const reddit = c.platform === "reddit";
   return (
     `Post: ${c.postTitle ?? "(untitled)"}${c.place ? (reddit ? ` in r/${c.place}` : ` in ${c.place}`) : ""}\n` +
-    `${c.kind === "comment_reply" ? "Under our comment" : "On our post"}, ${reddit ? "u/" : ""}${c.author} wrote:\n${c.body}`
+    `${WHERE[c.kind] ?? "On our post"}, ${reddit ? "u/" : ""}${c.author} wrote:\n${c.body}`
   );
 };
 
@@ -383,8 +388,34 @@ export async function markAnswered(
     .update(comments)
     .set({ state: "answered", answer: r.body, answerRef: r.ref, answeredAt: r.now })
     .where(eq(comments.id, id))
-    .returning({ platform: comments.platform, url: comments.url });
+    .returning({
+      platform: comments.platform,
+      url: comments.url,
+      post: comments.post,
+      author: comments.author,
+      channel: comments.channel,
+      accountId: comments.accountId,
+      at: comments.at,
+    });
   await keepTouch(`ca:${id}`, () => touchFromAnswer(db, id));
+  // Their earlier messages in the thread waited on the same answer: it covers them too, so the
+  // person's row stops waiting. A later one stays open (designs/2026-10-15-engage-threads.md).
+  if (c)
+    await db
+      .update(comments)
+      .set({ state: "answered", answer: r.body, answerRef: r.ref, answeredAt: r.now })
+      .where(
+        and(
+          eq(comments.platform, c.platform),
+          eq(comments.post, c.post),
+          eq(comments.channel, c.channel),
+          sql`lower(${comments.author}) = lower(${c.author})`,
+          sql`${comments.accountId} is not distinct from ${c.accountId}`,
+          inArray(comments.state, ["new", "waiting"]),
+          lte(comments.at, c.at),
+          ne(comments.id, id),
+        ),
+      );
   if (c)
     await recordDraft(db, {
       item: `comment:${id}`,
@@ -398,6 +429,27 @@ export async function markAnswered(
       url: whereSent(c.platform, c.url, r.ref),
       ref: `sent:comment:${id}`,
     });
+}
+
+/** Sites where only a top-level comment takes a reply: one under a reply goes under its parent. */
+const ONE_LEVEL = new Set(["instagram", "youtube", "facebook", "linkedin"]);
+/** Of those, the ones whose own reply box names the person replied to, as `@handle `. */
+const NAMES_REPLIED = new Set(["instagram", "youtube"]);
+
+/**
+ * Where an answer on our own post goes, and its words. A reply to a reply on a one-level site goes
+ * under the top comment, naming the person as the site's own reply box would.
+ */
+export function answerFor(
+  c: Pick<Comment, "platform" | "ref" | "post" | "parent" | "author">,
+  body: string,
+): { target: string; text: string } {
+  if (!ONE_LEVEL.has(c.platform) || !c.parent || c.parent === c.post)
+    return { target: c.ref, text: body };
+  const handle = c.author.replace(/^@/, "");
+  const named = new RegExp(`(^|\\s)@${handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+  const text = NAMES_REPLIED.has(c.platform) && !named.test(body) ? `@${handle} ${body}` : body;
+  return { target: c.parent, text };
 }
 
 /** The answer, end to end, for the CLI and tests; the desk journals the same steps one by one. */

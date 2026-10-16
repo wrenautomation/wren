@@ -9,6 +9,7 @@
 import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
 import { broadcastLine, waitingBroadcasts } from "@wren/core/broadcasts";
+import { isUrl } from "@wren/core/content";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
@@ -32,18 +33,24 @@ import { creditsList } from "@wren/delivery/billing";
 import { creditApprovalId } from "@wren/delivery/billing/console";
 import { KIND_NAME } from "@wren/documents/lines";
 import { docApprovalId, waitingDocs } from "@wren/documents/store";
-import { accountPickFor } from "@wren/outreach";
-import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
+import { accountPickFor, threadContextOf } from "@wren/outreach";
+import {
+  COMMENT_FOLD,
+  commentRecord,
+  dmRecord,
+  PLATFORM_LABELS,
+  threadRecord,
+} from "@wren/outreach/records";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
 import { waitingPages, waitingRetires } from "@wren/sites/store";
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";
 import { conversationOf } from "../inbox/conversation.js";
 import { queuedReplies, waitingReplies } from "../inbox/send.js";
 import { statusOf, threadStates, typed } from "../inbox/threads.js";
-import type { InboxReply } from "../schema.js";
+import { contentDrafts, type InboxReply } from "../schema.js";
 import { shapeView } from "../shape-view.js";
 import { mixedThumbs } from "../thumbs.js";
 import type { VideoSigner } from "../video.js";
@@ -419,6 +426,7 @@ const commentItem = (c: Row) => ({
   channel: c.channel,
   state: c.state,
   body: c.body,
+  post: c.post,
   post_title: c.post_title,
   place: c.place ?? null,
   draft: c.draft,
@@ -452,6 +460,32 @@ const dmItem = (d: Row) => ({
  * (a call invite), `reply:6` (a reply with none), `text:8`, `chat:3`, `activity:9`); each action reads the
  * id after the colon. `due` orders "Waiting on you": when it came.
  */
+/** Our own post as a context view heads it: its words, link and picture when it is a link. */
+const ourPostOf = (db: Queryable) => async (platform: string, post: string) => {
+  const [d] = await db
+    .select({
+      title: contentDrafts.title,
+      text: contentDrafts.text,
+      url: contentDrafts.url,
+      media: contentDrafts.media,
+      at: contentDrafts.publishedAt,
+    })
+    .from(contentDrafts)
+    .where(and(sql`${contentDrafts.platform} = ${platform}`, eq(contentDrafts.publishedId, post)))
+    .limit(1);
+  if (!d) return null;
+  const pic = d.media?.kind === "image" && isUrl(d.media.source) ? d.media.source : null;
+  return {
+    title: d.title,
+    text: d.text,
+    url: d.url,
+    media: pic,
+    author: null,
+    place: null,
+    at: d.at?.toISOString() ?? null,
+  };
+};
+
 export const inboxRecord = defineRecord({
   id: "marketing.inbox",
   app: "marketing",
@@ -577,8 +611,10 @@ export const inboxRecord = defineRecord({
   title: "who",
   account: "account",
   subtitle: "body",
+  fold: COMMENT_FOLD,
   fields: {
     who: name("Who"),
+    messages: text("Their messages", { listed: false }),
     status: status(
       {
         open: { label: "Open", tone: "warn" },
@@ -607,6 +643,7 @@ export const inboxRecord = defineRecord({
       cued({
         post_reply: neutral("On our post"),
         comment_reply: neutral("Under our comment"),
+        thread_reply: neutral("Follow-up in the thread"),
         username_mention: neutral("Mention"),
         dm: neutral("DM"),
         email: neutral("Email reply"),
@@ -679,6 +716,8 @@ export const inboxRecord = defineRecord({
   drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
   actions: [
     "marketing.commentAnswer",
+    "marketing.threadReply",
+    "marketing.threadRead",
     "marketing.commentDm",
     "marketing.commentDrop",
     "marketing.dmReply",
@@ -726,6 +765,10 @@ export const inboxRecord = defineRecord({
       record: await recordOfPage(db, type, rest),
       accounts: await accountPickFor(db, id),
       conversation,
+      // The post and every reply under it, nested (designs/2026-10-15-engage-threads.md).
+      ...(type === "comment"
+        ? { context: await threadContextOf(db, Number(rest), ourPostOf(db)) }
+        : {}),
     };
     return type === "dm" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
   },
@@ -1235,8 +1278,10 @@ export const engageRecordOf = (signer?: VideoSigner) =>
     title: "who",
     account: "account",
     subtitle: "body",
+    fold: COMMENT_FOLD,
     fields: {
       who: name("Who"),
+      messages: text("Their messages", { listed: false }),
       type: status(
         cued({
           thread: neutral("Reddit thread"),
@@ -1371,6 +1416,8 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       "marketing.onpostFollow",
       "marketing.onpostSkip",
       "marketing.commentAnswer",
+      "marketing.threadReply",
+      "marketing.threadRead",
       "marketing.commentDm",
       "marketing.commentDrop",
       "marketing.dmReply",

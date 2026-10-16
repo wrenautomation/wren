@@ -77,6 +77,28 @@ describe("youtube content channel", () => {
                   publishedAt: "2026-09-03T00:00:00Z",
                 },
               },
+              channelId: "UCours",
+            },
+            replies: {
+              comments: [
+                {
+                  id: "c1.r1",
+                  snippet: {
+                    authorDisplayName: "Wren",
+                    authorChannelId: { value: "UCours" },
+                    textOriginal: "thanks!",
+                    publishedAt: "2026-09-03T01:00:00Z",
+                  },
+                },
+                {
+                  id: "c1.r2",
+                  snippet: {
+                    authorDisplayName: "Ana",
+                    textOriginal: "one more question",
+                    publishedAt: "2026-09-03T02:00:00Z",
+                  },
+                },
+              ],
             },
           },
         ],
@@ -104,6 +126,23 @@ describe("youtube content channel", () => {
     expect(calls.filter(([, p]) => p === "/youtube/v3/channels")).toHaveLength(1);
     expect(await ch.metrics("v1")).toMatchObject({ views: 12, reactions: 3, comments: 1 });
     expect(await ch.comments("v1")).toEqual([
+      {
+        id: "c1.r2",
+        postId: "v1",
+        author: "Ana",
+        text: "one more question",
+        at: "2026-09-03T02:00:00Z",
+        parentId: "c1",
+      },
+      {
+        id: "c1.r1",
+        postId: "v1",
+        author: "Wren",
+        text: "thanks!",
+        at: "2026-09-03T01:00:00Z",
+        parentId: "c1",
+        mine: true,
+      },
       { id: "c1", postId: "v1", author: "Ana", text: "nice", at: "2026-09-03T00:00:00Z" },
     ]);
     await ch.reply?.("c1", "thanks");

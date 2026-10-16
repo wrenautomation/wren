@@ -67,10 +67,28 @@ describe("instagram content channel", () => {
               ],
             },
       "GET /p1/comments": (i) => {
-        expect(i).toMatchObject({ fields: "id,text,username,timestamp" });
+        expect(i).toMatchObject({
+          fields:
+            "id,text,username,timestamp,from{id},replies{id,text,username,timestamp,from{id}}",
+        });
         return {
           data: [
-            { id: "c9", text: "nice", username: "bob", timestamp: "2026-09-22T11:00:00+0000" },
+            {
+              id: "c9",
+              text: "nice",
+              username: "bob",
+              timestamp: "2026-09-22T11:00:00+0000",
+              replies: {
+                data: [
+                  {
+                    id: "c10",
+                    text: "and one more thing?",
+                    username: "bob",
+                    timestamp: "2026-09-22T12:00:00+0000",
+                  },
+                ],
+              },
+            },
           ],
         };
       },
@@ -95,7 +113,10 @@ describe("instagram content channel", () => {
     expect(await ch.metrics("p1")).toMatchObject({ views: 40, reactions: 4, comments: 0 });
     // One read: follows comes with the post's insights (a Reel refuses it either way).
     expect(calls.slice(before).map((c) => `${c[0]} ${c[1]}`)).toEqual(["GET /p1/insights"]);
-    expect((await ch.comments("p1")).map((c) => c.author)).toEqual(["bob"]);
+    expect((await ch.comments("p1")).map((c) => [c.id, c.author, c.parentId])).toEqual([
+      ["c10", "bob", "c9"],
+      ["c9", "bob", undefined],
+    ]);
     await ch.reply?.("c9", "ty");
     expect(calls.filter((c) => c[1] === "/me/accounts")).toHaveLength(1);
   });

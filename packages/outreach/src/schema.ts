@@ -299,7 +299,18 @@ export const reachMessages = pgTable(
 
 /** What Reddit's inbox calls the message: a reply to our post, to our comment, or a mention of us. */
 /** `review`: a review of the business itself (designs/2026-10-09-review-replies.md). */
-export const COMMENT_KINDS = ["post_reply", "comment_reply", "username_mention", "review"] as const;
+/**
+ * `thread_reply`: said in the conversation under our comment but not to us: a reply to their
+ * own reply, or to someone else in it. The inbox never lists one; the thread watch reads it
+ * (designs/2026-10-15-engage-threads.md).
+ */
+export const COMMENT_KINDS = [
+  "post_reply",
+  "comment_reply",
+  "username_mention",
+  "review",
+  "thread_reply",
+] as const;
 export type CommentKind = (typeof COMMENT_KINDS)[number];
 
 /**
@@ -383,6 +394,68 @@ export const comments = pgTable(
     }).onDelete("set null"),
   ],
 );
+
+/** One comment in a watched thread, as the snapshot keeps it (`ThreadNode` in `@wren/core/outreach`). */
+export interface ThreadNodeRow {
+  ref: string;
+  parent: string;
+  handle: string;
+  text: string;
+  at: string;
+  url: string;
+}
+
+/**
+ * A conversation we are in, watched for what the inbox never lists (designs/2026-10-15-engage-
+ * threads.md): one row per post a reach account's comment landed under. While `until` is ahead,
+ * the watch probes its comment count with the account's reads and reads it in full when it moves;
+ * each read keeps the post and every comment as a snapshot, the Engage context view's source.
+ */
+export const commentThreads = pgTable(
+  "comment_threads",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 16 }).$type<ContentPlatform>().notNull(),
+    post: varchar("post", { length: 200 }).notNull(),
+    /** The reach account that reads it: the one whose comment is in it. */
+    accountId: uuid("account_id").notNull(),
+    postTitle: text("post_title"),
+    postText: text("post_text"),
+    postUrl: text("post_url"),
+    postPlace: varchar("post_place", { length: 200 }),
+    postAuthor: varchar("post_author", { length: 120 }),
+    postMedia: text("post_media"),
+    postAt: timestamp("post_at", { withTimezone: true }),
+    /** Every comment the last read saw, oldest first, any depth. */
+    nodes: jsonb("nodes").$type<ThreadNodeRow[]>().notNull().default([]),
+    /** Comments the platform left behind "load more" on the last read. */
+    more: integer("more").notNull().default(0),
+    /** The platform's count at the last full read; a probe that matches it reads nothing more. */
+    count: integer("count"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    /** When the watch next probes it: soon after something lands, easing off as it goes quiet. */
+    checkAt: timestamp("check_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When something of theirs, or our answer, last landed in it. */
+    activeAt: timestamp("active_at", { withTimezone: true }).notNull(),
+    /** The watch ends here: `followUpDays` after the last activity. */
+    until: timestamp("until", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_comment_threads" }),
+    unique("uq_comment_threads_platform_post").on(t.platform, t.post),
+    index("ix_comment_threads_account_id").on(t.accountId),
+    index("ix_comment_threads_until").on(t.until),
+    oneOf("ck_comment_threads_platform", t.platform, CONTENT_PLATFORMS),
+    check("ck_comment_threads_more", sql`more >= 0`),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_comment_threads_account_id_reach_accounts",
+    }).onDelete("cascade"),
+  ],
+);
+export type CommentThread = typeof commentThreads.$inferSelect;
 
 export type ReachAccount = typeof reachAccounts.$inferSelect;
 /**

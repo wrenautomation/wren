@@ -15,6 +15,7 @@ export * from "./drafts.js";
 export * from "./enroll.js";
 export * from "./examples.js";
 export * from "./follow.js";
+export * from "./follow-ups.js";
 export * from "./invites.js";
 export * from "./passes.js";
 export * from "./policy.js";

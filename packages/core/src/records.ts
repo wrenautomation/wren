@@ -624,6 +624,11 @@ export interface RecordDecl<F extends Record<string, Draft>> {
    * (`ListAsk.thumbs`), never for the demo.
    */
   thumbs?: (db: Queryable, ids: readonly string[]) => Promise<Record<string, Thumb>>;
+  /**
+   * Rows that belong together shown as one (`foldRows`): one person's messages in one thread.
+   * `rows` types only; filters, counts and sorts read the folded rows.
+   */
+  fold?: RecordFold;
   /** What a person or Claude may change on it; absent, it's read only. */
   edits?: RecordEdits;
   /** The app it belongs to (`APPS` in `./access.ts`): what a grant's `apps` names. */
@@ -663,6 +668,89 @@ export interface Thumb {
 
 /** A record type's channel: one, a field holding it, or none. */
 export type RecordChannel = string | { field: string } | null;
+/**
+ * How a type folds its rows (designs/2026-10-15-engage-threads.md). Rows with one `by` key show
+ * as one: the latest still-open one stands for the group (else its latest), so acting on the row
+ * answers that one. The group's newest time goes in `at`, its oldest open one in `due`, and every
+ * row of it, newest first, in the `into` field as `FoldMessage`s.
+ */
+export interface RecordFold {
+  /** The group a raw row is in; null: a row of its own. */
+  by: (row: Readonly<Record<string, unknown>>) => string | null;
+  /** Each row's time column (ISO text). */
+  at: string;
+  /** Whether a row still waits on us. */
+  open: (row: Readonly<Record<string, unknown>>) => boolean;
+  /** Each row's words, and its state column. */
+  text: string;
+  state: string;
+  /** The column the earliest open row's time goes in: the group's due. */
+  due?: string;
+  /** The field (a text field, unlisted) the group's messages are written to, as JSON. */
+  into: string;
+}
+
+/** One message in a folded row's stack. */
+export interface FoldMessage {
+  id: string;
+  text: string;
+  at: string;
+  state: string;
+  open: boolean;
+}
+
+const timeOf = (v: unknown) =>
+  (typeof v === "string" ? Date.parse(v) : v instanceof Date ? v.getTime() : 0) || 0;
+
+/**
+ * Rows folded by `fold.by`: one per group, in the first member's place. A group of one keeps its
+ * row and gets its one message too, so every row reads the same.
+ */
+export function foldRows<R extends Record<string, unknown>>(
+  rows: readonly R[],
+  fold: RecordFold,
+  key: string,
+): R[] {
+  const groups = new Map<string, R[]>();
+  const order: Array<R | string> = [];
+  for (const r of rows) {
+    const g = fold.by(r);
+    if (g === null) {
+      order.push(r);
+      continue;
+    }
+    const got = groups.get(g);
+    if (got) got.push(r);
+    else {
+      groups.set(g, [r]);
+      order.push(g);
+    }
+  }
+  const newest = (a: R, b: R) =>
+    timeOf(b[fold.at]) - timeOf(a[fold.at]) || String(b[key]).localeCompare(String(a[key]));
+  return order.map((o) => {
+    if (typeof o !== "string") return o;
+    const all = [...(groups.get(o) ?? [])].sort(newest);
+    const open = all.filter((r) => fold.open(r));
+    const lead = open[0] ?? all[0];
+    if (!lead) throw new Error("foldRows: an empty group");
+    const messages: FoldMessage[] = all.map((r) => ({
+      id: String(r[key]),
+      text: String(r[fold.text] ?? ""),
+      at: String(r[fold.at] ?? ""),
+      state: String(r[fold.state] ?? ""),
+      open: fold.open(r),
+    }));
+    const first = open[open.length - 1];
+    return {
+      ...lead,
+      [fold.at]: all[0]?.[fold.at] ?? lead[fold.at],
+      ...(fold.due && first ? { [fold.due]: first[fold.at] } : {}),
+      [fold.into]: messages,
+    };
+  });
+}
+
 export type RecordType = Omit<RecordDecl<Record<string, Draft>>, "fields"> & {
   fields: Readonly<Record<string, Field>>;
 };
@@ -796,6 +884,14 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
     if (f?.kind !== "choice" || f.choices !== accountChoices)
       throw new Error(`${decl.id}: its account ${decl.account} must be an accountField`);
   }
+  if (decl.fold) {
+    if (!decl.rows) throw new Error(`${decl.id}: a fold folds rows, not a view`);
+    const into = fields[decl.fold.into];
+    if (into?.kind !== "text" || into.from !== decl.fold.into)
+      throw new Error(
+        `${decl.id}: its fold writes to ${decl.fold.into}, which must be a text field`,
+      );
+  }
   if (!decl.views.length) throw new Error(`${decl.id}: needs a view`);
   if (new Set(decl.views.map((v) => v.id)).size !== decl.views.length)
     throw new Error(`${decl.id}: view ids repeat`);
@@ -904,6 +1000,8 @@ export interface RecordMeta {
   quick?: readonly string[];
   /** The field holding each row's account, when it has one: filter, column, group by. */
   account?: string;
+  /** Its rows fold (`RecordFold`): the field holding each row's messages, as JSON. */
+  fold?: string;
   /** Where its rows sit, for access checks on the web: the app, and the channel or its field. */
   app: string;
   channel: RecordChannel;
@@ -983,6 +1081,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     views: type.views,
     ...(type.quick ? { quick: type.quick } : {}),
     ...(type.account ? { account: type.account } : {}),
+    ...(type.fold ? { fold: type.fold.into } : {}),
     related: (type.related ?? []).map((r) => ({ record: r.record })),
     actions: type.actions ?? [],
     activity: !!type.activity,

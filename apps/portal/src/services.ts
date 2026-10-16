@@ -290,6 +290,7 @@ export const SEND_HANDLERS: ReadonlySet<string> = new Set([
   "InboxDesk/reply",
   "ReachDesk/reply",
   "ReachDesk/answerComment",
+  "ReachDesk/replyInThread",
   "ReachDesk/dmComment",
 ]);
 

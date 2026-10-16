@@ -3,6 +3,7 @@ import { defineComponent } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
 import { discoverySettingsSchema } from "./discovery/places.js";
+import { commentsReadSettingsSchema } from "./follow-ups.js";
 import { invitesSettingsSchema } from "./invites.js";
 import { COMMENTS_SETTINGS } from "./reach-posts.js";
 
@@ -92,6 +93,7 @@ export const OUTREACH_COMPONENTS = [
     icon: "people",
     for: "client",
     ready: true,
+    settings: commentsReadSettingsSchema,
     wrenSettings: true,
     // ReachWatch is Social outreach's loop; this part is its inbox read, on the client's logins.
     requires: { accounts: ["reddit"] },
@@ -107,6 +109,11 @@ export const OUTREACH_COMPONENTS = [
           built: "the reach_accounts rows",
         },
         { is: "change", says: "LinkedIn, X and IG comments, as another reader.", built: null },
+        {
+          is: "change",
+          says: "How many days a thread is read for follow-ups after its last activity.",
+          built: "settings.followUpDays",
+        },
         {
           is: "change",
           says: "How fast it checks: 2 min for 15 min after a touch, then 5, 15, 30.",

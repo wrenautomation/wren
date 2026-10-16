@@ -79,19 +79,22 @@ interface PlaylistItem {
     resourceId?: { videoId?: string };
   };
 }
-interface CommentThread {
+interface YtComment {
   id?: string;
   snippet?: {
-    topLevelComment?: {
-      id?: string;
-      snippet?: {
-        authorDisplayName?: string;
-        textOriginal?: string;
-        textDisplay?: string;
-        publishedAt?: string;
-      };
-    };
+    authorDisplayName?: string;
+    authorChannelId?: { value?: string };
+    textOriginal?: string;
+    textDisplay?: string;
+    publishedAt?: string;
   };
+}
+interface CommentThread {
+  id?: string;
+  /** `channelId`: the video's channel, ours. */
+  snippet?: { channelId?: string; topLevelComment?: YtComment };
+  /** Up to five replies ride along; YouTube threads one level. */
+  replies?: { comments?: YtComment[] };
 }
 
 interface Subscription {
@@ -424,7 +427,7 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
       const r: { items?: CommentThread[] } = await read<{ items?: CommentThread[] }>(
         "commentThreads",
         {
-          part: "snippet",
+          part: "snippet,replies",
           videoId: id,
           maxResults: Math.min(q.limit ?? 100, 100),
           order: "time",
@@ -434,20 +437,30 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         if (err instanceof Error && /has disabled comments/.test(err.message)) return {};
         throw err;
       });
-      const rows = (r.items ?? []).flatMap((t) => {
-        const c = t.snippet?.topLevelComment;
-        const cid = c?.id ?? t.id;
-        return cid
+      const rowOf = (c: YtComment | undefined, own: string | undefined, parentId?: string) =>
+        c?.id
           ? [
               {
-                id: cid,
+                id: c.id,
                 postId: id,
-                author: c?.snippet?.authorDisplayName ?? "",
-                text: c?.snippet?.textOriginal ?? c?.snippet?.textDisplay ?? "",
-                at: c?.snippet?.publishedAt ?? now().toISOString(),
+                author: c.snippet?.authorDisplayName ?? "",
+                text: c.snippet?.textOriginal ?? c.snippet?.textDisplay ?? "",
+                at: c.snippet?.publishedAt ?? now().toISOString(),
+                ...(parentId ? { parentId } : {}),
+                ...(own && c.snippet?.authorChannelId?.value === own ? { mine: true } : {}),
               },
             ]
           : [];
+      // The replies under each comment come in the same read: a follow-up is not missed.
+      const rows = (r.items ?? []).flatMap((t) => {
+        const top = t.snippet?.topLevelComment;
+        const cid = top?.id ?? t.id;
+        const own = t.snippet?.channelId;
+        if (!cid) return [];
+        return [
+          ...rowOf({ ...top, id: cid }, own),
+          ...(t.replies?.comments ?? []).flatMap((c) => rowOf(c, own, cid)),
+        ];
       });
       return pageOf(rows, q);
     },

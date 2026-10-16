@@ -90,6 +90,7 @@ import {
   totalSays,
   widthOf,
 } from "./fields.js";
+import { FoldList, FoldPreview, foldOf } from "./fold.js";
 import { linkLabel, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
@@ -1648,6 +1649,15 @@ function List({
                             title={said.title}
                             titleClass={TITLE_WEIGHT[String(waiting)] ?? ""}
                             body={firstWords(said.body)}
+                            fold={
+                              foldOf(meta, r) ? (
+                                <FoldPreview
+                                  messages={foldOf(meta, r) ?? []}
+                                  lines={3}
+                                  quiet={waiting === false}
+                                />
+                              ) : undefined
+                            }
                             spent={said.spent}
                             quiet={waiting === false}
                             href={place.link({ [meta.name.one]: id, tab: null })}
@@ -1902,7 +1912,14 @@ function List({
                                     )}
                                   </a>
                                 ) : null}
-                                {f.key === meta.title && preview ? (
+                                {f.key === meta.title && foldOf(meta, r) ? (
+                                  // One person's messages in one thread: the newest, each marked.
+                                  <FoldPreview
+                                    messages={foldOf(meta, r) ?? []}
+                                    quiet={waiting === false}
+                                    className="text-[12.5px]"
+                                  />
+                                ) : f.key === meta.title && preview ? (
                                   // A message's first words under who sent it, as a mail list shows.
                                   <span
                                     className={cn(
@@ -2218,7 +2235,14 @@ function RowCard({
         >
           {title || <span className="text-(--ui-ink-3)">-</span>}
         </a>
-        {preview ? (
+        {foldOf(meta, row) ? (
+          <FoldPreview
+            messages={foldOf(meta, row) ?? []}
+            lines={3}
+            quiet={waits === false}
+            className="text-[13.5px] leading-snug"
+          />
+        ) : preview ? (
           <span
             className={cn(
               "line-clamp-2 text-[13.5px] leading-snug",
@@ -2719,6 +2743,7 @@ export function RecordBody({
   // The header says each field once; the Details below leave out what it shows.
   const { sub, states, keys, shown: inHead } = recordHead(meta, row, long);
   const subCue = subtitleCue(meta, row);
+  const folded = foldOf(meta, row);
   // Long text reads as its own section, above the facts.
   const cited = meta.fields.filter(
     (f) =>
@@ -2741,6 +2766,8 @@ export function RecordBody({
       f.key !== box?.field &&
       // The record's version is what a yes names, never a fact to read.
       f.key !== "version" &&
+      // A folded row's messages read as their own list.
+      f.key !== meta.fold &&
       !own.has(f.key) &&
       row[f.key] != null &&
       row[f.key] !== "" &&
@@ -2992,6 +3019,12 @@ export function RecordBody({
                 <AskClaude meta={meta} id={id} turns={state.asks} editing={editing} />
               ) : null}
             </>
+          ) : null}
+          {folded && meta.fold && !more.drawn?.includes(meta.fold) ? (
+            <section className="grid gap-1.5">
+              <h3 className={GROUP_LABEL}>Their messages, newest first</h3>
+              <FoldList messages={folded} current={String(row.id)} />
+            </section>
           ) : null}
           {cited.map((f) => (
             <section key={f.key} className="grid gap-1.5">

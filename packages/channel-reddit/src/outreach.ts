@@ -26,6 +26,7 @@ import {
   type Sent,
 } from "@wren/core/outreach";
 import { answerOf, type Listing, REDDIT_SITE, redditUrl, type Thing } from "./content.js";
+import { threadOf, threadQuery } from "./thread.js";
 
 export interface RedditOutreachOptions {
   account: string;
@@ -149,6 +150,16 @@ export function redditOutreach(
     );
     return inbox;
   };
+  const thread = async (post: string, focus?: string | null) =>
+    threadOf(
+      post,
+      await call<[Listing, Listing]>(
+        "GET",
+        `/comments/${post.replace(/^t3_/, "")}`,
+        threadQuery(focus),
+      ),
+      now,
+    );
   const user = (handle: string) => {
     const h = handleOf("reddit", handle);
     if (!HANDLE_RE.reddit.test(h)) throw new Error(`reddit: not a username: ${handle}`);
@@ -375,24 +386,26 @@ export function redditOutreach(
       };
     },
 
+    // The whole conversation, any depth: the send guard sees a reply's author three levels in.
     async threadAuthors(post): Promise<string[]> {
-      const [head, tree] = await call<[Listing, Listing]>(
-        "GET",
-        `/comments/${post.replace(/^t3_/, "")}`,
-        {
-          raw_json: 1,
-          limit: 500,
-        },
+      const read = await thread(post);
+      return [...new Set([read.post.handle ?? "", ...read.nodes.map((n) => n.handle)])].filter(
+        (h) => h && !AUTHOR_SKIP.has(h),
       );
-      const out = items<Thing>(head).map((t) => t.author ?? "");
-      const walk = (l: Listing | undefined) => {
-        for (const c of items<Thing & { replies?: Listing | "" }>(l)) {
-          if (c.author) out.push(c.author);
-          if (c.replies) walk(c.replies);
-        }
-      };
-      walk(tree);
-      return [...new Set(out.filter(Boolean))];
+    },
+
+    thread: (post, focus) => thread(post, focus),
+
+    async commentCounts(posts): Promise<Record<string, number>> {
+      const ids = [...new Set(posts.map((p) => `t3_${p.replace(/^t3_/, "")}`))];
+      const out: Record<string, number> = {};
+      // `/api/info` takes 100 fullnames a read.
+      for (let i = 0; i < ids.length; i += 100) {
+        const l = await call<Listing>("GET", "/api/info", { id: ids.slice(i, i + 100).join(",") });
+        for (const t of items<Thing>(l))
+          if (typeof t.num_comments === "number") out[t.name] = t.num_comments;
+      }
+      return out;
     },
 
     async health(): Promise<AccountHealth> {

@@ -33,6 +33,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { threadOf, threadQuery } from "./thread.js";
 
 export const REDDIT_SITE = "reddit";
 
@@ -215,24 +216,30 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
       }
       return out;
     },
+    // Every comment under the post, any depth: a reply to a reply is ours to see too.
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
-      const r = await call<[Listing, Listing]>("GET", `/comments/${bareId(id)}`, {
-        limit: Math.min(Math.max(q.limit ?? 100, 1), 100),
-        depth: 1,
-        sort: "new",
-        raw_json: 1,
-      });
+      const read = threadOf(
+        bareId(id),
+        await call<[Listing, Listing]>("GET", `/comments/${bareId(id)}`, threadQuery()),
+        now,
+      );
+      // Our post, so its author is us: our answers in the thread come back marked as ours.
+      const self = read.post.handle?.toLowerCase() ?? null;
       return pageOf(
-        children(r[1])
-          .filter((c) => c.body !== undefined)
-          .map((c) => ({
-            id: c.id,
+        read.nodes
+          .filter((n) => n.handle !== "[deleted]")
+          .reverse()
+          .map((n) => ({
+            id: bareId(n.ref),
             postId: bareId(id),
-            author: c.author ?? "",
-            text: c.body ?? "",
-            at: at(c.created_utc, now),
+            author: n.handle,
+            text: n.text,
+            at: n.at,
+            url: n.url,
+            ...(n.parent.startsWith("t1_") ? { parentId: bareId(n.parent) } : {}),
+            ...(self && n.handle.toLowerCase() === self ? { mine: true } : {}),
           })),
-        q,
+        { ...q, limit: Math.min(Math.max(q.limit ?? 500, 1), 500) },
       );
     },
     async reply(commentId: string, text: string): Promise<void> {

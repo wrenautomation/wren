@@ -8,7 +8,7 @@ import { plural } from "@wren/core/notify";
 import type { Queryable } from "@wren/db";
 import { askedInWords, type Comment, comments } from "@wren/outreach";
 import { keepTouch, touchFromAnswer, touchFromComment } from "@wren/outreach/touches";
-import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { keepLive } from "../analytics/store.js";
 import { contentDrafts, socialActivity, socialDays } from "../schema.js";
 import { linkCommentAuthors, touchFromActivity } from "../touches.js";
@@ -30,13 +30,26 @@ export interface RecentPost {
   publishedAt: string;
 }
 
-/** Posts published in the last `RECENT_DAYS` on these platforms, newest first. */
+/**
+ * Posts published in the last `RECENT_DAYS` on these platforms, newest first, and older ones
+ * where someone commented in the last `followUpDays` (designs/2026-10-15-engage-threads.md): a
+ * conversation still going is read until it goes quiet.
+ */
 export async function recentPosts(
   db: Queryable,
   platforms: readonly Platform[],
   now: Date,
+  followUpDays = 0,
 ): Promise<RecentPost[]> {
   if (!platforms.length) return [];
+  const fresh = gte(contentDrafts.publishedAt, new Date(now.getTime() - RECENT_DAYS * DAY));
+  const talking =
+    followUpDays > 0
+      ? sql`exists (select 1 from comments c where c.channel = 'content'
+          and c.platform = ${contentDrafts.platform} and c.post = ${contentDrafts.publishedId}
+          and c.sort is distinct from 'ours'
+          and c.at > ${new Date(now.getTime() - followUpDays * DAY).toISOString()}::timestamptz)`
+      : null;
   const rows = await db
     .select({
       platform: contentDrafts.platform,
@@ -51,7 +64,7 @@ export async function recentPosts(
       and(
         inArray(contentDrafts.platform, [...platforms]),
         isNotNull(contentDrafts.publishedId),
-        gte(contentDrafts.publishedAt, new Date(now.getTime() - RECENT_DAYS * DAY)),
+        talking ? or(fresh, talking) : fresh,
       ),
     )
     .orderBy(desc(contentDrafts.publishedAt));

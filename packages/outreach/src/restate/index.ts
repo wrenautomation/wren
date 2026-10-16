@@ -96,6 +96,7 @@ import {
   syncLogins,
 } from "../clients.js";
 import {
+  answerFor,
   COMMENTS_FLOW,
   COMMENTS_FROM,
   checkThread,
@@ -117,7 +118,7 @@ import {
   enrichContact,
   listContacts,
 } from "../contacts.js";
-import { pickedAccount } from "../draft-accounts.js";
+import { pickAccount, pickedAccount } from "../draft-accounts.js";
 import { draftScorecard, parseSince } from "../draft-models.js";
 import {
   contactsToDraft,
@@ -129,6 +130,23 @@ import {
 } from "../drafts.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { reachLead } from "../follow.js";
+import {
+  adoptNode,
+  applyThread,
+  asThread,
+  COMMENTS_READ,
+  commentsReadSettings,
+  dueThreads,
+  focusesOf,
+  mergeReads,
+  needsRead,
+  nextCheckAt,
+  probed,
+  THREAD_READS_PER_PASS,
+  threadFor,
+  watchFromComments,
+  wrenCommentsRead,
+} from "../follow-ups.js";
 import {
   itemPerson,
   markFollowed,
@@ -497,6 +515,8 @@ export interface InvitesPass {
 export interface WatchStats {
   replies: RepliesStats;
   comments: { kept: number; errors: string[] };
+  /** Conversations under our comments read for what the inbox missed. */
+  threads: ThreadsStats;
   health: HealthStats;
   invites: InvitesPass | null;
   drafts: { written: number; errors: string[] };
@@ -667,6 +687,8 @@ interface WatchScope {
   drafts: boolean;
   /** Comments on others' LinkedIn posts: Wren's only. */
   posts: boolean;
+  /** Days a thread stays watched after its last activity; 0 = no follow-up reads. */
+  followUpDays: () => Promise<number>;
 }
 
 export function makeReachWatch(deps: ReachDeps) {
@@ -682,6 +704,7 @@ export function makeReachWatch(deps: ReachDeps) {
         invites: () => inviteSettings(deps.db),
         drafts: true,
         posts: true,
+        followUpDays: async () => (await wrenCommentsRead(deps.db)).followUpDays,
       });
     if (!deps.clients) return stoppedPass<WatchStats>(ctx, now, "no client databases here");
     const plan = await ctx.run("client", () =>
@@ -717,8 +740,98 @@ export function makeReachWatch(deps: ReachDeps) {
       },
       drafts: has("reach.outreach"),
       posts: false,
+      followUpDays: async () =>
+        commentsReadSettings(plan.client.products[COMMENTS_READ]).followUpDays,
     });
   });
+}
+
+export interface ThreadsStats {
+  probed: number;
+  read: number;
+  kept: number;
+  answered: number;
+  errors: string[];
+}
+
+/**
+ * Follow-ups the inbox never lists (designs/2026-10-15-engage-threads.md): each watched thread's
+ * count probed in one read per account, read in full only when it moved (or a sweep is due), a
+ * few reads a pass. A used cap or a vendor stop ends the account's reads; the next pass asks again.
+ */
+async function threadsPass(
+  deps: ReachDeps,
+  ctx: restate.ObjectContext,
+  now: Date,
+  scope: WatchScope,
+  live: readonly ReachAccount[],
+  channelFor: (a: ReachAccount) => OutreachChannel | null,
+  ours: readonly string[],
+  stop: (err: unknown) => void,
+): Promise<ThreadsStats> {
+  const out: ThreadsStats = { probed: 0, read: 0, kept: 0, answered: 0, errors: [] };
+  const readers = live.filter((a) => channelFor(a)?.thread);
+  if (!readers.length) return out;
+  const days = await ctx.run("follow-up days", () => scope.followUpDays());
+  if (days <= 0) return out;
+  const due = (
+    await ctx.run("threads due", async () => {
+      await watchFromComments(deps.db, now, days, [...new Set(readers.map((a) => a.platform))]);
+      return dueThreads(
+        deps.db,
+        now,
+        readers.map((a) => a.id),
+      );
+    })
+  ).map(asThread);
+  let budget = THREAD_READS_PER_PASS;
+  for (const a of readers) {
+    const mine = due.filter((t) => t.accountId === a.id);
+    const ch = channelFor(a);
+    if (!mine.length || !ch?.thread) continue;
+    const handles = ours.filter(Boolean);
+    try {
+      const counts = ch.commentCounts ? await ch.commentCounts(mine.map((t) => t.post)) : {};
+      out.probed += mine.length;
+      for (const t of mine) {
+        const r = ctx.rand.random();
+        const count = counts[t.post];
+        if (!needsRead(t, count, now)) {
+          await ctx.run(`probed ${t.id}`, () =>
+            probed(deps.db, t.id, nextCheckAt(t.activeAt, now, r)),
+          );
+          continue;
+        }
+        // Out of reads this pass: it stays due and goes first next pass.
+        if (budget <= 0) continue;
+        budget -= 1;
+        let read = await ch.thread(t.post);
+        out.read += 1;
+        if (read.more > 0)
+          for (const focus of focusesOf(read, handles)) {
+            read = mergeReads(read, [await ch.thread(t.post, focus)]);
+            out.read += 1;
+          }
+        const got = await ctx.run(`thread ${t.id}`, () =>
+          applyThread(deps.db, t, a, read, handles, now, r, days),
+        );
+        out.kept += got.kept.length;
+        out.answered += got.answered.length;
+        if (got.kept.length)
+          spineEmit(ctx, {
+            client: scope.client,
+            workflow: COMMENTS_FLOW,
+            from: COMMENTS_FROM,
+            events: got.kept.map(commentEvent),
+          });
+      }
+    } catch (err) {
+      stop(err);
+      if (capWaitMs(err) === null && !isVendorStop(err))
+        out.errors.push(`threads ${a.account}: ${errorText(err)}`);
+    }
+  }
+  return out;
 }
 
 /** What content's `SocialPushed/wren.reach` answers. */
@@ -837,6 +950,10 @@ async function watchPass(
       health.errors.push(`${a.account}: ${errorText(err)}`);
     }
   }
+  const threads: ThreadsStats =
+    scope.comments && !stopped
+      ? await threadsPass(deps, ctx, now, scope, live, channelFor, ours, stop)
+      : { probed: 0, read: 0, kept: 0, answered: 0, errors: [] };
   let invites: InvitesPass | null = null;
   const swept = (await ctx.get<number>(INVITES)) ?? 0;
   if (!stopped && now.getTime() - swept >= INVITES_EVERY_MS) {
@@ -871,7 +988,16 @@ async function watchPass(
   }
   ctx.set(READS, reads);
   ctx.set(HEALTH, checked);
-  const stats: WatchStats = { replies, comments: kept, health, invites, drafts, posts, stopped };
+  const stats: WatchStats = {
+    replies,
+    comments: kept,
+    threads,
+    health,
+    invites,
+    drafts,
+    posts,
+    stopped,
+  };
   const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
   const outcome: PassOutcome<WatchStats> = {
     stats,
@@ -888,6 +1014,7 @@ async function watchPass(
     notifier &&
     (replies.received > 0 ||
       kept.kept > 0 ||
+      threads.kept > 0 ||
       accepted > 0 ||
       toComment > 0 ||
       health.frozen.length > 0)
@@ -895,6 +1022,7 @@ async function watchPass(
     const news = [
       replies.received ? `${replies.received} new DMs` : null,
       kept.kept ? `${kept.kept} new comments` : null,
+      threads.kept ? `${threads.kept} follow-ups in threads` : null,
       accepted ? `${accepted} accepted invites` : null,
       toComment ? `${toComment} post comments to approve` : null,
     ].filter(Boolean);
@@ -1042,6 +1170,11 @@ const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
 const DM = COMMENT.extend({ body: z.string() });
+const THREAD_REPLY = COMMENT.extend({
+  ref: z.string().min(1).max(200).describe("The platform id of the comment to reply to"),
+  body: z.string().nullish().describe("The words"),
+  account: z.string().nullish().describe("The account it goes out as; none: the default"),
+});
 const PERSON = z.looseObject({
   id: z.string().describe("A People id: li:<people.id>, reddit:<handle> or <platform>:<handle>"),
 });
@@ -1102,6 +1235,61 @@ export function makeReachDesk(deps: ReachDeps) {
         SENDER_KEY,
       )
       .sync();
+  /**
+   * One comment answered in its thread, as the account that read it, or through `Content.reply`
+   * on our own post. `body` null: the draft. Sent now: the click is the yes.
+   */
+  const answerOne = async (
+    ctx: restate.Context,
+    id: number,
+    given: string | null,
+    by: ReturnType<typeof byOf>,
+  ): Promise<{ ref: string | null }> => {
+    const now = await nowOf(ctx);
+    const plan = await ctx.run("plan", () => terminal(() => planAnswer(deps.db, id, now)));
+    const words = (given ?? plan.comment.draft ?? "").trim();
+    if (!words) throw new restate.TerminalError("the answer is empty");
+    // Answered, and words that differ from the draft kept as his edit.
+    const answered = (ref: string | null, body: string) =>
+      ctx.run("answered", async () => {
+        await keepSentEdit(deps.db, {
+          record: "comment",
+          id: String(id),
+          by,
+          before: plan.comment.draft,
+          after: body,
+        });
+        await markAnswered(deps.db, id, { body, ref, now, by });
+      });
+    if (!plan.account) {
+      // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
+      const { target, text } = answerFor(plan.comment, words);
+      await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
+        platform: plan.comment.platform,
+        commentId: target,
+        // LinkedIn names a member comment by its post and its bare id.
+        postId: plan.comment.post,
+        text,
+      });
+      await answered(null, text);
+      scheduleProofs(ctx, `comment:${id}`);
+      return { ref: null };
+    }
+    const ch = channelsFor(deps, ctx)(plan.account);
+    if (!ch?.comment) throw new restate.TerminalError("this site can't answer comments");
+    const authors =
+      (await ch.threadAuthors?.(plan.comment.post).catch((err) => {
+        throw finalRefusal(err);
+      })) ?? [];
+    await terminal(async () => checkThread(authors, plan.others));
+    const sent = await ch.comment(plan.comment.ref, words).catch((err) => {
+      throw finalRefusal(err);
+    });
+    await answered(sent.ref, words);
+    scheduleProofs(ctx, `comment:${id}`);
+    wakeWatch(ctx);
+    return { ref: sent.ref };
+  };
   return restate.service({
     name: "ReachDesk",
     handlers: {
@@ -1359,55 +1547,74 @@ export function makeReachDesk(deps: ReachDeps) {
        */
       answerComment: serviceHandler(
         { input: ANSWER, effect: "sends" },
+        (ctx: restate.Context, req: { id: number; body?: string | null }) =>
+          answerOne(ctx, req.id, req.body ?? null, byOf(req)),
+      ),
+      /**
+       * Reply to any comment in a thread's conversation (designs/2026-10-15-engage-threads.md):
+       * one the inbox kept, or one only the thread read saw, kept now so it answers like any
+       * other. `id` is the row the conversation was opened from; `account`, a Send as pick.
+       */
+      replyInThread: serviceHandler(
+        { input: THREAD_REPLY, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { id: number; body?: string | null },
-        ): Promise<{ ref: string | null }> => {
-          const now = await nowOf(ctx);
-          const plan = await ctx.run("plan", () =>
-            terminal(() => planAnswer(deps.db, req.id, now)),
+          req: { id: number; ref: string; body?: string | null; account?: string | null },
+        ): Promise<{ id: number; ref: string | null }> => {
+          const target = await ctx.run("target", () =>
+            terminal(() => adoptNode(deps.db, req.id, req.ref)),
           );
-          const body = (req.body ?? plan.comment.draft ?? "").trim();
-          if (!body) throw new restate.TerminalError("the answer is empty");
-          // Answered, and words that differ from the draft kept as his edit.
-          const answered = (ref: string | null) =>
-            ctx.run("answered", async () => {
-              await keepSentEdit(deps.db, {
-                record: "comment",
-                id: String(req.id),
-                by: byOf(req),
-                before: plan.comment.draft,
-                after: body,
-              });
-              await markAnswered(deps.db, req.id, { body, ref, now, by: byOf(req) });
-            });
-          if (!plan.account) {
-            // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
-            await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
-              platform: plan.comment.platform,
-              commentId: plan.comment.ref,
-              // LinkedIn names a member comment by its post and its bare id.
-              postId: plan.comment.post,
-              text: body,
-            });
-            await answered(null);
-            scheduleProofs(ctx, `comment:${req.id}`);
-            return { ref: null };
-          }
-          const ch = channelsFor(deps, ctx)(plan.account);
-          if (!ch?.comment) throw new restate.TerminalError("this site can't answer comments");
-          const authors =
-            (await ch.threadAuthors?.(plan.comment.post).catch((err) => {
-              throw finalRefusal(err);
-            })) ?? [];
-          await terminal(async () => checkThread(authors, plan.others));
-          const sent = await ch.comment(plan.comment.ref, body).catch((err) => {
+          if (req.account)
+            await ctx.run("send as", () =>
+              terminal(() =>
+                pickAccount(deps.db, {
+                  item: `comment:${target}`,
+                  account: req.account ?? null,
+                  by: byOf(req),
+                }),
+              ),
+            );
+          const sent = await answerOne(ctx, target, req.body ?? null, byOf(req));
+          return { id: target, ...sent };
+        },
+      ),
+      /** Read a thread's conversation again now, on the reads budget: the context view's refresh. */
+      readThread: serviceHandler(
+        { input: ANSWER },
+        async (ctx: restate.Context, req: { id: number }): Promise<{ read: boolean }> => {
+          const now = await nowOf(ctx);
+          const found = await ctx.run("thread", () =>
+            terminal(() => threadFor(deps.db, req.id, now)),
+          );
+          if (!found) return { read: false };
+          const got = { ...found, thread: asThread(found.thread) };
+          const a = got.account;
+          const ch = channelsFor(deps, ctx)(a);
+          if (!ch?.thread) return { read: false };
+          const ours = await ctx.run("ours", async () =>
+            (await listAccounts(deps.db)).flatMap((x) => (x.handle ? [x.handle] : [])),
+          );
+          let read = await ch.thread(got.thread.post).catch((err) => {
             throw finalRefusal(err);
           });
-          await answered(sent.ref);
-          scheduleProofs(ctx, `comment:${req.id}`);
-          wakeWatch(ctx);
-          return { ref: sent.ref };
+          if (read.more > 0)
+            for (const focus of focusesOf(read, ours))
+              read = mergeReads(read, [await ch.thread(got.thread.post, focus)]);
+          const r = ctx.rand.random();
+          const days = await ctx.run("follow-up days", async () =>
+            Math.max(1, (await wrenCommentsRead(deps.db)).followUpDays),
+          );
+          const applied = await ctx.run("apply", () =>
+            applyThread(deps.db, got.thread, a, read, ours, now, r, days),
+          );
+          if (applied.kept.length)
+            spineEmit(ctx, {
+              client: null,
+              workflow: COMMENTS_FLOW,
+              from: COMMENTS_FROM,
+              events: applied.kept.map(commentEvent),
+            });
+          return { read: true };
         },
       ),
       /**

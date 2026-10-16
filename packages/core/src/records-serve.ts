@@ -27,6 +27,7 @@ import {
   csvRow,
   customColumn,
   type Field,
+  foldRows,
   KINDS,
   type Me,
   metaOf,
@@ -613,7 +614,11 @@ export function serveRecords(
   /** The type's own rows, before its custom fields join. */
   async function own(t: RecordType): Promise<SQL> {
     if (t.view) return sql`${viewSql(t.view)} r`;
-    const rows = loaded.get(t.id) ?? t.rows?.(db, me) ?? Promise.resolve([]);
+    const rows =
+      loaded.get(t.id) ??
+      (t.rows?.(db, me) ?? Promise.resolve([])).then((rs) =>
+        t.fold ? foldRows(rs, t.fold, t.key) : rs,
+      );
     loaded.set(t.id, rows);
     const pointedBy = types.flatMap((x) =>
       (x.related ?? []).filter((r) => r.record === t.id).map((r) => r.by),
@@ -838,9 +843,15 @@ export function serveRecords(
       guard(async () => {
         const t = typeOf(ask.record);
         const id = idOf(ask.id);
+        // A folded-away row opens its group: its id sits in the group's messages.
         const [raw] = await db.execute<Raw>(sql`
           select ${columnsOf(t)} from ${await source(t)}
-          where (${ref(t.key)})::text = ${id} limit 1`);
+          where (${ref(t.key)})::text = ${id}${
+            t.fold
+              ? sql` or (${ref(t.fold.into)})::jsonb @> jsonb_build_array(jsonb_build_object('id', ${id}::text))`
+              : sql``
+          }
+          order by (${ref(t.key)})::text = ${id} desc limit 1`);
         if (!raw) throw new PortalRefusal(`no such ${t.name.one}`, 404);
         const related = [];
         for (const r of t.related ?? []) {

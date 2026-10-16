@@ -104,7 +104,14 @@ describe("reddit content channel", () => {
     });
     const comments = await ch.comments("t3_abc");
     expect(comments).toEqual([
-      { id: "c1", postId: "abc", author: "someone", text: "nice", at: "2026-09-21T14:15:00.000Z" },
+      {
+        id: "c1",
+        postId: "abc",
+        author: "someone",
+        text: "nice",
+        at: "2026-09-21T14:15:00.000Z",
+        url: "https://www.reddit.com/comments/abc",
+      },
     ]);
     await ch.reply?.("c1", "thanks");
     expect(calls.at(-1)?.[2]).toMatchObject({ thing_id: "t1_c1", text: "thanks" });

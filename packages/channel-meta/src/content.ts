@@ -200,6 +200,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
   };
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via("meta", method, path).then((v) => (v === "browser" ? "browser" : "api"));
+  const IG_COMMENT_FIELDS = "id,text,username,timestamp,from{id}";
   const inbox = async () =>
     sites.call<IgInbox>("meta", "GET", `/${await igUser()}`, { fields: IG_INBOX_FIELDS });
   const fetchInsights = (id: string, metric: string[]) =>
@@ -399,22 +400,37 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
         if (want.has(m.id) && typeof m.comments_count === "number") out[m.id] = m.comments_count;
       return out;
     },
+    // Replies come with each comment (Instagram nests one level: a reply to a reply sits under
+    // the same comment), so a follow-up under a comment is read in the same call.
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {
-      const r = await sites.call<
-        Edge<{ id: string; text?: string; username?: string; timestamp?: string }>
-      >("meta", "GET", `/${id}/comments`, {
+      type IgComment = {
+        id: string;
+        text?: string;
+        username?: string;
+        timestamp?: string;
+        from?: { id?: string };
+        replies?: Edge<IgComment>;
+      };
+      const r = await sites.call<Edge<IgComment>>("meta", "GET", `/${id}/comments`, {
         // Without fields the Graph API leaves out who wrote it.
-        fields: "id,text,username,timestamp",
+        fields: `${IG_COMMENT_FIELDS},replies{${IG_COMMENT_FIELDS}}`,
         limit: Math.min(q.limit ?? 100, 100),
       });
+      const self = await igUser().catch(() => null);
+      const row = (c: IgComment, parentId?: string): CommentRow => ({
+        id: c.id,
+        postId: id,
+        author: c.username ?? "",
+        text: c.text ?? "",
+        at: c.timestamp ?? now().toISOString(),
+        ...(parentId ? { parentId } : {}),
+        ...(self && c.from?.id === self ? { mine: true } : {}),
+      });
       return pageOf(
-        (r.data ?? []).map((c) => ({
-          id: c.id,
-          postId: id,
-          author: c.username ?? "",
-          text: c.text ?? "",
-          at: c.timestamp ?? now().toISOString(),
-        })),
+        (r.data ?? []).flatMap((c) => [
+          row(c),
+          ...(c.replies?.data ?? []).map((reply) => row(reply, c.id)),
+        ]),
         q,
       );
     },

@@ -391,6 +391,15 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { id: num(id), ...(typeof body === "string" ? { body } : {}) },
       { confirm: "answerComment" },
     ),
+  // A reply to any comment in its thread (thread-context.tsx), as the account picked there.
+  "marketing/threadReply": (id, { ref, body, account }) =>
+    handlerCall(
+      "ReachDesk",
+      "replyInThread",
+      { id: num(id), ref, ...words(body), account: account ?? null },
+      { confirm: "replyInThread" },
+    ),
+  "marketing/threadRead": (id) => handlerCall("ReachDesk", "readThread", { id: num(id) }),
   "marketing/commentDm": (id, { body }) =>
     handlerCall("ReachDesk", "dmComment", { id: num(id), body }, { confirm: "dmComment" }),
   "marketing/commentDrop": (id) => handlerCall("ReachDesk", "dropComment", { id: num(id) }),

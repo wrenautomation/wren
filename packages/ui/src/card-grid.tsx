@@ -211,6 +211,7 @@ export function RecordCard({
   title,
   titleClass,
   body,
+  fold,
   spent,
   quiet,
   href,
@@ -234,6 +235,8 @@ export function RecordCard({
   title: string;
   titleClass: string;
   body: string;
+  /** In the body's place: a folded row's messages (`FoldPreview`). */
+  fold?: ReactNode;
   /** Fields the title and body already said: the facts leave them out. */
   spent: readonly string[];
   /** For info: its words read quieter. */
@@ -334,7 +337,11 @@ export function RecordCard({
         >
           {title || <span className="text-(--ui-ink-3)">-</span>}
         </a>
-        {body ? (
+        {fold ? (
+          <div className="text-[13px] leading-snug" {...clipProps()}>
+            {fold}
+          </div>
+        ) : body ? (
           <p
             className={cn(
               "m-0 line-clamp-3 text-[13px] leading-snug wrap-anywhere",

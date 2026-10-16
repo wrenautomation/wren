@@ -95,6 +95,39 @@ export interface CommentIn {
   raw: Record<string, unknown>;
 }
 
+/**
+ * One comment in a conversation, as the platform shows it under its post
+ * (designs/2026-10-15-engage-threads.md). `parent` is the comment it answers, or the post.
+ */
+export interface ThreadNode {
+  ref: string;
+  parent: string;
+  handle: string;
+  text: string;
+  at: string;
+  url: string;
+}
+
+/** A post and the comments read under it, any depth, oldest first. */
+export interface ThreadRead {
+  post: {
+    ref: string;
+    title: string | null;
+    text: string | null;
+    handle: string | null;
+    url: string;
+    place: string | null;
+    /** A picture for it: the post's thumbnail or its image, when it has one. */
+    media: string | null;
+    at: string | null;
+    /** Comments under it as the platform counts them. */
+    count: number | null;
+  };
+  nodes: ThreadNode[];
+  /** Comments the platform left behind a "load more" this read did not open. */
+  more: number;
+}
+
 /** The account itself: what the warmup protocol reads before it lets a step through. */
 export interface AccountHealth {
   handle: string;
@@ -146,6 +179,13 @@ export interface OutreachChannel {
   comment?(parent: string, text: string): Promise<Sent>;
   /** Every handle that wrote in the post's thread, the post's own author first. */
   threadAuthors?(post: string): Promise<string[]>;
+  /**
+   * The post and its comments, any depth. `focus`: a comment of ours to read the conversation
+   * under (a big thread's other branches may be left out).
+   */
+  thread?(post: string, focus?: string | null): Promise<ThreadRead>;
+  /** Each post's comment count in one read: a watch reads a thread again only when it moved. */
+  commentCounts?(posts: readonly string[]): Promise<Record<string, number>>;
   health(): Promise<AccountHealth>;
 }
 
@@ -188,6 +228,10 @@ export function fakeOutreachChannel(
   /** Comments the inbox lists, and each thread's authors. */
   inbox: CommentIn[];
   threads: Map<string, string[]>;
+  /** Each post's conversation, as `thread` reads it; its authors answer `threadAuthors` too. */
+  conversations: Map<string, ThreadRead>;
+  /** Reads `thread` and `commentCounts` made, in order. */
+  reads: string[];
   setHealth(h: Partial<AccountHealth>): void;
 } {
   const now = o.now ?? (() => new Date());
@@ -200,6 +244,8 @@ export function fakeOutreachChannel(
   const replies: Reply[] = [];
   const inbox: CommentIn[] = [];
   const threads = new Map<string, string[]>();
+  const conversations = new Map<string, ThreadRead>();
+  const reads: string[] = [];
   const relationships = new Map<string, Relationship>();
   let health: AccountHealth = {
     handle: "fake",
@@ -259,7 +305,27 @@ export function fakeOutreachChannel(
       return sentNow();
     },
     async threadAuthors(post) {
+      const read = conversations.get(post);
+      if (read)
+        return [
+          ...new Set([read.post.handle ?? "", ...read.nodes.map((n) => n.handle)].filter(Boolean)),
+        ];
       return threads.get(post) ?? [];
+    },
+    async thread(post) {
+      reads.push(`thread ${post}`);
+      const read = conversations.get(post);
+      if (!read) throw new Error(`fake: no thread ${post}`);
+      return structuredClone(read);
+    },
+    async commentCounts(posts) {
+      reads.push(`counts ${posts.join(",")}`);
+      const out: Record<string, number> = {};
+      for (const p of posts) {
+        const read = conversations.get(p);
+        if (read) out[p] = read.post.count ?? read.nodes.length;
+      }
+      return out;
     },
     async health() {
       return { ...health, asOf: now().toISOString() };
@@ -297,6 +363,8 @@ export function fakeOutreachChannel(
     relationships,
     inbox,
     threads,
+    conversations,
+    reads,
     receive: (r) => {
       replies.push(r);
     },

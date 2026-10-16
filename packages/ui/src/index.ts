@@ -159,6 +159,7 @@ export {
   flowOf,
 } from "./flow.js";
 export { type FlowEdit, FlowMap, type MapBox } from "./flow-map.js";
+export { FoldList, FoldPreview, foldOf } from "./fold.js";
 export { RecordForm } from "./form.js";
 export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
 export {
@@ -243,6 +244,7 @@ export {
 export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
 export { BottomSheet, type Segment, Segmented, SwipeRow, type Swipes } from "./phone.js";
 export { runs as tabRuns } from "./phone-nav.js";
+export { usePhone } from "./phone-shell.js";
 export {
   DeviceFrame,
   FeedPost,

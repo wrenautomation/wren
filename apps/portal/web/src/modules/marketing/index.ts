@@ -52,6 +52,7 @@ import { StudioPage, WritePage } from "./studio.js";
 import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
 import { threadEditorOf } from "./thread.js";
+import { THREAD_READ, THREAD_REPLY, withThread } from "./thread-context.js";
 import { studioVideos } from "./video-shelf.js";
 import { videoExtras } from "./videos.js";
 
@@ -306,6 +307,15 @@ const DM_ACTIONS: Action[] = [
     when: { waiting: ["waiting"] },
     done: said("Marked read"),
   },
+];
+
+/**
+ * A comment's whole thread (thread-context.tsx): a reply to any comment in it, and reading it
+ * on the site again. Run from inside the view only.
+ */
+const THREAD_VIEW_ACTIONS: Action[] = [
+  { id: THREAD_REPLY, label: "Reply from Wren", handler: "marketing/threadReply", inline: true },
+  { id: THREAD_READ, label: "Refresh", handler: "marketing/threadRead", inline: true },
 ];
 
 const COMMENT_ACTIONS: Action[] = [
@@ -870,6 +880,7 @@ const INBOX_ACTIONS: Action[] = [
   ...INBOX_THREAD_ACTIONS,
   ...[
     ...COMMENT_ACTIONS.map((a) => only("comment", a)),
+    ...THREAD_VIEW_ACTIONS.map((a) => only("comment", a)),
     ...DM_ACTIONS.filter(own).map((a) => only("dm", a, WAITS)),
     // SMS copy is William's: Mark read only.
     ...TEXT_ACTIONS.map((a) => only("text", a, WAITS)),
@@ -1100,6 +1111,7 @@ const ENGAGE_ACTIONS: Action[] = [
   only("thread", DM_FROM_ACTION, WAITS),
   only("onpost", DM_FROM_ACTION, WAITS),
   ...COMMENT_ACTIONS.filter(own).map((a) => only("comment", a)),
+  ...THREAD_VIEW_ACTIONS.map((a) => only("comment", a)),
   ...DM_ACTIONS.filter(own).map((a) => only("dm", a, WAITS)),
   PASS_ACTION,
   ...draftActions("inbox", {
@@ -1134,8 +1146,12 @@ const ENGAGE_PAGE: ListPage = {
   actions: ENGAGE_ACTIONS,
   extras: withDraft(
     (row) => ENGAGE_DRAFT[String(row.type)] ?? null,
-    withProof((detail, at) =>
-      (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
+    withThread(
+      withProof((detail, at) =>
+        (detail as { messages?: unknown } | null)?.messages
+          ? dmExtras(detail, at)
+          : { sections: [] },
+      ),
     ),
   ),
   head: (_meta, reload, at) => createElement(EngageHead, { reload, demo: !!at.demo }),
@@ -1232,8 +1248,9 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
     all: "Comments, DMs, email replies, mail, texts, site chats and activity show here.",
   },
   actions: INBOX_ACTIONS,
-  // The whole conversation with its reply and note boxes; activity has none.
-  extras: conversationExtras,
+  // The whole conversation with its reply and note boxes; activity has none. A comment adds its
+  // whole thread under it.
+  extras: withThread(conversationExtras),
   reply: conversationReply,
   count: { status: ["open"] },
 };
@@ -1792,8 +1809,11 @@ export const marketing: Module = {
         answered: "Comments you answered show here.",
         all: "Comments on our posts and under our comments show here.",
       },
-      actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
-      extras: withDraft(COMMENT_DRAFT),
+      actions: [...COMMENT_ACTIONS, ...COMMENT_ASK, ...THREAD_VIEW_ACTIONS],
+      extras: withDraft(
+        COMMENT_DRAFT,
+        withThread(() => ({})),
+      ),
     },
     // Every recording; Studio's Videos shows the newest and opens each in this page's editor.
     studioVideos({

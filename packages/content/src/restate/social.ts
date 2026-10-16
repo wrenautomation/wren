@@ -45,7 +45,13 @@ import {
 import { spineEmit } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
-import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent } from "@wren/outreach";
+import {
+  COMMENTS_FLOW,
+  COMMENTS_FROM,
+  commentEvent,
+  commentsReadSettings,
+  wrenCommentsRead,
+} from "@wren/outreach";
 import { z } from "zod";
 import { clientContent } from "../clients.js";
 import { MAPS_EVERY_MS, readMapsReviews } from "../social/maps-reviews.js";
@@ -274,7 +280,15 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
 
     // Only where its account can read them: a LinkedIn profile has no comments API.
     const read = platforms.filter((p) => commented.includes(p));
-    const posts = await ctx.run("posts", () => recentPosts(db, read, now));
+    const posts = await ctx.run("posts", async () =>
+      // A client's posts follow up for the default days; Wren's for its comment reader's setting.
+      recentPosts(
+        db,
+        read,
+        now,
+        (client ? commentsReadSettings(null) : await wrenCommentsRead(deps.db)).followUpDays,
+      ),
+    );
     const before = (await ctx.get<Record<string, number>>(READS)) ?? {};
     const countsBefore = (await ctx.get<Record<string, number>>(COUNTS)) ?? {};
     const fullBefore = (await ctx.get<Record<string, number>>(FULL_READS)) ?? {};
