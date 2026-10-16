@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { gzipSync } from "node:zlib";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin, type Rollup } from "vite";
+import { BUILD_FILE, BUILD_META } from "../src/build.js";
 
 /**
  * Sonner adds its CSS as a <style> at load, which the CSP's style-src refuses. The same CSS comes
@@ -83,11 +85,53 @@ const ownOrtWasm: Plugin = {
   },
 };
 
+/**
+ * The build's id (wa-ovo, ../src/build.ts): a hash of the files it emits, whose names carry their
+ * own content hashes, so it moves only when the app does. Written into each page as a meta tag the
+ * tab sends on every call, and as build.json, which the Worker reads to tell an older tab to reload.
+ */
+function buildId(): Plugin {
+  let id: string | null = null;
+  const own = BUILD_FILE.slice(1);
+  const idOf = (bundle: Rollup.OutputBundle) => {
+    id ??= createHash("sha256")
+      .update(
+        Object.keys(bundle)
+          .filter((f) => !f.endsWith(".html") && f !== own)
+          .sort()
+          .join("\n"),
+      )
+      .digest("hex")
+      .slice(0, 16);
+    return id;
+  };
+  return {
+    name: "build-id",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler: (_html, ctx) =>
+        ctx.bundle
+          ? [
+              {
+                tag: "meta",
+                attrs: { name: BUILD_META, content: idOf(ctx.bundle) },
+                injectTo: "head-prepend",
+              },
+            ]
+          : undefined,
+    },
+    generateBundle(_, bundle) {
+      this.emitFile({ type: "asset", fileName: own, source: JSON.stringify({ id: idOf(bundle) }) });
+    },
+  };
+}
+
 // Built into ../dist, which the Worker serves as its assets. `replay.html` is the session player,
 // `book.html` a client's public booking page (`src/book.ts`).
 export default defineConfig({
   root: import.meta.dirname,
-  plugins: [react(), tailwindcss(), sonnerStyles, ownOrtWasm, serverOnly],
+  plugins: [react(), tailwindcss(), sonnerStyles, ownOrtWasm, serverOnly, buildId()],
   // Dictation's speech model runs in a module worker (src/dictation/model.worker.ts).
   worker: { format: "es", plugins: () => [noOrtWasm] },
   build: {

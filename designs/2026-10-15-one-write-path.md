@@ -107,6 +107,15 @@ It also runs `edits()` (`scripts/edits-guard.mjs`). Every text box in the portal
 
 It also runs `reads()` (`scripts/reads-guard.mjs`, sharing `scripts/portal-sources.mjs` with the edits guard). It fails on an effect (`useEffect`, `useLayoutEffect`) that awaits something, unless a `read-ok: <reason>` comment sits in it or within three lines above. Today's reasons: a live feed or a poll that ends (a run's lines, an ask's answer, the workflow dots), badge counts on the pulse, a write that starts on arrival, a search or preview as it's typed, the graph layout, and effects that take an answer already read through `readCall`. It also fails on a records API built outside `recordsApi`. `engage.tsx` is skipped (`LATER`) while the engage-threads branch changes it.
 
+## Tabs from an older build (wa-ovo, 10-16)
+
+A tab open across a deploy keeps its old bundle. One from before this path pressed Send on a Reddit reply with no request id, and the new Worker answered "A send needs its request id." Nothing reached Restate.
+
+- The web build's id is a hash of the files it emits, so a Worker or Restate-only deploy leaves it alone. Vite writes it into each page's meta tag and into `build.json` (`apps/portal/web/vite.config.ts`, `buildId`).
+- The tab sends it on every call as `x-wren-build`. The Worker answers a write from another build, or a send that names none, with 409 `code: "stale"`: "Wren was updated since this tab opened. Reload to send." (`apps/portal/src/build.ts`). A plain write with no build (a script, the phone's Shortcut) still runs.
+- The web shows it as one toast with a Reload button. It is never an edit conflict. The words stay in the failed press, the open dialog or the kept box, so the reload gives them back.
+- Every refused send is logged: route, handler, both builds, reason. Never the words or the sender. Worker logs sample every request now, so none is dropped.
+
 ## Left outside, and why
 
 - Public booking page (`book.tsx`, `/__book/`): no sign-in, its own idempotent booking handler.
@@ -125,4 +134,5 @@ It also runs `reads()` (`scripts/reads-guard.mjs`, sharing `scripts/portal-sourc
 - `apps/portal/web/src/write-socket.test.ts`: the tab's socket hands states on and notices a dead one.
 - `apps/portal/test/worker.test.ts`: request id becomes the idempotency key; a send goes to `/send` and answers 202; `writes/status` maps Restate's answers.
 - `apps/portal/test/writes.test.ts`: `isWrite` matches every service's writes; sends are writes.
+- `apps/portal/web/src/sends.test.ts`: every page's action that sends, pressed from a dialog, a row's box and an inline box, plus a hand-drawn call, reaches the real Worker with a request id and the tab's build, and Restate once; a tab on an older build gets the reload line and keeps its words. `apps/portal/test/worker.test.ts` ("a tab older than the live build"): the 409s, what passes, and the refusal log.
 - `apps/portal/scripts/writes-e2e.ts` (`pnpm e2e:writes`, Chrome on a local preview): the reported case (Inbox reply, row switch, hidden, refused), a reply that lands while hidden, a reload mid-send, Engage DM (draft save lands before the send), Engage comment answer refused while hidden, Drop with undo past its deadline while hidden, the retry reason shown, unsent words back after another app and a reload, a draft moved on the server shown beside unsent words, the list painted from the device copy before its read answers, and a send in one tab read again in another. Then the calendar, a workflow's side panel and a board, each painted from the device copy on a reload and read again after a tab away (a board asking only for changed cards), and a board save refused over a newer one with both names shown. Reads are caught alone or inside a pulse.

@@ -1029,6 +1029,13 @@ export const say = {
   done: (line: string) => void (WRITES.showing() && toast.success(line)),
   failed: (err: unknown) =>
     void (WRITES.showing() && toast.error(err instanceof Error ? err.message : String(err))),
+  /** Wren was deployed since this tab opened: one line until he reloads, with the reload on it. */
+  stale: (line: string) =>
+    void toast.error(line, {
+      id: "stale-build",
+      duration: Number.POSITIVE_INFINITY,
+      action: { label: "Reload", onClick: () => location.reload() },
+    }),
 };
 
 export function Toasts() {

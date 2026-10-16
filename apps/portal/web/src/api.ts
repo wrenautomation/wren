@@ -6,7 +6,8 @@
  * need none.
  */
 import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
-import { dropLocalCopy, readTogether, startLocalCopy, type WireState, WRITES } from "@wren/ui";
+import { dropLocalCopy, readTogether, say, startLocalCopy, type WireState, WRITES } from "@wren/ui";
+import { BUILD_HEADER, BUILD_META, STALE_CODE } from "../../src/build.js";
 import { isWrite } from "../../src/services.js";
 import { tellAutotrack } from "./autotrack.js";
 import { startWriteSocket } from "./write-socket.js";
@@ -440,6 +441,17 @@ export const outlives = (json: string) =>
   document.visibilityState === "hidden" &&
   json.length <= KEEPALIVE_MAX;
 
+/**
+ * This tab's build, from its page's meta tag (vite.config.ts `buildId`): sent on every call, so
+ * the Worker can tell a tab older than the live build to reload before it writes. None in dev.
+ */
+let tabBuild: string | null | undefined;
+export const buildOfTab = (): string | null =>
+  (tabBuild ??=
+    (typeof document === "undefined"
+      ? null
+      : document.querySelector?.<HTMLMetaElement>(`meta[name="${BUILD_META}"]`)?.content) || null);
+
 async function sendNow<T>(
   path: string,
   body: Record<string, unknown>,
@@ -447,6 +459,7 @@ async function sendNow<T>(
 ): Promise<T> {
   const t = await token();
   const json = JSON.stringify(viewed(body));
+  const build = buildOfTab();
   let res: Response;
   try {
     res = await fetch(`/api/${path}`, {
@@ -454,6 +467,7 @@ async function sendNow<T>(
       headers: {
         "content-type": "application/json",
         ...(t ? { authorization: `Bearer ${t}` } : {}),
+        ...(build ? { [BUILD_HEADER]: build } : {}),
       },
       body: json,
       ...(outlives(json) ? { keepalive: true } : {}),
@@ -478,7 +492,12 @@ async function sendNow<T>(
   } catch {
     // Not JSON: an error page from the edge.
   }
-  if (!res.ok) throw refusalOf(data as Refused, res.status);
+  if (!res.ok) {
+    const refused = refusalOf(data as Refused, res.status);
+    // Wren was deployed since this tab opened: its words stay on the device; a reload sends them.
+    if (refused.code === STALE_CODE) say.stale(refused.message);
+    throw refused;
+  }
   return data as T;
 }
 

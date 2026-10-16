@@ -11,8 +11,8 @@ describe("wrangler.toml", () => {
     expect(toml).toMatch(/^run_worker_first = \["\/\*", "!\/assets\/\*"\]$/m);
   });
 
-  it("logs one request in ten", () => {
-    expect(toml).toMatch(/\[observability\]\s+enabled = true\s+head_sampling_rate = 0\.1/);
+  it("logs every request, so no refused send is dropped (wa-ovo)", () => {
+    expect(toml).toMatch(/\[observability\]\s+enabled = true\s+head_sampling_rate = 1\n/);
   });
 
   it("hashed files are cached for good", () => {

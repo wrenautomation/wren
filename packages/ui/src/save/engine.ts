@@ -120,6 +120,8 @@ const statusOf = (err: unknown) => {
 export function conflictOf(err: unknown): boolean {
   const code = (err as { code?: unknown } | null)?.code;
   if (code === "conflict") return true;
+  // A tab older than the live build (apps/portal/src/build.ts): a reload, never Keep mine.
+  if (code === "stale") return false;
   return statusOf(err) === 409 && /chang|moved|since/i.test(wordsOf(err));
 }
 

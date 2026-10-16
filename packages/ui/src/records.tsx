@@ -272,7 +272,7 @@ export type ActPatch = (
  * A record's own action, pressed (a reply box's Send, an editor's button): one write in
  * `WRITES` with its own request id, its words kept with it until the server answers.
  */
-function pressAct(
+export function pressAct(
   call: Call,
   a: Action,
   id: string | number,

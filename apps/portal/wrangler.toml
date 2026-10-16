@@ -60,7 +60,9 @@ name = "PUBLIC_LIMIT"
 namespace_id = "1001"
 simple = { limit = 120, period = 60 }
 
-# Logs for the next spike: one request in ten, so its paths show.
+# Logs for the next spike, and every refused send (wa-ovo, src/worker.ts `refusedSend`): all
+# requests, as sampling drops a request's own lines with it. Free: requests stop at the plan's
+# 100k a day, under its 200k log lines a day.
 [observability]
 enabled = true
-head_sampling_rate = 0.1
+head_sampling_rate = 1

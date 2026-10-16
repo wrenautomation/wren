@@ -37,6 +37,7 @@ import { KEY_STAGE_PATH } from "@wren/core/key-refs";
 import { LIVE_PREFIX } from "@wren/notes/room";
 import { AGENT_PATH, agentRoute, operatorToken } from "./agent.js";
 import { bookRoute } from "./book.js";
+import { BUILD_FILE, BUILD_HEADER, isStale, STALE_CODE, STALE_SEND, STALE_WRITE } from "./build.js";
 import { dictate } from "./dictate.js";
 import { docsRoute } from "./docs.js";
 import { forward, json } from "./edge.js";
@@ -117,6 +118,39 @@ async function pulseRoute(req: Request, env: Env, site: Site, ctx?: ExecutionCon
   return json({ answers });
 }
 
+/** The deploy's build id, from its own `build.json`, read once per isolate. Null when it has none. */
+const builds = new WeakMap<Fetcher, Promise<string | null>>();
+function liveBuild(env: Env): Promise<string | null> {
+  let got = builds.get(env.ASSETS);
+  if (!got) {
+    got = env.ASSETS.fetch(new Request(`https://assets.local${BUILD_FILE}`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => {
+        const id = (b as { id?: unknown } | null)?.id;
+        return typeof id === "string" && id ? id : null;
+      })
+      .catch(() => null);
+    builds.set(env.ASSETS, got);
+  }
+  return got;
+}
+
+/**
+ * A send refused here, logged so the next one can be traced (wa-ovo): where it went, which
+ * handler, the tab's build and the live one, and why. Never its words or who sent it.
+ */
+function refusedSend(
+  path: string,
+  input: unknown,
+  build: string | null,
+  live: string | null,
+  reason: string,
+) {
+  const b = input as { service?: unknown; handler?: unknown } | null;
+  const handler = path === "console/call" && b ? `${String(b.service)}/${String(b.handler)}` : path;
+  console.warn(JSON.stringify({ refused: "send", route: path, handler, build, live, reason }));
+}
+
 async function sha256(s: string): Promise<string> {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -147,15 +181,34 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
   // View as: Look reads only, Act goes on; the guard checks who may (`viewAsOf`).
   const viewAs = viewAsShape((input as { viewAs?: unknown }).viewAs);
   if (viewAs === "bad") return json({ error: "View as: say which client." }, 400);
-  if (viewAs && !viewAs.act && svc.writes.has(route))
-    return json({ error: "Look reads only. Switch to Act to change things." }, 403);
   // An action's request id (`requestId`): sent again on a double click or a retry, it runs once.
   const { requestId, ...unkeyed } = input as { requestId?: unknown } & Record<string, unknown>;
-  if (requestId !== undefined && requestId !== null && !REQUEST_ID.test(String(requestId)))
-    return json({ error: "A request id is 8 to 100 letters, digits, - or _." }, 400);
   input = unkeyed;
+  const sending = isSend(path, input);
+  const build = req.headers.get(BUILD_HEADER);
+  const live = svc.writes.has(route) ? await liveBuild(env) : null;
+  const refuse = (reason: string, res: Response) => {
+    if (sending) refusedSend(path, input, build, live, reason);
+    return res;
+  };
+  if (viewAs && !viewAs.act && svc.writes.has(route))
+    return refuse(
+      "look only",
+      json({ error: "Look reads only. Switch to Act to change things." }, 403),
+    );
+  if (requestId !== undefined && requestId !== null && !REQUEST_ID.test(String(requestId)))
+    return refuse(
+      "bad request id",
+      json({ error: "A request id is 8 to 100 letters, digits, - or _." }, 400),
+    );
   const viewer = await viewerOf(req, env);
   if (viewer instanceof Response) return viewer;
+  // A tab on another build than this deploy's: its wire may not be what this Worker takes.
+  if (!("demo" in viewer) && svc.writes.has(route) && isStale(live, build, sending))
+    return refuse(
+      "stale build",
+      json({ error: sending ? STALE_SEND : STALE_WRITE, metadata: { code: STALE_CODE } }, 409),
+    );
   if (!("demo" in viewer)) {
     // Where a signed-in request came from, set here like the viewer: a contract signature records it.
     // `origin`, never a name a handler might take as input (a range's `from` once lost to it).
@@ -172,10 +225,11 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
         : undefined;
     const sent = JSON.stringify({ ...(input as object), ...pin, viewer, origin });
     // A send: Restate takes it and runs it whatever the tab does; the answer says only that.
-    if (isSend(`${name}/${route}`, input)) {
-      if (!once) return json({ error: "A send needs its request id." }, 400);
+    if (sending) {
+      if (!once)
+        return refuse("no request id", json({ error: "A send needs its request id." }, 400));
       const took = await forward(env, `${target}/send`, sent, once);
-      if (!took.ok) return took;
+      if (!took.ok) return refuse(`restate ${took.status}`, took);
       // Its tabs hear how it goes over their socket (./watch.ts); without one they poll.
       ctx?.waitUntil(
         watchWrite(env, viewer.email, site, { requestId: String(requestId), path, key: once }),

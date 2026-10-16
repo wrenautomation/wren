@@ -538,6 +538,163 @@ describe("the app host", () => {
   });
 });
 
+describe("a tab older than the live build (wa-ovo)", () => {
+  /** The deploy's assets, with the build id the web build wrote (vite.config.ts `buildId`). */
+  const built = (id: string | null): Partial<Env> => ({
+    ASSETS: {
+      fetch: async (req: Request) =>
+        new URL(req.url).pathname === "/build.json" && id
+          ? Response.json({ id })
+          : new Response("<!doctype html>app", { headers: { "content-type": "text/html" } }),
+    } as unknown as Fetcher,
+  });
+  /** A Reddit comment's reply from the Inbox, as a tab from before the one write path sent it. */
+  const oldReply = {
+    service: "InboxDesk",
+    handler: "reply",
+    input: { thread: "comment:1", channel: "reddit", target: "t1_abc", body: "Synthetic words" },
+    confirm: "reply",
+  };
+  let logged: string[];
+  beforeEach(() => {
+    logged = [];
+    vi.spyOn(console, "warn").mockImplementation((...a: unknown[]) => {
+      logged.push(a.map(String).join(" "));
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+  const auth = async (more: Record<string, string> = {}) => ({
+    authorization: `Bearer ${await token({})}`,
+    ...more,
+  });
+
+  it("a send from a tab with no build id (no request id either) is told to reload, not a 400", async () => {
+    const res = await worker.fetch(
+      post("app.test", "console/call", oldReply, await auth()),
+      env(built("b-new")),
+    );
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      error: "Wren was updated since this tab opened. Reload to send.",
+      metadata: { code: "stale" },
+    });
+    expect(restate).toEqual([]);
+  });
+
+  it("a write from another build is refused the same way; this build's goes on", async () => {
+    const stale = await worker.fetch(
+      post(
+        "app.test",
+        "console/call",
+        { ...oldReply, requestId: "req-stale-1" },
+        await auth({ "x-wren-build": "b-old" }),
+      ),
+      env(built("b-new")),
+    );
+    expect(stale.status).toBe(409);
+    const save = await worker.fetch(
+      post(
+        "app.test",
+        "documents/send",
+        { id: "d1", requestId: "req-stale-2" },
+        await auth({ "x-wren-build": "b-old" }),
+      ),
+      env(built("b-new")),
+    );
+    expect(save.status).toBe(409);
+    expect(((await save.json()) as { error: string }).error).toBe(
+      "Wren was updated since this tab opened. Reload and try again.",
+    );
+    expect(restate).toEqual([]);
+    const fresh = await worker.fetch(
+      post(
+        "app.test",
+        "console/call",
+        { ...oldReply, requestId: "req-fresh-1" },
+        await auth({ "x-wren-build": "b-new" }),
+      ),
+      env(built("b-new")),
+    );
+    expect(fresh.status).toBe(202);
+    expect(restate[0]?.url).toBe("https://restate.test:8080/ConsolePortal/call/send");
+  });
+
+  it("reads, header-less writes that aren't sends, and a deploy with no build id are let through", async () => {
+    const read = await worker.fetch(
+      post("app.test", "delivery/me", {}, await auth({ "x-wren-build": "b-old" })),
+      env(built("b-new")),
+    );
+    expect(read.status).toBe(200);
+    // A phone Shortcut or a script carries no build: a plain write still runs.
+    const plain = await worker.fetch(
+      post("app.test", "documents/send", { id: "d1", requestId: "req-plain-1" }, await auth()),
+      env(built("b-new")),
+    );
+    expect(plain.status).toBe(200);
+    const unknown = await worker.fetch(
+      post(
+        "app.test",
+        "console/call",
+        { ...oldReply, requestId: "req-unk-1" },
+        await auth({ "x-wren-build": "b-old" }),
+      ),
+      env(built(null)),
+    );
+    expect(unknown.status).toBe(202);
+  });
+
+  it("logs every refused send by route, handler, build and reason, never its words or who", async () => {
+    await worker.fetch(
+      post("app.test", "console/call", oldReply, await auth()),
+      env(built("b-new")),
+    );
+    await worker.fetch(
+      post("app.test", "console/call", oldReply, await auth({ "x-wren-build": "b-new" })),
+      env(built("b-new")),
+    );
+    await worker.fetch(
+      post(
+        "app.test",
+        "marketing/inboxReply",
+        { body: "Synthetic words", requestId: "req-log-1" },
+        await auth({ "x-wren-build": "b-old" }),
+      ),
+      env(built("b-new")),
+    );
+    const lines = logged.map((l) => JSON.parse(l) as Record<string, unknown>);
+    expect(lines).toEqual([
+      {
+        refused: "send",
+        route: "console/call",
+        handler: "InboxDesk/reply",
+        build: null,
+        live: "b-new",
+        reason: "stale build",
+      },
+      {
+        refused: "send",
+        route: "console/call",
+        handler: "InboxDesk/reply",
+        build: "b-new",
+        live: "b-new",
+        reason: "no request id",
+      },
+      {
+        refused: "send",
+        route: "marketing/inboxReply",
+        handler: "marketing/inboxReply",
+        build: "b-old",
+        live: "b-new",
+        reason: "stale build",
+      },
+    ]);
+    for (const l of logged) {
+      expect(l).not.toContain("Synthetic");
+      expect(l.toLowerCase()).not.toContain("owner@client.example");
+    }
+  });
+});
+
 describe("the demo cache", () => {
   let store: Map<string, Response>;
   beforeEach(() => {
