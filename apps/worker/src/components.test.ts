@@ -68,7 +68,7 @@ afterAll(async () => {
 });
 
 /** Every service and its handlers, from an env that turns on all but Postmaster (no database reached). */
-async function boundHandlers(): Promise<Map<string, Record<string, unknown>>> {
+async function buildHandlers(): Promise<Map<string, Record<string, unknown>>> {
   const rootDir = mkdtempSync(join(tmpdir(), "wren-components-"));
   const settings = loadSettings(
     {
@@ -104,6 +104,13 @@ async function boundHandlers(): Promise<Map<string, Record<string, unknown>>> {
     ).map((d) => [d.name, d.service ?? d.object ?? d.workflow ?? {}]),
   );
 }
+
+/**
+ * Built once, while the file loads: building every service took seconds on a loaded machine, and
+ * each test that built its own ran past the 5 s limit.
+ */
+const BOUND = await buildHandlers();
+const boundHandlers = async () => BOUND;
 
 /** Every service and its handlers' names. */
 async function bound(): Promise<Map<string, string[]>> {
