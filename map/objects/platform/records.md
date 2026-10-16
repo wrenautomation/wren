@@ -60,7 +60,8 @@ Citations: `packages/core/src/records.ts:359`, `packages/core/src/records-serve.
 ## If you change this
 
 - **Hits:** a field kind's ops or CSV changes every type's filters and exports; a view's SQL needs a migration (`pnpm --filter @wren/db generate`); console views read base tables only, so a later change to another view never has to drop them; `score.ts` fragments (`whereFinding`, `hiringFinding`) are inlined in `reactivation_people`, so changing them regenerates it; the portal web reads `recordsTypes`
-- **Hits (web):** a record id may hold a slash; its page link encodes it and `route.ts` decodes each segment. A kind the renderers don't know shows as text; a field's `column.width` sets its share of the table; the address keeps `view`, filters by field key, `q`, `sort`, `cols`, `pg` (the page, 1-based; dropped on page 1) and the open record (by `name.one`), so renaming a key breaks saved links
+- **Hits (web, tables):** the list draws from `useListTable` (`packages/ui/src/table.tsx`, TanStack Table; virtual rows past `VIRTUAL_FROM` 120 via TanStack Virtual); other lists use `DataTable`, label/value facts `FactsTable`; `scripts/libs-guard.mjs` fails a `<table>` elsewhere (designs/2026-10-16-portal-libs.md)
+- **Hits (web):** a record id may hold a slash; its page link encodes it and `route.ts` decodes each segment. A kind the renderers don't know shows as text; a field's `column.width` sets its share of the table; the address keeps `view`, filters by field key, `q`, `sort`, `cols`, `pg` (the page, 1-based; dropped on page 1), `size` (50/100/200) and the open record (by `name.one`), so renaming a key breaks saved links
 - **Does not hit:** the old `emails` handler (kept; its mask tests cover the email detail) and `replies`, which still serves its page. The old `people` handler is gone; `?filter=` links rewrite to `view=all&now=`
 
 ## Surfaces

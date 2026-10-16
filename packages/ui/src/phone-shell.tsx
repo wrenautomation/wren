@@ -251,6 +251,7 @@ let RESTORE = false;
 const landBack = () => {
   RESTORE = true;
 };
+// route-ok: it only listens, to land a back where it was left; the router moves the page.
 if (typeof window !== "undefined") addEventListener("popstate", landBack);
 
 // --- The bar at the top ---------------------------------------------------------------------

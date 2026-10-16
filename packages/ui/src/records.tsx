@@ -1935,6 +1935,7 @@ function List({
               )}
             </ul>
           ) : (
+            // table-ok: the record list draws its own rows (groups, boxes, spacers) from useListTable.
             <table
               // An empty view shows what fills it, not a row of column heads over nothing.
               className={cn(

@@ -3,7 +3,7 @@
 # suspends `set -e` inside functions called from an && list.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers && map && isolation && writes && edits && reads && drift; }
+lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
 map() { echo "==> map" && map/_meta/build.sh --check; }
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
@@ -28,6 +28,9 @@ edits() { echo "==> unsaved edits" && node scripts/edits-guard.mjs; }
 # Every portal read goes through the data layer (useCall/useLoad, readCall, recordsApi), so it is
 # kept on the device and read again on return (designs/2026-10-15-one-write-path.md).
 reads() { echo "==> portal reads" && node scripts/reads-guard.mjs; }
+# The portal's routing, tables and forms stay on TanStack Router, TanStack Table and React Hook
+# Form (designs/2026-10-16-portal-libs.md).
+libs() { echo "==> portal libraries" && node scripts/libs-guard.mjs; }
 # Drizzle's schema matches the migrations: generating into a copy of drizzle/ makes nothing new.
 # A schema.ts change shipped without `pnpm db:generate` breaks its inserts on prod (0224).
 drift() {
@@ -68,7 +71,7 @@ case "${1:-all}" in
   schema) schema ;;
   drift) drift ;;
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
-  checks) cli && offers && map && isolation && writes && edits && reads && drift ;;
+  checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && schema && integration && echo "==> all gates green" ;;
   *) echo "usage: $0 [lint|checks|unit|schema|drift|integration|all]" >&2; exit 2 ;;
 esac

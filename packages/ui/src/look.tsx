@@ -655,6 +655,7 @@ function Report({ lines }: { lines: ContrastLine[] }) {
   return (
     <div>
       <h3 className="mb-1 text-[13px] font-semibold">Contrast</h3>
+      {/* table-ok: a fixed two-column report, not a list. */}
       <table className="w-full text-[13px]">
         <tbody>
           {lines.map((l) => (
