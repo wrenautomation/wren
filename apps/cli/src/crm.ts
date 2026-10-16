@@ -304,7 +304,7 @@ export function registerCrm(
         for (const e of errors) console.log(`    ${e}`);
       }
       for (const m of mailboxes.send)
-        console.log(`  send  ${m.sender}: ${m.running ? "running" : "stopped"}`);
+        console.log(`  send  ${m.key}: ${m.running ? "running" : "stopped"}`);
       for (const m of mailboxes.inbox)
         console.log(`  inbox ${m.key}: ${m.running ? "running" : "stopped"}`);
     });

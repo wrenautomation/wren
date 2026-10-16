@@ -3,13 +3,13 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
-entity: packages/core/src/restate/loop.ts:364
+verified: 2026-10-16 @ 3a7bb93e
+entity: packages/core/src/restate/loop.ts:366
 ---
 
 # loop-object
 
-The one way a recurring job runs: a Restate Virtual Object from `makeLoopObject` with handlers `start`, `stop`, `sync`, `loop`, `status`. Fourteen of them in prod. `loop` refuses at ingress: only the loop sends it.
+The one way a recurring job runs: a Restate Virtual Object from `makeLoopObject` with handlers `start`, `stop`, `sync`, `wake`, `loop`, `status`. Fourteen of them in prod. `loop` refuses at ingress: only the loop sends it.
 
 ## Why this shape
 
@@ -17,12 +17,14 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 
 ## Shape
 
-- `makeLoopObject(name, pass)` (`loop.ts:364`); `passOrFailed` (`:341`): a pass that throws a terminal or replayed error is kept as a failed `last` with backoff, the next queued, never parked; `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
+- `makeLoopObject(name, pass, hooks)` (`loop.ts:366`); `hooks.effect` marks `sync` (`sends` on `SendScheduler`); `passOrFailed` (`:343`): a pass that throws a terminal or replayed error is kept as a failed `last` with backoff, the next queued, never parked; `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
 - keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ClicksScheduler/fleet`, `BounceScheduler/all`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`, `SocialWatch/wren`, `PayReconcile/all`
 
 - time limits (`packages/core/src/restate/limits.ts`): `within` on each Restate call, `limitedRun` on HTTP steps, `unitLimits` strikes a unit three passes in a row into [[platform/checks]] (stage `loop.<service>/<key>`); the pass keeps them as `last.timeouts`
 
-Citations: `packages/core/src/restate/loop.ts:364`
+- `SendScheduler` is one too since 2026-10-16 (wa-jsi): its tick step has 3 tries, then `passOrFailed` keeps it as a failed pass; `sync` replaced `tick`; a gone scope is a `stopped` pass
+
+Citations: `packages/core/src/restate/loop.ts:366`, `packages/channel-email/src/restate/send-scheduler.ts:80`
 
 ## Connected to
 

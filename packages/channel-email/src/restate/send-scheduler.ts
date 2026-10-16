@@ -1,37 +1,33 @@
 /**
- * The send daemon as a Restate Virtual Object keyed by sender address.
+ * The send daemon as a loop object (`makeLoopObject`) keyed by sender address.
  *
- * One key = one inbox = one loop: `start` flips the key to running and sends
- * itself a `loop`; every `loop` runs one tick (kill switches, reconcile, the
- * paced walk restricted to this inbox), then schedules the next `loop` with a
- * durable delay — the per-inbox gap after a send, the tick interval while
- * waiting, or straight to the next window open. Restate owns the timer, so a
- * worker dying (or a laptop closing) loses nothing: the delayed call fires
- * when the deployment is back. `tick` runs once without touching the loop.
+ * One key = one inbox = one loop: each `loop` runs one tick (kill switches, reconcile, the
+ * paced walk restricted to this inbox), then schedules the next `loop` with a durable delay:
+ * the per-inbox gap after a send, the tick interval while waiting, or straight to the next
+ * window open. Restate owns the timer, so a worker dying (or a laptop closing) loses nothing.
+ * `sync` runs one tick without touching the loop.
  *
- * The tick body is one journaled step over its own transactions: a retry
- * after a crash re-runs `sendTick`, which is safe by construction (intent
- * before act; reconcile resolves the row a crash left behind).
+ * The tick body is one journaled step over its own transactions: a retry after a crash re-runs
+ * `sendTick`, which is safe by construction (intent before act; reconcile resolves the row a
+ * crash left behind). A tick that keeps throwing fails after `TICK_TRIES` tries, and the loop
+ * keeps it as a failed pass with a backoff (`passOrFailed`), never parked behind its retries.
  *
- * A key's scope says which database, rules and fleet it sends under. Wren's
- * own inboxes share one; a client's mailbox gets its client's. A key whose
- * scope is gone (the client stopped sending) stops its own loop.
+ * A key's scope says which database, rules and fleet it sends under. Wren's own inboxes share
+ * one; a client's mailbox gets its client's. A key whose scope is gone (the client stopped
+ * sending) stops its own loop.
  */
 
-import * as restate from "@restatedev/restate-sdk";
-import { finishRun, openRun } from "@wren/core";
+import type * as restate from "@restatedev/restate-sdk";
+import { recordedRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { type Notifier, plural } from "@wren/core/notify";
 import {
   clientOfKey,
-  exclusiveHandler,
-  lastPass,
-  loopState,
-  NO_INPUT,
+  makeLoopObject,
+  type PassOutcome,
   setLastPass,
-  sharedHandler,
+  stoppedPass,
   unitOfKey,
-  writeLoop,
 } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
@@ -39,7 +35,7 @@ import type { SharedSuppressions } from "../guards.js";
 import type { SendStats } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
 import { seededRng } from "../send/rng.js";
-import { type Fleet, type KillSwitches, sendTick } from "../send/tick.js";
+import { type Fleet, type KillSwitches, sendTick, type TickResult } from "../send/tick.js";
 import type { Transport } from "../send/transport.js";
 
 /** What one key sends under. */
@@ -65,13 +61,9 @@ export interface SendSchedulerDeps {
   notifier?: Notifier;
 }
 
-export interface TickOutcome {
-  stats: SendStats;
-  newPauses: number;
-  /** When the next loop iteration is due, ms after this tick's `now`. */
-  delayMs: number;
-  now: string;
-}
+/** One tick's stats: the ledger row's counts, and how many inboxes its kill switch paused. */
+export type TickStats = SendStats & { newPauses: number };
+export type TickOutcome = PassOutcome<TickStats>;
 
 /** One scope for every key: a single fleet. */
 export const oneScope =
@@ -79,67 +71,77 @@ export const oneScope =
   async () =>
     scope;
 
-export interface SchedulerStatus {
-  sender: string;
-  running: boolean;
-  onRoster: boolean;
-  last: TickOutcome | null;
-}
-
 const MIN_DELAY_MS = 1_000;
+/** Tries of one tick's step before the pass fails (and the loop backs off). */
+export const TICK_TRIES = 3;
+export const SEND_TICK_COMMAND = "send tick";
+export const NO_SCOPE = "no send scope for this key: sending is off or the mailbox is gone";
 
 export function makeSendScheduler(deps: SendSchedulerDeps) {
   const tickMs = deps.tickMs ?? 60_000;
-  const onRoster = (scope: SendScope | null, key: string) =>
-    scope?.fleet.senders.some((s) => sameMailbox(s, key)) ?? false;
 
-  /** One tick for this key's inbox, journaled as a single step; null = the scope is gone. */
-  const runTick = async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => {
+  /** One tick for this key's inbox, journaled as a single step; a key whose scope is gone stops. */
+  const pass = async (ctx: restate.ObjectContext): Promise<TickOutcome> => {
     const key = ctx.key;
     const now = new Date(await ctx.date.now());
     // Drawn from the journal, not inside the step, so a retried step paces the same way.
     const seed = Math.floor(ctx.rand.random() * 0x100000000);
     // The scope is read inside the step: a database handle can't be journaled, and the delay needs its rules.
-    const result = await ctx.run("send tick", async () => {
-      const scope = await deps.scopeOf(key);
-      if (!scope) return null;
-      const fleet: Fleet = {
-        ...scope.fleet,
-        // Only this key's inbox may send here; the rest of the fleet has its own keys.
-        senders: scope.fleet.senders.filter((s) => sameMailbox(s, key)),
-      };
-      const run = await openRun(scope.db, {
-        command: "send tick",
-        argv: { sender: unitOfKey(key) },
-      });
-      const { stats, newPauses, nextSendAt, touches } = await sendTick(scope.db, {
-        policy: scope.policy,
-        transport: deps.transport,
-        now,
-        runId: run.id,
-        fleet,
-        pixelBaseUrl: scope.pixelBaseUrl ?? null,
-        calendar: scope.calendar ?? null,
-        shared: scope.shared ?? null,
-        rng: seededRng(seed),
-        ...(deps.killSwitches ? { killSwitches: deps.killSwitches } : {}),
-      });
-      await finishRun(scope.db, run.id, stats);
-      return {
-        stats,
-        newPauses: newPauses.length,
-        paused: newPauses.map((p) => `${p.sender} — ${p.reason}`),
-        delayMs: nextDelay(scope.policy, stats, now, nextSendAt, tickMs),
-        touches,
-      };
-    });
-    if (!result) return null;
-    const { paused, touches, ...rest } = result;
+    const result = await ctx.run(
+      SEND_TICK_COMMAND,
+      async () => {
+        const scope = await deps.scopeOf(key);
+        if (!scope) return null;
+        const fleet: Fleet = {
+          ...scope.fleet,
+          // Only this key's inbox may send here; the rest of the fleet has its own keys.
+          senders: scope.fleet.senders.filter((s) => sameMailbox(s, key)),
+        };
+        // The ledger row keeps the counts; the rest rides out beside them.
+        let tick: TickResult | undefined;
+        const { stats } = await recordedRun(
+          scope.db,
+          { command: SEND_TICK_COMMAND, argv: { sender: unitOfKey(key) } },
+          async (run) => {
+            tick = await sendTick(scope.db, {
+              policy: scope.policy,
+              transport: deps.transport,
+              now,
+              runId: run.id,
+              fleet,
+              pixelBaseUrl: scope.pixelBaseUrl ?? null,
+              calendar: scope.calendar ?? null,
+              shared: scope.shared ?? null,
+              rng: seededRng(seed),
+              ...(deps.killSwitches ? { killSwitches: deps.killSwitches } : {}),
+            });
+            return tick.stats;
+          },
+        );
+        if (!tick) throw new Error("send tick ran no tick");
+        const { newPauses, nextSendAt, touches } = tick;
+        return {
+          stats: { ...stats, newPauses: newPauses.length },
+          paused: newPauses.map((p) => `${p.sender} — ${p.reason}`),
+          delayMs: nextDelay(scope.policy, stats, now, nextSendAt, tickMs),
+          touches,
+        };
+      },
+      { maxRetryAttempts: TICK_TRIES, initialRetryInterval: 1000 },
+    );
+    if (!result) return stoppedPass(ctx, now, NO_SCOPE);
+    const { stats, paused, touches, delayMs } = result;
     // Each sent step leaves its node; the cadence's next touch lets the next step go (follow.ts).
     const client = clientOfKey(key)?.client ?? null;
     for (const t of touches)
       spineEmit(ctx, { client, workflow: t.workflow, from: t.from, events: [t.event] });
-    const outcome: TickOutcome = { ...rest, now: now.toISOString() };
+    const outcome: TickOutcome = {
+      stats,
+      error: null,
+      failures: 0,
+      delayMs,
+      now: now.toISOString(),
+    };
     await setLastPass(ctx, outcome);
     const notifier = deps.notifier;
     if (notifier && paused.length > 0) {
@@ -154,86 +156,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     return outcome;
   };
 
-  const scheduler = restate.object({
-    name: "SendScheduler",
-    handlers: {
-      /** Run one tick now; the loop (if any) is untouched, unless the scope is gone: then it ends, as its own next tick would end it. */
-      tick: exclusiveHandler(
-        { input: NO_INPUT, effect: "sends" },
-        async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => {
-          const outcome = await runTick(ctx);
-          if (!outcome && (await loopState(ctx)).running) await writeLoop(ctx, { running: false });
-          return outcome;
-        },
-      ),
-
-      /** Begin looping; a no-op when already running. */
-      start: exclusiveHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
-          const state = await loopState(ctx);
-          if (!state.running) {
-            // As in `makeLoopObject`: a stop then start never leaves two chains.
-            const generation = state.generation + 1;
-            await writeLoop(ctx, { running: true, generation });
-            ctx.objectSendClient(scheduler, ctx.key).loop(generation);
-          }
-          return status(ctx, true);
-        },
-      ),
-
-      /** The loop stops after the tick in flight, if any. */
-      stop: exclusiveHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
-          await writeLoop(ctx, { running: false });
-          return status(ctx, false);
-        },
-      ),
-
-      /** One iteration: tick, then the next one after a durable delay. Only the loop itself sends it. */
-      loop: exclusiveHandler(
-        { ingressPrivate: true },
-        async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
-          const { running, generation: current } = await loopState(ctx);
-          if (!running) return;
-          // A call from before the last stop: its chain ended there.
-          if ((generation ?? 0) !== current) return;
-          const outcome = await runTick(ctx);
-          if (!outcome) {
-            await writeLoop(ctx, { running: false });
-            return;
-          }
-          ctx
-            .objectSendClient(scheduler, ctx.key)
-            .loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
-        },
-      ),
-
-      status: sharedHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.ObjectSharedContext): Promise<SchedulerStatus> =>
-          status(ctx, (await loopState(ctx)).running),
-      ),
-    },
-  });
-
-  async function status(
-    ctx: restate.ObjectSharedContext | restate.ObjectContext,
-    running: boolean,
-  ): Promise<SchedulerStatus> {
-    const listed = await ctx.run("on roster", async () =>
-      onRoster(await deps.scopeOf(ctx.key), ctx.key),
-    );
-    return {
-      sender: ctx.key,
-      running,
-      onRoster: listed,
-      last: await lastPass<TickOutcome>(ctx),
-    };
-  }
-
-  return scheduler;
+  return makeLoopObject("SendScheduler", pass, { effect: "sends" });
 }
 
 const sameMailbox = (sender: string, key: string) =>

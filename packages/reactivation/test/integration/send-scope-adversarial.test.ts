@@ -7,7 +7,12 @@
 import * as ingress from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ConsoleTransport, SendPolicy } from "@wren/channel-email";
-import { makeSendScheduler, oneScope, type SendScheduler } from "@wren/channel-email/restate";
+import {
+  makeSendScheduler,
+  NO_SCOPE,
+  oneScope,
+  type SendScheduler,
+} from "@wren/channel-email/restate";
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
@@ -114,13 +119,13 @@ describe("a client mailbox's send loop", () => {
     const theirs = await approvedOpener(acmeDb);
     const wrens = await approvedOpener(pg.db);
 
-    const bare = await scheduler(ANN).tick();
-    expect(bare?.stats.sent).toBe(1);
+    const bare = await scheduler(ANN).sync();
+    expect(bare.stats?.sent).toBe(1);
     expect(await stateOf(pg.db, wrens)).toBe("sent");
     expect(await stateOf(acmeDb, theirs)).toBe("approved");
 
-    const client = await scheduler(`acme/${ANN}`).tick();
-    expect(client?.stats.sent).toBe(1);
+    const client = await scheduler(`acme/${ANN}`).sync();
+    expect(client.stats?.sent).toBe(1);
     expect(await stateOf(acmeDb, theirs)).toBe("sent");
     // The ledger row lands in the client's database, named by the mailbox alone.
     const [run] = await acmeDb.execute<{ argv: unknown }>(
@@ -131,10 +136,10 @@ describe("a client mailbox's send loop", () => {
 
   it("a key in capitals is the same mailbox", async () => {
     const theirs = await approvedOpener(acmeDb);
-    const out = await scheduler(`acme/${ANN.toUpperCase()}`).tick();
-    expect(out).not.toBeNull();
+    const out = await scheduler(`acme/${ANN.toUpperCase()}`).sync();
+    expect(out.stopped).toBeUndefined();
     // The gap after the last test's send holds it; it is Ann's, not unrostered.
-    expect(out?.stats.sender_not_on_roster).toBe(0);
+    expect(out.stats?.sender_not_on_roster).toBe(0);
     expect(await stateOf(acmeDb, theirs)).toBe("approved");
   });
 
@@ -143,7 +148,7 @@ describe("a client mailbox's send loop", () => {
     await updateClient(pg.db, "acme", { products: block({ stages: { send: false } }) });
     const held = await approvedOpener(acmeDb);
     // The next tick (the loop's own, or this one) finds no scope.
-    expect(await scheduler(`acme/${ANN}`).tick()).toBeNull();
+    expect((await scheduler(`acme/${ANN}`).sync()).stopped).toBe(NO_SCOPE);
     await vi.waitFor(
       async () => expect((await scheduler(`acme/${ANN}`).status()).running).toBe(false),
       {
@@ -152,10 +157,9 @@ describe("a client mailbox's send loop", () => {
       },
     );
     expect(await stateOf(acmeDb, held)).toBe("approved");
-    expect((await scheduler(`acme/${ANN}`).status()).onRoster).toBe(false);
   });
 
   it("a key for a client that doesn't exist never opens a database", async () => {
-    expect(await scheduler(`ghost/${ANN}`).tick()).toBeNull();
+    expect((await scheduler(`ghost/${ANN}`).sync()).stopped).toBe(NO_SCOPE);
   });
 });

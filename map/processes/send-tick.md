@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-10-16 @ 3a7bb93e
 consumes: ["[[email/message]]", "[[email/send-policy]]", "[[email/roster]]", "[[email/sender-pause]]", "[[leads/suppression]]", "[[email/transport]]"]
 produces: ["[[email/message]]", "[[email/sender-pause]]", "[[ledger/run]]"]
 ---
@@ -12,7 +12,7 @@ One paced walk of the outbox for one inbox: kill switches, reconcile, then send 
 
 ## Input → Movement → Output
 
-Approved messages, the clock, the policy, this sender's pauses. `SendScheduler/{sender}` runs `sendTick`: evaluate kill switches, reconcile in-flight rows, then `sendDue` commits `sending` with our Message-ID, calls the transport, records `sent`, `failed` or `unknown`. Then it schedules its next `loop` with a durable delay.
+Approved messages, the clock, the policy, this sender's pauses. `SendScheduler/{sender}` runs `sendTick`: evaluate kill switches, reconcile in-flight rows, then `sendDue` commits `sending` with our Message-ID, calls the transport, records `sent`, `failed` or `unknown`. Then it schedules its next `loop` with a durable delay. A tick that throws 3 times is a failed pass with a backoff, never a parked key (`passOrFailed`).
 
 ## Why this shape
 
@@ -24,7 +24,8 @@ Intent before act, so a crash costs at most one message and never a double send.
 2. `reconcile` (`send/reconcile.ts:42`).
 3. `sendDue` (`send/deliver.ts:190`): per-company clock (`:377`), transitions (`packages/channel-email/src/state.ts:6`).
 4. Transport (`send/transport.ts:78`, `send/gmail.ts`).
-5. Loop and delay (`restate/send-scheduler.ts:1`; primitive `packages/core/src/restate/loop.ts:179`).
+5. Loop and delay (`restate/send-scheduler.ts:80`, on `makeLoopObject`, `packages/core/src/restate/loop.ts:366`). The transport carries its own limits (Gmail `timedFetch`, SMTP socket timeouts); the tick is not cut, since a cut tick could run beside its retry.
+6. Test: `packages/channel-email/test/integration/restate-send-scheduler.test.ts` (a throwing tick: failed pass, chain on, `wake`).
 
 ## If you change this
 

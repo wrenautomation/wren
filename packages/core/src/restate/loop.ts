@@ -16,7 +16,7 @@ import type { Db } from "@wren/db";
 import { z } from "zod";
 import type { Notifier } from "../notify.js";
 import { type RunOptions, recordedRun } from "../runs.js";
-import { exclusiveHandler, NO_INPUT, sharedHandler } from "./form.js";
+import { type Effect, exclusiveHandler, NO_INPUT, sharedHandler } from "./form.js";
 import { type TimedOut, timeoutsOf } from "./limits.js";
 
 /**
@@ -311,6 +311,8 @@ type LoopSelf = { loop: (ctx: restate.ObjectContext, generation?: number) => Pro
 export interface LoopHooks {
   /** Runs inside `stop`, after the key is marked stopped: for what the loop started elsewhere. */
   onStop?: (ctx: restate.ObjectContext) => Promise<void>;
+  /** What one pass does outside wren (`sends` for a send loop): `sync`'s form says so. */
+  effect?: Effect;
 }
 
 /** A loop's settings: any object (`{}` = back to defaults); none keeps the stored ones. */
@@ -372,7 +374,7 @@ export function makeLoopObject<S extends object>(
     handlers: {
       /** One pass now; the loop (if any) is untouched. */
       sync: exclusiveHandler(
-        { input: NO_INPUT },
+        { input: NO_INPUT, ...(hooks.effect ? { effect: hooks.effect } : {}) },
         async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => pass(ctx),
       ),
 

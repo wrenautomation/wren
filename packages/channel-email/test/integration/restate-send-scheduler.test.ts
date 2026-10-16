@@ -22,6 +22,8 @@ import { makeCompany, makePerson, messagesOf, runCompose, TABLES } from "./compo
 
 const SENDER_A = "ada@wren-automation.test";
 const SENDER_B = "bo@wren-automation.test";
+/** Its scope read always throws: the database is down for it. */
+const BROKEN = "cy@wren-automation.test";
 const OPEN = SendPolicy.fromSettings(
   loadSettings({
     WREN_DATABASE_URL: "postgresql://x",
@@ -54,7 +56,10 @@ beforeAll(async () => {
       spine.service,
       makeSendScheduler({
         transport,
-        scopeOf: oneScope({ db: pg.db, policy: OPEN, fleet: FLEET }),
+        scopeOf: (key) =>
+          key === BROKEN
+            ? Promise.reject(new Error("database is down"))
+            : oneScope({ db: pg.db, policy: OPEN, fleet: FLEET })(key),
         tickMs: 5_000,
       }),
     ],
@@ -93,11 +98,10 @@ describe("SendScheduler", () => {
     const mine = await enrollOne("mine.example", "a@mine.example", SENDER_A);
     const theirs = await enrollOne("theirs.example", "b@theirs.example", SENDER_B);
 
-    const outcome = await client(SENDER_A).tick();
-    if (!outcome) throw new Error("the one scope is always there");
-
-    expect(outcome.stats.sent).toBe(1);
-    expect(outcome.stats.sender_not_on_roster).toBe(1);
+    const outcome = await client(SENDER_A).sync();
+    expect(outcome.stopped).toBeUndefined();
+    expect(outcome.stats?.sent).toBe(1);
+    expect(outcome.stats?.sender_not_on_roster).toBe(1);
     expect(outcome.delayMs).toBeGreaterThanOrEqual(8 * 60_000);
     expect(outcome.delayMs).toBeLessThanOrEqual(20 * 60_000);
     expect((await messagesOf(db(), mine))[0]?.state).toBe("sent");
@@ -109,8 +113,7 @@ describe("SendScheduler", () => {
 
     const status = await client(SENDER_A).status();
     expect(status.running).toBe(false);
-    expect(status.onRoster).toBe(true);
-    expect(status.last?.stats.sent).toBe(1);
+    expect(status.last?.stats?.sent).toBe(1);
 
     // The opener left its node on the spine; its cadence's next touch lets the follow-up go.
     for (let i = 0; i < 50 && spine.emitted.length === 0; i++)
@@ -143,10 +146,28 @@ describe("SendScheduler", () => {
       status = await client(SENDER_B).status();
     }
     expect(status.last).not.toBeNull();
-    expect(status.last?.stats.sent).toBe(0);
+    expect(status.last?.stats?.sent).toBe(0);
     expect(status.last?.delayMs).toBe(5_000); // nothing sent: the tick interval
     const stopped = await client(SENDER_B).stop();
     expect(stopped.running).toBe(false);
+  });
+
+  it("a tick that keeps throwing is a failed pass: the chain goes on, wake still works", async () => {
+    await client(BROKEN).start();
+    let status = await client(BROKEN).status();
+    for (let i = 0; i < 100 && status.last === null; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      status = await client(BROKEN).status();
+    }
+    expect(status.running).toBe(true);
+    expect(status.last?.stats).toBeNull();
+    expect(status.last?.error).toContain("database is down");
+    expect(status.last?.failures).toBe(1);
+    expect(status.last?.delayMs).toBe(15_000);
+    // LoopWatch restarts a dead chain with `wake`: a send loop has one too.
+    expect(await client(BROKEN).wake()).toBe(true);
+    await client(BROKEN).stop();
+    expect(await client(BROKEN).wake()).toBe(false);
   });
 
   it("nextDelay: gap after a send, next open when closed or capped, tick interval otherwise", () => {
