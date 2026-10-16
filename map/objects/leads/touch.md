@@ -35,7 +35,7 @@ Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.
 
 ## If you change this
 
-- **Hits:** the writers in `recordSent`, `receive`, `markAccepted`, `applyWithdraw`, `keepComments`, `markAnswered`, `markCommented`, `markPostCommented`, `keepPostComments`, `keepActivity`; DM prompt (`packages/outreach/src/drafts.ts` `dmContext`); compose `touch.*` facts (`packages/channel-email/src/outreach/facts.ts`); the call brief (`packages/channel-email/src/calls/brief.ts`); `wren dossier` (`packages/channel-email/src/dossier.ts`); Marketing → People (`packages/outreach/src/records.ts` `personRecord`)
+- **Hits:** the writers in `recordSent`, `receive`, `markAccepted`, `applyWithdraw`, `keepComments`, `markAnswered`, `markCommented`, `markPostCommented`, `keepPostComments`, `keepActivity`; DM prompt (`packages/outreach/src/drafts.ts` `dmContext`); compose `touch.*` facts (`packages/channel-email/src/outreach/facts.ts`); the call brief (`packages/channel-email/src/calls/brief.ts`); `wren dossier` (`packages/channel-email/src/dossier.ts`); Outreach → People (`packages/outreach/src/records.ts` `personRecord`)
 - **Does not hit:** the source tables (a touch only reads them); email `messages` (email touches are not social)
 
 ## Surfaces
@@ -47,7 +47,7 @@ Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.
 | `wren touches link` | writes (links a handle) |
 | `wren touches <who>` | reads |
 | DM drafter, compose, call brief, dossier | reads |
-| Marketing → People, Touches tab | reads |
+| Outreach → People, Touches tab | reads |
 
 ## See
 
