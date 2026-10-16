@@ -942,7 +942,7 @@ describe("his Comment, with a like and a follow", () => {
   });
 });
 
-describe("paste (Marketing → Engage)", () => {
+describe("paste (Outreach → Engage)", () => {
   it("a post is read once and drafted now, past the fit and audience filters", async () => {
     await settings({ account: "linkedin@wren", people: false });
     routes[`/rest/posts/${encodeURIComponent("urn:li:activity:7090")}`] = () => ({

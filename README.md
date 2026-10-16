@@ -145,7 +145,7 @@ node scripts/prod-wren.mjs drafts list       # on prod
 
 ## Accounts
 
-Every account we post and reply as, the same rows as Marketing → Accounts. A draft on a platform
+Every account we post and reply as, the same rows as Outreach → Accounts. A draft on a platform
 with two or more accounts has a Send as picker; the pick is kept with the draft and the send uses
 it. A pick that misses a sub's karma or age rule gets a warning and still sends.
 

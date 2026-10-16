@@ -251,7 +251,7 @@ export async function promoSkip(
 ): Promise<string | null> {
   if (!again && (await liveOf(db, base.idea.id)).has(`${platform}/post`)) return "already drafted";
   if (platform === "reddit" && !base.place)
-    return "no watched subreddit takes posts: watch one in Marketing → Places";
+    return "no watched subreddit takes posts: watch one in Outreach → Places";
   if (platform === "instagram") {
     if (!base.reel) return "a Reel needs a vertical cut or a Short: render one first";
     // The video's own Reel draft carries the same file: don't post it twice.

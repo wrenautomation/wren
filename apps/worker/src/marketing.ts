@@ -48,7 +48,7 @@ export const marketingNumbers = (signer?: VideoSigner, policy?: ReachPolicy) => 
   threadRecord,
   inviteRecord,
   personRecord,
-  // Every account we speak as: Marketing → Accounts.
+  // Every account we speak as: Outreach → Accounts.
   accountRecordOf(policy),
   ...socialRecords(signer),
   reviewRecord,

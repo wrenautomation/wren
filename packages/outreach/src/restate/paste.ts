@@ -1,5 +1,5 @@
 /**
- * ReachDesk.paste: a link he pastes in Marketing → Engage (`../intercept.ts`). A subreddit or an
+ * ReachDesk.paste: a link he pastes in Outreach → Engage (`../intercept.ts`). A subreddit or an
  * account is watched; a thread is queued and the reads pass woken to draft it; a post is read
  * once and drafted now, waiting in Engage like any other.
  */

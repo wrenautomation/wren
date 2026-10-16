@@ -146,7 +146,7 @@ export type SocialHandle = typeof socialHandles.$inferSelect;
 export type Touch = typeof touches.$inferSelect;
 
 /**
- * Touches as Marketing → People's Touches tab reads them: each line twice, under the person's
+ * Touches as Outreach → People's Touches tab reads them: each line twice, under the person's
  * record id (`li:<people.id>`) when the handle is linked, and under `<platform>:<handle>`. An
  * ours touch with no answer after 14 days reads "no answer"; our sent comment reads its proof
  * (Live, Hidden, Missing, Checking: designs/2026-10-14-comment-proof.md).

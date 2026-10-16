@@ -1,6 +1,6 @@
 /**
  * `wren accounts` (designs/2026-10-15-accounts-first-class.md): every account we speak as, the
- * same rows as Marketing → Accounts; one in full; a subreddit moved to another account; and the
+ * same rows as Outreach → Accounts; one in full; a subreddit moved to another account; and the
  * account a draft goes out as, as the draft box's picker sets it.
  */
 import type { Settings } from "@wren/config";
@@ -28,7 +28,7 @@ export function registerAccounts(program: Command, withDb: WithDb, settings: Set
   const cmd = program
     .command("accounts")
     .description(
-      "Every account we post and reply as: health, warm-up, today's sends, places (Marketing → Accounts)",
+      "Every account we post and reply as: health, warm-up, today's sends, places (Outreach → Accounts)",
     );
   cmd
     .command("list", { isDefault: true })

@@ -463,7 +463,7 @@ export type ReachAccount = typeof reachAccounts.$inferSelect;
  * and withdrawn come from the contact (`connected_at`, `withdrawn_at`); pending is a sent invite
  * whose contact still waits; ended is one whose contact moved on (declined, opted out); queued is
  * one not yet sent; proposed waits on his yes; else the row's own state (failed, unknown, skipped).
- * Marketing → Invites.
+ * Outreach → Invites.
  */
 export const reachInvites = pgView("reach_invites", {
   id: integer("id"),

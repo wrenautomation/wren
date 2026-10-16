@@ -1,5 +1,5 @@
 /**
- * His own picks, by link (Marketing → Engage, the paste box). Reddit: a subreddit is watched, a
+ * His own picks, by link (Outreach → Engage, the paste box). Reddit: a subreddit is watched, a
  * thread queued for the next pass to draft. LinkedIn, X, Instagram: an account joins the comments
  * settings' pages (read first each pass, ranked as a key person), a post is read once and drafted
  * now. Pasting overrides the filters a found post must pass: fit, audience words, age.
