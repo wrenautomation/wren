@@ -9,7 +9,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { BOOKS_RECORDS } from "@wren/books/records";
-import { CALENDAR_RECORDS } from "@wren/calendar/records";
+import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
 import { emailRecords } from "@wren/channel-email/records";
 import type { SendPolicy } from "@wren/channel-email/send/policy";
 import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/channel-search/records";
@@ -122,6 +122,7 @@ const RECORD_TYPES = [
   ...DOCUMENTS_RECORDS,
   ...DEALS_RECORDS,
   ...CALENDAR_RECORDS,
+  recordingRecord(),
   ...VOICE_RECORDS,
   ...MARKETING_NUMBERS,
   sessionRecord({ site: { baseUrl: "", exportToken: "" }, signGet: async () => "" }),

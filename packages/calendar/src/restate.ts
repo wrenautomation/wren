@@ -259,6 +259,8 @@ export function calendarFlows(deps: CalendarDeps) {
               manage: manage(id),
               rebook: b.offer ? `${deps.site.replace(/\/+$/, "")}/book/${b.offer}` : null,
               ...(deps.signer ? { signer: deps.signer } : {}),
+              // Wren's calls are recorded on the Mac; a client's never are.
+              recorded: !deps.client,
             }),
           );
           return true;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mailFor } from "./mail.js";
+import { mailFor, RECORDED } from "./mail.js";
 import type { CalendarBooking } from "./schema.js";
 
 const b = {
@@ -20,6 +20,14 @@ describe("booker mail", () => {
     expect(m.text).toContain("Join: https://meet.google.com/abc-defg-hij");
     expect(m.text).toContain("Reschedule: https://site.example/booking/7.sig?do=move");
     expect(m.text).toContain("Cancel: https://site.example/booking/7.sig?do=cancel");
+  });
+
+  it("says a recorded calendar's call is recorded, in the booked and moved mails only", () => {
+    const rec = { ...o, recorded: true };
+    expect(mailFor("booked", b, rec).text).toContain(RECORDED);
+    expect(mailFor("moved", b, rec).text).toContain(RECORDED);
+    expect(mailFor("hour", b, rec).text).not.toContain(RECORDED);
+    expect(mailFor("booked", b, o).text).not.toContain(RECORDED);
   });
 
   it("drops the links once the call is cancelled", () => {

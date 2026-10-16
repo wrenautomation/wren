@@ -14,7 +14,7 @@ import { createServer } from "node:http";
 import { extname, join, normalize, resolve } from "node:path";
 import { calendarRecordsApi } from "@wren/calendar/console";
 import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "@wren/calendar/console-routes";
-import { CALENDAR_RECORDS } from "@wren/calendar/records";
+import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
 import {
   bookingPage,
   type ClientCalendarDeps,
@@ -270,6 +270,7 @@ const SERVICES: Record<
           callRecord,
           replyRecord,
           ...CALENDAR_RECORDS,
+          recordingRecord(),
           clientRecord,
           // Marketing's own pages (drafts, posts, comments, DMs, videos, Inbox) and Pipeline's
           // companies. Videos play from the in-memory file store.

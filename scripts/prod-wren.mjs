@@ -39,6 +39,8 @@ const OPTIONAL = [
   // Our Page and Instagram account: `social push meta` subscribes them.
   "WREN_META_PAGE_ID",
   "WREN_META_IG_ID",
+  // The files bucket: `calls add` uploads each recorded call there (designs/2026-10-16-call-recording.md).
+  "WREN_FILES_BUCKET",
 ];
 const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
 // `keys put|delete` seal with the key store's public key (designs/2026-10-07-key-store.md). It lives in

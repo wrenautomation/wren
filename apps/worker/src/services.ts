@@ -32,7 +32,7 @@ import {
   GoogleHost,
 } from "@wren/calendar";
 import { makeCalendarConsole } from "@wren/calendar/console";
-import { CALENDAR_RECORDS } from "@wren/calendar/records";
+import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
 import {
   type CalendarDeps,
   type ClientCalendarDeps,
@@ -2452,6 +2452,10 @@ export async function buildServices(
         // The SOP folders live on the Mac: here the library reads the database only.
         sopRecordFor(null),
         ...CALENDAR_RECORDS,
+        // Calls recorded on the Mac: the mp4 signed from the files bucket when opened.
+        recordingRecord(
+          settings.filesBucket ? s3Files({ bucket: settings.filesBucket }).getUrl : undefined,
+        ),
         ...VOICE_RECORDS,
         ...RESEARCH_RECORDS,
         ...marketingNumbers(mediaSigner, reachPolicyFrom(settings)),

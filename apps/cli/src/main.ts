@@ -32,6 +32,7 @@ import { registerAds } from "./ads.js";
 import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
 import { registerCalendar } from "./calendar.js";
+import { registerCalls } from "./calls.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
 import { registerCrm } from "./crm.js";
@@ -316,6 +317,7 @@ registerLearn(
   rootDir,
 );
 registerCalendar(program, withMainDb);
+registerCalls(program, withMainDb, settings, rootDir);
 registerAppReviews(program, rootDir);
 registerSocial(program, settings);
 registerStudy(program, withMainDb, settings, rootDir);

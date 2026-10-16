@@ -35,29 +35,34 @@ export function whenOn(zone: string, at: Date): string {
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? "";
 
+/** The consent line on a recorded calendar's booked and moved mails. */
+export const RECORDED = "I record calls so I can keep good notes. If you'd rather I didn't, say so at the start.";
+
 /**
  * One mail about `b`. `manage` is its signed link; `rebook` is where to book again; `signer`
- * closes it (Wren when unset).
+ * closes it (Wren when unset). `recorded` says the call is recorded: Wren's calls only, which the
+ * Mac records (designs/2026-10-16-call-recording.md).
  */
 export function mailFor(
   kind: Kind,
   b: CalendarBooking,
-  o: { title: string; manage: string; rebook: string | null; signer?: string },
+  o: { title: string; manage: string; rebook: string | null; signer?: string; recorded?: boolean },
 ): Mail {
   const title = titleFor(o.title, b.name);
   const when = whenOn(b.zone, b.start);
   const join = b.meetUrl ? `Join: ${b.meetUrl}` : "The calendar invite has the link.";
+  const recorded = o.recorded ? ["", RECORDED] : [];
   const hi = firstName(b.name) ? `Hi ${firstName(b.name)},` : "Hi,";
   // Both links carry the booking's signed token; the page opens on the one asked for.
   const change = [`Reschedule: ${o.manage}?do=move`, `Cancel: ${o.manage}?do=cancel`].join("\n");
   const lines: Record<Kind, { subject: string; body: string[] }> = {
     booked: {
       subject: `Booked: ${title}, ${when}`,
-      body: [`You're booked for ${title}.`, "", `When: ${when}`, join, "", change],
+      body: [`You're booked for ${title}.`, "", `When: ${when}`, join, ...recorded, "", change],
     },
     moved: {
       subject: `Moved: ${title}, ${when}`,
-      body: [`${title} has a new time.`, "", `When: ${when}`, join, "", change],
+      body: [`${title} has a new time.`, "", `When: ${when}`, join, ...recorded, "", change],
     },
     cancelled: {
       subject: `Cancelled: ${title}`,

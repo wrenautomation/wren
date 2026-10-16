@@ -10,6 +10,7 @@
     "./console-routes": "./src/console-routes.ts",
     "./schema": "./src/schema.ts",
     "./records": "./src/records.ts",
+    "./recorder": "./src/recorder.ts",
     "./restate": "./src/restate.ts"
   },
   "scripts": {

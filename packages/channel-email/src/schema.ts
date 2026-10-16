@@ -584,6 +584,48 @@ export const callBriefs = pgTable(
 );
 export type CallBriefRow = typeof callBriefs.$inferSelect;
 
+/**
+ * A call recorded on William's Mac (designs/2026-10-16-call-recording.md): OBS records it, `wren
+ * calls add` transcribes it there, uploads the mp4 to the files bucket (`file_key`) and writes the
+ * notes. `call_booking_id` is the booked call it was, null for a manual one no booking matched.
+ */
+export const CALL_RECORDING_BY = ["desk", "manual"] as const;
+export const callRecordings = pgTable(
+  "call_recordings",
+  {
+    id: serial("id").notNull(),
+    callBookingId: integer("call_booking_id"),
+    /** Its mp4 in the files bucket, under `calls/`. */
+    fileKey: text("file_key").notNull(),
+    bytes: bigint("bytes", { mode: "number" }).notNull(),
+    durationS: integer("duration_s").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }).notNull(),
+    transcript: text("transcript").notNull(),
+    /** Timed lines, `{ start, end, text }` in seconds. */
+    segments: jsonb("segments").notNull(),
+    /** `CallNotes` (`calls/recording.ts`); null when the model gave none. */
+    notes: jsonb("notes"),
+    /** The model that wrote the notes. */
+    model: varchar("model", { length: 64 }),
+    /** The desk started it for a booking, or a person did. */
+    by: varchar("by", { length: 8, enum: CALL_RECORDING_BY }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_call_recordings" }),
+    unique("uq_call_recordings_file_key").on(t.fileKey),
+    index("ix_call_recordings_call_booking_id").on(t.callBookingId),
+    foreignKey({
+      columns: [t.callBookingId],
+      foreignColumns: [callBookings.id],
+      name: "fk_call_recordings_call_booking_id_call_bookings",
+    }).onDelete("cascade"),
+    oneOf("ck_call_recordings_by", t.by, CALL_RECORDING_BY),
+  ],
+);
+export type CallRecordingRow = typeof callRecordings.$inferSelect;
+
 export const openEvents = pgTable(
   "open_events",
   {

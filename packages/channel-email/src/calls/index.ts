@@ -4,3 +4,4 @@ export * from "./outcome.js";
 export * from "./restate.js";
 export * from "./settings.js";
 export * from "./site.js";
+export * from "./recording.js";

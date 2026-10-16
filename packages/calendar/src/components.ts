@@ -28,7 +28,7 @@ export const CALENDAR_COMPONENTS = [
     effects: ["sends"],
     provides: {
       services: ["Calendar", "ClientCalendar", "CalendarConsole"],
-      records: ["calendar.booking"],
+      records: ["calendar.booking", "calendar.recording"],
       apps: ["calendar"],
     },
     out: [

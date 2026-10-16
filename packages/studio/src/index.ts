@@ -121,12 +121,15 @@ export {
   frameAt,
   portrait,
   preview,
+  probe,
   proxy360,
   STRIP,
   scaleFilter,
   sourceProxy,
+  wav16k,
 } from "./media.js";
 export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
+export { transcribe } from "./whisper.js";
 export {
   type PromoProps,
   type PromoScene,

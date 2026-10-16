@@ -49,6 +49,13 @@ data "aws_iam_policy_document" "worker_files" {
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
     resources = ["${aws_s3_bucket.files.arn}/clients/*"]
   }
+  # Calls recorded on William's Mac (designs/2026-10-16-call-recording.md): the Mac uploads,
+  # the worker only signs a short GET for the portal's player.
+  statement {
+    sid       = "CallRecordings"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.files.arn}/calls/*"]
+  }
 }
 
 resource "aws_iam_role_policy" "worker_files" {

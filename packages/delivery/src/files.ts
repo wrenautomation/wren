@@ -4,6 +4,8 @@
  * lasts minutes; the bytes never pass through the worker.
  */
 import { randomUUID } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { stat } from "node:fs/promises";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -67,4 +69,28 @@ export function s3Files(o: { bucket: string; region?: string }): FileStore {
       );
     },
   };
+}
+
+/**
+ * A local file into the bucket, streamed from disk, never whole in memory: the Mac's call
+ * recordings (designs/2026-10-16-call-recording.md). One PUT, so up to S3's 5 GB.
+ */
+export async function putLocalFile(
+  o: { bucket: string; region?: string },
+  key: string,
+  path: string,
+  type: string,
+): Promise<number> {
+  const { size } = await stat(path);
+  const s3 = new S3Client(o.region ? { region: o.region } : {});
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: o.bucket,
+      Key: key,
+      Body: createReadStream(path),
+      ContentLength: size,
+      ContentType: type,
+    }),
+  );
+  return size;
 }

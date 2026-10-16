@@ -11,6 +11,7 @@ import { CALL_OUTCOME_LABELS, type CallOutcome } from "@wren/core/calls";
 import { modelLabel } from "@wren/core/models/labels";
 import { Button, type RecordExtras, StateMark, tipProps } from "@wren/ui";
 import { type ReactNode, useState } from "react";
+import { CallNotesView } from "../calendar/recorder.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -265,12 +266,28 @@ export function callExtras(
     />
   ) : null;
   const top = stored ? <BriefTop brief={stored.brief} /> : null;
+  const rec = stored?.recording ?? null;
+  const recorded = rec ? (
+    <section
+      aria-label="The call"
+      className="grid gap-3 rounded-(--ui-radius) border border-(--ui-hair) px-4 py-3"
+    >
+      <h3 className="flex flex-wrap items-baseline gap-x-3 text-[13px] font-medium text-(--ui-ink-2)">
+        <span>Recorded {dayOf(rec.startedAt)}, {Math.max(1, Math.round(rec.durationS / 60))} min</span>
+        <a href={`/calendar/recordings/${rec.id}`} className="font-normal underline underline-offset-2">
+          Watch and read it
+        </a>
+      </h3>
+      {rec.notes ? <CallNotesView notes={rec.notes} /> : null}
+    </section>
+  ) : null;
   return {
-    ...(marked || top
+    ...(marked || top || recorded
       ? {
           top: (
             <div className="grid gap-4">
               {marked}
+              {recorded}
               {top}
             </div>
           ),

@@ -8,6 +8,7 @@
 import { platformLabel, touchesFor, touchText } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import { type RecordingNote, recordingOf } from "./recording.js";
 import { dossiers, type Fact, recentPosts } from "@wren/research/dossier";
 import { eq, sql } from "drizzle-orm";
 import { callBriefs } from "../schema.js";
@@ -534,6 +535,8 @@ export interface StoredBrief {
   /** Saved, or built just now by code for the page and not kept. */
   saved: boolean;
   sentAt: string | null;
+  /** Its recording's notes, once the Mac recorded it (`recording.ts`). */
+  recording?: RecordingNote | null;
 }
 
 /** What a call's page shows: its saved brief, else one code builds now and doesn't keep. */
@@ -545,12 +548,14 @@ export async function briefOf(
   const n = Number(id);
   if (!Number.isSafeInteger(n) || n <= 0) return null;
   const [have] = await db.select().from(callBriefs).where(eq(callBriefs.callBookingId, n));
+  const recording = await recordingOf(db, n);
   if (have)
     return {
       brief: have.brief as CallBrief,
       saved: true,
       sentAt: have.sentAt?.toISOString() ?? null,
+      recording,
     };
   const built = await buildBrief(db, n, { now });
-  return built ? { brief: built, saved: false, sentAt: null } : null;
+  return built ? { brief: built, saved: false, sentAt: null, recording } : null;
 }

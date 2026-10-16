@@ -43,6 +43,7 @@ import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { callsBetween, mirrorUid } from "./book.js";
 import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "./console-routes.js";
+import { askRecorder, type RecorderCalls } from "./recorder.js";
 import { CALENDAR_RECORDS } from "./records.js";
 import {
   type CalendarDeps,
@@ -240,6 +241,12 @@ export function makeCalendarConsole(deps: CalendarConsoleDeps) {
         throw new PortalRefusal("only a booked call that has started can be marked", 409);
       return { changed: marked.changed, done: marked.done.map((id) => ours.get(id)) };
     });
+  /** The Mac's recorder: Wren's own calls, so Wren's team only. */
+  const recorder = (ctx: restate.Context, req: PortalRequest, what: keyof RecorderCalls) =>
+    answer(async () => {
+      if (!isWren(req) || !seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
+      return askRecorder(ctx, what, by(req));
+    });
   return portalService({
     name: "CalendarConsole",
     main: deps.wren.db,
@@ -308,6 +315,18 @@ export function makeCalendarConsole(deps: CalendarConsoleDeps) {
       clear: serviceHandler(
         { input: z.looseObject(IDS) },
         (ctx: restate.Context, req: IdsRequest) => outcome(ctx, req, null),
+      ),
+      /** The Mac's recorder: recording or not, since when, and the next booked call it waits for. */
+      recorder: serviceHandler(RECORDS, (ctx: restate.Context, req: PortalRequest) =>
+        recorder(ctx, req, "status"),
+      ),
+      /** Record now: the Mac starts OBS on the call on screen, booked or not. */
+      record: serviceHandler(RECORDS, (ctx: restate.Context, req: PortalRequest) =>
+        recorder(ctx, req, "start"),
+      ),
+      /** Stops the recording in progress; its notes follow in a few minutes. */
+      stopRecording: serviceHandler(RECORDS, (ctx: restate.Context, req: PortalRequest) =>
+        recorder(ctx, req, "stop"),
       ),
       cancel: serviceHandler(
         {

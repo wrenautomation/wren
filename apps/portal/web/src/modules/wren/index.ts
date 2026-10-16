@@ -14,6 +14,7 @@ import { Domain } from "../account/Domain.js";
 import { ClientLook } from "../account/Look.js";
 import { People } from "../account/People.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
+import { recorderHead } from "../calendar/recorder.js";
 import { callsPage } from "../calls/index.js";
 import { APPROVAL_PAGE, CONVERSATION_TOP, DONE_PAGE, INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
@@ -433,7 +434,11 @@ export const inbox: Module = {
       },
       actions: REPLY_ACTIONS,
     },
-    { ...callsPage("Calls booked on cal.com or our calendar show here."), hidden: true },
+    {
+      ...callsPage("Calls booked on cal.com or our calendar show here."),
+      hidden: true,
+      head: recorderHead,
+    },
     {
       id: "mail",
       label: "Your mail",
