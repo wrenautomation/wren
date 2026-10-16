@@ -7,6 +7,7 @@ import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import type { Embed } from "@wren/llm";
 import { and, asc, desc, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
+import { learnWorthCall } from "./decide.js";
 import { nearItems } from "./embed.js";
 import { cleanUrl, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
 import { type ItemKind, items, sopSources, sources, type Via } from "./schema.js";
@@ -62,6 +63,7 @@ export async function saveLink(
       fresh: sql<boolean>`xmax = 0`,
     });
   if (!row) throw new Error("save returned no row");
+  await learnWorthCall(db, p.client, row.id, "save", p.by);
   return { id: row.id, url, kind: row.kind, fresh: !!row.fresh, unread: !row.readAt };
 }
 

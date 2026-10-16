@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
+    "./decide": "./src/decide.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts",

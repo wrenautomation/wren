@@ -8,6 +8,7 @@
 import type { Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
+import { learnMarkCalls } from "./decide.js";
 import {
   collections,
   type ItemType,
@@ -510,12 +511,16 @@ export async function itemPage(db: Queryable, client: string, id: number) {
   };
 }
 
-/** Set a mark on items; the ids it changed. */
+/**
+ * Set a mark on items; the ids it changed. A star, pin or archive in Wren's workspace is his
+ * Decide call too (`decide.ts`), by `by` when the caller knows who.
+ */
 export async function mark(
   db: Queryable,
   client: string,
   ids: number[],
   m: Mark,
+  by: string | null = null,
 ): Promise<number[]> {
   const now = new Date();
   const set: Partial<typeof items.$inferInsert> = {
@@ -549,7 +554,9 @@ export async function mark(
     .set(set)
     .where(and(inArray(items.id, ids), eq(items.client, client), unset[m]))
     .returning({ id: items.id });
-  return rows.map((r) => r.id);
+  const changed = rows.map((r) => r.id);
+  await learnMarkCalls(db, client, changed, m, by);
+  return changed;
 }
 
 /** Opened: no longer new. */

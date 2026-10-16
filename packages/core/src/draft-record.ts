@@ -6,6 +6,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { asc, eq, sql } from "drizzle-orm";
+import { isCommentCall, recordCommentCall } from "./decide/comments.js";
 import { REJECT_NOTE_MAX, REJECT_REASONS, type RejectReason } from "./reject-reasons.js";
 import {
   DRAFT_RECORD_KINDS,
@@ -99,6 +100,7 @@ export interface DraftStep {
 /**
  * Keep one step. The round is the item's last one, or the next for a kind with rounds when this
  * step opens a new draft: a model's draft, or words written after the last was sent or dropped.
+ * His send or drop of a drafted comment is kept as his Decide call too (`decide/comments.ts`).
  */
 export async function recordDraft(db: Queryable, s: DraftStep): Promise<void> {
   // Left out, an item keeps the kind it started as: a video's upload is a `draft:` too.
@@ -129,6 +131,8 @@ export async function recordDraft(db: Queryable, s: DraftStep): Promise<void> {
       ${s.externalId ?? null}, ${s.url ?? null}, ${json(s.meta ?? {})}::jsonb, ${s.runId ?? null}::uuid,
       ${s.ref ?? null}, coalesce(${s.at ? s.at.toISOString() : null}::timestamptz, clock_timestamp())
     on conflict (ref) do nothing`);
+  if (isCommentCall({ kind, event: s.event, via: s.via, ref: s.ref ?? null }))
+    await recordCommentCall(db, s.item);
 }
 
 /** What a model's draft was written from, as a `generated` step's `llm`. */

@@ -378,7 +378,9 @@ export function learnConsoleApi(
       if (!(MARKS as readonly string[]).includes(req.mark))
         throw new PortalRefusal(`mark is one of ${MARKS.join(", ")}`, 400);
       const ids = idsOf(req);
-      return write(req, async (tx, client) => done(await mark(tx, client, ids, req.mark as Mark)));
+      return write(req, async (tx, client) =>
+        done(await mark(tx, client, ids, req.mark as Mark, by(req))),
+      );
     },
     // Where you are in an item: kept on a read, as `seen` is.
     open: async (req: ItemRequest) => {

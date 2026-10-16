@@ -14,6 +14,7 @@ import { createNote } from "@wren/notes";
 import { fromMarkdown } from "@wren/notes/doc";
 import { notes } from "@wren/notes/schema";
 import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { learnWorthCall } from "./decide.js";
 import { fileOf } from "./read.js";
 import { items, sopSources } from "./schema.js";
 
@@ -44,6 +45,7 @@ export async function askSop(
     })
     .returning();
   if (!row) throw new Error("ask returned no row");
+  await learnWorthCall(db, p.client, p.itemId, "sop", p.by);
   return row;
 }
 
