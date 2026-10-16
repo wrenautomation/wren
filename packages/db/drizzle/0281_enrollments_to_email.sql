@@ -1,0 +1,1 @@
+CREATE INDEX "ix_enrollments_to_email" ON "enrollments" USING btree (lower((to_email)::text));

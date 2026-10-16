@@ -228,6 +228,8 @@ export const enrollments = pgTable(
     index("ix_enrollments_lead_id").on(t.leadId),
     index("ix_enrollments_candidate_id").on(t.candidateId),
     index("ix_enrollments_offer").on(t.offer),
+    // Every read by address (a profile's timeline, people map, leads) joins on lower(to_email).
+    index("ix_enrollments_to_email").on(sql`lower((to_email)::text)`),
     uniqueIndex("uq_enrollments_active_address")
       .on(sql`lower((to_email)::text)`)
       .where(sql`(state)::text = 'active'::text`),

@@ -120,6 +120,8 @@ const ADDED = {
     // 2026-10-07: a restore repeats a hash, so (niche, template, version) is an index, not unique.
     "ix_template_versions_niche",
     "uq_template_versions_template_id_number",
+    // 2026-10-16: reads by address join enrollments on lower(to_email).
+    "ix_enrollments_to_email",
   ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),
