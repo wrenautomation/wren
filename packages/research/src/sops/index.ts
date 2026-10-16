@@ -515,9 +515,12 @@ export async function audioSource(
     fetchFn?: typeof fetch;
     ffmpeg?: string;
     priority?: number;
+    /** Seconds per clip; `CLIP_S` unless a test cuts a short tone. */
+    clipS?: number;
   },
 ): Promise<Source> {
   if (!opts.geminiKeys.length) throw new Error(`${audioUrl}: needs GEMINI keys to transcribe`);
+  const clipS = opts.clipS ?? CLIP_S;
   const fetchFn = opts.fetchFn ?? fetch;
   const ffmpeg = opts.ffmpeg ?? "ffmpeg";
   const dir = await mkdtemp(join(tmpdir(), "sop-audio-"));
@@ -532,7 +535,7 @@ export async function audioSource(
       ffmpeg,
       [
         ...["-hide_banner", "-loglevel", "error", "-i", whole, "-vn", "-ac", "1", "-ar", "16000"],
-        ...["-c:a", "libopus", "-b:a", "24k", "-f", "segment", "-segment_time", String(CLIP_S)],
+        ...["-c:a", "libopus", "-b:a", "24k", "-f", "segment", "-segment_time", String(clipS)],
         ...["-reset_timestamps", "1", join(dir, "clip%03d.ogg")],
       ],
       { maxBuffer: 16 * 1024 * 1024 },
@@ -546,16 +549,16 @@ export async function audioSource(
         {
           contents: [
             {
-              parts: [{ inlineData: { mimeType: "audio/ogg", data } }, { text: HEARD(i * CLIP_S) }],
+              parts: [{ inlineData: { mimeType: "audio/ogg", data } }, { text: HEARD(i * clipS) }],
             },
           ],
         },
         opts.geminiKeys,
         fetchFn,
-        `${id} ${clock(i * CLIP_S)} speech`,
+        `${id} ${clock(i * clipS)} speech`,
       );
       if ("unread" in said)
-        throw new Error(`gemini ${id} ${clock(i * CLIP_S)}: unread, last ${said.unread}`);
+        throw new Error(`gemini ${id} ${clock(i * clipS)}: unread, last ${said.unread}`);
       return said.text.toLowerCase() === "none" ? "" : said.text;
     };
     const speech: string[] = [];

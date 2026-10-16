@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -33,23 +33,27 @@ describe.skipIf(!hasFfmpeg)("a synthetic Cap project", () => {
   const project = join(root, "Talk 2026-10-06.cap");
   const ff = (...args: string[]) =>
     execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", ...args], { stdio: "ignore" });
-  // In a hook: a skipped describe's body still runs, and CI has no ffmpeg.
+  // In a hook: a skipped describe's body still runs, and CI has no ffmpeg. Each track is made
+  // once, a second long at a low rate, and copied into both segments: six encodes ran past the
+  // hook's limit on a loaded machine.
   beforeAll(() => {
+    const made = join(root, "made");
+    mkdirSync(made);
+    const [display, camera, mic] = ["display.mp4", "camera.mp4", "audio-input.ogg"].map((f) =>
+      join(made, f),
+    ) as [string, string, string];
+    ff("-i", "testsrc=size=64x36:rate=10:duration=1", display);
+    ff("-i", "testsrc=size=32x24:rate=10:duration=1", camera);
+    ff("-i", "sine=frequency=440:duration=1", "-c:a", "libopus", mic);
     const segments = [0, 1].map((i) => {
       const seg = `content/segments/segment-${i}`;
       mkdirSync(join(project, seg), { recursive: true });
-      ff("-i", "testsrc=size=320x180:rate=30:duration=2", join(project, seg, "display.mp4"));
-      ff("-i", "testsrc=size=160x120:rate=30:duration=2", join(project, seg, "camera.mp4"));
-      ff(
-        "-i",
-        "sine=frequency=440:duration=2",
-        "-c:a",
-        "libopus",
-        join(project, seg, "audio-input.ogg"),
-      );
+      copyFileSync(display, join(project, seg, "display.mp4"));
+      copyFileSync(camera, join(project, seg, "camera.mp4"));
+      copyFileSync(mic, join(project, seg, "audio-input.ogg"));
       return {
-        display: { path: `${seg}/display.mp4`, fps: 30, start_time: 0 },
-        camera: { path: `${seg}/camera.mp4`, fps: 30, start_time: 0.1 },
+        display: { path: `${seg}/display.mp4`, fps: 10, start_time: 0 },
+        camera: { path: `${seg}/camera.mp4`, fps: 10, start_time: 0.1 },
         mic: { path: `${seg}/audio-input.ogg`, start_time: 0.05 },
       };
     });
@@ -69,9 +73,9 @@ describe.skipIf(!hasFfmpeg)("a synthetic Cap project", () => {
     const t = await capTracks(project, "ffmpeg");
     expect(t.offsetS).toBeCloseTo(0.1);
     const main = await probe(t.main, "ffmpeg");
-    expect(main).toMatchObject({ width: 320, height: 180, audio: true });
-    expect(main.durationS).toBeGreaterThan(3.8);
+    expect(main).toMatchObject({ width: 64, height: 36, audio: true });
+    expect(main.durationS).toBeGreaterThan(1.8);
     const cam = await probe(t.cam as string, "ffmpeg");
-    expect(cam).toMatchObject({ width: 160, height: 120, audio: false });
+    expect(cam).toMatchObject({ width: 32, height: 24, audio: false });
   });
 });

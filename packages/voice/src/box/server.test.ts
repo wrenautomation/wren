@@ -1,5 +1,5 @@
 import type { AddressInfo } from "node:net";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { agentOf } from "../agent.js";
 import type { CallResult } from "../call.js";
 import { FakeEars, fakePorts, ScriptedBrain } from "../fakes.js";
@@ -68,11 +68,12 @@ describe("the voice box server", () => {
     });
     ws.onmessage = (m) => got.push(String(m.data));
     ws.send(JSON.stringify({ event: "start", start: { call_control_id: "v3:test" } }));
-    // Wait for the opener's frames, not a fixed time: a slow runner may take longer than 100 ms.
+    // Wait for the opener's frames, then the save, not a fixed time: a loaded runner is slow.
     const frames = () => got.filter((m) => JSON.parse(m).event === "media").length;
-    for (let i = 0; i < 100 && frames() <= 3; i++) await new Promise((ok) => setTimeout(ok, 20));
+    const until = { timeout: 60_000, interval: 20 };
+    await vi.waitFor(() => expect(frames()).toBeGreaterThan(3), until);
     ws.send(JSON.stringify({ event: "stop" }));
-    for (let i = 0; i < 50 && !saved.length; i++) await new Promise((ok) => setTimeout(ok, 20));
+    await vi.waitFor(() => expect(saved.length).toBeGreaterThan(0), until);
     ws.close();
     expect(saved[0]?.call.id).toBe("v3:test");
     expect(saved[0]?.outcome).toBe("hung_up");

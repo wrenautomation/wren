@@ -206,7 +206,7 @@ describe("audio source", () => {
     try {
       const file = join(dir, "tone.ogg");
       execFileSync("ffmpeg", [
-        ...["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=440:d=700"],
+        ...["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=440:d=3"],
         ...["-ac", "1", "-c:a", "libopus", "-b:a", "8k", file],
       ]);
       const audio = await readFile(file);
@@ -229,12 +229,14 @@ describe("audio source", () => {
         creator: "Synth Show",
         geminiKeys: ["k"],
         fetchFn,
+        // Two-second clips of a three-second tone: a 700 s episode took minutes to encode and cut.
+        clipS: 2,
       });
-      expect(asks.sort()).toEqual(["0:00", "10:00"]);
+      expect(asks.sort()).toEqual(["0:00", "0:02"]);
       expect(s.name).toMatch(/^podcast-[0-9a-f]{12}\.md$/);
       expect(s.md).toContain('channel: "Synth Show"');
-      expect(s.md).toContain("duration: 700");
-      expect(s.md.indexOf("heard 0:00")).toBeLessThan(s.md.indexOf("heard 10:00"));
+      expect(s.md).toContain("duration: 3");
+      expect(s.md.indexOf("heard 0:00")).toBeLessThan(s.md.indexOf("heard 0:02"));
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
