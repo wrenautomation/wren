@@ -131,22 +131,25 @@ beforeEach(() => {
   notes.length = 0;
 });
 
+/**
+ * How long a wait on the real Restate may take before it fails. Each wait ends the moment its
+ * condition holds; the bound only stops a broken run, so a loaded machine never trips it.
+ */
+const UNTIL = { timeout: 60_000, interval: 200 };
+
 const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const loop = (key = id) => connect().objectClient<Reactivation>({ name: "Reactivation" }, key);
 const mailbox = (object: string, key: string) =>
   connect().objectClient<StandIn>({ name: object }, key);
 const settle = (expected: Record<string, boolean | null>) =>
-  vi.waitFor(
-    async () => {
-      const seen: Record<string, boolean | null> = {};
-      for (const k of Object.keys(expected)) {
-        const [object, address] = k.split(" ") as [string, string];
-        seen[k] = await mailbox(object, `${id}/${address}`).running();
-      }
-      expect(seen).toEqual(expected);
-    },
-    { timeout: 10_000, interval: 200 },
-  );
+  vi.waitFor(async () => {
+    const seen: Record<string, boolean | null> = {};
+    for (const k of Object.keys(expected)) {
+      const [object, address] = k.split(" ") as [string, string];
+      seen[k] = await mailbox(object, `${id}/${address}`).running();
+    }
+    expect(seen).toEqual(expected);
+  }, UNTIL);
 const ALL_RUNNING = {
   [`SendScheduler ${ANN}`]: true,
   [`SendScheduler ${BO}`]: true,
@@ -273,7 +276,7 @@ describe("crm loop stop, then start", () => {
     await loop().start();
     await vi.waitFor(
       async () => expect(Date.parse((await loop().status()).last?.now ?? "0")).toBeGreaterThan(0),
-      { timeout: 5_000 },
+      UNTIL,
     );
     await settle(ALL_RUNNING);
     await loop().stop();
@@ -288,15 +291,15 @@ describe("crm loop stop, then start", () => {
     passTimes.length = 0;
     const paced = connect().objectClient<Paced>({ name: "Paced" }, "one");
     await paced.start();
-    await vi.waitFor(() => expect(passTimes.length).toBeGreaterThan(0), { timeout: 5_000 });
+    await vi.waitFor(() => expect(passTimes.length).toBeGreaterThan(0), UNTIL);
     await paced.stop();
     const before = passTimes.length;
-    // A start passes at once; from there, one pass per delay.
+    // A start passes at once; from there, one pass per delay. Wait for three passes, not for a
+    // time: two chains would bring them sooner, and their gaps fail below.
     await paced.start();
-    await new Promise((r) => setTimeout(r, 2 * PACED_MS + 700));
+    await vi.waitFor(() => expect(passTimes.length - before).toBeGreaterThanOrEqual(3), UNTIL);
     await paced.stop();
     const after = passTimes.slice(before);
-    expect(after.length).toBeGreaterThanOrEqual(3);
     const gaps = after.slice(1).map((t, i) => t - (after[i] ?? t));
     expect(Math.min(...gaps)).toBeGreaterThan(PACED_MS / 2);
   });
