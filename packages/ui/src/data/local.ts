@@ -16,6 +16,7 @@ import {
   persistQueryClient,
   removeOldestQuery,
 } from "@tanstack/query-persist-client-core";
+import type { QueryCache, QueryClient } from "@tanstack/react-query";
 import { EDITS } from "./edits.js";
 import { KEEP_MS, QUERIES } from "./query.js";
 
@@ -101,6 +102,32 @@ function plainOnly(this: unknown, key: string, value: unknown) {
   if (value instanceof Map || value instanceof Set || was instanceof Date)
     throw new TypeError("not plain data");
   return value;
+}
+
+/**
+ * The client as the other tabs see it: only reads in a named scope cross. A component's own reads
+ * (`tab:<n>`) mean nothing elsewhere and may hold handlers no channel can carry.
+ */
+export function sharedOnly(client: QueryClient): QueryClient {
+  const cache = client.getQueryCache();
+  const shared = new Proxy(cache, {
+    get(target, prop) {
+      if (prop !== "subscribe") return bound(target, prop);
+      return (listener: Parameters<QueryCache["subscribe"]>[0]) =>
+        target.subscribe((e) => {
+          if (e.query.meta?.keep === true) listener(e);
+        });
+    },
+  });
+  return new Proxy(client, {
+    get: (target, prop) => (prop === "getQueryCache" ? () => shared : bound(target, prop)),
+  });
+}
+
+/** A member of `target`, its methods bound to it: they reach private fields a proxy can't. */
+function bound(target: object, prop: string | symbol): unknown {
+  const v = Reflect.get(target, prop, target);
+  return typeof v === "function" ? v.bind(target) : v;
 }
 
 /** The copy as written: the newest answers that fit under `max` characters, plain data only. */
@@ -191,7 +218,10 @@ export function startLocalCopy({
   ready = Promise.all([ready, EDITS.start(owner, storage, legacy)]).then(() => undefined);
   if (tabs && typeof BroadcastChannel !== "undefined") {
     const channel = `wren-data:${owner}`;
-    const off = broadcastQueryClient({ queryClient: QUERIES, broadcastChannel: channel });
+    const off = broadcastQueryClient({
+      queryClient: sharedOnly(QUERIES),
+      broadcastChannel: channel,
+    });
     if (typeof off === "function") offs.push(off);
     landedChannel = new BroadcastChannel(`${channel}:landed`);
     // A write landed in another tab: what this one shows may be old.

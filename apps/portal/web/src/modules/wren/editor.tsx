@@ -12,7 +12,7 @@ import {
   Button,
   cx,
   DictateField,
-  EditConflict,
+  FormKept,
   GRAPH_DROP,
   type GraphNode,
   Icon,
@@ -21,9 +21,10 @@ import {
   StateMark,
   Tag,
   Textarea,
+  TextField,
   tipProps,
-  UnsavedMark,
   useEdit,
+  useEditForm,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -989,14 +990,10 @@ function SaveTemplate({
   mayManage: boolean;
   onSaved: () => void;
 }) {
-  const base = useId();
-  const at = `workflow-template:${client ?? "own"}:${workflow}`;
-  const nameEdit = useEdit(`${at}:name`, "");
-  const blurbEdit = useEdit(`${at}:blurb`, "");
-  const title = nameEdit.value;
-  const blurb = blurbEdit.value;
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const form = useEditForm({
+    key: `workflow-template:${client ?? "own"}:${workflow}`,
+    defaults: { name: "", blurb: "" },
+  });
   const [done, setDone] = useState<{ id: string; name: string; updated: boolean } | null>(null);
   const why = !forClients
     ? "It runs Wren's own business, so no client can install it."
@@ -1005,32 +1002,24 @@ function SaveTemplate({
       : !mayManage
         ? "Saving a template takes manage on Workflows."
         : null;
-  const save = () =>
-    ACTIONS.run(`workflow-template:${client ?? ""}:${workflow}`, async (requestId) => {
-      setBusy(true);
-      setError(null);
-      const sent = { title, blurb };
-      try {
+  const save = form.onSend(
+    (v) =>
+      ACTIONS.run(`workflow-template:${client ?? ""}:${workflow}`, async (requestId) => {
         const got = await call<{ id: string; name: string; updated: boolean }>(
           "console/workflowTemplateSave",
           {
             workflow,
-            name: sent.title,
-            blurb: sent.blurb,
+            name: v.name,
+            blurb: v.blurb,
             ...(client ? { client } : {}),
             requestId,
           },
         );
         setDone(got);
-        // Cleared only if he hasn't typed on meanwhile.
-        nameEdit.saved(sent.title);
-        blurbEdit.saved(sent.blurb);
         onSaved();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      }
-      setBusy(false);
-    });
+      }),
+    { clear: true },
+  );
   return (
     <section
       aria-label="Save as template"
@@ -1045,39 +1034,36 @@ function SaveTemplate({
             Saves the live version, not this draft. Clients install it from the Marketplace, and it
             goes live only after To approve.
           </p>
-          <label htmlFor={`${base}-name`} className="grid gap-1">
-            <span className="text-[12.5px] text-(--ui-ink-2)">Name</span>
-            <Input
-              id={`${base}-name`}
-              {...nameEdit.field}
-              maxLength={80}
-              placeholder={name}
-              className="h-8"
-            />
-            <EditConflict
-              conflict={nameEdit.conflict}
-              onKeepMine={nameEdit.keepMine}
-              onTakeTheirs={nameEdit.takeTheirs}
-              what="The name"
-            />
-          </label>
-          <label htmlFor={`${base}-blurb`} className="grid gap-1">
-            <span className="text-[12.5px] text-(--ui-ink-2)">What it does (optional)</span>
-            <Input id={`${base}-blurb`} {...blurbEdit.field} maxLength={300} className="h-8" />
-            <UnsavedMark edit={blurbEdit} />
-          </label>
+          <TextField
+            form={form}
+            name="name"
+            label="Name"
+            maxLength={80}
+            placeholder={name}
+            className="grid gap-1 text-[12.5px]"
+            box="h-8"
+          />
+          <TextField
+            form={form}
+            name="blurb"
+            label="What it does (optional)"
+            maxLength={300}
+            className="grid gap-1 text-[12.5px]"
+            box="h-8"
+          />
+          <FormKept form={form} />
           <span>
             <Button
               tone="primary"
               size="dense"
-              busy={busy}
-              disabled={title.trim().length < 2}
-              onClick={save}
+              busy={form.formState.isSubmitting}
+              disabled={form.watch("name").trim().length < 2}
+              onClick={() => void save()}
             >
               Save as template
             </Button>
           </span>
-          {error ? <p className="m-0 text-[12.5px] text-(--ui-bad)">{error}</p> : null}
+          {form.error ? <p className="m-0 text-[12.5px] text-(--ui-bad)">{form.error}</p> : null}
           {done ? (
             <p className="m-0 text-[12.5px]">
               {done.updated ? "Updated" : "Saved"}.{" "}

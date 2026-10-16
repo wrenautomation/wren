@@ -8,21 +8,20 @@ import type { Stage, StageKind } from "@wren/deals/schema";
 import {
   ACTIONS,
   Button,
-  EditConflict,
+  FormKept,
   Input,
   LoadFailed,
   Loading,
   PageHeader,
   Section,
   say,
-  UnsavedMark,
-  useEdit,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
 import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { useEditJson } from "../people/edit-json.js";
 import { atOf } from "./board.js";
 
 type Pipe = Board["pipelines"][number];
@@ -99,16 +98,13 @@ function PipeForm({
   onDone: () => void;
 }) {
   // The name and the stages are kept as typed until saved, on this device.
-  const at = `pipeline:${pipe.id || "new"}`;
-  const version = pipe.version || null;
-  const nameEdit = useEdit(`${at}:name`, pipe.name, { version });
-  const stagesEdit = useEditJson<Stage[]>(`${at}:stages`, pipe.stages, {
-    version,
-    show: (all) => all.map((s) => s.label || "(no name)").join(", "),
+  const form = useEditForm({
+    key: `pipeline:${pipe.id || "new"}`,
+    defaults: { name: pipe.name, stages: pipe.stages },
+    base: pipe.version || undefined,
   });
-  const name = nameEdit.value;
-  const stages = stagesEdit.value;
-  const setStages = stagesEdit.set;
+  const stages: Stage[] = form.watch("stages");
+  const setStages = (next: Stage[]) => form.setValue("stages", next);
   const [busy, setBusy] = useState(false);
   const put = (i: number, s: Partial<Stage>) =>
     setStages(stages.map((x, j) => (j === i ? { ...x, ...s } : x)));
@@ -121,36 +117,51 @@ function PipeForm({
   // One action at a time; a retry after a lost answer is the same action (its request id).
   const flying = useRef(false);
   const run = async (path: string, body: Record<string, unknown>, done: string) => {
-    if (flying.current) return;
+    if (flying.current) return false;
     flying.current = true;
     setBusy(true);
     try {
       await ACTIONS.run(`${path}:${pipe.id || "new"}`, (requestId) =>
         call(path, { ...where, ...body, requestId }),
       );
-      // Saved or deleted: the typed words are done with.
-      nameEdit.saved();
-      stagesEdit.saved();
       say.done(done);
       onDone();
+      return true;
     } catch (err) {
       say.failed(err);
+      return false;
     } finally {
       flying.current = false;
       setBusy(false);
     }
   };
+  const save = form.onSend((v) =>
+    run(
+      "deals/pipelineSave",
+      {
+        ...(pipe.id ? { id: pipe.id, expect: pipe.version } : {}),
+        name: v.name,
+        stages: v.stages.map((s) => ({
+          ...(s.key ? { key: s.key } : {}),
+          label: s.label,
+          kind: s.kind,
+        })),
+      },
+      "Saved.",
+    ),
+  );
+  const remove = async () => {
+    // Deleted: the typed words are done with.
+    if (await run("deals/pipelineDrop", { id: pipe.id }, "Deleted.")) form.forget();
+  };
   return (
     <div className="grid gap-3">
-      <label className="grid max-w-[360px] gap-1 text-[13px] font-medium text-(--ui-ink-2)">
-        Name
-        <Input {...nameEdit.field} disabled={!write} />
-      </label>
-      <EditConflict
-        conflict={nameEdit.conflict}
-        onKeepMine={nameEdit.keepMine}
-        onTakeTheirs={nameEdit.takeTheirs}
-        what="The name"
+      <TextField
+        form={form}
+        name="name"
+        label="Name"
+        className="grid max-w-[360px] gap-1 font-medium"
+        disabled={!write}
       />
       <ol className="m-0 grid list-none gap-2 p-0">
         {stages.map((s, i) => (
@@ -160,7 +171,7 @@ function PipeForm({
             <Input
               aria-label={`Stage ${i + 1}`}
               className="w-[200px]"
-              data-edit={stagesEdit.key}
+              data-edit="form:stages"
               value={s.label}
               disabled={!write}
               onChange={(e) => put(i, { label: e.target.value })}
@@ -204,12 +215,7 @@ function PipeForm({
           </li>
         ))}
       </ol>
-      <EditConflict
-        conflict={stagesEdit.conflict}
-        onKeepMine={stagesEdit.keepMine}
-        onTakeTheirs={stagesEdit.takeTheirs}
-        what="The stages"
-      />
+      <FormKept form={form} />
       {write ? (
         <div className="flex flex-wrap gap-2">
           <Button
@@ -219,36 +225,11 @@ function PipeForm({
           >
             Add a stage
           </Button>
-          <Button
-            tone="primary"
-            size="sm"
-            busy={busy}
-            onClick={() =>
-              run(
-                "deals/pipelineSave",
-                {
-                  ...(pipe.id ? { id: pipe.id, expect: pipe.version } : {}),
-                  name,
-                  stages: stages.map((s) => ({
-                    ...(s.key ? { key: s.key } : {}),
-                    label: s.label,
-                    kind: s.kind,
-                  })),
-                },
-                "Saved.",
-              )
-            }
-          >
+          <Button tone="primary" size="sm" busy={busy} onClick={() => void save()}>
             Save
           </Button>
-          <UnsavedMark edit={{ dirty: nameEdit.dirty || stagesEdit.dirty, conflict: null }} />
           {pipe.id && drop ? (
-            <Button
-              size="sm"
-              tone="quiet"
-              busy={busy}
-              onClick={() => run("deals/pipelineDrop", { id: pipe.id }, "Deleted.")}
-            >
+            <Button size="sm" tone="quiet" busy={busy} onClick={() => void remove()}>
               Delete pipeline
             </Button>
           ) : null}

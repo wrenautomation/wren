@@ -55,7 +55,7 @@
  * inside joins it, and `await page.flush()` saves each dirty one before a head action.
  *
  * `callOnce(call, handler, ids, input)` does it with `requestId` in the input; `useRun` sends
- * every action through it. `useKeptForm(key, base)` keeps a dialog's typing until it is sent.
+ * every action through it. A form keeps its typing until sent through `useEditForm`.
  *
  * ## A value only the newest of matters for
  *
@@ -84,14 +84,11 @@ export { LATEST, Latest, type Wrote } from "./latest.js";
 export { ACTIONS } from "./once.js";
 export { type Flushable, SavePage } from "./page.js";
 export {
-  forgetForm,
-  type KeptFormState,
   SaveConflict,
   type Saved,
   SaveScope,
   SaveStatus,
   statusWords,
-  useKeptForm,
   useSaved,
   useSavePage,
 } from "./react.js";

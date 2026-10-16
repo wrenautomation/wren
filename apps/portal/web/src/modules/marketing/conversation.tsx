@@ -14,12 +14,12 @@ import {
   copiedIn,
   copyAndOpen,
   dateTip,
+  EditConflict,
   exact,
-  forgetForm,
+  forgetKept,
   Icon,
   type IconName,
   InsertSnippet,
-  KeptConflict,
   type MessageKind,
   MessagePreview,
   PlatformMark,
@@ -30,7 +30,7 @@ import {
   SendStatus,
   say,
   Textarea,
-  useKeptForm,
+  useEditForm,
   useLastWrite,
 } from "@wren/ui";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
@@ -269,7 +269,10 @@ function ReplyBox({
   // The words stay on the device until the server took them: switching threads, a hidden tab
   // or a reload gives them back (designs/2026-10-15-one-write-path.md).
   const base = option?.own ? draft : "";
-  const kept = useKeptForm(act.record ? `reply:${act.record}:${pick}` : null, base);
+  const keptAt = act.record ? `reply:${act.record}:${pick}` : null;
+  const form = useEditForm({ key: keptAt, defaults: { text: base }, base });
+  const keyNow = useRef(keptAt);
+  keyNow.current = keptAt;
   /** The last send on this thread, from `WRITES`: going, gone, or refused and why. */
   const last = useLastWrite(act.record, SENDS);
   const going =
@@ -277,11 +280,16 @@ function ReplyBox({
   const [cleared, setCleared] = useState<string | null>(null);
   const refused = last?.status === "failed" && last.id !== cleared ? last : null;
   const lostWords = refused && typeof refused.input?.body === "string" ? refused.input.body : null;
-  const text = kept.values.text ?? lostWords ?? base;
+  const text = form.watch("text");
   const setText = (t: string) => {
     if (refused) setCleared(refused.id);
-    kept.set("text", t);
+    form.setValue("text", t);
   };
+  // A send refused while this box was away gives its words back, if the draft is untouched.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per refused send.
+  useEffect(() => {
+    if (lostWords !== null && form.getValues("text") === base) form.setValue("text", lostWords);
+  }, [refused?.id]);
   const [busy, setBusy] = useState<"send" | "suggest" | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const [copied, setCopied] = useState<Copied | null>(null);
@@ -299,33 +307,38 @@ function ReplyBox({
       </p>
     );
   const where = option ? { channel: option.channel, target: option.target } : null;
-  const go = async () => {
-    if (!where || !text.trim() || busy || going) return;
-    setBusy("send");
-    setSaid(null);
-    setCopied(null);
-    if (refused) setCleared(refused.id);
-    const keptAt = kept.key;
-    try {
-      const out = answerOf<Replied>(
-        await act(send ? "inbox.reply" : "inbox.ask", { ...where, body: text.trim() }),
-      );
-      // The server has them: the device lets go, even if this box is gone by now.
-      forgetForm(keptAt);
-      if (kept.key === keptAt) kept.clear();
-      const copy = copiedIn(out);
-      if (out?.sent === false || !send)
-        setSaid(`Asked. It waits in To approve.${out?.why ? ` ${out.why}` : ""}`);
-      else if (copy) {
-        setCopied(copy);
-        setSaid("Marked answered. Now paste it on Google as the owner's reply.");
-      } else setSaid("Sent.");
-    } catch (err) {
-      say.failed(err);
-    } finally {
-      setBusy(null);
-    }
-  };
+  const go = form.onSend(
+    async (v) => {
+      if (!where || !v.text.trim() || busy || going) return false;
+      setBusy("send");
+      setSaid(null);
+      setCopied(null);
+      if (refused) setCleared(refused.id);
+      const sentAt = keptAt;
+      try {
+        const out = answerOf<Replied>(
+          await act(send ? "inbox.reply" : "inbox.ask", { ...where, body: v.text.trim() }),
+        );
+        // The server has them: the device lets go, even if this box is gone by now.
+        if (sentAt) forgetKept(sentAt);
+        const copy = copiedIn(out);
+        if (out?.sent === false || !send)
+          setSaid(`Asked. It waits in To approve.${out?.why ? ` ${out.why}` : ""}`);
+        else if (copy) {
+          setCopied(copy);
+          setSaid("Marked answered. Now paste it on Google as the owner's reply.");
+        } else setSaid("Sent.");
+        // Moved to another channel meanwhile: that box keeps what's typed in it.
+        return keyNow.current === sentAt;
+      } catch (err) {
+        say.failed(err);
+        return false;
+      } finally {
+        setBusy(null);
+      }
+    },
+    { clear: true },
+  );
   const suggest = async () => {
     if (!where || busy) return;
     setBusy("suggest");
@@ -378,7 +391,7 @@ function ReplyBox({
         aria-label="Your reply"
         placeholder={option ? `Reply by ${option.label.toLowerCase()}` : "Pick a channel"}
         disabled={!option}
-        data-edit={kept.key ?? ""}
+        data-edit="form:text"
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -388,7 +401,12 @@ function ReplyBox({
         }}
         className="text-[14px] leading-[1.55]"
       />
-      <KeptConflict kept={kept} field="text" what="The draft" />
+      <EditConflict
+        what="The draft"
+        conflict={form.conflict ? { mine: form.conflict.mine.text ?? "", theirs: base } : null}
+        onKeepMine={form.keepMine}
+        onTakeTheirs={form.takeTheirs}
+      />
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="dense"

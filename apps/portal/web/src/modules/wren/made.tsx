@@ -4,17 +4,8 @@
  * runs until Publish.
  */
 import type { MadeWorkflow } from "@wren/core/spine";
-import {
-  Button,
-  EditConflict,
-  Input,
-  LoadFailed,
-  Section,
-  say,
-  UnsavedMark,
-  useEdit,
-} from "@wren/ui";
-import { type FormEvent, useRef, useState } from "react";
+import { Button, FormKept, LoadFailed, Section, say, TextField, useEditForm } from "@wren/ui";
+import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
@@ -32,48 +23,46 @@ export function MadeHere({ client }: { client: string | null }) {
   const got = useCall(`workflows-made:${client ?? ""}`, () =>
     call<MadeWorkflow[]>("console/workflowsMade", client ? { client } : {}),
   );
-  const draft = useEdit(`workflow:new:${client ?? "own"}:message`, "");
-  const message = draft.value;
+  const form = useEditForm({
+    key: `workflow:new:${client ?? "own"}:message`,
+    defaults: { message: "" },
+  });
+  const message = form.watch("message");
   const [busy, setBusy] = useState<"build" | "blank" | null>(null);
   const starting = useRef(false);
-  const build = async (how: "build" | "blank", e?: FormEvent) => {
-    e?.preventDefault();
-    if (how === "build" && !message.trim()) return;
-    // One build at a time: Enter twice makes one workflow.
-    if (starting.current) return;
+  /** One build at a time: Enter twice makes one workflow. False when none was made. */
+  const build = async (how: "build" | "blank", words = "") => {
+    if (starting.current) return false;
     starting.current = true;
     setBusy(how);
     try {
       const made = await call<{ workflow: string; ask: string | null }>("console/workflowBuild", {
         ...(client ? { client } : {}),
-        ...(how === "build" ? { message: message.trim() } : {}),
+        ...(how === "build" ? { message: words.trim() } : {}),
       });
-      if (how === "build") draft.saved(message);
       navigate(madeAt(made.workflow, client, made.ask));
+      return true;
     } catch (err) {
       say.failed(err);
       setBusy(null);
       starting.current = false;
+      return false;
     }
   };
+  const send = form.onSend((v) => (v.message.trim() ? build("build", v.message) : false));
   const rows = got.data ?? [];
   return (
     <Section title="Made here" className="mt-8">
-      <form onSubmit={(e) => build("build", e)} className="mb-4 grid gap-2">
-        <label className="grid gap-1 text-[13px] font-medium text-(--ui-ink-2)">
-          New workflow
-          <Input
-            {...draft.field}
-            maxLength={MOST}
-            placeholder="When a form comes in, text them in 5 minutes; if no reply in a day, email."
-          />
-        </label>
-        <EditConflict
-          conflict={draft.conflict}
-          onKeepMine={draft.keepMine}
-          onTakeTheirs={draft.takeTheirs}
-          what="The description"
+      <form onSubmit={(e) => void send(e)} className="mb-4 grid gap-2">
+        <TextField
+          form={form}
+          name="message"
+          label="New workflow"
+          maxLength={MOST}
+          placeholder="When a form comes in, text them in 5 minutes; if no reply in a day, email."
+          className="gap-1 font-medium"
         />
+        <FormKept form={form} />
         <div className="flex flex-wrap items-center gap-2">
           <Button
             tone="primary"
@@ -89,12 +78,11 @@ export function MadeHere({ client }: { client: string | null }) {
             size="sm"
             busy={busy === "blank"}
             disabled={!!busy}
-            onClick={() => build("blank")}
+            onClick={() => void build("blank")}
           >
             Start blank
           </Button>
           <span className={QUIET}>Claude draws a draft. Nothing runs until you publish it.</span>
-          <UnsavedMark edit={draft} />
         </div>
       </form>
       {got.error && !got.data ? <LoadFailed error={got.error} onRetry={got.retry} /> : null}

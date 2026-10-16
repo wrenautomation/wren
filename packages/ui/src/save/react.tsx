@@ -1,7 +1,7 @@
 /**
  * The save engine in React, kept thin: `useSaved` holds one `Saver` per key and draws its
- * state; `SaveStatus` is the one status line; `SaveConflict` asks Keep mine or Use theirs;
- * `useKeptForm` keeps a dialog's typing until it is sent.
+ * state; `SaveStatus` is the one status line; `SaveConflict` asks Keep mine or Use theirs.
+ * A form's typing until it is sent: `useEditForm` (`../edit-form.tsx`).
  */
 import {
   createContext,
@@ -10,13 +10,10 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   useSyncExternalStore,
 } from "react";
 import { Button } from "../controls.js";
 import { type Conflict, Saver, type SaverOptions, type SaveState, type Status } from "./engine.js";
-import { browserEnv } from "./env.js";
-import { readKept, writeForm } from "./journal.js";
 import { SavePage } from "./page.js";
 
 const PageBoxes = createContext<SavePage | null>(null);
@@ -177,92 +174,4 @@ export function SaveConflict<T>({
       </div>
     </div>
   );
-}
-
-export interface KeptFormState {
-  /** Where the values are kept; null keeps nothing. */
-  key: string | null;
-  /** What the form starts from now. */
-  base: string;
-  values: Record<string, string>;
-  /** The values came back from before (a closed dialog, a reload). */
-  restored: boolean;
-  /**
-   * What the form starts from moved since the values were typed (`base`): both show until the
-   * person picks (`keepMine`, `takeTheirs`). Never dropped silently.
-   */
-  conflict: { values: Record<string, string>; base: string } | null;
-  set: (field: string, text: string) => void;
-  /** Sent: forget them. */
-  clear: () => void;
-  keepMine: () => void;
-  takeTheirs: () => void;
-}
-
-/**
- * A dialog's typing, kept in the edits store under `key` until it is sent, so closing the dialog,
- * another page or a reload gives it back. `base` is what the form started from: values typed over
- * another base come back as a conflict for the person to settle. A null key keeps nothing.
- */
-export function useKeptForm(key: string | null, base = ""): KeptFormState {
-  const env = useMemo(() => browserEnv(), []);
-  const load = (k: string | null) => {
-    const got = k ? readKept(env.storage, k, env.now()) : null;
-    const over = got && got.base === base;
-    return {
-      key: k,
-      base,
-      values: over ? got.values : {},
-      restored: !!over,
-      conflict: got && !over ? got : null,
-    };
-  };
-  const [s, setS] = useState(() => load(key));
-  let now = s;
-  if (s.key !== key || s.base !== base) {
-    now = load(key);
-    setS(now);
-  }
-  const live = useRef(now);
-  live.current = now;
-  const put = (next: typeof now) => {
-    live.current = next;
-    setS(next);
-  };
-  return {
-    key: now.key,
-    base: now.base,
-    values: now.conflict ? now.conflict.values : now.values,
-    restored: now.restored,
-    conflict: now.conflict,
-    set: (field, text) => {
-      const cur = live.current;
-      // Typing over a conflict keeps it: the words stay on their own base until picked.
-      const on = cur.conflict ? cur.conflict.base : cur.base;
-      const values = { ...(cur.conflict?.values ?? cur.values), [field]: text };
-      if (cur.key) writeForm(env.storage, cur.key, values, on, env.now());
-      put(cur.conflict ? { ...cur, conflict: { values, base: on } } : { ...cur, values });
-    },
-    clear: () => {
-      const cur = live.current;
-      if (cur.key) writeForm(env.storage, cur.key, null, cur.base, env.now());
-      put({ ...cur, values: {}, restored: false, conflict: null });
-    },
-    keepMine: () => {
-      const cur = live.current;
-      if (!cur.conflict) return;
-      if (cur.key) writeForm(env.storage, cur.key, cur.conflict.values, cur.base, env.now());
-      put({ ...cur, values: cur.conflict.values, restored: true, conflict: null });
-    },
-    takeTheirs: () => {
-      const cur = live.current;
-      if (cur.key) writeForm(env.storage, cur.key, null, cur.base, env.now());
-      put({ ...cur, values: {}, restored: false, conflict: null });
-    },
-  };
-}
-
-/** Forget what's kept under `key` (it was sent after its dialog closed). */
-export function forgetForm(key: string | null) {
-  if (key) writeForm(browserEnv().storage, key, null, "", Date.now());
 }

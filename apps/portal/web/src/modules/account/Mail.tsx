@@ -10,18 +10,20 @@ import {
   Copyable,
   Empty,
   Facts,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   Section,
+  SelectField,
   Tag,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, FIELD, Form, field, QUIET, SELECT, TOOLS } from "../work/bits.js";
+import { ERROR, Form, NARROW, QUIET, TOOLS, trimmed } from "../work/bits.js";
 import { mailTag } from "./setups.js";
 
 type View = Extract<MailPageView, { wren: false }>;
@@ -262,6 +264,57 @@ function OrgCard({ o, view, act }: { o: Org; view: View; act: Act }) {
   );
 }
 
+const PROVIDERS = [
+  ["google", "Google"],
+  ["microsoft", "Microsoft 365"],
+] as const;
+const WANTS = [
+  ["read", "Read and send"],
+  ["send", "Send only"],
+] as const;
+
+/** The add form: an address, who hosts it, and how much Wren may do with it. */
+function AddMailbox({ client, act }: { client: string; act: Act }) {
+  const form = useEditForm({
+    key: `mailbox:new:${client}`,
+    defaults: { address: "", provider: "google", want: "read" },
+  });
+  return (
+    <Form
+      label="Add a mailbox"
+      submit="Add"
+      act={act}
+      form={form}
+      onSubmit={async (v) =>
+        !!(await act.run("addMailbox", {
+          address: trimmed(v.address),
+          provider: trimmed(v.provider),
+          want: trimmed(v.want),
+        }))
+      }
+    >
+      <TextField
+        form={form}
+        name="address"
+        label="Address"
+        className={`${NARROW} grow basis-[240px]`}
+        type="email"
+        required
+        maxLength={320}
+        placeholder="ann@yourfirm.com"
+      />
+      <SelectField
+        form={form}
+        name="provider"
+        label="Provider"
+        className={NARROW}
+        options={PROVIDERS}
+      />
+      <SelectField form={form} name="want" label="Wren may" className={NARROW} options={WANTS} />
+    </Form>
+  );
+}
+
 export function Mail(props: PageProps) {
   const load = useCall(`mail:${props.client}`, () =>
     call<MailPageView>("mail/mail", { client: props.client, asClient: !props.team }),
@@ -308,43 +361,7 @@ export function Mail(props: PageProps) {
               title="Add a mailbox"
               note="Personal Gmail can send but not be read. Personal Outlook isn't supported yet."
             >
-              <Form
-                label="Add a mailbox"
-                submit="Add"
-                act={{ busy: act.busy, error: act.error, run: async () => false }}
-                onSubmit={async (f) =>
-                  !!(await act.run("addMailbox", {
-                    address: field(f, "address"),
-                    provider: field(f, "provider"),
-                    want: field(f, "want"),
-                  }))
-                }
-              >
-                <label className={`${FIELD} grow basis-[240px]`}>
-                  <span>Address</span>
-                  <Input
-                    name="address"
-                    type="email"
-                    required
-                    maxLength={320}
-                    placeholder="ann@yourfirm.com"
-                  />
-                </label>
-                <label className={FIELD}>
-                  <span>Provider</span>
-                  <select name="provider" className={SELECT} defaultValue="google">
-                    <option value="google">Google</option>
-                    <option value="microsoft">Microsoft 365</option>
-                  </select>
-                </label>
-                <label className={FIELD}>
-                  <span>Wren may</span>
-                  <select name="want" className={SELECT} defaultValue="read">
-                    <option value="read">Read and send</option>
-                    <option value="send">Send only</option>
-                  </select>
-                </label>
-              </Form>
+              <AddMailbox client={props.client} act={act} />
             </Section>
           ) : (
             <p className={QUIET}>Ask an owner to add or connect a mailbox.</p>

@@ -11,19 +11,20 @@ import {
   Button,
   ButtonLink,
   cx,
-  EditConflict,
+  type EditForm,
+  FormKept,
   Icon,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   PlatformMark,
   Section,
+  SelectField,
   say,
   Tag,
+  TextField,
   tipProps,
-  UnsavedMark,
-  useEdit,
+  useEditForm,
 } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../../api.js";
@@ -285,34 +286,30 @@ export function PlanPage(_props: PageProps) {
   );
 }
 
-/** A goal's six boxes, each keeping its unsaved words until saved or cancelled. */
-function useGoalEdits(g: Goal) {
-  const at = (f: string) => `goal:${g.id}:${f}`;
-  const e = {
-    goal: useEdit(at("goal"), String(g.goal)),
-    upTo: useEdit(at("upTo"), g.upTo == null ? "" : String(g.upTo)),
-    daily: useEdit(at("daily"), g.daily == null ? "" : String(g.daily)),
-    pace: useEdit(at("pace"), g.pace),
-    how: useEdit(at("how"), g.how),
-    piece: useEdit(at("piece"), g.piece),
-  };
-  const all = Object.values(e);
-  return {
-    ...e,
-    dirty: all.some((x) => x.dirty),
-    conflict: all.find((x) => x.conflict)?.conflict ?? null,
-    discard: () => {
-      for (const x of all) x.discard();
-    },
-  };
+/** A goal's six boxes as typed, each a line of text. */
+interface GoalFields {
+  goal: string;
+  upTo: string;
+  daily: string;
+  pace: string;
+  how: string;
+  piece: string;
 }
-type GoalEdits = ReturnType<typeof useGoalEdits>;
+const goalFields = (g: Goal): GoalFields => ({
+  goal: String(g.goal),
+  upTo: g.upTo == null ? "" : String(g.upTo),
+  daily: g.daily == null ? "" : String(g.daily),
+  pace: g.pace,
+  how: g.how,
+  piece: g.piece,
+});
 
 function GoalRow({ g, reload }: { g: Goal; reload: () => void }) {
-  const edits = useGoalEdits(g);
+  // A goal's six boxes keep their unsaved words until saved or cancelled.
+  const form = useEditForm({ key: `goal:${g.id}`, defaults: goalFields(g) });
   // Open or shut by his hand; until then it is open while words wait in it.
   const [show, setShow] = useState<boolean | null>(null);
-  const editing = show ?? edits.dirty;
+  const editing = show ?? form.unsent;
   const week = g.upTo ? `${g.goal} to ${g.upTo}` : String(g.goal);
   return (
     <li className="border-(--ui-hair) border-t py-3.5 first:border-t-0 first:pt-0">
@@ -358,7 +355,7 @@ function GoalRow({ g, reload }: { g: Goal; reload: () => void }) {
       {editing ? (
         <GoalEdit
           g={g}
-          edits={edits}
+          form={form}
           close={() => setShow(false)}
           done={() => {
             setShow(false);
@@ -375,111 +372,86 @@ const PIECES = ["long", "vertical", "written", "story", "replies", "newsletter"]
 /** A goal's numbers and words, saved through the record's edits path. */
 function GoalEdit({
   g,
-  edits,
+  form,
   done,
   close,
 }: {
   g: Goal;
-  edits: GoalEdits;
+  form: EditForm<GoalFields>;
   done: () => void;
   close: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
   const int = (s: string) => (s.trim() === "" ? null : Number.parseInt(s, 10));
-  const save = async () => {
-    if (edits.conflict) return;
-    setBusy(true);
-    const sent = {
-      goal: edits.goal.value,
-      upTo: edits.upTo.value,
-      daily: edits.daily.value,
-      pace: edits.pace.value,
-      how: edits.how.value,
-      piece: edits.piece.value,
-    };
+  const save = form.onSend(async (v) => {
+    if (form.conflict) return false;
     try {
       await call<Edited>("console/recordsEdit", {
         record: RECORD,
         id: g.id,
         patch: {
-          goal: int(sent.goal) ?? 0,
-          upTo: int(sent.upTo),
-          daily: int(sent.daily),
-          pace: sent.pace.trim(),
-          how: sent.how.trim(),
-          piece: sent.piece,
+          goal: int(v.goal) ?? 0,
+          upTo: int(v.upTo),
+          daily: int(v.daily),
+          pace: v.pace.trim(),
+          how: v.how.trim(),
+          piece: v.piece,
         },
       });
-      for (const k of Object.keys(sent) as (keyof typeof sent)[]) edits[k].saved(sent[k]);
-      say.done("Saved. Plan counts against it now.");
-      done();
     } catch (err) {
       say.failed(err);
-    } finally {
-      setBusy(false);
+      return false;
     }
-  };
+    say.done("Saved. Plan counts against it now.");
+    done();
+  });
   const box = "grid gap-1 text-[12.5px]";
-  const names = {
-    goal: "A week",
-    upTo: "Up to",
-    daily: "A day",
-    pace: "How often",
-    how: "How",
-    piece: "Piece",
-  } as const;
   return (
     <form
       className="mt-3 grid gap-3 rounded-(--ui-radius) bg-(--ui-fill) p-3 sm:grid-cols-[repeat(3,minmax(0,6rem))_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,9rem)_auto] sm:items-end"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save();
-      }}
+      onSubmit={(e) => void save(e)}
     >
-      <label className={box}>
-        A week
-        <Input inputMode="numeric" {...edits.goal.field} />
-      </label>
-      <label className={box}>
-        Up to
-        <Input inputMode="numeric" {...edits.upTo.field} placeholder="none" />
-      </label>
-      <label className={box}>
-        A day
-        <Input inputMode="numeric" {...edits.daily.field} placeholder="none" />
-      </label>
-      <label className={box}>
-        How often
-        <Input {...edits.pace.field} />
-      </label>
-      <label className={box}>
-        How
-        <Input {...edits.how.field} />
-      </label>
-      <label className={box}>
-        Piece
-        <select
-          className="h-9 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-bg) px-2 text-[13px]"
-          value={edits.piece.value}
-          onChange={(e) => edits.piece.set(e.target.value)}
-        >
-          {[...new Set([...PIECES, g.piece])].map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </label>
+      <TextField form={form} name="goal" label="A week" inputMode="numeric" className={box} />
+      <TextField
+        form={form}
+        name="upTo"
+        label="Up to"
+        inputMode="numeric"
+        placeholder="none"
+        className={box}
+      />
+      <TextField
+        form={form}
+        name="daily"
+        label="A day"
+        inputMode="numeric"
+        placeholder="none"
+        className={box}
+      />
+      <TextField form={form} name="pace" label="How often" className={box} />
+      <TextField form={form} name="how" label="How" className={box} />
+      <SelectField
+        form={form}
+        name="piece"
+        label="Piece"
+        options={[...new Set([...PIECES, g.piece])].map((p) => [p, p] as const)}
+        className={box}
+        box="h-9 min-h-0 rounded-(--ui-radius) bg-(--ui-bg) px-2 py-0 text-[13px]"
+      />
       <div className="flex gap-2">
-        <Button size="dense" tone="primary" type="submit" disabled={busy || !!edits.conflict}>
+        <Button
+          size="dense"
+          tone="primary"
+          type="submit"
+          disabled={form.formState.isSubmitting || !!form.conflict}
+        >
           Save
         </Button>
-        {edits.dirty ? (
+        {form.unsent ? (
           <Button
             size="dense"
             tone="quiet"
             onClick={() => {
-              edits.discard();
+              form.forget();
               close();
             }}
           >
@@ -487,20 +459,8 @@ function GoalEdit({
           </Button>
         ) : null}
       </div>
-      {(Object.keys(names) as (keyof typeof names)[]).map((k) =>
-        edits[k].conflict ? (
-          <div key={k} className="sm:col-span-full">
-            <EditConflict
-              what={names[k]}
-              conflict={edits[k].conflict}
-              onKeepMine={edits[k].keepMine}
-              onTakeTheirs={edits[k].takeTheirs}
-            />
-          </div>
-        ) : null,
-      )}
       <div className="sm:col-span-full empty:hidden">
-        <UnsavedMark edit={edits} />
+        <FormKept form={form} what="edits" />
       </div>
     </form>
   );

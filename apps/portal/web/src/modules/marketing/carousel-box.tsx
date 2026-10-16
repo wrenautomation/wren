@@ -7,8 +7,8 @@
 
 import { PLATFORM_SPECS } from "@wren/content/write";
 import { SLIDES_MAX, SLIDES_MIN, slidesFromText, slidesUnfit } from "@wren/core/content/slides";
-import { ACTIONS, Button, cx, PlatformMark, Section, Textarea, useKeptForm } from "@wren/ui";
-import { useState } from "react";
+import { ACTIONS, Button, cx, PlatformMark, Section, TextAreaField, useEditForm } from "@wren/ui";
+import { useEffect, useState } from "react";
 import { ApiError } from "../../api.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 import { contentDesk } from "./desk.js";
@@ -63,11 +63,12 @@ function said(results: Result[], go: Go): string[] {
 
 export function CarouselBox(props: { demo?: boolean; only: string | null; made: () => void }) {
   // What he types stays on the device until it's sent: a reload or a closed tab gives it back.
-  const kept = useKeptForm(props.demo ? null : "studio:carousel");
-  const typed = kept.values.slides ?? "";
-  const caption = kept.values.caption ?? "";
-  const setTyped = (t: string) => kept.set("slides", t);
-  const setCaption = (t: string) => kept.set("caption", t);
+  const form = useEditForm({
+    key: props.demo ? null : "studio:carousel",
+    defaults: { slides: "", caption: "" },
+    base: "",
+  });
+  const { slides: typed, caption } = form.watch();
   const [where, setWhere] = useState<Where[]>(() =>
     props.only === "linkedin"
       ? ["linkedin"]
@@ -78,6 +79,12 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
   const [look, setLook] = useState<Where>(where[0] ?? "instagram");
   const [busy, setBusy] = useState<Go | null>(null);
   const [sure, setSure] = useState(false);
+  // Words changed after "Post now?": ask again.
+  const { watch } = form;
+  useEffect(() => {
+    const sub = watch(() => setSure(false));
+    return () => sub.unsubscribe();
+  }, [watch]);
   const [lines, setLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,7 +126,7 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
           go,
         ),
       );
-      kept.clear();
+      form.forget();
       props.made();
     } catch (err) {
       setError(message(err));
@@ -135,19 +142,16 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
     >
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_393px]">
         <div className="grid gap-3">
-          <label className="grid gap-1.5">
-            <span className="text-[13px] font-medium text-(--ui-ink-2)">Slides</span>
-            <Textarea
+          <div className="grid gap-1.5">
+            <TextAreaField
+              form={form}
+              name="slides"
+              label={<span className="font-medium">Slides</span>}
+              className="gap-1.5"
               aria-label="Slides"
-              data-edit={kept.key ?? ""}
               rows={16}
-              value={typed}
               placeholder={START}
               disabled={props.demo}
-              onChange={(e) => {
-                setTyped(e.target.value);
-                setSure(false);
-              }}
             />
             <span className={cx("text-[12.5px]", QUIET)}>
               Leave a blank line between slides. A slide's first line is its title, then up to 4
@@ -158,29 +162,24 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
                   <button
                     type="button"
                     className="cursor-pointer border-0 bg-transparent p-0 text-[12.5px] underline"
-                    onClick={() => setTyped(START)}
+                    onClick={() => form.setValue("slides", START)}
                   >
                     Start from the example
                   </button>
                 </>
               )}
             </span>
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-[13px] font-medium text-(--ui-ink-2)">Caption</span>
-            <Textarea
-              aria-label="Caption"
-              data-edit={kept.key ?? ""}
-              rows={4}
-              value={caption}
-              placeholder="What goes under it"
-              disabled={props.demo}
-              onChange={(e) => {
-                setCaption(e.target.value);
-                setSure(false);
-              }}
-            />
-          </label>
+          </div>
+          <TextAreaField
+            form={form}
+            name="caption"
+            label={<span className="font-medium">Caption</span>}
+            className="gap-1.5"
+            aria-label="Caption"
+            rows={4}
+            placeholder="What goes under it"
+            disabled={props.demo}
+          />
           <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
             <legend className="sr-only">Where it goes</legend>
             {WHERE.map((p) => {

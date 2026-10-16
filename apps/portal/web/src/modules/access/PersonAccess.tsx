@@ -5,13 +5,13 @@
  */
 import { ACCESS_CHANNELS, APPS, CHANNEL_NAMES, type Permission } from "@wren/core/access";
 import type { RecordsPage } from "@wren/core/records/serve";
-import { Alert, Button, Input, Loading } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import { Alert, Button, ChecksField, Loading, SelectField, TextField, useEditForm } from "@wren/ui";
+import { useState } from "react";
 import { call, type Me, viewing, viewingAs } from "../../api.js";
 import { useCall } from "../../load.js";
 import { WREN } from "../../module.js";
 import { openViewAs } from "../../view-as.js";
-import { ERROR, FIELD, FORM, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
+import { ERROR, FORM, Kept, LIST, NARROW, QUIET, SPLIT } from "../work/bits.js";
 
 /** A console call in this workspace: Wren's own, or the client's. */
 export const consoleIn = <T,>(client: string, handler: string, body: Record<string, unknown>) =>
@@ -37,6 +37,103 @@ const LONG: [string, string][] = [
   ["7", "A week"],
   ["30", "30 days"],
 ];
+
+const NEW_GRANT = {
+  verbs: ["act"] as string[],
+  app: "",
+  channel: "",
+  days: "",
+  uses: "",
+  reason: "",
+};
+
+/** The add form: what they can do, where, for how long and why. Cancel keeps what was typed. */
+function AddGrant({
+  client,
+  email,
+  busy,
+  run,
+  done,
+}: {
+  client: string;
+  email: string;
+  busy: boolean;
+  run: (handler: string, body: Record<string, unknown>) => Promise<boolean>;
+  done: () => void;
+}) {
+  const form = useEditForm({ key: `grant:new:${client}:${email}`, defaults: NEW_GRANT });
+  const add = form.onSend(
+    async (v) => {
+      const ok = await run("grantAdd", {
+        email,
+        verbs: v.verbs,
+        apps: v.app,
+        channels: v.channel,
+        ...(v.days ? { until: new Date(Date.now() + Number(v.days) * 864e5).toISOString() } : {}),
+        ...(v.uses ? { uses: Number(v.uses) } : {}),
+        reason: v.reason,
+      });
+      if (ok) done();
+      return ok;
+    },
+    { clear: true },
+  );
+  return (
+    <form className={FORM} onSubmit={(e) => void add(e)} aria-label="Add a grant">
+      <Kept form={form} />
+      <ChecksField
+        form={form}
+        name="verbs"
+        label="They can"
+        className="basis-full flex-wrap gap-3"
+        options={[...VERBS, ...SIDE_VERBS[client === WREN.id ? "wren" : "client"]]}
+      />
+      <SelectField
+        form={form}
+        name="app"
+        label="In"
+        className={NARROW}
+        options={[["", "Every app"], ...Object.entries(APPS)]}
+      />
+      <SelectField
+        form={form}
+        name="channel"
+        label="On"
+        className={NARROW}
+        options={[
+          ["", "Every channel"],
+          ...ACCESS_CHANNELS.map((c) => [c, CHANNEL_NAMES[c]] as const),
+        ]}
+      />
+      <SelectField form={form} name="days" label="For" className={NARROW} options={LONG} />
+      <TextField
+        form={form}
+        name="uses"
+        label="Uses"
+        className={`${NARROW} w-28`}
+        type="number"
+        min={1}
+        max={1000}
+        placeholder="Any"
+      />
+      <TextField
+        form={form}
+        name="reason"
+        label="Why"
+        className={`${NARROW} grow basis-[220px]`}
+        maxLength={500}
+      />
+      <div className="flex basis-full gap-2">
+        <Button tone="primary" type="submit" size="sm" busy={busy}>
+          Add grant
+        </Button>
+        <Button size="sm" tone="quiet" onClick={done}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export function PersonAccess({
   client,
@@ -79,24 +176,6 @@ export function PersonAccess({
       setBusy(false);
     }
   };
-  const add = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const verbs = f.getAll("verbs").map(String);
-    const days = String(f.get("days") ?? "");
-    const uses = String(f.get("uses") ?? "");
-    const ok = await run("grantAdd", {
-      email,
-      verbs,
-      apps: String(f.get("app") ?? ""),
-      channels: String(f.get("channel") ?? ""),
-      ...(days ? { until: new Date(Date.now() + Number(days) * 864e5).toISOString() } : {}),
-      ...(uses ? { uses: Number(uses) } : {}),
-      reason: String(f.get("reason") ?? ""),
-    });
-    if (ok) setAdding(false);
-  };
-
   if ((roles.error && !roles.data) || (grants.error && !grants.data))
     return (
       <Alert
@@ -172,69 +251,13 @@ export function PersonAccess({
         )}
         {error ? <p className={ERROR}>{error}</p> : null}
         {viewingAs ? null : adding ? (
-          <form className={FORM} onSubmit={(e) => void add(e)} aria-label="Add a grant">
-            <fieldset className={`${FIELD} basis-full`}>
-              <legend className="mb-1.5">They can</legend>
-              <div className="flex flex-wrap gap-3 text-[14px] text-(--ui-ink)">
-                {[...VERBS, ...SIDE_VERBS[client === WREN.id ? "wren" : "client"]].map(
-                  ([v, label]) => (
-                    <label key={v} className="flex items-center gap-1.5">
-                      <input type="checkbox" name="verbs" value={v} defaultChecked={v === "act"} />
-                      {label}
-                    </label>
-                  ),
-                )}
-              </div>
-            </fieldset>
-            <label className={FIELD}>
-              <span>In</span>
-              <select className={SELECT} name="app" defaultValue="">
-                <option value="">Every app</option>
-                {Object.entries(APPS).map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={FIELD}>
-              <span>On</span>
-              <select className={SELECT} name="channel" defaultValue="">
-                <option value="">Every channel</option>
-                {ACCESS_CHANNELS.map((c) => (
-                  <option key={c} value={c}>
-                    {CHANNEL_NAMES[c]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={FIELD}>
-              <span>For</span>
-              <select className={SELECT} name="days" defaultValue="">
-                {LONG.map(([v, label]) => (
-                  <option key={label} value={v}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={`${FIELD} w-28`}>
-              <span>Uses</span>
-              <Input name="uses" type="number" min={1} max={1000} placeholder="Any" />
-            </label>
-            <label className={`${FIELD} grow basis-[220px]`}>
-              <span>Why</span>
-              <Input name="reason" maxLength={500} />
-            </label>
-            <div className="flex basis-full gap-2">
-              <Button tone="primary" type="submit" size="sm" busy={busy}>
-                Add grant
-              </Button>
-              <Button size="sm" tone="quiet" onClick={() => setAdding(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
+          <AddGrant
+            client={client}
+            email={email}
+            busy={busy}
+            run={run}
+            done={() => setAdding(false)}
+          />
         ) : (
           <div>
             <Button size="sm" tone="secondary" onClick={() => setAdding(true)}>

@@ -5,13 +5,24 @@
  * (`saveKey`) and setVendor gets its ref; the page shows only its last 4.
  */
 import type { VendorsView } from "@wren/core/accounts/console";
-import { Button, Callout, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
-import { useState } from "react";
+import {
+  Button,
+  Callout,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  SelectField,
+  Tag,
+  TextField,
+  useEditForm,
+} from "@wren/ui";
+import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { saveKey } from "../../keys.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, ERROR, FIELD, field, QUIET, resetSent, SELECT } from "../work/bits.js";
+import { dayLabel, ERROR, NARROW, QUIET, trimmed } from "../work/bits.js";
 import { ownerOf, useAccountsAct } from "./Accounts.js";
 import { dollars, modeTag, roomText, unitsText, type VendorRow } from "./setups.js";
 
@@ -79,19 +90,35 @@ function SetMode({
   keyStore: boolean;
   act: Act;
 }) {
-  const [mode, setMode] = useState<Mode>(v.mode ?? "none");
   const [keyError, setKeyError] = useState<string | null>(null);
+  // Nothing is kept (`key: null`): the form holds their API key, and the edits store is browser
+  // storage. The mode, share and cap start from what is saved.
+  const form = useEditForm({
+    key: null,
+    defaults: {
+      mode: v.mode ?? "none",
+      key: "",
+      publicKey: "",
+      perDay: v.perDay ? String(v.perDay) : "",
+      cap: v.capCents ? String(v.capCents / 100) : "",
+    },
+  });
+  const mode = form.watch("mode") as Mode;
   const managed = v.offered && mayMoney;
-  const save = async (f: FormData) => {
-    const body: Record<string, unknown> = { vendor: v.id, mode };
+  const perDayShown = mode === "managed" && managed && v.quota !== null;
+  const capShown = mode === "managed" && managed && !v.free;
+  const landed = useRef(false);
+  const submit = form.onSend(async (f) => {
+    landed.current = false;
+    const body: Record<string, unknown> = { vendor: v.id, mode: f.mode };
     if (mode === "own" && v.own === "key" && v.keyName) {
       setKeyError(null);
       try {
-        body.keyRef = (await saveKey(client, v.keyName, field(f, "key") ?? "")).ref;
+        body.keyRef = (await saveKey(client, v.keyName, trimmed(f.key) ?? "")).ref;
         // Telnyx signs a client's webhooks with its own account's public key: saved beside it.
         if (v.publicKeyName)
           body.publicKeyRef = (
-            await saveKey(client, v.publicKeyName, field(f, "publicKey") ?? "")
+            await saveKey(client, v.publicKeyName, trimmed(f.publicKey) ?? "")
           ).ref;
       } catch (err) {
         setKeyError(err instanceof Error ? err.message : String(err));
@@ -99,84 +126,92 @@ function SetMode({
       }
     }
     if (mode === "managed") {
-      body.perDay = Number(field(f, "perDay") ?? 0);
+      body.perDay = perDayShown ? Number(trimmed(f.perDay) ?? 0) : 0;
       // A free vendor has no cap: keep what's stored.
-      body.capCents = v.free ? v.capCents : Math.round(Number(field(f, "cap") ?? 0) * 100);
+      body.capCents = v.free
+        ? v.capCents
+        : capShown
+          ? Math.round(Number(trimmed(f.cap) ?? 0) * 100)
+          : 0;
     }
-    return act.run("setVendor", body);
-  };
+    landed.current = await act.run("setVendor", body);
+    return landed.current;
+  });
   return (
     <form
       className="mt-4 flex flex-wrap items-end gap-3"
       aria-label={`${v.name} mode`}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const form = e.currentTarget;
-        const sent = new FormData(form);
-        void save(sent).then((ok) => ok && resetSent(form, sent));
-      }}
+      onSubmit={(e) =>
+        // The key and public key are not kept after a save: the form starts them blank again.
+        void submit(e).then(() => {
+          if (landed.current) form.forget({ ...form.getValues(), key: "", publicKey: "" });
+        })
+      }
     >
-      <label className={FIELD}>
-        <span>Mode</span>
-        <select
-          className={SELECT}
-          value={mode}
-          onChange={(e) => setMode(e.currentTarget.value as Mode)}
-        >
-          <option value="none">Not set up</option>
-          {v.own ? (
-            <option value="own">{v.own === "login" ? "Their login" : "Their key"}</option>
-          ) : null}
-          {v.managedDev ? (
-            <option value="managed" disabled>
-              Managed by Wren (in development)
-            </option>
-          ) : managed || v.mode === "managed" ? (
-            <option value="managed" disabled={!managed}>
-              On Wren's key
-            </option>
-          ) : null}
-        </select>
-      </label>
+      <SelectField
+        form={form}
+        name="mode"
+        label="Mode"
+        options={[
+          ["none", "Not set up"],
+          ...(v.own ? [["own", v.own === "login" ? "Their login" : "Their key"] as const] : []),
+          ...(v.managedDev
+            ? [["managed", "Managed by Wren (in development)", true] as const]
+            : managed || v.mode === "managed"
+              ? [["managed", "On Wren's key", !managed] as const]
+              : []),
+        ]}
+      />
       {mode === "own" && v.own === "key" ? (
         keyStore ? (
           <>
-            <label className={`${FIELD} grow basis-[220px]`}>
-              <span>{v.keySet ? "Replace their key" : "Their key"}</span>
-              <Input name="key" type="password" autoComplete="off" required maxLength={4096} />
-            </label>
+            <TextField
+              form={form}
+              name="key"
+              label={v.keySet ? "Replace their key" : "Their key"}
+              className={`${NARROW} grow basis-[220px]`}
+              type="password"
+              autoComplete="off"
+              required
+              maxLength={4096}
+            />
             {v.publicKeyName ? (
-              <label className={`${FIELD} grow basis-[220px]`}>
-                <span>Their public key (Account → Public Key)</span>
-                <Input name="publicKey" autoComplete="off" required maxLength={64} />
-              </label>
+              <TextField
+                form={form}
+                name="publicKey"
+                label="Their public key (Account → Public Key)"
+                className={`${NARROW} grow basis-[220px]`}
+                autoComplete="off"
+                required
+                maxLength={64}
+              />
             ) : null}
           </>
         ) : (
           <p className={`${QUIET} basis-full`}>Saving their key isn't turned on yet.</p>
         )
       ) : null}
-      {mode === "managed" && managed ? (
-        <>
-          {v.quota !== null ? (
-            <label className={`${FIELD} basis-[140px]`}>
-              <span>Daily share ({v.units})</span>
-              <Input name="perDay" type="number" min={0} step={1} defaultValue={v.perDay || ""} />
-            </label>
-          ) : null}
-          {v.free ? null : (
-            <label className={`${FIELD} basis-[140px]`}>
-              <span>Monthly cap ($)</span>
-              <Input
-                name="cap"
-                type="number"
-                min={0}
-                step={1}
-                defaultValue={v.capCents ? v.capCents / 100 : ""}
-              />
-            </label>
-          )}
-        </>
+      {perDayShown ? (
+        <TextField
+          form={form}
+          name="perDay"
+          label={`Daily share (${v.units})`}
+          className={`${NARROW} basis-[140px]`}
+          type="number"
+          min={0}
+          step={1}
+        />
+      ) : null}
+      {capShown ? (
+        <TextField
+          form={form}
+          name="cap"
+          label="Monthly cap ($)"
+          className={`${NARROW} basis-[140px]`}
+          type="number"
+          min={0}
+          step={1}
+        />
       ) : null}
       <Button
         tone="primary"

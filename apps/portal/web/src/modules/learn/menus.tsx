@@ -2,7 +2,18 @@
  * Learn's dialogs and menus: move to a collection, tag, add to an SOP, name a collection, the
  * keys. Each writes through ./api.ts, which tells every list on screen to load again.
  */
-import { Button, cx, EditConflict, Input, type KeySection, say, tipProps, useEdit } from "@wren/ui";
+import {
+  Button,
+  cx,
+  FormKept,
+  Input,
+  type KeySection,
+  say,
+  TextField,
+  tipProps,
+  useEdit,
+  useEditForm,
+} from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -160,8 +171,8 @@ export function MoveDialog({
   onClose: (done?: boolean) => void;
 }) {
   // Words typed to find or name a collection stay until one is picked or made.
-  const find = useEdit("learn:move:collection", "");
-  const q = find.value;
+  const form = useEditForm({ key: "learn:move:collection", defaults: { q: "" } });
+  const q = form.watch("q");
   const [busy, setBusy] = useState(false);
   /** One new collection at a time, whatever the render says. */
   const flying = useRef(false);
@@ -177,26 +188,27 @@ export function MoveDialog({
     );
     setBusy(false);
     if (ok) {
-      find.discard();
+      form.forget();
       onClose(true);
     }
+    return ok;
   };
-  const create = async (e: FormEvent) => {
-    e.preventDefault();
-    const name = q.trim();
-    if (!name || flying.current) return;
+  const create = form.onSend(async (v) => {
+    const name = v.q.trim();
+    if (!name || flying.current) return false;
     flying.current = true;
     setBusy(true);
     try {
       const made = await learn.collectionAdd(name, null);
-      await move(Number(made.id), made.name);
+      return await move(Number(made.id), made.name);
     } catch (err) {
       say.failed(err);
       setBusy(false);
+      return false;
     } finally {
       flying.current = false;
     }
-  };
+  });
   const exact = tree.some((c) => c.name.toLowerCase() === q.trim().toLowerCase());
   return (
     <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
@@ -205,17 +217,19 @@ export function MoveDialog({
           <DialogTitle>Move {many(ids.length)}</DialogTitle>
           <DialogDescription>Pick a collection, or type a new one's name.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={create}>
-          <Input
+        <form onSubmit={(e) => void create(e)}>
+          <TextField
+            form={form}
+            name="q"
             autoFocus
-            {...find.field}
             placeholder="Find or name a collection"
             aria-label="Find or name a collection"
           />
+          <FormKept form={form} what="words" />
         </form>
         <div className="-mx-2 max-h-72 overflow-y-auto">
           {q.trim() && !exact ? (
-            <button type="button" className={ROW} disabled={busy} onClick={create}>
+            <button type="button" className={ROW} disabled={busy} onClick={() => void create()}>
               <FolderPlus size={15} className="text-(--ui-link)" />
               <span>
                 New collection <b className="font-semibold">{q.trim()}</b>
@@ -271,30 +285,30 @@ export function TagDialog({
   onClose: (done?: boolean) => void;
 }) {
   // Tags typed and not saved stay: closing the dialog, another page or a reload gives them back.
-  const add = useEdit(`learn:tag:${ids.length > 1 ? `${ids[0]}+${ids.length}` : ids[0]}`, "");
-  const text = add.value;
-  const [off, setOff] = useState<string[]>([]);
-  const [busy, setBusy] = useState(false);
-  const typed = text
+  const form = useEditForm({
+    key: `learn:tag:${ids.length > 1 ? `${ids[0]}+${ids.length}` : ids[0]}`,
+    defaults: { tags: "", off: [] as string[] },
+  });
+  const off = form.watch("off");
+  const typed = form
+    .watch("tags")
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean);
   const suggest = known.filter((t) => !have.includes(t) && !typed.includes(t)).slice(0, 12);
-  const save = async (e?: FormEvent) => {
-    e?.preventDefault();
-    if (!typed.length && !off.length) return onClose();
-    const sent = text;
-    setBusy(true);
+  const save = form.onSend(async (v) => {
+    const add = v.tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (!add.length && !v.off.length) return onClose();
     const ok = await act(
-      learn.tag(ids, typed, off),
-      typed.length ? `Tagged ${many(ids.length)}` : "Tags saved",
+      learn.tag(ids, add, v.off),
+      add.length ? `Tagged ${many(ids.length)}` : "Tags saved",
     );
-    setBusy(false);
-    if (ok) {
-      add.saved(sent);
-      onClose(true);
-    }
-  };
+    if (!ok) return false;
+    onClose(true);
+  });
   return (
     <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
       <DialogContent className="gap-3 sm:max-w-md">
@@ -304,10 +318,11 @@ export function TagDialog({
             Separate tags with commas. Find them later in the rail.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={save} className="flex flex-col gap-3">
-          <Input
+        <form onSubmit={(e) => void save(e)} className="flex flex-col gap-3">
+          <TextField
+            form={form}
+            name="tags"
             autoFocus
-            {...add.field}
             placeholder="deliverability, hooks"
             aria-label="Tags to add"
           />
@@ -319,7 +334,9 @@ export function TagDialog({
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setOff(gone ? off.filter((x) => x !== t) : [...off, t])}
+                    onClick={() =>
+                      form.setValue("off", gone ? off.filter((x) => x !== t) : [...off, t])
+                    }
                     className={cx(
                       "inline-flex h-7 items-center gap-1 border border-(--ui-hair) bg-transparent px-2 text-[12.5px]",
                       gone ? "text-(--ui-ink-2) line-through" : "text-(--ui-ink)",
@@ -341,7 +358,9 @@ export function TagDialog({
                 <button
                   key={t}
                   type="button"
-                  onClick={() => add.set(typed.length ? `${typed.join(", ")}, ${t}` : t)}
+                  onClick={() =>
+                    form.setValue("tags", typed.length ? `${typed.join(", ")}, ${t}` : t)
+                  }
                   className="inline-flex h-7 items-center gap-1 border-0 bg-(--ui-tile) px-2 text-[12.5px] text-(--ui-ink-2) hover:text-(--ui-ink)"
                 >
                   <Hash size={12} />
@@ -350,18 +369,19 @@ export function TagDialog({
               ))}
             </div>
           ) : null}
+          <FormKept form={form} />
           <div className="flex justify-end gap-2">
             <Button
               size="dense"
               tone="secondary"
               onClick={() => {
-                add.discard();
+                form.forget();
                 onClose();
               }}
             >
               Cancel
             </Button>
-            <Button tone="primary" size="dense" type="submit" busy={busy}>
+            <Button tone="primary" size="dense" type="submit" busy={form.formState.isSubmitting}>
               Save tags
             </Button>
           </div>
@@ -455,49 +475,39 @@ export function NameDialog({
   onSave: (name: string) => Promise<unknown>;
   onClose: () => void;
 }) {
-  const edit = useEdit(editKey, initial);
-  const name = edit.value;
-  const [busy, setBusy] = useState(false);
-  const save = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || edit.conflict) return;
-    const sent = name;
-    setBusy(true);
+  const form = useEditForm({ key: editKey, defaults: { name: initial } });
+  const save = form.onSend(async (v) => {
+    if (!v.name.trim() || form.conflict) return false;
     try {
-      await onSave(name.trim());
-      edit.saved(sent);
-      onClose();
+      await onSave(v.name.trim());
     } catch (err) {
       say.failed(err);
-      setBusy(false);
+      return false;
     }
-  };
+    onClose();
+  });
   return (
     <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
       <DialogContent className="gap-3 sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={save} className="flex flex-col gap-3">
-          <Input
+        <form onSubmit={(e) => void save(e)} className="flex flex-col gap-3">
+          <TextField
+            form={form}
+            name="name"
             autoFocus
-            {...edit.field}
             maxLength={80}
             aria-label="Name"
             placeholder="Cold email"
           />
-          <EditConflict
-            what="The name"
-            conflict={edit.conflict}
-            onKeepMine={edit.keepMine}
-            onTakeTheirs={edit.takeTheirs}
-          />
+          <FormKept form={form} />
           <div className="flex justify-end gap-2">
             <Button
               size="dense"
               tone="secondary"
               onClick={() => {
-                edit.discard();
+                form.forget();
                 onClose();
               }}
             >
@@ -507,8 +517,8 @@ export function NameDialog({
               tone="primary"
               size="dense"
               type="submit"
-              busy={busy}
-              disabled={!name.trim() || !!edit.conflict}
+              busy={form.formState.isSubmitting}
+              disabled={!form.watch("name").trim() || !!form.conflict}
             >
               {action}
             </Button>

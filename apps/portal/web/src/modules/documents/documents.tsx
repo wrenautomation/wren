@@ -865,6 +865,7 @@ function DocPreview({ d, row }: { d: Editable; row: Row }) {
       </header>
       {d.body ? <Marks body={d.body} /> : null}
       {lines.length ? (
+        // table-ok: the document's own layout, a few read-only lines and totals, not a list.
         <table className="w-full border-collapse text-[13.5px] tabular-nums">
           <tbody>
             {lines.map((l, i) => (

@@ -4,7 +4,19 @@
  * calendar, leads and messages are samples, so nothing is dialed, booked or spent. When it ends
  * the call is saved with its timed turns (`voice/saveTest`), so Calls and Latency show it.
  */
-import { Alert, Button, Facts, Input, PageHeader, Section, Tag, Why } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  type EditForm,
+  Facts,
+  PageHeader,
+  Section,
+  SelectField,
+  Tag,
+  TextField,
+  useEditForm,
+  Why,
+} from "@wren/ui";
 import {
   type AgentSettings,
   agentOf,
@@ -19,10 +31,9 @@ import {
   TextTransport,
   type Turn,
 } from "@wren/voice";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { SELECT } from "../work/bits.js";
 import { useAgent } from "./agent.js";
 import { Bubble, InDevelopment, Lines, QUIET, SMALL, TOOL_LABEL, TurnTimes } from "./bits.js";
 import { browserSpeech, speechSupport } from "./speech.js";
@@ -34,6 +45,13 @@ const CALLERS: [number: string, label: string][] = [
   ...Object.entries(SAMPLE_LEADS).map(([n, l]): [string, string] => [n, `${l.name}, ${l.company}`]),
   [UNKNOWN, "A number we don't know"],
 ];
+
+/** How a test call starts: typed or spoken, and which caller it is. */
+interface CallSetup {
+  mode: Mode;
+  from: string;
+}
+const START: CallSetup = { mode: "typed", from: CALLERS[0]?.[0] ?? UNKNOWN };
 
 const TRY = [
   "I'd like to book a call",
@@ -110,8 +128,7 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2,
 
 export function TestCall({ demo }: PageProps) {
   const agent = useAgent();
-  const [mode, setMode] = useState<Mode>("typed");
-  const [from, setFrom] = useState(CALLERS[0]?.[0] ?? UNKNOWN);
+  const setup = useEditForm({ key: null, defaults: START });
   const [, setTick] = useState(0);
   const live = useRef<Live | null>(null);
   const [result, setResult] = useState<CallResult | null>(null);
@@ -149,6 +166,7 @@ export function TestCall({ demo }: PageProps) {
     setBroke(null);
     setMic(null);
     setSaved(null);
+    const { mode, from } = setup.getValues();
     const callStart = { id: crypto.randomUUID(), from, to: "", direction: "test" as const };
     const callee = {
       said: (text: string) => {
@@ -252,11 +270,8 @@ export function TestCall({ demo }: PageProps) {
                 <Listening partial={l.partial} mic={mic} onHangUp={() => l.transport.leave()} />
               )
             ) : (
-              <Setup
-                mode={mode}
-                setMode={setMode}
-                from={from}
-                setFrom={setFrom}
+              <SetupBar
+                form={setup}
                 spoken={spoken}
                 again={l !== null}
                 ready={settings !== null}
@@ -353,11 +368,8 @@ function Transcript({ live, result }: { live: Live | null; result: CallResult | 
   );
 }
 
-function Setup(o: {
-  mode: Mode;
-  setMode(m: Mode): void;
-  from: string;
-  setFrom(n: string): void;
+function SetupBar(o: {
+  form: EditForm<CallSetup>;
   spoken: ReturnType<typeof speechSupport>;
   again: boolean;
   ready: boolean;
@@ -367,6 +379,7 @@ function Setup(o: {
     ["typed", "Type"],
     ["spoken", "Talk"],
   ];
+  const mode = o.form.watch("mode");
   return (
     <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
       <fieldset className="grid gap-1.5">
@@ -382,10 +395,10 @@ function Setup(o: {
               >
                 <Button
                   size="dense"
-                  tone={o.mode === m ? "primary" : "secondary"}
-                  aria-pressed={o.mode === m}
+                  tone={mode === m ? "primary" : "secondary"}
+                  aria-pressed={mode === m}
                   disabled={off}
-                  onClick={() => o.setMode(m)}
+                  onClick={() => o.form.setValue("mode", m)}
                 >
                   {label}
                 </Button>
@@ -394,20 +407,17 @@ function Setup(o: {
           })}
         </div>
       </fieldset>
-      <label className="grid min-w-0 grow basis-[220px] gap-1.5 text-[13px] text-(--ui-ink-2)">
-        <span>Calling from</span>
-        <select className={SELECT} value={o.from} onChange={(e) => o.setFrom(e.target.value)}>
-          {CALLERS.map(([n, label]) => (
-            <option key={n} value={n}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SelectField
+        form={o.form}
+        name="from"
+        label="Calling from"
+        options={CALLERS}
+        className="grow basis-[220px]"
+      />
       <Button tone="primary" size="dense" icon="phone" disabled={!o.ready} onClick={o.onStart}>
         {o.again ? "Call again" : "Start call"}
       </Button>
-      {o.mode === "spoken" ? (
+      {mode === "spoken" ? (
         <p className={`basis-full ${SMALL}`}>
           Your browser asks for the microphone. Headphones keep the agent from hearing itself.
         </p>
@@ -419,31 +429,26 @@ function Setup(o: {
 }
 
 function Composer({ transport, onHangUp }: { transport: TextTransport; onHangUp(): void }) {
-  const [text, setText] = useState("");
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => input.current?.focus(), []);
+  const form = useEditForm({ key: null, defaults: { text: "" } });
+  const text = form.watch("text");
+  useEffect(() => form.setFocus("text"), [form.setFocus]);
   const send = (line: string) => {
     if (!line.trim()) return;
     transport.type(line.trim());
-    setText("");
-    input.current?.focus();
+    form.forget();
+    form.setFocus("text");
   };
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    send(text);
-  };
+  const submit = form.onSend((v) => send(v.text), { clear: true });
   return (
     <div className="grid gap-3">
-      <form onSubmit={submit} className="flex items-center gap-2">
-        {/* edit-ok: one line of a test call, sent at once; the call itself isn't kept */}
-        <Input
-          ref={input}
-          value={text}
+      <form onSubmit={(e) => void submit(e)} className="flex items-center gap-2">
+        <TextField
+          form={form}
+          name="text"
           maxLength={500}
           placeholder="Say something as the caller"
           aria-label="What the caller says"
-          onChange={(e) => setText(e.target.value)}
-          className="h-9 min-w-0 flex-1 text-[14.5px]"
+          box="h-9 min-w-0 flex-1 text-[14.5px]"
         />
         <Button tone="primary" size="dense" type="submit" disabled={!text.trim()}>
           Send

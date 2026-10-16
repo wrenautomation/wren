@@ -9,19 +9,32 @@ import {
   ACTIONS,
   Button,
   Empty,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   Section,
+  SelectField,
   Tag,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
-import { type FormEvent, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { consoleIn } from "../access/PersonAccess.js";
-import { ERROR, FIELD, FORM, LIST, QUIET, resetSent, SELECT, SPLIT, TOOLS } from "../work/bits.js";
+import {
+  ERROR,
+  FIELD,
+  FORM,
+  Kept,
+  LIST,
+  NARROW,
+  QUIET,
+  SELECT,
+  SPLIT,
+  TOOLS,
+} from "../work/bits.js";
 
 interface FieldsView {
   records: { id: string; name: { one: string; many: string } }[];
@@ -78,6 +91,46 @@ function useWrite(client: string, reload: () => void) {
   return { busy, error, run };
 }
 
+/** A field's name, and its options when it is a choice; starts from what is saved. */
+function EditField({
+  f,
+  record,
+  write,
+  done,
+}: {
+  f: CustomField;
+  record: string;
+  write: ReturnType<typeof useWrite>;
+  done: () => void;
+}) {
+  const form = useEditForm({
+    key: `field:${record}:${f.id}`,
+    defaults: { label: f.label, options: f.options?.map((o) => o.label).join(", ") ?? "" },
+  });
+  const save = form.onSend(async (v) => {
+    const ok = await write.run("customFieldSave", {
+      id: f.id,
+      record,
+      label: v.label.trim(),
+      ...(f.kind === "choice" ? { options: optionsFrom(v.options, f.options) } : {}),
+    });
+    if (ok) done();
+    return ok;
+  });
+  return (
+    <form className={FORM} onSubmit={(e) => void save(e)}>
+      <Kept form={form} />
+      <TextField form={form} name="label" label="Name" className={NARROW} maxLength={80} required />
+      {f.kind === "choice" ? (
+        <TextField form={form} name="options" label="Options, comma between" className={NARROW} />
+      ) : null}
+      <Button tone="primary" type="submit" size="sm" busy={write.busy}>
+        Save
+      </Button>
+    </form>
+  );
+}
+
 function FieldRow({
   f,
   at,
@@ -94,19 +147,6 @@ function FieldRow({
   move: (from: number, to: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const save = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const d = new FormData(e.currentTarget);
-    const ok = await write.run("customFieldSave", {
-      id: f.id,
-      record,
-      label: String(d.get("label") ?? "").trim(),
-      ...(f.kind === "choice"
-        ? { options: optionsFrom(String(d.get("options") ?? ""), f.options) }
-        : {}),
-    });
-    if (ok) setOpen(false);
-  };
   return (
     <li>
       <div className={SPLIT}>
@@ -161,27 +201,68 @@ function FieldRow({
           {f.options.map((o) => o.label).join(", ")}
         </p>
       ) : null}
-      {open ? (
-        <form className={FORM} onSubmit={save}>
-          <label className={FIELD}>
-            Name
-            <Input name="label" defaultValue={f.label} maxLength={80} required />
-          </label>
-          {f.kind === "choice" ? (
-            <label className={FIELD}>
-              Options, comma between
-              <Input
-                name="options"
-                defaultValue={f.options?.map((o) => o.label).join(", ") ?? ""}
-              />
-            </label>
-          ) : null}
-          <Button tone="primary" type="submit" size="sm" busy={write.busy}>
-            Save
-          </Button>
-        </form>
-      ) : null}
+      {open ? <EditField f={f} record={record} write={write} done={() => setOpen(false)} /> : null}
     </li>
+  );
+}
+
+/** The add form: a name, a kind picked once, and the options of a choice. */
+function AddField({
+  client,
+  record,
+  write,
+}: {
+  client: string;
+  record: string;
+  write: ReturnType<typeof useWrite>;
+}) {
+  const form = useEditForm({
+    key: `field:new:${client}:${record}`,
+    defaults: { label: "", kind: "text", options: "" },
+  });
+  const add = form.onSend(
+    async (v) =>
+      write.run("customFieldSave", {
+        record,
+        label: v.label.trim(),
+        kind: v.kind,
+        ...(v.kind === "choice" ? { options: optionsFrom(v.options, null) } : {}),
+      }),
+    { clear: true },
+  );
+  return (
+    <form className={FORM} onSubmit={(e) => void add(e)}>
+      <Kept form={form} />
+      <TextField
+        form={form}
+        name="label"
+        label="Name"
+        className={NARROW}
+        maxLength={80}
+        placeholder="Roof age"
+        required
+      />
+      <SelectField
+        form={form}
+        name="kind"
+        label="Kind (fixed once added)"
+        className={NARROW}
+        options={KINDS}
+      />
+      {form.watch("kind") === "choice" ? (
+        <TextField
+          form={form}
+          name="options"
+          label="Options, comma between"
+          className={NARROW}
+          placeholder="Shingle, Metal, Tile"
+          required
+        />
+      ) : null}
+      <Button tone="primary" type="submit" busy={write.busy}>
+        Add field
+      </Button>
+    </form>
   );
 }
 
@@ -191,27 +272,11 @@ export function Fields(props: PageProps) {
     consoleIn<FieldsView>(props.client, "customFields", record ? { record } : {}),
   );
   const write = useWrite(props.client, load.retry);
-  const [kind, setKind] = useState("text");
   const data = load.data;
   const here = data?.record ?? null;
   const live = data?.fields.filter((f) => !f.archivedAt) ?? [];
   const archived = data?.fields.filter((f) => f.archivedAt) ?? [];
 
-  const add = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const d = new FormData(form);
-    const ok = await write.run("customFieldSave", {
-      record: here,
-      label: String(d.get("label") ?? "").trim(),
-      kind,
-      ...(kind === "choice" ? { options: optionsFrom(String(d.get("options") ?? ""), null) } : {}),
-    });
-    if (ok) {
-      resetSent(form, d);
-      setKind("text");
-    }
-  };
   const move = (from: number, to: number) => {
     const ids = live.map((f) => f.id);
     const [id] = ids.splice(from, 1);
@@ -264,31 +329,7 @@ export function Fields(props: PageProps) {
                 ))}
               </ul>
             )}
-            <form className={FORM} onSubmit={add}>
-              <label className={FIELD}>
-                Name
-                <Input name="label" maxLength={80} placeholder="Roof age" required />
-              </label>
-              <label className={FIELD}>
-                Kind (fixed once added)
-                <select className={SELECT} value={kind} onChange={(e) => setKind(e.target.value)}>
-                  {KINDS.map(([id, name]) => (
-                    <option key={id} value={id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {kind === "choice" ? (
-                <label className={FIELD}>
-                  Options, comma between
-                  <Input name="options" placeholder="Shingle, Metal, Tile" required />
-                </label>
-              ) : null}
-              <Button tone="primary" type="submit" busy={write.busy}>
-                Add field
-              </Button>
-            </form>
+            <AddField client={props.client} record={here} write={write} />
             {write.error ? <p className={ERROR}>{write.error}</p> : null}
             {archived.length ? (
               <details className="mt-6">
@@ -317,6 +358,41 @@ export function Fields(props: PageProps) {
   );
 }
 
+/** The add form: a name and its value; the same name replaces the old value. */
+function AddFact({ client, write }: { client: string; write: ReturnType<typeof useWrite> }) {
+  const form = useEditForm({ key: `fact:new:${client}`, defaults: { label: "", value: "" } });
+  const add = form.onSend(
+    async (v) => write.run("businessFactSave", { label: v.label.trim(), value: v.value.trim() }),
+    { clear: true },
+  );
+  return (
+    <form className={FORM} onSubmit={(e) => void add(e)}>
+      <Kept form={form} />
+      <TextField
+        form={form}
+        name="label"
+        label="Name"
+        className={NARROW}
+        maxLength={80}
+        placeholder="Phone"
+        required
+      />
+      <TextField
+        form={form}
+        name="value"
+        label="Value (same name replaces it)"
+        className={NARROW}
+        maxLength={2000}
+        placeholder="(416) 555-0100"
+        required
+      />
+      <Button tone="primary" type="submit" busy={write.busy}>
+        Save fact
+      </Button>
+    </form>
+  );
+}
+
 export function Facts(props: PageProps) {
   const load = useCall(`facts:${props.client}`, () =>
     consoleIn<CustomValue[]>(props.client, "businessFacts", {}),
@@ -325,16 +401,6 @@ export function Facts(props: PageProps) {
   const [copied, setCopied] = useState<string | null>(null);
   const facts = load.data;
 
-  const add = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const d = new FormData(form);
-    const ok = await write.run("businessFactSave", {
-      label: String(d.get("label") ?? "").trim(),
-      value: String(d.get("value") ?? "").trim(),
-    });
-    if (ok) resetSent(form, d);
-  };
   const copy = (key: string) =>
     void navigator.clipboard.writeText(`{biz.${key}}`).then(() => setCopied(key));
 
@@ -385,19 +451,7 @@ export function Facts(props: PageProps) {
             ))}
           </ul>
         )}
-        <form className={FORM} onSubmit={add}>
-          <label className={FIELD}>
-            Name
-            <Input name="label" maxLength={80} placeholder="Phone" required />
-          </label>
-          <label className={FIELD}>
-            Value (same name replaces it)
-            <Input name="value" maxLength={2000} placeholder="(416) 555-0100" required />
-          </label>
-          <Button tone="primary" type="submit" busy={write.busy}>
-            Save fact
-          </Button>
-        </form>
+        <AddFact client={props.client} write={write} />
         {write.error ? <p className={ERROR}>{write.error}</p> : null}
         <p className={`${TOOLS} text-[13px] ${QUIET}`}>
           A list's own fields are quoted the same way, as {"{field.<key>}"}.

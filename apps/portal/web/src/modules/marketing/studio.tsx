@@ -20,7 +20,6 @@ import {
   Empty,
   FeedPost,
   Input,
-  KeptConflict,
   LoadFailed,
   Loading,
   PageHeader,
@@ -32,9 +31,11 @@ import {
   SaveStatus,
   Section,
   Tag,
+  TextAreaField,
   Textarea,
+  TextField,
   useEdit,
-  useKeptForm,
+  useEditForm,
   useSaved,
 } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
@@ -268,11 +269,8 @@ function StudioHome(props: PageProps) {
   // Feed's Use as idea opens here with the post it came from.
   // What he types stays on the device until it's sent: a reload or a closed tab gives it back.
   const idea = props.params.get("idea") ?? "";
-  const kept = useKeptForm("studio:new", idea);
-  const text = kept.values.text ?? idea;
-  const title = kept.values.title ?? "";
-  const setText = (t: string) => kept.set("text", t);
-  const setTitle = (t: string) => kept.set("title", t);
+  const form = useEditForm({ key: "studio:new", defaults: { text: idea, title: "" }, base: idea });
+  const { text, title } = form.watch();
   // A platform chip on top picks it alone; a video platform's posts start in Videos.
   const only = chosen(props.params);
   const [picked, setPicked] = useState<Platform[]>(["linkedin", "x"]);
@@ -282,6 +280,14 @@ function StudioHome(props: PageProps) {
   const [adapt, setAdapt] = useState(false);
   const [busy, setBusy] = useState<Go | null>(null);
   const [sure, setSure] = useState(false);
+  // Words changed after "Post now?": ask again.
+  const { watch } = form;
+  useEffect(() => {
+    const sub = watch((_, { name }) => {
+      if (name === "text") setSure(false);
+    });
+    return () => sub.unsubscribe();
+  }, [watch]);
   const [said, setSaid] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -333,7 +339,7 @@ function StudioHome(props: PageProps) {
         go,
       });
       setSaid(summary(out.posts, go));
-      kept.clear();
+      form.forget();
       // Sent: the idea it opened with is spent too.
       if (idea) navigate(href("/marketing/studio", { idea: "" }, props.params), true);
       setNonce((n) => n + 1);
@@ -391,22 +397,25 @@ function StudioHome(props: PageProps) {
                   </Button>
                 </p>
               ) : null}
-              <KeptConflict kept={kept} field="text" what="The post" />
-              <Textarea
+              <EditConflict
+                what="The post"
+                conflict={
+                  form.conflict ? { mine: form.conflict.mine.text ?? "", theirs: idea } : null
+                }
+                onKeepMine={form.keepMine}
+                onTakeTheirs={form.takeTheirs}
+              />
+              <TextAreaField
+                form={form}
+                name="text"
                 aria-label="Your post"
-                data-edit={kept.key ?? ""}
                 rows={batch ? 14 : 8}
-                value={text}
                 placeholder={
                   thread
                     ? `Your thread, ${THREAD_MIN} to ${THREAD_MAX} posts. Put a line of --- between posts.`
                     : "What do you want to say? For several posts, put a line of --- between them."
                 }
                 disabled={props.demo}
-                onChange={(e) => {
-                  setText(e.target.value);
-                  setSure(false);
-                }}
               />
               {thread ? null : (
                 <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
@@ -438,12 +447,11 @@ function StudioHome(props: PageProps) {
                 </fieldset>
               )}
               {titled && !batch && !adapt && !thread ? (
-                <Input
+                <TextField
+                  form={form}
+                  name="title"
                   aria-label="Reddit title"
-                  data-edit={kept.key ?? ""}
-                  value={title}
                   placeholder="Reddit title (else your first line)"
-                  onChange={(e) => setTitle(e.target.value)}
                 />
               ) : null}
             </div>

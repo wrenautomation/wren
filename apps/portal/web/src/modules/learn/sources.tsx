@@ -9,15 +9,17 @@ import {
   clipProps,
   cx,
   Empty,
-  Input,
+  FormKept,
   LATEST,
   LoadFailed,
   Loading,
   PAGE_TITLE,
   relative,
   SECTION_TITLE,
+  SelectField,
   say,
-  useEdit,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
 import {
   Dialog,
@@ -27,7 +29,7 @@ import {
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
 import { toast } from "@wren/ui/lib/toast";
-import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import {
@@ -118,66 +120,64 @@ export function SourcesBody({ title, tabs }: { title: string; tabs?: ReactNode }
 
 function Follow() {
   // An address typed and not followed yet stays put: another page and back gives it again.
-  const address = useEdit("learn:follow-address", "");
-  const url = address.value;
-  const [tell, setTell] = useState("top");
-  const [busy, setBusy] = useState(false);
+  const form = useEditForm({
+    key: "learn:follow-address",
+    defaults: { address: "", tell: "top" },
+  });
   const flying = useRef(false);
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!url.trim() || flying.current) return;
-    flying.current = true;
-    setBusy(true);
-    const sent = url;
-    try {
-      const f = await learn.follow(url.trim(), tell);
-      address.saved(sent);
-      say.done(
-        `Following ${f.name}. ${f.items ? `Its last ${f.items} posts are in Archived; new ones` : "Its next posts"} land in your Inbox.`,
-      );
-    } catch (err) {
-      say.failed(err);
-    } finally {
-      flying.current = false;
-      setBusy(false);
-    }
-  };
+  const submit = form.onSend(
+    async (v) => {
+      if (!v.address.trim() || flying.current) return false;
+      flying.current = true;
+      try {
+        const f = await learn.follow(v.address.trim(), v.tell);
+        say.done(
+          `Following ${f.name}. ${f.items ? `Its last ${f.items} posts are in Archived; new ones` : "Its next posts"} land in your Inbox.`,
+        );
+      } catch (err) {
+        say.failed(err);
+        return false;
+      } finally {
+        flying.current = false;
+      }
+    },
+    { clear: true },
+  );
   return (
-    <form onSubmit={submit} className="flex max-w-2xl flex-col gap-2 sm:flex-row">
-      <Input
-        type="url"
-        {...address.field}
-        placeholder="A channel, podcast, blog, or a creator's profile"
-        aria-label="Address to follow"
-        className="min-w-0 flex-1"
-      />
-      <div className="flex gap-2">
-        <label className="inline-flex h-9 items-center text-[13px]">
-          <span className="sr-only">Alerts for everyone here</span>
-          <select
-            value={tell}
-            onChange={(e) => setTell(e.target.value)}
-            className="h-full cursor-pointer border border-(--ui-hair) bg-(--ui-paper) px-2 text-(--ui-ink) outline-none focus:border-(--ui-focus)"
+    <>
+      <form onSubmit={(e) => void submit(e)} className="flex max-w-2xl flex-col gap-2 sm:flex-row">
+        <TextField
+          form={form}
+          name="address"
+          type="url"
+          placeholder="A channel, podcast, blog, or a creator's profile"
+          aria-label="Address to follow"
+          box="min-w-0 flex-1"
+        />
+        <div className="flex gap-2">
+          <div className="inline-flex h-9 items-center text-[13px]">
+            <SelectField
+              form={form}
+              name="tell"
+              aria-label="Alerts for everyone here"
+              box="h-full min-h-0 w-auto cursor-pointer px-2 py-0 text-[13px]"
+              options={TELLS.map(([id, label]) => [id, `Alerts: ${label.toLowerCase()}`])}
+            />
+          </div>
+          <Button
+            tone="primary"
+            size="dense"
+            type="submit"
+            busy={form.formState.isSubmitting}
+            disabled={!form.watch("address").trim()}
+            className="h-9"
           >
-            {TELLS.map(([id, label]) => (
-              <option key={id} value={id}>
-                Alerts: {label.toLowerCase()}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button
-          tone="primary"
-          size="dense"
-          type="submit"
-          busy={busy}
-          disabled={!url.trim()}
-          className="h-9"
-        >
-          Follow
-        </Button>
-      </div>
-    </form>
+            Follow
+          </Button>
+        </div>
+      </form>
+      <FormKept form={form} what="address" />
+    </>
   );
 }
 

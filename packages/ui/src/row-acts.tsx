@@ -42,12 +42,11 @@ import {
   UserX,
   X,
 } from "lucide-react";
-import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { type Action, runs, setsAside } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
-import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
-import { useEdit } from "./data/use-edit.js";
+import { TextAreaField, useEditForm } from "./edit-form.js";
 import { tipProps } from "./hint.js";
 
 /** An action's icon by what its label says it does; first match wins. */
@@ -245,40 +244,34 @@ export function AskBox({
   send: (text: string) => Promise<boolean>;
   close: () => void;
 }) {
-  const words = useEdit(keep, start);
-  const text = words.value;
-  const [busy, setBusy] = useState(false);
+  const form = useEditForm({ key: keep, defaults: { text: start }, base: start });
+  const text = form.watch("text");
+  const busy = form.formState.isSubmitting;
   const label = action.ask?.label ?? action.label;
-  const go = async (e?: FormEvent) => {
-    e?.preventDefault();
-    if (busy || !text.trim()) return;
-    setBusy(true);
-    const ok = await send(text);
-    setBusy(false);
-    if (ok) {
-      words.saved(text);
-      close();
-    }
-  };
+  const go = form.onSend(async (v) => {
+    if (!v.text.trim()) return false;
+    const ok = await send(v.text);
+    if (ok) close();
+    return ok;
+  });
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       close();
-    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void go(e);
+    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !busy) void go(e);
   };
   return (
     <form onSubmit={(e) => void go(e)} className="grid max-w-3xl gap-2">
-      <Textarea
+      <TextAreaField
+        form={form}
+        name="text"
         autoFocus
         rows={3}
-        value={text}
         aria-label={label}
         placeholder={label}
-        onChange={words.field.onChange}
-        data-edit={words.field["data-edit"]}
         onKeyDown={keys}
-        className="bg-(--ui-paper) text-[14px] leading-[1.55]"
+        box="bg-(--ui-paper) text-[14px] leading-[1.55]"
       />
       <div className="flex items-center gap-2">
         <Button size="dense" tone="primary" type="submit" busy={busy} disabled={!text.trim()}>

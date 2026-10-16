@@ -7,18 +7,21 @@ import {
   Alert,
   Button,
   ButtonLink,
+  CheckField,
   Empty,
   failureOf,
-  Input,
   Loading,
   PageHeader,
   Section,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
-import { type FormEvent, Fragment, type ReactNode, useState } from "react";
-import { ApiError, type ContractView, call } from "../../api.js";
+import { Fragment, type ReactNode } from "react";
+import { z } from "zod";
+import { type ContractView, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, FIELD, FORM, field, QUIET } from "./bits.js";
+import { ERROR, FORM, NARROW, QUIET, trimmed } from "./bits.js";
 import { at } from "./nav.js";
 
 export function Contract(props: PageProps) {
@@ -95,47 +98,60 @@ export function Contract(props: PageProps) {
   );
 }
 
+const SIGN_BLANK = { name: "", title: "", agreed: false };
+const SIGN = z.object({
+  name: z.string().trim().min(1, "Add your full name."),
+  title: z.string(),
+  agreed: z.boolean().refine((v) => v, "Tick the box to sign."),
+});
+
 function Sign({ k, props, onSigned }: { k: ContractView; props: PageProps; onSigned: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const submit = async (ev: FormEvent<HTMLFormElement>) => {
-    ev.preventDefault();
-    const f = new FormData(ev.currentTarget);
-    setBusy(true);
-    setError(null);
-    try {
-      await call("delivery/sign", {
-        client: props.client,
-        engagementId: k.engagementId,
-        sha256: k.sha256,
-        name: field(f, "name"),
-        title: field(f, "title"),
-        agreed: f.get("agreed") === "on",
-      });
-      onSigned();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const form = useEditForm({
+    key: `contract:sign:${props.client}:${k.engagementId}`,
+    defaults: SIGN_BLANK,
+    schema: SIGN,
+  });
+  const sign = form.onSend(async (v) => {
+    await call("delivery/sign", {
+      client: props.client,
+      engagementId: k.engagementId,
+      sha256: k.sha256,
+      name: trimmed(v.name),
+      title: trimmed(v.title),
+      agreed: v.agreed,
+    });
+    onSigned();
+  });
+  const error = form.formState.errors.agreed?.message ?? form.error;
   return (
     <Section title="Sign">
-      <form className={FORM} aria-label="Sign the contract" onSubmit={submit}>
-        <label className={FIELD}>
-          <span>Your full name</span>
-          <Input name="name" required maxLength={200} autoComplete="name" />
-        </label>
-        <label className={FIELD}>
-          <span>Your title (optional)</span>
-          <Input name="title" maxLength={200} autoComplete="organization-title" />
-        </label>
-        <label className="flex min-h-[38px] basis-full items-center gap-2 text-[14px]">
-          <input type="checkbox" name="agreed" required />
-          I've read this agreement. I agree to it for my company and I'm allowed to sign for it.
-        </label>
+      <form className={FORM} aria-label="Sign the contract" onSubmit={(e) => void sign(e)}>
+        <TextField
+          form={form}
+          name="name"
+          label="Your full name"
+          className={NARROW}
+          required
+          maxLength={200}
+          autoComplete="name"
+        />
+        <TextField
+          form={form}
+          name="title"
+          label="Your title (optional)"
+          className={NARROW}
+          maxLength={200}
+          autoComplete="organization-title"
+        />
+        <CheckField
+          form={form}
+          name="agreed"
+          required
+          label="I've read this agreement. I agree to it for my company and I'm allowed to sign for it."
+          className="min-h-[38px] basis-full text-[14px]"
+        />
         <div className="flex basis-full flex-wrap items-center gap-3">
-          <Button tone="primary" size="dense" type="submit" disabled={busy}>
+          <Button tone="primary" size="dense" type="submit" disabled={form.formState.isSubmitting}>
             Sign the contract
           </Button>
           <span className={QUIET}>This counts as your signature. We email you a copy.</span>

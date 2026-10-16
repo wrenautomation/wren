@@ -5,8 +5,18 @@
  * call, with a new time or a cancel. Every call goes to `<base>/__book/<handler>`.
  */
 import "./app.css";
-import { Alert, Button, ButtonLink, Icon, type IconName, Input, Loading, Textarea } from "@wren/ui";
-import { type FormEvent, StrictMode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Alert,
+  Button,
+  ButtonLink,
+  Icon,
+  type IconName,
+  Loading,
+  TextAreaField,
+  TextField,
+  useEditForm,
+} from "@wren/ui";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   type BookPath,
@@ -321,9 +331,10 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
   const [start, setStart] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Booked | null>(null);
-  // Kept across a taken time: the form comes back with what they typed.
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  // Kept across a taken time: the form comes back with what they typed. Nothing goes to the
+  // device (`key: null`): a public page has no sign-in to keep words under. `website` is the
+  // honeypot, off screen.
+  const form = useEditForm({ key: null, defaults: { name: "", email: "", website: "" } });
   const box = useRef<HTMLDivElement>(null);
   /** One Book at a time: a second press while the first is out does nothing. */
   const flying = useRef(false);
@@ -342,14 +353,20 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
     void load();
   }, []);
 
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!start) return;
-    const f = new FormData(e.currentTarget);
-    if (!name.trim()) return setError("Add your name.");
-    if (!looksLikeEmail(email)) return setError("That email doesn't look right.");
-    if (page?.human && !human.token) return setError("Finish the check below first.");
-    if (flying.current) return;
+  const submit = form.onSend(async ({ name, email, website }) => {
+    if (!start) return false;
+    const bad = !name.trim()
+      ? "Add your name."
+      : !looksLikeEmail(email)
+        ? "That email doesn't look right."
+        : page?.human && !human.token
+          ? "Finish the check below first."
+          : null;
+    if (bad) {
+      setError(bad);
+      return false;
+    }
+    if (flying.current) return false;
     flying.current = true;
     setBusy(true);
     setError(null);
@@ -361,7 +378,7 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
           name: name.trim(),
           email: email.trim(),
           zone,
-          website: String(f.get("website") ?? ""),
+          website,
           ...(human.token ? { human: human.token } : {}),
           source: source(),
         }),
@@ -369,7 +386,10 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
     );
     flying.current = false;
     setBusy(false);
-    if ("booked" in got) return setDone(got.booked);
+    if ("booked" in got) {
+      setDone(got.booked);
+      return true;
+    }
     human.reset();
     setError(got.error);
     // Taken: back to fresh times, in place; the name and email stay.
@@ -377,7 +397,8 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
       setPage(got.slots);
       setStart(null);
     }
-  };
+    return false;
+  });
 
   if (!page)
     return (
@@ -423,7 +444,7 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
         </div>
         {error ? <Alert>{error}</Alert> : null}
         {start ? (
-          <form onSubmit={submit} noValidate className="grid gap-5">
+          <form onSubmit={(e) => void submit(e)} noValidate className="grid gap-5">
             <p className="m-0 flex flex-wrap items-baseline gap-x-4 gap-y-1 bg-(--ui-tile) px-4 py-3 text-[15px]">
               <b className="font-semibold">{longWhen(start, zone)}</b>
               <button
@@ -438,38 +459,37 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
               </button>
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-1.5 text-[14px] text-(--ui-ink-2)">
-                Name
-                {/* edit-ok: public page, no sign-in to keep words under */}
-                <Input
-                  name="name"
-                  autoComplete="name"
-                  required
-                  maxLength={200}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-10"
-                />
-              </label>
-              <label className="grid gap-1.5 text-[14px] text-(--ui-ink-2)">
-                Email
-                {/* edit-ok: public page, no sign-in to keep words under */}
-                <Input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  maxLength={200}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-10"
-                />
-              </label>
+              <TextField
+                form={form}
+                name="name"
+                label="Name"
+                className="grid text-[14px]"
+                box="h-10"
+                autoComplete="name"
+                required
+                maxLength={200}
+              />
+              <TextField
+                form={form}
+                name="email"
+                label="Email"
+                className="grid text-[14px]"
+                box="h-10"
+                type="email"
+                autoComplete="email"
+                required
+                maxLength={200}
+              />
             </div>
-            <label aria-hidden="true" className="absolute -left-[9999px]">
-              Leave empty
-              <input type="text" name="website" tabIndex={-1} autoComplete="off" />
-            </label>
+            <div aria-hidden="true" className="absolute -left-[9999px]">
+              <TextField
+                form={form}
+                name="website"
+                label="Leave empty"
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
             {page.human ? <div ref={box} /> : null}
             <p className="m-0">
               <Button
@@ -506,7 +526,8 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
   const [step, setStep] = useState<"show" | "move" | "cancel">("show");
   const [slots, setSlots] = useState<Slots | null>(null);
   const [start, setStart] = useState<string | null>(null);
-  const [reason, setReason] = useState("");
+  // The public booking page has no sign-in: nothing goes to the device (`key: null`).
+  const form = useEditForm({ key: null, defaults: { reason: "" } });
   const [busy, setBusy] = useState(false);
   const [zone, setZone] = useState(() => zoneOf("UTC"));
 
@@ -555,14 +576,19 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
       setCall((c) => (c ? { ...c, ...got.booked } : c));
       setStep("show");
       setStart(null);
-      return;
+      return true;
     }
     setError(got.error);
     if (got.slots) {
       setSlots(got.slots);
       setStart(null);
     }
+    return false;
   };
+  const cancel = form.onSend(
+    ({ reason }) => run("cancel", reason.trim() ? { reason: reason.trim() } : {}),
+    { clear: true },
+  );
 
   if (!call)
     return <Shell owner={null}>{error ? <Alert>{error}</Alert> : <Loading lines={4} />}</Shell>;
@@ -607,22 +633,20 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
         ) : null}
         {step === "cancel" ? (
           <div className="grid gap-4">
-            <label className="grid gap-1.5 text-[14px] text-(--ui-ink-2)">
-              Anything they should know? (optional)
-              {/* edit-ok: public page, no sign-in to keep words under */}
-              <Textarea
-                value={reason}
-                maxLength={500}
-                onChange={(e) => setReason(e.target.value)}
-                className="min-h-24"
-              />
-            </label>
+            <TextAreaField
+              form={form}
+              name="reason"
+              label="Anything they should know? (optional)"
+              className="grid text-[14px]"
+              box="min-h-24"
+              maxLength={500}
+            />
             <div className="flex flex-wrap gap-3">
               <Button
                 tone="primary"
                 busy={busy}
                 disabled={busy}
-                onClick={() => void run("cancel", reason.trim() ? { reason: reason.trim() } : {})}
+                onClick={() => void cancel()}
                 className="max-sm:w-full"
               >
                 Cancel the call

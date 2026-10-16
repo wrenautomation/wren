@@ -2,15 +2,7 @@
  * A record's actions: `useRun` asks first when the action says to, calls the handler by id, says
  * how it went in a toast, and offers undo.
  */
-import {
-  type FormEvent,
-  type ReactNode,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { type ReactNode, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import type { Access } from "./access.js";
 import {
@@ -26,10 +18,10 @@ import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { tellTabsLanded } from "./data/local.js";
 import { refreshAll } from "./data/query.js";
-import { KeptConflict } from "./data/use-edit.js";
+import { EditConflict } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
+import { forgetKept, useEditForm } from "./edit-form.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
-import { forgetForm, useKeptForm } from "./save/react.js";
 import {
   type PressOptions,
   recordKey,
@@ -372,7 +364,7 @@ export function FormBox({
   onText: (text: string) => void;
   onFile?: ((file: File | undefined) => void) | undefined;
   autoFocus?: boolean | undefined;
-  /** Where the form keeps its words (its `useKeptForm` key); left out, the owner says why not. */
+  /** Where the form keeps its words (its `useEditForm` key); left out, the owner says why not. */
   edit?: string | null | undefined;
 }) {
   const required = !f.optional;
@@ -836,6 +828,9 @@ export class Runner {
 const keptKeyOf = (many: string, action: Action, ids: readonly (string | number)[]) =>
   `${many}:${action.id}:${ids.map(String).join(",")}`;
 
+/** What a dialog's form starts from: no box typed in yet (the rest follow their `from`). */
+const NO_TYPED: { typed: Record<string, string> } = { typed: {} };
+
 /**
  * Runs a record's actions on ids (`Runner`): one with `undo` at once, with an undo toast for 10
  * seconds; any other asks first. One that `ask`s always asks, its text starting from `start` (an
@@ -867,8 +862,8 @@ export function useRun(
     versionOf: opts.versionOf,
     forget: (action, ids) => {
       const k = keptKeyOf(names.many, action, ids);
-      forgetForm(`${k}:ask`);
-      forgetForm(`${k}:form`);
+      forgetKept(`${k}:ask`);
+      forgetKept(`${k}:fields`);
     },
   };
   const ref = useRef<Runner | null>(null);
@@ -883,12 +878,16 @@ export function useRun(
   // What's typed in the dialog stays on the device until it is sent: closing it, or a
   // reload, gives it back when the same action opens on the same rows.
   const keptKey = asked ? keptKeyOf(names.many, asked.action, asked.ids) : null;
-  const askKept = useKeptForm(keptKey && `${keptKey}:ask`, asked?.start ?? "");
-  const formKept = useKeptForm(keptKey && `${keptKey}:form`);
-  const text = askKept.values.text ?? asked?.start ?? "";
-  const setText = (t: string) => askKept.set("text", t);
-  const typed = formKept.values;
-  const setTyped = (field: string, t: string) => formKept.set(field, t);
+  const start = asked?.start ?? "";
+  const askForm = useEditForm({
+    key: keptKey && `${keptKey}:ask`,
+    defaults: { text: start },
+    base: start,
+  });
+  const fieldsForm = useEditForm({ key: keptKey && `${keptKey}:fields`, defaults: NO_TYPED });
+  const text = askForm.watch("text");
+  const setText = (t: string) => askForm.setValue("text", t);
+  const { typed } = fieldsForm.watch();
   const [files, setFiles] = useState<Record<string, File>>({});
   const [shown, setShown] = useState<MessageKind | null>(null);
   const busy = running !== null;
@@ -910,10 +909,9 @@ export function useRun(
   const ask = asked?.action.ask;
   const form = asked?.action.form;
   const values = form ? valuesOf(form, typed) : {};
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!asked || busy) return;
-    const { action, ids, start } = asked;
+  const sendAsked = async () => {
+    if (!asked || busy) return false;
+    const { action, ids } = asked;
     let input: Record<string, unknown>;
     try {
       input = form
@@ -922,10 +920,13 @@ export function useRun(
           ? inputOf(action, { ids, [ask.field]: start }, text)
           : { ids };
     } catch (err) {
-      return runner.refuse(wordsOf(err));
+      runner.refuse(wordsOf(err));
+      return false;
     }
-    void runner.submit(input);
+    // The runner says a refusal in the dialog; false keeps the words.
+    return (await runner.submit(input)) ? undefined : false;
   };
+  const submit = (form ? fieldsForm : askForm).onSend(sendAsked, { clear: true });
 
   const n = asked?.ids.length ?? 0;
   const dialog = (
@@ -935,7 +936,7 @@ export function useRun(
           ask?.preview ? "max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl" : undefined
         }
       >
-        <form onSubmit={submit} className="grid min-w-0 gap-4">
+        <form onSubmit={(e) => void submit(e)} className="grid min-w-0 gap-4">
           <DialogHeader>
             <DialogTitle>
               {asked?.action.confirm ??
@@ -963,12 +964,20 @@ export function useRun(
                   ref={textBox}
                   id={textId}
                   value={text}
-                  data-edit={askKept.key ?? undefined}
+                  data-edit="form:text"
                   onChange={(e) => setText(e.target.value)}
                   rows={6}
                 />
               </DictateField>
-              <KeptConflict kept={askKept} field="text" />
+              <EditConflict
+                conflict={
+                  askForm.conflict
+                    ? { mine: askForm.conflict.mine.text ?? "", theirs: start }
+                    : null
+                }
+                onKeepMine={askForm.keepMine}
+                onTakeTheirs={askForm.takeTheirs}
+              />
               {shown && text.trim() ? <MessagePreview message={shown} body={text} /> : null}
             </div>
           ) : null}
@@ -978,8 +987,8 @@ export function useRun(
               f={f}
               id={`${textId}-${f.field}`}
               value={values[f.field] ?? ""}
-              edit={formKept.key}
-              onText={(text) => setTyped(f.field, text)}
+              edit="form:typed"
+              onText={(text) => fieldsForm.setValue("typed", { ...typed, [f.field]: text })}
               onFile={(file) =>
                 setFiles(({ [f.field]: _, ...rest }) =>
                   file ? { ...rest, [f.field]: file } : rest,

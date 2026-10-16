@@ -12,12 +12,14 @@ import {
   EditConflict,
   Input,
   Section,
+  SelectField,
   Tag,
-  Textarea,
+  TextAreaField,
+  TextField,
   useEdit,
-  useKeptForm,
+  useEditForm,
 } from "@wren/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError } from "../../api.js";
 import { patchCalls, useCall } from "../../load.js";
 import { ERROR, QUIET, SELECT, TOOLS } from "../work/bits.js";
@@ -60,7 +62,6 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
     blog<{ on: boolean; site: string; posts: Post[] }>("posts"),
   );
   const work = usePieces();
-  const [from, setFrom] = useState(props.from ?? "");
   const [slug, setSlug] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [sure, setSure] = useState<"publish" | "email" | null>(null);
@@ -77,23 +78,32 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
   const off = list.data ? !list.data.on : false;
   // What he types stays on the device until it's saved, per post; it comes back only over the
   // same saved post. Saving commits to the site, so it never saves on its own.
-  const kept = useKeptForm(
-    props.demo ? null : `studio:blog:${slug ?? "new"}`,
-    open ? JSON.stringify([open.title, open.description, open.body]) : "",
-  );
-  const title = kept.values.title ?? open?.title ?? "";
-  const description = kept.values.description ?? open?.description ?? "";
-  const body = kept.values.body ?? open?.body ?? "";
-  const setTitle = (t: string) => kept.set("title", t);
-  const setDescription = (t: string) => kept.set("description", t);
-  const setBody = (t: string) => kept.set("body", t);
+  const form = useEditForm({
+    key: props.demo ? null : `studio:blog:${slug ?? "new"}`,
+    defaults: {
+      title: open?.title ?? "",
+      description: open?.description ?? "",
+      body: open?.body ?? "",
+      from: open ? (open.fromRef ?? "") : (props.from ?? ""),
+    },
+    base: open ? JSON.stringify([open.title, open.description, open.body]) : "",
+  });
+  const { title, description, body, from } = form.watch();
+  // Words changed after "Put it on the site?": ask again.
+  const { watch } = form;
+  useEffect(() => {
+    const sub = watch((_, { name }) => {
+      if (name === "body") setSure(null);
+    });
+    return () => sub.unsubscribe();
+  }, [watch]);
   // The post moved under his words: all three fields show as one, he picks.
-  const moved = kept.conflict
+  const moved = form.conflict
     ? {
         mine: [
-          kept.conflict.values.title ?? "",
-          kept.conflict.values.description ?? "",
-          kept.conflict.values.body ?? "",
+          form.conflict.mine.title ?? "",
+          form.conflict.mine.description ?? "",
+          form.conflict.mine.body ?? "",
         ]
           .filter(Boolean)
           .join("\n\n"),
@@ -103,7 +113,6 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
 
   const load = (p: Post | null) => {
     setSlug(p?.slug ?? null);
-    setFrom(p ? (p.fromRef ?? "") : (props.from ?? ""));
     setSure(null);
     setLines([]);
     setError(null);
@@ -137,7 +146,7 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
           requestId,
         }),
       )) as { post: Post; url: string };
-      kept.clear();
+      form.forget();
       // The list shows the saved post at once: patched in place, never read again.
       patchCalls((key, data) => {
         if (key !== "blog-posts" || !data || typeof data !== "object") return data;
@@ -221,45 +230,39 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
             ))}
           </div>
         ) : null}
-        <label className={cx("flex flex-wrap items-center gap-2 text-[13.5px]", QUIET)}>
-          From
-          <select
-            aria-label="From"
-            className={cx(SELECT, "min-w-0 max-w-full flex-1 basis-60")}
-            value={from}
-            disabled={props.demo}
-            onChange={(e) => setFrom(e.target.value)}
-          >
-            <option value="">Nothing, it stands alone</option>
-            {videos.map((v) => (
-              <option key={v.value} value={v.value}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          form={form}
+          name="from"
+          label="From"
+          aria-label="From"
+          options={[
+            ["", "Nothing, it stands alone"],
+            ...videos.map((v) => [v.value, v.label] as const),
+          ]}
+          disabled={props.demo}
+          className={cx("flex-row flex-wrap items-center gap-2 text-[13.5px]", QUIET)}
+          box={cx(SELECT, "min-w-0 max-w-full flex-1 basis-60")}
+        />
         <EditConflict
           what="This post"
           conflict={moved}
-          onKeepMine={kept.keepMine}
-          onTakeTheirs={kept.takeTheirs}
+          onKeepMine={form.keepMine}
+          onTakeTheirs={form.takeTheirs}
         />
-        <Input
+        <TextField
+          form={form}
+          name="title"
           aria-label="Title"
-          data-edit={kept.key ?? ""}
-          value={title}
           placeholder="Title"
           disabled={props.demo}
-          onChange={(e) => setTitle(e.target.value)}
         />
         <div className="grid gap-1">
-          <Input
+          <TextField
+            form={form}
+            name="description"
             aria-label="One line under the title"
-            data-edit={kept.key ?? ""}
-            value={description}
             placeholder="One line under the title. Search shows it too."
             disabled={props.demo}
-            onChange={(e) => setDescription(e.target.value)}
           />
           <span
             className={cx(
@@ -270,19 +273,15 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
             {description.length} of {SNIPPET}
           </span>
         </div>
-        <Textarea
+        <TextAreaField
+          form={form}
+          name="body"
           aria-label="The post, in Markdown"
-          data-edit={kept.key ?? ""}
           rows={18}
-          value={body}
           placeholder={
             "Write in Markdown. ## for a heading, **bold**, [words](https://link), - for a list.\nImages: put them in the lander's public/blog/ and link /blog/name.png."
           }
           disabled={props.demo}
-          onChange={(e) => {
-            setBody(e.target.value);
-            setSure(null);
-          }}
         />
         {slug ? (
           <p className={cx("m-0 text-[13px]", QUIET)}>

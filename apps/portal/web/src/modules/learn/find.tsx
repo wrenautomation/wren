@@ -4,8 +4,8 @@
  * a LinkedIn page or person joins the comments' follows instead (`ReachDesk.paste`), read first
  * each day. Wren's own workspace only: the search reads as Wren's accounts.
  */
-import { Button, clipProps, cx, Input, say } from "@wren/ui";
-import { type FormEvent, useRef, useState } from "react";
+import { Button, clipProps, cx, say, TextField, useEditForm } from "@wren/ui";
+import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { changed, learn } from "./api.js";
 import { Avatar } from "./kinds.js";
@@ -41,9 +41,8 @@ const reach = <T,>(handler: string, input: Record<string, unknown>) =>
 const count = new Intl.NumberFormat(undefined, { notation: "compact" });
 
 export function FindCreators() {
-  const [q, setQ] = useState("");
-  const [only, setOnly] = useState<Site[]>([]);
-  const [busy, setBusy] = useState(false);
+  const form = useEditForm({ key: null, defaults: { q: "", only: [] as Site[] } });
+  const only = form.watch("only");
   const [found, setFound] = useState<Found | null>(null);
   /**
    * Follows pressed this visit, by address: they outlive a new search, so a follow still out (or
@@ -53,22 +52,23 @@ export function FindCreators() {
   const pressed = useRef(new Set<string>());
   const searching = useRef(false);
 
-  const search = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!q.trim() || searching.current) return;
+  const search = form.onSend(async (v) => {
+    if (!v.q.trim() || searching.current) return false;
     searching.current = true;
-    setBusy(true);
     try {
       setFound(
-        await reach<Found>("findCreators", { q: q.trim(), ...(only.length ? { only } : {}) }),
+        await reach<Found>("findCreators", {
+          q: v.q.trim(),
+          ...(v.only.length ? { only: v.only } : {}),
+        }),
       );
     } catch (err) {
       say.failed(err);
+      return false;
     } finally {
       searching.current = false;
-      setBusy(false);
     }
-  };
+  });
 
   const follow = async (h: Hit) => {
     // Once per press: a second click while it's out, or after it worked, does nothing.
@@ -93,25 +93,24 @@ export function FindCreators() {
   };
 
   const toggle = (s: Site) =>
-    setOnly((o) => (o.includes(s) ? o.filter((x) => x !== s) : [...o, s]));
+    form.setValue("only", only.includes(s) ? only.filter((x) => x !== s) : [...only, s]);
 
   return (
     <div className="flex max-w-4xl flex-col gap-3">
-      <form onSubmit={search} className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          // edit-ok: search box
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+      <form onSubmit={(e) => void search(e)} className="flex flex-col gap-2 sm:flex-row">
+        <TextField
+          form={form}
+          name="q"
           placeholder="Find people to follow: a name, a handle or a topic"
           aria-label="Find people to follow"
-          className="min-w-0 flex-1"
+          box="min-w-0 flex-1"
         />
         <Button
           tone="primary"
           size="dense"
           type="submit"
-          busy={busy}
-          disabled={!q.trim()}
+          busy={form.formState.isSubmitting}
+          disabled={!form.watch("q").trim()}
           className="h-9"
         >
           Search

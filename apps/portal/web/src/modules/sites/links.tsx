@@ -5,17 +5,27 @@
  */
 import type { Row } from "@wren/core/records/serve";
 import { qrMatrix, qrPath } from "@wren/sites/qr";
-import { Button, CopyButton, Input, num, type RecordExtras, Section, useEdit } from "@wren/ui";
-import { useCallback, useMemo, useState } from "react";
+import {
+  Button,
+  CopyButton,
+  num,
+  type RecordExtras,
+  Section,
+  SelectField,
+  TextField,
+  useEditForm,
+} from "@wren/ui";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type ListPage, type PageProps, WREN } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
+
 const HINT = "text-[12px] text-(--ui-ink-3)";
-const SELECT =
-  "min-h-[38px] w-full border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
+/** A field's name in the form's weight. */
+const named = (text: ReactNode) => <span className="font-medium">{text}</span>;
 
 /** Where a link is posted: the short name, as the edge reads it. Wren's lander knows the first nine. */
 const PLACES: [string, string][] = [
@@ -113,17 +123,27 @@ function LinkOut({ url, name }: { url: string; name: string }) {
 /** The New link form: owner (Wren's workspace), page, where it's posted, campaign and id. */
 function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
   const wren = at.client === WREN.id;
-  const [owner, setOwner] = useState(wren ? "wren" : at.client);
-  const [picked, setPage] = useState("");
-  const [place, setPlace] = useState("ads");
-  const campaignEdit = useEdit("link:new:campaign", "");
-  const contentEdit = useEdit("link:new:content", "");
-  const campaign = campaignEdit.value;
-  const content = contentEdit.value;
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const form = useEditForm({
+    key: "link:new",
+    defaults: {
+      owner: wren ? "wren" : at.client,
+      page: "",
+      place: "ads",
+      campaign: "",
+      content: "",
+    },
+  });
+  const { owner, page: picked } = form.watch();
   const [made, setMade] = useState<Made | null>(null);
   const [open, setOpen] = useState(false);
+  // Another owner, another set of pages: the last link made is no longer this one's.
+  const { watch } = form;
+  useEffect(() => {
+    const sub = watch((_, { name }) => {
+      if (name === "owner") setMade(null);
+    });
+    return () => sub.unsubscribe();
+  }, [watch]);
   const body = useCallback(
     (more: Record<string, unknown>) =>
       wren ? { owner, ...more } : { client: at.client, owner: at.client, ...more },
@@ -136,28 +156,18 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
   );
   const t = got.data ?? null;
   const page = t?.pages.some((x) => x.id === picked) ? picked : (t?.pages[0]?.id ?? "");
-  const shownErr = err ?? (got.error && !t ? got.error.message : null);
+  const shownErr = form.error ?? (got.error && !t ? got.error.message : null);
   const places = PLACES.filter(([k]) => owner !== "wren" || WREN_PLACES.has(k));
   const slug = t?.pages.find((p) => p.id === page)?.slug ?? "";
-  const submit = async () => {
-    setBusy(true);
-    setErr(null);
+  const submit = form.onSend(async (v) => {
     setMade(null);
-    try {
-      const r = await call<Made>(
-        "sites/linkCreate",
-        body({ page, link: place, campaign: campaign || null, content: content || null }),
-      );
-      campaignEdit.saved(campaign);
-      contentEdit.saved(content);
-      setMade(r);
-      reload();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
+    const r = await call<Made>(
+      "sites/linkCreate",
+      body({ page, link: v.place, campaign: v.campaign || null, content: v.content || null }),
+    );
+    setMade(r);
+    reload();
+  });
   if (at.demo) return null;
   if (!open)
     return (
@@ -176,78 +186,74 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
           </Button>
         }
       >
-        <form
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit();
-          }}
-        >
+        <form className="grid gap-4" onSubmit={submit}>
           <div className="grid gap-4 sm:grid-cols-2">
             {wren && t && t.owners.length > 1 ? (
-              <label className="grid gap-1.5">
-                <span className={LABEL}>Whose</span>
-                <select
-                  className={SELECT}
-                  value={owner}
-                  onChange={(e) => {
-                    setOwner(e.target.value);
-                    setMade(null);
-                  }}
-                >
-                  {t.owners.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectField
+                form={form}
+                name="owner"
+                label={named("Whose")}
+                className="gap-1.5"
+                options={t.owners.map((o) => [o.id, o.name] as const)}
+              />
             ) : null}
-            <label className="grid gap-1.5">
-              <span className={LABEL}>Page</span>
-              <select
-                className={SELECT}
-                value={page}
+            <div className="grid gap-1.5">
+              <SelectField
+                form={form}
+                name="page"
+                label={named("Page")}
+                className="gap-1.5"
                 disabled={!t?.pages.length}
-                onChange={(e) => setPage(e.target.value)}
-              >
-                {(t?.pages ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                    {p.status === "live" ? "" : " (draft)"}
-                  </option>
-                ))}
-              </select>
+                options={(t?.pages ?? []).map(
+                  (p) => [p.id, `${p.title}${p.status === "live" ? "" : " (draft)"}`] as const,
+                )}
+              />
               {t && !t.pages.length ? (
                 <span className={HINT}>No pages yet. Links go to a page made in Sites.</span>
               ) : null}
-            </label>
-            <label className="grid gap-1.5">
-              <span className={LABEL}>Where it's posted</span>
-              <select className={SELECT} value={place} onChange={(e) => setPlace(e.target.value)}>
-                {places.map(([k, label]) => (
-                  <option key={k} value={k}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5">
-              <span className={LABEL}>
-                Campaign <span className={HINT}>(optional)</span>
-              </span>
-              <Input {...campaignEdit.field} maxLength={80} placeholder={slug || "spring-promo"} />
+            </div>
+            <SelectField
+              form={form}
+              name="place"
+              label={named("Where it's posted")}
+              className="gap-1.5"
+              options={places}
+            />
+            <div className="grid gap-1.5">
+              <TextField
+                form={form}
+                name="campaign"
+                label={named(
+                  <>
+                    Campaign <span className={HINT}>(optional)</span>
+                  </>,
+                )}
+                className="gap-1.5"
+                maxLength={80}
+                placeholder={slug || "spring-promo"}
+              />
               <span className={HINT}>Left empty, the page's name.</span>
-            </label>
-            <label className="grid gap-1.5">
-              <span className={LABEL}>
-                Post or ad id <span className={HINT}>(optional)</span>
-              </span>
-              <Input {...contentEdit.field} maxLength={80} placeholder="120211234567890" />
-            </label>
+            </div>
+            <TextField
+              form={form}
+              name="content"
+              label={named(
+                <>
+                  Post or ad id <span className={HINT}>(optional)</span>
+                </>,
+              )}
+              className="gap-1.5"
+              maxLength={80}
+              placeholder="120211234567890"
+            />
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" tone="primary" busy={busy} disabled={!page}>
+            <Button
+              type="submit"
+              tone="primary"
+              busy={form.formState.isSubmitting}
+              disabled={!page}
+            >
               Make link
             </Button>
             {shownErr ? <span className="text-[13px] text-(--ui-bad)">{shownErr}</span> : null}

@@ -6,7 +6,7 @@ import type { Editor, Range } from "@tiptap/core";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { makeChips } from "@wren/notes/chips";
 import type { NoteJson } from "@wren/notes/types";
-import { cx, Icon, Input, say, tipProps } from "@wren/ui";
+import { cx, Icon, Input, say, TextField, tipProps, useEditForm } from "@wren/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
@@ -610,11 +610,12 @@ function FindBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
 }
 
 function LinkBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
-  const [url, setUrl] = useState(String(editor.getAttributes("link").href ?? ""));
-  const box = useRef<HTMLInputElement>(null);
-  useEffect(() => box.current?.focus(), []);
-  const save = () => {
-    const u = url.trim();
+  // One-shot toolbar entry, applied to the selection at once: nothing to keep.
+  const [start] = useState(() => ({ url: String(editor.getAttributes("link").href ?? "") }));
+  const form = useEditForm({ key: null, defaults: start });
+  const url = form.watch("url");
+  const save = (typed: string) => {
+    const u = typed.trim();
     const c = editor.chain().focus().extendMarkRange("link");
     if (!u) c.unsetLink().run();
     else {
@@ -629,22 +630,19 @@ function LinkBar({ editor, onClose }: { editor: Editor; onClose: () => void }) {
     }
     onClose();
   };
+  const apply = form.onSend((v) => save(v.url));
   return (
     <form
       className="flex flex-wrap items-center gap-2 border-b border-(--ui-hair) bg-(--ui-tile) px-3 py-2 text-[13px] print:hidden"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save();
-      }}
+      onSubmit={(e) => void apply(e)}
     >
-      {/* edit-ok: one-shot toolbar entry, applied to the selection at once */}
-      <Input
-        ref={box}
-        value={url}
+      <TextField
+        form={form}
+        name="url"
+        autoFocus
         aria-label="Link"
         placeholder="Paste a link, or a note's address"
-        className="h-8 w-72 max-w-full"
-        onChange={(e) => setUrl(e.target.value)}
+        box="h-8 w-72 max-w-full"
         onKeyDown={(e) => e.key === "Escape" && onClose()}
       />
       <button type="submit" className={TOOL}>

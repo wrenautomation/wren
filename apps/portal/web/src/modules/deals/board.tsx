@@ -11,17 +11,17 @@ import {
   Button,
   clipProps,
   cx,
-  Input,
+  FormKept,
   LoadFailed,
   Loading,
   money,
   num,
   PageHeader,
   say,
-  UnsavedMark,
-  useEdit,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
@@ -294,68 +294,79 @@ function NewDeal({
   pipeline: string;
   onDone: () => void;
 }) {
-  const nameEdit = useEdit(`deal:new:${pipeline}:name`, "");
-  const valueEdit = useEdit(`deal:new:${pipeline}:value`, "");
-  const contactEdit = useEdit(`deal:new:${pipeline}:contact`, "");
-  const { value: name } = nameEdit;
-  const { value } = valueEdit;
-  const { value: contact } = contactEdit;
-  const [busy, setBusy] = useState(false);
+  const form = useEditForm({
+    key: `deal:new:${pipeline}`,
+    defaults: { name: "", value: "", contact: "" },
+  });
   const flying = useRef(false);
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (flying.current) return;
-    flying.current = true;
-    setBusy(true);
-    const sent = { name, value, contact };
-    try {
-      await ACTIONS.run(`deal-create:${pipeline}`, (requestId) =>
-        call("deals/create", {
-          ...at,
-          pipeline,
-          name,
-          ...(value.trim() ? { value } : {}),
-          ...(contact.trim()
-            ? contact.includes("@")
-              ? { contactEmail: contact }
-              : { contactName: contact }
-            : {}),
-          requestId,
-        }),
-      );
-      nameEdit.saved(sent.name);
-      valueEdit.saved(sent.value);
-      contactEdit.saved(sent.contact);
-      say.done("Added to the first stage.");
-      onDone();
-    } catch (err) {
-      say.failed(err);
-    } finally {
-      flying.current = false;
-      setBusy(false);
-    }
-  };
+  const submit = form.onSend(
+    async ({ name, value, contact }) => {
+      if (flying.current) return false;
+      flying.current = true;
+      try {
+        await ACTIONS.run(`deal-create:${pipeline}`, (requestId) =>
+          call("deals/create", {
+            ...at,
+            pipeline,
+            name,
+            ...(value.trim() ? { value } : {}),
+            ...(contact.trim()
+              ? contact.includes("@")
+                ? { contactEmail: contact }
+                : { contactName: contact }
+              : {}),
+            requestId,
+          }),
+        );
+        say.done("Added to the first stage.");
+        onDone();
+      } catch (err) {
+        say.failed(err);
+        return false;
+      } finally {
+        flying.current = false;
+      }
+    },
+    { clear: true },
+  );
   return (
     <form
-      onSubmit={submit}
+      onSubmit={(e) => void submit(e)}
       className="mb-4 flex flex-wrap items-end gap-2 border border-(--ui-hair) p-3"
     >
-      <label className="grid gap-1 text-[13px]">
-        Deal
-        <Input {...nameEdit.field} required autoFocus />
-      </label>
-      <label className="grid w-[120px] gap-1 text-[13px]">
-        Value
-        <Input {...valueEdit.field} inputMode="decimal" placeholder="1200" />
-      </label>
-      <label className="grid gap-1 text-[13px]">
-        Contact
-        <Input {...contactEdit.field} placeholder="A name or an email" />
-      </label>
-      <Button tone="primary" type="submit" size="sm" busy={busy} disabled={!name.trim()}>
+      <TextField
+        form={form}
+        name="name"
+        label="Deal"
+        className="grid gap-1 text-[13px]"
+        required
+        autoFocus
+      />
+      <TextField
+        form={form}
+        name="value"
+        label="Value"
+        className="grid w-[120px] gap-1 text-[13px]"
+        inputMode="decimal"
+        placeholder="1200"
+      />
+      <TextField
+        form={form}
+        name="contact"
+        label="Contact"
+        className="grid gap-1 text-[13px]"
+        placeholder="A name or an email"
+      />
+      <Button
+        tone="primary"
+        type="submit"
+        size="sm"
+        busy={form.formState.isSubmitting}
+        disabled={!form.watch("name").trim()}
+      >
         Add
       </Button>
-      <UnsavedMark edit={nameEdit} />
+      <FormKept form={form} what="deal" />
     </form>
   );
 }

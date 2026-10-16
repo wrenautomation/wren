@@ -2,8 +2,20 @@
  * What the work's and the account's pages share: the client's engagements, a write that
  * reloads them, a small form, dates as the client reads them, and the classes they draw with.
  */
-import { ACTIONS, Button, DictateField, Empty, LoadFailed, Loading, Textarea } from "@wren/ui";
-import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
+import {
+  ACTIONS,
+  Button,
+  DictateField,
+  type EditForm,
+  Empty,
+  FormKept,
+  LoadFailed,
+  Loading,
+  TextAreaField,
+  useEditForm,
+} from "@wren/ui";
+import { type ReactNode, useId, useRef, useState } from "react";
+import { z } from "zod";
 import {
   ApiError,
   type CommentView,
@@ -28,6 +40,8 @@ export const BODY = "max-w-[72ch] text-[15px] leading-[1.55] text-pretty whitesp
 export const FORM = "mt-3 flex flex-wrap items-end gap-3";
 export const FIELD = "flex flex-col gap-1.5 text-[13px] text-(--ui-ink-2) max-[480px]:basis-full";
 export const WIDE = "basis-full";
+/** A field's own width, until a phone gives it the row. */
+export const NARROW = "max-[480px]:basis-full";
 export const SELECT =
   "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
 const FOOT = "flex basis-full flex-wrap items-center gap-3";
@@ -108,63 +122,50 @@ export function useAct(props: PageProps, reload: () => void) {
   return { busy, error, run };
 }
 
-/**
- * After a send worked: each field back to its start, unless it changed since `sent` was read
- * (typing while it went stays).
- */
-export function resetSent(form: HTMLFormElement, sent: FormData) {
-  for (const el of Array.from(form.elements)) {
-    if (
-      !(
-        el instanceof HTMLInputElement ||
-        el instanceof HTMLTextAreaElement ||
-        el instanceof HTMLSelectElement
-      ) ||
-      !el.name
-    )
-      continue;
-    if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) {
-      if (el.checked === sent.getAll(el.name).includes(el.value)) el.checked = el.defaultChecked;
-      continue;
-    }
-    if (el.value !== String(sent.get(el.name) ?? "")) continue;
-    if (el instanceof HTMLSelectElement) {
-      const start = Array.from(el.options).findIndex((o) => o.defaultSelected);
-      el.selectedIndex = start < 0 ? 0 : start;
-    } else el.value = el.defaultValue;
-  }
+/** Unsent values back from before, or a conflict, said on a row of their own; nothing otherwise. */
+export function Kept<V extends Record<string, unknown>>({ form }: { form: EditForm<V> }) {
+  return form.conflict || (form.restored && form.unsent) ? (
+    <div className={WIDE}>
+      <FormKept form={form} />
+    </div>
+  ) : null;
 }
 
-/** A small form: submit runs `onSubmit`, cleared when it worked. */
-export function Form({
+/**
+ * A small form on `form` (the caller's `useEditForm`): submit runs `onSubmit` with the values,
+ * and `false` means it didn't land. It starts over once sent (`clear`), or keeps what was sent
+ * (a form that edits a value the server holds). Typed and unsent values come back with a note.
+ */
+export function Form<V extends Record<string, unknown>>({
   label,
   submit,
   act,
+  form,
   onSubmit,
+  clear = true,
   children,
 }: {
   label: string;
   submit: string;
-  act: ReturnType<typeof useAct>;
-  onSubmit: (form: FormData) => Promise<boolean>;
+  act: { busy: boolean; error: string | null };
+  form: EditForm<V>;
+  onSubmit: (values: V) => Promise<boolean>;
+  clear?: boolean;
   children: ReactNode;
 }) {
-  const sent = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
-    if (await onSubmit(data)) resetSent(form, data);
-  };
+  const send = form.onSend(onSubmit, { clear });
+  const error = act.error ?? form.error;
   return (
-    <form className={FORM} aria-label={label} onSubmit={sent}>
+    <form className={FORM} aria-label={label} onSubmit={(e) => void send(e)}>
+      <Kept form={form} />
       {children}
       <div className={FOOT}>
         <Button tone="primary" type="submit" size="dense" busy={act.busy}>
           {submit}
         </Button>
-        {act.error ? (
+        {error ? (
           <span className={ERROR} role="alert">
-            {act.error}
+            {error}
           </span>
         ) : null}
       </div>
@@ -173,10 +174,7 @@ export function Form({
 }
 
 /** A form field's text, or undefined when blank. */
-export const field = (f: FormData, name: string): string | undefined => {
-  const v = f.get(name);
-  return typeof v === "string" && v.trim() ? v.trim() : undefined;
-};
+export const trimmed = (s: string): string | undefined => s.trim() || undefined;
 
 /**
  * The thread under an update or a deliverable, and a box to add to it. A client sees Wren's
@@ -193,6 +191,12 @@ export function Thread({
 }) {
   const [sent, setSent] = useState<string[]>([]);
   const act = useAct(props, () => undefined);
+  const form = useEditForm({
+    key: `comment:${props.client}:${"updateId" in on ? `update:${on.updateId}` : `deliverable:${on.deliverableId}`}`,
+    defaults: { body: "" },
+    schema: z.object({ body: z.string().trim().min(1, "Write a comment.") }),
+  });
+  // The mic writes into the box itself.
   const box = useRef<HTMLTextAreaElement>(null);
   const id = useId();
   return (
@@ -219,8 +223,9 @@ export function Thread({
         label="Comment"
         submit="Send"
         act={act}
-        onSubmit={async (f) => {
-          const body = field(f, "body");
+        form={form}
+        onSubmit={async (v) => {
+          const body = trimmed(v.body);
           const ok = await act.run("comment", { ...on, body });
           if (ok && body) setSent((s) => [...s, body]);
           return ok;
@@ -230,7 +235,15 @@ export function Thread({
         <div className={`${FIELD} ${WIDE}`}>
           <label htmlFor={id}>{comments.length || sent.length ? "Reply" : "Comment"}</label>
           <DictateField target={box} label="Dictate your comment">
-            <Textarea ref={box} id={id} name="body" required rows={2} maxLength={4000} />
+            <TextAreaField
+              form={form}
+              name="body"
+              ref={box}
+              id={id}
+              required
+              rows={2}
+              maxLength={4000}
+            />
           </DictateField>
         </div>
       </Form>

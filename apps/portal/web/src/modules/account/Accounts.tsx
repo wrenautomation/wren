@@ -10,21 +10,23 @@ import {
   Callout,
   Empty,
   hostMark,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   PlatformMark,
   Rail,
   Section,
+  SelectField,
   soon,
   Tag,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
 import { useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
-import { dayLabel, ERROR, FIELD, Form, field, QUIET, SELECT, TOOLS } from "../work/bits.js";
+import { dayLabel, ERROR, Form, NARROW, QUIET, TOOLS, trimmed } from "../work/bits.js";
 import { type AccountRow, currentOf, type RunRow, railOf, runTag } from "./setups.js";
 
 /** Whose accounts: a client's, or Wren's own from its workspace. */
@@ -306,7 +308,19 @@ function Timeline({ items }: { items: AccountRow["timeline"] }) {
   );
 }
 
-function AddAccount({ sites, act }: { sites: AccountsView["sites"]; act: Act }) {
+function AddAccount({
+  client,
+  sites,
+  act,
+}: {
+  client: string;
+  sites: AccountsView["sites"];
+  act: Act;
+}) {
+  const form = useEditForm({
+    key: `account:new:${client}`,
+    defaults: { site: "", ref: "", role: "" },
+  });
   return (
     <Section
       title="Add an account"
@@ -316,35 +330,40 @@ function AddAccount({ sites, act }: { sites: AccountsView["sites"]; act: Act }) 
         label="Add an account"
         submit="Add"
         act={act}
-        onSubmit={(f) =>
+        form={form}
+        onSubmit={(v) =>
           act.run("addAccount", {
-            site: field(f, "site"),
-            ref: field(f, "ref"),
-            role: field(f, "role") ?? null,
+            site: trimmed(v.site),
+            ref: trimmed(v.ref),
+            role: trimmed(v.role) ?? null,
           })
         }
       >
-        <label className={FIELD}>
-          <span>Kind</span>
-          <select className={SELECT} name="site" required defaultValue="">
-            <option value="" disabled>
-              Pick one
-            </option>
-            {sites.map((s) => (
-              <option key={s.site} value={s.site}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={`${FIELD} grow basis-[220px]`}>
-          <span>What it is</span>
-          <Input name="ref" required maxLength={200} placeholder="send.example.com" />
-        </label>
-        <label className={`${FIELD} basis-[140px]`}>
-          <span>For</span>
-          <Input name="role" maxLength={32} placeholder="main" />
-        </label>
+        <SelectField
+          form={form}
+          name="site"
+          label="Kind"
+          className={NARROW}
+          required
+          options={[["", "Pick one", true], ...sites.map((s) => [s.site, s.label] as const)]}
+        />
+        <TextField
+          form={form}
+          name="ref"
+          label="What it is"
+          className={`${NARROW} grow basis-[220px]`}
+          required
+          maxLength={200}
+          placeholder="send.example.com"
+        />
+        <TextField
+          form={form}
+          name="role"
+          label="For"
+          className={`${NARROW} basis-[140px]`}
+          maxLength={32}
+          placeholder="main"
+        />
       </Form>
     </Section>
   );
@@ -394,7 +413,7 @@ export function Accounts(props: PageProps) {
             ))
           )}
           {act.error && !team ? <p className={ERROR}>{act.error}</p> : null}
-          {team ? <AddAccount sites={d.sites} act={act} /> : null}
+          {team ? <AddAccount client={props.client} sites={d.sites} act={act} /> : null}
         </>
       )}
     </>

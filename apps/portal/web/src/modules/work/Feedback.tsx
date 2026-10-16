@@ -4,21 +4,20 @@
  * land here too. A client's own, so never on the demo.
  */
 import { GOOGLE_REVIEW_URL, PULSE_WORDS, REVIEW_WORDS } from "@wren/delivery/routes";
-import { Button, Callout, Section, Tag, Textarea } from "@wren/ui";
+import { Button, Callout, Section, SelectField, Tag, TextAreaField, useEditForm } from "@wren/ui";
 import { Fragment, useEffect, useState } from "react";
 import type { EngagementView, MomentView } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import {
   dayLabel,
-  FIELD,
   Form,
-  field,
   LIST,
+  NARROW,
   ofThisApp,
   QUIET,
-  SELECT,
   TOOLS,
+  trimmed,
   useAct,
   useWork,
   WIDE,
@@ -205,50 +204,83 @@ function Review({
       {score === null ? (
         <p className={QUIET}>One tap. It reaches us.</p>
       ) : (
-        <Form
-          label="Say more"
-          submit="Send"
+        <SayMore
+          client={props.client}
+          e={e}
+          m={m}
+          score={score}
           act={act}
-          onSubmit={async (f) => {
-            const ok = await send({
-              score,
-              words: field(f, "words"),
-              mayQuote: score >= 4 ? field(f, "mayQuote") : "private",
-            });
-            if (ok) {
-              setOpen(null);
-              setThanked({ score, words: field(f, "words") ?? "" });
-            }
-            return ok;
+          send={send}
+          onSent={(words) => {
+            setOpen(null);
+            setThanked({ score, words });
           }}
-        >
-          <label className={`${FIELD} ${WIDE}`}>
-            <span>
-              {score >= 4
-                ? "Glad to hear it. What made the difference?"
-                : "What should we do better?"}
-            </span>
-            <Textarea name="words" rows={3} maxLength={4000} defaultValue={m.mine?.words ?? ""} />
-          </label>
-          {score >= 4 ? (
-            <label className={FIELD}>
-              <span>May we quote you?</span>
-              <select
-                className={SELECT}
-                name="mayQuote"
-                defaultValue={m.mine?.mayQuote ?? "private"}
-              >
-                {QUOTE_CHOICES.map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-        </Form>
+        />
       )}
     </Section>
+  );
+}
+
+/** The line under a rating and whether we may quote it; its starting point is the saved review. */
+function SayMore({
+  client,
+  e,
+  m,
+  score,
+  act,
+  send,
+  onSent,
+}: {
+  client: string;
+  e: EngagementView;
+  m: MomentView;
+  score: number;
+  act: ReturnType<typeof useAct>;
+  send: (body: Record<string, unknown>) => Promise<boolean>;
+  onSent: (words: string) => void;
+}) {
+  const form = useEditForm<{ words: string; mayQuote: string }>({
+    key: `review:${client}:${e.id}:${m.moment}`,
+    defaults: { words: m.mine?.words ?? "", mayQuote: m.mine?.mayQuote ?? "private" },
+  });
+  return (
+    <Form
+      label="Say more"
+      submit="Send"
+      act={act}
+      form={form}
+      clear={false}
+      onSubmit={async (v) => {
+        const words = trimmed(v.words);
+        const ok = await send({
+          score,
+          words,
+          mayQuote: score >= 4 ? trimmed(v.mayQuote) : "private",
+        });
+        if (ok) onSent(words ?? "");
+        return ok;
+      }}
+    >
+      <TextAreaField
+        form={form}
+        name="words"
+        label={
+          score >= 4 ? "Glad to hear it. What made the difference?" : "What should we do better?"
+        }
+        className={`${NARROW} ${WIDE}`}
+        rows={3}
+        maxLength={4000}
+      />
+      {score >= 4 ? (
+        <SelectField
+          form={form}
+          name="mayQuote"
+          label="May we quote you?"
+          className={NARROW}
+          options={QUOTE_CHOICES}
+        />
+      ) : null}
+    </Form>
   );
 }
 

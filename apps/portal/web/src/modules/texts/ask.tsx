@@ -3,84 +3,78 @@
  * template (`sms/askReview`). The ask goes out under the same rules as any other: texting hours,
  * opt-outs, once per customer, the client's sends switch.
  */
-import { ACTIONS, Button, Input, Tag, useEdit } from "@wren/ui";
-import { type FormEvent, useRef, useState } from "react";
+import { ACTIONS, Button, Tag, TextField, useEditForm } from "@wren/ui";
+import { useState } from "react";
 import { call } from "../../api.js";
 
+const BLANK = { name: "", phone: "", email: "" };
+
 export function AskReview({ client, reload }: { client: string; reload: () => void }) {
-  const nameEdit = useEdit("review-ask:new:name", "");
-  const phoneEdit = useEdit("review-ask:new:phone", "");
-  const emailEdit = useEdit("review-ask:new:email", "");
-  const { value: name } = nameEdit;
-  const { value: phone } = phoneEdit;
-  const { value: email } = emailEdit;
+  const form = useEditForm({ key: "review-ask:new", defaults: BLANK });
+  const { phone, email } = form.watch();
   const any = !!(phone.trim() || email.trim());
-  const [busy, setBusy] = useState(false);
-  const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string } | null>(null);
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!any || flying.current) return;
-    flying.current = true;
-    setBusy(true);
-    setSaid(null);
-    const sent = { name, phone, email };
-    try {
+  const submit = form.onSend(
+    async (v) => {
+      if (!any) return false;
+      setSaid(null);
       await ACTIONS.run(`ask-review:${client}`, (requestId) =>
         call("sms/askReview", {
           client,
-          name: name.trim() || null,
-          phone: phone.trim() || null,
-          email: email.trim() || null,
+          name: v.name.trim() || null,
+          phone: v.phone.trim() || null,
+          email: v.email.trim() || null,
           requestId,
         }),
       );
-      // Clear what was sent; anything typed meanwhile stays.
-      nameEdit.saved(sent.name);
-      phoneEdit.saved(sent.phone);
-      emailEdit.saved(sent.email);
       setSaid({ ok: true, line: "Asked. It shows here in a moment." });
       setTimeout(reload, 1500);
-    } catch (err) {
-      setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
-    } finally {
-      flying.current = false;
-      setBusy(false);
-    }
-  };
+    },
+    { clear: true },
+  );
+  const line = form.error ? { ok: false, line: form.error } : said;
   return (
     <form
-      onSubmit={submit}
+      onSubmit={(e) => void submit(e)}
       className="flex w-full min-w-0 flex-1 basis-full flex-col gap-1.5 sm:max-w-lg lg:basis-auto"
     >
       <div className="flex min-w-0 flex-wrap gap-2">
-        <Input
-          {...nameEdit.field}
-          className="min-w-0 flex-1 basis-32"
+        <TextField
+          form={form}
+          name="name"
+          box="min-w-0 flex-1 basis-32"
           placeholder="Name"
           aria-label="Customer's name"
         />
-        <Input
+        <TextField
+          form={form}
+          name="phone"
           type="tel"
-          {...phoneEdit.field}
-          className="min-w-0 flex-1 basis-32"
+          box="min-w-0 flex-1 basis-32"
           placeholder="Mobile"
           aria-label="Customer's mobile"
         />
-        <Input
+        <TextField
+          form={form}
+          name="email"
           type="email"
-          {...emailEdit.field}
-          className="min-w-0 flex-1 basis-32"
+          box="min-w-0 flex-1 basis-32"
           placeholder="Email"
           aria-label="Customer's email"
         />
-        <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!any}>
+        <Button
+          tone="primary"
+          size="dense"
+          type="submit"
+          busy={form.formState.isSubmitting}
+          disabled={!any}
+        >
           Ask for a review
         </Button>
       </div>
-      {said ? (
-        <span className={`text-[13px] ${said.ok ? "text-(--ui-ink-2)" : "text-(--ui-bad)"}`}>
-          {said.line}
+      {line ? (
+        <span className={`text-[13px] ${line.ok ? "text-(--ui-ink-2)" : "text-(--ui-bad)"}`}>
+          {line.line}
         </span>
       ) : null}
     </form>

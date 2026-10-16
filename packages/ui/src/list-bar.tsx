@@ -47,6 +47,7 @@ import {
 import { Button } from "./controls.js";
 import { useLoad } from "./data/query.js";
 import { useEdit } from "./data/use-edit.js";
+import { CheckField, TextField, useEditForm } from "./edit-form.js";
 import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
 import { tipProps } from "./hint.js";
@@ -481,6 +482,8 @@ const ITEM =
   "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
 const INPUT =
   "h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]";
+/** A view's name box: the bar's square look over the kit's input. */
+const NAME_BOX = cn(INPUT, "rounded-none md:text-[13px]");
 const sayOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** The open saved view's menu: rename, share, move, delete. */
@@ -609,17 +612,19 @@ function SaveView({
   keep: KeepApi;
   saved: Saved;
 }) {
-  const [shared, setShared] = useState(false);
+  const form = useEditForm({
+    key: `view:new:${meta.id}`,
+    defaults: { name: "", shared: false },
+  });
   const [said, setSaid] = useState<string | null>(null);
   const pop = useHoverPop({
     onOpen: () => {
-      setShared(false);
+      form.setValue("shared", false);
       setSaid(null);
     },
   });
   const setOpen = pop.setOpen;
-  const named = useEdit(`view:new:${meta.id}:name`, "");
-  const name = named.value;
+  const name = form.watch("name");
   const [busy, setBusy] = useState(false);
   const kept = keptOf(meta, place.params);
   const sv = saved.lines.find((v) => String(v.id) === place.params.get("sv"));
@@ -633,12 +638,23 @@ function SaveView({
       saved.reload();
       setOpen(false);
       place.go(place.link({ sv: String(v.id) }), true);
+      return true;
     } catch (err) {
       setSaid(sayOf(err));
+      return false;
     } finally {
       setBusy(false);
     }
   };
+  const submit = form.onSend(
+    (v) =>
+      v.name.trim()
+        ? go(() =>
+            keep.save({ record: meta.id, name: v.name.trim(), params: kept, shared: v.shared }),
+          )
+        : false,
+    { clear: true },
+  );
   return (
     <Popover {...pop.root}>
       <PopoverTrigger {...pop.trigger} className={CHIP}>
@@ -656,39 +672,21 @@ function SaveView({
             Update “{sv.name}”
           </button>
         ) : null}
-        <form
-          className="grid gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (name.trim())
-              void go(async () => {
-                const v = await keep.save({
-                  record: meta.id,
-                  name: name.trim(),
-                  params: kept,
-                  shared,
-                });
-                named.saved(name);
-                return v;
-              });
-          }}
-        >
-          <input
-            {...named.field}
+        <form className="grid gap-2" onSubmit={(e) => void submit(e)}>
+          <TextField
+            form={form}
+            name="name"
             maxLength={60}
             placeholder={sv ? "Or save as a new view" : "Name this view"}
             aria-label="View name"
-            className={INPUT}
+            box={NAME_BOX}
           />
-          <label className="flex items-center gap-2 text-[13px] text-(--ui-ink-2)">
-            <input
-              type="checkbox"
-              checked={shared}
-              onChange={(e) => setShared(e.target.checked)}
-              className="size-3.5 accent-(--ui-ink)"
-            />
-            Share with the team
-          </label>
+          <CheckField
+            form={form}
+            name="shared"
+            label="Share with the team"
+            className="text-[13px] text-(--ui-ink-2)"
+          />
           <Button tone="primary" type="submit" size="dense" busy={busy} disabled={!name.trim()}>
             Save view
           </Button>

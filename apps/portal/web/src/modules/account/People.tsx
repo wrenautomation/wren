@@ -1,21 +1,20 @@
 /** People: who sees this account's projects. An owner or a manager invites and removes. */
-import { Button, Empty, Input, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import {
+  Button,
+  Empty,
+  LoadFailed,
+  Loading,
+  PageHeader,
+  Section,
+  SelectField,
+  Tag,
+  TextField,
+  useEditForm,
+} from "@wren/ui";
 import { useState } from "react";
 import type { PageProps } from "../../module.js";
 import { PersonAccess } from "../access/PersonAccess.js";
-import {
-  BLOCK,
-  dayLabel,
-  ERROR,
-  FIELD,
-  Form,
-  field,
-  LIST,
-  QUIET,
-  SELECT,
-  SPLIT,
-  useAct,
-} from "../work/bits.js";
+import { BLOCK, dayLabel, ERROR, Form, LIST, NARROW, QUIET, SPLIT, useAct } from "../work/bits.js";
 import { usePeople } from "./load.js";
 
 const BUILT_IN: Record<string, string> = { owner: "Owner", viewer: "Viewer" };
@@ -103,33 +102,52 @@ export function People(props: PageProps & { bare?: boolean }) {
           title="Invite someone"
           note="They sign in with this email. Owners see billing. Viewers only read. A manager role (under Roles) invites and sets access without billing."
         >
-          <Form
-            label="Invite someone"
-            submit="Invite"
-            act={act}
-            onSubmit={(f) =>
-              act.run("invite", { email: field(f, "email"), role: field(f, "role") })
-            }
-          >
-            <label className={`${FIELD} grow basis-[220px]`}>
-              <span>Their work email</span>
-              <Input name="email" type="email" required maxLength={254} />
-            </label>
-            <label className={FIELD}>
-              <span>Role</span>
-              <select className={SELECT} name="role" defaultValue="member">
-                {roles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </Form>
+          <Invite client={props.client} act={act} roles={roles} />
         </Section>
       ) : people.data ? (
         <p className={QUIET}>Ask an owner or a manager to invite a teammate.</p>
       ) : null}
     </>
+  );
+}
+
+function Invite({
+  client,
+  act,
+  roles,
+}: {
+  client: string;
+  act: ReturnType<typeof useAct>;
+  roles: { id: string; name: string }[];
+}) {
+  const form = useEditForm({
+    key: `invite:new:${client}`,
+    defaults: { email: "", role: "member" },
+  });
+  return (
+    <Form
+      label="Invite someone"
+      submit="Invite"
+      act={act}
+      form={form}
+      onSubmit={(v) => act.run("invite", { email: v.email.trim(), role: v.role })}
+    >
+      <TextField
+        form={form}
+        name="email"
+        label="Their work email"
+        className={`${NARROW} grow basis-[220px]`}
+        type="email"
+        required
+        maxLength={254}
+      />
+      <SelectField
+        form={form}
+        name="role"
+        label="Role"
+        className={NARROW}
+        options={roles.map((r) => [r.id, r.name] as const)}
+      />
+    </Form>
   );
 }

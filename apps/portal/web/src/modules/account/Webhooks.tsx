@@ -7,22 +7,25 @@
 import {
   ACTIONS,
   Button,
+  ChecksField,
   CopyButton,
   cx,
   Empty,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   Section,
   Tag,
+  TextField,
   tipProps,
+  useEditForm,
 } from "@wren/ui";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, FIELD, QUIET, resetSent, TOOLS } from "../work/bits.js";
+import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 
 interface Hook {
   id: string;
@@ -98,6 +101,14 @@ const answerOf = (d: { status: number | null; latencyMs: number | null; error: s
     ? `${d.status}${d.latencyMs === null ? "" : `, ${d.latencyMs} ms`}`
     : (d.error ?? "No answer");
 
+/** A new webhook's fields, blank. */
+const NEW_HOOK = { url: "", name: "", events: [] as string[] };
+const NEW_HOOK_SCHEMA = z.object({
+  url: z.string().trim().min(1, "Paste the URL."),
+  name: z.string(),
+  events: z.array(z.string()),
+});
+
 /** One call to `delivery/<route>`, its answer back, and the error to show. */
 function useRun(props: PageProps, reload: () => void) {
   const [busy, setBusy] = useState(false);
@@ -170,21 +181,24 @@ export function Webhooks(props: PageProps) {
   const nameOf = (id: string) => data?.webhooks.find((h) => h.id === id)?.name ?? "Removed";
   const says = (id: string) => data?.events.find((e) => e.id === id)?.says ?? id;
 
-  const add = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = new FormData(form);
-    const url = String(f.get("url") ?? "").trim();
-    const got = await act.run<{ secret: string }>("webhookAdd", {
-      name: String(f.get("name") ?? "").trim() || hostOf(url),
-      url,
-      events: f.getAll("events").map(String),
-    });
-    if (got) {
+  const form = useEditForm({
+    key: `webhook:new:${props.client}`,
+    defaults: NEW_HOOK,
+    schema: NEW_HOOK_SCHEMA,
+  });
+  const add = form.onSend(
+    async (v) => {
+      const url = v.url.trim();
+      const got = await act.run<{ secret: string }>("webhookAdd", {
+        name: v.name.trim() || hostOf(url),
+        url,
+        events: v.events,
+      });
+      if (!got) return false;
       setSecret(got.secret);
-      resetSent(form, f);
-    }
-  };
+    },
+    { clear: true },
+  );
   const test = async (h: Hook) => {
     const got = await act.run<Delivery>("webhookTest", { id: h.id });
     if (got)
@@ -295,32 +309,36 @@ export function Webhooks(props: PageProps) {
         <Section title="Add a webhook" note="An https URL on the public internet.">
           <form className="grid gap-3" aria-label="Add a webhook" onSubmit={(e) => void add(e)}>
             <div className="flex flex-wrap gap-3">
-              <label className={`${FIELD} grow basis-[320px]`}>
-                <span>URL</span>
-                <Input
-                  name="url"
-                  type="url"
-                  required
-                  maxLength={2000}
-                  placeholder="https://hooks.yourtool.com/in"
-                />
-              </label>
-              <label className={`${FIELD} grow basis-[200px]`}>
-                <span>Name</span>
-                <Input name="name" maxLength={80} placeholder="CRM" />
-              </label>
+              <TextField
+                form={form}
+                name="url"
+                label="URL"
+                type="url"
+                required
+                maxLength={2000}
+                placeholder="https://hooks.yourtool.com/in"
+                className="grow basis-[320px]"
+              />
+              <TextField
+                form={form}
+                name="name"
+                label="Name"
+                maxLength={80}
+                placeholder="CRM"
+                className="grow basis-[200px]"
+              />
             </div>
-            <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-              <legend className="mb-1 text-[13px] font-medium">Events</legend>
-              {data.events.map((e) => (
-                <label key={e.id} className="flex items-baseline gap-2 text-[13.5px]">
-                  <input type="checkbox" name="events" value={e.id} />
-                  <span>
-                    {e.says} <code className={cx("text-[12px]", QUIET)}>{e.id}</code>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
+            <ChecksField
+              form={form}
+              name="events"
+              label="Events"
+              options={data.events.map((e) => [
+                e.id,
+                <>
+                  {e.says} <code className={cx("text-[12px]", QUIET)}>{e.id}</code>
+                </>,
+              ])}
+            />
             <div>
               <Button tone="primary" type="submit" size="dense" busy={act.busy}>
                 Add

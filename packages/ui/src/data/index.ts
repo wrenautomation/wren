@@ -40,7 +40,6 @@ export {
   EditConflict,
   type EditConflictState,
   type EditOptions,
-  KeptConflict,
   UnsavedMark,
   useEdit,
 } from "./use-edit.js";

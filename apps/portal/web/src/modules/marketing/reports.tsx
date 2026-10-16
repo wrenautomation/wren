@@ -15,21 +15,25 @@ import {
 import {
   Button,
   Callout,
+  CheckField,
+  ChecksField,
   cx,
   Empty,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   Section,
+  SelectField,
   Tag,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { zones } from "../../book-path.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
-import { ERROR, FIELD, QUIET, SELECT } from "../work/bits.js";
+import { ERROR, Kept, NARROW, QUIET } from "../work/bits.js";
 
 interface Send {
   id: number;
@@ -95,102 +99,113 @@ function useReportAct(client: string, reload: () => void) {
 }
 type Act = ReturnType<typeof useReportAct>;
 
+/** What a report form holds; a saved report is its starting point. */
+type ReportValues = {
+  name: string;
+  tiles: string[];
+  every: string;
+  zone: string;
+  recipients: string[];
+  on: boolean;
+};
+
 function ReportForm({
+  client,
   view,
   report,
   act,
   done,
 }: {
+  client: string;
   view: View;
   report?: Report;
   act: Act;
   done: () => void;
 }) {
-  const [zone, setZone] = useState(report?.zone ?? view.zone);
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const ok = await act.run("reportSave", {
-      id: report?.id ?? null,
-      name: String(f.get("name") ?? ""),
-      tiles: f.getAll("tiles").map(String),
-      every: String(f.get("every")),
-      zone,
-      recipients: f.getAll("recipients").map(String),
-      on: f.get("on") === "on",
-    });
-    if (ok) done();
-  };
+  const form = useEditForm<ReportValues>({
+    key: `report:${client}:${report?.id ?? "new"}`,
+    defaults: {
+      name: report?.name ?? "",
+      tiles: report?.tiles ?? REPORT_TILES.map((t) => t.id),
+      every: report?.every ?? "week",
+      zone: report?.zone ?? view.zone,
+      recipients: report?.recipients ?? [],
+      on: report?.on ?? true,
+    },
+  });
+  const submit = form.onSend(
+    async (v) => {
+      const ok = await act.run("reportSave", {
+        id: report?.id ?? null,
+        name: v.name,
+        // Only the boxes drawn count, as when the form read them off the page.
+        tiles: v.tiles.filter((id) => REPORT_TILES.some((t) => t.id === id)),
+        every: v.every,
+        zone: v.zone,
+        recipients: v.recipients.filter((e) => view.members.some((m) => m.email === e)),
+        on: v.on,
+      });
+      if (ok) done();
+      return ok;
+    },
+    { clear: !report },
+  );
   const label = report ? `Change ${report.name}` : "New report";
   return (
     <form className="grid gap-4" aria-label={label} onSubmit={(e) => void submit(e)}>
+      <Kept form={form} />
       <div className="flex flex-wrap gap-3">
-        <label className={`${FIELD} grow basis-[260px]`}>
-          <span>Name</span>
-          <Input
-            name="name"
-            required
-            maxLength={120}
-            defaultValue={report?.name ?? ""}
-            placeholder="Weekly numbers"
-          />
-        </label>
-        <label className={FIELD}>
-          <span>When</span>
-          <select className={SELECT} name="every" defaultValue={report?.every ?? "week"}>
-            {Object.entries(EVERY_NAMES).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={FIELD}>
-          <span>At 9:00 in</span>
-          <select className={SELECT} value={zone} onChange={(e) => setZone(e.target.value)}>
-            {zones(zone).map((z) => (
-              <option key={z} value={z}>
-                {z.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-        </label>
+        <TextField
+          form={form}
+          name="name"
+          label="Name"
+          className={`${NARROW} grow basis-[260px]`}
+          required
+          maxLength={120}
+          placeholder="Weekly numbers"
+        />
+        <SelectField
+          form={form}
+          name="every"
+          label="When"
+          className={NARROW}
+          options={Object.entries(EVERY_NAMES)}
+        />
+        <SelectField
+          form={form}
+          name="zone"
+          label="At 9:00 in"
+          className={NARROW}
+          options={zones(form.watch("zone")).map((z) => [z, z.replaceAll("_", " ")] as const)}
+        />
       </div>
-      <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-        <legend className="mb-1 text-[13px] font-medium">Numbers</legend>
-        <div className="grid gap-1.5 sm:grid-cols-2">
-          {REPORT_TILES.map((t) => (
-            <label key={t.id} className="flex items-baseline gap-2 text-[13.5px]">
-              <input
-                type="checkbox"
-                name="tiles"
-                value={t.id}
-                defaultChecked={report ? report.tiles.includes(t.id) : true}
-              />
-              <span>{t.label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-        <legend className="mb-1 text-[13px] font-medium">
-          Who gets it <span className={QUIET}>({MAX_RECIPIENTS} at most)</span>
-        </legend>
-        {view.members.length ? (
-          view.members.map((m) => (
-            <label key={m.email} className="flex items-baseline gap-2 text-[13.5px]">
-              <input
-                type="checkbox"
-                name="recipients"
-                value={m.email}
-                defaultChecked={report?.recipients.includes(m.email) ?? false}
-              />
-              <span className="break-all">
-                {m.email} <span className={QUIET}>{m.role}</span>
-              </span>
-            </label>
-          ))
-        ) : (
+      <ChecksField
+        form={form}
+        name="tiles"
+        label="Numbers"
+        className="sm:grid-cols-2"
+        options={REPORT_TILES.map((t) => [t.id, t.label] as const)}
+      />
+      <div className="grid gap-1.5">
+        <ChecksField
+          form={form}
+          name="recipients"
+          label={
+            <>
+              Who gets it <span className={QUIET}>({MAX_RECIPIENTS} at most)</span>
+            </>
+          }
+          options={view.members.map(
+            (m) =>
+              [
+                m.email,
+                <span key={m.email} className="break-all">
+                  {m.email} <span className={QUIET}>{m.role}</span>
+                </span>,
+              ] as const,
+          )}
+        />
+        {view.members.length ? null : (
           <p className={QUIET}>
             Nobody in this workspace yet. Invite people under Account → People.
           </p>
@@ -198,11 +213,8 @@ function ReportForm({
         <p className={cx("text-[12.5px]", QUIET)}>
           Each person gets the numbers their access lets them see.
         </p>
-      </fieldset>
-      <label className="flex items-baseline gap-2 text-[13.5px]">
-        <input type="checkbox" name="on" defaultChecked={report?.on ?? true} />
-        <span>On</span>
-      </label>
+      </div>
+      <CheckField form={form} name="on" label="On" />
       <div className="flex flex-wrap items-center gap-2">
         <Button tone="primary" type="submit" size="dense" busy={act.busy}>
           {report ? "Save" : "Add report"}
@@ -256,7 +268,17 @@ function SendRow({ s, zone }: { s: Send; zone: string }) {
   );
 }
 
-function ReportSection({ r, view, act }: { r: Report; view: View; act: Act }) {
+function ReportSection({
+  client,
+  r,
+  view,
+  act,
+}: {
+  client: string;
+  r: Report;
+  view: View;
+  act: Act;
+}) {
   const [editing, setEditing] = useState(false);
   const labels = REPORT_TILES.filter((t) => r.tiles.includes(t.id)).map((t) => t.label);
   return (
@@ -301,7 +323,13 @@ function ReportSection({ r, view, act }: { r: Report; view: View; act: Act }) {
       }
     >
       {editing ? (
-        <ReportForm view={view} report={r} act={act} done={() => setEditing(false)} />
+        <ReportForm
+          client={client}
+          view={view}
+          report={r}
+          act={act}
+          done={() => setEditing(false)}
+        />
       ) : (
         <div className="grid gap-4">
           <p className={QUIET}>
@@ -352,11 +380,16 @@ export function ReportsPage(props: PageProps) {
           ) : null}
           {act.error ? <p className={ERROR}>{act.error}</p> : null}
           {data.reports.map((r) => (
-            <ReportSection key={r.id} r={r} view={data} act={act} />
+            <ReportSection key={r.id} client={props.client} r={r} view={data} act={act} />
           ))}
           {props.demo ? null : adding || !data.reports.length ? (
             <Section title="New report" note="Runs at 9:00 on its day, for the period before.">
-              <ReportForm view={data} act={act} done={() => setAdding(false)} />
+              <ReportForm
+                client={props.client}
+                view={data}
+                act={act}
+                done={() => setAdding(false)}
+              />
             </Section>
           ) : (
             <div>

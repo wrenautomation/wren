@@ -6,15 +6,15 @@
 import { ownerName } from "@wren/notes/types";
 import {
   Button,
+  FormKept,
   Icon,
-  Input,
   LoadFailed,
   Loading,
   say,
   Tag,
+  TextField,
   tipProps,
-  UnsavedMark,
-  useEdit,
+  useEditForm,
 } from "@wren/ui";
 import { useState } from "react";
 import { useCall } from "../../load.js";
@@ -129,8 +129,10 @@ export function VersionOpen({
   const [against, setAgainst] = useState<number | null>(null);
   const [naming, setNaming] = useState(false);
   // The name is kept as typed until it is saved; words kept from before open the box again.
-  const nameEdit = useEdit(`note:${id}:version-name:${number}`, v?.name ?? "");
-  const name = nameEdit.value;
+  const form = useEditForm({
+    key: `note:${id}:version-name:${number}`,
+    defaults: { name: v?.name ?? "" },
+  });
   const [busy, setBusy] = useState(false);
   const one = useCall(`notes:version:${client}:${id}:${number}`, () =>
     notes(client, "version", { id, number }),
@@ -145,16 +147,16 @@ export function VersionOpen({
       .catch(say.failed)
       .finally(() => setBusy(false));
   };
-  const saveName = () => {
-    const sent = name;
-    return notes(client, "nameVersion", { id, number, name: sent.trim() || null })
-      .then(() => {
-        nameEdit.saved(sent);
-        setNaming(false);
-        onNamed();
-      })
-      .catch(say.failed);
-  };
+  const saveName = form.onSend(async (typed) => {
+    try {
+      await notes(client, "nameVersion", { id, number, name: typed.name.trim() || null });
+    } catch (err) {
+      say.failed(err);
+      return false;
+    }
+    setNaming(false);
+    onNamed();
+  });
   return (
     <div className="flex min-w-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-(--ui-hair) bg-(--ui-tile) px-3 py-2 text-[13px] print:hidden">
@@ -197,26 +199,24 @@ export function VersionOpen({
           ) : null}
         </span>
       </div>
-      {naming || nameEdit.dirty ? (
+      {naming || form.unsent ? (
         <form
           className="flex items-center gap-2 border-b border-(--ui-hair) px-3 py-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void saveName();
-          }}
+          onSubmit={(e) => void saveName(e)}
         >
-          <Input
-            {...nameEdit.field}
+          <TextField
+            form={form}
+            name="name"
             autoFocus={naming}
             maxLength={200}
             aria-label="Version name"
             placeholder="Sent to Ana"
-            className="h-8 w-64"
+            box="h-8 w-64"
           />
           <Button tone="primary" size="dense" type="submit">
             Save
           </Button>
-          <UnsavedMark edit={nameEdit} />
+          <FormKept form={form} />
         </form>
       ) : null}
       {against !== null ? (

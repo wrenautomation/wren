@@ -80,7 +80,7 @@ importers:
         version: 8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
       wrangler:
         specifier: 4.142.0
         version: 4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@26.6.4)
@@ -186,7 +186,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   apps/llm-gateway:
     devDependencies:
@@ -198,7 +198,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
       wrangler:
         specifier: 4.142.0
         version: 4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@26.6.4)
@@ -223,7 +223,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
       wrangler:
         specifier: 4.142.0
         version: 4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@26.6.4)
@@ -341,6 +341,9 @@ importers:
       yjs:
         specifier: 13.6.33
         version: 13.6.33
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 5.20260927.1
@@ -416,7 +419,7 @@ importers:
         version: 8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
       wrangler:
         specifier: 4.142.0
         version: 4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@26.6.4)
@@ -540,19 +543,19 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/auth:
     dependencies:
       '@better-auth/passkey':
         specifier: 1.7.7
-        version: 1.7.7(@better-auth/core@1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-auth@1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))))(better-call@1.4.0(zod@4.6.5))(nanostores@1.5.4)
+        version: 1.7.7(@better-auth/core@1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-auth@1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))))(better-call@1.4.0(zod@4.6.5))(nanostores@1.5.4)
       '@wren/db':
         specifier: workspace:*
         version: link:../db
       better-auth:
         specifier: 1.7.7
-        version: 1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)))
+        version: 1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)))
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -568,7 +571,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/books:
     dependencies:
@@ -611,7 +614,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/calendar:
     dependencies:
@@ -654,7 +657,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-email:
     dependencies:
@@ -724,7 +727,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-linkedin:
     dependencies:
@@ -737,7 +740,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-meta:
     dependencies:
@@ -774,7 +777,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-reddit:
     dependencies:
@@ -787,7 +790,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-search:
     dependencies:
@@ -827,7 +830,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-sms:
     dependencies:
@@ -879,7 +882,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-tiktok:
     dependencies:
@@ -892,7 +895,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-x:
     dependencies:
@@ -905,7 +908,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/channel-youtube:
     dependencies:
@@ -918,7 +921,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/config:
     dependencies:
@@ -934,7 +937,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/connectors:
     dependencies:
@@ -962,7 +965,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/content:
     dependencies:
@@ -1038,7 +1041,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/core:
     dependencies:
@@ -1096,7 +1099,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/db:
     dependencies:
@@ -1124,7 +1127,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/deals:
     dependencies:
@@ -1152,7 +1155,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/delivery:
     dependencies:
@@ -1195,7 +1198,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/documents:
     dependencies:
@@ -1232,7 +1235,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/experiments:
     dependencies:
@@ -1245,7 +1248,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/learn:
     dependencies:
@@ -1279,7 +1282,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/llm:
     dependencies:
@@ -1301,7 +1304,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/niches:
     dependencies:
@@ -1338,7 +1341,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/notes:
     dependencies:
@@ -1384,7 +1387,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/offers:
     devDependencies:
@@ -1396,7 +1399,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/outreach:
     dependencies:
@@ -1439,7 +1442,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/payments:
     dependencies:
@@ -1479,7 +1482,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/reactivation:
     dependencies:
@@ -1537,7 +1540,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/research:
     dependencies:
@@ -1604,7 +1607,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/sites:
     dependencies:
@@ -1638,7 +1641,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/studio:
     dependencies:
@@ -1684,7 +1687,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/ui:
     dependencies:
@@ -1694,6 +1697,9 @@ importers:
       '@fontsource-variable/figtree':
         specifier: 5.3.0
         version: 5.3.0
+      '@hookform/resolvers':
+        specifier: 5.9.1
+        version: 5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.5)
       '@material/material-color-utilities':
         specifier: 0.3.0
         version: 0.3.0
@@ -1736,6 +1742,9 @@ importers:
       lucide-react:
         specifier: 1.51.0
         version: 1.51.0(@types/react@19.3.0)(react@19.3.0)
+      react-hook-form:
+        specifier: 7.89.0
+        version: 7.89.0(@types/react@19.3.0)(react@19.3.0)
       recharts:
         specifier: 3.10.1
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.3.0)(react@19.3.0)(redux@5.0.1)
@@ -1761,6 +1770,9 @@ importers:
       fake-indexeddb:
         specifier: 6.2.5
         version: 6.2.5
+      happy-dom:
+        specifier: 20.14.5
+        version: 20.14.5
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -1775,7 +1787,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/video:
     dependencies:
@@ -1791,7 +1803,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/voice:
     dependencies:
@@ -1831,7 +1843,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/watch:
     dependencies:
@@ -1865,7 +1877,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.1
-        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+        version: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
 packages:
 
@@ -3076,6 +3088,84 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4
+
+  '@hookform/resolvers@5.9.1':
+    resolution: {integrity: sha512-7b7vsbraJxKgjVSA1Nur9tLwj539WGJUBLA7QNvXnFoT2pM5Z7G+6rlukk4B2/QrTZy6huRtH6wKeESPKuIr6w==}
+    peerDependencies:
+      '@sinclair/typebox': '>=0.25.24'
+      '@standard-schema/spec': ^1.0.0
+      '@typeschema/main': '>=0.13.7'
+      '@vinejs/vine': ^2.0.0 || ^3.0.0 || ^4.0.0
+      ajv: ^8.12.0
+      ajv-errors: ^3.0.0
+      ajv-formats: ^2.1.1
+      arktype: ^2.0.0
+      ata-validator: ^1.2.0
+      class-transformer: '>=0.4.0'
+      class-validator: '>=0.12.0'
+      computed-types: ^1.0.0
+      effect: ^3.10.3
+      fluentvalidation-ts: ^3.0.0
+      fp-ts: ^2.7.0
+      io-ts: ^2.0.0
+      joi: ^17.0.0 || ^18.0.0
+      nope-validator: '>=0.12.0'
+      react-hook-form: ^7.55.0
+      superstruct: '>=0.12.0'
+      typanion: ^3.3.2
+      valibot: '>=0.31.0 || ^1.0.0-beta.4 || ^1.0.0-rc'
+      vest: '>=6.0.0'
+      yup: ^1.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@sinclair/typebox':
+        optional: true
+      '@standard-schema/spec':
+        optional: true
+      '@typeschema/main':
+        optional: true
+      '@vinejs/vine':
+        optional: true
+      ajv:
+        optional: true
+      ajv-errors:
+        optional: true
+      ajv-formats:
+        optional: true
+      arktype:
+        optional: true
+      ata-validator:
+        optional: true
+      class-transformer:
+        optional: true
+      class-validator:
+        optional: true
+      computed-types:
+        optional: true
+      effect:
+        optional: true
+      fluentvalidation-ts:
+        optional: true
+      fp-ts:
+        optional: true
+      io-ts:
+        optional: true
+      joi:
+        optional: true
+      nope-validator:
+        optional: true
+      superstruct:
+        optional: true
+      typanion:
+        optional: true
+      valibot:
+        optional: true
+      vest:
+        optional: true
+      yup:
+        optional: true
+      zod:
+        optional: true
 
   '@huggingface/jinja@0.5.10':
     resolution: {integrity: sha512-SgS1D1bglQ94ceD4ZCL6eayUDy9uV1xuyk61OjgSxU5GJh7upqZCKII0JoTYMc6wWsg3JUgaPRX0ElQzXPk3Cw==}
@@ -4603,6 +4693,12 @@ packages:
   '@types/web-push@3.6.4':
     resolution: {integrity: sha512-GnJmSr40H3RAnj0s34FNTcJi1hmWFV5KXugE0mYWnYhgTAHLJ/dJKAwDmvPJYMke0RplY2XE9LnM4hqSqKIjhQ==}
 
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
+
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
+
   '@vercel/oidc@3.2.0':
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
     engines: {node: '>= 20'}
@@ -5042,6 +5138,10 @@ packages:
 
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
+
+  buffer-image-size@0.6.4:
+    resolution: {integrity: sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==}
+    engines: {node: '>=4.0'}
 
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
@@ -5621,6 +5721,10 @@ packages:
     resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
     engines: {node: '>=0.12'}
 
+  entities@7.0.1:
+    resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
+    engines: {node: '>=0.12'}
+
   entities@8.1.0:
     resolution: {integrity: sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA==}
     engines: {node: '>=20.19.0'}
@@ -5940,6 +6044,10 @@ packages:
 
   guid-typescript@1.0.9:
     resolution: {integrity: sha512-Y8T4vYhEfwJOTbouREvG+3XDsjr8E3kIr7uf+JZ0BYloFsttiHU0WfvANVsR7TxNUJa/WpCnw/Ino/p+DeBhBQ==}
+
+  happy-dom@20.14.5:
+    resolution: {integrity: sha512-x/RzkpWO40bTjIoT30iQtt64FLLmH/iRcUCN2X//bLx7H3ifkdfPXyqsro/OYtqzIAhiLMMA7mmiOR9C3NOKjQ==}
+    engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -6965,6 +7073,16 @@ packages:
     peerDependencies:
       react: ^19.3.0
 
+  react-hook-form@7.89.0:
+    resolution: {integrity: sha512-vKcoCfy8RKZDrhSdqsRFp0uEOdS1AhLjOL6hR7Wmfzg1akNxEhaPf5WORx8SgEQPVXakdDyDkqQp+KNxVnnPHg==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.8.0 || ^17 || ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
   react-is@19.3.0:
     resolution: {integrity: sha512-UpMYezM4v5/18F28aC66AEsjXIgE02kyEMH6yLdgLXu/UTfa1Ntwck/nNLrbqJsEXW7gPb0coNO9FQse9WTovA==}
 
@@ -7817,6 +7935,10 @@ packages:
       webpack-cli:
         optional: true
 
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
+
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -8508,14 +8630,14 @@ snapshots:
       '@better-auth/core': 1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4)
       '@better-auth/utils': 0.4.2
 
-  '@better-auth/passkey@1.7.7(@better-auth/core@1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-auth@1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))))(better-call@1.4.0(zod@4.6.5))(nanostores@1.5.4)':
+  '@better-auth/passkey@1.7.7(@better-auth/core@1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-auth@1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))))(better-call@1.4.0(zod@4.6.5))(nanostores@1.5.4)':
     dependencies:
       '@better-auth/core': 1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4)
       '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.2
       '@simplewebauthn/browser': 13.3.0
       '@simplewebauthn/server': 13.3.3
-      better-auth: 1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)))
+      better-auth: 1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)))
       better-call: 1.4.0(zod@4.6.5)
       nanostores: 1.5.4
       zod: 4.6.5
@@ -9038,6 +9160,16 @@ snapshots:
   '@hono/node-server@2.1.3(hono@4.13.12)':
     dependencies:
       hono: 4.13.12
+
+  '@hookform/resolvers@5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.5)':
+    dependencies:
+      '@standard-schema/utils': 0.3.0
+      react-hook-form: 7.89.0(@types/react@19.3.0)(react@19.3.0)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      ajv: 8.20.0
+      ajv-formats: 2.1.1(ajv@8.20.0)
+      zod: 4.6.5
 
   '@huggingface/jinja@0.5.10': {}
 
@@ -10737,6 +10869,12 @@ snapshots:
     dependencies:
       '@types/node': 22.20.3
 
+  '@types/whatwg-mimetype@3.0.2': {}
+
+  '@types/ws@8.18.2':
+    dependencies:
+      '@types/node': 22.20.3
+
   '@vercel/oidc@3.2.0': {}
 
   '@vitejs/plugin-react@6.1.1(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))':
@@ -11062,7 +11200,7 @@ snapshots:
     dependencies:
       tweetnacl: 0.14.5
 
-  better-auth@1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))):
+  better-auth@1.7.7(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))):
     dependencies:
       '@better-auth/core': 1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4)
       '@better-auth/drizzle-adapter': 1.7.7(@better-auth/core@1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.4))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9))
@@ -11086,7 +11224,7 @@ snapshots:
       drizzle-orm: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-      vitest: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+      vitest: 5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
@@ -11157,6 +11295,10 @@ snapshots:
   buffer-equal-constant-time@1.0.1: {}
 
   buffer-from@1.1.2: {}
+
+  buffer-image-size@0.6.4:
+    dependencies:
+      '@types/node': 22.20.3
 
   buffer@5.7.1:
     dependencies:
@@ -11629,6 +11771,8 @@ snapshots:
 
   entities@4.5.0: {}
 
+  entities@7.0.1: {}
+
   entities@8.1.0: {}
 
   env-paths@2.2.1: {}
@@ -12048,6 +12192,19 @@ snapshots:
   graceful-fs@4.2.11: {}
 
   guid-typescript@1.0.9: {}
+
+  happy-dom@20.14.5:
+    dependencies:
+      '@types/node': 22.20.3
+      '@types/whatwg-mimetype': 3.0.2
+      '@types/ws': 8.18.2
+      buffer-image-size: 0.6.4
+      entities: 7.0.1
+      whatwg-mimetype: 3.0.0
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   has-flag@4.0.0: {}
 
@@ -12984,6 +13141,12 @@ snapshots:
       react: 19.3.0
       scheduler: 0.28.0
 
+  react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+    optionalDependencies:
+      '@types/react': 19.3.0
+
   react-is@19.3.0: {}
 
   react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1):
@@ -13833,7 +13996,7 @@ snapshots:
       tsx: 4.23.13
       yaml: 2.9.1
 
-  vitest@5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)):
+  vitest@5.0.1(@types/node@26.6.4)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/mocker': 5.0.1(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
@@ -13851,6 +14014,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.6.4
+      happy-dom: 20.14.5
     transitivePeerDependencies:
       - msw
 
@@ -13953,6 +14117,8 @@ snapshots:
       - lightningcss
       - postcss
       - uglify-js
+
+  whatwg-mimetype@3.0.0: {}
 
   which@2.0.2:
     dependencies:

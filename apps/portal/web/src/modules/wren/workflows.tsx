@@ -13,6 +13,7 @@ import {
   Alert,
   BarsChart,
   Button,
+  FormKept,
   Graph,
   type GraphDot,
   type GraphEdit,
@@ -26,12 +27,15 @@ import {
   type RecordsApi,
   SaveConflict,
   Section,
+  SelectField,
   say,
   statusWords,
+  TextField,
+  useEditForm,
   useSaved,
   useTypes,
 } from "@wren/ui";
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { readCall, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -39,7 +43,7 @@ import { shown } from "../../pulse.js";
 import { recordsApi } from "../../records-api.js";
 import { href, navigate } from "../../route.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
-import { dayLabel, ERROR, FIELD, FORM, QUIET, SELECT } from "../work/bits.js";
+import { dayLabel, ERROR, FORM, NARROW, QUIET } from "../work/bits.js";
 import {
   type Count,
   deeper,
@@ -392,7 +396,7 @@ function Canvas({
   // Claude's answer on the graph: shown as a diff over the draft until he accepts or rejects it.
   const [proposal, setProposal] = useState<{ reply: string; patch: Draft | null } | null>(null);
   // Publishing a workflow that sends or spends asks its id typed back: the server names the effects.
-  const [confirm, setConfirm] = useState<{ asks: string; typed: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ asks: string } | null>(null);
   // Test workflow: its panel, and the steps of the last dry run, lit until the draft changes.
   const [testing, setTesting] = useState(false);
   const [tested, setTested] = useState<{ steps: readonly DryStep[]; from: string } | null>(null);
@@ -611,7 +615,7 @@ function Canvas({
     });
   const failed = (err: unknown) => {
     const m = err instanceof Error ? err.message : String(err);
-    if (/to confirm$/.test(m)) setConfirm({ asks: m, typed: "" });
+    if (/to confirm$/.test(m)) setConfirm({ asks: m });
     else setError(m);
   };
   const close = () => {
@@ -864,38 +868,13 @@ function Canvas({
           </Button>
         </EditBar>
         {confirm ? (
-          <form
-            className="mb-3 flex flex-wrap items-end gap-3 border border-(--warn) bg-(--ui-paper) px-3 py-2.5 text-[13.5px]"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void publish(confirm.typed.trim());
-            }}
-          >
-            <label className={`${FIELD} grow basis-[260px]`}>
-              <span>
-                {confirm.asks.replace(/: type .*$/, "").replace(/^it/, "It")}. Type {w.id} to make
-                it live.
-              </span>
-              {/* edit-ok: type-to-confirm word, a guard not a draft */}
-              <Input
-                value={confirm.typed}
-                onChange={(e) => setConfirm({ ...confirm, typed: e.target.value })}
-                aria-label={`Type ${w.id} to confirm`}
-              />
-            </label>
-            <Button
-              tone="primary"
-              type="submit"
-              size="dense"
-              busy={busy}
-              disabled={confirm.typed.trim() !== w.id}
-            >
-              Publish
-            </Button>
-            <Button tone="quiet" size="dense" onClick={() => setConfirm(null)}>
-              Cancel
-            </Button>
-          </form>
+          <PublishConfirm
+            asks={confirm.asks}
+            id={w.id}
+            busy={busy}
+            onPublish={publish}
+            onCancel={() => setConfirm(null)}
+          />
         ) : null}
         {error ? <Alert className="mb-3">{error}</Alert> : null}
         {kept.conflict ? (
@@ -972,7 +951,9 @@ function Canvas({
             </div>
           ) : null}
         </div>
-        {proposal ? null : <Editor w={shown} draft={draft} setDraft={setDraft} />}
+        {proposal ? null : (
+          <Editor w={shown} draft={draft} setDraft={setDraft} at={`workflow-step:${actionKey}`} />
+        )}
         {open ? (
           <PartPanel id={open} params={params} client={client} team={team} where={where} />
         ) : null}
@@ -1039,38 +1020,102 @@ function Canvas({
   );
 }
 
+/** A sending workflow asks its id typed before it goes live: a guard, so nothing is kept. */
+function PublishConfirm({
+  asks,
+  id,
+  busy,
+  onPublish,
+  onCancel,
+}: {
+  asks: string;
+  id: string;
+  busy: boolean;
+  onPublish: (typed: string) => Promise<unknown>;
+  onCancel: () => void;
+}) {
+  const form = useEditForm({ key: null, defaults: { typed: "" } });
+  const go = form.onSend((v) => onPublish(v.typed.trim()));
+  return (
+    <form
+      className="mb-3 flex flex-wrap items-end gap-3 border border-(--warn) bg-(--ui-paper) px-3 py-2.5 text-[13.5px]"
+      onSubmit={(e) => void go(e)}
+    >
+      <TextField
+        form={form}
+        name="typed"
+        label={`${asks.replace(/: type .*$/, "").replace(/^it/, "It")}. Type ${id} to make it live.`}
+        aria-label={`Type ${id} to confirm`}
+        className={`${NARROW} grow basis-[260px]`}
+      />
+      <Button
+        tone="primary"
+        type="submit"
+        size="dense"
+        busy={busy}
+        disabled={form.watch("typed").trim() !== id}
+      >
+        Publish
+      </Button>
+      <Button tone="quiet" size="dense" onClick={onCancel}>
+        Cancel
+      </Button>
+    </form>
+  );
+}
+
 /**
  * Below the canvas while editing: a wire by name from two lists, for the keyboard, and a custom
- * step that posts each event to its URL.
+ * step that posts each event to its URL. `at` keeps the custom step's typed words.
  */
-function Editor({ w, draft, setDraft }: { w: Drawn; draft: Draft; setDraft: (d: Draft) => void }) {
+function Editor({
+  w,
+  draft,
+  setDraft,
+  at,
+}: {
+  w: Drawn;
+  draft: Draft;
+  setDraft: (d: Draft) => void;
+  at: string;
+}) {
   const [note, setNote] = useState<string | null>(null);
-  const kinds = [...new Set(allEnds(w, "from").map((e) => e.port.kind))].sort();
+  const froms = allEnds(w, "from");
+  const tos = allEnds(w, "to");
+  const kinds = [...new Set(froms.map((e) => e.port.kind))].sort();
 
-  const addWire = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const from = allEnds(w, "from").find((x) => x.ref === f.get("from"));
-    const to = allEnds(w, "to").find((x) => x.ref === f.get("to"));
-    if (!from || !to) return;
-    if (from.port.kind !== to.port.kind)
-      return setNote(`${from.port.label} can't go into ${to.port.label}: the kinds differ.`);
+  const wire = useEditForm({
+    key: null,
+    defaults: { from: froms[0]?.ref ?? "", to: tos[0]?.ref ?? "" },
+  });
+  const addWire = wire.onSend((v) => {
+    const from = froms.find((x) => x.ref === v.from);
+    const to = tos.find((x) => x.ref === v.to);
+    if (!from || !to) return false;
+    if (from.port.kind !== to.port.kind) {
+      setNote(`${from.port.label} can't go into ${to.port.label}: the kinds differ.`);
+      return false;
+    }
     setNote(null);
     setDraft(wired(draft, { from: from.ref, to: to.ref, via: "events" }));
-  };
-  const addStep = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const s = stepOf(w, {
-      name: String(f.get("name") ?? ""),
-      url: String(f.get("url") ?? ""),
-      takes: String(f.get("takes")) as never,
-      gives: String(f.get("gives")) as never,
-      outs: String(f.get("outs") ?? ""),
-    });
-    setDraft({ ...draft, steps: [...draft.steps, s] });
-    e.currentTarget.reset();
-  };
+  });
+  const step = useEditForm({
+    key: at,
+    defaults: { name: "", url: "", takes: kinds[0] ?? "", gives: kinds[0] ?? "", outs: "" },
+  });
+  const addStep = step.onSend(
+    (v) => {
+      const s = stepOf(w, {
+        name: v.name,
+        url: v.url,
+        takes: v.takes as never,
+        gives: v.gives as never,
+        outs: v.outs,
+      });
+      setDraft({ ...draft, steps: [...draft.steps, s] });
+    },
+    { clear: true },
+  );
 
   return (
     <div className="mt-6 grid gap-8">
@@ -1078,27 +1123,21 @@ function Editor({ w, draft, setDraft }: { w: Drawn; draft: Draft; setDraft: (d: 
         title="Wire by name"
         note="Or drag from a dot onto another of the same color. Click a wire to set its rule."
       >
-        <form className={FORM} onSubmit={addWire}>
-          <label className={FIELD}>
-            <span>From</span>
-            <select className={SELECT} name="from">
-              {allEnds(w, "from").map((e) => (
-                <option key={e.ref} value={e.ref}>
-                  {endText(w, e.ref, "from")} ({e.port.kind})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={FIELD}>
-            <span>To</span>
-            <select className={SELECT} name="to">
-              {allEnds(w, "to").map((e) => (
-                <option key={e.ref} value={e.ref}>
-                  {endText(w, e.ref, "to")} ({e.port.kind})
-                </option>
-              ))}
-            </select>
-          </label>
+        <form className={FORM} onSubmit={(e) => void addWire(e)}>
+          <SelectField
+            form={wire}
+            name="from"
+            label="From"
+            className={NARROW}
+            options={froms.map((e) => [e.ref, `${endText(w, e.ref, "from")} (${e.port.kind})`])}
+          />
+          <SelectField
+            form={wire}
+            name="to"
+            label="To"
+            className={NARROW}
+            options={tos.map((e) => [e.ref, `${endText(w, e.ref, "to")} (${e.port.kind})`])}
+          />
           <Button type="submit" tone="secondary" size="dense">
             Add wire
           </Button>
@@ -1110,46 +1149,54 @@ function Editor({ w, draft, setDraft }: { w: Drawn; draft: Draft; setDraft: (d: 
         title="Custom step"
         note="A one-off integration: each event is posted to your URL, which answers what goes out."
       >
-        <form className={FORM} onSubmit={addStep}>
-          <label className={FIELD}>
-            <span>Name</span>
-            <Input name="name" required maxLength={60} placeholder="Their CRM" />
-          </label>
-          <label className={`${FIELD} grow basis-[260px]`}>
-            <span>URL</span>
-            <Input
-              name="url"
-              type="url"
-              required
-              pattern="https://.+"
-              maxLength={500}
-              placeholder="https://"
-            />
-          </label>
-          <label className={FIELD}>
-            <span>Takes</span>
-            <select className={SELECT} name="takes">
-              {kinds.map((k) => (
-                <option key={k}>{k}</option>
-              ))}
-            </select>
-          </label>
-          <label className={FIELD}>
-            <span>Gives</span>
-            <select className={SELECT} name="gives">
-              {kinds.map((k) => (
-                <option key={k}>{k}</option>
-              ))}
-            </select>
-          </label>
-          <label className={FIELD}>
-            <span>Outputs</span>
-            <Input name="outs" maxLength={120} placeholder="done" />
-          </label>
+        <form className={FORM} onSubmit={(e) => void addStep(e)}>
+          <TextField
+            form={step}
+            name="name"
+            label="Name"
+            required
+            maxLength={60}
+            placeholder="Their CRM"
+            className={NARROW}
+          />
+          <TextField
+            form={step}
+            name="url"
+            label="URL"
+            type="url"
+            required
+            pattern="https://.+"
+            maxLength={500}
+            placeholder="https://"
+            className={`${NARROW} grow basis-[260px]`}
+          />
+          <SelectField
+            form={step}
+            name="takes"
+            label="Takes"
+            className={NARROW}
+            options={kinds.map((k) => [k, k])}
+          />
+          <SelectField
+            form={step}
+            name="gives"
+            label="Gives"
+            className={NARROW}
+            options={kinds.map((k) => [k, k])}
+          />
+          <TextField
+            form={step}
+            name="outs"
+            label="Outputs"
+            maxLength={120}
+            placeholder="done"
+            className={NARROW}
+          />
           <Button type="submit" tone="secondary" size="dense">
             Add step
           </Button>
         </form>
+        <FormKept form={step} />
       </Section>
     </div>
   );

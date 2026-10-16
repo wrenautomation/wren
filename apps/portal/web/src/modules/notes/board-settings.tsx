@@ -2,7 +2,7 @@
  * Board dialogs: a new board, and a board's settings (its name and columns, who it is shared with,
  * archive). Sharing is the note's: a person, the team, or at Wren a client.
  */
-import { Button, EditConflict, Input, say, UnsavedMark, useEdit } from "@wren/ui";
+import { Button, FormKept, Input, SelectField, say, TextField, useEditForm } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -10,10 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { type FormEvent, useState } from "react";
 import { useCall } from "../../load.js";
 import { WREN } from "../../module.js";
-import { useEditJson } from "../people/edit-json.js";
 import { type BoardInfo, notes, ROLE_LABEL, type ShareRole, useBoard } from "./api.js";
 import { SELECT } from "./card.js";
 
@@ -36,24 +34,20 @@ export function NewBoard({
   onOpenChange: (o: boolean) => void;
   onMade: (id: string) => void;
 }) {
-  const nameEdit = useEdit("board:new:name", "");
-  const name = nameEdit.value;
-  const [busy, setBusy] = useState(false);
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const sent = name;
-      const b = await notes(client, "boardCreate", { name: sent });
-      nameEdit.saved(sent);
-      onOpenChange(false);
-      onMade(b.id);
-    } catch (err) {
-      say.failed(err);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const form = useEditForm({ key: "board:new:name", defaults: { name: "" } });
+  const make = form.onSend(
+    async (v) => {
+      try {
+        const b = await notes(client, "boardCreate", { name: v.name });
+        onOpenChange(false);
+        onMade(b.id);
+      } catch (err) {
+        say.failed(err);
+        return false;
+      }
+    },
+    { clear: true },
+  );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -63,17 +57,24 @@ export function NewBoard({
             It starts with To do, Doing and Done, and is private to you until you share it.
           </DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-3" onSubmit={submit}>
-          <Input
-            {...nameEdit.field}
+        <form className="flex flex-col gap-3" onSubmit={(e) => void make(e)}>
+          <TextField
+            form={form}
+            name="name"
             autoFocus
             maxLength={80}
             aria-label="Board name"
             placeholder="Launch plan"
           />
-          <UnsavedMark edit={nameEdit} />
+          <FormKept form={form} />
           <div className="flex justify-end">
-            <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!name.trim()}>
+            <Button
+              tone="primary"
+              size="dense"
+              type="submit"
+              busy={form.formState.isSubmitting}
+              disabled={!form.watch("name").trim()}
+            >
               Make board
             </Button>
           </div>
@@ -102,19 +103,18 @@ export function BoardDialog({
   // The board's row version: a save over a board someone changed since shows both, never
   // overwrites theirs.
   const version = String(board.version);
-  const nameEdit = useEdit(`board:${board.id}:name`, board.name, { version });
-  const colsEdit = useEditJson<Column[]>(
-    `board:${board.id}:columns`,
-    board.columns.length ? board.columns : FIRST,
-    { version, show: (cs) => cs.map((c) => c.name).join(", ") },
-  );
-  const whoEdit = useEdit(`board:${board.id}:share`, "");
-  const name = nameEdit.value;
-  const columns = colsEdit.value;
-  const who = whoEdit.value;
-  const setColumns = (f: (cs: Column[]) => Column[]) => colsEdit.set(f(colsEdit.value));
-  const [busy, setBusy] = useState(false);
-  const [role, setRole] = useState<ShareRole>("edit");
+  const form = useEditForm({
+    key: `board:${board.id}`,
+    defaults: { name: board.name, columns: board.columns.length ? board.columns : FIRST },
+    base: version,
+  });
+  const columns = form.watch("columns");
+  const setColumns = (f: (cs: Column[]) => Column[]) =>
+    form.setValue("columns", f(form.getValues("columns")));
+  const shareForm = useEditForm({
+    key: `board:${board.id}:share`,
+    defaults: { who: "", role: "edit" as ShareRole },
+  });
   // Who it's shared with, from the board's own read (the owner's alone); Wren's clients to pick.
   const held = useBoard(client, owner ? board.id : null);
   const shares = held.data?.shares ?? [];
@@ -134,45 +134,41 @@ export function BoardDialog({
       return next;
     });
 
-  const save = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
+  const save = form.onSend(async (v) => {
     try {
-      const sentName = name;
-      const sentCols = columns;
       await notes(client, "boardSave", {
         id: board.id,
         expect: board.version,
-        name: sentName,
+        name: v.name,
         // A new column has no id yet; the server makes one from its name.
-        columns: sentCols.map((c) =>
+        columns: v.columns.map((c) =>
           c.id.startsWith("new-") ? { name: c.name, done: c.done } : c,
         ),
       });
-      nameEdit.saved(sentName);
-      colsEdit.saved(sentCols);
-      say.done("Saved.");
-      onChanged();
-      onOpenChange(false);
     } catch (err) {
       say.failed(err);
       // Saved by someone else since: read it, so theirs shows beside these words.
       if ((err as { status?: unknown } | null)?.status === 409) onChanged();
-    } finally {
-      setBusy(false);
+      return false;
     }
-  };
+    say.done("Saved.");
+    onChanged();
+    onOpenChange(false);
+  });
   const share = async (w: string, r: ShareRole | null) => {
     try {
-      const typed = whoEdit.value;
       await notes(client, "boardShare", { id: board.id, who: w, role: r });
-      whoEdit.saved(typed);
-      readShares();
-      onChanged();
     } catch (err) {
       say.failed(err);
+      return false;
     }
+    readShares();
+    onChanged();
+    return true;
   };
+  const addShare = shareForm.onSend((v) => (v.who.trim() ? share(v.who.trim(), v.role) : false), {
+    clear: true,
+  });
   const archive = async () => {
     try {
       await notes(client, "boardArchive", { id: board.id, on: true });
@@ -201,24 +197,20 @@ export function BoardDialog({
             Name it, set its columns, and choose who can see it.
           </DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-3" onSubmit={save}>
-          <label className="grid gap-1 text-[13px]">
-            Name
-            <Input {...nameEdit.field} maxLength={80} disabled={board.isDefault} />
-          </label>
-          <UnsavedMark edit={nameEdit} />
-          <EditConflict
-            conflict={nameEdit.conflict}
-            onKeepMine={nameEdit.keepMine}
-            onTakeTheirs={nameEdit.takeTheirs}
-            what="The name"
+        <form className="flex flex-col gap-3" onSubmit={(e) => void save(e)}>
+          <TextField
+            form={form}
+            name="name"
+            label="Name"
+            maxLength={80}
+            disabled={board.isDefault}
           />
           <fieldset className="m-0 grid gap-1.5 border-0 p-0">
             <legend className="mb-1 p-0 text-[13px]">Columns, left to right</legend>
             {columns.map((c, i) => (
               <div key={c.id} className="flex items-center gap-1.5">
                 <Input
-                  data-edit={colsEdit.key}
+                  data-edit="form:columns"
                   value={c.name}
                   maxLength={40}
                   aria-label={`Column ${i + 1}`}
@@ -284,16 +276,10 @@ export function BoardDialog({
                 </Button>
               </div>
             ) : null}
-            <UnsavedMark edit={colsEdit} />
-            <EditConflict
-              conflict={colsEdit.conflict}
-              onKeepMine={colsEdit.keepMine}
-              onTakeTheirs={colsEdit.takeTheirs}
-              what="The columns"
-            />
           </fieldset>
+          <FormKept form={form} />
           <div className="flex justify-end">
-            <Button tone="primary" size="dense" type="submit" busy={busy}>
+            <Button tone="primary" size="dense" type="submit" busy={form.formState.isSubmitting}>
               Save
             </Button>
           </div>
@@ -336,19 +322,14 @@ export function BoardDialog({
                 </li>
               ))}
             </ul>
-            <form
-              className="flex flex-wrap items-center gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (who.trim()) void share(who.trim(), role);
-              }}
-            >
-              <Input
-                {...whoEdit.field}
+            <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => void addShare(e)}>
+              <TextField
+                form={shareForm}
+                name="who"
                 list="board-who"
                 aria-label="Share with"
                 placeholder="An email, team, or a client"
-                className="min-w-0 flex-1"
+                box="min-w-0 flex-1"
               />
               <datalist id="board-who">
                 <option value="team" />
@@ -358,19 +339,19 @@ export function BoardDialog({
                   </option>
                 ))}
               </datalist>
-              <select
+              <SelectField
+                form={shareForm}
+                name="role"
                 aria-label="Role"
-                className={SELECT}
-                value={role}
-                onChange={(e) => setRole(e.target.value as ShareRole)}
+                box={`${SELECT} w-auto`}
+                options={(Object.keys(ROLE_LABEL) as ShareRole[]).map((r) => [r, ROLE_LABEL[r]])}
+              />
+              <Button
+                tone="primary"
+                size="dense"
+                type="submit"
+                disabled={!shareForm.watch("who").trim()}
               >
-                {(Object.keys(ROLE_LABEL) as ShareRole[]).map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABEL[r]}
-                  </option>
-                ))}
-              </select>
-              <Button tone="primary" size="dense" type="submit" disabled={!who.trim()}>
                 Share
               </Button>
             </form>

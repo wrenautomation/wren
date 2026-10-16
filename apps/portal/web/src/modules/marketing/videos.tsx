@@ -25,9 +25,10 @@ import {
   SaveStatus,
   Tag,
   Textarea,
+  TextField,
   tipProps,
   useEdit,
-  useKeptForm,
+  useEditForm,
   useSaved,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -763,16 +764,14 @@ function Transcript({
 
 /** Whisper's mishearing fixed everywhere it says it: "drug fooding" to "dogfooding". */
 function FixEvery({ video, act }: { video: string; act: RecordAct }) {
-  const wrongEdit = useEdit(`video:${video}:fix-every:wrong`, "");
-  const rightEdit = useEdit(`video:${video}:fix-every:right`, "");
-  const wrong = wrongEdit.value;
-  const right = rightEdit.value;
-  const [busy, setBusy] = useState(false);
+  const form = useEditForm({
+    key: `video:${video}:fix-every`,
+    defaults: { wrong: "", right: "" },
+  });
   const [said, setSaid] = useState<string | null>(null);
   const [bad, setBad] = useState(false);
-  const run = async () => {
-    if (!wrong.trim() || !right.trim()) return;
-    setBusy(true);
+  const run = form.onSend(async ({ wrong, right }) => {
+    if (!wrong.trim() || !right.trim()) return false;
     setSaid(null);
     setBad(false);
     try {
@@ -780,36 +779,35 @@ function FixEvery({ video, act }: { video: string; act: RecordAct }) {
         | { n?: number }
         | undefined;
       setSaid(r?.n ? `Fixed in ${r.n} ${r.n === 1 ? "place" : "places"}.` : "Fixed.");
-      wrongEdit.saved(wrong);
-      rightEdit.saved(right);
     } catch (err) {
       setSaid(errorOf(err));
       setBad(true);
-    } finally {
-      setBusy(false);
+      return false;
     }
-  };
+  });
   return (
     <details>
       <summary className="w-fit cursor-pointer text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
         Fix a word everywhere
       </summary>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <Input
-          {...wrongEdit.field}
+        <TextField
+          form={form}
+          name="wrong"
           placeholder="What it wrote"
           aria-label="What it wrote"
           maxLength={60}
-          className="w-44 text-[14px]"
+          box="w-44 text-[14px]"
         />
-        <Input
-          {...rightEdit.field}
+        <TextField
+          form={form}
+          name="right"
           placeholder="What you said"
           aria-label="What you said"
           maxLength={60}
-          className="w-44 text-[14px]"
+          box="w-44 text-[14px]"
         />
-        <Button size="dense" busy={busy} onClick={() => void run()}>
+        <Button size="dense" busy={form.formState.isSubmitting} onClick={() => void run()}>
           Fix
         </Button>
         {said ? (
@@ -913,26 +911,15 @@ function Agent({
   narrow?: boolean;
 }) {
   // What he types for the agent stays on the device until it's sent.
-  const kept = useKeptForm(`video:${video}:agent`);
-  const note = kept.values.note ?? "";
-  const setNote = (t: string) => kept.set("note", t);
+  const form = useEditForm({ key: `video:${video}:agent`, defaults: { note: "" } });
+  const note = form.watch("note");
   const box = useRef<HTMLTextAreaElement>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const busy = form.formState.isSubmitting;
   const passes = steps.filter((s) => s.command === "video-edit");
   const running = passes.some((p) => p.state === "running");
-  const send = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await once(act, AGENT, { note: note.trim() });
-      kept.clear();
-    } catch (err) {
-      setError(errorOf(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const send = form.onSend(async (v) => void (await once(act, AGENT, { note: v.note.trim() })), {
+    clear: true,
+  });
   const said = passes.length ? (
     <ol className="grid list-none gap-4 p-0 text-[14px]">
       {passes.slice(-5).map((p) => (
@@ -951,9 +938,9 @@ function Agent({
           <DictateField target={box} label="Dictate changes">
             <Textarea
               ref={box}
-              data-edit={kept.key ?? ""}
+              data-edit="form:note"
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => form.setValue("note", e.target.value)}
               disabled={busy || running}
               rows={3}
               maxLength={2000}
@@ -979,7 +966,7 @@ function Agent({
               It fixes words, writes the title and chapters, then renders again.
             </span>
           </div>
-          {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
+          {form.error ? <span className="text-[13px] text-(--ui-bad)">{form.error}</span> : null}
         </div>
       ) : null}
       {narrow ? said : null}
@@ -1014,25 +1001,29 @@ const Steps = ({ steps }: { steps: Step[] }) => (
 
 /** Ask Claude on the video: his words go with the edit; Wren writes what Claude answers. */
 function Ask({ video, turns, act }: { video: string; turns: Turn[]; act: RecordAct }) {
-  const kept = useKeptForm(`video:${video}:ask`);
-  const message = kept.values.message ?? "";
-  const setMessage = (t: string) => kept.set("message", t);
+  const form = useEditForm({ key: `video:${video}:ask`, defaults: { message: "" } });
+  const message = form.watch("message");
   const askBox = useRef<HTMLInputElement>(null);
-  const [asking, setAsking] = useState(false);
+  const asking = form.formState.isSubmitting;
   const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const run = async (what: "ask" | "undo") => {
-    const said = message.trim();
-    if (what === "ask" && !said) return;
-    (what === "ask" ? setAsking : setUndoing)(true);
+  const ask = form.onSend(
+    async (v) => {
+      if (!v.message.trim()) return false;
+      setError(null);
+      await once(act, ASK, { message: v.message.trim() });
+    },
+    { clear: true },
+  );
+  const undo = async () => {
+    setUndoing(true);
     setError(null);
     try {
-      await once(act, what === "ask" ? ASK : UNDO, what === "ask" ? { message: said } : {});
-      if (what === "ask") kept.clear();
+      await once(act, UNDO, {});
     } catch (err) {
       setError(errorOf(err));
     } finally {
-      (what === "ask" ? setAsking : setUndoing)(false);
+      setUndoing(false);
     }
   };
   // The fields a change wrote, said under it.
@@ -1050,13 +1041,13 @@ function Ask({ video, turns, act }: { video: string; turns: Turn[]; act: RecordA
         <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
           <Input
             ref={askBox}
-            data-edit={kept.key ?? ""}
+            data-edit="form:message"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => form.setValue("message", e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 e.preventDefault();
-                void run("ask");
+                void ask();
               }
             }}
             disabled={asking}
@@ -1066,12 +1057,14 @@ function Ask({ video, turns, act }: { video: string; turns: Turn[]; act: RecordA
           />
         </DictateField>
         {changed ? (
-          <Button tone="quiet" size="dense" busy={undoing} onClick={() => void run("undo")}>
+          <Button tone="quiet" size="dense" busy={undoing} onClick={() => void undo()}>
             Undo
           </Button>
         ) : null}
       </div>
-      {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
+      {(form.error ?? error) ? (
+        <span className="text-[13px] text-(--ui-bad)">{form.error ?? error}</span>
+      ) : null}
     </div>
   );
 }

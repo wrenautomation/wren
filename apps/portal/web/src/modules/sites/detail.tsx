@@ -34,10 +34,13 @@ import {
   type RecordExtras,
   SaveConflict,
   SaveStatus,
+  SelectField,
   Tag,
   Textarea,
+  TextField,
   TrendChart,
   useEdit,
+  useEditForm,
   useSaved,
 } from "@wren/ui";
 import {
@@ -383,14 +386,16 @@ function CopyEditor({
   client: boolean;
 }) {
   const draft = d.draft;
-  // The note, the angle and the ask are kept as typed too, until used.
+  // The note and the angle are kept as typed too, until used; so is the rewrite's part and ask.
   const whyEdit = useEdit(`site-copy:${id}:why`, "");
   const angleEdit = useEdit(`site-copy:${id}:angle`, "");
-  const askEdit = useEdit(`site-copy:${id}:ask`, "");
   const { value: why } = whyEdit;
   const { value: angle } = angleEdit;
-  const { value: ask } = askEdit;
-  const [part, setPart] = useState("");
+  const rewrite = useEditForm({
+    key: `site-copy:${id}:rewrite`,
+    defaults: { part: "", ask: "" },
+  });
+  const { part, ask } = rewrite.watch();
   const { said, busy, run, setSaid } = useRun(act);
   const whyNow = useRef(why);
   whyNow.current = why;
@@ -423,6 +428,15 @@ function CopyEditor({
   const template = d.template;
   const parts = partsOf(templateOf(template.id), draft.content ?? {});
   const partKey = parts.some((p) => p.key === part) ? part : (parts[0]?.key ?? "");
+  const rewriteSend = rewrite.onSend(async (v) => {
+    if (!partKey || !v.ask.trim()) return false;
+    return run(
+      "rewrite",
+      "sites.rewrite",
+      { id, part: partKey, ask: v.ask.trim() },
+      "Claude saved a new version with that part rewritten. Read it before you ask.",
+    );
+  });
   const edit = (next: Content) => {
     copy.set(next);
     setTyping(id, JSON.stringify(next) === JSON.stringify(draft.content) ? null : next);
@@ -579,39 +593,26 @@ function CopyEditor({
               Or rewrite one part
             </label>
             <div className="flex flex-wrap items-center gap-2">
-              <select
+              <SelectField
+                form={rewrite}
+                name="part"
                 id="copy-part"
-                className={SELECT}
-                value={partKey}
-                onChange={(e) => setPart(e.target.value)}
-              >
-                {parts.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-              <Input
+                box="min-h-[34px] w-auto px-2.5 py-1.5 text-[14px]"
+                options={parts.map((p) => [p.key, p.label] as const)}
+              />
+              <TextField
+                form={rewrite}
+                name="ask"
                 id="copy-ask"
                 aria-label="What to change"
-                className="max-w-[420px]"
+                box="max-w-[420px]"
                 placeholder="What to change: shorter, warmer, lead with speed"
-                {...askEdit.field}
                 maxLength={500}
               />
               <Button
                 disabled={changed || closed || !ask.trim() || !partKey}
                 busy={busy === "rewrite"}
-                onClick={async () => {
-                  const sent = ask;
-                  const ok = await run(
-                    "rewrite",
-                    "sites.rewrite",
-                    { id, part: partKey, ask: sent.trim() },
-                    "Claude saved a new version with that part rewritten. Read it before you ask.",
-                  );
-                  if (ok) askEdit.saved(sent);
-                }}
+                onClick={() => void rewriteSend()}
               >
                 Rewrite
               </Button>

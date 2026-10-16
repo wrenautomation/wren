@@ -7,16 +7,17 @@ import {
   Button,
   Empty,
   Fieldset,
+  FormKept,
   FRAME,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   relative,
   Tag,
-  useEdit,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
-import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
@@ -49,47 +50,52 @@ const savedLine = (s: Saved) =>
 /** The Save a link box above Saved: paste a link, it's kept and read. */
 export function SaveBox({ reload }: { reload?: () => void }) {
   // A link pasted and not saved yet stays put: another page and back gives it again.
-  const link = useEdit("learn:save-link", "");
-  const url = link.value;
-  const [busy, setBusy] = useState(false);
+  const form = useEditForm({ key: "learn:save-link", defaults: { url: "" } });
   const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string } | null>(null);
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!url.trim() || flying.current) return;
-    flying.current = true;
-    setBusy(true);
-    setSaid(null);
-    const sent = url;
-    try {
-      const s = await call<Saved>("learn/save", { url: url.trim() });
-      link.saved(sent);
-      setSaid({ ok: true, line: savedLine(s) });
-      reload?.();
-    } catch (err) {
-      setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
-    } finally {
-      flying.current = false;
-      setBusy(false);
-    }
-  };
+  const submit = form.onSend(
+    async (v) => {
+      if (!v.url.trim() || flying.current) return false;
+      flying.current = true;
+      setSaid(null);
+      try {
+        const s = await call<Saved>("learn/save", { url: v.url.trim() });
+        setSaid({ ok: true, line: savedLine(s) });
+        reload?.();
+      } catch (err) {
+        setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
+        return false;
+      } finally {
+        flying.current = false;
+      }
+    },
+    { clear: true },
+  );
   return (
     <form
-      onSubmit={submit}
+      onSubmit={(e) => void submit(e)}
       className="flex w-full min-w-0 flex-1 basis-full flex-col gap-1.5 sm:max-w-xl"
     >
       <div className="flex min-w-0 gap-2">
-        <Input
+        <TextField
+          form={form}
+          name="url"
           type="url"
-          {...link.field}
-          className="min-w-0 flex-1"
+          box="min-w-0 flex-1"
           placeholder="Paste a link"
           aria-label="Save a link"
         />
-        <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!url.trim()}>
+        <Button
+          tone="primary"
+          size="dense"
+          type="submit"
+          busy={form.formState.isSubmitting}
+          disabled={!form.watch("url").trim()}
+        >
           Save
         </Button>
       </div>
+      <FormKept form={form} what="link" />
       {said ? (
         <span className={`text-[13px] ${said.ok ? "text-(--ui-ink-2)" : "text-(--ui-bad)"}`}>
           {said.line}
@@ -176,30 +182,33 @@ export function SearchPage({ params, client }: PageProps) {
 }
 
 function SearchBody({ params }: { params: URLSearchParams }) {
-  const [q, setQ] = useState(params.get("q") ?? "");
-  const [asked, setAsked] = useState(params.get("q") ?? "");
+  const [start] = useState(() => ({ q: params.get("q") ?? "" }));
+  const form = useEditForm({ key: null, defaults: start });
+  const q = form.watch("q");
+  const [asked, setAsked] = useState(start.q);
   const hits = useCall(keyOf(`learn.search:${asked}`), () =>
     asked.trim()
       ? call<{ hits: Hit[] }>("learn/search", { q: asked })
       : Promise.resolve({ hits: [] }),
   );
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    setAsked(q.trim());
-    navigate(href(location.pathname, { q: q.trim() }, new URLSearchParams(location.search)), true);
-  };
+  const submit = form.onSend((v) => {
+    setAsked(v.q.trim());
+    navigate(
+      href(location.pathname, { q: v.q.trim() }, new URLSearchParams(location.search)),
+      true,
+    );
+  });
   return (
     <>
       <PageHeader
         title="Search"
         lede={'Every transcript, word for word. Use "a phrase" or -word to leave one out.'}
       />
-      <form onSubmit={submit} className="mb-6 flex max-w-xl gap-2">
-        <Input
-          // edit-ok: search box
+      <form onSubmit={(e) => void submit(e)} className="mb-6 flex max-w-xl gap-2">
+        <TextField
+          form={form}
+          name="q"
           type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
           placeholder="warmup schedule"
           aria-label="Search transcripts"
         />

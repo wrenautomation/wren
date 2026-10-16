@@ -1,11 +1,12 @@
 import "fake-indexeddb/auto";
+import { QueryClient } from "@tanstack/react-query";
 import type { RecordsPage } from "@wren/core/records/serve";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { WRITES, type Write } from "../save/writes.js";
 import { listChanged } from "./delta.js";
 import { EDITS } from "./edits.js";
-import { dropLocalCopy, fitted, indexedStore, startLocalCopy } from "./local.js";
+import { dropLocalCopy, fitted, indexedStore, sharedOnly, startLocalCopy } from "./local.js";
 import {
   cachedOf,
   keyOf,
@@ -101,6 +102,26 @@ describe("the local copy", () => {
     expect(out.clientState.queries.map((x: { queryKey: string[] }) => x.queryKey[0])).toEqual([
       "plain",
     ]);
+  });
+});
+
+describe("other tabs", () => {
+  it("hear only reads in a named scope: a component's own may hold handlers", async () => {
+    const client = new QueryClient();
+    const heard: unknown[] = [];
+    const off = sharedOnly(client)
+      .getQueryCache()
+      .subscribe((e) => heard.push(e.query.queryKey));
+    await client.fetchQuery({ queryKey: ["tab:1", "nav"], queryFn: () => ({ onDrop: () => {} }) });
+    await client.fetchQuery({ queryKey: ["portal", "me"], queryFn: () => 1, meta: { keep: true } });
+    off();
+    expect(heard.length).toBeGreaterThan(0);
+    expect(heard.every((k) => (k as string[])[0] === "portal")).toBe(true);
+    expect(
+      sharedOnly(client)
+        .getQueryCache()
+        .find({ queryKey: ["portal", "me"] }),
+    ).toBeTruthy();
   });
 });
 

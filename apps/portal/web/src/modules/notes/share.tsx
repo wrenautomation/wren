@@ -4,7 +4,7 @@
  * owner changes it; everyone else sees who owns it.
  */
 import { ownerName } from "@wren/notes/types";
-import { Button, Input, say, UnsavedMark, useEdit } from "@wren/ui";
+import { Button, FormKept, SelectField, say, TextField, useEditForm } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -76,9 +76,10 @@ export function ShareDialog({
   const wren = client === WREN.id;
   const [shares, setShares] = useState<NoteShare[]>(note.shares);
   // Who is being added is kept as typed until it is added.
-  const whoEdit = useEdit(`note:${note.id}:share-who`, "");
-  const who = whoEdit.value;
-  const [role, setRole] = useState<ShareRole>("edit");
+  const form = useEditForm({
+    key: `note:${note.id}:share-who`,
+    defaults: { who: "", role: "edit" as ShareRole },
+  });
   const [general, setGeneral] = useState(note.general);
   const [generalRole, setGeneralRole] = useState<ShareRole>(note.generalRole as ShareRole);
   const [to, setTo] = useState("");
@@ -115,14 +116,13 @@ export function ShareDialog({
       .then(onChanged)
       .catch(say.failed);
   };
-  const add = () => {
-    const w = who.trim().toLowerCase();
-    if (!w) return;
-    const typed = who;
-    void share(w, role).then((ok) => {
-      if (ok) whoEdit.saved(typed);
-    });
-  };
+  const add = form.onSend(
+    (v) => {
+      const w = v.who.trim().toLowerCase();
+      return w ? share(w, v.role) : false;
+    },
+    { clear: true },
+  );
   const copy = () =>
     navigator.clipboard
       .writeText(`${location.origin}${docPath(note.id)}`)
@@ -149,33 +149,41 @@ export function ShareDialog({
           </DialogDescription>
         </DialogHeader>
         {owner ? (
-          <form
-            className="flex flex-wrap items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              add();
-            }}
-          >
-            <Input
-              {...whoEdit.field}
-              list={list}
-              aria-label="Add a person or group"
-              placeholder={wren ? "Email, Wren's team or a client" : "Email"}
-              className="h-8 min-w-0 flex-1"
-            />
-            <datalist id={list}>
-              {options.map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </datalist>
-            <RolePick value={role} onChange={(r) => r && setRole(r)} label="Their role" />
-            <Button tone="primary" size="dense" type="submit" disabled={!who.trim()}>
-              Add
-            </Button>
-            <UnsavedMark edit={whoEdit} />
-          </form>
+          <>
+            <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => void add(e)}>
+              <TextField
+                form={form}
+                name="who"
+                list={list}
+                aria-label="Add a person or group"
+                placeholder={wren ? "Email, Wren's team or a client" : "Email"}
+                box="h-8 min-w-0 flex-1"
+              />
+              <datalist id={list}>
+                {options.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </datalist>
+              <SelectField
+                form={form}
+                name="role"
+                aria-label="Their role"
+                box={`${SELECT} min-h-0 w-auto py-0`}
+                options={ROLES}
+              />
+              <Button
+                tone="primary"
+                size="dense"
+                type="submit"
+                disabled={!form.watch("who").trim()}
+              >
+                Add
+              </Button>
+            </form>
+            <FormKept form={form} />
+          </>
         ) : null}
         <section className="grid gap-1">
           <h3 className="m-0 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">

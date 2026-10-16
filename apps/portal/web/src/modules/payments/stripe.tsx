@@ -4,8 +4,8 @@
  * or the page asks for the endpoint's signing secret. Each is saved alone first (`saveKey`) and
  * the connect call gets its ref. A key is never shown again, only its last 4.
  */
-import { Button, Input, Tag } from "@wren/ui";
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Button, Tag, TextField, useEditForm } from "@wren/ui";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { saveKey } from "../../keys.js";
 
@@ -35,9 +35,9 @@ const LINE = "text-[13px] text-(--ui-ink-2)";
 export function StripePanel({ client, reload }: { client: string; reload: () => void }) {
   const [s, setS] = useState<Status | null>(null);
   const [open, setOpen] = useState(false);
-  const [key, setKey] = useState("");
-  const [secret, setSecret] = useState("");
-  const [busy, setBusy] = useState(false);
+  // Nothing is kept (`key: null`): both boxes are secrets, never stored on the device.
+  const form = useEditForm({ key: null, defaults: { key: "", secret: "" } });
+  const blank = !form.watch("key").trim() && !form.watch("secret").trim();
   const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string; url?: string } | null>(null);
   const load = useCallback(
@@ -51,41 +51,37 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
     void load();
   }, [load]);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (flying.current || (!key.trim() && !secret.trim())) return;
-    flying.current = true;
-    setBusy(true);
-    setSaid(null);
-    try {
-      const sentKey = key;
-      const sentSecret = secret;
-      const keyRef = key.trim() ? (await saveKey(client, "STRIPE_SECRET_KEY", key)).ref : null;
-      const secretRef = secret.trim()
-        ? (await saveKey(client, "STRIPE_WEBHOOK_SECRET", secret)).ref
-        : null;
-      const r = await call<Connected>("payments/connect", { client, keyRef, secretRef });
-      // Clear what was sent; a key typed meanwhile stays.
-      setKey((k) => (k === sentKey ? "" : k));
-      setSecret((x) => (x === sentSecret ? "" : x));
-      setSaid(
-        r.webhook
-          ? { ok: true, line: "Connected. Paid links now show here." }
-          : {
-              ok: false,
-              line: r.why ?? "Connected, but Stripe can't reach us yet.",
-              ...(r.url ? { url: r.url } : {}),
-            },
-      );
-      await load();
-      reload();
-    } catch (err) {
-      setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
-    } finally {
-      flying.current = false;
-      setBusy(false);
-    }
-  };
+  const submit = form.onSend(
+    async ({ key, secret }) => {
+      if (flying.current || (!key.trim() && !secret.trim())) return false;
+      flying.current = true;
+      setSaid(null);
+      try {
+        const keyRef = key.trim() ? (await saveKey(client, "STRIPE_SECRET_KEY", key)).ref : null;
+        const secretRef = secret.trim()
+          ? (await saveKey(client, "STRIPE_WEBHOOK_SECRET", secret)).ref
+          : null;
+        const r = await call<Connected>("payments/connect", { client, keyRef, secretRef });
+        setSaid(
+          r.webhook
+            ? { ok: true, line: "Connected. Paid links now show here." }
+            : {
+                ok: false,
+                line: r.why ?? "Connected, but Stripe can't reach us yet.",
+                ...(r.url ? { url: r.url } : {}),
+              },
+        );
+        await load();
+        reload();
+      } catch (err) {
+        setSaid({ ok: false, line: err instanceof Error ? err.message : String(err) });
+        return false;
+      } finally {
+        flying.current = false;
+      }
+    },
+    { clear: true },
+  );
 
   if (!s) return null;
   const mode = s.live === false ? "test mode" : s.live ? "live" : null;
@@ -125,25 +121,26 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
         </span>
       ) : null}
       {open ? (
-        <form onSubmit={submit} className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xl">
+        <form
+          onSubmit={(e) => void submit(e)}
+          className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xl"
+        >
           <div className="flex min-w-0 flex-wrap gap-2">
-            {/* edit-ok: a secret, never kept on the device */}
-            <Input
+            <TextField
+              form={form}
+              name="key"
               type="password"
               autoComplete="off"
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-              className="min-w-0 flex-1 basis-48"
+              box="min-w-0 flex-1 basis-48"
               placeholder="Stripe restricted key"
               aria-label="Stripe key"
             />
-            {/* edit-ok: a secret, never kept on the device */}
-            <Input
+            <TextField
+              form={form}
+              name="secret"
               type="password"
               autoComplete="off"
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              className="min-w-0 flex-1 basis-48"
+              box="min-w-0 flex-1 basis-48"
               placeholder="Signing secret, if asked"
               aria-label="Webhook signing secret"
             />
@@ -151,8 +148,8 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
               tone="primary"
               size="dense"
               type="submit"
-              busy={busy}
-              disabled={!key.trim() && !secret.trim()}
+              busy={form.formState.isSubmitting}
+              disabled={blank}
             >
               Save
             </Button>

@@ -2,7 +2,7 @@
  * A handler as a form: its key first when it's an object's, a box per input field (or one JSON
  * box), its effect named and its name typed in before it runs, and the last answer under it.
  */
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 import { FormBox, type FormField, typedOf, valuesOf } from "./action.js";
 import {
@@ -13,9 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./components/ui/dialog.js";
-import { Input } from "./components/ui/input.js";
 import { Button } from "./controls.js";
 import { Facts } from "./data.js";
+import { TextField, useEditForm } from "./edit-form.js";
 import { Alert } from "./feedback.js";
 import { GROUP_LABEL } from "./layout.js";
 
@@ -38,6 +38,10 @@ const JSON_BOX: FormField = {
   hint: "JSON. Left empty, it sends none.",
 };
 const KEY_BOX: FormField = { field: "key", label: "Key", hint: "Which object or workflow." };
+
+/** What the handler's boxes hold: the key, and the boxes the person typed in (the rest follow their `from`). */
+const BLANK: { key: string; typed: Record<string, string> } = { key: "", typed: {} };
+const NO_CONFIRM = { confirm: "" };
 
 const said = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const CODE = "font-mono text-[12.5px] [overflow-wrap:anywhere]";
@@ -73,12 +77,12 @@ export function HandlerForm({
   verb?: string;
 }) {
   const uid = useId();
-  const [typed, setTyped] = useState<Record<string, string>>({});
-  const [key, setKey] = useState("");
+  const boxes = useEditForm({ key: null, defaults: BLANK });
+  const sure = useEditForm({ key: null, defaults: NO_CONFIRM });
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
-  const [confirm, setConfirm] = useState("");
   const [last, setLast] = useState(() => LAST.get(id));
+  const { key, typed } = boxes.watch();
   const form = fields ?? [JSON_BOX];
   const values = valuesOf(form, typed);
   const warning = effect ? (EFFECTS[effect] ?? `It ${effect}.`) : null;
@@ -105,29 +109,39 @@ export function HandlerForm({
     setLast(answer);
     setBusy(false);
   };
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  const submit = boxes.onSend(async () => {
     try {
       inputOf();
     } catch (err) {
-      return void toast.error(said(err));
+      toast.error(said(err));
+      return false;
     }
-    if (!effect) return void go();
-    setConfirm("");
+    if (!effect) return go();
+    sure.forget();
     setAsking(true);
-  };
+    return false;
+  });
+  const confirmed = sure.onSend((v) => (v.confirm === name ? go(v.confirm) : false));
+  const confirm = sure.watch("confirm");
 
   return (
     <section className="grid min-w-0 gap-5" aria-label="Run it">
-      <form onSubmit={submit} className="grid gap-4">
-        {keyed ? <FormBox f={KEY_BOX} id={`${uid}-key`} value={key} onText={setKey} /> : null}
+      <form onSubmit={(e) => void submit(e)} className="grid gap-4">
+        {keyed ? (
+          <FormBox
+            f={KEY_BOX}
+            id={`${uid}-key`}
+            value={key}
+            onText={(text) => boxes.setValue("key", text)}
+          />
+        ) : null}
         {form.map((f) => (
           <FormBox
             key={f.field}
             f={f}
             id={`${uid}-${f.field}`}
             value={values[f.field] ?? ""}
-            onText={(text) => setTyped((t) => ({ ...t, [f.field]: text }))}
+            onText={(text) => boxes.setValue("typed", { ...typed, [f.field]: text })}
           />
         ))}
         {!keyed && !form.length ? (
@@ -150,13 +164,7 @@ export function HandlerForm({
 
       <Dialog open={asking} onOpenChange={(open) => !open && setAsking(false)}>
         <DialogContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (confirm === name) void go(confirm);
-            }}
-            className="grid gap-4"
-          >
+          <form onSubmit={(e) => void confirmed(e)} className="grid gap-4">
             <DialogHeader>
               <DialogTitle>
                 {verb} {name}?
@@ -165,10 +173,9 @@ export function HandlerForm({
                 {warning} Type {name} to {verb.toLowerCase()} it.
               </DialogDescription>
             </DialogHeader>
-            <Input
-              // edit-ok: type-to-confirm, never kept on purpose
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+            <TextField
+              form={sure}
+              name="confirm"
               aria-label={`Type ${name}`}
               autoComplete="off"
               spellCheck={false}

@@ -1,7 +1,7 @@
 /**
  * One field's unsaved words (designs/2026-10-15-one-write-path.md, "Unsaved edits"). Every box in
  * the portal that edits something the server holds goes through `useEdit` (a box that saves as
- * you type goes through `useSaved`, a dialog through `useKeptForm`; all three keep their words
+ * you type goes through `useSaved`, a form through `useEditForm`; all three keep their words
  * in the one edits store, `./edits.ts`). The words stay until they are saved or discarded:
  * leaving the page, switching rows or apps, a reload or a closed tab gives them back, marked
  * unsaved. If the server's value moved meanwhile, both show and the person picks; neither is
@@ -9,7 +9,6 @@
  */
 import { type ChangeEvent, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "../controls.js";
-import type { KeptFormState } from "../save/react.js";
 import { EDITS } from "./edits.js";
 
 const PREFIX = "wren.edit:";
@@ -203,26 +202,5 @@ export function UnsavedMark({ edit }: { edit: Pick<Edit, "dirty" | "conflict"> }
     <span data-unsaved className="text-[12px] text-(--ui-ink-3)">
       Not saved yet
     </span>
-  );
-}
-
-/** A kept form's conflict, one field of it against what the form starts from now. */
-export function KeptConflict({
-  kept,
-  field = "text",
-  what,
-}: {
-  kept: Pick<KeptFormState, "conflict" | "base" | "keepMine" | "takeTheirs">;
-  field?: string;
-  what?: string;
-}) {
-  const c = kept.conflict;
-  return (
-    <EditConflict
-      conflict={c ? { mine: c.values[field] ?? "", theirs: kept.base } : null}
-      onKeepMine={kept.keepMine}
-      onTakeTheirs={kept.takeTheirs}
-      {...(what ? { what } : {})}
-    />
   );
 }

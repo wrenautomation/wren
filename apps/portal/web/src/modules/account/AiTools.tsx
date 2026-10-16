@@ -8,20 +8,23 @@ import { APPS } from "@wren/core/access";
 import {
   ACTIONS,
   Button,
+  ChecksField,
   cx,
   Empty,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   Section,
+  SelectField,
   Tag,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
-import { type FormEvent, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, FIELD, QUIET, resetSent, TOOLS } from "../work/bits.js";
+import { ERROR, Kept, QUIET, TOOLS } from "../work/bits.js";
 import { Secret } from "./Webhooks.js";
 
 interface Token {
@@ -54,6 +57,7 @@ const accessOf = (verbs: string[] | null) =>
     : (ACCESS.find((a) => a.verbs?.join() === [...verbs].sort().join())?.label ?? verbs.join(", "));
 const day = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const SMALL_SELECT = "h-9 min-h-0 cursor-pointer px-2 text-[13px]";
 const PRE =
   "m-0 overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 font-mono text-[12px] leading-[1.5] whitespace-pre-wrap break-all";
 
@@ -88,24 +92,24 @@ export function AiTools(props: PageProps) {
       setBusy(false);
     }
   };
-  const make = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = new FormData(form);
-    const days = Number(f.get("days"));
-    const access = ACCESS.find((a) => a.id === f.get("access")) ?? ACCESS[0];
-    const apps = f.getAll("apps").map(String);
-    const got = await run<{ token: string }>("tokenMake", {
-      name: String(f.get("name") ?? "").trim(),
-      days: days || null,
-      verbs: access.verbs ? [...access.verbs].sort() : null,
-      apps: apps.length ? apps : null,
-    });
-    if (got) {
+  const form = useEditForm({
+    key: `token:new:${props.client}:${props.team}`,
+    defaults: { name: "", days: "90", access: "read", apps: [] as string[] },
+  });
+  const make = form.onSend(
+    async (v) => {
+      const access = ACCESS.find((a) => a.id === v.access) ?? ACCESS[0];
+      const got = await run<{ token: string }>("tokenMake", {
+        name: v.name.trim(),
+        days: Number(v.days) || null,
+        verbs: access.verbs ? [...access.verbs].sort() : null,
+        apps: v.apps.length ? v.apps : null,
+      });
+      if (!got) return false;
       setMade(got.token);
-      resetSent(form, f);
-    }
-  };
+    },
+    { clear: true },
+  );
   const host = location.origin;
   const tokens = load.data;
 
@@ -179,52 +183,44 @@ export function AiTools(props: PageProps) {
 
       <Section title="Make a token" note="Name it after the tool that holds it.">
         <form className="grid gap-3" aria-label="Make a token" onSubmit={(e) => void make(e)}>
+          <Kept form={form} />
           <div className="flex flex-wrap gap-3">
-            <label className={`${FIELD} grow basis-[240px]`}>
-              <span>Name</span>
-              <Input name="name" required maxLength={80} placeholder="Claude Code on my laptop" />
-            </label>
-            <label className={`${FIELD} basis-[160px]`}>
-              <span>Lasts</span>
-              <select
-                name="days"
-                defaultValue="90"
-                className="h-9 cursor-pointer border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] outline-none"
-              >
-                {LASTS.map((l) => (
-                  <option key={l.days} value={l.days}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={`${FIELD} basis-[200px]`}>
-              <span>Can</span>
-              <select
-                name="access"
-                defaultValue="read"
-                className="h-9 cursor-pointer border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] outline-none"
-              >
-                {ACCESS.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <TextField
+              form={form}
+              name="name"
+              label="Name"
+              className="grow basis-[240px]"
+              required
+              maxLength={80}
+              placeholder="Claude Code on my laptop"
+            />
+            <SelectField
+              form={form}
+              name="days"
+              label="Lasts"
+              className="basis-[160px]"
+              box={SMALL_SELECT}
+              options={LASTS.map((l) => [String(l.days), l.label] as const)}
+            />
+            <SelectField
+              form={form}
+              name="access"
+              label="Can"
+              className="basis-[200px]"
+              box={SMALL_SELECT}
+              options={ACCESS.map((a) => [a.id, a.label] as const)}
+            />
           </div>
           <details>
             <summary className={cx("cursor-pointer text-[13px]", QUIET)}>
               Only some apps (every app you can open when none are ticked)
             </summary>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[13.5px]">
-              {Object.entries(APPS).map(([id, name]) => (
-                <label key={id} className="flex items-center gap-1.5">
-                  <input type="checkbox" name="apps" value={id} />
-                  {name}
-                </label>
-              ))}
-            </div>
+            <ChecksField
+              form={form}
+              name="apps"
+              className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5"
+              options={Object.entries(APPS)}
+            />
           </details>
           <div className={TOOLS}>
             <Button tone="primary" type="submit" size="dense" busy={busy}>

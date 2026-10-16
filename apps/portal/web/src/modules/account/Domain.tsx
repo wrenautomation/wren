@@ -7,19 +7,20 @@ import {
   Copyable,
   Empty,
   Facts,
-  Input,
   LoadFailed,
   Loading,
   PageHeader,
   Section,
   Tag,
+  TextField,
+  useEditForm,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { shown } from "../../pulse.js";
-import { ERROR, FIELD, Form, field, QUIET, TOOLS, useAct } from "../work/bits.js";
+import { ERROR, Form, NARROW, QUIET, TOOLS, trimmed, useAct } from "../work/bits.js";
 
 interface DomainView {
   hostname: string;
@@ -75,6 +76,30 @@ function stateOf(d: DomainView): string {
 }
 
 /** `bare`: inside a client's record on Wren's Clients app, under its own heading. */
+/** The add form: the address the portal should answer on. */
+function AddDomain({ client, act }: { client: string; act: ReturnType<typeof useAct> }) {
+  const form = useEditForm({ key: `domain:new:${client}`, defaults: { hostname: "" } });
+  return (
+    <Form
+      label="Add your domain"
+      submit="Add"
+      act={act}
+      form={form}
+      onSubmit={(v) => act.run("addDomain", { hostname: trimmed(v.hostname) })}
+    >
+      <TextField
+        form={form}
+        name="hostname"
+        label="Address"
+        className={`${NARROW} grow basis-[260px]`}
+        required
+        maxLength={253}
+        placeholder="portal.yourfirm.com"
+      />
+    </Form>
+  );
+}
+
 export function Domain(props: PageProps & { bare?: boolean }) {
   const load = useCall(`domains:${props.client}:${props.team}`, () =>
     call<Domains>("delivery/domains", { client: props.client, asClient: !props.team }),
@@ -171,17 +196,7 @@ export function Domain(props: PageProps & { bare?: boolean }) {
       </Section>
       {data?.canManage && data.ready && data.domains.length === 0 ? (
         <Section title="Add your domain" note="Use a subdomain you don't use for anything else.">
-          <Form
-            label="Add your domain"
-            submit="Add"
-            act={act}
-            onSubmit={(f) => act.run("addDomain", { hostname: field(f, "hostname") })}
-          >
-            <label className={`${FIELD} grow basis-[260px]`}>
-              <span>Address</span>
-              <Input name="hostname" required maxLength={253} placeholder="portal.yourfirm.com" />
-            </label>
-          </Form>
+          <AddDomain client={props.client} act={act} />
         </Section>
       ) : data && !data.canManage && data.domains.length === 0 ? (
         <p className={QUIET}>Ask an owner to set up your domain.</p>

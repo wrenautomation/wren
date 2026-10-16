@@ -9,6 +9,7 @@ import {
   Button,
   clipProps,
   Empty,
+  FormKept,
   Icon,
   Input,
   LoadFailed,
@@ -18,9 +19,9 @@ import {
   Section,
   say,
   Tag,
+  TextField,
   tipProps,
-  UnsavedMark,
-  useEdit,
+  useEditForm,
 } from "@wren/ui";
 import {
   Dialog,
@@ -302,26 +303,16 @@ function Training({
 /** A Google Doc by its link: Wren reads it as its service account, or as anyone with the link. */
 function FromDrive({ client, onClose }: { client: string; onClose: () => void }) {
   // The link is kept as typed until the import goes through.
-  const edit = useEdit("note-import:drive:link", "");
-  const link = edit.value;
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState<string | null>(null);
+  const form = useEditForm({ key: "note-import:drive:link", defaults: { link: "" } });
   const who = useCall(`notes:settings:${client}`, () => notes(client, "settings", {}));
   const sa = who.data?.drive ?? null;
-  const go = () => {
-    if (!link.trim()) return;
-    setBusy(true);
-    setFailed(null);
-    const sent = link;
-    importDrive(client, link.trim())
-      .then((id) => {
-        edit.saved(sent);
-        onClose();
-        navigate(docPath(id));
-      })
-      .catch((e: unknown) => setFailed(e instanceof Error ? e.message : String(e)))
-      .finally(() => setBusy(false));
-  };
+  const go = form.onSend(async (v) => {
+    if (!v.link.trim()) return false;
+    const id = await importDrive(client, v.link.trim());
+    onClose();
+    navigate(docPath(id));
+  });
+  const busy = form.formState.isSubmitting;
   return (
     <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
       <DialogContent className="sm:max-w-lg">
@@ -331,21 +322,16 @@ function FromDrive({ client, onClose }: { client: string; onClose: () => void })
             Paste the doc's link. It comes in as a new note; the doc stays as it is.
           </DialogDescription>
         </DialogHeader>
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            go();
-          }}
-        >
-          <Input
-            {...edit.field}
+        <form className="flex flex-col gap-3" onSubmit={(e) => void go(e)}>
+          <TextField
+            form={form}
+            name="link"
             autoFocus
             aria-label="The doc's link"
             placeholder="https://docs.google.com/document/d/…"
           />
-          <UnsavedMark edit={edit} />
-          {failed ? <Alert>{failed}</Alert> : null}
+          <FormKept form={form} />
+          {form.error ? <Alert>{form.error}</Alert> : null}
           <p className="m-0 text-[12.5px] text-(--ui-ink-2)">
             {sa ? (
               <>
@@ -363,7 +349,7 @@ function FromDrive({ client, onClose }: { client: string; onClose: () => void })
               size="dense"
               type="button"
               onClick={() => {
-                edit.discard();
+                form.forget();
                 onClose();
               }}
             >
@@ -374,7 +360,7 @@ function FromDrive({ client, onClose }: { client: string; onClose: () => void })
               size="dense"
               type="submit"
               busy={busy}
-              disabled={!link.trim() || busy}
+              disabled={!form.watch("link").trim() || busy}
             >
               Import
             </Button>

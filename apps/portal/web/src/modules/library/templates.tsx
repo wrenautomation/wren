@@ -21,7 +21,6 @@ import {
   EditConflict,
   Empty,
   Input,
-  KeptConflict,
   LoadFailed,
   Loading,
   type MessageKind,
@@ -32,9 +31,10 @@ import {
   Tag,
   type TagTone,
   Textarea,
+  TextField,
   useCopy,
   useEdit,
-  useKeptForm,
+  useEditForm,
 } from "@wren/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -692,36 +692,28 @@ function Editor({
   onSaved: () => void;
 }) {
   const opened = d.draft ?? d.live;
-  const [base, setBase] = useState<{ number: number | null; words: string }>({
+  const [base, setBase] = useState<{ number: number | null; words: string; why: string }>({
     number: d.opened,
     words: opened?.source ?? "",
+    why: "",
   });
   // What's typed stays on this device until it's saved: a reload or a closed tab gives it back.
-  const kept = useKeptForm(mayWrite ? `template:${d.ref}` : null, base.words);
-  const [words, setShown] = useState(() => kept.values.words ?? base.words);
-  const setWords = (w: string) => {
-    setShown(w);
-    kept.set("words", w);
-  };
-  /** Not his typing (theirs, a discard): shown, and nothing kept. */
-  const showWords = (w: string) => {
-    setShown(w);
-    kept.clear();
-  };
+  // The one-line why waits with the words.
+  const form = useEditForm({
+    key: mayWrite ? `template:${d.ref}` : null,
+    defaults: { words: base.words, why: base.why },
+    base: base.words,
+  });
+  const words = form.watch("words");
   const wordsBox = useRef<HTMLTextAreaElement>(null);
-  // The one-line why waits with the words, until they are saved.
-  const whyEdit = useEdit(mayWrite ? `template-why:${d.ref}` : null, "");
-  const why = whyEdit.value;
-  const [busy, setBusy] = useState(false);
-  const flying = useRef(false);
+  const busy = form.formState.isSubmitting;
   const [conflict, setConflict] = useState<Head | null>(null);
   const dirty = words !== base.words;
   // Someone else's save comes in on a reload: follow it while nothing here is changed.
   useEffect(() => {
     if (dirty || d.opened === base.number) return;
     const w = (d.draft ?? d.live)?.source ?? "";
-    setBase({ number: d.opened, words: w });
-    setShown(w);
+    setBase((b) => ({ ...b, number: d.opened, words: w }));
   }, [d, dirty, base.number]);
   // The sample of the words as they rest; a preview of words still typed is this box's alone.
   const resting = useSettled(words, 300);
@@ -734,11 +726,7 @@ function Editor({
     ? { sample: null, problem: preview.error.message }
     : preview.data;
 
-  const save = async (expect: number | null) => {
-    if (flying.current) return;
-    flying.current = true;
-    setBusy(true);
-    const sent = { words, why };
+  const save = async (sent: { words: string; why: string }, expect: number | null) => {
     try {
       const got = await ACTIONS.run(`template-save:${d.ref}`, (requestId) =>
         call<TemplateSaved>("templates/save", {
@@ -749,28 +737,27 @@ function Editor({
           requestId,
         }),
       );
-      if (got.conflict) return setConflict(got.conflict);
+      if (got.conflict) {
+        setConflict(got.conflict);
+        return false;
+      }
       const n = got.saved?.draft?.number ?? null;
-      setBase({ number: got.saved?.opened ?? n, words: sent.words });
+      setBase({ number: got.saved?.opened ?? n, words: sent.words, why: sent.why });
       setConflict(null);
-      // Only what was sent is done with: typing since stays, and stays kept.
-      if (live.current.words === sent.words) kept.clear();
-      whyEdit.saved(sent.why);
       say.done(`Saved as version ${n}. Nothing sends until it's live.`);
       onSaved();
     } catch (err) {
       say.failed(err);
-    } finally {
-      flying.current = false;
-      setBusy(false);
+      return false;
     }
   };
-  const live = useRef({ words });
-  live.current = { words };
+  // On top of someone else's save, the save names theirs.
+  const submit = form.onSend((v) => save(v, conflict ? conflict.number : base.number));
   const reload = () => {
     if (!conflict) return;
-    setBase({ number: conflict.number, words: conflict.source });
-    showWords(conflict.source);
+    const why = form.getValues("why");
+    form.forget();
+    setBase({ number: conflict.number, words: conflict.source, why });
     setConflict(null);
     onSaved();
   };
@@ -799,7 +786,7 @@ function Editor({
             <Button size="dense" tone="secondary" onClick={reload}>
               Reload theirs
             </Button>
-            <Button size="dense" busy={busy} onClick={() => save(conflict.number)}>
+            <Button size="dense" busy={busy} onClick={(e) => void submit(e)}>
               Save yours on top
             </Button>
           </div>
@@ -820,33 +807,25 @@ function Editor({
           app that sends it.
         </p>
       ) : null}
-      <KeptConflict
-        kept={{
-          ...kept,
-          keepMine: () => {
-            const mine = kept.conflict?.values.words;
-            kept.keepMine();
-            if (mine !== undefined) setShown(mine);
-          },
-          takeTheirs: () => {
-            kept.takeTheirs();
-            setShown(base.words);
-          },
-        }}
-        field="words"
+      <EditConflict
         what="These words"
+        conflict={
+          form.conflict ? { mine: form.conflict.mine.words ?? "", theirs: base.words } : null
+        }
+        onKeepMine={form.keepMine}
+        onTakeTheirs={form.takeTheirs}
       />
       <label className="grid min-w-0 gap-1.5">
         <span className={`text-[13px] ${QUIET}`}>
           {opened ? `Version ${opened.number}` : "No words yet"}
-          {dirty ? (kept.restored ? ", your unsaved changes are back" : ", changed") : ""}
+          {dirty ? (form.restored ? ", your unsaved changes are back" : ", changed") : ""}
         </span>
         <DictateField target={wordsBox} off={!mayWrite}>
           <Textarea
             ref={wordsBox}
-            data-edit={kept.key ?? ""}
+            data-edit="form:words"
             value={words}
-            onChange={(e) => setWords(e.target.value)}
+            onChange={(e) => form.setValue("words", e.target.value)}
             readOnly={!mayWrite}
             spellCheck
             className="max-h-[28rem] min-h-56 overflow-auto font-mono text-[13px]/[1.55] md:text-[13px]"
@@ -854,22 +833,16 @@ function Editor({
         </DictateField>
       </label>
       {mayWrite ? (
-        <form
-          className="flex flex-wrap items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save(base.number);
-          }}
-        >
-          <label className="grid min-w-0 flex-1 basis-56 gap-1 text-[13px]">
-            <span className={QUIET}>Why (one line)</span>
-            <Input
-              {...whyEdit.field}
-              placeholder="Shorter opener"
-              maxLength={500}
-              className="h-8 text-[13.5px]"
-            />
-          </label>
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => void submit(e)}>
+          <TextField
+            form={form}
+            name="why"
+            label="Why (one line)"
+            placeholder="Shorter opener"
+            maxLength={500}
+            className="flex-1 basis-56 gap-1"
+            box="h-8 text-[13.5px]"
+          />
           <Button
             tone="primary"
             size="dense"
@@ -884,8 +857,7 @@ function Editor({
               tone="quiet"
               size="dense"
               onClick={() => {
-                showWords(base.words);
-                whyEdit.discard();
+                form.forget();
                 setConflict(null);
               }}
             >
