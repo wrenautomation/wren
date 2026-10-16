@@ -4,7 +4,7 @@
  * his yes; the table says when one qualifies.
  */
 import type { KindStats } from "@wren/core/decide";
-import { cx, Tag, type TagTone } from "@wren/ui";
+import { cx, DataTable, type TableColumn, Tag, type TagTone } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { ERROR, QUIET } from "../work/bits.js";
@@ -17,16 +17,38 @@ const MODE: Record<KindStats["mode"], { label: string; tone: TagTone }> = {
   recommend: { label: "Recommend", tone: "accent" },
   gate: { label: "Gate", tone: "green" },
 };
-const HEAD = [
-  "Kind",
-  "Mode",
-  "Your calls",
-  "Agree",
-  "Overrides",
-  "Asked",
-  "Tokens",
-  "Spent",
-  "Today",
+const COLUMNS: TableColumn<KindStats>[] = [
+  { key: "kind", label: "Kind", cell: (r) => <span className="font-medium">{r.name}</span> },
+  {
+    key: "mode",
+    label: "Mode",
+    cell: (r) => <Tag tone={MODE[r.mode].tone}>{MODE[r.mode].label}</Tag>,
+  },
+  { key: "calls", label: "Your calls", cell: (r) => r.calls },
+  {
+    key: "agree",
+    label: "Agree",
+    cell: (r) => (
+      <span title={`${r.agreed} of ${r.judged}`}>
+        {pct(r.rate)}
+        {r.judged ? <span className={QUIET}> of {r.judged}</span> : null}
+      </span>
+    ),
+  },
+  { key: "overrides", label: "Overrides", cell: (r) => r.overrides },
+  {
+    key: "asked",
+    label: "Asked",
+    cell: (r) => (
+      <>
+        {r.decisions}
+        {r.failed ? <span className={QUIET}> ({r.failed} failed)</span> : null}
+      </>
+    ),
+  },
+  { key: "tokens", label: "Tokens", cell: (r) => r.inputTokens.toLocaleString() },
+  { key: "spent", label: "Spent", cell: (r) => usd(r.usd) },
+  { key: "today", label: "Today", cell: (r) => usd(r.usdToday) },
 ];
 
 export function Decisions() {
@@ -41,42 +63,7 @@ export function Decisions() {
         Jev's call on each draft and item, next to yours. Agree counts send or keep against drop or
         skip.
       </p>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
-          <thead className={QUIET}>
-            <tr>
-              {HEAD.map((h) => (
-                <th key={h} className="whitespace-nowrap py-1 pr-4 font-normal">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.kind} className="border-t border-(--ui-hair)">
-                <td className="py-1 pr-4 font-medium">{r.name}</td>
-                <td className="py-1 pr-4">
-                  <Tag tone={MODE[r.mode].tone}>{MODE[r.mode].label}</Tag>
-                </td>
-                <td className="py-1 pr-4">{r.calls}</td>
-                <td className="py-1 pr-4" title={`${r.agreed} of ${r.judged}`}>
-                  {pct(r.rate)}
-                  {r.judged ? <span className={QUIET}> of {r.judged}</span> : null}
-                </td>
-                <td className="py-1 pr-4">{r.overrides}</td>
-                <td className="py-1 pr-4">
-                  {r.decisions}
-                  {r.failed ? <span className={QUIET}> ({r.failed} failed)</span> : null}
-                </td>
-                <td className="py-1 pr-4">{r.inputTokens.toLocaleString()}</td>
-                <td className="py-1 pr-4">{usd(r.usd)}</td>
-                <td className="py-1 pr-4">{usd(r.usdToday)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable columns={COLUMNS} data={rows} rowKey={(r) => r.kind} />
       {rows.some((r) => r.gateReady) ? (
         <p className="m-0">
           {rows
