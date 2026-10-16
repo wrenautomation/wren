@@ -73,6 +73,9 @@ onlineManager.setEventListener((online) => {
     removeEventListener("offline", down);
   };
 });
+// The client listens for those only once mounted (a `QueryClientProvider` does it; the portal
+// passes `QUERIES` to each hook instead). Unmounted, a return to the tab read nothing again.
+if (typeof document !== "undefined") QUERIES.mount();
 
 // --- scopes ---------------------------------------------------------------------------------
 
@@ -171,29 +174,34 @@ export const cachedOf = <T>(scope: object, key: string): T | undefined =>
  * `fn` whenever `key` changes; the last answer stays on screen while the next loads. With a
  * `scope`, an answer seen before (this tab, another tab, this device's last load) shows at once
  * while it reads again, and `writeThrough(scope, patch)` patches what's shown. `fn` gets the
- * answer it reads over, so a list can ask only for what changed (`./delta.ts`).
+ * answer it reads over, so a list can ask only for what changed (`./delta.ts`). A null `key`
+ * reads nothing (a closed panel): no data, not loading. `freshMs` lets an answer that rarely
+ * moves (a workspace's record types) skip the read on mount while it is younger than that.
  */
 export function useLoad<T>(
-  key: string,
+  key: string | null,
   fn: (before: T | undefined) => Promise<T>,
   scope?: object,
+  o: { freshMs?: number } = {},
 ): Load<T> {
   // No scope: this component's own reads, shared with nobody.
   const own = useRef<object | null>(null);
   own.current ??= {};
   const where = scope ?? own.current;
-  const queryKey = keyOf(where, key);
+  const queryKey = keyOf(where, key ?? "");
   const q = useQuery<T, Error>(
     {
       queryKey,
+      enabled: key !== null,
       queryFn: async () => {
         const left = tick();
         const got = await fn(QUERIES.getQueryData<T>(queryKey));
-        const data = patchedSince(where, key, got, left) as T;
+        const data = patchedSince(where, key ?? "", got, left) as T;
         stamp(data, left);
         return data;
       },
       placeholderData: keepPreviousData,
+      ...(o.freshMs ? { staleTime: o.freshMs } : {}),
       // A component's own reads go with it; a scope's stay for the next page that asks.
       ...(scope ? {} : { gcTime: 60_000 }),
       meta: { keep: nameOf(where).keep },
@@ -206,9 +214,9 @@ export function useLoad<T>(
   const refetch = useRef(q.refetch);
   refetch.current = q.refetch;
   return {
-    data: q.data ?? null,
-    error: q.error ?? null,
-    loading: q.isFetching || q.isPending || asked !== answered,
+    data: key === null ? null : (q.data ?? null),
+    error: key === null ? null : (q.error ?? null),
+    loading: key !== null && (q.isFetching || q.isPending || asked !== answered),
     retry: () => {
       const n = asked + 1;
       setAsked(n);
@@ -216,6 +224,30 @@ export function useLoad<T>(
     },
     at: stampOf(q.data),
   };
+}
+
+/**
+ * The answer of `key` under `scope` for code outside a component (a picker's people, the types a
+ * workspace serves): the cached one while it is younger than `freshMs`, else read and cached.
+ * Two asks at once share one read. A named scope keeps it on the device.
+ */
+export function readCached<T>(
+  scope: object,
+  key: string,
+  fn: () => Promise<T>,
+  freshMs = FOCUS_STALE_MS,
+): Promise<T> {
+  return QUERIES.fetchQuery<T, Error>({
+    queryKey: keyOf(scope, key),
+    queryFn: async () => {
+      const left = tick();
+      const data = patchedSince(scope, key, await fn(), left) as T;
+      stamp(data, left);
+      return data;
+    },
+    staleTime: freshMs,
+    meta: { keep: nameOf(scope).keep },
+  });
 }
 
 /**

@@ -1,5 +1,5 @@
 /** Loading a portal call into a component: a TanStack Query read (`@wren/ui` data layer). */
-import { nameScope, type Patch, useLoad, writeThrough } from "@wren/ui";
+import { nameScope, type Patch, readCached, useLoad, writeThrough } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { ApiError } from "./api.js";
 
@@ -24,21 +24,36 @@ export function patchCalls(patch: Patch) {
   writeThrough(PORTAL, patch);
 }
 
+const asApiError = (err: unknown): never => {
+  throw err instanceof ApiError ? err : new ApiError(String(err), 0);
+};
+
 /**
  * Run `fn` whenever `key` changes, or on `retry`; the last answer stays on screen while the
  * next loads, and one seen before (this tab, another tab, this device's last load) shows at
- * once while it reads again. A refused read is never kept on the device.
+ * once while it reads again. A refused read is never kept on the device. A null `key` reads
+ * nothing (a closed dialog). `kept: false` keeps the answers in this component only: a preview
+ * of words still being typed. `fn` gets the answer it reads over, so a list can ask only for
+ * what changed.
  */
-export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
-  return useLoad(
+export function useCall<T>(
+  key: string | null,
+  fn: (before: T | undefined) => Promise<T>,
+  o: { kept?: boolean } = {},
+): Load<T> {
+  return useLoad<T>(
     key,
-    () =>
-      fn().catch((err: unknown) => {
-        throw err instanceof ApiError ? err : new ApiError(String(err), 0);
-      }),
-    PORTAL,
+    (before) => fn(before).catch(asApiError),
+    o.kept === false ? undefined : PORTAL,
   ) as Load<T>;
 }
+
+/**
+ * A portal call's answer for code outside a component (a picker's people): the cached one while
+ * it is younger than `freshMs`, else read, cached and kept on the device.
+ */
+export const readCall = <T>(key: string, fn: () => Promise<T>, freshMs?: number): Promise<T> =>
+  readCached(PORTAL, key, () => fn().catch(asApiError), freshMs);
 
 /**
  * `value` once it has held still for `ms`: a search box's words, so a read goes per pause, not

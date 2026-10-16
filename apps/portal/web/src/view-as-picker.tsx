@@ -15,7 +15,8 @@ import {
   CommandList,
 } from "@wren/ui/components/ui/command";
 import { useEffect, useState } from "react";
-import { ApiError, callAsMe, viewAs } from "./api.js";
+import { callAsMe, viewAs } from "./api.js";
+import { useCall } from "./load.js";
 import type { PickerPreset } from "./view-as.js";
 
 /** The team's own place in the list: Wren, for an admin. */
@@ -24,17 +25,14 @@ const TEAM = "wren";
 const HINT = "ml-auto truncate pl-3 text-xs text-muted-foreground";
 
 export function Picker({ preset, onClose }: { preset: PickerPreset | null; onClose: () => void }) {
-  const [choices, setChoices] = useState<ViewAsChoices | null>(null);
-  const [error, setError] = useState<ApiError | null>(null);
+  // Read as the operator, not the person viewed as: held for this tab only, never kept.
+  const got = useCall("view-as:list", () => callAsMe<ViewAsChoices>("console/viewAsList"), {
+    kept: false,
+  });
+  const choices = got.data ?? null;
+  const error = got.error;
   const [at, setAt] = useState<string | null>(preset?.client || null);
   const [busy, setBusy] = useState(false);
-  const [nonce, setNonce] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `nonce` asks again.
-  useEffect(() => {
-    callAsMe<ViewAsChoices>("console/viewAsList")
-      .then(setChoices)
-      .catch((e) => setError(e instanceof ApiError ? e : new ApiError(String(e), 0)));
-  }, [nonce]);
   const mayAct = choices?.act === true;
   const open = (client: string, who: { email?: string; role?: string }) =>
     viewAs({ client, ...who, act: false, mayAct });
@@ -74,7 +72,7 @@ export function Picker({ preset, onClose }: { preset: PickerPreset | null; onClo
         <CommandList>
           {error && !choices ? (
             <div className="p-3">
-              <LoadFailed error={error} onRetry={() => setNonce((n) => n + 1)} />
+              <LoadFailed error={error} onRetry={got.retry} />
             </div>
           ) : !choices || busy ? (
             <div className="p-3">

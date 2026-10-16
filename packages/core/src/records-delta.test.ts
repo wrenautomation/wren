@@ -6,6 +6,7 @@ import {
   knownOf,
   mergeChanged,
   rowHash,
+  versionMark,
 } from "./records-delta.js";
 import type { RecordsPage, Row } from "./records-serve.js";
 
@@ -65,5 +66,36 @@ describe("change-only reads", () => {
     const before = changedOnly(page([a, b]), null);
     const got = changedOnly(page([a]), knownIn(knownOf(before)));
     expect(mergeChanged(got, undefined)).toBeNull();
+  });
+});
+
+describe("versionMark", () => {
+  type Card = { id: string; text: string; version: number; blocked: number };
+  const mark = (c: Card) => versionMark(c.id, c.version, { blocked: c.blocked });
+  const card: Card = { id: "c1", text: "Write the plan", version: 3, blocked: 0 };
+
+  it("moves with the row version or what the row shows from others, never with its text", () => {
+    expect(mark({ ...card, text: "Other words" })).toBe(mark(card));
+    expect(mark({ ...card, version: 4 })).not.toBe(mark(card));
+    expect(mark({ ...card, blocked: 1 })).not.toBe(mark(card));
+  });
+
+  it("keeps two rows at the same version apart", () => {
+    expect(mark({ ...card, id: "c2" })).not.toBe(mark(card));
+  });
+
+  it("is a mark a read may send back (checked like a hash)", () => {
+    expect([...(knownIn([mark(card)]) ?? [])]).toEqual([mark(card)]);
+  });
+
+  it("drives change-only reads of a versioned list", () => {
+    const list = (rows: Card[]) => ({ rows });
+    const before = changedOnly(list([card]), null, mark);
+    const same = changedOnly(list([{ ...card }]), knownIn(knownOf(before)), mark);
+    expect(same.rows).toEqual([{ id: "c1" }]);
+    expect(mergeChanged(same, before)?.rows).toEqual([card]);
+    const bumped = { ...card, version: 4, text: "New" };
+    const got = changedOnly(list([bumped]), knownIn(knownOf(before)), mark);
+    expect(got.rows).toEqual([bumped]);
   });
 });

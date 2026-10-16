@@ -23,9 +23,9 @@ A write's state lived in the component that started it, and only a held-open req
 - one line under every send box: `SendStatus` (`packages/ui/src/data/status.tsx:48`); one shell mark for offline and waiting writes: `WritesIndicator` (`:91`)
 - the web's wire: `call` sends every `isWrite` path through it (`apps/portal/web/src/api.ts:345`), `status` hook at `:487`; the socket, `WriteSocket` (`apps/portal/web/src/write-socket.ts:58`), pings every 30 s and reconnects with backoff
 - the Worker: `isWrite`, `SENDS`, `isSend` (`apps/portal/src/services.ts:265`, `:276`, `:285`); a send goes to Restate `/send`, answers 202 and is watched (`apps/portal/src/worker.ts:175`); `writeKey`, `retryOf`, `readWrite`, `writeStatus` (`apps/portal/src/writes.ts:24`, `:103`, `:140`, `:181`) read Restate's invocation by idempotency key, the retry reason from the admin API; `WriteWatch` (`apps/portal/src/watch.ts:126`), one Durable Object per person and site, reads with backoff and pushes over `/api/live/writes` (`writesSocketRoute` `:83`)
-- the data layer: `QUERIES`, `nameScope`, `writeThrough`, `useLoad` (`packages/ui/src/data/query.ts:36`, `:88`, `:131`, `:176`); the local copy `startLocalCopy`, `dropLocalCopy` (`packages/ui/src/data/local.ts:132`, `:213`); change-only reads `changedOnly`, `mergeChanged` (`packages/core/src/records-delta.ts:56`, `:77`)
+- the data layer: `QUERIES`, `nameScope`, `writeThrough`, `useLoad`, `readCached` (`packages/ui/src/data/query.ts:36`, `:91`, `:134`, `:181`, `:234`); the local copy `fitted` (plain data only), `startLocalCopy`, `dropLocalCopy` (`packages/ui/src/data/local.ts:107`, `:143`, `:224`); change-only reads `versionMark`, `changedOnly`, `mergeChanged` (`packages/core/src/records-delta.ts:62`, `:78`, `:103`); the portal's `useCall`, `readCall` (`apps/portal/web/src/load.ts:39`, `:55`) and every records API from `recordsApi` (`apps/portal/web/src/records-api.ts:18`)
 - unsaved edits: `EDITS` (`packages/ui/src/data/edits.ts:163`), `useEdit`, `EditConflict` (`packages/ui/src/data/use-edit.tsx:95`, `:154`)
-- guards: `writes()` and `edits()` in `scripts/gates.sh:18`, `:26` (`scripts/edits-guard.mjs`)
+- guards: `writes()`, `edits()` and `reads()` in `scripts/gates.sh:19`, `:27`, `:30` (`scripts/edits-guard.mjs`, `scripts/reads-guard.mjs`, shared file walk `scripts/portal-sources.mjs`); a portal effect that awaits a read without `read-ok:` fails lint
 
 ## Connected to
 
@@ -35,7 +35,7 @@ A write's state lived in the component that started it, and only a held-open req
 
 ## If you change this
 
-- **Hits:** every portal write, the Inbox reply box and Engage sends, set-asides with undo, the Worker's send, status and live routes, every read on `useLoad`, every text box (the edits guard)
+- **Hits:** every portal write, the Inbox reply box and Engage sends, set-asides with undo, the Worker's send, status and live routes, every read on `useLoad`, every portal read (the reads guard), every text box (the edits guard)
 - **Does not hit:** Notes' Yjs sync, dictation, signed-URL uploads, the public booking page's booking
 
 ## Surfaces
@@ -49,4 +49,4 @@ A write's state lived in the component that started it, and only a held-open req
 
 ## See
 
-- Tests: `packages/ui/src/save/writes.test.ts`, `packages/ui/src/data/data.test.tsx`, `packages/core/src/records-delta.test.ts`, `packages/ui/src/action-run.test.ts`, `apps/portal/test/worker.test.ts`, `apps/portal/test/watch.test.ts`, `apps/portal/test/writes.test.ts`, `apps/portal/web/src/api-send.test.ts`, `apps/portal/web/src/write-socket.test.ts`, `apps/portal/scripts/writes-e2e.ts` (Chrome on a local preview)
+- Tests: `packages/ui/src/save/writes.test.ts`, `packages/ui/src/data/data.test.tsx`, `packages/core/src/records-delta.test.ts`, `packages/notes/test/integration/boards.test.ts`, `packages/ui/src/action-run.test.ts`, `apps/portal/test/worker.test.ts`, `apps/portal/test/watch.test.ts`, `apps/portal/test/writes.test.ts`, `apps/portal/web/src/api-send.test.ts`, `apps/portal/web/src/write-socket.test.ts`, `apps/portal/scripts/writes-e2e.ts` (Chrome on a local preview)

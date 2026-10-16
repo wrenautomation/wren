@@ -26,7 +26,7 @@ import { useCall } from "../../load.js";
 import { type ListPage, type PageProps, WREN } from "../../module.js";
 import { TemplatePage } from "../../records.js";
 import { href, navigate } from "../../route.js";
-import { type BoardInfo, type Card, docPath, notes } from "./api.js";
+import { type BoardInfo, type Card, docPath, notes, useBoard } from "./api.js";
 import { exportBoard, ImportDialog } from "./board-file.js";
 import { BoardDialog, NewBoard } from "./board-settings.js";
 import { Avatar, isLate, SELECT } from "./card.js";
@@ -149,9 +149,7 @@ function BoardView({
   reloadBoards: () => void;
   newBoard: () => void;
 }) {
-  const got = useCall(`notes:board:${client}:${board.id}`, () =>
-    notes(client, "board", { id: board.id }),
-  );
+  const got = useBoard(client, board.id);
   const [moved, setMoved] = useState<Moved>({});
   // The next read replaces what a move showed at once.
   // biome-ignore lint/correctness/useExhaustiveDependencies: a fresh read clears it.

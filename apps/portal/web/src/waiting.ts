@@ -72,6 +72,8 @@ export function useWaiting(
   const ids = apps.map((m) => m.id).join(",");
   const key = client ? `${client}:${wren}:${team}:${ids}` : "";
 
+  // read-ok: badge counts on the app's one pulse (./pulse.ts), not a list; each app's own read
+  // is where its rows are kept.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names the workspace and its apps.
   useEffect(() => {
     if (!key || !client) return void setWaiting({});
@@ -86,6 +88,7 @@ export function useWaiting(
     };
   }, [key]);
 
+  // read-ok: the open app's badge again after a move, patched into the pulse's counts.
   // biome-ignore lint/correctness/useExhaustiveDependencies: a move reads the open app again.
   useEffect(() => {
     const m = latest.current.find((x) => x.id === open);

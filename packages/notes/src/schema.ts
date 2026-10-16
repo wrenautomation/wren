@@ -70,6 +70,8 @@ export const boards = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    /** The row version: one up on every write (trigger `notes_bump_version`, 0279). */
+    version: integer("version").notNull().default(1),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_boards" }),
@@ -141,6 +143,8 @@ export const notes = pgTable(
     closedAt: timestamp("closed_at", { withTimezone: true }),
     /** A card's labels: free text, lowercase, a few words each (`tasks.ts` cleans them). */
     labels: text("labels").array().notNull().default(sql`'{}'::text[]`),
+    /** The row version: one up on every write (trigger `notes_bump_version`, 0279). */
+    version: integer("version").notNull().default(1),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_notes" }),

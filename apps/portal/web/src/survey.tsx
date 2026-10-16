@@ -3,8 +3,9 @@
  * once. Not now hides it for this visit; it asks again next sign-in until answered.
  */
 import { Button, UnsavedMark, useEdit } from "@wren/ui";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { call } from "./api.js";
+import { useCall } from "./load.js";
 
 interface Due {
   key: string;
@@ -29,39 +30,36 @@ const hide = (key: string) => {
 };
 
 export function SurveyCard({ client }: { client: string }) {
-  const [due, setDue] = useState<Due | null>(null);
   const [state, setState] = useState<"ask" | "busy" | "thanks">("ask");
-
-  useEffect(() => {
-    let live = true;
-    setDue(null);
+  // The questions due, kept; the ones put away this visit are skipped.
+  const got = useCall(`surveys:due:${client}`, () => call<Due[]>("console/surveysDue", { client }));
+  const [gone, setGone] = useState<string[]>([]);
+  /** The one being thanked for, held while the thanks shows. */
+  const [held, setHeld] = useState<Due | null>(null);
+  const skip = [...hidden(), ...gone];
+  const due = held ?? got.data?.find((s) => !skip.includes(s.key)) ?? null;
+  const putAway = (key: string) => {
+    setHeld(null);
     setState("ask");
-    call<Due[]>("console/surveysDue", { client })
-      .then((all) => {
-        const skip = hidden();
-        if (live) setDue(all.find((s) => !skip.includes(s.key)) ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [client]);
+    setGone((g) => [...g, key]);
+  };
 
   const reply = useEdit(due ? `survey:${due.key}:answer` : null, "");
   const text = reply.value;
   if (!due) return null;
   const close = () => {
     hide(due.key);
-    setDue(null);
+    putAway(due.key);
   };
   const answer = (value: string) => {
     setState("busy");
     call("console/surveyAnswer", { client, survey: due.key, value })
       .then(() => {
+        setHeld(due);
         hide(due.key);
         if (due.kind === "text") reply.saved(value);
         setState("thanks");
-        setTimeout(() => setDue(null), 1800);
+        setTimeout(() => putAway(due.key), 1800);
       })
       .catch(() => setState("ask"));
   };

@@ -185,11 +185,17 @@ export async function createBoard(db: Db, o: NewBoard): Promise<Board> {
 export async function saveBoard(
   db: Db,
   id: string,
-  o: { name?: unknown; columns?: unknown },
+  o: { name?: unknown; columns?: unknown; expect?: number },
 ): Promise<Board> {
   return atomic(db, async (tx) => {
     const [board] = await tx.select().from(boards).where(eq(boards.id, id)).for("update");
     if (!board) throw new TaskRefusal("no such board", 404);
+    // Started from an older version: someone saved since. Their change shows on the next read.
+    if (o.expect !== undefined && board.version !== o.expect)
+      throw new TaskRefusal(
+        "someone saved this board after you opened it. Pick the version to keep, then save",
+        409,
+      );
     const set: Partial<typeof boards.$inferInsert> = { updatedAt: new Date() };
     if (o.name !== undefined) set.name = nameOf(o.name);
     if (o.columns !== undefined) {

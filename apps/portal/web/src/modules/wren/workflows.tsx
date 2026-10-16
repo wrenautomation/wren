@@ -33,9 +33,10 @@ import {
 } from "@wren/ui";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
-import { useCall } from "../../load.js";
+import { readCall, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { shown } from "../../pulse.js";
+import { recordsApi } from "../../records-api.js";
 import { href, navigate } from "../../route.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
 import { dayLabel, ERROR, FIELD, FORM, QUIET, SELECT } from "../work/bits.js";
@@ -128,20 +129,19 @@ const recordsAt = (c: CountRef) => {
   return undefined;
 };
 
-const SERVED = new Map<string, Promise<ReadonlySet<string> | null>>();
-/** The record types the console serves here, read once a session; null when unread. */
-function servedBy(client: string | null): Promise<ReadonlySet<string> | null> {
-  const key = client ?? "";
-  let got = SERVED.get(key);
-  if (!got) {
-    got = call<{ id: string }[]>("console/recordsTypes", client ? { client } : {}).then(
-      (ts) => new Set(ts.map((t) => t.id)),
-      () => null,
-    );
-    SERVED.set(key, got);
-  }
-  return got;
-}
+/** The record types the console serves here, from the data layer (read once a day); null when unread. */
+const servedBy = (client: string | null): Promise<ReadonlySet<string> | null> =>
+  readCall(
+    `console-types:${client ?? ""}`,
+    () =>
+      call<{ id: string }[]>("console/recordsTypes", client ? { client } : {}).then((ts) =>
+        ts.map((t) => t.id),
+      ),
+    24 * 3600_000,
+  ).then(
+    (ids) => new Set(ids),
+    () => null,
+  );
 
 export function Workflows({ params, team, can }: PageProps) {
   const path = (params.get("path") ?? ROOT).split("/").filter(Boolean);
@@ -183,9 +183,14 @@ export function Workflows({ params, team, can }: PageProps) {
         ),
       ),
     );
-    return new Map(got.flatMap((x) => (x ? [[x.id, x] as const] : [])));
+    // Plain data, so the device copy keeps it (a Map reads back as `{}`).
+    return got.filter((x) => x !== null);
   });
-  const all = w ? [w, ...(inner.data?.values() ?? [])] : [];
+  const insides = useMemo(
+    () => (inner.data ? new Map(inner.data.map((x) => [x.id, x])) : undefined),
+    [inner.data],
+  );
+  const all = w ? [w, ...(insides?.values() ?? [])] : [];
   const refs = [...new Map(all.flatMap(countsIn).map((r) => [countKey(r), r])).values()];
   // The spine is Wren's own: a client's copy counts its views only.
   const ports = client ? [] : all.flatMap(portsIn);
@@ -212,9 +217,10 @@ export function Workflows({ params, team, can }: PageProps) {
           stat(portKey(p), { record: "console.event", view: "all", where: { ...p } }),
         ),
       ]);
-      return new Map(got.filter((x) => x !== null));
+      return got.filter((x) => x !== null);
     },
   );
+  const countsBy = useMemo(() => (counts.data ? new Map(counts.data) : undefined), [counts.data]);
   if (trail.error && !trail.data) return <LoadFailed error={trail.error} onRetry={trail.retry} />;
   if (!trail.data || (!current && trail.loading)) return <Loading lines={6} />;
   if (!d || !w) return <Alert>No workflow called {path.at(-1)}.</Alert>;
@@ -244,8 +250,8 @@ export function Workflows({ params, team, can }: PageProps) {
           key={path.join("/")}
           w={w}
           d={d}
-          counts={counts.data ?? undefined}
-          inner={inner.data ?? undefined}
+          counts={countsBy}
+          inner={insides}
           where={{
             canvas: (n) => {
               const to = n.opens ? deeper(path, openedBy(n)) : null;
@@ -297,24 +303,10 @@ function Panes({ params }: { params: URLSearchParams }) {
 }
 
 /** The console's records, for the part a click opens beside the canvas. */
-const APIS = new Map<string, RecordsApi>();
-const consoleApi = (client: string | null): RecordsApi => {
-  const key = client ?? "";
-  let api = APIS.get(key);
-  if (!api) {
-    const ask = <T,>(h: string, body: object) =>
-      call<T>(`console/${h}`, client ? { client, ...body } : { ...body });
-    api = {
-      types: () => ask("recordsTypes", {}),
-      list: (a) => ask("recordsList", a),
-      get: (a) => ask("recordsGet", a),
-      export: (a) => ask("recordsExport", a),
-      stats: (a) => ask("recordsStats", a),
-    };
-    APIS.set(key, api);
-  }
-  return api;
-};
+const consoleApi = (client: string | null): RecordsApi =>
+  recordsApi(`console:${client}:workflows`, (h, body) =>
+    call(`console/${h}`, client ? { client, ...body } : { ...body }),
+  );
 
 /**
  * Real events as they land: the spine's newest rows, asked every few seconds while the page
@@ -323,6 +315,7 @@ const consoleApi = (client: string | null): RecordsApi => {
 function useEvents(w: Drawn, on: boolean): GraphDot[] {
   const [dots, setDots] = useState<GraphDot[]>([]);
   const since = useRef<string | null>(null);
+  // read-ok: a live feed of dots; the first answer only marks where "new" starts, nothing to keep.
   useEffect(() => {
     if (!on) return;
     let live = true;

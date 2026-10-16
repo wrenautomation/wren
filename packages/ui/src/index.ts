@@ -74,6 +74,7 @@ export {
   nameScope,
   onlineManager,
   QUERIES,
+  readCached,
   readTogether,
   refreshAll,
   type SendLine,

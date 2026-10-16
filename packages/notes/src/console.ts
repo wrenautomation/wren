@@ -1216,7 +1216,14 @@ const INPUTS = {
   },
   boards: {},
   needsYou: {},
-  board: { id: ID.describe("The board's id") },
+  board: {
+    id: ID.describe("The board's id"),
+    known: z
+      .array(z.string().max(32))
+      .max(500)
+      .optional()
+      .describe("The marks of the cards held (`hashes`): those come back as stubs"),
+  },
   task: { id: ID.describe("The card's id") },
   taskMoves: { id: ID.describe("The card's id") },
   taskExport: { id: ID.describe("The board's id") },
@@ -1241,6 +1248,12 @@ const INPUTS = {
   },
   boardSave: {
     id: ID.describe("The board's id"),
+    expect: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("The board's version the change started from; refused if it moved"),
     name: z.string().max(120).optional(),
     columns: z
       .array(

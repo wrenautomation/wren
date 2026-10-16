@@ -116,7 +116,7 @@ const WORK_TITLES: Record<string, (who: string) => string> = {
   compose: (who) => `How ${who}'s email was drafted`,
 };
 
-/** Each line's work, asked for once when it's opened, then kept for the visit. */
+/** Each line's work, read when it's opened and kept on the device. */
 export function LineWork({
   line,
   client,
@@ -129,39 +129,24 @@ export function LineWork({
   /** Link to the person's page; off on that page. */
   more?: boolean;
 }) {
-  const key = `${line.step}|${line.subject}`;
-  const [got, setGot] = useState<{ key: string; view: WorkView | null; error?: string } | null>(
-    () => (WORK_SEEN.has(key) ? { key, view: WORK_SEEN.get(key) ?? null } : null),
-  );
-  useEffect(() => {
-    if (WORK_SEEN.has(key)) return setGot({ key, view: WORK_SEEN.get(key) ?? null });
-    let on = true;
-    setGot(null);
+  const got = useCall(`reactivation:work:${client}:${team}:${line.step}|${line.subject}`, () =>
     call<WorkView>("reactivation/work", {
       client,
       asClient: !team,
       step: line.step,
       subject: line.subject,
-    }).then(
-      (view) => {
-        WORK_SEEN.set(key, view);
-        if (on) setGot({ key, view });
-      },
-      (err: unknown) =>
-        on && setGot({ key, view: null, error: err instanceof Error ? err.message : String(err) }),
-    );
-    return () => {
-      on = false;
-    };
-  }, [key, client, team, line.step, line.subject]);
+    }),
+  );
 
   const title = (WORK_TITLES[line.step] ?? ((who: string) => who))(line.subject ?? "");
-  if (!got || got.key !== key) return <Loading lines={4} />;
-  if (!got.view)
+  if (!got.data && got.loading) return <Loading lines={4} />;
+  const view = got.data;
+  if (!view)
     return (
-      <p className="text-(--ui-ink-2)">{got.error ?? "Nothing more to show for this line."}</p>
+      <p className="text-(--ui-ink-2)">
+        {got.error?.message ?? "Nothing more to show for this line."}
+      </p>
     );
-  const view = got.view;
   return (
     <>
       <RunWorkTrail work={view} title={title} />
@@ -173,7 +158,6 @@ export function LineWork({
     </>
   );
 }
-const WORK_SEEN = new Map<string, WorkView>();
 const withWork = (line: RunLine) => !!line.subject && line.step in WORK_TITLES;
 
 /** The first load, then new lines as they're written: fast while a run is going, slow while not. */
@@ -183,6 +167,7 @@ function useRun(client: string, team: boolean) {
   const [error, setError] = useState<string | null>(null);
   const cursor = useRef<{ run?: string; after: number }>({ after: 0 });
 
+  // read-ok: a live run's lines as they're written, polled from a cursor; the first page is kept.
   useEffect(() => {
     let on = true;
     let timer: ReturnType<typeof setTimeout> | undefined;

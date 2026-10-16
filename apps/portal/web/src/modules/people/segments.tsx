@@ -42,6 +42,7 @@ import {
 } from "@wren/ui";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
+import { useCall } from "../../load.js";
 import { type ListPage, WREN } from "../../module.js";
 import { ERROR, QUIET, SELECT } from "../work/bits.js";
 import { useEditJson } from "./edit-json.js";
@@ -593,7 +594,11 @@ export function SegmentEditor({
   send?: (input: Record<string, unknown>) => Promise<unknown>;
 }) {
   const at = atOf(client);
-  const [ctx, setCtx] = useState<Context | null>(null);
+  // What a rule picks from (fields, kinds, lists), kept: the form paints at once.
+  const got = useCall(`people:segmentContext:${client}`, () =>
+    call<Context>("people/segmentContext", at),
+  );
+  const ctx = got.data ?? null;
   // Name, words and rule are kept as typed until saved or cancelled, on this device.
   const kept = `segment:${start.id ?? "new"}`;
   const version = start.version ?? null;
@@ -625,12 +630,10 @@ export function SegmentEditor({
   const saving = useRef(false);
   const ruled = kind !== "manual";
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once per workspace
-  useEffect(() => {
-    call<Context>("people/segmentContext", at).then(setCtx, (e) => setError(said(e)));
-  }, [client]);
+  const ctxError = got.error && !got.data ? said(got.error) : null;
 
   // The count follows the rule, a beat after the last change.
+  // read-ok: a count for a rule not yet saved; never kept.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the rule is the input
   useEffect(() => {
     if (!ruled || !pruned(rule).of.length) {
@@ -705,9 +708,9 @@ export function SegmentEditor({
   };
 
   if (!ctx)
-    return error ? (
+    return (error ?? ctxError) ? (
       <p className={`m-0 ${ERROR}`} role="alert">
-        {error}
+        {error ?? ctxError}
       </p>
     ) : (
       <Tag tone="neutral">Loading</Tag>
@@ -1023,16 +1026,12 @@ function RuleSection({
 
 /** Every save of a segment, newest first, each rule as text. */
 function Versions({ client, id, at }: { client: string; id: number; at: string }) {
-  const [list, setList] = useState<SegmentVersion[] | null>(null);
   const [open, setOpen] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: again after each save
-  useEffect(() => {
-    if (!open) return;
-    call<{ versions: SegmentVersion[] }>("people/segmentVersions", { ...atOf(client), id }).then(
-      (g) => setList(g.versions),
-      () => setList([]),
-    );
-  }, [open, id, at]);
+  // Keyed by the segment's version: a save reads the list again.
+  const got = useCall(open ? `people:segmentVersions:${client}:${id}:${at}` : null, () =>
+    call<{ versions: SegmentVersion[] }>("people/segmentVersions", { ...atOf(client), id }),
+  );
+  const list = got.data?.versions ?? (got.error ? [] : null);
   if (!open)
     return (
       <div>

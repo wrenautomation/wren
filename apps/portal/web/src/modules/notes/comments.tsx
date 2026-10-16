@@ -190,6 +190,7 @@ export function Compose({
   const own = useRef<HTMLTextAreaElement>(null);
   const box = outer ?? own;
   const choosing = q !== null && list.length > 0;
+  // read-ok: `people` is the note's cached read (`readCall`); this filters it as `@` is typed.
   useEffect(() => {
     if (q === null) return;
     let live = true;

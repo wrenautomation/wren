@@ -660,6 +660,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
 
   // Opened: out of the Inbox. Once per visit.
   const opened = useRef<string | null>(null);
+  // read-ok: a write (marks it opened), once per visit.
   useEffect(() => {
     if (!item || opened.current === id) return;
     opened.current = id;

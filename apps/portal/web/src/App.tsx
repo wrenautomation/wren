@@ -102,25 +102,19 @@ function useModuleNav(
   team: boolean,
   at: string,
 ): NavItem[] {
-  const [items, setItems] = useState<{ key: string; items: NavItem[] }>({ key: "", items: [] });
   const nav = module?.nav;
   const key = nav && client ? `${module.id}:${client}:${team}` : "";
   const [again, setAgain] = useState(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names the module and workspace.
   useEffect(() => (key ? nav?.changed?.(() => setAgain((n) => n + 1)) : undefined), [key]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names the module and workspace; a move reads them again.
-  useEffect(() => {
-    if (!key || !nav || !client) return;
-    let live = true;
-    nav.load(client, team).then(
-      (got) => live && setItems({ key, items: got }),
-      () => live && setItems((s) => (s.key === key ? s : { key, items: [] })),
-    );
-    return () => {
-      live = false;
-    };
-  }, [key, at, again]);
-  return items.key === key ? items.items : [];
+  // A move reads them again. Not kept on the device: a tab can carry its drop handler.
+  const got = useCall(
+    key && nav && client ? `nav:${key}:${at}:${again}` : null,
+    async () => ({ key, items: client ? await (nav?.load(client, team) ?? []) : [] }),
+    { kept: false },
+  );
+  // The answer before stays while the next loads: never another app's tabs.
+  return got.data?.key === key ? got.data.items : [];
 }
 
 /** Open (true), shut (false), or never asked for (null): ⌘K or Ctrl+K toggles it. */

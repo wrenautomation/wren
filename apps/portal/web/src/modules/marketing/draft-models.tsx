@@ -5,25 +5,25 @@
  */
 import type { Scorecard } from "@wren/core/draft-models";
 import { cx } from "@wren/ui";
-import { useEffect, useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { useState } from "react";
+import { call } from "../../api.js";
+import { useCall } from "../../load.js";
 import { ERROR, QUIET } from "../work/bits.js";
 
 const pct = (x: number | null) => (x === null ? "-" : `${Math.round(x * 100)}%`);
 
 export function DraftModels({ demo }: { demo: boolean }) {
   const [open, setOpen] = useState(false);
-  const [card, setCard] = useState<Scorecard | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open || demo || card) return;
+  // Read once it's opened, and kept: opened again it shows at once while it reads again.
+  const got = useCall(open && !demo ? "draft-models:30d" : null, () =>
     call<Scorecard>("console/call", {
       service: "ReachDesk",
       handler: "draftModels",
       input: { since: "30d" },
-    }).then(setCard, (err) => setError(err instanceof ApiError ? err.message : String(err)));
-  }, [open, demo, card]);
+    }),
+  );
+  const card = got.data;
+  const error = got.error && !card ? got.error.message : null;
 
   return (
     <details

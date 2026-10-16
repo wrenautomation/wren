@@ -38,7 +38,7 @@ import {
 } from "@wren/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
-import { useCall } from "../../load.js";
+import { useCall, useSettled } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { go, navigate } from "../../route.js";
 import { QUIET } from "../work/bits.js";
@@ -723,19 +723,16 @@ function Editor({
     setBase({ number: d.opened, words: w });
     setShown(w);
   }, [d, dirty, base.number]);
-  const [sample, setSample] = useState<Sample | null>(null);
-  useEffect(() => {
-    let live = true;
-    const t = setTimeout(() => {
-      call<Sample>("templates/preview", { ref: d.ref, words })
-        .then((s) => live && setSample(s))
-        .catch((err) => live && setSample({ sample: null, problem: String(err?.message ?? err) }));
-    }, 300);
-    return () => {
-      live = false;
-      clearTimeout(t);
-    };
-  }, [d.ref, words]);
+  // The sample of the words as they rest; a preview of words still typed is this box's alone.
+  const resting = useSettled(words, 300);
+  const preview = useCall(
+    `template-preview:${d.ref}:${resting}`,
+    () => call<Sample>("templates/preview", { ref: d.ref, words: resting }),
+    { kept: false },
+  );
+  const sample: Sample | null = preview.error
+    ? { sample: null, problem: preview.error.message }
+    : preview.data;
 
   const save = async (expect: number | null) => {
     if (flying.current) return;

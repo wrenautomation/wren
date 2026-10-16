@@ -841,6 +841,7 @@ export function AskGraph({
   const askBox = useRef<HTMLInputElement>(null);
   const [run, setRun] = useState<string | null>(pending);
   const [error, setError] = useState<string | null>(null);
+  // read-ok: waits on one ask's answer (a poll that ends), not a list to keep.
   useEffect(() => {
     if (!run) return;
     let live = true;

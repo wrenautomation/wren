@@ -134,6 +134,8 @@ export interface TaskRow {
   comments: number;
   /** Clients the card `@`s. */
   clients: { id: string; name: string }[];
+  /** The row version: one up on every write of the card (0279). */
+  version: number;
 }
 
 // Drizzle prints a lone table's columns unqualified, which the subqueries below would capture.
@@ -166,6 +168,7 @@ const taskFields = {
   blocks: blocking,
   comments: commentCount,
   clients: clientChips,
+  version: notes.version,
 };
 
 const toRow = (r: Record<string, unknown>): TaskRow => r as unknown as TaskRow;

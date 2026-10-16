@@ -2,8 +2,10 @@
  * Notes' calls (NotesConsole, designs/2026-10-07-notes.md). Wren's workspace names no client; a
  * client's names its own. Types come from the service.
  */
+import { knownOf, mergeChanged } from "@wren/core/records/delta";
 import type { NotesApi } from "@wren/notes/console";
 import { call } from "../../api.js";
+import { type Load, useCall } from "../../load.js";
 import { WREN } from "../../module.js";
 
 type Out<K extends keyof NotesApi> = Awaited<ReturnType<NotesApi[K]>>;
@@ -33,6 +35,32 @@ export const notes = <K extends keyof NotesApi>(
   body: Record<string, unknown> = {},
 ): Promise<Out<K>> =>
   call<Out<K>>(`notes/${route}`, client === WREN.id ? body : { client, ...body });
+
+/**
+ * A board with its cards, asking only for the cards that changed since `before` (each card's
+ * mark is its row version, `cardMark`). A stub it can't fill reads the board again in full.
+ */
+export async function readBoard(
+  client: string,
+  id: string,
+  before: BoardOpen | undefined,
+): Promise<BoardOpen> {
+  const held = before?.board.id === id ? { rows: before.cards, hashes: before.hashes } : undefined;
+  const known = knownOf(held);
+  if (!known.length) return notes(client, "board", { id });
+  const got = await notes(client, "board", { id, known });
+  const whole = mergeChanged({ rows: got.cards, hashes: got.hashes, same: got.same ?? [] }, held);
+  if (!whole) return notes(client, "board", { id });
+  const { same: _, ...rest } = got;
+  return { ...rest, cards: whole.rows };
+}
+
+/** The board on screen, or beside a card: one key, so the board and its cards' pages share it. */
+export const boardKey = (client: string, id: string) => `notes:board:${client}:${id}`;
+
+/** A board read through the data layer: kept on the device, change-only after the first read. */
+export const useBoard = (client: string, id: string | null | undefined): Load<BoardOpen> =>
+  useCall(id ? boardKey(client, id) : null, (before) => readBoard(client, id as string, before));
 
 export const VIEWS = [
   ["recent", "Recent"],

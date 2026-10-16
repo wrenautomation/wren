@@ -74,35 +74,29 @@ const replyable = (url: string) => {
 function Following() {
   const sources = useCall(keyOf("learn.sources"), learn.sources);
   const ids = sources.data?.kinds.flatMap((k) => k.sources.map((s) => String(s.id))) ?? [];
-  const [items, setItems] = useState<Card[] | null>(null);
-  const [error, setError] = useState<unknown>(null);
-  const [again, setAgain] = useState(0);
   const key = ids.join(",");
   const { retry } = sources;
   useEffect(() => onChanged(retry), [retry]);
-
-  useEffect(() => {
-    void again;
-    if (!sources.data) return;
-    if (!key) {
-      setItems([]);
-      return;
-    }
-    learn
-      .browse({
-        place: "all",
-        types: [],
-        sources: key.split(","),
-        tag: "",
-        q: "",
-        sort: "newest",
-        limit: 40,
-      })
-      .then(
-        (b) => setItems(b.items),
-        (err: unknown) => setError(err),
-      );
-  }, [sources.data, key, again]);
+  // Their newest, kept: back on the tab it shows at once while it reads again.
+  const got = useCall(sources.data ? keyOf(`learn.following:${key}`) : null, async () =>
+    key
+      ? (
+          await learn.browse({
+            place: "all",
+            types: [],
+            sources: key.split(","),
+            tag: "",
+            q: "",
+            sort: "newest",
+            limit: 40,
+          })
+        ).items
+      : [],
+  );
+  const again = got.retry;
+  useEffect(() => onChanged(again), [again]);
+  const items: Card[] | null = got.data;
+  const error = got.error && !got.data ? got.error : null;
 
   return (
     <div className="flex flex-col gap-6 pb-16">
@@ -114,9 +108,8 @@ function Following() {
         <LoadFailed
           error={error ?? sources.error}
           onRetry={() => {
-            setError(null);
             sources.retry();
-            setAgain((n) => n + 1);
+            got.retry();
           }}
         />
       ) : items === null ? (

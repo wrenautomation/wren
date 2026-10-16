@@ -353,18 +353,14 @@ export function versionIn(detail: unknown, row?: Row | null): string | null {
   return typeof row?.version === "string" ? row.version : null;
 }
 
-const TYPES = new WeakMap<RecordsApi, Promise<RecordMeta[]>>();
-/** The types, asked once per workspace's api. */
+/** Record types move with a deploy, not a click: a mount reads them only past this. */
+const TYPES_FRESH_MS = 10 * 60_000;
+/**
+ * A workspace's record types, under its api's scope: kept on the device with its lists (a named
+ * api), so a reload paints the list and its panel before they're read again.
+ */
 export function useTypes(api: RecordsApi): Load<RecordMeta[]> {
-  return useLoad("types", () => {
-    let p = TYPES.get(api);
-    if (!p) {
-      p = api.types();
-      p.catch(() => TYPES.delete(api));
-      TYPES.set(api, p);
-    }
-    return p;
-  });
+  return useLoad("types", () => api.types(), api, { freshMs: TYPES_FRESH_MS });
 }
 
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

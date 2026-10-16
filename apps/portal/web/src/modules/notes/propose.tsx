@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useCall } from "../../load.js";
 import { type BoardInfo, notes } from "./api.js";
 import { SELECT } from "./card.js";
 import { linesNamed, putChips } from "./cards.js";
@@ -39,35 +40,26 @@ export function ProposeCards({
   editor: Editor;
   onClose: () => void;
 }) {
-  const [picks, setPicks] = useState<Pick[] | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
-  const [boards, setBoards] = useState<BoardInfo[]>([]);
-  const [board, setBoard] = useState("");
+  // Claude's picks for this note, kept: back after another page they show, not asked again.
+  const proposed = useCall(`notes:propose:${client}:${noteId}`, () =>
+    notes(client, "cardsPropose", { id: noteId }),
+  );
+  // The boards it may add to, as the Board page reads them.
+  const list = useCall(`notes:boards:${client}`, () => notes(client, "boards"));
+  const [edited, setPicks] = useState<Pick[] | null>(null);
+  const picks: Pick[] | null =
+    edited ?? proposed.data?.cards.map((c, i) => ({ ...c, key: `p${i}`, on: true })) ?? null;
+  const failed = proposed.error && !proposed.data ? proposed.error.message : null;
+  const boards: BoardInfo[] = (list.data?.boards ?? []).filter(
+    (b) => b.home === list.data?.workspace && (b.role === "edit" || b.role === "owner"),
+  );
+  const [picked, setBoard] = useState<string | null>(null);
+  const board = picked ?? (boards.find((b) => b.isDefault) ?? boards[0])?.id ?? "";
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    notes(client, "cardsPropose", { id: noteId })
-      .then((r) => live && setPicks(r.cards.map((c, i) => ({ ...c, key: `p${i}`, on: true }))))
-      .catch((e: unknown) => live && setFailed(e instanceof Error ? e.message : String(e)));
-    notes(client, "boards")
-      .then((r) => {
-        if (!live) return;
-        const mine = r.boards.filter(
-          (b) => b.home === r.workspace && (b.role === "edit" || b.role === "owner"),
-        );
-        setBoards(mine);
-        setBoard((mine.find((b) => b.isDefault) ?? mine[0])?.id ?? "");
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [client, noteId]);
 
   const chosen = (picks ?? []).filter((p) => p.on && p.title.trim());
   const set = (i: number, patch: Partial<Pick>) =>
-    setPicks((ps) => ps?.map((p, j) => (j === i ? { ...p, ...patch } : p)) ?? null);
+    setPicks((picks ?? []).map((p, j) => (j === i ? { ...p, ...patch } : p)));
 
   const add = async () => {
     if (!chosen.length) return;

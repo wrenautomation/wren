@@ -6,7 +6,16 @@ import { WRITES, type Write } from "../save/writes.js";
 import { listChanged } from "./delta.js";
 import { EDITS } from "./edits.js";
 import { dropLocalCopy, fitted, indexedStore, startLocalCopy } from "./local.js";
-import { cachedOf, keyOf, nameScope, QUERIES, writeThrough } from "./query.js";
+import {
+  cachedOf,
+  keyOf,
+  type Load,
+  nameScope,
+  QUERIES,
+  readCached,
+  useLoad,
+  writeThrough,
+} from "./query.js";
 import { indicatorOf, sendLineOf } from "./status.js";
 import { type Edit, useEdit } from "./use-edit.js";
 
@@ -76,6 +85,23 @@ describe("the local copy", () => {
       "2",
     ]);
   });
+
+  it("keeps no answer JSON would change: a Map, a Set or a Date read back as something else", () => {
+    const q = (key: string, data: unknown) =>
+      ({ state: { dataUpdatedAt: 1, data }, queryKey: [key] }) as never;
+    const queries = [
+      q("map", { counts: new Map([["a", 1]]) }),
+      q("set", [new Set([1])]),
+      q("date", { at: new Date(0) }),
+      q("plain", { rows: [{ id: 1, at: "2026-10-16" }] }),
+    ];
+    const out = JSON.parse(
+      fitted({ timestamp: 0, buster: "", clientState: { queries, mutations: [] } }),
+    );
+    expect(out.clientState.queries.map((x: { queryKey: string[] }) => x.queryKey[0])).toEqual([
+      "plain",
+    ]);
+  });
 });
 
 describe("write-through", () => {
@@ -86,6 +112,35 @@ describe("write-through", () => {
     writeThrough(scope, (key, data) => (key === "a" ? { name: "new" } : data));
     expect(cachedOf(scope, "a")).toEqual({ name: "new" });
     expect(cachedOf(scope, "b")).toEqual({ name: "other" });
+  });
+});
+
+describe("reads outside a component and closed panels", () => {
+  it("shares one read between two asks, answers from the copy while fresh, then reads again", async () => {
+    const scope = nameScope({}, "test-read-cached");
+    let reads = 0;
+    const fn = async () => ++reads;
+    const [a, b] = await Promise.all([
+      readCached(scope, "people", fn, 50),
+      readCached(scope, "people", fn, 50),
+    ]);
+    expect([a, b, reads]).toEqual([1, 1, 1]);
+    expect(await readCached(scope, "people", fn, 50)).toBe(1);
+    expect(cachedOf(scope, "people")).toBe(1);
+    await wait(60);
+    expect(await readCached(scope, "people", fn, 50)).toBe(2);
+  });
+
+  it("reads nothing for a null key: no data, not loading", () => {
+    let got: Load<number> | null = null;
+    let asked = 0;
+    function Panel() {
+      got = useLoad<number>(null, async () => ++asked);
+      return null;
+    }
+    renderToStaticMarkup(<Panel />);
+    expect(got).toMatchObject({ data: null, error: null, loading: false });
+    expect(asked).toBe(0);
   });
 });
 

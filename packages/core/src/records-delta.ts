@@ -3,9 +3,19 @@
  * holds a list sends the hash of each row it has (`known`); the answer carries in full only the
  * rows that changed, and a stub for the rest, which the tab fills from what it holds. Records
  * are views over many tables with no shared change column, so a row's hash is its change mark.
+ * A list whose rows carry a row version (Notes' cards) marks each by it instead (`markOf`).
  * Pure: the server (`serveRecords`) and the browser (`@wren/ui`) both use it.
  */
-import type { RecordsPage, Row } from "./records-serve.js";
+import type { Row } from "./records-serve.js";
+
+/** A row of any list: it has an id. */
+type Keyed = { id: string | number };
+/** A list answer as change-only reads see it: its rows, their marks, and the stubbed ones. */
+export interface Marked<R extends Keyed = Row> {
+  rows: R[];
+  hashes?: string[];
+  same?: number[];
+}
 
 /** The most row hashes one read may send. */
 export const KNOWN_MAX = 500;
@@ -38,10 +48,19 @@ function stable(v: unknown): string {
 }
 
 /** A row's change mark: two seeds, about 106 bits. */
-export function rowHash(row: Row): string {
+export function rowHash(row: object): string {
   const s = stable(row);
   return cyrb53(s, 1).toString(36) + cyrb53(s, 2).toString(36);
 }
+
+/**
+ * The change mark of a row that carries a row version: the version (bumped on every write of the
+ * row) plus a hash of its id and `derived`, what the row shows from other rows (counts, chips).
+ * Its own text is never hashed. The id keeps two rows at the same version apart: a list holds
+ * marks, not ids, so a changed row must never take another row's mark.
+ */
+export const versionMark = (id: string | number, version: number, derived: object = {}): string =>
+  `v${version.toString(36)}${rowHash({ id, d: derived }).slice(0, 12)}`;
 
 /** What a list read says it holds, checked: hashes only, at most `KNOWN_MAX`. */
 export function knownIn(known: unknown): Set<string> | null {
@@ -52,21 +71,28 @@ export function knownIn(known: unknown): Set<string> | null {
   return out;
 }
 
-/** The answer of a list read: each row's hash, and only the rows the reader lacks in full. */
-export function changedOnly(page: RecordsPage, known: Set<string> | null): RecordsPage {
-  const hashes = page.rows.map(rowHash);
+/**
+ * The answer of a list read: each row's mark (`markOf`, its hash unless it has a version), and
+ * only the rows the reader lacks in full.
+ */
+export function changedOnly<R extends Keyed, P extends Marked<R>>(
+  page: P,
+  known: Set<string> | null,
+  markOf: (row: R) => string = rowHash,
+): P & { hashes: string[] } {
+  const hashes = page.rows.map(markOf);
   if (!known?.size) return { ...page, hashes };
   const same: number[] = [];
   const rows = page.rows.map((r, i) => {
     if (!known.has(hashes[i] as string)) return r;
     same.push(i);
-    return { id: r.id } as Row;
+    return { id: r.id } as R;
   });
   return { ...page, rows, hashes, ...(same.length ? { same } : {}) };
 }
 
 /** The hashes of the rows `before` holds, to send with the next read of the same list. */
-export function knownOf(before: RecordsPage | undefined): string[] {
+export function knownOf(before: Marked<Keyed> | undefined): string[] {
   return (before?.hashes ?? []).slice(0, KNOWN_MAX);
 }
 
@@ -74,15 +100,15 @@ export function knownOf(before: RecordsPage | undefined): string[] {
  * A change-only answer made whole from what the tab held: each stub's row by its hash. Null
  * when a stub names a row the tab no longer has: read it again in full.
  */
-export function mergeChanged(
-  page: RecordsPage,
-  before: RecordsPage | undefined,
-): RecordsPage | null {
+export function mergeChanged<R extends Keyed, P extends Marked<R>>(
+  page: P,
+  before: Marked<R> | undefined,
+): P | null {
   if (!page.same?.length) {
     const { same: _, ...whole } = page;
-    return whole;
+    return whole as P;
   }
-  const held = new Map<string, Row>();
+  const held = new Map<string, R>();
   before?.rows.forEach((r, i) => {
     const h = before.hashes?.[i];
     if (h) held.set(h, r);
@@ -95,5 +121,5 @@ export function mergeChanged(
     rows[i] = row;
   }
   const { same: _, ...rest } = page;
-  return { ...rest, rows };
+  return { ...rest, rows } as P;
 }

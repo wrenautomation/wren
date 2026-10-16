@@ -22,6 +22,7 @@ import {
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
+import { useCall } from "../../load.js";
 import type { ListPage } from "../../module.js";
 import { addDays, dayKey, daysOf, rangeOf, step } from "../calendar/grid.js";
 import { ERROR, QUIET, SELECT } from "../work/bits.js";
@@ -105,7 +106,11 @@ function BroadcastEditor({
   send?: (input: Record<string, unknown>) => Promise<unknown>;
 }) {
   const at = atOf(client);
-  const [ctx, setCtx] = useState<Context | null>(null);
+  // What the form picks from (channels, topics, the segments), kept: the form paints at once.
+  const got = useCall(`people:broadcastContext:${client}`, () =>
+    call<Context>("people/broadcastContext", at),
+  );
+  const ctx = got.data ?? null;
   // The words are kept as typed until saved or cancelled, on this device.
   const kept = `broadcast:${start.id ?? "new"}`;
   const version = start.version ?? null;
@@ -131,16 +136,12 @@ function BroadcastEditor({
   /** One save at a time, whatever the render says. */
   const flying = useRef(false);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once per workspace
+  const noEmail = ctx ? !ctx.email : false;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once the workspace says it has no email
   useEffect(() => {
-    call<Context>("people/broadcastContext", at).then(
-      (c) => {
-        setCtx(c);
-        if (!c.email && channel === "email") setChannel("sms");
-      },
-      (e) => setError(said(e)),
-    );
-  }, [client]);
+    if (noEmail && channel === "email") setChannel("sms");
+  }, [noEmail]);
+  const ctxError = got.error && !got.data ? said(got.error) : null;
 
   const topics = ctx?.topics.filter((t) => t.channel === channel) ?? [];
   // A topic belongs to one channel: switching drops one from the other.
@@ -166,6 +167,7 @@ function BroadcastEditor({
   });
 
   // The words for a sample person and the count follow the edits, a beat after the last.
+  // read-ok: a preview of words not yet saved; never kept.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the fields are the input
   useEffect(() => {
     if (!body.trim()) {
@@ -216,9 +218,9 @@ function BroadcastEditor({
   };
 
   if (!ctx)
-    return error ? (
+    return (error ?? ctxError) ? (
       <p className={`m-0 ${ERROR}`} role="alert">
-        {error}
+        {error ?? ctxError}
       </p>
     ) : (
       <Tag tone="neutral">Loading</Tag>
@@ -454,20 +456,16 @@ const STATE_DOT: Record<string, string> = {
 /** The month's broadcasts on a calendar, by when each goes or went. */
 function Month({ client }: { client: string }) {
   const [anchor, setAnchor] = useState(() => new Date());
-  const [items, setItems] = useState<MonthItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    const { from, to } = rangeOf("month", anchor);
-    setItems(null);
+  const { from, to } = rangeOf("month", anchor);
+  const month_ = useCall(`people:broadcastMonth:${client}:${from.toISOString()}`, () =>
     call<{ broadcasts: MonthItem[] }>("people/broadcastMonth", {
       ...atOf(client),
       from: from.toISOString(),
       to: to.toISOString(),
-    }).then(
-      (r) => setItems(r.broadcasts),
-      (e) => setError(said(e)),
-    );
-  }, [client, anchor]);
+    }),
+  );
+  const items = month_.data?.broadcasts ?? null;
+  const error = month_.error && !month_.data ? said(month_.error) : null;
   const days = daysOf("month", anchor);
   const byDay = new Map<string, MonthItem[]>();
   for (const b of items ?? []) {

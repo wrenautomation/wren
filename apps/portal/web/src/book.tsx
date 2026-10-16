@@ -522,6 +522,7 @@ function CallPage({ at }: { at: Extract<BookPath, { kind: "booking" }> }) {
     setError(null);
     void loadSlots();
   };
+  // read-ok: the public booking page: no sign-in, so no local copy.
   // biome-ignore lint/correctness/useExhaustiveDependencies: loads once
   useEffect(() => {
     void (async () => {

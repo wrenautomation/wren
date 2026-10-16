@@ -92,7 +92,18 @@ export function indexedStore(
   };
 }
 
-/** The copy as written: the newest answers that fit under `max` characters. */
+/**
+ * JSON keeps a Map or a Set as `{}` and a Date as a string: read back, the page would get the
+ * wrong shape and break. An answer holding one is never kept; the page reads it again.
+ */
+function plainOnly(this: unknown, key: string, value: unknown) {
+  const was = (this as Record<string, unknown> | null)?.[key];
+  if (value instanceof Map || value instanceof Set || was instanceof Date)
+    throw new TypeError("not plain data");
+  return value;
+}
+
+/** The copy as written: the newest answers that fit under `max` characters, plain data only. */
 export function fitted(client: PersistedClient, max = LOCAL_MAX_CHARS): string {
   const queries = [...client.clientState.queries].sort(
     (a, b) => b.state.dataUpdatedAt - a.state.dataUpdatedAt,
@@ -102,7 +113,7 @@ export function fitted(client: PersistedClient, max = LOCAL_MAX_CHARS): string {
   for (const q of queries) {
     let n: number;
     try {
-      n = JSON.stringify(q).length;
+      n = JSON.stringify(q, plainOnly).length;
     } catch {
       continue; // Not plain data: never kept.
     }

@@ -24,6 +24,7 @@ import { permissionOf } from "../../../../src/services.js";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
+import { recordsApi } from "../../records-api.js";
 import { href, navigate } from "../../route.js";
 import { callExtras } from "../calls/brief.js";
 import { CALL_ACTIONS, CLIENT_CALL_ACTIONS } from "./actions.js";
@@ -99,34 +100,20 @@ function title(view: View, days: Date[], anchor: Date): string {
 }
 
 /** The console's record calls for Wren's own calendar: what the side panel reads. */
-const WREN_API: RecordsApi = {
-  types: () => call("console/recordsTypes", {}),
-  list: (a) => call("console/recordsList", { ...a }),
-  get: (a) => call("console/recordsGet", { ...a }),
-  export: (a) => call("console/recordsExport", { ...a }),
-  stats: (a) => call("console/recordsStats", { ...a }),
-  edit: (a) => call("console/recordsEdit", { ...a }),
-  undo: (a) => call("console/recordsUndo", { ...a }),
-};
-const CLIENT_APIS = new Map<string, RecordsApi>();
+const wrenApi = () =>
+  recordsApi(
+    "console:calendar",
+    (h, body) => call(`console/${h}`, body),
+    (ask) => ({
+      edit: (a) => ask("recordsEdit", { ...a }),
+      undo: (a) => ask("recordsUndo", { ...a }),
+    }),
+  );
 /** A client's calls as records, from its own database: read only. */
-function clientApi(client: string, asClient: boolean): RecordsApi {
-  const key = `${client}:${asClient}`;
-  let api = CLIENT_APIS.get(key);
-  if (!api) {
-    const ask = <T,>(handler: string, body: object) =>
-      call<T>(`calendar/${handler}`, { client, app: "calendar", asClient, ...body });
-    api = {
-      types: () => ask("recordsTypes", {}),
-      list: (a) => ask("recordsList", a),
-      get: (a) => ask("recordsGet", a),
-      export: (a) => ask("recordsExport", a),
-      stats: (a) => ask("recordsStats", a),
-    };
-    CLIENT_APIS.set(key, api);
-  }
-  return api;
-}
+const clientApi = (client: string, asClient: boolean): RecordsApi =>
+  recordsApi(`calendar:${client}:${asClient}`, (h, body) =>
+    call(`calendar/${h}`, { client, app: "calendar", asClient, ...body }),
+  );
 
 /** Its keys, for the sheet on ?. */
 const SCHEDULE_KEYS = {
@@ -185,7 +172,7 @@ function PageLine({ range }: { range: Range }) {
 
 function Board({ client: workspace, params, team, demo, can }: PageProps) {
   const client = workspace === WREN.id ? null : workspace;
-  const API = client ? clientApi(client, !team) : WREN_API;
+  const API = client ? clientApi(client, !team) : wrenApi();
   const now = useNow();
   const asked = params.get("v");
   const view: View = (VIEWS as readonly string[]).includes(asked ?? "")
@@ -199,14 +186,12 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
   const days = daysOf(view, anchor);
   const { from, to } = rangeOf(view, anchor);
   const [rev, setRev] = useState(0);
-  const got = useCall(
-    `calendar-range:${client}:${from.toISOString()}:${to.toISOString()}:${rev}`,
-    () =>
-      call<Range>("calendar/range", {
-        ...(client ? { client } : {}),
-        from: from.toISOString(),
-        to: to.toISOString(),
-      }),
+  const got = useCall(`calendar-range:${client}:${from.toISOString()}:${to.toISOString()}`, () =>
+    call<Range>("calendar/range", {
+      ...(client ? { client } : {}),
+      from: from.toISOString(),
+      to: to.toISOString(),
+    }),
   );
   const calls: Call[] = useMemo(
     () =>
@@ -349,7 +334,10 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
             if (next) go({ call: String(next.id), tab: null }, true);
           }}
           rev={rev}
-          onActed={() => setRev((r) => r + 1)}
+          onActed={() => {
+            setRev((r) => r + 1);
+            got.retry();
+          }}
         />
       ) : null}
     </div>

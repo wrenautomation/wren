@@ -670,6 +670,7 @@ export default function GraphCanvas({
   );
   const shape = JSON.stringify([sized, wires.map((w) => [w.id, w.size]), dir, arrange]);
   const [laid, setLaid] = useState<{ shape: string; laid: Laid } | null>(null);
+  // read-ok: lays the graph out (elk, in the tab); no server read.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `shape` names everything laid out.
   useEffect(() => {
     if (!width) return;

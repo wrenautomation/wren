@@ -15,6 +15,7 @@ import {
   useState,
 } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
+import { useLoad } from "./data/query.js";
 import { clipProps, tipProps } from "./hint.js";
 
 export interface SnippetLine {
@@ -72,29 +73,23 @@ export function pickable(all: readonly SnippetLine[], favorites: readonly number
     );
 }
 
+const NO_SCOPE = {};
+
 /** His favorites, read once per source and changed in place. */
 export function useFavorites(source: SnippetsSource | null) {
-  const [ids, setIds] = useState<number[]>([]);
-  // A star pressed before the read lands wins over what the read says.
-  const touched = useRef(false);
-  useEffect(() => {
-    if (!source) return;
-    let live = true;
-    touched.current = false;
-    source
-      .favorites()
-      .then((f) => live && !touched.current && setIds(f))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [source]);
+  const got = useLoad(
+    source ? "snippets:favorites" : null,
+    async () => (source ? source.favorites() : []),
+    source ?? NO_SCOPE,
+  );
+  // A star pressed wins over what the read says, until the source changes.
+  const [mine, setMine] = useState<{ source: SnippetsSource; ids: number[] } | null>(null);
+  const ids = (mine?.source === source ? mine.ids : null) ?? got.data ?? [];
   const toggle = (id: number) => {
     if (!source) return;
-    touched.current = true;
     const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
-    setIds(next);
-    source.setFavorites(next).catch(() => setIds(ids));
+    setMine({ source, ids: next });
+    source.setFavorites(next).catch(() => setMine({ source, ids }));
   };
   return { ids, toggle };
 }
@@ -152,8 +147,15 @@ export function InsertSnippet({
 }) {
   const source = useSnippets();
   const [open, setOpen] = useState(false);
-  const [all, setAll] = useState<SnippetLine[] | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
+  // The source's snippets, read when the picker opens; the source is the scope, so every box on
+  // a page shares one read.
+  const list = useLoad(
+    open && source ? "snippets:list" : null,
+    async () => (source ? source.list() : []),
+    source ?? NO_SCOPE,
+  );
+  const all = list.data;
+  const failed = list.error && !all ? list.error.message : null;
   const [q, setQ] = useState("");
   const [at, setAt] = useState(0);
   const fav = useFavorites(open ? source : null);
@@ -172,14 +174,6 @@ export function InsertSnippet({
       el.removeEventListener("keyup", mark);
     };
   }, [box]);
-  useEffect(() => {
-    if (!open || !source) return;
-    setFailed(null);
-    source
-      .list()
-      .then(setAll)
-      .catch((e: unknown) => setFailed(e instanceof Error ? e.message : String(e)));
-  }, [open, source]);
   const shown = useMemo(() => {
     const fits = (all ?? []).filter(
       (s) => !channel || s.channel === "any" || s.channel === channel,

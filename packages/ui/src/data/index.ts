@@ -19,6 +19,7 @@ export {
   type Patch,
   patchedSince,
   QUERIES,
+  readCached,
   readTogether,
   refreshAll,
   stampOf,

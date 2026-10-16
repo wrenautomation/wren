@@ -6,8 +6,9 @@
 import type { Row } from "@wren/core/records/serve";
 import { qrMatrix, qrPath } from "@wren/sites/qr";
 import { Button, CopyButton, Input, num, type RecordExtras, Section, useEdit } from "@wren/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { call } from "../../api.js";
+import { useCall } from "../../load.js";
 import { type ListPage, type PageProps, WREN } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 
@@ -113,8 +114,7 @@ function LinkOut({ url, name }: { url: string; name: string }) {
 function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
   const wren = at.client === WREN.id;
   const [owner, setOwner] = useState(wren ? "wren" : at.client);
-  const [t, setT] = useState<Targets | null>(null);
-  const [page, setPage] = useState("");
+  const [picked, setPage] = useState("");
   const [place, setPlace] = useState("ads");
   const campaignEdit = useEdit("link:new:campaign", "");
   const contentEdit = useEdit("link:new:content", "");
@@ -129,20 +129,14 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
       wren ? { owner, ...more } : { client: at.client, owner: at.client, ...more },
     [wren, owner, at.client],
   );
-  useEffect(() => {
-    if (!open) return;
-    let live = true;
-    call<Targets>("sites/linkTargets", body({}))
-      .then((r) => {
-        if (!live) return;
-        setT(r);
-        setPage((p) => (r.pages.some((x) => x.id === p) ? p : (r.pages[0]?.id ?? "")));
-      })
-      .catch((e: unknown) => live && setErr(e instanceof Error ? e.message : String(e)));
-    return () => {
-      live = false;
-    };
-  }, [body, open]);
+  // The pages a link may go to, for this owner: read when the form opens, kept.
+  const got = useCall(
+    open ? `sites:linkTargets:${at.client}:${wren ? owner : at.client}` : null,
+    () => call<Targets>("sites/linkTargets", body({})),
+  );
+  const t = got.data ?? null;
+  const page = t?.pages.some((x) => x.id === picked) ? picked : (t?.pages[0]?.id ?? "");
+  const shownErr = err ?? (got.error && !t ? got.error.message : null);
   const places = PLACES.filter(([k]) => owner !== "wren" || WREN_PLACES.has(k));
   const slug = t?.pages.find((p) => p.id === page)?.slug ?? "";
   const submit = async () => {
@@ -256,7 +250,7 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
             <Button type="submit" tone="primary" busy={busy} disabled={!page}>
               Make link
             </Button>
-            {err ? <span className="text-[13px] text-(--ui-bad)">{err}</span> : null}
+            {shownErr ? <span className="text-[13px] text-(--ui-bad)">{shownErr}</span> : null}
             {t && !t.host ? (
               <span className={HINT}>
                 No live address yet. The link shows once the client's host is live.

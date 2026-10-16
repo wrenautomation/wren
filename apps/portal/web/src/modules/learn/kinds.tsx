@@ -254,6 +254,7 @@ export function useGrant(url: string | null): string | null | undefined {
   const client = clientOf();
   const [g, setG] = useState(grantNow);
   const [, tick] = useState(0);
+  // read-ok: a media grant is a token, never kept on the device.
   useEffect(() => {
     if (client || g !== undefined) return;
     let live = true;

@@ -10,10 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
+import { useCall } from "../../load.js";
 import { WREN } from "../../module.js";
 import { useEditJson } from "../people/edit-json.js";
-import { type BoardInfo, notes, ROLE_LABEL, type ShareRole } from "./api.js";
+import { type BoardInfo, notes, ROLE_LABEL, type ShareRole, useBoard } from "./api.js";
 import { SELECT } from "./card.js";
 
 type Column = BoardInfo["columns"][number];
@@ -98,11 +99,14 @@ export function BoardDialog({
   onGone: () => void;
 }) {
   const owner = board.role === "owner";
-  const nameEdit = useEdit(`board:${board.id}:name`, board.name);
+  // The board's row version: a save over a board someone changed since shows both, never
+  // overwrites theirs.
+  const version = String(board.version);
+  const nameEdit = useEdit(`board:${board.id}:name`, board.name, { version });
   const colsEdit = useEditJson<Column[]>(
     `board:${board.id}:columns`,
     board.columns.length ? board.columns : FIRST,
-    { show: (cs) => cs.map((c) => c.name).join(", ") },
+    { version, show: (cs) => cs.map((c) => c.name).join(", ") },
   );
   const whoEdit = useEdit(`board:${board.id}:share`, "");
   const name = nameEdit.value;
@@ -110,23 +114,15 @@ export function BoardDialog({
   const who = whoEdit.value;
   const setColumns = (f: (cs: Column[]) => Column[]) => colsEdit.set(f(colsEdit.value));
   const [busy, setBusy] = useState(false);
-  const [shares, setShares] = useState<{ who: string; role: string }[]>([]);
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [role, setRole] = useState<ShareRole>("edit");
-
-  const readShares = () =>
-    notes(client, "board", { id: board.id })
-      .then((b) => setShares(b.shares))
-      .catch(() => {});
-  // biome-ignore lint/correctness/useExhaustiveDependencies: read once when it opens.
-  useEffect(() => {
-    if (!owner) return;
-    void readShares();
-    if (client === WREN.id)
-      void notes(client, "people")
-        .then((p) => setClients(p.clients))
-        .catch(() => {});
-  }, [owner, board.id]);
+  // Who it's shared with, from the board's own read (the owner's alone); Wren's clients to pick.
+  const held = useBoard(client, owner ? board.id : null);
+  const shares = held.data?.shares ?? [];
+  const readShares = () => held.retry();
+  const people = useCall(owner && client === WREN.id ? `notes:people:${client}` : null, () =>
+    notes(client, "people"),
+  );
+  const clients = people.data?.clients ?? [];
 
   const set = (i: number, change: Partial<Column>) =>
     setColumns((cs) => cs.map((c, n) => (n === i ? { ...c, ...change } : c)));
@@ -146,6 +142,7 @@ export function BoardDialog({
       const sentCols = columns;
       await notes(client, "boardSave", {
         id: board.id,
+        expect: board.version,
         name: sentName,
         // A new column has no id yet; the server makes one from its name.
         columns: sentCols.map((c) =>
@@ -159,6 +156,8 @@ export function BoardDialog({
       onOpenChange(false);
     } catch (err) {
       say.failed(err);
+      // Saved by someone else since: read it, so theirs shows beside these words.
+      if ((err as { status?: unknown } | null)?.status === 409) onChanged();
     } finally {
       setBusy(false);
     }
@@ -168,7 +167,7 @@ export function BoardDialog({
       const typed = whoEdit.value;
       await notes(client, "boardShare", { id: board.id, who: w, role: r });
       whoEdit.saved(typed);
-      await readShares();
+      readShares();
       onChanged();
     } catch (err) {
       say.failed(err);

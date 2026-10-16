@@ -11,7 +11,6 @@ import {
   type KeepApi,
   type LocalRecords,
   localRecords,
-  nameScope,
   type Place,
   type RecordAct,
   RecordDay,
@@ -43,29 +42,22 @@ import {
   WREN,
 } from "./module.js";
 import { notesSection } from "./modules/notes/backlinks.js";
+import { recordsApi } from "./records-api.js";
 import { href, navigate } from "./route.js";
 
 type HeadMeta = Parameters<NonNullable<ListPage["head"]>>[0];
 
 type Scope = { app: string; asClient: boolean };
-const APIS = new Map<string, RecordsApi>();
 /**
  * The record calls for a product and client (none for Wren's own), made once so types are asked
  * once. The app asking (a product's project pages show its own projects) and whether the team
  * sees it as the client does go along.
  */
 function apiOf(product: string, client: string | null, scope: Scope): RecordsApi {
-  const key = `${product}:${client}:${scope.app}:${scope.asClient}`;
-  let api = APIS.get(key);
-  if (!api) {
-    const ask = <T,>(handler: string, body: Record<string, unknown>) =>
-      call<T>(`${product}/${handler}`, client ? { client, ...scope, ...body } : body);
-    api = {
-      types: () => ask("recordsTypes", {}),
-      list: (a) => ask("recordsList", { ...a }),
-      get: (a) => ask("recordsGet", { ...a }),
-      export: (a) => ask("recordsExport", { ...a }),
-      stats: (a) => ask("recordsStats", { ...a }),
+  return recordsApi(
+    `${product}:${client}:${scope.app}:${scope.asClient}`,
+    (handler, body) => call(`${product}/${handler}`, client ? { client, ...scope, ...body } : body),
+    (ask) => ({
       keep: keepOf(client, scope),
       // Edits (`@wren/core/edits`): the console serves Wren's records, Opportunities a deal's
       // custom fields (no Ask Claude there). View as reads only: no edits.
@@ -82,11 +74,8 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
             }
           : {}),
       access: accessOf(client, scope),
-    };
-    // Named: its reads are kept on the device and paint the next load at once.
-    APIS.set(key, nameScope(api, `records:${key}`));
-  }
-  return api;
+    }),
+  );
 }
 
 const ACCESS = new Map<string, AccessApi>();

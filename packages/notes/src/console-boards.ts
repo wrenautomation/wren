@@ -6,6 +6,7 @@
  */
 import { WREN } from "@wren/core/access";
 import { PortalRefusal, type PortalRequest } from "@wren/core/portal";
+import { changedOnly, knownIn, type Marked, versionMark } from "@wren/core/records/delta";
 import type { Db } from "@wren/db";
 import { atLeast, clientWho, effectiveRole, isShareRole, type Reader } from "./access.js";
 import {
@@ -115,8 +116,17 @@ export const faceOut = (t: TaskRow, home: string) => ({
   comments: t.comments,
   clients: t.clients,
   updatedAt: iso(t.updatedAt) as string,
+  version: t.version,
   home,
 });
+
+type Face = ReturnType<typeof faceOut>;
+/**
+ * A card's change mark for change-only board reads: its row version, and what it shows from
+ * other rows (open blockers, cards it holds up, comments, client chips).
+ */
+export const cardMark = (c: Face): string =>
+  versionMark(c.id, c.version, { b: c.blocked, k: c.blocks, c: c.comments, l: c.clients });
 
 const boardOut = (b: Board, role: Role, home: string) => ({
   id: b.id,
@@ -128,7 +138,16 @@ const boardOut = (b: Board, role: Role, home: string) => ({
   isDefault: b.isDefault,
   role,
   home,
+  version: b.version,
 });
+
+/** A save sent with the version it started from (`expect`) lands only on that version. */
+function expectOf(v: unknown): number | null {
+  if (v === undefined || v === null) return null;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1) throw new PortalRefusal("expect: a row version", 400);
+  return n;
+}
 
 export function boardsApi(h: Hooks) {
   const { main } = h;
@@ -219,13 +238,23 @@ export function boardsApi(h: Hooks) {
       return { n };
     },
 
-    /** One board with its cards. */
-    async board(req: Req<{ id?: unknown }>) {
+    /**
+     * One board with its cards. `known`: the marks of the cards the reader holds (`cardMark`);
+     * those come back as stubs (`@wren/core/records/delta`).
+     */
+    async board(req: Req<{ id?: unknown; known?: unknown }>) {
       const { db, board, role, home, reader } = await locateBoard(req, req.id, "view");
       const cards = await listTasks(db, { board: board.id, limit: 1000 });
+      const page = changedOnly<Face, Marked<Face>>(
+        { rows: cards.map((c) => faceOut(c, home)) },
+        knownIn(req.known),
+        cardMark,
+      );
       return {
         board: boardOut(board, role, home),
-        cards: cards.map((c) => faceOut(c, home)),
+        cards: page.rows,
+        hashes: page.hashes,
+        ...(page.same ? { same: page.same } : {}),
         me: reader.email,
         canWrite: atLeast(role, "edit") && !!reader.email,
         shares:
@@ -251,14 +280,18 @@ export function boardsApi(h: Hooks) {
       return boardOut(b, "owner", place.ws);
     },
 
-    /** Its name and columns. */
-    async boardSave(req: Req<{ id?: unknown; name?: unknown; columns?: unknown }>) {
+    /** Its name and columns; with `expect`, only over that version of the board. */
+    async boardSave(
+      req: Req<{ id?: unknown; name?: unknown; columns?: unknown; expect?: unknown }>,
+    ) {
       const { db, role, home } = await locateBoard(req, req.id, "edit");
       h.byOf(req);
+      const expect = expectOf(req.expect);
       const b = await refuse(() =>
         saveBoard(db, String(req.id), {
           ...(req.name !== undefined ? { name: req.name } : {}),
           ...(req.columns !== undefined ? { columns: req.columns } : {}),
+          ...(expect !== null ? { expect } : {}),
         }),
       );
       return boardOut(b, role, home);

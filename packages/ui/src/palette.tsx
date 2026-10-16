@@ -321,6 +321,7 @@ function useFound(
   const latest = useRef(find);
   latest.current = find;
   const can = !!find;
+  // read-ok: a search as it's typed; a late answer is dropped and none is kept.
   useEffect(() => {
     const ask = latest.current;
     if (!can || !ask || words.length < 2) return;

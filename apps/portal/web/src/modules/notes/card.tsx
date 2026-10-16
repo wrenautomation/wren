@@ -15,6 +15,7 @@ import {
   hueOf,
   type NotePeople,
   notes,
+  useBoard,
 } from "./api.js";
 
 export const SELECT =
@@ -77,16 +78,11 @@ export function CardStrip({
 }) {
   const got = useCall(`notes:task:${client}:${id}`, () => notes(client, "task", { id }));
   const [team, setTeam] = useState<NotePeople["people"]>([]);
-  const [mates, setMates] = useState<Card[]>([]);
   const t = got.data;
+  // read-ok: `people` is the note's cached read (`readCall`); this takes its list.
   useEffect(() => void people().then((p) => setTeam(p?.people ?? [])), [people]);
-  const boardId = t?.board.id;
-  useEffect(() => {
-    if (boardId)
-      void notes(client, "board", { id: boardId })
-        .then((b) => setMates(b.cards))
-        .catch(() => {});
-  }, [client, boardId]);
+  // The card's board, as the board page reads it: the same key, so either paints the other.
+  const mates: Card[] = useBoard(client, t?.board.id).data?.cards ?? [];
   if (!t) return null;
 
   const done = async <T,>(run: () => Promise<T>) => {

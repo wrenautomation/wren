@@ -24,7 +24,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as Y from "yjs";
 import { socketToken, viewing } from "../../api.js";
-import { useCall } from "../../load.js";
+import { readCall, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { navigate } from "../../route.js";
 import {
@@ -328,11 +328,14 @@ function Doc({
   }, [editor]);
 
   // With the note: whether each person could open it, for `@`.
-  const peopleOnce = useRef<Promise<NotePeople | null> | null>(null);
-  const loadPeople = useCallback(() => {
-    peopleOnce.current ??= notes(client, "people", { id: note.id }).catch(() => null);
-    return peopleOnce.current;
-  }, [client, note.id]);
+  const loadPeople = useCallback(
+    () =>
+      readCall(`notes:people:${client}:${note.id}`, () =>
+        notes(client, "people", { id: note.id }),
+      ).catch(() => null),
+    [client, note.id],
+  );
+  // read-ok: `loadPeople` reads through the data layer (`readCall`); this takes its answer.
   useEffect(() => {
     if (sharing) void loadPeople().then(setPeople);
   }, [sharing, loadPeople]);

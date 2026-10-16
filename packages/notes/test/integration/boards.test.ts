@@ -306,6 +306,58 @@ describe("board and cards", () => {
   });
 });
 
+describe("row versions", () => {
+  it("bumps a board's and a card's version on every write, whatever path writes it", async () => {
+    const { boards } = await api().boards({ viewer: ADA });
+    const board = boards[0]?.id as string;
+    const first = boards[0]?.version as number;
+    const a = await api().taskAdd({ viewer: ADA, title: "Plan" });
+    const made = a.version;
+
+    const saved = await api().boardSave({ viewer: ADA, id: board, name: "Work week" });
+    expect(saved.version).toBe(first + 1);
+    const edited = await api().taskEdit({ viewer: ADA, id: a.id, due: "2026-11-02" });
+    expect(edited.version).toBe(made + 1);
+    await api().taskMove({ viewer: ADA, id: a.id, column: "Doing" });
+    // A raw write outside the notes code bumps it too: the trigger, not the caller.
+    await pg.db.execute(`update notes set labels = '{x}' where id = '${a.id}'`);
+    const card = (await api().board({ viewer: ADA, id: board })).cards.find((c) => c.id === a.id);
+    expect(card?.version).toBeGreaterThanOrEqual(made + 3);
+  });
+
+  it("reads only the cards that changed, by version and what they show from other rows", async () => {
+    const { boards } = await api().boards({ viewer: ADA });
+    const board = boards[0]?.id as string;
+    const a = await api().taskAdd({ viewer: ADA, title: "Alpha" });
+    const b = await api().taskAdd({ viewer: ADA, title: "Beta" });
+    const c = await api().taskAdd({ viewer: ADA, title: "Gamma" });
+    const before = await api().board({ viewer: ADA, id: board });
+    expect(before.hashes).toHaveLength(3);
+
+    await api().taskEdit({ viewer: ADA, id: a.id, labels: ["soon"] });
+    // b waits on c: b's own row is untouched, but its face (blocked) changes.
+    await api().taskBlock({ viewer: ADA, id: b.id, blockedBy: c.id, on: true });
+    const after = await api().board({ viewer: ADA, id: board, known: before.hashes });
+    const full = after.cards.filter((x) => "name" in x).map((x) => x.id);
+    expect(full.sort()).toEqual([a.id, b.id, c.id].sort());
+
+    const again = await api().board({ viewer: ADA, id: board, known: after.hashes });
+    expect(again.same).toEqual([0, 1, 2]);
+    expect(again.cards.every((x) => !("name" in x))).toBe(true);
+  });
+
+  it("refuses a board save over a version that moved", async () => {
+    const { boards } = await api().boards({ viewer: ADA });
+    const b = boards[0];
+    if (!b) throw new Error("no board");
+    await api().boardSave({ viewer: OZ, id: b.id, name: "Theirs", expect: b.version });
+    await refused(api().boardSave({ viewer: ADA, id: b.id, name: "Mine", expect: b.version }), 409);
+    const now = await api().board({ viewer: ADA, id: b.id });
+    expect(now.board.name).toBe("Theirs");
+    await api().boardSave({ viewer: ADA, id: b.id, name: "Mine", expect: now.board.version });
+  });
+});
+
 describe("sharing", () => {
   it("exports a board as rows and imports them back: new cards, link updates, waits", async () => {
     const board = (await api().boards({ viewer: ADA })).boards[0]?.id as string;

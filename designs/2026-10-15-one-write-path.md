@@ -57,13 +57,25 @@ TanStack plus IndexedDB covers what we need, so there is no sync engine. Pinned 
 
 What's in `packages/ui/src/data/`:
 
-- `query.ts`: the one query client, `QUERIES`. `useLoad` runs on `useQuery`, and the last answer stays on screen while the next loads. Focus refetches only reads older than a minute; reconnect refetches all. `writeThrough` patches every cached answer of a scope after a save, and a read still out gets the patch when it lands. `refreshAll` serves pull to refresh and a landed write.
-- `local.ts`: the local copy. Answers from named scopes (`nameScope`: the portal's calls, every records API) persist to IndexedDB, throttled to 2 s, at most 4 MB, newest first, kept a week. The next load paints from it and reads again behind it. `broadcastQueryClient` shares answers with the person's other tabs.
+- `query.ts`: the one query client, `QUERIES`, mounted at load so focus and reconnect refetches run (the portal passes it to each hook, with no provider to mount it). `useLoad` runs on `useQuery`, and the last answer stays on screen while the next loads. A null key reads nothing (a closed panel). `freshMs` skips the read on mount for answers that rarely move (record types, 10 minutes). `readCached` is the same read for code outside a component (a picker's people, the types a workspace serves). Focus refetches only reads older than a minute; reconnect refetches all. `writeThrough` patches every cached answer of a scope after a save, and a read still out gets the patch when it lands. `refreshAll` serves pull to refresh and a landed write.
+- `local.ts`: the local copy. Answers from named scopes (`nameScope`: the portal's calls, every records API) persist to IndexedDB, throttled to 2 s, at most 4 MB, newest first, kept a week. Only plain data is kept: an answer holding a Map, a Set or a Date would read back in the wrong shape, so it is read again instead. The next load paints from it and reads again behind it. `broadcastQueryClient` shares answers with the person's other tabs.
 - `delta.ts` and `@wren/core/records/delta`: change-only list reads. Records are views over many tables with no shared change column, so a row's hash is its change mark. The tab sends the hashes it holds (at most 500). The server sends changed rows whole and a stub for the rest, which the tab fills. A stub it can't fill reads again in full.
+
+## Row versions
+
+Notes boards and cards (`boards`, `notes`) carry a `version` integer since migration 0279. A `BEFORE UPDATE` trigger bumps it on every write, from any path (the notes code, an import, a raw `update`), so no writer can forget. It always bumps: the generated `search` column makes a "did anything change" check unreliable.
+
+- Change-only board reads: a card's mark is `versionMark(id, version, derived)`: its version, plus a hash of its id and what it shows from other rows (open blockers, cards it holds up, comments, client chips). The text isn't hashed. `notes/board` takes `known` like a records list and stubs the cards the tab holds; `readBoard` fills them in (`useBoard`, one key for the board page and a card's page).
+- Conflicts: board settings' unsaved name and columns carry the board's version (`useEdit(..., { version })`). `boardSave` takes `expect` and refuses with 409 if the board moved. The dialog reads the board again and shows both, and he picks.
+- A card's own fields (column, owner, due) are instant single-field changes: they send no `expect`.
 
 Local copy safety: one copy per signed-in person, keyed by their email; the client is in each query key. It holds only answers the server gave them and their own unsaved words, never tokens. None under View as. `dropLocalCopy` wipes it on sign-out, a refused sign-in, another person signing in, and Forget this device.
 
 `WRITES` did not move onto TanStack mutations, as the first plan said. TanStack resumes only mutations paused offline, and can't follow an accepted send to its outcome. `WRITES` does both under one request id.
+
+In the portal web, `load.ts` wraps these: `useCall(key, fn, { kept })` in a component and `readCall(key, fn)` outside one, both on the portal's named scope (`kept: false` holds an answer for the component only: View as lists, previews of unsaved words). Every records API comes from `recordsApi(name, ask)` (`records-api.ts`), which names its scope, so its lists, rows, panels and types are kept. One name, one API object: the calendar, a workflow's side panel and the record pages share the builder.
+
+Lists moved onto it in wa-ip3: the calendar's records (Wren's and a client's) and its range, a workflow's side panel, its counts, insides and the types a workspace serves, Notes boards, a card's board, board shares and people, proposed cards, broadcast context and month, segment context and versions, a line's work in Reactivation, link targets, surveys due, the View as list, the app menu, draft models, the feed's follows, saved views, snippets and their favorites. Hand-rolled caches deleted with them: workflows' `SERVED` and `APIS`, Reactivation's `WORK_SEEN`, records' `TYPES`, Notes' `peopleOnce`.
 
 Replaced and deleted: `save/cache.ts` (the old answer cache), `snapshot.ts` (the old local copy), `load.ts`'s own cache (now a scope on `QUERIES`), the phone shell's refresh registry, pulse's own focus listeners, and `WRITES`'s own BroadcastChannel. Kept: the action runner's optimistic overlay, which is `WRITES`'s `hide`.
 
@@ -85,12 +97,15 @@ One mark in the shell, `WritesIndicator`: offline, and how many writes wait for 
 
 1. `WRITES`, accept-then-track sends, reconcile on return, LinkedIn fix, lint guard, tests.
 2. The data layer on TanStack Query, the local copy, change-only reads, pushed send states with the retry reason, `SendStatus`, `WritesIndicator`, unsaved edits on every box, the edits guard.
+3. Every portal list on the data layer, board and card row versions, the reads guard (wa-ip3).
 
 ## Guard
 
 `./scripts/gates.sh lint` runs `writes()`. It fails on a raw `fetch` to `/api/` in the portal web or `packages/ui`, except `api.ts` and dictation's audio post. It also fails on a record action calling `acts.call`/`deps.call` around `callOnce`.
 
 It also runs `edits()` (`scripts/edits-guard.mjs`). Every text box in the portal web and `packages/ui` that takes a `value` keeps its words (`data-edit`, set by `useEdit`, `useSaved` or `useKeptForm`), or says why not in an `edit-ok: <reason>` comment. Today's exemptions are search, filter and find boxes, type-to-confirm boxes, and dev-only scratch inputs.
+
+It also runs `reads()` (`scripts/reads-guard.mjs`, sharing `scripts/portal-sources.mjs` with the edits guard). It fails on an effect (`useEffect`, `useLayoutEffect`) that awaits something, unless a `read-ok: <reason>` comment sits in it or within three lines above. Today's reasons: a live feed or a poll that ends (a run's lines, an ask's answer, the workflow dots), badge counts on the pulse, a write that starts on arrival, a search or preview as it's typed, the graph layout, and effects that take an answer already read through `readCall`. It also fails on a records API built outside `recordsApi`. `engage.tsx` is skipped (`LATER`) while the engage-threads branch changes it.
 
 ## Left outside, and why
 
@@ -103,9 +118,11 @@ It also runs `edits()` (`scripts/edits-guard.mjs`). Every text box in the portal
 
 - `packages/ui/src/save/writes.test.ts`: double press, hidden mid-call, refused while hidden, lost answer keeps its id, out-of-order answers, reload mid-call, hand-drawn call, offline resend, long call asks status, hold/undo, deadline passed while hidden, page leaves inside the undo window, accept-then-track (lands, refused while hidden, reload mid-send), pushed outcomes and retries.
 - `packages/ui/src/data/data.test.tsx`: the IndexedDB store; the local copy paints after a reload, keeps no unnamed scope, and holds nothing for another person; write-through; change-only reads; unsaved edits across a page switch, a reload, clients, a moved server value, save and discard, and a wipe; the send line and the shell's mark.
-- `packages/core/src/records-delta.test.ts`: row hashes, checked `known`, stubs and the full-read fallback.
+- `packages/core/src/records-delta.test.ts`: row hashes, checked `known`, stubs and the full-read fallback; version marks (move with the version and derived fields, never the text, apart for two rows at one version).
+- `packages/ui/src/data/data.test.tsx` also: `readCached` shares one read and answers from the copy while fresh; a null key reads nothing; the copy keeps no Map, Set or Date.
+- `packages/notes/test/integration/boards.test.ts` ("row versions"): every write bumps a board's and a card's version, a raw `update` too; a board read stubs unchanged cards and sends changed ones whole, including a card whose blockers changed; a board save over a moved version is refused with 409.
 - `apps/portal/test/watch.test.ts`: the watch's socket, backoff, retry reason and give-up.
 - `apps/portal/web/src/write-socket.test.ts`: the tab's socket hands states on and notices a dead one.
 - `apps/portal/test/worker.test.ts`: request id becomes the idempotency key; a send goes to `/send` and answers 202; `writes/status` maps Restate's answers.
 - `apps/portal/test/writes.test.ts`: `isWrite` matches every service's writes; sends are writes.
-- `apps/portal/scripts/writes-e2e.ts` (`pnpm e2e:writes`, Chrome on a local preview): the reported case (Inbox reply, row switch, hidden, refused), a reply that lands while hidden, a reload mid-send, Engage DM (draft save lands before the send), Engage comment answer refused while hidden, Drop with undo past its deadline while hidden, the retry reason shown, unsent words back after another app and a reload, a draft moved on the server shown beside unsent words, the list painted from the device copy before its read answers, and a send in one tab read again in another.
+- `apps/portal/scripts/writes-e2e.ts` (`pnpm e2e:writes`, Chrome on a local preview): the reported case (Inbox reply, row switch, hidden, refused), a reply that lands while hidden, a reload mid-send, Engage DM (draft save lands before the send), Engage comment answer refused while hidden, Drop with undo past its deadline while hidden, the retry reason shown, unsent words back after another app and a reload, a draft moved on the server shown beside unsent words, the list painted from the device copy before its read answers, and a send in one tab read again in another. Then the calendar, a workflow's side panel and a board, each painted from the device copy on a reload and read again after a tab away (a board asking only for changed cards), and a board save refused over a newer one with both names shown. Reads are caught alone or inside a pulse.

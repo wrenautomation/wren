@@ -104,6 +104,7 @@ export function AddPage({ params, client }: PageProps) {
   const url = params.get("url") ?? params.get("text") ?? "";
   const [state, setState] = useState<{ saved?: Saved; error?: string } | null>(null);
   const sent = useRef(false);
+  // read-ok: a write (saves the shared link), once on arrival.
   useEffect(() => {
     if (!url || sent.current) return;
     sent.current = true;

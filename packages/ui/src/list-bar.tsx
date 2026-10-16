@@ -44,6 +44,7 @@ import {
   SheetTitle,
 } from "./components/ui/sheet.js";
 import { Button } from "./controls.js";
+import { useLoad } from "./data/query.js";
 import { useEdit } from "./data/use-edit.js";
 import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
@@ -163,6 +164,8 @@ export function savedLink(meta: RecordMeta, place: Place, v: SavedViewLine) {
   });
 }
 
+const NO_SCOPE = {};
+
 export interface Saved {
   lines: SavedViewLine[];
   ready: boolean;
@@ -171,21 +174,14 @@ export interface Saved {
 
 /** The viewer's saved views of a list, read once per list and again after a change. */
 export function useSavedViews(keep: KeepApi | undefined, record: string): Saved {
-  const [lines, setLines] = useState<SavedViewLine[] | null>(keep ? null : []);
-  const [rev, setRev] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new rev reads them again.
-  useEffect(() => {
-    if (!keep) return;
-    let live = true;
-    keep
-      .views(record)
-      .then((l) => live && setLines(l))
-      .catch(() => live && setLines([]));
-    return () => {
-      live = false;
-    };
-  }, [keep, record, rev]);
-  return { lines: lines ?? [], ready: lines !== null, reload: () => setRev((n) => n + 1) };
+  // The keep api is the scope: every bar on its lists shares one read of each list's views.
+  const got = useLoad(
+    keep ? `views:${record}` : null,
+    async () => (keep ? keep.views(record) : []),
+    keep ?? NO_SCOPE,
+  );
+  const ready = !keep || got.data !== null || got.error !== null;
+  return { lines: got.data ?? [], ready, reload: got.retry };
 }
 
 /** What a list remembers between visits: its tab (a saved one too), sort, columns, rows or cards. */
@@ -245,6 +241,7 @@ export function useLastUsed(
   const done = useRef<string | null>(null);
   const kept = useRef<string>("");
   const p = place.params;
+  // read-ok: once per list, the last place it was left, to go back to; not a list to keep.
   useEffect(() => {
     if (!keep || !saved.ready || done.current === meta.id) return;
     done.current = meta.id;
@@ -777,6 +774,7 @@ function FilterPanel({
   const set = (f: FieldMeta, next: string | null) =>
     place.go(place.link({ [f.key]: next, pg: null }), true);
 
+  // read-ok: `facets` is the list's own read (its records api); this takes one field's counts.
   useEffect(() => {
     if (!field || filterShape(field) !== "states" || !facets) return;
     let live = true;
