@@ -18,6 +18,7 @@ import {
   type DecideMode,
   type DecisionKind,
   KINDS,
+  type LabelSpec,
   machineLabel,
 } from "./kinds.js";
 
@@ -192,4 +193,49 @@ export async function newestDecision(
     .orderBy(desc(decisions.at), desc(decisions.id))
     .limit(1);
   return r ?? null;
+}
+
+/** A pick as a list shows it: the label and the chance it is kept. */
+export interface Pick {
+  label: string;
+  p: number | null;
+}
+
+/**
+ * Each subject's newest pick, when the kind shows its picks (recommend or gate). In shadow or off
+ * nothing shows, so this answers an empty map without reading.
+ */
+export async function picksOf(
+  db: Queryable,
+  kind: DecisionKind,
+  subjects: readonly string[],
+): Promise<Map<string, Pick>> {
+  const shown = new Map<string, Pick>();
+  if (!subjects.length) return shown;
+  const mode = (await decideModes(db))[kind];
+  if (mode !== "recommend" && mode !== "gate") return shown;
+  const rows = (await db.execute(sql`
+    select distinct on (subject) subject, label, p from decisions
+    where kind = ${kind} and label is not null
+      and subject in (${sql.join(
+        subjects.map((s) => sql`${s}`),
+        sql`, `,
+      )})
+    order by subject, at desc, id desc`)) as unknown as {
+    subject: string;
+    label: string;
+    p: number | null;
+  }[];
+  for (const r of rows) shown.set(r.subject, { label: r.label, p: r.p });
+  return shown;
+}
+
+/** A kind's labels as a list's status states: label, tone, what it means. */
+export function pickStates(kind: DecisionKind) {
+  return Object.fromEntries(
+    Object.entries(KINDS[kind].labels).map(([id, l]) => [
+      id,
+      { label: l.name, tone: l.tone, about: l.about },
+    ]),
+  ) as Record<string, { label: string; tone: LabelSpec["tone"]; about: string }>;
 }

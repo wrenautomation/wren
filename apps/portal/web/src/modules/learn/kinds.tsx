@@ -205,6 +205,27 @@ export function ScoreBadge({ score, className }: { score: number | null; classNa
   );
 }
 
+/** The model's call beside the score: Worth it, or Skip. Your own marks always win. */
+export function PickBadge({ pick, className }: { pick?: Card["pick"]; className?: string }) {
+  if (!pick) return null;
+  return (
+    <span
+      {...tipProps(
+        pick === "worth"
+          ? "The model thinks this is worth your time"
+          : "The model thinks you can skip this",
+      )}
+      className={cx(
+        "inline-flex h-5 items-center bg-(--ui-paper) px-1.5 text-[11.5px]",
+        pick === "worth" ? "text-(--ui-ink)" : "text-(--ui-ink-2)",
+        className,
+      )}
+    >
+      {pick === "worth" ? "Worth it" : "Skip"}
+    </span>
+  );
+}
+
 /* The media grant: one per tab, asked once. Null when this viewer can't have one. */
 let grantAsk: Promise<string | null> | null = null;
 let grantNow: string | null | undefined;

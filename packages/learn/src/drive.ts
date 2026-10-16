@@ -8,7 +8,7 @@
 import type { Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
-import { learnMarkCalls } from "./decide.js";
+import { type LearnPick, learnMarkCalls, withLearnPicks } from "./decide.js";
 import {
   collections,
   type ItemType,
@@ -75,6 +75,8 @@ export interface Card {
   collectionId: number | null;
   tags: string[];
   saved: boolean;
+  /** Decide's newest pick on Wren's item, when Learn shows picks (designs/2026-10-16-decide.md). */
+  pick?: LearnPick | null;
   at: string;
 }
 
@@ -266,7 +268,7 @@ export async function browse(db: Queryable, client: string, b: Browse) {
   return {
     place,
     sort,
-    items: rows.slice(0, limit).map(cardOf),
+    items: await withLearnPicks(db, client, rows.slice(0, limit).map(cardOf)),
     more: rows.length > limit,
     total: Number(total?.n ?? 0),
     types: Object.fromEntries(byType.map((r) => [r.type, Number(r.n)])) as Partial<
@@ -445,18 +447,22 @@ export async function home(db: Queryable, client: string, now = new Date()) {
     live.map(async (type) => ({
       type,
       total: Number(counts.find((c) => c.type === type)?.n ?? 0),
-      items: (
-        await cards(db)
-          .where(and(mine, fresh, eq(items.type, type)))
-          .orderBy(sql`coalesce(${items.publishedAt}, ${items.createdAt}) desc`, desc(items.id))
-          .limit(SHELF)
-      ).map(cardOf),
+      items: await withLearnPicks(
+        db,
+        client,
+        (
+          await cards(db)
+            .where(and(mine, fresh, eq(items.type, type)))
+            .orderBy(sql`coalesce(${items.publishedAt}, ${items.createdAt}) desc`, desc(items.id))
+            .limit(SHELF)
+        ).map(cardOf),
+      ),
     })),
   );
   return {
     shelves,
-    continue: going.map(cardOf),
-    top: top.map(cardOf),
+    continue: await withLearnPicks(db, client, going.map(cardOf)),
+    top: await withLearnPicks(db, client, top.map(cardOf)),
     sops: sops.map((s) => ({ ...s, at: new Date(s.at).toISOString() })),
   };
 }
@@ -496,6 +502,7 @@ export async function itemPage(db: Queryable, client: string, id: number) {
     : chaptersOf(whole?.transcript ?? null);
   return {
     ...cardOf(row),
+    pick: (await withLearnPicks(db, client, [cardOf(row)]))[0]?.pick ?? null,
     text: whole?.text ?? "",
     transcript: whole?.transcript ?? null,
     file: whole?.file ?? null,

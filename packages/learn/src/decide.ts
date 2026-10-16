@@ -6,7 +6,7 @@
  * ids it changed, so a replayed mark adds no second call.
  */
 import { WREN } from "@wren/core/access";
-import { type DecideSource, type DecideSubject, recordCall } from "@wren/core/decide";
+import { type DecideSource, type DecideSubject, picksOf, recordCall } from "@wren/core/decide";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { WREN_FOCUS } from "./score.js";
@@ -197,4 +197,30 @@ export async function backfillLearnCalls(db: Queryable): Promise<{ worth: number
     n[call.label as "worth" | "skip"]++;
   }
   return n;
+}
+
+/** Worth it or Skip, as a card shows it. */
+export type LearnPick = "worth" | "skip";
+
+/**
+ * Wren's cards with their newest pick, when Learn items show picks (recommend or gate). A client's
+ * cards and an item with no decision get none.
+ */
+export async function withLearnPicks<C extends { id: number }>(
+  db: Queryable,
+  client: string,
+  cards: C[],
+): Promise<(C & { pick: LearnPick | null })[]> {
+  const picks =
+    client === WREN
+      ? await picksOf(
+          db,
+          "learn_worth",
+          cards.map((c) => learnSubject(c.id)),
+        )
+      : new Map();
+  return cards.map((c) => ({
+    ...c,
+    pick: (picks.get(learnSubject(c.id))?.label as LearnPick | undefined) ?? null,
+  }));
 }

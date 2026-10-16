@@ -20,7 +20,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { type Card, type Home, inWorkspace, keyOf, learn, onChanged } from "./api.js";
 import { LearnFrame, useRail } from "./frame.js";
-import { Avatar, lengthOf, ScoreBadge, Thumb, TYPES, TypeMark } from "./kinds.js";
+import { Avatar, lengthOf, PickBadge, ScoreBadge, Thumb, TYPES, TypeMark } from "./kinds.js";
 
 const SOP_STATES = {
   asked: { label: "Waiting", tone: "warn" },
@@ -240,8 +240,9 @@ function ShelfCard({ c, tall }: { c: Card; tall: boolean }) {
     >
       <div className="relative">
         <Thumb card={c} tall={tall} />
-        <span className="absolute bottom-1.5 left-1.5">
+        <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1">
           <ScoreBadge score={c.score} />
+          <PickBadge pick={c.pick} />
         </span>
       </div>
       <span className="flex gap-1.5">

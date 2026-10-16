@@ -78,7 +78,7 @@ const ENGAGE_PAGE: ListPage = {
   template: "list",
   record: "marketing.engage",
   card: ENGAGE_CARD,
-  columns: ["who", "platform", "type", "state", "held", "proof", "at"],
+  columns: ["who", "platform", "type", "state", "pick", "held", "proof", "at"],
   empty: {
     waiting: "No comment waits on you. Paste a link above to add one.",
     held: "No comment is held. One shows here when its subreddit asks for more karma or an older account than ours has.",

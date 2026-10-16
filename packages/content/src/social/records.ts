@@ -11,6 +11,7 @@ import { draftTurns } from "@wren/core/ask";
 import { broadcastLine, waitingBroadcasts } from "@wren/core/broadcasts";
 import { isUrl } from "@wren/core/content";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
+import { pickStates, picksOf } from "@wren/core/decide";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
   accountField,
@@ -331,6 +332,26 @@ const withProof =
   (by: Awaited<ReturnType<typeof proofsBy>>) =>
   <R extends { id: string }>(r: R) => ({ ...r, ...by.get(r.id) });
 
+/**
+ * Each drafted comment's newest pick (designs/2026-10-16-decide.md), on rows whose id is the
+ * draft's item. Only when comment drafts show their picks (recommend or gate); his call still rules.
+ */
+const DRAFTED = /^(thread|onpost|comment):/;
+async function withPicks<R extends object>(db: Queryable, rows: R[]): Promise<R[]> {
+  const idOf = (r: R) => String((r as { id?: unknown }).id);
+  const picks = await picksOf(
+    db,
+    "comment_quality",
+    rows.map(idOf).filter((id) => DRAFTED.test(id)),
+  );
+  if (!picks.size) return rows;
+  return rows.map((r) => {
+    const p = picks.get(idOf(r));
+    return p ? { ...r, pick: p.label } : r;
+  });
+}
+const PICK_FIELD = () => status(pickStates("comment_quality"), "Suggests");
+
 /** Whether a stranger sees our sent comment: Live, Hidden (only we see it), Missing, Checking. */
 export const PROOF_STATES = {
   live: { label: "Live", tone: "good", about: "Someone signed out sees it" },
@@ -647,7 +668,7 @@ export const inboxRecord = defineRecord({
         url: a.url,
       })),
     ];
-    return all.map(team);
+    return withPicks(db, all.map(team));
   },
   key: "id",
   title: "who",
@@ -721,6 +742,7 @@ export const inboxRecord = defineRecord({
     body: prose("Their words"),
     postTitle: text("Post"),
     draft: prose("Draft reply"),
+    pick: PICK_FIELD(),
     account: accountField("On"),
     mailbox: text("Mailbox"),
     at: date("When"),
@@ -886,7 +908,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const bcs = await waitingBroadcasts(db);
       const crs = await creditsList(db, { status: ["review"], limit: 200 });
       const uss = await unsureSends(db);
-      const sends = [...ts.map(threadItem), ...ls.map(onPostItem)];
+      const sends = await withPicks(db, [...ts.map(threadItem), ...ls.map(onPostItem)]);
       const rows: Row[] = [
         // A send that may have gone out: he checks the site, marks it posted or sends it again.
         ...unsureOver(uss, sends),
@@ -930,7 +952,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: v.at,
           url: `/marketing/videos/${v.id}`,
         })),
-        ...ts.map(threadItem).filter(notParked(uss)),
+        ...sends.filter((r) => r.type === "thread").filter(notParked(uss)),
         ...is.map((i) => ({
           id: `invite:${i.id}`,
           type: "invite",
@@ -946,7 +968,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: i.at,
           url: i.url,
         })),
-        ...ls.map(onPostItem).filter(notParked(uss)),
+        ...sends.filter((r) => r.type === "onpost").filter(notParked(uss)),
         ...cs.map((c) => ({
           id: `connect:${c.id}`,
           type: "connect",
@@ -1161,6 +1183,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       held: text("Held because"),
       sendAt: date("Sends at"),
       draft: prose("Our draft"),
+      pick: PICK_FIELD(),
       account: accountField("On"),
       askedBy: text("Asked by"),
       unsure: text("Why we're unsure"),
@@ -1346,14 +1369,14 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       const proved = withProof(await proofsBy(db, signer));
       // A send that may have gone out waits in To approve, not here.
       const parked = notParked(await unsureSends(db));
-      return [
+      return withPicks(db, [
         ...ts.map(threadItem).filter(parked),
         ...ls.map(onPostItem).filter(parked),
         ...cs.map(commentItem).map(proved),
         ...ss.map((r) =>
           proved({ ...r, id: String(r.id), kind: r.type, state: "sent", due: r.sent }),
         ),
-      ];
+      ]);
     },
     key: "id",
     title: "who",
@@ -1379,6 +1402,7 @@ export const engageRecordOf = (signer?: VideoSigner) =>
       why: text("Picked for"),
       held: text("Held because"),
       draft: prose("Our draft"),
+      pick: PICK_FIELD(),
       account: accountField("On"),
       at: date("When"),
       due: date("Due"),

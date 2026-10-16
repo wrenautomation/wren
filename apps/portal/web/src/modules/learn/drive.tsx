@@ -75,6 +75,7 @@ import {
   Avatar,
   KIND_LABELS,
   lengthOf,
+  PickBadge,
   ScoreBadge,
   Thumb,
   TYPE_ORDER,
@@ -891,6 +892,7 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
         </div>
         <div className="pointer-events-none absolute bottom-1.5 left-1.5 flex items-center gap-1">
           <ScoreBadge score={c.score} />
+          <PickBadge pick={c.pick} />
           {c.pinned ? (
             <span
               className="inline-flex size-5 items-center justify-center bg-(--ui-paper) text-(--ui-ink)"
@@ -1167,8 +1169,14 @@ function ListTable({
         {
           key: "score",
           label: "Score",
-          className: "w-14",
-          cell: (c) => <ScoreBadge score={c.score} />,
+          // The model's Worth it or Skip sits beside the score while Learn shows picks.
+          className: "w-28",
+          cell: (c) => (
+            <span className="inline-flex items-center gap-1">
+              <ScoreBadge score={c.score} />
+              <PickBadge pick={c.pick} />
+            </span>
+          ),
         },
         {
           key: "status",

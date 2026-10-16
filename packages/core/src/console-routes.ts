@@ -9,6 +9,7 @@ export const CONSOLE_ROUTES = {
   view: "wren:read",
   loops: "wren:read",
   agents: "wren:read",
+  decisions: "wren:read",
   setLoop: "wren:run",
   // The team's records at Wren; a client's catalog (console.component) at that client.
   recordsTypes: "read",

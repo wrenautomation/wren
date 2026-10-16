@@ -11,6 +11,7 @@ import {
   decidePass,
   decideStats,
   decisionRecords,
+  picksOf,
   setDecideMode,
 } from "../../src/decide/index.js";
 import { recordDraft } from "../../src/draft-record.js";
@@ -255,5 +256,16 @@ describe("the pass and the numbers", () => {
       label: "send",
       keep: true,
     });
+  });
+  it("shows picks on lists only in recommend or gate", async () => {
+    const subjects = ["thread:t3_a", "thread:t3_r", "thread:none"];
+    // Shadow (set above): nothing shows.
+    expect((await picksOf(db, "comment_quality", subjects)).size).toBe(0);
+    await setDecideMode(db, "comment_quality", "recommend", "test");
+    const shown = await picksOf(db, "comment_quality", subjects);
+    // t3_r's only decision was refused: no label, no pick.
+    expect([...shown.keys()]).toEqual(["thread:t3_a"]);
+    expect(shown.get("thread:t3_a")?.label).toBe("drop");
+    expect((await picksOf(db, "comment_quality", [])).size).toBe(0);
   });
 });

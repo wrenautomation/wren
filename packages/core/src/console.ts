@@ -83,6 +83,7 @@ import {
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "./console-routes.js";
 import { customApi, customHandlers } from "./custom-console.js";
 import { withCustomFields } from "./custom-fields.js";
+import { decideStats, type KindStats } from "./decide/stats.js";
 import { leadOf } from "./door.js";
 import { type Door, doorsFor, ensureDoors, revealDoor, rotateDoor } from "./doors.js";
 import { type DryResult, dryStep, dryWalk, sampleEvent } from "./dry.js";
@@ -2647,6 +2648,12 @@ export function consoleApi({
         }));
     },
 
+    /** Decide's numbers per kind (designs/2026-10-16-decide.md): his calls, agreement, spend. */
+    decisions: async (req: PortalRequest): Promise<KindStats[]> => {
+      team(req);
+      return decideStats(main);
+    },
+
     recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
       const fence = fenceOf(req);
       await refreshRecordAccounts(main);
@@ -3723,6 +3730,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
       loops: (_: restate.Context, req: PortalRequest) => answer(() => api.loops(req)),
       agents: (_: restate.Context, req: PortalRequest) => answer(() => api.agents(req)),
+      decisions: (_: restate.Context, req: PortalRequest) => answer(() => api.decisions(req)),
       recordsTypes: (_: restate.Context, req: PortalRequest) => answer(() => api.recordsTypes(req)),
       recordsList: (_: restate.Context, req: PortalRequest & ListAsk) =>
         answer(() => api.recordsList(req)),

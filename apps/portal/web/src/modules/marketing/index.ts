@@ -1202,7 +1202,7 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   record: "marketing.inbox",
   card: INBOX_CARD,
   // Their words preview under who; Kind, Where and Open sit on the thread itself.
-  columns: ["who", "platform", "type", "state", "postTitle", "assignee", "at"],
+  columns: ["who", "platform", "type", "state", "pick", "postTitle", "assignee", "at"],
   empty: {
     waiting: "Nothing waits on you.",
     mine: "Nothing is assigned to you. Take a thread with T.",
@@ -1258,7 +1258,7 @@ export const APPROVAL_PAGE: ListPage = {
   needs: { state: ["new", "waiting"] },
   // Kind says what Type does, in more words.
   // Held and Sends at fill only for Queued; a column blank on every row shown is dropped.
-  columns: ["who", "platform", "kind", "state", "sendAt", "held", "at", "due"],
+  columns: ["who", "platform", "kind", "state", "pick", "sendAt", "held", "at", "due"],
   empty: {
     waiting: "Nothing waits on your yes.",
     queued:

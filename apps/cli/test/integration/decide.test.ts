@@ -7,7 +7,7 @@
 import { recordDraft } from "@wren/core/draft-record";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { askSop, items, mark, saveLink } from "@wren/learn";
-import { learnDue } from "@wren/learn/decide";
+import { learnDue, withLearnPicks } from "@wren/learn/decide";
 import { commentsDue } from "@wren/outreach/decide";
 import { redditPlaces, redditThreads } from "@wren/outreach/schema";
 import { Command } from "commander";
@@ -103,6 +103,24 @@ describe("Learn calls", () => {
     expect((first?.state.focus as string[]).length).toBeGreaterThan(3);
     expect(JSON.stringify(first?.state)).not.toContain("Some Creator");
     expect(due.every((d) => !d.subject.includes("client"))).toBe(true);
+  });
+});
+
+describe("Learn picks", () => {
+  it("Wren's cards carry the newest pick; a client's carry none", async () => {
+    const a = await item("wren", 10);
+    const c = await item("client-x", 11);
+    for (const [id, label] of [
+      [a, "skip"],
+      [c, "worth"],
+    ] as const)
+      await pg.db.execute(sql`insert into decisions
+        (kind, subject, mode, backend, model, state, questions, label, ref)
+        values ('learn_worth', ${`learn:${id}`}, 'recommend', 'jev', 'jev-test', '{}', '{}', ${label}, ${`t:${id}`})`);
+    expect(
+      (await withLearnPicks(pg.db, "wren", [{ id: a }, { id: 999_999 }])).map((x) => x.pick),
+    ).toEqual(["skip", null]);
+    expect((await withLearnPicks(pg.db, "client-x", [{ id: c }]))[0]?.pick).toBeNull();
   });
 });
 

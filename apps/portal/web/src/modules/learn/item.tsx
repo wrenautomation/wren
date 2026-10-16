@@ -43,6 +43,7 @@ import {
   clock,
   lengthOf,
   mediaSrc,
+  PickBadge,
   Picture,
   Progress,
   ScoreBadge,
@@ -802,6 +803,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
           {item.score !== null ? (
             <div className="flex shrink-0 flex-col items-end gap-1 pt-1">
               <ScoreBadge score={item.score} className="h-7 min-w-7 text-[14px]" />
+              <PickBadge pick={item.pick} />
               {item.verdict ? (
                 <span className="hidden text-right text-[11.5px] text-(--ui-ink-2) sm:block">
                   {VERDICTS[item.verdict]}

@@ -31,6 +31,7 @@ import {
   since,
   tally,
 } from "./agent-model.js";
+import { Decisions } from "./decisions.js";
 
 const DAYS = 30;
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -138,6 +139,7 @@ export function Agents() {
           ]}
         />
       </div>
+      <Decisions />
       {agents.length ? null : <p className={QUIET}>Nothing runs for Wren yet.</p>}
       {departments(agents).map((d) => (
         <AppGrid key={d.name} label={d.name}>

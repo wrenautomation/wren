@@ -98,6 +98,8 @@ export interface Card {
   collectionId: number | null;
   tags: string[];
   saved: boolean;
+  /** The model's call on Wren's item, shown while Learn items are on recommend. */
+  pick?: "worth" | "skip" | null;
   at: string;
 }
 
