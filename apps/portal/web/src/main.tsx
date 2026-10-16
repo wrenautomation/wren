@@ -2,10 +2,10 @@ import "./app.css";
 import { DictationProvider, HintLayer, ReadingProvider } from "@wren/ui";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App.js";
 import { openLocalCopy } from "./api.js";
 import { dictation } from "./dictation/index.js";
 import { reading } from "./reading/index.js";
+import { PortalRouter } from "./router.js";
 import { reloadOnce } from "./stale.js";
 
 // A lazy file the live build no longer has: this tab predates a deploy, so load it fresh once.
@@ -20,7 +20,7 @@ void Promise.race([openLocalCopy(), new Promise((r) => setTimeout(r, 250))]).the
       <StrictMode>
         <DictationProvider engine={dictation}>
           <ReadingProvider engine={reading}>
-            <App />
+            <PortalRouter />
             <HintLayer />
           </ReadingProvider>
         </DictationProvider>

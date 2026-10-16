@@ -221,6 +221,16 @@ export {
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export type { KeepApi, SavedViewLine } from "./list-bar.js";
+export {
+  LIST_FORMS,
+  LIST_SEARCH,
+  type ListSearch,
+  type ListState,
+  listChange,
+  listStateOf,
+  paramsOf,
+  searchOf,
+} from "./list-search.js";
 export { type Look, LookEditor, lookOf, ThemeGallery } from "./look.js";
 export { hostMark, markName, PlatformMark, TintSwatch, tintColor, tintWash } from "./marks.js";
 export {
@@ -281,6 +291,8 @@ export {
   type Needs,
   Panel as RecordPanel,
   type Place,
+  pageAskOf,
+  prefetchList,
   type RecordAct,
   type RecordActs,
   type RecordExtras,

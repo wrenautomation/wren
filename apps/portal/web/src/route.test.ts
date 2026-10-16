@@ -1,24 +1,26 @@
-// Covers href, navigate and go. The click rules and `useRoute` need a DOM, which these tests
-// don't have; the browser pass covers them.
+// Covers href, navigate and go against a stand-in router. The click rules and `useRoute` need a
+// DOM, which these tests don't have; the browser pass covers them.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { go, href, navigate } from "./route.js";
+import { bindRouter, go, href, navigate } from "./route.js";
 
-function setup(pathname: string, search = "", hash = "") {
-  const loc = { pathname, search, hash };
-  const pushState = vi.fn();
-  const replaceState = vi.fn();
-  const dispatched: Event[] = [];
-  vi.stubGlobal("location", loc);
-  vi.stubGlobal("history", { state: null, pushState, replaceState });
-  vi.stubGlobal("dispatchEvent", (e: Event) => {
-    dispatched.push(e);
-    return true;
-  });
-  return { loc, pushState, replaceState, dispatched };
+type Move = { href: string; replace: boolean; state: { from?: string } };
+
+function setup(pathname: string, search = "", hash = "", state: unknown = null) {
+  vi.stubGlobal("location", { pathname, search, hash });
+  vi.stubGlobal("history", { state });
+  const moves: Move[] = [];
+  bindRouter({
+    navigate: (m: Move) => {
+      moves.push(m);
+      return Promise.resolve();
+    },
+  } as never);
+  return { moves };
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  bindRouter(null);
 });
 
 describe("href", () => {
@@ -52,69 +54,65 @@ describe("href", () => {
 });
 
 describe("navigate", () => {
-  it("pushes a new history entry for a different address", () => {
-    const { pushState, replaceState } = setup("/a", "", "");
+  it("adds an entry for a different address, keeping where it came from", () => {
+    const { moves } = setup("/a");
     navigate("/b");
-    expect(pushState).toHaveBeenCalledWith({ from: "/a" }, "", "/b");
-    expect(replaceState).not.toHaveBeenCalled();
+    expect(moves).toMatchObject([{ href: "/b", replace: false, state: { from: "/a" } }]);
   });
 
-  it("replaces instead of pushing when replace is true", () => {
-    const { pushState, replaceState } = setup("/a", "", "");
+  it("replaces the entry when replace is true, keeping its own from", () => {
+    const { moves } = setup("/a", "", "", { from: "/z" });
     navigate("/b", true);
-    expect(replaceState).toHaveBeenCalledWith(null, "", "/b");
-    expect(pushState).not.toHaveBeenCalled();
+    expect(moves).toMatchObject([{ href: "/b", replace: true, state: { from: "/z" } }]);
   });
 
-  it("replaces instead of pushing when the destination is the current address", () => {
-    const { pushState, replaceState } = setup("/a", "?x=1", "#h");
+  it("replaces when the destination is the current address", () => {
+    const { moves } = setup("/a", "?x=1", "#h");
     navigate("/a?x=1#h");
-    expect(replaceState).toHaveBeenCalledWith(null, "", "/a?x=1#h");
-    expect(pushState).not.toHaveBeenCalled();
+    expect(moves).toMatchObject([{ href: "/a?x=1#h", replace: true, state: {} }]);
   });
 
-  it("dispatches a wren:route event either way", () => {
-    const { dispatched } = setup("/a", "", "");
+  it("keeps the page's scroll", () => {
+    const { moves } = setup("/a");
     navigate("/b");
-    expect(dispatched).toHaveLength(1);
-    expect(dispatched[0]?.type).toBe("wren:route");
+    expect(moves[0]).toMatchObject({ resetScroll: false });
   });
 });
 
 describe("go", () => {
   it("navigates with only the given params when nothing is kept", () => {
-    const { pushState } = setup("/a", "", "");
+    const { moves } = setup("/a");
     go("/b", { x: "1" });
-    expect(pushState).toHaveBeenCalledWith({ from: "/a" }, "", "/b?x=1");
+    expect(moves[0]?.href).toBe("/b?x=1");
   });
 
   it("merges kept params with new ones", () => {
-    const { pushState } = setup("/a", "", "");
+    const { moves } = setup("/a");
     go("/b", { z: "9" }, new URLSearchParams("x=1&y=2"));
-    expect(pushState).toHaveBeenCalledWith({ from: "/a" }, "", "/b?x=1&y=2&z=9");
+    expect(moves[0]?.href).toBe("/b?x=1&y=2&z=9");
   });
 
   it("lets a new param override a kept one of the same key", () => {
-    const { pushState } = setup("/a", "", "");
+    const { moves } = setup("/a");
     go("/b", { x: "9" }, new URLSearchParams("x=1&y=2"));
-    expect(pushState).toHaveBeenCalledWith({ from: "/a" }, "", "/b?x=9&y=2");
+    expect(moves[0]?.href).toBe("/b?x=9&y=2");
   });
 
   it("clears a kept param by passing it as null", () => {
-    const { pushState } = setup("/a", "", "");
+    const { moves } = setup("/a");
     go("/b", { x: null }, new URLSearchParams("x=1&y=2"));
-    expect(pushState).toHaveBeenCalledWith({ from: "/a" }, "", "/b?y=2");
+    expect(moves[0]?.href).toBe("/b?y=2");
   });
 
   it("keeps every value of a repeated key", () => {
-    const { pushState } = setup("/a", "", "");
+    const { moves } = setup("/a");
     go("/b", {}, new URLSearchParams("tag=a&tag=b"));
-    expect(pushState).toHaveBeenCalledWith({ from: "/a" }, "", "/b?tag=a&tag=b");
+    expect(moves[0]?.href).toBe("/b?tag=a&tag=b");
   });
 
   it("drops an empty kept param", () => {
-    const { pushState } = setup("/a", "", "");
+    const { moves } = setup("/a");
     go("/b", {}, new URLSearchParams("q=&y=2"));
-    expect(pushState).toHaveBeenCalledWith({ from: "/a" }, "", "/b?y=2");
+    expect(moves[0]?.href).toBe("/b?y=2");
   });
 });

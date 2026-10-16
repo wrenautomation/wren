@@ -12,6 +12,7 @@ import {
   type LocalRecords,
   localRecords,
   type Place,
+  prefetchList,
   type RecordAct,
   RecordDay,
   RecordForm,
@@ -27,7 +28,6 @@ import {
   TimelineSwitch,
 } from "@wren/ui";
 import type { ReactNode } from "react";
-import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
 import { cardFor } from "./cards.js";
@@ -36,6 +36,7 @@ import { inLane } from "./lanes.js";
 import {
   type DayPage,
   type ListPage,
+  type ModulePage,
   type OverviewPage,
   type PageAcross,
   type PageProps,
@@ -778,6 +779,45 @@ export function HandSwitch({
   );
 }
 
+/** Which product serves a template page's records, and the scope it asks them in. */
+function whereOf(
+  page: ListPage | OverviewPage | DayPage,
+  path: string,
+  workspace: string,
+  team: boolean,
+): { product: string; scope: Scope } {
+  const record =
+    page.template === "overview"
+      ? (page.tiles[0]?.record ?? "")
+      : page.template === "day"
+        ? (page.sources[0]?.record ?? "")
+        : page.record;
+  // The console serves Wren's records, and access's anywhere.
+  const product =
+    workspace === WREN.id || record.startsWith("access.")
+      ? "console"
+      : (record.split(".")[0] ?? "");
+  return { product, scope: { app: path.split("/")[1] ?? "", asClient: !team } };
+}
+
+/**
+ * Read a list page's rows ahead (a route's loader: a hover on its link, or the move to it), so
+ * it paints from the data layer. Only a page that lists one record type, never on a sample.
+ */
+export function prefetchPage(
+  page: ModulePage,
+  path: string,
+  workspace: string,
+  team: boolean,
+  params: URLSearchParams,
+): Promise<void> {
+  if (!("record" in page) || !(page.template === "list" || page.template === "queue"))
+    return Promise.resolve();
+  const { product, scope } = whereOf(page, path, workspace, team);
+  const api = apiOf(product, workspace === WREN.id ? null : workspace, scope);
+  return prefetchList(api, page.record, params).catch(() => {});
+}
+
 export function TemplatePage({
   page,
   path,
@@ -799,23 +839,9 @@ export function TemplatePage({
 }) {
   const { params } = props;
   const flags = useFlags();
-  const old = ("legacy" in page && page.legacy?.(params)) || null;
-  useEffect(() => {
-    if (old) navigate(href(path, old, params), true);
-  });
-  if (old) return null;
-
   const wren = props.client === WREN.id;
   const client = wren ? null : props.client;
-  const record =
-    page.template === "overview"
-      ? (page.tiles[0]?.record ?? "")
-      : page.template === "day"
-        ? (page.sources[0]?.record ?? "")
-        : page.record;
-  // The console serves Wren's records, and access's anywhere.
-  const product = wren || record.startsWith("access.") ? "console" : (record.split(".")[0] ?? "");
-  const scope = { app: path.split("/")[1] ?? "", asClient: !props.team };
+  const { product, scope } = whereOf(page, path, props.client, props.team);
   if (page.template === "overview") {
     const Below = page.below;
     return (

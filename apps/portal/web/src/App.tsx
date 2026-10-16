@@ -57,7 +57,7 @@ import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/c
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
 import { HandSwitch, keepOf, TemplatePage } from "./records.js";
-import { href, navigate, useRoute } from "./route.js";
+import { href, navigate, setWorkspace, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
 import { ClientToday, WrenToday } from "./today.js";
 import { openViewAs, VIEW_AS_HREF, ViewAsPicker, ViewAsStrip } from "./view-as.js";
@@ -432,6 +432,8 @@ export function App() {
   );
   // Words typed from here on wait under the client on screen (set before its boxes read them).
   EDITS.setClient(current?.id ?? null);
+  // A route's loader reads ahead in this workspace; a sample reads nothing ahead.
+  setWorkspace(current && me.data ? { id: current.id, team, demo: sample } : null);
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Today" : null;
   useEffect(() => {
     if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;

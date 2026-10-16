@@ -60,7 +60,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
-import { type Load, useLoad, writeThrough } from "./data/query.js";
+import { type Load, readCached, useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
 import { type LiveText, liveText } from "./draft-save.js";
 import {
@@ -743,6 +743,29 @@ export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   return ask;
 }
 
+/** The page of rows an address asks for: its filters, sort and group, `pg`'s slice. */
+export function pageAskOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
+  const at = pageAt(params.get("pg"));
+  return { ...askOf(meta, params), limit: PAGE_SIZE, ...(at > 1 ? { offset: offsetOf(at) } : {}) };
+}
+
+/**
+ * Read an address's rows ahead into the data layer, under the key the list reads them by: a
+ * route's loader calls it on a hover or a move, so the list paints from the cache. The record's
+ * type comes from the cached types; none cached yet, it reads nothing.
+ */
+export async function prefetchList(
+  api: RecordsApi,
+  record: string,
+  params: URLSearchParams,
+): Promise<void> {
+  const types = await readCached(api, "types", () => api.types(), TYPES_FRESH_MS);
+  const meta = types.find((t) => t.id === record);
+  if (!meta) return;
+  const asked = pageAskOf(meta, params);
+  await readCached(api, JSON.stringify(asked), () => api.list(asked));
+}
+
 /** Filter's counts: one row's page with the facets of this address, read when a choice opens. */
 export const facetsOf = (api: RecordsApi, ask: ListAsk) => () => {
   const { cursor: _, offset: __, ...rest } = ask;
@@ -1160,11 +1183,7 @@ function List({
   useEffect(() => setForm(wanted), [wanted]);
   const spec = card === false ? undefined : card;
   const pictured = form === "cards" && !!meta.thumbs && spec?.media !== null;
-  const listed: ListAsk = {
-    ...ask,
-    limit: PAGE_SIZE,
-    ...(at > 1 ? { offset: offsetOf(at) } : {}),
-  };
+  const listed = pageAskOf(meta, params);
   const asked: ListAsk = pictured ? { ...listed, thumbs: true } : listed;
   const page = useLoad<RecordsPage>(
     JSON.stringify(asked),

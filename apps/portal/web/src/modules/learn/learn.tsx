@@ -19,6 +19,7 @@ import {
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { href, navigate } from "../../route.js";
 import { call, inWorkspace, keyOf } from "./api.js";
 
 interface Saved {
@@ -185,10 +186,7 @@ function SearchBody({ params }: { params: URLSearchParams }) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setAsked(q.trim());
-    const u = new URL(location.href);
-    if (q.trim()) u.searchParams.set("q", q.trim());
-    else u.searchParams.delete("q");
-    history.replaceState(null, "", u);
+    navigate(href(location.pathname, { q: q.trim() }, new URLSearchParams(location.search)), true);
   };
   return (
     <>
