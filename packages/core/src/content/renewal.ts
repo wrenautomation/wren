@@ -1,11 +1,11 @@
 /**
- * `TokenRenewal/box`: keeps autobrowse's tokens from lapsing. A LinkedIn
- * access token lives 60 days with no refresh token; an npm token 90. The
- * box keeps each with its lapse date and `sites/renew` makes again what
- * lapses within 14 days (a browser consent signed in with the stored login).
- * This object is the clock: wake the box, call `renew`, post what happened,
- * then sleep until 14 days before the next lapse (at least a day, at most a
- * week, so a token minted meanwhile is never missed by more than that).
+ * `TokenRenewal/box`: keeps autobrowse's tokens alive. A LinkedIn access token
+ * lives 60 days with no refresh token; an npm token 90; any token can be
+ * revoked or refused before then. `sites/renew` probes each site's token,
+ * then makes again every refused one and every one lapsing within 14 days (a
+ * browser consent signed in with the stored login). This object is the clock:
+ * wake the host, call `renew`, post what happened, then sleep a day, so a
+ * refused token waits at most a day even when nothing called it.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
@@ -16,9 +16,6 @@ import { SITES, type SitesHost } from "./restate.js";
 export const RENEWAL_KEY = "box";
 export const RENEWAL_COMMAND = "sites renew";
 const DAY_MS = 86_400_000;
-export const RENEW_WITHIN_MS = 14 * DAY_MS;
-const MIN_SLEEP_MS = DAY_MS;
-const MAX_SLEEP_MS = 7 * DAY_MS;
 
 /** What autobrowse's `sites/renew` answers (names, dates and lines; never a value). */
 export interface RenewReport {
@@ -43,13 +40,6 @@ export interface TokenRenewalDeps {
   /** Where `sites/renew` runs (`sitesHost`); the box by default. */
   host?: SitesHost;
   notifier?: Notifier;
-}
-
-/** Sleep until 14 days before the next lapse, within a day and a week. */
-export function renewalDelay(next: string | null, now: Date): number {
-  if (!next) return MAX_SLEEP_MS;
-  const until = Date.parse(next) - RENEW_WITHIN_MS - now.getTime();
-  return Math.min(MAX_SLEEP_MS, Math.max(MIN_SLEEP_MS, until));
 }
 
 export function makeTokenRenewal(deps: TokenRenewalDeps) {
@@ -87,8 +77,8 @@ export function makeTokenRenewal(deps: TokenRenewalDeps) {
           );
         return stats;
       },
-      delayAfter: (s) => renewalDelay(s.next, now),
-      retryMs: MIN_SLEEP_MS,
+      delayAfter: () => DAY_MS,
+      retryMs: DAY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     }) as Promise<PassOutcome<RenewalStats>>;
   });

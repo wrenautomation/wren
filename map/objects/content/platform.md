@@ -44,7 +44,7 @@ Citations: `packages/core/src/content/index.ts:12`, `:122`
 |---|---|
 | `Content` service (publish, update, list, metrics, metricsMany, commentCounts, comments, reply, activity, audience; the two batch reads answer null when the adapter lacks them and any failure in them is terminal, so the caller reads one by one; `update` changes a live post's title, hook or thumbnail, YouTube only, 501 elsewhere; the last two null when the adapter lacks them, an `audience` failure terminal) | calls |
 | `SocialWatch/wren` (`packages/content/src/restate/social.ts`) | counts comments once per platform per pass and reads the posts whose count moved (see [[content/comment]]), reads comments, activity, audience into `comments`, `social_activity`, `social_days`; never the audience of `AUDIENCE_ON_DEMAND` (LinkedIn: autobrowse `GET /audience` as `linkedin@wren`), read only by `SocialDesk.readAudience` (`wren social audience linkedin`, Followers → Read now), which replaces the day's row |
-| `TokenRenewal/box` | keeps their tokens alive |
+| `TokenRenewal/box` | keeps their tokens alive: daily `sites/renew` probes each, makes again refused and lapsing ones (autobrowse card `token`) |
 
 ## See
 
