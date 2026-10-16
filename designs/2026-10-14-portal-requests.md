@@ -30,7 +30,7 @@ Last 24 h: 116k requests. Restate's `sys_invocation` shows which calls:
    counts merge into one call each minute, sent only while the tab is visible and the window is focused,
    plus once on return. Other timers (`workflows.tsx`, `editor.tsx` 2 s, `Domain.tsx`, `learn/item.tsx`)
    stop when hidden and when their job is done.
-5. **Logs.** `[observability] enabled = true`, so the next spike shows its paths. Sampling was 0.1; 1 since 10-16 (wa-ovo) so every refused send is kept.
+5. **Logs.** `[observability] enabled = true, head_sampling_rate = 0.1`, so the next spike shows its paths.
 
 ## Done when
 

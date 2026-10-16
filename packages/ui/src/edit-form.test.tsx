@@ -134,6 +134,25 @@ describe("useEditForm", () => {
     expect(got.unsent).toBe(true);
   });
 
+  it("a tab older than the live build keeps its words through the reload it is told to do (wa-ovo)", async () => {
+    const STALE = "Wren was updated since this tab opened. Reload to send.";
+    await draw("hook:stale");
+    await type("name", "CRM");
+    await act(async () => {
+      await got.onSend(async () => {
+        throw Object.assign(new Error(STALE), { status: 409, code: "stale" });
+      })();
+    });
+    expect(got.error).toBe(STALE);
+    // The reload: a new form under the same key gives the words back.
+    act(() => root.unmount());
+    root = createRoot(host);
+    await draw("hook:stale");
+    expect(got.getValues("name")).toBe("CRM");
+    expect(got.restored).toBe(true);
+    expect(got.conflict).toBeNull();
+  });
+
   it("words typed after a send come back without a conflict once the server caught up", async () => {
     await draw("hook:after", { name: "Old", url: "" }, "v1");
     await type("name", "Sent");
