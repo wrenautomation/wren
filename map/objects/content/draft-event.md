@@ -30,6 +30,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 - **owned-by:** none: keyed by `item`, no foreign keys, so it outlives a deleted draft
 - **joins:** [[content/draft]], [[content/comment]], [[content/reddit-thread]], [[content/linkedin-invite]] (DM contacts), [[content/video-edit]], `runs` (`run_id`)
 - **joins:** [[content/funnel]] (comment decisions read back as examples)
+- **joins:** [[platform/decide]] (a comment draft sent or rejected by a person or Claude is his call, `recordCommentCall` after the insert)
 
 ## If you change this
 

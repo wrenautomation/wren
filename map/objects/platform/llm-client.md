@@ -26,6 +26,7 @@ Citations: `packages/llm/src/client.ts:30`, `packages/llm/src/stage.ts:62`
 ## Connected to
 
 - **joins:** [[research/enrichment]] (`output.call`), [[email/thread-event]] (`classification`), [[sms/sms-message]] (`classification`), [[content/draft]] (`llm`)
+- **joins:** [[platform/decide]] (the gateway answers when Jev is down)
 
 ## If you change this
 
