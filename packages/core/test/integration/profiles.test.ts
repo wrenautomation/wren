@@ -233,6 +233,15 @@ describe("backfill, timeline and records", () => {
     });
   });
 
+  it("a kind filter reaches every branch: a booking read never scans trait history", async () => {
+    const plan = (
+      await run(sql`explain (costs off) select * from profile_timeline where kind = 'booking'`)
+    )
+      .map((r) => String(Object.values(r)[0]))
+      .join("\n");
+    expect(plan).not.toMatch(/profile_trait_events|profile_merges|events ev/);
+  });
+
   it("serves the profile with its timeline counts, and the data index with what uses it", async () => {
     await seed();
     await backfillProfiles(pg.db);

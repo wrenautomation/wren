@@ -370,20 +370,27 @@ export const profileTimeline = pgView("profile_timeline", {
   join call_bookings cb on lower(cb.email) = k.value
   where k.kind = 'email' and cb.uid not like 'wren-%'
   union all
-  select 'profile_event:' || pe.id, pe.profile_id, pe.at, pe.kind, pe.channel, pe.summary, pe.body,
-    pe.link, pe.source
+  -- Text like every other branch: a varchar here also stops a kind filter reaching the branches.
+  select 'profile_event:' || pe.id, pe.profile_id, pe.at, pe.kind::text, pe.channel::text,
+    pe.summary, pe.body, pe.link, pe.source::text
   from profile_events pe
   union all
-  select distinct on (ev.workflow, ev.subject, w.profile_id) 'event:' || ev.id, w.profile_id,
-    ev.at, 'workflow', 'workflow', 'Entered ' || ev.workflow, ev.subject, null, 'events'
+  -- DISTINCT ON sits one level down: at a branch's top it stops Postgres pushing a reader's
+  -- kind filter into every branch, and each read built all of them (282k rows, 2026-10-16).
+  select 'event:' || x.id, x.profile_id, x.at, 'workflow', 'workflow', 'Entered ' || x.workflow,
+    x.subject, null, 'events'
   from (
-    select k.profile_id, 'lead:email:' || e.id subject from profile_keys k
-      join enrollments e on lower(e.to_email) = k.value where k.kind = 'email'
-    union all
-    select k.profile_id, 'lead:sms:' || c.id from profile_keys k
-      join sms_contacts c on c.e164 = k.value where k.kind = 'phone'
-  ) w
-  join events ev on ev.subject = w.subject
+    select distinct on (ev.workflow, ev.subject, w.profile_id) ev.id, w.profile_id, ev.at,
+      ev.workflow, ev.subject
+    from (
+      select k.profile_id, 'lead:email:' || e.id subject from profile_keys k
+        join enrollments e on lower(e.to_email) = k.value where k.kind = 'email'
+      union all
+      select k.profile_id, 'lead:sms:' || c.id from profile_keys k
+        join sms_contacts c on c.e164 = k.value where k.kind = 'phone'
+    ) w
+    join events ev on ev.subject = w.subject
+  ) x
   union all
   select 'trait_event:' || te.id, te.profile_id, te.at, 'trait', 'profile',
     te.key || ': ' || coalesce(te.old::text, 'none') || ' to ' || te.new::text, null, null,
