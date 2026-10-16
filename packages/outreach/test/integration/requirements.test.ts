@@ -25,7 +25,7 @@ import {
 } from "../../src/index.js";
 import { keepProof } from "../../src/proofs.js";
 import { scheduleThreads } from "../../src/scheduled.js";
-import { type ReachAccount, redditPlaces, redditThreads } from "../../src/schema.js";
+import { draftAccounts, type ReachAccount, redditPlaces, redditThreads } from "../../src/schema.js";
 
 const TABLES = [
   "reddit_requirements",
@@ -33,6 +33,7 @@ const TABLES = [
   "reddit_places",
   "comment_proofs",
   "reach_accounts",
+  "draft_accounts",
 ];
 const NOW = new Date("2026-10-14T15:00:00Z");
 const DAY = 86_400_000;
@@ -195,6 +196,30 @@ describe("reddit requirements", () => {
     await refreshHealth(db(), [alt], () => ch, NOW);
     const later = await scheduleThreads(db(), { now: NOW, rand: () => 0 });
     expect(later.map((s) => s.id)).toEqual(["t3_synth1"]);
+  });
+
+  it("a picked account short of the floor still gets its slot; an unexplained removal holds it", async () => {
+    const alt = await account("reddit@alt", "alt_user", 30, 1);
+    const wren = await account("reddit@wren", "wren_user", 30, 2);
+    await place("salestechniques", wren.id);
+    await thread("t3_synth1", "salestechniques", wren.id);
+    await setNeed(db(), "salestechniques", { minKarma: 50 }, "by hand");
+    await db().insert(draftAccounts).values({ item: "thread:t3_synth1", account: "reddit@alt" });
+
+    const slots = await scheduleThreads(db(), { now: NOW, rand: () => 0 });
+    expect(slots.map((s) => s.id)).toEqual(["t3_synth1"]);
+    // A later gate pass leaves the pick's slot alone.
+    await applyGates(db(), NOW);
+    const [t] = await db().select().from(redditThreads).where(eq(redditThreads.id, "t3_synth1"));
+    expect(t?.sendAt).not.toBeNull();
+    expect((await planThreadComment(db(), "t3_synth1", NOW)).account.id).toBe(alt.id);
+
+    // A removal that says nothing holds every account, picked or not.
+    await learnFromProof(db(), "thread:t3_synth1", removal("hidden", null));
+    await applyGates(db(), NOW);
+    const [held] = await db().select().from(redditThreads).where(eq(redditThreads.id, "t3_synth1"));
+    expect(held?.sendAt).toBeNull();
+    await expect(planThreadComment(db(), "t3_synth1", NOW)).rejects.toBeInstanceOf(ThreadHeld);
   });
 
   it("a gate set clears a window: an already scheduled comment leaves the schedule", async () => {

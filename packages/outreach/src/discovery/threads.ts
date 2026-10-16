@@ -45,7 +45,7 @@ import { keepTouch, touchFromThread } from "../touches.js";
 import { personLine } from "./people.js";
 import type { Audience } from "./places.js";
 import type { Post } from "./reads.js";
-import { gatesFor, ThreadHeld } from "./requirements.js";
+import { gatesFor, holdsThread, ThreadHeld } from "./requirements.js";
 
 const HOUR = 3_600_000;
 /** Late comments sink: older or busier threads are dropped in code. */
@@ -487,8 +487,8 @@ export async function planThreadComment(
   // A person's pick goes out as picked: its karma or age shortfall was warned on the picker. A
   // sub that removed our last comment without saying why still holds every account.
   const picked = await pickedReachAccount(db, `thread:${id}`);
-  if (gate && !gate.ok && (!picked || gate.hold))
-    throw new ThreadHeld(gate.reason ?? `r/${thread.subreddit} is held`);
+  if (holdsThread(gate, Boolean(picked)))
+    throw new ThreadHeld(gate?.reason ?? `r/${thread.subreddit} is held`);
   const account =
     picked ?? (await accountById(db, gate?.accountId ?? place?.accountId ?? thread.accountId));
   if (!account)

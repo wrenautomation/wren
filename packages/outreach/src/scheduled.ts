@@ -10,7 +10,7 @@ import { mayHavePosted, saysBrowserBusy } from "@wren/core/content";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
-import { applyGates } from "./discovery/requirements.js";
+import { applyGates, holdsThread } from "./discovery/requirements.js";
 import { SLOT_WITHIN_MS } from "./discovery/threads.js";
 import { type Pace, sendSlots, ZONE } from "./pacing.js";
 import type { CommentsSettings } from "./reach-posts.js";
@@ -118,9 +118,8 @@ export async function scheduleThreads(
   const out: Slotted[] = [];
   // A sub whose floor no account meets keeps its queue off the schedule; one only another account
   // meets moves to it. Held comments stay queued and are slotted once the floor is met.
-  const held = new Set(
-    [...(await applyGates(db, o.now))].flatMap(([sub, g]) => (g.ok ? [] : [sub])),
-  );
+  // A person's pick rides the picked account's lane and passes a karma or age floor.
+  const gates = await applyGates(db, o.now);
   const accounts = await db
     .select()
     .from(reachAccounts)
@@ -133,9 +132,16 @@ export async function scheduleThreads(
   for (const a of accounts) {
     const w = a.health ? warmupOf(a.health as AccountHealth, o.now) : null;
     if (!w || w.frozen || w.caps.comments <= 0) continue;
+    const pick = sql`(select da.account from draft_accounts da where da.item = 'thread:' || ${redditThreads.id})`;
     const owns = or(
-      eq(redditThreads.accountId, a.id),
-      sql`${redditThreads.subreddit} IN (SELECT ${redditPlaces.subreddit} FROM ${redditPlaces} WHERE ${redditPlaces.accountId} = ${a.id})`,
+      sql`${pick} = ${a.account}`,
+      and(
+        sql`${pick} is null`,
+        or(
+          eq(redditThreads.accountId, a.id),
+          sql`${redditThreads.subreddit} IN (SELECT ${redditPlaces.subreddit} FROM ${redditPlaces} WHERE ${redditPlaces.accountId} = ${a.id})`,
+        ),
+      ),
     );
     const lane = await db
       .select({ at: sql<Date>`coalesce(${redditThreads.sendAt}, ${redditThreads.answeredAt})` })
@@ -154,6 +160,7 @@ export async function scheduleThreads(
         id: redditThreads.id,
         postedAt: redditThreads.postedAt,
         subreddit: redditThreads.subreddit,
+        picked: sql<boolean>`${pick} is not null`,
       })
       .from(redditThreads)
       .where(
@@ -167,7 +174,7 @@ export async function scheduleThreads(
       )
       .orderBy(desc(redditThreads.fit), redditThreads.id);
     const slots = fill(
-      items.filter((t) => !held.has(t.subreddit)),
+      items.filter((t) => !holdsThread(gates.get(t.subreddit), t.picked)),
       {
         now: o.now,
         taken: lane.map((r) => new Date(r.at)),

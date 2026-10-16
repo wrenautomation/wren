@@ -293,6 +293,13 @@ export async function moveToQualifying(
     .where(and(eq(redditThreads.subreddit, sub), eq(redditThreads.state, "queued")));
 }
 
+/** A thread someone picked an account for (`draft_accounts`): it goes out as picked. */
+const pickedSql = sql`exists (select 1 from draft_accounts da where da.item = 'thread:' || ${redditThreads.id})`;
+
+/** Whether a gate holds a thread: a pick passes a karma or age floor, never an unexplained removal. */
+export const holdsThread = (g: Gate | undefined, picked: boolean): boolean =>
+  Boolean(g && !g.ok && (!picked || g.hold));
+
 /**
  * Before the scheduler slots anything: a gated sub's queued comments leave the schedule, and a
  * sub whose own account doesn't qualify but another does moves to that one. Answers every gate.
@@ -301,6 +308,8 @@ export async function applyGates(db: Queryable, now: Date): Promise<Map<string, 
   const gates = await gatesFor(db, null, now);
   for (const [sub, g] of gates) {
     if (g.ok && g.switched && g.accountId) await moveToQualifying(db, sub, g.accountId);
+    // A person's pick keeps its slot (the shortfall was warned on the picker), unless the sub
+    // removed our last comment without saying why: that holds every account.
     if (!g.ok)
       await db
         .update(redditThreads)
@@ -310,6 +319,7 @@ export async function applyGates(db: Queryable, now: Date): Promise<Map<string, 
             eq(redditThreads.subreddit, sub),
             eq(redditThreads.state, "queued"),
             sql`${redditThreads.sendAt} is not null`,
+            ...(g.hold ? [] : [sql`not ${pickedSql}`]),
           ),
         );
   }

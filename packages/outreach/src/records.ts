@@ -27,7 +27,7 @@ import { z } from "zod";
 import { accountById, listAccounts, recordAccountsOf, viewOf } from "./accounts.js";
 import { personLine } from "./discovery/people.js";
 import { movePlace } from "./discovery/places.js";
-import { gatesFor } from "./discovery/requirements.js";
+import { gatesFor, holdsThread } from "./discovery/requirements.js";
 import { commentsToday } from "./discovery/threads.js";
 import { accountPickFor, pickedAccounts, pickedReachAccount } from "./draft-accounts.js";
 import { threadContextOf } from "./follow-ups.js";
@@ -534,17 +534,18 @@ export const threadRecord = defineRecord({
       (await db.execute(sql`
       select t.id, t.subreddit, 'r/' || t.subreddit place, t.title, t.body, t.author, t.kind, t.fit, t.angle,
         t.target_text, t.draft, t.sources, t.state, t.dropped, t.answer, t.score, t.comments,
-        t.posted_at, t.send_at, t.url, coalesce(da.account, a.account) account, p.read op_read, p.fit op_fit, p.site op_site
+        t.posted_at, t.send_at, t.url, coalesce(da.account, a.account) account, da.account is not null picked, p.read op_read, p.fit op_fit, p.site op_site
       from reddit_threads t
       left join reach_accounts a on a.id = t.account_id
       left join draft_accounts da on da.item = 'thread:' || t.id
       left join reddit_people p on p.handle = lower(t.author)
       where t.state <> 'dropped' or t.created_at > now() - interval '2 days'
       order by t.posted_at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
-    ).map(({ op_read, op_fit, op_site, sources, subreddit, ...r }) => {
-      // Queued behind the sub's karma or age rule: the reason, and no slot.
+    ).map(({ op_read, op_fit, op_site, sources, subreddit, picked, ...r }) => {
+      // Queued behind the sub's karma or age rule: the reason, and no slot. A picked account
+      // sends anyway; the picker warned of its shortfall.
       const gate = r.state === "queued" ? gates.get(String(subreddit)) : undefined;
-      const held = gate && !gate.ok ? gate.reason : null;
+      const held = holdsThread(gate, Boolean(picked)) ? (gate?.reason ?? null) : null;
       return {
         ...r,
         held,
