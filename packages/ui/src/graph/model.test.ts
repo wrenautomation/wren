@@ -1,3 +1,5 @@
+// elk is 1.6 MB of compiled Java: load it with the file, not inside the timed layout test.
+import "elkjs/lib/elk.bundled.js";
 import { describe, expect, it } from "vitest";
 import { layout } from "./layout.js";
 import { arrowAt, LOOK, lookHeight, pillText, portRows, portY, wireCurve } from "./look.js";

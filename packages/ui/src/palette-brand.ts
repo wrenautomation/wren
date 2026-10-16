@@ -157,9 +157,7 @@ export function brandTheme(brand: BrandInput): { theme: Theme; report: ContrastL
     return t;
   };
   const weakest = (text: Token) =>
-    pairsOf(colors())
-      .filter((p) => p.text === text)
-      .reduce((a, b) => (b.ratio < a.ratio ? b : a));
+    pairsOf(colors(), [text]).reduce((a, b) => (b.ratio < a.ratio ? b : a));
 
   // Each text color steps in tone, away from the paper, until its weakest ground reads.
   const was: Partial<Record<Token, number>> = {};

@@ -144,8 +144,14 @@ export interface Pair {
   ratio: number;
 }
 
-/** Every text pair in `look`, each ground made opaque the way the page shows it. */
-export function pairsOf(look: Theme): Pair[] {
+/**
+ * Every text pair in `look`, each ground made opaque the way the page shows it. `texts` narrows it
+ * to those text colors: the brand stepper asks after one at a time.
+ */
+export function pairsOf(
+  look: Theme,
+  texts: readonly Token[] = [...TEXTS, ...FILLED.map(([t]) => t)],
+): Pair[] {
   const c = lookColors(look);
   const paper = over(c("paper"), [255, 255, 255, 1]);
   const canvas = over(c("canvas"), [255, 255, 255, 1]);
@@ -158,12 +164,15 @@ export function pairsOf(look: Theme): Pair[] {
     return over(c(name), base);
   };
   const out: Pair[] = [];
-  for (const text of TEXTS)
+  for (const text of TEXTS) {
+    if (!texts.includes(text)) continue;
     for (const on of GROUNDS) {
       const g = ground(on);
       out.push({ text, on, ratio: ratioOf(over(c(text), g), g) });
     }
+  }
   for (const [text, on] of FILLED) {
+    if (!texts.includes(text)) continue;
     const g = over(c(on), paper);
     out.push({ text, on, ratio: ratioOf(over(c(text), g), g) });
   }

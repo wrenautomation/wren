@@ -70,17 +70,17 @@ describe("brandTheme", () => {
       expect(theme.scheme).toBe(scheme);
     });
 
-    it("passes in every variant, contrast and scheme", () => {
-      for (const variant of VARIANTS)
-        for (const contrast of [0, 0.5, 1])
-          for (const scheme of ["light", "dark"] as const) {
-            const { report } = brandTheme(brand(color, { variant, contrast, scheme }));
-            for (const l of report)
-              expect(
-                l.ratio,
-                `${variant} ${contrast} ${scheme} ${l.text} on ${l.on}`,
-              ).toBeGreaterThanOrEqual(l.need);
-          }
+    // One test per variant: each derives six themes, so none runs long on a loaded machine.
+    it.each(VARIANTS)("passes in %s at every contrast and scheme", (variant) => {
+      for (const contrast of [0, 0.5, 1])
+        for (const scheme of ["light", "dark"] as const) {
+          const { report } = brandTheme(brand(color, { variant, contrast, scheme }));
+          for (const l of report)
+            expect(
+              l.ratio,
+              `${variant} ${contrast} ${scheme} ${l.text} on ${l.on}`,
+            ).toBeGreaterThanOrEqual(l.need);
+        }
     });
   });
 

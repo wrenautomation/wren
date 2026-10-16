@@ -1,6 +1,11 @@
 /** Numbers, dates and names as people read them. */
 
-export const num = (n: number) => n.toLocaleString("en-US");
+// One formatter each, made once: `toLocaleString` builds a new one on every call.
+const NUM = new Intl.NumberFormat("en-US");
+const TIME = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
+const WEEKDAY = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+
+export const num = (n: number) => NUM.format(n);
 
 /** Money shown one way everywhere: "$1,250.00" in a list, "$1,250" in a tile (`whole`). */
 export function money(amount: number, currency: string, whole = false): string {
@@ -62,10 +67,10 @@ export function soon(at: string | null, now = new Date()): string | null {
   if (Number.isNaN(d.getTime()) || d <= now) return null;
   const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((midnight(d) - midnight(now)) / 86_400_000);
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const time = TIME.format(d);
   if (days === 0) return time;
   if (days === 1) return `tomorrow ${time}`;
-  if (days < 7) return `${d.toLocaleDateString("en-US", { weekday: "short" })} ${time}`;
+  if (days < 7) return `${WEEKDAY.format(d)} ${time}`;
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 

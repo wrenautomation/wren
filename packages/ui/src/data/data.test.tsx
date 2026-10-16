@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { QueryClient } from "@tanstack/react-query";
 import type { RecordsPage } from "@wren/core/records/serve";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { WRITES, type Write } from "../save/writes.js";
 import { listChanged } from "./delta.js";
 import { EDITS } from "./edits.js";
@@ -25,6 +25,7 @@ const fresh = () => indexedStore(indexedDB, `wren-test-${++n}`);
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 afterEach(async () => {
+  vi.useRealTimers();
   await dropLocalCopy(null);
   EDITS.setClient(null);
 });
@@ -58,7 +59,8 @@ describe("the local copy", () => {
       queryFn: async () => ({ rows: [3] }),
       meta: { keep: false },
     });
-    // The copy is written at most every 2 s.
+    // The copy is written at most every 2 s. A real wait, a floor not a deadline: the throttle
+    // polls on timers while IndexedDB's save runs on real tasks, so faked timers starve it.
     await wait(2300);
     // A reload: the cache is empty, the copy fills it.
     QUERIES.clear();
@@ -138,6 +140,8 @@ describe("write-through", () => {
 
 describe("reads outside a component and closed panels", () => {
   it("shares one read between two asks, answers from the copy while fresh, then reads again", async () => {
+    // Fresh for 50 ms of a faked clock: a loaded machine can't age the answer between asks.
+    vi.useFakeTimers({ toFake: ["Date"] });
     const scope = nameScope({}, "test-read-cached");
     let reads = 0;
     const fn = async () => ++reads;
@@ -148,7 +152,7 @@ describe("reads outside a component and closed panels", () => {
     expect([a, b, reads]).toEqual([1, 1, 1]);
     expect(await readCached(scope, "people", fn, 50)).toBe(1);
     expect(cachedOf(scope, "people")).toBe(1);
-    await wait(60);
+    vi.setSystemTime(Date.now() + 60);
     expect(await readCached(scope, "people", fn, 50)).toBe(2);
   });
 

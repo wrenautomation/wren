@@ -12,16 +12,19 @@ describe("every text color on every ground", () => {
   });
 
   // Client looks come from a brand color: any color, any variant, either scheme.
+  // One test per color and variant, so none runs long on a loaded machine.
   const COLORS = ["#7969a3", "#ff0000", "#ffd400", "#00c2a8", "#0b0d14", "#f6f3e8", "#808080"];
-  it.each(COLORS)("reads at 4.5:1 in a look made from %s", (color) => {
-    for (const variant of VARIANTS)
+  it.each(COLORS.flatMap((color) => VARIANTS.map((variant) => [color, variant] as const)))(
+    "reads at 4.5:1 in a look made from %s, %s",
+    (color, variant) => {
       for (const scheme of ["light", "dark"] as const)
         for (const preset of ["wren", "riso"])
           expect(
             said(readTheme({ preset, brand: { color, variant, scheme } })),
-            `${variant} ${scheme} ${preset}`,
+            `${scheme} ${preset}`,
           ).toEqual([]);
-  });
+    },
+  );
 
   it("checks each pair on every ground", () => {
     expect(pairsOf({}).length).toBe(10 * 17 + 3);
