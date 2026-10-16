@@ -50,7 +50,7 @@ import { DRAFT_CALLS } from "../draft-calls.js";
 import { conversationOf } from "../inbox/conversation.js";
 import { queuedReplies, waitingReplies } from "../inbox/send.js";
 import { statusOf, threadStates, typed } from "../inbox/threads.js";
-import { contentDrafts, type InboxReply } from "../schema.js";
+import { contentDrafts, type InboxReply, type InboxThread } from "../schema.js";
 import { shapeView } from "../shape-view.js";
 import { mixedThumbs } from "../thumbs.js";
 import type { VideoSigner } from "../video.js";
@@ -532,9 +532,20 @@ export const inboxRecord = defineRecord({
     const hs = await chatRows(db);
     const kept = await threadStates(db);
     const now = new Date();
-    // The team's state on each: who has it, open, waiting, closed or snoozed.
+    // The team's state on each: who has it, open, waiting, closed or snoozed. One person's
+    // comments under one post fold into one row, so its state is the group's: a follow-up
+    // without its own takes the newest any of them has (a new word still reopens it).
+    const byGroup = new Map<string, InboxThread>();
+    for (const c of cs.map(commentItem)) {
+      const g = COMMENT_FOLD.by(c);
+      const k = g === null ? undefined : kept.get(c.id);
+      if (g === null || !k) continue;
+      const had = byGroup.get(g);
+      if (!had || k.updatedAt > had.updatedAt) byGroup.set(g, k);
+    }
     const team = (r: Record<string, unknown>) => {
-      const k = kept.get(String(r.id));
+      const g = COMMENT_FOLD.by(r);
+      const k = kept.get(String(r.id)) ?? (g === null ? undefined : byGroup.get(g));
       return {
         ...r,
         status: statusOf({ state: r.state, at: r.at }, k, now),

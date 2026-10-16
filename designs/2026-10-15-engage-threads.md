@@ -63,7 +63,8 @@ Not read at all: replies to our comments on other people's LinkedIn, X and Insta
 
 ## Gaps
 
-- Inbox team state (assignee, closed) is keyed by row id. When a follow-up becomes the group's new lead, the thread reopens.
+- Fixed (wa-ipi): Inbox team state (assignee, closed) is keyed by row id, so a follow-up that became the group's newest row lost its assignee. A row with no state of its own now takes the newest one any comment in its fold group has; a new word from them still reopens it, as a help desk does.
+
 - A client's Inbox has no thread view yet.
 - Refresh works for reach comments. Content comments show what the last post read kept.
 - autobrowse needs a desk deploy for focused reads. Until then a plain read still works.

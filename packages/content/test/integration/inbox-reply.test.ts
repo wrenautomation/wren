@@ -126,6 +126,23 @@ describe("status", () => {
       'One more thing', 'received', now() + interval '1 minute', now())`);
     expect((await rowOf(id))?.status).toBe("open");
   });
+
+  it("keeps a comment thread's assignee when a follow-up becomes its newest row", async () => {
+    const first = `comment:${s.commentId}`;
+    await setThread(pg.db, first, { assignee: s.admin, status: "closed" }, s.admin);
+    expect(await rowOf(first)).toMatchObject({ status: "closed", assignee: s.admin });
+    const [follow] = (await pg.db.execute(sql`insert into comments (platform, channel, ref, post,
+        parent, kind, author, body, url, at, raw, state, post_title)
+      values ('youtube', 'content', 'seed-comment-2', 'seed-video-1', 'seed-comment-1',
+        'thread_reply', 'dana_rivera', 'And for three trucks?', 'https://youtube.example.test/c2',
+        now() + interval '1 minute', '{}'::jsonb, 'waiting', 'Missed-call text-back in 3 minutes')
+      returning id`)) as unknown as { id: number }[];
+    // The follow-up stands for the thread now: open again, still theirs.
+    expect(await rowOf(`comment:${follow?.id}`)).toMatchObject({
+      status: "open",
+      assignee: s.admin,
+    });
+  });
 });
 
 describe("InboxDesk", () => {
