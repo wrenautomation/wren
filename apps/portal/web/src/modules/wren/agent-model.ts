@@ -25,6 +25,9 @@ export interface Count {
   today: number;
 }
 
+/** Counts by `countKey`: a plain object, so the device copy keeps it. */
+export type Counts = Readonly<Record<string, Count>>;
+
 export const countKey = (c: { record: string; view: string }) => `${c.record}:${c.view}`;
 
 /** Each line with its state, from the loops as read; `loops` null: the read failed. */
@@ -66,14 +69,14 @@ export function departments(agents: readonly Agent[]): { name: string; agents: A
 }
 
 /** The page's head: how many in each state, and what all of them made today. */
-export function tally(agents: readonly Agent[], counts: ReadonlyMap<string, Count>) {
+export function tally(agents: readonly Agent[], counts: Counts) {
   const n = (s: AgentState) => agents.filter((a) => a.state === s).length;
   const keys = new Set(agents.flatMap((a) => a.counts.map(countKey)));
   return {
     running: n("running"),
     failing: n("failing"),
     off: n("off"),
-    today: [...keys].reduce((sum, k) => sum + (counts.get(k)?.today ?? 0), 0),
+    today: [...keys].reduce((sum, k) => sum + (counts[k]?.today ?? 0), 0),
   };
 }
 

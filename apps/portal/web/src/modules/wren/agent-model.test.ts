@@ -77,7 +77,7 @@ describe("departments and tally", () => {
     ]);
   });
   it("counts a shared number once", () => {
-    const counts = new Map([[countKey({ record: "r", view: "all" }), { value: 9, today: 4 }]]);
+    const counts = { [countKey({ record: "r", view: "all" })]: { value: 9, today: 4 } };
     expect(tally(agents, counts)).toEqual({ running: 0, failing: 1, off: 1, today: 4 });
   });
 });

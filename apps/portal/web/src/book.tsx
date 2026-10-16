@@ -348,6 +348,7 @@ function BookPage({ at }: { at: Extract<BookPath, { kind: "book" }> }) {
       setError((err as Error).message);
     }
   };
+  // read-ok: the public booking page; no sign-in to keep a device copy under.
   // biome-ignore lint/correctness/useExhaustiveDependencies: loads once
   useEffect(() => {
     void load();

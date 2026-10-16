@@ -155,6 +155,7 @@ export function usePlay(
     setAt(0);
   };
   const stop = () => setAt(-1);
+  // read-ok: a play run reads its words as it starts; nothing to keep once it ends.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once per arrival at this workflow.
   useEffect(() => {
     if (auto) void start();

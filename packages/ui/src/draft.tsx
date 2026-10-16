@@ -346,6 +346,7 @@ export function DraftBox({
   };
   // A pick that came back from before (a reload, another page) goes again once.
   const resent = useRef(false);
+  // read-ok: a write that starts on arrival, not a read.
   useEffect(() => {
     if (resent.current || !pick || !chosen.dirty || chosen.conflict) return;
     resent.current = true;

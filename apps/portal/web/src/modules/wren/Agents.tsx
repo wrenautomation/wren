@@ -25,6 +25,7 @@ import {
   type AgentState,
   agentsOf,
   type Count,
+  type Counts,
   countKey,
   departments,
   since,
@@ -42,7 +43,7 @@ const STATE: Record<AgentState, { label: string; tone: TagTone }> = {
   unknown: { label: "Not read", tone: "neutral" },
 };
 
-async function countsOf(lines: readonly AgentLine[]): Promise<Map<string, Count>> {
+async function countsOf(lines: readonly AgentLine[]): Promise<Counts> {
   const refs = [...new Map(lines.flatMap((l) => l.counts).map((c) => [countKey(c), c])).values()];
   const got = await Promise.all(
     refs.map((r) =>
@@ -60,14 +61,14 @@ async function countsOf(lines: readonly AgentLine[]): Promise<Map<string, Count>
       ),
     ),
   );
-  return new Map(got.filter((x) => x !== null));
+  return Object.fromEntries(got.filter((x) => x !== null));
 }
 
-function figuresOf(a: Agent, counts: ReadonlyMap<string, Count> | null): GlanceFigure[] | null {
+function figuresOf(a: Agent, counts: Counts | null): GlanceFigure[] | null {
   if (!a.counts.length) return [];
   if (!counts) return null;
   return a.counts.flatMap((c) => {
-    const n = counts.get(countKey(c));
+    const n = counts[countKey(c)];
     return n
       ? [
           { label: `${c.label}, ${DAYS} days`, value: n.value },
@@ -77,7 +78,7 @@ function figuresOf(a: Agent, counts: ReadonlyMap<string, Count> | null): GlanceF
   });
 }
 
-function AgentCard({ a, counts }: { a: Agent; counts: ReadonlyMap<string, Count> | null }) {
+function AgentCard({ a, counts }: { a: Agent; counts: Counts | null }) {
   const s = STATE[a.state];
   const href =
     a.state === "failing"
@@ -120,7 +121,7 @@ export function Agents() {
   if (lines.error && !lines.data) return <LoadFailed error={lines.error} onRetry={lines.retry} />;
   if (!lines.data || loops.loading) return <Loading lines={6} />;
   const agents = agentsOf(lines.data, loops.data ?? null);
-  const head = tally(agents, counts.data ?? new Map());
+  const head = tally(agents, counts.data ?? {});
   return (
     <>
       <PageHeader
