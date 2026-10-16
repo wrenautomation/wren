@@ -1,7 +1,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import { SiteCallError } from "./content/autobrowse.js";
-import { type Seen, sameWords, seenIn, sendFate, sendOnce } from "./maybe-sent.js";
+import { type Seen, sameWords, seenIn, seenInMessages, sendFate, sendOnce } from "./maybe-sent.js";
 
 const WENT =
   'reddit POST /api/comment failed after spending a read: reddit@alt: "save the comment" already went through on an earlier try of this step; check it before running again';
@@ -167,5 +167,40 @@ describe("seenIn", () => {
     expect(
       seenIn([{ ref: "c", at: since, text: "ours" }], { since, full: false, match, at, found: f }),
     ).toMatchObject({ kind: "found", ref: "c" });
+  });
+});
+
+describe("seenInMessages", () => {
+  const since = "2026-10-16T12:00:00Z";
+  const theirs = {
+    id: "m1",
+    text: "Can you send the link?",
+    at: "2026-10-16T11:00:00Z",
+    mine: false,
+  };
+  const ours = {
+    id: "m2",
+    text: "Here it is: example.com",
+    at: "2026-10-16T12:00:05Z",
+    mine: true,
+  };
+  const text = "Here it is: example.com";
+  it("finds our words, never theirs", () => {
+    expect(seenInMessages([theirs, ours], { text, since })).toMatchObject({
+      kind: "found",
+      ref: "m2",
+      at: ours.at,
+    });
+    expect(seenInMessages([theirs, { ...ours, mine: false }], { text, since }).kind).not.toBe(
+      "found",
+    );
+  });
+  it("absent when the read reaches back past the send; unclear when it doesn't", () => {
+    expect(seenInMessages([theirs], { text, since }).kind).toBe("absent");
+    const fresh = { ...theirs, at: "2026-10-16T11:59:00Z" };
+    expect(seenInMessages([fresh], { text, since }).kind).toBe("unclear");
+  });
+  it("no conversation in the read: unclear", () => {
+    expect(seenInMessages(null, { text, since }).kind).toBe("unclear");
   });
 });

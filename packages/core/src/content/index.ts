@@ -6,6 +6,7 @@
  * Design: designs/2026-09-21-content-channels.md.
  */
 
+import type { Seen } from "../maybe-sent.js";
 import type { AccountInsights, Insights, InsightsQuery, ReportDays } from "./insights.js";
 
 export * from "./autobrowse.js";
@@ -187,6 +188,17 @@ export interface ListQuery {
 
 export const CONTENT_LIST_LIMIT = 100;
 
+/** Our reply looked for after its outcome was lost (designs/2026-10-16-maybe-sent.md). */
+export interface ReplyQuery {
+  /** What we answered: a post or a comment. */
+  on: string;
+  /** Whose it is, their handle; null when not known. */
+  to: string | null;
+  text: string;
+  /** When the send began, ISO. */
+  since: string;
+}
+
 export interface ContentChannel {
   readonly platform: Platform;
   /** Irreversible: an orchestrator gates it like any other irreversible step. */
@@ -218,6 +230,11 @@ export interface ContentChannel {
    * per comment, within 7 days of it). The message's id. Absent = the platform has no such door.
    */
   privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>;
+  /**
+   * Our own reply under `on`, as this account: for a platform whose `comments` can't mark ours
+   * (`mine`). Absent = nothing here reads it back.
+   */
+  findReply?(q: ReplyQuery): Promise<Seen>;
   /**
    * What people said about the account itself, not on a post (Business Profile reviews), newest
    * first, as comments: `postId` is the account's place. `reply` answers one. Absent = none.

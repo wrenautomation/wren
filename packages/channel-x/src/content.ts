@@ -30,12 +30,14 @@ import {
   type PublishedRow,
   pageOf,
   previewOf,
+  type ReplyQuery,
   readGroup,
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf, mediaUnfit, ShapeError } from "@wren/core/content/shapes";
 import { threadPosts, threadUnfit } from "@wren/core/content/thread";
+import { type Seen, sameWords, unclear } from "@wren/core/maybe-sent";
 
 export interface XContentOptions {
   now?: () => Date;
@@ -102,6 +104,8 @@ export function videoWatch(media: readonly XMedia[] | undefined): InsightValue[]
   return out.length ? out : null;
 }
 
+/** An X handle without the @: what search's `to:` takes. */
+const HANDLE = /^[A-Za-z0-9_]{1,15}$/;
 /** A timeline page is 100 posts: the most one read can hold. */
 const TIMELINE_PAGE = 100;
 
@@ -278,6 +282,28 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
           })),
         q,
       );
+    },
+    /**
+     * Our reply read back after its outcome was lost (designs/2026-10-16-maybe-sent.md): a search
+     * of our own posts to their author, else in the conversation. Found only: search can lag a
+     * fresh post, so a miss never proves it absent.
+     */
+    async findReply(q: ReplyQuery): Promise<Seen> {
+      const query =
+        q.to && HANDLE.test(q.to) ? `from:me to:${q.to}` : `from:me conversation_id:${q.on}`;
+      const r = await sites.call<{ data?: Tweet[] }>("x", "GET", "/2/tweets/search/recent", {
+        query,
+        max_results: 20,
+      });
+      const hit = (r.data ?? []).find((t) => t.id !== q.on && sameWords(t.text ?? "", q.text));
+      return hit
+        ? {
+            kind: "found",
+            ref: hit.id,
+            at: hit.created_at ?? null,
+            url: `https://x.com/i/status/${hit.id}`,
+          }
+        : unclear("X search may not show a fresh reply yet");
     },
     async audience(): Promise<Audience> {
       const r = await sites.call<Me>("x", "GET", "/2/users/me", {

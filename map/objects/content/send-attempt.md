@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-16 (maybe sent build)
+verified: 2026-10-16 (maybe sent build; private, sdm, X look)
 entity: packages/outreach/src/schema.ts:866
 ---
 
@@ -17,13 +17,13 @@ One row per comment, answer or DM that must go out at most once: claimed `sendin
 
 ## Shape
 
-- Table `send_attempts` (`packages/outreach/src/schema.ts:866`, migration 0280): `item` PK (`thread:<id>`, `comment:<id>`, `onpost:<id>`, `dm:<reach message id>`), `state` sending|sent|unsure, `platform`, `account`, `words`, `target`, `url`, `tries`, `invocation`, `ref`, `sent_at`, `why`, `settled_by` (`sent`, `found` or the person)
+- Table `send_attempts` (`packages/outreach/src/schema.ts:866`, migration 0280): `item` PK (`thread:<id>`, `comment:<id>`, `onpost:<id>`, `dm:<reach message id>`, `private:<comment id>`, `sdm:<reach message id>` in a client's own database), `state` sending|sent|unsure, `platform`, `account`, `words`, `target`, `url`, `tries`, `invocation`, `ref`, `sent_at`, `why`, `settled_by` (`sent`, `found` or the person)
 - Rows `packages/outreach/src/send-attempts.ts`: `claimSend` (a fresh `sending` refuses; one older than 10 min is taken over as "may have left"), `settleSent`, `settleUnsure`, `releaseSend` (refused or never left), `parkUnsure` (the sender's DMs), `unsureSends`, `sendOpen` (the schedulers' skip)
-- Reconcile `packages/core/src/maybe-sent.ts`: `sendFate`, `sendOnce` (look first when tried; maybe, settle 30 s, look: found, absent sends once more, unclear is unsure), `sameWords`, `seenIn`
-- Looks: `OutreachChannel.findSent` (`packages/core/src/outreach/index.ts`): Reddit `/user/{self}/comments` and `/message/sent` (`packages/channel-reddit/src/outreach.ts:404`), LinkedIn relationship and `/messaging` preview (`packages/channel-linkedin/src/outreach.ts:214`); `contentLook` reads `Content.comments` rows marked mine (`packages/outreach/src/restate/maybe-sent.ts`)
-- On Restate `sendAtMostOnce` (`packages/outreach/src/restate/maybe-sent.ts:58`), used by `commentThread` (`restate/discovery.ts:550`), `answerOne` (answerComment, replyInThread; `restate/index.ts:1290`, `:1319`) and `commentPost` (`:1857`). The sender's `tick` uses `sendOnce` directly (`packages/outreach/src/tick.ts:717`); unsure leaves the message `unknown` and parks `dm:<id>`
-- Settle: `ReachDesk/settleSend {item, outcome: posted|again}` (`restate/index.ts:1922`, effect sends), with `markPosted` and `requeueDm` (`packages/outreach/src/settle-send.ts`)
-- Console: `marketing.approval` rows `unsure:<item>`, view "May have gone out", actions `marketing.sendPosted`, `marketing.sendAgain` (`packages/content/src/social/records.ts`); Engage hides parked items
+- Reconcile `packages/core/src/maybe-sent.ts`: `sendFate`, `sendOnce` (look first when tried; maybe, settle 30 s, look: found, absent sends once more, unclear is unsure), `sameWords`, `seenIn`, `seenInMessages` (a conversation read, oldest first)
+- Looks: `OutreachChannel.findSent` (`packages/core/src/outreach/index.ts`): Reddit `/user/{self}/comments` and `/message/sent` (`packages/channel-reddit/src/outreach.ts:404`), LinkedIn relationship and `/messaging` preview (`packages/channel-linkedin/src/outreach.ts:214`); `contentLook` reads `Content.comments` rows marked mine, or `Content.findReply` for X (search of our own posts, `packages/channel-x/src/content.ts:291`), on Wren's channels or a client's (`packages/outreach/src/restate/maybe-sent.ts`); `seenInDms` reads a client's conversation through `readDms` (`packages/content/src/connect/dms.ts`)
+- On Restate `sendAtMostOnce` (`packages/outreach/src/restate/maybe-sent.ts:58`), used by `commentThread` (`restate/discovery.ts:576`), `answerOne` (answerComment, replyInThread; `restate/index.ts:1311`), `dmComment`'s private reply (`:1753`, no look) and `commentPost`; a client's `SocialInbox/send` (`sdm:`) and `answer` (`comment:`) (`packages/content/src/restate/social-inbox.ts:151`, `:226`). A refused claim throws `SendTaken` (409), which changes nothing. The sender's `tick` uses `sendOnce` directly (`packages/outreach/src/tick.ts:717`); unsure leaves the message `unknown` and parks `dm:<id>`
+- Settle: `ReachDesk/settleSend {item, outcome: posted|again}` (effect sends), with `markPosted` and `requeueDm` (`packages/outreach/src/settle-send.ts`); a client's through `MarketingConsole/sendSettle` (its approver) → `SocialInbox/settle` (`social-inbox.ts:281`)
+- Console: `marketing.approval` rows `unsure:<item>`, view "May have gone out", actions `marketing.sendPosted`, `marketing.sendAgain` (`packages/content/src/social/records.ts`); a client's in `marketing.asked_reply`; Engage hides parked items
 
 ## Connected to
 
@@ -34,14 +34,14 @@ One row per comment, answer or DM that must go out at most once: claimed `sendin
 ## If you change this
 
 - **Hits:** every send handler above, `schedulePosts` and `scheduleThreads` (they skip open items), To approve and Engage rows
-- **Does not hit:** Meta private replies and Inbox replies on connected accounts (through `Content`, not wired)
+- **Does not hit:** follows and likes (idempotent on the site); keyword DMs (`keyword-dm.ts`, straight `Content.privateReply`). No read yet: Meta private replies (no Page-token conversations route in autobrowse `meta`), Instagram comments on others' posts
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| ReachDesk sends, sender tick | writes |
-| Marketing → To approve | reads, settles |
+| ReachDesk sends, sender tick, SocialInbox sends | writes |
+| Marketing → To approve (Wren's and a client's) | reads, settles |
 
 ## See
 

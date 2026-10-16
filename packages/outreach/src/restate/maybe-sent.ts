@@ -29,6 +29,15 @@ export class SendUnsure extends restate.TerminalError {
 export const isSendUnsure = (err: unknown): err is SendUnsure => err instanceof SendUnsure;
 
 /**
+ * The claim was refused: another invocation is sending it, it waits on a person, or a refusal of
+ * the claim itself. Terminal (409), and nothing about the send changed.
+ */
+export class SendTaken extends restate.TerminalError {
+  readonly taken = true;
+}
+export const isSendTaken = (err: unknown): err is SendTaken => err instanceof SendTaken;
+
+/**
  * A send's failure as its handler throws it: a refusal, or a journaled answer a retry would only
  * replay, is terminal; anything else is left for Restate to retry.
  */
@@ -62,15 +71,16 @@ export async function sendAtMostOnce(
 ): Promise<Landed> {
   const now = new Date(await ctx.date.now());
   const { send, look, before, ...claim } = o;
+  // A refusal comes back as a value, so it is thrown as `SendTaken` here, not as a step's error.
   const claimed = await ctx.run("claim send", async () => {
     try {
       return await claimSend(db, { ...claim, invocation: ctx.request().id, now });
     } catch (err) {
-      if (err instanceof ReachRefusal)
-        throw new restate.TerminalError(err.message, { errorCode: 409 });
+      if (err instanceof ReachRefusal) return { go: "taken" as const, why: err.message };
       throw err;
     }
   });
+  if (claimed.go === "taken") throw new SendTaken(claimed.why, { errorCode: 409 });
   if (claimed.go === "done")
     return { ref: claimed.ref, at: claimed.at ?? now.toISOString(), found: true };
   let out: Awaited<ReturnType<typeof sendOnce<{ ref: string | null }>>>;
@@ -108,30 +118,63 @@ const MARKS_MINE: ReadonlySet<string> = new Set([
   "tiktok",
   "youtube",
 ]);
+/** Platforms whose content channel reads our reply back another way (`Content.findReply`). */
+const FINDS_REPLY: ReadonlySet<string> = new Set(["x"]);
 
-type ContentComments = {
+type ContentReads = {
   comments: (
     ctx: restate.Context,
-    req: { platform: ContentPlatform; id: string },
+    req: { platform: ContentPlatform; id: string; client?: string | null },
   ) => Promise<CommentRow[]>;
+  findReply: (
+    ctx: restate.Context,
+    req: {
+      platform: ContentPlatform;
+      on: string;
+      to: string | null;
+      text: string;
+      since: string;
+      client?: string | null;
+    },
+  ) => Promise<Seen>;
 };
 
 const sameRef = (a: string, b: string) => a === b || a.endsWith(`:${b}`) || b.endsWith(`:${a}`);
 
 /**
- * Our words in a post's comments, read through `Content.comments`: found or unclear (a read of
- * one page of comments never proves them absent). Null where the platform doesn't mark ours.
+ * Our words under a post, read through `Content`: its comments where they mark ours (found or
+ * unclear: one page of comments never proves them absent), else `findReply` where the channel
+ * has it. Undefined where nothing reads them back.
  */
 export function contentLook(
   ctx: restate.Context,
-  /** `parent`: the comment answered; null = on the post itself. */
-  q: { platform: ContentPlatform; post: string; parent: string | null; text: string },
+  q: {
+    platform: ContentPlatform;
+    post: string;
+    /** The comment answered; null = on the post itself. */
+    parent: string | null;
+    /** Whose `parent` (or the post) is: their handle. */
+    to?: string | null;
+    text: string;
+    /** A client's own channels; none: Wren's. */
+    client?: string | null;
+  },
 ): ((since: string) => Promise<Seen>) | undefined {
+  const content = () => ctx.serviceClient<ContentReads>({ name: "Content" });
+  const client = q.client ? { client: q.client } : {};
+  if (FINDS_REPLY.has(q.platform))
+    return (since) =>
+      content().findReply({
+        platform: q.platform,
+        on: q.parent ?? q.post,
+        to: q.to ?? null,
+        text: q.text,
+        since,
+        ...client,
+      });
   if (!MARKS_MINE.has(q.platform)) return undefined;
   return async () => {
-    const rows = await ctx
-      .serviceClient<ContentComments>({ name: "Content" })
-      .comments({ platform: q.platform, id: q.post });
+    const rows = await content().comments({ platform: q.platform, id: q.post, ...client });
     const hit = rows.find(
       (r) =>
         r.mine &&

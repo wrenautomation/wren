@@ -2,22 +2,37 @@
  * A send whose outcome is unknown, on Postgres with fake channels (designs/2026-10-16-maybe-sent.md):
  * our words found after an unknown outcome are recorded once and never sent again; not found is
  * sent once more; unreadable parks unsure with no send; a second invocation meanwhile sends
- * nothing. The sender's DMs, a person's Mark posted and the scheduler's hands-off follow.
+ * nothing. The sender's DMs, a person's Mark posted and the scheduler's hands-off follow. Then the
+ * newer keys: an X reply read back by `Content.findReply`, a private reply (`private:`) with no
+ * read, and a client's DM answer (`sdm:`) read back from its conversation.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import { SiteCallError } from "@wren/core/content";
+import { type CommentRow, SiteCallError } from "@wren/core/content";
+import { type Seen, seenInMessages } from "@wren/core/maybe-sent";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
+import { commentById } from "../../src/comments.js";
 import { addContact } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
 import { DEFAULT_POLICY } from "../../src/policy.js";
 import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
-import { isSendUnsure, sendAtMostOnce } from "../../src/restate/maybe-sent.js";
+import {
+  contentLook,
+  isSendTaken,
+  isSendUnsure,
+  sendAtMostOnce,
+} from "../../src/restate/maybe-sent.js";
 import { schedulePosts } from "../../src/scheduled.js";
-import { type ReachAccount, reachMessages, reachPosts, sendAttempts } from "../../src/schema.js";
+import {
+  comments,
+  type ReachAccount,
+  reachMessages,
+  reachPosts,
+  sendAttempts,
+} from "../../src/schema.js";
 import { parkUnsure, sendAttempt } from "../../src/send-attempts.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
 import { markPosted, requeueDm } from "../../src/settle-send.js";
@@ -48,12 +63,14 @@ beforeEach(async () => {
     "template_versions",
     "social_handles",
     "profiles",
+    "comments",
+    "touches",
   ]);
 });
 
 /** A stand-in Context: steps run inline, sleeps are counted, each one its own invocation. */
 let invocations = 0;
-function ctxOf() {
+function ctxOf(services: Record<string, unknown> = {}) {
   const id = `inv_${++invocations}`;
   const sleeps: number[] = [];
   const ctx = {
@@ -63,6 +80,7 @@ function ctxOf() {
     },
     date: { now: async () => NOW.getTime() },
     request: () => ({ id }),
+    serviceClient: ({ name }: { name: string }) => services[name],
   };
   return { ctx: ctx as unknown as restate.Context, sleeps };
 }
@@ -282,5 +300,220 @@ describe("the scheduler", () => {
     expect(
       await schedulePosts(db(), "linkedin", settings, { now: at, rand: () => 0 }),
     ).toHaveLength(1);
+  });
+});
+
+describe("an X reply, read back by a search of our own posts", () => {
+  const WORDS = "Our words under their post.";
+  const X_MAYBE = new SiteCallError("x", "POST", "/2/tweets", 502, "may have gone through");
+  /** X as `Content.findReply` reads it: ours once it landed, else search can't say yet. */
+  const x = { landed: false, posted: 0, asked: [] as unknown[] };
+  const content = {
+    comments: async (): Promise<CommentRow[]> => [],
+    findReply: async (req: unknown): Promise<Seen> => {
+      x.asked.push(req);
+      return x.landed
+        ? { kind: "found", ref: "x_9", at: NOW.toISOString(), url: "https://x.com/i/status/x_9" }
+        : { kind: "unclear", why: "X search may not show a fresh reply yet" };
+    },
+  };
+  const reply = (landed: boolean, again = false) => {
+    const { ctx } = ctxOf({ Content: content });
+    return sendAtMostOnce(ctx, db(), {
+      item: "onpost:7",
+      platform: "x",
+      account: null,
+      words: WORDS,
+      target: "x_1",
+      url: "https://x.com/someone_1/status/x_1",
+      again,
+      look: contentLook(ctx, {
+        platform: "x",
+        post: "x_1",
+        parent: null,
+        to: "someone_1",
+        text: WORDS,
+      }),
+      send: async () => {
+        x.posted += 1;
+        x.landed = landed;
+        throw X_MAYBE;
+      },
+    });
+  };
+  beforeEach(() => {
+    Object.assign(x, { landed: false, posted: 0, asked: [] });
+  });
+
+  it("found after an unknown outcome: marked once, with its ref, never sent again", async () => {
+    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
+    expect(x.asked[0]).toMatchObject({ platform: "x", on: "x_1", to: "someone_1", text: WORDS });
+    expect(await sendAttempt(db(), "onpost:7")).toMatchObject({ state: "sent", ref: "x_9" });
+    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
+    expect(x.posted).toBe(1);
+  });
+
+  it("search can't see it: unsure, a second invocation sends nothing", async () => {
+    expect(isSendUnsure(await reply(false).catch((e: unknown) => e))).toBe(true);
+    const again = await reply(false).catch((e: unknown) => e);
+    expect(isSendTaken(again)).toBe(true);
+    expect(x.posted).toBe(1);
+    expect(await sendAttempt(db(), "onpost:7")).toMatchObject({ state: "unsure" });
+  });
+});
+
+describe("a private reply (private:), with nothing to read it back", () => {
+  const WORDS = "Here is the setup guide.";
+  async function ourComment() {
+    const [c] = await db()
+      .insert(comments)
+      .values({
+        platform: "instagram",
+        channel: "content",
+        ref: "c1",
+        post: "p1",
+        parent: "p1",
+        kind: "post_reply",
+        postTitle: "Synthetic post",
+        author: "reader1",
+        body: "How do I set this up?",
+        url: "https://example.test/c1",
+        at: new Date(NOW.getTime() - 3_600_000),
+        raw: {},
+        sort: "asked",
+      })
+      .returning({ id: comments.id });
+    return c?.id ?? 0;
+  }
+  const privately = (id: number, send: () => Promise<{ ref: string | null }>) =>
+    sendAtMostOnce(ctxOf().ctx, db(), {
+      item: `private:${id}`,
+      platform: "instagram",
+      account: null,
+      words: WORDS,
+      target: "c1",
+      url: "https://example.test/c1",
+      send,
+    });
+  const META_MAYBE = new SiteCallError("meta", "POST", "/p1/messages", 504, "timed out");
+
+  it("unknown outcome: unsure at once; Mark posted records the DM as a send would", async () => {
+    const id = await ourComment();
+    let sent = 0;
+    const err = await privately(id, async () => {
+      sent += 1;
+      throw META_MAYBE;
+    }).catch((e: unknown) => e);
+    expect(isSendUnsure(err)).toBe(true);
+    expect(sent).toBe(1);
+    expect(await sendAttempt(db(), `private:${id}`)).toMatchObject({ state: "unsure" });
+    await expect(privately(id, async () => ({ ref: "m_2" }))).rejects.toThrow(/may have gone out/);
+    expect(sent).toBe(1);
+    await markPosted(db(), `private:${id}`, { by: "test@example.com", now: NOW });
+    const c = await commentById(db(), id);
+    expect(c.contactId).toBeTruthy();
+    const [m] = await db()
+      .select()
+      .from(reachMessages)
+      .where(eq(reachMessages.contactId, c.contactId ?? 0));
+    expect(m).toMatchObject({ state: "sent", body: WORDS });
+    expect(await sendAttempt(db(), `private:${id}`)).toMatchObject({
+      state: "sent",
+      settledBy: "test@example.com",
+    });
+  });
+
+  it("a double invocation sends once", async () => {
+    const id = await ourComment();
+    let sent = 0;
+    let release = () => {};
+    const held = new Promise<void>((r) => {
+      release = r;
+    });
+    const first = privately(id, async () => {
+      await held;
+      sent += 1;
+      return { ref: "m_1" };
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    const second = await privately(id, async () => {
+      sent += 1;
+      return { ref: "m_x" };
+    }).catch((e: unknown) => e);
+    expect(isSendTaken(second)).toBe(true);
+    release();
+    expect(await first).toMatchObject({ ref: "m_1", found: false });
+    expect(sent).toBe(1);
+  });
+});
+
+describe("a client's DM answer (sdm:), read back from its conversation", () => {
+  const WORDS = "Yes, we open at nine.";
+  const SINCE_ON = NOW.toISOString();
+  /** Their conversation as the account reads it, oldest first. */
+  const convo = {
+    readable: true,
+    messages: [
+      { id: "e1", text: "Are you open Saturday?", at: "2026-10-01T17:00:00Z", mine: false },
+    ],
+  };
+  const answer = (send: () => Promise<{ ref: string | null }>, again = false) =>
+    sendAtMostOnce(ctxOf().ctx, db(), {
+      item: "sdm:41",
+      platform: "x",
+      account: "social:3",
+      words: WORDS,
+      target: "patient_test",
+      url: "https://x.com/patient_test",
+      again,
+      look: async (since) => {
+        if (!convo.readable) throw new Error("dm_events: 503");
+        return seenInMessages(convo.messages, { text: WORDS, since });
+      },
+      send,
+    });
+  const X_MAYBE = new SiteCallError("x", "POST", "/2/dm_conversations", 502, "bad gateway");
+  beforeEach(() => {
+    convo.readable = true;
+    convo.messages = convo.messages.slice(0, 1);
+  });
+
+  it("found after an unknown outcome: marked once, never sent again", async () => {
+    let sent = 0;
+    const lands = async () => {
+      sent += 1;
+      convo.messages.push({ id: "e2", text: WORDS, at: SINCE_ON, mine: true });
+      throw X_MAYBE;
+    };
+    expect(await answer(lands)).toMatchObject({ ref: "e2", found: true });
+    expect(await answer(lands)).toMatchObject({ ref: "e2", found: true });
+    expect(sent).toBe(1);
+    expect(await sendAttempt(db(), "sdm:41")).toMatchObject({ state: "sent", settledBy: "found" });
+  });
+
+  it("not there and the read reaches back past the send: sent once more", async () => {
+    let sent = 0;
+    const once = async () => {
+      sent += 1;
+      if (sent === 1) throw X_MAYBE;
+      return { ref: "e3" };
+    };
+    expect(await answer(once)).toMatchObject({ ref: "e3", found: false });
+    expect(sent).toBe(2);
+  });
+
+  it("unreadable: unsure, a second invocation sends nothing", async () => {
+    convo.readable = false;
+    let sent = 0;
+    const err = await answer(async () => {
+      sent += 1;
+      throw X_MAYBE;
+    }).catch((e: unknown) => e);
+    expect(isSendUnsure(err)).toBe(true);
+    expect(isSendTaken(await answer(async () => ({ ref: "e9" })).catch((e: unknown) => e))).toBe(
+      true,
+    );
+    expect(sent).toBe(1);
+    expect(await sendAttempt(db(), "sdm:41")).toMatchObject({ state: "unsure" });
   });
 });

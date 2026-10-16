@@ -32,6 +32,8 @@ export const MARKETING_CONSOLE_ROUTES = {
   inboxSnooze: "act",
   inboxApprove: "act",
   inboxDrop: "act",
+  // An unsure send's settle (designs/2026-10-16-maybe-sent.md): the client's approver only.
+  sendSettle: "act",
   // Auto-reply per channel: InboxDesk checks `manage` to change it.
   inboxAuto: "read",
   inboxAutoSet: "read",
@@ -62,6 +64,7 @@ export const MARKETING_CONSOLE_APPS = {
   inboxSnooze: "marketing",
   inboxApprove: "marketing",
   inboxDrop: "marketing",
+  sendSettle: "marketing",
   inboxAuto: "marketing",
   inboxAutoSet: "marketing",
   reports: "marketing",
@@ -90,6 +93,7 @@ export const MARKETING_CONSOLE_WRITES: readonly MarketingConsoleRoute[] = [
   "inboxSnooze",
   "inboxApprove",
   "inboxDrop",
+  "sendSettle",
   "inboxAutoSet",
   "reportSave",
   "reportDelete",

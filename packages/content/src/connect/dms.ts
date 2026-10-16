@@ -8,10 +8,11 @@
 import { keepSentEdit } from "@wren/core/ask";
 import type { SiteClient } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
+import { type Seen, seenInMessages } from "@wren/core/maybe-sent";
 import { recordTouch } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { type ReachContact, ReachRefusal, reachContacts, reachMessages } from "@wren/outreach";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { loginOf } from "./access.js";
 import type { SocialPlatform } from "./platforms.js";
 import type { SocialConnectionRow } from "./schema.js";
@@ -28,6 +29,8 @@ export const isDmSocial = (p: string): p is DmSocial =>
 
 /** Meta lets a Page answer only within a day of their last message. */
 export const META_WINDOW_MS = 24 * 3_600_000;
+/** The same words to the same person this soon after are a second click, not a new answer. */
+const SAME_WORDS_MS = 10 * 60_000;
 /** Messages per conversation read each pass. */
 const TAIL = 10;
 
@@ -256,14 +259,18 @@ export interface DmPlan {
   contactId: number;
   platform: DmSocial;
   connection: number;
+  /** The platform's id for them. */
   to: string;
+  handle: string;
+  url: string | null;
   body: string;
   messageId: number;
 }
 
 /**
  * Everything that refuses an answer before the platform is asked, then its row as `sending`: the
- * reach sender never picks it up (no account, never `queued`).
+ * reach sender never picks it up (no account, never `queued`). The same words to them still
+ * sending or unsure reuse that row, so a second click is the same send, never a second one.
  */
 export async function planDm(
   db: Queryable,
@@ -289,23 +296,43 @@ export async function planDm(
     if (!last?.at || o.now.getTime() - last.at.getTime() > META_WINDOW_MS)
       throw new ReachRefusal("Meta lets a Page answer only within 24 hours of their last message");
   }
-  const [msg] = await db
-    .insert(reachMessages)
-    .values({
-      contactId: contact.id,
-      direction: "out",
-      kind: "manual",
-      body,
-      state: "sending",
-      dueAt: o.now,
-    })
-    .returning({ id: reachMessages.id });
+  const [open] = await db
+    .select({ id: reachMessages.id, state: reachMessages.state, at: reachMessages.sentAt })
+    .from(reachMessages)
+    .where(
+      and(
+        eq(reachMessages.contactId, contact.id),
+        eq(reachMessages.direction, "out"),
+        inArray(reachMessages.state, ["sending", "unknown", "sent"]),
+        eq(reachMessages.body, body),
+      ),
+    )
+    .orderBy(desc(reachMessages.id))
+    .limit(1);
+  if (open?.state === "sent" && open.at && o.now.getTime() - open.at.getTime() < SAME_WORDS_MS)
+    throw new ReachRefusal("those words just went to them");
+  const [msg] =
+    open && open.state !== "sent"
+      ? [{ id: open.id }]
+      : await db
+          .insert(reachMessages)
+          .values({
+            contactId: contact.id,
+            direction: "out",
+            kind: "manual",
+            body,
+            state: "sending",
+            dueAt: o.now,
+          })
+          .returning({ id: reachMessages.id });
   if (!msg) throw new Error("dm: the message didn't save");
   return {
     contactId: contact.id,
     platform: contact.platform,
     connection: p.connection,
     to: p.id,
+    handle: contact.handle,
+    url: contact.url,
     body,
     messageId: msg.id,
   };
@@ -391,6 +418,53 @@ export async function sentDm(
     ref: `sent:dm:${plan.messageId}`,
   });
 }
+
+/**
+ * It may have gone out and no read could tell (designs/2026-10-16-maybe-sent.md): `unknown` until
+ * a person settles it in To approve.
+ */
+export async function unknownDm(db: Queryable, messageId: number, why: string): Promise<void> {
+  await db
+    .update(reachMessages)
+    .set({ state: "unknown", stateReason: why.slice(0, 300) })
+    .where(eq(reachMessages.id, messageId));
+}
+
+/** An unsure answer's plan again, from its row: what settling it records or sends. */
+export async function dmPlanOf(db: Queryable, messageId: number): Promise<DmPlan> {
+  const [row] = await db.select().from(reachMessages).where(eq(reachMessages.id, messageId));
+  if (!row || row.direction !== "out") throw new ReachRefusal(`no answer ${messageId}`);
+  if (row.state !== "unknown") throw new ReachRefusal(`that answer is ${row.state}`);
+  const [contact] = await db
+    .select()
+    .from(reachContacts)
+    .where(eq(reachContacts.id, row.contactId));
+  const p = contact && profileOf(contact);
+  if (!contact || !p || !isDmSocial(contact.platform))
+    throw new ReachRefusal(`answer ${messageId} has no connected contact`);
+  return {
+    contactId: contact.id,
+    platform: contact.platform,
+    connection: p.connection,
+    to: p.id,
+    handle: contact.handle,
+    url: contact.url,
+    body: row.body,
+    messageId,
+  };
+}
+
+/** Our words in their conversation, as `readDms` read it (designs/2026-10-16-maybe-sent.md). */
+export const seenInDms = (
+  threads: readonly DmThread[],
+  plan: Pick<DmPlan, "to" | "body" | "url">,
+  since: string,
+): Seen =>
+  seenInMessages(threads.find((t) => t.them.id === plan.to)?.messages ?? null, {
+    text: plan.body,
+    since,
+    url: plan.url,
+  });
 
 /** Refused by the platform: the row says why, nothing resends it. */
 export async function failedDm(db: Queryable, messageId: number, why: string): Promise<void> {

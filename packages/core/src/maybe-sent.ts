@@ -174,3 +174,31 @@ export function seenIn<T>(
   if (at && new Date(at).getTime() < floor) return { kind: "absent" };
   return unclear("the listing does not reach back to the send");
 }
+
+/** One message of a conversation as a read shows it. */
+export interface SeenMessage {
+  id: string;
+  text: string;
+  at: string;
+  /** Sent by the account that read it. */
+  mine: boolean;
+}
+
+/**
+ * Our words in a conversation, its messages oldest first as a read keeps them: found when one of
+ * ours matches; absent when the oldest message read is older than `since` (a newer one could not
+ * have been left out); else unclear. Null: no conversation with them was in the read.
+ */
+export function seenInMessages(
+  messages: readonly SeenMessage[] | null,
+  o: { text: string; since: string; url?: string | null },
+): Seen {
+  if (!messages) return unclear("no conversation with them in the read");
+  return seenIn([...messages].reverse(), {
+    since: o.since,
+    full: false,
+    match: (m) => m.mine && sameWords(m.text, o.text),
+    at: (m) => m.at || null,
+    found: (m) => ({ kind: "found", ref: m.id, at: m.at || null, url: o.url ?? null }),
+  });
+}

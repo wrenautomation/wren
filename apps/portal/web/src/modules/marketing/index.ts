@@ -2105,7 +2105,7 @@ const clientInbox = (a: Action): Action => {
 const CLIENT_APPROVE: ListPage = {
   id: "approve",
   label: "To approve",
-  about: "Inbox replies and broadcasts that wait on a yes before they send.",
+  about: "Inbox replies and broadcasts that wait on a yes, and sends that may have gone out.",
   template: "list",
   record: "marketing.asked_reply",
   card: ASKED_REPLY_CARD,
@@ -2121,6 +2121,10 @@ const CLIENT_APPROVE: ListPage = {
       clientInbox({ ...a, when: { ...a.when, kind: ["email", "text", "dm", "comment"] } }),
     ),
     ...BROADCAST_DECIDE_ACTIONS.map((a) => ({ ...a, when: { ...WAITS, kind: ["broadcast"] } })),
+    // Its own send that may have gone out: its approver's word, which the console checks.
+    ...UNSURE_ACTIONS.map(
+      (a): Action => ({ ...only("unsure", a, WAITS), requires: { needs: "act" } }),
+    ),
   ],
   extras: (detail, at) => askedReplyExtras(detail, at.row),
 };

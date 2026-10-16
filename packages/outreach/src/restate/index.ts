@@ -1208,10 +1208,17 @@ type PostReads = {
 const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
-const DM = COMMENT.extend({ body: z.string() });
+const DM = COMMENT.extend({
+  body: z.string(),
+  again: z.boolean().optional().describe("Send again after a person said it did not go out"),
+});
 /** A person's word on an unsure send (designs/2026-10-16-maybe-sent.md). */
 const SETTLE_SEND = z.looseObject({
-  item: z.string().min(3).max(80).describe("The send's typed id: thread:, comment:, onpost:, dm:"),
+  item: z
+    .string()
+    .min(3)
+    .max(80)
+    .describe("The send's typed id: thread:, comment:, onpost:, dm:, private:"),
   outcome: z
     .enum(["posted", "again"])
     .describe("posted: he saw it on the site; again: send it once more"),
@@ -1221,6 +1228,11 @@ type DeskSends = {
   [K in "commentThread" | "answerComment" | "commentPost"]: (
     ctx: restate.Context,
     req: { id: string | number; again: true; viewer?: unknown },
+  ) => Promise<unknown>;
+} & {
+  dmComment: (
+    ctx: restate.Context,
+    req: { id: number; body: string; again: true; viewer?: unknown },
   ) => Promise<unknown>;
 };
 const THREAD_REPLY = COMMENT.extend({
@@ -1292,6 +1304,10 @@ export function makeReachDesk(deps: ReachDeps) {
    * One comment answered in its thread, as the account that read it, or through `Content.reply`
    * on our own post. `body` null: the draft. Sent now: the click is the yes.
    */
+  /** Unsure waits on a person; any other failure as the handler throws it. */
+  const failed = (err: unknown): never => {
+    throw isSendUnsure(err) ? err : sendError(err);
+  };
   const answerOne = async (
     ctx: restate.Context,
     id: number,
@@ -1316,10 +1332,6 @@ export function makeReachDesk(deps: ReachDeps) {
         await markAnswered(deps.db, id, { body, ref, now, by });
       });
     const item = `comment:${id}`;
-    /** Unsure waits on a person; any other failure as the handler throws it. */
-    const failed = (err: unknown): never => {
-      throw isSendUnsure(err) ? err : sendError(err);
-    };
     if (!plan.account) {
       // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
       const { target, text } = answerFor(plan.comment, words);
@@ -1332,7 +1344,13 @@ export function makeReachDesk(deps: ReachDeps) {
         target,
         url: plan.comment.url,
         again,
-        look: contentLook(ctx, { platform, post: plan.comment.post, parent: target, text }),
+        look: contentLook(ctx, {
+          platform,
+          post: plan.comment.post,
+          parent: target,
+          to: plan.comment.author,
+          text,
+        }),
         send: async () => {
           await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
             platform,
@@ -1736,7 +1754,7 @@ export function makeReachDesk(deps: ReachDeps) {
         { input: DM, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { id: number; body: string },
+          req: { id: number; body: string; again?: boolean },
         ): Promise<{ contactId: number; messageId: number }> => {
           const now = await nowOf(ctx);
           const body = req.body.trim();
@@ -1744,9 +1762,21 @@ export function makeReachDesk(deps: ReachDeps) {
           const c = await ctx.run("comment", () => terminal(() => commentById(deps.db, req.id)));
           if (!c.accountId) {
             await ctx.run("plan", () => terminal(() => planPrivateReply(deps.db, req.id, now)));
-            const sent = await ctx
-              .serviceClient<ContentReply>({ name: "Content" })
-              .privateReply({ platform: c.platform, commentId: c.ref, text: body });
+            // At most once (designs/2026-10-16-maybe-sent.md). Nothing reads a Page's messages
+            // back on this path, so a lost outcome is unsure and waits on a person.
+            const sent = await sendAtMostOnce(ctx, deps.db, {
+              item: `private:${c.id}`,
+              platform: c.platform,
+              account: null,
+              words: body,
+              target: c.ref,
+              url: c.url,
+              again: req.again === true,
+              send: () =>
+                ctx
+                  .serviceClient<ContentReply>({ name: "Content" })
+                  .privateReply({ platform: c.platform, commentId: c.ref, text: body }),
+            }).catch(failed);
             return ctx.run("sent", () =>
               privateReplied(deps.db, c, { body, ref: sent.ref, now, by: byOf(req) }),
             );
@@ -1892,7 +1922,8 @@ export function makeReachDesk(deps: ReachDeps) {
               throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
             const viaSite = acts.comment;
             // At most once (designs/2026-10-16-maybe-sent.md). Instagram's comment goes through
-            // the site with nothing to read it back by; LinkedIn and X through `Content.reply`.
+            // the site with nothing to read it back by; LinkedIn and X through `Content.reply`,
+            // X's read back by a search of our own posts.
             await sendAtMostOnce(ctx, deps.db, {
               item,
               platform: post.platform,
@@ -1907,6 +1938,7 @@ export function makeReachDesk(deps: ReachDeps) {
                     platform: post.platform,
                     post: post.ref,
                     parent: null,
+                    to: post.handle,
                     text: body,
                   }),
               send: async () => {
@@ -1965,10 +1997,13 @@ export function makeReachDesk(deps: ReachDeps) {
           req: { item: string; outcome: "posted" | "again"; viewer?: unknown },
         ): Promise<{ item: string; outcome: "posted" | "again" }> => {
           const now = await nowOf(ctx);
-          const { kind, id } = await ctx.run("item", () =>
+          const { kind, id, words } = await ctx.run("item", () =>
             terminal(async () => {
-              await unsureItem(deps.db, req.item);
-              return itemOf(req.item);
+              const a = await unsureItem(deps.db, req.item);
+              const it = itemOf(req.item);
+              if (it.kind === "sdm")
+                throw new ReachRefusal("a connected account's answer settles in its Inbox");
+              return { ...it, words: a.words };
             }),
           );
           if (req.outcome === "posted") {
@@ -1990,7 +2025,7 @@ export function makeReachDesk(deps: ReachDeps) {
                 from: `s${s.step}.sent`,
                 events: [reachLead(s.contactId)],
               });
-            if (kind !== "dm") scheduleProofs(ctx, req.item);
+            if (kind !== "dm" && kind !== "private") scheduleProofs(ctx, req.item);
             return { item: req.item, outcome: "posted" };
           }
           if (kind === "dm") {
@@ -2002,6 +2037,8 @@ export function makeReachDesk(deps: ReachDeps) {
           const again = { again: true as const, viewer: req.viewer };
           if (kind === "thread") await desk.commentThread({ id, ...again });
           else if (kind === "comment") await desk.answerComment({ id: Number(id), ...again });
+          else if (kind === "private")
+            await desk.dmComment({ id: Number(id), body: words, ...again });
           else await desk.commentPost({ id: Number(id), ...again });
           return { item: req.item, outcome: "again" };
         },
@@ -2363,6 +2400,14 @@ export {
   READS_KEY,
   type RedditReadsObject,
 } from "./discovery.js";
+export {
+  contentLook,
+  isSendTaken,
+  isSendUnsure,
+  SendTaken,
+  SendUnsure,
+  sendAtMostOnce,
+} from "./maybe-sent.js";
 export {
   type CommentProofsService,
   makeCommentProofs,

@@ -285,7 +285,12 @@ export function isWrite(path: string): boolean {
  * that it has them; the tab reads the outcome from `writes/status`, never from a held request.
  * A route, or a public handler the console calls by name (`console/call`).
  */
-export const SENDS: ReadonlySet<string> = new Set(["marketing/inboxReply", "sms/reply"]);
+export const SENDS: ReadonlySet<string> = new Set([
+  "marketing/inboxReply",
+  "sms/reply",
+  // A client's Mark posted or Send again on its send that may have gone out.
+  "marketing/sendSettle",
+]);
 export const SEND_HANDLERS: ReadonlySet<string> = new Set([
   "InboxDesk/reply",
   "ReachDesk/reply",

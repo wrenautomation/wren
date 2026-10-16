@@ -75,6 +75,7 @@ import type { ShapeView } from "../shape-view.js";
 import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
 import type { InboxDesk } from "./inbox-desk.js";
 import { startReport } from "./reports.js";
+import type { SocialInbox } from "./social-inbox.js";
 
 export const MARKETING_STATS = "marketing.stats";
 
@@ -279,6 +280,8 @@ export function marketingConsoleApi({
     },
     /** The client's desk key, or the refusal: never the demo, installed, its approver only. */
     deciding: async (req: PortalRequest): Promise<string> => (await decide(req)).key,
+    /** The client whose unsure send this viewer may settle: its approver, as for a verdict. */
+    settling: async (req: PortalRequest): Promise<string> => (await decide(req)).client.id,
     /**
      * As `deciding`, for a yes that posts on the next pass (Post now): only where the `post_now`
      * portal flag is on for this login, as the button shows. Wren's team passes, as with any flag.
@@ -393,6 +396,14 @@ export interface InboxReplyRequest extends ThreadRequest {
 }
 
 const inboxClient = (ctx: restate.Context) => ctx.serviceClient<InboxDesk>({ name: "InboxDesk" });
+const SETTLE_SEND = {
+  input: z.looseObject({
+    ...PORTAL_FIELDS,
+    item: z.string().min(3).max(80).describe("The unsure send's typed id: sdm:<id>, comment:<id>"),
+    outcome: z.enum(["posted", "again"]).describe("posted: seen on the site; again: send it again"),
+  }),
+};
+type SettleRequest = PortalRequest & { item: string; outcome: "posted" | "again" };
 type InboxClient = ReturnType<typeof inboxClient>;
 
 /** The desk's refusals (not waiting, no model, no About) are the viewer's answer. */
@@ -622,6 +633,21 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
         ASKED,
         (ctx: restate.Context, req: PortalRequest & { id: number }) =>
           inbox(ctx, req, (d, at) => d.drop({ ...at, id: req.id })),
+      ),
+      /**
+       * A send of the client's that may have gone out (designs/2026-10-16-maybe-sent.md): its
+       * approver marks it posted or sends it again, through SocialInbox on its own database.
+       */
+      sendSettle: serviceHandler(SETTLE_SEND, (ctx: restate.Context, req: SettleRequest) =>
+        answer(async () => {
+          const client = await ctx.run("check", () => answer(() => api.settling(req)));
+          const by = isDemo(req.viewer) ? "demo" : req.viewer.email;
+          return desk(() =>
+            ctx
+              .serviceClient<SocialInbox>({ name: "SocialInbox" })
+              .settle({ client, item: req.item, outcome: req.outcome, by }),
+          );
+        }),
       ),
       /** The client's auto-reply modes, per channel. */
       inboxAuto: serviceHandler(

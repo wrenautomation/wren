@@ -631,6 +631,9 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
   ],
   "marketing/inboxWake": (id) => ["marketing/inboxSnooze", { thread: id, until: null }],
   "marketing/inboxReplyApprove": (id) => ["marketing/inboxApprove", { id: num(id) }],
+  // A client's send that may have gone out (`unsure:sdm:9`): settled on its own database.
+  "marketing/sendPosted": (id) => ["marketing/sendSettle", { item: bare(id), outcome: "posted" }],
+  "marketing/sendAgain": (id) => ["marketing/sendSettle", { item: bare(id), outcome: "again" }],
   "marketing/inboxReplyDrop": (id) => ["marketing/inboxDrop", { id: num(id) }],
   "marketing/approveDraft": (id, { expect }) => [
     "marketing/approveDraft",

@@ -1629,6 +1629,20 @@ export const askedReplyRecord = defineRecord({
   channel: { field: "platform" },
   name: { one: "reply to approve", many: "replies to approve" },
   rows: async (db) => [
+    // A send of its own that may have gone out (designs/2026-10-16-maybe-sent.md): its approver
+    // checks the site, then marks it posted or sends it again.
+    ...(await unsureSends(db)).map((u) => ({
+      id: `unsure:${u.item}`,
+      type: "unsure",
+      who: u.target,
+      platform: null,
+      kind: "unsure",
+      state: "waiting",
+      body: u.words,
+      why: u.why,
+      at: u.updatedAt,
+      url: u.url,
+    })),
     // A broadcast to a segment (People → Broadcasts): a yes schedules it.
     ...(await waitingBroadcasts(db)).map(broadcastItem),
     ...[
@@ -1663,6 +1677,7 @@ export const askedReplyRecord = defineRecord({
         dm: neutral("DM"),
         comment: neutral("Comment"),
         broadcast: neutral("Broadcast"),
+        unsure: neutral("May have gone out"),
       }),
       "Reply by",
     ),
@@ -1685,12 +1700,14 @@ export const askedReplyRecord = defineRecord({
     "inbox.replyDrop",
     "people.broadcastApprove",
     "people.broadcastDecline",
+    "marketing.sendPosted",
+    "marketing.sendAgain",
   ],
   calls: { "InboxDesk/approve": "id", "InboxDesk/drop": "id" },
   /** The conversation it answers. */
   load: async (db, id) => {
     const [type, rest] = typed(id);
-    if (type === "broadcast") return null;
+    if (type === "broadcast" || type === "unsure") return null;
     const [r] = (await db.execute(
       sql`select thread from inbox_replies where id = ${Number(rest)}`,
     )) as unknown as Array<{ thread: string }>;

@@ -12,6 +12,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { z } from "zod";
+import type { Seen } from "../maybe-sent.js";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import { CallTimeout, within } from "../restate/limits.js";
@@ -594,6 +595,48 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
               errorCode: 501,
             });
           return refusalsFinal(ch.privateReply(req.commentId, req.text));
+        },
+      ),
+      /**
+       * Our own reply under a post or comment, read back after its send's outcome was lost
+       * (designs/2026-10-16-maybe-sent.md). A read: any failure, or a channel with no such read,
+       * answers unclear, never an error.
+       */
+      findReply: serviceHandler(
+        {
+          input: z.looseObject({
+            platform: PLATFORM,
+            on: z.string().describe("The post or comment we answered"),
+            to: z.string().nullish().describe("Its author's handle"),
+            text: z.string(),
+            since: z.string().describe("When the send began, ISO"),
+            client: CLIENT,
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: {
+            platform: Platform;
+            on: string;
+            to?: string | null;
+            text: string;
+            since: string;
+          } & ForClient,
+        ): Promise<Seen> => {
+          try {
+            const ch = await pick(ctx, req.platform, req.client, "content.social");
+            if (!ch.findReply)
+              return { kind: "unclear", why: `${req.platform} can't read our reply back` };
+            return await ch.findReply({
+              on: req.on,
+              to: req.to ?? null,
+              text: req.text,
+              since: req.since,
+            });
+          } catch (err) {
+            const why = err instanceof Error ? err.message : String(err);
+            return { kind: "unclear", why: `the read failed: ${why.slice(0, 200)}` };
+          }
         },
       ),
       /**

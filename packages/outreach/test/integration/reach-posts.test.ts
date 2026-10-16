@@ -102,6 +102,7 @@ const fakeContent = restate.service({
     },
     // The look before a send (designs/2026-10-16-maybe-sent.md): none of ours there yet.
     comments: async () => [],
+    findReply: async () => ({ kind: "absent" }),
   },
 });
 /** The comment the fake model writes next; `invent` makes it make things up. */

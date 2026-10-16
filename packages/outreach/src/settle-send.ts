@@ -5,7 +5,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
-import { markAnswered } from "./comments.js";
+import { commentById, markAnswered, privateReplied } from "./comments.js";
 import { markCommented } from "./discovery/threads.js";
 import { markPostCommented, planPostComment } from "./reach-posts.js";
 import { ReachRefusal } from "./refusal.js";
@@ -19,13 +19,17 @@ import {
   type TickStats,
 } from "./tick.js";
 
-/** The item kinds a send ledger row can name. */
-export type SendItem = "thread" | "comment" | "onpost" | "dm";
+/**
+ * The item kinds a send ledger row can name: `private` a DM from a comment on our own post,
+ * `sdm` a client's DM answer through its connected account (SocialInbox settles that one).
+ */
+export const SEND_ITEMS = ["thread", "comment", "onpost", "dm", "private", "sdm"] as const;
+export type SendItem = (typeof SEND_ITEMS)[number];
 
 export function itemOf(item: string): { kind: SendItem; id: string } {
   const at = item.indexOf(":");
   const kind = item.slice(0, at);
-  if (at < 0 || !["thread", "comment", "onpost", "dm"].includes(kind))
+  if (at < 0 || !(SEND_ITEMS as readonly string[]).includes(kind))
     throw new ReachRefusal(`not a send: ${item}`);
   return { kind: kind as SendItem, id: item.slice(at + 1) };
 }
@@ -40,12 +44,13 @@ export async function unsureItem(db: Queryable, item: string) {
 
 /**
  * Mark it posted: recorded as sent by `by`, with no ref (he saw it; we didn't read one). A DM's
- * sequence moves on as if it sent; its steps come back for the spine.
+ * sequence moves on as if it sent; its steps come back for the spine. Only a DM needs the
+ * sequences and the sender.
  */
 export async function markPosted(
   db: Queryable,
   item: string,
-  o: Pick<TickOptions, "sequences" | "sender"> & { by: string; now: Date },
+  o: Partial<Pick<TickOptions, "sequences" | "sender">> & { by: string; now: Date },
 ): Promise<TickStats> {
   const a = await unsureItem(db, item);
   const { kind, id } = itemOf(item);
@@ -73,7 +78,18 @@ export async function markPosted(
       by: o.by,
       now: o.now,
     });
+  else if (kind === "private")
+    await privateReplied(db, await commentById(db, Number(id)), {
+      body: a.words,
+      ref: a.ref,
+      now: o.now,
+      by: o.by,
+    });
+  else if (kind === "sdm")
+    throw new ReachRefusal("a connected account's answer settles in its Inbox");
   else {
+    const { sequences, sender } = o;
+    if (!sequences || !sender) throw new ReachRefusal("a DM settles in ReachDesk");
     const [row] = await db
       .select()
       .from(reachMessages)
@@ -92,7 +108,7 @@ export async function markPosted(
       db,
       c,
       { ref: a.ref, at: o.now.toISOString(), fetchedWith: "browser" },
-      { ...o, runId: null },
+      { sequences, sender, now: o.now, runId: null },
       stats,
     );
   }

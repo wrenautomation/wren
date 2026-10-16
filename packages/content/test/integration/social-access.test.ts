@@ -4,7 +4,9 @@
  * token lands in the key store under the client, a check reads who it is, a revoked grant breaks
  * it. Its content runs on the `social:` login. Its DMs come into its own Inbox, and a reply from
  * that Inbox goes through Ask to send and its approver, then out through its own account with a
- * touch written, only while its sends are on. Synthetic clients and ids only; no network.
+ * touch written, only while its sends are on. An answer whose outcome is lost waits in its To
+ * approve until its approver settles it (designs/2026-10-16-maybe-sent.md). Synthetic clients
+ * and ids only; no network.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
@@ -19,7 +21,7 @@ import { touches } from "@wren/core/touches-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { reachContacts, reachMessages } from "@wren/outreach";
+import { reachContacts, reachMessages, sendAttempt } from "@wren/outreach";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent } from "../../src/clients.js";
@@ -42,6 +44,10 @@ const TOKEN = "x-access-SYNTHETIC";
 /** X, as far as these tests need it. */
 const x = {
   revoked: false,
+  /** The next DM send lands on X, then answers 502 as if it were lost on the way back. */
+  lose: false,
+  /** X's DM read answers 503. */
+  blind: false,
   dms: [] as { id: string; text: string; sender: string; at: string }[],
   sent: [] as { to: string; text: string; auth: string }[],
   asked: [] as string[],
@@ -67,21 +73,30 @@ const fetch = async (url: string, init?: RequestInit): Promise<Response> => {
       ? Response.json({ title: "Unauthorized" }, { status: 401 })
       : Response.json({ data: { id: ME, name: "Kappa Dental", username: "kappadental" } });
   if (url.startsWith("https://api.x.com/2/dm_events"))
-    return Response.json({
-      data: x.dms.map((d) => ({
-        id: d.id,
-        text: d.text,
-        created_at: d.at,
-        sender_id: d.sender,
-        dm_conversation_id: `${ME}-${LEE}`,
-        event_type: "MessageCreate",
-      })),
-      includes: { users: [{ id: LEE, username: "lee_patient", name: "Lee" }] },
-    });
+    return x.blind
+      ? Response.json({ title: "Service Unavailable" }, { status: 503 })
+      : Response.json({
+          data: x.dms.map((d) => ({
+            id: d.id,
+            text: d.text,
+            created_at: d.at,
+            sender_id: d.sender,
+            dm_conversation_id: `${ME}-${LEE}`,
+            event_type: "MessageCreate",
+          })),
+          includes: { users: [{ id: LEE, username: "lee_patient", name: "Lee" }] },
+        });
   const to = /\/2\/dm_conversations\/with\/(\d+)\/messages$/.exec(url)?.[1];
   if (to && init?.method === "POST") {
-    x.sent.push({ to, text: JSON.parse(String(init.body)).text, auth });
-    return Response.json({ data: { dm_event_id: `ev-${x.sent.length}` } });
+    const text = JSON.parse(String(init.body)).text;
+    x.sent.push({ to, text, auth });
+    const id = `ev-${x.sent.length}`;
+    if (x.lose) {
+      x.lose = false;
+      x.dms.push({ id, text, sender: ME, at: new Date().toISOString() });
+      return Response.json({ title: "Bad Gateway" }, { status: 502 });
+    }
+    return Response.json({ data: { dm_event_id: id } });
   }
   return new Response("{}", { status: 404 });
 };
@@ -288,6 +303,52 @@ describe("DMs into the client's Inbox", () => {
     expect(out).toEqual({ sent: true, asked: null, why: null });
     expect(x.sent.at(-1)?.text).toBe("See you then.");
   });
+});
+
+describe("a DM answer whose outcome is lost", () => {
+  const lost = async (body: string) => {
+    x.lose = true;
+    x.blind = true;
+    const [lee] = await kappa.select().from(reachContacts);
+    const send = () => inbox().send({ client: "kappa", contactId: lee?.id ?? 0, body, by: BO });
+    await expect(send()).rejects.toThrow(/may have gone out/);
+    const [row] = await kappa.select().from(reachMessages).where(eq(reachMessages.body, body));
+    expect(row?.state).toBe("unknown");
+    const item = `sdm:${row?.id}`;
+    expect(await sendAttempt(kappa, item)).toMatchObject({
+      state: "unsure",
+      target: "lee_patient",
+    });
+    // Its To approve shows it; a second click on the same words sends nothing.
+    const rows = (await askedReplyRecord.rows?.(kappa)) ?? [];
+    expect(rows).toContainEqual(expect.objectContaining({ id: `unsure:${item}`, kind: "unsure" }));
+    const sent = x.sent.length;
+    await expect(send()).rejects.toThrow();
+    expect(x.sent.length).toBe(sent);
+    return { item, id: row?.id ?? 0, sent };
+  };
+
+  it("Send again reads first: it went out, so it is recorded, not sent twice", async () => {
+    const { item, id, sent } = await lost("We open at nine.");
+    x.blind = false;
+    await console_().sendSettle({ ...as(AMY), item, outcome: "again" });
+    expect(x.sent.length).toBe(sent);
+    const [row] = await kappa.select().from(reachMessages).where(eq(reachMessages.id, id));
+    expect(row).toMatchObject({ state: "sent", ref: `ev-${sent}` });
+    expect(await sendAttempt(kappa, item)).toMatchObject({ state: "sent", settledBy: "found" });
+  }, 120_000);
+
+  it("Mark posted records it as its send would", async () => {
+    const { item, id, sent } = await lost("Bring your card.");
+    x.blind = false;
+    await console_().sendSettle({ ...as(AMY), item, outcome: "posted" });
+    expect(x.sent.length).toBe(sent);
+    const [row] = await kappa.select().from(reachMessages).where(eq(reachMessages.id, id));
+    expect(row?.state).toBe("sent");
+    expect(await sendAttempt(kappa, item)).toMatchObject({ state: "sent", settledBy: AMY });
+    const ours = await kappa.select().from(touches).where(eq(touches.text, "Bring your card."));
+    expect(ours).toMatchObject([{ kind: "dm", direction: "ours" }]);
+  }, 120_000);
 });
 
 describe("refresh and Broken", () => {
