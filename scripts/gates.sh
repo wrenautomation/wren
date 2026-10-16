@@ -3,7 +3,21 @@
 # suspends `set -e` inside functions called from an && list.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
+# On the Mac, every worktree's gate runs one at a time, and all share one turbo cache.
+# Four worktrees each running 10 tsc at once filled 16 GB and the OOM killer took a push (10-16).
+# The lock is the queue: a second run waits for the first. The shared cache means a package
+# whose inputs one worktree already checked is a cache hit in every other one.
+# CI has a runner to itself, so it skips the lock and takes its cores back.
+if [ -z "${CI:-}" ]; then
+  export TURBO_CACHE_DIR="${TURBO_CACHE_DIR:-$(git rev-parse --path-format=absolute --git-common-dir)/turbo-cache}"
+  LOCK=/tmp/wren_automation-checks.lock
+  if [ -z "${CHECKS_LOCKED:-}" ]; then
+    lockf -s -t 0 "$LOCK" true || echo "==> waiting for another gate run to finish"
+    CHECKS_LOCKED=1 exec lockf -s "$LOCK" "$0" "$@"
+  fi
+fi
+WIDE=${CI:+--concurrency=100%}
+lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
 map() { echo "==> map" && map/_meta/build.sh --check; }
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
@@ -50,7 +64,7 @@ offers() {
   if [ -d ../lander ]; then echo "==> offers snapshot" && pnpm -s offers:export "$LANDER_OFFERS" --check;
   else echo "==> offers snapshot: no ../lander, skipped"; fi
 }
-unit() { echo "==> unit tests" && pnpm turbo run test:unit; }
+unit() { echo "==> unit tests" && pnpm turbo run test:unit $WIDE; }
 # Every integration file starts its own Postgres and migrates it. Vitest's default (cpus - 1 files at once)
 # times 3 packages put ~27 containers on the Docker VM together, and setup hooks timed out at 180 s.
 # A failed test retries once: a flake costs a rerun, not a red run.
@@ -64,8 +78,15 @@ schema() {
 # Every template option through SpamAssassin (designs/2026-10-05-deliverability-tests.md); one over 2.0 fails.
 # The CLI wants a database URL at start; spamcheck reads none without --drafts, and CI has none.
 spam() { echo "==> spam score (needs Docker)" && WREN_DATABASE_URL="${WREN_DATABASE_URL:-postgres://unused@127.0.0.1:1/unused}" ./bin/wren email spamcheck; }
+# A builder's loop: typecheck and unit tests for the packages changed since origin/main and what
+# depends on them. The full gate runs once, at hand-off; unchanged packages are cache hits there.
+changed() {
+  echo "==> typecheck + unit, changed since origin/main" &&
+    pnpm turbo run typecheck test:unit --filter="...[origin/main]" --output-logs=errors-only
+}
 case "${1:-all}" in
   lint) lint ;;
+  changed) changed ;;
   unit) unit ;;
   integration) integration ;;
   schema) schema ;;
@@ -73,5 +94,5 @@ case "${1:-all}" in
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
   checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|checks|unit|schema|drift|integration|all]" >&2; exit 2 ;;
+  *) echo "usage: $0 [lint|changed|checks|unit|schema|drift|integration|all]" >&2; exit 2 ;;
 esac
