@@ -105,13 +105,15 @@ show one unbroken chain.
   - `ContentPlanner`: a draft 15 min with `keep`; a timeout ends drafting for the pass (the
     desk's lock is still held), held on its third.
   - `TokenRenewal`: a renew 30 min with `keep`.
+  - `SendScheduler`: on `makeLoopObject` (10-16, wa-jsi). The tick step has 3 tries, then
+    `passOrFailed` keeps it as a failed pass with its backoff; `wake` restarts a dead chain. The
+    transport carries its own limits (Gmail `timedFetch`, SMTP socket timeouts). The tick itself
+    is not cut: a cut tick could run beside its retry. `tick` is now `sync`.
   - HTTP clients (Discord, Restate admin, Gmail, mailbox access, pixel and lander exports,
     Postmaster, Wise, Search Console, sitemap) 30 s to 2 min; a model call 5 min.
 
 ## Not done
 
-- `SendScheduler` is its own loop (not `makeLoopObject`): its pass is not under `passOrFailed`.
-- No integration test for `TokenRenewal`'s limit or RedditReads' topics `limitedRun`.
 - Ending a paused blocker on its own (kill, then `wake`) is a judgment call per loop. It stays a
   person's or an agent's, through `wren dlq`.
 

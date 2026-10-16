@@ -12,7 +12,7 @@
  * A read that gets no answer is noted and passed; one that gets none three passes in a row is held
  * (`unit_holds`, stage `loop.reddit-reads/<key>`). Two in a pass with nothing answered: the desk is
  * down, and the pass's other signed-out reads wait for the next one. The topics model call is cut
- * at `TOPICS_WAIT_MS` a try, three tries; a miss leaves the month's search for the next pass.
+ * at `limits.http` a try, three tries; a miss leaves the month's search for the next pass.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf, keepSentEdit } from "@wren/core/ask";
@@ -23,9 +23,10 @@ import {
   CallTimeout,
   clientOfKey,
   errorText,
-  LIMITS,
+  type Limits,
   lastPass,
   limitedRun,
+  limitsWith,
   makeLoopObject,
   type PassOutcome,
   serviceHandler,
@@ -103,8 +104,7 @@ const PEOPLE_PER_PASS = 5;
 const BUSY_MS = 2 * 60_000;
 const IDLE_MS = 30 * 60_000;
 const FOUND_AT = "foundAt";
-/** One try of the topics model call: a short completion, seconds when the model is up. */
-const TOPICS_WAIT_MS = LIMITS.http;
+/** One try of the topics model call (`limits.http`): a short completion, seconds when the model is up. */
 /** Object state: reads a used daily cap holds, until it resets (ms): `reddit-public`, or an account. */
 const CAP_HOLDS = "capHolds";
 
@@ -123,6 +123,8 @@ export interface DiscoveryDeps {
   ours?: () => Promise<readonly OurPost[]>;
   /** Who we talk to: the `reddit.discovery` setting. */
   audience: () => Promise<Audience>;
+  /** `LIMITS` with any overrides (tests shorten them): the topics model call takes `http` a try. */
+  limits?: Partial<Limits>;
 }
 
 export interface DiscoveryStats {
@@ -184,6 +186,7 @@ export function makeRedditReads(deps: ReachDeps & { discovery: DiscoveryDeps }) 
         voice: CLIENT_VOICE,
         facts: () => clients.facts?.(d.db) ?? Promise.resolve([]),
         audience: async () => audience.data,
+        ...(deps.discovery.limits ? { limits: deps.discovery.limits } : {}),
       },
       ctx,
       now,
@@ -254,7 +257,7 @@ async function readsPass(
     // A model call: cut a try at its limit, and after three the month's search waits a pass.
     let searched = true;
     const topics = await limitedRun(ctx, "topics", () => topicsOf(d.llm, audience), {
-      ms: TOPICS_WAIT_MS,
+      ms: limitsWith(d.limits).http,
     }).catch((err) => {
       if (!(err instanceof restate.TerminalError)) throw err;
       s.errors.push(`topics: ${errorText(err)}`);

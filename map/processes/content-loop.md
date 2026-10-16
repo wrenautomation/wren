@@ -40,7 +40,7 @@ Approving is publishing, so it stays a person's call; the loops only move approv
 | `wren content planner start --draft [--slots <json>]` | turns daily drafts on |
 | `wren content planner slots <platform> <HH:MM...> [--days 1-5\|2] [--clear]` | sets one platform's slots, keeps the rest, starts the planner |
 | `ContentDesk`, `ContentScheduler`, `ContentMetrics`, `ContentPlanner`, `Content` | run |
-| `TokenRenewal/box` | keeps platform tokens valid; each `renew` waits at most `RENEW_WAIT_MS` (30 min), then runs on alone and counts as refused (`renewal.ts`) |
+| `TokenRenewal/box` | keeps platform tokens valid; each `renew` waits at most `RENEW_WAIT_MS` (30 min), then runs on alone and counts as refused (`renewal.ts`; `packages/core/test/integration/token-renewal.test.ts`) |
 
 ## See
 
