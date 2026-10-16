@@ -104,6 +104,7 @@ export const decisionCalls = pgTable(
     primaryKey({ columns: [t.id], name: "pk_decision_calls" }),
     unique("uq_decision_calls_ref").on(t.ref),
     index("ix_decision_calls_subject").on(t.kind, t.subject, t.at),
+    index("ix_decision_calls_decision_id").on(t.decisionId),
     foreignKey({
       columns: [t.decisionId],
       foreignColumns: [decisions.id],

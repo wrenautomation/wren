@@ -1989,6 +1989,13 @@
       "when": 1792182096475,
       "tag": "0284_decide",
       "breakpoints": true
+    },
+    {
+      "idx": 285,
+      "version": "7",
+      "when": 1792182156582,
+      "tag": "0285_decide_call_index",
+      "breakpoints": true
     }
   ]
 }

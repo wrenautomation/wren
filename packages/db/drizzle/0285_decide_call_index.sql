@@ -1,0 +1,1 @@
+CREATE INDEX "ix_decision_calls_decision_id" ON "decision_calls" USING btree ("decision_id");
