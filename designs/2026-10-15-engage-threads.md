@@ -41,7 +41,7 @@ Every Engage row and every Inbox comment thread opens with "The whole thread" fi
 - Our comment and every reply under it, nested. Past 5 levels, a node says who it replies to instead of indenting further.
 - Each node: author, time, Us, Waiting/Answered/Skipped, Reply from Wren and Open on site. Reply from Wren shows only on others' comments.
 - Reply from Wren goes through `ReachDesk/replyInThread` (`effect: "sends"`). It keeps the comment first if only the thread read saw it (`adoptNode`), then answers it like any comment: same write path, same edits store, same Send as pick, same tracking.
-- Refresh calls `ReachDesk/readThread`: one read now, on the same budget.
+- Refresh calls `ReachDesk/readThread`: one read now, on the same budget. On a comment on our own post it hands off to `SocialDesk/readPost`, which reads that post's comments through `Content/comments` and keeps them as the watch's pass does (keyword DMs, the spine). That read keeps no thread snapshot, so the line says when this tab's Refresh ran.
 - The view loads when a row opens and is cached by TanStack Query with the record. "Checked on the site 2 minutes ago" says how fresh it is. "The site hid N more replies" says what we couldn't read.
 - On a phone, the detail shows "See the whole thread (N replies)", which opens a full-height sheet.
 - No iframes: Reddit, LinkedIn, X and Instagram refuse to be framed, and a framed page would post outside our tracking.
@@ -65,7 +65,6 @@ Not read at all: replies to our comments on other people's LinkedIn, X and Insta
 
 - Fixed (wa-ipi): Inbox team state (assignee, closed) is keyed by row id, so a follow-up that became the group's newest row lost its assignee. A row with no state of its own now takes the newest one any comment in its fold group has; a new word from them still reopens it, as a help desk does.
 - A client's Inbox has no thread view yet.
-- Refresh works for reach comments. Content comments show what the last post read kept.
 - autobrowse needs a desk deploy for focused reads. Until then a plain read still works.
 
 ## Tests

@@ -133,6 +133,21 @@ export const canSkip = (
   return now.getTime() - lastFull < (young ? sweep.fresh : sweep.slow);
 };
 
+/** The post of a comment on one of ours, as a read takes it; null: not one of ours. */
+export async function postOfComment(db: Queryable, id: number): Promise<RecentPost | null> {
+  const [c] = await db
+    .select({
+      platform: comments.platform,
+      post: comments.post,
+      title: comments.postTitle,
+      channel: comments.channel,
+    })
+    .from(comments)
+    .where(eq(comments.id, id));
+  if (!c || c.channel !== "content") return null;
+  return { platform: c.platform, id: c.post, url: null, title: c.title ?? "", publishedAt: "" };
+}
+
 export type KeptComment = Pick<Comment, "id" | "platform" | "author" | "post"> & {
   asked: boolean;
 };

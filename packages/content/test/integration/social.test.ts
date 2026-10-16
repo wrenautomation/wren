@@ -517,6 +517,20 @@ describe("SocialWatch", () => {
     ).rejects.toThrow(/Content.reply/);
   });
 
+  it("Refresh on a comment on our post reads that post again and keeps only what's new", async () => {
+    await published("linkedin", "li-p4", 1);
+    li.receive({ id: "li-c4", postId: "li-p4", author: "Ed", text: "First", at: iso(5000) });
+    await sync();
+    const [c] = await pg.db.select().from(comments).where(eq(comments.ref, "li-c4"));
+    li.receive({ id: "li-c5", postId: "li-p4", author: "Ed", text: "Then this", at: iso(1000) });
+    const desk = ingress().serviceClient<ReturnType<typeof makeSocialDesk>>({ name: "SocialDesk" });
+    expect(await desk.readPost({ id: c?.id as number })).toEqual({ read: true, kept: 1 });
+    expect(await desk.readPost({ id: c?.id as number })).toEqual({ read: true, kept: 0 });
+    const kept = await pg.db.select().from(comments).where(eq(comments.ref, "li-c5"));
+    expect(kept).toHaveLength(1);
+    expect(kept[0]).toMatchObject({ channel: "content", post: "li-p4" });
+  });
+
   // Last here: the hold outlives the test, on the loop's state.
   it("a used daily cap holds the platform's comment reads until it resets: no error", async () => {
     await published("youtube", "yt-p5", 0);

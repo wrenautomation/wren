@@ -334,12 +334,16 @@ function PostHead({ c }: { c: ThreadContext }) {
 /** When it was read, what the site held back, and Refresh. */
 function ReadLine({ c, act }: { c: ThreadContext; act: RecordAct }) {
   const [busy, setBusy] = useState(false);
-  const read = c.readAt ? when(c.readAt) : null;
+  // Our own post's read keeps no thread snapshot: a Refresh here says when it ran.
+  const [checked, setChecked] = useState<string | null>(null);
+  const at = c.readAt ?? checked;
+  const read = at ? when(at) : null;
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
     try {
       await act(THREAD_READ, {});
+      setChecked(new Date().toISOString());
     } catch (err) {
       say.failed(err);
     } finally {
@@ -351,10 +355,10 @@ function ReadLine({ c, act }: { c: ThreadContext; act: RecordAct }) {
       <span>
         {read ? (
           <>
-            Checked on the site <Time at={c.readAt} />
+            Checked on the site <Time at={at} />
           </>
         ) : (
-          "Not checked on the site yet. Showing what we saved."
+          "Showing what we saved from the site."
         )}
       </span>
       {c.more > 0 ? (

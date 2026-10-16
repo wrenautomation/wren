@@ -1201,6 +1201,10 @@ const INVITE_APPROVE = INVITE_IDS.extend({
     .nullish()
     .describe("His words for the note, one invite only; empty sends it bare"),
 });
+/** `SocialDesk/readPost` (@wren/content, which imports this package). */
+type PostReads = {
+  readPost: (ctx: restate.Context, req: { id: number }) => Promise<{ read: boolean }>;
+};
 const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
@@ -1665,7 +1669,9 @@ export function makeReachDesk(deps: ReachDeps) {
           const found = await ctx.run("thread", () =>
             terminal(() => threadFor(deps.db, req.id, now)),
           );
-          if (!found) return { read: false };
+          // A comment on our own post: SocialDesk reads that post's comments again.
+          if (!found)
+            return ctx.serviceClient<PostReads>({ name: "SocialDesk" }).readPost({ id: req.id });
           const got = { ...found, thread: asThread(found.thread) };
           const a = got.account;
           const ch = channelsFor(deps, ctx)(a);

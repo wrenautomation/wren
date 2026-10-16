@@ -346,7 +346,7 @@ export interface ThreadContext {
   readAt: string | null;
   /** Comments the site hid behind "load more" on that read. */
   more: number;
-  /** A refresh reads it again on the site. */
+  /** A refresh reads it again on the site: a reach thread, or our own post's comments. */
   refresh: boolean;
 }
 
@@ -437,7 +437,7 @@ export async function threadContextOf(
     focus: c.ref,
     readAt: iso(snap?.readAt),
     more: snap?.more ?? 0,
-    refresh: c.channel === "reach" && !!c.accountId,
+    refresh: (c.channel === "reach" && !!c.accountId) || c.channel === "content",
   };
 }
 

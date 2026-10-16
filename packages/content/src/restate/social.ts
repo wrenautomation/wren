@@ -77,6 +77,7 @@ import {
   markSeen,
   newestActivityAt,
   pingOf,
+  postOfComment,
   recentPosts,
 } from "../social/store.js";
 import { autoReplyReviews } from "./auto-reply.js";
@@ -558,6 +559,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
 export type SocialWatch = ReturnType<typeof makeSocialWatch>;
 
 const IDS = z.looseObject({ ids: z.array(z.number().int()).describe("Activity row ids") });
+const ONE_COMMENT = z.looseObject({ id: z.number().int().describe("A comment on our post") });
 const PLATFORM = z.looseObject({
   platform: z.enum(PLATFORMS as [Platform, ...Platform[]]).describe("linkedin"),
 });
@@ -578,6 +580,39 @@ export function makeSocialDesk(deps: { db: Db; zone: string }) {
         async (ctx: restate.Context): Promise<{ seen: number }> => ({
           seen: await ctx.run("seen", () => markSeen(deps.db, null)),
         }),
+      ),
+      /**
+       * Refresh on a comment on our own post: its post's comments read now and kept, as the
+       * watch's pass keeps them (a keyword's DM, the spine), on the same Content read.
+       */
+      readPost: serviceHandler(
+        { input: ONE_COMMENT },
+        async (
+          ctx: restate.Context,
+          req: { id: number },
+        ): Promise<{ read: boolean; kept: number }> => {
+          const post = await ctx.run("post", () => postOfComment(deps.db, req.id));
+          if (!post) return { read: false, kept: 0 };
+          const got = await ctx
+            .serviceClient<ContentReads>({ name: "Content" })
+            .comments({ platform: post.platform, id: post.id });
+          const kept = await ctx.run("keep", () => keepPostComments(deps.db, post, got ?? []));
+          if (kept.length) {
+            await catchKeywordDms(
+              ctx,
+              deps.db,
+              null,
+              kept.map((k) => k.id),
+            );
+            spineEmit(ctx, {
+              client: null,
+              workflow: COMMENTS_FLOW,
+              from: COMMENTS_FROM,
+              events: kept.map(commentEvent),
+            });
+          }
+          return { read: true, kept: kept.length };
+        },
       ),
       /** One follower count now, kept as today's (it replaces one read earlier today). */
       readAudience: serviceHandler(
