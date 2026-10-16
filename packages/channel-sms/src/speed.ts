@@ -18,6 +18,7 @@ import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { SPEED } from "./components.js";
 import { enroll } from "./enroll.js";
+import { FORM_WORKFLOW } from "./form.js";
 import { countryOf, toPhoneE164 } from "./phone.js";
 import type { SmsPolicy } from "./policy.js";
 import type { SmsProvider } from "./provider.js";
@@ -60,6 +61,13 @@ export interface SpeedTexts {
   /** Wake the sender, so a queued text leaves within seconds. The key makes a retry wake once. */
   nudge: (idempotencyKey: string) => Promise<void>;
 }
+
+/**
+ * A Wren lander application at the door (`form:site:applications:<id>`, the `site` preset).
+ * site.forms texts it (form.ts, `form-fit#1` or `form-not-fit#1`), so speed to lead doesn't:
+ * two flows would text the same person. Its run still goes on to the rep's call.
+ */
+const SITE_APPLICATION = /^form:site:applications:\d+$/;
 
 export interface FirstText {
   run: SpeedRun;
@@ -126,13 +134,15 @@ export async function firstText(
   const e164 = r.lead.phone ? toPhoneE164(r.lead.phone) : null;
   const before: [FirstTouch, string | null] = !r.lead.consent
     ? ["no_consent", "the form didn't say yes to texts"]
-    : !e164
-      ? ["no_phone", r.lead.phone ? `${r.lead.phone} isn't a US or Canadian number` : "no phone"]
-      : (await activeSuppressionOf(db, "phone", e164))
-        ? ["refused", "the phone opted out"]
-        : !t.live
-          ? ["would_send", t.why ?? "texts are off"]
-          : ["queued", null];
+    : SITE_APPLICATION.test(r.subject)
+      ? ["refused", `site applicants get their texts from ${FORM_WORKFLOW}`]
+      : !e164
+        ? ["no_phone", r.lead.phone ? `${r.lead.phone} isn't a US or Canadian number` : "no phone"]
+        : (await activeSuppressionOf(db, "phone", e164))
+          ? ["refused", "the phone opted out"]
+          : !t.live
+            ? ["would_send", t.why ?? "texts are off"]
+            : ["queued", null];
   const { run, made } = await runOf(db, r, before[0], before[1], now);
   // A retry, or a lead the door saw before: the first run stands.
   if (!made) {

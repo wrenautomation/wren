@@ -200,7 +200,8 @@ describe("the lander's door (site preset)", () => {
   const site = HOOK_PRESETS.site as NonNullable<(typeof HOOK_PRESETS)["site"]>;
   // What lander/functions/_shared/door.ts posts for a stored row. Synthetic.
   const ROW = {
-    id: "site:applications:41",
+    // A niche-form lead: an application's first text is site.forms' (below, firstText).
+    id: "site:leads:41",
     source: "site",
     form: "apply",
     name: "Eve Test",
@@ -229,9 +230,9 @@ describe("the lander's door (site preset)", () => {
 
   it("one row is one lead: mapped, attributed, and a retry enters nothing more", async () => {
     const post = await door();
-    expect(await post(ROW)).toMatchObject({ status: 202, subject: "form:site:applications:41" });
+    expect(await post(ROW)).toMatchObject({ status: 202, subject: "form:site:leads:41" });
     await until(async () => (await pg.db.select().from(smsMessages))[0]);
-    expect(await post(ROW)).toMatchObject({ status: 202, subject: "form:site:applications:41" });
+    expect(await post(ROW)).toMatchObject({ status: 202, subject: "form:site:leads:41" });
     await new Promise((r) => setTimeout(r, 1500));
 
     const ins = await entered();
@@ -283,6 +284,17 @@ describe("firstText", () => {
       niche: null,
       ...lead,
     },
+  });
+
+  it("a site application: no text, site.forms sends it", async () => {
+    const got = await firstText(pg.db, r({}, "form:site:applications:7"), texts(), new Date());
+    expect(got.contactId).toBeNull();
+    expect(got.run).toMatchObject({
+      firstTouch: "refused",
+      firstTouchDetail: "site applicants get their texts from site.forms",
+    });
+    expect(await pg.db.select().from(smsContacts)).toEqual([]);
+    expect(looked).toEqual([]);
   });
 
   it("no consent: no text, said why", async () => {
