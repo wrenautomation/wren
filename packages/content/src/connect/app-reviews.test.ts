@@ -103,7 +103,7 @@ describe("app reviews", () => {
   it("TikTok's screencast runs on the redirect's domain and shows each scope used", () => {
     const t = reviewOf("tiktok-app");
     if (!t) throw new Error("no tiktok-app");
-    expect(t.filed).toBeNull();
+    expect(t.filed).toMatch(/^2026-10-16: production review submitted/);
     expect(t.video[0]).toContain(`Sign in at ${PORTAL} `);
     expect(callbackOf("tiktok").startsWith(PORTAL)).toBe(true);
     const shots = t.video.join(" ");
