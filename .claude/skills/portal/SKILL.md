@@ -48,3 +48,7 @@ It shows "This page couldn't load." with Try again.
 ## Agents and automation
 
 Agents use `/api/agent` with a token from Account → AI tools, or the `wren` skill (`/agent/SKILL.md`). `/llms.txt` and `/robots.txt` explain the rules to outside agents.
+
+## Changing the look
+
+To change how a screen or a part looks, use the `wren-ui` skill (`.claude/skills/wren-ui/SKILL.md`).
