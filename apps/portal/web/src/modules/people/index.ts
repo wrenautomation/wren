@@ -9,6 +9,7 @@ import { broadcastsPage, recipientsPage } from "./broadcasts.js";
 import { PERSON_CARD } from "./cards.js";
 import { channelsPage } from "./channels.js";
 import { importPage } from "./import.js";
+import { LEAD_ACTIONS, withLeadCheck } from "./lead-check.js";
 import { findingsPage, inlineDecide, researchAction } from "./research.js";
 import { addToGroup, groupsPage, membersPage } from "./segments.js";
 import { sentPage } from "./sent.js";
@@ -28,6 +29,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
       warm: "Nobody has come toward us yet: no reply, visit, open or sign-up.",
       replied: "Nobody has written back yet.",
       booked: "Nobody has a call booked.",
+      leads: "Nobody is called a lead yet. Open a person and press Lead.",
       clients: "No clients here yet.",
       cold: "Everyone here is warm.",
       subscribed: "Nobody has signed up for anything yet.",
@@ -38,7 +40,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
     columns: ["name", "stage", "warmth", "warmthLine", "persona", "lastTouchAt"],
     // Research this person and its Keep and Drop are Wren's: the server describes them to Wren alone.
     actions: [addToGroup, researchAction, ...inlineDecide],
-    extras: (detail, at) => profileExtras(detail, at.act),
+    extras: (detail, at) => withLeadCheck(profileExtras(detail, at.act), detail, at.row.id),
   },
   {
     id: "timeline",
@@ -119,6 +121,14 @@ export const clientPeople: Module = {
 export const people: Module = {
   ...clientPeople,
   blurb: "Everyone Wren knows, by every address they use, with all they did and got.",
-  pages: [...PEOPLE_PAGES, findingsPage],
+  // The lead check is Wren's own: Jev's pick and William's call (a client's People has neither).
+  pages: [
+    ...PEOPLE_PAGES.map((p) =>
+      p.id === "people" && "actions" in p
+        ? { ...p, actions: [...(p.actions ?? []), ...LEAD_ACTIONS] }
+        : p,
+    ),
+    findingsPage,
+  ],
   requires: { audience: "team" },
 };
