@@ -174,7 +174,7 @@ export function redditPermalink(t: ProofTarget, thing?: RedditThing | null): str
 /**
  * LinkedIn's verdict once the public page did not show it: `loaded` it, `own` the author's read.
  * The signed-out page shows strangers a few top comments and no replies, so a comment missing
- * there proves nothing: the author's read decides (10-17, a reply under Don's comment alerted
+ * there proves nothing: the author's read decides (10-17, a reply under a lead's comment alerted
  * "hidden" while live).
  */
 export function linkedinVerdict(
