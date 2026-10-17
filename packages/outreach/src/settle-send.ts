@@ -1,13 +1,15 @@
 /**
  * A person settles an unsure send (designs/2026-10-16-maybe-sent.md): he saw it on the site, so it
  * is recorded as sent the way a send records it (the item's state, a touch, the draft record),
- * or he asks for it again. One function per item kind, keyed by the typed id.
+ * he asks for it again, or he drops it: it did not go out and he does not want it sent. One
+ * function per item kind, keyed by the typed id.
  */
 import type { Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
-import { commentById, markAnswered, privateReplied } from "./comments.js";
-import { markCommented } from "./discovery/threads.js";
-import { markPostCommented, planPostComment } from "./reach-posts.js";
+import { commentById, dropComment, markAnswered, privateReplied } from "./comments.js";
+import { setContactState } from "./contacts.js";
+import { markCommented, skipThread } from "./discovery/threads.js";
+import { markPostCommented, planPostComment, skipPost } from "./reach-posts.js";
 import { ReachRefusal } from "./refusal.js";
 import { reachAccounts, reachContacts, reachMessages } from "./schema.js";
 import { forgetUnsure, sendAttempt, settleSent } from "./send-attempts.js";
@@ -18,6 +20,10 @@ import {
   type TickOptions,
   type TickStats,
 } from "./tick.js";
+
+/** A person's word on an unsure send: he saw it, send it again, or it did not go out and stays out. */
+export const SETTLE_OUTCOMES = ["posted", "again", "dropped"] as const;
+export type SettleOutcome = (typeof SETTLE_OUTCOMES)[number];
 
 /**
  * The item kinds a send ledger row can name: `private` a DM from a comment on our own post,
@@ -127,4 +133,39 @@ export async function requeueDm(db: Queryable, id: number, now: Date): Promise<v
     .returning({ id: reachMessages.id });
   if (!m) throw new ReachRefusal("that message is no longer waiting");
   await forgetUnsure(db, `dm:${id}`);
+}
+
+/**
+ * "Not sent, drop": it did not go out and it stays out. The item closes the way a person's skip
+ * closes that kind, so no pass sends it again, and its ledger row goes.
+ *
+ * - `thread`: skipped (a rejected draft is kept). `onpost`: skipped. `comment`: dropped.
+ * - `private`: only the ledger row goes. The reply was a person's ask, and the comment it
+ *   answers stays as it was, so nothing sends it again.
+ * - `dm`: the message is skipped and the contact finished, as a skipped invite does.
+ * - `sdm` and `draft` close in their own desks (SocialInbox, ContentDesk).
+ */
+export async function dropItem(
+  db: Queryable,
+  item: string,
+  o: { by: string; now: Date },
+): Promise<void> {
+  await unsureItem(db, item);
+  const { kind, id } = itemOf(item);
+  const note = "dropped in To approve: it was not sent";
+  if (kind === "thread") await skipThread(db, id, { by: o.by, note });
+  else if (kind === "comment") await dropComment(db, Number(id), { by: o.by, note });
+  else if (kind === "onpost") await skipPost(db, [Number(id)], { by: o.by, note });
+  else if (kind === "dm") {
+    const [m] = await db
+      .update(reachMessages)
+      .set({ state: "skipped", stateReason: note })
+      .where(and(eq(reachMessages.id, Number(id)), eq(reachMessages.state, "unknown")))
+      .returning({ contactId: reachMessages.contactId });
+    if (!m) throw new ReachRefusal("that message is no longer waiting");
+    await setContactState(db, m.contactId, "finished", { reason: note, now: o.now });
+  } else if (kind === "sdm")
+    throw new ReachRefusal("a connected account's answer settles in its Inbox");
+  else if (kind === "draft") throw new ReachRefusal("a post of ours settles in ContentDesk");
+  await forgetUnsure(db, item);
 }

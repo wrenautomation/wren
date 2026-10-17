@@ -1,14 +1,14 @@
 /**
- * A send that lands at most once, on Restate (designs/2026-10-16-maybe-sent.md). The ledger claim
- * and settle are steps; the send and the look are the caller's journaled site calls, never inside
- * a step. Unsure ends the invocation terminally, so Restate neither retries nor pauses it.
+ * A send that lands at most once, on Restate (designs/2026-10-16-send-verdicts.md). The ledger
+ * claim and settle are steps; the send is the caller's journaled site call, never inside a step.
+ * The send runs under the ledger row's key, and autobrowse says whether it went out. Unsure ends
+ * the invocation terminally, so Restate neither retries nor pauses it.
  */
 import * as restate from "@restatedev/restate-sdk";
 import {
   type CommentRow,
   type Platform as ContentPlatform,
   SiteCallError,
-  type SiteClient,
 } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
 import { type Seen, sameWords, sendOnce, unclear } from "@wren/core/maybe-sent";
@@ -39,6 +39,22 @@ export class SendTaken extends restate.TerminalError {
 export const isSendTaken = (err: unknown): err is SendTaken => err instanceof SendTaken;
 
 /**
+ * Autobrowse said nothing went out (the browser was busy, the page never loaded, the read showed
+ * it absent). The ledger row is released, so the item sends again on its next pass under a new
+ * key. Terminal: this invocation does not send it again.
+ */
+export class SendNotSent extends restate.TerminalError {
+  readonly notSent = true;
+  constructor(
+    message: string,
+    readonly how: "before_submit" | "verified_absent",
+  ) {
+    super(message, { errorCode: 503 });
+  }
+}
+export const isSendNotSent = (err: unknown): err is SendNotSent => err instanceof SendNotSent;
+
+/**
  * A send's failure as its handler throws it: a refusal, or a journaled answer a retry would only
  * replay, is terminal; anything else is left for Restate to retry.
  */
@@ -51,17 +67,21 @@ export function sendError(err: unknown): unknown {
 }
 
 export interface AtMostOnce extends Omit<SendClaim, "invocation" | "now"> {
+  /** Runs under the ledger row's send key; a desk write inside it carries the key. */
   send: () => Promise<{ ref: string | null }>;
-  /** Our words on the site since `since` (ISO). Absent: no read here can tell. */
+  /**
+   * Our words on the site since `since` (ISO). Only for a send autobrowse does not serve (a
+   * client's connected account): a desk send has a verdict and reads nothing back.
+   */
   look?: ((since: string) => Promise<Seen>) | undefined;
-  /** Guards once our words are known not to be there (others of ours in the thread). */
+  /** Guards before a first send, not on a take-over (others of ours in the thread). */
   before?: () => Promise<void>;
 }
 
 export interface Landed {
   ref: string | null;
   at: string;
-  /** Read back on the site rather than answered by the send. */
+  /** Read back (autobrowse's verified read, or a look) rather than answered by the send. */
   found: boolean;
 }
 
@@ -87,16 +107,22 @@ export async function sendAtMostOnce(
   let out: Awaited<ReturnType<typeof sendOnce<{ ref: string | null }>>>;
   try {
     out = await sendOnce({
+      key: claimed.sendKey,
       send,
       look: look && (() => look(claimed.since)),
-      first: !!look,
       tried: claimed.tried,
+      ...(o.again ? { again: true } : {}),
       ...(before ? { before } : {}),
       settle: (ms) => ctx.sleep(ms),
     });
   } catch (err) {
+    // A refusal, or an error before any write answered: no attempt stands.
     await ctx.run("release send", () => releaseSend(db, o.item));
     throw err;
+  }
+  if (out.kind === "not_sent") {
+    await ctx.run("release send", () => releaseSend(db, o.item));
+    throw new SendNotSent(`Nothing went out: ${out.reason}`, out.how);
   }
   if (out.kind === "unsure") {
     const why = out.why;
@@ -185,41 +211,5 @@ export function contentLook(
     return hit
       ? { kind: "found", ref: hit.id, at: hit.at, url: hit.url ?? null }
       : unclear("our words are not in the post's comments as read");
-  };
-}
-
-/** autobrowse `instagram GET /web/p/{shortcode}/comments`, the parts a look reads. */
-interface IgPostComments {
-  url: string;
-  /** The signed-in account; null when the page did not show it. */
-  viewer: string | null;
-  comments: Array<{ id: string; text: string; at: string; mine: boolean }>;
-  /** Instagram holds comments the read did not reach (it ranks them). */
-  more: boolean;
-}
-
-/**
- * Our comment on someone else's Instagram post, read off the post page as the account that sent
- * it: found when one of its comments has our words; absent only when the whole list was read and
- * the page showed who we are; else unclear. A failed read is unclear (`sendOnce`).
- */
-export function igCommentLook(
-  sites: Pick<SiteClient, "call">,
-  q: { shortcode: string; text: string; account: string | null },
-): () => Promise<Seen> {
-  return async () => {
-    const r = await sites.call<Partial<IgPostComments> | null>(
-      "instagram",
-      "GET",
-      `/web/p/${encodeURIComponent(q.shortcode)}/comments`,
-      { shortcode: q.shortcode },
-      q.account ?? undefined,
-    );
-    const hit = (r?.comments ?? []).find((c) => c.mine && sameWords(c.text, q.text));
-    if (hit) return { kind: "found", ref: hit.id, at: hit.at || null, url: r?.url ?? null };
-    if (!r?.viewer) return unclear("the post page did not show which account is signed in");
-    if (r.more !== false)
-      return unclear("Instagram ranks comments and the read did not reach them all");
-    return { kind: "absent" };
   };
 }

@@ -85,7 +85,7 @@ export interface WithinOpts {
   unit?: string | null;
   /** Leave the call running past the limit (a write that may still land). Default: cancel it. */
   keep?: boolean;
-  /** Said after the error's text (a write's "may have gone through"). */
+  /** Said after the error's text (a note for the reader). */
   note?: string;
 }
 

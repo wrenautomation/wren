@@ -5,9 +5,9 @@ import { failsThePass } from "./loop.js";
 
 describe("CallTimeout", () => {
   it("is terminal, says the call and its limit, and carries the note", () => {
-    const e = new CallTimeout("Content/publish", 900_000, "may have gone through");
+    const e = new CallTimeout("Content/publish", 900_000, "note text");
     expect(e).toBeInstanceOf(restate.TerminalError);
-    expect(e.message).toBe("Content/publish gave no answer in 900 s; may have gone through");
+    expect(e.message).toBe("Content/publish gave no answer in 900 s; note text");
   });
 });
 

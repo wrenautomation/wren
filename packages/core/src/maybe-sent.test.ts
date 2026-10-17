@@ -1,7 +1,7 @@
-import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import { SiteCallError } from "./content/autobrowse.js";
 import { fakeContentChannel, type PublishedRow, previewOf } from "./content/index.js";
+import { isRefusal } from "./content/restate.js";
 import {
   findPost,
   POST_LOOK_ROWS,
@@ -10,146 +10,262 @@ import {
   seenIn,
   seenInMessages,
   seenPost,
-  sendFate,
   sendOnce,
 } from "./maybe-sent.js";
+import {
+  currentSendKey,
+  delivered,
+  NotSent,
+  rechecking,
+  SentFound,
+  unknownSend,
+} from "./send-verdict.js";
 
-const WENT =
-  'reddit POST /api/comment failed after spending a read: reddit@alt: "save the comment" already went through on an earlier try of this step; check it before running again';
-const maybe = () => new SiteCallError("reddit", "POST", "/api/comment", 502, WENT);
-const found: Seen = { kind: "found", ref: "t1_ours", at: "2026-10-16T12:00:00Z", url: null };
+const KEY = "comment:7 k1";
+const AT = "2026-10-16T12:00:00.000Z";
+const found: Seen = { kind: "found", ref: "t1_ours", at: AT, url: null };
 const noSettle = async () => {};
-
-describe("sendFate", () => {
-  it("reads autobrowse's words before the status", () => {
-    expect(sendFate(maybe())).toBe("maybe");
-    expect(sendFate(new SiteCallError("x", "POST", "/p", 500, "boom; may have gone through"))).toBe(
-      "maybe",
-    );
-    expect(sendFate(new SiteCallError("x", "POST", "/p", 422, "RATELIMIT"))).toBe("refused");
-    expect(sendFate(new SiteCallError("x", "POST", "/p", 429, "slow down"))).toBe("refused");
-    expect(sendFate(new SiteCallError("x", "POST", "/p", 408, "timeout"))).toBe("maybe");
-    expect(sendFate(new SiteCallError("x", "POST", "/p", 502, "not sent: no session"))).toBe(
-      "not_sent",
-    );
-    expect(sendFate(new restate.TerminalError(`x: ${WENT}`, { errorCode: 502 }))).toBe("maybe");
-    expect(sendFate(new restate.TerminalError("no account", { errorCode: 409 }))).toBe("refused");
-    expect(sendFate(new Error("reddit: not a username: x"))).toBe("not_sent");
-  });
-});
+const unknown = () => unknownSend("the list lags", AT);
+const sendOf = (fn: () => Promise<unknown>) => ({ key: KEY, send: fn, settle: noSettle });
 
 describe("sendOnce", () => {
-  it("unknown outcome, our words found: recorded once, no second send", async () => {
-    let sends = 0;
+  it("runs the send under its key, once", async () => {
+    const seenKeys: (string | null)[] = [];
     const r = await sendOnce({
+      key: KEY,
       send: async () => {
-        sends++;
-        throw maybe();
+        seenKeys.push(currentSendKey());
+        return "t1_new";
       },
-      look: async () => found,
       settle: noSettle,
     });
-    expect(r).toEqual({ kind: "found", seen: found });
+    expect(r).toEqual({ kind: "sent", sent: "t1_new" });
+    expect(seenKeys).toEqual([KEY]);
+  });
+
+  it("a verify read that found it is found, with its id, and no second send", async () => {
+    let sends = 0;
+    const r = await sendOnce(
+      sendOf(async () => {
+        sends++;
+        throw new SentFound("t1_ours", "https://site.test/t1_ours", AT);
+      }),
+    );
+    expect(r).toEqual({
+      kind: "found",
+      seen: { kind: "found", ref: "t1_ours", at: AT, url: "https://site.test/t1_ours" },
+    });
     expect(sends).toBe(1);
   });
 
-  it("unknown outcome, provably absent: one more send", async () => {
-    let sends = 0;
-    const settled: number[] = [];
-    const r = await sendOnce({
-      send: async () => {
-        sends++;
-        if (sends === 1) throw maybe();
-        return "t1_second";
-      },
-      look: async () => ({ kind: "absent" }),
-      settle: async (ms) => {
-        settled.push(ms);
-      },
-      settleMs: 5,
-    });
-    expect(r).toEqual({ kind: "sent", sent: "t1_second" });
-    expect(sends).toBe(2);
-    expect(settled).toEqual([5]);
+  it("not sent before submit, or provably absent: the item may go again", async () => {
+    for (const how of ["before_submit", "verified_absent"] as const) {
+      const r = await sendOnce(
+        sendOf(async () => {
+          throw new NotSent(how, "the profile was busy");
+        }),
+      );
+      expect(r).toEqual({ kind: "not_sent", how, reason: "the profile was busy" });
+    }
   });
 
-  it("absent twice: unsure after the second, never a third", async () => {
+  it("a platform refusal throws as a refusal with its status", async () => {
+    const err = await sendOnce(
+      sendOf(async () => {
+        throw new NotSent("refused", "RATELIMIT", 422);
+      }),
+    ).catch((e) => e);
+    expect(err).toBeInstanceOf(SiteCallError);
+    expect(err.status).toBe(422);
+    expect(isRefusal(err)).toBe(true);
+  });
+
+  it("unknown with no read: unsure, never a second send", async () => {
     let sends = 0;
-    const r = await sendOnce({
-      send: async () => {
+    const r = await sendOnce(
+      sendOf(async () => {
         sends++;
-        throw maybe();
+        throw unknown();
+      }),
+    );
+    expect(r).toEqual({ kind: "unsure", why: "the list lags" });
+    expect(sends).toBe(1);
+  });
+
+  it("an error after a write answered is unsure, not thrown", async () => {
+    const r = await sendOnce(
+      sendOf(async () => {
+        delivered({ kind: "sent", out: 1 });
+        throw new Error("the database dropped");
+      }),
+    );
+    expect(r.kind).toBe("unsure");
+    expect(r.kind === "unsure" && r.why).toContain("the database dropped");
+  });
+
+  it("an error with no write throws as it came", async () => {
+    const boom = new Error("no account");
+    await expect(
+      sendOnce(
+        sendOf(async () => {
+          throw boom;
+        }),
+      ),
+    ).rejects.toBe(boom);
+  });
+
+  it("a take-over rechecks an unknown answer under the same key", async () => {
+    const calls: { key: string | null; recheck: boolean }[] = [];
+    await sendOnce({
+      key: KEY,
+      tried: true,
+      send: async () => {
+        calls.push({ key: currentSendKey(), recheck: rechecking() });
+        return "x";
       },
-      look: async () => ({ kind: "absent" }),
       settle: noSettle,
     });
-    expect(r.kind).toBe("unsure");
-    expect(sends).toBe(2);
+    expect(calls).toEqual([{ key: KEY, recheck: true }]);
   });
 
-  it("unreadable: unsure, no second send", async () => {
-    let sends = 0;
-    for (const look of [
-      async (): Promise<Seen> => ({ kind: "unclear", why: "no read" }),
-      async (): Promise<Seen> => {
-        throw new Error("read failed");
-      },
-      undefined,
-    ]) {
+  it("guards run before a first send, not on a take-over", async () => {
+    let guards = 0;
+    const before = async () => {
+      guards++;
+    };
+    await sendOnce({ ...sendOf(async () => 1), before });
+    await sendOnce({ ...sendOf(async () => 1), before, tried: true });
+    expect(guards).toBe(1);
+  });
+
+  describe("a site autobrowse does not serve (it keeps a look)", () => {
+    it("unknown, our words found: found", async () => {
+      const settled: number[] = [];
       const r = await sendOnce({
+        key: KEY,
         send: async () => {
-          sends++;
-          throw maybe();
+          throw unknown();
         },
-        look,
+        look: async () => found,
+        settle: async (ms) => {
+          settled.push(ms);
+        },
+        settleMs: 5,
+      });
+      expect(r).toEqual({ kind: "found", seen: found });
+      expect(settled).toEqual([5]);
+    });
+
+    it("unknown, absent or unclear: unsure for a person, never a second send", async () => {
+      for (const look of [
+        async (): Promise<Seen> => ({ kind: "absent" }),
+        async (): Promise<Seen> => ({ kind: "unclear", why: "no read" }),
+        async (): Promise<Seen> => {
+          throw new Error("read failed");
+        },
+      ]) {
+        let sends = 0;
+        const r = await sendOnce({
+          key: KEY,
+          send: async () => {
+            sends++;
+            throw unknown();
+          },
+          look,
+          settle: noSettle,
+        });
+        expect(r.kind).toBe("unsure");
+        expect(sends).toBe(1);
+      }
+    });
+
+    it("a plain failure with no write: the read decides", async () => {
+      const lost = new SiteCallError("x", "POST", "/p", 502, "bad gateway");
+      const send = async () => {
+        throw lost;
+      };
+      expect(await sendOnce({ key: KEY, send, look: async () => found, settle: noSettle })).toEqual(
+        { kind: "found", seen: found },
+      );
+      const unclear = await sendOnce({
+        key: KEY,
+        send,
+        look: async () => ({ kind: "unclear", why: "no read" }),
         settle: noSettle,
       });
-      expect(r.kind).toBe("unsure");
-    }
-    expect(sends).toBe(3);
-  });
+      expect(unclear.kind).toBe("unsure");
+      // Provably absent: the failure stands as it came.
+      await expect(
+        sendOnce({ key: KEY, send, look: async () => ({ kind: "absent" }), settle: noSettle }),
+      ).rejects.toBe(lost);
+    });
 
-  it("looks first: our words already there send nothing", async () => {
-    let sends = 0;
-    const r = await sendOnce({
-      send: async () => {
+    it("the platform's own no is thrown unlooked", async () => {
+      let looks = 0;
+      const no = new SiteCallError("reddit", "POST", "/api/comment", 403, "banned");
+      await expect(
+        sendOnce({
+          key: KEY,
+          send: () => Promise.reject(no),
+          look: async () => {
+            looks++;
+            return found;
+          },
+          settle: noSettle,
+        }),
+      ).rejects.toBe(no);
+      expect(looks).toBe(0);
+    });
+
+    it("a take-over reads first: our words there send nothing; a blind read sends nothing", async () => {
+      let sends = 0;
+      const send = async () => {
         sends++;
         return "x";
-      },
-      look: async () => found,
-      first: true,
-      settle: noSettle,
+      };
+      const there = await sendOnce({
+        key: KEY,
+        send,
+        look: async () => found,
+        tried: true,
+        settle: noSettle,
+      });
+      expect(there.kind).toBe("found");
+      const blind = await sendOnce({
+        key: KEY,
+        send,
+        look: async () => ({ kind: "unclear", why: "no read" }),
+        tried: true,
+        settle: noSettle,
+      });
+      expect(blind.kind).toBe("unsure");
+      expect(sends).toBe(0);
     });
-    expect(r.kind).toBe("found");
-    expect(sends).toBe(0);
-  });
 
-  it("an earlier try and a blind first look: unsure, nothing sent", async () => {
-    let sends = 0;
-    const r = await sendOnce({
-      send: async () => {
+    it("send again reads first: found sends nothing; a blind read does not stop a person", async () => {
+      let sends = 0;
+      const send = async () => {
         sends++;
         return "x";
-      },
-      look: async () => ({ kind: "unclear", why: "no read" }),
-      tried: true,
-      settle: noSettle,
+      };
+      const there = await sendOnce({
+        key: KEY,
+        send,
+        look: async () => found,
+        again: true,
+        settle: noSettle,
+      });
+      expect(there.kind).toBe("found");
+      expect(sends).toBe(0);
+      for (const look of [
+        async (): Promise<Seen> => ({ kind: "unclear", why: "no read" }),
+        async (): Promise<Seen> => ({ kind: "absent" }),
+      ]) {
+        const again = await sendOnce({ key: KEY, send, look, again: true, settle: noSettle });
+        expect(again).toEqual({ kind: "sent", sent: "x" });
+      }
+      expect(sends).toBe(2);
     });
-    expect(r.kind).toBe("unsure");
-    expect(sends).toBe(0);
-  });
-
-  it("a refusal or a never-sent failure throws as it came, unlooked", async () => {
-    let looks = 0;
-    const look = async (): Promise<Seen> => {
-      looks++;
-      return found;
-    };
-    const refused = new SiteCallError("reddit", "POST", "/api/comment", 403, "banned");
-    await expect(
-      sendOnce({ send: () => Promise.reject(refused), look, settle: noSettle }),
-    ).rejects.toBe(refused);
-    expect(looks).toBe(0);
   });
 });
 
@@ -164,7 +280,9 @@ describe("sameWords", () => {
   });
 
   it("reads a listing's preview, cut with an ellipsis, as our words", () => {
-    const long = "A post about the spend gate that runs well past the cut a listing makes. ".repeat(3);
+    const long = "A post about the spend gate that runs well past the cut a listing makes. ".repeat(
+      3,
+    );
     expect(sameWords(previewOf(long), long)).toBe(true);
     expect(sameWords("wait for it...", "wait for it...")).toBe(true);
   });
@@ -183,7 +301,10 @@ describe("seenPost", () => {
   it("finds our post since the send by its words, or its title, or the draft's own text", () => {
     const ours = row("v1", "2026-10-16T12:00:40.000Z", "Cold traffic to warm traffic");
     // The text as sent carries the funnel link; the site shows the draft's words.
-    const words = ["Cold traffic to warm traffic\n\nhttps://go.test/tt", "Cold traffic to warm traffic"];
+    const words = [
+      "Cold traffic to warm traffic\n\nhttps://go.test/tt",
+      "Cold traffic to warm traffic",
+    ];
     expect(seenPost([ours, older], { words, since })).toEqual({
       kind: "found",
       ref: "v1",
@@ -208,9 +329,9 @@ describe("seenPost", () => {
   });
 
   it("a site that lists a fresh post late never proves it absent", () => {
-    expect(
-      seenPost([older], { words: ["ours"], since, late: "it lists new videos late" }),
-    ).toEqual({ kind: "unclear", why: "it lists new videos late" });
+    expect(seenPost([older], { words: ["ours"], since, late: "it lists new videos late" })).toEqual(
+      { kind: "unclear", why: "it lists new videos late" },
+    );
   });
 
   it("no words to look for is unclear", () => {

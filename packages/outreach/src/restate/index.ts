@@ -27,28 +27,37 @@ import { type Platform as ContentPlatform, capWaitMs, type SiteClient } from "@w
 import { isRefusal } from "@wren/core/content/restate";
 import type { Scorecard } from "@wren/core/draft-models";
 import { rejectWhy } from "@wren/core/draft-record";
-import type { Seen } from "@wren/core/maybe-sent";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
 import type { OurPost } from "@wren/core/our-posts";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
+import { sendAcross } from "@wren/core/send-verdict";
 import { gate } from "@wren/core/vendors";
 
 /** The `Content` service's reply handler as the worker serves it. */
 type ContentReply = {
   reply: (
     ctx: restate.Context,
-    req: { platform: ContentPlatform; commentId: string; postId?: string | null; text: string },
-  ) => Promise<void>;
+    req: {
+      platform: ContentPlatform;
+      commentId: string;
+      postId?: string | null;
+      text: string;
+      sendKey?: string;
+      recheck?: boolean;
+    },
+  ) => Promise<unknown>;
   privateReply: (
     ctx: restate.Context,
-    req: { platform: ContentPlatform; commentId: string; text: string },
-  ) => Promise<{ ref: string | null }>;
-  findPrivateReply: (
-    ctx: restate.Context,
-    req: { platform: ContentPlatform; commentId: string; to: string; text: string; since: string },
-  ) => Promise<Seen>;
+    req: {
+      platform: ContentPlatform;
+      commentId: string;
+      text: string;
+      sendKey?: string;
+      recheck?: boolean;
+    },
+  ) => Promise<unknown>;
   arm: (
     ctx: restate.Context,
     req: { platform: ContentPlatform; commentId: string; postId?: string | null; text: string },
@@ -207,6 +216,7 @@ import {
   schedulePosts,
   scheduleThreads,
   sendFailed,
+  sendHeld,
   stillDue,
   unschedule,
 } from "../scheduled.js";
@@ -225,7 +235,15 @@ import {
   reachContacts,
 } from "../schema.js";
 import { type ReachSequence, slotsOf } from "../sequences.js";
-import { itemOf, markPosted, requeueDm, unsureItem } from "../settle-send.js";
+import {
+  dropItem,
+  itemOf,
+  markPosted,
+  requeueDm,
+  SETTLE_OUTCOMES,
+  type SettleOutcome,
+  unsureItem,
+} from "../settle-send.js";
 import { listTemplates, type SetTemplate, type SlotView, setTemplate } from "../store.js";
 import {
   getThread,
@@ -239,13 +257,7 @@ import {
 } from "../threads.js";
 import { nextDue, type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
-import {
-  contentLook,
-  igCommentLook,
-  isSendUnsure,
-  sendAtMostOnce,
-  sendError,
-} from "./maybe-sent.js";
+import { isSendNotSent, isSendUnsure, sendAtMostOnce, sendError } from "./maybe-sent.js";
 import { pasteHandlers } from "./paste.js";
 import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
@@ -476,7 +488,6 @@ async function senderPass(
         linkSource: scope.client ?? "wren",
         now,
         runId,
-        settle: (ms) => ctx.sleep(ms),
       },
       (name, fn) => ctx.run(name, fn),
     );
@@ -1231,8 +1242,10 @@ const SETTLE_SEND = z.looseObject({
     .max(80)
     .describe("The send's typed id: thread:, comment:, onpost:, dm:, private:"),
   outcome: z
-    .enum(["posted", "again"])
-    .describe("posted: he saw it on the site; again: send it once more"),
+    .enum(SETTLE_OUTCOMES)
+    .describe(
+      "posted: he saw it on the site; again: send it once more; dropped: it did not go out and stays out",
+    ),
 });
 /** ReachDesk's own sends, called again on a person's Send again. */
 type DeskSends = {
@@ -1250,8 +1263,8 @@ type DeskSends = {
 export type PostSettle = {
   settlePost: (
     ctx: restate.ObjectContext,
-    req: { id: string; outcome: "posted" | "again"; by: string },
-  ) => Promise<{ id: string; outcome: "posted" | "again"; found: boolean }>;
+    req: { id: string; outcome: SettleOutcome; by: string },
+  ) => Promise<{ id: string; outcome: SettleOutcome; found: boolean }>;
 };
 const THREAD_REPLY = COMMENT.extend({
   ref: z.string().min(1).max(200).describe("The platform id of the comment to reply to"),
@@ -1362,21 +1375,18 @@ export function makeReachDesk(deps: ReachDeps) {
         target,
         url: plan.comment.url,
         again,
-        look: contentLook(ctx, {
-          platform,
-          post: plan.comment.post,
-          parent: target,
-          to: plan.comment.author,
-          text,
-        }),
         send: async () => {
-          await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
-            platform,
-            commentId: target,
-            // LinkedIn names a member comment by its post and its bare id.
-            postId: plan.comment.post,
-            text,
-          });
+          // The key crosses to `Content`, which runs the write under it and answers a Delivery.
+          await sendAcross((k) =>
+            ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
+              platform,
+              commentId: target,
+              // LinkedIn names a member comment by its post and its bare id.
+              postId: plan.comment.post,
+              text,
+              ...k,
+            }),
+          );
           return { ref: null };
         },
       }).catch(failed);
@@ -1387,7 +1397,6 @@ export function makeReachDesk(deps: ReachDeps) {
     const ch = channelsFor(deps, ctx)(plan.account);
     const comment = ch?.comment;
     if (!ch || !comment) throw new restate.TerminalError("this site can't answer comments");
-    const findSent = ch.findSent;
     const to = plan.comment.ref;
     const sent = await sendAtMostOnce(ctx, deps.db, {
       item,
@@ -1397,7 +1406,6 @@ export function makeReachDesk(deps: ReachDeps) {
       target: to,
       url: plan.comment.url,
       again,
-      look: findSent && ((since) => findSent({ kind: "comment", to, text: words, since })),
       before: async () => {
         const authors = (await ch.threadAuthors?.(plan.comment.post)) ?? [];
         await terminal(async () => checkThread(authors, plan.others));
@@ -1780,10 +1788,8 @@ export function makeReachDesk(deps: ReachDeps) {
           const c = await ctx.run("comment", () => terminal(() => commentById(deps.db, req.id)));
           if (!c.accountId) {
             await ctx.run("plan", () => terminal(() => planPrivateReply(deps.db, req.id, now)));
-            // At most once (designs/2026-10-16-maybe-sent.md): a lost outcome is looked for in
-            // the Page's inbox, in the author's conversation; unsure when that read can't tell.
-            const content = () => ctx.serviceClient<ContentReply>({ name: "Content" });
-            const to = c.author;
+            // At most once (designs/2026-10-16-send-verdicts.md): the private reply runs under
+            // the ledger row's key; autobrowse says whether it went out.
             const sent = await sendAtMostOnce(ctx, deps.db, {
               item: `private:${c.id}`,
               platform: c.platform,
@@ -1792,18 +1798,12 @@ export function makeReachDesk(deps: ReachDeps) {
               target: c.ref,
               url: c.url,
               again: req.again === true,
-              look: to
-                ? (since) =>
-                    content().findPrivateReply({
-                      platform: c.platform,
-                      commentId: c.ref,
-                      to,
-                      text: body,
-                      since,
-                    })
-                : undefined,
               send: () =>
-                content().privateReply({ platform: c.platform, commentId: c.ref, text: body }),
+                sendAcross<{ ref: string | null }>((k) =>
+                  ctx
+                    .serviceClient<ContentReply>({ name: "Content" })
+                    .privateReply({ platform: c.platform, commentId: c.ref, text: body, ...k }),
+                ),
             }).catch(failed);
             return ctx.run("sent", () =>
               privateReplied(deps.db, c, { body, ref: sent.ref, now, by: byOf(req) }),
@@ -1949,9 +1949,9 @@ export function makeReachDesk(deps: ReachDeps) {
             if (acts.comment && !account)
               throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
             const viaSite = acts.comment;
-            // At most once (designs/2026-10-16-maybe-sent.md). Instagram's comment goes through
-            // the site, read back off the post page as the same account; LinkedIn and X through
-            // `Content.reply`, X's read back by a search of our own posts.
+            // At most once (designs/2026-10-16-send-verdicts.md). Instagram's comment goes
+            // through the site, LinkedIn and X through `Content.reply`; both run under the
+            // ledger row's key, and autobrowse says whether it went out.
             await sendAtMostOnce(ctx, deps.db, {
               item,
               platform: post.platform,
@@ -1960,31 +1960,30 @@ export function makeReachDesk(deps: ReachDeps) {
               target: post.ref,
               url: post.url,
               again: req.again === true,
-              look: viaSite
-                ? post.platform === "instagram"
-                  ? igCommentLook(sites, { shortcode: post.ref, text: body, account })
-                  : undefined
-                : contentLook(ctx, {
-                    platform: post.platform,
-                    post: post.ref,
-                    parent: null,
-                    to: post.handle,
-                    text: body,
-                  }),
               send: async () => {
                 if (viaSite) {
                   const [site, method, path, input] = viaSite;
                   await sites.call(site, method, path, input, account ?? undefined);
                 } else
-                  await ctx
-                    .serviceClient<ContentReply>({ name: "Content" })
-                    .reply({ platform: post.platform, commentId: post.ref, text: body });
+                  await sendAcross((k) =>
+                    ctx
+                      .serviceClient<ContentReply>({ name: "Content" })
+                      .reply({ platform: post.platform, commentId: post.ref, text: body, ...k }),
+                  );
                 return { ref: null };
               },
             });
           } catch (thrown) {
             if (isSendUnsure(thrown)) {
               if (at) await ctx.run("hold", () => unschedule(deps.db, { posts: [post.id] }));
+              throw thrown;
+            }
+            // Nothing went out: the slot leaves the schedule and the next pass sends it anew.
+            if (isSendNotSent(thrown)) {
+              if (at)
+                await ctx.run("hold", () =>
+                  sendHeld(deps.db, "post", String(req.id), thrown.message),
+                );
               throw thrown;
             }
             const err = sendError(thrown);
@@ -2016,17 +2015,17 @@ export function makeReachDesk(deps: ReachDeps) {
         },
       ),
       /**
-       * Settle a send that may have gone through and no read could tell (it waits in To approve):
-       * `posted` records it as sent; `again` sends it once more through its own handler, which
-       * reads the site first. Wren's own sends only. A post of ours on our own channel (`draft:`)
-       * settles in `ContentDesk/default/settlePost`, which reads our listing first.
+       * Settle a send that may have gone out and autobrowse could not tell (it waits in To
+       * approve): `posted` records it as sent; `again` sends it once more through its own
+       * handler, under a new key; `dropped` closes the item unsent. Wren's own sends only. A
+       * post of ours on our own channel (`draft:`) settles in `ContentDesk/default/settlePost`.
        */
       settleSend: serviceHandler(
         { input: SETTLE_SEND, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { item: string; outcome: "posted" | "again"; viewer?: unknown },
-        ): Promise<{ item: string; outcome: "posted" | "again" }> => {
+          req: { item: string; outcome: SettleOutcome; viewer?: unknown },
+        ): Promise<{ item: string; outcome: SettleOutcome }> => {
           const now = await nowOf(ctx);
           const { kind, id, words } = await ctx.run("item", () =>
             terminal(async () => {
@@ -2042,6 +2041,12 @@ export function makeReachDesk(deps: ReachDeps) {
               .objectClient<PostSettle>({ name: "ContentDesk" }, "default")
               .settlePost({ id, outcome: req.outcome, by: byOf(req) });
             return { item: req.item, outcome: req.outcome };
+          }
+          if (req.outcome === "dropped") {
+            await ctx.run("dropped", () =>
+              terminal(() => dropItem(deps.db, req.item, { by: byOf(req), now })),
+            );
+            return { item: req.item, outcome: "dropped" };
           }
           if (req.outcome === "posted") {
             const stats = await ctx.run("posted", () =>
@@ -2439,8 +2444,10 @@ export {
 } from "./discovery.js";
 export {
   contentLook,
+  isSendNotSent,
   isSendTaken,
   isSendUnsure,
+  SendNotSent,
   SendTaken,
   SendUnsure,
   sendAtMostOnce,

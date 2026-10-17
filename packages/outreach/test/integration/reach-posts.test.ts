@@ -90,19 +90,22 @@ const sites: SiteClient = {
   },
   via: async () => "browser",
 };
-const replies: { platform: string; commentId: string; text: string }[] = [];
+const replies: {
+  platform: string;
+  commentId: string;
+  text: string;
+  sendKey?: string;
+  recheck?: boolean;
+}[] = [];
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
     reply: async (
       _ctx: restate.Context,
-      req: { platform: string; commentId: string; text: string },
+      req: { platform: string; commentId: string; text: string; sendKey?: string },
     ) => {
       replies.push(req);
     },
-    // The look before a send (designs/2026-10-16-maybe-sent.md): none of ours there yet.
-    comments: async () => [],
-    findReply: async () => ({ kind: "absent" }),
   },
 });
 /** The comment the fake model writes next; `invent` makes it make things up. */
@@ -650,8 +653,15 @@ describe("his Comment", () => {
     expect(replies).toEqual([]);
 
     await desk().commentPost({ id: p.id, body: "His edited words." });
+    // The send runs under the ledger row's key (autobrowse answers whether it went out).
     expect(replies).toEqual([
-      { platform: "linkedin", commentId: post(1).ref, text: "His edited words." },
+      {
+        platform: "linkedin",
+        commentId: post(1).ref,
+        text: "His edited words.",
+        sendKey: expect.stringMatching(/^onpost:\d+ /),
+        recheck: false,
+      },
     ]);
     const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, p.id));
     expect(after).toMatchObject({ state: "commented", comment: "His edited words." });
@@ -834,7 +844,15 @@ describe("his Comment, with a like and a follow", () => {
     await settings({ account: "x@wren", follow: true }, "x");
     const p = await queuedOn("x", "555", "founderone");
     await desk().commentPost({ id: p.id });
-    expect(replies).toEqual([{ platform: "x", commentId: "555", text: "Draft words." }]);
+    expect(replies).toEqual([
+      {
+        platform: "x",
+        commentId: "555",
+        text: "Draft words.",
+        sendKey: expect.stringMatching(/^onpost:\d+ /),
+        recheck: false,
+      },
+    ]);
     expect(calls.map((c) => [c.method, c.path, c.input, c.account])).toEqual([
       ["POST", "/2/users/me/likes", { id: "555" }, "x@wren"],
       ["POST", "/2/users/me/following", { username: "founderone" }, "x@wren"],
@@ -864,16 +882,10 @@ describe("his Comment, with a like and a follow", () => {
     routes["/web/p/AAA111/like"] = () => {
       throw new SiteCallError("instagram", "POST", "/web/p/AAA111/like", 429, "like: cap");
     };
-    // The look first reads the post's comments as the same account: the whole list, none ours.
-    routes["/web/p/AAA111/comments"] = (i) =>
-      i.text
-        ? {}
-        : { url: "https://example.test/p", viewer: "our_acct", more: false, comments: [] };
     const p = await queuedOn("instagram", "AAA111", "founder.one");
     await desk().commentPost({ id: p.id, body: "His words." });
     expect(replies).toEqual([]);
     expect(calls.map((c) => [c.method, c.path, c.input, c.account])).toEqual([
-      ["GET", "/web/p/AAA111/comments", { shortcode: "AAA111" }, "instagram@wren"],
       [
         "POST",
         "/web/p/AAA111/comments",

@@ -1,18 +1,20 @@
 /**
- * A send whose outcome is unknown (designs/2026-10-16-maybe-sent.md). A write that failed after
- * it may have reached the site ("may have gone through", "already went through") is never sent
- * again blind: we look on the site for our own words first. Found: it went out, record it with
- * its real ref. Provably absent after a short settle: safe to send once more. Can't tell: unsure,
- * parked for a person, never resent by itself.
+ * A send on the ledger, typed (designs/2026-10-16-send-verdicts.md). A desk write carries the
+ * ledger row's send key and autobrowse answers whether it went out: `sent`, `not_sent` or
+ * `unknown`. `sendOnce` runs the send under that key and maps the answer. Wren reads no
+ * words, and a take-over runs the same key again, so the desk answers its stored verdict and
+ * writes nothing.
+ *
+ * A send that does not go through autobrowse (a client's connected account, on the platform's
+ * own API) has no verdict. It keeps `look`: our words read back from the site. After an
+ * unknown answer, or a failure that is not the platform's no, the look turns it into `found`;
+ * unclear stays `unknown`, for a person.
  *
  * `look` and `send` may hold journaled site calls, so `sendOnce` never wraps them in a step.
  */
-import * as restate from "@restatedev/restate-sdk";
-import { browserBusy, mayHavePosted, NOT_SENT, SiteCallError } from "./content/autobrowse.js";
+import { SiteCallError } from "./content/autobrowse.js";
 import type { ContentChannel, Media, PublishedRow } from "./content/index.js";
-import { isRefusal } from "./content/restate.js";
-import { CallTimeout } from "./restate/limits.js";
-import { isVendorStop } from "./vendor-stop.js";
+import { NotSent, type SendTrace, SendUnknown, SentFound, withSendKey } from "./send-verdict.js";
 
 /** What a read of the site says about our words. */
 export type Seen =
@@ -23,53 +25,44 @@ export type Seen =
 
 export const unclear = (why: string): Seen => ({ kind: "unclear", why });
 
-/** What a failed send says about itself. */
-export type SendFate = "refused" | "not_sent" | "maybe";
-
 const said = (err: unknown) => (err instanceof Error ? err.message : String(err));
-
-/**
- * A refusal (the site said no), nothing sent (it never left), or maybe (it may be live). Words
- * that say it may be live win over a status: autobrowse's 502 "already went through" is a maybe.
- */
-export function sendFate(err: unknown): SendFate {
-  const text = said(err);
-  if (mayHavePosted(text)) return "maybe";
-  if (isRefusal(err) || isVendorStop(err)) return "refused";
-  if (text.includes(NOT_SENT) || browserBusy(err)) return "not_sent";
-  // A refusal answered through another service (`Content.reply`): its words carry any maybe.
-  if (err instanceof restate.TerminalError) return "refused";
-  // A 4xx the site answered (a rate limit too) left nothing; a timeout may have.
-  if (err instanceof SiteCallError && err.status >= 400 && err.status < 500 && err.status !== 408)
-    return "refused";
-  // A site call that failed past its words: it may have left.
-  if (err instanceof SiteCallError) return "maybe";
-  // Our own code threw before any call went out.
-  return "not_sent";
-}
 
 /** How long a site takes to show what was just sent before a read can prove it is absent. */
 export const SETTLE_MS = 30_000;
 
-/** What `sendOnce` ended with. */
+/** What `sendOnce` ended with. A platform's refusal is thrown (`refusalOf`), not returned. */
 export type SendOutcome<S> =
   | { kind: "sent"; sent: S }
   | { kind: "found"; seen: Extract<Seen, { kind: "found" }> }
+  /** Nothing went out, and the item may be sent again (under a new key). */
+  | { kind: "not_sent"; how: "before_submit" | "verified_absent"; reason: string }
   | { kind: "unsure"; why: string };
 
 export interface SendOnce<S> {
+  /** The ledger row's send key: the send runs under it. */
+  key: string;
   send: () => Promise<S>;
-  /** Our words on the site; absent when the site has no read that can find them. */
-  look?: (() => Promise<Seen>) | undefined;
-  /** Look before the first send: a resend after a crash, or a person's Send again. */
-  first?: boolean;
-  /** An earlier try may have left: a first look that can't tell sends nothing. */
+  /** A take-over: an earlier try may have left. Its key answers its stored verdict; `unknown` is asked again. */
   tried?: boolean;
-  /** Guards that run once our words are known not to be there, before the first send. */
+  /**
+   * A person said send again on an unsure item. A look reads first: if our words are there it
+   * is found, not sent twice. A read that cannot tell does not stop him: he has decided.
+   */
+  again?: boolean;
+  /** Guards that run before a first send (not on a take-over: our own earlier send is there). */
   before?: () => Promise<void>;
-  settle: (ms: number) => Promise<void>;
+  /** Our words on a site autobrowse does not serve; absent for every desk send. */
+  look?: (() => Promise<Seen>) | undefined;
+  settle?: (ms: number) => Promise<void>;
   settleMs?: number;
 }
+
+/** The platform said no to the write: the error `isRefusal` reads, with its status. */
+export const refusalOf = (err: NotSent): SiteCallError => {
+  const e = new SiteCallError("send", "POST", "write", err.status ?? 400, err.reason);
+  e.journaled = true;
+  return e;
+};
 
 async function seen(look: SendOnce<unknown>["look"]): Promise<Seen> {
   if (!look) return unclear("nothing on this site can read it back");
@@ -81,35 +74,71 @@ async function seen(look: SendOnce<unknown>["look"]): Promise<Seen> {
 }
 
 /**
- * Send at most twice, never blind. A refusal or a never-sent failure is thrown as it came; a
- * maybe is looked for after `settleMs`, then recorded, sent once more, or answered unsure.
+ * Send once, under its key, and say what became of it. A refusal is thrown as it came. An
+ * error after a keyed write answered is `unsure`, never thrown: the item must not be sent
+ * again by a caller that releases on a throw. Any other error is thrown (nothing left).
  */
 export async function sendOnce<S>(o: SendOnce<S>): Promise<SendOutcome<S>> {
-  if (o.first || o.tried) {
+  const found = (s: Extract<Seen, { kind: "found" }>): SendOutcome<S> => ({
+    kind: "found",
+    seen: s,
+  });
+  if ((o.tried || o.again) && o.look) {
+    // No key can answer for this send: read our words before a second try.
     const s = await seen(o.look);
-    if (s.kind === "found") return { kind: "found", seen: s };
-    if (s.kind === "unclear" && o.tried)
-      return { kind: "unsure", why: `an earlier try may have gone through; ${s.why}` };
+    if (s.kind === "found") return found(s);
+    if (s.kind === "unclear" && !o.again)
+      return { kind: "unsure", why: `an earlier try may have gone out; ${s.why}` };
   }
-  await o.before?.();
-  for (let tries = 1; ; tries++) {
-    try {
-      return { kind: "sent", sent: await o.send() };
-    } catch (err) {
-      if (sendFate(err) !== "maybe") throw err;
-      await o.settle(o.settleMs ?? SETTLE_MS);
-      const s = await seen(o.look);
-      if (s.kind === "found") return { kind: "found", seen: s };
-      const why = said(err).slice(0, 300);
-      if (s.kind === "unclear") return { kind: "unsure", why: `${why}; ${s.why}` };
-      // Past its time limit the call runs on (`within` keeps a write): a second would be twice.
-      if (err instanceof CallTimeout)
-        return { kind: "unsure", why: `${why}; still running, never sent twice` };
-      // Absent after the settle: it never landed. Once more, and only once.
-      if (tries >= 2) return { kind: "unsure", why: `${why}; not on the site after two tries` };
+  if (!o.tried) await o.before?.();
+  const trace: SendTrace = { wrote: false };
+  try {
+    return {
+      kind: "sent",
+      sent: await withSendKey(o.key, o.send, { recheck: o.tried === true, trace }),
+    };
+  } catch (err) {
+    if (err instanceof SentFound)
+      return found({ kind: "found", ref: err.id, at: err.at, url: err.url });
+    if (err instanceof NotSent) {
+      if (err.how === "refused") throw refusalOf(err);
+      return { kind: "not_sent", how: err.how, reason: err.reason };
     }
+    if (err instanceof SendUnknown) {
+      if (o.look) {
+        await o.settle?.(o.settleMs ?? SETTLE_MS);
+        const s = await seen(o.look);
+        if (s.kind === "found") return found(s);
+        return {
+          kind: "unsure",
+          why:
+            s.kind === "unclear" ? `${err.reason}; ${s.why}` : `${err.reason}; not on the site yet`,
+        };
+      }
+      return { kind: "unsure", why: err.reason };
+    }
+    if (trace.wrote)
+      return { kind: "unsure", why: `a write answered, then: ${said(err).slice(0, 200)}` };
+    // A site we read ourselves has no verdict: a failure that is not the platform's no may
+    // have gone out, so its read decides. Absent leaves the failure as it was.
+    if (o.look && !platformSaidNo(err)) {
+      await o.settle?.(o.settleMs ?? SETTLE_MS);
+      const s = await seen(o.look);
+      if (s.kind === "found") return found(s);
+      if (s.kind === "unclear")
+        return { kind: "unsure", why: `${said(err).slice(0, 200)}; ${s.why}` };
+    }
+    throw err;
   }
 }
+
+/** The platform answered with a no (4xx, not a timeout or a wait): nothing went out. */
+const platformSaidNo = (err: unknown): boolean =>
+  err instanceof SiteCallError &&
+  err.status >= 400 &&
+  err.status < 500 &&
+  err.status !== 408 &&
+  err.status !== 429;
 
 const ENTITIES: Record<string, string> = {
   "&amp;": "&",
@@ -224,7 +253,10 @@ export const POST_LOOK_ROWS = 20;
  * our words; absent when the listing reaches back past the send; else unclear. `late` says why
  * this site may not list a fresh post yet, and then absent is unclear: never proof.
  */
-export function seenPost(rows: readonly PublishedRow[], q: PostLook & { late?: string | null }): Seen {
+export function seenPost(
+  rows: readonly PublishedRow[],
+  q: PostLook & { late?: string | null },
+): Seen {
   const words = q.words.filter((w): w is string => !!w?.trim());
   if (!words.length) return unclear("no words to look for");
   const floor = new Date(q.since).getTime() - CLOCK_SLACK_MS;

@@ -24,61 +24,6 @@ export interface SiteClient {
   via(site: string, method: SiteMethod, path: string): Promise<FetchedWith | "none">;
 }
 
-/**
- * Said on a write that failed after it may have reached the platform (a timeout, a 5xx, a
- * rerun after a crash): it may be live. A person checks before it is sent again.
- */
-export const MAY_HAVE_POSTED = "may have gone through";
-
-/**
- * autobrowse's words when a step's write went out on an earlier try and its answer was lost
- * (`flow.ts`): as unsure as `MAY_HAVE_POSTED`, though it comes as a 502.
- */
-export const WENT_THROUGH = "already went through";
-
-/**
- * How autobrowse starts a write's failure when its submit step never began: nothing left the
- * machine, so asking again is safe. Its other word is `MAY_HAVE_POSTED`.
- */
-export const NOT_SENT = "not sent: ";
-
-/** What autobrowse's words say about a failed write: it left, it did not, or they do not say (an older desk). */
-export function sentState(message: string | null | undefined): "no" | "maybe" | null {
-  if (!message) return null;
-  if (message.includes(MAY_HAVE_POSTED) || message.includes(WENT_THROUGH)) return "maybe";
-  if (message.includes(NOT_SENT)) return "no";
-  return null;
-}
-
-/** The status autobrowse answers when a browser profile stayed busy past its wait. */
-export const BROWSER_BUSY_STATUS = 503;
-
-/**
- * The desk's browser profile was busy (an explore session held it) for as long as the call
- * waited: nothing was sent. The caller tries again on its next tick; never a failed post.
- */
-export function browserBusy(err: unknown): boolean {
-  const e = err as { status?: unknown; code?: unknown } | null;
-  const status = err instanceof SiteCallError ? err.status : (e?.code ?? e?.status);
-  return (
-    status === BROWSER_BUSY_STATUS &&
-    saysBrowserBusy(err instanceof Error ? err.message : String(err))
-  );
-}
-
-/** The words alone (a stored reason): `not sent: profile … is busy …`. */
-export const saysBrowserBusy = (message: string | null | undefined): boolean =>
-  sentState(message) === "no" && /\bnot sent: profile \S+ is busy\b/.test(message ?? "");
-
-/** Put before an unsure failure's text once a person was told to check it. */
-export const CHECKED = "checked: ";
-
-/** A failure whose post may be live anyway: never sent again blind. */
-export const mayHavePosted = (message: string | null | undefined): boolean =>
-  !!message &&
-  (message.includes(MAY_HAVE_POSTED) || message.includes(WENT_THROUGH)) &&
-  !message.startsWith(CHECKED);
-
 export class SiteCallError extends Error {
   readonly site: string;
   readonly status: number;

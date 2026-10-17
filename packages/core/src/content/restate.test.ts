@@ -1,9 +1,16 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import {
+  NotSent,
+  type SendTrace,
+  SendUnknown,
+  type SendVerdict,
+  SentFound,
+  withSendKey,
+} from "../send-verdict.js";
+import {
   asAccount,
   autobrowseSites,
-  browserBusy,
   type CapHolds,
   capHeld,
   capWaitMs,
@@ -11,8 +18,6 @@ import {
   liveHolds,
   SiteCallError,
   type SiteClient,
-  saysBrowserBusy,
-  sentState,
 } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
 import {
@@ -28,7 +33,7 @@ import {
 
 /** A stand-in Context whose `sites` client answers from a script and keeps every call. */
 function ctxOf(answer: (handler: string, req: unknown) => unknown) {
-  const calls: { handler: string; req: unknown }[] = [];
+  const calls: { handler: string; req: unknown; idem?: string }[] = [];
   const services: unknown[] = [];
   const sent: { handler: string; req: unknown }[] = [];
   const ctx = {
@@ -39,6 +44,7 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
     sleep: async (ms: number) => {
       calls.push({ handler: "sleep", req: ms });
     },
+    date: { now: async () => Date.parse("2026-10-16T12:00:00.000Z") },
     serviceSendClient: (service: unknown) => {
       services.push(service);
       return new Proxy(
@@ -53,8 +59,9 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
         {
           get:
             (_t, handler: string) =>
-            async (req: unknown): Promise<unknown> => {
-              calls.push({ handler, req });
+            async (req: unknown, opts?: { getOpts?: () => { idempotencyKey?: string } }) => {
+              const idem = opts?.getOpts?.().idempotencyKey;
+              calls.push({ handler, req, ...(idem ? { idem } : {}) });
               return answer(handler, req);
             },
         },
@@ -333,54 +340,15 @@ describe("restateSites over a named service", () => {
     expect(refused.calls.filter((c) => c.handler === "call")).toHaveLength(1);
   });
 
-  it("a failed post keeps autobrowse's words: not sent, or may have gone through; untagged reads as maybe", async () => {
-    const said = async (message: string, errorCode: number): Promise<SiteCallError> => {
-      const c = ctxOf(() => {
-        throw new restate.TerminalError(message, { errorCode });
-      });
-      const err = await restateSites(c.ctx, { caller: "test", service: DESK })
-        .call("tiktok", "POST", "/web/posts", { text: "hi" })
-        .catch((e: unknown) => e);
-      if (!(err instanceof SiteCallError)) throw new Error("expected a SiteCallError");
-      return err;
-    };
-    const busy = await said(
-      "not sent: profile google@test is busy (explore:9092); waited 5 min for it, try again",
-      503,
-    );
-    expect(busy).toMatchObject({ status: 503, journaled: true });
-    expect(busy.message).not.toContain("may have gone through");
-    expect(browserBusy(busy)).toBe(true);
-    expect(sentState(busy.message)).toBe("no");
-
-    const before = await said("not sent: the composer never opened", 500);
-    expect(sentState(before.message)).toBe("no");
-    expect(browserBusy(before)).toBe(false);
-
-    const after = await said("page closed after Post; may have gone through", 500);
-    expect(sentState(after.message)).toBe("maybe");
-    expect(after.message.match(/may have gone through/g)).toHaveLength(1);
-
-    // An older desk says neither: a write that failed may be live.
-    const legacy = await said("profile google@test is open in pid 11913 (explore:9092)", 500);
-    expect(sentState(legacy.message)).toBe("maybe");
-    expect(browserBusy(legacy)).toBe(false);
-  });
-
-  it("browserBusy needs the status and the words; the words alone serve a stored reason", () => {
-    const words = "x POST /2/tweets: 503 not sent: profile x@test is busy (cli); waited 5 min";
-    expect(
-      browserBusy(
-        new SiteCallError("x", "POST", "/2/tweets", 503, "not sent: profile x@test is busy (cli)"),
-      ),
-    ).toBe(true);
-    expect(browserBusy(new restate.TerminalError(words, { errorCode: 503 }))).toBe(true);
-    expect(browserBusy(new restate.TerminalError(words, { errorCode: 500 }))).toBe(false);
-    expect(
-      browserBusy(new restate.TerminalError("HTTP 503 service unavailable", { errorCode: 503 })),
-    ).toBe(false);
-    expect(saysBrowserBusy(words)).toBe(true);
-    expect(saysBrowserBusy("send failed: HTTP 426")).toBe(false);
+  it("a post that fails keeps the status: the caller reads it, not the words", async () => {
+    const c = ctxOf(() => {
+      throw new restate.TerminalError("profile google@test is busy", { errorCode: 503 });
+    });
+    const err = await restateSites(c.ctx, { caller: "test", service: DESK })
+      .call("tiktok", "POST", "/web/posts", { text: "hi" })
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 503, journaled: true });
+    expect(c.calls.filter((x) => x.handler === "call")).toHaveLength(1);
   });
 
   it("via reads one status per site and keeps each site's apart", async () => {
@@ -410,6 +378,179 @@ describe("restateSites over a named service", () => {
     await restateSites(ctx, { caller: "test", service: DESK }).via("reddit", "GET", "/x");
     await restateSites(ctx, { caller: "test", service: DESK }).via("reddit", "GET", "/x");
     expect(calls.filter((c) => c.handler === "status")).toHaveLength(2);
+  });
+});
+
+describe("restateSites keyed writes", () => {
+  const KEY = "thread:7 k1";
+  const WRITE = `${KEY} tiktok POST /web/posts`;
+  const AT = "2026-10-16T12:00:00.000Z";
+  const sentAnswer: SendVerdict = {
+    verdict: "sent",
+    how: "answer",
+    id: "v1",
+    url: null,
+    at: AT,
+    output: { id: "v1" },
+  };
+  const sentVerified: SendVerdict = {
+    verdict: "sent",
+    how: "verified",
+    id: "v2",
+    url: "u",
+    at: AT,
+  };
+  const notSent: SendVerdict = { verdict: "not_sent", how: "before_submit", reason: "busy" };
+  const unknown: SendVerdict = { verdict: "unknown", reason: "lags", since: AT };
+  /** A write inside the key scope, as the caller's send makes it. */
+  const post = (
+    answer: (handler: string, req: unknown) => unknown,
+    o: { recheck?: boolean; trace?: SendTrace } = {},
+  ) => {
+    const c = ctxOf(answer);
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    const run = withSendKey(
+      KEY,
+      () => sites.call("tiktok", "POST", "/web/posts", { text: "hi" }),
+      o,
+    );
+    return { ...c, run };
+  };
+
+  it("sends the key in the request and as Restate's idempotency key", async () => {
+    const c = post(() => sentAnswer);
+    expect(await c.run).toEqual({ id: "v1" });
+    expect(c.calls).toEqual([
+      {
+        handler: "call",
+        req: {
+          site: "tiktok",
+          method: "POST",
+          path: "/web/posts",
+          input: { text: "hi" },
+          caller: "test",
+          sendKey: WRITE,
+        },
+        idem: WRITE,
+      },
+    ]);
+  });
+
+  it("each verdict maps: sent, found, not sent, unknown", async () => {
+    expect(await post(() => sentAnswer).run).toEqual({ id: "v1" });
+    await expect(post(() => sentVerified).run).rejects.toMatchObject({
+      constructor: SentFound,
+      id: "v2",
+      url: "u",
+    });
+    const no = await post(() => notSent).run.catch((e: unknown) => e);
+    expect(no).toBeInstanceOf(NotSent);
+    expect(no).toMatchObject({ how: "before_submit", reason: "busy" });
+    const absent = await post(() => ({ ...notSent, how: "verified_absent" })).run.catch(
+      (e: unknown) => e,
+    );
+    expect(absent).toMatchObject({ how: "verified_absent" });
+    const maybe = await post(() => unknown).run.catch((e: unknown) => e);
+    expect(maybe).toBeInstanceOf(SendUnknown);
+    expect(maybe).toMatchObject({ reason: "lags", since: AT });
+  });
+
+  it("the platform's no is a SiteCallError with its status, journaled", async () => {
+    const c = post(() => ({
+      verdict: "not_sent",
+      how: "refused",
+      reason: "RATELIMIT",
+      status: 422,
+    }));
+    const err = await c.run.catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SiteCallError);
+    expect(err).toMatchObject({ status: 422, journaled: true });
+    expect(isRefusal(err)).toBe(true);
+  });
+
+  it("an unknown answer is asked again only when the caller rechecks", async () => {
+    const plain = post(() => unknown);
+    await plain.run.catch(() => null);
+    expect(plain.calls.map((x) => x.handler)).toEqual(["call"]);
+
+    const again = post((h) => (h === "verdict" ? sentVerified : unknown), { recheck: true });
+    await expect(again.run).rejects.toBeInstanceOf(SentFound);
+    expect(again.calls.map((x) => x.handler)).toEqual(["call", "verdict"]);
+    expect(again.calls[1]?.req).toEqual({ sendKey: WRITE });
+  });
+
+  it("a killed or failed call asks `verdict` on the same service with the same key", async () => {
+    for (const [message, errorCode] of [
+      ["killed", 409],
+      ["bad gateway", 502],
+      ["timeout", 408],
+    ] as const) {
+      const c = post((h) => {
+        if (h === "verdict") return sentVerified;
+        throw new restate.TerminalError(message, { errorCode });
+      });
+      await expect(c.run).rejects.toBeInstanceOf(SentFound);
+      expect(c.calls.map((x) => x.handler)).toEqual(["call", "verdict"]);
+      expect(c.calls[1]?.req).toEqual({ sendKey: WRITE });
+      expect(c.services).toEqual([{ name: "desk" }]);
+    }
+  });
+
+  it("a request that was wrong stays an error and asks nothing", async () => {
+    const c = post(() => {
+      throw new restate.TerminalError("no such account", { errorCode: 403 });
+    });
+    const err = await c.run.catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 403, journaled: true });
+    expect(c.calls.map((x) => x.handler)).toEqual(["call"]);
+  });
+
+  it("a verdict call that fails too is unknown, never a plain failure", async () => {
+    const c = post(() => {
+      throw new restate.TerminalError("bad gateway", { errorCode: 502 });
+    });
+    const err = await c.run.catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SendUnknown);
+    expect(err).toMatchObject({ reason: "the verdict could not be read" });
+  });
+
+  it("an older desk's plain answer passes as the output", async () => {
+    const trace: SendTrace = { wrote: false };
+    const c = post(() => ({ id: "old" }), { trace });
+    expect(await c.run).toEqual({ id: "old" });
+    expect(trace.wrote).toBe(true);
+  });
+
+  it("the trace tells a write answered, and a not-sent answer leaves nothing", async () => {
+    const wrote: SendTrace = { wrote: false };
+    await post(() => unknown, { trace: wrote }).run.catch(() => null);
+    expect(wrote.wrote).toBe(true);
+    const clean: SendTrace = { wrote: false };
+    await post(() => notSent, { trace: clean }).run.catch(() => null);
+    expect(clean.wrote).toBe(false);
+  });
+
+  it("a second write to one route gets its own key", async () => {
+    const c = ctxOf(() => sentAnswer);
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    await withSendKey(KEY, async () => {
+      await sites.call("tiktok", "POST", "/web/posts", { text: "a" });
+      await sites.call("tiktok", "POST", "/web/posts", { text: "b" });
+    });
+    expect(c.calls.map((x) => x.idem)).toEqual([WRITE, `${WRITE} #2`]);
+  });
+
+  it("a read and an upload carry no key, even inside the scope", async () => {
+    const c = ctxOf(() => ({}));
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    await withSendKey(KEY, async () => {
+      await sites.call("tiktok", "GET", "/web/me");
+      await sites.call("linkedin", "POST", "/upload", { kind: "video" });
+    });
+    for (const call of c.calls) {
+      expect(call.idem).toBeUndefined();
+      expect(call.req).not.toHaveProperty("sendKey");
+    }
   });
 });
 
@@ -565,6 +706,55 @@ describe("Content service", () => {
     };
     await expect(dropped(true)).rejects.toMatchObject({ name: "TerminalError", code: 500 });
     await expect(dropped(false)).rejects.toMatchObject({ name: "SiteCallError" });
+  });
+
+  it("a keyed publish answers a Delivery; a typed outcome crosses as a value, not an error", async () => {
+    const ch = fakeContentChannel("linkedin");
+    const out = (await h.publish?.(ctx, {
+      platform: "linkedin",
+      post: { text: "hi" },
+      sendKey: "draft:1 k1",
+    })) as { kind: string; out: { id: string } };
+    expect(out).toMatchObject({ kind: "sent", out: { id: expect.any(String) } });
+    const typed = (error: Error) =>
+      (
+        makeContent(() => ({
+          linkedin: { ...ch, publish: () => Promise.reject(error) },
+        })) as unknown as {
+          service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
+        }
+      ).service.publish?.(ctx, {
+        platform: "linkedin",
+        post: { text: "hi" },
+        sendKey: "draft:1 k1",
+      });
+    expect(await typed(new SendUnknown("lags", "2026-10-16T12:00:00.000Z"))).toEqual({
+      kind: "unknown",
+      reason: "lags",
+      since: "2026-10-16T12:00:00.000Z",
+    });
+    expect(await typed(new NotSent("before_submit", "busy"))).toMatchObject({
+      kind: "not_sent",
+      how: "before_submit",
+    });
+    expect(await typed(new SentFound("v9", null, "2026-10-16T12:00:00.000Z"))).toMatchObject({
+      kind: "found",
+      id: "v9",
+    });
+  });
+
+  it("a keyed publish that fails with no write answered still throws", async () => {
+    const e = new SiteCallError("linkedin", "POST", "/rest/posts", 403, "forbidden");
+    e.journaled = true;
+    const ch = { ...fakeContentChannel("linkedin"), publish: () => Promise.reject(e) };
+    const svc2 = (
+      makeContent(() => ({ linkedin: ch })) as unknown as {
+        service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
+      }
+    ).service;
+    await expect(
+      svc2.publish?.(ctx, { platform: "linkedin", post: { text: "hi" }, sendKey: "draft:1 k1" }),
+    ).rejects.toMatchObject({ name: "TerminalError", code: 403 });
   });
 
   it("an unconfigured platform is a terminal 404, not a retry", async () => {

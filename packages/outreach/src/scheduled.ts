@@ -6,7 +6,6 @@
  */
 
 import { warmupOf } from "@wren/channel-reddit";
-import { mayHavePosted, saysBrowserBusy } from "@wren/core/content";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
@@ -88,7 +87,7 @@ export async function schedulePosts(
         eq(reachPosts.state, "queued"),
         isNotNull(reachPosts.draft),
         isNull(reachPosts.sendAt),
-        // One that may have gone through waits on a person (designs/2026-10-16-maybe-sent.md).
+        // One that may have gone out waits on a person (designs/2026-10-16-maybe-sent.md).
         sql`not ${sendOpen(sql`'onpost:' || ${reachPosts.id}`)}`,
       ),
     )
@@ -221,9 +220,9 @@ const SEND_FAILED = "send failed: ";
 
 /**
  * A slot's send failed for good. The row leaves the schedule so the next pass slots it again;
- * a post failing its second slot, or one that may have posted, is skipped. A thread retries
- * until it goes stale. One that may have gone through never comes here: it waits unsure in
- * To approve (`send_attempts`), and the scheduler leaves it alone.
+ * a post failing its second slot is skipped. A thread retries until it goes stale. A send that
+ * may have gone out never comes here: it waits unsure in To approve (`send_attempts`), and
+ * the scheduler leaves it alone.
  */
 export async function sendFailed(
   db: Queryable,
@@ -235,20 +234,12 @@ export async function sendFailed(
     await db.update(redditThreads).set({ sendAt: null }).where(eq(redditThreads.id, id));
     return "retry";
   }
-  // The desk's browser was busy: nothing was sent, so it spends no retry.
-  if (saysBrowserBusy(why)) {
-    await db
-      .update(reachPosts)
-      .set({ sendAt: null, stateReason: `Waiting for the browser: ${why}`.slice(0, 500) })
-      .where(and(eq(reachPosts.id, Number(id)), eq(reachPosts.state, "queued")));
-    return "retry";
-  }
   const [r] = await db
     .select({ reason: reachPosts.stateReason })
     .from(reachPosts)
     .where(eq(reachPosts.id, Number(id)));
-  // One retry for a send that failed, none for one that may have posted anyway.
-  const again = (r?.reason?.startsWith(SEND_FAILED) ?? false) || mayHavePosted(why);
+  // One retry for a send that failed.
+  const again = r?.reason?.startsWith(SEND_FAILED) ?? false;
   await db
     .update(reachPosts)
     .set({
@@ -258,6 +249,26 @@ export async function sendFailed(
     })
     .where(and(eq(reachPosts.id, Number(id)), eq(reachPosts.state, "queued")));
   return again ? "skipped" : "retry";
+}
+
+/**
+ * Autobrowse said nothing went out (the browser was busy, the page never loaded). The row leaves
+ * the schedule so the next pass slots it again, and it spends no retry.
+ */
+export async function sendHeld(
+  db: Queryable,
+  kind: "post" | "thread",
+  id: string,
+  why: string,
+): Promise<void> {
+  if (kind === "thread") {
+    await db.update(redditThreads).set({ sendAt: null }).where(eq(redditThreads.id, id));
+    return;
+  }
+  await db
+    .update(reachPosts)
+    .set({ sendAt: null, stateReason: `Nothing went out: ${why}`.slice(0, 500) })
+    .where(and(eq(reachPosts.id, Number(id)), eq(reachPosts.state, "queued")));
 }
 
 /** At send: is this still the slot? A cleared or moved `send_at` means his change of mind. */

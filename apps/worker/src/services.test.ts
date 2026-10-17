@@ -147,7 +147,8 @@ describe("contentFor: reddit", () => {
       () => {
         throw new Error("no service call expected");
       },
-      () => ({ json: { data: { id: "abc" } } }),
+      // A direct API write is one journaled step; its answer is wrapped (`out`) beside a lost one.
+      () => ({ out: { json: { data: { id: "abc" } } } }),
     );
     const pub = (await handlers?.publish?.(ctx, { platform: "reddit", post: POST })) as {
       id: string;

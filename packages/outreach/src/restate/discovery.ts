@@ -77,10 +77,16 @@ import {
   unrankedThreads,
 } from "../discovery/threads.js";
 import { ReachRefusal } from "../refusal.js";
-import { scheduleThreads, sendFailed, stillDue, unschedule } from "../scheduled.js";
+import { scheduleThreads, sendFailed, sendHeld, stillDue, unschedule } from "../scheduled.js";
 import { reachAccounts } from "../schema.js";
 import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
-import { isSendUnsure, type Landed, sendAtMostOnce, sendError } from "./maybe-sent.js";
+import {
+  isSendNotSent,
+  isSendUnsure,
+  type Landed,
+  sendAtMostOnce,
+  sendError,
+} from "./maybe-sent.js";
 import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
 
@@ -571,11 +577,10 @@ export function discoveryHandlers(deps: ReachDeps) {
         const comment = ch?.comment;
         if (!ch || !comment) throw new restate.TerminalError("this account can't comment");
         const target = plan.thread.target ?? plan.thread.id;
-        const findSent = ch.findSent;
         let sent: Landed;
         try {
-          // At most once (designs/2026-10-16-maybe-sent.md): our words already there are
-          // recorded, not sent again; a send that may have gone through is looked for.
+          // At most once (designs/2026-10-16-send-verdicts.md): the send runs under the ledger
+          // row's key, and autobrowse says whether it went out. A take-over asks the same key.
           sent = await sendAtMostOnce(ctx, deps.db, {
             item: `thread:${req.id}`,
             platform: "reddit",
@@ -584,8 +589,6 @@ export function discoveryHandlers(deps: ReachDeps) {
             target,
             url: plan.thread.url,
             again: req.again === true,
-            look:
-              findSent && ((since) => findSent({ kind: "comment", to: target, text: body, since })),
             // The guard again at send: none of ours may already be in the thread.
             before: async () => {
               const authors = (await ch.threadAuthors?.(plan.thread.id)) ?? [];
@@ -600,6 +603,12 @@ export function discoveryHandlers(deps: ReachDeps) {
           // Unsure waits on a person in To approve; its slot leaves the schedule.
           if (isSendUnsure(thrown)) {
             if (at) await ctx.run("hold", () => unschedule(deps.db, { threads: [req.id] }));
+            throw thrown;
+          }
+          // Nothing went out: the slot leaves the schedule and the next pass sends it anew.
+          if (isSendNotSent(thrown)) {
+            if (at)
+              await ctx.run("hold", () => sendHeld(deps.db, "thread", req.id, thrown.message));
             throw thrown;
           }
           const err = sendError(thrown);

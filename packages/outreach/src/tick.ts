@@ -19,7 +19,8 @@
  * and queues the next (`touch`). After the last, the contact is `finished`.
  * The live gate off holds every sequence and follow-up row; a manual row is William's own yes and
  * goes, from an active or a warming account (its rung's caps still apply).
- * The desk's browser busy (`browserBusy`) holds the row five minutes: nothing was sent.
+ * A send autobrowse says did not go out (`not_sent`: the browser was busy, the page never loaded,
+ * a read showed it absent) holds the row five minutes. It sends again under a new key.
  * A used daily cap (a 429 whose wait is hours) holds the row, and the account's other rows on
  * that cap, until it resets; a short 429 holds the row an hour; any other 4xx fails it and ends
  * the contact as `unreachable`; anything else leaves `unknown`.
@@ -27,7 +28,7 @@
  * the row is `skipped`, counts toward no cap and no failure, and the contact is never invited
  * again (`noInvite`).
  */
-import { browserBusy, capWaitMs, mayHavePosted, SiteCallError } from "@wren/core/content";
+import { capWaitMs, SiteCallError } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
 import { sendOnce } from "@wren/core/maybe-sent";
 import {
@@ -38,6 +39,7 @@ import {
   tagLinks,
 } from "@wren/core/message-settings";
 import type { NoInvite, OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
+import { newSendKey } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { healthOf } from "./accounts.js";
@@ -61,8 +63,8 @@ import { keepTouch, touchFromMessage } from "./touches.js";
 export const STALE_SENDING_MS = 10 * 60 * 1000;
 const DAY_MS = 86_400_000;
 const HOLD_MS = 60 * 60 * 1000;
-/** The desk's browser was busy and nothing was sent: the row goes again this soon. */
-const BROWSER_HOLD_MS = 5 * 60 * 1000;
+/** Autobrowse said nothing went out: the row goes again this soon. */
+const NOT_SENT_HOLD_MS = 5 * 60 * 1000;
 const SCAN = 100;
 
 export interface TickOptions {
@@ -83,11 +85,6 @@ export interface TickOptions {
   linkSource?: string | null;
   now: Date;
   runId?: string | null;
-  /**
-   * Wait before reading back a send that may have gone through (designs/2026-10-16-maybe-sent.md):
-   * on Restate a durable sleep. Absent: read at once.
-   */
-  settle?: (ms: number) => Promise<void>;
 }
 
 export interface TickStats {
@@ -547,7 +544,7 @@ export async function recordNoInvite(
 }
 
 /**
- * Step 4c: it may have gone through and no read could tell. `unknown`, never resent; the item
+ * Step 4c: it may have gone out and no read could tell. `unknown`, never resent; the item
  * waits unsure in To approve for a person to mark it sent or send it again.
  */
 export async function recordUnsure(
@@ -557,6 +554,7 @@ export async function recordUnsure(
   why: string,
   now: Date,
   stats: TickStats,
+  sendKey: string | null = null,
 ): Promise<void> {
   await db
     .update(reachMessages)
@@ -572,8 +570,31 @@ export async function recordUnsure(
     why,
     tries: 1,
     now,
+    sendKey,
   });
   stats.failed++;
+}
+
+/**
+ * Step 4d: autobrowse says nothing went out. The row waits and goes again under a new key; it is
+ * no failure and spends nothing.
+ */
+export async function recordNotSent(
+  db: Queryable,
+  c: Candidate,
+  reason: string,
+  now: Date,
+  stats: TickStats,
+): Promise<void> {
+  await db
+    .update(reachMessages)
+    .set({
+      state: "queued",
+      dueAt: new Date(now.getTime() + NOT_SENT_HOLD_MS),
+      stateReason: reason.slice(0, 500),
+    })
+    .where(eq(reachMessages.id, c.row.id));
+  hold(stats, "not-sent");
 }
 
 /** Step 4b: the platform did not take it, or we do not know. */
@@ -611,14 +632,6 @@ export async function recordFailure(
     hold(stats, "cap");
     return;
   }
-  if (browserBusy(err)) {
-    await db
-      .update(reachMessages)
-      .set({ state: "queued", dueAt: new Date(now.getTime() + BROWSER_HOLD_MS), stateReason: text })
-      .where(eq(reachMessages.id, c.row.id));
-    hold(stats, "browser");
-    return;
-  }
   if (err instanceof SiteCallError && err.status === 429) {
     await db
       .update(reachMessages)
@@ -627,13 +640,8 @@ export async function recordFailure(
     hold(stats, "retry");
     return;
   }
-  // A send that may have gone through is no refusal: its fate is unknown, never resent.
-  if (
-    err instanceof SiteCallError &&
-    err.status >= 400 &&
-    err.status < 500 &&
-    !mayHavePosted(err.message)
-  ) {
+  // The platform said no (`sendOnce` throws a refusal as it came): the contact is unreachable.
+  if (err instanceof SiteCallError && err.status >= 400 && err.status < 500) {
     await db
       .update(reachMessages)
       .set({ state: "failed", stateReason: text })
@@ -697,7 +705,12 @@ export async function tick(
       merge(stats, verdict.s);
       if (verdict.v !== "send") continue;
     }
-    await run(`sending ${c.row.id}`, () => markSending(db, c.row.id));
+    // The send's key is made in the journaled intent step, so a replay runs under the same one.
+    const sendKey =
+      (await run(`sending ${c.row.id}`, async () => {
+        await markSending(db, c.row.id);
+        return newSendKey(`dm:${c.row.id}`);
+      })) ?? `dm:${c.row.id} legacy`;
     const words =
       c.row.kind === "connect"
         ? c.row.body || null
@@ -708,33 +721,28 @@ export async function tick(
               campaign: followCampaign(c.row) ?? c.contact.sequence,
             })
           : c.row.body;
-    const findSent = channel.findSent;
-    const kind = c.row.kind === "connect" ? "connect" : "message";
     let sent: Sent | NoInvite;
     try {
-      // A send that may have gone through is looked for on the site: found = sent, absent =
-      // once more, else unsure and never resent (designs/2026-10-16-maybe-sent.md).
+      // The send runs under its key and autobrowse says whether it went out (designs/2026-10-16-
+      // send-verdicts.md): sent or found = sent, not sent = hold the row, else unsure and never
+      // resent.
       const got = await sendOnce<Sent | NoInvite>({
+        key: sendKey,
         send: () =>
           c.row.kind === "connect"
             ? (channel.connect as NonNullable<typeof channel.connect>)(c.contact.handle, words)
             : channel.message(c.contact.handle, words ?? "", c.row.subject),
-        look:
-          findSent &&
-          (() =>
-            findSent({
-              kind,
-              to: c.contact.handle,
-              text: words ?? "",
-              since: o.now.toISOString(),
-            })),
-        settle: o.settle ?? (async () => {}),
       });
       if (got.kind === "unsure") {
         const why = got.why;
         await stepStats(`unsure ${c.row.id}`, (s) =>
-          recordUnsure(db, c, words ?? "", why, o.now, s),
+          recordUnsure(db, c, words ?? "", why, o.now, s, sendKey),
         );
+        continue;
+      }
+      if (got.kind === "not_sent") {
+        const reason = got.reason;
+        await stepStats(`not sent ${c.row.id}`, (s) => recordNotSent(db, c, reason, o.now, s));
         continue;
       }
       sent =

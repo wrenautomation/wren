@@ -17,14 +17,23 @@ import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import { CallTimeout, within } from "../restate/limits.js";
 import {
+  type Delivery,
+  deliveryOf,
+  isSendOutcome,
+  noteAnswer,
+  outputOf,
+  rechecking,
+  type SendVerdict,
+  terminalOf,
+  unknownSend,
+  writeKey,
+} from "../send-verdict.js";
+import {
   capWaitMs,
-  MAY_HAVE_POSTED,
-  mayHavePosted,
   SiteCallError,
   type SiteClient,
   type SiteMethod,
   type SiteStatus,
-  sentState,
   viaOf,
 } from "./autobrowse.js";
 import type {
@@ -42,6 +51,7 @@ import type {
   Post,
   PostPatch,
   PrivateReplyQuery,
+  Published,
   ReportDays,
 } from "./index.js";
 import { PLATFORMS } from "./index.js";
@@ -66,8 +76,18 @@ export type SitesService = {
       account?: string;
       /** Who in wren asked, for autobrowse's per-caller usage (`wren:crm-run`). */
       caller?: string;
+      /**
+       * An irreversible call's send key (`writeKey`): with it autobrowse answers a `SendVerdict`
+       * as the result (autobrowse designs/2026-10-16-send-verdicts.md).
+       */
+      sendKey?: string;
     },
   ) => Promise<unknown>;
+  /**
+   * What became of a keyed call, without making it: the stored verdict, or a fresh verify read
+   * for an `unknown` one. The way to ask after a call Restate killed or lost.
+   */
+  verdict: (ctx: restate.Context, req: { sendKey: string }) => Promise<SendVerdict>;
   setup: (
     ctx: restate.Context,
     req: { site: string; step: string },
@@ -134,6 +154,10 @@ export type Wake = () => Promise<"started" | "running">;
  * rides on every call, so autobrowse can say who spent a capped site's reads.
  * `limitMs`: a loop's client waits on each call at most this long; past it the call is
  * cancelled and `CallTimeout` (terminal) thrown, never tried again in this pass.
+ *
+ * A write that cannot be undone (not a GET, not an upload) made inside a key scope
+ * (`withSendKey`) is keyed (`keyedCall`): autobrowse answers what became of it as a verdict, and
+ * this side never reads its words. A write outside a scope is called once, as before.
  */
 export function restateSites(
   ctx: restate.Context,
@@ -148,6 +172,79 @@ export function restateSites(
     woken ??= ctx.run("wake autobrowse", wake);
     return woken;
   };
+  /** Wait on a call, at most `limitMs` when the client has one. A write stays running past it. */
+  const waited = <T>(
+    p: restate.RestatePromise<T> & Partial<Pick<restate.InvocationHandle, "invocationId">>,
+    what: string,
+    keep: boolean,
+  ): Promise<T> =>
+    limitMs === undefined
+      ? p
+      : within(ctx, p, { ms: limitMs, call: `${service.name}/${what}`, keep });
+  /** A keyed write: its key rides in the body and as Restate's idempotency key. */
+  async function keyedCall(
+    site: string,
+    method: SiteMethod,
+    path: string,
+    input: Record<string, unknown>,
+    account: string | undefined,
+    key: string,
+  ): Promise<never> {
+    const since = new Date(await ctx.date.now()).toISOString();
+    /** What became of the call, asked of the same service. A failed ask is `unknown`. */
+    const askVerdict = async (): Promise<SendVerdict> => {
+      try {
+        return await waited(
+          client.verdict({ sendKey: key }),
+          `verdict ${site} ${method} ${path}`,
+          true,
+        );
+      } catch (err) {
+        const why =
+          err instanceof CallTimeout
+            ? "the verdict is still being read"
+            : "the verdict could not be read";
+        throw unknownSend(why, since);
+      }
+    };
+    let answer: unknown;
+    try {
+      answer = await waited(
+        client.call(
+          { site, method, path, input, ...(account ? { account } : {}), caller, sendKey: key },
+          restate.rpc.opts({ idempotencyKey: key }),
+        ),
+        `call ${site} ${method} ${path}`,
+        true,
+      );
+    } catch (err) {
+      // A write past its wait is left running: it may still land.
+      if (err instanceof CallTimeout) throw unknownSend("the call is still running", since);
+      const e = siteCallErrorFrom(err, site, method, path);
+      if (!(e instanceof SiteCallError)) throw e;
+      // A request that was wrong stays an error: nothing was attempted (a 408 or a kill, 409, may
+      // have been). Any other end of a keyed call is asked after.
+      if (e.status < 500 && e.status !== 408 && e.status !== 409) {
+        e.journaled = true;
+        throw e;
+      }
+      answer = await askVerdict();
+    }
+    if (!isVerdict(answer)) {
+      // An older desk ignores the key and answers the official output.
+      noteAnswer("sent");
+      return answer as never;
+    }
+    const v = answer.verdict === "unknown" && rechecking() ? await askVerdict() : answer;
+    if (v.verdict === "not_sent" && v.how === "refused") {
+      // The platform said no: the caller's cap and refusal logic read it as an error.
+      noteAnswer("not_sent");
+      const refused = new SiteCallError(site, method, path, v.status ?? 400, v.reason);
+      refused.journaled = true;
+      throw refused;
+    }
+    return outputOf<never>(v);
+  }
   return {
     async call(site, method, path, input = {}, account) {
       if (arm && method !== "GET") {
@@ -162,24 +259,23 @@ export function restateSites(
         throw new ArmedStop();
       }
       await awake();
+      const key = safeToRepeat(method, path) ? null : writeKey(site, method, path);
+      if (key) return keyedCall(site, method, path, input, account, key);
       for (let attempt = 1; ; attempt++) {
         try {
-          const call = client.call({
-            site,
-            method,
-            path,
-            input,
-            ...(account ? { account } : {}),
-            caller,
-          });
-          return (await (limitMs === undefined
-            ? call
-            : within(ctx, call, {
-                ms: limitMs,
-                call: `${service.name}/call ${site} ${method} ${path}`,
-                // A write past its wait may still land: left running, never sent again.
-                ...(safeToRepeat(method, path) ? {} : { keep: true, note: MAY_HAVE_POSTED }),
-              }))) as never;
+          return (await waited(
+            client.call({
+              site,
+              method,
+              path,
+              input,
+              ...(account ? { account } : {}),
+              caller,
+            }),
+            `call ${site} ${method} ${path}`,
+            // A write past its wait may still land: left running, never sent again.
+            !safeToRepeat(method, path),
+          )) as never;
         } catch (err) {
           if (err instanceof CallTimeout) throw err;
           const e = siteCallErrorFrom(err, site, method, path);
@@ -188,10 +284,8 @@ export function restateSites(
             await ctx.sleep(attempt * CALL_PAUSE_MS);
             continue;
           }
-          const out =
-            safeToRepeat(method, path) || isRefusal(e) ? e : unsure(e, site, method, path);
-          out.journaled = true;
-          throw out;
+          e.journaled = true;
+          throw e;
         }
       }
     },
@@ -210,6 +304,12 @@ export function restateSites(
   };
 }
 
+/** An answer in autobrowse's verdict shape. An older desk's output is not. */
+const isVerdict = (v: unknown): v is SendVerdict =>
+  typeof v === "object" &&
+  v !== null &&
+  ["sent", "not_sent", "unknown"].includes((v as { verdict?: unknown }).verdict as string);
+
 /** Tries of one `sites` call that failed in passing (a dropped socket, a 5xx), paused between. */
 const CALL_TRIES = 3;
 const CALL_PAUSE_MS = 30_000;
@@ -217,18 +317,6 @@ const CALL_PAUSE_MS = 30_000;
 /** Calls that change nothing a person sees: a read, or a file's upload before any post names it. */
 const safeToRepeat = (method: SiteMethod, path: string) =>
   method === "GET" || /\/upload\b/.test(path);
-
-/**
- * A write that failed in passing: it may have reached the platform, so it says so. autobrowse
- * says which itself (`not sent: …` or `…; may have gone through`); its words stand. Untagged
- * words (an older desk) still read as maybe.
- */
-function unsure(e: SiteCallError, site: string, method: string, path: string): SiteCallError {
-  if (mayHavePosted(e.message) || sentState(e.message) !== null) return e;
-  const prefix = `${site} ${method} ${path}: ${e.status} `;
-  const said = e.message.startsWith(prefix) ? e.message.slice(prefix.length) : e.message;
-  return new SiteCallError(site, method, path, e.status, `${said}; ${MAY_HAVE_POSTED}`);
-}
 
 /**
  * A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408 and
@@ -255,35 +343,35 @@ export function journaledHost(ctx: restate.Context, host: MediaHost): MediaHost 
 /**
  * A direct API client (no `sites` hop) made durable: each call is one
  * journaled step, so a retried invocation replays the answer instead of
- * calling again. A refusal ends the step for good. A read retries; a write
- * that failed any other way may have gone through, so it is never sent blind
- * again: final, and said so.
+ * calling again. A refusal ends the step for good. A read retries. A write that failed any
+ * other way may have gone out, so it is never sent blind again: the step answers that as a
+ * value and the call throws `SendUnknown`, the same type autobrowse's `unknown` verdict has.
  */
 export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteClient {
   return {
     async call(site, method, path, input = {}, account) {
+      let ran: { out: unknown } | { lost: string; since: string };
       try {
-        return (await ctx.run(`${site} ${method} ${path}`, async () => {
+        ran = await ctx.run(`${site} ${method} ${path}`, async () => {
           try {
-            return ((await sites.call(site, method, path, input, account)) ?? null) as never;
+            return {
+              out: ((await sites.call(site, method, path, input, account)) ?? null) as unknown,
+            };
           } catch (err) {
             if (isRefusal(err))
               throw new restate.TerminalError(err.message, { errorCode: err.status });
             if (safeToRepeat(method, path) || nothingSent(err)) throw err;
-            const status = err instanceof SiteCallError ? err.status : 502;
-            const said = err instanceof Error ? err.message : String(err);
-            // autobrowse's own words say whether it left; untagged ones read as maybe.
-            throw new restate.TerminalError(
-              sentState(said) ? said : `${said}; ${MAY_HAVE_POSTED}`,
-              {
-                errorCode: status >= 400 ? status : 502,
-              },
-            );
+            return {
+              lost: err instanceof Error ? err.message : String(err),
+              since: new Date().toISOString(),
+            };
           }
-        })) as never;
+        });
       } catch (err) {
         throw siteCallErrorFrom(err, site, method, path);
       }
+      if ("lost" in ran) throw unknownSend(ran.lost, ran.since);
+      return ran.out as never;
     },
     via: (site, method, path) => sites.via(site, method, path),
   };
@@ -303,6 +391,8 @@ async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (err) {
+    // A send outcome that reaches here had no key to answer it as a value: final for this call.
+    if (isSendOutcome(err)) throw terminalOf(err);
     if (isRefusal(err) || isVendorStop(err))
       throw new restate.TerminalError(err.message, { errorCode: err.status });
     // A journaled failure replays on every retry: final for this call, so its caller moves on.
@@ -386,6 +476,27 @@ const ACTIVITY_QUERY = z
     limit: z.number().nullish(),
   })
   .nullish();
+/**
+ * A ledger send's key (`send_attempts.send_key`). With it the write runs under that key and the
+ * handler answers a `Delivery` value, since a thrown error loses its type across the service
+ * boundary (`deliveryOf`). Without it the handler answers as it always did.
+ */
+const SEND_KEY = z
+  .string()
+  .min(1)
+  .max(200)
+  .nullish()
+  .describe("A ledger send's key: the answer is a Delivery value");
+const RECHECK = z
+  .boolean()
+  .nullish()
+  .describe("Check an unknown answer once more (a takeover, a person's check)");
+type Keyed = { sendKey?: string | null; recheck?: boolean | null };
+/** A write under its ledger key, answered as a `Delivery`; without a key, as it always was. */
+const keyed = <T>(req: Keyed, work: () => Promise<T>): Promise<T | Delivery<T>> =>
+  refusalsFinal<T | Delivery<T>>(
+    req.sendKey ? deliveryOf(req.sendKey, work, { recheck: req.recheck === true }) : work(),
+  );
 /** A client's id: its own logins, not Wren's. Empty: Wren's. */
 const CLIENT = z.string().nullish().describe("A client's id; empty = Wren's own channels");
 type ForClient = { client?: string | null };
@@ -454,14 +565,22 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         },
       ),
       publish: serviceHandler(
-        { input: PUBLISH.extend({ client: CLIENT, account: ACCOUNT }), effect: "posts" },
+        {
+          input: PUBLISH.extend({
+            client: CLIENT,
+            account: ACCOUNT,
+            sendKey: SEND_KEY,
+            recheck: RECHECK,
+          }),
+          effect: "posts",
+        },
         async (
           ctx: restate.Context,
-          req: { platform: Platform; post: Post } & ForClient & AsAccount,
-        ) => {
+          req: { platform: Platform; post: Post } & ForClient & AsAccount & Keyed,
+        ): Promise<Published | Delivery<Published>> => {
           await sending(ctx, req.client);
           const ch = await pick(ctx, req.platform, req.client, "content.posting", req.account);
-          return refusalsFinal(
+          return keyed(req, () =>
             Promise.resolve()
               .then(() => fieldsOf(req.platform, req.post.extra))
               .then(() => ch.publish(req.post)),
@@ -537,7 +656,10 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
           ),
       ),
       reply: serviceHandler(
-        { input: REPLY.extend({ account: ACCOUNT }), effect: "posts" },
+        {
+          input: REPLY.extend({ account: ACCOUNT, sendKey: SEND_KEY, recheck: RECHECK }),
+          effect: "posts",
+        },
         async (
           ctx: restate.Context,
           req: {
@@ -546,15 +668,17 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             postId?: string | null;
             text: string;
           } & ForClient &
-            AsAccount,
-        ) => {
+            AsAccount &
+            Keyed,
+        ): Promise<void | Delivery<void>> => {
           await sending(ctx, req.client);
           const ch = await pick(ctx, req.platform, req.client, "content.social", req.account);
           if (!ch.reply)
             throw new restate.TerminalError(`${req.platform} cannot reply here`, {
               errorCode: 501,
             });
-          await refusalsFinal(ch.reply(req.commentId, req.text, { postId: req.postId ?? null }));
+          const reply = ch.reply.bind(ch);
+          return keyed(req, () => reply(req.commentId, req.text, { postId: req.postId ?? null }));
         },
       ),
       /**
@@ -584,18 +708,19 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
       ),
       /** One DM to a comment's author, as a reply to it; 501 where the platform has no such door. */
       privateReply: serviceHandler(
-        { input: REPLY, effect: "sends" },
+        { input: REPLY.extend({ sendKey: SEND_KEY, recheck: RECHECK }), effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { platform: Platform; commentId: string; text: string } & ForClient,
-        ): Promise<{ ref: string | null }> => {
+          req: { platform: Platform; commentId: string; text: string } & ForClient & Keyed,
+        ): Promise<{ ref: string | null } | Delivery<{ ref: string | null }>> => {
           await sending(ctx, req.client);
           const ch = await pick(ctx, req.platform, req.client, "content.social");
           if (!ch.privateReply)
             throw new restate.TerminalError(`${req.platform} has no DM from a comment`, {
               errorCode: 501,
             });
-          return refusalsFinal(ch.privateReply(req.commentId, req.text));
+          const privateReply = ch.privateReply.bind(ch);
+          return keyed(req, () => privateReply(req.commentId, req.text));
         },
       ),
       /**
@@ -671,7 +796,11 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         ): Promise<Seen> => {
           try {
             const ch = await pick(ctx, req.platform, req.client, "content.posting", req.account);
-            return await findPost(ch, { words: req.words, since: req.since, media: req.media ?? null });
+            return await findPost(ch, {
+              words: req.words,
+              since: req.since,
+              media: req.media ?? null,
+            });
           } catch (err) {
             const why = err instanceof Error ? err.message : String(err);
             return { kind: "unclear", why: `the read failed: ${why.slice(0, 200)}` };

@@ -1,9 +1,12 @@
 /**
  * The send ledger (designs/2026-10-16-maybe-sent.md): one row per item that must land at most
- * once. A claim marks it `sending` before any call; a second invocation meanwhile is refused, and
- * one after a lost answer knows an earlier try may have left. Settled `sent` (with the real ref)
- * or `unsure` (waits on a person in To approve). A refusal or a send that never left releases it.
+ * once. A claim marks it `sending` before any call and makes the send key (autobrowse keeps one
+ * verdict per key); a second invocation meanwhile is refused, and one after a lost answer takes
+ * it over under the same key, so autobrowse answers its stored verdict. Settled `sent` (with the
+ * real ref) or `unsure` (waits on a person in To approve). A refusal or a send that never left
+ * releases it; the next send makes a new key.
  */
+import { newSendKey } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
@@ -29,7 +32,7 @@ export interface SendClaim {
 }
 
 export type Claimed =
-  | { go: "send"; tried: boolean; since: string }
+  | { go: "send"; tried: boolean; since: string; sendKey: string }
   | { go: "done"; ref: string | null; at: string | null };
 
 /** Take the item for this invocation, or say why not. */
@@ -45,13 +48,14 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
   };
   const [row] = await db.select().from(sendAttempts).where(eq(sendAttempts.item, c.item));
   if (!row) {
+    const sendKey = newSendKey(c.item);
     const made = await db
       .insert(sendAttempts)
-      .values({ item: c.item, state: "sending", tries: 1, startedAt: c.now, ...fields })
+      .values({ item: c.item, state: "sending", tries: 1, startedAt: c.now, sendKey, ...fields })
       .onConflictDoNothing()
       .returning({ item: sendAttempts.item });
     if (!made.length) throw new ReachRefusal("it is already being sent");
-    return { go: "send", tried: false, since: c.now.toISOString() };
+    return { go: "send", tried: false, since: c.now.toISOString(), sendKey };
   }
   if (row.state === "sent")
     return { go: "done", ref: row.ref, at: row.sentAt?.toISOString() ?? null };
@@ -59,10 +63,13 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
   const stale = new Date(c.now.getTime() - SENDING_STALE_MS);
   if (row.state === "sending" && row.updatedAt > stale)
     throw new ReachRefusal("it is already being sent");
-  // Taken over from a lost invocation, or sent again on a person's word: one winner.
+  // Taken over from a lost invocation, or sent again on a person's word: one winner. A take-over
+  // keeps the key (autobrowse answers the stored verdict); a send again is a new send, a new key.
+  const takeOver = row.state === "sending";
+  const sendKey = takeOver && row.sendKey ? row.sendKey : newSendKey(c.item);
   const taken = await db
     .update(sendAttempts)
-    .set({ state: "sending", tries: sql`${sendAttempts.tries} + 1`, why: null, ...fields })
+    .set({ state: "sending", tries: sql`${sendAttempts.tries} + 1`, why: null, sendKey, ...fields })
     .where(
       and(
         eq(sendAttempts.item, c.item),
@@ -77,8 +84,9 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
   // A lost invocation may have sent; a person who said send again has looked.
   return {
     go: "send",
-    tried: row.state === "sending",
-    since: (row.state === "sending" ? row.startedAt : c.now).toISOString(),
+    tried: takeOver,
+    since: (takeOver ? row.startedAt : c.now).toISOString(),
+    sendKey,
   };
 }
 
@@ -136,6 +144,8 @@ export async function parkUnsure(
     tries: number;
     /** When the send began, where it is not `now`: a look on Mark posted reads from it. */
     since?: Date;
+    /** The key the send ran under, where there was one. A row parked again keeps its own. */
+    sendKey?: string | null;
   },
 ): Promise<void> {
   const row = {
@@ -151,8 +161,11 @@ export async function parkUnsure(
   };
   await db
     .insert(sendAttempts)
-    .values({ item: a.item, startedAt: a.since ?? a.now, ...row })
-    .onConflictDoUpdate({ target: sendAttempts.item, set: row });
+    .values({ item: a.item, startedAt: a.since ?? a.now, sendKey: a.sendKey ?? null, ...row })
+    .onConflictDoUpdate({
+      target: sendAttempts.item,
+      set: a.sendKey ? { ...row, sendKey: a.sendKey } : row,
+    });
 }
 
 export async function sendAttempt(db: Queryable, item: string): Promise<SendAttempt | null> {

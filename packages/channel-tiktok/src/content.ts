@@ -248,7 +248,8 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
         : { id, url: profile, publishedAt: now().toISOString(), fetchedWith };
     },
     // The list is the API's, which shows public videos once processed.
-    listsLate: () => "TikTok lists a new video only once it is processed, and never one that is not public",
+    listsLate: () =>
+      "TikTok lists a new video only once it is processed, and never one that is not public",
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const r = await sites.call<{ data?: { videos?: Video[] } }>(
         "tiktok",

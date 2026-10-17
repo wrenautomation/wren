@@ -1,17 +1,27 @@
 /**
- * A send whose outcome is unknown, on Postgres with fake channels (designs/2026-10-16-maybe-sent.md):
- * our words found after an unknown outcome are recorded once and never sent again; not found is
- * sent once more; unreadable parks unsure with no send; a second invocation meanwhile sends
- * nothing. The sender's DMs, a person's Mark posted and the scheduler's hands-off follow. Then the
- * newer keys: an X reply read back by `Content.findReply`, a private reply (`private:`) with no
- * read and read back from the Page's inbox, an Instagram comment (`onpost:`) read back off the
- * post page, and a client's DM answer (`sdm:`) read back from its conversation.
+ * A send whose outcome autobrowse's verdict tells (designs/2026-10-16-send-verdicts.md), on
+ * Postgres with a fake desk that keeps a verdict per send key, as autobrowse does. Sent is
+ * recorded once with its ref and never sent again. Not sent releases the item, and the next pass
+ * sends under a new key. Unknown parks it unsure with no second write. A take-over after a lost
+ * invocation runs under the same key, so the desk answers its stored verdict. Then the Reddit
+ * comment the whole way (`commentThread`), the sender's DMs, "Not sent, drop" for each item kind,
+ * and the sends that keep a look of their own: a client's connected account (an X reply read back
+ * by `Content.findReply`, a private reply read from the Page's inbox, a DM read from its
+ * conversation).
  */
-import type * as restate from "@restatedev/restate-sdk";
-import { type CommentRow, SiteCallError, type SiteClient } from "@wren/core/content";
+import * as restate from "@restatedev/restate-sdk";
+import { type CommentRow, SiteCallError } from "@wren/core/content";
 import { pageInboxOf, seenPrivateReply } from "@wren/core/content/page-inbox";
+import { DESK, restateSites } from "@wren/core/content/restate";
 import { type Seen, seenInMessages } from "@wren/core/maybe-sent";
 import { fakeOutreachChannel } from "@wren/core/outreach";
+import {
+  currentSendKey,
+  NotSent,
+  SendUnknown,
+  type SendVerdict,
+  SentFound,
+} from "@wren/core/send-verdict";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -19,11 +29,14 @@ import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.j
 import { commentById } from "../../src/comments.js";
 import { addContact } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
+import { addPlaces, keepPlace, keepThreads, watchPlace } from "../../src/index.js";
 import { DEFAULT_POLICY } from "../../src/policy.js";
 import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
+import { discoveryHandlers } from "../../src/restate/discovery.js";
+import type { ReachDeps } from "../../src/restate/index.js";
 import {
   contentLook,
-  igCommentLook,
+  isSendNotSent,
   isSendTaken,
   isSendUnsure,
   sendAtMostOnce,
@@ -32,22 +45,22 @@ import { schedulePosts } from "../../src/scheduled.js";
 import {
   comments,
   type ReachAccount,
+  reachContacts,
   reachMessages,
   reachPosts,
+  redditThreads,
   sendAttempts,
 } from "../../src/schema.js";
 import { parkUnsure, sendAttempt } from "../../src/send-attempts.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
-import { markPosted, requeueDm } from "../../src/settle-send.js";
+import { dropItem, markPosted, requeueDm, SETTLE_OUTCOMES } from "../../src/settle-send.js";
 import { setTemplate } from "../../src/store.js";
 import { tick } from "../../src/tick.js";
 
 let pg: TestPostgres;
 const db = () => pg.db;
 const NOW = new Date("2026-10-01T18:00:00Z");
-const WENT =
-  'reddit@alt: "save the comment" already went through on an earlier try of this step; check it before running again';
-const maybe = () => new SiteCallError("reddit", "POST", "/api/comment", 502, WENT);
+const AT = "2026-10-01T18:00:03.000Z";
 
 beforeAll(async () => {
   pg = await startTestPostgres();
@@ -62,125 +75,532 @@ beforeEach(async () => {
     "reach_contacts",
     "reach_accounts",
     "reach_posts",
+    "reddit_threads",
+    "reddit_places",
+    "reddit_people",
     "templates",
     "template_versions",
     "social_handles",
     "profiles",
     "comments",
     "touches",
+    "draft_events",
   ]);
 });
 
+/** The verdicts autobrowse answers (`SendVerdict`), as values. */
+const sentV = (id: string, how: "answer" | "verified" = "verified"): SendVerdict =>
+  how === "verified"
+    ? { verdict: "sent", id, url: `https://www.reddit.com/comments/p1/_/${id}`, at: AT, how }
+    : {
+        verdict: "sent",
+        id,
+        url: null,
+        at: AT,
+        how,
+        output: { json: { data: { things: [{ data: { name: id } }] } } },
+      };
+const unknownV = (reason = "the page did not confirm the comment"): SendVerdict => ({
+  verdict: "unknown",
+  reason,
+  since: AT,
+});
+const notSentV = (
+  how: "refused" | "before_submit" | "verified_absent",
+  reason: string,
+  status?: number,
+): SendVerdict => ({ verdict: "not_sent", how, reason, ...(status ? { status } : {}) });
+
+/**
+ * Autobrowse's `desk` service as a Restate client sees it. A keyed write answers a verdict and
+ * the desk keeps it per key: a final verdict answers again and writes nothing; an `unknown` one
+ * runs only the verify read (`verify`). A GET answers the thread listing.
+ */
+function fakeDesk() {
+  const journal = new Map<string, SendVerdict>();
+  const d = {
+    /** The verdicts the next new keyed writes answer; a default `sent` after that. */
+    next: [] as SendVerdict[],
+    /** What the verify read finds for a key stored `unknown`; null = it still cannot tell. */
+    verify: null as SendVerdict | null,
+    writes: [] as Array<{ sendKey: string; idem: string | null; path: string }>,
+    /** Keys that came again and were answered from the journal. */
+    replays: [] as string[],
+    verifies: 0,
+    plain: 0,
+    /** A write waits on this before it answers. */
+    hold: null as Promise<void> | null,
+    /** Who commented in the thread. */
+    thread: [] as Array<{ id: string; author: string }>,
+    recheck(key: string, kept: SendVerdict): SendVerdict {
+      d.verifies += 1;
+      const v = d.verify ?? kept;
+      journal.set(key, v);
+      return v;
+    },
+    client: {
+      status: async () => ({ routes: [] }),
+      call: async (
+        req: { method: string; path: string; sendKey?: string },
+        opts?: { getOpts(): { idempotencyKey?: string } },
+      ): Promise<unknown> => {
+        if (req.method === "GET") {
+          const kids = d.thread.map((c) => ({
+            kind: "t1",
+            data: { name: c.id, author: c.author, body: "hi", parent_id: "t3_p1" },
+          }));
+          return [
+            { data: { children: [{ kind: "t3", data: { name: "t3_p1", author: "owner1" } }] } },
+            { data: { children: kids } },
+          ];
+        }
+        if (!req.sendKey) {
+          d.plain += 1;
+          return { json: { data: { things: [{ data: { name: "t1_plain" } }] } } };
+        }
+        const kept = journal.get(req.sendKey);
+        if (kept && kept.verdict !== "unknown") {
+          d.replays.push(req.sendKey);
+          return kept;
+        }
+        if (kept) return d.recheck(req.sendKey, kept);
+        if (d.hold) await d.hold;
+        d.writes.push({
+          sendKey: req.sendKey,
+          idem: opts?.getOpts().idempotencyKey ?? null,
+          path: req.path,
+        });
+        const v = d.next.shift() ?? sentV(`t1_${d.writes.length}`);
+        journal.set(req.sendKey, v);
+        return v;
+      },
+      verdict: async (req: { sendKey: string }): Promise<SendVerdict> => {
+        const kept = journal.get(req.sendKey);
+        if (!kept) return notSentV("before_submit", "no record of that key");
+        return kept.verdict === "unknown" ? d.recheck(req.sendKey, kept) : kept;
+      },
+    },
+  };
+  return d;
+}
+
 /** A stand-in Context: steps run inline, sleeps are counted, each one its own invocation. */
 let invocations = 0;
-function ctxOf(services: Record<string, unknown> = {}) {
+function ctxOf(services: Record<string, unknown> = {}, o: { lostAt?: string } = {}) {
   const id = `inv_${++invocations}`;
   const sleeps: number[] = [];
   const ctx = {
-    run: async (_name: string, fn: () => Promise<unknown>) => fn(),
+    run: async (name: string, fn: () => Promise<unknown>) => {
+      // A step the invocation never reached: it was killed here.
+      if (o.lostAt === name) throw new Error(`the invocation was lost at ${name}`);
+      return fn();
+    },
     sleep: async (ms: number) => {
       sleeps.push(ms);
     },
     date: { now: async () => NOW.getTime() },
     request: () => ({ id }),
     serviceClient: ({ name }: { name: string }) => services[name],
+    serviceSendClient: () => ({ check: () => {} }),
+    objectSendClient: () => ({ wake: () => {} }),
   };
   return { ctx: ctx as unknown as restate.Context, sleeps };
 }
 
-const comment = (ch: ReturnType<typeof fakeOutreachChannel>, again = false) => {
-  const { ctx } = ctxOf();
-  const findSent = ch.findSent;
+const ITEM = "thread:t3_p1";
+const WORDS = "Our words in the thread.";
+const refOf = (made: unknown): string | null =>
+  (made as { json?: { data?: { things?: Array<{ data?: { name?: string } }> } } })?.json?.data
+    ?.things?.[0]?.data?.name ?? null;
+
+/** The comment, sent through the real `restateSites` over the fake desk, under the ledger's key. */
+function comment(
+  desk: ReturnType<typeof fakeDesk>,
+  o: {
+    again?: boolean;
+    ctx?: ReturnType<typeof ctxOf>;
+    before?: () => Promise<void>;
+    after?: () => Promise<void>;
+  } = {},
+) {
+  const { ctx } = o.ctx ?? ctxOf({ [DESK.name]: desk.client });
+  const sites = restateSites(ctx, { caller: "test", service: DESK });
   return sendAtMostOnce(ctx, db(), {
-    item: "thread:t3_p1",
+    item: ITEM,
     platform: "reddit",
     account: "reddit@alt",
-    words: "Our words in the thread.",
+    words: WORDS,
     target: "t3_p1",
     url: "https://www.reddit.com/r/x/comments/p1/",
-    again,
-    look: findSent
-      ? (since) =>
-          findSent({ kind: "comment", to: "t3_p1", text: "Our words in the thread.", since })
-      : undefined,
-    send: () => ch.comment?.("t3_p1", "Our words in the thread.") ?? Promise.reject(),
+    again: o.again === true,
+    ...(o.before ? { before: o.before } : {}),
+    send: async () => {
+      const made = await sites.call("reddit", "POST", "/api/comment", {
+        thing_id: "t3_p1",
+        text: WORDS,
+      });
+      await o.after?.();
+      return { ref: refOf(made) };
+    },
   });
-};
+}
 
-describe("sendAtMostOnce", () => {
-  it("unknown outcome and our comment found: marked once, no second send", async () => {
-    const ch = fakeOutreachChannel("reddit");
-    ch.faults.push({ err: maybe(), landed: true });
-    const r = await comment(ch);
-    expect(r).toMatchObject({ ref: "fake_1", found: true });
-    expect(ch.sent).toHaveLength(1);
-    expect(await sendAttempt(db(), "thread:t3_p1")).toMatchObject({
-      state: "sent",
-      ref: "fake_1",
-      settledBy: "found",
-    });
-    // A later click finds it settled: nothing is sent.
-    expect(await comment(ch)).toMatchObject({ ref: "fake_1", found: true });
-    expect(ch.sent).toHaveLength(1);
+describe("sendAtMostOnce, under the desk's verdict", () => {
+  it("sent and verified: settled found once with its ref, never written again", async () => {
+    const desk = fakeDesk();
+    desk.next.push(sentV("t1_abc"));
+    expect(await comment(desk)).toMatchObject({ ref: "t1_abc", found: true });
+    expect(desk.writes).toHaveLength(1);
+    const row = await sendAttempt(db(), ITEM);
+    expect(row).toMatchObject({ state: "sent", ref: "t1_abc", settledBy: "found" });
+    // The write ran under the ledger row's key, and Restate's idempotency key is that same key.
+    const w = desk.writes[0];
+    expect(w?.sendKey.startsWith(`${row?.sendKey}`)).toBe(true);
+    expect(w?.idem).toBe(w?.sendKey);
+    expect(w?.path).toBe("/api/comment");
+    // A later click finds it settled: nothing is written.
+    expect(await comment(desk)).toMatchObject({ ref: "t1_abc", found: true });
+    expect(desk.writes).toHaveLength(1);
   });
 
-  it("not found after the settle: sent once more", async () => {
-    const ch = fakeOutreachChannel("reddit");
-    ch.faults.push({ err: maybe(), landed: false });
-    const r = await comment(ch);
-    expect(r.found).toBe(false);
-    expect(ch.sent).toHaveLength(1);
-    expect(await sendAttempt(db(), "thread:t3_p1")).toMatchObject({
+  it("sent with the official answer: its ref, settled by the send", async () => {
+    const desk = fakeDesk();
+    desk.next.push(sentV("t1_new", "answer"));
+    expect(await comment(desk)).toMatchObject({ ref: "t1_new", found: false });
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({
       state: "sent",
+      ref: "t1_new",
       settledBy: "sent",
     });
   });
 
-  it("unreadable: unsure, terminal, nothing sent again until a person says so", async () => {
-    const ch = fakeOutreachChannel("reddit");
-    ch.sight.blind = true;
-    ch.faults.push({ err: maybe(), landed: true });
-    const err = await comment(ch).catch((e: unknown) => e);
-    expect(isSendUnsure(err)).toBe(true);
-    expect(ch.sent).toHaveLength(1);
-    expect(await sendAttempt(db(), "thread:t3_p1")).toMatchObject({ state: "unsure" });
-    // A scheduled pass or a stray click is refused.
-    await expect(comment(ch)).rejects.toThrow(/may have gone out/);
-    expect(ch.sent).toHaveLength(1);
-    // Send again: it reads first, and the read still can't tell, so it sends.
-    ch.sight.blind = false;
-    expect(await comment(ch, true)).toMatchObject({ found: true });
-    expect(ch.sent).toHaveLength(1);
+  it("not sent: released, and the next pass sends under a new key", async () => {
+    for (const how of ["before_submit", "verified_absent"] as const) {
+      await db().delete(sendAttempts);
+      const desk = fakeDesk();
+      desk.next.push(notSentV(how, "the browser was busy"), sentV("t1_2"));
+      const err = await comment(desk).catch((e: unknown) => e);
+      expect(isSendNotSent(err)).toBe(true);
+      expect(err).toBeInstanceOf(restate.TerminalError);
+      expect((err as { how: string }).how).toBe(how);
+      expect(await sendAttempt(db(), ITEM)).toBeNull();
+      expect(await comment(desk)).toMatchObject({ ref: "t1_2", found: true });
+      const [first, second] = desk.writes;
+      expect(first?.sendKey).not.toBe(second?.sendKey);
+      expect(second?.sendKey.startsWith(`${ITEM} `)).toBe(true);
+    }
   });
 
-  it("a double invocation sends once", async () => {
-    const ch = fakeOutreachChannel("reddit");
+  it("unknown: unsure, terminal, nothing sleeps or writes again until a person says so", async () => {
+    const desk = fakeDesk();
+    desk.next.push(unknownV());
+    const run = ctxOf({ [DESK.name]: desk.client });
+    const err = await comment(desk, { ctx: run }).catch((e: unknown) => e);
+    expect(isSendUnsure(err)).toBe(true);
+    // Terminal: Restate neither retries nor pauses it.
+    expect(err).toBeInstanceOf(restate.TerminalError);
+    expect(run.sleeps).toEqual([]);
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({ state: "unsure" });
+    // A scheduled pass or a stray click is refused.
+    await expect(comment(desk)).rejects.toThrow(/may have gone out/);
+    expect(desk.writes).toHaveLength(1);
+    // A person's Send again is a new send under a new key.
+    desk.next.push(sentV("t1_5"));
+    expect(await comment(desk, { again: true })).toMatchObject({ ref: "t1_5", found: true });
+    expect(desk.writes).toHaveLength(2);
+    expect(desk.writes[0]?.sendKey).not.toBe(desk.writes[1]?.sendKey);
+  });
+
+  it("a take-over after a lost invocation runs under the same key: the desk replays, nothing is written twice", async () => {
+    const desk = fakeDesk();
+    desk.next.push(sentV("t1_abc"));
+    // The write landed and the invocation died before it settled.
+    const lost = ctxOf({ [DESK.name]: desk.client }, { lostAt: "settle send" });
+    await expect(comment(desk, { ctx: lost })).rejects.toThrow(/lost at settle send/);
+    const left = await sendAttempt(db(), ITEM);
+    expect(left).toMatchObject({ state: "sending" });
+    await db()
+      .update(sendAttempts)
+      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+    // The take-over: our own comment is in the thread, so a guard here would refuse it.
+    let guarded = 0;
+    const r = await comment(desk, {
+      before: async () => {
+        guarded += 1;
+        throw new restate.TerminalError("u/us already wrote in this thread");
+      },
+    });
+    expect(r).toMatchObject({ ref: "t1_abc", found: true });
+    expect(guarded).toBe(0);
+    expect(desk.writes).toHaveLength(1);
+    expect(desk.replays).toEqual([desk.writes[0]?.sendKey]);
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({
+      state: "sent",
+      ref: "t1_abc",
+      sendKey: left?.sendKey,
+    });
+  });
+
+  it("a take-over whose stored verdict is unknown asks the verify read; found settles it", async () => {
+    const desk = fakeDesk();
+    desk.next.push(unknownV());
+    // Unknown settled unsure, but this invocation died first.
+    const lost = ctxOf({ [DESK.name]: desk.client }, { lostAt: "unsure" });
+    await expect(comment(desk, { ctx: lost })).rejects.toThrow(/lost at unsure/);
+    await db()
+      .update(sendAttempts)
+      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+    desk.verify = sentV("t1_found");
+    expect(await comment(desk)).toMatchObject({ ref: "t1_found", found: true });
+    expect(desk.writes).toHaveLength(1);
+    expect(desk.verifies).toBeGreaterThan(0);
+  });
+
+  it("a take-over whose verify read still cannot tell stays unsure, with no second write", async () => {
+    const desk = fakeDesk();
+    desk.next.push(unknownV());
+    const lost = ctxOf({ [DESK.name]: desk.client }, { lostAt: "unsure" });
+    await expect(comment(desk, { ctx: lost })).rejects.toThrow(/lost at unsure/);
+    await db()
+      .update(sendAttempts)
+      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+    const err = await comment(desk).catch((e: unknown) => e);
+    expect(isSendUnsure(err)).toBe(true);
+    expect(desk.writes).toHaveLength(1);
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({ state: "unsure" });
+  });
+
+  it("an error after a write answered: unsure, never released for a blind second try", async () => {
+    const desk = fakeDesk();
+    desk.next.push(sentV("t1_abc", "answer"));
+    const err = await comment(desk, {
+      after: async () => {
+        throw new Error("the connection to the database dropped");
+      },
+    }).catch((e: unknown) => e);
+    expect(isSendUnsure(err)).toBe(true);
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({ state: "unsure" });
+    await expect(comment(desk)).rejects.toThrow(/may have gone out/);
+    expect(desk.writes).toHaveLength(1);
+  });
+
+  it("an error before any write answered releases the item", async () => {
+    const desk = fakeDesk();
+    const err = await comment(desk, {
+      before: async () => {
+        throw new Error("the thread read failed");
+      },
+    }).catch((e: unknown) => e);
+    expect(String(err)).toMatch(/the thread read failed/);
+    expect(await sendAttempt(db(), ITEM)).toBeNull();
+    expect(desk.writes).toHaveLength(0);
+  });
+
+  it("the platform said no: the refusal comes back as it was and the item is released", async () => {
+    const desk = fakeDesk();
+    desk.next.push(notSentV("refused", "banned from the sub", 403));
+    const err = await comment(desk).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SiteCallError);
+    expect(err).toMatchObject({ status: 403 });
+    expect(await sendAttempt(db(), ITEM)).toBeNull();
+  });
+
+  it("a double invocation writes once", async () => {
+    const desk = fakeDesk();
     let release = () => {};
-    const held = new Promise<void>((r) => {
+    desk.hold = new Promise<void>((r) => {
       release = r;
     });
-    const send = ch.comment?.bind(ch);
-    ch.comment = async (p, t) => {
-      await held;
-      return (send as NonNullable<typeof send>)(p, t);
-    };
-    const first = comment(ch);
+    const first = comment(desk);
     // Let the first claim before the second asks.
     await new Promise((r) => setTimeout(r, 50));
-    await expect(comment(ch)).rejects.toThrow(/already being sent/);
+    await expect(comment(desk)).rejects.toThrow(/already being sent/);
     release();
     await first;
-    expect(ch.sent).toHaveLength(1);
+    expect(desk.writes).toHaveLength(1);
+  });
+});
+
+describe("a Reddit comment, the whole way (ReachDesk commentThread)", () => {
+  const DAY = 86_400_000;
+  const READ = {
+    about: {
+      display_name: "agency",
+      title: "agency",
+      subscribers: 40_000,
+      subreddit_type: "public",
+    },
+    rules: { rules: [{ short_name: "Be kind", description: "" }] },
+    top: [],
+    latest: [],
+  };
+  const JUDGED = {
+    fit: 8,
+    why: "Owners ask about hiring",
+    rules: "No self-promo",
+    mayComment: true,
+    mayPost: true,
+    linkOnly: true,
+    karmaMin: null,
+    ageMinDays: null,
+    postsADay: 12,
+    medianComments: 6,
+  };
+
+  /** A queued thread with a draft, in a watched place, on an account that may comment. */
+  async function queuedThread() {
+    const a = await addAccount(db(), { platform: "reddit", account: "reddit@wren", now: NOW });
+    const ch = fakeOutreachChannel("reddit", { account: "reddit@wren", now: () => NOW });
+    ch.setHealth({
+      handle: "WrenAutomation",
+      createdAt: new Date(NOW.getTime() - 120 * DAY).toISOString(),
+      karma: 300,
+    });
+    await refreshHealth(db(), [a], () => ch, NOW);
+    await setAccountState(db(), a.id, "active", { reason: null, now: NOW });
+    await addPlaces(db(), [{ name: "agency", foundBy: "named" }]);
+    await keepPlace(db(), "agency", READ, JUDGED, NOW);
+    await watchPlace(db(), "agency", NOW);
+    await keepThreads(
+      db(),
+      "agency",
+      [
+        {
+          id: "p1",
+          name: "t3_p1",
+          title: "How do I stop chasing invoices",
+          selftext: "We are a 10 person agency and invoices slip.",
+          author: "owner1",
+          permalink: "/r/agency/comments/p1/x/",
+          created_utc: NOW.getTime() / 1000 - 3600,
+          num_comments: 2,
+        },
+      ],
+      { now: NOW, ours: [], judged: JUDGED },
+    );
+    await db()
+      .update(redditThreads)
+      .set({ state: "queued", draft: WORDS, target: "t1_ask" })
+      .where(eq(redditThreads.id, "t3_p1"));
+  }
+
+  const run = (desk: ReturnType<typeof fakeDesk>, o: { lostAt?: string; again?: boolean } = {}) => {
+    const c = ctxOf({ [DESK.name]: desk.client }, o.lostAt ? { lostAt: o.lostAt } : {});
+    const deps = {
+      db: db(),
+      policy: DEFAULT_POLICY,
+      sequences: REACH_SEQUENCES,
+      live: true,
+      senderName: "William",
+      heldNiches: [],
+      sitesFor: (ctx: restate.Context) => restateSites(ctx, { caller: "test", service: DESK }),
+      clock: () => NOW,
+    } as unknown as ReachDeps;
+    const go = discoveryHandlers(deps).commentThread as unknown as (
+      ctx: restate.Context,
+      req: { id: string; again?: boolean },
+    ) => Promise<{ ref: string | null }>;
+    return { sleeps: c.sleeps, result: go(c.ctx, { id: "t3_p1", again: o.again === true }) };
+  };
+  const thread = () =>
+    db()
+      .select()
+      .from(redditThreads)
+      .where(eq(redditThreads.id, "t3_p1"))
+      .then((r) => r[0]);
+
+  it("10-15: the desk answers sent and verified: settled found once, no second write, no retry", async () => {
+    await queuedThread();
+    const desk = fakeDesk();
+    desk.next.push(sentV("t1_abc"));
+    const r = run(desk);
+    expect(await r.result).toEqual({ ref: "t1_abc" });
+    expect(r.sleeps).toEqual([]);
+    expect(desk.writes).toHaveLength(1);
+    // The call carried its key, and the desk was never asked a second time.
+    expect(desk.writes[0]?.idem).toBe(desk.writes[0]?.sendKey);
+    expect(desk.replays).toEqual([]);
+    expect(await thread()).toMatchObject({
+      state: "commented",
+      answerRef: "t1_abc",
+      answer: WORDS,
+    });
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({
+      state: "sent",
+      ref: "t1_abc",
+      settledBy: "found",
+    });
   });
 
-  it("a refusal releases the item: it sends as if never tried", async () => {
-    const ch = fakeOutreachChannel("reddit");
-    ch.faults.push({
-      err: new SiteCallError("reddit", "POST", "/api/comment", 403, "banned"),
-      landed: false,
-    });
-    await expect(comment(ch)).rejects.toThrow(/banned/);
-    expect(await sendAttempt(db(), "thread:t3_p1")).toBeNull();
+  it("a lost invocation is taken over under the same key: one write, the thread guard does not refuse", async () => {
+    await queuedThread();
+    const desk = fakeDesk();
+    desk.next.push(sentV("t1_abc"));
+    await expect(run(desk, { lostAt: "settle send" }).result).rejects.toThrow(/lost at/);
+    expect(await thread()).toMatchObject({ state: "queued" });
+    await db()
+      .update(sendAttempts)
+      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+    // Our own comment is in the thread now: a first send would be refused.
+    desk.thread.push({ id: "t1_abc", author: "WrenAutomation" });
+    expect(await run(desk).result).toEqual({ ref: "t1_abc" });
+    expect(desk.writes).toHaveLength(1);
+    expect(desk.replays).toHaveLength(1);
+    expect(await thread()).toMatchObject({ state: "commented", answerRef: "t1_abc" });
+  });
+
+  it("the guard still refuses a first send when one of our accounts is in the thread", async () => {
+    await queuedThread();
+    const desk = fakeDesk();
+    desk.thread.push({ id: "t1_x", author: "WrenAutomation" });
+    await expect(run(desk).result).rejects.toThrow(/already wrote in this thread/);
+    expect(desk.writes).toHaveLength(0);
+    expect(await sendAttempt(db(), ITEM)).toBeNull();
+    expect(await thread()).toMatchObject({ state: "queued" });
+  });
+
+  it("not sent: the thread stays queued and the next pass sends under a new key", async () => {
+    await queuedThread();
+    const desk = fakeDesk();
+    desk.next.push(notSentV("before_submit", "the browser was busy"));
+    const err = await run(desk).result.catch((e: unknown) => e);
+    expect(isSendNotSent(err)).toBe(true);
+    expect(await sendAttempt(db(), ITEM)).toBeNull();
+    expect(await thread()).toMatchObject({ state: "queued" });
+    expect(await run(desk).result).toMatchObject({ ref: "t1_2" });
+    expect(desk.writes[0]?.sendKey).not.toBe(desk.writes[1]?.sendKey);
+    expect(await thread()).toMatchObject({ state: "commented", answerRef: "t1_2" });
+  });
+
+  it("unknown: parked unsure, the thread stays queued, no sleep, no second write; drop closes it", async () => {
+    await queuedThread();
+    const desk = fakeDesk();
+    desk.next.push(unknownV());
+    const r = run(desk);
+    const err = await r.result.catch((e: unknown) => e);
+    expect(isSendUnsure(err)).toBe(true);
+    expect(r.sleeps).toEqual([]);
+    expect(await thread()).toMatchObject({ state: "queued" });
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({ state: "unsure" });
+    await expect(run(desk).result).rejects.toThrow(/may have gone out/);
+    expect(desk.writes).toHaveLength(1);
+    // "Not sent, drop": the thread is skipped and the ledger row goes.
+    await dropItem(db(), ITEM, { by: "test@example.com", now: NOW });
+    expect(await thread()).toMatchObject({ state: "skipped" });
+    expect(await sendAttempt(db(), ITEM)).toBeNull();
+    await expect(run(desk).result).rejects.toThrow(/that thread is skipped/);
+    expect(desk.writes).toHaveLength(1);
+  });
+
+  it("a platform refusal is terminal with its status, and the item is released", async () => {
+    await queuedThread();
+    const desk = fakeDesk();
+    desk.next.push(notSentV("refused", "banned from the sub", 403));
+    const err = await run(desk).result.catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(restate.TerminalError);
+    expect(err).toMatchObject({ code: 403 });
+    expect(await sendAttempt(db(), ITEM)).toBeNull();
+    expect(await thread()).toMatchObject({ state: "queued" });
   });
 });
 
@@ -188,19 +608,28 @@ describe("the sender's DMs", () => {
   const SEQ = REACH_SEQUENCES.get("reddit-dm");
   if (!SEQ) throw new Error("reddit-dm");
   let ch: ReturnType<typeof fakeOutreachChannel>;
+  /** The key each message send ran under. */
+  let keys: Array<string | null>;
   const channelFor = (_a: ReachAccount) => ch;
-  const tickNow = () =>
+  const tickAt = (now: Date) =>
     tick(db(), {
       channelFor,
       policy: { ...DEFAULT_POLICY, gapSeconds: 0 },
       sequences: REACH_SEQUENCES,
       sender: "William",
       live: true,
-      now: NOW,
+      now,
     });
+  const tickNow = () => tickAt(NOW);
 
   beforeEach(async () => {
     ch = fakeOutreachChannel("reddit", { account: "reddit@alt" });
+    keys = [];
+    const send = ch.message.bind(ch);
+    ch.message = async (...a) => {
+      keys.push(currentSendKey());
+      return send(...a);
+    };
     const slots = slotsOf(REACH_SEQUENCES.values());
     const set = (key: string, body: string) =>
       setTemplate(db(), { slots, sender: "William" }, { key, body, by: "test" });
@@ -215,8 +644,8 @@ describe("the sender's DMs", () => {
     await enroll(db(), { sequence: SEQ, sender: "William", limit: 1, now: NOW });
   });
 
-  it("found after an unknown outcome: recorded sent, sent once", async () => {
-    ch.faults.push({ err: maybe(), landed: true });
+  it("the desk found it after a lost answer: recorded sent, sent once", async () => {
+    ch.faults.push({ err: new SentFound("msg_1", null, AT), landed: true });
     const stats = await tickNow();
     expect(stats.sent).toBe(1);
     expect(ch.sent).toHaveLength(1);
@@ -224,15 +653,17 @@ describe("the sender's DMs", () => {
     expect(m?.state).toBe("sent");
   });
 
-  it("unreadable: unknown, unsure in To approve; Mark posted moves it on", async () => {
-    ch.sight.blind = true;
-    ch.faults.push({ err: maybe(), landed: true });
+  it("unknown: the message is unknown, unsure in To approve with its key; Mark posted moves it on", async () => {
+    ch.faults.push({ err: new SendUnknown("the page did not confirm", AT), landed: true });
     const stats = await tickNow();
     expect(stats.failed).toBe(1);
     const [m] = await db().select().from(reachMessages);
     expect(m?.state).toBe("unknown");
     const item = `dm:${m?.id}`;
-    expect(await sendAttempt(db(), item)).toMatchObject({ state: "unsure", target: "dana_test" });
+    const row = await sendAttempt(db(), item);
+    expect(row).toMatchObject({ state: "unsure", target: "dana_test" });
+    expect(row?.sendKey).toBe(keys[0]);
+    expect(row?.sendKey?.startsWith(`${item} `)).toBe(true);
     // Nothing resends it.
     await tickNow();
     expect(ch.sent).toHaveLength(1);
@@ -254,15 +685,160 @@ describe("the sender's DMs", () => {
     });
   });
 
+  it("not sent: the row waits five minutes and goes again under a new key", async () => {
+    ch.faults.push({ err: new NotSent("before_submit", "the browser was busy"), landed: false });
+    const stats = await tickNow();
+    expect(stats.held["not-sent"]).toBe(1);
+    expect(stats.failed).toBe(0);
+    const [m] = await db().select().from(reachMessages);
+    expect(m).toMatchObject({ state: "queued" });
+    expect(m?.dueAt?.getTime()).toBe(NOW.getTime() + 5 * 60_000);
+    expect(await sendAttempt(db(), `dm:${m?.id}`)).toBeNull();
+    // Too soon: nothing goes. Later: it goes, under a different key.
+    await tickNow();
+    expect(keys).toHaveLength(1);
+    expect((await tickAt(new Date(NOW.getTime() + 6 * 60_000))).sent).toBe(1);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+
+  it("the platform said no: the message fails and the contact is unreachable", async () => {
+    ch.faults.push({ err: new NotSent("refused", "blocked", 403), landed: false });
+    const stats = await tickNow();
+    expect(stats.failed).toBe(1);
+    const [m] = await db().select().from(reachMessages);
+    expect(m?.state).toBe("failed");
+    const [c] = await db().select().from(reachContacts);
+    expect(c?.state).toBe("unreachable");
+  });
+
   it("Send again puts it back in the sender's queue", async () => {
-    ch.sight.blind = true;
-    ch.faults.push({ err: maybe(), landed: false });
+    ch.faults.push({ err: new SendUnknown("the page did not confirm", AT), landed: false });
     await tickNow();
     const [m] = await db().select().from(reachMessages);
     await requeueDm(db(), m?.id ?? 0, NOW);
     expect(await sendAttempt(db(), `dm:${m?.id}`)).toBeNull();
     expect((await tickNow()).sent).toBe(1);
     expect(ch.sent).toHaveLength(1);
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+
+  it("Not sent, drop: the message is skipped, the contact finished, the ledger row gone", async () => {
+    ch.faults.push({ err: new SendUnknown("the page did not confirm", AT), landed: false });
+    await tickNow();
+    const [m] = await db().select().from(reachMessages);
+    const item = `dm:${m?.id}`;
+    await dropItem(db(), item, { by: "test@example.com", now: NOW });
+    const [after] = await db().select().from(reachMessages);
+    expect(after?.state).toBe("skipped");
+    const [c] = await db().select().from(reachContacts);
+    expect(c?.state).toBe("finished");
+    expect(await sendAttempt(db(), item)).toBeNull();
+    // Nothing resends it, and a second drop finds nothing waiting.
+    await tickNow();
+    expect(ch.sent).toHaveLength(0);
+    await expect(dropItem(db(), item, { by: "x", now: NOW })).rejects.toThrow(/nothing waits/);
+  });
+});
+
+describe("Not sent, drop, for each kind of item", () => {
+  const park = (item: string, platform = "linkedin") =>
+    parkUnsure(db(), {
+      item,
+      platform,
+      account: null,
+      words: "Draft",
+      target: "t",
+      url: null,
+      why: "may have gone out",
+      tries: 1,
+      now: NOW,
+    });
+  const onePost = async () => {
+    const [p] = await db()
+      .insert(reachPosts)
+      .values({
+        platform: "linkedin",
+        ref: "urn:li:activity:1",
+        author: "Author",
+        text: "Post",
+        url: "https://example.com/1",
+        postedAt: new Date(NOW.getTime() - 3_600_000),
+        foundBy: "topic: synthetic",
+        account: "linkedin@wren",
+        state: "queued",
+        draft: "Draft",
+        queuedAt: NOW,
+        raw: {},
+      })
+      .returning({ id: reachPosts.id });
+    return p?.id ?? 0;
+  };
+  const oneComment = async (state: "new" | "waiting" = "waiting") => {
+    const [c] = await db()
+      .insert(comments)
+      .values({
+        platform: "instagram",
+        channel: "content",
+        ref: "c1",
+        post: "p1",
+        parent: "p1",
+        kind: "post_reply",
+        postTitle: "Synthetic post",
+        author: "reader1",
+        body: "How do I set this up?",
+        url: "https://example.test/c1",
+        at: new Date(NOW.getTime() - 3_600_000),
+        raw: {},
+        sort: "asked",
+        draft: "Here you go.",
+        state,
+      })
+      .returning({ id: comments.id });
+    return c?.id ?? 0;
+  };
+
+  it("the accepted outcomes are posted, again and dropped", () => {
+    expect([...SETTLE_OUTCOMES]).toEqual(["posted", "again", "dropped"]);
+  });
+
+  it("an on-post comment: skipped, as a skip in To approve does", async () => {
+    const id = await onePost();
+    await park(`onpost:${id}`);
+    await dropItem(db(), `onpost:${id}`, { by: "test@example.com", now: NOW });
+    const [p] = await db().select().from(reachPosts).where(eq(reachPosts.id, id));
+    expect(p).toMatchObject({ state: "skipped", stateReason: "skipped in To approve" });
+    expect(await sendAttempt(db(), `onpost:${id}`)).toBeNull();
+  });
+
+  it("a comment answer: dropped, the ledger row gone", async () => {
+    const id = await oneComment();
+    await park(`comment:${id}`, "instagram");
+    await dropItem(db(), `comment:${id}`, { by: "test@example.com", now: NOW });
+    expect((await commentById(db(), id)).state).toBe("dropped");
+    expect(await sendAttempt(db(), `comment:${id}`)).toBeNull();
+  });
+
+  it("a private reply: only the ledger row goes, the comment it answers stays as it was", async () => {
+    const id = await oneComment();
+    await park(`private:${id}`, "instagram");
+    await dropItem(db(), `private:${id}`, { by: "test@example.com", now: NOW });
+    expect((await commentById(db(), id)).state).toBe("waiting");
+    expect(await sendAttempt(db(), `private:${id}`)).toBeNull();
+  });
+
+  it("a client's DM and a post of ours close in their own desks: here they are refused and stay", async () => {
+    for (const item of ["sdm:5", "draft:9"]) {
+      await park(item, "x");
+      await expect(dropItem(db(), item, { by: "x", now: NOW })).rejects.toThrow(/settles in/);
+      expect(await sendAttempt(db(), item)).toMatchObject({ state: "unsure" });
+    }
+  });
+
+  it("an item nothing waits on is refused", async () => {
+    await expect(dropItem(db(), "thread:t3_none", { by: "x", now: NOW })).rejects.toThrow(
+      /nothing waits/,
+    );
   });
 });
 
@@ -292,7 +868,7 @@ describe("the scheduler", () => {
       words: "Draft",
       target: "urn:li:activity:1",
       url: "https://example.com/1",
-      why: "may have gone through",
+      why: "may have gone out",
       tries: 1,
       now: NOW,
     });
@@ -306,66 +882,7 @@ describe("the scheduler", () => {
   });
 });
 
-describe("an X reply, read back by a search of our own posts", () => {
-  const WORDS = "Our words under their post.";
-  const X_MAYBE = new SiteCallError("x", "POST", "/2/tweets", 502, "may have gone through");
-  /** X as `Content.findReply` reads it: ours once it landed, else search can't say yet. */
-  const x = { landed: false, posted: 0, asked: [] as unknown[] };
-  const content = {
-    comments: async (): Promise<CommentRow[]> => [],
-    findReply: async (req: unknown): Promise<Seen> => {
-      x.asked.push(req);
-      return x.landed
-        ? { kind: "found", ref: "x_9", at: NOW.toISOString(), url: "https://x.com/i/status/x_9" }
-        : { kind: "unclear", why: "X search may not show a fresh reply yet" };
-    },
-  };
-  const reply = (landed: boolean, again = false) => {
-    const { ctx } = ctxOf({ Content: content });
-    return sendAtMostOnce(ctx, db(), {
-      item: "onpost:7",
-      platform: "x",
-      account: null,
-      words: WORDS,
-      target: "x_1",
-      url: "https://x.com/someone_1/status/x_1",
-      again,
-      look: contentLook(ctx, {
-        platform: "x",
-        post: "x_1",
-        parent: null,
-        to: "someone_1",
-        text: WORDS,
-      }),
-      send: async () => {
-        x.posted += 1;
-        x.landed = landed;
-        throw X_MAYBE;
-      },
-    });
-  };
-  beforeEach(() => {
-    Object.assign(x, { landed: false, posted: 0, asked: [] });
-  });
-
-  it("found after an unknown outcome: marked once, with its ref, never sent again", async () => {
-    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
-    expect(x.asked[0]).toMatchObject({ platform: "x", on: "x_1", to: "someone_1", text: WORDS });
-    expect(await sendAttempt(db(), "onpost:7")).toMatchObject({ state: "sent", ref: "x_9" });
-    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
-    expect(x.posted).toBe(1);
-  });
-
-  it("search can't see it: unsure, a second invocation sends nothing", async () => {
-    expect(isSendUnsure(await reply(false).catch((e: unknown) => e))).toBe(true);
-    const again = await reply(false).catch((e: unknown) => e);
-    expect(isSendTaken(again)).toBe(true);
-    expect(x.posted).toBe(1);
-    expect(await sendAttempt(db(), "onpost:7")).toMatchObject({ state: "unsure" });
-  });
-});
-
-describe("a private reply (private:), with nothing to read it back", () => {
+describe("a private reply (private:), with no key to ask: the desk says unknown", () => {
   const WORDS = "Here is the setup guide.";
   async function ourComment() {
     const [c] = await db()
@@ -398,14 +915,13 @@ describe("a private reply (private:), with nothing to read it back", () => {
       url: "https://example.test/c1",
       send,
     });
-  const META_MAYBE = new SiteCallError("meta", "POST", "/p1/messages", 504, "timed out");
 
   it("unknown outcome: unsure at once; Mark posted records the DM as a send would", async () => {
     const id = await ourComment();
     let sent = 0;
     const err = await privately(id, async () => {
       sent += 1;
-      throw META_MAYBE;
+      throw new SendUnknown("the page did not confirm", AT);
     }).catch((e: unknown) => e);
     expect(isSendUnsure(err)).toBe(true);
     expect(sent).toBe(1);
@@ -450,7 +966,73 @@ describe("a private reply (private:), with nothing to read it back", () => {
   });
 });
 
-describe("a private reply (private:), read back from the Page's inbox", () => {
+describe("a client's X reply, read back by a search of the client's own posts", () => {
+  const WORDS = "Our words under their post.";
+  const X_MAYBE = new SiteCallError("x", "POST", "/2/tweets", 502, "timed out");
+  /** X as `Content.findReply` reads it: ours once it landed, else search can't say yet. */
+  const x = { landed: false, posted: 0, asked: [] as unknown[] };
+  const content = {
+    comments: async (): Promise<CommentRow[]> => [],
+    findReply: async (req: unknown): Promise<Seen> => {
+      x.asked.push(req);
+      return x.landed
+        ? { kind: "found", ref: "x_9", at: NOW.toISOString(), url: "https://x.com/i/status/x_9" }
+        : { kind: "unclear", why: "X search may not show a fresh reply yet" };
+    },
+  };
+  const reply = (landed: boolean, again = false) => {
+    const { ctx } = ctxOf({ Content: content });
+    return sendAtMostOnce(ctx, db(), {
+      item: "comment:7",
+      platform: "x",
+      account: null,
+      words: WORDS,
+      target: "x_1",
+      url: "https://x.com/someone_1/status/x_1",
+      again,
+      look: contentLook(ctx, {
+        platform: "x",
+        post: "x_1",
+        parent: null,
+        to: "someone_1",
+        text: WORDS,
+        client: "client_test",
+      }),
+      send: async () => {
+        x.posted += 1;
+        x.landed = landed;
+        throw X_MAYBE;
+      },
+    });
+  };
+  beforeEach(() => {
+    Object.assign(x, { landed: false, posted: 0, asked: [] });
+  });
+
+  it("found after a failure that may have gone out: marked once, with its ref, never sent again", async () => {
+    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
+    expect(x.asked[0]).toMatchObject({
+      platform: "x",
+      on: "x_1",
+      to: "someone_1",
+      text: WORDS,
+      client: "client_test",
+    });
+    expect(await sendAttempt(db(), "comment:7")).toMatchObject({ state: "sent", ref: "x_9" });
+    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
+    expect(x.posted).toBe(1);
+  });
+
+  it("search can't see it: unsure, a second invocation sends nothing", async () => {
+    expect(isSendUnsure(await reply(false).catch((e: unknown) => e))).toBe(true);
+    const again = await reply(false).catch((e: unknown) => e);
+    expect(isSendTaken(again)).toBe(true);
+    expect(x.posted).toBe(1);
+    expect(await sendAttempt(db(), "comment:7")).toMatchObject({ state: "unsure" });
+  });
+});
+
+describe("a client's private reply (private:), read back from the Page's inbox", () => {
   const WORDS = "Here is the setup guide you asked for.";
   const META_MAYBE = new SiteCallError("meta", "POST", "/p1/messages", 504, "timed out");
   /** The Page's inbox as `Content.findPrivateReply` reads it; null = the read fails. */
@@ -465,7 +1047,8 @@ describe("a private reply (private:), read back from the Page's inbox", () => {
       },
     ],
   });
-  const privately = (landed: unknown) =>
+  /** `unsure` is the journaled client's answer to an error after a write: SendUnknown. */
+  const privately = (landed: unknown, unsure = false) =>
     sendAtMostOnce(ctxOf().ctx, db(), {
       item: "private:9",
       platform: "instagram",
@@ -480,7 +1063,7 @@ describe("a private reply (private:), read back from the Page's inbox", () => {
       send: async () => {
         sent += 1;
         inbox = landed;
-        throw META_MAYBE;
+        throw unsure ? new SendUnknown(META_MAYBE.message, NOW.toISOString()) : META_MAYBE;
       },
     });
   beforeEach(() => {
@@ -488,7 +1071,7 @@ describe("a private reply (private:), read back from the Page's inbox", () => {
     sent = 0;
   });
 
-  it("in their conversation after an unknown outcome: marked once with the message's id", async () => {
+  it("in their conversation after a failure that may have gone out: marked once with the message's id", async () => {
     expect(await privately(ours("2026-10-01T18:00:05+0000"))).toMatchObject({
       ref: "m_7",
       found: true,
@@ -497,100 +1080,14 @@ describe("a private reply (private:), read back from the Page's inbox", () => {
     expect(sent).toBe(1);
   });
 
-  it("a whole inbox without it: sent once more, then unsure; a failed read: unsure at once", async () => {
-    expect(isSendUnsure(await privately({ data: [] }).catch((e: unknown) => e))).toBe(true);
-    expect(sent).toBe(2);
+  it("not in the inbox, or the read fails: unsure, never sent again", async () => {
+    expect(isSendUnsure(await privately({ data: [] }, true).catch((e: unknown) => e))).toBe(true);
+    expect(sent).toBe(1);
     await db().delete(sendAttempts);
     sent = 0;
-    expect(isSendUnsure(await privately(null).catch((e: unknown) => e))).toBe(true);
+    expect(isSendUnsure(await privately(null, true).catch((e: unknown) => e))).toBe(true);
     expect(sent).toBe(1);
     expect(await sendAttempt(db(), "private:9")).toMatchObject({ state: "unsure" });
-  });
-});
-
-describe("an Instagram comment (onpost:), read back off the post page", () => {
-  const WORDS = "Lovely light in this one, where was it taken?";
-  const IG_MAYBE = new SiteCallError(
-    "instagram",
-    "POST",
-    "/web/p/AbC123/comments",
-    504,
-    "timed out",
-  );
-  /** The post's comments as autobrowse reads them as our account. */
-  const page = {
-    landed: false,
-    /** Our comment shows in the read once it lands. */
-    shows: true,
-    viewer: "our_acct" as string | null,
-    more: false,
-    posted: 0,
-  };
-  const asked: unknown[] = [];
-  const sites = {
-    call: async (_site: string, method: string, path: string, input: unknown, account?: string) => {
-      asked.push([method, path, input, account]);
-      return {
-        url: "https://www.instagram.com/p/AbC123/",
-        viewer: page.viewer,
-        more: page.more,
-        comments: [
-          { id: "1", text: "Nice", at: "2026-10-01T17:00:00.000Z", mine: false },
-          ...(page.landed && page.shows
-            ? [{ id: "2", text: WORDS, at: "2026-10-01T18:00:04.000Z", mine: true }]
-            : []),
-        ],
-      };
-    },
-  } as unknown as SiteClient;
-  const comment = () =>
-    sendAtMostOnce(ctxOf().ctx, db(), {
-      item: "onpost:8",
-      platform: "instagram",
-      account: "instagram@alt",
-      words: WORDS,
-      target: "AbC123",
-      url: "https://www.instagram.com/p/AbC123/",
-      look: igCommentLook(sites, { shortcode: "AbC123", text: WORDS, account: "instagram@alt" }),
-      send: async () => {
-        page.posted += 1;
-        page.landed = true;
-        throw IG_MAYBE;
-      },
-    });
-  beforeEach(() => {
-    Object.assign(page, { landed: false, shows: true, viewer: "our_acct", more: false, posted: 0 });
-    asked.length = 0;
-  });
-
-  it("ours after an unknown outcome: marked once, read as the sending account", async () => {
-    expect(await comment()).toMatchObject({ ref: "2", found: true });
-    expect(asked[0]).toEqual([
-      "GET",
-      "/web/p/AbC123/comments",
-      { shortcode: "AbC123" },
-      "instagram@alt",
-    ]);
-    expect(await sendAttempt(db(), "onpost:8")).toMatchObject({ state: "sent", ref: "2" });
-    expect(page.posted).toBe(1);
-  });
-
-  it("not in the whole list: sent once more, then unsure", async () => {
-    page.shows = false;
-    expect(isSendUnsure(await comment().catch((e: unknown) => e))).toBe(true);
-    expect(page.posted).toBe(2);
-  });
-
-  it("a ranked list cut short, or no viewer: unsure, never a second send", async () => {
-    page.shows = false;
-    page.more = true;
-    expect(isSendUnsure(await comment().catch((e: unknown) => e))).toBe(true);
-    expect(page.posted).toBe(1);
-    await db().delete(sendAttempts);
-    Object.assign(page, { more: false, viewer: null, posted: 0 });
-    expect(isSendUnsure(await comment().catch((e: unknown) => e))).toBe(true);
-    expect(page.posted).toBe(1);
-    expect(await sendAttempt(db(), "onpost:8")).toMatchObject({ state: "unsure" });
   });
 });
 
@@ -625,7 +1122,7 @@ describe("a client's DM answer (sdm:), read back from its conversation", () => {
     convo.messages = convo.messages.slice(0, 1);
   });
 
-  it("found after an unknown outcome: marked once, never sent again", async () => {
+  it("found after a failure that may have gone out: marked once, never sent again", async () => {
     let sent = 0;
     const lands = async () => {
       sent += 1;
@@ -638,15 +1135,37 @@ describe("a client's DM answer (sdm:), read back from its conversation", () => {
     expect(await sendAttempt(db(), "sdm:41")).toMatchObject({ state: "sent", settledBy: "found" });
   });
 
-  it("not there and the read reaches back past the send: sent once more", async () => {
+  it("not in the conversation: unsure, never sent again until a person says so", async () => {
     let sent = 0;
-    const once = async () => {
+    const err = await answer(async () => {
       sent += 1;
-      if (sent === 1) throw X_MAYBE;
-      return { ref: "e3" };
-    };
-    expect(await answer(once)).toMatchObject({ ref: "e3", found: false });
-    expect(sent).toBe(2);
+      throw new SendUnknown(X_MAYBE.message, NOW.toISOString());
+    }).catch((e: unknown) => e);
+    expect(isSendUnsure(err)).toBe(true);
+    expect(sent).toBe(1);
+  });
+
+  it("a refusal (the platform said no) is released, not looked for", async () => {
+    let reads = 0;
+    convo.messages = convo.messages.slice(0, 1);
+    const err = await sendAtMostOnce(ctxOf().ctx, db(), {
+      item: "sdm:42",
+      platform: "x",
+      account: "social:3",
+      words: WORDS,
+      target: "patient_test",
+      url: "https://x.com/patient_test",
+      look: async () => {
+        reads += 1;
+        return { kind: "absent" };
+      },
+      send: async () => {
+        throw new SiteCallError("x", "POST", "/2/dm_conversations", 403, "forbidden");
+      },
+    }).catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 403 });
+    expect(reads).toBe(0);
+    expect(await sendAttempt(db(), "sdm:42")).toBeNull();
   });
 
   it("unreadable: unsure, a second invocation sends nothing", async () => {

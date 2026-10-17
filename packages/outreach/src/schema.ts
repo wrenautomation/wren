@@ -858,7 +858,7 @@ export type CommentProofRow = typeof commentProofs.$inferSelect;
  * One send that must land at most once (designs/2026-10-16-maybe-sent.md): a thread comment, an
  * answer, a comment on someone's post, a DM. `sending` while a call is out (a second invocation
  * is refused); `sent` once it went out or our words were found on the site; `unsure` when a send
- * may have gone through and no read could tell. Unsure waits in To approve for a person: open it
+ * may have gone out and no read could tell. Unsure waits in To approve for a person: open it
  * on the site, mark it posted, or send it again. Nothing resends it by itself.
  */
 export const SEND_ATTEMPT_STATES = ["sending", "sent", "unsure"] as const;
@@ -882,6 +882,12 @@ export const sendAttempts = pgTable(
     tries: smallint("tries").notNull().default(0),
     /** The invocation holding it while `sending`. */
     invocation: varchar("invocation", { length: 120 }),
+    /**
+     * This send's key (designs/2026-10-16-send-verdicts.md): autobrowse keeps one verdict per
+     * key. A claim makes it, a take-over keeps it, a send again makes a new one. Null on a row
+     * from before keys, or one parked without a send.
+     */
+    sendKey: varchar("send_key", { length: 200 }),
     /** The platform's id for what went out, when found or given. */
     ref: varchar("ref", { length: 200 }),
     sentAt: timestamp("sent_at", { withTimezone: true }),
