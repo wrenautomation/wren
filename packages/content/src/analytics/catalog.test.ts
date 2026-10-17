@@ -4,6 +4,7 @@ import {
   ANALYTICS_CATALOG,
   CADENCE_GOALS,
   CATALOG_TABLES,
+  type CadenceGoal,
   catalogCounts,
   countsFor,
   entriesFor,
@@ -132,8 +133,8 @@ describe("what counts toward a posting goal", () => {
     const page = CADENCE_GOALS.find((g) => g.id === "facebook-post");
     expect(page && countsFor(page, "facebook", "post")).toBe(true);
     expect(page && countsFor(page, "facebook", "reel")).toBe(false);
-    const profile = {
-      ...(page as NonNullable<typeof page>),
+    const profile: CadenceGoal = {
+      ...(page as CadenceGoal),
       id: "gbp",
       platform: "google_business",
     };
