@@ -131,7 +131,6 @@ export function domainStandings(
   return Promise.all(targets.map((t) => domainStanding(t, resolver)));
 }
 
-
 type Check = [name: string, ok: boolean, why: string];
 
 /** The DNS checks in digest order. */
