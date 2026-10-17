@@ -28,7 +28,7 @@ Citations: `scripts/loadtest.mjs:1`
 ## Connected to
 
 - **reads:** [[platform/worker]] (runs it), [[platform/records]] (`portal-reads` calls `ConsolePortal/recordsList`)
-- **looks-like-but-is-not:** the integration tests (correctness on one Postgres per file, no Restate); the drift and schema gates
+- **looks-like-but-is-not:** the integration tests (correctness on one Postgres per package run and a clone per file, no Restate); the drift and schema gates
 
 ## If you change this
 

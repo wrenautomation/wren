@@ -70,11 +70,22 @@ offers() {
   else echo "==> offers snapshot: no ../lander, skipped"; fi
 }
 unit() { echo "==> unit tests" && pnpm turbo run test:unit $WIDE; }
-# Every integration file starts its own Postgres and migrates it. Vitest's default (cpus - 1 files at once)
-# times 3 packages put ~27 containers on the Docker VM together, and setup hooks timed out at 180 s.
+# One Postgres per package run, not per file (packages/db/src/testing-global-setup.ts): it migrates a
+# template once, and each file clones it in about half a second. About 50 files change what a whole
+# server shares (logins, client databases, settings) and keep a Postgres of their own: `{ own: true }`.
+# Two knobs. Turbo runs PACKAGES packages at once; vitest runs FILES test files at once in each.
+# The work is CPU, not memory: a full run peaks near 5 GB, with 10 cores and an 8 GB Docker VM on the
+# Mac. 3 x 3 took 6.3 to 7.7 min, 3 x 4 took 7.9 to 8.8, and 4 x 4 failed (Restate could not register).
+# CI has 4 cores and 16 GB. It takes 2 x 3, not yet measured there. WREN_IT_PACKAGES and
+# WREN_IT_FILES override both, to tune.
 # A failed test retries once: a flake costs a rerun, not a red run. In CI a red package does not stop
 # the rest (--continue): every package that passes goes into the cache, so the next run skips it.
-integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 ${CI:+--continue} -- --maxWorkers=3 --retry=1 && spam; }
+if [ -n "${CI:-}" ]; then IT_PACKAGES=2 IT_FILES=3; else IT_PACKAGES=3 IT_FILES=3; fi
+integration() {
+  echo "==> integration tests (needs Docker)" &&
+    pnpm turbo run test:integration --concurrency="${WREN_IT_PACKAGES:-$IT_PACKAGES}" ${CI:+--continue} \
+      -- --maxWorkers="${WREN_IT_FILES:-$IT_FILES}" --retry=1 && spam
+}
 # The deploy gate's database checks: drizzle's schema matches the migrations, and the legacy email tables still read.
 schema() {
   echo "==> schema (needs Docker)" &&
