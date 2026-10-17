@@ -516,3 +516,4 @@ Lander leads always @mention him (`DISCORD_PING_USER_ID` Pages secret).
 | Loop primitive | `packages/core/src/restate/loop.ts`; send loop `packages/channel-email/src/restate/send-scheduler.ts` |
 | Secrets (gitignored, chmod 600) | `deploy/prod.env`, `deploy/github-secrets.env`, `deploy/terraform/terraform.tfvars`, `.env` |
 | CI | `.github/workflows/deploy.yml`, GitHub environment `production` |
+
