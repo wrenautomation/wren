@@ -46,12 +46,14 @@ export function usePlace(initial = "", kept: Record<string, unknown> = {}, one =
   // biome-ignore lint/correctness/useExhaustiveDependencies: `initial` is read once per mount.
   useEffect(() => {
     // A story opens at its own address; a reload keeps whatever the hash then says.
+    // route-ok: Ladle has no portal router; the fixture owns the story frame's hash.
     if (!location.hash && initial) history.replaceState(null, "", `#${initial}`);
     const on = () => setParams(read());
     addEventListener("hashchange", on);
     return () => {
       removeEventListener("hashchange", on);
       // The next story starts clean, not at this one's address.
+      // route-ok: Ladle has no portal router; the fixture owns the story frame's hash.
       history.replaceState(null, "", location.pathname + location.search);
     };
   }, []);

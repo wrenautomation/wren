@@ -18,7 +18,7 @@ The look's rules are `DESIGN.md` (repo root). The route from a screen to its par
    `pnpm --filter @wren/ui stories:shot --width 390 --dark records--worst-case shell--default`
    It writes PNGs to `<tmp>/wren-ui-shots/` and exits 1 on a page or console error. Read the PNGs.
 7. Test the file you changed: `cd packages/ui && pnpm exec vitest run src/<file>.test.tsx`.
-8. Check before commit: `./scripts/gates.sh ui` (Biome on changed files, typecheck of ui + portal, related tests).
+8. Check before commit: `./scripts/gates.sh ui` (Biome on changed files, typecheck of ui + portal, the portal's source guards, related tests).
 9. Stop Ladle: `pkill -f "ladle serve"`, then `lsof -i :61000` shows nothing.
 
 Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.

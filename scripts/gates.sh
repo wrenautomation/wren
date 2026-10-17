@@ -93,7 +93,8 @@ changed() {
     pnpm turbo run typecheck test:unit --filter="...[origin/main]" --output-logs=errors-only
 }
 # UI-only work: Biome on the files changed since origin/main (and not yet committed), typecheck of
-# @wren/ui and @wren/portal only, and the unit tests that import a changed file (`vitest related`).
+# @wren/ui and @wren/portal only, the portal's source guards, and the unit tests that import a
+# changed file (`vitest related`).
 ui() {
   local files
   files=$({ git diff --name-only origin/main...HEAD && git diff --name-only HEAD && git ls-files --others --exclude-standard; } | sort -u | while read -r f; do [ -f "$f" ] && echo "$f"; done) &&
@@ -101,6 +102,7 @@ ui() {
     { [ -z "$files" ] || pnpm -s biome check --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
     echo "==> typecheck @wren/ui @wren/portal" &&
     pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
+    writes && edits && reads && libs &&
     echo "==> unit tests related to the changed files" &&
     related packages/ui "$files" && related apps/portal "$files"
 }
