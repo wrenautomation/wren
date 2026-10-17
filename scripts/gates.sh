@@ -8,8 +8,10 @@ cd "$(dirname "$0")/.."
 # The lock is the queue: a second run waits for the first. The shared cache means a package
 # whose inputs one worktree already checked is a cache hit in every other one.
 # CI has a runner to itself, so it skips the lock and takes its cores back.
+# The cache lives outside the repo: inside .git, each write made the editor's git view rescan
+# every worktree while a gate ran (10-17).
 if [ -z "${CI:-}" ]; then
-  export TURBO_CACHE_DIR="${TURBO_CACHE_DIR:-$(git rev-parse --path-format=absolute --git-common-dir)/turbo-cache}"
+  export TURBO_CACHE_DIR="${TURBO_CACHE_DIR:-$HOME/Library/Caches/wren_automation/turbo/wren}"
   LOCK=/tmp/wren_automation-checks.lock
   if [ -z "${CHECKS_LOCKED:-}" ]; then
     lockf -s -t 0 "$LOCK" true || echo "==> waiting for another gate run to finish"
