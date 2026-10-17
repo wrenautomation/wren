@@ -20,11 +20,12 @@ import {
   text,
 } from "@wren/core/records";
 import type { GetAsk, ListAsk, RecordAnswer, RecordsPage, Row } from "@wren/core/records/serve";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Action, Call } from "../action.js";
-import type { EntryKeep, Needs, Place, RecordActs, RecordsApi } from "../records.js";
+import type { Needs, Place, RecordActs, RecordsApi } from "../records.js";
 import { type LocalRecords, localRecords } from "../records-local.js";
 import { answer, fails, pending } from "./load.js";
+import { usePlace } from "./place.js";
 import { WORST } from "./worst.js";
 
 const STATES = {
@@ -474,52 +475,6 @@ export function fakeRecords(o: FakeRecordsOptions = {}): RecordsApi {
   };
 }
 
-/** Where a template sits, with its address kept in the page's hash so a story has no router. */
-export function usePlace(initial = "", kept: Record<string, unknown> = {}): Place {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: seeded once per mount.
-  const entry = useMemo<EntryKeep>(() => {
-    const held = new Map(Object.entries(kept));
-    return {
-      get: (key) => held.get(key),
-      set: (key, value) => void (value === undefined ? held.delete(key) : held.set(key, value)),
-    };
-  }, []);
-  const read = () => new URLSearchParams(location.hash.replace(/^#\??/, "") || initial);
-  const [params, setParams] = useState(read);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `initial` is read once per mount.
-  useEffect(() => {
-    // A story opens at its own address; a reload keeps whatever the hash then says.
-    if (!location.hash && initial) history.replaceState(null, "", `#${initial}`);
-    const on = () => setParams(read());
-    addEventListener("hashchange", on);
-    return () => {
-      removeEventListener("hashchange", on);
-      // The next story starts clean, not at this one's address.
-      history.replaceState(null, "", location.pathname + location.search);
-    };
-  }, []);
-  return useMemo(() => {
-    const link = (change: Record<string, string | null>) => {
-      const next = new URLSearchParams(params);
-      for (const [k, v] of Object.entries(change)) {
-        if (v === null) next.delete(k);
-        else next.set(k, v);
-      }
-      return `#${next.toString()}`;
-    };
-    return {
-      params,
-      link,
-      page: (id) => `#${new URLSearchParams({ [LEAD_META.name.one]: String(id) }).toString()}`,
-      list: "#",
-      entry,
-      go: (to) => {
-        location.hash = to.replace(/^#/, "");
-      },
-    };
-  }, [params, entry]);
-}
-
 export interface RecordsDemo {
   api: RecordsApi;
   place: Place;
@@ -535,7 +490,11 @@ export interface RecordsDemo {
 export function useRecordsDemo(
   o: FakeRecordsOptions & { at?: string; picked?: (string | number)[] } = {},
 ): RecordsDemo {
-  const place = usePlace(o.at ?? "", o.picked ? { picked: o.picked.map(String) } : {});
+  const place = usePlace(
+    o.at ?? "",
+    o.picked ? { picked: o.picked.map(String) } : {},
+    LEAD_META.name.one,
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: one copy per mount, whatever `o` is.
   const local = useMemo(() => localRecords(fakeRecords(o)), []);
   const call: Call = useMemo(() => local.callFor(LEAD_META.id, LEAD_ACTIONS), [local]);

@@ -8,7 +8,8 @@ import {
   type Read,
   WORST_SAVED,
 } from "./fixtures/list-bar.js";
-import { LEAD_META, usePlace } from "./fixtures/records.js";
+import { usePlace } from "./fixtures/place.js";
+import { LEAD_META } from "./fixtures/records.js";
 import { WORST } from "./fixtures/worst.js";
 import type { KeepApi } from "./list-bar.js";
 import { type Facets, ListBar, SearchBox, useSavedViews, ViewTabs } from "./list-bar.js";
