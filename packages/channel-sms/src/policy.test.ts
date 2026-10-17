@@ -16,6 +16,9 @@ describe("policyFor", () => {
     expect(policyFor("call", DEFAULT_POLICY)).toEqual(asked);
     expect(policyFor("tel_link", DEFAULT_POLICY, "review")).toEqual(asked);
     expect(policyFor("tel_link", DEFAULT_POLICY, "sequence")).toEqual(DEFAULT_POLICY);
+    expect(policyFor("manual", DEFAULT_POLICY, "manual", "opt_in")).toEqual(asked);
+    expect(policyFor("manual", DEFAULT_POLICY, "manual", "published")).toEqual(DEFAULT_POLICY);
+    expect(policyFor("manual", DEFAULT_POLICY, "sequence", "opt_in")).toEqual(DEFAULT_POLICY);
   });
 });
 

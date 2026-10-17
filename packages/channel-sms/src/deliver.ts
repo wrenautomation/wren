@@ -393,7 +393,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     // reply to someone who texted us in the last day is a conversation, not a solicitation: it goes now.
     if (
       msg.kind !== "reminder" &&
-      !inWindow(zone, now, policyFor(contact.sourceKind, policy, msg.kind)) &&
+      !inWindow(zone, now, policyFor(contact.sourceKind, policy, msg.kind, contact.basis)) &&
       !(msg.kind === "manual" && (await wroteRecently(db, contact.id, now)))
     ) {
       stats.outOfWindow += 1;

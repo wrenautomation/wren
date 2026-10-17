@@ -62,10 +62,17 @@ export const ASKED: ReadonlySet<SourceKind> = new Set(["form", "hook", "call"]);
 /**
  * The policy a contact's texts are timed by: the asked window for those who asked, and for a
  * text that answers something they did (a missed call, a job done), whoever they are, and for
- * a broadcast, which only goes to someone who said yes to its topic.
+ * a broadcast, which only goes to someone who said yes to its topic. A text typed by hand to an
+ * opted-in contact is a person writing to someone who asked: the asked window too.
  */
-export function policyFor(source: SourceKind, policy: SmsPolicy, kind?: string): SmsPolicy {
+export function policyFor(
+  source: SourceKind,
+  policy: SmsPolicy,
+  kind?: string,
+  basis?: ContactBasis,
+): SmsPolicy {
   return ASKED.has(source) ||
+    (kind === "manual" && basis === "opt_in") ||
     (kind !== undefined && (ANSWER_KINDS.has(kind) || CONSENTED_KINDS.has(kind)))
     ? { ...policy, ...(policy.asked ?? ASKED_WINDOW) }
     : policy;
