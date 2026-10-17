@@ -192,6 +192,19 @@ describe("DataTable", () => {
     expect(html).toContain("<dt");
   });
 
+  it("lets a stacked value break, so an unbroken email stays in its column", () => {
+    const html = renderToStaticMarkup(
+      <FactsTable
+        stack
+        head={["Source", "Mail"]}
+        rows={[["https://example.com/averylongunbrokenpath", "averyverylongmailbox@example.com"]]}
+      />,
+    );
+    expect(html).toMatch(/<dd class="\[overflow-wrap:anywhere\][^"]*">averyverylongmailbox/);
+    expect(html).toContain("grid min-w-0 gap-0.5");
+    expect(html).toMatch(/<div class="\[overflow-wrap:anywhere\]">https:/);
+  });
+
   it("reads positional heads", () => {
     const { columns } = cellsOf(["Source", ["Visits", "r"]], []);
     expect(columns.map((c) => [c.label, !!c.end])).toEqual([

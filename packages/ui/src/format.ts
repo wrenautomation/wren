@@ -150,3 +150,7 @@ export const initials = (name: string) =>
 /** Class names, falsy ones dropped. */
 export const cx = (...names: (string | false | null | undefined)[]) =>
   names.filter(Boolean).join(" ");
+
+/** `text` cut to `max` characters with an ellipsis, for a label an SVG chart cannot wrap. */
+export const ellipsize = (text: string, max: number) =>
+  [...text].length > max ? `${[...text].slice(0, max - 1).join("")}…` : text;

@@ -427,15 +427,17 @@ export function DataTable<T extends RowData>({
             const [lead, ...rest] = r.getVisibleCells();
             return (
               <li key={r.id} className="grid gap-2 border-b border-(--ui-hair) pb-3 text-[14px]">
-                <div>{lead ? flexRender(lead.column.columnDef.cell, lead.getContext()) : null}</div>
+                <div className="[overflow-wrap:anywhere]">
+                  {lead ? flexRender(lead.column.columnDef.cell, lead.getContext()) : null}
+                </div>
                 <dl className="grid grid-cols-3 gap-x-3 gap-y-1.5">
                   {rest.map((c) => {
                     const said = flexRender(c.column.columnDef.cell, c.getContext());
                     if (said === "" || said === null || said === undefined) return null;
                     return (
-                      <div key={c.id} className="grid gap-0.5">
+                      <div key={c.id} className="grid min-w-0 gap-0.5">
                         <dt className="text-[12px] text-(--ui-ink-3)">{labels.get(c.column.id)}</dt>
-                        <dd className="tabular-nums">{said}</dd>
+                        <dd className="[overflow-wrap:anywhere] tabular-nums">{said}</dd>
                       </div>
                     );
                   })}

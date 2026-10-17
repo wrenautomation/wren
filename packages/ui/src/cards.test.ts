@@ -1,45 +1,9 @@
 /** A list's cards: what each card shows by default, the address's form, and what a list keeps. */
-import { date, defineRecord, metaOf, name, number, prose, status, text } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
 import { cardOf, cardWords, listFormOf, listFormParam, opensAs } from "./cards.js";
+import { cardsMeta as rec } from "./fixtures/cards.js";
 import { keptOf, lastOf, restoreOf } from "./list-bar.js";
 
-const two = {
-  a: { label: "A", tone: "neutral" as const },
-  b: { label: "B", tone: "neutral" as const },
-};
-const sites = {
-  x: { label: "X", tone: "neutral" as const, mark: "x" as const },
-  li: { label: "LinkedIn", tone: "neutral" as const, mark: "linkedin" as const },
-};
-const rec = (o: { site?: boolean; thumbs?: boolean; words?: boolean }) =>
-  metaOf(
-    defineRecord({
-      id: "t.cards",
-      app: "marketing",
-      channel: o.site ? { field: "platform" } : null,
-      name: { one: "thing", many: "things" },
-      rows: async () => [],
-      key: "id",
-      title: "who",
-      ...(o.words ? { subtitle: "words" } : {}),
-      fields: {
-        who: name("Who"),
-        platform: status(sites, "Site"),
-        kind: status(two, "Kind"),
-        state: status(two, "State"),
-        words: prose("Words"),
-        note: text("Note"),
-        count: number("Count"),
-        city: text("City"),
-        at: date("When"),
-        seen: date("Seen"),
-      },
-      views: [{ id: "all", label: "All" }],
-      ...(o.thumbs ? { thumbs: async () => ({}) } : {}),
-    }),
-    false,
-  );
 const keys = (fs: readonly { key: string }[]) => fs.map((f) => f.key);
 const columns = (meta: ReturnType<typeof rec>) => meta.fields.filter((f) => f.column);
 

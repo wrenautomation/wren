@@ -109,7 +109,7 @@ export function DraftTurns({ turns }: { turns: readonly DraftTurnLine[] }) {
     <ol className="grid list-none gap-4 p-0 text-[14px]">
       {turns.map((t) => (
         <li key={t.id} className="grid min-w-0 gap-1">
-          <span className="text-[13px] text-(--ui-ink-2)">
+          <span className="[overflow-wrap:anywhere] text-[13px] text-(--ui-ink-2)">
             {said(t)} · {when(t.at)}
           </span>
           {t.message ? <span className="whitespace-pre-wrap break-words">{t.message}</span> : null}
@@ -128,7 +128,9 @@ export function DraftTurns({ turns }: { turns: readonly DraftTurnLine[] }) {
               {t.draft}
             </span>
           ) : null}
-          {t.error ? <span className="text-(--ui-bad)">{t.error}</span> : null}
+          {t.error ? (
+            <span className="[overflow-wrap:anywhere] text-(--ui-bad)">{t.error}</span>
+          ) : null}
         </li>
       ))}
     </ol>

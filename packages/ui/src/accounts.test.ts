@@ -1,44 +1,14 @@
 /** The shared account pieces read the record's declared account (designs/2026-10-15-accounts-first-class.md). */
 import { setRecordAccounts } from "@wren/core/record-accounts";
-import { accountField, defineRecord, metaOf, name, status } from "@wren/core/records";
 import { afterEach, describe, expect, it } from "vitest";
 import { accountFieldOf, accountState } from "./accounts.js";
 import { choicesOf } from "./edits.js";
+import { accountsMeta } from "./fixtures/accounts.js";
 import { quickFilters } from "./list-bar.js";
 
-const two = {
-  a: { label: "A", tone: "neutral" as const },
-  b: { label: "B", tone: "neutral" as const },
-};
 afterEach(() => setRecordAccounts([]));
 
-const meta = (declared: boolean) => {
-  setRecordAccounts([
-    { key: "reddit@one", platform: "reddit", label: "u/synthetic_one" },
-    { key: "reddit@two", platform: "reddit", label: "u/synthetic_two" },
-    { key: "linkedin@one", platform: "linkedin", label: "Synthetic Co" },
-  ]);
-  return metaOf(
-    defineRecord({
-      id: "t.sends",
-      app: "marketing",
-      channel: { field: "platform" },
-      name: { one: "send", many: "sends" },
-      rows: async () => [],
-      key: "id",
-      title: "who",
-      fields: {
-        who: name("Who"),
-        platform: status(two, "Site"),
-        state: status(two, "State"),
-        on: accountField("On"),
-      },
-      views: [{ id: "all", label: "All" }],
-      ...(declared ? { account: "on" as const } : {}),
-    }),
-    false,
-  );
-};
+const meta = accountsMeta;
 
 describe("a declared account", () => {
   it("leads the quick filters", () => {

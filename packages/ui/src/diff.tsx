@@ -37,7 +37,7 @@ export function pairsOf(lines: readonly DiffLine[]): Pair[] {
 }
 
 const NUM = "w-9 shrink-0 select-none pr-2 text-right text-(--ui-ink-3) tabular-nums";
-const TEXT = "min-w-0 flex-1 whitespace-pre-wrap break-words";
+const TEXT = "min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]";
 const TONE = {
   " ": "",
   "-": "bg-(--ui-bad-tint)",

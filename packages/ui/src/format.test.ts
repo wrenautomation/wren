@@ -3,6 +3,7 @@ import {
   ago,
   cx,
   duration,
+  ellipsize,
   hostOf,
   initials,
   linkLabel,
@@ -333,4 +334,16 @@ describe("linkLabel", () => {
     ["https://wise.com/pay/r/abc", "In Wise", "Open"],
     ["https://www.acme.example/jobs", "Site", "acme.example"],
   ])("%s reads %s", (href, label, want) => expect(linkLabel(href, label)).toBe(want));
+});
+
+describe("ellipsize", () => {
+  it("keeps a short label, cuts a long one with an ellipsis", () => {
+    expect(ellipsize("Visits", 20)).toBe("Visits");
+    expect(ellipsize("A label that keeps going well past the width", 20)).toBe(
+      "A label that keeps …",
+    );
+  });
+  it("counts whole characters, so an emoji is never split", () => {
+    expect(ellipsize("🚀🔥👩🏽‍💻abc", 3)).toBe("🚀🔥…");
+  });
 });

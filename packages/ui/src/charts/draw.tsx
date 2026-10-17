@@ -19,6 +19,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "../components/ui/chart.js";
+import { ellipsize } from "../format.js";
 import type { BarsProps, SparkProps, TrendProps } from "./index.js";
 
 const day = (at: unknown) =>
@@ -127,6 +128,10 @@ export function Trend({ series, label, format = plain, height = 220 }: TrendProp
   );
 }
 
+/** What an SVG label has room for: a row name in its 132px, a value and note in the margin and past it. */
+const NAME_CHARS = 20;
+const NOTE_CHARS = 48;
+
 /**
  * Bars across, one a row, each with its value at its end: a funnel's stages (each with its rate
  * from the one before) or an A/B test's variants. The first bar sets the scale.
@@ -136,7 +141,7 @@ export function Bars({ rows, label, format = plain }: BarsProps) {
   const data = rows.map((r) => ({
     name: r.label,
     value: r.value,
-    text: `${format(r.value)}${r.note ? `  ${r.note}` : ""}`,
+    text: ellipsize(`${format(r.value)}${r.note ? `  ${r.note}` : ""}`, NOTE_CHARS),
     tone: r.tone ?? "chart-1",
   }));
   return (
@@ -153,6 +158,7 @@ export function Bars({ rows, label, format = plain }: BarsProps) {
           tickLine={false}
           axisLine={false}
           width={132}
+          tickFormatter={(v: string) => ellipsize(v, NAME_CHARS)}
           tick={{ fill: "var(--ui-ink-2)", fontSize: 12 }}
         />
         <ChartTooltip
