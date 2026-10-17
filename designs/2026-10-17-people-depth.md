@@ -98,3 +98,13 @@ Wave 2 starts from wave 1 merged. Only B adds a migration (its views); C and D u
   item page.
 - 2026-10-17 (B): migration 0290 drops and remakes `profile_steps`, because it reads
   `profile_timeline`.
+- 2026-10-17 (C): "Research this person" spends the same Google and LinkedIn day budgets as
+  `enrich profiles`. `googleLeft` and `linkedinParkedUntil` also count `profile_lookups`.
+- 2026-10-17 (C): a run makes at most 3 elsewhere searches, and none when `web` is capped. The
+  account reads use `WREN_POOL_LINKEDIN` (his main, research reads only) inside the read
+  ledger's room: 20 a day across all kinds, search first.
+- 2026-10-17 (C): Keep adds a key only for a `handle` finding. Links and the employer line are
+  only marked kept.
+- 2026-10-17 (C): one open run per profile (advisory lock). A queued or running row older than
+  30 minutes fails on the next press.
+- 2026-10-17 (C): the action is for one profile, not bulk. The Findings page is reached from links.
