@@ -1,6 +1,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
+import type { JournalEntry, JournalRecord, SendJournal } from "../send-journal.js";
 import {
+  deliveryOf,
   NotSent,
   type SendTrace,
   SendUnknown,
@@ -552,6 +554,136 @@ describe("restateSites keyed writes", () => {
       expect(call.req).not.toHaveProperty("sendKey");
     }
   });
+
+  it("a container is staging: no key, no trace; a refused publish after it is the refusal (10-17)", async () => {
+    const refusal: SendVerdict = {
+      verdict: "not_sent",
+      how: "refused",
+      reason: "The media is not ready",
+      status: 400,
+    };
+    const c = ctxOf((_h, req) =>
+      (req as { path: string }).path === "/me/threads_publish" ? refusal : { id: "c1" },
+    );
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    const trace: SendTrace = { wrote: false };
+    const err = await deliveryOf(
+      KEY,
+      async () => {
+        const made = await sites.call("threads", "POST", "/me/threads", { text: "hi" });
+        expect(made).toEqual({ id: "c1" });
+        return sites.call("threads", "POST", "/me/threads_publish", { creation_id: "c1" });
+      },
+      { trace },
+    ).catch((e: unknown) => e);
+    // Not a Delivery of kind unknown ("a write answered, then ..."): the refusal itself.
+    expect(err).toBeInstanceOf(SiteCallError);
+    expect(err).toMatchObject({ status: 400, journaled: true });
+    expect(trace.wrote).toBe(false);
+    const [container, publish] = c.calls;
+    expect(container?.idem).toBeUndefined();
+    expect(container?.req).not.toHaveProperty("sendKey");
+    expect(publish?.idem).toBe(`${KEY} threads POST /me/threads_publish`);
+  });
+
+  it("a YouTube upload is the publish: keyed, and never called again after a 5xx", async () => {
+    const c = ctxOf((h) => {
+      if (h === "verdict") return unknown;
+      throw new restate.TerminalError("bad gateway", { errorCode: 502 });
+    });
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    const err = await withSendKey(KEY, () =>
+      sites.call("youtube", "POST", "/upload/youtube/v3/videos", { title: "t" }),
+    ).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SendUnknown);
+    expect(c.calls.map((x) => x.handler)).toEqual(["call", "verdict"]);
+    expect(c.calls[0]?.idem).toBe(`${KEY} youtube POST /upload/youtube/v3/videos`);
+    expect(c.calls.some((x) => x.handler === "sleep")).toBe(false);
+  });
+
+  it("a POST that only reads carries no key and leaves no trace", async () => {
+    const c = ctxOf(() => ({ data: { privacy_level_options: ["SELF_ONLY"] } }));
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    const trace: SendTrace = { wrote: false };
+    await withSendKey(
+      KEY,
+      () => sites.call("tiktok", "POST", "/v2/post/publish/creator_info/query/"),
+      { trace },
+    );
+    expect(c.calls[0]?.idem).toBeUndefined();
+    expect(c.calls[0]?.req).not.toHaveProperty("sendKey");
+    expect(trace.wrote).toBe(false);
+  });
+});
+
+describe("restateSites verify-only", () => {
+  const KEY = "thread:7 k1";
+  const WRITE = `${KEY} tiktok POST /web/posts`;
+  const AT = "2026-10-16T12:00:00.000Z";
+  const ask = (answer: (h: string, req: unknown) => unknown, o: { trace?: SendTrace } = {}) => {
+    const c = ctxOf(answer);
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    const run = withSendKey(KEY, () => sites.call("tiktok", "POST", "/web/posts", { text: "hi" }), {
+      verifyOnly: true,
+      ...o,
+    });
+    return { ...c, run };
+  };
+
+  it("asks the verdict and never calls; each answer maps as in a send", async () => {
+    const sent = ask(() => ({
+      verdict: "sent",
+      how: "verified",
+      id: "v2",
+      url: "u",
+      at: AT,
+    }));
+    await expect(sent.run).rejects.toBeInstanceOf(SentFound);
+    expect(sent.calls).toEqual([{ handler: "verdict", req: { sendKey: WRITE } }]);
+
+    const none = await ask(() => ({
+      verdict: "not_sent",
+      how: "verified_absent",
+      reason: "gone",
+    })).run.catch((e: unknown) => e);
+    expect(none).toBeInstanceOf(NotSent);
+
+    const refused = await ask(() => ({
+      verdict: "not_sent",
+      how: "refused",
+      reason: "no",
+      status: 403,
+    })).run.catch((e: unknown) => e);
+    expect(refused).toMatchObject({ status: 403, journaled: true });
+
+    const trace: SendTrace = { wrote: false };
+    const maybe = ask(() => ({ verdict: "unknown", reason: "lags", since: AT }), { trace });
+    await expect(maybe.run).rejects.toBeInstanceOf(SendUnknown);
+    expect(trace.wrote).toBe(true);
+    for (const c of [sent, maybe]) expect(c.calls.some((x) => x.handler === "call")).toBe(false);
+  });
+
+  it("a verdict that cannot be read is unknown, never a write", async () => {
+    const c = ask(() => {
+      throw new restate.TerminalError("bad gateway", { errorCode: 502 });
+    });
+    await expect(c.run).rejects.toBeInstanceOf(SendUnknown);
+    expect(c.calls.map((x) => x.handler)).toEqual(["verdict"]);
+  });
+
+  it("a read and a staging write still run", async () => {
+    const c = ctxOf(() => ({ ok: 1 }));
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK });
+    await withSendKey(
+      KEY,
+      async () => {
+        await sites.call("tiktok", "GET", "/web/me");
+        await sites.call("threads", "POST", "/me/threads", {});
+      },
+      { verifyOnly: true },
+    );
+    expect(c.calls.map((x) => x.handler)).toEqual(["call", "call"]);
+  });
 });
 
 describe("journaledHost", () => {
@@ -571,6 +703,30 @@ describe("journaledHost", () => {
   });
 });
 
+/** A send journal in memory, with the writes it saw. */
+function memJournal(seed: Record<string, JournalRecord> = {}) {
+  const rows = new Map<string, JournalRecord>(Object.entries(seed));
+  const log: string[] = [];
+  const journal: SendJournal = {
+    async begin(e: JournalEntry, now: Date) {
+      const held = rows.get(e.key);
+      if (held) return { won: false, record: held };
+      rows.set(e.key, { verdict: null, startedAt: now.toISOString() });
+      log.push(`begin ${e.key}`);
+      return { won: true };
+    },
+    async settle(key, verdict) {
+      const held = rows.get(key);
+      if (held) rows.set(key, { ...held, verdict });
+      log.push(`settle ${key}`);
+    },
+    async read(key) {
+      return rows.get(key) ?? null;
+    },
+  };
+  return { journal, rows, log };
+}
+
 describe("journaledSites", () => {
   const runCtx = () => {
     const steps: string[] = [];
@@ -582,8 +738,10 @@ describe("journaledSites", () => {
     } as unknown as restate.Context;
     return { ctx, steps };
   };
-  const direct = (fail?: SiteCallError): SiteClient => ({
+  const direct = (fail?: unknown): SiteClient & { n: number } => ({
+    n: 0,
     async call<T>() {
+      this.n++;
       if (fail) throw fail;
       return { ok: 1 } as T;
     },
@@ -591,23 +749,249 @@ describe("journaledSites", () => {
       return "api" as const;
     },
   });
+  const KEY = "thread:7 k1";
+  const WRITE = `${KEY} reddit POST /api/submit`;
+  const AT = "2026-10-16T12:00:00.000Z";
 
   it("each call is one named step", async () => {
     const { ctx, steps } = runCtx();
-    expect(await journaledSites(ctx, direct()).call("reddit", "POST", "/api/submit")).toEqual({
-      ok: 1,
-    });
+    const { journal } = memJournal();
+    expect(
+      await journaledSites(ctx, direct(), journal).call("reddit", "POST", "/api/submit"),
+    ).toEqual({ ok: 1 });
     expect(steps).toEqual(["reddit POST /api/submit"]);
   });
 
   it("a refusal is terminal inside the step and a SiteCallError outside; a 429 is not terminal", async () => {
     const { ctx } = runCtx();
+    const { journal } = memJournal();
     const refused = new SiteCallError("reddit", "POST", "/api/submit", 403, "no");
     await expect(
-      journaledSites(ctx, direct(refused)).call("reddit", "POST", "/api/submit"),
+      journaledSites(ctx, direct(refused), journal).call("reddit", "POST", "/api/submit"),
     ).rejects.toSatisfy((e: unknown) => e instanceof SiteCallError && e.status === 403);
     const busy = new SiteCallError("reddit", "GET", "/x", 429, "slow down");
-    await expect(journaledSites(ctx, direct(busy)).call("reddit", "GET", "/x")).rejects.toBe(busy);
+    await expect(
+      journaledSites(ctx, direct(busy), journal).call("reddit", "GET", "/x"),
+    ).rejects.toBe(busy);
+  });
+
+  describe("a write inside a key scope", () => {
+    const send = (
+      sites: SiteClient,
+      journal: SendJournal,
+      o: { recheck?: boolean; trace?: SendTrace; verifyOnly?: boolean } = {},
+    ) =>
+      withSendKey(
+        KEY,
+        () => journaledSites(runCtx().ctx, sites, journal).call("reddit", "POST", "/api/submit"),
+        o,
+      );
+
+    it("writes the record before the act, then the verdict, and answers the output", async () => {
+      const { journal, log, rows } = memJournal();
+      const order: string[] = [];
+      const sites: SiteClient = {
+        async call<T>() {
+          order.push(...log);
+          return { id: "t3_a" } as T;
+        },
+        via: async () => "api" as const,
+      };
+      const trace: SendTrace = { wrote: false };
+      expect(await send(sites, journal, { trace })).toEqual({ id: "t3_a" });
+      expect(order).toEqual([`begin ${WRITE}`]);
+      expect(log).toEqual([`begin ${WRITE}`, `settle ${WRITE}`]);
+      expect(rows.get(WRITE)?.verdict).toMatchObject({ verdict: "sent", how: "answer" });
+      expect(trace.wrote).toBe(true);
+    });
+
+    it("a final verdict answers with no call", async () => {
+      const done = memJournal({
+        [WRITE]: {
+          startedAt: AT,
+          verdict: {
+            verdict: "sent",
+            how: "answer",
+            id: null,
+            url: null,
+            at: AT,
+            output: { id: "t3_a" },
+          },
+        },
+      });
+      const sites = direct();
+      expect(await send(sites, done.journal)).toEqual({ id: "t3_a" });
+      expect(sites.n).toBe(0);
+      const no = memJournal({
+        [WRITE]: {
+          startedAt: AT,
+          verdict: { verdict: "not_sent", how: "refused", reason: "RATELIMIT", status: 429 },
+        },
+      });
+      const err = await send(sites, no.journal).catch((e: unknown) => e);
+      expect(err).toMatchObject({ status: 429, journaled: true });
+      expect(sites.n).toBe(0);
+    });
+
+    it("an open record, or an unknown one, is unknown with no call; recheck changes nothing", async () => {
+      const sites = direct();
+      for (const verdict of [null, { verdict: "unknown" as const, reason: "lags", since: AT }]) {
+        const { journal } = memJournal({ [WRITE]: { startedAt: AT, verdict } });
+        for (const recheck of [false, true]) {
+          const trace: SendTrace = { wrote: false };
+          const err = await send(sites, journal, { recheck, trace }).catch((e: unknown) => e);
+          expect(err).toBeInstanceOf(SendUnknown);
+          expect(trace.wrote).toBe(true);
+        }
+      }
+      expect(sites.n).toBe(0);
+      const open = await send(
+        sites,
+        memJournal({ [WRITE]: { startedAt: AT, verdict: null } }).journal,
+      ).catch((e: unknown) => e);
+      expect(open).toMatchObject({
+        since: AT,
+        reason: expect.stringContaining("nothing can tell"),
+      });
+    });
+
+    it("the platform's no is a journaled SiteCallError with its status, and final", async () => {
+      const { journal, rows } = memJournal();
+      const no = new SiteCallError("reddit", "POST", "/api/submit", 422, "RATELIMIT");
+      const trace: SendTrace = { wrote: false };
+      const err = await send(direct(no), journal, { trace }).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(SiteCallError);
+      expect(err).toMatchObject({ status: 422, journaled: true });
+      expect(trace.wrote).toBe(false);
+      expect(rows.get(WRITE)?.verdict).toMatchObject({
+        verdict: "not_sent",
+        how: "refused",
+        status: 422,
+      });
+      // A take-over under the same key: the same refusal, no second call.
+      const again = direct();
+      expect(await send(again, journal).catch((e: unknown) => e)).toMatchObject({ status: 422 });
+      expect(again.n).toBe(0);
+    });
+
+    it("a 408 is not a refusal: it may have gone out", async () => {
+      const slow = new SiteCallError("reddit", "POST", "/api/submit", 408, "timeout");
+      const err = await send(direct(slow), memJournal().journal).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(SendUnknown);
+    });
+
+    it("a connection that never opened is not sent, before submit", async () => {
+      const refused = Object.assign(new Error("connect failed"), { code: "ECONNREFUSED" });
+      const { journal, rows } = memJournal();
+      const trace: SendTrace = { wrote: false };
+      const err = await send(direct(refused), journal, { trace }).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(NotSent);
+      expect(err).toMatchObject({ how: "before_submit" });
+      expect(trace.wrote).toBe(false);
+      expect(rows.get(WRITE)?.verdict).toMatchObject({ verdict: "not_sent" });
+    });
+
+    it("any other failure is unknown, and a second try does not write", async () => {
+      const { journal } = memJournal();
+      const first = direct(new Error("socket hang up"));
+      expect(await send(first, journal).catch((e: unknown) => e)).toBeInstanceOf(SendUnknown);
+      expect(first.n).toBe(1);
+      const second = direct();
+      expect(await send(second, journal).catch((e: unknown) => e)).toBeInstanceOf(SendUnknown);
+      expect(second.n).toBe(0);
+    });
+
+    it("a crash inside the step leaves an open record: the replay is unknown, never a second write", async () => {
+      const { journal } = memJournal();
+      const first = direct();
+      const crashed: SendJournal = {
+        ...journal,
+        settle: async () => {
+          throw new Error("worker killed");
+        },
+      };
+      await expect(send(first, crashed)).rejects.toThrow("worker killed");
+      expect(first.n).toBe(1);
+      const replay = direct();
+      expect(await send(replay, journal).catch((e: unknown) => e)).toBeInstanceOf(SendUnknown);
+      expect(replay.n).toBe(0);
+    });
+
+    it("a lost insert race reads as the existing record", async () => {
+      const racing: SendJournal = {
+        begin: async () => ({
+          won: false,
+          record: { startedAt: AT, verdict: null },
+        }),
+        settle: async () => {},
+        read: async () => null,
+      };
+      const sites = direct();
+      expect(await send(sites, racing).catch((e: unknown) => e)).toBeInstanceOf(SendUnknown);
+      expect(sites.n).toBe(0);
+    });
+
+    it("a second write to one route gets its own record", async () => {
+      const { journal, rows } = memJournal();
+      const j = journaledSites(runCtx().ctx, direct(), journal);
+      await withSendKey(KEY, async () => {
+        await j.call("reddit", "POST", "/api/submit");
+        await j.call("reddit", "POST", "/api/submit");
+      });
+      expect([...rows.keys()]).toEqual([WRITE, `${WRITE} #2`]);
+    });
+
+    it("a read, a staging write and a write outside a scope keep the plain step and write no record", async () => {
+      const { journal, rows } = memJournal();
+      const { ctx, steps } = runCtx();
+      const sites = direct();
+      const j = journaledSites(ctx, sites, journal);
+      await withSendKey(KEY, async () => {
+        await j.call("reddit", "GET", "/api/me");
+        await j.call("threads", "POST", "/me/threads", {});
+      });
+      await j.call("reddit", "POST", "/api/submit");
+      expect(rows.size).toBe(0);
+      expect(sites.n).toBe(3);
+      expect(steps).toHaveLength(3);
+      // Outside a scope a lost write is still unknown.
+      const lost = journaledSites(ctx, direct(new Error("socket hang up")), journal);
+      await expect(lost.call("reddit", "POST", "/api/submit")).rejects.toBeInstanceOf(SendUnknown);
+    });
+
+    it("verify-only reads the journal and never writes", async () => {
+      const sites = direct();
+      const empty = memJournal();
+      const trace: SendTrace = { wrote: false };
+      const none = await send(sites, empty.journal, { verifyOnly: true, trace }).catch(
+        (e: unknown) => e,
+      );
+      expect(none).toBeInstanceOf(NotSent);
+      expect(none).toMatchObject({ how: "before_submit" });
+      expect(trace.wrote).toBe(false);
+      expect(empty.log).toEqual([]);
+      expect(empty.rows.size).toBe(0);
+      const done = memJournal({
+        [WRITE]: {
+          startedAt: AT,
+          verdict: {
+            verdict: "sent",
+            how: "answer",
+            id: null,
+            url: null,
+            at: AT,
+            output: { id: "t3_a" },
+          },
+        },
+      });
+      expect(await send(sites, done.journal, { verifyOnly: true })).toEqual({ id: "t3_a" });
+      const open = memJournal({ [WRITE]: { startedAt: AT, verdict: null } });
+      expect(
+        await send(sites, open.journal, { verifyOnly: true }).catch((e: unknown) => e),
+      ).toBeInstanceOf(SendUnknown);
+      expect(sites.n).toBe(0);
+      expect(open.log).toEqual([]);
+    });
   });
 });
 
@@ -755,6 +1139,67 @@ describe("Content service", () => {
     await expect(
       svc2.publish?.(ctx, { platform: "linkedin", post: { text: "hi" }, sendKey: "draft:1 k1" }),
     ).rejects.toMatchObject({ name: "TerminalError", code: 403 });
+  });
+
+  it("a verify-only publish asks each keyed write and never calls", async () => {
+    const answers: Record<string, SendVerdict> = {
+      found: {
+        verdict: "sent",
+        how: "verified",
+        id: "v9",
+        url: null,
+        at: "2026-10-16T12:00:00.000Z",
+      },
+      sent: {
+        verdict: "sent",
+        how: "answer",
+        id: null,
+        url: null,
+        at: "2026-10-16T12:00:00.000Z",
+        output: { id: "p1" },
+      },
+      not_sent: { verdict: "not_sent", how: "verified_absent", reason: "not there" },
+      unknown: { verdict: "unknown", reason: "lags", since: "2026-10-16T12:00:00.000Z" },
+    };
+    const run = async (verdict: SendVerdict, verifyOnly: boolean) => {
+      const c = ctxOf(() => verdict);
+      const content = makeContent((cx) => {
+        const sites = restateSites(cx, { caller: "test", service: DESK });
+        return {
+          linkedin: {
+            ...fakeContentChannel("linkedin"),
+            publish: () => sites.call("linkedin", "POST", "/rest/posts", { text: "hi" }),
+          },
+        };
+      }) as unknown as {
+        service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
+      };
+      const out = await content.service.publish?.(c.ctx, {
+        platform: "linkedin",
+        post: { text: "hi" },
+        sendKey: "draft:1 k1",
+        ...(verifyOnly ? { verifyOnly: true } : {}),
+      });
+      return { out, handlers: c.calls.map((x) => x.handler) };
+    };
+    expect(await run(answers.found as SendVerdict, true)).toMatchObject({
+      out: { kind: "found", id: "v9" },
+      handlers: ["verdict"],
+    });
+    expect(await run(answers.sent as SendVerdict, true)).toMatchObject({
+      out: { kind: "sent", out: { id: "p1" } },
+      handlers: ["verdict"],
+    });
+    expect(await run(answers.not_sent as SendVerdict, true)).toMatchObject({
+      out: { kind: "not_sent", how: "verified_absent" },
+      handlers: ["verdict"],
+    });
+    expect(await run(answers.unknown as SendVerdict, true)).toMatchObject({
+      out: { kind: "unknown", reason: "lags" },
+      handlers: ["verdict"],
+    });
+    // The same keyed publish without the flag calls the desk.
+    expect((await run(answers.sent as SendVerdict, false)).handlers).toEqual(["call"]);
   });
 
   it("an unconfigured platform is a terminal 404, not a retry", async () => {

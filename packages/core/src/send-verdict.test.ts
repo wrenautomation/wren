@@ -14,6 +14,7 @@ import {
   SentFound,
   sendAcross,
   terminalOf,
+  verifyingOnly,
   withSendKey,
   writeKey,
 } from "./send-verdict.js";
@@ -133,7 +134,7 @@ describe("send verdicts", () => {
     expect(trace.wrote).toBe(true);
   });
 
-  it("sendAcross hands the callee the key and recheck, and unwraps its delivery", async () => {
+  it("sendAcross hands the callee the key, recheck and verifyOnly, and unwraps its delivery", async () => {
     const asked: unknown[] = [];
     const out = await withSendKey(
       "dm:3 k9",
@@ -145,7 +146,23 @@ describe("send verdicts", () => {
       { recheck: true },
     );
     expect(out).toBe("t1_ok");
-    expect(asked).toEqual([{ sendKey: "dm:3 k9", recheck: true }]);
+    expect(asked).toEqual([{ sendKey: "dm:3 k9", recheck: true, verifyOnly: false }]);
+    await withSendKey(
+      "dm:3 k9",
+      () =>
+        sendAcross(async (k) => {
+          asked.push(k);
+          return { kind: "sent", out: null };
+        }),
+      { verifyOnly: true },
+    );
+    expect(asked[1]).toEqual({ sendKey: "dm:3 k9", recheck: false, verifyOnly: true });
+    // deliveryOf carries the scope's flag to the writes inside.
+    expect(await deliveryOf("k", async () => verifyingOnly(), { verifyOnly: true })).toEqual({
+      kind: "sent",
+      out: true,
+    });
+    expect(verifyingOnly()).toBe(false);
     await expect(sendAcross(async () => ({ kind: "sent", out: 1 }))).rejects.toThrow(
       /needs a send key/,
     );
