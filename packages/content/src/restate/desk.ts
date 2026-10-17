@@ -8,18 +8,19 @@
  * `ContentDesk/<client>/desk`: the same over a client's own database. Its drafts speak as the
  * client (its plan's About and voice), on its own `models` vendor; they wait in its To approve.
  *
- * `settlePost` settles a post that may have gone out (designs/2026-10-16-maybe-sent.md): our
- * listing is read first, then the person's word.
+ * `settlePost` settles a post that may have gone out (designs/2026-10-16-maybe-sent.md). Wren's
+ * own post asks autobrowse again under its send key and reads no words; a client's, on its own
+ * connected account, reads our listing. Then the person's word: posted, again, or dropped.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { byOf } from "@wren/core/ask";
-import type { Media, Platform, PostPatch } from "@wren/core/content";
+import type { Media, Platform, Post, PostPatch, Published } from "@wren/core/content";
 import { PLATFORMS } from "@wren/core/content";
-import { SHAPES } from "@wren/core/content/shapes";
+import { SHAPES, ShapeError } from "@wren/core/content/shapes";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { KeyStore } from "@wren/core/keys";
-import type { Seen } from "@wren/core/maybe-sent";
+import { type Seen, unclear } from "@wren/core/maybe-sent";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { PortalRefusal, terminalOf } from "@wren/core/portal";
 import {
@@ -29,10 +30,17 @@ import {
   PORTAL_FIELDS,
   sharedHandler,
 } from "@wren/core/restate";
+import { isDelivery } from "@wren/core/send-verdict";
 import { gate } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, llmForKey, type Tracer } from "@wren/llm";
-import { forgetUnsure, settleSent, unsureItem } from "@wren/outreach";
+import {
+  forgetUnsure,
+  SETTLE_OUTCOMES,
+  type SettleOutcome,
+  settleSent,
+  unsureItem,
+} from "@wren/outreach";
 import { z } from "zod";
 import { askSwap, planSwap, skipSwaps, startSwap } from "../analytics/variants.js";
 import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
@@ -47,13 +55,13 @@ import {
   writeCarousel,
 } from "../carousel.js";
 import { clientContent, clientPlan } from "../clients.js";
+import { POSTS_UNIT } from "../components.js";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
-import { type FunnelPatch, setFunnel } from "../funnel.js";
+import { type FunnelPatch, postedLinks, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
 import { FROM, refFrom, splitPosts, waitingIdeas, writeOwn } from "../own.js";
-import { POSTS_UNIT } from "../components.js";
-import { aboutDraft, lookWords } from "../platforms.js";
+import { aboutDraft, lookWords, postOf } from "../platforms.js";
 import {
   draftCarousel,
   draftPromo,
@@ -65,7 +73,7 @@ import {
   promoBase,
   videoDraftOf,
 } from "../promo.js";
-import { markPostedBy, markPublished, sendAgain } from "../queue.js";
+import { dropDraft, markPostedBy, markPublished, sendAgain } from "../queue.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts, setFields } from "../review.js";
 import {
   type ContentIdea,
@@ -279,9 +287,67 @@ const APPROVE = IDS.extend({
 });
 const SETTLE_POST = z.looseObject({
   id: z.string().describe("The draft that may have gone out"),
-  outcome: z.enum(["posted", "again"]).describe("He saw it up, or it should go out once more"),
+  outcome: z
+    .enum(SETTLE_OUTCOMES)
+    .describe("He saw it up, it should go out once more, or it did not go out and stays out"),
   by: z.string().describe("Who decides"),
 });
+/** `Content/publish` as the core serves it: given a send key it answers a `Delivery`. */
+type ContentPublish = {
+  publish: (
+    ctx: restate.Context,
+    req: {
+      platform: Platform;
+      post: Post;
+      account?: string | null;
+      sendKey: string;
+      recheck: true;
+    },
+  ) => Promise<unknown>;
+};
+/**
+ * autobrowse keeps a send's verdict 30 days; a key it has not seen executes the write. A publish
+ * is only asked again under a key younger than this.
+ */
+const ASK_AGAIN_MS = 29 * 24 * 60 * 60_000;
+/**
+ * autobrowse's answer on a publish, asked again under its send key, as what a listing would say:
+ * sent or found is `found`; not sent (or the platform's no) is `absent`; the rest is `unclear`.
+ */
+async function askAgain(
+  ctx: restate.Context,
+  platform: Platform,
+  again: { post: Post; account: string | null; sendKey: string },
+): Promise<Seen> {
+  try {
+    const got = await ctx.serviceClient<ContentPublish>({ name: "Content" }).publish({
+      platform,
+      post: again.post,
+      ...(again.account ? { account: again.account } : {}),
+      sendKey: again.sendKey,
+      recheck: true,
+    });
+    if (!isDelivery(got)) return unclear("autobrowse answered without a verdict");
+    if (got.kind === "sent") {
+      const out = (got.out ?? {}) as Partial<Published>;
+      return {
+        kind: "found",
+        ref: out.id || null,
+        at: out.publishedAt ?? null,
+        url: out.url || null,
+      };
+    }
+    if (got.kind === "found") return { kind: "found", ref: got.id, at: got.at, url: got.url };
+    if (got.kind === "not_sent") return { kind: "absent" };
+    return unclear(got.reason);
+  } catch (err) {
+    if (!(err instanceof restate.TerminalError)) throw err;
+    const code = err.code ?? 500;
+    // The platform's no: nothing went out.
+    if (code >= 400 && code < 500 && code !== 408 && code !== 409) return { kind: "absent" };
+    return unclear(err.message.slice(0, 200));
+  }
+}
 /** `Content/findPost` as the core serves it. */
 type ContentLook = {
   findPost: (
@@ -746,38 +812,71 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         },
       ),
       /**
-       * A post that may have gone out, settled (from its To approve row): our listing is read
-       * for it first. Found: published with the platform's id, whatever he chose. Else `posted`
-       * marks it published on his word (no id, so no numbers); `again` puts it back in the queue
-       * and wakes the loop. Only `ReachDesk` and `SocialInbox` call it.
+       * A post that may have gone out, settled (from its To approve row). Wren's own post asks
+       * autobrowse again under its send key (`Content.publish` with `recheck`; the key answers
+       * its stored verdict and writes nothing); a client's, on its connected account, reads our
+       * listing. Found: published with the platform's id, whatever he chose. Else `posted` marks
+       * it published on his word (no id, so no numbers); `again` puts it back in the queue and
+       * wakes the loop; `dropped` rejects it, so nothing posts it. Only `ReachDesk` and
+       * `SocialInbox` call it.
        */
       settlePost: exclusiveHandler(
         { input: SETTLE_POST, effect: "posts", ingressPrivate: true },
         async (
           ctx: restate.ObjectContext,
-          req: { id: string; outcome: "posted" | "again"; by: string },
-        ): Promise<{ id: string; outcome: "posted" | "again"; found: boolean }> => {
+          req: { id: string; outcome: SettleOutcome; by: string },
+        ): Promise<{ id: string; outcome: SettleOutcome; found: boolean }> => {
           const { db } = await scopeOf(ctx);
           const client = clientOfKey(ctx.key)?.client ?? null;
           const item = `draft:${req.id}`;
-          const look = await ctx.run("item", () =>
+          const waiting = await ctx.run("item", () =>
             verdictOf(async () => {
               const a = await unsureItem(db, item);
               const d = await getDraft(db, req.id);
               if (d.status !== "publishing")
                 throw new Error(`That post is ${d.status} now; nothing waits on it.`);
+              // Wren's own post, under a key autobrowse still keeps: ask it again.
+              let again: { post: Post; account: string | null; sendKey: string } | null = null;
+              if (!client && a.sendKey && Date.now() - a.startedAt.getTime() < ASK_AGAIN_MS) {
+                try {
+                  again = {
+                    post: postOf(d, (await postedLinks(db, d)).text),
+                    account: a.account,
+                    sendKey: a.sendKey,
+                  };
+                } catch (err) {
+                  if (!(err instanceof ShapeError)) throw err;
+                }
+              }
               return {
                 platform: d.platform,
-                words: lookWords(d, { text: a.words }),
-                since: a.startedAt.toISOString(),
-                media: d.media?.kind ?? null,
-                ...(client ? { client } : {}),
-                ...(a.account ? { account: a.account } : {}),
+                again,
+                look: client
+                  ? {
+                      platform: d.platform,
+                      words: lookWords(d, { text: a.words }),
+                      since: a.startedAt.toISOString(),
+                      media: d.media?.kind ?? null,
+                      client,
+                      ...(a.account ? { account: a.account } : {}),
+                    }
+                  : null,
               };
             }),
           );
-          const seen = await ctx.serviceClient<ContentLook>({ name: "Content" }).findPost(look);
           const now = new Date(await ctx.date.now());
+          if (req.outcome === "dropped") {
+            await ctx.run("dropped", async () => {
+              await dropDraft(db, req.id, req.by);
+              await forgetUnsure(db, item);
+            });
+            return { id: req.id, outcome: "dropped", found: false };
+          }
+          const seen: Seen = waiting.again
+            ? await askAgain(ctx, waiting.platform, waiting.again)
+            : waiting.look
+              ? await ctx.serviceClient<ContentLook>({ name: "Content" }).findPost(waiting.look)
+              : unclear("no key to ask autobrowse with");
           if (seen.kind === "found") {
             await ctx.run("found", async () => {
               const at = seen.at ?? now.toISOString();

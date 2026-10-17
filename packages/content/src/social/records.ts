@@ -1299,6 +1299,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "people.broadcastDecline",
       "marketing.sendPosted",
       "marketing.sendAgain",
+      "marketing.sendDrop",
     ],
     // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
     calls: {
@@ -1702,6 +1703,7 @@ export const askedReplyRecord = defineRecord({
     "people.broadcastDecline",
     "marketing.sendPosted",
     "marketing.sendAgain",
+    "marketing.sendDrop",
   ],
   calls: { "InboxDesk/approve": "id", "InboxDesk/drop": "id" },
   /** The conversation it answers. */

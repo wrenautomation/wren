@@ -15,27 +15,28 @@
  *
  * A post's link is its funnel's (`funnel.ts`): read when it is claimed, appended on its own line.
  *
- * The desk's browser busy past autobrowse's wait (`browserBusy`: 503, `not sent`): the draft goes
- * back to approved, its slot kept, "Waiting for the browser" on it; the rest of the pass skips
- * that platform, and the next pass comes in a minute. Never a failed draft, never a notice.
+ * Every publish runs under a ledger claim (`draft:<id>`, designs/2026-10-16-send-verdicts.md).
+ * The claim makes the send key, and `Content.publish` carries it to autobrowse, which answers
+ * what became of the write. Wren reads no words:
+ * - sent: published. Found (autobrowse read it back): published with the id it found.
+ * - the platform refused: failed, as always.
+ * - not sent (the browser was busy, the page never loaded, the read showed it absent): back to
+ *   approved, its slot kept, "Waiting for the browser" on it. The rest of the pass skips that
+ *   platform and the next pass comes in a minute. The next try makes a new key.
+ * - unknown: the draft stays `publishing` and its ledger row (`draft:<id>`) waits in To approve
+ *   under "May have gone out". Never failed, never sent again by itself. A client's publish, on
+ *   its connected account (no verdict), is read back once through `Content.findPost` first.
  *
  * A pass waits on one publish at most `PUBLISH_WAIT_MS` (designs/2026-10-16-loop-watchdog.md). A
  * publish Restate paused never answers, and a pass waiting on it held this key's lock for hours.
  * Past the wait the call runs on alone: the draft stays `publishing`, its invocation id is kept
  * in `publishing` state, and each later pass looks at it for a moment and settles the row.
- *
- * A publish that may have gone out ("may have gone through", designs/2026-10-16-maybe-sent.md) is
- * never marked failed: after a short settle, our channel's own listing is read for it (as the
- * account it went out as, from the start of the send). Found: published with the platform's id.
- * Provably absent: sent once more, and only once. Can't tell: the draft stays `publishing` and its
- * ledger row (`draft:<id>`) waits in To approve under "May have gone out".
  */
 import * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
 import type { Platform, Post, Published } from "@wren/core/content";
-import { browserBusy } from "@wren/core/content";
 import { ShapeError } from "@wren/core/content/shapes";
-import { type Seen, SETTLE_MS, sendFate, unclear } from "@wren/core/maybe-sent";
+import { SETTLE_MS, type Seen, unclear } from "@wren/core/maybe-sent";
 import type { Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
@@ -47,11 +48,20 @@ import {
   stoppedPass,
   within,
 } from "@wren/core/restate";
+import { type Delivery, isDelivery } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
-import { parkUnsure, pickedAccount } from "@wren/outreach";
+import {
+  claimSend,
+  parkUnsure,
+  pickedAccount,
+  ReachRefusal,
+  releaseSend,
+  sendAttempt,
+  settleSent,
+} from "@wren/outreach";
 import { clientContent } from "../clients.js";
 import { postedLinks } from "../funnel.js";
-import { lookWords, postOf, PLATFORM_SPECS } from "../platforms.js";
+import { lookWords, PLATFORM_SPECS, postOf } from "../platforms.js";
 import {
   claim,
   dueDrafts,
@@ -62,7 +72,6 @@ import {
   nextDue,
   noteOnDraft,
 } from "../queue.js";
-import { getDraft } from "../review.js";
 
 export const SCHEDULER_KEY = "default";
 const DEFAULT_IDLE_MS = 15 * 60 * 1000;
@@ -94,8 +103,12 @@ export interface OpenPublish {
   /** What a look after a lost answer reads for (`lookWords`). Absent: an older pass's. */
   words?: string[];
   media?: "image" | "video" | null;
-  /** This draft's publishes so far: a second is the last before a person decides. */
+  /** This draft's publishes so far, as the ledger counts them. */
   tries?: number;
+  /** The ledger row's send key: the publish runs under it. Absent: an older pass's. */
+  sendKey?: string;
+  /** A take-over: an `unknown` answer is asked once more. */
+  recheck?: boolean;
 }
 
 /** A publish about to go out: everything but its invocation. */
@@ -105,8 +118,15 @@ type Pending = Omit<OpenPublish, "invocationId">;
 type ContentService = {
   publish: (
     ctx: restate.Context,
-    req: { platform: Platform; post: Post; client?: string | null; account?: string | null },
-  ) => Promise<Published>;
+    req: {
+      platform: Platform;
+      post: Post;
+      client?: string | null;
+      account?: string | null;
+      sendKey?: string;
+      recheck?: boolean;
+    },
+  ) => Promise<Published | Delivery<Published>>;
   reply: (
     ctx: restate.Context,
     req: {
@@ -115,8 +135,9 @@ type ContentService = {
       text: string;
       client?: string | null;
       account?: string | null;
+      sendKey?: string;
     },
-  ) => Promise<void>;
+  ) => Promise<void | Delivery<void>>;
   findPost: (
     ctx: restate.Context,
     req: {
@@ -141,7 +162,7 @@ export interface ContentSchedulerDeps {
   clientDb?: ((client: string) => Db) | null;
   /** How long a pass waits on one publish (default `PUBLISH_WAIT_MS`); tests shorten it. */
   publishWaitMs?: number;
-  /** How long a lost publish settles before its look (default `SETTLE_MS`); tests shorten it. */
+  /** How long a client's lost publish settles before its look (default `SETTLE_MS`); tests shorten it. */
   settleMs?: number;
 }
 
@@ -208,47 +229,92 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     const still: OpenPublish[] = [];
     for (const p of (await ctx.get<OpenPublish[]>(PUBLISHING)) ?? []) {
       try {
-        const published = await ctx
+        const got = await ctx
           .invocation(restate.InvocationIdParser.fromString(p.invocationId))
-          .attach<Published>()
+          .attach<Published | Delivery<Published>>()
           .orTimeout(SETTLE_LOOK_MS);
-        await finish(ctx, o, content, p, published, stats);
+        await answered(ctx, o, content, p, got, stats, busy);
       } catch (err) {
         if (err instanceof restate.TimeoutError) still.push(p);
-        else await ended(ctx, o, content, p, err, stats, busy, still);
+        else await ended(ctx, o, content, p, err, stats);
       }
     }
     return still;
   }
 
-  /** A publish that answered: the row marked, the first comment, the warm-replies hook. */
+  /** The ledger row's item for a draft. */
+  function itemOf(p: Pick<OpenPublish, "draftId">): string {
+    return `draft:${p.draftId}`;
+  }
+
+  /** A publish that answered: what became of the write decides the row. */
+  async function answered(
+    ctx: restate.ObjectContext,
+    o: { db: Db; client: string | null },
+    content: restate.Client<ContentService>,
+    p: OpenPublish,
+    got: Published | Delivery<Published>,
+    stats: PublishStats,
+    busy: Set<Platform>,
+  ): Promise<void> {
+    // An older Content ignores the key and answers the output itself.
+    const d: Delivery<Published> = isDelivery(got) ? got : { kind: "sent", out: got };
+    if (d.kind === "sent") return finish(ctx, o, content, p, d.out, "sent", stats);
+    if (d.kind === "found") {
+      const published: Published = {
+        id: d.id ?? "",
+        url: d.url ?? "",
+        publishedAt: d.at,
+        fetchedWith: "api",
+      };
+      return finish(ctx, o, content, p, published, "found", stats);
+    }
+    if (d.kind === "unknown") return unsure(ctx, o, content, p, d.reason, stats);
+    if (d.how === "refused") return failed(ctx, o, p, d.reason, stats);
+    return notSent(ctx, o, p, d.reason, stats, busy);
+  }
+
+  /**
+   * A publish that is up: the row marked and the ledger settled, then the first comment and the
+   * warm-replies hook. `by` is who said so: the publish itself, or autobrowse's read of the site.
+   */
   async function finish(
     ctx: restate.ObjectContext,
     o: { db: Db; client: string | null },
     content: restate.Client<ContentService>,
     p: OpenPublish,
     published: Published,
+    by: "sent" | "found",
     stats: PublishStats,
   ): Promise<void> {
-    await ctx.run(`published ${p.draftId}`, () =>
-      markPublished(o.db, p.draftId, published, p.link),
-    );
+    const now = new Date(await ctx.date.now());
+    await ctx.run(`published ${p.draftId}`, async () => {
+      await markPublished(o.db, p.draftId, published, p.link);
+      await settleSent(o.db, itemOf(p), {
+        ref: published.id || null,
+        at: new Date(published.publishedAt),
+        by,
+        now,
+      });
+    });
     stats.published.push({ id: p.draftId, platform: p.platform, url: published.url });
     if (p.comment && published.id) {
       // The post is up either way: a comment that fails or hangs is noted on the draft, never
-      // retried into a second one.
+      // retried into a second one. It is a write of its own, so it has a key of its own.
       const commented = await within(
         ctx,
         content.reply({
           platform: p.platform,
           commentId: published.id,
           text: p.comment,
+          ...(o.client ? { client: o.client } : {}),
           ...(p.account ? { account: p.account } : {}),
+          ...(p.sendKey ? { sendKey: `${p.sendKey} comment` } : {}),
         }),
         // A write: left running past the wait, since it may still land.
         { ms: COMMENT_WAIT_MS, call: "Content/reply", unit: p.draftId, keep: true },
       ).then(
-        () => null,
+        (got) => (isDelivery(got) ? notedOf(got) : null),
         (err: unknown) => errorText(err),
       );
       if (commented)
@@ -259,11 +325,53 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     deps.posted?.(ctx, p.platform, o.client);
   }
 
+  /** What a comment's answer says when it did not go out clean: a note for the draft, or null. */
+  function notedOf(d: Delivery<unknown>): string | null {
+    if (d.kind === "sent" || d.kind === "found") return null;
+    return d.kind === "unknown" ? `it may have gone out: ${d.reason}` : d.reason;
+  }
+
+  /** The platform said no: failed, as always. Nothing is left on the ledger. */
+  async function failed(
+    ctx: restate.ObjectContext,
+    o: { db: Db; client: string | null },
+    p: OpenPublish,
+    error: string,
+    stats: PublishStats,
+  ): Promise<void> {
+    await ctx.run(`failed ${p.draftId}`, async () => {
+      await markFailed(o.db, p.draftId, error);
+      await releaseSend(o.db, itemOf(p));
+    });
+    stats.failed.push({ id: p.draftId, platform: p.platform, error });
+  }
+
   /**
-   * A publish that ended in an error. A terminal refusal (no channel, the platform said no,
-   * killed) is this draft's problem: recorded on the row, the pass moves on. The desk's browser
-   * busy: back to approved, the platform skipped this pass. One that may have gone out: looked
-   * for (`lost`), never failed. Anything else retries the pass.
+   * Nothing went out (the browser was busy, the page never loaded, the read showed it absent): back
+   * to approved with its slot, the platform skipped for this pass. The ledger row is released, so
+   * the next pass sends under a new key.
+   */
+  async function notSent(
+    ctx: restate.ObjectContext,
+    o: { db: Db; client: string | null },
+    p: OpenPublish,
+    why: string,
+    stats: PublishStats,
+    busy: Set<Platform>,
+  ): Promise<void> {
+    await ctx.run(`waiting ${p.draftId}`, async () => {
+      await markWaiting(o.db, p.draftId, why);
+      await releaseSend(o.db, itemOf(p));
+    });
+    busy.add(p.platform);
+    stats.waiting = [...(stats.waiting ?? []), { id: p.draftId, platform: p.platform }];
+  }
+
+  /**
+   * A publish that ended in an error. The platform said no (a 4xx, or a field it won't take):
+   * failed. A Content error that is not a clear refusal (a stop, a cancel, a server fault) says
+   * nothing about the write: it may have gone out, so a person decides. Anything else retries the
+   * pass.
    */
   async function ended(
     ctx: restate.ObjectContext,
@@ -272,102 +380,72 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     p: OpenPublish,
     err: unknown,
     stats: PublishStats,
-    busy: Set<Platform>,
-    open: OpenPublish[],
   ): Promise<void> {
     if (!(err instanceof restate.TerminalError) && !(err instanceof ShapeError)) throw err;
     const error = errorText(err);
-    if (browserBusy(err)) {
-      await ctx.run(`waiting ${p.draftId}`, () => markWaiting(o.db, p.draftId, error));
-      busy.add(p.platform);
-      stats.waiting = [...(stats.waiting ?? []), { id: p.draftId, platform: p.platform }];
-      return;
-    }
-    if (sendFate(err) === "maybe") return lost(ctx, o, content, p, error, stats, busy, open);
-    await ctx.run(`failed ${p.draftId}`, () => markFailed(o.db, p.draftId, error));
-    stats.failed.push({ id: p.draftId, platform: p.platform, error });
+    const code = err instanceof restate.TerminalError ? (err.code ?? 500) : 400;
+    if (code >= 400 && code < 500 && code !== 408 && code !== 409)
+      return failed(ctx, o, p, error, stats);
+    return unsure(ctx, o, content, p, error, stats);
   }
 
   /**
-   * A publish that may have gone out: after a settle, our own listing is read for it. Found: it
-   * is published, with the platform's id. Absent: once more, and only once. Else it waits on a
-   * person in To approve, the draft left `publishing` so no pass takes it.
+   * A publish that may have gone out and nothing said whether it did (autobrowse's reads came
+   * back empty). A client's, on its connected account, is read back once: found means it is up.
+   * Else it waits on a person in To approve, the draft left `publishing` so no pass takes it.
    */
-  async function lost(
+  async function unsure(
     ctx: restate.ObjectContext,
     o: { db: Db; client: string | null },
     content: restate.Client<ContentService>,
     p: OpenPublish,
-    error: string,
+    reason: string,
     stats: PublishStats,
-    busy: Set<Platform>,
-    open: OpenPublish[],
   ): Promise<void> {
-    await ctx.sleep(settleMs);
-    const seen: Seen = p.words?.length
-      ? await content.findPost({
-          platform: p.platform,
-          words: p.words,
-          since: p.since,
-          media: p.media ?? null,
-          ...(o.client ? { client: o.client } : {}),
-          ...(p.account ? { account: p.account } : {}),
-        })
-      : unclear("it was sent before posts were looked for");
-    const now = new Date(await ctx.date.now());
     const name = PLATFORM_SPECS[p.platform].name;
-    if (seen.kind === "found") {
-      const published: Published = {
-        id: seen.ref ?? "",
-        url: seen.url ?? "",
-        publishedAt: seen.at ?? now.toISOString(),
-        fetchedWith: "api",
-      };
-      await finish(ctx, o, content, p, published, stats);
-      await ctx.run(`found ${p.draftId}`, () =>
-        noteOnDraft(
-          o.db,
-          p.draftId,
-          `Found on ${name} after the publish said it may have gone through`,
-        ),
-      );
-      return;
+    let why = reason.slice(0, 300);
+    if (o.client) {
+      await ctx.sleep(settleMs);
+      const seen: Seen = p.words?.length
+        ? await content.findPost({
+            platform: p.platform,
+            words: p.words,
+            since: p.since,
+            media: p.media ?? null,
+            client: o.client,
+            ...(p.account ? { account: p.account } : {}),
+          })
+        : unclear("it was sent before posts were looked for");
+      if (seen.kind === "found") {
+        const now = new Date(await ctx.date.now());
+        const published: Published = {
+          id: seen.ref ?? "",
+          url: seen.url ?? "",
+          publishedAt: seen.at ?? now.toISOString(),
+          fetchedWith: "api",
+        };
+        await finish(ctx, o, content, p, published, "found", stats);
+        await ctx.run(`found ${p.draftId}`, () =>
+          noteOnDraft(o.db, p.draftId, `Found on ${name} after the publish may have gone out`),
+        );
+        return;
+      }
+      why = `${why}; ${seen.kind === "unclear" ? seen.why : "not on the site yet"}`;
     }
-    const tries = p.tries ?? 1;
-    if (seen.kind === "absent" && tries < 2) {
-      // Provably not there: it never landed. Sent once more, built from the row again.
-      const post = await ctx.run(`post again ${p.draftId}`, async () => {
-        const d = await getDraft(o.db, p.draftId);
-        return postOf(d, p.comment ? null : p.link);
-      });
-      const { invocationId: _, ...pending } = p;
-      return send(
-        ctx,
-        o,
-        content,
-        { ...pending, tries: tries + 1, since: now.toISOString() },
-        post,
-        stats,
-        busy,
-        open,
-      );
-    }
-    const why =
-      seen.kind === "absent"
-        ? `${error.slice(0, 300)}; not on ${name} after two tries`
-        : `${error.slice(0, 300)}; ${seen.why}`;
+    const now = new Date(await ctx.date.now());
     await ctx.run(`unsure ${p.draftId}`, async () => {
       await parkUnsure(o.db, {
-        item: `draft:${p.draftId}`,
+        item: itemOf(p),
         platform: p.platform,
         account: p.account,
         words: p.text ?? "",
         target: p.target ?? name,
         url: null,
-        tries,
+        tries: p.tries ?? 1,
         why,
         now,
         since: new Date(p.since),
+        sendKey: p.sendKey ?? null,
       });
       await markUnsure(o.db, p.draftId, why);
     });
@@ -393,16 +471,18 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       post,
       ...(o.client ? { client: o.client } : {}),
       ...(pending.account ? { account: pending.account } : {}),
+      ...(pending.sendKey ? { sendKey: pending.sendKey } : {}),
+      ...(pending.recheck ? { recheck: true } : {}),
     });
     const p: OpenPublish = { invocationId: await call.invocationId, ...pending };
     try {
-      const published = await within(ctx, call, {
+      const got = await within(ctx, call, {
         ms: publishWaitMs,
         call: "Content/publish",
         unit: p.draftId,
         keep: true,
       });
-      await finish(ctx, o, content, p, published, stats);
+      await answered(ctx, o, content, p, got, stats, busy);
     } catch (err) {
       if (err instanceof restate.TimeoutError) {
         // Still running (or paused by Restate): it settles on a later pass, and the queue moves on.
@@ -416,7 +496,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
         open.push(p);
         return;
       }
-      await ended(ctx, o, content, p, err, stats, busy, open);
+      await ended(ctx, o, content, p, err, stats);
     }
   }
 
@@ -448,7 +528,70 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       const account = o.client
         ? null
         : await ctx.run(`account ${draft.id}`, () => pickedAccount(o.db, `draft:${draft.id}`));
-      const post = postOf(claimed, links.text);
+      let post: Post;
+      try {
+        post = postOf(claimed, links.text);
+      } catch (err) {
+        // A field its platform won't take: the draft's to fix, nothing was sent.
+        if (!(err instanceof ShapeError)) throw err;
+        const error = errorText(err);
+        await ctx.run(`failed ${draft.id}`, () => markFailed(o.db, draft.id, error));
+        stats.failed.push({ id: draft.id, platform: draft.platform, error });
+        continue;
+      }
+      const target = (claimed.title || claimed.text).replace(/\s+/g, " ").trim().slice(0, 120);
+      // The ledger claim makes the send key. It is made before the call, so it survives every
+      // retry of this pass: the same publish asks autobrowse for the same verdict.
+      const invocation = ctx.request().id;
+      const taken = await ctx.run(`send claim ${draft.id}`, async () => {
+        try {
+          return await claimSend(o.db, {
+            item: `draft:${draft.id}`,
+            platform: draft.platform,
+            account,
+            words: post.text,
+            target,
+            url: null,
+            invocation,
+            now,
+          });
+        } catch (err) {
+          if (!(err instanceof ReachRefusal)) throw err;
+          const row = await sendAttempt(o.db, `draft:${draft.id}`);
+          return {
+            go: "taken" as const,
+            why: err.message,
+            unsure: row?.state === "unsure" ? (row.why ?? err.message) : null,
+          };
+        }
+      });
+      if (taken.go === "taken") {
+        // Another send of it is out, or it waits on a person: not ours to send.
+        if (taken.unsure !== null) {
+          const why = taken.unsure;
+          await ctx.run(`unsure ${draft.id}`, () => markUnsure(o.db, draft.id, why));
+          stats.unsure = [...(stats.unsure ?? []), { id: draft.id, platform: draft.platform, why }];
+        } else {
+          const why = taken.why;
+          await ctx.run(`waiting ${draft.id}`, () => markWaiting(o.db, draft.id, why));
+          stats.waiting = [...(stats.waiting ?? []), { id: draft.id, platform: draft.platform }];
+        }
+        continue;
+      }
+      if (taken.go === "done") {
+        // The ledger says it went out: the row catches up, nothing is sent.
+        const published: Published = {
+          id: taken.ref ?? "",
+          url: "",
+          publishedAt: taken.at ?? now.toISOString(),
+          fetchedWith: "api",
+        };
+        await ctx.run(`published ${draft.id}`, () =>
+          markPublished(o.db, draft.id, published, links.text ?? links.comment),
+        );
+        stats.published.push({ id: draft.id, platform: draft.platform, url: published.url });
+        continue;
+      }
       await send(
         ctx,
         o,
@@ -459,12 +602,14 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
           link: links.text ?? links.comment,
           comment: links.comment,
           account,
-          since: now.toISOString(),
+          since: taken.since,
           text: post.text,
-          target: (claimed.title || claimed.text).replace(/\s+/g, " ").trim().slice(0, 120),
+          target,
           words: lookWords(claimed, post),
           media: claimed.media?.kind ?? null,
-          tries: 1,
+          tries: taken.tried ? 2 : 1,
+          sendKey: taken.sendKey,
+          ...(taken.tried ? { recheck: true } : {}),
         },
         post,
         stats,

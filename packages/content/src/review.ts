@@ -4,7 +4,7 @@
  * what goes out is always something a person approved as written.
  */
 import { createHash } from "node:crypto";
-import { CHECKED, mayHavePosted, type Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/content";
 import {
   consented,
   fieldsOf,
@@ -126,7 +126,6 @@ export async function approveDrafts(
   },
 ): Promise<ContentDraft[]> {
   await refuseMoved(db, ids, o.expect);
-  await refuseUnsure(db, ids);
   const rows = await approveAll(db, ids, o);
   for (const r of rows)
     await recordDraft(db, {
@@ -138,29 +137,6 @@ export async function approveDrafts(
       slot: r.scheduledFor,
     });
   return rows;
-}
-
-/**
- * A failed post that may be live anyway is never sent again on the first yes: the first Approve
- * says to check the platform and marks it checked; the next Approve sends it.
- */
-async function refuseUnsure(db: Queryable, ids: readonly string[]): Promise<void> {
-  if (ids.length === 0) return;
-  const failed = await db
-    .select({ id: contentDrafts.id, platform: contentDrafts.platform, error: contentDrafts.error })
-    .from(contentDrafts)
-    .where(and(inArray(contentDrafts.id, [...ids]), eq(contentDrafts.status, "failed")));
-  const unsure = failed.filter((r) => mayHavePosted(r.error));
-  if (unsure.length === 0) return;
-  for (const r of unsure)
-    await db
-      .update(contentDrafts)
-      .set({ error: `${CHECKED}${r.error}` })
-      .where(and(eq(contentDrafts.id, r.id), eq(contentDrafts.status, "failed")));
-  const where = [...new Set(unsure.map((r) => r.platform))].join(", ");
-  throw new PortalRefusal(
-    `The last try may have posted on ${where}. Check there first. If it isn't up, approve again.`,
-  );
 }
 
 async function approveAll(

@@ -10,11 +10,11 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
-import { MAY_HAVE_POSTED, type Platform, type Post } from "@wren/core/content";
+import type { Platform, Post, Published } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
+import type { Delivery } from "@wren/core/send-verdict";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import type { Seen } from "@wren/core/maybe-sent";
 import { FakeLlm } from "@wren/llm";
 import { sendAttempt } from "@wren/outreach";
 import { eq, sql } from "drizzle-orm";
@@ -63,73 +63,147 @@ const insightReads: unknown[] = [];
 /** Whether the stand-in channels have a batch read, the batches asked, and the posts read alone. */
 let batching = false;
 let batchFails = false;
-/** Platforms whose desk browser stays busy past autobrowse's wait. */
-const browserBusy = new Set<Platform>();
 const leftOut = new Set<string>();
 const batches: { platform: Platform; ids: string[] }[] = [];
 const singles: string[] = [];
 /** Posts whose counts read never answers. */
 const hangMetrics = new Set<string>();
-/** Platforms whose next publishes lose their answer after the post went out (autobrowse's words). */
-const lose = new Map<Platform, number>();
-/** Every publish asked, answered or not. */
-const tried: Platform[] = [];
-/** What a look at our own listing answers, and the looks asked. */
-let listing: Seen["kind"] = "unclear";
-const looks: { platform: Platform; words: string[]; since: string }[] = [];
+/**
+ * What the next keyed publishes on a platform answer, one each (a default `sent` after that):
+ * `unknown` the page did not confirm, `busy` the desk's browser stayed busy (nothing was sent),
+ * `absent` the read showed it absent, `found` the read found it, `stop` the call stopped after the
+ * write (a server fault with no verdict).
+ */
+type Fate = "sent" | "unknown" | "busy" | "absent" | "found" | "stop";
+const fates = new Map<Platform, Fate[]>();
+/** What autobrowse's verify read finds for a key it holds as `unknown`. */
+let verify: "unknown" | "found" | "absent" = "unknown";
+/** autobrowse's journal: the verdict kept per send key. */
+const journal = new Map<string, Delivery<Published>>();
+/** Every publish asked, and how: the key it carried and whether it was a recheck. */
+const asked: { platform: Platform; sendKey: string | null; recheck: boolean }[] = [];
+/** The publishes that wrote (a key autobrowse had not seen). */
+const writes: { platform: Platform; sendKey: string | null }[] = [];
+/** The keys of replies (a first comment) and the platforms the posted hook ran for. */
+const replyKeys: (string | null)[] = [];
+const hooks = new Set<string>();
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
-    publish: async (ctx: restate.Context, req: { platform: Platform; post: Post }) => {
-      await ctx.run("tried", () => {
-        tried.push(req.platform);
+    publish: async (
+      ctx: restate.Context,
+      req: { platform: Platform; post: Post; sendKey?: string; recheck?: boolean },
+    ) => {
+      const key = req.sendKey ?? null;
+      await ctx.run("asked", () => {
+        asked.push({ platform: req.platform, sendKey: key, recheck: req.recheck === true });
       });
-      const lost = await ctx.run("lose", () => {
-        const left = lose.get(req.platform) ?? 0;
-        if (left > 0) lose.set(req.platform, left - 1);
-        return left > 0;
+      const published = (id: string, url: string): Published => ({
+        id,
+        url,
+        publishedAt: new Date().toISOString(),
+        fetchedWith: "api",
       });
-      if (lost) {
-        throw new restate.TerminalError(
-          `${req.platform} POST /web/posts: 500 "post the video" already went through on an earlier try of this step; check it before running again; ${MAY_HAVE_POSTED}`,
-          { errorCode: 500 },
-        );
-      }
+      // A keyed call answers what became of the write, as autobrowse does; an unkeyed one, as before.
+      const sent = (out: Published): Published | Delivery<Published> =>
+        key ? { kind: "sent", out } : out;
       if (hang.has(req.platform)) {
         const { id, promise } = ctx.awakeable<string>();
         await ctx.run("hung", () => {
           hung.push(id);
         });
         const verdict = await promise;
-        return {
-          id: `${req.platform}-late`,
-          url: `https://${req.platform}.test/p/${verdict}`,
-          publishedAt: new Date().toISOString(),
-          fetchedWith: "api" as const,
-        };
+        // The platform said no after the pass moved on: a refusal, with its status.
+        if (verdict === "refused")
+          throw new restate.TerminalError("the platform said no", { errorCode: 403 });
+        return sent(published(`${req.platform}-late`, `https://${req.platform}.test/p/${verdict}`));
       }
       if (refuse.has(req.platform))
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
           errorCode: 404,
         });
-      if (browserBusy.has(req.platform))
-        throw new restate.TerminalError(
-          `${req.platform} POST /web/posts: 503 not sent: profile google@test is busy (explore:9092); waited 5 min for it, try again`,
-          { errorCode: 503 },
+      if (!key) {
+        posted.push(req);
+        return published(
+          `${req.platform}-${posted.length}`,
+          `https://${req.platform}.test/p/${posted.length}`,
         );
-      posted.push(req);
-      return {
-        id: `${req.platform}-${posted.length}`,
-        url: `https://${req.platform}.test/p/${posted.length}`,
-        publishedAt: new Date().toISOString(),
-        fetchedWith: "api" as const,
-      };
+      }
+      // autobrowse's journal: a key with a final verdict answers it and writes nothing; a key held as
+      // `unknown` runs only the verify read; a key it has not seen writes.
+      return ctx.run("verdict", (): Delivery<Published> => {
+        const kept = journal.get(key);
+        if (kept && kept.kind !== "unknown") return kept;
+        const at = new Date().toISOString();
+        const final = (d: Delivery<Published>) => {
+          journal.set(key, d);
+          return d;
+        };
+        if (kept) {
+          if (verify === "found")
+            return final({
+              kind: "found",
+              id: `${req.platform}-found`,
+              url: `https://${req.platform}.test/p/found`,
+              at,
+            });
+          if (verify === "absent")
+            return final({
+              kind: "not_sent",
+              how: "verified_absent",
+              reason: "it is not on the site",
+              status: null,
+            });
+          return kept;
+        }
+        writes.push({ platform: req.platform, sendKey: key });
+        const fate = fates.get(req.platform)?.shift() ?? "sent";
+        if (fate === "unknown")
+          return final({ kind: "unknown", reason: "the page did not confirm the post", since: at });
+        if (fate === "busy")
+          return final({
+            kind: "not_sent",
+            how: "before_submit",
+            reason: "profile google@test is busy (explore:9092); waited 5 min for it, try again",
+            status: null,
+          });
+        if (fate === "absent")
+          return final({
+            kind: "not_sent",
+            how: "verified_absent",
+            reason: "it is not on the site",
+            status: null,
+          });
+        if (fate === "found")
+          return final({
+            kind: "found",
+            id: `${req.platform}-found`,
+            url: `https://${req.platform}.test/p/found`,
+            at,
+          });
+        if (fate === "stop")
+          throw new restate.TerminalError(`${req.platform} POST /web/posts: 500 the call stopped`, {
+            errorCode: 500,
+          });
+        posted.push(req);
+        return final({
+          kind: "sent",
+          out: published(
+            `${req.platform}-${posted.length}`,
+            `https://${req.platform}.test/p/${posted.length}`,
+          ),
+        });
+      });
     },
     reply: async (
-      _ctx: restate.Context,
-      req: { platform: Platform; commentId: string; text: string },
+      ctx: restate.Context,
+      req: { platform: Platform; commentId: string; text: string; sendKey?: string },
     ) => {
-      replied.push(req);
+      await ctx.run("replied", () => {
+        replied.push({ platform: req.platform, commentId: req.commentId, text: req.text });
+        replyKeys.push(req.sendKey ?? null);
+      });
+      return req.sendKey ? { kind: "sent" as const } : undefined;
     },
     metricsMany: async (
       _ctx: restate.Context,
@@ -182,23 +256,6 @@ const fakeContent = restate.service({
         asOf: new Date().toISOString(),
       };
     },
-    findPost: async (
-      ctx: restate.Context,
-      req: { platform: Platform; words: string[]; since: string },
-    ): Promise<Seen> => {
-      await ctx.run("look", () => {
-        looks.push(req);
-      });
-      if (listing === "found")
-        return {
-          kind: "found",
-          ref: `${req.platform}-listed`,
-          at: new Date().toISOString(),
-          url: `https://${req.platform}.test/p/listed`,
-        };
-      if (listing === "absent") return { kind: "absent" };
-      return { kind: "unclear", why: "the read failed: a synthetic outage" };
-    },
     platforms: async () => reportPlatforms,
     accountInsights: async () => null,
     // A platform with a report that has nothing new.
@@ -236,6 +293,15 @@ const notifier = {
     return true;
   },
 };
+/** What the publish pass tells William; apart from `notes`, which other loops fill. */
+const posting: string[] = [];
+const postingNotifier = {
+  name: "test posting",
+  notify: async (title: string, body: string) => {
+    posting.push(`${title}\n${body}`);
+    return true;
+  },
+};
 /** Stands in for ReachDesk/settleSend: `settlePost` takes calls from other services only. */
 type DeskObj = ReturnType<typeof makeContentDesk>;
 const settleForward = restate.service({
@@ -243,7 +309,7 @@ const settleForward = restate.service({
   handlers: {
     settle: async (
       ctx: restate.Context,
-      req: { id: string; outcome: "posted" | "again"; by: string },
+      req: { id: string; outcome: "posted" | "again" | "dropped"; by: string },
     ) => ctx.objectClient<DeskObj>({ name: "ContentDesk" }, DESK_KEY).settlePost(req),
   },
 });
@@ -256,7 +322,16 @@ beforeAll(async () => {
       fakeContent,
       settleForward,
       makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"], zone: "UTC" }),
-      makeContentScheduler({ db: pg.db, idleMs: 60_000, publishWaitMs: 3_000, settleMs: 10 }),
+      makeContentScheduler({
+        db: pg.db,
+        idleMs: 60_000,
+        publishWaitMs: 3_000,
+        settleMs: 10,
+        notifier: postingNotifier,
+        posted: (_ctx, platform, client) => {
+          hooks.add(`${platform}:${client ?? ""}`);
+        },
+      }),
       makeContentMetrics({ db: pg.db, notifier, limits: { read: 1_500, batch: 1_500 } }),
       makeContentPlanner({
         db: pg.db,
@@ -284,19 +359,22 @@ beforeEach(async () => {
     "send_attempts",
     "draft_events",
   ]);
-  lose.clear();
-  tried.length = 0;
-  listing = "unclear";
-  looks.length = 0;
+  fates.clear();
+  verify = "unknown";
+  journal.clear();
+  asked.length = 0;
+  writes.length = 0;
+  replyKeys.length = 0;
+  hooks.clear();
   posted.length = 0;
   replied.length = 0;
   notes.length = 0;
+  posting.length = 0;
   prompts.length = 0;
   views.clear();
   refuse.clear();
   hang.clear();
   hung.length = 0;
-  browserBusy.clear();
   batching = false;
   batchFails = false;
   leftOut.clear();
@@ -403,6 +481,9 @@ describe("content loop", () => {
         text: `https://wrenautomation.com/go/li/reach/${li?.id.slice(0, 8)}`,
       },
     ]);
+    expect(replyKeys).toHaveLength(1);
+    expect(replyKeys[0]?.startsWith(`draft:${li?.id} `)).toBe(true);
+    expect(replyKeys[0]?.endsWith(" comment")).toBe(true);
     const x = after.find((d) => d.platform === "x");
     if (!x) throw new Error("no x draft");
     expect(x.status).toBe("failed");
@@ -414,7 +495,7 @@ describe("content loop", () => {
     expect(posted).toHaveLength(3);
   });
 
-  it("a busy desk browser keeps the draft approved in its slot, says why, and posts it next pass", async () => {
+  it("a busy desk browser keeps the draft approved in its slot, says why, and posts it next pass under a new key", async () => {
     const out = await desk().add({ text: "a note on busy browsers" });
     const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
     await approveDrafts(
@@ -422,7 +503,7 @@ describe("content loop", () => {
       drafts.map((d) => d.id),
       { now: new Date() },
     );
-    browserBusy.add("x");
+    fates.set("x", ["busy"]);
     const pass = await sync();
     expect(pass.stats?.failed).toEqual([]);
     expect(pass.stats?.waiting).toMatchObject([{ platform: "x" }]);
@@ -430,16 +511,37 @@ describe("content loop", () => {
     const x = (await listDrafts(pg.db, { ideaId: out.idea.id })).find((d) => d.platform === "x");
     expect(x).toMatchObject({
       status: "approved",
-      error: expect.stringMatching(
-        /^Waiting for the browser: .*not sent: profile google@test is busy/,
-      ),
+      error: expect.stringMatching(/^Waiting for the browser: profile google@test is busy/),
     });
+    // Nothing went out, so nothing waits on the ledger.
+    expect(await sendAttempt(pg.db, `draft:${x?.id}`)).toBeNull();
     expect(notes.some((n) => /failed/.test(n) && !/0 failed/.test(n))).toBe(false);
-    browserBusy.clear();
     const again = await sync();
     expect(again.stats?.published.map((p) => p.platform)).toEqual(["x"]);
     const done = (await listDrafts(pg.db, { ideaId: out.idea.id })).find((d) => d.platform === "x");
     expect(done).toMatchObject({ status: "published", error: null });
+    // The second try is a new send: a new key.
+    const keys = writes.filter((w) => w.platform === "x").map((w) => w.sendKey);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+
+  it("a publish autobrowse read back as absent goes back to approved and posts once under a new key", async () => {
+    const out = await desk().add({ text: "a post that never landed", platforms: ["x"] });
+    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!x) throw new Error("no x draft");
+    fates.set("x", ["absent"]);
+    await approveDrafts(pg.db, [x.id], { now: new Date() });
+    const first = await sync();
+    expect(first.stats?.failed).toEqual([]);
+    expect(first.stats?.published).toEqual([]);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "approved" });
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
+    const second = await sync();
+    expect(second.stats?.published).toMatchObject([{ platform: "x" }]);
+    expect(writes).toHaveLength(2);
+    expect(writes[0]?.sendKey).not.toBe(writes[1]?.sendKey);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "published", publishedId: "x-1" });
   });
 
   it("moves on from a publish that hangs, and settles it on a later pass", async () => {
@@ -481,7 +583,7 @@ describe("content loop", () => {
     await approveDrafts(pg.db, [x.id], { now: new Date() });
     expect((await sync()).stats?.posting).toHaveLength(1);
     const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
-    await ingress.rejectAwakeable(hung[0] as string, "the platform said no");
+    await ingress.resolveAwakeable(hung[0] as string, "refused");
     const after = await sync();
     expect(after.stats?.failed).toMatchObject([
       { platform: "x", error: expect.stringContaining("the platform said no") },
@@ -489,171 +591,233 @@ describe("content loop", () => {
     expect((await getDraft(pg.db, x.id))?.status).toBe("failed");
   });
 
-  it("a publish that may have gone through and is on our listing is published with its id, never sent again", async () => {
-    const out = await desk().add({ text: "a post whose answer is lost", platforms: ["x"] });
-    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
-    if (!x) throw new Error("no x draft");
-    lose.set("x", 1);
-    listing = "found";
-    const before = Date.now();
-    await approveDrafts(pg.db, [x.id], { now: new Date() });
+  it("a publish autobrowse found by reading the site is published with its id and first comment, never sent again", async () => {
+    const out = await desk().add({
+      text: "a video whose answer is lost",
+      platforms: ["linkedin"],
+      media: { kind: "video", source: "https://cdn.test/found.mp4", title: "Found" },
+    });
+    const [li] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!li) throw new Error("no linkedin draft");
+    fates.set("linkedin", ["found"]);
+    await approveDrafts(pg.db, [li.id], { now: new Date() });
     const pass = await sync();
     expect(pass.stats?.failed).toEqual([]);
-    expect(pass.stats?.published).toMatchObject([{ platform: "x", url: "https://x.test/p/listed" }]);
-    expect(tried).toEqual(["x"]);
-    // The look reads for the words it went out with, from the start of the send.
-    expect(looks).toHaveLength(1);
-    expect(looks[0]?.words).toContain(x.text);
-    expect(new Date(looks[0]?.since ?? 0).getTime()).toBeLessThanOrEqual(Date.now());
-    expect(new Date(looks[0]?.since ?? 0).getTime()).toBeGreaterThan(before - 60_000);
-    expect(await getDraft(pg.db, x.id)).toMatchObject({
+    expect(pass.stats?.published).toMatchObject([
+      { platform: "linkedin", url: "https://linkedin.test/p/found" },
+    ]);
+    // One call, under the ledger's key, with no look of ours.
+    expect(writes).toHaveLength(1);
+    expect(asked).toEqual([{ platform: "linkedin", sendKey: writes[0]?.sendKey, recheck: false }]);
+    expect(writes[0]?.sendKey?.startsWith(`draft:${li.id} `)).toBe(true);
+    expect(await getDraft(pg.db, li.id)).toMatchObject({
       status: "published",
-      publishedId: "x-listed",
-      url: "https://x.test/p/listed",
-      error: expect.stringMatching(/^Found on X after the publish said it may have gone through/),
+      publishedId: "linkedin-found",
+      url: "https://linkedin.test/p/found",
+      error: null,
     });
     // Its words are frozen as sent, with the platform's id, as a publish that answered.
     const sent = await pg.db.execute<{ external_id: string }>(
-      sql`select external_id from draft_events where item = ${`draft:${x.id}`} and event = 'sent'`,
+      sql`select external_id from draft_events where item = ${`draft:${li.id}`} and event = 'sent'`,
     );
-    expect([...sent]).toEqual([{ external_id: "x-listed" }]);
-    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
-  });
-
-  it("a lost publish provably not on our listing is sent once more, and only once", async () => {
-    const out = await desk().add({ text: "a post that never landed", platforms: ["x"] });
-    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
-    if (!x) throw new Error("no x draft");
-    lose.set("x", 1);
-    listing = "absent";
-    await approveDrafts(pg.db, [x.id], { now: new Date() });
-    const pass = await sync();
-    expect(tried).toEqual(["x", "x"]);
-    expect(pass.stats?.published).toMatchObject([{ platform: "x" }]);
-    expect(await getDraft(pg.db, x.id)).toMatchObject({
-      status: "published",
-      publishedId: "x-1",
+    expect([...sent]).toEqual([{ external_id: "linkedin-found" }]);
+    expect(await sendAttempt(pg.db, `draft:${li.id}`)).toMatchObject({
+      state: "sent",
+      ref: "linkedin-found",
+      settledBy: "found",
     });
-
-    // Lost twice and absent twice: never a third, it waits on a person.
-    const out2 = await desk().add({ text: "a post lost two times", platforms: ["x"] });
-    const [y] = await listDrafts(pg.db, { ideaId: out2.idea.id });
-    if (!y) throw new Error("no x draft");
-    lose.set("x", 2);
-    tried.length = 0;
-    await approveDrafts(pg.db, [y.id], { now: new Date() });
-    const second = await sync();
-    expect(tried).toEqual(["x", "x"]);
-    expect(second.stats?.failed).toEqual([]);
-    expect(second.stats?.unsure).toMatchObject([
-      { platform: "x", why: expect.stringContaining("not on X after two tries") },
+    // The first comment and the posted hook run as for any publish; the comment has a key of its own.
+    expect(replied).toMatchObject([
+      {
+        platform: "linkedin",
+        commentId: "linkedin-found",
+        text: expect.stringContaining("/go/li/"),
+      },
     ]);
-    expect(await sendAttempt(pg.db, `draft:${y.id}`)).toMatchObject({ state: "unsure", tries: 2 });
+    expect(replyKeys).toEqual([`${writes[0]?.sendKey} comment`]);
+    expect([...hooks]).toEqual(["linkedin:"]);
+    // A later pass sends nothing.
+    await sync();
+    expect(writes).toHaveLength(1);
   });
 
-  it("a lost publish no read can tell waits in To approve, never failed, and settles on his word", async () => {
+  it("10-16: a publish autobrowse cannot tell stays publishing and waits in To approve, never failed", async () => {
     const out = await desk().add({ text: "a post nobody can see", platforms: ["x"] });
     const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
     if (!x) throw new Error("no x draft");
-    lose.set("x", 1);
-    listing = "unclear";
+    fates.set("x", ["unknown"]);
     await approveDrafts(pg.db, [x.id], { now: new Date() });
     const pass = await sync();
     expect(pass.stats?.failed).toEqual([]);
     expect(pass.stats?.unsure).toMatchObject([
-      { platform: "x", why: expect.stringContaining("a synthetic outage") },
+      { platform: "x", why: expect.stringContaining("the page did not confirm the post") },
     ]);
     expect(await getDraft(pg.db, x.id)).toMatchObject({
       status: "publishing",
       error: expect.stringMatching(/^May have gone out: .*It waits in To approve\.$/),
     });
-    const row = await sendAttempt(pg.db, `draft:${x.id}`);
-    expect(row).toMatchObject({
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({
       state: "unsure",
       platform: "x",
       words: expect.stringContaining(x.text),
       tries: 1,
+      sendKey: writes[0]?.sendKey,
     });
+    expect(
+      posting.some((n) => /1 may have gone out/.test(n) && /check it in To approve/.test(n)),
+    ).toBe(true);
     // An edit says where it waits, not that it is posting.
     await expect(editDraft(pg.db, x.id, { text: "changed" })).rejects.toThrow(
       /may have gone out, so it can't be edited\. Check it in To approve first/,
     );
     // No later pass takes it again while it waits.
     await sync();
-    expect(tried).toEqual(["x"]);
+    expect(writes).toHaveLength(1);
+    expect(asked).toHaveLength(1);
+  });
 
-    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
-    const settle = (outcome: "posted" | "again") =>
-      ingress
-        .serviceClient<typeof settleForward>({ name: "SettleForward" })
-        .settle({ id: x.id, outcome, by: "william" });
-    // Send again: the look still can't find it, so it goes back to the queue and posts once.
-    listing = "absent";
-    expect(await settle("again")).toMatchObject({ outcome: "again", found: false });
+  it("a Content call that stops after the write is parked unsure, never failed", async () => {
+    const out = await desk().add({ text: "a post whose call stopped", platforms: ["x"] });
+    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!x) throw new Error("no x draft");
+    fates.set("x", ["stop"]);
+    await approveDrafts(pg.db, [x.id], { now: new Date() });
+    const pass = await sync();
+    expect(pass.stats?.failed).toEqual([]);
+    expect(pass.stats?.unsure).toMatchObject([{ platform: "x" }]);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "publishing" });
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({ state: "unsure" });
+    await sync();
+    expect(writes).toHaveLength(1);
+  });
+
+  /** A draft whose first publish answered `unknown`, parked in To approve. */
+  async function parked(text: string, platform: "x" | "linkedin" = "x") {
+    const out = await desk().add({ text, platforms: [platform] });
+    const [d] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!d) throw new Error(`no ${platform} draft`);
+    fates.set(platform, ["unknown"]);
+    await approveDrafts(pg.db, [d.id], { now: new Date() });
+    expect((await sync()).stats?.unsure).toHaveLength(1);
+    return d;
+  }
+  const settle = (id: string, outcome: "posted" | "again" | "dropped") =>
+    clients
+      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .serviceClient<typeof settleForward>({ name: "SettleForward" })
+      .settle({ id, outcome, by: "william" });
+
+  it("Send again asks autobrowse under the same key first; still unknown, it posts once more under a new key", async () => {
+    const x = await parked("a post to send again");
+    const first = writes[0]?.sendKey;
+    expect(await settle(x.id, "again")).toMatchObject({ outcome: "again", found: false });
+    // The question went to autobrowse as a recheck of the first key: no write.
+    expect(asked[1]).toEqual({ platform: "x", sendKey: first, recheck: true });
+    expect(writes).toHaveLength(1);
     expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
     expect((await getDraft(pg.db, x.id)).status).toBe("approved");
     await sync();
-    expect(tried).toEqual(["x", "x"]);
+    expect(writes).toHaveLength(2);
+    expect(writes[1]?.sendKey).not.toBe(first);
     expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "published", publishedId: "x-1" });
   });
 
-  it("Mark posted on a lost publish: the listing's id when found, his word when not", async () => {
-    const out = await desk().add({ text: "two posts he checks", platforms: ["x", "linkedin"] });
-    const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
-    lose.set("x", 1);
-    lose.set("linkedin", 1);
-    await approveDrafts(
-      pg.db,
-      drafts.map((d) => d.id),
-      { now: new Date() },
-    );
-    expect((await sync()).stats?.unsure).toHaveLength(2);
-    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
-    const settle = (id: string) =>
-      ingress
-        .serviceClient<typeof settleForward>({ name: "SettleForward" })
-        .settle({ id, outcome: "posted", by: "william" });
-    const [x, li] = ["x", "linkedin"].map((p) => drafts.find((d) => d.platform === p)?.id ?? "");
-    // The read is back: it finds the post, so it gets the platform's id and its numbers.
-    listing = "found";
-    expect(await settle(x as string)).toMatchObject({ found: true });
-    expect(await getDraft(pg.db, x as string)).toMatchObject({
+  it("Send again when autobrowse's recheck finds it: published with its id, not sent twice", async () => {
+    const x = await parked("a post that did land");
+    verify = "found";
+    expect(await settle(x.id, "again")).toMatchObject({ outcome: "again", found: true });
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
       status: "published",
-      publishedId: "x-listed",
+      publishedId: "x-found",
+      url: "https://x.test/p/found",
     });
-    expect(await sendAttempt(pg.db, `draft:${x}`)).toMatchObject({
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({
       state: "sent",
-      ref: "x-listed",
+      ref: "x-found",
       settledBy: "found",
     });
-    // Still nothing to read: published on his word, with no id.
-    listing = "unclear";
-    expect(await settle(li as string)).toMatchObject({ found: false });
-    expect(await getDraft(pg.db, li as string)).toMatchObject({
+    await sync();
+    expect(writes).toHaveLength(1);
+  });
+
+  it("Mark posted: the recheck's id when it finds the post, his word when it does not", async () => {
+    const x = await parked("two posts he checks");
+    const out = await desk().add({ text: "the other post", platforms: ["linkedin"] });
+    const [li] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!li) throw new Error("no linkedin draft");
+    fates.set("linkedin", ["unknown"]);
+    await approveDrafts(pg.db, [li.id], { now: new Date() });
+    expect((await sync()).stats?.unsure).toHaveLength(1);
+    // The verify read finds the first: it gets the platform's id and its numbers.
+    verify = "found";
+    expect(await settle(x.id, "posted")).toMatchObject({ found: true });
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "published",
+      publishedId: "x-found",
+    });
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({
+      state: "sent",
+      ref: "x-found",
+      settledBy: "found",
+    });
+    // The read shows the second absent: published on his word, with no id.
+    verify = "absent";
+    expect(await settle(li.id, "posted")).toMatchObject({ found: false });
+    expect(await getDraft(pg.db, li.id)).toMatchObject({
       status: "published",
       publishedId: null,
       error: expect.stringMatching(/^Marked posted by william/),
     });
-    expect(await sendAttempt(pg.db, `draft:${li}`)).toMatchObject({
+    expect(await sendAttempt(pg.db, `draft:${li.id}`)).toMatchObject({
       state: "sent",
       settledBy: "william",
     });
     // A second word on a settled post is refused, never run twice.
-    await expect(settle(li as string)).rejects.toThrow(/that send is sent/);
-    expect(tried.sort()).toEqual(["linkedin", "x"]);
+    await expect(settle(li.id, "posted")).rejects.toThrow(/that send is sent/);
+    expect(writes.map((w) => w.platform).sort()).toEqual(["linkedin", "x"]);
   });
 
-  it("a failure that may have posted is approved again only after a person is told to check", async () => {
+  it("Not sent, drop: the draft is rejected, its slot goes, and nothing posts it", async () => {
+    const x = await parked("a post that did not go out");
+    expect(await settle(x.id, "dropped")).toMatchObject({ outcome: "dropped", found: false });
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "rejected",
+      scheduledFor: null,
+      error: null,
+    });
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
+    // It is recorded as a no to those words.
+    const events = await pg.db.execute<{ event: string }>(
+      sql`select event from draft_events where item = ${`draft:${x.id}`} and event = 'rejected'`,
+    );
+    expect([...events]).toHaveLength(1);
+    await sync();
+    expect(writes).toHaveLength(1);
+    // Nothing is asked of autobrowse for a drop.
+    expect(asked).toHaveLength(1);
+    await expect(settle(x.id, "dropped")).rejects.toThrow(/nothing waits/);
+  });
+
+  it("a send older than autobrowse's journal is not asked again: an unseen key would write", async () => {
+    const x = await parked("an old unsure post");
+    await pg.db.execute(
+      sql`update send_attempts set started_at = now() - interval '30 days' where item = ${`draft:${x.id}`}`,
+    );
+    verify = "found";
+    expect(await settle(x.id, "posted")).toMatchObject({ found: false });
+    expect(asked).toHaveLength(1);
+    expect(writes).toHaveLength(1);
+    expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "published", publishedId: null });
+  });
+
+  it("a failed draft is approved again on the first yes: nothing is held for a read", async () => {
     const out = await desk().add({ text: "a note on retries" });
     const d = (await listDrafts(pg.db, { ideaId: out.idea.id })).find((r) => r.platform === "x");
     if (!d) throw new Error("no x draft");
     await pg.db
       .update(contentDrafts)
-      .set({ status: "failed", error: `x POST /2/tweets: 504 timeout; ${MAY_HAVE_POSTED}` })
+      .set({ status: "failed", error: "x POST /2/tweets: 403 the platform said no" })
       .where(eq(contentDrafts.id, d.id));
-    await expect(approveDrafts(pg.db, [d.id], { now: new Date() })).rejects.toThrow(
-      /may have posted on x\. Check there first/,
-    );
     const [again] = await approveDrafts(pg.db, [d.id], { now: new Date() });
     expect(again?.status).toBe("approved");
   });

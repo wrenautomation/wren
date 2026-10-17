@@ -82,7 +82,7 @@ export async function markPostedBy(
     publishedId: null,
     url: null,
     notes: [],
-    error: `Marked posted by ${o.by}. No read found it, so its numbers are not read.`,
+    error: `Marked posted by ${o.by}. It has no platform id, so its numbers are not read.`,
     link: null,
     via: "person",
     by: o.by,
@@ -206,5 +206,32 @@ export async function sendAgain(db: Queryable, id: string): Promise<ContentDraft
     .set({ status: "approved", error: null })
     .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")))
     .returning();
+  return row ?? null;
+}
+
+/**
+ * publishing → rejected on a person's "Not sent, drop": it did not go out and stays out, as if
+ * he had rejected it. Its slot goes. Null when the draft is no longer waiting on that word.
+ */
+export async function dropDraft(
+  db: Queryable,
+  id: string,
+  by: string,
+): Promise<ContentDraft | null> {
+  const [row] = await db
+    .update(contentDrafts)
+    .set({ status: "rejected", scheduledFor: null, error: null })
+    .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")))
+    .returning();
+  if (row)
+    await recordDraft(db, {
+      item: `draft:${id}`,
+      platform: row.platform,
+      event: "rejected",
+      via: "person",
+      by,
+      text: row.text,
+      note: "Dropped in To approve: it was not sent",
+    });
   return row ?? null;
 }

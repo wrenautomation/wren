@@ -119,7 +119,7 @@ const fakeDesk = restate.object({
   handlers: {
     settlePost: async (
       ctx: restate.ObjectContext,
-      req: { id: string; outcome: "posted" | "again"; by: string },
+      req: { id: string; outcome: "posted" | "again" | "dropped"; by: string },
     ) => {
       settled.push({ key: ctx.key, ...req });
       return { ...req, found: false };
@@ -352,6 +352,19 @@ describe("a DM answer whose outcome is lost", () => {
     const [row] = await kappa.select().from(reachMessages).where(eq(reachMessages.id, id));
     expect(row).toMatchObject({ state: "sent", ref: `ev-${sent}` });
     expect(await sendAttempt(kappa, item)).toMatchObject({ state: "sent", settledBy: "found" });
+  }, 120_000);
+
+  it("Not sent, drop: the answer is skipped, its ledger row goes, nothing is sent", async () => {
+    const { item, id, sent } = await lost("Closed on Monday.");
+    await console_().sendSettle({ ...as(AMY), item, outcome: "dropped" });
+    expect(x.sent.length).toBe(sent);
+    const [row] = await kappa.select().from(reachMessages).where(eq(reachMessages.id, id));
+    expect(row?.state).toBe("skipped");
+    expect(await sendAttempt(kappa, item)).toBeNull();
+    // A second word finds nothing waiting.
+    await expect(console_().sendSettle({ ...as(AMY), item, outcome: "dropped" })).rejects.toThrow(
+      /nothing waits/,
+    );
   }, 120_000);
 
   it("Mark posted records it as its send would", async () => {

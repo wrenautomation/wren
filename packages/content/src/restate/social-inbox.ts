@@ -10,18 +10,24 @@ import type { SiteClient } from "@wren/core/content";
 import { SENDS_OFF } from "@wren/core/content/restate";
 import { noRawKeys } from "@wren/core/key-refs";
 import { clientKey, errorText, serviceHandler } from "@wren/core/restate";
+import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
 import {
+  dropComment,
+  forgetUnsure,
   itemOf,
   markAnswered,
   markPosted,
   planAnswer,
   ReachRefusal,
+  SETTLE_OUTCOMES,
+  type SettleOutcome,
   settleSent,
   unsureItem,
 } from "@wren/outreach";
 import {
   contentLook,
+  isSendNotSent,
   isSendTaken,
   isSendUnsure,
   type PostSettle,
@@ -33,6 +39,7 @@ import {
   type DmAccount,
   type DmPlan,
   dmPlanOf,
+  dropDm,
   failedDm,
   isDmSocial,
   keepDms,
@@ -57,8 +64,19 @@ export interface SocialInboxDeps {
 }
 
 type Fn<I, O> = (ctx: unknown, req: I) => Promise<O>;
+/** `Content/reply`: given a send key it answers a `Delivery`, which `sendAcross` unwraps. */
 type ContentReply = {
-  reply: Fn<{ platform: string; commentId: string; text: string; client: string }, unknown>;
+  reply: Fn<
+    {
+      platform: string;
+      commentId: string;
+      text: string;
+      client: string;
+      sendKey: string;
+      recheck: boolean;
+    },
+    unknown
+  >;
 };
 type OwnSends = {
   send: Fn<{ client: string; contactId: number; body: string; by?: string; again: true }, unknown>;
@@ -86,8 +104,10 @@ const SETTLE = z.looseObject({
   client: CLIENT,
   item: z.string().min(3).max(80).describe("The send's typed id: sdm:<message> or comment:<id>"),
   outcome: z
-    .enum(["posted", "again"])
-    .describe("posted: they saw it on the site; again: send it once more"),
+    .enum(SETTLE_OUTCOMES)
+    .describe(
+      "posted: they saw it on the site; again: send it once more; dropped: it did not go out and stays out",
+    ),
   by: z.string().max(320).nullish(),
 });
 
@@ -211,12 +231,13 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               send: () => sendDm(deps.sites(ctx, req.client, "reach.outreach"), plan, pageId),
             });
           } catch (err) {
-            // Unsure: the row waits as `unknown` with its ledger row. Taken: nothing changed.
+            // Unsure: the row waits as `unknown` with its ledger row. Taken, or nothing went out:
+            // nothing changed, and the answer can be sent again.
             if (isSendUnsure(err)) {
               await ctx.run("unknown", () => unknownDm(db, plan.messageId, err.message));
               throw err;
             }
-            if (isSendTaken(err)) throw err;
+            if (isSendTaken(err) || isSendNotSent(err)) throw err;
             const why = errorText(err);
             await ctx.run("failed", () => failedDm(db, plan.messageId, why));
             throw new restate.TerminalError(why);
@@ -264,12 +285,16 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               client: req.client,
             }),
             send: async () => {
-              await ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
-                platform: plan.platform,
-                commentId: plan.ref,
-                text: req.body,
-                client: req.client,
-              });
+              // The key crosses to `Content`, which runs the write under it and answers a Delivery.
+              await sendAcross((k) =>
+                ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
+                  platform: plan.platform,
+                  commentId: plan.ref,
+                  text: req.body,
+                  client: req.client,
+                  ...k,
+                }),
+              );
               return { ref: null };
             },
           });
@@ -282,15 +307,16 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
 
       /**
        * A person's word on an unsure send of the client's, from its To approve: posted records
-       * it as its send would; again sends it once more through `send` or `answer`. A post on its
-       * own channel (`draft:`) settles in its `ContentDesk`, which reads the listing first.
+       * it as its send would; again sends it once more through `send` or `answer`; dropped closes
+       * it unsent (a DM answer `skipped`, a comment `dropped`). A post on its own channel
+       * (`draft:`) settles in its `ContentDesk`, which reads the listing first.
        */
       settle: serviceHandler(
         { input: noRawKeys(SETTLE), effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { client: string; item: string; outcome: "posted" | "again"; by?: string | null },
-        ): Promise<{ item: string; outcome: "posted" | "again" }> => {
+          req: { client: string; item: string; outcome: SettleOutcome; by?: string | null },
+        ): Promise<{ item: string; outcome: SettleOutcome }> => {
           const now = await nowOf(ctx);
           const db = deps.clientDb(req.client);
           const by = req.by ?? "inbox";
@@ -311,6 +337,18 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               .objectClient<PostSettle>({ name: "ContentDesk" }, clientKey(req.client, "desk"))
               .settlePost({ id, outcome: req.outcome, by });
             return { item: req.item, outcome: req.outcome };
+          }
+          if (req.outcome === "dropped") {
+            // It did not go out and stays out: the answer or comment closes, its ledger row goes.
+            await ctx.run("dropped", () =>
+              terminal(async () => {
+                const why = "dropped in To approve: it was not sent";
+                if (kind === "comment") await dropComment(db, Number(id), { by, note: why });
+                else await dropDm(db, Number(id), why);
+                await forgetUnsure(db, req.item);
+              }),
+            );
+            return { item: req.item, outcome: "dropped" };
           }
           if (req.outcome === "posted") {
             await ctx.run("posted", () =>

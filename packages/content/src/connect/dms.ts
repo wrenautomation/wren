@@ -410,6 +410,16 @@ export async function unknownDm(db: Queryable, messageId: number, why: string): 
     .where(eq(reachMessages.id, messageId));
 }
 
+/** "Not sent, drop": an unsure answer that did not go out and stays out. The thread keeps its own. */
+export async function dropDm(db: Queryable, messageId: number, why: string): Promise<void> {
+  const [m] = await db
+    .update(reachMessages)
+    .set({ state: "skipped", stateReason: why.slice(0, 300) })
+    .where(and(eq(reachMessages.id, messageId), eq(reachMessages.state, "unknown")))
+    .returning({ id: reachMessages.id });
+  if (!m) throw new ReachRefusal("that answer is no longer waiting");
+}
+
 /** An unsure answer's plan again, from its row: what settling it records or sends. */
 export async function dmPlanOf(db: Queryable, messageId: number): Promise<DmPlan> {
   const [row] = await db.select().from(reachMessages).where(eq(reachMessages.id, messageId));

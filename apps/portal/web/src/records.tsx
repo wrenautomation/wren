@@ -454,6 +454,13 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { item: bare(id), outcome: "again" },
       { confirm: "settleSend" },
     ),
+  "marketing/sendDrop": (id) =>
+    handlerCall(
+      "ReachDesk",
+      "settleSend",
+      { item: bare(id), outcome: "dropped" },
+      { confirm: "settleSend" },
+    ),
   "marketing/placeWatch": (id) => handlerCall("ReachDesk", "watchPlace", { subreddit: id }),
   "marketing/placeSkip": (id) => handlerCall("ReachDesk", "skipPlace", { subreddit: id }),
   "marketing/placeMove": (id, { account }) =>
@@ -634,6 +641,7 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
   // A client's send that may have gone out (`unsure:sdm:9`): settled on its own database.
   "marketing/sendPosted": (id) => ["marketing/sendSettle", { item: bare(id), outcome: "posted" }],
   "marketing/sendAgain": (id) => ["marketing/sendSettle", { item: bare(id), outcome: "again" }],
+  "marketing/sendDrop": (id) => ["marketing/sendSettle", { item: bare(id), outcome: "dropped" }],
   "marketing/inboxReplyDrop": (id) => ["marketing/inboxDrop", { id: num(id) }],
   "marketing/approveDraft": (id, { expect }) => [
     "marketing/approveDraft",

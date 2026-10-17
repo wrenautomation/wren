@@ -226,7 +226,13 @@ export const GONE = "That draft isn't here any more. Reload the page to see what
  * saying what to do. Draft, approved and failed are open; the rest are past changing.
  */
 export function lockedWhy(
-  r: { title?: string | null; text: string; platform: string; status: string; error?: string | null },
+  r: {
+    title?: string | null;
+    text: string;
+    platform: string;
+    status: string;
+    error?: string | null;
+  },
   doing: string,
 ): string {
   const who = named(r);

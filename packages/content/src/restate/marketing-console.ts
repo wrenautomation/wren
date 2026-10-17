@@ -44,6 +44,7 @@ import {
 } from "@wren/core/records/serve";
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
+import { SETTLE_OUTCOMES, type SettleOutcome } from "@wren/outreach";
 import { z } from "zod";
 import {
   deleteReport,
@@ -400,10 +401,12 @@ const SETTLE_SEND = {
   input: z.looseObject({
     ...PORTAL_FIELDS,
     item: z.string().min(3).max(80).describe("The unsure send's typed id: sdm:<id>, comment:<id>"),
-    outcome: z.enum(["posted", "again"]).describe("posted: seen on the site; again: send it again"),
+    outcome: z
+      .enum(SETTLE_OUTCOMES)
+      .describe("posted: seen on the site; again: send it again; dropped: it did not go out"),
   }),
 };
-type SettleRequest = PortalRequest & { item: string; outcome: "posted" | "again" };
+type SettleRequest = PortalRequest & { item: string; outcome: SettleOutcome };
 type InboxClient = ReturnType<typeof inboxClient>;
 
 /** The desk's refusals (not waiting, no model, no About) are the viewer's answer. */
@@ -636,7 +639,8 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
       ),
       /**
        * A send of the client's that may have gone out (designs/2026-10-16-maybe-sent.md): its
-       * approver marks it posted or sends it again, through SocialInbox on its own database.
+       * approver marks it posted, sends it again or drops it, through SocialInbox on its own
+       * database.
        */
       sendSettle: serviceHandler(SETTLE_SEND, (ctx: restate.Context, req: SettleRequest) =>
         answer(async () => {

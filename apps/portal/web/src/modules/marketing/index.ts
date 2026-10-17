@@ -127,8 +127,15 @@ const UNSURE_ACTIONS: Action[] = [
     label: "Send again",
     handler: "marketing/sendAgain",
     confirm:
-      "Send it again? We check the site first, but if it went out and we still can't see it, it posts twice.",
+      "Send it again? We ask the site first, but if it went out and the site can't tell, it posts twice.",
     done: said("Sending again."),
+  },
+  {
+    id: "marketing.sendDrop",
+    label: "Not sent, drop",
+    handler: "marketing/sendDrop",
+    confirm: "Did it not go out? We'll close it as not sent and never send it.",
+    done: said("Dropped. It was not sent."),
   },
 ];
 
