@@ -184,6 +184,8 @@ export const sopRecord = defineRecord({
   id: "library.sop",
   app: "library",
   channel: null,
+  // Wren's own playbooks: the team reads them, a client login never does (wa-egn).
+  needs: "team",
   name: { one: "SOP", many: "SOPs" },
   // A few dozen SOPs at most: read as rows, queried as a table.
   rows: async (db) =>

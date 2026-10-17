@@ -21,7 +21,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /** What a decision is about. A new kind is a new entry here and in `KINDS` (`decide/kinds.ts`). */
-export const DECISION_KINDS = ["comment_quality", "learn_worth"] as const;
+export const DECISION_KINDS = ["comment_quality", "learn_worth", "lead_fit"] as const;
 export type DecisionKind = (typeof DECISION_KINDS)[number];
 
 /**

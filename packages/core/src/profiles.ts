@@ -10,6 +10,7 @@ import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
 import {
   profileEvents,
   profileKeys,
+  profileLookups,
   profileMerges,
   profiles,
   profileTraits,
@@ -236,6 +237,15 @@ export async function mergeProfiles(
     .where(eq(profileKeys.profileId, from))
     .returning({ id: profileKeys.id });
   await db.update(profileEvents).set({ profileId: into }).where(eq(profileEvents.profileId, from));
+  // Research moves with the person; a finding both held keeps the one already on `into`.
+  await db
+    .update(profileLookups)
+    .set({ profileId: into })
+    .where(eq(profileLookups.profileId, from));
+  await db.execute(sql`
+    update profile_findings f set profile_id = ${into}
+    where f.profile_id = ${from} and not exists (
+      select 1 from profile_findings g where g.profile_id = ${into} and g.ref = f.ref)`);
   const theirs = await db.select().from(profileTraits).where(eq(profileTraits.profileId, from));
   let traits = 0;
   for (const t of theirs) if (await putTrait(db, into, t.key, t.value, t.source, t.at)) traits += 1;

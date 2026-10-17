@@ -9,9 +9,15 @@
  *
  * The timeline (`profile_timeline`) reads the source tables through the keys. The one copy is
  * `profile_events`: lines whose rows live in another database (B7).
+ *
+ * Research (designs/2026-10-17-people-depth.md): `profile_lookups` is one "Research this person"
+ * run, `profile_findings` what it found, each kept or dropped by a person. The research service
+ * writes these; a kept handle becomes a key through `./profiles.ts`.
  */
+import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -535,3 +541,96 @@ export const profileMergeRecords = pgView("profile_merge_records", {
     m.keys, m.traits, m.source::text, m.at, '/people/people/' || m.into_id into_link
   from profile_merges m
   join profiles p on p.id = m.from_id`);
+
+/** A lookup run's state: queued by the profile's action, running in Restate, then done or failed. */
+export const PROFILE_LOOKUP_STATES = ["queued", "running", "done", "failed"] as const;
+export type ProfileLookupState = (typeof PROFILE_LOOKUP_STATES)[number];
+
+/** One "Research this person" run on a profile: who asked, how far it got, the trail it read. */
+export const profileLookups = pgTable(
+  "profile_lookups",
+  {
+    id: serial("id").notNull(),
+    profileId: integer("profile_id").notNull(),
+    state: varchar("state", { length: 12, enum: PROFILE_LOOKUP_STATES }).notNull(),
+    /** His email, `cli`. */
+    by: varchar("by", { length: 320 }),
+    /** What it searched with: names, emails, handles, firm (`LookupSubject` plus handles). */
+    subject: jsonb("subject"),
+    /** Each step tried and what it said (`Tried[]`), so the page shows progress. */
+    tried: jsonb("tried"),
+    /** The lookup's own outcome (`matched`, `unresolved`, `capped`). */
+    outcome: varchar("outcome", { length: 24 }),
+    error: text("error"),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_profile_lookups" }),
+    index("ix_profile_lookups_profile_id").on(t.profileId, t.createdAt),
+    oneOf("ck_profile_lookups_state", t.state, PROFILE_LOOKUP_STATES),
+    foreignKey({
+      columns: [t.profileId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_lookups_profile_id_profiles",
+    }),
+  ],
+);
+
+/** What a finding is: a handle on a platform, any other page about them, a job. */
+export const PROFILE_FINDING_KINDS = ["handle", "link", "employer"] as const;
+export type ProfileFindingKind = (typeof PROFILE_FINDING_KINDS)[number];
+/** `found` waits for a person; `kept` is theirs (a handle becomes a key); `dropped` is not. */
+export const PROFILE_FINDING_STATES = ["found", "kept", "dropped"] as const;
+export type ProfileFindingState = (typeof PROFILE_FINDING_STATES)[number];
+
+/**
+ * One thing a lookup found about a profile, with where it came from and how sure. Found again on
+ * a later run, the same `ref` keeps its state: a dropped finding stays dropped.
+ */
+export const profileFindings = pgTable(
+  "profile_findings",
+  {
+    id: serial("id").notNull(),
+    profileId: integer("profile_id").notNull(),
+    /** The run that found it last. */
+    lookupId: integer("lookup_id"),
+    kind: varchar("kind", { length: 16, enum: PROFILE_FINDING_KINDS }).notNull(),
+    /** `linkedin`, `x`, `instagram`, `github`, `site`, ...; null for an employer. */
+    platform: varchar("platform", { length: 24 }),
+    /** The handle (normalized), the page's title, or "Title at Firm". */
+    value: text("value").notNull(),
+    url: text("url"),
+    /** The lookup step that found it: `cache`, `google`, `search`, `linkedin`, `elsewhere`. */
+    source: varchar("source", { length: 24 }).notNull(),
+    /** 0..1: how sure it is theirs. */
+    confidence: doublePrecision("confidence").notNull(),
+    /** The finding whole, as the lookup gave it. */
+    detail: jsonb("detail"),
+    state: varchar("state", { length: 8, enum: PROFILE_FINDING_STATES }).notNull().default("found"),
+    decidedBy: varchar("decided_by", { length: 320 }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    /** `<kind>:<platform>:<value>`, unique per profile. */
+    ref: varchar("ref", { length: 400 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_profile_findings" }),
+    unique("uq_profile_findings_profile_ref").on(t.profileId, t.ref),
+    oneOf("ck_profile_findings_kind", t.kind, PROFILE_FINDING_KINDS),
+    oneOf("ck_profile_findings_state", t.state, PROFILE_FINDING_STATES),
+    foreignKey({
+      columns: [t.profileId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_findings_profile_id_profiles",
+    }),
+    foreignKey({
+      columns: [t.lookupId],
+      foreignColumns: [profileLookups.id],
+      name: "fk_profile_findings_lookup_id_profile_lookups",
+    }).onDelete("set null"),
+  ],
+);
+export type ProfileFinding = typeof profileFindings.$inferSelect;

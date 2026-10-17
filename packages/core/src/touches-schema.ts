@@ -106,6 +106,11 @@ export const touches = pgTable(
     account: varchar("account", { length: 120 }),
     /** The post or thread it sits on, else their profile or the DM thread. */
     url: text("url"),
+    /**
+     * The item's own page where the platform gives one: the comment, the reply, the status, the
+     * DM thread (designs/2026-10-17-people-depth.md). Null: no permalink for it, `url` only.
+     */
+    link: text("link"),
     text: text("text"),
     at: timestamp("at", { withTimezone: true }).notNull(),
     response: varchar("response", { length: 16, enum: TOUCH_RESPONSES }),

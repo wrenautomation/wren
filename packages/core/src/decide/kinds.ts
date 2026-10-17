@@ -88,9 +88,44 @@ const learnWorth: KindSpec = {
   gate: false,
 };
 
+/**
+ * A person in People (designs/2026-10-17-people-depth.md): a lead for Wren's offers, or someone
+ * who likes the content. The state carries `offers` (what Wren sells), what they do, the touches
+ * and what research found; never a name or a handle. `unsure` is not kept: it is no lead yet.
+ */
+const leadFit: KindSpec = {
+  kind: "lead_fit",
+  name: "Lead checks",
+  questions: {
+    [PICK]: {
+      type: "choice",
+      instructions:
+        "Is this person a viable lead for `offers`, sold by Wren (a small AI automation agency)? `person` is what we know they do, `touches` what they did with our posts and messages, `found` what research found about them.",
+      criteria: {
+        fit: "Runs or decides for a business that could buy one of `offers`: an owner, a partner, a leader at a firm of the right kind and size.",
+        unsure: "Could be a buyer, but what we hold is too thin to say.",
+        not: "A fan, a student, a peer selling the same thing, a job seeker, a bot: someone who likes the content and would not buy.",
+      },
+    },
+  },
+  labels: {
+    fit: { name: "Lead", keep: true, tone: "good", about: "A viable lead" },
+    unsure: { name: "Unsure", keep: false, tone: "warn", about: "Too little to say" },
+    not: {
+      name: "Not a lead",
+      keep: false,
+      tone: "neutral",
+      about: "Likes the content, won't buy",
+    },
+  },
+  defaultMode: "recommend",
+  gate: false,
+};
+
 export const KINDS: Readonly<Record<DecisionKind, KindSpec>> = {
   comment_quality: commentQuality,
   learn_worth: learnWorth,
+  lead_fit: leadFit,
 };
 
 export const isDecisionKind = (k: string): k is DecisionKind =>
