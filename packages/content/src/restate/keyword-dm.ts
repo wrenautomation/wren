@@ -6,8 +6,10 @@
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
 import { errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
 import { markAnswered, planPrivateReply, privateReplied, ReachRefusal } from "@wren/outreach";
+import { sendAtMostOnce, sendError } from "@wren/outreach/restate";
 import { z } from "zod";
 import { addKeyword, catchKeywords, hitOf, removeKeywords, settleHit } from "../social/keywords.js";
 
@@ -16,15 +18,19 @@ export interface KeywordDmDeps {
   clientDb?: (client: string) => Db;
 }
 
+/** `Content/privateReply` and `reply` given a send key: each answers a `Delivery`, which `sendAcross` unwraps. */
 type ContentSend = {
-  privateReply: (
+  [K in "privateReply" | "reply"]: (
     ctx: restate.Context,
-    req: { platform: string; commentId: string; text: string; client?: string | null },
-  ) => Promise<{ ref: string | null }>;
-  reply: (
-    ctx: restate.Context,
-    req: { platform: string; commentId: string; text: string; client?: string | null },
-  ) => Promise<void>;
+    req: {
+      platform: string;
+      commentId: string;
+      text: string;
+      client?: string | null;
+      sendKey: string;
+      recheck: boolean;
+    },
+  ) => Promise<unknown>;
 };
 
 interface Send {
@@ -94,9 +100,12 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
         }),
       ),
       /**
-       * One hit's DM, then its public reply. A refusal (DM'd already, past Meta's 7 days, sends
-       * off) or Meta's no is logged as failed and ends there; a public reply that fails is
-       * logged but the DM stands.
+       * One hit's DM, then its public reply, each on the send ledger (`private:<comment>`,
+       * `comment:<comment>`) and sent under its key, so autobrowse or the direct journal says
+       * whether it went out (designs/2026-10-16-maybe-sent.md). A refusal (DM'd already, past
+       * Meta's 7 days, sends off), Meta's no, a send that left nothing, or one that may have
+       * gone out (its ledger row waits in To approve) is logged as failed and ends there. A
+       * public reply that fails is logged but the DM stands.
        */
       send: serviceHandler(
         { input: SEND, effect: "sends", ingressPrivate: true },
@@ -126,11 +135,25 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
           }
           let ref: string | null;
           try {
-            ({ ref } = await content.privateReply({
+            ({ ref } = await sendAtMostOnce(ctx, db, {
+              item: `private:${c.id}`,
               platform: c.platform,
-              commentId: c.ref,
-              text: hit.dm,
-              client: req.client,
+              account: null,
+              words: hit.dm,
+              target: c.ref,
+              url: c.url,
+              send: () =>
+                sendAcross<{ ref: string | null }>((k) =>
+                  content.privateReply({
+                    platform: c.platform,
+                    commentId: c.ref,
+                    text: hit.dm,
+                    client: req.client,
+                    ...k,
+                  }),
+                ),
+            }).catch((err) => {
+              throw sendError(err);
             }));
           } catch (err) {
             if (err instanceof restate.TerminalError) return failed(err.message);
@@ -143,14 +166,36 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
           const reply = hit.reply?.trim();
           if (reply)
             try {
-              await content.reply({
+              const answer = await sendAtMostOnce(ctx, db, {
+                item: `comment:${c.id}`,
                 platform: c.platform,
-                commentId: c.ref,
-                text: reply,
-                client: req.client,
+                account: null,
+                words: reply,
+                target: c.ref,
+                url: c.url,
+                send: async () => {
+                  await sendAcross((k) =>
+                    content.reply({
+                      platform: c.platform,
+                      commentId: c.ref,
+                      text: reply,
+                      client: req.client,
+                      ...k,
+                    }),
+                  );
+                  return { ref: null };
+                },
+              }).catch((err) => {
+                throw sendError(err);
               });
               await ctx.run("answered", () =>
-                markAnswered(db, c.id, { body: reply, ref: null, now, by: "keyword", via: "wren" }),
+                markAnswered(db, c.id, {
+                  body: reply,
+                  ref: answer.ref,
+                  now,
+                  by: "keyword",
+                  via: "wren",
+                }),
               );
             } catch (err) {
               if (!(err instanceof restate.TerminalError)) throw err;

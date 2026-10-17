@@ -8,9 +8,9 @@
  * `ContentDesk/<client>/desk`: the same over a client's own database. Its drafts speak as the
  * client (its plan's About and voice), on its own `models` vendor; they wait in its To approve.
  *
- * `settlePost` settles a post that may have gone out (designs/2026-10-16-maybe-sent.md). Wren's
- * own post asks autobrowse again under its send key and reads no words; a client's, on its own
- * connected account, reads our listing. Then the person's word: posted, again, or dropped.
+ * `settlePost` settles a post that may have gone out (designs/2026-10-16-maybe-sent.md). It asks
+ * for the stored verdict under the post's send key, Wren's or a client's, and reads no words.
+ * Found runs the after-publish. Else the person's word: posted, again, or dropped.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -20,7 +20,6 @@ import { PLATFORMS } from "@wren/core/content";
 import { SHAPES, ShapeError } from "@wren/core/content/shapes";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { KeyStore } from "@wren/core/keys";
-import { type Seen, unclear } from "@wren/core/maybe-sent";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { PortalRefusal, terminalOf } from "@wren/core/portal";
 import {
@@ -61,7 +60,7 @@ import { type FunnelPatch, postedLinks, setFunnel } from "../funnel.js";
 import { addIdea, getIdea } from "../ideas.js";
 import type { MediaStoreOptions } from "../media.js";
 import { FROM, refFrom, splitPosts, waitingIdeas, writeOwn } from "../own.js";
-import { aboutDraft, lookWords, postOf } from "../platforms.js";
+import { aboutDraft, postOf } from "../platforms.js";
 import {
   draftCarousel,
   draftPromo,
@@ -73,7 +72,7 @@ import {
   promoBase,
   videoDraftOf,
 } from "../promo.js";
-import { dropDraft, markPostedBy, markPublished, sendAgain } from "../queue.js";
+import { dropDraft, markPostedBy, sendAgain } from "../queue.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts, setFields } from "../review.js";
 import {
   type ContentIdea,
@@ -91,6 +90,7 @@ import { slotsOf } from "../slots.js";
 import { STORY_PLATFORMS, type StoryPlatform, storyClips, writeStory } from "../story.js";
 import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
 import { type Brand, DEFAULT_BRAND } from "../voice.js";
+import { afterPublish, type ReplyService } from "./after-publish.js";
 import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
 
 /**
@@ -133,6 +133,8 @@ export interface ContentDeskDeps {
    * model key is in. None: a client's key fails.
    */
   clients?: { clientDb: (client: string) => Db; llm: LlmClient | null; keys?: KeyStore | null };
+  /** A post just went out on `platform` (a client's, or Wren's at null): its replies read warm. */
+  posted?: (ctx: restate.ObjectContext, platform: Platform, client: string | null) => void;
 }
 
 /** One desk call's database, model and words: Wren's, or a client's. */
@@ -292,76 +294,58 @@ const SETTLE_POST = z.looseObject({
     .describe("He saw it up, it should go out once more, or it did not go out and stays out"),
   by: z.string().describe("Who decides"),
 });
-/** `Content/publish` as the core serves it: given a send key it answers a `Delivery`. */
+/** `Content/publish` as the core serves it. `verifyOnly` asks the stored verdict and never writes. */
 type ContentPublish = {
   publish: (
     ctx: restate.Context,
     req: {
       platform: Platform;
       post: Post;
+      client?: string;
       account?: string | null;
       sendKey: string;
       recheck: true;
+      verifyOnly: true;
     },
   ) => Promise<unknown>;
 };
 /**
- * autobrowse keeps a send's verdict 30 days; a key it has not seen executes the write. A publish
- * is only asked again under a key younger than this.
+ * The post, if autobrowse's verdict under its send key says it is up: sent or found. Any other
+ * answer (not sent, unknown, a refusal, an error) is null and leaves the person's word.
  */
-const ASK_AGAIN_MS = 29 * 24 * 60 * 60_000;
-/**
- * autobrowse's answer on a publish, asked again under its send key, as what a listing would say:
- * sent or found is `found`; not sent (or the platform's no) is `absent`; the rest is `unclear`.
- */
-async function askAgain(
+async function askVerdict(
   ctx: restate.Context,
   platform: Platform,
-  again: { post: Post; account: string | null; sendKey: string },
-): Promise<Seen> {
+  ask: { post: Post; client: string | null; account: string | null; sendKey: string },
+): Promise<Published | null> {
   try {
     const got = await ctx.serviceClient<ContentPublish>({ name: "Content" }).publish({
       platform,
-      post: again.post,
-      ...(again.account ? { account: again.account } : {}),
-      sendKey: again.sendKey,
+      post: ask.post,
+      ...(ask.client ? { client: ask.client } : {}),
+      ...(ask.account ? { account: ask.account } : {}),
+      sendKey: ask.sendKey,
       recheck: true,
+      verifyOnly: true,
     });
-    if (!isDelivery(got)) return unclear("autobrowse answered without a verdict");
+    if (!isDelivery(got)) return null;
     if (got.kind === "sent") {
       const out = (got.out ?? {}) as Partial<Published>;
       return {
-        kind: "found",
-        ref: out.id || null,
-        at: out.publishedAt ?? null,
-        url: out.url || null,
+        id: out.id || "",
+        url: out.url || "",
+        publishedAt: out.publishedAt ?? new Date(await ctx.date.now()).toISOString(),
+        fetchedWith: "api",
       };
     }
-    if (got.kind === "found") return { kind: "found", ref: got.id, at: got.at, url: got.url };
-    if (got.kind === "not_sent") return { kind: "absent" };
-    return unclear(got.reason);
+    if (got.kind === "found")
+      return { id: got.id ?? "", url: got.url ?? "", publishedAt: got.at, fetchedWith: "api" };
+    return null;
   } catch (err) {
-    if (!(err instanceof restate.TerminalError)) throw err;
-    const code = err.code ?? 500;
-    // The platform's no: nothing went out.
-    if (code >= 400 && code < 500 && code !== 408 && code !== 409) return { kind: "absent" };
-    return unclear(err.message.slice(0, 200));
+    if (err instanceof restate.TerminalError) return null;
+    throw err;
   }
 }
-/** `Content/findPost` as the core serves it. */
-type ContentLook = {
-  findPost: (
-    ctx: restate.Context,
-    req: {
-      platform: Platform;
-      words: string[];
-      since: string;
-      media?: "image" | "video" | null;
-      client?: string;
-      account?: string;
-    },
-  ) => Promise<Seen>;
-};
 /** The loop that posts it: woken after a Send again, so it goes out now, not after a long sleep. */
 type SchedulerWake = { wake: (ctx: restate.ObjectContext) => Promise<boolean> };
 const SWAP = z.looseObject({
@@ -812,13 +796,13 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         },
       ),
       /**
-       * A post that may have gone out, settled (from its To approve row). Wren's own post asks
-       * autobrowse again under its send key (`Content.publish` with `recheck`; the key answers
-       * its stored verdict and writes nothing); a client's, on its connected account, reads our
-       * listing. Found: published with the platform's id, whatever he chose. Else `posted` marks
-       * it published on his word (no id, so no numbers); `again` puts it back in the queue and
-       * wakes the loop; `dropped` rejects it, so nothing posts it. Only `ReachDesk` and
-       * `SocialInbox` call it.
+       * A post that may have gone out, settled (from its To approve row). It asks autobrowse for
+       * the verdict stored under the post's send key, Wren's or a client's, at any age
+       * (`Content.publish` with `verifyOnly`: it writes nothing). Found: published with the
+       * platform's id, whatever he chose, then the after-publish (the first comment once, the
+       * warm-replies hook). Else `posted` marks it published on his word (no id, so no numbers)
+       * and runs the hook; `again` puts it back in the queue and wakes the loop; `dropped`
+       * rejects it, so nothing posts it. Only `ReachDesk` and `SocialInbox` call it.
        */
       settlePost: exclusiveHandler(
         { input: SETTLE_POST, effect: "posts", ingressPrivate: true },
@@ -835,12 +819,19 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               const d = await getDraft(db, req.id);
               if (d.status !== "publishing")
                 throw new Error(`That post is ${d.status} now; nothing waits on it.`);
-              // Wren's own post, under a key autobrowse still keeps: ask it again.
-              let again: { post: Post; account: string | null; sendKey: string } | null = null;
-              if (!client && a.sendKey && Date.now() - a.startedAt.getTime() < ASK_AGAIN_MS) {
+              // A client's post carries no Wren link; Wren's carries its funnel's.
+              const links = client ? { text: null, comment: null } : await postedLinks(db, d);
+              let ask: {
+                post: Post;
+                client: string | null;
+                account: string | null;
+                sendKey: string;
+              } | null = null;
+              if (a.sendKey) {
                 try {
-                  again = {
-                    post: postOf(d, (await postedLinks(db, d)).text),
+                  ask = {
+                    post: postOf(d, links.text),
+                    client,
                     account: a.account,
                     sendKey: a.sendKey,
                   };
@@ -850,17 +841,11 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               }
               return {
                 platform: d.platform,
-                again,
-                look: client
-                  ? {
-                      platform: d.platform,
-                      words: lookWords(d, { text: a.words }),
-                      since: a.startedAt.toISOString(),
-                      media: d.media?.kind ?? null,
-                      client,
-                      ...(a.account ? { account: a.account } : {}),
-                    }
-                  : null,
+                ask,
+                link: links.text ?? links.comment,
+                comment: links.comment,
+                account: a.account,
+                sendKey: a.sendKey ?? undefined,
               };
             }),
           );
@@ -872,23 +857,24 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             });
             return { id: req.id, outcome: "dropped", found: false };
           }
-          const seen: Seen = waiting.again
-            ? await askAgain(ctx, waiting.platform, waiting.again)
-            : waiting.look
-              ? await ctx.serviceClient<ContentLook>({ name: "Content" }).findPost(waiting.look)
-              : unclear("no key to ask autobrowse with");
-          if (seen.kind === "found") {
-            await ctx.run("found", async () => {
-              const at = seen.at ?? now.toISOString();
-              await markPublished(
-                db,
-                req.id,
-                { id: seen.ref ?? "", url: seen.url ?? "", publishedAt: at, fetchedWith: "api" },
-                null,
-                req.by,
-              );
-              await settleSent(db, item, { ref: seen.ref, at: new Date(at), by: "found", now });
-            });
+          const found = waiting.ask ? await askVerdict(ctx, waiting.platform, waiting.ask) : null;
+          if (found) {
+            await afterPublish(
+              ctx,
+              { db, client, posted: deps.posted },
+              ctx.serviceClient<ReplyService>({ name: "Content" }),
+              {
+                draftId: req.id,
+                platform: waiting.platform,
+                link: waiting.link,
+                comment: waiting.comment,
+                account: waiting.account,
+                sendKey: waiting.sendKey,
+              },
+              found,
+              "found",
+              req.by,
+            );
             return { id: req.id, outcome: req.outcome, found: true };
           }
           if (req.outcome === "posted") {
@@ -896,6 +882,8 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               await markPostedBy(db, req.id, { by: req.by, at: now });
               await settleSent(db, item, { ref: null, at: now, by: req.by, now });
             });
+            // His word is up too, with no id to comment under: only the hook runs.
+            deps.posted?.(ctx, waiting.platform, client);
             return { id: req.id, outcome: "posted", found: false };
           }
           await ctx.run("again", async () => {

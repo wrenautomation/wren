@@ -26,7 +26,6 @@ import {
   unsureItem,
 } from "@wren/outreach";
 import {
-  contentLook,
   isSendNotSent,
   isSendTaken,
   isSendUnsure,
@@ -45,7 +44,6 @@ import {
   keepDms,
   planDm,
   readDms,
-  seenInDms,
   sendDm,
   sentDm,
   unknownDm,
@@ -171,8 +169,8 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
 
       /**
        * One DM answer through the account that read the thread. Sent now: the gate said yes. At
-       * most once (designs/2026-10-16-maybe-sent.md): a send whose outcome was lost is looked
-       * for in their conversation, found or proved absent, else unsure for a person.
+       * most once (designs/2026-10-16-maybe-sent.md): the write runs under its ledger key and the
+       * direct send journal answers what became of it. A lost one is unsure, for a person.
        */
       send: serviceHandler(
         { input: noRawKeys(SEND), effect: "sends" },
@@ -202,19 +200,10 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               }),
             ),
           );
-          const { pageId, account } = await ctx.run("account", async () => {
-            const c = await deps.access.connection(plan.connection);
-            const account: DmAccount | null = c && {
-              id: c.id,
-              platform: c.platform,
-              externalId: c.externalId,
-              handle: c.handle,
-              name: c.name,
-              extra: c.extra,
-            };
-            return { pageId: c?.extra.pageId ?? null, account };
-          });
-          const reads = deps.sites(ctx, req.client, "content.social");
+          const pageId = await ctx.run(
+            "account",
+            async () => (await deps.access.connection(plan.connection))?.extra.pageId ?? null,
+          );
           let sent: { ref: string | null };
           try {
             sent = await sendAtMostOnce(ctx, db, {
@@ -225,9 +214,6 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               target: plan.handle,
               url: plan.url,
               again: req.again === true,
-              look: account
-                ? async (since) => seenInDms(await readDms(reads, account), plan, since)
-                : undefined,
               send: () => sendDm(deps.sites(ctx, req.client, "reach.outreach"), plan, pageId),
             });
           } catch (err) {
@@ -262,12 +248,12 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             terminal(async () => {
               const p = await planAnswer(db, req.id, now);
               if (p.account) throw new ReachRefusal("that comment answers from Wren's own Inbox");
-              const { platform, ref, post, author, url } = p.comment;
-              return { platform, ref, post, author, url };
+              const { platform, ref, url } = p.comment;
+              return { platform, ref, url };
             }),
           );
           const text = req.body.trim();
-          // At most once (designs/2026-10-16-maybe-sent.md), read back as the client's account.
+          // At most once (designs/2026-10-16-maybe-sent.md): the client's reply is keyed like any send.
           const sent = await sendAtMostOnce(ctx, db, {
             item: `comment:${req.id}`,
             platform: plan.platform,
@@ -276,14 +262,6 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             target: plan.ref,
             url: plan.url,
             again: req.again === true,
-            look: contentLook(ctx, {
-              platform: plan.platform,
-              post: plan.post,
-              parent: plan.ref,
-              to: plan.author,
-              text,
-              client: req.client,
-            }),
             send: async () => {
               // The key crosses to `Content`, which runs the write under it and answers a Delivery.
               await sendAcross((k) =>
@@ -309,7 +287,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
        * A person's word on an unsure send of the client's, from its To approve: posted records
        * it as its send would; again sends it once more through `send` or `answer`; dropped closes
        * it unsent (a DM answer `skipped`, a comment `dropped`). A post on its own channel
-       * (`draft:`) settles in its `ContentDesk`, which reads the listing first.
+       * (`draft:`) settles in its `ContentDesk`, which asks its stored verdict first.
        */
       settle: serviceHandler(
         { input: noRawKeys(SETTLE), effect: "sends" },

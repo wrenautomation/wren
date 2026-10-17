@@ -9,7 +9,6 @@ import { keepSentEdit } from "@wren/core/ask";
 import type { SiteClient } from "@wren/core/content";
 import { pageInboxOf, pageInboxQuery } from "@wren/core/content/page-inbox";
 import { recordDraft } from "@wren/core/draft-record";
-import { type Seen, seenInMessages } from "@wren/core/maybe-sent";
 import { recordTouch } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { type ReachContact, ReachRefusal, reachContacts, reachMessages } from "@wren/outreach";
@@ -423,7 +422,7 @@ export async function dropDm(db: Queryable, messageId: number, why: string): Pro
 /** An unsure answer's plan again, from its row: what settling it records or sends. */
 export async function dmPlanOf(db: Queryable, messageId: number): Promise<DmPlan> {
   const [row] = await db.select().from(reachMessages).where(eq(reachMessages.id, messageId));
-  if (!row || row.direction !== "out") throw new ReachRefusal(`no answer ${messageId}`);
+  if (row?.direction !== "out") throw new ReachRefusal(`no answer ${messageId}`);
   if (row.state !== "unknown") throw new ReachRefusal(`that answer is ${row.state}`);
   const [contact] = await db
     .select()
@@ -443,18 +442,6 @@ export async function dmPlanOf(db: Queryable, messageId: number): Promise<DmPlan
     messageId,
   };
 }
-
-/** Our words in their conversation, as `readDms` read it (designs/2026-10-16-maybe-sent.md). */
-export const seenInDms = (
-  threads: readonly DmThread[],
-  plan: Pick<DmPlan, "to" | "body" | "url">,
-  since: string,
-): Seen =>
-  seenInMessages(threads.find((t) => t.them.id === plan.to)?.messages ?? null, {
-    text: plan.body,
-    since,
-    url: plan.url,
-  });
 
 /** Refused by the platform: the row says why, nothing resends it. */
 export async function failedDm(db: Queryable, messageId: number, why: string): Promise<void> {

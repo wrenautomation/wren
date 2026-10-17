@@ -1345,10 +1345,15 @@ export async function buildServices(
   const draftsLlm = watchLlm ? new ArmedLlm(watchLlm, savedArms(db), armClient) : null;
   // Google user data goes only to a model that doesn't train on it (Limited Use); none by default.
   const googleLlm = settings.googleLlm === "none" ? null : makeLlm(settings.googleLlm, process.env);
+  // A post's replies come in through reach's watch: it reads warm from now.
+  const postedWarm = (ctx: ObjectContext, p: Platform, client: string | null) => {
+    if (p === "reddit" || p === "linkedin") wakeWatch(ctx, client);
+  };
   services.push(
     makeContentDesk({
       db,
       llm,
+      posted: postedWarm,
       platforms: settings.contentChannels,
       zone: settings.sendTimezone,
       tracer,
@@ -1388,10 +1393,7 @@ export async function buildServices(
     }),
     makeContentScheduler({
       db,
-      // A post's replies come in through reach's watch: it reads warm from now.
-      posted: (ctx, p, client) => {
-        if (p === "reddit" || p === "linkedin") wakeWatch(ctx, client);
-      },
+      posted: postedWarm,
       clientDb,
       ...contentNotify,
     }),
