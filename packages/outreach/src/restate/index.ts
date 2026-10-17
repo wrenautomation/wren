@@ -2443,7 +2443,6 @@ export {
   type RedditReadsObject,
 } from "./discovery.js";
 export {
-  contentLook,
   isSendNotSent,
   isSendTaken,
   isSendUnsure,

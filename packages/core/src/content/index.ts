@@ -6,7 +6,6 @@
  * Design: designs/2026-09-21-content-channels.md.
  */
 
-import type { Seen } from "../maybe-sent.js";
 import type { AccountInsights, Insights, InsightsQuery, ReportDays } from "./insights.js";
 
 export * from "./autobrowse.js";
@@ -188,39 +187,11 @@ export interface ListQuery {
 
 export const CONTENT_LIST_LIMIT = 100;
 
-/** Our reply looked for after its outcome was lost (designs/2026-10-16-maybe-sent.md). */
-export interface ReplyQuery {
-  /** What we answered: a post or a comment. */
-  on: string;
-  /** Whose it is, their handle; null when not known. */
-  to: string | null;
-  text: string;
-  /** When the send began, ISO. */
-  since: string;
-}
-
-/** Our private reply looked for after its outcome was lost (designs/2026-10-16-maybe-sent.md). */
-export interface PrivateReplyQuery {
-  /** The comment we answered. */
-  commentId: string;
-  /** Its author as the comment shows them: a handle on Instagram, a name on Facebook. */
-  to: string;
-  text: string;
-  /** When the send began, ISO. */
-  since: string;
-}
-
 export interface ContentChannel {
   readonly platform: Platform;
   /** Irreversible: an orchestrator gates it like any other irreversible step. */
   publish(post: Post): Promise<Published>;
   list(q?: ListQuery): Promise<PublishedRow[]>;
-  /**
-   * Why `list` may not show a fresh post of this kind yet (a video still processing, a private
-   * one): a look after a lost publish then never takes its absence as proof. Absent = it lists
-   * a post as soon as the publish answers.
-   */
-  listsLate?(media: Media["kind"] | null): string | null;
   metrics(id: string): Promise<Metrics>;
   /**
    * These posts' numbers in as few reads as the platform allows (one listing, one batch query).
@@ -247,13 +218,6 @@ export interface ContentChannel {
    * per comment, within 7 days of it). The message's id. Absent = the platform has no such door.
    */
   privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>;
-  /** Our private reply read back from the inbox it went to. Absent = nothing here reads it. */
-  findPrivateReply?(q: PrivateReplyQuery): Promise<Seen>;
-  /**
-   * Our own reply under `on`, as this account: for a platform whose `comments` can't mark ours
-   * (`mine`). Absent = nothing here reads it back.
-   */
-  findReply?(q: ReplyQuery): Promise<Seen>;
   /**
    * What people said about the account itself, not on a post (Business Profile reviews), newest
    * first, as comments: `postId` is the account's place. `reply` answers one. Absent = none.

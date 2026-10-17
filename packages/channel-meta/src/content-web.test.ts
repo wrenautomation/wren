@@ -84,8 +84,6 @@ describe("instagram through the browser", () => {
       ["m2", "2026-09-22T17:00:00.000Z", "newer words"],
       ["m1", "2026-09-22T10:00:00.000Z", "older words"],
     ]);
-    expect(instagramWebContent(sites).listsLate?.("video")).toMatch(/reel/);
-    expect(instagramWebContent(sites).listsLate?.("image")).toBeNull();
   });
 
   it("says plainly that numbers and comments want the API", async () => {

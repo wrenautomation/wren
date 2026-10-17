@@ -69,9 +69,6 @@ export function instagramWebContent(
       if (!id) throw new Error("instagram: the composer published but named no post");
       return { id, url: url ?? "", publishedAt: now().toISOString(), fetchedWith: "browser" };
     },
-    // A reel shows on the profile once Instagram has processed it.
-    listsLate: (media) =>
-      media === "video" ? "Instagram lists a reel only once it is processed" : null,
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const me = await sites.call<{ user_id?: string | number }>("instagram", "GET", "/me", {});
       if (!me.user_id) throw new Error("instagram: the token named no account");

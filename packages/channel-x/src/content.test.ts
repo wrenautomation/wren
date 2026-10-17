@@ -156,29 +156,6 @@ describe("x content channel", () => {
     };
     expect(await xContent(sites).comments("t1")).toEqual([]);
   });
-  it("finds our reply by our words in a search of our own posts, never proves it absent", async () => {
-    const { sites, calls } = fakeSites({
-      "GET /2/tweets/search/recent": () => ({
-        data: [
-          { id: "t9", text: "Another reply of ours", created_at: "2026-10-16T12:00:00Z" },
-          { id: "t8", text: "Our words &amp; more", created_at: "2026-10-16T12:00:03Z" },
-        ],
-      }),
-    });
-    const x = xContent(sites, { now });
-    const q = {
-      on: "t1",
-      to: "someone_1",
-      text: "Our words & more",
-      since: "2026-10-16T12:00:00Z",
-    };
-    expect(await x.findReply?.(q)).toMatchObject({ kind: "found", ref: "t8" });
-    expect(calls[0]?.[2]).toMatchObject({ query: "from:me to:someone_1" });
-    expect(await x.findReply?.({ ...q, to: null, text: "Not sent" })).toMatchObject({
-      kind: "unclear",
-    });
-    expect(calls[1]?.[2]).toMatchObject({ query: "from:me conversation_id:t1" });
-  });
   describe("batch reads", () => {
     const page = {
       data: [

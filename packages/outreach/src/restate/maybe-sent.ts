@@ -5,13 +5,9 @@
  * the invocation terminally, so Restate neither retries nor pauses it.
  */
 import * as restate from "@restatedev/restate-sdk";
-import {
-  type CommentRow,
-  type Platform as ContentPlatform,
-  SiteCallError,
-} from "@wren/core/content";
+import { SiteCallError } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
-import { type Seen, sameWords, sendOnce, unclear } from "@wren/core/maybe-sent";
+import { sendOnce } from "@wren/core/maybe-sent";
 import type { Queryable } from "@wren/db";
 import { ReachRefusal } from "../refusal.js";
 import {
@@ -69,11 +65,6 @@ export function sendError(err: unknown): unknown {
 export interface AtMostOnce extends Omit<SendClaim, "invocation" | "now"> {
   /** Runs under the ledger row's send key; a desk write inside it carries the key. */
   send: () => Promise<{ ref: string | null }>;
-  /**
-   * Our words on the site since `since` (ISO). Only for a send autobrowse does not serve (a
-   * client's connected account): a desk send has a verdict and reads nothing back.
-   */
-  look?: ((since: string) => Promise<Seen>) | undefined;
   /** Guards before a first send, not on a take-over (others of ours in the thread). */
   before?: () => Promise<void>;
 }
@@ -81,7 +72,7 @@ export interface AtMostOnce extends Omit<SendClaim, "invocation" | "now"> {
 export interface Landed {
   ref: string | null;
   at: string;
-  /** Read back (autobrowse's verified read, or a look) rather than answered by the send. */
+  /** Found by autobrowse's verified read rather than answered by the send. */
   found: boolean;
 }
 
@@ -91,7 +82,7 @@ export async function sendAtMostOnce(
   o: AtMostOnce,
 ): Promise<Landed> {
   const now = new Date(await ctx.date.now());
-  const { send, look, before, ...claim } = o;
+  const { send, before, ...claim } = o;
   // A refusal comes back as a value, so it is thrown as `SendTaken` here, not as a step's error.
   const claimed = await ctx.run("claim send", async () => {
     try {
@@ -109,11 +100,8 @@ export async function sendAtMostOnce(
     out = await sendOnce({
       key: claimed.sendKey,
       send,
-      look: look && (() => look(claimed.since)),
       tried: claimed.tried,
-      ...(o.again ? { again: true } : {}),
       ...(before ? { before } : {}),
-      settle: (ms) => ctx.sleep(ms),
     });
   } catch (err) {
     // A refusal, or an error before any write answered: no attempt stands.
@@ -134,82 +122,4 @@ export async function sendAtMostOnce(
   const by = out.kind;
   await ctx.run("settle send", () => settleSent(db, o.item, { ref, at: new Date(at), by, now }));
   return { ref, at, found: out.kind === "found" };
-}
-
-/** Platforms whose `Content.comments` marks our own rows (`mine`). */
-const MARKS_MINE: ReadonlySet<string> = new Set([
-  "linkedin",
-  "reddit",
-  "facebook",
-  "instagram",
-  "tiktok",
-  "youtube",
-]);
-/** Platforms whose content channel reads our reply back another way (`Content.findReply`). */
-const FINDS_REPLY: ReadonlySet<string> = new Set(["x"]);
-
-type ContentReads = {
-  comments: (
-    ctx: restate.Context,
-    req: { platform: ContentPlatform; id: string; client?: string | null },
-  ) => Promise<CommentRow[]>;
-  findReply: (
-    ctx: restate.Context,
-    req: {
-      platform: ContentPlatform;
-      on: string;
-      to: string | null;
-      text: string;
-      since: string;
-      client?: string | null;
-    },
-  ) => Promise<Seen>;
-};
-
-const sameRef = (a: string, b: string) => a === b || a.endsWith(`:${b}`) || b.endsWith(`:${a}`);
-
-/**
- * Our words under a post, read through `Content`: its comments where they mark ours (found or
- * unclear: one page of comments never proves them absent), else `findReply` where the channel
- * has it. Undefined where nothing reads them back.
- */
-export function contentLook(
-  ctx: restate.Context,
-  q: {
-    platform: ContentPlatform;
-    post: string;
-    /** The comment answered; null = on the post itself. */
-    parent: string | null;
-    /** Whose `parent` (or the post) is: their handle. */
-    to?: string | null;
-    text: string;
-    /** A client's own channels; none: Wren's. */
-    client?: string | null;
-  },
-): ((since: string) => Promise<Seen>) | undefined {
-  const content = () => ctx.serviceClient<ContentReads>({ name: "Content" });
-  const client = q.client ? { client: q.client } : {};
-  if (FINDS_REPLY.has(q.platform))
-    return (since) =>
-      content().findReply({
-        platform: q.platform,
-        on: q.parent ?? q.post,
-        to: q.to ?? null,
-        text: q.text,
-        since,
-        ...client,
-      });
-  if (!MARKS_MINE.has(q.platform)) return undefined;
-  return async () => {
-    const rows = await content().comments({ platform: q.platform, id: q.post, ...client });
-    const hit = rows.find(
-      (r) =>
-        r.mine &&
-        sameWords(r.text, q.text) &&
-        (!q.parent || !r.parentId || sameRef(r.parentId, q.parent)),
-    );
-    return hit
-      ? { kind: "found", ref: hit.id, at: hit.at, url: hit.url ?? null }
-      : unclear("our words are not in the post's comments as read");
-  };
 }

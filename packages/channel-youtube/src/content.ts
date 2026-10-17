@@ -353,7 +353,6 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         ...(notes.length ? { notes } : {}),
       };
     },
-    listsLate: () => "YouTube's uploads list shows a new video late, and holds no community post",
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const r = await read<{ items?: PlaylistItem[] }>("playlistItems", {
         part: "snippet",

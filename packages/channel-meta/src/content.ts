@@ -27,7 +27,6 @@ import {
   type Metrics,
   numberOf,
   type Post,
-  type PrivateReplyQuery,
   type Published,
   type PublishedRow,
   pageOf,
@@ -36,10 +35,8 @@ import {
   readGroup,
   type SiteClient,
 } from "@wren/core/content";
-import { pageInboxOf, pageInboxQuery, seenPrivateReply } from "@wren/core/content/page-inbox";
 import { fieldsOf } from "@wren/core/content/shapes";
 import { carouselFiles, isCarousel } from "@wren/core/content/slides";
-import type { Seen } from "@wren/core/maybe-sent";
 import { VIDEO_WAITS_MS } from "./poll.js";
 
 export interface MetaContentOptions {
@@ -123,26 +120,6 @@ async function privateReply(
     message: { text },
   });
   return { ref: r.message_id ?? null };
-}
-
-/**
- * Our private reply to a comment's author, read back from the Page's inbox (Messenger, or its
- * Instagram): `self` is who sent it there, the Page or its Instagram account.
- */
-async function findPrivateReply(
-  sites: SiteClient,
-  pageId: string,
-  platform: "facebook" | "instagram",
-  self: string,
-  q: PrivateReplyQuery,
-): Promise<Seen> {
-  const r = await sites.call<unknown>(
-    "meta",
-    "GET",
-    `/${pageId}/conversations`,
-    pageInboxQuery(platform),
-  );
-  return seenPrivateReply(pageInboxOf(r, self), q);
 }
 
 const IG_FIELDS = "id,caption,media_type,permalink,timestamp,like_count,comments_count";
@@ -468,8 +445,6 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     },
     privateReply: (commentId: string, text: string) =>
       privateReply(sites, pages.page, commentId, text),
-    findPrivateReply: async (q: PrivateReplyQuery) =>
-      findPrivateReply(sites, (await pages.withIg()).id, "instagram", await igUser(), q),
     async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
       const r = await inbox();
       const rows = (r.tags?.data ?? []).map((m) => ({
@@ -633,8 +608,6 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
         fetchedWith: await via("POST", path),
       };
     },
-    listsLate: (media) =>
-      media === "video" ? "Facebook lists a video post only once it is processed" : null,
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const p = await page();
       const r = await sites.call<
@@ -718,10 +691,6 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       await sites.call("meta", "POST", `/${commentId}/comments`, { pageId, message: text });
     },
     privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
-    findPrivateReply: async (q: PrivateReplyQuery) => {
-      const { id } = await page();
-      return findPrivateReply(sites, id, "facebook", id, q);
-    },
   };
 }
 
