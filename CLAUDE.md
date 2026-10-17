@@ -11,7 +11,8 @@ Prod from here: `node scripts/prod-sql.mjs "<sql>"` (read only), `node scripts/i
 `node scripts/prod-wren.mjs <cmd>`. Never print `deploy/prod.env`, the database URL or tokens; never source an env file.
 Secrets: `node scripts/secrets.mjs keys <file|/ssm/name>` (names only) or `run <source> -- <cmd>` (output masked).
 
-Shipping: `./scripts/gates.sh`, commit with `git commit -- <paths>` (other sessions stage files here), push.
+Shipping: `./scripts/gates.sh changed` while building, commit with `git commit -- <paths>` (other sessions stage files
+here), then `scripts/push.sh <commit>`: checks in `~/worktrees/wren-push`, pushes, waits for CI and the deploy.
 CI deploys `main`. An env change: `deploy/scripts/push-secrets.sh` (diff SSM first, it overwrites the whole parameter),
 then `gh workflow run deploy.yml --ref main`.
 
