@@ -1,0 +1,488 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T19:38:30Z",
+  "title": "Wren Portal",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "surface",
+        "displayName": "Warm Canvas",
+        "canonical": "#f3f1ec",
+        "tonalRamp": [
+          "#6d6c6a",
+          "#92918e",
+          "#b6b5b1",
+          "#d6d4d0",
+          "#f3f1ec",
+          "#f5f4f0",
+          "#f8f7f5",
+          "#fbfbf9"
+        ]
+      },
+      "paper": {
+        "role": "surface",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#737373",
+          "#999999",
+          "#bfbfbf",
+          "#e0e0e0",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff"
+        ]
+      },
+      "ink": {
+        "role": "text",
+        "displayName": "Ink",
+        "canonical": "#0e0e0e",
+        "tonalRamp": [
+          "#060606",
+          "#080808",
+          "#0a0a0a",
+          "#0c0c0c",
+          "#0e0e0e",
+          "#3e3e3e",
+          "#7a7a7a",
+          "#b7b7b7"
+        ]
+      },
+      "ink-2": {
+        "role": "text-secondary",
+        "displayName": "Ink 2",
+        "canonical": "#56564f",
+        "tonalRamp": [
+          "#272724",
+          "#34342f",
+          "#40403b",
+          "#4c4c46",
+          "#56564f",
+          "#787872",
+          "#a2a29e",
+          "#ccccca"
+        ]
+      },
+      "ink-3": {
+        "role": "text-tertiary",
+        "displayName": "Ink 3",
+        "canonical": "#63645e",
+        "tonalRamp": [
+          "#2d2d2a",
+          "#3b3c38",
+          "#4a4b46",
+          "#575853",
+          "#63645e",
+          "#82837e",
+          "#a9aaa6",
+          "#d0d0cf"
+        ]
+      },
+      "accent": {
+        "role": "accent",
+        "displayName": "Smoky Lavender",
+        "canonical": "#6a5a93",
+        "tonalRamp": [
+          "#302842",
+          "#403658",
+          "#50446e",
+          "#5d4f81",
+          "#6a5a93",
+          "#887ba9",
+          "#ada4c4",
+          "#d2cedf"
+        ]
+      },
+      "on-accent": {
+        "role": "text-on-accent",
+        "displayName": "On-Accent Cream",
+        "canonical": "#faf7f2",
+        "tonalRamp": [
+          "#706f6d",
+          "#969491",
+          "#bcb9b6",
+          "#dcd9d5",
+          "#faf7f2",
+          "#fbf9f5",
+          "#fcfbf8",
+          "#fefdfb"
+        ]
+      },
+      "good": {
+        "role": "status-done",
+        "displayName": "Done Green",
+        "canonical": "#17803d",
+        "tonalRamp": [
+          "#0a3a1b",
+          "#0e4d25",
+          "#11602e",
+          "#147136",
+          "#17803d",
+          "#459964",
+          "#7fb994",
+          "#b9d9c5"
+        ]
+      },
+      "good-ink": {
+        "role": "status-done-text",
+        "displayName": "Done Green Ink",
+        "canonical": "#136b33",
+        "tonalRamp": [
+          "#093017",
+          "#0b401f",
+          "#0e5026",
+          "#115e2d",
+          "#136b33",
+          "#42895c",
+          "#7dae8f",
+          "#b8d3c2"
+        ]
+      },
+      "warn": {
+        "role": "status-waiting",
+        "displayName": "Waiting Amber",
+        "canonical": "#b7791f",
+        "tonalRamp": [
+          "#52360e",
+          "#6e4913",
+          "#895b17",
+          "#a16a1b",
+          "#b7791f",
+          "#c5944c",
+          "#d7b584",
+          "#e9d7bc"
+        ]
+      },
+      "warn-ink": {
+        "role": "status-waiting-text",
+        "displayName": "Waiting Amber Ink",
+        "canonical": "#895911",
+        "tonalRamp": [
+          "#3e2808",
+          "#52350a",
+          "#67430d",
+          "#794e0f",
+          "#895911",
+          "#a17a41",
+          "#bea47c",
+          "#dccdb8"
+        ]
+      },
+      "bad": {
+        "role": "status-failed",
+        "displayName": "Failed Red",
+        "canonical": "#c31c15",
+        "tonalRamp": [
+          "#580d09",
+          "#75110d",
+          "#921510",
+          "#ac1912",
+          "#c31c15",
+          "#cf4944",
+          "#de827e",
+          "#edbbb9"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "page-title": {
+        "displayName": "Page Title",
+        "role": "display",
+        "purpose": "28px semibold, tight; phone 22px"
+      },
+      "section-title": {
+        "displayName": "Section Title",
+        "role": "headline",
+        "purpose": "16px semibold in framed head strips"
+      },
+      "body": {
+        "displayName": "Body",
+        "role": "body",
+        "purpose": "15px, tabular figures"
+      },
+      "row": {
+        "displayName": "Row",
+        "role": "body",
+        "purpose": "14px lists and app text"
+      },
+      "dense": {
+        "displayName": "Dense",
+        "role": "body",
+        "purpose": "13px bars, chips, dense buttons"
+      },
+      "label": {
+        "displayName": "Group Label",
+        "role": "label",
+        "purpose": "12px uppercase, wide tracking"
+      }
+    },
+    "shadows": [
+      {
+        "name": "raise",
+        "value": "0 0 0 1px rgb(14 14 14 / 0.1), 0 1px 2px rgb(14 14 14 / 0.05), 0 3px 10px -4px rgb(14 14 14 / 0.09)",
+        "purpose": "Window, frames, cards: what rests."
+      },
+      {
+        "name": "float",
+        "value": "0 0 0 1px rgb(14 14 14 / 0.1), 0 4px 12px -4px rgb(14 14 14 / 0.14), 0 18px 40px -16px rgb(14 14 14 / 0.26)",
+        "purpose": "Popovers, menus, hover pops: what opens."
+      },
+      {
+        "name": "shadow",
+        "value": "0 0 0 1px rgb(14 14 14 / 0.1), 0 30px 80px -30px rgb(14 14 14 / 0.45)",
+        "purpose": "Dialogs, sheets, record panel, toasts: what covers."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Default curve for hover, dialogs and sheets."
+      },
+      {
+        "name": "changed",
+        "value": "1.4s ease",
+        "purpose": "A row that changed washes in the live color."
+      },
+      {
+        "name": "run-pulse",
+        "value": "1.6s ease infinite",
+        "purpose": "A live run."
+      },
+      {
+        "name": "busy",
+        "value": "1.2s cubic-bezier(.65,0,.35,1) infinite",
+        "purpose": "Bar under a busy button."
+      },
+      {
+        "name": "sheet",
+        "value": "300ms cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Phone bottom sheets and swipes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "max-width: 900px"
+      },
+      {
+        "name": "sm",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "button-primary",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action. Accent ground, hover turns ink.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Approve</button>",
+      "css": ".ds-btn{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;height:32px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:0;transition:background-color 200ms ease,color 200ms ease}.ds-btn:active{transform:scale(.97)}.ds-btn:focus-visible{outline:2px solid #6a5a93;outline-offset:2px}.ds-btn-primary{background:#6a5a93;color:#faf7f2}.ds-btn-primary:hover{background:#0e0e0e;color:#fff}"
+    },
+    {
+      "name": "button-secondary",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default action. Clear ground, ink ring, hover fills ink.",
+      "html": "<button class=\"ds-btn ds-btn-sec\">Edit</button>",
+      "css": ".ds-btn{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;height:32px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:0;transition:background-color 200ms ease,color 200ms ease}.ds-btn:active{transform:scale(.97)}.ds-btn:focus-visible{outline:2px solid #6a5a93;outline-offset:2px}.ds-btn-sec{background:transparent;color:#0e0e0e;box-shadow:inset 0 0 0 1px rgb(14 14 14 / .22)}.ds-btn-sec:hover{background:rgb(14 14 14 / .045)}"
+    },
+    {
+      "name": "tag",
+      "kind": "tag",
+      "refersTo": "tag",
+      "description": "Status chip. Tones neutral, accent, warn, green.",
+      "html": "<span class=\"ds-tag ds-tag-warn\">Waiting on you</span> <span class=\"ds-tag ds-tag-ok\">Done</span>",
+      "css": ".ds-tag{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:6px;font-size:12px;line-height:1.5;font-weight:600}.ds-tag::before{content:'';width:6px;height:6px;border-radius:9999px;background:currentColor}.ds-tag-warn{background:rgb(183 121 31 / .09);color:#895911}.ds-tag-ok{background:rgb(23 128 61 / .1);color:#136b33}"
+    },
+    {
+      "name": "input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Field. 32px, edge border, focus ring in the accent.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search\" aria-label=\"Search\">",
+      "css": ".ds-input{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;height:32px;padding:0 10px;border-radius:6px;border:1px solid rgb(14 14 14 / .32);background:transparent;color:#0e0e0e;font-size:14px;caret-color:#6a5a93}.ds-input::placeholder{color:#63645e}.ds-input:focus-visible{outline:none;border-color:#6a5a93;box-shadow:0 0 0 1px #6a5a93}"
+    },
+    {
+      "name": "frame",
+      "kind": "card",
+      "refersTo": "frame",
+      "description": "Framed section. Band head strip, hairline, raise shadow.",
+      "html": "<section class=\"ds-frame\"><header class=\"ds-frame-head\"><b>Recent runs</b><span>12</span></header><div class=\"ds-frame-body\">Facts go here.</div></section>",
+      "css": ".ds-frame{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;width:280px;border-radius:10px;background:#fff;color:#0e0e0e;box-shadow:0 0 0 1px rgb(14 14 14 / .1),0 1px 2px rgb(14 14 14 / .05),0 3px 10px -4px rgb(14 14 14 / .09)}.ds-frame-head{display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgb(14 14 14 / .22);border-radius:10px 10px 0 0;background:color-mix(in srgb,#f3f1ec 75%,#fff);font-size:16px}.ds-frame-head span{font-size:13px;font-weight:400;color:#63645e}.ds-frame-body{padding:16px;font-size:14px;color:#56564f}"
+    },
+    {
+      "name": "list-row",
+      "kind": "list",
+      "refersTo": "list-row",
+      "description": "Row. 40px, hairline, hover tint. Waiting rows read semibold.",
+      "html": "<div class=\"ds-rows\"><div class=\"ds-row ds-row-wait\"><span>Reply to the new thread</span><time>2m</time></div><div class=\"ds-row\"><span>Draft posted</span><time>1h</time></div></div>",
+      "css": ".ds-rows{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;width:300px;background:#fff;color:#0e0e0e;font-size:14px}.ds-row{display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 12px;border-bottom:1px solid rgb(14 14 14 / .22);color:#56564f;cursor:pointer}.ds-row:hover{background:rgb(14 14 14 / .045)}.ds-row-wait{font-weight:600;color:#0e0e0e}.ds-row time{font-size:13px;color:#63645e}"
+    },
+    {
+      "name": "sidebar-item",
+      "kind": "nav",
+      "refersTo": "sidebar-item",
+      "description": "Sidebar page tab. Current page: lavender wash, 3px left bar, amber count.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-tab\" href=\"#\">Inbox<i>4</i></a><a class=\"ds-tab ds-tab-on\" href=\"#\" aria-current=\"page\">Queue</a></nav>",
+      "css": ".ds-nav{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;width:208px;display:grid;gap:2px}.ds-tab{display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 12px;border-radius:6px;font-size:14px;font-weight:500;line-height:18px;color:#56564f;text-decoration:none}.ds-tab:hover{background:rgb(14 14 14 / .045)}.ds-tab:focus-visible{outline:2px solid #6a5a93;outline-offset:2px}.ds-tab-on{background:rgb(106 90 147 / .07);color:#0e0e0e;font-weight:600;box-shadow:inset 3px 0 0 #6a5a93}.ds-tab i{font-style:normal;min-width:20px;padding:0 5px;border-radius:6px;background:rgb(183 121 31 / .09);color:#895911;font-size:12px;line-height:20px;font-weight:600;text-align:center}"
+    },
+    {
+      "name": "dialog",
+      "kind": "dialog",
+      "refersTo": "dialog",
+      "description": "Dialog. Sheet radius, shadow depth, band head and foot.",
+      "html": "<div class=\"ds-dialog\"><header>Skip this item</header><p>It leaves the queue. You can undo for 10 seconds.</p><footer><button class=\"ds-d-btn\">Cancel</button><button class=\"ds-d-btn ds-d-main\">Skip</button></footer></div>",
+      "css": ".ds-dialog{font-family:'Figtree Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;width:300px;border-radius:14px;background:#fff;color:#0e0e0e;overflow:hidden;box-shadow:0 0 0 1px rgb(14 14 14 / .1),0 30px 80px -30px rgb(14 14 14 / .45)}.ds-dialog header{padding:14px 16px;border-bottom:1px solid rgb(14 14 14 / .22);background:color-mix(in srgb,#f3f1ec 75%,#fff);font-size:16px;font-weight:600}.ds-dialog p{margin:0;padding:16px;font-size:14px;color:#56564f}.ds-dialog footer{display:flex;justify-content:flex-end;gap:8px;padding:16px;border-top:1px solid rgb(14 14 14 / .22);background:color-mix(in srgb,#f3f1ec 75%,#fff)}.ds-d-btn{height:32px;padding:0 12px;border-radius:6px;border:0;background:transparent;box-shadow:inset 0 0 0 1px rgb(14 14 14 / .22);font:500 13px 'Figtree Variable',system-ui,sans-serif;color:#0e0e0e;cursor:pointer}.ds-d-btn:hover{background:rgb(14 14 14 / .045)}.ds-d-btn:focus-visible{outline:2px solid #6a5a93;outline-offset:2px}.ds-d-main{background:#6a5a93;color:#faf7f2;box-shadow:none}.ds-d-main:hover{background:#0e0e0e}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Desk",
+    "overview": "A warm paper window sits on a warm canvas. It holds dense lists, small type and hairlines. Almost everything is gray. Color appears only when something happened or something waits on the person. The bar is a high-ticket tool (Stripe, Linear, Attio) with Notion and Slack corners.",
+    "keyCharacteristics": [
+      "Soft corners at three sizes (6, 10, 14 px). Derived from one token.",
+      "One accent, Smoky Lavender, used rarely and only through role tokens.",
+      "Figtree Variable at 13 to 15 px for the app. Tabular figures everywhere.",
+      "Hairline borders. Raised surfaces use a ring plus a soft shadow.",
+      "Outcome first. Every number links to its rows. Empty states say what fills them.",
+      "Motion marks real events: a row changed, a run is live, a button is busy.",
+      "No UI motif at present. The wing mark and `--ui-motif` were removed on 2026-10-14. A motif is planned as its own pass."
+    ],
+    "rules": [
+      {
+        "name": "The Source Rule",
+        "body": "Tokens live in `packages/ui/src/tailwind.css` (`:root`) and are overridden per look by `packages/ui/src/theme.tsx`. A part reads `var(--ui-*)`. It never writes a hex.",
+        "section": "Overview"
+      },
+      {
+        "name": "The Quiet Client Rule",
+        "body": "Clients get the plain presets only. Showcase looks, backdrops, grain and lift belong to Wren's own portal. `setLook` refuses them for a client.",
+        "section": "Overview"
+      },
+      {
+        "name": "The Rare Lavender Rule",
+        "body": "Roughly 10% of any screen. It marks the primary action, the current page, links, focus and live things. Never a fill behind a whole panel.",
+        "section": "Colors"
+      },
+      {
+        "name": "The Meaning Color Rule",
+        "body": "Green is done. Amber is waiting on you. Red is failed. Gray is not started. Cue tints and the accent never stand in for these.",
+        "section": "Colors"
+      },
+      {
+        "name": "The Hairline Rule",
+        "body": "Every border is `--ui-hair`. Inputs use `--ui-edge`. No other border color.",
+        "section": "Colors"
+      },
+      {
+        "name": "The Theme Safety Rule",
+        "body": "A look value may not contain `; { } < > ! \\ @import`, `url()` or unlisted CSS functions. Gradients, color functions, `var`, `calc`, `min`, `max`, `clamp`, `cubic-bezier` and `steps` are allowed.",
+        "section": "Colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Numbers use tabular figures in lists, counts, dates and tiles. Dates and counts read in ink-3 beside names.",
+        "section": "Typography"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "The token default for buttons is uppercase, 13.5 px, 600, tracking 0.08em. That suits marketing-like surfaces. Record templates (`ROOT` in `records.tsx`) set `--ui-button-case: none`, tracking 0 and weight 500, so app buttons read in sentence case. Uppercase stays for group labels.",
+        "section": "Typography"
+      },
+      {
+        "name": "The Weight Carries Waiting Rule",
+        "body": "A row that waits on the viewer is semibold and ink. A row for info is regular ink-2. A page that names nothing waiting keeps medium.",
+        "section": "Typography"
+      },
+      {
+        "name": "The Window Rule",
+        "body": "The sidebar lists apps only. A closed app's pages show in a hover flyout (fine pointer only). The open app's pages sit in the pages column.",
+        "section": "Layout"
+      },
+      {
+        "name": "The One Way Rule",
+        "body": "One component per job. If a page needs a list, table, card grid, action or field, it uses the kit's, never its own.",
+        "section": "Layout"
+      },
+      {
+        "name": "The Three Depths Rule",
+        "body": "Raise for what rests, float for what opens, shadow for what covers. No other shadow.",
+        "section": "Elevation & Depth"
+      },
+      {
+        "name": "The Scrim Rule",
+        "body": "Dialogs and bottom sheets sit on `--ui-scrim` with a light blur.",
+        "section": "Elevation & Depth"
+      },
+      {
+        "name": "The Three Corners Rule",
+        "body": "Use control, panel or sheet. Nothing else rounds, except full-round dots.",
+        "section": "Shapes"
+      },
+      {
+        "name": "The Undo Rule",
+        "body": "Undo, not confirm, for what can be reversed.",
+        "section": "Components"
+      },
+      {
+        "name": "The Next Rule",
+        "body": "One `next` button per record. Everything else is dense or quiet.",
+        "section": "Components"
+      },
+      {
+        "name": "The Needs You Rule",
+        "body": "What waits on the viewer leads, reads heavier, and counts in amber. What is for info reads quieter.",
+        "section": "Components"
+      },
+      {
+        "name": "The Number Link Rule",
+        "body": "Every number links to the rows behind it.",
+        "section": "Components"
+      },
+      {
+        "name": "The Nothing Apologizes Rule",
+        "body": "Empty and error states state facts and the next step. No sorry.",
+        "section": "Components"
+      },
+      {
+        "name": "The Thumb Rule",
+        "body": "Every touch target is 44 px. Inputs are 16 px. Safe-area insets pad bars and sheets.",
+        "section": "Components"
+      },
+      {
+        "name": "The Real Event Rule",
+        "body": "Motion shows something that happened or is happening. No ambient motion, no entrance choreography.",
+        "section": "Components"
+      },
+      {
+        "name": "The Reduced Motion Rule",
+        "body": "Under the device setting or `data-motion=\"less\"`, transforms, translates and scales drop. Opacity and color transitions stay, so feedback stays.",
+        "section": "Components"
+      }
+    ],
+    "dos": [
+      "read `var(--ui-*)` tokens in every part. Take roles (`--ui-primary`, `--ui-active`, `--ui-link`, `--ui-focus`).",
+      "use `Button`, `Tag`, `FRAME`, `Section`, `DataTable`, `Action` from `@wren/ui` before writing a new one.",
+      "put numbers first and show them tabular.",
+      "run a reversible action at once and offer Undo.",
+      "keep a queue keyboard-first.",
+      "state facts in empty states: what fills the list, and when.",
+      "use human names, never slugs or ids, in visible copy.",
+      "keep touch targets at 44 px and inputs at 16 px on coarse pointers."
+    ],
+    "donts": [
+      "write a hex or a raw `rgb()` in a part. Add a token.",
+      "use amber, green or red for anything but their meaning.",
+      "add a shadow outside raise, float and shadow.",
+      "add a corner size outside 6, 10 and 14 px.",
+      "set widths from a look. Frame vars are `--layout-*`.",
+      "give a client a showcase look, backdrop or grain.",
+      "show a skeleton that sits for seconds. Show the facts that exist.",
+      "add \"Ask AI\" buttons, favicon chips or ambient animation.",
+      "import `lucide-react`, `@base-ui/react`, `cmdk` or `sonner` in an app. Go through `@wren/ui` (`kit-door.test.ts` checks it).",
+      "add a UI motif here. It is planned as its own pass."
+    ]
+  }
+}
