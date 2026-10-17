@@ -4,7 +4,15 @@
  * campaign's state and kill switch are merged onto its row there.
  */
 import { sql } from "drizzle-orm";
-import { bigint, date, integer, pgView, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  date,
+  doublePrecision,
+  integer,
+  pgView,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 /** Which month a row's `month` is, against today: "This month" is a static saved view. */
 const AGE = sql.raw(`case when month = date_trunc('month', current_date)::date then 'this_month'
@@ -118,7 +126,11 @@ export const emailFirmRecords = pgView("email_firm_records", {
   from companies c
   where c.niche is not null`);
 
-/** Model calls and tokens per month, kind and model, aged against this month. */
+/**
+ * Model calls, tokens and dollars per month, kind and model, aged against this month. Email's own
+ * calls (`email_llm_calls`, no price kept: 0) and the Decide backends' answers (`decisions`:
+ * kind `decide:<kind>`, provider the backend, `usd` their `cost_usd`).
+ */
 export const emailModelRecords = pgView("email_model_records", {
   id: text("id"),
   month: date("month"),
@@ -130,13 +142,20 @@ export const emailModelRecords = pgView("email_model_records", {
   outputTokens: bigint("output_tokens", { mode: "number" }),
   rejectedCalls: bigint("rejected_calls", { mode: "number" }),
   parseFailures: bigint("parse_failures", { mode: "number" }),
+  usd: doublePrecision("usd"),
   age: text("age"),
+  currency: text("currency"),
 }).as(sql`
-  select concat_ws('/', month, kind, model, provider) id, *, ${AGE} age
+  select concat_ws('/', month, kind, model, provider) id, *, ${AGE} age, 'USD'::text currency
   from (
     select date_trunc('month', c.created_at)::date "month", c.kind::text kind,
       c.model::text model, c.provider::text provider, count(*) calls,
       sum(c.input_tokens)::bigint input_tokens, sum(c.output_tokens)::bigint output_tokens,
       count(*) filter (where c.rejected) rejected_calls,
-      count(*) filter (where c.parse_failed) parse_failures
-    from email_llm_calls c group by 1, 2, 3, 4) u`);
+      count(*) filter (where c.parse_failed) parse_failures, 0::float8 usd
+    from email_llm_calls c group by 1, 2, 3, 4
+    union all
+    select date_trunc('month', d.at)::date, 'decide:' || d.kind, d.model::text,
+      d.backend::text, count(*), sum(d.input_tokens)::bigint, sum(d.output_tokens)::bigint,
+      count(*) filter (where d.error is not null), 0, sum(d.cost_usd)::float8
+    from decisions d group by 1, 2, 3, 4) u`);

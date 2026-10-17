@@ -250,6 +250,32 @@ describe("email records", () => {
     expect(page.rows).toMatchObject([{ model: "test-model", calls: 1, inputTokens: 10 }]);
   });
 
+  it("model usage counts Decide answers and what they cost", async () => {
+    await pg.db.execute(sql`
+      insert into decisions (kind, subject, mode, backend, model, state, questions, cost_usd,
+        input_tokens, output_tokens)
+      values ('lead_fit', 'lead:1', 'shadow', 'gateway', 'test-judge', '{}', '[]', 0.25, 100, 5),
+        ('lead_fit', 'lead:2', 'shadow', 'gateway', 'test-judge', '{}', '[]', 0.5, 200, 7)`);
+    try {
+      const page = await serve().list({ record: "email.model", view: "this_month" });
+      expect(page.rows).toMatchObject([
+        { kind: "decide:lead_fit", provider: "gateway", model: "test-judge", calls: 2 },
+        { model: "test-model", calls: 1 },
+      ]);
+      const [decide, own] = page.rows;
+      expect(decide).toMatchObject({ inputTokens: 300, outputTokens: 12, usd: { amount: 0.75 } });
+      // Email's own calls keep no price.
+      expect(own).toMatchObject({ usd: { amount: 0 } });
+      // The console view sums them the same way.
+      const sum = (await pg.db.execute(
+        sql`select sum(usd)::float8 usd, sum(calls)::int calls from llm_usage_by_month`,
+      )) as unknown as Array<{ usd: number; calls: number }>;
+      expect(sum[0]).toEqual({ usd: 0.75, calls: 4 });
+    } finally {
+      await pg.db.execute(sql`delete from decisions`);
+    }
+  });
+
   it("stalls: one row per campaign, with threads whose follow-up waits on its touch", async () => {
     const page = await serve().list({ record: "email.stall", view: "all" });
     // The opener went just now: its touch has the hour to land.

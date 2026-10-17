@@ -4,6 +4,7 @@ import {
   bigint,
   boolean,
   date,
+  doublePrecision,
   integer,
   jsonb,
   numeric,
@@ -345,7 +346,10 @@ export const pipelineLeaks = pgView("pipeline_leaks", {
   sql`WITH firms AS ( SELECT c.id, c.niche, EXISTS ( SELECT 1 FROM people p WHERE p.company_id = c.id) AS has_person, EXISTS ( SELECT 1 FROM leads l WHERE l.company_id = c.id AND l.first_name IS NOT NULL) AS has_named_lead, EXISTS ( SELECT 1 FROM documents d WHERE d.company_id = c.id AND NOT d.is_shell) AS crawled, EXISTS ( SELECT 1 FROM contact_candidates cc JOIN people p ON p.id = cc.person_id WHERE p.company_id = c.id AND cc.state::text = 'queued'::text) AS queued FROM companies c WHERE c.decline_reason IS NULL ), latest AS ( SELECT DISTINCT ON (v.lead_id) v.lead_id, v.result FROM verifications v WHERE v.lead_id IS NOT NULL ORDER BY v.lead_id, v.checked_at DESC ), named AS ( SELECT f.niche, lt.result FROM leads l JOIN firms f ON f.id = l.company_id JOIN latest lt ON lt.lead_id = l.id WHERE l.first_name IS NOT NULL ) SELECT f.niche, ( SELECT count(*) FROM named n WHERE n.niche::text = f.niche::text AND n.result::text = 'catch_all'::text) AS catch_all_leads, ( SELECT count(*) FROM named n WHERE n.niche::text = f.niche::text AND n.result::text = 'risky'::text) AS risky_leads, count(*) FILTER (WHERE f.queued AND NOT f.has_named_lead) AS queued_firms, count(*) FILTER (WHERE f.crawled AND NOT f.has_person) AS crawled_no_person_firms FROM firms f GROUP BY f.niche`,
 );
 
-/** Model calls and tokens per month and model: `email_llm_calls` summed, for the console. */
+/**
+ * Model calls, tokens and dollars per month and model, for the console: `email_llm_calls` summed
+ * (no price kept: `usd` 0), plus the Decide backends' answers (`decisions`, kind `decide:<kind>`).
+ */
 export const llmUsageByMonth = pgView("llm_usage_by_month", {
   month: date("month"),
   kind: text("kind"),
@@ -356,8 +360,9 @@ export const llmUsageByMonth = pgView("llm_usage_by_month", {
   outputTokens: bigint("output_tokens", { mode: "number" }),
   rejectedCalls: bigint("rejected_calls", { mode: "number" }),
   parseFailures: bigint("parse_failures", { mode: "number" }),
+  usd: doublePrecision("usd"),
 }).as(
-  sql`SELECT date_trunc('month'::text, c.created_at)::date AS month, c.kind, c.model, c.provider, count(*) AS calls, sum(c.input_tokens) AS input_tokens, sum(c.output_tokens) AS output_tokens, count(*) FILTER (WHERE c.rejected) AS rejected_calls, count(*) FILTER (WHERE c.parse_failed) AS parse_failures FROM email_llm_calls c GROUP BY (date_trunc('month'::text, c.created_at)::date), c.kind, c.model, c.provider`,
+  sql`SELECT date_trunc('month'::text, c.created_at)::date AS month, c.kind::text AS kind, c.model::text AS model, c.provider::text AS provider, count(*) AS calls, sum(c.input_tokens) AS input_tokens, sum(c.output_tokens) AS output_tokens, count(*) FILTER (WHERE c.rejected) AS rejected_calls, count(*) FILTER (WHERE c.parse_failed) AS parse_failures, 0::float8 AS usd FROM email_llm_calls c GROUP BY (date_trunc('month'::text, c.created_at)::date), c.kind, c.model, c.provider UNION ALL SELECT date_trunc('month'::text, d.at)::date, 'decide:' || d.kind, d.model::text, d.backend::text, count(*), sum(d.input_tokens), sum(d.output_tokens), count(*) FILTER (WHERE d.error IS NOT NULL), 0, sum(d.cost_usd) FROM decisions d GROUP BY (date_trunc('month'::text, d.at)::date), d.kind, d.model, d.backend`,
 );
 
 const ROLE_LIST = sql.raw(

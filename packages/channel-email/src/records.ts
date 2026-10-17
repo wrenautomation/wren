@@ -14,6 +14,7 @@ import {
   date,
   defineRecord,
   modelName,
+  money,
   name,
   named,
   number,
@@ -393,6 +394,7 @@ export const modelRecord = defineRecord({
     outputTokens: number("Tokens out"),
     rejectedCalls: number("Rejected"),
     parseFailures: number("Unparsed"),
+    usd: money("Cost"),
     age: status(AGES, "When"),
   },
   views: [

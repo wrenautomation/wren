@@ -613,6 +613,13 @@ export const money: Module = {
           period: "month",
           sum: "calls",
         },
+        {
+          label: "Model cost",
+          record: "email.model",
+          href: "/money/models?view=all",
+          period: "month",
+          sum: "usd",
+        },
         { label: "Subscriptions", record: "books.subscription", href: "/money/subscriptions" },
         {
           label: "Renewing soon",

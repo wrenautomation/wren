@@ -25,7 +25,7 @@ import {
 import { mailAccess, mailAppsFrom } from "@wren/channel-email/access/access";
 import { mailConsoleApi } from "@wren/channel-email/access/console";
 import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "@wren/channel-email/access/console-routes";
-import { callRecord, firmRecord, replyRecord } from "@wren/channel-email/records";
+import { callRecord, firmRecord, modelRecord, replyRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
 import { smsConsoleApi } from "@wren/channel-sms/restate";
@@ -269,6 +269,8 @@ const SERVICES: Record<
           // registers them; Wren's own bookings for the Calendar's counts and Today.
           callRecord,
           replyRecord,
+          // Money → Model usage, with Decide's cost beside email's calls.
+          modelRecord,
           ...CALENDAR_RECORDS,
           recordingRecord(),
           clientRecord,
