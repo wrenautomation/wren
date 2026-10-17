@@ -279,7 +279,7 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["tiktok"],
     where: "https://developers.tiktok.com/apps/",
     after: [],
-    filed: null,
+    filed: "2026-10-16: production review submitted (Login Kit, Content Posting API Direct Post)",
     needs: [
       ...keys("TIKTOK"),
       cb("tiktok"),
