@@ -155,7 +155,13 @@ function ReachFacts({ reach }: { reach: Reach }) {
         ] as [string, ReactNode],
     ),
     ...reach.handles.map((h, i) => {
-      const shown = h.name ? `${h.name} (${h.handle})` : h.handle;
+      // A LinkedIn URN means nothing to a reader: show the name, or the site's word for one.
+      const handle = h.handle.startsWith("urn:") ? null : h.handle;
+      const shown = h.name
+        ? handle
+          ? `${h.name} (${handle})`
+          : h.name
+        : (handle ?? `${h.label} member`);
       return [
         labels[i] ?? h.label,
         h.url ? (
@@ -337,10 +343,9 @@ export const profileExtras = (detail: unknown): RecordExtras =>
             ? [
                 [
                   "Not loaded",
-                  createElement(Alert, {
-                    onRetry: () => location.reload(),
-                    children: `${detail.failed.join(", ")} didn't load. The rest is here.`,
-                  }),
+                  <Alert key="failed" onRetry={() => location.reload()}>
+                    {`${detail.failed.join(", ")} didn't load. The rest is here.`}
+                  </Alert>,
                 ] as [string, ReactNode],
               ]
             : []),
