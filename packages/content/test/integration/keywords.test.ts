@@ -32,23 +32,26 @@ import {
  */
 const asked: { handler: string; commentId: string; text: string; sendKey?: string }[] = [];
 type Ask = { platform: string; commentId: string; text: string; sendKey?: string };
-const answer = (req: Ask, out: unknown) => {
+const answer = (req: Ask, out: unknown, handler = "privateReply") => {
   if (!req.sendKey) return out;
-  if (req.commentId === "nope")
+  // Only the public reply is refused.
+  if (handler === "reply" && req.commentId.startsWith("noreply"))
+    return { kind: "not_sent", how: "refused", reason: "Meta: reply blocked", status: 400 };
+  if (req.commentId.startsWith("nope"))
     return {
       kind: "not_sent",
       how: "refused",
       reason: "Meta: window closed",
       status: 400,
     };
-  if (req.commentId === "busy")
+  if (req.commentId.startsWith("busy"))
     return {
       kind: "not_sent",
       how: "before_submit",
       reason: "the browser was busy",
       status: null,
     };
-  if (req.commentId === "lost")
+  if (req.commentId.startsWith("lost"))
     return {
       kind: "unknown",
       reason: "the page did not confirm the reply",
@@ -65,7 +68,7 @@ const fakeContent = restate.service({
     },
     reply: async (_ctx: restate.Context, req: Ask) => {
       asked.push({ handler: "reply", ...req });
-      return answer(req, undefined);
+      return answer(req, undefined, "reply");
     },
   },
 });
@@ -197,6 +200,7 @@ describe("KeywordDm.send", () => {
         text: "The guide: example.test/g",
         sendKey: expect.stringMatching(/^private:\d+ /),
         recheck: false,
+        verifyOnly: false,
       },
       {
         handler: "reply",
@@ -206,6 +210,7 @@ describe("KeywordDm.send", () => {
         text: "Sent, check your DMs",
         sendKey: expect.stringMatching(/^comment:\d+ /),
         recheck: false,
+        verifyOnly: false,
       },
     ]);
     expect(await sendAttempt(pg.db, `private:${ok}`)).toMatchObject({ state: "sent" });
@@ -213,7 +218,7 @@ describe("KeywordDm.send", () => {
     const log = await pg.db.select().from(keywordHits).where(eq(keywordHits.keywordId, k.id));
     expect(log.map((h) => [h.author, h.state, h.ref, h.why]).sort()).toEqual([
       ["fay", "sent", "m-yes1", null],
-      ["gus", "failed", null, "Meta: window closed"],
+      ["gus", "failed", null, "send POST write: 400 Meta: window closed"],
     ]);
     const [c] = await pg.db.select().from(comments).where(eq(comments.id, ok));
     expect(c).toMatchObject({ state: "answered", answer: "Sent, check your DMs" });
@@ -240,35 +245,39 @@ describe("KeywordDm.send", () => {
   };
 
   it("unsure: the DM may have gone out, so its ledger row waits in To approve and the hit says why", async () => {
-    const { id, state, row } = await hitOn("lost", { reply: "Check your DMs" });
+    const { id, state, row } = await hitOn("lost1", { reply: "Check your DMs" });
     expect(state).toEqual({ state: "failed" });
     expect(row?.state).toBe("failed");
     expect(row?.why).toMatch(/may have gone out/);
     expect(await sendAttempt(pg.db, `private:${id}`)).toMatchObject({ state: "unsure" });
     // No public reply goes after a DM that may not have gone out, and nothing was sent twice.
-    expect(asked.filter((a) => a.commentId === "lost").map((a) => a.handler)).toEqual([
+    expect(asked.filter((a) => a.commentId === "lost1").map((a) => a.handler)).toEqual([
       "privateReply",
     ]);
   });
 
   it("not sent: the hit is failed with why, the ledger row is released, nothing is queued to send", async () => {
-    const { id, state, row } = await hitOn("busy");
+    const { id, state, row } = await hitOn("busy1");
     expect(state).toEqual({ state: "failed" });
     expect(row?.why).toMatch(/Nothing went out.*browser was busy/);
     expect(await sendAttempt(pg.db, `private:${id}`)).toBeNull();
   });
 
   it("refused: the hit is failed with Meta's reason and the ledger row is released", async () => {
-    const { id, state, row } = await hitOn("nope");
+    const { id, state, row } = await hitOn("nope2");
     expect(state).toEqual({ state: "failed" });
-    expect(row?.why).toBe("Meta: window closed");
+    expect(row?.why).toContain("Meta: window closed");
     expect(await sendAttempt(pg.db, `private:${id}`)).toBeNull();
   });
 
   it("a public reply that fails never undoes the sent DM", async () => {
-    const { id, state, row } = await hitOn("ok2", { reply: "Check your DMs" });
+    const { id, state, row } = await hitOn("noreply1", { reply: "Check your DMs" });
     expect(state).toEqual({ state: "sent" });
     expect(row?.state).toBe("sent");
     expect(await sendAttempt(pg.db, `private:${id}`)).toMatchObject({ state: "sent" });
+    // The reply was refused: its ledger row is released and the comment is not marked answered.
+    expect(await sendAttempt(pg.db, `comment:${id}`)).toBeNull();
+    const [c] = await pg.db.select().from(comments).where(eq(comments.id, id));
+    expect(c?.state).not.toBe("answered");
   });
 });

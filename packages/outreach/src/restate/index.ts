@@ -2450,6 +2450,7 @@ export {
   SendTaken,
   SendUnsure,
   sendAtMostOnce,
+  sendError,
 } from "./maybe-sent.js";
 export {
   type CommentProofsService,
