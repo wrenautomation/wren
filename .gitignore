@@ -25,3 +25,4 @@ senders_config.toml
 
 # The drift gate's scratch copy (scripts/gates.sh)
 packages/db/.drift.*
+**/*pycache*
