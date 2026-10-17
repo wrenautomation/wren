@@ -1,6 +1,6 @@
 # Maybe sent
 
-2026-10-16. A send whose outcome is unknown is recorded once or parked for a person. It never pauses Restate and never sends twice. Since the same day, autobrowse says whether a send went out (a verdict), and wren no longer reads words or looks at a site for its own sends.
+2026-10-16. A send whose outcome is unknown is recorded once or parked for a person. It never pauses Restate and never sends twice. Since the same day, autobrowse says whether a send went out (a verdict), and wren reads no words and looks at no site for any send.
 
 ## What happened
 
@@ -21,15 +21,23 @@ On 2026-10-16 a TikTok publish came back the same way, and the scheduler marked 
 - **Own-channel posts have a claim.** `ContentScheduler` claims `draft:<id>` on the ledger before `Content.publish` and publishes under that key (`draft:<id> <random>`). Sent or found: `markPublished` (a found post has its id; the first comment runs under the key `<sendKey> comment`; the `posted` hook runs). Unknown: the draft stays `publishing` and its row is `unsure` in To approve. Not sent: back to `approved`. Refused: `failed`.
 - **A person settles with three words.** Mark posted, Send again, Not sent, drop (see below).
 
-### Sends that keep a look
+**2026-10-16, callers on the verdict (wa-8q7.3).** Brief B closes the last looks and puts every send on one path.
 
-A look reads the site for our words. It only upgrades `unknown` (or a failure that is not the platform's no) to `found`. Absent or unclear stays unknown for a person. These sends keep one, because autobrowse's desk and `sites` do not serve them, so no verdict exists:
+- **Route kinds.** Every site call is `read`, `staging` or `send`. One rule, `routeKind` in `packages/core/src/content/routes.ts`. A GET is a read. A write is a send unless a row names it a read (TikTok creator and status queries) or staging (a container that no person sees). A send is keyed and never retried blind. A refused publish after only staging writes is the platform's no.
+- **The direct send journal.** `send_journal` (migration 0288) is wren's copy of autobrowse's journal for calls with no autobrowse between: a client's connected account and the direct Reddit API. Wren's Reddit API is no longer a gap: it is keyed through the journal.
+- **Verify-only.** `Content.publish`, `reply` and `privateReply` take `verifyOnly` beside `sendKey` and `recheck`. Autobrowse answers the stored verdict and runs its verify read, and never writes. An unseen key answers `not_sent` (`before_submit`).
+- **settlePost asks at any age.** The 29-day guard is gone (`ASK_AGAIN_MS`). `ContentDesk/settlePost` asks `Content.publish` with `{sendKey, recheck, verifyOnly}` for Wren's post and for a client's post (with `client`). Only `found` or `sent` matters. Any other answer leaves his word standing.
+- **Found runs the shared after-publish.** `afterPublish` (`packages/content/src/restate/after-publish.ts`) is the one step for the scheduler's finish and for `settlePost` found: `markPublished` with the link, the first comment under `<sendKey> comment`, a "comment failed" note, then the `posted` hook. Mark posted (his word) runs the `posted` hook and posts no comment.
+- **Keyword DMs on the ledger.** `packages/content/src/restate/keyword-dm.ts` sends through `sendAtMostOnce` and `sendAcross`: the DM as `private:<comment id>`, the public reply as `comment:<comment id>`. Sent or found: the hit is `sent` with the ref, then the reply. Unsure: the row waits in To approve, the hit is `failed` with "may have gone out", and no reply goes. Not sent: the row goes, the hit is `failed` with "Nothing went out". Refused: the hit is `failed` with the reason. A failed public reply never undoes a sent DM.
+- **The looks are deleted.** `contentLook`, `seenIn`, `seenInMessages`, `seenInDms`, `seenPost`, `seenPrivateReply`, `findPost`, `findReply`, `findPrivateReply`, `listsLate`, `sameWords` and the clock slack. A client's send keeps its ledger key and runs under the direct journal. Send again is a new send under a new key, with no read first.
 
-- **A client's connected account.** `SocialInbox/send` (`sdm:`) reads the conversation (`readDms`, `seenInDms`). `SocialInbox/answer` (`comment:`) and a client's `Content.reply` use `contentLook`. A client's own-post publish (`draft:` in its database) reads its listing (`Content.findPost`). These go straight to the platform API on the client's token. The platform keeps no key we can ask. `Content.findPrivateReply` and the Page-inbox read (`seenPrivateReply`) stay for a client's private reply; no sender uses them yet, because the keyword DMs call `Content.privateReply` straight.
-- **Wren's direct Reddit API** (`WREN_REDDIT_*` set; `redditFrom`, `apps/worker/src/services.ts`). A journaled step ends in `SendUnknown` after a write. There is no key for the API. Not set in prod. A take-over could send once more there. This is a known gap.
-- Send again on one of these reads first. Found: recorded, not sent twice. A read that cannot tell does not stop a person who chose to send again.
+### Sends with no autobrowse between
 
-Every other send reads only the verdict: Reddit threads, replies and DMs through the desk, LinkedIn and X replies, Instagram comments, Meta private replies, the sender's DMs and connects, and Wren's own posts on every channel.
+A client's connected account and wren's direct Reddit API go straight to the platform on a token. No autobrowse desk keeps a verdict for them, so wren keeps one: the direct send journal (`send_journal`, `packages/core/src/send-journal.ts`, migration 0288). `journaledSites` (`packages/core/src/content/restate.ts`) wraps the `sites` seam. It writes a record under the send key before the act, then the verdict. A replay or a take-over with the same key reads the record and never writes twice. These routes have no verify read, so a record with no verdict stays `unknown`, and a person settles it. Wren's database holds its own sends; a client's database holds its own.
+
+Wren reads no words for any send.
+
+Every send reads only a verdict, from autobrowse or from the direct journal: Reddit threads, replies and DMs through the desk, LinkedIn and X replies, Instagram comments, Meta private replies, the sender's DMs and connects, and Wren's own posts on every channel.
 
 ### Not sent, drop
 
@@ -49,25 +57,25 @@ A second word on the same item is refused: nothing waits on it.
 
 ### Notes for the deploy
 
-- Deploy autobrowse first. A desk that ignores `sendKey` answers the raw output, and wren counts that as sent. A `settlePost` rerun against an older desk would write again.
-- Wren asks the old key again only under 29 days (`ASK_AGAIN_MS`). The journal keeps 30, and an unseen key writes.
+- Deploy autobrowse first. A desk that ignores `sendKey` answers the raw output, and wren counts that as sent. A desk that ignores `verifyOnly` would write on a `settlePost` ask.
+- `settlePost` asks at any age, verify-only. It never writes: autobrowse keeps a verdict 30 days, and an unseen key answers `not_sent`. Deploy autobrowse's `verifyOnly` before wren.
+- Run migration 0288 (`send_journal`) on wren's database and on each client database before the wren deploy.
 - 408 and 409 from a Content hop count as unknown. A non-4xx terminal error from `Content` also counts as unknown in the scheduler.
 - A `settlePost` rerun on a long `unknown` can take minutes: the verify read waits up to 3 reads (30 s, 3 min, 10 min).
 
 ## Decisions
 
-- **One ledger, `send_attempts`** (`packages/outreach/src/schema.ts`, migrations `0280_send_attempts`, `0286_send_attempts_key`). One row per item that must land at most once, keyed by its typed id: `thread:<id>`, `comment:<id>`, `onpost:<id>`, `dm:<reach message id>`, `private:<comment id>` (a DM from a comment on our own post), `sdm:<reach message id>` (a client's DM answer through its connected account, in the client's own database), `draft:<content draft id>` (a post of ours). A claim marks it `sending` with its send key before any call. A second invocation meanwhile is refused (409). A claim on a `sending` row older than 10 minutes takes it over with the same key. Settled `sent` (with the real ref and `settled_by`: `sent`, `found` or the person) or `unsure`. A refusal, or a send that never left, deletes the row so the item sends as if never tried.
-- **On Restate, `sendAtMostOnce`.** Claim and settle are steps; the send is the caller's journaled site call, never inside a step. Unsure throws `SendUnsure`, a `TerminalError` (409), so nothing retries or pauses. A scheduled slot leaves the schedule. `sendError` makes a refusal or a journaled site error terminal too.
+- **One ledger, `send_attempts`** (`packages/outreach/src/schema.ts`, migrations `0280_send_attempts`, `0286_send_attempts_key`). One row per item that must land at most once, keyed by its typed id: `thread:<id>`, `comment:<id>`, `onpost:<id>`, `dm:<reach message id>`, `private:<comment id>` (a DM from a comment on our own post, by hand or by a keyword), `comment:<id>` also covers a keyword's public reply, `sdm:<reach message id>` (a client's DM answer through its connected account, in the client's own database), `draft:<content draft id>` (a post of ours). A claim marks it `sending` with its send key before any call. A second invocation meanwhile is refused (409). A claim on a `sending` row older than 10 minutes takes it over with the same key. Settled `sent` (with the real ref and `settled_by`: `sent`, `found` or the person) or `unsure`. A refusal, or a send that never left, deletes the row so the item sends as if never tried.
+- **On Restate, `sendAtMostOnce`.** Claim and settle are steps; the send is the caller's journaled site call, never inside a step. Unsure throws `SendUnsure`, a `TerminalError` (409), so nothing retries or pauses. A scheduled slot leaves the schedule. `sendError` makes a refusal or a journaled site error terminal too. A client's connected account uses the same path, with a verdict from the direct journal.
 - **Before sending, our own words.** The "someone of ours already wrote here" guard (`threadAuthors`, `checkThread`) runs only on a first send (`before`), not on a take-over: our own earlier send is there, and autobrowse's stored verdict answers for it.
 - **A person settles `unsure`** in To approve (view "May have gone out"): Open on site, Mark posted, Send again, Not sent, drop. All go to `ReachDesk/settleSend {item, outcome}` (effect sends). Mark posted records it the way a send does (`markCommented`, `markAnswered`, `markPostCommented`, or the sender's `recordSent` with its sequence step) and schedules the proof checks. Send again calls the item's own handler with `again: true`. A DM goes back in the sender's queue. A private reply records through `privateReplied`; Send again calls `ReachDesk/dmComment` with the ledger's words.
 - **A client settles its own** in its To approve (`marketing.asked_reply` lists its `unsure` rows). The words go to `MarketingConsole/sendSettle`, its approver only, then `SocialInbox/settle` on its database: `sdm:` records through `sentDm`, `comment:` through `markAnswered`; Send again calls `SocialInbox/send` or `answer` with `again: true`. `planDm` reuses a row still `sending` or `unknown` with the same words, so a second click is the same item; the same words sent under 10 minutes ago are refused.
-- **A person settles a post** with the same words. `ReachDesk/settleSend` (Wren's) and `SocialInbox/settle` (a client's) send `draft:` to `ContentDesk/<key>/settlePost` (service calls only). Wren's own post: ask autobrowse again under its key (`Content.publish` with `recheck`, under 29 days). A client's: read its listing. Found: published with the platform's id, whatever he chose. Else Mark posted marks it published on his word, with no id, so its numbers are not read. Send again puts it back to `approved` and wakes the scheduler. Not sent, drop rejects it.
-- **A channel whose listing is late never proves absent.** `ContentChannel.listsLate(media)` names why (TikTok, YouTube, Facebook and Instagram video). It matters only for a client's listing look now.
+- **A person settles a post** with the same words. `ReachDesk/settleSend` (Wren's) and `SocialInbox/settle` (a client's) send `draft:` to `ContentDesk/<key>/settlePost` (service calls only). Wren's own post: ask autobrowse again under its key (`Content.publish` with `recheck` and `verifyOnly`, at any age). A client's: the same, with `client`. Found or sent: `afterPublish`, published with the platform's id, whatever he chose. Any other answer leaves his word. Mark posted marks it published on his word, with no id and no first comment, so its numbers are not read, and runs the `posted` hook. Send again puts it back to `approved` and wakes the scheduler. Not sent, drop rejects it.
 - **Schedulers leave open items alone.** `schedulePosts` and `scheduleThreads` skip any item with a `sending` or `unsure` row. Engage hides them; To approve shows them in place of the queued row.
 
 ## Paths
 
-What each send reads on an unknown outcome. "Verdict" is autobrowse's `SendVerdict` under the item's send key.
+What each send reads on an unknown outcome. "Verdict" is autobrowse's `SendVerdict` under the item's send key. "Direct journal" is `send_journal`: the same verdict, kept by wren for a call with no autobrowse between.
 
 | Send | Reads | On unknown |
 |---|---|---|
@@ -77,21 +85,22 @@ What each send reads on an unknown outcome. "Verdict" is autobrowse's `SendVerdi
 | Answer on our own post (`answerComment`, content path, `Content.reply`) | verdict through the Content hop | unsure |
 | Comment on someone's post: LinkedIn, X (`commentPost`, `Content.reply`) and Instagram (a site call) | verdict | unsure |
 | Meta private reply (`dmComment`, `private:`) | verdict through `Content.privateReply` | unsure; Meta takes one private reply per comment |
+| Keyword DM (`KeywordDm`, `private:<comment id>`) and its public reply (`comment:<comment id>`) | verdict through `Content.privateReply` and `Content.reply` | unsure: the hit is `failed` with "may have gone out", no reply goes |
 | Our own post (`ContentScheduler`, `draft:`), every channel | verdict through `Content.publish`; the first comment under `<sendKey> comment` | stays `publishing`, unsure in To approve |
-| Wren's direct Reddit API (`WREN_REDDIT_*`) | nothing (no key) | unsure; known gap |
-| Client's comment answer (`SocialInbox/answer`, `comment:`) | look: `contentLook` on its channels | found, else unsure |
-| Client's DM answer (`SocialInbox/send`, `sdm:`) | look: `readDms` as the connected account (`seenInDms`) | found, retry once (the read reaches back past the send), else unsure |
-| Client's own post (`draft:` in its database) | look: `Content.findPost`, the channel's `list` (`seenPost`) | found, else unsure; a late listing never proves absent |
+| Wren's direct Reddit API (`WREN_REDDIT_*`) | direct journal, keyed | unsure |
+| Client's comment answer (`SocialInbox/answer`, `comment:`) | direct journal | unsure |
+| Client's DM answer (`SocialInbox/send`, `sdm:`) | direct journal | unsure |
+| Client's own post (`draft:` in its database) | verdict through `Content.publish` with `client` | stays `publishing`, unsure in To approve |
 
-No read can confirm these, so the item is `unsure` and waits on a person: a client's post on a channel with no `list`, a client's DM whose read is cut before the send, and every desk send autobrowse answered `unknown` and could not verify.
+No read can confirm these, so the item is `unsure` and waits on a person: every direct-journal record with no verdict, and every desk send autobrowse answered `unknown` and could not verify.
 
-Not on the ledger: follows and likes (`postActs`, `actOnPost`) are idempotent on the site, so a second send changes nothing. Keyword DMs (`packages/content/src/restate/keyword-dm.ts`) still call `Content.privateReply` straight; they move to `private:` with the next change there.
+Not on the ledger: follows and likes (`postActs`, `actOnPost`) are idempotent on the site, so a second send changes nothing.
 
 ## Tests
 
 Each test fails on the old code. The fake desk keeps a journal by send key and answers verdicts.
 
-- `packages/core/src/send-verdict.test.ts`, `packages/core/src/content/restate.test.ts` and `packages/core/src/maybe-sent.test.ts`: the keyed path, a kill then `verdict`, `deliveryOf` and `delivered`, `sendOnce` on every outcome, the look-on-failure branch, send again with a look.
-- `packages/outreach/test/integration/maybe-sent.test.ts` on Postgres: `sendAtMostOnce` under each verdict, a take-over on the same key, a key-less take-over parked unsure, a double invocation, the 10-15 Reddit case end to end (`commentThread`), the sender's DMs (found, unknown, not sent holds, refused, send again, drop), Not sent, drop for every kind, and the client looks (X reply, the Page-inbox read for a private reply, `sdm:`).
-- `packages/content/test/integration/loop.test.ts` on Restate: a busy browser takes a new key next pass, a verified post is published with its id and its first comment key, the 10-16 unknown stays `publishing`, a Content call that stops after the write is parked unsure, Send again and Mark posted, Not sent, drop, the 29-day age guard, a failed draft approved on the first yes. `packages/content/test/integration/social-access.test.ts`: a client's lost DM answer, Send again finds it, Mark posted, Not sent, drop.
+- `packages/core/src/send-verdict.test.ts`, `packages/core/src/content/restate.test.ts` and `packages/core/src/maybe-sent.test.ts`: the keyed path, a kill then `verdict`, `deliveryOf` and `delivered`, `sendOnce` on every outcome. `packages/core/src/content/routes.test.ts` (route kinds) and `packages/core/test/integration/send-journal.test.ts` (the direct journal).
+- `packages/outreach/test/integration/maybe-sent.test.ts` on Postgres: `sendAtMostOnce` under each verdict, a take-over on the same key, a key-less take-over parked unsure, a double invocation, the 10-15 Reddit case end to end (`commentThread`), the sender's DMs (found, unknown, not sent holds, refused, send again, drop), Not sent, drop for every kind, and a client's send on its connected account (a lost send is unsure, a second invocation is refused, Send again is a new key, a refusal and a not-sent release the row, no read for words).
+- `packages/content/test/integration/loop.test.ts` on Restate: a busy browser takes a new key next pass, a verified post is published with its id and its first comment key, the 10-16 unknown stays `publishing`, a Content call that stops after the write is parked unsure, Send again and Mark posted, Not sent, drop, a settle at any age that asks verify-only and writes nothing, settle found that runs the after-publish (one first comment under its own key, the `posted` hook), Mark posted that runs the hook with no comment, a failed draft approved on the first yes. `packages/content/test/integration/social-access.test.ts`: a client's lost DM answer, Send again is a new send with no read, Mark posted, Not sent, drop. `packages/content/test/integration/keywords.test.ts`: a keyword DM and reply on the ledger (sent), unsure, not sent, refused, and a refused reply that leaves the DM sent.
 - `packages/outreach/test/integration/reach-posts.test.ts`: the reply carries its send key; no look before a desk send.

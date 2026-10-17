@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-16 (send verdicts: draft claim, waiting and unsure by verdict, drop)
+verified: 2026-10-16 (callers on the verdict: no looks, direct send journal, keyword DMs on the ledger)
 entity: packages/content/src/schema.ts:76
 ---
 
@@ -17,7 +17,7 @@ The model proposes, the code disposes: a draft over the platform's length, missi
 
 A send that did not leave fails no draft. Every publish runs under the ledger claim `draft:<id>` and a send key (`Content.publish { sendKey }`); autobrowse answers a verdict (designs/2026-10-16-maybe-sent.md). Not sent (`before_submit`, `verified_absent`): `markWaiting` (`queue.ts`) puts it back to `approved` in its slot with `error` "Waiting for the browser: …", the pass skips that platform's other drafts and comes back in a minute, no notice; the portal shows "Waiting for the browser" (`Branch.waitingForBrowser`, `pieces.ts`). The next claim clears the error and makes a new key. Only a platform's own no (a 4xx but 408 and 409) fails a draft.
 
-A publish that may have gone out (`unknown`) fails no draft either. It stays `publishing` with "May have gone out: …" (`markUnsure`, `queue.ts`) and its [[content/send-attempt]] `draft:<id>` waits in To approve; an edit says so (`lockedWhy`). Sent or found: `markPublished` with the platform's id (the first comment runs under `<sendKey> comment`). `ContentDesk/settlePost` settles an unsure one: Wren's asks autobrowse again under the same key (`recheck`, under 29 days), a client's reads our listing (`Content/findPost`); found or sent is published whatever he chose. Else Mark posted (`markPostedBy`, no id, no numbers), Send again (`sendAgain`, back to `approved`) or Not sent, drop (`dropDraft`: `rejected`, slot cleared, a "rejected" draft event).
+A publish that may have gone out (`unknown`) fails no draft either. It stays `publishing` with "May have gone out: …" (`markUnsure`, `queue.ts`) and its [[content/send-attempt]] `draft:<id>` waits in To approve; an edit says so (`lockedWhy`). Sent or found: `markPublished` with the platform's id (the first comment runs under `<sendKey> comment`). `ContentDesk/settlePost` settles an unsure one: it asks autobrowse again under the same key, at any age (`recheck` and `verifyOnly`, Wren's or a client's with `client`); found or sent runs the same after-publish as the scheduler (`afterPublish`: `markPublished`, the first comment, the `posted` hook), whatever he chose; any other answer leaves his word. Else Mark posted (`markPostedBy`, no id, no numbers, no first comment; the `posted` hook runs), Send again (`sendAgain`, back to `approved`) or Not sent, drop (`dropDraft`: `rejected`, slot cleared, a "rejected" draft event).
 
 Per client: the same table in the client's own database. `ContentPlanner/<c>/daily` drafts through `ContentDesk/<c>/desk` as the client (its About, on its `models` gate, only its login platforms), into its To approve. `ContentScheduler/<c>/posts` holds due drafts (`held`) until `sendsOn(client, "content.posting")`; then posts through `Content.publish` with `client`, on its own login (`packages/content/src/clients.ts`).
 

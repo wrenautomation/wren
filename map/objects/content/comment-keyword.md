@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-11 @ 217926e7
+verified: 2026-10-16 (keyword DMs on the ledger)
 entity: packages/content/src/schema.ts:1067
 ---
 
@@ -38,6 +38,6 @@ Citations: `packages/content/src/social/keywords.ts`, `packages/content/src/rest
 | Surface | Role |
 |---|---|
 | `SocialWatch` pass | catches, sends each hit to `KeywordDm.send` |
-| `KeywordDm.send` (ingress-private) | DM via `Content.privateReply`, then `Content.reply` if set; Meta's no logs `failed` |
+| `KeywordDm.send` (ingress-private) | DM via `Content.privateReply` as `private:<comment id>`, then `Content.reply` if set as `comment:<comment id>`, each through `sendAtMostOnce` ([[content/send-attempt]]). Sent: hit `sent`. Unsure, not sent or Meta's no: hit `failed` with why; no reply after a DM that may not have gone |
 | Marketing → Comment keywords | New keyword, Delete, edit DM, reply, on/off |
 | Marketing → Keyword DMs | the log, Failed view |
