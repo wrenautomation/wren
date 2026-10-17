@@ -9,6 +9,12 @@ concurrency: { group: "integration-${{ github.ref }}", cancel-in-progress: true 
 jobs:
   integration:
     runs-on: ubuntu-latest
+    # The shared remote cache (deploy/terraform/turbo-cache.tf), the Mac's gates write it too.
+    # A fork's PR gets no secrets: turbo then uses the local cache only.
+    env:
+      TURBO_API: ${{ secrets.TURBO_API }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: wren
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4

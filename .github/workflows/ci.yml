@@ -15,6 +15,11 @@ jobs:
       matrix: { gate: [lint, unit, schema] }
     name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
+    # The shared remote cache (deploy/terraform/turbo-cache.tf); without secrets, local only.
+    env:
+      TURBO_API: ${{ secrets.TURBO_API }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: wren
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4

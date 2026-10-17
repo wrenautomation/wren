@@ -59,6 +59,7 @@ costs nothing and has no process to crash.
 | S3 bucket | nightly `pg_dump -Fc`, 30-day lifecycle | pennies |
 | Lambda `wren-prod-worker` + log group | the worker | ≈ $0 at this volume |
 | SSM params `/wren/prod/{pg_password,browser_token,env}` | secrets | $0 |
+| Lambda `wren-prod-turbo-cache` + function URL + bucket `wren-prod-turbo-cache` (30-day expiry) | turbo's shared remote cache for CI and the Mac (`deploy/terraform/turbo-cache.tf`; code `deploy/turbo-cache/deploy.sh`; Mac `node scripts/turbo-login.mjs`). Token `TURBO_TOKEN`, URL `TURBO_API`, both in env-2 and GitHub secrets. Down: turbo uses its local cache | ≈ $0.30 |
 | IAM: instance role, Lambda role, `wren-prod-restate-invoker`, `wren-prod-ci` + GitHub OIDC provider | who may do what | $0 |
 
 Total ≈ $27/month. Restate Cloud is no longer used (switched 2026-10-06, +$12/mo for the bigger box).

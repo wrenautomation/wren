@@ -1,0 +1,17 @@
+{
+  "name": "wren-turbo-cache",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "turborepo-remote-cache (ducktors, MIT) as one Lambda; outside the pnpm workspace.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "turborepo-remote-cache": "2.14.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "license": "PolyForm-Strict-1.0.0"
+}
