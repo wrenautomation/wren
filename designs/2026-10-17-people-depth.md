@@ -83,3 +83,18 @@ Wave 2 starts from wave 1 merged. Only B adds a migration (its views); C and D u
 - 2026-10-17: `unsure` is not kept. Why: agreement counts on "is a lead"; unsure is no lead yet.
 - 2026-10-17: other providers show $0 in Model usage. Why: they run on free keys; no price table
   exists, and a made-up price would mislead.
+- 2026-10-17 (A): the rule keyword is `group`; the parser still reads `segment`. Why: saved rules
+  keep working with no data change.
+- 2026-10-17 (A): "Add to group" with an archived group's name restores that group. Why: one name
+  is one group; a second group with the same name confuses the picker.
+- 2026-10-17 (A): a profile part that fails to load shows "Not loaded" and Try again. The rest of
+  the page still shows.
+- 2026-10-17 (B): a touch with no item link shows "No link for this one" beside "Where". Old
+  Instagram rows with a numeric media id get no link: no platform page opens for that form.
+- 2026-10-17 (B): Instagram comment links use `<permalink>c/<id>/`. Not checked on a live item yet.
+- 2026-10-17 (B): Reddit item links use `/comments/<post>/_/<comment>/`. Proof code uses
+  `/comments/<a>/comment/<c>/`. Both open; one form is a later cleanup.
+- 2026-10-17 (B): reach_posts likes, follows and LinkedIn invites get no item link. They have no
+  item page.
+- 2026-10-17 (B): migration 0290 drops and remakes `profile_steps`, because it reads
+  `profile_timeline`.
