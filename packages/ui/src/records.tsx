@@ -1026,8 +1026,9 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
     return lenOf(shownOf(f, String(c))) + (cueOf(f, String(c)) ? 3 : 0);
   if (f.kind === "link") return lenOf(linkLabel(String(c), f.label));
   if (f.kind === "actor") return lenOf(actorParts(String(c))?.join(" · ") ?? String(c));
-  // A score's bar and its gap take about seven characters.
-  if (f.kind === "score") return String(c).length + (f.max ? 7 : 0);
+  // A score's bar and its gap are 48px, about seven characters; the digits run wider than the
+  // average character, so one more keeps "100" whole.
+  if (f.kind === "score") return String(c).length + (f.max ? 8 : 0);
   if (Array.isArray(c)) return lenOf(c.join(", "));
   if (c && typeof c === "object") {
     if ("name" in c) return lenOf(c.name);

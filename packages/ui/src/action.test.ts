@@ -11,14 +11,9 @@ import {
   typedOf,
   valuesOf,
 } from "./action.js";
+import { FORM_FIELDS as FORM, PAUSE } from "./fixtures/action.js";
 import { HandlerForm } from "./handler.js";
 
-const PAUSE: Action = {
-  id: "pause",
-  label: "Pause",
-  handler: "email/pause",
-  ask: { field: "reason", label: "Why?" },
-};
 const STOP: Action = { id: "stop", label: "Stop", handler: "console/stopLoop" };
 
 describe("inputOf", () => {
@@ -84,17 +79,6 @@ describe("form actions", () => {
 });
 
 describe("typedOf: a form's text as the input it sends", () => {
-  const FORM: FormField[] = [
-    { field: "day", label: "Day", type: "date" },
-    { field: "note", label: "Note", optional: true },
-    { field: "limit", label: "Limit", type: "number", optional: true },
-    { field: "dryRun", label: "Dry run", type: "switch" },
-    { field: "ids", label: "Ids", type: "lines", optional: true },
-    { field: "personIds", label: "Person ids", type: "numbers", optional: true },
-    { field: "recheck.olderThanDays", label: "Recheck.Days", type: "number", optional: true },
-    { field: "extra", label: "Extra", type: "json", optional: true },
-  ];
-
   it("types each box and nests parent.child", () => {
     const typed = {
       day: "2026-01-02",

@@ -118,6 +118,8 @@ describe("fitOf", () => {
     const bare = { ...field("n", "score"), label: "score" };
     const rows = [{ id: 1, score: 123456789, n: 123456789 }];
     expect(fitOf(score, rows) - fitOf(bare, rows)).toBeGreaterThanOrEqual(7 * 7.2);
+    // Its widest figure, 100, shows whole: 40px bar, 8px gap, three digits (about 8.1px each) and the padding.
+    expect(fitOf(score, [{ id: 1, score: 100 }])).toBeGreaterThanOrEqual(40 + 8 + 3 * 8.1 + 24);
   });
 });
 

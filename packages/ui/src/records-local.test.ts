@@ -1,76 +1,42 @@
-import type { RecordMeta } from "@wren/core/records";
-import type { ListAsk, Row } from "@wren/core/records/serve";
 import { describe, expect, it } from "vitest";
-import type { Action } from "./action.js";
-import type { RecordsApi } from "./records.js";
+import { fakeRecords, LEAD_ACTIONS, LEAD_META } from "./fixtures/records.js";
 import { localRecords } from "./records-local.js";
 
-const META = {
-  id: "t.email",
-  views: [
-    { id: "approve", label: "To approve", where: { status: ["awaiting"] } },
-    { id: "approved", label: "Approved", where: { status: ["approved"] } },
-  ],
-} as unknown as RecordMeta;
-
-const ROWS: Row[] = [
-  { id: 1, status: "awaiting" },
-  { id: 2, status: "awaiting" },
-  { id: 3, status: "approved" },
-];
-const views = META.views as unknown as { id: string; where: { status: string[] } }[];
-const inView = (ask: ListAsk) => {
-  const w = views.find((v) => v.id === ask.view)?.where.status;
-  return ROWS.filter((r) => !w || w.includes(String(r.status)));
-};
-
+const APPROVE = LEAD_ACTIONS[0] as (typeof LEAD_ACTIONS)[number];
 /** A server that never changes: the demo's. */
-const server: RecordsApi = {
-  types: async () => [META],
-  list: async (ask) => {
-    const rows = inView(ask);
-    const counts = Object.fromEntries(
-      views.map((v) => [v.id, inView({ ...ask, view: v.id }).length]),
-    );
-    return { rows, counts, total: rows.length, next: null } as never;
-  },
-  get: async (ask) => ({ row: ROWS.find((r) => String(r.id) === ask.id), related: [] }) as never,
-  export: async () => ({ body: "", rows: 0, capped: false }) as never,
-};
-
-const APPROVE: Action = {
-  id: "approve",
-  label: "Approve",
-  handler: "x/approve",
-  undo: "x/unapprove",
-  when: { status: ["awaiting"] },
-  sets: { status: "approved" },
-};
+const server = fakeRecords();
+const ids = async (api: ReturnType<typeof localRecords>["api"], view: string) =>
+  (await api.list({ record: LEAD_META.id, view })).rows.map((r) => r.id);
 
 describe("localRecords", () => {
   it("moves an approved row between views, and undo moves it back", async () => {
     const { api, callFor } = localRecords(server);
-    const call = callFor("t.email", [APPROVE]);
-    await api.list({ record: "t.email", view: "approve" });
+    const call = callFor(LEAD_META.id, [APPROVE]);
+    const waiting = await ids(api, "waiting");
+    const approved = await ids(api, "approved");
+    expect(waiting).toContain(1);
 
-    expect(await call("x/approve", { ids: [1] })).toEqual({ done: [1], skipped: [] });
-    const left = await api.list({ record: "t.email", view: "approve" });
-    expect(left.rows.map((r) => r.id)).toEqual([2]);
-    expect(left.counts).toEqual({ approve: 1, approved: 2 });
-    const there = await api.list({ record: "t.email", view: "approved" });
-    expect(there.rows.map((r) => r.id).sort()).toEqual([1, 3]);
-    expect((await api.get({ record: "t.email", id: "1" })).row.status).toBe("approved");
+    expect(await call("demo/approve", { ids: [1] })).toEqual({ done: [1], skipped: [] });
+    const left = await api.list({ record: LEAD_META.id, view: "waiting" });
+    expect(left.rows.map((r) => r.id)).toEqual(waiting.filter((id) => id !== 1));
+    expect(left.counts).toEqual({
+      waiting: waiting.length - 1,
+      approved: approved.length + 1,
+      all: 14,
+    });
+    expect((await ids(api, "approved")).sort()).toEqual([1, ...approved].sort());
+    expect((await api.get({ record: LEAD_META.id, id: "1" })).row.state).toBe("approved");
 
     // Already approved: nothing to do.
-    expect(await call("x/approve", { ids: [1] })).toEqual({ done: [], skipped: [1] });
-    expect(await call("x/unapprove", { ids: [1] })).toEqual({ done: [1], skipped: [] });
-    const back = await api.list({ record: "t.email", view: "approve" });
-    expect(back.rows.map((r) => r.id)).toEqual([1, 2]);
-    expect(back.counts).toEqual({ approve: 2, approved: 1 });
+    expect(await call("demo/approve", { ids: [1] })).toEqual({ done: [], skipped: [1] });
+    expect(await call("demo/unapprove", { ids: [1] })).toEqual({ done: [1], skipped: [] });
+    expect(await ids(api, "waiting")).toEqual(waiting);
+    const back = await api.list({ record: LEAD_META.id, view: "waiting" });
+    expect(back.counts).toEqual({ waiting: waiting.length, approved: approved.length, all: 14 });
   });
 
   it("refuses a handler the page doesn't declare", async () => {
     const { callFor } = localRecords(server);
-    await expect(callFor("t.email", [APPROVE])("x/send", { ids: [1] })).rejects.toThrow();
+    await expect(callFor(LEAD_META.id, [APPROVE])("x/send", { ids: [1] })).rejects.toThrow();
   });
 });
