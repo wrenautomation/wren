@@ -31,7 +31,9 @@ on our own posts, DMs where a read exists) gets a **proof**:
    with no caller change (the dependency-inversion rule William asked for, see
    `grants-shared-interface`).
 2. **Two readers**: the public one (signed out: `reddit-public`, a logged-out LinkedIn post
-   page) decides `live`; the account's own read decides `hidden` vs `missing`.
+   page) decides `live`; the account's own read decides `hidden` vs `missing`. LinkedIn has no
+   `hidden`: its signed-out page shows strangers a few top comments and no replies, so the
+   account's read alone decides `live` vs `missing` there (10-17).
 3. **Screenshot**: a desk browser flow opens the permalink, waits for the comment element,
    screenshots it, uploads to the private screenshots bucket (existing reaper rules), keeps the
    key. Signed out when it can, so the picture is what strangers see.

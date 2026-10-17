@@ -171,7 +171,12 @@ export function redditPermalink(t: ProofTarget, thing?: RedditThing | null): str
   return a && c ? `https://www.reddit.com/comments/${a}/comment/${c}/` : t.url;
 }
 
-/** LinkedIn's verdict once the public page did not show it: `loaded` it, `own` the author's read. */
+/**
+ * LinkedIn's verdict once the public page did not show it: `loaded` it, `own` the author's read.
+ * The signed-out page shows strangers a few top comments and no replies, so a comment missing
+ * there proves nothing: the author's read decides (10-17, a reply under Don's comment alerted
+ * "hidden" while live).
+ */
 export function linkedinVerdict(
   loaded: boolean,
   own: boolean | null,
@@ -179,9 +184,7 @@ export function linkedinVerdict(
   const why = loaded ? "not on the public page" : "the public page did not load";
   if (own === null) return { state: "pending", note: `${why}; the account read failed` };
   if (!own) return { state: "missing", note: `${why}, nor to its author` };
-  return loaded
-    ? { state: "hidden", note: `only visible signed in: ${why}` }
-    : { state: "pending", note: `${why}; its author sees it` };
+  return { state: "live", note: `its author's read finds it; ${why}` };
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 160);

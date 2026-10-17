@@ -129,9 +129,9 @@ describe("linkedin verdict", () => {
     expect(holds("ok", "ok")).toBe(false);
   });
 
-  it("is hidden only when the public page loaded without it", () => {
-    expect(linkedinVerdict(true, true).state).toBe("hidden");
-    expect(linkedinVerdict(false, true).state).toBe("pending");
+  it("is live when its author's read finds it, whatever the public page shows", () => {
+    expect(linkedinVerdict(true, true).state).toBe("live");
+    expect(linkedinVerdict(false, true).state).toBe("live");
     expect(linkedinVerdict(true, false).state).toBe("missing");
     expect(linkedinVerdict(true, null).state).toBe("pending");
   });
@@ -234,7 +234,7 @@ describe("siteProof", () => {
       url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
       text: "Our words about hiring in the region",
     });
-    expect(p.state).toBe("hidden");
+    expect(p.state).toBe("live");
     expect(p.shot).toBeNull();
   });
 
