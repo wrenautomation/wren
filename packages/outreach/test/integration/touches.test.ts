@@ -186,15 +186,75 @@ describe("touches", () => {
     expect(rows.find((x) => x.id === "reddit:jo_test")).toMatchObject({ touches: 3 });
     // Each links to its profile, made when the handle was first seen.
     expect(rows.find((x) => x.id === "reddit:jo_test")?.profile).toMatch(/^\/people\/people\/\d+$/);
+    // `what` carries no url: the item link and the place it sits are their own columns. Our
+    // LinkedIn comment's id is not kept, so it has no link of its own, only the post.
     const lines = (await db().execute(
-      sql`select kind, what from person_touch_lines where person = ${`li:${personId}`}`,
-    )) as unknown as Array<{ kind: string; what: string }>;
+      sql`select kind, what, link, context from person_touch_lines where person = ${`li:${personId}`}`,
+    )) as unknown as Array<{ kind: string; what: string; link: string | null; context: string }>;
     expect(lines).toEqual([
       {
         kind: "LinkedIn comment",
-        what: "We commented on their post as wren: Three in a week is quick. · https://www.linkedin.com/feed/update/urn:li:activity:7001/",
+        what: "We commented on their post as wren: Three in a week is quick.",
+        link: null,
+        context: "https://www.linkedin.com/feed/update/urn:li:activity:7001/",
       },
     ]);
+    // A Reddit touch opens its own comment, theirs and ours; the thread stays its context.
+    const reddits = (await db().execute(
+      sql`select kind, link, context from person_touch_lines where person = 'reddit:jo_test' order by at`,
+    )) as unknown as Array<{ kind: string; link: string | null; context: string }>;
+    expect(reddits.map((l) => l.link)).toEqual([
+      "https://www.reddit.com/comments/post1/_/c1/",
+      "https://www.reddit.com/comments/post1/_/ours1/",
+      "https://www.reddit.com/comments/post1/_/c2/",
+    ]);
+    expect(reddits[0]?.context).toBe("https://www.reddit.com/r/startups/comments/post1/_/c1/");
+    // And the profile timeline: the same link, the place as context, a note only where none.
+    const tl = (await db().execute(
+      sql`select link, context, note from profile_timeline where kind = 'touch' order by at`,
+    )) as unknown as Array<{ link: string | null; context: string | null; note: string | null }>;
+    expect(tl.map((l) => [l.link, l.note])).toEqual([
+      [null, "No link for this one"],
+      ["https://www.reddit.com/comments/post1/_/c1/", null],
+      ["https://www.reddit.com/comments/post1/_/ours1/", null],
+      ["https://www.reddit.com/comments/post1/_/c2/", null],
+    ]);
+    expect(tl[0]?.context).toBe("https://www.linkedin.com/feed/update/urn:li:activity:7001/");
+  });
+
+  it("fills a kept touch's missing link, and counts it first", async () => {
+    const [first] = await keepComments(
+      db(),
+      reddit,
+      [
+        {
+          ref: "t1_c1",
+          post: "t3_post1",
+          parent: "t3_post1",
+          kind: "post_reply",
+          place: "startups",
+          postTitle: "How we chase invoices",
+          handle: "Jo_Test",
+          text: "Do you use a CRM for this?",
+          url: "https://www.reddit.com/r/startups/comments/post1/_/c1/",
+          at: ago(6).toISOString(),
+          raw: {},
+        },
+      ],
+      ["wren_test"],
+    );
+    expect(first).toBeDefined();
+    // A touch kept before links existed.
+    await db().execute(sql`update touches set link = null`);
+    const dry = await backfillOutreachTouches(db(), { dryRun: true });
+    expect(dry.links).toBe(1);
+    const run = await backfillOutreachTouches(db(), { now: NOW });
+    expect(run.links).toBe(1);
+    const [row] = await db().execute(sql`select link from touches`);
+    expect(row).toEqual({ link: "https://www.reddit.com/comments/post1/_/c1/" });
+    // Nothing left to fill.
+    expect((await backfillOutreachTouches(db(), { now: NOW })).links).toBe(0);
+    expect((await backfillOutreachTouches(db(), { dryRun: true })).links).toBe(0);
   });
 
   it("marks an invite accepted, and an earlier touch reaches the DM prompt and compose", async () => {

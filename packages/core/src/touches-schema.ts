@@ -33,6 +33,11 @@ export const TOUCH_PLATFORMS = [
   "tiktok",
   "google_business",
 ] as const;
+/**
+ * Instagram's Graph API names a media by a numeric id, and `instagram.com/p/<digits>/` is not a
+ * page (the web wants the shortcode). A touch's link and context skip such a url.
+ */
+export const BROKEN_IG_URL = "^https://www\\.instagram\\.com/(p|reel|tv)/[0-9]+/?$";
 export const TOUCH_KINDS = [
   "follow",
   "connect",
@@ -162,6 +167,10 @@ export const personTouchLines = pgView("person_touch_lines", {
   kind: text("kind"),
   what: text("what"),
   seq: integer("seq"),
+  /** The item's own page (the comment, the status, the DM thread); null when it has none. */
+  link: text("link"),
+  /** The post or profile it sits on. */
+  context: text("context"),
 }).as(sql`
   with lines as (
     select t.id, t.at, h.person_id, h.platform, h.handle,
@@ -198,13 +207,15 @@ export const personTouchLines = pgView("person_touch_lines", {
       -- Our sent comment's proof (comment_proofs): is it there for a stranger.
       || case p.state when 'live' then ' · Live' when 'hidden' then ' · Hidden'
         when 'missing' then ' · Missing' when 'pending' then ' · Checking' else '' end
-      || coalesce(' · ' || t.url, '') what
+      what,
+      t.link, case when t.url ~ '${sql.raw(BROKEN_IG_URL)}' then null else nullif(t.url, '') end url
     from touches t join social_handles h on h.id = t.handle_id
     left join comment_proofs p on t.direction = 'ours' and p.item = case
       when t.ref like 'rt:%' then 'thread:' || substr(t.ref, 4)
       when t.ref ~ '^rp:[0-9]+$' then 'onpost:' || substr(t.ref, 4)
       when t.ref like 'ca:%' then 'comment:' || substr(t.ref, 4) end
   )
-  select 'li:' || person_id person, at, kind, what, id seq from lines where person_id is not null
+  select 'li:' || person_id person, at, kind, what, id seq, link, url context
+    from lines where person_id is not null
   union all
-  select platform || ':' || handle, at, kind, what, id from lines`);
+  select platform || ':' || handle, at, kind, what, id, link, url from lines`);

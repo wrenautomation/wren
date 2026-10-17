@@ -46,6 +46,7 @@ One seam for every yes/no-shaped machine call: `decide()` asks a backend (Jev no
 | `Decide/wren` loop | writes `decisions` |
 | draft record, Learn marks | write `decision_calls` |
 | Agents page, Marketing lists, Learn cards | read |
+| Money → Model usage and the Money overview's Model cost tile | read (`email_model_records`, `llm_usage_by_month` union `decisions` as kind `decide:<kind>`, provider = backend, `usd` = sum of `cost_usd`; email's own calls show 0) |
 | `wren decide` | reads, sets modes, backfills, exports |
 
 ## See

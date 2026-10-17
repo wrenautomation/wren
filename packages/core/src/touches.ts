@@ -444,6 +444,8 @@ export interface TouchIn {
   direction: TouchDirection;
   account?: string | null;
   url?: string | null;
+  /** The item's own page (`itemLink`); null when the platform gives none. */
+  link?: string | null;
   text?: string | null;
   at: Date;
   externalId?: string | null;
@@ -458,14 +460,14 @@ export interface TouchIn {
 const TEXT_MAX = 4000;
 
 /**
- * Keep one touch; a second call with the same `ref` keeps nothing. Theirs with `inReplyTo`
- * answers ours: linked, and ours reads `replied` when the same person wrote. Null when the
- * handle isn't one (an empty author).
+ * Keep one touch; a second call with the same `ref` keeps nothing, except that a touch with no
+ * `link` takes the one given (`linked`). Theirs with `inReplyTo` answers ours: linked, and ours
+ * reads `replied` when the same person wrote. Null when the handle isn't one (an empty author).
  */
 export async function recordTouch(
   db: Queryable,
   t: TouchIn,
-): Promise<{ id: number; handleId: number; created: boolean } | null> {
+): Promise<{ id: number; handleId: number; created: boolean; linked: boolean } | null> {
   const ref = normalizeHandle(t.platform, t.handle) ?? nameHandle(t.platform, t.handle);
   if (!ref) return null;
   const h = await resolveHandle(db, ref, {
@@ -491,6 +493,7 @@ export async function recordTouch(
       direction: t.direction,
       account: t.account?.slice(0, 120) ?? null,
       url: t.url || null,
+      link: t.link || null,
       text: t.text ? t.text.slice(0, TEXT_MAX) : null,
       at: t.at,
       response: t.response ?? null,
@@ -504,10 +507,14 @@ export async function recordTouch(
     .returning({ id: touches.id });
   if (!row) {
     const [had] = await db
-      .select({ id: touches.id })
+      .select({ id: touches.id, link: touches.link })
       .from(touches)
       .where(eq(touches.ref, t.ref.slice(0, 200)));
-    return had ? { id: had.id, handleId: h.id, created: false } : null;
+    if (!had) return null;
+    // A touch kept before its link could be built takes it now (`wren touches backfill`).
+    const fill = !had.link && !!t.link;
+    if (fill) await db.update(touches).set({ link: t.link }).where(eq(touches.id, had.id));
+    return { id: had.id, handleId: h.id, created: false, linked: fill };
   }
   if (
     answered &&
@@ -518,7 +525,7 @@ export async function recordTouch(
       .update(touches)
       .set({ response: "replied", responseAt: t.at })
       .where(eq(touches.id, answered.id));
-  return { id: row.id, handleId: h.id, created: true };
+  return { id: row.id, handleId: h.id, created: true, linked: !!t.link };
 }
 
 /**
@@ -584,6 +591,8 @@ export interface TouchLine {
   direction: TouchDirection;
   account: string | null;
   url: string | null;
+  /** The item's own page, when the platform gives one. */
+  link: string | null;
   text: string | null;
   at: Date;
   response: TouchResponse | null;
@@ -602,6 +611,7 @@ const lineOf = (r: Row): TouchLine => ({
   direction: r.direction as TouchDirection,
   account: (r.account as string | null) ?? null,
   url: (r.url as string | null) ?? null,
+  link: (r.link as string | null) ?? null,
   text: (r.text as string | null) ?? null,
   at: new Date(String(r.at instanceof Date ? r.at.toISOString() : r.at)),
   response: (r.response as TouchResponse | null) ?? null,
@@ -629,7 +639,7 @@ export async function touchesFor(
   const rows = await rowsOf(
     db,
     sql`select t.id, h.platform, h.handle, h.name, h.url profile_url, h.person_id, h.lead_id,
-        t.kind, t.direction, t.account, t.url, t.text, t.at, t.response, t.response_at
+        t.kind, t.direction, t.account, t.url, t.link, t.text, t.at, t.response, t.response_at
       from touches t join social_handles h on h.id = t.handle_id
       where ${sql.join(
         [
@@ -673,7 +683,7 @@ export async function touchesForPeople(
     db,
     sql`select * from (
         select t.id, h.platform, h.handle, h.name, h.url profile_url, h.person_id, h.lead_id,
-          t.kind, t.direction, t.account, t.url, t.text, t.at, t.response, t.response_at,
+          t.kind, t.direction, t.account, t.url, t.link, t.text, t.at, t.response, t.response_at,
           row_number() over (partition by h.person_id order by t.at desc, t.id desc) n
         from touches t join social_handles h on h.id = t.handle_id
         where h.person_id in (${sql.join(

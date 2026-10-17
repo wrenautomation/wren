@@ -604,9 +604,19 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   /**
    * A view of (`by`, at, what) lines about one record, newest first; `seq`, a column that breaks
    * a tie in `at`, the higher written later. `label` names its tab ("Touches"; else "Activity"),
-   * `empty` says what shows there when nothing has yet.
+   * `empty` says what shows there when nothing has yet. `link` and `context` name columns of
+   * the line's own page and the place it sits: a line then opens its page in a new tab, or says
+   * it has none and shows the place.
    */
-  activity?: { view: string; by: string; seq?: string; label?: string; empty?: string };
+  activity?: {
+    view: string;
+    by: string;
+    seq?: string;
+    label?: string;
+    empty?: string;
+    link?: string;
+    context?: string;
+  };
   /** Action ids the web offers on it. */
   actions?: readonly string[];
   /** What opening it needs past `read` (`@wren/core/access`): Wren's Money records need `money`. */
@@ -866,7 +876,15 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
     decl.view,
     decl.key,
     ...(decl.related ?? []).map((r) => r.by),
-    ...(decl.activity ? [decl.activity.view, decl.activity.by, decl.activity.seq] : []),
+    ...(decl.activity
+      ? [
+          decl.activity.view,
+          decl.activity.by,
+          decl.activity.seq,
+          decl.activity.link,
+          decl.activity.context,
+        ]
+      : []),
     ...Object.values(fields).flatMap((f) => [f.from, f.domain, f.currency, f.of]),
   ];
   for (const c of columns)
@@ -987,6 +1005,8 @@ export interface RecordMeta {
   /** The activity tab's name and empty words, when the type gives its own. */
   activityLabel?: string;
   activityEmpty?: string;
+  /** The activity lines carry an item link and a place (see `activity.link`). */
+  activityLinks?: boolean;
   detail: boolean;
   /** Its rows are drafts: the list offers Export JSONL with their training records. */
   drafts?: boolean;
@@ -1087,6 +1107,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     activity: !!type.activity,
     ...(type.activity?.label ? { activityLabel: type.activity.label } : {}),
     ...(type.activity?.empty ? { activityEmpty: type.activity.empty } : {}),
+    ...(type.activity?.link ? { activityLinks: true } : {}),
     ...(type.drafts ? { drafts: true } : {}),
     ...(type.thumbs && !demo ? { thumbs: true } : {}),
     detail: !!type.load,

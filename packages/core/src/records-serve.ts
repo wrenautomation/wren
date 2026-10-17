@@ -107,6 +107,10 @@ export interface ActivityLine {
   at: string;
   kind: string | null;
   what: string;
+  /** The item's own page, when the type's activity declares `link` and the line has one. */
+  link?: string | null;
+  /** The place it sits (the post, the profile), when the type's activity declares `context`. */
+  context?: string | null;
 }
 export interface RecordAnswer {
   record: string;
@@ -866,7 +870,10 @@ export function serveRecords(
         const activity = t.activity
           ? (
               await db.execute<Raw>(sql`
-                select r.at, r.kind, r.what from ${viewSql(t.activity.view)} r
+                select r.at, r.kind, r.what,
+                  ${t.activity.link ? sql`${ref(t.activity.link)} link` : sql`null::text link`},
+                  ${t.activity.context ? sql`${ref(t.activity.context)} context` : sql`null::text context`}
+                from ${viewSql(t.activity.view)} r
                 where (${ref(t.activity.by)})::text = ${id}
                 order by r.at desc nulls last
                   ${t.activity.seq ? sql`, ${ref(t.activity.seq)} desc nulls last` : sql``}
@@ -875,6 +882,12 @@ export function serveRecords(
               at: a.at instanceof Date ? a.at.toISOString() : String(a.at),
               kind: a.kind === null ? null : String(a.kind),
               what: String(a.what ?? ""),
+              ...(t.activity?.link
+                ? {
+                    link: a.link === null ? null : String(a.link),
+                    context: a.context === null ? null : String(a.context),
+                  }
+                : {}),
             }))
           : null;
         const detail = t.load ? await t.load(db, id) : null;

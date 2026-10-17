@@ -53,6 +53,8 @@ export const PEOPLE_PAGES: ModulePage[] = [
       who: "who",
       whoLink: "profileLink",
       link: "link",
+      context: "context",
+      note: "note",
       icons: KIND_ICONS,
     },
   },

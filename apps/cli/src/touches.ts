@@ -56,7 +56,7 @@ export function registerTouches(program: Command, withDb: WithDb): void {
         for (const t of r.touches) {
           const open = t.direction === "ours" && !t.response && answerOf(t, now) === null;
           console.log(
-            `${t.at.toISOString().slice(0, 16).replace("T", " ")}  ${platformLabel(t.platform).padEnd(9)} ${t.direction.padEnd(6)} ${t.kind.padEnd(7)} ${touchText(t, now)}${open ? " (waiting)" : ""}${t.url ? `  ${t.url}` : ""}`,
+            `${t.at.toISOString().slice(0, 16).replace("T", " ")}  ${platformLabel(t.platform).padEnd(9)} ${t.direction.padEnd(6)} ${t.kind.padEnd(7)} ${touchText(t, now)}${open ? " (waiting)" : ""}${t.link || t.url ? `  ${t.link ?? t.url}` : ""}`,
           );
         }
       });
@@ -72,6 +72,7 @@ export function registerTouches(program: Command, withDb: WithDb): void {
       console.log(
         `${verb}: ${r.messages} DMs and invites, ${r.comments} comments, ${r.answers} answers, ${r.threads} Reddit comments, ${r.posts} LinkedIn comments, ${r.activity} follows and reactions`,
       );
+      console.log(`${o.dryRun ? "would fill" : "filled"} ${r.links} item links`);
       if (!o.dryRun) console.log(`${r.responses} answers marked, ${r.linked} handles newly linked`);
     });
 

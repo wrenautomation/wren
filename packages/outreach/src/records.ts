@@ -926,6 +926,8 @@ export const personRecord = defineRecord({
     view: "person_touch_lines",
     by: "person",
     seq: "seq",
+    link: "link",
+    context: "context",
     label: "Touches",
     empty: "Follows, invites, comments, replies and DMs with them, on every site, show here.",
   },

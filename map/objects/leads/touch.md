@@ -18,8 +18,10 @@ Each touch already lives in its source table (`reach_messages`, `comments`, `red
 ## Shape
 
 - `social_handles`: `platform`, `handle` (normalized), `url`, `name`, `person_id`, `lead_id`, `linked_by`; unique (platform, handle) (`packages/core/src/touches-schema.ts:62`)
-- `touches`: `handle_id`, `kind`, `direction`, `account`, `url`, `text`, `at`, `response`, `response_at`, `answers` (self), `external_id`, `source`, `ref` unique (`:98`)
-- `person_touch_lines` view: the People Touches tab, keyed `li:<people.id>` and `<platform>:<handle>` (`:153`)
+- `touches`: `handle_id`, `kind`, `direction`, `account`, `url`, `text`, `at`, `response`, `response_at`, `answers` (self), `external_id`, `link` (the item's own page, null when the platform gives none), `source`, `ref` unique (`:98`)
+- `person_touch_lines` view: the People Touches tab, keyed `li:<people.id>` and `<platform>:<handle>` (`:153`); `link` is `touches.link`, `context` is the touch's `url` (the post or profile it sits on; the broken Instagram `/p/<numeric id>/` form is hidden), and `what` carries no URL
+- `itemLink(platform, kind, ref)` (`packages/core/src/touch-link.ts`, pure): the item's own permalink (LinkedIn comment/reply URN, Reddit comment, X status, Facebook `<post>_<comment>`, Instagram permalink + comment id, YouTube `lc`) or null. Writers pass it as `TouchIn.link`; `recordTouch` fills a kept row's null `link` and returns `linked`; `wren touches backfill` counts links filled (dry run too)
+- `profile_timeline` touch branch: `link = touches.link`, `context = url`, and a `note` of "No link for this one" when `link` is null; the People timeline, the `people.event` record ("Its page", "Where") and Outreach's Touches tab show it, in a new tab
 - `normalizeHandle` (`packages/core/src/touches.ts:161`; a bare YouTube `UC…` id keeps its case, as from a `/channel/` URL), `resolveHandle` (`:304`), `mergeHandle` (`:364`: a LinkedIn comment URN moved to the profile a notice names, `linkCommentAuthors` in `packages/content/src/touches.ts`), `recordTouch` (`:432`), `respond` (`:496`), `touchesFor` (`:587`), `touchesContext` (`:764`), `touchFacts` (`:820`)
 - writers per source: `packages/outreach/src/touches.ts`, `packages/content/src/touches.ts`
 

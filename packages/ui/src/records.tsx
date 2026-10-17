@@ -96,6 +96,7 @@ import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } fr
 import { clipProps, tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
 import { useHoverPop } from "./hover-pop.js";
+import { away, NoLink } from "./item-link.js";
 import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
@@ -3157,7 +3158,12 @@ export function RecordBody({
       </nav>
 
       {tab === "activity" && activity ? (
-        <Activity lines={activity} one={meta.name.one} empty={meta.activityEmpty} />
+        <Activity
+          lines={activity}
+          one={meta.name.one}
+          empty={meta.activityEmpty}
+          links={!!meta.activityLinks}
+        />
       ) : tab === "history" && state ? (
         <History meta={meta} lines={state.history} values={state.values} editing={editing} />
       ) : tab === "issues" && access && acts && issues.data ? (
@@ -3377,10 +3383,13 @@ function Activity({
   lines,
   one,
   empty,
+  links,
 }: {
   lines: RecordAnswer["activity"] & object;
   one: string;
   empty?: string | undefined;
+  /** Each line opens its own page, or says it has none and offers where it sits. */
+  links?: boolean;
 }) {
   if (!lines.length)
     return (
@@ -3409,6 +3418,21 @@ function Activity({
               {l.kind ? <span className="font-medium">{words(l.kind)}</span> : null}
               {l.kind && l.what ? <span className="text-(--ui-ink-3)"> · </span> : null}
               <span className="text-(--ui-ink-2)">{l.what}</span>
+              {links && l.link ? (
+                <>
+                  <span className="text-(--ui-ink-3)"> · </span>
+                  <a
+                    href={l.link}
+                    {...(away(l.link) ? { target: "_blank", rel: "noreferrer" } : {})}
+                    className="text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
+                  >
+                    Open it
+                  </a>
+                </>
+              ) : null}
+              {links && !l.link ? (
+                <NoLink note="No link for this one" context={l.context} className="mt-0.5" />
+              ) : null}
             </span>
           </li>
         );

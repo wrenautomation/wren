@@ -9,7 +9,7 @@
 import type { FieldMeta, RecordMeta, State } from "@wren/core/records";
 import type { ListAsk, RecordsPage, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
-import { ChevronLeft, ChevronRight, ExternalLink, GitCommitVertical, Rows3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, GitCommitVertical, Rows3 } from "lucide-react";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Button, ButtonLink } from "./controls.js";
 import { listChanged } from "./data/delta.js";
@@ -18,6 +18,7 @@ import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
+import { NoLink, SourceLink } from "./item-link.js";
 import { FRAME, PageTitle } from "./layout.js";
 import { ListBar, useLastUsed, useNarrow, useSavedViews, ViewTabs } from "./list-bar.js";
 import { tintColor } from "./marks.js";
@@ -69,6 +70,10 @@ export interface TimelineSpec {
   whoLink?: string;
   /** A link field: the line's own source, opened beside. */
   link?: string;
+  /** A link field: where the line sits (the post it is on); shown when it has no `link`. */
+  context?: string;
+  /** A text field: said in place of the link when a line should have one and has none. */
+  note?: string;
   /** The kit icon each kind draws on its node; the tint alone where one has none. */
   icons?: Readonly<Record<string, IconName>>;
 }
@@ -789,6 +794,8 @@ function Line({
   const who = spec.who ? textOf(row[spec.who]) : "";
   const whoHref = spec.whoLink ? textOf(row[spec.whoLink]) : "";
   const source = spec.link ? textOf(row[spec.link]) : "";
+  const context = spec.context ? textOf(row[spec.context]) : "";
+  const note = spec.note ? textOf(row[spec.note]) : "";
   const tint = kind?.[1].tint;
   const color = tint === undefined ? "var(--ui-ink-3)" : tintColor(tint);
   const icon = kind ? spec.icons?.[kind[0]] : undefined;
@@ -861,16 +868,10 @@ function Line({
             {summary || "-"}
           </a>
           {source ? (
-            <a
-              href={source}
-              aria-label="Open its source"
-              {...tipProps("Open its source")}
-              className="relative z-1 grid size-7 shrink-0 place-items-center rounded-(--ui-radius) text-(--ui-ink-3) hover:bg-(--ui-fill) hover:text-(--ui-ink) pointer-coarse:size-9"
-            >
-              <ExternalLink className="size-3.5" />
-            </a>
+            <SourceLink href={source} className="relative z-1 pointer-coarse:size-9" />
           ) : null}
         </div>
+        {!source && note ? <NoLink note={note} context={context} className="relative z-1" /> : null}
       </div>
     </li>
   );
@@ -1042,6 +1043,10 @@ export interface MiniLine {
   href: string;
   /** Its source, opened beside. */
   source?: string | null;
+  /** Where it sits, offered when it has no source. */
+  context?: string | null;
+  /** Said in place of a source when it should have one and has none. */
+  note?: string | null;
   kind?: State | null;
   /** The kind's key, for its icon. */
   kindKey?: string | null;
@@ -1099,17 +1104,9 @@ export function TimelineMini({
                   >
                     {l.summary || "-"}
                   </a>
-                  {l.source ? (
-                    <a
-                      href={l.source}
-                      aria-label="Open its source"
-                      {...tipProps("Open its source")}
-                      className="grid size-7 shrink-0 place-items-center rounded-(--ui-radius) text-(--ui-ink-3) hover:bg-(--ui-fill) hover:text-(--ui-ink)"
-                    >
-                      <ExternalLink className="size-3.5" />
-                    </a>
-                  ) : null}
+                  {l.source ? <SourceLink href={l.source} /> : null}
                 </div>
+                {!l.source && l.note ? <NoLink note={l.note} context={l.context} /> : null}
               </div>
             </li>
           );

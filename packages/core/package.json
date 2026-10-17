@@ -132,6 +132,7 @@
     "./schema": "./src/schema.ts",
     "./slots": "./src/slots/index.ts",
     "./templates": "./src/templates.ts",
+    "./touch-link": "./src/touch-link.ts",
     "./touches": "./src/touches.ts",
     "./touches-schema": "./src/touches-schema.ts",
     "./custom-fields": "./src/custom-fields.ts",

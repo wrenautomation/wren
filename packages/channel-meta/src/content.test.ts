@@ -57,6 +57,10 @@ describe("instagram content channel", () => {
           },
         ],
       }),
+      "GET /p1": (i) => {
+        expect(i).toEqual({ fields: "permalink" });
+        return { permalink: "https://www.instagram.com/reel/Cxyz_123/" };
+      },
       "GET /p1/insights": (i) =>
         (i as { metric?: string }).metric === "follows"
           ? { data: [{ name: "follows", values: [{ value: 2 }] }] }
@@ -104,7 +108,7 @@ describe("instagram content channel", () => {
     });
     expect(out).toMatchObject({
       id: "p1",
-      url: "https://www.instagram.com/p/p1/",
+      url: "https://www.instagram.com/reel/Cxyz_123/",
       fetchedWith: "api",
     });
     expect(slept).toEqual([10_000, 15_000, 20_000]);

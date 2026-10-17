@@ -4,6 +4,7 @@
  * the same ref. `rm:` a DM or invite, `c:` their comment, `ca:` our answer to it, `rt:` our
  * comment on a Reddit thread, `rp:` ours on someone's post (LinkedIn, X, Instagram).
  */
+import { itemLink } from "@wren/core/touch-link";
 import {
   recordTouch,
   respond,
@@ -12,7 +13,7 @@ import {
   touches,
 } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { pickedAccount } from "./draft-accounts.js";
 import {
   type Comment,
@@ -49,6 +50,37 @@ const accountName = async (db: Queryable, id: string | null) => {
   return a?.account ?? null;
 };
 
+type CommentLinkRow = Pick<Comment, "platform" | "url" | "ref" | "post" | "parent" | "kind"> &
+  Partial<Pick<Comment, "answerRef">>;
+
+/** The page of their comment (or reply, or mention) on its platform. */
+export const commentLink = (c: CommentLinkRow, kind: TouchKind = "comment") =>
+  itemLink(c.platform, kind, {
+    url: c.url,
+    externalId: c.ref,
+    post: c.post,
+    parent: c.kind === "comment_reply" ? c.parent : null,
+  });
+
+/** The page of our answer under their comment. */
+export const answerLink = (c: CommentLinkRow) =>
+  itemLink(c.platform, "reply", {
+    url: c.url,
+    externalId: c.answerRef,
+    post: c.post,
+    parent: c.ref,
+  });
+
+/** The page of our comment in a Reddit thread. */
+export const threadLink = (
+  t: Pick<typeof redditThreads.$inferSelect, "id" | "url" | "target" | "answerRef">,
+) =>
+  itemLink("reddit", t.target?.startsWith("t1_") ? "reply" : "comment", {
+    url: t.url,
+    externalId: t.answerRef,
+    post: t.id,
+  });
+
 /** A DM or invite, ours once sent, theirs once received. Theirs marks ours DMs before it replied. */
 export async function touchFromMessage(db: Queryable, messageId: number) {
   const [m] = await db
@@ -70,6 +102,11 @@ export async function touchFromMessage(db: Queryable, messageId: number) {
     direction: ours ? "ours" : "theirs",
     account: await accountName(db, msg.accountId ?? contact.accountId),
     url: contact.url || null,
+    // A DM opens its thread when the contact's url is one; an invite has no page.
+    link:
+      ours && msg.kind === "connect"
+        ? null
+        : itemLink(contact.platform, "dm", { url: contact.url }),
     text: msg.body,
     at,
     externalId: msg.ref,
@@ -144,6 +181,7 @@ export async function touchFromComment(db: Queryable, id: number) {
     direction: "theirs",
     account: await ownAccount(db, c),
     url: c.url || null,
+    link: commentLink(c, kind),
     text: c.body,
     at: c.at,
     externalId: c.ref,
@@ -165,6 +203,7 @@ export async function touchFromAnswer(db: Queryable, id: number) {
     // The account a person picked for the answer, else the one they spoke to.
     account: (await pickedAccount(db, `comment:${id}`)) ?? (await ownAccount(db, c)),
     url: c.url || null,
+    link: answerLink(c),
     text: c.answer,
     at: c.answeredAt,
     externalId: c.answerRef,
@@ -190,6 +229,7 @@ export async function touchFromThread(db: Queryable, id: string) {
     direction: "ours",
     account: await accountName(db, t.accountId),
     url: t.url,
+    link: threadLink(t),
     text: t.answer,
     at: t.answeredAt,
     externalId: t.answerRef,
@@ -209,7 +249,7 @@ export async function touchesFromReachPost(db: Queryable, id: number) {
   if (!p) return null;
   const handle = p.platform === "linkedin" ? p.authorUrl || p.author : p.handle || p.author;
   const base = { platform: p.platform, handle, name: p.author, direction: "ours" as const };
-  const done: Array<{ created: boolean } | null> = [];
+  const done: Array<{ created: boolean; linked: boolean } | null> = [];
   if (p.state === "commented" && p.comment && p.commentedAt)
     done.push(
       await recordTouch(db, {
@@ -247,7 +287,7 @@ export async function touchesFromReachPost(db: Queryable, id: number) {
         ref: `rp:${p.id}:follow`,
       }),
     );
-  return { created: done.some((d) => d?.created) };
+  return { created: done.some((d) => d?.created), linked: done.some((d) => d?.linked) };
 }
 
 export interface TouchBackfill {
@@ -257,6 +297,8 @@ export interface TouchBackfill {
   threads: number;
   posts: number;
   responses: number;
+  /** Touches that took an item link: new ones with a link, old ones that had none. */
+  links: number;
 }
 
 /**
@@ -274,6 +316,7 @@ export async function backfillOutreachTouches(
     threads: 0,
     posts: 0,
     responses: 0,
+    links: 0,
   };
   const msgs = await db
     .select({ id: reachMessages.id })
@@ -284,12 +327,24 @@ export async function backfillOutreachTouches(
     .select({
       id: comments.id,
       answered: sql<boolean>`answer is not null and answered_at is not null`,
+      platform: comments.platform,
+      url: comments.url,
+      ref: comments.ref,
+      post: comments.post,
+      parent: comments.parent,
+      kind: comments.kind,
+      answerRef: comments.answerRef,
     })
     .from(comments)
     .where(sql`sort is distinct from 'ours'`)
     .orderBy(comments.at, comments.id);
   const threads = await db
-    .select({ id: redditThreads.id })
+    .select({
+      id: redditThreads.id,
+      url: redditThreads.url,
+      target: redditThreads.target,
+      answerRef: redditThreads.answerRef,
+    })
     .from(redditThreads)
     .where(eq(redditThreads.state, "commented"))
     .orderBy(redditThreads.answeredAt);
@@ -299,6 +354,16 @@ export async function backfillOutreachTouches(
     .where(sql`state = 'commented' or liked_at is not null or followed_at is not null`)
     .orderBy(sql`coalesce(commented_at, liked_at, followed_at)`, reachPosts.id);
   if (o.dryRun) {
+    // Links it would fill: kept touches with no link whose source row can say one.
+    const bare = new Set(
+      (await db.select({ ref: touches.ref }).from(touches).where(isNull(touches.link))).map(
+        (t) => t.ref,
+      ),
+    );
+    const links =
+      threads.filter((t) => bare.has(`rt:${t.id}`) && threadLink(t)).length +
+      ours.filter((c) => c.answered && bare.has(`ca:${c.id}`) && answerLink(c)).length +
+      ours.filter((c) => bare.has(`c:${c.id}`) && commentLink(c)).length;
     return {
       ...out,
       messages: msgs.length,
@@ -306,9 +371,13 @@ export async function backfillOutreachTouches(
       answers: ours.filter((c) => c.answered).length,
       threads: threads.length,
       posts: posts.length,
+      links,
     };
   }
-  const made = (t: { created: boolean } | null) => (t?.created ? 1 : 0);
+  const made = (t: { created: boolean; linked?: boolean } | null) => {
+    if (t?.linked) out.links++;
+    return t?.created ? 1 : 0;
+  };
   // Ours first, then theirs, so a reply's parent is already a touch.
   for (const t of threads) out.threads += made(await touchFromThread(db, t.id));
   for (const p of posts) out.posts += made(await touchesFromReachPost(db, p.id));

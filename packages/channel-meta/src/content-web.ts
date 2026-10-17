@@ -82,7 +82,7 @@ export function instagramWebContent(
       return pageOf(
         (r.data ?? []).map((m) => ({
           id: m.id,
-          url: m.permalink ?? `https://www.instagram.com/p/${m.id}/`,
+          url: m.permalink ?? "",
           // Graph's `+0000` offset, made ISO so rows sort and compare by time.
           publishedAt: m.timestamp
             ? new Date(m.timestamp.replace(/([+-]\d\d)(\d\d)$/, "$1:$2")).toISOString()

@@ -241,9 +241,16 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     }
     throw new Error("instagram: the video was still processing after 5 minutes");
   };
+  /**
+   * The post's own link is Graph's `permalink` (a shortcode); `/p/<media id>/` is no Instagram
+   * page. Read it back, never fail the post over it: no link beats a broken one.
+   */
   const published = async (id: string): Promise<Published> => ({
     id,
-    url: `https://www.instagram.com/p/${id}/`,
+    url: await sites
+      .call<{ permalink?: string }>("meta", "GET", `/${id}`, { fields: "permalink" })
+      .then((m) => m.permalink ?? "")
+      .catch(() => ""),
     publishedAt: now().toISOString(),
     fetchedWith: await via("POST", "/{igUserId}/media_publish"),
   });
@@ -350,7 +357,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
       return pageOf(
         (r.data ?? []).map((m) => ({
           id: m.id,
-          url: m.permalink ?? `https://www.instagram.com/p/${m.id}/`,
+          url: m.permalink ?? "",
           publishedAt: m.timestamp ?? now().toISOString(),
           fetchedWith,
           preview: previewOf(m.caption ?? ""),

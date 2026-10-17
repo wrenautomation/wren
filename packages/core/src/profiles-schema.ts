@@ -31,6 +31,7 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
+import { BROKEN_IG_URL } from "./touches-schema.js";
 
 /** Key kinds past the platform handles (`handle:<platform>`) and CRM ids (`crm:<source>`). */
 export const PROFILE_KEY_KINDS = ["email", "phone", "visitor", "person"] as const;
@@ -237,7 +238,8 @@ export const profileEvents = pgTable(
 /** A timeline line's columns, every branch the same. */
 const LINE = sql.raw(`lines.id, lines.profile_id, lines.at, lines.kind, lines.channel,
   lines.summary, lines.body, lines.link, lines.source,
-  coalesce(p.name, '#' || p.id) who, '/people/people/' || p.id profile_link`);
+  coalesce(p.name, '#' || p.id) who, '/people/people/' || p.id profile_link, lines.context,
+  case when lines.source = 'touches' and lines.link is null then 'No link for this one' end note`);
 
 /**
  * Every line about one profile, over the source tables by its keys (never copied). Each line:
@@ -257,11 +259,13 @@ export const profileTimeline = pgView("profile_timeline", {
   source: text("source"),
   who: text("who"),
   profileLink: text("profile_link"),
+  context: text("context"),
+  note: text("note"),
 }).as(sql`
   select ${LINE} from (
   select 'message:' || m.id id, k.profile_id, coalesce(m.sent_at, m.created_at) at,
     'email_sent' kind, 'email' channel, coalesce(nullif(m.subject, ''), '(no subject)') summary,
-    m.body, null::text link, 'messages' source
+    m.body, null::text link, 'messages' source, null::text context
   from profile_keys k
   join enrollments e on lower(e.to_email) = k.value
   join messages m on m.enrollment_id = e.id
@@ -269,7 +273,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'thread_event:' || t.id, k.profile_id, t.received_at, 'email_received', 'email',
     replace(t.kind, '_', ' ') || ': ' || coalesce(nullif(t.subject, ''), t.snippet, ''),
-    coalesce(t.body_text, t.snippet), null, 'thread_events'
+    coalesce(t.body_text, t.snippet), null, 'thread_events', null
   from profile_keys k
   join enrollments e on lower(e.to_email) = k.value
   join thread_events t on t.enrollment_id = e.id
@@ -277,7 +281,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'sms_message:' || s.id, k.profile_id, coalesce(s.received_at, s.sent_at, s.created_at),
     case when s.direction = 'in' then 'text_received' else 'text_sent' end, 'sms',
-    left(s.body, 160), s.body, '/marketing/texts/' || c.id, 'sms_messages'
+    left(s.body, 160), s.body, '/marketing/texts/' || c.id, 'sms_messages', null
   from profile_keys k
   join sms_contacts c on c.e164 = k.value
   join sms_messages s on s.contact_id = c.id
@@ -285,19 +289,19 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'sms_call:' || x.id, k.profile_id, x.started_at, 'call_in', 'phone',
     'Called in: ' || coalesce(x.result, 'ringing'), x.text_back_detail,
-    case when x.contact_id is not null then '/marketing/texts/' || x.contact_id end, 'sms_calls'
+    case when x.contact_id is not null then '/marketing/texts/' || x.contact_id end, 'sms_calls', null
   from profile_keys k
   join sms_calls x on x.from_e164 = k.value
   where k.kind = 'phone'
   union all
   select 'voice_call:' || v.id, k.profile_id, v.started_at, 'voice_call', 'phone',
-    v.direction || ' call: ' || v.outcome, v.message, '/voice/calls/' || v.id, 'voice_calls'
+    v.direction || ' call: ' || v.outcome, v.message, '/voice/calls/' || v.id, 'voice_calls', null
   from profile_keys k
   join voice_calls v on k.value in (v.from_number, v.to_number)
   where k.kind = 'phone'
   union all
   select 'call:' || c.id, k.profile_id, c.called_at, 'call', 'phone', 'Called by ' || c.called_by,
-    null, '/reactivation/people/' || c.person_id, 'calls'
+    null, '/reactivation/people/' || c.person_id, 'calls', null
   from profile_keys k
   join calls c on c.person_id::text = k.value
   where k.kind = 'person'
@@ -305,7 +309,7 @@ export const profileTimeline = pgView("profile_timeline", {
   select 'touch:' || t.id, k.profile_id, t.at, 'touch', h.platform,
     case t.direction when 'ours' then 'We ' else 'They ' end || t.kind
       || coalesce(': ' || left(t.text, 140), ''),
-    t.text, t.url, 'touches'
+    t.text, t.link, 'touches', nullif(case when t.url ~ '${sql.raw(BROKEN_IG_URL)}' then null else t.url end, '')
   from profile_keys k
   join social_handles h on k.kind = 'handle:' || h.platform and h.handle = k.value
   join touches t on t.handle_id = h.id
@@ -313,7 +317,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'consent_event:' || ce.id, k.profile_id, ce.created_at, 'consent', c.channel,
     tp.public_name || ': ' || ce.kind || ' (' || ce.by || ')', ce.evidence::text, null,
-    'consent_events'
+    'consent_events', null
   from profile_keys k
   join consents c on c.address = k.value
     and c.channel = case k.kind when 'email' then 'email' when 'phone' then 'sms' end
@@ -328,7 +332,7 @@ export const profileTimeline = pgView("profile_timeline", {
       'Pages seen first: '
         || (select string_agg(v ->> 'path', ', ' order by n) from jsonb_array_elements(e.pages)
           with ordinality y(v, n))),
-    '/sites/submissions/' || e.id, 'site_forms'
+    '/sites/submissions/' || e.id, 'site_forms', null
   from (
     select e.id, k.profile_id from profile_keys k
       join site_forms e on lower(e.fields ->> 'email') = k.value where k.kind = 'email'
@@ -349,7 +353,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'chat_message:' || m.id, k.profile_id, m.at, 'chat', 'site',
     case when m.direction = 'in' then 'They wrote: ' else 'We wrote: ' end || left(m.body, 140),
-    m.body, null, 'chat_messages'
+    m.body, null, 'chat_messages', null
   from (
     select t.id, k.profile_id from profile_keys k
       join chat_threads t on lower(t.email) = k.value where k.kind = 'email'
@@ -363,7 +367,7 @@ export const profileTimeline = pgView("profile_timeline", {
   select 'booking:' || b.id, k.profile_id, b.created_at, 'booking', 'calendar',
     case when b.state = 'cancelled' then 'Cancelled the call on ' else 'Booked a call for ' end
       || to_char(b.start at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || ' UTC',
-    b.reason, '/calendar/calls/' || b.id, 'bookings'
+    b.reason, '/calendar/calls/' || b.id, 'bookings', null
   from profile_keys k
   join calendar.bookings b on lower(b.email) = k.value
   where k.kind = 'email'
@@ -371,20 +375,20 @@ export const profileTimeline = pgView("profile_timeline", {
   select 'call_booking:' || cb.id, k.profile_id, coalesce(cb.booked_at, cb.start), 'booking',
     'calendar', 'Booked a call' || coalesce(' for '
       || to_char(cb.start at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || ' UTC', ''),
-    cb.outcome, '/calls/calls/' || cb.id, 'call_bookings'
+    cb.outcome, '/calls/calls/' || cb.id, 'call_bookings', null
   from profile_keys k
   join call_bookings cb on lower(cb.email) = k.value
   where k.kind = 'email' and cb.uid not like 'wren-%'
   union all
   -- Text like every other branch: a varchar here also stops a kind filter reaching the branches.
   select 'profile_event:' || pe.id, pe.profile_id, pe.at, pe.kind::text, pe.channel::text,
-    pe.summary, pe.body, pe.link, pe.source::text
+    pe.summary, pe.body, pe.link, pe.source::text, null
   from profile_events pe
   union all
   -- DISTINCT ON sits one level down: at a branch's top it stops Postgres pushing a reader's
   -- kind filter into every branch, and each read built all of them (282k rows, 2026-10-16).
   select 'event:' || x.id, x.profile_id, x.at, 'workflow', 'workflow', 'Entered ' || x.workflow,
-    x.subject, null, 'events'
+    x.subject, null, 'events', null
   from (
     select distinct on (ev.workflow, ev.subject, w.profile_id) ev.id, w.profile_id, ev.at,
       ev.workflow, ev.subject
@@ -400,11 +404,11 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'trait_event:' || te.id, te.profile_id, te.at, 'trait', 'profile',
     te.key || ': ' || coalesce(te.old::text, 'none') || ' to ' || te.new::text, null, null,
-    'profile_trait_events'
+    'profile_trait_events', null
   from profile_trait_events te
   union all
   select 'merge:' || pm.id, pm.into_id, pm.at, 'merge', 'profile',
-    'Profile #' || pm.from_id || ' merged in by ' || pm.by, null, null, 'profile_merges'
+    'Profile #' || pm.from_id || ' merged in by ' || pm.by, null, null, 'profile_merges', null
   from profile_merges pm
   ) lines
   join profiles p on p.id = lines.profile_id`);

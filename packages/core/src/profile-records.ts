@@ -128,6 +128,10 @@ export interface ProfileLine {
   summary: string | null;
   /** Its source's page, when it has one. */
   link: string | null;
+  /** Where it sits (a touch's post), shown when it has no page of its own. */
+  context: string | null;
+  /** Said in place of a link when a line should have one and has none. */
+  note: string | null;
   kindState: State | null;
   channelState: State | null;
 }
@@ -242,7 +246,7 @@ async function profileDetail(
 
 async function linesOf(db: Queryable, id: number): Promise<ProfileLine[]> {
   const rows = (await db.execute(sql`
-    select id, at, kind, channel, summary, link from profile_timeline
+    select id, at, kind, channel, summary, link, context, note from profile_timeline
     where profile_id = ${id} order by at desc, id desc limit ${PROFILE_LINES}`)) as unknown as {
     id: string;
     at: Date | string;
@@ -250,6 +254,8 @@ async function linesOf(db: Queryable, id: number): Promise<ProfileLine[]> {
     channel: string | null;
     summary: string | null;
     link: string | null;
+    context: string | null;
+    note: string | null;
   }[];
   return rows.map((r) => ({
     id: String(r.id),
@@ -257,6 +263,8 @@ async function linesOf(db: Queryable, id: number): Promise<ProfileLine[]> {
     kind: r.kind,
     summary: r.summary,
     link: r.link,
+    context: r.context,
+    note: r.note,
     kindState: (KINDS as Record<string, State>)[r.kind] ?? null,
     channelState: r.channel ? ((CHANNELS as Record<string, State>)[r.channel] ?? null) : null,
   }));
@@ -367,6 +375,9 @@ export const eventRecord = defineRecord({
     summary: text("What"),
     body: prose("All of it"),
     link: link("Its page"),
+    // A touch with no page of its own says so here; the post or profile it sits on is "Where".
+    note: text("Its page", { listed: false }),
+    context: link("Where", { listed: false }),
     profileLink: link("Profile"),
     profile: number("Profile id", { from: "profile_id", listed: false }),
     source: text("Table", { listed: false }),

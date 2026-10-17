@@ -41,6 +41,8 @@ interface Line {
   kind: string;
   summary: string | null;
   link: string | null;
+  context: string | null;
+  note: string | null;
   kindState: State | null;
   channelState: State | null;
 }
@@ -190,6 +192,8 @@ function Counts({ detail }: { detail: Detail }) {
             summary: l.summary ?? "",
             href: `/people/timeline/${encodeURIComponent(l.id)}`,
             source: l.link,
+            context: l.context,
+            note: l.note,
             kind: l.kindState,
             kindKey: l.kind,
             channel: l.channelState,

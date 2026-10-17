@@ -3,6 +3,7 @@
  * A follow, subscribe, reaction or mention someone gave us is theirs; a notice is no one's.
  * `wren touches backfill` folds every source table in under the refs the live writers use.
  */
+import { usableUrl } from "@wren/core/touch-link";
 import {
   mergeHandle,
   normalizeHandle,
@@ -35,6 +36,8 @@ export async function touchFromActivity(db: Queryable, id: number) {
     direction: "theirs",
     account: "wren",
     url: a.url,
+    // A mention's notice opens the mention; a like or follow has no page of its own.
+    link: kind === "mention" ? usableUrl(a.url) : null,
     text: a.text,
     at: a.at,
     source: "social_activity",
@@ -113,7 +116,12 @@ export async function backfillTouches(
     .orderBy(socialActivity.at, socialActivity.id);
   if (o.dryRun) return { ...reach, activity: rows.length, authors: 0, linked: 0 };
   let activity = 0;
-  for (const r of rows) if ((await touchFromActivity(db, r.id))?.created) activity++;
+  let links = reach.links;
+  for (const r of rows) {
+    const t = await touchFromActivity(db, r.id);
+    if (t?.created) activity++;
+    if (t?.linked) links++;
+  }
   const authors = await linkCommentAuthors(db);
-  return { ...reach, activity, authors, linked: await relinkHandles(db) };
+  return { ...reach, links, activity, authors, linked: await relinkHandles(db) };
 }

@@ -24,6 +24,7 @@ const line = (o: Partial<TouchLine>): TouchLine => ({
   direction: "ours",
   account: "wren",
   url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
+  link: null,
   text: "Two weeks is fast for travel nurses.",
   at: daysAgo(3),
   response: null,
