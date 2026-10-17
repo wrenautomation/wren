@@ -108,3 +108,14 @@ Wave 2 starts from wave 1 merged. Only B adds a migration (its views); C and D u
 - 2026-10-17 (C): one open run per profile (advisory lock). A queued or running row older than
   30 minutes fails on the next press.
 - 2026-10-17 (C): the action is for one profile, not bulk. The Findings page is reached from links.
+- 2026-10-17 (D): two handlers, `people/leadFit` and `people/leadNot`, not one `leadCall`. Why: a
+  portal action sends no fixed input. `api.leadCall` still takes the label.
+- 2026-10-17 (D): migration 0291 adds a `lead` column to `profile_records` for the Leads view.
+- 2026-10-17 (D): `Decide.one` asks with the same cap and backends as a pass. A kind in shadow
+  answers as recommend for an explicit ask; an off kind refuses.
+- 2026-10-17 (D): the same state is bought once. Asking again before anything changed keeps the
+  old answer, so "Checking" ends on its 90 s timeout. "Checking" lives in the tab only.
+- 2026-10-17 (D): the why line is built by code from the pick's criterion and the two strongest
+  facts. Jev never sees a name, handle, link, email, phone or company name.
+- 2026-10-17 (planner): 0292 indexes `profile_findings.lookup_id` (the schema test asks every
+  foreign key for an index).
