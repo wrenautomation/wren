@@ -9,6 +9,7 @@ import { broadcastsPage, recipientsPage } from "./broadcasts.js";
 import { PERSON_CARD } from "./cards.js";
 import { channelsPage } from "./channels.js";
 import { importPage } from "./import.js";
+import { findingsPage, inlineDecide, researchAction } from "./research.js";
 import { addToGroup, groupsPage, membersPage } from "./segments.js";
 import { sentPage } from "./sent.js";
 import { KIND_ICONS, profileExtras } from "./timeline.js";
@@ -35,8 +36,9 @@ export const PEOPLE_PAGES: ModulePage[] = [
       merged: "No two profiles have turned out to be one person yet.",
     },
     columns: ["name", "stage", "warmth", "warmthLine", "persona", "lastTouchAt"],
-    actions: [addToGroup],
-    extras: (detail) => profileExtras(detail),
+    // Research this person and its Keep and Drop are Wren's: the server describes them to Wren alone.
+    actions: [addToGroup, researchAction, ...inlineDecide],
+    extras: (detail, at) => profileExtras(detail, at.act),
   },
   {
     id: "timeline",
@@ -117,6 +119,6 @@ export const clientPeople: Module = {
 export const people: Module = {
   ...clientPeople,
   blurb: "Everyone Wren knows, by every address they use, with all they did and got.",
-  pages: PEOPLE_PAGES,
+  pages: [...PEOPLE_PAGES, findingsPage],
   requires: { audience: "team" },
 };

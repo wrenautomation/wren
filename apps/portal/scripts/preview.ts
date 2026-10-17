@@ -298,6 +298,7 @@ const SERVICES: Record<
           // People: everyone once, their addresses, traits and timeline. Site visits: a stand-in
           // for the lander's log (the worker reads it live), two lines for any visitor.
           ...profileRecords(WORKFLOWS, {
+            research: true,
             visits: async (v) =>
               v.length
                 ? [

@@ -4,16 +4,19 @@
  * Timeline page, and its site visits, read live from the site's log and never stored (Wren's own
  * profiles).
  */
+import type { ResearchDetail } from "@wren/core/profile-findings";
 import type { State } from "@wren/core/records";
 import {
   Alert,
   Facts,
   type IconName,
   PlatformMark,
+  type RecordAct,
   type RecordExtras,
   TimelineMini,
 } from "@wren/ui";
 import { createElement, type ReactNode } from "react";
+import { RESEARCH_POLL_MS, Research, researching } from "./research.js";
 
 /** Each timeline kind's icon on its node, here and on the Timeline page. */
 export const KIND_ICONS: Readonly<Record<string, IconName>> = {
@@ -103,6 +106,8 @@ interface Detail {
   href: string;
   visits?: Visit[] | null;
   warmth?: Warmth | null;
+  /** Research this person: Wren's own people only (a client's detail has none). */
+  research?: ResearchDetail | null;
 }
 
 const isDetail = (d: unknown): d is Detail =>
@@ -285,6 +290,15 @@ function WarmthFacts({ w }: { w: Warmth }) {
 const when = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
+/** The parts of a person's page that did not read, with a way to try again. */
+function NotLoaded({ parts }: { parts: string[] }) {
+  return (
+    <Alert onRetry={() => location.reload()}>
+      {`${parts.join(", ")} didn't load. The rest is here.`}
+    </Alert>
+  );
+}
+
 function Visits({ visits }: { visits: Visit[] }) {
   return (
     <div className="grid gap-2">
@@ -314,14 +328,26 @@ function Visits({ visits }: { visits: Visit[] }) {
   );
 }
 
-/** The profile page's Profiles, Warmth and Timeline sections, and Site visits when it has a visitor key. */
-export const profileExtras = (detail: unknown): RecordExtras =>
+/**
+ * The profile page's Profiles, Research, Warmth and Timeline sections, and Site visits when it
+ * has a visitor key. Research shows for Wren's own people; the page reads again while a run works.
+ */
+export const profileExtras = (detail: unknown, act?: RecordAct): RecordExtras =>
   isDetail(detail)
     ? {
+        ...(researching(detail.research) ? { poll: RESEARCH_POLL_MS } : {}),
         sections: [
           ...(detail.reach
             ? [
                 ["Profiles", createElement(ReachFacts, { reach: detail.reach })] as [
+                  string,
+                  ReactNode,
+                ],
+              ]
+            : []),
+          ...(detail.research && act
+            ? [
+                ["Research", createElement(Research, { research: detail.research, act })] as [
                   string,
                   ReactNode,
                 ],
@@ -341,12 +367,10 @@ export const profileExtras = (detail: unknown): RecordExtras =>
             : []),
           ...(detail.failed?.length
             ? [
-                [
-                  "Not loaded",
-                  <Alert key="failed" onRetry={() => location.reload()}>
-                    {`${detail.failed.join(", ")} didn't load. The rest is here.`}
-                  </Alert>,
-                ] as [string, ReactNode],
+                ["Not loaded", createElement(NotLoaded, { parts: detail.failed })] as [
+                  string,
+                  ReactNode,
+                ],
               ]
             : []),
         ],
