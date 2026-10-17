@@ -51,7 +51,7 @@ import {
   redditThreads,
   sendAttempts,
 } from "../../src/schema.js";
-import { parkUnsure, sendAttempt } from "../../src/send-attempts.js";
+import { claimSend, KEYLESS_TRY, parkUnsure, sendAttempt } from "../../src/send-attempts.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
 import { dropItem, markPosted, requeueDm, SETTLE_OUTCOMES } from "../../src/settle-send.js";
 import { setTemplate } from "../../src/store.js";
@@ -368,6 +368,37 @@ describe("sendAtMostOnce, under the desk's verdict", () => {
     expect(isSendUnsure(err)).toBe(true);
     expect(desk.writes).toHaveLength(1);
     expect(await sendAttempt(db(), ITEM)).toMatchObject({ state: "unsure" });
+  });
+
+  it("a take-over of a row an older wren sent with no key parks unsure, with no write", async () => {
+    // The row an older wren left mid-send, from before send keys.
+    await db()
+      .insert(sendAttempts)
+      .values({
+        item: ITEM,
+        state: "sending",
+        platform: "reddit",
+        words: "synthetic words",
+        target: "a thread",
+        tries: 1,
+        startedAt: new Date(NOW.getTime() - 20 * 60_000),
+        updatedAt: new Date(NOW.getTime() - 20 * 60_000),
+      });
+    const claim = {
+      item: ITEM,
+      platform: "reddit",
+      account: null,
+      words: "synthetic words",
+      target: "a thread",
+      url: null,
+      invocation: "inv-2",
+      now: NOW,
+    };
+    await expect(claimSend(db(), claim)).rejects.toThrow(/may have gone out/);
+    expect(await sendAttempt(db(), ITEM)).toMatchObject({ state: "unsure", why: KEYLESS_TRY });
+    // A person's Send again is a new send under a new key.
+    const again = await claimSend(db(), { ...claim, again: true });
+    expect(again).toMatchObject({ go: "send", tried: false });
   });
 
   it("an error after a write answered: unsure, never released for a blind second try", async () => {

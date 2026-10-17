@@ -18,6 +18,9 @@ export const SENDING_STALE_MS = 10 * 60_000;
 export const UNSURE_WAITS =
   "may have gone out. It waits in To approve, where you can open it on the site, mark it posted, or send it again";
 
+/** Why a key-less `sending` row taken over waits on a person. */
+export const KEYLESS_TRY = "an earlier try ran with no send key, so no verdict can say if it went out";
+
 export interface SendClaim {
   item: string;
   platform: string;
@@ -66,6 +69,14 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
   // Taken over from a lost invocation, or sent again on a person's word: one winner. A take-over
   // keeps the key (autobrowse answers the stored verdict); a send again is a new send, a new key.
   const takeOver = row.state === "sending";
+  if (takeOver && !row.sendKey) {
+    // An older wren sent it with no key: no verdict can answer for it, so a person decides.
+    await db
+      .update(sendAttempts)
+      .set({ state: "unsure", why: KEYLESS_TRY, updatedAt: c.now })
+      .where(and(eq(sendAttempts.item, c.item), eq(sendAttempts.state, "sending")));
+    throw new ReachRefusal(`it ${UNSURE_WAITS}`);
+  }
   const sendKey = takeOver && row.sendKey ? row.sendKey : newSendKey(c.item);
   const taken = await db
     .update(sendAttempts)
