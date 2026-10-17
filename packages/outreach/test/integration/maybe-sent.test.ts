@@ -5,15 +5,12 @@
  * sends under a new key. Unknown parks it unsure with no second write. A take-over after a lost
  * invocation runs under the same key, so the desk answers its stored verdict. Then the Reddit
  * comment the whole way (`commentThread`), the sender's DMs, "Not sent, drop" for each item kind,
- * and the sends that keep a look of their own: a client's connected account (an X reply read back
- * by `Content.findReply`, a private reply read from the Page's inbox, a DM read from its
- * conversation).
+ * and a client's send on its connected account: the same verdict path, and nothing reads the
+ * site for words.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type CommentRow, SiteCallError } from "@wren/core/content";
-import { pageInboxOf, seenPrivateReply } from "@wren/core/content/page-inbox";
+import { SiteCallError } from "@wren/core/content";
 import { DESK, restateSites } from "@wren/core/content/restate";
-import { type Seen, seenInMessages } from "@wren/core/maybe-sent";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import {
   currentSendKey,
@@ -35,7 +32,6 @@ import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
 import { discoveryHandlers } from "../../src/restate/discovery.js";
 import type { ReachDeps } from "../../src/restate/index.js";
 import {
-  contentLook,
   isSendNotSent,
   isSendTaken,
   isSendUnsure,
@@ -997,23 +993,23 @@ describe("a private reply (private:), with no key to ask: the desk says unknown"
   });
 });
 
-describe("a client's X reply, read back by a search of the client's own posts", () => {
+describe("a client's send, on its connected account: the same verdict path, no word look", () => {
   const WORDS = "Our words under their post.";
   const X_MAYBE = new SiteCallError("x", "POST", "/2/tweets", 502, "timed out");
-  /** X as `Content.findReply` reads it: ours once it landed, else search can't say yet. */
-  const x = { landed: false, posted: 0, asked: [] as unknown[] };
-  const content = {
-    comments: async (): Promise<CommentRow[]> => [],
-    findReply: async (req: unknown): Promise<Seen> => {
-      x.asked.push(req);
-      return x.landed
-        ? { kind: "found", ref: "x_9", at: NOW.toISOString(), url: "https://x.com/i/status/x_9" }
-        : { kind: "unclear", why: "X search may not show a fresh reply yet" };
+  /** The content service: a read of the site here would be a look. Nothing may call it. */
+  const reads: unknown[] = [];
+  const content = new Proxy(
+    {},
+    {
+      get: (_t, name) => async (req: unknown) => {
+        reads.push({ name, req });
+        return { kind: "found", ref: "x_9", at: NOW.toISOString(), url: null };
+      },
     },
-  };
-  const reply = (landed: boolean, again = false) => {
-    const { ctx } = ctxOf({ Content: content });
-    return sendAtMostOnce(ctx, db(), {
+  );
+  /** The client's connected-account write answers its typed outcome under the ledger key. */
+  const reply = (send: () => Promise<{ ref: string | null }>, again = false) =>
+    sendAtMostOnce(ctxOf({ Content: content }).ctx, db(), {
       item: "comment:7",
       platform: "x",
       account: null,
@@ -1021,196 +1017,48 @@ describe("a client's X reply, read back by a search of the client's own posts", 
       target: "x_1",
       url: "https://x.com/someone_1/status/x_1",
       again,
-      look: contentLook(ctx, {
-        platform: "x",
-        post: "x_1",
-        parent: null,
-        to: "someone_1",
-        text: WORDS,
-        client: "client_test",
-      }),
-      send: async () => {
-        x.posted += 1;
-        x.landed = landed;
-        throw X_MAYBE;
-      },
-    });
-  };
-  beforeEach(() => {
-    Object.assign(x, { landed: false, posted: 0, asked: [] });
-  });
-
-  it("found after a failure that may have gone out: marked once, with its ref, never sent again", async () => {
-    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
-    expect(x.asked[0]).toMatchObject({
-      platform: "x",
-      on: "x_1",
-      to: "someone_1",
-      text: WORDS,
-      client: "client_test",
-    });
-    expect(await sendAttempt(db(), "comment:7")).toMatchObject({ state: "sent", ref: "x_9" });
-    expect(await reply(true)).toMatchObject({ ref: "x_9", found: true });
-    expect(x.posted).toBe(1);
-  });
-
-  it("search can't see it: unsure, a second invocation sends nothing", async () => {
-    expect(isSendUnsure(await reply(false).catch((e: unknown) => e))).toBe(true);
-    const again = await reply(false).catch((e: unknown) => e);
-    expect(isSendTaken(again)).toBe(true);
-    expect(x.posted).toBe(1);
-    expect(await sendAttempt(db(), "comment:7")).toMatchObject({ state: "unsure" });
-  });
-});
-
-describe("a client's private reply (private:), read back from the Page's inbox", () => {
-  const WORDS = "Here is the setup guide you asked for.";
-  const META_MAYBE = new SiteCallError("meta", "POST", "/p1/messages", 504, "timed out");
-  /** The Page's inbox as `Content.findPrivateReply` reads it; null = the read fails. */
-  let inbox: unknown = null;
-  let sent = 0;
-  const ours = (at: string) => ({
-    data: [
-      {
-        participants: { data: [{ id: "p1" }, { id: "u1", username: "reader1" }] },
-        updated_time: at,
-        messages: { data: [{ id: "m_7", message: WORDS, from: { id: "p1" }, created_time: at }] },
-      },
-    ],
-  });
-  /** `unsure` is the journaled client's answer to an error after a write: SendUnknown. */
-  const privately = (landed: unknown, unsure = false) =>
-    sendAtMostOnce(ctxOf().ctx, db(), {
-      item: "private:9",
-      platform: "instagram",
-      account: null,
-      words: WORDS,
-      target: "c1",
-      url: "https://example.test/c1",
-      look: async (since) => {
-        if (!inbox) throw new Error("conversations: 403");
-        return seenPrivateReply(pageInboxOf(inbox, "p1"), { to: "reader1", text: WORDS, since });
-      },
-      send: async () => {
-        sent += 1;
-        inbox = landed;
-        throw unsure ? new SendUnknown(META_MAYBE.message, NOW.toISOString()) : META_MAYBE;
-      },
-    });
-  beforeEach(() => {
-    inbox = { data: [] };
-    sent = 0;
-  });
-
-  it("in their conversation after a failure that may have gone out: marked once with the message's id", async () => {
-    expect(await privately(ours("2026-10-01T18:00:05+0000"))).toMatchObject({
-      ref: "m_7",
-      found: true,
-    });
-    expect(await sendAttempt(db(), "private:9")).toMatchObject({ state: "sent", ref: "m_7" });
-    expect(sent).toBe(1);
-  });
-
-  it("not in the inbox, or the read fails: unsure, never sent again", async () => {
-    expect(isSendUnsure(await privately({ data: [] }, true).catch((e: unknown) => e))).toBe(true);
-    expect(sent).toBe(1);
-    await db().delete(sendAttempts);
-    sent = 0;
-    expect(isSendUnsure(await privately(null, true).catch((e: unknown) => e))).toBe(true);
-    expect(sent).toBe(1);
-    expect(await sendAttempt(db(), "private:9")).toMatchObject({ state: "unsure" });
-  });
-});
-
-describe("a client's DM answer (sdm:), read back from its conversation", () => {
-  const WORDS = "Yes, we open at nine.";
-  const SINCE_ON = NOW.toISOString();
-  /** Their conversation as the account reads it, oldest first. */
-  const convo = {
-    readable: true,
-    messages: [
-      { id: "e1", text: "Are you open Saturday?", at: "2026-10-01T17:00:00Z", mine: false },
-    ],
-  };
-  const answer = (send: () => Promise<{ ref: string | null }>, again = false) =>
-    sendAtMostOnce(ctxOf().ctx, db(), {
-      item: "sdm:41",
-      platform: "x",
-      account: "social:3",
-      words: WORDS,
-      target: "patient_test",
-      url: "https://x.com/patient_test",
-      again,
-      look: async (since) => {
-        if (!convo.readable) throw new Error("dm_events: 503");
-        return seenInMessages(convo.messages, { text: WORDS, since });
-      },
       send,
     });
-  const X_MAYBE = new SiteCallError("x", "POST", "/2/dm_conversations", 502, "bad gateway");
   beforeEach(() => {
-    convo.readable = true;
-    convo.messages = convo.messages.slice(0, 1);
+    reads.length = 0;
   });
 
-  it("found after a failure that may have gone out: marked once, never sent again", async () => {
+  it("a lost send is unsure: a second invocation sends nothing, and nothing reads the site", async () => {
     let sent = 0;
-    const lands = async () => {
-      sent += 1;
-      convo.messages.push({ id: "e2", text: WORDS, at: SINCE_ON, mine: true });
-      throw X_MAYBE;
-    };
-    expect(await answer(lands)).toMatchObject({ ref: "e2", found: true });
-    expect(await answer(lands)).toMatchObject({ ref: "e2", found: true });
-    expect(sent).toBe(1);
-    expect(await sendAttempt(db(), "sdm:41")).toMatchObject({ state: "sent", settledBy: "found" });
-  });
-
-  it("not in the conversation: unsure, never sent again until a person says so", async () => {
-    let sent = 0;
-    const err = await answer(async () => {
+    const lost = async () => {
       sent += 1;
       throw new SendUnknown(X_MAYBE.message, NOW.toISOString());
-    }).catch((e: unknown) => e);
-    expect(isSendUnsure(err)).toBe(true);
+    };
+    expect(isSendUnsure(await reply(lost).catch((e: unknown) => e))).toBe(true);
+    expect(isSendTaken(await reply(lost).catch((e: unknown) => e))).toBe(true);
     expect(sent).toBe(1);
+    expect(await sendAttempt(db(), "comment:7")).toMatchObject({ state: "unsure" });
+    expect(reads).toEqual([]);
   });
 
-  it("a refusal (the platform said no) is released, not looked for", async () => {
-    let reads = 0;
-    convo.messages = convo.messages.slice(0, 1);
-    const err = await sendAtMostOnce(ctxOf().ctx, db(), {
-      item: "sdm:42",
-      platform: "x",
-      account: "social:3",
-      words: WORDS,
-      target: "patient_test",
-      url: "https://x.com/patient_test",
-      look: async () => {
-        reads += 1;
-        return { kind: "absent" };
-      },
-      send: async () => {
-        throw new SiteCallError("x", "POST", "/2/dm_conversations", 403, "forbidden");
-      },
+  it("Send again is a new send under a new key", async () => {
+    await reply(async () => {
+      throw new SendUnknown(X_MAYBE.message, NOW.toISOString());
+    }).catch(() => {});
+    const first = (await sendAttempt(db(), "comment:7"))?.sendKey;
+    expect(await reply(async () => ({ ref: "x_10" }), true)).toMatchObject({ ref: "x_10" });
+    const second = (await sendAttempt(db(), "comment:7"))?.sendKey;
+    expect(second).not.toBe(first);
+    expect(await sendAttempt(db(), "comment:7")).toMatchObject({ state: "sent", ref: "x_10" });
+    expect(reads).toEqual([]);
+  });
+
+  it("not sent is released, and a refusal comes back as it was", async () => {
+    const notSent = await reply(async () => {
+      throw new NotSent("before_submit", "the browser was busy");
+    }).catch((e: unknown) => e);
+    expect(isSendNotSent(notSent)).toBe(true);
+    expect(await sendAttempt(db(), "comment:7")).toBeNull();
+    const err = await reply(async () => {
+      throw new SiteCallError("x", "POST", "/2/tweets", 403, "forbidden");
     }).catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
-    expect(reads).toBe(0);
-    expect(await sendAttempt(db(), "sdm:42")).toBeNull();
-  });
-
-  it("unreadable: unsure, a second invocation sends nothing", async () => {
-    convo.readable = false;
-    let sent = 0;
-    const err = await answer(async () => {
-      sent += 1;
-      throw X_MAYBE;
-    }).catch((e: unknown) => e);
-    expect(isSendUnsure(err)).toBe(true);
-    expect(isSendTaken(await answer(async () => ({ ref: "e9" })).catch((e: unknown) => e))).toBe(
-      true,
-    );
-    expect(sent).toBe(1);
-    expect(await sendAttempt(db(), "sdm:41")).toMatchObject({ state: "unsure" });
+    expect(await sendAttempt(db(), "comment:7")).toBeNull();
+    expect(reads).toEqual([]);
   });
 });

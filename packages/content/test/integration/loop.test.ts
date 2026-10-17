@@ -80,23 +80,44 @@ const fates = new Map<Platform, Fate[]>();
 let verify: "unknown" | "found" | "absent" = "unknown";
 /** autobrowse's journal: the verdict kept per send key. */
 const journal = new Map<string, Delivery<Published>>();
-/** Every publish asked, and how: the key it carried and whether it was a recheck. */
-const asked: { platform: Platform; sendKey: string | null; recheck: boolean }[] = [];
+/** Every publish asked, and how: the key it carried, a recheck, a verify-only ask (it never writes). */
+const asked: {
+  platform: Platform;
+  sendKey: string | null;
+  recheck: boolean;
+  verifyOnly: boolean;
+  client: string | null;
+}[] = [];
 /** The publishes that wrote (a key autobrowse had not seen). */
 const writes: { platform: Platform; sendKey: string | null }[] = [];
 /** The keys of replies (a first comment) and the platforms the posted hook ran for. */
 const replyKeys: (string | null)[] = [];
+/** autobrowse's journal of replies: a key it has seen answers again and writes nothing. */
+const repliedKeys = new Set<string>();
 const hooks = new Set<string>();
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
     publish: async (
       ctx: restate.Context,
-      req: { platform: Platform; post: Post; sendKey?: string; recheck?: boolean },
+      req: {
+        platform: Platform;
+        post: Post;
+        client?: string;
+        sendKey?: string;
+        recheck?: boolean;
+        verifyOnly?: boolean;
+      },
     ) => {
       const key = req.sendKey ?? null;
       await ctx.run("asked", () => {
-        asked.push({ platform: req.platform, sendKey: key, recheck: req.recheck === true });
+        asked.push({
+          platform: req.platform,
+          sendKey: key,
+          recheck: req.recheck === true,
+          verifyOnly: req.verifyOnly === true,
+          client: req.client ?? null,
+        });
       });
       const published = (id: string, url: string): Published => ({
         id,
@@ -156,6 +177,14 @@ const fakeContent = restate.service({
             });
           return kept;
         }
+        // Verify only: a key it has not seen is not sent, and nothing is written.
+        if (req.verifyOnly)
+          return {
+            kind: "not_sent",
+            how: "before_submit",
+            reason: "no record of that key",
+            status: null,
+          };
         writes.push({ platform: req.platform, sendKey: key });
         const fate = fates.get(req.platform)?.shift() ?? "sent";
         if (fate === "unknown")
@@ -200,6 +229,9 @@ const fakeContent = restate.service({
       req: { platform: Platform; commentId: string; text: string; sendKey?: string },
     ) => {
       await ctx.run("replied", () => {
+        // A key the journal has seen answers again and writes nothing.
+        if (req.sendKey && repliedKeys.has(req.sendKey)) return;
+        if (req.sendKey) repliedKeys.add(req.sendKey);
         replied.push({ platform: req.platform, commentId: req.commentId, text: req.text });
         replyKeys.push(req.sendKey ?? null);
       });
@@ -321,12 +353,19 @@ beforeAll(async () => {
     services: [
       fakeContent,
       settleForward,
-      makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"], zone: "UTC" }),
+      makeContentDesk({
+        db: pg.db,
+        llm,
+        platforms: ["linkedin", "x", "youtube"],
+        zone: "UTC",
+        posted: (_ctx, platform, client) => {
+          hooks.add(`${platform}:${client ?? ""}`);
+        },
+      }),
       makeContentScheduler({
         db: pg.db,
         idleMs: 60_000,
         publishWaitMs: 3_000,
-        settleMs: 10,
         notifier: postingNotifier,
         posted: (_ctx, platform, client) => {
           hooks.add(`${platform}:${client ?? ""}`);
@@ -365,6 +404,7 @@ beforeEach(async () => {
   asked.length = 0;
   writes.length = 0;
   replyKeys.length = 0;
+  repliedKeys.clear();
   hooks.clear();
   posted.length = 0;
   replied.length = 0;
@@ -608,7 +648,15 @@ describe("content loop", () => {
     ]);
     // One call, under the ledger's key, with no look of ours.
     expect(writes).toHaveLength(1);
-    expect(asked).toEqual([{ platform: "linkedin", sendKey: writes[0]?.sendKey, recheck: false }]);
+    expect(asked).toEqual([
+      {
+        platform: "linkedin",
+        sendKey: writes[0]?.sendKey,
+        recheck: false,
+        verifyOnly: false,
+        client: null,
+      },
+    ]);
     expect(writes[0]?.sendKey?.startsWith(`draft:${li.id} `)).toBe(true);
     expect(await getDraft(pg.db, li.id)).toMatchObject({
       status: "published",
@@ -692,8 +740,12 @@ describe("content loop", () => {
   });
 
   /** A draft whose first publish answered `unknown`, parked in To approve. */
-  async function parked(text: string, platform: "x" | "linkedin" = "x") {
-    const out = await desk().add({ text, platforms: [platform] });
+  async function parked(
+    text: string,
+    platform: "x" | "linkedin" = "x",
+    media?: { kind: "video"; source: string; title: string },
+  ) {
+    const out = await desk().add({ text, platforms: [platform], ...(media ? { media } : {}) });
     const [d] = await listDrafts(pg.db, { ideaId: out.idea.id });
     if (!d) throw new Error(`no ${platform} draft`);
     fates.set(platform, ["unknown"]);
@@ -711,8 +763,14 @@ describe("content loop", () => {
     const x = await parked("a post to send again");
     const first = writes[0]?.sendKey;
     expect(await settle(x.id, "again")).toMatchObject({ outcome: "again", found: false });
-    // The question went to autobrowse as a recheck of the first key: no write.
-    expect(asked[1]).toEqual({ platform: "x", sendKey: first, recheck: true });
+    // The question went to autobrowse as a verify-only recheck of the first key: no write.
+    expect(asked[1]).toEqual({
+      platform: "x",
+      sendKey: first,
+      recheck: true,
+      verifyOnly: true,
+      client: null,
+    });
     expect(writes).toHaveLength(1);
     expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
     expect((await getDraft(pg.db, x.id)).status).toBe("approved");
@@ -798,16 +856,69 @@ describe("content loop", () => {
     await expect(settle(x.id, "dropped")).rejects.toThrow(/nothing waits/);
   });
 
-  it("a send older than autobrowse's journal is not asked again: an unseen key would write", async () => {
+  it("a settle at any age asks verify-only and writes nothing: found is published, else his word stands", async () => {
     const x = await parked("an old unsure post");
+    const first = writes[0]?.sendKey;
     await pg.db.execute(
-      sql`update send_attempts set started_at = now() - interval '30 days' where item = ${`draft:${x.id}`}`,
+      sql`update send_attempts set started_at = now() - interval '40 days' where item = ${`draft:${x.id}`}`,
     );
+    // The ledger row is 40 days old and the question still goes, as a verify-only ask.
     verify = "found";
-    expect(await settle(x.id, "posted")).toMatchObject({ found: false });
-    expect(asked).toHaveLength(1);
+    expect(await settle(x.id, "posted")).toMatchObject({ found: true });
+    expect(asked[1]).toMatchObject({ sendKey: first, recheck: true, verifyOnly: true });
     expect(writes).toHaveLength(1);
-    expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "published", publishedId: null });
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "published",
+      publishedId: "x-found",
+    });
+    // Autobrowse kept nothing for the key: not sent, so his word stands. Still no write.
+    const old = await parked("an older unsure post");
+    journal.delete(writes[1]?.sendKey ?? "");
+    await pg.db.execute(
+      sql`update send_attempts set started_at = now() - interval '40 days' where item = ${`draft:${old.id}`}`,
+    );
+    expect(await settle(old.id, "posted")).toMatchObject({ found: false });
+    expect(asked.at(-1)).toMatchObject({ recheck: true, verifyOnly: true });
+    expect(writes).toHaveLength(2);
+    expect(await getDraft(pg.db, old.id)).toMatchObject({ status: "published", publishedId: null });
+  });
+
+  it("settle found runs the after-publish: the first comment once under its own key, and the hook", async () => {
+    // A video carries its link as the first comment.
+    const x = await parked("a linkedin post that did land", "linkedin", {
+      kind: "video",
+      source: "https://cdn.test/landed.mp4",
+      title: "Landed",
+    });
+    const first = writes[0]?.sendKey;
+    verify = "found";
+    expect(await settle(x.id, "posted")).toMatchObject({ found: true });
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "published",
+      publishedId: "linkedin-found",
+      url: "https://linkedin.test/p/found",
+    });
+    expect(replied).toMatchObject([
+      {
+        platform: "linkedin",
+        commentId: "linkedin-found",
+        text: expect.stringContaining("/go/li/"),
+      },
+    ]);
+    expect(replyKeys).toEqual([`${first} comment`]);
+    expect([...hooks]).toEqual(["linkedin:"]);
+    // A second word on the settled post is refused, and no second comment goes.
+    await expect(settle(x.id, "posted")).rejects.toThrow();
+    expect(replied).toHaveLength(1);
+    expect(writes).toHaveLength(1);
+  });
+
+  it("Mark posted on his word runs the hook and posts no comment", async () => {
+    const x = await parked("a linkedin post he saw up", "linkedin");
+    verify = "absent";
+    expect(await settle(x.id, "posted")).toMatchObject({ found: false });
+    expect(replied).toEqual([]);
+    expect([...hooks]).toEqual(["linkedin:"]);
   });
 
   it("a failed draft is approved again on the first yes: nothing is held for a read", async () => {

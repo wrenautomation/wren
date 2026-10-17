@@ -14,9 +14,11 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, updateClient } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
+import { journaledSites } from "@wren/core/content/restate";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { clientSecrets } from "@wren/core/keys-schema";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
+import { dbSendJournal } from "@wren/core/send-journal";
 import { startTestRestate } from "@wren/core/testing";
 import { touches } from "@wren/core/touches-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -172,7 +174,8 @@ beforeAll(async () => {
         main: pg.db,
         clientDb: open,
         access,
-        sites: () => sitesOf(),
+        // As the worker wires it: a client's write answers a typed outcome under its ledger key.
+        sites: (ctx) => journaledSites(ctx, sitesOf(), dbSendJournal(kappa)),
       }),
       makeInboxDesk({
         db: pg.db,
@@ -344,14 +347,19 @@ describe("a DM answer whose outcome is lost", () => {
     return { item, id: row?.id ?? 0, sent };
   };
 
-  it("Send again reads first: it went out, so it is recorded, not sent twice", async () => {
+  it("Send again is a new send under a new key; nothing reads the conversation for words", async () => {
     const { item, id, sent } = await lost("We open at nine.");
+    const first = (await sendAttempt(kappa, item))?.sendKey;
     x.blind = false;
+    const asked = x.asked.length;
     await console_().sendSettle({ ...as(AMY), item, outcome: "again" });
-    expect(x.sent.length).toBe(sent);
+    expect(x.sent.length).toBe(sent + 1);
+    expect(x.asked.slice(asked).some((a) => a.includes("/2/dm_events"))).toBe(false);
     const [row] = await kappa.select().from(reachMessages).where(eq(reachMessages.id, id));
-    expect(row).toMatchObject({ state: "sent", ref: `ev-${sent}` });
-    expect(await sendAttempt(kappa, item)).toMatchObject({ state: "sent", settledBy: "found" });
+    expect(row).toMatchObject({ state: "sent", ref: `ev-${sent + 1}` });
+    const done = await sendAttempt(kappa, item);
+    expect(done).toMatchObject({ state: "sent", settledBy: "sent" });
+    expect(done?.sendKey).not.toBe(first);
   }, 120_000);
 
   it("Not sent, drop: the answer is skipped, its ledger row goes, nothing is sent", async () => {
@@ -381,7 +389,7 @@ describe("a DM answer whose outcome is lost", () => {
 });
 
 describe("a post of the client's own that may have gone out", () => {
-  it("waits in its To approve, and its word goes to its own desk, which reads first", async () => {
+  it("waits in its To approve, and its word goes to its own desk, which asks the verdict first", async () => {
     const id = "00000000-0000-4000-8000-0000000000d1";
     const item = `draft:${id}`;
     await parkUnsure(kappa, {
