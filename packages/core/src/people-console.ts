@@ -12,7 +12,7 @@
  * when to run; a test goes to one address on our own domain. Nothing else here sends.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import { type Db, snapshot } from "@wren/db";
+import { atomic, type Db, snapshot } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { mayApprove, WREN } from "./access.js";
@@ -38,6 +38,9 @@ import {
 import { channelPeople, channelStats, type StatsQuery } from "./channel-stats.js";
 import type { FunnelStep } from "./channel-stats-schema.js";
 import type { Client } from "./clients/schema.js";
+import { recordCall } from "./decide/calls.js";
+import { LEAD_KIND, leadSubject } from "./decide/lead-fit.js";
+import type { DecideService } from "./decide/loop.js";
 import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "./people-console-routes.js";
 import {
   accessOf,
@@ -58,6 +61,7 @@ import {
   type ProfileResearchObject,
   queueProfileResearch,
 } from "./profile-findings.js";
+import { setTraits } from "./profiles.js";
 import { metaOf, type RecordType } from "./records.js";
 import {
   type ExportAsk,
@@ -145,6 +149,15 @@ export interface BroadcastRun {
   at: string;
 }
 
+/** Profiles (`ids`) for the lead check; `label` is William's call (`fit` or `not`) on `leadCall`. */
+export interface LeadRequest extends PortalRequest {
+  ids?: (string | number)[];
+  label?: string;
+}
+
+/** The most profiles one lead press takes. */
+export const LEAD_PRESS_MAX = 25;
+
 export interface SegmentIdsRequest extends PortalRequest {
   ids?: (string | number)[];
 }
@@ -214,6 +227,24 @@ export function peopleConsoleApi({
     const ids = [...new Set((req.ids ?? []).map(Number))].filter(Number.isSafeInteger);
     if (!ids.length) throw new PortalRefusal("nothing picked", 404);
     return ids;
+  };
+  /** The picked live Wren profiles that exist; refused in a client's workspace. */
+  const leadIds = async (req: LeadRequest) => {
+    const w = await workspace(req, "act");
+    if (w.client) throw new PortalRefusal("the lead check is Wren's own People only", 422);
+    const ids = idsOf(req);
+    if (ids.length > LEAD_PRESS_MAX)
+      throw new PortalRefusal(`pick ${LEAD_PRESS_MAX} or fewer`, 422);
+    const rows = (await w.db.execute(sql`
+      select id from profiles where merged_into is null
+        and id in (${sql.join(
+          ids.map((i) => sql`${i}`),
+          sql`, `,
+        )})`)) as unknown as { id: number }[];
+    const live = new Set(rows.map((r) => Number(r.id)));
+    const got = ids.filter((i) => live.has(i));
+    if (!got.length) throw new PortalRefusal("no such person", 404);
+    return got;
   };
   /** Each picked segment changed. A change wakes the workspace's pass at commit (`wren_wake`). */
   const each = async <T>(
@@ -347,6 +378,42 @@ export function peopleConsoleApi({
       if (w.client) throw new PortalRefusal("Findings are in Wren's own people only", 403);
       const got = await decideFindings(w.db, idsOf(req), "dropped", by(req), now());
       return { done: got.done };
+    },
+    /**
+     * The live Wren profiles named, for the lead check: the ids that exist, to ask Jev about.
+     * Wren's own People only; a client's has no check.
+     */
+    leadCheck: async (req: LeadRequest) => {
+      const ids = await leadIds(req);
+      return { done: ids, subjects: ids.map(leadSubject) };
+    },
+    /**
+     * William's call on a profile: the lead check's own label (`fit` or `not`), kept as a call
+     * beside Jev's answer (`override` when it goes against the pick he saw) and as the `lead`
+     * trait, so People can filter on it. One write, so a retry adds nothing twice.
+     */
+    leadCall: async (req: LeadRequest) => {
+      const label = req.label;
+      if (label !== "fit" && label !== "not")
+        throw new PortalRefusal("a lead call is fit or not", 422);
+      const ids = await leadIds(req);
+      const at = now();
+      const who = by(req);
+      await atomic(db, async (tx) => {
+        for (const id of ids) {
+          await recordCall(tx, {
+            kind: LEAD_KIND,
+            subject: leadSubject(id),
+            label,
+            source: "profile",
+            by: who,
+            ref: `profile-call:${id}:${label}:${at.getTime()}`,
+            at,
+          });
+          await setTraits(tx, id, { lead: label === "fit" ? "lead" : "not_lead" }, "william", at);
+        }
+      });
+      return { done: ids, label };
     },
     /** Members taken out of their manual segment, by member id (`<segment>:<profile>`). */
     memberRemove: async (req: PortalRequest & { ids?: string[] }) => {
@@ -582,6 +649,29 @@ export function makePeopleConsole(deps: PeopleConsoleDeps) {
       ),
       memberAdd: serviceHandler(RECORDS, (ctx: restate.Context, req: MemberAddRequest) =>
         answer(() => ctx.run("add", () => answer(() => api.memberAdd(req)))),
+      ),
+      leadCheck: serviceHandler(
+        { ...RECORDS, effect: "spends" },
+        async (ctx: restate.Context, req: LeadRequest) => {
+          const got = await answer(() => api.leadCheck(req));
+          // Told to Decide and left: Jev's answer lands on the profile when it is kept.
+          for (const subject of got.subjects)
+            ctx
+              .objectSendClient<DecideService>({ name: "Decide" }, "wren")
+              .one({ kind: LEAD_KIND, subject });
+          return { done: got.done };
+        },
+      ),
+      // One press each: the portal's actions send no fixed input, so the label is the handler's.
+      leadFit: serviceHandler(RECORDS, (ctx: restate.Context, req: LeadRequest) =>
+        answer(() =>
+          ctx.run("lead call", () => answer(() => api.leadCall({ ...req, label: "fit" }))),
+        ),
+      ),
+      leadNot: serviceHandler(RECORDS, (ctx: restate.Context, req: LeadRequest) =>
+        answer(() =>
+          ctx.run("lead call", () => answer(() => api.leadCall({ ...req, label: "not" }))),
+        ),
       ),
       memberRemove: serviceHandler(
         RECORDS,

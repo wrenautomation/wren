@@ -7,6 +7,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { type LeadFitView, leadFitView } from "./decide/lead-fit.js";
 import { REASON_WORDS, STAGE_WORDS, warmthOf } from "./people-map.js";
 import { WARM_REASONS } from "./people-map-schema.js";
 import { findingRows, type ResearchDetail, researchDetail } from "./profile-findings.js";
@@ -95,6 +96,11 @@ const ROLES = cued({
   unknown: { label: "Unknown", tone: "neutral" },
 } as const);
 
+const LEADS = cued({
+  lead: { label: "Lead", tone: "good", about: "William called them a lead." },
+  not_lead: { label: "Not a lead", tone: "neutral", about: "William called them not a lead." },
+} as const);
+
 const SIZES = cued({
   solo: { label: "Solo", tone: "neutral", about: "One person." },
   small: { label: "Small", tone: "neutral", about: "2 to 9 people." },
@@ -156,6 +162,8 @@ export interface ProfileDetail {
   reach: ProfileReach | null;
   /** "Research this person": the newest run and what it found. Wren's own console only; else null. */
   research: ResearchDetail | null;
+  /** Jev's lead check and William's call, for Wren's own People; empty where nothing was asked. */
+  leadFit: LeadFitView | null;
   /** The parts that failed to read, by name ("Warmth"): the page says so and the rest still shows. */
   failed: string[];
 }
@@ -248,6 +256,7 @@ async function profileDetail(
     warmth: await part("Warmth", () => warmthDetail(db, Number(id))),
     reach: await part("Profiles", () => reachOf(db, Number(id))),
     research: research ? await part("Research", () => researchDetail(db, Number(id))) : null,
+    leadFit: await part("Lead check", () => leadFitView(db, Number(id))),
     failed,
   };
 }
@@ -318,6 +327,7 @@ export const profileRecord = defineRecord({
     personaRole: status(ROLES, "Role"),
     personaNiche: text("Niche"),
     personaSize: status(SIZES, "Size"),
+    lead: status(LEADS, "Lead call"),
     lastSeen: date("Last seen"),
     firstSeen: date("First seen"),
     keys: number("Addresses"),
@@ -336,6 +346,13 @@ export const profileRecord = defineRecord({
     },
     { id: "replied", label: "Replied", where: { replies: { gte: 1 } }, sort: "-repliedLast" },
     { id: "booked", label: "Booked", where: { stage: "booked" }, sort: "-lastTouchAt" },
+    {
+      id: "leads",
+      label: "Leads",
+      where: { lead: "lead" },
+      sort: "-lastTouchAt",
+      hint: "People William called a lead.",
+    },
     {
       id: "clients",
       label: "Clients",
@@ -360,8 +377,9 @@ export const profileRecord = defineRecord({
     { record: "people.merge", by: "into_id" },
     { record: "people.member", by: "profile_id" },
   ],
-  // Put in a manual group (B5).
-  actions: ["people.memberAdd"],
+  // Put in a manual group (B5); Wren's own People also ask Jev and call a lead (the portal's page
+  // offers these only there).
+  actions: ["people.memberAdd", "people.leadCheck", "people.leadFit", "people.leadNot"],
   // The Timeline tab is `people.event` by profile: whole rows, each linked to its own page.
   load: (db, id) => profileDetail(db, id),
 });
