@@ -23,6 +23,9 @@ import {
 import { fieldsOf } from "@wren/core/content/shapes";
 import { VIDEO_WAITS_MS } from "./poll.js";
 
+/** Status reads of a words or image container before its publish: 1 minute in all. */
+const WORDS_WAITS_MS: readonly number[] = [2_000, 3_000, 5_000, 10_000, 10_000, 30_000];
+
 export interface ThreadsContentOptions {
   now?: () => Date;
   /** Hosts a local file as a public URL; without it media must already be a URL. */
@@ -47,9 +50,9 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via(SITE, method, path).then((v) => (v === "browser" ? "browser" : "api"));
 
-  /** Waits out a video container: FINISHED goes on, ERROR or EXPIRED stops with Threads' words. */
-  async function ready(id: string): Promise<void> {
-    for (const wait of VIDEO_WAITS_MS) {
+  /** Waits out a container: FINISHED goes on, ERROR or EXPIRED stops with Threads' words. */
+  async function ready(id: string, video: boolean): Promise<void> {
+    for (const wait of video ? VIDEO_WAITS_MS : WORDS_WAITS_MS) {
       await sleep(wait);
       const c = await sites.call<{ status?: string; error_message?: string }>(
         SITE,
@@ -60,14 +63,15 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
       if (c.status === "ERROR" || c.status === "EXPIRED")
         throw new Error(`threads: the video was refused (${c.error_message ?? c.status})`);
     }
-    throw new Error("threads: the video was still processing after 5 minutes");
+    throw new Error(`threads: the ${video ? "video" : "post"} was still processing`);
   }
 
   /** Container then publish; answers the post's id. */
   async function post(body: Record<string, unknown>, video: boolean): Promise<string> {
     const c = await sites.call<{ id?: string }>(SITE, "POST", "/me/threads", body);
     if (!c.id) throw new Error("threads: the container answered no id");
-    if (video) await ready(c.id);
+    // A publish right after the container answers 400: Threads is still making it, even for words.
+    await ready(c.id, video);
     const r = await sites.call<{ id?: string }>(SITE, "POST", "/me/threads_publish", {
       creation_id: c.id,
     });

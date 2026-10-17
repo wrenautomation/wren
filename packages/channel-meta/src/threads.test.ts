@@ -24,12 +24,15 @@ const link = { "GET /posts/t2": () => ({ permalink: "https://www.threads.com/@wr
 
 describe("threads content channel", () => {
   it("posts words as TEXT with its link card and reply control, then reads the permalink", async () => {
+    const states = ["IN_PROGRESS", "FINISHED"];
+    const slept: number[] = [];
     const { sites, calls } = fakeSites({
       "POST /me/threads": () => ({ id: "c1" }),
+      "GET /containers/c1": () => ({ status: states.shift() }),
       "POST /me/threads_publish": () => ({ id: "t2" }),
       ...link,
     });
-    const ch = threadsContent(sites, { now, host, sleep: async () => {} });
+    const ch = threadsContent(sites, { now, host, sleep: async (ms) => void slept.push(ms) });
     const out = await ch.publish({
       text: "one point",
       extra: { linkCard: "https://wrenautomation.com/go/th", replyControl: "accounts_you_follow" },
@@ -41,7 +44,9 @@ describe("threads content channel", () => {
       link_attachment: "https://wrenautomation.com/go/th",
       reply_control: "accounts_you_follow",
     });
-    expect(calls[1]?.[2]).toEqual({ creation_id: "c1" });
+    // Publish waits until the container is made: right away, Threads answers 400.
+    expect(slept).toEqual([2_000, 3_000]);
+    expect(calls[3]?.[2]).toEqual({ creation_id: "c1" });
   });
 
   it("hosts a video, waits for FINISHED, publishes; a refused video stops before publish", async () => {
@@ -89,9 +94,10 @@ describe("threads content channel", () => {
         data: [{ id: "r1", text: "nice", username: "ana", timestamp: "2026-10-13T11:00:00Z" }],
       }),
       "POST /me/threads": () => ({ id: "c3" }),
+      "GET /containers/c3": () => ({ status: "FINISHED" }),
       "POST /me/threads_publish": () => ({ id: "t4" }),
     });
-    const ch = threadsContent(sites, { now });
+    const ch = threadsContent(sites, { now, sleep: async () => {} });
     expect(await ch.metrics("t2")).toMatchObject({
       views: 90,
       reactions: 7,
@@ -100,6 +106,6 @@ describe("threads content channel", () => {
     });
     expect((await ch.comments("t2")).map((c) => [c.author, c.text])).toEqual([["ana", "nice"]]);
     await ch.reply?.("r1", "thanks");
-    expect(calls.at(-2)?.[2]).toEqual({ media_type: "TEXT", text: "thanks", reply_to_id: "r1" });
+    expect(calls.at(-3)?.[2]).toEqual({ media_type: "TEXT", text: "thanks", reply_to_id: "r1" });
   });
 });
