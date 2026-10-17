@@ -427,7 +427,8 @@ export const profileTraitActivity = pgView("profile_trait_activity", {
 
 /**
  * Live profiles as the People list reads them: addresses, channels and consent on the row, and
- * the people map's stage, warmth and persona (`profile_rollups`; defaults before its first pass).
+ * the people map's stage, warmth and persona (`profile_rollups`; defaults before its first pass),
+ * and William's lead call (`lead` trait: `lead` or `not_lead`; null before he calls it).
  */
 export const profileRecords = pgView("profile_records", {
   id: integer("id"),
@@ -459,6 +460,7 @@ export const profileRecords = pgView("profile_records", {
   lastTouchAt: timestamp("last_touch_at", { withTimezone: true }),
   lastChannel: text("last_channel"),
   cameFrom: text("came_from"),
+  lead: text("lead"),
 }).as(sql`
   select p.id, coalesce(p.name, (select k.value from profile_keys k where k.profile_id = p.id
       order by k.kind <> 'email', k.kind <> 'phone', k.id limit 1), '#' || p.id) "name",
@@ -490,7 +492,9 @@ export const profileRecords = pgView("profile_records", {
     coalesce(r.persona_niche, 'unknown') persona_niche,
     coalesce(r.persona_size, 'unknown') persona_size, r.subscriptions,
     coalesce(r.replied_n, 0) replies, r.replied_last, r.replied_last_channel replied_channel,
-    r.first_channel, r.last_touch_at, r.last_channel, r.came_from
+    r.first_channel, r.last_touch_at, r.last_channel, r.came_from,
+    (select t.value #>> '{}' from profile_traits t
+      where t.profile_id = p.id and t.key = 'lead') lead
   from profiles p
   left join profile_rollups r on r.profile_id = p.id
   where p.merged_into is null`);

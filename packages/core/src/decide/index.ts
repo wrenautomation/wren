@@ -8,5 +8,6 @@ export * from "./comments.js";
 export * from "./decide.js";
 export * from "./export.js";
 export * from "./kinds.js";
+export * from "./lead-fit.js";
 export * from "./loop.js";
 export * from "./stats.js";

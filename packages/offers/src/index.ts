@@ -89,6 +89,17 @@ export const OFFER_PAGES: ReadonlySet<string> = new Set(
   OFFERS.flatMap((o) => (o.status === "live" && o.page !== null ? [o.page] : [])),
 );
 
+/**
+ * What Wren sells now, as the lead check reads it (core's `LeadOffer`): each live offer's name and
+ * who it is for. No price, no copy.
+ */
+export function leadOffers(): { name: string; audience: string }[] {
+  return OFFERS.filter((o) => o.status === "live").map((o) => ({
+    name: o.name,
+    audience: o.audience,
+  }));
+}
+
 const byId = new Map(OFFERS.map((o) => [o.id, o] as const));
 
 /** The offer, or a throw naming what is registered. */

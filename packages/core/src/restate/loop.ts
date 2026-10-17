@@ -308,7 +308,7 @@ export async function notifyErrorEdges<S>(
 /** The self-send a loop makes, typed by name: the definition's own type is not yet known inside its factory. */
 type LoopSelf = { loop: (ctx: restate.ObjectContext, generation?: number) => Promise<void> };
 
-export interface LoopHooks<A extends string = never> {
+export interface LoopHooks<A extends string = never, X extends object = object> {
   /** Runs inside `stop`, after the key is marked stopped: for what the loop started elsewhere. */
   onStop?: (ctx: restate.ObjectContext) => Promise<void>;
   /** What one pass does outside wren (`sends` for a send loop): `sync`'s form says so. */
@@ -318,6 +318,11 @@ export interface LoopHooks<A extends string = never> {
    * calls queued to them before the move. Each one names the day it may go.
    */
   syncAliases?: readonly A[];
+  /**
+   * More handlers on the object, beside the loop's own (Decide's `one`). They share the key's
+   * lock, so one waits for a pass in flight.
+   */
+  extra?: X;
 }
 
 /** A loop's settings: any object (`{}` = back to defaults); none keeps the stored ones. */
@@ -368,10 +373,14 @@ export async function passOrFailed<S>(
 }
 
 /** The start/stop/loop/status handlers around one `pass`. */
-export function makeLoopObject<S extends object, A extends string = never>(
+export function makeLoopObject<
+  S extends object,
+  A extends string = never,
+  X extends object = Record<never, never>,
+>(
   name: string,
   pass: (ctx: restate.ObjectContext) => Promise<PassOutcome<S>>,
-  hooks: LoopHooks<A> = {},
+  hooks: LoopHooks<A, X> = {},
 ) {
   const self = (ctx: restate.ObjectContext) => ctx.objectSendClient<LoopSelf>({ name }, ctx.key);
   const sync = () =>
@@ -383,84 +392,88 @@ export function makeLoopObject<S extends object, A extends string = never>(
     A,
     ReturnType<typeof sync>
   >;
-  const object = restate.object({
-    name,
-    handlers: {
-      ...aliases,
-      /** One pass now; the loop (if any) is untouched. */
-      sync: sync(),
+  const handlers = {
+    ...(hooks.extra as X),
+    ...aliases,
+    /** One pass now; the loop (if any) is untouched. */
+    sync: sync(),
 
-      /**
-       * Begin looping; a no-op when already running. A body replaces this key's
-       * settings (`{}` = back to defaults) and applies from the next pass; no body
-       * keeps them.
-       */
-      start: exclusiveHandler(
-        { input: START_INPUT },
-        async (
-          ctx: restate.ObjectContext,
-          settings?: Record<string, unknown> | null,
-        ): Promise<LoopStatus<S>> => {
-          if (settings !== undefined && settings !== null) {
-            if (Object.keys(settings).length > 0) ctx.set(SETTINGS, settings);
-            else ctx.clear(SETTINGS);
-          }
-          const state = await loopState(ctx);
-          if (!state.running) {
-            const generation = state.generation + 1;
-            await writeLoop(ctx, { running: true, generation });
-            self(ctx).loop(generation);
-          }
-          return status(ctx, true);
-        },
-      ),
-
-      /**
-       * A running loop passes now instead of after its delay (a long idle sleep ends);
-       * a stopped one stays stopped. The sleeping call is dropped by its old generation.
-       */
-      wake: exclusiveHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.ObjectContext): Promise<boolean> => {
-          const state = await loopState(ctx);
-          if (!state.running) return false;
+    /**
+     * Begin looping; a no-op when already running. A body replaces this key's
+     * settings (`{}` = back to defaults) and applies from the next pass; no body
+     * keeps them.
+     */
+    start: exclusiveHandler(
+      { input: START_INPUT },
+      async (
+        ctx: restate.ObjectContext,
+        settings?: Record<string, unknown> | null,
+      ): Promise<LoopStatus<S>> => {
+        if (settings !== undefined && settings !== null) {
+          if (Object.keys(settings).length > 0) ctx.set(SETTINGS, settings);
+          else ctx.clear(SETTINGS);
+        }
+        const state = await loopState(ctx);
+        if (!state.running) {
           const generation = state.generation + 1;
-          await writeLoop(ctx, { generation });
+          await writeLoop(ctx, { running: true, generation });
           self(ctx).loop(generation);
-          return true;
-        },
-      ),
+        }
+        return status(ctx, true);
+      },
+    ),
 
-      /** The loop stops after the pass in flight, if any. */
-      stop: exclusiveHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.ObjectContext): Promise<LoopStatus<S>> => {
-          await writeLoop(ctx, { running: false });
-          if (hooks.onStop) await hooks.onStop(ctx);
-          return status(ctx, false);
-        },
-      ),
+    /**
+     * A running loop passes now instead of after its delay (a long idle sleep ends);
+     * a stopped one stays stopped. The sleeping call is dropped by its old generation.
+     */
+    wake: exclusiveHandler(
+      { input: NO_INPUT },
+      async (ctx: restate.ObjectContext): Promise<boolean> => {
+        const state = await loopState(ctx);
+        if (!state.running) return false;
+        const generation = state.generation + 1;
+        await writeLoop(ctx, { generation });
+        self(ctx).loop(generation);
+        return true;
+      },
+    ),
 
-      /** One iteration: pass, then the next one after a durable delay. Only the loop itself sends it. */
-      loop: exclusiveHandler(
-        { ingressPrivate: true },
-        async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
-          const { running, generation: current } = await loopState(ctx);
-          if (!running) return;
-          // A call from before the last stop: its chain ended there.
-          if ((generation ?? 0) !== current) return;
-          const outcome = await passOrFailed(ctx, pass);
-          if (outcome.stopped !== undefined) await writeLoop(ctx, { running: false });
-          else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
-        },
-      ),
+    /** The loop stops after the pass in flight, if any. */
+    stop: exclusiveHandler(
+      { input: NO_INPUT },
+      async (ctx: restate.ObjectContext): Promise<LoopStatus<S>> => {
+        await writeLoop(ctx, { running: false });
+        if (hooks.onStop) await hooks.onStop(ctx);
+        return status(ctx, false);
+      },
+    ),
 
-      status: sharedHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.ObjectSharedContext): Promise<LoopStatus<S>> =>
-          status(ctx, (await loopState(ctx)).running),
-      ),
-    },
+    /** One iteration: pass, then the next one after a durable delay. Only the loop itself sends it. */
+    loop: exclusiveHandler(
+      { ingressPrivate: true },
+      async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
+        const { running, generation: current } = await loopState(ctx);
+        if (!running) return;
+        // A call from before the last stop: its chain ended there.
+        if ((generation ?? 0) !== current) return;
+        const outcome = await passOrFailed(ctx, pass);
+        if (outcome.stopped !== undefined) await writeLoop(ctx, { running: false });
+        else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
+      },
+    ),
+
+    status: sharedHandler(
+      { input: NO_INPUT },
+      async (ctx: restate.ObjectSharedContext): Promise<LoopStatus<S>> =>
+        status(ctx, (await loopState(ctx)).running),
+    ),
+  };
+  // The handlers' own type, so a typed client sees `extra` too (the SDK would infer less).
+  const object = restate.object<string, typeof handlers>({
+    name,
+    // The SDK's mapped check cannot see through the generic `extra`; the handlers are each wrapped above.
+    handlers: handlers as never,
   });
 
   async function status(

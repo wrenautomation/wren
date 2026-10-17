@@ -8,6 +8,8 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
+import { z } from "zod";
+import { exclusiveHandler } from "../restate/form.js";
 import { makeLoopObject, type PassOutcome, runPass } from "../restate/loop.js";
 import type { BackendChoice } from "./backends.js";
 import {
@@ -18,7 +20,7 @@ import {
   decideSettings,
   spentToday,
 } from "./decide.js";
-import type { DecideMode, DecisionKind } from "./kinds.js";
+import { DECISION_KINDS, type DecideMode, type DecisionKind, KINDS } from "./kinds.js";
 
 export interface DecideSubject {
   subject: string;
@@ -30,6 +32,8 @@ export interface DecideSubject {
 export interface DecideSource {
   kind: DecisionKind;
   due(db: Queryable, now: Date, limit: number): Promise<DecideSubject[]>;
+  /** One subject asked about by hand (William's press): its state, or null when there is none. */
+  one?(db: Queryable, subject: string): Promise<DecideSubject | null>;
 }
 
 export const DECIDE_EVERY_MS = 10 * 60_000;
@@ -128,6 +132,60 @@ export async function decidePass(
   return s;
 }
 
+/** What a by-hand ask came to: it ran, or `why` it did not. */
+export interface DecideOneOutcome {
+  asked: boolean;
+  label: string | null;
+  why: string | null;
+}
+
+/**
+ * One subject, asked now: the same cap and backends as a pass. William asked, so a kind in
+ * shadow answers as a recommendation (the chip shows); a kind that is off stays off. The same
+ * state is bought once (`decide`), so asking again before anything changed returns the row kept.
+ * Never throws for an outage or a refusal: the answer says why.
+ */
+export async function decideOne(
+  db: Queryable,
+  o: {
+    sources: readonly DecideSource[];
+    backends: BackendChoice;
+    kind: DecisionKind;
+    subject: string;
+    now?: Date;
+    limitMs?: number;
+  },
+): Promise<DecideOneOutcome> {
+  const no = (why: string): DecideOneOutcome => ({ asked: false, label: null, why });
+  if (!o.backends.chain.length) return no(o.backends.note ?? "no backend");
+  const src = o.sources.find((x) => x.kind === o.kind && x.one);
+  if (!src?.one) return no(`${KINDS[o.kind].name} cannot be asked about one`);
+  const modes = await decideModes(db);
+  if (modes[o.kind] === "off") return no(`${KINDS[o.kind].name} are off`);
+  const cap = (await decideSettings(db)).dailyUsd ?? DEFAULT_DAILY_USD;
+  if ((await spentToday(db, o.now ?? new Date())) >= cap) return no(`daily cap $${cap} reached`);
+  const sub = await src.one(db, o.subject);
+  if (!sub) return no("nothing to ask about");
+  try {
+    const row = await decide(db, {
+      kind: o.kind,
+      subject: sub.subject,
+      state: sub.state,
+      mode: modes[o.kind] === "shadow" ? "recommend" : modes[o.kind],
+      chain: o.backends.chain,
+      ...(o.limitMs ? { limitMs: o.limitMs } : {}),
+    });
+    return { asked: !!row, label: row?.label ?? null, why: row?.error ?? null };
+  } catch (err) {
+    return no(err instanceof DecideStop ? err.message : String(err).slice(0, 200));
+  }
+}
+
+const ONE_INPUT = z.object({
+  kind: z.enum(DECISION_KINDS),
+  subject: z.string().min(1).max(200),
+});
+
 export interface DecideDeps {
   main: Db;
   sources: readonly DecideSource[];
@@ -137,15 +195,38 @@ export interface DecideDeps {
 
 /** `Decide/wren`: one pass every 10 minutes over Wren's own workspace. */
 export function makeDecide(d: DecideDeps) {
-  return makeLoopObject("Decide", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    return (await runPass<DecidePassStats>(ctx, d.main, now, {
-      name: "decide",
-      ledger: { command: "decide pass", argv: { daemon: true } },
-      body: async () => decidePass(d.main, { sources: d.sources, backends: d.backends(), now }),
-      delayAfter: () => DECIDE_EVERY_MS,
-      retryMs: DECIDE_EVERY_MS,
-    })) as PassOutcome<DecidePassStats>;
-  });
+  /** One subject asked now (the people console's "Check with Jev"). */
+  const one = exclusiveHandler(
+    { input: ONE_INPUT },
+    async (
+      ctx: restate.ObjectContext,
+      req: z.infer<typeof ONE_INPUT>,
+    ): Promise<DecideOneOutcome> => {
+      const now = new Date(await ctx.date.now());
+      return ctx.run("decide one", () =>
+        decideOne(d.main, {
+          sources: d.sources,
+          backends: d.backends(),
+          kind: req.kind,
+          subject: req.subject,
+          now,
+        }),
+      );
+    },
+  );
+  return makeLoopObject(
+    "Decide",
+    async (ctx: restate.ObjectContext) => {
+      const now = new Date(await ctx.date.now());
+      return (await runPass<DecidePassStats>(ctx, d.main, now, {
+        name: "decide",
+        ledger: { command: "decide pass", argv: { daemon: true } },
+        body: async () => decidePass(d.main, { sources: d.sources, backends: d.backends(), now }),
+        delayAfter: () => DECIDE_EVERY_MS,
+        retryMs: DECIDE_EVERY_MS,
+      })) as PassOutcome<DecidePassStats>;
+    },
+    { extra: { one } },
+  );
 }
 export type DecideService = ReturnType<typeof makeDecide>;
