@@ -377,22 +377,23 @@ async function subOfItem(db: Queryable, item: string): Promise<string | null> {
  * the floor (kept as numbers); if not, the gate is unknown and the sub is held. Live: a hold that
  * came from this very item lifts (a mod approved it). Pending changes nothing.
  */
+/** True when a hidden or missing comment's sub now carries the removal: the gate acts on it. */
 export async function learnFromProof(
   db: Queryable,
   item: string,
   proof: { state: string; note: string | null; checkedAt: string },
-): Promise<void> {
-  if (proof.state === "pending") return;
+): Promise<boolean> {
+  if (proof.state === "pending") return false;
   const sub = await subOfItem(db, item);
-  if (!sub) return;
+  if (!sub) return false;
   const was = await rowOf(db, sub, "removal");
   if (proof.state === "live") {
     if (was?.hold && was.item === item) await keep(db, sub, "removal", { hold: false });
-    return;
+    return false;
   }
-  if (proof.state !== "hidden" && proof.state !== "missing") return;
+  if (proof.state !== "hidden" && proof.state !== "missing") return false;
   // A removal he already judged by hand is not learned twice.
-  if (was?.clearedAt && was.item === item) return;
+  if (was?.clearedAt && was.item === item) return false;
   const need = parseNeed(proof.note ?? "");
   const merged: Need = {
     minAgeDays: maxOf(was?.clearedAt ? null : (was?.minAgeDays ?? null), need.minAgeDays),
@@ -412,6 +413,7 @@ export async function learnFromProof(
     learnedAt: new Date(proof.checkedAt),
     clearedAt: null,
   });
+  return true;
 }
 
 /** Every hidden or missing Reddit thread proof, replayed oldest first: the backfill. */

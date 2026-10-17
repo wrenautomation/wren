@@ -141,8 +141,11 @@ export async function keepProof(
         checks: sql`${commentProofs.checks} || ${JSON.stringify([line])}::jsonb`,
       },
     });
-  await learnFromProof(db, item, proof);
-  return { warn: round === WARN_ROUND && (proof.state === "hidden" || proof.state === "missing") };
+  // A sub that filters us is held by the send gate (`learnFromProof`): nothing for a person to do.
+  const held = await learnFromProof(db, item, proof);
+  return {
+    warn: round === WARN_ROUND && !held && (proof.state === "hidden" || proof.state === "missing"),
+  };
 }
 
 export const proofOf = async (db: Queryable, item: string): Promise<CommentProofRow | null> =>

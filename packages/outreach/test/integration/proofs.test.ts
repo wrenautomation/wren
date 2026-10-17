@@ -141,14 +141,18 @@ describe("comment proofs", () => {
     expect(warned).toEqual([]);
   });
 
-  it("is hidden when only the account sees it; the hour's check warns once", async () => {
+  it("is hidden when only the account sees it; the sub is held, so no one is warned", async () => {
     const p = (await proofs().check({ item: "thread:t3_p1", round: 2 })) as Proof;
     expect(p.state).toBe("hidden");
     expect(p.shot).toBe("s3://media/proof-3.jpg");
     expect(p.url).toBe("https://www.reddit.com/r/example/comments/p1/a_title/c1/");
     expect(calls).toContain("reddit GET /api/info as reddit@one");
     expect(calls).toContain("web GET /proof/shot");
-    expect(warned).toEqual(["warning: Comment hidden after an hour: thread:t3_p1"]);
+    expect(warned).toEqual([]);
+    const held = (await db().execute(
+      sql`select hold from reddit_requirements where subreddit = 'example'`,
+    )) as unknown as { hold: boolean }[];
+    expect(held[0]?.hold).toBe(true);
 
     // A day on, mods approved it: live, and the history keeps both.
     open = "Ask which step they drop at.";
@@ -160,7 +164,7 @@ describe("comment proofs", () => {
       [2, "hidden"],
       [3, "live"],
     ]);
-    expect(warned).toHaveLength(1);
+    expect(warned).toEqual([]);
     expect((await proofsSince(db(), SENT)).map((r) => r.item)).toEqual(["thread:t3_p1"]);
 
     // The person's touch line says it.
@@ -180,6 +184,9 @@ describe("comment proofs", () => {
     const row = await proofOf(db(), "onpost:1");
     expect(row).toMatchObject({ state: "live", url: "u", shot: "s", note: null });
     expect(row?.checks).toHaveLength(2);
+    // Where no gate learns from it (not a Reddit sub), the hour's hidden check still warns.
+    const hidden: Proof = { ...live, state: "hidden", note: "not on the public page" };
+    expect(await keepProof(db(), "onpost:2", "x", hidden, 2)).toEqual({ warn: true });
   });
 
   it("leaves a platform with no reader pending", async () => {

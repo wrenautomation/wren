@@ -20,7 +20,7 @@ export interface Proof {
   url: string | null;
   /** The stored screenshot (`s3://…`): the comment with its post's title. */
   shot: string | null;
-  /** Why, in a few words: "only visible signed in", "[removed] for strangers". */
+  /** Why, in a few words: "only its author sees it", "[removed] for strangers". */
   note: string | null;
 }
 
@@ -156,7 +156,8 @@ export function redditVerdict(r: RedditReads): { state: ProofState; note: string
       ? `${(r.open.body ?? "").trim() || "empty"} for strangers`
       : "not found signed out";
   if (r.own === undefined) return { state: "pending", note: `${why}; no account read` };
-  if (readable(r.own)) return { state: "hidden", note: `only visible signed in: ${why}` };
+  // Signed in is no help: another user's view drops a filtered comment too. Its link still opens.
+  if (readable(r.own)) return { state: "hidden", note: `only its author sees it: ${why}` };
   return { state: "missing", note: r.own ? `${(r.own.body ?? "").trim()} to its author` : why };
 }
 
