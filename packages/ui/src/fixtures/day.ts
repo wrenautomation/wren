@@ -4,7 +4,7 @@ import { cued, date, defineRecord, metaOf, name, status, text } from "@wren/core
 import type { Row } from "@wren/core/records/serve";
 import type { Action, Call } from "../action.js";
 import type { DaySource } from "../day.js";
-import type { RecordActs, RecordsApi, RecordsPage } from "../records.js";
+import type { RecordActs, RecordsApi } from "../records.js";
 import { answer, fails, pending } from "./load.js";
 import { WORST } from "./worst.js";
 
@@ -114,6 +114,7 @@ export const WORST_DRAFTS: Row[] = [
   ),
 ];
 
+type RecordsPage = Awaited<ReturnType<RecordsApi["list"]>>;
 type Range = { gte?: string; lte?: string; empty?: true };
 
 /** A list read over rows: the date range and platform a Day asks for, like the server's. */
