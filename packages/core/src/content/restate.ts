@@ -15,6 +15,7 @@ import { z } from "zod";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import { CallTimeout, within } from "../restate/limits.js";
+import { type JournalRecord, openTry, type SendJournal } from "../send-journal.js";
 import {
   type Delivery,
   deliveryOf,
@@ -25,6 +26,7 @@ import {
   type SendVerdict,
   terminalOf,
   unknownSend,
+  verifyingOnly,
   writeKey,
 } from "../send-verdict.js";
 import {
@@ -53,6 +55,7 @@ import type {
   ReportDays,
 } from "./index.js";
 import { PLATFORMS } from "./index.js";
+import { routeKind } from "./routes.js";
 import { fieldsOf, ShapeError } from "./shapes.js";
 
 export type Channels = Partial<Record<Platform, ContentChannel>>;
@@ -153,9 +156,13 @@ export type Wake = () => Promise<"started" | "running">;
  * `limitMs`: a loop's client waits on each call at most this long; past it the call is
  * cancelled and `CallTimeout` (terminal) thrown, never tried again in this pass.
  *
- * A write that cannot be undone (not a GET, not an upload) made inside a key scope
- * (`withSendKey`) is keyed (`keyedCall`): autobrowse answers what became of it as a verdict, and
- * this side never reads its words. A write outside a scope is called once, as before.
+ * A write that cannot be undone (`routeKind` "send") made inside a key scope (`withSendKey`) is
+ * keyed (`keyedCall`): autobrowse answers what became of it as a verdict, and this side never
+ * reads its words. A write outside a scope is called once, as before. Reads and staging writes
+ * (`routes.ts`) are never keyed and retry on a 5xx.
+ *
+ * In a verify-only scope a keyed write asks `verdict` and never calls. A write that is not keyed
+ * (a read, a staging write) still runs.
  */
 export function restateSites(
   ctx: restate.Context,
@@ -179,6 +186,28 @@ export function restateSites(
     limitMs === undefined
       ? p
       : within(ctx, p, { ms: limitMs, call: `${service.name}/${what}`, keep });
+  /** What became of a keyed call, asked of the same service. A failed ask is `unknown`. */
+  const askVerdict = async (
+    site: string,
+    method: SiteMethod,
+    path: string,
+    key: string,
+    since: string,
+  ): Promise<SendVerdict> => {
+    try {
+      return await waited(
+        client.verdict({ sendKey: key }),
+        `verdict ${site} ${method} ${path}`,
+        true,
+      );
+    } catch (err) {
+      const why =
+        err instanceof CallTimeout
+          ? "the verdict is still being read"
+          : "the verdict could not be read";
+      throw unknownSend(why, since);
+    }
+  };
   /** A keyed write: its key rides in the body and as Restate's idempotency key. */
   async function keyedCall(
     site: string,
@@ -189,22 +218,6 @@ export function restateSites(
     key: string,
   ): Promise<never> {
     const since = new Date(await ctx.date.now()).toISOString();
-    /** What became of the call, asked of the same service. A failed ask is `unknown`. */
-    const askVerdict = async (): Promise<SendVerdict> => {
-      try {
-        return await waited(
-          client.verdict({ sendKey: key }),
-          `verdict ${site} ${method} ${path}`,
-          true,
-        );
-      } catch (err) {
-        const why =
-          err instanceof CallTimeout
-            ? "the verdict is still being read"
-            : "the verdict could not be read";
-        throw unknownSend(why, since);
-      }
-    };
     let answer: unknown;
     try {
       answer = await waited(
@@ -226,22 +239,28 @@ export function restateSites(
         e.journaled = true;
         throw e;
       }
-      answer = await askVerdict();
+      answer = await askVerdict(site, method, path, key, since);
     }
     if (!isVerdict(answer)) {
       // An older desk ignores the key and answers the official output.
       noteAnswer("sent");
       return answer as never;
     }
-    const v = answer.verdict === "unknown" && rechecking() ? await askVerdict() : answer;
-    if (v.verdict === "not_sent" && v.how === "refused") {
-      // The platform said no: the caller's cap and refusal logic read it as an error.
-      noteAnswer("not_sent");
-      const refused = new SiteCallError(site, method, path, v.status ?? 400, v.reason);
-      refused.journaled = true;
-      throw refused;
-    }
-    return outputOf<never>(v);
+    const v =
+      answer.verdict === "unknown" && rechecking()
+        ? await askVerdict(site, method, path, key, since)
+        : answer;
+    return settled(site, method, path, v);
+  }
+  /** A keyed write in a verify-only scope: ask what became of it, never call. */
+  async function keyedVerify(
+    site: string,
+    method: SiteMethod,
+    path: string,
+    key: string,
+  ): Promise<never> {
+    const since = new Date(await ctx.date.now()).toISOString();
+    return settled(site, method, path, await askVerdict(site, method, path, key, since));
   }
   return {
     async call(site, method, path, input = {}, account) {
@@ -257,8 +276,12 @@ export function restateSites(
         throw new ArmedStop();
       }
       await awake();
-      const key = safeToRepeat(method, path) ? null : writeKey(site, method, path);
-      if (key) return keyedCall(site, method, path, input, account, key);
+      const repeatable = routeKind(site, method, path) !== "send";
+      const key = repeatable ? null : writeKey(site, method, path);
+      if (key)
+        return verifyingOnly()
+          ? keyedVerify(site, method, path, key)
+          : keyedCall(site, method, path, input, account, key);
       for (let attempt = 1; ; attempt++) {
         try {
           return (await waited(
@@ -272,13 +295,13 @@ export function restateSites(
             }),
             `call ${site} ${method} ${path}`,
             // A write past its wait may still land: left running, never sent again.
-            !safeToRepeat(method, path),
+            !repeatable,
           )) as never;
         } catch (err) {
           if (err instanceof CallTimeout) throw err;
           const e = siteCallErrorFrom(err, site, method, path);
           if (!(e instanceof SiteCallError)) throw e;
-          if (attempt < CALL_TRIES && !isRefusal(e) && safeToRepeat(method, path)) {
+          if (attempt < CALL_TRIES && !isRefusal(e) && repeatable) {
             await ctx.sleep(attempt * CALL_PAUSE_MS);
             continue;
           }
@@ -312,9 +335,20 @@ const isVerdict = (v: unknown): v is SendVerdict =>
 const CALL_TRIES = 3;
 const CALL_PAUSE_MS = 30_000;
 
-/** Calls that change nothing a person sees: a read, or a file's upload before any post names it. */
-const safeToRepeat = (method: SiteMethod, path: string) =>
-  method === "GET" || /\/upload\b/.test(path);
+/**
+ * A verdict as the caller sees it: the platform's no is a journaled `SiteCallError` (the caller's
+ * cap and refusal logic read an error), anything else is `outputOf`. The one mapping for a
+ * `sites` verdict and a send journal's.
+ */
+function settled(site: string, method: string, path: string, v: SendVerdict): never {
+  if (v.verdict === "not_sent" && v.how === "refused") {
+    noteAnswer("not_sent");
+    const refused = new SiteCallError(site, method, path, v.status ?? 400, v.reason);
+    refused.journaled = true;
+    throw refused;
+  }
+  return outputOf<never>(v);
+}
 
 /**
  * A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408 and
@@ -339,15 +373,98 @@ export function journaledHost(ctx: restate.Context, host: MediaHost): MediaHost 
 }
 
 /**
- * A direct API client (no `sites` hop) made durable: each call is one
- * journaled step, so a retried invocation replays the answer instead of
- * calling again. A refusal ends the step for good. A read retries. A write that failed any
- * other way may have gone out, so it is never sent blind again: the step answers that as a
- * value and the call throws `SendUnknown`, the same type autobrowse's `unknown` verdict has.
+ * A direct API client (no `sites` hop) made durable: each call is one journaled step, so a
+ * retried invocation replays the answer instead of calling again. A refusal ends the step for
+ * good. A read retries.
+ *
+ * A write that cannot be undone (`routeKind` "send") inside a key scope is keyed, with the same
+ * contract as autobrowse's desk (send-verdicts): one journal record per key, written before the
+ * act. The step answers a `SendVerdict` as a value, and outside the step `settled` maps it as
+ * `restateSites` does. A key with a final verdict answers it with no call. A record with no
+ * verdict, or an `unknown` one, answers `unknown`: these routes have no verify read, so
+ * `recheck` changes nothing. A crash inside the step leaves a record with no verdict, so the
+ * replay is `unknown`, never a second write.
+ *
+ * In a verify-only scope the step reads the journal and never writes: no record is `not_sent`.
+ * A write outside a scope, a read and a staging write keep the plain step: a write that failed
+ * any other way may have gone out, so it is never sent blind again (`SendUnknown`).
  */
-export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteClient {
+export function journaledSites(
+  ctx: restate.Context,
+  sites: SiteClient,
+  journal: SendJournal,
+): SiteClient {
+  /** The verdict the journal holds for a key, or the one for a try that left no end. */
+  const known = (r: JournalRecord): SendVerdict =>
+    r.verdict && r.verdict.verdict !== "unknown" ? r.verdict : openTry(r);
+  /** Call the platform for the first time under this key and map its end. */
+  async function act(
+    site: string,
+    method: SiteMethod,
+    path: string,
+    input: Record<string, unknown>,
+    account: string | undefined,
+  ): Promise<SendVerdict> {
+    try {
+      const output = ((await sites.call(site, method, path, input, account)) ?? null) as unknown;
+      return {
+        verdict: "sent",
+        id: null,
+        url: null,
+        at: new Date().toISOString(),
+        how: "answer",
+        output,
+      };
+    } catch (err) {
+      if (
+        err instanceof SiteCallError &&
+        err.status >= 400 &&
+        err.status < 500 &&
+        err.status !== 408
+      )
+        return { verdict: "not_sent", how: "refused", reason: err.message, status: err.status };
+      if (nothingSent(err))
+        return {
+          verdict: "not_sent",
+          how: "before_submit",
+          reason: err instanceof Error ? err.message : String(err),
+        };
+      return {
+        verdict: "unknown",
+        reason: err instanceof Error ? err.message : String(err),
+        since: new Date().toISOString(),
+      };
+    }
+  }
   return {
     async call(site, method, path, input = {}, account) {
+      const key = routeKind(site, method, path) === "send" ? writeKey(site, method, path) : null;
+      if (key) {
+        const name = `${site} ${method} ${path}`;
+        const verdict = verifyingOnly()
+          ? await ctx.run(name, async (): Promise<SendVerdict> => {
+              const r = await journal.read(key);
+              return r
+                ? known(r)
+                : {
+                    verdict: "not_sent",
+                    how: "before_submit",
+                    reason: "no try began under this key",
+                  };
+            })
+          : await ctx.run(name, async (): Promise<SendVerdict> => {
+              const now = new Date();
+              const begun = await journal.begin(
+                { key, site, method, path, account: account ?? null },
+                now,
+              );
+              if (!begun.won) return known(begun.record);
+              const v = await act(site, method, path, input, account);
+              await journal.settle(key, v, new Date());
+              return v;
+            });
+        return settled(site, method, path, verdict);
+      }
       let ran: { out: unknown } | { lost: string; since: string };
       try {
         ran = await ctx.run(`${site} ${method} ${path}`, async () => {
@@ -358,7 +475,7 @@ export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteCli
           } catch (err) {
             if (isRefusal(err))
               throw new restate.TerminalError(err.message, { errorCode: err.status });
-            if (safeToRepeat(method, path) || nothingSent(err)) throw err;
+            if (routeKind(site, method, path) !== "send" || nothingSent(err)) throw err;
             return {
               lost: err instanceof Error ? err.message : String(err),
               since: new Date().toISOString(),
@@ -489,11 +606,20 @@ const RECHECK = z
   .boolean()
   .nullish()
   .describe("Check an unknown answer once more (a takeover, a person's check)");
-type Keyed = { sendKey?: string | null; recheck?: boolean | null };
+const VERIFY_ONLY = z
+  .boolean()
+  .nullish()
+  .describe("Ask what became of each keyed write; never write");
+type Keyed = { sendKey?: string | null; recheck?: boolean | null; verifyOnly?: boolean | null };
 /** A write under its ledger key, answered as a `Delivery`; without a key, as it always was. */
 const keyed = <T>(req: Keyed, work: () => Promise<T>): Promise<T | Delivery<T>> =>
   refusalsFinal<T | Delivery<T>>(
-    req.sendKey ? deliveryOf(req.sendKey, work, { recheck: req.recheck === true }) : work(),
+    req.sendKey
+      ? deliveryOf(req.sendKey, work, {
+          recheck: req.recheck === true,
+          verifyOnly: req.verifyOnly === true,
+        })
+      : work(),
   );
 /** A client's id: its own logins, not Wren's. Empty: Wren's. */
 const CLIENT = z.string().nullish().describe("A client's id; empty = Wren's own channels");
@@ -569,6 +695,7 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
             account: ACCOUNT,
             sendKey: SEND_KEY,
             recheck: RECHECK,
+            verifyOnly: VERIFY_ONLY,
           }),
           effect: "posts",
         },
@@ -655,7 +782,12 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
       ),
       reply: serviceHandler(
         {
-          input: REPLY.extend({ account: ACCOUNT, sendKey: SEND_KEY, recheck: RECHECK }),
+          input: REPLY.extend({
+            account: ACCOUNT,
+            sendKey: SEND_KEY,
+            recheck: RECHECK,
+            verifyOnly: VERIFY_ONLY,
+          }),
           effect: "posts",
         },
         async (
@@ -706,7 +838,10 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
       ),
       /** One DM to a comment's author, as a reply to it; 501 where the platform has no such door. */
       privateReply: serviceHandler(
-        { input: REPLY.extend({ sendKey: SEND_KEY, recheck: RECHECK }), effect: "sends" },
+        {
+          input: REPLY.extend({ sendKey: SEND_KEY, recheck: RECHECK, verifyOnly: VERIFY_ONLY }),
+          effect: "sends",
+        },
         async (
           ctx: restate.Context,
           req: { platform: Platform; commentId: string; text: string } & ForClient & Keyed,

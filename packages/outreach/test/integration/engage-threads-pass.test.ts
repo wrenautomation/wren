@@ -13,6 +13,7 @@ import type { SiteClient } from "@wren/core/content";
 import { journaledSites } from "@wren/core/content/restate";
 import { foldRows } from "@wren/core/records";
 import type { PassOutcome } from "@wren/core/restate";
+import { dbSendJournal } from "@wren/core/send-journal";
 import { spineRecorder, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -153,7 +154,7 @@ beforeAll(async () => {
         senderName: "Test",
         heldNiches: [],
         clock: () => now,
-        sitesFor: (ctx) => journaledSites(ctx, sites),
+        sitesFor: (ctx) => journaledSites(ctx, sites, dbSendJournal(pg.db)),
       }),
     ],
     alwaysReplay: true,

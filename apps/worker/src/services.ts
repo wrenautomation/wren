@@ -312,6 +312,7 @@ import { clientKey, clientOfKey, ingressSend, LIMITS, within } from "@wren/core/
 import { SEGMENT_RECORDS } from "@wren/core/segment-records";
 import { segmentStep } from "@wren/core/segment-step";
 import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
+import { dbSendJournal } from "@wren/core/send-journal";
 import { SENT_RECORDS } from "@wren/core/sent/records";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
@@ -1295,9 +1296,12 @@ export async function buildServices(
   if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
   // Bound with no channel of Wren's too: a client's connected accounts post and read through it.
-  const content = contentFor(settings, log);
+  const content = contentFor(settings, log, db);
   services.push(
-    makeContent(content ?? (() => ({})), contentClientsFor(settings, db, keys, socialApi)),
+    makeContent(
+      content ?? (() => ({})),
+      contentClientsFor(settings, db, clientDb, keys, socialApi),
+    ),
   );
   // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
   // the meta site fails on its own invocation, and nothing spends until `start`.
@@ -2424,7 +2428,7 @@ export async function buildServices(
       clientDb,
       access: clientSocial,
       sites: (ctx, client, part) =>
-        meteredSites(journaledSites(ctx, socialApi), {
+        meteredSites(journaledSites(ctx, socialApi, dbSendJournal(clientDb(client))), {
           main: db,
           client,
           part,
@@ -2678,7 +2682,7 @@ function redditFrom(
 }
 
 /** The content channels per invocation, or null (with one log line) when none is configured. */
-function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
+function contentFor(settings: Settings, log: Logger, db: Db): ChannelsFor | null {
   const on = settings.contentChannels;
   if (on.length === 0) {
     log.info("WREN_CONTENT_CHANNELS empty: no Content service");
@@ -2723,7 +2727,7 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
             reddit: redditContent(
               reddit === "desk" || picked("reddit")
                 ? as("reddit", restateSites(ctx, { caller: "wren:content", service: DESK, ...arm }))
-                : journaledSites(ctx, reddit),
+                : journaledSites(ctx, reddit, dbSendJournal(db)),
             ),
           }
         : {}),
@@ -2766,6 +2770,7 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
 function contentClientsFor(
   settings: Settings,
   db: Db,
+  clientDb: (id: string) => Db,
   keys: KeyStore | null,
   social: SiteClient,
 ): ContentClients {
@@ -2796,7 +2801,7 @@ function contentClientsFor(
       const own = (p: Platform) => {
         const login = logins[p];
         return login && connectionIdOf(login) !== null
-          ? metered(journaledSites(ctx, social), login)
+          ? metered(journaledSites(ctx, social, dbSendJournal(clientDb(client))), login)
           : null;
       };
       const yt = own("youtube");

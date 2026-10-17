@@ -99,6 +99,12 @@ export interface SendScopeOptions {
    * A takeover or a person's "check again" sets it.
    */
   recheck?: boolean;
+  /**
+   * Ask what became of each keyed write; never write. A keyed write asks `verdict {sendKey}` (or
+   * reads the send journal) in place of making the call, so a key the other side has forgotten
+   * cannot send. Calls that are not keyed (reads, staging) still run as usual.
+   */
+  verifyOnly?: boolean;
   /** Read after the send: did a keyed write answer? */
   trace?: SendTrace;
 }
@@ -108,6 +114,7 @@ interface KeyScope {
   /** Writes made so far in this scope, by route: the second write to one route gets its own key. */
   seen: Map<string, number>;
   recheck: boolean;
+  verifyOnly: boolean;
   trace: SendTrace;
 }
 
@@ -120,7 +127,13 @@ export const withSendKey = <T>(
   o: SendScopeOptions = {},
 ): Promise<T> =>
   scopes.run(
-    { key, seen: new Map(), recheck: o.recheck ?? false, trace: o.trace ?? { wrote: false } },
+    {
+      key,
+      seen: new Map(),
+      recheck: o.recheck ?? false,
+      verifyOnly: o.verifyOnly ?? false,
+      trace: o.trace ?? { wrote: false },
+    },
     fn,
   );
 
@@ -137,6 +150,9 @@ export const currentSendKey = (): string | null => scopes.getStore()?.key ?? nul
 
 /** Does this scope ask for an `unknown` answer to be checked once more? */
 export const rechecking = (): boolean => scopes.getStore()?.recheck ?? false;
+
+/** Does this scope only ask what became of its keyed writes, never write? */
+export const verifyingOnly = (): boolean => scopes.getStore()?.verifyOnly ?? false;
 
 /** A keyed write answered with this verdict (`Delivery` kinds count the same). */
 export function noteAnswer(kind: "sent" | "found" | "not_sent" | "unknown"): void {
@@ -216,15 +232,15 @@ export function delivered<T>(d: Delivery<T>): T {
 
 /**
  * A write that crosses a service boundary under the scope's key: `call` gets the request's
- * `sendKey` and `recheck`, and the callee answers a `Delivery` (a Content handler given a key).
+ * `sendKey`, `recheck` and `verifyOnly`, and the callee answers a `Delivery` (a Content handler given a key).
  * The value is unwrapped here, so a typed outcome is thrown as it was in the callee.
  */
 export async function sendAcross<T>(
-  call: (k: { sendKey: string; recheck: boolean }) => Promise<unknown>,
+  call: (k: { sendKey: string; recheck: boolean; verifyOnly: boolean }) => Promise<unknown>,
 ): Promise<T> {
   const sendKey = currentSendKey();
   if (!sendKey) throw new Error("sendAcross needs a send key: run it inside withSendKey");
-  const answer = await call({ sendKey, recheck: rechecking() });
+  const answer = await call({ sendKey, recheck: rechecking(), verifyOnly: verifyingOnly() });
   // A callee that ignores the key answers the plain output.
   return isDelivery(answer)
     ? delivered(answer as Delivery<T>)

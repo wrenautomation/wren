@@ -10,6 +10,7 @@ import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/content";
 import { journaledSites } from "@wren/core/content/restate";
 import type { PassOutcome } from "@wren/core/restate";
+import { dbSendJournal } from "@wren/core/send-journal";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -53,7 +54,7 @@ beforeAll(async () => {
         live: false,
         senderName: "Test",
         heldNiches: [],
-        sitesFor: (ctx) => journaledSites(ctx, sites),
+        sitesFor: (ctx) => journaledSites(ctx, sites, dbSendJournal(pg.db)),
         discovery: {
           llm,
           voice: "",
