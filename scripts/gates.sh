@@ -19,8 +19,11 @@ if [ -z "${CI:-}" ]; then
   fi
 fi
 WIDE=${CI:+--concurrency=100%}
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
+lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && stories && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
 map() { echo "==> map" && map/_meta/build.sh --check; }
+# `@wren/ui`'s Ladle stories build (designs/2026-10-17-ui-workbench-and-fast-ci.md): a story that
+# breaks fails here; an unchanged one is a turbo cache hit.
+stories() { echo "==> ui stories" && pnpm turbo run stories:build $WIDE --output-logs=errors-only; }
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
 # The local copy's IndexedDB transactions (packages/ui/src/data/local.ts) aren't Postgres.
@@ -89,9 +92,28 @@ changed() {
     echo "==> typecheck + unit, changed since origin/main" &&
     pnpm turbo run typecheck test:unit --filter="...[origin/main]" --output-logs=errors-only
 }
+# UI-only work: Biome on the files changed since origin/main (and not yet committed), typecheck of
+# @wren/ui and @wren/portal only, and the unit tests that import a changed file (`vitest related`).
+ui() {
+  local files
+  files=$({ git diff --name-only origin/main...HEAD && git diff --name-only HEAD && git ls-files --others --exclude-standard; } | sort -u | while read -r f; do [ -f "$f" ] && echo "$f"; done) &&
+    echo "==> biome, changed files" &&
+    { [ -z "$files" ] || pnpm -s biome check --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
+    echo "==> typecheck @wren/ui @wren/portal" &&
+    pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
+    echo "==> unit tests related to the changed files" &&
+    related packages/ui "$files" && related apps/portal "$files"
+}
+# `vitest related` in one package, on its changed .ts/.tsx files; none changed, nothing runs.
+related() {
+  local own
+  own=$(printf '%s\n' "$2" | sed -n "s|^$1/||p" | grep -E '\.tsx?$' || true)
+  [ -z "$own" ] || (cd "$1" && pnpm -s exec vitest related --run --passWithNoTests $own)
+}
 case "${1:-all}" in
   lint) lint ;;
   changed) changed ;;
+  ui) ui ;;
   unit) unit ;;
   integration) integration ;;
   schema) schema ;;
@@ -99,5 +121,5 @@ case "${1:-all}" in
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
   checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|changed|checks|unit|schema|drift|integration|all]" >&2; exit 2 ;;
+  *) echo "usage: $0 [lint|changed|ui|checks|unit|schema|drift|integration|all]" >&2; exit 2 ;;
 esac

@@ -5,6 +5,7 @@
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
     "typecheck": { "dependsOn": ["^build"] },
     "test:unit": { "dependsOn": ["^build"] },
+    "stories:build": { "dependsOn": ["^build"], "outputs": ["build/**"] },
     "test:integration": {
       "dependsOn": ["^build"],
       "outputs": [],

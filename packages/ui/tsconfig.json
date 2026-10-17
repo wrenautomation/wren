@@ -11,5 +11,5 @@
       "@wren/ui/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", ".ladle"]
 }

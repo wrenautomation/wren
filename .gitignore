@@ -26,3 +26,6 @@ senders_config.toml
 # The drift gate's scratch copy (scripts/gates.sh)
 packages/db/.drift.*
 **/*pycache*
+
+# Ladle's static build (pnpm --filter @wren/ui stories:build)
+packages/ui/build/
