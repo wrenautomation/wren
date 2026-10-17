@@ -1,7 +1,7 @@
 /**
  * Each mail domain's standing, for the morning digest: is it on a domain blocklist
  * (Spamhaus DBL, SURBL, URIBL), does its DNS carry what mail needs (one SPF, DKIM,
- * DMARC, MX), are fleet domains still on Route 53, and is an SMTP sender's host IP on
+ * DMARC, MX), does each fleet domain have NS, and is an SMTP sender's host IP on
  * the prober check's IP lists. A listing or a failed check is a warning.
  *
  * Each list refuses big shared resolvers with its own answer (DBL 127.255.255.x,
@@ -35,7 +35,7 @@ export interface DomainResolver extends Resolver {
 /** One domain to check, as the composition root lists it. */
 export interface DomainTarget {
   domain: string;
-  /** Bought for sending: its NS must be Route 53 (awsdns). Otherwise the NS set is only reported. */
+  /** Bought for sending: no NS is a problem. Its DNS lives at the registrar (Dynadot), so any NS set is fine. */
   fleet: boolean;
   /** Where its DKIM key lives (`google` for Google senders); null skips the check. */
   dkimSelector: string | null;
@@ -131,7 +131,6 @@ export function domainStandings(
   return Promise.all(targets.map((t) => domainStanding(t, resolver)));
 }
 
-const onRoute53 = (ns: readonly string[]) => ns.length > 0 && ns.every((n) => n.includes("awsdns"));
 
 type Check = [name: string, ok: boolean, why: string];
 
@@ -157,8 +156,7 @@ export function domainProblems(h: DomainStanding): string[] {
   const listed = LIST_NAMES.filter((l) => h.lists[l] === "listed");
   if (listed.length > 0)
     problems.push(`${h.domain} listed on ${listed.map((l) => DOMAIN_LISTS[l]).join(", ")}`);
-  if (h.fleet && !onRoute53(h.ns))
-    problems.push(`${h.domain} NS is ${h.ns.join(", ") || "missing"}, not Route 53`);
+  if (h.fleet && h.ns.length === 0) problems.push(`${h.domain} has no NS`);
   problems.push(...dnsChecks(h).flatMap(([, ok, why]) => (ok ? [] : [why])));
   if (h.smtp && !h.smtp.ip) problems.push(`SMTP host ${h.smtp.host} does not resolve`);
   if (h.smtp?.ip && h.smtp.listed.length > 0)
@@ -174,7 +172,7 @@ export const namedDomains = (text: string): string[] => [
 /**
  * The mail domains to watch: every sending domain, then the main site and any other
  * domain a signature names. A domain with a ramped inbox was bought for sending, so it
- * must sit on Route 53; DKIM is at the roster's selector, else `google`.
+ * must have NS; DKIM is at the roster's selector, else `google`.
  */
 export function mailDomainTargets(
   roster: readonly Sender[],

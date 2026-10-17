@@ -102,7 +102,7 @@ describe("domainStanding", () => {
   it("nothing published: no NS, MX, SPF, DMARC or DKIM, each a problem", async () => {
     const h = await domainStanding(target, resolver({}));
     expect(domainProblems(h)).toEqual([
-      "example.com NS is missing, not Route 53",
+      "example.com has no NS",
       "example.com has 0 SPF records, not one",
       "example.com has no DKIM key at google._domainkey",
       "example.com has 0 DMARC records, not one",
@@ -110,7 +110,7 @@ describe("domainStanding", () => {
     ]);
   });
 
-  it("two SPF records, two DMARC records, a fleet domain off Route 53, DKIM at its own selector", async () => {
+  it("two SPF records, two DMARC records, a fleet domain at its registrar's DNS, DKIM at its own selector", async () => {
     const h = await standing(
       {
         ns: { [D]: ["a.ns.example.net"] },
@@ -123,7 +123,6 @@ describe("domainStanding", () => {
       { dkimSelector: "s1" },
     );
     expect(domainProblems(h)).toEqual([
-      "example.com NS is a.ns.example.net, not Route 53",
       "example.com has 2 SPF records, not one",
       "example.com has 2 DMARC records, not one",
     ]);
