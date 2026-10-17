@@ -653,7 +653,8 @@ export function makePeopleConsole(deps: PeopleConsoleDeps) {
       leadCheck: serviceHandler(
         { ...RECORDS, effect: "spends" },
         async (ctx: restate.Context, req: LeadRequest) => {
-          const got = await answer(() => api.leadCheck(req));
+          // Journaled, so a replay sends to the same profiles.
+          const got = await answer(() => ctx.run("pick", () => answer(() => api.leadCheck(req))));
           // Told to Decide and left: Jev's answer lands on the profile when it is kept.
           for (const subject of got.subjects)
             ctx

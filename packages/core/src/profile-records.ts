@@ -256,7 +256,8 @@ async function profileDetail(
     warmth: await part("Warmth", () => warmthDetail(db, Number(id))),
     reach: await part("Profiles", () => reachOf(db, Number(id))),
     research: research ? await part("Research", () => researchDetail(db, Number(id))) : null,
-    leadFit: await part("Lead check", () => leadFitView(db, Number(id))),
+    // Wren's own People only (the same flag as research): a client's asks Jev nothing.
+    leadFit: research ? await part("Lead check", () => leadFitView(db, Number(id))) : null,
     failed,
   };
 }

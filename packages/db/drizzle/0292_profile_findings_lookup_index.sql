@@ -1,0 +1,1 @@
+CREATE INDEX "ix_profile_findings_lookup_id" ON "profile_findings" USING btree ("lookup_id");

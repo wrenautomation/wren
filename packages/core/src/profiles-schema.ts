@@ -627,6 +627,7 @@ export const profileFindings = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_profile_findings" }),
     unique("uq_profile_findings_profile_ref").on(t.profileId, t.ref),
+    index("ix_profile_findings_lookup_id").on(t.lookupId),
     oneOf("ck_profile_findings_kind", t.kind, PROFILE_FINDING_KINDS),
     oneOf("ck_profile_findings_state", t.state, PROFILE_FINDING_STATES),
     foreignKey({

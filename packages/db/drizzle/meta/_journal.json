@@ -2038,6 +2038,13 @@
       "when": 1792208566447,
       "tag": "0291_lead_call_view",
       "breakpoints": true
+    },
+    {
+      "idx": 292,
+      "version": "7",
+      "when": 1792210677506,
+      "tag": "0292_profile_findings_lookup_index",
+      "breakpoints": true
     }
   ]
 }
