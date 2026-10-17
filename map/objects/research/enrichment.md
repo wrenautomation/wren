@@ -30,7 +30,7 @@ Citations: `packages/research/src/schema.ts:68`
 ## If you change this
 
 - **Hits:** `packages/research/src/enrichment/store.ts:24`, `email-scan.ts:245`, `contacts.ts:265` (`contact_scan`, deterministic), `email-pick/`, `extraction.ts`, `opener.ts`; the two cost views; `recruiting_facts` (reads `firmographics`/`ppp-foia`, `opener` and `video`, `packages/core/src/views.ts:79`); disposition's audit record (`packages/channel-email/src/inbox/disposition.ts`)
-- **Does not hit:** `content_drafts.llm` (the content loop keeps its own record)
+- **Does not hit:** `content_drafts.llm` (the content loop keeps its own record); a person's "Research this person" run (`lookUpPerson`'s `elsewhere` layer) never writes `enrichments`, its findings live in `profile_findings` ([[leads/profile]])
 
 ## Surfaces
 

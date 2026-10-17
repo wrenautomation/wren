@@ -47,7 +47,7 @@ Citations: `packages/research/src/schema.ts:228`, `packages/research/src/signals
 
 ## If you change this
 
-- **Hits:** `keepFinding` (every findings writer), the backfill in the `*_signals` migration, `googleLeft` (signals take at most 50 of 200 searches, `packages/research/src/enrichment/profiles.ts`), the pool's `signals` stage, the `research.signal` record and the firm record's related list
+- **Hits:** `keepFinding` (every findings writer), the backfill in the `*_signals` migration, `googleLeft` (signals take at most 50 of 200 searches, `packages/research/src/enrichment/profiles.ts`; "Research this person" runs count in it too), the pool's `signals` stage, the `research.signal` record and the firm record's related list
 - **Does not hit:** `factsFor`, `postFacts` (nothing is merged into them)
 
 ## Surfaces

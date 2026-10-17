@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-05 @ 8432ec5
+verified: 2026-10-17 @ 729c7226
 entity: apps/worker/src/services.ts:110
 ---
 
@@ -17,7 +17,7 @@ One composition root wires db, llm, verifier, transport, notifier, roster, box w
 
 ## Shape
 
-- always: `Discovery`, `Enrichment`, `Resolution`, `SendScheduler`, `InboxScheduler`, `InboxPush`, `Disposition`, `PoolScheduler`, `PlacementScheduler` (idle until `WREN_PLACEMENT_SEEDS`), `Ads`, `AdsWatch`, `ContentDesk`, `MarketingConsole` (a client's portal app `marketing`), `DraftAsk`, `ContentScheduler`, `ContentMetrics`, `ContentPlanner`, `TokenRenewal`, `SmsSender`, `SmsEvents`, `SmsDesk`, `SmsWatch`, `SmsForms` (the lander's application push, [[sms/speed-run]]), `SmsConsole` (portal app `texts`), `CallBookings`, `Marketing`, `Newsletter` (object, one per issue), `Calendar` + `ClientCalendar` (a client's booking page, through the portal Worker) + `CalendarConsole` (portal app `calendar`, [[calendar/booking]]), `PeopleConsole` (portal app `people`, [[leads/sent-log]], [[leads/broadcast]]), `Broadcast` (object, one per broadcast)
+- always: `Discovery`, `Enrichment`, `Resolution`, `SendScheduler`, `InboxScheduler`, `InboxPush`, `Disposition`, `PoolScheduler`, `PlacementScheduler` (idle until `WREN_PLACEMENT_SEEDS`), `Ads`, `AdsWatch`, `ContentDesk`, `MarketingConsole` (a client's portal app `marketing`), `DraftAsk`, `ContentScheduler`, `ContentMetrics`, `ContentPlanner`, `TokenRenewal`, `SmsSender`, `SmsEvents`, `SmsDesk`, `SmsWatch`, `SmsForms` (the lander's application push, [[sms/speed-run]]), `SmsConsole` (portal app `texts`), `CallBookings`, `Marketing`, `Newsletter` (object, one per issue), `Calendar` + `ClientCalendar` (a client's booking page, through the portal Worker) + `CalendarConsole` (portal app `calendar`, [[calendar/booking]]), `PeopleConsole` (portal app `people`, [[leads/sent-log]], [[leads/broadcast]]), `Broadcast` (object, one per broadcast), `ProfileResearch` (object, one per profile: `run({lookupId})` carries out one "Research this person" run, [[leads/profile]])
 - conditional: `ComposeScheduler` (compose days ahead > 0), `DigestScheduler` (notify), `PostmasterScheduler`, `OpensScheduler`, `ClicksScheduler` (`WREN_SITE_EXPORT_TOKEN`), `ReportScheduler`, `Content` (channels configured), `SearchWatch` + `SearchWeek` (`WREN_SEARCH_SITE` + `_ORIGIN`) (`:243`–`:292`)
 - outside this repo, same Restate: autobrowse's `sites` (the box) and `desk` (the Mac; Reddit) (`packages/core/src/content/restate.ts:21-23`)
 - plain handlers: `Discovery{discover,verify}`, `Enrichment{crawl,render,scan,extract,applyExtractions,pick,applyPicks,tagTestimonials,backfillCallRecords}`, `Resolution{build,queue,resolve,resolveNewDomains,verifyLeads}`, `Disposition{classify,status}`, `CallBookings{ingest}`, `Marketing{signUp,confirm,prefs,set}` ([[leads/consent]]), `ContentDesk{add,draft,redraft,approve,reject,edit,approveVideo,pickThumbnail}`, `DraftAsk{set,ask,undo}` (+ private `answer`: the console's draft box saves his words through `set` (only over the text it started from) and asks Claude through the desk's `claude`, `packages/content/src/restate/draft-ask.ts`), `Content{publish,list,metrics,comments,reply,platforms}`, `Ads{accounts,campaigns,insights,interests,launch,leadConsents,leadForm,leadForms,leads,start,stop}`, `SmsDesk`/`SmsEvents{addContact,enroll,ingest,label,lift,markRead,numbers,pause,reply,resume,stats,syncNumbers,thread,threads}`
