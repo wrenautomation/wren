@@ -9,7 +9,7 @@ entity: packages/core/src/decide-schema.ts:34
 
 # decide (the machine's call beside William's)
 
-One seam for every yes/no-shaped machine call: `decide()` asks a backend (Jev now, the gateway when Jev is down, Laya later) about one subject and keeps the whole answer; William's own call on the same subject is kept beside it. The pairs are the distill set for Laya. Kinds today: `comment_quality` (Send, Edit, Drop on a drafted comment) and `learn_worth` (Worth it, Skip on a Learn item).
+One seam for every yes/no-shaped machine call: `decide()` asks a backend (Jev now, the gateway when Jev is down, Laya later) about one subject and keeps the whole answer; William's own call on the same subject is kept beside it. The pairs are the distill set for Laya. Kinds today: `comment_quality` (Send, Edit, Drop on a drafted comment), `learn_worth` (Worth it, Skip on a Learn item) and `lead_fit` (Lead, Unsure, Not a lead on a profile).
 
 ## Why this shape
 
@@ -25,7 +25,8 @@ One seam for every yes/no-shaped machine call: `decide()` asks a backend (Jev no
 - Sources and loop: `commentSource` (`packages/outreach/src/decide.ts:117`, open drafts' newest model draft, no names), `learnSource` (`packages/learn/src/decide.ts:83`, scored in 3 days, state carries `WREN_FOCUS`), `decidePass` `packages/core/src/decide/loop.ts:52` (40 subjects, 5 min, 3 failures stop, daily cap), `makeDecide` `:139` → loop object `Decide/wren` every 10 min, wired `apps/worker/src/services.ts:2325`
 - Numbers `decideStats` `packages/core/src/decide/stats.ts:41`; distill export `decisionRecords` (`wren.decision/1`) `packages/core/src/decide/export.ts:35`
 - Console: `ConsolePortal.decisions` (`packages/core/src/console.ts:2652`, `wren:read`) → Agents page Decisions table (`apps/portal/web/src/modules/wren/decisions.tsx`); column Suggests on To approve, Engage and the Inbox (`withPicks`, `packages/content/src/social/records.ts:340`); Worth it/Skip badge on Learn cards (`withLearnPicks` `packages/learn/src/decide.ts:209`, `PickBadge` in `apps/portal/web/src/modules/learn/kinds.tsx`)
-- CLI `wren decide stats|mode|export|backfill [--dry-run] [--sample n --max-usd 2]|pass` (`apps/cli/src/decide.ts`)
+- Lead check `packages/core/src/decide/lead-fit.ts`: `leadFitState` (what Jev sees: person, touches, `found`, offers; no name, handle, address, phone or link, `scrubText`), `leadFitSource` (Wren profiles with a `theirs` touch newer than their newest `lead_fit` decision, oldest first; offers passed in from `@wren/offers` `leadOffers()` at `apps/worker/src/services.ts`), `leadFitView` (chip data: pick, percent, the why line built by code, his call and `overrode`), `foundFor` (the only reader of `profile_findings`). `Decide/wren` `one({kind, subject})` (`decideOne`, `loop.ts`) asks one subject now, same cap and backends, exclusive on the key; a `shadow` kind is raised to `recommend` for an explicit ask, `off` refuses. People console `leadCheck` sends to it, `leadFit`/`leadNot` write his call (`leadCall`: `recordCall` source `profile`, plus trait `lead` or `not_lead`, source `william`). See [[leads/profile]]
+- CLI `wren decide stats|mode|export|backfill [--dry-run] [--sample n --max-usd 2]|pass [--kind comment_quality|learn_worth|lead_fit]` (`apps/cli/src/decide.ts`)
 
 ## Connected to
 
