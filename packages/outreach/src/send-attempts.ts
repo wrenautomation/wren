@@ -19,7 +19,8 @@ export const UNSURE_WAITS =
   "may have gone out. It waits in To approve, where you can open it on the site, mark it posted, or send it again";
 
 /** Why a key-less `sending` row taken over waits on a person. */
-export const KEYLESS_TRY = "an earlier try ran with no send key, so no verdict can say if it went out";
+export const KEYLESS_TRY =
+  "an earlier try ran with no send key, so no verdict can say if it went out";
 
 export interface SendClaim {
   item: string;
