@@ -149,7 +149,7 @@ const sitesOf = (): SiteClient =>
   });
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "kappa", name: "Kappa", products });
   await addClient(pg.db, pg.url, { id: "lambda", name: "Lambda", products });
   await addClient(pg.db, pg.url, { id: "sandbox", name: "Sandbox", sandbox: true });

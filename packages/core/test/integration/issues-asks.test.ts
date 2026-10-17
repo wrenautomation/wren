@@ -36,7 +36,7 @@ const as = <T>(by: string, fn: (tx: typeof pg.db) => Promise<T>) =>
   });
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme" });
   await addOperator(pg.db, ADMIN);
   await addMember(pg.db, "acme", OWNER, { role: "owner" });

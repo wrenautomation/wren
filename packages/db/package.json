@@ -7,7 +7,9 @@
     ".": "./src/index.ts",
     "./columns": "./src/columns.ts",
     "./isolation": "./src/isolation.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./testing/global-setup": "./src/testing-global-setup.ts",
+    "./testing/vitest": "./src/testing-vitest.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

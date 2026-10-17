@@ -109,7 +109,7 @@ const sitesOf = (): SiteClient =>
 const page = fakeContentChannel("linkedin");
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "omicron", name: "Omicron", products });
   await addMember(pg.db, "omicron", AMY, { role: "owner" });
   omicron = open("omicron");

@@ -50,7 +50,7 @@ const at = (email: string, viewAs: unknown, need = "read", client = "acme") =>
 const viewer = (r: PortalRequest) => r.viewer as SignedViewer;
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme" });
   await addClient(pg.db, pg.url, { id: "other", name: "Other" });
   await addOperator(pg.db, ADMIN);

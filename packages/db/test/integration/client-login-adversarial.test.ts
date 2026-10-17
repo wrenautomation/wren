@@ -65,7 +65,7 @@ async function asAcme(text: string): Promise<string> {
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   for (const database of [ACME, BETA]) {
     await createDatabase(pg.db, database);
     await migrateClient(pg.url, database);

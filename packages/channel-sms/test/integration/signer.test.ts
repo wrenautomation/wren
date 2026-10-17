@@ -22,7 +22,7 @@ const ACME = "+15550001111";
 const BETA = "+15550002222";
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   store = pgKeyStore(pg.db, throwawayRing());
   const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
   for (const id of ["acme", "beta"])

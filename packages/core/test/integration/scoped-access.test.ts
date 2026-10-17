@@ -102,7 +102,7 @@ const approve: HandlerRow = {
 };
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await pg.db.execute(sql`create table sa_posts (id text primary key, platform text, title text)`);
   await pg.db.execute(sql`insert into sa_posts values
     ('y1', 'youtube', 'First cut'), ('y2', 'youtube', 'Second cut'),

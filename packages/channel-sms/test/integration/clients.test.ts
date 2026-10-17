@@ -55,7 +55,7 @@ const CALL = {
 };
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, {
     id: "acme",
     name: "Acme",

@@ -131,7 +131,7 @@ const records = [...CONTENT_RECORDS, inboxRecord, askedReplyRecord];
 const products = { "marketing.stats": {} };
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "kappa", name: "Kappa", products });
   await addClient(pg.db, pg.url, { id: "lambda", name: "Lambda", products });
   await pg.db.execute(sql`insert into operators (email, role) values (${ADMIN}, 'admin')`);

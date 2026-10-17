@@ -55,7 +55,7 @@ const addGhost = () =>
 const removeGhost = () => pg.db.delete(clients).where(eq(clients.id, "ghost"));
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme" });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta" });
 }, 180_000);

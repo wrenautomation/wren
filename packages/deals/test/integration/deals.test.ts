@@ -24,7 +24,7 @@ const as = (email: string, client?: string, operator = false) => ({
 const api = () => dealsConsoleApi({ main: pg.db });
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme Plumbing", products: {} });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta", products: {} });
   await addMember(pg.db, "acme", OWNER, { role: "owner" });

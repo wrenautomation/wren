@@ -25,7 +25,7 @@ import {
 
 let pg: TestPostgres;
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   env.WREN_HOOK_KEY = "test-key-not-a-secret";
 });
 afterAll(async () => {

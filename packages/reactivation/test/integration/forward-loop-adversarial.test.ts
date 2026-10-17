@@ -76,7 +76,7 @@ const notifier: Notifier = {
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   env = await startTestRestate({
     services: [
       makeReactivation({

@@ -68,7 +68,7 @@ const products = (about?: string) => ({
 });
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, {
     id: "kappa",
     name: "Kappa Dental",

@@ -34,7 +34,7 @@ const offer = OFFERS.find((o) => o.status === "live") ?? OFFERS[0];
 if (!offer) throw new Error("no offer");
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme Roofing", products: {} });
 });
 afterAll(() => pg.stop());

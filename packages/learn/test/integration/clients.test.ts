@@ -43,7 +43,7 @@ let betaDb: Db;
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "alpha", name: "Alpha Dental" });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta Roofing" });
   await pg.db.execute(sql`insert into operators (email, role) values (${ADMIN}, 'admin')`);

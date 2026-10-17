@@ -37,7 +37,7 @@ const OWNER = "owen@acme.test";
 const LEAD = "lee@acme.test";
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme" });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta" });
   await addOperator(pg.db, ADMIN);

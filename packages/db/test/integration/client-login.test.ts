@@ -58,7 +58,7 @@ function acmeAt(database: string): string {
 }
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   for (const database of [ACME, BETA]) {
     await createDatabase(pg.db, database);
     await migrateClient(pg.url, database);

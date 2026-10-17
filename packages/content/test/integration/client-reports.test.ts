@@ -44,7 +44,7 @@ const deps = () => ({ main: pg.db, open, records: [siteDay], mail });
 const DUE = new Date("2026-10-12T13:00:00Z");
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, {
     id: "rho",
     name: "Rho Test",

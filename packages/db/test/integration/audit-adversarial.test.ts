@@ -76,7 +76,7 @@ async function freshAudited(name: string, tables: string[], app = "adv"): Promis
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   const ddl = [
     "create table adv_parent (id int primary key, name text)",
     "create table adv_child (id int primary key, parent_id int references adv_parent on delete cascade on update cascade, note text)",

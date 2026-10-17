@@ -41,7 +41,7 @@ const open = (c: { database: string }) => cachedDb(clientDatabaseUrl(pg.url, c.d
 const deps = () => ({ main: pg.db, open, policy: POLICY });
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, {
     id: "acme",
     name: "Acme",

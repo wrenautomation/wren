@@ -189,7 +189,7 @@ let wren: postgres.Sql;
 let legacyTables: Set<string>;
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await pg.db.execute(sql`create database legacy`);
   legacy = postgres(pg.url.replace(/\/[^/]+$/, "/legacy"), { max: 1 });
   await legacy.unsafe(readFileSync(FIXTURE, "utf8"));

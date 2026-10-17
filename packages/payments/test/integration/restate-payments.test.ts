@@ -108,7 +108,7 @@ const emailLink = (description: string) =>
   });
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   keys = pgKeyStore(pg.db, throwawayRing());
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme Plumbing", products: {} });
   await addOperator(pg.db, "ada@example.test");

@@ -57,7 +57,7 @@ const staged = async (client: string, name: string, value: string) =>
   (await keys.stage({ client, name, value, by: "ada@example.test" })).ref;
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   keys = pgKeyStore(pg.db, throwawayRing());
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme Plumbing", products: {} });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta", products: {} });

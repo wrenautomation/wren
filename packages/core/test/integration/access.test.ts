@@ -56,7 +56,7 @@ const portal = () =>
     .serviceClient<Console>({ name: "ConsolePortal" });
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme" });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta" });
   await addMember(pg.db, "acme", OWNER.viewer.email, { role: "owner" });

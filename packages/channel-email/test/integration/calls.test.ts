@@ -20,7 +20,7 @@ import { makeCompany, makeEnrollment, makePerson, TABLES } from "./compose-fixtu
 
 let pg: TestPostgres;
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
 });
 afterAll(() => pg.stop());
 beforeEach(async () => {

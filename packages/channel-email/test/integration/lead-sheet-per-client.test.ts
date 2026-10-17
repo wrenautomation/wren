@@ -69,7 +69,7 @@ let acme: Db;
 const open = (c: { database: string }) => cachedDb(clientDatabaseUrl(pg.url, c.database));
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, {
     id: "acme",
     name: "Acme",

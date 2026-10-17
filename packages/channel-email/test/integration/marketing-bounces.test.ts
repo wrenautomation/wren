@@ -34,7 +34,7 @@ import { GONE, readAllBounces, SEND_ONLY } from "../../src/restate/bounce-schedu
 
 let pg: TestPostgres;
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
 }, 240_000);
 afterAll(() => pg?.stop());
 

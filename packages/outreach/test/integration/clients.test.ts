@@ -108,7 +108,7 @@ const spine = spineRecorder();
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   // Wren's own login: never a client's.
   await addAccount(pg.db, { platform: "reddit", account: "reddit@wren", now: new Date() });
   await addClient(pg.db, pg.url, {

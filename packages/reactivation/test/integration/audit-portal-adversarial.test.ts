@@ -88,7 +88,7 @@ async function seedEnrollment(db: Db, tag: string, email: string): Promise<numbe
 }
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   for (const database of [ACME, DEMO]) {
     await createDatabase(pg.db, database);
     await migrateClient(pg.url, database);

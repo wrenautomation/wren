@@ -14,7 +14,7 @@ import { syncSearch } from "../../src/sync.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, {
     id: "kappa",
     name: "Kappa",

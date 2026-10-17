@@ -59,7 +59,7 @@ const status = async (db: Db, id: string) =>
   (await db.select().from(contentDrafts).where(eq(contentDrafts.id, id)))[0]?.status;
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "rho", name: "Rho", products: { "marketing.stats": {} } });
   await addOperator(pg.db, "op@example.test");
   rho = open("rho");

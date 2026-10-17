@@ -82,7 +82,7 @@ const open = (c: { database: string }) => cachedDb(clientDatabaseUrl(pg.url, c.d
 const SHEET = { "research.lead_sheet": { verificationsPerDay: 0 } };
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, {
     id: "gamma",
     name: "Gamma",

@@ -85,7 +85,7 @@ const setStatus = async (status: string) => {
 };
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   keys = pgKeyStore(pg.db, throwawayRing());
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme Air", products: {} });
   await addOperator(pg.db, "ada@example.test");

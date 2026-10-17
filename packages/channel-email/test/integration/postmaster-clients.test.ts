@@ -57,7 +57,7 @@ async function domain(client: string, ref: string, ok: boolean) {
 }
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   const health = { "email.sequences": {}, "email.inbox_health": {} };
   await addClient(pg.db, pg.url, {
     id: "kappa",

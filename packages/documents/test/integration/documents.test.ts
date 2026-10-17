@@ -35,7 +35,7 @@ const api = () => documentsConsoleApi({ main: pg.db, open });
 let contact = 0;
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme Air", products: {} });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta", products: {} });
   await addOperator(pg.db, "ada@example.test");

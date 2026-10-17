@@ -43,7 +43,7 @@ const consolePortal = () => ingress().serviceClient<Console>({ name: "ConsolePor
 const tickOf = (key: string) => ingress().objectClient<Tick>({ name: "Tick" }, key);
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await addOperator(pg.db, "op@example.test");
   env = await startTestRestate({
     services: [

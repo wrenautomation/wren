@@ -36,7 +36,7 @@ const byTable = (r: Awaited<ReturnType<typeof syncDatabase>>) =>
   Object.fromEntries(r.tables.map((t) => [t.table, t]));
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   dir = mkdtempSync(join(tmpdir(), "wren-lake-"));
   await pg.db.execute("CREATE DATABASE wren_lake");
   const url = new URL(pg.url);

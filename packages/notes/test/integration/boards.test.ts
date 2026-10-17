@@ -28,7 +28,7 @@ const TABLES = [
 ];
 
 beforeAll(async () => {
-  pg = await startTestPostgres();
+  pg = await startTestPostgres({ own: true });
   await pg.db.execute("create database client_acme");
   acme = createDb(pg.url.replace(/\/[^/?]+(\?|$)/, "/client_acme$1"), { max: 2 });
   await migrate(acme.db);
