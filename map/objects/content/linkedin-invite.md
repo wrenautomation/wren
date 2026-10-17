@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-07 @ 50cd49f0
+verified: 2026-10-16 (send verdicts: not-sent hold)
 entity: packages/outreach/src/schema.ts:356
 ---
 
@@ -25,7 +25,7 @@ William, 2026-10-06 (relayed): 20 a day, a plan then the build. The sender is `l
 - Firm size, cheapest first: `companies.raw` `agency.team_size`, SEC ADV `5A`, PPP `enrichments` (`firmographics`, `ppp-foia`, `jobs_reported`), `findings` kind `profile` `employees` (Exa's cache of the LinkedIn page). A range compares by its top. Missing: Exa's company read or autobrowse's company page would fill it; nothing is bought
 - Engaged: `social_activity` LinkedIn `reaction`, `mention`, `follow` with an `/in/` actor URL. LinkedIn `comments` authors are URNs, not vanities, so commenters can't be matched yet. Prod had 0 such rows on 10-07
 - Notes cap: `notesThisMonth` in `tick.ts`, policy `linkedin.notesPerMonth` (5)
-- autobrowse's own daily cap (`connect: 20`): a send it refuses with a wait of hours (`capWaitMs`, `@wren/core/content`) moves that row and every queued invite of the account to the reset (`recordFailure`, `tick.ts`; held `cap`, no failure), so no tick asks before then (2026-10-15: one person was asked 8 times, an hour apart). A short 429 still holds the row an hour. The desk's browser busy (`browserBusy`) holds it 5 min, held `browser`, no failure
+- autobrowse's own daily cap (`connect: 20`): a send it refuses with a wait of hours (`capWaitMs`, `@wren/core/content`) moves that row and every queued invite of the account to the reset (`recordFailure`, `tick.ts`; held `cap`, no failure), so no tick asks before then (2026-10-15: one person was asked 8 times, an hour apart). A short 429 still holds the row an hour. A send autobrowse says did not go out (`not_sent`: busy browser, never submitted, read back absent) holds it 5 min under a new key (`recordNotSent`, `NOT_SENT_HOLD_MS`), held `not-sent`, no failure; an unknown one parks the message `unknown` and its [[content/send-attempt]] `dm:<id>`
 - No invite offered (already connected, invite pending, Follow only): autobrowse's connect answers `{ sent: false, relationship }`, the adapter a `NoInvite` (`@wren/core/outreach`); `recordNoInvite` (`tick.ts`) marks the row `skipped` (no cap, no failure; stat `noInvite`) and the contact `connected` (already connected, nothing queued after) or `unreachable` (pending, Follow only; a later accept in the sweep still lifts it), so no top-up proposes them again. An older autobrowse's "no invite dialog" error reads the same, reason `unknown` (2026-10-15)
 - Drafted notes (`packages/outreach/src/invite-notes.ts`): after the top-up, `notesPass` (`restate/index.ts`) drafts a note on proposed invites while `notesLeft` (cap less sent, less noted and waiting) lasts; the note sits on the row's `body` with `provenance.source = model`, 200 characters at most, facts guard as DMs. To approve shows it in the draft box; his words at Send invite (`setInviteNote`) are `edited`. Each step is in the draft record as `note:<contact id>`, kind `invite_note` (generated, edited, approved, rejected, sent)
 - Ramp: `standingOf` in `policy.ts`, 1 on the first send day then +3 a send day to 20 (`sendDaysBetween`; weekends don't count). William 10-06.
