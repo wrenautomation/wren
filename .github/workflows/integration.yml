@@ -3,7 +3,7 @@ on:
   push: { branches: [main] }
   pull_request:
   workflow_dispatch:
-# Every package's integration suite (Docker Postgres per file) and the spam score.
+# Every package's integration suite and the spam score.
 # Reports only: deploy follows ci.yml, so a red run here is fixed in the next batch.
 concurrency: { group: "integration-${{ github.ref }}", cancel-in-progress: true }
 jobs:
@@ -14,7 +14,10 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with: { node-version-file: .node-version, cache: pnpm }
-      - uses: actions/cache@v4
+      # The turbo cache is saved after every run, red or cancelled too: turbo writes only the
+      # tasks that passed. A save on green only made the run after a red one restore an older
+      # cache and retest 23 of 26 packages (91903b9b, 10-17).
+      - uses: actions/cache/restore@v4
         with:
           path: .turbo/cache
           key: turbo-integration-${{ github.sha }}
@@ -24,3 +27,11 @@ jobs:
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
+      # Every run restores the last cache and adds to it: entries no run used for a week go.
+      - if: always()
+        run: find .turbo/cache -type f -atime +7 -delete 2>/dev/null || true
+      - if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .turbo/cache
+          key: turbo-integration-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
