@@ -72,8 +72,9 @@ offers() {
 unit() { echo "==> unit tests" && pnpm turbo run test:unit $WIDE; }
 # Every integration file starts its own Postgres and migrates it. Vitest's default (cpus - 1 files at once)
 # times 3 packages put ~27 containers on the Docker VM together, and setup hooks timed out at 180 s.
-# A failed test retries once: a flake costs a rerun, not a red run.
-integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 -- --maxWorkers=3 --retry=1 && spam; }
+# A failed test retries once: a flake costs a rerun, not a red run. In CI a red package does not stop
+# the rest (--continue): every package that passes goes into the cache, so the next run skips it.
+integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 ${CI:+--continue} -- --maxWorkers=3 --retry=1 && spam; }
 # The deploy gate's database checks: drizzle's schema matches the migrations, and the legacy email tables still read.
 schema() {
   echo "==> schema (needs Docker)" &&

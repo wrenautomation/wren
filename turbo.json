@@ -2,14 +2,19 @@
   "$schema": "https://turbo.build/schema.json",
   "concurrency": "3",
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.test.ts", "!**/*.test.tsx", "!**/README.md"],
+      "outputs": ["dist/**"]
+    },
     "typecheck": { "dependsOn": ["^build"] },
     "test:unit": { "dependsOn": ["^build"] },
     "stories:build": { "dependsOn": ["^build"], "outputs": ["build/**"] },
     "test:integration": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!src/**/*.test.ts", "!src/**/*.test.tsx", "!**/README.md"],
       "outputs": [],
-      "env": ["DOCKER_HOST", "TESTCONTAINERS_RYUK_DISABLED"]
+      "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*", "WREN_TEST_PG_IMAGE"]
     },
     "test": { "dependsOn": ["test:unit", "test:integration"] }
   }
