@@ -12,6 +12,7 @@ import {
   describeSegment,
   jsonIn,
   matchingSql,
+  pickGroup,
   type Rule,
   readRule,
   recomputeOrder,
@@ -247,7 +248,7 @@ describe("describeSegment (golden, stub model)", () => {
       error: "No condition says what someone likes.",
     });
     expect(await describeSegment(m, "in the vip segment", ctx)).toEqual({
-      error: "the model named no segment we have (99)",
+      error: "the model named no group we have (99)",
     });
     expect(await describeSegment(m, "bad shape", ctx)).toMatchObject({
       error: expect.stringMatching(/didn't check: "plan is more than" needs a number/),
@@ -319,11 +320,11 @@ describe("segment triggers", () => {
     expect(part("trigger.date")).toBeDefined();
     const problems = (uses: string, w: Record<string, string | number>) =>
       logicProblems("t", node(uses, w)).join("; ");
-    expect(problems("trigger.segment", {})).toMatch(/segment's number/);
+    expect(problems("trigger.segment", {})).toMatch(/group's number/);
     expect(problems("trigger.trait", { trait: "Not A Key" })).toMatch(/trait key/);
     expect(problems("trigger.date", { trait: "renewal_date", offset: 400 })).toMatch(/-365 to 365/);
     expect(problems("trigger.date", { trait: "renewal_date", offset: -7 })).toBe("");
-    expect(problems("logic.segment", {})).toMatch(/segment's number/);
+    expect(problems("logic.segment", {})).toMatch(/group's number/);
     expect(problems("logic.segment", { segment: 3 })).toBe("");
   });
 
@@ -351,5 +352,35 @@ describe("segment triggers", () => {
     expect([...h.segments]).toEqual([2]);
     expect([...h.traits]).toEqual(["plan"]);
     expect(h.dates).toEqual([{ key: "renewal_date", offset: -7, every: "once" }]);
+  });
+});
+
+describe("pickGroup", () => {
+  const groups = [
+    { id: 3, name: "Warm leads", kind: "live" as const },
+    { id: 4, name: "Met at the fair", kind: "manual" as const },
+    { id: 5, name: "Frozen", kind: "snapshot" as const },
+  ];
+
+  it("takes a manual group by id or by name in any case", () => {
+    expect(pickGroup(groups, 4)).toEqual({ group: groups[1] });
+    expect(pickGroup(groups, "4")).toEqual({ group: groups[1] });
+    expect(pickGroup(groups, "  met  AT the fair ")).toEqual({ group: groups[1] });
+  });
+
+  it("makes a new manual group from a name that matches none", () => {
+    expect(pickGroup(groups, "  Fair   follow-ups ")).toEqual({ make: "Fair follow-ups" });
+  });
+
+  it("refuses a live or snapshot group in words", () => {
+    expect(() => pickGroup(groups, "warm leads")).toThrow(
+      "Warm leads follows a rule: only manual groups take people by hand",
+    );
+    expect(() => pickGroup(groups, 5)).toThrow(/Frozen follows a rule/);
+  });
+
+  it("refuses an empty pick", () => {
+    expect(() => pickGroup(groups, "  ")).toThrow("pick a group or type a new name");
+    expect(() => pickGroup(groups, undefined)).toThrow(/pick a group/);
   });
 });

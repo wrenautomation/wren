@@ -5,7 +5,14 @@
  * profiles).
  */
 import type { State } from "@wren/core/records";
-import { Facts, type IconName, type RecordExtras, TimelineMini } from "@wren/ui";
+import {
+  Alert,
+  Facts,
+  type IconName,
+  PlatformMark,
+  type RecordExtras,
+  TimelineMini,
+} from "@wren/ui";
 import { createElement, type ReactNode } from "react";
 
 /** Each timeline kind's icon on its node, here and on the Timeline page. */
@@ -66,7 +73,28 @@ interface Warmth {
   size: string;
 }
 
+interface Reach {
+  emails: string[];
+  phones: string[];
+  handles: {
+    platform: string;
+    label: string;
+    handle: string;
+    url: string | null;
+    name: string | null;
+  }[];
+  person: {
+    name: string;
+    title: string | null;
+    company: string | null;
+    linkedinUrl: string | null;
+  } | null;
+}
+
 interface Detail {
+  reach?: Reach | null;
+  /** Parts that failed to read. */
+  failed?: string[];
   timeline: { kind: string; label: string; count: number; last: string | null; href: string }[];
   total: number;
   lines?: Line[];
@@ -80,6 +108,72 @@ const isDetail = (d: unknown): d is Detail =>
 
 const day = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" }) : null;
+
+/** Labels once each: a second "LinkedIn" is "LinkedIn 2". */
+function unique(labels: string[]): string[] {
+  const seen = new Map<string, number>();
+  return labels.map((l) => {
+    const n = (seen.get(l) ?? 0) + 1;
+    seen.set(l, n);
+    return n > 1 ? `${l} ${n}` : l;
+  });
+}
+
+/** Who they are (the research row), then every address as a link: handles with their site's mark. */
+function ReachFacts({ reach }: { reach: Reach }) {
+  const { person } = reach;
+  const who: [string, ReactNode][] = [];
+  if (person?.title) who.push(["Title", person.title]);
+  if (person?.company) who.push(["Company", person.company]);
+  if (person?.linkedinUrl)
+    who.push([
+      "On LinkedIn",
+      <a key="li" href={person.linkedinUrl} target="_blank" rel="noreferrer">
+        <PlatformMark mark="linkedin" /> {person.linkedinUrl.replace(/^https?:\/\/(www\.)?/, "")}
+      </a>,
+    ]);
+  const labels = unique(reach.handles.map((h) => h.label));
+  const addresses: [string, ReactNode][] = [
+    ...reach.emails.map(
+      (e, i) =>
+        [
+          i ? `Email ${i + 1}` : "Email",
+          <a key={e} href={`mailto:${e}`}>
+            <PlatformMark mark="email" /> {e}
+          </a>,
+        ] as [string, ReactNode],
+    ),
+    ...reach.phones.map(
+      (p, i) =>
+        [
+          i ? `Phone ${i + 1}` : "Phone",
+          <a key={p} href={`tel:${p}`}>
+            <PlatformMark mark="call" /> {p}
+          </a>,
+        ] as [string, ReactNode],
+    ),
+    ...reach.handles.map((h, i) => {
+      const shown = h.name ? `${h.name} (${h.handle})` : h.handle;
+      return [
+        labels[i] ?? h.label,
+        h.url ? (
+          <a key={h.handle} href={h.url} target="_blank" rel="noreferrer">
+            <PlatformMark mark={h.platform} /> {shown}
+          </a>
+        ) : (
+          <span key={h.handle}>
+            <PlatformMark mark={h.platform} /> {shown}
+            <span className="text-(--ui-ink-2)"> (no page known)</span>
+          </span>
+        ),
+      ] as [string, ReactNode];
+    }),
+  ];
+  const items = [...who, ...addresses];
+  if (!items.length)
+    return <p className="text-(--ui-ink-2)">No email, phone or site handle yet.</p>;
+  return <Facts items={items} />;
+}
 
 /** Their newest lines on a short rail, then every kind counted, each a link to its lines. */
 function Counts({ detail }: { detail: Detail }) {
@@ -210,11 +304,19 @@ function Visits({ visits }: { visits: Visit[] }) {
   );
 }
 
-/** The profile page's Warmth and Timeline sections, and Site visits when it has a visitor key. */
+/** The profile page's Profiles, Warmth and Timeline sections, and Site visits when it has a visitor key. */
 export const profileExtras = (detail: unknown): RecordExtras =>
   isDetail(detail)
     ? {
         sections: [
+          ...(detail.reach
+            ? [
+                ["Profiles", createElement(ReachFacts, { reach: detail.reach })] as [
+                  string,
+                  ReactNode,
+                ],
+              ]
+            : []),
           ...(detail.warmth
             ? [["Warmth", createElement(WarmthFacts, { w: detail.warmth })] as [string, ReactNode]]
             : []),
@@ -225,6 +327,17 @@ export const profileExtras = (detail: unknown): RecordExtras =>
                   string,
                   ReactNode,
                 ],
+              ]
+            : []),
+          ...(detail.failed?.length
+            ? [
+                [
+                  "Not loaded",
+                  createElement(Alert, {
+                    onRetry: () => location.reload(),
+                    children: `${detail.failed.join(", ")} didn't load. The rest is here.`,
+                  }),
+                ] as [string, ReactNode],
               ]
             : []),
         ],

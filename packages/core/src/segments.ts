@@ -707,6 +707,43 @@ export async function addMembers(
   );
 }
 
+/**
+ * The group a person said: an id, or a name in any case. A name that matches none is a new manual
+ * group (`make`). A live or snapshot group follows its rule, so it refuses.
+ */
+export function pickGroup(
+  groups: readonly Pick<Segment, "id" | "name" | "kind">[],
+  said: string | number | null | undefined,
+): { group: Pick<Segment, "id" | "name" | "kind"> } | { make: string } {
+  const text = String(said ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!text) throw new PortalRefusal("pick a group or type a new name");
+  const low = text.toLowerCase();
+  const group = groups.find((g) => String(g.id) === low || g.name.toLowerCase() === low);
+  if (!group) return { make: text };
+  if (group.kind !== "manual")
+    throw new PortalRefusal(`${group.name} follows a rule: only manual groups take people by hand`);
+  return { group };
+}
+
+/** People put in a manual group by hand, named by id or name; a new name makes the group. */
+export async function addToGroup(
+  db: Queryable,
+  said: string | number | null | undefined,
+  profileIds: readonly number[],
+  by: string,
+  now: Date,
+): Promise<{ group: Segment; made: boolean; change: MembershipChange }> {
+  const got = pickGroup(await listSegments(db), said);
+  const made = "make" in got;
+  const id = made
+    ? (await saveSegment(db, { name: got.make, kind: "manual" }, by, now)).segment.id
+    : got.group.id;
+  const change = await addMembers(db, id, profileIds, now);
+  return { group: (await segmentById(db, id)) as Segment, made, change };
+}
+
 /** Profiles taken out of a manual segment. */
 export async function removeMembers(
   db: Queryable,
@@ -729,8 +766,8 @@ export async function removeMembers(
 
 async function manualOf(db: Queryable, id: number): Promise<Segment> {
   const s = await segmentById(db, id);
-  if (!s) throw new PortalRefusal("no such segment", 404);
-  if (s.kind !== "manual") throw new PortalRefusal("only a manual segment takes people by hand");
+  if (!s) throw new PortalRefusal("no such group", 404);
+  if (s.kind !== "manual") throw new PortalRefusal("only a manual group takes people by hand");
   if (s.state === "archived") throw new PortalRefusal("restore it first", 409);
   return s;
 }
@@ -754,7 +791,7 @@ export async function segmentMembers(
   o: { after?: number; limit?: number; now?: Date } = {},
 ): Promise<SegmentMember[]> {
   const s = await segmentById(db, segmentId);
-  if (!s) throw new PortalRefusal("no such segment", 404);
+  if (!s) throw new PortalRefusal("no such group", 404);
   const limit = Math.min(Math.max(1, o.limit ?? 1000), 1000);
   const got = await rows(
     db,
@@ -803,8 +840,8 @@ async function cycleOf(db: Queryable, id: number | null, rule: Rule): Promise<st
   const all = await listSegments(db);
   const byId = new Map(all.map((s) => [s.id, s]));
   for (const ref of segmentsIn(rule)) {
-    if (!byId.has(ref)) return `no segment ${ref}`;
-    if (ref === id) return "a segment can't be in its own rule";
+    if (!byId.has(ref)) return `no group ${ref}`;
+    if (ref === id) return "a group can't be in its own rule";
   }
   if (id === null) return null;
   // Does anything this rule reads read `id`, however far down?
@@ -817,7 +854,7 @@ async function cycleOf(db: Queryable, id: number | null, rule: Rule): Promise<st
     return !!r && byId.get(s)?.kind === "live" && segmentsIn(r).some(reads);
   };
   const back = segmentsIn(rule).find(reads);
-  return back ? `${byId.get(back)?.name ?? back} already reads this segment` : null;
+  return back ? `${byId.get(back)?.name ?? back} already reads this group` : null;
 }
 
 /**
@@ -845,13 +882,13 @@ export async function saveSegment(
   }
   const id = input.id ?? null;
   const was = id === null ? null : await segmentById(db, id);
-  if (id !== null && !was) throw new PortalRefusal("no such segment", 404);
-  if (was && was.kind !== kind) throw new PortalRefusal("a segment keeps its kind; make a new one");
+  if (id !== null && !was) throw new PortalRefusal("no such group", 404);
+  if (was && was.kind !== kind) throw new PortalRefusal("a group keeps its kind; make a new one");
   if (was?.state === "archived") throw new PortalRefusal("restore it first", 409);
   const expect = input.expect ? new Date(input.expect) : null;
   if (expect && Number.isNaN(expect.getTime()))
     throw new PortalRefusal("expect is a version", 400, "expect");
-  if (was && expect && was.updatedAt !== expect.toISOString()) throw staleRefusal("segment");
+  if (was && expect && was.updatedAt !== expect.toISOString()) throw staleRefusal("group");
   if (rule) {
     const cycle = await cycleOf(db, id, rule);
     if (cycle) throw new PortalRefusal(cycle, 422);
@@ -860,7 +897,7 @@ export async function saveSegment(
     db,
     sql`select id from segments where name = ${name} ${id === null ? sql`` : sql`and id <> ${id}`}`,
   );
-  if (clash.length) throw new PortalRefusal(`there's a segment called ${name} already`, 409);
+  if (clash.length) throw new PortalRefusal(`there's a group called ${name} already`, 409);
   const at = now.toISOString();
   const words = input.words?.trim().slice(0, 2000) || null;
   const ruleJson = rule ? JSON.stringify(rule) : null;
@@ -880,7 +917,7 @@ export async function saveSegment(
             where id = ${id} and date_trunc('milliseconds', updated_at) = ${was?.updatedAt}::timestamptz
             returning id`,
         );
-  if (!row) throw staleRefusal("segment");
+  if (!row) throw staleRefusal("group");
   const sid = Number(row?.id);
   await db.execute(sql`insert into segment_versions (segment_id, version, name, kind, rule, words, by, at)
     select id, version, name, kind, rule, words, ${by}, ${at}::timestamptz from segments
@@ -923,7 +960,7 @@ export async function segmentVersions(db: Queryable, id: number): Promise<Segmen
 /** A snapshot taken again now. */
 export async function retake(db: Queryable, id: number, now: Date): Promise<MembershipChange> {
   const s = await segmentById(db, id);
-  if (!s) throw new PortalRefusal("no such segment", 404);
+  if (!s) throw new PortalRefusal("no such group", 404);
   if (s.kind !== "snapshot") throw new PortalRefusal("only a snapshot is taken again");
   if (s.state === "archived") throw new PortalRefusal("restore it first", 409);
   return (await recompute(db, id, now)) as MembershipChange;
@@ -942,7 +979,7 @@ async function readersOf(db: Queryable, id: number): Promise<Segment[]> {
  */
 export async function archiveSegment(db: Queryable, id: number, now: Date): Promise<Segment> {
   const s = await segmentById(db, id);
-  if (!s) throw new PortalRefusal("no such segment", 404);
+  if (!s) throw new PortalRefusal("no such group", 404);
   if (s.state === "archived") return s;
   const readers = await readersOf(db, id);
   const used = [
@@ -962,7 +999,7 @@ export async function restoreSegment(
   now: Date,
 ): Promise<{ segment: Segment; change: MembershipChange | null }> {
   const s = await segmentById(db, id);
-  if (!s) throw new PortalRefusal("no such segment", 404);
+  if (!s) throw new PortalRefusal("no such group", 404);
   const at = now.toISOString();
   await db.execute(sql`update segments set state = 'active', archived_at = null,
     used_at = ${at}::timestamptz, updated_at = ${at}::timestamptz where id = ${id}`);
@@ -1033,7 +1070,7 @@ export async function previewRule(db: Queryable, raw: unknown, now: Date): Promi
   if ("problems" in got) throw new PortalRefusal(got.problems.join("; "), 422);
   const names = await segmentNames(db);
   for (const ref of segmentsIn(got.rule))
-    if (!names.has(ref)) throw new PortalRefusal(`no segment ${ref}`, 422);
+    if (!names.has(ref)) throw new PortalRefusal(`no group ${ref}`, 422);
   const m = matchingSql(got.rule, now);
   const [n] = await rows(db, sql`select count(*)::int n from (${m}) x`);
   const sample = await rows(
@@ -1182,8 +1219,7 @@ export async function describeSegment(
     return { error: `the model's rule didn't check: ${got.problems.join("; ")}` };
   const known = new Set(c.segments.map((s) => s.id));
   const missing = segmentsIn(got.rule).filter((s) => !known.has(s));
-  if (missing.length)
-    return { error: `the model named no segment we have (${missing.join(", ")})` };
+  if (missing.length) return { error: `the model named no group we have (${missing.join(", ")})` };
   const traits = new Set(c.traits);
   const unknownTraits = [
     ...new Set(

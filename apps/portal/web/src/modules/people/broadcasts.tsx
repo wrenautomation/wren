@@ -1,5 +1,5 @@
 /**
- * People > Broadcasts (designs/2026-10-14-customerio-audit.md, B6): one send to a segment, by
+ * People > Broadcasts (designs/2026-10-14-customerio-audit.md, B6): one send to a group, by
  * email or text. The head writes one (plain text with merge fields, as the Newsletter's box) and
  * shows the month's calendar. Every broadcast waits in To approve; nothing sends before that yes.
  * A broadcast's page shows its results on the sent log's ladder, each count a link to its rows,
@@ -269,7 +269,7 @@ function BroadcastEditor({
           ) : null}
         </label>
         <label className={FIELD}>
-          Segment
+          Group
           <select
             className={SMALL}
             value={segmentId ?? ""}
@@ -735,7 +735,7 @@ export const BROADCAST_DECIDE_ACTIONS: Action[] = [
     id: "people.broadcastApprove",
     label: "Approve",
     handler: "people/broadcastApprove",
-    confirm: "Approve it? It sends to everyone in its segment who said yes, on its time.",
+    confirm: "Approve it? It sends to everyone in its group who said yes, on its time.",
     key: "a",
     when: { state: ["waiting"] },
     sets: { state: "scheduled" },
@@ -759,7 +759,7 @@ export const BROADCAST_DECIDE_ACTIONS: Action[] = [
 export const broadcastsPage: ListPage = {
   id: "broadcasts",
   label: "Broadcasts",
-  about: "One email or text to a segment, sent once To approve says yes.",
+  about: "One email or text to a group, sent once To approve says yes.",
   template: "list",
   record: "people.broadcast",
   columns: ["name", "channel", "state", "segment", "when", "people", "sent", "waiting", "skipped"],
@@ -835,5 +835,5 @@ export const recipientsPage: ListPage = {
   record: "people.recipient",
   hidden: true,
   columns: ["name", "broadcast", "address", "state", "why", "dueAt", "sentAt"],
-  empty: "Nobody yet. A broadcast reads its segment when it starts.",
+  empty: "Nobody yet. A broadcast reads its group when it starts.",
 };

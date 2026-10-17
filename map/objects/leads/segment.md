@@ -9,15 +9,15 @@ entity: packages/core/src/segments-schema.ts:38
 
 # segment
 
-A named group of profiles in a workspace: live (a rule kept true), manual (by hand) or snapshot (a rule's answer, frozen). Table `segments`; who is in is [[leads/segment-membership]]. People → Segments.
+A named group of profiles in a workspace: live (a rule kept true), manual (by hand) or snapshot (a rule's answer, frozen). Table `segments`; who is in is [[leads/segment-membership]]. Called Groups in every word a person reads (People → Groups, `/people/groups`); table, record and handler names keep "segment".
 
 ## Why this shape
 
 A rule is data (`Rule`, a group of conditions and groups), compiled to one SQL test on `profiles p` (`compileRule`, `packages/core/src/segments.ts:445`) over [[leads/profile]] traits, its timeline, [[leads/consent]] by [[leads/profile-key]], the [[leads/sent-log]] by `key_kind` + `key_value`, [[leads/channel-stats]] steps (`profile_steps`), and other segments' members. The same rule reads as text (`packages/core/src/segments-text.ts`: `ruleText`, `parseRule`), so agents write it in the CLI and the portal's Edit as text; JSON stays the stored form. Members are stored, not recomputed per read, so entries and exits are events the spine can hear and a [[leads/broadcast]] reads a fixed list. One recompute is one statement (`setMembers`): delete who left, insert who came, log both.
 
-A segment keeps its kind. A live one recomputes on save and on every pass, dependencies first (`recomputeOrder`); a rule that would read itself is refused (`cycleOf`). A snapshot counts once when made and again on Retake. A manual one has no rule; people go in from the People list (Add to segment) and out from its members.
+A segment keeps its kind. A live one recomputes on save and on every pass, dependencies first (`recomputeOrder`); a rule that would read itself is refused (`cycleOf`). A snapshot counts once when made and again on Retake. A manual one has no rule; people go in from the People list (Add to group: a box that lists the manual groups and takes a new name, `addToGroup`, `packages/core/src/segments.ts`; a name that matches a live or snapshot group is refused) and out from its members.
 
-What uses it (workflows' Segment triggers, other segments' rules, broadcasts not yet done: `broadcastUses`, `packages/core/src/broadcasts.ts:856`) is written on the row by each pass (`setUses`, `:802`), so the list says it without reading every workflow. Anything that uses it moves `used_at`; unused 90 days, it's archived (`archiveUnused`, `:784`), members kept. Restore is one click. Archive by hand is refused while it's used.
+What uses it (workflows' Group triggers, other segments' rules, broadcasts not yet done: `broadcastUses`, `packages/core/src/broadcasts.ts:856`) is written on the row by each pass (`setUses`, `:802`), so the list says it without reading every workflow. Anything that uses it moves `used_at`; unused 90 days, it's archived (`archiveUnused`, `:784`), members kept. Restore is one click. Archive by hand is refused while it's used.
 
 ## Shape
 
@@ -25,13 +25,13 @@ What uses it (workflows' Segment triggers, other segments' rules, broadcasts not
 - SQL functions `segment_date(jsonb)`, `segment_number(jsonb)` (migration 0252): a trait read as a day or number, null when it isn't one.
 - `segments.version` int, bumped by every save; `segment_versions` (PK `segment_id`+`version`): name, kind, rule, words, by, at per save (migration 0270 backfills v1). Read: `segmentVersions`.
 - Conditions: trait (is, contains, gt, lt, exists, before, after, in_next, in_last, one_of), event (a timeline kind, optional channel and `match` words, at least N or at most M times in D days, optional `after`/`before` the person's first line of a kind), consent (channel + state, or `opted_out` from `sms_contacts`), message (a sent-log state on a channel, optional campaign words, at least/at most, counting those past it on the ladder: `MESSAGE_STATES`), step (a funnel step from `profile_steps`, optional channel and source, in D days; booked/paid on a channel = after a reach there), segment. Any with `not`. Groups all|any, 30 conditions, 4 deep (`RULE_MOST`).
-- `inSegment(db, profileId, segment|rule)` (`:1060`): one person against a rule now, following `merged_into`. The spine's In segment step (`logic.segment`, `packages/core/src/segment-step.ts`) asks it.
+- `inSegment(db, profileId, segment|rule)` (`:1060`): one person against a rule now, following `merged_into`. The spine's In group step (`logic.segment`, `packages/core/src/segment-step.ts`) asks it.
 - Writes: `saveSegment` (`:827`), `retake`, `archiveSegment`, `restoreSegment`, `addMembers` (`:535`), `removeMembers`. Reads: `previewRule` (`:1031`, count + 20 names + words), `segmentMembers` (`:596`, B6's read, pages by profile id, counts as a use).
 - Describe: `describeSegment` (`:926`) asks a `SegmentModel` (the worker passes Wren's `llm`, or a client's metered one, part `people.segments`), parses with `readRule`, refuses an unknown segment id, names unknown trait keys. Never saves; the page shows the rule's words for a yes.
-- Portal: `PeopleConsole` routes `segmentContext`, `segmentPreview` (read), `segmentDescribe`, `segmentSave`, `segmentArchive`, `segmentRestore`, `segmentRetake`, `memberAdd`, `memberRemove` (act), `segmentText`, `segmentVersions` (read) (`packages/core/src/people-console.ts:101`). No client named and a team login: Wren's segments on main; else the client's database.
-- Records `people.segment` (`packages/core/src/segment-records.ts:66`, view `segment_records`) with `load` = rule in words and 7/30-day moves; the Data index's "Used by" adds "Segment <name>" per data point a rule reads (`dataOf`).
+- Portal: `PeopleConsole` routes `segmentContext`, `segmentPreview` (read), `segmentDescribe`, `segmentSave`, `segmentArchive`, `segmentRestore`, `segmentRetake`, `memberAdd` (input `group`: id or name), `memberRemove` (act), `segmentText`, `segmentVersions` (read) (`packages/core/src/people-console.ts:101`). No client named and a team login: Wren's segments on main; else the client's database.
+- Records `people.segment` (`packages/core/src/segment-records.ts:66`, view `segment_records`) with `load` = rule in words and 7/30-day moves; the Data index's "Used by" adds "Group <name>" per data point a rule reads (`dataOf`).
 
-- CLI: `wren segments list|show|check|count|save|members|history|in` (`apps/cli/src/segments.ts`), rules as text, `@file` or stdin.
+- CLI: `wren groups list|show|check|count|save|members|history|in` (`apps/cli/src/groups.ts`; the rule text keyword is `group`, `segment` still parses), rules as text, `@file` or stdin.
 
 Citations: `packages/core/src/segments-schema.ts:38`, `packages/core/src/segments.ts:445`, `packages/core/src/segments.ts:827`, `packages/core/src/segments.ts:1060`, `packages/core/src/segments-pass.ts:223`
 
@@ -51,11 +51,11 @@ Citations: `packages/core/src/segments-schema.ts:38`, `packages/core/src/segment
 
 | Surface | Role |
 |---|---|
-| People → Segments (portal) | reads, writes |
-| People → People, Add to segment | writes (manual) |
+| People → Groups (portal) | reads, writes |
+| People → People, Add to group | writes (manual; a new name makes the group) |
 | `Segments/<key>/wake` | writes (recompute) |
-| `wren segments` | reads, writes |
-| spine `logic.segment` | reads |
+| `wren groups` | reads, writes |
+| spine `logic.segment` ("In group") | reads |
 
 ## See
 

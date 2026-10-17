@@ -56,7 +56,7 @@ describe("parseRule", () => {
 
   it("reads trait ops, numbers and segments by name", () => {
     const rule = ok(
-      'any(trait seats > 10, trait plan one_of "pro, team", trait renewal_date in_next 30, trait email exists, segment "Warm leads", segment 4)',
+      'any(trait seats > 10, trait plan one_of "pro, team", trait renewal_date in_next 30, trait email exists, group "Warm leads", segment 4)',
       new Map([["warm leads", 7]]),
     );
     expect(rule.match).toBe("any");
@@ -77,7 +77,7 @@ describe("parseRule", () => {
     expect(problems('trait plan is "pro')).toMatch(/never closes/);
     expect(problems("wish for money")).toMatch(/isn't a condition/);
     expect(problems("step clicked")).toMatch(/step/);
-    expect(problems('segment "Nope"')).toMatch(/no segment called/);
+    expect(problems('group "Nope"')).toMatch(/no group called/);
     expect(problems("event form in 30")).toMatch(/30d/);
     expect(problems("event form 5..2")).toMatch(/at most is under/);
     expect(problems('trait plan one_of " , "')).toMatch(/needs values/);
@@ -138,7 +138,7 @@ describe("ruleText", () => {
     expect(ruleText(RULES[0] as Rule)).toBe('all(trait plan is "say \\"pro\\"")');
     const long = ruleText(RULES[1] as Rule, new Map([[3, "Warm leads"]]));
     expect(long.split("\n")[0]).toBe("all(");
-    expect(long).toContain('  segment "Warm leads"');
+    expect(long).toContain('  group "Warm leads"');
     expect(long).toContain("  not any(event touch on reddit in 30d, event booking never)");
   });
 });

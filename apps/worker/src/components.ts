@@ -66,10 +66,9 @@ export const PLATFORM = {
     LoopWatch: "wakes a loop that stopped on its own and names one stuck behind a call, once each",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
-    PeopleConsole: "People in every workspace: records, segments, Describe segment, broadcasts",
-    Segments:
-      "a workspace's segments kept true; entries, exits, traits and dates told to the spine",
-    SegmentsNet: "wakes every workspace's segments pass every 15 minutes",
+    PeopleConsole: "People in every workspace: records, groups, Describe group, broadcasts",
+    Segments: "a workspace's groups kept true; entries, exits, traits and dates told to the spine",
+    SegmentsNet: "wakes every workspace's groups pass every 15 minutes",
     PeopleMap: "a workspace's people map: each person's stage, warmth and persona rebuilt",
     PeopleMapNet: "wakes every workspace's people map every 15 minutes",
     Decide:
@@ -132,7 +131,7 @@ export const PLATFORM = {
     "people.trait": "what we know of a person, one value per trait, every change kept",
     "people.merge": "two profiles found to be one person, and what moved",
     "people.datum": "every address kind, trait and timeline kind, who has it, what uses it",
-    "people.segment": "a named group of people: live, by hand or a snapshot",
-    "people.member": "who is in each segment, and since when",
+    "people.segment": "a saved list of people: live, by hand or a snapshot",
+    "people.member": "who is in each group, and since when",
   },
 } as const;

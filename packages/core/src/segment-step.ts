@@ -1,6 +1,6 @@
 /**
- * The spine's In segment step (designs/2026-10-15-channel-stats.md): is the person this event is
- * about in a People segment now? Yes or no; skip when no person is found. A client's workflow
+ * The spine's In group step (designs/2026-10-15-channel-stats.md): is the person this event is
+ * about in a People group now? Yes or no; skip when no person is found. A client's workflow
  * checks the client's own database (`open`).
  */
 import * as restate from "@restatedev/restate-sdk";
@@ -83,7 +83,7 @@ export async function profileOfEvent(db: Queryable, e: SpineEvent): Promise<numb
 export function segmentWould(w: StepAt["with"], e: SpineEvent): string {
   const p = personOf(e);
   const who = p.email || p.phone || (e.data?.profile ? `profile ${e.data.profile}` : e.subject);
-  return `Would check if ${who} is in segment ${String(w.segment ?? "?")}`;
+  return `Would check if ${who} is in group ${String(w.segment ?? "?")}`;
 }
 
 export function segmentStep(main: Queryable, open: (client: string) => Queryable): Step {
@@ -91,7 +91,7 @@ export function segmentStep(main: Queryable, open: (client: string) => Queryable
     const db = at.client ? open(at.client) : main;
     const id = Number(at.with.segment);
     const seg = Number.isSafeInteger(id) ? await segmentById(db, id) : null;
-    if (!seg) throw new restate.TerminalError(`In segment: no segment ${String(at.with.segment)}`);
+    if (!seg) throw new restate.TerminalError(`In group: no group ${String(at.with.segment)}`);
     const profile = await profileOfEvent(db, e);
     if (!profile) return [{ port: "skip", event: e }];
     const yes = await inSegment(db, profile, seg, new Date());

@@ -68,7 +68,7 @@ import { PORTAL_FIELDS, serviceHandler } from "./restate/form.js";
 import { topics } from "./schema.js";
 import { SEGMENT_RECORDS } from "./segment-records.js";
 import {
-  addMembers,
+  addToGroup,
   archiveSegment,
   type DescribeContext,
   describeSegment,
@@ -143,9 +143,9 @@ export interface SegmentIdsRequest extends PortalRequest {
   ids?: (string | number)[];
 }
 export interface SegmentSaveRequest extends PortalRequest, Partial<SegmentInput> {}
-/** Profiles (`ids`) put in a manual segment, named by its name or id. */
+/** Profiles (`ids`) put in a manual group, named by its name or id; a new name makes one. */
 export interface MemberAddRequest extends PortalRequest {
-  segment?: string | number;
+  group?: string | number;
   ids?: (string | number)[];
 }
 
@@ -308,19 +308,12 @@ export function peopleConsoleApi({
     segmentArchive: (req: SegmentIdsRequest) => each(req, archiveSegment),
     segmentRestore: (req: SegmentIdsRequest) => each(req, restoreSegment),
     segmentRetake: (req: SegmentIdsRequest) => each(req, retake),
-    /** People put in a manual segment by hand. */
+    /** People put in a manual group by hand; a name that matches no group makes one. */
     memberAdd: async (req: MemberAddRequest) => {
       const w = await workspace(req, "act");
-      const named = String(req.segment ?? "")
-        .trim()
-        .toLowerCase();
-      const seg = (await listSegments(w.db)).find(
-        (s) => String(s.id) === named || s.name.toLowerCase() === named,
-      );
-      if (!seg) throw new PortalRefusal(`no segment called ${String(req.segment ?? "")}`, 404);
       const ids = idsOf(req);
-      await addMembers(w.db, seg.id, ids, now());
-      return { done: ids, segment: seg.name };
+      const got = await addToGroup(w.db, req.group, ids, by(req), now());
+      return { done: ids, group: got.group.name, made: got.made };
     },
     /** Members taken out of their manual segment, by member id (`<segment>:<profile>`). */
     memberRemove: async (req: PortalRequest & { ids?: string[] }) => {

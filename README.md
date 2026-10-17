@@ -190,15 +190,15 @@ On the page, Board has Export CSV and Import. Import takes a CSV or a table past
 
 The desk on William's Mac records each booked call with OBS. It starts 5 minutes before the call if a Meet or Zoom window is open. It stops 3 minutes after the window closes. Record now and Stop recording sit on Calendar > Calls and Inbox > Calls. The desk asks `wren calls upcoming` what to wait for, and runs `wren calls add <file>` on each finished file. That command encodes a 720p mp4 and transcribes it on the Mac. It writes the notes, uploads the video and puts a line on the person's timeline. Calendar > Recordings lists every recording. Setup and the desk side live in autobrowse (`autobrowse calls setup`); the design is `designs/2026-10-16-call-recording.md`.
 
-## Segments and channels
+## Groups and channels
 
-A segment's rule reads as text, so agents write it the way the portal stores it:
+A group's rule reads as text, so agents write it the way the portal stores it:
 `all(trait persona is "agency owner", step saw on reddit in 30d, not message opened on email ever)`.
-`wren segments check|count <rule>` reads one and counts it; `save <name> --rule <rule>` makes or
-changes one (each save is a version, `history <segment>` lists them); `list`, `show`, `members`,
-and `in <segment> <id|email>` (exits 1 when not). A rule can be inline, `@file` or `-` for stdin.
+`wren groups check|count <rule>` reads one and counts it; `save <name> --rule <rule>` makes or
+changes one (each save is a version, `history <group>` lists them); `list`, `show`, `members`,
+and `in <group> <id|email>` (exits 1 when not). A rule can be inline, `@file` or `-` for stdin.
 `wren channels` prints each channel's funnel, reached to paid (`--by source|trait:<key>`,
-`--channel`, `--days`, `--segment`, `--rule`, `--attribution any|first|last`,
+`--channel`, `--days`, `--group`, `--rule`, `--attribution any|first|last`,
 `--people <key>:<step>` for the people behind one number, `--json`).
 
 ## SOPs

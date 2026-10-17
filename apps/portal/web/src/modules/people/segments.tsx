@@ -1,7 +1,7 @@
 /**
- * People > Segments (designs/2026-10-14-customerio-audit.md, B5): named groups of people, by a
+ * People > Groups (designs/2026-10-14-customerio-audit.md, B5; named Groups on 2026-10-17): named lists of people, by a
  * rule or by hand. The head makes one: describe it in words (the model writes the rule) or build
- * the rule, see how many it matches, then save. A segment's page shows its rule in words, who
+ * the rule, see how many it matches, then save. A group's page shows its rule in words, who
  * came and went, and edits it. Nothing here sends.
  */
 
@@ -50,7 +50,7 @@ import { useEditJson } from "./edit-json.js";
 /** The save key of the rule being edited, for the boxes deep in its tree. */
 const RuleKey = createContext("");
 
-/** Whose segments a call is about: none named is Wren's own. */
+/** Whose groups a call is about: none named is Wren's own. */
 export const atOf = (client: string): Record<string, string> =>
   client === WREN.id ? {} : { client };
 
@@ -73,7 +73,7 @@ interface Described {
   unknownTraits: string[];
 }
 type Kind = "live" | "manual" | "snapshot";
-/** What the editor starts from: a new segment, or one being changed. */
+/** What the editor starts from: a new group, or one being changed. */
 export interface Start {
   id?: number;
   name: string;
@@ -94,7 +94,7 @@ const CONDITION_KINDS: Record<Condition["kind"], string> = {
   event: "Did something",
   message: "A message we sent",
   consent: "Consent",
-  segment: "In a segment",
+  segment: "In a group",
   step: "Funnel step",
 };
 const CONSENT_LABELS: Record<string, string> = {
@@ -454,13 +454,13 @@ function ConditionRow({
       {c.kind === "segment" ? (
         ctx.segments.length ? (
           <Pick
-            label="Segment"
+            label="Group"
             value={String(c.segment)}
             options={Object.fromEntries(ctx.segments.map((s) => [String(s.id), s.name]))}
             onChange={(v) => set({ segment: Number(v) })}
           />
         ) : (
-          <span className={QUIET}>No other segment yet.</span>
+          <span className={QUIET}>No other group yet.</span>
         )
       ) : null}
       <Button size="dense" tone="quiet" onClick={onRemove}>
@@ -564,7 +564,7 @@ function GroupBox({
   );
 }
 
-/** Are there words or a rule kept for this segment that the server doesn't hold? */
+/** Are there words or a rule kept for this group that the server doesn't hold? */
 function useKeptSegment(
   id: number | "new",
   start: { name: string; words: string | null; rule: Rule | null },
@@ -578,7 +578,7 @@ function useKeptSegment(
 }
 
 /**
- * Make or change a segment: words to a rule (the model), the rule by hand, a live count, then
+ * Make or change a group: words to a rule (the model), the rule by hand, a live count, then
  * a save that says how many it matches before it's pressed.
  */
 export function SegmentEditor({
@@ -690,7 +690,7 @@ export function SegmentEditor({
         words: words.trim() || null,
         ...(start.version ? { expect: start.version } : {}),
       };
-      // A new one is made once: a retry of the same rule is the same segment.
+      // A new one is made once: a retry of the same rule is the same group.
       await ACTIONS.run(`segment-save:${client}:${JSON.stringify(body)}`, (requestId) =>
         send({ ...body, requestId }),
       );
@@ -900,7 +900,7 @@ export function SegmentEditor({
         </>
       ) : (
         <p className={`m-0 text-[14px] ${QUIET}`}>
-          Add people from the People list: pick them, then Add to segment.
+          Add people from the People list: pick them, then Add to group.
         </p>
       )}
 
@@ -917,7 +917,7 @@ export function SegmentEditor({
           disabled={!canSave}
           onClick={save}
         >
-          {start.id ? "Save changes" : "Save segment"}
+          {start.id ? "Save changes" : "Save group"}
           {ruled && preview ? ` (${preview.size})` : ""}
         </Button>
         <Button
@@ -945,7 +945,7 @@ export function SegmentEditor({
   );
 }
 
-/** The list's head: New segment opens the editor. */
+/** The list's head: New group opens the editor. */
 function SegmentsHead({ client, reload }: { client: string; reload: () => void }) {
   const [open, setOpen] = useState(false);
   // Words kept from before open the editor again.
@@ -953,7 +953,7 @@ function SegmentsHead({ client, reload }: { client: string; reload: () => void }
   if (!open && !kept)
     return (
       <Button tone="primary" size="dense" onClick={() => setOpen(true)}>
-        New segment
+        New group
       </Button>
     );
   return (
@@ -968,7 +968,7 @@ function SegmentsHead({ client, reload }: { client: string; reload: () => void }
   );
 }
 
-/** A segment's rule, in words, with Edit; who came and went lately. */
+/** A group's rule, in words, with Edit; who came and went lately. */
 function RuleSection({
   client,
   row,
@@ -1024,10 +1024,10 @@ function RuleSection({
   );
 }
 
-/** Every save of a segment, newest first, each rule as text. */
+/** Every save of a group, newest first, each rule as text. */
 function Versions({ client, id, at }: { client: string; id: number; at: string }) {
   const [open, setOpen] = useState(false);
-  // Keyed by the segment's version: a save reads the list again.
+  // Keyed by the group's version: a save reads the list again.
   const got = useCall(open ? `people:segmentVersions:${client}:${id}:${at}` : null, () =>
     call<{ versions: SegmentVersion[] }>("people/segmentVersions", { ...atOf(client), id }),
   );
@@ -1061,17 +1061,18 @@ function Versions({ client, id, at }: { client: string; id: number; at: string }
   );
 }
 
-export const segmentsPage: ListPage = {
-  id: "segments",
-  label: "Segments",
-  about: "Groups of people, picked by a rule or by hand.",
+export const groupsPage: ListPage = {
+  id: "groups",
+  label: "Groups",
+  about:
+    "A group is a saved list of people: a live one follows its rule, a manual one holds who you put in it.",
   template: "list",
   record: "people.segment",
   columns: ["name", "kind", "size", "usedBy", "computedAt", "usedAt"],
   empty: {
-    active: "No segments yet. Make one with New segment.",
-    archived: "Nothing archived. A segment unused for 90 days moves here.",
-    all: "No segments yet. Make one with New segment.",
+    active: "No groups yet. Make one with New group.",
+    archived: "Nothing archived. A group unused for 90 days moves here.",
+    all: "No groups yet. Make one with New group.",
   },
   actions: [
     { id: "people.segmentSave", label: "Save", handler: "people/segmentSave", inline: true },
@@ -1118,16 +1119,16 @@ export const segmentsPage: ListPage = {
   },
 };
 
-/** Who is in a segment: opened from a segment's Its people link. */
+/** Who is in a group: opened from a group's Its people link. */
 export const membersPage: ListPage = {
   id: "members",
   label: "Members",
-  about: "Who is in each segment, and since when.",
+  about: "Who is in each group, and since when.",
   hidden: true,
   template: "list",
   record: "people.member",
   columns: ["name", "segment", "emails", "phones", "since"],
-  empty: "Nobody is in this segment now.",
+  empty: "Nobody is in this group now.",
   actions: [
     {
       id: "people.memberRemove",
@@ -1135,19 +1136,36 @@ export const membersPage: ListPage = {
       handler: "people/memberRemove",
       when: { segmentKind: ["manual"] },
       bulk: true,
-      confirm: "Take them out of this segment?",
+      confirm: "Take them out of this group?",
       done: () => "Taken out",
     },
   ],
 };
 
-/** On the People list: put the picked people in a manual segment. */
-export const addToSegment: Action = {
+/** On the People list: put the picked people in a manual group, or in a new one. */
+export const addToGroup: Action = {
   id: "people.memberAdd",
-  label: "Add to segment",
+  label: "Add to group",
   handler: "people/memberAdd",
   bulk: true,
   each: true,
-  form: [{ field: "segment", label: "Segment", hint: "A manual segment's name" }],
-  done: () => "Added",
+  form: [
+    {
+      field: "group",
+      label: "Group",
+      type: "combo",
+      choices: {
+        handler: "people/segmentContext",
+        list: (answer) =>
+          ((answer as { segments?: { name: string; kind: string }[] }).segments ?? [])
+            .filter((g) => g.kind === "manual")
+            .map((g) => g.name),
+      },
+      hint: "Pick a manual group, or type a new name to make one. A group is a saved list of people. A live group follows its rule; a manual group holds who you put in it.",
+    },
+  ],
+  done: (answer) => {
+    const a = answer as { group?: string; made?: boolean };
+    return a.made ? `Made ${a.group} and added` : `Added to ${a.group ?? "the group"}`;
+  },
 };

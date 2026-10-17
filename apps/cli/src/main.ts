@@ -45,6 +45,7 @@ import { registerDrafts } from "./drafts.js";
 import { registerEmail } from "./email.js";
 import { registerEnrich } from "./enrich.js";
 import { registerFetch } from "./fetch.js";
+import { registerGroups } from "./groups.js";
 import { registerHealth } from "./health.js";
 import { registerHooks } from "./hooks.js";
 import { registerKeys } from "./keys.js";
@@ -58,7 +59,6 @@ import { registerPeople } from "./people.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
-import { registerSegments } from "./segments.js";
 import { registerSitePages } from "./site-pages.js";
 import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
@@ -287,7 +287,7 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
-registerSegments(program, { withDb });
+registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,
   withMainDb,

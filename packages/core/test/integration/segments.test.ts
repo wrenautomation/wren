@@ -11,9 +11,11 @@ import { resolveProfile, setTraits } from "../../src/profiles.js";
 import { segmentDetail } from "../../src/segment-records.js";
 import {
   addMembers,
+  addToGroup,
   archiveSegment,
   archiveUnused,
   type Condition,
+  listSegments,
   previewRule,
   type Rule,
   recomputeLive,
@@ -249,7 +251,7 @@ describe("live, manual and snapshot segments", () => {
         "t",
         NOW,
       ),
-    ).rejects.toThrow(/B already reads this segment/);
+    ).rejects.toThrow(/B already reads this group/);
     await expect(
       saveSegment(
         pg.db,
@@ -476,7 +478,7 @@ describe("reads", () => {
       (await segmentMembers(pg.db, m.id, { after: bo, now: NOW })).map((x) => x.profileId),
     ).toEqual([cy]);
     expect((await segmentById(pg.db, m.id))?.usedAt).toBe(NOW.toISOString());
-    await expect(segmentMembers(pg.db, 999)).rejects.toThrow(/no such segment/);
+    await expect(segmentMembers(pg.db, 999)).rejects.toThrow(/no such group/);
   });
 
   it("the Data index names the segments that read each data point", async () => {
@@ -495,7 +497,7 @@ describe("reads", () => {
     const got = (
       await (rec as unknown as { rows: (db: unknown) => Promise<Row[]> }).rows(pg.db)
     ).find((r) => r.id === "trait:plan");
-    expect(got?.used_by).toBe("Segment Pro");
+    expect(got?.used_by).toBe("Group Pro");
   });
 
   it("the views list segments and members", async () => {
@@ -528,5 +530,63 @@ describe("reads", () => {
       name: "Ann",
       emails: "ann@example.test",
     });
+  });
+});
+
+describe("addToGroup", () => {
+  it("makes a manual group from a new name, then adds", async () => {
+    const ann = await person("Ann", "ann@example.test");
+    const got = await addToGroup(pg.db, "Fair follow-ups", [ann], "test", NOW);
+    expect(got.made).toBe(true);
+    expect(got.group.name).toBe("Fair follow-ups");
+    expect(got.group.kind).toBe("manual");
+    expect(got.group.size).toBe(1);
+    expect((await segmentMembers(pg.db, got.group.id)).map((m) => m.name)).toEqual(["Ann"]);
+  });
+
+  it("adds to an existing group by name, in any case, and by id", async () => {
+    const ann = await person("Ann", "ann@example.test");
+    const bob = await person("Bob", "bob@example.test");
+    const first = await addToGroup(pg.db, "Fair", [ann], "test", NOW);
+    const byName = await addToGroup(pg.db, "fAIR", [bob], "test", NOW);
+    expect(byName.made).toBe(false);
+    expect(byName.group.id).toBe(first.group.id);
+    const cat = await person("Cat", "cat@example.test");
+    const byId = await addToGroup(pg.db, first.group.id, [cat], "test", NOW);
+    expect(byId.made).toBe(false);
+    expect((await segmentMembers(pg.db, first.group.id)).map((m) => m.name).sort()).toEqual([
+      "Ann",
+      "Bob",
+      "Cat",
+    ]);
+    expect(await listSegments(pg.db)).toHaveLength(1);
+  });
+
+  it("refuses a live group by name and by id, and adds nobody", async () => {
+    const ann = await person("Ann", "ann@example.test");
+    const live = await saveSegment(
+      pg.db,
+      {
+        name: "Warm leads",
+        kind: "live",
+        rule: all({ kind: "event", event: "form" } as Condition),
+      },
+      "test",
+      NOW,
+    );
+    await expect(addToGroup(pg.db, "warm leads", [ann], "test", NOW)).rejects.toThrow(
+      "Warm leads follows a rule: only manual groups take people by hand",
+    );
+    await expect(addToGroup(pg.db, live.segment.id, [ann], "test", NOW)).rejects.toThrow(
+      /follows a rule/,
+    );
+    expect(await listSegments(pg.db)).toHaveLength(1);
+    expect(await segmentMembers(pg.db, live.segment.id)).toEqual([]);
+  });
+
+  it("refuses an empty pick before it makes anything", async () => {
+    const ann = await person("Ann", "ann@example.test");
+    await expect(addToGroup(pg.db, "  ", [ann], "test", NOW)).rejects.toThrow(/pick a group/);
+    expect(await listSegments(pg.db)).toHaveLength(0);
   });
 });

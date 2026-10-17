@@ -1,5 +1,5 @@
 /**
- * A segment's rule as text (designs/2026-10-15-channel-stats.md), for agents and the CLI. It reads
+ * A group's rule as text (designs/2026-10-15-channel-stats.md), for agents and the CLI. It reads
  * and writes the same `Rule` the portal edits as JSON:
  *
  *   all(
@@ -9,14 +9,14 @@
  *     not message opened on email
  *   )
  *
- * - Groups: `all(...)`, `any(...)`; items split by commas or new lines; `not` before any item;
+ * - Nesting: `all(...)`, `any(...)`; items split by commas or new lines; `not` before any item;
  *   `#` starts a comment.
  * - `trait <key> is|contains|one_of|>|<|exists|before|after|in_next|in_last [value]`
  * - `event <kind> [on <channel>] [matching "<text>"] [count] [in <n>d] [after <kind> [on <ch>]]
  *   [before <kind> [on <ch>]]`
  * - `message <state> [on <channel>] [campaign "<text>"] [count] [in <n>d]`
  * - `step <reached|saw|engaged|replied|booked|paid> [on <channel>] [source "<text>"] [in <n>d]`
- * - `consent <email|sms> <state>`; `segment <id>` or `segment "<name>"`.
+ * - `consent <email|sms> <state>`; `group <id>` or `group "<name>"` (`segment` reads the same: older saved text).
  * - A count is `>= N`, `<= N`, `N..M` or `never`; left out, it's at least once.
  *
  * Pure: the portal shows it too.
@@ -68,7 +68,7 @@ function conditionText(c: Condition, names: ReadonlyMap<number, string>): string
       return `consent ${c.channel} ${c.state}`;
     case "segment": {
       const name = names.get(c.segment);
-      return `segment ${name ? quote(name) : c.segment}`;
+      return `group ${name ? quote(name) : c.segment}`;
     }
   }
 }
@@ -82,7 +82,7 @@ function nodeText(n: Node, names: ReadonlyMap<number, string>, pad: string): str
   return `${not}${n.match}(\n${inner.map((i) => `${pad}  ${i}`).join(",\n")}\n${pad})`;
 }
 
-/** A rule as text. `names` prints a segment condition by its segment's name. */
+/** A rule as text. `names` prints a group condition by its group's name. */
 export function ruleText(rule: Rule, names: ReadonlyMap<number, string> = new Map()): string {
   return nodeText(rule, names, "");
 }
@@ -250,16 +250,17 @@ class Reader {
           channel: this.pick("a consent channel", CONSENT_CHANNELS),
           state: this.pick("a consent state", CONSENT_CONDITION_STATES),
         } as Condition;
+      case "group":
       case "segment": {
-        const t = this.next("a segment id or name");
+        const t = this.next("a group id or name");
         if (t.t === "word" && /^\d+$/.test(t.v)) return { kind: "segment", segment: Number(t.v) };
         const id = this.names.get(t.v.toLowerCase());
-        if (!id) throw new TextProblem(`no segment called "${t.v}"`);
+        if (!id) throw new TextProblem(`no group called "${t.v}"`);
         return { kind: "segment", segment: id };
       }
       default:
         throw new TextProblem(
-          `"${head}" isn't a condition: trait, event, message, step, consent or segment`,
+          `"${head}" isn't a condition: trait, event, message, step, consent or group`,
         );
     }
   }
@@ -294,7 +295,7 @@ class Reader {
 
 /**
  * Text read into a rule, checked as a saved rule is; or why not, as readable lines. `names` maps a
- * segment's name (any case) to its id, for `segment "<name>"`. One condition alone is `all(it)`.
+ * group's name (any case) to its id, for `group "<name>"`. One condition alone is `all(it)`.
  */
 export function parseRule(
   src: string,

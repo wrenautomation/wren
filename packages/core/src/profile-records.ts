@@ -9,6 +9,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { REASON_WORDS, STAGE_WORDS, warmthOf } from "./people-map.js";
 import { WARM_REASONS } from "./people-map-schema.js";
+import { type ProfileReach, reachOf } from "./profile-reach.js";
 import { TIMELINE_KIND_NAMES, type TimelineKind } from "./profiles-schema.js";
 import {
   cued,
@@ -143,6 +144,10 @@ export interface ProfileDetail {
   visits: VisitLine[] | null;
   /** Where they stand and why, read live from the sources (the people map). */
   warmth: WarmthDetail | null;
+  /** Its addresses as links, and the research person behind it; null when that read failed. */
+  reach: ProfileReach | null;
+  /** The parts that failed to read, by name ("Warmth"): the page says so and the rest still shows. */
+  failed: string[];
 }
 
 /** The person page's Warmth section: the map's row for one profile, in words. */
@@ -213,13 +218,25 @@ async function profileDetail(
       href: timelineHref(id, r.kind),
     }))
     .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+  // A part that fails to read leaves its section out and says so; the rest of the page opens.
+  const failed: string[] = [];
+  const part = async <T>(what: string, read: () => Promise<T>): Promise<T | null> => {
+    try {
+      return await read();
+    } catch {
+      failed.push(what);
+      return null;
+    }
+  };
   return {
     timeline,
     total: timeline.reduce((n, t) => n + t.count, 0),
-    lines: timeline.length ? await linesOf(db, Number(id)) : [],
+    lines: timeline.length ? ((await part("Timeline", () => linesOf(db, Number(id)))) ?? []) : [],
     href: timelineHref(id),
-    visits: visits ? await visitsOf(db, Number(id), visits) : null,
-    warmth: await warmthDetail(db, Number(id)),
+    visits: visits ? await part("Site visits", () => visitsOf(db, Number(id), visits)) : null,
+    warmth: await part("Warmth", () => warmthDetail(db, Number(id))),
+    reach: await part("Profiles", () => reachOf(db, Number(id))),
+    failed,
   };
 }
 
@@ -327,7 +344,7 @@ export const profileRecord = defineRecord({
     { record: "people.merge", by: "into_id" },
     { record: "people.member", by: "profile_id" },
   ],
-  // Put in a manual segment (B5).
+  // Put in a manual group (B5).
   actions: ["people.memberAdd"],
   // The Timeline tab is `people.event` by profile: whole rows, each linked to its own page.
   load: (db, id) => profileDetail(db, id),
@@ -457,13 +474,13 @@ const DATA_KINDS = {
   event: { label: "Timeline", tone: "neutral" },
 } as const;
 
-/** Each data point the workspace's active segments read: "Segment <name>", by datum id. */
+/** Each data point the workspace's active segments read: "Group <name>", by datum id. */
 async function segmentUses(db: Queryable): Promise<Map<string, string[]>> {
   const out = new Map<string, string[]>();
   for (const s of await listSegments(db, "active")) {
     if (!s.rule) continue;
     for (const id of new Set(conditionsOf(s.rule).flatMap(dataOf)))
-      out.set(id, [...(out.get(id) ?? []), `Segment ${s.name}`]);
+      out.set(id, [...(out.get(id) ?? []), `Group ${s.name}`]);
   }
   return out;
 }

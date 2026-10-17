@@ -180,6 +180,17 @@ export function normalizeHandle(
   }
 }
 
+/**
+ * A stored handle's profile page, built from the handle alone: the one place that says it.
+ * A LinkedIn URN has none (its vanity is a separate fact), nor has a `name:` handle.
+ */
+export function handleUrl(platform: string, handle: string): string | null {
+  if (platform === "linkedin" && handle.startsWith("company:"))
+    return `https://www.linkedin.com/company/${handle.slice(8)}/`;
+  if (handle.startsWith("name:") || handle.startsWith("urn:")) return null;
+  return normalizeHandle(platform, handle)?.url ?? null;
+}
+
 const PREFIXES: Record<string, string> = {
   li: "linkedin",
   linkedin: "linkedin",

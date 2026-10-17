@@ -1,8 +1,8 @@
 /**
  * People → Channels (designs/2026-10-15-channel-stats.md): each channel's funnel side by side.
- * People reached, then how many saw, engaged, replied, booked and paid. Filter by a segment,
+ * People reached, then how many saw, engaged, replied, booked and paid. Filter by a group,
  * break it down by source or by any trait, and pick who gets credit for a booking. Each number
- * opens its people, and those people can be saved as a segment. The filters live in the address.
+ * opens its people, and those people can be saved as a group. The filters live in the address.
  */
 import type { ChannelStats, StatsRow, StepPerson } from "@wren/core/channel-stats";
 import {
@@ -82,7 +82,7 @@ const pct = (v: number | null) =>
   v === null ? "" : v > 0 && v < 0.01 ? "<1%" : `${Math.round(v * 100)}%`;
 const usd = (v: number | null) => (v === null ? "—" : `$${v.toFixed(2)}`);
 
-/** A row and step as a live segment's rule: who that number lists, kept up to date. */
+/** A row and step as a live group's rule: who that number lists, kept up to date. */
 function stepRule(row: StatsRow, step: FunnelStep, days: number | null): Rule {
   return {
     kind: "group",
@@ -302,7 +302,7 @@ function Table({
   );
 }
 
-/** The people behind one number, and Save as segment. */
+/** The people behind one number, and Save as group. */
 function People({
   client,
   demo,
@@ -335,7 +335,7 @@ function People({
         <div className="flex flex-wrap gap-2">
           {!demo && !saving ? (
             <Button size="dense" tone="quiet" onClick={() => setSaving(true)}>
-              Save as segment
+              Save as group
             </Button>
           ) : null}
           <Button size="dense" tone="quiet" onClick={onClose}>
@@ -363,7 +363,7 @@ function People({
       ) : null}
       {saved ? (
         <p className="m-0 mb-3 text-[14px]" role="status">
-          Saved. It's in Segments now.
+          Saved. It's in Groups now.
         </p>
       ) : null}
       {got.error && !got.data ? (
@@ -384,7 +384,7 @@ function People({
             </li>
           ))}
           {got.data.people.length >= 500 ? (
-            <li className={QUIET}>The latest 500. Save as segment to see them all.</li>
+            <li className={QUIET}>The latest 500. Save as group to see them all.</li>
           ) : null}
         </ul>
       )}

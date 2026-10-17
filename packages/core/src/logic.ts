@@ -185,7 +185,7 @@ export type TriggerFacts =
   | { trigger: "trigger.trait"; key: string; value: string | null }
   | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
 
-/** A profile entering or leaving a segment (designs/2026-10-14-customerio-audit.md, B5). */
+/** A profile entering or leaving a group (designs/2026-10-14-customerio-audit.md, B5). */
 export const SEGMENT_CHANGES = { entered: "Enters", left: "Leaves" } as const;
 export type SegmentChange = keyof typeof SEGMENT_CHANGES;
 /** A date trait's trigger: on that date once, or on its day each year (a birthday). */
@@ -637,14 +637,14 @@ export const LOGIC: readonly LogicPart[] = [
   },
   {
     id: "logic.segment",
-    name: "In segment",
+    name: "In group",
     blurb:
-      "Checks if the person is in a People segment now. A live one is checked by its rule. No person found leaves by skip.",
+      "Checks if the person is in a People group now. A live one is checked by its rule. No person found leaves by skip.",
     icon: "people",
     group: "logic",
     ready: true,
     settings: [
-      { field: "segment", label: "Segment (its number in People → Segments)", type: "number" },
+      { field: "segment", label: "Group (its number in People → Groups)", type: "number" },
       KIND,
     ],
     ports: (w) => ({
@@ -655,7 +655,7 @@ export const LOGIC: readonly LogicPart[] = [
         one("skip", "skip", kindOf(w)),
       ],
     }),
-    says: (w) => `In segment ${text(w.segment) || "?"}?`,
+    says: (w) => `In group ${text(w.segment) || "?"}?`,
   },
   {
     id: "trigger.hook",
@@ -881,12 +881,12 @@ export const LOGIC: readonly LogicPart[] = [
   ),
   trigger(
     "segment",
-    "Segment",
-    "Starts when someone enters or leaves a segment in People. Once per person.",
+    "Group",
+    "Starts when someone enters or leaves a group in People. Once per person.",
     "people",
     "lead",
     [
-      { field: "segment", label: "Segment (its number in People → Segments)", type: "number" },
+      { field: "segment", label: "Group (its number in People → Groups)", type: "number" },
       {
         field: "on",
         label: "When",
@@ -899,7 +899,7 @@ export const LOGIC: readonly LogicPart[] = [
     (w) => {
       const on = text(w.on) || "entered";
       const what = on === "left" ? "Leaves" : on === "any" ? "Enters or leaves" : "Enters";
-      return `${what} segment ${text(w.segment) || "?"}`;
+      return `${what} group ${text(w.segment) || "?"}`;
     },
   ),
   trigger(
@@ -1044,7 +1044,7 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     l.id === "logic.segment" &&
     !(Number.isSafeInteger(Number(w.segment)) && Number(w.segment) > 0)
   )
-    out.push(`${at}: In segment names a segment's number`);
+    out.push(`${at}: In group names a group's number`);
   if (l.id === "logic.code") out.push(...codeProblems(text(w.code)).map((p) => `${at}: ${p}`));
   if (l.id === "logic.webhook") {
     // Slots may fill the URL's path and query; its host must read as written.
@@ -1080,7 +1080,7 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     out.push(`${at}: no form called ${text(w.form)}`);
   if (l.id === "trigger.segment") {
     const n = Number(w.segment);
-    if (!Number.isSafeInteger(n) || n < 1) out.push(`${at}: Segment names a segment's number`);
+    if (!Number.isSafeInteger(n) || n < 1) out.push(`${at}: Group names a group's number`);
   }
   if ((l.id === "trigger.trait" || l.id === "trigger.date") && !TRAIT_KEY.test(text(w.trait)))
     out.push(`${at}: name a trait key, like renewal_date`);

@@ -100,7 +100,7 @@ async function planOf(db: Queryable, q: StatsQuery, now: Date): Promise<Plan> {
   const tests: SQL[] = [];
   if (q.segment) {
     const s = await segmentById(db, Number(q.segment));
-    if (!s) throw new PortalRefusal("no such segment", 404, "segment");
+    if (!s) throw new PortalRefusal("no such group", 404, "segment");
     tests.push(
       s.kind === "live" && s.rule
         ? compileRule(s.rule, now)

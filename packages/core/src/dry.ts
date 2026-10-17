@@ -203,7 +203,7 @@ export async function dryWalk(o: {
         );
         return [{ port: "out", event: e }];
       };
-    // In segment reads nothing in a test: it says what it would check, and goes on by yes.
+    // In group reads nothing in a test: it says what it would check, and goes on by yes.
     if (n.uses === "logic.segment")
       return async (_port, e, at) => {
         would.set(`${at.node}|${e.subject}`, segmentWould(n.with ?? {}, e));

@@ -17,7 +17,7 @@ import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { tellTabsLanded } from "./data/local.js";
-import { refreshAll } from "./data/query.js";
+import { refreshAll, useLoad } from "./data/query.js";
 import { EditConflict } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
 import { forgetKept, useEditForm } from "./edit-form.js";
@@ -40,6 +40,8 @@ export interface FormField {
   /**
    * Left out: a line of text. A file is sent as the `File`; the `Call` puts it up. `lines` and
    * `numbers` are one item per line, `json` any JSON value, `pick` any of `options` as a list.
+   * `combo` is a line of text with `choices` offered under it: a typed value that matches none
+   * is still sent.
    */
   type?:
     | "long"
@@ -52,10 +54,13 @@ export interface FormField {
     | "lines"
     | "numbers"
     | "pick"
+    | "combo"
     | "json";
   optional?: true;
   /** A select's or a pick's choices. */
   options?: readonly string[];
+  /** A combo's choices: a read handler (called with no input) and the values in its answer. */
+  choices?: { handler: string; list: (answer: unknown) => readonly string[] };
   /** A choice as people read it, by value; the value itself when absent. */
   labels?: Readonly<Record<string, string>>;
   /** Said under the box. */
@@ -357,6 +362,7 @@ export function FormBox({
   onFile,
   autoFocus,
   edit,
+  call,
 }: {
   f: FormField;
   id: string;
@@ -366,6 +372,8 @@ export function FormBox({
   autoFocus?: boolean | undefined;
   /** Where the form keeps its words (its `useEditForm` key); left out, the owner says why not. */
   edit?: string | null | undefined;
+  /** How a combo reads its choices; without it, a combo is a plain line of text. */
+  call?: Call | undefined;
 }) {
   const required = !f.optional;
   const longBox = useRef<HTMLTextAreaElement>(null);
@@ -396,6 +404,16 @@ export function FormBox({
       </select>
     ) : f.type === "pick" ? (
       <PickBox id={id} f={f} value={value} onText={onText} />
+    ) : f.type === "combo" ? (
+      <ComboBox
+        id={id}
+        f={f}
+        value={value}
+        onText={onText}
+        call={call}
+        autoFocus={autoFocus}
+        edit={edit}
+      />
     ) : f.type === "long" || f.type === "lines" || f.type === "numbers" || f.type === "json" ? (
       <DictateField target={longBox} off={f.type !== "long"}>
         <Textarea
@@ -446,6 +464,62 @@ export function FormBox({
       )}
       {hint ? <p className="text-(--ui-ink-2)">{hint}</p> : null}
     </div>
+  );
+}
+
+/**
+ * A line of text with the choices of `f.choices` offered under it (a native list). A read that
+ * fails says so and leaves the line to type in.
+ */
+function ComboBox({
+  id,
+  f,
+  value,
+  onText,
+  call,
+  autoFocus,
+  edit,
+}: {
+  id: string;
+  f: FormField;
+  value: string;
+  onText: (text: string) => void;
+  call: Call | undefined;
+  autoFocus: boolean | undefined;
+  edit: string | null | undefined;
+}) {
+  const source = f.choices;
+  const got = useLoad<readonly string[]>(
+    call && source ? `combo:${source.handler}` : null,
+    async () => (call && source ? source.list(await call(source.handler, {})) : []),
+  );
+  const listId = `${id}-choices`;
+  return (
+    <>
+      <Input
+        id={id}
+        value={value}
+        list={listId}
+        autoComplete="off"
+        data-edit={edit ?? undefined}
+        onChange={(e) => onText(e.target.value)}
+        required={!f.optional}
+        autoFocus={autoFocus}
+      />
+      <datalist id={listId}>
+        {(got.data ?? []).map((o) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
+      {got.error ? (
+        <p role="alert" className="m-0 flex items-center gap-2 text-sm text-(--ui-bad)">
+          The list didn't load. {got.error.message}
+          <button type="button" className="underline" onClick={got.retry}>
+            Try again
+          </button>
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -995,6 +1069,7 @@ export function useRun(
                 )
               }
               autoFocus={i === 0}
+              call={call}
             />
           ))}
           {asked?.error ? (

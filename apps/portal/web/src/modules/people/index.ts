@@ -1,6 +1,6 @@
 /**
  * People (designs/2026-10-14-customerio-audit.md, B1): one profile per person in the workspace,
- * every address it goes by, its traits and its timeline. B2's sent log, B5's segments, B6's
+ * every address it goes by, its traits and its timeline. B2's sent log, B5's groups, B6's
  * broadcasts and Channels (each channel's funnel) live here too.
  * One address, two apps: a client's own people and Wren's.
  */
@@ -9,7 +9,7 @@ import { broadcastsPage, recipientsPage } from "./broadcasts.js";
 import { PERSON_CARD } from "./cards.js";
 import { channelsPage } from "./channels.js";
 import { importPage } from "./import.js";
-import { addToSegment, membersPage, segmentsPage } from "./segments.js";
+import { addToGroup, groupsPage, membersPage } from "./segments.js";
 import { sentPage } from "./sent.js";
 import { KIND_ICONS, profileExtras } from "./timeline.js";
 
@@ -35,7 +35,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
       merged: "No two profiles have turned out to be one person yet.",
     },
     columns: ["name", "stage", "warmth", "warmthLine", "persona", "lastTouchAt"],
-    actions: [addToSegment],
+    actions: [addToGroup],
     extras: (detail) => profileExtras(detail),
   },
   {
@@ -57,7 +57,7 @@ export const PEOPLE_PAGES: ModulePage[] = [
     },
   },
   sentPage,
-  segmentsPage,
+  groupsPage,
   channelsPage,
   broadcastsPage,
   recipientsPage,

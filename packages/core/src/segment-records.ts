@@ -1,6 +1,6 @@
 /**
- * Segments as console records (designs/2026-10-14-customerio-audit.md, B5), the People app's: each
- * segment with its size and what uses it (`people.segment`), and who is in each
+ * Groups (once Segments) as console records (designs/2026-10-14-customerio-audit.md, B5), the People app's: each
+ * group with its size and what uses it (`people.segment`), and who is in each
  * (`people.member`). Changes go through PeopleConsole's segment handlers. Views in
  * `./segments-schema.ts`.
  */
@@ -32,7 +32,7 @@ export const SEGMENT_STATE_STATES = cued({
   archived: { label: "Archived", tone: "neutral" },
 } as const);
 
-/** What a segment's page shows past the row: its rule, in words and as data, and recent moves. */
+/** What a group's page shows past the row: its rule, in words and as data, and recent moves. */
 export interface SegmentDetail {
   rule: Rule | null;
   ruleWords: string | null;
@@ -71,7 +71,7 @@ export async function segmentDetail(db: Queryable, id: string): Promise<SegmentD
   };
 }
 
-/** The handlers a segment's buttons call; Save is its Rule section's. */
+/** The handlers a group's buttons call; Save is its Rule section's. */
 export const SEGMENT_ACTIONS = [
   "people.segmentSave",
   "people.segmentArchive",
@@ -83,7 +83,7 @@ export const segmentRecord = defineRecord({
   id: "people.segment",
   app: "people",
   channel: null,
-  name: { one: "segment", many: "segments" },
+  name: { one: "group", many: "groups" },
   view: "segment_records",
   key: "id",
   title: "name",
@@ -123,13 +123,13 @@ export const memberRecord = defineRecord({
   subtitle: "segment",
   fields: {
     name: name("Person"),
-    segment: text("Segment"),
-    segmentKind: status(SEGMENT_KIND_STATES, "Segment kind", { listed: false }),
+    segment: text("Group"),
+    segmentKind: status(SEGMENT_KIND_STATES, "Group kind", { listed: false }),
     emails: text("Emails"),
     phones: text("Phones"),
     since: date("In since"),
     profileLink: link("Profile"),
-    segmentId: number("Segment id", { listed: false }),
+    segmentId: number("Group id", { listed: false }),
     profileId: number("Profile id", { listed: false }),
   },
   views: [{ id: "all", label: "All", sort: "-since", at: "since" }],

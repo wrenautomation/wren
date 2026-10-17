@@ -1,5 +1,5 @@
 /**
- * Broadcasts (designs/2026-10-14-customerio-audit.md, B6): one send to a segment, by email or
+ * Broadcasts (designs/2026-10-14-customerio-audit.md, B6): one send to a group, by email or
  * text, now or at a time, optionally at that time in each person's own zone. The one writer of
  * `broadcasts` and `broadcast_recipients` (`./broadcasts-schema.ts`).
  *
@@ -241,7 +241,7 @@ export async function saveBroadcast(
   if (name.length > 120) throw new PortalRefusal("a name is at most 120 characters", 422);
   const segmentId = Number(input.segmentId ?? was?.segmentId);
   const seg = Number.isSafeInteger(segmentId) ? await segmentById(db, segmentId) : null;
-  if (!seg) throw new PortalRefusal("pick a segment", 422);
+  if (!seg) throw new PortalRefusal("pick a group", 422);
   if (seg.state !== "active") throw new PortalRefusal(`${seg.name} is archived`, 422);
   const topic = await topicOf(db, input.topic ?? was?.topicId);
   if (topic.channel !== channel)
@@ -359,7 +359,7 @@ export async function decideBroadcast(
     );
   if (yes) {
     const seg = await segmentById(db, b.segmentId);
-    if (seg?.state !== "active") throw new PortalRefusal("its segment is archived", 409);
+    if (seg?.state !== "active") throw new PortalRefusal("its group is archived", 409);
   }
   const [got] = await db
     .update(broadcasts)

@@ -116,6 +116,18 @@ describe("typedOf: a form's text as the input it sends", () => {
     });
   });
 
+  it("sends a combo as the text typed", () => {
+    const combo: FormField[] = [
+      {
+        field: "group",
+        label: "Group",
+        type: "combo",
+        choices: { handler: "people/segmentContext", list: () => ["Fair"] },
+      },
+    ];
+    expect(typedOf(combo, valuesOf(combo, { group: "New one" }))).toEqual({ group: "New one" });
+  });
+
   it("leaves an empty optional box out; an untouched required switch is off", () => {
     expect(typedOf(FORM, valuesOf(FORM, { day: "2026-01-02" }))).toEqual({
       day: "2026-01-02",
