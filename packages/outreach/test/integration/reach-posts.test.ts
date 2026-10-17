@@ -661,6 +661,7 @@ describe("his Comment", () => {
         text: "His edited words.",
         sendKey: expect.stringMatching(/^onpost:\d+ /),
         recheck: false,
+        verifyOnly: false,
       },
     ]);
     const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, p.id));
@@ -851,6 +852,7 @@ describe("his Comment, with a like and a follow", () => {
         text: "Draft words.",
         sendKey: expect.stringMatching(/^onpost:\d+ /),
         recheck: false,
+        verifyOnly: false,
       },
     ]);
     expect(calls.map((c) => [c.method, c.path, c.input, c.account])).toEqual([
