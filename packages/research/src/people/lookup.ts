@@ -22,6 +22,10 @@
  *    itself, and trust a profile only when a role on it is at the firm. The
  *    account's daily caps are autobrowse's; a 429 parks the person until then.
  *
+ * 6. Elsewhere, only when the caller asks (`opts.elsewhere`): the web search for their
+ *    name with the handles and the firm we hold, keeping pages on known platforms
+ *    (`elsewhere.ts`). It runs even with no firm or last name to match on.
+ *
  * Pure over a SiteClient: it returns findings, every page read and the trail;
  * `store.ts` writes.
  */
@@ -30,6 +34,7 @@ import type { SiteClient } from "@wren/core/content";
 import type { DocumentDraft, FindingDraft } from "../findings.js";
 import { Capped, paced, realSleep, refusedBy, type Stopped, searchStopped } from "../pacing.js";
 import type { FindingKind, LookupState } from "../schema.js";
+import { type ElsewhereHit, searchElsewhere } from "./elsewhere.js";
 import {
   bareCompanyName,
   companyPhrase,
@@ -45,7 +50,8 @@ import { linkedinProfile, type ProfileLink } from "./profile-link.js";
 export type { DocumentDraft, FindingDraft } from "../findings.js";
 
 export interface LookupSubject {
-  personId: number;
+  /** Null when no research row stands behind the subject (a profile): no finding is stored on it. */
+  personId: number | null;
   firstName: string | null;
   lastName: string | null;
   /** The firm we knew them at. */
@@ -56,10 +62,20 @@ export interface LookupSubject {
   pageLinks?: string[];
   /** The latest check of the address we hold for them. */
   email: { address: string; result: string; verifier: string } | null;
+  /** Handles we hold for them, normalized: the elsewhere layer searches by them. */
+  handles?: { platform: string; handle: string }[];
 }
 
 export interface Tried {
-  step: "email" | "cache" | "google" | "search" | "profile" | "linkedin search" | "capped";
+  step:
+    | "email"
+    | "cache"
+    | "google"
+    | "search"
+    | "profile"
+    | "linkedin search"
+    | "elsewhere"
+    | "capped";
   what: string;
   outcome: string;
 }
@@ -79,6 +95,8 @@ export interface LookupResult {
   googleStopped: Stopped | null;
   /** Calls made as the LinkedIn account (step 5), refused ones included. */
   accountReads: number;
+  /** Pages found by the elsewhere layer; present only when it was asked for. */
+  elsewhere?: ElsewhereHit[];
 }
 
 export interface LookupOptions {
@@ -90,6 +108,8 @@ export interface LookupOptions {
   linkedinCappedUntil?: Date | null;
   /** Account calls step 5 may make (the day's room, 20 across kinds); left out = no limit here. */
   accountReads?: number;
+  /** Also look for them on other platforms (step 6). Off unless asked. */
+  elsewhere?: boolean;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
 }
@@ -154,8 +174,17 @@ interface PersonHit {
   past?: string;
 }
 
+/**
+ * A lookup step that asked Exa's cache, Google or Exa's people search: one LinkedIn read served
+ * by search, as the read ledger counts it.
+ */
+export const searched = (t: { step: string; what: string }): boolean =>
+  t.step === "cache" || t.step === "google" || (t.step === "search" && t.what !== "-");
+
+/** 0 = no research row (a profile's lookup); such a result's findings are never stored as facts. */
+const pid = (s: LookupSubject) => s.personId ?? 0;
 const key = (s: LookupSubject, kind: FindingKind, via: string, detail: string) =>
-  `p${s.personId}:${kind}:${via}:${detail}`.slice(0, 400);
+  `p${pid(s)}:${kind}:${via}:${detail}`.slice(0, 400);
 const firmLabel = (f: Firm) => f.name ?? f.domain ?? "";
 
 /** Is this the firm's own mail domain (or one under it)? */
@@ -179,7 +208,7 @@ export function emailFindings(s: LookupSubject): FindingDraft[] {
   if (!domain || isFreemail(domain) || !firmDomain(domain, s.firm)) return [];
   const finding = (kind: FindingKind, reason: string, confidence: number): FindingDraft => ({
     kind,
-    personId: s.personId,
+    personId: pid(s),
     factKey: key(s, kind, "email", e.address),
     value: { email: e.address, reason, ...(kind === "left" ? { from: firmLabel(s.firm) } : {}) },
     confidence,
@@ -209,7 +238,7 @@ function employerFinding(
   const kind: FindingKind = there ? "still_there" : "job_change";
   return {
     kind,
-    personId: s.personId,
+    personId: pid(s),
     factKey: key(s, kind, via, `${link.vanity}:${companyPhrase(now.company)}`),
     value: there
       ? // companyUrl: the firm's own LinkedIn page, so company research needs no search for it.
@@ -253,7 +282,7 @@ function profileFinding(
   const last = roles.find((r) => isFirm(r.company, s.firm));
   return {
     kind: "left",
-    personId: s.personId,
+    personId: pid(s),
     factKey: key(s, "left", via, link.vanity),
     value: { from: firmLabel(s.firm), reason: "no current role", lastRole: last ?? null },
     confidence: sure.noCurrent,
@@ -282,21 +311,52 @@ export async function lookUpPerson(
       what: String(f.value.email),
       outcome: `${f.kind}: ${f.value.reason}`,
     });
-  const done = (
-    state: LookupState,
-    profile: ProfileLink | null,
-    capped: Capped | null = null,
-  ): LookupResult => ({
-    state,
-    profile,
-    findings,
-    tried,
-    retryAt: capped?.retryAt ?? null,
-    cappedBy: capped?.site ?? null,
-    pages,
-    googleStopped,
-    accountReads,
-  });
+  let profile: ProfileLink | null = null;
+  let status: FindingDraft | null = null;
+  /**
+   * The end of every path: the status finding joins, the elsewhere layer runs when asked (a cap on
+   * `web` already said stop to it), and the result is the state the layers reached.
+   */
+  const finish = async (capped: Capped | null): Promise<LookupResult> => {
+    if (status) findings.push(status);
+    let stopped = capped;
+    let elsewhere: ElsewhereHit[] | undefined;
+    if (opts.elsewhere) {
+      elsewhere = [];
+      if (stopped?.site === "web") {
+        tried.push({ step: "elsewhere", what: "-", outcome: "web search is capped" });
+      } else {
+        const run = await searchElsewhere(call, {
+          firstName: s.firstName,
+          lastName: s.lastName,
+          firm: s.firm,
+          handles: s.handles ?? [],
+        });
+        elsewhere = run.hits;
+        tried.push(...run.tried);
+        if (run.capped) {
+          tried.push({
+            step: "capped",
+            what: `${run.capped.site}: ${run.capped.why}`,
+            outcome: `retry at ${run.capped.retryAt.toISOString()}`,
+          });
+          if (!stopped || stopped.retryAt < run.capped.retryAt) stopped = run.capped;
+        }
+      }
+    }
+    return {
+      state: stopped ? "capped" : profile ? "matched" : "unresolved",
+      profile,
+      findings,
+      tried,
+      retryAt: stopped?.retryAt ?? null,
+      cappedBy: stopped?.site ?? null,
+      pages,
+      googleStopped,
+      accountReads,
+      ...(elsewhere ? { elsewhere } : {}),
+    };
+  };
 
   const names = firmNames(s.firm);
   const firm = names[0];
@@ -306,12 +366,10 @@ export async function lookUpPerson(
       what: "-",
       outcome: !firm ? "no firm name to match on" : "no first and last name to match on",
     });
-    return done("unresolved", null);
+    return finish(null);
   }
   const who = `${s.firstName} ${s.lastName}`;
 
-  let profile: ProfileLink | null = null;
-  let status: FindingDraft | null = null;
   /** Profiles whose name matched but whose result did not name the firm. */
   const maybe: ProfileLink[] = [];
   const addMaybe = (link: ProfileLink) => {
@@ -562,11 +620,9 @@ export async function lookUpPerson(
         what: `${err.site}: ${err.why}`,
         outcome: `retry at ${err.retryAt.toISOString()}`,
       });
-      if (status) findings.push(status);
-      return done("capped", profile, err);
+      return finish(err);
     }
     throw err;
   }
-  if (status) findings.push(status);
-  return done(profile ? "matched" : "unresolved", profile);
+  return finish(null);
 }

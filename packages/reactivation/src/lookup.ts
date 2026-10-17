@@ -88,7 +88,7 @@ export const dueForLookup = (personId: SQL) =>
 export async function crmLookupSubjects(
   db: Queryable,
   opts: { limit?: number; again?: boolean; after?: number | null } = {},
-): Promise<(LookupSubject & { retry: boolean })[]> {
+): Promise<(LookupSubject & { personId: number; retry: boolean })[]> {
   const due = opts.again ? sql`true` : sql`(${dueForLookup(sql`p.id`)} or ${rereadDue(sql`p.id`)})`;
   const rows = await db.execute<Row>(sql`
     with latest as (

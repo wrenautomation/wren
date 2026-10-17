@@ -29,7 +29,7 @@ import {
 import type { ReadLedger } from "../linkedin-reads.js";
 import { failedRead } from "../pacing.js";
 import { htmlOf, type PageStore } from "../pages.js";
-import { type LookupSubject, lookUpPerson } from "../people/lookup.js";
+import { type LookupSubject, lookUpPerson, searched } from "../people/lookup.js";
 import { linkedinProfile } from "../people/profile-link.js";
 import { recordLookup } from "../people/store.js";
 import type { LookupState } from "../schema.js";
@@ -45,7 +45,8 @@ const ERROR_STREAK = 5;
 const NAME_WINDOW = 600;
 
 export interface ProfileWork {
-  person: LookupSubject;
+  /** A research person: always has its id (a "Research this person" subject may not). */
+  person: LookupSubject & { personId: number };
   company: ProfileSubject;
 }
 
@@ -116,9 +117,15 @@ export async function profilesParkedUntil(db: Queryable): Promise<Date | null> {
 
 /** Until when LinkedIn's daily cap holds for this stage's logged-in reads; null = open. */
 export async function linkedinParkedUntil(db: Queryable): Promise<Date | null> {
+  // "Research this person" runs (profile_lookups) hit the same account: its cap parks both.
   const [row] = await db.execute<{ until: string | null }>(sql`
-    select max(retry_at) as until from person_lookups
-    where state = 'capped' and retry_at > now() and ${byLinkedin}`);
+    select max(retry_at) as until from (
+      select retry_at, tried from person_lookups where state = 'capped'
+      union all
+      select retry_at, case when jsonb_typeof(tried) = 'array' then tried else '[]'::jsonb end
+      from profile_lookups where outcome = 'capped'
+    ) l(retry_at, tried)
+    where retry_at > now() and ${byLinkedin}`);
   return row?.until ? new Date(row.until) : null;
 }
 
@@ -134,7 +141,8 @@ const localHour = (now: Date, timezone: string): number =>
  * Google searches this stage may still spend today: none outside daytime or
  * once a search was stopped today, else what is left of `perDay`. `signals`
  * caps the signal collectors' share of it (`signal_checks`). `also` is main's
- * database when `db` is a client's: one day's budget across both.
+ * database when `db` is a client's: one day's budget across both. "Research this person"
+ * runs (`profile_lookups`) spend from the same budget.
  */
 export async function googleLeft(
   db: Queryable,
@@ -153,6 +161,10 @@ export async function googleLeft(
         select t, false from company_event_checks l, jsonb_array_elements(l.tried) t where l.checked_at >= ${midnight}
         union all
         select t, true from signal_checks l, jsonb_array_elements(l.tried) t where l.checked_at >= ${midnight}
+        union all
+        select t, false from profile_lookups l,
+          jsonb_array_elements(case when jsonb_typeof(l.tried) = 'array' then l.tried else '[]'::jsonb end) t
+        where l.finished_at >= ${midnight}
       )
       select count(*)::int as spent, count(*) filter (where sig)::int as signals,
         coalesce(bool_or(t ->> 'outcome' like 'stopped%'), false) as stopped
@@ -316,10 +328,6 @@ const googleSpent = (tried: { step: string }[]) => tried.filter((t) => t.step ==
  * One person, then their firm. Never throws: a site error is the unit's result,
  * so a durable runner never retries a metered read.
  */
-/** A lookup step that asked Exa's cache, Google or Exa's people search. */
-const searched = (t: { step: string; what: string }) =>
-  t.step === "cache" || t.step === "google" || (t.step === "search" && t.what !== "-");
-
 export async function profileUnit(
   db: Queryable,
   sites: SiteClient,
