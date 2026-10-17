@@ -21,8 +21,9 @@ variable "pg_password" {
 }
 
 variable "pg_instance_type" {
-  # t4g.medium (4 GB, +$12/mo) only on the Restate switch day: the server needs the room.
-  description = "ARM; t4g.small is 2 GB: Postgres, browserless and the box worker. t4g.medium adds the Restate server."
+  # t4g.medium ran 10-06 to 10-17. Back to t4g.small (-$12/mo, William 10-17) with RocksDB at
+  # 256 MB and the old worker slot stopped once drained; 2 GB swap on the data volume.
+  description = "ARM; t4g.small is 2 GB: Postgres, Restate, browserless and the box worker."
   type        = string
   default     = "t4g.small"
 }
