@@ -141,6 +141,9 @@ importers:
       '@wren/notes':
         specifier: workspace:*
         version: link:../../packages/notes
+      '@wren/offers':
+        specifier: workspace:*
+        version: link:../../packages/offers
       '@wren/outreach':
         specifier: workspace:*
         version: link:../../packages/outreach
@@ -504,6 +507,9 @@ importers:
       '@wren/notes':
         specifier: workspace:*
         version: link:../../packages/notes
+      '@wren/offers':
+        specifier: workspace:*
+        version: link:../../packages/offers
       '@wren/outreach':
         specifier: workspace:*
         version: link:../../packages/outreach

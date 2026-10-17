@@ -291,7 +291,7 @@ import {
 } from "@wren/core/content/restate";
 import { setFieldStep } from "@wren/core/custom-fields";
 import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
-import { backendsFromEnv, makeDecide } from "@wren/core/decide";
+import { backendsFromEnv, leadFitSource, makeDecide } from "@wren/core/decide";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
@@ -378,6 +378,7 @@ import {
 import { makeNotesConsole, type NoteTurns, notesContext } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import { NOTES_RECORDS } from "@wren/notes/records";
+import { leadOffers } from "@wren/offers";
 import {
   ArmedLlm,
   type DmPlatform,
@@ -2344,7 +2345,8 @@ export async function buildServices(
     // 10 minutes, each answer logged beside his call; the gateway answers when Jev is down.
     makeDecide({
       main: db,
-      sources: [commentSource, learnSource],
+      // Lead checks last: a drafted comment and a Learn item come first in a short pass.
+      sources: [commentSource, learnSource, leadFitSource(leadOffers())],
       backends: () => backendsFromEnv(process.env, (spec) => makeLlm(spec, process.env)),
     }),
     // Broadcasts (B6): each approved one started on its time and sent a batch per run.

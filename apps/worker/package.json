@@ -42,6 +42,7 @@
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
     "@wren/notes": "workspace:*",
+    "@wren/offers": "workspace:*",
     "@wren/outreach": "workspace:*",
     "@wren/documents": "workspace:*",
     "@wren/payments": "workspace:*",

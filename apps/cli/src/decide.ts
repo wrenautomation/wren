@@ -12,18 +12,21 @@ import {
   DECISION_KINDS,
   type DecideSource,
   type DecideSubject,
+  type DecisionKind,
   decidePass,
   decideStats,
   decisionRecords,
   isDecideMode,
   isDecisionKind,
   type KindStats,
+  leadFitSource,
   setDecideMode,
 } from "@wren/core/decide";
 import { jsonl } from "@wren/core/train";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { backfillLearnCalls, learnCalled, learnSource } from "@wren/learn/decide";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
+import { leadOffers } from "@wren/offers";
 import { commentSource, commentsCalled } from "@wren/outreach/decide";
 import { type Command, InvalidArgumentError } from "commander";
 
@@ -69,6 +72,10 @@ class DryRun extends Error {
   }
 }
 
+const kindArg = (v: string): DecisionKind => {
+  if (!isDecisionKind(v)) throw new InvalidArgumentError(`kind is ${DECISION_KINDS.join(", ")}`);
+  return v;
+};
 const positive = (v: string) => {
   const n = Number(v);
   if (!Number.isFinite(n) || n <= 0) throw new InvalidArgumentError("a positive number");
@@ -192,13 +199,18 @@ export function registerDecide(
 
   decide
     .command("pass")
-    .description("One pass here: open comment drafts and fresh Learn items, as Decide/wren runs it")
+    .description(
+      "One pass here: open comment drafts, fresh Learn items and people who wrote back, as Decide/wren runs it",
+    )
     .option("--max <n>", "subjects at most", positive, 40)
-    .action(async (o: { max: number }) =>
+    .option("--kind <kind>", `only this kind: ${DECISION_KINDS.join(", ")}`, kindArg)
+    .action(async (o: { max: number; kind?: DecisionKind }) =>
       json(
         await withDb((db) =>
           decidePass(db, {
-            sources: [commentSource, learnSource],
+            sources: [commentSource, learnSource, leadFitSource(leadOffers())].filter(
+              (s) => !o.kind || s.kind === o.kind,
+            ),
             backends: backends(),
             max: o.max,
           }),
