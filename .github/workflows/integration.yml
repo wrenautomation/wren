@@ -8,6 +8,12 @@ on:
 concurrency: { group: "integration-${{ github.ref }}", cancel-in-progress: true }
 jobs:
   integration:
+    # One job ran 10 min cold (10-17), so eight jobs each take an eighth of every package's files
+    # (gates.sh WREN_SHARD). The repo is public: runners cost nothing. The count is in two places.
+    strategy:
+      fail-fast: false
+      matrix: { shard: [1, 2, 3, 4, 5, 6, 7, 8] }
+    name: integration (${{ matrix.shard }}/8)
     runs-on: ubuntu-latest
     # The shared remote cache (deploy/terraform/turbo-cache.tf), the Mac's gates write it too.
     # A fork's PR gets no secrets: turbo then uses the local cache only.
@@ -26,13 +32,14 @@ jobs:
       - uses: actions/cache/restore@v4
         with:
           path: .turbo/cache
-          key: turbo-integration-${{ github.sha }}
-          restore-keys: turbo-integration-
+          key: turbo-integration-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: turbo-integration-${{ matrix.shard }}-
       - run: pnpm install --frozen-lockfile
       - run: ./scripts/gates.sh integration
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
+          WREN_SHARD: ${{ matrix.shard }}/8
       # Every run restores the last cache and adds to it: entries no run used for a week go.
       - if: always()
         run: find .turbo/cache -type f -atime +7 -delete 2>/dev/null || true
@@ -40,4 +47,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .turbo/cache
-          key: turbo-integration-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: turbo-integration-${{ matrix.shard }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}

@@ -76,15 +76,18 @@ unit() { echo "==> unit tests" && pnpm turbo run test:unit $WIDE; }
 # Two knobs. Turbo runs PACKAGES packages at once; vitest runs FILES test files at once in each.
 # The work is CPU, not memory: a full run peaks near 5 GB, with 10 cores and an 8 GB Docker VM on the
 # Mac. 3 x 3 took 6.3 to 7.7 min, 3 x 4 took 7.9 to 8.8, and 4 x 4 failed (Restate could not register).
-# CI has 4 cores and 16 GB. It takes 2 x 3, not yet measured there. WREN_IT_PACKAGES and
-# WREN_IT_FILES override both, to tune.
+# CI has 4 cores and 16 GB. One job at 2 x 3 took 10 min cold, so CI splits the files into 8 shards
+# (integration.yml): WREN_SHARD=i/n runs every package's i-th part, `vitest --shard`. With 8 shards,
+# 3 x 3 took 4.7 min cold (2 x 3: 5.4; 12 shards at 2 x 3: 4.8). The shard is a turbo argument, so
+# each shard caches on its own. The spam score runs in the first shard only.
+# WREN_IT_PACKAGES and WREN_IT_FILES override both knobs, to tune.
 # A failed test retries once: a flake costs a rerun, not a red run. In CI a red package does not stop
 # the rest (--continue): every package that passes goes into the cache, so the next run skips it.
-if [ -n "${CI:-}" ]; then IT_PACKAGES=2 IT_FILES=3; else IT_PACKAGES=3 IT_FILES=3; fi
 integration() {
   echo "==> integration tests (needs Docker)" &&
-    pnpm turbo run test:integration --concurrency="${WREN_IT_PACKAGES:-$IT_PACKAGES}" ${CI:+--continue} \
-      -- --maxWorkers="${WREN_IT_FILES:-$IT_FILES}" --retry=1 && spam
+    pnpm turbo run test:integration --concurrency="${WREN_IT_PACKAGES:-3}" ${CI:+--continue} \
+      -- --maxWorkers="${WREN_IT_FILES:-3}" --retry=1 ${WREN_SHARD:+--shard="$WREN_SHARD" --passWithNoTests} &&
+    case "${WREN_SHARD:-1/1}" in 1/*) spam ;; esac
 }
 # The deploy gate's database checks: drizzle's schema matches the migrations, and the legacy email tables still read.
 schema() {
