@@ -33,6 +33,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | `learn/` | Learn: saved links and followed sources, read, scored against the SOPs, searchable |
 | `calendar/` | our own booking calendar: bookings, slots, the lander's /book page |
 | `voice/` | the phone agent, in development: calls, timed turns, consent to AI calls |
+| `ui/` | the portal's look: area → screen → `@wren/ui` part → its story → the `DESIGN.md` section (`objects/ui/CONTEXT.md`) |
 | `platform/` | what everything stands on: settings, niches, offers, loop objects, Restate services, schema, worker, CLI, phone |
 
 ## Colliding names (short form; full list in CONTEXT.md)
@@ -52,6 +53,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | asking "what is X" | `objects/_index.md`, then the card |
 | changing a table, type or file | the card's **If you change this**, then `effects/CONTEXT.md` |
 | changing how something moves | `processes/`, then the object cards it `consumes` / `produces` |
+| tuning a portal screen or part | `objects/ui/CONTEXT.md`, then the `wren-ui` skill |
 | adding a card | copy from `_templates/`, then run `_meta/build.sh` |
 | told a card is wrong | fix the card against source, bump `verified`, rebuild |
 
