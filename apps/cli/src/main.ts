@@ -291,6 +291,7 @@ registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,
   withMainDb,
+  settings,
   client: () => program.opts<{ client?: string }>().client,
   llm: (name) => {
     // Provider keys load from the model keys file (or the host's env); never logged.

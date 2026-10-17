@@ -52,6 +52,12 @@ import {
   type SignedViewer,
   whoIs,
 } from "./portal.js";
+import {
+  decideFindings,
+  PROFILE_RESEARCH,
+  type ProfileResearchObject,
+  queueProfileResearch,
+} from "./profile-findings.js";
 import { metaOf, type RecordType } from "./records.js";
 import {
   type ExportAsk,
@@ -142,6 +148,8 @@ export interface BroadcastRun {
 export interface SegmentIdsRequest extends PortalRequest {
   ids?: (string | number)[];
 }
+/** The profile (`ids`, one) to research, or the findings (`ids`) to keep or drop. */
+export type ResearchRequest = SegmentIdsRequest;
 export interface SegmentSaveRequest extends PortalRequest, Partial<SegmentInput> {}
 /** Profiles (`ids`) put in a manual group, named by its name or id; a new name makes one. */
 export interface MemberAddRequest extends PortalRequest {
@@ -314,6 +322,31 @@ export function peopleConsoleApi({
       const ids = idsOf(req);
       const got = await addToGroup(w.db, req.group, ids, by(req), now());
       return { done: ids, group: got.group.name, made: got.made };
+    },
+    /**
+     * "Research this person": a queued run for one profile in Wren's own workspace; the service
+     * starts it. Refused while one is queued or running.
+     */
+    research: async (req: ResearchRequest) => {
+      const w = await workspace(req, "act");
+      if (w.client) throw new PortalRefusal("Research works in Wren's own people only", 403);
+      const ids = idsOf(req);
+      if (ids.length > 1) throw new PortalRefusal("Research one person at a time", 422);
+      const got = await queueProfileResearch(w.db, ids[0] as number, by(req));
+      return { done: [got.profileId], ...got };
+    },
+    /** Findings kept (a handle joins the profile) or dropped; Wren's own workspace only. */
+    findingKeep: async (req: ResearchRequest) => {
+      const w = await workspace(req, "act");
+      if (w.client) throw new PortalRefusal("Findings are in Wren's own people only", 403);
+      const got = await decideFindings(w.db, idsOf(req), "kept", by(req), now());
+      return { done: got.done, keys: got.keys };
+    },
+    findingDrop: async (req: ResearchRequest) => {
+      const w = await workspace(req, "act");
+      if (w.client) throw new PortalRefusal("Findings are in Wren's own people only", 403);
+      const got = await decideFindings(w.db, idsOf(req), "dropped", by(req), now());
+      return { done: got.done };
     },
     /** Members taken out of their manual segment, by member id (`<segment>:<profile>`). */
     memberRemove: async (req: PortalRequest & { ids?: string[] }) => {
@@ -554,6 +587,20 @@ export function makePeopleConsole(deps: PeopleConsoleDeps) {
         RECORDS,
         (ctx: restate.Context, req: PortalRequest & { ids?: string[] }) =>
           answer(() => ctx.run("remove", () => answer(() => api.memberRemove(req)))),
+      ),
+      research: serviceHandler(RECORDS, async (ctx: restate.Context, req: ResearchRequest) => {
+        const got = await answer(() => ctx.run("queue", () => answer(() => api.research(req))));
+        // The run is the research package's object; core sends by name and imports nothing of it.
+        ctx
+          .objectSendClient<ProfileResearchObject>(PROFILE_RESEARCH, String(got.profileId))
+          .run({ lookupId: got.lookupId });
+        return { done: got.done };
+      }),
+      findingKeep: serviceHandler(RECORDS, (ctx: restate.Context, req: ResearchRequest) =>
+        answer(() => ctx.run("keep", () => answer(() => api.findingKeep(req)))),
+      ),
+      findingDrop: serviceHandler(RECORDS, (ctx: restate.Context, req: ResearchRequest) =>
+        answer(() => ctx.run("drop", () => answer(() => api.findingDrop(req)))),
       ),
       broadcastContext: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest) =>
         answer(() => api.broadcastContext(req)),

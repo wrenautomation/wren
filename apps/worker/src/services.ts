@@ -420,7 +420,12 @@ import {
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { RESEARCH_RECORDS } from "@wren/research/records";
-import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
+import {
+  makeDiscovery,
+  makeEnrichment,
+  makePageArchive,
+  makeProfileResearch,
+} from "@wren/research/restate";
 import { gatewayGemini, youtubeByUrl } from "@wren/research/sops";
 import { makeSitesConsole } from "@wren/sites/console";
 import { SITES_RECORDS } from "@wren/sites/records";
@@ -950,6 +955,12 @@ export async function buildServices(
     fetch: (url: string, init: RequestInit) => fetch(url, init),
     portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
   };
+  // `profiles` and "Research this person" run inside a unit's ctx.run, so through the ingress.
+  const profileSites = ingressSites(ingressOf(settings), {
+    caller: "wren:profiles",
+    ...sitesHost(settings.autobrowseInstanceId),
+    timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+  });
   const services: AnyService[] = [
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
@@ -975,11 +986,7 @@ export async function buildServices(
       crawlHintsFor,
       pages,
       // `profiles` runs inside the unit's ctx.run, so through the ingress; a Mac that is off fails fast.
-      sites: ingressSites(ingressOf(settings), {
-        caller: "wren:profiles",
-        ...sitesHost(settings.autobrowseInstanceId),
-        timeoutMs: BOOKS_DESK_TIMEOUT_MS,
-      }),
+      sites: profileSites,
       linkedin: settings.poolLinkedin ?? null,
       recheck: recheckLeads,
       youtube,
@@ -1007,6 +1014,13 @@ export async function buildServices(
       exaFor: exaSearchFor,
       youtubeSearchFor,
       triggersFor,
+    }),
+    // One "Research this person" run: Exa, Google and the account, on the same day budgets as `profiles`.
+    makeProfileResearch({
+      db,
+      sites: profileSites,
+      linkedin: settings.poolLinkedin ?? null,
+      timezone: settings.sendTimezone,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -2501,17 +2515,18 @@ export async function buildServices(
         // Wren's broadcasts and who each went to (People → Broadcasts).
         ...BROADCAST_RECORDS,
         // Everyone once, their addresses, traits and timeline (People); site visits read live.
-        ...profileRecords(
-          WORKFLOWS,
-          settings.siteExportToken
+        ...profileRecords(WORKFLOWS, {
+          // Research this person, and what it found: Wren's own people only.
+          research: true,
+          ...(settings.siteExportToken
             ? {
                 visits: landerVisitLines({
                   baseUrl: settings.siteBaseUrl,
                   exportToken: settings.siteExportToken,
                 }),
               }
-            : {},
-        ),
+            : {}),
+        }),
         ...templateRecords(WORKFLOWS),
         clientRecord,
         // Each client's health and the flags about it (Clients).

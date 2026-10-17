@@ -9,15 +9,18 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { REASON_WORDS, STAGE_WORDS, warmthOf } from "./people-map.js";
 import { WARM_REASONS } from "./people-map-schema.js";
+import { findingRows, type ResearchDetail, researchDetail } from "./profile-findings.js";
 import { type ProfileReach, reachOf } from "./profile-reach.js";
 import { TIMELINE_KIND_NAMES, type TimelineKind } from "./profiles-schema.js";
 import {
+  choice,
   cued,
   date,
   defineRecord,
   link,
   name,
   number,
+  percent,
   prose,
   type RecordType,
   type State,
@@ -25,6 +28,7 @@ import {
   text,
 } from "./records.js";
 import { conditionsOf, dataOf, listSegments } from "./segments.js";
+import { PLATFORM_LABELS } from "./touches.js";
 import type { Workflow } from "./workflows.js";
 
 const KINDS = cued(
@@ -150,6 +154,8 @@ export interface ProfileDetail {
   warmth: WarmthDetail | null;
   /** Its addresses as links, and the research person behind it; null when that read failed. */
   reach: ProfileReach | null;
+  /** "Research this person": the newest run and what it found. Wren's own console only; else null. */
+  research: ResearchDetail | null;
   /** The parts that failed to read, by name ("Warmth"): the page says so and the rest still shows. */
   failed: string[];
 }
@@ -203,6 +209,7 @@ async function profileDetail(
   db: Queryable,
   id: string,
   visits?: VisitReader,
+  research = false,
 ): Promise<ProfileDetail | null> {
   if (!/^\d+$/.test(id)) return null;
   const rows = (await db.execute<{ kind: string; n: number; last: Date | string | null }>(sql`
@@ -240,6 +247,7 @@ async function profileDetail(
     visits: visits ? await part("Site visits", () => visitsOf(db, Number(id), visits)) : null,
     warmth: await part("Warmth", () => warmthDetail(db, Number(id))),
     reach: await part("Profiles", () => reachOf(db, Number(id))),
+    research: research ? await part("Research", () => researchDetail(db, Number(id))) : null,
     failed,
   };
 }
@@ -356,6 +364,70 @@ export const profileRecord = defineRecord({
   actions: ["people.memberAdd"],
   // The Timeline tab is `people.event` by profile: whole rows, each linked to its own page.
   load: (db, id) => profileDetail(db, id),
+});
+
+/** Where a finding was read from. */
+const FINDING_SOURCES = cued({
+  cache: { label: "Held search", tone: "neutral" },
+  google: { label: "Google", tone: "neutral" },
+  search: { label: "Search", tone: "neutral" },
+  linkedin: { label: "LinkedIn", tone: "neutral" },
+  elsewhere: { label: "Web search", tone: "neutral" },
+} as const);
+
+const FINDING_KINDS = cued({
+  handle: { label: "Handle", tone: "neutral", about: "An account on a site." },
+  link: { label: "Link", tone: "neutral", about: "A page about them." },
+  employer: { label: "Role", tone: "neutral", about: "Their job and firm." },
+} as const);
+
+export const FINDING_STATES = cued({
+  found: { label: "Found", tone: "neutral", about: "Nobody has looked yet." },
+  kept: { label: "Kept", tone: "good", about: "Looked at and kept." },
+  dropped: { label: "Dropped", tone: "neutral", about: "Not them. A new run leaves it dropped." },
+} as const);
+
+/** The sites a finding can be on: the touch platforms, and the pages that are a link only. */
+const FINDING_SITES: Readonly<Record<string, string>> = {
+  ...PLATFORM_LABELS,
+  github: "GitHub",
+  threads: "Threads",
+  site: "Website",
+};
+
+/** What "Research this person" found (`profile_findings`), for Keep and Drop in bulk. */
+export const findingRecord = defineRecord({
+  id: "people.finding",
+  app: "people",
+  channel: null,
+  name: { one: "finding", many: "findings" },
+  key: "id",
+  title: "value",
+  subtitle: "who",
+  fields: {
+    who: name("Person"),
+    kind: status(FINDING_KINDS, "Is"),
+    platform: choice(() => FINDING_SITES, "Site"),
+    value: text("Found"),
+    url: link("Page"),
+    source: status(FINDING_SOURCES, "Read from"),
+    confidence: percent("Sure"),
+    state: status(FINDING_STATES, "State"),
+    at: date("Found at"),
+    decidedBy: text("Decided by"),
+    decidedAt: date("Decided"),
+    profileLink: link("Profile"),
+    profile: number("Profile id", { from: "profile_id", listed: false }),
+  },
+  quick: ["state", "kind", "source"],
+  views: [
+    { id: "new", label: "To look at", where: { state: "found" }, sort: "-confidence", at: "at" },
+    { id: "kept", label: "Kept", where: { state: "kept" }, sort: "-decidedAt" },
+    { id: "dropped", label: "Dropped", where: { state: "dropped" }, sort: "-decidedAt" },
+    { id: "all", label: "All", sort: "-at", at: "at" },
+  ],
+  actions: ["people.findingKeep", "people.findingDrop"],
+  rows: (db) => findingRows(db),
 });
 
 export const eventRecord = defineRecord({
@@ -577,11 +649,39 @@ export function datumRecord(workflows: readonly Workflow[] = []): RecordType {
  */
 export function profileRecords(
   workflows: readonly Workflow[] = [],
-  o: { visits?: VisitReader } = {},
+  o: { visits?: VisitReader; research?: boolean } = {},
 ): RecordType[] {
   const read = o.visits;
-  const profile: RecordType = read
-    ? { ...profileRecord, load: (db, id) => profileDetail(db, id, read) }
-    : profileRecord;
-  return [profile, eventRecord, keyRecord, traitRecord, mergeRecord, datumRecord(workflows)];
+  const research = o.research === true;
+  // Research is Wren's own people: its action, its findings tab and its detail, not a client's.
+  const profile: RecordType =
+    read || research
+      ? {
+          ...profileRecord,
+          ...(research
+            ? {
+                actions: [
+                  ...(profileRecord.actions ?? []),
+                  "people.research",
+                  "people.findingKeep",
+                  "people.findingDrop",
+                ],
+                related: [
+                  ...(profileRecord.related ?? []),
+                  { record: "people.finding", by: "profile_id" },
+                ],
+              }
+            : {}),
+          load: (db, id) => profileDetail(db, id, read, research),
+        }
+      : profileRecord;
+  return [
+    profile,
+    eventRecord,
+    keyRecord,
+    traitRecord,
+    mergeRecord,
+    datumRecord(workflows),
+    ...(research ? [findingRecord] : []),
+  ];
 }

@@ -73,6 +73,8 @@ export const PLATFORM = {
     PeopleMapNet: "wakes every workspace's people map every 15 minutes",
     Decide:
       "every 10 minutes: drafted comments and Learn items judged by Jev, each answer logged beside his call",
+    ProfileResearch:
+      "Research this person: Exa, Google and the account look for a profile's pages elsewhere, findings kept per profile",
     Broadcast: "one approved broadcast: started on its time, then a batch of its people per run",
     MailAccess: "Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in",
     MailCallback: "where Google and Microsoft send a mailbox's sign-in and an admin's consent back",
@@ -133,5 +135,7 @@ export const PLATFORM = {
     "people.datum": "every address kind, trait and timeline kind, who has it, what uses it",
     "people.segment": "a saved list of people: live, by hand or a snapshot",
     "people.member": "who is in each group, and since when",
+    "people.finding":
+      "what a research run found about a person: a handle, a page, a job, kept or dropped",
   },
 } as const;

@@ -160,7 +160,7 @@ const RECORD_TYPES = [
   ...MARKETING_RECORDS,
   ...SENT_RECORDS,
   ...SEGMENT_RECORDS,
-  ...profileRecords(),
+  ...profileRecords([], { research: true }),
   settingOf({} as Client),
   reviewRecord(),
   askRecord,

@@ -8,6 +8,8 @@
  * is and whether they're warm; `refresh` runs one pass; `personas` asks a model for unknown roles.
  */
 
+import * as clients from "@restatedev/restate-sdk-clients";
+import { ingressOf, type Settings } from "@wren/config";
 import {
   fillPersonas,
   findProfile,
@@ -22,6 +24,12 @@ import {
 } from "@wren/core/people-map";
 import { peopleMapPass } from "@wren/core/people-map-pass";
 import { STAGES, WARM_REASONS } from "@wren/core/people-map-schema";
+import {
+  abandonProfileResearch,
+  PROFILE_RESEARCH,
+  type ProfileResearchObject,
+  queueProfileResearch,
+} from "@wren/core/profile-findings";
 import { mergeProfiles } from "@wren/core/profiles";
 import {
   type BackfillCount,
@@ -129,6 +137,8 @@ export function registerPeople(
     client: () => string | undefined;
     /** A model by name, its keys loaded; for `personas` only. */
     llm?: (name: string) => LlmClient;
+    /** Where Restate's ingress is; for `research` only. */
+    settings?: Settings;
   },
 ): void {
   const people = program
@@ -285,6 +295,33 @@ export function registerPeople(
           ...(a.dryRun ? { dryRun: true } : {}),
         });
         console.log(`${r.asked} asked, ${r.set} ${a.dryRun ? "would be set" : "set"}`);
+      });
+    });
+  // The same run the portal's "Research this person" starts: queued here, carried out by the worker.
+  people
+    .command("research <who>")
+    .description(
+      "look for a person's pages and job on the web: queues one durable run (a profile id, an email, or platform:handle)",
+    )
+    .action(async (who: string) => {
+      if (!o.settings) throw new Error("no Restate ingress in this build");
+      if (o.client()) throw new Error("research runs for Wren's own people, not a client's");
+      const ingress = clients.connect(ingressOf(o.settings));
+      await o.withMainDb(async (db) => {
+        const id = await findProfile(db, who);
+        if (!id) throw new Error(`no profile for ${who}`);
+        const { lookupId } = await queueProfileResearch(db, id, "wren people research");
+        try {
+          await ingress
+            .objectSendClient<ProfileResearchObject>(PROFILE_RESEARCH, String(id))
+            .run({ lookupId });
+        } catch (err) {
+          await abandonProfileResearch(db, lookupId, "The run could not be started.");
+          throw err;
+        }
+        console.log(
+          `Research for #${id} is queued (run ${lookupId}). The person's page in the portal shows it.`,
+        );
       });
     });
 }

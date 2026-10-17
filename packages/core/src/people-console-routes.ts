@@ -6,7 +6,9 @@ import type { Need, RouteApps } from "./access.js";
  * console's), and segments (B5) and broadcasts (B6) in Wren's workspace or a client's: a preview,
  * the editor's lists and the calendar are reads, a save, an archive, a describe (it asks the
  * model), an approve or a test an act. Approve also needs the workspace's approver (in the
- * handler); a test sends one copy to our own address. Type imports only, so the Worker bundles it alone.
+ * handler); a test sends one copy to our own address. Research on a profile and keeping or
+ * dropping what it found are acts in Wren's own workspace (the handler refuses a client's).
+ * Type imports only, so the Worker bundles it alone.
  */
 export const PEOPLE_CONSOLE_ROUTES = {
   recordsTypes: "read",
@@ -27,6 +29,9 @@ export const PEOPLE_CONSOLE_ROUTES = {
   segmentRetake: "act",
   memberAdd: "act",
   memberRemove: "act",
+  research: "act",
+  findingKeep: "act",
+  findingDrop: "act",
   broadcastContext: "read",
   broadcastPreview: "read",
   broadcastMonth: "read",
@@ -57,6 +62,9 @@ export const PEOPLE_CONSOLE_WRITES: readonly PeopleConsoleRoute[] = [
   "segmentRetake",
   "memberAdd",
   "memberRemove",
+  "research",
+  "findingKeep",
+  "findingDrop",
   "broadcastSave",
   "broadcastAsk",
   "broadcastApprove",
