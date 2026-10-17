@@ -1021,7 +1021,9 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
   // A state's dot and its gaps take about four characters (measured: "Changed" needs 101px).
   if (f.kind === "status" || f.kind === "verdict")
     return lenOf(f.states?.[String(c)]?.label ?? String(c)) + 4;
-  if (f.kind === "choice" || f.words) return lenOf(shownOf(f, String(c)));
+  // A choice's mark or tint takes about three characters, as a state's dot does.
+  if (f.kind === "choice" || f.words)
+    return lenOf(shownOf(f, String(c))) + (cueOf(f, String(c)) ? 3 : 0);
   if (f.kind === "link") return lenOf(linkLabel(String(c), f.label));
   if (f.kind === "actor") return lenOf(actorParts(String(c))?.join(" · ") ?? String(c));
   // A score's bar and its gap take about seven characters.

@@ -101,6 +101,18 @@ describe("fitOf", () => {
     } as FieldMeta;
     expect(fitOf(status, [{ id: 1, status: "upcoming" }])).toBeGreaterThanOrEqual(10 * 7.2 + 24);
   });
+  it("leaves a choice room for its platform mark", () => {
+    const site = {
+      ...field("site", "choice"),
+      states: { facebook: { label: "Facebook", tone: "neutral", mark: "facebook" } },
+    } as FieldMeta;
+    const plain = {
+      ...field("site", "choice"),
+      states: { facebook: { label: "Facebook", tone: "neutral" } },
+    } as FieldMeta;
+    const rows = [{ id: 1, site: "facebook" }];
+    expect(fitOf(site, rows) - fitOf(plain, rows)).toBeGreaterThanOrEqual(20);
+  });
   it("leaves a score room for its bar", () => {
     const score = { ...field("score", "score"), max: 100 } as FieldMeta;
     const bare = { ...field("n", "score"), label: "score" };
