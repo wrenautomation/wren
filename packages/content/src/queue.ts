@@ -164,6 +164,26 @@ export async function markWaiting(db: Queryable, id: string, why: string): Promi
     .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")));
 }
 
+/**
+ * A used daily cap (a 429 that waits hours): back to approved, its slot moved to when the cap
+ * resets. Nothing was sent, so it is not a failure.
+ */
+export async function markCapped(
+  db: Queryable,
+  id: string,
+  until: Date,
+  why: string,
+): Promise<void> {
+  await db
+    .update(contentDrafts)
+    .set({
+      status: "approved",
+      scheduledFor: until,
+      error: `Waiting out the daily cap until ${until.toISOString()}: ${why}`.slice(0, 1000),
+    })
+    .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")));
+}
+
 /** A draft held by a busy browser, by its row. */
 export const waitingForBrowser = (d: { status: string; error: string | null }): boolean =>
   d.status === "approved" && !!d.error?.startsWith(WAITING_FOR_BROWSER);

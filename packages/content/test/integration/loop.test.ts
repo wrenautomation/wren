@@ -74,7 +74,7 @@ const hangMetrics = new Set<string>();
  * `absent` the read showed it absent, `found` the read found it, `stop` the call stopped after the
  * write (a server fault with no verdict).
  */
-type Fate = "sent" | "unknown" | "busy" | "absent" | "found" | "stop";
+type Fate = "sent" | "unknown" | "busy" | "absent" | "found" | "stop" | "capped";
 const fates = new Map<Platform, Fate[]>();
 /** What autobrowse's verify read finds for a key it holds as `unknown`. */
 let verify: "unknown" | "found" | "absent" = "unknown";
@@ -210,6 +210,11 @@ const fakeContent = restate.service({
             url: `https://${req.platform}.test/p/found`,
             at,
           });
+        if (fate === "capped")
+          throw new restate.TerminalError(
+            `${req.platform} POST /api/submit: 429 ${req.platform} posts cap for w@test is used (3/3 today); retry after 7200s`,
+            { errorCode: 429 },
+          );
         if (fate === "stop")
           throw new restate.TerminalError(`${req.platform} POST /web/posts: 500 the call stopped`, {
             errorCode: 500,
@@ -564,6 +569,26 @@ describe("content loop", () => {
     const keys = writes.filter((w) => w.platform === "x").map((w) => w.sendKey);
     expect(keys).toHaveLength(2);
     expect(keys[0]).not.toBe(keys[1]);
+  });
+
+  it("a used daily cap moves the draft to the reset, never failed, and nothing waits on the ledger", async () => {
+    const out = await desk().add({ text: "a post over the daily cap", platforms: ["x"] });
+    const [d] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    await approveDrafts(pg.db, [d?.id ?? ""], { now: new Date() });
+    fates.set("x", ["capped"]);
+    const before = Date.now();
+    const pass = await sync();
+    expect(pass.stats?.failed).toEqual([]);
+    expect(pass.stats?.waiting).toMatchObject([{ platform: "x" }]);
+    const x = await getDraft(pg.db, d?.id ?? "");
+    expect(x).toMatchObject({
+      status: "approved",
+      error: expect.stringMatching(/^Waiting out the daily cap until /),
+    });
+    // The slot moves to when the cap resets: two hours on.
+    const at = new Date(x?.scheduledFor ?? 0).getTime();
+    expect(at).toBeGreaterThanOrEqual(before + 7_200_000 - 60_000);
+    expect(await sendAttempt(pg.db, `draft:${d?.id}`)).toBeNull();
   });
 
   it("a publish autobrowse read back as absent goes back to approved and posts once under a new key", async () => {

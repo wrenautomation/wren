@@ -34,7 +34,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
-import type { Platform, Post, Published } from "@wren/core/content";
+import { capWaitMs, type Platform, type Post, type Published } from "@wren/core/content";
 import { ShapeError } from "@wren/core/content/shapes";
 import type { Notifier } from "@wren/core/notify";
 import {
@@ -63,6 +63,7 @@ import { PLATFORM_SPECS, postOf } from "../platforms.js";
 import {
   claim,
   dueDrafts,
+  markCapped,
   markFailed,
   markPublished,
   markUnsure,
@@ -311,6 +312,23 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     stats.waiting = [...(stats.waiting ?? []), { id: p.draftId, platform: p.platform }];
   }
 
+  /** The platform's daily cap is used: back to approved at the reset, the ledger row released. */
+  async function capped(
+    ctx: restate.ObjectContext,
+    o: { db: Db; client: string | null },
+    p: OpenPublish,
+    waitMs: number,
+    why: string,
+    stats: PublishStats,
+  ): Promise<void> {
+    const until = new Date((await ctx.date.now()) + waitMs);
+    await ctx.run(`capped ${p.draftId}`, async () => {
+      await markCapped(o.db, p.draftId, until, why);
+      await releaseSend(o.db, itemOf(p));
+    });
+    stats.waiting = [...(stats.waiting ?? []), { id: p.draftId, platform: p.platform }];
+  }
+
   /**
    * A publish that ended in an error. The platform said no (a 4xx, or a field it won't take):
    * failed. A Content error that is not a clear refusal (a stop, a cancel, a server fault) says
@@ -326,6 +344,9 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
   ): Promise<void> {
     if (!(err instanceof restate.TerminalError) && !(err instanceof ShapeError)) throw err;
     const error = errorText(err);
+    // A used daily cap refuses before any write: the draft waits for the reset, never fails.
+    const wait = capWaitMs(err);
+    if (wait !== null) return capped(ctx, o, p, wait, error, stats);
     const code = err instanceof restate.TerminalError ? (err.code ?? 500) : 400;
     if (code >= 400 && code < 500 && code !== 408 && code !== 409)
       return failed(ctx, o, p, error, stats);
