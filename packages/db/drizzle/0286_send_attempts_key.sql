@@ -1,0 +1,1 @@
+ALTER TABLE "send_attempts" ADD COLUMN "send_key" varchar(200);
