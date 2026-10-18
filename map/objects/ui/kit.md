@@ -40,7 +40,7 @@ One component per job, so a page never grows its own list or button and a client
 | Surface | Role |
 |---|---|
 | portal | draws every page with it |
-| Ladle (:61000) | draws each part alone |
+| Storybook (:61000) | draws each part alone, and tests it |
 
 ## See
 

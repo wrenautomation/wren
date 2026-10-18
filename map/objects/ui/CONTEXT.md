@@ -8,7 +8,7 @@ Tune one part of the portal's look in about 3 files: the screen, the `@wren/ui` 
 2. **App → screen.** A page is data or a hand page (`ModulePage`, `apps/portal/web/src/module.ts:162`).
    - `template: "list" | "queue" | "form" | "shop" | "overview" | "day"`: drawn by `TemplatePage` (`apps/portal/web/src/records.tsx:829`) from the `@wren/ui` template below. Tune the template, not the page.
    - A hand page (`HandPage.Page`, `module.ts:75`): its own file in the module folder. It uses `@wren/ui` parts; tune those parts.
-3. **Screen → part → story → DESIGN.md section.** The table. Open one story: `http://localhost:61000/?story=<id>`.
+3. **Screen → part → story → DESIGN.md section.** The table. Open one story: `http://localhost:61000/?path=/story/<id>`.
 
 ## Parts
 
