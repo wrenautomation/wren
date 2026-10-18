@@ -1,5 +1,7 @@
+#!/usr/bin/env node
 /**
- * Stories as tests: each renders, its `play` runs, axe checks it.
+ * Stories as tests: each renders, its `play` runs, axe checks it. Runs the Storybook of the package
+ * it is called from (its `.storybook/vitest.config.ts`); a package's `test:stories` is `wren-stories`.
  *   pnpm --filter @wren/ui test:stories
  * Other arguments go to Vitest: `--project dark-1280`, a story file's path.
  *
@@ -9,12 +11,12 @@
  * "Screenshots off"), so it runs on the Mac as it is, with no Docker.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const LOCK = "/tmp/wren_automation-checks.lock";
 const args = process.argv.slice(2);
-const ui = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const pkg = process.cwd();
 const SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
 
 // One heavy check at a time on the Mac. A run under gates.sh already holds the lock.
@@ -54,8 +56,8 @@ if (!process.env.CI && !process.env.CHECKS_LOCKED) {
   let failed = 0;
   for (const run of runs) {
     if (stopped) break;
-    child = spawn(join(ui, "node_modules/.bin/vitest"), [...vitest, ...run, ...args], {
-      cwd: ui,
+    child = spawn(join(pkg, "node_modules/.bin/vitest"), [...vitest, ...run, ...args], {
+      cwd: pkg,
       env,
       stdio: "inherit",
     });

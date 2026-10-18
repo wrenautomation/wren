@@ -3,4 +3,5 @@
  * data only: the repo is public. Add to these files; never copy a fixture into a story.
  */
 export { answer, fails, pending } from "./load.js";
+export { pageOf } from "./records.js";
 export { WORST } from "./worst.js";

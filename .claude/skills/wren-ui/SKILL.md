@@ -25,6 +25,21 @@ Reuse the running Storybook and stop it when done. Run heavy checks only through
 
 Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 
+## Page loop
+
+For a whole page, the shell, or how apps and pages are laid out. The real app runs on a fake server: no backend, no sign-in.
+
+1. Start it in the background: `pnpm --filter @wren/portal storybook`. It serves http://localhost:61001.
+2. Open a page: `pages-client--<app>` (a client's owner) or `pages-wren--<app>` (Wren's team), for example `/?path=/story/pages-client--reactivation`. Links move inside the story.
+3. Edit the page or part. Storybook reloads it.
+4. Screenshot: `pnpm --filter @wren/portal stories:shot --width 390 --dark pages-client--people`.
+5. A new page story: `export const X = pageAt("/app/page?view=all")` in `apps/portal/web/src/pages-client.stories.tsx` (or `pages-wren.stories.tsx` with `{ me: ADMIN }`). States: `{ mode: "pending" }`, `{ mode: "fails" }`. One answer swapped: `{ answers: { "<service>/<route>": body } }`.
+6. The console says `unmocked: <service>/<route>` for a read with no answer. Its test fails too. Add the answer in `apps/portal/web/src/mocks/data/`, typed with `serve<Api>(service, {...})` where the server exports its API type. Synthetic data only.
+7. Test: `pnpm --filter @wren/portal test:stories` (under the lock, about 30 s). Then `./scripts/gates.sh ui`.
+8. Stop it: `pkill -f "serve.mjs 61001"`. Then `lsof -i :61001` shows nothing.
+
+Records pages get generic types, made from each page's columns and states. A column the server adds shows only in the portal preview.
+
 ## Stories
 
 - A story file sits beside its part: `packages/ui/src/<stem>.stories.tsx`, in CSF (`Meta`, `StoryObj` from `@storybook/react-vite`). Id = `<stem>--<export>` in kebab case.
@@ -46,7 +61,7 @@ Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 
 ## When to leave the story
 
-- **`/impeccable live`**: the look depends on the real page around the part: a hand page, the marketing pieces (no story: they load `api.ts`), the shell with real data. Start the portal on your machine (`pnpm --filter @wren/portal preview`) and pick the element there. The preview is a build, not hot reload: run it again to see an accepted change.
+- **`/impeccable live`**: the look depends on real data, past what the page story's fake data shows. Start the portal on your machine (`pnpm --filter @wren/portal preview`) and pick the element there. The preview is a build, not hot reload: run it again to see an accepted change.
 - **An HTML playground**: a new direction before any build, to compare looks fast. Throw it away after. Never keep it beside a part: it copies the code and drifts.
 - **Never** shoot or scan prod (`app.wrenautomation.com`): it spends the portal Worker's free request cap.
 
@@ -54,4 +69,4 @@ Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 
 - Screens shot at 390 and 1280, light and dark, read by you.
 - `gates.sh ui` passes, story tests included. `DESIGN.md` changes in the same commit when a token or a rule moves.
-- Storybook and any browser stopped.
+- Both Storybooks (61000, 61001) and any browser stopped.

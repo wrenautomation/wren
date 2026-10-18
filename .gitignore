@@ -28,5 +28,5 @@ packages/db/.drift.*
 **/*pycache*
 
 # Storybook's static build (pnpm --filter @wren/ui stories:build) and the story tests' diffs
-packages/ui/storybook-static/
+storybook-static/
 packages/ui/test-results/

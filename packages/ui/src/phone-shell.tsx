@@ -27,6 +27,7 @@ import {
   backOf,
   barOf,
   HOME,
+  HOME_TAB,
   headed,
   pathOfUrl,
   runs,
@@ -134,7 +135,8 @@ export function usePhoneWalk({
       };
     const picks = app.dock?.map((d) => ({ ...d, holds: d.holds ?? [] }));
     const own = barOf(app.tabs, picks);
-    return { tabs: [...first, ...own.tabs], more: own.more };
+    const homeIn = first.map((t) => ({ ...t, id: HOME_TAB, holds: [] }));
+    return { tabs: [...homeIn, ...own.tabs], more: own.more };
   }, [app, dock, home]);
 
   // A page left for Apps lights no tab; one no tab holds (a record) stays under the tab it came from.
@@ -192,7 +194,7 @@ export function usePhoneWalk({
     ),
     /** Where a tab tap goes. Home, from inside an app, is Home's own stack. */
     tap: (tab: BarTab) =>
-      app && tab.id === HOME
+      tab.id === HOME_TAB
         ? tapOf(false, walk.current.stacks[`${HOME}:${HOME}`]?.steps, tab.href, at)
         : tapOf(tab.id === current, walk.current.stacks[`${appId}:${tab.id}`]?.steps, tab.href, at),
     /** An app as he left it. */

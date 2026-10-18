@@ -9,6 +9,7 @@ Tune one part of the portal's look in about 3 files: the screen, the `@wren/ui` 
    - `template: "list" | "queue" | "form" | "shop" | "overview" | "day"`: drawn by `TemplatePage` (`apps/portal/web/src/records.tsx:829`) from the `@wren/ui` template below. Tune the template, not the page.
    - A hand page (`HandPage.Page`, `module.ts:75`): its own file in the module folder. It uses `@wren/ui` parts; tune those parts.
 3. **Screen → part → story → DESIGN.md section.** The table. Open one story: `http://localhost:61000/?path=/story/<id>`.
+4. **A whole page or the layout across apps:** its page story, `http://localhost:61001/?path=/story/pages-client--<app>` (Wren's: `pages-wren--<app>`). [[ui/page-story]].
 
 ## Parts
 
@@ -32,7 +33,7 @@ Every story set has `default`, `empty`, `loading`, `failed`, `worst-case`; extra
 | tile sparks, trends, funnels | `Sparkline`, `TrendChart`, `BarsChart` `charts/index.tsx:43` | `charts` | Charts |
 | `queue`, `form`, `shop`, `overview` pages | `RecordQueue` `queue.tsx:52`, `RecordForm` `form.tsx:27`, `RecordShop` `shop.tsx:37`, `RecordOverview` `overview.tsx:135` | none yet | Lists and records, Cards |
 
-No story: the portal's marketing pieces (`modules/marketing/pieces.tsx`, `plan.tsx`, `videos.tsx`) import `api.ts` at load, which opens the write queue and a socket. Tune them in the portal (`/impeccable live`).
+No part story: the portal's marketing pieces (`modules/marketing/pieces.tsx`, `plan.tsx`, `videos.tsx`) import `api.ts` at load. Tune them in their page story (`pages-wren--marketing`, `pages-wren--today`).
 
 ## Cards
 
@@ -40,5 +41,6 @@ No story: the portal's marketing pieces (`modules/marketing/pieces.tsx`, `plan.t
 |---|---|
 | [[ui/kit]] | what `@wren/ui` is, its one door, what a part change hits |
 | [[ui/story]] | how a story renders with no `/api`, where fixtures live, what the gates run |
+| [[ui/page-story]] | how a whole page renders on a fake server, where its answers live, what fails its test |
 
 Next door: [[platform/portal-shell]] (the frame's behaviour), [[platform/records]] (what a record page serves).

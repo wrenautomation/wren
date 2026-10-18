@@ -50,6 +50,11 @@ export const total = (tabs: readonly TabPage[]) =>
 /** iOS fits five: Home first and Apps last never move; these three in between are the section's. */
 export const BAR_SIZE = 3;
 export const HOME = "home";
+/**
+ * Home's tab inside an app: an id no page takes, so an app's own `home` page (Notes) keeps its
+ * tab, its light and its stack.
+ */
+export const HOME_TAB = "@home";
 
 /**
  * A section's bottom tabs: its picks (else one per run of its pages), three at most. The pages

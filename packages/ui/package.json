@@ -13,7 +13,15 @@
     "./theme": "./src/theme.tsx",
     "./vendor-marks": "./src/vendor-marks.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
-    "./lib/*": "./src/lib/*.ts"
+    "./lib/*": "./src/lib/*.ts",
+    "./storybook/frame": "./.storybook/frame.tsx",
+    "./storybook/tests": "./.storybook/story-tests.ts",
+    "./fixtures": "./src/fixtures/index.ts"
+  },
+  "bin": {
+    "wren-stories": "./.storybook/run.mjs",
+    "wren-shot": "./.storybook/shot.mjs",
+    "wren-storybook": "./.storybook/serve.mjs"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

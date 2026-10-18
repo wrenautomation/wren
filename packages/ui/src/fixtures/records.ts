@@ -372,8 +372,8 @@ const meetsFilter = (cell: Cell | undefined, w: unknown): boolean => {
 };
 
 /** The rows an ask keeps, in the order it asks for. */
-function select(rows: Row[], ask: ListAsk, view = ask.view): Row[] {
-  const v = LEAD_META.views.find((x) => x.id === view);
+function select(rows: Row[], ask: ListAsk, meta: RecordMeta, view = ask.view): Row[] {
+  const v = meta.views.find((x) => x.id === view);
   const where = { ...(v?.where ?? {}), ...((ask.where as Record<string, unknown>) ?? {}) };
   const kept = rows.filter(
     (r) =>
@@ -383,7 +383,7 @@ function select(rows: Row[], ask: ListAsk, view = ask.view): Row[] {
   const sort = ask.sort ?? v?.sort;
   const key = sort?.replace(/^-/, "");
   const order = (k: string) => {
-    const f = LEAD_META.fields.find((x) => x.key === k);
+    const f = meta.fields.find((x) => x.key === k);
     return f?.states ? Object.keys(f.states) : undefined;
   };
   const out = [...kept];
@@ -405,16 +405,16 @@ function select(rows: Row[], ask: ListAsk, view = ask.view): Row[] {
   return out;
 }
 
-/** The page the server would answer for `ask` over `rows`. */
-export function pageOf(rows: Row[], ask: ListAsk): RecordsPage {
-  const all = select(rows, ask);
+/** The page the server would answer for `ask` over `rows` of the type `meta` (Lead by default). */
+export function pageOf(rows: Row[], ask: ListAsk, meta: RecordMeta = LEAD_META): RecordsPage {
+  const all = select(rows, ask, meta);
   const from = ask.offset ?? 0;
   const out: RecordsPage = {
-    record: LEAD_META.id,
+    record: meta.id,
     view: ask.view ?? null,
     rows: all.slice(from, from + (ask.limit ?? 50)),
     total: all.length,
-    counts: Object.fromEntries(LEAD_META.views.map((v) => [v.id, select(rows, ask, v.id).length])),
+    counts: Object.fromEntries(meta.views.map((v) => [v.id, select(rows, ask, meta, v.id).length])),
     next: null,
     totals: {},
   };
@@ -423,13 +423,15 @@ export function pageOf(rows: Row[], ask: ListAsk): RecordsPage {
       const others = { ...(ask.where as Record<string, unknown>) };
       delete others[key];
       const by: Record<string, number> = {};
-      for (const r of select(rows, { ...ask, where: others })) {
+      for (const r of select(rows, { ...ask, where: others }, meta)) {
         const k = String(r[key] ?? "");
         by[k] = (by[k] ?? 0) + 1;
       }
       return by;
     };
-    out.facets = { state: count("state") };
+    out.facets = Object.fromEntries(
+      meta.fields.filter((f) => f.states).map((f) => [f.key, count(f.key)]),
+    );
   }
   return out;
 }

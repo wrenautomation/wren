@@ -440,7 +440,15 @@ function Grid({
           </div>
         ))}
       </div>
-      <div ref={scroller} className="relative max-h-[68vh] overflow-y-auto">
+      {/* biome-ignore lint/a11y/useSemanticElements: a group, not a landmark: a page may hold two. */}
+      <div
+        ref={scroller}
+        role="group"
+        aria-label="Hours"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a box that scrolls needs focus to scroll by keyboard.
+        tabIndex={0}
+        className="relative max-h-[68vh] overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ui-focus)"
+      >
         <div className="grid" style={{ gridTemplateColumns: cols, height: 24 * HOUR }}>
           <div className="relative">
             {HOURS.slice(1).map((h) => (

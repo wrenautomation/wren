@@ -1,0 +1,66 @@
+/**
+ * Storybook for the portal's pages and shell (designs/2026-10-18-portal-page-stories.md): the
+ * real app on a fake server (MSW, `web/src/mocks/`). `pnpm --filter @wren/portal storybook`
+ * serves it on :61001; `test:stories` runs every story as a Vitest test (vitest.config.ts).
+ */
+import type { StorybookConfig } from "@storybook/react-vite";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { mergeConfig, type Plugin } from "vite";
+
+/**
+ * Server code the app imports but never runs in the browser (a `createHash` in a core file) reads
+ * a name off a Node module. The build stubs those modules and only a call would fail; Vite's dev
+ * server throws on the read, at load. This stub does what the build does: each name is there and
+ * throws only if called.
+ */
+const NODE = "\0node-stub:";
+const nodeStubs: Plugin = {
+  name: "node-stubs",
+  enforce: "pre",
+  resolveId: (id) => (id.startsWith("node:") ? NODE + id : null),
+  async load(id) {
+    if (!id.startsWith(NODE)) return null;
+    const name = id.slice(NODE.length);
+    const names = Object.keys(await import(name)).filter((k) => /^[A-Za-z_$][\w$]*$/.test(k));
+    const stub = `() => { throw new Error("${name} is server-only: it can't run in the browser"); }`;
+    return [
+      `const no = ${stub};`,
+      "export default new Proxy({}, { get: () => no });",
+      ...names.filter((k) => k !== "default").map((k) => `export const ${k} = no;`),
+    ].join("\n");
+  },
+};
+
+/**
+ * Dictation asks `GET /api/dictate` as the app loads, before MSW starts; the dev server says it is
+ * off. A static build has no answer and the app reads that as off too.
+ */
+const dictateOff: Plugin = {
+  name: "dictate-off",
+  configureServer(server) {
+    server.middlewares.use("/api/dictate", (_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ on: false, model: null }));
+    });
+  },
+};
+
+const config: StorybookConfig = {
+  framework: "@storybook/react-vite",
+  stories: ["../web/src/**/*.stories.tsx"],
+  addons: ["@storybook/addon-a11y", "@storybook/addon-vitest", "msw-storybook-addon"],
+  // The app's own files (icons), and the service worker MSW answers from (`msw init`), kept here
+  // so the app's build never ships it.
+  staticDirs: ["./public", "../web/public"],
+  core: { disableTelemetry: true, disableWhatsNewNotifications: true },
+  // No docs pages: prop tables would parse every page's types on each start.
+  typescript: { reactDocgen: false },
+  // The app's own React and Tailwind plugins (web/vite.config.ts).
+  viteFinal: (vite) =>
+    mergeConfig(vite, {
+      plugins: [nodeStubs, dictateOff, react(), tailwindcss()],
+      build: { chunkSizeWarningLimit: 4000 },
+    }),
+};
+export default config;

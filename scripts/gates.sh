@@ -21,11 +21,12 @@ fi
 WIDE=${CI:+--concurrency=100%}
 lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && stories && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
 map() { echo "==> map" && map/_meta/build.sh --check; }
-# `@wren/ui`'s Storybook build (designs/2026-10-17-storybook-visual-tests.md): a story that
-# breaks fails here; an unchanged one is a turbo cache hit.
-stories() { echo "==> ui stories" && pnpm turbo run stories:build $WIDE --output-logs=errors-only; }
+# Each Storybook's build, `@wren/ui`'s and the portal's pages (designs/2026-10-17-storybook-visual-tests.md,
+# 2026-10-18-portal-page-stories.md): a story that breaks fails here; an unchanged one is a turbo cache hit.
+stories() { echo "==> stories build" && pnpm turbo run stories:build --concurrency=1 --output-logs=errors-only; }
 # Every story as a test: it renders, its play runs, axe checks it (light at 390, dark at 1280).
-visual() { echo "==> ui story tests" && pnpm turbo run test:stories --filter=@wren/ui --output-logs=errors-only; }
+# One package at a time: each starts a Chromium, and the Mac holds one.
+visual() { echo "==> story tests" && pnpm turbo run test:stories --concurrency=1 --output-logs=errors-only; }
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
 # The local copy's IndexedDB transactions (packages/ui/src/data/local.ts) aren't Postgres.

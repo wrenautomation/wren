@@ -57,5 +57,6 @@ jobs:
           path: .turbo/cache
           key: turbo-stories-${{ github.sha }}
           restore-keys: turbo-stories-
-      - run: pnpm install --frozen-lockfile --filter wren --filter "@wren/ui..."
+      # The portal's page stories need the portal and all it imports; that holds @wren/ui.
+      - run: pnpm install --frozen-lockfile --filter wren --filter "@wren/portal..."
       - run: ./scripts/gates.sh visual

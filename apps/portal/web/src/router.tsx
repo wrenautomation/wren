@@ -14,15 +14,17 @@
  * anything draws.
  */
 import {
+  createBrowserHistory,
   createRootRoute,
   createRoute,
   createRouter,
+  type RouterHistory,
   RouterProvider,
   redirect,
   useRouter,
 } from "@tanstack/react-router";
 import { LIST_SEARCH, paramsOf, searchOf } from "@wren/ui";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { App } from "./App.js";
 import { call, type Me } from "./api.js";
 import { readCall } from "./load.js";
@@ -136,28 +138,38 @@ const deeper = createRoute({ getParentRoute: () => page, path: "$" });
 
 const tree = root.addChildren([home, app.addChildren([page.addChildren([deeper])])]);
 
-export const router = createRouter({
-  routeTree: tree,
-  parseSearch: (s) => searchOf(new URLSearchParams(s)),
-  stringifySearch: (search) => {
-    const s = paramsOf(search).toString();
-    return s ? `?${s}` : "";
-  },
-  // The page keeps its scroll on a move and the browser restores it on back, as before.
-  scrollRestoration: () => false,
-  // The data layer decides when a read is old; a hover reads ahead every time it asks.
-  defaultPreloadStaleTime: 0,
-  // Nothing waits on a loader: they only read ahead.
-  defaultPendingMs: Number.POSITIVE_INFINITY,
-});
-bindRouter(router);
+/**
+ * The portal's router on `history`: the browser's for the app, a memory one for a page story
+ * (designs/2026-10-18-portal-page-stories.md). `navigate` moves the one made last.
+ */
+export function createPortalRouter(history: RouterHistory = createBrowserHistory()) {
+  const router = createRouter({
+    routeTree: tree,
+    history,
+    parseSearch: (s) => searchOf(new URLSearchParams(s)),
+    stringifySearch: (search) => {
+      const s = paramsOf(search).toString();
+      return s ? `?${s}` : "";
+    },
+    // The page keeps its scroll on a move and the browser restores it on back, as before.
+    scrollRestoration: () => false,
+    // The data layer decides when a read is old; a hover reads ahead every time it asks.
+    defaultPreloadStaleTime: 0,
+    // Nothing waits on a loader: they only read ahead.
+    defaultPendingMs: Number.POSITIVE_INFINITY,
+  });
+  bindRouter(router);
+  return router;
+}
 
 declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router;
+    router: ReturnType<typeof createPortalRouter>;
   }
 }
 
-export function PortalRouter() {
+/** The portal, on the browser's history unless `history` is given. */
+export function PortalRouter({ history }: { history?: RouterHistory }) {
+  const [router] = useState(() => createPortalRouter(history));
   return <RouterProvider router={router} />;
 }

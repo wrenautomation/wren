@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Screenshots of stories from a running Storybook (`pnpm --filter @wren/ui storybook`), for a look
  * while you edit. The tests compare no screenshots; these are for reading.
