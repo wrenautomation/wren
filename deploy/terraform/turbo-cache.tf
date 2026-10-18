@@ -108,8 +108,9 @@ resource "aws_lambda_function" "turbo_cache" {
   architectures    = ["arm64"]
   memory_size      = 256
   timeout          = 30
-  # A spend ceiling: a flood of requests waits instead of fanning out.
-  reserved_concurrent_executions = 5
+  # A spend ceiling: a flood of requests waits instead of fanning out. 16 holds the 8 integration
+  # shards, the CI gates and a Mac at once; 5 throttled a warm run (a miss, never a failure).
+  reserved_concurrent_executions = 16
 
   environment {
     variables = {
