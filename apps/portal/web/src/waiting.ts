@@ -3,7 +3,7 @@
  * in any. One read for every app on load and, on the app's pulse, each minute while the tab shows, for the sidebar
  * and Today; the open app's again on each move, so a tab drops as soon as its rows are done.
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { call } from "./api.js";
 import type { Module, ModulePage } from "./module.js";
 import { onPulse } from "./pulse.js";
@@ -14,12 +14,28 @@ export type Waiting = Readonly<Record<string, Readonly<Record<string, number>>>>
 const counted = (p: ModulePage) =>
   "count" in p && p.count && "record" in p ? { record: p.record, where: p.count } : null;
 
-/** Every app's waiting rows: all the counts in one read, not one per page; badges beside it. */
+/**
+ * The counts as a read: `loading` until the first lands, `error` the first count that failed in
+ * the last read (its pages show none), `retry` reads every app again.
+ */
+export type WaitingRead = { loading: boolean; error: unknown; retry: () => void };
+
+/**
+ * Every app's waiting rows: all the counts in one read, not one per page; badges beside it. A
+ * failed count leaves its pages out and names its error.
+ */
 async function readApps(apps: readonly Module[], client: string, wren: boolean, team: boolean) {
   // A page reached by link only (Marketing's copy of To approve) would count its rows twice.
   const pages = apps.flatMap((m) =>
     m.pages.filter((p) => !p.hidden).map((p) => ({ app: m.id, page: p })),
   );
+  let error: unknown = null;
+  const failed =
+    <T>(dropped: T) =>
+    (e: unknown) => {
+      error ??= e;
+      return dropped;
+    };
   const counts = wren
     ? pages.flatMap(({ app, page }) => {
         const c = counted(page);
@@ -29,18 +45,14 @@ async function readApps(apps: readonly Module[], client: string, wren: boolean, 
   const totals = counts.length
     ? call<{ totals: number[] }>("console/recordsCounts", {
         asks: counts.map(({ record, where }) => ({ record, where })),
-      }).then(
-        (r) => counts.map((c, i) => [c.app, c.id, r.totals[i] ?? 0] as const),
-        () => [],
-      )
+      }).then((r) => counts.map((c, i) => [c.app, c.id, r.totals[i] ?? 0] as const), failed([]))
     : Promise.resolve([]);
   const badges = pages.flatMap(({ app, page }) =>
     !(wren && counted(page)) && page.badge
       ? [
-          page.badge(client, team).then(
-            (n) => [app, page.id, n] as const,
-            () => [app, page.id, 0] as const,
-          ),
+          page
+            .badge(client, team)
+            .then((n) => [app, page.id, n] as const, failed([app, page.id, 0] as const)),
         ]
       : [],
   );
@@ -51,7 +63,7 @@ async function readApps(apps: readonly Module[], client: string, wren: boolean, 
     const at = out[app];
     if (at && n > 0) at[id] = n;
   }
-  return out;
+  return { out, error };
 }
 
 /** The sum an app shows beside its name: all its pages' counts. */
@@ -65,8 +77,13 @@ export function useWaiting(
   team: boolean,
   open: string | undefined,
   at: string,
-): Waiting {
+): { waiting: Waiting; read: WaitingRead } {
   const [waiting, setWaiting] = useState<Waiting>({});
+  const [state, setState] = useState<{ loading: boolean; error: unknown }>({
+    loading: true,
+    error: null,
+  });
+  const again = useRef(() => {});
   const latest = useRef(apps);
   latest.current = apps;
   const ids = apps.map((m) => m.id).join(",");
@@ -78,8 +95,14 @@ export function useWaiting(
   useEffect(() => {
     if (!key || !client) return void setWaiting({});
     let live = true;
+    setState({ loading: true, error: null });
     const all = () =>
-      readApps(latest.current, client, wren, team).then((got) => live && setWaiting(got));
+      readApps(latest.current, client, wren, team).then(({ out, error }) => {
+        if (!live) return;
+        setWaiting(out);
+        setState({ loading: false, error });
+      });
+    again.current = () => void all();
     // The app's one pulse: now, each minute while the tab shows, and on return (./pulse.ts).
     const leave = onPulse(all);
     return () => {
@@ -94,13 +117,15 @@ export function useWaiting(
     const m = latest.current.find((x) => x.id === open);
     if (!key || !client || !m) return;
     let live = true;
+    // A failed read keeps the pulse's counts for this app.
     void readApps([m], client, wren, team).then(
-      (got) => live && setWaiting((w) => ({ ...w, ...got })),
+      ({ out, error }) => live && !error && setWaiting((w) => ({ ...w, ...out })),
     );
     return () => {
       live = false;
     };
   }, [key, open, at]);
 
-  return waiting;
+  const retry = useCallback(() => again.current(), []);
+  return { waiting, read: { ...state, retry } };
 }

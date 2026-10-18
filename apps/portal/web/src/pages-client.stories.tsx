@@ -3,7 +3,7 @@
  * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
-import { pageAt } from "./mocks/page.js";
+import { failedIn, pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Client" };
 export default meta;
@@ -32,6 +32,6 @@ export const Account = pageAt("/account");
 /** A record open in its panel, over the list (`?<record's one name>=<id>`). */
 export const PersonOpen = pageAt("/people/people?profile=1");
 
-/** The shell while nothing has come back, and when every read fails. */
+/** The shell while nothing has come back, and when every read fails: an error, never "nothing waits". */
 export const Loading = pageAt("/", { mode: "pending" });
-export const Failed = pageAt("/", { mode: "fails" });
+export const Failed = pageAt("/", { mode: "fails", check: failedIn("Needs you") });

@@ -37,13 +37,17 @@ try {
   for (const id of positionals) {
     const theme = values.dark ? "&globals=theme:dark" : "";
     await page.goto(`http://localhost:${values.port}/iframe.html?id=${id}&viewMode=story${theme}`);
-    // The story is drawn and its `play`, if any, has ended (or failed).
+    // The story is drawn and its `play`, if any, has ended (or failed): a page story's play waits
+    // for its reads, retries included.
     const end = await page
       .waitForFunction(
         () => {
           const root = document.getElementById("storybook-root");
           const err = document.body.classList.contains("sb-show-errordisplay");
-          return err ? "error" : root?.childElementCount ? "ok" : false;
+          const phase = globalThis.__STORYBOOK_PREVIEW__?.currentRender?.phase;
+          if (err || phase === "errored") return "error";
+          const done = phase === undefined || ["completed", "finished"].includes(phase);
+          return done && root?.childElementCount ? "ok" : false;
         },
         null,
         { timeout: 15_000 },

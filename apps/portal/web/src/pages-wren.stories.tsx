@@ -3,13 +3,25 @@
  * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
+import { refuse } from "./mocks/api.js";
 import { ADMIN } from "./mocks/data/me.js";
-import { pageAt } from "./mocks/page.js";
+import { failedIn, pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Wren" };
 export default meta;
 
 export const Today = pageAt("/", { me: ADMIN });
+/** Every read fails, or only the counts: Today says so, never "Nothing waits on you." */
+export const TodayFailed = pageAt("/", {
+  me: ADMIN,
+  mode: "fails",
+  check: failedIn("Waiting on you"),
+});
+export const TodayCountsFailed = pageAt("/", {
+  me: ADMIN,
+  answers: { "console/recordsCounts": refuse(500, "The counts failed, as asked.") },
+  check: failedIn("Waiting on you"),
+});
 export const Inbox = pageAt("/inbox", { me: ADMIN });
 export const Pipeline = pageAt("/pipeline", { me: ADMIN });
 export const People = pageAt("/people", { me: ADMIN });

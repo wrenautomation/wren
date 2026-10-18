@@ -5,6 +5,7 @@
 import type { StoryObj } from "@storybook/react-vite";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { useState } from "react";
+import { expect, waitFor, within } from "storybook/test";
 import type { Me } from "../api.js";
 import { PortalRouter } from "../router.js";
 import { type Answers, fakeApi, freshStory, type Mode, settled } from "./api.js";
@@ -18,6 +19,8 @@ export interface PageAt {
   answers?: Answers;
   /** `pending`: no read comes back; `fails`: every read is refused. Who is signed in still answers. */
   mode?: Mode;
+  /** What the test asserts once the data is in, after the unmocked check. */
+  check?: (page: HTMLElement) => void | Promise<void>;
 }
 
 function Page({ at }: { at: string }) {
@@ -26,15 +29,36 @@ function Page({ at }: { at: string }) {
 }
 
 /** The story for the portal at `at` (`/reactivation/people?status=open`). */
-export function pageAt(at: string, { me = OWNER, answers = {}, mode }: PageAt = {}): StoryObj {
+export function pageAt(
+  at: string,
+  { me = OWNER, answers = {}, mode, check }: PageAt = {},
+): StoryObj {
   return {
     render: () => <Page at={at} />,
     beforeEach: freshStory,
     // The test (and axe) reads the page once its data is in; a pending story has none to wait for.
-    ...(mode === "pending" ? {} : { play: () => settled() }),
+    ...(mode === "pending"
+      ? {}
+      : {
+          play: async ({ canvasElement }) => {
+            await settled();
+            await check?.(canvasElement);
+          },
+        }),
     parameters: {
       layout: "fullscreen",
       msw: fakeApi({ ...ANSWERS, "delivery/me": me, ...answers }, mode),
     },
   };
 }
+
+/** The check that the section `title` shows its failed read and never says nothing waits. */
+export const failedIn = (title: string) => async (page: HTMLElement) => {
+  const head = await within(page).findByRole("heading", { name: new RegExp(`^${title}`) });
+  const section = head.closest("section");
+  if (!section) throw new Error(`"${title}" is not in a section`);
+  const alert = await within(section).findByRole("alert");
+  // Sections fade in where motion is on.
+  await waitFor(() => expect(alert).toBeVisible());
+  await expect(within(page).queryByText("Nothing waits on you.")).toBeNull();
+};

@@ -416,7 +416,7 @@ export function App() {
     dropPreloadedLook();
     keep(LOOK_KEY, lookVars);
   }, [lookKnown, lookVars]);
-  const waiting = useWaiting(
+  const { waiting, read: waitRead } = useWaiting(
     cards,
     current?.id,
     wren,
@@ -687,13 +687,20 @@ export function App() {
               </LookProvider>
             </Contained>
           ) : wren ? (
-            <WrenToday apps={cards} waiting={waiting} pins={pins} props={props(current.id)} />
+            <WrenToday
+              apps={cards}
+              waiting={waiting}
+              read={waitRead}
+              pins={pins}
+              props={props(current.id)}
+            />
           ) : (
             <ClientToday
               key={current.id}
               name={current.name}
               apps={cards}
               waiting={waiting}
+              read={waitRead}
               installed={installed}
               props={props(current.id)}
               pins={pins}

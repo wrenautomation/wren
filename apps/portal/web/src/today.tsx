@@ -10,6 +10,7 @@ import {
   cx,
   Icon,
   type IconName,
+  LoadFailed,
   Loading,
   PageHeader,
   type PinLine,
@@ -36,7 +37,7 @@ import {
 import { goalsOf, MakeList, usePlan } from "./modules/marketing/plan.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { HealthNow } from "./modules/wren/health.js";
-import { appTotal, type Waiting } from "./waiting.js";
+import { appTotal, type Waiting, type WaitingRead } from "./waiting.js";
 
 const ROW =
   "flex min-h-11 items-center gap-3 border-b border-(--ui-hair) px-1 text-[14.5px] text-(--ui-ink) no-underline transition-colors duration-150 ease-(--ui-ease) last:border-b-0 hover:bg-(--ui-hover)";
@@ -72,8 +73,29 @@ function Row({
   );
 }
 
-/** Every page with rows waiting, by area then app: one line each, its count, a link. */
-function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
+/** Nothing waits on you: said only once every read is in and none failed. */
+function NothingWaits() {
+  return (
+    <p className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
+      <Icon name="check" className="text-(--ui-good)" />
+      Nothing waits on you.
+    </p>
+  );
+}
+
+/**
+ * Every page with rows waiting, by area then app: one line each, its count, a link. A failed
+ * count says so above the lines it has, never "Nothing waits on you."
+ */
+function NeedsYou({
+  apps,
+  waiting,
+  read,
+}: {
+  apps: Module[];
+  waiting: Waiting;
+  read: WaitingRead;
+}) {
   const lines = areasOf(apps).flatMap(({ apps }) =>
     apps.flatMap((m) =>
       m.pages
@@ -86,6 +108,7 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
       title="Needs you"
       count={lines.length ? lines.reduce((t, l) => t + l.n, 0) : undefined}
     >
+      {read.error ? <LoadFailed error={read.error} onRetry={read.retry} what="list" /> : null}
       {lines.length ? (
         <ul className="-my-2 list-none">
           {lines.map(({ m, p, n }) => (
@@ -94,11 +117,10 @@ function NeedsYou({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
             </Row>
           ))}
         </ul>
+      ) : read.error ? null : read.loading ? (
+        <Loading lines={3} />
       ) : (
-        <p className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
-          <Icon name="check" className="text-(--ui-good)" />
-          Nothing waits on you.
-        </p>
+        <NothingWaits />
       )}
     </Section>
   );
@@ -240,8 +262,19 @@ function AskRow({ a }: { a: Ask }) {
 
 const PIECES_SHOWN = 3;
 
-/** Wren's work: make, what waits (pieces, then each other kind), what went out. */
-function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
+/**
+ * Wren's work: make, what waits (pieces, then each other kind), what went out. A failed read
+ * says so above what did load, never "Nothing waits on you."
+ */
+function WrenWork({
+  apps,
+  waiting,
+  read,
+}: {
+  apps: Module[];
+  waiting: Waiting;
+  read: WaitingRead;
+}) {
   const plan = usePlan();
   const work = usePieces();
   const key = JSON.stringify(waiting);
@@ -249,7 +282,14 @@ function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
   const goals = goalsOf(plan.data?.rows);
   const pieces = (work.data?.pieces ?? []).filter((p) => allWaiting(p).length);
   const lines = asks.data ?? [];
-  const none = work.data && asks.data && !pieces.length && !lines.length;
+  const error = work.error ?? asks.error ?? read.error;
+  const retry = () => {
+    work.retry();
+    asks.retry();
+    read.retry();
+  };
+  const loading = !error && (!work.data || !asks.data || read.loading);
+  const none = !error && !loading && !pieces.length && !lines.length;
   return (
     <>
       {goals.length ? (
@@ -268,9 +308,7 @@ function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
       <Section
         title="Waiting on you"
         count={
-          !work.data || !asks.data || none
-            ? undefined
-            : pieces.length + lines.reduce((t, a) => t + a.n, 0)
+          loading || none || error ? undefined : pieces.length + lines.reduce((t, a) => t + a.n, 0)
         }
         actions={
           pieces.length > PIECES_SHOWN ? (
@@ -280,14 +318,12 @@ function WrenWork({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
           ) : null
         }
       >
-        {!work.data || !asks.data ? (
+        {error ? <LoadFailed error={error} onRetry={retry} what="list" /> : null}
+        {loading ? (
           <Loading lines={5} />
         ) : none ? (
-          <p className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
-            <Icon name="check" className="text-(--ui-good)" />
-            Nothing waits on you.
-          </p>
-        ) : (
+          <NothingWaits />
+        ) : !pieces.length && !lines.length ? null : (
           <div className="grid grid-cols-1 gap-3">
             {pieces.slice(0, PIECES_SHOWN).map((p) => (
               <PieceCard key={p.id} piece={p} reload={work.retry} />
@@ -337,11 +373,13 @@ const DATE = new Intl.DateTimeFormat("en-CA", {
 export function WrenToday({
   apps,
   waiting,
+  read,
   pins,
   props,
 }: {
   apps: Module[];
   waiting: Waiting;
+  read: WaitingRead;
   pins: PinLine[];
   props: PageProps;
 }) {
@@ -361,7 +399,7 @@ export function WrenToday({
       {props.team ? <SetupNow client={props.client} team /> : null}
       {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
-      <WrenWork apps={apps} waiting={waiting} />
+      <WrenWork apps={apps} waiting={waiting} read={read} />
       <AppsByArea apps={apps} waiting={waiting} />
     </>
   );
@@ -372,6 +410,7 @@ export function ClientToday({
   name,
   apps,
   waiting,
+  read,
   installed,
   pins,
   props,
@@ -379,6 +418,7 @@ export function ClientToday({
   name: string;
   apps: Module[];
   waiting: Waiting;
+  read: WaitingRead;
   installed: ReadonlySet<string>;
   pins: PinLine[];
   props: PageProps;
@@ -408,7 +448,7 @@ export function ClientToday({
           props={props}
         />
       )}
-      <NeedsYou apps={apps} waiting={waiting} />
+      <NeedsYou apps={apps} waiting={waiting} read={read} />
       {bought.length ? (
         <AppGrid label="Your services">
           {bought.map(({ b, m }) => (
