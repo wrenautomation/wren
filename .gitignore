@@ -27,5 +27,6 @@ senders_config.toml
 packages/db/.drift.*
 **/*pycache*
 
-# Ladle's static build (pnpm --filter @wren/ui stories:build)
-packages/ui/build/
+# Storybook's static build (pnpm --filter @wren/ui stories:build) and the story tests' diffs
+packages/ui/storybook-static/
+packages/ui/test-results/

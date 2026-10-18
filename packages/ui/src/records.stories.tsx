@@ -1,9 +1,12 @@
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { FakeRecordsOptions } from "./fixtures/records.js";
 import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo, WORST_LEADS } from "./fixtures/records.js";
 import { Panel, RecordList } from "./records.js";
 
-export default { title: "Records", meta: { bare: true } } as StoryDefault;
+export default { title: "Records", parameters: { layout: "fullscreen" } } satisfies Meta;
+
+type Story = StoryObj;
 
 type Demo = FakeRecordsOptions & { at?: string; picked?: (string | number)[] };
 
@@ -17,31 +20,69 @@ function Page({ at = "view=all", ...o }: Demo) {
 }
 
 /** The list in its "All" view: what waits on the viewer first under "Needs you", the rest under "For info". */
-export const Default: Story = () => <Page />;
+export const Default: Story = {
+  render: () => <Page />,
+};
 
 /** Nothing matches: the view's empty line. */
-export const Empty: Story = () => <Page rows={[]} at="view=waiting" />;
+export const Empty: Story = {
+  render: () => <Page rows={[]} at="view=waiting" />,
+};
 
 /** The record types are still being read: the list's skeleton. */
-export const Loading: Story = () => <Page types="pending" />;
+export const Loading: Story = {
+  render: () => <Page types="pending" />,
+};
 
 /** The server refuses the record types: the failed-read card with its Retry. */
-export const Failed: Story = () => <Page types="fails" />;
+export const Failed: Story = {
+  render: () => <Page types="fails" />,
+};
 
 /** Types read, rows never come: the list's own bar over a page still loading. */
-export const RowsLoading: Story = () => <Page list="pending" />;
+export const RowsLoading: Story = {
+  render: () => <Page list="pending" />,
+};
 
 /** Types read, the rows' read fails. */
-export const RowsFailed: Story = () => <Page list="fails" />;
+export const RowsFailed: Story = {
+  render: () => <Page list="fails" />,
+};
 
 /** Rows picked: the bar swaps its count for the selection and the bulk actions. */
-export const Bulk: Story = () => <Page at="view=waiting" picked={[1, 2, 4]} />;
+export const Bulk: Story = {
+  render: () => <Page at="view=waiting" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const rows = await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    for (const i of [0, 1, 3]) await userEvent.click(rows[i] as HTMLElement);
+    await expect(await canvas.findByText("3 selected")).toBeVisible();
+  },
+};
+
+/** A column head pressed: the list sorts by it, and the head shows the way. */
+export const Sorted: Story = {
+  render: () => <Page />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    // A phone draws cards, with no column heads to press.
+    if (!canvas.queryByRole("columnheader", { name: "Score" })) return;
+    const head = canvas.getByRole("link", { name: "Score" });
+    await userEvent.click(head);
+    await waitFor(() => expect(head.querySelector("svg")).not.toBeNull());
+  },
+};
 
 /** Long, unbreakable, non-Latin, emoji, huge, negative and missing values in every column. */
-export const WorstCase: Story = () => <Page rows={WORST_LEADS} />;
+export const WorstCase: Story = {
+  render: () => <Page rows={WORST_LEADS} />,
+};
 
 /** A lead open beside its list. */
-export const PanelOpen: Story = () => <Page at="view=all&lead=1" />;
+export const PanelOpen: Story = {
+  render: () => <Page at="view=all&lead=1" />,
+};
 
 function PanelHost(o: Demo & { id?: string }) {
   const { api, place, acts } = useRecordsDemo(o);
@@ -64,16 +105,26 @@ function PanelHost(o: Demo & { id?: string }) {
 }
 
 /** One lead in the side panel: head, fields, activity, and its actions. */
-export const PanelDefault: Story = () => <PanelHost />;
+export const PanelDefault: Story = {
+  render: () => <PanelHost />,
+};
 
 /** A lead with almost nothing on it: only a name. */
-export const PanelEmpty: Story = () => <PanelHost rows={WORST_LEADS} id="5" />;
+export const PanelEmpty: Story = {
+  render: () => <PanelHost rows={WORST_LEADS} id="5" />,
+};
 
 /** The record's read never answers. */
-export const PanelLoading: Story = () => <PanelHost get="pending" />;
+export const PanelLoading: Story = {
+  render: () => <PanelHost get="pending" />,
+};
 
 /** The record's read fails. */
-export const PanelFailed: Story = () => <PanelHost get="fails" />;
+export const PanelFailed: Story = {
+  render: () => <PanelHost get="fails" />,
+};
 
 /** The worst-case lead in the panel. */
-export const PanelWorstCase: Story = () => <PanelHost rows={WORST_LEADS} id="1" />;
+export const PanelWorstCase: Story = {
+  render: () => <PanelHost rows={WORST_LEADS} id="1" />,
+};

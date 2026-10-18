@@ -1,5 +1,6 @@
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { Button } from "./controls.js";
 import { EDITS } from "./data/edits.js";
 import {
@@ -30,7 +31,9 @@ import { fails, pending } from "./fixtures/load.js";
 import { WORST } from "./fixtures/worst.js";
 import { writeForm } from "./save/journal.js";
 
-export default { title: "Edit form" } satisfies StoryDefault;
+export default { title: "Edit form" } satisfies Meta;
+
+type Story = StoryObj;
 
 type Run = "submit" | "validate" | undefined;
 
@@ -97,36 +100,72 @@ function ContactForm({
 }
 
 /** Every field kind, filled from the server's values. Type to see the kept-values line on a reload. */
-export const Default: Story = () => <ContactForm id="default" defaults={CONTACT_DEFAULTS} />;
+export const Default: Story = {
+  render: () => <ContactForm id="default" defaults={CONTACT_DEFAULTS} />,
+};
 
 /** A new contact: blank boxes. Send shows each missing field's message. */
-export const Empty: Story = () => (
-  <ContactForm id="empty" defaults={CONTACT_BLANK} run="validate" />
-);
+export const Empty: Story = {
+  render: () => <ContactForm id="empty" defaults={CONTACT_BLANK} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Send" }));
+    await expect(await canvas.findByText("Say a name.")).toBeVisible();
+  },
+};
+
+/** Typed, refused, fixed and sent: a bad email shows its message, a good one goes. */
+export const Saved: StoryObj<{ send: (v: ContactValues) => Promise<unknown> }> = {
+  args: { send: fn(async () => {}) },
+  render: (args) => <ContactForm id="saved" defaults={CONTACT_BLANK} send={args.send} />,
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const send = canvas.getByRole("button", { name: "Send" });
+    await userEvent.type(canvas.getByRole("textbox", { name: /^Name/ }), "Ada Example");
+    await userEvent.type(canvas.getByRole("textbox", { name: /^Email/ }), "ada@");
+    await userEvent.click(send);
+    await expect(await canvas.findByText("That is not an email.")).toBeVisible();
+    await expect(args.send).not.toHaveBeenCalled();
+    await userEvent.type(canvas.getByRole("textbox", { name: /^Email/ }), "example.com");
+    await userEvent.click(send);
+    await expect(args.send).toHaveBeenCalledOnce();
+    await expect(args.send).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Ada Example", email: "ada@example.com" }),
+    );
+  },
+};
 
 /** The nearest real state: Send pressed and the write never answers, so the button stays busy. */
-export const Loading: Story = () => (
-  <ContactForm id="loading" defaults={CONTACT_DEFAULTS} send={pending()} run="submit" />
-);
+export const Loading: Story = {
+  render: () => (
+    <ContactForm id="loading" defaults={CONTACT_DEFAULTS} send={pending()} run="submit" />
+  ),
+};
 
 /** The write fails: the form shows the reason and keeps the values. */
-export const Failed: Story = () => (
-  <ContactForm
-    id="failed"
-    defaults={CONTACT_DEFAULTS}
-    send={fails("The server refused this contact.", 400)}
-    run="submit"
-  />
-);
+export const Failed: Story = {
+  render: () => (
+    <ContactForm
+      id="failed"
+      defaults={CONTACT_DEFAULTS}
+      send={fails("The server refused this contact.", 400)}
+      run="submit"
+    />
+  ),
+};
 
 /** Long, unbreakable, non-Latin and emoji values, an invalid amount, and kept values in conflict. */
-export const WorstCase: Story = () => (
-  <div className="grid gap-10">
-    <ContactForm id="worst" defaults={CONTACT_WORST} run="validate" />
-    <ContactForm
-      id="conflict"
-      defaults={CONTACT_DEFAULTS}
-      kept={{ name: `${WORST.nonLatin} ${WORST.emoji}`, note: WORST.longText }}
-    />
-  </div>
-);
+export const WorstCase: Story = {
+  // a11y todo: the kept-values box scrolls but takes no focus (scrollable-region-focusable).
+  parameters: { a11y: { test: "todo" } },
+  render: () => (
+    <div className="grid gap-10">
+      <ContactForm id="worst" defaults={CONTACT_WORST} run="validate" />
+      <ContactForm
+        id="conflict"
+        defaults={CONTACT_DEFAULTS}
+        kept={{ name: `${WORST.nonLatin} ${WORST.emoji}`, note: WORST.longText }}
+      />
+    </div>
+  ),
+};

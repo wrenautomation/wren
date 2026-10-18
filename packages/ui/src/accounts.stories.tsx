@@ -1,4 +1,4 @@
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { AccountPick } from "@wren/core/record-accounts";
 import type { RecordMeta } from "@wren/core/records";
 import { useState } from "react";
@@ -14,7 +14,9 @@ import {
 } from "./fixtures/accounts.js";
 import { fakePlace } from "./fixtures/place.js";
 
-export default { title: "Accounts" } satisfies StoryDefault;
+export default { title: "Accounts" } satisfies Meta;
+
+type Story = StoryObj;
 
 const label = "text-[12px] text-(--ui-ink-3)";
 
@@ -63,41 +65,49 @@ function Everything({ meta, keys, pick }: { meta: RecordMeta; keys: string[]; pi
 const KEYS = ["reddit@one", "reddit@two", "linkedin@one"];
 
 /** The badge, the filter and the picker, each live: open the menus and pick. */
-export const Default: Story = () => (
-  <Everything meta={ACCOUNTS_META} keys={KEYS} pick={ACCOUNT_PICK} />
-);
+export const Default: Story = {
+  render: () => <Everything meta={ACCOUNTS_META} keys={KEYS} pick={ACCOUNT_PICK} />,
+};
 
 /** No accounts: the filter draws nothing, a badge reads the key, the picker offers the default. */
-export const Empty: Story = () => (
-  <div className="grid max-w-2xl gap-6">
-    <div className="flex flex-wrap items-center gap-2">
-      <AccountFilter meta={NO_ACCOUNTS_META} place={fakePlace()} />
-      <span className={label}>filter: nothing to show</span>
+export const Empty: Story = {
+  render: () => (
+    <div className="grid max-w-2xl gap-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <AccountFilter meta={NO_ACCOUNTS_META} place={fakePlace()} />
+        <span className={label}>filter: nothing to show</span>
+      </div>
+      <AccountBadge field={accountFieldOf(NO_ACCOUNTS_META)} value="gone@x" />
+      <Picker pick={EMPTY_PICK} />
     </div>
-    <AccountBadge field={accountFieldOf(NO_ACCOUNTS_META)} value="gone@x" />
-    <Picker pick={EMPTY_PICK} />
-  </div>
-);
+  ),
+};
 
 /** The nearest real state: a picker has no loading state of its own, so a save in flight shows it busy. */
-export const Loading: Story = () => (
-  <div className="grid max-w-2xl gap-6">
-    <Picker pick={{ ...ACCOUNT_PICK, picked: true }} busy unsaved />
-  </div>
-);
+export const Loading: Story = {
+  render: () => (
+    <div className="grid max-w-2xl gap-6">
+      <Picker pick={{ ...ACCOUNT_PICK, picked: true }} busy unsaved />
+    </div>
+  ),
+};
 
 /** The nearest real state: a picker has no error state, so a pick that was not saved says "Not saved yet", beside a warned account. */
-export const Failed: Story = () => (
-  <div className="grid max-w-2xl gap-6">
-    <Picker pick={WARNED_PICK} unsaved />
-  </div>
-);
+export const Failed: Story = {
+  render: () => (
+    <div className="grid max-w-2xl gap-6">
+      <Picker pick={WARNED_PICK} unsaved />
+    </div>
+  ),
+};
 
 /** Long names and warnings, a paused account, and eleven accounts to scroll. */
-export const WorstCase: Story = () => (
-  <Everything
-    meta={WORST_ACCOUNTS_META}
-    keys={["reddit@long", "linkedin@long", "x@non-latin", "x@emoji", "reddit@short"]}
-    pick={WORST_PICK}
-  />
-);
+export const WorstCase: Story = {
+  render: () => (
+    <Everything
+      meta={WORST_ACCOUNTS_META}
+      keys={["reddit@long", "linkedin@long", "x@non-latin", "x@emoji", "reddit@short"]}
+      pick={WORST_PICK}
+    />
+  ),
+};

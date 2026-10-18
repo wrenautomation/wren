@@ -1,5 +1,6 @@
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { RecordMeta } from "@wren/core/records";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import {
   BARE_META,
   facetsOf,
@@ -14,7 +15,9 @@ import { WORST } from "./fixtures/worst.js";
 import type { KeepApi } from "./list-bar.js";
 import { type Facets, ListBar, SearchBox, useSavedViews, ViewTabs } from "./list-bar.js";
 
-export default { title: "List bar" } as StoryDefault;
+export default { title: "List bar" } satisfies Meta;
+
+type Story = StoryObj;
 
 interface Demo {
   meta?: RecordMeta;
@@ -55,36 +58,61 @@ function Bar({ meta = LEAD_META, keep = fakeKeep(), facets = "ok", at = "", coun
 }
 
 /** Views as tabs with counts, a saved view of his own and a shared one, search, Filter, and one filter on. */
-export const Default: Story = () => <Bar at="view=all&state=waiting" />;
+export const Default: Story = {
+  render: () => <Bar at="view=all&state=waiting" />,
+};
+
+/** A tab pressed, then Filter: the fields to filter by open (a sheet on a phone). */
+export const Filtering: Story = {
+  // a11y todo: each field option is also its popover's trigger, so it has aria-expanded (aria-allowed-attr).
+  parameters: { a11y: { test: "todo" } },
+  render: () => <Bar at="view=all" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const waiting = await canvas.findByRole("link", { name: /^Waiting/ });
+    await userEvent.click(waiting);
+    await waitFor(() => expect(waiting).toHaveAttribute("aria-current", "page"));
+    await userEvent.click(canvas.getByRole("button", { name: /^Filter/ }));
+    await expect(await screen.findByRole("listbox", { name: "Fields" })).toBeVisible();
+  },
+};
 
 /** A list with no views, no saved views and nothing to search: the bar shows only Filter and the count. */
-export const Empty: Story = () => <Bar meta={BARE_META} keep={fakeKeep("ok", [])} counts={null} />;
+export const Empty: Story = {
+  render: () => <Bar meta={BARE_META} keep={fakeKeep("ok", [])} counts={null} />,
+};
 
 /**
  * No state of its own: the bar waits on its reads. The saved views never answer (the tabs show
  * the built-in views only) and the counts are not in yet.
  */
-export const Loading: Story = () => (
-  <Bar keep={fakeKeep("pending")} counts={null} facets="pending" />
-);
+export const Loading: Story = {
+  render: () => <Bar keep={fakeKeep("pending")} counts={null} facets="pending" />,
+};
 
 /**
  * No error state of its own: the saved-views read fails and the bar shows the built-in views
  * without them, without a message.
  */
-export const Failed: Story = () => <Bar keep={fakeKeep("fails")} facets="fails" />;
+export const Failed: Story = {
+  render: () => <Bar keep={fakeKeep("fails")} facets="fails" />,
+};
 
 /** Six saved views past the tab limit, long and non-Latin names, a long search, filters on. */
-export const WorstCase: Story = () => (
-  <Bar
-    keep={fakeKeep("ok", WORST_SAVED)}
-    at={`view=all&sv=11&state=waiting&q=${encodeURIComponent(WORST.longText.slice(0, 120))}`}
-    counts={{ waiting: WORST.hugeCount, approved: 0, all: WORST.hugeCount }}
-  />
-);
+export const WorstCase: Story = {
+  render: () => (
+    <Bar
+      keep={fakeKeep("ok", WORST_SAVED)}
+      at={`view=all&sv=11&state=waiting&q=${encodeURIComponent(WORST.longText.slice(0, 120))}`}
+      counts={{ waiting: WORST.hugeCount, approved: 0, all: WORST.hugeCount }}
+    />
+  ),
+};
 
 /** The search box alone, with a typed query. */
-export const SearchDefault: Story = () => {
-  const place = usePlace("q=northwind");
-  return <SearchBox place={place} label="leads" />;
+export const SearchDefault: Story = {
+  render: () => {
+    const place = usePlace("q=northwind");
+    return <SearchBox place={place} label="leads" />;
+  },
 };

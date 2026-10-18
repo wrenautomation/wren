@@ -3,11 +3,26 @@
  * `/api`. Pass one where a component takes its read (`fn`, `load`, `deps`).
  */
 
+/** Answers on their way. The story tests wait for none before a screenshot. */
+let open = 0;
+export const answering = () => open;
+
+/** A copy of `data` after `ms` (0: next tick), counted while on its way. */
+export function later<T>(data: T, ms = 0): Promise<T> {
+  open++;
+  return new Promise((ok) =>
+    setTimeout(() => {
+      open--;
+      ok(structuredClone(data));
+    }, ms),
+  );
+}
+
 /** Answers `data` after `ms` (0: next tick). */
 export const answer =
   <T>(data: T, ms = 0) =>
   (): Promise<T> =>
-    new Promise((ok) => setTimeout(() => ok(structuredClone(data)), ms));
+    later(data, ms);
 
 /** Never answers: the loading state, held. */
 export const pending =

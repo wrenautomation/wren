@@ -3,6 +3,7 @@
  * fields of every type, and a `Call` that answers, never answers or fails. Synthetic data only.
  */
 import type { Action, Call, FormField } from "../action.js";
+import { later } from "./load.js";
 import { WORST } from "./worst.js";
 
 /** Asks why before it runs: the text box, empty. */
@@ -151,6 +152,6 @@ export function fakeCall(how: Reply = "ok", ms = 300): Call {
         Object.assign(new Error("The server could not answer."), { status: 500 }),
       );
     const data = handler === "demo/cities" ? CITIES : { done: input.ids ?? [] };
-    return new Promise((ok) => setTimeout(() => ok(structuredClone(data)), ms));
+    return later(data, ms);
   };
 }

@@ -1987,7 +1987,9 @@ function List({
                       <SortHead field={f} place={place} sort={sort} dir={table.sorted(f.key)} />
                     </th>
                   ))}
-                  <th className="sticky top-0 z-10 border-b border-(--ui-edge) bg-(--ui-band)" />
+                  <th className="sticky top-0 z-10 border-b border-(--ui-edge) bg-(--ui-band)">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody ref={body}>

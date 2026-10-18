@@ -1,4 +1,4 @@
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { Thumb } from "@wren/core/records";
 import { useState } from "react";
 import { CardHead, CardStrip, FormSwitch, GRID, RecordCard } from "./card-grid.js";
@@ -13,7 +13,9 @@ import {
 } from "./fixtures/cards.js";
 import { fakePlace } from "./fixtures/place.js";
 
-export default { title: "Card grid" } satisfies StoryDefault;
+export default { title: "Card grid" } satisfies Meta;
+
+type Story = StoryObj;
 
 const COLUMNS = CARDS_META.fields.filter((f) => f.column);
 const PARTS = cardOf(CARDS_META, COLUMNS, { badge: "state" }, [...CARD_ROWS, ...WORST_CARD_ROWS]);
@@ -94,16 +96,26 @@ function Cards({
 }
 
 /** Four cards under a band, with the switch and the sort line; click a card to open it. */
-export const Default: Story = () => <Cards rows={CARD_ROWS} band="This week" sort="-count" />;
+export const Default: Story = {
+  render: () => <Cards rows={CARD_ROWS} band="This week" sort="-count" />,
+};
 
 /** No rows: the switch and strip stay, the grid is empty. The page adds its own empty line. */
-export const Empty: Story = () => <Cards rows={[]} />;
+export const Empty: Story = {
+  render: () => <Cards rows={[]} />,
+};
 
 /** The nearest real state: cards have no loading state, so pictures still on their way show a quiet box. */
-export const Loading: Story = () => <Cards rows={CARD_ROWS} pending thumbs={{}} />;
+export const Loading: Story = {
+  render: () => <Cards rows={CARD_ROWS} pending thumbs={{}} />,
+};
 
 /** The nearest real state: cards have no error state, so rows that failed carry the Failed badge. */
-export const Failed: Story = () => <Cards rows={CARD_ROWS.filter((r) => r.state === "failed")} />;
+export const Failed: Story = {
+  render: () => <Cards rows={CARD_ROWS.filter((r) => r.state === "failed")} />,
+};
 
 /** Long titles and words, huge numbers, mixed scripts, and a row with nothing in it. */
-export const WorstCase: Story = () => <Cards rows={WORST_CARD_ROWS} sort="count" />;
+export const WorstCase: Story = {
+  render: () => <Cards rows={WORST_CARD_ROWS} sort="count" />,
+};
