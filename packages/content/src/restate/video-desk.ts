@@ -17,7 +17,7 @@ import { PortalRefusal } from "@wren/core/refusal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
-import type { Db } from "@wren/db";
+import { atomic, type Db } from "@wren/db";
 import { CHANGE, proposeChange } from "@wren/studio/change";
 import {
   getEdit,
@@ -502,21 +502,24 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
             return void (await fail(err.message));
           }
           const pass = passOf(out.answer);
-          const render = await ctx.run("save", async () => {
-            const e = await getEdit(db, asked.id);
-            const meta = { ms: out.ms, model: out.model, prompt: asked.version };
-            const done = await applyPass(db, e, pass, { run: req.run, stats: meta });
-            if (!done.changed) return false;
-            const now = await getEdit(db, asked.id);
-            if (renderRefusal(now)) return false;
-            await setRender(db, now.id, {
-              state: "waiting",
-              at: new Date().toISOString(),
-              by: "agent",
-            });
-            await markRendering(db, req.run);
-            return true;
-          });
+          // One transaction: the run never reads done before it says it queued the render.
+          const render = await ctx.run("save", () =>
+            atomic(db, async (tx) => {
+              const e = await getEdit(tx, asked.id);
+              const meta = { ms: out.ms, model: out.model, prompt: asked.version };
+              const done = await applyPass(tx, e, pass, { run: req.run, stats: meta });
+              if (!done.changed) return false;
+              const now = await getEdit(tx, asked.id);
+              if (renderRefusal(now)) return false;
+              await setRender(tx, now.id, {
+                state: "waiting",
+                at: new Date().toISOString(),
+                by: "agent",
+              });
+              await markRendering(tx, req.run);
+              return true;
+            }),
+          );
           if (render) ctx.serviceSendClient<Self>(VIDEO_DESK).rendering({ id: asked.id });
         },
       ),
