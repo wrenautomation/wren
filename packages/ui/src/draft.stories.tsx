@@ -15,9 +15,6 @@ import {
 
 export default {
   title: "Draft",
-  // a11y todo: the message preview copies iOS's #8a8a8e grey on white (3.4:1, color-contrast);
-  // Empty and WorstCase draw two boxes, so two sections share one name (landmark-unique).
-  parameters: { a11y: { test: "todo" } },
 } satisfies Meta;
 
 type Story = StoryObj;
@@ -78,7 +75,7 @@ export const Empty: Story = {
   render: () => (
     <Frame>
       <Box draft={DRAFT_EMPTY} id="empty" />
-      <Box draft={DRAFT_READ_ONLY} id="read-only" />
+      <Box draft={{ ...DRAFT_READ_ONLY, label: "Read-only draft" }} id="read-only" />
     </Frame>
   ),
 };
@@ -105,7 +102,10 @@ export const WorstCase: Story = {
   render: () => (
     <Frame>
       <Box draft={DRAFT_WORST} id="worst" />
-      <Box draft={{ ...DRAFT, accounts: ACCOUNT_PICK }} id="accounts" />
+      <Box
+        draft={{ ...DRAFT, label: "Draft as an account", accounts: ACCOUNT_PICK }}
+        id="accounts"
+      />
     </Frame>
   ),
 };

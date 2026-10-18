@@ -35,6 +35,7 @@ Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 - `parameters: { layout: "fullscreen" }` drops the 24px padding for a full-frame part (shell, records page).
 - A story that shows an interaction does it in `play` (`storybook/test`: `userEvent`, `expect`, `fn`), not with a prop that fakes the end state.
 - Widths: phone 390, tablet 820, desktop 1280 (the viewport toolbar, or `--width`).
+- Long text never widens a page. `Button`, `Tag`, tab names and the workspace chip end in "…". A grid of parts gets `grid-cols-1` (or its items `min-w-0`). A count in a badge uses `short()` ("1.2B"); its hover keeps `num()`.
 
 ## Story tests
 

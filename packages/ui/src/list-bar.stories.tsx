@@ -64,8 +64,6 @@ export const Default: Story = {
 
 /** A tab pressed, then Filter: the fields to filter by open (a sheet on a phone). */
 export const Filtering: Story = {
-  // a11y todo: each field option is also its popover's trigger, so it has aria-expanded (aria-allowed-attr).
-  parameters: { a11y: { test: "todo" } },
   render: () => <Bar at="view=all" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

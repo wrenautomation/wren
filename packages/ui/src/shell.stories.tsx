@@ -8,9 +8,6 @@ export default {
   title: "Shell",
   parameters: {
     layout: "fullscreen",
-    // a11y todo: a dimmed app in the sidebar (2.4:1), the phone frame's two banners and nameless
-    // logo link, and night's unread badge, white on #ff6b5e (2.8:1).
-    a11y: { test: "todo" },
   },
 } satisfies Meta;
 

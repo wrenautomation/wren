@@ -450,7 +450,8 @@ export function FormBox({
         ? "JSON."
         : undefined);
   return (
-    <div className="flex flex-col gap-1.5 text-sm">
+    // min-w-0: a long option or label never widens the grid it sits in.
+    <div className="flex min-w-0 flex-col gap-1.5 text-sm">
       {f.type === "switch" ? (
         <label htmlFor={id} className="flex items-center gap-2">
           {box}
@@ -524,7 +525,7 @@ function ComboBox({
 }
 
 const PICK =
-  "h-7 rounded-(--ui-radius) border border-(--ui-line) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:border-(--ui-active) aria-pressed:bg-(--ui-active)/10 aria-pressed:font-medium aria-pressed:text-(--ui-ink)";
+  "h-7 max-w-full truncate rounded-(--ui-radius) border border-(--ui-line) bg-transparent px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) aria-pressed:border-(--ui-active) aria-pressed:bg-(--ui-active)/10 aria-pressed:font-medium aria-pressed:text-(--ui-ink)";
 
 /** Any of a few choices, as toggles; kept as their values split by commas, in `options` order. */
 function PickBox({
@@ -1010,7 +1011,7 @@ export function useRun(
           ask?.preview ? "max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl" : undefined
         }
       >
-        <form onSubmit={(e) => void submit(e)} className="grid min-w-0 gap-4">
+        <form onSubmit={(e) => void submit(e)} className="grid min-w-0 grid-cols-1 gap-4">
           <DialogHeader>
             <DialogTitle>
               {asked?.action.confirm ??

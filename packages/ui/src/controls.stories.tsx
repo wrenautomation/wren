@@ -87,7 +87,7 @@ export const Failed: Story = {
 /** Long, unbreakable, non-Latin and emoji labels in a narrow box. */
 export const WorstCase: Story = {
   render: () => (
-    <div className="grid max-w-80 gap-3">
+    <div className="grid max-w-80 grid-cols-1 gap-3">
       <Button tone="primary">{WORST.longLabel}</Button>
       <Button>{WORST.email}</Button>
       <Button tone="quiet">{WORST.nonLatin}</Button>

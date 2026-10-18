@@ -137,7 +137,8 @@ export function MessagePreview({
     </div>
   );
   return (
-    <section aria-label="How it looks" className="grid min-w-0 gap-3 text-[13px]">
+    // biome-ignore lint/a11y/useSemanticElements: a group, not a landmark: two drafts on one page would give two.
+    <div role="group" aria-label="How it looks" className="grid min-w-0 gap-3 text-[13px]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
         <ReadAloud
@@ -232,7 +233,7 @@ export function MessagePreview({
           </DeviceFrame>
         </>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -339,10 +340,10 @@ function IosMailRow({
     <div className="grid gap-0.5 px-4 py-2.5 leading-[1.3]">
       <p className="flex justify-between gap-2 text-[17px] font-semibold">
         <span className="truncate">{from}</span>
-        <span className="shrink-0 text-[15px] font-normal text-[#8a8a8e]">9:41</span>
+        <span className="shrink-0 text-[15px] font-normal text-[#6d6d72]">9:41</span>
       </p>
       {subject ? <p className="truncate text-[15px]">{subject}</p> : null}
-      <p className="line-clamp-2 text-[15px] text-[#8a8a8e]">{snippetOf(body)}</p>
+      <p className="line-clamp-2 text-[15px] text-[#6d6d72]">{snippetOf(body)}</p>
     </div>
   );
 }

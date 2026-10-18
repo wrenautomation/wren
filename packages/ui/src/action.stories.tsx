@@ -149,8 +149,6 @@ function Boxes({
 
 /** Every box type, filled. */
 export const FormBoxDefault: Story = {
-  // a11y todo: night's unpressed day buttons read 2.2:1 (color-contrast).
-  parameters: { a11y: { test: "todo" } },
   render: () => (
     <Boxes
       fields={[...FORM_FIELDS, ...MORE_FIELDS]}
@@ -162,8 +160,6 @@ export const FormBoxDefault: Story = {
 
 /** The same boxes, nothing typed. */
 export const FormBoxEmpty: Story = {
-  // a11y todo: night's unpressed day buttons read 2.2:1 (color-contrast).
-  parameters: { a11y: { test: "todo" } },
   render: () => <Boxes fields={[...FORM_FIELDS, ...MORE_FIELDS]} call={fakeCall("ok", 0)} />,
 };
 
@@ -179,7 +175,5 @@ export const FormBoxFailed: Story = {
 
 /** Long, non-Latin and emoji labels, hints and choices. */
 export const FormBoxWorstCase: Story = {
-  // a11y todo: night's unpressed day buttons read 2.2:1 (color-contrast).
-  parameters: { a11y: { test: "todo" } },
   render: () => <Boxes fields={WORST_FIELDS} />,
 };

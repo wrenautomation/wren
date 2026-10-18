@@ -49,7 +49,7 @@ import { useLoad } from "./data/query.js";
 import { useEdit } from "./data/use-edit.js";
 import { CheckField, TextField, useEditForm } from "./edit-form.js";
 import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
-import { num } from "./format.js";
+import { num, short } from "./format.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop, useSubmenus } from "./hover-pop.js";
 import { Segmented } from "./phone.js";
@@ -338,7 +338,7 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
         ) : null}
         <ChevronDown className="size-3.5" />
       </PopoverTrigger>
-      <PopoverContent align="start" className={cn(POP, "w-60 p-1")}>
+      <PopoverContent aria-label="More views" align="start" className={cn(POP, "w-60 p-1")}>
         <nav aria-label="More views" className="grid">
           {views.map((v) => (
             <a
@@ -450,7 +450,7 @@ export function ViewTabs({
               href={v.href}
               aria-current={v.on ? "page" : undefined}
               {...tipProps(v.tip)}
-              className="text-inherit no-underline"
+              className="max-w-48 truncate text-inherit no-underline"
             >
               {v.label}
             </a>
@@ -467,8 +467,8 @@ export function ViewTabs({
             {...tipProps(v.tip)}
             className={cn(TAB, tabTone(v.on))}
           >
-            {v.label}
-            <span className="text-(--ui-ink-2)">{v.count !== undefined ? num(v.count) : ""}</span>
+            <span className="max-w-48 truncate">{v.label}</span>
+            <span className="text-(--ui-ink-2)">{v.count !== undefined ? short(v.count) : ""}</span>
           </a>
         ),
       )}
@@ -538,7 +538,11 @@ function SavedMenu({
       >
         <MoreHorizontal className="size-3.5" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-60 gap-0 p-1.5">
+      <PopoverContent
+        aria-label={`${view.name}: options`}
+        align="start"
+        className="w-60 gap-0 p-1.5"
+      >
         <form
           className="grid gap-1.5 p-1"
           onSubmit={(e) => {
@@ -661,7 +665,7 @@ function SaveView({
         <Bookmark className="size-3.5" />
         Save view
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 gap-0 p-2">
+      <PopoverContent aria-label="Save view" align="start" className="w-64 gap-0 p-2">
         {sv ? (
           <button
             type="button"
@@ -943,11 +947,19 @@ function FilterPanel({
                     <PopoverTrigger
                       {...subs.trigger}
                       nativeButton={false}
-                      render={<div {...row} data-filter-field={f.key} />}
+                      // An option may not carry aria-expanded (Base UI sets it on a trigger):
+                      // focus goes into the editor it opens, which says what it is.
+                      render={<div {...row} aria-expanded={undefined} data-filter-field={f.key} />}
                     >
                       {face}
                     </PopoverTrigger>
-                    <PopoverContent side="right" align="start" sideOffset={2} className={POP}>
+                    <PopoverContent
+                      aria-label={f.label}
+                      side="right"
+                      align="start"
+                      sideOffset={2}
+                      className={POP}
+                    >
                       <FieldEditor field={f} place={place} facets={facets} />
                     </PopoverContent>
                   </Popover>
@@ -1033,7 +1045,7 @@ function FilterPill({
           <PopoverTrigger {...pop.trigger} {...tip} className={faceClass}>
             {face}
           </PopoverTrigger>
-          <PopoverContent align="start" className={POP}>
+          <PopoverContent aria-label={`${field.label} filter`} align="start" className={POP}>
             {panel(() => pop.setOpen(false), pop.byHover)}
           </PopoverContent>
         </Popover>
@@ -1164,7 +1176,7 @@ export function ListBar({
       >
         <FilterFace on={on.length} />
       </PopoverTrigger>
-      <PopoverContent align="start" className={POP}>
+      <PopoverContent aria-label="Filter" align="start" className={POP}>
         {panel(null, () => picker.setOpen(false), { byHover: picker.byHover })}
       </PopoverContent>
     </Popover>

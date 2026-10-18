@@ -156,8 +156,6 @@ export const Failed: Story = {
 
 /** Long, unbreakable, non-Latin and emoji values, an invalid amount, and kept values in conflict. */
 export const WorstCase: Story = {
-  // a11y todo: the kept-values box scrolls but takes no focus (scrollable-region-focusable).
-  parameters: { a11y: { test: "todo" } },
   render: () => (
     <div className="grid gap-10">
       <ContactForm id="worst" defaults={CONTACT_WORST} run="validate" />

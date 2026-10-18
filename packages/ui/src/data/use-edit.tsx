@@ -8,7 +8,7 @@
  * ever overwritten silently.
  */
 import { type ChangeEvent, useRef, useState, useSyncExternalStore } from "react";
-import { Button } from "../controls.js";
+import { Button, ScrollText } from "../controls.js";
 import { EDITS } from "./edits.js";
 
 const PREFIX = "wren.edit:";
@@ -171,18 +171,10 @@ export function EditConflict({
       <p className="text-(--ui-ink)">
         {what === "this" ? "This" : what} changed while your words waited. Pick one.
       </p>
-      <div className="grid gap-1">
-        <span className="text-[12px] text-(--ui-ink-2)">Yours, not saved</span>
-        <div className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words text-(--ui-ink)">
-          {conflict.mine || "(empty)"}
-        </div>
-      </div>
-      <div className="grid gap-1">
-        <span className="text-[12px] text-(--ui-ink-2)">Now saved</span>
-        <div className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words text-(--ui-ink-2)">
-          {conflict.theirs || "(empty)"}
-        </div>
-      </div>
+      <ScrollText label="Yours, not saved">{conflict.mine || "(empty)"}</ScrollText>
+      <ScrollText label="Now saved" quiet>
+        {conflict.theirs || "(empty)"}
+      </ScrollText>
       <div className="flex gap-2">
         <Button tone="primary" size="dense" onClick={onKeepMine}>
           Keep mine

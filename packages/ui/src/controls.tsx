@@ -1,7 +1,7 @@
 /** Things you press: square buttons, and pill tags for status. */
 
 import { cn } from "cn";
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import { type AnchorHTMLAttributes, type ButtonHTMLAttributes, type ReactNode, useId } from "react";
 import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
 import { tipProps } from "./hint.js";
@@ -54,15 +54,15 @@ const look = ({ tone = "secondary", size = "md", className }: ButtonLook) =>
     BUTTON_TONE[tone],
     (size === "dense" || size === "next") && DENSE_TONE[tone],
     size === "next" && NEXT,
-    // A finger needs 44px.
-    "pointer-coarse:min-h-11",
+    // A finger needs 44px. A long label never pushes past its box: it ends in "…".
+    "pointer-coarse:min-h-11 max-w-full min-w-0",
     className,
   );
 
 const inside = ({ icon, arrow, children }: ButtonLook) => (
   <>
     {icon ? <Icon name={icon} /> : null}
-    <span>{children}</span>
+    <span className="min-w-0 truncate">{children}</span>
     {arrow ? (
       <Icon
         name="arrow"
@@ -142,7 +142,7 @@ export function ButtonLink({
 export type TagTone = "neutral" | "accent" | "warn" | "green";
 
 const TAG =
-  "h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius) text-[12px]/[1.5] font-semibold align-[1px]";
+  "h-auto max-w-full gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius) text-[12px]/[1.5] font-semibold align-[1px]";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
   accent: "bg-(--ui-accent-tint) text-(--ui-live)",
@@ -167,7 +167,44 @@ export function Tag({
 }) {
   return (
     <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} {...tipProps(title)}>
-      {children}
+      <span className="min-w-0 truncate">{children}</span>
     </Badge>
+  );
+}
+
+/**
+ * Words in a short box that scrolls, under a small label: one side of an edit conflict. The box is
+ * a named group that takes focus, so a keyboard can scroll it.
+ */
+export function ScrollText({
+  label,
+  quiet = false,
+  children,
+}: {
+  label: string;
+  /** Grey words: what someone else saved, beside your own. */
+  quiet?: boolean;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div className="grid gap-1">
+      <span id={id} className="text-[12px] text-(--ui-ink-2)">
+        {label}
+      </span>
+      {/* biome-ignore lint/a11y/useSemanticElements: a group, not a landmark: a page may hold two. */}
+      <div
+        role="group"
+        aria-labelledby={id}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a box that scrolls needs focus to scroll by keyboard.
+        tabIndex={0}
+        className={cn(
+          "max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-(--ui-radius) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)",
+          quiet ? "text-(--ui-ink-2)" : "text-(--ui-ink)",
+        )}
+      >
+        {children}
+      </div>
+    </div>
   );
 }

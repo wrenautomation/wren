@@ -21,8 +21,6 @@ const LOOKS = ["plain", "framed", "list"] as const;
 
 /** The three looks, one under the other. */
 export const Default: Story = {
-  // a11y todo: at 390 the table scrolls sideways but takes no focus (scrollable-region-focusable).
-  parameters: { a11y: { test: "todo" } },
   render: () => (
     <div className="grid gap-8">
       {LOOKS.map((look) => (

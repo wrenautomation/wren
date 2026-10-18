@@ -6,6 +6,9 @@ const TIME = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digi
 const WEEKDAY = new Intl.DateTimeFormat("en-US", { weekday: "short" });
 
 export const num = (n: number) => NUM.format(n);
+const SHORT = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+/** A count where room is tight (a badge): exact to 9,999, then "12K", "1.2B". */
+export const short = (n: number) => (Math.abs(n) < 10_000 ? NUM.format(n) : SHORT.format(n));
 
 /** Money shown one way everywhere: "$1,250.00" in a list, "$1,250" in a tile (`whole`). */
 export function money(amount: number, currency: string, whole = false): string {

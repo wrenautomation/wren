@@ -12,7 +12,7 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
-import { Button } from "../controls.js";
+import { Button, ScrollText } from "../controls.js";
 import { type Conflict, Saver, type SaverOptions, type SaveState, type Status } from "./engine.js";
 import { SavePage } from "./page.js";
 
@@ -157,12 +157,9 @@ export function SaveConflict<T>({
       {theirs === null ? (
         <p className="text-(--ui-ink-3)">Getting their version…</p>
       ) : (
-        <div className="grid gap-1">
-          <span className="text-[12px] text-(--ui-ink-2)">Their version</span>
-          <div className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words text-(--ui-ink-2)">
-            {show ? show(theirs) : String(theirs)}
-          </div>
-        </div>
+        <ScrollText label="Their version" quiet>
+          {show ? show(theirs) : String(theirs)}
+        </ScrollText>
       )}
       <div className="flex gap-2">
         <Button tone="primary" size="dense" disabled={theirs === null} onClick={onKeepMine}>

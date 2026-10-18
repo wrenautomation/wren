@@ -21,7 +21,7 @@ import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
 import { WritesIndicator } from "./data/status.js";
 import { DISPLAY, type Display, displayVars, PAGES, SIDE } from "./display.js";
-import { cx, num } from "./format.js";
+import { cx, num, short } from "./format.js";
 import {
   DisplayButton,
   type DisplayControl,
@@ -311,7 +311,7 @@ export function AppShell({
               nav && "min-[901px]:pr-1",
             )}
             href={brand.href}
-            aria-label={nav ? brand.name : undefined}
+            aria-label={brand.name}
             {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
           >
             <img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
@@ -330,9 +330,11 @@ export function AppShell({
               className={cx(
                 EASE,
                 folded && "min-[901px]:hidden",
-                "flex-none rounded-(--ui-radius) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
+                CHIP,
+                "rounded-(--ui-radius) hover:text-(--ui-ink)",
               )}
               href={workspace.chip.href}
+              {...tipProps(workspace.chip.label)}
             >
               {workspace.chip.label}
             </a>
@@ -475,8 +477,9 @@ export function AppShell({
                   <WorkspaceName workspace={workspace} />
                   {workspace.chip ? (
                     <a
-                      className="flex-none bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium text-(--ui-ink-2) no-underline"
+                      className={CHIP}
                       href={workspace.chip.href}
+                      {...tipProps(workspace.chip.label)}
                     >
                       {workspace.chip.label}
                     </a>
@@ -545,6 +548,9 @@ function useFrameKeys(
 
 const EASE = "transition-colors duration-150 ease-(--ui-ease)";
 const HOVER = `${EASE} hover:bg-(--ui-hover)`;
+/** The workspace's chip ("Account"): it gives way to the name and ends in "…" when long. */
+const CHIP =
+  "min-w-0 max-w-40 truncate bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium text-(--ui-ink-2) no-underline";
 const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
 const ICON_BUTTON = `${HOVER} inline-grid size-8 pointer-coarse:size-11 border-0 bg-transparent p-0 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) hover:text-(--ui-ink) aria-pressed:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover) data-[popup-open]:text-(--ui-ink)`;
 const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;
@@ -554,7 +560,7 @@ const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)";
 /** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
 const COUNT =
-  "ml-auto min-w-5 in-data-[counts=off]:hidden bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+  "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
 /** What a count in the sidebar counts, for its hover. */
 const waits = (n: number) => tipProps(`${num(n)} waiting on you`);
 /** Which sidebar areas he shut or opened, kept in this browser. */
@@ -596,7 +602,7 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
       <span className="min-w-0 text-pretty [overflow-wrap:anywhere]">{t.label}</span>
       {t.count !== undefined ? (
         <span className={COUNT} {...waits(t.count)}>
-          {num(t.count)}
+          {short(t.count)}
         </span>
       ) : null}
     </>
@@ -948,7 +954,7 @@ function SideNav({
           </span>
           {home.count ? (
             <span className={folded ? DOT : COUNT} {...(folded ? {} : waits(home.count))}>
-              {folded ? null : num(home.count)}
+              {folded ? null : short(home.count)}
             </span>
           ) : null}
         </a>
@@ -984,7 +990,7 @@ function SideNav({
                       className={cx(COUNT, "[text-transform:none] tracking-normal")}
                       {...waits(area.apps.reduce((n, x) => n + (x.count ?? 0), 0))}
                     >
-                      {num(area.apps.reduce((n, x) => n + (x.count ?? 0), 0))}
+                      {short(area.apps.reduce((n, x) => n + (x.count ?? 0), 0))}
                     </span>
                   ) : null}
                 </button>
@@ -1008,7 +1014,8 @@ function SideNav({
                     className={cx(
                       APP_ROW,
                       folded && FOLDED_ROW,
-                      a.off && "opacity-55",
+                      // Off: a faded icon and a lighter name; the name keeps its contrast.
+                      a.off && "font-normal [&_svg]:opacity-45",
                       hovered?.id === a.id && "bg-(--ui-hover)",
                     )}
                     href={a.href}
@@ -1030,7 +1037,7 @@ function SideNav({
                     </span>
                     {a.count ? (
                       <span className={folded ? DOT : COUNT} {...(folded ? {} : waits(a.count))}>
-                        {folded ? null : num(a.count)}
+                        {folded ? null : short(a.count)}
                       </span>
                     ) : null}
                   </a>
@@ -1069,7 +1076,7 @@ function SideNav({
               {hovered.name}
               {hovered.count ? (
                 <span className={COUNT} {...waits(hovered.count)}>
-                  {num(hovered.count)}
+                  {short(hovered.count)}
                 </span>
               ) : null}
             </a>
@@ -1126,7 +1133,11 @@ function PhoneTabs({
               aria-current={t.id === current ? "page" : undefined}
             >
               {t.label}
-              {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
+              {t.count !== undefined ? (
+                <span className={COUNT} {...waits(t.count)}>
+                  {short(t.count)}
+                </span>
+              ) : null}
             </a>
           </li>
         ))}
@@ -1153,7 +1164,8 @@ function AppHead({
   const groups = runs(app.tabs);
   const here = groups.find((r) => r.tabs.some((t) => t.id === app.current));
   return (
-    <header className="sticky top-0 z-5 hidden border-b pt-[env(safe-area-inset-top)] border-(--ui-hair) bg-(--ui-glass) backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block">
+    // A div, not a header: the workspace bar above is the page's one banner; its tabs are navs.
+    <div className="sticky top-0 z-5 hidden border-b pt-[env(safe-area-inset-top)] border-(--ui-hair) bg-(--ui-glass) backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block">
       <div className="mx-auto flex min-h-[52px] items-center gap-1.5 px-4 pt-1.5">
         {launcher ? (
           <>
@@ -1192,7 +1204,7 @@ function AppHead({
       {here && here.tabs.length > 1 ? (
         <PhoneTabs label={here.group ?? ""} tabs={here.tabs} current={app.current} />
       ) : null}
-    </header>
+    </div>
   );
 }
 
