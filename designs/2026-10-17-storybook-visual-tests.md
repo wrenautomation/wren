@@ -39,3 +39,10 @@ Replaces Ladle (designs/2026-10-17-ui-workbench-and-fast-ci.md, part A2) with St
 - Storybook over Ladle: Ladle is stale and pinned to Vite 6; Storybook is the standard and runs stories as Vitest tests.
 - Vitest `toMatchScreenshot` over Chromatic, Lost Pixel, Happo, Loki: free, self-run, same runner, maintained.
 - Baselines from Docker only: macOS and Linux render text differently; one source of pixels.
+
+## Mac memory (added 2026-10-17)
+
+- `test:stories` and `test:visual:update` queue on `/tmp/wren_automation-checks.lock`, like every gate. CI skips the lock.
+- One Storybook server per Mac. A second `storybook` call reuses the server on 61000.
+- Browser tests use one Chromium instance and a bounded worker count. Chromium, Docker and Vitest stop on exit, on failure and on Ctrl-C. Peak memory stays under 3 GB.
+- `.githooks/pre-push` typecheck runs under the lock (bead wa-aua).
