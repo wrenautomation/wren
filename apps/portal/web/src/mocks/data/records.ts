@@ -1,121 +1,23 @@
 /**
  * Every records page's reads (`<product>/recordsTypes`, `recordsList`, `recordsGet`, `recordsCounts`),
- * answered from the page's own config: its columns become fields, the states its `count` and
- * `needs` name become a status, and rows are made up per field kind. The server's real types
- * live in each product's records list; this shows the page's frame (bar, views, table, panel)
- * with believable cells, not the server's exact columns. Synthetic data only.
+ * answered with the server's own types: the meta of every record type the worker serves
+ * (`virtual:record-types`, made in `.storybook/main.ts` from `apps/worker/src/record-types.ts`).
+ * Rows are made up per field kind. A record the worker doesn't serve is unmocked: the story
+ * fails. Synthetic data only.
  */
 
-import { APPS } from "@wren/core/access";
-import {
-  actor,
-  company,
-  date,
-  defineRecord,
-  metaOf,
-  money,
-  name,
-  number,
-  prose,
-  type RecordMeta,
-  score,
-  status,
-  text,
-} from "@wren/core/records";
+import TYPES from "virtual:record-types";
+import type { Cell, RecordMeta } from "@wren/core/records";
 import type { GetAsk, ListAsk, RecordAnswer, RecordsStat, Row } from "@wren/core/records/serve";
 import { pageOf } from "@wren/ui/fixtures";
 import type { ListPage } from "../../module.js";
 import { MODULES } from "../../modules/index.js";
-import type { Answers } from "../api.js";
+import { type Answers, unmocked } from "../api.js";
 import { ago } from "./shell.js";
 
-const PAGES: (ListPage & { app: string })[] = MODULES.flatMap((m) =>
-  m.pages.flatMap((p) => ("record" in p && p.record ? [{ ...(p as ListPage), app: m.id }] : [])),
+const PAGES: ListPage[] = MODULES.flatMap((m) =>
+  m.pages.flatMap((p) => ("record" in p && p.record ? [p as ListPage] : [])),
 );
-
-/** A field for `key`, by its name: `sentAt` a date, `amount` money, `status` a status. */
-function fieldFor(key: string, states: string[]) {
-  const k = key.toLowerCase();
-  if (states.length && /(^|_)(state|status|stage|verdict)$/.test(k))
-    return status(Object.fromEntries(states.map((s) => [s, { label: words(s), tone: toneOf(s) }])));
-  if (/(at|on|date|seen|since|due|when|day)$/.test(k)) return date();
-  if (/(amount|value|price|cost|revenue|total|paid|mrr)$/.test(k)) return money();
-  if (/score$/.test(k)) return score();
-  if (/(company|firm|business|account)$/.test(k)) return company();
-  if (/(owner|by|who|assignee|author|agent)$/.test(k)) return actor();
-  if (/(count|visits|views|sent|opens|clicks|replies|calls|n|size|leads)$/.test(k)) return number();
-  if (/(note|body|text|summary|preview|reply|message|about|why)$/.test(k)) return prose();
-  if (/(name|title|person|contact|lead)$/.test(k)) return name();
-  return text();
-}
-
-const words = (s: string) => s.replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
-const toneOf = (s: string) =>
-  /wait|pending|draft|open|new|review|hold|ask/.test(s)
-    ? "warn"
-    : /fail|lost|bounce|bad|reject|stuck|refus/.test(s)
-      ? "bad"
-      : /done|sent|won|live|paid|ok|approv|booked|active/.test(s)
-        ? "good"
-        : "neutral";
-const IDENT = /^[a-z_][a-z0-9_]*$/i;
-
-/** The record type a page names, made from every page that names it. */
-function typeOf(record: string) {
-  const pages = PAGES.filter((p) => p.record === record);
-  const wheres = pages.flatMap((p) => [p.count, p.needs].filter(Boolean)) as Readonly<
-    Record<string, readonly string[]>
-  >[];
-  const states: Record<string, Set<string>> = {};
-  for (const w of wheres)
-    for (const [k, v] of Object.entries(w)) states[k] = new Set([...(states[k] ?? []), ...v]);
-  const stateKey = Object.keys(states)[0] ?? "status";
-  const stateList = [...(states[stateKey] ?? ["open"]), "done"];
-  const keys = [
-    ...new Set([
-      "name",
-      ...pages.flatMap((p) => p.columns ?? []).filter((k) => IDENT.test(k) && k !== "id"),
-      stateKey,
-      "updatedAt",
-    ]),
-  ];
-  const fields = Object.fromEntries(
-    keys.map((k) => [k, k === stateKey ? fieldFor("status", stateList) : fieldFor(k, [])]),
-  );
-  const [one, many] = nameOf(record, pages[0]?.label);
-  const app = pages[0] && Object.hasOwn(APPS, pages[0].app) ? pages[0].app : Object.keys(APPS)[0];
-  const actions = [...new Set(pages.flatMap((p) => (p.actions ?? []).map((a) => a.id)))];
-  return defineRecord({
-    id: record,
-    name: { one, many },
-    view: "fake",
-    key: "id",
-    title: "name",
-    app: app ?? "work",
-    channel: null,
-    fields,
-    views: [
-      ...(Object.entries(states).length
-        ? [
-            {
-              id: "waiting",
-              label: "Waiting",
-              where: { [stateKey]: [...(states[stateKey] ?? [])] },
-            },
-          ]
-        : []),
-      { id: "all", label: "All", sort: "-updatedAt" },
-    ],
-    related: [],
-    actions,
-    activity: { view: "fake_log", by: "id" },
-  });
-}
-
-const nameOf = (record: string, label?: string): [string, string] => {
-  const one = (record.split(".").pop() ?? record).replace(/_/g, " ");
-  return [one, label?.toLowerCase() ?? `${one}s`];
-};
 
 const PEOPLE = ["Ada North", "Bo Fenwick", "Cai Moreno", "Dee Okafor", "Eli Brandt", "Fay Lin"];
 const FIRMS = ["Northwind", "Fenwick & Sons", "Moreno Roofing", "Okafor Electric", "Brandt HVAC"];
@@ -126,31 +28,47 @@ const LINES = [
   "No answer to the second message yet.",
 ];
 
+/** A cell of `kind` for row `i`. A field with states takes one of them. */
+function cellOf(f: RecordMeta["fields"][number], i: number): Cell {
+  const states = f.states ? Object.keys(f.states) : [];
+  if (states.length && f.kind !== "tags") return states[i % states.length] ?? null;
+  switch (f.kind) {
+    case "date":
+      return ago(i * 0.7 + 0.1);
+    case "money":
+      return { amount: 400 + ((i * 1370) % 9000), currency: "USD" };
+    case "score":
+      return 95 - i * 9;
+    case "number":
+      return (i * 7) % 23;
+    case "percent":
+      return ((i * 13) % 90) / 100;
+    case "rate":
+      return { n: (i * 3) % 11, of: 12 };
+    case "duration":
+      return 30 + ((i * 97) % 900);
+    case "company":
+      return { name: FIRMS[i % FIRMS.length] ?? "", domain: null };
+    case "prose":
+    case "cited":
+      return LINES[i % LINES.length] ?? null;
+    case "name":
+    case "actor":
+      return PEOPLE[i % PEOPLE.length] ?? null;
+    case "link":
+      return `https://example.com/${i + 1}`;
+    case "tags":
+      return states.slice(0, (i % 2) + 1).join(",") || null;
+    default:
+      return `${f.label} ${i + 1}`;
+  }
+}
+
 /** Rows for `meta`: one cell per field, by its kind. */
 function rowsOf(meta: RecordMeta, n = 8): Row[] {
   return Array.from({ length: n }, (_, i) => {
     const row: Row = { id: i + 1 };
-    for (const f of meta.fields) {
-      const states = f.states ? Object.keys(f.states) : [];
-      row[f.key] =
-        f.kind === "status"
-          ? (states[i % states.length] ?? null)
-          : f.kind === "date"
-            ? ago(i * 0.7 + 0.1)
-            : f.kind === "money"
-              ? { amount: 400 + ((i * 1370) % 9000), currency: "USD" }
-              : f.kind === "score"
-                ? 95 - i * 9
-                : f.kind === "number"
-                  ? (i * 7) % 23
-                  : f.kind === "company"
-                    ? { name: FIRMS[i % FIRMS.length] ?? "", domain: null }
-                    : f.kind === "prose"
-                      ? (LINES[i % LINES.length] ?? null)
-                      : f.kind === "name" || f.kind === "actor"
-                        ? (PEOPLE[i % PEOPLE.length] ?? null)
-                        : `${f.label} ${i + 1}`;
-    }
+    for (const f of meta.fields) row[f.key] = cellOf(f, i);
     return row;
   });
 }
@@ -161,15 +79,18 @@ function rowsOf(meta: RecordMeta, n = 8): Row[] {
  */
 let OWN: Record<string, Row[]> = {};
 
-const TYPES = new Map<string, { meta: RecordMeta; rows: Row[] }>();
+const METAS = new Map(TYPES.map((m) => [m.id, m]));
+const ROWS = new Map<string, Row[]>();
+/** The worker's type `id` and its rows; null when the worker serves no such record. */
 function recordOf(id: string) {
-  let got = TYPES.get(id);
-  if (!got) {
-    const meta = { ...metaOf(typeOf(id), false), detail: true };
-    got = { meta, rows: OWN[id] ?? rowsOf(meta) };
-    TYPES.set(id, got);
+  const meta = METAS.get(id);
+  if (!meta) return null;
+  let rows = ROWS.get(id);
+  if (!rows) {
+    rows = OWN[id] ?? rowsOf(meta);
+    ROWS.set(id, rows);
   }
-  return got;
+  return { meta, rows };
 }
 
 /** Count stats for any records view: a gentle week, up on the one before. */
@@ -202,26 +123,39 @@ export function recordsAnswers(own: Record<string, Row[]> = {}): Answers {
     ...new Set(["console", "email", "sms", ...PAGES.map((p) => p.record.split(".")[0] ?? "")]),
   ];
   const out: Answers = {};
-  const records = [...new Set(PAGES.map((p) => p.record))];
   for (const product of products) {
-    out[`${product}/recordsTypes`] = () => records.map((r) => recordOf(r).meta);
+    const key = (handler: string, record: string) => unmocked(`${product}/${handler}:${record}`);
+    out[`${product}/recordsTypes`] = () => [...METAS.values()];
     out[`${product}/recordsList`] = (b) => {
       const ask = b as unknown as ListAsk;
-      const { meta, rows } = recordOf(ask.record);
-      return pageOf(rows, ask, meta);
+      const got = recordOf(ask.record);
+      return got ? pageOf(got.rows, ask, got.meta) : key("recordsList", ask.record);
     };
     out[`${product}/recordsCounts`] = (b) => {
       const asks = Array.isArray(b.asks) ? (b.asks as ListAsk[]) : [];
       return {
-        totals: asks.map((a) => pageOf(recordOf(a.record).rows, a, recordOf(a.record).meta).total),
+        totals: asks.map((a) => {
+          const got = recordOf(a.record);
+          // As the server: a list it can't read counts 0.
+          if (got) return pageOf(got.rows, a, got.meta).total;
+          key("recordsCounts", a.record);
+          return 0;
+        }),
       };
     };
     out[`${product}/recordsStats`] = statOf;
-    out[`${product}/recordsGet`] = (b): RecordAnswer => {
+    out[`${product}/recordsGet`] = (b) => {
       const ask = b as unknown as GetAsk;
-      const { meta, rows } = recordOf(ask.record);
-      const row = rows.find((r) => String(r.id) === String(ask.id)) ?? (rows[0] as Row);
-      return { record: meta.id, row, related: [], activity: LOG, detail: null };
+      const got = recordOf(ask.record);
+      if (!got) return key("recordsGet", ask.record);
+      const row = got.rows.find((r) => String(r.id) === String(ask.id)) ?? (got.rows[0] as Row);
+      return {
+        record: got.meta.id,
+        row,
+        related: [],
+        activity: LOG,
+        detail: null,
+      } satisfies RecordAnswer;
     };
   }
   return out;

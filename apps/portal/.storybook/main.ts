@@ -3,10 +3,12 @@
  * real app on a fake server (MSW, `web/src/mocks/`). `pnpm --filter @wren/portal storybook`
  * serves it on :61001; `test:stories` runs every story as a Vitest test (vitest.config.ts).
  */
+
+import { fileURLToPath } from "node:url";
 import type { StorybookConfig } from "@storybook/react-vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { mergeConfig, type Plugin } from "vite";
+import { mergeConfig, type Plugin, runnerImport } from "vite";
 
 /**
  * Server code the app imports but never runs in the browser (a `createHash` in a core file) reads
@@ -46,6 +48,28 @@ const dictateOff: Plugin = {
   },
 };
 
+/**
+ * `virtual:record-types`: the meta of every record type the worker serves
+ * (`apps/worker/src/record-types.ts`, the list the worker and the preview serve from). Read once
+ * per start, in Node: those modules reach the database and can't load in the browser.
+ */
+const TYPES = "virtual:record-types";
+const WORKER = fileURLToPath(new URL("../../worker", import.meta.url));
+let types: Promise<string> | undefined;
+const recordTypes: Plugin = {
+  name: "record-types",
+  resolveId: (id) => (id === TYPES ? `\0${TYPES}` : null),
+  load(id) {
+    if (id !== `\0${TYPES}`) return null;
+    types ??= runnerImport<{ recordMetas: () => unknown[] }>(`${WORKER}/src/record-types.ts`, {
+      configFile: false,
+      root: WORKER,
+      logLevel: "error",
+    }).then(({ module }) => `export default ${JSON.stringify(module.recordMetas())};`);
+    return types;
+  },
+};
+
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
   stories: ["../web/src/**/*.stories.tsx"],
@@ -59,7 +83,7 @@ const config: StorybookConfig = {
   // The app's own React and Tailwind plugins (web/vite.config.ts).
   viteFinal: (vite) =>
     mergeConfig(vite, {
-      plugins: [nodeStubs, dictateOff, react(), tailwindcss()],
+      plugins: [nodeStubs, dictateOff, recordTypes, react(), tailwindcss()],
       build: { chunkSizeWarningLimit: 4000 },
     }),
 };

@@ -2080,6 +2080,49 @@ export const componentRecord = (
 export const callCommand = (service: string, handler: string) =>
   `console ${service}/${handler}`.slice(0, 64);
 
+/**
+ * The team's record types the console serves: `records` (the worker's `consoleRecords`) and the
+ * console's own. Per call it adds the access records and the catalog (`typesFor`).
+ */
+export function consoleTypes({
+  records = [],
+  admin,
+  adminGet,
+  components = [],
+  workflows = [],
+  edge,
+}: {
+  records?: readonly RecordType[];
+  admin?: RestateAdmin | undefined;
+  adminGet?: RestateAdminGet | undefined;
+  components?: readonly Component[];
+  workflows?: readonly Workflow[];
+  edge?: EdgePush | undefined;
+}): RecordType[] {
+  return [
+    ...records,
+    ...(admin ? [loopRecord(admin)] : []),
+    ...(adminGet ? [handlerRecord(adminGet)] : []),
+    teamRecord,
+    changeRecord,
+    settingRecord(components),
+    snippetRecord(),
+    flagRecord(edge),
+    experimentRecord(),
+    surveyRecord(edge),
+    workflowRecord(workflows, components),
+    automationRecord({
+      workflows,
+      components,
+      loops: admin ? async () => loopsOf(await admin(LOOPS_SQL)) : null,
+    }),
+    eventRecord,
+    executionRecordOf(nowAtLabels(workflows, components)),
+    holdRecord,
+    checkRecord,
+  ];
+}
+
 export function consoleApi({
   main,
   views,
@@ -2139,28 +2182,7 @@ export function consoleApi({
       await handle.close();
     }
   };
-  const types = [
-    ...records,
-    ...(admin ? [loopRecord(admin)] : []),
-    ...(adminGet ? [handlerRecord(adminGet)] : []),
-    teamRecord,
-    changeRecord,
-    settingRecord(components),
-    snippetRecord(),
-    flagRecord(edge),
-    experimentRecord(),
-    surveyRecord(edge),
-    workflowRecord(workflows, components),
-    automationRecord({
-      workflows,
-      components,
-      loops: admin ? async () => loopsOf(await admin(LOOPS_SQL)) : null,
-    }),
-    eventRecord,
-    executionRecordOf(nowAtLabels(workflows, components)),
-    holdRecord,
-    checkRecord,
-  ];
+  const types = consoleTypes({ records, admin, adminGet, components, workflows, edge });
   /** The workflow a canvas call names, for Wren or a client it may write, and who's asking. */
   const workflowFor = async (req: WorkflowSaveRequest) => {
     team(req);

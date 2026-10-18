@@ -50,6 +50,13 @@ export const keyOf = (path: string, body: Record<string, unknown>) =>
 /** This story's calls still out, and the ones the table lacked: `settled()` reads both. */
 const story = { out: 0, unmocked: new Set<string>() };
 
+/** A call with no answer: named in the console and failed by `settled`. Answer it with a 404. */
+export function unmocked(key: string) {
+  console.warn(`unmocked: ${key}`);
+  story.unmocked.add(key);
+  return refuse(404, `unmocked: ${key}`);
+}
+
 /** Called before each story renders. */
 export function freshStory() {
   story.out = 0;
@@ -87,11 +94,7 @@ export function answerOf(
   }
   const key = keyOf(path, body);
   const entry = answers[key];
-  if (entry === undefined) {
-    console.warn(`unmocked: ${key}`);
-    story.unmocked.add(key);
-    return { status: 404, body: { error: `unmocked: ${key}` } };
-  }
+  if (entry === undefined) return { status: 404, body: { error: unmocked(key).error } };
   const got = typeof entry === "function" ? (entry as Reply)(body) : entry;
   if (got && typeof got === "object" && REFUSAL in got) {
     const { [REFUSAL]: status, ...rest } = got as { [REFUSAL]: number; error: string };

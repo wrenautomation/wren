@@ -21,7 +21,6 @@ import {
   dirStore,
   s3Store,
 } from "@wren/books";
-import { BOOKS_RECORDS } from "@wren/books/records";
 import { BOOKS_KEY, makeBooks, makeBooksConsole } from "@wren/books/restate";
 import {
   AllBookings,
@@ -32,7 +31,6 @@ import {
   GoogleHost,
 } from "@wren/calendar";
 import { makeCalendarConsole } from "@wren/calendar/console";
-import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
 import {
   type CalendarDeps,
   type ClientCalendarDeps,
@@ -101,7 +99,6 @@ import {
   makeCallBriefs,
 } from "@wren/channel-email/calls";
 import { EMAIL_TOUCH } from "@wren/channel-email/components";
-import { emailRecords } from "@wren/channel-email/records";
 import {
   type Campaign,
   DISPOSITION_KEY,
@@ -139,7 +136,6 @@ import {
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
 import { searchConsoleChecks, searchConsoleClient } from "@wren/channel-search";
-import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/channel-search/records";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
   answerChecks,
@@ -222,7 +218,6 @@ import {
 } from "@wren/content/connect";
 import { askFollowEmail } from "@wren/content/inbox";
 import { ourPosts } from "@wren/content/our-posts";
-import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
   autoReplyFire,
   type ContentDesk,
@@ -255,9 +250,8 @@ import {
 import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { resolve as dohResolve } from "@wren/core";
 import { makeAccountsConsole } from "@wren/core/accounts/console";
-import { askRecord, makeAsk } from "@wren/core/ask";
+import { makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
-import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
 import { makeBroadcast } from "@wren/core/broadcast-run";
 import {
   type BroadcastMail,
@@ -267,14 +261,7 @@ import {
 } from "@wren/core/broadcasts";
 import { cacheFrom } from "@wren/core/cache";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
-import {
-  CustomHostnames,
-  clientRecord,
-  findClient,
-  listClients,
-  sendsOn,
-  settingsFor,
-} from "@wren/core/clients";
+import { CustomHostnames, findClient, listClients, sendsOn, settingsFor } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
@@ -298,7 +285,6 @@ import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { makeLoopWatch } from "@wren/core/loop-watch";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { linkKey, marketingEnvelope } from "@wren/core/marketing";
-import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { readMessageSettings } from "@wren/core/message-settings";
 import { messageStep, notifyStep } from "@wren/core/message-step";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
@@ -309,11 +295,9 @@ import { makePeopleMap, makePeopleMapNet } from "@wren/core/people-map-pass";
 import { PortalRefusal } from "@wren/core/portal";
 import { profileRecords } from "@wren/core/profile-records";
 import { clientKey, clientOfKey, ingressSend, LIMITS, within } from "@wren/core/restate";
-import { SEGMENT_RECORDS } from "@wren/core/segment-records";
 import { segmentStep } from "@wren/core/segment-step";
 import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
 import { dbSendJournal } from "@wren/core/send-journal";
-import { SENT_RECORDS } from "@wren/core/sent/records";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
 import { makeSetupAgent, SETUP_AGENT } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
@@ -328,7 +312,6 @@ import {
   spineFire,
 } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
-import { templateRecords } from "@wren/core/templates/records";
 import { makeTokens } from "@wren/core/tokens";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
@@ -336,13 +319,10 @@ import { makeWebhooks, turnedOffTeller, webhookStep, webhooksPublish } from "@wr
 import { flowsWith } from "@wren/core/workflows";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { makeDealsConsole } from "@wren/deals/console";
-import { dealRecordFor } from "@wren/deals/records";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { makeBillingWatch, parseReceive, wiseReader } from "@wren/delivery/billing";
 import { makeBillingConsole } from "@wren/delivery/billing/console";
-import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { s3Files } from "@wren/delivery/files";
-import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
 import { makeDocumentsConsole } from "@wren/documents/console";
@@ -361,7 +341,6 @@ import {
 } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { learnSource } from "@wren/learn/decide";
-import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { gatewayEmbed, llmForKey, loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   adLibraryFor,
@@ -377,7 +356,6 @@ import {
 } from "@wren/niches";
 import { makeNotesConsole, type NoteTurns, notesContext } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
-import { NOTES_RECORDS } from "@wren/notes/records";
 import { leadOffers } from "@wren/offers";
 import {
   ArmedLlm,
@@ -420,7 +398,6 @@ import {
 } from "@wren/research";
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
-import { RESEARCH_RECORDS } from "@wren/research/records";
 import {
   makeDiscovery,
   makeEnrichment,
@@ -429,21 +406,17 @@ import {
 } from "@wren/research/restate";
 import { gatewayGemini, youtubeByUrl } from "@wren/research/sops";
 import { makeSitesConsole } from "@wren/sites/console";
-import { SITES_RECORDS } from "@wren/sites/records";
 import { makeSites } from "@wren/sites/service";
 import { makeVoiceConsole } from "@wren/voice/console";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
-import { VOICE_RECORDS } from "@wren/voice/records";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
 import { makeMailReader } from "@wren/watch/clients";
-import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
-import { clientMarketing, marketingNumbers } from "./marketing.js";
-import { copyRecords } from "./record-edits.js";
-import { reviewRecord } from "./review.js";
+import { consoleRecords } from "./console-records.js";
+import { clientMarketing } from "./marketing.js";
 import { SETUPS } from "./setups.js";
 import { WORKFLOWS } from "./workflows.js";
 
@@ -2476,74 +2449,25 @@ export async function buildServices(
       edge,
       views: EMAIL_CONSOLE_VIEWS,
       moneyViews: [...EMAIL_COST_VIEWS, ...BOOKS_CONSOLE_VIEWS],
-      records: [
-        ...emailRecords(roster, policy),
-        ...BOOKS_RECORDS,
-        ...WATCH_RECORDS,
-        ...LEARN_RECORDS,
-        // The SOP folders live on the Mac: here the library reads the database only.
-        sopRecordFor(null),
-        ...CALENDAR_RECORDS,
+      records: consoleRecords({
+        email: { roster, policy },
+        smsSenderName: settings.smsSenderName,
+        media: mediaSigner,
+        reach: reachPolicyFrom(settings),
         // Calls recorded on the Mac: the mp4 signed from the files bucket when opened.
-        recordingRecord(
-          settings.filesBucket ? s3Files({ bucket: settings.filesBucket }).getUrl : undefined,
-        ),
-        ...VOICE_RECORDS,
-        ...RESEARCH_RECORDS,
-        ...marketingNumbers(mediaSigner, reachPolicyFrom(settings)),
-        // Replays: read live from the lander, chunks signed from the files bucket. Heatmaps draw
-        // on the newest one; without them, their counts still show.
-        ...(sessions ? [sessionRecord(sessions), surveyAnswerRecord(sessions.site)] : []),
-        heatRecord(sessions),
-        // Videos: previews and stills signed from the media bucket (step 2 puts them there).
-        videoRecord(
-          settings.mediaBucket
-            ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
-            : undefined,
-        ),
-        // The Library's Media (the same files, one row each) and SOPs.
-        mediaRecord(
-          settings.mediaBucket
-            ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
-            : undefined,
-        ),
-        sopRecord,
-        ...copyRecords(settings.smsSenderName),
-        ...MARKETING_RECORDS,
-        // Every message we sent, on any channel (People → Sent).
-        ...SENT_RECORDS,
-        // Wren's segments and who is in each (People → Segments).
-        ...SEGMENT_RECORDS,
-        // Wren's broadcasts and who each went to (People → Broadcasts).
-        ...BROADCAST_RECORDS,
-        // Everyone once, their addresses, traits and timeline (People); site visits read live.
-        ...profileRecords(WORKFLOWS, {
-          // Research this person, and what it found: Wren's own people only.
-          research: true,
-          ...(settings.siteExportToken
-            ? {
-                visits: landerVisitLines({
-                  baseUrl: settings.siteBaseUrl,
-                  exportToken: settings.siteExportToken,
-                }),
-              }
-            : {}),
-        }),
-        ...templateRecords(WORKFLOWS),
-        clientRecord,
-        // Each client's health and the flags about it (Clients).
-        ...HEALTH_RECORDS,
-        // Money in by bank transfer, and the invoice each paid (Money).
-        ...BILLING_RECORDS,
-        // Where you were @ed in Wren's notes: yours only (the Inbox's Mentions).
-        ...NOTES_RECORDS,
-        // Every page we run and its numbers by source (Sites).
-        ...SITES_RECORDS,
-        // Wren's own deals (Opportunities); a client's come from DealsConsole.
-        dealRecordFor(null),
-        reviewRecord(),
-        askRecord,
-      ],
+        recordings: settings.filesBucket
+          ? s3Files({ bucket: settings.filesBucket }).getUrl
+          : undefined,
+        sessions,
+        ...(settings.siteExportToken
+          ? {
+              visits: landerVisitLines({
+                baseUrl: settings.siteBaseUrl,
+                exportToken: settings.siteExportToken,
+              }),
+            }
+          : {}),
+      }),
       components: COMPONENTS,
       workflows: WORKFLOWS,
       // A component's client loops start and stop with it, when this worker binds them.

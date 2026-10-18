@@ -14,7 +14,6 @@ import { createServer } from "node:http";
 import { extname, join, normalize, resolve } from "node:path";
 import { calendarRecordsApi } from "@wren/calendar/console";
 import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "@wren/calendar/console-routes";
-import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
 import {
   bookingPage,
   type ClientCalendarDeps,
@@ -25,7 +24,6 @@ import {
 import { mailAccess, mailAppsFrom } from "@wren/channel-email/access/access";
 import { mailConsoleApi } from "@wren/channel-email/access/console";
 import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "@wren/channel-email/access/console-routes";
-import { callRecord, firmRecord, modelRecord, replyRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
 import { smsConsoleApi } from "@wren/channel-sms/restate";
@@ -53,9 +51,7 @@ import { pieceRows, piecesOf } from "@wren/content/pieces";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { accountsApi } from "@wren/core/accounts/console";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "@wren/core/accounts/console-routes";
-import { askRecord } from "@wren/core/ask";
-import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
-import { clientRecord, clientUrl } from "@wren/core/clients";
+import { clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
 import type { SiteClient } from "@wren/core/content";
@@ -69,8 +65,6 @@ import { PEOPLE_RECORDS, peopleConsoleApi } from "@wren/core/people/console";
 import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "@wren/core/people/console-routes";
 import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
 import { profileRecords } from "@wren/core/profile-records";
-import { SEGMENT_RECORDS } from "@wren/core/segment-records";
-import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templatesApi } from "@wren/core/templates/console";
 import {
   TEMPLATES_CONSOLE_APPS,
@@ -85,9 +79,7 @@ import {
   BILLING_CONSOLE_APPS,
   BILLING_CONSOLE_ROUTES,
 } from "@wren/delivery/billing/console-routes";
-import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
-import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { healthConsoleApi } from "@wren/delivery/health/console";
 import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "@wren/delivery/health/console-routes";
 import { messagingApi } from "@wren/delivery/messaging";
@@ -98,12 +90,10 @@ import { documentsConsoleApi } from "@wren/documents/console";
 import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "@wren/documents/console-routes";
 import { learnConsoleApi } from "@wren/learn/console";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "@wren/learn/console-routes";
-import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
 import { googleDrive } from "@wren/notes/drive";
-import { NOTES_RECORDS } from "@wren/notes/records";
 import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
 import { pickAccount } from "@wren/outreach";
 import { paymentsConsoleApi } from "@wren/payments/console";
@@ -112,7 +102,6 @@ import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate"
 import { sitesApi } from "@wren/sites/console";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-routes";
 import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
-import { SITES_RECORDS } from "@wren/sites/records";
 import { FORM_CSP, PAGE_CSP } from "@wren/sites/render";
 import { sitesPublicApi } from "@wren/sites/service";
 import { proposeChange } from "@wren/studio/change";
@@ -120,15 +109,12 @@ import { setEdit, setLine, setWords } from "@wren/studio/edit";
 import { withFallback } from "@wren/studio/stress";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
-import { VOICE_RECORDS } from "@wren/voice/records";
 import { WebSocketServer } from "ws";
-import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
 import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
-import { videoRecord } from "../../../packages/content/src/video.js";
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { COMPONENTS } from "../../worker/src/components.js";
-import { clientMarketing, marketingNumbers } from "../../worker/src/marketing.js";
-import { copyRecords } from "../../worker/src/record-edits.js";
+import { consoleRecords } from "../../worker/src/console-records.js";
+import { clientMarketing } from "../../worker/src/marketing.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
 import { type DictateEnv, dictate } from "../src/dictate.js";
@@ -256,62 +242,26 @@ const SERVICES: Record<
         components: COMPONENTS,
         workflows: WORKFLOWS,
         setups: SETUPS,
-        records: [
-          askRecord,
-          // The Clients app's list, with each client's Templates, Components and Accounts.
-          clientRecord,
-          // The copy pages edit in place: History, Undo, Ask Claude (whose answer nothing writes here).
-          ...copyRecords(settings.smsSenderName),
-          // The Library's Media (no bucket here: listed, not played) and SOPs.
-          mediaRecord(),
-          sopRecord,
-          // Inbox > Calls and Email replies, and a client's page (/clients/all/<id>), as the worker
-          // registers them; Wren's own bookings for the Calendar's counts and Today.
-          callRecord,
-          replyRecord,
-          // Money → Model usage, with Decide's cost beside email's calls.
-          modelRecord,
-          ...CALENDAR_RECORDS,
-          recordingRecord(),
-          clientRecord,
-          // Marketing's own pages (drafts, posts, comments, DMs, videos, Inbox) and Pipeline's
-          // companies. Videos play from the in-memory file store.
-          ...marketingNumbers(media),
-          videoRecord(media),
-          firmRecord,
-          // Voice's calls and Latency, as the worker registers them.
-          ...VOICE_RECORDS,
-          // Clients' health and flags.
-          ...HEALTH_RECORDS,
-          // Money in by bank transfer.
-          ...BILLING_RECORDS,
-          // The Inbox's Mentions: the signed-in person's own.
-          ...NOTES_RECORDS,
-          // Learn, with the SOP library read from the local folders.
-          ...LEARN_RECORDS,
-          sopRecordFor(resolve(rootDir, settings.sopsDir)),
-          ...SITES_RECORDS,
-          // Every message we sent (People → Sent), and Wren's segments.
-          ...SENT_RECORDS,
-          ...SEGMENT_RECORDS,
-          ...BROADCAST_RECORDS,
-          // People: everyone once, their addresses, traits and timeline. Site visits: a stand-in
-          // for the lander's log (the worker reads it live), two lines for any visitor.
-          ...profileRecords(WORKFLOWS, {
-            research: true,
-            visits: async (v) =>
-              v.length
-                ? [
-                    { at: new Date().toISOString(), text: "Saw /pricing, 2 min", href: null },
-                    {
-                      at: new Date(Date.now() - 864e5).toISOString(),
-                      text: "Saw /, 40 sec, from google",
-                      href: null,
-                    },
-                  ]
-                : [],
-          }),
-        ],
+        // Wren's console records, as the worker serves them (`consoleRecords`). Here: no roster
+        // (replies, calls, companies, model usage only), videos and media from the in-memory file
+        // store, the SOP library from the local folders, and a stand-in for the lander's visit
+        // log: two lines for any visitor.
+        records: consoleRecords({
+          smsSenderName: settings.smsSenderName,
+          media,
+          sopsDir: resolve(rootDir, settings.sopsDir),
+          visits: async (v) =>
+            v.length
+              ? [
+                  { at: new Date().toISOString(), text: "Saw /pricing, 2 min", href: null },
+                  {
+                    at: new Date(Date.now() - 864e5).toISOString(),
+                    text: "Saw /, 40 sec, from google",
+                    href: null,
+                  },
+                ]
+              : [],
+        }),
       }),
     },
   },

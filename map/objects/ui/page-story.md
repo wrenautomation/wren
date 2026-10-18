@@ -21,7 +21,7 @@ Layout and organization changes need the shell, the router and the reads togethe
 - A story: `pageAt(at, { me, answers, mode })` (`web/src/mocks/page.tsx`): a memory-history router at `at`; `me` = `OWNER` (a client's owner, every app) or `ADMIN` (Wren's team); `mode` `pending` or `fails` for every read but `delivery/me`
 - Fake server: `web/src/mocks/api.ts`: one table, key = path (`console/call:<Service>.<handler>` for named handlers), value = body or a function of the call's body; `serve<Api>(service, {...})` types the answers with the server's API object; `pulse` fans out to the same table
 - Unmocked call: a 404 and `unmocked: <key>` in the console; the story's `play` (`settled()`) waits for the server to go quiet and fails on it
-- Answers: `web/src/mocks/data/`: `shell.ts` (account, bells, badges), `records.ts` (every records page: generic types made from each page's columns and states, rows by field kind), `apps.ts` (each app's own first read), `marketing.ts`, `me.ts`. Synthetic only
+- Answers: `web/src/mocks/data/`: `shell.ts` (account, bells, badges), `records.ts` (every records page: the server's types from `virtual:record-types`, rows by field kind), `apps.ts` (each app's own first read), `marketing.ts`, `me.ts`. Synthetic only
 - Stories: `web/src/pages-client.stories.tsx` (each client app, a record open, `Loading`, `Failed`), `pages-wren.stories.tsx` (each of Wren's apps)
 - Checks: `stories:build` in `gates.sh` lint; `test:stories` (`wren-stories`) in `gates.sh visual` and CI `test:stories`
 
@@ -34,8 +34,8 @@ Layout and organization changes need the shell, the router and the reads togethe
 
 ## If you change this
 
-- **Hits:** a page that starts a new read fails its story until `data/` answers it; a server route's answer change fails the typecheck where `serve<Api>` types it; a record page's columns change its generic type
-- **Does not hit:** the portal build, prod. Record types are generic, not the server's: a column the server adds shows only in the preview
+- **Hits:** a page that starts a new read fails its story until `data/` answers it; a server route's answer change fails the typecheck where `serve<Api>` types it; a record type the worker adds or changes (`apps/worker/src/record-types.ts`, `console-records.ts`) shows at the next Storybook start
+- **Does not hit:** the portal build, prod. the worker's record types load in Node, never in the browser
 
 ## Surfaces
 

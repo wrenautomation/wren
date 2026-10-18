@@ -38,7 +38,7 @@ For a whole page, the shell, or how apps and pages are laid out. The real app ru
 7. Test: `pnpm --filter @wren/portal test:stories` (under the lock, about 30 s). Then `./scripts/gates.sh ui`.
 8. Stop it: `pkill -f "serve.mjs 61001"`. Then `lsof -i :61001` shows nothing.
 
-Records pages get generic types, made from each page's columns and states. A column the server adds shows only in the portal preview.
+Records pages get the server's own types (`virtual:record-types`, from `apps/worker/src/record-types.ts`). A column the server adds shows in the stories at the next start.
 
 ## Stories
 
