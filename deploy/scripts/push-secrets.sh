@@ -59,6 +59,32 @@ for i, p in enumerate(parts, 1):
         f.write(json.dumps(p, separators=(",", ":")))
 PY
 
+# A name SSM holds that the file lacks would vanish (TURBO_*, the Wise keys live only in env-2):
+# refuse, unless WREN_SSM_DROP lists it (comma-separated). Names compared, values never read out.
+for i in $(seq 1 4); do
+  name="$PARAM"
+  [ "$i" -gt 1 ] && name="$PARAM-$i"
+  aws ssm get-parameter --name "$name" --with-decryption --query Parameter.Value --output text \
+    > "$tmp/live$i.json" 2>/dev/null || rm -f "$tmp/live$i.json"
+done
+[ -f "$tmp/live1.json" ] || { echo "can't read $PARAM, so can't check what a write would drop" >&2; exit 1; }
+python3 - "$tmp" "${WREN_SSM_DROP:-}" <<'PY'
+import glob, json, os, sys
+live = set()
+for f in glob.glob(os.path.join(sys.argv[1], "live*.json")):
+    try:
+        live |= set(json.load(open(f)))
+    except ValueError:
+        pass
+new = set()
+for f in glob.glob(os.path.join(sys.argv[1], "part*.json")):
+    new |= set(json.load(open(f)))
+gone = sorted(live - new - {n for n in sys.argv[2].split(",") if n})
+if gone:
+    sys.exit("nothing written: SSM holds names the file lacks, which would vanish:\n  "
+             + "\n  ".join(gone) + "\nAdd them to the file, or list them in WREN_SSM_DROP to drop them.")
+PY
+
 for i in $(seq 1 "$PARTS"); do
   name="$PARAM"
   [ "$i" -gt 1 ] && name="$PARAM-$i"

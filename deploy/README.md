@@ -69,7 +69,7 @@ Lambda version, register it. Repo secrets, from `tofu output` and the Restate UI
 | `RESTATE_HOST` | `<env id>.env.us.restate.cloud`, or `restate.wrenautomation.com` once self-hosted (CI then registers over SSM) |
 | `RESTATE_AUTH_TOKEN` | an API key from Developers > API keys, or the box's `token` in `/wren/prod/restate` |
 | `WREN_DISCORD_WEBHOOK_URL` | the ops webhook, for `restate-lag.yml` |
-| `TURBO_API`, `TURBO_TOKEN` | the remote cache's URL and token (env-2 holds both; `turbo-cache.tf`) |
+| `TURBO_API`, `TURBO_TOKEN` | the remote cache's URL and token (env-2 holds both; `turbo-cache.tf`). push-secrets refuses to drop a name SSM holds that the file lacks; `WREN_SSM_DROP=A,B` drops on purpose |
 
 If the deploy job fails at `configure-aws-credentials` with "Not authorized to perform
 sts:AssumeRoleWithWebIdentity", the repo uses GitHub's immutable OIDC subjects:
