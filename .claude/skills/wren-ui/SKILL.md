@@ -20,7 +20,7 @@ Reuse the running Storybook and stop it when done. Run heavy checks only through
    `pnpm --filter @wren/ui stories:shot --width 390 --dark records--worst-case shell--default`
    It writes PNGs to `<tmp>/wren-ui-shots/` and exits 1 on a page error, a console error or a failed `play`. Read the PNGs.
 7. Test the file you changed: `cd packages/ui && pnpm exec vitest run src/<file>.test.tsx`.
-8. Check before commit: `./scripts/gates.sh ui`. Biome on changed files, typecheck of ui + portal, the portal's source guards, related tests, then the story tests (`visual`, needs Docker).
+8. Check before commit: `./scripts/gates.sh ui`. Biome on changed files, typecheck of ui + portal, the portal's source guards, related tests, then the story tests (`visual`).
 9. Stop Storybook: Ctrl-C, or `pkill -f .storybook/serve.mjs`. Then `lsof -i :61000` shows nothing.
 
 Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
@@ -38,10 +38,8 @@ Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 
 ## Story tests
 
-- `./scripts/gates.sh visual` runs every story as a test: it renders, its `play` runs, axe checks it, and a screenshot at 390 and 1280, light and dark, must match `packages/ui/__screenshots__/`.
-- Off Linux it runs in the Playwright image under Docker, one shot at a time, under the checks lock. Peak memory is about 2.5 GB.
-- A diff fails the run. The actual and diff PNGs go to `packages/ui/test-results/visual/` (CI uploads them as `visual-diffs`). Read them.
-- A change you meant: `pnpm --filter @wren/ui test:visual:update`, read the new PNGs, commit them with the change. Never make baselines another way: a Mac draws text other pixels.
+- `./scripts/gates.sh visual` runs every story as a test: it renders, its `play` runs, axe checks it. Light at 390, dark at 1280, one at a time, under the checks lock. About 20 s, peak 1.6 GB.
+- No screenshot compare (off since 10-18): the look is yours to read with `stories:shot`, not a baseline's.
 - An axe failure fails the story. A known gap gets `parameters: { a11y: { test: "todo" } }` with a one-line comment that says why. Fix the gap instead when it is small.
 - `./scripts/gates.sh lint` builds every story (`stories:build`). A part's prop change that breaks a story fails there.
 

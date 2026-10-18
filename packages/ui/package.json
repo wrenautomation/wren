@@ -21,8 +21,7 @@
     "storybook": "node .storybook/serve.mjs",
     "stories:build": "storybook build --quiet",
     "stories:shot": "node .storybook/shot.mjs",
-    "test:stories": "node .storybook/run.mjs",
-    "test:visual:update": "node .storybook/run.mjs --update"
+    "test:stories": "node .storybook/run.mjs"
   },
   "peerDependencies": {
     "react": "19.3.0"

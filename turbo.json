@@ -17,7 +17,6 @@
       "passThroughEnv": [
         "CI",
         "CHECKS_LOCKED",
-        "DOCKER_HOST",
         "GITHUB_ACTIONS",
         "HOME",
         "PLAYWRIGHT_BROWSERS_PATH"

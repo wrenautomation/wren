@@ -1,10 +1,8 @@
 /**
- * Stories as tests: hold still, then compare one screenshot per story with its baseline.
+ * Stories as tests: a fixed clock, nothing moving, and links that keep the test frame.
  * The addon has already loaded preview.tsx's annotations; this file adds what only a test needs.
  */
-import { afterEach, beforeAll, expect, inject, vi } from "vitest";
-import { page } from "vitest/browser";
-import { answering } from "../src/fixtures/load.js";
+import { beforeAll, beforeEach, vi } from "vitest";
 
 // Each story file runs in a new frame of one tab, and the tab's session storage outlives it: the
 // presses an earlier file left there (save/writes.ts reads them on import) would show here.
@@ -18,11 +16,9 @@ const NOW = new Date("2026-10-17T15:00:00Z");
 vi.useFakeTimers({ toFake: ["Date"], now: NOW, shouldAdvanceTime: true });
 
 beforeAll(() => {
-  // Nothing moves: the shot is of where each part ends, not a frame of the way there.
+  // Nothing moves: axe reads each colour where it ends, not a frame of a theme fading in.
   const still = document.createElement("style");
-  still.textContent = `*, *::before, *::after {
-    animation: none !important; transition: none !important; caret-color: transparent !important;
-  }`;
+  still.textContent = `*, *::before, *::after { animation: none !important; transition: none !important; }`;
   document.head.append(still);
   // A real click on a `#` link unloads Vitest's test frame and ends the run. Stories that move
   // through the hash (fixtures/place.ts) get the same move from a hash write, which keeps it.
@@ -34,17 +30,7 @@ beforeAll(() => {
   });
 });
 
-afterEach(async ({ task }) => {
-  const id = task.meta.storyId;
-  // A story that already failed has nothing worth a shot.
-  if (!id || task.result?.errors?.length) return;
-  // Fixture answers come after a set delay (a read's 200 ms): the shot waits for all of them,
-  // then for React to draw what they brought. A held read (`pending`) is never counted.
-  await vi.waitUntil(() => answering() === 0, { timeout: 5000 });
-  await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-  await document.fonts.ready;
-  const [title, story] = id.split("--");
-  await expect
-    .element(page.elementLocator(document.body))
-    .toMatchScreenshot(`${title}/${story}-${inject("shot")}`);
+// Stories share one frame's address: a hash one story moved to (`#state=waiting`) would open the next.
+beforeEach(() => {
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
 });

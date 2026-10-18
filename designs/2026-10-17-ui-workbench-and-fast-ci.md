@@ -19,7 +19,7 @@ Goal: an agent tunes one component in about 3 files, without the portal, the bac
 
 ### A2. Ladle stories for `@wren/ui`
 
-Replaced by `designs/2026-10-17-storybook-visual-tests.md` (Storybook, story tests, screenshots).
+Replaced by `designs/2026-10-17-storybook-visual-tests.md` (Storybook, story tests).
 
 - Ladle (`@ladle/react`, MIT, Vite-native). No Storybook: heavier, and we need no addons.
 - Config in `packages/ui/.ladle/`. Its Vite config uses `@vitejs/plugin-react` and `@tailwindcss/vite`, the same as the portal. Global provider (`.ladle/components.tsx`): theme, `tailwind.css`, a `QueryClient` with fixed data, so `useCall`/`useLoad` components render with no `/api`.

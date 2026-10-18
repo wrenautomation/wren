@@ -46,3 +46,11 @@ Replaces Ladle (designs/2026-10-17-ui-workbench-and-fast-ci.md, part A2) with St
 - One Storybook server per Mac. A second `storybook` call reuses the server on 61000.
 - Browser tests use one Chromium instance and a bounded worker count. Chromium, Docker and Vitest stop on exit, on failure and on Ctrl-C. Peak memory stays under 3 GB.
 - `.githooks/pre-push` typecheck runs under the lock (bead wa-aua).
+
+## Screenshots off (2026-10-18)
+
+William: "deprioritize the screenshots idec about pixel perfect validation at least for now, and it just seems like it creates more issues than it solves."
+
+- `toMatchScreenshot`, the baselines (`packages/ui/__screenshots__/`, 364 PNGs), `test:visual:update` and the Docker run are gone. Story tests keep render, `play` and axe.
+- Two looks, not four: light at 390, dark at 1280. Axe reads each theme's contrast and each width's layout once. Native on the Mac: ~20 s, peak 1.6 GB.
+- To bring screenshots back: `toMatchScreenshot` in `vitest.setup.ts`'s `afterEach`, baselines from one OS image only (the Docker run in git history, 3adccbca).

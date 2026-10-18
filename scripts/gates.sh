@@ -24,9 +24,8 @@ map() { echo "==> map" && map/_meta/build.sh --check; }
 # `@wren/ui`'s Storybook build (designs/2026-10-17-storybook-visual-tests.md): a story that
 # breaks fails here; an unchanged one is a turbo cache hit.
 stories() { echo "==> ui stories" && pnpm turbo run stories:build $WIDE --output-logs=errors-only; }
-# Every story as a test: it renders, its play runs, axe checks it, and its screenshots match the
-# baselines in packages/ui/__screenshots__. Off Linux it runs in the Playwright image (needs Docker).
-visual() { echo "==> ui visual tests" && pnpm turbo run test:stories --filter=@wren/ui --output-logs=errors-only; }
+# Every story as a test: it renders, its play runs, axe checks it (light at 390, dark at 1280).
+visual() { echo "==> ui story tests" && pnpm turbo run test:stories --filter=@wren/ui --output-logs=errors-only; }
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
 # The local copy's IndexedDB transactions (packages/ui/src/data/local.ts) aren't Postgres.

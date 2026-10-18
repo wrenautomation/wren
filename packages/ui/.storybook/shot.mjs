@@ -1,6 +1,6 @@
 /**
  * Screenshots of stories from a running Storybook (`pnpm --filter @wren/ui storybook`), for a look
- * while you edit. The baselines the tests compare against come from `test:visual:update` only.
+ * while you edit. The tests compare no screenshots; these are for reading.
  *   pnpm --filter @wren/ui stories:shot [--width 390] [--dark] [--out dir] <story-id>...
  * Writes <out>/<id>[-dark]-<width>.png (default out: <tmp>/wren-ui-shots) and prints each page or
  * console error, and a failed `play`. Exits 1 on any.
