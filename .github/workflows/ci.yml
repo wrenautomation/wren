@@ -35,3 +35,34 @@ jobs:
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
+  # Every @wren/ui story as a test, screenshots against packages/ui/__screenshots__
+  # (designs/2026-10-17-storybook-visual-tests.md). The baselines come from this image on arm64,
+  # as `test:visual:update` makes them on a Mac. A failure uploads the diffs.
+  stories:
+    name: test:stories
+    runs-on: ubuntu-24.04-arm
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      TURBO_API: ${{ secrets.TURBO_API }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: wren
+    steps:
+      - uses: actions/checkout@v5
+      # The container's user is not the checkout's owner: git (and turbo's hashing) want it trusted.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .node-version, cache: pnpm }
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-stories-${{ github.sha }}
+          restore-keys: turbo-stories-
+      - run: pnpm install --frozen-lockfile --filter wren --filter "@wren/ui..."
+      - run: ./scripts/gates.sh visual
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: packages/ui/test-results/
+          if-no-files-found: ignore

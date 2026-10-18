@@ -9,4 +9,13 @@ files=$(git diff --name-only --diff-filter=ACMR "$base" HEAD)
 [ -z "$files" ] && exit 0
 # shellcheck disable=SC2086 # one path per word; repo paths have no spaces
 pnpm -s biome check --no-errors-on-unmatched $files
-pnpm -s turbo run typecheck --filter="...[$base]" --output-logs=errors-only
+# The typecheck waits for the Mac's checks lock, as scripts/gates.sh does; CI and a run that
+# already holds the lock skip it. It shares the gates' turbo cache.
+set --
+[ -n "${CI:-}" ] || export TURBO_CACHE_DIR="${TURBO_CACHE_DIR:-$HOME/Library/Caches/wren_automation/turbo/wren}"
+if [ -z "${CI:-}" ] && [ -z "${CHECKS_LOCKED:-}" ]; then
+  LOCK=/tmp/wren_automation-checks.lock
+  lockf -s -t 0 "$LOCK" true || echo "==> waiting for another gate run to finish"
+  set -- lockf -s "$LOCK"
+fi
+CHECKS_LOCKED=1 "$@" pnpm -s turbo run typecheck --filter="...[$base]" --output-logs=errors-only

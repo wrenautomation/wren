@@ -10,7 +10,19 @@
     },
     "typecheck": { "dependsOn": ["^build"] },
     "test:unit": { "dependsOn": ["^build"] },
-    "stories:build": { "dependsOn": ["^build"], "outputs": ["build/**"] },
+    "stories:build": { "dependsOn": ["^build"], "outputs": ["storybook-static/**"] },
+    "test:stories": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "passThroughEnv": [
+        "CI",
+        "CHECKS_LOCKED",
+        "DOCKER_HOST",
+        "GITHUB_ACTIONS",
+        "HOME",
+        "PLAYWRIGHT_BROWSERS_PATH"
+      ]
+    },
     "test:integration": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!src/**/*.test.ts", "!src/**/*.test.tsx", "!**/README.md"],
