@@ -40,6 +40,18 @@ describe("loadEnvFile", () => {
     expect(process.env[KEY]).toBe("repo");
   });
 
+  it("stops at the repo root: a worktree with no .env never takes the .env above it", () => {
+    const home = dir("home");
+    writeFileSync(join(home, ".env"), `${KEY}=someone-elses\n`);
+    const tree = join(home, "worktrees/wren-x");
+    const deep = join(tree, "apps/cli");
+    mkdirSync(deep, { recursive: true });
+    writeFileSync(join(tree, "pnpm-workspace.yaml"), "packages: []\n");
+    expect(loadEnvFile(deep)).toBe(tree);
+    expect(loadEnvFile(deep, tree)).toBe(tree);
+    expect(process.env[KEY]).toBeUndefined();
+  });
+
   it("returns the start directory when there is no .env anywhere", () => {
     const bare = dir("bare");
     expect(loadEnvFile(bare)).toBe(bare);
