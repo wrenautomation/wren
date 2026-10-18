@@ -30,6 +30,10 @@ describe("inWindow", () => {
     expect(inWindow(new Date("2026-10-02T03:00:00Z"), DEFAULT_POLICY)).toBe(false); // Thu 23:00 NY
     expect(inWindow(new Date("2026-10-03T18:00:00Z"), DEFAULT_POLICY)).toBe(false); // Saturday
   });
+  it("DMs and LinkedIn keep weekdays 10 to 17 (Reddit threads have their own hours)", () => {
+    expect(DEFAULT_POLICY.days).toEqual([1, 2, 3, 4, 5]);
+    expect([DEFAULT_POLICY.windowStartMinute, DEFAULT_POLICY.windowEndMinute]).toEqual([600, 1020]);
+  });
   it("end is exclusive", () => {
     expect(inWindow(new Date("2026-10-01T21:00:00Z"), DEFAULT_POLICY)).toBe(false); // 17:00
     expect(inWindow(new Date("2026-10-01T20:59:00Z"), DEFAULT_POLICY)).toBe(true);

@@ -2045,6 +2045,13 @@
       "when": 1792210677506,
       "tag": "0292_profile_findings_lookup_index",
       "breakpoints": true
+    },
+    {
+      "idx": 293,
+      "version": "7",
+      "when": 1792339128706,
+      "tag": "0293_reddit_karma_places",
+      "breakpoints": true
     }
   ]
 }

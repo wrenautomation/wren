@@ -14,6 +14,11 @@ export interface Pace {
   from: number;
   to: number;
   zone: string;
+  /**
+   * A smaller cap a day for one kind of send on the lane (reach places under the warm-up share):
+   * `taken` are that kind's sends, which count toward `perDay` as well. A slot found is that kind.
+   */
+  within?: { perDay: number; taken: readonly Date[] };
 }
 
 export const ZONE = "America/Toronto";
@@ -54,13 +59,21 @@ export function sendSlots(
     const d = local(t, pace.zone).day;
     perDay.set(d, (perDay.get(d) ?? 0) + 1);
   }
+  const kindPerDay = new Map<string, number>();
+  for (const t of pace.within?.taken ?? []) {
+    const d = local(t, pace.zone).day;
+    kindPerDay.set(d, (kindPerDay.get(d) ?? 0) + 1);
+  }
+  const full = (day: string) =>
+    (perDay.get(day) ?? 0) >= pace.perDay ||
+    (pace.within ? (kindPerDay.get(day) ?? 0) >= pace.within.perDay : false);
   const out: Date[] = [];
   const end = o.now.getTime() + HORIZON_MS;
   let t = o.now.getTime() + LEAD_MS;
   while (out.length < n && t < end) {
     const at = new Date(t);
     const { day, hour } = local(at, pace.zone);
-    if (hour < pace.from || hour >= pace.to || (perDay.get(day) ?? 0) >= pace.perDay) {
+    if (hour < pace.from || hour >= pace.to || full(day)) {
       t += 15 * MINUTE;
       continue;
     }
@@ -82,6 +95,7 @@ export function sendSlots(
     out.push(slot);
     taken.push(slot);
     perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    if (pace.within) kindPerDay.set(day, (kindPerDay.get(day) ?? 0) + 1);
     t = slot.getTime() + gap;
   }
   return out;

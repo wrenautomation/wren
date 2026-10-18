@@ -457,7 +457,7 @@ export const placeRecord = defineRecord({
     return (
       (await db.execute(sql`
       select p.subreddit id, 'r/' || p.name place, p.fit, p.judged, p.subscribers, p.found_by,
-        p.state, a.account account, p.read_at, p.raw->>'error' error,
+        p.state, p.purpose, a.account account, p.read_at, p.raw->>'error' error,
         count(t.*) filter (where t.state = 'commented') commented,
         round(avg(t.score) filter (where t.score is not null), 1) avg_score
       from reddit_places p
@@ -513,6 +513,18 @@ export const placeRecord = defineRecord({
       watching: { label: "Watching", tone: "good" },
       skipped: neutral("Skipped"),
     }),
+    purpose: status(
+      {
+        reach: neutral("Reach"),
+        karma: {
+          label: "Karma",
+          tone: "good",
+          about:
+            "A large general subreddit where plain answers earn our young accounts karma. Its comments never name Wren or link. It is watched by itself once its rules allow us.",
+        },
+      },
+      "For",
+    ),
     account: accountField("Account", { platforms: ["reddit"] }),
     commented: number("Our comments"),
     avgScore: number("Avg score"),
@@ -523,6 +535,7 @@ export const placeRecord = defineRecord({
   views: [
     { id: "found", label: "To pick", where: { state: "found" }, sort: "-fit" },
     { id: "watching", label: "Watching", where: { state: "watching" }, sort: "-fit" },
+    { id: "karma", label: "Karma", where: { purpose: "karma" }, sort: "-subscribers" },
     // Subreddits whose karma or age rule we don't meet: the comments queue, none sends.
     { id: "held", label: "Held", where: { gated: "held" }, sort: "-fit" },
     { id: "all", label: "All", sort: "-fit" },

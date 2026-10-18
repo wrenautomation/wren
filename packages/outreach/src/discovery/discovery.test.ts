@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { personFacts, readWords } from "./people.js";
 import { judgePlace, paceOf, WREN_AUDIENCE } from "./places.js";
 import { reader, signedOut, subredditsIn } from "./reads.js";
-import { dropReason, factsFor } from "./threads.js";
+import { dayStart, dropReason, factsFor, pitchIn, roomFor } from "./threads.js";
 
 const NOW = new Date("2026-10-06T18:00:00Z");
 const utc = (hoursAgo: number) => NOW.getTime() / 1000 - hoursAgo * 3600;
@@ -83,6 +83,53 @@ describe("reddit discovery", () => {
     expect(dropReason({ ...post, author: "wrenautomation" }, o)).toBe("one of ours wrote it");
     const judged = { mayComment: false } as Parameters<typeof dropReason>[1]["judged"];
     expect(dropReason(post, { ...o, judged })).toBe("the place's rules forbid our comments");
+  });
+
+  it("a karma place keeps only young threads with few comments", () => {
+    const post = { id: "k", name: "t3_k", created_utc: utc(1), num_comments: 3, author: "asker" };
+    const o = { now: NOW, ours: [], judged: null, purpose: "karma" as const };
+    expect(dropReason(post, o)).toBeNull();
+    expect(dropReason({ ...post, created_utc: utc(7) }, o)).toBe("too old to earn karma");
+    expect(dropReason({ ...post, num_comments: 16 }, o)).toBe("past 15 comments");
+    // A reach place keeps the day and the 40 comments.
+    expect(
+      dropReason({ ...post, created_utc: utc(7), num_comments: 16 }, { ...o, purpose: "reach" }),
+    ).toBeNull();
+  });
+
+  it("the day's comments: reach places take at most their share, karma the rest", () => {
+    const young = { comments: 5, reachComments: 2 };
+    expect(roomFor("reach", young, { karma: 0, reach: 0 })).toBe(2);
+    expect(roomFor("reach", young, { karma: 0, reach: 2 })).toBe(0);
+    expect(roomFor("karma", young, { karma: 0, reach: 2 })).toBe(3);
+    // Karma may take what reach leaves.
+    expect(roomFor("karma", young, { karma: 0, reach: 0 })).toBe(5);
+    // Karma using the day leaves reach none, though its share is unused.
+    expect(roomFor("reach", young, { karma: 4, reach: 0 })).toBe(1);
+    expect(roomFor("reach", young, { karma: 5, reach: 0 })).toBe(0);
+    // A reach backlog past its share never takes karma's room.
+    expect(roomFor("karma", young, { karma: 1, reach: 20 })).toBe(2);
+    expect(roomFor("reach", young, { karma: 1, reach: 20 })).toBeLessThan(0);
+    // Past 50 karma the share is the whole day.
+    expect(roomFor("reach", { comments: 6, reachComments: 6 }, { karma: 1, reach: 2 })).toBe(3);
+  });
+
+  it("a karma comment carries no Wren, link or DM me", () => {
+    expect(pitchIn("Use a pivot table, then filter by month.")).toBeNull();
+    expect(pitchIn("We built this at Wren for a client.")).toBe('"Wren"');
+    expect(pitchIn("See https://example.com for a guide")).toBe('"https://"');
+    expect(pitchIn("Try example.com, it does that")).toBe('"example.com"');
+    expect(pitchIn("dm me and I'll send it")).toBe('"dm me"');
+  });
+
+  it("the caps count the lane's day, not UTC's", () => {
+    // 23:30 in Toronto on Oct 6 is 03:30 UTC on Oct 7: still Oct 6's count.
+    expect(dayStart(new Date("2026-10-07T03:30:00Z")).toISOString()).toBe(
+      "2026-10-06T04:00:00.000Z",
+    );
+    expect(dayStart(new Date("2026-10-06T18:00:00Z")).toISOString()).toBe(
+      "2026-10-06T04:00:00.000Z",
+    );
   });
 
   it("person facts: age, karma, places by count, their domains, peak hour", () => {

@@ -499,6 +499,12 @@ export type Comment = typeof comments.$inferSelect;
  * sits beside them, each fact with the words it came from.
  */
 export const PLACE_STATES = ["found", "watching", "skipped"] as const;
+/**
+ * Why we comment in a place: `reach` finds buyers (business subs), `karma` earns a young account
+ * its karma with plain answers that never name Wren (designs/2026-10-18-reddit-karma.md).
+ */
+export const PLACE_PURPOSES = ["reach", "karma"] as const;
+export type PlacePurpose = (typeof PLACE_PURPOSES)[number];
 export const THREAD_STATES = [
   "new",
   "dropped",
@@ -589,6 +595,7 @@ export const redditPlaces = pgTable(
     fit: smallint("fit"),
     subscribers: integer("subscribers"),
     state: varchar("state", { length: 16, enum: PLACE_STATES }).notNull().default("found"),
+    purpose: varchar("purpose", { length: 16, enum: PLACE_PURPOSES }).notNull().default("reach"),
     /** The pool account that works it: one per place, so two of ours never meet. */
     accountId: uuid("account_id"),
     readAt: timestamp("read_at", { withTimezone: true }),
@@ -602,6 +609,7 @@ export const redditPlaces = pgTable(
     index("ix_reddit_places_state").on(t.state),
     index("ix_reddit_places_account_id").on(t.accountId),
     oneOf("ck_reddit_places_state", t.state, PLACE_STATES),
+    oneOf("ck_reddit_places_purpose", t.purpose, PLACE_PURPOSES),
     check("ck_reddit_places_fit", sql`${t.fit} between 0 and 10`),
     foreignKey({
       columns: [t.accountId],

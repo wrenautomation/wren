@@ -1,8 +1,13 @@
 /**
  * Approved comments on a schedule: each drafted, queued comment gets a slot on its account's lane
  * (`pacing.ts`), kept in `send_at`. Comments on others' posts share one lane per platform (the
- * settings' account); Reddit threads one per account, under its warm-up cap, within ten days of
+ * settings' account); Reddit threads one per account, under its warm-up cap, within two weeks of
  * the thread (a drafted comment never goes stale once slotted). What can't fit stays waiting for his click.
+ *
+ * Reddit threads go out every day, 8:00 to 22:00 fleet time: people read Reddit in the evening and
+ * on weekends (designs/2026-10-18-reddit-karma.md). A karma place's thread takes the first slots,
+ * within `KARMA_FRESH_MS` of its post; reach places take at most the rung's reach share a day.
+ * LinkedIn and DMs keep their own windows (`policy.ts`).
  */
 
 import { warmupOf } from "@wren/channel-reddit";
@@ -10,7 +15,7 @@ import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { applyGates, holdsThread } from "./discovery/requirements.js";
-import { SLOT_WITHIN_MS } from "./discovery/threads.js";
+import { inKarmaPlace, KARMA_FRESH_MS, SLOT_WITHIN_MS } from "./discovery/threads.js";
 import { type Pace, sendSlots, ZONE } from "./pacing.js";
 import type { CommentsSettings } from "./reach-posts.js";
 import {
@@ -27,7 +32,7 @@ const HOUR = 3_600_000;
 const LOOKBACK_MS = 2 * 86_400_000;
 
 export const POST_PACE: Omit<Pace, "perDay"> = { gapMinutes: 45, from: 9, to: 20, zone: ZONE };
-export const THREAD_PACE: Omit<Pace, "perDay"> = { gapMinutes: 120, from: 9, to: 21, zone: ZONE };
+export const THREAD_PACE: Omit<Pace, "perDay"> = { gapMinutes: 120, from: 8, to: 22, zone: ZONE };
 
 export interface Slotted {
   kind: "post" | "thread";
@@ -35,7 +40,10 @@ export interface Slotted {
   at: string;
 }
 
-/** One slot at a time: an item whose slot comes too late is left, and its slot stays free. */
+/**
+ * One slot at a time: an item whose slot comes too late is left, and its slot stays free. A slot
+ * goes into `taken`, and into `kind` when the lane caps that kind of send on its own.
+ */
 function fill<T>(
   items: readonly T[],
   o: {
@@ -44,15 +52,43 @@ function fill<T>(
     pace: Pace;
     rand: () => number;
     latest: (item: T) => number;
+    kind?: { perDay: number; taken: Date[] };
   },
 ): Array<{ item: T; at: Date }> {
   const out: Array<{ item: T; at: Date }> = [];
+  const pace = o.kind ? { ...o.pace, within: o.kind } : o.pace;
   for (const item of items) {
-    const [at] = sendSlots(1, o);
+    const [at] = sendSlots(1, { ...o, pace });
     if (!at) break;
     if (at.getTime() > o.latest(item)) continue;
     o.taken.push(at);
+    o.kind?.taken.push(at);
     out.push({ item, at });
+  }
+  return out;
+}
+
+/**
+ * Reach slots past the share on their day: a lane slotted under a larger share sends no more than
+ * the share now. Sent ones count first (they can't move); of the rest, the latest go. Answers the
+ * ids to take off the schedule.
+ */
+export function overShare(
+  slots: readonly { id: string; at: Date; sent: boolean }[],
+  perDay: number,
+  zone: string,
+): string[] {
+  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(d);
+  const count = new Map<string, number>();
+  const out: string[] = [];
+  const order = [...slots].sort(
+    (a, b) => Number(b.sent) - Number(a.sent) || a.at.getTime() - b.at.getTime(),
+  );
+  for (const s of order) {
+    const d = day(s.at);
+    const n = (count.get(d) ?? 0) + 1;
+    count.set(d, n);
+    if (n > perDay && !s.sent) out.push(s.id);
   }
   return out;
 }
@@ -108,7 +144,10 @@ export async function schedulePosts(
   return slots.map(({ item, at }) => ({ kind: "post", id: String(item.id), at: at.toISOString() }));
 }
 
-/** Reddit threads: each account's drafted queue onto its lane, under its warm-up cap. */
+/**
+ * Reddit threads: each account's drafted queue onto its lane, under its warm-up cap. Karma places
+ * first, while their thread is young; reach places under the rung's reach share a day.
+ */
 export async function scheduleThreads(
   db: Queryable,
   o: { now: Date; rand: () => number },
@@ -128,6 +167,7 @@ export async function scheduleThreads(
         inArray(reachAccounts.state, ["warming", "active"]),
       ),
     );
+  const karma = inKarmaPlace;
   for (const a of accounts) {
     const w = a.health ? warmupOf(a.health as AccountHealth, o.now) : null;
     if (!w || w.frozen || w.caps.comments <= 0) continue;
@@ -143,7 +183,12 @@ export async function scheduleThreads(
       ),
     );
     const lane = await db
-      .select({ at: sql<Date>`coalesce(${redditThreads.sendAt}, ${redditThreads.answeredAt})` })
+      .select({
+        id: redditThreads.id,
+        at: sql<Date>`coalesce(${redditThreads.sendAt}, ${redditThreads.answeredAt})`,
+        sent: sql<boolean>`${redditThreads.answeredAt} is not null`,
+        karma,
+      })
       .from(redditThreads)
       .where(
         and(
@@ -154,12 +199,23 @@ export async function scheduleThreads(
           ),
         ),
       );
+    // Reach slots past the share on their day (slotted under a larger one) are slotted again.
+    const over = new Set(
+      overShare(
+        lane.filter((r) => !r.karma).map((r) => ({ ...r, at: new Date(r.at) })),
+        w.caps.reachComments,
+        THREAD_PACE.zone,
+      ),
+    );
+    if (over.size) await unschedule(db, { threads: [...over] });
+    const kept = lane.filter((r) => !over.has(r.id));
     const items = await db
       .select({
         id: redditThreads.id,
         postedAt: redditThreads.postedAt,
         subreddit: redditThreads.subreddit,
         picked: sql<boolean>`${pick} is not null`,
+        karma,
       })
       .from(redditThreads)
       .where(
@@ -172,16 +228,35 @@ export async function scheduleThreads(
         ),
       )
       .orderBy(desc(redditThreads.fit), redditThreads.id);
-    const slots = fill(
-      items.filter((t) => !holdsThread(gates.get(t.subreddit), t.picked)),
-      {
-        now: o.now,
-        taken: lane.map((r) => new Date(r.at)),
-        pace: { ...THREAD_PACE, perDay: w.caps.comments },
-        rand: o.rand,
-        latest: (t) => t.postedAt.getTime() + SLOT_WITHIN_MS,
-      },
-    );
+    const open = items.filter((t) => !holdsThread(gates.get(t.subreddit), t.picked));
+    const taken = kept.map((r) => new Date(r.at));
+    const pace = { ...THREAD_PACE, perDay: w.caps.comments };
+    const slots = [
+      ...fill(
+        open.filter((t) => t.karma),
+        {
+          now: o.now,
+          taken,
+          pace,
+          rand: o.rand,
+          latest: (t) => t.postedAt.getTime() + KARMA_FRESH_MS,
+        },
+      ),
+      ...fill(
+        open.filter((t) => !t.karma),
+        {
+          now: o.now,
+          taken,
+          pace,
+          rand: o.rand,
+          latest: (t) => t.postedAt.getTime() + SLOT_WITHIN_MS,
+          kind: {
+            perDay: w.caps.reachComments,
+            taken: kept.filter((r) => !r.karma).map((r) => new Date(r.at)),
+          },
+        },
+      ),
+    ];
     for (const { item, at } of slots)
       await db
         .update(redditThreads)

@@ -4,8 +4,12 @@
  * Threads and Research). He edits and clicks; it comments from the place's account under the
  * rung's cap, with the thread guard checked again at send. Two days on, the comment's score is
  * read back: the place's hit rate.
+ *
+ * Karma places (designs/2026-10-18-reddit-karma.md) run the same steps for young threads with few
+ * comments, where an early plain answer earns the votes: their own rank and draft prompts, no
+ * facts of ours, and never a word about Wren or a link.
  */
-import { warmupOf } from "@wren/channel-reddit";
+import { REACH_FULL_KARMA, warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { factsBlock } from "@wren/core/facts";
@@ -21,6 +25,7 @@ import {
 import type { AccountHealth } from "@wren/core/outreach";
 import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
+import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
@@ -28,11 +33,13 @@ import { z } from "zod";
 import { pickedReachAccount } from "../draft-accounts.js";
 import { armMeta, guardBy, modelFor } from "../draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
+import { ZONE } from "../pacing.js";
 import { passedOn, passKey } from "../passes.js";
 import { ReachRefusal } from "../refusal.js";
 import {
   comments,
   type PlaceJudged,
+  type PlacePurpose,
   type ReachAccount,
   type RedditPerson,
   type RedditThread,
@@ -61,15 +68,30 @@ export const QUEUE_FIT = 6;
 const NO_ACCOUNT_CAP = 3;
 /** A comment's score is read back after this long. */
 export const SCORE_AFTER_MS = 48 * HOUR;
+/**
+ * A karma place's thread earns votes only early: past this age it is dropped, never queued, never
+ * slotted, and a queued one goes stale.
+ */
+export const KARMA_FRESH_MS = 6 * HOUR;
+/** A karma place's thread with more comments than this is already answered. */
+export const KARMA_MAX_COMMENTS = 15;
+
+/** Karma places, as a condition on a thread's subreddit. */
+// Qualified by hand: Drizzle leaves column names bare in a select list, and a bare "subreddit"
+// inside the subquery would name the place's own column.
+export const inKarmaPlace = sql<boolean>`exists (select 1 from reddit_places kp where kp.subreddit = reddit_threads.subreddit and kp.purpose = 'karma')`;
 
 /** Why code drops a post, $0; null = it passes to the model. */
 export function dropReason(
   p: Post,
-  o: { now: Date; ours: readonly string[]; judged: PlaceJudged | null },
+  o: { now: Date; ours: readonly string[]; judged: PlaceJudged | null; purpose?: PlacePurpose },
 ): string | null {
   const at = (p.created_utc ?? 0) * 1000;
+  const karma = o.purpose === "karma";
+  if (karma && o.now.getTime() - at > KARMA_FRESH_MS) return "too old to earn karma";
   if (o.now.getTime() - at > MAX_AGE_MS) return "over a day old";
-  if ((p.num_comments ?? 0) > MAX_COMMENTS) return `past ${MAX_COMMENTS} comments`;
+  const most = karma ? KARMA_MAX_COMMENTS : MAX_COMMENTS;
+  if ((p.num_comments ?? 0) > most) return `past ${most} comments`;
   if (p.locked) return "locked";
   if (p.archived) return "archived";
   if (p.removed_by_category) return "removed";
@@ -86,7 +108,7 @@ export async function keepThreads(
   db: Queryable,
   sub: string,
   posts: readonly Post[],
-  o: { now: Date; ours: readonly string[]; judged: PlaceJudged | null },
+  o: { now: Date; ours: readonly string[]; judged: PlaceJudged | null; purpose?: PlacePurpose },
 ): Promise<string[]> {
   const passed = await passedOn(db, "reddit");
   const rows = posts.flatMap((p) =>
@@ -126,6 +148,14 @@ asks for help; tools: asks for tools; story: shares an experience; venting; hiri
 angle (one line: what we'd say). Answer JSON only: {"threads": [{"id": "...", "kind": "...", \
 "fit": n, "angle": "..."}]}`;
 
+/** Karma places: a short plain answer, early, where it earns votes. No audience, no work of ours. */
+const KARMA_RANK_SYSTEM = `You pick Reddit threads in large general subreddits where one short, \
+plain, helpful answer can earn upvotes. For each thread: kind (help: asks for help; tools: asks \
+for tools; story: shares an experience; venting; hiring; other), fit 0-10 (a real question a \
+short answer from common knowledge settles; young with few comments is higher; medical, legal, \
+money or deeply personal questions are 0), angle (one line: the answer). Answer JSON only: \
+{"threads": [{"id": "...", "kind": "...", "fit": n, "angle": "..."}]}`;
+
 const RANKED = z.object({
   threads: z.array(
     z.object({
@@ -145,12 +175,17 @@ const RANK_PER_PLACE = 30;
  * A place's threads still waiting on a rank: this pass's and any an earlier rank left out (the
  * model skipped it, or its answer didn't parse), so none sits unranked for good.
  */
-export async function unrankedThreads(db: Queryable, sub: string): Promise<string[]> {
+export async function unrankedThreads(
+  db: Queryable,
+  sub: string,
+  purpose: PlacePurpose = "reach",
+): Promise<string[]> {
+  // A karma place ranks its newest first: an old one has lost its chance anyway.
   const rows = await db
     .select({ id: redditThreads.id })
     .from(redditThreads)
     .where(and(eq(redditThreads.subreddit, sub), eq(redditThreads.state, "new")))
-    .orderBy(asc(redditThreads.postedAt))
+    .orderBy(purpose === "karma" ? desc(redditThreads.postedAt) : asc(redditThreads.postedAt))
     .limit(RANK_PER_PLACE);
   return rows.map((r) => r.id);
 }
@@ -161,8 +196,10 @@ export async function rankThreads(
   llm: LlmClient,
   ids: readonly string[],
   audience: Audience,
+  purpose: PlacePurpose = "reach",
 ): Promise<number> {
   if (!ids.length) return 0;
+  const karma = purpose === "karma";
   const rows = await db
     .select()
     .from(redditThreads)
@@ -170,14 +207,18 @@ export async function rankThreads(
   if (!rows.length) return 0;
   const out = await completeAndParse(
     llm,
-    `Audience: ${audience.about}\n\n${rows
+    `${karma ? "" : `Audience: ${audience.about}\n\n`}${rows
       .map(
         (t) =>
           `id: ${t.id}\nr/${t.subreddit} · ${t.comments} comments\n${t.title}\n${t.body.replace(/\s+/g, " ").slice(0, 600)}`,
       )
       .join("\n\n---\n\n")}`,
     RANKED,
-    { maxTokens: 120 * rows.length, system: RANK_SYSTEM, name: "reddit.rank" },
+    {
+      maxTokens: 120 * rows.length,
+      system: karma ? KARMA_RANK_SYSTEM : RANK_SYSTEM,
+      name: "reddit.rank",
+    },
   );
   if (!out.parsed) return 0;
   let n = 0;
@@ -197,9 +238,13 @@ export async function rankThreads(
   return n;
 }
 
-const dayStart = (now: Date) => new Date(now.toISOString().slice(0, 10));
+/** Midnight of the lane's day (`pacing.ts` ZONE): the day the slots and the caps count. */
+export const dayStart = (now: Date): Date => {
+  const w = wallClock(ZONE, now);
+  return zonedInstant(ZONE, w.year, w.month, w.day);
+};
 
-/** Comments this account sent today (UTC day): answers under ours and new threads alike. */
+/** Comments this account sent today (the lane's day): answers under ours and new threads alike. */
 export async function commentsToday(db: Queryable, accountId: string, now: Date): Promise<number> {
   const day = dayStart(now);
   const [a] = await db
@@ -213,18 +258,61 @@ export async function commentsToday(db: Queryable, accountId: string, now: Date)
   return (a?.n ?? 0) + (b?.n ?? 0);
 }
 
+/** Thread comments of one account queued, or sent today, by the purpose of their place. */
+export interface PlaceUse {
+  karma: number;
+  reach: number;
+}
+
+/**
+ * Room for one more thread of a purpose in the account's day. Reach places take at most their
+ * share (`reachComments`); karma places the rest, and what reach leaves. A reach backlog past its
+ * share never takes karma's room.
+ */
+export function roomFor(
+  purpose: PlacePurpose,
+  caps: { comments: number; reachComments: number },
+  used: PlaceUse,
+): number {
+  if (purpose === "karma")
+    return caps.comments - used.karma - Math.min(used.reach, caps.reachComments);
+  return Math.min(caps.comments - used.karma - used.reach, caps.reachComments - used.reach);
+}
+
+/** Reach-place thread comments this account sent today: what the reach share counts at send. */
+export async function reachCommentsToday(
+  db: Queryable,
+  accountId: string,
+  now: Date,
+): Promise<number> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(redditThreads)
+    .where(
+      and(
+        eq(redditThreads.accountId, accountId),
+        gte(redditThreads.answeredAt, dayStart(now)),
+        sql`not ${inKarmaPlace}`,
+      ),
+    );
+  return r?.n ?? 0;
+}
+
 async function accountById(db: Queryable, id: string | null): Promise<ReachAccount | null> {
   if (!id) return null;
   const [a] = await db.select().from(reachAccounts).where(eq(reachAccounts.id, id));
   return a ?? null;
 }
 
-const capOf = (a: ReachAccount | null, now: Date) =>
-  a?.health ? warmupOf(a.health as AccountHealth, now).caps.comments : a ? 0 : NO_ACCOUNT_CAP;
+const capsOf = (a: ReachAccount, now: Date) =>
+  a.health
+    ? warmupOf(a.health as AccountHealth, now).caps
+    : { comments: 0, reachComments: 0, posts: 0, messages: 0 };
 
 /**
  * Threads past a day and a half that never got a send time go stale, in every sub, each pass: a
- * sub not read again must not keep its queue forever.
+ * sub not read again must not keep its queue forever. A karma place's go stale past
+ * `KARMA_FRESH_MS`.
  */
 export async function expireStale(db: Queryable, now: Date): Promise<number> {
   const gone = await db
@@ -234,7 +322,10 @@ export async function expireStale(db: Queryable, now: Date): Promise<number> {
       and(
         inArray(redditThreads.state, ["new", "queued"]),
         isNull(redditThreads.sendAt),
-        lt(redditThreads.postedAt, new Date(now.getTime() - STALE_MS)),
+        or(
+          lt(redditThreads.postedAt, new Date(now.getTime() - STALE_MS)),
+          and(lt(redditThreads.postedAt, new Date(now.getTime() - KARMA_FRESH_MS)), inKarmaPlace),
+        ),
       ),
     )
     .returning({ id: redditThreads.id });
@@ -244,7 +335,8 @@ export async function expireStale(db: Queryable, now: Date): Promise<number> {
 /**
  * Move the place's best ranked threads to the queue. With an account, the queue holds at most
  * its comment cap for the day across every sub it works (queued, plus what it sent today), so
- * eight subs never queue eight caps; the cap rises as its warm-up rung does. With none, each sub
+ * eight subs never queue eight caps; the cap rises as its warm-up rung does. Reach places take at
+ * most the rung's reach share of it, karma places the rest (`roomFor`). With none, each sub
  * shows a few a day to read.
  */
 export async function queueThreads(db: Queryable, sub: string, now: Date): Promise<string[]> {
@@ -252,8 +344,12 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
   const [place] = await db.select().from(redditPlaces).where(eq(redditPlaces.subreddit, sub));
   if (place?.state !== "watching") return [];
   const account = await accountById(db, place.accountId);
+  const karma = place.purpose === "karma";
   const [q] = await db
-    .select({ n: sql<number>`count(*)::int` })
+    .select({
+      n: sql<number>`count(*)::int`,
+      karma: sql<number>`(count(*) filter (where ${inKarmaPlace}))::int`,
+    })
     .from(redditThreads)
     .where(
       account
@@ -273,7 +369,10 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
             gte(redditThreads.createdAt, dayStart(now)),
           ),
     );
-  const room = capOf(account, now) - (q?.n ?? 0);
+  const used = { karma: q?.karma ?? 0, reach: (q?.n ?? 0) - (q?.karma ?? 0) };
+  const room = account
+    ? roomFor(place.purpose, capsOf(account, now), used)
+    : NO_ACCOUNT_CAP - (q?.n ?? 0);
   if (room <= 0) return [];
   const best = await db
     .select({ id: redditThreads.id })
@@ -283,7 +382,10 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
         eq(redditThreads.subreddit, sub),
         eq(redditThreads.state, "ranked"),
         gte(redditThreads.fit, QUEUE_FIT),
-        gte(redditThreads.postedAt, new Date(now.getTime() - MAX_AGE_MS)),
+        gte(
+          redditThreads.postedAt,
+          new Date(now.getTime() - (karma ? KARMA_FRESH_MS : MAX_AGE_MS)),
+        ),
       ),
     )
     .orderBy(desc(redditThreads.fit), desc(redditThreads.postedAt))
@@ -297,7 +399,10 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
   return ids;
 }
 
-/** Queued threads with no draft yet and still fresh, best first; none when he writes replies himself. */
+/**
+ * Queued threads with no draft yet and still fresh, karma places first (they go stale in hours),
+ * then best first; none when he writes replies himself.
+ */
 export async function threadsToDraft(db: Queryable, limit: number, now = new Date()) {
   if (!(await modelDrafts(db))) return [];
   return db
@@ -305,6 +410,7 @@ export async function threadsToDraft(db: Queryable, limit: number, now = new Dat
       id: redditThreads.id,
       author: redditThreads.author,
       accountId: redditThreads.accountId,
+      karma: sql<boolean>`${inKarmaPlace}`,
     })
     .from(redditThreads)
     .where(
@@ -312,9 +418,13 @@ export async function threadsToDraft(db: Queryable, limit: number, now = new Dat
         eq(redditThreads.state, "queued"),
         isNull(redditThreads.draft),
         gt(redditThreads.postedAt, new Date(now.getTime() - STALE_MS)),
+        or(
+          sql`not ${inKarmaPlace}`,
+          gt(redditThreads.postedAt, new Date(now.getTime() - KARMA_FRESH_MS)),
+        ),
       ),
     )
-    .orderBy(desc(redditThreads.fit))
+    .orderBy(desc(inKarmaPlace), desc(redditThreads.fit))
     .limit(limit);
 }
 
@@ -347,6 +457,27 @@ better. Our notes are how we work, not stories to retell as his.\n${factsBlock(t
 voice:\n${voice}\nAnswer JSON only: {"target": "<the post id or a comment id from the list>", \
 "comment": "<the comment>"}`;
 
+/**
+ * A karma place's comment: a plain answer from one person. No facts of ours, no posts, nothing
+ * first-person, never Wren or a link.
+ */
+const KARMA_DRAFT_SYSTEM = (voice: string) => `You write one short Reddit comment for William in \
+a large general subreddit. Answer the question plainly and helpfully, like one person who knows. \
+Open with the answer. One concrete thing beats three general ones. Rules: no links, no pitch, \
+never name Wren, his business or his work, no "DM me", at most 3 sentences, adds something the \
+thread doesn't already say. No dashes. Sound like a text, not a post. Pick what to answer: the \
+post itself, or one top-level comment in it that asks the question better.\n${factsBlock([])}\n\
+His voice:\n${voice}\nAnswer JSON only: {"target": "<the post id or a comment id from the list>", \
+"comment": "<the comment>"}`;
+
+const PITCH = /\bwren\b|https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|io|ai|net|org|co)\b|\bdm me\b/i;
+
+/** What a karma comment must not carry: Wren, a link or a "DM me". Null = clean. */
+export function pitchIn(text: string): string | null {
+  const m = PITCH.exec(text);
+  return m ? `"${m[0]}"` : null;
+}
+
 const DRAFT = z.object({ target: z.string(), comment: z.string() });
 
 /** The draft, from the whole thread, the OP and our facts; sources kept beside it. */
@@ -364,8 +495,11 @@ export async function draftThread(
     ours: readonly string[];
     /** What we've posted; the thread draws on the closest few. */
     posts?: readonly OurPost[];
+    /** A karma place's thread: the karma prompt, no facts or posts of ours, no pitch. */
+    karma?: boolean;
   },
 ): Promise<"drafted" | "dropped" | "unread"> {
+  const karma = o.karma === true;
   const [t] = await db.select().from(redditThreads).where(eq(redditThreads.id, id));
   if (t?.state !== "queued") return "unread";
   // The thread guard: one of ours already wrote here.
@@ -387,8 +521,8 @@ export async function draftThread(
         `${"  ".repeat(c.depth)}[${c.name}] u/${c.author}: ${(c.body ?? "").replace(/\s+/g, " ").slice(0, 300)}`,
     )
     .join("\n");
-  const ours = factsFor(`${t.title} ${t.body} ${said}`, o.facts);
-  const posts = postsFor(`${t.title} ${t.body}`, o.posts ?? []);
+  const ours = karma ? [] : factsFor(`${t.title} ${t.body} ${said}`, o.facts);
+  const posts = karma ? [] : postsFor(`${t.title} ${t.body}`, o.posts ?? []);
   const opLine = o.op ? personLine(o.op) : null;
   // His last 5 edits of thread comments (content desk, 6), then his yeses and nos closest to it.
   const edits = [
@@ -397,36 +531,42 @@ export async function draftThread(
   ]
     .filter(Boolean)
     .join("\n\n");
-  const truths = o.truths ?? [];
+  // A karma comment claims nothing first-person: no truths, so the guard flags any claim.
+  const truths = karma ? [] : (o.truths ?? []);
   const picked = await modelFor(llm, `thread:${id}`);
   const prompt = `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}${posts.length ? `\n\n${ourPostsBlock(posts)}` : ""}`;
-  const system = edits
-    ? `${DRAFT_SYSTEM(o.voice, truths)}\n\n${edits}`
-    : DRAFT_SYSTEM(o.voice, truths);
+  const base = karma ? KARMA_DRAFT_SYSTEM(o.voice) : DRAFT_SYSTEM(o.voice, truths);
+  const system = edits ? `${base}\n\n${edits}` : base;
+  const ask = async (note: string | null) => {
+    const out = await completeAndParse(picked.llm, note ? `${prompt}\n\n${note}` : prompt, DRAFT, {
+      maxTokens: 400,
+      system,
+      name: "reddit.draft",
+    });
+    return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
+  };
+  // A karma comment that names Wren or links is asked once more without it.
+  const asked = async (note: string | null) => {
+    const a = await ask(note);
+    const pitch = karma ? pitchIn(a.text) : null;
+    if (!pitch) return a;
+    return ask(`${note ? `${note}\n` : ""}Cut ${pitch}: no links, never name Wren or his work.`);
+  };
   // Numbers may come from the thread or our notes; a first-person claim only from the truths.
-  const g = await guardDraft(
-    (fix) =>
-      plainComment(async (note) => {
-        const out = await completeAndParse(
-          picked.llm,
-          note ? `${prompt}\n\n${note}` : prompt,
-          DRAFT,
-          {
-            maxTokens: 400,
-            system,
-            name: "reddit.draft",
-          },
-        );
-        return { text: cleanComment(out.parsed?.comment ?? ""), result: out };
-      }, fix),
-    { facts: truths, sources: [prompt] },
-  );
+  const g = await guardDraft((fix) => plainComment(asked, fix), {
+    facts: truths,
+    sources: [prompt],
+  });
   await recordGuard(db, "reddit.draft", `thread:${id}`, g, guardBy(picked));
   const out = g.result;
-  if (g.text === null) {
+  const pitch = karma && g.text ? pitchIn(g.text) : null;
+  if (g.text === null || pitch) {
     await db
       .update(redditThreads)
-      .set({ state: "dropped", dropped: droppedWhy(g) })
+      .set({
+        state: "dropped",
+        dropped: pitch ? `a karma comment carried ${pitch}` : droppedWhy(g),
+      })
       .where(eq(redditThreads.id, id));
     return "dropped";
   }
@@ -501,6 +641,18 @@ export async function planThreadComment(
     if ((await commentsToday(db, account.id, now)) >= w.caps.comments)
       throw new ReachRefusal(
         `${account.account} is at ${w.stage}: ${w.caps.comments} comments a day${w.next ? ` (${w.next})` : ""}`,
+      );
+    // Under 50 karma, reach places take at most the share; the comment waits for the next day.
+    const [kind] = await db
+      .select({ purpose: redditPlaces.purpose })
+      .from(redditPlaces)
+      .where(eq(redditPlaces.subreddit, thread.subreddit));
+    if (
+      kind?.purpose !== "karma" &&
+      (await reachCommentsToday(db, account.id, now)) >= w.caps.reachComments
+    )
+      throw new ThreadHeld(
+        `${account.account} sends ${w.caps.reachComments} business comments a day until ${REACH_FULL_KARMA} karma (has ${w.karma})`,
       );
   }
   const all = await db

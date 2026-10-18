@@ -13,6 +13,9 @@
  * (`unit_holds`, stage `loop.reddit-reads/<key>`). Two in a pass with nothing answered: the desk is
  * down, and the pass's other signed-out reads wait for the next one. The topics model call is cut
  * at `limits.http` a try, three tries; a miss leaves the month's search for the next pass.
+ *
+ * Karma places (designs/2026-10-18-reddit-karma.md): Wren's pass keeps `KARMA_PLACES` as rows,
+ * watches each once judged, and reads them in their own listing, one page every 2 hours.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf, keepSentEdit } from "@wren/core/ask";
@@ -36,17 +39,19 @@ import {
 } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { LlmClient } from "@wren/llm";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { clientReach, syncLogins } from "../clients.js";
 import { peopleToRead, readPerson } from "../discovery/people.js";
 import {
   type Audience,
+  addKarmaPlaces,
   addPlaces,
   discoverySettingsSchema,
   failPlace,
   joined,
   judgePlace,
+  KARMA_PLACES,
   keepPlace,
   movePlace,
   PLACE_FRESH_MS,
@@ -54,6 +59,7 @@ import {
   placesOfPeople,
   placesToJoin,
   placesToRead,
+  settleKarmaPlace,
   skipPlace,
   threadsRead,
   topicsOf,
@@ -94,6 +100,12 @@ export const READS_KEY = "wren";
 const HOUR = 3_600_000;
 /** One listing reads every watched sub at once, so threads are read often for little. */
 export const THREADS_EVERY_MS = HOUR / 2;
+/**
+ * Karma places post hundreds a day: their listing reads one page (the newest 100) every 2 hours.
+ * Enough young threads for the day's few comments, without keeping thousands of rows.
+ */
+export const KARMA_THREADS_EVERY_MS = 2 * HOUR;
+const KARMA_PAGES = 1;
 /** Per pass, so one pass stays a few minutes of reads at the desk's pace. */
 const PLACES_PER_PASS = 3;
 /** Watched places whose threads a pass reads, in listings of SUBS_PER_READ. */
@@ -131,6 +143,8 @@ export interface DiscoveryDeps {
   audience: () => Promise<Audience>;
   /** `LIMITS` with any overrides (tests shorten them): the topics model call takes `http` a try. */
   limits?: Partial<Limits>;
+  /** Wren's karma places, `KARMA_PLACES` when left out; a client's pass keeps none. */
+  karmaPlaces?: readonly string[];
 }
 
 export interface DiscoveryStats {
@@ -257,6 +271,9 @@ async function readsPass(
     }
   };
 
+  // Karma places: Wren's own, kept as rows each pass (a client's pass has none).
+  if (!clientOfKey(ctx.key))
+    await step("karma places", () => addKarmaPlaces(db, d.karmaPlaces ?? KARMA_PLACES));
   // Places: found once a month, each judged when unread or a month old.
   const foundAt = (await ctx.get<number>(FOUND_AT)) ?? 0;
   if (!s.capped && now.getTime() - foundAt >= PLACE_FRESH_MS) {
@@ -291,19 +308,50 @@ async function readsPass(
     if (!s.capped && searched) ctx.set(FOUND_AT, now.getTime());
   }
   const toRead = await step("places to read", () => placesToRead(db, now, PLACES_PER_PASS));
+  // A karma place is watched on its rules alone, and signed out Reddit hides about and rules
+  // (403 since 2026-10-13): it is read signed in as one of ours, on that account's own cap.
+  const judgeAs = toRead.some((p) => p.purpose === "karma")
+    ? (
+        await step("judge as", async () =>
+          (
+            await db
+              .select({ account: reachAccounts.account })
+              .from(reachAccounts)
+              .where(
+                and(
+                  eq(reachAccounts.platform, "reddit"),
+                  inArray(reachAccounts.state, ["active", "warming"]),
+                ),
+              )
+              .orderBy(reachAccounts.account)
+          ).map((a) => a.account),
+        )
+      ).find((a) => !held(a))
+    : undefined;
+  const placeRead = (p: (typeof toRead)[number]) =>
+    p.purpose === "karma" && judgeAs
+      ? reader(deps.sitesFor(ctx), judgeAs)
+          .place(p.subreddit)
+          .catch((err) => {
+            if (!spent(judgeAs, err)) throw err;
+            return r.place(p.subreddit);
+          })
+      : r.place(p.subreddit);
   for (const p of toRead)
     await reading(`r/${p.subreddit}`, async () => {
       try {
-        const read = await r.place(p.subreddit);
-        await step(`judge r/${p.subreddit}`, async () =>
-          keepPlace(
+        const read = await placeRead(p);
+        await step(`judge r/${p.subreddit}`, async () => {
+          await keepPlace(
             db,
             p.subreddit,
             read,
-            d.llm ? await judgePlace(d.llm, p.subreddit, read, audience) : null,
+            d.llm ? await judgePlace(d.llm, p.subreddit, read, audience, p.purpose) : null,
             now,
-          ),
-        );
+          );
+          // A karma place watches itself once its rules allow us; William picks reach places.
+          await settleKarmaPlace(db, p.subreddit, now);
+        });
         s.judged++;
       } catch (err) {
         // No answer is no verdict on the place: read again next pass, held after three.
@@ -313,10 +361,19 @@ async function readsPass(
       }
     });
 
-  // Threads: every watched place's new posts in one listing (r/a+b+c/new), each half hour.
-  const due = await step("places due", () => placesDue(db, now, THREADS_EVERY_MS, PLACES_MAX));
-  for (let at = 0; at < due.length; at += SUBS_PER_READ) {
-    const group = due.slice(at, at + SUBS_PER_READ);
+  // Threads: every watched place's new posts in one listing (r/a+b+c/new), each half hour. Karma
+  // places in a listing of their own: their volume would page the reach places' posts away.
+  const reach = await step("places due", () => placesDue(db, now, THREADS_EVERY_MS, PLACES_MAX));
+  const karma = await step("karma places due", () =>
+    placesDue(db, now, KARMA_THREADS_EVERY_MS, PLACES_MAX, "karma"),
+  );
+  const groups = [reach, karma].flatMap((due) =>
+    Array.from({ length: Math.ceil(due.length / SUBS_PER_READ) }, (_, i) =>
+      due.slice(i * SUBS_PER_READ, (i + 1) * SUBS_PER_READ),
+    ),
+  );
+  for (const group of groups) {
+    const pages = group[0]?.purpose === "karma" ? KARMA_PAGES : undefined;
     // Back to the oldest last read in the group (a day for a new place), so no post is missed.
     // The journal hands `threadsAt` back as text, so it's read through Date.
     const since = Math.min(
@@ -328,6 +385,7 @@ async function readsPass(
       const posts = await r.latest(
         group.map((p) => p.subreddit),
         since,
+        pages,
       );
       const bySub = new Map<string, typeof posts>();
       for (const x of posts) {
@@ -340,6 +398,7 @@ async function readsPass(
             now,
             ours,
             judged: p.judged,
+            purpose: p.purpose,
           });
           await threadsRead(db, p.subreddit, now);
           return ids;
@@ -347,13 +406,15 @@ async function readsPass(
         s.kept += fresh.length;
         const llm = d.llm;
         const unranked = llm
-          ? await step(`unranked r/${p.subreddit}`, () => unrankedThreads(db, p.subreddit))
+          ? await step(`unranked r/${p.subreddit}`, () =>
+              unrankedThreads(db, p.subreddit, p.purpose),
+            )
           : [];
         if (llm)
           for (let i = 0; i < unranked.length; i += RANK_BATCH) {
             const batch = unranked.slice(i, i + RANK_BATCH);
             s.ranked += await step(`rank r/${p.subreddit} ${i}`, () =>
-              rankThreads(db, llm, batch, audience),
+              rankThreads(db, llm, batch, audience, p.purpose),
             );
           }
         s.queued += (
@@ -414,7 +475,16 @@ async function readsPass(
                 return null;
               });
         const out = await step(`draft ${t.id}`, () =>
-          draftThread(db, llm, t.id, { read, op, facts, truths, voice: d.voice, ours, posts }),
+          draftThread(db, llm, t.id, {
+            read,
+            op,
+            facts,
+            truths,
+            voice: d.voice,
+            ours,
+            posts,
+            karma: t.karma,
+          }),
         );
         if (out === "drafted") s.drafted++;
       } catch (err) {

@@ -4,6 +4,11 @@
  * post; each read once a month and judged by a model (fit, rules in plain words). Pace is counted in code. Nothing is
  * watched until William picks it; Watch gives it the pool account with the fewest places whose
  * rung its minimums allow.
+ *
+ * Karma places (designs/2026-10-18-reddit-karma.md) are large general subs where a plain answer
+ * earns a young account its karma. Wren's pass adds them from `KARMA_PLACES`; each is read and
+ * judged like any place, and the pass watches it itself once its rules allow our comments and an
+ * account meets its floors.
  */
 import { warmupOf } from "@wren/channel-reddit";
 import type { AccountHealth } from "@wren/core/outreach";
@@ -14,6 +19,7 @@ import { z } from "zod";
 import { ReachRefusal } from "../refusal.js";
 import {
   type PlaceJudged,
+  type PlacePurpose,
   type RedditPlace,
   reachAccounts,
   redditPeople,
@@ -47,6 +53,25 @@ export type Audience = z.infer<typeof discoverySettingsSchema>;
 export const WREN_AUDIENCE: Audience = discoverySettingsSchema.parse({});
 
 export const PLACE_FRESH_MS = 30 * 86_400_000;
+
+/**
+ * Wren's karma places: large general subs that take new accounts, where a short plain answer to a
+ * young thread earns upvotes. Their rules are checked by the judge before any is watched.
+ */
+export const KARMA_PLACES = [
+  "NoStupidQuestions",
+  "CasualConversation",
+  "careerguidance",
+  "productivity",
+  "Entrepreneur",
+  "excel",
+  "googlesheets",
+  "answers",
+  "getdisciplined",
+  "learnprogramming",
+  "nocode",
+  "automation",
+] as const;
 
 const name = (s: string) => s.replace(/^\/?r\//i, "").trim();
 const key = (s: string) => name(s).toLowerCase();
@@ -85,6 +110,37 @@ export async function addPlaces(
   return made.length;
 }
 
+/**
+ * Karma places as rows: a new one is found by "karma"; a known one becomes a karma place and is
+ * read again, so its rules are judged as one. Answers how many changed.
+ */
+export async function addKarmaPlaces(
+  db: Queryable,
+  subs: readonly string[] = KARMA_PLACES,
+): Promise<number> {
+  if (!subs.length) return 0;
+  const made = await db
+    .insert(redditPlaces)
+    .values(
+      subs.map((s) => ({
+        subreddit: key(s),
+        name: name(s),
+        foundBy: "karma",
+        purpose: "karma" as const,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: redditPlaces.subreddit,
+      set: {
+        purpose: "karma",
+        readAt: sql`case when ${redditPlaces.state} = 'watching' then ${redditPlaces.readAt} end`,
+      },
+      setWhere: ne(redditPlaces.purpose, "karma"),
+    })
+    .returning({ s: redditPlaces.subreddit });
+  return made.length;
+}
+
 /** Where the people we read post at least 3 times: a place our buyers already are. */
 export async function placesOfPeople(db: Queryable): Promise<string[]> {
   const rows = (await db.execute(sql`
@@ -98,7 +154,11 @@ export async function placesOfPeople(db: Queryable): Promise<string[]> {
 /** Places to read: never read, or read over a month ago. Skipped ones aren't read again. */
 export async function placesToRead(db: Queryable, now: Date, limit: number) {
   return db
-    .select({ subreddit: redditPlaces.subreddit, state: redditPlaces.state })
+    .select({
+      subreddit: redditPlaces.subreddit,
+      state: redditPlaces.state,
+      purpose: redditPlaces.purpose,
+    })
     .from(redditPlaces)
     .where(
       and(
@@ -124,13 +184,22 @@ export function paceOf(latest: readonly Post[]): { postsADay: number; medianComm
   };
 }
 
+const JUDGE_ANSWER = `Read the rules into plain words. Answer JSON only: {"fit": n, "why": "<one \
+line, quoting a title or two>", "rules": "<the rules that matter to us, plain, under 300 chars>", \
+"mayComment": bool, "mayPost": bool, "linkOnly": bool (links only allowed in a profile), \
+"karmaMin": n|null, "ageMinDays": n|null}`;
+
 const SYSTEM = `You judge whether a subreddit is a good place for us to answer questions in \
 comments. We are a one-person automation agency; our comments give concrete help from what we \
 built and never pitch or link. Fit 0-10: do people like the audience ask questions here that our \
-work answers. Read the rules into plain words. Answer JSON only: {"fit": n, "why": "<one line, \
-quoting a title or two>", "rules": "<the rules that matter to us, plain, under 300 chars>", \
-"mayComment": bool, "mayPost": bool, "linkOnly": bool (links only allowed in a profile), \
-"karmaMin": n|null, "ageMinDays": n|null}`;
+work answers. ${JUDGE_ANSWER}`;
+
+/** A karma place: one person's plain answers, never a business. The rules decide; fit is how often a short answer helps. */
+const KARMA_SYSTEM = `You judge whether a large general subreddit lets a young account answer \
+questions in comments. The comments are one person's short, plain, helpful answers: no business, \
+no links, no pitch. Fit 0-10: how often a short plain answer helps the asker here. mayComment is \
+false only when the rules forbid comments like these or new accounts. karmaMin and ageMinDays: \
+only what the rules state for commenting. ${JUDGE_ANSWER}`;
 
 const JUDGED = z.object({
   fit: z.number().min(0).max(10),
@@ -166,6 +235,7 @@ export async function judgePlace(
   sub: string,
   read: PlaceRead,
   audience: Audience,
+  purpose: PlacePurpose = "reach",
 ): Promise<PlaceJudged | null> {
   const a = read.about;
   const pace = paceOf(read.latest);
@@ -190,9 +260,9 @@ export async function judgePlace(
     };
   const out = await completeAndParse(
     llm,
-    `Audience: ${audience.about}\n\nr/${a.display_name ?? sub}: ${a.title ?? ""}\n${(a.public_description ?? "").slice(0, 500)}\nSubscribers: ${a.subscribers ?? "?"}. Posts: ${a.submission_type ?? "any"}.\n\nRules:\n${rulesText(read.rules) || "(none listed)"}\n\nTop this week:\n${titles(read.top)}\n\nNewest:\n${titles(read.latest)}`,
+    `${purpose === "karma" ? "" : `Audience: ${audience.about}\n\n`}r/${a.display_name ?? sub}: ${a.title ?? ""}\n${(a.public_description ?? "").slice(0, 500)}\nSubscribers: ${a.subscribers ?? "?"}. Posts: ${a.submission_type ?? "any"}.\n\nRules:\n${rulesText(read.rules) || "(none listed)"}\n\nTop this week:\n${titles(read.top)}\n\nNewest:\n${titles(read.latest)}`,
     JUDGED,
-    { maxTokens: 500, system: SYSTEM, name: "reddit.place" },
+    { maxTokens: 500, system: purpose === "karma" ? KARMA_SYSTEM : SYSTEM, name: "reddit.place" },
   );
   if (!out.parsed) return null;
   const j = out.parsed;
@@ -249,7 +319,8 @@ export async function placeBySub(db: Queryable, sub: string): Promise<RedditPlac
 
 /**
  * The pool account for a place: a live Reddit account whose rung meets the place's karma and age
- * minimums, with the fewest watched places. Null when none fits yet.
+ * minimums, with the fewest watched places of the same purpose, so both accounts get karma
+ * places and reach places alike. Null when none fits yet.
  */
 export async function accountFor(
   db: Queryable,
@@ -260,7 +331,7 @@ export async function accountFor(
     .select({
       id: reachAccounts.id,
       health: reachAccounts.health,
-      places: sql<number>`(select count(*)::int from ${redditPlaces} p where p.account_id = ${reachAccounts.id} and p.state = 'watching')`,
+      places: sql<number>`(select count(*)::int from ${redditPlaces} p where p.account_id = ${reachAccounts.id} and p.state = 'watching' and p.purpose = ${place.purpose})`,
     })
     .from(reachAccounts)
     .where(
@@ -293,6 +364,31 @@ export async function watchPlace(
     .set({ state: "watching", accountId })
     .where(eq(redditPlaces.subreddit, place.subreddit));
   return { account: accountId };
+}
+
+/**
+ * A judged karma place settles itself: rules that forbid our comments skip it; rules an account
+ * meets watch it from the account with the fewest karma places. Floors above every account leave
+ * it found, judged again next month. Answers its state.
+ */
+export async function settleKarmaPlace(
+  db: Queryable,
+  sub: string,
+  now: Date,
+): Promise<RedditPlace["state"] | null> {
+  const place = await placeBySub(db, sub);
+  if (place.purpose !== "karma" || place.state !== "found" || !place.judged) return null;
+  if (!place.judged.mayComment) {
+    await skipPlace(db, sub);
+    return "skipped";
+  }
+  const accountId = await accountFor(db, place, now);
+  if (!accountId) return "found";
+  await db
+    .update(redditPlaces)
+    .set({ state: "watching", accountId })
+    .where(eq(redditPlaces.subreddit, place.subreddit));
+  return "watching";
 }
 
 export async function skipPlace(db: Queryable, sub: string): Promise<void> {
@@ -333,14 +429,21 @@ export async function failPlace(db: Queryable, sub: string, why: string, now: Da
     .where(eq(redditPlaces.subreddit, key(sub)));
 }
 
-/** Watched places whose threads were last read over `everyMs` ago, oldest first. */
-export async function placesDue(db: Queryable, now: Date, everyMs: number, limit: number) {
+/** Watched places of one purpose whose threads were last read over `everyMs` ago, oldest first. */
+export async function placesDue(
+  db: Queryable,
+  now: Date,
+  everyMs: number,
+  limit: number,
+  purpose: PlacePurpose = "reach",
+) {
   return db
     .select()
     .from(redditPlaces)
     .where(
       and(
         eq(redditPlaces.state, "watching"),
+        eq(redditPlaces.purpose, purpose),
         or(
           isNull(redditPlaces.threadsAt),
           lt(redditPlaces.threadsAt, new Date(now.getTime() - everyMs)),

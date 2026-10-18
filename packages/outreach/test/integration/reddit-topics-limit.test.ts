@@ -65,6 +65,7 @@ beforeAll(async () => {
               exaSearches: 0,
             }),
           limits: { http: LIMIT_MS },
+          karmaPlaces: [],
         },
       }),
     ],

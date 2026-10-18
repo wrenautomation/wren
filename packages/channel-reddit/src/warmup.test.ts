@@ -23,8 +23,17 @@ describe("reddit warmup", () => {
   it("a new account only reads", () => {
     const w = warmupOf(health(0, 0), now);
     expect(w.stage).toBe("lurk");
-    expect(w.caps).toEqual({ comments: 0, posts: 0, messages: 0 });
+    expect(w.caps).toEqual({ comments: 0, reachComments: 0, posts: 0, messages: 0 });
     expect(w.next).toBe("3 more days → comment");
+  });
+
+  it("the comment rung sends 5 a day, at most 2 in reach places under 50 karma", () => {
+    expect(warmupOf(health(20, 3), now).caps).toMatchObject({ comments: 5, reachComments: 2 });
+    expect(warmupOf(health(20, 49), now).caps.reachComments).toBe(2);
+    // 50 karma is the post rung: every comment may go to a reach place.
+    expect(warmupOf(health(20, 50), now).caps).toMatchObject({ comments: 6, reachComments: 6 });
+    // Young but karma-rich (age holds the rung): the share is lifted all the same.
+    expect(warmupOf(health(5, 80), now).caps).toMatchObject({ comments: 5, reachComments: 5 });
   });
 
   it("age alone does not reach posting: karma is needed too", () => {

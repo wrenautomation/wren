@@ -173,12 +173,14 @@ describe("comments", () => {
     await expect(
       answerComment(db(), ch, { id: c1?.id ?? 0, body: "again", now: NOW }),
     ).rejects.toThrow(/already answered/);
-    // The comment rung allows 3 a day.
+    // The comment rung allows 5 a day.
     await answerComment(db(), ch, { id: c3?.id ?? 0, body: "a", now: NOW });
     await answerComment(db(), ch, { id: c4?.id ?? 0, body: "b", now: NOW });
-    const [c5] = await keepComments(db(), a, [comment(5)], []);
-    await expect(answerComment(db(), ch, { id: c5?.id ?? 0, body: "c", now: NOW })).rejects.toThrow(
-      /3 comments a day/,
+    const [c5, c6, c7] = await keepComments(db(), a, [comment(5), comment(6), comment(7)], []);
+    await answerComment(db(), ch, { id: c5?.id ?? 0, body: "c", now: NOW });
+    await answerComment(db(), ch, { id: c6?.id ?? 0, body: "d", now: NOW });
+    await expect(answerComment(db(), ch, { id: c7?.id ?? 0, body: "e", now: NOW })).rejects.toThrow(
+      /5 comments a day/,
     );
   });
 

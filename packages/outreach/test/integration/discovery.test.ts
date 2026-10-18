@@ -6,14 +6,17 @@
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
 import {
+  addKarmaPlaces,
   addPlaces,
   draftThread,
   expireStale,
   joined,
+  KARMA_FRESH_MS,
+  KARMA_PLACES,
   keepPerson,
   keepPlace,
   keepScores,
@@ -27,13 +30,16 @@ import {
   planThreadComment,
   queueThreads,
   rankThreads,
+  settleKarmaPlace,
   skipPlace,
+  ThreadHeld,
   unrankedThreads,
   WREN_AUDIENCE,
   watchPlace,
 } from "../../src/index.js";
 import { placeRecord, threadRecord } from "../../src/records.js";
 import { ReachRefusal } from "../../src/refusal.js";
+import { scheduleThreads, THREAD_PACE } from "../../src/scheduled.js";
 import { comments, type ReachAccount, redditPlaces, redditThreads } from "../../src/schema.js";
 
 const TABLES = ["reddit_threads", "reddit_places", "reddit_people", "comments", "reach_accounts"];
@@ -145,7 +151,7 @@ describe("reddit discovery", () => {
   });
 
   it("threads: filtered, ranked, queued to the cap, drafted, guarded, commented, scored", async () => {
-    const a = await account("reddit@wren", "WrenAutomation", 5, 2); // comment rung: 3 a day
+    const a = await account("reddit@wren", "WrenAutomation", 5, 2); // comment rung: 2 a day in reach places
     await addPlaces(db(), [{ name: "agency", foundBy: "named" }]);
     await keepPlace(db(), "agency", read("agency"), judged(), NOW);
     await watchPlace(db(), "agency", NOW);
@@ -173,7 +179,7 @@ describe("reddit discovery", () => {
     expect(await rankThreads(db(), rank(left), left, WREN_AUDIENCE)).toBe(1);
     expect(await unrankedThreads(db(), "agency")).toEqual([]);
     const queued = await queueThreads(db(), "agency", NOW);
-    expect(queued).toHaveLength(3);
+    expect(queued).toHaveLength(2);
     expect(await queueThreads(db(), "agency", NOW)).toEqual([]);
 
     const [first, second] = queued as [string, string];
@@ -208,37 +214,63 @@ describe("reddit discovery", () => {
     expect(place?.state).toBe("watching");
   });
 
-  it("the cap counts answers under our comments too", async () => {
-    const a = await account("reddit@wren", "WrenAutomation", 5, 2);
+  it("the cap counts every comment of the day; reach places hold past their share", async () => {
+    // 60 karma at 5 days: the comment rung (5 a day), the reach share lifted.
+    const a = await account("reddit@wren", "WrenAutomation", 5, 60);
     await addPlaces(db(), [{ name: "agency", foundBy: "named" }]);
     await keepPlace(db(), "agency", read("agency"), judged(), NOW);
     await watchPlace(db(), "agency", NOW);
-    await keepThreads(db(), "agency", [post(1), post(2), post(3), post(4)], {
+    const ids = [1, 2, 3, 4, 5, 6].map((n) => `t3_p${n}`);
+    await keepThreads(
+      db(),
+      "agency",
+      [1, 2, 3, 4, 5, 6].map((n) => post(n)),
+      {
+        now: NOW,
+        ours: [],
+        judged: judged(),
+      },
+    );
+    await db().update(redditThreads).set({ state: "queued", accountId: a.id });
+    for (const id of ids.slice(0, 5))
+      await markCommented(db(), id, { body: "x", ref: null, accountId: a.id, now: NOW });
+    await expect(planThreadComment(db(), "t3_p6", NOW)).rejects.toThrow(/5 comments a day/);
+
+    // Under 50 karma, a third reach comment of the day is held; a karma place's still goes.
+    await truncate(pg.db, TABLES);
+    const young = await account("reddit@wren", "WrenAutomation", 5, 2);
+    for (const [sub, purpose] of [
+      ["agency", "reach"],
+      ["excel", "karma"],
+    ] as const) {
+      await addPlaces(db(), [{ name: sub, foundBy: "named" }]);
+      await db().update(redditPlaces).set({ purpose }).where(eq(redditPlaces.subreddit, sub));
+      await keepPlace(db(), sub, read(sub), judged(), NOW);
+      await watchPlace(db(), sub, NOW);
+    }
+    await keepThreads(
+      db(),
+      "agency",
+      [1, 2, 3].map((n) => post(n)),
+      { now: NOW, ours: [], judged: judged() },
+    );
+    await keepThreads(db(), "excel", [post(9, { id: "k9", name: "t3_k9" })], {
       now: NOW,
       ours: [],
       judged: judged(),
+      purpose: "karma",
     });
-    await rankThreads(
-      db(),
-      new FakeLlm({
-        default: JSON.stringify({
-          threads: [1, 2, 3, 4].map((n) => ({ id: `t3_p${n}`, kind: "help", fit: 8, angle: "a" })),
-        }),
-      }),
-      ["t3_p1", "t3_p2", "t3_p3", "t3_p4"],
-      WREN_AUDIENCE,
-    );
-    await queueThreads(db(), "agency", NOW);
-    for (const id of ["t3_p1", "t3_p2", "t3_p3"])
-      await db().update(redditThreads).set({ state: "queued" }).where(eq(redditThreads.id, id));
-    for (const id of ["t3_p1", "t3_p2", "t3_p3"])
-      await markCommented(db(), id, { body: "x", ref: null, accountId: a.id, now: NOW });
-    await db().update(redditThreads).set({ state: "queued" }).where(eq(redditThreads.id, "t3_p4"));
-    await expect(planThreadComment(db(), "t3_p4", NOW)).rejects.toThrow(/3 comments a day/);
+    await db().update(redditThreads).set({ state: "queued", accountId: young.id });
+    for (const id of ["t3_p1", "t3_p2"])
+      await markCommented(db(), id, { body: "x", ref: null, accountId: young.id, now: NOW });
+    const held = planThreadComment(db(), "t3_p3", NOW);
+    await expect(held).rejects.toBeInstanceOf(ThreadHeld);
+    await expect(held).rejects.toThrow(/2 business comments a day until 50 karma/);
+    expect((await planThreadComment(db(), "t3_k9", NOW)).account.id).toBe(young.id);
   });
 
   it("the queue holds the account's cap across its subs; stale threads expire in every sub", async () => {
-    await account("reddit@wren", "WrenAutomation", 5, 2); // comment rung: 3 a day
+    await account("reddit@wren", "WrenAutomation", 5, 2); // 2 a day in reach places
     for (const sub of ["agency", "smallbusiness"]) {
       await addPlaces(db(), [{ name: sub, foundBy: "named" }]);
       await keepPlace(db(), sub, read(sub), judged(), NOW);
@@ -253,18 +285,125 @@ describe("reddit discovery", () => {
         .set({ state: "ranked", fit: 8 })
         .where(inArray(redditThreads.id, ids));
     }
-    expect(await queueThreads(db(), "agency", NOW)).toHaveLength(3);
+    expect(await queueThreads(db(), "agency", NOW)).toHaveLength(2);
     // Same account, its cap already queued: the second sub queues none.
     expect(await queueThreads(db(), "smallbusiness", NOW)).toEqual([]);
     // Two days on, nothing was slotted: every queued thread goes stale, read again or not.
     const later = new Date(NOW.getTime() + 2 * DAY);
-    expect(await expireStale(db(), later)).toBe(3);
+    expect(await expireStale(db(), later)).toBe(2);
     const left = await db().select().from(redditThreads);
     expect(left.filter((t) => t.dropped === "went stale").map((t) => t.subreddit)).toEqual([
       "agency",
       "agency",
-      "agency",
     ]);
+  });
+
+  it("karma places: kept as rows, judged, watched by themselves across both accounts", async () => {
+    const one = await account("reddit@wren", "WrenAutomation", 20, 2);
+    const two = await account("reddit@alt", "AltHandle", 15, 3);
+    // A known place becomes a karma place and is read again; a reach place stays as it is.
+    await addPlaces(db(), [
+      { name: "Entrepreneur", foundBy: "topic: x" },
+      { name: "agency", foundBy: "named" },
+    ]);
+    await keepPlace(db(), "entrepreneur", read("Entrepreneur"), judged(), NOW);
+    expect(await addKarmaPlaces(db())).toBe(KARMA_PLACES.length);
+    expect(await addKarmaPlaces(db())).toBe(0);
+    const rows = await db().select().from(redditPlaces);
+    expect(rows.filter((r) => r.purpose === "karma")).toHaveLength(KARMA_PLACES.length);
+    expect(rows.find((r) => r.subreddit === "agency")?.purpose).toBe("reach");
+    expect(rows.find((r) => r.subreddit === "entrepreneur")).toMatchObject({
+      purpose: "karma",
+      readAt: null,
+      foundBy: "topic: x",
+    });
+    // Rules that allow us watch it; four split across the two accounts.
+    for (const sub of ["excel", "productivity", "answers", "nocode"]) {
+      await keepPlace(db(), sub, read(sub), judged(), NOW);
+      expect(await settleKarmaPlace(db(), sub, NOW)).toBe("watching");
+    }
+    const watched = (await db().select().from(redditPlaces)).filter((r) => r.state === "watching");
+    expect(watched.filter((r) => r.accountId === one.id)).toHaveLength(2);
+    expect(watched.filter((r) => r.accountId === two.id)).toHaveLength(2);
+    // Rules that forbid our comments skip it; a floor above both accounts leaves it found.
+    await keepPlace(db(), "casualconversation", read("cc"), judged({ mayComment: false }), NOW);
+    expect(await settleKarmaPlace(db(), "casualconversation", NOW)).toBe("skipped");
+    await keepPlace(db(), "careerguidance", read("cg"), judged({ karmaMin: 100 }), NOW);
+    expect(await settleKarmaPlace(db(), "careerguidance", NOW)).toBe("found");
+    // A reach place is never watched by the pass.
+    await keepPlace(db(), "agency", read("agency"), judged(), NOW);
+    expect(await settleKarmaPlace(db(), "agency", NOW)).toBeNull();
+    // The place rows say what each is for.
+    const places = (await placeRecord.rows?.(db())) ?? [];
+    expect(places.find((r) => r.id === "excel")).toMatchObject({ purpose: "karma" });
+  });
+
+  it("karma threads: young only, their own queue room, slotted first and soon", async () => {
+    const a = await account("reddit@wren", "WrenAutomation", 20, 2);
+    for (const [sub, purpose] of [
+      ["agency", "reach"],
+      ["excel", "karma"],
+    ] as const) {
+      await addPlaces(db(), [{ name: sub, foundBy: "named" }]);
+      await db().update(redditPlaces).set({ purpose }).where(eq(redditPlaces.subreddit, sub));
+      await keepPlace(db(), sub, read(sub), judged(), NOW);
+      await watchPlace(db(), sub, NOW);
+    }
+    // A reach backlog past its share: four queued, drafted, unslotted.
+    const reach = [1, 2, 3, 4].map((n) => post(n));
+    await keepThreads(db(), "agency", reach, { now: NOW, ours: [], judged: judged() });
+    await db()
+      .update(redditThreads)
+      .set({ state: "queued", accountId: a.id, fit: 8, draft: "reach" })
+      .where(eq(redditThreads.subreddit, "agency"));
+    const k = (n: number, over: Partial<Post> = {}) =>
+      post(n, { id: `k${n}`, name: `t3_k${n}`, created_utc: utc(n / 2), ...over });
+    const kept = await keepThreads(
+      db(),
+      "excel",
+      [k(1), k(2), k(3), k(4), k(5, { created_utc: utc(8) }), k(6, { num_comments: 30 })],
+      { now: NOW, ours: [], judged: judged(), purpose: "karma" },
+    );
+    expect(kept.sort()).toEqual(["t3_k1", "t3_k2", "t3_k3", "t3_k4"]);
+    // Newest first for a karma place.
+    expect(await unrankedThreads(db(), "excel", "karma")).toEqual([
+      "t3_k1",
+      "t3_k2",
+      "t3_k3",
+      "t3_k4",
+    ]);
+    await db()
+      .update(redditThreads)
+      .set({ state: "ranked", fit: 8 })
+      .where(inArray(redditThreads.id, kept));
+    // The backlog counts as its share (2): karma gets the other 3 of the day's 5.
+    expect(await queueThreads(db(), "excel", NOW)).toHaveLength(3);
+    expect(await queueThreads(db(), "agency", NOW)).toEqual([]);
+    await db()
+      .update(redditThreads)
+      .set({ draft: "karma" })
+      .where(and(eq(redditThreads.subreddit, "excel"), eq(redditThreads.state, "queued")));
+    const slots = await scheduleThreads(db(), { now: NOW, rand: () => 0 });
+    const at = new Map(slots.map((s) => [s.id, new Date(s.at).getTime()]));
+    const karmaAt = [...at].filter(([id]) => id.startsWith("t3_k")).map(([, t]) => t);
+    const reachAt = [...at].filter(([id]) => id.startsWith("t3_p")).map(([, t]) => t);
+    expect(karmaAt).toHaveLength(3);
+    // Karma first, each inside 6 hours of its post; reach after, 2 a day.
+    expect(Math.max(...karmaAt)).toBeLessThan(Math.min(...reachAt));
+    const posted = new Map(
+      (await db().select().from(redditThreads)).map((t) => [t.id, t.postedAt.getTime()]),
+    );
+    for (const [id, t] of at)
+      if (id.startsWith("t3_k"))
+        expect(t - (posted.get(id) ?? 0)).toBeLessThanOrEqual(KARMA_FRESH_MS);
+    const day = (t: number) =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: THREAD_PACE.zone }).format(new Date(t));
+    const perDay = new Map<string, number>();
+    for (const t of reachAt) perDay.set(day(t), (perDay.get(day(t)) ?? 0) + 1);
+    expect(Math.max(...perDay.values())).toBeLessThanOrEqual(2);
+    // A karma thread past 6 hours goes stale unslotted; the reach ones keep their day and a half.
+    await db().update(redditThreads).set({ sendAt: null });
+    expect(await expireStale(db(), new Date(NOW.getTime() + 7 * 3_600_000))).toBe(3);
   });
 
   it("people to read: commenters and Reddit DM contacts, not ours, not fresh", async () => {
