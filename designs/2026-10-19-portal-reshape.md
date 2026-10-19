@@ -114,3 +114,17 @@ Hand-off: planner reviews each diff, runs the gate once, reports shas; main push
 ## Decision log
 
 - 2026-10-19: nav order Offers, Pipelines, Today, People, Numbers with Today at the top of the sidebar as `/`. Marketing one level down with five apps. Parked set: notes, documents, learn, voice, reactivation. No deletions beyond the two agreed. Client nav unchanged this phase.
+- 2026-10-19 (planner, after reading the code):
+  - `/calls/*` is a client app (`calls.outcome`), so it does not redirect. Wren's calls tab is `inbox/calls`; it moves to `pipelines/calls`.
+  - `texts` (`sms.*`) is client only and Wren's console does not serve it. Outbound does not take its tabs. Outbound takes the lead sheet (`pipeline` → `outbound`, overview as `sheet`) and marketing `texts`, `text-copy`.
+  - `parked` applies to Wren's modules only: `notes`, `learn`, `voice`. `documents` and `reactivation` are client modules, not in Wren's nav; client nav stays, so they do not park.
+  - `deals` and `clientDeals` both become id `pipelines`. The client one keeps the name "Journeys" and its area slot. Only the team one gets `deals`, `calls`, `entries`.
+  - Team `marketing` becomes `content`; the client module keeps id `marketing`. A move whose old app id a client module also holds (`marketing`, `sites`) applies only at Wren (operator, no `?client=`). Moves of ids no client holds apply to all.
+  - `cadence` (posting goals against posts) goes to `content`, not `engage`.
+  - Inbox keeps `mail`, `done`, `rules`. `waiting` → `engage/inbox`, `approve` → `engage/approve`, `calls` → `pipelines/calls`.
+  - `economics` moves to `numbers` with `months`, `channels`, `cohorts`.
+  - The team dock is Today, Pipelines, Studio, Engage. A client dock stays as it is.
+  - `packages/templates` is not empty: it holds 45 default files that the CLI build, the Lambda build and deploy read. No build output is committed (`dist/`, `storybook-static/` are ignored). So this phase deletes nothing.
+  - Stories: one per visible tab of a new or renamed app. Link-only pages get a unit test that each resolves.
+  - `pipelines/entries` is a new record `pipeline.entry` (each live funnel's entries with journey count and last arrival). `offers/terms` proposes a version through a new `termsAdd` console route over the existing `addTerms` store call.
+  - Stage `idleDays` sets when a journey reads stale (`STALE_DAYS` stays the default). Move reads the existing `stale` view.
