@@ -37,6 +37,7 @@ export const KINDS = [
   "account",
   "deal",
   "document",
+  "journey",
 ] as const satisfies readonly EventKind[];
 
 /** One setting on a logic node: a line he types, a few lines, a number, or one of a few. */
@@ -180,10 +181,21 @@ export type TriggerFacts =
   | { trigger: "trigger.payment"; change: PayChange }
   | { trigger: "trigger.document"; change: DocChange; kind: string }
   | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string }
+  | { trigger: "trigger.journey"; funnel: string; stage: string; change: JourneyChange }
   | { trigger: "trigger.app"; app: string; change: AppChange }
   | { trigger: "trigger.segment"; segment: number; change: SegmentChange }
   | { trigger: "trigger.trait"; key: string; value: string | null }
   | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
+
+/** What a journey tells the spine: it entered a stage, passed over one, or was dropped. */
+export const JOURNEY_CHANGES = {
+  entered: "Enters a stage",
+  skipped: "Skips a stage",
+  dropped: "Is dropped",
+} as const;
+export type JourneyChange = keyof typeof JOURNEY_CHANGES;
+/** A funnel id or stage key, as the pipeline keeps them. */
+const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
 
 /** A profile entering or leaving a group (designs/2026-10-14-customerio-audit.md, B5). */
 export const SEGMENT_CHANGES = { entered: "Enters", left: "Leaves" } as const;
@@ -259,6 +271,15 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     const stage = text(w.stage);
     return (on === "any" || on === f.change) && (!stage || stage === f.stage);
   }
+  if (f.trigger === "trigger.journey") {
+    const on = text(w.on) || "entered";
+    const stage = text(w.stage);
+    return (
+      text(w.funnel) === f.funnel &&
+      (on === "any" || on === f.change) &&
+      (!stage || stage === f.stage)
+    );
+  }
   if (f.trigger === "trigger.segment") {
     const on = text(w.on) || "entered";
     return Number(w.segment) === f.segment && (on === "any" || on === f.change);
@@ -320,6 +341,7 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
         f.trigger === "trigger.payment" ||
         f.trigger === "trigger.document" ||
         f.trigger === "trigger.deal" ||
+        f.trigger === "trigger.journey" ||
         f.trigger === "trigger.app" ||
         f.trigger === "trigger.segment" ||
         f.trigger === "trigger.trait" ||
@@ -880,6 +902,31 @@ export const LOGIC: readonly LogicPart[] = [
     },
   ),
   trigger(
+    "journey",
+    "Journey",
+    "Starts when someone enters, skips or leaves a stage of a funnel. Once per person and stage.",
+    "board",
+    "journey",
+    [
+      { field: "funnel", label: "Funnel (its id)", type: "text", hint: "main" },
+      { field: "stage", label: "Only this stage (its key)", type: "text", hint: "signed" },
+      {
+        field: "on",
+        label: "When",
+        type: "choice",
+        options: ["entered", "skipped", "dropped", "any"],
+        labels: { ...JOURNEY_CHANGES, any: "Any of these" },
+        start: "entered",
+      },
+    ],
+    (w) => {
+      const on = text(w.on) || "entered";
+      const what = on === "any" ? "A journey moves" : (JOURNEY_CHANGES[on as JourneyChange] ?? on);
+      const where = text(w.stage) ? ` ${text(w.stage)}` : "";
+      return `${what}${where} in ${text(w.funnel) || "a funnel"}`;
+    },
+  ),
+  trigger(
     "segment",
     "Group",
     "Starts when someone enters or leaves a group in People. Once per person.",
@@ -1078,6 +1125,13 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     !HOOK_PRESETS[text(w.form)]
   )
     out.push(`${at}: no form called ${text(w.form)}`);
+  if (l.id === "trigger.journey") {
+    if (!JOURNEY_KEY.test(text(w.funnel))) out.push(`${at}: Journey names a funnel's id`);
+    if (text(w.stage) && !JOURNEY_KEY.test(text(w.stage)))
+      out.push(`${at}: Journey names a stage key, like signed`);
+    if (w.on !== undefined && !["entered", "skipped", "dropped", "any"].includes(text(w.on)))
+      out.push(`${at}: Journey fires when a journey enters, skips or leaves a stage`);
+  }
   if (l.id === "trigger.segment") {
     const n = Number(w.segment);
     if (!Number.isSafeInteger(n) || n < 1) out.push(`${at}: Group names a group's number`);

@@ -268,6 +268,29 @@ describe("walk", () => {
     });
   });
 
+  it("sends what a step fires once its result is kept, tagged with the client", async () => {
+    const { store } = memStore();
+    const { w } = walkWith(store, "inv1");
+    const fired: unknown[] = [];
+    const facts = { trigger: "trigger.reply", channel: "sms" } as const;
+    const told: Step = async (_port, e, at) => {
+      at.fire?.({ facts, event: e });
+      return [];
+    };
+    const mine: Walk = {
+      ...w,
+      client: "c1",
+      steps: { ...w.steps, answer: told },
+      fire: (f) => fired.push(f),
+    };
+    await walk(mine, "top", "in.leads", [lead("1")]);
+    expect(fired).toEqual([{ client: "c1", facts, event: lead("1") }]);
+    // A walk with no way to send (a dry test) fires nothing and does not fail.
+    const { fire: _unused, ...dry } = mine;
+    await walk({ ...dry, by: "inv2" }, "top", "in.leads", [lead("2")]);
+    expect(fired).toHaveLength(1);
+  });
+
   it("passes a rule's wire only when the rule holds, and never walks a code wire", async () => {
     const { store, rows } = memStore();
     const { w } = walkWith(store, "inv1", async () => true);

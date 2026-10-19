@@ -241,6 +241,45 @@ describe("triggers", () => {
     );
   });
 
+  it("hear a journey by funnel, stage and change", () => {
+    const node = (w: Record<string, string> = {}) => ({
+      id: "j",
+      uses: "trigger.journey",
+      with: w,
+    });
+    const entered = {
+      trigger: "trigger.journey",
+      funnel: "alpha",
+      stage: "signed",
+      change: "entered",
+    } as const;
+    const skipped = { ...entered, change: "skipped" } as const;
+    expect(triggerHears(node({ funnel: "alpha" }), entered)).toBe(true);
+    expect(triggerHears(node({ funnel: "alpha" }), skipped)).toBe(false);
+    expect(triggerHears(node({ funnel: "alpha", on: "any" }), skipped)).toBe(true);
+    expect(triggerHears(node({ funnel: "alpha", on: "skipped" }), skipped)).toBe(true);
+    expect(triggerHears(node({ funnel: "alpha", stage: "signed" }), entered)).toBe(true);
+    expect(triggerHears(node({ funnel: "alpha", stage: "booked" }), entered)).toBe(false);
+    expect(triggerHears(node({ funnel: "beta" }), entered)).toBe(false);
+    expect(triggerHears(node(), entered)).toBe(false);
+    expect(untilOfFacts(entered)).toBeNull();
+  });
+
+  it("check a journey trigger's settings", () => {
+    const n = (w: Record<string, string>) =>
+      logicProblems("f.n", { id: "n", uses: "trigger.journey", with: w });
+    expect(n({ funnel: "alpha", stage: "signed", on: "entered" })).toEqual([]);
+    expect(n({ funnel: "alpha" })).toEqual([]);
+    expect(n({})).toEqual(["f.n: Journey names a funnel's id"]);
+    expect(n({ funnel: "Alpha Beta" })).toEqual(["f.n: Journey names a funnel's id"]);
+    expect(n({ funnel: "alpha", stage: "Two Words" })).toEqual([
+      "f.n: Journey names a stage key, like signed",
+    ]);
+    expect(n({ funnel: "alpha", on: "nope" })).toEqual([
+      "f.n: Journey fires when a journey enters, skips or leaves a stage",
+    ]);
+  });
+
   it("give a Form its door: a known form's shape, else by email and its map", () => {
     expect(doorOf({ id: "f", uses: "trigger.form", with: { form: "site" } })).toMatchObject({
       subject: "id",

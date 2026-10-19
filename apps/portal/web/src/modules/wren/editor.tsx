@@ -443,6 +443,8 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
     "Fires within the hour of a change in a client's connected app (Account → Connectors). The person's name, email and phone come with it.",
   "trigger.deal":
     "Fires when a deal moves stage on the Opportunities board. The deal, its value and contact come with it.",
+  "trigger.journey":
+    "Fires when a person's journey in a funnel enters, skips or is dropped from a stage. Pick the funnel and, if you like, one stage. A stage you leave empty means any.",
 };
 
 /** What a Wait until an event does with a late one, said once in its panel. */

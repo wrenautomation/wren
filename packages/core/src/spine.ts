@@ -69,6 +69,11 @@ export interface StepAt {
   template?: TemplateRef | null;
   /** The part whose inside this node runs in (`follow_up`); null at a workflow's top. */
   part?: string | null;
+  /**
+   * Tell the spine an event happened (`Spine/fire`). Journaled with the step, sent once the step's
+   * result is kept, so a retried step fires once. Absent in a dry test: nothing leaves the walk.
+   */
+  fire?(f: Omit<Fired, "client">): void;
 }
 
 /** A part's code on the spine: an event at one of its inputs in, events on its outputs out. */
@@ -144,6 +149,8 @@ export interface Walk {
   rule(when: string, e: SpineEvent): Promise<boolean>;
   /** A step in `workflow` failed past its tries and stopped as `id`: auto-retry's turn. */
   failed?(id: string, workflow: string): void;
+  /** A step's fired event (`StepAt.fire`), sent after the step's result is journaled. */
+  fire?(req: Fired): void;
   /**
    * A test (`./dry.ts`): every node that would run a step runs this one's instead, and code
    * wires carry events as events wires do, as the parts' code would. Nothing leaves the walk.
@@ -320,12 +327,14 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
     const step = w.dry ? w.dry(node) : real;
     const a = entry(flow, m);
     let outs: Awaited<ReturnType<Step>> | null;
+    let fired: Fired[] = [];
     try {
-      outs = await w.run(
+      const done = await w.run(
         `${a.node}.${port} ${m.e.subject}`,
         async () => {
           const kept = await w.store.claim(a, w.by);
           if (!kept) return null;
+          const told: Fired[] = [];
           const at: StepAt = {
             client: w.client,
             workflow,
@@ -333,13 +342,23 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
             with: node.with ?? {},
             template: node.template ?? null,
             part: partAt(w, top, m.at),
+            // Only where the walk can send: a dry walk fires nothing.
+            ...(w.fire
+              ? {
+                  fire: (f: Omit<Fired, "client">) => {
+                    told.push({ ...f, client: w.client });
+                  },
+                }
+              : {}),
           };
           const out = step ? await step(a.port, a.event, at) : [];
           await w.store.sent?.(kept, out);
-          return out;
+          return { out, told };
         },
         true,
       );
+      outs = done ? done.out : null;
+      fired = done ? done.told : [];
     } catch (err) {
       if (!(err instanceof restate.TerminalError)) throw err;
       const stopped = await w.run(`failed ${a.node}.${port} ${m.e.subject}`, async () => {
@@ -355,6 +374,7 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
       continue;
     }
     tally.arrived++;
+    for (const f of fired) w.fire?.(f);
     for (const o of outs)
       queue.push({ arrive: false, at: m.at, ref: `${id}.${o.port}`, e: o.event });
   }
@@ -1043,6 +1063,11 @@ export interface SpineDeps {
   main: Db;
   clientDb(id: string): Db;
   workflows: readonly Workflow[];
+  /**
+   * The funnel workflows of a workspace (`null`: Wren's): generated, one per funnel version that
+   * is the newest or still holds an open journey. Read once per call and journaled, as saves are.
+   */
+  funnels?(client: string | null): Promise<readonly Workflow[]>;
   components: readonly Component[];
   steps: Readonly<Record<string, Step>>;
   /** Does `e` pass `when`? `client` (null: Wren) is whose model share answers it. */
@@ -1068,13 +1093,20 @@ export function makeSpine(d: SpineDeps) {
   // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
   const savesFor = (ctx: restate.Context, client: string | null) =>
     ctx.run("saved workflows", () => savedWorkflows(d.main, client));
-  const flowsOf = (edits: Record<string, WorkflowEdits | null>) =>
-    new Map(flowsWith(d.workflows, edits, d.components).flows.map((f) => [f.id, f]));
+  const funnelsFor = async (ctx: restate.Context, client: string | null) => {
+    const get = d.funnels;
+    return get ? ctx.run("funnels", () => get(client)) : [];
+  };
+  const flowsOf = (funnels: readonly Workflow[], edits: Record<string, WorkflowEdits | null>) =>
+    new Map(
+      flowsWith([...d.workflows, ...funnels], edits, d.components).flows.map((f) => [f.id, f]),
+    );
   const flowsFor = async (ctx: restate.Context, client: string | null) =>
-    flowsOf(editsOf(await savesFor(ctx, client)));
+    flowsOf(await funnelsFor(ctx, client), editsOf(await savesFor(ctx, client)));
   const walkFor = async (ctx: restate.Context, t: Target & { auto?: number }): Promise<Walk> => {
     const saves = await savesFor(ctx, t.client);
-    const flows = flowsOf(editsOf(saves));
+    const funnels = await funnelsFor(ctx, t.client);
+    const flows = flowsOf(funnels, editsOf(saves));
     return {
       flows,
       // A workflow's newest live save: the wiring a new subject enters on.
@@ -1085,7 +1117,7 @@ export function makeSpine(d: SpineDeps) {
           version === 0
             ? { workflow, edits: null }
             : await ctx.run(`wiring ${version}`, () => savedVersion(d.main, version));
-        return flowsOf({
+        return flowsOf(funnels, {
           ...editsOf(saves),
           [workflow]: old?.workflow === workflow ? old.edits : null,
         });
@@ -1101,6 +1133,9 @@ export function makeSpine(d: SpineDeps) {
           .serviceSendClient<SpineService>(SPINE)
           .release({ client: t.client, id }, restate.rpc.sendOpts({ delay: ms })),
       rule: (when, e) => d.rule(when, e, t.client),
+      fire: (req) => {
+        ctx.serviceSendClient<SpineService>(SPINE).fire(req);
+      },
       // Auto-retry: the next rung of the ladder, counted in the call, until the workflow's tries.
       failed: (id, workflow) => {
         const n = t.auto ?? 0;

@@ -389,8 +389,12 @@ export const spineExecutions = pgView("spine_executions", {
         where c.id = split_part(x.subject, ':', 2)::int)
       when subject ~ '^account:[0-9]{1,9}:' then (select initcap(a.site) || ': ' || a.ref
         from client_accounts a where a.id = split_part(x.subject, ':', 2)::int)
+      when subject ~ '^journey:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (select coalesce(nullif(pr.name, ''), 'Someone') || ': ' ||
+        j.funnel || ' at ' || j.stage
+        from pipeline.journeys j join profiles pr on pr.id = j.profile_id
+        where j.id = substr(x.subject, 9)::uuid)
     end, case split_part(subject, ':', 1) when 'mail' then 'Email' when 'item' then 'Learn item'
-      when 'company' then 'Company' when 'account' then 'Account'
+      when 'company' then 'Company' when 'account' then 'Account' when 'journey' then 'Journey'
       when 'lead' then case split_part(subject, ':', 2) when 'reach' then 'DM lead'
         when 'email' then 'Email lead' else 'Text lead' end
       when 'reply' then case split_part(subject, ':', 2) when 'reach' then 'DM reply'
@@ -427,6 +431,11 @@ export const spineExecutions = pgView("spine_executions", {
     select coalesce(nullif(m.from_name, ''), m.from_address), null from watch.mail m
       where m.id = case when x.subject ~ '^mail:[0-9]{1,9}$'
         then split_part(x.subject, ':', 2)::int end
+    union all
+    select nullif(pr.name, ''), null from pipeline.journeys j
+      join profiles pr on pr.id = j.profile_id
+      where j.id = case when x.subject ~ '^journey:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        then substr(x.subject, 9)::uuid end
   ) who on true`);
 
 /**
