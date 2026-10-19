@@ -4,6 +4,7 @@
  * take one number: each write holds a transaction lock on the thing it numbers.
  */
 import { createHash } from "node:crypto";
+import { imports } from "@wren/core/schema";
 import { segments } from "@wren/core/segments-schema";
 import { atomic, type Queryable, type Tx } from "@wren/db";
 import type { Offer, Terms } from "@wren/offers";
@@ -282,9 +283,15 @@ export async function funnelContext(
       (g) => [String(g.id), g.state === "active"] as const,
     ),
   );
+  const batches = new Set(
+    (await db.select({ id: imports.id }).from(imports)).map((r) => `import:${r.id}`),
+  );
   return {
     id,
     triggers,
+    source(sid) {
+      return batches.has(sid) ? { exists: true } : undefined;
+    },
     group(gid) {
       const active = groups.get(gid);
       return active === undefined ? undefined : { active };

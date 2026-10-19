@@ -133,6 +133,28 @@ describe("funnelWorkflow", () => {
     expect(funnelWorkflow("main", 1, bad, "wren").nodes.some((n) => n.id === "e_0")).toBe(false);
   });
 
+  it("turns a sourced entry into a source trigger wired to its stage", () => {
+    const b = body({
+      entries: [
+        { id: "list", kind: "sourced", source: "import:12", to: "booked" },
+        { id: "list2", kind: "sourced", source: "import:13" },
+        { id: "none", kind: "sourced" },
+      ],
+    });
+    const f = funnelWorkflow("main", 1, b, "wren");
+    expect(f.nodes.find((n) => n.id === "e_0")).toEqual({
+      id: "e_0",
+      uses: "trigger.source",
+      with: { source: "import:12" },
+    });
+    const wires = f.wires.map((w) => `${w.from} -> ${w.to}`);
+    expect(wires).toContain("e_0.out -> m_booked.lead");
+    expect(wires).toContain("e_1.out -> m_engaged.lead");
+    // A sourced entry that names no source gets no node.
+    expect(f.nodes.some((n) => n.id === "e_2")).toBe(false);
+    expect(checkWorkflows([f], [])).toEqual([]);
+  });
+
   it("uses the other funnel's sale stage when the entry names none", () => {
     const b = body({
       entries: [{ id: "from_other", kind: "funnel", funnel: { id: "other" } }],

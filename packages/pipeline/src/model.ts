@@ -3,6 +3,7 @@
  * version"). Pure: the known triggers, the funnel lookup and the composition graph come in as
  * arguments, so this file imports nothing from the spine.
  */
+import { SOURCE_ID } from "@wren/core/logic";
 
 export interface Advance {
   /** A trigger component id: `trigger.booking`, `trigger.touch`, ... */
@@ -19,7 +20,7 @@ export interface Stage {
   sale?: true;
   /** What moves a journey to this stage. */
   on: Advance[];
-  /** How much research the person gets on entering. Default `none`. Carried only; J4 runs it. */
+  /** How much research the person gets on entering. Default `none`. Run once per journey and stage on arrival (`research.ts`). */
   research?: Research;
 }
 
@@ -48,7 +49,7 @@ export interface Entry {
   campaign?: string;
   /** Kind `funnel`: that funnel's stage. Default: its sale stage. */
   funnel?: { id: string; at?: string };
-  /** Kind `sourced`: the research list or discovery run id the person came from. */
+  /** Kind `sourced`: the list the person was added to, `import:<batch id>` (an import batch). */
   source?: string;
   /** Kind `group`: the saved query whose members enter. */
   group?: string;
@@ -85,6 +86,8 @@ export interface FunnelContext {
    * `active` is false once it is archived: an archived group tells no one.
    */
   group(id: string): { active: boolean } | undefined;
+  /** A sourced list by id (`import:<batch id>`), or undefined if there is none. */
+  source(id: string): { exists: true } | undefined;
   /** Funnel ids each stored funnel takes entries from. This funnel's own edges are replaced by `next`. */
   feeds: Readonly<Record<string, readonly string[]>>;
 }
@@ -154,8 +157,15 @@ export function checkFunnel(
     }
     if (e.kind === "funnel" && !e.funnel)
       errors.push(`Entry "${e.id}" has kind funnel but names no funnel.`);
-    if (e.kind === "sourced" && !e.source)
-      errors.push(`Entry "${e.id}" has kind sourced but names no source.`);
+    if (e.kind === "sourced") {
+      if (!e.source) errors.push(`Entry "${e.id}" has kind sourced but names no source.`);
+      else if (!SOURCE_ID.test(e.source))
+        errors.push(
+          `Entry "${e.id}" names source "${e.source}", which is not a list's id (import:12).`,
+        );
+      else if (!ctx.source(e.source))
+        errors.push(`Entry "${e.id}" names source ${e.source}, which does not exist.`);
+    }
     if (e.kind === "group") {
       if (!e.group) errors.push(`Entry "${e.id}" has kind group but names no group.`);
       else if (!GROUP_ID.test(e.group))

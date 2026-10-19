@@ -8,7 +8,8 @@
  *
  * Workflow inputs `in.<k>` and `in.dropped` take manual moves and drops. A `funnel` entry is a
  * `trigger.journey` node (`e_<i>`) wired to the move node of the stage it opens at; a `group`
- * entry is a `trigger.segment` node (`e_<i>`, `entered`) wired the same way. The move and
+ * entry is a `trigger.segment` node (`e_<i>`, `entered`) wired the same way; a `sourced` entry is a
+ * `trigger.source` node (`e_<i>`) for its list. The move and
  * stage nodes are the workflow's own steps (`own`), not catalog parts: a wire joins equal event
  * kinds only, and each trigger fixes its own, so a move node takes one input per kind it hears.
  */
@@ -24,6 +25,8 @@ export const JOURNEY_PORT = "journey";
 
 /** The trigger a `group` entry listens on: a person entering the group. */
 export const SEGMENT_TRIGGER = "trigger.segment";
+/** The trigger a `sourced` entry listens on: a person added to the list. */
+export const SOURCE_TRIGGER = "trigger.source";
 
 export type Scope = "wren" | "client";
 
@@ -103,6 +106,16 @@ export function funnelWorkflow(
     const kind = outKind({ trigger: SEGMENT_TRIGGER, with: settings });
     takes.get(to)?.set(kind, kind);
     triggers.push({ node: { id: `e_${i}`, uses: SEGMENT_TRIGGER, with: settings }, to, kind });
+  }
+
+  for (const [i, e] of body.entries.entries()) {
+    if (e.kind !== "sourced" || !e.source) continue;
+    const to = e.to ?? first;
+    if (!to || !takes.has(to)) continue;
+    const settings = { source: e.source };
+    const kind = outKind({ trigger: SOURCE_TRIGGER, with: settings });
+    takes.get(to)?.set(kind, kind);
+    triggers.push({ node: { id: `e_${i}`, uses: SOURCE_TRIGGER, with: settings }, to, kind });
   }
 
   for (const s of body.stages) {

@@ -22,6 +22,7 @@ const ctx = (over: Partial<FunnelContext> = {}): FunnelContext => ({
   triggers: new Set(["trigger.touch", "trigger.booking", "trigger.document"]),
   funnel: (id) => (id === "other" ? { stages: ["a", "b"], sale: "b" } : undefined),
   group: (id) => (id === "7" ? { active: true } : id === "8" ? { active: false } : undefined),
+  source: (id) => (id === "import:12" ? { exists: true } : undefined),
   feeds: {},
   ...over,
 });
@@ -123,7 +124,7 @@ describe("checkFunnel", () => {
   it("checks sourced and group entries and research", () => {
     const ok = body({
       entries: [
-        { id: "list", kind: "sourced", source: "list-1" },
+        { id: "list", kind: "sourced", source: "import:12" },
         { id: "seg", kind: "group", group: "7" },
       ],
     });
@@ -141,6 +142,15 @@ describe("checkFunnel", () => {
       research: "deep",
     } as unknown as FunnelBody["stages"][number];
     expect(checkFunnel(null, bad, ctx()).join("\n")).toMatch(/research "deep"/);
+  });
+
+  it("refuses a sourced entry whose list is unknown or not a list id", () => {
+    const entry = (source: string) => body({ entries: [{ id: "list", kind: "sourced", source }] });
+    expect(checkFunnel(null, entry("import:12"), ctx())).toEqual([]);
+    expect(checkFunnel(null, entry("import:99"), ctx()).join("\n")).toMatch(
+      /import:99, which does not exist/,
+    );
+    expect(checkFunnel(null, entry("list-1"), ctx()).join("\n")).toMatch(/not a list's id/);
   });
 
   it("refuses a group entry whose group is unknown, archived or not a number", () => {

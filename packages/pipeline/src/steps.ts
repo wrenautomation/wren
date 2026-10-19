@@ -1,7 +1,7 @@
 /**
  * The two spine steps of a funnel workflow (designs/2026-10-18-journeys.md, "Journeys on the
  * spine"). `journey.move` maps a cause to a person's journey and moves it. `journey.stage` is the
- * stage arrival: the timeline line, the trigger fire, the deal. Both are idempotent: Restate may
+ * stage arrival: the timeline line, the stage's research, the trigger fire, the deal. Both are idempotent: Restate may
  * run a step again, and a repeated cause finds the journey already moved.
  */
 import { createHash } from "node:crypto";
@@ -13,6 +13,7 @@ import { desc, eq } from "drizzle-orm";
 import { type CauseFacts, entryOf, entryStages } from "./entry.js";
 import { openJourney, personOf, saleStageOf, textOf, versionOf } from "./journeys.js";
 import { DROPPED } from "./model.js";
+import { icpOf, type Researcher, requestResearch } from "./research.js";
 import { journeys, offerVersions, pipelineDeals } from "./schema.js";
 import { nextStage } from "./stages.js";
 import { MOVE_STEP, parseFunnelFlow, STAGE_STEP } from "./workflow.js";
@@ -26,6 +27,7 @@ export const CAUSE_KINDS = [
   "form",
   "funnel",
   "group",
+  "sourced",
   "manual",
   "import",
   "version",
@@ -92,6 +94,8 @@ export interface JourneyStepDeps {
   /** The workspace database: Wren's for `null`, else that client's. */
   db(client: string | null): Db;
   now?(): Date;
+  /** Runs a stage's `research` on arrival. Unset: the level is carried and nothing runs. */
+  researcher?: Researcher;
 }
 
 /** `profile_events.source_id` is 64 characters: a journey and a stage fit as a hash. */
@@ -116,6 +120,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
     if (profile === null) return [];
     const cause = causeOf(e, now());
     const facts = factsOf(e.data);
+    // The row that added the person to a sourced list.
+    const row = textOf(e.data.row);
 
     const done = await atomic(db, async (tx) => {
       let j = await openJourney(tx, profile, flow.funnel);
@@ -155,7 +161,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
             version: flow.version,
             stage: to,
             entry: entry.id,
-            entryRef: { subject: e.subject, cause, ...facts },
+            entryRef: { subject: e.subject, cause, ...facts, ...(row ? { row } : {}) },
             openedAt: now(),
             movedAt: now(),
           })
@@ -252,6 +258,29 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
     });
     if (made === null)
       console.warn(`journey ${journey}: no offer version for ${body.offer}, so no deal yet`);
+
+    const level = textOf(at.with.research);
+    if (d.researcher && !dropped && (level === "light" || level === "full")) {
+      // Never blocks the arrival: a failed ask is logged and the journey goes on.
+      try {
+        await requestResearch(
+          db,
+          d.researcher,
+          {
+            client: at.client,
+            profile,
+            journey,
+            stage: key,
+            level,
+            offer: body.offer,
+            icp: await icpOf(db, body.offer),
+          },
+          now(),
+        );
+      } catch (err) {
+        console.warn(`journey ${journey}: research at ${key} failed: ${String(err)}`);
+      }
+    }
 
     const told = (stageKey: string, kind: "entered" | "skipped" | "dropped") =>
       at.fire?.({

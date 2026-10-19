@@ -422,8 +422,10 @@ import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { consoleRecords } from "./console-records.js";
+import { journeyResearcher } from "./journey-research.js";
 import { clientMarketing } from "./marketing.js";
 import { SETUPS } from "./setups.js";
+import { makeSourcedFeed } from "./sourced-feed.js";
 import { WORKFLOWS } from "./workflows.js";
 
 /** The worker's application_name on every connection, kept on each audit event. */
@@ -2073,7 +2075,11 @@ export async function buildServices(
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
         // A funnel's moves and stages: a journey per person, in its workspace's database.
-        ...journeySteps({ db: (client) => (client ? clientDb(client) : db) }),
+        ...journeySteps({
+          db: (client) => (client ? clientDb(client) : db),
+          // A stage's `research` runs on the person-research code (free reads, then a queued run).
+          researcher: journeyResearcher({ main: db, ingress: ingressOf(settings) }),
+        }),
         // Payments folded into the deal they name (`pipeline.money`).
         ...collectSteps({ db: (client) => (client ? clientDb(client) : db) }),
         // Account setups. With WREN_SETUP_AGENT a done-for-you step goes to SetupAgent on its
@@ -2346,6 +2352,12 @@ export async function buildServices(
     // Touch feed (designs/2026-10-18-journeys.md): each workspace's new touches told to the spine
     // once each, every minute, for `trigger.touch`. Started by hand, never on its own.
     makeTouchFeed({
+      main: db,
+      clientDb,
+      clients: async () => (await listClients(db)).map((c) => c.id),
+    }),
+    // Sourced entries: people added to a list a live funnel takes entries from open journeys.
+    makeSourcedFeed({
       main: db,
       clientDb,
       clients: async () => (await listClients(db)).map((c) => c.id),

@@ -185,6 +185,7 @@ export type TriggerFacts =
   | { trigger: "trigger.journey"; funnel: string; stage: string; change: JourneyChange }
   | { trigger: "trigger.app"; app: string; change: AppChange }
   | { trigger: "trigger.segment"; segment: number; change: SegmentChange }
+  | { trigger: "trigger.source"; source: string }
   | { trigger: "trigger.trait"; key: string; value: string | null }
   | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
 
@@ -197,6 +198,8 @@ export const JOURNEY_CHANGES = {
 export type JourneyChange = keyof typeof JOURNEY_CHANGES;
 /** A funnel id or stage key, as the pipeline keeps them. */
 const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
+/** A sourced list's id: `import:<batch number>`. */
+export const SOURCE_ID = /^import:[1-9][0-9]{0,9}$/;
 
 /**
  * What a touch trigger may name. Copies of `touches-schema`'s lists, kept here because this file
@@ -325,6 +328,7 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     const on = text(w.on) || "entered";
     return Number(w.segment) === f.segment && (on === "any" || on === f.change);
   }
+  if (f.trigger === "trigger.source") return text(w.source) === f.source;
   if (f.trigger === "trigger.trait") {
     const to = text(w.to);
     return text(w.trait) === f.key && (!to || to.toLowerCase() === (f.value ?? "").toLowerCase());
@@ -386,6 +390,7 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
         f.trigger === "trigger.journey" ||
         f.trigger === "trigger.app" ||
         f.trigger === "trigger.segment" ||
+        f.trigger === "trigger.source" ||
         f.trigger === "trigger.trait" ||
         f.trigger === "trigger.date"
       ? null
@@ -1035,6 +1040,15 @@ export const LOGIC: readonly LogicPart[] = [
     },
   ),
   trigger(
+    "source",
+    "Source",
+    "Starts when someone is added to a sourced list (an import batch). Once per person.",
+    "people",
+    "lead",
+    [{ field: "source", label: "List (its id)", type: "text", hint: "import:12" }],
+    (w) => `Added to ${text(w.source) || "a list"}`,
+  ),
+  trigger(
     "trait",
     "Trait changed",
     "Starts when a person's trait changes, or changes to one value. Once per person.",
@@ -1234,6 +1248,8 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     const n = Number(w.segment);
     if (!Number.isSafeInteger(n) || n < 1) out.push(`${at}: Group names a group's number`);
   }
+  if (l.id === "trigger.source" && !SOURCE_ID.test(text(w.source)))
+    out.push(`${at}: Source names a list's id, like import:12`);
   if ((l.id === "trigger.trait" || l.id === "trigger.date") && !TRAIT_KEY.test(text(w.trait)))
     out.push(`${at}: name a trait key, like renewal_date`);
   if (l.id === "trigger.date" && w.offset !== undefined && offsetOf(w.offset) !== Number(w.offset))

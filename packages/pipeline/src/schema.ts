@@ -8,7 +8,7 @@
  */
 import { profiles } from "@wren/core/profiles-schema";
 import { oneOf } from "@wren/db/columns";
-import type { Offer, Terms } from "@wren/offers";
+import type { Icp, Offer, Terms } from "@wren/offers";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -208,3 +208,44 @@ export const pipelineDeals = pipeline.table(
   ],
 );
 export type PipelineDeal = typeof pipelineDeals.$inferSelect;
+
+export const RESEARCH_STATES = ["queued", "started", "read", "skipped"] as const;
+export type ResearchState = (typeof RESEARCH_STATES)[number];
+
+/**
+ * Research a journey asked for on arriving at a stage (`Stage.research`): one row per journey and
+ * stage, so a replay finds it and asks nothing new. `queued` means the long run is not started
+ * yet; a repeat of the step starts it. `read` is a `light` result kept here.
+ */
+export const journeyResearch = pipeline.table(
+  "journey_research",
+  {
+    journey: uuid("journey").notNull(),
+    stage: varchar("stage", { length: 40 }).notNull(),
+    profileId: integer("profile_id").notNull(),
+    /** `light` or `full`. */
+    level: varchar("level", { length: 5 }).notNull(),
+    state: varchar("state", { length: 7, enum: RESEARCH_STATES }).notNull().default("queued"),
+    /** The offer's `icp` at the time, as context for the reader. Null when the offer has none. */
+    icp: jsonb("icp").$type<Icp | null>(),
+    /** `full`: the `profile_lookups` row of the run. */
+    lookupId: integer("lookup_id"),
+    /** `light`: the reads. */
+    result: jsonb("result").$type<Record<string, unknown> | null>(),
+    /** Why it was skipped, in plain words. */
+    note: text("note"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.journey, t.stage], name: "pk_journey_research" }),
+    index("ix_journey_research_profile_id").on(t.profileId),
+    foreignKey({
+      columns: [t.journey],
+      foreignColumns: [journeys.id],
+      name: "fk_journey_research_journey_journeys",
+    }),
+    oneOf("ck_journey_research_state", t.state, RESEARCH_STATES),
+    oneOf("ck_journey_research_level", t.level, ["light", "full"]),
+  ],
+);
+export type JourneyResearch = typeof journeyResearch.$inferSelect;

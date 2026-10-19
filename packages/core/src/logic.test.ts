@@ -190,6 +190,19 @@ describe("triggers", () => {
     expect(LOGIC.filter((l) => !l.ready).map((l) => l.id)).toEqual([]);
   });
 
+  it("source hears its own list only and checks the list id", () => {
+    const node = (source: string) => ({ id: "e_0", uses: "trigger.source", with: { source } });
+    expect(
+      triggerHears(node("import:12"), { trigger: "trigger.source", source: "import:12" }),
+    ).toBe(true);
+    expect(
+      triggerHears(node("import:12"), { trigger: "trigger.source", source: "import:13" }),
+    ).toBe(false);
+    expect(untilOfFacts({ trigger: "trigger.source", source: "import:12" })).toBeNull();
+    expect(logicProblems("e_0", node("import:12"))).toEqual([]);
+    expect(logicProblems("e_0", node("list one")).join()).toMatch(/Source names a list/);
+  });
+
   it("set a day's slot in its zone, across a DST change", () => {
     const w = { every: "day", at: "09:00", zone: "America/New_York" };
     // 13:00Z is 09:00 in New York on summer time.
