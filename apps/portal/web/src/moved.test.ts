@@ -67,6 +67,16 @@ describe("movedTo", () => {
     expect(movedTo("/sites/funnel", WREN)).toBeNull();
   });
 
+  it("sends the books' pages to Numbers and Wren's calls to the pipelines app", () => {
+    for (const p of ["economics", "months", "channels", "cohorts"])
+      expect(movedTo(`/money/${p}?view=all`)).toBe(`/numbers/${p}?view=all`);
+    expect(movedTo("/inbox/calls?view=booked")).toBe("/deals/calls?view=booked");
+    expect(movedTo("/inbox/calls/7")).toBe("/deals/calls/7");
+    // Money keeps the rest.
+    expect(movedTo("/money/accounts")).toBeNull();
+    expect(movedTo("/inbox/replies")).toBeNull();
+  });
+
   it("leaves every other address alone", () => {
     expect(movedTo("/content/plan", WREN)).toBeNull();
     expect(movedTo("/marketingx/plan", WREN)).toBeNull();

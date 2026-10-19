@@ -7,6 +7,7 @@
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
 import { JourneyBoard } from "./board.js";
+import { TEAM_PIPELINE_PAGES } from "./team-pages.js";
 
 /** A client's Journeys, in its own workspace: its own funnels and journeys. */
 export const clientDeals: Module = {
@@ -68,4 +69,5 @@ export const pipelines: Module = {
   blurb:
     "Wren's own people by stage of each funnel: who is booked, who is signed, who has stalled.",
   requires: { audience: "team" },
+  pages: [...clientDeals.pages, ...TEAM_PIPELINE_PAGES],
 };

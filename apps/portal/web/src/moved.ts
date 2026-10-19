@@ -70,6 +70,12 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/marketing/more": "/content/plan",
   // The lead sheet's first page is Outbound's `sheet`.
   "/pipeline/overview": "/outbound/sheet",
+  // The books' pages left Money for Numbers; Wren's calls left Inbox for Pipelines
+  // (designs/2026-10-19-portal-reshape.md).
+  ...Object.fromEntries(
+    ["economics", "months", "channels", "cohorts"].map((p) => [`/money/${p}`, `/numbers/${p}`]),
+  ),
+  "/inbox/calls": "/pipelines/calls",
 };
 
 /** An app whose id changed: every page of it, same id, in the new one. */

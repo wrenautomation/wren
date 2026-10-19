@@ -3,9 +3,10 @@
  * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "./mocks/api.js";
 import { ADMIN } from "./mocks/data/me.js";
+import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
 import { failedIn, pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Wren" };
@@ -81,3 +82,78 @@ export const GroupsJourney = pageAt("/people/groups", {
     await waitFor(() => expect(view.getByLabelText("Stage")).toHaveValue("booked"));
   },
 });
+
+/** The text is on the page once its list has come in. */
+const shows =
+  (...texts: string[]) =>
+  async (page: HTMLElement) => {
+    for (const text of texts)
+      await expect((await within(page).findAllByText(text))[0]).toBeVisible();
+  };
+
+// Offers: each offer with its versions, and the terms it sells on.
+export const OffersAll = pageAt("/offers/all", { me: ADMIN, check: shows("Starter", "Growth") });
+export const OffersTerms = pageAt("/offers/terms", {
+  me: ADMIN,
+  check: shows("standard", "growth"),
+});
+/** The read fails: the page says so and never "No terms are live yet." */
+export const OffersTermsFailed = pageAt("/offers/terms", {
+  me: ADMIN,
+  answers: { "console/recordsList": refuse(500, "The terms failed, as asked.") },
+  check: async (page) => {
+    await expect(await within(page).findByRole("alert")).toBeVisible();
+    await expect(within(page).queryByText("No terms are live yet.")).toBeNull();
+  },
+});
+/** Propose version asks for the offer, plan, date, terms JSON and why, and sends them as typed. */
+export const OffersTermsPropose = pageAt("/offers/terms", {
+  me: ADMIN,
+  check: async (page) => {
+    forgetTermsCalls();
+    const ui = within(page);
+    await userEvent.click(await ui.findByRole("button", { name: "Propose version" }));
+    // The form opens in a dialog, outside the page.
+    const form = within(await within(document.body).findByRole("dialog"));
+    const offer = (await form.findByRole("combobox", { name: "Offer" })) as HTMLSelectElement;
+    await userEvent.selectOptions(offer, offer.options[1] as HTMLOptionElement);
+    await userEvent.type(await form.findByLabelText("Plan"), "standard");
+    await userEvent.type(await form.findByLabelText("Effective from"), "2030-01-01");
+    await fireEvent.change(await form.findByLabelText("Terms JSON"), {
+      target: { value: '{"currency":"usd","payDays":7}' },
+    });
+    await userEvent.type(await form.findByLabelText("Why"), "Test price");
+    await userEvent.click(
+      await form.findByRole("button", { name: /^(Propose version|Send|Save)$/ }),
+    );
+    await waitFor(() => expect(TERMS_CALLS).toHaveLength(1));
+    expect(TERMS_CALLS[0]).toMatchObject({
+      offer: expect.any(String),
+      plan: "standard",
+      from: "2030-01-01",
+      why: "Test price",
+      body: { currency: "usd", payDays: 7 },
+    });
+  },
+});
+
+// Numbers: the funnel tables, and the books pages that moved here from Money.
+export const NumbersFunnels = pageAt("/numbers/funnels", { me: ADMIN, check: shows("Engaged") });
+export const NumbersEntries = pageAt("/numbers/entries", {
+  me: ADMIN,
+  check: shows("Spring list"),
+});
+export const NumbersOffers = pageAt("/numbers/offers", { me: ADMIN, check: shows("Starter") });
+export const NumbersEconomics = pageAt("/numbers/economics", { me: ADMIN });
+export const NumbersMonths = pageAt("/numbers/months", { me: ADMIN });
+export const NumbersChannels = pageAt("/numbers/channels", { me: ADMIN });
+export const NumbersCohorts = pageAt("/numbers/cohorts", { me: ADMIN });
+/** The old address still lands: Money's economics page is Numbers' now. */
+export const NumbersFromMoney = pageAt("/money/economics", { me: ADMIN });
+
+// Pipelines: the tabs only Wren's own app has.
+export const DealsDeals = pageAt("/deals/deals", { me: ADMIN, check: shows("Cai Moreno") });
+export const DealsCalls = pageAt("/deals/calls", { me: ADMIN });
+export const DealsEntries = pageAt("/deals/entries", { me: ADMIN, check: shows("mail", "ads1") });
+/** The old Inbox link to Wren's calls lands in the pipelines app. */
+export const DealsCallsFromInbox = pageAt("/inbox/calls?view=booked", { me: ADMIN });

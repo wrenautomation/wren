@@ -12,6 +12,7 @@ import { type ReactNode, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { ListPage } from "../../module.js";
+import { pipelinesAt } from "../deals/id.js";
 
 const timeOf = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -158,7 +159,7 @@ export const recordingExtras: NonNullable<ListPage["extras"]> = (detail): Record
         ? ([
             [
               "Booked call",
-              <a key="call" href={`/inbox/calls/${d.booking}`}>
+              <a key="call" href={`${pipelinesAt("calls")}/${d.booking}`}>
                 Its brief and outcome
               </a>,
             ],

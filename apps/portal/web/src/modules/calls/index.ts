@@ -1,7 +1,7 @@
 /**
  * Calls: a client's booked calls, each with its pre-call brief and how it went
  * (designs/2026-10-07-close-brief-outcome.md). Served from the client's own database once the
- * Call outcome part is installed. Wren's own calls are under Inbox > Calls.
+ * Call outcome part is installed. Wren's own calls are under Pipelines > Calls.
  */
 import type { ListPage, Module } from "../../module.js";
 import { EMAIL_CALL_ACTIONS } from "./actions.js";
@@ -13,7 +13,7 @@ const RECORD = "email.call";
 export const emailCallExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
   callExtras(detail, row, { reason: "reason", rebuild: () => act("email.callBrief") });
 
-/** The Calls list: Wren's Inbox and a client's Calls app share it. */
+/** The Calls list: Wren's Pipelines and a client's Calls app share it. */
 export const callsPage = (empty: string): ListPage => ({
   id: "calls",
   label: "Calls",

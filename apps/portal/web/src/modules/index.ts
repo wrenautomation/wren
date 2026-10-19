@@ -15,6 +15,8 @@ import { library } from "./library/index.js";
 import { ads, clientMarketing, content } from "./marketing/index.js";
 import { marketplace, wrenMarketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
+import { numbers } from "./numbers/index.js";
+import { offers } from "./offers/index.js";
 import { engage } from "./outreach/index.js";
 import { payments } from "./payments/index.js";
 import { clientPeople, people } from "./people/index.js";
@@ -37,6 +39,8 @@ export const MODULES: Module[] = [
   // One address, two apps: a client's journeys in its own, Wren's pipelines in Wren's.
   clientDeals,
   pipelines,
+  offers,
+  numbers,
   // One address, two apps, as Pipelines: a client's people in its own, Wren's in Wren's.
   clientPeople,
   people,

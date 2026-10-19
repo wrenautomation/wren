@@ -14,8 +14,7 @@ import { Domain } from "../account/Domain.js";
 import { ClientLook } from "../account/Look.js";
 import { People } from "../account/People.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
-import { recorderHead } from "../calendar/recorder.js";
-import { callsPage } from "../calls/index.js";
+import { pipelinesAt } from "../deals/id.js";
 import { CONVERSATION_TOP, DONE_PAGE, MARKETING_PAGES } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Agents } from "./Agents.js";
@@ -263,7 +262,12 @@ export const outbound: Module = {
       about: "Cold email campaigns, inboxes and replies, at a glance.",
       tiles: [
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
-        { label: "Booked", record: "email.call", href: "/inbox/calls?view=booked", period: 30 },
+        {
+          label: "Booked",
+          record: "email.call",
+          href: pipelinesAt("calls", "view=booked"),
+          period: 30,
+        },
         {
           label: "Inboxes sending",
           record: "email.inbox",
@@ -449,7 +453,12 @@ export const inbox: Module = {
           needs: true,
         },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
-        { label: "Booked", record: "email.call", href: "/inbox/calls?view=booked", period: 30 },
+        {
+          label: "Booked",
+          record: "email.call",
+          href: pipelinesAt("calls", "view=booked"),
+          period: 30,
+        },
         {
           label: "Mail that needs you",
           record: "watch.mail",
@@ -553,11 +562,6 @@ export const inbox: Module = {
         all: "Warm replies show here.",
       },
       actions: REPLY_ACTIONS,
-    },
-    {
-      ...callsPage("Calls booked on cal.com or our calendar show here."),
-      hidden: true,
-      head: recorderHead,
     },
   ],
 };
@@ -664,17 +668,6 @@ const ACCOUNT_ACTIONS: Action[] = [
     done: said("Channel set"),
   },
 ];
-
-const MONTHS = "/money/months?view=all";
-const NO_CLIENTS = "No paying clients yet";
-/** A month's figure, the month before and a bar a month; `none` while it has no value. */
-const figure = (label: string, pick: string, none = NO_CLIENTS) => ({
-  label,
-  record: "books.month",
-  href: MONTHS,
-  pick,
-  none,
-});
 
 export const money: Module = {
   id: "money",
@@ -814,65 +807,6 @@ export const money: Module = {
           `${tools.length} live tools would cost about $${Math.round(monthly).toLocaleString("en-US")} a month bought. Not revenue; never in the ledger.`,
         );
       },
-    },
-    {
-      id: "economics",
-      label: "Economics",
-      about: "What it costs to win a client, and what a client brings in.",
-      template: "overview",
-      tiles: [
-        figure("CAC", "cac6"),
-        figure("Predicted LTV", "ltv", "No churn yet"),
-        figure("LTV:CAC", "ltvCac", "No churn yet"),
-        figure("Payback (months)", "payback"),
-        figure("Logo churn", "logoChurn"),
-        figure("Revenue churn", "revenueChurn"),
-        figure("MRR", "mrr"),
-        figure("ARPA", "arpa"),
-        figure("Gross margin", "grossMargin"),
-      ],
-      top: [
-        {
-          label: "Cost per reply and per booked call this month",
-          record: "books.channel",
-          href: "/money/channels?view=this_month",
-          fields: ["perReply", "perBooked"],
-          empty: "No channel spent anything this month yet.",
-        },
-      ],
-      below: () =>
-        createElement(
-          "p",
-          { className: "mt-6 text-[13px] text-(--ui-ink-2)" },
-          "Your own time isn't a cost here.",
-        ),
-    },
-    {
-      id: "months",
-      label: "Months",
-      about: "Every cost and revenue figure, month by month.",
-      template: "list",
-      record: "books.month",
-      empty: "Months show here once the books have spend.",
-    },
-    {
-      id: "channels",
-      label: "Channels",
-      about: "Spend and the cost of a client for each channel, by month.",
-      template: "list",
-      record: "books.channel",
-      empty: {
-        this_month: "No channel spent anything this month yet.",
-        all: "Channels show here once the books have spend.",
-      },
-    },
-    {
-      id: "cohorts",
-      label: "Cohorts",
-      about: "Clients grouped by the month they first paid.",
-      template: "list",
-      record: "books.cohort",
-      empty: "Cohorts show here once a client pays.",
     },
     {
       id: "accounts",
