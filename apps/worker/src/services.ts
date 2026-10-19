@@ -314,6 +314,7 @@ import {
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { makeTokens } from "@wren/core/tokens";
 import { makeTouchFeed } from "@wren/core/touch-feed";
+import { makeVaultKeys } from "@wren/core/vault-keys";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, turnedOffTeller, webhookStep, webhooksPublish } from "@wren/core/webhooks";
@@ -1467,6 +1468,8 @@ export async function buildServices(
   services.push(
     makeTokenRenewal({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),
   );
+  // The operator's API keys, mirrored from autobrowse's vault each hour; the Accounts page's actions.
+  services.push(makeVaultKeys({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }));
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
   services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
   // Page HTML a day old moves to the pages bucket; off until `wren pages archive start`.

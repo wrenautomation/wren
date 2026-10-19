@@ -455,6 +455,18 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { item: bare(id), outcome: "dropped" },
       { confirm: "settleSend" },
     ),
+  // An operator API key: the id is "key:<site@account>"; VaultKeys/box acts and mirrors again.
+  "marketing/keyRotate": (id) =>
+    handlerCall("VaultKeys", "rotate", { address: bare(id) }, { key: "box" }),
+  "marketing/keyRevoke": (id) =>
+    handlerCall("VaultKeys", "revoke", { address: bare(id) }, { key: "box" }),
+  "marketing/keySpend": (id, { until }) =>
+    handlerCall(
+      "VaultKeys",
+      "spend",
+      { address: bare(id), ...(until ? { until } : {}) },
+      { key: "box" },
+    ),
   "marketing/placeWatch": (id) => handlerCall("ReachDesk", "watchPlace", { subreddit: id }),
   "marketing/placeSkip": (id) => handlerCall("ReachDesk", "skipPlace", { subreddit: id }),
   "marketing/placeMove": (id, { account }) =>

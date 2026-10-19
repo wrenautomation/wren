@@ -19,6 +19,7 @@ import {
 import { atomic, type Db, type Queryable, serializable, setAuditActor, type Tx } from "@wren/db";
 import { and, eq, lt, ne, sql } from "drizzle-orm";
 import { clientMembers, clients, operators } from "./clients/schema.js";
+import { keyId } from "./key-id.js";
 import { KEY_MAX, KEY_REF, keyProblem, last4 } from "./key-refs.js";
 import {
   type ClientSecretRow,
@@ -261,6 +262,7 @@ export async function stageKey(
       state: "staged",
       ...s,
       last4: last4(value),
+      keyId: keyId(value),
       createdBy: o.by,
       updatedBy: o.by,
       ...(o.now ? { createdAt: o.now, updatedAt: o.now } : {}),
@@ -412,6 +414,7 @@ export function pgKeyStore(
       .set({
         ...s,
         last4: last4(value),
+        keyId: keyId(value),
         version: sql`${clientSecrets.version} + 1`,
         updatedBy: by,
         updatedAt: clock(),
@@ -484,6 +487,7 @@ export function pgKeyStore(
               wrapped: staged.wrapped,
               sealed: staged.sealed,
               last4: staged.last4,
+              keyId: staged.keyId,
               version: sql`${clientSecrets.version} + 1`,
               boundFrom: o.ref,
               updatedBy: o.by,
@@ -529,6 +533,7 @@ export function pgKeyStore(
             state: "live",
             ...ring.seal(aadOf(o.client, o.name), value),
             last4: last4(value),
+            keyId: keyId(value),
             createdBy: o.by,
             updatedBy: o.by,
             createdAt: clock(),

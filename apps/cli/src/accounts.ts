@@ -1,9 +1,12 @@
 /**
  * `wren accounts` (designs/2026-10-15-accounts-first-class.md): every account we speak as, the
  * same rows as Outreach → Accounts; one in full; a subreddit moved to another account; and the
- * account a draft goes out as, as the draft box's picker sets it.
+ * account a draft goes out as, as the draft box's picker sets it. API keys are accounts too:
+ * `keys` lists the operator's and each client's, `key rotate|revoke|spend` act on the operator's.
  */
-import type { Settings } from "@wren/config";
+import * as clients from "@restatedev/restate-sdk-clients";
+import { ingressOf, type Settings } from "@wren/config";
+import { dollars, keyAccounts, VAULT_KEYS_KEY, type VaultKeys } from "@wren/core/vault-keys";
 import type { Db } from "@wren/db";
 import { movePlace, pickAccount, policyFrom } from "@wren/outreach";
 import { accountRecordOf } from "@wren/outreach/records";
@@ -90,4 +93,57 @@ export function registerAccounts(program: Command, withDb: WithDb, settings: Set
           : `${item}: its site has one account, nothing to pick`,
       );
     });
+  cmd
+    .command("keys")
+    .description(
+      "Every API key, the operator's and each client's: address, owner, purposes, state, spend this month, last used",
+    )
+    .option("--vendor <v>", "only this vendor (exa, youtube, ...)")
+    .option("--client <id>", "only this client's own keys")
+    .action(async (o: { vendor?: string; client?: string }) => {
+      const keys = await withDb((db) =>
+        keyAccounts(db, {
+          ...(o.vendor ? { vendor: o.vendor } : {}),
+          ...(o.client ? { client: o.client } : {}),
+        }),
+      );
+      if (!keys.length) console.log("no keys");
+      for (const k of keys)
+        console.log(
+          [
+            k.address,
+            k.origin === "vault" ? "operator" : "client",
+            k.owner,
+            k.purposes.join(",") || "-",
+            k.until ? `${k.state} until ${k.until.toISOString().slice(0, 10)}` : k.state,
+            k.spendMicros === null ? "-" : `$${dollars(k.spendMicros).toFixed(2)}`,
+            k.lastUsedAt ? k.lastUsedAt.toISOString() : "never",
+          ].join("\t"),
+        );
+    });
+  const vault = () =>
+    clients
+      .connect(ingressOf(settings))
+      .objectClient<VaultKeys>({ name: "VaultKeys" }, VAULT_KEYS_KEY);
+  const key = cmd
+    .command("key")
+    .description("Act on an operator API key (a client's is rotated in Account → Vendors)");
+  key
+    .command("rotate <address>")
+    .description("Start the vendor's mint flow on the Mac; the run asks in To approve")
+    .action(async (address: string) => {
+      const out = await vault().rotate({ address });
+      console.log(`Rotation started: approve it in To approve (run ${out.run})`);
+    });
+  key
+    .command("revoke <address>")
+    .description("Out of use for good, in the vault; revoke the vendor's own copy by hand")
+    .action(async (address: string) => json(await vault().revoke({ address })));
+  key
+    .command("spend <address>")
+    .description("Mark out of credit until a date (the 1st of next month when none)")
+    .option("--until <date>", "an ISO date")
+    .action(async (address: string, o: { until?: string }) =>
+      json(await vault().spend({ address, ...(o.until ? { until: o.until } : {}) })),
+    );
 }

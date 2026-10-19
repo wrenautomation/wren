@@ -53,6 +53,11 @@ export const clientSecrets = pgTable(
     sealed: bytea("sealed").notNull(),
     /** The value's last 4 characters, for a page to show. */
     last4: varchar("last4", { length: 4 }).notNull(),
+    /**
+     * The key's id (`keyId`, 12 hex), set where the value is known: staging and every write.
+     * Null on rows from before it, until the next write. The Accounts page's spend joins on it.
+     */
+    keyId: varchar("key_id", { length: 12 }),
     version: integer("version").default(1).notNull(),
     /** The staged ref this live value last came from: binding it again answers the same. */
     boundFrom: varchar("bound_from", { length: 35 }),
@@ -108,3 +113,48 @@ export const clientSecretEvents = pgTable(
   ],
 );
 export type ClientSecretEvent = typeof clientSecretEvents.$inferSelect;
+
+/** Where an operator key stands in the vault (autobrowse's `KeyInfo.status`). */
+export const VAULT_KEY_STATES = ["live", "spent", "revoked"] as const;
+export type VaultKeyState = (typeof VAULT_KEY_STATES)[number];
+
+/**
+ * The operator's API keys, mirrored from autobrowse's vault (`sites/keys`) hourly and after each
+ * action, so the Accounts page makes no vendor call on load. Never a secret: the source has none,
+ * and `syncVaultKeys` drops a row that carries one.
+ */
+export const vaultKeys = pgTable(
+  "vault_keys",
+  {
+    /** `site@account`. */
+    address: varchar("address", { length: 160 }).notNull(),
+    /** The vendor: `exa`, `anthropic`. */
+    site: varchar("site", { length: 64 }).notNull(),
+    /** The label: `autobrowse-prod`. */
+    account: varchar("account", { length: 64 }).notNull(),
+    /** `wren`, or the autobrowse owner. */
+    owner: varchar("owner", { length: 80 }).notNull(),
+    keyId: varchar("key_id", { length: 12 }).notNull(),
+    purposes: text("purposes").array().notNull().default(sql`'{}'::text[]`),
+    status: varchar("status", { length: 8, enum: VAULT_KEY_STATES })
+      .$type<VaultKeyState>()
+      .notNull(),
+    spentUntil: timestamp("spent_until", { withTimezone: true }),
+    madeAt: timestamp("made_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    /** The login it was minted from: `anthropic@william`. */
+    via: varchar("via", { length: 160 }),
+    vendorId: varchar("vendor_id", { length: 160 }),
+    /** Uses and last use come from the audit of the machine that answered. */
+    uses: integer("uses").default(0).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    /** When the mirror last read it. */
+    readAt: timestamp("read_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.address], name: "pk_vault_keys" }),
+    index("ix_vault_keys_key_id").on(t.keyId),
+    oneOf("ck_vault_keys_status", t.status, VAULT_KEY_STATES),
+  ],
+);
+export type VaultKeyRow = typeof vaultKeys.$inferSelect;

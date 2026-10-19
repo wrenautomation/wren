@@ -97,6 +97,7 @@ curl -X POST -H "$H" $U/PeopleMapNet/all/start          # every 15 min: wakes Pe
 curl -X POST -H "$H" $U/TouchFeed/all/start             # every minute: each workspace's new touches (follows, comments, DMs...) told to the spine once each for `trigger.touch`; the first pass starts at the newest touch and tells none; TouchFeed/all/status shows the last pass
 curl -X POST -H "$H" $U/SourcedFeed/all/start            # every 5 min (5 s while a list has more): people added to an import batch that a live funnel's `sourced` entry names open journeys there; SourcedFeed/all/status shows the last pass
 curl -X POST -H "$H" $U/Decide/wren/start                # every 10 min: open comment drafts and fresh Learn items judged by Jev (gateway when Jev is down), logged in `decisions`; WREN_DECIDE=off stops it, $1/day cap (`decide.dailyUsd`); /sync runs one pass
+curl -X POST -H "$H" $U/VaultKeys/box/start             # hourly: the operator's API keys mirrored from autobrowse's vault (`sites/keys`) into `vault_keys`; /sync mirrors now; rotate, revoke and spend (`wren accounts key ...`) act on a key and mirror again
 # `Ads` is a plain service (no scheduler): `wren ads launch|start|stop|insights` call it through the ingress; it writes `ad_launches`.
 ```
 

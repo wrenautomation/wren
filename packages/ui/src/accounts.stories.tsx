@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { AccountPick } from "@wren/core/record-accounts";
 import type { RecordMeta } from "@wren/core/records";
 import { useState } from "react";
+import { expect, within } from "storybook/test";
 import { AccountBadge, AccountFilter, AccountPicker, accountFieldOf } from "./accounts.js";
 import {
   ACCOUNT_PICK,
@@ -110,4 +111,26 @@ export const WorstCase: Story = {
       pick={WORST_PICK}
     />
   ),
+};
+
+/**
+ * An API key as a row's account (`vendor@label`, `platform: "api"`): no platform mark, so it
+ * reads as itself. An operator key, a client key and one with a very long label.
+ */
+export const Keys: Story = {
+  render: () => {
+    const field = accountFieldOf(ACCOUNTS_META);
+    return (
+      <div className="grid max-w-sm gap-2" data-testid="key-rows">
+        <AccountBadge field={field} value="anthropic@autobrowse-prod" />
+        <AccountBadge field={field} value="exa@bulk" />
+        <AccountBadge field={field} value={`exa@${"very-long-label-".repeat(6)}`} />
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const rows = within(canvasElement).getByTestId("key-rows");
+    await expect(rows.querySelectorAll("[data-account]")).toHaveLength(3);
+    await expect(within(rows).getByText("anthropic@autobrowse-prod")).toBeVisible();
+  },
 };

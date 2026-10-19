@@ -15,6 +15,7 @@ import { ENGAGE_CARD } from "../marketing/cards.js";
 import { copyExtras, dmExtras } from "../marketing/dms.js";
 import { factsDropped } from "../marketing/facts.js";
 import {
+  ACCOUNT_ACTIONS,
   CONNECT_ACTIONS,
   DM_ACTIONS,
   DM_DRAFT,
@@ -213,7 +214,8 @@ export const engage: Module = {
     {
       id: "accounts",
       label: "Accounts",
-      about: "Every account we post and reply as: health, warm-up, today's sends, and its places.",
+      about:
+        "Every account we post as and every API key, with its health, or its spend and last use.",
       group: "Setup",
       template: "list",
       record: "marketing.account",
@@ -228,11 +230,18 @@ export const engage: Module = {
         "today",
         "placeCount",
         "lastSent",
+        "owner",
+        "purposes",
+        "until",
+        "spend",
+        "lastUsed",
       ],
       empty: {
         live: "No account yet. Each login we post or reply as shows here once it is set up.",
+        keys: "No API key yet. The operator's keys are read from the vault every hour; a client's own show when it saves one.",
         all: "Our accounts show here once reach has one.",
       },
+      actions: ACCOUNT_ACTIONS,
     },
     {
       id: "dm-copy",

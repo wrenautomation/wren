@@ -60,6 +60,8 @@ export const PLATFORM = {
     SpineClock: "a Schedule trigger node's clock: ticks each slot into its workflow",
     AuditSealer: "seals the audit log every write lands in",
     TokenRenewal: "renews every site's tokens, for content and ads alike",
+    VaultKeys:
+      "mirrors the operator's API keys from autobrowse's vault; rotate, revoke, mark spent",
     TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
     SetupWatch: "checks every set-up account again on its repeat, and starts a lost one over",
     DeadLetters: "files every call Restate gave up on as a dead letter and tells Discord once",

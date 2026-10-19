@@ -2129,6 +2129,13 @@
       "when": 1792443764999,
       "tag": "0304_api_key_labels_purposes",
       "breakpoints": true
+    },
+    {
+      "idx": 305,
+      "version": "7",
+      "when": 1792444752723,
+      "tag": "0305_vault_keys_and_key_id",
+      "breakpoints": true
     }
   ]
 }

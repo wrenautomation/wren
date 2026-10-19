@@ -7,6 +7,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientMembers, clients, operators } from "../../src/clients/schema.js";
+import { keyId } from "../../src/key-id.js";
 import {
   intakeKey,
   keyRing,
@@ -67,6 +68,10 @@ describe("key store", () => {
       by: "Ada@example.test",
     });
     expect(info).toMatchObject({ ref, name: "STRIPE_SECRET_KEY", last4: "0000", version: 1 });
+    // The row keeps the key's id, so spend can join on it; never the value.
+    expect(
+      (await pg.db.select().from(clientSecrets).where(eq(clientSecrets.id, ref)))[0]?.keyId,
+    ).toBe(keyId(KEY));
     // Binding again (a retried step) answers the same.
     expect(
       await s.bind({ ref, client: "acme", name: "STRIPE_SECRET_KEY", by: "ada@example.test" }),
@@ -97,12 +102,16 @@ describe("key store", () => {
       by: "ada@example.test",
     });
     expect(info).toMatchObject({ ref: live.id, version: 2, last4: "1111" });
+    const idOf = async () =>
+      (await pg.db.select().from(clientSecrets).where(eq(clientSecrets.id, live.id)))[0]?.keyId;
+    expect(await idOf()).toBe(keyId(NEXT));
     expect(await s.get({ ref: live.id, client: "acme", by: "t", why: "t" })).toBe(NEXT);
     expect(
       await s.bind({ ref, client: "acme", name: "STRIPE_SECRET_KEY", by: "ada@example.test" }),
     ).toMatchObject({ ref: live.id, version: 2 });
     const rotated = await s.rotate({ ref: live.id, client: "acme", value: KEY, by: "op" });
     expect(rotated.version).toBe(3);
+    expect(await idOf()).toBe(keyId(KEY));
     expect(await s.info({ ref: live.id, client: "acme" })).toMatchObject({ last4: "0000" });
   });
 
@@ -143,6 +152,9 @@ describe("key store", () => {
       by: "op",
     });
     expect(await s.get({ ref: put.ref, client: "beta", by: "t", why: "t" })).toBe(secret);
+    expect(
+      (await pg.db.select().from(clientSecrets).where(eq(clientSecrets.id, put.ref)))[0]?.keyId,
+    ).toBe(keyId(secret));
     const again = await s.put({
       client: "beta",
       name: "STRIPE_WEBHOOK_SECRET",

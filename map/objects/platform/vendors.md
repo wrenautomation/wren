@@ -33,7 +33,7 @@ A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<clie
 
 ## If you change this
 
-- **Hits:** client caps and shares, draft lines, prices on the Vendors page; the Accounts page's keys (W2) read `client_secrets.label` and `usageByKey`
+- **Hits:** client caps and shares, draft lines, prices on the Vendors page; the Accounts page's key rows read `client_secrets.label`, `client_secrets.key_id` and `usageByKey` ([[platform/vault-key]])
 - **Does not hit:** invoices (lines are drafts; a person puts them on Wise)
 
 ## Surfaces

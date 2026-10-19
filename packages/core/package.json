@@ -126,6 +126,7 @@
     "./vendor-schema": "./src/vendor-schema.ts",
     "./key-id": "./src/key-id.ts",
     "./keys": "./src/keys.ts",
+    "./vault-keys": "./src/vault-keys.ts",
     "./key-refs": "./src/key-refs.ts",
     "./keys-schema": "./src/keys-schema.ts",
     "./record-accounts": "./src/record-accounts.ts",

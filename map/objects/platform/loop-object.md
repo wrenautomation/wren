@@ -18,7 +18,7 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 ## Shape
 
 - `makeLoopObject(name, pass, hooks)` (`loop.ts:366`); `hooks.effect` marks `sync` (`sends` on `SendScheduler`); `passOrFailed` (`:343`): a pass that throws a terminal or replayed error is kept as a failed `last` with backoff, the next queued, never parked; `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
-- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ClicksScheduler/fleet`, `BounceScheduler/all`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`, `SocialWatch/wren`, `PayReconcile/all`, `TouchFeed/all`
+- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ClicksScheduler/fleet`, `BounceScheduler/all`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `VaultKeys/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`, `SocialWatch/wren`, `PayReconcile/all`, `TouchFeed/all`
 
 - time limits (`packages/core/src/restate/limits.ts`): `within` on each Restate call, `limitedRun` on HTTP steps, `unitLimits` strikes a unit three passes in a row into [[platform/checks]] (stage `loop.<service>/<key>`); the pass keeps them as `last.timeouts`
 

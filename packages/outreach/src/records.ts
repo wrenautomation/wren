@@ -14,6 +14,7 @@ import {
   date,
   defineRecord,
   link,
+  money,
   name,
   number,
   prose,
@@ -22,6 +23,7 @@ import {
   status,
   text,
 } from "@wren/core/records";
+import { dollars, type KeyAccount, keyAccounts } from "@wren/core/vault-keys";
 import { inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { accountById, listAccounts, recordAccountsOf, viewOf } from "./accounts.js";
@@ -959,7 +961,32 @@ const ACCOUNT_STATES = {
   retired: neutral("Retired"),
   // A login we post or read with that has no reach row (`x@wren` on others' posts).
   login: neutral("Posting login"),
+  // An API key's (vault_keys, client_secrets): spent is out of credit until a date.
+  live: { label: "Live", tone: "good" as const },
+  spent: { label: "Out of credit", tone: "warn" as const },
+  revoked: neutral("Revoked"),
 };
+/** The sites a row is on: every platform, and `api` for an API key. */
+const ACCOUNT_SITES = { ...PLATFORM_LABELS, ...cued({ api: neutral("API key") }) };
+const KEY_ORIGINS = { vault: neutral("Operator key"), client: neutral("Client key") };
+
+/** An API key as an Accounts row, beside the logins: spend in dollars, last used, who it's for. */
+export const keyRow = (k: KeyAccount) => ({
+  id: `key:${k.id}`,
+  name: k.address,
+  account: k.address,
+  platform: "api",
+  origin: k.origin,
+  state: k.state,
+  stage: [k.owner, k.purposes.join(", ")].filter(Boolean).join(" · "),
+  owner: k.owner,
+  purposes: k.purposes.join(", ") || null,
+  until: k.until?.toISOString() ?? null,
+  spend: k.spendMicros === null ? null : dollars(k.spendMicros),
+  currency: "USD",
+  lastUsed: k.lastUsedAt?.toISOString() ?? null,
+  keyId: k.keyId,
+});
 const HEALTH_STATES = {
   ok: { label: "Fine", tone: "good" as const },
   frozen: { label: "Frozen", tone: "bad" as const },
@@ -1008,7 +1035,7 @@ export const accountRecordOf = (policy: ReachPolicy = DEFAULT_POLICY) =>
         ) s group by account`)) as unknown as Array<{ account: string; at: Date | string }>;
       const lastBy = new Map(last.map((r) => [r.account, new Date(r.at).toISOString()]));
       const byKey = new Map(reach.map((a) => [a.account, a]));
-      return await Promise.all(
+      const logins = await Promise.all(
         all.map(async (k) => {
           const a = byKey.get(k.key);
           const base = {
@@ -1055,6 +1082,8 @@ export const accountRecordOf = (policy: ReachPolicy = DEFAULT_POLICY) =>
           };
         }),
       );
+      // API keys sit beside the logins: the operator's (mirrored) and each client's own.
+      return [...logins, ...(await keyAccounts(db, { now })).map(keyRow)];
     },
     key: "id",
     title: "name",
@@ -1064,8 +1093,15 @@ export const accountRecordOf = (policy: ReachPolicy = DEFAULT_POLICY) =>
       name: name("Account"),
       // The login's key, drawn as its badge: the Account filter's field.
       account: accountField("Login", { listed: false }),
-      platform: status(PLATFORM_LABELS, "Site"),
+      platform: status(ACCOUNT_SITES, "Site"),
       state: status(ACCOUNT_STATES, "State"),
+      origin: status(KEY_ORIGINS, "Key of", { listed: false }),
+      owner: text("Owner"),
+      purposes: text("Purposes"),
+      until: date("Out of credit until"),
+      spend: money("Spend this month"),
+      lastUsed: date("Last used"),
+      keyId: text("Key id", { listed: false }),
       health: status(HEALTH_STATES, "Health"),
       stage: text("Warm-up"),
       karma: number("Karma"),
@@ -1083,9 +1119,10 @@ export const accountRecordOf = (policy: ReachPolicy = DEFAULT_POLICY) =>
       {
         id: "live",
         label: "In use",
-        where: { state: ["active", "warming", "paused"] },
+        where: { state: ["active", "warming", "paused", "live", "spent"] },
         sort: "platform",
       },
+      { id: "keys", label: "API keys", where: { platform: ["api"] }, sort: "name" },
       { id: "all", label: "All", sort: "platform" },
     ],
     // Its places (reassigned there, in place), its threads and its replies, filtered to it.
