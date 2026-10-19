@@ -116,8 +116,10 @@ wrappers (Go library behind FFI, unvetted).
   `status-503`. No other change.
 - Before a company's first fetch, read its domain's memory:
   - `dead` and fresh: no fetch. Tombstone, `block_reason` `dead`. Stats `dead_skipped`.
-  - a render tier (`browser`, `impersonate`, `render`, `exit`) and fresh: no fetch. Tombstone,
+  - a ladder tier (`impersonate`, `render`, `exit`) and fresh: no fetch. Tombstone,
     `block_reason` `remembered`. The render pass takes it. Stats `remembered_skipped`.
+  - `browser` and fresh: fetch as today. The plain fetch gets the shell, and the box renderer
+    takes it. It does not go to the capped ladder.
   - none or stale: fetch as today.
 
 ### Render pass (batch)

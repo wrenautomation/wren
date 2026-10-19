@@ -133,7 +133,7 @@ describe("the crawl", () => {
     ]);
   });
 
-  it.each(["browser", "impersonate", "render", "exit"] as MemoryTier[])(
+  it.each(["impersonate", "render", "exit"] as MemoryTier[])(
     "skips a domain remembered at %s for the render pass",
     async (tier) => {
       await makeCompany(db(), { domain: "www.verdano.example" });
@@ -145,6 +145,15 @@ describe("the crawl", () => {
       expect(await stored()).toMatchObject([{ blockReason: "remembered" }]);
     },
   );
+
+  it("fetches a browser domain as today, so its shell goes to the box renderer", async () => {
+    await makeCompany(db(), { domain: "verdano.example" });
+    await tierMemory(db()).learn("verdano.example", "browser", "shell");
+    const net = new FakeFetcher({});
+    const stats = await runCrawl(db(), net, { limit: 10, memory: tierMemory(db()) });
+    expect(stats).toMatchObject({ remembered_skipped: 0, dead_skipped: 0 });
+    expect(net.requested.length).toBeGreaterThan(0);
+  });
 
   it("fetches as today when the memory is stale or has nothing", async () => {
     await makeCompany(db());

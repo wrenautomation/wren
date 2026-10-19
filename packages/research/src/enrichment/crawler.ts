@@ -226,9 +226,9 @@ export async function crawlCompany(
   const robots: RobotsCache = new Map();
 
   // A domain the render pass learned about is not fetched: a tombstone says why, and a remembered
-  // one waits for the render pass.
+  // one waits for the render pass. `browser` is fetched as today: its shell goes to the box renderer.
   const known = opts.memory ? await opts.memory.get(domainOf(`https://${domain}`) ?? domain) : null;
-  if (known) {
+  if (known && known !== "browser") {
     const skip = known === "dead" ? "dead" : "remembered";
     stats[`${skip}_skipped`] += 1;
     await tombstone(db, company.id, domain, null, skip);
