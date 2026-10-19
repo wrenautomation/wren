@@ -1,0 +1,163 @@
+/**
+ * A funnel version's body and its rules (designs/2026-10-18-journeys.md, "Funnel and funnel
+ * version"). Pure: the known triggers, the funnel lookup and the composition graph come in as
+ * arguments, so this file imports nothing from the spine.
+ */
+
+export interface Advance {
+  /** A trigger component id: `trigger.booking`, `trigger.touch`, ... */
+  trigger: string;
+  /** That trigger's settings, as a node's `with`. */
+  with?: Record<string, string | number>;
+}
+
+export interface Stage {
+  /** The spine node id rule. Never goes, moves or gets renamed. */
+  key: string;
+  label: string;
+  /** Exactly one stage: reaching it makes the deal. */
+  sale?: true;
+  /** What moves a journey to this stage. */
+  on: Advance[];
+}
+
+export const ENTRY_KINDS = ["organic", "outbound", "ads", "referral", "funnel", "manual"] as const;
+export type EntryKind = (typeof ENTRY_KINDS)[number];
+
+export interface Entry {
+  /** `youtube`, `linkedin`, `ads`, `referral`, ... */
+  id: string;
+  kind: EntryKind;
+  /** The platform or channel the cause must come from. */
+  channel?: string;
+  /** An ads campaign id or a `/go/` campaign. */
+  campaign?: string;
+  /** Kind `funnel`: that funnel's stage. Default: its sale stage. */
+  funnel?: { id: string; at?: string };
+  /** The stage a journey opens at. Default: the first. */
+  to?: string;
+}
+
+export interface FunnelBody {
+  name: string;
+  /** The registry id the sale stage sells. */
+  offer: string;
+  /** Ordered; index is order. */
+  stages: Stage[];
+  /** Ordered; order is priority (first match wins). */
+  entries: Entry[];
+}
+
+export const STAGE_KEY = /^[a-z][a-z0-9_]*$/;
+
+/** What `checkFunnel` needs from outside. */
+export interface FunnelContext {
+  /** The funnel being checked. */
+  id: string;
+  /** Trigger component ids that exist. */
+  triggers: ReadonlySet<string>;
+  /** A stored funnel's stage keys and its sale stage, or undefined if there is none. */
+  funnel(id: string): { stages: readonly string[]; sale: string } | undefined;
+  /** Funnel ids each stored funnel takes entries from. This funnel's own edges are replaced by `next`. */
+  feeds: Readonly<Record<string, readonly string[]>>;
+}
+
+/**
+ * Check a new funnel version against the one before it (`prev`, null for the first).
+ * Returns what is wrong, in plain English. Empty means ok.
+ */
+export function checkFunnel(
+  prev: FunnelBody | null,
+  next: FunnelBody,
+  ctx: FunnelContext,
+): string[] {
+  const errors: string[] = [];
+  const keys = next.stages.map((s) => s.key);
+
+  if (keys.length === 0) errors.push("The funnel needs at least one stage.");
+  for (const [i, k] of keys.entries()) {
+    if (!STAGE_KEY.test(k)) {
+      errors.push(
+        `Stage key "${k}" must be lowercase letters, digits and underscores, starting with a letter.`,
+      );
+    }
+    if (keys.indexOf(k) !== i) errors.push(`Stage key "${k}" is used twice.`);
+  }
+
+  const sales = next.stages.filter((s) => s.sale);
+  if (sales.length !== 1) {
+    errors.push(`The funnel needs exactly one sale stage, not ${sales.length}.`);
+  }
+
+  for (const s of next.stages) {
+    for (const a of s.on) {
+      if (!ctx.triggers.has(a.trigger)) {
+        errors.push(`Stage "${s.key}" uses "${a.trigger}", which is not a known trigger.`);
+      }
+    }
+  }
+
+  if (prev) {
+    if (prev.offer !== next.offer) {
+      errors.push(
+        `The offer cannot change from "${prev.offer}" to "${next.offer}". Make a new funnel.`,
+      );
+    }
+    for (const [i, p] of prev.stages.entries()) {
+      const k = keys[i];
+      if (k === p.key) continue;
+      errors.push(
+        k === undefined
+          ? `Stage "${p.key}" cannot be removed.`
+          : `Stage ${i + 1} must stay "${p.key}", not "${k}". Stages are append only.`,
+      );
+    }
+  }
+
+  const entryIds = new Set<string>();
+  for (const e of next.entries) {
+    if (entryIds.has(e.id)) errors.push(`Entry "${e.id}" is used twice.`);
+    entryIds.add(e.id);
+    if (e.to !== undefined && !keys.includes(e.to)) {
+      errors.push(`Entry "${e.id}" opens at "${e.to}", which is not a stage of this funnel.`);
+    }
+    if (e.kind === "funnel" && !e.funnel)
+      errors.push(`Entry "${e.id}" has kind funnel but names no funnel.`);
+    if (!e.funnel) continue;
+    const target =
+      e.funnel.id === ctx.id
+        ? { stages: keys, sale: sales[0]?.key ?? "" }
+        : ctx.funnel(e.funnel.id);
+    if (!target) {
+      errors.push(`Entry "${e.id}" names funnel "${e.funnel.id}", which does not exist.`);
+    } else if (e.funnel.at !== undefined && !target.stages.includes(e.funnel.at)) {
+      errors.push(
+        `Entry "${e.id}" names stage "${e.funnel.at}", which "${e.funnel.id}" does not have.`,
+      );
+    }
+  }
+
+  const loop = cycleThrough(ctx.id, next, ctx.feeds);
+  if (loop) errors.push(`Funnels feed each other in a loop: ${loop.join(" -> ")}.`);
+  return errors;
+}
+
+/** A path from `id` back to `id` through entries of kind funnel, or null. */
+function cycleThrough(
+  id: string,
+  next: FunnelBody,
+  feeds: Readonly<Record<string, readonly string[]>>,
+): string[] | null {
+  const edges = (f: string): readonly string[] =>
+    f === id ? next.entries.flatMap((e) => (e.funnel ? [e.funnel.id] : [])) : (feeds[f] ?? []);
+  const walk = (f: string, path: string[]): string[] | null => {
+    for (const g of edges(f)) {
+      if (g === id) return [...path, g];
+      if (path.includes(g)) continue;
+      const found = walk(g, [...path, g]);
+      if (found) return found;
+    }
+    return null;
+  };
+  return walk(id, [id]);
+}

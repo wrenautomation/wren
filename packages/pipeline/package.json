@@ -1,0 +1,28 @@
+{
+  "name": "@wren/pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./model": "./src/model.ts",
+    "./schedule": "./src/schedule.ts",
+    "./schema": "./src/schema.ts",
+    "./stages": "./src/stages.ts"
+  },
+  "scripts": {
+    "test:integration": "vitest run test/integration",
+    "test:unit": "vitest run src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "@wren/offers": "workspace:*",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "12.1.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

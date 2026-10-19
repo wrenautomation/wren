@@ -1,5 +1,6 @@
 import { CHANNELS, clientMembers, clients } from "@wren/core/clients";
 import { oneOf } from "@wren/db/columns";
+import type { Terms } from "@wren/offers";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -573,25 +574,8 @@ export const interests = delivery.table(
 );
 export type Interest = typeof interests.$inferSelect;
 
-/** What the client pays, frozen into the contract when it's issued. Cents; null = none. */
-export interface Terms {
-  currency: string;
-  setupCents: number;
-  monthlyCents: number | null;
-  perUnitCents: number | null;
-  /** What a per-unit fee counts, singular: "meeting booked". */
-  unit: string | null;
-  /** The most the per-unit fees add up to. */
-  capCents: number | null;
-  /** How long it runs, or null until either side ends it. */
-  days: number | null;
-  /** Past `days`, it carries on until this many units, or null to stop at `days`. Older terms lack it. */
-  until?: number | null;
-  /** Every fee back if there are no units by `days` (contract section 6). Older terms lack it. */
-  refundIfNone?: { minContacts: number } | null;
-  /** Days after an invoice's date that it's due. */
-  payDays: number;
-}
+/** What the client pays, frozen into the contract when it's issued. Defined in `@wren/offers`. */
+export type { Terms };
 
 /**
  * The contract for an engagement: the exact text we issued, and who signed it,

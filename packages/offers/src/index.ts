@@ -36,6 +36,7 @@ export {
   offerFacts,
 } from "./offer.js";
 export { SNAPSHOT_VERSION, type Snapshot, snapshot } from "./snapshot.js";
+export type { Terms } from "./terms.js";
 
 /** Check the registry as a whole: unique ids, a ladder that resolves and never loops. */
 export function registry(offers: readonly Offer[]): readonly Offer[] {
