@@ -27,6 +27,7 @@ import { recordedRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
 import type { KeyStore } from "@wren/core/keys";
 import { type Notifier, namedFor } from "@wren/core/notify";
+import { replyWho } from "@wren/core/reply-who";
 import {
   clientKey,
   clientOfKey,
@@ -310,7 +311,9 @@ export function makeSmsEvents(
         }
         // A lead's reply: each live Reply trigger that hears texts gets it.
         if (applied.replied !== undefined) {
-          deps.fire?.(ctx, replyFired(null, "sms", applied.replied));
+          const replied = applied.replied;
+          const who = await ctx.run("reply who", () => replyWho(deps.db, "sms", replied));
+          deps.fire?.(ctx, replyFired(null, "sms", replied, who));
           await deps.calls?.replied(ctx, null, applied.replied);
         }
         if (applied.missed !== undefined) deps.calls?.missed(ctx, null, applied.missed);
@@ -350,7 +353,11 @@ export function makeSmsEvents(
           }),
         );
         if (applied.replied !== undefined) {
-          deps.fire?.(ctx, replyFired(req.client, "sms", applied.replied));
+          const replied = applied.replied;
+          const who = await ctx.run("reply who", () =>
+            replyWho(clientDb(req.client), "sms", replied),
+          );
+          deps.fire?.(ctx, replyFired(req.client, "sms", replied, who));
           await deps.calls?.replied(ctx, req.client, applied.replied);
         }
         if (applied.missed !== undefined) deps.calls?.missed(ctx, req.client, applied.missed);

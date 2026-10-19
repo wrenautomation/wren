@@ -969,12 +969,15 @@ export type FireTriggers = (ctx: restate.Context, req: Fired) => void;
 
 /**
  * A lead's reply as a Reply trigger hears it: about the thread, as the channel's own touch step
- * says it (`reply:sms:<contact>`), so one lead enters a node once.
+ * says it (`reply:sms:<contact>`), so one lead enters a node once. `who` rides in the data and
+ * never changes the subject.
  */
 export function replyFired(
   client: string | null,
   channel: "email" | "sms" | "dm",
   id: number,
+  /** Who it is from (`replyWho`): a profile id and an address, for the journey steps. */
+  who: Record<string, string | number> = {},
 ): Fired {
   const thread = channel === "email" ? { enrollmentId: id } : { contactId: id };
   return {
@@ -983,7 +986,7 @@ export function replyFired(
     event: {
       subject: `reply:${channel === "dm" ? "reach" : channel}:${id}`,
       kind: "reply",
-      data: { channel, ...thread },
+      data: { channel, ...thread, ...who },
     },
   };
 }

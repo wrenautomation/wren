@@ -434,7 +434,9 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
   "trigger.flag":
     "Fires within the hour a client flag is raised or clears. Only in Wren's own workflows.",
   "trigger.payment":
-    "Fires when Stripe says a pay link was paid, refunded or failed, as you pick. Each fires once per link. The amount and who paid come with it.",
+    "Fires when Stripe says a pay link was paid, refunded or failed, as you pick. In Wren's own workflows, a Wren invoice issued, paid, refunded or past due fires it too. Each fires once per change. The amount and who paid come with it.",
+  "trigger.touch":
+    "Fires once for each follow, connect, comment, reply, DM, like or mention on a social platform, within a few minutes. Pick the kind, who started it and the platform. Who it was with comes along.",
   "trigger.document":
     "Fires when someone opens, signs or declines a document you sent from Payments → Documents. Who and the total come with it.",
   "logic.code":

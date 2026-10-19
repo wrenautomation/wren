@@ -14,6 +14,9 @@ import {
   nextSlot,
   shareOf,
   startWith,
+  TOUCH_ON_DIRECTIONS,
+  TOUCH_ON_KINDS,
+  TOUCH_ON_PLATFORMS,
   triggerHears,
   untilOf,
   untilOfFacts,
@@ -21,6 +24,7 @@ import {
   untilText,
 } from "./logic.js";
 import type { SpineEvent, StepAt } from "./spine.js";
+import { TOUCH_DIRECTIONS, TOUCH_KINDS, TOUCH_PLATFORMS } from "./touches-schema.js";
 
 const at = (node: string, w: Record<string, string | number>): StepAt => ({
   client: null,
@@ -278,6 +282,51 @@ describe("triggers", () => {
     expect(n({ funnel: "alpha", on: "nope" })).toEqual([
       "f.n: Journey fires when a journey enters, skips or leaves a stage",
     ]);
+  });
+
+  it("hear a touch by kind, direction and platform, each default any", () => {
+    const node = (w: Record<string, string> = {}) => ({ id: "t", uses: "trigger.touch", with: w });
+    const dm = {
+      trigger: "trigger.touch",
+      kind: "dm",
+      direction: "theirs",
+      platform: "x",
+    } as const;
+    expect(triggerHears(node(), dm)).toBe(true);
+    expect(triggerHears(node({ kind: "dm" }), dm)).toBe(true);
+    expect(triggerHears(node({ kind: "comment" }), dm)).toBe(false);
+    expect(triggerHears(node({ direction: "ours" }), dm)).toBe(false);
+    expect(triggerHears(node({ direction: "theirs", platform: "x" }), dm)).toBe(true);
+    expect(triggerHears(node({ platform: "linkedin" }), dm)).toBe(false);
+    expect(triggerHears(node({ kind: "any", direction: "any", platform: "any" }), dm)).toBe(true);
+    expect(triggerHears({ id: "r", uses: "trigger.reply", with: {} }, dm)).toBe(false);
+    expect(untilOfFacts(dm)).toBeNull();
+    expect(logicOf("trigger.touch")?.says({ kind: "dm", direction: "theirs", platform: "x" })).toBe(
+      "A dm from them on x",
+    );
+  });
+
+  it("check a touch trigger's settings, and keep its lists the schema's", () => {
+    const n = (w: Record<string, string>) =>
+      logicProblems("f.n", { id: "n", uses: "trigger.touch", with: w });
+    expect(n({})).toEqual([]);
+    expect(n({ kind: "dm", direction: "ours", platform: "x" })).toEqual([]);
+    expect(n({ kind: "poke" })).toHaveLength(1);
+    expect(n({ direction: "sideways" })).toHaveLength(1);
+    expect(n({ platform: "myspace" })).toHaveLength(1);
+    expect([...TOUCH_ON_KINDS]).toEqual([...TOUCH_KINDS]);
+    expect([...TOUCH_ON_DIRECTIONS]).toEqual([...TOUCH_DIRECTIONS]);
+    expect([...TOUCH_ON_PLATFORMS]).toEqual([...TOUCH_PLATFORMS]);
+  });
+
+  it("hear an invoice change on a payment trigger", () => {
+    const node = (on?: string) => ({ id: "p", uses: "trigger.payment", with: on ? { on } : {} });
+    const late = { trigger: "trigger.payment", change: "late" } as const;
+    expect(triggerHears(node(), late)).toBe(false);
+    expect(triggerHears(node("late"), late)).toBe(true);
+    expect(triggerHears(node("any"), late)).toBe(true);
+    expect(triggerHears(node("invoiced"), late)).toBe(false);
+    expect(logicProblems("f.p", node("late"))).toEqual([]);
   });
 
   it("give a Form its door: a known form's shape, else by email and its map", () => {

@@ -94,6 +94,7 @@ curl -X POST -H "$H" $U/BillingWatch/fleet/start        # every 15 min: Wren's o
 curl -X POST -H "$H" $U/PayReconcile/all/start          # daily: each Stripe-connected client's links of 120 days held against Stripe; heals missed webhooks, flags drift; reads Stripe only
 curl -X POST -H "$H" $U/SegmentsNet/all/start           # every 15 min: wakes Segments/fleet and each <client>/fleet (People → Groups kept true, segment/trait/date triggers fired); row triggers wake it at commit too; Segments/<key>/status shows the cursor
 curl -X POST -H "$H" $U/PeopleMapNet/all/start          # every 15 min: wakes PeopleMap/fleet and each <client>/fleet (People: stage, warmth, persona rebuilt; loose handles keyed; Wren's site counts); PeopleMap/<key>/status shows the last pass
+curl -X POST -H "$H" $U/TouchFeed/all/start             # every minute: each workspace's new touches (follows, comments, DMs...) told to the spine once each for `trigger.touch`; the first pass starts at the newest touch and tells none; TouchFeed/all/status shows the last pass
 curl -X POST -H "$H" $U/Decide/wren/start                # every 10 min: open comment drafts and fresh Learn items judged by Jev (gateway when Jev is down), logged in `decisions`; WREN_DECIDE=off stops it, $1/day cap (`decide.dailyUsd`); /sync runs one pass
 # `Ads` is a plain service (no scheduler): `wren ads launch|start|stop|insights` call it through the ingress; it writes `ad_launches`.
 ```

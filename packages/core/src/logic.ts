@@ -179,6 +179,7 @@ export type TriggerFacts =
   | { trigger: "trigger.booking"; change: "booked" | "cancelled" }
   | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" }
   | { trigger: "trigger.payment"; change: PayChange }
+  | { trigger: "trigger.touch"; kind: string; direction: string; platform: string }
   | { trigger: "trigger.document"; change: DocChange; kind: string }
   | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string }
   | { trigger: "trigger.journey"; funnel: string; stage: string; change: JourneyChange }
@@ -196,6 +197,31 @@ export const JOURNEY_CHANGES = {
 export type JourneyChange = keyof typeof JOURNEY_CHANGES;
 /** A funnel id or stage key, as the pipeline keeps them. */
 const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
+
+/**
+ * What a touch trigger may name. Copies of `touches-schema`'s lists, kept here because this file
+ * is pure and the web reads it; a test keeps them equal.
+ */
+export const TOUCH_ON_KINDS = [
+  "follow",
+  "connect",
+  "comment",
+  "reply",
+  "dm",
+  "like",
+  "mention",
+] as const;
+export const TOUCH_ON_DIRECTIONS = ["ours", "theirs"] as const;
+export const TOUCH_ON_PLATFORMS = [
+  "linkedin",
+  "reddit",
+  "youtube",
+  "x",
+  "instagram",
+  "facebook",
+  "tiktok",
+  "google_business",
+] as const;
 
 /** A profile entering or leaving a group (designs/2026-10-14-customerio-audit.md, B5). */
 export const SEGMENT_CHANGES = { entered: "Enters", left: "Leaves" } as const;
@@ -222,11 +248,16 @@ export const DOC_CHANGES = {
 } as const;
 export type DocChange = keyof typeof DOC_CHANGES;
 
-/** What a pay link tells the spine, each once (designs/2026-10-07-forms-and-pay.md). */
+/**
+ * What a payment tells the spine, each once (designs/2026-10-07-forms-and-pay.md). A pay link
+ * says paid, refunded and failed; Wren's own invoice also says invoiced and late.
+ */
 export const PAY_CHANGES = {
   paid: "Paid",
   refunded: "Refunded or a dispute lost",
   failed: "A bank payment failed",
+  invoiced: "An invoice issued",
+  late: "An invoice past due",
 } as const;
 export type PayChange = keyof typeof PAY_CHANGES;
 
@@ -255,6 +286,16 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
   if (f.trigger === "trigger.payment") {
     const on = text(w.on) || "paid";
     return on === "any" || on === f.change;
+  }
+  if (f.trigger === "trigger.touch") {
+    const kind = text(w.kind) || "any";
+    const direction = text(w.direction) || "any";
+    const platform = text(w.platform) || "any";
+    return (
+      (kind === "any" || kind === f.kind) &&
+      (direction === "any" || direction === f.direction) &&
+      (platform === "any" || platform === f.platform)
+    );
   }
   if (f.trigger === "trigger.document") {
     const kind = text(w.kind) || "any";
@@ -339,6 +380,7 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
     ? "reply"
     : f.trigger === "trigger.flag" ||
         f.trigger === "trigger.payment" ||
+        f.trigger === "trigger.touch" ||
         f.trigger === "trigger.document" ||
         f.trigger === "trigger.deal" ||
         f.trigger === "trigger.journey" ||
@@ -793,7 +835,7 @@ export const LOGIC: readonly LogicPart[] = [
         field: "on",
         label: "When",
         type: "choice",
-        options: ["paid", "refunded", "failed", "any"],
+        options: ["paid", "refunded", "failed", "invoiced", "late", "any"],
         labels: { ...PAY_CHANGES, any: "Any of these" },
         start: "paid",
       },
@@ -802,8 +844,51 @@ export const LOGIC: readonly LogicPart[] = [
       const on = text(w.on) || "paid";
       if (on === "refunded") return "A payment refunded";
       if (on === "failed") return "A bank payment failed";
-      if (on === "any") return "A pay link paid, refunded or failed";
-      return "A pay link paid";
+      if (on === "invoiced") return "An invoice issued";
+      if (on === "late") return "An invoice past due";
+      if (on === "any") return "A payment paid, refunded, failed, invoiced or late";
+      return "A payment received";
+    },
+  ),
+  trigger(
+    "touch",
+    "Touch",
+    "Starts when a follow, connect, comment, reply, DM, like or mention happens on a social platform, ours or theirs. Once per touch.",
+    "chat",
+    "person",
+    [
+      {
+        field: "kind",
+        label: "Kind",
+        type: "choice",
+        options: ["any", ...TOUCH_ON_KINDS],
+        labels: { any: "Any kind" },
+        start: "any",
+      },
+      {
+        field: "direction",
+        label: "From",
+        type: "choice",
+        options: ["any", ...TOUCH_ON_DIRECTIONS],
+        labels: { any: "Either side", ours: "Us", theirs: "Them" },
+        start: "theirs",
+      },
+      {
+        field: "platform",
+        label: "Platform",
+        type: "choice",
+        options: ["any", ...TOUCH_ON_PLATFORMS],
+        labels: { any: "Any platform" },
+        start: "any",
+      },
+    ],
+    (w) => {
+      const kind = text(w.kind) || "any";
+      const direction = text(w.direction) || "any";
+      const platform = text(w.platform) || "any";
+      const what = kind === "any" ? "A touch" : `A ${kind}`;
+      const from = direction === "ours" ? " from us" : direction === "theirs" ? " from them" : "";
+      return `${what}${from}${platform === "any" ? "" : ` on ${platform}`}`;
     },
   ),
   trigger(
@@ -1065,7 +1150,12 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   const w = n.with ?? {};
   const out: string[] = [];
   if (!l.ready) out.push(`${at}: ${l.name} triggers are in development`);
-  if (w.kind !== undefined && !(KINDS as readonly string[]).includes(String(w.kind)))
+  // A trigger's own `kind` (a document's, a touch's) is no event kind.
+  if (
+    l.group !== "trigger" &&
+    w.kind !== undefined &&
+    !(KINDS as readonly string[]).includes(String(w.kind))
+  )
     out.push(`${at}: ${w.kind} is no event kind`);
   if (l.id === "logic.if" && !text(w.when)) out.push(`${at}: If needs a rule`);
   if (l.id === "logic.switch") {
@@ -1131,6 +1221,14 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
       out.push(`${at}: Journey names a stage key, like signed`);
     if (w.on !== undefined && !["entered", "skipped", "dropped", "any"].includes(text(w.on)))
       out.push(`${at}: Journey fires when a journey enters, skips or leaves a stage`);
+  }
+  if (l.id === "trigger.touch") {
+    if (w.kind !== undefined && !["any", ...TOUCH_ON_KINDS].includes(text(w.kind)))
+      out.push(`${at}: Touch kind is one of ${TOUCH_ON_KINDS.join(", ")}, or any`);
+    if (w.direction !== undefined && !["any", ...TOUCH_ON_DIRECTIONS].includes(text(w.direction)))
+      out.push(`${at}: Touch is from us, from them or either`);
+    if (w.platform !== undefined && !["any", ...TOUCH_ON_PLATFORMS].includes(text(w.platform)))
+      out.push(`${at}: ${text(w.platform)} is no touch platform`);
   }
   if (l.id === "trigger.segment") {
     const n = Number(w.segment);

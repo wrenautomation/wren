@@ -65,6 +65,7 @@ type ContentReply = {
 };
 
 import type { KeyStore } from "@wren/core/keys";
+import { replyWho } from "@wren/core/reply-who";
 import {
   clientKey,
   clientOfKey,
@@ -955,7 +956,10 @@ async function watchPass(
         replies.optedOut += r.optedOut;
         // Each lead's reply: every live Reply trigger that hears DMs gets it.
         if (deps.fire)
-          for (const id of r.replied ?? []) deps.fire(ctx, replyFired(scope.client, "dm", id));
+          for (const id of r.replied ?? []) {
+            const who = await ctx.run(`reply who ${id}`, () => replyWho(deps.db, "dm", id));
+            deps.fire(ctx, replyFired(scope.client, "dm", id, who));
+          }
       } catch (err) {
         stop(err);
         if (!capped(a, err)) replies.errors.push(`${a.account}: ${errorText(err)}`);

@@ -35,8 +35,11 @@ export function webhookEventOfFired(f: TriggerFacts): WebhookEvent | null {
   if (f.trigger === "trigger.reply") return "reply.received";
   if (f.trigger === "trigger.booking")
     return f.change === "booked" ? "booking.made" : "booking.cancelled";
-  if (f.trigger === "trigger.payment")
+  if (f.trigger === "trigger.payment") {
+    // Wren's own invoices (issued, late) are no client's news.
+    if (f.change === "invoiced" || f.change === "late") return null;
     return f.change === "paid" ? "payment.received" : `payment.${f.change}`;
+  }
   if (f.trigger === "trigger.document") return `document.${f.change}`;
   if (f.trigger === "trigger.deal") return f.change === "won" ? "deal.won" : "deal.moved";
   if (f.trigger === "trigger.app") return "app.changed";

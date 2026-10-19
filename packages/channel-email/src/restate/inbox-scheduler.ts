@@ -20,6 +20,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { type Notifier, plural } from "@wren/core/notify";
+import { replyWho } from "@wren/core/reply-who";
 import {
   exclusiveHandler,
   makeLoopObject,
@@ -113,8 +114,10 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
     if (deps.notifier && outcome.stats) await tell(ctx, deps.notifier, sender, outcome.stats);
     // Each person's reply: every live Reply trigger that hears email gets it.
     if (deps.fire)
-      for (const id of outcome.stats?.replied ?? [])
-        deps.fire(ctx, replyFired(scope.client ?? null, "email", id));
+      for (const id of outcome.stats?.replied ?? []) {
+        const who = await ctx.run(`reply who ${id}`, () => replyWho(scope.db, "email", id));
+        deps.fire(ctx, replyFired(scope.client ?? null, "email", id, who));
+      }
     return outcome;
   });
 }
