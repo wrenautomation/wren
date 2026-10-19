@@ -5,7 +5,7 @@
  * `shapeFromFunnels` is pure: the newest body of each funnel in, one shape out, with the maps that
  * place old stages and entries on it. `migrateShape` writes it: v1 when no shape exists, then every
  * journey that has no node yet. Safe to repeat. `dry` writes nothing and works on a database
- * without migration 0304.
+ * without migration 0306.
  */
 import { events } from "@wren/core/schema";
 import { atomic, type Queryable } from "@wren/db";

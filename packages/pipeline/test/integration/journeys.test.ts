@@ -229,7 +229,7 @@ describe("a journey through the shape", () => {
       edges: ["booked_to_proposal", "proposal_to_signed"],
     });
 
-    // The Executions list titles the journey by person and node (migration 0304).
+    // The Executions list titles the journey by person and node (migration 0306).
     const [row] = await pg.db.execute<{ title: string; person: string }>(
       sql`select title, person from spine_executions where subject = ${`journey:${j?.id}`} and workflow = 'shape.v1'`,
     );
