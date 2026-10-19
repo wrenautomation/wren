@@ -383,7 +383,9 @@ import { makePayReconcile } from "@wren/payments/reconcile";
 import { makePayments } from "@wren/payments/service";
 import { stripeChecks } from "@wren/payments/setups";
 import { collectSteps } from "@wren/pipeline/collect";
+import { makePipelineConsole } from "@wren/pipeline/console";
 import { funnelWorkflowsOf, soundFunnels } from "@wren/pipeline/journeys";
+import { makeJourneys } from "@wren/pipeline/restate";
 import { journeySteps } from "@wren/pipeline/steps";
 import { clientSendScope, crmLanding } from "@wren/reactivation";
 import {
@@ -1168,6 +1170,10 @@ export async function buildServices(
     // Opportunities: deals on a board of stages; each move tells the spine
     // (designs/2026-10-09-opportunities.md).
     makeDealsConsole({ main: db, fire: fireAll }),
+    // Journeys: hand moves through the funnel's own step, and the pipeline records
+    // (designs/2026-10-18-journeys.md).
+    makeJourneys({ db: (client) => (client ? clientDb(client) : db) }),
+    makePipelineConsole({ db, open: openClient }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {

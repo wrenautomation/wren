@@ -44,6 +44,8 @@ Citations: `packages/pipeline/src/store.ts:331`, `packages/pipeline/src/model.ts
 | Surface | Role |
 |---|---|
 | `wren funnels list|add|append|show|off|on` (`apps/cli/src/pipeline.ts`), honours `--client` | writes, reads |
+| console `PipelineConsole` `funnelsAdd|Append|Off|On` (`packages/pipeline/src/console.ts`) | writes |
+| record `pipeline.funnel` (live, off, all) | reads |
 | Workflows app | a funnel version shows as the workflow `funnel.<id>.v<n>` (read only; ids start `funnel.`) |
 
 ## See

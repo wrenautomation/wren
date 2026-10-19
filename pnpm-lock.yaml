@@ -308,6 +308,9 @@ importers:
       '@wren/payments':
         specifier: workspace:*
         version: link:../../packages/payments
+      '@wren/pipeline':
+        specifier: workspace:*
+        version: link:../../packages/pipeline
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
@@ -1528,6 +1531,9 @@ importers:
 
   packages/pipeline:
     dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1540,6 +1546,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@testcontainers/postgresql':
         specifier: 12.1.0

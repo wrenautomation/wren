@@ -47,6 +47,7 @@ import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { PAYMENTS_RECORDS } from "@wren/payments/records";
+import { PIPELINE_RECORDS } from "@wren/pipeline/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
 import { SITES_RECORDS } from "@wren/sites/records";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -128,6 +129,7 @@ const RECORD_TYPES = [
   ...PAYMENTS_RECORDS,
   ...DOCUMENTS_RECORDS,
   ...DEALS_RECORDS,
+  ...PIPELINE_RECORDS,
   ...CALENDAR_RECORDS,
   recordingRecord(),
   ...VOICE_RECORDS,

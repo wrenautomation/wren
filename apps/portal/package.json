@@ -42,6 +42,7 @@
     "@wren/learn": "workspace:*",
     "@wren/notes": "workspace:*",
     "@wren/payments": "workspace:*",
+    "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/ui": "workspace:*",

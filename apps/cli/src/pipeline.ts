@@ -1,7 +1,13 @@
 /**
- * `wren offers|terms|funnels …` (designs/2026-10-18-journeys.md): the version store. Offers sync
- * from the code registry (main only). Terms and funnels follow `--client`. Amounts are read from
- * the database and printed; none is written here.
+ * `wren offers|terms|funnels|journeys|deals|numbers …` (designs/2026-10-18-journeys.md): the
+ * version store, the journeys and the numbers. Offers sync from the code registry (main only).
+ * The rest follow `--client`. Amounts are read from the database and printed; none is written
+ * here, except a deal's terms (`deals sign`).
+ *
+ * Moves on a journey (`open`, `move`, `drop`, `rebuild`) go through the worker's `Journeys`
+ * service, so the funnel's own step writes the row. Reads go to the database.
+ *
+ * `wren deals` is new here. The older Opportunities deals have no command, so nothing clashes.
  */
 import { readFileSync } from "node:fs";
 import { userInfo } from "node:os";
@@ -9,6 +15,10 @@ import { LOGIC } from "@wren/core/logic";
 import type { Db } from "@wren/db";
 import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
 import type { FunnelBody } from "@wren/pipeline/model";
+import { signDeal } from "@wren/pipeline/moves";
+import { dealScheduleOf, numberRows } from "@wren/pipeline/numbers";
+import { dealRows, journeyRows, trailOf } from "@wren/pipeline/records";
+import type { DropRequest, MoveRequest, OpenRequest, RebuildRequest } from "@wren/pipeline/restate";
 import {
   addFunnel,
   addTerms,
@@ -26,13 +36,30 @@ import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
+/** How the CLI reaches the worker's `Journeys` service, and the workspace it acts in. */
+export interface PipelineWrites {
+  journeys(): {
+    open(req: OpenRequest): Promise<unknown>;
+    move(req: MoveRequest): Promise<unknown>;
+    drop(req: DropRequest): Promise<unknown>;
+    rebuild(req: RebuildRequest): Promise<unknown>;
+  };
+  /** The client id the command acts for; null is Wren's. */
+  client(): string | null;
+}
+
 /** Trigger component ids a stage may name. */
 const triggerIds = (): ReadonlySet<string> =>
   new Set(LOGIC.filter((l) => l.group === "trigger").map((l) => l.id));
 
 /** `YYYY-MM-DD`, a real day. */
 export function dayArg(v: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) !== v)
+  const t = new Date(`${v}T00:00:00Z`).getTime();
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(v) ||
+    Number.isNaN(t) ||
+    new Date(t).toISOString().slice(0, 10) !== v
+  )
     throw new InvalidArgumentError("use YYYY-MM-DD");
   return v;
 }
@@ -98,7 +125,12 @@ async function plain(fn: () => Promise<void>): Promise<void> {
   }
 }
 
-export function registerPipeline(program: Command, withDb: WithDb, withMainDb: WithDb): void {
+export function registerPipeline(
+  program: Command,
+  withDb: WithDb,
+  withMainDb: WithDb,
+  writes?: PipelineWrites,
+): void {
   const offers = program
     .command("offers")
     .description("offer versions: each shape the code registry has had (main database)");
@@ -269,4 +301,223 @@ export function registerPipeline(program: Command, withDb: WithDb, withMainDb: W
           console.log(`${f.id} is ${f.status}`);
         }),
       );
+
+  /** The worker's Journeys service, or a refusal when this CLI has no worker to call. */
+  const worker = () => {
+    if (!writes) throw new Refused(["No worker to call. Moves go through the Journeys service."]);
+    return { api: writes.journeys(), client: writes.client() };
+  };
+  /** A worker call; its terminal error prints as a refusal. */
+  const call = async (fn: () => Promise<unknown>) => {
+    try {
+      console.log(JSON.stringify(await fn(), null, 2));
+    } catch (e) {
+      if (e instanceof Refused) throw e;
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  };
+
+  const journeys = program
+    .command("journeys")
+    .description("journeys: one person's way through a funnel");
+  journeys
+    .command("open <funnel>")
+    .description("Open a journey at an entry stage of the funnel's newest version")
+    .requiredOption("--person <key>", "profile id, email, +phone, or kind:value")
+    .option("--at <stage>", "an entry stage; the first when left out")
+    .option("--entry <id>", "how they came: an entry id of the funnel")
+    .action((funnel: string, o: { person: string; at?: string; entry?: string }) =>
+      plain(async () => {
+        const { api, client } = worker();
+        await call(() =>
+          api.open({
+            client,
+            funnel,
+            person: o.person,
+            by: who(),
+            ...(o.at ? { at: o.at } : {}),
+            ...(o.entry ? { entry: o.entry } : {}),
+          }),
+        );
+      }),
+    );
+  journeys
+    .command("move <journey> <stage>")
+    .description("Move an open journey forward to a later stage")
+    .action((journey: string, stage: string) =>
+      plain(async () => {
+        const { api, client } = worker();
+        await call(() => api.move({ client, journey, to: stage, by: who() }));
+      }),
+    );
+  journeys
+    .command("drop <journey>")
+    .description("End an open journey")
+    .requiredOption("--reason <text>", "why it ends here")
+    .action((journey: string, o: { reason: string }) =>
+      plain(async () => {
+        const { api, client } = worker();
+        await call(() => api.drop({ client, journey, reason: o.reason, by: who() }));
+      }),
+    );
+  journeys
+    .command("rebuild <journey>")
+    .description("Recompute the journey row from its spine events")
+    .action((journey: string) =>
+      plain(async () => {
+        const { api, client } = worker();
+        await call(() => api.rebuild({ client, journey }));
+      }),
+    );
+  journeys
+    .command("show <journey>")
+    .description("One journey: its row, its trail of arrivals, its deal")
+    .action(async (id: string) => {
+      const found = await withDb(async (db) => {
+        const [row] = await journeyRows(db, { id });
+        if (!row) return null;
+        return {
+          row,
+          trail: await trailOf(db, id),
+          deals: (await dealRows(db)).filter((d) => d.journey === id),
+        };
+      });
+      if (!found) {
+        console.error(`no journey ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(JSON.stringify(found.row, null, 2));
+      for (const t of found.trail)
+        console.log(
+          `${t.at.toISOString()}  ${t.node.replace(/^s_/, "")}  ${t.cause ?? "-"}${t.ref ? ` ${t.ref}` : ""}  ${t.workflow}`,
+        );
+      for (const d of found.deals) console.log(`deal ${d.id}  ${d.offer}  ${d.status}`);
+    });
+  journeys
+    .command("list")
+    .description("Journeys, newest move first")
+    .option("--funnel <id>", "one funnel")
+    .option("--stage <stage>", "one stage")
+    .option("--status <status>", "open, done or dropped")
+    .option("--limit <n>", "how many", numberArg, 50)
+    .action(async (o: { funnel?: string; stage?: string; status?: string; limit: number }) => {
+      const rows = (await withDb((db) => journeyRows(db)))
+        .filter(
+          (r) =>
+            (!o.funnel || r.funnel === o.funnel) &&
+            (!o.stage || r.stage === o.stage) &&
+            (!o.status || r.status === o.status),
+        )
+        .slice(0, o.limit);
+      for (const r of rows)
+        console.log(
+          `${r.id}  ${r.name}  ${r.funnel} v${r.version}  ${r.stage}  ${r.status}${r.flag ? ` (${r.flag})` : ""}  ${r.days_in_stage}d`,
+        );
+      if (!rows.length) console.log("no journeys");
+    });
+
+  const deals = program.command("deals").description("pipeline deals: offer, terms and money");
+  deals
+    .command("list")
+    .description("Deals, newest first")
+    .option("--status <status>", "one status")
+    .action(async (o: { status?: string }) => {
+      const rows = (await withDb((db) => dealRows(db))).filter(
+        (d) => !o.status || d.status === o.status,
+      );
+      for (const d of rows)
+        console.log(
+          `${d.id}  ${d.name}  ${d.offer} v${d.offer_version}  ${d.plan ? `${d.plan} v${d.terms_number}` : "no terms"}  ${d.status}  collected ${d.collected} ${d.currency}`,
+        );
+      if (!rows.length) console.log("no deals");
+    });
+  deals
+    .command("sign <deal>")
+    .description("Set a deal's terms from a plan's live terms. Terms are set once")
+    .requiredOption("--plan <plan>", "plan slug: standard, flat, partner-1")
+    .option("--force", "change terms already set; the change is audited")
+    .action((deal: string, o: { plan: string; force?: boolean }) =>
+      plain(async () => {
+        const r = await withDb((db) =>
+          signDeal(db, { deal, plan: o.plan, force: o.force === true }),
+        );
+        console.log(r.changed ? `${r.deal}: terms ${r.termsVersion}` : `${r.deal}: no change`);
+      }),
+    );
+  deals
+    .command("schedule <deal>")
+    .description("The dated lines a deal's signed terms imply")
+    .action(async (id: string) => {
+      const r = await withDb((db) => dealScheduleOf(db, id));
+      if (!r) {
+        console.error(`no deal ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (!r.signed) console.log("no terms signed yet; run `wren deals sign`");
+      for (const l of r.lines) {
+        if (l.kind === "setup" || l.kind === "monthly")
+          console.log(
+            `${l.on}  ${l.kind}${l.kind === "setup" && l.part ? ` ${l.part.n}/${l.part.of}` : ""}  ${(l.cents / 100).toFixed(2)} ${l.currency}`,
+          );
+        else if (l.kind === "unit")
+          console.log(
+            `as it happens  ${l.unit ?? "unit"}  ${(l.centsEach / 100).toFixed(2)} ${l.currency} each${l.capCents === null ? "" : `, cap ${(l.capCents / 100).toFixed(2)}`}`,
+          );
+        else console.log(`on reported revenue  ${l.bps / 100}%  ${l.currency}`);
+      }
+    });
+
+  program
+    .command("numbers")
+    .description("Journey numbers: per funnel stage, per entry, per offer. All time unless cut")
+    .option("--funnel <id>", "one funnel")
+    .option("--entry <id>", "one entry")
+    .option("--offer <id>", "one offer")
+    .option("--from <date>", "first day, YYYY-MM-DD", dayArg)
+    .option("--to <date>", "last day, YYYY-MM-DD", dayArg)
+    .option("--json", "print rows as JSON")
+    .action(
+      async (o: {
+        funnel?: string;
+        entry?: string;
+        offer?: string;
+        from?: string;
+        to?: string;
+        json?: boolean;
+      }) => {
+        const rows = await withDb((db) =>
+          numberRows(db, {
+            ...(o.funnel ? { funnel: o.funnel } : {}),
+            ...(o.entry ? { entry: o.entry } : {}),
+            ...(o.offer ? { offer: o.offer } : {}),
+            ...(o.from ? { from: o.from } : {}),
+            ...(o.to ? { to: o.to } : {}),
+          }),
+        );
+        if (o.json) {
+          console.log(JSON.stringify(rows, null, 2));
+          return;
+        }
+        const pct = (n: number | null) => (n === null ? "-" : `${Math.round(n * 100)}%`);
+        const n = (v: number | null) => (v === null ? "-" : String(v));
+        for (const r of rows) {
+          if (r.kind === "stage")
+            console.log(
+              `stage  ${r.funnel}  ${r.position}. ${r.label}  entered ${n(r.entered)}  skipped ${n(r.skipped)}  on ${pct(r.conversion)}  median ${r.medianSeconds === null ? "-" : `${Math.round(r.medianSeconds / 3600)}h`}`,
+            );
+          else if (r.kind === "entry")
+            console.log(
+              `entry  ${r.funnel}  ${r.label}  opened ${n(r.opened)}  deals ${n(r.deals)}  collected ${n(r.collected)}  cost ${n(r.cost)}`,
+            );
+          else
+            console.log(
+              `offer  ${r.label}  deals ${n(r.deals)}  collected ${n(r.collected)}  scheduled ${n(r.scheduled)} ${r.currency ?? ""}`,
+            );
+        }
+        if (!rows.length) console.log("no numbers");
+      },
+    );
 }

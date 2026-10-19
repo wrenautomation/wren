@@ -25,6 +25,7 @@ import {
   verifyAudit,
 } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
+import type { JourneysService } from "@wren/pipeline/restate";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAccounts } from "./accounts.js";
@@ -56,7 +57,7 @@ import { registerNewsletter } from "./newsletter.js";
 import { registerNotes } from "./notes.js";
 import { registerPages } from "./pages.js";
 import { registerPeople } from "./people.js";
-import { registerPipeline } from "./pipeline.js";
+import { type PipelineWrites, registerPipeline } from "./pipeline.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
@@ -288,7 +289,18 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
-registerPipeline(program, withDb, withMainDb);
+registerPipeline(program, withDb, withMainDb, {
+  journeys: () =>
+    clients
+      .connect(ingressOf(settings))
+      .serviceClient<JourneysService>({ name: "Journeys" }) as ReturnType<
+      PipelineWrites["journeys"]
+    >,
+  client: () => {
+    const id = program.opts<{ client?: string }>().client;
+    return !id || id === WREN ? null : id;
+  },
+});
 registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,

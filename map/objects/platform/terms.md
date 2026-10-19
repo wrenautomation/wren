@@ -43,6 +43,7 @@ Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/store.ts:216
 |---|---|
 | `wren terms add|show` (`apps/cli/src/pipeline.ts`), honours `--client` | writes, reads |
 | `onboard` (`packages/delivery/src/index.ts:1255`) | reads the live version |
+| `wren deals sign|schedule`, console `dealsSign` (`signDeal`, `packages/pipeline/src/moves.ts`) | sets `deals.terms_version` once from the plan's live terms; a change needs force and is audited |
 
 ## See
 

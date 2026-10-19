@@ -44,6 +44,7 @@ Citations: `packages/offers/src/offer.ts:129`, `packages/offers/src/index.ts:78`
 |---|---|
 | William, in `packages/offers/src/index.ts` | writes |
 | `wren offers` (`apps/cli/src/pipeline.ts`) | syncs and reads versions |
+| console `PipelineConsole` `offersSync`; record `pipeline.offer` | syncs, reads |
 | `../lander` (outside this repo) | reads the export |
 | compose | reads by name |
 

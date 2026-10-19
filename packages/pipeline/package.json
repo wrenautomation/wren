@@ -6,14 +6,22 @@
   "exports": {
     "./carry": "./src/carry.ts",
     "./collect": "./src/collect.ts",
+    "./components": "./src/components.ts",
+    "./console": "./src/console.ts",
+    "./console-routes": "./src/console-routes.ts",
     "./entry": "./src/entry.ts",
     "./journeys": "./src/journeys.ts",
     "./model": "./src/model.ts",
+    "./moves": "./src/moves.ts",
+    "./numbers": "./src/numbers.ts",
+    "./records": "./src/records.ts",
+    "./restate": "./src/restate.ts",
     "./schedule": "./src/schedule.ts",
     "./schema": "./src/schema.ts",
     "./stages": "./src/stages.ts",
-    "./store": "./src/store.ts",
     "./steps": "./src/steps.ts",
+    "./store": "./src/store.ts",
+    "./views": "./src/views.ts",
     "./workflow": "./src/workflow.ts"
   },
   "scripts": {
@@ -22,10 +30,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/offers": "workspace:*",
-    "drizzle-orm": "0.45.2"
+    "drizzle-orm": "0.45.2",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

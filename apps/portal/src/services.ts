@@ -98,6 +98,11 @@ import {
   PAYMENTS_CONSOLE_WRITES,
 } from "@wren/payments/console-routes";
 import {
+  PIPELINE_CONSOLE_APPS,
+  PIPELINE_CONSOLE_ROUTES,
+  PIPELINE_CONSOLE_WRITES,
+} from "@wren/pipeline/console-routes";
+import {
   PORTAL_APPS,
   PORTAL_MAX_BODY,
   PORTAL_ROUTES,
@@ -242,6 +247,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   ),
   // Opportunities: deals in pipelines of stages, for a client and for Wren.
   deals: service("DealsConsole", DEALS_CONSOLE_ROUTES, DEALS_CONSOLE_APPS, DEALS_CONSOLE_WRITES),
+  // Offers, funnels, journeys, deals and numbers of the pipeline, and the hand moves on them.
+  pipeline: service(
+    "PipelineConsole",
+    PIPELINE_CONSOLE_ROUTES,
+    PIPELINE_CONSOLE_APPS,
+    PIPELINE_CONSOLE_WRITES,
+  ),
   // A client's accounts with their setups, and its vendors: modes, room, the month's usage.
   accounts: service(
     "AccountsConsole",

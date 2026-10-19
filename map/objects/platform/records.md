@@ -53,7 +53,7 @@ Citations: `packages/core/src/records.ts:359`, `packages/core/src/records-serve.
 
 ## Connected to
 
-- **owns:** the four reactivation record views, the eight console record views
+- **owns:** the four reactivation record views, the eight console record views, the five `pipeline.*` row types (`packages/pipeline/src/records.ts`, served by `PipelineConsole`)
 - **joins:** [[reactivation/crm-contact]] (people come from it), [[platform/db-schema]] (views ride the migrations into every client database), [[platform/loop-object]] (`console.loop`), [[email/roster]] and [[email/send-policy]] (inbox and campaign rows), [[email/sender-pause]] (inbox pause/resume actions)
 - **looks-like-but-is-not:** `ConsolePortal.view` (Wren's team reads an allowed view whole, no declaration, no mask)
 

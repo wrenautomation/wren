@@ -29,6 +29,7 @@ import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { NOTES_RECORDS } from "@wren/notes/records";
+import { PIPELINE_RECORDS } from "@wren/pipeline/records";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { SITES_RECORDS } from "@wren/sites/records";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -104,6 +105,8 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
     ...SITES_RECORDS,
     // Wren's own deals (Opportunities); a client's come from DealsConsole.
     dealRecordFor(null),
+    // Offers, funnels, journeys, deals and numbers of the pipeline (Opportunities).
+    ...PIPELINE_RECORDS,
     reviewRecord(),
     askRecord,
   ];
