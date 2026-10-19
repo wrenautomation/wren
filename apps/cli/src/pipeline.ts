@@ -33,6 +33,7 @@ import {
   termsHistory,
 } from "@wren/pipeline/store";
 import { type Command, InvalidArgumentError } from "commander";
+import { registerPipelineSeed } from "./pipeline-seed.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -469,6 +470,8 @@ export function registerPipeline(
         else console.log(`on reported revenue  ${l.bps / 100}%  ${l.currency}`);
       }
     });
+
+  registerPipelineSeed(program, withDb, writes);
 
   program
     .command("numbers")

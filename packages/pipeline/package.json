@@ -19,6 +19,7 @@
     "./restate": "./src/restate.ts",
     "./schedule": "./src/schedule.ts",
     "./schema": "./src/schema.ts",
+    "./seed": "./src/seed.ts",
     "./sourced": "./src/sourced.ts",
     "./stages": "./src/stages.ts",
     "./steps": "./src/steps.ts",

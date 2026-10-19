@@ -47,7 +47,15 @@ describe("commands", () => {
 
   it("registers the areas", () => {
     const p = program();
-    expect(names(p)).toEqual(["offers", "terms", "funnels", "journeys", "deals", "numbers"]);
+    expect(names(p)).toEqual([
+      "offers",
+      "terms",
+      "funnels",
+      "journeys",
+      "deals",
+      "pipeline",
+      "numbers",
+    ]);
     expect(names(p.commands[0] as Command)).toEqual(["sync", "list", "versions"]);
     expect(names(p.commands[1] as Command)).toEqual(["add", "show"]);
     expect(names(p.commands[2] as Command)).toEqual(["list", "add", "append", "show", "off", "on"]);

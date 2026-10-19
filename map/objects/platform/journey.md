@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ a6004537
+verified: 2026-10-19 @ 5cd99e8b
 entity: packages/pipeline/src/schema.ts:125
 ---
 
@@ -31,6 +31,7 @@ The row is a cache. The truth is spine events with subject `journey:<id>`, so a 
 - Stage research (`research.ts`, `requestResearch`): `journey.stage` on a non-dropped arrival at a stage whose `with.research` is `light` or `full` claims one `journey_research` row per `(journey, stage)` (`schema.ts:220`) and asks once, against the newest `offer_versions.body.icp` of `FunnelBody.offer` (`icpOf`; context only, nothing scores fit). `light`: the injected `Researcher.light` reads the workspace's own rows in the claim's transaction (role, firm, address verdicts) into `result`; state `read`. `full`: state `queued`, then `Researcher.full` queues and sends the person-research run without waiting; state `started` with `lookup_id`, or `skipped` with a note. A start that fails leaves `queued`, and the next repeat of the step starts it. A repeat that finds the row asks nothing. The ask never stops the arrival: a throw is logged. The worker's `journeyResearcher` (`apps/worker/src/journey-research.ts`) wires `readProfileFacts` + `latest_verifications` for `light` and `queueProfileResearch` + `ProfileResearch/<profile>/run` for `full`; a client workspace's `full` is skipped (person research is Wren's own People only). One `profile_events` line (kind `journey`) per ask.
 - `sourced` cause: kind `sourced`, ref the list id, `entry_ref` carries `source` and `row` (the `people.id`). `sourcedPass` (`sourced.ts`) is the tail: for each list a live funnel's newest version names, it reads the `people` rows of that import batch past a cursor, maps each to its profile by the `person` key, and returns `trigger.source` fires. The worker's `SourcedFeed/all` loop (`apps/worker/src/sourced-feed.ts`) keeps the cursors per workspace and list and sends the fires with `spineFire`. Members without a profile are skipped and counted.
 - `carryJourneys` (`carry.ts:21`): open journeys of an older version move to the new one at the same stage, with an arrival at `funnel.<id>.v<to>` node `s_<stage>` and cause `{kind: "version", ref: <old>}`. J2's `appendFunnel` will call it.
+- Client-zero seed (`seed.ts`): one private JSON (`sops/pipeline/client-zero.json`) holds funnels, terms, partner journeys and deal signs. `parseSeed` refuses any `ASK_WILLIAM` (listing each) and any bad shape; `planSeed` reads only and finds every problem (`checkFunnel`, terms, entry stages, plans live today, one engagement per link); `applySeed` runs the plan through `addFunnel`/`appendFunnel`, `addTerms`, the `Journeys` open and `signDeal`, so there is no second write path. Run again, it skips: funnels by body, terms by body, journeys by person + funnel, deals by terms. It never forces a deal's terms. `linkEngagement` sets `deals.engagement_id` once (nothing else sets it yet). The offer needs a stored version first (`wren offers sync`).
 - `spine_executions` titles a `journey:<uuid>` subject "Name: funnel, stage" (migration `0297_journey_event_kind`, with `ck_events_kind`).
 - `journey_research` (migration `0301_journey_research`): not audited; a cache of what was asked.
 - Migration `0295_pipeline`. The six first `pipeline` tables are audited, area `money` (`packages/db/src/audit/install.ts`).
@@ -58,9 +59,10 @@ Citations: `packages/pipeline/src/restate.ts:81`, `packages/pipeline/src/moves.t
 |---|---|
 | `wren journeys open|move|drop|show|list|rebuild`, `wren deals list|sign|schedule` (`apps/cli/src/pipeline.ts`); writes go to `Journeys` over ingress | writes, reads |
 | console `PipelineConsole` (`packages/pipeline/src/console.ts`): `journeysOpen`, `journeysMove`, `journeysDrop`, `dealsSign` | writes |
+| `wren pipeline seed --file <json> [--dry]` (`apps/cli/src/pipeline-seed.ts`, `packages/pipeline/src/seed.ts`) | writes |
 | records `pipeline.journey`, `pipeline.deal`, `pipeline.number` (agent CLI and portal records) | reads |
 
 ## See
 
 - Design: `designs/2026-10-18-journeys.md`
-- Tests: `packages/pipeline/src/stages.test.ts`, `packages/pipeline/src/entry.test.ts`, `packages/pipeline/test/integration/schema.test.ts`, `packages/pipeline/test/integration/journeys.test.ts`, `packages/pipeline/test/integration/moves.test.ts`, `packages/pipeline/test/integration/console.test.ts`, `packages/pipeline/test/integration/sourced-research.test.ts`, `packages/pipeline/src/sourced.test.ts`
+- Tests: `packages/pipeline/src/stages.test.ts`, `packages/pipeline/src/entry.test.ts`, `packages/pipeline/test/integration/schema.test.ts`, `packages/pipeline/test/integration/journeys.test.ts`, `packages/pipeline/test/integration/moves.test.ts`, `packages/pipeline/test/integration/console.test.ts`, `packages/pipeline/test/integration/sourced-research.test.ts`, `packages/pipeline/test/integration/seed.test.ts`, `packages/pipeline/src/seed.test.ts`, `apps/cli/src/pipeline-seed.test.ts`, `packages/pipeline/src/sourced.test.ts`
