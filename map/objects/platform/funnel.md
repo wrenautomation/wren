@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ 781f02d7
+verified: 2026-10-19 @ 082992f8
 entity: packages/pipeline/src/model.ts:41
 ---
 
