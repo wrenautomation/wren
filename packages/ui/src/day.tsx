@@ -8,7 +8,7 @@ import type { RecordMeta, State } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type Action, runs, useRun } from "./action.js";
+import { type Action, runningOn, runs, useRun } from "./action.js";
 import { Button, ButtonLink } from "./controls.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
@@ -369,9 +369,7 @@ function Day({
                                   <Button
                                     size="dense"
                                     tone="secondary"
-                                    busy={
-                                      running?.action === can.id && running.ids.includes(it.row.id)
-                                    }
+                                    busy={runningOn(running, can.id, [it.row.id])}
                                     onClick={() => act(can, it.row)}
                                   >
                                     {can.label}

@@ -475,6 +475,53 @@ describe("a send (accept, then track)", () => {
     expect(w.lastOn(recordKey("threads", "t1"))?.status).toBe("sent");
   });
 
+  it("a page that went and came back finds its press still at work, until it lands", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    const p = go("hello");
+    await flush();
+    // A new page of the same list (its own button state is gone) asks the store.
+    expect(w.goingIn("threads")).toEqual({ what: "inbox.reply", ids: ["t1"] });
+    expect(w.goingIn("posts")).toBeNull();
+    s.finish("req-0001", { answer: { sent: true } });
+    t.pass(800);
+    await p;
+    expect(w.goingIn("threads")).toBeNull();
+  });
+
+  it("a send with no words that lands with nobody waiting is still said", async () => {
+    const shared = memoryStore();
+    const before = tab(shared);
+    const s = sendServer();
+    const first = new Writes(before.env);
+    first.use({ send: s.send, status: s.status, reread: async () => undefined });
+    first.start();
+    void first
+      .press(
+        {
+          key: "again:9",
+          what: "marketing.sendAgain",
+          label: "Send again",
+          records: [recordKey("sends", 9)],
+        },
+        (requestId) =>
+          first.call("marketing/sendAgain", { requestId }, (b) => s.send("marketing/sendAgain", b)),
+      )
+      .catch(() => undefined);
+    await flush();
+    before.leave();
+    first.stop();
+    const after = tab(shared);
+    const second = sendStore(after, s);
+    await flush();
+    s.finish("req-0001", { answer: { sent: true } });
+    after.pass(400);
+    await flush();
+    await flush();
+    expect(second.told).toEqual(["Send again:sent"]);
+  });
+
   it("hidden mid-send, refused while hidden: the reason is said on return", async () => {
     const t = tab();
     const s = sendServer();

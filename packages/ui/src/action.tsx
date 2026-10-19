@@ -945,11 +945,16 @@ export function useRun(
   if (!ref.current) ref.current = new Runner(deps);
   const runner = ref.current;
   runner.update(deps);
-  const { asked, running } = useSyncExternalStore(
+  const { asked, running: here } = useSyncExternalStore(
     runner.subscribe,
     runner.snapshot,
     runner.snapshot,
   );
+  // A press this page made before it went (another page, a reload) is still at work in `WRITES`.
+  const snap = useSyncExternalStore(WRITES.subscribe, WRITES.snapshot, WRITES.snapshot);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `snap` is what moves it.
+  const going = useMemo(() => WRITES.goingIn(names.many), [snap, names.many]);
+  const running = here ?? (going && { action: going.what, ids: going.ids });
   // What's typed in the dialog stays on the device until it is sent: closing it, or a
   // reload, gives it back when the same action opens on the same rows.
   const keptKey = asked ? keptKeyOf(names.many, asked.action, asked.ids) : null;
@@ -965,11 +970,13 @@ export function useRun(
   const { typed } = fieldsForm.watch();
   const [files, setFiles] = useState<Record<string, File>>({});
   const [shown, setShown] = useState<MessageKind | null>(null);
-  const busy = running !== null;
+  // Only this page's own call holds its dialogs: a send still out from before holds its button.
+  const busy = here !== null;
   const textId = useId();
   const textBox = useRef<HTMLTextAreaElement>(null);
 
   const run = (action: Action, ids: (string | number)[], start = "") => {
+    if (running && runningOn(running, action.id, ids)) return;
     if (runner.run(action, ids, start) !== "asked") return;
     setFiles({});
     const preview = action.ask?.preview;
@@ -1115,5 +1122,16 @@ export const say = {
 };
 
 export function Toasts() {
-  return <Toaster position="bottom-center" />;
+  return <Toaster position="bottom-right" />;
+}
+
+/** This action is at work on any of these rows (ids from `WRITES` come back as text). */
+export function runningOn(
+  running: { action: string; ids: readonly (string | number)[] } | null,
+  action: string,
+  ids: readonly (string | number)[],
+): boolean {
+  if (running?.action !== action) return false;
+  const on = new Set(running.ids.map(String));
+  return ids.some((id) => on.has(String(id)));
 }

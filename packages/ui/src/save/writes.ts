@@ -268,6 +268,21 @@ export class Writes {
     return null;
   }
 
+  /**
+   * The newest action press in `scope` still going, and its ids: a button shows it is at work
+   * after its page went and came back, not only while the page that pressed it stays.
+   */
+  goingIn(scope: string): { what: string; ids: string[] } | null {
+    const at = recordKey(scope, "");
+    for (let i = this.list.length - 1; i >= 0; i--) {
+      const w = this.list[i] as Write;
+      if (w.status !== "sending" || w.what === null) continue;
+      const ids = w.records.filter((r) => r.startsWith(at)).map((r) => r.slice(at.length));
+      if (ids.length) return { what: w.what, ids };
+    }
+    return null;
+  }
+
   /** Ids in `scope` an open press (or one whose page hasn't read again) keeps out of lists. */
   hiddenIn(scope: string): Set<string> {
     const at = recordKey(scope, "");
@@ -750,9 +765,10 @@ export class Writes {
     for (const w of this.list)
       if (done(w.status) && !w.told) {
         w.told = true;
-        // A failure is always said. A landing only when it carried words, or was lost once:
-        // a set-aside that went is what the list already shows.
-        if (w.status === "sent" && !w.input && !w.retried) continue;
+        // A failure is always said. A landing only when it carried words, was lost once, or
+        // was a send the server ran on its own time (he may be on another page by then): a
+        // set-aside that went is what the list already shows.
+        if (w.status === "sent" && !w.input && !w.retried && !w.accepted) continue;
         try {
           this.hooks.tell?.(w);
         } catch {

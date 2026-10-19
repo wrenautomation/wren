@@ -4,7 +4,7 @@
  * action that applies shows on its line (Setup's Change). Nothing to pick, sort or export.
  */
 import { cn } from "cn";
-import { applies, useRun } from "./action.js";
+import { applies, runningOn, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { Cue, FieldCell } from "./fields.js";
@@ -90,7 +90,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
                           key={a.id}
                           tone="secondary"
                           size="dense"
-                          busy={running?.action === a.id && running.ids.includes(r.id)}
+                          busy={runningOn(running, a.id, [r.id])}
                           disabled={busy}
                           onClick={() => run(a, [r.id], startOf(a, r))}
                         >
