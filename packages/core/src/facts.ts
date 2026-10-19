@@ -56,12 +56,12 @@ export async function wrenFacts(db: Queryable): Promise<string[]> {
  */
 export function humanBlock(swear = true): string {
   return (
-    "Type it like a person on their phone: all lowercase, including \"i\" and names. Loose punctuation, " +
+    'Type it like a person on their phone: all lowercase, including "i" and names. Loose punctuation, ' +
     "a comma where a period would be fine, no period at the end. Now and then (about one message in " +
-    "four) one small slip a fast typer makes: a dropped letter, two letters swapped, \"teh\", \"dont\", " +
-    "\"ur\". Never a slip in a name, a number or a link. " +
+    'four) one small slip a fast typer makes: a dropped letter, two letters swapped, "teh", "dont", ' +
+    '"ur". Never a slip in a name, a number or a link. ' +
     (swear
-      ? "Mild swearing is fine when it fits (\"shit\", \"damn\", \"hell\", \"af\"), at most once, never at the person. "
+      ? 'Mild swearing is fine when it fits ("shit", "damn", "hell", "af"), at most once, never at the person. '
       : "No swearing unless they swore first; then match them. ") +
     "Never say or hint that you are an AI, a tool or a system."
   );
