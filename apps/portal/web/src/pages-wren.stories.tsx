@@ -152,8 +152,11 @@ export const NumbersCohorts = pageAt("/numbers/cohorts", { me: ADMIN });
 export const NumbersFromMoney = pageAt("/money/economics", { me: ADMIN });
 
 // Pipelines: the tabs only Wren's own app has.
-export const DealsDeals = pageAt("/deals/deals", { me: ADMIN, check: shows("Cai Moreno") });
-export const DealsCalls = pageAt("/deals/calls", { me: ADMIN });
-export const DealsEntries = pageAt("/deals/entries", { me: ADMIN, check: shows("mail", "ads1") });
+export const PipelinesDeals = pageAt("/pipelines/deals", { me: ADMIN, check: shows("Cai Moreno") });
+export const PipelinesCalls = pageAt("/pipelines/calls", { me: ADMIN });
+export const PipelinesEntries = pageAt("/pipelines/entries", {
+  me: ADMIN,
+  check: shows("mail", "ads1"),
+});
 /** The old Inbox link to Wren's calls lands in the pipelines app. */
-export const DealsCallsFromInbox = pageAt("/inbox/calls?view=booked", { me: ADMIN });
+export const PipelinesCallsFromInbox = pageAt("/inbox/calls?view=booked", { me: ADMIN });
