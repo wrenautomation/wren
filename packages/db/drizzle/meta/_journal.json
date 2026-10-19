@@ -2073,6 +2073,13 @@
       "when": 1792418954073,
       "tag": "0296_agreement_terms_version",
       "breakpoints": true
+    },
+    {
+      "idx": 297,
+      "version": "7",
+      "when": 1792420102593,
+      "tag": "0297_journey_event_kind",
+      "breakpoints": true
     }
   ]
 }

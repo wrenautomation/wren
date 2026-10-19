@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { atomic, type Queryable, type Tx } from "@wren/db";
 import type { Offer, Terms } from "@wren/offers";
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
+import { carryJourneys } from "./carry.js";
 import { checkFunnel, type FunnelBody, type FunnelContext } from "./model.js";
 import {
   type Funnel,
@@ -327,8 +328,8 @@ export async function addFunnel(db: Queryable, input: NewFunnel): Promise<Funnel
 }
 
 /**
- * The next version of a funnel, checked against the newest. The version carry of open journeys
- * is not here: the caller does it after.
+ * The next version of a funnel, checked against the newest. Open journeys carry to it in the
+ * same transaction (`carryJourneys`).
  */
 export async function appendFunnel(
   db: Queryable,
@@ -357,6 +358,8 @@ export async function appendFunnel(
       .values({ funnel: id, number: last.number + 1, body, why, createdBy: by })
       .returning();
     if (!row) throw new Error("funnel version insert returned nothing");
+    // Open journeys keep their stage on the new version (a `version` event each).
+    await carryJourneys(tx, id, row.number);
     return row;
   });
 }

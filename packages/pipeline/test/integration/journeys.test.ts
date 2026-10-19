@@ -29,6 +29,7 @@ import {
   pipelineDeals,
 } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
+import { appendFunnel } from "../../src/store.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -342,6 +343,19 @@ describe("composition", () => {
 });
 
 describe("a new version", () => {
+  it("appendFunnel carries open journeys in the same write", async () => {
+    await funnel("echo", body());
+    const profile = await person("hal@example.test");
+    await hear(rig(), await flowsOf("echo"), REPLY, reply(51, "hal@example.test"));
+    const next = body();
+    next.stages.push({ key: "upsell", label: "Upsell", on: [] });
+    const triggers = new Set(["trigger.reply", "trigger.booking", "trigger.document"]);
+    const v2 = await appendFunnel(pg.db, "echo", next, "add upsell", "t", triggers);
+    expect(v2.number).toBe(2);
+    expect(await journeyOf(profile, "echo")).toMatchObject({ version: 2, stage: "engaged" });
+    expect(await arrivals("funnel.echo.v2", "s_engaged")).toHaveLength(1);
+  });
+
   it("carries open journeys to it, with a version event, and the new version moves them", async () => {
     await funnel("delta", body());
     const profile = await person("gil@example.test");
