@@ -254,6 +254,17 @@ describe("offerFacts", () => {
   });
 });
 
+describe("icp", () => {
+  it("is optional, needs a who, and stays out of the snapshot", () => {
+    expect(defineOffer(offer({ icp: { who: "Small firms.", sizes: ["11-50"] } })).icp?.who).toBe(
+      "Small firms.",
+    );
+    expect(() => defineOffer(offer({ icp: { who: " " } }))).toThrow(/icp needs/);
+    const text = snapshotText([offer({ icp: { who: "Small firms." } })]);
+    expect(text).not.toContain("icp");
+  });
+});
+
 describe("snapshot", () => {
   it("round-trips the registry as JSON", () => {
     const parsed = JSON.parse(snapshotText(OFFERS)) as ReturnType<typeof snapshot>;
@@ -269,6 +280,7 @@ describe("snapshot", () => {
           perUnitMeasure: ______,
           addOn: _______,
           target: ________,
+          icp: _________,
           ...o
         }) => o,
       ),
@@ -281,6 +293,7 @@ describe("snapshot", () => {
       "app",
       "perUnitMeasure",
       "target",
+      "icp",
     ];
     expect(parsed.offers.some((o) => portalOnly.some((k) => k in o))).toBe(false);
   });

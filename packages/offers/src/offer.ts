@@ -126,6 +126,24 @@ export interface AccessNeed {
   readonly revoke: string;
 }
 
+/**
+ * Who an offer is for, in rules a checker can run (designs/2026-10-18-journeys.md). Kept on the
+ * offer, so each offer version carries it. Never in the site snapshot. Left out: no rules yet.
+ */
+export interface Icp {
+  /** In one line. */
+  readonly who: string;
+  readonly industries?: readonly string[];
+  /** Headcount bands: "11-50". */
+  readonly sizes?: readonly string[];
+  readonly roles?: readonly string[];
+  readonly regions?: readonly string[];
+  /** Plain rules a match must meet. */
+  readonly must?: readonly string[];
+  /** Plain rules that rule a match out. */
+  readonly not?: readonly string[];
+}
+
 export interface Offer {
   /** Stable, kebab-case, stored on enrollments and deals. Never renamed; retire and add. */
   readonly id: string;
@@ -196,6 +214,8 @@ export interface Offer {
    * `measure` by `days`, on a straight line from `fromDay`. Left out: results aren't scored.
    */
   readonly target?: { readonly measure: string; readonly count: number; readonly fromDay: number };
+  /** Who it is for, as rules. Funnel research reads it. Left out: none. */
+  readonly icp?: Icp;
 }
 
 const ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -283,6 +303,9 @@ export function defineOffer(offer: Offer): Offer {
     throw new Error(`${where}: name, audience and promise are required`);
   }
   if (!OFFER_STATUSES.includes(offer.status)) throw new Error(`${where}: bad status`);
+  if (offer.icp !== undefined && !offer.icp.who.trim()) {
+    throw new Error(`${where}: an icp needs a line in who`);
+  }
   if (offer.price.kind === "fixed") {
     if (offer.price.upfront === null && offer.price.monthly === null) {
       throw new Error(`${where}: a fixed price needs an upfront or a monthly range`);

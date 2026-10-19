@@ -17,6 +17,7 @@ export type {
   Application,
   Choice,
   FitRule,
+  Icp,
   Measure,
   MeasureUnit,
   Offer,
