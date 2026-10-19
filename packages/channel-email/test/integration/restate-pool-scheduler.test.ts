@@ -25,7 +25,7 @@ const POLICY = SendPolicy.fromSettings(
 /** What each stand-in stage answers next; the test moves the pool by hand. */
 const answers = {
   discover: { companies_scanned: 0 },
-  crawl: { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 },
+  crawl: { companies_crawled: 0, homepage_unreachable: 0 },
   pick: { picked: 0 },
   resolve: { domains_processed: 0, credits_spent: 0, dead_domains: 0 },
   verify: { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 },
@@ -127,7 +127,7 @@ beforeEach(async () => {
   profilesInput = null;
   teamInput = null;
   answers.discover = { companies_scanned: 0 };
-  answers.crawl = { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 };
+  answers.crawl = { companies_crawled: 0, homepage_unreachable: 0 };
   answers.resolve = { domains_processed: 0, credits_spent: 0, dead_domains: 0 };
   answers.verify = { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 };
   answers.crawlRefuses = false;
@@ -227,7 +227,7 @@ describe("PoolScheduler", () => {
   });
 
   it("comes back in a minute while a stage still finds work", async () => {
-    answers.crawl = { companies_crawled: 7, homepage_unreachable: 3, robots_blocked: 0 };
+    answers.crawl = { companies_crawled: 7, homepage_unreachable: 3 };
     const out = await sync();
     expect(out.stats?.progress).toBe(10);
     expect(out.delayMs).toBe(5_000);

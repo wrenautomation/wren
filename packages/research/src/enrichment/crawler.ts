@@ -1,8 +1,7 @@
 /**
  * Site crawler (funnel L2): a bounded, polite visit to one firm's website, storing
- * team/about-flavored pages as documents. robots.txt is consulted per URL; what a
- * disallow DOES is the robots mode: "warn" fetches anyway and reports every
- * disallowed URL, "enforce" skips. Crawling never calls an LLM. Companies are
+ * team/about-flavored pages as documents. robots.txt is consulted per URL and is a
+ * warning, never a stop: a disallowed URL is fetched anyway and reported. Crawling never calls an LLM. Companies are
  * crawled once (any company with documents is skipped); delete its documents to
  * force a recrawl. Crawl order prefers verified domains.
  */
@@ -18,7 +17,6 @@ import { documents } from "../schema.js";
 import type { Shard } from "./shard.js";
 import { PEOPLE_PAGE_HINTS, peoplePageCandidates } from "./urls.js";
 
-export type RobotsMode = "warn" | "enforce";
 export const HTTP_TIER = "httpx";
 export const EMPTY_HASH = createHash("sha256").update("").digest("hex");
 /** Postgres TEXT cannot hold NUL, and real sites serve it. */
@@ -28,9 +26,8 @@ export interface CrawlStats {
   companies_crawled: number;
   pages_stored: number;
   fetch_errors: number;
-  robots_blocked: number;
   homepage_unreachable: number;
-  /** Disallowed URLs fetched anyway under warn mode. */
+  /** Disallowed URLs fetched anyway. */
   robots_warned: number;
   /** Pages stored but flagged as JS shells: kept for provenance, skipped by scan/extraction. */
   shells_stored: number;
@@ -40,7 +37,7 @@ export interface CrawlStats {
   dead_skipped: number;
   /** Not fetched: the domain's memory says it needs a browser; the render pass takes it. */
   remembered_skipped: number;
-  /** Exactly which URLs robots.txt disallowed (skipped in enforce mode, fetched-with-warning in warn mode). */
+  /** Exactly which URLs robots.txt disallowed (each fetched anyway, with a warning). */
   robots_disallowed_urls: string[];
 }
 
@@ -49,7 +46,6 @@ export function emptyCrawlStats(): CrawlStats {
     companies_crawled: 0,
     pages_stored: 0,
     fetch_errors: 0,
-    robots_blocked: 0,
     homepage_unreachable: 0,
     robots_warned: 0,
     shells_stored: 0,
@@ -66,7 +62,6 @@ export function addCrawlStats(total: CrawlStats, unit: CrawlStats): CrawlStats {
     companies_crawled: total.companies_crawled + unit.companies_crawled,
     pages_stored: total.pages_stored + unit.pages_stored,
     fetch_errors: total.fetch_errors + unit.fetch_errors,
-    robots_blocked: total.robots_blocked + unit.robots_blocked,
     homepage_unreachable: total.homepage_unreachable + unit.homepage_unreachable,
     robots_warned: total.robots_warned + unit.robots_warned,
     shells_stored: total.shells_stored + unit.shells_stored,
@@ -78,31 +73,25 @@ export function addCrawlStats(total: CrawlStats, unit: CrawlStats): CrawlStats {
 }
 
 interface RobotsCounters {
-  robots_blocked: number;
   robots_warned: number;
   robots_disallowed_urls: string[];
 }
 
 /**
- * The robots seam shared by crawl and render: (proceed, disallowed). enforce = hard
- * skip, warn = fetch anyway; every disallowed URL is recorded in stats AND stamped on
- * the stored document so the fetch-over-disallow is queryable later.
+ * The robots seam shared by crawl and render: robots.txt is a warning, never a stop. A
+ * disallowed URL is fetched anyway, recorded in stats AND stamped on the stored document
+ * so the fetch-over-disallow is queryable later. Returns whether it was disallowed.
  */
-export async function robotsAllows(
+export async function robotsDisallows(
   fetcher: Fetcher,
   url: string,
   cache: RobotsCache,
-  mode: RobotsMode,
   stats: RobotsCounters,
-): Promise<{ proceed: boolean; disallowed: boolean }> {
-  if (await canFetch(fetcher, url, cache)) return { proceed: true, disallowed: false };
+): Promise<boolean> {
+  if (await canFetch(fetcher, url, cache)) return false;
   stats.robots_disallowed_urls.push(url);
-  if (mode === "enforce") {
-    stats.robots_blocked += 1;
-    return { proceed: false, disallowed: true };
-  }
   stats.robots_warned += 1;
-  return { proceed: true, disallowed: true };
+  return true;
 }
 
 /** A page under 400, else null; `refused` keeps the status that turned it away (403, 429). */
@@ -177,7 +166,6 @@ export interface CrawlCompanyOptions {
   pagesPerSite?: number;
   /** A niche's site vocabulary ("advisors", "our-clinicians") on top of PEOPLE_PAGE_HINTS. */
   extraHints?: Iterable<string>;
-  robotsMode?: RobotsMode;
   /** The fetch ladder's memory (main's). A domain it marks is not fetched. Absent: fetch as is. */
   memory?: TierMemory;
 }
@@ -221,7 +209,6 @@ export async function crawlCompany(
   const domain = company.domain;
   if (!domain) return stats;
   const pagesPerSite = opts.pagesPerSite ?? 5;
-  const mode = opts.robotsMode ?? "warn";
   const hints = [...PEOPLE_PAGE_HINTS, ...(opts.extraHints ?? [])];
   const robots: RobotsCache = new Map();
 
@@ -240,8 +227,7 @@ export async function crawlCompany(
   let homepageDisallowed = false;
   const refused: { status: number | null } = { status: null };
   for (const url of [`https://${domain}`, `https://www.${domain}`, `http://${domain}`]) {
-    const { proceed, disallowed } = await robotsAllows(fetcher, url, robots, mode, stats);
-    if (!proceed) continue;
+    const disallowed = await robotsDisallows(fetcher, url, robots, stats);
     homepage = await get(fetcher, url, refused);
     if (homepage) {
       homepageUrl = url;
@@ -274,8 +260,7 @@ export async function crawlCompany(
   const links = readPage(stripNul(homepage.text), homepage.url).links;
   const candidates = peoplePageCandidates(links, domain, hints);
   for (const url of candidates.slice(0, Math.max(0, pagesPerSite - 1))) {
-    const { proceed, disallowed } = await robotsAllows(fetcher, url, robots, mode, stats);
-    if (!proceed) continue;
+    const disallowed = await robotsDisallows(fetcher, url, robots, stats);
     const resp = await get(fetcher, url);
     if (!resp) {
       stats.fetch_errors += 1;

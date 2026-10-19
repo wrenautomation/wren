@@ -54,7 +54,6 @@ import {
   countCrawlNicheNullSkipped,
   crawlCompany,
   emptyCrawlStats,
-  type RobotsMode,
   selectCrawlTargets,
 } from "../enrichment/crawler.js";
 import { PICK_VERSION, RULES_PICKER } from "../enrichment/email-pick/graph.js";
@@ -241,7 +240,6 @@ export interface EnrichmentDeps {
   /** Lazily launched per render run and closed after it (Playwright). */
   renderer?: (() => Promise<BrowserRenderer>) | null;
   tracer?: Tracer;
-  robotsMode?: RobotsMode;
   /** The extraction prompt to run under; a niche registry can swap it later. */
   extractionSpec?: ExtractionSpec;
   /** Seconds of pause before each browser render; tests zero it. */
@@ -558,7 +556,6 @@ export function makeEnrichment(deps: EnrichmentDeps) {
     return owner && deps.clientLlm ? deps.clientLlm(owner.client, part, runId) : deps.llm;
   };
   const tracer = deps.tracer ?? NULL_TRACER;
-  const robotsMode = deps.robotsMode ?? "warn";
   const spec = deps.extractionSpec ?? DEFAULT_EXTRACTION_SPEC;
   // The fetch ladder's memory is main's: a domain is the same fact for every client.
   const memory = tierMemory(deps.db);
@@ -647,7 +644,6 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                 crawlCompany(tx, fetch(), company, {
                   pagesPerSite: input.pagesPerSite ?? 5,
                   extraHints: hintsFor(niche, input),
-                  robotsMode,
                   memory,
                 }),
               );
@@ -699,7 +695,6 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const options = {
             pagesPerSite: input.pagesPerSite ?? 5,
             extraHints: hintsFor(niche, input),
-            robotsMode,
             memory,
           };
           const units = unitBatches(

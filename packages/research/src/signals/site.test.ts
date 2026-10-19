@@ -72,7 +72,7 @@ const LATER = [{ state: "none", tried: [], checked_at: "2026-09-01T00:00:00Z" }]
 describe("site collector", () => {
   it("is built with its defaults", () => {
     expect(site.built).toBe(true);
-    expect(on).toEqual({ pages: 4, months: 12, robots: "warn" });
+    expect(on).toEqual({ pages: 4, months: 12 });
   });
 
   it("first read: the newest new digest from Wayback is one dated, linked signal", async () => {
@@ -198,20 +198,12 @@ describe("site collector", () => {
     expect(g.gets.filter((x) => x === "https://acmestudio.test")).toHaveLength(2);
   });
 
-  it("robots: enforce skips a disallowed page, warn reads it and says so", async () => {
+  it("robots: a disallowed page is read anyway and says so", async () => {
     const stored = [{ id: 11, url: "https://acmestudio.test", text: "Hi" }];
     const pages = {
       "https://acmestudio.test/robots.txt": "User-agent: *\nDisallow: /",
       "https://acmestudio.test": html("Hello"),
     };
-    const f = fetcher(pages);
-    const skip = await site.collect(deps([[FIRM], LATER, stored], f), "c7", {
-      ...on,
-      robots: "enforce",
-    });
-    expect(skip.state).toBe("none");
-    expect(f.gets).toEqual(["https://acmestudio.test/robots.txt"]);
-
     const warn = await site.collect(deps([[FIRM], LATER, stored], fetcher(pages)), "c7", on);
     expect(warn.signals[0]?.value).toMatchObject({ robots_disallowed: true });
   });

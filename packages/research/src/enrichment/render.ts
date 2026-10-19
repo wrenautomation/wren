@@ -37,7 +37,7 @@ import { type FetchStep, fetchLadder } from "../fetch/ladder.js";
 import type { RobotsCache } from "../fetch/robots.js";
 import { domainOf, isLadderTier, LADDER_TIERS, type TierMemory } from "../fetch/tier-memory.js";
 import { documents } from "../schema.js";
-import { EMPTY_HASH, type RobotsMode, robotsAllows, stripNul } from "./crawler.js";
+import { EMPTY_HASH, robotsDisallows, stripNul } from "./crawler.js";
 import type { Shard } from "./shard.js";
 import { PEOPLE_PAGE_HINTS, peoplePageCandidates } from "./urls.js";
 
@@ -128,7 +128,6 @@ export interface RenderStats {
   pages_stored: number;
   still_shell: number;
   render_errors: number;
-  robots_blocked: number;
   robots_warned: number;
   homepage_unrendered: number;
   niche_null_skipped: number;
@@ -147,7 +146,6 @@ export function emptyRenderStats(): RenderStats {
     pages_stored: 0,
     still_shell: 0,
     render_errors: 0,
-    robots_blocked: 0,
     robots_warned: 0,
     homepage_unrendered: 0,
     niche_null_skipped: 0,
@@ -164,7 +162,6 @@ export function addRenderStats(total: RenderStats, unit: RenderStats): RenderSta
     pages_stored: total.pages_stored + unit.pages_stored,
     still_shell: total.still_shell + unit.still_shell,
     render_errors: total.render_errors + unit.render_errors,
-    robots_blocked: total.robots_blocked + unit.robots_blocked,
     robots_warned: total.robots_warned + unit.robots_warned,
     homepage_unrendered: total.homepage_unrendered + unit.homepage_unrendered,
     niche_null_skipped: total.niche_null_skipped + unit.niche_null_skipped,
@@ -243,7 +240,6 @@ async function tombstone(db: Queryable, companyId: number, url: string, seen: Se
 export interface RenderCompanyOptions {
   pagesPerSite?: number;
   extraHints?: Iterable<string>;
-  robotsMode?: RobotsMode;
   /** Seconds of uniform pause before each render. */
   jitter?: readonly [number, number];
   sleep?: (ms: number) => Promise<void>;
@@ -264,7 +260,6 @@ export async function renderCompany(
   opts: RenderCompanyOptions = {},
 ): Promise<RenderStats> {
   const stats = emptyRenderStats();
-  const mode = opts.robotsMode ?? "warn";
   const pagesPerSite = opts.pagesPerSite ?? 5;
   const hints = [...PEOPLE_PAGE_HINTS, ...(opts.extraHints ?? [])];
   const jitter = opts.jitter ?? DEFAULT_JITTER;
@@ -293,12 +288,7 @@ export async function renderCompany(
     .where(eq(documents.companyId, company.id));
   for (const row of existing) seen.add(seenKey(row.url, row.hash));
 
-  const home = await robotsAllows(robotsFetcher, homepageUrl, robots, mode, stats);
-  if (!home.proceed) {
-    // Enforce mode only: without a browser row the company would be re-selected forever.
-    await tombstone(db, company.id, homepageUrl, seen);
-    return stats;
-  }
+  const homeDisallowed = await robotsDisallows(robotsFetcher, homepageUrl, robots, stats);
   await pause();
   let homepage: RenderedPage;
   try {
@@ -312,7 +302,7 @@ export async function renderCompany(
   }
 
   let stored = 0;
-  if (await storeRendered(db, company.id, homepageUrl, homepage, seen, stats, home.disallowed))
+  if (await storeRendered(db, company.id, homepageUrl, homepage, seen, stats, homeDisallowed))
     stored += 1;
 
   const domain = company.domain ?? "";
@@ -324,8 +314,7 @@ export async function renderCompany(
       )
     : [];
   for (const url of candidates.slice(0, Math.max(0, pagesPerSite - 1))) {
-    const { proceed, disallowed } = await robotsAllows(robotsFetcher, url, robots, mode, stats);
-    if (!proceed) continue;
+    const disallowed = await robotsDisallows(robotsFetcher, url, robots, stats);
     await pause();
     let page: RenderedPage;
     try {
@@ -370,7 +359,6 @@ export async function climbCompany(
 ): Promise<RenderStats> {
   const stats = emptyRenderStats();
   if (ladder.budget.left <= 0 || !company.domain) return stats;
-  const mode = opts.robotsMode ?? "warn";
   const hints = [...PEOPLE_PAGE_HINTS, ...(opts.extraHints ?? [])];
   const domain = domainOf(`https://${company.domain}`);
 
@@ -400,12 +388,7 @@ export async function climbCompany(
       .set({ fetchTier: tier, blockReason, fetchSteps })
       .where(eq(documents.id, marker.id));
 
-  const home = await robotsAllows(robotsFetcher, marker.url, robots, mode, stats);
-  if (!home.proceed) {
-    // Enforce mode only: without a rendered tier the company would be re-selected forever.
-    await settle(from, "robots", null);
-    return stats;
-  }
+  const homeDisallowed = await robotsDisallows(robotsFetcher, marker.url, robots, stats);
 
   const call = async (url: string, tier: typeof from) => {
     ladder.budget.left -= 1;
@@ -447,7 +430,7 @@ export async function climbCompany(
       pageOf(top),
       seen,
       stats,
-      home.disallowed,
+      homeDisallowed,
       trailOf(top),
     )
   ) {
@@ -463,8 +446,7 @@ export async function climbCompany(
   );
   for (const url of candidates.slice(0, Math.max(0, (opts.pagesPerSite ?? 5) - 1))) {
     if (ladder.budget.left <= 0) break;
-    const { proceed, disallowed } = await robotsAllows(robotsFetcher, url, robots, mode, stats);
-    if (!proceed) continue;
+    const disallowed = await robotsDisallows(robotsFetcher, url, robots, stats);
     const got = await call(url, top.tier);
     if ("failed" in got) break;
     if (got.fetched.block) continue;

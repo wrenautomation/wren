@@ -266,7 +266,7 @@ describe("climbCompany", () => {
       new FakeFetcher({}),
       company,
       new Map(),
-      { memory: tierMemory(db(), () => T0), robotsMode: "warn" },
+      { memory: tierMemory(db(), () => T0) },
     );
     return { stats, budget };
   };

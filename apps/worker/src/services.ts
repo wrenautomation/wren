@@ -956,7 +956,6 @@ export async function buildServices(
         }),
       renderer,
       tracer,
-      robotsMode: settings.robotsMode,
       crawlHintsFor,
       pages,
       // The render pass sends blocked companies up the fetch ladder (`web GET /fetch`); inside a unit's ctx.run, so the ingress. A render can take ~60 s.

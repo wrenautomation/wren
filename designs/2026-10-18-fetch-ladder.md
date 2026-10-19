@@ -171,7 +171,7 @@ or `dead`), `block` (the signal that sent it up), `learned_at`.
 
 - Rescoped (above): inline climbing cut. The crawl pays nothing; the render pass pays a capped
   number of calls.
-- Posture change, on purpose: rungs 2 to 4 pass for a browser (wa-59d). Robots warn mode stays.
+- Posture change, on purpose: rungs 2 to 4 pass for a browser (wa-59d). robots.txt stays a warning, never a stop; the enforce mode is gone (2026-10-19).
 - Memory in wren, ladder stateless: the ladder never knows who asks.
 - `dead` is a memory tier, not a separate flag: one row, one decay rule.
 - Shell skips `impersonate` inside the ladder: TLS cannot run JavaScript.

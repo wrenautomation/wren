@@ -390,9 +390,12 @@ const DEFAULT_RETRY_MS = 8 * 60_000;
 export const progressOf: Record<Stage, (s: Record<string, number>) => number> = {
   discover: (s) => s.companies_scanned ?? 0,
   verify: (s) => s.companies_scanned ?? 0,
-  // Unreachable and robots-blocked homepages leave an empty document, so they count.
+  // Unreachable and skipped (dead or remembered) homepages leave an empty document, so they count.
   crawl: (s) =>
-    (s.companies_crawled ?? 0) + (s.homepage_unreachable ?? 0) + (s.robots_blocked ?? 0),
+    (s.companies_crawled ?? 0) +
+    (s.homepage_unreachable ?? 0) +
+    (s.dead_skipped ?? 0) +
+    (s.remembered_skipped ?? 0),
   // A render that fails stays a shell and is picked again; only a stored page moves the pool.
   render: (s) => s.companies_rendered ?? 0,
   scan: (s) => s.scanned ?? 0,

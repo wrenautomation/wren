@@ -13,7 +13,7 @@ One fetched page or PDF of a company's site, stored with its text and html. Tabl
 
 ## Why this shape
 
-Everything downstream reads stored pages, never the live web: extraction, email scan, the contacts stage and provenance all cite a `document_id`. `fetch_tier` says how it was got, `block_reason` and `fetch_steps` say what stood in the way, `is_shell` marks a page that needs rendering, `robots_disallowed` records that we fetched past a disallow (warn mode). HTML was ~85% of the database and of each nightly dump, read once by the scan, so it lives in S3 once scanned; `htmlOf` reads it from either place, and nothing is dropped.
+Everything downstream reads stored pages, never the live web: extraction, email scan, the contacts stage and provenance all cite a `document_id`. `fetch_tier` says how it was got, `block_reason` and `fetch_steps` say what stood in the way, `is_shell` marks a page that needs rendering, `robots_disallowed` records that we fetched past a disallow (robots.txt is a warning, never a stop). HTML was ~85% of the database and of each nightly dump, read once by the scan, so it lives in S3 once scanned; `htmlOf` reads it from either place, and nothing is dropped.
 
 `fetch_tier` values: `httpx` (wren's own plain fetch), `browser` (the box render pass), and `impersonate`, `render`, `exit` (the fetch ladder, below). `block_reason` says why the render pass has the company: the crawl's block (`status-403`, `status-429`, `status-503`), `remembered` (the domain's memory sent it) or `dead` (the memory says nothing works). On a ladder page it keeps the block that sent the company; on a ladder tombstone, the block that stopped it (`cloudflare`, `shell`). `fetch_steps` is the ladder's tries for that page, `[{ tier, status, block, ms }]`.
 

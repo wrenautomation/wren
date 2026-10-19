@@ -11,7 +11,7 @@
 import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { HTTP_TIER, robotsAllows, stripNul } from "../enrichment/crawler.js";
+import { HTTP_TIER, robotsDisallows, stripNul } from "../enrichment/crawler.js";
 import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
 import { readPage } from "../fetch/htmltext.js";
 import type { RobotsCache } from "../fetch/robots.js";
@@ -50,8 +50,6 @@ export const site = defineCollector({
     pages: z.number().int().min(0).max(10).default(4),
     /** The first read's Wayback window. */
     months: z.number().int().min(1).max(60).default(12),
-    /** As the crawler: warn fetches a disallowed page and says so, enforce skips it. */
-    robots: z.enum(["warn", "enforce"]).default("warn"),
   }),
   bucket: { perDay: 200, burst: 20 },
   everyDays: 30,
@@ -136,20 +134,10 @@ export const site = defineCollector({
     const tried: Tried[] = [];
     const signals: SignalDraft[] = [];
     const robots: RobotsCache = new Map();
-    const counters = { robots_blocked: 0, robots_warned: 0, robots_disallowed_urls: [] };
+    const counters = { robots_warned: 0, robots_disallowed_urls: [] };
     let failed = 0;
     for (const p of pages) {
-      const { proceed, disallowed } = await robotsAllows(
-        fetcher,
-        p.url,
-        robots,
-        s.robots,
-        counters,
-      );
-      if (!proceed) {
-        tried.push({ step: "page", what: p.url, outcome: "robots: skipped" });
-        continue;
-      }
+      const disallowed = await robotsDisallows(fetcher, p.url, robots, counters);
       const resp = await read(fetcher, p.url, tried, "page");
       if (!resp) {
         failed += 1;

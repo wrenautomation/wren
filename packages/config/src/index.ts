@@ -75,8 +75,6 @@ export const settingsSchema = z.object({
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
   /** Contact for the outbound User-Agent (email or URL). Required before any fetch. */
   fetchContact: z.string().min(1).optional(),
-  /** warn: log robots disallows and fetch anyway (stamped on the row); enforce: skip. */
-  robotsMode: z.enum(["warn", "enforce"]).default("warn"),
   /** "fake" | "anthropic" | "<provider>[:model]". Never defaults to a paid provider. */
   llm: z.string().min(1).default("fake"),
   /** Anthropic model id used when llm is "anthropic". */
@@ -600,7 +598,6 @@ export const ENV_KEYS = {
   lakeTrackPath: "WREN_LAKE_TRACK_PATH",
   logLevel: "WREN_LOG_LEVEL",
   fetchContact: "WREN_FETCH_CONTACT",
-  robotsMode: "WREN_ROBOTS_MODE",
   llm: "WREN_LLM",
   llmModel: "WREN_LLM_MODEL",
   llmEnvPath: "WREN_LLM_ENV_PATH",
