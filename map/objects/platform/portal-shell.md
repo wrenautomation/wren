@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ 31cf8490 (+ reshape P1-P3: areas, parked, moved, Today = Write + Move)
+verified: 2026-10-19 @ 05e9f4a4 (+ M2: home is the Map; + reshape P1-P3: areas, parked, moved, Today = Write + Move)
 entity: apps/portal/web/src/areas.ts:19
 ---
 
@@ -28,6 +28,7 @@ Areas group apps by job. A page that moves between apps, or an app that gets a n
 - Routing (2026-10-16, designs/2026-10-16-portal-libs.md): TanStack Router, code routes in `apps/portal/web/src/router.tsx`; the address keeps its flat shape, list search typed by `LIST_SEARCH` (`packages/ui/src/list-search.ts`); `route.ts` (`href`, `navigate`, `useRoute`) wraps it. List bar menus open on hover through Base UI Popover (`useHoverPop`, `packages/ui/src/hover-pop.ts`). `scripts/libs-guard.mjs` fails history calls outside the router
 - Hover flyouts (2026-10-11): a closed app's `pages` (`NavApp.pages`, built in `App.tsx` beside `areas`) open beside its row on a fine pointer; `useHoverMenu` (`packages/ui/src/safe-triangle.ts`) holds it through the invisible triangle from where the pointer left to the flyout (`graceArea`, `inPolygon`), 350 ms at most; touch never gets them
 - Hover text (2026-10-14): any element with `data-tip` says that text after the pointer rests 400ms, or on keyboard focus, never on touch. `HintLayer` (`packages/ui/src/hint-layer.tsx`, mounted once in `apps/portal/web/src/main.tsx`) draws one tip for the whole page from document listeners, so a long table pays nothing per row. Callers spread `tipProps(text, {keys?, side?, as?})` (`packages/ui/src/hint.ts`, pure: `hintFlow` is the timer, `placeTip` the flip and clamp, `whenTip` the date line "Sep 30, 2026, 5:08 PM ET · 3 days ago"); `clipProps()` says an element's own text only while it is cut short; `dateTip(d)` (`fields.tsx`) is a date's. A disabled button takes no pointer, so the reason it is blocked rides on `Why` around it. Use it for icon-only buttons (name and key), cut-off text, state chips (`State.about`), counts, dates and platform chips; not where the label already says it all
+- Home is the Map for the team (M2, 2026-10-19): for Wren's team `/` renders `MapHome` (`apps/portal/web/src/map/Home.tsx`; the UI hub's Map page section): the Map of the workspace's shape with Today docked on the right (`today={<WrenToday docked/>}`; `docked` drops the PageHeader). The dock folds; its open state sits in localStorage `wren.portal.map.dock` through the shared `recall`/`keep` (`apps/portal/web/src/local.ts`, the one place for per-viewer storage). On a phone the dock is a "Today" tab under the Map. A client's login keeps `ClientToday` as it was, no Map. With the Map the page is `AppShell wide`.
 - `WrenToday` and `ClientToday` (`apps/portal/web/src/today.tsx`): `WrenToday` is setup and health alerts, pins, then two lists never mixed: Write (`writeOf`, `write.ts`: per-platform quota from the content plan in the order YouTube long-form, LinkedIn, Reddit, Instagram, Facebook, one Autopilot row for X, TikTok, Threads and the rest; a row opens Studio at the plan's `makeAt`; met quotas fold) and Move (the groups from `moves`; loading, failed with retry, empty); `AppsByArea` below (parked apps left out; the only list on a phone beside the dock). `ClientToday` is unchanged: a client's service cards with each app's `Glance` and Needs you
 - App wiring (`apps/portal/web/src/App.tsx:519`): areas built from the viewer's apps (`appsIn`, `apps/portal/web/src/modules/index.ts:78`) and `wren` (the workspace is Wren's, so an operator who opens a client sees the client's map); with one app (the demo) no Today and no areas
 - Layout (2026-10-11, `designs/2026-10-11-portal-polish.md`): `Display` (`packages/ui/src/display.ts:63`, `readDisplay`) is sidebar and pages widths, either folded, rows, text size, frame, counts, motion, kept as pref `display` (`useDisplay`, `packages/ui/src/frame.tsx:72`; mirrored in localStorage `wren.display` for the first paint). Wren's team keeps one at Wren for every workspace; a client one per workspace. The shell sets `--layout-*` vars on its root and `data-density`/`data-counts`/`data-motion` on `<html>`; text size zooms `main` only
@@ -60,7 +61,7 @@ Areas group apps by job. A page that moves between apps, or an app that gets a n
 
 | Surface | Role |
 |---|---|
-| portal "/" | Today |
+| portal "/" | the Map with Today docked (team); Today (client) |
 | portal sidebar | every app not parked, what waits in each |
 | portal /settings | Wren's Layout, Look, Guide |
 

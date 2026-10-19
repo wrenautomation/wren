@@ -6,6 +6,7 @@ import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
 import { APP_ANSWERS } from "./apps.js";
 import { JOURNEY_DETAIL, JOURNEY_ROWS, JOURNEY_WRITES } from "./journeys.js";
+import { MAP_ANSWERS } from "./map.js";
 import { AUTO_REPLY, CADENCE, PIECES, STUDIO_WAITING } from "./marketing.js";
 import { MOVE_ROWS } from "./moves.js";
 import { OFFER_ANSWERS, OFFER_DETAIL, OFFER_ROWS } from "./offers.js";
@@ -21,6 +22,7 @@ export const ANSWERS: Answers = {
   ...SHELL,
   ...APP_ANSWERS,
   ...JOURNEY_WRITES,
+  ...MAP_ANSWERS,
   ...OFFER_ANSWERS,
   "console/call:Pieces.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,

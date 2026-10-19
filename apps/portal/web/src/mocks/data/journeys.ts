@@ -112,8 +112,24 @@ export const JOURNEY_DETAIL: Record<string, (row: Row) => object> = {
     body: SHAPE,
     depths: DEPTHS,
     versions: [
-      { number: 2, parent: 1, note: "Dropped the Joined node.", at: ago(9), by: "Ada North" },
-      { number: 1, parent: null, note: "First shape.", at: ago(40), by: "Ada North" },
+      {
+        number: 2,
+        parent: 1,
+        note: "Dropped the Joined node.",
+        at: ago(9),
+        by: "Ada North",
+        nodes: 5,
+        edges: 4,
+      },
+      {
+        number: 1,
+        parent: null,
+        note: "First shape.",
+        at: ago(40),
+        by: "Ada North",
+        nodes: 6,
+        edges: 5,
+      },
     ],
   }),
 };

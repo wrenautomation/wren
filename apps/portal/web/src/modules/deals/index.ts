@@ -10,6 +10,15 @@ import type { Module } from "../../module.js";
 import { JourneyBoard } from "./board.js";
 import { TEAM_PIPELINE_PAGES } from "./team-pages.js";
 
+/**
+ * The Map opens a node's people as `?node=<id>`. A list filter on words reads `~<words>`, so a
+ * bare id is sent on as that (`ListPage.legacy` runs before the page draws).
+ */
+export const nodeLegacy = (params: URLSearchParams) => {
+  const node = params.get("node");
+  return node && !/^[~+-]/.test(node) ? { node: `~${node}` } : null;
+};
+
 /** A client's Journeys, in its own workspace: its own shape and journeys. */
 export const clientDeals: Module = {
   id: "pipelines",
@@ -42,6 +51,7 @@ export const clientDeals: Module = {
         all: "No journeys yet.",
       },
       columns: ["name", "nodeName", "flag", "ghost", "entry", "owner", "daysAtNode", "movedAt"],
+      legacy: nodeLegacy,
       // Wren's Today lists the stale ones as a move: Nudge or drop.
       count: { flag: ["stale"] },
     },

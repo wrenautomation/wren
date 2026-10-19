@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ 05e9f4a4
+verified: 2026-10-19 @ ad4071fd (+ M2: Map reads, number windows, shapeDiff bodies)
 entity: packages/pipeline/src/model.ts:123
 ---
 
@@ -36,6 +36,7 @@ The file form (YAML) is the way to read, diff in git and write a whole version a
 - Migration. 0306 was additive; `wren shape migrate --all` (built v1 from the old funnels, placed every journey) ran in that deploy and is gone, with its deploy step. Migration `0307_journeys_guard` raises when any journey has no `node` or `shape_version`, or a person holds two open journeys; then it drops `journeys.funnel`, `stage` and the funnel `version`, renames `shape_version` to `version`, makes `node` and `version` not null, adds the one-open-journey index and drops `uq_deals_journey` ([[platform/journey]]).
 - Numbers (`views.ts`, migration `0306_shape`): views `node_counts` (`:22`), `edge_flow` (`:63`), `source_numbers` (`:93`) over `events` with workflow `shape.v%`. The old `stage_counts`, `stage_flow`, `entry_numbers` stay for one release as views over them. A version carry (cause `version`) is no arrival. `numberRows` (`numbers.ts:320`) builds `pipeline.number` rows of kind `node | edge | offer`.
 - Records (`records.ts`): `pipeline.shape` (`:296`; one row `shape`: name, version, nodes, edges, open journeys, why, changed at and by; actions `version` `{ body, note, moves? }`, `diff` `{ a, b }`, `import` `{ text }`).
+- The Map reads (M2, 2026-10-19): `pipeline.shape` for the body, `depths` and `versions[]`; `pipeline.number` rows per window (`NUMBER_WINDOWS` `all|7|30|90`, `records.ts:695`; field `window`, row id `<node>` for `all`, `<node>@<window>` else; the node, edge and offer views list `window: "all"` only, so every other reader is unchanged); `pipeline.journey` view `ghost` for people on a dropped node. `shapeDiff` (`console.ts:205`) answers `{ a, b, diff, bodies: [a.body, b.body] }`; the History panel draws the pair with the graph kit's `mark`. The reads are `apps/portal/web/src/map/read.ts` (`useMap`), the drawing `map/model.ts` (`graphOf`).
 
 Citations: `packages/pipeline/src/model.ts:123`, `packages/pipeline/src/model.ts:184`, `packages/pipeline/src/model.ts:373`, `packages/pipeline/src/model.ts:404`, `packages/pipeline/src/store.ts:259`, `packages/pipeline/src/store.ts:308`, `packages/pipeline/src/store.ts:357`, `packages/pipeline/src/schema.ts:129`, `packages/pipeline/src/workflow.ts:51`, `packages/pipeline/src/journeys.ts:91`, `packages/pipeline/src/carry.ts:32`, `packages/pipeline/src/carry.ts:99`, `packages/pipeline/src/starter.ts:24`, `packages/pipeline/src/edit.ts:77`, `packages/pipeline/src/shape-file.ts:135`, `packages/pipeline/src/views.ts:22`, `packages/pipeline/src/numbers.ts:320`, `packages/pipeline/src/records.ts:296`, `apps/worker/src/services.ts:2065`, `apps/cli/src/shape.ts:192`
 
@@ -58,10 +59,10 @@ Citations: `packages/pipeline/src/model.ts:123`, `packages/pipeline/src/model.ts
 | `wren shape show|versions|diff|export|import|start|add-node|connect|remove|move` (`apps/cli/src/shape.ts`), honours `--client` | writes, reads |
 | console `PipelineConsole` `shapeVersion|shapeDiff|shapeImport` (`packages/pipeline/src/console.ts`); portal actions `pipeline.shapeVersion|shapeDiff|shapeImport` | writes |
 | record `pipeline.shape`, with the agent CLI and portal records | reads |
-| portal board (`modules/deals/board.tsx`), segment editor (`modules/people/segments.tsx`, context key `shape`), Numbers shape tab, Today moves (`moves.ts`, node names), Wren editor `trigger.journey` note | reads |
+| portal Home (`apps/portal/web/src/map/`, the UI hub's Map page section), board (`modules/deals/board.tsx`), segment editor (`modules/people/segments.tsx`, context key `shape`), Numbers shape tab, Today moves (`moves.ts`, node names), Wren editor `trigger.journey` note | reads |
 | Workflows app | a version shows as the workflow `shape.v<n>` (read only) |
 
 ## See
 
-- Design: `designs/2026-10-19-business-map.md`; brief `designs/briefs/2026-10-19-business-map-1-model.md`
+- Design: `designs/2026-10-19-business-map.md`; briefs `designs/briefs/2026-10-19-business-map-1-model.md`, `designs/briefs/2026-10-19-business-map-2-read.md`, `designs/briefs/2026-10-19-business-map-3-edit.md`
 - Tests: `packages/pipeline/src/model.test.ts`, `packages/pipeline/src/workflow.test.ts`, `packages/pipeline/src/shape-file.test.ts`, `packages/pipeline/src/diff.test.ts`, `packages/pipeline/src/edit.test.ts`, `packages/pipeline/test/integration/edit.test.ts`, `packages/pipeline/src/starter.test.ts`, `packages/pipeline/test/integration/starter.test.ts`, `packages/pipeline/test/integration/moves-deals.test.ts`, `packages/pipeline/test/integration/journeys-guard.test.ts`, `packages/pipeline/test/integration/schema.test.ts`, `apps/cli/src/shape.test.ts`

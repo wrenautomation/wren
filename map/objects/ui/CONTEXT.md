@@ -31,9 +31,14 @@ Every story set has `default`, `empty`, `loading`, `failed`, `worst-case`; extra
 | a `day` page | `RecordDay` `day.tsx:118` | `day` | Lists and records |
 | a before/after | `Diff` `diff.tsx:62` | `diff` | Tables |
 | tile sparks, trends, funnels | `Sparkline`, `TrendChart`, `BarsChart` `charts/index.tsx:43` | `charts` | Charts |
+| a graph: ribbons (people as width), loops, diff marks, export | `Graph` `graph/index.tsx`, `ribbonWidth` `graph/model.ts:111` | `ribbons` (`Graph/Ribbons`: default, dark, empty, loading, failed, loops, worst-case) | Motion |
 | `queue`, `form`, `shop`, `overview` pages | `RecordQueue` `queue.tsx:52`, `RecordForm` `form.tsx:27`, `RecordShop` `shop.tsx:37`, `RecordOverview` `overview.tsx:135` | none yet | Lists and records, Cards |
 
 No part story: the portal's marketing pieces (`modules/marketing/pieces.tsx`, `plan.tsx`, `videos.tsx`) import `api.ts` at load. Tune them in their page story (`pages-wren--marketing`, `pages-wren--today`).
+
+## The Map page
+
+Home for the team (`apps/portal/web/src/map/`): `MapHome` (`Home.tsx`) puts `MapPage` (`MapPage.tsx`) and the Today dock side by side; a phone gets the dock as a tab under the Map. `MapPage` reads once through `useMap` (`read.ts`: shape, number rows for the window, ghosts), draws `graphOf` (`model.ts`, pure) in the graph kit with `direction="down"`, `ribbons` and `bare`, and opens `NodePanel` (a node's numbers, people newest first, crossings in and out, Open) or `History` (versions, pick two, the diff via `diffGraph`/`diffLines`, `diff.ts`) on its right. Open and a double click go to the managing app filtered to the node (`ROUTES`, `routes.ts`; `routes.test.ts` checks each is a real page). It writes nothing; editing is M3. Stories: `pages-map.stories.tsx` (`Pages/Map`), data `mocks/data/map.ts` on a synthetic shape. Ribbons: a wire with `weight` draws as a ribbon 2 to 48 px (`ribbonWidth`), grows in once on load and eases on change (off under reduced motion); `loop` wires are thin dashed and left out of the layout; SVG and PNG export draw both.
 
 ## Cards
 

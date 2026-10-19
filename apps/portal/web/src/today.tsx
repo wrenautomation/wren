@@ -306,6 +306,7 @@ export function WrenToday({
   moves,
   pins,
   props,
+  docked,
 }: {
   apps: Module[];
   waiting: Waiting;
@@ -313,13 +314,17 @@ export function WrenToday({
   moves: MovesRead;
   pins: PinLine[];
   props: PageProps;
+  /** Beside the Map, which has the page's title: no header of its own. */
+  docked?: true | undefined;
 }) {
   return (
     <>
-      <PageHeader
-        title="Today"
-        lede={`${DATE.format(new Date())}. What to write, what to move, then every app.`}
-      />
+      {docked ? null : (
+        <PageHeader
+          title="Today"
+          lede={`${DATE.format(new Date())}. What to write, what to move, then every app.`}
+        />
+      )}
       {props.team ? (
         <SetupCard
           client={props.client}
@@ -346,6 +351,7 @@ export function ClientToday({
   installed,
   pins,
   props,
+  docked,
 }: {
   name: string;
   apps: Module[];
@@ -354,6 +360,8 @@ export function ClientToday({
   installed: ReadonlySet<string>;
   pins: PinLine[];
   props: PageProps;
+  /** Beside the Map, which has the page's title: no header of its own. */
+  docked?: true | undefined;
 }) {
   const account = useAccount(props);
   if (!account.data && !account.error) return <Loading lines={8} heading />;
@@ -366,7 +374,7 @@ export function ClientToday({
   });
   return (
     <>
-      <PageHeader title="Today" lede={`Everything Wren runs for ${name}.`} />
+      {docked ? null : <PageHeader title="Today" lede={`Everything Wren runs for ${name}.`} />}
       {props.demo ? null : (
         <SetupCard client={props.client} team={props.team} href="/account/accounts" />
       )}

@@ -373,6 +373,7 @@ Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`
 - `ui-busy` (1.2 s): the bar under a busy button.
 - `ui-read` (900 ms): read-aloud bars.
 - `ui-fade`: page fade in.
+- `ui-ribbon-in` (0.9 s): the Map's ribbons grow in once on load (the real event: the data arrived); widths then ease on change. Off under reduced motion.
 
 **The Real Event Rule.** Motion shows something that happened or is happening. No ambient motion, no entrance choreography.
 

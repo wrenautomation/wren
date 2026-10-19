@@ -155,8 +155,9 @@ const num = (
   ...n,
 });
 
-const NUMBERS: Row[] = [
+const BASE_NUMBERS: Row[] = [
   num("mail", "node", "Spring list", 0, { nodeKind: "source", opened: 11, deals: 2 }),
+  num("ads1", "node", "Winter ads", 0, { nodeKind: "source", opened: 6, deals: 1 }),
   num("engaged", "node", "Engaged", 1, { arrived: 14, skipped: 0, left: 9, now: 5, medianDays: 4 }),
   num("booked", "node", "Booked", 2, { arrived: 10, skipped: 1, left: 4, now: 6, medianDays: 6 }),
   num("signed", "node", "Signed", 3, {
@@ -167,6 +168,16 @@ const NUMBERS: Row[] = [
     now: 0,
     medianDays: 0,
     collected: cad(1_000),
+  }),
+  num("mail_to_engaged", "edge", "Spring list to Engaged", 0, {
+    crossings: 8,
+    from: "mail",
+    to: "engaged",
+  }),
+  num("ads1_to_engaged", "edge", "Winter ads to Engaged", 0, {
+    crossings: 6,
+    from: "ads1",
+    to: "engaged",
   }),
   num("engaged_to_booked", "edge", "Engaged to Booked", 0, {
     crossings: 9,
@@ -185,6 +196,19 @@ const NUMBERS: Row[] = [
     scheduled: cad(1_500),
   }),
 ];
+
+/** How much of the "all" counts each window holds. */
+const SHARE: Record<string, number> = { all: 1, "90": 0.8, "30": 0.5, "7": 0.2 };
+const COUNTED = ["arrived", "skipped", "left", "crossings", "opened", "deals"] as const;
+
+/** `pipeline.number` holds a set of rows per window: the Numbers pages read "all", the Map the one it shows. */
+export const NUMBERS: Row[] = Object.entries(SHARE).flatMap(([window, share]) =>
+  BASE_NUMBERS.map((r) => {
+    const row: Row = { ...r, window, id: window === "all" ? r.id : `${r.id}@${window}` };
+    for (const k of COUNTED) if (typeof r[k] === "number") row[k] = Math.round(r[k] * share);
+    return row;
+  }),
+);
 
 const month = (i: number): Row => ({
   id: i + 1,

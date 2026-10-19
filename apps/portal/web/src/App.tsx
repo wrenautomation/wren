@@ -49,7 +49,9 @@ import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
+import { keep, recall } from "./local.js";
 import { LookProvider } from "./look-pref.js";
+import { MapHome } from "./map/Home.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
@@ -248,19 +250,6 @@ function place(path: string[], apps: Module[], known: boolean): Place {
   if (module && path.length === 1) return { kind: "go", to: firstOf(module) };
   return known ? { kind: "go", to: home } : { kind: "wait" };
 }
-
-const recall = (key: string) => {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-const keep = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value);
-  } catch {}
-};
 
 /**
  * The workspace's look (`clients.look`), or Wren's. `?theme=night` tries a preset over it and
@@ -660,7 +649,7 @@ export function App() {
           onGo={navigate}
           at={`${location.pathname}${location.search}`}
           deep={!!open && route.path.length > 2}
-          wide={!!open && ("template" in open.page || ("wide" in open.page && !!open.page.wide))}
+          wide={open ? "template" in open.page || ("wide" in open.page && !!open.page.wide) : team}
         >
           {!current ? (
             <Loading lines={8} heading />
@@ -708,14 +697,36 @@ export function App() {
                 </AboutProvider>
               </LookProvider>
             </Contained>
-          ) : wren ? (
-            <WrenToday
-              apps={cards}
-              waiting={waiting}
-              read={waitRead}
-              moves={moves}
-              pins={pins}
+          ) : team ? (
+            <MapHome
+              key={current.id}
               props={props(current.id)}
+              clients={clients}
+              today={
+                wren ? (
+                  <WrenToday
+                    docked
+                    apps={cards}
+                    waiting={waiting}
+                    read={waitRead}
+                    moves={moves}
+                    pins={pins}
+                    props={props(current.id)}
+                  />
+                ) : (
+                  <ClientToday
+                    docked
+                    key={current.id}
+                    name={current.name}
+                    apps={cards}
+                    waiting={waiting}
+                    read={waitRead}
+                    installed={installed}
+                    props={props(current.id)}
+                    pins={pins}
+                  />
+                )
+              }
             />
           ) : (
             <ClientToday
