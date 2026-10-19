@@ -156,11 +156,19 @@ interface LiComment {
   commentUrn?: string;
   $URN?: string;
   parentComment?: string;
+  /** A URN off the API; a profile link (`/in/<slug>`) off the desk's page read. */
   actor?: string;
+  /** The page read's author name: how a member's own comment is known there. */
+  actorName?: string;
   message?: { text?: string };
   created?: { time?: number };
   object?: string;
 }
+
+const isProfileLink = (actor: string | undefined): boolean => !!actor?.includes("linkedin.com/in/");
+const nameKey = (name: string): string =>
+  name.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+const sameName = (a: string | undefined, b: string): boolean => !!a && nameKey(a) === nameKey(b);
 
 /** autobrowse `GET /notifications`: newest first, `at` from the age label. */
 interface LiNotification {
@@ -203,10 +211,15 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
   const direct = !!org || !!o.direct;
   const fixed = org ?? o.author;
   let author: Promise<string> | null = fixed ? Promise.resolve(fixed) : null;
+  let info: Promise<{ urn: string; name: string | null }> | null = null;
+  const userinfo = () => {
+    info ??= sites
+      .call<{ sub: string; name?: string }>("linkedin", "GET", "/v2/userinfo")
+      .then((u) => ({ urn: `urn:li:person:${u.sub}`, name: u.name ?? null }));
+    return info;
+  };
   const me = () => {
-    author ??= sites
-      .call<{ sub: string }>("linkedin", "GET", "/v2/userinfo")
-      .then((u) => `urn:li:person:${u.sub}`);
+    author ??= userinfo().then((u) => u.urn);
     return author;
   };
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
@@ -312,16 +325,22 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         { count: Math.min(q.limit ?? 100, 100) },
       );
       // A page's comments go by URN, which an answer needs. Ours (the page's or the member's,
-      // like the funnel link under a video) say so.
+      // like the funnel link under a video) say so. The desk's page read names a member by
+      // profile link, not URN, so there the member's own are known by name, as autobrowse's
+      // send check knows them.
       const self = org ?? (await me());
-      const rows = (out.elements ?? []).map((c, i) => ({
+      const elements = out.elements ?? [];
+      const myName = elements.some((c) => isProfileLink(c.actor)) ? (await userinfo()).name : null;
+      const ours = (c: LiComment) =>
+        c.actor === self || (isProfileLink(c.actor) && !!myName && sameName(c.actorName, myName));
+      const rows = elements.map((c, i) => ({
         id: (org ? (c.commentUrn ?? c.$URN) : null) ?? c.id ?? String(i),
         postId: id,
         author: c.actor ?? "",
         text: c.message?.text ?? "",
         at: iso(c.created?.time),
         ...(org && c.parentComment ? { parentId: c.parentComment } : {}),
-        ...(c.actor === self ? { mine: true } : {}),
+        ...(ours(c) ? { mine: true } : {}),
       }));
       return pageOf(rows, q);
     },

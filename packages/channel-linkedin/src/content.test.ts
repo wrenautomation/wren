@@ -102,6 +102,27 @@ describe("linkedin content channel", () => {
     expect(calls.filter(([, p]) => p === "/v2/userinfo")).toHaveLength(1);
   });
 
+  it("knows the member's own comments on a page read by name, never anyone else's", async () => {
+    const me = "https://www.linkedin.com/in/will-jin-15b0b1434/";
+    const { sites } = fakeSites({
+      "GET /v2/userinfo": () => ({ sub: "abc", name: "William Jin" }),
+      "GET /rest/socialActions/urn:li:ugcPost:1/comments": () => ({
+        elements: [
+          { id: "1", actor: me, actorName: "William  Jin", message: { text: "the link" } },
+          { id: "2", actor: "https://www.linkedin.com/in/someone/", actorName: "Sam Lee" },
+          { id: "3", actor: "https://www.linkedin.com/in/other-will/" },
+        ],
+      }),
+    });
+    const ch = linkedinContent(sites);
+    const cs = await ch.comments("urn:li:ugcPost:1");
+    expect(cs.map((c) => [c.id, c.mine ?? false])).toEqual([
+      ["1", true],
+      ["2", false],
+      ["3", false],
+    ]);
+  });
+
   it("refuses an answer it can't name, before anything sends", async () => {
     const { sites, calls } = fakeSites({ "GET /v2/userinfo": () => ({ sub: "abc" }) });
     const ch = linkedinContent(sites);
