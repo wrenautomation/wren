@@ -149,19 +149,20 @@ describe("inside its database", () => {
     }
   });
 
-  it("may read and write its calendar's and mail's tables, never Wren's own schemas", async () => {
+  it("may read and write its calendar's, mail's and pipeline's tables, never Wren's own schemas", async () => {
     const client = postgres(clientAdminUrl(pg.url, ACME), { max: 1 });
     try {
       const rows = await client<{ s: string; t: string; w: boolean }[]>`
         select schemaname as s, tablename as t,
           has_table_privilege(${ACME}, format('%I.%I', schemaname, tablename), 'SELECT, INSERT') as w
-        from pg_tables where schemaname in ('calendar', 'auth', 'books', 'watch')`;
+        from pg_tables where schemaname in ('calendar', 'auth', 'books', 'watch', 'pipeline')`;
       expect(rows.some((r) => r.s === "calendar")).toBe(true);
       expect(rows.some((r) => r.s === "watch")).toBe(true);
+      expect(rows.some((r) => r.s === "pipeline")).toBe(true);
       for (const r of rows)
         expect({ t: `${r.s}.${r.t}`, w: r.w }).toEqual({
           t: `${r.s}.${r.t}`,
-          w: r.s === "calendar" || r.s === "watch",
+          w: r.s === "calendar" || r.s === "watch" || r.s === "pipeline",
         });
     } finally {
       await client.end();

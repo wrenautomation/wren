@@ -13,15 +13,11 @@ import { OFFER_IDS } from "@wren/offers";
 import { foldDeals, foldLines } from "@wren/pipeline/fold";
 import { Refused } from "@wren/pipeline/store";
 import type { Command } from "commander";
+import { pipelineCommand } from "./pipeline-seed.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 /** A client's own database, by client id. */
 export type OnClient = <T>(id: string, fn: (db: Db) => Promise<T>) => Promise<T>;
-
-/** The `pipeline` command, made once however many files add to it. */
-const pipelineCommand = (program: Command): Command =>
-  program.commands.find((c) => c.name() === "pipeline") ??
-  program.command("pipeline").description("pipeline set-up: seed and fold");
 
 export function registerPipelineFold(
   program: Command,

@@ -124,8 +124,9 @@ export async function clientDatabases(main: Db): Promise<string[]> {
  * Schemas past `public` a client's parts keep rows in: its booking calendar's, and `watch` for
  * the mail its connected mailboxes bring in (designs/2026-10-07-mail-access.md). In a client's
  * database `watch` holds only that client's mail and rules; William's is in main, out of reach.
+ * `pipeline` holds the client's own funnels, journeys and deals (designs/2026-10-18-journeys.md).
  */
-export const CLIENT_SCHEMAS = ["calendar", "watch"] as const;
+export const CLIENT_SCHEMAS = ["calendar", "watch", "pipeline"] as const;
 
 export async function grantClientAccess(admin: Db, mainUrl: string, database: string) {
   const role = checkedDatabase(database);

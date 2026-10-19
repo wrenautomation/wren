@@ -68,7 +68,7 @@ describe("commands", () => {
       "list",
     ]);
     expect(names(p.commands[4] as Command)).toEqual(["list", "sign", "schedule"]);
-    expect(names(p.commands[5] as Command)).toEqual(["fold-deals"]);
+    expect(names(p.commands[5] as Command)).toEqual(["seed", "fold-deals"]);
   });
 
   it("needs --person on journeys open", async () => {

@@ -70,4 +70,5 @@ Citations: `packages/pipeline/src/restate.ts:81`, `packages/pipeline/src/fold.ts
 ## See
 
 - Design: `designs/2026-10-18-journeys.md`
+- Client workspaces: the client login reads and writes `pipeline` (`CLIENT_SCHEMAS`, `packages/db/src/clients.ts`), granted at each deploy's migrate.
 - Tests: `packages/pipeline/src/stages.test.ts`, `packages/pipeline/src/entry.test.ts`, `packages/pipeline/test/integration/schema.test.ts`, `packages/pipeline/test/integration/journeys.test.ts`, `packages/pipeline/test/integration/moves.test.ts`, `packages/pipeline/test/integration/console.test.ts`, `packages/pipeline/test/integration/sourced-research.test.ts`, `packages/pipeline/test/integration/seed.test.ts`, `packages/pipeline/src/seed.test.ts`, `apps/cli/src/pipeline-seed.test.ts`, `packages/pipeline/src/sourced.test.ts`, `packages/pipeline/src/fold.test.ts`, `packages/pipeline/test/integration/fold.test.ts`, `packages/pipeline/test/integration/fold-guard.test.ts`, `apps/portal/web/src/pages-journeys.stories.tsx`
