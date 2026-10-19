@@ -128,3 +128,9 @@ Hand-off: planner reviews each diff, runs the gate once, reports shas; main push
   - Stories: one per visible tab of a new or renamed app. Link-only pages get a unit test that each resolves.
   - `pipelines/entries` is a new record `pipeline.entry` (each live funnel's entries with journey count and last arrival). `offers/terms` proposes a version through a new `termsAdd` console route over the existing `addTerms` store call.
   - Stage `idleDays` sets when a journey reads stale (`STALE_DAYS` stays the default). Move reads the existing `stale` view.
+- 2026-10-19 (planner, at merge):
+  - Access app ids stay as they are: record `app: "deals"`, `PIPELINE_CONSOLE_APPS["*"] = "deals"`, `APPS` in `@wren/core/access`. They name what a grant covers, and stored grants use them. Portal module ids are nav only. A rename of access ids needs a grant migration; not this phase.
+  - The component's `provides.apps` follows the module ids (`pipelines`, `offers`, `numbers`; `content`, `engage`; `analytics`), because `components.test.ts` matches them to modules.
+  - Wren's calls page counts calls that start within a day (`soon`), for Today's "Prepare call". A client's Calls app keeps its count.
+  - Redirect stories for old addresses are dropped; `moved.test.ts` covers every old address.
+  - Move skips `marketing.asked_reply` and `delivery.ask`: no Wren page counts them.
