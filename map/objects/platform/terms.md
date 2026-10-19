@@ -42,6 +42,7 @@ Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/store.ts:216
 | Surface | Role |
 |---|---|
 | `wren terms add|show` (`apps/cli/src/pipeline.ts`), honours `--client` | writes, reads |
+| console `termsAdd`, Offers > Terms > Propose version (`apps/portal/web/src/modules/offers`) | writes (same checks as the CLI, caller as `created_by`) |
 | `onboard` (`packages/delivery/src/index.ts:1255`) | reads the live version |
 | `wren deals sign|schedule`, console `dealsSign` (`signDeal`, `packages/pipeline/src/moves.ts`) | sets `deals.terms_version` once from the plan's live terms; a change needs force and is audited |
 

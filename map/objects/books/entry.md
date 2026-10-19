@@ -44,7 +44,7 @@ Citations: `packages/books/src/schema.ts:391`, `:429`, `:42`, `:371`, `packages/
 |---|---|
 | `wren books import` / `read` / `post` / `accept` / `personal` | write (each ends with a post) |
 | `wren books spend` / `bills` | read |
-| console Money app: Economics, Months, Channels, Cohorts (`apps/portal/web/src/modules/wren/index.ts`) | read (the `econ_*` records) |
+| console Numbers app: Economics, Months, Channels, Cohorts (`apps/portal/web/src/modules/numbers/index.ts`; moved from Money, old `/money/<page>` links redirect) | read (the `econ_*` records) |
 | `BooksConsole/setAccount` (console Money > Accounts; team only, audited as the operator, `packages/books/src/console.ts:42`) | writes an account's `bucket`, `channel` |
 
 ## See

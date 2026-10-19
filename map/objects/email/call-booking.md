@@ -38,7 +38,7 @@ Citations: `packages/channel-email/src/schema.ts:639`, `packages/channel-email/s
 
 ## If you change this
 
-- **Hits:** `books.econ_channels` booked stage (`packages/books/src/economics.ts`, skips enrollments `call_invites` already counts); `contact_outcomes` (booked = warm, never recycled, `views.ts`); console record `email.call` (`records.ts:253`, served by EmailConsole for a client with `calls.outcome`), Inbox > Calls and a client's Calls app (`apps/portal/web/src/modules/calls`), `calendar.booking_records` (reads the outcome through the mirror)
+- **Hits:** `books.econ_channels` booked stage (`packages/books/src/economics.ts`, skips enrollments `call_invites` already counts); `contact_outcomes` (booked = warm, never recycled, `views.ts`); console record `email.call` (`records.ts:253`, served by EmailConsole for a client with `calls.outcome`), Pipelines > Calls (Wren's, `modules/deals/team-pages.ts`; `/inbox/calls` redirects) and a client's Calls app (`apps/portal/web/src/modules/calls`), `calendar.booking_records` (reads the outcome through the mirror)
 - **Does not hit:** the lander's own cal.com webhook (`../lander/functions/api/calcom.ts`); SMS reminders
 
 ## Surfaces
