@@ -396,6 +396,32 @@ describe("the pipeline records", () => {
     expect(stale.rows.some((r) => r.funnel === "o-walk")).toBe(true);
   });
 
+  it("reads stale from the stage's idleDays, else STALE_DAYS", async () => {
+    const stages = body().stages;
+    const first = stages[0] as FunnelBody["stages"][number];
+    await funnel("o-idle-short", body({ stages: [{ ...first, idleDays: 3 }, ...stages.slice(1)] }));
+    await funnel("o-idle-long", body({ stages: [{ ...first, idleDays: 30 }, ...stages.slice(1)] }));
+    await funnel("o-idle-none", body());
+    for (const id of ["o-idle-short", "o-idle-long", "o-idle-none"]) {
+      const email = `${id}@example.test`;
+      await person(email);
+      await play(await open(id, email));
+    }
+    await pg.db.execute(
+      sql`update pipeline.journeys set moved_at = now() - interval '5 days' where funnel like 'o-idle-%'`,
+    );
+    const flagOf = async (f: string) =>
+      (await journeyRows(pg.db)).find((r) => r.funnel === f)?.flag ?? null;
+    expect(await flagOf("o-idle-short")).toBe("stale");
+    expect(await flagOf("o-idle-long")).toBeNull();
+    expect(await flagOf("o-idle-none")).toBeNull();
+    await pg.db.execute(
+      sql`update pipeline.journeys set moved_at = now() - interval '15 days' where funnel like 'o-idle-%'`,
+    );
+    expect(await flagOf("o-idle-none")).toBe("stale");
+    expect(await flagOf("o-idle-long")).toBeNull();
+  });
+
   it("lists offers, funnels, deals and numbers", async () => {
     const api = serveRecords(PIPELINE_RECORDS, pg.db, undefined, undefined, ME);
     expect((await api.list({ record: "pipeline.offer", view: "all" })).rows[0]).toMatchObject({

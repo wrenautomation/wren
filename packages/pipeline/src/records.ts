@@ -45,7 +45,7 @@ export const NUMBER_RECORD = "pipeline.number";
 export const TERMS_RECORD = "pipeline.terms";
 export const ENTRY_RECORD = "pipeline.entry";
 
-/** Days an open journey sits in one stage before it reads stale. */
+/** Days an open journey sits in one stage before it reads stale, unless the stage sets `idleDays`. */
 export const STALE_DAYS = 14;
 const DAY_MS = 86_400_000;
 /** Rows, not a view: a workspace works hundreds of journeys, not tens of thousands. */
@@ -442,6 +442,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
   const now = (o.now ?? new Date()).getTime();
   return rows.map(({ j, person, funnelName, body }) => {
     const days = Math.floor((now - j.movedAt.getTime()) / DAY_MS);
+    const idle = body.stages.find((s) => s.key === j.stage)?.idleDays ?? STALE_DAYS;
     return {
       id: j.id,
       name: person ?? `Person ${j.profileId}`,
@@ -452,7 +453,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
       stage: j.stage,
       stage_label: labelOf(body, j.stage),
       status: j.status,
-      flag: j.status === "open" && days >= STALE_DAYS ? "stale" : null,
+      flag: j.status === "open" && days >= idle ? "stale" : null,
       entry: j.entry,
       owner: owners.get(j.id) ?? null,
       days_in_stage: days,

@@ -22,7 +22,12 @@ export interface Stage {
   on: Advance[];
   /** How much research the person gets on entering. Default `none`. Run once per journey and stage on arrival (`research.ts`). */
   research?: Research;
+  /** Whole days an open journey may sit here before it reads stale (1 to 365). Default `STALE_DAYS`. */
+  idleDays?: number;
 }
+
+/** The longest `idleDays` a stage may set. */
+export const IDLE_DAYS_MAX = 365;
 
 export const RESEARCH_LEVELS = ["none", "light", "full"] as const;
 export type Research = (typeof RESEARCH_LEVELS)[number];
@@ -123,6 +128,14 @@ export function checkFunnel(
   for (const s of next.stages) {
     if (s.research !== undefined && !RESEARCH_LEVELS.includes(s.research)) {
       errors.push(`Stage "${s.key}" has research "${s.research}". Use none, light or full.`);
+    }
+    if (
+      s.idleDays !== undefined &&
+      !(Number.isInteger(s.idleDays) && s.idleDays >= 1 && s.idleDays <= IDLE_DAYS_MAX)
+    ) {
+      errors.push(
+        `Stage "${s.key}" has idleDays ${JSON.stringify(s.idleDays)}. Use a whole number of days from 1 to ${IDLE_DAYS_MAX}.`,
+      );
     }
     for (const a of s.on) {
       if (!ctx.triggers.has(a.trigger)) {

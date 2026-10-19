@@ -43,6 +43,8 @@ const stage = z.strictObject({
   sale: z.literal(true).optional(),
   on: z.array(advance),
   research: z.enum(RESEARCH_LEVELS).optional(),
+  // The range is checkFunnel's, so a bad one gets its plain sentence.
+  idleDays: z.number().optional(),
 });
 const entry = z.strictObject({
   id: text,

@@ -144,6 +144,20 @@ describe("checkFunnel", () => {
     expect(checkFunnel(null, bad, ctx()).join("\n")).toMatch(/research "deep"/);
   });
 
+  it("checks a stage's idleDays", () => {
+    const withIdle = (idleDays: unknown) => {
+      const b = body();
+      b.stages[0] = { ...b.stages[0], idleDays } as unknown as FunnelBody["stages"][number];
+      return checkFunnel(null, b, ctx());
+    };
+    expect(withIdle(1)).toEqual([]);
+    expect(withIdle(365)).toEqual([]);
+    for (const bad of [0, 366, 2.5, -3, "7", Number.NaN])
+      expect(withIdle(bad).join("\n"), String(bad)).toMatch(
+        /Stage "engaged" has idleDays .* whole number of days from 1 to 365\./,
+      );
+  });
+
   it("refuses a sourced entry whose list is unknown or not a list id", () => {
     const entry = (source: string) => body({ entries: [{ id: "list", kind: "sourced", source }] });
     expect(checkFunnel(null, entry("import:12"), ctx())).toEqual([]);
