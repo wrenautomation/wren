@@ -543,6 +543,9 @@ importers:
       '@wren/payments':
         specifier: workspace:*
         version: link:../../packages/payments
+      '@wren/pipeline':
+        specifier: workspace:*
+        version: link:../../packages/pipeline
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation

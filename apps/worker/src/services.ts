@@ -381,6 +381,8 @@ import { makePaymentsConsole } from "@wren/payments/console";
 import { makePayReconcile } from "@wren/payments/reconcile";
 import { makePayments } from "@wren/payments/service";
 import { stripeChecks } from "@wren/payments/setups";
+import { funnelWorkflowsOf, soundFunnels } from "@wren/pipeline/journeys";
+import { journeySteps } from "@wren/pipeline/steps";
 import { clientSendScope, crmLanding } from "@wren/reactivation";
 import {
   DEMO_NAME,
@@ -2050,8 +2052,19 @@ export async function buildServices(
       clientDb,
       workflows: WORKFLOWS,
       components: COMPONENTS,
+      // Funnel versions of a workspace, as workflows: the newest of each, and any older one
+      // that still holds open journeys. One that fails the workflow check is left out and logged.
+      // A read failure throws, so the call retries and no funnel goes missing quietly.
+      funnels: async (client) =>
+        soundFunnels(
+          await funnelWorkflowsOf(client ? clientDb(client) : db, client ? "client" : "wren"),
+          WORKFLOWS,
+          COMPONENTS,
+        ),
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
+        // A funnel's moves and stages: a journey per person, in its workspace's database.
+        ...journeySteps({ db: (client) => (client ? clientDb(client) : db) }),
         // Account setups. With WREN_SETUP_AGENT a done-for-you step goes to SetupAgent on its
         // first round; off, it waits on Wren's team. Its alerts (stuck, waiting, done, lost)
         // tell the team on the clients lane.
