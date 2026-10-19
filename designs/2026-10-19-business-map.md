@@ -107,3 +107,4 @@ Calls the doc left open. Briefs in `designs/briefs/2026-10-19-business-map-*.md`
 - "Signed" is arrival at the offer node, not a step before it. Why: the deal is made on offer arrival; a "signed" step would make it twice.
 - Real shapes live in the private sops repo (`shapes/wren.yaml`, `shapes/career-clarity-labs.yaml`); main imports them on prod with `wren shape import`. Terms William has not set stay out of the files: a plan node with no live terms signs nothing.
 - 0306 indexes `journeys.shape_version` and `shape_versions.parent`. Why: the schema test wants every foreign key column indexed.
+- M3 runs in two parts: backend (starter, Growth Partner offer, moves remap deals, guard migration) next to M2, then the Map edit UI after M2. Why: the backend touches no Map files; it saves a serial step.
