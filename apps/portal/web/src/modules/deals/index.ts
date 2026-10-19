@@ -6,6 +6,7 @@
  */
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
+import { JourneyBoard } from "./board.js";
 
 /** A client's Journeys, in its own workspace: its own funnels and journeys. */
 export const clientDeals: Module = {
@@ -16,6 +17,13 @@ export const clientDeals: Module = {
   blurb: "Every person by stage of each funnel, and how long they have been there.",
   find: findRecords({ record: "pipeline.journey", path: "/deals/journeys", kind: "Journey" }),
   pages: [
+    {
+      id: "board",
+      label: "Board",
+      about: "Each funnel's people by stage, to drag forward as they move.",
+      Page: JourneyBoard,
+      wide: true,
+    },
     {
       id: "journeys",
       label: "Journeys",

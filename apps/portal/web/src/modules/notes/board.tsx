@@ -14,7 +14,6 @@ import {
   Input,
   LoadFailed,
   Loading,
-  num,
   PageHeader,
   say,
   Tag,
@@ -22,6 +21,7 @@ import {
   useEdit,
 } from "@wren/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { dragStart, Lane } from "../../kanban.js";
 import { useCall } from "../../load.js";
 import { type ListPage, type PageProps, WREN } from "../../module.js";
 import { TemplatePage } from "../../records.js";
@@ -448,44 +448,23 @@ function ColumnView({
   added: () => void;
   filtering: boolean;
 }) {
-  const [over, setOver] = useState(false);
   return (
-    <section
-      aria-label={column.name}
-      className={cx(
-        "grid w-[264px] shrink-0 content-start gap-2 border border-(--ui-hair) bg-(--ui-wash) p-2",
-        over && "border-(--ui-active)",
-      )}
-      onDragOver={(e) => {
-        if (!write) return;
-        e.preventDefault();
-        setOver(true);
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        setOver(false);
-        const id = e.dataTransfer.getData("text/card");
-        if (id) move(id, column.id);
-      }}
+    <Lane
+      name={column.name}
+      count={cards.length}
+      tone={column.done ? "good" : undefined}
+      write={write}
+      mime="text/card"
+      onDropId={(id) => move(id, column.id)}
+      empty={filtering ? "No match." : write ? "Drop a card here." : "None."}
+      footer={
+        write ? <Adder client={client} board={board.id} column={column} done={added} /> : null
+      }
     >
-      <header className="flex items-baseline justify-between gap-2 px-1">
-        <h2
-          className={cx("m-0 text-[13.5px] font-semibold", column.done && "text-(--ui-good-ink)")}
-        >
-          {column.name}
-          <span className="ml-1.5 font-normal text-(--ui-ink-3)">{num(cards.length)}</span>
-        </h2>
-      </header>
       {cards.map((c) => (
         <CardFace key={c.id} c={c} columns={columns} write={write} move={move} />
       ))}
-      {cards.length ? null : (
-        <p className="m-0 px-1 py-3 text-[12.5px] text-(--ui-ink-3)">
-          {filtering ? "No match." : write ? "Drop a card here." : "None."}
-        </p>
-      )}
-      {write ? <Adder client={client} board={board.id} column={column} done={added} /> : null}
-    </section>
+    </Lane>
   );
 }
 
@@ -504,10 +483,7 @@ function CardFace({
   return (
     <article
       draggable={write}
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/card", c.id);
-        e.dataTransfer.effectAllowed = "move";
-      }}
+      onDragStart={(e) => dragStart(e, "text/card", c.id)}
       // Dropped on a card: above it in the top half, below it in the bottom.
       onDragOver={(e) => {
         if (write) e.preventDefault();

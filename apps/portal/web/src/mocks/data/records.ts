@@ -115,8 +115,14 @@ const LOG = [
   { at: ago(7), kind: "note", what: "First message sent." },
 ];
 
-/** The records answers for every product that serves a page's record; `own` rows by record id. */
-export function recordsAnswers(own: Record<string, Row[]> = {}): Answers {
+/**
+ * The records answers for every product that serves a page's record; `own` rows by record id,
+ * and `details` a record's page extras (`RecordAnswer.detail`) made from its row.
+ */
+export function recordsAnswers(
+  own: Record<string, Row[]> = {},
+  details: Record<string, (row: Row) => object> = {},
+): Answers {
   OWN = own;
   // The console serves Wren's own and every client's component records; channels serve their own.
   const products = [
@@ -154,7 +160,7 @@ export function recordsAnswers(own: Record<string, Row[]> = {}): Answers {
         row,
         related: [],
         activity: LOG,
-        detail: null,
+        detail: details[got.meta.id]?.(row) ?? null,
       } satisfies RecordAnswer;
     };
   }

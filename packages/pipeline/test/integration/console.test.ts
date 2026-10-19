@@ -5,11 +5,13 @@
  */
 import { addClient, addMember, addOperator } from "@wren/core/clients";
 import type { Viewer } from "@wren/core/portal";
+import { resolveProfile } from "@wren/core/profiles";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pipelineConsoleApi } from "../../src/console.js";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "../../src/console-routes.js";
 import type { FunnelBody } from "../../src/model.js";
+import { journeys } from "../../src/schema.js";
 
 let pg: TestPostgres;
 const OWNER = "owner@acme.example.test";
@@ -125,6 +127,53 @@ describe("funnel changes", () => {
   it("syncs the registry offers in Wren's workspace", async () => {
     const r = await api().offersSync(as(ADA, undefined, true));
     expect(r.added.length + r.unchanged).toBeGreaterThan(0);
+  });
+});
+
+describe("the journeys board's reads", () => {
+  const op = () => as(ADA, undefined, true);
+  const person = async (email: string) =>
+    ((await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))?.id as number) ?? 0;
+
+  it("lists a funnel's open journeys with their stage, and reads its stages", async () => {
+    const [a, b, c] = [
+      await person("a@example.test"),
+      await person("b@example.test"),
+      await person("c@example.test"),
+    ];
+    const base = { funnel: "c-one", version: 2, entry: "manual" };
+    await pg.db.insert(journeys).values([
+      { ...base, profileId: a, stage: "engaged" },
+      { ...base, profileId: b, stage: "engaged" },
+      { ...base, profileId: c, stage: "signed", status: "done", closedAt: new Date() },
+    ]);
+    const open = await api().recordsList({
+      ...op(),
+      record: "pipeline.journey",
+      where: { funnel: "c-one", status: "open" },
+      sort: "movedAt",
+      limit: 200,
+    });
+    expect(open.rows).toHaveLength(2);
+    expect(open.rows.map((r) => [r.stage, r.stageLabel, r.status])).toEqual([
+      ["engaged", "Engaged", "open"],
+      ["engaged", "Engaged", "open"],
+    ]);
+    const done = await api().recordsList({
+      ...op(),
+      record: "pipeline.journey",
+      where: { funnel: "c-one", status: "done" },
+      sort: "-closedAt",
+      limit: 20,
+    });
+    expect(done.rows.map((r) => r.stage)).toEqual(["signed"]);
+    const got = await api().recordsGet({ ...op(), record: "pipeline.funnel", id: "c-one" });
+    expect(got.detail).toMatchObject({
+      stages: [
+        { key: "engaged", label: "Engaged", sale: false },
+        { key: "signed", label: "Signed", sale: true },
+      ],
+    });
   });
 });
 
