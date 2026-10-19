@@ -2,10 +2,12 @@
 import { defineComponent } from "@wren/core/components";
 import {
   DEAL_RECORD,
+  ENTRY_RECORD,
   FUNNEL_RECORD,
   JOURNEY_RECORD,
   NUMBER_RECORD,
   OFFER_RECORD,
+  TERMS_RECORD,
 } from "./records.js";
 
 export const PIPELINE_JOURNEYS = "pipeline.journeys";
@@ -23,8 +25,16 @@ export const PIPELINE_COMPONENTS = [
     ready: true,
     provides: {
       services: ["PipelineConsole", "Journeys"],
-      records: [OFFER_RECORD, FUNNEL_RECORD, JOURNEY_RECORD, DEAL_RECORD, NUMBER_RECORD],
-      apps: ["pipelines"],
+      records: [
+        OFFER_RECORD,
+        FUNNEL_RECORD,
+        JOURNEY_RECORD,
+        DEAL_RECORD,
+        NUMBER_RECORD,
+        TERMS_RECORD,
+        ENTRY_RECORD,
+      ],
+      apps: ["pipelines", "offers", "numbers"],
     },
     effects: [],
     out: [],

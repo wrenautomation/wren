@@ -23,7 +23,15 @@ import {
   signDeal,
 } from "../../src/moves.js";
 import { dealScheduleOf, numberRows, stageCountsOf, stageFlowOf } from "../../src/numbers.js";
-import { dealRows, journeyRows, PIPELINE_RECORDS, trailOf } from "../../src/records.js";
+import {
+  dealRows,
+  entryRows,
+  journeyRows,
+  offerRows,
+  PIPELINE_RECORDS,
+  readTerms,
+  trailOf,
+} from "../../src/records.js";
 import {
   funnels,
   funnelVersions,
@@ -399,5 +407,96 @@ describe("the pipeline records", () => {
     expect(deals.rows.length).toBeGreaterThan(0);
     const nums = await api.list({ record: "pipeline.number", view: "stage" });
     expect(nums.rows.some((r) => r.funnel === "n-vw")).toBe(true);
+  });
+
+  it("lists terms versions: live, upcoming and older, with a short read of each", async () => {
+    for (const [from, setup] of [
+      ["2020-01-01", 11_100],
+      ["2021-06-01", 22_200],
+      ["2999-01-01", 33_300],
+    ] as const)
+      await addTerms(pg.db, {
+        offer: "offer-a",
+        plan: "rec-plan",
+        from,
+        body: terms(setup),
+        why: `from ${from}`,
+        by: OP,
+      });
+    const api = serveRecords(PIPELINE_RECORDS, pg.db, undefined, undefined, ME);
+    const all = await api.list({ record: "pipeline.terms", view: "all", limit: 100 });
+    const mine = all.rows.filter((r) => r.plan === "rec-plan");
+    expect(mine.map((r) => [r.number, r.state]).sort()).toEqual([
+      [1, "older"],
+      [2, "live"],
+      [3, "upcoming"],
+    ]);
+    expect(mine.find((r) => r.number === 2)).toMatchObject({
+      offer: "offer-a",
+      terms: "setup 222.00 USD, 100.00 USD a month, 90 days, due in 7 days",
+      why: "from 2021-06-01",
+      createdBy: OP,
+    });
+    const live = await api.list({ record: "pipeline.terms", view: "live", limit: 100 });
+    expect(live.rows.filter((r) => r.plan === "rec-plan").map((r) => r.number)).toEqual([2]);
+    expect(live.rows.every((r) => r.state === "live")).toBe(true);
+    // The offer's detail lists its versions, and its terms are the rows that point at it.
+    const got = await api.get({ record: "pipeline.offer", id: "offer-a" });
+    expect(got.detail).toMatchObject({ versions: [{ number: 1 }] });
+    const rel = await api.list({
+      record: "pipeline.terms",
+      view: "all",
+      of: { record: "pipeline.offer", id: "offer-a" },
+      limit: 100,
+    });
+    expect(rel.rows.length).toBe(all.rows.filter((r) => r.offer === "offer-a").length);
+  });
+
+  it("reads a terms body in a line, leaving out what it does not set", () => {
+    expect(
+      readTerms({
+        ...terms(0),
+        monthlyCents: null,
+        perUnitCents: 5_000,
+        unit: "unit",
+        capCents: 20_000,
+        days: null,
+      }),
+    ).toBe("50.00 USD per unit, up to 200.00, due in 7 days");
+  });
+
+  it("gives each offer its live plans and open journeys", async () => {
+    const [a] = (await offerRows(pg.db)).filter((r) => r.id === "offer-a");
+    // standard, flat and rec-plan have started; the 2999 version does not make a fourth.
+    expect(a?.live_plans).toBe(3);
+    const open = (await journeyRows(pg.db)).filter(
+      (j) => j.status === "open" && j.funnel_name === "Test funnel",
+    ).length;
+    expect(a?.open_journeys).toBeGreaterThanOrEqual(open);
+    expect(a?.open_journeys).toBeGreaterThan(0);
+    // A date far ahead is not live.
+    expect((await offerRows(pg.db, { now: new Date("2019-01-01") }))[0]?.live_plans).toBe(0);
+  });
+
+  it("lists each funnel's entries with journeys and the last arrival", async () => {
+    const rows = await entryRows(pg.db);
+    const mail = rows.filter((r) => r.entry === "mail" && r.kind === "outbound");
+    expect(mail.length).toBeGreaterThan(0);
+    expect(mail[0]).toMatchObject({ channel: "email", campaign: null });
+    const ads = rows.find((r) => r.entry === "ads1");
+    expect(ads).toMatchObject({ kind: "ads", campaign: "cmp-1" });
+    // Some entry has opened a journey: its count and arrival are set.
+    const used = rows.find((r) => r.journeys > 0);
+    expect(used?.last_arrival).toBeInstanceOf(Date);
+    expect(used?.open_journeys).toBeLessThanOrEqual(used?.journeys ?? 0);
+    const api = serveRecords(PIPELINE_RECORDS, pg.db, undefined, undefined, ME);
+    const page = await api.list({
+      record: "pipeline.entry",
+      view: "all",
+      where: { funnel: used?.funnel },
+      limit: 100,
+    });
+    expect(page.rows.length).toBeGreaterThan(0);
+    expect(page.rows.every((r) => r.funnel === used?.funnel)).toBe(true);
   });
 });

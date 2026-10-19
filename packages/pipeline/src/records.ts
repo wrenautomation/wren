@@ -22,7 +22,8 @@ import {
 } from "@wren/core/records";
 import { events } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import type { Terms } from "@wren/offers";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import type { FunnelBody } from "./model.js";
 import { subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
@@ -41,6 +42,8 @@ export const FUNNEL_RECORD = "pipeline.funnel";
 export const JOURNEY_RECORD = "pipeline.journey";
 export const DEAL_RECORD = "pipeline.deal";
 export const NUMBER_RECORD = "pipeline.number";
+export const TERMS_RECORD = "pipeline.terms";
+export const ENTRY_RECORD = "pipeline.entry";
 
 /** Days an open journey sits in one stage before it reads stale. */
 export const STALE_DAYS = 14;
@@ -70,6 +73,11 @@ const DEAL_STATES = {
   lost: { label: "Lost", tone: "bad" },
   ended: { label: "Ended", tone: "neutral" },
 } as const;
+const TERMS_STATES = {
+  live: { label: "Live", tone: "good" },
+  upcoming: { label: "Upcoming", tone: "warn" },
+  older: { label: "Older", tone: "neutral" },
+} as const;
 const NUMBER_KINDS = {
   stage: { label: "Stage", tone: "neutral" },
   entry: { label: "Entry", tone: "neutral" },
@@ -81,13 +89,35 @@ const labelOf = (body: FunnelBody | undefined, key: string) =>
 
 // --- offers ----------------------------------------------------------------------------------
 
-/** The newest version of each offer, as rows. */
-export async function offerRows(db: Queryable) {
+/** The newest version of each offer, as rows, with its live plans and open journeys. */
+export async function offerRows(db: Queryable, o: { now?: Date } = {}) {
   const rows = await db
     .selectDistinctOn([offerVersions.offer])
     .from(offerVersions)
     .orderBy(offerVersions.offer, desc(offerVersions.number))
     .limit(ROWS);
+  // A plan is live when some version of it has started: count the plans, per offer.
+  const today = (o.now ?? new Date()).toISOString().slice(0, 10);
+  const started = await db
+    .selectDistinct({ offer: termsVersions.offer, plan: termsVersions.plan })
+    .from(termsVersions)
+    .where(lte(termsVersions.effectiveFrom, today));
+  const plans = new Map<string, number>();
+  for (const p of started) plans.set(p.offer, (plans.get(p.offer) ?? 0) + 1);
+  // Open journeys sit on a funnel version; that version names the offer it sells.
+  const opens = await db
+    .select({
+      offer: sql<string>`${funnelVersions.body} ->> 'offer'`,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(journeys)
+    .innerJoin(
+      funnelVersions,
+      and(eq(funnelVersions.funnel, journeys.funnel), eq(funnelVersions.number, journeys.version)),
+    )
+    .where(eq(journeys.status, "open"))
+    .groupBy(sql`${funnelVersions.body} ->> 'offer'`);
+  const open = new Map(opens.map((r) => [r.offer, r.n]));
   return rows.map((r) => ({
     id: r.offer,
     name: r.body.name,
@@ -95,6 +125,8 @@ export async function offerRows(db: Queryable) {
     version: r.number,
     audience: r.body.audience,
     promise: r.body.promise,
+    live_plans: plans.get(r.offer) ?? 0,
+    open_journeys: open.get(r.offer) ?? 0,
     hash: r.hash.slice(0, 12),
     synced_at: r.createdAt,
     synced_by: r.createdBy,
@@ -118,6 +150,8 @@ export const offerRecord = (): RecordType =>
       version: number("Version"),
       audience: text("For"),
       promise: text("Promise", { listed: false }),
+      livePlans: number("Live plans"),
+      openJourneys: number("Open journeys"),
       hash: text("Hash", { listed: false }),
       syncedAt: date("Synced"),
       syncedBy: actor("Synced by"),
@@ -127,6 +161,129 @@ export const offerRecord = (): RecordType =>
       { id: "live", label: "Live", where: { status: "live" }, sort: "name", at: "syncedAt" },
       { id: "all", label: "All", sort: "name", at: "syncedAt" },
     ],
+    related: [{ record: TERMS_RECORD, by: "offer" }],
+    /** Every version, newest first: what changed and why. */
+    load: async (db, id) => ({
+      versions: (
+        await db
+          .select()
+          .from(offerVersions)
+          .where(eq(offerVersions.offer, String(id)))
+          .orderBy(desc(offerVersions.number))
+      ).map((v) => ({
+        number: v.number,
+        hash: v.hash.slice(0, 12),
+        why: v.why,
+        at: v.createdAt,
+        by: v.createdBy,
+      })),
+    }),
+  });
+
+// --- terms -----------------------------------------------------------------------------------
+
+const money2 = (cents: number) => (cents / 100).toFixed(2);
+
+/**
+ * The parts of a terms body a person reads, as one line: what is charged, how long, when due.
+ * A field the body does not set is left out.
+ */
+export function readTerms(t: Terms): string {
+  const cur = t.currency.toUpperCase();
+  const parts: string[] = [];
+  if (t.setupCents) parts.push(`setup ${money2(t.setupCents)} ${cur}`);
+  if (t.monthlyCents) parts.push(`${money2(t.monthlyCents)} ${cur} a month`);
+  if (t.perUnitCents)
+    parts.push(
+      `${money2(t.perUnitCents)} ${cur} per ${t.unit ?? "unit"}${
+        t.capCents ? `, up to ${money2(t.capCents)}` : ""
+      }`,
+    );
+  if (t.shareBps)
+    parts.push(
+      `${t.shareBps / 100}% share${t.floorCents ? `, least ${money2(t.floorCents)}` : ""}`,
+    );
+  if (t.installments)
+    parts.push(`setup in ${t.installments.count} parts, every ${t.installments.everyDays} days`);
+  if (t.trialDays) parts.push(`${t.trialDays} days trial`);
+  if (t.days) parts.push(`${t.days} days`);
+  parts.push(`due in ${t.payDays} days`);
+  return parts.join(", ");
+}
+
+/** Every terms version as a row; its state against `now`: live, upcoming or older. */
+export async function termsRows(db: Queryable, o: { now?: Date } = {}) {
+  const today = (o.now ?? new Date()).toISOString().slice(0, 10);
+  const rows = await db
+    .select()
+    .from(termsVersions)
+    .orderBy(termsVersions.offer, termsVersions.plan, desc(termsVersions.number))
+    .limit(ROWS);
+  // Newest first within a plan, and a version never starts before the one before it: the first
+  // one that has started is live, those above it are upcoming, those below it are older.
+  const seen = new Set<string>();
+  return rows.map((r) => {
+    const plan = `${r.offer}/${r.plan}`;
+    const started = r.effectiveFrom <= today;
+    const state = started ? (seen.has(plan) ? "older" : "live") : "upcoming";
+    if (started) seen.add(plan);
+    return {
+      id: r.id,
+      offer: r.offer,
+      plan: r.plan,
+      number: r.number,
+      effective_from: r.effectiveFrom,
+      state,
+      terms: readTerms(r.body),
+      why: r.why,
+      created_at: r.createdAt,
+      created_by: r.createdBy,
+    };
+  });
+}
+
+export const termsRecord = (): RecordType =>
+  defineRecord({
+    id: TERMS_RECORD,
+    app: "deals",
+    channel: null,
+    name: { one: "terms version", many: "terms versions" },
+    rows: (db) => termsRows(db),
+    key: "id",
+    title: "plan",
+    subtitle: "offer",
+    fields: {
+      offer: text("Offer"),
+      plan: text("Plan"),
+      number: number("Version"),
+      effectiveFrom: date("From"),
+      state: status(TERMS_STATES, "State"),
+      terms: text("Terms"),
+      why: text("Why"),
+      createdAt: date("Added"),
+      createdBy: actor("Added by"),
+    },
+    views: [
+      {
+        id: "live",
+        label: "Live",
+        where: { state: "live" },
+        sort: "offer",
+        at: "effectiveFrom",
+      },
+      { id: "all", label: "All", sort: "-effectiveFrom", at: "effectiveFrom" },
+    ],
+    quick: ["offer", "plan", "state"],
+    actions: ["pipeline.termsAdd"],
+    /** The whole body, as stored: every field the plan sets. */
+    load: async (db, id) => {
+      const [v] = await db
+        .select({ body: termsVersions.body })
+        .from(termsVersions)
+        .where(eq(termsVersions.id, Number(id)))
+        .limit(1);
+      return v ? { body: v.body } : null;
+    },
   });
 
 // --- funnels ---------------------------------------------------------------------------------
@@ -452,6 +609,71 @@ export const dealRecord = (): RecordType =>
     },
   });
 
+// --- entries ---------------------------------------------------------------------------------
+
+/** Each funnel's entries on its newest version, with the journeys each opened and the newest arrival. */
+export async function entryRows(db: Queryable) {
+  const heads = await db.select().from(funnels).limit(ROWS);
+  const tops = await db
+    .selectDistinctOn([funnelVersions.funnel])
+    .from(funnelVersions)
+    .orderBy(funnelVersions.funnel, desc(funnelVersions.number));
+  const top = new Map(tops.map((t) => [t.funnel, t]));
+  const counts = await db
+    .select({
+      funnel: journeys.funnel,
+      entry: journeys.entry,
+      open: sql<number>`(count(*) filter (where ${journeys.status} = 'open'))::int`,
+      all: sql<number>`count(*)::int`,
+      last: sql<string | null>`max(${journeys.openedAt})`,
+    })
+    .from(journeys)
+    .groupBy(journeys.funnel, journeys.entry);
+  const by = new Map(counts.map((c) => [`${c.funnel}/${c.entry}`, c]));
+  return heads.flatMap((f) =>
+    (top.get(f.id)?.body.entries ?? []).map((e) => {
+      const c = by.get(`${f.id}/${e.id}`);
+      return {
+        id: `${f.id}/${e.id}`,
+        funnel: f.id,
+        funnel_name: f.name,
+        entry: e.id,
+        kind: e.kind,
+        channel: e.channel ?? null,
+        campaign: e.campaign ?? null,
+        open_journeys: c?.open ?? 0,
+        journeys: c?.all ?? 0,
+        last_arrival: c?.last ? new Date(c.last) : null,
+      };
+    }),
+  );
+}
+
+export const entryRecord = (): RecordType =>
+  defineRecord({
+    id: ENTRY_RECORD,
+    app: "deals",
+    channel: null,
+    name: { one: "entry", many: "entries" },
+    rows: (db) => entryRows(db),
+    key: "id",
+    title: "entry",
+    subtitle: "funnelName",
+    fields: {
+      funnelName: text("Funnel"),
+      funnel: text("Funnel id", { listed: false }),
+      entry: text("Entry"),
+      kind: text("Kind"),
+      channel: text("Channel"),
+      campaign: text("Campaign"),
+      openJourneys: number("Open journeys"),
+      journeys: number("Journeys"),
+      lastArrival: date("Last arrival"),
+    },
+    views: [{ id: "all", label: "All", sort: "funnelName", at: "lastArrival" }],
+    quick: ["funnel", "kind", "channel"],
+  });
+
 // --- numbers ---------------------------------------------------------------------------------
 
 const numberOf = (n: NumberRow) => ({
@@ -517,4 +739,6 @@ export const PIPELINE_RECORDS: readonly RecordType[] = [
   journeyRecord(),
   dealRecord(),
   numberRecord(),
+  termsRecord(),
+  entryRecord(),
 ];

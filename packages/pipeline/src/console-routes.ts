@@ -21,6 +21,7 @@ export const PIPELINE_CONSOLE_ROUTES = {
   journeysMove: "act",
   journeysDrop: "act",
   dealsSign: "act",
+  termsAdd: "act",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): records check each type; the rest are Opportunities. */
 export const PIPELINE_CONSOLE_APPS = {
@@ -43,4 +44,5 @@ export const PIPELINE_CONSOLE_WRITES: readonly PipelineConsoleRoute[] = [
   "journeysMove",
   "journeysDrop",
   "dealsSign",
+  "termsAdd",
 ];

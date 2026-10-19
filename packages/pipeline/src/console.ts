@@ -8,6 +8,7 @@
  * - `funnelsAdd`, `funnelsAppend`, `funnelsOff`, `funnelsOn`: the funnel store.
  * - `journeysOpen`, `journeysMove`, `journeysDrop`: the `Journeys` service, as the operator.
  * - `dealsSign`: a deal's terms, once; a change needs `force` and is audited.
+ * - `termsAdd`: the next version of one plan of one offer, as `wren terms add` (same checks).
  *
  * Every write goes through the store or the `Journeys` service, never a second path.
  */
@@ -40,14 +41,21 @@ import {
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
-import { OFFERS } from "@wren/offers";
+import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
 import { z } from "zod";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "./console-routes.js";
 import type { FunnelBody } from "./model.js";
 import { signDeal } from "./moves.js";
 import { PIPELINE_RECORDS } from "./records.js";
 import { JOURNEYS, type OpenRequest as JourneyOpen, type JourneysApi } from "./restate.js";
-import { addFunnel, appendFunnel, Refused, setFunnelStatus, syncOffers } from "./store.js";
+import {
+  addFunnel,
+  addTerms,
+  appendFunnel,
+  Refused,
+  setFunnelStatus,
+  syncOffers,
+} from "./store.js";
 
 export interface PipelineConsoleDeps {
   /** Main: the client registry, and Wren's own workspace. */
@@ -90,6 +98,14 @@ export interface DealSignRequest extends PortalRequest {
   deal: string;
   plan: string;
   force?: boolean;
+}
+export interface TermsAddRequest extends PortalRequest {
+  offer: string;
+  plan: string;
+  /** The first day it applies: YYYY-MM-DD. */
+  from: string;
+  body: unknown;
+  why: string;
 }
 
 /** Trigger component ids a stage may name. */
@@ -199,6 +215,27 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
       by(req);
       const f = await refused(() => setFunnelStatus(w.db, String(req.id ?? ""), status));
       return { funnel: f.id, status: f.status };
+    },
+    termsAdd: async (req: TermsAddRequest) => {
+      const w = await workspace(req, "act");
+      if (w.client) throw new PortalRefusal("terms are added in Wren's workspace only", 400);
+      const who = by(req);
+      const offer = String(req.offer ?? "");
+      if (!OFFER_IDS.has(offer))
+        throw new PortalRefusal(`"${offer}" is not in the offer registry.`, 400);
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body))
+        throw new PortalRefusal("The terms must be a JSON object.", 400);
+      const row = await refused(() =>
+        addTerms(w.db, {
+          offer,
+          plan: String(req.plan ?? ""),
+          from: String(req.from ?? ""),
+          body: req.body as Terms,
+          why: String(req.why ?? ""),
+          by: who,
+        }),
+      );
+      return { offer: row.offer, plan: row.plan, version: row.number, from: row.effectiveFrom };
     },
     dealsSign: async (req: DealSignRequest) => {
       const w = await workspace(req, "act");
@@ -340,6 +377,20 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
               by: api.by(req),
             });
           }),
+      ),
+      termsAdd: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            offer: z.string().describe("An offer id from the registry"),
+            plan: z.string().describe("A plan slug: standard, flat, partner-1"),
+            from: z.string().describe("The first day it applies, YYYY-MM-DD"),
+            body: z.looseObject({}).describe("The Terms JSON"),
+            why: z.string().describe("Why, in a sentence"),
+          }),
+        },
+        (ctx: restate.Context, req: TermsAddRequest) =>
+          answer(() => ctx.run("terms add", () => answer(() => api.termsAdd(req)))),
       ),
       dealsSign: serviceHandler(
         {

@@ -53,19 +53,24 @@ describe("routes", () => {
       "recordsExport",
       "recordsStats",
     ]);
+    expect(names.filter((n) => PIPELINE_CONSOLE_ROUTES[n as never] === "act")).toContain(
+      "termsAdd",
+    );
     expect(PIPELINE_CONSOLE_APPS["*"]).toBe("deals");
   });
 });
 
 describe("the records", () => {
-  it("lists the five types for Wren's team and for a client's viewer", async () => {
+  it("lists the seven types for Wren's team and for a client's viewer", async () => {
     const ids = (r: { id: string }[]) => r.map((t) => t.id).sort();
     const want = [
       "pipeline.deal",
+      "pipeline.entry",
       "pipeline.funnel",
       "pipeline.journey",
       "pipeline.number",
       "pipeline.offer",
+      "pipeline.terms",
     ];
     expect(ids(await api().recordsTypes(as(ADA, undefined, true)))).toEqual(want);
     expect(ids(await api().recordsTypes(as(VAL, "acme")))).toEqual(want);
@@ -189,5 +194,70 @@ describe("deals", () => {
         plan: "standard",
       }),
     ).rejects.toThrow(/No deal/);
+  });
+});
+
+describe("terms", () => {
+  const op = () => as(ADA, undefined, true);
+  const REGISTERED = "offer-a";
+  const body = {
+    currency: "USD",
+    setupCents: 12_300,
+    monthlyCents: null,
+    perUnitCents: null,
+    unit: null,
+    capCents: null,
+    days: 30,
+    payDays: 7,
+  };
+
+  it("adds the next version of a plan as the caller, through the store's checks", async () => {
+    const { OFFERS } = await import("@wren/offers");
+    const offer = OFFERS[0]?.id ?? REGISTERED;
+    const first = await api().termsAdd({
+      ...op(),
+      offer,
+      plan: "console-plan",
+      from: "2020-01-01",
+      body,
+      why: "first",
+    });
+    expect(first).toEqual({ offer, plan: "console-plan", version: 1, from: "2020-01-01" });
+    const second = await api().termsAdd({
+      ...op(),
+      offer,
+      plan: "console-plan",
+      from: "2020-02-01",
+      body: { ...body, setupCents: 45_600 },
+      why: "second",
+    });
+    expect(second.version).toBe(2);
+    const page = await api().recordsList({
+      ...op(),
+      record: "pipeline.terms",
+      view: "live",
+      where: { plan: "console-plan" },
+    });
+    expect(page.rows.map((r) => [r.number, r.createdBy])).toEqual([[2, ADA]]);
+  });
+
+  it("refuses an unknown offer, a bad body, an earlier date, and a viewer or a client", async () => {
+    const { OFFERS } = await import("@wren/offers");
+    const offer = OFFERS[0]?.id ?? REGISTERED;
+    const ask = { offer, plan: "console-plan", from: "2020-03-01", body, why: "w" };
+    await expect(api().termsAdd({ ...op(), ...ask, offer: "nope" })).rejects.toMatchObject({
+      status: 400,
+    });
+    await expect(api().termsAdd({ ...op(), ...ask, body: [] })).rejects.toThrow(/JSON object/);
+    await expect(
+      api().termsAdd({ ...op(), ...ask, body: { ...body, payDays: 500 } }),
+    ).rejects.toThrow(/payDays/);
+    await expect(api().termsAdd({ ...op(), ...ask, from: "2019-01-01" })).rejects.toThrow(
+      /cannot start earlier/,
+    );
+    await expect(api().termsAdd({ ...as(VAL, "acme"), ...ask })).rejects.toThrow(/can't do that/);
+    await expect(api().termsAdd({ ...as(OWNER, "acme"), ...ask })).rejects.toThrow(
+      /Wren's workspace only/,
+    );
   });
 });
