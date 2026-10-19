@@ -51,7 +51,13 @@ export function stripeChecks(main: Queryable): Record<string, SetupCheck> {
       const [m] = await main
         .select({ mode: vendorModes.mode, keyName: vendorModes.keyName })
         .from(vendorModes)
-        .where(and(eq(vendorModes.client, account.client), eq(vendorModes.vendor, "stripe")));
+        .where(
+          and(
+            eq(vendorModes.client, account.client),
+            eq(vendorModes.vendor, "stripe"),
+            eq(vendorModes.purpose, "default"),
+          ),
+        );
       return m?.mode === "own" && m.keyName
         ? { ok: true, why: "Key saved" }
         : { ok: false, why: "No Stripe key saved yet" };

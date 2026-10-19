@@ -208,20 +208,38 @@ export async function vendorSettings(main: Queryable): Promise<VendorSettings> {
 
 // ---- modes ----
 
+/** The `default` purpose: the row the Vendors page shows and the gate reads. */
+export const DEFAULT_PURPOSE = "default";
+
+/** A purpose is a word: `default`, `bulk`, `drafts`. */
+export const PURPOSE = /^[a-z][a-z0-9_]{0,31}$/;
+
+/** A client's `default` mode row on each vendor; the other purposes (own keys) sit beside them. */
 export async function modesOf(main: Queryable, client: string): Promise<VendorModeRow[]> {
   return main
     .select()
     .from(vendorModes)
-    .where(eq(vendorModes.client, client))
+    .where(and(eq(vendorModes.client, client), eq(vendorModes.purpose, DEFAULT_PURPOSE)))
     .orderBy(asc(vendorModes.vendor));
 }
 
-/** One client's mode row on one vendor; null when it has none. */
-export async function modeOf(main: Queryable, client: string, vendor: string) {
+/** One client's mode row on one vendor and purpose (`default`); null when it has none. */
+export async function modeOf(
+  main: Queryable,
+  client: string,
+  vendor: string,
+  purpose: string = DEFAULT_PURPOSE,
+) {
   const [row] = await main
     .select()
     .from(vendorModes)
-    .where(and(eq(vendorModes.client, client), eq(vendorModes.vendor, vendor)));
+    .where(
+      and(
+        eq(vendorModes.client, client),
+        eq(vendorModes.vendor, vendor),
+        eq(vendorModes.purpose, purpose),
+      ),
+    );
   return row ?? null;
 }
 
@@ -235,11 +253,14 @@ async function upsertMode(
     perDay?: number;
     capCents?: number;
     by: string;
+    purpose?: string;
   },
 ) {
+  const purpose = set.purpose ?? DEFAULT_PURPOSE;
   const values = {
     client,
     vendor,
+    purpose,
     mode: set.mode,
     keyName: set.keyName ?? null,
     perDay: set.perDay ?? 0,
@@ -250,7 +271,7 @@ async function upsertMode(
     .insert(vendorModes)
     .values(values)
     .onConflictDoUpdate({
-      target: [vendorModes.client, vendorModes.vendor],
+      target: [vendorModes.client, vendorModes.vendor, vendorModes.purpose],
       set: {
         mode: set.mode,
         ...(set.keyName !== undefined ? { keyName: set.keyName } : {}),
@@ -310,6 +331,32 @@ export async function setOwnKey(
   return { keyName: key.ref, last4: key.last4 };
 }
 
+/**
+ * Pick one of a client's saved keys for one purpose of a vendor (`bulk`, `drafts`): that purpose's
+ * row goes `own` on the key's ref. A purpose with no row uses the `default` row's key. The key
+ * must be the client's live key of the vendor's key name.
+ */
+export async function setPurposeKey(
+  main: Db,
+  store: KeyStore | null,
+  o: { client: string; vendor: string; purpose: string; keyRef: string; by: string },
+): Promise<{ keyName: string; last4: string; label: string }> {
+  const v = vendorOf(o.vendor);
+  if (v.own !== "key" || !v.keyName) throw new Error(`${v.name} takes no key of the client's`);
+  if (!PURPOSE.test(o.purpose)) throw new Error("purpose: a lowercase word, letters and digits");
+  if (!store) throw new Error("Key store not set up here");
+  const key = await store.info({ ref: o.keyRef, client: o.client });
+  if (!key) throw new Error("No such key for that client");
+  if (key.name !== v.keyName) throw new Error(`${v.name} takes a ${v.keyName}, not a ${key.name}`);
+  await upsertMode(main, o.client, v.id, {
+    mode: "own",
+    keyName: key.ref,
+    by: o.by,
+    purpose: o.purpose,
+  });
+  return { keyName: key.ref, last4: key.last4, label: key.label };
+}
+
 /** A login vendor on the client's own account: its key is the account it signs in with. */
 export async function setOwnLogin(
   main: Db,
@@ -320,11 +367,20 @@ export async function setOwnLogin(
   await upsertMode(main, o.client, v.id, { mode: "own", keyName: null, by: o.by });
 }
 
-/** Back to no mode: parts that need it wait with "Needs setup". The key stays in the store. */
+/**
+ * Back to no mode on the `default` purpose: parts that need it wait with "Needs setup". The key
+ * stays in the store, and other purposes keep their rows.
+ */
 export async function clearMode(main: Db, client: string, vendor: string): Promise<void> {
   await main
     .delete(vendorModes)
-    .where(and(eq(vendorModes.client, client), eq(vendorModes.vendor, vendor)));
+    .where(
+      and(
+        eq(vendorModes.client, client),
+        eq(vendorModes.vendor, vendor),
+        eq(vendorModes.purpose, DEFAULT_PURPOSE),
+      ),
+    );
 }
 
 // ---- buckets and the gate ----
@@ -523,6 +579,8 @@ export async function meter(
     micros?: number;
     part?: string | null;
     runId?: string | null;
+    /** The key's id (`keyId`) where Wren holds the value; null where a path holds the key. */
+    keyId?: string | null;
     at?: Date;
   },
 ): Promise<{ mode: VendorMode; bucket: string; micros: number }> {
@@ -543,6 +601,7 @@ export async function meter(
       micros,
       part: o.part ?? null,
       runId: o.runId ?? null,
+      keyId: o.keyId ?? null,
       ...(o.at ? { at: o.at } : {}),
     });
     return { mode, bucket, micros };
@@ -579,4 +638,30 @@ export async function usageSince(
     .groupBy(vendorUsage.vendor, vendorUsage.mode)
     .orderBy(asc(vendorUsage.vendor));
   return rows.map((r) => ({ ...r, units: Number(r.units), micros: Number(r.micros) }));
+}
+
+/**
+ * What each key spent since `since`, by key id: micro-dollars, units and calls. Rows with no key id
+ * (a path holds the key) are left out. The Accounts page's "spend this month".
+ */
+export async function usageByKey(
+  main: Queryable,
+  o: { since: Date },
+): Promise<Map<string, { micros: number; units: number; calls: number }>> {
+  const rows = await main
+    .select({
+      keyId: vendorUsage.keyId,
+      micros: sql<string>`sum(${vendorUsage.micros})`,
+      units: sql<string>`sum(${vendorUsage.units})`,
+      calls: sql<string>`count(*)`,
+    })
+    .from(vendorUsage)
+    .where(and(sql`${vendorUsage.keyId} is not null`, gte(vendorUsage.at, o.since)))
+    .groupBy(vendorUsage.keyId);
+  return new Map(
+    rows.map((r) => [
+      r.keyId as string,
+      { micros: Number(r.micros), units: Number(r.units), calls: Number(r.calls) },
+    ]),
+  );
 }

@@ -31,8 +31,14 @@ function fakeKeys(answer: VendorKey | Error, capped = false) {
   return { keys, metered, reads };
 }
 
-const own: VendorKey = { mode: "own", key: OWN, source: "store:ks_x", last4: "ZZZZ" };
-const managed: VendorKey = { mode: "managed", key: "wren-key", source: "env" };
+const own: VendorKey = {
+  mode: "own",
+  key: OWN,
+  source: "store:ks_x",
+  last4: "ZZZZ",
+  id: "0123456789ab",
+};
+const managed: VendorKey = { mode: "managed", key: "wren-key", source: "env", id: null };
 const msg = { from: "+15550000001", to: "+15550000002", text: "hi" };
 
 describe("keyedProvider", () => {

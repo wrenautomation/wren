@@ -9,6 +9,12 @@ import { z } from "zod";
 export const KEY_REF = /^ks_[0-9a-f]{32}$/;
 export const keyRef = z.string().regex(KEY_REF, "A saved key's reference, ks_…");
 
+/**
+ * A key's label: the account part of its address (`exa@bulk-2`). The same rule as an account
+ * name in autobrowse and credvault; wren copies it, it imports neither.
+ */
+export const KEY_LABEL = /^[a-z0-9][a-z0-9.-]{0,63}$/;
+
 /** Names a client's key may be kept under, each with the shape its value has. */
 export const KEY_SHAPES: Readonly<Record<string, RegExp>> = {
   STRIPE_SECRET_KEY: /^(sk|rk)_(live|test)_[A-Za-z0-9]{8,240}$/,
@@ -49,13 +55,17 @@ function wrenShape(name: string): RegExp | undefined {
 
 /**
  * Why `value` can't be kept as `name`, or null when it can. Never says the value. A person
- * pastes only `KEY_SHAPES` names; the worker and the CLI may also keep Wren's own.
+ * pastes only `KEY_SHAPES` names; the worker and the CLI may also keep Wren's own. A bad `label`
+ * is refused with its rule.
  */
 export function keyProblem(
   name: string,
   value: string,
   from: "person" | "wren" = "person",
+  label = "default",
 ): string | null {
+  if (!KEY_LABEL.test(label))
+    return "A label is 1 to 64 characters: lowercase letters, digits, . and -, starting with a letter or digit";
   const shape = KEY_SHAPES[name] ?? (from === "wren" ? wrenShape(name) : undefined);
   if (!shape) return "Wren doesn't keep a key by that name";
   if (!shape.test(value)) {

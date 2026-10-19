@@ -32,6 +32,8 @@ export const vendorModes = pgTable(
     client: varchar("client", { length: 40 }),
     /** A `VENDORS` id: `exa`, `youtube`. */
     vendor: varchar("vendor", { length: 32 }).notNull(),
+    /** What the key is for: `default`, `bulk`, `drafts`. A purpose with no row uses `default`'s. */
+    purpose: varchar("purpose", { length: 32 }).default("default").notNull(),
     mode: varchar("mode", { length: 8, enum: VENDOR_MODES }).$type<VendorMode>().notNull(),
     /** Own key: its key store ref (`ks_…`). The key itself never sits here. */
     keyName: varchar("key_name", { length: 200 }),
@@ -44,7 +46,7 @@ export const vendorModes = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_vendor_modes" }),
-    unique("uq_vendor_modes_owner").on(t.client, t.vendor).nullsNotDistinct(),
+    unique("uq_vendor_modes_owner").on(t.client, t.vendor, t.purpose).nullsNotDistinct(),
     foreignKey({
       columns: [t.client],
       foreignColumns: [clients.id],
@@ -73,6 +75,8 @@ export const vendorUsage = pgTable(
     micros: bigint("micros", { mode: "number" }).notNull(),
     /** The part that spent it: `signals.triggers`. */
     part: varchar("part", { length: 64 }),
+    /** The key's id (`keyId`) where Wren holds the value; null where a path holds the key. */
+    keyId: varchar("key_id", { length: 12 }),
     /** Its `runs` row, when one ran it. */
     runId: uuid("run_id"),
     at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
@@ -81,6 +85,7 @@ export const vendorUsage = pgTable(
     primaryKey({ columns: [t.id], name: "pk_vendor_usage" }),
     index("ix_vendor_usage_bucket").on(t.bucket, t.at),
     index("ix_vendor_usage_owner").on(t.client, t.vendor, t.at),
+    index("ix_vendor_usage_key").on(t.keyId, t.at),
     oneOf("ck_vendor_usage_mode", t.mode, VENDOR_MODES),
   ],
 );

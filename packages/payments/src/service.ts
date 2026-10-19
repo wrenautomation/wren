@@ -132,7 +132,13 @@ export async function stripeKeyOf(
   const [m] = await d.main
     .select({ keyName: vendorModes.keyName, mode: vendorModes.mode })
     .from(vendorModes)
-    .where(and(eq(vendorModes.client, client), eq(vendorModes.vendor, "stripe")));
+    .where(
+      and(
+        eq(vendorModes.client, client),
+        eq(vendorModes.vendor, "stripe"),
+        eq(vendorModes.purpose, "default"),
+      ),
+    );
   const key =
     m?.mode === "own" && m.keyName
       ? await d.keys.get({ ref: m.keyName, client, by: PAYMENTS_READER, why })

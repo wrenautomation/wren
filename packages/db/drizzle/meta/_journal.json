@@ -2122,6 +2122,13 @@
       "when": 1792424416918,
       "tag": "0303_deals_guard_and_drop",
       "breakpoints": true
+    },
+    {
+      "idx": 304,
+      "version": "7",
+      "when": 1792443764999,
+      "tag": "0304_api_key_labels_purposes",
+      "breakpoints": true
     }
   ]
 }

@@ -178,7 +178,13 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
       const [m] = await main
         .select({ mode: vendorModes.mode, keyName: vendorModes.keyName })
         .from(vendorModes)
-        .where(and(eq(vendorModes.client, client.id), eq(vendorModes.vendor, "stripe")));
+        .where(
+          and(
+            eq(vendorModes.client, client.id),
+            eq(vendorModes.vendor, "stripe"),
+            eq(vendorModes.purpose, "default"),
+          ),
+        );
       const acct = await payAccountOf(main, client.id);
       return {
         connected: m?.mode === "own" && !!m.keyName,

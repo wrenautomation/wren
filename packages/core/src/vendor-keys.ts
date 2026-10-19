@@ -9,11 +9,12 @@
  * never return it from that step: Restate journals what a step returns.
  */
 import type { Db } from "@wren/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { keyId } from "./key-id.js";
 import type { KeyStore } from "./keys.js";
 import { vendorModes } from "./vendor-schema.js";
 import { VendorStop } from "./vendor-stop.js";
-import { gate, meter, vendorOf } from "./vendors.js";
+import { DEFAULT_PURPOSE, gate, meter, vendorOf } from "./vendors.js";
 
 /** Who reads a client's key when a vendor call does: on each read event. */
 export const VENDOR_READER = "wren:vendors";
@@ -32,13 +33,14 @@ export const WREN_KEYS: Readonly<Record<string, { env: string | null; source: st
 };
 
 export type VendorKey =
-  /** The client's own key, from the store. `source`: `store:<ref>`. */
-  | { mode: "own"; key: string; source: string; last4: string }
+  /** The client's own key, from the store. `source`: `store:<ref>`. `id`: its `keyId`. */
+  | { mode: "own"; key: string; source: string; last4: string; id: string }
   /**
    * Wren's key. `key` null: the path holds it (`source` says which). `unset`: the client has no
    * mode and the call site keeps running on Wren's as it did before modes (metered, not gated).
+   * `id`: the key's `keyId` where Wren holds the value, else null.
    */
-  | { mode: "managed"; key: string | null; source: string; unset?: true };
+  | { mode: "managed"; key: string | null; source: string; id: string | null; unset?: true };
 
 const SHORT: Readonly<Record<string, string>> = {
   exa: "Exa",
@@ -65,6 +67,11 @@ export interface VendorKeyOptions {
   keys: KeyStore | null;
   /** Why the key is read: on its read event ("exa search for signals"). */
   why: string;
+  /**
+   * What the key is for (`bulk`, `drafts`; default `default`). The client's row for that purpose,
+   * else its `default` row. Own with no key in the chosen row is refused, never Wren's.
+   */
+  purpose?: string;
   /** Wren's env, for a managed key the worker holds. */
   env?: Readonly<Record<string, string | undefined>>;
   /** Who reads: on the event. */
@@ -89,10 +96,23 @@ export async function vendorKey(
 ): Promise<VendorKey> {
   const v = vendorOf(vendor);
   if (client === null) return managedKey(v.id, o.env);
-  const [m] = await db
-    .select({ mode: vendorModes.mode, keyName: vendorModes.keyName })
+  const purpose = o.purpose ?? DEFAULT_PURPOSE;
+  const rows = await db
+    .select({
+      purpose: vendorModes.purpose,
+      mode: vendorModes.mode,
+      keyName: vendorModes.keyName,
+    })
     .from(vendorModes)
-    .where(and(eq(vendorModes.client, client), eq(vendorModes.vendor, v.id)));
+    .where(
+      and(
+        eq(vendorModes.client, client),
+        eq(vendorModes.vendor, v.id),
+        inArray(vendorModes.purpose, [purpose, DEFAULT_PURPOSE]),
+      ),
+    );
+  const m =
+    rows.find((r) => r.purpose === purpose) ?? rows.find((r) => r.purpose === DEFAULT_PURPOSE);
   if (!m && o.unset === "managed") return { ...managedKey(v.id, o.env), unset: true };
   if (!m)
     throw new VendorKeyMissing(
@@ -111,7 +131,7 @@ export async function vendorKey(
     why: o.why,
   });
   if (!key) throw new VendorKeyMissing(client, v.id, connect);
-  return { mode: "own", key, source: `store:${m.keyName}`, last4: key.slice(-4) };
+  return { mode: "own", key, source: `store:${m.keyName}`, last4: key.slice(-4), id: keyId(key) };
 }
 
 function managedKey(
@@ -119,10 +139,10 @@ function managedKey(
   env: Readonly<Record<string, string | undefined>> = {},
 ): Extract<VendorKey, { mode: "managed" }> {
   const w = WREN_KEYS[vendor];
-  if (!w) return { mode: "managed", key: null, source: "wren" };
+  if (!w) return { mode: "managed", key: null, source: "wren", id: null };
   const key = w.env ? (env[w.env]?.trim() ?? null) : null;
   if (w.env && !key) throw new Error(`Wren's ${shortName(vendor)} key isn't set here (${w.env})`);
-  return { mode: "managed", key, source: w.source };
+  return { mode: "managed", key, source: w.source, id: key ? keyId(key) : null };
 }
 
 /** A key's text gone from an error: its message, and its cause's. Status and name kept. */
@@ -155,6 +175,8 @@ export interface VendorUse<T> {
   vendor: string;
   /** On the key's read event: "exa search for signals". */
   why: string;
+  /** What the key is for; default `default`. */
+  purpose?: string;
   /** Units the gate asks for first; default 1. */
   units?: number;
   /** What the call spent, from its answer; default `units`. Null: nothing went out, no row. */
@@ -168,7 +190,7 @@ export interface VendorUse<T> {
  * resolves, gates, runs and meters, in both modes; a key never leaves in an error.
  */
 export interface VendorKeys {
-  key(client: string | null, vendor: string, why: string): Promise<VendorKey>;
+  key(client: string | null, vendor: string, why: string, purpose?: string): Promise<VendorKey>;
   use<T>(o: VendorUse<T>, run: (k: VendorKey) => Promise<T>): Promise<T>;
 }
 
@@ -182,13 +204,14 @@ export function vendorKeys(deps: {
 }): VendorKeys {
   const cache = new Map<string, Promise<VendorKey>>();
   const now = deps.now ?? (() => new Date());
-  const key = (client: string | null, vendor: string, why: string) => {
-    const at = `${client ?? ""}\u0000${vendor}`;
+  const key = (client: string | null, vendor: string, why: string, purpose?: string) => {
+    const at = `${client ?? ""}\u0000${vendor}\u0000${purpose ?? DEFAULT_PURPOSE}`;
     let k = cache.get(at);
     if (!k) {
       k = vendorKey(deps.main, client, vendor, {
         keys: deps.keys,
         why,
+        ...(purpose ? { purpose } : {}),
         ...(deps.env ? { env: deps.env } : {}),
         ...(deps.by ? { by: deps.by } : {}),
         ...(deps.unset ? { unset: deps.unset } : {}),
@@ -202,7 +225,7 @@ export function vendorKeys(deps: {
   return {
     key,
     async use(o, run) {
-      const k = await key(o.client, o.vendor, o.why);
+      const k = await key(o.client, o.vendor, o.why, o.purpose);
       const units = o.units ?? 1;
       if (!(k.mode === "managed" && k.unset)) {
         const g = await gate(deps.main, o.client, o.vendor, units, now());
@@ -227,6 +250,7 @@ export function vendorKeys(deps: {
         ...(s.micros !== undefined ? { micros: s.micros } : {}),
         part: o.part ?? null,
         runId: o.runId ?? null,
+        keyId: k.id,
       });
       return out;
     },

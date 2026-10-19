@@ -32,11 +32,22 @@ describe("clientYouTube", () => {
       calls.push(`own ${key.slice(-4)} ${r}`);
       return {};
     };
-    const mine = fakeKeys({ mode: "own", key: OWN, source: "store:ks_y", last4: "WXYZ" });
+    const mine = fakeKeys({
+      mode: "own",
+      key: OWN,
+      source: "store:ks_y",
+      last4: "WXYZ",
+      id: "0123456789ab",
+    });
     const a = clientYouTube({ client: "acme", keys: mine.keys, wren, own, part: "t" });
     await a("channels", {});
     await a("search", {});
-    const theirs = fakeKeys({ mode: "managed", key: null, source: "Wren's service account" });
+    const theirs = fakeKeys({
+      mode: "managed",
+      key: null,
+      source: "Wren's service account",
+      id: null,
+    });
     await clientYouTube({ client: "beta", keys: theirs.keys, wren, own, part: "t" })("videos", {});
     expect(calls).toEqual(["own WXYZ channels", "own WXYZ search", "wren videos"]);
     expect(mine.used.map((u) => u.units)).toEqual([1, 100]);

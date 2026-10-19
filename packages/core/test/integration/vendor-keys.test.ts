@@ -8,6 +8,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clients } from "../../src/clients/schema.js";
+import { keyId } from "../../src/key-id.js";
 import { type KeyStore, pgKeyStore, throwawayRing } from "../../src/keys.js";
 import { clientSecretEvents } from "../../src/keys-schema.js";
 import { keyedSites, meteredModel, meteredSites } from "../../src/metered.js";
@@ -66,17 +67,20 @@ describe("vendorKey", () => {
       mode: "managed",
       key: WREN_TELNYX,
       source: "env: WREN_TELNYX_API_KEY",
+      id: keyId(WREN_TELNYX),
     });
     expect(await vendorKey(pg.db, "beta", "exa", { keys: store, why: "t" })).toEqual({
       mode: "managed",
       key: null,
       source: "autobrowse: Exa key ring",
+      id: null,
     });
     // Wren itself: always managed.
     expect(await vendorKey(pg.db, null, "telnyx", { keys: store, why: "t", env: ENV })).toEqual({
       mode: "managed",
       key: WREN_TELNYX,
       source: "env: WREN_TELNYX_API_KEY",
+      id: keyId(WREN_TELNYX),
     });
   });
 

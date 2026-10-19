@@ -39,6 +39,11 @@ export const clientSecrets = pgTable(
     client: varchar("client", { length: 40 }).notNull(),
     /** What it is, as Wren's env names it: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. */
     name: varchar("name", { length: 64 }).notNull(),
+    /**
+     * The account part of the key's address (`exa@bulk-2`): one live key per client, name and
+     * label. `LABEL` in key-refs.ts is its rule.
+     */
+    label: varchar("label", { length: 64 }).default("default").notNull(),
     state: varchar("state", { length: 8, enum: SECRET_STATES }).$type<SecretState>().notNull(),
     /** Which private key opens `wrapped`. */
     kid: varchar("kid", { length: 16 }).notNull(),
@@ -58,7 +63,9 @@ export const clientSecrets = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_client_secrets" }),
-    uniqueIndex("uq_client_secrets_live").on(t.client, t.name).where(sql`${t.state} = 'live'`),
+    uniqueIndex("uq_client_secrets_live")
+      .on(t.client, t.name, t.label)
+      .where(sql`${t.state} = 'live'`),
     foreignKey({
       columns: [t.client],
       foreignColumns: [clients.id],

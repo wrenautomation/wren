@@ -178,6 +178,9 @@ export function publicSpecOf(privateSpec: string): string {
 /** How long a staged key waits for a handler to bind it. */
 export const STAGED_FOR_MS = 60 * 60_000;
 
+/** The label a key has when none is named. */
+export const DEFAULT_LABEL = "default";
+
 const aadOf = (client: string, name: string) => `wren-key|${client}|${name}`;
 const newRef = () => `ks_${randomBytes(16).toString("hex")}`;
 
@@ -187,6 +190,8 @@ export class KeyRefusal extends PortalRefusal {}
 export interface KeyInfo {
   ref: string;
   name: string;
+  /** The account part of its address: `default`, `bulk-2`. */
+  label: string;
   last4: string;
   version: number;
   updatedAt: Date;
@@ -195,6 +200,7 @@ export interface KeyInfo {
 const infoOf = (r: ClientSecretRow): KeyInfo => ({
   ref: r.id,
   name: r.name,
+  label: r.label,
   last4: r.last4,
   version: r.version,
   updatedAt: r.updatedAt,
@@ -237,10 +243,11 @@ async function expireStaged(tx: Tx, now: Date) {
 export async function stageKey(
   main: Db,
   sealer: Sealer,
-  o: { client: string; name: string; value: string; by: string; now?: Date },
+  o: { client: string; name: string; label?: string; value: string; by: string; now?: Date },
 ): Promise<{ ref: string; last4: string }> {
   const value = o.value.trim();
-  const problem = keyProblem(o.name, value);
+  const label = o.label ?? DEFAULT_LABEL;
+  const problem = keyProblem(o.name, value, "person", label);
   if (problem) throw new KeyRefusal(problem);
   const ref = newRef();
   const s = sealer.seal(aadOf(o.client, o.name), value);
@@ -250,6 +257,7 @@ export async function stageKey(
       id: ref,
       client: o.client,
       name: o.name,
+      label,
       state: "staged",
       ...s,
       last4: last4(value),
@@ -316,23 +324,42 @@ export async function intakeKey(
 
 export interface KeyStore {
   /** Seal and set aside (tests and the local preview; prod stages at the sign-in Lambda). */
-  stage(o: { client: string; name: string; value: string; by: string }): Promise<{
+  stage(o: { client: string; name: string; label?: string; value: string; by: string }): Promise<{
     ref: string;
     last4: string;
   }>;
   /**
-   * A staged key becomes the client's live key of its name: new, or the next version of the one
-   * there under that one's ref. Only the person who staged it, within the hour. Again: the same.
+   * A staged key becomes the client's live key of its name and label (`default` when none is
+   * named): new, or the next version of the one there under that one's ref. Only the person who
+   * staged it, within the hour. Again: the same.
    */
-  bind(o: { ref: string; client: string; name: string; by: string }): Promise<KeyInfo>;
+  bind(o: {
+    ref: string;
+    client: string;
+    name: string;
+    label?: string;
+    by: string;
+  }): Promise<KeyInfo>;
   /** Seal and make live at once: a secret the worker got itself (Stripe's webhook secret). */
-  put(o: { client: string; name: string; value: string; by: string }): Promise<KeyInfo>;
+  put(o: {
+    client: string;
+    name: string;
+    label?: string;
+    value: string;
+    by: string;
+  }): Promise<KeyInfo>;
   /** A new value under the same ref. */
   rotate(o: { ref: string; client: string; value: string; by: string }): Promise<KeyInfo>;
   /** The value, with a `read` event saying who and why. Null: no such live key. */
   get(o: { ref: string; client: string; by: string; why: string }): Promise<string | null>;
-  /** The same by name, for keys Wren keeps by a known name (its own mail apps). */
-  named(o: { client: string; name: string; by: string; why: string }): Promise<string | null>;
+  /** The same by name and label, for keys Wren keeps by a known name (its own mail apps). */
+  named(o: {
+    client: string;
+    name: string;
+    label?: string;
+    by: string;
+    why: string;
+  }): Promise<string | null>;
   delete(o: { ref: string; client: string; by: string }): Promise<boolean>;
   /** What a page shows: name, last 4, version. No value, no event. */
   info(o: { ref: string; client: string }): Promise<KeyInfo | null>;
@@ -394,7 +421,7 @@ export function pgKeyStore(
     await logged(tx, by, { secret: row.id, client: row.client, name: row.name, op });
     return infoOf(r as ClientSecretRow);
   };
-  const liveByName = async (tx: Queryable, client: string, name: string) => {
+  const liveByName = async (tx: Queryable, client: string, name: string, label: string) => {
     const [r] = await tx
       .select()
       .from(clientSecrets)
@@ -402,6 +429,7 @@ export function pgKeyStore(
         and(
           eq(clientSecrets.client, client),
           eq(clientSecrets.name, name),
+          eq(clientSecrets.label, label),
           eq(clientSecrets.state, "live"),
         ),
       )
@@ -415,6 +443,7 @@ export function pgKeyStore(
     bind: (o) =>
       serializable(main, async (tx) => {
         if (!KEY_REF.test(o.ref)) throw new KeyRefusal("That isn't a saved key's reference");
+        const label = o.label ?? DEFAULT_LABEL;
         const [staged] = await tx
           .select()
           .from(clientSecrets)
@@ -428,6 +457,7 @@ export function pgKeyStore(
               and(
                 eq(clientSecrets.client, o.client),
                 eq(clientSecrets.name, o.name),
+                eq(clientSecrets.label, label),
                 eq(clientSecrets.state, "live"),
                 eq(clientSecrets.boundFrom, o.ref),
               ),
@@ -438,13 +468,13 @@ export function pgKeyStore(
             404,
           );
         }
-        if (staged.client !== o.client || staged.name !== o.name)
+        if (staged.client !== o.client || staged.name !== o.name || staged.label !== label)
           throw new KeyRefusal("That key was saved for something else", 409);
         if (staged.createdBy.toLowerCase() !== o.by.toLowerCase())
           throw new KeyRefusal("Someone else saved that key", 403);
         if (clock().getTime() - staged.createdAt.getTime() > STAGED_FOR_MS)
           throw new KeyRefusal("That key waited over an hour. Paste it again.", 404);
-        const live = await liveByName(tx, o.client, o.name);
+        const live = await liveByName(tx, o.client, o.name, label);
         if (live) {
           // The value moves under the live ref; its data key is bound to client and name, not ref.
           const [r] = await tx
@@ -483,9 +513,10 @@ export function pgKeyStore(
     put: (o) =>
       serializable(main, async (tx) => {
         const value = o.value.trim();
-        const problem = keyProblem(o.name, value, "wren");
+        const label = o.label ?? DEFAULT_LABEL;
+        const problem = keyProblem(o.name, value, "wren", label);
         if (problem) throw new KeyRefusal(problem);
-        const live = await liveByName(tx, o.client, o.name);
+        const live = await liveByName(tx, o.client, o.name, label);
         if (live) return reseal(tx, live, value, o.by, "rotate");
         const ref = newRef();
         const [r] = await tx
@@ -494,6 +525,7 @@ export function pgKeyStore(
             id: ref,
             client: o.client,
             name: o.name,
+            label,
             state: "live",
             ...ring.seal(aadOf(o.client, o.name), value),
             last4: last4(value),
@@ -521,7 +553,9 @@ export function pgKeyStore(
       atomic(main, async (tx) => read(tx, await liveRow(tx, o.ref, o.client), o.by, o.why)),
 
     named: (o) =>
-      atomic(main, async (tx) => read(tx, await liveByName(tx, o.client, o.name), o.by, o.why)),
+      atomic(main, async (tx) =>
+        read(tx, await liveByName(tx, o.client, o.name, o.label ?? DEFAULT_LABEL), o.by, o.why),
+      ),
 
     delete: (o) =>
       atomic(main, async (tx) => {

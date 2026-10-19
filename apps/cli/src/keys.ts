@@ -8,6 +8,7 @@ import { WREN } from "@wren/core/access";
 import { getClient } from "@wren/core/clients";
 import { keyRing, keySealer, pgKeyStore, publicSpecOf, rewrapAll } from "@wren/core/keys";
 import { clientSecrets } from "@wren/core/keys-schema";
+import { DEFAULT_PURPOSE, setPurposeKey } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
 import { and, eq } from "drizzle-orm";
@@ -44,7 +45,7 @@ export function registerKeys(program: Command, withMainDb: WithDb) {
   cmd
     .command("list")
     .argument("<client>")
-    .description("A client's keys: name, last 4, version, when and by whom")
+    .description("A client's keys: ref, name@label, last 4, version, when and by whom")
     .action(async (client: string) => {
       const rows = await withMainDb(async (db) => {
         await known(db, client);
@@ -52,6 +53,7 @@ export function registerKeys(program: Command, withMainDb: WithDb) {
           .select({
             ref: clientSecrets.id,
             name: clientSecrets.name,
+            label: clientSecrets.label,
             last4: clientSecrets.last4,
             version: clientSecrets.version,
             at: clientSecrets.updatedAt,
@@ -63,7 +65,7 @@ export function registerKeys(program: Command, withMainDb: WithDb) {
       if (!rows.length) console.log("No keys.");
       for (const r of rows)
         console.log(
-          `${r.ref}\t${r.name}\t…${r.last4}\tv${r.version}\t${r.at.toISOString()}\t${r.by}`,
+          `${r.ref}\t${r.name}@${r.label}\t…${r.last4}\tv${r.version}\t${r.at.toISOString()}\t${r.by}`,
         );
     });
 
@@ -71,14 +73,36 @@ export function registerKeys(program: Command, withMainDb: WithDb) {
     .command("put")
     .argument("<client>")
     .argument("<name>", "MAIL_GOOGLE_CLIENT_SECRET, STRIPE_SECRET_KEY, …")
+    .option("--label <label>", "which of the client's keys of this name", "default")
     .description("Seal the value on stdin as a client's key (Wren's own under the client wren)")
-    .action(async (client: string, name: string) => {
+    .action(async (client: string, name: string, opts: { label: string }) => {
       const value = await stdin();
       const info = await withMainDb(async (db) => {
         await known(db, client);
-        return pgKeyStore(db, sealer()).put({ client, name, value, by: BY });
+        return pgKeyStore(db, sealer()).put({ client, name, label: opts.label, value, by: BY });
       });
-      console.log(`${info.ref}\t${info.name}\t…${info.last4}\tv${info.version}`);
+      console.log(`${info.ref}\t${info.name}@${info.label}\t…${info.last4}\tv${info.version}`);
+    });
+
+  cmd
+    .command("use")
+    .argument("<client>")
+    .argument("<vendor>", "exa, youtube, …")
+    .requiredOption("--key <ref>", "the saved key (ks_…, from `keys list`)")
+    .option("--purpose <word>", "what the key is for: bulk, drafts, …", DEFAULT_PURPOSE)
+    .description("Run a client's calls for one purpose of a vendor on one of its saved keys")
+    .action(async (client: string, vendor: string, opts: { key: string; purpose: string }) => {
+      const r = await withMainDb(async (db) => {
+        await known(db, client);
+        return setPurposeKey(db, pgKeyStore(db, sealer()), {
+          client,
+          vendor,
+          purpose: opts.purpose,
+          keyRef: opts.key,
+          by: BY,
+        });
+      });
+      console.log(`${client}\t${vendor}/${opts.purpose}\t${r.keyName}\t…${r.last4}\t@${r.label}`);
     });
 
   cmd

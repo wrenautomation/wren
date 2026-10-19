@@ -1,7 +1,7 @@
 /** Raw keys are refused wherever a ref should be; refs, ids and emails pass. */
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { keyProblem, keyRef, looksLikeKey, noRawKeys, rawKeyAt } from "./key-refs.js";
+import { KEY_LABEL, keyProblem, keyRef, looksLikeKey, noRawKeys, rawKeyAt } from "./key-refs.js";
 
 const REF = `ks_${"0a".repeat(16)}`;
 
@@ -64,5 +64,23 @@ describe("keyProblem", () => {
     expect(keyProblem("STRIPE_WEBHOOK_SECRET", "whsec_synthetic00000000000000")).toBeNull();
     expect(keyProblem("EXA_API_KEY", "short")).toBe("That doesn't look like a key");
     expect(keyProblem("AWS_SECRET", "anything-long-enough")).toContain("by that name");
+  });
+});
+
+describe("key label", () => {
+  it("takes the account-name rule", () => {
+    for (const ok of ["default", "bulk-2", "a", "env.1", "0abc", "a".repeat(64)])
+      expect(KEY_LABEL.test(ok), ok).toBe(true);
+    for (const bad of ["", "-a", ".a", "A", "a_b", "a b", "a@b", "a".repeat(65)])
+      expect(KEY_LABEL.test(bad), bad).toBe(false);
+  });
+  it("is refused by keyProblem with the rule, never the value", () => {
+    const value = "synthetic-key-value-0000";
+    const why = keyProblem("EXA_API_KEY", value, "person", "Bad Label");
+    expect(why).toContain("A label is");
+    expect(why).not.toContain(value);
+    expect(why).not.toContain("Bad Label");
+    expect(keyProblem("EXA_API_KEY", value, "person", "bulk-2")).toBeNull();
+    expect(keyProblem("EXA_API_KEY", value)).toBeNull();
   });
 });

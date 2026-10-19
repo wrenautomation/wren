@@ -124,6 +124,7 @@
     "./vendor-stop": "./src/vendor-stop.ts",
     "./vendor-direct": "./src/vendor-direct.ts",
     "./vendor-schema": "./src/vendor-schema.ts",
+    "./key-id": "./src/key-id.ts",
     "./keys": "./src/keys.ts",
     "./key-refs": "./src/key-refs.ts",
     "./keys-schema": "./src/keys-schema.ts",
