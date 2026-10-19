@@ -32,7 +32,7 @@ Citations: `packages/pipeline/src/store.ts:331`, `packages/pipeline/src/model.ts
 - **owns:** `pipeline.funnels`, `pipeline.funnel_versions`
 - **owned-by:** `@wren/pipeline`
 - **joins:** [[leads/segment]] (`group` entries), [[platform/journey]] (`journeys.funnel, version`), [[platform/offer]] (`FunnelBody.offer`), [[platform/spine]] (one generated workflow per version)
-- **looks-like-but-is-not:** `deal_pipelines` in [[platform/deal]], the Pipeline app (Wren's research funnel)
+- **looks-like-but-is-not:** the retired `deal_pipelines` (folded into funnels by `wren pipeline fold-deals`), the Pipeline app (Wren's research funnel)
 
 ## If you change this
 

@@ -58,7 +58,7 @@ A card is a note, so it already has a body, comments, history, sharing and `@` l
 
 | Surface | Role |
 |---|---|
-| Notes → Board (`apps/portal/web/src/modules/notes/board.tsx`) | columns, drag, filters, List toggle, Board settings, Export CSV, Import |
+| Notes → Board (`apps/portal/web/src/modules/notes/board.tsx`) | columns, drag, filters, List toggle, Board settings, Export CSV, Import. Its lane and drag helpers live in `apps/portal/web/src/kanban.tsx`; the journeys board ([[platform/journey]]) uses them too |
 | the doc page (`card.tsx`) | task strip (column, owner, due, board, blocked by, blocks) and the Timeline panel |
 | editor toolbar, note menu, ⌘K, Quick note | Make card, Turn into cards with Claude, New card |
 | `wren tasks ready\|ls\|show\|add\|move\|assign\|due\|close\|reopen\|comment\|block` (`apps/cli/src/tasks.ts`) | agents; `--json`, `--agent <name>` |

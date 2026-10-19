@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ 5cd99e8b
+verified: 2026-10-19 @ af1e93bb
 entity: packages/pipeline/src/schema.ts:125
 ---
 
@@ -17,13 +17,13 @@ The row is a cache. The truth is spine events with subject `journey:<id>`, so a 
 
 ## Shape
 
-- `journeys` (`schema.ts:125`): `profile_id` FK `profiles.id`, `(funnel, version)` FK `funnel_versions`, `stage` (a key), `status` open|done|dropped, `entry` + `entry_ref` (the cause that opened it), `legacy_deal` (fold only).
+- `journeys` (`schema.ts:125`): `profile_id` FK `profiles.id`, `(funnel, version)` FK `funnel_versions`, `stage` (a key), `status` open|done|dropped, `entry` + `entry_ref` (the cause that opened it), `legacy_deal` uuid (the old deal's id; only the fold sets it; unique where set, `uq_journeys_legacy_deal`, migration 0302).
 - Partial unique `uq_journeys_open`: one open journey per `(profile_id, funnel)`. A person holds many funnels at once.
-- `deals` (`schema.ts:167`, TS export `pipelineDeals`; `@wren/deals` keeps `deals`): one per journey (`uq_deals_journey`), `terms_version` null until signed terms are known, `collected_cents` a fold of payment events.
+- `deals` (`schema.ts:167`, TS export `pipelineDeals`): one per journey (`uq_deals_journey`), `terms_version` null until signed terms are known, `collected_cents` a fold of payment events.
 - `nextStage(stages, from, to, status)` (`stages.ts:17`): forward only. Returns `{ to, skipped }` or null for same, earlier, unknown stage or a closed journey.
 - `scheduleOf(terms, signedAt, until?)` (`schedule.ts:47`): the dated lines a deal implies. No row stores it. See [[platform/terms]].
 - `journey.move` (`steps.ts:98`, `journeySteps`): a cause event reaches `m_<stage>`. It finds the person (`personOf`, `journeys.ts:45`), opens a journey only on the newest live version and only when `opensAt` (`entry.ts`) lets the cause in: a manual open or composed funnel (journey port) at any entry stage; else an organic, outbound, ads or referral entry at that stage, or the group or sourced entry the cause names (`entryOf` then picks the entry), then `nextStage` guards. One `atomic` transaction with `FOR UPDATE` on the row. Emits `moved` with subject `journey:<id>` and `{journey, profile, funnel, version, from, to, skipped, cause}`.
-- `journey.stage` (`steps.ts:186`): the arrival at `s_<stage>`. Writes a `profile_events` row (kind `journey`), makes the `deals` row at the sale stage (newest `offer_versions` number; none, no deal and a warning), sets `done` at the last stage, and fires `trigger.journey` (`entered`, one `skipped` per skipped stage). At `dropped` it writes the drop line and fires `dropped`. The fires go through `StepAt.fire`, sent after the step result is kept ([[platform/spine]]).
+- `journey.stage` (`steps.ts:186`): the arrival at `s_<stage>`. Writes a `profile_events` row (kind `journey`), makes the `deals` row at the sale stage (newest `offer_versions` number; none, no deal and a warning), sets `done` at the last stage, and fires `trigger.journey` (`entered`, one `skipped` per skipped stage). At `dropped` it writes the drop line and fires `dropped`. The fires go through `StepAt.fire`, sent after the step result is kept ([[platform/spine]]). The arrival fact at the sale stage carries `sale: true` (`told`, `steps.ts:285`); `webhookEventsOfFired` turns an entered or dropped fire into `journey.moved`, and a `sale` one into `deal.won` as well ([[platform/webhook-subscription]]).
 - `dropJourney` (`journeys.ts:165`): set `dropped`, return the event for `in.dropped` of the newest version. The `Journeys` service calls it and emits.
 - `Journeys` service (`restate.ts`, bound in `apps/worker/src/services.ts`): `open`, `move`, `drop`, `rebuild`; `client` null is Wren's workspace. `openEmit` and `moveEmit` (`moves.ts`) build a spine event with cause `manual` (operator in `cause.ref`) for `in.<stage>` of the funnel workflow; the funnel's own `journey.move` step writes the row, so there is no second write path. A manual open uses subject `manual:<uuid>`, so a repeat after a drop is a new arrival. `rebuildJourney` recomputes version, stage and status from the `journey:<id>` arrivals. `idOf` refuses a bad id before the database does.
 - Records (`records.ts`): `pipeline.journey` (open, mine, stale, done, dropped, all), `pipeline.deal` (open, won, lost, all; schedule from `scheduleOf`). `mine` is the operator of the newest manual-cause arrival: journeys hold no owner column. Stale is 14 days in a stage.
@@ -36,17 +36,20 @@ The row is a cache. The truth is spine events with subject `journey:<id>`, so a 
 - `journey_research` (migration `0301_journey_research`): not audited; a cache of what was asked.
 - Migration `0295_pipeline`. The six first `pipeline` tables are audited, area `money` (`packages/db/src/audit/install.ts`).
 
+- Fold (J6, `packages/pipeline/src/fold.ts`): `foldDeals` turns the retired `deals`, `deal_pipelines` and `deal_moves` into funnels, journeys and events. One funnel per pipeline (v1 `why` "Folded from deal pipeline <uuid>" is the idempotency key; `--offer` names its offer), one journey per deal with `legacy_deal`, one arrival event per move at `s_<stage>` (cause `import`, by `fold`, `sent` empty, inserted direct so no step runs; a lost deal gets a drop). The deal's name, value and contact stay in `entry_ref.legacy`: `pipeline.deals` has no value column. A won deal gets a `pipeline.deals` row only when an `offer_versions` row exists, else a warning. Client-owned deals sit in main with `client` set; the fold writes the journey into the client's database, then deletes the main row. Two open deals for one person in one pipeline conflict on `uq_journeys_open`: reported, skipped, exit 1. Run it as `wren pipeline fold-deals [--client <id>] [--offer <id>] [--dry]`. Migration `0303_deals_guard_and_drop` raises if a `deals` row has no journey, or a workflow save or template names `trigger.deal`; then it drops the three tables, swaps a client's `deals.board` app for `pipeline.journeys` and renames `deal.moved` in `webhook_subscriptions.events`.
+- Board (J6, `apps/portal/web/src/modules/deals/board.tsx`; module id `deals`, route `/deals`, nav "Journeys"): pick a funnel; one lane per stage of its newest version; a card per open journey, plus the 20 newest done in the last lane. Forward drag calls `pipeline/journeysMove`, a drop on Drop with a reason calls `pipeline/journeysDrop`, both through `ACTIONS.run`; the move is optimistic and rolls back on a refusal. A backward drag is refused in the browser with a plain note. A phone gets a stage select. Lanes and drag come from the shared `apps/portal/web/src/kanban.tsx` that the Notes board uses ([[platform/boards]]). Reads: `pipeline/recordsList` (`pipeline.funnel`, `pipeline.journey`) and `recordsGet` for the funnel's stages.
+
 - Causes (J4). A touch moves a journey through `trigger.touch` (the `TouchFeed` loop). Payments reach `pipeline.collect` (`packages/pipeline/src/collect.ts`, in workflow `pipeline.money`, heard in every workspace): paid adds, refunded subtracts `deals.collected_cents` (floor 0) for the deal named in `data.deal`, else the person's newest open deal (for `data.offer` when given). Once per payment change: a `profile_events` line (source `collected`, id the subject's hash) is the claim, in the same transaction.
 - Merge (`mergeProfiles`, `packages/core/src/profile-pipeline.ts`): `journeys.profile_id` and `deals.profile_id` move to the kept profile. Two open journeys in one funnel: the later stage stays open, the other is `dropped` with reason `merged`. No `journey` event is sent for that drop.
 
-Citations: `packages/pipeline/src/restate.ts:81`, `packages/pipeline/src/moves.ts:64`, `packages/pipeline/src/views.ts:16`, `packages/pipeline/src/schema.ts:125`, `packages/pipeline/src/stages.ts:17`, `packages/pipeline/src/schedule.ts:47`, `packages/pipeline/src/steps.ts:98`, `packages/pipeline/src/steps.ts:186`, `packages/pipeline/src/journeys.ts:165`, `packages/pipeline/src/carry.ts:21`, `packages/pipeline/src/schema.ts:220`, `packages/pipeline/src/research.ts:74`, `packages/pipeline/src/sourced.ts:46`, `apps/worker/src/sourced-feed.ts:38`, `apps/worker/src/journey-research.ts:21`
+Citations: `packages/pipeline/src/restate.ts:81`, `packages/pipeline/src/fold.ts:416`, `apps/cli/src/pipeline-fold.ts:26`, `packages/core/src/webhook-events.ts:38`, `apps/portal/web/src/modules/deals/board.tsx:134`, `apps/portal/web/src/kanban.tsx:16`, `packages/pipeline/src/moves.ts:64`, `packages/pipeline/src/views.ts:16`, `packages/pipeline/src/schema.ts:125`, `packages/pipeline/src/stages.ts:17`, `packages/pipeline/src/schedule.ts:47`, `packages/pipeline/src/steps.ts:98`, `packages/pipeline/src/steps.ts:186`, `packages/pipeline/src/journeys.ts:165`, `packages/pipeline/src/carry.ts:21`, `packages/pipeline/src/schema.ts:220`, `packages/pipeline/src/research.ts:74`, `packages/pipeline/src/sourced.ts:46`, `apps/worker/src/sourced-feed.ts:38`, `apps/worker/src/journey-research.ts:21`
 
 ## Connected to
 
 - **owns:** `pipeline.journeys`, `pipeline.deals`, `pipeline.journey_research`
 - **owned-by:** `@wren/pipeline`
 - **joins:** [[leads/segment]] (a `journey` rule reads this table; a stage or status change wakes the segments pass, migration 0298), [[platform/funnel]] (version), [[platform/spine]] (steps, subject `journey:<id>`), [[leads/profile]] (research findings, the `full` run), [[leads/person]] (a sourced list is an import batch of people), `profiles` (FK), [[platform/offer]] and [[platform/terms]] (the deal)
-- **looks-like-but-is-not:** [[platform/deal]] (the older board; folds into journeys), [[clients/engagement]] (the delivery of a won deal)
+- **looks-like-but-is-not:** the retired `@wren/deals` board (folded here, 2026-10-19), [[clients/engagement]] (the delivery of a won deal)
 
 ## If you change this
 
@@ -58,6 +61,8 @@ Citations: `packages/pipeline/src/restate.ts:81`, `packages/pipeline/src/moves.t
 | Surface | Role |
 |---|---|
 | `wren journeys open|move|drop|show|list|rebuild`, `wren deals list|sign|schedule` (`apps/cli/src/pipeline.ts`); writes go to `Journeys` over ingress | writes, reads |
+| `wren pipeline fold-deals` (`apps/cli/src/pipeline-fold.ts`) | one-off fold of the retired deals |
+| Journeys app (`apps/portal/web/src/modules/deals`) | the board |
 | console `PipelineConsole` (`packages/pipeline/src/console.ts`): `journeysOpen`, `journeysMove`, `journeysDrop`, `dealsSign` | writes |
 | `wren pipeline seed --file <json> [--dry]` (`apps/cli/src/pipeline-seed.ts`, `packages/pipeline/src/seed.ts`) | writes |
 | records `pipeline.journey`, `pipeline.deal`, `pipeline.number` (agent CLI and portal records) | reads |
@@ -65,4 +70,4 @@ Citations: `packages/pipeline/src/restate.ts:81`, `packages/pipeline/src/moves.t
 ## See
 
 - Design: `designs/2026-10-18-journeys.md`
-- Tests: `packages/pipeline/src/stages.test.ts`, `packages/pipeline/src/entry.test.ts`, `packages/pipeline/test/integration/schema.test.ts`, `packages/pipeline/test/integration/journeys.test.ts`, `packages/pipeline/test/integration/moves.test.ts`, `packages/pipeline/test/integration/console.test.ts`, `packages/pipeline/test/integration/sourced-research.test.ts`, `packages/pipeline/test/integration/seed.test.ts`, `packages/pipeline/src/seed.test.ts`, `apps/cli/src/pipeline-seed.test.ts`, `packages/pipeline/src/sourced.test.ts`
+- Tests: `packages/pipeline/src/stages.test.ts`, `packages/pipeline/src/entry.test.ts`, `packages/pipeline/test/integration/schema.test.ts`, `packages/pipeline/test/integration/journeys.test.ts`, `packages/pipeline/test/integration/moves.test.ts`, `packages/pipeline/test/integration/console.test.ts`, `packages/pipeline/test/integration/sourced-research.test.ts`, `packages/pipeline/test/integration/seed.test.ts`, `packages/pipeline/src/seed.test.ts`, `apps/cli/src/pipeline-seed.test.ts`, `packages/pipeline/src/sourced.test.ts`, `packages/pipeline/src/fold.test.ts`, `packages/pipeline/test/integration/fold.test.ts`, `packages/pipeline/test/integration/fold-guard.test.ts`, `apps/portal/web/src/pages-journeys.stories.tsx`
