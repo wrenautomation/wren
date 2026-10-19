@@ -8,6 +8,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, runPass } from "@wren/core/restate";
+import type { FireTriggers } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { amount } from "../contract.js";
@@ -16,6 +17,7 @@ import type { PortalMail } from "../watch.js";
 import { type Taken, takeCredits } from "./credits.js";
 import { mailInvoices } from "./mail.js";
 import type { ReceiveDetails } from "./receive.js";
+import { claimInvoiceChanges } from "./tell.js";
 import type { WiseReader } from "./wise.js";
 
 export const BILLING_WATCH = "BillingWatch";
@@ -43,6 +45,8 @@ export interface BillingDeps {
   zone: string;
   /** Who's told of a payment in, and of one that waits. */
   notifier?: Notifier;
+  /** Tells the spine each invoice change once (`trigger.payment`); unset = none told. */
+  fire?: FireTriggers;
 }
 
 export interface BillingStats {
@@ -120,7 +124,7 @@ export async function billingPass(deps: BillingDeps, now: Date): Promise<Billing
 export function makeBillingWatch(deps: BillingDeps) {
   return makeLoopObject(BILLING_WATCH, async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    return runPass<BillingStats>(ctx, deps.main, now, {
+    const outcome = await runPass<BillingStats>(ctx, deps.main, now, {
       name: "billing watch",
       ledger: { command: BILLING_COMMAND, argv: { daemon: true } },
       body: () => billingPass(deps, now),
@@ -128,6 +132,19 @@ export function makeBillingWatch(deps: BillingDeps) {
       retryMs: EVERY,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
+    // After the pass, so a paid credit it just marked is heard now. Claimed under a journaled
+    // token, then sent: a retry claims the same changes and sends them again (the arrival key
+    // keeps a repeat from entering a node twice).
+    if (deps.fire && outcome.stats) {
+      const token = ctx.rand.uuidv4();
+      const w = wallClock(deps.zone, now);
+      const today = `${w.year}-${pad(w.month)}-${pad(w.day)}`;
+      const fires = await ctx.run("invoice changes", () =>
+        claimInvoiceChanges(deps.main, token, today),
+      );
+      for (const f of fires) deps.fire(ctx, f);
+    }
+    return outcome;
   });
 }
 

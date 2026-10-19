@@ -362,6 +362,10 @@ export interface InvoiceLine {
   usage?: { vendor: string; month: string };
 }
 
+/** What a workflow hears about an invoice (`trigger.payment`), each once ever (`invoices.told`). */
+export const INVOICE_CHANGES = ["invoiced", "paid", "refunded", "late"] as const;
+export type InvoiceChange = (typeof INVOICE_CHANGES)[number];
+
 /** Our invoice numbers, across all clients: `WREN-1001`, then up. */
 export const invoiceNumbers = delivery.sequence("invoice_number", { startWith: 1001 });
 
@@ -406,6 +410,8 @@ export const invoices = delivery.table(
     units: integer("units"),
     /** What it billed, line by line (designs/2026-10-09-rebilling.md); empty before lines. */
     lines: jsonb("lines").$type<InvoiceLine[]>().default([]).notNull(),
+    /** Changes the spine has heard, each once ever: change to the claim that told it. */
+    told: jsonb("told").$type<Partial<Record<InvoiceChange, string>>>().default({}).notNull(),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
