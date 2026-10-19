@@ -32,7 +32,7 @@ import {
 } from "@wren/learn";
 import { LEARN_FEEDS_FROM, LEARN_FLOW } from "@wren/learn/console";
 import type { Embed } from "@wren/llm";
-import { type ReadStats, readMail } from "./read.js";
+import { type ReadStats, readMail, relinkMail } from "./read.js";
 import { mailEvent } from "./triage.js";
 
 export * from "./console.js";
@@ -117,6 +117,38 @@ async function keepWatches(
 
 type Stats = ReadStats & { feeds: PullStats };
 
+/** Mail kept before links were read goes back this far. */
+const RELINK_WINDOW_MS = 14 * 86_400_000;
+const RELINK_SINCE = "relink.since";
+const RELINK_BEFORE = "relink.before";
+
+/**
+ * One batch per pass of links for mail kept before links were read (`relinkMail`), walking back
+ * through the window once; `relink.before` holds the cursor, -1 when the walk is done.
+ */
+async function relinkOld(ctx: restate.ObjectContext, deps: WatchDeps, now: Date): Promise<void> {
+  if (!deps.mailboxes.length) return;
+  const before = await ctx.get<number>(RELINK_BEFORE);
+  if (before === -1) return;
+  let since = await ctx.get<number>(RELINK_SINCE);
+  if (since === null) {
+    since = now.getTime() - RELINK_WINDOW_MS;
+    ctx.set(RELINK_SINCE, since);
+  }
+  const window = { since: new Date(since), before: before === null ? null : new Date(before) };
+  const done = await ctx.run("relink mail", () =>
+    relinkMail(deps.db, deps.mailboxes, window).then(
+      (r) => ({ ...r, error: null }),
+      (e: unknown) => ({ linked: 0, tried: 0, oldest: null, error: String(e).slice(0, 300) }),
+    ),
+  );
+  if (done.error) {
+    ctx.console.warn(`relink mail: ${done.error}`);
+    return;
+  }
+  ctx.set(RELINK_BEFORE, done.oldest ? new Date(done.oldest).getTime() : -1);
+}
+
 /** Learn's feeds, then its Instagram and X creators that are due. */
 async function pullAll(deps: WatchDeps, now: Date): Promise<PullStats> {
   const feeds = await pullFeeds(deps.db, deps.fetch ?? fetch, now);
@@ -152,6 +184,7 @@ export function makeWatch(deps: WatchDeps) {
         from: WATCH_FROM,
         events: kept.map(mailEvent),
       });
+    await relinkOld(ctx, deps, now);
     const added = outcome.stats?.feeds?.added ?? [];
     if (added.length)
       spineEmit(ctx, {

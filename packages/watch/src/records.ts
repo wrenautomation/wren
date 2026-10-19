@@ -38,7 +38,7 @@ export const mailRecord = defineRecord({
     why: text("Why"),
     at: date("When"),
     mailbox: text("Inbox"),
-    open: link("Open in Gmail"),
+    open: link("Open"),
     held: number("Held from them"),
     others: link("Their held mail"),
   },
