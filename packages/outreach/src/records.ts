@@ -978,7 +978,6 @@ export const keyRow = (k: KeyAccount) => ({
   platform: "api",
   origin: k.origin,
   state: k.state,
-  stage: [k.owner, k.purposes.join(", ")].filter(Boolean).join(" · "),
   owner: k.owner,
   purposes: k.purposes.join(", ") || null,
   until: k.until?.toISOString() ?? null,
