@@ -55,6 +55,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | changing how something moves | `processes/`, then the object cards it `consumes` / `produces` |
 | tuning a portal screen or part | `objects/ui/CONTEXT.md`, then the `wren-ui` skill |
 | adding a card | copy from `_templates/`, then run `_meta/build.sh` |
+| asking what lacks a card, tests, health or an owner | `_meta/build.sh --scorecard`, worst first ([[platform/scorecard]]) |
 | told a card is wrong | fix the card against source, bump `verified`, rebuild |
 
 ## The one rule
