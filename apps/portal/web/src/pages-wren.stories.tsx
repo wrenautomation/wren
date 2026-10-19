@@ -139,6 +139,9 @@ export const GroupsJourney = pageAt("/people/groups", {
     await userEvent.selectOptions(await view.findByLabelText("Journey status"), "open");
     await expect(await view.findByLabelText("Entry")).toBeVisible();
     await waitFor(() => expect(view.getByLabelText("Stage")).toHaveValue("booked"));
+    // The count comes a beat after the last change: wait for it, or its call lands in the next
+    // story's table, where nothing answers it.
+    await expect(await view.findByText("journey in Organic")).toBeVisible();
   },
 });
 
