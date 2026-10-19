@@ -103,3 +103,4 @@ Calls the doc left open. Briefs in `designs/briefs/2026-10-19-business-map-*.md`
 - `wren pipeline seed` and `fold-deals` are deleted. Why: both ran on prod (wa-8pi.11, wa-8pi.3) and the deals tables are gone.
 - The funnels page goes in M1, not M2. Why: its record goes with the model.
 - Shape files are YAML via the `yaml` package. Import may also carry `moves` and `terms` (added through `addTerms`), so a seed file holds the shape and its prices in one commit.
+- M3 adds a `growth-partner` registry offer (name "Growth Partner", status `draft`, a one-line blurb from the private direction note, no amounts and no pitch copy). Wren's offer node names it. Partner-1's terms get a new version under it; the old version under `reactivation` stays in history. Why: main's call; the lander export reads only live offers, so nothing publishes until William writes the page.
