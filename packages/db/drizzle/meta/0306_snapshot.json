@@ -40057,6 +40057,21 @@
           "method": "btree",
           "with": {}
         },
+        "ix_journeys_shape_version": {
+          "name": "ix_journeys_shape_version",
+          "columns": [
+            {
+              "expression": "shape_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "uq_journeys_open": {
           "name": "uq_journeys_open",
           "columns": [
@@ -40482,7 +40497,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "ix_shape_versions_parent": {
+          "name": "ix_shape_versions_parent",
+          "columns": [
+            {
+              "expression": "parent",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "fk_shape_versions_parent_shape_versions": {
           "name": "fk_shape_versions_parent_shape_versions",

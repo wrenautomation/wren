@@ -26,6 +26,8 @@ ALTER TABLE "pipeline"."shape_versions" ADD CONSTRAINT "fk_shape_versions_parent
 ALTER TABLE "pipeline"."journeys" ADD CONSTRAINT "fk_journeys_shape_version" FOREIGN KEY ("shape_version") REFERENCES "pipeline"."shape_versions"("number") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "ix_journeys_profile_status" ON "pipeline"."journeys" USING btree ("profile_id","status");--> statement-breakpoint
 ALTER TABLE "pipeline"."deals" ADD CONSTRAINT "uq_deals_journey_node" UNIQUE("journey","node");--> statement-breakpoint
+CREATE INDEX "ix_journeys_shape_version" ON "pipeline"."journeys" USING btree ("shape_version");--> statement-breakpoint
+CREATE INDEX "ix_shape_versions_parent" ON "pipeline"."shape_versions" USING btree ("parent");--> statement-breakpoint
 CREATE VIEW "pipeline"."edge_flow" AS (
   with arrivals as (
     select substring(e.workflow from '^shape\.v([0-9]+)$')::int version, e.at, e.data

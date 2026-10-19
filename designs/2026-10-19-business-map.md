@@ -104,3 +104,6 @@ Calls the doc left open. Briefs in `designs/briefs/2026-10-19-business-map-*.md`
 - The funnels page goes in M1, not M2. Why: its record goes with the model.
 - Shape files are YAML via the `yaml` package. Import may also carry `moves` and `terms` (added through `addTerms`), so a seed file holds the shape and its prices in one commit.
 - M3 adds a `growth-partner` registry offer (name "Growth Partner", status `draft`, a one-line blurb from the private direction note, no amounts and no pitch copy). Wren's offer node names it. Partner-1's terms get a new version under it; the old version under `reactivation` stays in history. Why: main's call; the lander export reads only live offers, so nothing publishes until William writes the page.
+- "Signed" is arrival at the offer node, not a step before it. Why: the deal is made on offer arrival; a "signed" step would make it twice.
+- Real shapes live in the private sops repo (`shapes/wren.yaml`, `shapes/career-clarity-labs.yaml`); main imports them on prod with `wren shape import`. Terms William has not set stay out of the files: a plan node with no live terms signs nothing.
+- 0306 indexes `journeys.shape_version` and `shape_versions.parent`. Why: the schema test wants every foreign key column indexed.

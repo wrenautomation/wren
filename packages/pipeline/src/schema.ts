@@ -145,6 +145,7 @@ export const shapeVersions = pipeline.table(
       foreignColumns: [t.number],
       name: "fk_shape_versions_parent_shape_versions",
     }),
+    index("ix_shape_versions_parent").on(t.parent),
   ],
 );
 export type ShapeVersion = typeof shapeVersions.$inferSelect;
@@ -185,6 +186,7 @@ export const journeys = pipeline.table(
     primaryKey({ columns: [t.id], name: "pk_journeys" }),
     index("ix_journeys_profile_funnel_status").on(t.profileId, t.funnel, t.status),
     index("ix_journeys_profile_status").on(t.profileId, t.status),
+    index("ix_journeys_shape_version").on(t.version),
     // Legacy, one open journey per person per funnel. One per person is enforced in code
     // (an advisory lock on the profile); its index comes with M3.
     uniqueIndex("uq_journeys_open").on(t.profileId, t.funnel).where(sql`status = 'open'`),
