@@ -36,7 +36,7 @@ Citations: `packages/channel-email/src/calls/brief.ts:402`, `packages/channel-em
 
 ## If you change this
 
-- **Hits:** the call page's extras (`apps/portal/web/src/modules/calls/brief.tsx`) on Inbox > Calls, a client's Calls, Calendar > Calls and the Schedule panel; the worker's `CallBriefs` binding and `calls.brief` step (`apps/worker/src/services.ts:1128`)
+- **Hits:** the call page's extras (`apps/portal/web/src/modules/calls/brief.tsx`) on Pipelines > Calls, a client's Calls, Calendar > Calls and the Schedule panel; the worker's `CallBriefs` binding and `calls.brief` step (`apps/worker/src/services.ts:1128`)
 - **Does not hit:** anything a lead receives
 
 ## Surfaces

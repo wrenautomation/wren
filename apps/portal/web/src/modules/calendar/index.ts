@@ -12,7 +12,7 @@ import { CALL_ACTIONS, CLIENT_CALL_ACTIONS } from "./actions.js";
 import { recorderHead, recordingExtras } from "./recorder.js";
 import { Schedule } from "./schedule.js";
 
-/** A calendar call's page: its mirror's brief. Rebuild lives on Inbox > Calls. */
+/** A calendar call's page: its mirror's brief. Rebuild lives on Pipelines > Calls. */
 export const bookingExtras: NonNullable<ListPage["extras"]> = (detail, { row }) =>
   callExtras(detail, row, { reason: "outcomeReason" });
 

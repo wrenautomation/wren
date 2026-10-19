@@ -40,6 +40,6 @@ Citations: `packages/channel-email/src/schema.ts:593`, `packages/channel-email/s
 
 | Surface | Role |
 |---|---|
-| Calendar > Recordings, Inbox > Calls brief | reads |
-| Calendar > Calls, Inbox > Calls head | Record now, Stop recording |
+| Calendar > Recordings, Pipelines > Calls brief | reads |
+| Calendar > Calls, Pipelines > Calls head | Record now, Stop recording |
 | the Mac's desk | writes, through `wren calls add` |

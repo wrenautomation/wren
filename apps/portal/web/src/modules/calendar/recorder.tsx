@@ -1,6 +1,6 @@
 /**
  * Calls recorded on William's Mac (designs/2026-10-16-call-recording.md). `RecorderBar` heads
- * Calendar > Calls and Inbox > Calls: Record now, or Stop and since when, read from the Mac.
+ * Calendar > Calls and Pipelines > Calls: Record now, or Stop and since when, read from the Mac.
  * `recordingExtras` is a recording's page: the video, the notes, then the transcript.
  */
 import type { RecorderState } from "@wren/calendar/recorder";

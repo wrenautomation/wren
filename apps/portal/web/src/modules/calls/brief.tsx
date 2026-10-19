@@ -3,7 +3,7 @@
  * company and when, with the outcome buttons; under it the three lines worth reading first, and
  * how it went once it's marked. The Details lead with the rest of the brief: what to ask, how they
  * came in, their words, earlier social touches, what we know. Every line ends with its source
- * and date in quiet type. The same view serves Inbox > Calls, Calendar > Calls, the Schedule's
+ * and date in quiet type. The same view serves Pipelines > Calls, Calendar > Calls, the Schedule's
  * panel and a client's Calls.
  */
 import type { CallBrief, Cited, StoredBrief } from "@wren/channel-email/calls";
