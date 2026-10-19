@@ -16,6 +16,9 @@
  *   [before <kind> [on <ch>]]`
  * - `message <state> [on <channel>] [campaign "<text>"] [count] [in <n>d]`
  * - `step <reached|saw|engaged|replied|booked|paid> [on <channel>] [source "<text>"] [in <n>d]`
+ * - `journey [funnel <id>] [at|reached <stage>] [open|done|dropped] [entry <id>] [opened] [in <n>d]`:
+ *   a journey in that funnel (`reached` = at that stage or past it), opened by that entry; the
+ *   days count back from its last move, or from `opened`. Every part is optional.
  * - `consent <email|sms> <state>`; `group <id>` or `group "<name>"` (`segment` reads the same: older saved text).
  * - A count is `>= N`, `<= N`, `N..M` or `never`; left out, it's at least once.
  *
@@ -28,6 +31,8 @@ import {
   CONSENT_CHANNELS,
   CONSENT_CONDITION_STATES,
   type Condition,
+  JOURNEY_STATUS_NAMES,
+  type JourneyCondition,
   MESSAGE_STATES,
   type Node,
   type Rule,
@@ -50,6 +55,16 @@ const onText = (ch: string | undefined) => (ch && ch !== "any" ? ` on ${ch}` : "
 const anchorText = (w: string, a: Anchor | undefined) =>
   a ? ` ${w} ${a.event}${onText(a.channel)}` : "";
 
+function journeyText(c: JourneyCondition): string {
+  const parts = ["journey"];
+  if (c.funnel) parts.push("funnel", c.funnel);
+  if (c.stage) parts.push(c.reached ? "reached" : "at", c.stage);
+  if (c.status) parts.push(c.status);
+  if (c.entry) parts.push("entry", c.entry);
+  if (c.days) parts.push(...(c.window === "opened" ? ["opened"] : []), "in", `${c.days}d`);
+  return parts.join(" ");
+}
+
 function conditionText(c: Condition, names: ReadonlyMap<number, string>): string {
   switch (c.kind) {
     case "trait": {
@@ -64,6 +79,8 @@ function conditionText(c: Condition, names: ReadonlyMap<number, string>): string
       return `message ${c.state}${onText(c.channel)}${c.campaign ? ` campaign ${quote(c.campaign)}` : ""}${countText(c.atLeast, c.atMost)}${daysText(c.days)}`;
     case "step":
       return `step ${c.step}${onText(c.channel)}${c.source ? ` source ${quote(c.source)}` : ""}${daysText(c.days)}`;
+    case "journey":
+      return journeyText(c);
     case "consent":
       return `consent ${c.channel} ${c.state}`;
     case "segment": {
@@ -244,6 +261,29 @@ class Reader {
         if (days) c.days = days;
         return c as Condition;
       }
+      case "journey": {
+        const c: Record<string, unknown> = { kind: "journey" };
+        for (;;) {
+          if (this.is("funnel")) c.funnel = this.word("a funnel id");
+          else if (this.is("at")) c.stage = this.word("a stage key");
+          else if (this.is("reached")) {
+            c.stage = this.word("a stage key");
+            c.reached = true;
+          } else if (this.is("entry")) c.entry = this.word("an entry id");
+          else if (this.is("opened")) c.window = "opened";
+          else {
+            const t = this.peek();
+            const status =
+              t?.t === "word" ? JOURNEY_STATUS_NAMES.find((x) => x === t.v) : undefined;
+            if (!status) break;
+            this.i++;
+            c.status = status;
+          }
+        }
+        const days = this.days();
+        if (days) c.days = days;
+        return c as Condition;
+      }
       case "consent":
         return {
           kind: "consent",
@@ -260,7 +300,7 @@ class Reader {
       }
       default:
         throw new TextProblem(
-          `"${head}" isn't a condition: trait, event, message, step, consent or group`,
+          `"${head}" isn't a condition: trait, event, message, step, journey, consent or group`,
         );
     }
   }

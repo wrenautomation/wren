@@ -82,6 +82,7 @@ import {
   archiveSegment,
   type DescribeContext,
   describeSegment,
+  journeyFunnels,
   listSegments,
   previewRule,
   readRule,
@@ -268,6 +269,7 @@ export function peopleConsoleApi({
       return {
         traits: await traitKeys(w.db),
         segments: segs.map((s) => ({ id: s.id, name: s.name, kind: s.kind })),
+        funnels: await journeyFunnels(w.db),
         describe: !!model?.(w.client),
       };
     },
@@ -316,6 +318,7 @@ export function peopleConsoleApi({
       const c: DescribeContext = {
         traits: await traitKeys(w.db),
         segments: segs.map((s) => ({ id: s.id, name: s.name })),
+        funnels: await journeyFunnels(w.db),
         today: now().toISOString().slice(0, 10),
       };
       const got = await describeSegment(m, String(req.words ?? ""), c);

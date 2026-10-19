@@ -2080,6 +2080,13 @@
       "when": 1792420102593,
       "tag": "0297_journey_event_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 298,
+      "version": "7",
+      "when": 1792421072750,
+      "tag": "0298_journeys_segments_wake",
+      "breakpoints": true
     }
   ]
 }

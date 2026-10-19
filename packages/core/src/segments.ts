@@ -139,6 +139,31 @@ export const stepCondition = z.strictObject({
   days,
   not,
 });
+/** A journey's states (`pipeline.journeys.status`), and the clock a window counts back on. */
+export const JOURNEY_STATUS_NAMES = ["open", "done", "dropped"] as const;
+export const JOURNEY_CLOCKS = ["moved", "opened"] as const;
+/** A funnel id, stage key or entry id, as `@wren/pipeline` names them. */
+export const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
+const journeyKey = z
+  .string()
+  .regex(JOURNEY_KEY, "a funnel, stage or entry id, like organic")
+  .optional();
+/**
+ * The person holds a journey (`pipeline.journeys`): in a funnel, at a stage (or `reached` it:
+ * at it or past it), in a state, opened by an entry, moved or opened in the last D days.
+ */
+export const journeyCondition = z.strictObject({
+  kind: z.literal("journey"),
+  funnel: journeyKey,
+  stage: journeyKey,
+  reached: z.boolean().optional(),
+  status: z.enum(JOURNEY_STATUS_NAMES).optional(),
+  entry: journeyKey,
+  /** Which clock `days` counts back on: the last move (default) or the opening. */
+  window: z.enum(JOURNEY_CLOCKS).optional(),
+  days,
+  not,
+});
 export const segmentCondition = z.strictObject({
   kind: z.literal("segment"),
   segment: z.number().int().positive(),
@@ -151,12 +176,14 @@ export type ConsentCondition = z.infer<typeof consentCondition>;
 export type MessageCondition = z.infer<typeof messageCondition>;
 export type StepCondition = z.infer<typeof stepCondition>;
 export type SegmentCondition = z.infer<typeof segmentCondition>;
+export type JourneyCondition = z.infer<typeof journeyCondition>;
 export type Condition =
   | TraitCondition
   | EventCondition
   | ConsentCondition
   | MessageCondition
   | StepCondition
+  | JourneyCondition
   | SegmentCondition;
 export interface Group {
   kind: "group";
@@ -183,6 +210,7 @@ export const nodeSchema: z.ZodType<Node> = z.lazy(() =>
     consentCondition,
     messageCondition,
     stepCondition,
+    journeyCondition,
     segmentCondition,
     groupSchema,
   ]),
@@ -241,6 +269,8 @@ export function dataOf(c: Condition): string[] {
         : c.step === "paid"
           ? ["event:payment"]
           : ["event:email_sent", "event:text_sent", "event:touch", "event:form"];
+    case "journey":
+      return ["event:journey"];
     case "segment":
       return [];
   }
@@ -278,6 +308,11 @@ export function ruleProblems(rule: Rule): string[] {
       if (c.atMost === undefined && c.atLeast < 1) out.push(`${named}: at least 1, or say at most`);
       if (c.atMost !== undefined && c.atMost < c.atLeast)
         out.push(`${named}: at most is under at least`);
+    }
+    if (c.kind === "journey") {
+      if (c.stage && !c.funnel) out.push("a journey stage needs its funnel");
+      if (c.reached && !c.stage) out.push('"reached" needs a stage');
+      if (c.window && c.days === null) out.push("a journey window needs days");
     }
     if (c.kind === "consent" && c.state === "opted_out" && c.channel !== "sms")
       out.push("only a phone opts out; email consent is withdrawn");
@@ -398,6 +433,7 @@ function conditionSql(c: Condition, now: Date): SQL {
     );
   }
   if (c.kind === "step") return stepSql(c, now);
+  if (c.kind === "journey") return journeySql(c, now);
   return sql`p.id in (select m.profile_id from segment_members m
     where m.segment_id = ${c.segment})`;
 }
@@ -410,6 +446,28 @@ function counted(lines: SQL, least: number, most: number | undefined): SQL {
   if (least < 1) return sql`p.id not in (${lines} having count(*) > ${most ?? 0})`;
   return sql`p.id in (${lines} having count(*) >= ${least}
     ${most === undefined ? sql`` : sql`and count(*) <= ${most}`})`;
+}
+
+/**
+ * A journey as a test on `p.id`, from `pipeline.journeys`. "Reached" reads the stage order off
+ * the journey's own funnel version (stages only append, so the order never shifts): its current
+ * stage is the stage or later. A stage the version lacks matches no one.
+ */
+function journeySql(c: JourneyCondition, now: Date): SQL {
+  const from = since(now, c.days);
+  const clock = sql.raw(c.window === "opened" ? "j.opened_at" : "j.moved_at");
+  const at = now.toISOString();
+  const place = (stage: SQL) => sql`(select s.n from jsonb_array_elements(v.body -> 'stages')
+    with ordinality s(stage, n) where s.stage ->> 'key' = ${stage})`;
+  return sql`p.id in (select j.profile_id from pipeline.journeys j
+    ${c.reached ? sql`join pipeline.funnel_versions v on v.funnel = j.funnel and v.number = j.version` : sql``}
+    where true
+      ${c.funnel ? sql`and j.funnel = ${c.funnel}` : sql``}
+      ${c.stage && !c.reached ? sql`and j.stage = ${c.stage}` : sql``}
+      ${c.stage && c.reached ? sql`and ${place(sql`j.stage`)} >= ${place(sql`${c.stage}::text`)}` : sql``}
+      ${c.status ? sql`and j.status = ${c.status}` : sql``}
+      ${c.entry ? sql`and j.entry = ${c.entry}` : sql``}
+      ${from ? sql`and ${clock} >= ${from}::timestamptz and ${clock} <= ${at}::timestamptz` : sql``})`;
 }
 
 /**
@@ -501,6 +559,15 @@ export function conditionWords(c: Condition, names: ReadonlyMap<number, string> 
   if (c.kind === "step") {
     const source = c.source ? ` from ${q(c.source)}` : "";
     return `${c.not ? "not " : ""}${FUNNEL_STEP_NAMES[c.step as FunnelStep].toLowerCase()}${on(c.channel)}${source} ${window(c.days)}`;
+  }
+  if (c.kind === "journey") {
+    const where = c.funnel ? ` in ${c.funnel}` : "";
+    const stage = c.stage ? ` ${c.reached ? "at or past" : "at"} ${c.stage}` : "";
+    const status = c.status ? ` ${c.status}` : "";
+    const entry = c.entry ? ` from ${c.entry}` : "";
+    const clock = c.window === "opened" ? "opened" : "moved";
+    const when = c.days === null ? "" : ` ${clock} ${window(c.days)}`;
+    return `${c.not ? "no" : "a"}${status} journey${where}${stage}${entry}${when}`;
   }
   return `${no}in ${q(names.get(c.segment) ?? `segment ${c.segment}`)}`;
 }
@@ -1137,10 +1204,20 @@ export interface SegmentModel {
   ): Promise<{ text: string }>;
 }
 
+/** A funnel as a journey condition picks from it: its newest stages and its entry ids. */
+export interface JourneyFunnel {
+  id: string;
+  name: string;
+  stages: { key: string; label: string }[];
+  entries: string[];
+}
+
 /** What the model is told the workspace has, so it names real traits and segments. */
 export interface DescribeContext {
   traits: readonly string[];
   segments: readonly { id: number; name: string }[];
+  /** The workspace's funnels, for journey conditions. */
+  funnels?: readonly JourneyFunnel[];
   /** The day it's asked, for words like "this month". */
   today: string;
 }
@@ -1152,7 +1229,18 @@ Conditions:
 - {"kind":"consent","channel":"email"|"sms","state":"confirmed"|"pending"|"withdrawn"|"opted_out"}. opted_out is sms only.
 - {"kind":"message","state":"sent"|"delivered"|"opened"|"clicked"|"replied"|"bounced"|"failed","channel":"any"|"email"|"sms"|"linkedin"|"reddit"|"x"|"instagram"|"youtube"|"tiktok"|"facebook","campaign":"<optional words>","atLeast":<n>,"atMost":<optional n>,"days":<n or null>}
 - {"kind":"step","step":"reached"|"saw"|"engaged"|"replied"|"booked"|"paid","channel":"<optional channel>","source":"<optional campaign, post or link words>","days":<n or null>}
+- {"kind":"journey","funnel":"<optional funnel id>","stage":"<optional stage key; needs funnel>","reached":<optional true: at that stage or past it>,"status":"open"|"done"|"dropped" (optional),"entry":"<optional entry id>","window":"moved"|"opened" (optional, which clock days counts on),"days":<n or null>}. Matches people who hold such a journey.
 - {"kind":"segment","segment":<segment id>}`;
+
+const funnelsLine = (fs: readonly JourneyFunnel[]) =>
+  fs.length
+    ? fs
+        .map(
+          (f) =>
+            `${f.id} (stages in order: ${f.stages.map((s) => s.key).join(", ")}; entries: ${f.entries.join(", ") || "none"})`,
+        )
+        .join("; ")
+    : "none yet";
 
 /** The prompt `describeSegment` sends: the shape, what the workspace has, and the words. */
 export function describePrompt(words: string, c: DescribeContext): string {
@@ -1165,6 +1253,7 @@ export function describePrompt(words: string, c: DescribeContext): string {
     `Timeline kinds: ${kinds}.`,
     `Trait keys in this workspace: ${c.traits.length ? c.traits.join(", ") : "none yet"}.`,
     `Segments: ${segs}.`,
+    `Funnels: ${funnelsLine(c.funnels ?? [])}.`,
     `Today is ${c.today}.`,
     "",
     `Describe these people as a rule: ${words.trim()}`,
@@ -1234,6 +1323,28 @@ export async function describeSegment(
       : said.slice(0, 60);
   const names = new Map(c.segments.map((s) => [s.id, s.name]));
   return { rule: got.rule, name, words: ruleWords(got.rule, names), unknownTraits };
+}
+
+/** A workspace's funnels at their newest version, for the editor and the model. */
+export async function journeyFunnels(db: Queryable): Promise<JourneyFunnel[]> {
+  const got = await rows(
+    db,
+    sql`select distinct on (v.funnel) v.funnel id, f.name, v.body
+      from pipeline.funnel_versions v join pipeline.funnels f on f.id = v.funnel
+      order by v.funnel, v.number desc`,
+  );
+  return got.map((r) => {
+    const body = r.body as {
+      stages?: { key: string; label?: string }[];
+      entries?: { id: string }[];
+    };
+    return {
+      id: String(r.id),
+      name: String(r.name),
+      stages: (body.stages ?? []).map((s) => ({ key: s.key, label: s.label ?? s.key })),
+      entries: (body.entries ?? []).map((e) => e.id),
+    };
+  });
 }
 
 /** The trait keys a workspace has, for the editor and the model. */
