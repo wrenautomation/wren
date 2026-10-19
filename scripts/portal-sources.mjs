@@ -1,6 +1,7 @@
 /**
  * What the portal guards read (`edits-guard.mjs`, `reads-guard.mjs`): the portal web's and
  * @wren/ui's .ts/.tsx sources, tracked or new, without tests, stories or the generated ui kit.
+ * `repoFiles` lists any folder the same way (`map/_meta/scorecard.mjs`).
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -8,12 +9,18 @@ import { readFileSync } from "node:fs";
 const ROOTS = ["apps/portal/web/src", "packages/ui/src"];
 const SKIP = [/\.test\.tsx?$/, /\/components\/ui\//, /\/stories?\//];
 
-/** Each source as `{ file, text }`; `exts` picks the endings (".tsx" alone for markup). */
-export function portalSources(exts = [".ts", ".tsx"]) {
-  return execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", ...ROOTS], {
+/** Every file under `roots`, tracked or new, ignored ones left out; paths from the repo root. */
+export function repoFiles(roots) {
+  return execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", ...roots], {
     encoding: "utf8",
   })
     .split("\n")
+    .filter(Boolean);
+}
+
+/** Each source as `{ file, text }`; `exts` picks the endings (".tsx" alone for markup). */
+export function portalSources(exts = [".ts", ".tsx"]) {
+  return repoFiles(ROOTS)
     .filter((f) => exts.some((e) => f.endsWith(e)) && !SKIP.some((r) => r.test(f)))
     .flatMap((file) => {
       try {

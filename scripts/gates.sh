@@ -20,7 +20,15 @@ if [ -z "${CI:-}" ]; then
 fi
 WIDE=${CI:+--concurrency=100%}
 lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && stories && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
-map() { echo "==> map" && map/_meta/build.sh --check; }
+map() { echo "==> map" && map/_meta/build.sh --check && scorecard; }
+# Scorecards (map/_meta/scorecard.mjs): each package and Restate service graded on map card, tests,
+# health and owner card; the worst rows print. Informational: it fails only with WREN_SCORECARD_MIN
+# set (a grade, e.g. C), which makes any row below it fail.
+scorecard() {
+  echo "==> scorecard${WREN_SCORECARD_MIN:+ (min $WREN_SCORECARD_MIN)}" &&
+    { map/_meta/build.sh --scorecard --top=10 ${WREN_SCORECARD_MIN:+--min="$WREN_SCORECARD_MIN"} ||
+      [ -z "${WREN_SCORECARD_MIN:-}" ]; }
+}
 # Each Storybook's build, `@wren/ui`'s and the portal's pages (designs/2026-10-17-storybook-visual-tests.md,
 # 2026-10-18-portal-page-stories.md): a story that breaks fails here; an unchanged one is a turbo cache hit.
 stories() { echo "==> stories build" && pnpm turbo run stories:build --concurrency=1 --output-logs=errors-only; }
@@ -139,8 +147,9 @@ case "${1:-all}" in
   integration) integration ;;
   schema) schema ;;
   drift) drift ;;
+  scorecard) scorecard ;;
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
   checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|changed|ui|checks|unit|visual|schema|drift|integration|all]" >&2; exit 2 ;;
+  *) echo "usage: $0 [lint|changed|ui|checks|unit|visual|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac

@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Rebuilds the generated files of map/: objects/_index.md from every card's frontmatter,
 # and the twins AGENTS.md + routing.md from CLAUDE.md. `--check` exits 1 when any is stale.
+# `--scorecard [--top=N] [--min=<grade>] [--json]` grades every package and Restate service
+# (`_meta/scorecard.mjs`); read only.
 set -eu
 cd "$(dirname "$0")/.."
 
@@ -15,6 +17,11 @@ index() {
     printf '| [[%s]] | %s | %s | `%s` |\n' "$n" "$u" "$s" "$e"
   done
 }
+
+if [ "${1:-}" = "--scorecard" ]; then
+  shift
+  exec node _meta/scorecard.mjs "$@"
+fi
 
 if [ "${1:-}" = "--check" ]; then
   index | diff -q - objects/_index.md >/dev/null || { echo "map: objects/_index.md is stale, run map/_meta/build.sh"; exit 1; }
