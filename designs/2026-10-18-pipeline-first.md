@@ -39,7 +39,7 @@ Offers, Pipelines, Today, People, Numbers. The big UI redesign waits (design lan
 
 ## Client zero
 
-Wren runs on these objects from day one: one offer, two funnels (organic LinkedIn → audit call; ads → audit call, off until needed), the partners' journeys, each partner's deal and terms version. If a step needs a manual action from William that is not writing or a sales call, it is a bug.
+Wren runs on these objects from day one: one offer, three funnels (organic content → audit call, one entry per platform, holistic top of funnel in priority order YouTube, LinkedIn, Reddit, Instagram, Facebook; LinkedIn DMs → audit call; ads → audit call, off until needed), the partners' journeys, each partner's deal and terms version. If a step needs a manual action from William that is not writing or a sales call, it is a bug.
 
 ## Spawned designs
 
