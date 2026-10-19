@@ -5,51 +5,60 @@ Bead wa-59d. Idea from Context.dev's automatic anti-bot escalation. No hosted sc
 
 ## Answer first
 
-- One ladder, four rungs: `plain` → `impersonate` → `render` → `exit`. It lives in autobrowse
-  (`src/reach/ladder.ts`), the one place that has browsers, stealth and egress exits.
-- autobrowse serves it as `web GET /fetch?url=&from=`. Its own `web GET /read` climbs the same
-  ladder in process (its `fetch` backend).
-- wren's crawler keeps its own polite fetch as rung 1 (`PoliteFetcher`, on the box). On a block
-  it hands the URL to `web GET /fetch` (through the ingress). wren keeps the per-domain memory.
-- A fetch climbs only on a block signal. A 404 is an answer, not a block.
-- Each stored document records the rung that answered, the block that made it climb and every
-  rung it tried.
+- The crawl's hot path is unchanged. A blocked page fails once, with today's retries, and no
+  extra request. The crawl records why (`block_reason`).
+- Only the batch render pass climbs. It takes blocked companies beside the JS shells. A blocked
+  one gets one ladder call: `impersonate`, then `render` on the Mac's desk, then `exit` only when
+  `EGRESS_SITES` names one (prod has none: a no-op seam).
+- A per-domain memory (`fetch_tiers`) decides the next try. A domain that worked only at a render
+  tier skips the plain fetch on later crawls and goes to the render pass. A domain where render
+  failed too is `dead` for 30 days: no more tries.
+- Each render pass caps its extra requests and logs the count in its stats.
+- The ladder lives in autobrowse (`src/reach/ladder.ts`), served as `web GET /fetch`. `web GET
+  /read` is not changed.
+
+## Rescope, 2026-10-18
+
+The first cut climbed inline, inside each crawl fetch. William: retry storms and slower runs.
+Rules now:
+
+1. Hot path unchanged. A block (403, 429, 503) fails once, as the current retry logic does. No
+   extra request inside that fetch.
+2. Record it: `block_reason` on the document, the domain in `fetch_tiers`.
+3. Batch only. The render pass takes recorded blocks, at most once per domain per 30 days. The
+   impersonated fetch is one try before the render, inside that pass.
+4. Memory: a domain that worked only at a render tier goes straight to the render pass. Render
+   failed too: `dead` for 30 days.
+5. The `exit` rung runs only when `EGRESS_SITES` maps `fetch@exit`. Not a build focus.
+6. `/read` stays as it was: the ladder adds latency to a failed read.
 
 ## Where it lives, and why
 
-Two repos, no shared code. They meet over Restate only (`restateSites`, `ingressSites`).
-
-| Choice | Result |
-|---|---|
-| Ladder in wren `packages/research/src/fetch/` | autobrowse `/read` cannot use it. Rungs 3 and 4 are autobrowse calls anyway. wren would grow its own TLS impersonation and stealth. |
-| Ladder in autobrowse, every crawl fetch through it | All crawling moves to the Mac's line. A Mac that is off stops the pipeline. |
-| **Ladder in autobrowse; wren's rung 1 stays local; wren holds the memory** | One ladder. Plain fetches stay on the box. Only blocked pages go to the Mac. wren owns what it stores. |
-
-The third. autobrowse = capability (how to get a page past a block). wren = policy and record
-(where to start, what it got).
+Two repos, no shared code; they meet over Restate. autobrowse has the browsers, stealth and
+egress exits, so the ladder lives there: capability. wren keeps policy and record: which
+companies to try, the memory, the documents.
 
 ## The ladder (autobrowse)
 
-`climb(url, { from, max })` in `src/reach/ladder.ts`. Rungs are injected; tests use fakes.
+`climb(url, { from, max }, rungs)` in `src/reach/ladder.ts`. Rungs are injected; tests use fakes.
 
 | Rung | What | Where |
 |---|---|---|
 | `plain` | `fetch` with autobrowse's `UA` | sites worker (the Mac) |
-| `impersonate` | Chrome TLS and HTTP/2 fingerprint and headers | same, through `impit` |
-| `render` | full page in a stealth browser (patchright, `openSession`), profile `fetch` | the Mac's own line |
-| `exit` | same, profile `fetch@exit` | the named exit `EGRESS_SITES` maps to `fetch@exit` |
+| `impersonate` | Chrome TLS and HTTP/2 fingerprint and headers, through `impit` | same |
+| `render` | full page in a stealth browser (`openSession`), profile `fetch` | the Mac's own line |
+| `exit` | same, profile `fetch@exit` | the exit `EGRESS_SITES` maps to `fetch@exit`; none = stop, `no-exit` |
 
-Next rung after a block: `shell` → `render` (TLS cannot run JavaScript); anything else →
-the next rung in order. After `exit`, stop. `exit` with no mapping for `fetch@exit` stops with
-block `no-exit`. Map `fetch@exit` only: a `fetch` entry sends rung 3 out the exit too.
+Next rung after a block: `shell` → `render`; else the next in order; after `exit`, stop.
 
 ### Block signals (`blockOf`)
 
-A page is blocked when one of these holds; a marker wins over a bare status.
+A marker wins over a bare status. Markers count only at status 400 or more, or when the visible
+text is under 1500 characters. `401`, `404` and `410` are answers.
 
 | Block | Signal |
 |---|---|
-| `cloudflare` | `cf-chl-`, `cf_chl_opt`, `/cdn-cgi/challenge-platform/`, title `Just a moment...`, `Attention Required! \| Cloudflare` |
+| `cloudflare` | `cf-chl-`, `cf_chl_opt`, `/cdn-cgi/challenge-platform/`, `Just a moment...`, `Attention Required! \| Cloudflare` |
 | `turnstile` | `challenges.cloudflare.com/turnstile` on a page with little text |
 | `akamai` | 403 with `Reference #` and `Access Denied`, or `errors.edgesuite.net` |
 | `datadome` | `captcha-delivery.com`, `datadome` |
@@ -60,31 +69,15 @@ A page is blocked when one of these holds; a marker wins over a bare status.
 | `vercel` | `Vercel Security Checkpoint` |
 | `kasada` | `x-kpsdk` |
 | `status-403`, `status-429`, `status-503` | that status, no marker |
-| `shell` | a JS shell (port of wren `looksLikeJsShell`, `packages/research/src/fetch/htmltext.ts:206`, cited) |
-| `reset` | plain rung only: the connection reset or the TLS handshake failed (a WAF that drops non-browser TLS) |
-| `unreachable` | DNS fails, refused, timeout: a dead host. Stop, do not climb |
-
-Markers count only when the status is 400 or more, or the page's visible text is short
-(under 1500 characters). A contact form with Turnstile on a real page is not a block.
-`401` and `404`/`410` are answers.
+| `shell` | a JS shell (port of wren `looksLikeJsShell`) |
+| `reset` | plain rung only: connection reset or TLS handshake failed |
+| `unreachable` | DNS, refused, timeout: a dead host; stop |
 
 ### Render rung
 
-- `openSession(profile, browserOptions)` with `fetch` or `fetch@exit`: the same launch, identity
-  and egress as every autobrowse browser. Kept warm in the `SessionPark` under its profile key.
-- One render at a time per profile (in-process queue). The Mac holds one browser per profile.
-- No resource blocking: the page must look like a person's.
-- After load, a challenge page gets up to 15 s to clear itself (Cloudflare's JS check and
-  non-interactive Turnstile do). An interactive captcha stays a block. No solver here.
-- The rung reaches the browser through a new optional `ApiLeg.render`
-  (`(url, { profile }) => Promise<RenderedPage>`), wired in `src/app/services.ts`. An api leg
-  that has no `render` stops at `impersonate` with block as found.
-
-### Pacing and budget
-
-- At least 2 s between two requests to one host, across rungs (in process).
-- `web` gets a cap bucket `fetch`, 1500 a day, metered 1 per `/fetch` call. Over the cap the
-  facade answers 429 and nothing runs. `/read` is not metered on it (it never was).
+`openSession` on `fetch` / `fetch@exit`, kept in the `SessionPark`, one render at a time per
+profile, no resource blocking. A challenge page gets up to 15 s to clear itself. An interactive
+captcha stays a block. The rung reaches the browser through optional `ApiLeg.render`.
 
 ### Route
 
@@ -92,114 +85,91 @@ Markers count only when the status is 400 or more, or the page's visible text is
 GET web /fetch?url=<http(s) url>&from=<plain|impersonate|render|exit>&max=<chars>
 ```
 
-`from` defaults to `plain`. `max` cuts `html` (default 2 000 000, 10 000 to 5 000 000).
-
 ```ts
 type Tier = "plain" | "impersonate" | "render" | "exit";
 interface Fetched {
-  url: string;            // asked
-  finalUrl: string;       // after redirects
-  status: number | null;  // the answering rung's HTTP status
-  type: string | null;    // content-type
-  html: string;           // the answering rung's body, cut to `max`; "" when none
-  cut: number;            // characters cut
-  tier: Tier;             // the rung that answered (the last one tried)
-  block: string | null;   // null: a usable page; else the signal the last rung still hit
+  url: string; finalUrl: string; status: number | null; type: string | null;
+  html: string; cut: number;
+  tier: Tier;            // the rung that answered (the last one tried)
+  block: string | null;  // null: a usable page
   tries: { tier: Tier; status: number | null; block: string | null; ms: number }[];
 }
 ```
 
-A block is data, never a thrown error. A bad request is a 400.
-
-### `/read`
-
-`READ_ORDER` stays `jina`, then `fetch`. The `fetch` backend becomes `climb`. A final block throws
-inside the backend (`firstOf` keeps it in `tried`). `/read` takes `from` too. Its answer adds
-`tier`.
+A block is data, never a thrown error. Cap bucket `fetch`: 1500 calls a day. At least 2 s
+between two requests to one host.
 
 ### Library
 
-`impit` (Apify, Apache-2.0), pinned `0.14.5`. Rust (reqwest with patched rustls) under N-API.
-It sends Chrome's TLS and HTTP/2 fingerprint and header order, and has a `fetch`-shaped API.
-Prebuilt for darwin-arm64 and linux. Crawlee's default HTTP client.
+`impit` (Apify, Apache-2.0), pinned `0.14.5`: Rust under N-API, Chrome's TLS and HTTP/2
+fingerprint and header order, a `fetch`-shaped API, prebuilt for darwin-arm64 and linux. Crawlee's
+default HTTP client. Rejected: `got-scraping` (Node's own TLS, so the JA3/JA4 stays Node's; Apify
+moved off it), `curl-impersonate` bindings (few users, a native curl build to keep), `tls-client`
+wrappers (Go library behind FFI, unvetted).
 
-| Rejected | Why |
-|---|---|
-| `got-scraping` | Fakes headers and cipher order on Node's TLS only. The JA3/JA4 is still Node's. Apify itself moved to `impit`. |
-| `curl-impersonate` bindings (`cuimp`, `node-libcurl` forks) | Small, few users, a native curl build to keep. |
-| `tls-client` wrappers | A Go shared library behind FFI; unvetted wrappers. |
+## wren
 
-## The caller (wren)
+### Crawl (hot path)
 
-### `LadderFetcher` (`packages/research/src/fetch/ladder.ts`)
+- Fetch as today: `PoliteFetcher`, same retries. No ladder call.
+- The homepage tombstone gets `block_reason` from the refusal: `status-403`, `status-429`,
+  `status-503`. No other change.
+- Before a company's first fetch, read its domain's memory:
+  - `dead` and fresh: no fetch. Tombstone, `block_reason` `dead`. Stats `dead_skipped`.
+  - a render tier (`browser`, `impersonate`, `render`, `exit`) and fresh: no fetch. Tombstone,
+    `block_reason` `remembered`. The render pass takes it. Stats `remembered_skipped`.
+  - none or stale: fetch as today.
 
-A `Fetcher` decorator: `new LadderFetcher(inner, sites, memory)`. Robots stays on `inner`
-(`robots.txt` passes through, as in `sharedPages`). For one URL:
+### Render pass (batch)
 
-1. Start rung = the domain's memory if fresh, else `plain`.
-2. `plain`: `inner.get(url)`. A 403, 429 or 503 (an answer, or a `FetchError` with that status)
-   is a block `status-<n>`. A page under 400 that `looksLikeJsShell` is block `shell`. No block:
-   return it, tier `httpx`.
-3. On a block, or a remembered rung above `plain`: call `web GET /fetch` with `from` (`shell` →
-   `render`, else `impersonate`; or the remembered rung).
-4. The ladder answered a page: return it with its tier. Learn the tier.
-5. The ladder still blocked, over its cap (429 → `cap`) or not reachable (→ `offline`): return
-   step 2's answer (or throw its `FetchError`), now carrying the block and every step.
-   A remembered start that fails this way falls back to step 2.
+Targets: today's (a shell, no rendered document) plus companies with a blocked tombstone
+(`block_reason` `status-*` or `remembered`) and no rendered document, whose domain is not `dead`.
+A rendered document is one at `browser`, `impersonate`, `render` or `exit`.
 
-Robots warn mode is unchanged: the crawler checks robots before it asks for a page, at any rung.
-The per-host throttle in `PoliteFetcher` is unchanged; autobrowse paces its own rungs.
-
-`FetchResponse` and `FetchError` gain optional `tier`, `block` and `steps`
-(`{ tier, status, block }[]`).
+- A shell: today's box renderer (CDP), unchanged.
+- A blocked or remembered company: one `web GET /fetch` for the homepage, `from` = the
+  remembered tier, else `impersonate`. The people pages then go at the tier that answered.
+  Documents keep `fetch_tier` = the ladder's tier, `block_reason` = the block that sent it
+  here, `fetch_steps` = the ladder's tries.
+- After a company: a page came → learn its tier. Nothing came → `dead` for the domain, and a
+  tombstone at the last tier tried with the final block, so the pass never selects it again.
+- No `ladder` dep (no autobrowse): blocked companies wait; shells render as today.
+- Cap: `ladderLimit` extra requests a run (default 40: each `/fetch` call is one). Past it the pass
+  stops taking blocked companies. Stats: `ladder_requests`, `ladder_pages`, `ladder_dead`.
 
 ### Memory (`fetch_tiers`, main database)
 
-| Column | |
-|---|---|
-| `domain` | text, primary key: the hostname, lowercase, no leading `www.` |
-| `tier` | the lowest rung that worked: `impersonate`, `render` or `exit` |
-| `block` | the signal that made it climb |
-| `learned_at` | when this tier was learned |
+`domain` (PK, lowercase hostname, no `www.`), `tier` (`browser`, `impersonate`, `render`, `exit`
+or `dead`), `block` (the signal that sent it up), `learned_at`.
 
-- A row older than 30 days is ignored (`FETCH_TIER_DAYS = 30`): the next fetch starts at `plain`
-  and learns again. A success at the same tier does not move `learned_at`, or the memory never
-  decays for a domain we fetch often.
-- A higher rung worked: the row moves up. `plain` worked over a stale row: the row is deleted.
-  `plain` with no row writes nothing (most domains never get a row).
+- A row older than 30 days (`FETCH_TIER_DAYS`) is ignored. `learned_at` moves only when the tier
+  changes, so a busy domain still decays.
 - Main only: a domain is the same fact for every client.
 
 ### Documents
 
 | Column | |
 |---|---|
-| `fetch_tier` | unchanged column. New values `impersonate`, `render`, `exit`. `httpx` = wren's own plain fetch. `browser` = the box render pass (unchanged) |
-| `block_reason` | new, text: the block that made this fetch climb, or the one that stopped it |
-| `fetch_steps` | new, jsonb: every rung tried, `[{ tier, status, block }]` |
+| `fetch_tier` | new values `impersonate`, `render`, `exit` (from the ladder). `httpx` and `browser` unchanged |
+| `block_reason` | text: the block that sent this company to the render pass, or the one that stopped it |
+| `fetch_steps` | jsonb: the ladder's tries, `[{ tier, status, block }]`; null without the ladder |
 
-The homepage tombstone keeps its status and adds `block_reason` and `fetch_steps`.
 `sharedPages` also serves kept pages at the ladder's tiers (status 200, not a shell).
-
-### Wiring
-
-`makeEnrichment` gets `ladder?: SiteClient | null`: `ingressSites(..., { caller: "wren:crawl",
-timeoutMs: 120_000 })` (the crawl runs inside a unit's `ctx.run`). None = today's crawl.
-The box render pass (`Enrichment.render`, CDP) stays: it still renders shells the ladder could
-not reach (Mac off).
 
 ## Not in this
 
-- Captcha solving on the render rungs (autobrowse has `fp.captcha`). Add it when blocks show it pays.
-- HTTP rungs through an exit (`impit` takes a proxy). The egress design said: add when a caller needs it.
-- Memory for `/read` and studies. They start at `plain` each time.
-- Buying an exit (4G modem, proxy): money, William's call. Today rung 4 stops with `no-exit`.
+- Marker detection on the crawl: the crawl sees the status only. The ladder names the WAF when
+  the render pass tries. A 200 challenge page that is not a shell is stored as a page, as today.
+- Captcha solving on the render rungs.
+- HTTP rungs through an exit.
+- `/read` and studies on the ladder.
+- Buying an exit: money, William's call.
 
 ## Decision log
 
-- Posture change, on purpose: `render.ts` said "rendering is capability, not evasion". Rungs 2 to 4
-  pass for a browser. William asked for it (wa-59d). Robots warn mode stays.
-- Memory in wren, ladder stateless: the ladder never knows who asks; wren stores the pages.
-- `learned_at` never refreshes on the same tier: decay must happen even for busy domains.
-- Shell skips `impersonate`: a different TLS fingerprint gets the same shell.
-- Long transactions: an escalated page holds the crawl unit's transaction while the Mac renders
-  (up to ~60 s). Accepted at today's volume (1057 shelled companies in prod; no recorded 403s).
+- Rescoped (above): inline climbing cut. The crawl pays nothing; the render pass pays a capped
+  number of calls.
+- Posture change, on purpose: rungs 2 to 4 pass for a browser (wa-59d). Robots warn mode stays.
+- Memory in wren, ladder stateless: the ladder never knows who asks.
+- `dead` is a memory tier, not a separate flag: one row, one decay rule.
+- Shell skips `impersonate` inside the ladder: TLS cannot run JavaScript.
