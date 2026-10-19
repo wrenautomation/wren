@@ -38,7 +38,7 @@ export type JourneyStatus = (typeof JOURNEY_STATUSES)[number];
 export const DEAL_STATUSES = ["open", "won", "lost", "ended"] as const;
 export type DealStatus = (typeof DEAL_STATUSES)[number];
 
-/** Each published shape of a registry offer. Synced by hash. */
+/** Each published shape of a registry offer. Synced by hash against the newest version only: a change back to an older shape is the next number. */
 export const offerVersions = pipeline.table(
   "offer_versions",
   {
@@ -56,7 +56,6 @@ export const offerVersions = pipeline.table(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_offer_versions" }),
     unique("uq_offer_versions_number").on(t.offer, t.number),
-    unique("uq_offer_versions_hash").on(t.offer, t.hash),
   ],
 );
 export type OfferVersion = typeof offerVersions.$inferSelect;

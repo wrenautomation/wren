@@ -83,7 +83,7 @@ describe("syncOffers", () => {
     ]);
 
     const again = await syncOffers(pg.db, [offer("sync-a"), offer("sync-b")], "t");
-    expect(again).toEqual({ added: [], unchanged: 2, reverted: [] });
+    expect(again).toEqual({ added: [], unchanged: 2 });
 
     const changed = await syncOffers(
       pg.db,
@@ -99,12 +99,15 @@ describe("syncOffers", () => {
     expect(rows[0]?.hash).not.toBe(rows[1]?.hash);
   });
 
-  it("does not write a row when an offer goes back to an older shape", async () => {
+  it("numbers a change back to an older shape as the next version", async () => {
     await syncOffers(pg.db, [offer("sync-c")], "t");
     await syncOffers(pg.db, [offer("sync-c", "Other.")], "t");
     const back = await syncOffers(pg.db, [offer("sync-c")], "t");
-    expect(back.reverted).toEqual([{ offer: "sync-c", number: 1 }]);
-    expect(await offerVersionsOf(pg.db, "sync-c")).toHaveLength(2);
+    expect(back).toEqual({ added: [{ offer: "sync-c", number: 3 }], unchanged: 0 });
+    const rows = await offerVersionsOf(pg.db, "sync-c");
+    expect(rows.map((r) => r.number)).toEqual([1, 2, 3]);
+    expect(rows[2]?.hash).toBe(rows[0]?.hash);
+    expect((await syncOffers(pg.db, [offer("sync-c")], "t")).unchanged).toBe(1);
   });
 });
 

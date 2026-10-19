@@ -109,8 +109,6 @@ export function registerPipeline(program: Command, withDb: WithDb, withMainDb: W
       plain(async () => {
         const r = await withMainDb((db) => syncOffers(db, OFFERS, who()));
         for (const a of r.added) console.log(`${a.offer}: version ${a.number}`);
-        for (const a of r.reverted)
-          console.log(`${a.offer}: back to the shape of version ${a.number}; no row written`);
         console.log(`${r.added.length} added, ${r.unchanged} unchanged`);
       }),
     );

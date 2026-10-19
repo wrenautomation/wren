@@ -1,5 +1,5 @@
 {
-  "id": "45533d7e-f10c-433f-a7b6-b7def478d044",
+  "id": "5914d772-15d8-4e98-ac9b-182d6c38fcd4",
   "prevId": "adf9433f-b23a-46f5-9789-f34df022efe5",
   "version": "7",
   "dialect": "postgresql",
@@ -40321,14 +40321,6 @@
           "columns": [
             "offer",
             "number"
-          ]
-        },
-        "uq_offer_versions_hash": {
-          "name": "uq_offer_versions_hash",
-          "nullsNotDistinct": false,
-          "columns": [
-            "offer",
-            "hash"
           ]
         }
       },

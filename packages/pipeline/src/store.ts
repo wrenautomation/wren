@@ -63,17 +63,15 @@ export interface OfferSync {
   added: { offer: string; number: number }[];
   /** Registry offers whose newest version already matched. */
   unchanged: number;
-  /** Offers put back to the shape of an older version. `(offer, hash)` is unique: no row is written. */
-  reverted: { offer: string; number: number }[];
 }
 
-/** Each registry offer whose hash is new becomes the next version. Again changes nothing. */
+/** Each registry offer whose hash differs from its newest version becomes the next version. Again changes nothing. */
 export async function syncOffers(
   db: Queryable,
   offers: readonly Offer[],
   by: string,
 ): Promise<OfferSync> {
-  const out: OfferSync = { added: [], unchanged: 0, reverted: [] };
+  const out: OfferSync = { added: [], unchanged: 0 };
   for (const o of offers) {
     const hash = hashOf(o);
     const result = await atomic(db, async (tx) => {
@@ -85,11 +83,6 @@ export async function syncOffers(
         .orderBy(desc(offerVersions.number))
         .limit(1);
       if (last?.hash === hash) return { kind: "same" } as const;
-      const [seen] = await tx
-        .select({ number: offerVersions.number })
-        .from(offerVersions)
-        .where(and(eq(offerVersions.offer, o.id), eq(offerVersions.hash, hash)));
-      if (seen) return { kind: "reverted", number: seen.number } as const;
       const number = (last?.number ?? 0) + 1;
       await tx.insert(offerVersions).values({
         offer: o.id,
@@ -102,7 +95,6 @@ export async function syncOffers(
       return { kind: "added", number } as const;
     });
     if (result.kind === "same") out.unchanged++;
-    else if (result.kind === "reverted") out.reverted.push({ offer: o.id, number: result.number });
     else out.added.push({ offer: o.id, number: result.number });
   }
   return out;
