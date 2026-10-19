@@ -33,8 +33,8 @@ import {
   termsHistory,
 } from "@wren/pipeline/store";
 import { type Command, InvalidArgumentError } from "commander";
-import { registerPipelineSeed } from "./pipeline-seed.js";
 import { type OnClient, registerPipelineFold } from "./pipeline-fold.js";
+import { registerPipelineSeed } from "./pipeline-seed.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
