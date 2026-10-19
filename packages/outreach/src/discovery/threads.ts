@@ -12,7 +12,7 @@
 import { REACH_FULL_KARMA, warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
-import { factsBlock } from "@wren/core/facts";
+import { factsBlock, humanBlock } from "@wren/core/facts";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import {
   COMMENT_RULE,
@@ -453,7 +453,7 @@ const DRAFT_SYSTEM = (voice: string, truths: readonly string[]) => `You write on
 for William, who runs a one-person automation agency. ${COMMENT_RULE} Reddit rules: no links, no \
 pitch, no "DM me", at most 4 sentences, adds something the thread doesn't already say. Pick what \
 to answer: the post itself, or one top-level comment in it that asks the question \
-better. Our notes are how we work, not stories to retell as his.\n${factsBlock(truths)}\nHis \
+better. Our notes are how we work, not stories to retell as his.\n${factsBlock(truths)}\n${humanBlock()}\nHis \
 voice:\n${voice}\nAnswer JSON only: {"target": "<the post id or a comment id from the list>", \
 "comment": "<the comment>"}`;
 
@@ -466,7 +466,7 @@ a large general subreddit. Answer the question plainly and helpfully, like one p
 Open with the answer. One concrete thing beats three general ones. Rules: no links, no pitch, \
 never name Wren, his business or his work, no "DM me", at most 3 sentences, adds something the \
 thread doesn't already say. No dashes. Sound like a text, not a post. Pick what to answer: the \
-post itself, or one top-level comment in it that asks the question better.\n${factsBlock([])}\n\
+post itself, or one top-level comment in it that asks the question better.\n${factsBlock([])}\n${humanBlock()}\n\
 His voice:\n${voice}\nAnswer JSON only: {"target": "<the post id or a comment id from the list>", \
 "comment": "<the comment>"}`;
 

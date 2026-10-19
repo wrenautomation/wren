@@ -50,6 +50,23 @@ export async function wrenFacts(db: Queryable): Promise<string[]> {
  * The prompt's rule. With facts, they are the only first-person claims allowed; with none, no
  * first-person claim at all. Either way: an insight, a question, or the source's own numbers.
  */
+/**
+ * How a comment, reply or DM reads so it passes as typed by a person on a phone (William,
+ * 2026-10-19). `swear` opens mild swearing; off for a first message to a stranger.
+ */
+export function humanBlock(swear = true): string {
+  return (
+    "Type it like a person on their phone: all lowercase, including \"i\" and names. Loose punctuation, " +
+    "a comma where a period would be fine, no period at the end. Now and then (about one message in " +
+    "four) one small slip a fast typer makes: a dropped letter, two letters swapped, \"teh\", \"dont\", " +
+    "\"ur\". Never a slip in a name, a number or a link. " +
+    (swear
+      ? "Mild swearing is fine when it fits (\"shit\", \"damn\", \"hell\", \"af\"), at most once, never at the person. "
+      : "No swearing unless they swore first; then match them. ") +
+    "Never say or hint that you are an AI, a tool or a system."
+  );
+}
+
 export function factsBlock(facts: readonly string[]): string {
   const rule =
     "Never invent a story, client, result, number or date about the writer or the business: no " +

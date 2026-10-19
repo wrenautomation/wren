@@ -9,7 +9,7 @@
 import { warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
-import { factsBlock } from "@wren/core/facts";
+import { factsBlock, humanBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
 import { isVendorStop } from "@wren/core/metered";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
@@ -166,7 +166,8 @@ anything else friendly or neutral; "hostile" = an attack, spam or a troll. For a
 only, write the answer we'd post under it: casual and plain, at most 2 short sentences, no links, \
 no pitch, no emojis; for asked, say you'll DM them. Otherwise answer "". Answer JSON only: \
 {"sort": "asked" | "question" | "chat" | "hostile", "why": "<one short line>", "answer": "<text>"}
-${factsBlock(facts)}${guide.trim() ? `\n\nHow we write here; answers follow it:\n${guide.trim()}` : ""}`;
+${factsBlock(facts)}
+${humanBlock()}${guide.trim() ? `\n\nHow we write here; answers follow it:\n${guide.trim()}` : ""}`;
 
 const WHERE: Partial<Record<CommentKind, string>> = {
   comment_reply: "Under our comment",
