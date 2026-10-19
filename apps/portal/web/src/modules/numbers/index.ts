@@ -1,6 +1,6 @@
 /**
- * Numbers (designs/2026-10-19-portal-reshape.md): how the business and its funnels do. The
- * funnel tables read the pipeline's numbers; the books pages (economics, months, channels,
+ * Numbers (designs/2026-10-19-portal-reshape.md): how the business and its shape do. The
+ * shape tables read the pipeline's numbers (per node, per edge, per offer); the books pages (economics, months, channels,
  * cohorts) moved here from Money unchanged, each still behind the money permission. Money
  * keeps what Wren spends and bills.
  */
@@ -19,8 +19,8 @@ const figure = (label: string, pick: string, none = NO_CLIENTS) => ({
 });
 
 /**
- * The three tables read one record, so each starts on its own view: an address with no view is
- * sent on to it (`ListPage.legacy` runs before the page draws).
+ * The shape and offer tables read one record, so each starts on its own view: an address with no
+ * view is sent on to it (`ListPage.legacy` runs before the page draws).
  */
 const startsOn = (view: string) => (params: URLSearchParams) =>
   params.has("view") ? null : { view };
@@ -30,25 +30,17 @@ export const numbers: Module = {
   name: "Numbers",
   component: "pipeline.journeys",
   icon: "chart",
-  blurb: "How each funnel, entry and offer converts, and what a client costs and earns.",
+  blurb: "How each node, edge and offer of the shape converts, and what a client costs and earns.",
   requires: { audience: "team" },
   pages: [
     {
+      // The path stays `funnels` so old links land; the tab is the shape's numbers.
       id: "funnels",
-      label: "Funnels",
-      about: "Each funnel's stages: who entered, who went on, and how long it took.",
+      label: "Shape",
+      about: "Each node and edge: who arrived, who went on, and how long it took.",
       template: "list",
       record: "pipeline.number",
-      empty: "No funnel has numbers yet.",
-    },
-    {
-      id: "entries",
-      label: "Entries",
-      about: "Each way in: how many opened a journey, and what they came to.",
-      template: "list",
-      record: "pipeline.number",
-      legacy: startsOn("entry"),
-      empty: "No entry has numbers yet.",
+      empty: "The shape has no numbers yet.",
     },
     {
       id: "offers",

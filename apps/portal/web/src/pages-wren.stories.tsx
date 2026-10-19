@@ -106,7 +106,7 @@ export const Notes = pageAt("/notes", { me: ADMIN });
 export const Calendar = pageAt("/calendar", { me: ADMIN });
 export const Marketplace = pageAt("/marketplace", { me: ADMIN });
 
-/** The group editor reads journeys: pick "A journey", then a funnel, a stage and a status. */
+/** The group editor reads journeys: pick "A journey", then a node, now or earlier, and a status. */
 export const GroupsJourney = pageAt("/people/groups", {
   me: ADMIN,
   answers: {
@@ -114,34 +114,29 @@ export const GroupsJourney = pageAt("/people/groups", {
       traits: ["plan"],
       segments: [],
       describe: false,
-      funnels: [
-        {
-          id: "organic",
-          name: "Organic",
-          stages: [
-            { key: "engaged", label: "Engaged" },
-            { key: "booked", label: "Booked" },
-          ],
-          entries: ["web", "mail"],
-        },
-      ],
+      shape: {
+        nodes: [
+          { id: "engaged", name: "Engaged", kind: "step", depth: 1 },
+          { id: "booked", name: "Booked", kind: "step", depth: 2 },
+        ],
+        sources: ["web", "mail"],
+      },
     },
-    "people/segmentPreview": { size: 2, sample: [], words: "journey in Organic" },
+    "people/segmentPreview": { size: 2, sample: [], words: "journey through Booked" },
   },
   check: async (page) => {
     const view = within(page);
     await userEvent.click(await view.findByRole("button", { name: "New group" }));
     await userEvent.click(await view.findByRole("button", { name: "Add condition" }));
     await userEvent.selectOptions(await view.findByLabelText("Kind of condition"), "journey");
-    await userEvent.selectOptions(await view.findByLabelText("Funnel"), "organic");
-    await userEvent.selectOptions(await view.findByLabelText("Stage"), "booked");
-    await userEvent.selectOptions(await view.findByLabelText("Stage only or later"), "past");
+    await userEvent.selectOptions(await view.findByLabelText("Node"), "booked");
+    await userEvent.selectOptions(await view.findByLabelText("Node now or ever"), "past");
     await userEvent.selectOptions(await view.findByLabelText("Journey status"), "open");
-    await expect(await view.findByLabelText("Entry")).toBeVisible();
-    await waitFor(() => expect(view.getByLabelText("Stage")).toHaveValue("booked"));
+    await expect(await view.findByLabelText("Source")).toBeVisible();
+    await waitFor(() => expect(view.getByLabelText("Node")).toHaveValue("booked"));
     // The count comes a beat after the last change: wait for it, or its call lands in the next
     // story's table, where nothing answers it.
-    await expect(await view.findByText("journey in Organic")).toBeVisible();
+    await expect(await view.findByText("journey through Booked")).toBeVisible();
   },
 });
 
@@ -199,12 +194,8 @@ export const OffersTermsPropose = pageAt("/offers/terms", {
   },
 });
 
-// Numbers: the funnel tables, and the books pages that moved here from Money.
+// Numbers: the shape tables, and the books pages that moved here from Money.
 export const NumbersFunnels = pageAt("/numbers/funnels", { me: ADMIN, check: shows("Engaged") });
-export const NumbersEntries = pageAt("/numbers/entries", {
-  me: ADMIN,
-  check: shows("Spring list"),
-});
 export const NumbersOffers = pageAt("/numbers/offers", { me: ADMIN, check: shows("Starter") });
 export const NumbersEconomics = pageAt("/numbers/economics", { me: ADMIN });
 export const NumbersMonths = pageAt("/numbers/months", { me: ADMIN });
@@ -216,5 +207,5 @@ export const PipelinesDeals = pageAt("/pipelines/deals", { me: ADMIN, check: sho
 export const PipelinesCalls = pageAt("/pipelines/calls", { me: ADMIN });
 export const PipelinesEntries = pageAt("/pipelines/entries", {
   me: ADMIN,
-  check: shows("mail", "ads1"),
+  check: shows("Spring list", "Winter ads"),
 });

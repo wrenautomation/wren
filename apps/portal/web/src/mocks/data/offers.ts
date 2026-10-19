@@ -4,7 +4,6 @@
  * and amounts. `TERMS_CALLS` keeps what "Propose version" sent, so a story can check the form.
  */
 import type { RecorderState } from "@wren/calendar/recorder";
-import type { Cell } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
@@ -106,23 +105,21 @@ const offer = (id: string, name: string, version: number, plans: number, open: n
   why: "Synced from the registry.",
 });
 
-type EntryRow = [string, string, string, string, string, string | null, number, number, number];
+type SourceRow = [string, string, string, string | null, string | null, number, number, number];
 
+/** The synthetic shape's two sources (`./journeys.ts`), as the Entries tab lists them. */
 const ENTRIES: Row[] = (
   [
-    ["sales", "Sales funnel", "mail", "outbound", "email", "Spring list", 3, 11, 2],
-    ["sales", "Sales funnel", "ads1", "ads", "ads", "Winter ads", 1, 6, 5],
-    ["sales", "Sales funnel", "call", "booking", "web", null, 0, 4, 9],
-    ["welcome", "Welcome funnel", "web", "form", "web", null, 1, 3, 1],
-  ] satisfies EntryRow[]
-).map(([funnel, funnelName, entry, kind, channel, campaign, open, all, last], i) => ({
-  id: `${funnel}/${entry}`,
-  funnelName,
-  funnel,
-  entry,
-  kind,
+    ["mail", "Spring list", "outbound", "email", "Spring list", 3, 11, 2],
+    ["ads1", "Winter ads", "ads", "ads", "Winter ads", 1, 6, 5],
+  ] satisfies SourceRow[]
+).map(([id, name, via, channel, campaign, open, all, last], i) => ({
+  id,
+  name,
+  via,
   channel,
   campaign,
+  parked: null,
   openJourneys: open,
   journeys: all,
   lastArrival: ago(last + i * 0.1),
@@ -130,52 +127,58 @@ const ENTRIES: Row[] = (
 
 const num = (
   id: string,
-  kind: "stage" | "entry" | "offer",
+  kind: "node" | "edge" | "offer",
   label: string,
-  funnel: string,
   position: number,
-  n: [number, number, number, number],
-  more: Record<string, Cell> = {},
-): Row => {
-  const [entered, skipped, reached, advanced] = n;
-  return {
-    id,
-    kind,
-    label,
-    funnel,
-    position,
-    entered,
-    skipped,
-    reached,
-    advanced,
-    conversion: reached ? advanced / reached : null,
-    medianSeconds: 86_400 * (position + 1) * 2,
-    opened: null,
-    deals: null,
-    collected: null,
-    scheduled: null,
-    cost: null,
-    last: day(2),
-    ...more,
-  };
-};
+  n: Partial<Row> = {},
+): Row => ({
+  id,
+  kind,
+  label,
+  node: id,
+  nodeKind: kind === "node" ? "step" : null,
+  position,
+  arrived: null,
+  skipped: null,
+  left: null,
+  now: null,
+  medianDays: null,
+  crossings: null,
+  from: null,
+  to: null,
+  opened: null,
+  deals: null,
+  collected: null,
+  scheduled: null,
+  cost: null,
+  last: day(2),
+  ...n,
+});
 
 const NUMBERS: Row[] = [
-  num("sales/engaged", "stage", "Engaged", "sales", 0, [14, 0, 14, 9]),
-  num("sales/booked", "stage", "Booked", "sales", 1, [9, 1, 10, 4]),
-  num("sales/signed", "stage", "Signed", "sales", 2, [4, 0, 4, 4]),
-  num("sales/mail", "entry", "Spring list", "sales", 0, [0, 0, 0, 0], {
-    opened: 11,
-    deals: 2,
+  num("mail", "node", "Spring list", 0, { nodeKind: "source", opened: 11, deals: 2 }),
+  num("engaged", "node", "Engaged", 1, { arrived: 14, skipped: 0, left: 9, now: 5, medianDays: 4 }),
+  num("booked", "node", "Booked", 2, { arrived: 10, skipped: 1, left: 4, now: 6, medianDays: 6 }),
+  num("signed", "node", "Signed", 3, {
+    nodeKind: "offer",
+    arrived: 4,
+    skipped: 0,
+    left: 0,
+    now: 0,
+    medianDays: 0,
     collected: cad(1_000),
   }),
-  num("sales/ads1", "entry", "Winter ads", "sales", 1, [0, 0, 0, 0], {
-    opened: 6,
-    deals: 1,
-    collected: cad(0),
-    cost: 4,
+  num("engaged_to_booked", "edge", "Engaged to Booked", 0, {
+    crossings: 9,
+    from: "engaged",
+    to: "booked",
   }),
-  num("offer/starter", "offer", "Starter", "", 0, [0, 0, 0, 0], {
+  num("booked_to_signed", "edge", "Booked to Signed", 0, {
+    crossings: 4,
+    from: "booked",
+    to: "signed",
+  }),
+  num("starter", "offer", "Starter", 0, {
     opened: 17,
     deals: 3,
     collected: cad(2_500),
@@ -260,7 +263,7 @@ export const OFFER_ROWS: Record<string, Row[]> = {
       status: "open",
       collected: cad(0),
       scheduled: cad(1_000),
-      funnel: "sales",
+      node: "signed",
       entry: "mail",
       signedAt: ago(4),
       endsAt: null,
@@ -273,7 +276,7 @@ export const OFFER_ROWS: Record<string, Row[]> = {
       status: "won",
       collected: cad(2_500),
       scheduled: cad(0),
-      funnel: "sales",
+      node: "signed",
       entry: "ads1",
       signedAt: ago(20),
       endsAt: null,

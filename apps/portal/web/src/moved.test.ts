@@ -118,7 +118,7 @@ describe("the move table", () => {
   it("lands every page of a renamed app on a page of the new app", () => {
     // The ids each old app held that stay under their own name (the rest have an entry above).
     const stay: Record<string, string[]> = {
-      deals: ["board", "journeys", "funnels"],
+      deals: ["board", "journeys"],
       outreach: ["engage", "dms", "invites", "people", "threads", "places", "accounts", "dm-copy"],
       pipeline: ["companies", "stalls"],
       marketing: [

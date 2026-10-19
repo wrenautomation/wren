@@ -29,9 +29,9 @@ export const TEAM_PIPELINE_PAGES: ModulePage[] = [
   {
     id: "entries",
     label: "Entries",
-    about: "Each funnel's ways in: what opens a journey, and when one last did.",
+    about: "Each source of the shape: what opens a journey, and when one last did.",
     template: "list",
     record: "pipeline.entry",
-    empty: "No funnel has an entry yet.",
+    empty: "The shape has no source yet.",
   },
 ];

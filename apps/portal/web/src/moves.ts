@@ -54,8 +54,8 @@ export interface Move {
 export interface JourneyHead {
   id: string;
   person: string;
-  funnel: string;
-  stage: string;
+  /** The node it stands at, by name. */
+  node: string;
 }
 export type JourneyLine = JourneyHead & { emails: string[] };
 
@@ -222,7 +222,7 @@ export const SOURCES: readonly Source[] = [
         key: `stale:${str(r.id)}`,
         icon: "target",
         verb: "Nudge or drop",
-        what: [nameOf(r.name), str(r.stageLabel), `${Number(r.daysInStage) || 0} days`]
+        what: [nameOf(r.name), str(r.nodeName), `${Number(r.daysAtNode) || 0} days`]
           .filter(Boolean)
           .join(", "),
         href: AT.stale,
@@ -281,7 +281,7 @@ export function groupMoves(moves: readonly Move[], journeys: readonly JourneyLin
       (m.journey ? byId.get(m.journey) : undefined) ??
       m.emails.map((e) => byEmail.get(e)).find(Boolean);
     if (!j) put(OTHERS, null, m);
-    else put(j.id, { id: j.id, person: j.person, funnel: j.funnel, stage: j.stage }, m);
+    else put(j.id, { id: j.id, person: j.person, node: j.node }, m);
   }
   const others = groups.get(OTHERS);
   groups.delete(OTHERS);
@@ -291,8 +291,7 @@ export function groupMoves(moves: readonly Move[], journeys: readonly JourneyLin
 const lineOf = (r: Row): JourneyLine => ({
   id: str(r.id),
   person: nameOf(r.name),
-  funnel: str(r.funnelName),
-  stage: str(r.stageLabel),
+  node: str(r.nodeName),
   emails: str(r.email).split(/\s+/).filter(Boolean).map(lower),
 });
 

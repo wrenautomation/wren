@@ -1,6 +1,6 @@
 /**
- * Journeys → Board on the fake server (designs/2026-10-18-journeys.md): the funnel's stages as
- * columns, a drag forward, a drag back that is refused, a refused move that rolls back, and a drop
+ * Journeys → Board on the fake server (designs/2026-10-18-journeys.md): the shape's nodes as
+ * columns, a drag down the shape, a drag back that is refused, a refused move that rolls back, and a drop
  * with a reason. `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
@@ -37,14 +37,14 @@ async function drag(page: HTMLElement, name: string, to: string) {
 const inLane = async (page: HTMLElement, name: string, who: string) =>
   within(await lane(page, name)).findByRole("link", { name: who });
 
-/** The funnel's stages as lanes, each card with its time in stage, the stale one flagged. */
+/** The shape's nodes as lanes, each card with its time at the node, the stale one flagged. */
 export const Board = pageAt("/pipelines/board", {
   me: ADMIN,
   check: async (page) => {
     for (const name of ["Engaged", "Booked", "Signed"]) await lane(page, name);
     await inLane(page, "Engaged", "Ada North");
     await inLane(page, "Booked", "Dee Okafor");
-    // The finished ones sit in the last lane.
+    // The finished ones sit in their own node's lane.
     await inLane(page, "Signed", "Eli Brandt");
     await expect(within(await lane(page, "Engaged")).getByText("Stale")).toBeVisible();
   },
@@ -58,7 +58,7 @@ export const BoardFromNav = pageAt("/pipelines", {
   },
 });
 
-/** A card dragged to a later lane moves at once and sends one move. */
+/** A card dragged to a lane down the shape moves at once and sends one move. */
 export const BoardMovesForward = pageAt("/pipelines/board", {
   me: ADMIN,
   check: async (page) => {
@@ -79,24 +79,26 @@ export const BoardRefusesBackward = pageAt("/pipelines/board", {
     forgetCalls();
     await drag(page, "Dee Okafor", "Engaged");
     await expect(
-      await within(page).findByText("A journey only moves forward. Dee Okafor is at Booked."),
+      await within(page).findByText(
+        "Dee Okafor cannot go from Booked to Engaged: no path leads there.",
+      ),
     ).toBeVisible();
     await inLane(page, "Booked", "Dee Okafor");
     expect(JOURNEY_CALLS).toHaveLength(0);
   },
 });
 
-/** The server says the funnel did not take the move: the card goes back and the note says why. */
+/** The server says the shape did not take the move: the card goes back and the note says why. */
 export const BoardRollsBack = pageAt("/pipelines/board", {
   me: ADMIN,
   answers: {
-    "pipeline/journeysMove": refuse(409, "Nothing moved. The funnel did not take that move."),
+    "pipeline/journeysMove": refuse(409, "Nothing moved. The shape did not take that move."),
   },
   check: async (page) => {
     await drag(page, "Ada North", "Booked");
     await waitFor(async () => {
       await expect(
-        within(page).getAllByText("Nothing moved. The funnel did not take that move.").length,
+        within(page).getAllByText("Nothing moved. The shape did not take that move.").length,
       ).toBeGreaterThan(0);
     });
     await inLane(page, "Engaged", "Ada North");
@@ -111,7 +113,7 @@ export const BoardDropsWithReason = pageAt("/pipelines/board", {
     const ui = within(page);
     (await ui.findByRole("button", { name: "Drop Dee Okafor" })).click();
     const reason = await ui.findByRole("textbox", {
-      name: "Why does Dee Okafor leave the funnel?",
+      name: "Why does Dee Okafor leave?",
     });
     await fireEvent.change(reason, { target: { value: "Bought elsewhere" } });
     (await ui.findByRole("button", { name: "Drop" })).click();
@@ -122,24 +124,25 @@ export const BoardDropsWithReason = pageAt("/pipelines/board", {
   },
 });
 
-/** A funnel that is off shows its people and moves nobody. */
-export const BoardFunnelOff = pageAt("/pipelines/board?funnel=welcome", {
+/** A journey on a node the newest version dropped sits in its own lane and can be dropped. */
+export const BoardGhost = pageAt("/pipelines/board", {
   me: ADMIN,
   check: async (page) => {
-    await expect(
-      await within(page).findByText(
-        "This funnel is off, so nobody moves. Turn it on to move people.",
-      ),
-    ).toBeVisible();
-    await inLane(page, "Joined", "Gus Held");
-    expect(within(page).queryByRole("button", { name: "Drop Gus Held" })).toBeNull();
+    await inLane(page, "Joined (older version)", "Gus Held");
+    await within(page).findByText("Older version");
+    await expect(within(page).getByRole("button", { name: "Drop Gus Held" })).toBeVisible();
   },
 });
 
-/** No funnel yet: one plain line. */
+/** No shape yet: one plain line. */
 export const BoardEmpty = pageAt("/pipelines/board", {
   me: ADMIN,
   answers: {
+    "pipeline/recordsGet": (b: Record<string, unknown>) => ({
+      record: String(b.record),
+      row: null,
+      detail: null,
+    }),
     "pipeline/recordsList": (b: Record<string, unknown>) => ({
       record: String(b.record),
       view: null,
@@ -151,6 +154,6 @@ export const BoardEmpty = pageAt("/pipelines/board", {
     }),
   },
   check: async (page) => {
-    await expect(await within(page).findByText("No funnels yet.")).toBeVisible();
+    await expect(await within(page).findByText("No shape yet.")).toBeVisible();
   },
 });

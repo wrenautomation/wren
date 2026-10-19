@@ -1,11 +1,13 @@
 /**
- * Journeys → Board (designs/2026-10-18-journeys.md, "Folding `@wren/deals`"): one board per
- * funnel, a column per stage of its newest version, a card per open journey. Drag a card to a
- * later stage to move it, or pick the stage on a phone. A move goes to the funnel's own `move`
- * step through the `Journeys` service, so a workflow that hears it runs. A card only goes forward.
- * Drag it to the drop zone, or press Drop, to end it with a reason.
+ * Journeys → Board (designs/2026-10-19-business-map.md): one board for the shape, a column per
+ * node that holds people (every node but a source), by depth then name, a card per open journey.
+ * Drag a card down a flow edge to move it, or pick the node on a phone. A move goes to the shape's
+ * own `move` step through the `Journeys` service, so a workflow that hears it runs. A card only
+ * goes where a flow path leads. A journey on a node the newest version dropped (a ghost) sits in
+ * its own column. Drag a card to the drop zone, or press Drop, to end it with a reason.
  */
 import type { RecordAnswer, RecordsPage, Row } from "@wren/core/records/serve";
+import { pathOf, type ShapeBody } from "@wren/pipeline/model";
 import {
   ACTIONS,
   Button,
@@ -26,90 +28,86 @@ import { call } from "../../api.js";
 import { dragStart, Lane, SELECT } from "../../kanban.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
-import { go, href } from "../../route.js";
+import { href } from "../../route.js";
 
-const FUNNEL = "pipeline.funnel";
+const SHAPE = "pipeline.shape";
 const JOURNEY = "pipeline.journey";
 const MIME = "text/journey";
 /** Rows one read takes (the server's cap), and how many reads one board makes at most. */
 const PAGE = 200;
 const PAGES = 5;
-/** Finished journeys shown in the last column. */
+/** Finished journeys shown in their node's column. */
 const RECENT_DONE = 20;
 
 /** The body's client: none in Wren's workspace, whose journeys the server keeps as Wren's. */
 export const atOf = (client: string): Record<string, string> =>
   client === WREN.id ? {} : { client };
 
-interface FunnelRow {
+/** A column: a node that holds people. */
+interface Column {
   id: string;
   name: string;
-  status: string;
-}
-interface Stage {
-  key: string;
-  label: string;
+  /** An offer node: reaching it is a sale. */
   sale: boolean;
+}
+interface Shape {
+  body: ShapeBody;
+  columns: Column[];
 }
 interface Journey {
   id: string;
   name: string;
-  stage: string;
-  stageLabel: string;
+  node: string;
+  nodeName: string;
   status: string;
   flag: string | null;
+  /** On an older version whose node the newest shape lacks. */
+  ghost: boolean;
   entry: string | null;
   owner: string | null;
-  daysInStage: number;
+  daysAtNode: number;
 }
 
 const text = (v: unknown): string | null => (v == null || v === "" ? null : String(v));
-const funnelOf = (r: Row): FunnelRow => ({
-  id: String(r.id),
-  name: text(r.name) ?? String(r.id),
-  status: text(r.status) ?? "live",
-});
 const journeyOf = (r: Row): Journey => ({
   id: String(r.id),
   name: text(r.name) ?? String(r.id),
-  stage: text(r.stage) ?? "",
-  stageLabel: text(r.stageLabel) ?? text(r.stage) ?? "",
+  node: text(r.node) ?? "",
+  nodeName: text(r.nodeName) ?? text(r.node) ?? "",
   status: text(r.status) ?? "open",
   flag: text(r.flag),
+  ghost: text(r.ghost) === "ghost",
   entry: text(r.entry),
   owner: text(r.owner),
-  daysInStage: Number(r.daysInStage ?? 0),
+  daysAtNode: Number(r.daysAtNode ?? 0),
 });
 
-const readFunnels = async (at: Record<string, string>): Promise<FunnelRow[]> => {
-  const page = await call<RecordsPage>("pipeline/recordsList", {
-    ...at,
-    record: FUNNEL,
-    view: "all",
-    limit: PAGE,
-  });
-  return page.rows.map(funnelOf);
-};
-
-const readStages = async (at: Record<string, string>, funnel: string): Promise<Stage[]> => {
+/** The shape's columns: every node but a source, by depth, then name. Null when it has none. */
+const readShape = async (at: Record<string, string>): Promise<Shape | null> => {
   const got = await call<RecordAnswer>("pipeline/recordsGet", {
     ...at,
-    record: FUNNEL,
-    id: funnel,
+    record: SHAPE,
+    id: "shape",
   });
-  const stages = (got.detail as { stages?: Stage[] } | null)?.stages ?? [];
-  return stages.map((s) => ({ key: s.key, label: s.label, sale: s.sale === true }));
+  const detail = got.detail as { body?: ShapeBody; depths?: Record<string, number> } | null;
+  const body = detail?.body;
+  if (!body) return null;
+  const depths = detail.depths ?? {};
+  const columns = body.nodes
+    .filter((n) => n.kind !== "source")
+    .sort((a, b) => (depths[a.id] ?? 0) - (depths[b.id] ?? 0) || a.name.localeCompare(b.name))
+    .map((n) => ({ id: n.id, name: n.name, sale: n.kind === "offer" }));
+  return { body, columns };
 };
 
-/** A funnel's open journeys, longest in their stage first, and its few newest finished ones. */
+/** The open journeys, longest at their node first, and the few newest finished ones. */
 const readJourneys = async (
   at: Record<string, string>,
-  funnel: string,
 ): Promise<{ open: Journey[]; done: Journey[] }> => {
   const done = call<RecordsPage>("pipeline/recordsList", {
     ...at,
     record: JOURNEY,
-    where: { funnel, status: "done" },
+    where: { status: "done" },
     sort: "-closedAt",
     limit: RECENT_DONE,
   });
@@ -119,7 +117,7 @@ const readJourneys = async (
     const page = await call<RecordsPage>("pipeline/recordsList", {
       ...at,
       record: JOURNEY,
-      where: { funnel, status: "open" },
+      where: { status: "open" },
       sort: "movedAt",
       limit: PAGE,
       ...(cursor ? { cursor } : {}),
@@ -133,58 +131,8 @@ const readJourneys = async (
 
 export function JourneyBoard(props: PageProps) {
   const at = atOf(props.client);
-  const funnels = useCall(`journeys-board:funnels:${props.client}`, () => readFunnels(at));
-  if (funnels.error && !funnels.data)
-    return <LoadFailed error={funnels.error} onRetry={funnels.retry} />;
-  if (!funnels.data) return <Loading lines={6} />;
-  const list = funnels.data;
-  const funnel =
-    list.find((f) => f.id === props.params.get("funnel")) ??
-    list.find((f) => f.status === "live") ??
-    list[0];
-  return (
-    <>
-      <PageHeader
-        title="Board"
-        lede="Drag a person to the stage they are in now. A workflow can start on any move."
-        actions={
-          list.length > 1 && funnel ? (
-            <select
-              aria-label="Funnel"
-              className={SELECT}
-              value={funnel.id}
-              onChange={(e) => go("/pipelines/board", { funnel: e.target.value }, props.params)}
-            >
-              {list.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                  {f.status === "live" ? "" : " (off)"}
-                </option>
-              ))}
-            </select>
-          ) : null
-        }
-      />
-      {funnel ? (
-        <FunnelBoard key={funnel.id} {...props} at={at} funnel={funnel} />
-      ) : (
-        <Empty>No funnels yet.</Empty>
-      )}
-    </>
-  );
-}
-
-function FunnelBoard({
-  at,
-  funnel,
-  demo,
-}: PageProps & { at: Record<string, string>; funnel: FunnelRow }) {
-  const stages = useCall(`journeys-board:stages:${JSON.stringify(at)}:${funnel.id}`, () =>
-    readStages(at, funnel.id),
-  );
-  const got = useCall(`journeys-board:journeys:${JSON.stringify(at)}:${funnel.id}`, () =>
-    readJourneys(at, funnel.id),
-  );
+  const shape = useCall(`journeys-board:shape:${JSON.stringify(at)}`, () => readShape(at));
+  const got = useCall(`journeys-board:journeys:${JSON.stringify(at)}`, () => readJourneys(at));
   // A move shows at once and holds until a read agrees, so an older read never drags it back.
   const [moved, setMoved] = useState<Record<string, string>>({});
   // A drop shows at once too: the card leaves, and comes back if the server refuses.
@@ -198,9 +146,9 @@ function FunnelBoard({
     if (!data) return;
     setMoved((m) => {
       const left = Object.fromEntries(
-        Object.entries(m).filter(([id, stage]) => {
+        Object.entries(m).filter(([id, node]) => {
           const now = data.open.find((j) => j.id === id);
-          return now ? now.stage !== stage : !data.done.some((j) => j.id === id);
+          return now ? now.node !== node : !data.done.some((j) => j.id === id);
         }),
       );
       return Object.keys(left).length === Object.keys(m).length ? m : left;
@@ -210,32 +158,49 @@ function FunnelBoard({
       return left.size === g.size ? g : left;
     });
   }, [data]);
-  const failed = stages.error && !stages.data ? stages : got.error && !got.data ? got : null;
+  const failed = shape.error && !shape.data ? shape : got.error && !got.data ? got : null;
   if (failed?.error) return <LoadFailed error={failed.error} onRetry={failed.retry} />;
-  if (!stages.data || !data) return <Loading lines={6} />;
+  if (shape.data === undefined || !data) return <Loading lines={6} />;
 
-  const cols = stages.data;
-  const write = !demo && funnel.status === "live";
+  const header = (
+    <PageHeader
+      title="Board"
+      lede="Drag a person to the node they are at now. A workflow can start on any move."
+    />
+  );
+  if (!shape.data) {
+    return (
+      <>
+        {header}
+        <Empty>No shape yet.</Empty>
+      </>
+    );
+  }
+
+  const { body, columns: cols } = shape.data;
+  const write = !props.demo;
   const open = data.open
     .filter((j) => !gone.has(j.id))
     .map((j) => {
       const to = moved[j.id];
-      const label = cols.find((s) => s.key === to)?.label;
-      return to ? { ...j, stage: to, stageLabel: label ?? j.stageLabel } : j;
+      const name = cols.find((c) => c.id === to)?.name;
+      return to ? { ...j, node: to, nodeName: name ?? j.nodeName } : j;
     });
-  const indexOf = (key: string) => cols.findIndex((s) => s.key === key);
-  // A journey on a stage the newest version no longer has (an older version): its own column.
+  // A journey on a node the newest version no longer has (an older version): its own column.
   const other = [
-    ...new Map(open.filter((j) => indexOf(j.stage) < 0).map((j) => [j.stage, j.stageLabel])),
+    ...new Map(
+      open.filter((j) => !cols.some((c) => c.id === j.node)).map((j) => [j.node, j.nodeName]),
+    ),
   ];
-  const last = cols.at(-1)?.key;
 
   const move = (id: string, to: string) => {
     const j = open.find((x) => x.id === id);
-    if (!j || j.stage === to) return;
-    const from = indexOf(j.stage);
-    if (from >= 0 && indexOf(to) >= 0 && indexOf(to) < from) {
-      setNote(`A journey only moves forward. ${j.name} is at ${j.stageLabel}.`);
+    if (!j || j.node === to) return;
+    // A ghost moves by its own version's edges, which only the server holds.
+    if (!j.ghost && !pathOf(body, j.node, to, { loops: false })) {
+      setNote(
+        `${j.name} cannot go from ${j.nodeName} to ${nameOf(cols, to)}: no path leads there.`,
+      );
       return;
     }
     setNote(null);
@@ -286,11 +251,7 @@ function FunnelBoard({
 
   return (
     <>
-      {funnel.status === "live" ? null : (
-        <p className="mb-3 text-[13.5px] text-(--ui-ink-2)">
-          This funnel is off, so nobody moves. Turn it on to move people.
-        </p>
-      )}
+      {header}
       <p
         role="status"
         aria-live="polite"
@@ -307,18 +268,18 @@ function FunnelBoard({
         />
       ) : null}
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-4">
-        {cols.map((s) => {
-          const here = open.filter((j) => j.stage === s.key);
-          const finished = s.key === last ? data.done : [];
+        {cols.map((c) => {
+          const here = open.filter((j) => j.node === c.id);
+          const finished = data.done.filter((j) => j.node === c.id);
           return (
             <Lane
-              key={s.key}
-              name={s.label}
+              key={c.id}
+              name={c.name}
               count={here.length + finished.length}
-              tone={s.sale ? "good" : undefined}
+              tone={c.sale ? "good" : undefined}
               write={write}
               mime={MIME}
-              onDropId={(id) => move(id, s.key)}
+              onDropId={(id) => move(id, c.id)}
               empty={write ? "Drop a person here." : "None."}
             >
               {here.map((j) => (
@@ -326,7 +287,8 @@ function FunnelBoard({
                   key={j.id}
                   j={j}
                   at={at}
-                  stages={cols}
+                  body={body}
+                  columns={cols}
                   write={write}
                   move={move}
                   ask={() => setAsking(j.id)}
@@ -337,7 +299,8 @@ function FunnelBoard({
                   key={j.id}
                   j={j}
                   at={at}
-                  stages={cols}
+                  body={body}
+                  columns={cols}
                   write={false}
                   move={move}
                   ask={() => {}}
@@ -346,11 +309,11 @@ function FunnelBoard({
             </Lane>
           );
         })}
-        {other.map(([key, label]) => (
+        {other.map(([id, name]) => (
           <Lane
-            key={key}
-            name={`${label} (older version)`}
-            count={open.filter((j) => j.stage === key).length}
+            key={id}
+            name={`${name} (older version)`}
+            count={open.filter((j) => j.node === id).length}
             tone="faint"
             write={false}
             mime={MIME}
@@ -358,13 +321,14 @@ function FunnelBoard({
             empty="None."
           >
             {open
-              .filter((j) => j.stage === key)
+              .filter((j) => j.node === id)
               .map((j) => (
                 <Card
                   key={j.id}
                   j={j}
                   at={at}
-                  stages={cols}
+                  body={body}
+                  columns={cols}
                   write={write}
                   move={move}
                   ask={() => setAsking(j.id)}
@@ -390,23 +354,30 @@ function FunnelBoard({
   );
 }
 
+const nameOf = (cols: readonly Column[], id: string) => cols.find((c) => c.id === id)?.name ?? id;
+
 function Card({
   j,
   at,
-  stages,
+  body,
+  columns,
   write,
   move,
   ask,
 }: {
   j: Journey;
   at: Record<string, string>;
-  stages: readonly Stage[];
+  body: ShapeBody;
+  columns: readonly Column[];
   write: boolean;
   move: (id: string, to: string) => void;
   ask: () => void;
 }) {
   const done = j.status === "done";
-  const from = stages.findIndex((s) => s.key === j.stage);
+  // The nodes a flow path leads to from here; a ghost's own edges are the server's to read.
+  const reach = j.ghost
+    ? columns
+    : columns.filter((c) => pathOf(body, j.node, c.id, { loops: false }));
   return (
     <article
       draggable={write}
@@ -427,10 +398,11 @@ function Card({
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-(--ui-ink-3)">
         <span>
           {done ? "Done " : ""}
-          {j.daysInStage === 0 ? "Today" : `${num(j.daysInStage)}d`}
-          {done ? " ago" : " in stage"}
+          {j.daysAtNode === 0 ? "Today" : `${num(j.daysAtNode)}d`}
+          {done ? " ago" : " here"}
         </span>
         {j.flag === "stale" ? <span className="font-medium text-(--ui-bad)">Stale</span> : null}
+        {j.ghost ? <span className="font-medium">Older version</span> : null}
         {j.entry ? (
           <span className="truncate" {...clipProps()}>
             {j.entry}
@@ -445,17 +417,19 @@ function Card({
       {write ? (
         <div className="mt-1 flex items-center gap-2">
           <select
-            aria-label={`Stage of ${j.name}`}
+            aria-label={`Node of ${j.name}`}
             className={cx(SELECT, "min-w-0 flex-1 sm:hidden")}
-            value={j.stage}
+            value={j.node}
             onChange={(e) => move(j.id, e.target.value)}
           >
-            {(from >= 0 ? stages.slice(from) : []).map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-            {from < 0 ? <option value={j.stage}>{j.stageLabel}</option> : null}
+            <option value={j.node}>{j.nodeName}</option>
+            {reach
+              .filter((c) => c.id !== j.node)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
           </select>
           <Button tone="quiet" size="dense" aria-label={`Drop ${j.name}`} onClick={ask}>
             Drop
@@ -486,7 +460,7 @@ function DropForm({
       <TextField
         form={form}
         name="reason"
-        label={`Why does ${journey.name} leave the funnel?`}
+        label={`Why does ${journey.name} leave?`}
         className="grid min-w-[260px] gap-1 text-[13px]"
         required
         autoFocus

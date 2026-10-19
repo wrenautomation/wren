@@ -56,6 +56,7 @@ Citations: `packages/pipeline/src/model.ts:123`, `packages/pipeline/src/model.ts
 | `wren shape show|versions|diff|export|import|add-node|connect|remove|move|migrate` (`apps/cli/src/shape.ts`), honours `--client` | writes, reads |
 | console `PipelineConsole` `shapeVersion|shapeDiff|shapeImport` (`packages/pipeline/src/console.ts`); portal actions `pipeline.shapeVersion|shapeDiff|shapeImport` | writes |
 | record `pipeline.shape`, with the agent CLI and portal records | reads |
+| portal board (`modules/deals/board.tsx`), segment editor (`modules/people/segments.tsx`, context key `shape`), Numbers shape tab, Today moves (`moves.ts`, node names), Wren editor `trigger.journey` note | reads |
 | Workflows app | a version shows as the workflow `shape.v<n>` (read only) |
 
 ## See

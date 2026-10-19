@@ -60,13 +60,11 @@ const said = (err: unknown) => (err instanceof ApiError ? err.message : String(e
 interface Context {
   traits: string[];
   segments: { id: number; name: string; kind: string }[];
-  /** Funnels with their stages and entries, for the journey condition. */
-  funnels?: {
-    id: string;
-    name: string;
-    stages: { key: string; label: string }[];
-    entries: string[];
-  }[];
+  /** The shape: its non-source nodes by depth, and its source ids, for the journey condition. */
+  shape?: {
+    nodes: { id: string; name: string; kind: string; depth: number }[];
+    sources: string[];
+  };
   describe: boolean;
 }
 interface Preview {
@@ -152,7 +150,7 @@ function fresh(kind: Condition["kind"], c: Context): Condition {
     case "step":
       return { kind, step: "replied", days: 30 };
     case "journey":
-      return { kind, funnel: c.funnels?.[0]?.id, days: null };
+      return { kind, days: null };
   }
 }
 
@@ -261,7 +259,7 @@ function Days({ days, set }: { days: number | null; set: (p: { days: number | nu
   );
 }
 
-/** A journey in a funnel: its stage (at or past), status, entry and how recently it moved. */
+/** A journey on the shape: its node (at or past), source, status and how recently it moved. */
 function JourneyEditor({
   c,
   ctx,
@@ -271,57 +269,39 @@ function JourneyEditor({
   ctx: Context;
   set: (p: Partial<JourneyCondition>) => void;
 }) {
-  const funnels = ctx.funnels ?? [];
-  const funnel = funnels.find((f) => f.id === c.funnel);
+  const nodes = ctx.shape?.nodes ?? [];
+  const sources = ctx.shape?.sources ?? [];
   return (
     <>
-      <span className={QUIET}>in</span>
+      <span className={QUIET}>at</span>
       <Pick
-        label="Funnel"
-        value={c.funnel ?? ""}
+        label="Node"
+        value={c.node ?? ""}
         options={{
-          "": "any funnel",
-          ...Object.fromEntries(funnels.map((f) => [f.id, f.name])),
-          ...(c.funnel && !funnel ? { [c.funnel]: c.funnel } : {}),
+          "": "any node",
+          ...Object.fromEntries(nodes.map((n) => [n.id, n.name])),
+          ...(c.node && !nodes.some((n) => n.id === c.node) ? { [c.node]: c.node } : {}),
         }}
-        onChange={(v) =>
-          set({ funnel: v || undefined, stage: undefined, reached: undefined, entry: undefined })
-        }
+        onChange={(v) => set({ node: v || undefined, reached: v ? c.reached : undefined })}
       />
-      {c.funnel ? (
-        <>
-          <Pick
-            label="Stage"
-            value={c.stage ?? ""}
-            options={{
-              "": "any stage",
-              ...Object.fromEntries((funnel?.stages ?? []).map((st) => [st.key, st.label])),
-              ...(c.stage && !funnel?.stages.some((st) => st.key === c.stage)
-                ? { [c.stage]: c.stage }
-                : {}),
-            }}
-            onChange={(v) => set({ stage: v || undefined, reached: v ? c.reached : undefined })}
-          />
-          {c.stage ? (
-            <Pick
-              label="Stage only or later"
-              value={c.reached ? "past" : "at"}
-              options={{ at: "only", past: "or later" }}
-              onChange={(v) => set({ reached: v === "past" ? true : undefined })}
-            />
-          ) : null}
-          <Pick
-            label="Entry"
-            value={c.entry ?? ""}
-            options={{
-              "": "any entry",
-              ...Object.fromEntries((funnel?.entries ?? []).map((e) => [e, e])),
-              ...(c.entry && !funnel?.entries.includes(c.entry) ? { [c.entry]: c.entry } : {}),
-            }}
-            onChange={(v) => set({ entry: v || undefined })}
-          />
-        </>
+      {c.node ? (
+        <Pick
+          label="Node now or ever"
+          value={c.reached ? "past" : "at"}
+          options={{ at: "right now", past: "now or earlier" }}
+          onChange={(v) => set({ reached: v === "past" ? true : undefined })}
+        />
       ) : null}
+      <Pick
+        label="Source"
+        value={c.entry ?? ""}
+        options={{
+          "": "any source",
+          ...Object.fromEntries(sources.map((e) => [e, e])),
+          ...(c.entry && !sources.includes(c.entry) ? { [c.entry]: c.entry } : {}),
+        }}
+        onChange={(v) => set({ entry: v || undefined })}
+      />
       <Pick
         label="Journey status"
         value={c.status ?? ""}

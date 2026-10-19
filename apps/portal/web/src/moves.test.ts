@@ -121,9 +121,8 @@ describe("movesOf", () => {
       {
         id: "j2",
         name: "Bo Fenwick",
-        funnelName: "Sales",
-        stageLabel: "Engaged",
-        daysInStage: 17,
+        nodeName: "Engaged",
+        daysAtNode: 17,
         email: "bo@example.test",
       },
     ];
@@ -166,16 +165,14 @@ describe("movesOf", () => {
       {
         id: "j1",
         name: "Ada North",
-        funnelName: "Sales",
-        stageLabel: "Engaged",
+        nodeName: "Engaged",
         email: "ada@example.test",
       },
       {
         id: "j2",
         name: "Bo Fenwick",
-        funnelName: "Sales",
-        stageLabel: "Booked",
-        daysInStage: 20,
+        nodeName: "Booked",
+        daysAtNode: 20,
         email: "bo@example.test",
       },
     ];
@@ -186,7 +183,7 @@ describe("movesOf", () => {
       "Others",
     ]);
     expect(got.groups[1]?.moves.map((m) => m.verb)).toEqual(["Reply", "Nudge or drop"]);
-    expect(got.groups[1]?.head).toMatchObject({ funnel: "Sales", stage: "Booked" });
+    expect(got.groups[1]?.head).toMatchObject({ node: "Booked" });
     expect(got.groups[2]?.moves.map((m) => m.verb)).toEqual(["Prepare call"]);
   });
 
@@ -211,8 +208,7 @@ describe("groupMoves", () => {
   const line = (id: string, person: string, emails: string[]) => ({
     id,
     person,
-    funnel: "F",
-    stage: "S",
+    node: "S",
     emails,
   });
 

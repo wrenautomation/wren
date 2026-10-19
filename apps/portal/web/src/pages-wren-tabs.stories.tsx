@@ -72,7 +72,6 @@ export const AnalyticsFunnel = pageAt("/analytics/funnel", { me: ADMIN });
 // Pipelines: one story per tab.
 export const PipelinesBoard = pageAt("/pipelines/board", { me: ADMIN });
 export const PipelinesJourneys = pageAt("/pipelines/journeys", { me: ADMIN });
-export const PipelinesFunnels = pageAt("/pipelines/funnels", { me: ADMIN });
 
 /** Under 900px the sidebar is gone and the bottom tabs take over (`packages/ui/src/shell.tsx`). */
 const onPhone = () => matchMedia("(max-width: 900px)").matches;

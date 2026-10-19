@@ -1,10 +1,12 @@
 /**
- * The Journeys board's reads and writes (`../../modules/deals/board.tsx`): two funnels. The sales
- * one is live, with open journeys in its first two stages and two finished; the welcome one is
- * off. Synthetic data only.
+ * The Journeys board's reads and writes (`../../modules/deals/board.tsx`): one synthetic shape.
+ * Two sources feed Engaged, then Booked, then Signed (an offer node). Open journeys sit at the
+ * first two nodes, two are done, and one is a ghost on an older version whose node is gone.
+ * Synthetic data only.
  * `JOURNEY_CALLS` keeps what the board sent, so a story can check the move.
  */
 import type { Row } from "@wren/core/records/serve";
+import type { ShapeBody } from "@wren/pipeline/model";
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
 
@@ -12,57 +14,64 @@ import { ago } from "./shell.js";
 export const JOURNEY_CALLS: { path: string; body: Record<string, unknown> }[] = [];
 export const forgetCalls = () => JOURNEY_CALLS.splice(0);
 
-const SALES = [
-  { key: "engaged", label: "Engaged", sale: false, on: ["trigger.reply"] },
-  { key: "booked", label: "Booked", sale: false, on: ["trigger.booking"] },
-  { key: "signed", label: "Signed", sale: true, on: ["trigger.document"] },
-];
-const WELCOME = [
-  { key: "joined", label: "Joined", sale: false, on: [] },
-  { key: "active", label: "Active", sale: false, on: [] },
-];
+/** The newest version of the synthetic shape. */
+export const SHAPE: ShapeBody = {
+  name: "Sample shape",
+  nodes: [
+    { id: "mail", kind: "source", name: "Spring list", via: "outbound", channel: "email" },
+    { id: "ads1", kind: "source", name: "Winter ads", via: "ads", channel: "ads" },
+    {
+      id: "engaged",
+      kind: "step",
+      name: "Engaged",
+      action: "reply",
+      advance: [{ trigger: "trigger.reply" }],
+    },
+    {
+      id: "booked",
+      kind: "step",
+      name: "Booked",
+      action: "book",
+      advance: [{ trigger: "trigger.booking" }],
+    },
+    { id: "signed", kind: "offer", name: "Signed", offer: "starter", advance: [] },
+  ],
+  edges: [
+    { id: "mail_to_engaged", from: "mail", to: "engaged", kind: "flow" },
+    { id: "ads1_to_engaged", from: "ads1", to: "engaged", kind: "flow" },
+    { id: "engaged_to_booked", from: "engaged", to: "booked", kind: "flow" },
+    { id: "booked_to_signed", from: "booked", to: "signed", kind: "flow" },
+  ],
+};
+const DEPTHS: Record<string, number> = { mail: 0, ads1: 0, engaged: 1, booked: 2, signed: 3 };
 
-const funnel = (
-  id: string,
-  name: string,
-  stages: typeof SALES,
-  open: number,
-  status = "live",
-): Row => ({
-  id,
-  name,
-  status,
-  version: 2,
-  offer: "starter",
-  stages: stages.length,
-  entries: 1,
-  openJourneys: open,
-  why: null,
-  changedAt: ago(9),
-  changedBy: "Ada North",
-  createdAt: ago(40),
-});
+const NAMES: Record<string, string> = {
+  engaged: "Engaged",
+  booked: "Booked",
+  signed: "Signed",
+  joined: "Joined",
+};
 
 const journey = (
   id: string,
   name: string,
-  f: string,
-  stage: (typeof SALES)[number],
+  node: string,
   days: number,
   more: Partial<Row> = {},
 ): Row => ({
   id,
   name,
-  funnelName: f === "sales" ? "Sales funnel" : "Welcome funnel",
-  funnel: f,
-  stage: stage.key,
-  stageLabel: stage.label,
+  profile: Number(id.slice(1)),
+  node,
+  nodeName: NAMES[node] ?? node,
+  trail: "",
   status: "open",
   flag: days >= 14 ? "stale" : null,
-  entry: "Booked a call",
+  ghost: null,
+  entry: "mail",
   email: `${name.split(" ")[0]?.toLowerCase()}@example.test`,
   owner: null,
-  daysInStage: days,
+  daysAtNode: days,
   version: 2,
   reason: null,
   openedAt: ago(days + 5),
@@ -71,35 +80,41 @@ const journey = (
   ...more,
 });
 
-const [ENGAGED, BOOKED, SIGNED] = SALES as [
-  (typeof SALES)[0],
-  (typeof SALES)[1],
-  (typeof SALES)[2],
-];
-const [JOINED] = WELCOME as [(typeof WELCOME)[0]];
-
-/** The rows `recordsList` answers for `pipeline.funnel` and `pipeline.journey`. */
+/** The rows `recordsList` answers for `pipeline.shape` and `pipeline.journey`. */
 export const JOURNEY_ROWS: Record<string, Row[]> = {
-  "pipeline.funnel": [
-    funnel("sales", "Sales funnel", SALES, 4),
-    funnel("welcome", "Welcome funnel", WELCOME, 1, "off"),
+  "pipeline.shape": [
+    {
+      id: "shape",
+      name: SHAPE.name,
+      version: 2,
+      nodes: SHAPE.nodes.length,
+      edges: SHAPE.edges.length,
+      openJourneys: 5,
+      why: "Dropped the Joined node.",
+      changedAt: ago(9),
+      changedBy: "Ada North",
+    },
   ],
   "pipeline.journey": [
-    journey("j1", "Ada North", "sales", ENGAGED, 2),
-    journey("j2", "Bo Fenwick", "sales", ENGAGED, 17, { entry: "Replied to an email" }),
-    journey("j3", "Cai Moreno", "sales", BOOKED, 0, { owner: "Ada North" }),
-    journey("j4", "Dee Okafor", "sales", BOOKED, 5),
-    journey("j5", "Eli Brandt", "sales", SIGNED, 3, { status: "done", closedAt: ago(3) }),
-    journey("j6", "Fay Lin", "sales", SIGNED, 9, { status: "done", closedAt: ago(9) }),
-    journey("j7", "Gus Held", "welcome", JOINED, 1),
+    journey("j1", "Ada North", "engaged", 2),
+    journey("j2", "Bo Fenwick", "engaged", 17, { entry: "ads1" }),
+    journey("j3", "Cai Moreno", "booked", 0, { owner: "Ada North" }),
+    journey("j4", "Dee Okafor", "booked", 5),
+    journey("j5", "Eli Brandt", "signed", 3, { status: "done", closedAt: ago(3) }),
+    journey("j6", "Fay Lin", "signed", 9, { status: "done", closedAt: ago(9) }),
+    journey("j7", "Gus Held", "joined", 1, { version: 1, ghost: "ghost" }),
   ],
 };
 
-/** A record's `detail` for `recordsGet`: a funnel's stages. */
+/** A record's `detail` for `recordsGet`: the shape's newest body, depths and versions. */
 export const JOURNEY_DETAIL: Record<string, (row: Row) => object> = {
-  "pipeline.funnel": (row) => ({
-    stages: row.id === "welcome" ? WELCOME : SALES,
-    entries: [{ id: "call", kind: "booking", to: "engaged" }],
+  "pipeline.shape": () => ({
+    body: SHAPE,
+    depths: DEPTHS,
+    versions: [
+      { number: 2, parent: 1, note: "Dropped the Joined node.", at: ago(9), by: "Ada North" },
+      { number: 1, parent: null, note: "First shape.", at: ago(40), by: "Ada North" },
+    ],
   }),
 };
 
@@ -107,10 +122,10 @@ export const JOURNEY_DETAIL: Record<string, (row: Row) => object> = {
 export const JOURNEY_WRITES: Answers = {
   "pipeline/journeysMove": (b) => {
     JOURNEY_CALLS.push({ path: "journeysMove", body: b });
-    return { journey: b.journey, from: "engaged", to: b.to, status: "open" };
+    return { journey: b.journey, to: b.to, status: "open" };
   },
   "pipeline/journeysDrop": (b) => {
     JOURNEY_CALLS.push({ path: "journeysDrop", body: b });
-    return { journey: b.journey, stage: "engaged" };
+    return { journey: b.journey, node: "engaged" };
   },
 };

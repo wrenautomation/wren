@@ -228,7 +228,7 @@ function MoveRow({ m }: { m: Move }) {
 }
 
 /**
- * Move: what waits on you, grouped by the person's journey (person, funnel, stage), then
+ * Move: what waits on you, grouped by the person's journey (person, node), then
  * everything else. A failed read says so above what did load, never "Nothing waits on you."
  */
 function MoveList({ moves, read }: { moves: MovesRead; read: WaitingRead }) {
@@ -254,10 +254,7 @@ function MoveList({ moves, read }: { moves: MovesRead; read: WaitingRead }) {
               {g.head ? (
                 <p className="mb-1 text-[13px] font-medium">
                   {g.head.person}
-                  <span className={MUTED}>
-                    {" "}
-                    · {[g.head.funnel, g.head.stage].filter(Boolean).join(" · ")}
-                  </span>
+                  {g.head.node ? <span className={MUTED}> · {g.head.node}</span> : null}
                 </p>
               ) : journeys ? (
                 <p className={cx("mb-1 font-medium", MUTED)}>Others</p>

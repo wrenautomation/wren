@@ -444,7 +444,7 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
   "trigger.app":
     "Fires within the hour of a change in a client's connected app (Account → Connectors). The person's name, email and phone come with it.",
   "trigger.journey":
-    "Fires when a person's journey in a funnel enters, skips or is dropped from a stage. Pick the funnel and, if you like, one stage. A stage you leave empty means any.",
+    "Fires when a person's journey enters a node of the shape, skips one or is dropped there. Pick the change and, if you like, one node. A node you leave empty means any.",
 };
 
 /** What a Wait until an event does with a late one, said once in its panel. */
