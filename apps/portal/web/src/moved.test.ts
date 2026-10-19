@@ -69,12 +69,12 @@ describe("movedTo", () => {
 
   it("sends the books' pages to Numbers and Wren's calls to the pipelines app", () => {
     for (const p of ["economics", "months", "channels", "cohorts"])
-      expect(movedTo(`/money/${p}?view=all`)).toBe(`/numbers/${p}?view=all`);
-    expect(movedTo("/inbox/calls?view=booked")).toBe("/deals/calls?view=booked");
-    expect(movedTo("/inbox/calls/7")).toBe("/deals/calls/7");
+      expect(movedTo(`/money/${p}?view=all`, WREN)).toBe(`/numbers/${p}?view=all`);
+    expect(movedTo("/inbox/calls?view=booked", WREN)).toBe("/pipelines/calls?view=booked");
+    expect(movedTo("/inbox/calls/7", CLIENT)).toBe("/pipelines/calls/7");
     // Money keeps the rest.
-    expect(movedTo("/money/accounts")).toBeNull();
-    expect(movedTo("/inbox/replies")).toBeNull();
+    expect(movedTo("/money/accounts", WREN)).toBeNull();
+    expect(movedTo("/inbox/replies", WREN)).toBeNull();
   });
 
   it("leaves every other address alone", () => {

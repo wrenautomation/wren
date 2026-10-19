@@ -207,8 +207,6 @@ export const NumbersEconomics = pageAt("/numbers/economics", { me: ADMIN });
 export const NumbersMonths = pageAt("/numbers/months", { me: ADMIN });
 export const NumbersChannels = pageAt("/numbers/channels", { me: ADMIN });
 export const NumbersCohorts = pageAt("/numbers/cohorts", { me: ADMIN });
-/** The old address still lands: Money's economics page is Numbers' now. */
-export const NumbersFromMoney = pageAt("/money/economics", { me: ADMIN });
 
 // Pipelines: the tabs only Wren's own app has.
 export const PipelinesDeals = pageAt("/pipelines/deals", { me: ADMIN, check: shows("Cai Moreno") });
@@ -217,5 +215,3 @@ export const PipelinesEntries = pageAt("/pipelines/entries", {
   me: ADMIN,
   check: shows("mail", "ads1"),
 });
-/** The old Inbox link to Wren's calls lands in the pipelines app. */
-export const PipelinesCallsFromInbox = pageAt("/inbox/calls?view=booked", { me: ADMIN });
