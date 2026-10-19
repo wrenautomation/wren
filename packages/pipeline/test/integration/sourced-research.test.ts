@@ -1,6 +1,7 @@
 /**
- * Sourced entries and stage research, on a real Postgres (designs/2026-10-18-journeys.md): the
- * generated funnel workflows walk with the real store and steps, no Restate. Synthetic data only.
+ * Sourced sources and node research, on a real Postgres (designs/2026-10-19-business-map.md): the
+ * generated shape workflows walk with the real store and steps, no Restate. One shape, saved once
+ * with the lists these tests make. Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
 import { resolveProfile } from "@wren/core/profiles";
@@ -10,23 +11,36 @@ import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { funnelWorkflowsOf } from "../../src/journeys.js";
-import type { FunnelBody } from "../../src/model.js";
+import { shapeWorkflowsOf } from "../../src/journeys.js";
+import type { ShapeBody } from "../../src/model.js";
 import { type ResearchAsk, type Researcher, requestResearch } from "../../src/research.js";
-import {
-  funnels,
-  funnelVersions,
-  journeyResearch,
-  journeys,
-  offerVersions,
-} from "../../src/schema.js";
+import { journeyResearch, journeys, offerVersions } from "../../src/schema.js";
 import { sourcedPass } from "../../src/sourced.js";
 import { journeySteps } from "../../src/steps.js";
-import { addFunnel, Refused } from "../../src/store.js";
+import { Refused, saveShape } from "../../src/store.js";
+import { flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
+/** The lists the shape names: two that open at the first node, one that opens at the research node. */
+let lists: { first: Made; unkeyed: Made; research: Made };
+
 beforeAll(async () => {
   pg = await startTestPostgres();
+  await pg.db.insert(offerVersions).values({
+    offer: "offer-a",
+    number: 1,
+    hash: "2".repeat(64),
+    body: { icp: { who: "Small firms" } } as never,
+    why: "t",
+    createdBy: "t",
+  });
+  lists = { first: await list(2), unkeyed: await list(1), research: await list(1) };
+  await saveShape(pg.db, {
+    body: body(lists),
+    note: "first",
+    by: "t",
+    triggers: TRIGGERS,
+  });
 });
 afterAll(() => pg.stop());
 
@@ -49,24 +63,47 @@ function stub(over: Partial<Researcher> = {}) {
   return { r, calls };
 }
 
-const body = (over: Partial<FunnelBody> = {}): FunnelBody => ({
-  name: "Test funnel",
-  offer: "offer-a",
-  stages: [
-    { key: "engaged", label: "Engaged", on: [{ trigger: "trigger.reply" }] },
-    { key: "booked", label: "Booked", research: "light", on: [{ trigger: "trigger.booking" }] },
-    { key: "signed", label: "Signed", sale: true, on: [{ trigger: "trigger.document" }] },
+const body = (l: typeof lists): ShapeBody => ({
+  name: "Test shape",
+  nodes: [
+    { id: "mail", kind: "source", name: "Email", via: "outbound", channel: "email" },
+    { id: "first", kind: "source", name: "First list", via: "sourced", source: l.first.source },
+    { id: "unkeyed", kind: "source", name: "Other list", via: "sourced", source: l.unkeyed.source },
+    { id: "deep", kind: "source", name: "Deep list", via: "sourced", source: l.research.source },
+    {
+      id: "engaged",
+      kind: "step",
+      name: "Engaged",
+      action: "reply",
+      advance: [{ trigger: "trigger.reply" }],
+    },
+    {
+      id: "booked",
+      kind: "step",
+      name: "Booked",
+      action: "book",
+      research: "light",
+      advance: [{ trigger: "trigger.booking" }],
+    },
+    {
+      id: "signed",
+      kind: "offer",
+      name: "Signed",
+      offer: "offer-a",
+      advance: [{ trigger: "trigger.document" }],
+    },
   ],
-  entries: [{ id: "mail", kind: "outbound", channel: "email" }],
-  ...over,
+  edges: [
+    flow("mail", "engaged"),
+    flow("first", "engaged"),
+    flow("unkeyed", "engaged"),
+    flow("deep", "booked"),
+    flow("engaged", "booked"),
+    flow("booked", "signed"),
+  ],
 });
 
-async function funnel(id: string, b: FunnelBody) {
-  await pg.db.insert(funnels).values({ id, name: b.name, status: "live" });
-  await pg.db
-    .insert(funnelVersions)
-    .values({ funnel: id, number: 1, body: b, why: "first", createdBy: "t" });
-}
+type Made = Awaited<ReturnType<typeof list>>;
 
 let seq = 0;
 
@@ -128,29 +165,30 @@ async function hear(w: Walk, flows: Workflow[], f: Fired) {
   for (const h of hearersOf(flows, f.facts)) await walk(walker, h.workflow, h.from, [f.event]);
 }
 
-const flowsOf = async (id: string) =>
-  (await funnelWorkflowsOf(pg.db, "wren")).filter((f) => f.id.startsWith(`funnel.${id}.`));
+const flowsOf = () => shapeWorkflowsOf(pg.db, "wren");
 
-describe("a sourced entry", () => {
+describe("a sourced source", () => {
   it("opens a journey once for a person added to its list", async () => {
-    const l = await list(2);
-    await funnel(
-      "src",
-      body({ entries: [{ id: "list", kind: "sourced", source: l.source, to: "engaged" }] }),
-    );
-    const flows = await flowsOf("src");
+    const l = lists.first;
+    const flows = await flowsOf();
     const w = rig();
 
     const first = await sourcedPass(pg.db, null, {}, NOW);
-    expect(first.fires).toHaveLength(2);
+    const mine = first.fires.filter(
+      (f) => f.facts.trigger === "trigger.source" && f.facts.source === l.source,
+    );
+    expect(mine).toHaveLength(2);
     expect(first.cursors[l.source]).toBe(l.ids[1]);
-    for (const f of first.fires) await hear(w, flows, f);
+    for (const f of mine) await hear(w, flows, f);
     // The same fire again, as a replay would send it: nothing new.
-    for (const f of first.fires) await hear(w, flows, f);
+    for (const f of mine) await hear(w, flows, f);
 
-    const opened = await pg.db.select().from(journeys).where(eq(journeys.funnel, "src"));
+    const opened = (await pg.db.select().from(journeys)).filter((j) =>
+      l.profiles.includes(j.profileId),
+    );
     expect(opened.map((j) => j.profileId).sort()).toEqual([...l.profiles].sort());
-    expect(opened.every((j) => j.entry === "list" && j.stage === "engaged")).toBe(true);
+    expect(opened.every((j) => j.entry === "first" && j.node === "engaged")).toBe(true);
+    expect(opened.every((j) => j.version === 1)).toBe(true);
     const ref = opened[0]?.entryRef as Record<string, unknown>;
     expect(ref.source).toBe(l.source);
     expect((ref.cause as { kind: string }).kind).toBe("sourced");
@@ -161,7 +199,7 @@ describe("a sourced entry", () => {
     expect(second.fires).toEqual([]);
   });
 
-  it("reads only lists a live funnel names, and skips a member with no profile", async () => {
+  it("reads only lists the shape names, and skips a member with no profile", async () => {
     const other = await list(1);
     const none = await sourcedPass(pg.db, null, {}, NOW);
     expect(
@@ -169,7 +207,7 @@ describe("a sourced entry", () => {
         (f) => f.facts.trigger === "trigger.source" && f.facts.source === other.source,
       ),
     ).toBe(false);
-    const l = await list(1);
+    const l = lists.unkeyed;
     await pg.db.insert(people).values({
       companyId: (await pg.db.select().from(companies).limit(1))[0]?.id ?? 0,
       fullName: "No Profile",
@@ -179,7 +217,6 @@ describe("a sourced entry", () => {
       raw: {},
       importId: l.batch,
     });
-    await funnel("src2", body({ entries: [{ id: "list", kind: "sourced", source: l.source }] }));
     const got = await sourcedPass(pg.db, null, {}, NOW);
     const mine = got.fires.filter(
       (f) => f.facts.trigger === "trigger.source" && f.facts.source === l.source,
@@ -187,37 +224,12 @@ describe("a sourced entry", () => {
     expect(mine).toHaveLength(1);
     expect(got.unkeyed).toBeGreaterThanOrEqual(1);
   });
-
-  it("is refused by checkFunnel when its list does not exist", async () => {
-    const triggers = new Set(["trigger.reply", "trigger.booking", "trigger.document"]);
-    const bad = body({ entries: [{ id: "list", kind: "sourced", source: "import:999999" }] });
-    await expect(
-      addFunnel(pg.db, { id: "badsrc", name: "x", body: bad, why: "t", by: "t", triggers }),
-    ).rejects.toThrow(Refused);
-    const l = await list(1);
-    const good = body({ entries: [{ id: "list", kind: "sourced", source: l.source }] });
-    await expect(
-      addFunnel(pg.db, { id: "goodsrc", name: "x", body: good, why: "t", by: "t", triggers }),
-    ).resolves.toMatchObject({ number: 1 });
-  });
 });
 
-describe("stage research", () => {
-  it("asks once on arrival at a light stage, against the offer's icp, and a replay asks nothing", async () => {
-    await pg.db.insert(offerVersions).values({
-      offer: "offer-a",
-      number: 1,
-      hash: "2".repeat(64),
-      body: { icp: { who: "Small firms" } } as never,
-      why: "t",
-      createdBy: "t",
-    });
-    const l = await list(1);
-    await funnel(
-      "res",
-      body({ entries: [{ id: "list", kind: "sourced", source: l.source, to: "booked" }] }),
-    );
-    const flows = await flowsOf("res");
+describe("node research", () => {
+  it("asks once on arrival at a light node, against the offer's icp, and a replay asks nothing", async () => {
+    const l = lists.research;
+    const flows = await flowsOf();
     const { r, calls } = stub();
     const w = rig(r);
 
@@ -246,14 +258,12 @@ describe("stage research", () => {
 
   it("starts a full run once, and a repeat after a failed start starts it", async () => {
     const l = await list(1);
-    await funnel("full", body());
     const [j] = await pg.db
       .insert(journeys)
       .values({
         profileId: l.profiles[0] as number,
-        funnel: "full",
         version: 1,
-        stage: "booked",
+        node: "booked",
         entry: "mail",
       })
       .returning();
@@ -292,5 +302,25 @@ describe("stage research", () => {
     // Another repeat asks nothing.
     expect(await requestResearch(pg.db, r, ask, NOW)).toBe("none");
     expect(calls.full).toHaveLength(2);
+  });
+});
+
+describe("a sourced list in a saved shape", () => {
+  it("is refused when its list does not exist, and saved when it does", async () => {
+    const at = (source: string): ShapeBody => {
+      const b = body(lists);
+      return {
+        ...b,
+        nodes: [
+          ...b.nodes,
+          { id: "late", kind: "source", name: "Late list", via: "sourced", source },
+        ],
+        edges: [...b.edges, flow("late", "engaged")],
+      };
+    };
+    const ask = (b: ShapeBody) => ({ body: b, note: "t", by: "t", triggers: TRIGGERS });
+    await expect(saveShape(pg.db, ask(at("import:999999")))).rejects.toThrow(Refused);
+    const l = await list(1);
+    await expect(saveShape(pg.db, ask(at(l.source)))).resolves.toMatchObject({ number: 2 });
   });
 });

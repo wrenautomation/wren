@@ -1,8 +1,7 @@
 /**
- * `Journeys`: the hand and agent moves on a journey (designs/2026-10-18-journeys.md, "Manual and
- * agent moves"). `open` and `move` send the funnel workflow's `in.<stage>` input through
- * `Spine/emit`, cause `manual`, so the funnel's own `journey.move` step writes the row: no second
- * write path. `drop` closes the row (`dropJourney`) and tells the spine. `rebuild` recomputes a
+ * `Journeys`: the hand and agent moves on a journey (designs/2026-10-19-business-map.md). `open`
+ * and `move` send the shape workflow's `in.<node>` input through `Spine/emit`, cause `manual`,
+ * so the workflow's own `journey.move` step writes the row: no second write path. `drop` closes the row (`dropJourney`) and tells the spine. `rebuild` recomputes a
  * row from its events.
  *
  * `client` is the workspace: null is Wren's. `by` is the operator, kept as the cause's `ref`.
@@ -11,7 +10,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { serviceHandler } from "@wren/core/restate";
 import { SPINE, type SpineService } from "@wren/core/spine";
 import type { Db } from "@wren/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { dropJourney } from "./journeys.js";
 import { type Emit, idOf, moveEmit, openEmit, personByKey, rebuildJourney } from "./moves.js";
@@ -32,20 +31,22 @@ const WHO = {
 
 export interface OpenRequest {
   client?: string | null;
-  funnel: string;
   /** A profile id, an email, a phone (+...) or kind:value. */
   person: string;
-  /** An entry stage of the funnel; the first when left out. */
+  /** A node a live source feeds; the first when left out. */
   at?: string;
-  /** An entry id of the funnel, to name how they came; found from their first touch when left out. */
+  /** A source node id, to name how they came; found from their first touch when left out. */
   entry?: string;
   by: string;
 }
 export interface MoveRequest {
   client?: string | null;
   journey: string;
+  /** A node id of the journey's shape version. */
   to: string;
   by: string;
+  /** Why, when no edge path leads there: the move is forced. */
+  reason?: string;
 }
 export interface DropRequest {
   client?: string | null;
@@ -59,12 +60,12 @@ export interface RebuildRequest {
 }
 
 export type JourneysApi = {
-  open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; stage: string }>;
+  open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string }>;
   move: (
     ctx: restate.Context,
     req: MoveRequest,
   ) => Promise<{ journey: string; from: string; to: string; status: string }>;
-  drop: (ctx: restate.Context, req: DropRequest) => Promise<{ journey: string; stage: string }>;
+  drop: (ctx: restate.Context, req: DropRequest) => Promise<{ journey: string; node: string }>;
   rebuild: (ctx: restate.Context, req: RebuildRequest) => Promise<unknown>;
 };
 
@@ -92,10 +93,9 @@ export function makeJourneys(deps: JourneysDeps) {
         {
           input: z.looseObject({
             ...WHO,
-            funnel: z.string().describe("The funnel's id"),
             person: z.string().describe("A profile id, an email, a phone (+...) or kind:value"),
-            at: z.string().optional().describe("An entry stage; the first when left out"),
-            entry: z.string().optional().describe("An entry id of the funnel"),
+            at: z.string().optional().describe("A node a live source feeds; the first if left out"),
+            entry: z.string().optional().describe("A source node id"),
           }),
         },
         async (ctx: restate.Context, req: OpenRequest) => {
@@ -107,21 +107,15 @@ export function makeJourneys(deps: JourneysDeps) {
             const profile = await personByKey(db, req.person);
             if (profile === null) return null;
             const [j] = await db
-              .select({ id: journeys.id, stage: journeys.stage })
+              .select({ id: journeys.id, node: journeys.node })
               .from(journeys)
-              .where(
-                and(
-                  eq(journeys.profileId, profile),
-                  eq(journeys.funnel, req.funnel),
-                  eq(journeys.status, "open"),
-                ),
-              )
+              .where(and(eq(journeys.profileId, profile), eq(journeys.status, "open")))
               .limit(1);
             return j ?? null;
           });
-          if (!done)
-            return fail("Nothing opened. The funnel did not take the person at that stage.");
-          return { journey: done.id, stage: done.stage };
+          if (!done?.node)
+            return fail("Nothing opened. The shape did not take the person at that node.");
+          return { journey: done.id, node: done.node };
         },
       ),
       move: serviceHandler(
@@ -129,7 +123,8 @@ export function makeJourneys(deps: JourneysDeps) {
           input: z.looseObject({
             ...WHO,
             journey: z.string().describe("The journey's id"),
-            to: z.string().describe("A later stage key of its funnel"),
+            to: z.string().describe("A node id of its shape version"),
+            reason: z.string().optional().describe("Why, when no edge path leads there"),
           }),
         },
         async (ctx: restate.Context, req: MoveRequest) => {
@@ -138,21 +133,29 @@ export function makeJourneys(deps: JourneysDeps) {
           const plan = await ctx.run("move", () =>
             run(async () => {
               const { journey, ...e } = await moveEmit(db, req);
-              return { was: journey.stage, ...e };
+              return { was: journey.node ?? "", ...e };
             }),
           );
           const { was, ...e } = plan;
           await emit(ctx, client, e);
           const now = await ctx.run("read", async () => {
             const [j] = await db
-              .select({ stage: journeys.stage, status: journeys.status })
+              .select({ node: journeys.node, status: journeys.status })
               .from(journeys)
               .where(eq(journeys.id, req.journey))
               .limit(1);
-            return j ?? null;
+            // A loop closes the journey and opens its successor: the answer is the new one.
+            const [next] = await db
+              .select({ id: journeys.id, status: journeys.status })
+              .from(journeys)
+              .where(sql`${journeys.entryRef}->>'loop' = ${req.journey}`)
+              .limit(1);
+            return j ? { ...j, next: next ?? null } : null;
           });
-          if (!now || (now.stage !== req.to && now.status === "open"))
-            return fail("Nothing moved. The funnel did not take that move.");
+          if (now?.next)
+            return { journey: now.next.id, from: was, to: req.to, status: now.next.status };
+          if (!now || (now.node !== req.to && now.status === "open"))
+            return fail("Nothing moved. The shape did not take that move.");
           return { journey: req.journey, from: was, to: req.to, status: now.status };
         },
       ),
@@ -178,7 +181,7 @@ export function makeJourneys(deps: JourneysDeps) {
             }),
           );
           await emit(ctx, client, dropped);
-          return { journey: req.journey, stage: String(dropped.events[0]?.data.stage ?? "") };
+          return { journey: req.journey, node: String(dropped.events[0]?.data.node ?? "") };
         },
       ),
       rebuild: serviceHandler(

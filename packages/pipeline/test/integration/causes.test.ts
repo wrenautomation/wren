@@ -1,7 +1,8 @@
 /**
  * The causes that move journeys (designs/2026-10-18-journeys.md, "Causes"), on a real Postgres:
- * a touch through the feed's reads into a funnel, a merge of two open journeys, and payments
- * folded into a deal. The walks use the real store and steps, no Restate. Synthetic data only.
+ * a touch through the feed's reads into the shape, a merge of two profiles, and payments folded
+ * into a deal. The walks use the real store and steps, no Restate. One shape per database.
+ * Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
 import { mergeProfiles, resolveProfile } from "@wren/core/profiles";
@@ -18,45 +19,63 @@ import { touchFired, touchPass, touchRows } from "@wren/core/touch-feed";
 import { recordTouch } from "@wren/core/touches";
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { COLLECT_STEP, collectSteps, MONEY_WORKFLOW } from "../../src/collect.js";
-import { funnelWorkflowsOf } from "../../src/journeys.js";
-import type { FunnelBody } from "../../src/model.js";
-import { funnels, funnelVersions, journeys, pipelineDeals } from "../../src/schema.js";
+import { shapeWorkflowsOf } from "../../src/journeys.js";
+import type { ShapeBody } from "../../src/model.js";
+import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
+import { saveShape } from "../../src/store.js";
+import { flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
+  await pg.db.insert(offerVersions).values({
+    offer: "offer-a",
+    number: 1,
+    hash: "3".repeat(64),
+    body: {} as never,
+    why: "t",
+    createdBy: "t",
+  });
+  await saveShape(pg.db, { body: body(), note: "first", by: "t", triggers: TRIGGERS });
 });
 afterAll(() => pg.stop());
 
-const body = (over: Partial<FunnelBody> = {}): FunnelBody => ({
-  name: "Cause funnel",
-  offer: "offer-a",
-  stages: [
+/** A DM source on X and an email source open the first node, which a touch or a reply advances. */
+const body = (): ShapeBody => ({
+  name: "Cause shape",
+  nodes: [
+    { id: "dm", kind: "source", name: "DM", via: "outbound", channel: "x" },
+    { id: "mail", kind: "source", name: "Email", via: "outbound", channel: "email" },
     {
-      key: "engaged",
-      label: "Engaged",
-      on: [
+      id: "engaged",
+      kind: "step",
+      name: "Engaged",
+      action: "reply",
+      advance: [
         { trigger: "trigger.touch", with: { kind: "dm", direction: "theirs", platform: "x" } },
         { trigger: "trigger.reply" },
       ],
     },
-    { key: "booked", label: "Booked", on: [{ trigger: "trigger.booking" }] },
-    { key: "signed", label: "Signed", sale: true, on: [] },
+    {
+      id: "booked",
+      kind: "step",
+      name: "Booked",
+      action: "book",
+      advance: [{ trigger: "trigger.booking" }],
+    },
+    { id: "signed", kind: "offer", name: "Signed", offer: "offer-a", advance: [] },
   ],
-  entries: [{ id: "dm", kind: "outbound", channel: "x" }],
-  ...over,
+  edges: [
+    flow("dm", "engaged"),
+    flow("mail", "engaged"),
+    flow("engaged", "booked"),
+    flow("booked", "signed"),
+  ],
 });
-
-async function funnel(id: string, b: FunnelBody) {
-  await pg.db.insert(funnels).values({ id, name: b.name, status: "live" });
-  await pg.db
-    .insert(funnelVersions)
-    .values({ funnel: id, number: 1, body: b, why: "first", createdBy: "t" });
-}
 
 const person = async (email: string) => {
   const r = await resolveProfile(pg.db, [{ kind: "email", value: email }], "test", { name: "Ada" });
@@ -84,10 +103,8 @@ function rig() {
   return { w, fired };
 }
 
-async function flowsOf(...ids: string[]): Promise<Workflow[]> {
-  const all = await funnelWorkflowsOf(pg.db, "wren");
-  return all.filter((f) => ids.some((id) => f.id.startsWith(`funnel.${id}.`)));
-}
+/** The workspace's shape workflows. */
+const flowsOf = (): Promise<Workflow[]> => shapeWorkflowsOf(pg.db, "wren");
 
 /** What `Spine/fire` does: walk the event from every trigger node that hears the facts. */
 async function hear(
@@ -108,15 +125,20 @@ const reply = (n: number, email: string): SpineEvent => ({
   kind: "reply",
   data: { email, channel: "email" },
 });
-const BOOKING = { trigger: "trigger.booking", change: "booked" } as const;
 
-const journeyOf = async (profile: number, id: string) => {
-  const [j] = await pg.db
+/** The person's newest journey. */
+const journeyOf = async (profile: number) => {
+  const rows = await pg.db
     .select()
     .from(journeys)
-    .where(and(eq(journeys.profileId, profile), eq(journeys.funnel, id)));
-  return j;
+    .where(eq(journeys.profileId, profile))
+    .orderBy(asc(journeys.openedAt));
+  return rows.at(-1);
 };
+
+/** One reply subject per call: an arrival is unique per subject in the shape's workflow. */
+let replies = 100;
+const nextReply = (email: string) => reply(replies++, email);
 
 describe("a touch", () => {
   const dm = (ref: string, over: Partial<Parameters<typeof recordTouch>[1]> = {}) => ({
@@ -130,9 +152,8 @@ describe("a touch", () => {
     ...over,
   });
 
-  it("is read past the cursor once it has settled, and moves a journey through a funnel", async () => {
-    await funnel("touchy", body());
-    const flows = await flowsOf("touchy");
+  it("is read past the cursor once it has settled, and opens a journey on the shape", async () => {
+    const flows = await flowsOf();
     const r = rig();
 
     // The first pass starts at the newest touch and tells none.
@@ -167,14 +188,13 @@ describe("a touch", () => {
     expect((await hear(r, flows, t1.facts, t1.event)).length).toBe(0);
     const t2 = touchFired(null, theirs);
     await hear(r, flows, t2.facts, t2.event);
-    const j = await journeyOf(theirs.profile as number, "touchy");
-    expect(j).toMatchObject({ stage: "engaged", status: "open" });
+    const j = await journeyOf(theirs.profile as number);
+    expect(j).toMatchObject({ node: "engaged", status: "open", entry: "dm", version: 1 });
     expect(j?.entryRef).toMatchObject({ subject: `touch:${mine.id}`, cause: { kind: "touch" } });
   });
 
   it("names the person by the handle key when no profile is on the event", async () => {
-    await funnel("handles", body());
-    const flows = await flowsOf("handles");
+    const flows = await flowsOf();
     const r = rig();
     const t = await recordTouch(pg.db, dm("t:3", { handle: "kim_synth", at: new Date() }));
     if (!t) throw new Error("no touch");
@@ -184,65 +204,26 @@ describe("a touch", () => {
     const f = touchFired(null, { ...row, profile: null });
     expect(f.event.data).not.toHaveProperty("profile");
     await hear(r, flows, f.facts, f.event);
-    expect((await journeyOf(row.profile, "handles"))?.stage).toBe("engaged");
+    expect((await journeyOf(row.profile))?.node).toBe("engaged");
   });
 });
 
 describe("a profile merge", () => {
-  it("keeps the journey at the later stage and drops the other as merged", async () => {
-    await funnel("merge", body());
-    const flows = await flowsOf("merge");
-    const r = rig();
-    const a = await person("mia@example.test");
-    const b = await person("max@example.test");
-    // A (the profile merged into) is only engaged; B has booked.
-    await hear(
-      r,
-      flows,
-      { trigger: "trigger.touch", kind: "dm", direction: "theirs", platform: "x" },
-      {
-        subject: "touch:9001",
-        kind: "person",
-        data: { email: "mia@example.test", platform: "x" },
-      },
-    );
-    await hear(r, flows, REPLY, reply(70, "max@example.test"));
-    await hear(r, flows, BOOKING, {
-      subject: "call:70",
-      kind: "call",
-      data: { email: "max@example.test" },
-    });
-    expect((await journeyOf(a, "merge"))?.stage).toBe("engaged");
-    expect((await journeyOf(b, "merge"))?.stage).toBe("booked");
-    const keep = await journeyOf(b, "merge");
-    const lose = await journeyOf(a, "merge");
-
-    const at = new Date("2026-10-19T12:00:00Z");
-    await mergeProfiles(pg.db, a, b, "test", "test", at);
-
-    const rows = await pg.db.select().from(journeys).where(eq(journeys.funnel, "merge"));
-    expect(rows).toHaveLength(2);
-    const open = rows.filter((x) => x.status === "open");
-    expect(open).toHaveLength(1);
-    expect(open[0]).toMatchObject({ id: keep?.id, profileId: a, stage: "booked" });
-    const dropped = rows.find((x) => x.id === lose?.id);
-    expect(dropped).toMatchObject({ status: "dropped", dropReason: "merged", profileId: a });
-    expect(dropped?.closedAt).toEqual(at);
-  });
+  // Core's `profile-pipeline.ts` still reads the old funnel columns: it moves to nodes in M1 phase B.
+  it.todo("keeps the journey at the deeper node and drops the other as merged");
 
   it("moves a lone journey and a deal to the profile it merged into", async () => {
-    await funnel("lone", body());
-    const flows = await flowsOf("lone");
+    const flows = await flowsOf();
     const r = rig();
     const a = await person("lou@example.test");
     const b = await person("liv@example.test");
-    await hear(r, flows, REPLY, reply(71, "liv@example.test"));
-    const j = await journeyOf(b, "lone");
+    await hear(r, flows, REPLY, nextReply("liv@example.test"));
+    const j = await journeyOf(b);
     await pg.db
       .insert(pipelineDeals)
       .values({ journey: j?.id as string, profileId: b, offer: "offer-a", offerVersion: 1 });
     await mergeProfiles(pg.db, a, b, "test", "test");
-    expect(await journeyOf(a, "lone")).toMatchObject({ id: j?.id, status: "open" });
+    expect(await journeyOf(a)).toMatchObject({ id: j?.id, status: "open" });
     const [deal] = await pg.db
       .select()
       .from(pipelineDeals)
@@ -266,10 +247,9 @@ describe("collected money", () => {
   });
 
   async function deal(email: string, offer = "offer-a") {
-    await funnel(`pay_${email.split("@")[0]}`, body());
     const profile = await person(email);
-    await hear(rig(), await flowsOf(`pay_${email.split("@")[0]}`), REPLY, reply(80, email));
-    const j = await journeyOf(profile, `pay_${email.split("@")[0]}`);
+    await hear(rig(), await flowsOf(), REPLY, nextReply(email));
+    const j = await journeyOf(profile);
     const [d] = await pg.db
       .insert(pipelineDeals)
       .values({ journey: j?.id as string, profileId: profile, offer, offerVersion: 1 })

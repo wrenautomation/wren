@@ -33,6 +33,10 @@ jobs:
       - name: migrate
         run: pnpm db:migrate
         env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
+      - name: shape
+        # Builds shape v1 from the funnels and moves journeys onto nodes. A no op once done.
+        run: pnpm -s wren shape migrate --all
+        env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
       - name: template defaults
         # Each changed file in packages/templates/defaults as a default version, in every database.
         run: pnpm -s wren templates sync

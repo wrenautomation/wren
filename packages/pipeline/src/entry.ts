@@ -1,90 +1,101 @@
 /**
- * Which entry opened a journey (designs/2026-10-18-journeys.md, "Attribution"). Pure: the step
- * reads the body and the person's first touch, and passes them in.
+ * Which source opened a journey (designs/2026-10-19-business-map.md). Pure: the step reads the
+ * body and the person's first touch, and passes them in. A source is a node of kind `source`; a
+ * parked one opens nothing.
  */
-import type { Entry, FunnelBody } from "./model.js";
+import type { ShapeBody, ShapeEdge, SourceNode } from "./model.js";
 
 /** What a cause says about where the person came from. All optional. */
 export interface CauseFacts {
-  /** An entry id the cause names outright (a `/go/` link, a manual open). */
+  /** A source id the cause names outright (a `/go/` link, a manual open). */
   entry?: string;
   channel?: string;
   campaign?: string;
-  /** A prior journey: its funnel and the stage it entered. */
-  funnel?: string;
-  stage?: string;
   /** A research list or discovery run id. */
   source?: string;
   /** A saved query's id. */
   group?: string;
 }
 
+/** The entry a journey has when no source claims it. */
+export const MANUAL = "manual";
+
 const same = (a: string | undefined, b: string | undefined) =>
   a !== undefined && b !== undefined && a.toLowerCase() === b.toLowerCase();
 
-/** Does this cause belong to this entry? A `manual` entry only matches by id. */
-function matches(e: Entry, c: CauseFacts): boolean {
-  if (e.kind === "manual") return false;
-  if (e.kind === "funnel")
-    return (
-      !!e.funnel &&
-      c.funnel === e.funnel.id &&
-      (e.funnel.at === undefined || c.stage === e.funnel.at)
-    );
-  if (e.kind === "sourced") return !!e.source && c.source === e.source;
-  if (e.kind === "group") return !!e.group && c.group === e.group;
-  // organic, outbound, ads, referral: by channel and campaign. An entry with neither matches nothing.
-  if (e.channel === undefined && e.campaign === undefined) return false;
+/** Does this cause belong to this source? A `manual` source only matches by id. */
+function matches(s: SourceNode, c: CauseFacts): boolean {
+  if (s.via === "manual") return false;
+  if (s.via === "sourced") return !!s.source && c.source === s.source;
+  if (s.via === "group") return !!s.group && c.group === s.group;
+  // organic, outbound, ads, referral: by channel and campaign. A source with neither matches nothing.
+  if (s.channel === undefined && s.campaign === undefined) return false;
   return (
-    (e.channel === undefined || same(e.channel, c.channel)) &&
-    (e.campaign === undefined || same(e.campaign, c.campaign))
+    (s.channel === undefined || same(s.channel, c.channel)) &&
+    (s.campaign === undefined || same(s.campaign, c.campaign))
   );
 }
 
-/** The stage an entry opens a journey at. */
-export const entryTo = (body: FunnelBody, e: Entry): string | undefined =>
-  e.to ?? body.stages[0]?.key;
+/** Every source that may open journeys, in body order. */
+export const liveSources = (body: ShapeBody): SourceNode[] =>
+  body.nodes.filter((n): n is SourceNode => n.kind === "source" && !n.parked);
+
+/** The flow edges a source opens journeys along, in body order. */
+export const sourceEdges = (body: ShapeBody, source: string): ShapeEdge[] =>
+  body.edges.filter((e) => e.kind === "flow" && e.from === source);
+
+/** The flow edge from a source to a node, if there is one. */
+export const sourceEdge = (body: ShapeBody, source: string, to: string): ShapeEdge | undefined =>
+  body.edges.find((e) => e.kind === "flow" && e.from === source && e.to === to);
+
+/** The sources that may open a journey at `to`: live, with a flow edge to it. */
+export const sourcesInto = (body: ShapeBody, to: string): SourceNode[] =>
+  liveSources(body).filter((s) => sourceEdge(body, s.id, to));
 
 /**
- * May this cause open a journey at `to` for a person with none? A manual open or a composed funnel
- * comes on the journey port: any entry stage. Else it needs an entry at `to` that stage causes feed
- * (organic, outbound, ads, referral), or a group or sourced entry the cause names. So a manual
- * entry at a late stage never lets that stage's own trigger open journeys for strangers.
+ * May this cause open a journey at `to` for a person with none? A manual open (`byHand`) needs a
+ * live source with an edge to `to`. Else it needs such a source that causes feed (organic,
+ * outbound, ads, referral), or a group or sourced source the cause names. So a manual source
+ * never lets the node's own trigger open journeys for strangers.
  */
-export function opensAt(body: FunnelBody, to: string, viaJourney: boolean, c: CauseFacts): boolean {
-  if (body.entries.length === 0) return to === body.stages[0]?.key;
-  const here = body.entries.filter((e) => entryTo(body, e) === to);
+export function opensAt(body: ShapeBody, to: string, byHand: boolean, c: CauseFacts): boolean {
+  const here = sourcesInto(body, to);
   if (here.length === 0) return false;
-  if (viaJourney) return true;
-  return here.some((e) => {
-    if (e.kind === "group") return !!e.group && c.group === e.group;
-    if (e.kind === "sourced") return !!e.source && c.source === e.source;
-    return e.kind !== "manual" && e.kind !== "funnel";
+  if (byHand) return true;
+  return here.some((s) => {
+    if (s.via === "group") return !!s.group && c.group === s.group;
+    if (s.via === "sourced") return !!s.source && c.source === s.source;
+    return s.via !== "manual";
   });
 }
 
-/** The stages a journey may open at: every entry's `to`, default the first stage. */
-export function entryStages(body: FunnelBody): string[] {
-  const first = body.stages[0]?.key;
-  if (first === undefined) return [];
-  if (body.entries.length === 0) return [first];
-  return [...new Set(body.entries.map((e) => e.to ?? first))];
+/** The nodes a journey may open at: every live source's targets, once each, in edge order. */
+export function entryNodes(body: ShapeBody): string[] {
+  const live = new Set(liveSources(body).map((s) => s.id));
+  return [
+    ...new Set(body.edges.filter((e) => e.kind === "flow" && live.has(e.from)).map((e) => e.to)),
+  ];
 }
 
 /**
- * The entry that opened this journey: the one the cause names, else the first in priority order
- * the cause matches, else the first the person's first touch matches, else `manual`.
+ * The source that opened this journey: the one the cause names, else the first in body order the
+ * cause matches, else the first the person's first touch matches, else a manual source, else null
+ * (the caller records `MANUAL`). With `to`, sources that open at `to` come first.
  */
 export function entryOf(
-  body: FunnelBody,
+  body: ShapeBody,
   cause: CauseFacts,
   firstTouch?: CauseFacts | null,
-): Entry {
-  const named = cause.entry ? body.entries.find((e) => e.id === cause.entry) : undefined;
+  to?: string,
+): SourceNode | null {
+  const live = liveSources(body);
+  const named = cause.entry ? live.find((s) => s.id === cause.entry) : undefined;
   if (named) return named;
-  const byCause = body.entries.find((e) => matches(e, cause));
+  const here = to ? live.filter((s) => sourceEdge(body, s.id, to)) : [];
+  const pool = here.length > 0 ? here : live;
+  const byCause = pool.find((s) => matches(s, cause));
   if (byCause) return byCause;
-  const byTouch = firstTouch ? body.entries.find((e) => matches(e, firstTouch)) : undefined;
+  const byTouch = firstTouch ? pool.find((s) => matches(s, firstTouch)) : undefined;
   if (byTouch) return byTouch;
-  return body.entries.find((e) => e.kind === "manual") ?? { id: "manual", kind: "manual" };
+  return pool.find((s) => s.via === "manual") ?? null;
 }

@@ -390,7 +390,7 @@ export const spineExecutions = pgView("spine_executions", {
       when subject ~ '^account:[0-9]{1,9}:' then (select initcap(a.site) || ': ' || a.ref
         from client_accounts a where a.id = split_part(x.subject, ':', 2)::int)
       when subject ~ '^journey:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (select coalesce(nullif(pr.name, ''), 'Someone') || ': ' ||
-        j.funnel || ' at ' || j.stage
+        coalesce(j.node, j.stage)
         from pipeline.journeys j join profiles pr on pr.id = j.profile_id
         where j.id = substr(x.subject, 9)::uuid)
     end, case split_part(subject, ':', 1) when 'mail' then 'Email' when 'item' then 'Learn item'

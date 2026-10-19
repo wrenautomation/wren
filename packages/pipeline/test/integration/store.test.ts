@@ -1,31 +1,33 @@
 /**
- * The version store on a real Postgres (designs/2026-10-18-journeys.md): offers sync by hash,
- * terms go live by date, funnels append under the rules. Synthetic data only.
+ * The version store on a real Postgres (designs/2026-10-19-business-map.md): offers sync by hash,
+ * terms go live by date, the shape saves under the rules and carries journeys. Synthetic data only.
  */
 
+import { resolveProfile } from "@wren/core/profiles";
+import { events } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import type { Offer, Terms } from "@wren/offers";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { FunnelBody } from "../../src/model.js";
+import { depthOf } from "../../src/model.js";
+import { journeys } from "../../src/schema.js";
 import {
-  addFunnel,
   addTerms,
-  appendFunnel,
-  funnelVersionsOf,
   liveTerms,
+  newestShape,
   offerVersionsOf,
   Refused,
-  setFunnelStatus,
+  saveShape,
+  shapeVersionsOf,
   syncOffers,
 } from "../../src/store.js";
+import { flow, grown, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
 });
 afterAll(() => pg.stop());
-
-const triggers = new Set(["trigger.booking", "trigger.reply"]);
 
 const offer = (id: string, promise = "Something."): Offer => ({
   id,
@@ -56,16 +58,6 @@ const terms = (setupCents: number): Terms => ({
   capCents: null,
   days: null,
   payDays: 7,
-});
-
-const funnel = (labels: string[] = ["Engaged", "Signed"]): FunnelBody => ({
-  name: "Test",
-  offer: "offer-a",
-  stages: [
-    { key: "engaged", label: labels[0] ?? "", on: [{ trigger: "trigger.reply" }] },
-    { key: "signed", label: labels[1] ?? "", sale: true, on: [{ trigger: "trigger.booking" }] },
-  ],
-  entries: [],
 });
 
 const reasons = (p: Promise<unknown>) =>
@@ -182,175 +174,152 @@ describe("terms", () => {
   });
 });
 
-describe("funnels", () => {
-  it("adds, and refuses a broken first version", async () => {
-    const v1 = await addFunnel(pg.db, {
-      id: "f-one",
-      name: "One",
-      body: funnel(),
-      why: "first",
-      by: "t",
-      triggers,
-    });
-    expect(v1.number).toBe(1);
+describe("shape", () => {
+  const save = (body = shape(), note = "first", moves?: Record<string, string>) =>
+    saveShape(pg.db, { body, note, by: "t", triggers: TRIGGERS, ...(moves ? { moves } : {}) });
 
-    const broken = await reasons(
-      addFunnel(pg.db, {
-        id: "f-bad",
-        name: "Bad",
-        body: {
-          ...funnel(),
-          stages: [{ key: "x", label: "X", on: [{ trigger: "trigger.nope" }] }],
-        },
-        why: "first",
-        by: "t",
-        triggers,
-      }),
+  it("saves the first version with its depths, and says nothing changed on a repeat", async () => {
+    expect(await newestShape(pg.db)).toBeNull();
+    const v1 = await save();
+    expect(v1).toMatchObject({ number: 1, parent: null, note: "first", createdBy: "t" });
+    expect(v1.depths).toEqual(depthOf(shape()));
+    expect(v1.depths).toMatchObject({ yt: 0, mail: 0, engaged: 1, booked: 2, signed: 4 });
+    expect(await reasons(save(shape(), "again"))).toEqual(["Nothing changed."]);
+    expect((await shapeVersionsOf(pg.db)).map((r) => r.number)).toEqual([1]);
+  });
+
+  it("refuses a body that breaks the rules, and a note that is empty", async () => {
+    const broken = shape({
+      edges: [flow("yt", "engaged"), flow("engaged", "yt")],
+    });
+    const why = (await reasons(save(broken, "x"))).join(" ");
+    expect(why).toMatch(/Nothing enters a source/);
+    expect(await reasons(save(grown([], []), "  "))).toEqual(["Say why."]);
+    expect((await shapeVersionsOf(pg.db)).map((r) => r.number)).toEqual([1]);
+  });
+
+  it("refuses an unknown trigger, a moves target that is no node, and a loop of flow edges", async () => {
+    const nope = shape();
+    nope.nodes = nope.nodes.map((n) =>
+      n.id === "engaged" && n.kind === "step"
+        ? { ...n, advance: [{ trigger: "trigger.nope" }] }
+        : n,
     );
-    expect(broken.join(" ")).toMatch(/exactly one sale stage/);
-    expect(broken.join(" ")).toMatch(/not a known trigger/);
-    expect(await funnelVersionsOf(pg.db, { funnel: "f-bad" })).toEqual([]);
+    expect((await reasons(save(nope, "x"))).join(" ")).toMatch(/not a known trigger/);
 
-    expect(
-      await reasons(
-        addFunnel(pg.db, {
-          id: "f-one",
-          name: "One",
-          body: funnel(),
-          why: "again",
-          by: "t",
-          triggers,
-        }),
-      ),
-    ).toEqual(['Funnel "f-one" exists. Append a version to change it.']);
+    const next = grown(
+      [{ id: "kept", kind: "step", name: "Kept", action: "other", advance: [] }],
+      [flow("standard", "kept")],
+    );
+    expect(await reasons(save(next, "x", { booked: "missing" }))).toEqual([
+      "Cannot move booked to missing: the shape has no node missing.",
+    ]);
+
+    const cycle = grown([], [flow("signed", "booked")]);
+    expect((await reasons(save(cycle, "x"))).join(" ")).toMatch(/Flow edges form a loop/);
+    expect((await shapeVersionsOf(pg.db)).map((r) => r.number)).toEqual([1]);
   });
 
-  it("refuses a broken prefix and accepts an append", async () => {
-    await addFunnel(pg.db, {
-      id: "f-two",
-      name: "Two",
-      body: funnel(),
-      why: "first",
-      by: "t",
-      triggers,
-    });
-    const [engaged, signed] = funnel().stages;
-    if (!engaged || !signed) throw new Error("no stages");
-
-    // A stage renamed breaks the prefix.
-    const renamed: FunnelBody = {
-      ...funnel(),
-      stages: [{ ...engaged, key: "interested" }, signed],
-    };
-    const refused = await reasons(appendFunnel(pg.db, "f-two", renamed, "x", "t", triggers));
-    expect(refused.join(" ")).toMatch(/must stay "engaged"/);
-
-    // A new stage before the sale stage moves it: also a break.
-    const inserted: FunnelBody = {
-      ...funnel(),
-      stages: [engaged, { key: "call", label: "Call", on: [] }, signed],
-    };
-    expect(
-      (await reasons(appendFunnel(pg.db, "f-two", inserted, "x", "t", triggers))).join(" "),
-    ).toMatch(/must stay "signed"/);
-
-    // A new last stage is an append.
-    const grown: FunnelBody = {
-      ...funnel(),
-      stages: [engaged, signed, { key: "kept", label: "Kept", on: [] }],
-    };
-    const v2 = await appendFunnel(pg.db, "f-two", grown, "add a stage", "t", triggers);
-    expect(v2.number).toBe(2);
-
-    // The same body again is not a version.
-    expect(await reasons(appendFunnel(pg.db, "f-two", grown, "same", "t", triggers))).toEqual([
-      "That is already version 2.",
-    ]);
-    expect(await reasons(appendFunnel(pg.db, "f-none", grown, "x", "t", triggers))).toEqual([
-      'Funnel "f-none" does not exist. Add it first.',
-    ]);
+  it("refuses a group or a list that does not exist", async () => {
+    const body = grown(
+      [
+        { id: "warm", kind: "source", name: "Warm", via: "group", group: "999999" },
+        { id: "lst", kind: "source", name: "List", via: "sourced", source: "import:999999" },
+      ],
+      [flow("warm", "engaged"), flow("lst", "engaged")],
+    );
+    const why = (await reasons(save(body, "x"))).join(" ");
+    expect(why).toMatch(/group 999999, which does not exist/);
+    expect(why).toMatch(/names source import:999999, which does not exist/);
   });
 
-  it("numbers two concurrent appends 2 and 3", async () => {
-    await addFunnel(pg.db, {
-      id: "f-race",
-      name: "Race",
-      body: funnel(),
-      why: "first",
-      by: "t",
-      triggers,
-    });
-    const rows = await Promise.all([
-      appendFunnel(pg.db, "f-race", funnel(["A", "Signed"]), "a", "t", triggers),
-      appendFunnel(pg.db, "f-race", funnel(["B", "Signed"]), "b", "t", triggers),
-    ]);
-    expect(rows.map((r) => r.number).sort()).toEqual([2, 3]);
-    const all = await funnelVersionsOf(pg.db, { funnel: "f-race" });
-    expect(all.map((r) => r.number)).toEqual([1, 2, 3]);
+  it("carries an open journey to the next version with a version arrival", async () => {
+    const profile = await person("ada@example.test");
+    const [j] = await pg.db
+      .insert(journeys)
+      .values({ profileId: profile, version: 1, node: "booked", entry: "yt" })
+      .returning();
+    expect(j?.node).toBe("booked");
+
+    const next = grown(
+      [{ id: "kept", kind: "step", name: "Kept", action: "other", advance: [] }],
+      [flow("standard", "kept")],
+    );
+    const v2 = await save(next, "add a step");
+    expect(v2).toMatchObject({ number: 2, parent: 1 });
+
+    const [after] = await pg.db
+      .select()
+      .from(journeys)
+      .where(eq(journeys.id, j?.id as string));
+    expect(after).toMatchObject({ version: 2, node: "booked", status: "open" });
+    const arrivals = await pg.db
+      .select()
+      .from(events)
+      .where(eq(events.subject, `journey:${j?.id}`));
+    expect(arrivals).toHaveLength(1);
+    expect(arrivals[0]).toMatchObject({ workflow: "shape.v2", node: "s_booked", by: "carry" });
+    expect(arrivals[0]?.data).toMatchObject({ cause: { kind: "version", ref: "1" } });
   });
 
-  it("checks a funnel entry against stored funnels", async () => {
-    const feeder: FunnelBody = {
-      ...funnel(),
-      entries: [{ id: "from-one", kind: "funnel", funnel: { id: "f-one", at: "signed" } }],
-    };
-    expect(
-      (
-        await addFunnel(pg.db, {
-          id: "f-feed",
-          name: "Feed",
-          body: feeder,
-          why: "x",
-          by: "t",
-          triggers,
+  it("leaves a journey on a removed node as a ghost, and moves it when moves names a node", async () => {
+    const profile = await person("bo@example.test");
+    const ghost = (
+      await pg.db
+        .insert(journeys)
+        .values({ profileId: profile, version: 2, node: "kept", entry: "yt" })
+        .returning()
+    )[0];
+    const moved = (
+      await pg.db
+        .insert(journeys)
+        .values({
+          profileId: await person("cy@example.test"),
+          version: 2,
+          node: "kept",
+          entry: "yt",
         })
-      ).number,
-    ).toBe(1);
-    const missing: FunnelBody = {
-      ...funnel(),
-      entries: [{ id: "from-gone", kind: "funnel", funnel: { id: "f-gone" } }],
-    };
-    expect(
-      (
-        await reasons(
-          addFunnel(pg.db, {
-            id: "f-lost",
-            name: "Lost",
-            body: missing,
-            why: "x",
-            by: "t",
-            triggers,
-          }),
-        )
-      ).join(" "),
-    ).toMatch(/does not exist/);
-    // f-one feeding f-feed would make a loop.
-    const loop: FunnelBody = {
-      ...funnel(),
-      entries: [{ id: "from-feed", kind: "funnel", funnel: { id: "f-feed" } }],
-    };
-    expect(
-      (await reasons(appendFunnel(pg.db, "f-one", loop, "x", "t", triggers))).join(" "),
-    ).toMatch(/loop/);
+        .returning()
+    )[0];
+    if (!ghost || !moved) throw new Error("no journeys");
+
+    // v3 has no "kept": both stay on v2 unless moves names a node.
+    const v3 = await save(shape(), "drop kept", {});
+    expect(v3.number).toBe(3);
+    expect((await journeyRow(ghost.id))?.version).toBe(2);
+    expect((await journeyRow(moved.id))?.version).toBe(2);
+
+    // v4 changes a name; moves sends "kept" to "proposal". Both journeys on v2 move.
+    const body = shape();
+    body.nodes = body.nodes.map((n) => (n.id === "booked" ? { ...n, name: "Call booked" } : n));
+    await save(body, "rename", { kept: "proposal" });
+    for (const id of [ghost.id, moved.id]) {
+      expect(await journeyRow(id)).toMatchObject({ version: 4, node: "proposal" });
+    }
+    const trail = (await journeyRow(moved.id))?.trail;
+    expect(trail?.at(-1)).toMatchObject({ edge: null, from: "kept", to: "proposal" });
   });
 
-  it("sets status and filters versions", async () => {
-    await addFunnel(pg.db, {
-      id: "f-stat",
-      name: "Stat",
-      body: funnel(),
-      why: "first",
-      by: "t",
-      triggers,
-    });
-    await setFunnelStatus(pg.db, "f-stat", "off");
-    const live = await funnelVersionsOf(pg.db, { live: true, newest: true });
-    expect(live.some((r) => r.funnel === "f-stat")).toBe(false);
-    expect(live.some((r) => r.funnel === "f-one")).toBe(true);
-    const one = await funnelVersionsOf(pg.db, { funnel: "f-stat" });
-    expect(one[0]?.status).toBe("off");
-    expect(await reasons(setFunnelStatus(pg.db, "f-none", "live"))).toEqual([
-      'Funnel "f-none" does not exist.',
-    ]);
+  it("numbers two concurrent saves apart", async () => {
+    const a = shape();
+    a.nodes = a.nodes.map((n) => (n.id === "engaged" ? { ...n, name: "Race A" } : n));
+    const b = shape();
+    b.nodes = b.nodes.map((n) => (n.id === "engaged" ? { ...n, name: "Race B" } : n));
+    const rows = await Promise.all([save(a, "a"), save(b, "b")]);
+    const numbers = rows.map((r) => r.number).sort();
+    const first = (await newestShape(pg.db))?.number as number;
+    expect(numbers).toEqual([first - 1, first]);
+    const all = await shapeVersionsOf(pg.db);
+    expect(all.map((r) => r.number)).toEqual(all.map((_, i) => i + 1));
+    expect(all.at(-1)?.parent).toBe(first - 1);
   });
 });
+
+async function person(email: string): Promise<number> {
+  const p = await resolveProfile(pg.db, [{ kind: "email", value: email }], "test");
+  return p?.id as number;
+}
+
+async function journeyRow(id: string) {
+  return (await pg.db.select().from(journeys).where(eq(journeys.id, id)))[0];
+}

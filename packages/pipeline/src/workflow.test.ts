@@ -1,73 +1,72 @@
 import { checkWorkflows } from "@wren/core/workflows";
 import { describe, expect, it } from "vitest";
-import { soundFunnels } from "./journeys.js";
-import type { FunnelBody } from "./model.js";
-import { funnelFlowId, funnelWorkflow, parseFunnelFlow } from "./workflow.js";
+import { flow, grown, shape } from "../test/fixtures.js";
+import { soundShapes } from "./journeys.js";
+import type { ShapeBody, ShapeNode } from "./model.js";
+import { parseShapeFlow, shapeFlowId, shapeWorkflow } from "./workflow.js";
 
 const NODE_ID = /^[a-z][a-z0-9_]*$/;
 
-const body = (over: Partial<FunnelBody> = {}): FunnelBody => ({
-  name: "Test funnel",
-  offer: "offer-a",
-  stages: [
-    { key: "engaged", label: "Engaged", research: "light", on: [{ trigger: "trigger.reply" }] },
-    {
-      key: "booked",
-      label: "Booked",
-      on: [
-        { trigger: "trigger.booking", with: { on: "booked" } },
-        { trigger: "trigger.document", with: { on: "viewed" } },
-      ],
-    },
-    {
-      key: "signed",
-      label: "Signed",
-      sale: true,
-      on: [{ trigger: "trigger.document", with: { on: "signed" } }],
-    },
-  ],
-  entries: [
-    { id: "web", kind: "organic", channel: "web" },
-    { id: "from_other", kind: "funnel", funnel: { id: "other", at: "paid" }, to: "booked" },
-  ],
-  ...over,
-});
+const body = (): ShapeBody => {
+  const b = shape();
+  b.nodes = b.nodes.map((n) =>
+    n.id === "engaged" && n.kind === "step"
+      ? { ...n, research: "light" as const }
+      : n.id === "booked" && n.kind === "step"
+        ? {
+            ...n,
+            advance: [
+              { trigger: "trigger.booking", with: { on: "booked" } },
+              { trigger: "trigger.document", with: { on: "viewed" } },
+            ],
+          }
+        : n.id === "signed" && n.kind === "offer"
+          ? { ...n, advance: [{ trigger: "trigger.document", with: { on: "signed" } }] }
+          : n,
+  );
+  return b;
+};
 
-const flow = () => funnelWorkflow("main", 2, body(), "wren");
+const wf = () => shapeWorkflow(2, body(), "wren");
+const wires = (w = wf()) => w.wires.map((x) => `${x.from} -> ${x.to}`);
 
-describe("funnelWorkflow", () => {
-  it("names the workflow by funnel and version", () => {
-    expect(flow().id).toBe("funnel.main.v2");
-    expect(funnelFlowId("main", 2)).toBe("funnel.main.v2");
-    expect(parseFunnelFlow("funnel.main.v2")).toEqual({ funnel: "main", version: 2 });
-    expect(parseFunnelFlow("funnel.a-b_c.v13")).toEqual({ funnel: "a-b_c", version: 13 });
-    expect(parseFunnelFlow("follow_up.main")).toBeNull();
-    expect(parseFunnelFlow("funnel.main.v0")).toBeNull();
+describe("shapeWorkflow", () => {
+  it("names the workflow by version", () => {
+    expect(wf().id).toBe("shape.v2");
+    expect(shapeFlowId(2)).toBe("shape.v2");
+    expect(parseShapeFlow("shape.v2")).toEqual({ version: 2 });
+    expect(parseShapeFlow("shape.v13")).toEqual({ version: 13 });
+    expect(parseShapeFlow("funnel.main.v2")).toBeNull();
+    expect(parseShapeFlow("shape.v0")).toBeNull();
+    expect(parseShapeFlow("shape.v1.x")).toBeNull();
   });
 
   it("is for Wren or for a client, a follow-up stage", () => {
-    expect(flow().for).toBe("wren");
-    expect(funnelWorkflow("main", 1, body(), "client").for).toBe("client");
-    expect(flow().stage).toBe("follow");
+    expect(wf().for).toBe("wren");
+    expect(shapeWorkflow(1, body(), "client").for).toBe("client");
+    expect(wf().stage).toBe("follow");
   });
 
-  it("makes a trigger, a move and a stage node per stage", () => {
-    const ids = flow().nodes.map((n) => n.id);
+  it("makes a move and a stage node per node that holds journeys, none for a source", () => {
+    const ids = wf().nodes.map((n) => n.id);
     expect(ids).toEqual([
       "m_engaged",
       "s_engaged",
       "m_booked",
       "s_booked",
+      "m_proposal",
+      "s_proposal",
       "m_signed",
       "s_signed",
+      "m_standard",
+      "s_standard",
       "t_engaged_0",
       "t_booked_0",
       "t_booked_1",
       "t_signed_0",
-      "e_1",
       "dropped",
     ]);
-    const by = new Map(flow().nodes.map((n) => [n.id, n]));
+    const by = new Map(wf().nodes.map((n) => [n.id, n]));
     expect(by.get("t_booked_0")).toMatchObject({
       uses: "trigger.booking",
       with: { on: "booked" },
@@ -75,115 +74,113 @@ describe("funnelWorkflow", () => {
     expect(by.get("m_booked")?.own?.run).toBe("journey.move");
     expect(by.get("m_booked")?.with).toEqual({ to: "booked" });
     expect(by.get("s_booked")?.own?.run).toBe("journey.stage");
-    expect(by.get("s_booked")?.with).toEqual({ stage: "booked" });
-    expect(by.get("dropped")?.with).toEqual({ stage: "dropped" });
+    expect(by.get("s_booked")?.with).toEqual({ node: "booked" });
+    expect(by.get("s_standard")?.with).toEqual({ node: "standard" });
+    expect(by.get("dropped")?.with).toEqual({ node: "dropped" });
   });
 
-  it("carries a stage's research to its stage node", () => {
-    const by = new Map(flow().nodes.map((n) => [n.id, n]));
-    expect(by.get("s_engaged")?.with).toEqual({ stage: "engaged", research: "light" });
-    expect(by.get("s_signed")?.with).toEqual({ stage: "signed" });
+  it("carries a node's research to its stage node", () => {
+    const by = new Map(wf().nodes.map((n) => [n.id, n]));
+    expect(by.get("s_engaged")?.with).toEqual({ node: "engaged", research: "light" });
+    expect(by.get("s_signed")?.with).toEqual({ node: "signed" });
   });
 
   it("wires causes to moves, moves to stages, inputs to moves", () => {
-    const wires = flow().wires.map((w) => `${w.from} -> ${w.to}`);
-    expect(wires).toContain("in.engaged -> m_engaged.journey");
-    expect(wires).toContain("in.dropped -> dropped.in");
-    expect(wires).toContain("m_booked.moved -> s_booked.in");
-    expect(wires).toContain("t_engaged_0.out -> m_engaged.reply");
-    expect(wires).toContain("t_booked_0.out -> m_booked.call");
-    expect(wires).toContain("t_booked_1.out -> m_booked.document");
-    expect(flow().wires.every((w) => w.via === "events")).toBe(true);
+    const w = wires();
+    expect(w).toContain("in.engaged -> m_engaged.journey");
+    expect(w).toContain("in.dropped -> dropped.in");
+    expect(w).toContain("m_booked.moved -> s_booked.in");
+    expect(w).toContain("t_engaged_0.out -> m_engaged.reply");
+    expect(w).toContain("t_booked_0.out -> m_booked.call");
+    expect(w).toContain("t_booked_1.out -> m_booked.document");
+    expect(wf().wires.every((x) => x.via === "events")).toBe(true);
   });
 
-  it("turns a funnel entry into a journey trigger wired to its stage", () => {
-    const e = flow().nodes.find((n) => n.id === "e_1");
-    expect(e).toEqual({
-      id: "e_1",
-      uses: "trigger.journey",
-      with: { funnel: "other", stage: "paid", on: "entered" },
-    });
-    expect(flow().wires.map((w) => `${w.from} -> ${w.to}`)).toContain(
-      "e_1.out -> m_booked.journey",
-    );
-  });
-
-  it("turns a group entry into a group trigger wired to its stage", () => {
-    const b = body({
-      entries: [
-        { id: "warm", kind: "group", group: "7", to: "booked" },
-        { id: "cold", kind: "group", group: "9" },
+  it("builds no node for a plain source and none for a parked one", () => {
+    const b = grown(
+      [
+        { id: "seg", kind: "source", name: "Group", via: "group", group: "7", parked: true },
+        {
+          id: "list",
+          kind: "source",
+          name: "List",
+          via: "sourced",
+          source: "import:12",
+          parked: true,
+        },
       ],
-    });
-    const f = funnelWorkflow("main", 1, b, "wren");
-    expect(f.nodes.find((n) => n.id === "e_0")).toEqual({
-      id: "e_0",
+      [flow("seg", "booked"), flow("list", "booked")],
+    );
+    const w = shapeWorkflow(1, b, "wren");
+    expect(w.nodes.some((n) => n.id.startsWith("e_"))).toBe(false);
+    expect(w.nodes.some((n) => n.id === "m_yt")).toBe(false);
+    expect(w.in.map((p) => p.id)).not.toContain("yt");
+  });
+
+  it("turns a group source into a group trigger wired to each of its nodes", () => {
+    const b = grown(
+      [
+        { id: "warm", kind: "source", name: "Warm", via: "group", group: "7" },
+        { id: "bad", kind: "source", name: "Bad", via: "group", group: "q-1" },
+      ],
+      [flow("warm", "booked"), flow("warm", "proposal"), flow("bad", "booked")],
+    );
+    const w = shapeWorkflow(1, b, "wren");
+    expect(w.nodes.find((n) => n.id === "e_warm")).toEqual({
+      id: "e_warm",
       uses: "trigger.segment",
       with: { segment: 7, on: "entered" },
     });
-    const wires = f.wires.map((w) => `${w.from} -> ${w.to}`);
-    expect(wires).toContain("e_0.out -> m_booked.lead");
-    // Opens at the first stage by default.
-    expect(wires).toContain("e_1.out -> m_engaged.lead");
-    expect(f.nodes.find((n) => n.id === "m_booked")?.own?.in.map((p) => p.id)).toContain("lead");
-    for (const n of f.nodes) expect(n.id).toMatch(NODE_ID);
-    expect(checkWorkflows([f], [])).toEqual([]);
+    const ws = wires(w);
+    expect(ws).toContain("e_warm.out -> m_booked.lead");
+    expect(ws).toContain("e_warm.out -> m_proposal.lead");
+    expect(w.nodes.find((n) => n.id === "m_booked")?.own?.in.map((p) => p.id)).toContain("lead");
     // A group that is not a number gets no node.
-    const bad = body({ entries: [{ id: "x", kind: "group", group: "q-1" }] });
-    expect(funnelWorkflow("main", 1, bad, "wren").nodes.some((n) => n.id === "e_0")).toBe(false);
+    expect(w.nodes.some((n) => n.id === "e_bad")).toBe(false);
+    for (const n of w.nodes) expect(n.id).toMatch(NODE_ID);
+    expect(checkWorkflows([w], [])).toEqual([]);
   });
 
-  it("turns a sourced entry into a source trigger wired to its stage", () => {
-    const b = body({
-      entries: [
-        { id: "list", kind: "sourced", source: "import:12", to: "booked" },
-        { id: "list2", kind: "sourced", source: "import:13" },
-        { id: "none", kind: "sourced" },
+  it("turns a sourced source into a source trigger wired to its node", () => {
+    const b = grown(
+      [
+        { id: "list", kind: "source", name: "List", via: "sourced", source: "import:12" },
+        { id: "none", kind: "source", name: "None", via: "sourced" },
       ],
-    });
-    const f = funnelWorkflow("main", 1, b, "wren");
-    expect(f.nodes.find((n) => n.id === "e_0")).toEqual({
-      id: "e_0",
+      [flow("list", "booked"), flow("none", "booked")],
+    );
+    const w = shapeWorkflow(1, b, "wren");
+    expect(w.nodes.find((n) => n.id === "e_list")).toEqual({
+      id: "e_list",
       uses: "trigger.source",
       with: { source: "import:12" },
     });
-    const wires = f.wires.map((w) => `${w.from} -> ${w.to}`);
-    expect(wires).toContain("e_0.out -> m_booked.lead");
-    expect(wires).toContain("e_1.out -> m_engaged.lead");
-    // A sourced entry that names no source gets no node.
-    expect(f.nodes.some((n) => n.id === "e_2")).toBe(false);
-    expect(checkWorkflows([f], [])).toEqual([]);
+    expect(wires(w)).toContain("e_list.out -> m_booked.lead");
+    expect(w.nodes.some((n) => n.id === "e_none")).toBe(false);
+    expect(checkWorkflows([w], [])).toEqual([]);
   });
 
-  it("uses the other funnel's sale stage when the entry names none", () => {
-    const b = body({
-      entries: [{ id: "from_other", kind: "funnel", funnel: { id: "other" } }],
-    });
-    const sale = (f: string) => (f === "other" ? "paid" : undefined);
-    const withSale = funnelWorkflow("main", 1, b, "wren", sale);
-    expect(withSale.nodes.find((n) => n.id === "e_0")?.with).toEqual({
-      funnel: "other",
-      stage: "paid",
-      on: "entered",
-    });
-    // Opens at the first stage by default.
-    expect(withSale.wires.map((w) => `${w.from} -> ${w.to}`)).toContain(
-      "e_0.out -> m_engaged.journey",
-    );
-    // No answer, no node: it would hear every stage of the other funnel.
-    expect(funnelWorkflow("main", 1, b, "wren").nodes.some((n) => n.id === "e_0")).toBe(false);
+  it("builds no trigger.journey node", () => {
+    expect(wf().nodes.some((n) => n.uses === "trigger.journey")).toBe(false);
   });
 
   it("gives every node and port a valid id and passes the workflow check", () => {
-    const f = flow();
-    for (const n of f.nodes) expect(n.id).toMatch(NODE_ID);
-    expect(checkWorkflows([f], [])).toEqual([]);
-    expect(f.in.map((p) => p.id)).toEqual(["engaged", "booked", "signed", "dropped"]);
-    expect(f.in.every((p) => p.kind === "journey")).toBe(true);
+    const w = wf();
+    for (const n of w.nodes) expect(n.id).toMatch(NODE_ID);
+    expect(checkWorkflows([w], [])).toEqual([]);
+    expect(w.in.map((p) => p.id)).toEqual([
+      "engaged",
+      "booked",
+      "proposal",
+      "signed",
+      "standard",
+      "dropped",
+    ]);
+    expect(w.in.every((p) => p.kind === "journey")).toBe(true);
   });
 
   it("gives a move node one input per kind it hears", () => {
-    const m = flow().nodes.find((n) => n.id === "m_booked")?.own;
+    const m = wf().nodes.find((n) => n.id === "m_booked")?.own;
     expect(m?.in.map((p) => `${p.id}:${p.kind}`)).toEqual([
       "journey:journey",
       "call:call",
@@ -193,19 +190,26 @@ describe("funnelWorkflow", () => {
 
   it("refuses a trigger with no output", () => {
     const bad = body();
-    bad.stages[0] = { key: "engaged", label: "x", on: [{ trigger: "trigger.nope" }] };
-    expect(() => funnelWorkflow("main", 1, bad, "wren")).toThrow(/trigger.nope/);
+    bad.nodes[2] = {
+      id: "engaged",
+      kind: "step",
+      name: "x",
+      action: "other",
+      advance: [{ trigger: "trigger.nope" }],
+    } satisfies ShapeNode;
+    expect(() => shapeWorkflow(1, bad, "wren")).toThrow(/trigger.nope/);
   });
 
-  it("checks a one-stage funnel", () => {
-    const one = funnelWorkflow(
-      "solo",
+  it("checks a one-node shape", () => {
+    const one = shapeWorkflow(
       1,
       {
         name: "Solo",
-        offer: "o",
-        stages: [{ key: "a", label: "A", sale: true, on: [] }],
-        entries: [],
+        nodes: [
+          { id: "src", kind: "source", name: "Src", via: "manual" },
+          { id: "a", kind: "offer", name: "A", offer: "o", advance: [] },
+        ],
+        edges: [flow("src", "a")],
       },
       "client",
     );
@@ -213,18 +217,18 @@ describe("funnelWorkflow", () => {
   });
 });
 
-describe("soundFunnels", () => {
-  it("keeps a sound funnel and leaves out one that breaks the check", () => {
-    const good = flow();
+describe("soundShapes", () => {
+  it("keeps a sound shape and leaves out one that breaks the check", () => {
+    const good = wf();
     const bad = {
-      ...funnelWorkflow("odd", 1, body(), "wren"),
+      ...shapeWorkflow(1, body(), "wren"),
       // A wire between two different event kinds.
       wires: [{ from: "t_engaged_0.out", to: "s_signed.in", via: "events" as const }],
     };
     const logged: string[] = [];
-    const kept = soundFunnels([good, bad], [], [], (m) => logged.push(m));
-    expect(kept.map((f) => f.id)).toEqual(["funnel.main.v2"]);
+    const kept = soundShapes([good, bad], [], [], (m) => logged.push(m));
+    expect(kept.map((f) => f.id)).toEqual(["shape.v2"]);
     expect(logged).toHaveLength(1);
-    expect(logged[0]).toMatch(/^funnel\.odd\.v1 left out: /);
+    expect(logged[0]).toMatch(/^shape\.v1 left out: /);
   });
 });

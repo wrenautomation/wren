@@ -1,8 +1,8 @@
 /**
- * Manual and agent moves (designs/2026-10-18-journeys.md, "Manual and agent moves"). Each builds
- * the spine event the `Journeys` service sends at `in.<stage>` of a funnel workflow: the funnel's
- * own `journey.move` step then writes the row. No second write path. The cause is `manual`; the
- * operator rides in `cause.ref`, because a walk's own `by` is the Restate invocation id.
+ * Manual and agent moves (designs/2026-10-19-business-map.md). Each builds the spine event the
+ * `Journeys` service sends at `in.<node>` of a shape workflow: the workflow's own `journey.move`
+ * step then writes the row. No second write path. The cause is `manual`; the operator rides in
+ * `cause.ref`, because a walk's own `by` is the Restate invocation id.
  *
  * Also here: `rebuildJourney` (the row, from its events) and `signDeal` (terms, once).
  */
@@ -10,13 +10,13 @@ import { randomUUID } from "node:crypto";
 import { events } from "@wren/core/schema";
 import type { SpineEvent } from "@wren/core/spine";
 import { atomic, type Queryable } from "@wren/db";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { entryStages } from "./entry.js";
+import { and, asc, eq, sql } from "drizzle-orm";
+import { entryNodes, liveSources, sourceEdge } from "./entry.js";
 import { personOf, versionOf } from "./journeys.js";
-import { funnelVersions, type Journey, journeys, pipelineDeals } from "./schema.js";
-import { nextStage } from "./stages.js";
-import { liveTerms, Refused } from "./store.js";
-import { funnelFlowId, parseFunnelFlow } from "./workflow.js";
+import { type Crossing, flowEdgesFrom, nodeOf, pathOf } from "./model.js";
+import { type Journey, journeys, pipelineDeals } from "./schema.js";
+import { liveTerms, newestShape, Refused } from "./store.js";
+import { parseShapeFlow, shapeFlowId } from "./workflow.js";
 
 /** What `Spine/emit` takes, less the workspace. */
 export interface Emit {
@@ -56,50 +56,46 @@ export async function personByKey(db: Queryable, key: string): Promise<number | 
   return null;
 }
 
+/** The open journey a person has, if any. */
+async function openOf(db: Queryable, profile: number) {
+  const [open] = await db
+    .select({ id: journeys.id, node: journeys.node })
+    .from(journeys)
+    .where(and(eq(journeys.profileId, profile), eq(journeys.status, "open")))
+    .limit(1);
+  return open;
+}
+
 /**
- * Open a person's journey in a funnel at an entry stage of its newest version. `at` defaults to
- * the first entry stage. Refused: funnel off or unknown, no such person, a stage that is no entry,
- * or a journey already open.
+ * Open a person's journey at a node of the newest shape. `at` defaults to the first node a live
+ * source feeds; `entry` names the source (it needs a flow edge to `at`). Refused: no shape, a node
+ * no live source feeds, a source with no edge there, no such person, or a journey already open.
  */
 export async function openEmit(
   db: Queryable,
-  p: { funnel: string; person: string; at?: string; entry?: string; by: string; now?: Date },
+  p: { person: string; at?: string; entry?: string; by: string; now?: Date },
 ): Promise<Emit> {
   const now = p.now ?? new Date();
-  const [top] = await db
-    .select({ number: funnelVersions.number })
-    .from(funnelVersions)
-    .where(eq(funnelVersions.funnel, p.funnel))
-    .orderBy(desc(funnelVersions.number))
-    .limit(1);
-  if (!top) throw new Refused([`No funnel ${p.funnel}.`]);
-  const loaded = await versionOf(db, p.funnel, top.number);
-  if (!loaded) throw new Refused([`No funnel ${p.funnel}.`]);
-  if (loaded.status !== "live") throw new Refused([`Funnel ${p.funnel} is off.`]);
-  const stages = entryStages(loaded.body);
-  const at = p.at ?? stages[0];
-  if (!at || !stages.includes(at))
+  const newest = await newestShape(db);
+  if (!newest) throw new Refused(["No shape yet."]);
+  const { body } = newest;
+  const nodes = entryNodes(body);
+  const at = p.at ?? nodes[0];
+  if (!at || !nodes.includes(at))
     throw new Refused([
-      `${p.at ?? "That stage"} is no entry stage. Entry stages: ${stages.join(", ")}.`,
+      `${p.at ?? "That node"} is no opening node. Opening nodes: ${nodes.join(", ")}.`,
     ]);
-  if (p.entry && !loaded.body.entries.some((e) => e.id === p.entry))
-    throw new Refused([`Funnel ${p.funnel} has no entry ${p.entry}.`]);
+  if (p.entry) {
+    const live = liveSources(body).some((s) => s.id === p.entry);
+    if (!live || !sourceEdge(body, p.entry, at))
+      throw new Refused([`No live source ${p.entry} feeds ${at}.`]);
+  }
   const profile = await personByKey(db, p.person);
   if (profile === null) throw new Refused([`No person ${p.person}.`]);
-  const [open] = await db
-    .select({ id: journeys.id, stage: journeys.stage })
-    .from(journeys)
-    .where(
-      and(
-        eq(journeys.profileId, profile),
-        eq(journeys.funnel, p.funnel),
-        eq(journeys.status, "open"),
-      ),
-    )
-    .limit(1);
-  if (open) throw new Refused([`Already open at ${open.stage}: ${open.id}.`]);
+  const open = await openOf(db, profile);
+  if (open) throw new Refused([`Already open at ${open.node}: ${open.id}.`]);
   return {
-    workflow: funnelFlowId(p.funnel, top.number),
+    workflow: shapeFlowId(newest.number),
     from: `in.${at}`,
     events: [
       {
@@ -113,12 +109,16 @@ export async function openEmit(
 }
 
 /**
- * Move an open journey forward to a later stage. It leaves from the journey's own version, so the
- * version's move step owns it. Refused: not open, no such stage, or a stage that is not later.
+ * Move a journey to a node, along its own version's edges. The shortest flow path crosses its
+ * edges (nodes passed through are skipped). No path is refused, unless `reason` says why: then
+ * the move is `forced` and crosses no edge. Always refused: a node already on the trail (a
+ * journey never visits one twice: drop it and open a new one), a journey that is not open.
+ * A loop edge from the journey's node closes it (dropped, reason `loop <edge>`) and opens a new
+ * journey at `to`, with the old entry, on the newest version.
  */
 export async function moveEmit(
   db: Queryable,
-  p: { journey: string; to: string; by: string; now?: Date },
+  p: { journey: string; to: string; by: string; reason?: string; now?: Date },
 ): Promise<Emit & { journey: Journey }> {
   const [j] = await db
     .select()
@@ -126,37 +126,92 @@ export async function moveEmit(
     .where(eq(journeys.id, idOf(p.journey, "journey")))
     .limit(1);
   if (!j) throw new Refused([`No journey ${p.journey}.`]);
+  if (j.node === null || j.version === null)
+    throw new Refused(["That journey is not on the shape yet."]);
+  const v = await versionOf(db, j.version);
+  if (!v) throw new Refused([`Shape v${j.version} is gone.`]);
+  const to = nodeOf(v.body, p.to);
+  if (!to || to.kind === "source")
+    throw new Refused([
+      `No node ${p.to}. Nodes: ${v.body.nodes
+        .filter((n) => n.kind !== "source")
+        .map((n) => n.id)
+        .join(", ")}.`,
+    ]);
+  if (j.node === p.to) throw new Refused([`It is already at ${to.name}.`]);
+  const path = pathOf(v.body, j.node, p.to);
+  const loop =
+    path?.length === 1
+      ? v.body.edges.find((e) => e.id === path[0] && e.kind === "loop")
+      : undefined;
+  // A loop opens a new journey, so the old trail does not matter to it.
+  if (!loop && j.trail.some((c) => c.to === p.to))
+    throw new Refused([
+      `${to.name} is already on this journey's trail. A journey never visits a node twice: drop it and open a new one.`,
+    ]);
+  const reason = p.reason?.trim();
+  const at = p.now ?? new Date();
+  if (loop) {
+    if (j.status === "done") throw new Refused(["Journey is done."]);
+    if (v.newest !== j.version)
+      throw new Refused([
+        `Journey is on shape v${j.version}; the newest is v${v.newest}. A loop crosses on the newest.`,
+      ]);
+    const other = await openOf(db, j.profileId);
+    if (other && other.id !== j.id)
+      throw new Refused([`Already open at ${other.node}: ${other.id}.`]);
+    return {
+      journey: j,
+      workflow: shapeFlowId(j.version),
+      from: `in.${p.to}`,
+      events: [
+        {
+          subject: `manual:${randomUUID()}`,
+          kind: "journey",
+          data: {
+            profile: j.profileId,
+            entry: j.entry,
+            loop: { journey: j.id, edge: loop.id },
+            cause: manual(p.by, at),
+          },
+        },
+      ],
+    };
+  }
   if (j.status !== "open") throw new Refused([`Journey is ${j.status}.`]);
-  const v = await versionOf(db, j.funnel, j.version);
-  if (!v) throw new Refused([`Funnel ${j.funnel} v${j.version} is gone.`]);
-  const keys = v.body.stages.map((s) => s.key);
-  if (!keys.includes(p.to)) throw new Refused([`No stage ${p.to}. Stages: ${keys.join(", ")}.`]);
-  if (!nextStage(v.body.stages, j.stage, p.to, j.status))
-    throw new Refused([`A journey only moves forward. It is at ${j.stage}.`]);
+  if (!path && !reason)
+    throw new Refused([`No path from ${j.node} to ${p.to}. Give a reason to force the move.`]);
   return {
     journey: j,
-    workflow: funnelFlowId(j.funnel, j.version),
+    workflow: shapeFlowId(j.version),
     from: `in.${p.to}`,
     events: [
       {
         subject: subjectOf(j.id),
         kind: "journey",
-        data: { journey: j.id, profile: j.profileId, cause: manual(p.by, p.now ?? new Date()) },
+        data: {
+          journey: j.id,
+          profile: j.profileId,
+          ...(!path && reason ? { forced: { reason } } : {}),
+          cause: manual(p.by, at),
+        },
       },
     ],
   };
 }
 
+type RebuiltFields = Pick<Journey, "version" | "node" | "status" | "dropReason" | "trail">;
 export interface Rebuilt {
-  before: Pick<Journey, "version" | "stage" | "status" | "dropReason">;
-  after: Pick<Journey, "version" | "stage" | "status" | "dropReason">;
+  before: RebuiltFields;
+  after: RebuiltFields;
   changed: boolean;
 }
 
 /**
- * Recompute a journey row from its spine events (subject `journey:<id>`): its version and stage
- * from the newest arrival (a version carry counts), dropped from a drop, done from the last
- * stage. What events cannot tell (person, funnel, entry, opened time) stays. Refused with no events.
+ * Recompute a journey row from its spine events (subject `journey:<id>`): its version, node and
+ * trail from the arrivals (a version carry counts, and its trail seeds), dropped from a drop or a
+ * loop out, done from a node with no way on. What events cannot tell (person, entry, opened time)
+ * stays. Refused with no events.
  */
 export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt> {
   return atomic(db, async (tx) => {
@@ -169,17 +224,19 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
     const rows = await tx
       .select({ workflow: events.workflow, node: events.node, data: events.data, at: events.at })
       .from(events)
-      .where(and(eq(events.subject, subjectOf(id)), sql`${events.workflow} like 'funnel.%'`))
+      .where(and(eq(events.subject, subjectOf(id)), sql`${events.workflow} like 'shape.%'`))
       .orderBy(asc(events.at), asc(events.id));
     let version = j.version;
-    let stage: string | null = null;
+    let node: string | null = null;
+    let trail: Crossing[] = [];
     let status: Journey["status"] = "open";
     let reason: string | null = null;
     let movedAt: Date | null = null;
     let closedAt: Date | null = null;
+    const bodies = new Map<number, Awaited<ReturnType<typeof versionOf>>>();
     for (const r of rows) {
-      const flow = parseFunnelFlow(r.workflow);
-      if (!flow || flow.funnel !== j.funnel) continue;
+      const flow = parseShapeFlow(r.workflow);
+      if (!flow) continue;
       if (r.node === "dropped") {
         status = "dropped";
         const why = (r.data as { reason?: unknown } | null)?.reason;
@@ -188,24 +245,60 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
         continue;
       }
       if (!r.node.startsWith("s_")) continue;
+      if (!bodies.has(flow.version)) bodies.set(flow.version, await versionOf(tx, flow.version));
+      const body = bodies.get(flow.version)?.body;
+      const data = (r.data ?? {}) as Record<string, unknown>;
+      const cause = (data.cause ?? {}) as { kind?: unknown };
       version = flow.version;
-      stage = r.node.slice(2);
+      node = r.node.slice(2);
       movedAt = r.at;
       status = "open";
       reason = null;
       closedAt = null;
+      if (cause.kind === "version") {
+        // A carry holds the trail so far; one without it leaves the trail as it was.
+        if (Array.isArray(data.trail)) trail = data.trail as Crossing[];
+        continue;
+      }
+      const edges = Array.isArray(data.edges) ? data.edges.map(String) : [];
+      const crossed = edges.flatMap((e) => body?.edges.find((x) => x.id === e) ?? []);
+      if (crossed.length > 0) {
+        trail.push(
+          ...crossed.map((e) => ({ edge: e.id, from: e.from, to: e.to, at: r.at.toISOString() })),
+        );
+      } else {
+        const from = typeof data.from === "string" ? data.from : null;
+        trail.push({ edge: null, from, to: node, at: r.at.toISOString() });
+      }
     }
-    if (stage === null) throw new Refused([`No arrivals for journey ${id}.`]);
+    if (node === null) throw new Refused([`No arrivals for journey ${id}.`]);
+    // A journey that left through a loop edge was dropped by it: its successor says so. One a drop
+    // event closed first keeps that reason.
+    const [next] = await tx
+      .select({ trail: journeys.trail })
+      .from(journeys)
+      .where(sql`${journeys.entryRef}->>'loop' = ${id}`)
+      .limit(1);
+    if (next && status !== "dropped") {
+      status = "dropped";
+      reason = `loop ${next.trail[0]?.edge ?? ""}`.trim();
+      closedAt = next.trail[0] ? new Date(next.trail[0].at) : movedAt;
+    }
     if (status === "open") {
-      const v = await versionOf(tx, j.funnel, version);
-      if (v && v.body.stages.at(-1)?.key === stage) {
+      const body = (await versionOf(tx, version ?? 0))?.body;
+      if (body && flowEdgesFrom(body, node).length === 0) {
         status = "done";
         closedAt = movedAt;
       }
     }
     const before = pick(j);
-    const after = { version, stage, status, dropReason: reason };
-    const changed = JSON.stringify(before) !== JSON.stringify(after);
+    const after = { version, node, status, dropReason: reason, trail };
+    // Times differ by the milliseconds between a step and its event: compare the path only.
+    const path = (x: RebuiltFields) => ({
+      ...x,
+      trail: x.trail.map((c) => [c.edge, c.from, c.to]),
+    });
+    const changed = JSON.stringify(path(before)) !== JSON.stringify(path(after));
     if (changed)
       await tx
         .update(journeys)
@@ -215,11 +308,12 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
   });
 }
 
-const pick = (j: Journey): Rebuilt["before"] => ({
+const pick = (j: Journey): RebuiltFields => ({
   version: j.version,
-  stage: j.stage,
+  node: j.node,
   status: j.status,
   dropReason: j.dropReason,
+  trail: j.trail,
 });
 
 /**

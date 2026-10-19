@@ -10,8 +10,8 @@
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
     "./entry": "./src/entry.ts",
-    "./fold": "./src/fold.ts",
     "./journeys": "./src/journeys.ts",
+    "./migrate": "./src/migrate.ts",
     "./model": "./src/model.ts",
     "./moves": "./src/moves.ts",
     "./numbers": "./src/numbers.ts",
@@ -20,9 +20,8 @@
     "./restate": "./src/restate.ts",
     "./schedule": "./src/schedule.ts",
     "./schema": "./src/schema.ts",
-    "./seed": "./src/seed.ts",
+    "./shape-file": "./src/shape-file.ts",
     "./sourced": "./src/sourced.ts",
-    "./stages": "./src/stages.ts",
     "./steps": "./src/steps.ts",
     "./store": "./src/store.ts",
     "./views": "./src/views.ts",
@@ -39,6 +38,7 @@
     "@wren/db": "workspace:*",
     "@wren/offers": "workspace:*",
     "drizzle-orm": "0.45.2",
+    "yaml": "2.9.1",
     "zod": "4.6.5"
   },
   "devDependencies": {

@@ -1,7 +1,8 @@
 /**
- * A funnel version's body and its rules (designs/2026-10-18-journeys.md, "Funnel and funnel
- * version"). Pure: the known triggers, the funnel lookup and the composition graph come in as
- * arguments, so this file imports nothing from the spine.
+ * The shape: one directed graph per database (designs/2026-10-19-business-map.md). Sources open
+ * journeys. Steps, offers and plans hold them. Flow edges carry them forward. Loop edges send them
+ * back as a new journey. Pure: the known triggers, groups and lists come in as arguments, so this
+ * file imports nothing from the spine.
  */
 import { SOURCE_ID } from "@wren/core/logic";
 
@@ -12,80 +13,144 @@ export interface Advance {
   with?: Record<string, string | number>;
 }
 
-export interface Stage {
-  /** The spine node id rule. Never goes, moves or gets renamed. */
-  key: string;
-  label: string;
-  /** Exactly one stage: reaching it makes the deal. */
-  sale?: true;
-  /** What moves a journey to this stage. */
-  on: Advance[];
-  /** How much research the person gets on entering. Default `none`. Run once per journey and stage on arrival (`research.ts`). */
-  research?: Research;
-  /** Whole days an open journey may sit here before it reads stale (1 to 365). Default `STALE_DAYS`. */
-  idleDays?: number;
-}
-
-/** The longest `idleDays` a stage may set. */
+/** The longest `idleDays` a node may set. */
 export const IDLE_DAYS_MAX = 365;
 
 export const RESEARCH_LEVELS = ["none", "light", "full"] as const;
 export type Research = (typeof RESEARCH_LEVELS)[number];
 
-export const ENTRY_KINDS = [
+/** What a step is: the kind of thing that happens there. */
+export const ACTIONS = [
+  "comment",
+  "reply",
+  "dm",
+  "email",
+  "text",
+  "call",
+  "cta",
+  "visit",
+  "form",
+  "book",
+  "held",
+  "proposal",
+  "signed",
+  "other",
+] as const;
+export type Action = (typeof ACTIONS)[number];
+
+/** How a source finds people. Today's entry kinds, less `funnel` (an edge does that). */
+export const VIAS = [
   "organic",
   "outbound",
   "ads",
   "referral",
-  "funnel",
   "sourced",
   "group",
   "manual",
 ] as const;
-export type EntryKind = (typeof ENTRY_KINDS)[number];
+export type Via = (typeof VIAS)[number];
 
-export interface Entry {
-  /** `youtube`, `linkedin`, `ads`, `referral`, ... */
+export const NODE_KINDS = ["source", "step", "offer", "plan"] as const;
+export type NodeKind = (typeof NODE_KINDS)[number];
+
+export const EDGE_KINDS = ["flow", "loop"] as const;
+export type EdgeKind = (typeof EDGE_KINDS)[number];
+
+interface NodeBase {
+  /** The spine node id rule (`STAGE_KEY`). Never goes, moves or gets renamed. */
   id: string;
-  kind: EntryKind;
+  name: string;
+}
+
+/** Where people come from. Nobody sits on a source: an opening crosses its edge. */
+export interface SourceNode extends NodeBase {
+  kind: "source";
+  via: Via;
   /** The platform or channel the cause must come from. */
   channel?: string;
   /** An ads campaign id or a `/go/` campaign. */
   campaign?: string;
-  /** Kind `funnel`: that funnel's stage. Default: its sale stage. */
-  funnel?: { id: string; at?: string };
-  /** Kind `sourced`: the list the person was added to, `import:<batch id>` (an import batch). */
+  /** Via `sourced`: the list the person was added to, `import:<batch id>`. */
   source?: string;
-  /** Kind `group`: the saved query whose members enter. */
+  /** Via `group`: the saved query whose members enter (a segment id as text). */
   group?: string;
-  /** The stage a journey opens at. Default: the first. */
-  to?: string;
+  /** Opens nothing. Keeps the node and its numbers. */
+  parked?: true;
 }
 
-export interface FunnelBody {
-  name: string;
-  /** The registry id the sale stage sells. */
+export interface StepNode extends NodeBase {
+  kind: "step";
+  action: Action;
+  /** What moves a journey to this node. */
+  advance: Advance[];
+  /** How much research the person gets on arrival. Default `none`. */
+  research?: Research;
+  /** Whole days an open journey may sit here before it reads stale (1 to 365). */
+  idleDays?: number;
+}
+
+/** Reaching an offer node makes the deal. */
+export interface OfferNode extends NodeBase {
+  kind: "offer";
+  /** The registry offer id. */
   offer: string;
-  /** Ordered; index is order. */
-  stages: Stage[];
-  /** Ordered; order is priority (first match wins). */
-  entries: Entry[];
+  advance: Advance[];
+  research?: Research;
+  idleDays?: number;
+}
+
+/** Reaching a plan node signs the deal under the plan's terms. */
+export interface PlanNode extends NodeBase {
+  kind: "plan";
+  /** A terms plan slug of the offer above this node. */
+  terms: string;
+  advance: Advance[];
+  idleDays?: number;
+}
+
+export type ShapeNode = SourceNode | StepNode | OfferNode | PlanNode;
+/** A node that holds journeys (every kind but source). */
+export type HoldNode = StepNode | OfferNode | PlanNode;
+
+export interface ShapeEdge {
+  id: string;
+  from: string;
+  to: string;
+  kind: EdgeKind;
+  label?: string;
+}
+
+export interface ShapeBody {
+  name: string;
+  nodes: ShapeNode[];
+  edges: ShapeEdge[];
+}
+
+/** One step of a journey's trail: a crossing of an edge (null when forced by hand). */
+export interface Crossing {
+  edge: string | null;
+  /** The node it left; the source for an opening. */
+  from: string | null;
+  to: string;
+  /** ISO time. */
+  at: string;
 }
 
 /** A group is a segment: its id as text, a positive whole number. */
 export const GROUP_ID = /^[1-9][0-9]{0,9}$/;
 export const STAGE_KEY = /^[a-z][a-z0-9_]*$/;
-/** The key of the node a drop arrives at; no stage may take it. */
+export const EDGE_ID = /^[a-z][a-z0-9_]*$/;
+/** The widest a node id goes (`journeys.node` is varchar(40)). */
+export const NODE_ID_MAX = 40;
+/** Two node ids and `_to_`: the widest default edge id. */
+export const EDGE_ID_MAX = NODE_ID_MAX * 2 + 4;
+/** The key of the node a drop arrives at; no node may take it. */
 export const DROPPED = "dropped";
 
-/** What `checkFunnel` needs from outside. */
-export interface FunnelContext {
-  /** The funnel being checked. */
-  id: string;
+/** What `checkShape` needs from outside. */
+export interface ShapeCheckContext {
   /** Trigger component ids that exist. */
   triggers: ReadonlySet<string>;
-  /** A stored funnel's stage keys and its sale stage, or undefined if there is none. */
-  funnel(id: string): { stages: readonly string[]; sale: string } | undefined;
   /**
    * A stored group (a segment in this workspace) by id as text, or undefined if there is none.
    * `active` is false once it is archived: an archived group tells no one.
@@ -93,140 +158,295 @@ export interface FunnelContext {
   group(id: string): { active: boolean } | undefined;
   /** A sourced list by id (`import:<batch id>`), or undefined if there is none. */
   source(id: string): { exists: true } | undefined;
-  /** Funnel ids each stored funnel takes entries from. This funnel's own edges are replaced by `next`. */
-  feeds: Readonly<Record<string, readonly string[]>>;
 }
 
+/** The id an edge takes when none is given. */
+export const edgeIdOf = (from: string, to: string): string => `${from}_to_${to}`;
+
+export const isSource = (n: ShapeNode): n is SourceNode => n.kind === "source";
+export const holds = (n: ShapeNode): n is HoldNode => n.kind !== "source";
+
+export const nodeOf = (body: ShapeBody, id: string): ShapeNode | undefined =>
+  body.nodes.find((n) => n.id === id);
+
+export const flowEdgesFrom = (body: ShapeBody, id: string): ShapeEdge[] =>
+  body.edges.filter((e) => e.kind === "flow" && e.from === id);
+
+/** A node no flow edge leaves: a journey that reaches it is done. */
+export const isEnd = (body: ShapeBody, id: string): boolean => flowEdgesFrom(body, id).length === 0;
+
+/** The `advance` list of a node that holds journeys; a source has none. */
+export const advanceOf = (n: ShapeNode): Advance[] => (n.kind === "source" ? [] : n.advance);
+
 /**
- * Check a new funnel version against the one before it (`prev`, null for the first).
- * Returns what is wrong, in plain English. Empty means ok.
+ * Check a new shape. Returns what is wrong, in plain English. Empty means ok.
  */
-export function checkFunnel(
-  prev: FunnelBody | null,
-  next: FunnelBody,
-  ctx: FunnelContext,
-): string[] {
+export function checkShape(next: ShapeBody, ctx: ShapeCheckContext): string[] {
   const errors: string[] = [];
-  const keys = next.stages.map((s) => s.key);
+  if (typeof next.name !== "string" || next.name.trim() === "") {
+    errors.push("The shape needs a name.");
+  }
+  const ids = next.nodes.map((n) => n.id);
 
-  if (keys.length === 0) errors.push("The funnel needs at least one stage.");
-  for (const [i, k] of keys.entries()) {
-    if (!STAGE_KEY.test(k)) {
-      errors.push(
-        `Stage key "${k}" must be lowercase letters, digits and underscores, starting with a letter.`,
-      );
-    }
-    if (keys.indexOf(k) !== i) errors.push(`Stage key "${k}" is used twice.`);
-    if (k === DROPPED) errors.push(`Stage key "${k}" is reserved for dropped journeys.`);
+  if (!next.nodes.some((n) => n.kind === "source")) {
+    errors.push("The shape needs at least one source.");
   }
 
-  const sales = next.stages.filter((s) => s.sale);
-  if (sales.length !== 1) {
-    errors.push(`The funnel needs exactly one sale stage, not ${sales.length}.`);
+  for (const [i, n] of next.nodes.entries()) {
+    const k = n.id;
+    if (typeof k !== "string" || !STAGE_KEY.test(k)) {
+      errors.push(
+        `Node id "${k}" must be lowercase letters, digits and underscores, starting with a letter.`,
+      );
+    } else if (k.length > NODE_ID_MAX) {
+      errors.push(`Node id "${k}" is longer than ${NODE_ID_MAX} characters.`);
+    }
+    if (ids.indexOf(k) !== i) errors.push(`Node id "${k}" is used twice.`);
+    if (k === DROPPED) errors.push(`Node id "${k}" is reserved for dropped journeys.`);
+    if (typeof n.name !== "string" || n.name.trim() === "") {
+      errors.push(`Node "${k}" needs a name.`);
+    }
+    if (!NODE_KINDS.includes(n.kind)) {
+      errors.push(`Node "${k}" has kind "${n.kind}". Use source, step, offer or plan.`);
+      continue;
+    }
+    checkNode(n, ctx, errors);
   }
 
-  for (const s of next.stages) {
-    if (s.research !== undefined && !RESEARCH_LEVELS.includes(s.research)) {
-      errors.push(`Stage "${s.key}" has research "${s.research}". Use none, light or full.`);
-    }
-    if (
-      s.idleDays !== undefined &&
-      !(Number.isInteger(s.idleDays) && s.idleDays >= 1 && s.idleDays <= IDLE_DAYS_MAX)
-    ) {
+  const edgeIds = next.edges.map((e) => e.id);
+  const known = new Set(ids);
+  const kindOf = new Map(next.nodes.map((n) => [n.id, n.kind]));
+  for (const [i, e] of next.edges.entries()) {
+    if (typeof e.id !== "string" || !EDGE_ID.test(e.id)) {
       errors.push(
-        `Stage "${s.key}" has idleDays ${JSON.stringify(s.idleDays)}. Use a whole number of days from 1 to ${IDLE_DAYS_MAX}.`,
+        `Edge id "${e.id}" must be lowercase letters, digits and underscores, starting with a letter.`,
+      );
+    } else if (e.id.length > EDGE_ID_MAX) {
+      errors.push(`Edge id "${e.id}" is longer than ${EDGE_ID_MAX} characters.`);
+    }
+    if (edgeIds.indexOf(e.id) !== i) errors.push(`Edge id "${e.id}" is used twice.`);
+    if (!EDGE_KINDS.includes(e.kind)) {
+      errors.push(`Edge "${e.id}" has kind "${e.kind}". Use flow or loop.`);
+    }
+    for (const end of [e.from, e.to]) {
+      if (!known.has(end))
+        errors.push(`Edge "${e.id}" names node "${end}", which is not in the shape.`);
+    }
+    if (e.from === e.to) errors.push(`Edge "${e.id}" starts and ends at "${e.from}".`);
+    const twin = next.edges.findIndex(
+      (o) => o.from === e.from && o.to === e.to && o.kind === e.kind,
+    );
+    if (twin !== -1 && twin < i) {
+      errors.push(
+        `Edge "${e.id}" repeats edge "${next.edges[twin]?.id}": same ${e.kind} from "${e.from}" to "${e.to}".`,
       );
     }
-    for (const a of s.on) {
-      if (!ctx.triggers.has(a.trigger)) {
-        errors.push(`Stage "${s.key}" uses "${a.trigger}", which is not a known trigger.`);
-      }
+    if (kindOf.get(e.to) === "source") {
+      errors.push(`Edge "${e.id}" ends at source "${e.to}". Nothing enters a source.`);
     }
   }
 
-  if (prev) {
-    if (prev.offer !== next.offer) {
-      errors.push(
-        `The offer cannot change from "${prev.offer}" to "${next.offer}". Make a new funnel.`,
-      );
-    }
-    for (const [i, p] of prev.stages.entries()) {
-      const k = keys[i];
-      if (k === p.key) continue;
-      errors.push(
-        k === undefined
-          ? `Stage "${p.key}" cannot be removed.`
-          : `Stage ${i + 1} must stay "${p.key}", not "${k}". Stages are append only.`,
-      );
-    }
+  // Loop and flow edges that end at a source are reported above; the rest of the rules need
+  // edges that name real nodes.
+  const real = next.edges.filter((e) => known.has(e.from) && known.has(e.to) && e.from !== e.to);
+  const flows = real.filter((e) => e.kind === "flow");
+
+  const cycle = cycleOf(
+    ids,
+    flows.map((e) => [e.from, e.to]),
+  );
+  if (cycle) {
+    errors.push(`Flow edges form a loop: ${cycle.join(" -> ")}. Mark one edge as a loop edge.`);
   }
 
-  const entryIds = new Set<string>();
-  for (const e of next.entries) {
-    if (entryIds.has(e.id)) errors.push(`Entry "${e.id}" is used twice.`);
-    entryIds.add(e.id);
-    if (e.to !== undefined && !keys.includes(e.to)) {
-      errors.push(`Entry "${e.id}" opens at "${e.to}", which is not a stage of this funnel.`);
+  for (const n of next.nodes) {
+    if (n.kind === "source") continue;
+    const incoming = flows.filter((e) => e.to === n.id);
+    if (incoming.length === 0) {
+      errors.push(`Node "${n.id}" has no flow edge into it. Nothing can reach it.`);
+      continue;
     }
-    if (e.kind === "funnel" && !e.funnel)
-      errors.push(`Entry "${e.id}" has kind funnel but names no funnel.`);
-    if (e.kind === "sourced") {
-      if (!e.source) errors.push(`Entry "${e.id}" has kind sourced but names no source.`);
-      else if (!SOURCE_ID.test(e.source))
+    if (n.kind === "plan") {
+      const from = new Set(incoming.map((e) => e.from));
+      const offers = [...from].filter((f) => kindOf.get(f) === "offer");
+      if (from.size !== offers.length || offers.length !== 1) {
         errors.push(
-          `Entry "${e.id}" names source "${e.source}", which is not a list's id (import:12).`,
+          `Plan "${n.id}" must follow one offer node. Its flow edges come from one offer.`,
         );
-      else if (!ctx.source(e.source))
-        errors.push(`Entry "${e.id}" names source ${e.source}, which does not exist.`);
-    }
-    if (e.kind === "group") {
-      if (!e.group) errors.push(`Entry "${e.id}" has kind group but names no group.`);
-      else if (!GROUP_ID.test(e.group))
-        errors.push(`Entry "${e.id}" names group "${e.group}", which is not a group's number.`);
-      else {
-        const g = ctx.group(e.group);
-        if (!g) errors.push(`Entry "${e.id}" names group ${e.group}, which does not exist.`);
-        else if (!g.active)
-          errors.push(
-            `Entry "${e.id}" names group ${e.group}, which is archived. Restore it first.`,
-          );
       }
     }
-    if (!e.funnel) continue;
-    const target =
-      e.funnel.id === ctx.id
-        ? { stages: keys, sale: sales[0]?.key ?? "" }
-        : ctx.funnel(e.funnel.id);
-    if (!target) {
-      errors.push(`Entry "${e.id}" names funnel "${e.funnel.id}", which does not exist.`);
-    } else if (e.funnel.at !== undefined && !target.stages.includes(e.funnel.at)) {
-      errors.push(
-        `Entry "${e.id}" names stage "${e.funnel.at}", which "${e.funnel.id}" does not have.`,
-      );
-    }
   }
-
-  const loop = cycleThrough(ctx.id, next, ctx.feeds);
-  if (loop) errors.push(`Funnels feed each other in a loop: ${loop.join(" -> ")}.`);
   return errors;
 }
 
-/** A path from `id` back to `id` through entries of kind funnel, or null. */
-function cycleThrough(
-  id: string,
-  next: FunnelBody,
-  feeds: Readonly<Record<string, readonly string[]>>,
-): string[] | null {
-  const edges = (f: string): readonly string[] =>
-    f === id ? next.entries.flatMap((e) => (e.funnel ? [e.funnel.id] : [])) : (feeds[f] ?? []);
-  const walk = (f: string, path: string[]): string[] | null => {
-    for (const g of edges(f)) {
-      if (g === id) return [...path, g];
-      if (path.includes(g)) continue;
-      const found = walk(g, [...path, g]);
+function checkNode(n: ShapeNode, ctx: ShapeCheckContext, errors: string[]): void {
+  const k = n.id;
+  if (n.kind === "source") {
+    if (!VIAS.includes(n.via)) {
+      errors.push(`Source "${k}" has via "${n.via}". Use ${VIAS.join(", ")}.`);
+    }
+    if (n.via === "sourced") {
+      if (!n.source) errors.push(`Source "${k}" has via sourced but names no source.`);
+      else if (!SOURCE_ID.test(n.source))
+        errors.push(
+          `Source "${k}" names source "${n.source}", which is not a list's id (import:12).`,
+        );
+      else if (!ctx.source(n.source))
+        errors.push(`Source "${k}" names source ${n.source}, which does not exist.`);
+    }
+    if (n.via === "group") {
+      if (!n.group) errors.push(`Source "${k}" has via group but names no group.`);
+      else if (!GROUP_ID.test(n.group))
+        errors.push(`Source "${k}" names group "${n.group}", which is not a group's number.`);
+      else {
+        const g = ctx.group(n.group);
+        if (!g) errors.push(`Source "${k}" names group ${n.group}, which does not exist.`);
+        else if (!g.active)
+          errors.push(`Source "${k}" names group ${n.group}, which is archived. Restore it first.`);
+      }
+    }
+    return;
+  }
+
+  if (n.kind === "step" && !ACTIONS.includes(n.action)) {
+    errors.push(`Step "${k}" has action "${n.action}". Use ${ACTIONS.join(", ")}.`);
+  }
+  if (n.kind === "offer" && (typeof n.offer !== "string" || n.offer === "")) {
+    errors.push(`Offer node "${k}" names no offer.`);
+  }
+  if (n.kind === "plan" && (typeof n.terms !== "string" || n.terms === "")) {
+    errors.push(`Plan "${k}" names no terms plan.`);
+  }
+  if (n.kind !== "plan" && n.research !== undefined && !RESEARCH_LEVELS.includes(n.research)) {
+    errors.push(`Node "${k}" has research "${n.research}". Use none, light or full.`);
+  }
+  if (
+    n.idleDays !== undefined &&
+    !(Number.isInteger(n.idleDays) && n.idleDays >= 1 && n.idleDays <= IDLE_DAYS_MAX)
+  ) {
+    errors.push(
+      `Node "${k}" has idleDays ${JSON.stringify(n.idleDays)}. Use a whole number of days from 1 to ${IDLE_DAYS_MAX}.`,
+    );
+  }
+  if (!Array.isArray(n.advance)) {
+    errors.push(`Node "${k}" needs an advance list, even an empty one.`);
+    return;
+  }
+  for (const a of n.advance) {
+    if (!ctx.triggers.has(a.trigger)) {
+      errors.push(`Node "${k}" uses "${a.trigger}", which is not a known trigger.`);
+    }
+  }
+}
+
+/** One directed cycle through `pairs`, as node ids from the start back to the start, or null. */
+function cycleOf(ids: readonly string[], pairs: readonly (readonly [string, string])[]) {
+  const next = new Map<string, string[]>();
+  for (const [a, b] of pairs) next.set(a, [...(next.get(a) ?? []), b]);
+  const done = new Set<string>();
+  const stack: string[] = [];
+  const visit = (id: string): string[] | null => {
+    const at = stack.indexOf(id);
+    if (at !== -1) return [...stack.slice(at), id];
+    if (done.has(id)) return null;
+    stack.push(id);
+    for (const to of next.get(id) ?? []) {
+      const found = visit(to);
       if (found) return found;
     }
+    stack.pop();
+    done.add(id);
     return null;
   };
-  return walk(id, [id]);
+  for (const id of ids) {
+    const found = visit(id);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * How far each node sits from a source: the longest flow path from any source. Sources are 0.
+ * Loop edges are ignored. Pure, and safe on a body that has not been checked (a cycle does not
+ * loop; a node nothing reaches is 0).
+ */
+export function depthOf(body: ShapeBody): Record<string, number> {
+  const into = new Map<string, string[]>();
+  for (const e of body.edges) {
+    if (e.kind === "flow") into.set(e.to, [...(into.get(e.to) ?? []), e.from]);
+  }
+  const depth: Record<string, number> = {};
+  const open = new Set<string>();
+  const visit = (id: string): number => {
+    const known = depth[id];
+    if (known !== undefined) return known;
+    if (open.has(id)) return 0;
+    open.add(id);
+    let d = 0;
+    for (const from of into.get(id) ?? []) d = Math.max(d, visit(from) + 1);
+    open.delete(id);
+    depth[id] = d;
+    return d;
+  };
+  for (const n of body.nodes) {
+    // A source has no incoming edge in a checked shape; force it to 0 in an unchecked one.
+    if (n.kind === "source") depth[n.id] = 0;
+  }
+  for (const n of body.nodes) visit(n.id);
+  return depth;
+}
+
+/**
+ * The shortest flow path from `from` to `to` as edge ids (fewest edges, ties by edge order in
+ * the body), or null. With `loops` (the default) and no flow path, one loop edge from `from` to
+ * `to` counts as a path of one. A node has no path to itself.
+ */
+export function pathOf(
+  body: ShapeBody,
+  from: string,
+  to: string,
+  opts: { loops?: boolean } = {},
+): string[] | null {
+  if (from === to) return null;
+  const via = new Map<string, ShapeEdge>();
+  const seen = new Set([from]);
+  let level = [from];
+  while (level.length > 0 && !seen.has(to)) {
+    const step: string[] = [];
+    for (const at of level) {
+      for (const e of body.edges) {
+        if (e.kind !== "flow" || e.from !== at || seen.has(e.to)) continue;
+        seen.add(e.to);
+        via.set(e.to, e);
+        step.push(e.to);
+      }
+    }
+    level = step;
+  }
+  if (seen.has(to)) {
+    const path: string[] = [];
+    for (let at = to; at !== from; ) {
+      const e = via.get(at);
+      if (!e) return null;
+      path.unshift(e.id);
+      at = e.from;
+    }
+    return path;
+  }
+  if (opts.loops ?? true) {
+    const loop = body.edges.find((e) => e.kind === "loop" && e.from === from && e.to === to);
+    if (loop) return [loop.id];
+  }
+  return null;
+}
+
+/** The edges named by `ids`, in order, from a body. An id the body lacks is left out. */
+export const edgesOf = (body: ShapeBody, ids: readonly string[]): ShapeEdge[] =>
+  ids.flatMap((id) => body.edges.find((e) => e.id === id) ?? []);
+
+/** The nodes a path from `from` passes through, not counting `from` and the last node. */
+export function passedThrough(body: ShapeBody, edges: readonly string[]): string[] {
+  return edgesOf(body, edges)
+    .slice(0, -1)
+    .map((e) => e.to);
 }

@@ -242,7 +242,8 @@ export const AUDIT_FUNCTION_STATEMENTS = [
     CASE WHEN e.table_name LIKE 'books.%'
         OR e.table_name IN ('delivery.invoices', 'delivery.wise_credits', 'delivery.agreements', 'ad_launches',
           'pipeline.offer_versions', 'pipeline.terms_versions', 'pipeline.funnels',
-          'pipeline.funnel_versions', 'pipeline.journeys', 'pipeline.deals')
+          'pipeline.funnel_versions', 'pipeline.shape_versions', 'pipeline.journeys',
+          'pipeline.deals')
         THEN 'money'
       WHEN e.table_name LIKE 'delivery.%' OR e.table_name IN ('clients', 'client_members') THEN 'client'
       WHEN e.table_name = 'operators' THEN 'team'

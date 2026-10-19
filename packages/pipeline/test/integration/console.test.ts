@@ -10,8 +10,11 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pipelineConsoleApi } from "../../src/console.js";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "../../src/console-routes.js";
-import type { FunnelBody } from "../../src/model.js";
+import type { ShapeBody } from "../../src/model.js";
 import { journeys } from "../../src/schema.js";
+import { exportShape } from "../../src/shape-file.js";
+import { shapeVersionsOf } from "../../src/store.js";
+import { flow } from "../fixtures.js";
 
 let pg: TestPostgres;
 const OWNER = "owner@acme.example.test";
@@ -24,14 +27,26 @@ const as = (email: string, client?: string, operator = false) => ({
 // A client's database is the test database too: access is what these tests check.
 const api = () => pipelineConsoleApi({ db: pg.db, open: () => pg.db });
 
-const funnel: FunnelBody = {
-  name: "Console funnel",
-  offer: "offer-a",
-  stages: [
-    { key: "engaged", label: "Engaged", on: [{ trigger: "trigger.reply" }] },
-    { key: "signed", label: "Signed", sale: true, on: [{ trigger: "trigger.document" }] },
+const shape: ShapeBody = {
+  name: "Console shape",
+  nodes: [
+    { id: "manual", kind: "source", name: "Manual", via: "manual" },
+    {
+      id: "engaged",
+      kind: "step",
+      name: "Engaged",
+      action: "reply",
+      advance: [{ trigger: "trigger.reply" }],
+    },
+    {
+      id: "signed",
+      kind: "offer",
+      name: "Signed",
+      offer: "offer-a",
+      advance: [{ trigger: "trigger.document" }],
+    },
   ],
-  entries: [],
+  edges: [flow("manual", "engaged"), flow("engaged", "signed")],
 };
 
 beforeAll(async () => {
@@ -52,9 +67,10 @@ describe("routes", () => {
       "recordsGet",
       "recordsExport",
       "recordsStats",
+      "shapeDiff",
     ]);
-    expect(names.filter((n) => PIPELINE_CONSOLE_ROUTES[n as never] === "act")).toContain(
-      "termsAdd",
+    expect(names.filter((n) => PIPELINE_CONSOLE_ROUTES[n as never] === "act")).toEqual(
+      expect.arrayContaining(["termsAdd", "shapeVersion", "shapeImport"]),
     );
     expect(PIPELINE_CONSOLE_APPS["*"]).toBe("deals");
   });
@@ -66,10 +82,10 @@ describe("the records", () => {
     const want = [
       "pipeline.deal",
       "pipeline.entry",
-      "pipeline.funnel",
       "pipeline.journey",
       "pipeline.number",
       "pipeline.offer",
+      "pipeline.shape",
       "pipeline.terms",
     ];
     expect(ids(await api().recordsTypes(as(ADA, undefined, true)))).toEqual(want);
@@ -86,46 +102,63 @@ describe("the records", () => {
   });
 });
 
-describe("funnel changes", () => {
-  it("adds a funnel, appends a version, turns it off and on, as an operator", async () => {
+describe("shape changes", () => {
+  it("saves a version, reads two apart, and imports a file, as an operator", async () => {
     const op = as(ADA, undefined, true);
-    expect(await api().funnelsAdd({ ...op, id: "c-one", body: funnel })).toEqual({
-      funnel: "c-one",
-      version: 1,
+    expect(await api().shapeVersion({ ...op, note: "first", body: shape })).toEqual({ version: 1 });
+    const grown = { ...shape, name: "Console shape 2" };
+    expect(await api().shapeVersion({ ...op, note: "renamed", body: grown })).toEqual({
+      version: 2,
     });
-    expect(
-      await api().funnelsAppend({
-        ...op,
-        id: "c-one",
-        body: { ...funnel, name: "Console funnel 2" },
-      }),
-    ).toEqual({ funnel: "c-one", version: 2 });
-    expect(await api().funnelsStatus({ ...op, id: "c-one" }, "off")).toEqual({
-      funnel: "c-one",
-      status: "off",
+    const diff = await api().shapeDiff({ ...op, a: 1, b: 2 });
+    expect(diff).toMatchObject({ a: 1, b: 2 });
+    expect(JSON.stringify(diff.diff)).toMatch(/name/);
+    const page = await api().recordsList({ ...op, record: "pipeline.shape", view: "all" });
+    expect(page.rows.map((r) => [r.name, r.version])).toEqual([["Console shape 2", 2]]);
+    const got = await api().recordsGet({
+      ...op,
+      record: "pipeline.shape",
+      id: page.rows[0]?.id as string,
     });
-    expect(await api().funnelsStatus({ ...op, id: "c-one" }, "live")).toEqual({
-      funnel: "c-one",
-      status: "live",
+    expect(got.detail).toMatchObject({
+      body: { nodes: [{ id: "manual" }, { id: "engaged" }, { id: "signed" }] },
+      depths: { manual: 0, engaged: 1, signed: 2 },
+      versions: [{ number: 2 }, { number: 1 }],
     });
-    const page = await api().recordsList({ ...op, record: "pipeline.funnel", view: "live" });
-    expect(page.rows.map((r) => r.id)).toContain("c-one");
+  });
+
+  it("reads a shape file into the next version, and says when nothing changed", async () => {
+    const op = as(ADA, undefined, true);
+    const newest = (await shapeVersionsOf(pg.db)).at(-1);
+    const text = exportShape(newest?.body as ShapeBody);
+    expect(await api().shapeImport({ ...op, text })).toEqual({
+      version: 2,
+      changed: false,
+      terms: [],
+    });
+    const edited = text.replace("Console shape 2", "Console shape 3");
+    expect(await api().shapeImport({ ...op, text: edited, note: "from a file" })).toMatchObject({
+      version: 3,
+      changed: true,
+    });
   });
 
   it("answers a store refusal as a portal refusal", async () => {
     const op = as(ADA, undefined, true);
-    await expect(api().funnelsAdd({ ...op, id: "c-one", body: funnel })).rejects.toMatchObject({
-      status: 400,
-    });
-    await expect(api().funnelsAdd({ ...op, id: "c-bad", body: { stages: "x" } })).rejects.toThrow(
-      /stages/,
+    await expect(
+      api().shapeVersion({ ...op, note: "x", body: { ...shape, edges: [] } }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(api().shapeVersion({ ...op, note: "x", body: { nodes: "x" } })).rejects.toThrow(
+      /needs nodes/,
     );
+    await expect(api().shapeDiff({ ...op, a: 1, b: 99 })).rejects.toThrow(/no shape version 99/);
+    await expect(api().shapeImport({ ...op, text: "- not a shape" })).rejects.toBeTruthy();
   });
 
   it("refuses a viewer's change and keeps offers sync to Wren's workspace", async () => {
-    await expect(api().funnelsAdd({ ...as(VAL, "acme"), id: "c-v", body: funnel })).rejects.toThrow(
-      /can't do that/,
-    );
+    await expect(
+      api().shapeVersion({ ...as(VAL, "acme"), note: "x", body: shape }),
+    ).rejects.toThrow(/can't do that/);
     await expect(api().offersSync(as(OWNER, "acme"))).rejects.toThrow(/Wren's workspace only/);
   });
 
@@ -140,45 +173,37 @@ describe("the journeys board's reads", () => {
   const person = async (email: string) =>
     ((await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))?.id as number) ?? 0;
 
-  it("lists a funnel's open journeys with their stage, and reads its stages", async () => {
+  it("lists the open journeys with their node, and the done ones apart", async () => {
     const [a, b, c] = [
       await person("a@example.test"),
       await person("b@example.test"),
       await person("c@example.test"),
     ];
-    const base = { funnel: "c-one", version: 2, entry: "manual" };
+    const base = { version: 3, entry: "manual" };
     await pg.db.insert(journeys).values([
-      { ...base, profileId: a, stage: "engaged" },
-      { ...base, profileId: b, stage: "engaged" },
-      { ...base, profileId: c, stage: "signed", status: "done", closedAt: new Date() },
+      { ...base, profileId: a, node: "engaged" },
+      { ...base, profileId: b, node: "engaged" },
+      { ...base, profileId: c, node: "signed", status: "done", closedAt: new Date() },
     ]);
     const open = await api().recordsList({
       ...op(),
       record: "pipeline.journey",
-      where: { funnel: "c-one", status: "open" },
+      view: "open",
       sort: "movedAt",
       limit: 200,
     });
     expect(open.rows).toHaveLength(2);
-    expect(open.rows.map((r) => [r.stage, r.stageLabel, r.status])).toEqual([
+    expect(open.rows.map((r) => [r.node, r.nodeName, r.status])).toEqual([
       ["engaged", "Engaged", "open"],
       ["engaged", "Engaged", "open"],
     ]);
     const done = await api().recordsList({
       ...op(),
       record: "pipeline.journey",
-      where: { funnel: "c-one", status: "done" },
-      sort: "-closedAt",
+      view: "done",
       limit: 20,
     });
-    expect(done.rows.map((r) => r.stage)).toEqual(["signed"]);
-    const got = await api().recordsGet({ ...op(), record: "pipeline.funnel", id: "c-one" });
-    expect(got.detail).toMatchObject({
-      stages: [
-        { key: "engaged", label: "Engaged", sale: false },
-        { key: "signed", label: "Signed", sale: true },
-      ],
-    });
+    expect(done.rows.map((r) => r.node)).toEqual(["signed"]);
   });
 });
 

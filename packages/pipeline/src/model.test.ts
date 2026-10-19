@@ -1,193 +1,302 @@
 import { describe, expect, it } from "vitest";
-import { checkFunnel, type FunnelBody, type FunnelContext } from "./model.js";
+import { ctx, flow, grown, loop, shape } from "../test/fixtures.js";
+import {
+  checkShape,
+  depthOf,
+  edgeIdOf,
+  isEnd,
+  passedThrough,
+  pathOf,
+  type ShapeBody,
+  type ShapeNode,
+} from "./model.js";
 
-const body = (over: Partial<FunnelBody> = {}): FunnelBody => ({
-  name: "Test",
-  offer: "offer-a",
-  stages: [
-    { key: "engaged", label: "Engaged", on: [{ trigger: "trigger.touch" }] },
-    {
-      key: "booked",
-      label: "Booked",
-      on: [{ trigger: "trigger.booking", with: { change: "booked" } }],
-    },
-    { key: "signed", label: "Signed", sale: true, on: [{ trigger: "trigger.document" }] },
-  ],
-  entries: [{ id: "web", kind: "organic", channel: "web" }],
-  ...over,
-});
+const problems = (b: ShapeBody, c = ctx()) => checkShape(b, c).join("\n");
 
-const ctx = (over: Partial<FunnelContext> = {}): FunnelContext => ({
-  id: "main",
-  triggers: new Set(["trigger.touch", "trigger.booking", "trigger.document"]),
-  funnel: (id) => (id === "other" ? { stages: ["a", "b"], sale: "b" } : undefined),
-  group: (id) => (id === "7" ? { active: true } : id === "8" ? { active: false } : undefined),
-  source: (id) => (id === "import:12" ? { exists: true } : undefined),
-  feeds: {},
-  ...over,
-});
-
-describe("checkFunnel", () => {
-  it("accepts a good first version and an append", () => {
-    expect(checkFunnel(null, body(), ctx())).toEqual([]);
-    const next = body({
-      stages: [...body().stages, { key: "paying", label: "Paying", on: [] }],
-    });
-    expect(checkFunnel(body(), next, ctx())).toEqual([]);
+describe("checkShape", () => {
+  it("accepts a good shape", () => {
+    expect(checkShape(shape(), ctx())).toEqual([]);
   });
 
-  it("lets labels and rules change but not keys", () => {
-    const next = body();
-    next.stages[0] = { key: "engaged", label: "New label", on: [] };
-    expect(checkFunnel(body(), next, ctx())).toEqual([]);
+  it("needs a source", () => {
+    const b = shape();
+    b.nodes = b.nodes.filter((n) => n.kind !== "source");
+    b.edges = b.edges.filter((e) => e.from !== "yt" && e.from !== "mail");
+    expect(problems(b)).toMatch(/at least one source/);
   });
 
-  it("refuses a removed, moved or renamed stage", () => {
-    const removed = body({ stages: body().stages.slice(1) });
-    expect(checkFunnel(body(), removed, ctx()).join("\n")).toMatch(/Stage 1 must stay "engaged"/);
-    const renamed = body();
-    renamed.stages[1] = { key: "booked2", label: "Booked", on: [] };
-    expect(checkFunnel(body(), renamed, ctx()).join("\n")).toMatch(/must stay "booked"/);
-    const shorter = body({ stages: body().stages.slice(0, 2) });
-    expect(checkFunnel(body(), shorter, ctx()).join("\n")).toMatch(
-      /Stage "signed" cannot be removed/,
-    );
-  });
-
-  it("needs exactly one sale stage", () => {
-    const none = body();
-    none.stages[2] = { key: "signed", label: "Signed", on: [] };
-    expect(checkFunnel(null, none, ctx())).toEqual([
-      "The funnel needs exactly one sale stage, not 0.",
-    ]);
-    const two = body();
-    two.stages[0] = { key: "engaged", label: "Engaged", sale: true, on: [] };
-    expect(checkFunnel(null, two, ctx())).toEqual([
-      "The funnel needs exactly one sale stage, not 2.",
-    ]);
-  });
-
-  it("refuses a bad or repeated key", () => {
-    const bad = body();
-    bad.stages[0] = { key: "Engaged-1", label: "x", on: [] };
-    expect(checkFunnel(null, bad, ctx()).join("\n")).toMatch(/"Engaged-1" must be lowercase/);
-    const twice = body();
-    twice.stages[1] = { key: "engaged", label: "x", on: [] };
-    expect(checkFunnel(null, twice, ctx()).join("\n")).toMatch(/"engaged" is used twice/);
-  });
-
-  it("keeps the key dropped for drops", () => {
-    const next = body();
-    next.stages[0] = { key: "dropped", label: "x", on: [] };
-    expect(checkFunnel(null, next, ctx()).join("\n")).toMatch(/"dropped" is reserved/);
-  });
-
-  it("refuses an offer change", () => {
-    expect(checkFunnel(body(), body({ offer: "offer-b" }), ctx()).join("\n")).toMatch(
-      /offer cannot change/,
-    );
-  });
-
-  it("refuses an unknown trigger", () => {
-    const next = body();
-    next.stages[0] = { key: "engaged", label: "x", on: [{ trigger: "trigger.nope" }] };
-    expect(checkFunnel(null, next, ctx())).toEqual([
-      'Stage "engaged" uses "trigger.nope", which is not a known trigger.',
-    ]);
-  });
-
-  it("checks funnel entries", () => {
-    const ok = body({
-      entries: [
-        { id: "from_other", kind: "funnel", funnel: { id: "other", at: "b" }, to: "booked" },
+  it("checks node ids", () => {
+    const b = grown(
+      [
+        { id: "Bad-Id", kind: "step", name: "X", action: "other", advance: [] },
+        { id: "dropped", kind: "step", name: "X", action: "other", advance: [] },
+        { id: "booked", kind: "step", name: "Twice", action: "other", advance: [] },
+        { id: `a${"b".repeat(40)}`, kind: "step", name: "Long", action: "other", advance: [] },
       ],
-    });
-    expect(checkFunnel(null, ok, ctx())).toEqual([]);
-    const noFunnel = body({
-      entries: [{ id: "x", kind: "funnel", funnel: { id: "gone", at: "b" } }],
-    });
-    expect(checkFunnel(null, noFunnel, ctx()).join("\n")).toMatch(
-      /funnel "gone", which does not exist/,
+      [],
     );
-    const noStage = body({
-      entries: [{ id: "x", kind: "funnel", funnel: { id: "other", at: "zzz" } }],
-    });
-    expect(checkFunnel(null, noStage, ctx()).join("\n")).toMatch(
-      /stage "zzz", which "other" does not have/,
-    );
-    const noTarget = body({ entries: [{ id: "x", kind: "funnel" }] });
-    expect(checkFunnel(null, noTarget, ctx()).join("\n")).toMatch(/names no funnel/);
-    const badTo = body({ entries: [{ id: "x", kind: "manual", to: "zzz" }] });
-    expect(checkFunnel(null, badTo, ctx()).join("\n")).toMatch(/opens at "zzz"/);
+    const text = problems(b);
+    expect(text).toMatch(/Node id "Bad-Id" must be lowercase/);
+    expect(text).toMatch(/Node id "dropped" is reserved for dropped journeys/);
+    expect(text).toMatch(/Node id "booked" is used twice/);
+    expect(text).toMatch(/is longer than 40 characters/);
   });
 
-  it("checks sourced and group entries and research", () => {
-    const ok = body({
-      entries: [
-        { id: "list", kind: "sourced", source: "import:12" },
-        { id: "seg", kind: "group", group: "7" },
+  it("checks edges: ends, self, repeat, id, source in", () => {
+    const b = shape();
+    b.edges.push(
+      flow("engaged", "nowhere"),
+      flow("engaged", "engaged"),
+      { ...flow("engaged", "booked"), id: "again" },
+      { ...flow("engaged", "proposal"), id: "engaged_to_booked" },
+      flow("proposal", "yt"),
+      { ...flow("booked", "signed"), id: "Bad Id" },
+    );
+    const text = problems(b);
+    expect(text).toMatch(/names node "nowhere", which is not in the shape/);
+    expect(text).toMatch(/starts and ends at "engaged"/);
+    expect(text).toMatch(/Edge "again" repeats edge "engaged_to_booked"/);
+    expect(text).toMatch(/Edge id "engaged_to_booked" is used twice/);
+    expect(text).toMatch(/ends at source "yt"/);
+    expect(text).toMatch(/Edge id "Bad Id" must be lowercase/);
+  });
+
+  it("names one cycle of flow edges, and lets a loop edge close one", () => {
+    const b = shape();
+    b.edges.push(flow("proposal", "engaged"));
+    expect(problems(b)).toMatch(
+      /Flow edges form a loop: engaged -> booked -> proposal -> engaged\./,
+    );
+    const ok = shape();
+    ok.edges.push(loop("proposal", "engaged"));
+    expect(checkShape(ok, ctx())).toEqual([]);
+  });
+
+  it("lets the same pair carry a flow edge and a loop edge", () => {
+    const b = shape();
+    b.edges.push({ ...loop("engaged", "booked"), id: "engaged_back_to_booked" });
+    expect(checkShape(b, ctx())).toEqual([]);
+  });
+
+  it("needs a flow edge into every node but a source", () => {
+    const b = grown(
+      [{ id: "lost", kind: "step", name: "Lost", action: "other", advance: [] }],
+      [loop("proposal", "lost")],
+    );
+    expect(problems(b)).toMatch(/Node "lost" has no flow edge into it/);
+  });
+
+  it("keeps a plan under one offer node", () => {
+    const orphan = grown(
+      [{ id: "alt", kind: "plan", name: "Alt", terms: "alt", advance: [] }],
+      [flow("booked", "alt")],
+    );
+    expect(problems(orphan)).toMatch(/Plan "alt" must follow one offer node/);
+
+    const two = grown(
+      [
+        { id: "extra", kind: "offer", name: "Extra", offer: "offer-b", advance: [] },
+        { id: "both", kind: "plan", name: "Both", terms: "both", advance: [] },
       ],
-    });
-    ok.stages[0] = { ...ok.stages[0], research: "light" } as FunnelBody["stages"][number];
-    expect(checkFunnel(null, ok, ctx())).toEqual([]);
-    const noSource = body({ entries: [{ id: "list", kind: "sourced" }] });
-    expect(checkFunnel(null, noSource, ctx()).join("\n")).toMatch(
-      /kind sourced but names no source/,
+      [flow("booked", "extra"), flow("signed", "both"), flow("extra", "both")],
     );
-    const noGroup = body({ entries: [{ id: "seg", kind: "group" }] });
-    expect(checkFunnel(null, noGroup, ctx()).join("\n")).toMatch(/kind group but names no group/);
-    const bad = body();
-    bad.stages[1] = {
-      ...bad.stages[1],
-      research: "deep",
-    } as unknown as FunnelBody["stages"][number];
-    expect(checkFunnel(null, bad, ctx()).join("\n")).toMatch(/research "deep"/);
+    expect(problems(two)).toMatch(/Plan "both" must follow one offer node/);
   });
 
-  it("checks a stage's idleDays", () => {
-    const withIdle = (idleDays: unknown) => {
-      const b = body();
-      b.stages[0] = { ...b.stages[0], idleDays } as unknown as FunnelBody["stages"][number];
-      return checkFunnel(null, b, ctx());
+  it("allows an upsell below a plan", () => {
+    const b = grown(
+      [{ id: "upsell", kind: "offer", name: "Upsell", offer: "offer-b", advance: [] }],
+      [flow("standard", "upsell")],
+    );
+    expect(checkShape(b, ctx())).toEqual([]);
+  });
+
+  it("checks triggers, research, idle days, action", () => {
+    const b = shape();
+    b.nodes[2] = {
+      id: "engaged",
+      kind: "step",
+      name: "Engaged",
+      action: "wave" as never,
+      advance: [{ trigger: "trigger.nope" }],
+      research: "deep" as never,
+      idleDays: 0,
     };
-    expect(withIdle(1)).toEqual([]);
-    expect(withIdle(365)).toEqual([]);
-    for (const bad of [0, 366, 2.5, -3, "7", Number.NaN])
-      expect(withIdle(bad).join("\n"), String(bad)).toMatch(
-        /Stage "engaged" has idleDays .* whole number of days from 1 to 365\./,
-      );
+    const text = problems(b);
+    expect(text).toMatch(/Node "engaged" uses "trigger.nope", which is not a known trigger/);
+    expect(text).toMatch(/Node "engaged" has research "deep". Use none, light or full/);
+    expect(text).toMatch(/Node "engaged" has idleDays 0. Use a whole number of days from 1 to 365/);
+    expect(text).toMatch(/Step "engaged" has action "wave"/);
+    const b2 = shape();
+    (b2.nodes[3] as { idleDays?: number }).idleDays = 366;
+    expect(problems(b2)).toMatch(/idleDays 366/);
   });
 
-  it("refuses a sourced entry whose list is unknown or not a list id", () => {
-    const entry = (source: string) => body({ entries: [{ id: "list", kind: "sourced", source }] });
-    expect(checkFunnel(null, entry("import:12"), ctx())).toEqual([]);
-    expect(checkFunnel(null, entry("import:99"), ctx()).join("\n")).toMatch(
-      /import:99, which does not exist/,
+  it("checks a sourced source", () => {
+    const src = (extra: Record<string, string>): ShapeNode =>
+      ({ id: "list", kind: "source", name: "List", via: "sourced", ...extra }) as ShapeNode;
+    const withSource = (n: ShapeNode) => grown([n], [flow("list", "engaged")]);
+    expect(problems(withSource(src({})))).toMatch(/via sourced but names no source/);
+    expect(problems(withSource(src({ source: "list-1" })))).toMatch(
+      /not a list's id \(import:12\)/,
     );
-    expect(checkFunnel(null, entry("list-1"), ctx()).join("\n")).toMatch(/not a list's id/);
-  });
-
-  it("refuses a group entry whose group is unknown, archived or not a number", () => {
-    const entry = (group: string) => body({ entries: [{ id: "seg", kind: "group", group }] });
-    expect(checkFunnel(null, entry("9"), ctx()).join("\n")).toMatch(
-      /group 9, which does not exist/,
+    expect(problems(withSource(src({ source: "import:99" })))).toMatch(
+      /names source import:99, which does not exist/,
     );
-    expect(checkFunnel(null, entry("8"), ctx()).join("\n")).toMatch(/group 8, which is archived/);
-    expect(checkFunnel(null, entry("q-1"), ctx()).join("\n")).toMatch(/not a group's number/);
-    expect(checkFunnel(null, entry("7"), ctx())).toEqual([]);
+    expect(checkShape(withSource(src({ source: "import:12" })), ctx())).toEqual([]);
   });
 
-  it("refuses a loop of funnels", () => {
-    const self = body({
-      entries: [{ id: "x", kind: "funnel", funnel: { id: "main", at: "signed" } }],
+  it("checks a group source", () => {
+    const src = (extra: Record<string, string>): ShapeNode =>
+      ({ id: "seg", kind: "source", name: "Group", via: "group", ...extra }) as ShapeNode;
+    const withGroup = (n: ShapeNode) => grown([n], [flow("seg", "engaged")]);
+    expect(problems(withGroup(src({})))).toMatch(/via group but names no group/);
+    expect(problems(withGroup(src({ group: "q-1" })))).toMatch(/not a group's number/);
+    expect(problems(withGroup(src({ group: "99" })))).toMatch(/group 99, which does not exist/);
+    expect(problems(withGroup(src({ group: "8" })))).toMatch(/group 8, which is archived/);
+    expect(checkShape(withGroup(src({ group: "7" })), ctx())).toEqual([]);
+  });
+
+  it("keeps a parked source valid", () => {
+    const b = shape();
+    (b.nodes[0] as { parked?: true }).parked = true;
+    expect(checkShape(b, ctx())).toEqual([]);
+  });
+});
+
+describe("depthOf", () => {
+  it("is 0 at sources and counts the longest flow path", () => {
+    expect(depthOf(shape())).toEqual({
+      yt: 0,
+      mail: 0,
+      engaged: 1,
+      booked: 2,
+      proposal: 3,
+      signed: 4,
+      standard: 5,
     });
-    expect(checkFunnel(null, self, ctx()).join("\n")).toMatch(/main -> main/);
-    // other already takes entries from main; main now takes entries from other.
-    const loop = body({ entries: [{ id: "x", kind: "funnel", funnel: { id: "other", at: "b" } }] });
-    expect(checkFunnel(null, loop, ctx({ feeds: { other: ["main"] } })).join("\n")).toMatch(
-      /main -> other -> main/,
+  });
+
+  it("takes the longest path through a diamond", () => {
+    const b = grown(
+      [
+        { id: "a", kind: "step", name: "A", action: "other", advance: [] },
+        { id: "b", kind: "step", name: "B", action: "other", advance: [] },
+        { id: "c", kind: "step", name: "C", action: "other", advance: [] },
+        { id: "d", kind: "step", name: "D", action: "other", advance: [] },
+      ],
+      [
+        flow("yt", "a"),
+        flow("a", "b"),
+        flow("a", "c"),
+        flow("b", "d"),
+        flow("c", "d"),
+        flow("yt", "d"),
+      ],
     );
-    // A chain with no loop is fine.
-    expect(checkFunnel(null, loop, ctx({ feeds: { other: [] } }))).toEqual([]);
+    const d = depthOf(b);
+    expect([d.a, d.b, d.c, d.d]).toEqual([1, 2, 2, 3]);
+  });
+
+  it("takes the longest path from any of two sources", () => {
+    const b = shape();
+    b.edges.push(flow("mail", "proposal"));
+    const d = depthOf(b);
+    expect(d.proposal).toBe(3);
+    const short = grown(
+      [{ id: "side", kind: "step", name: "Side", action: "other", advance: [] }],
+      [flow("mail", "side"), flow("side", "proposal")],
+    );
+    expect(depthOf(short).proposal).toBe(3);
+  });
+
+  it("ignores loop edges", () => {
+    const b = shape();
+    b.edges.push(loop("proposal", "engaged"), loop("standard", "booked"));
+    expect(depthOf(b)).toEqual(depthOf(shape()));
+  });
+
+  it("puts an upsell below a plan", () => {
+    const b = grown(
+      [{ id: "upsell", kind: "offer", name: "Upsell", offer: "offer-b", advance: [] }],
+      [flow("standard", "upsell")],
+    );
+    expect(depthOf(b).upsell).toBe(6);
+  });
+
+  it("does not loop on a cycle", () => {
+    const b = shape();
+    b.edges.push(flow("proposal", "engaged"));
+    expect(Object.keys(depthOf(b))).toHaveLength(7);
+  });
+});
+
+describe("pathOf", () => {
+  it("gives the edge ids of the shortest flow path", () => {
+    expect(pathOf(shape(), "engaged", "proposal")).toEqual([
+      "engaged_to_booked",
+      "booked_to_proposal",
+    ]);
+    expect(pathOf(shape(), "engaged", "booked")).toEqual(["engaged_to_booked"]);
+  });
+
+  it("is null for no path, backward, and the same node", () => {
+    expect(pathOf(shape(), "proposal", "engaged")).toBeNull();
+    expect(pathOf(shape(), "booked", "booked")).toBeNull();
+    expect(pathOf(shape(), "yt", "mail")).toBeNull();
+  });
+
+  it("takes the shortest path, ties by edge order", () => {
+    const b = grown(
+      [
+        { id: "a", kind: "step", name: "A", action: "other", advance: [] },
+        { id: "b", kind: "step", name: "B", action: "other", advance: [] },
+      ],
+      [
+        flow("engaged", "a"),
+        flow("a", "signed"),
+        flow("engaged", "b"),
+        flow("b", "signed"),
+        flow("engaged", "proposal", { id: "shortcut" }),
+      ],
+    );
+    expect(pathOf(b, "engaged", "proposal")).toEqual(["shortcut"]);
+    const tie = grown(
+      [
+        { id: "a", kind: "step", name: "A", action: "other", advance: [] },
+        { id: "b", kind: "step", name: "B", action: "other", advance: [] },
+        { id: "end", kind: "step", name: "End", action: "other", advance: [] },
+      ],
+      [flow("engaged", "a"), flow("engaged", "b"), flow("b", "end"), flow("a", "end")],
+    );
+    expect(pathOf(tie, "engaged", "end")).toEqual(["engaged_to_a", "a_to_end"]);
+  });
+
+  it("counts a single loop edge as a path of one", () => {
+    const b = shape();
+    b.edges.push(loop("proposal", "engaged"));
+    expect(pathOf(b, "proposal", "engaged")).toEqual(["proposal_to_engaged"]);
+    expect(pathOf(b, "proposal", "engaged", { loops: false })).toBeNull();
+    // Two loop edges in a row are not a path.
+    b.edges.push(loop("engaged", "yt"));
+    expect(pathOf(b, "proposal", "booked")).toBeNull();
+  });
+
+  it("lists the nodes a path passes through", () => {
+    const b = shape();
+    const path = pathOf(b, "engaged", "signed") ?? [];
+    expect(passedThrough(b, path)).toEqual(["booked", "proposal"]);
+    expect(passedThrough(b, ["engaged_to_booked"])).toEqual([]);
+  });
+});
+
+describe("small helpers", () => {
+  it("names a default edge id", () => {
+    expect(edgeIdOf("a", "b")).toBe("a_to_b");
+  });
+
+  it("knows a node no flow edge leaves", () => {
+    expect(isEnd(shape(), "standard")).toBe(true);
+    expect(isEnd(shape(), "signed")).toBe(false);
   });
 });

@@ -1,7 +1,8 @@
 import type { SpineEvent } from "@wren/core/spine";
 import { describe, expect, it } from "vitest";
+import { flow } from "../test/fixtures.js";
 import { entryOf } from "./entry.js";
-import type { FunnelBody } from "./model.js";
+import type { ShapeBody } from "./model.js";
 import { causeOf, factsOf } from "./steps.js";
 
 const NOW = new Date("2026-10-19T10:00:00Z");
@@ -23,16 +24,17 @@ describe("a person entering a group", () => {
 
   it("names the group, so the group entry opens the journey", () => {
     expect(factsOf(entered.data)).toEqual({ group: "7" });
-    const body: FunnelBody = {
+    const body: ShapeBody = {
       name: "Test",
-      offer: "offer-a",
-      stages: [{ key: "engaged", label: "Engaged", sale: true, on: [] }],
-      entries: [
-        { id: "mail", kind: "outbound", channel: "email" },
-        { id: "warm", kind: "group", group: "7" },
+      nodes: [
+        { id: "mail", kind: "source", name: "Email", via: "outbound", channel: "email" },
+        { id: "warm", kind: "source", name: "Warm", via: "group", group: "7" },
+        { id: "engaged", kind: "offer", name: "Engaged", offer: "offer-a", advance: [] },
       ],
+      edges: [flow("mail", "engaged"), flow("warm", "engaged")],
     };
-    expect(entryOf(body, factsOf(entered.data)).id).toBe("warm");
-    expect(entryOf(body, factsOf({ ...entered.data, segment: 8 })).id).toBe("manual");
+    expect(entryOf(body, factsOf(entered.data))?.id).toBe("warm");
+    // No source claims group 8, and the shape has no manual source: the caller records `manual`.
+    expect(entryOf(body, factsOf({ ...entered.data, segment: 8 }))).toBeNull();
   });
 });

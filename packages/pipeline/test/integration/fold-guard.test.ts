@@ -100,7 +100,7 @@ describe("the deals guard", () => {
     await pg.db.insert(journeys).values({
       profileId: p?.id as number,
       funnel: "sales",
-      version: 1,
+      funnelVersion: 1,
       stage: "new",
       entry: "manual",
       legacyDeal: DEAL,

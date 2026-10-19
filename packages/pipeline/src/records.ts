@@ -1,7 +1,7 @@
 /**
- * The pipeline as records (designs/2026-10-18-journeys.md, "Records, CLI, agent"): offers,
- * funnels, journeys, deals and numbers. One workspace each: the database a type is served from
- * (Wren's, or a client's) holds the rows, so no row carries an owner.
+ * The pipeline as records (designs/2026-10-19-business-map.md): offers, the shape, journeys,
+ * deals and numbers. One workspace each: the database a type is served from (Wren's, or a
+ * client's) holds the rows, so no row carries an owner.
  *
  * Served by `PipelineConsole`. Writes go through its handlers and the `Journeys` service, never
  * through a record edit.
@@ -13,10 +13,8 @@ import {
   actor,
   date,
   defineRecord,
-  duration,
   money,
   number,
-  percent,
   type RecordType,
   status,
   text,
@@ -25,28 +23,21 @@ import { events } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import type { Terms } from "@wren/offers";
 import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
-import type { FunnelBody } from "./model.js";
+import type { ShapeBody } from "./model.js";
 import { subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
 import { scheduleOf } from "./schedule.js";
-import {
-  funnels,
-  funnelVersions,
-  journeys,
-  offerVersions,
-  pipelineDeals,
-  termsVersions,
-} from "./schema.js";
+import { journeys, offerVersions, pipelineDeals, shapeVersions, termsVersions } from "./schema.js";
 
 export const OFFER_RECORD = "pipeline.offer";
-export const FUNNEL_RECORD = "pipeline.funnel";
+export const SHAPE_RECORD = "pipeline.shape";
 export const JOURNEY_RECORD = "pipeline.journey";
 export const DEAL_RECORD = "pipeline.deal";
 export const NUMBER_RECORD = "pipeline.number";
 export const TERMS_RECORD = "pipeline.terms";
 export const ENTRY_RECORD = "pipeline.entry";
 
-/** Days an open journey sits in one stage before it reads stale, unless the stage sets `idleDays`. */
+/** Days an open journey sits at one node before it reads stale, unless the node sets `idleDays`. */
 export const STALE_DAYS = 14;
 const DAY_MS = 86_400_000;
 /** Rows, not a view: a workspace works hundreds of journeys, not tens of thousands. */
@@ -58,9 +49,11 @@ const OFFER_STATES = {
   paused: { label: "Paused", tone: "warn" },
   retired: { label: "Retired", tone: "neutral" },
 } as const;
-const FUNNEL_STATES = {
-  live: { label: "Live", tone: "good" },
-  off: { label: "Off", tone: "neutral" },
+const KIND_STATES = {
+  source: { label: "Source", tone: "neutral" },
+  step: { label: "Step", tone: "neutral" },
+  offer: { label: "Offer", tone: "good" },
+  plan: { label: "Plan", tone: "neutral" },
 } as const;
 const JOURNEY_STATES = {
   open: { label: "Open", tone: "neutral" },
@@ -68,6 +61,9 @@ const JOURNEY_STATES = {
   dropped: { label: "Dropped", tone: "bad" },
 } as const;
 const JOURNEY_FLAGS = { stale: { label: "Stale", tone: "warn" } } as const;
+const PARKED_STATES = { parked: { label: "Parked", tone: "neutral" } } as const;
+/** A ghost sits on a node its version has and the newest shape lacks. */
+const GHOST_STATES = { ghost: { label: "Ghost", tone: "warn" } } as const;
 const DEAL_STATES = {
   open: { label: "Open", tone: "neutral" },
   won: { label: "Won", tone: "good" },
@@ -80,13 +76,13 @@ const TERMS_STATES = {
   older: { label: "Older", tone: "neutral" },
 } as const;
 const NUMBER_KINDS = {
-  stage: { label: "Stage", tone: "neutral" },
-  entry: { label: "Entry", tone: "neutral" },
+  node: { label: "Node", tone: "neutral" },
+  edge: { label: "Edge", tone: "neutral" },
   offer: { label: "Offer", tone: "neutral" },
 } as const;
 
-const labelOf = (body: FunnelBody | undefined, key: string) =>
-  body?.stages.find((s) => s.key === key)?.label ?? key;
+const nameOf = (body: ShapeBody | undefined, id: string) =>
+  body?.nodes.find((n) => n.id === id)?.name ?? id;
 
 // --- offers ----------------------------------------------------------------------------------
 
@@ -105,20 +101,24 @@ export async function offerRows(db: Queryable, o: { now?: Date } = {}) {
     .where(lte(termsVersions.effectiveFrom, today));
   const plans = new Map<string, number>();
   for (const p of started) plans.set(p.offer, (plans.get(p.offer) ?? 0) + 1);
-  // Open journeys sit on a funnel version; that version names the offer it sells.
-  const opens = await db
-    .select({
-      offer: sql<string>`${funnelVersions.body} ->> 'offer'`,
-      n: sql<number>`count(*)::int`,
-    })
+  // An open journey sits on a node of its shape version. The offer it works toward is the
+  // nearest offer node at or above it: the node's own, else the one it passed on its trail.
+  const open = new Map<string, number>();
+  const heads = await db
+    .select({ node: journeys.node, trail: journeys.trail, body: shapeVersions.body })
     .from(journeys)
-    .innerJoin(
-      funnelVersions,
-      and(eq(funnelVersions.funnel, journeys.funnel), eq(funnelVersions.number, journeys.version)),
-    )
+    .innerJoin(shapeVersions, eq(shapeVersions.number, journeys.version))
     .where(eq(journeys.status, "open"))
-    .groupBy(sql`${funnelVersions.body} ->> 'offer'`);
-  const open = new Map(opens.map((r) => [r.offer, r.n]));
+    .limit(ROWS);
+  for (const h of heads) {
+    const at = h.body.nodes.find((n) => n.id === h.node);
+    const seen = [h.node, ...h.trail.map((c) => c.to).reverse()];
+    const offer = seen
+      .map((id) => h.body.nodes.find((n) => n.id === id))
+      .find((n) => n?.kind === "offer");
+    const id = at?.kind === "offer" ? at.offer : offer?.kind === "offer" ? offer.offer : null;
+    if (id) open.set(id, (open.get(id) ?? 0) + 1);
+  }
   return rows.map((r) => ({
     id: r.offer,
     name: r.body.name,
@@ -287,89 +287,72 @@ export const termsRecord = (): RecordType =>
     },
   });
 
-// --- funnels ---------------------------------------------------------------------------------
+// --- shape -----------------------------------------------------------------------------------
 
-/** Each funnel with its newest version and the journeys open on it. */
-export async function funnelRows(db: Queryable) {
-  const heads = await db.select().from(funnels).limit(ROWS);
-  const tops = await db
-    .selectDistinctOn([funnelVersions.funnel])
-    .from(funnelVersions)
-    .orderBy(funnelVersions.funnel, desc(funnelVersions.number));
-  const top = new Map(tops.map((t) => [t.funnel, t]));
+/**
+ * The shape: one row, the newest version's body with the depths and the version list. The row's
+ * id is the version number, so a reader sees which version it holds.
+ */
+export async function shapeRows(db: Queryable) {
+  const [top] = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number)).limit(1);
+  if (!top) return [];
   const opens = await db
-    .select({ funnel: journeys.funnel, n: sql<number>`count(*)::int` })
+    .select({ n: sql<number>`count(*)::int` })
     .from(journeys)
-    .where(eq(journeys.status, "open"))
-    .groupBy(journeys.funnel);
-  const open = new Map(opens.map((o) => [o.funnel, o.n]));
-  return heads.map((f) => {
-    const v = top.get(f.id);
-    return {
-      id: f.id,
-      name: f.name,
-      status: f.status,
-      version: v?.number ?? 0,
-      offer: v?.body.offer ?? null,
-      stages: v?.body.stages.length ?? 0,
-      entries: v?.body.entries.length ?? 0,
-      open_journeys: open.get(f.id) ?? 0,
-      why: v?.why ?? null,
-      changed_at: v?.createdAt ?? f.createdAt,
-      changed_by: v?.createdBy ?? null,
-      created_at: f.createdAt,
-    };
-  });
+    .where(eq(journeys.status, "open"));
+  return [
+    {
+      id: "shape",
+      name: top.body.name,
+      version: top.number,
+      nodes: top.body.nodes.length,
+      edges: top.body.edges.length,
+      open_journeys: opens[0]?.n ?? 0,
+      why: top.note,
+      changed_at: top.createdAt,
+      changed_by: top.createdBy,
+    },
+  ];
 }
 
-export const funnelRecord = (): RecordType =>
+export const shapeRecord = (): RecordType =>
   defineRecord({
-    id: FUNNEL_RECORD,
+    id: SHAPE_RECORD,
     app: "deals",
     channel: null,
-    name: { one: "funnel", many: "funnels" },
-    rows: (db) => funnelRows(db),
+    name: { one: "shape", many: "shapes" },
+    rows: (db) => shapeRows(db),
     key: "id",
     title: "name",
-    subtitle: "offer",
+    subtitle: "why",
     fields: {
-      name: text("Funnel"),
-      status: status(FUNNEL_STATES, "Status"),
+      name: text("Shape"),
       version: number("Version"),
-      offer: text("Offer"),
-      stages: number("Stages"),
-      entries: number("Entries"),
+      nodes: number("Nodes"),
+      edges: number("Edges"),
       openJourneys: number("Open journeys"),
       why: text("Last change", { listed: false }),
       changedAt: date("Changed"),
       changedBy: actor("Changed by"),
-      createdAt: date("Made"),
     },
-    views: [
-      { id: "live", label: "Live", where: { status: "live" }, sort: "name", at: "changedAt" },
-      { id: "off", label: "Off", where: { status: "off" }, sort: "name", at: "changedAt" },
-      { id: "all", label: "All", sort: "name", at: "changedAt" },
-    ],
-    /** Its newest version's stages and entries. */
-    load: async (db, id) => {
-      const [v] = await db
-        .select()
-        .from(funnelVersions)
-        .where(eq(funnelVersions.funnel, String(id)))
-        .orderBy(desc(funnelVersions.number))
-        .limit(1);
-      if (!v) return null;
+    views: [{ id: "all", label: "All", sort: "name", at: "changedAt" }],
+    actions: ["pipeline.shapeVersion", "pipeline.shapeDiff", "pipeline.shapeImport"],
+    /** The newest body with each node's depth, and every version: what changed and why. */
+    load: async (db) => {
+      const versions = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number));
+      const top = versions[0];
+      if (!top) return null;
       return {
-        stages: v.body.stages.map((s) => ({
-          key: s.key,
-          label: s.label,
-          sale: s.sale === true,
-          on: s.on.map((a) => a.trigger),
-        })),
-        entries: v.body.entries.map((e) => ({
-          id: e.id,
-          kind: e.kind,
-          to: e.to ?? v.body.stages[0]?.key ?? null,
+        body: top.body,
+        depths: top.depths,
+        versions: versions.map((v) => ({
+          number: v.number,
+          parent: v.parent,
+          note: v.note,
+          at: v.createdAt,
+          by: v.createdBy,
+          nodes: v.body.nodes.length,
+          edges: v.body.edges.length,
         })),
       };
     },
@@ -392,7 +375,7 @@ async function ownersOf(db: Queryable, ids: readonly string[]): Promise<Map<stri
     .where(
       and(
         inArray(events.subject, ids.map(subjectOf)),
-        sql`${events.workflow} like 'funnel.%'`,
+        sql`${events.workflow} like 'shape.%'`,
         sql`left(${events.node}, 2) = 's_'`,
         sql`${events.data} -> 'cause' ->> 'kind' = 'manual'`,
       ),
@@ -412,7 +395,7 @@ export async function trailOf(db: Queryable, id: string) {
       ref: sql<string | null>`${events.data} -> 'cause' ->> 'ref'`,
     })
     .from(events)
-    .where(and(eq(events.subject, subjectOf(id)), sql`${events.workflow} like 'funnel.%'`))
+    .where(and(eq(events.subject, subjectOf(id)), sql`${events.workflow} like 'shape.%'`))
     .orderBy(events.at, events.id);
   return rows.filter((r) => r.node.startsWith("s_") || r.node === "dropped");
 }
@@ -423,19 +406,19 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
     .select({
       j: journeys,
       person: profiles.name,
-      funnelName: funnels.name,
-      body: funnelVersions.body,
+      body: shapeVersions.body,
     })
     .from(journeys)
     .innerJoin(profiles, eq(profiles.id, journeys.profileId))
-    .innerJoin(funnels, eq(funnels.id, journeys.funnel))
-    .innerJoin(
-      funnelVersions,
-      and(eq(funnelVersions.funnel, journeys.funnel), eq(funnelVersions.number, journeys.version)),
-    )
+    .leftJoin(shapeVersions, eq(shapeVersions.number, journeys.version))
     .where(o.id ? eq(journeys.id, o.id) : undefined)
     .orderBy(desc(journeys.movedAt))
     .limit(ROWS);
+  const [top] = await db
+    .select({ number: shapeVersions.number, body: shapeVersions.body })
+    .from(shapeVersions)
+    .orderBy(desc(shapeVersions.number))
+    .limit(1);
   const owners = await ownersOf(
     db,
     rows.map((r) => r.j.id),
@@ -445,24 +428,33 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
   for (const k of await keysOfProfile(db, [...new Set(rows.map((r) => r.j.profileId))]))
     if (k.kind === "email") emails.set(k.profileId, [...(emails.get(k.profileId) ?? []), k.value]);
   const now = (o.now ?? new Date()).getTime();
-  return rows.map(({ j, person, funnelName, body }) => {
+  return rows.map(({ j, person, body }) => {
     const days = Math.floor((now - j.movedAt.getTime()) / DAY_MS);
-    const idle = body.stages.find((s) => s.key === j.stage)?.idleDays ?? STALE_DAYS;
+    const node = j.node ?? j.stage ?? "";
+    const at = body?.nodes.find((n) => n.id === node);
+    const idle = (at && "idleDays" in at ? at.idleDays : undefined) ?? STALE_DAYS;
+    // A ghost: its version is not the newest and the newest shape has no such node.
+    const ghost =
+      j.status === "open" &&
+      !!top &&
+      j.version !== null &&
+      j.version < top.number &&
+      !top.body.nodes.some((n) => n.id === node);
     return {
       id: j.id,
       name: person ?? `Person ${j.profileId}`,
       profile: j.profileId,
       email: (emails.get(j.profileId) ?? []).join(" "),
-      funnel: j.funnel,
-      funnel_name: funnelName,
       version: j.version,
-      stage: j.stage,
-      stage_label: labelOf(body, j.stage),
+      node,
+      node_name: nameOf(body ?? undefined, node),
+      trail: j.trail.map((c) => nameOf(body ?? undefined, c.to)).join(" > "),
       status: j.status,
       flag: j.status === "open" && days >= idle ? "stale" : null,
+      ghost: ghost ? "ghost" : null,
       entry: j.entry,
       owner: owners.get(j.id) ?? null,
-      days_in_stage: days,
+      days_at_node: days,
       reason: j.dropReason,
       opened_at: j.openedAt,
       moved_at: j.movedAt,
@@ -480,21 +472,21 @@ export const journeyRecord = (): RecordType =>
     rows: (db) => journeyRows(db),
     key: "id",
     title: "name",
-    subtitle: "funnelName",
+    subtitle: "nodeName",
     fields: {
       name: text("Person"),
       profile: number("Profile", { listed: false }),
       email: text("Emails", { listed: false }),
-      funnelName: text("Funnel"),
-      funnel: text("Funnel id", { listed: false }),
-      stage: text("Stage key", { listed: false }),
-      stageLabel: text("Stage"),
+      node: text("Node id", { listed: false }),
+      nodeName: text("Node"),
+      trail: text("Trail", { listed: false }),
       status: status(JOURNEY_STATES, "Status"),
       flag: status(JOURNEY_FLAGS, "Needs"),
-      entry: text("Entry"),
+      ghost: status(GHOST_STATES, "Ghost"),
+      entry: text("Source"),
       owner: actor("Moved by hand by"),
-      daysInStage: number("Days in stage"),
-      version: number("Version", { listed: false }),
+      daysAtNode: number("Days at node"),
+      version: number("Shape version", { listed: false }),
       reason: text("Dropped because", { listed: false }),
       openedAt: date("Opened"),
       movedAt: date("Moved"),
@@ -511,6 +503,7 @@ export const journeyRecord = (): RecordType =>
         at: "openedAt",
       },
       { id: "stale", label: "Stale", where: { flag: "stale" }, sort: "movedAt", at: "movedAt" },
+      { id: "ghost", label: "Ghosts", where: { ghost: "ghost" }, sort: "movedAt", at: "movedAt" },
       { id: "done", label: "Done", where: { status: "done" }, sort: "-closedAt", at: "closedAt" },
       {
         id: "dropped",
@@ -521,8 +514,28 @@ export const journeyRecord = (): RecordType =>
       },
       { id: "all", label: "All", sort: "-openedAt", at: "openedAt" },
     ],
-    quick: ["funnel", "stage", "entry", "status"],
+    quick: ["node", "entry", "status"],
     related: [{ record: DEAL_RECORD, by: "journey" }],
+    /** The edges it crossed, in order, with the node names of its own version. */
+    load: async (db, id) => {
+      const [r] = await db
+        .select({ trail: journeys.trail, body: shapeVersions.body })
+        .from(journeys)
+        .leftJoin(shapeVersions, eq(shapeVersions.number, journeys.version))
+        .where(eq(journeys.id, String(id)))
+        .limit(1);
+      if (!r) return null;
+      return {
+        trail: r.trail.map((c) => ({
+          edge: c.edge,
+          from: c.from,
+          from_name: c.from ? nameOf(r.body ?? undefined, c.from) : null,
+          to: c.to,
+          to_name: nameOf(r.body ?? undefined, c.to),
+          at: c.at,
+        })),
+      };
+    },
   });
 
 // --- deals -----------------------------------------------------------------------------------
@@ -533,7 +546,6 @@ export async function dealRows(db: Queryable, o: { id?: string } = {}) {
     .select({
       d: pipelineDeals,
       person: profiles.name,
-      funnel: journeys.funnel,
       entry: journeys.entry,
       plan: termsVersions.plan,
       planNumber: termsVersions.number,
@@ -546,7 +558,7 @@ export async function dealRows(db: Queryable, o: { id?: string } = {}) {
     .where(o.id ? eq(pipelineDeals.id, o.id) : undefined)
     .orderBy(desc(pipelineDeals.signedAt))
     .limit(ROWS);
-  return rows.map(({ d, person, funnel, entry, plan, planNumber, terms }) => {
+  return rows.map(({ d, person, entry, plan, planNumber, terms }) => {
     const scheduled = terms
       ? scheduleOf(terms, d.signedAt).reduce(
           (sum, l) => sum + (l.kind === "setup" || l.kind === "monthly" ? l.cents : 0),
@@ -558,7 +570,7 @@ export async function dealRows(db: Queryable, o: { id?: string } = {}) {
       journey: d.journey,
       name: person ?? `Person ${d.profileId}`,
       profile: d.profileId,
-      funnel,
+      node: d.node,
       entry,
       offer: d.offer,
       offer_version: d.offerVersion,
@@ -593,8 +605,8 @@ export const dealRecord = (): RecordType =>
       status: status(DEAL_STATES, "Status"),
       collected: money("Collected"),
       scheduled: money("Scheduled"),
-      funnel: text("Funnel"),
-      entry: text("Entry"),
+      node: text("Made at"),
+      entry: text("Source"),
       journey: text("Journey", { listed: false }),
       signedAt: date("Signed"),
       endsAt: date("Ends"),
@@ -620,42 +632,37 @@ export const dealRecord = (): RecordType =>
 
 // --- entries ---------------------------------------------------------------------------------
 
-/** Each funnel's entries on its newest version, with the journeys each opened and the newest arrival. */
+/** The source nodes of the newest shape, with the journeys each opened and the newest arrival. */
 export async function entryRows(db: Queryable) {
-  const heads = await db.select().from(funnels).limit(ROWS);
-  const tops = await db
-    .selectDistinctOn([funnelVersions.funnel])
-    .from(funnelVersions)
-    .orderBy(funnelVersions.funnel, desc(funnelVersions.number));
-  const top = new Map(tops.map((t) => [t.funnel, t]));
+  const [top] = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number)).limit(1);
+  if (!top) return [];
   const counts = await db
     .select({
-      funnel: journeys.funnel,
       entry: journeys.entry,
       open: sql<number>`(count(*) filter (where ${journeys.status} = 'open'))::int`,
       all: sql<number>`count(*)::int`,
       last: sql<string | null>`max(${journeys.openedAt})`,
     })
     .from(journeys)
-    .groupBy(journeys.funnel, journeys.entry);
-  const by = new Map(counts.map((c) => [`${c.funnel}/${c.entry}`, c]));
-  return heads.flatMap((f) =>
-    (top.get(f.id)?.body.entries ?? []).map((e) => {
-      const c = by.get(`${f.id}/${e.id}`);
-      return {
-        id: `${f.id}/${e.id}`,
-        funnel: f.id,
-        funnel_name: f.name,
-        entry: e.id,
-        kind: e.kind,
-        channel: e.channel ?? null,
-        campaign: e.campaign ?? null,
+    .groupBy(journeys.entry);
+  const by = new Map(counts.map((c) => [c.entry, c]));
+  return top.body.nodes.flatMap((n) => {
+    if (n.kind !== "source") return [];
+    const c = by.get(n.id);
+    return [
+      {
+        id: n.id,
+        name: n.name,
+        via: n.via,
+        channel: n.channel ?? null,
+        campaign: n.campaign ?? null,
+        parked: n.parked === true ? "parked" : null,
         open_journeys: c?.open ?? 0,
         journeys: c?.all ?? 0,
         last_arrival: c?.last ? new Date(c.last) : null,
-      };
-    }),
-  );
+      },
+    ];
+  });
 }
 
 export const entryRecord = (): RecordType =>
@@ -663,24 +670,23 @@ export const entryRecord = (): RecordType =>
     id: ENTRY_RECORD,
     app: "deals",
     channel: null,
-    name: { one: "entry", many: "entries" },
+    name: { one: "source", many: "sources" },
     rows: (db) => entryRows(db),
     key: "id",
-    title: "entry",
-    subtitle: "funnelName",
+    title: "name",
+    subtitle: "via",
     fields: {
-      funnelName: text("Funnel"),
-      funnel: text("Funnel id", { listed: false }),
-      entry: text("Entry"),
-      kind: text("Kind"),
+      name: text("Source"),
+      via: text("Via"),
       channel: text("Channel"),
       campaign: text("Campaign"),
+      parked: status(PARKED_STATES, "Parked"),
       openJourneys: number("Open journeys"),
       journeys: number("Journeys"),
       lastArrival: date("Last arrival"),
     },
-    views: [{ id: "all", label: "All", sort: "funnelName", at: "lastArrival" }],
-    quick: ["funnel", "kind", "channel"],
+    views: [{ id: "all", label: "All", sort: "name", at: "lastArrival" }],
+    quick: ["via", "channel"],
   });
 
 // --- numbers ---------------------------------------------------------------------------------
@@ -688,15 +694,18 @@ export const entryRecord = (): RecordType =>
 const numberOf = (n: NumberRow) => ({
   id: n.id,
   kind: n.kind,
-  funnel: n.funnel,
-  label: n.label,
+  label: n.name,
+  node: n.label,
+  node_kind: n.nodeKind,
   position: n.position,
-  entered: n.entered,
+  arrived: n.arrived,
   skipped: n.skipped,
-  reached: n.reached,
-  advanced: n.advanced,
-  conversion: n.conversion,
-  median_seconds: n.medianSeconds,
+  left: n.left,
+  now: n.now,
+  median_days: n.medianDays,
+  crossings: n.crossings,
+  from: n.from,
+  to: n.to,
   opened: n.opened,
   deals: n.deals,
   collected: n.collected,
@@ -715,18 +724,21 @@ export const numberRecord = (): RecordType =>
     rows: async (db) => (await numberRows(db)).map(numberOf),
     key: "id",
     title: "label",
-    subtitle: "funnel",
+    subtitle: "nodeKind",
     fields: {
       label: text("Name"),
       kind: status(NUMBER_KINDS, "Per"),
-      funnel: text("Funnel"),
+      node: text("Id", { listed: false }),
+      nodeKind: status(KIND_STATES, "Node kind"),
       position: number("Order", { listed: false }),
-      entered: number("Entered"),
+      arrived: number("Arrived"),
       skipped: number("Skipped past"),
-      reached: number("Reached"),
-      advanced: number("Went on"),
-      conversion: percent("Conversion"),
-      medianSeconds: duration("Median in stage"),
+      left: number("Left"),
+      now: number("Open now"),
+      medianDays: number("Median days there"),
+      crossings: number("Crossings"),
+      from: text("From", { listed: false }),
+      to: text("To", { listed: false }),
       opened: number("Opened"),
       deals: number("Deals"),
       collected: money("Collected"),
@@ -735,8 +747,8 @@ export const numberRecord = (): RecordType =>
       last: date("Last day"),
     },
     views: [
-      { id: "stage", label: "Per stage", where: { kind: "stage" }, sort: "position", at: "last" },
-      { id: "entry", label: "Per entry", where: { kind: "entry" }, sort: "-opened", at: "last" },
+      { id: "node", label: "Per node", where: { kind: "node" }, sort: "position", at: "last" },
+      { id: "edge", label: "Per edge", where: { kind: "edge" }, sort: "-crossings", at: "last" },
       { id: "offer", label: "Per offer", where: { kind: "offer" }, sort: "label", at: "last" },
     ],
   });
@@ -744,7 +756,7 @@ export const numberRecord = (): RecordType =>
 /** Every pipeline record type. Each is served from the workspace database the console picks. */
 export const PIPELINE_RECORDS: readonly RecordType[] = [
   offerRecord(),
-  funnelRecord(),
+  shapeRecord(),
   journeyRecord(),
   dealRecord(),
   numberRecord(),

@@ -1,120 +1,163 @@
 import { describe, expect, it } from "vitest";
-import { entryOf, entryStages, entryTo, opensAt } from "./entry.js";
-import type { FunnelBody } from "./model.js";
+import { flow, shape } from "../test/fixtures.js";
+import { entryNodes, entryOf, opensAt, sourceEdge } from "./entry.js";
+import type { ShapeBody, ShapeNode } from "./model.js";
 
-const body = (entries: FunnelBody["entries"]): FunnelBody => ({
-  name: "Test",
-  offer: "offer-a",
-  stages: [
-    { key: "engaged", label: "Engaged", on: [] },
-    { key: "booked", label: "Booked", on: [] },
-    { key: "signed", label: "Signed", sale: true, on: [] },
-  ],
-  entries,
-});
+/** A shape whose sources are `sources`, each with a flow edge to the node in `to` (default engaged). */
+const body = (sources: ShapeNode[], to: Record<string, string> = {}): ShapeBody => {
+  const base = shape();
+  const keep = base.nodes.filter((n) => n.kind !== "source");
+  return {
+    ...base,
+    nodes: [...sources, ...keep],
+    edges: [
+      ...sources.map((s) => flow(s.id, to[s.id] ?? "engaged")),
+      ...base.edges.filter((e) => e.from !== "yt" && e.from !== "mail"),
+    ],
+  };
+};
 
-const ENTRIES: FunnelBody["entries"] = [
-  { id: "yt", kind: "organic", channel: "youtube" },
-  { id: "ad_a", kind: "ads", channel: "meta", campaign: "camp-1" },
-  { id: "ad_any", kind: "ads", channel: "meta" },
-  { id: "list", kind: "sourced", source: "list-1" },
-  { id: "seg", kind: "group", group: "q-1" },
-  { id: "other", kind: "funnel", funnel: { id: "b", at: "paid" }, to: "booked" },
-  { id: "loose", kind: "organic" },
+const SOURCES: ShapeNode[] = [
+  { id: "yt", kind: "source", name: "YouTube", via: "organic", channel: "youtube" },
+  { id: "ad_a", kind: "source", name: "Ad A", via: "ads", channel: "meta", campaign: "camp-1" },
+  { id: "ad_any", kind: "source", name: "Ad any", via: "ads", channel: "meta" },
+  { id: "list", kind: "source", name: "List", via: "sourced", source: "list-1" },
+  { id: "seg", kind: "source", name: "Group", via: "group", group: "7" },
+  { id: "loose", kind: "source", name: "Loose", via: "organic" },
 ];
 
 describe("entryOf", () => {
-  const b = body(ENTRIES);
+  const b = body(SOURCES);
 
-  it("takes the entry the cause names", () => {
-    expect(entryOf(b, { entry: "seg", channel: "youtube" }).id).toBe("seg");
+  it("takes the source the cause names", () => {
+    expect(entryOf(b, { entry: "seg", channel: "youtube" })?.id).toBe("seg");
   });
 
-  it("matches the first entry by channel and campaign", () => {
-    expect(entryOf(b, { channel: "YouTube" }).id).toBe("yt");
-    expect(entryOf(b, { channel: "meta", campaign: "camp-1" }).id).toBe("ad_a");
-    // Priority order: ad_a needs its campaign, so a bare Meta cause falls to ad_any.
-    expect(entryOf(b, { channel: "meta" }).id).toBe("ad_any");
-    expect(entryOf(b, { channel: "meta", campaign: "camp-2" }).id).toBe("ad_any");
+  it("matches the first source by channel and campaign", () => {
+    expect(entryOf(b, { channel: "YouTube" })?.id).toBe("yt");
+    expect(entryOf(b, { channel: "meta", campaign: "camp-1" })?.id).toBe("ad_a");
+    // Body order: ad_a needs its campaign, so a bare Meta cause falls to ad_any.
+    expect(entryOf(b, { channel: "meta" })?.id).toBe("ad_any");
+    expect(entryOf(b, { channel: "meta", campaign: "camp-2" })?.id).toBe("ad_any");
   });
 
-  it("matches a sourced, group or funnel cause", () => {
-    expect(entryOf(b, { source: "list-1" }).id).toBe("list");
-    expect(entryOf(b, { group: "q-1" }).id).toBe("seg");
-    expect(entryOf(b, { funnel: "b", stage: "paid" }).id).toBe("other");
-    expect(entryOf(b, { funnel: "b", stage: "other" }).id).toBe("manual");
+  it("matches a sourced or group cause", () => {
+    expect(entryOf(b, { source: "list-1" })?.id).toBe("list");
+    expect(entryOf(b, { group: "7" })?.id).toBe("seg");
   });
 
-  it("never matches an entry with no channel and no campaign", () => {
-    expect(entryOf(b, { channel: "tiktok" }).id).toBe("manual");
+  it("never matches a source with no channel and no campaign", () => {
+    expect(entryOf(b, { channel: "tiktok" })).toBeNull();
   });
 
-  it("falls back to the first touch, then to manual", () => {
-    expect(entryOf(b, {}, { channel: "youtube" }).id).toBe("yt");
-    expect(entryOf(b, { channel: "meta" }, { channel: "youtube" }).id).toBe("ad_any");
-    expect(entryOf(b, {}, null)).toEqual({ id: "manual", kind: "manual" });
-    expect(entryOf(b, {}, { channel: "tiktok" })).toEqual({ id: "manual", kind: "manual" });
+  it("falls back to the first touch, then to nothing", () => {
+    expect(entryOf(b, {}, { channel: "youtube" })?.id).toBe("yt");
+    expect(entryOf(b, { channel: "meta" }, { channel: "youtube" })?.id).toBe("ad_any");
+    expect(entryOf(b, {}, null)).toBeNull();
+    expect(entryOf(b, {}, { channel: "tiktok" })).toBeNull();
   });
 
-  it("uses the body's own manual entry when it has one", () => {
-    const own = body([{ id: "hand", kind: "manual", to: "booked" }]);
-    expect(entryOf(own, {}).id).toBe("hand");
+  it("uses the body's own manual source when it has one", () => {
+    const own = body([{ id: "hand", kind: "source", name: "Hand", via: "manual" }]);
+    expect(entryOf(own, {})?.id).toBe("hand");
+  });
+
+  it("skips a parked source", () => {
+    const parked = body([
+      {
+        id: "yt",
+        kind: "source",
+        name: "YouTube",
+        via: "organic",
+        channel: "youtube",
+        parked: true,
+      },
+      { id: "yt2", kind: "source", name: "YouTube 2", via: "organic", channel: "youtube" },
+    ]);
+    expect(entryOf(parked, { channel: "youtube" })?.id).toBe("yt2");
+    expect(entryOf(parked, { entry: "yt" })).toBeNull();
+  });
+
+  it("prefers a source that opens at the node asked", () => {
+    const two = body(
+      [
+        { id: "a", kind: "source", name: "A", via: "organic", channel: "youtube" },
+        { id: "b", kind: "source", name: "B", via: "organic", channel: "youtube" },
+      ],
+      { a: "engaged", b: "booked" },
+    );
+    expect(entryOf(two, { channel: "youtube" }, null, "booked")?.id).toBe("b");
+    expect(entryOf(two, { channel: "youtube" })?.id).toBe("a");
   });
 });
 
-describe("entryStages", () => {
-  it("is each entry's stage, the first by default", () => {
-    expect(entryStages(body(ENTRIES))).toEqual(["engaged", "booked"]);
-    expect(entryStages(body([{ id: "x", kind: "manual", to: "signed" }]))).toEqual(["signed"]);
+describe("entryNodes", () => {
+  it("is each live source's targets, once, in edge order", () => {
+    const b = body(
+      [
+        { id: "yt", kind: "source", name: "YouTube", via: "organic", channel: "youtube" },
+        { id: "late", kind: "source", name: "Late", via: "manual" },
+        { id: "off", kind: "source", name: "Off", via: "organic", channel: "x", parked: true },
+      ],
+      { late: "signed", off: "proposal" },
+    );
+    expect(entryNodes(b)).toEqual(["engaged", "signed"]);
   });
 
-  it("is the first stage when there are no entries", () => {
-    expect(entryStages(body([]))).toEqual(["engaged"]);
-  });
-
-  it("is nothing without stages", () => {
-    expect(entryStages({ ...body([]), stages: [] })).toEqual([]);
-  });
-
-  it("names where an entry opens", () => {
-    const b = body(ENTRIES);
-    expect(entryTo(b, ENTRIES[0] as FunnelBody["entries"][number])).toBe("engaged");
-    expect(entryTo(b, ENTRIES[5] as FunnelBody["entries"][number])).toBe("booked");
+  it("names the edge from a source to a node", () => {
+    expect(sourceEdge(shape(), "yt", "engaged")?.id).toBe("yt_to_engaged");
+    expect(sourceEdge(shape(), "yt", "booked")).toBeUndefined();
   });
 });
 
 describe("opensAt", () => {
-  const partner = body([
-    { id: "yt", kind: "organic", channel: "youtube" },
-    { id: "partner", kind: "manual", to: "signed" },
-  ]);
+  const partner = body(
+    [
+      { id: "yt", kind: "source", name: "YouTube", via: "organic", channel: "youtube" },
+      { id: "partner", kind: "source", name: "Partner", via: "manual" },
+    ],
+    { partner: "signed" },
+  );
 
-  it("lets a stage cause open where a stage-fed entry opens", () => {
+  it("lets a node cause open where a feed-fed source opens", () => {
     expect(opensAt(partner, "engaged", false, { channel: "x" })).toBe(true);
   });
 
-  it("never lets a stage cause open at a manual entry's stage", () => {
+  it("never lets a node cause open at a manual source's node", () => {
     expect(opensAt(partner, "signed", false, {})).toBe(false);
   });
 
-  it("lets a manual open in at any entry stage, and nowhere else", () => {
+  it("lets a manual open in at any live source's node, and nowhere else", () => {
     expect(opensAt(partner, "signed", true, {})).toBe(true);
     expect(opensAt(partner, "booked", true, {})).toBe(false);
   });
 
-  it("opens a group or sourced entry only for the cause it names", () => {
-    const b = body([
-      { id: "list", kind: "sourced", source: "import:1", to: "booked" },
-      { id: "seg", kind: "group", group: "7", to: "signed" },
-    ]);
+  it("opens a group or sourced source only for the cause it names", () => {
+    const b = body(
+      [
+        { id: "list", kind: "source", name: "List", via: "sourced", source: "import:1" },
+        { id: "seg", kind: "source", name: "Group", via: "group", group: "7" },
+      ],
+      { list: "booked", seg: "signed" },
+    );
     expect(opensAt(b, "booked", false, { source: "import:1" })).toBe(true);
     expect(opensAt(b, "booked", false, { source: "import:2" })).toBe(false);
     expect(opensAt(b, "signed", false, { group: "7" })).toBe(true);
     expect(opensAt(b, "signed", false, {})).toBe(false);
   });
 
-  it("opens at the first stage only, with no entries", () => {
-    expect(opensAt(body([]), "engaged", false, {})).toBe(true);
-    expect(opensAt(body([]), "booked", false, {})).toBe(false);
+  it("opens nothing at a parked source's node", () => {
+    const b = body([
+      {
+        id: "yt",
+        kind: "source",
+        name: "YouTube",
+        via: "organic",
+        channel: "youtube",
+        parked: true,
+      },
+    ]);
+    expect(opensAt(b, "engaged", false, {})).toBe(false);
+    expect(opensAt(b, "engaged", true, {})).toBe(false);
   });
 });

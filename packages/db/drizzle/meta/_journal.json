@@ -2136,6 +2136,13 @@
       "when": 1792444752723,
       "tag": "0305_vault_keys_and_key_id",
       "breakpoints": true
+    },
+    {
+      "idx": 306,
+      "version": "7",
+      "when": 1792448920368,
+      "tag": "0306_shape",
+      "breakpoints": true
     }
   ]
 }

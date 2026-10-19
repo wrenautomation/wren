@@ -1,11 +1,12 @@
 /**
  * PipelineConsole: a workspace's pipeline records and the hand moves on them
- * (designs/2026-10-18-journeys.md, "Records, CLI, agent"). The workspace is Wren's for Wren's team
- * naming no client, else the client named: each reads and writes its own database.
+ * (designs/2026-10-19-business-map.md). The workspace is Wren's for Wren's team naming no client,
+ * else the client named: each reads and writes its own database.
  *
- * - `records*`: offers, funnels, journeys, deals and numbers.
+ * - `records*`: offers, the shape, journeys, deals and numbers.
  * - `offersSync`: add a version for each registry offer that changed (Wren's workspace only).
- * - `funnelsAdd`, `funnelsAppend`, `funnelsOff`, `funnelsOn`: the funnel store.
+ * - `shapeVersion`, `shapeDiff`, `shapeImport`: save the next shape version, compare two, or read
+ *   a shape file (YAML) into the next version.
  * - `journeysOpen`, `journeysMove`, `journeysDrop`: the `Journeys` service, as the operator.
  * - `dealsSign`: a deal's terms, once; a change needs `force` and is audited.
  * - `termsAdd`: the next version of one plan of one offer, as `wren terms add` (same checks).
@@ -44,16 +45,18 @@ import { type Db, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
 import { z } from "zod";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "./console-routes.js";
-import type { FunnelBody } from "./model.js";
+import type { ShapeBody } from "./model.js";
 import { signDeal } from "./moves.js";
 import { PIPELINE_RECORDS } from "./records.js";
 import { JOURNEYS, type OpenRequest as JourneyOpen, type JourneysApi } from "./restate.js";
+import { importShape } from "./shape-file.js";
 import {
-  addFunnel,
   addTerms,
-  appendFunnel,
+  diffShapes,
+  newestShape,
   Refused,
-  setFunnelStatus,
+  saveShape,
+  shapeVersionsOf,
   syncOffers,
 } from "./store.js";
 
@@ -66,29 +69,37 @@ export interface PipelineConsoleDeps {
   records?: readonly RecordType[];
 }
 
-export interface FunnelAddRequest extends PortalRequest {
-  id: string;
-  name?: string;
-  why?: string;
+export interface ShapeVersionRequest extends PortalRequest {
+  /** Why it changed. */
+  note: string;
   body: unknown;
+  /** Where journeys on a node the body drops go: `{ oldNode: newNode }`. */
+  moves?: Record<string, string>;
 }
-export interface FunnelAppendRequest extends PortalRequest {
-  id: string;
-  why?: string;
-  body: unknown;
+export interface ShapeDiffRequest extends PortalRequest {
+  /** Version numbers. */
+  a: number;
+  b: number;
 }
-export interface FunnelIdRequest extends PortalRequest {
-  id: string;
+export interface ShapeImportRequest extends PortalRequest {
+  /** The shape file's YAML text. */
+  text: string;
+  /** The version's note when the file has none. */
+  note?: string;
 }
 export interface JourneyOpenRequest extends PortalRequest {
-  funnel: string;
   person: string;
+  /** A node to open at; the one the source's edge leads to when left out. */
   at?: string;
+  /** A source node id. */
   entry?: string;
 }
 export interface JourneyMoveRequest extends PortalRequest {
   journey: string;
+  /** A node id. */
   to: string;
+  /** Needed when no edge path leads there. */
+  reason?: string;
 }
 export interface JourneyDropRequest extends PortalRequest {
   journey: string;
@@ -108,7 +119,7 @@ export interface TermsAddRequest extends PortalRequest {
   why: string;
 }
 
-/** Trigger component ids a stage may name. */
+/** Trigger component ids a node may name. */
 const triggerIds = (): ReadonlySet<string> =>
   new Set(LOGIC.filter((l) => l.group === "trigger").map((l) => l.id));
 
@@ -157,10 +168,11 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
       use(serveRecords(records, tx, undefined, fenceFor(req, w.client ?? WREN), meOf(req))),
     );
   };
-  const bodyOf = (v: unknown): FunnelBody => {
-    if (!v || typeof v !== "object" || !Array.isArray((v as { stages?: unknown }).stages))
-      throw new PortalRefusal("the body needs stages", 400);
-    return v as FunnelBody;
+  const bodyOf = (v: unknown): ShapeBody => {
+    const nodes = (v as { nodes?: unknown } | null)?.nodes;
+    if (!v || typeof v !== "object" || !Array.isArray(nodes))
+      throw new PortalRefusal("the body needs nodes", 400);
+    return v as ShapeBody;
   };
 
   return {
@@ -181,40 +193,44 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
       if (w.client) throw new PortalRefusal("offers sync in Wren's workspace only", 400);
       return refused(() => syncOffers(w.db, OFFERS, by(req)));
     },
-    funnelsAdd: async (req: FunnelAddRequest) => {
+    shapeVersion: async (req: ShapeVersionRequest) => {
       const w = await workspace(req, "act");
-      const body = bodyOf(req.body);
       const row = await refused(() =>
-        addFunnel(w.db, {
-          id: String(req.id ?? ""),
-          name: req.name || body.name,
-          body,
-          why: req.why ?? "added from the console",
+        saveShape(w.db, {
+          body: bodyOf(req.body),
+          note: String(req.note ?? ""),
           by: by(req),
           triggers: triggerIds(),
+          ...(req.moves ? { moves: req.moves } : {}),
         }),
       );
-      return { funnel: row.funnel, version: row.number };
+      return { version: row.number };
     },
-    funnelsAppend: async (req: FunnelAppendRequest) => {
+    shapeDiff: async (req: ShapeDiffRequest) => {
+      const w = await workspace(req, "read");
+      const all = await shapeVersionsOf(w.db);
+      const at = (n: number) => {
+        const v = all.find((x) => x.number === Number(n));
+        if (!v) throw new PortalRefusal(`There is no shape version ${n}.`, 400);
+        return v;
+      };
+      const [a, b] = [at(req.a), at(req.b)];
+      return { a: a.number, b: b.number, diff: diffShapes(a.body, b.body) };
+    },
+    shapeImport: async (req: ShapeImportRequest) => {
       const w = await workspace(req, "act");
-      const row = await refused(() =>
-        appendFunnel(
-          w.db,
-          String(req.id ?? ""),
-          bodyOf(req.body),
-          req.why ?? "appended from the console",
-          by(req),
-          triggerIds(),
-        ),
+      const done = await refused(() =>
+        importShape(w.db, String(req.text ?? ""), {
+          by: by(req),
+          triggers: triggerIds(),
+          ...(req.note ? { note: req.note } : {}),
+        }),
       );
-      return { funnel: row.funnel, version: row.number };
-    },
-    funnelsStatus: async (req: FunnelIdRequest, status: "live" | "off") => {
-      const w = await workspace(req, "act");
-      by(req);
-      const f = await refused(() => setFunnelStatus(w.db, String(req.id ?? ""), status));
-      return { funnel: f.id, status: f.status };
+      return {
+        version: done.shape?.number ?? (await newestShape(w.db))?.number ?? null,
+        changed: done.shape !== null,
+        terms: done.terms.map((t) => ({ offer: t.offer, plan: t.plan, version: t.number })),
+      };
     },
     termsAdd: async (req: TermsAddRequest) => {
       const w = await workspace(req, "act");
@@ -277,53 +293,49 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
       offersSync: serviceHandler(RECORDS, (ctx: restate.Context, req: PortalRequest) =>
         answer(() => ctx.run("offers sync", () => answer(() => api.offersSync(req)))),
       ),
-      funnelsAdd: serviceHandler(
+      shapeVersion: serviceHandler(
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
-            id: z.string().describe("The funnel's slug"),
-            name: z.string().nullish(),
-            why: z.string().nullish().describe("Why, in a sentence"),
-            body: z.looseObject({}).describe("The funnel body: name, offer, stages, entries"),
+            note: z.string().describe("Why, in a sentence"),
+            body: z.looseObject({}).describe("The shape body: name, nodes, edges"),
+            moves: z
+              .record(z.string(), z.string())
+              .nullish()
+              .describe("Where journeys on a dropped node go: { oldNode: newNode }"),
           }),
         },
-        (ctx: restate.Context, req: FunnelAddRequest) =>
-          answer(() => ctx.run("funnel add", () => answer(() => api.funnelsAdd(req)))),
+        (ctx: restate.Context, req: ShapeVersionRequest) =>
+          answer(() => ctx.run("shape version", () => answer(() => api.shapeVersion(req)))),
       ),
-      funnelsAppend: serviceHandler(
+      shapeDiff: serviceHandler(
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
-            id: z.string().describe("The funnel's slug"),
-            why: z.string().nullish().describe("Why, in a sentence"),
-            body: z.looseObject({}).describe("The next funnel body"),
+            a: z.number().describe("A shape version number"),
+            b: z.number().describe("Another shape version number"),
           }),
         },
-        (ctx: restate.Context, req: FunnelAppendRequest) =>
-          answer(() => ctx.run("funnel append", () => answer(() => api.funnelsAppend(req)))),
+        (_: restate.Context, req: ShapeDiffRequest) => answer(() => api.shapeDiff(req)),
       ),
-      funnelsOff: serviceHandler(
+      shapeImport: serviceHandler(
         {
-          input: z.looseObject({ ...PORTAL_FIELDS, id: z.string().describe("The funnel's slug") }),
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            text: z.string().describe("The shape file, as YAML"),
+            note: z.string().nullish().describe("The version's note when the file has none"),
+          }),
         },
-        (ctx: restate.Context, req: FunnelIdRequest) =>
-          answer(() => ctx.run("funnel off", () => answer(() => api.funnelsStatus(req, "off")))),
-      ),
-      funnelsOn: serviceHandler(
-        {
-          input: z.looseObject({ ...PORTAL_FIELDS, id: z.string().describe("The funnel's slug") }),
-        },
-        (ctx: restate.Context, req: FunnelIdRequest) =>
-          answer(() => ctx.run("funnel on", () => answer(() => api.funnelsStatus(req, "live")))),
+        (ctx: restate.Context, req: ShapeImportRequest) =>
+          answer(() => ctx.run("shape import", () => answer(() => api.shapeImport(req)))),
       ),
       journeysOpen: serviceHandler(
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
-            funnel: z.string().describe("The funnel's id"),
             person: z.string().describe("A profile id, an email, a phone (+...) or kind:value"),
-            at: z.string().nullish().describe("An entry stage; the first when left out"),
-            entry: z.string().nullish().describe("An entry id of the funnel"),
+            at: z.string().nullish().describe("A node to open at; the source's own when left out"),
+            entry: z.string().nullish().describe("A source node id"),
           }),
         },
         (ctx: restate.Context, req: JourneyOpenRequest) =>
@@ -331,7 +343,6 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
             const w = await api.workspace(req, "act");
             const ask: JourneyOpen = {
               client: w.client,
-              funnel: req.funnel,
               person: req.person,
               by: api.by(req),
               ...(req.at ? { at: req.at } : {}),
@@ -345,7 +356,8 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
           input: z.looseObject({
             ...PORTAL_FIELDS,
             journey: z.string().describe("The journey's id"),
-            to: z.string().describe("A later stage key of its funnel"),
+            to: z.string().describe("A node id of its shape version"),
+            reason: z.string().nullish().describe("Needed when no edge leads there"),
           }),
         },
         (ctx: restate.Context, req: JourneyMoveRequest) =>
@@ -356,6 +368,7 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
               journey: req.journey,
               to: req.to,
               by: api.by(req),
+              ...(req.reason ? { reason: req.reason } : {}),
             });
           }),
       ),

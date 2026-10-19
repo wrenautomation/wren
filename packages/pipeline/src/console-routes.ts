@@ -1,7 +1,7 @@
 import type { Need, RouteApps } from "@wren/core/access";
 
 /**
- * PipelineConsole's handlers (`console.ts`) and what each needs: the workspace's offers, funnels,
+ * PipelineConsole's handlers (`console.ts`) and what each needs: the workspace's offers, shape,
  * journeys, deals and numbers, read by whoever may see that workspace (Wren's, or a client's);
  * every change is an act in Opportunities. The edge Worker opens only these and refuses the
  * writes on the demo. Type imports only, so the Worker bundles it alone.
@@ -13,10 +13,9 @@ export const PIPELINE_CONSOLE_ROUTES = {
   recordsExport: "read",
   recordsStats: "read",
   offersSync: "act",
-  funnelsAdd: "act",
-  funnelsAppend: "act",
-  funnelsOff: "act",
-  funnelsOn: "act",
+  shapeVersion: "act",
+  shapeDiff: "read",
+  shapeImport: "act",
   journeysOpen: "act",
   journeysMove: "act",
   journeysDrop: "act",
@@ -36,10 +35,8 @@ export type PipelineConsoleRoute = keyof typeof PIPELINE_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const PIPELINE_CONSOLE_WRITES: readonly PipelineConsoleRoute[] = [
   "offersSync",
-  "funnelsAdd",
-  "funnelsAppend",
-  "funnelsOff",
-  "funnelsOn",
+  "shapeVersion",
+  "shapeImport",
   "journeysOpen",
   "journeysMove",
   "journeysDrop",

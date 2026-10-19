@@ -1,6 +1,6 @@
 /**
- * The version store (designs/2026-10-18-journeys.md): offers by hash, terms by date, funnels by
- * number. Every write is a new row; the database refuses an edit. Two writers at once cannot
+ * The version store (designs/2026-10-19-business-map.md): offers by hash, terms by date, the
+ * business shape by number. Every write is a new row; the database refuses an edit. Two writers at once cannot
  * take one number: each write holds a transaction lock on the thing it numbers.
  */
 import { createHash } from "node:crypto";
@@ -9,16 +9,13 @@ import { segments } from "@wren/core/segments-schema";
 import { atomic, type Queryable, type Tx } from "@wren/db";
 import type { Offer, Terms } from "@wren/offers";
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
-import { carryJourneys } from "./carry.js";
-import { checkFunnel, type FunnelBody, type FunnelContext } from "./model.js";
+import { carryJourneys, type Moves } from "./carry.js";
+import { checkShape, depthOf, type ShapeBody, type ShapeCheckContext } from "./model.js";
 import {
-  type Funnel,
-  type FunnelStatus,
-  type FunnelVersion,
-  funnels,
-  funnelVersions,
   type OfferVersion,
   offerVersions,
+  type ShapeVersion,
+  shapeVersions,
   type TermsVersion,
   termsVersions,
 } from "./schema.js";
@@ -253,31 +250,16 @@ export async function termsHistory(
     .orderBy(asc(termsVersions.plan), asc(termsVersions.number));
 }
 
-// --- funnels ---------------------------------------------------------------------------------
-
-const FUNNEL_ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+// --- the shape -------------------------------------------------------------------------------
 
 /**
- * What `checkFunnel` needs, from stored funnels: each one's newest stage keys and sale stage, and
- * which funnels each takes entries from. `triggers` are the trigger component ids that exist.
+ * What `checkShape` needs, from this workspace: its groups (active segments, by id as text) and
+ * its sourced lists (`import:<batch id>`). `triggers` are the trigger component ids that exist.
  */
-export async function funnelContext(
+export async function shapeContext(
   db: Queryable,
-  id: string,
   triggers: ReadonlySet<string>,
-): Promise<FunnelContext> {
-  const newest = await db
-    .selectDistinctOn([funnelVersions.funnel], {
-      funnel: funnelVersions.funnel,
-      body: funnelVersions.body,
-    })
-    .from(funnelVersions)
-    .orderBy(funnelVersions.funnel, desc(funnelVersions.number));
-  const byId = new Map(newest.map((r) => [r.funnel, r.body] as const));
-  const feeds: Record<string, string[]> = {};
-  for (const [f, b] of byId) {
-    feeds[f] = b.entries.flatMap((e) => (e.funnel ? [e.funnel.id] : []));
-  }
+): Promise<ShapeCheckContext> {
   const groups = new Map(
     (await db.select({ id: segments.id, state: segments.state }).from(segments)).map(
       (g) => [String(g.id), g.state === "active"] as const,
@@ -287,149 +269,112 @@ export async function funnelContext(
     (await db.select({ id: imports.id }).from(imports)).map((r) => `import:${r.id}`),
   );
   return {
-    id,
     triggers,
-    source(sid) {
-      return batches.has(sid) ? { exists: true } : undefined;
-    },
+    source: (sid) => (batches.has(sid) ? { exists: true } : undefined),
     group(gid) {
       const active = groups.get(gid);
       return active === undefined ? undefined : { active };
     },
-    funnel(other) {
-      const b = byId.get(other);
-      if (!b) return undefined;
-      return { stages: b.stages.map((s) => s.key), sale: b.stages.find((s) => s.sale)?.key ?? "" };
-    },
-    feeds,
   };
 }
 
-export interface NewFunnel {
-  id: string;
-  name: string;
-  body: FunnelBody;
-  why: string;
-  by: string;
-  triggers: ReadonlySet<string>;
+/** The newest shape version, or null when none is saved. */
+export async function newestShape(db: Queryable): Promise<ShapeVersion | null> {
+  const [row] = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number)).limit(1);
+  return row ?? null;
 }
 
-/** A new funnel: its head and version 1. Refused with every reason `checkFunnel` finds. */
-export async function addFunnel(db: Queryable, input: NewFunnel): Promise<FunnelVersion> {
-  if (!FUNNEL_ID.test(input.id) || input.id.length > 40)
-    throw new Refused(["A funnel id is a lowercase slug of 40 characters or fewer."]);
-  if (!input.why.trim()) throw new Refused(["Say why."]);
-  return atomic(db, async (tx) => {
-    await lock(tx, `funnel:${input.id}`);
-    const [have] = await tx
-      .select({ id: funnels.id })
-      .from(funnels)
-      .where(eq(funnels.id, input.id));
-    if (have) return refuse(`Funnel "${input.id}" exists. Append a version to change it.`);
-    const errors = checkFunnel(null, input.body, await funnelContext(tx, input.id, input.triggers));
-    if (errors.length) throw new Refused(errors);
-    await tx.insert(funnels).values({ id: input.id, name: input.name });
-    const [row] = await tx
-      .insert(funnelVersions)
-      .values({
-        funnel: input.id,
-        number: 1,
-        body: input.body,
-        why: input.why,
-        createdBy: input.by,
-      })
-      .returning();
-    if (!row) throw new Error("funnel version insert returned nothing");
-    return row;
-  });
+/** Every shape version, oldest first. */
+export async function shapeVersionsOf(db: Queryable): Promise<ShapeVersion[]> {
+  return db.select().from(shapeVersions).orderBy(asc(shapeVersions.number));
+}
+
+export interface NewShape {
+  body: ShapeBody;
+  /** Why it changed. Not empty. */
+  note: string;
+  by: string;
+  triggers: ReadonlySet<string>;
+  /** Where journeys on a node the new body drops go: `{ oldNode: newNode }`. */
+  moves?: Moves;
 }
 
 /**
- * The next version of a funnel, checked against the newest. Open journeys carry to it in the
- * same transaction (`carryJourneys`).
+ * The next shape version. Refused with every reason `checkShape` finds, with "Nothing changed."
+ * when the body equals the newest, and when a `moves` target is no node of the body. Open
+ * journeys carry to it in the same transaction (`carryJourneys`).
  */
-export async function appendFunnel(
-  db: Queryable,
-  id: string,
-  body: FunnelBody,
-  why: string,
-  by: string,
-  triggers: ReadonlySet<string>,
-): Promise<FunnelVersion> {
-  if (!why.trim()) throw new Refused(["Say why."]);
+export async function saveShape(db: Queryable, input: NewShape): Promise<ShapeVersion> {
+  if (!input.note.trim()) throw new Refused(["Say why."]);
   return atomic(db, async (tx) => {
-    await lock(tx, `funnel:${id}`);
-    const [last] = await tx
-      .select()
-      .from(funnelVersions)
-      .where(eq(funnelVersions.funnel, id))
-      .orderBy(desc(funnelVersions.number))
-      .limit(1);
-    if (!last) return refuse(`Funnel "${id}" does not exist. Add it first.`);
-    if (canonicalJson(last.body) === canonicalJson(body))
-      return refuse(`That is already version ${last.number}.`);
-    const errors = checkFunnel(last.body, body, await funnelContext(tx, id, triggers));
+    await lock(tx, "shape");
+    const last = await newestShape(tx);
+    if (last && canonicalJson(last.body) === canonicalJson(input.body))
+      return refuse("Nothing changed.");
+    const errors = checkShape(input.body, await shapeContext(tx, input.triggers));
+    const ids = new Set(input.body.nodes.map((n) => n.id));
+    for (const [from, to] of Object.entries(input.moves ?? {})) {
+      if (!ids.has(to)) errors.push(`Cannot move ${from} to ${to}: the shape has no node ${to}.`);
+    }
     if (errors.length) throw new Refused(errors);
     const [row] = await tx
-      .insert(funnelVersions)
-      .values({ funnel: id, number: last.number + 1, body, why, createdBy: by })
+      .insert(shapeVersions)
+      .values({
+        number: (last?.number ?? 0) + 1,
+        body: input.body,
+        depths: depthOf(input.body),
+        note: input.note,
+        parent: last?.number ?? null,
+        createdBy: input.by,
+      })
       .returning();
-    if (!row) throw new Error("funnel version insert returned nothing");
-    // Open journeys keep their stage on the new version (a `version` event each).
-    await carryJourneys(tx, id, row.number);
+    if (!row) throw new Error("shape version insert returned nothing");
+    // Open journeys keep their node on the new version (a `version` arrival each).
+    await carryJourneys(tx, row.number, input.moves ?? {});
     return row;
   });
 }
 
-/** `off` stops new journeys; open ones still move. */
-export async function setFunnelStatus(
-  db: Queryable,
-  id: string,
-  status: FunnelStatus,
-): Promise<Funnel> {
-  const [row] = await db.update(funnels).set({ status }).where(eq(funnels.id, id)).returning();
-  if (!row) throw new Refused([`Funnel "${id}" does not exist.`]);
-  return row;
+/** What changed between two shape bodies, by id. */
+export interface ShapeDiff {
+  nodes: {
+    added: string[];
+    removed: string[];
+    /** Same id, new name. */
+    renamed: Array<{ id: string; from: string; to: string }>;
+    /** Same id, any other field changed. */
+    changed: string[];
+  };
+  edges: { added: string[]; removed: string[]; changed: string[] };
+  /** The shape's own name changed. */
+  name: { from: string; to: string } | null;
 }
 
-export interface FunnelFilter {
-  funnel?: string;
-  /** Only funnels whose status is `live`. */
-  live?: boolean;
-  /** Only each funnel's newest version. */
-  newest?: boolean;
-}
-
-export type FunnelVersionRow = FunnelVersion & { status: FunnelStatus; name: string };
-
-/** Funnel versions, funnel then number. */
-export async function funnelVersionsOf(
-  db: Queryable,
-  filter: FunnelFilter = {},
-): Promise<FunnelVersionRow[]> {
-  const rows = await db
-    .select({
-      id: funnelVersions.id,
-      funnel: funnelVersions.funnel,
-      number: funnelVersions.number,
-      body: funnelVersions.body,
-      why: funnelVersions.why,
-      createdAt: funnelVersions.createdAt,
-      createdBy: funnelVersions.createdBy,
-      status: funnels.status,
-      name: funnels.name,
-    })
-    .from(funnelVersions)
-    .innerJoin(funnels, eq(funnels.id, funnelVersions.funnel))
-    .where(
-      and(
-        filter.funnel ? eq(funnelVersions.funnel, filter.funnel) : undefined,
-        filter.live ? eq(funnels.status, "live") : undefined,
-      ),
-    )
-    .orderBy(asc(funnelVersions.funnel), asc(funnelVersions.number));
-  if (!filter.newest) return rows;
-  const last = new Map<string, FunnelVersionRow>();
-  for (const r of rows) last.set(r.funnel, r);
-  return [...last.values()];
+/** Nodes and edges added, removed, renamed (nodes) and changed between `a` and `b`. Pure. */
+export function diffShapes(a: ShapeBody, b: ShapeBody): ShapeDiff {
+  const same = (x: unknown, y: unknown) => canonicalJson(x) === canonicalJson(y);
+  const by = <T extends { id: string }>(xs: T[]) => new Map(xs.map((x) => [x.id, x] as const));
+  const an = by(a.nodes);
+  const bn = by(b.nodes);
+  const ae = by(a.edges);
+  const be = by(b.edges);
+  const nodes: ShapeDiff["nodes"] = { added: [], removed: [], renamed: [], changed: [] };
+  for (const [id, n] of bn) {
+    const was = an.get(id);
+    if (!was) {
+      nodes.added.push(id);
+      continue;
+    }
+    if (was.name !== n.name) nodes.renamed.push({ id, from: was.name, to: n.name });
+    if (!same({ ...was, name: "" }, { ...n, name: "" })) nodes.changed.push(id);
+  }
+  for (const id of an.keys()) if (!bn.has(id)) nodes.removed.push(id);
+  const edges: ShapeDiff["edges"] = { added: [], removed: [], changed: [] };
+  for (const [id, e] of be) {
+    const was = ae.get(id);
+    if (!was) edges.added.push(id);
+    else if (!same(was, e)) edges.changed.push(id);
+  }
+  for (const id of ae.keys()) if (!be.has(id)) edges.removed.push(id);
+  return { nodes, edges, name: a.name === b.name ? null : { from: a.name, to: b.name } };
 }

@@ -1,22 +1,33 @@
 /**
- * The two spine steps of a funnel workflow (designs/2026-10-18-journeys.md, "Journeys on the
- * spine"). `journey.move` maps a cause to a person's journey and moves it. `journey.stage` is the
- * stage arrival: the timeline line, the stage's research, the trigger fire, the deal. Both are idempotent: Restate may
- * run a step again, and a repeated cause finds the journey already moved.
+ * The two spine steps of a shape workflow (designs/2026-10-19-business-map.md). `journey.move`
+ * maps a cause to a person's journey and moves it along the shortest flow path to the node, or
+ * opens one there from a source. `journey.stage` is the arrival: the timeline line, the node's
+ * research, the trigger fire, the deal or the signing. Both are idempotent: Restate may run a
+ * step again, and a repeated cause finds the journey already moved.
  */
 import { createHash } from "node:crypto";
 import { profileRollups } from "@wren/core/people-map-schema";
 import { profileEvents } from "@wren/core/profiles-schema";
-import type { SpineEvent, Step } from "@wren/core/spine";
+import type { Fired, SpineEvent, Step } from "@wren/core/spine";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
-import { type CauseFacts, entryOf, opensAt } from "./entry.js";
-import { openJourney, personOf, saleStageOf, textOf, versionOf } from "./journeys.js";
-import { DROPPED } from "./model.js";
+import { type CauseFacts, entryOf, MANUAL, opensAt, sourceEdge } from "./entry.js";
+import { openJourney, personOf, textOf, versionOf } from "./journeys.js";
+import {
+  type Crossing,
+  DROPPED,
+  edgesOf,
+  isEnd,
+  nodeOf,
+  passedThrough,
+  pathOf,
+  type ShapeBody,
+} from "./model.js";
+import { signDeal } from "./moves.js";
 import { icpOf, type Researcher, requestResearch } from "./research.js";
 import { journeys, offerVersions, pipelineDeals } from "./schema.js";
-import { nextStage } from "./stages.js";
-import { JOURNEY_PORT, MOVE_STEP, parseFunnelFlow, STAGE_STEP } from "./workflow.js";
+import { liveTerms } from "./store.js";
+import { JOURNEY_PORT, MOVE_STEP, parseShapeFlow, STAGE_STEP } from "./workflow.js";
 
 export const CAUSE_KINDS = [
   "touch",
@@ -25,6 +36,7 @@ export const CAUSE_KINDS = [
   "reply",
   "document",
   "form",
+  // A journey's own move, heard by a trigger.journey node (kept under its old name).
   "funnel",
   "group",
   "sourced",
@@ -49,6 +61,8 @@ const KIND_OF_EVENT: Partial<Record<SpineEvent["kind"], CauseKind>> = {
   form: "form",
   journey: "funnel",
 };
+
+type Fact = Fired["facts"];
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -75,16 +89,12 @@ export function factsOf(data: Record<string, unknown>): CauseFacts {
   const entry = textOf(data.entry);
   const channel = textOf(data.channel) ?? textOf(data.platform);
   const campaign = textOf(data.campaign);
-  const funnel = textOf(data.funnel);
-  const stage = textOf(data.stage);
   const source = textOf(data.source);
   // A group's entered event carries its id as `segment`.
   const group = textOf(data.group) ?? textOf(data.segment);
   if (entry) f.entry = entry;
   if (channel) f.channel = channel;
   if (campaign) f.campaign = campaign;
-  if (funnel) f.funnel = funnel;
-  if (stage) f.stage = stage;
   if (source) f.source = source;
   if (group) f.group = group;
   return f;
@@ -94,13 +104,48 @@ export interface JourneyStepDeps {
   /** The workspace database: Wren's for `null`, else that client's. */
   db(client: string | null): Db;
   now?(): Date;
-  /** Runs a stage's `research` on arrival. Unset: the level is carried and nothing runs. */
+  /** Runs a node's `research` on arrival. Unset: the level is carried and nothing runs. */
   researcher?: Researcher;
 }
 
-/** `profile_events.source_id` is 64 characters: a journey and a stage fit as a hash. */
-const lineId = (journey: string, stage: string) =>
-  createHash("sha256").update(`${journey}:${stage}`).digest("hex").slice(0, 40);
+/** `profile_events.source_id` is 64 characters: a journey and a node fit as a hash. */
+const lineId = (journey: string, node: string) =>
+  createHash("sha256").update(`${journey}:${node}`).digest("hex").slice(0, 40);
+
+/**
+ * The offer a node's research reads the ICP of: the nearest offer node at or below it, else the
+ * latest one on the trail. Null when the shape has none on this person's way.
+ */
+function offerFor(body: ShapeBody, node: string, trail: readonly Crossing[]): string | null {
+  const seen = new Set([node]);
+  let level = [node];
+  while (level.length > 0) {
+    for (const id of level) {
+      const n = nodeOf(body, id);
+      if (n?.kind === "offer") return n.offer;
+    }
+    const next: string[] = [];
+    for (const id of level) {
+      for (const e of body.edges) {
+        if (e.kind !== "flow" || e.from !== id || seen.has(e.to)) continue;
+        seen.add(e.to);
+        next.push(e.to);
+      }
+    }
+    level = next;
+  }
+  for (const c of [...trail].reverse()) {
+    const n = nodeOf(body, c.to);
+    if (n?.kind === "offer") return n.offer;
+  }
+  return null;
+}
+
+/** A cause's facts less the entry it names. */
+const unnamed = (f: CauseFacts): CauseFacts => {
+  const { entry: _entry, ...rest } = f;
+  return rest;
+};
 
 /** The two steps, to register by name in the spine's `steps`. */
 export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
@@ -108,71 +153,149 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
 
   const move: Step = async (port, e, at) => {
     const db = d.db(at.client);
-    const flow = parseFunnelFlow(at.workflow);
+    const flow = parseShapeFlow(at.workflow);
     const to = textOf(at.with.to);
     if (!flow || !to) return [];
-    const funnel = await versionOf(db, flow.funnel, flow.version);
-    if (!funnel) return [];
-    const { body } = funnel;
-    const stages = body.stages.map((s) => s.key);
-    if (!stages.includes(to)) return [];
+    const loaded = await versionOf(db, flow.version);
+    if (!loaded) return [];
+    const { body } = loaded;
+    const target = nodeOf(body, to);
+    if (!target || target.kind === "source") return [];
     const profile = await personOf(db, e.data);
     if (profile === null) return [];
     const cause = causeOf(e, now());
     const facts = factsOf(e.data);
     // The row that added the person to a sourced list.
     const row = textOf(e.data.row);
+    const stamp = now().toISOString();
+    const forced = isRecord(e.data.forced) ? textOf(e.data.forced.reason) : undefined;
+    const loop = isRecord(e.data.loop)
+      ? { journey: textOf(e.data.loop.journey), edge: textOf(e.data.loop.edge) }
+      : null;
 
     const done = await atomic(db, async (tx) => {
-      let j = await openJourney(tx, profile, flow.funnel);
-      let from: string | null = null;
-      let skipped: string[] = [];
-      if (j) {
-        // Another version of the funnel owns this journey: its own node moves it.
-        if (j.version !== flow.version) return null;
-        if (j.stage !== to) {
-          const step = nextStage(body.stages, j.stage, to, j.status);
-          if (!step) return null;
-          from = j.stage;
-          skipped = step.skipped;
-          await tx.update(journeys).set({ stage: to, movedAt: now() }).where(eq(journeys.id, j.id));
+      const j = await openJourney(tx, profile);
+      if (loop) {
+        // A loop edge: close the journey it left and open a new one at `to`.
+        if (!loop.journey || !loop.edge || flow.version !== loaded.newest) return null;
+        const [old] = await tx.select().from(journeys).where(eq(journeys.id, loop.journey));
+        const edge = body.edges.find((x) => x.id === loop.edge && x.kind === "loop");
+        if (!old || old.profileId !== profile || old.version !== flow.version || !old.node)
+          return null;
+        if (!edge || edge.from !== old.node || edge.to !== to) return null;
+        if (j && j.id !== old.id) return null;
+        if (old.status === "open") {
+          await tx
+            .update(journeys)
+            .set({ status: "dropped", dropReason: `loop ${edge.id}`, closedAt: now() })
+            .where(eq(journeys.id, old.id));
+        } else if (old.status === "done") {
+          return null;
         }
-        // Already at `to`: a repeat of a move that crashed before it was kept. Say it again;
-        // the stage node refuses a second arrival.
-      } else {
-        // Only the live newest version opens journeys, and only from a cause an entry at `to` takes.
-        if (flow.version !== funnel.newest || funnel.status !== "live") return null;
-        if (!opensAt(body, to, port === JOURNEY_PORT, facts)) return null;
-        const [touch] = await tx
-          .select({ channel: profileRollups.firstChannel })
-          .from(profileRollups)
-          .where(eq(profileRollups.profileId, profile))
-          .limit(1);
-        const entry = entryOf(
-          { ...body, entries: body.entries.filter((x) => (x.to ?? stages[0]) === to) },
-          facts,
-          touch?.channel ? { channel: touch.channel } : null,
-        );
+        const crossing: Crossing = { edge: edge.id, from: old.node, to, at: stamp };
         const [made] = await tx
           .insert(journeys)
           .values({
             profileId: profile,
-            funnel: flow.funnel,
             version: flow.version,
-            stage: to,
-            entry: entry.id,
-            entryRef: { subject: e.subject, cause, ...facts, ...(row ? { row } : {}) },
+            node: to,
+            trail: [crossing],
+            entry: old.entry,
+            entryRef: { subject: e.subject, cause, loop: old.id },
             openedAt: now(),
             movedAt: now(),
           })
-          .onConflictDoNothing()
           .returning();
-        // Another call opened one first: join it.
-        j = made ?? (await openJourney(tx, profile, flow.funnel));
-        if (!j || j.version !== flow.version) return null;
-        if (!made && j.stage !== to) return null;
+        if (!made) return null;
+        return {
+          journey: made.id,
+          from: old.node,
+          edges: [edge.id],
+          skipped: [] as string[],
+          loop: { journey: old.id, node: old.node, edge: edge.id },
+        };
       }
-      return { journey: j.id, from, skipped };
+      if (j) {
+        // Another version owns this journey: its own node moves it.
+        if (j.version !== flow.version || j.node === null) return null;
+        if (j.node === to) {
+          // A repeat of a move that crashed before it was kept. Say it again from its last
+          // crossings (they share one time); the stage node refuses a second arrival.
+          const last = j.trail.at(-1);
+          const same = j.trail.filter((c) => c.at === last?.at);
+          return {
+            journey: j.id,
+            from: same[0]?.from ?? null,
+            edges: same.flatMap((c) => (c.edge ? [c.edge] : [])),
+            skipped: same.slice(0, -1).map((c) => c.to),
+          };
+        }
+        // Never twice at one node: a trail that holds `to` means the move goes back.
+        if (j.trail.some((c) => c.to === to)) return null;
+        const path = pathOf(body, j.node, to, { loops: false });
+        let crossings: Crossing[];
+        let edges: string[];
+        let skipped: string[];
+        if (path) {
+          crossings = edgesOf(body, path).map((x) => ({
+            edge: x.id,
+            from: x.from,
+            to: x.to,
+            at: stamp,
+          }));
+          edges = path;
+          skipped = passedThrough(body, path);
+        } else if (forced) {
+          crossings = [{ edge: null, from: j.node, to, at: stamp }];
+          edges = [];
+          skipped = [];
+        } else {
+          return null;
+        }
+        await tx
+          .update(journeys)
+          .set({ node: to, trail: [...j.trail, ...crossings], movedAt: now() })
+          .where(eq(journeys.id, j.id));
+        return { journey: j.id, from: j.node, edges, skipped };
+      }
+      // Only the newest version opens journeys, and only from a cause a source into `to` takes.
+      if (flow.version !== loaded.newest) return null;
+      if (!opensAt(body, to, port === JOURNEY_PORT, facts)) return null;
+      const [touch] = await tx
+        .select({ channel: profileRollups.firstChannel })
+        .from(profileRollups)
+        .where(eq(profileRollups.profileId, profile))
+        .limit(1);
+      // A named source with no edge to `to` cannot open it: choose as if none were named.
+      const named = facts.entry && sourceEdge(body, facts.entry, to) ? facts : unnamed(facts);
+      const src = entryOf(body, named, touch?.channel ? { channel: touch.channel } : null, to);
+      const edge = src ? sourceEdge(body, src.id, to) : undefined;
+      const crossing: Crossing = {
+        edge: edge?.id ?? null,
+        from: src?.id ?? null,
+        to,
+        at: stamp,
+      };
+      const [made] = await tx
+        .insert(journeys)
+        .values({
+          profileId: profile,
+          version: flow.version,
+          node: to,
+          trail: [crossing],
+          entry: src?.id ?? MANUAL,
+          entryRef: { subject: e.subject, cause, ...facts, ...(row ? { row } : {}) },
+          openedAt: now(),
+          movedAt: now(),
+        })
+        .returning();
+      if (!made) return null;
+      return {
+        journey: made.id,
+        from: null,
+        edges: edge ? [edge.id] : [],
+        skipped: [] as string[],
+      };
     });
     if (!done) return [];
     return [
@@ -184,11 +307,15 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           data: {
             journey: done.journey,
             profile,
-            funnel: flow.funnel,
             version: flow.version,
             from: done.from,
             to,
+            edges: done.edges,
             skipped: done.skipped,
+            ...(forced && done.edges.length === 0 && done.from
+              ? { forced: { reason: forced } }
+              : {}),
+            ...("loop" in done && done.loop ? { loop: done.loop } : {}),
             cause,
           },
         },
@@ -198,18 +325,19 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
 
   const stage: Step = async (_port, e, at) => {
     const db = d.db(at.client);
-    const flow = parseFunnelFlow(at.workflow);
-    const key = textOf(at.with.stage);
+    const flow = parseShapeFlow(at.workflow);
+    const key = textOf(at.with.node);
     const journey = textOf(e.data.journey);
     if (!flow || !key || !journey) return [];
     const profile = Number(e.data.profile);
     const version = Number(e.data.version) || flow.version;
-    const loaded = await versionOf(db, flow.funnel, version);
+    const loaded = await versionOf(db, version);
     if (!loaded || !Number.isInteger(profile)) return [];
     const { body } = loaded;
     const dropped = key === DROPPED;
-    const where = dropped ? textOf(e.data.stage) : key;
-    const label = body.stages.find((s) => s.key === where)?.label ?? where ?? key;
+    const where = dropped ? textOf(e.data.node) : key;
+    const node = where ? nodeOf(body, where) : undefined;
+    const label = node?.name ?? where ?? key;
     const change = dropped ? "dropped" : "entered";
     const skipped = Array.isArray(e.data.skipped) ? e.data.skipped.map(String) : [];
 
@@ -227,83 +355,117 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           sourceId: lineId(journey, key),
         })
         .onConflictDoNothing();
-      if (dropped) return false;
-      const last = body.stages.at(-1)?.key;
-      // The last stage ends the journey; it never reopens.
-      if (key === last) {
+      if (dropped || !node) return "none" as const;
+      // A node with no way on ends the journey; it never reopens.
+      if (isEnd(body, key)) {
         await tx
           .update(journeys)
           .set({ status: "done", closedAt: now() })
           .where(eq(journeys.id, journey));
       }
-      if (key !== saleStageOf(body)) return false;
+      if (node.kind !== "offer") return "none" as const;
       const [offer] = await tx
         .select({ number: offerVersions.number })
         .from(offerVersions)
-        .where(eq(offerVersions.offer, body.offer))
+        .where(eq(offerVersions.offer, node.offer))
         .orderBy(desc(offerVersions.number))
         .limit(1);
-      if (!offer) return null;
+      if (!offer) return "no-offer" as const;
       await tx
         .insert(pipelineDeals)
         .values({
           journey,
+          node: node.id,
           profileId: profile,
-          offer: body.offer,
+          offer: node.offer,
           offerVersion: offer.number,
           signedAt: now(),
         })
-        .onConflictDoNothing({ target: pipelineDeals.journey });
-      return true;
+        .onConflictDoNothing();
+      return "deal" as const;
     });
-    if (made === null)
-      console.warn(`journey ${journey}: no offer version for ${body.offer}, so no deal yet`);
+    if (made === "no-offer" && node?.kind === "offer")
+      console.warn(`journey ${journey}: no offer version for ${node.offer}, so no deal yet`);
 
-    const level = textOf(at.with.research);
+    // Reaching a plan node signs the journey's deal under the plan's terms.
+    if (!dropped && node?.kind === "plan") {
+      try {
+        const [deal] = await db
+          .select()
+          .from(pipelineDeals)
+          .where(eq(pipelineDeals.journey, journey))
+          .orderBy(desc(pipelineDeals.signedAt))
+          .limit(1);
+        if (!deal) {
+          console.warn(`journey ${journey}: no deal to sign at ${key}`);
+        } else if (deal.termsVersion === null) {
+          if (await liveTerms(db, deal.offer, node.terms, now()))
+            await signDeal(db, { deal: deal.id, plan: node.terms, now: now() });
+          else console.warn(`journey ${journey}: no live ${node.terms} terms for ${deal.offer}`);
+        }
+      } catch (err) {
+        console.warn(`journey ${journey}: signing at ${key} failed: ${String(err)}`);
+      }
+    }
+
+    const level =
+      node && (node.kind === "step" || node.kind === "offer") ? node.research : undefined;
     if (d.researcher && !dropped && (level === "light" || level === "full")) {
       // Never blocks the arrival: a failed ask is logged and the journey goes on.
       try {
-        await requestResearch(
-          db,
-          d.researcher,
-          {
-            client: at.client,
-            profile,
-            journey,
-            stage: key,
-            level,
-            offer: body.offer,
-            icp: await icpOf(db, body.offer),
-          },
-          now(),
-        );
+        const trail = await db
+          .select({ trail: journeys.trail })
+          .from(journeys)
+          .where(eq(journeys.id, journey))
+          .limit(1);
+        const offer = offerFor(body, key, trail[0]?.trail ?? []);
+        if (offer) {
+          await requestResearch(
+            db,
+            d.researcher,
+            {
+              client: at.client,
+              profile,
+              journey,
+              stage: key,
+              level,
+              offer,
+              icp: await icpOf(db, offer),
+            },
+            now(),
+          );
+        } else {
+          console.warn(`journey ${journey}: no offer for the research at ${key}`);
+        }
       } catch (err) {
         console.warn(`journey ${journey}: research at ${key} failed: ${String(err)}`);
       }
     }
 
-    const told = (stageKey: string, kind: "entered" | "skipped" | "dropped") =>
+    const told = (id: string, kind: "entered" | "skipped" | "dropped", about = journey) =>
       at.fire?.({
+        // Core's fact for `trigger.journey` takes `node` instead of `funnel` and `stage` once
+        // phase B lands (core/logic.ts); until then the cast stands in for it.
         facts: {
           trigger: "trigger.journey",
-          funnel: flow.funnel,
-          stage: stageKey,
+          node: id,
           change: kind,
-          // Entering the sale stage wins a deal: webhooks hear `deal.won` as well as the move.
-          ...(kind === "entered" && stageKey === saleStageOf(body) ? { sale: true as const } : {}),
-        },
+          // Entering an offer node wins a deal: webhooks hear `deal.won` as well as the move.
+          ...(kind === "entered" && nodeOf(body, id)?.kind === "offer"
+            ? { sale: true as const }
+            : {}),
+        } as unknown as Fact,
         event: {
-          subject: `journey:${journey}`,
+          subject: `journey:${about}`,
           kind: "journey",
-          // To a funnel that hears it, the cause is this journey.
+          // To a workflow that hears it, the cause is this journey.
           data: {
-            journey,
+            journey: about,
             profile,
-            funnel: flow.funnel,
+            node: id,
             version,
-            stage: stageKey,
             change: kind,
-            cause: { kind: "funnel", ref: journey, at: now().toISOString() },
+            cause: { kind: "funnel", ref: about, at: now().toISOString() },
           },
         },
       });
@@ -312,6 +474,26 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
     } else {
       told(key, change);
       for (const s of skipped) told(s, "skipped");
+      // A loop reopen: the journey it closed drops as well.
+      const looped = isRecord(e.data.loop) ? e.data.loop : null;
+      const old = looped ? textOf(looped.journey) : undefined;
+      const oldNode = looped ? textOf(looped.node) : undefined;
+      if (old && oldNode) {
+        await db
+          .insert(profileEvents)
+          .values({
+            profileId: profile,
+            kind: "journey",
+            channel: "journey",
+            at: now(),
+            summary: `Dropped from ${body.name} at ${nodeOf(body, oldNode)?.name ?? oldNode}`,
+            body: `loop ${textOf(looped?.edge) ?? ""}`.trim(),
+            source: "journeys",
+            sourceId: lineId(old, DROPPED),
+          })
+          .onConflictDoNothing();
+        told(oldNode, "dropped", old);
+      }
     }
     return [];
   };

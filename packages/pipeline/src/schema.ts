@@ -1,10 +1,12 @@
 /**
- * Journeys (designs/2026-10-18-journeys.md). One schema, `pipeline`, in every workspace DB.
+ * Journeys and the shape (designs/2026-10-19-business-map.md). One schema, `pipeline`, in every
+ * workspace DB.
  *
- * - `offer_versions`, `terms_versions`, `funnel_versions`: append only (`never_edited` trigger).
- * - `funnels`: the head of a funnel; `off` stops new journeys.
- * - `journeys`: one person in one funnel. A cache of the spine events with subject `journey:<id>`.
- * - `deals`: made when a journey reaches its funnel's sale stage.
+ * - `offer_versions`, `terms_versions`, `shape_versions`: append only (`never_edited` trigger).
+ * - `shape_versions`: the business as one directed graph; every edit is a version.
+ * - `funnels`, `funnel_versions`: read only history, read by `migrate.ts` alone.
+ * - `journeys`: one person on the shape. A cache of the spine events with subject `journey:<id>`.
+ * - `deals`: made when a journey reaches an offer node.
  */
 import { profiles } from "@wren/core/profiles-schema";
 import { oneOf } from "@wren/db/columns";
@@ -27,7 +29,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { FunnelBody } from "./model.js";
+import type { Crossing, ShapeBody } from "./model.js";
 
 export const pipeline = pgSchema("pipeline");
 
@@ -104,7 +106,8 @@ export const funnelVersions = pipeline.table(
     id: serial("id").notNull(),
     funnel: varchar("funnel", { length: 40 }).notNull(),
     number: integer("number").notNull(),
-    body: jsonb("body").$type<FunnelBody>().notNull(),
+    /** Legacy: the old funnel body. Read only by `migrate.ts`, which owns the type. */
+    body: jsonb("body").$type<Record<string, unknown>>().notNull(),
     why: text("why").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     createdBy: text("created_by").notNull(),
@@ -121,32 +124,69 @@ export const funnelVersions = pipeline.table(
 );
 export type FunnelVersion = typeof funnelVersions.$inferSelect;
 
+/** Each saved shape of the business. Numbers count up from 1; a version never changes. */
+export const shapeVersions = pipeline.table(
+  "shape_versions",
+  {
+    number: integer("number").notNull(),
+    body: jsonb("body").$type<ShapeBody>().notNull(),
+    /** `depthOf(body)`, written by the store: SQL readers read a column, not a recursive query. */
+    depths: jsonb("depths").$type<Record<string, number>>().notNull(),
+    note: text("note").notNull(),
+    /** The version this one was saved from. Null for the first. */
+    parent: integer("parent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdBy: text("created_by").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.number], name: "pk_shape_versions" }),
+    foreignKey({
+      columns: [t.parent],
+      foreignColumns: [t.number],
+      name: "fk_shape_versions_parent_shape_versions",
+    }),
+  ],
+);
+export type ShapeVersion = typeof shapeVersions.$inferSelect;
+
 export const journeys = pipeline.table(
   "journeys",
   {
     id: uuid("id").defaultRandom().notNull(),
     profileId: integer("profile_id").notNull(),
-    funnel: varchar("funnel", { length: 40 }).notNull(),
-    /** The funnel version number it is on now. */
-    version: integer("version").notNull(),
-    /** A stage key of that version. */
-    stage: varchar("stage", { length: 40 }).notNull(),
+    /**
+     * The shape version number it is on now. Null only on a row `migrate.ts` has not moved yet.
+     * The column keeps the name `shape_version` until the legacy ones go (M3).
+     */
+    version: integer("shape_version"),
+    /** A node id of that version. Null only before `migrate.ts`. */
+    node: varchar("node", { length: 40 }),
+    /** Each edge it crossed, in order. Rebuilt from the events like the rest of the row. */
+    trail: jsonb("trail").$type<Crossing[]>().notNull().default(sql`'[]'::jsonb`),
     status: varchar("status", { length: 7, enum: JOURNEY_STATUSES }).notNull().default("open"),
     dropReason: text("drop_reason"),
-    /** The entry id that opened it. */
+    /** The source node id that opened it (`manual` when none claims it). */
     entry: varchar("entry", { length: 40 }).notNull(),
-    /** The cause that opened it: touch id, campaign, `/go/` path, prior journey id. */
+    /** The cause that opened it: touch id, campaign, `/go/` path, `loop` (the journey it came from). */
     entryRef: jsonb("entry_ref").$type<Record<string, unknown>>(),
     openedAt: timestamp("opened_at", { withTimezone: true }).defaultNow().notNull(),
     movedAt: timestamp("moved_at", { withTimezone: true }).defaultNow().notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
     /** The old Opportunities deal this came from (its uuid); set only by `wren pipeline fold-deals`. */
     legacyDeal: uuid("legacy_deal"),
+    /** Legacy, read only by migrate.ts: the funnel it was in. */
+    funnel: varchar("funnel", { length: 40 }),
+    /** Legacy, read only by migrate.ts: the funnel version it was on. */
+    funnelVersion: integer("version"),
+    /** Legacy, read only by migrate.ts: the funnel stage key. */
+    stage: varchar("stage", { length: 40 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_journeys" }),
     index("ix_journeys_profile_funnel_status").on(t.profileId, t.funnel, t.status),
-    // One open journey per person per funnel. A person can hold journeys in many funnels.
+    index("ix_journeys_profile_status").on(t.profileId, t.status),
+    // Legacy, one open journey per person per funnel. One per person is enforced in code
+    // (an advisory lock on the profile); its index comes with M3.
     uniqueIndex("uq_journeys_open").on(t.profileId, t.funnel).where(sql`status = 'open'`),
     // The fold makes one journey per old deal, even when two folds run at once.
     uniqueIndex("uq_journeys_legacy_deal").on(t.legacyDeal).where(sql`legacy_deal is not null`),
@@ -156,9 +196,14 @@ export const journeys = pipeline.table(
       name: "fk_journeys_profile_id_profiles",
     }),
     foreignKey({
-      columns: [t.funnel, t.version],
+      columns: [t.funnel, t.funnelVersion],
       foreignColumns: [funnelVersions.funnel, funnelVersions.number],
       name: "fk_journeys_funnel_version",
+    }),
+    foreignKey({
+      columns: [t.version],
+      foreignColumns: [shapeVersions.number],
+      name: "fk_journeys_shape_version",
     }),
     oneOf("ck_journeys_status", t.status, JOURNEY_STATUSES),
   ],
@@ -169,8 +214,10 @@ export const pipelineDeals = pipeline.table(
   "deals",
   {
     id: uuid("id").defaultRandom().notNull(),
-    /** One deal per journey. */
+    /** One deal per journey (and offer node: `uq_deals_journey_node`). */
     journey: uuid("journey").notNull(),
+    /** The offer node the deal was made at. Null on a row `migrate.ts` has not moved yet. */
+    node: varchar("node", { length: 40 }),
     profileId: integer("profile_id").notNull(),
     offer: varchar("offer", { length: 64 }).notNull(),
     /** The offer version number. */
@@ -189,6 +236,7 @@ export const pipelineDeals = pipeline.table(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_deals" }),
     unique("uq_deals_journey").on(t.journey),
+    unique("uq_deals_journey_node").on(t.journey, t.node),
     index("ix_deals_profile_id").on(t.profileId),
     index("ix_deals_terms_version").on(t.termsVersion),
     foreignKey({
@@ -215,8 +263,8 @@ export const RESEARCH_STATES = ["queued", "started", "read", "skipped"] as const
 export type ResearchState = (typeof RESEARCH_STATES)[number];
 
 /**
- * Research a journey asked for on arriving at a stage (`Stage.research`): one row per journey and
- * stage, so a replay finds it and asks nothing new. `queued` means the long run is not started
+ * Research a journey asked for on arriving at a node (the node's `research`): one row per journey
+ * and node (the `stage` column holds the node id), so a replay finds it and asks nothing new. `queued` means the long run is not started
  * yet; a repeat of the step starts it. `read` is a `light` result kept here.
  */
 export const journeyResearch = pipeline.table(

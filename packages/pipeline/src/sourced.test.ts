@@ -1,8 +1,9 @@
 import { triggerHears } from "@wren/core/logic";
 import type { SpineEvent } from "@wren/core/spine";
 import { describe, expect, it } from "vitest";
+import { flow } from "../test/fixtures.js";
 import { entryOf } from "./entry.js";
-import type { FunnelBody } from "./model.js";
+import type { ShapeBody } from "./model.js";
 import { causeOf, factsOf } from "./steps.js";
 
 const NOW = new Date("2026-10-19T10:00:00Z");
@@ -19,14 +20,14 @@ const added: SpineEvent = {
   },
 };
 
-const body: FunnelBody = {
+const body: ShapeBody = {
   name: "Test",
-  offer: "offer-a",
-  stages: [{ key: "engaged", label: "Engaged", sale: true, on: [] }],
-  entries: [
-    { id: "mail", kind: "outbound", channel: "email" },
-    { id: "list", kind: "sourced", source: "import:12" },
+  nodes: [
+    { id: "mail", kind: "source", name: "Email", via: "outbound", channel: "email" },
+    { id: "list", kind: "source", name: "List", via: "sourced", source: "import:12" },
+    { id: "engaged", kind: "offer", name: "Engaged", offer: "offer-a", advance: [] },
   ],
+  edges: [flow("mail", "engaged"), flow("list", "engaged")],
 };
 
 describe("a person added to a sourced list", () => {
@@ -40,8 +41,8 @@ describe("a person added to a sourced list", () => {
 
   it("names the list, so the sourced entry opens the journey", () => {
     expect(factsOf(added.data)).toEqual({ source: "import:12" });
-    expect(entryOf(body, factsOf(added.data)).id).toBe("list");
-    expect(entryOf(body, factsOf({ ...added.data, source: "import:13" })).id).toBe("manual");
+    expect(entryOf(body, factsOf(added.data))?.id).toBe("list");
+    expect(entryOf(body, factsOf({ ...added.data, source: "import:13" }))).toBeNull();
   });
 
   it("is heard by the source trigger of that list only", () => {

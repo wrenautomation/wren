@@ -1,7 +1,7 @@
 /**
- * Research on arrival (designs/2026-10-18-journeys.md, `Stage.research`). A journey that reaches
- * a stage with `light` or `full` asks once for research on its person, against the offer's `icp`.
- * One `journey_research` row per journey and stage is the claim: a repeat of the step finds it and
+ * Research on arrival (designs/2026-10-19-business-map.md, `StepNode.research`). A journey that reaches
+ * a node with `light` or `full` asks once for research on its person, against the offer's `icp`.
+ * One `journey_research` row per journey and node is the claim: a repeat of the step finds it and
  * asks nothing new, except to start a `full` run that was queued but not yet started.
  *
  * The reads are injected (`Researcher`), so this package imports nothing of @wren/research. The
@@ -17,12 +17,13 @@ import { journeyResearch, offerVersions } from "./schema.js";
 
 export type ResearchLevel = "light" | "full";
 
-/** What a researcher is asked, once per journey and stage. */
+/** What a researcher is asked, once per journey and node. */
 export interface ResearchAsk {
   /** The workspace: null for Wren's own. */
   client: string | null;
   profile: number;
   journey: string;
+  /** The node id. The column keeps its old name, `stage`. */
   stage: string;
   level: ResearchLevel;
   offer: string;
@@ -42,7 +43,7 @@ export interface Started {
 export interface Researcher {
   /** Free reads of what the workspace already holds. No network. */
   light(db: Queryable, ask: ResearchAsk): Promise<Record<string, unknown>>;
-  /** Queues and starts the long run, without waiting for it. Never blocks the stage. */
+  /** Queues and starts the long run, without waiting for it. Never blocks the node. */
   full(ask: ResearchAsk): Promise<Started>;
 }
 
@@ -68,7 +69,7 @@ const SUMMARY = {
 } as const;
 
 /**
- * Ask for the stage's research, once. Returns what was asked now: `none` for a repeat.
+ * Ask for the node's research, once. Returns what was asked now: `none` for a repeat.
  * A failure of the long run never stops the journey; the row stays `queued` for the next repeat.
  */
 export async function requestResearch(

@@ -1,42 +1,42 @@
 /**
- * A funnel version as a spine workflow (designs/2026-10-18-journeys.md, "The generated
- * workflow"). Pure, the way `cadenceWorkflow` is. Per stage `k`:
+ * A shape version as a spine workflow (designs/2026-10-19-business-map.md). Pure, the way
+ * `cadenceWorkflow` is. Per node `k` that holds journeys (every kind but source):
  *
- *   t_<k>_<i>  the stage's i-th Advance trigger, with its settings
+ *   t_<k>_<i>  the node's i-th Advance trigger, with its settings
  *   m_<k>      `journey.move` to k: a cause in, `moved` out
- *   s_<k>      `journey.stage` k: the stage arrival
+ *   s_<k>      `journey.stage` k: the arrival
  *
- * Workflow inputs `in.<k>` and `in.dropped` take manual moves and drops. A `funnel` entry is a
- * `trigger.journey` node (`e_<i>`) wired to the move node of the stage it opens at; a `group`
- * entry is a `trigger.segment` node (`e_<i>`, `entered`) wired the same way; a `sourced` entry is a
- * `trigger.source` node (`e_<i>`) for its list. The move and
- * stage nodes are the workflow's own steps (`own`), not catalog parts: a wire joins equal event
- * kinds only, and each trigger fixes its own, so a move node takes one input per kind it hears.
+ * Workflow inputs `in.<k>` and `in.dropped` take manual moves and drops. A `group` source is a
+ * `trigger.segment` node (`e_<source>`, `entered`) and a `sourced` source a `trigger.source` node
+ * (`e_<source>`), each wired to the move node of every flow edge the source has. A parked source
+ * builds nothing. The move and stage nodes are the workflow's own steps (`own`), not catalog
+ * parts: a wire joins equal event kinds only, and each trigger fixes its own, so a move node
+ * takes one input per kind it hears.
  */
 import type { EventKind, Port } from "@wren/core/components";
 import { logicOf } from "@wren/core/logic";
 import { defineWorkflow, type Wire, type Workflow, type WorkflowNode } from "@wren/core/workflows";
-import { DROPPED, type FunnelBody } from "./model.js";
+import { DROPPED, holds, type ShapeBody } from "./model.js";
 
 export const MOVE_STEP = "journey.move";
 export const STAGE_STEP = "journey.stage";
-/** The port every move node has for a journey event: a manual move or a composed funnel. */
+/** The port every move node has for a journey event: a manual move. */
 export const JOURNEY_PORT = "journey";
 
-/** The trigger a `group` entry listens on: a person entering the group. */
+/** The trigger a `group` source listens on: a person entering the group. */
 export const SEGMENT_TRIGGER = "trigger.segment";
-/** The trigger a `sourced` entry listens on: a person added to the list. */
+/** The trigger a `sourced` source listens on: a person added to the list. */
 export const SOURCE_TRIGGER = "trigger.source";
 
 export type Scope = "wren" | "client";
 
-/** `funnel.main.v2`. */
-export const funnelFlowId = (funnel: string, version: number) => `funnel.${funnel}.v${version}`;
-const FLOW_ID = /^funnel\.([a-z][a-z0-9_-]*)\.v([1-9][0-9]*)$/;
-/** A funnel workflow's id taken apart; null when it is not one. */
-export function parseFunnelFlow(id: string): { funnel: string; version: number } | null {
+/** `shape.v2`. */
+export const shapeFlowId = (version: number) => `shape.v${version}`;
+const FLOW_ID = /^shape\.v([1-9][0-9]*)$/;
+/** A shape workflow's id taken apart; null when it is not one. */
+export function parseShapeFlow(id: string): { version: number } | null {
   const m = FLOW_ID.exec(id);
-  return m ? { funnel: m[1] as string, version: Number(m[2]) } : null;
+  return m ? { version: Number(m[1]) } : null;
 }
 
 const port = (id: string, label: string, kind: EventKind): Port => ({ id, label, kind });
@@ -48,110 +48,95 @@ function outKind(adv: { trigger: string; with?: Record<string, string | number> 
   return out.kind;
 }
 
-/**
- * `saleOf` answers a `funnel` entry that names no stage: that funnel's sale stage. Without it,
- * or when it knows no such funnel, the entry gets no node.
- */
-export function funnelWorkflow(
-  funnelId: string,
-  versionNumber: number,
-  body: FunnelBody,
-  scope: Scope,
-  saleOf?: (funnel: string) => string | undefined,
-): Workflow {
+export function shapeWorkflow(versionNumber: number, body: ShapeBody, scope: Scope): Workflow {
   const nodes: WorkflowNode[] = [];
   const wires: Wire[] = [];
   const wire = (from: string, to: string) => wires.push({ from, to, via: "events" });
-  const first = body.stages[0]?.key;
+  const held = body.nodes.filter(holds);
 
-  /** Each stage's move-node inputs: one per event kind that reaches it. */
+  /** Each node's move-node inputs: one per event kind that reaches it. */
   const takes = new Map<string, Map<string, EventKind>>(
-    body.stages.map((s) => [s.key, new Map<string, EventKind>([[JOURNEY_PORT, "journey"]])]),
+    held.map((n) => [n.id, new Map<string, EventKind>([[JOURNEY_PORT, "journey"]])]),
   );
-  const triggers: Array<{ node: WorkflowNode; to: string; kind: EventKind }> = [];
+  const triggers: Array<{ node: WorkflowNode; tos: string[]; kind: EventKind }> = [];
 
-  for (const s of body.stages) {
-    for (const [i, adv] of s.on.entries()) {
+  for (const n of held) {
+    for (const [i, adv] of n.advance.entries()) {
       const kind = outKind(adv);
-      takes.get(s.key)?.set(kind, kind);
+      takes.get(n.id)?.set(kind, kind);
       triggers.push({
-        node: { id: `t_${s.key}_${i}`, uses: adv.trigger, ...(adv.with ? { with: adv.with } : {}) },
-        to: s.key,
+        node: { id: `t_${n.id}_${i}`, uses: adv.trigger, ...(adv.with ? { with: adv.with } : {}) },
+        tos: [n.id],
         kind,
       });
     }
   }
-  for (const [i, e] of body.entries.entries()) {
-    if (e.kind !== "funnel" || !e.funnel) continue;
-    const stage = e.funnel.at ?? saleOf?.(e.funnel.id);
-    const to = e.to ?? first;
-    if (!stage || !to) continue;
-    triggers.push({
-      node: {
-        id: `e_${i}`,
-        uses: "trigger.journey",
-        with: { funnel: e.funnel.id, stage, on: "entered" },
-      },
-      to,
-      kind: "journey",
-    });
+
+  for (const s of body.nodes) {
+    if (s.kind !== "source" || s.parked) continue;
+    let node: WorkflowNode | undefined;
+    let kind: EventKind | undefined;
+    if (s.via === "group" && s.group) {
+      const segment = Number(s.group);
+      if (!Number.isSafeInteger(segment)) continue;
+      const settings = { segment, on: "entered" };
+      kind = outKind({ trigger: SEGMENT_TRIGGER, with: settings });
+      node = { id: `e_${s.id}`, uses: SEGMENT_TRIGGER, with: settings };
+    } else if (s.via === "sourced" && s.source) {
+      const settings = { source: s.source };
+      kind = outKind({ trigger: SOURCE_TRIGGER, with: settings });
+      node = { id: `e_${s.id}`, uses: SOURCE_TRIGGER, with: settings };
+    }
+    if (!node || !kind) continue;
+    const tos = [
+      ...new Set(
+        body.edges
+          .filter((e) => e.kind === "flow" && e.from === s.id && takes.has(e.to))
+          .map((e) => e.to),
+      ),
+    ];
+    if (tos.length === 0) continue;
+    for (const t of tos) takes.get(t)?.set(kind, kind);
+    triggers.push({ node, tos, kind });
   }
 
-  for (const [i, e] of body.entries.entries()) {
-    if (e.kind !== "group" || !e.group) continue;
-    const to = e.to ?? first;
-    const segment = Number(e.group);
-    if (!to || !Number.isSafeInteger(segment) || !takes.has(to)) continue;
-    const settings = { segment, on: "entered" };
-    const kind = outKind({ trigger: SEGMENT_TRIGGER, with: settings });
-    takes.get(to)?.set(kind, kind);
-    triggers.push({ node: { id: `e_${i}`, uses: SEGMENT_TRIGGER, with: settings }, to, kind });
-  }
-
-  for (const [i, e] of body.entries.entries()) {
-    if (e.kind !== "sourced" || !e.source) continue;
-    const to = e.to ?? first;
-    if (!to || !takes.has(to)) continue;
-    const settings = { source: e.source };
-    const kind = outKind({ trigger: SOURCE_TRIGGER, with: settings });
-    takes.get(to)?.set(kind, kind);
-    triggers.push({ node: { id: `e_${i}`, uses: SOURCE_TRIGGER, with: settings }, to, kind });
-  }
-
-  for (const s of body.stages) {
-    const inputs = [...(takes.get(s.key) ?? new Map<string, EventKind>()).entries()].map(
+  for (const n of held) {
+    const inputs = [...(takes.get(n.id) ?? new Map<string, EventKind>()).entries()].map(
       ([id, kind]) => port(id, id === JOURNEY_PORT ? "journeys" : `${kind} events`, kind),
     );
+    const research = n.kind !== "plan" && n.research ? { research: n.research } : {};
     nodes.push({
-      id: `m_${s.key}`,
+      id: `m_${n.id}`,
       own: {
-        name: `Move to ${s.label}`,
-        blurb: `Moves a person's journey forward to ${s.label}, or opens one there.`,
+        name: `Move to ${n.name}`,
+        blurb: `Moves a person's journey forward to ${n.name}, or opens one there.`,
         icon: "board",
         in: inputs,
         out: [port("moved", "moves", "journey")],
         run: MOVE_STEP,
       },
-      with: { to: s.key },
+      with: { to: n.id },
     });
     nodes.push({
-      id: `s_${s.key}`,
+      id: `s_${n.id}`,
       own: {
-        name: s.label,
-        blurb: `A journey reached ${s.label}.`,
+        name: n.name,
+        blurb: `A journey reached ${n.name}.`,
         icon: "board",
         in: [port("in", "moves", "journey")],
         out: [],
         run: STAGE_STEP,
       },
-      with: { stage: s.key, ...(s.research ? { research: s.research } : {}) },
+      with: { node: n.id, ...research },
     });
-    wire(`m_${s.key}.moved`, `s_${s.key}.in`);
-    wire(`in.${s.key}`, `m_${s.key}.${JOURNEY_PORT}`);
+    wire(`m_${n.id}.moved`, `s_${n.id}.in`);
+    wire(`in.${n.id}`, `m_${n.id}.${JOURNEY_PORT}`);
   }
   for (const t of triggers) {
     nodes.push(t.node);
-    wire(`${t.node.id}.out`, `m_${t.to}.${t.kind === "journey" ? JOURNEY_PORT : t.kind}`);
+    for (const to of t.tos) {
+      wire(`${t.node.id}.out`, `m_${to}.${t.kind === "journey" ? JOURNEY_PORT : t.kind}`);
+    }
   }
 
   nodes.push({
@@ -164,21 +149,18 @@ export function funnelWorkflow(
       out: [],
       run: STAGE_STEP,
     },
-    with: { stage: DROPPED },
+    with: { node: DROPPED },
   });
   wire(`in.${DROPPED}`, `${DROPPED}.in`);
 
   return defineWorkflow({
-    id: funnelFlowId(funnelId, versionNumber),
+    id: shapeFlowId(versionNumber),
     name: body.name,
-    blurb: `${body.name}, version ${versionNumber}: people through its stages.`,
+    blurb: `${body.name}, version ${versionNumber}: people through its nodes.`,
     icon: "board",
     for: scope,
     stage: "follow",
-    in: [
-      ...body.stages.map((s) => port(s.key, s.label, "journey")),
-      port(DROPPED, "Dropped", "journey"),
-    ],
+    in: [...held.map((n) => port(n.id, n.name, "journey")), port(DROPPED, "Dropped", "journey")],
     nodes,
     wires,
   });

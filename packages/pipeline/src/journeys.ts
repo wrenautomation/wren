@@ -1,7 +1,7 @@
 /**
- * The journey rows the spine steps and the Journeys service share (designs/2026-10-18-journeys.md):
- * who a cause is about, the funnel workflows a workspace lists, and a drop. All DB reads and
- * writes here; the pure rules are in `entry.ts`, `stages.ts` and `workflow.ts`.
+ * The journey rows the spine steps and the Journeys service share (designs/2026-10-19-business-map.md):
+ * who a cause is about, the shape workflows a workspace lists, and a drop. All DB reads and
+ * writes here; the pure rules are in `entry.ts`, `model.ts` and `workflow.ts`.
  */
 
 import type { Component } from "@wren/core/components";
@@ -11,9 +11,9 @@ import type { SpineEvent } from "@wren/core/spine";
 import { checkWorkflows, type Workflow } from "@wren/core/workflows";
 import { atomic, type Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { DROPPED, type FunnelBody } from "./model.js";
-import { funnels, funnelVersions, type Journey, journeys } from "./schema.js";
-import { funnelFlowId, funnelWorkflow, type Scope } from "./workflow.js";
+import { DROPPED, type ShapeBody } from "./model.js";
+import { type Journey, journeys, shapeVersions } from "./schema.js";
+import { type Scope, shapeFlowId, shapeWorkflow } from "./workflow.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -67,90 +67,80 @@ export async function personOf(
   return null;
 }
 
-/** One funnel version's body, the funnel's newest number and its status; null when it has none. */
-export async function versionOf(db: Queryable, funnel: string, version: number) {
+/** One shape version's body and depths, and the newest number; null when there is no such version. */
+export async function versionOf(db: Queryable, version: number) {
   const [row] = await db
-    .select({ body: funnelVersions.body })
-    .from(funnelVersions)
-    .where(and(eq(funnelVersions.funnel, funnel), eq(funnelVersions.number, version)))
+    .select({ body: shapeVersions.body, depths: shapeVersions.depths })
+    .from(shapeVersions)
+    .where(eq(shapeVersions.number, version))
     .limit(1);
   if (!row) return null;
   const [top] = await db
-    .select({ number: funnelVersions.number })
-    .from(funnelVersions)
-    .where(eq(funnelVersions.funnel, funnel))
-    .orderBy(desc(funnelVersions.number))
+    .select({ number: shapeVersions.number })
+    .from(shapeVersions)
+    .orderBy(desc(shapeVersions.number))
     .limit(1);
-  const [head] = await db
-    .select({ status: funnels.status })
-    .from(funnels)
-    .where(eq(funnels.id, funnel))
-    .limit(1);
-  return { body: row.body, newest: top?.number ?? version, status: head?.status ?? "live" };
+  return { body: row.body, depths: row.depths, newest: top?.number ?? version };
 }
 
-/** The stage that makes the deal. */
-export const saleStageOf = (body: FunnelBody) => body.stages.find((s) => s.sale)?.key;
+/** A journey that `migrate.ts` has placed on the shape: it has a node and a version. */
+export type Placed = Journey & { node: string; version: number };
+
+/** The journey as placed, or null when it is not on the shape yet. */
+export const placed = (j: Journey): Placed | null =>
+  j.node !== null && j.version !== null ? { ...j, node: j.node, version: j.version } : null;
 
 /**
- * The funnel workflows of one workspace: per funnel the newest version, and any older one that
- * still holds an open journey. A version that will not generate is left out and logged, so one
- * bad body cannot stop the rest. `scope` is `client` in a client's database, else `wren`.
+ * The shape workflows of one workspace: the newest version, and any older one that still holds
+ * an open journey. A version that will not generate is left out and logged, so one bad body
+ * cannot stop the rest. `scope` is `client` in a client's database, else `wren`.
  */
-export async function funnelWorkflowsOf(
+export async function shapeWorkflowsOf(
   db: Queryable,
   scope: Scope,
   log: (msg: string) => void = console.warn,
 ): Promise<Workflow[]> {
-  const v = funnelVersions;
+  const v = shapeVersions;
   const rows = await db
-    .select({ funnel: v.funnel, number: v.number, body: v.body })
+    .select({ number: v.number, body: v.body })
     .from(v)
     .where(
-      sql`${v.number} = (select max(m.number) from pipeline.funnel_versions m where m.funnel = ${v.funnel})
-        or exists (select 1 from pipeline.journeys j where j.funnel = ${v.funnel}
-          and j.version = ${v.number} and j.status = 'open')`,
+      sql`${v.number} = (select max(m.number) from pipeline.shape_versions m)
+        or exists (select 1 from pipeline.journeys j
+          where j.shape_version = ${v.number} and j.status = 'open')`,
     )
-    .orderBy(v.funnel, v.number);
-  const sales = new Map<string, string | undefined>();
-  const top = new Map<string, number>();
-  for (const r of rows) {
-    if (r.number >= (top.get(r.funnel) ?? 0)) {
-      top.set(r.funnel, r.number);
-      sales.set(r.funnel, saleStageOf(r.body));
-    }
-  }
+    .orderBy(v.number);
   const out: Workflow[] = [];
   for (const r of rows) {
     try {
-      out.push(funnelWorkflow(r.funnel, r.number, r.body, scope, (id) => sales.get(id)));
+      out.push(shapeWorkflow(r.number, r.body, scope));
     } catch (err) {
-      log(`funnel ${r.funnel} v${r.number}: ${err instanceof Error ? err.message : String(err)}`);
+      log(`shape v${r.number}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   return out;
 }
 
 /**
- * The funnel workflows that pass the same check every workflow passes, against the code's own.
+ * The shape workflows that pass the same check every workflow passes, against the code's own.
  * One that fails is left out and logged: `flowsWith` checks every base workflow whenever a
- * client has a saved edit, so one bad funnel would stop that client's workflows.
+ * client has a saved edit, so one bad version would stop that client's workflows.
  */
-export function soundFunnels(
-  funnels: readonly Workflow[],
+export function soundShapes(
+  shapes: readonly Workflow[],
   base: readonly Workflow[],
   components: readonly Component[],
   log: (msg: string) => void = console.warn,
 ): Workflow[] {
-  const problems = checkWorkflows([...base, ...funnels], components);
-  return funnels.filter((f) => {
+  const problems = checkWorkflows([...base, ...shapes], components);
+  return shapes.filter((f) => {
     const mine = problems.filter((p) => p.startsWith(`${f.id}.`) || p.startsWith(`${f.id}:`));
     if (mine.length) log(`${f.id} left out: ${mine.join("; ")}`);
     return mine.length === 0;
   });
 }
 
-/** Where a drop leaves, for `Spine/emit`: the funnel's newest workflow, whatever the journey's version. */
+/** Where a drop leaves, for `Spine/emit`: the newest version's workflow, whatever the journey's version. */
 export interface DropEmit {
   workflow: string;
   from: string;
@@ -158,9 +148,16 @@ export interface DropEmit {
 }
 
 /**
+ * One writer at a time per person, until the transaction ends. Every path that opens a journey
+ * takes it first: one open journey per person is held in code until M3 adds the index.
+ */
+export const lockPerson = (tx: Queryable, profile: number) =>
+  tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`journey:${profile}`}))`);
+
+/**
  * Close an open journey as dropped and give back the event that tells the spine
- * (`Journeys/drop` sends it at the funnel's `in.dropped`). Null when it is not open. The event
- * leaves from the newest version's workflow: the journey's own may have left the list.
+ * (`Journeys/drop` sends it at `in.dropped`). Null when it is not open. The event leaves from the
+ * newest version's workflow: the journey's own may have left the list.
  */
 export async function dropJourney(
   db: Queryable,
@@ -178,13 +175,12 @@ export async function dropJourney(
       .set({ status: "dropped", dropReason: p.reason, closedAt: new Date() })
       .where(eq(journeys.id, j.id));
     const [top] = await tx
-      .select({ number: funnelVersions.number })
-      .from(funnelVersions)
-      .where(eq(funnelVersions.funnel, j.funnel))
-      .orderBy(desc(funnelVersions.number))
+      .select({ number: shapeVersions.number })
+      .from(shapeVersions)
+      .orderBy(desc(shapeVersions.number))
       .limit(1);
     return {
-      workflow: funnelFlowId(j.funnel, top?.number ?? j.version),
+      workflow: shapeFlowId(top?.number ?? j.version ?? 1),
       from: `in.${DROPPED}`,
       events: [
         {
@@ -193,9 +189,8 @@ export async function dropJourney(
           data: {
             journey: j.id,
             profile: j.profileId,
-            funnel: j.funnel,
+            node: j.node,
             version: j.version,
-            stage: j.stage,
             reason: p.reason,
             cause: { kind: "manual", ref: p.by ?? "operator", at: new Date().toISOString() },
           },
@@ -205,22 +200,20 @@ export async function dropJourney(
   });
 }
 
-/** A person's open journey in a funnel, locked for the caller's transaction. */
-export async function openJourney(
-  tx: Queryable,
-  profile: number,
-  funnel: string,
-): Promise<Journey | null> {
+/** A person's open journey, locked for the caller's transaction. One per person. */
+export async function openJourney(tx: Queryable, profile: number): Promise<Journey | null> {
+  await lockPerson(tx, profile);
   const [j] = await tx
     .select()
     .from(journeys)
-    .where(
-      and(
-        eq(journeys.profileId, profile),
-        eq(journeys.funnel, funnel),
-        eq(journeys.status, "open"),
-      ),
-    )
+    .where(and(eq(journeys.profileId, profile), eq(journeys.status, "open")))
+    .orderBy(desc(journeys.openedAt))
+    .limit(1)
     .for("update");
   return j ?? null;
+}
+
+/** The body of a version, when only the body is wanted. */
+export async function bodyOf(db: Queryable, version: number): Promise<ShapeBody | null> {
+  return (await versionOf(db, version))?.body ?? null;
 }
