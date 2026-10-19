@@ -25,6 +25,7 @@ export const CAUSE_KINDS = [
   "document",
   "form",
   "funnel",
+  "group",
   "manual",
   "import",
   "version",
@@ -53,10 +54,15 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 /** The cause a spine event stands for: the one its data names, else by the event's kind. */
 export function causeOf(e: SpineEvent, now: Date): Cause {
   const named = isRecord(e.data.cause) ? e.data.cause : {};
-  const kind = CAUSE_KINDS.find((k) => k === named.kind) ?? KIND_OF_EVENT[e.kind] ?? "touch";
+  // A person entering a group: the group is the proof.
+  const group = e.data.change === "entered" ? textOf(e.data.segment) : undefined;
+  const kind =
+    CAUSE_KINDS.find((k) => k === named.kind) ??
+    (group ? "group" : KIND_OF_EVENT[e.kind]) ??
+    "touch";
   return {
     kind,
-    ref: textOf(named.ref) ?? textOf(e.data.ref) ?? e.subject,
+    ref: textOf(named.ref) ?? textOf(e.data.ref) ?? group ?? e.subject,
     at: textOf(named.at) ?? now.toISOString(),
   };
 }
@@ -70,7 +76,8 @@ export function factsOf(data: Record<string, unknown>): CauseFacts {
   const funnel = textOf(data.funnel);
   const stage = textOf(data.stage);
   const source = textOf(data.source);
-  const group = textOf(data.group);
+  // A group's entered event carries its id as `segment`.
+  const group = textOf(data.group) ?? textOf(data.segment);
   if (entry) f.entry = entry;
   if (channel) f.channel = channel;
   if (campaign) f.campaign = campaign;

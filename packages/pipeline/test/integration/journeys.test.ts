@@ -3,9 +3,11 @@
  * funnel workflows walk with the real store and the real steps, no Restate. Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
-import { resolveProfile } from "@wren/core/profiles";
+import { resolveProfile, setTraits } from "@wren/core/profiles";
 import { profileEvents } from "@wren/core/profiles-schema";
 import { events } from "@wren/core/schema";
+import { type Rule, recomputeLive, saveSegment, segmentMembers } from "@wren/core/segments";
+import { segmentsPass } from "@wren/core/segments-pass";
 import {
   type Fired,
   hearersOf,
@@ -29,7 +31,7 @@ import {
   pipelineDeals,
 } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
-import { appendFunnel } from "../../src/store.js";
+import { addFunnel, appendFunnel, Refused } from "../../src/store.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -459,5 +461,136 @@ describe("a drop", () => {
     expect(lines).toMatchObject([
       { summary: "Dropped from Test funnel at Engaged", body: "not a fit" },
     ]);
+  });
+});
+
+const TRIGGERS = new Set([
+  "trigger.reply",
+  "trigger.booking",
+  "trigger.document",
+  "trigger.segment",
+]);
+const NOW = new Date("2026-10-19T12:00:00Z");
+const groupRule = (...of: Rule["of"]): Rule => ({ kind: "group", match: "all", of });
+
+describe("groups", () => {
+  it("a live group over a journey gains a member after a move", async () => {
+    await funnel("grp-a", body());
+    const profile = await person("kim@example.test");
+    const other = await person("lee@example.test");
+    const group = (
+      await saveSegment(
+        pg.db,
+        {
+          name: "Booked in grp-a",
+          kind: "live",
+          rule: groupRule({ kind: "journey", funnel: "grp-a", stage: "booked", days: null }),
+        },
+        "t",
+        NOW,
+      )
+    ).segment;
+    const past = (
+      await saveSegment(
+        pg.db,
+        {
+          name: "Past engaged in grp-a",
+          kind: "live",
+          rule: groupRule({
+            kind: "journey",
+            funnel: "grp-a",
+            stage: "engaged",
+            reached: true,
+            status: "open",
+            days: null,
+          }),
+        },
+        "t",
+        NOW,
+      )
+    ).segment;
+    const members = async (id: number) => (await segmentMembers(pg.db, id)).map((m) => m.profileId);
+    await recomputeLive(pg.db, NOW);
+    expect(await members(group.id)).toEqual([]);
+
+    const r = rig();
+    const flows = await flowsOf("grp-a");
+    await hear(r, flows, REPLY, reply(70, "kim@example.test"));
+    await recomputeLive(pg.db, NOW);
+    expect(await members(group.id)).toEqual([]);
+    expect(await members(past.id)).toEqual([profile]);
+
+    await hear(r, flows, BOOKING, {
+      subject: "call:70",
+      kind: "call",
+      data: { email: "kim@example.test", name: "Kim" },
+    });
+    await recomputeLive(pg.db, NOW);
+    expect(await members(group.id)).toEqual([profile]);
+    // Moving on is "reached" still; a person with no journey is in neither.
+    expect(await members(past.id)).toEqual([profile]);
+    expect(other).not.toBe(profile);
+  });
+
+  it("a journey move wakes the segments pass", async () => {
+    const [t] = await pg.db.execute<{ n: number }>(
+      sql`select count(*)::int n from pg_trigger where tgname = 'journeys_segments_wake'`,
+    );
+    expect(t?.n).toBe(1);
+  });
+
+  it("a group entry opens a journey when a person enters the group", async () => {
+    const rule = groupRule({ kind: "trait", key: "plan", op: "is", value: "grp-pro" });
+    const group = (await saveSegment(pg.db, { name: "Pro grp", kind: "live", rule }, "t", NOW))
+      .segment;
+    await addFunnel(pg.db, {
+      id: "grp-b",
+      name: "Group funnel",
+      body: body({
+        entries: [
+          { id: "mail", kind: "outbound", channel: "email" },
+          { id: "warm", kind: "group", group: String(group.id), to: "booked" },
+        ],
+      }),
+      why: "first",
+      by: "t",
+      triggers: TRIGGERS,
+    });
+    const profile = await person("moe@example.test");
+    const flows = await flowsOf("grp-b");
+    expect(flows[0]?.nodes.some((n) => n.uses === "trigger.segment")).toBe(true);
+
+    // First pass starts at the newest rows: history is never told.
+    const first = await segmentsPass(pg.db, null, flows, NOW, null);
+    await setTraits(pg.db, profile, { plan: "grp-pro" }, "t", NOW);
+    const second = await segmentsPass(pg.db, null, flows, NOW, first.cursor);
+    const fires = second.fires.filter((f) => f.facts.trigger === "trigger.segment");
+    expect(fires).toHaveLength(1);
+
+    const r = rig();
+    for (const f of fires) await hear(r, flows, f.facts, f.event);
+    const j = await journeyOf(profile, "grp-b");
+    expect(j).toMatchObject({ stage: "booked", status: "open", entry: "warm" });
+    expect(j?.entryRef).toMatchObject({ cause: { kind: "group", ref: String(group.id) } });
+
+    // Told twice, it opens nothing new: the same event at the same node is heard once.
+    await dropJourney(pg.db, { journey: j?.id as string, reason: "test" });
+    for (const f of fires) await hear(r, flows, f.facts, f.event);
+    expect((await journeyOf(profile, "grp-b"))?.status).toBe("dropped");
+  });
+
+  it("refuses a group entry whose group does not exist", async () => {
+    const errors = await addFunnel(pg.db, {
+      id: "grp-c",
+      name: "Bad group",
+      body: body({ entries: [{ id: "warm", kind: "group", group: "999999" }] }),
+      why: "first",
+      by: "t",
+      triggers: TRIGGERS,
+    }).then(
+      () => [],
+      (e: unknown) => (e instanceof Refused ? e.errors : [String(e)]),
+    );
+    expect(errors.join(" ")).toMatch(/group 999999, which does not exist/);
   });
 });

@@ -66,6 +66,8 @@ export interface FunnelBody {
   entries: Entry[];
 }
 
+/** A group is a segment: its id as text, a positive whole number. */
+export const GROUP_ID = /^[1-9][0-9]{0,9}$/;
 export const STAGE_KEY = /^[a-z][a-z0-9_]*$/;
 /** The key of the node a drop arrives at; no stage may take it. */
 export const DROPPED = "dropped";
@@ -78,6 +80,11 @@ export interface FunnelContext {
   triggers: ReadonlySet<string>;
   /** A stored funnel's stage keys and its sale stage, or undefined if there is none. */
   funnel(id: string): { stages: readonly string[]; sale: string } | undefined;
+  /**
+   * A stored group (a segment in this workspace) by id as text, or undefined if there is none.
+   * `active` is false once it is archived: an archived group tells no one.
+   */
+  group(id: string): { active: boolean } | undefined;
   /** Funnel ids each stored funnel takes entries from. This funnel's own edges are replaced by `next`. */
   feeds: Readonly<Record<string, readonly string[]>>;
 }
@@ -149,8 +156,19 @@ export function checkFunnel(
       errors.push(`Entry "${e.id}" has kind funnel but names no funnel.`);
     if (e.kind === "sourced" && !e.source)
       errors.push(`Entry "${e.id}" has kind sourced but names no source.`);
-    if (e.kind === "group" && !e.group)
-      errors.push(`Entry "${e.id}" has kind group but names no group.`);
+    if (e.kind === "group") {
+      if (!e.group) errors.push(`Entry "${e.id}" has kind group but names no group.`);
+      else if (!GROUP_ID.test(e.group))
+        errors.push(`Entry "${e.id}" names group "${e.group}", which is not a group's number.`);
+      else {
+        const g = ctx.group(e.group);
+        if (!g) errors.push(`Entry "${e.id}" names group ${e.group}, which does not exist.`);
+        else if (!g.active)
+          errors.push(
+            `Entry "${e.id}" names group ${e.group}, which is archived. Restore it first.`,
+          );
+      }
+    }
     if (!e.funnel) continue;
     const target =
       e.funnel.id === ctx.id

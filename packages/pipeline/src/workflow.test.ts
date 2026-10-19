@@ -108,6 +108,31 @@ describe("funnelWorkflow", () => {
     );
   });
 
+  it("turns a group entry into a group trigger wired to its stage", () => {
+    const b = body({
+      entries: [
+        { id: "warm", kind: "group", group: "7", to: "booked" },
+        { id: "cold", kind: "group", group: "9" },
+      ],
+    });
+    const f = funnelWorkflow("main", 1, b, "wren");
+    expect(f.nodes.find((n) => n.id === "e_0")).toEqual({
+      id: "e_0",
+      uses: "trigger.segment",
+      with: { segment: 7, on: "entered" },
+    });
+    const wires = f.wires.map((w) => `${w.from} -> ${w.to}`);
+    expect(wires).toContain("e_0.out -> m_booked.lead");
+    // Opens at the first stage by default.
+    expect(wires).toContain("e_1.out -> m_engaged.lead");
+    expect(f.nodes.find((n) => n.id === "m_booked")?.own?.in.map((p) => p.id)).toContain("lead");
+    for (const n of f.nodes) expect(n.id).toMatch(NODE_ID);
+    expect(checkWorkflows([f], [])).toEqual([]);
+    // A group that is not a number gets no node.
+    const bad = body({ entries: [{ id: "x", kind: "group", group: "q-1" }] });
+    expect(funnelWorkflow("main", 1, bad, "wren").nodes.some((n) => n.id === "e_0")).toBe(false);
+  });
+
   it("uses the other funnel's sale stage when the entry names none", () => {
     const b = body({
       entries: [{ id: "from_other", kind: "funnel", funnel: { id: "other" } }],

@@ -4,6 +4,7 @@
  * take one number: each write holds a transaction lock on the thing it numbers.
  */
 import { createHash } from "node:crypto";
+import { segments } from "@wren/core/segments-schema";
 import { atomic, type Queryable, type Tx } from "@wren/db";
 import type { Offer, Terms } from "@wren/offers";
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
@@ -276,9 +277,18 @@ export async function funnelContext(
   for (const [f, b] of byId) {
     feeds[f] = b.entries.flatMap((e) => (e.funnel ? [e.funnel.id] : []));
   }
+  const groups = new Map(
+    (await db.select({ id: segments.id, state: segments.state }).from(segments)).map(
+      (g) => [String(g.id), g.state === "active"] as const,
+    ),
+  );
   return {
     id,
     triggers,
+    group(gid) {
+      const active = groups.get(gid);
+      return active === undefined ? undefined : { active };
+    },
     funnel(other) {
       const b = byId.get(other);
       if (!b) return undefined;

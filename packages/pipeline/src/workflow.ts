@@ -7,7 +7,8 @@
  *   s_<k>      `journey.stage` k: the stage arrival
  *
  * Workflow inputs `in.<k>` and `in.dropped` take manual moves and drops. A `funnel` entry is a
- * `trigger.journey` node (`e_<i>`) wired to the move node of the stage it opens at. The move and
+ * `trigger.journey` node (`e_<i>`) wired to the move node of the stage it opens at; a `group`
+ * entry is a `trigger.segment` node (`e_<i>`, `entered`) wired the same way. The move and
  * stage nodes are the workflow's own steps (`own`), not catalog parts: a wire joins equal event
  * kinds only, and each trigger fixes its own, so a move node takes one input per kind it hears.
  */
@@ -20,6 +21,9 @@ export const MOVE_STEP = "journey.move";
 export const STAGE_STEP = "journey.stage";
 /** The port every move node has for a journey event: a manual move or a composed funnel. */
 export const JOURNEY_PORT = "journey";
+
+/** The trigger a `group` entry listens on: a person entering the group. */
+export const SEGMENT_TRIGGER = "trigger.segment";
 
 export type Scope = "wren" | "client";
 
@@ -88,6 +92,17 @@ export function funnelWorkflow(
       to,
       kind: "journey",
     });
+  }
+
+  for (const [i, e] of body.entries.entries()) {
+    if (e.kind !== "group" || !e.group) continue;
+    const to = e.to ?? first;
+    const segment = Number(e.group);
+    if (!to || !Number.isSafeInteger(segment) || !takes.has(to)) continue;
+    const settings = { segment, on: "entered" };
+    const kind = outKind({ trigger: SEGMENT_TRIGGER, with: settings });
+    takes.get(to)?.set(kind, kind);
+    triggers.push({ node: { id: `e_${i}`, uses: SEGMENT_TRIGGER, with: settings }, to, kind });
   }
 
   for (const s of body.stages) {
