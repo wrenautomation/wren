@@ -34,6 +34,7 @@ import {
   pullFeeds,
   readCatalog,
   readItem,
+  readQueued,
   readStep,
   readVideo,
   scoreItem,
@@ -490,6 +491,103 @@ describe("Learn", () => {
     await expect(
       readCatalog(pg.db, read, { client: "wren", url: "https://example.com/blog", want: 1, now }),
     ).rejects.toThrow(/not a creator's profile/);
+  });
+
+  it("takes a bare or @ handle as an Instagram creator, and says each page it walks", async () => {
+    const posts = ["B0", "B1", "B2"].map(
+      (id): CreatorPost => ({
+        kind: "reel",
+        url: `https://www.instagram.com/reel/${id}/`,
+        title: id,
+        text: `${id} caption`,
+        publishedAt: null,
+        creator: "synth.creator",
+        enclosure: null,
+        thumbnail: null,
+        duration: null,
+      }),
+    );
+    const seen: string[] = [];
+    const read: CatalogReader = (kind, handle, { after, limit }) => {
+      if (kind !== "instagram") return null;
+      seen.push(handle);
+      const at = Number(after ?? 0);
+      return Promise.resolve({
+        posts: posts.slice(at, at + limit),
+        next: at + limit < posts.length ? String(at + limit) : null,
+      });
+    };
+    const now = new Date("2026-10-09T12:00:00Z");
+    const pages: number[] = [];
+    const bare = await readCatalog(pg.db, read, {
+      client: "wren",
+      url: "synth.creator",
+      want: 2,
+      now,
+      pageSize: 1,
+      onPage: (p) => pages.push(p.pages),
+    });
+    expect(bare).toMatchObject({ creator: "@synth.creator", pages: 2, end: false });
+    expect(bare.queued).toHaveLength(2);
+    expect(pages).toEqual([1, 2]);
+    // The same creator by @name: the next pass goes on to the oldest post.
+    const at = await readCatalog(pg.db, read, {
+      client: "wren",
+      url: "@synth.creator",
+      want: 5,
+      now,
+      pageSize: 5,
+    });
+    expect(at).toMatchObject({ creator: "@synth.creator", end: true });
+    expect(at.queued).toHaveLength(1);
+    expect(new Set(seen)).toEqual(new Set(["synth.creator"]));
+    await expect(
+      readCatalog(pg.db, read, { client: "wren", url: "instagram.com", want: 1, now }),
+    ).rejects.toThrow(/not a creator's profile/);
+  });
+
+  it("reads a pass one reel at a time, goes on past a scoring failure, and stops when reads keep failing", async () => {
+    const api = learnConsoleApi(pg.db, web({ entries: [] }));
+    const save = async (n: number) =>
+      Number((await api.save({ ...viewer, url: `https://instagram.com/reel/Q${n}/` })).id);
+    const ids = await Promise.all([1, 2, 3, 4, 5, 6].map(save));
+    const good: Parameters<typeof readQueued>[2]["read"] = async (item) => {
+      const code = item.url.split("/").pop() ?? "Q";
+      return {
+        file: `${code}.md`,
+        md: `---\nsource: "instagram:${code}"\ntitle: "Reel ${code}"\nchannel: "synth.creator"\n---\n\n# Reel ${code}\n\n## Speech\n\n[0:00] Warm up slowly over four weeks.\n`,
+      };
+    };
+    // The model is down: each reel is read and kept, none is scored, and the pass goes on.
+    const down = async () => Promise.reject(new Error("model down"));
+    const heard: string[] = [];
+    const first = await readQueued(pg.db, ids.slice(0, 2), {
+      read: good,
+      judge: down,
+      clock: () => 5_000,
+      onRead: (r, n, of) => heard.push(`${n}/${of} ${r.id} ${r.read}`),
+    });
+    expect(first.stopped).toBeNull();
+    expect(first.reads).toEqual([
+      { id: ids[0], read: "read", verdict: null, why: "score: model down", seconds: 0 },
+      { id: ids[1], read: "read", verdict: null, why: "score: model down", seconds: 0 },
+    ]);
+    expect(heard).toEqual([`1/2 ${ids[0]} read`, `2/2 ${ids[1]} read`]);
+    // A read is not read twice, and a scored one keeps its verdict.
+    const again = await readQueued(pg.db, ids.slice(0, 1), {
+      read: async () => Promise.reject(new Error("must not be asked")),
+      judge: judge(llmScoring()),
+    });
+    expect(again.reads[0]).toMatchObject({ id: ids[0], read: "read" });
+    expect(again.reads[0]?.verdict).toMatch(/^(show|hold|drop)$/);
+
+    // Every read fails: it stops after three and leaves the rest for `learn read`.
+    const broken = async () => Promise.reject(new Error("yt-dlp timed out after 300s"));
+    const stuck = await readQueued(pg.db, ids.slice(2), { read: broken, judge: judge(null) });
+    expect(stuck.reads).toHaveLength(3);
+    expect(stuck.reads.map((r) => r.read)).toEqual(["failed", "failed", "failed"]);
+    expect(stuck.reads[0]?.why).toBe("yt-dlp timed out after 300s");
+    expect(stuck.stopped).toMatch(/^3 reads failed in a row; the other 1 wait/);
   });
 
   it("keeps a failed read with why, and reads it again on ask", async () => {

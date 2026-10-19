@@ -19,6 +19,8 @@ import {
   breakdownItem,
   breakdowns,
   type CatalogReader,
+  type CreatorPage,
+  catalogSummary,
   creatorOf,
   embedMissing,
   follow,
@@ -35,6 +37,7 @@ import {
   pullCreators,
   readCatalog,
   readItem,
+  readQueued,
   readVideo,
   saveLink,
   scoreItem,
@@ -92,6 +95,13 @@ const idsOf = (raw: string[]): number[] => {
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 const BY = "cli";
+/** A page of a creator's posts that gets no answer in this long is given up on: Restate would retry it for ever. */
+const PAGE_MS = 120_000;
+/** Progress goes to stderr, a line each, so stdout stays the JSON answer. */
+const say = (line: string) => console.error(line);
+/** Seconds as `4m12s`. */
+const spent = (s: number) =>
+  s >= 60 ? `${Math.floor(s / 60)}m${String(s % 60).padStart(2, "0")}s` : `${s}s`;
 
 /** Each pushed SOP's newest text: what an item is scored against. */
 async function practicesOf(db: Db): Promise<Practice[]> {
@@ -207,38 +217,62 @@ export function registerLearn(
 
   /** Instagram profiles page through the desk (Graph discovery), TikTok's by yt-dlp here. */
   const catalogReader = (): CatalogReader => {
-    const sites = ingressSites(settings, "wren:learn");
+    const sites = ingressSites(settings, "wren:learn", undefined, PAGE_MS);
+    const paged = (kind: string, handle: string, page: Promise<CreatorPage>) =>
+      page.catch((err: unknown) => {
+        if (err instanceof Error && err.name === "TimeoutError")
+          throw new Error(`${kind} @${handle}: no answer in ${PAGE_MS / 1000}s (is the desk up?)`);
+        throw err;
+      });
     return (kind, handle, page) =>
       kind === "instagram"
-        ? instagramPage(sites, handle, page)
+        ? paged(kind, handle, instagramPage(sites, handle, page))
         : kind === "tiktok"
           ? tiktokPage(settings.ytDlp, handle, page)
           : null;
   };
-  /** Queue a creator's next `reels` posts Learn has not taken, then read and score them here. */
+  /**
+   * Queue a creator's next `reels` posts Learn has not taken, then read and score them here, one
+   * at a time. It says on stderr what it is doing (a page, a reel, the end); the JSON answer
+   * comes last.
+   */
   const catalog = (
     url: string,
     o: { reels: number; allPosts?: boolean; read: boolean; model: string },
   ) =>
     inWorkspace(async (db, client) => {
+      const began = Date.now();
+      const took = () => Math.round((Date.now() - began) / 1000);
+      say(`catalog ${url}: walking for ${o.reels} ${o.allPosts ? "posts" : "reels"}`);
       const pass = await readCatalog(db, catalogReader(), {
         client,
         url,
         want: o.reels,
         now: new Date(),
         reelsOnly: !o.allPosts,
+        onPage: (p) =>
+          say(
+            `page ${p.pages}: ${p.queued.length + p.revived.length} to read, ${p.skipped} skipped`,
+          ),
       });
-      if (!o.read) return pass;
-      const read = reader();
-      const judge = judgeFor(db, o.model);
-      const done: Array<{ id: number; read: string | null; verdict: string | null }> = [];
-      for (const id of [...pass.revived, ...pass.queued]) {
-        const r = await readVideo(db, read, id);
-        const verdict = r === "read" ? await scoreItem(db, judge, id) : null;
-        done.push({ id, read: r, verdict });
-        console.error(`${id} ${r}${verdict ? ` ${verdict}` : ""}`);
-      }
-      return { ...pass, read: done };
+      const waiting = [...pass.revived, ...pass.queued];
+      say(
+        `${pass.creator}: ${pass.queued.length} queued, ${pass.revived.length} taken back, ${pass.skipped} skipped, ${pass.pages} pages${pass.end ? ", oldest post reached" : ""} (${spent(took())})`,
+      );
+      if (!o.read || !waiting.length) return pass;
+      const { reads, stopped } = await readQueued(db, waiting, {
+        read: reader(),
+        judge: judgeFor(db, o.model),
+        onRead: (r, n, of) =>
+          say(
+            `[${n}/${of}] ${r.id} ${r.read ?? "gone"}${r.verdict ? ` ${r.verdict}` : ""} ${spent(r.seconds)}${r.why ? `: ${r.why}` : ""}`,
+          ),
+      });
+      const summary = catalogSummary(reads, took(), stopped);
+      say(
+        `done in ${spent(summary.seconds)}: ${summary.read} read (${summary.show} show, ${summary.hold} hold, ${summary.drop} drop${summary.unscored ? `, ${summary.unscored} unscored` : ""}), ${summary.failed} failed${summary.waits ? `, ${summary.waits} waiting on models` : ""}${stopped ? `. Stopped: ${stopped}` : ""}`,
+      );
+      return { ...pass, read: reads, summary };
     });
 
   const learn = program
@@ -278,7 +312,7 @@ export function registerLearn(
   learn
     .command("catalog <profile>")
     .description(
-      "a creator's back catalog (Instagram, TikTok): the next reels Learn hasn't taken, newest first, read and scored now; run it again for older ones",
+      "a creator's back catalog (Instagram, TikTok): a profile address or an Instagram handle (name or @name); the next reels Learn hasn't taken, newest first, read and scored one at a time with a line each on stderr; run it again for older ones",
     )
     .option("--reels <n>", "how many this pass", (v) => Number.parseInt(v, 10), 12)
     .option("--all-posts", "photos too, read from their captions")

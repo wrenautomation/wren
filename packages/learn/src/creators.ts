@@ -104,6 +104,29 @@ export function creatorOf(raw: string): { kind: CreatorKind; handle: string; pag
   return null;
 }
 
+/** An Instagram handle as typed bare: letters, digits, dots and underscores. */
+const BARE_HANDLE = /^[A-Za-z0-9._]{1,30}$/;
+/** A site's own name typed alone (`instagram.com`) is a host, never a handle that happens to have a dot. */
+const SOCIAL_HOST = /^(?:(?:www|m)\.)?(?:instagram|tiktok|x|twitter)\.com$/i;
+
+/**
+ * The creator a person typed: a profile address (`creatorOf`), or a bare `handle` or `@handle`,
+ * which is Instagram's. X and TikTok take their address, so a bare name never guesses them.
+ */
+export function profileOf(raw: string): { kind: CreatorKind; handle: string; page: string } | null {
+  const typed = raw.trim();
+  const address = creatorOf(typed);
+  if (address) return address;
+  const handle = typed.replace(/^@/, "");
+  if (
+    !BARE_HANDLE.test(handle) ||
+    SOCIAL_HOST.test(handle) ||
+    NOT_HANDLES.has(handle.toLowerCase())
+  )
+    return null;
+  return { kind: "instagram", handle, page: `https://instagram.com/${handle}` };
+}
+
 const firstLine = (s: string, max = 100) => s.split("\n")[0]?.trim().slice(0, max) ?? "";
 const titleOf = (text: string, fallback: string) => firstLine(text) || fallback;
 

@@ -16,6 +16,25 @@ import type { LlmClient } from "@wren/llm";
 
 const run = promisify(execFile);
 
+/** yt-dlp's metadata call, or a download and remux of a reel, past this is stuck. */
+const TOOL_MS = 300_000;
+
+/** Run a tool; past `ms` it is killed and the error says which tool and how long. */
+async function runFor(
+  cmd: string,
+  args: string[],
+  ms: number,
+  opts: { maxBuffer?: number } = {},
+): Promise<{ stdout: string }> {
+  try {
+    return await run(cmd, args, { ...opts, timeout: ms, killSignal: "SIGKILL" });
+  } catch (err) {
+    if ((err as { killed?: boolean }).killed)
+      throw new Error(`${basename(cmd)} timed out after ${Math.round(ms / 1000)}s`);
+    throw err;
+  }
+}
+
 export const DEFAULT_PRIORITY = 5;
 
 export interface Source {
@@ -125,31 +144,50 @@ const SHOWN = (start: number, paraphrase: boolean) =>
 
 let nextKey = 0;
 
+/** One Gemini call gives up after this long: a stalled socket would wait out undici's 5 minutes, per try. */
+const GEMINI_CALL_MS = 180_000;
+/** One ask, its retries and backoffs together, gives up after this long. */
+const GEMINI_ASK_MS = 360_000;
+
 /**
  * One Gemini call. Keys rotate on 429/403, a busy flash (503) hands to lite, backing off 2s
- * doubling to 1 min. After 24 refusals it returns `unread` with the last one.
+ * doubling to 1 min. A call that stalls or drops is a refusal too. After 24 refusals, or
+ * `askMs` (6 minutes), it returns `unread` with the last one.
  */
 export async function askGemini(
   body: unknown,
   keys: readonly string[],
   fetchFn: typeof fetch,
   label: string,
+  limits: { callMs?: number; askMs?: number; pause?: (ms: number) => Promise<void> } = {},
 ): Promise<{ text: string } | { unread: string }> {
+  const until = Date.now() + (limits.askMs ?? GEMINI_ASK_MS);
+  const pause = limits.pause ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   let last = "";
   let wait = 2000;
   let recited = 0;
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 24 && Date.now() < until; i++) {
     const key = keys[nextKey++ % keys.length] as string;
     const model = GEMINI_MODELS[i % GEMINI_MODELS.length] as string;
-    const res = await fetchFn(GEMINI(model), {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify(body),
-    });
-    const json = (await res.json()) as {
+    let res: Response;
+    let json: {
       candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[];
       error?: { message?: string };
     };
+    try {
+      res = await fetchFn(GEMINI(model), {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": key },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(limits.callMs ?? GEMINI_CALL_MS),
+      });
+      json = (await res.json()) as typeof json;
+    } catch (err) {
+      last = `${model} ${err instanceof Error ? err.message : String(err)}`;
+      await pause(wait);
+      wait = Math.min(wait * 2, 60_000);
+      continue;
+    }
     const text = (json.candidates?.[0]?.content?.parts ?? [])
       .map((p) => p.text ?? "")
       .join("")
@@ -167,10 +205,10 @@ export async function askGemini(
       : `${model} HTTP ${res.status} ${json.error?.message ?? ""}`.trim();
     if (!res.ok && ![401, 402, 403, 429, 500, 503].includes(res.status))
       throw new Error(`gemini ${label}: ${last}`);
-    await new Promise((r) => setTimeout(r, wait));
+    await pause(wait);
     wait = Math.min(wait * 2, 60_000);
   }
-  return { unread: last };
+  return { unread: last || "timed out" };
 }
 
 /** The on-screen ask, asked again as a paraphrase when Gemini won't recite. */
@@ -242,9 +280,12 @@ export async function youtubeSource(
 ): Promise<Source> {
   const fetchFn = opts.fetchFn ?? fetch;
   const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
-  const { stdout } = await run(cmd, [...pre, "-J", "--no-warnings", "--no-playlist", url], {
-    maxBuffer: 256 * 1024 * 1024,
-  });
+  const { stdout } = await runFor(
+    cmd,
+    [...pre, "-J", "--no-warnings", "--no-playlist", url],
+    TOOL_MS,
+    { maxBuffer: 256 * 1024 * 1024 },
+  );
   const info = JSON.parse(stdout) as VideoInfo;
   const tracks = captionTracks(info);
   if (!tracks.length) throw new Error(`${url}: no English captions (manual or auto) to read`);
@@ -390,7 +431,7 @@ export async function videoSource(
   const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
   const dir = await mkdtemp(join(tmpdir(), "sop-video-"));
   try {
-    const { stdout } = await run(
+    const { stdout } = await runFor(
       cmd,
       [
         ...pre,
@@ -399,6 +440,7 @@ export async function videoSource(
         ...["-S", "res:540", "-f", "bv*+ba/b", "--remux-video", "mp4"],
         ...["-o", join(dir, "video.%(ext)s"), url],
       ],
+      TOOL_MS,
       { maxBuffer: 256 * 1024 * 1024 },
     );
     const info = JSON.parse(stdout) as VideoInfo & {
@@ -483,14 +525,18 @@ async function shrink(
   const audio = 48_000;
   const video = Math.max(120_000, Math.floor((INLINE_MAX * 8 * 0.85) / seconds - audio));
   const tall = (info.height ?? 1) >= (info.width ?? 0);
-  await run(ffmpeg, [
-    ...["-y", "-loglevel", "error", "-i", src],
-    ...["-vf", tall ? "scale=360:-2" : "scale=-2:360", "-r", "15"],
-    ...["-c:v", "libx264", "-preset", "veryfast", "-b:v", String(video)],
-    ...["-maxrate", String(video), "-bufsize", String(video * 2)],
-    ...["-c:a", "aac", "-b:a", String(audio), "-ac", "1"],
-    ...["-movflags", "+faststart", out],
-  ]);
+  await runFor(
+    ffmpeg,
+    [
+      ...["-y", "-loglevel", "error", "-i", src],
+      ...["-vf", tall ? "scale=360:-2" : "scale=-2:360", "-r", "15"],
+      ...["-c:v", "libx264", "-preset", "veryfast", "-b:v", String(video)],
+      ...["-maxrate", String(video), "-bufsize", String(video * 2)],
+      ...["-c:a", "aac", "-b:a", String(audio), "-ac", "1"],
+      ...["-movflags", "+faststart", out],
+    ],
+    TOOL_MS,
+  );
   return readFile(out);
 }
 

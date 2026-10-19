@@ -13,12 +13,14 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   type CreatorKind,
   type CreatorPage,
-  creatorOf,
   FOLLOWED_BEFORE,
   isCreatorKind,
+  profileOf,
 } from "./creators.js";
 import { cleanUrl, typeOf } from "./links.js";
-import { items, sources } from "./schema.js";
+import { readVideo, type VideoReader } from "./read.js";
+import { items, sources, type Verdict } from "./schema.js";
+import { type JudgeFor, scoreItem } from "./score.js";
 
 /** One page of a creator's posts; null when this kind cannot be paged here. */
 export type CatalogReader = (
@@ -60,11 +62,15 @@ export async function readCatalog(
     reelsOnly?: boolean;
     pageSize?: number;
     maxPages?: number;
+    /** Called after each page is walked, so a long walk can say how far it has got. */
+    onPage?: (pass: Readonly<CatalogPass>) => void;
   },
 ): Promise<CatalogPass> {
-  const who = creatorOf(o.url);
+  const who = profileOf(o.url);
   if (!who || !isCreatorKind(who.kind))
-    throw new Error(`not a creator's profile: ${o.url} (an Instagram, X or TikTok profile)`);
+    throw new Error(
+      `not a creator's profile: ${o.url} (an Instagram, X or TikTok profile address, or an Instagram handle)`,
+    );
   const [source] = await db
     .select({ id: sources.id })
     .from(sources)
@@ -150,6 +156,7 @@ export async function readCatalog(
       if (row) out.queued.push(row.id);
       else out.skipped++;
     }
+    o.onPage?.(out);
     if (!page.next) {
       out.end = true;
       break;
@@ -157,4 +164,111 @@ export async function readCatalog(
     after = page.next;
   }
   return out;
+}
+
+/** Failed reads in a row that end a pass: the keys or the network are down, and the rest would only wait out the same limits. */
+export const CATALOG_FAILURES = 3;
+
+/** One queued post, read and scored. */
+export interface CatalogRead {
+  id: number;
+  /** `waits`: a client's models gate was shut. `mac`/null: nothing to read here. */
+  read: "read" | "mac" | "failed" | "waits" | null;
+  verdict: Verdict | null;
+  /** Why it failed: the read's failure kept on the row, or the score's error. */
+  why: string | null;
+  seconds: number;
+}
+
+/** What a pass's reads came to, for its last line. */
+export interface CatalogSummary {
+  read: number;
+  failed: number;
+  waits: number;
+  /** Read, but the model gave no verdict (or the call failed): `learn read` scores it later. */
+  unscored: number;
+  show: number;
+  hold: number;
+  drop: number;
+  seconds: number;
+  /** Set when the pass gave up early, with the reason. */
+  stopped: string | null;
+}
+
+export function catalogSummary(
+  reads: readonly CatalogRead[],
+  seconds: number,
+  stopped: string | null,
+): CatalogSummary {
+  const count = (f: (r: CatalogRead) => boolean) => reads.filter(f).length;
+  return {
+    read: count((r) => r.read === "read"),
+    failed: count((r) => r.read === "failed"),
+    waits: count((r) => r.read === "waits"),
+    unscored: count((r) => r.read === "read" && !r.verdict),
+    show: count((r) => r.verdict === "show"),
+    hold: count((r) => r.verdict === "hold"),
+    drop: count((r) => r.verdict === "drop"),
+    seconds,
+    stopped,
+  };
+}
+
+/**
+ * Read and score queued posts one at a time, newest first, telling `onRead` as each finishes so a
+ * long pass shows it is working. A read keeps its own failure on the row; a score that throws is
+ * kept in the result and the pass goes on. After `giveUp` failures in a row it stops: what is left
+ * stays waiting for the Mac's `learn read`.
+ */
+export async function readQueued(
+  db: Db,
+  ids: readonly number[],
+  o: {
+    read: VideoReader;
+    judge: JudgeFor;
+    giveUp?: number;
+    onRead?: (r: CatalogRead, n: number, of: number) => void;
+    /** Milliseconds now; a test sets its own. */
+    clock?: () => number;
+  },
+): Promise<{ reads: CatalogRead[]; stopped: string | null }> {
+  const clock = o.clock ?? Date.now;
+  const giveUp = o.giveUp ?? CATALOG_FAILURES;
+  const reads: CatalogRead[] = [];
+  let failing = 0;
+  let stopped: string | null = null;
+  for (const [i, id] of ids.entries()) {
+    const began = clock();
+    const read = await readVideo(db, o.read, id);
+    let verdict: Verdict | null = null;
+    let why: string | null = null;
+    if (read === "read") {
+      try {
+        verdict = await scoreItem(db, o.judge, id);
+      } catch (err) {
+        why = `score: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300);
+      }
+    } else if (read === "failed") {
+      const [row] = await db
+        .select({ failure: items.readFailure })
+        .from(items)
+        .where(eq(items.id, id));
+      why = row?.failure?.slice(0, 300) ?? null;
+    }
+    const done: CatalogRead = {
+      id,
+      read,
+      verdict,
+      why,
+      seconds: Math.round((clock() - began) / 1000),
+    };
+    reads.push(done);
+    o.onRead?.(done, i + 1, ids.length);
+    failing = read === "failed" || why ? failing + 1 : 0;
+    if (failing >= giveUp && i + 1 < ids.length) {
+      stopped = `${failing} reads failed in a row; the other ${ids.length - i - 1} wait for \`wren learn read\``;
+      break;
+    }
+  }
+  return { reads, stopped };
 }

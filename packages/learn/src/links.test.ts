@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { creatorOf } from "./creators.js";
+import { creatorOf, profileOf } from "./creators.js";
 import { tagOf } from "./drive.js";
 import { decode, feedLinkOf, ogImageOf, parseFeed, secondsOf, sourceKindOf } from "./feeds.js";
 import { cleanUrl, creatorSite, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
@@ -229,5 +229,59 @@ describe("creatorOf", () => {
     expect(creatorOf("https://x.com/synthposter/status/123")).toBeNull();
     expect(creatorOf("https://x.com/i/status/123")).toBeNull();
     expect(creatorOf("https://www.tiktok.com/@synthtok/video/123")).toBeNull();
+  });
+});
+
+describe("profileOf", () => {
+  const motion = {
+    kind: "instagram",
+    handle: "motion_ui_interface",
+    page: "https://instagram.com/motion_ui_interface",
+  };
+
+  it("takes a bare handle and @handle as Instagram's", () => {
+    expect(profileOf("motion_ui_interface")).toEqual(motion);
+    expect(profileOf("@motion_ui_interface")).toEqual(motion);
+    expect(profileOf("  @motion_ui_interface \n")).toEqual(motion);
+    expect(profileOf("synth.creator")?.handle).toBe("synth.creator");
+    expect(profileOf("a")?.handle).toBe("a");
+  });
+
+  it("takes a profile address as it always did", () => {
+    expect(profileOf("https://www.instagram.com/motion_ui_interface/")).toEqual(motion);
+    expect(profileOf("instagram.com/motion_ui_interface/reels/")).toEqual(motion);
+    expect(profileOf("https://www.tiktok.com/@synthtok")).toEqual({
+      kind: "tiktok",
+      handle: "synthtok",
+      page: "https://tiktok.com/@synthtok",
+    });
+    expect(profileOf("https://x.com/synthposter")).toEqual({
+      kind: "x",
+      handle: "synthposter",
+      page: "https://x.com/synthposter",
+    });
+  });
+
+  it("never guesses X or TikTok from a bare name", () => {
+    expect(profileOf("@synthtok")?.kind).toBe("instagram");
+    expect(profileOf("synthposter")?.kind).toBe("instagram");
+  });
+
+  it("refuses what is not a handle", () => {
+    expect(profileOf("")).toBeNull();
+    expect(profileOf("@")).toBeNull();
+    expect(profileOf("two words")).toBeNull();
+    expect(profileOf("a".repeat(31))).toBeNull();
+    expect(profileOf("bad-handle")).toBeNull();
+    expect(profileOf("@@twice")).toBeNull();
+    // A site named alone, a site's own page and another site's address are not creators.
+    expect(profileOf("instagram.com")).toBeNull();
+    expect(profileOf("www.tiktok.com")).toBeNull();
+    expect(profileOf("explore")).toBeNull();
+    expect(profileOf("Reels")).toBeNull();
+    expect(profileOf("https://example.com/someone")).toBeNull();
+    // A post's address stays a post's, never a profile.
+    expect(profileOf("https://www.instagram.com/reel/DeOPXpGBXRq/")).toBeNull();
+    expect(profileOf("https://x.com/synthposter/status/123")).toBeNull();
   });
 });
