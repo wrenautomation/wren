@@ -13,22 +13,6 @@ import { pipeline } from "node:stream/promises";
 const DEFAULT_RETRIES = 3;
 const BACKOFF_MS = 2000;
 
-/** One rung of the fetch ladder a fetch tried, and what it met there. */
-export interface FetchStep {
-  tier: string;
-  status: number | null;
-  block: string | null;
-}
-
-/** What the fetch ladder learned about a fetch; absent on a fetch with no ladder. */
-export interface FetchTrail {
-  /** The rung that answered: `httpx` is wren's own plain fetch. */
-  tier?: string;
-  /** The block that made the fetch climb, or the one that stopped it. */
-  block?: string | null;
-  steps?: FetchStep[];
-}
-
 /**
  * A fetch that failed after retries. `status` is the last HTTP status when the
  * server answered (5xx after retries), null for transport failures: robots handling
@@ -38,15 +22,9 @@ export interface FetchTrail {
 export class FetchError extends Error {
   override name = "FetchError";
   readonly status: number | null;
-  readonly tier: string | undefined;
-  readonly block: string | null | undefined;
-  readonly steps: FetchStep[] | undefined;
-  constructor(message: string, status: number | null = null, trail: FetchTrail = {}) {
+  constructor(message: string, status: number | null = null) {
     super(message);
     this.status = status;
-    this.tier = trail.tier;
-    this.block = trail.block;
-    this.steps = trail.steps;
   }
 }
 
@@ -61,10 +39,12 @@ export function userAgent(contact: string | null | undefined): string {
 }
 
 /** What one GET produced. `url` is the final URL after redirects. */
-export interface FetchResponse extends FetchTrail {
+export interface FetchResponse {
   status: number;
   url: string;
   text: string;
+  /** The `fetch_tier` the page was kept under, when it was not wren's own plain fetch. */
+  tier?: string;
 }
 
 /** The seam crawlers and gates depend on; tests substitute canned pages. */

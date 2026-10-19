@@ -145,7 +145,9 @@ import {
 import {
   addRenderStats,
   type BrowserRenderer,
+  climbCompany,
   countRenderNicheNullSkipped,
+  DEFAULT_LADDER_LIMIT,
   emptyRenderStats,
   type RenderStats,
   renderCompany,
@@ -187,7 +189,6 @@ import {
   youtubeSearchUnit,
 } from "../enrichment/youtube-search.js";
 import type { Fetcher } from "../fetch/fetcher.js";
-import { LadderFetcher } from "../fetch/ladder.js";
 import type { RobotsCache } from "../fetch/robots.js";
 import { tierMemory } from "../fetch/tier-memory.js";
 import { keepingAnswers } from "../findings.js";
@@ -271,8 +272,9 @@ export interface EnrichmentDeps {
   /** autobrowse's `meta` site, for the `instagram` reads; null = `instagram` refuses. */
   instagram?: SiteClient | null;
   /**
-   * autobrowse's `web GET /fetch`, the fetch ladder: a crawl that meets a block (403, 429, 503, a
-   * JS shell) climbs impersonate, render and exit on the Mac. null = the crawl stays plain.
+   * autobrowse's `web GET /fetch`, the fetch ladder: the render pass sends the companies the crawl
+   * could not fetch (403, 429, 503, or a domain the memory marks) up impersonate, render and exit
+   * on the Mac. null = those companies wait.
    */
   ladder?: SiteClient | null;
   /** autobrowse on the Mac (`desk`), for the signed-out `fb-public` reads; null = `adLibrary` refuses. */
@@ -399,7 +401,10 @@ export interface CrawlInput {
   pagesPerSite?: number;
   extraHints?: string[];
 }
-export interface RenderInput extends CrawlInput {}
+export interface RenderInput extends CrawlInput {
+  /** `web GET /fetch` calls this run may make; each call takes one. Default 40. */
+  ladderLimit?: number;
+}
 export interface ScanInput {
   limit?: number;
 }
@@ -444,12 +449,17 @@ const LIMIT_FIELD = z.number().nullish().describe("Units this pass");
 const SHARD = z.string().nullish().describe('"i/n": this worker\'s slice');
 const LIMIT = z.looseObject({ limit: LIMIT_FIELD }).nullish();
 const SHARDED = z.looseObject({ limit: LIMIT_FIELD, shard: SHARD }).nullish();
-const CRAWL = z
+const CRAWL_FIELDS = {
+  limit: LIMIT_FIELD,
+  shard: SHARD,
+  pagesPerSite: z.number().nullish(),
+  extraHints: z.array(z.string()).nullish().describe("More words that mark a people page"),
+};
+const CRAWL = z.looseObject(CRAWL_FIELDS).nullish();
+const RENDER = z
   .looseObject({
-    limit: LIMIT_FIELD,
-    shard: SHARD,
-    pagesPerSite: z.number().nullish(),
-    extraHints: z.array(z.string()).nullish().describe("More words that mark a people page"),
+    ...CRAWL_FIELDS,
+    ladderLimit: z.number().nullish().describe("Fetch ladder calls this run may make (default 40)"),
   })
   .nullish();
 const EXTRACT = z
@@ -550,6 +560,8 @@ export function makeEnrichment(deps: EnrichmentDeps) {
   const tracer = deps.tracer ?? NULL_TRACER;
   const robotsMode = deps.robotsMode ?? "warn";
   const spec = deps.extractionSpec ?? DEFAULT_EXTRACTION_SPEC;
+  // The fetch ladder's memory is main's: a domain is the same fact for every client.
+  const memory = tierMemory(deps.db);
   const withBrowser = deps.renderer ? browserPool(deps.renderer, deps.renderIdleMs ?? 5_000) : null;
   const fetcher = (): Fetcher => {
     if (!deps.fetcher) throw new restate.TerminalError("WREN_FETCH_CONTACT is not set");
@@ -559,12 +571,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
     input.extraHints ?? [...(deps.crawlHintsFor?.(niche) ?? [])];
   const scope = (ctx: restate.ObjectContext) => {
     const at = keyScope(ctx.key, deps.db, deps.clientDb);
-    // The ladder's memory is main's: a domain is the same fact for every client.
-    const climbing = (): Fetcher =>
-      deps.ladder ? new LadderFetcher(fetcher(), deps.ladder, tierMemory(deps.db)) : fetcher();
     // A client's crawl reads and feeds main's shared pages; Wren's crawl is main's already.
     const fetch = () =>
-      at.db === deps.db ? climbing() : sharedPages(deps.db, climbing(), deps.pages ?? null);
+      at.db === deps.db ? fetcher() : sharedPages(deps.db, fetcher(), deps.pages ?? null);
     return { ...at, fetch };
   };
   const companyRef = async (db: Db, id: number): Promise<Pick<Company, "id" | "domain">> => {
@@ -639,6 +648,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                   pagesPerSite: input.pagesPerSite ?? 5,
                   extraHints: hintsFor(niche, input),
                   robotsMode,
+                  memory,
                 }),
               );
             },
@@ -659,32 +669,56 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       ),
 
       render: exclusiveHandler(
-        { input: CRAWL },
+        { input: RENDER },
         async (ctx: restate.ObjectContext, input: RenderInput = {}): Promise<RenderStats> => {
-          if (!withBrowser) throw new restate.TerminalError("no browser renderer configured");
+          if (!withBrowser && !deps.ladder)
+            throw new restate.TerminalError("no browser renderer or fetch ladder configured");
           const { db, niche, fetch } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
           const runId = await open(ctx, "enrich render", { ...input, niche });
-          const ids = await ctx.run("select", async () =>
-            (await selectRenderTargets(db, { limit: input.limit ?? 10, niche, shard })).map(
-              (c) => c.id,
-            ),
-          );
+          const targets = await ctx.run("select", async () => {
+            const found = await selectRenderTargets(db, {
+              limit: input.limit ?? 10,
+              niche,
+              shard,
+              shells: withBrowser !== null,
+              blocked: Boolean(deps.ladder),
+              deadDomains: deps.ladder ? await memory.dead() : [],
+            });
+            return {
+              shells: found.shells.map((c) => c.id),
+              blocked: found.blocked.map((c) => c.id),
+            };
+          });
+          const blocked = new Set(targets.blocked);
           let stats = emptyRenderStats();
           const robots: RobotsCache = new Map();
+          // Shared by the run's units. Replayed units do not run again, so it is reset from the stats.
+          const budget = { left: input.ladderLimit ?? DEFAULT_LADDER_LIMIT };
           const holds = await stageHolds(ctx, db, HELD.render);
+          const options = {
+            pagesPerSite: input.pagesPerSite ?? 5,
+            extraHints: hintsFor(niche, input),
+            robotsMode,
+            memory,
+          };
           const units = unitBatches(
             ctx,
             "render company",
-            notHeld(holds, ids),
+            notHeld(holds, [...targets.shells, ...targets.blocked]),
             async (id) => {
               const company = await companyRef(db, id);
+              if (blocked.has(id) && deps.ladder) {
+                const ladder = { sites: deps.ladder, budget };
+                return atomic(db, (tx) =>
+                  climbCompany(tx, ladder, fetch(), company, robots, options),
+                );
+              }
+              if (!withBrowser) throw new restate.TerminalError("no browser renderer configured");
               return withBrowser((browser) =>
                 atomic(db, (tx) =>
                   renderCompany(tx, browser.render, fetch(), company, robots, {
-                    pagesPerSite: input.pagesPerSite ?? 5,
-                    extraHints: hintsFor(niche, input),
-                    robotsMode,
+                    ...options,
                     ...(deps.renderJitter ? { jitter: deps.renderJitter } : {}),
                   }),
                 ),
@@ -695,6 +729,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           for await (const r of units) {
             if (!r.ok) break;
             stats = addRenderStats(stats, r.value);
+            budget.left = Math.min(
+              budget.left,
+              (input.ladderLimit ?? DEFAULT_LADDER_LIMIT) - stats.ladder_requests,
+            );
           }
           if (niche !== null) {
             stats.niche_null_skipped = await ctx.run("count niche-null", () =>

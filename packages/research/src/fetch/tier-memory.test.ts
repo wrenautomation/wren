@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { domainOf, FETCH_TIER_DAYS, learning } from "./tier-memory.js";
+import { domainOf, FETCH_TIER_DAYS, isLadderTier, shouldWrite } from "./tier-memory.js";
 
 describe("domainOf", () => {
   it("lowercases the host and drops a leading www.", () => {
@@ -12,31 +12,33 @@ describe("domainOf", () => {
   });
 });
 
-describe("learning", () => {
+describe("isLadderTier", () => {
+  it("is true for autobrowse rungs only", () => {
+    expect(isLadderTier("render")).toBe(true);
+    expect(isLadderTier("browser")).toBe(false);
+    expect(isLadderTier("dead")).toBe(false);
+    expect(isLadderTier(null)).toBe(false);
+  });
+});
+
+describe("shouldWrite", () => {
   const now = new Date("2026-10-18T12:00:00Z");
   const ago = (days: number) => new Date(now.getTime() - days * 86_400_000);
   const fresh = (tier: string) => ({ tier, learnedAt: ago(1) });
   const stale = (tier: string) => ({ tier, learnedAt: ago(FETCH_TIER_DAYS + 1) });
 
-  it("writes nothing for plain with no row or a fresh row", () => {
-    expect(learning(null, "plain", now)).toBe("keep");
-    expect(learning(fresh("render"), "plain", now)).toBe("keep");
-  });
-  it("deletes a stale row when plain works", () => {
-    expect(learning(stale("render"), "plain", now)).toBe("delete");
-  });
   it("writes a first row", () => {
-    expect(learning(null, "impersonate", now)).toBe("write");
+    expect(shouldWrite(null, "impersonate", now)).toBe(true);
   });
   it("leaves a fresh row alone on the same tier, so it can go stale", () => {
-    expect(learning(fresh("render"), "render", now)).toBe("keep");
+    expect(shouldWrite(fresh("render"), "render", now)).toBe(false);
   });
-  it("moves a fresh row up, never down", () => {
-    expect(learning(fresh("impersonate"), "exit", now)).toBe("write");
-    expect(learning(fresh("exit"), "impersonate", now)).toBe("keep");
+  it("writes when the tier changes, up or down, dead included", () => {
+    expect(shouldWrite(fresh("impersonate"), "exit", now)).toBe(true);
+    expect(shouldWrite(fresh("exit"), "browser", now)).toBe(true);
+    expect(shouldWrite(fresh("render"), "dead", now)).toBe(true);
   });
-  it("replaces a stale row on any tier, even the same one", () => {
-    expect(learning(stale("render"), "render", now)).toBe("write");
-    expect(learning(stale("exit"), "impersonate", now)).toBe("write");
+  it("replaces a stale row, even on the same tier", () => {
+    expect(shouldWrite(stale("render"), "render", now)).toBe(true);
   });
 });

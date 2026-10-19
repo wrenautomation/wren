@@ -19,7 +19,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { FetchStep } from "./fetch/fetcher.js";
+import type { FetchStep } from "./fetch/ladder.js";
 
 /**
  * `snippet`: a search engine's few lines about a page (url = the page, not the
@@ -60,9 +60,13 @@ export const documents = pgTable(
     fetchTier: varchar("fetch_tier", { length: 16 }).default("httpx").notNull(),
     isShell: boolean("is_shell").default(false).notNull(),
     robotsDisallowed: boolean("robots_disallowed").default(false).notNull(),
-    /** The block that made this fetch climb the ladder, or the one that stopped it; null = none. */
+    /**
+     * Why the render pass has this company: the crawl's block (`status-403`, `status-429`,
+     * `status-503`), `remembered` (the domain's memory) or `dead`. On a ladder tombstone, the
+     * block that stopped it. null = none.
+     */
     blockReason: text("block_reason"),
-    /** Every rung the fetch tried, in order; null when the fetch had no ladder. */
+    /** Every rung the fetch ladder tried for this page, in order; null when it did not run. */
     fetchSteps: jsonb("fetch_steps").$type<FetchStep[]>(),
   },
   (t) => [
@@ -79,17 +83,17 @@ export const documents = pgTable(
 );
 
 /**
- * Per domain, the lowest ladder rung that worked, so the next fetch starts there
- * (designs/2026-10-18-fetch-ladder.md). A row older than `FETCH_TIER_DAYS` is stale.
+ * Per domain, what the render pass learned (designs/2026-10-18-fetch-ladder.md): the crawl skips
+ * a domain with a row, the pass starts at its rung. A row older than `FETCH_TIER_DAYS` is stale.
  */
 export const fetchTiers = pgTable(
   "fetch_tiers",
   {
     /** Lowercase hostname, no leading `www.`. */
     domain: text("domain").notNull(),
-    /** `impersonate`, `render` or `exit`: `plain` is never stored. */
+    /** `browser`, `impersonate`, `render`, `exit` or `dead`: no page, no rung. */
     tier: text("tier").notNull(),
-    /** The signal that made fetches climb to `tier`. */
+    /** The signal that sent the domain to the render pass. */
     block: text("block"),
     learnedAt: timestamp("learned_at", { withTimezone: true }).defaultNow().notNull(),
   },

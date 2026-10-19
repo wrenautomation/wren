@@ -1,17 +1,24 @@
 /**
- * The fetch ladder's memory (designs/2026-10-18-fetch-ladder.md): per domain, the lowest
- * rung that worked, so the next fetch starts there and does not climb again. It lives on
- * main only: a domain is the same fact for every client.
+ * The fetch ladder's memory (designs/2026-10-18-fetch-ladder.md): per domain, what the render
+ * pass learned, so the crawl skips a domain it cannot fetch plain and the pass does not try a
+ * dead one again. It lives on main only: a domain is the same fact for every client.
  */
 import type { Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { fetchTiers } from "../schema.js";
 
-/** The rungs, lowest first. `plain` is wren's own fetch; the rest run in autobrowse. */
-export const LADDER_TIERS = ["plain", "impersonate", "render", "exit"] as const;
+/** autobrowse's rungs (`web GET /fetch`), lowest first. wren's own plain fetch is not one. */
+export const LADDER_TIERS = ["impersonate", "render", "exit"] as const;
 export type LadderTier = (typeof LADDER_TIERS)[number];
 
-/** A remembered row older than this is ignored: the next fetch starts at `plain` again. */
+/** What a domain needs: a rung, wren's own box browser, or nothing works (`dead`). */
+export const MEMORY_TIERS = ["browser", ...LADDER_TIERS, "dead"] as const;
+export type MemoryTier = (typeof MEMORY_TIERS)[number];
+
+export const isLadderTier = (tier: string | null | undefined): tier is LadderTier =>
+  LADDER_TIERS.some((t) => t === tier);
+
+/** A remembered row older than this is ignored. */
 export const FETCH_TIER_DAYS = 30;
 const DAY_MS = 86_400_000;
 
@@ -25,10 +32,12 @@ export function domainOf(url: string): string | null {
 }
 
 export interface TierMemory {
-  /** The rung to start at for a domain, or null: start at `plain`. */
-  startFor(domain: string): Promise<LadderTier | null>;
-  /** A fetch got its page at `tier`; `block` is the signal that made it climb. */
-  learn(domain: string, tier: LadderTier, block: string | null): Promise<void>;
+  /** What a domain needs, or null: nothing known, or the row is stale. */
+  get(domain: string): Promise<MemoryTier | null>;
+  /** The domains that are `dead` and not stale. */
+  dead(): Promise<string[]>;
+  /** A fetch ended at `tier`; `block` is the signal that sent the domain to the render pass. */
+  learn(domain: string, tier: MemoryTier, block: string | null): Promise<void>;
 }
 
 export interface TierRow {
@@ -40,22 +49,11 @@ const isStale = (row: TierRow, now: Date): boolean =>
   now.getTime() - row.learnedAt.getTime() >= FETCH_TIER_DAYS * DAY_MS;
 
 /**
- * What to do with a domain's row after a page came at `tier`.
- * - `plain` over a stale row: delete it. `plain` over a fresh row or none: leave it.
- * - A higher rung than the row, or any rung over a stale row or none: write it.
- * - The same or a lower rung over a fresh row: leave it. `learnedAt` never moves on a repeat,
- *   or a domain we fetch often would never go stale.
+ * Write when the domain has no fresh row or the tier changes. `learnedAt` never moves on a
+ * repeat, or a domain we meet often would never go stale.
  */
-export function learning(
-  row: TierRow | null,
-  tier: LadderTier,
-  now: Date,
-): "write" | "delete" | "keep" {
-  const stale = row !== null && isStale(row, now);
-  if (tier === "plain") return stale ? "delete" : "keep";
-  if (row === null || stale) return "write";
-  const known = LADDER_TIERS.indexOf(row.tier as LadderTier);
-  return LADDER_TIERS.indexOf(tier) > known ? "write" : "keep";
+export function shouldWrite(row: TierRow | null, tier: MemoryTier, now: Date): boolean {
+  return row === null || isStale(row, now) || row.tier !== tier;
 }
 
 /** The memory over a database (main's). */
@@ -68,24 +66,28 @@ export function tierMemory(db: Queryable, now: () => Date = () => new Date()): T
     return row ?? null;
   };
   return {
-    async startFor(domain) {
+    async get(domain) {
       const row = await rowOf(domain);
       if (!row || isStale(row, now())) return null;
-      const tier = LADDER_TIERS.find((t) => t === row.tier);
-      return tier && tier !== "plain" ? tier : null;
+      return MEMORY_TIERS.find((t) => t === row.tier) ?? null;
+    },
+    async dead() {
+      const rows = await db
+        .select({ domain: fetchTiers.domain, learnedAt: fetchTiers.learnedAt })
+        .from(fetchTiers)
+        .where(eq(fetchTiers.tier, "dead"));
+      const at = now();
+      return rows
+        .filter((r) => !isStale({ tier: "dead", learnedAt: r.learnedAt }, at))
+        .map((r) => r.domain);
     },
     async learn(domain, tier, block) {
       const at = now();
-      const act = learning(await rowOf(domain), tier, at);
-      if (act === "delete") await db.delete(fetchTiers).where(eq(fetchTiers.domain, domain));
-      if (act !== "write") return;
+      if (!shouldWrite(await rowOf(domain), tier, at)) return;
       await db
         .insert(fetchTiers)
         .values({ domain, tier, block, learnedAt: at })
-        .onConflictDoUpdate({
-          target: fetchTiers.domain,
-          set: { tier, block, learnedAt: at },
-        });
+        .onConflictDoUpdate({ target: fetchTiers.domain, set: { tier, block, learnedAt: at } });
     },
   };
 }

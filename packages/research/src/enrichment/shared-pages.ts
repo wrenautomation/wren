@@ -8,12 +8,10 @@
 import type { Db } from "@wren/db";
 import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
 import type { Fetcher, FetchResponse } from "../fetch/fetcher.js";
+import { LADDER_TIERS } from "../fetch/tier-memory.js";
 import { htmlOf, type PageStore } from "../pages.js";
 import { documents } from "../schema.js";
 import { HTTP_TIER, pageRow } from "./crawler.js";
-
-/** The ladder's tiers (autobrowse's rungs): a kept page from one is served unless it is a shell. */
-const LADDER_PAGE_TIERS = ["impersonate", "render", "exit"];
 
 /** How long a kept page answers for its URL. */
 export const SHARED_PAGE_DAYS = 30;
@@ -40,7 +38,8 @@ export function sharedPages(main: Db, inner: Fetcher, store?: PageStore | null):
             eq(documents.statusCode, 200),
             or(
               eq(documents.fetchTier, HTTP_TIER),
-              and(inArray(documents.fetchTier, LADDER_PAGE_TIERS), eq(documents.isShell, false)),
+              // A page the render pass kept, unless it is a shell.
+              and(inArray(documents.fetchTier, [...LADDER_TIERS]), eq(documents.isShell, false)),
             ),
             gt(documents.fetchedAt, since),
           ),

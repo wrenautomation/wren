@@ -8,20 +8,49 @@
  * fake renderer. Browser-tier rows are appended next to the shell rows; a site whose
  * render still comes back empty gets an empty browser-tier tombstone so the pass
  * never retries it forever (delete the tombstone to retry).
+ *
+ * The pass also takes blocked companies (the crawl met 403, 429 or 503, or the domain's
+ * memory sent it here): one `web GET /fetch` each through the fetch ladder, capped per run
+ * (designs/2026-10-18-fetch-ladder.md). What it learns goes to the domain's memory.
  */
 import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
+import type { SiteClient } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
-import { and, asc, count, eq, inArray, isNotNull, isNull, notInArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  like,
+  notInArray,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import type { Fetcher } from "../fetch/fetcher.js";
 import { looksLikeJsShell, readPage } from "../fetch/htmltext.js";
+import { type FetchStep, fetchLadder } from "../fetch/ladder.js";
 import type { RobotsCache } from "../fetch/robots.js";
+import { domainOf, isLadderTier, LADDER_TIERS, type TierMemory } from "../fetch/tier-memory.js";
 import { documents } from "../schema.js";
 import { EMPTY_HASH, type RobotsMode, robotsAllows, stripNul } from "./crawler.js";
 import type { Shard } from "./shard.js";
 import { PEOPLE_PAGE_HINTS, peoplePageCandidates } from "./urls.js";
 
 export const BROWSER_TIER = "browser";
+/** A document at one of these is rendered: the company is done with the pass. */
+const RENDERED_TIERS = [BROWSER_TIER, ...LADDER_TIERS];
+/** A tombstone the crawl left for the ladder: it met a block (`status-403`), or the memory sent it. */
+const blockedDoc = or(
+  like(documents.blockReason, "status-%"),
+  eq(documents.blockReason, "remembered"),
+);
+/** `ladderLimit` default: `web GET /fetch` calls per render run. */
+export const DEFAULT_LADDER_LIMIT = 40;
 const SETTLE_MS = 1200;
 const PAGE_TIMEOUT_MS = 20_000;
 const DEFAULT_JITTER: readonly [number, number] = [1.0, 3.0];
@@ -103,6 +132,12 @@ export interface RenderStats {
   robots_warned: number;
   homepage_unrendered: number;
   niche_null_skipped: number;
+  /** `web GET /fetch` calls: each takes one from `ladderLimit`. */
+  ladder_requests: number;
+  /** Pages the ladder got and the pass stored. */
+  ladder_pages: number;
+  /** Companies the ladder got nothing for; their domain is now `dead`. */
+  ladder_dead: number;
   robots_disallowed_urls: string[];
 }
 
@@ -116,6 +151,9 @@ export function emptyRenderStats(): RenderStats {
     robots_warned: 0,
     homepage_unrendered: 0,
     niche_null_skipped: 0,
+    ladder_requests: 0,
+    ladder_pages: 0,
+    ladder_dead: 0,
     robots_disallowed_urls: [],
   };
 }
@@ -130,12 +168,23 @@ export function addRenderStats(total: RenderStats, unit: RenderStats): RenderSta
     robots_warned: total.robots_warned + unit.robots_warned,
     homepage_unrendered: total.homepage_unrendered + unit.homepage_unrendered,
     niche_null_skipped: total.niche_null_skipped + unit.niche_null_skipped,
+    ladder_requests: total.ladder_requests + unit.ladder_requests,
+    ladder_pages: total.ladder_pages + unit.ladder_pages,
+    ladder_dead: total.ladder_dead + unit.ladder_dead,
     robots_disallowed_urls: [...total.robots_disallowed_urls, ...unit.robots_disallowed_urls],
   };
 }
 
 type Seen = Set<string>;
 const seenKey = (url: string, hash: string) => `${url} ${hash}`;
+
+/** Where a stored page came from: the box browser (default) or the fetch ladder. */
+interface Provenance {
+  tier: string;
+  blockReason: string | null;
+  fetchSteps: FetchStep[] | null;
+}
+const BOX: Provenance = { tier: BROWSER_TIER, blockReason: null, fetchSteps: null };
 
 async function storeRendered(
   db: Queryable,
@@ -145,6 +194,7 @@ async function storeRendered(
   seen: Seen,
   stats: RenderStats,
   robotsDisallowed: boolean,
+  from: Provenance = BOX,
 ): Promise<boolean> {
   const contentHash = createHash("sha256").update(rendered.html).digest("hex");
   if (seen.has(seenKey(url, contentHash))) return false; // identical bytes already stored under this URL
@@ -163,9 +213,11 @@ async function storeRendered(
     title: page.title || null,
     text: page.text,
     html,
-    fetchTier: BROWSER_TIER,
+    fetchTier: from.tier,
     isShell: shell,
     robotsDisallowed,
+    blockReason: from.blockReason,
+    fetchSteps: from.fetchSteps,
   });
   return true;
 }
@@ -196,6 +248,8 @@ export interface RenderCompanyOptions {
   jitter?: readonly [number, number];
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+  /** The fetch ladder's memory (main's): a render that gave a page learns `browser`, else `dead`. */
+  memory?: TierMemory;
 }
 
 const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -217,6 +271,10 @@ export async function renderCompany(
   const sleep = opts.sleep ?? defaultSleep;
   const random = opts.random ?? Math.random;
   const pause = () => sleep((jitter[0] + (jitter[1] - jitter[0]) * random()) * 1000);
+  const domainKey = company.domain ? domainOf(`https://${company.domain}`) : null;
+  const learn = async (tier: "browser" | "dead") => {
+    if (domainKey) await opts.memory?.learn(domainKey, tier, "shell");
+  };
 
   // The URL the shell arrived at is the proven entry point.
   const [shellDoc] = await db
@@ -249,6 +307,7 @@ export async function renderCompany(
     stats.render_errors += 1;
     stats.homepage_unrendered += 1;
     await tombstone(db, company.id, homepageUrl, seen);
+    await learn("dead");
     return stats;
   }
 
@@ -282,6 +341,153 @@ export async function renderCompany(
   if (stored === 0) await tombstone(db, company.id, homepageUrl, seen);
   stats.pages_stored += stored;
   stats.companies_rendered += 1;
+  // A page that is still a shell is no use: the domain has nothing a browser can read.
+  await learn(stored - stats.still_shell > 0 ? "browser" : "dead");
+  return stats;
+}
+
+/** What a blocked company's pass needs from the ladder side: autobrowse, and this run's budget. */
+export interface LadderRun {
+  sites: SiteClient;
+  /** `web GET /fetch` calls left this run. Every unit of the run shares one object. */
+  budget: { left: number };
+}
+
+/**
+ * Fetch one blocked company through the fetch ladder: its homepage once, from the remembered
+ * rung (else `impersonate`), then its people pages at the rung that answered. A page learns
+ * its rung. No page: the domain is `dead` and the tombstone moves to the last rung tried, so
+ * the pass never selects the company again. A spent cap, or a failed call, leaves it for the
+ * next run.
+ */
+export async function climbCompany(
+  db: Queryable,
+  ladder: LadderRun,
+  robotsFetcher: Fetcher,
+  company: Pick<Company, "id" | "domain">,
+  robots: RobotsCache,
+  opts: RenderCompanyOptions = {},
+): Promise<RenderStats> {
+  const stats = emptyRenderStats();
+  if (ladder.budget.left <= 0 || !company.domain) return stats;
+  const mode = opts.robotsMode ?? "warn";
+  const hints = [...PEOPLE_PAGE_HINTS, ...(opts.extraHints ?? [])];
+  const domain = domainOf(`https://${company.domain}`);
+
+  // The crawl's tombstone: the homepage URL, and the block that sent the company here.
+  const [marker] = await db
+    .select({ id: documents.id, url: documents.url, block: documents.blockReason })
+    .from(documents)
+    .where(and(eq(documents.companyId, company.id), blockedDoc))
+    .orderBy(asc(documents.id))
+    .limit(1);
+  if (!marker) return stats;
+  const sentBy = marker.block;
+
+  const seen: Seen = new Set();
+  const existing = await db
+    .select({ url: documents.url, hash: documents.contentHash })
+    .from(documents)
+    .where(eq(documents.companyId, company.id));
+  for (const row of existing) seen.add(seenKey(row.url, row.hash));
+
+  const remembered = domain ? await opts.memory?.get(domain) : null;
+  const from = isLadderTier(remembered) ? remembered : "impersonate";
+  // The marker stands for the company: it leaves the pass's queue when it moves to a rendered tier.
+  const settle = (tier: string, blockReason: string | null, fetchSteps: FetchStep[] | null) =>
+    db
+      .update(documents)
+      .set({ fetchTier: tier, blockReason, fetchSteps })
+      .where(eq(documents.id, marker.id));
+
+  const home = await robotsAllows(robotsFetcher, marker.url, robots, mode, stats);
+  if (!home.proceed) {
+    // Enforce mode only: without a rendered tier the company would be re-selected forever.
+    await settle(from, "robots", null);
+    return stats;
+  }
+
+  const call = async (url: string, tier: typeof from) => {
+    ladder.budget.left -= 1;
+    stats.ladder_requests += 1;
+    const got = await fetchLadder(ladder.sites, url, tier);
+    if ("failed" in got) {
+      if (got.failed === "cap") ladder.budget.left = 0;
+      stats.render_errors += 1;
+    }
+    return got;
+  };
+
+  const first = await call(marker.url, from);
+  if ("failed" in first) return stats;
+  const top = first.fetched;
+  if (top.block) {
+    stats.ladder_dead += 1;
+    await settle(top.tier, top.block, top.tries);
+    if (domain) await opts.memory?.learn(domain, "dead", sentBy);
+    return stats;
+  }
+
+  const trailOf = (f: typeof top): Provenance => ({
+    tier: f.tier,
+    blockReason: sentBy,
+    fetchSteps: f.tries,
+  });
+  const pageOf = (f: typeof top): RenderedPage => ({
+    html: f.html,
+    finalUrl: f.finalUrl,
+    statusCode: f.status,
+  });
+  let stored = 0;
+  if (
+    await storeRendered(
+      db,
+      company.id,
+      marker.url,
+      pageOf(top),
+      seen,
+      stats,
+      home.disallowed,
+      trailOf(top),
+    )
+  ) {
+    stored += 1;
+    stats.ladder_pages += 1;
+  }
+  if (domain) await opts.memory?.learn(domain, top.tier, sentBy);
+
+  const candidates = peoplePageCandidates(
+    readPage(stripNul(top.html), top.finalUrl).links,
+    company.domain,
+    hints,
+  );
+  for (const url of candidates.slice(0, Math.max(0, (opts.pagesPerSite ?? 5) - 1))) {
+    if (ladder.budget.left <= 0) break;
+    const { proceed, disallowed } = await robotsAllows(robotsFetcher, url, robots, mode, stats);
+    if (!proceed) continue;
+    const got = await call(url, top.tier);
+    if ("failed" in got) break;
+    if (got.fetched.block) continue;
+    if (
+      await storeRendered(
+        db,
+        company.id,
+        url,
+        pageOf(got.fetched),
+        seen,
+        stats,
+        disallowed,
+        trailOf(got.fetched),
+      )
+    ) {
+      stored += 1;
+      stats.ladder_pages += 1;
+    }
+  }
+  // The page was already stored: the marker must still leave the queue.
+  if (stored === 0) await settle(top.tier, sentBy, top.tries);
+  stats.pages_stored += stored;
+  stats.companies_rendered += 1;
   return stats;
 }
 
@@ -289,6 +495,17 @@ export interface RenderSelectOptions {
   limit?: number | undefined;
   niche?: string | null | undefined;
   shard?: Shard | null | undefined;
+  /** Take shells, for the box renderer. Default true. */
+  shells?: boolean | undefined;
+  /** Take blocked companies, for the ladder. Default false. */
+  blocked?: boolean | undefined;
+  /** Domains the memory calls `dead`: their blocked companies are not taken. */
+  deadDomains?: readonly string[] | undefined;
+}
+
+export interface RenderTargets {
+  shells: Company[];
+  blocked: Company[];
 }
 
 const shelled = (db: Queryable) =>
@@ -300,26 +517,49 @@ const renderedAlready = (db: Queryable) =>
   db
     .select({ id: documents.companyId })
     .from(documents)
-    .where(and(eq(documents.fetchTier, BROWSER_TIER), isNotNull(documents.companyId)));
+    .where(and(inArray(documents.fetchTier, RENDERED_TIERS), isNotNull(documents.companyId)));
+const blockedAlready = (db: Queryable) =>
+  db
+    .select({ id: documents.companyId })
+    .from(documents)
+    .where(and(blockedDoc, isNotNull(documents.companyId)));
 
-/** Companies with at least one shell document and no browser-tier document yet. */
+/** The company's domain as the memory keeps it: lowercase, no leading `www.`. */
+const companyDomain = sql<string>`regexp_replace(lower(${companies.domain}), '^www\\.', '')`;
+
+/**
+ * Shells: companies with at least one shell document and no rendered document. Blocked:
+ * companies with a blocked tombstone, no rendered document and a domain that is not `dead`.
+ * Shells come first; `limit` counts both.
+ */
 export async function selectRenderTargets(
   db: Queryable,
   opts: RenderSelectOptions = {},
-): Promise<Company[]> {
-  const conditions = [
-    inArray(companies.id, shelled(db)),
-    notInArray(companies.id, renderedAlready(db)),
-    inPlay,
+): Promise<RenderTargets> {
+  const scope = [notInArray(companies.id, renderedAlready(db)), inPlay];
+  if (opts.niche != null) scope.push(eq(companies.niche, opts.niche));
+  if (opts.shard) scope.push(opts.shard.where(companies.id));
+  const take = async (where: SQL[], limit: number | undefined) => {
+    const q = db
+      .select()
+      .from(companies)
+      .where(and(...where))
+      .orderBy(asc(companies.id));
+    return limit === undefined ? q : q.limit(limit);
+  };
+  const shells =
+    opts.shells === false
+      ? []
+      : await take([inArray(companies.id, shelled(db)), ...scope], opts.limit);
+  if (!opts.blocked) return { shells, blocked: [] };
+  const where = [
+    inArray(companies.id, blockedAlready(db)),
+    notInArray(companies.id, shelled(db)),
+    ...scope,
   ];
-  if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
-  if (opts.shard) conditions.push(opts.shard.where(companies.id));
-  const q = db
-    .select()
-    .from(companies)
-    .where(and(...conditions))
-    .orderBy(asc(companies.id));
-  return opts.limit === undefined ? q : q.limit(opts.limit);
+  if (opts.deadDomains?.length) where.push(notInArray(companyDomain, [...opts.deadDomains]));
+  const left = opts.limit === undefined ? undefined : Math.max(0, opts.limit - shells.length);
+  return { shells, blocked: left === 0 ? [] : await take(where, left) };
 }
 
 export async function countRenderNicheNullSkipped(db: Queryable): Promise<number> {
@@ -354,7 +594,7 @@ export async function runRender(
   });
   let stats = emptyRenderStats();
   const robots: RobotsCache = new Map();
-  for (const company of targets) {
+  for (const company of targets.shells) {
     const unit = await atomic(db, (tx) =>
       renderCompany(tx, renderer, robotsFetcher, company, robots, opts),
     );

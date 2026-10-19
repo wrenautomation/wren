@@ -7,12 +7,15 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { leads, people, runs } from "@wren/core";
+import type { SiteClient } from "@wren/core/content";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { EMPTY_HASH } from "../../src/enrichment/crawler.js";
 import type { BrowserRenderer } from "../../src/enrichment/render.js";
+import { tierMemory } from "../../src/fetch/tier-memory.js";
 import { ALL_NICHES, type Enrichment, makeEnrichment } from "../../src/restate/enrichment.js";
 import { documents, enrichments } from "../../src/schema.js";
 import { FakeFetcher, makeCompany } from "./fixtures.js";
@@ -67,11 +70,37 @@ const renderer = async (): Promise<BrowserRenderer> => {
   };
 };
 
+const ladderCalls: string[] = [];
+const ladder: SiteClient = {
+  async call(_site, _method, _path, input = {}) {
+    ladderCalls.push(String(input.url));
+    return {
+      finalUrl: String(input.url),
+      status: 200,
+      html: RENDERED_HOME,
+      tier: "impersonate",
+      block: null,
+      tries: [{ tier: "impersonate", status: 200, block: null, ms: 3 }],
+    } as never;
+  },
+  async via() {
+    return "api";
+  },
+};
+
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
-      makeEnrichment({ db: pg.db, fetcher, llm, renderer, renderJitter: [0, 0], renderIdleMs: 50 }),
+      makeEnrichment({
+        db: pg.db,
+        fetcher,
+        llm,
+        renderer,
+        ladder,
+        renderJitter: [0, 0],
+        renderIdleMs: 50,
+      }),
     ],
     alwaysReplay: true,
   });
@@ -83,6 +112,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await truncate(pg.db, ["runs", "imports", "companies"]);
   prompts.length = 0;
+  ladderCalls.length = 0;
 });
 const db = () => pg.db;
 const client = (key = ALL_NICHES) =>
@@ -220,6 +250,43 @@ describe("Enrichment virtual object", () => {
     expect((await c.render({ limit: 10 })).companies_rendered).toBe(0);
     expect(browsersOpened - opened).toBe(1);
     expect((await c.scan({})).signals).toBe(1);
+  });
+
+  it("render sends a blocked company up the fetch ladder, within ladderLimit", async () => {
+    const co = await makeCompany(db(), {
+      key: null,
+      domain: "blocked.example",
+      name: "Blocked Co",
+      niche: "agencies",
+    });
+    const c = client(ALL_NICHES);
+    await db().insert(documents).values({
+      companyId: co.id,
+      url: "https://blocked.example",
+      kind: "webpage",
+      statusCode: 403,
+      contentHash: EMPTY_HASH,
+      text: "",
+      blockReason: "status-403",
+    });
+
+    // A spent cap takes no blocked company.
+    const capped = await c.render({ limit: 10, ladderLimit: 0 });
+    expect(capped).toMatchObject({ ladder_requests: 0, companies_rendered: 0 });
+    expect(ladderCalls).toEqual([]);
+
+    const stats = await c.render({ limit: 10, ladderLimit: 5 });
+    expect(stats).toMatchObject({ ladder_requests: 1, ladder_pages: 1, companies_rendered: 1 });
+    expect(ladderCalls).toEqual(["https://blocked.example"]);
+    const [page] = await db()
+      .select()
+      .from(documents)
+      .where(and(eq(documents.companyId, co.id), eq(documents.fetchTier, "impersonate")));
+    expect(page).toMatchObject({ blockReason: "status-403", isShell: false });
+    expect(await tierMemory(db()).get("blocked.example")).toBe("impersonate");
+
+    // Rendered once: the next run selects nothing.
+    expect((await c.render({ limit: 10 })).ladder_requests).toBe(0);
   });
 
   it("a bad shard is a terminal error, not a retry loop", async () => {

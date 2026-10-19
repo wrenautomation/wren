@@ -959,9 +959,9 @@ export async function buildServices(
       robotsMode: settings.robotsMode,
       crawlHintsFor,
       pages,
-      // A blocked page climbs the fetch ladder (`web GET /fetch`); inside a unit's ctx.run, so the ingress. A render can take ~60 s.
+      // The render pass sends blocked companies up the fetch ladder (`web GET /fetch`); inside a unit's ctx.run, so the ingress. A render can take ~60 s.
       ladder: ingressSites(ingressOf(settings), {
-        caller: "wren:crawl",
+        caller: "wren:render",
         ...sitesHost(settings.autobrowseInstanceId),
         timeoutMs: 120_000,
       }),
