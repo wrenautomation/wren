@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ 082992f8
+verified: 2026-10-19 @ a6004537
 entity: packages/pipeline/src/schema.ts:125
 ---
 
@@ -28,6 +28,9 @@ The row is a cache. The truth is spine events with subject `journey:<id>`, so a 
 - `carryJourneys` (`carry.ts:21`): open journeys of an older version move to the new one at the same stage, with an arrival at `funnel.<id>.v<to>` node `s_<stage>` and cause `{kind: "version", ref: <old>}`. J2's `appendFunnel` will call it.
 - `spine_executions` titles a `journey:<uuid>` subject "Name: funnel, stage" (migration `0297_journey_event_kind`, with `ck_events_kind`).
 - Migration `0295_pipeline`. All six `pipeline` tables are audited, area `money` (`packages/db/src/audit/install.ts`).
+
+- Causes (J4). A touch moves a journey through `trigger.touch` (the `TouchFeed` loop). Payments reach `pipeline.collect` (`packages/pipeline/src/collect.ts`, in workflow `pipeline.money`, heard in every workspace): paid adds, refunded subtracts `deals.collected_cents` (floor 0) for the deal named in `data.deal`, else the person's newest open deal (for `data.offer` when given). Once per payment change: a `profile_events` line (source `collected`, id the subject's hash) is the claim, in the same transaction.
+- Merge (`mergeProfiles`, `packages/core/src/profile-pipeline.ts`): `journeys.profile_id` and `deals.profile_id` move to the kept profile. Two open journeys in one funnel: the later stage stays open, the other is `dropped` with reason `merged`. No `journey` event is sent for that drop.
 
 Citations: `packages/pipeline/src/schema.ts:125`, `packages/pipeline/src/stages.ts:17`, `packages/pipeline/src/schedule.ts:47`, `packages/pipeline/src/steps.ts:98`, `packages/pipeline/src/steps.ts:186`, `packages/pipeline/src/journeys.ts:165`, `packages/pipeline/src/carry.ts:21`
 

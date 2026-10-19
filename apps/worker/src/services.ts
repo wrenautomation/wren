@@ -313,6 +313,7 @@ import {
 } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { makeTokens } from "@wren/core/tokens";
+import { makeTouchFeed } from "@wren/core/touch-feed";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, turnedOffTeller, webhookStep, webhooksPublish } from "@wren/core/webhooks";
@@ -381,6 +382,7 @@ import { makePaymentsConsole } from "@wren/payments/console";
 import { makePayReconcile } from "@wren/payments/reconcile";
 import { makePayments } from "@wren/payments/service";
 import { stripeChecks } from "@wren/payments/setups";
+import { collectSteps } from "@wren/pipeline/collect";
 import { funnelWorkflowsOf, soundFunnels } from "@wren/pipeline/journeys";
 import { journeySteps } from "@wren/pipeline/steps";
 import { clientSendScope, crmLanding } from "@wren/reactivation";
@@ -1896,6 +1898,7 @@ export async function buildServices(
         app: portal,
         zone: settings.sendTimezone,
         ...(settings.notify === "none" ? {} : { notifier }),
+        fire: fireAll,
       }),
     );
   services.push(makeBillingConsole(db));
@@ -2065,6 +2068,8 @@ export async function buildServices(
       steps: {
         // A funnel's moves and stages: a journey per person, in its workspace's database.
         ...journeySteps({ db: (client) => (client ? clientDb(client) : db) }),
+        // Payments folded into the deal they name (`pipeline.money`).
+        ...collectSteps({ db: (client) => (client ? clientDb(client) : db) }),
         // Account setups. With WREN_SETUP_AGENT a done-for-you step goes to SetupAgent on its
         // first round; off, it waits on Wren's team. Its alerts (stuck, waiting, done, lost)
         // tell the team on the clients lane.
@@ -2332,6 +2337,13 @@ export async function buildServices(
       };
       return [makePeopleMap(map), makePeopleMapNet(map)];
     })(),
+    // Touch feed (designs/2026-10-18-journeys.md): each workspace's new touches told to the spine
+    // once each, every minute, for `trigger.touch`. Started by hand, never on its own.
+    makeTouchFeed({
+      main: db,
+      clientDb,
+      clients: async () => (await listClients(db)).map((c) => c.id),
+    }),
     // Decide (designs/2026-10-16-decide.md): drafted comments and Learn items judged by Jev every
     // 10 minutes, each answer logged beside his call; the gateway answers when Jev is down.
     makeDecide({

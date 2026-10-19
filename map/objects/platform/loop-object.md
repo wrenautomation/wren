@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-16 @ 3a7bb93e
+verified: 2026-10-19 @ a6004537
 entity: packages/core/src/restate/loop.ts:366
 ---
 
@@ -18,11 +18,13 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 ## Shape
 
 - `makeLoopObject(name, pass, hooks)` (`loop.ts:366`); `hooks.effect` marks `sync` (`sends` on `SendScheduler`); `passOrFailed` (`:343`): a pass that throws a terminal or replayed error is kept as a failed `last` with backoff, the next queued, never parked; `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
-- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ClicksScheduler/fleet`, `BounceScheduler/all`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`, `SocialWatch/wren`, `PayReconcile/all`
+- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ClicksScheduler/fleet`, `BounceScheduler/all`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`, `SocialWatch/wren`, `PayReconcile/all`, `TouchFeed/all`
 
 - time limits (`packages/core/src/restate/limits.ts`): `within` on each Restate call, `limitedRun` on HTTP steps, `unitLimits` strikes a unit three passes in a row into [[platform/checks]] (stage `loop.<service>/<key>`); the pass keeps them as `last.timeouts`
 
 - `SendScheduler` is one too since 2026-10-16 (wa-jsi): its tick step has 3 tries, then `passOrFailed` keeps it as a failed pass; `sync` replaced `tick`; a gone scope is a `stopped` pass. `hooks.syncAliases` keeps old names of `sync` for calls queued before a move (`tick` on `SendScheduler`, until 2026-10-30). The state key is the same `loop`, so a running key stays running with no `start`
+
+- `TouchFeed/all` (`packages/core/src/touch-feed.ts`): every minute, per workspace (Wren main, then clients whose DB holds touches), reads touches past the cursor kept in loop state (200 a pass, only rows older than 30 s so a late commit is not skipped) and fires `trigger.touch` once per touch. The first pass starts at the newest touch. Off until started (`TouchFeed/all/start`).
 
 Citations: `packages/core/src/restate/loop.ts:366`, `packages/channel-email/src/restate/send-scheduler.ts:80`
 

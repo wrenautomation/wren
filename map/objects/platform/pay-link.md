@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-14 @ e629cd17
+verified: 2026-10-19 @ a6004537
 entity: packages/payments/src/schema.ts:39
 ---
 
@@ -25,6 +25,8 @@ Links live in main with a `client` column, so To approve and the webhook read on
 - `PayReconcile/all` (`packages/payments/src/reconcile.ts:256`): daily, links of 120 days per connected client, 50 a pass; heals missed facts as `recon:` events, keeps drift (paid here, nothing on Stripe) as one event and the link's `why`; adds missing `STRIPE_EVENTS` to the client's endpoint, Wren's (by id) or a pasted one (found in the account by its URL), keeping the events the client chose. A key that can't read or change endpoints gets `pay_accounts.note` instead: which events to add, and that a restricted key needs read on Checkout Sessions, Payment Intents, Charges and Disputes (`holdEndpoint`). Off until started (`node scripts/ingress.mjs PayReconcile/all/start`).
 - Ask again (`payments.again`): an `unpaid` link (bank payment failed) gets a new link with the same ask, once.
 - Setup `setup.stripe` (`packages/payments/src/setups.ts:12`): key, then webhook (registered by API when the key allows, else pasted secret). Keys: the browser stages them (`/api/keys/stage`), `connect` takes `keyRef` and `secretRef`; the worker reads them from `pgKeyStore`.
+
+- J4: `trigger.payment` data from a link now has `source: "pay_link"` and `id` (the link id); `pipeline.collect` folds it into a deal ([[platform/journey]]). Link behaviour is unchanged.
 
 Citations: `packages/payments/src/schema.ts:39`, `packages/payments/src/schema.ts:115`, `packages/payments/src/schema.ts:145`, `packages/payments/src/states.ts:109`, `packages/payments/src/service.ts:285`, `packages/payments/src/store.ts:390`, `packages/payments/src/reconcile.ts:70`, `apps/worker/src/services.ts`
 
