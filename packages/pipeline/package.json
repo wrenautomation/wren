@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./carry": "./src/carry.ts",
+    "./collect": "./src/collect.ts",
     "./entry": "./src/entry.ts",
     "./journeys": "./src/journeys.ts",
     "./model": "./src/model.ts",

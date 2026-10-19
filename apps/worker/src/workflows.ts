@@ -14,6 +14,7 @@ import { LEARN_WORKFLOWS } from "@wren/learn/components";
 import { NICHES, SMS_SEQUENCES } from "@wren/niches";
 import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
 import { OUTREACH_WORKFLOWS } from "@wren/outreach/components";
+import { MONEY_WORKFLOW } from "@wren/pipeline/collect";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
 import { SETUPS } from "./setups.js";
@@ -283,6 +284,8 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...BLOCKS,
   ...FUNNELS,
   WREN,
+  // Payments folded into deals, in every workspace.
+  MONEY_WORKFLOW,
   // Account setups: not sold, each one runs per account.
   ...SETUPS.map(setupWorkflow),
 ];

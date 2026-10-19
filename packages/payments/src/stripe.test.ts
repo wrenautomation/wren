@@ -286,6 +286,7 @@ describe("messages and the spine", () => {
     expect(f.facts).toEqual({ trigger: "trigger.payment", change: "paid" });
     expect(f.about).toEqual(["payer@example.com", "sms:7"]);
     expect(f.event.subject).toBe(`payment:${link.id}`);
+    expect(f.event.data).toMatchObject({ source: "pay_link", id: link.id });
   });
   it("fires a refund or a failure under its own subject, with the document", () => {
     const f = paymentFired({ ...link, refundedCents: 9800, document: null }, "refunded");

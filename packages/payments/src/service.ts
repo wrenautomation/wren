@@ -182,6 +182,9 @@ export function paymentFired(l: PayLink, change: PayChange = "paid"): Fired {
       subject: change === "paid" ? `payment:${l.id}` : `payment:${l.id}:${change}`,
       kind: "invoice",
       data: {
+        // Where the money came from and its id there (`pipeline.collect` reads these).
+        source: "pay_link",
+        id: l.id,
         link: l.id,
         change,
         description: l.description,

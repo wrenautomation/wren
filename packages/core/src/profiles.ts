@@ -7,6 +7,7 @@
  */
 import { atomic, type Queryable } from "@wren/db";
 import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
+import { movePipeline } from "./profile-pipeline.js";
 import {
   profileEvents,
   profileKeys,
@@ -221,7 +222,8 @@ async function firstSeenOf(db: Queryable, id: number): Promise<Date> {
 /**
  * `from` turned out to be `into`: its keys move, each trait it holds newer than `into`'s is
  * taken (kept as a trait change), and it points at `into`, as do the profiles merged into it
- * before. Nothing is deleted: `from` keeps its row and its traits as they were.
+ * before. Its pipeline journeys and deals move to `into` (`./profile-pipeline.ts`). Nothing is
+ * deleted: `from` keeps its row and its traits as they were.
  */
 export async function mergeProfiles(
   db: Queryable,
@@ -246,6 +248,8 @@ export async function mergeProfiles(
     update profile_findings f set profile_id = ${into}
     where f.profile_id = ${from} and not exists (
       select 1 from profile_findings g where g.profile_id = ${into} and g.ref = f.ref)`);
+  // Journeys and deals move too; a funnel both held open keeps the later stage.
+  await movePipeline(db, into, from, at);
   const theirs = await db.select().from(profileTraits).where(eq(profileTraits.profileId, from));
   let traits = 0;
   for (const t of theirs) if (await putTrait(db, into, t.key, t.value, t.source, t.at)) traits += 1;
