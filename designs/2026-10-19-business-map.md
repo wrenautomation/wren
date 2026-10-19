@@ -83,3 +83,23 @@ Home `/` is the Map. Today docks on the right as a panel (collapsible, remembere
 - Versions append only, journeys pin one. Why: the same rule the funnels use today; a diff and a restore fall out of it.
 - Export to the private sops repo. Why: the shape names clients and amounts; wren is public.
 - Build on `GraphCanvas` and the workflow palette. Why: library first; the editor exists and is tested.
+
+## Decisions (planner, 2026-10-19)
+
+Calls the doc left open. Briefs in `designs/briefs/2026-10-19-business-map-*.md`.
+
+- One open journey per person, not per funnel. Why: one shape per DB; an upsell is the same journey going deeper. Migrate keeps the deepest of two open ones and drops the other with a reason.
+- A source node keeps today's entry fields under `via` (organic, outbound, ads, referral, sourced, group, manual) plus `parked`. Why: `kind` is the node kind; the entry rules already work. The `funnel` entry kind goes: an edge from a plan or offer does it. `parked` replaces a funnel that is off.
+- Nobody sits on a source. An opening crosses the source's edge and lands on its target. Why: matches today's entries; a source's numbers are the journeys it opened.
+- The deal is made on arrival at an offer node; arrival at a plan node signs it when live terms exist. Deals are unique per journey and offer node, so an upsell is a second deal.
+- Automatic moves take the shortest flow path; every edge on it is a crossing, the nodes between are skipped. Why: today's skip rule, on edges.
+- A journey never arrives twice at one node in one version (`events` is unique per workflow, node and subject). A move back is refused with "drop and reopen". Crossing a loop edge closes the journey and opens a new one at the loop's end. Why: one journey is one pass down the graph; re-entry is a new journey, as lead recycling is today.
+- Loop edges are drawn and can be crossed by hand or CLI. The 90-day automatic recrossing is not built. Why: "Not in scope" (no new automatic placement).
+- Versions carry open journeys to the new version, as funnels do. A journey on a removed node stays on its old version: that is the ghost, and it moves by its old version's edges. A save may carry `moves` (old node to new node) to remap.
+- Depths are stored on each version row (`depths`, from `depthOf`). Why: versions never change, so SQL readers (segments, merge, views) read a column, not a recursive query.
+- The trail is a column on `journeys` (`{edge, from, to, at}`), rebuilt from events like the rest of the row. Why: segments' "reached" and the panel read it without a body join.
+- Migration in two steps. 0304 is additive and old code runs on it. `wren shape migrate --all` (in the deploy, after `migrate`, a no op once done) builds v1 from the funnels and moves journeys and deals onto node ids. M3 adds the guard, the one-open index and drops the old columns. Why: a deploy runs migrations before the Lambda changes; a pure SQL conversion would be untested.
+- Old numbers views stay as views over the new ones; numbers count only `shape.v%` events. Funnel-era numbers (one day of history) are not carried.
+- `wren pipeline seed` and `fold-deals` are deleted. Why: both ran on prod (wa-8pi.11, wa-8pi.3) and the deals tables are gone.
+- The funnels page goes in M1, not M2. Why: its record goes with the model.
+- Shape files are YAML via the `yaml` package. Import may also carry `moves` and `terms` (added through `addTerms`), so a seed file holds the shape and its prices in one commit.
