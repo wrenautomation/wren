@@ -74,6 +74,12 @@ describe("checkFunnel", () => {
     expect(checkFunnel(null, twice, ctx()).join("\n")).toMatch(/"engaged" is used twice/);
   });
 
+  it("keeps the key dropped for drops", () => {
+    const next = body();
+    next.stages[0] = { key: "dropped", label: "x", on: [] };
+    expect(checkFunnel(null, next, ctx()).join("\n")).toMatch(/"dropped" is reserved/);
+  });
+
   it("refuses an offer change", () => {
     expect(checkFunnel(body(), body({ offer: "offer-b" }), ctx()).join("\n")).toMatch(
       /offer cannot change/,
@@ -111,6 +117,29 @@ describe("checkFunnel", () => {
     expect(checkFunnel(null, noTarget, ctx()).join("\n")).toMatch(/names no funnel/);
     const badTo = body({ entries: [{ id: "x", kind: "manual", to: "zzz" }] });
     expect(checkFunnel(null, badTo, ctx()).join("\n")).toMatch(/opens at "zzz"/);
+  });
+
+  it("checks sourced and group entries and research", () => {
+    const ok = body({
+      entries: [
+        { id: "list", kind: "sourced", source: "list-1" },
+        { id: "seg", kind: "group", group: "q-1" },
+      ],
+    });
+    ok.stages[0] = { ...ok.stages[0], research: "light" } as FunnelBody["stages"][number];
+    expect(checkFunnel(null, ok, ctx())).toEqual([]);
+    const noSource = body({ entries: [{ id: "list", kind: "sourced" }] });
+    expect(checkFunnel(null, noSource, ctx()).join("\n")).toMatch(
+      /kind sourced but names no source/,
+    );
+    const noGroup = body({ entries: [{ id: "seg", kind: "group" }] });
+    expect(checkFunnel(null, noGroup, ctx()).join("\n")).toMatch(/kind group but names no group/);
+    const bad = body();
+    bad.stages[1] = {
+      ...bad.stages[1],
+      research: "deep",
+    } as unknown as FunnelBody["stages"][number];
+    expect(checkFunnel(null, bad, ctx()).join("\n")).toMatch(/research "deep"/);
   });
 
   it("refuses a loop of funnels", () => {

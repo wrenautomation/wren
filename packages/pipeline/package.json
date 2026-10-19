@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./carry": "./src/carry.ts",
+    "./entry": "./src/entry.ts",
+    "./journeys": "./src/journeys.ts",
     "./model": "./src/model.ts",
     "./schedule": "./src/schedule.ts",
     "./schema": "./src/schema.ts",
     "./stages": "./src/stages.ts",
-    "./store": "./src/store.ts"
+    "./store": "./src/store.ts",
+    "./steps": "./src/steps.ts",
+    "./workflow": "./src/workflow.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

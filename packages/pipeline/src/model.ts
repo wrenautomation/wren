@@ -19,9 +19,23 @@ export interface Stage {
   sale?: true;
   /** What moves a journey to this stage. */
   on: Advance[];
+  /** How much research the person gets on entering. Default `none`. Carried only; J4 runs it. */
+  research?: Research;
 }
 
-export const ENTRY_KINDS = ["organic", "outbound", "ads", "referral", "funnel", "manual"] as const;
+export const RESEARCH_LEVELS = ["none", "light", "full"] as const;
+export type Research = (typeof RESEARCH_LEVELS)[number];
+
+export const ENTRY_KINDS = [
+  "organic",
+  "outbound",
+  "ads",
+  "referral",
+  "funnel",
+  "sourced",
+  "group",
+  "manual",
+] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 
 export interface Entry {
@@ -34,6 +48,10 @@ export interface Entry {
   campaign?: string;
   /** Kind `funnel`: that funnel's stage. Default: its sale stage. */
   funnel?: { id: string; at?: string };
+  /** Kind `sourced`: the research list or discovery run id the person came from. */
+  source?: string;
+  /** Kind `group`: the saved query whose members enter. */
+  group?: string;
   /** The stage a journey opens at. Default: the first. */
   to?: string;
 }
@@ -49,6 +67,8 @@ export interface FunnelBody {
 }
 
 export const STAGE_KEY = /^[a-z][a-z0-9_]*$/;
+/** The key of the node a drop arrives at; no stage may take it. */
+export const DROPPED = "dropped";
 
 /** What `checkFunnel` needs from outside. */
 export interface FunnelContext {
@@ -82,6 +102,7 @@ export function checkFunnel(
       );
     }
     if (keys.indexOf(k) !== i) errors.push(`Stage key "${k}" is used twice.`);
+    if (k === DROPPED) errors.push(`Stage key "${k}" is reserved for dropped journeys.`);
   }
 
   const sales = next.stages.filter((s) => s.sale);
@@ -90,6 +111,9 @@ export function checkFunnel(
   }
 
   for (const s of next.stages) {
+    if (s.research !== undefined && !RESEARCH_LEVELS.includes(s.research)) {
+      errors.push(`Stage "${s.key}" has research "${s.research}". Use none, light or full.`);
+    }
     for (const a of s.on) {
       if (!ctx.triggers.has(a.trigger)) {
         errors.push(`Stage "${s.key}" uses "${a.trigger}", which is not a known trigger.`);
@@ -123,6 +147,10 @@ export function checkFunnel(
     }
     if (e.kind === "funnel" && !e.funnel)
       errors.push(`Entry "${e.id}" has kind funnel but names no funnel.`);
+    if (e.kind === "sourced" && !e.source)
+      errors.push(`Entry "${e.id}" has kind sourced but names no source.`);
+    if (e.kind === "group" && !e.group)
+      errors.push(`Entry "${e.id}" has kind group but names no group.`);
     if (!e.funnel) continue;
     const target =
       e.funnel.id === ctx.id
