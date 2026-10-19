@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entryOf, entryStages, entryTo } from "./entry.js";
+import { entryOf, entryStages, entryTo, opensAt } from "./entry.js";
 import type { FunnelBody } from "./model.js";
 
 const body = (entries: FunnelBody["entries"]): FunnelBody => ({
@@ -80,5 +80,41 @@ describe("entryStages", () => {
     const b = body(ENTRIES);
     expect(entryTo(b, ENTRIES[0] as FunnelBody["entries"][number])).toBe("engaged");
     expect(entryTo(b, ENTRIES[5] as FunnelBody["entries"][number])).toBe("booked");
+  });
+});
+
+describe("opensAt", () => {
+  const partner = body([
+    { id: "yt", kind: "organic", channel: "youtube" },
+    { id: "partner", kind: "manual", to: "signed" },
+  ]);
+
+  it("lets a stage cause open where a stage-fed entry opens", () => {
+    expect(opensAt(partner, "engaged", false, { channel: "x" })).toBe(true);
+  });
+
+  it("never lets a stage cause open at a manual entry's stage", () => {
+    expect(opensAt(partner, "signed", false, {})).toBe(false);
+  });
+
+  it("lets a manual open in at any entry stage, and nowhere else", () => {
+    expect(opensAt(partner, "signed", true, {})).toBe(true);
+    expect(opensAt(partner, "booked", true, {})).toBe(false);
+  });
+
+  it("opens a group or sourced entry only for the cause it names", () => {
+    const b = body([
+      { id: "list", kind: "sourced", source: "import:1", to: "booked" },
+      { id: "seg", kind: "group", group: "7", to: "signed" },
+    ]);
+    expect(opensAt(b, "booked", false, { source: "import:1" })).toBe(true);
+    expect(opensAt(b, "booked", false, { source: "import:2" })).toBe(false);
+    expect(opensAt(b, "signed", false, { group: "7" })).toBe(true);
+    expect(opensAt(b, "signed", false, {})).toBe(false);
+  });
+
+  it("opens at the first stage only, with no entries", () => {
+    expect(opensAt(body([]), "engaged", false, {})).toBe(true);
+    expect(opensAt(body([]), "booked", false, {})).toBe(false);
   });
 });

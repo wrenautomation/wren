@@ -265,6 +265,34 @@ describe("a journey through a funnel", () => {
     expect((await journeyOf(profile, "gamma"))?.stage).toBe("booked");
   });
 
+  it("a manual entry at a late stage opens only by hand, never from that stage's trigger", async () => {
+    await funnel(
+      "late",
+      body({
+        entries: [
+          { id: "mail", kind: "outbound", channel: "email" },
+          { id: "partner", kind: "manual", to: "signed" },
+        ],
+      }),
+    );
+    const profile = await person("di@example.test");
+    const r = rig();
+    const flows = await flowsOf("late");
+    const doc: SpineEvent = {
+      subject: "document:late:1",
+      kind: "document",
+      data: { email: "di@example.test", change: "signed" },
+    };
+    await hear(r, flows, SIGNED, doc);
+    expect(await journeyOf(profile, "late")).toBeUndefined();
+
+    const w: Walk = { ...r.w, by: randomUUID(), flows: new Map(flows.map((f) => [f.id, f])) };
+    await walk(w, "funnel.late.v1", "in.signed", [
+      { subject: "manual:late:1", kind: "journey", data: { profile, cause: { kind: "manual" } } },
+    ]);
+    expect((await journeyOf(profile, "late"))?.stage).toBe("signed");
+  });
+
   it("opens nothing in a funnel that is off, nor for someone it cannot find", async () => {
     await funnel("eta", body(), "off");
     const profile = await person("di@example.test");

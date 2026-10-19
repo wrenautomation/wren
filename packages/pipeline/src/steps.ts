@@ -10,13 +10,13 @@ import { profileEvents } from "@wren/core/profiles-schema";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
-import { type CauseFacts, entryOf, entryStages } from "./entry.js";
+import { type CauseFacts, entryOf, opensAt } from "./entry.js";
 import { openJourney, personOf, saleStageOf, textOf, versionOf } from "./journeys.js";
 import { DROPPED } from "./model.js";
 import { icpOf, type Researcher, requestResearch } from "./research.js";
 import { journeys, offerVersions, pipelineDeals } from "./schema.js";
 import { nextStage } from "./stages.js";
-import { MOVE_STEP, parseFunnelFlow, STAGE_STEP } from "./workflow.js";
+import { JOURNEY_PORT, MOVE_STEP, parseFunnelFlow, STAGE_STEP } from "./workflow.js";
 
 export const CAUSE_KINDS = [
   "touch",
@@ -106,7 +106,7 @@ const lineId = (journey: string, stage: string) =>
 export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
   const now = () => d.now?.() ?? new Date();
 
-  const move: Step = async (_port, e, at) => {
+  const move: Step = async (port, e, at) => {
     const db = d.db(at.client);
     const flow = parseFunnelFlow(at.workflow);
     const to = textOf(at.with.to);
@@ -140,9 +140,9 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         // Already at `to`: a repeat of a move that crashed before it was kept. Say it again;
         // the stage node refuses a second arrival.
       } else {
-        // Only the live newest version opens journeys, and only at an entry stage.
+        // Only the live newest version opens journeys, and only from a cause an entry at `to` takes.
         if (flow.version !== funnel.newest || funnel.status !== "live") return null;
-        if (!entryStages(body).includes(to)) return null;
+        if (!opensAt(body, to, port === JOURNEY_PORT, facts)) return null;
         const [touch] = await tx
           .select({ channel: profileRollups.firstChannel })
           .from(profileRollups)

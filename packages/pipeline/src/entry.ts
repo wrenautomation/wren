@@ -45,6 +45,24 @@ function matches(e: Entry, c: CauseFacts): boolean {
 export const entryTo = (body: FunnelBody, e: Entry): string | undefined =>
   e.to ?? body.stages[0]?.key;
 
+/**
+ * May this cause open a journey at `to` for a person with none? A manual open or a composed funnel
+ * comes on the journey port: any entry stage. Else it needs an entry at `to` that stage causes feed
+ * (organic, outbound, ads, referral), or a group or sourced entry the cause names. So a manual
+ * entry at a late stage never lets that stage's own trigger open journeys for strangers.
+ */
+export function opensAt(body: FunnelBody, to: string, viaJourney: boolean, c: CauseFacts): boolean {
+  if (body.entries.length === 0) return to === body.stages[0]?.key;
+  const here = body.entries.filter((e) => entryTo(body, e) === to);
+  if (here.length === 0) return false;
+  if (viaJourney) return true;
+  return here.some((e) => {
+    if (e.kind === "group") return !!e.group && c.group === e.group;
+    if (e.kind === "sourced") return !!e.source && c.source === e.source;
+    return e.kind !== "manual" && e.kind !== "funnel";
+  });
+}
+
 /** The stages a journey may open at: every entry's `to`, default the first stage. */
 export function entryStages(body: FunnelBody): string[] {
   const first = body.stages[0]?.key;
