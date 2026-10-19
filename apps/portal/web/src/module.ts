@@ -180,7 +180,8 @@ export interface Module {
   menu?: true;
   /**
    * Out of the sidebar, the dock and the area list, yet its routes, quick capture and ⌘K still
-   * work (⌘K tags its pages "parked"). Wren's dormant apps (designs/2026-10-19-portal-reshape.md).
+   * work (⌘K tags its pages "parked"). Its pages are not counted or read for Today. Wren's
+   * dormant apps (designs/2026-10-19-portal-reshape.md).
    */
   parked?: true;
   /**
@@ -190,8 +191,6 @@ export interface Module {
   fallback?: true;
   /** The component it belongs to (`@wren/core/components`); none for the platform's own. */
   component?: string;
-  /** Parked: kept in the tree, but its pages are not counted or read, and Today leaves it out. */
-  parked?: true;
   /** The one button in its head, a page to go to. */
   action?: { page: string; label: string; icon: IconName };
   /** Tabs read from its data, beside its pages: Learn's places and collections. */
