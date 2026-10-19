@@ -5,7 +5,6 @@
  */
 
 import type { TemplateListRow } from "@wren/core/templates/console";
-import type { Board } from "@wren/deals/console";
 import type { DeliveryHome, Overview } from "../../api.js";
 import type { Card, Home, Rail } from "../../modules/learn/api.js";
 import type { NotesHome } from "../../modules/notes/api.js";
@@ -313,54 +312,6 @@ const RANGE = {
   connected: true,
 };
 
-const STAGES = [
-  { key: "new", label: "New", kind: "open" },
-  { key: "quoted", label: "Quoted", kind: "open" },
-  { key: "won", label: "Won", kind: "won" },
-  { key: "lost", label: "Lost", kind: "lost" },
-] as const;
-const deal = (
-  id: string,
-  name: string,
-  stage: (typeof STAGES)[number],
-  value: number,
-  days: number,
-) => ({
-  id,
-  name,
-  pipeline: "main",
-  pipeline_name: "Jobs",
-  stage: stage.key,
-  stage_label: stage.label,
-  status: stage.kind,
-  value,
-  currency: "USD",
-  contact_name: name.split(" — ")[0] ?? null,
-  contact_email: null,
-  contact_phone: null,
-  owner: "owner@acme.example",
-  note: null,
-  next_on: null,
-  days_in_stage: Math.round(days),
-  flag: null,
-  source: "manual",
-  source_ref: null,
-  // The server's Dates arrive as strings.
-  moved_at: ago(days) as unknown as Date,
-  closed_at: null,
-  created_at: ago(days + 5) as unknown as Date,
-});
-const BOARD = {
-  pipelines: [{ id: "main", name: "Jobs", stages: [...STAGES], version: "1" }],
-  pipeline: "main",
-  deals: [
-    deal("d1", "Ada North — boiler swap", STAGES[0], 4200, 1),
-    deal("d2", "Cai Moreno — repipe", STAGES[1], 9800, 4),
-    deal("d3", "Dee Okafor — water heater", STAGES[1], 2100, 6),
-    deal("d4", "Eli Brandt — drain line", STAGES[2], 1300, 9),
-  ],
-} as unknown as Board;
-
 const template = (
   id: number,
   name: string,
@@ -399,7 +350,6 @@ export const APP_ANSWERS: Answers = {
   "notes/backlinks": { notes: [] },
   "console/issues": [],
   "calendar/range": RANGE,
-  "deals/board": BOARD,
   "payments/status": {
     connected: true,
     live: true,

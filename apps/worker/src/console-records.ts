@@ -24,7 +24,6 @@ import type { RecordType } from "@wren/core/records";
 import { SEGMENT_RECORDS } from "@wren/core/segment-records";
 import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templateRecords } from "@wren/core/templates/records";
-import { dealRecordFor } from "@wren/deals/records";
 import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
@@ -103,9 +102,7 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
     ...NOTES_RECORDS,
     // Every page we run and its numbers by source (Sites).
     ...SITES_RECORDS,
-    // Wren's own deals (Opportunities); a client's come from DealsConsole.
-    dealRecordFor(null),
-    // Offers, funnels, journeys, deals and numbers of the pipeline (Opportunities).
+    // Offers, funnels, journeys, deals and numbers of the pipeline (Journeys).
     ...PIPELINE_RECORDS,
     reviewRecord(),
     askRecord,

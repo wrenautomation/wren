@@ -23,7 +23,7 @@ const env = (): Env => ({
 beforeEach(() => {
   sent = [];
   token = { email: "amy@wren.example", operator: true, client: null };
-  reply = { status: 200, body: [{ id: "deals.deal" }] };
+  reply = { status: 200, body: [{ id: "pipeline.journey" }] };
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     sent.push({ url, body: JSON.parse(String(init?.body)) });
@@ -59,12 +59,16 @@ describe("agent", () => {
   });
 
   it("a tool goes to the console as the token's person, never as the body says", async () => {
-    const res = await call("list", { record: "deals.deal", limit: 999, viewer: { email: "x" } });
-    expect(await res.json()).toEqual([{ id: "deals.deal" }]);
+    const res = await call("list", {
+      record: "pipeline.journey",
+      limit: 999,
+      viewer: { email: "x" },
+    });
+    expect(await res.json()).toEqual([{ id: "pipeline.journey" }]);
     expect(sent[1]).toMatchObject({
       url: "https://restate.test:8080/ConsolePortal/recordsList",
       body: {
-        record: "deals.deal",
+        record: "pipeline.journey",
         limit: 50,
         viewer: { email: "amy@wren.example", operator: true },
       },
@@ -74,7 +78,7 @@ describe("agent", () => {
 
   it("a refusal keeps its status and the guard's words", async () => {
     reply = { status: 403, body: { message: "you can't read deals" } };
-    const res = await call("get", { record: "deals.deal", id: 1 });
+    const res = await call("get", { record: "pipeline.journey", id: 1 });
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: "you can't read deals" });
   });

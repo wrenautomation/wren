@@ -181,7 +181,6 @@ export type TriggerFacts =
   | { trigger: "trigger.payment"; change: PayChange }
   | { trigger: "trigger.touch"; kind: string; direction: string; platform: string }
   | { trigger: "trigger.document"; change: DocChange; kind: string }
-  | { trigger: "trigger.deal"; change: "moved" | "won" | "lost"; stage: string }
   | { trigger: "trigger.journey"; funnel: string; stage: string; change: JourneyChange }
   | { trigger: "trigger.app"; app: string; change: AppChange }
   | { trigger: "trigger.segment"; segment: number; change: SegmentChange }
@@ -310,11 +309,6 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     const on = text(w.on) || "any";
     return (app === "any" || app === f.app) && (on === "any" || on === f.change);
   }
-  if (f.trigger === "trigger.deal") {
-    const on = text(w.on) || "any";
-    const stage = text(w.stage);
-    return (on === "any" || on === f.change) && (!stage || stage === f.stage);
-  }
   if (f.trigger === "trigger.journey") {
     const on = text(w.on) || "entered";
     const stage = text(w.stage);
@@ -386,7 +380,6 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
         f.trigger === "trigger.payment" ||
         f.trigger === "trigger.touch" ||
         f.trigger === "trigger.document" ||
-        f.trigger === "trigger.deal" ||
         f.trigger === "trigger.journey" ||
         f.trigger === "trigger.app" ||
         f.trigger === "trigger.segment" ||
@@ -684,7 +677,7 @@ export const LOGIC: readonly LogicPart[] = [
     id: "logic.set_field",
     name: "Set field",
     blurb:
-      "Sets one of your custom fields on the record the event is about, such as a deal. Others leave by skip.",
+      "Sets one of your custom fields on the record the event is about, such as a journey. Others leave by skip.",
     icon: "edit",
     group: "action",
     ready: true,
@@ -966,29 +959,6 @@ export const LOGIC: readonly LogicPart[] = [
           ? "a connected app"
           : (CONNECTOR_APP_NAMES[app as keyof typeof CONNECTOR_APP_NAMES] ?? app);
       return `${what} in ${where}`;
-    },
-  ),
-  trigger(
-    "deal",
-    "Deal",
-    "Starts when a deal moves stage on the Opportunities board, or is won or lost.",
-    "board",
-    "deal",
-    [
-      {
-        field: "on",
-        label: "When",
-        type: "choice",
-        options: ["any", "moved", "won", "lost"],
-        labels: { any: "Any move", moved: "Moved to an open stage", won: "Won", lost: "Lost" },
-        start: "any",
-      },
-      { field: "stage", label: "Only into stage (its key)", type: "text", hint: "quoted" },
-    ],
-    (w) => {
-      const on = text(w.on) || "any";
-      const what = on === "won" ? "A deal won" : on === "lost" ? "A deal lost" : "A deal moved";
-      return text(w.stage) ? `${what} into ${text(w.stage)}` : what;
     },
   ),
   trigger(

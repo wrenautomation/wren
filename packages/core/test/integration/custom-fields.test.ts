@@ -204,7 +204,7 @@ describe("copy and workflows", () => {
     await saveCustomField(
       pg.db,
       null,
-      { record: "deals.deal", label: "Roof age", kind: "number" },
+      { record: "pipeline.journey", label: "Roof age", kind: "number" },
       by,
     );
     await saveBusinessFact(pg.db, null, { label: "Phone", value: "(416) 555-0100" }, by);
@@ -217,11 +217,11 @@ describe("copy and workflows", () => {
     };
     const out = await step(
       "in",
-      { subject: "deal:7", kind: "deal", data: { age: 20 } } as never,
+      { subject: "journey:7", kind: "journey", data: { age: 20 } } as never,
       at,
     );
     expect(out[0]?.port).toBe("out");
-    expect(await customFacts(pg.db, null, "deal:7")).toEqual({
+    expect(await customFacts(pg.db, null, "journey:7")).toEqual({
       "biz.phone": "(416) 555-0100",
       "field.roof_age": "20",
     });

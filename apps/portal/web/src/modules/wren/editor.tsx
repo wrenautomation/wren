@@ -443,8 +443,6 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
     "Runs in a sandbox: no internet, one second, 32 MB. Test this node to run it on a sample event.",
   "trigger.app":
     "Fires within the hour of a change in a client's connected app (Account → Connectors). The person's name, email and phone come with it.",
-  "trigger.deal":
-    "Fires when a deal moves stage on the Opportunities board. The deal, its value and contact come with it.",
   "trigger.journey":
     "Fires when a person's journey in a funnel enters, skips or is dropped from a stage. Pick the funnel and, if you like, one stage. A stage you leave empty means any.",
 };

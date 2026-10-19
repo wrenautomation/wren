@@ -319,7 +319,6 @@ import { gate } from "@wren/core/vendors";
 import { makeWebhooks, turnedOffTeller, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { flowsWith } from "@wren/core/workflows";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
-import { makeDealsConsole } from "@wren/deals/console";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { makeBillingWatch, parseReceive, wiseReader } from "@wren/delivery/billing";
 import { makeBillingConsole } from "@wren/delivery/billing/console";
@@ -1169,9 +1168,6 @@ export async function buildServices(
     // (designs/2026-10-09-documents.md).
     makeDocuments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
     makeDocumentsConsole(payDeps),
-    // Opportunities: deals on a board of stages; each move tells the spine
-    // (designs/2026-10-09-opportunities.md).
-    makeDealsConsole({ main: db, fire: fireAll }),
     // Journeys: hand moves through the funnel's own step, and the pipeline records
     // (designs/2026-10-18-journeys.md).
     makeJourneys({ db: (client) => (client ? clientDb(client) : db) }),

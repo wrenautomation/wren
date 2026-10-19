@@ -41,7 +41,6 @@ export function webhookEventOfFired(f: TriggerFacts): WebhookEvent | null {
     return f.change === "paid" ? "payment.received" : `payment.${f.change}`;
   }
   if (f.trigger === "trigger.document") return `document.${f.change}`;
-  if (f.trigger === "trigger.deal") return f.change === "won" ? "deal.won" : "deal.moved";
   if (f.trigger === "trigger.app") return "app.changed";
   return null;
 }

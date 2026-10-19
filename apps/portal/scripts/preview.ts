@@ -72,8 +72,6 @@ import {
 } from "@wren/core/templates/console-routes";
 import { viewAsApi } from "@wren/core/view-as";
 import { actingAs, cachedDb, clientDatabaseName, createDb } from "@wren/db";
-import { dealsConsoleApi } from "@wren/deals/console";
-import { DEALS_CONSOLE_APPS, DEALS_CONSOLE_ROUTES } from "@wren/deals/console-routes";
 import { billingConsoleApi } from "@wren/delivery/billing/console";
 import {
   BILLING_CONSOLE_APPS,
@@ -98,6 +96,8 @@ import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/roo
 import { pickAccount } from "@wren/outreach";
 import { paymentsConsoleApi } from "@wren/payments/console";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "@wren/payments/console-routes";
+import { pipelineConsoleApi } from "@wren/pipeline/console";
+import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "@wren/pipeline/console-routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { sitesApi } from "@wren/sites/console";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-routes";
@@ -447,11 +447,14 @@ const SERVICES: Record<
     guard: { needs: SMS_CONSOLE_ROUTES, apps: SMS_CONSOLE_APPS, unnamed: "first" },
     api: smsConsoleApi({ db: main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
-  // Opportunities: a move fires nothing here, as there's no spine.
-  deals: {
-    routes: Object.keys(DEALS_CONSOLE_ROUTES),
-    guard: { needs: DEALS_CONSOLE_ROUTES, apps: DEALS_CONSOLE_APPS, unnamed: "wren" },
-    api: dealsConsoleApi({ main }),
+  // Journeys: the board's reads. A hand move runs on Restate, through the spine: not here.
+  pipeline: {
+    routes: ["recordsTypes", "recordsList", "recordsGet", "recordsExport", "recordsStats"],
+    guard: { needs: PIPELINE_CONSOLE_ROUTES, apps: PIPELINE_CONSOLE_APPS, unnamed: "wren" },
+    api: pipelineConsoleApi({
+      db: main,
+      open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+    }),
   },
   // Payments: links and Stripe's status. No Stripe here: a key saves, and connecting stops at
   // Stripe's check.

@@ -39,7 +39,6 @@ import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
-import { DEALS_RECORDS } from "@wren/deals/records";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { deliveryRecords } from "@wren/delivery/records";
 import { DOCUMENTS_RECORDS } from "@wren/documents/records";
@@ -128,7 +127,6 @@ const RECORD_TYPES = [
   ...SITES_RECORDS,
   ...PAYMENTS_RECORDS,
   ...DOCUMENTS_RECORDS,
-  ...DEALS_RECORDS,
   ...PIPELINE_RECORDS,
   ...CALENDAR_RECORDS,
   recordingRecord(),

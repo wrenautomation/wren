@@ -36,7 +36,6 @@
     "@wren/auth": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/connectors": "workspace:*",
-    "@wren/deals": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/documents": "workspace:*",
     "@wren/learn": "workspace:*",

@@ -26,4 +26,6 @@ BEGIN
 END $$;--> statement-breakpoint
 DROP TABLE "deal_moves" CASCADE;--> statement-breakpoint
 DROP TABLE "deal_pipelines" CASCADE;--> statement-breakpoint
-DROP TABLE "deals" CASCADE;
+DROP TABLE "deals" CASCADE;--> statement-breakpoint
+-- A client with the old Opportunities app now has Journeys in its place.
+UPDATE "clients" SET "products" = ("products" - 'deals.board') || '{"pipeline.journeys": {}}'::jsonb WHERE "products" -> 'deals.board' IS NOT NULL;

@@ -12,7 +12,6 @@ import { MESSAGE_DEFAULTS } from "@wren/core/message-settings";
 import { PEOPLE_RECORDS } from "@wren/core/people/console";
 import { metaOf, type RecordMeta, type RecordType } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
-import { DEALS_RECORDS } from "@wren/deals/records";
 import { deliveryRecords } from "@wren/delivery/records";
 import { DOCUMENTS_RECORDS } from "@wren/documents/records";
 import { PAYMENTS_RECORDS } from "@wren/payments/records";
@@ -49,7 +48,6 @@ export function recordTypes(): RecordType[] {
     ),
     ...REACTIVATION_RECORDS,
     settingOf({} as Client),
-    ...DEALS_RECORDS,
     ...DOCUMENTS_RECORDS,
     ...PAYMENTS_RECORDS,
     ...PEOPLE_RECORDS,

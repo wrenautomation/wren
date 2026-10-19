@@ -62,11 +62,6 @@ import {
   TEMPLATES_CONSOLE_WRITES,
 } from "@wren/core/templates/console-routes";
 import {
-  DEALS_CONSOLE_APPS,
-  DEALS_CONSOLE_ROUTES,
-  DEALS_CONSOLE_WRITES,
-} from "@wren/deals/console-routes";
-import {
   BILLING_CONSOLE_APPS,
   BILLING_CONSOLE_ROUTES,
   BILLING_CONSOLE_WRITES,
@@ -245,8 +240,6 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     DOCUMENTS_CONSOLE_APPS,
     DOCUMENTS_CONSOLE_WRITES,
   ),
-  // Opportunities: deals in pipelines of stages, for a client and for Wren.
-  deals: service("DealsConsole", DEALS_CONSOLE_ROUTES, DEALS_CONSOLE_APPS, DEALS_CONSOLE_WRITES),
   // Offers, funnels, journeys, deals and numbers of the pipeline, and the hand moves on them.
   pipeline: service(
     "PipelineConsole",

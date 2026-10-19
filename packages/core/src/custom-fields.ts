@@ -41,8 +41,8 @@ const KEY = /^[a-z][a-z0-9_]{0,39}$/;
 /** Where a field shows on a record's page. */
 const GROUP = "Custom fields";
 
-/** The record type a spine subject's prefix names: `deal:<id>` is a deal. */
-export const CUSTOM_SUBJECTS: Readonly<Record<string, string>> = { deal: "deals.deal" };
+/** The record type a spine subject's prefix names: `journey:<id>` is a journey. */
+export const CUSTOM_SUBJECTS: Readonly<Record<string, string>> = { journey: "pipeline.journey" };
 
 const ownerIs = (col: typeof customFields.owner | typeof customValues.owner, o: string | null) =>
   o === null ? isNull(col) : eq(col, o);
@@ -484,7 +484,7 @@ function said(f: CustomField, v: unknown): string | null {
 
 /**
  * The facts copy may quote for an owner: `biz.<key>` for each business fact, and with a
- * subject (`deal:<id>`), `field.<key>` for each custom field set on that record.
+ * subject (`journey:<id>`), `field.<key>` for each custom field set on that record.
  */
 export async function customFacts(
   main: Queryable,

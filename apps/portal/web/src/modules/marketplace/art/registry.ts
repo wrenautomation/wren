@@ -80,7 +80,7 @@ const ART: Record<string, Spec> = {
   close: { scene: "flow", via: ["calendar", "phone", "doc", "check"] },
 
   // Deliver and get paid.
-  "deals.board": { scene: "board" },
+  "pipeline.journeys": { scene: "board" },
   "delivery.portal": { scene: "board", v: "portal" },
   "delivery.contract": { scene: "doc", v: "sign" },
   "documents.docs": { scene: "doc", v: "sign" },

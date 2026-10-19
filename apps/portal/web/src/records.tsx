@@ -61,20 +61,14 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
     (handler, body) => call(`${product}/${handler}`, client ? { client, ...scope, ...body } : body),
     (ask) => ({
       keep: keepOf(client, scope),
-      // Edits (`@wren/core/edits`): the console serves Wren's records, Opportunities a deal's
-      // custom fields (no Ask Claude there). View as reads only: no edits.
+      // Edits (`@wren/core/edits`): the console serves Wren's records. View as reads only: no edits.
       ...(product === "console" && !viewingAs
         ? {
             edit: (a) => ask("recordsEdit", { ...a }),
             undo: (a) => ask("recordsUndo", { ...a }),
             ask: (a) => ask("recordsAsk", { ...a }),
           }
-        : product === "deals" && !viewingAs
-          ? {
-              edit: (a) => ask("recordsEdit", { ...a }),
-              undo: (a) => ask("recordsUndo", { ...a }),
-            }
-          : {}),
+        : {}),
       access: accessOf(client, scope),
     }),
   );

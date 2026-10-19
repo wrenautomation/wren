@@ -75,10 +75,11 @@ const save = (edits: unknown, live = true) =>
 describe("the deals guard", () => {
   it("is the first statement, and the drops follow it", () => {
     expect(GUARD.trim().startsWith("DO $$")).toBe(true);
-    expect(DROPS.map((d) => d.trim().replace(/\s+/g, " "))).toEqual([
+    expect(DROPS.map((d) => d.trim().replace(/[ \t]+/g, " "))).toEqual([
       'DROP TABLE "deal_moves" CASCADE;',
       'DROP TABLE "deal_pipelines" CASCADE;',
       'DROP TABLE "deals" CASCADE;',
+      expect.stringMatching(/^-- A client with the old Opportunities app.*\nUPDATE "clients"/),
     ]);
   });
 
@@ -130,11 +131,18 @@ describe("the deals guard", () => {
     expect(await guard()).toBeNull();
   });
 
-  it("drops the tables when it passes", async () => {
+  it("drops the tables when it passes, and swaps a client's Opportunities app for Journeys", async () => {
+    await pg.db.execute(
+      sql`update clients set products = '{"deals.board": {}, "texts": {"on": true}}'::jsonb where id = 'acme'`,
+    );
     for (const d of DROPS) await pg.db.execute(sql.raw(d));
-    const r = (await pg.db.execute(sql`select to_regclass('public.deals') t`)) as unknown as {
+    const gone = (await pg.db.execute(sql`select to_regclass('public.deals') t`)) as unknown as {
       t: string | null;
     }[];
-    expect(r[0]?.t).toBeNull();
+    expect(gone[0]?.t).toBeNull();
+    const rows = (await pg.db.execute(
+      sql`select products p from clients where id = 'acme'`,
+    )) as unknown as { p: Record<string, unknown> }[];
+    expect(rows[0]?.p).toEqual({ "pipeline.journeys": {}, texts: { on: true } });
   });
 });
