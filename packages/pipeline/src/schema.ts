@@ -140,14 +140,16 @@ export const journeys = pipeline.table(
     openedAt: timestamp("opened_at", { withTimezone: true }).defaultNow().notNull(),
     movedAt: timestamp("moved_at", { withTimezone: true }).defaultNow().notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
-    /** The `@wren/deals` row this came from; set only by the fold. */
-    legacyDeal: integer("legacy_deal"),
+    /** The old Opportunities deal this came from (its uuid); set only by `wren pipeline fold-deals`. */
+    legacyDeal: uuid("legacy_deal"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_journeys" }),
     index("ix_journeys_profile_funnel_status").on(t.profileId, t.funnel, t.status),
     // One open journey per person per funnel. A person can hold journeys in many funnels.
     uniqueIndex("uq_journeys_open").on(t.profileId, t.funnel).where(sql`status = 'open'`),
+    // The fold makes one journey per old deal, even when two folds run at once.
+    uniqueIndex("uq_journeys_legacy_deal").on(t.legacyDeal).where(sql`legacy_deal is not null`),
     foreignKey({
       columns: [t.profileId],
       foreignColumns: [profiles.id],

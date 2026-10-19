@@ -40,7 +40,7 @@ describe("commands", () => {
     const none = (async () => {
       throw new Error("no database in this test");
     }) as never;
-    registerPipeline(p, none, none);
+    registerPipeline(p, none, none, undefined, none);
     return p;
   };
   const names = (c: Command) => c.commands.map((x) => x.name());
@@ -68,6 +68,7 @@ describe("commands", () => {
       "list",
     ]);
     expect(names(p.commands[4] as Command)).toEqual(["list", "sign", "schedule"]);
+    expect(names(p.commands[5] as Command)).toEqual(["fold-deals"]);
   });
 
   it("needs --person on journeys open", async () => {

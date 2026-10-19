@@ -10,6 +10,7 @@
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
     "./entry": "./src/entry.ts",
+    "./fold": "./src/fold.ts",
     "./journeys": "./src/journeys.ts",
     "./model": "./src/model.ts",
     "./moves": "./src/moves.ts",

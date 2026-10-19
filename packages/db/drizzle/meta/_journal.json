@@ -2108,6 +2108,13 @@
       "when": 1792423168132,
       "tag": "0301_journey_research",
       "breakpoints": true
+    },
+    {
+      "idx": 302,
+      "version": "7",
+      "when": 1792423784686,
+      "tag": "0302_pipeline_legacy_deal_uuid",
+      "breakpoints": true
     }
   ]
 }

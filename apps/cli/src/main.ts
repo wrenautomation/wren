@@ -15,6 +15,7 @@ import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
 import { linkPeople } from "@wren/core/leads";
 import {
   type AuditCheck,
+  clientAdminUrl,
   clientDatabases,
   clientDatabaseUrl,
   createDb,
@@ -289,18 +290,28 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
-registerPipeline(program, withDb, withMainDb, {
-  journeys: () =>
-    clients
-      .connect(ingressOf(settings))
-      .serviceClient<JourneysService>({ name: "Journeys" }) as ReturnType<
-      PipelineWrites["journeys"]
-    >,
-  client: () => {
-    const id = program.opts<{ client?: string }>().client;
-    return !id || id === WREN ? null : id;
+registerPipeline(
+  program,
+  withDb,
+  withMainDb,
+  {
+    journeys: () =>
+      clients
+        .connect(ingressOf(settings))
+        .serviceClient<JourneysService>({ name: "Journeys" }) as ReturnType<
+        PipelineWrites["journeys"]
+      >,
+    client: () => {
+      const id = program.opts<{ client?: string }>().client;
+      return !id || id === WREN ? null : id;
+    },
   },
-});
+  // The fold writes a client's journeys as main's login: the client's own has no `pipeline` grant.
+  async (id, fn) => {
+    const client = await withMainDb((db) => getClient(db, id));
+    return open(clientAdminUrl(settings.databaseUrl, client.database), fn);
+  },
+);
 registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,

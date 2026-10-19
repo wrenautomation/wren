@@ -1,5 +1,5 @@
 /**
- * `wren offers|terms|funnels|journeys|deals|numbers …` (designs/2026-10-18-journeys.md): the
+ * `wren offers|terms|funnels|journeys|deals|pipeline|numbers …` (designs/2026-10-18-journeys.md): the
  * version store, the journeys and the numbers. Offers sync from the code registry (main only).
  * The rest follow `--client`. Amounts are read from the database and printed; none is written
  * here, except a deal's terms (`deals sign`).
@@ -34,6 +34,7 @@ import {
 } from "@wren/pipeline/store";
 import { type Command, InvalidArgumentError } from "commander";
 import { registerPipelineSeed } from "./pipeline-seed.js";
+import { type OnClient, registerPipelineFold } from "./pipeline-fold.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -131,6 +132,7 @@ export function registerPipeline(
   withDb: WithDb,
   withMainDb: WithDb,
   writes?: PipelineWrites,
+  onClient?: OnClient,
 ): void {
   const offers = program
     .command("offers")
@@ -472,6 +474,7 @@ export function registerPipeline(
     });
 
   registerPipelineSeed(program, withDb, writes);
+  if (onClient) registerPipelineFold(program, withMainDb, onClient);
 
   program
     .command("numbers")
