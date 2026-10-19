@@ -39,7 +39,7 @@ import {
   type WebhookEvent,
   webhookEventOfDoor,
   webhookEventOfEmit,
-  webhookEventOfFired,
+  webhookEventsOfFired,
 } from "./webhook-events.js";
 import {
   flowsWith,
@@ -1239,14 +1239,14 @@ export function makeSpine(d: SpineDeps) {
       fire: restate.handlers.handler(
         { ingressPrivate: true },
         async (ctx: restate.Context, req: Fired) => {
-          const event = webhookEventOfFired(req.facts);
-          if (event && d.publish)
-            d.publish(ctx, {
-              client: req.client,
-              event,
-              subject: req.event.subject,
-              data: req.event.data,
-            });
+          if (d.publish)
+            for (const event of webhookEventsOfFired(req.facts))
+              d.publish(ctx, {
+                client: req.client,
+                event,
+                subject: req.event.subject,
+                data: req.event.data,
+              });
           const flows = await flowsFor(ctx, req.client);
           const client = req.client;
           const quiet = new Set(

@@ -178,6 +178,12 @@ describe("a journey through a funnel", () => {
       ["trigger.journey", "signed", "entered"],
       ["trigger.journey", "proposal", "skipped"],
     ]);
+    // Only the sale stage's arrival says a deal was won; webhooks add `deal.won` for it.
+    expect(r.fired.slice(-2).map((f) => ("sale" in f.facts ? f.facts.sale : undefined))).toEqual([
+      true,
+      undefined,
+    ]);
+    expect(r.fired.slice(0, -2).some((f) => "sale" in f.facts)).toBe(false);
 
     // One arrival per stage reached, none for the skipped one.
     for (const [node, n] of [

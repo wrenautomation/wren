@@ -20,7 +20,8 @@ The spine already has the moments. Each fans out to subscriptions where it happe
 | `form.submitted` | `Spine/hook`: a door entry of kind `form` |
 | `reply.received` | `Spine/fire`, `trigger.reply` (email, text, DM; never a STOP) |
 | `booking.made` / `booking.cancelled` | `Spine/fire`, `trigger.booking` |
-| `deal.won` | `Spine/emit` from `close` at `outcome.won` |
+| `deal.won` | `Spine/emit` from `close` at `outcome.won`; `Spine/fire`, `trigger.journey` entering a funnel's sale stage (2026-10-19) |
+| `journey.moved` | `Spine/fire`, `trigger.journey` entered or dropped; a skipped stage is no move (2026-10-19, replaces `deal.moved`) |
 
 Flags stay internal: clients never see them.
 

@@ -28,4 +28,6 @@ DROP TABLE "deal_moves" CASCADE;--> statement-breakpoint
 DROP TABLE "deal_pipelines" CASCADE;--> statement-breakpoint
 DROP TABLE "deals" CASCADE;--> statement-breakpoint
 -- A client with the old Opportunities app now has Journeys in its place.
-UPDATE "clients" SET "products" = ("products" - 'deals.board') || '{"pipeline.journeys": {}}'::jsonb WHERE "products" -> 'deals.board' IS NOT NULL;
+UPDATE "clients" SET "products" = ("products" - 'deals.board') || '{"pipeline.journeys": {}}'::jsonb WHERE "products" -> 'deals.board' IS NOT NULL;--> statement-breakpoint
+-- The webhook event "deal.moved" is now "journey.moved".
+UPDATE "webhook_subscriptions" SET "events" = array_replace("events", 'deal.moved', 'journey.moved') WHERE 'deal.moved' = ANY("events");

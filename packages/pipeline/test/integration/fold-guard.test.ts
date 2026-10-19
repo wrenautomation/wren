@@ -80,6 +80,7 @@ describe("the deals guard", () => {
       'DROP TABLE "deal_pipelines" CASCADE;',
       'DROP TABLE "deals" CASCADE;',
       expect.stringMatching(/^-- A client with the old Opportunities app.*\nUPDATE "clients"/),
+      expect.stringMatching(/^-- The webhook event "deal.moved".*\nUPDATE "webhook_subscriptions"/),
     ]);
   });
 
@@ -131,7 +132,9 @@ describe("the deals guard", () => {
     expect(await guard()).toBeNull();
   });
 
-  it("drops the tables when it passes, and swaps a client's Opportunities app for Journeys", async () => {
+  it("drops the tables when it passes, swaps a client's Opportunities app for Journeys and renames deal.moved", async () => {
+    await pg.db.execute(sql`insert into webhook_subscriptions (name, url, events, secret, by)
+      values ('Hook', 'https://hooks.example.test/in', array['deal.moved', 'deal.won'], 's', 't')`);
     await pg.db.execute(
       sql`update clients set products = '{"deals.board": {}, "texts": {"on": true}}'::jsonb where id = 'acme'`,
     );
@@ -144,5 +147,9 @@ describe("the deals guard", () => {
       sql`select products p from clients where id = 'acme'`,
     )) as unknown as { p: Record<string, unknown> }[];
     expect(rows[0]?.p).toEqual({ "pipeline.journeys": {}, texts: { on: true } });
+    const hooks = (await pg.db.execute(
+      sql`select events e from webhook_subscriptions`,
+    )) as unknown as { e: string[] }[];
+    expect(hooks[0]?.e).toEqual(["journey.moved", "deal.won"]);
   });
 });

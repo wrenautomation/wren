@@ -13,8 +13,8 @@ export const WEBHOOK_EVENTS = {
   "reply.received": "A lead replied by email, text or DM",
   "booking.made": "A call was booked or moved",
   "booking.cancelled": "A call was cancelled",
-  "deal.won": "A call or a deal was marked won",
-  "deal.moved": "A deal moved stage, or was lost",
+  "deal.won": "A person reached the sale stage, or a call was marked won",
+  "journey.moved": "A person moved to another stage of a funnel, or was dropped",
   "payment.received": "A pay link was paid",
   "payment.refunded": "A payment was refunded, or a dispute lost",
   "payment.failed": "A bank payment on a pay link failed",
@@ -30,19 +30,27 @@ export const TEST_EVENT = "webhook.test";
 export const isWebhookEvent = (v: unknown): v is WebhookEvent =>
   typeof v === "string" && Object.hasOwn(WEBHOOK_EVENTS, v);
 
-/** A reply or a booking the spine fired, as a webhook event; null for what clients don't hear. */
-export function webhookEventOfFired(f: TriggerFacts): WebhookEvent | null {
-  if (f.trigger === "trigger.reply") return "reply.received";
+/**
+ * The webhook events a reply, a booking or a journey's move the spine fired makes; none for what
+ * clients don't hear. A journey that enters its funnel's sale stage makes two: it moved, and a
+ * deal was won. A skipped stage is no move.
+ */
+export function webhookEventsOfFired(f: TriggerFacts): WebhookEvent[] {
+  if (f.trigger === "trigger.reply") return ["reply.received"];
   if (f.trigger === "trigger.booking")
-    return f.change === "booked" ? "booking.made" : "booking.cancelled";
+    return [f.change === "booked" ? "booking.made" : "booking.cancelled"];
   if (f.trigger === "trigger.payment") {
     // Wren's own invoices (issued, late) are no client's news.
-    if (f.change === "invoiced" || f.change === "late") return null;
-    return f.change === "paid" ? "payment.received" : `payment.${f.change}`;
+    if (f.change === "invoiced" || f.change === "late") return [];
+    return [f.change === "paid" ? "payment.received" : `payment.${f.change}`];
   }
-  if (f.trigger === "trigger.document") return `document.${f.change}`;
-  if (f.trigger === "trigger.app") return "app.changed";
-  return null;
+  if (f.trigger === "trigger.document") return [`document.${f.change}`];
+  if (f.trigger === "trigger.app") return ["app.changed"];
+  if (f.trigger === "trigger.journey") {
+    if (f.change === "skipped") return [];
+    return f.sale ? ["journey.moved", "deal.won"] : ["journey.moved"];
+  }
+  return [];
 }
 
 /** A door entry's event, by the kind it entered as. */

@@ -181,7 +181,14 @@ export type TriggerFacts =
   | { trigger: "trigger.payment"; change: PayChange }
   | { trigger: "trigger.touch"; kind: string; direction: string; platform: string }
   | { trigger: "trigger.document"; change: DocChange; kind: string }
-  | { trigger: "trigger.journey"; funnel: string; stage: string; change: JourneyChange }
+  | {
+      trigger: "trigger.journey";
+      funnel: string;
+      stage: string;
+      change: JourneyChange;
+      /** The stage entered is the funnel's sale stage: a deal was won (`deal.won` out). */
+      sale?: true;
+    }
   | { trigger: "trigger.app"; app: string; change: AppChange }
   | { trigger: "trigger.segment"; segment: number; change: SegmentChange }
   | { trigger: "trigger.source"; source: string }

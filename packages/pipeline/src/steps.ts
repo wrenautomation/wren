@@ -284,7 +284,14 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
 
     const told = (stageKey: string, kind: "entered" | "skipped" | "dropped") =>
       at.fire?.({
-        facts: { trigger: "trigger.journey", funnel: flow.funnel, stage: stageKey, change: kind },
+        facts: {
+          trigger: "trigger.journey",
+          funnel: flow.funnel,
+          stage: stageKey,
+          change: kind,
+          // Entering the sale stage wins a deal: webhooks hear `deal.won` as well as the move.
+          ...(kind === "entered" && stageKey === saleStageOf(body) ? { sale: true as const } : {}),
+        },
         event: {
           subject: `journey:${journey}`,
           kind: "journey",

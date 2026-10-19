@@ -8,13 +8,14 @@ import {
   bodyProblem,
   fillText,
   headersOf,
+  isWebhookEvent,
   keepOf,
   privateIp,
   retryTriesOf,
   urlProblem,
   webhookEventOfDoor,
   webhookEventOfEmit,
-  webhookEventOfFired,
+  webhookEventsOfFired,
 } from "./webhook-events.js";
 import {
   eventIdOf,
@@ -129,23 +130,37 @@ describe("signing", () => {
 
 describe("events", () => {
   it("maps the spine's moments to webhook events", () => {
-    expect(webhookEventOfFired({ trigger: "trigger.reply", channel: "sms" })).toBe(
+    expect(webhookEventsOfFired({ trigger: "trigger.reply", channel: "sms" })).toEqual([
       "reply.received",
-    );
-    expect(webhookEventOfFired({ trigger: "trigger.booking", change: "booked" })).toBe(
+    ]);
+    expect(webhookEventsOfFired({ trigger: "trigger.booking", change: "booked" })).toEqual([
       "booking.made",
-    );
-    expect(webhookEventOfFired({ trigger: "trigger.booking", change: "cancelled" })).toBe(
+    ]);
+    expect(webhookEventsOfFired({ trigger: "trigger.booking", change: "cancelled" })).toEqual([
       "booking.cancelled",
-    );
+    ]);
     expect(
-      webhookEventOfFired({ trigger: "trigger.flag", change: "raised", side: "risk" }),
-    ).toBeNull();
+      webhookEventsOfFired({ trigger: "trigger.flag", change: "raised", side: "risk" }),
+    ).toEqual([]);
     expect(webhookEventOfDoor("lead")).toBe("lead.created");
     expect(webhookEventOfDoor("form")).toBe("form.submitted");
     expect(webhookEventOfDoor("reply")).toBeNull();
     expect(webhookEventOfEmit("close", "outcome.won")).toBe("deal.won");
     expect(webhookEventOfEmit("close", "outcome.lost")).toBeNull();
+  });
+
+  it("tells a journey's move as journey.moved, and the sale stage as a won deal too", () => {
+    const at = { trigger: "trigger.journey", funnel: "sales", stage: "booked" } as const;
+    expect(webhookEventsOfFired({ ...at, change: "entered" })).toEqual(["journey.moved"]);
+    expect(webhookEventsOfFired({ ...at, change: "dropped" })).toEqual(["journey.moved"]);
+    expect(webhookEventsOfFired({ ...at, change: "skipped" })).toEqual([]);
+    expect(webhookEventsOfFired({ ...at, stage: "signed", change: "entered", sale: true })).toEqual(
+      ["journey.moved", "deal.won"],
+    );
+    // A skipped sale stage is no sale.
+    expect(webhookEventsOfFired({ ...at, stage: "signed", change: "skipped" })).toEqual([]);
+    expect(isWebhookEvent("journey.moved")).toBe(true);
+    expect(isWebhookEvent("deal.moved")).toBe(false);
   });
 
   it("retries what may change", () => {
