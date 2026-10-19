@@ -36,6 +36,7 @@
     "@wren/db": "workspace:*",
     "@wren/documents": "workspace:*",
     "@wren/offers": "workspace:*",
+    "@wren/pipeline": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

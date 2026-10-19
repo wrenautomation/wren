@@ -1,6 +1,7 @@
 import { CHANNELS, clientMembers, clients } from "@wren/core/clients";
 import { oneOf } from "@wren/db/columns";
 import type { Terms } from "@wren/offers";
+import { termsVersions } from "@wren/pipeline/schema";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -590,6 +591,8 @@ export const agreements = delivery.table(
     /** The template's version: `2026-10-01`. */
     version: varchar("version", { length: 16 }).notNull(),
     terms: jsonb("terms").$type<Terms>().notNull(),
+    /** The `pipeline.terms_versions` row the terms came from. Null: computed from the offer's price. */
+    termsVersion: integer("terms_version"),
     body: text("body").notNull(),
     sha256: varchar("sha256", { length: 64 }).notNull(),
     issuedBy: text("issued_by").notNull(),
@@ -611,6 +614,12 @@ export const agreements = delivery.table(
       name: "fk_agreements_engagement",
     }).onDelete("cascade"),
     unique("uq_agreements_engagement").on(t.engagementId),
+    index("ix_agreements_terms_version").on(t.termsVersion),
+    foreignKey({
+      columns: [t.termsVersion],
+      foreignColumns: [termsVersions.id],
+      name: "fk_agreements_terms_version_terms_versions",
+    }),
     check(
       "ck_agreements_signed",
       sql`(${t.signedAt} is null) = (${t.signerName} is null) and (${t.signedAt} is null) = (${t.signerEmail} is null)`,

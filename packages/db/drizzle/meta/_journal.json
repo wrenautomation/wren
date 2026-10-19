@@ -2066,6 +2066,13 @@
       "when": 1792417767947,
       "tag": "0295_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 296,
+      "version": "7",
+      "when": 1792418472174,
+      "tag": "0296_agreement_terms_version",
+      "breakpoints": true
     }
   ]
 }

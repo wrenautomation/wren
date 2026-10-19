@@ -11,6 +11,7 @@ import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
 import { VENDORS } from "@wren/core/vendors";
 import { type Queryable, setAuditActor } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
+import { canonicalJson, liveTerms } from "@wren/pipeline/store";
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { DELIVERY_COMPONENTS } from "./components.js";
@@ -1188,13 +1189,19 @@ const cents = (dollars: number) => Math.round(dollars * 100);
  * The terms an offer's price implies, in cents, with the operator's changes on
  * top. `flat` takes the offer's all-upfront option: its price as the setup fee,
  * no per-unit fee. Fixed and quoted prices are ranges or nothing: their fees
- * must be given.
+ * must be given. `live` is a stored terms version's body: it replaces the computed base,
+ * and `over` still goes on top.
  */
-export function termsFor(offer: Offer, over: Partial<Terms> = {}, flat = false): Terms {
+export function termsFor(
+  offer: Offer,
+  over: Partial<Terms> = {},
+  flat = false,
+  live?: Terms,
+): Terms {
   const p = offer.price;
   const perf = p.kind === "performance" ? p : null;
-  if (flat && perf?.flat == null) throw bad(`${offer.name} has no flat price`);
-  const base: Terms = {
+  if (!live && flat && perf?.flat == null) throw bad(`${offer.name} has no flat price`);
+  const base: Terms = live ?? {
     currency: "USD",
     setupCents: perf ? cents(flat && perf.flat ? perf.flat : perf.upfront) : 0,
     monthlyCents: perf?.monthly ? cents(perf.monthly) : null,
@@ -1237,6 +1244,9 @@ export function termsFor(offer: Offer, over: Partial<Terms> = {}, flat = false):
   return t;
 }
 
+/** The plan an onboarding takes its terms from: `flat` for the all-upfront option, else `standard`. */
+export const planOf = (flat: boolean | undefined) => (flat ? "flat" : "standard");
+
 /**
  * Sell an offer (onboarding): the engagement waits, the contract is issued with
  * these terms, and the offer's access requests open. Signing it, and paying the
@@ -1256,7 +1266,9 @@ export async function onboard(
 ): Promise<{ engagement: Engagement; agreement: Agreement }> {
   if (!OFFER_IDS.has(input.offerId)) throw missing(`offer '${input.offerId}'`);
   const offer = offerFor(input.offerId);
-  const terms = termsFor(offer, input.terms, input.flat);
+  // A stored terms version of the plan, live today, wins over the computed price.
+  const live = await liveTerms(db, offer.id, planOf(input.flat), new Date());
+  const terms = termsFor(offer, input.terms, input.flat, live?.body);
   const [client] = await db
     .select({ name: clients.name })
     .from(clients)
@@ -1270,6 +1282,8 @@ export async function onboard(
       engagementId: engagement.id,
       version: CONTRACT_VERSION,
       terms,
+      // Only when the operator changed nothing: then the copy is that version, word for word.
+      termsVersion: live && canonicalJson(terms) === canonicalJson(live.body) ? live.id : null,
       body,
       sha256: sha256(body),
       issuedBy: input.by,
