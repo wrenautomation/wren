@@ -149,16 +149,17 @@ describe("events", () => {
     expect(webhookEventOfEmit("close", "outcome.lost")).toBeNull();
   });
 
-  it("tells a journey's move as journey.moved, and the sale stage as a won deal too", () => {
-    const at = { trigger: "trigger.journey", funnel: "sales", stage: "booked" } as const;
+  it("tells a journey's move as journey.moved, and an offer node as a won deal too", () => {
+    const at = { trigger: "trigger.journey", node: "booked" } as const;
     expect(webhookEventsOfFired({ ...at, change: "entered" })).toEqual(["journey.moved"]);
     expect(webhookEventsOfFired({ ...at, change: "dropped" })).toEqual(["journey.moved"]);
     expect(webhookEventsOfFired({ ...at, change: "skipped" })).toEqual([]);
-    expect(webhookEventsOfFired({ ...at, stage: "signed", change: "entered", sale: true })).toEqual(
-      ["journey.moved", "deal.won"],
-    );
-    // A skipped sale stage is no sale.
-    expect(webhookEventsOfFired({ ...at, stage: "signed", change: "skipped" })).toEqual([]);
+    expect(webhookEventsOfFired({ ...at, node: "signed", change: "entered", sale: true })).toEqual([
+      "journey.moved",
+      "deal.won",
+    ]);
+    // A skipped offer node is no sale.
+    expect(webhookEventsOfFired({ ...at, node: "signed", change: "skipped" })).toEqual([]);
     expect(isWebhookEvent("journey.moved")).toBe(true);
     expect(isWebhookEvent("deal.moved")).toBe(false);
   });

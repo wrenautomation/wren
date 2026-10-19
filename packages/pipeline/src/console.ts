@@ -16,7 +16,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
-import { LOGIC } from "@wren/core/logic";
+import { TRIGGER_IDS } from "@wren/core/logic";
 import {
   answer,
   canAt,
@@ -119,10 +119,6 @@ export interface TermsAddRequest extends PortalRequest {
   why: string;
 }
 
-/** Trigger component ids a node may name. */
-const triggerIds = (): ReadonlySet<string> =>
-  new Set(LOGIC.filter((l) => l.group === "trigger").map((l) => l.id));
-
 /** A store refusal as the portal's: its reasons in one message, status 400. */
 const refused = async <T>(fn: () => Promise<T>): Promise<T> => {
   try {
@@ -200,7 +196,7 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
           body: bodyOf(req.body),
           note: String(req.note ?? ""),
           by: by(req),
-          triggers: triggerIds(),
+          triggers: TRIGGER_IDS,
           ...(req.moves ? { moves: req.moves } : {}),
         }),
       );
@@ -222,7 +218,7 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
       const done = await refused(() =>
         importShape(w.db, String(req.text ?? ""), {
           by: by(req),
-          triggers: triggerIds(),
+          triggers: TRIGGER_IDS,
           ...(req.note ? { note: req.note } : {}),
         }),
       );

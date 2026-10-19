@@ -209,8 +209,47 @@ describe("a touch", () => {
 });
 
 describe("a profile merge", () => {
-  // Core's `profile-pipeline.ts` still reads the old funnel columns: it moves to nodes in M1 phase B.
-  it.todo("keeps the journey at the deeper node and drops the other as merged");
+  it("keeps the journey at the deeper node and drops the other as merged", async () => {
+    const flows = await flowsOf();
+    const r = rig();
+    const a = await person("mia@example.test");
+    const b = await person("max@example.test");
+    // A (the profile merged into) is only engaged; B has booked.
+    await hear(
+      r,
+      flows,
+      { trigger: "trigger.touch", kind: "dm", direction: "theirs", platform: "x" },
+      {
+        subject: "touch:9001",
+        kind: "person",
+        data: { email: "mia@example.test", platform: "x" },
+      },
+    );
+    await hear(r, flows, REPLY, nextReply("max@example.test"));
+    await hear(
+      r,
+      flows,
+      { trigger: "trigger.booking", change: "booked" },
+      { subject: "call:9001", kind: "call", data: { email: "max@example.test" } },
+    );
+    const lose = await journeyOf(a);
+    const keep = await journeyOf(b);
+    expect(lose).toMatchObject({ node: "engaged", status: "open" });
+    expect(keep).toMatchObject({ node: "booked", status: "open" });
+
+    const at = new Date("2026-10-19T12:00:00Z");
+    await mergeProfiles(pg.db, a, b, "test", "test", at);
+
+    const rows = await pg.db.select().from(journeys).where(eq(journeys.profileId, a));
+    expect(rows).toHaveLength(2);
+    expect(await pg.db.select().from(journeys).where(eq(journeys.profileId, b))).toEqual([]);
+    const open = rows.filter((x) => x.status === "open");
+    expect(open).toHaveLength(1);
+    expect(open[0]).toMatchObject({ id: keep?.id, profileId: a, node: "booked" });
+    const dropped = rows.find((x) => x.id === lose?.id);
+    expect(dropped).toMatchObject({ status: "dropped", dropReason: "merged", profileId: a });
+    expect(dropped?.closedAt).toEqual(at);
+  });
 
   it("moves a lone journey and a deal to the profile it merged into", async () => {
     const flows = await flowsOf();

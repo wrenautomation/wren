@@ -13,8 +13,8 @@ export const WEBHOOK_EVENTS = {
   "reply.received": "A lead replied by email, text or DM",
   "booking.made": "A call was booked or moved",
   "booking.cancelled": "A call was cancelled",
-  "deal.won": "A person reached the sale stage, or a call was marked won",
-  "journey.moved": "A person moved to another stage of a funnel, or was dropped",
+  "deal.won": "A person reached an offer node, or a call was marked won",
+  "journey.moved": "A person moved to another node of the shape, or was dropped",
   "payment.received": "A pay link was paid",
   "payment.refunded": "A payment was refunded, or a dispute lost",
   "payment.failed": "A bank payment on a pay link failed",
@@ -32,8 +32,8 @@ export const isWebhookEvent = (v: unknown): v is WebhookEvent =>
 
 /**
  * The webhook events a reply, a booking or a journey's move the spine fired makes; none for what
- * clients don't hear. A journey that enters its funnel's sale stage makes two: it moved, and a
- * deal was won. A skipped stage is no move.
+ * clients don't hear. A journey that enters an offer node makes two: it moved, and a deal was won.
+ * A skipped node is no move.
  */
 export function webhookEventsOfFired(f: TriggerFacts): WebhookEvent[] {
   if (f.trigger === "trigger.reply") return ["reply.received"];

@@ -1,5 +1,5 @@
 /**
- * What a journey's stage `research` runs (packages/pipeline/src/research.ts), from the research
+ * What a journey's node `research` runs (packages/pipeline/src/research.ts), from the research
  * code that exists. `light` reads the workspace's own rows: role, firm, address verdicts. `full`
  * is the person-research run (`ProfileResearch`), queued and sent without waiting. That run is
  * Wren's own People only, so a client's `full` is skipped with a note. No new paid calls.

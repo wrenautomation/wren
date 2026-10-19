@@ -1,7 +1,6 @@
 /**
- * `SourcedFeed/all`: a person added to a list that a live funnel takes entries from
- * (`Entry.kind sourced`) is told to the spine as a `trigger.source` fire, and the funnel opens a
- * journey. A tail loop (like `Segments`): a cursor per workspace and list keeps it one fire per
+ * `SourcedFeed/all`: a person added to a list that a live sourced source of the shape takes
+ * people from is told to the spine as a `trigger.source` fire, and the shape opens a journey. A tail loop (like `Segments`): a cursor per workspace and list keeps it one fire per
  * member. Start it with `POST SourcedFeed/all/start`.
  */
 import type * as restate from "@restatedev/restate-sdk";

@@ -9,6 +9,7 @@
     "./components": "./src/components.ts",
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
+    "./edit": "./src/edit.ts",
     "./entry": "./src/entry.ts",
     "./journeys": "./src/journeys.ts",
     "./migrate": "./src/migrate.ts",

@@ -1,6 +1,6 @@
 import { Command, InvalidArgumentError } from "commander";
 import { describe, expect, it, vi } from "vitest";
-import { dayArg, funnelFile, numberArg, registerPipeline } from "./pipeline.js";
+import { dayArg, numberArg, numberLines, registerPipeline, windowArg } from "./pipeline.js";
 
 describe("arguments", () => {
   it("takes a real day only", () => {
@@ -15,51 +15,23 @@ describe("arguments", () => {
   });
 });
 
-describe("funnelFile", () => {
-  const body = { name: "T", offer: "o", stages: [], entries: [] };
-  it("reads a wrapped file", () => {
-    expect(funnelFile({ id: "a", name: "A", why: "w", body })).toEqual({
-      id: "a",
-      name: "A",
-      why: "w",
-      body,
-    });
-  });
-  it("reads a bare body", () => {
-    expect(funnelFile(body)).toEqual({ body });
-  });
-  it("refuses what is not a funnel", () => {
-    expect(() => funnelFile([])).toThrow(/JSON object/);
-    expect(() => funnelFile({ id: "a" })).toThrow(/stages/);
-  });
-});
-
 describe("commands", () => {
   const program = () => {
     const p = new Command("wren").exitOverride().configureOutput({ writeErr: () => {} });
     const none = (async () => {
       throw new Error("no database in this test");
     }) as never;
-    registerPipeline(p, none, none, undefined, none);
+    registerPipeline(p, none, none);
     return p;
   };
   const names = (c: Command) => c.commands.map((x) => x.name());
 
   it("registers the areas", () => {
     const p = program();
-    expect(names(p)).toEqual([
-      "offers",
-      "terms",
-      "funnels",
-      "journeys",
-      "deals",
-      "pipeline",
-      "numbers",
-    ]);
+    expect(names(p)).toEqual(["offers", "terms", "journeys", "deals", "numbers"]);
     expect(names(p.commands[0] as Command)).toEqual(["sync", "list", "versions"]);
     expect(names(p.commands[1] as Command)).toEqual(["add", "show"]);
-    expect(names(p.commands[2] as Command)).toEqual(["list", "add", "append", "show", "off", "on"]);
-    expect(names(p.commands[3] as Command)).toEqual([
+    expect(names(p.commands[2] as Command)).toEqual([
       "open",
       "move",
       "drop",
@@ -67,17 +39,16 @@ describe("commands", () => {
       "show",
       "list",
     ]);
-    expect(names(p.commands[4] as Command)).toEqual(["list", "sign", "schedule"]);
-    expect(names(p.commands[5] as Command)).toEqual(["seed", "fold-deals"]);
+    expect(names(p.commands[3] as Command)).toEqual(["list", "sign", "schedule"]);
   });
 
   it("needs --person on journeys open", async () => {
-    await expect(program().parseAsync(["journeys", "open", "f"], { from: "user" })).rejects.toThrow(
+    await expect(program().parseAsync(["journeys", "open"], { from: "user" })).rejects.toThrow(
       /--person/,
     );
   });
 
-  it("needs a stage on journeys move and a reason on journeys drop", async () => {
+  it("needs a node on journeys move and a reason on journeys drop", async () => {
     await expect(program().parseAsync(["journeys", "move", "j"], { from: "user" })).rejects.toThrow(
       /missing required argument/,
     );
@@ -114,10 +85,18 @@ describe("commands", () => {
     });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     await p.parseAsync(["journeys", "move", "j1", "won"], { from: "user" });
+    await p.parseAsync(["journeys", "move", "j1", "lost", "--reason", "gone cold"], {
+      from: "user",
+    });
+    await p.parseAsync(["journeys", "open", "--person", "a@b.test", "--at", "ads"], {
+      from: "user",
+    });
     await p.parseAsync(["journeys", "drop", "j1", "--reason", "gone"], { from: "user" });
     log.mockRestore();
     expect(seen).toMatchObject([
       { client: "c1", journey: "j1", to: "won" },
+      { client: "c1", journey: "j1", to: "lost", reason: "gone cold" },
+      { client: "c1", person: "a@b.test", at: "ads" },
       { client: "c1", journey: "j1", reason: "gone" },
     ]);
   });
@@ -130,6 +109,52 @@ describe("commands", () => {
     expect(process.exitCode).toBe(1);
     process.exitCode = undefined;
     err.mockRestore();
+  });
+
+  it("takes 7, 30, 90 or all as a window", () => {
+    expect(windowArg("30")).toBe(30);
+    expect(windowArg("all")).toBe("all");
+    expect(() => windowArg("14")).toThrow(InvalidArgumentError);
+  });
+
+  it("prints a node, an edge and an offer row on one line each", () => {
+    const blank = {
+      position: 0,
+      nodeKind: null,
+      arrived: null,
+      skipped: null,
+      left: null,
+      now: null,
+      medianDays: null,
+      crossings: null,
+      from: null,
+      to: null,
+      opened: null,
+      deals: null,
+      collected: null,
+      scheduled: null,
+      cost: null,
+      currency: null,
+      last: null,
+    };
+    const lines = numberLines([
+      {
+        ...blank,
+        id: "n:a",
+        kind: "node",
+        label: "a",
+        name: "A",
+        nodeKind: "step",
+        arrived: 4,
+        now: 1,
+      },
+      { ...blank, id: "e:a_to_b", kind: "edge", label: "a_to_b", name: "a b", crossings: 3 },
+      { ...blank, id: "o:x", kind: "offer", label: "x", name: "x", deals: 2, currency: "USD" },
+    ]);
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toMatch(/^step {2}a {2}0\. A {2}arrived 4/);
+    expect(lines[1]).toBe("edge  a_to_b  a b  crossed 3");
+    expect(lines[2]).toMatch(/^offer {2}x {2}deals 2/);
   });
 
   it("needs --plan, --from and --file on terms add", async () => {

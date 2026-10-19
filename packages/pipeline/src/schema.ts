@@ -172,7 +172,7 @@ export const journeys = pipeline.table(
     openedAt: timestamp("opened_at", { withTimezone: true }).defaultNow().notNull(),
     movedAt: timestamp("moved_at", { withTimezone: true }).defaultNow().notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
-    /** The old Opportunities deal this came from (its uuid); set only by `wren pipeline fold-deals`. */
+    /** The old Opportunities deal this came from (its uuid); set only by the retired fold. */
     legacyDeal: uuid("legacy_deal"),
     /** Legacy, read only by migrate.ts: the funnel it was in. */
     funnel: varchar("funnel", { length: 40 }),

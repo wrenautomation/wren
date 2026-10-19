@@ -47,4 +47,31 @@ wren call Service/handler --input @in.json --confirm handler
 - A token can be capped below its person: read only, or some apps. A refusal that names the token
   means that cap; the user makes a wider token in Account > AI tools if they want one.
 
+## Shape (the map of the business)
+
+One shape per workspace: sources, steps, offers and plans joined by flow edges (down toward money)
+and loop edges (back up). A person sits on one node. Every change is a numbered version.
+
+```sh
+wren list pipeline.shape                     # the newest version: name, nodes, edges, open journeys
+wren get pipeline.shape shape                # its body with each node's depth, and every version
+wren list pipeline.journey --where status=open --where node=<node-id>
+wren list pipeline.journey --view ghost      # people on a node the newest version removed
+wren list pipeline.entry                     # one row per source node: open and all journeys
+wren list pipeline.number --view edge        # views node, edge, offer: counts per node, edge or offer
+wren call PipelineConsole/shapeDiff --input '{"a":1,"b":2}'
+wren call PipelineConsole/shapeVersion --input @version.json --confirm shapeVersion
+wren call PipelineConsole/shapeImport --input '{"text":"<yaml>"}' --confirm shapeImport
+```
+
+- `shapeVersion` takes `{ body, note, moves? }`. `moves` is `{ "<old node>": "<new node>" }` for
+  people on a node the new body drops. `shapeImport` takes the YAML file text (`name`, `nodes`,
+  `edges`, optional `note`, `moves`, `terms`). Both refuse with every reason, or with
+  "Nothing changed." when the body equals the newest.
+- Say why in `note`. A version is never edited or deleted.
+- A person moves along an edge that exists. A move to any other node needs a reason.
+  Remove a node only after you move its people.
+- On the repo's own CLI the same work is `wren shape show|versions|diff|export|import|add-node|connect|remove|move`.
+  `wren journeys` and `wren numbers --window 7|30|90|all` read people and counts.
+
 `--pretty` indents the JSON. `--host https://...` points at another Wren (a client's own address).

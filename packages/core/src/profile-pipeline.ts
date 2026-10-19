@@ -1,9 +1,10 @@
 /**
  * What a profile merge does to the pipeline (designs/2026-10-18-journeys.md, "Causes"): the
  * `from` profile's journeys and deals move to `into`. Core must not import `@wren/pipeline`, so
- * this is plain SQL on the `pipeline` schema. Where both hold an open journey in one funnel, the
- * one at the later stage stays open (a tie keeps `into`'s) and the other is dropped with reason
- * `merged`. A database without the schema (no pipeline yet) is left alone.
+ * this is plain SQL on the `pipeline` schema. A person has one open journey, so when both
+ * profiles hold one, the one at the deeper node stays open (a tie keeps `into`'s) and the other is
+ * dropped with reason `merged`. Depth is the `depths` of the shape version the journey sits on
+ * (`pipeline.shape_versions`). A database without the schema (no pipeline yet) is left alone.
  */
 import { atomic, type Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -13,8 +14,7 @@ export const MERGED_REASON = "merged";
 interface OpenRow {
   id: string;
   profile: number;
-  funnel: string;
-  pos: number;
+  depth: number;
 }
 
 /** Moves `from`'s journeys and deals to `into`. Returns the ids of the journeys it dropped. */
@@ -25,30 +25,34 @@ export async function movePipeline(
   at = new Date(),
 ): Promise<string[]> {
   const has = await db.execute<{ yes: boolean }>(
-    sql`select to_regclass('pipeline.journeys') is not null yes`,
+    sql`select to_regclass('pipeline.journeys') is not null
+      and to_regclass('pipeline.shape_versions') is not null yes`,
   );
   if (!has[0]?.yes) return [];
   return atomic(db, async (tx) => {
-    // Locked first, so a move or a drop of either waits for the merge.
+    // The same lock every open path takes (`lockPerson` in @wren/pipeline), in id order so two
+    // merges of the same pair cannot deadlock. Then the open rows are locked: a move or a drop
+    // of either waits for the merge.
+    for (const p of [into, from].sort((a, b) => a - b))
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`journey:${p}`}))`);
     await tx.execute(
       sql`select id from pipeline.journeys where profile_id in (${into}, ${from})
         and status = 'open' for update`,
     );
     const open = (
-      await tx.execute<{ id: string; profile: number; funnel: string; pos: number }>(sql`
-        select j.id, j.profile_id profile, j.funnel,
-          coalesce((select o.ord from pipeline.funnel_versions v,
-              jsonb_array_elements(v.body -> 'stages') with ordinality o(s, ord)
-            where v.funnel = j.funnel and v.number = j.version and o.s ->> 'key' = j.stage), 0)::int pos
+      await tx.execute<{ id: string; profile: number; depth: number }>(sql`
+        select j.id, j.profile_id profile,
+          coalesce((select (v.depths ->> j.node)::int from pipeline.shape_versions v
+            where v.number = j.shape_version), 0)::int depth
         from pipeline.journeys j
-        where j.profile_id in (${into}, ${from}) and j.status = 'open'`)
-    ).map((r): OpenRow => ({ ...r, profile: Number(r.profile), pos: Number(r.pos) }));
-    const dropped: string[] = [];
-    for (const theirs of open.filter((r) => r.profile === from)) {
-      const mine = open.find((r) => r.profile === into && r.funnel === theirs.funnel);
-      if (!mine) continue;
-      dropped.push(theirs.pos > mine.pos ? mine.id : theirs.id);
-    }
+        where j.profile_id in (${into}, ${from}) and j.status = 'open'
+        order by j.opened_at desc`)
+    ).map((r): OpenRow => ({ ...r, profile: Number(r.profile), depth: Number(r.depth) }));
+    // The survivor: the deepest; on a tie `into`'s; then the newest (the list is newest first).
+    const keep = [...open].sort(
+      (a, b) => b.depth - a.depth || Number(b.profile === into) - Number(a.profile === into),
+    )[0];
+    const dropped = open.filter((r) => r.id !== keep?.id).map((r) => r.id);
     if (dropped.length)
       await tx.execute(
         sql`update pipeline.journeys set status = 'dropped', drop_reason = ${MERGED_REASON},

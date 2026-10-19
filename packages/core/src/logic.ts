@@ -183,10 +183,10 @@ export type TriggerFacts =
   | { trigger: "trigger.document"; change: DocChange; kind: string }
   | {
       trigger: "trigger.journey";
-      funnel: string;
-      stage: string;
+      /** The shape node the journey entered, skipped or was dropped at. */
+      node: string;
       change: JourneyChange;
-      /** The stage entered is the funnel's sale stage: a deal was won (`deal.won` out). */
+      /** The node entered is an offer node: a deal was won (`deal.won` out). */
       sale?: true;
     }
   | { trigger: "trigger.app"; app: string; change: AppChange }
@@ -195,14 +195,19 @@ export type TriggerFacts =
   | { trigger: "trigger.trait"; key: string; value: string | null }
   | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
 
-/** What a journey tells the spine: it entered a stage, passed over one, or was dropped. */
+/** What a journey tells the spine: it entered a node, passed over one, or was dropped. */
 export const JOURNEY_CHANGES = {
-  entered: "Enters a stage",
-  skipped: "Skips a stage",
+  entered: "Enters a node",
+  skipped: "Skips a node",
   dropped: "Is dropped",
 } as const;
 export type JourneyChange = keyof typeof JOURNEY_CHANGES;
-/** A funnel id or stage key, as the pipeline keeps them. */
+/**
+ * The node a Journey trigger names: `node`, else the `stage` an older save wrote. The `funnel` it
+ * also wrote is ignored: there is one shape per workspace.
+ */
+const journeyNodeOf = (w: Record<string, unknown>): string => text(w.node) || text(w.stage);
+/** A node id, as the pipeline keeps them. */
 const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
 /** A sourced list's id: `import:<batch number>`. */
 export const SOURCE_ID = /^import:[1-9][0-9]{0,9}$/;
@@ -318,12 +323,8 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
   }
   if (f.trigger === "trigger.journey") {
     const on = text(w.on) || "entered";
-    const stage = text(w.stage);
-    return (
-      text(w.funnel) === f.funnel &&
-      (on === "any" || on === f.change) &&
-      (!stage || stage === f.stage)
-    );
+    const node = journeyNodeOf(w);
+    return (on === "any" || on === f.change) && (!node || node === f.node);
   }
   if (f.trigger === "trigger.segment") {
     const on = text(w.on) || "entered";
@@ -971,12 +972,11 @@ export const LOGIC: readonly LogicPart[] = [
   trigger(
     "journey",
     "Journey",
-    "Starts when someone enters, skips or leaves a stage of a funnel. Once per person and stage.",
+    "Starts when someone enters, skips or leaves a node of the shape. Once per person and node.",
     "board",
     "journey",
     [
-      { field: "funnel", label: "Funnel (its id)", type: "text", hint: "main" },
-      { field: "stage", label: "Only this stage (its key)", type: "text", hint: "signed" },
+      { field: "node", label: "Only this node (its id)", type: "text", hint: "signed" },
       {
         field: "on",
         label: "When",
@@ -989,8 +989,8 @@ export const LOGIC: readonly LogicPart[] = [
     (w) => {
       const on = text(w.on) || "entered";
       const what = on === "any" ? "A journey moves" : (JOURNEY_CHANGES[on as JourneyChange] ?? on);
-      const where = text(w.stage) ? ` ${text(w.stage)}` : "";
-      return `${what}${where} in ${text(w.funnel) || "a funnel"}`;
+      const node = journeyNodeOf(w);
+      return node ? `${what} ${node}` : `${what} in the shape`;
     },
   ),
   trigger(
@@ -1207,11 +1207,10 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   )
     out.push(`${at}: no form called ${text(w.form)}`);
   if (l.id === "trigger.journey") {
-    if (!JOURNEY_KEY.test(text(w.funnel))) out.push(`${at}: Journey names a funnel's id`);
-    if (text(w.stage) && !JOURNEY_KEY.test(text(w.stage)))
-      out.push(`${at}: Journey names a stage key, like signed`);
+    const node = journeyNodeOf(w);
+    if (node && !JOURNEY_KEY.test(node)) out.push(`${at}: Journey names a node id, like signed`);
     if (w.on !== undefined && !["entered", "skipped", "dropped", "any"].includes(text(w.on)))
-      out.push(`${at}: Journey fires when a journey enters, skips or leaves a stage`);
+      out.push(`${at}: Journey fires when a journey enters, skips or leaves a node`);
   }
   if (l.id === "trigger.touch") {
     if (w.kind !== undefined && !["any", ...TOUCH_ON_KINDS].includes(text(w.kind)))
@@ -1242,6 +1241,11 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   }
   return out;
 }
+
+/** Every trigger component id: what a shape node's `advance` may name. */
+export const TRIGGER_IDS: ReadonlySet<string> = new Set(
+  LOGIC.filter((l) => l.group === "trigger").map((l) => l.id),
+);
 
 /** Triggers that enter by a door URL: Publish makes each one's hook. */
 export const DOOR_TRIGGERS: ReadonlySet<string> = new Set(["trigger.hook", "trigger.form"]);

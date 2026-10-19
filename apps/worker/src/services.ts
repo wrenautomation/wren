@@ -384,7 +384,7 @@ import { makePayments } from "@wren/payments/service";
 import { stripeChecks } from "@wren/payments/setups";
 import { collectSteps } from "@wren/pipeline/collect";
 import { makePipelineConsole } from "@wren/pipeline/console";
-import { funnelWorkflowsOf, soundFunnels } from "@wren/pipeline/journeys";
+import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
 import { makeJourneys } from "@wren/pipeline/restate";
 import { journeySteps } from "@wren/pipeline/steps";
 import { clientSendScope, crmLanding } from "@wren/reactivation";
@@ -1169,7 +1169,7 @@ export async function buildServices(
     // (designs/2026-10-09-documents.md).
     makeDocuments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
     makeDocumentsConsole(payDeps),
-    // Journeys: hand moves through the funnel's own step, and the pipeline records
+    // Journeys: hand moves through the shape's own step, and the pipeline records
     // (designs/2026-10-18-journeys.md).
     makeJourneys({ db: (client) => (client ? clientDb(client) : db) }),
     makePipelineConsole({ db, open: openClient }),
@@ -2062,18 +2062,18 @@ export async function buildServices(
       clientDb,
       workflows: WORKFLOWS,
       components: COMPONENTS,
-      // Funnel versions of a workspace, as workflows: the newest of each, and any older one
-      // that still holds open journeys. One that fails the workflow check is left out and logged.
-      // A read failure throws, so the call retries and no funnel goes missing quietly.
-      funnels: async (client) =>
-        soundFunnels(
-          await funnelWorkflowsOf(client ? clientDb(client) : db, client ? "client" : "wren"),
+      // Shape versions of a workspace, as workflows: the newest, and any older one that still
+      // holds open journeys. One that fails the workflow check is left out and logged. A read
+      // failure throws, so the call retries and no version goes missing quietly.
+      shapes: async (client) =>
+        soundShapes(
+          await shapeWorkflowsOf(client ? clientDb(client) : db, client ? "client" : "wren"),
           WORKFLOWS,
           COMPONENTS,
         ),
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
-        // A funnel's moves and stages: a journey per person, in its workspace's database.
+        // The shape's moves and nodes: a journey per person, in its workspace's database.
         ...journeySteps({
           db: (client) => (client ? clientDb(client) : db),
           // A stage's `research` runs on the person-research code (free reads, then a queued run).
@@ -2355,7 +2355,7 @@ export async function buildServices(
       clientDb,
       clients: async () => (await listClients(db)).map((c) => c.id),
     }),
-    // Sourced entries: people added to a list a live funnel takes entries from open journeys.
+    // Sourced entries: people added to a list a live source takes entries from open journeys.
     makeSourcedFeed({
       main: db,
       clientDb,

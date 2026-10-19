@@ -16,9 +16,10 @@
  *   [before <kind> [on <ch>]]`
  * - `message <state> [on <channel>] [campaign "<text>"] [count] [in <n>d]`
  * - `step <reached|saw|engaged|replied|booked|paid> [on <channel>] [source "<text>"] [in <n>d]`
- * - `journey [funnel <id>] [at|reached <stage>] [open|done|dropped] [entry <id>] [opened] [in <n>d]`:
- *   a journey in that funnel (`reached` = at that stage or past it), opened by that entry; the
- *   days count back from its last move, or from `opened`. Every part is optional.
+ * - `journey [at|reached <node>] [open|done|dropped] [entry <id>] [opened] [in <n>d]`:
+ *   a journey at that node (`reached` = the node is on its trail or where it sits), opened by
+ *   that source; the days count back from its last move, or from `opened`. Every part is
+ *   optional. Older text said `funnel <id>`: it still reads, and the funnel is ignored.
  * - `consent <email|sms> <state>`; `group <id>` or `group "<name>"` (`segment` reads the same: older saved text).
  * - A count is `>= N`, `<= N`, `N..M` or `never`; left out, it's at least once.
  *
@@ -57,8 +58,7 @@ const anchorText = (w: string, a: Anchor | undefined) =>
 
 function journeyText(c: JourneyCondition): string {
   const parts = ["journey"];
-  if (c.funnel) parts.push("funnel", c.funnel);
-  if (c.stage) parts.push(c.reached ? "reached" : "at", c.stage);
+  if (c.node) parts.push(c.reached ? "reached" : "at", c.node);
   if (c.status) parts.push(c.status);
   if (c.entry) parts.push("entry", c.entry);
   if (c.days) parts.push(...(c.window === "opened" ? ["opened"] : []), "in", `${c.days}d`);
@@ -264,12 +264,13 @@ class Reader {
       case "journey": {
         const c: Record<string, unknown> = { kind: "journey" };
         for (;;) {
-          if (this.is("funnel")) c.funnel = this.word("a funnel id");
-          else if (this.is("at")) c.stage = this.word("a stage key");
+          // Older text named a funnel: read it, keep nothing.
+          if (this.is("funnel")) this.word("a funnel id");
+          else if (this.is("at")) c.node = this.word("a node id");
           else if (this.is("reached")) {
-            c.stage = this.word("a stage key");
+            c.node = this.word("a node id");
             c.reached = true;
-          } else if (this.is("entry")) c.entry = this.word("an entry id");
+          } else if (this.is("entry")) c.entry = this.word("a source id");
           else if (this.is("opened")) c.window = "opened";
           else {
             const t = this.peek();

@@ -62,6 +62,7 @@ import { type PipelineWrites, registerPipeline } from "./pipeline.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
+import { registerShape } from "./shape.js";
 import { registerSitePages } from "./site-pages.js";
 import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
@@ -290,28 +291,29 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
-registerPipeline(
-  program,
+const journeyWrites: PipelineWrites = {
+  journeys: () =>
+    clients
+      .connect(ingressOf(settings))
+      .serviceClient<JourneysService>({ name: "Journeys" }) as ReturnType<
+      PipelineWrites["journeys"]
+    >,
+  client: () => {
+    const id = program.opts<{ client?: string }>().client;
+    return !id || id === WREN ? null : id;
+  },
+};
+registerPipeline(program, withDb, withMainDb, journeyWrites);
+registerShape(program, {
   withDb,
   withMainDb,
-  {
-    journeys: () =>
-      clients
-        .connect(ingressOf(settings))
-        .serviceClient<JourneysService>({ name: "Journeys" }) as ReturnType<
-        PipelineWrites["journeys"]
-      >,
-    client: () => {
-      const id = program.opts<{ client?: string }>().client;
-      return !id || id === WREN ? null : id;
-    },
-  },
-  // The fold writes a client's journeys as main's login: the client's own has no `pipeline` grant.
-  async (id, fn) => {
-    const client = await withMainDb((db) => getClient(db, id));
-    return open(clientAdminUrl(settings.databaseUrl, client.database), fn);
-  },
-);
+  // The shape migration writes a client's journeys as main's login, as the migrations do.
+  onDatabase: (database, fn) => open(clientAdminUrl(settings.databaseUrl, database), fn),
+  databases: () => withMainDb(clientDatabases),
+  databaseOf: async (id) => (await withMainDb((db) => getClient(db, id))).database,
+  client: () => program.opts<{ client?: string }>().client,
+  writes: journeyWrites,
+});
 registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,

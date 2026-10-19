@@ -258,7 +258,7 @@ describe("triggers", () => {
     );
   });
 
-  it("hear a journey by funnel, stage and change", () => {
+  it("hear a journey by node and change", () => {
     const node = (w: Record<string, string> = {}) => ({
       id: "j",
       uses: "trigger.journey",
@@ -266,34 +266,36 @@ describe("triggers", () => {
     });
     const entered = {
       trigger: "trigger.journey",
-      funnel: "alpha",
-      stage: "signed",
+      node: "signed",
       change: "entered",
     } as const;
     const skipped = { ...entered, change: "skipped" } as const;
-    expect(triggerHears(node({ funnel: "alpha" }), entered)).toBe(true);
-    expect(triggerHears(node({ funnel: "alpha" }), skipped)).toBe(false);
-    expect(triggerHears(node({ funnel: "alpha", on: "any" }), skipped)).toBe(true);
-    expect(triggerHears(node({ funnel: "alpha", on: "skipped" }), skipped)).toBe(true);
+    expect(triggerHears(node(), entered)).toBe(true);
+    expect(triggerHears(node(), skipped)).toBe(false);
+    expect(triggerHears(node({ on: "any" }), skipped)).toBe(true);
+    expect(triggerHears(node({ on: "skipped" }), skipped)).toBe(true);
+    expect(triggerHears(node({ node: "signed" }), entered)).toBe(true);
+    expect(triggerHears(node({ node: "booked" }), entered)).toBe(false);
+    // An older save: its stage reads as the node, its funnel is ignored.
     expect(triggerHears(node({ funnel: "alpha", stage: "signed" }), entered)).toBe(true);
     expect(triggerHears(node({ funnel: "alpha", stage: "booked" }), entered)).toBe(false);
-    expect(triggerHears(node({ funnel: "beta" }), entered)).toBe(false);
-    expect(triggerHears(node(), entered)).toBe(false);
+    expect(triggerHears(node({ funnel: "beta" }), entered)).toBe(true);
+    expect(triggerHears(node({ node: "signed", stage: "booked" }), entered)).toBe(true);
+    expect(logicOf("trigger.journey")?.says({ node: "signed" })).toBe("Enters a node signed");
+    expect(logicOf("trigger.journey")?.says({ on: "any" })).toBe("A journey moves in the shape");
     expect(untilOfFacts(entered)).toBeNull();
   });
 
   it("check a journey trigger's settings", () => {
     const n = (w: Record<string, string>) =>
       logicProblems("f.n", { id: "n", uses: "trigger.journey", with: w });
-    expect(n({ funnel: "alpha", stage: "signed", on: "entered" })).toEqual([]);
-    expect(n({ funnel: "alpha" })).toEqual([]);
-    expect(n({})).toEqual(["f.n: Journey names a funnel's id"]);
-    expect(n({ funnel: "Alpha Beta" })).toEqual(["f.n: Journey names a funnel's id"]);
-    expect(n({ funnel: "alpha", stage: "Two Words" })).toEqual([
-      "f.n: Journey names a stage key, like signed",
-    ]);
-    expect(n({ funnel: "alpha", on: "nope" })).toEqual([
-      "f.n: Journey fires when a journey enters, skips or leaves a stage",
+    expect(n({ node: "signed", on: "entered" })).toEqual([]);
+    expect(n({})).toEqual([]);
+    expect(n({ funnel: "alpha", stage: "signed" })).toEqual([]);
+    expect(n({ node: "Two Words" })).toEqual(["f.n: Journey names a node id, like signed"]);
+    expect(n({ stage: "Two Words" })).toEqual(["f.n: Journey names a node id, like signed"]);
+    expect(n({ on: "nope" })).toEqual([
+      "f.n: Journey fires when a journey enters, skips or leaves a node",
     ]);
   });
 

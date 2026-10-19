@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import { resolveProfile, setTraits } from "@wren/core/profiles";
 import { profileEvents } from "@wren/core/profiles-schema";
 import { events } from "@wren/core/schema";
-import { type Rule, saveSegment } from "@wren/core/segments";
+import { type Rule, recomputeLive, saveSegment, segmentMembers } from "@wren/core/segments";
 import { segmentsPass } from "@wren/core/segments-pass";
 import {
   type Fired,
@@ -523,5 +523,76 @@ describe("a drop", () => {
     expect(lines).toMatchObject([
       { summary: "Dropped from Test shape at Engaged", body: "not a fit" },
     ]);
+  });
+});
+
+describe("groups over journeys", () => {
+  it("a live group over a node gains a member after a move; reached stays true after", async () => {
+    const profile = await person("kim@example.test");
+    const other = await person("lee@example.test");
+    const rule = (c: Rule["of"][number]) => groupRule(c);
+    const atBooked = (
+      await saveSegment(
+        pg.db,
+        {
+          name: "At booked",
+          kind: "live",
+          rule: rule({ kind: "journey", node: "booked", days: null }),
+        },
+        "t",
+        NOW,
+      )
+    ).segment;
+    const pastEngaged = (
+      await saveSegment(
+        pg.db,
+        {
+          name: "Through engaged",
+          kind: "live",
+          rule: rule({
+            kind: "journey",
+            node: "engaged",
+            reached: true,
+            status: "open",
+            days: null,
+          }),
+        },
+        "t",
+        NOW,
+      )
+    ).segment;
+    // An older saved rule names a funnel and a stage: it still reads as the node.
+    const legacy = (
+      await saveSegment(
+        pg.db,
+        {
+          name: "Legacy booked",
+          kind: "live",
+          rule: rule({ kind: "journey", funnel: "old", stage: "booked", days: null } as never),
+        },
+        "t",
+        NOW,
+      )
+    ).segment;
+    const members = async (id: number) => (await segmentMembers(pg.db, id)).map((m) => m.profileId);
+    // Earlier tests left people on the shape: look at these two only.
+    await recomputeLive(pg.db, NOW);
+    expect(await members(atBooked.id)).not.toContain(profile);
+
+    const r = rig();
+    const flows = await flowsOf();
+    await hear(r, flows, REPLY, reply(80, "kim@example.test"));
+    await recomputeLive(pg.db, NOW);
+    expect(await members(atBooked.id)).not.toContain(profile);
+    expect(await members(pastEngaged.id)).toContain(profile);
+
+    await hear(r, flows, BOOKING, booking(80, "kim@example.test"));
+    await recomputeLive(pg.db, NOW);
+    expect(await members(atBooked.id)).toContain(profile);
+    expect(await members(legacy.id)).toContain(profile);
+    // Moving on is "reached" still; a person with no journey is in none.
+    expect(await members(pastEngaged.id)).toContain(profile);
+    for (const g of [atBooked, pastEngaged, legacy])
+      expect(await members(g.id)).not.toContain(other);
   });
 });

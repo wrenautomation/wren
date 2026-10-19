@@ -55,23 +55,22 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | changing how something moves | `processes/`, then the object cards it `consumes` / `produces` |
 | tuning a portal screen or part | `objects/ui/CONTEXT.md`, then the `wren-ui` skill |
 | adding a card | copy from `_templates/`, then run `_meta/build.sh` |
-| working on journeys, funnels, offers, terms, deals or numbers, or loading Wren's own funnels | the Pipeline hub below |
+| working on the shape, journeys, offers, terms, deals or numbers | the Pipeline hub below |
 | asking what lacks a card, tests, health or an owner | `_meta/build.sh --scorecard`, worst first ([[platform/scorecard]]) |
 | told a card is wrong | fix the card against source, bump `verified`, rebuild |
 
 ## Pipeline hub
 
-Journeys, funnels, offer and terms versions, deals, numbers. One design: `designs/2026-10-18-journeys.md`. Code: `packages/pipeline`.
+The shape, journeys, offer and terms versions, deals, numbers. Designs: `designs/2026-10-18-journeys.md`, `designs/2026-10-19-business-map.md`. Code: `packages/pipeline`.
 
 | Noun | Card | Code | CLI |
 |---|---|---|---|
-| a person's path through a funnel | [[platform/journey]] | `journeys.ts`, `moves.ts`, `steps.ts`, `stages.ts` | `wren journeys` |
-| a funnel and its versions; the generated spine workflow | [[platform/funnel]] | `model.ts`, `store.ts`, `workflow.ts`, `carry.ts` | `wren funnels` |
+| a person's path down the shape | [[platform/journey]] | `journeys.ts`, `moves.ts`, `steps.ts`, `entry.ts` | `wren journeys` |
+| the shape (sources, steps, offers, plans, edges) and its versions; the generated spine workflow; the file form; the migration from funnels | [[platform/shape]] | `model.ts`, `store.ts`, `workflow.ts`, `carry.ts`, `edit.ts`, `shape-file.ts`, `migrate.ts` | `wren shape` |
 | an offer's published shapes | [[platform/offer]] | `store.ts` (`syncOffers`) | `wren offers` |
 | a plan's terms by date; the dated lines of a deal | [[platform/terms]] | `store.ts` (`addTerms`), `schedule.ts` | `wren terms`, `wren deals schedule` |
-| a pipeline deal (not the Opportunities app's, [[platform/deal]]) | [[platform/journey]] | `records.ts`, `moves.ts` (`signDeal`) | `wren deals` |
-| counts per stage, entry and offer | [[platform/journey]] | `views.ts`, `numbers.ts` | `wren numbers` |
-| Wren's own funnels, terms and partners from one private file | [[platform/funnel]], [[platform/journey]] | `seed.ts`, `apps/cli/src/pipeline-seed.ts` | `wren pipeline seed` |
+| a pipeline deal | [[platform/journey]] | `records.ts`, `moves.ts` (`signDeal`) | `wren deals` |
+| counts per node, edge, source and offer | [[platform/journey]] | `views.ts`, `numbers.ts` | `wren numbers` |
 
 ## The one rule
 

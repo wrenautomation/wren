@@ -113,8 +113,7 @@ describe("ruleText", () => {
       { kind: "segment", segment: 3 },
       {
         kind: "journey",
-        funnel: "organic",
-        stage: "booked",
+        node: "booked",
         reached: true,
         status: "open",
         entry: "mail",
@@ -122,7 +121,7 @@ describe("ruleText", () => {
         days: 30,
         not: true,
       },
-      { kind: "journey", funnel: "organic", stage: "engaged", days: null },
+      { kind: "journey", node: "engaged", days: null },
       { kind: "journey", status: "dropped", days: 7 },
       { kind: "journey", days: null },
       {
@@ -205,69 +204,76 @@ describe("journey condition", () => {
   const sqlOf = (c: Condition) => pg.sqlToQuery(compileRule(all(c), NOW));
 
   it("reads and prints the grammar", () => {
-    expect(ok("journey funnel organic reached booked open entry mail opened in 30d").of[0]).toEqual(
-      {
-        kind: "journey",
-        funnel: "organic",
-        stage: "booked",
-        reached: true,
-        status: "open",
-        entry: "mail",
-        window: "opened",
-        days: 30,
-      },
-    );
-    expect(ok("not journey funnel organic at engaged in 7d").of[0]).toEqual({
+    expect(ok("journey reached booked open entry mail opened in 30d").of[0]).toEqual({
       kind: "journey",
-      funnel: "organic",
-      stage: "engaged",
+      node: "booked",
+      reached: true,
+      status: "open",
+      entry: "mail",
+      window: "opened",
+      days: 30,
+    });
+    expect(ok("not journey at engaged in 7d").of[0]).toEqual({
+      kind: "journey",
+      node: "engaged",
       days: 7,
       not: true,
     });
     expect(ok("journey").of[0]).toEqual({ kind: "journey", days: null });
-    expect(ruleText(ok("journey funnel organic done in 30d"))).toBe(
-      "all(journey funnel organic done in 30d)",
-    );
+    expect(ruleText(ok("journey done in 30d"))).toBe("all(journey done in 30d)");
+    expect(ruleText(ok("journey reached booked"))).toBe("all(journey reached booked)");
+  });
+
+  it("reads older text that named a funnel, and drops the funnel", () => {
+    expect(ok("journey funnel organic at engaged in 7d").of[0]).toEqual({
+      kind: "journey",
+      node: "engaged",
+      days: 7,
+    });
+    expect(ruleText(ok("journey funnel organic done in 30d"))).toBe("all(journey done in 30d)");
+  });
+
+  it("reads an older saved rule: the stage is the node, the funnel is ignored", () => {
+    const old = { kind: "journey", funnel: "organic", stage: "booked", reached: true, days: null };
+    const got = readRule({ kind: "group", match: "all", of: [old] });
+    expect("rule" in got && got.rule.of[0]).toEqual({
+      kind: "journey",
+      node: "booked",
+      reached: true,
+      days: null,
+    });
+    // A rule that names both keeps the node.
+    const both = readRule({
+      kind: "group",
+      match: "all",
+      of: [{ kind: "journey", node: "signed", stage: "booked", days: null }],
+    });
+    expect("rule" in both && both.rule.of[0]).toMatchObject({ node: "signed" });
   });
 
   it("says why bad text won't read", () => {
-    expect(problems("journey at booked")).toMatch(/needs its funnel/);
-    expect(problems("journey funnel organic reached")).toMatch(/stage key/);
-    expect(problems("journey funnel organic opened")).toMatch(/needs days/);
-    expect(problems("journey funnel Organic")).toMatch(/funnel, stage or entry id/);
+    expect(problems("journey reached")).toMatch(/node id/);
+    expect(problems("journey opened")).toMatch(/needs days/);
+    expect(problems("journey at Booked")).toMatch(/node or source id/);
   });
 
-  it("compiles to pipeline.journeys, with stage order only for reached", () => {
-    const at = sqlOf({
-      kind: "journey",
-      funnel: "organic",
-      stage: "booked",
-      status: "open",
-      days: 7,
-    });
+  it("compiles to pipeline.journeys, with the trail only for reached", () => {
+    const at = sqlOf({ kind: "journey", node: "booked", status: "open", days: 7 });
     expect(at.sql).toContain("from pipeline.journeys j");
-    expect(at.sql).toContain("j.stage = $2");
-    expect(at.sql).not.toContain("funnel_versions");
+    expect(at.sql).toContain("j.node = $1");
+    expect(at.sql).not.toContain("trail");
     expect(at.sql).toContain("j.moved_at >=");
-    expect(at.params).toEqual([
-      "organic",
-      "booked",
-      "open",
-      "2026-10-07T15:00:00.000Z",
-      NOW.toISOString(),
-    ]);
+    expect(at.params).toEqual(["booked", "open", "2026-10-07T15:00:00.000Z", NOW.toISOString()]);
     const past = sqlOf({
       kind: "journey",
-      funnel: "organic",
-      stage: "booked",
+      node: "booked",
       reached: true,
       window: "opened",
       days: 7,
     });
-    expect(past.sql).toContain(
-      "join pipeline.funnel_versions v on v.funnel = j.funnel and v.number = j.version",
-    );
-    expect(past.sql).toContain("with ordinality");
+    expect(past.sql).toContain("j.trail @>");
+    expect(past.sql).not.toContain("funnel");
+    expect(past.params).toContain('[{"to":"booked"}]');
     expect(past.sql).toContain("j.opened_at >=");
     const none = pg.sqlToQuery(compileRule({ kind: "journey", days: null, not: true }, NOW));
     expect(none.sql.replace(/\s+/g, " ")).toMatch(
@@ -280,14 +286,13 @@ describe("journey condition", () => {
       ruleWords(
         all({
           kind: "journey",
-          funnel: "organic",
-          stage: "booked",
+          node: "booked",
           reached: true,
           status: "open",
           days: 30,
           not: true,
         }),
       ),
-    ).toBe("no open journey in organic at or past booked moved in the last 30 days");
+    ).toBe("no open journey through booked moved in the last 30 days");
   });
 });

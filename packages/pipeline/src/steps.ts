@@ -8,7 +8,7 @@
 import { createHash } from "node:crypto";
 import { profileRollups } from "@wren/core/people-map-schema";
 import { profileEvents } from "@wren/core/profiles-schema";
-import type { Fired, SpineEvent, Step } from "@wren/core/spine";
+import type { SpineEvent, Step } from "@wren/core/spine";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { type CauseFacts, entryOf, MANUAL, opensAt, sourceEdge } from "./entry.js";
@@ -61,8 +61,6 @@ const KIND_OF_EVENT: Partial<Record<SpineEvent["kind"], CauseKind>> = {
   form: "form",
   journey: "funnel",
 };
-
-type Fact = Fired["facts"];
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -444,8 +442,6 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
 
     const told = (id: string, kind: "entered" | "skipped" | "dropped", about = journey) =>
       at.fire?.({
-        // Core's fact for `trigger.journey` takes `node` instead of `funnel` and `stage` once
-        // phase B lands (core/logic.ts); until then the cast stands in for it.
         facts: {
           trigger: "trigger.journey",
           node: id,
@@ -454,7 +450,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           ...(kind === "entered" && nodeOf(body, id)?.kind === "offer"
             ? { sale: true as const }
             : {}),
-        } as unknown as Fact,
+        },
         event: {
           subject: `journey:${about}`,
           kind: "journey",
@@ -463,6 +459,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
             journey: about,
             profile,
             node: id,
+            // Webhooks heard `stage` before the shape; it is the node id for one more release.
+            stage: id,
             version,
             change: kind,
             cause: { kind: "funnel", ref: about, at: now().toISOString() },

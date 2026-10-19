@@ -102,7 +102,7 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
     ...NOTES_RECORDS,
     // Every page we run and its numbers by source (Sites).
     ...SITES_RECORDS,
-    // Offers, funnels, journeys, deals and numbers of the pipeline (Journeys).
+    // The shape, its journeys, deals and numbers (Journeys).
     ...PIPELINE_RECORDS,
     reviewRecord(),
     askRecord,

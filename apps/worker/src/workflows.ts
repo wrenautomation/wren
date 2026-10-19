@@ -19,7 +19,7 @@ import { RESEARCH_WORKFLOWS } from "@wren/research/components";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
 import { SETUPS } from "./setups.js";
 
-/** Shared blocks: what every funnel needs. */
+/** Shared blocks: what every shape needs. */
 const BLOCKS = [
   defineWorkflow({
     id: "signals",

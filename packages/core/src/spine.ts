@@ -1067,10 +1067,10 @@ export interface SpineDeps {
   clientDb(id: string): Db;
   workflows: readonly Workflow[];
   /**
-   * The funnel workflows of a workspace (`null`: Wren's): generated, one per funnel version that
+   * The shape workflows of a workspace (`null`: Wren's): generated, one per shape version that
    * is the newest or still holds an open journey. Read once per call and journaled, as saves are.
    */
-  funnels?(client: string | null): Promise<readonly Workflow[]>;
+  shapes?(client: string | null): Promise<readonly Workflow[]>;
   components: readonly Component[];
   steps: Readonly<Record<string, Step>>;
   /** Does `e` pass `when`? `client` (null: Wren) is whose model share answers it. */
@@ -1096,20 +1096,20 @@ export function makeSpine(d: SpineDeps) {
   // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
   const savesFor = (ctx: restate.Context, client: string | null) =>
     ctx.run("saved workflows", () => savedWorkflows(d.main, client));
-  const funnelsFor = async (ctx: restate.Context, client: string | null) => {
-    const get = d.funnels;
-    return get ? ctx.run("funnels", () => get(client)) : [];
+  const shapesFor = async (ctx: restate.Context, client: string | null) => {
+    const get = d.shapes;
+    return get ? ctx.run("shapes", () => get(client)) : [];
   };
-  const flowsOf = (funnels: readonly Workflow[], edits: Record<string, WorkflowEdits | null>) =>
+  const flowsOf = (shapes: readonly Workflow[], edits: Record<string, WorkflowEdits | null>) =>
     new Map(
-      flowsWith([...d.workflows, ...funnels], edits, d.components).flows.map((f) => [f.id, f]),
+      flowsWith([...d.workflows, ...shapes], edits, d.components).flows.map((f) => [f.id, f]),
     );
   const flowsFor = async (ctx: restate.Context, client: string | null) =>
-    flowsOf(await funnelsFor(ctx, client), editsOf(await savesFor(ctx, client)));
+    flowsOf(await shapesFor(ctx, client), editsOf(await savesFor(ctx, client)));
   const walkFor = async (ctx: restate.Context, t: Target & { auto?: number }): Promise<Walk> => {
     const saves = await savesFor(ctx, t.client);
-    const funnels = await funnelsFor(ctx, t.client);
-    const flows = flowsOf(funnels, editsOf(saves));
+    const shapes = await shapesFor(ctx, t.client);
+    const flows = flowsOf(shapes, editsOf(saves));
     return {
       flows,
       // A workflow's newest live save: the wiring a new subject enters on.
@@ -1120,7 +1120,7 @@ export function makeSpine(d: SpineDeps) {
           version === 0
             ? { workflow, edits: null }
             : await ctx.run(`wiring ${version}`, () => savedVersion(d.main, version));
-        return flowsOf(funnels, {
+        return flowsOf(shapes, {
           ...editsOf(saves),
           [workflow]: old?.workflow === workflow ? old.edits : null,
         });

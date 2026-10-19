@@ -281,3 +281,21 @@ describe("the old views", () => {
     expect(Number((await rows("stage_counts")).reduce((n, c) => n + Number(c.entered), 0))).toBe(0);
   });
 });
+
+describe("a dry run before migration 0304", () => {
+  // Last: it takes 0304's table and columns away again, as production has them before the deploy.
+  it("reads the old rows without the shape table or the node columns, and writes nothing", async () => {
+    await pg.db.execute(sql`drop table pipeline.shape_versions cascade`);
+    await pg.db.execute(
+      sql`alter table pipeline.journeys drop column shape_version cascade, drop column node cascade,
+        drop column trail cascade`,
+    );
+    await pg.db.execute(sql`alter table pipeline.deals drop column node cascade`);
+    const r = await migrateShape(pg.db, { ...opts, dry: true });
+    expect(r.shape).toBe("planned");
+    expect(r.funnels).toEqual(["alpha", "beta"]);
+    // The earlier tests ran the real migration: p3's second journey is already dropped.
+    expect(r.journeys).toMatchObject({ moved: 5, unplaced: 1, duplicates: 0 });
+    expect(r.deals).toBe(1);
+  });
+});
