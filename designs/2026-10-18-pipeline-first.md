@@ -35,7 +35,14 @@ Framework rule applies: before any custom state machine code, the planner vets X
 
 ## Nav, later
 
-Offers, Pipelines, Today, People, Numbers. The big UI redesign waits (design language deferred). The model lands first; the portal reshapes after.
+Agreed 2026-10-18. The big UI redesign waits (design language deferred). The model lands first; the portal reshapes after.
+
+- Primary: **Offers, Pipelines, Today, People, Numbers.**
+- Today has two lists: **Write** (the content quota, William's creative block, YouTube long-form first) and **Move** (journey work, approvals, replies). Never interleaved.
+- Auxiliary section **Marketing**, the top of every funnel: Content (plan, write, drafts, videos, studio, posted, per-platform numbers; every platform stays, none parks), Engage (comments, replies, DMs, invites, places, karma, accounts), Outbound (cold email, inboxes, signals, text: kept), Ads, Analytics (visits, sessions, heatmaps, experiments, surveys, search). Numbers is per funnel stage and offer; Analytics is site telemetry. They stay apart.
+- Tools tray: workflows, loops, marketplace, library, sites, calendar, money, team, account.
+- Parked (code stays, hidden from Wren's nav): notes, documents, connectors, learn, voice, reactivation. Each can return as a funnel part or an offer of its own (reactivation is an offer; a voice agent is a stage's cause). That is the extension rule: anything new is either an entry, a stage cause, a step, or an offer.
+- Deletions only after a usage list per page is shown. Exceptions: the empty `packages/templates`, committed build output.
 
 ## Client zero
 
