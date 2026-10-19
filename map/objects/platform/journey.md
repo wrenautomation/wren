@@ -35,7 +35,7 @@ Citations: `packages/pipeline/src/schema.ts:125`, `packages/pipeline/src/stages.
 
 - **owns:** `pipeline.journeys`, `pipeline.deals`
 - **owned-by:** `@wren/pipeline`
-- **joins:** [[platform/funnel]] (version), [[platform/spine]] (steps, subject `journey:<id>`), `profiles` (FK), [[platform/offer]] and [[platform/terms]] (the deal)
+- **joins:** [[leads/segment]] (a `journey` rule reads this table; a stage or status change wakes the segments pass, migration 0298), [[platform/funnel]] (version), [[platform/spine]] (steps, subject `journey:<id>`), `profiles` (FK), [[platform/offer]] and [[platform/terms]] (the deal)
 - **looks-like-but-is-not:** [[platform/deal]] (the older board; folds into journeys), [[clients/engagement]] (the delivery of a won deal)
 
 ## If you change this

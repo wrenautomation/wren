@@ -24,12 +24,14 @@ What uses it (workflows' Group triggers, other segments' rules, broadcasts not y
 - `segments` (`packages/core/src/segments-schema.ts:38`): `name` unique, `kind` live|manual|snapshot, `rule` jsonb, `words` (what it was described as), `state` active|archived, `size`, `computed_at`, `uses` jsonb `[{kind, id, name}]`, `used_at`, `archived_at`, `by`. In every workspace database.
 - SQL functions `segment_date(jsonb)`, `segment_number(jsonb)` (migration 0252): a trait read as a day or number, null when it isn't one.
 - `segments.version` int, bumped by every save; `segment_versions` (PK `segment_id`+`version`): name, kind, rule, words, by, at per save (migration 0270 backfills v1). Read: `segmentVersions`.
-- Conditions: trait (is, contains, gt, lt, exists, before, after, in_next, in_last, one_of), event (a timeline kind, optional channel and `match` words, at least N or at most M times in D days, optional `after`/`before` the person's first line of a kind), consent (channel + state, or `opted_out` from `sms_contacts`), message (a sent-log state on a channel, optional campaign words, at least/at most, counting those past it on the ladder: `MESSAGE_STATES`), step (a funnel step from `profile_steps`, optional channel and source, in D days; booked/paid on a channel = after a reach there), segment. Any with `not`. Groups all|any, 30 conditions, 4 deep (`RULE_MOST`).
+- Conditions: trait (is, contains, gt, lt, exists, before, after, in_next, in_last, one_of), event (a timeline kind, optional channel and `match` words, at least N or at most M times in D days, optional `after`/`before` the person's first line of a kind), consent (channel + state, or `opted_out` from `sms_contacts`), message (a sent-log state on a channel, optional campaign words, at least/at most, counting those past it on the ladder: `MESSAGE_STATES`), step (a funnel step from `profile_steps`, optional channel and source, in D days; booked/paid on a channel = after a reach there), journey (a row in `pipeline.journeys`: optional funnel, stage or `reached` stage by order in the newest-to-that-journey `funnel_versions` body, status open|done|dropped, entry, moved or opened in D days; `journeySql`), segment. Any with `not`. Groups all|any, 30 conditions, 4 deep (`RULE_MOST`).
 - `inSegment(db, profileId, segment|rule)` (`:1060`): one person against a rule now, following `merged_into`. The spine's In group step (`logic.segment`, `packages/core/src/segment-step.ts`) asks it.
 - Writes: `saveSegment` (`:827`), `retake`, `archiveSegment`, `restoreSegment`, `addMembers` (`:535`), `removeMembers`. Reads: `previewRule` (`:1031`, count + 20 names + words), `segmentMembers` (`:596`, B6's read, pages by profile id, counts as a use).
 - Describe: `describeSegment` (`:926`) asks a `SegmentModel` (the worker passes Wren's `llm`, or a client's metered one, part `people.segments`), parses with `readRule`, refuses an unknown segment id, names unknown trait keys. Never saves; the page shows the rule's words for a yes.
 - Portal: `PeopleConsole` routes `segmentContext`, `segmentPreview` (read), `segmentDescribe`, `segmentSave`, `segmentArchive`, `segmentRestore`, `segmentRetake`, `memberAdd` (input `group`: id or name), `memberRemove` (act), `segmentText`, `segmentVersions` (read) (`packages/core/src/people-console.ts:101`). No client named and a team login: Wren's segments on main; else the client's database.
 - Records `people.segment` (`packages/core/src/segment-records.ts:66`, view `segment_records`) with `load` = rule in words and 7/30-day moves; the Data index's "Used by" adds "Group <name>" per data point a rule reads (`dataOf`).
+
+- Journeys: a journey rule reads `pipeline.journeys` in the same workspace DB. Text keyword `journey [funnel F] [at|reached S] [open|done|dropped] [entry E] [opened] [in Nd]`. `journeyFunnels(db)` gives the editor and the describe prompt each funnel's stages and entries (`segmentContext.funnels`). Migration 0298 puts a statement trigger on `pipeline.journeys` (stage or status change) that calls `wren_wake('Segments/fleet')`, so a live group refreshes when a journey moves. Core reads the table by name; it imports nothing from `@wren/pipeline`. A funnel's `group` entry listens to this group's entered events ([[platform/funnel]]).
 
 - CLI: `wren groups list|show|check|count|save|members|history|in` (`apps/cli/src/groups.ts`; the rule text keyword is `group`, `segment` still parses), rules as text, `@file` or stdin.
 
@@ -38,8 +40,8 @@ Citations: `packages/core/src/segments-schema.ts:38`, `packages/core/src/segment
 ## Connected to
 
 - **owns:** [[leads/segment-membership]]
-- **reads:** [[leads/profile]], [[leads/profile-key]], [[leads/consent]], [[leads/sent-log]], [[leads/channel-stats]]
-- **feeds:** [[platform/spine]] (`trigger.segment`, through the segments pass; `logic.segment` asks `inSegment`); [[leads/channel-stats]] (filter); [[leads/broadcast]] (read once when one starts)
+- **reads:** [[leads/profile]], [[leads/profile-key]], [[leads/consent]], [[leads/sent-log]], [[leads/channel-stats]], [[platform/journey]] (`journey` condition)
+- **feeds:** [[platform/spine]] (`trigger.segment`, through the segments pass; `logic.segment` asks `inSegment`); [[platform/funnel]] (a `group` entry opens journeys when people enter); [[leads/channel-stats]] (filter); [[leads/broadcast]] (read once when one starts)
 - **looks-like-but-is-not:** a saved view (a list filter, per viewer); `wren campaigns` cohorts
 
 ## If you change this
@@ -53,7 +55,7 @@ Citations: `packages/core/src/segments-schema.ts:38`, `packages/core/src/segment
 |---|---|
 | People → Groups (portal) | reads, writes |
 | People → People, Add to group | writes (manual; a new name makes the group) |
-| `Segments/<key>/wake` | writes (recompute) |
+| `Segments/<key>/wake` | writes (recompute); journey moves wake it |
 | `wren groups` | reads, writes |
 | spine `logic.segment` ("In group") | reads |
 
