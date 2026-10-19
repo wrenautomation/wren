@@ -211,7 +211,13 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
         return v;
       };
       const [a, b] = [at(req.a), at(req.b)];
-      return { a: a.number, b: b.number, diff: diffShapes(a.body, b.body) };
+      // The bodies too: the Map draws the two shapes as one, a removed node beside the added.
+      return {
+        a: a.number,
+        b: b.number,
+        diff: diffShapes(a.body, b.body),
+        bodies: [a.body, b.body],
+      };
     },
     shapeImport: async (req: ShapeImportRequest) => {
       const w = await workspace(req, "act");

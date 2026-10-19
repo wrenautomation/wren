@@ -11,9 +11,13 @@ import {
   litOf,
   nodeSize,
   percent,
+  RIBBON,
+  ribbonMax,
+  ribbonWidth,
   roundedPath,
   svgOf,
   wireLines,
+  wiresOf,
 } from "./model.js";
 
 const nodes: GraphNode[] = [
@@ -153,5 +157,110 @@ describe("node look", () => {
     );
     expect(pillText({ wait: "2 days" })).toBe("after 2 days");
     expect(pillText({ label: "leads" })).toBe("leads");
+  });
+});
+
+describe("ribbons", () => {
+  it("maps a weight to a width: linear from the largest, 2 to 48 px", () => {
+    expect(ribbonWidth(100, 100)).toBe(RIBBON.max);
+    expect(ribbonWidth(50, 100)).toBe(24);
+    expect(ribbonWidth(25, 100)).toBe(12);
+    // Never thinner than 2 px, so a few people still show.
+    expect(ribbonWidth(1, 100_000)).toBe(RIBBON.min);
+    expect(ribbonWidth(0, 100)).toBe(RIBBON.min);
+    expect(ribbonWidth(5, 0)).toBe(RIBBON.min);
+    expect(ribbonWidth(Number.NaN, 10)).toBe(RIBBON.min);
+    // Past the largest (a stale max) it stops at 48.
+    expect(ribbonWidth(300, 100)).toBe(RIBBON.max);
+  });
+
+  it("takes the largest weight among flow wires, loops left out", () => {
+    expect(
+      ribbonMax([
+        { from: "a", to: "b", weight: 40 },
+        { from: "b", to: "c", weight: 90 },
+        { from: "c", to: "a", weight: 500, loop: true },
+        { from: "a", to: "c" },
+      ]),
+    ).toBe(90);
+    expect(ribbonMax([])).toBe(0);
+  });
+
+  const box = (x: number, y: number) => ({ x, y, width: 216, height: 60 });
+  const laid = {
+    width: 700,
+    height: 400,
+    nodes: { a: box(0, 0), b: box(0, 150), c: box(300, 150), d: box(150, 320) },
+    edges: {
+      "a>b": { points: [] },
+      "a>c": { points: [] },
+      "b>d": { points: [] },
+    },
+  };
+  const gnodes: GraphNode[] = ["a", "b", "c", "d"].map((id) => ({ id, kind: "step", label: id }));
+  const gedges: GraphEdge[] = [
+    { from: "a", to: "b", weight: 100 },
+    { from: "a", to: "c", weight: 25 },
+    { from: "b", to: "d", weight: 100 },
+    { from: "d", to: "a", weight: 7, loop: true },
+  ];
+
+  it("draws a flow wire as a ribbon and a loop as a thin curve between laid nodes", () => {
+    const all = wiresOf(laid, gnodes, gedges, false, true);
+    const by = Object.fromEntries(all.map((w) => [w.id, w]));
+    expect(by["a>b"]?.width).toBe(48);
+    expect(by["a>c"]?.width).toBe(12);
+    expect(by["a>b"]?.arrow).toBe("");
+    // The loop has no route from the layout, yet is drawn.
+    expect(by["d>a"]?.loop).toBe(true);
+    expect(by["d>a"]?.width).toBeNull();
+    expect(by["d>a"]?.arrow).not.toBe("");
+    // Two ribbons leaving one node sit side by side, not on one point.
+    const x = (id: string) => Number(by[id]?.d.slice(1).split(",")[0]);
+    expect(Math.abs(x("a>b") - x("a>c"))).toBeGreaterThan(20);
+    // Without ribbons it is the plain wire, as before.
+    const plain = wiresOf(laid, gnodes, gedges, false);
+    expect(plain.find((w) => w.id === "a>b")?.width).toBeNull();
+    expect(plain.find((w) => w.id === "a>b")?.arrow).not.toBe("");
+  });
+
+  it("leaves loops out of the layering", async () => {
+    const sized = gnodes.map((n) => ({ id: n.id, ...nodeSize(n) }));
+    const flow = gedges
+      .filter((e) => !e.loop)
+      .map((e) => ({ id: `${e.from}>${e.to}`, from: e.from, to: e.to }));
+    const withLoop = gedges.map((e) => ({
+      id: `${e.from}>${e.to}`,
+      from: e.from,
+      to: e.to,
+      ...(e.loop ? { loop: true as const } : {}),
+    }));
+    const a = await layout(sized, flow, "DOWN");
+    const b = await layout(sized, withLoop, "DOWN");
+    expect(b.nodes).toEqual(a.nodes);
+    expect(b.edges["d>a"]).toBeUndefined();
+  }, 20_000);
+
+  it("exports ribbons and loops", () => {
+    const svg = svgOf(
+      laid,
+      gnodes,
+      gedges,
+      {
+        paper: "#fff",
+        ink: "#111",
+        ink2: "#555",
+        ink3: "#999",
+        hair: "#ddd",
+        tile: "#f5f5f5",
+        font: "sans-serif",
+      },
+      24,
+      false,
+      true,
+    );
+    expect(svg).toContain('stroke-width="48"');
+    expect(svg).toContain('stroke-width="12"');
+    expect(svg).toContain('stroke-dasharray="4 3"');
   });
 });

@@ -19,6 +19,8 @@ export interface LayoutEdge {
   to: string;
   /** Room its words take; elk keeps it clear. */
   label?: { width: number; height: number } | undefined;
+  /** A return to an earlier node: left out here, so it never changes the layering. */
+  loop?: true | undefined;
 }
 
 let elk: Promise<ELK> | null = null;
@@ -41,8 +43,8 @@ export async function layout(
   layers = GAP.layers,
 ): Promise<Laid> {
   const ids = new Set(nodes.map((n) => n.id));
-  // A wire back into its own node, or to one not drawn, has no route here.
-  const drawn = edges.filter((e) => e.from !== e.to && ids.has(e.from) && ids.has(e.to));
+  // A wire back into its own node, a loop, or to one not drawn, has no route here.
+  const drawn = edges.filter((e) => !e.loop && e.from !== e.to && ids.has(e.from) && ids.has(e.to));
   const graph: ElkNode = {
     id: "root",
     layoutOptions: {

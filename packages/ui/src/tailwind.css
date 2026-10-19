@@ -399,6 +399,16 @@
   --animate-ui-run-pulse: ui-run-pulse 1.6s var(--ui-ease) infinite;
   --animate-ui-run-flow: ui-run-flow 0.7s linear infinite;
   --animate-ui-run-spark: ui-run-spark 0.75s var(--ui-ease) both;
+  /* The Map's ribbons draw in once as the data arrives; reduced motion shows them whole. */
+  --animate-ui-ribbon-in: ui-ribbon-in 0.9s var(--ui-ease) both;
+  @keyframes ui-ribbon-in {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
   @keyframes ui-run-pulse {
     50% {
       opacity: 0.35;

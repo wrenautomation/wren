@@ -690,8 +690,12 @@ export const entryRecord = (): RecordType =>
 
 // --- numbers ---------------------------------------------------------------------------------
 
-const numberOf = (n: NumberRow) => ({
-  id: n.id,
+/** The windows `pipeline.number` holds a set of rows for. `all` keeps the plain row ids. */
+const NUMBER_WINDOWS = ["all", "7", "30", "90"] as const;
+
+const numberOf = (n: NumberRow, window: (typeof NUMBER_WINDOWS)[number] = "all") => ({
+  id: window === "all" ? n.id : `${n.id}@${window}`,
+  window,
   kind: n.kind,
   label: n.name,
   node: n.label,
@@ -720,12 +724,23 @@ export const numberRecord = (): RecordType =>
     app: "deals",
     channel: null,
     name: { one: "number", many: "numbers" },
-    rows: async (db) => (await numberRows(db)).map(numberOf),
+    // One set of rows per window; the Map page reads the window it shows, the Numbers pages `all`.
+    rows: async (db) =>
+      (
+        await Promise.all(
+          NUMBER_WINDOWS.map(async (w) =>
+            (
+              await numberRows(db, w === "all" ? {} : { window: Number(w) as 7 | 30 | 90 })
+            ).map((n) => numberOf(n, w)),
+          ),
+        )
+      ).flat(),
     key: "id",
     title: "label",
     subtitle: "nodeKind",
     fields: {
       label: text("Name"),
+      window: text("Window", { listed: false }),
       kind: status(NUMBER_KINDS, "Per"),
       node: text("Id", { listed: false }),
       nodeKind: status(KIND_STATES, "Node kind"),
@@ -746,9 +761,27 @@ export const numberRecord = (): RecordType =>
       last: date("Last day"),
     },
     views: [
-      { id: "node", label: "Per node", where: { kind: "node" }, sort: "position", at: "last" },
-      { id: "edge", label: "Per edge", where: { kind: "edge" }, sort: "-crossings", at: "last" },
-      { id: "offer", label: "Per offer", where: { kind: "offer" }, sort: "label", at: "last" },
+      {
+        id: "node",
+        label: "Per node",
+        where: { kind: "node", window: "all" },
+        sort: "position",
+        at: "last",
+      },
+      {
+        id: "edge",
+        label: "Per edge",
+        where: { kind: "edge", window: "all" },
+        sort: "-crossings",
+        at: "last",
+      },
+      {
+        id: "offer",
+        label: "Per offer",
+        where: { kind: "offer", window: "all" },
+        sort: "label",
+        at: "last",
+      },
     ],
   });
 

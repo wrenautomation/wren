@@ -42,17 +42,7 @@ import { clipProps, tipProps } from "../hint.js";
 import { GraphFrame } from "./frame.js";
 import { lanes } from "./lanes.js";
 import { type Direction, layout } from "./layout.js";
-import {
-  arrowAt,
-  hueOf,
-  LOOK,
-  pillText,
-  pillWidth,
-  portRows,
-  portY,
-  ROLE_HUE,
-  wireCurve,
-} from "./look.js";
+import { hueOf, LOOK, pillText, pillWidth, portRows, portY, ROLE_HUE } from "./look.js";
 import {
   edgeId,
   facetsOf,
@@ -68,9 +58,9 @@ import {
   pillSize,
   roleOf,
   svgOf,
-  wireEnds,
   wireHue,
   wireLines,
+  wiresOf,
 } from "./model.js";
 
 /** The ports a drag joined, when the nodes name theirs: an output and an input. */
@@ -139,6 +129,12 @@ export interface GraphProps {
   show?: readonly string[] | undefined;
   /** Shows the whole drawing at rest, smaller than readable if it must: a preview, not a workspace. */
   fit?: boolean | undefined;
+  /** Flow wires draw as ribbons: their width is their `weight`, from 2 to 48 px. Loops stay thin and dashed. */
+  ribbons?: true | undefined;
+  /** No border, no dot grid: the graph sits on the page's ground. */
+  bare?: boolean | undefined;
+  /** A node was double-clicked: the page's way in (the app that manages it). */
+  onEnter?: ((id: string) => void) | undefined;
 }
 
 const PAD = 20;
@@ -224,7 +220,7 @@ function KitNode({ id }: NodeProps) {
   const Tag = n.href ? "a" : "div";
   const opens = !n.href && !!g.open;
   const flash = g.dots.find((d) => d.node === id);
-  const hue = ROLE_HUE[roleOf(n)];
+  const hue = n.tint ?? ROLE_HUE[roleOf(n)];
   const end = n.kind === "account" || n.dashed;
   const tone = n.state?.tone;
   const rows = portRows(n);
@@ -269,8 +265,7 @@ function KitNode({ id }: NodeProps) {
           g.selected === id && "outline-2 outline-offset-2 outline-(--ui-focus)",
           mark === "added" && "shadow-[inset_0_0_0_2px_var(--ui-good)]",
           mark === "changed" && "shadow-[inset_0_0_0_2px_var(--warn)]",
-          mark === "removed" &&
-            "opacity-60 shadow-[inset_0_0_0_2px_var(--ui-bad)] [&_.kit-name]:line-through",
+          mark === "removed" && "shadow-[inset_0_0_0_2px_var(--ui-bad)] [&_.kit-name]:line-through",
           flash && "animate-ui-changed",
           flash && FLASH[flash.tone],
         )}
@@ -474,6 +469,10 @@ type WireData = {
   hue: string;
   pill: string;
   mid: { x: number; y: number };
+  /** A ribbon's stroke width (px); null on a plain wire. */
+  width: number | null;
+  /** A return wire: thin and dashed. */
+  loop: boolean;
 };
 
 function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
@@ -503,18 +502,40 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
                   : data.hue,
         }}
       >
-        <path
-          d={data.d}
-          className={cn(
-            "fill-none stroke-current [stroke-linecap:round]",
-            on || data.mark ? "stroke-[2]" : "stroke-[1.5]",
-            data.mark === "removed" && "[stroke-dasharray:5_4]",
-          )}
-        />
+        {data.width !== null ? (
+          // A ribbon: it grows in once (the path is drawn from 0 to 1), and its width eases.
+          <path
+            d={data.d}
+            pathLength={1}
+            className="animate-ui-ribbon-in fill-none stroke-current transition-[stroke-width,stroke-opacity] duration-300 ease-(--ui-ease) motion-reduce:animate-none [[data-motion=less]_&]:animate-none"
+            style={{
+              strokeWidth: data.width,
+              strokeOpacity: on ? 0.75 : 0.4,
+              strokeDasharray: 1,
+            }}
+          />
+        ) : (
+          <path
+            d={data.d}
+            className={cn(
+              "fill-none stroke-current [stroke-linecap:round]",
+              data.loop
+                ? "stroke-1 [stroke-dasharray:4_3]"
+                : on || data.mark
+                  ? "stroke-[2]"
+                  : "stroke-[1.5]",
+              data.mark === "removed" && "[stroke-dasharray:5_4]",
+            )}
+          />
+        )}
         <path d={data.arrow} className="fill-current" />
       </g>
       {/* A wide clear stroke, so the line is easy to hover and click. */}
-      <path d={data.d} className="cursor-pointer fill-none stroke-transparent stroke-[14]" />
+      <path
+        d={data.d}
+        className="cursor-pointer fill-none stroke-transparent"
+        style={{ strokeWidth: Math.max(14, data.width ?? 0) }}
+      />
       <EdgeLabelRenderer>
         {data.pill ? (
           <span
@@ -632,6 +653,9 @@ export default function GraphCanvas({
   show,
   fit,
   inset,
+  ribbons,
+  bare,
+  onEnter,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -668,7 +692,12 @@ export default function GraphCanvas({
       }),
     [edges],
   );
-  const shape = JSON.stringify([sized, wires.map((w) => [w.id, w.size]), dir, arrange]);
+  const shape = JSON.stringify([
+    sized,
+    wires.map((w) => [w.id, w.size, w.e.loop ?? false]),
+    dir,
+    arrange,
+  ]);
   const [laid, setLaid] = useState<{ shape: string; laid: Laid } | null>(null);
   // read-ok: lays the graph out (elk, in the tab); no server read.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `shape` names everything laid out.
@@ -676,7 +705,13 @@ export default function GraphCanvas({
     if (!width) return;
     let live = true;
     const labeled = wires.some((w) => w.size.width);
-    const lines = wires.map((w) => ({ id: w.id, from: w.e.from, to: w.e.to, label: w.size }));
+    const lines = wires.map((w) => ({
+      id: w.id,
+      from: w.e.from,
+      to: w.e.to,
+      label: w.size,
+      ...(w.e.loop ? { loop: true as const } : {}),
+    }));
     (arrange === "lanes"
       ? Promise.resolve(lanes(sized, lines, dir))
       : layout(sized, lines, dir, labeled ? 48 : 64)
@@ -725,43 +760,39 @@ export default function GraphCanvas({
         : [],
     [l, nodes],
   );
-  const rfEdges = useMemo(
-    (): Edge<WireData>[] =>
-      l
-        ? wires.flatMap(({ e, id, lines }) => {
-            const a = l.nodes[e.from];
-            const b = l.nodes[e.to];
-            if (!l.edges[id] || !a || !b) return [];
-            const across = dir === "RIGHT";
-            const from = byId.get(e.from);
-            const to = byId.get(e.to);
-            const ends = wireEnds(e, a, b, from, to, across);
-            const c = wireCurve(ends.from, ends.to, across);
-            const out = across && from?.outs?.some((p) => p.id === e.fromPort);
-            const into = across && to?.ins?.some((p) => p.id === e.toPort);
-            return [
-              {
-                id,
-                source: e.from,
-                target: e.to,
-                ...(out ? { sourceHandle: `out:${e.fromPort}` } : {}),
-                ...(into ? { targetHandle: `in:${e.toPort}` } : {}),
-                type: "kit",
-                data: {
-                  mark: e.mark,
-                  lines,
-                  d: c.d,
-                  arrow: arrowAt(c.end, across),
-                  hue: wireHue(e, from),
-                  pill: pillText(e),
-                  mid: c.mid,
-                },
-              },
-            ];
-          })
-        : [],
-    [l, wires, byId, dir],
-  );
+  const rfEdges = useMemo((): Edge<WireData>[] => {
+    if (!l) return [];
+    const across = dir === "RIGHT";
+    const words = new Map(wires.map((w) => [w.id, w.lines] as const));
+    const drawn = wiresOf(l, nodes, edges, across, !!ribbons).map((w): Edge<WireData> => {
+      const e = w.e;
+      const from = byId.get(e.from);
+      const to = byId.get(e.to);
+      const out = !w.loop && across && from?.outs?.some((p) => p.id === e.fromPort);
+      const into = !w.loop && across && to?.ins?.some((p) => p.id === e.toPort);
+      return {
+        id: w.id,
+        source: e.from,
+        target: e.to,
+        ...(out ? { sourceHandle: `out:${e.fromPort}` } : {}),
+        ...(into ? { targetHandle: `in:${e.toPort}` } : {}),
+        type: "kit",
+        data: {
+          mark: e.mark,
+          lines: words.get(w.id) ?? [],
+          d: w.d,
+          arrow: w.arrow,
+          hue: wireHue(e, from),
+          pill: pillText(e),
+          mid: w.mid,
+          width: w.width,
+          loop: w.loop,
+        },
+      };
+    });
+    // The widest ribbons go under the narrow ones, so none hides another.
+    return ribbons ? drawn.sort((x, y) => (y.data?.width ?? 0) - (x.data?.width ?? 0)) : drawn;
+  }, [l, nodes, edges, wires, byId, dir, ribbons]);
 
   const least = minHeight ?? 0;
   const most = Math.max(least, maxHeight ?? Math.max(360, screen - CHROME));
@@ -821,7 +852,7 @@ export default function GraphCanvas({
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;
-    const svg = svgOf(l, nodes, edges, inkOf(box.current), 24, dir === "RIGHT");
+    const svg = svgOf(l, nodes, edges, inkOf(box.current), 24, dir === "RIGHT", !!ribbons);
     const file = `${name ?? label}.${kind}`.replace(/[^\w.-]+/g, "-").toLowerCase();
     if (kind === "svg") return save(new Blob([svg], { type: "image/svg+xml" }), file);
     save(await pngOf(svg, Math.ceil(l.width + 48), Math.ceil(l.height + 48)), file);
@@ -921,6 +952,7 @@ export default function GraphCanvas({
               rest={view.rest}
               fits={view.fits}
               minimap={view.map}
+              bare={bare}
               flow={{
                 nodesConnectable: !!edit,
                 autoPanOnConnect: false,
@@ -951,6 +983,7 @@ export default function GraphCanvas({
                   setSelected(n.id);
                   if (!byId.get(n.id)?.href) onOpen?.(n.id);
                 },
+                onNodeDoubleClick: (_, n) => onEnter?.(n.id),
                 onEdgeClick: (_, e) => edit?.pick(e.source, e.target),
                 onNodeMouseEnter: (e, n) => at(e, n.id),
                 onNodeMouseMove: (e, n) => at(e, n.id),
@@ -1022,6 +1055,11 @@ function HoverCard({
               </span>
             ) : null,
           )}
+          {node.hover?.map((l) => (
+            <span key={l} className="tabular-nums">
+              {l}
+            </span>
+          ))}
           {Object.entries(node.facets ?? {}).length ? (
             <span className="text-[11.5px] text-(--ui-ink-2)">
               {Object.values(node.facets ?? {}).join(" · ")}

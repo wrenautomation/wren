@@ -20,6 +20,9 @@ export {
   type GraphRole,
   type GraphTone,
   percent,
+  RIBBON,
+  ribbonMax,
+  ribbonWidth,
   wireLines,
 } from "./model.js";
 

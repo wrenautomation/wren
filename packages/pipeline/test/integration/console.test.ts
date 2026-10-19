@@ -112,6 +112,7 @@ describe("shape changes", () => {
     });
     const diff = await api().shapeDiff({ ...op, a: 1, b: 2 });
     expect(diff).toMatchObject({ a: 1, b: 2 });
+    expect(diff.bodies.map((b) => b.name)).toEqual([shape.name, "Console shape 2"]);
     expect(JSON.stringify(diff.diff)).toMatch(/name/);
     const page = await api().recordsList({ ...op, record: "pipeline.shape", view: "all" });
     expect(page.rows.map((r) => [r.name, r.version])).toEqual([["Console shape 2", 2]]);

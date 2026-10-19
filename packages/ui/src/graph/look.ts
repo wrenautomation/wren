@@ -155,3 +155,41 @@ export function pillText(e: {
 /** About how wide a pill draws for `text`, capped. */
 export const pillWidth = (text: string) =>
   text ? Math.min(168, Math.ceil(text.length * 6.2) + 16) : 0;
+
+/**
+ * A loop wire (a return to an earlier node) as a curve that bows out beside the two boxes, to
+ * the right when the drawing runs down and below when it runs across, and the point halfway
+ * along it. It ends pointing back at the box, so `arrow` is the head for `end`.
+ */
+export function loopCurve(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+  across: boolean,
+): { d: string; mid: Pt; end: Pt; arrow: string } {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  const bow = 56;
+  const from = across
+    ? { x: a.x + a.width / 2, y: a.y + a.height }
+    : { x: a.x + a.width, y: a.y + a.height / 2 };
+  const to = across
+    ? { x: b.x + b.width / 2, y: b.y + b.height }
+    : { x: b.x + b.width, y: b.y + b.height / 2 };
+  const out = across ? Math.max(from.y, to.y) + bow : Math.max(from.x, to.x) + bow;
+  const c1 = across ? { x: from.x, y: out } : { x: out, y: from.y };
+  const c2 = across ? { x: to.x, y: out } : { x: out, y: to.y };
+  const size = 6;
+  const h = size / 2;
+  // The head points into the box: up when the loop arrives from below, left from the right.
+  const arrow = across
+    ? `M${to.x - h},${to.y + size} L${to.x},${to.y} L${to.x + h},${to.y + size} Z`
+    : `M${to.x + size},${to.y - h} L${to.x},${to.y} L${to.x + size},${to.y + h} Z`;
+  return {
+    d: `M${r(from.x)},${r(from.y)} C${r(c1.x)},${r(c1.y)} ${r(c2.x)},${r(c2.y)} ${r(to.x)},${r(to.y)}`,
+    mid: {
+      x: r((from.x + 3 * c1.x + 3 * c2.x + to.x) / 8),
+      y: r((from.y + 3 * c1.y + 3 * c2.y + to.y) / 8),
+    },
+    end: to,
+    arrow,
+  };
+}

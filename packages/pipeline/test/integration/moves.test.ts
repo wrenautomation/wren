@@ -548,6 +548,18 @@ describe("the pipeline records", () => {
     expect(edges.rows.some((r) => r.node === "booked_to_proposal")).toBe(true);
     const offers = await api.list({ record: "pipeline.number", view: "offer" });
     expect(offers.rows.map((r) => r.node)).toEqual(["offer-a"]);
+    // The views read the whole history; the Map reads a window by its field.
+    expect(nodes.rows.every((r) => r.window === "all")).toBe(true);
+    for (const w of ["7", "30", "90"]) {
+      const win = await api.list({
+        record: "pipeline.number",
+        where: { kind: "node", window: w },
+        sort: "position",
+        limit: 100,
+      });
+      expect(win.rows.map((r) => r.node)).toEqual(nodes.rows.map((r) => r.node));
+      expect(win.rows.every((r) => r.window === w)).toBe(true);
+    }
   });
 
   it("lists terms versions: live, upcoming and older, with a short read of each", async () => {

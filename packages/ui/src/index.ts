@@ -217,6 +217,9 @@ export {
   Journey,
   journeyOf,
   percent,
+  RIBBON,
+  ribbonMax,
+  ribbonWidth,
   type Touch,
   wireLines,
 } from "./graph/index.js";
