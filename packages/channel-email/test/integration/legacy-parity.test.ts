@@ -74,6 +74,9 @@ const ADDED = {
     "companies.crawled_at",
     "companies.named_at",
     "companies.lead_at",
+    // 2026-10-18 fetch ladder: why the render pass has a page, and each rung it tried.
+    "documents.block_reason",
+    "documents.fetch_steps",
   ]),
   constraints: new Set([
     "uq_messages_link_code",
