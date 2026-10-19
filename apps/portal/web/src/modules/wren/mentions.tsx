@@ -31,7 +31,7 @@ const str = (v: unknown) => (typeof v === "string" ? v : "");
  */
 export function mentionLink(row: Row): string {
   const thread = str(row.thread);
-  if (thread) return `/inbox/waiting/${encodeURIComponent(thread)}`;
+  if (thread) return `/engage/inbox/${encodeURIComponent(thread)}`;
   const note = str(row.noteId);
   const comment = str(row.commentId);
   return comment ? `${docPath(note)}?comment=${encodeURIComponent(comment)}` : docPath(note);

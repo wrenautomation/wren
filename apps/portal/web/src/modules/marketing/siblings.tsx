@@ -32,7 +32,7 @@ function Siblings({ rows }: { rows: Sibling[] }) {
         return (
           <li key={r.id}>
             <a
-              href={`/marketing/drafts/${r.id}`}
+              href={`/content/drafts/${r.id}`}
               className="flex min-w-0 items-center gap-2.5 rounded-(--ui-radius) px-2 py-1.5 text-[13.5px] text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
             >
               <PlatformMark mark={r.platform} size={15} label={nameOf(r.platform)} />

@@ -153,7 +153,7 @@ export function JourneyBoard(props: PageProps) {
               aria-label="Funnel"
               className={SELECT}
               value={funnel.id}
-              onChange={(e) => go("/deals/board", { funnel: e.target.value }, props.params)}
+              onChange={(e) => go("/pipelines/board", { funnel: e.target.value }, props.params)}
             >
               {list.map((f) => (
                 <option key={f.id} value={f.id}>
@@ -418,7 +418,7 @@ function Card({
     >
       <a
         className="min-w-0 truncate font-medium text-(--ui-ink) no-underline hover:underline"
-        href={href(`/deals/journeys/${encodeURIComponent(j.id)}`, at)}
+        href={href(`/pipelines/journeys/${encodeURIComponent(j.id)}`, at)}
         draggable={false}
         {...clipProps()}
       >

@@ -179,6 +179,11 @@ export interface Module {
   /** Reached from the client's name at top left, never the sidebar. */
   menu?: true;
   /**
+   * Out of the sidebar, the dock and the area list, yet its routes, quick capture and ⌘K still
+   * work (⌘K tags its pages "parked"). Wren's dormant apps (designs/2026-10-19-portal-reshape.md).
+   */
+  parked?: true;
+  /**
    * The app for offers with none of their own. A bought offer's card on Today opens the app it
    * names (the offer's `app`), this one for the rest.
    */

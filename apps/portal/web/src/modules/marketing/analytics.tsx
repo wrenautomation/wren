@@ -420,10 +420,10 @@ export function analyticsSections(detail: unknown, row: Row, team = true): [stri
   // A video's footer link is its campaign; any other post's /go/ link carries its id.
   const footer = a.site.links.find((l) => !l.content);
   const links = footer
-    ? `/marketing/links?view=all&campaign=${encodeURIComponent(footer.campaign)}`
-    : `/marketing/links?view=all&content=${encodeURIComponent(draft.slice(0, 8))}`;
-  const comments = `/marketing/comments?view=all&postTitle=${encodeURIComponent(title.slice(0, 60))}`;
-  const activity = `/marketing/content?view=all&post=${encodeURIComponent(id)}&tab=activity`;
+    ? `/analytics/links?view=all&campaign=${encodeURIComponent(footer.campaign)}`
+    : `/analytics/links?view=all&content=${encodeURIComponent(draft.slice(0, 8))}`;
+  const comments = `/engage/comments?view=all&postTitle=${encodeURIComponent(title.slice(0, 60))}`;
+  const activity = `/content/content?view=all&post=${encodeURIComponent(id)}&tab=activity`;
   const out: [string, ReactNode][] = [
     ["How it did", <Cells key="did" a={a} activity={activity} team={team} />],
   ];

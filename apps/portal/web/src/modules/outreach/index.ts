@@ -1,8 +1,10 @@
 /**
- * Outreach (designs/2026-10-16-outreach-app.md): what we write to other people, split out of
- * Marketing. Engage (comments on others' posts), DMs, Invites and People, then Reddit's threads and
- * places, then the accounts we send as and the DMs' words. Records stay `marketing.*`; old
- * `/marketing/...` addresses redirect here (`../../moved.ts`).
+ * Engage (designs/2026-10-16-outreach-app.md, 2026-10-19-portal-reshape.md): everything said to and
+ * with other people. Comments on others' posts, DMs, Invites and People, then the Inbox and To
+ * approve, the comments on our own posts, reviews, the conversation's speed, followers and
+ * subscribers; Reddit's threads and places; and, under Setup, the accounts we send as, the DMs'
+ * words, the auto-reply and the comment keywords. Records stay `marketing.*`; the app was Outreach,
+ * and old `/outreach/...`, `/marketing/...` and Inbox addresses redirect here (`../../moved.ts`).
  */
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
@@ -20,6 +22,7 @@ import {
   ENGAGE_DRAFT,
   INVITE_ACTIONS,
   INVITE_DRAFT,
+  MARKETING_PAGES,
   PLACE_ACTIONS,
   THREAD_ACTIONS,
   THREAD_DRAFT,
@@ -27,6 +30,10 @@ import {
 import { withProof } from "../marketing/proof.js";
 import { withThread } from "../marketing/thread-context.js";
 import { EngageHead } from "./engage.js";
+
+const P = MARKETING_PAGES;
+/** A page of Marketing's, taken in without the heading it had there. */
+const bare = ({ group: _, ...page }: ListPage): ListPage => page;
 
 const said = (line: string) => () => line;
 
@@ -88,7 +95,7 @@ const ENGAGE_PAGE: ListPage = {
     posts: "No one else's post waits. Paste one, or an account to follow.",
     all: "Reddit threads and others' posts with our comment show here.",
   },
-  // The mixed queue's old views: replies to us live in Marketing and the Inbox now.
+  // The mixed queue's old views: replies to us live in this app's Inbox now.
   legacy: (params) => (GONE_VIEWS.has(params.get("view") ?? "") ? { view: null } : null),
   actions: ENGAGE_ACTIONS,
   extras: withDraft(
@@ -99,14 +106,14 @@ const ENGAGE_PAGE: ListPage = {
   count: { state: ["waiting"] },
 };
 
-export const outreach: Module = {
-  id: "outreach",
-  name: "Outreach",
+export const engage: Module = {
+  id: "engage",
+  name: "Engage",
   component: "marketing.stats",
   icon: "reply",
-  blurb: "Comments on others' posts, DMs and invites we send, and who to reach.",
+  blurb: "Everything said with other people: comments, DMs, invites, replies and reviews.",
   requires: { audience: "team" },
-  find: findRecords({ record: "marketing.person", path: "/outreach/people", kind: "Person" }),
+  find: findRecords({ record: "marketing.person", path: "/engage/people", kind: "Person" }),
   pages: [
     ENGAGE_PAGE,
     {
@@ -166,6 +173,13 @@ export const outreach: Module = {
       },
       actions: PERSON_ACTIONS,
     },
+    P.inbox,
+    P.approve,
+    P.comments,
+    bare(P.reviews),
+    P.conversation,
+    P.followers,
+    P.subscribers,
     {
       id: "threads",
       label: "Thread replies",
@@ -230,5 +244,8 @@ export const outreach: Module = {
       empty: { empty: "Every slot has words.", all: "No reach sequence has slots." },
       extras: copyExtras,
     },
+    { ...P["auto-reply"], group: "Setup" },
+    { ...P.keywords, group: "Setup" },
+    { ...P["keyword-dms"], group: "Setup" },
   ],
 };

@@ -174,7 +174,7 @@ export function FormatBoard() {
           {all.map((f, i) => (
             <li key={f.format}>
               <a
-                href={`/marketing/content?view=leaderboard&format=${f.format}`}
+                href={`/content/content?view=leaderboard&format=${f.format}`}
                 className="grid grid-cols-[7rem_1fr_auto] items-center gap-3 text-[13.5px] hover:bg-(--ui-hover) max-sm:grid-cols-[5.5rem_1fr_auto]"
               >
                 <span>{FORMATS[f.format]}</span>

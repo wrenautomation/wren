@@ -76,8 +76,8 @@ const ORIGIN: Record<string, string> = {
 
 /** Where texts and DMs save: their copy pages, which hold each slot's rules. */
 const COPY_PAGE: Record<string, string> = {
-  sms: "/marketing/text-copy",
-  dm: "/outreach/dm-copy",
+  sms: "/outbound/text-copy",
+  dm: "/engage/dm-copy",
 };
 
 const SELECT =

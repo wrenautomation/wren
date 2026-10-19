@@ -56,6 +56,7 @@ import { LearnBell } from "./modules/learn/bell.js";
 import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
+import { atWrenOf, MOVED_APPS, movedTo } from "./moved.js";
 import { HandSwitch, keepOf, TemplatePage } from "./records.js";
 import { href, navigate, setWorkspace, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
@@ -188,7 +189,10 @@ const jumps = (
           group: m.name,
           href: pathOf(m, p),
           icon: m.icon,
-          hint: keyOf.get(pathOf(m, p)),
+          // A parked app's pages stay here, tagged: it is out of the sidebar, not gone.
+          hint: m.parked
+            ? ["parked", keyOf.get(pathOf(m, p))].filter(Boolean).join(" ")
+            : keyOf.get(pathOf(m, p)),
         })),
     ),
   ];
@@ -208,10 +212,14 @@ const shown = (viewer: Viewer) =>
 const withCan = (can: readonly Permission[] | undefined) => (can ? { can } : {});
 const withWho = (who: Who | undefined) => (who !== undefined ? { who } : {});
 
-/** His pins that still open a page he may see, named by their app; the rest wait unshown. */
-export function pinLines(pins: readonly string[], apps: Module[]): PinLine[] {
+/**
+ * His pins that still open a page he may see, named by their app; the rest wait unshown. A pin at
+ * an old address (`moved.ts`) names the page it moved to; the pin itself stays as he saved it.
+ */
+export function pinLines(pins: readonly string[], apps: Module[], atWren = true): PinLine[] {
   return pins.flatMap((href) => {
-    const at = place(href.split("/").filter(Boolean), apps, true);
+    const now = movedTo(href, { atWren }) ?? href;
+    const at = place(now.split("/").filter(Boolean), apps, true);
     if (at.kind !== "page") return [];
     const first = firstPage(at.module)?.id === at.page.id;
     return [{ href, label: first ? at.module.name : at.page.label, icon: at.module.icon }];
@@ -290,11 +298,14 @@ export function App() {
   }, [operator, me.data?.demo]);
   // An address names its app, and the app its workspace. Wren's team is at Wren unless a link
   // names a client; a client's person, at the last one opened.
-  const atWren = !named && (operator || client === null || client === WREN.id);
-  // Marketing is both a client's app and Wren's: the one for the workspace already picked.
+  const atWren = atWrenOf(operator, named);
+  // Sites is both a client's app and Wren's: the one for the workspace already picked. Wren's
+  // team never falls back to a client's app of an id that moved (Marketing is Content here).
   const kind =
     MODULES.find((m) => m.id === route.path[0] && teamOnly(m) === atWren) ??
-    MODULES.find((m) => m.id === route.path[0]);
+    (atWren && Object.hasOwn(MOVED_APPS, route.path[0] ?? "")
+      ? undefined
+      : MODULES.find((m) => m.id === route.path[0]));
   const wren = operator && (kind ? teamOnly(kind) : atWren);
   const team = operator;
   const onDemo = me.data ? me.data.demo : null;
@@ -374,7 +385,7 @@ export function App() {
     [team, onDemo, wren, current?.id],
   );
   const pinned = rail.value?.pins ?? [];
-  const pins = pinLines(pinned, apps);
+  const pins = pinLines(pinned, apps, wren);
   const onPage = at.kind === "page" ? pathOf(at.module, at.page) : undefined;
   const setPins = (next: string[]) => rail.set(next.length ? { pins: next } : null);
   const railPins: RailPins | undefined =
@@ -501,7 +512,7 @@ export function App() {
   const counts = open ? (waiting[open.module.id] ?? {}) : {};
   // Every app by area, what waits in each beside it; none with one app (the demo).
   const areas: NavArea[] | undefined = launcher
-    ? areasOf(cards).map(({ area, apps }) => ({
+    ? areasOf(cards, wren).map(({ area, apps }) => ({
         id: area.id,
         label: area.label,
         ...(area.shut ? { shut: true } : {}),
@@ -530,7 +541,7 @@ export function App() {
     ? [
         // Today holds no number: counts sit only where something waits on him (Inbox, To approve).
         { id: "home", label: "Today", icon: "home", href: launcher, on: !open },
-        ...dockOf(cards).map(({ app: m, pick }) => {
+        ...dockOf(cards, wren).map(({ app: m, pick }) => {
           const page = pick.page ? m.pages.find((p) => p.id === pick.page) : undefined;
           return {
             id: page ? `${m.id}/${page.id}` : m.id,

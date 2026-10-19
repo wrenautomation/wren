@@ -1,8 +1,8 @@
 /**
  * Journeys (designs/2026-10-18-journeys.md, "Folding `@wren/deals`"): each person's way through a
  * funnel. The list keeps saved views; Funnels shows the stages. One app in Wren's workspace and
- * each client's. The route stays `/deals`. A move goes through the funnel's own step, so a
- * workflow that hears it decides what follows.
+ * each client's, as `/pipelines` (it was `/deals`; `moved.ts` sends an old link on). A move goes
+ * through the funnel's own step, so a workflow that hears it decides what follows.
  */
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
@@ -10,12 +10,12 @@ import { JourneyBoard } from "./board.js";
 
 /** A client's Journeys, in its own workspace: its own funnels and journeys. */
 export const clientDeals: Module = {
-  id: "deals",
+  id: "pipelines",
   name: "Journeys",
   component: "pipeline.journeys",
   icon: "target",
   blurb: "Every person by stage of each funnel, and how long they have been there.",
-  find: findRecords({ record: "pipeline.journey", path: "/deals/journeys", kind: "Journey" }),
+  find: findRecords({ record: "pipeline.journey", path: "/pipelines/journeys", kind: "Journey" }),
   pages: [
     {
       id: "board",
@@ -61,9 +61,10 @@ export const clientDeals: Module = {
   ],
 };
 
-/** Wren's own Journeys, in Wren's workspace: the same pages on Wren's journeys. */
-export const deals: Module = {
+/** Wren's own Pipelines, in Wren's workspace: the same pages on Wren's journeys. */
+export const pipelines: Module = {
   ...clientDeals,
+  name: "Pipelines",
   blurb:
     "Wren's own people by stage of each funnel: who is booked, who is signed, who has stalled.",
   requires: { audience: "team" },

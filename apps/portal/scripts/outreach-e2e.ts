@@ -1,9 +1,9 @@
 /**
- * Outreach in a real browser (designs/2026-10-16-outreach-app.md): its tabs in the nav and gone
- * from Marketing's, old Marketing addresses landing on the new ones, Invites' To approve and To
- * message, the Account filter, and two writes through the one write path: an invite approved by
- * a double press goes once, and a comment on someone's post sent with the tab hidden goes once
- * and lands on return.
+ * Engage (was Outreach) in a real browser (designs/2026-10-16-outreach-app.md): its tabs in the
+ * nav and gone from Content's, old Marketing and Outreach addresses landing on the new ones,
+ * Invites' To approve and To message, the Account filter, and two writes through the one write
+ * path: an invite approved by a double press goes once, and a comment on someone's post sent with
+ * the tab hidden goes once and lands on return.
  *
  *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_outreach_preview \
  *     tsx ../../packages/content/test/outreach-preview.ts
@@ -22,33 +22,33 @@ const navLink = (page: Page, path: string) => page.locator(`nav a[href^="${path}
 
 const tests: Test[] = [
   [
-    "nav: Outreach holds Engage, DMs, Invites and People; Marketing no longer does",
+    "nav: Engage holds Engage, DMs, Invites and People; Content no longer does",
     async (browser) => {
       const { context, page } = await fresh(browser);
-      await page.goto(`${url}/outreach`);
+      await page.goto(`${url}/engage`);
       await page.getByRole("heading", { name: "Engage" }).waitFor();
       for (const p of ["engage", "dms", "invites", "people", "accounts", "dm-copy"])
-        assert.ok((await navLink(page, `/outreach/${p}`).count()) > 0, `Outreach's nav links ${p}`);
-      await page.goto(`${url}/marketing`);
-      await navLink(page, "/marketing/").first().waitFor();
+        assert.ok((await navLink(page, `/engage/${p}`).count()) > 0, `Engage's nav links ${p}`);
+      await page.goto(`${url}/content`);
+      await navLink(page, "/content/").first().waitFor();
       for (const p of ["engage", "dms", "invites", "people"])
-        assert.equal(await navLink(page, `/marketing/${p}`).count(), 0, `Marketing drops ${p}`);
+        assert.equal(await navLink(page, `/content/${p}`).count(), 0, `Content drops ${p}`);
       await context.close();
     },
   ],
   [
-    "old addresses: Marketing's DMs and Invites land on Outreach's, search kept",
+    "old addresses: Marketing's and Outreach's DMs and Invites land on Engage's, search kept",
     async (browser) => {
       const { context, page } = await fresh(browser);
       await page.goto(`${url}/marketing/dms?view=all`);
-      await at(page, "/outreach/dms?view=all");
+      await at(page, "/engage/dms?view=all");
       await page.getByText("Dana Rivera").first().waitFor();
-      await page.goto(`${url}/marketing/invites?view=proposed`);
-      await at(page, "/outreach/invites?view=proposed");
+      await page.goto(`${url}/outreach/invites?view=proposed`);
+      await at(page, "/engage/invites?view=proposed");
       await page.getByText("Alex Sample").first().waitFor();
       // Back goes past the redirect, to the page before it.
       await page.goBack();
-      await at(page, "/outreach/dms?view=all");
+      await at(page, "/engage/dms?view=all");
       await context.close();
     },
   ],
@@ -56,10 +56,10 @@ const tests: Test[] = [
     "Invites: a proposed one waits in To approve, an accepted one in To message",
     async (browser) => {
       const { context, page } = await fresh(browser);
-      await page.goto(`${url}/outreach/invites?view=proposed`);
+      await page.goto(`${url}/engage/invites?view=proposed`);
       await page.getByText("Alex Sample").first().waitFor();
       assert.equal(await page.getByText("Jordan Sample").count(), 0);
-      await page.goto(`${url}/outreach/invites?view=message`);
+      await page.goto(`${url}/engage/invites?view=message`);
       await page.getByText("Jordan Sample").first().waitFor();
       assert.equal(await page.getByText("Alex Sample").count(), 0);
       await context.close();
@@ -69,7 +69,7 @@ const tests: Test[] = [
     "Account filter: one account narrows Invites, and rides in the address",
     async (browser) => {
       const { context, page } = await fresh(browser);
-      await page.goto(`${url}/outreach/invites?view=all`);
+      await page.goto(`${url}/engage/invites?view=all`);
       await page.getByText("Jordan Sample").first().waitFor();
       await page.locator("[data-account-filter]").first().click();
       await page.getByRole("option", { name: /alt/ }).click();
@@ -86,7 +86,7 @@ const tests: Test[] = [
     "Invites: Send invite pressed twice goes once",
     async (browser) => {
       const { context, page, fake } = await fresh(browser);
-      await page.goto(`${url}/outreach/invites?view=proposed`);
+      await page.goto(`${url}/engage/invites?view=proposed`);
       await page.getByText("Alex Sample").first().click();
       // The panel's button by its words: the row's icon button shares its name.
       await page.locator("button", { hasText: /^Send invite$/ }).click();
@@ -106,7 +106,7 @@ const tests: Test[] = [
     "Engage: a comment on their post, hidden mid-send, goes once and lands on return",
     async (browser) => {
       const { context, page, fake, reads } = await fresh(browser);
-      await page.goto(`${url}/outreach/engage`);
+      await page.goto(`${url}/engage/engage`);
       await page.getByText("Pat Example").first().click();
       const box = page.getByPlaceholder("Write it here.").first();
       await box.waitFor();
@@ -128,7 +128,7 @@ const tests: Test[] = [
     },
   ],
   [
-    "phone: Outreach's tabs are Engage, DMs and Invites; a bare invite is no DM sent",
+    "phone: Engage's tabs are Engage, DMs and Invites; a bare invite is no DM sent",
     async (browser) => {
       const context = await browser.newContext({
         viewport: { width: 393, height: 852 },
@@ -136,12 +136,12 @@ const tests: Test[] = [
         isMobile: true,
       });
       const page = await context.newPage();
-      await page.goto(`${url}/outreach/dms?view=all`);
-      const tabs = page.getByRole("navigation", { name: "Outreach tabs" });
+      await page.goto(`${url}/engage/dms?view=all`);
+      const tabs = page.getByRole("navigation", { name: "Engage tabs" });
       for (const name of [/Engage$/, /DMs$/, /Invites$/])
         await tabs.getByRole("link", { name }).waitFor();
       await page.getByText("Jordan Sample").first().waitFor();
-      await page.goto(`${url}/outreach/dms?view=sent`);
+      await page.goto(`${url}/engage/dms?view=sent`);
       await page.getByText("Jordan Sample").first().waitFor({ state: "detached" });
       await page.waitForTimeout(1000);
       assert.equal(await page.getByText("Jordan Sample").count(), 0, "Invites holds it");

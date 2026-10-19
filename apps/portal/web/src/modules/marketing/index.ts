@@ -1,6 +1,9 @@
 /**
- * Marketing (designs/2026-10-05-marketing-app.md): content, ads, search, texts and site visits
- * as one funnel, in Wren's workspace. Records and templates only; the console serves them.
+ * Marketing's pages (designs/2026-10-05-marketing-app.md): content, ads, search, texts and site
+ * visits as one funnel. `MARKETING_PAGES` is the one list; Wren's team apps (Content, Engage,
+ * Outbound, Ads, Analytics) each take pages from it (designs/2026-10-19-portal-reshape.md), and a
+ * client's Marketing (`clientMarketing`) keeps its own. Records and templates only; the console
+ * serves them.
  */
 import { KEYWORDS } from "@wren/channel-sms/templates";
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
@@ -36,7 +39,6 @@ import { FeedPage, FeedTabs } from "./feed.js";
 import { ATTACH, FIELDS, withShape } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { heatExtras } from "./heat.js";
-import { type MoreGroup, MorePage } from "./more.js";
 import { PiecesPage } from "./pieces.js";
 import { PlanPage } from "./plan.js";
 import { postExtras, postLooks } from "./posts.js";
@@ -1329,14 +1331,14 @@ const TODAY: DayPage = {
       label: "Scheduled",
       view: "scheduled",
       at: "scheduled",
-      open: "/marketing/drafts",
+      open: "/content/drafts",
     },
     {
       record: "marketing.post",
       label: "Posted",
       view: "all",
       at: "published",
-      open: "/marketing/content",
+      open: "/content/content",
     },
     {
       record: "marketing.draft",
@@ -1345,7 +1347,7 @@ const TODAY: DayPage = {
       at: "created",
       carry: true,
       action: "marketing.approveDraft",
-      open: "/marketing/drafts",
+      open: "/content/drafts",
     },
     {
       record: "marketing.comment",
@@ -1354,7 +1356,7 @@ const TODAY: DayPage = {
       at: "at",
       carry: true,
       action: "marketing.commentAnswer",
-      open: "/marketing/comments",
+      open: "/engage/comments",
     },
     {
       record: "marketing.dm",
@@ -1363,7 +1365,7 @@ const TODAY: DayPage = {
       at: "lastAt",
       carry: true,
       action: "marketing.dmReply",
-      open: "/outreach/dms",
+      open: "/engage/dms",
     },
     {
       record: "marketing.video",
@@ -1372,7 +1374,7 @@ const TODAY: DayPage = {
       at: "updated",
       carry: true,
       action: "marketing.videoApprove",
-      open: "/marketing/videos",
+      open: "/content/videos",
     },
   ],
   actions: [...DRAFT_ACTIONS, ...COMMENT_ACTIONS, ...DM_ACTIONS, VIDEO_APPROVE],
@@ -1382,7 +1384,7 @@ const TODAY: DayPage = {
 export const CONVERSATION_TOP = {
   label: "Conversation, last 30 days",
   record: "marketing.conversation",
-  href: "/marketing/conversation?view=30d",
+  href: "/engage/conversation?view=30d",
   fields: ["answered", "replySecs", "dmed", "booked"],
   units: { answered: "answered", replySecs: "to reply", dmed: "to DM", booked: "booked" },
   empty: "No comments from others or DMs in 30 days.",
@@ -1402,61 +1404,6 @@ const REVIEWS_PAGE: ListPage = {
     low: "No review under 4 stars.",
     all: "Reviews show here once a Business Profile is connected.",
   },
-};
-
-/**
- * Marketing's pages (designs/2026-10-13-primitives-first.md, 2026-10-14-content-types.md): Today
- * (what to make, what waits, what went out), Drafts (every post draft, edit and approve), Studio
- * (make anything new, finish what waits; Write and the recordings, `videos`, open from it),
- * Pieces (each thing made, with everywhere it went), Numbers, and More,
- * which lists the rest by what each is for. Ids stay, so old links and pings keep landing; a page
- * past the main ones lights More.
- */
-const MAIN: Readonly<Record<string, string>> = {
-  plan: "Today",
-  drafts: "Drafts",
-  studio: "Studio",
-  pieces: "Pieces",
-  overview: "Numbers",
-};
-/** More's headings for the old sidebar groups. */
-const MORE_GROUPS: Readonly<Record<string, string>> = {
-  Content: "Content",
-  Reach: "Replies and audience",
-  Numbers: "Numbers",
-  "Ads & Site": "Ads and site",
-};
-const mainPlusMore = (pages: ModulePage[]): ModulePage[] => {
-  const order = Object.keys(MAIN);
-  const rest = pages.filter((p) => !MAIN[p.id] && !p.hidden);
-  const groups: MoreGroup[] = Object.entries(MORE_GROUPS)
-    .map(([from, title]) => ({
-      title,
-      pages: rest
-        .filter((p) => (p.group ?? "Content") === from)
-        .map((p) => ({ label: p.label, href: `/marketing/${p.id}` })),
-    }))
-    .filter((g) => g.pages.length);
-  const more: ModulePage = {
-    id: "more",
-    label: "More",
-    about: "Every other Marketing page, by what it's for.",
-    Page: () => createElement(MorePage, { groups }),
-  };
-  const main = order
-    .map((id) => pages.find((p) => p.id === id))
-    .filter((p): p is ModulePage => !!p)
-    .map((p): ModulePage => {
-      const { group: _, ...bare } = p;
-      return { ...bare, label: MAIN[p.id] ?? p.label };
-    });
-  const tail = pages
-    .filter((p) => !MAIN[p.id])
-    .map((p): ModulePage => {
-      const { group: _, ...bare } = p;
-      return p.hidden ? bare : { ...bare, hidden: true, lights: "more" };
-    });
-  return [...main, more, ...tail];
 };
 
 /** Ad set days (`marketing.ad_day`): Wren's Ads app, and a client's Marketing → Ads. */
@@ -1604,482 +1551,476 @@ export const SITE_PAGES: ListPage[] = [
   },
 ];
 
-export const marketing: Module = {
-  id: "marketing",
-  name: "Marketing",
+/**
+ * Wren's Marketing pages, by id (designs/2026-10-19-portal-reshape.md). The old Marketing app is
+ * gone: Content, Engage, Outbound and Analytics each take the pages they show, so a page is
+ * declared once. A page keeps its id, so `moved.ts` sends an old address on. A group and a
+ * "link only" flag are the taking app's to set. A client's Marketing reads a few of these too.
+ */
+export const MARKETING_PAGES = {
+  inbox: { id: "inbox", ...INBOX_PAGE },
+  approve: APPROVAL_PAGE,
+  "auto-reply": {
+    id: "auto-reply",
+    label: "Auto-reply",
+    about: "What happens when someone writes in, per channel.",
+    Page: AutoReplyPage,
+  },
+  keywords: {
+    id: "keywords",
+    label: "Comment keywords",
+    about: "Words that get a commenter your DM when they say them.",
+    template: "list",
+    record: "marketing.comment_keyword",
+    actions: KEYWORD_ACTIONS,
+    empty: "No keywords yet. Add one: a comment that says it gets your DM.",
+  },
+  "keyword-dms": {
+    id: "keyword-dms",
+    label: "Keyword DMs",
+    about: "Comments that said a keyword, and the DM each one got.",
+    template: "list",
+    record: "marketing.keyword_hit",
+    empty: "No comment has said a keyword yet.",
+  },
+  reviews: REVIEWS_PAGE,
+  today: TODAY,
+  plan: {
+    id: "plan",
+    label: "Plan",
+    about: "What to make today, what waits on you, and what went out.",
+    Page: PlanPage,
+  },
+  pieces: {
+    id: "pieces",
+    label: "Pieces",
+    about: "Everything you made, each with everywhere it went.",
+    Page: PiecesPage,
+  },
+  studio: {
+    id: "studio",
+    label: "Studio",
+    about: "Make posts, threads, carousels, stories, blog posts and videos, and finish drafts.",
+    Page: StudioPage,
+    wide: true,
+  },
+  // Write folded into Studio; its old links land in Studio's New.
+  write: {
+    id: "write",
+    label: "Write",
+    about: "Opens Studio's New.",
+    hidden: true,
+    lights: "studio",
+    Page: WritePage,
+  },
+  feed: {
+    id: "feed",
+    label: "Feed",
+    about: "Posts from the people and topics you follow.",
+    Page: FeedPage,
+    wide: true,
+  },
+  explore: EXPLORE_PAGE,
+  // Every post draft, one row per platform: each draft's own page (Pieces links here). Off the
+  // tabs: Pieces shows each thing made once, its platforms under it, so the list isn't N copies.
+  drafts: {
+    id: "drafts",
+    label: "Drafts",
+    about: "Every post draft: edit it, approve it, it goes out.",
+    hidden: true,
+    lights: "pieces",
+    template: "list",
+    record: "marketing.draft",
+    card: DRAFT_CARD,
+    empty: {
+      next: "Nothing waits on you or is scheduled. Make something in Studio.",
+      waiting: "No draft waits on you.",
+      scheduled: "Nothing is scheduled.",
+      rejected: "Nothing was turned down.",
+    },
+    actions: DRAFT_ACTIONS,
+    // One editor for a post wherever it was opened: words, fields, preview, versions, and the
+    // same idea on its other platforms.
+    extras: withDraft(POST_DRAFT, withSiblings(withShape())),
+  },
+  content: {
+    id: "content",
+    label: "Posts",
+    about: "Every post that went out, best first.",
+    template: "list",
+    record: "marketing.post",
+    card: POST_CARD,
+    // The rest of its numbers sit on the post, under How it did.
+    columns: ["title", "platform", "published", "format", "stage", "views", "engagement", "clicks"],
+    empty: {
+      leaderboard: "Posts with views show here, best first.",
+      site: "Posts whose link brought a visitor show here.",
+      all: "Posts show here once one is published.",
+    },
+    actions: POST_ACTIONS,
+    extras: withAnalytics(withShape(postExtras)),
+  },
+  comments: {
+    id: "comments",
+    label: "Comments",
+    about: "Comments on your posts, waiting on a reply.",
+    template: "list",
+    record: "marketing.comment",
+    card: COMMENT_CARD,
+    // Their words preview under who; Where, On and Open sit on the comment itself.
+    columns: ["who", "platform", "kind", "postTitle", "sort", "state", "at"],
+    empty: {
+      waiting: "No comment waits on you.",
+      answered: "Comments you answered show here.",
+      all: "Comments on our posts and under our comments show here.",
+    },
+    actions: [...COMMENT_ACTIONS, ...COMMENT_ASK, ...THREAD_VIEW_ACTIONS],
+    extras: withDraft(
+      COMMENT_DRAFT,
+      withThread(() => ({})),
+    ),
+  },
+  // Every recording; Studio's Videos shows the newest and opens each in this page's editor.
+  videos: studioVideos({
+    id: "videos",
+    label: "Recordings",
+    about: "Recordings: the agent edits, you review, they go out as videos and Shorts.",
+    hidden: true,
+    lights: "studio",
+    template: "list",
+    record: "marketing.video",
+    card: VIDEO_CARD,
+    empty: {
+      waiting: "No rendered video waits on you.",
+      all: "Videos show here a minute after OBS or Cap stops recording on the Mac.",
+    },
+    actions: VIDEO_ACTIONS,
+    extras: videoExtras,
+  }),
+  topics: {
+    id: "topics",
+    label: "Topics",
+    about: "The email topics people can sign up for.",
+    template: "list",
+    record: "marketing.topic",
+    empty: "Email topics people can sign up for show here.",
+  },
+  // What every draft may claim; the guard's drop reason on a draft links here.
+  facts: {
+    id: "facts",
+    label: "Facts",
+    about: "What drafts may say about you and Wren.",
+    Page: FactsPage,
+  },
+  followers: {
+    id: "followers",
+    label: "Followers",
+    about: "Your followers on each platform, and the change in a week.",
+    template: "list",
+    record: "marketing.audience",
+    empty: "No follower count yet. Counts are read once a day; LinkedIn's on Read now.",
+    actions: AUDIENCE_ACTIONS,
+  },
+  subscribers: {
+    id: "subscribers",
+    label: "Subscribers",
+    about: "People who signed up for your email topics.",
+    template: "list",
+    record: "marketing.subscriber",
+    empty: {
+      confirmed: "No one has confirmed yet.",
+      pending: "No signup waits on a confirm.",
+      withdrawn: "No one has left.",
+      paused: "No one has paused.",
+      all: "Signups show here from the site, forms and texts.",
+    },
+  },
+  texts: {
+    id: "texts",
+    label: "Texts",
+    about: "Text conversations waiting on your reply.",
+    template: "list",
+    record: "marketing.text_contact",
+    empty: {
+      waiting: "No reply waits on you.",
+      texted: "No one texted yet.",
+      replied: "People who texted back show here.",
+      opted_out: "No one has opted out.",
+    },
+    actions: TEXT_ACTIONS,
+  },
+  "text-copy": {
+    id: "text-copy",
+    label: "Text copy",
+    about: "The words of every text we send.",
+    template: "list",
+    record: "marketing.text_copy",
+    empty: { empty: "Every text has words.", all: "No sequence has texts." },
+    actions: TEXT_COPY_ACTIONS,
+    extras: textCopyExtras,
+  },
+  overview: {
+    id: "overview",
+    label: "Numbers",
+    about: "Your marketing numbers at a glance.",
+    template: "overview",
+    tiles: [
+      {
+        label: "Content views",
+        record: "marketing.post",
+        href: "/content/content?view=all",
+        period: "month",
+        sum: "views",
+      },
+      {
+        label: "Site visitors from posts",
+        record: "marketing.link_day",
+        href: "/analytics/links?view=posts",
+        period: "month",
+        sum: "clicks",
+      },
+      {
+        label: "Ad impressions",
+        record: "marketing.ad_day",
+        href: "/ads/sets?view=campaign",
+        period: "month",
+        sum: "impressions",
+      },
+      {
+        label: "Search impressions",
+        record: "marketing.search_day",
+        href: "/analytics/search-days?view=all",
+        period: "month",
+        sum: "impressions",
+      },
+      {
+        label: "Site visits",
+        record: "marketing.site_day",
+        href: "/analytics/visits?view=channel",
+        period: "month",
+        sum: "visits",
+      },
+      {
+        label: "Forms",
+        record: "marketing.site_day",
+        href: "/analytics/visits?view=channel",
+        period: "month",
+        sum: "forms",
+      },
+      {
+        label: "Booking clicks",
+        record: "marketing.site_day",
+        href: "/analytics/visits?view=channel",
+        period: "month",
+        sum: "bookings",
+      },
+      {
+        label: "Calls booked",
+        record: "marketing.site_day",
+        href: "/analytics/funnel?view=30d",
+        period: "month",
+        sum: "calls",
+      },
+      {
+        label: "Paid",
+        record: "marketing.site_day",
+        href: "/analytics/funnel?view=30d",
+        period: "month",
+        sum: "paid",
+      },
+      {
+        label: "Ad spend",
+        record: "marketing.ad_day",
+        href: "/ads/sets?view=campaign",
+        period: "month",
+        sum: "spend",
+      },
+      {
+        label: "To approve",
+        record: "marketing.approval",
+        href: "/engage/approve?view=waiting",
+        needs: true,
+      },
+      {
+        label: "Drafts waiting",
+        record: "marketing.draft",
+        href: "/content/pieces?show=waiting&sort=waiting",
+        needs: true,
+      },
+      {
+        label: "Texts waiting",
+        record: "marketing.text_contact",
+        href: "/outbound/texts?view=waiting",
+        needs: true,
+      },
+      {
+        label: "Comments waiting",
+        record: "marketing.comment",
+        href: "/engage/comments?view=waiting",
+        needs: true,
+      },
+      {
+        label: "New activity",
+        record: "marketing.activity",
+        href: "/engage/inbox?view=activity",
+        needs: true,
+      },
+    ],
+    top: [
+      {
+        label: "Followers",
+        record: "marketing.audience",
+        href: "/engage/followers",
+        fields: ["followers", "week"],
+        empty: "No follower count yet. Counts are read once a day.",
+      },
+      {
+        label: "This week against goals",
+        record: "marketing.cadence",
+        href: "/content/cadence?view=week",
+        fields: ["done", "goal"],
+        empty: "No goals set.",
+      },
+      {
+        label: "What worked last week",
+        record: "marketing.digest",
+        href: "/content/digest?view=worked",
+        fields: ["kind"],
+        empty: "The first digest lands on Monday.",
+      },
+      {
+        label: "Top posts",
+        record: "marketing.post",
+        href: "/content/content?view=leaderboard",
+        fields: ["views", "engagement", "format"],
+        empty: "No post has numbers yet.",
+      },
+      {
+        label: "Posts that brought visitors",
+        record: "marketing.post",
+        href: "/content/content?view=site",
+        fields: ["clicks", "toSite"],
+        units: { toSite: "of views" },
+        empty: "No post's link has brought a visitor yet.",
+      },
+      CONVERSATION_TOP,
+      {
+        label: "Numbers not read yet",
+        record: "marketing.metric",
+        href: "/content/metrics?view=scope",
+        fields: ["state"],
+        line: "step",
+        empty: "Every number that needs a step is read.",
+      },
+      {
+        label: "Top keywords",
+        record: "marketing.keyword",
+        href: "/analytics/keywords?view=active",
+        fields: ["clicks", "impressions"],
+        empty: "No keyword has impressions yet.",
+      },
+    ],
+    below: NumbersBelow,
+  },
+  funnel: {
+    id: "funnel",
+    label: "Funnel",
+    about: "Each channel's funnel, from first visit to booking.",
+    template: "list",
+    record: "marketing.funnel",
+    empty: "Funnels show here a day after the site's first visit.",
+  },
+  links: {
+    id: "links",
+    label: "Links",
+    about: "Who came through each tracked link, and what they did next.",
+    hidden: true,
+    template: "list",
+    record: "marketing.link_day",
+    empty: {
+      month: "Clicks show here a day after they happen.",
+      posts: "Visitors from a post's link show here.",
+      all: "Clicks show here a day after they happen.",
+    },
+  },
+  conversation: {
+    id: "conversation",
+    label: "Conversation",
+    about: "How fast and how often we answer comments and DMs.",
+    template: "list",
+    record: "marketing.conversation",
+    empty: "Comments from others and DMs we sent show here.",
+  },
+  cadence: {
+    id: "cadence",
+    label: "Cadence",
+    about: "Your posting goals against what went out this week.",
+    hidden: true,
+    template: "list",
+    record: "marketing.cadence",
+    empty: "No goals set.",
+  },
+  digest: {
+    id: "digest",
+    label: "What worked",
+    about: "What worked last week, by platform.",
+    hidden: true,
+    template: "list",
+    record: "marketing.digest",
+    empty: "The first digest lands on Monday.",
+  },
+  metrics: {
+    id: "metrics",
+    label: "Every number",
+    about: "Every number we track, and what each missing one needs.",
+    hidden: true,
+    template: "list",
+    record: "marketing.metric",
+    empty: { gaps: "Every number is read.", scope: "No number waits on a step." },
+  },
+  reports: {
+    id: "reports",
+    label: "Reports",
+    about: "Your numbers by email each week or month, against the one before.",
+    Page: ReportsPage,
+    requires: { needs: "manage" },
+  },
+} satisfies Record<string, ModulePage>;
+
+const P = MARKETING_PAGES;
+
+/**
+ * Content (designs/2026-10-14-content-types.md): what to make, make it, and how it did. Plan is the
+ * day (what to make, what waits, what went out), Studio makes anything new and finishes what
+ * waits, Pieces lists each thing made with everywhere it went, Posts what went out. The rest
+ * opens from a link and lights the tab it belongs to.
+ */
+export const content: Module = {
+  id: "content",
+  name: "Content",
   component: "marketing.stats",
   icon: "megaphone",
-  blurb: "Every platform's posts, the comments on them and their numbers in one place.",
+  blurb: "Every platform's posts: plan, make, and how each did.",
   requires: { audience: "team" },
-  pages: mainPlusMore([
-    // Inbox and To approve live in Wren's Inbox; these keep old links and pings landing.
-    { id: "inbox", ...INBOX_PAGE, hidden: true },
-    { ...APPROVAL_PAGE, hidden: true },
-    {
-      id: "auto-reply",
-      label: "Auto-reply",
-      about: "What happens when someone writes in, per channel.",
-      group: "Reach",
-      Page: AutoReplyPage,
-    },
-    {
-      id: "keywords",
-      label: "Comment keywords",
-      about: "Words that get a commenter your DM when they say them.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.comment_keyword",
-      actions: KEYWORD_ACTIONS,
-      empty: "No keywords yet. Add one: a comment that says it gets your DM.",
-    },
-    {
-      id: "keyword-dms",
-      label: "Keyword DMs",
-      about: "Comments that said a keyword, and the DM each one got.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.keyword_hit",
-      empty: "No comment has said a keyword yet.",
-    },
-    REVIEWS_PAGE,
-    TODAY,
-    {
-      id: "plan",
-      label: "Today",
-      about: "What to make today, what waits on you, and what went out.",
-      Page: PlanPage,
-    },
-    {
-      id: "pieces",
-      label: "Pieces",
-      about: "Everything you made, each with everywhere it went.",
-      Page: PiecesPage,
-    },
-    {
-      id: "studio",
-      label: "Studio",
-      about: "Make posts, threads, carousels, stories, blog posts and videos, and finish drafts.",
-      group: "Content",
-      Page: StudioPage,
-      wide: true,
-    },
-    // Write folded into Studio; its old links land in Studio's New.
-    {
-      id: "write",
-      label: "Write",
-      about: "Opens Studio's New.",
-      hidden: true,
-      lights: "studio",
-      Page: WritePage,
-    },
-    {
-      id: "feed",
-      label: "Feed",
-      about: "Posts from the people and topics you follow.",
-      group: "Content",
-      Page: FeedPage,
-      wide: true,
-    },
-    EXPLORE_PAGE,
-    // Every post draft, one row per platform: each draft's own page (Pieces links here). Off the
-    // tabs: Pieces shows each thing made once, its platforms under it, so the list isn't N copies.
-    {
-      id: "drafts",
-      label: "Drafts",
-      about: "Every post draft: edit it, approve it, it goes out.",
-      hidden: true,
-      lights: "pieces",
-      template: "list",
-      record: "marketing.draft",
-      card: DRAFT_CARD,
-      empty: {
-        next: "Nothing waits on you or is scheduled. Make something in Studio.",
-        waiting: "No draft waits on you.",
-        scheduled: "Nothing is scheduled.",
-        rejected: "Nothing was turned down.",
-      },
-      actions: DRAFT_ACTIONS,
-      // One editor for a post wherever it was opened: words, fields, preview, versions, and the
-      // same idea on its other platforms.
-      extras: withDraft(POST_DRAFT, withSiblings(withShape())),
-    },
-    {
-      id: "content",
-      label: "Posts",
-      about: "Every post that went out, best first.",
-      group: "Numbers",
-      template: "list",
-      record: "marketing.post",
-      card: POST_CARD,
-      // The rest of its numbers sit on the post, under How it did.
-      columns: [
-        "title",
-        "platform",
-        "published",
-        "format",
-        "stage",
-        "views",
-        "engagement",
-        "clicks",
-      ],
-      empty: {
-        leaderboard: "Posts with views show here, best first.",
-        site: "Posts whose link brought a visitor show here.",
-        all: "Posts show here once one is published.",
-      },
-      actions: POST_ACTIONS,
-      extras: withAnalytics(withShape(postExtras)),
-    },
-    {
-      id: "comments",
-      label: "Comments",
-      about: "Comments on your posts, waiting on a reply.",
-      group: "Content",
-      template: "list",
-      record: "marketing.comment",
-      card: COMMENT_CARD,
-      // Their words preview under who; Where, On and Open sit on the comment itself.
-      columns: ["who", "platform", "kind", "postTitle", "sort", "state", "at"],
-      empty: {
-        waiting: "No comment waits on you.",
-        answered: "Comments you answered show here.",
-        all: "Comments on our posts and under our comments show here.",
-      },
-      actions: [...COMMENT_ACTIONS, ...COMMENT_ASK, ...THREAD_VIEW_ACTIONS],
-      extras: withDraft(
-        COMMENT_DRAFT,
-        withThread(() => ({})),
-      ),
-    },
-    // Every recording; Studio's Videos shows the newest and opens each in this page's editor.
-    studioVideos({
-      id: "videos",
-      label: "Recordings",
-      about: "Recordings: the agent edits, you review, they go out as videos and Shorts.",
-      group: "Content",
-      hidden: true,
-      lights: "studio",
-      template: "list",
-      record: "marketing.video",
-      card: VIDEO_CARD,
-      empty: {
-        waiting: "No rendered video waits on you.",
-        all: "Videos show here a minute after OBS or Cap stops recording on the Mac.",
-      },
-      actions: VIDEO_ACTIONS,
-      extras: videoExtras,
-    }),
-    {
-      id: "topics",
-      label: "Topics",
-      about: "The email topics people can sign up for.",
-      group: "Content",
-      template: "list",
-      record: "marketing.topic",
-      empty: "Email topics people can sign up for show here.",
-    },
-    // What every draft may claim; the guard's drop reason on a draft links here.
-    {
-      id: "facts",
-      label: "Facts",
-      about: "What drafts may say about you and Wren.",
-      group: "Content",
-      Page: FactsPage,
-    },
-    {
-      id: "followers",
-      label: "Followers",
-      about: "Your followers on each platform, and the change in a week.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.audience",
-      empty: "No follower count yet. Counts are read once a day; LinkedIn's on Read now.",
-      actions: AUDIENCE_ACTIONS,
-    },
-    {
-      id: "subscribers",
-      label: "Subscribers",
-      about: "People who signed up for your email topics.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.subscriber",
-      empty: {
-        confirmed: "No one has confirmed yet.",
-        pending: "No signup waits on a confirm.",
-        withdrawn: "No one has left.",
-        paused: "No one has paused.",
-        all: "Signups show here from the site, forms and texts.",
-      },
-    },
-    {
-      id: "texts",
-      label: "Texts",
-      about: "Text conversations waiting on your reply.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.text_contact",
-      empty: {
-        waiting: "No reply waits on you.",
-        texted: "No one texted yet.",
-        replied: "People who texted back show here.",
-        opted_out: "No one has opted out.",
-      },
-      actions: TEXT_ACTIONS,
-    },
-    {
-      id: "text-copy",
-      label: "Text copy",
-      about: "The words of every text we send.",
-      group: "Reach",
-      template: "list",
-      record: "marketing.text_copy",
-      empty: { empty: "Every text has words.", all: "No sequence has texts." },
-      actions: TEXT_COPY_ACTIONS,
-      extras: textCopyExtras,
-    },
-    {
-      id: "overview",
-      label: "Overview",
-      about: "Your marketing numbers at a glance.",
-      group: "Numbers",
-      template: "overview",
-      tiles: [
-        {
-          label: "Content views",
-          record: "marketing.post",
-          href: "/marketing/content?view=all",
-          period: "month",
-          sum: "views",
-        },
-        {
-          label: "Site visitors from posts",
-          record: "marketing.link_day",
-          href: "/marketing/links?view=posts",
-          period: "month",
-          sum: "clicks",
-        },
-        {
-          label: "Ad impressions",
-          record: "marketing.ad_day",
-          href: "/ads/sets?view=campaign",
-          period: "month",
-          sum: "impressions",
-        },
-        {
-          label: "Search impressions",
-          record: "marketing.search_day",
-          href: "/sites/search-days?view=all",
-          period: "month",
-          sum: "impressions",
-        },
-        {
-          label: "Site visits",
-          record: "marketing.site_day",
-          href: "/sites/visits?view=channel",
-          period: "month",
-          sum: "visits",
-        },
-        {
-          label: "Forms",
-          record: "marketing.site_day",
-          href: "/sites/visits?view=channel",
-          period: "month",
-          sum: "forms",
-        },
-        {
-          label: "Booking clicks",
-          record: "marketing.site_day",
-          href: "/sites/visits?view=channel",
-          period: "month",
-          sum: "bookings",
-        },
-        {
-          label: "Calls booked",
-          record: "marketing.site_day",
-          href: "/marketing/funnel?view=30d",
-          period: "month",
-          sum: "calls",
-        },
-        {
-          label: "Paid",
-          record: "marketing.site_day",
-          href: "/marketing/funnel?view=30d",
-          period: "month",
-          sum: "paid",
-        },
-        {
-          label: "Ad spend",
-          record: "marketing.ad_day",
-          href: "/ads/sets?view=campaign",
-          period: "month",
-          sum: "spend",
-        },
-        {
-          label: "To approve",
-          record: "marketing.approval",
-          href: "/inbox/approve?view=waiting",
-          needs: true,
-        },
-        {
-          label: "Drafts waiting",
-          record: "marketing.draft",
-          href: "/marketing/pieces?show=waiting&sort=waiting",
-          needs: true,
-        },
-        {
-          label: "Texts waiting",
-          record: "marketing.text_contact",
-          href: "/marketing/texts?view=waiting",
-          needs: true,
-        },
-        {
-          label: "Comments waiting",
-          record: "marketing.comment",
-          href: "/marketing/comments?view=waiting",
-          needs: true,
-        },
-        {
-          label: "New activity",
-          record: "marketing.activity",
-          href: "/marketing/inbox?view=activity",
-          needs: true,
-        },
-      ],
-      top: [
-        {
-          label: "Followers",
-          record: "marketing.audience",
-          href: "/marketing/followers",
-          fields: ["followers", "week"],
-          empty: "No follower count yet. Counts are read once a day.",
-        },
-        {
-          label: "This week against goals",
-          record: "marketing.cadence",
-          href: "/marketing/cadence?view=week",
-          fields: ["done", "goal"],
-          empty: "No goals set.",
-        },
-        {
-          label: "What worked last week",
-          record: "marketing.digest",
-          href: "/marketing/digest?view=worked",
-          fields: ["kind"],
-          empty: "The first digest lands on Monday.",
-        },
-        {
-          label: "Top posts",
-          record: "marketing.post",
-          href: "/marketing/content?view=leaderboard",
-          fields: ["views", "engagement", "format"],
-          empty: "No post has numbers yet.",
-        },
-        {
-          label: "Posts that brought visitors",
-          record: "marketing.post",
-          href: "/marketing/content?view=site",
-          fields: ["clicks", "toSite"],
-          units: { toSite: "of views" },
-          empty: "No post's link has brought a visitor yet.",
-        },
-        CONVERSATION_TOP,
-        {
-          label: "Numbers not read yet",
-          record: "marketing.metric",
-          href: "/marketing/metrics?view=scope",
-          fields: ["state"],
-          line: "step",
-          empty: "Every number that needs a step is read.",
-        },
-        {
-          label: "Top keywords",
-          record: "marketing.keyword",
-          href: "/sites/keywords?view=active",
-          fields: ["clicks", "impressions"],
-          empty: "No keyword has impressions yet.",
-        },
-      ],
-      below: NumbersBelow,
-    },
-    {
-      id: "funnel",
-      label: "Funnel",
-      about: "Each channel's funnel, from first visit to booking.",
-      group: "Numbers",
-      template: "list",
-      record: "marketing.funnel",
-      empty: "Funnels show here a day after the site's first visit.",
-    },
-    {
-      id: "links",
-      label: "Links",
-      about: "Who came through each tracked link, and what they did next.",
-      group: "Ads & Site",
-      hidden: true,
-      template: "list",
-      record: "marketing.link_day",
-      empty: {
-        month: "Clicks show here a day after they happen.",
-        posts: "Visitors from a post's link show here.",
-        all: "Clicks show here a day after they happen.",
-      },
-    },
-    {
-      id: "conversation",
-      label: "Conversation",
-      about: "How fast and how often we answer comments and DMs.",
-      group: "Numbers",
-      hidden: true,
-      template: "list",
-      record: "marketing.conversation",
-      empty: "Comments from others and DMs we sent show here.",
-    },
-    {
-      id: "cadence",
-      label: "Cadence",
-      about: "Your posting goals against what went out this week.",
-      group: "Numbers",
-      hidden: true,
-      template: "list",
-      record: "marketing.cadence",
-      empty: "No goals set.",
-    },
-    {
-      id: "digest",
-      label: "What worked",
-      about: "What worked last week, by platform.",
-      group: "Numbers",
-      hidden: true,
-      template: "list",
-      record: "marketing.digest",
-      empty: "The first digest lands on Monday.",
-    },
-    {
-      id: "metrics",
-      label: "Every number",
-      about: "Every number we track, and what each missing one needs.",
-      group: "Numbers",
-      hidden: true,
-      template: "list",
-      record: "marketing.metric",
-      empty: { gaps: "Every number is read.", scope: "No number waits on a step." },
-    },
-    {
-      id: "reports",
-      label: "Reports",
-      about: "Your numbers by email each week or month, against the one before.",
-      group: "Numbers",
-      Page: ReportsPage,
-      requires: { needs: "manage" },
-    },
-    // Ads and the site's numbers moved to Ads and Sites; these keep old links landing.
-    { ...AD_DAYS, hidden: true },
-    ...SITE_PAGES.map((p) => ({
-      ...p,
-      id: p.id === "visits" ? "site" : p.id,
-      hidden: true as const,
-    })),
-  ]),
+  pages: [
+    P.plan,
+    P.studio,
+    P.pieces,
+    P.content,
+    P.overview,
+    P.feed,
+    { ...P.topics, group: "Setup" },
+    { ...P.facts, group: "Setup" },
+    P.drafts,
+    P.write,
+    P.videos,
+    P.explore,
+    { ...P.today, lights: "plan" },
+    { ...P.digest, lights: "overview" },
+    { ...P.metrics, lights: "overview" },
+    { ...P.cadence, lights: "overview" },
+    { ...P.reports, hidden: true, lights: "overview" },
+  ],
 };
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);
@@ -2089,7 +2030,9 @@ const POST_NOW = { id: "marketing.postNow", flag: POST_NOW_FLAG } as const;
 const EDITS = new Set(fieldActions(OPEN).map((a) => a.id));
 /** One of Wren's Marketing pages, as a client's: its records from its own database, read only. */
 const asClient = (id: string, more: Partial<ListPage> = {}): ListPage => {
-  const page = [AD_DAYS, ...SITE_PAGES, ...marketing.pages].find((p) => p.id === id) as ListPage;
+  const page = [AD_DAYS, ...SITE_PAGES, ...Object.values(MARKETING_PAGES)].find(
+    (p) => p.id === id,
+  ) as ListPage;
   const { actions: _a, extras: _e, ...rest } = page;
   return { ...rest, ...more };
 };
@@ -2143,14 +2086,15 @@ const CLIENT_APPROVE: ListPage = {
  * Same address as Wren's; the workspace picks which.
  */
 export const clientMarketing: Module = {
-  id: marketing.id,
-  name: marketing.name,
+  id: "marketing",
+  name: "Marketing",
   component: "marketing.stats",
-  icon: marketing.icon,
+  icon: "megaphone",
   blurb: "Your posts, drafts, ads and search in one place.",
   pages: [
     // Its own threads: reply, Suggest, notes, assign, close and snooze.
     asClient("inbox", {
+      hidden: true,
       actions: INBOX_THREAD_ACTIONS.map(clientInbox),
       // A comment's whole thread, read only: its reply box answers the comment.
       extras: withThread(conversationExtras, { readOnly: true }),
@@ -2173,7 +2117,10 @@ export const clientMarketing: Module = {
       ),
       extras: withShape(),
     }),
-    asClient("content", { actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote") }),
+    asClient("content", {
+      hidden: true,
+      actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote"),
+    }),
     asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
     asClient("search"),
     asClient("keywords"),

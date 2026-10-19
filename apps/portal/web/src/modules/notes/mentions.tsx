@@ -5,17 +5,17 @@
  */
 import { Empty, Icon, LoadFailed, Loading, PageHeader, relative } from "@wren/ui";
 import { useCall } from "../../load.js";
-import type { PageProps } from "../../module.js";
+import { type PageProps, WREN } from "../../module.js";
 import { docPath, type NoteMention, notes } from "./api.js";
 
 /** The Notes tab's number: mentions not seen yet. */
 export const unseenMentions = (client: string) =>
   notes(client, "mentions", { limit: 1 }).then((r) => r.unseen);
 
-/** A note, its comment, or a client's Inbox thread (Marketing -> Inbox). */
-const linkOf = (m: NoteMention) =>
+/** A note, its comment, or an Inbox thread (a client's Marketing -> Inbox, Wren's Engage -> Inbox). */
+const linkOf = (m: NoteMention, client: string) =>
   m.thread
-    ? `/marketing/inbox/${encodeURIComponent(m.thread)}`
+    ? `${client === WREN.id ? "/engage/inbox" : "/marketing/inbox"}/${encodeURIComponent(m.thread)}`
     : m.commentId
       ? `${docPath(m.noteId ?? "")}?comment=${m.commentId}`
       : docPath(m.noteId ?? "");
@@ -43,7 +43,7 @@ export function NoteMentions({ client }: PageProps) {
             {data.mentions.map((m) => (
               <li key={m.id} className="border-b border-(--ui-hair) last:border-b-0">
                 <a
-                  href={linkOf(m)}
+                  href={linkOf(m, client)}
                   className="flex items-start gap-3 px-3 py-3 text-(--ui-ink) no-underline hover:bg-(--ui-wash)"
                 >
                   <Icon name="note" className="mt-0.5 flex-none text-(--ui-ink-2)" />

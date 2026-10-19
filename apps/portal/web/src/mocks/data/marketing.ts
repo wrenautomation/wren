@@ -92,3 +92,12 @@ export const CADENCE: Goal[] = [
   goal("g2", "tiktok", "TikTok", "vertical", "Short video", 2),
   goal("g3", "linkedin", "LinkedIn", "written", "Written post", 3),
 ];
+
+/** Studio's "waiting" read (ContentDesk): no idea has a draft waiting. */
+export const STUDIO_WAITING = { ideas: [] };
+
+/** Auto-reply's modes: Wren's own (InboxDesk through the console) and a client's alike. */
+export const AUTO_REPLY = {
+  modes: { text: "suggest", email: "suggest", dm: "off", comment: "auto" },
+  held: false,
+};

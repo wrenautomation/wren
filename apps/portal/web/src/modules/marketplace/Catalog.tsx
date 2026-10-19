@@ -68,7 +68,7 @@ interface Part {
   values?: Record<string, unknown> | null;
   /** Its settings are Wren's own run's: a save goes to Wren, not this client. */
   wrenSettings?: boolean;
-  /** Its own editor ("/marketing/facts"), where its settings save with their History. */
+  /** Its own editor ("/content/facts"), where its settings save with their History. */
   editor?: string | null;
 }
 

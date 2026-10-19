@@ -96,7 +96,8 @@ function NeedsYou({
   waiting: Waiting;
   read: WaitingRead;
 }) {
-  const lines = areasOf(apps).flatMap(({ apps }) =>
+  // A client's Today only: Wren's lists its own waiting pages in WrenWork.
+  const lines = areasOf(apps, false).flatMap(({ apps }) =>
     apps.flatMap((m) =>
       m.pages
         .filter((p) => !p.hidden && (waiting[m.id]?.[p.id] ?? 0) > 0)
@@ -128,7 +129,7 @@ function NeedsYou({
 
 /**
  * To approve's other kinds: their name, where they list, and whether `who` is a person. `app`:
- * the app whose own tabs count them too (Outreach's Engage and Invites), which then lists them
+ * the app whose own tabs count them too (Engage's own tabs, and Invites), which then lists them
  * once, not twice.
  */
 const ASKS: Record<string, { label: string; view: string; person?: boolean; app?: string }> = {
@@ -136,11 +137,11 @@ const ASKS: Record<string, { label: string; view: string; person?: boolean; app?
     label: "First messages to new connections",
     view: "invites",
     person: true,
-    app: "outreach",
+    app: "engage",
   },
-  connect: { label: "Connection notes", view: "invites", person: true, app: "outreach" },
-  thread: { label: "Reddit thread comments", view: "threads", app: "outreach" },
-  onpost: { label: "Comments on others' posts", view: "comments", app: "outreach" },
+  connect: { label: "Connection notes", view: "invites", person: true, app: "engage" },
+  thread: { label: "Reddit thread comments", view: "threads", app: "engage" },
+  onpost: { label: "Comments on others' posts", view: "comments", app: "engage" },
   reply: { label: "Inbox replies", view: "replies", person: true },
   video: { label: "Videos", view: "videos" },
   template: { label: "Template versions", view: "templates" },
@@ -170,10 +171,10 @@ const nameOf = (v: unknown, person = false) => {
 };
 
 /** Each waiting page as its items: the first names in it, not just a count. */
-async function asksOf(apps: Module[], waiting: Waiting): Promise<Ask[]> {
+async function asksOf(apps: Module[], waiting: Waiting, team: boolean): Promise<Ask[]> {
   const metas = await call<Meta[]>("console/recordsTypes", {}).catch(() => [] as Meta[]);
   const titleOf = (record: string) => metas.find((m) => m.id === record)?.title ?? "name";
-  const pages = areasOf(apps).flatMap(({ apps }) =>
+  const pages = areasOf(apps, team).flatMap(({ apps }) =>
     apps.flatMap((m) =>
       m.pages
         .filter((p) => !p.hidden && (waiting[m.id]?.[p.id] ?? 0) > 0)
@@ -278,7 +279,7 @@ function WrenWork({
   const plan = usePlan();
   const work = usePieces();
   const key = JSON.stringify(waiting);
-  const asks = useCall(`today-asks:${key}`, () => asksOf(apps, waiting));
+  const asks = useCall(`today-asks:${key}`, () => asksOf(apps, waiting, true));
   const goals = goalsOf(plan.data?.rows);
   const pieces = (work.data?.pieces ?? []).filter((p) => allWaiting(p).length);
   const lines = asks.data ?? [];
@@ -297,7 +298,7 @@ function WrenWork({
           title="Make"
           note="This week's goals, by what you make"
           actions={
-            <a className={cx("text-[13px] underline", MUTED)} href="/marketing/plan">
+            <a className={cx("text-[13px] underline", MUTED)} href="/content/plan">
               Marketing
             </a>
           }
@@ -312,7 +313,7 @@ function WrenWork({
         }
         actions={
           pieces.length > PIECES_SHOWN ? (
-            <a className={cx("text-[13px] underline", MUTED)} href="/marketing/pieces?show=waiting">
+            <a className={cx("text-[13px] underline", MUTED)} href="/content/pieces?show=waiting">
               All {pieces.length} pieces
             </a>
           ) : null
@@ -344,10 +345,10 @@ function WrenWork({
 }
 
 /** The apps by area, for a phone, where the sidebar hides. */
-function AppsByArea({ apps, waiting }: { apps: Module[]; waiting: Waiting }) {
+function AppsByArea({ apps, waiting, team }: { apps: Module[]; waiting: Waiting; team: boolean }) {
   return (
     <div className="mt-12 min-[901px]:hidden">
-      {areasOf(apps).map(({ area, apps }) => (
+      {areasOf(apps, team).map(({ area, apps }) => (
         <Section key={area.id} title={area.label} plain>
           <ul className="list-none border-y border-(--ui-hair)">
             {apps.map((m) => (
@@ -400,7 +401,7 @@ export function WrenToday({
       {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
       <WrenWork apps={apps} waiting={waiting} read={read} />
-      <AppsByArea apps={apps} waiting={waiting} />
+      <AppsByArea apps={apps} waiting={waiting} team />
     </>
   );
 }
@@ -465,7 +466,7 @@ export function ClientToday({
           ))}
         </AppGrid>
       ) : null}
-      <AppsByArea apps={apps} waiting={waiting} />
+      <AppsByArea apps={apps} waiting={waiting} team={false} />
     </>
   );
 }

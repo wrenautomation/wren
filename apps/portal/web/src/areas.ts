@@ -1,7 +1,8 @@
 /**
- * The sidebar's areas: apps grouped by the job they do (designs/2026-10-10-portal-areas.md).
- * Pages never move between apps; an area only groups them. Wren's and a client's apps share the
- * map: an id a workspace lacks is skipped, and an area left empty isn't shown.
+ * The sidebar's areas: apps grouped by the job they do (designs/2026-10-10-portal-areas.md,
+ * 2026-10-19-portal-reshape.md). Wren's team and a client each have their own map. An id a
+ * workspace lacks is skipped, an area left empty isn't shown, and an app no area names lands in
+ * Tools. A parked app (`Module.parked`) is in no area.
  */
 import type { IconName } from "@wren/ui";
 
@@ -14,12 +15,44 @@ export interface Area {
   shut?: boolean;
 }
 
-export const AREAS: readonly Area[] = [
+/** Wren's team: the business in its real order, marketing one level down, the tools folded. */
+export const AREAS_TEAM: readonly Area[] = [
+  { id: "primary", label: "Primary", apps: ["offers", "pipelines", "people", "numbers"] },
+  {
+    id: "marketing",
+    label: "Marketing",
+    apps: ["content", "engage", "outbound", "ads", "analytics"],
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    shut: true,
+    apps: [
+      "inbox",
+      "workflows",
+      "loops",
+      "library",
+      "marketplace",
+      "sites",
+      "calendar",
+      "money",
+      "clients",
+      "team",
+      "ask",
+      "review",
+      "handlers",
+      "settings",
+    ],
+  },
+];
+
+/** A client's workspace: as it was before the team's reshape, with `deals` renamed `pipelines`. */
+export const AREAS_CLIENT: readonly Area[] = [
   { id: "inbox", label: "Inbox", apps: ["inbox", "texts"] },
   {
     id: "leads",
     label: "Leads",
-    apps: ["pipeline", "leads", "people", "outbound", "deals", "calls", "reactivation"],
+    apps: ["pipeline", "leads", "people", "outbound", "pipelines", "calls", "reactivation"],
   },
   { id: "marketing", label: "Marketing", apps: ["marketing", "outreach", "ads", "sites", "learn"] },
   {
@@ -44,16 +77,26 @@ export const AREAS: readonly Area[] = [
 /** The last area, where an app no area names goes, so a new app always shows. */
 const REST = "tools";
 
-/** These apps by area, in area order; areas with none left out. */
-export function areasOf<T extends { id: string }>(apps: readonly T[]): { area: Area; apps: T[] }[] {
-  const named = new Set(AREAS.flatMap((a) => a.apps));
-  return AREAS.map((area) => ({
-    area,
-    apps: [
-      ...area.apps.flatMap((id) => apps.filter((m) => m.id === id)),
-      ...(area.id === REST ? apps.filter((m) => !named.has(m.id)) : []),
-    ],
-  })).filter((a) => a.apps.length);
+/**
+ * These apps by area, in area order, for Wren's team or a client; areas with none left out. A
+ * parked app is left out of every area.
+ */
+export function areasOf<T extends { id: string; parked?: true | undefined }>(
+  apps: readonly T[],
+  team: boolean,
+): { area: Area; apps: T[] }[] {
+  const areas = team ? AREAS_TEAM : AREAS_CLIENT;
+  const shown = apps.filter((m) => !m.parked);
+  const named = new Set(areas.flatMap((a) => a.apps));
+  return areas
+    .map((area) => ({
+      area,
+      apps: [
+        ...area.apps.flatMap((id) => shown.filter((m) => m.id === id)),
+        ...(area.id === REST ? shown.filter((m) => !named.has(m.id)) : []),
+      ],
+    }))
+    .filter((a) => a.apps.length);
 }
 
 /** One of a phone's bottom tabs: an app, or one of its pages under its own name and icon. */
@@ -64,28 +107,29 @@ export interface DockPick {
   icon?: IconName;
 }
 
-/** What Wren's team opens every day, at a phone's thumb: approve, make, reply. */
-export const DOCK: readonly DockPick[] = [
-  { app: "inbox" },
-  { app: "marketing", page: "studio", label: "Studio", icon: "write" },
-  { app: "outreach", page: "engage", label: "Engage", icon: "reply" },
+/** What Wren's team opens every day, at a phone's thumb: the pipeline, make, reply. */
+export const DOCK_TEAM: readonly DockPick[] = [
+  { app: "pipelines" },
+  { app: "content", page: "studio", label: "Studio", icon: "write" },
+  { app: "engage", page: "engage", label: "Engage", icon: "reply" },
 ];
 
 /**
- * A phone's tabs after Today: the daily picks this workspace has, then its first apps by area,
- * up to `size`. A client without Marketing gets its own first apps.
+ * A phone's tabs after Today: Wren's team gets its daily picks that this workspace has. A client
+ * gets its first apps by area. Either fills up to `size` with the first apps by area.
  */
-export function dockOf<T extends { id: string; pages: readonly { id: string }[] }>(
-  apps: readonly T[],
-  size = 3,
-): { app: T; pick: DockPick }[] {
+export function dockOf<
+  T extends { id: string; pages: readonly { id: string }[]; parked?: true | undefined },
+>(apps: readonly T[], team: boolean, size = 3): { app: T; pick: DockPick }[] {
   const has = (p: DockPick) =>
-    apps.find((m) => m.id === p.app && (!p.page || m.pages.some((x) => x.id === p.page)));
-  const out = DOCK.flatMap((pick) => {
+    apps.find(
+      (m) => !m.parked && m.id === p.app && (!p.page || m.pages.some((x) => x.id === p.page)),
+    );
+  const out = (team ? DOCK_TEAM : []).flatMap((pick) => {
     const app = has(pick);
     return app ? [{ app, pick }] : [];
   });
-  for (const { apps: inArea } of areasOf(apps))
+  for (const { apps: inArea } of areasOf(apps, team))
     for (const app of inArea)
       if (out.length < size && !out.some((o) => o.app.id === app.id))
         out.push({ app, pick: { app: app.id } });
@@ -105,20 +149,15 @@ export interface TabPick {
  * or group, in its own order.
  */
 export const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
-  marketing: [
+  content: [
     { page: "plan", icon: "calendar" },
     { page: "studio", icon: "write" },
     { page: "pieces", icon: "write" },
   ],
-  outreach: [
+  engage: [
     { page: "engage", icon: "reply" },
     { page: "dms", label: "DMs", icon: "chat" },
     { page: "invites", icon: "people" },
-  ],
-  inbox: [
-    { page: "overview", label: "All", icon: "inbox" },
-    { page: "waiting", label: "Waiting", icon: "clock" },
-    { page: "approve", label: "Approve", icon: "check" },
   ],
 };
 

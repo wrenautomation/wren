@@ -20,7 +20,7 @@ export const SITES_COMPONENTS = [
     provides: {
       services: ["Sites", "SitesConsole"],
       records: [PAGE_RECORD, FUNNEL_RECORD, LINK_RECORD],
-      apps: ["sites"],
+      apps: ["sites", "analytics"],
     },
     out: [{ id: "forms", label: "filled forms", kind: "form" }],
     hypothesis: {

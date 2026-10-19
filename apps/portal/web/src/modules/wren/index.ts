@@ -16,7 +16,7 @@ import { People } from "../account/People.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { recorderHead } from "../calendar/recorder.js";
 import { callsPage } from "../calls/index.js";
-import { APPROVAL_PAGE, CONVERSATION_TOP, DONE_PAGE, INBOX_PAGE } from "../marketing/index.js";
+import { CONVERSATION_TOP, DONE_PAGE, MARKETING_PAGES } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Agents } from "./Agents.js";
 import { Ask } from "./ask.js";
@@ -155,13 +155,108 @@ const LOOP_ACTIONS: Action[] = [
   },
 ];
 
+/**
+ * The lead sheet's pages, under `base`: Wren's niches in Wren's Outbound, a client's own in its.
+ * Inside Outbound the sheet's first page is `first`, since Outbound has its own overview.
+ */
+const sheetPages = (
+  base: string,
+  first: { id: string; label: string } = overview,
+): Module["pages"] => [
+  {
+    ...overview,
+    ...first,
+    about: "Companies our lead sources found, and how far each got.",
+    tiles: [
+      {
+        label: "Companies found",
+        record: "email.firm",
+        href: `${base}/companies?view=in_play`,
+        period: 30,
+      },
+      {
+        label: "With a domain",
+        record: "email.firm",
+        href: `${base}/companies?view=with_domain`,
+        period: 30,
+      },
+      {
+        label: "Crawled",
+        record: "email.firm",
+        href: `${base}/companies?view=crawled`,
+        period: 30,
+      },
+      {
+        label: "Named a person",
+        record: "email.firm",
+        href: `${base}/companies?view=named`,
+        period: 30,
+      },
+      {
+        label: "Verified leads",
+        record: "email.firm",
+        href: `${base}/companies?view=lead`,
+        period: 30,
+      },
+      {
+        label: "Crawled, no person",
+        record: "email.firm",
+        href: `${base}/companies?view=crawled&named=-`,
+        needs: true,
+      },
+      {
+        label: "No domain yet",
+        record: "email.firm",
+        href: `${base}/companies?view=in_play&domain=-`,
+      },
+    ],
+    top: [
+      {
+        label: "Newest verified leads",
+        record: "email.firm",
+        href: `${base}/companies?view=lead&sort=-lead`,
+        fields: ["campaign", "lead"],
+        empty: "No verified leads yet.",
+      },
+      {
+        label: "Where companies stall",
+        record: "email.stall",
+        href: `${base}/stalls`,
+        fields: ["queuedFirms", "catchAllLeads", "riskyLeads"],
+        empty: "Nothing is stuck.",
+      },
+    ],
+  },
+  {
+    id: "companies",
+    label: "Companies",
+    about: "Every company our lead sources found, with its people.",
+    template: "list",
+    record: "email.firm",
+    empty: "Companies show here once a source finds them.",
+    extras: (_, { client, row }) => ({
+      sections: [["Dossier", createElement(FirmDossier, { client, id: String(row.id) })]],
+    }),
+  },
+  {
+    id: "stalls",
+    label: "Stalls",
+    about: "Leads stuck before a send, and why.",
+    template: "list",
+    record: "email.stall",
+    empty: "Nothing is stuck.",
+  },
+];
+
 export const outbound: Module = {
   id: "outbound",
   name: "Outbound",
   component: "email.sequences",
   icon: "mail",
-  blurb: "Campaigns and the inboxes that send them.",
+  blurb: "Campaigns and the inboxes that send them, the companies they reach and the texts.",
   requires: TEAM,
+  // People are leads until profiles land (B1): the companies they work at.
+  find: findRecords({ record: "email.firm", path: "/outbound/companies", kind: "Company" }),
   pages: [
     {
       ...overview,
@@ -229,6 +324,10 @@ export const outbound: Module = {
       record: "research.signal",
       empty: { fresh: "No signal in the last 30 days.", all: "No signals yet." },
     },
+    // The lead sheet (was the Pipeline app), then the texts (were Marketing's).
+    ...sheetPages("/outbound", { id: "sheet", label: "Lead sheet" }),
+    MARKETING_PAGES.texts,
+    MARKETING_PAGES["text-copy"],
   ],
 };
 
@@ -340,13 +439,13 @@ export const inbox: Module = {
         {
           label: "Waiting on you",
           record: "marketing.inbox",
-          href: "/inbox/waiting?view=waiting",
+          href: "/engage/inbox?view=waiting",
           needs: true,
         },
         {
           label: "To approve",
           record: "marketing.approval",
-          href: "/inbox/approve?view=waiting",
+          href: "/engage/approve?view=waiting",
           needs: true,
         },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
@@ -382,7 +481,7 @@ export const inbox: Module = {
         {
           label: "Waiting on you",
           record: "marketing.inbox",
-          href: "/inbox/waiting?view=waiting",
+          href: "/engage/inbox?view=waiting",
           fields: ["type", "at"],
           empty: "Nothing is waiting on you.",
         },
@@ -396,13 +495,34 @@ export const inbox: Module = {
         CONVERSATION_TOP,
       ],
     },
-    // What came in, Marketing → Inbox's page ("waiting" keeps old links landing), then what we'd
-    // send, waiting on a yes. Marketing keeps both addresses for old links.
-    { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
-    APPROVAL_PAGE,
+    {
+      id: "mail",
+      label: "Your mail",
+      about: "Your own email that needs you, pulled from the rest.",
+      template: "list",
+      record: "watch.mail",
+      empty: {
+        needs_you: "Nothing in your inboxes needs you.",
+        held: "Mail the Monitor holds shows here, searchable.",
+        done: "Mail you mark done shows here.",
+        all: "Mail the Monitor reads shows here.",
+      },
+      actions: MAIL_ACTIONS,
+    },
     DONE_PAGE,
-    // Off the tabs, each still a tile on the Overview and a link: issues, access asks, mentions,
-    // email replies (Waiting on you's Email view), calls and mail rules (from Your mail).
+    {
+      id: "rules",
+      label: "Mail rules",
+      about: "Rules that hide email you don't need to see.",
+      template: "list",
+      record: "watch.rule",
+      empty: { all: "No rules yet. Hide like this on any email writes one." },
+      actions: RULE_ACTIONS,
+    },
+    // What came in and what waits on a yes are Engage's Inbox and To approve now; their old
+    // addresses here redirect (`moved.ts`). Here: your own mail, what is done, and the rules.
+    // The rest is off the tabs, each still a tile on the Overview and a link: issues, access asks,
+    // mentions, email replies (Engage's Inbox, Email view) and calls.
     ...inboxPages().map((p) => ({ ...p, hidden: true as const })),
     {
       id: "mentions",
@@ -438,30 +558,6 @@ export const inbox: Module = {
       ...callsPage("Calls booked on cal.com or our calendar show here."),
       hidden: true,
       head: recorderHead,
-    },
-    {
-      id: "mail",
-      label: "Your mail",
-      about: "Your own email that needs you, pulled from the rest.",
-      template: "list",
-      record: "watch.mail",
-      empty: {
-        needs_you: "Nothing in your inboxes needs you.",
-        held: "Mail the Monitor holds shows here, searchable.",
-        done: "Mail you mark done shows here.",
-        all: "Mail the Monitor reads shows here.",
-      },
-      actions: MAIL_ACTIONS,
-    },
-    {
-      id: "rules",
-      label: "Mail rules",
-      hidden: true,
-      about: "Rules that hide email you don't need to see.",
-      template: "list",
-      record: "watch.rule",
-      empty: { all: "No rules yet. Hide like this on any email writes one." },
-      actions: RULE_ACTIONS,
     },
   ],
 };
@@ -789,104 +885,6 @@ export const money: Module = {
       actions: ACCOUNT_ACTIONS,
     },
   ],
-};
-
-/** The lead sheet's pages, under `base`: Wren's niches in Wren's workspace, a client's own in its. */
-const sheetPages = (base: string): Module["pages"] => [
-  {
-    ...overview,
-    about: "Companies our lead sources found, and how far each got.",
-    tiles: [
-      {
-        label: "Companies found",
-        record: "email.firm",
-        href: `${base}/companies?view=in_play`,
-        period: 30,
-      },
-      {
-        label: "With a domain",
-        record: "email.firm",
-        href: `${base}/companies?view=with_domain`,
-        period: 30,
-      },
-      {
-        label: "Crawled",
-        record: "email.firm",
-        href: `${base}/companies?view=crawled`,
-        period: 30,
-      },
-      {
-        label: "Named a person",
-        record: "email.firm",
-        href: `${base}/companies?view=named`,
-        period: 30,
-      },
-      {
-        label: "Verified leads",
-        record: "email.firm",
-        href: `${base}/companies?view=lead`,
-        period: 30,
-      },
-      {
-        label: "Crawled, no person",
-        record: "email.firm",
-        href: `${base}/companies?view=crawled&named=-`,
-        needs: true,
-      },
-      {
-        label: "No domain yet",
-        record: "email.firm",
-        href: `${base}/companies?view=in_play&domain=-`,
-      },
-    ],
-    top: [
-      {
-        label: "Newest verified leads",
-        record: "email.firm",
-        href: `${base}/companies?view=lead&sort=-lead`,
-        fields: ["campaign", "lead"],
-        empty: "No verified leads yet.",
-      },
-      {
-        label: "Where companies stall",
-        record: "email.stall",
-        href: `${base}/stalls`,
-        fields: ["queuedFirms", "catchAllLeads", "riskyLeads"],
-        empty: "Nothing is stuck.",
-      },
-    ],
-  },
-  {
-    id: "companies",
-    label: "Companies",
-    about: "Every company our lead sources found, with its people.",
-    template: "list",
-    record: "email.firm",
-    empty: "Companies show here once a source finds them.",
-    extras: (_, { client, row }) => ({
-      sections: [["Dossier", createElement(FirmDossier, { client, id: String(row.id) })]],
-    }),
-  },
-  {
-    id: "stalls",
-    label: "Stalls",
-    about: "Leads stuck before a send, and why.",
-    template: "list",
-    record: "email.stall",
-    empty: "Nothing is stuck.",
-  },
-];
-
-export const pipeline: Module = {
-  id: "pipeline",
-  name: "Pipeline",
-  component: "research.lead_sheet",
-  icon: "pulse",
-  blurb: "Companies from found to verified lead, and where they stall.",
-  requires: TEAM,
-  // People are leads until profiles land (B1): the companies they work at.
-  find: findRecords({ record: "email.firm", path: "/pipeline/companies", kind: "Company" }),
-  pages: sheetPages("/pipeline"),
 };
 
 /** The same sheet in a client's workspace, read from its own database (O1). */
@@ -1309,7 +1307,6 @@ export const WREN_APPS = [
   inbox,
   loops,
   money,
-  pipeline,
   clients,
   team,
   handlers,

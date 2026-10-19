@@ -24,13 +24,13 @@ export const TodayCountsFailed = pageAt("/", {
   check: failedIn("Waiting on you"),
 });
 export const Inbox = pageAt("/inbox", { me: ADMIN });
-export const Pipeline = pageAt("/pipeline", { me: ADMIN });
 export const People = pageAt("/people", { me: ADMIN });
 export const Outbound = pageAt("/outbound", { me: ADMIN });
-export const Deals = pageAt("/deals", { me: ADMIN });
-export const Marketing = pageAt("/marketing", { me: ADMIN });
-export const Outreach = pageAt("/outreach", { me: ADMIN });
+export const Pipelines = pageAt("/pipelines", { me: ADMIN });
+export const Content = pageAt("/content", { me: ADMIN });
+export const Engage = pageAt("/engage", { me: ADMIN });
 export const Ads = pageAt("/ads", { me: ADMIN });
+export const Analytics = pageAt("/analytics", { me: ADMIN });
 export const Sites = pageAt("/sites", { me: ADMIN });
 export const Learn = pageAt("/learn", { me: ADMIN });
 export const Workflows = pageAt("/workflows", { me: ADMIN });

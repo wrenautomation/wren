@@ -4,12 +4,12 @@ Tune one part of the portal's look in about 3 files: the screen, the `@wren/ui` 
 
 ## Walk
 
-1. **Area → app.** The sidebar's areas list app ids (`apps/portal/web/src/areas.ts:17`). An app is a `Module` in `apps/portal/web/src/modules/<id>/index.ts`; Wren's own apps (workflows, outbound, inbox, loops, money, pipeline, clients, team, handlers, review, ask) are `WREN_APPS` in `modules/wren/index.ts:1306`; `leads` is at `:893`.
+1. **Area → app.** The sidebar's areas list app ids (`AREAS_TEAM` `apps/portal/web/src/areas.ts:19`, a client's `AREAS_CLIENT` `:50`). An app is a `Module` in `apps/portal/web/src/modules/<id>/index.ts`; Wren's own apps (workflows, outbound, inbox, loops, money, clients, team, handlers, review, ask) are `WREN_APPS` in `modules/wren/index.ts:1304`; `leads` is at `:891`. An old app id or page address is in `MOVED`/`MOVED_APPS` (`apps/portal/web/src/moved.ts`).
 2. **App → screen.** A page is data or a hand page (`ModulePage`, `apps/portal/web/src/module.ts:162`).
    - `template: "list" | "queue" | "form" | "shop" | "overview" | "day"`: drawn by `TemplatePage` (`apps/portal/web/src/records.tsx:829`) from the `@wren/ui` template below. Tune the template, not the page.
    - A hand page (`HandPage.Page`, `module.ts:75`): its own file in the module folder. It uses `@wren/ui` parts; tune those parts.
 3. **Screen → part → story → DESIGN.md section.** The table. Open one story: `http://localhost:61000/?path=/story/<id>`.
-4. **A whole page or the layout across apps:** its page story, `http://localhost:61001/?path=/story/pages-client--<app>` (Wren's: `pages-wren--<app>`). [[ui/page-story]].
+4. **A whole page or the layout across apps:** its page story, `http://localhost:61001/?path=/story/pages-client--<app>` (Wren's: `pages-wren--<app>`, each tab of the reshaped apps `pages-wren-apps--<app>-<tab>`). [[ui/page-story]].
 
 ## Parts
 

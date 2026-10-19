@@ -29,7 +29,7 @@ import { App } from "./App.js";
 import { call, type Me } from "./api.js";
 import { readCall } from "./load.js";
 import { MODULES } from "./modules/index.js";
-import { movedTo } from "./moved.js";
+import { atWrenOf, heldByClient, movedTo, namedIn } from "./moved.js";
 import { prefetchPage } from "./records.js";
 import { bindRouter, href, navigate, workspace } from "./route.js";
 
@@ -97,10 +97,29 @@ const root = createRootRoute({
   },
 });
 
-const home = createRoute({ getParentRoute: () => root, path: "/" });
-const app = createRoute({ getParentRoute: () => root, path: "$app" });
+/**
+ * Sends an address that moved to its new one (`./moved.ts`). An app a client also holds
+ * (Marketing, Sites) moves at Wren only, so it waits for who is signed in, read under the same
+ * key `App` reads it by.
+ */
+async function sendMoved(href: string) {
+  let atWren = false;
+  if (heldByClient(href)) {
+    const me = await readCall("me", () => call<Me>("delivery/me")).catch(() => null);
+    atWren = atWrenOf(me?.operator ?? false, namedIn(href));
+  }
+  const moved = movedTo(href, { atWren });
+  if (moved) throw redirect({ href: moved, replace: true });
+}
 
-/** The page `/$app/$page` names, in any module of that id (a client's or Wren's Marketing). */
+const home = createRoute({ getParentRoute: () => root, path: "/" });
+const app = createRoute({
+  getParentRoute: () => root,
+  path: "$app",
+  beforeLoad: ({ location }) => sendMoved(location.href),
+});
+
+/** The page `/$app/$page` names, in any module of that id (a client's or Wren's Sites). */
 const pageOf = (appId: string, pageId: string) => {
   for (const m of MODULES) {
     if (m.id !== appId) continue;
@@ -113,9 +132,8 @@ const pageOf = (appId: string, pageId: string) => {
 const page = createRoute({
   getParentRoute: () => app,
   path: "$page",
+  // A moved address already redirected in `app`'s beforeLoad, which runs first.
   beforeLoad: ({ params, location }) => {
-    const moved = movedTo(location.href);
-    if (moved) throw redirect({ href: moved, replace: true });
     const found = pageOf(params.app, params.page);
     if (!found || !("legacy" in found) || !found.legacy) return;
     const search = paramsOf(location.search as Record<string, unknown>);

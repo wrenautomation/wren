@@ -139,7 +139,7 @@ export function studioHref(params: URLSearchParams): string {
       if (!q.has("make")) q.set("make", kind);
     }
   const rest = q.toString();
-  return `/marketing/studio${rest ? `?${rest}` : ""}`;
+  return `/content/studio${rest ? `?${rest}` : ""}`;
 }
 
 /** Marketing → Write folded into Studio: its links land in Studio's New. */
@@ -341,7 +341,7 @@ function StudioHome(props: PageProps) {
       setSaid(summary(out.posts, go));
       form.forget();
       // Sent: the idea it opened with is spent too.
-      if (idea) navigate(href("/marketing/studio", { idea: "" }, props.params), true);
+      if (idea) navigate(href("/content/studio", { idea: "" }, props.params), true);
       setNonce((n) => n + 1);
     } catch (err) {
       setError(message(err));
@@ -382,15 +382,12 @@ function StudioHome(props: PageProps) {
               {about ? (
                 <p className="m-0 flex flex-wrap items-center gap-x-2 text-[13.5px]">
                   <span className={QUIET}>About:</span>
-                  <a href={`/marketing/videos/${about.id}`}>{about.title}</a>
+                  <a href={`/content/videos/${about.id}`}>{about.title}</a>
                   <Button
                     size="dense"
                     tone="quiet"
                     onClick={() =>
-                      navigate(
-                        href("/marketing/studio", { from: "", about: "" }, props.params),
-                        true,
-                      )
+                      navigate(href("/content/studio", { from: "", about: "" }, props.params), true)
                     }
                   >
                     Clear
@@ -905,11 +902,11 @@ function DraftCard({
       {unfit ? <p className={ERROR}>{unfit}</p> : null}
       {missing.length ? (
         <p className={ERROR}>
-          Fill in {listed(missing)} before Approve.{" "}
-          <a href={`/marketing/drafts/${d.id}`}>Open it</a> to pick.
+          Fill in {listed(missing)} before Approve. <a href={`/content/drafts/${d.id}`}>Open it</a>{" "}
+          to pick.
         </p>
       ) : null}
-      <a className="text-[13px]" href={`/marketing/drafts/${d.id}`}>
+      <a className="text-[13px]" href={`/content/drafts/${d.id}`}>
         {d.carousel
           ? "Open the slides, fields and versions"
           : "Open for fields, media and versions"}

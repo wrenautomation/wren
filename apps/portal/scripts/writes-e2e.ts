@@ -50,7 +50,7 @@ const inboxComment = async (page: Page) => {
   await page.getByText("Comment", { exact: true }).first().click();
   await page.getByText("Reply by").waitFor();
 };
-/** A row of `path` (`/outreach/dms`) opened by its words, its draft box ready. */
+/** A row of `path` (`/engage/dms`) opened by its words, its draft box ready. */
 const openRow = async (page: Page, path: string, words: string) => {
   await page.goto(`${url}${path}`);
   await page.getByText(words).first().click();
@@ -241,7 +241,7 @@ const tests: Test[] = [
     "Outreach DM: the draft's save lands before the send, hidden mid-send, it lands",
     async (browser) => {
       const { context, page, fake, reads } = await fresh(browser);
-      await openRow(page, "/outreach/dms", "Still drowning in voicemails.");
+      await openRow(page, "/engage/dms", "Still drowning in voicemails.");
       const box = page.getByPlaceholder("Write it here.").first();
       await box.fill("Let's fix that this week");
       // Sent at once: the save may still be waiting on its delay.
@@ -273,7 +273,7 @@ const tests: Test[] = [
     "Comment answer: hidden mid-send, refused, the reason said on return",
     async (browser) => {
       const { context, page, fake } = await fresh(browser);
-      await openRow(page, "/marketing/comments", "Does this work for a two-truck shop?");
+      await openRow(page, "/engage/comments", "Does this work for a two-truck shop?");
       const box = page.getByPlaceholder("Write it here.").first();
       await box.fill("Two trucks is the sweet spot");
       await box.press("Meta+Enter");
@@ -297,7 +297,7 @@ const tests: Test[] = [
     async (browser) => {
       const { context, page, fake } = await fresh(browser);
       await page.clock.install();
-      await openRow(page, "/marketing/comments", "Does this work for a two-truck shop?");
+      await openRow(page, "/engage/comments", "Does this work for a two-truck shop?");
       const drop = () =>
         page.locator("aside").last().getByRole("button", { name: "Skip", exact: true }).click();
       const undo = page.locator("[data-sonner-toast]").getByRole("button", { name: "Undo" });
@@ -348,7 +348,7 @@ const tests: Test[] = [
       const { context, page, fake } = await fresh(browser);
       await inboxComment(page);
       await replyBox(page).fill("Half a thought");
-      await page.goto(`${url}/outreach/engage`);
+      await page.goto(`${url}/engage/engage`);
       await page.getByRole("heading", { name: "Engage" }).waitFor();
       await inboxComment(page);
       assert.equal(await replyBox(page).inputValue(), "Half a thought", "back after another app");
@@ -370,7 +370,7 @@ const tests: Test[] = [
       await inboxComment(page);
       assert.equal(await replyBox(page).inputValue(), "First draft");
       await replyBox(page).fill("My own words");
-      await page.goto(`${url}/outreach/engage`);
+      await page.goto(`${url}/engage/engage`);
       await page.getByRole("heading", { name: "Engage" }).waitFor();
       draft.value = "Their new draft";
       await inboxComment(page);

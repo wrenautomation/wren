@@ -6,7 +6,7 @@
 
 import type { TemplateListRow } from "@wren/core/templates/console";
 import type { DeliveryHome, Overview } from "../../api.js";
-import type { Card, Home, Rail } from "../../modules/learn/api.js";
+import type { Browsed, Card, Home, Rail, SourceRow } from "../../modules/learn/api.js";
 import type { NotesHome } from "../../modules/notes/api.js";
 import type { Answers } from "../api.js";
 import { CLIENT } from "./me.js";
@@ -224,6 +224,17 @@ const LEARN_HOME: Home = {
   sops: [],
 };
 
+/** Feed's "Following" read: the newest posts of the sources followed. */
+const BROWSED: Browsed = {
+  place: "all",
+  sort: "newest",
+  items: CARDS,
+  more: false,
+  total: CARDS.length,
+  types: { youtube: 1, blog: 1, newsletter: 1 },
+  sources: [{ id: 1, name: "Trades Growth", kind: "youtube", avatar: null, n: 3 }],
+};
+
 const RAIL: Rail = {
   places: { inbox: 3, all: 3, later: 0, starred: 0, saved: 0, archived: 0 },
   collections: [{ id: 1, name: "Sales", parentId: null, n: 2 }],
@@ -244,6 +255,35 @@ const RAIL: Rail = {
     },
   ],
   tags: [{ tag: "reactivation", n: 3 }],
+};
+
+/** Sources, the page's own read: one followed channel, nothing failing. */
+const SOURCES: { may: boolean; kinds: { kind: SourceRow["kind"]; sources: SourceRow[] }[] } = {
+  may: true,
+  kinds: [
+    {
+      kind: "youtube",
+      sources: [
+        {
+          id: 1,
+          name: "Trades Growth",
+          kind: "youtube",
+          avatar: null,
+          url: "https://video.example.com/@tradesgrowth",
+          page: null,
+          tell: "top",
+          alert: null,
+          failure: null,
+          stopped: false,
+          fetchedAt: ago(0.1),
+          items: 3,
+          fresh: 1,
+          top: 1,
+          last: ago(0.2),
+        },
+      ],
+    },
+  ],
 };
 
 const note = (id: string, title: string, kind: "note" | "task", days: number) => ({
@@ -342,6 +382,8 @@ export const APP_ANSWERS: Answers = {
   "delivery/home": HOME,
   "learn/home": LEARN_HOME,
   "learn/rail": RAIL,
+  "learn/sources": SOURCES,
+  "learn/browse": BROWSED,
   "learn/unseen": { n: 1 },
   // Thumbnails are null, so a grant is never used: Wren's one, or a client's per item.
   "media/grant": (b) => (b.client ? { grants: {} } : { grant: "fake" }),

@@ -52,7 +52,7 @@ function Answer({ text }: { text: string }): ReactNode {
   });
 }
 
-/** Where a question was asked, as a person says it: "/marketing/drafts" is "Marketing, drafts". */
+/** Where a question was asked, as a person says it: "/content/drafts" is "Content, drafts". */
 function placeOf(page: string): string | null {
   const [app, sub] = page.split(/[?#]/)[0]?.split("/").filter(Boolean) ?? [];
   if (app === "ask") return null;

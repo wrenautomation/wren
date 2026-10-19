@@ -45,6 +45,7 @@ export const notes: Module = {
   icon: "note",
   blurb: "Rough thoughts, plans and docs, with versions and sharing.",
   requires: { audience: "team" },
+  parked: true,
   pages,
 };
 

@@ -48,7 +48,7 @@ function App({ m }: { m: Module }) {
 }
 
 export function Guide() {
-  const areas = areasOf(appsIn(MODULES, { wren: true, team: true, installed: new Set() }));
+  const areas = areasOf(appsIn(MODULES, { wren: true, team: true, installed: new Set() }), true);
   return (
     <>
       <PageHeader title="Guide" lede="Where everything is, and the fastest ways to reach it." />

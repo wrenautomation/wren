@@ -137,9 +137,9 @@ function didOf(b: Branch): string | null {
 function hrefOf(b: Branch): string | null {
   // A recording opens in Studio's editor.
   if (b.platform === "editor")
-    return `/marketing/studio?video=${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
-  if (b.id.startsWith("blog:")) return "/marketing/studio?make=blog";
-  return `/marketing/drafts/${b.id}`;
+    return `/content/studio?video=${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
+  if (b.id.startsWith("blog:")) return "/content/studio?make=blog";
+  return `/content/drafts/${b.id}`;
 }
 
 export const pieces = () =>
@@ -467,7 +467,7 @@ export function PiecesPage(props: PageProps) {
   const [q, setQ] = useState(props.params.get("q") ?? "");
   const set = (k: string, v: string) =>
     navigate(
-      href("/marketing/pieces", { [k]: v === "all" || v === "new" ? "" : v }, props.params),
+      href("/content/pieces", { [k]: v === "all" || v === "new" ? "" : v }, props.params),
       true,
     );
 
@@ -519,7 +519,7 @@ export function PiecesPage(props: PageProps) {
             : "Everything you made, each with everywhere it went."
         }
         actions={
-          <a href="/marketing/studio" className="text-[13.5px]">
+          <a href="/content/studio" className="text-[13.5px]">
             Make something
           </a>
         }
@@ -530,7 +530,7 @@ export function PiecesPage(props: PageProps) {
           value={view?.id ?? ""}
           set={(id) => {
             const v = PIECE_VIEWS.find((x) => x.id === id);
-            if (v) navigate(href("/marketing/pieces", paramsOf(v), props.params), true);
+            if (v) navigate(href("/content/pieces", paramsOf(v), props.params), true);
           }}
           options={PIECE_VIEWS.map((v) => ({
             id: v.id,
@@ -614,7 +614,7 @@ export function PiecesPage(props: PageProps) {
             <>
               Nothing fits these.{" "}
               {what === "carousel" ? (
-                <a href="/marketing/studio?make=carousel">Make a carousel</a>
+                <a href="/content/studio?make=carousel">Make a carousel</a>
               ) : null}
             </>
           ) : (
@@ -622,11 +622,13 @@ export function PiecesPage(props: PageProps) {
           )}
         </Empty>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
+        <section className="grid grid-cols-1 gap-3">
+          {/* The cards' titles are h3: this keeps the heading order whole for a screen reader. */}
+          <h2 className="sr-only">Your pieces</h2>
           {shown.map((p) => (
             <PieceCard key={p.id} piece={p} reload={load.retry} />
           ))}
-        </div>
+        </section>
       )}
     </>
   );

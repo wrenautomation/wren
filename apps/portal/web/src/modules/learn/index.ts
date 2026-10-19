@@ -105,6 +105,7 @@ export const learn: Module = {
   blurb:
     "Saved links and followed sources, read, scored against Wren's SOPs, and kept like a drive.",
   requires: TEAM,
+  parked: true,
   action: { page: "add", label: "Save a link", icon: "pin" },
   nav: learnNav,
   find,

@@ -38,7 +38,7 @@ const inLane = async (page: HTMLElement, name: string, who: string) =>
   within(await lane(page, name)).findByRole("link", { name: who });
 
 /** The funnel's stages as lanes, each card with its time in stage, the stale one flagged. */
-export const Board = pageAt("/deals/board", {
+export const Board = pageAt("/pipelines/board", {
   me: ADMIN,
   check: async (page) => {
     for (const name of ["Engaged", "Booked", "Signed"]) await lane(page, name);
@@ -50,8 +50,8 @@ export const Board = pageAt("/deals/board", {
   },
 });
 
-/** The same page the Deals link opened before: `/deals` now lands on the board. */
-export const BoardFromNav = pageAt("/deals", {
+/** The same page the Pipelines link opens: `/pipelines` lands on the board. */
+export const BoardFromNav = pageAt("/pipelines", {
   me: ADMIN,
   check: async (page) => {
     await lane(page, "Engaged");
@@ -59,7 +59,7 @@ export const BoardFromNav = pageAt("/deals", {
 });
 
 /** A card dragged to a later lane moves at once and sends one move. */
-export const BoardMovesForward = pageAt("/deals/board", {
+export const BoardMovesForward = pageAt("/pipelines/board", {
   me: ADMIN,
   check: async (page) => {
     forgetCalls();
@@ -73,7 +73,7 @@ export const BoardMovesForward = pageAt("/deals/board", {
 });
 
 /** A card dragged back is refused with a plain note and sends nothing. */
-export const BoardRefusesBackward = pageAt("/deals/board", {
+export const BoardRefusesBackward = pageAt("/pipelines/board", {
   me: ADMIN,
   check: async (page) => {
     forgetCalls();
@@ -87,7 +87,7 @@ export const BoardRefusesBackward = pageAt("/deals/board", {
 });
 
 /** The server says the funnel did not take the move: the card goes back and the note says why. */
-export const BoardRollsBack = pageAt("/deals/board", {
+export const BoardRollsBack = pageAt("/pipelines/board", {
   me: ADMIN,
   answers: {
     "pipeline/journeysMove": refuse(409, "Nothing moved. The funnel did not take that move."),
@@ -104,7 +104,7 @@ export const BoardRollsBack = pageAt("/deals/board", {
 });
 
 /** Drop opens a reason; the reason sends the drop and the card leaves. */
-export const BoardDropsWithReason = pageAt("/deals/board", {
+export const BoardDropsWithReason = pageAt("/pipelines/board", {
   me: ADMIN,
   check: async (page) => {
     forgetCalls();
@@ -123,7 +123,7 @@ export const BoardDropsWithReason = pageAt("/deals/board", {
 });
 
 /** A funnel that is off shows its people and moves nobody. */
-export const BoardFunnelOff = pageAt("/deals/board?funnel=welcome", {
+export const BoardFunnelOff = pageAt("/pipelines/board?funnel=welcome", {
   me: ADMIN,
   check: async (page) => {
     await expect(
@@ -137,7 +137,7 @@ export const BoardFunnelOff = pageAt("/deals/board?funnel=welcome", {
 });
 
 /** No funnel yet: one plain line. */
-export const BoardEmpty = pageAt("/deals/board", {
+export const BoardEmpty = pageAt("/pipelines/board", {
   me: ADMIN,
   answers: {
     "pipeline/recordsList": (b: Record<string, unknown>) => ({

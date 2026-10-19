@@ -5,16 +5,17 @@
 
 import type { Module } from "../module.js";
 import { account } from "./account/index.js";
+import { analytics } from "./analytics/index.js";
 import { calendar, clientCalendar } from "./calendar/index.js";
 import { calls } from "./calls/index.js";
-import { clientDeals, deals } from "./deals/index.js";
+import { clientDeals, pipelines } from "./deals/index.js";
 import { documents } from "./documents/index.js";
 import { clientLearn, learn } from "./learn/index.js";
 import { library } from "./library/index.js";
-import { ads, clientMarketing, marketing } from "./marketing/index.js";
+import { ads, clientMarketing, content } from "./marketing/index.js";
 import { marketplace, wrenMarketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
-import { outreach } from "./outreach/index.js";
+import { engage } from "./outreach/index.js";
 import { payments } from "./payments/index.js";
 import { clientPeople, people } from "./people/index.js";
 import { reactivation } from "./reactivation/index.js";
@@ -33,29 +34,30 @@ export const MODULES: Module[] = [
   calls,
   payments,
   documents,
-  // One address, two apps, as Marketing: a client's deals in its own, Wren's in Wren's.
+  // One address, two apps: a client's journeys in its own, Wren's pipelines in Wren's.
   clientDeals,
-  deals,
-  // One address, two apps, as Deals: a client's people in its own, Wren's in Wren's.
+  pipelines,
+  // One address, two apps, as Pipelines: a client's people in its own, Wren's in Wren's.
   clientPeople,
   people,
-  // One address, two apps, as Marketing.
+  // One address, two apps, as Pipelines.
   marketplace,
   wrenMarketplace,
-  // One address, two apps: a client's own (its workspace) and Wren's (Wren's).
+  // A client's Marketing, in its own workspace. Wren's is Content, Engage, Outbound, Ads, Analytics.
   clientMarketing,
-  marketing,
-  outreach,
+  content,
+  engage,
   ads,
+  analytics,
   ...WREN_APPS,
-  // One address, two apps, as Marketing.
+  // One address, two apps, as Sites.
   clientLearn,
   learn,
-  // One address, two apps, as Marketing.
+  // One address, two apps, as Sites.
   clientSites,
   sites,
   library,
-  // One address, two apps, as Marketing.
+  // One address, two apps, as Sites.
   clientNotes,
   notes,
   clientCalendar,

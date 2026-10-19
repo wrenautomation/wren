@@ -19,6 +19,7 @@ export const voice: Module = {
   icon: "mic",
   blurb: "An AI agent that answers the phone, books calls and takes messages.",
   requires: { audience: "team" },
+  parked: true,
   action: { page: "test", label: "Test call", icon: "phone" },
   pages: [
     {

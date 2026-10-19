@@ -65,7 +65,7 @@ async function open(browser: Browser, width: number, height: number) {
   const page = await context.newPage();
   page.setDefaultTimeout(T);
   const calls = await fake(page);
-  await page.goto(`${url}/marketing/comments`);
+  await page.goto(`${url}/engage/comments`);
   await page.getByText("harbor_plumbing").first().waitFor();
   return { context, page, calls };
 }

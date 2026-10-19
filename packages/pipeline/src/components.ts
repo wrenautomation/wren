@@ -24,7 +24,7 @@ export const PIPELINE_COMPONENTS = [
     provides: {
       services: ["PipelineConsole", "Journeys"],
       records: [OFFER_RECORD, FUNNEL_RECORD, JOURNEY_RECORD, DEAL_RECORD, NUMBER_RECORD],
-      apps: ["deals"],
+      apps: ["pipelines"],
     },
     effects: [],
     out: [],
