@@ -41,6 +41,10 @@ Three things, no section of their own (agreed 2026-10-18):
 - **Sourcing** (scraping, lists, Exa, job boards, signals) is a funnel entry of kind `sourced`. It fills the first stage of an outbound funnel with people who match the offer's ICP. Lives under Marketing → Outbound. `research` and discovery stay as they are and gain an entry config.
 - **Enrichment** (dossier, cross-platform search, Jev's lead verdict) is a stage step, not a stage. It runs on arrival, writes to the person, and may move or drop the journey. Each stage has a research depth: none, light, full. Examples: comment arrives → enrich → verdict → open journey or ignore; call booked → dossier → call prep in Today's Move list.
 
+## Groups (segments)
+
+A group is a saved query over people and their journeys (stage, entry, offer, tags, enrichment facts), kept live. It is not a section. It is used in three places: as a funnel entry of kind `group` (members enter a funnel, the way a prior funnel's completion does), as the audience of content or a DM sequence, and as a filter on People and Numbers. Today's People "groups" become this.
+
 ## Nav, later
 
 Agreed 2026-10-18. The big UI redesign waits (design language deferred). The model lands first; the portal reshapes after.
