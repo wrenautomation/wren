@@ -1,6 +1,6 @@
 /**
  * `wren [--client <id>] shape …` (designs/2026-10-19-business-map.md): read the shape, change it
- * one version at a time, move a journey, and move the old funnels onto it.
+ * one version at a time, start from the starter, and move a journey.
  *
  * Every write is a new version with a reason. `add-node`, `connect` and `remove` build the new body
  * from the newest one (`@wren/pipeline/edit`) and `saveShape` checks all of it. A file goes in
@@ -18,7 +18,6 @@ import {
   withoutEdge,
   withoutNode,
 } from "@wren/pipeline/edit";
-import { type MigrateReport, migrateShape } from "@wren/pipeline/migrate";
 import {
   ACTIONS,
   type Advance,
@@ -30,6 +29,7 @@ import {
 } from "@wren/pipeline/model";
 import { openNowOf } from "@wren/pipeline/numbers";
 import { exportShape, importShape } from "@wren/pipeline/shape-file";
+import { startShape } from "@wren/pipeline/starter";
 import {
   diffShapes,
   newestShape,
@@ -45,15 +45,6 @@ type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 export interface ShapeDeps {
   /** The command's database: `--client`'s, else main. */
   withDb: WithDb;
-  withMainDb: WithDb;
-  /** A client database by name, as main's login: migrations and grants are its job. */
-  onDatabase: <T>(database: string, fn: (db: Db) => Promise<T>) => Promise<T>;
-  /** Every client database name. */
-  databases: () => Promise<string[]>;
-  /** The database name of a client id. */
-  databaseOf: (client: string) => Promise<string>;
-  /** `--client`, when given. */
-  client: () => string | undefined;
   /** The worker's `Journeys` service, for `move`. */
   writes: PipelineWrites | undefined;
 }
@@ -136,18 +127,6 @@ export function diffLines(d: ShapeDiff): string[] {
   return lines;
 }
 
-/** A migrate report as text lines. */
-export function reportLines(r: MigrateReport): string[] {
-  const j = r.journeys;
-  return [
-    `funnels: ${r.funnels.length ? r.funnels.join(", ") : "none"}`,
-    `shape: ${r.shape}`,
-    `journeys: ${j.moved} placed, ${j.unplaced} left, ${j.duplicates} duplicates dropped (open ${j.open}, done ${j.done}, dropped ${j.dropped})`,
-    `deals: ${r.deals} set on an offer node`,
-    ...r.notes.map((n) => `note: ${n}`),
-  ];
-}
-
 /** The fields `add-node` takes. */
 export interface NodeOptions {
   kind: string;
@@ -211,7 +190,7 @@ export function nodeFrom(id: string, o: NodeOptions): ShapeNode {
 // --- the commands ---------------------------------------------------------------------------
 
 export function registerShape(program: Command, deps: ShapeDeps): void {
-  const { withDb, withMainDb, onDatabase } = deps;
+  const { withDb } = deps;
   const shape = program
     .command("shape")
     .description("the business shape: sources, steps, offers and plans, and the edges between");
@@ -290,6 +269,18 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
         );
         for (const t of r.terms) console.log(`terms ${t.offer} ${t.plan} from ${t.effectiveFrom}`);
         console.log(r.shape ? `v${r.shape.number} saved` : "no change");
+      }),
+    );
+
+  shape
+    .command("start")
+    .description(
+      "Save the starter shape as version 1, with the note Starter. Does nothing when a shape exists",
+    )
+    .action(() =>
+      plain(async () => {
+        const v = await withDb((db) => startShape(db, { by: who(), triggers: TRIGGER_IDS }));
+        console.log(v ? `v${v.number} saved` : "a shape exists; nothing changed");
       }),
     );
 
@@ -401,32 +392,4 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
     );
 
   addMove(shape, deps.writes);
-
-  shape
-    .command("migrate")
-    .description(
-      "Build shape v1 from the old funnels and place every journey on it. Safe to repeat. Runs on deploy",
-    )
-    .option("--dry", "write nothing; print the plan")
-    .option("--all", "main and every client database")
-    .action(async (o: { dry?: boolean; all?: boolean }) => {
-      const client = deps.client();
-      if (o.all && client) throw new Error("--all or --client, not both");
-      const run = (db: Db) =>
-        migrateShape(db, { triggers: TRIGGER_IDS, ...(o.dry ? { dry: true } : {}) });
-      const targets: Array<[string, () => Promise<MigrateReport>]> = [];
-      if (o.all) {
-        targets.push(["main", () => withMainDb(run)]);
-        for (const database of await deps.databases())
-          targets.push([database, () => onDatabase(database, run)]);
-      } else if (client) {
-        const database = await deps.databaseOf(client);
-        targets.push([client, () => onDatabase(database, run)]);
-      } else targets.push(["main", () => withMainDb(run)]);
-      for (const [name, go] of targets) {
-        const report = await go();
-        console.log(`${name}${o.dry ? " (dry run)" : ""}`);
-        for (const line of reportLines(report)) console.log(`  ${line}`);
-      }
-    });
 }

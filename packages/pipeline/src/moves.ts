@@ -126,8 +126,6 @@ export async function moveEmit(
     .where(eq(journeys.id, idOf(p.journey, "journey")))
     .limit(1);
   if (!j) throw new Refused([`No journey ${p.journey}.`]);
-  if (j.node === null || j.version === null)
-    throw new Refused(["That journey is not on the shape yet."]);
   const v = await versionOf(db, j.version);
   if (!v) throw new Refused([`Shape v${j.version} is gone.`]);
   const to = nodeOf(v.body, p.to);

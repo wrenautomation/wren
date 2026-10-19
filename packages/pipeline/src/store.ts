@@ -9,7 +9,7 @@ import { segments } from "@wren/core/segments-schema";
 import { atomic, type Queryable, type Tx } from "@wren/db";
 import type { Offer, Terms } from "@wren/offers";
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
-import { carryJourneys, type Moves } from "./carry.js";
+import { carryJourneys, type Moves, remapDeals } from "./carry.js";
 import { checkShape, depthOf, type ShapeBody, type ShapeCheckContext } from "./model.js";
 import {
   type OfferVersion,
@@ -302,7 +302,8 @@ export interface NewShape {
 /**
  * The next shape version. Refused with every reason `checkShape` finds, with "Nothing changed."
  * when the body equals the newest, and when a `moves` target is no node of the body. Open
- * journeys carry to it in the same transaction (`carryJourneys`).
+ * journeys carry to it, and open deals at a moved node follow, in the same transaction
+ * (`carryJourneys`, `remapDeals`).
  */
 export async function saveShape(db: Queryable, input: NewShape): Promise<ShapeVersion> {
   if (!input.note.trim()) throw new Refused(["Say why."]);
@@ -331,6 +332,8 @@ export async function saveShape(db: Queryable, input: NewShape): Promise<ShapeVe
     if (!row) throw new Error("shape version insert returned nothing");
     // Open journeys keep their node on the new version (a `version` arrival each).
     await carryJourneys(tx, row.number, input.moves ?? {});
+    // Open deals made at a moved node follow it.
+    await remapDeals(tx, input.moves ?? {});
     return row;
   });
 }

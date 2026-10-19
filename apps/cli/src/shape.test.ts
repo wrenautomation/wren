@@ -5,7 +5,6 @@ import {
   diffLines,
   nodeFrom,
   registerShape,
-  reportLines,
   type ShapeDeps,
   shapeLines,
 } from "./shape.js";
@@ -16,11 +15,6 @@ const none = (async () => {
 
 const deps = (over: Partial<ShapeDeps> = {}): ShapeDeps => ({
   withDb: none,
-  withMainDb: none,
-  onDatabase: none,
-  databases: none,
-  databaseOf: none,
-  client: () => undefined,
   writes: undefined,
   ...over,
 });
@@ -146,24 +140,6 @@ describe("text", () => {
       "~ edge e3 changed",
     ]);
   });
-
-  it("prints a migrate report", () => {
-    const lines = reportLines({
-      funnels: ["alpha"],
-      shape: "planned",
-      body: null,
-      journeys: { moved: 5, open: 3, done: 1, dropped: 1, duplicates: 0, unplaced: 1 },
-      deals: 2,
-      notes: ["n1"],
-    });
-    expect(lines).toEqual([
-      "funnels: alpha",
-      "shape: planned",
-      "journeys: 5 placed, 1 left, 0 duplicates dropped (open 3, done 1, dropped 1)",
-      "deals: 2 set on an offer node",
-      "note: n1",
-    ]);
-  });
 });
 
 describe("commands", () => {
@@ -175,11 +151,11 @@ describe("commands", () => {
       "diff",
       "export",
       "import",
+      "start",
       "add-node",
       "connect",
       "remove",
       "move",
-      "migrate",
     ]);
   });
 
@@ -226,12 +202,6 @@ describe("commands", () => {
     expect(err).toHaveBeenCalledWith("A plan node needs --terms.");
     process.exitCode = undefined;
     err.mockRestore();
-  });
-
-  it("takes --all or --client on migrate, not both", async () => {
-    await expect(
-      program({ client: () => "c1" }).parseAsync(["shape", "migrate", "--all"], { from: "user" }),
-    ).rejects.toThrow(/--all or --client, not both/);
   });
 
   it("sends shape move through the same worker call as journeys move", async () => {

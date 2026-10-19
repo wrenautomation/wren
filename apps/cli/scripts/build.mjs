@@ -41,6 +41,8 @@ await build({
 
 // A duplicate top-level binding is a SyntaxError only seen on load; catch it here.
 execFileSync("node", ["--check", bundle], { stdio: "inherit" });
+// The starter shape beside the bundle: `starterShape()` reads it from its module's directory.
+cpSync(resolve(repo, "packages/pipeline/src/starter.yaml"), resolve(out, "app/starter.yaml"));
 // Template defaults beside the bundle: `defaultsDir()` finds them at dist/defaults.
 cpSync(resolve(repo, "packages/templates/defaults"), resolve(out, "defaults"), { recursive: true });
 // `wren clients add` migrates the new client's database from these.

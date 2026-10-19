@@ -1,0 +1,62 @@
+# The starter shape: kinds only. No account, no channel, no amount, no terms.
+# An empty database starts here (`wren shape start`, or "Start from the starter" on the Map).
+# Rename, rewire and add; every save after this is a version with a note.
+name: Business map
+nodes:
+  - id: source
+    kind: source
+    name: Source
+    via: organic
+  - id: outbound
+    kind: source
+    name: Outbound
+    via: outbound
+  - id: comment
+    kind: step
+    name: Comment
+    action: comment
+    advance:
+      - trigger: trigger.touch
+        with:
+          kind: comment
+          direction: ours
+  - id: reply
+    kind: step
+    name: Reply
+    action: reply
+    advance:
+      - trigger: trigger.reply
+  - id: booked_call
+    kind: step
+    name: Booked call
+    action: book
+    advance:
+      - trigger: trigger.booking
+        with:
+          on: booked
+  - id: offer
+    kind: offer
+    name: Offer
+    offer: growth-partner
+    advance: []
+  - id: plan
+    kind: plan
+    name: Plan
+    terms: standard
+    advance:
+      - trigger: trigger.document
+        with:
+          on: signed
+edges:
+  - from: source
+    to: comment
+  - from: comment
+    to: reply
+  - from: outbound
+    to: reply
+  - from: reply
+    to: booked_call
+  - from: booked_call
+    to: offer
+  - from: offer
+    to: plan

@@ -43,7 +43,7 @@ export async function movePipeline(
       await tx.execute<{ id: string; profile: number; depth: number }>(sql`
         select j.id, j.profile_id profile,
           coalesce((select (v.depths ->> j.node)::int from pipeline.shape_versions v
-            where v.number = j.shape_version), 0)::int depth
+            where v.number = j.version), 0)::int depth
         from pipeline.journeys j
         where j.profile_id in (${into}, ${from}) and j.status = 'open'
         order by j.opened_at desc`)

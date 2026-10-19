@@ -3,6 +3,7 @@
  * offer each email arm pitches, the lander renders from an exported snapshot, and every
  * enrollment and deal stores the id. Adding an offer = one `defineOffer` + one entry.
  */
+import { growthPartner } from "./catalog/growth-partner.js";
 import { opsAudit, opsAutomationBuild } from "./catalog/operations.js";
 import {
   recruitingCandidateReactivation,
@@ -84,6 +85,7 @@ export const OFFERS: readonly Offer[] = registry([
   recruitingCandidateReactivation,
   opsAudit,
   opsAutomationBuild,
+  growthPartner,
 ]);
 export const OFFER_IDS: ReadonlySet<string> = new Set(OFFERS.map((o) => o.id));
 /** Every page the site serves an offer on. The lander builds exactly these, so a link anywhere else 404s or redirects. */

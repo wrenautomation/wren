@@ -83,13 +83,6 @@ export async function versionOf(db: Queryable, version: number) {
   return { body: row.body, depths: row.depths, newest: top?.number ?? version };
 }
 
-/** A journey that `migrate.ts` has placed on the shape: it has a node and a version. */
-export type Placed = Journey & { node: string; version: number };
-
-/** The journey as placed, or null when it is not on the shape yet. */
-export const placed = (j: Journey): Placed | null =>
-  j.node !== null && j.version !== null ? { ...j, node: j.node, version: j.version } : null;
-
 /**
  * The shape workflows of one workspace: the newest version, and any older one that still holds
  * an open journey. A version that will not generate is left out and logged, so one bad body
@@ -107,7 +100,7 @@ export async function shapeWorkflowsOf(
     .where(
       sql`${v.number} = (select max(m.number) from pipeline.shape_versions m)
         or exists (select 1 from pipeline.journeys j
-          where j.shape_version = ${v.number} and j.status = 'open')`,
+          where j.version = ${v.number} and j.status = 'open')`,
     )
     .orderBy(v.number);
   const out: Workflow[] = [];

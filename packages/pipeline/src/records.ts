@@ -430,14 +430,13 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
   const now = (o.now ?? new Date()).getTime();
   return rows.map(({ j, person, body }) => {
     const days = Math.floor((now - j.movedAt.getTime()) / DAY_MS);
-    const node = j.node ?? j.stage ?? "";
+    const node = j.node;
     const at = body?.nodes.find((n) => n.id === node);
     const idle = (at && "idleDays" in at ? at.idleDays : undefined) ?? STALE_DAYS;
     // A ghost: its version is not the newest and the newest shape has no such node.
     const ghost =
       j.status === "open" &&
       !!top &&
-      j.version !== null &&
       j.version < top.number &&
       !top.body.nodes.some((n) => n.id === node);
     return {

@@ -270,7 +270,7 @@ describe("snapshot", () => {
     const parsed = JSON.parse(snapshotText(OFFERS)) as ReturnType<typeof snapshot>;
     expect(parsed.version).toBe(1);
     expect(parsed.offers).toEqual(
-      OFFERS.map(
+      OFFERS.filter((o) => o.status !== "draft").map(
         ({
           plan: _,
           access: __,
@@ -296,5 +296,24 @@ describe("snapshot", () => {
       "icp",
     ];
     expect(parsed.offers.some((o) => portalOnly.some((k) => k in o))).toBe(false);
+  });
+
+  it("leaves a draft offer out", () => {
+    const text = snapshotText([offer({ id: "wip", status: "draft" }), offer({ id: "out" })]);
+    expect((JSON.parse(text) as ReturnType<typeof snapshot>).offers.map((o) => o.id)).toEqual([
+      "out",
+    ]);
+  });
+
+  it("does not export Growth Partner, a draft with no price, page or copy", () => {
+    const gp = offerFor("growth-partner");
+    expect(gp).toMatchObject({
+      name: "Growth Partner",
+      status: "draft",
+      page: null,
+      price: { kind: "quoted" },
+    });
+    expect(OFFERS).toContain(gp);
+    expect(snapshotText(OFFERS)).not.toContain("growth-partner");
   });
 });

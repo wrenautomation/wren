@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ 781f02d7
+verified: 2026-10-19 @ 05e9f4a4
 entity: packages/offers/src/offer.ts:129
 ---
 
@@ -17,16 +17,17 @@ One home for the pitch: email enrollments name the offer (`enrollments.offer`), 
 
 ## Shape
 
-- `Offer` (`offer.ts:129`), `defineOffer` (`:272`), `OFFERS` (`index.ts:78`), `snapshot.ts` (export)
+- `Offer` (`offer.ts:129`), `defineOffer` (`:272`), `OFFERS` (`index.ts:82`), `snapshot.ts` (export)
+- `growth-partner` (`catalog/growth-partner.ts`): status `draft`, price quoted, no page, no pitch copy, no amounts. It is in the registry so the shape's starter offer node can name it and deals can be made on it ([[platform/shape]]). `snapshot()` leaves every `draft` out, so `pnpm offers:export` never sends it to the lander (a `retired` offer still goes out). `syncOffers` writes a draft's version like any other. Its terms are `terms_versions` rows, never code.
 - Price kinds: free, quoted, fixed, performance (setup + per unit, capped). Ids never change: retire and add.
 - `plan` (`Phase`, `offer.ts:94`): the weeks a bought offer runs, each with what we hand over and what we need. [[clients/engagement]] dates it on start. Never on the lander snapshot.
 - `addOn` (`offer.ts:191`): one component id the portal's Apps page offers once, checked, with Install and Skip (`apps/portal/web/src/modules/marketplace/AddOn.tsx`). A client's Install is an ask; the team installs. Never on the snapshot.
 - `icp?: Icp` (`offer.ts:133`, `:218`): who the offer is for, as rules (`who`, `industries`, `sizes`, `roles`, `regions`, `must`, `not`). A stage's `research` reads the newest version's `icp` and hands it to the researcher as context; nothing scores fit yet ([[platform/journey]]). Never on the snapshot (`snapshot.ts` drops it). No catalog offer sets one yet.
-- Versions (`designs/2026-10-18-journeys.md`): `pipeline.offer_versions` keeps each published shape by hash (append only). `syncOffers` (`packages/pipeline/src/store.ts:70`) adds a row when the sha256 of the canonical `Offer` JSON differs from the newest version's; `wren offers sync|list|versions` and the deploy step `offer versions` run it. It compares only with the newest version, so an offer put back to an older shape is the next number. Payment terms are [[platform/terms]]; `offer` nodes of the shape sell it ([[platform/shape]]). `Terms` is exported from here (`packages/offers/src/terms.ts`).
+- Versions (`designs/2026-10-18-journeys.md`): `pipeline.offer_versions` keeps each published shape by hash (append only). `syncOffers` (`packages/pipeline/src/store.ts:69`) adds a row when the sha256 of the canonical `Offer` JSON differs from the newest version's; `wren offers sync|list|versions` and the deploy step `offer versions` run it. It compares only with the newest version, so an offer put back to an older shape is the next number. Payment terms are [[platform/terms]]; `offer` nodes of the shape sell it ([[platform/shape]]). `Terms` is exported from here (`packages/offers/src/terms.ts`).
 - Records and app (`packages/pipeline/src/records.ts`): `pipeline.offer` (views live, all; `live_plans`, `open_journeys`; detail lists every version, `related` terms by `offer`) and `pipeline.terms` (one row per terms version, state live|upcoming|older, views live, all). Console `termsAdd` calls `addTerms` as the caller (same checks as `wren terms add`, `OFFER_IDS`; refused in a client workspace). The Offers app (`apps/portal/web/src/modules/offers`, team only): pages All and Terms; Terms has Propose version, a form for offer, plan, effective-from, terms JSON and why. It never fills terms.
 - `pnpm offers:export ../lander/src/data/offers.json` (`package.json:23`)
 
-Citations: `packages/offers/src/offer.ts:129`, `packages/pipeline/src/records.ts`, `packages/offers/src/index.ts:78`, `packages/pipeline/src/store.ts:70`
+Citations: `packages/offers/src/offer.ts:129`, `packages/pipeline/src/records.ts`, `packages/offers/src/index.ts:82`, `packages/offers/src/catalog/growth-partner.ts`, `packages/pipeline/src/store.ts:69`
 
 ## Connected to
 

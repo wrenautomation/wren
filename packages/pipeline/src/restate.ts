@@ -133,7 +133,7 @@ export function makeJourneys(deps: JourneysDeps) {
           const plan = await ctx.run("move", () =>
             run(async () => {
               const { journey, ...e } = await moveEmit(db, req);
-              return { was: journey.node ?? "", ...e };
+              return { was: journey.node, ...e };
             }),
           );
           const { was, ...e } = plan;

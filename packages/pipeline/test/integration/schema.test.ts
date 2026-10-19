@@ -1,19 +1,19 @@
 /**
  * The pipeline schema on a real Postgres (designs/2026-10-19-business-map.md): version rows are
- * never edited or deleted, a journey names a shape version that exists, and the old funnel
- * columns still hold their one-open-journey index until M3 drops them. Synthetic data only.
+ * never edited or deleted, a journey names a shape version and a node that exist, and a person
+ * holds one open journey (migration 0307 dropped the old funnel columns). Synthetic data only.
  */
 import { profiles } from "@wren/core/profiles-schema";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { FunnelBody } from "../../src/migrate.js";
 import { depthOf } from "../../src/model.js";
 import {
   funnels,
   funnelVersions,
   journeys,
   offerVersions,
+  pipelineDeals,
   shapeVersions,
   termsVersions,
 } from "../../src/schema.js";
@@ -32,18 +32,13 @@ const refusal = (p: Promise<unknown>) =>
     (e: Error) => (e.cause instanceof Error ? e.cause.message : e.message),
   );
 
-const body: FunnelBody = {
+/** The old funnel body, as its history table holds it. */
+const old: Record<string, unknown> = {
   name: "Test",
   offer: "offer-a",
-  stages: [
-    { key: "engaged", label: "Engaged", on: [] },
-    { key: "signed", label: "Signed", sale: true, on: [] },
-  ],
+  stages: [{ key: "engaged", label: "Engaged", on: [] }],
   entries: [],
 };
-
-/** The old body as the legacy column holds it. */
-const old = body as unknown as Record<string, unknown>;
 
 describe("version rows", () => {
   it("refuse an update and a delete", async () => {
@@ -101,7 +96,7 @@ describe("version rows", () => {
 });
 
 describe("journeys", () => {
-  it("names a shape version that exists, and has no legacy columns", async () => {
+  it("names a shape version that exists, and has a node", async () => {
     const [a] = await pg.db
       .insert(profiles)
       .values([{ name: "Ada" }])
@@ -118,25 +113,28 @@ describe("journeys", () => {
     );
     const [row] = await pg.db.insert(journeys).values(open(1)).returning();
     expect(row).toMatchObject({ version: 1, node: "engaged", trail: [], status: "open" });
-    // The legacy columns are null for a journey on the shape.
-    expect(row).toMatchObject({ funnel: null, funnelVersion: null, stage: null });
+    // The legacy columns are gone.
+    expect(Object.keys(row ?? {})).not.toEqual(
+      expect.arrayContaining(["funnel", "funnelVersion", "stage"]),
+    );
+    expect(
+      await refusal(pg.db.insert(journeys).values({ ...open(1), node: null as never })),
+    ).toMatch(/"node" .*not-null/);
+    expect(
+      await refusal(pg.db.insert(journeys).values({ ...open(1), version: null as never })),
+    ).toMatch(/"version" .*not-null/);
   });
 
-  it("keeps the old index: one open journey per person and funnel, for legacy rows", async () => {
+  it("holds one open journey per person", async () => {
     const [b, c] = await pg.db
       .insert(profiles)
       .values([{ name: "Bo" }, { name: "Cy" }])
       .returning();
     if (!b || !c) throw new Error("no profiles");
-    await pg.db.insert(funnels).values({ id: "other", name: "Other" });
-    await pg.db
-      .insert(funnelVersions)
-      .values({ funnel: "other", number: 1, body: old, why: "first", createdBy: "t" });
-    const open = (profileId: number, funnel = "test") => ({
+    const open = (profileId: number) => ({
       profileId,
-      funnel,
-      funnelVersion: 1,
-      stage: "engaged",
+      version: 1,
+      node: "engaged",
       entry: "manual",
     });
 
@@ -144,12 +142,36 @@ describe("journeys", () => {
     if (!first) throw new Error("no journey");
     expect(await refusal(pg.db.insert(journeys).values(open(b.id)))).toMatch(/"uq_journeys_open"/);
 
-    // Another person, and the same person in another funnel, are fine.
+    // Another person is fine.
     await pg.db.insert(journeys).values(open(c.id));
-    await pg.db.insert(journeys).values(open(b.id, "other"));
 
     // Once it is closed, the person can open a new one.
     await pg.db.update(journeys).set({ status: "done" }).where(eq(journeys.id, first.id));
     await pg.db.insert(journeys).values(open(b.id));
+  });
+
+  it("holds a deal at each offer node, not one deal in all", async () => {
+    const [d] = await pg.db
+      .insert(profiles)
+      .values([{ name: "Di" }])
+      .returning();
+    if (!d) throw new Error("no profile");
+    const [j] = await pg.db
+      .insert(journeys)
+      .values({ profileId: d.id, version: 1, node: "engaged", entry: "manual" })
+      .returning();
+    if (!j) throw new Error("no journey");
+    const deal = (node: string) => ({
+      journey: j.id,
+      node,
+      profileId: d.id,
+      offer: "offer-a",
+      offerVersion: 1,
+    });
+    await pg.db.insert(pipelineDeals).values(deal("o1"));
+    await pg.db.insert(pipelineDeals).values(deal("o2"));
+    expect(await refusal(pg.db.insert(pipelineDeals).values(deal("o1")))).toMatch(
+      /"uq_deals_journey_node"/,
+    );
   });
 });

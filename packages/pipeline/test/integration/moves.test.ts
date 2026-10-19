@@ -679,12 +679,21 @@ describe("loop edges", () => {
     const crossings = (await edgeFlowOf(pg.db)).filter((f) => f.edge === "booked_to_engaged");
     expect(crossings.reduce((n, f) => n + (f.crossings ?? 0), 0)).toBe(1);
 
-    // Rebuild keeps the old journey dropped by the loop, and the new one as it is.
+    // Rebuild keeps the old journey dropped by the loop, and the new one as it is. One journey is
+    // open per person, so the new one is closed while the old one is forced open.
+    await pg.db
+      .update(journeys)
+      .set({ status: "dropped", closedAt: new Date() })
+      .where(eq(journeys.id, freshId));
     await pg.db
       .update(journeys)
       .set({ status: "open", dropReason: null, closedAt: null })
       .where(eq(journeys.id, id));
     const r = await rebuildJourney(pg.db, id);
+    await pg.db
+      .update(journeys)
+      .set({ status: "open", closedAt: null })
+      .where(eq(journeys.id, freshId));
     expect(r.after).toMatchObject({
       node: "booked",
       status: "dropped",

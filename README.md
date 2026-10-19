@@ -209,7 +209,7 @@ and `in <group> <id|email>` (exits 1 when not). A rule can be inline, `@file` or
 `shape show [--version n]` prints the outline with the journeys open on each node. `versions` lists them. `diff <a> <b>` says what changed. `export [--version n] [--out file]` writes a shape file. `import <file> [--note]` saves a file as the next version, with the terms it lists.
 `shape add-node <id> --kind source|step|offer|plan --name <text> --note <why>` adds a node (`--from <node>` and `--to <node>` add its flow edges; `--via`, `--action`, `--offer`, `--terms`, `--advance trigger.id:key=value`, `--research`, `--idle-days` set the rest). `connect <from> <to> --note <why> [--loop] [--label]` adds an edge. `remove <id> --note <why> [--edge]` drops a node with its edges, or one edge. It refuses while journeys are open on the node, unless `--move-to <node>` sends them on or `--ghost` leaves them on their own version.
 `shape move <journey> <node> [--reason]` and `journeys move` are one command: it goes through the worker's `Journeys` service along the shape's edges, or forced with `--reason`.
-`shape migrate [--dry] [--all]` builds shape v1 from the old funnels and places every journey on it. Safe to repeat. Deploy runs it with `--all` (main and every client database). `--client <id>` runs one client.
+`shape start` saves the starter (kind-only nodes, no real names or amounts) as v1 with the note Starter. It does nothing when a shape exists.
 `journeys open|move|drop|rebuild|show|list`, `deals list|sign|schedule` and `numbers [--source <id>] [--offer <id>] [--window 7|30|90|all]` read and write journeys and deals. `terms`, `shape`, `journeys`, `deals` and `numbers` take `--client`.
 
 ## SOPs

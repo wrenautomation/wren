@@ -11,7 +11,9 @@ import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { funnels, funnelVersions, journeys } from "../../src/schema.js";
+import { depthOf } from "../../src/model.js";
+import { journeys, shapeVersions } from "../../src/schema.js";
+import { shape } from "../fixtures.js";
 
 const FILE = new URL("../../../db/drizzle/0303_deals_guard_and_drop.sql", import.meta.url);
 const [GUARD = "", ...DROPS] = readFileSync(FILE, "utf8").split("--> statement-breakpoint");
@@ -41,17 +43,12 @@ beforeAll(async () => {
   await pg.db.execute(
     sql`insert into deal_pipelines (id, name, stages) values (${PIPE}, 'Sales', '[]'::jsonb)`,
   );
-  await pg.db.insert(funnels).values({ id: "sales", name: "Sales" });
-  await pg.db.insert(funnelVersions).values({
-    funnel: "sales",
+  // A journey names a shape version.
+  await pg.db.insert(shapeVersions).values({
     number: 1,
-    body: {
-      name: "Sales",
-      offer: "offer-a",
-      stages: [{ key: "new", label: "New", on: [] }],
-      entries: [],
-    },
-    why: "t",
+    body: shape(),
+    depths: depthOf(shape()),
+    note: "first",
     createdBy: "t",
   });
 });
@@ -99,9 +96,8 @@ describe("the deals guard", () => {
     const p = await resolveProfile(pg.db, [{ kind: "email", value: "ada@example.test" }], "test");
     await pg.db.insert(journeys).values({
       profileId: p?.id as number,
-      funnel: "sales",
-      funnelVersion: 1,
-      stage: "new",
+      version: 1,
+      node: "engaged",
       entry: "manual",
       legacyDeal: DEAL,
     });

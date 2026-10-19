@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-19 @ 781f02d7
+verified: 2026-10-19 @ 05e9f4a4
 entity: apps/cli/src/main.ts:118
 ---
 
@@ -17,7 +17,7 @@ Reads go straight to Postgres; writes that are one-row operator facts (approve, 
 
 ## Shape
 
-- `main.ts:37`–`90`: `status` (reads content, `packages/content/src/status.ts`), `db check`, `tokens`, `report weekly`; `email.ts`, `review.ts` (drafts, approve, reject, edit, stop, preview, reply, event), `content.ts`, `ads.ts`, `sms.ts`, `fetch.ts`, `books.ts` (`wren books`, registered at `main.ts:106`), `pipeline.ts` (`wren offers`, `terms`: the version store; `terms` takes `--client`, `offers` is main only; `journeys`, `deals`, `numbers`: moves, deals and the numbers views, all take `--client`, with writes sent to the `Journeys` service), `shape.ts` (`wren shape show|versions|diff|export|import|add-node|connect|remove|move|migrate`: the shape's version store and edits, takes `--client`; `shape move` is the same handler as `journeys move`; `shape migrate [--dry] [--all]` is the deploy step that builds the first shape from the old funnels and places journeys and deals)
+- `main.ts:37`–`90`: `status` (reads content, `packages/content/src/status.ts`), `db check`, `tokens`, `report weekly`; `email.ts`, `review.ts` (drafts, approve, reject, edit, stop, preview, reply, event), `content.ts`, `ads.ts`, `sms.ts`, `fetch.ts`, `books.ts` (`wren books`, registered at `main.ts:106`), `pipeline.ts` (`wren offers`, `terms`: the version store; `terms` takes `--client`, `offers` is main only; `journeys`, `deals`, `numbers`: moves, deals and the numbers views, all take `--client`, with writes sent to the `Journeys` service), `shape.ts` (`wren shape show|versions|diff|export|import|start|add-node|connect|remove|move`: the shape's version store and edits, takes `--client`; `shape move` is the same handler as `journeys move`; `shape start` saves the starter shape as version 1 when no shape exists)
 - `walkthrough/demos/prod.sh` points one command at prod, read-only
 - `~/.local/bin/wren` links to `bin/wren` (outside the repo)
 

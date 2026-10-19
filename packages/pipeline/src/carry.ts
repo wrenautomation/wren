@@ -7,12 +7,15 @@
  *
  * A journey on a node the new body lacks, and `moves` does not name, stays on its version: a
  * ghost. Its moves follow its own version's edges.
+ *
+ * `moves` also sends the open deals made at a moved node to the new node (`remapDeals`), so a
+ * deal stays on a node the shape still has.
  */
 import { events } from "@wren/core/schema";
 import { atomic, type Queryable } from "@wren/db";
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, inArray, lt } from "drizzle-orm";
 import type { Crossing } from "./model.js";
-import { journeys, shapeVersions } from "./schema.js";
+import { journeys, pipelineDeals, shapeVersions } from "./schema.js";
 import { shapeFlowId } from "./workflow.js";
 
 /** The `by` of the arrivals carry writes. */
@@ -46,7 +49,6 @@ export async function carryJourneys(
       .for("update");
     let moved = 0;
     for (const j of open) {
-      if (j.node === null || j.version === null) continue;
       const node = moves[j.node] ?? j.node;
       if (!inBody.has(node)) continue;
       const at = new Date();
@@ -82,6 +84,44 @@ export async function carryJourneys(
           by: CARRY_BY,
         })
         .onConflictDoNothing();
+      moved++;
+    }
+    return moved;
+  });
+}
+
+/**
+ * Send every open deal made at a node that is a key of `moves` to the key's new node, as one
+ * step per deal (`{ a: b, b: c }` sends a deal at `a` to `b`, not to `c`). A deal stays put when
+ * its journey already has a deal at the new node: a journey holds one deal per node. Won and lost
+ * deals stay where they were made. Gives back how many it moved.
+ */
+export async function remapDeals(db: Queryable, moves: Moves): Promise<number> {
+  const from = Object.keys(moves).filter((k) => moves[k] !== k);
+  if (from.length === 0) return 0;
+  return atomic(db, async (tx) => {
+    const open = await tx
+      .select({ id: pipelineDeals.id, journey: pipelineDeals.journey, node: pipelineDeals.node })
+      .from(pipelineDeals)
+      .where(and(eq(pipelineDeals.status, "open"), inArray(pipelineDeals.node, from)))
+      .for("update");
+    if (open.length === 0) return 0;
+    const held = await tx
+      .select({ journey: pipelineDeals.journey, node: pipelineDeals.node })
+      .from(pipelineDeals)
+      .where(
+        inArray(
+          pipelineDeals.journey,
+          open.map((d) => d.journey),
+        ),
+      );
+    const taken = new Set(held.map((d) => `${d.journey}/${d.node}`));
+    let moved = 0;
+    for (const d of open) {
+      const to = d.node === null ? undefined : moves[d.node];
+      if (to === undefined || taken.has(`${d.journey}/${to}`)) continue;
+      await tx.update(pipelineDeals).set({ node: to }).where(eq(pipelineDeals.id, d.id));
+      taken.add(`${d.journey}/${to}`);
       moved++;
     }
     return moved;

@@ -15,7 +15,6 @@ import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
 import { linkPeople } from "@wren/core/leads";
 import {
   type AuditCheck,
-  clientAdminUrl,
   clientDatabases,
   clientDatabaseUrl,
   createDb,
@@ -304,16 +303,7 @@ const journeyWrites: PipelineWrites = {
   },
 };
 registerPipeline(program, withDb, withMainDb, journeyWrites);
-registerShape(program, {
-  withDb,
-  withMainDb,
-  // The shape migration writes a client's journeys as main's login, as the migrations do.
-  onDatabase: (database, fn) => open(clientAdminUrl(settings.databaseUrl, database), fn),
-  databases: () => withMainDb(clientDatabases),
-  databaseOf: async (id) => (await withMainDb((db) => getClient(db, id))).database,
-  client: () => program.opts<{ client?: string }>().client,
-  writes: journeyWrites,
-});
+registerShape(program, { withDb, writes: journeyWrites });
 registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,

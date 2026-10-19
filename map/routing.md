@@ -66,7 +66,7 @@ The shape, journeys, offer and terms versions, deals, numbers. Designs: `designs
 | Noun | Card | Code | CLI |
 |---|---|---|---|
 | a person's path down the shape | [[platform/journey]] | `journeys.ts`, `moves.ts`, `steps.ts`, `entry.ts` | `wren journeys` |
-| the shape (sources, steps, offers, plans, edges) and its versions; the generated spine workflow; the file form; the migration from funnels | [[platform/shape]] | `model.ts`, `store.ts`, `workflow.ts`, `carry.ts`, `edit.ts`, `shape-file.ts`, `migrate.ts` | `wren shape` |
+| the shape (sources, steps, offers, plans, edges) and its versions; the generated spine workflow; the file form; the starter shape | [[platform/shape]] | `model.ts`, `store.ts`, `workflow.ts`, `carry.ts`, `edit.ts`, `shape-file.ts`, `starter.ts` | `wren shape` |
 | an offer's published shapes | [[platform/offer]] | `store.ts` (`syncOffers`) | `wren offers` |
 | a plan's terms by date; the dated lines of a deal | [[platform/terms]] | `store.ts` (`addTerms`), `schedule.ts` | `wren terms`, `wren deals schedule` |
 | a pipeline deal | [[platform/journey]] | `records.ts`, `moves.ts` (`signDeal`) | `wren deals` |

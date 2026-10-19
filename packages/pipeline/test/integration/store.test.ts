@@ -6,7 +6,7 @@
 import { resolveProfile } from "@wren/core/profiles";
 import { events } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import type { Offer, Terms } from "@wren/offers";
+import { OFFERS, type Offer, type Terms } from "@wren/offers";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { depthOf } from "../../src/model.js";
@@ -100,6 +100,21 @@ describe("syncOffers", () => {
     expect(rows.map((r) => r.number)).toEqual([1, 2, 3]);
     expect(rows[2]?.hash).toBe(rows[0]?.hash);
     expect((await syncOffers(pg.db, [offer("sync-c")], "t")).unchanged).toBe(1);
+  });
+
+  it("writes a draft offer's version, so a deal can be made on it", async () => {
+    const draft: Offer = { ...offer("sync-draft"), status: "draft" };
+    expect((await syncOffers(pg.db, [draft], "t")).added).toEqual([
+      { offer: "sync-draft", number: 1 },
+    ]);
+    expect((await offerVersionsOf(pg.db, "sync-draft"))[0]?.body.status).toBe("draft");
+  });
+
+  it("writes the registry's Growth Partner draft", async () => {
+    const r = await syncOffers(pg.db, OFFERS, "t");
+    expect(r.added).toContainEqual({ offer: "growth-partner", number: 1 });
+    const [v] = await offerVersionsOf(pg.db, "growth-partner");
+    expect(v?.body).toMatchObject({ name: "Growth Partner", status: "draft" });
   });
 });
 

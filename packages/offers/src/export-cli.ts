@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { OFFERS } from "./index.js";
-import { snapshotText } from "./snapshot.js";
+import { snapshot, snapshotText } from "./snapshot.js";
 
 const args = process.argv.slice(2);
 const check = args.includes("--check");
@@ -17,6 +17,7 @@ if (file === undefined) {
 // pnpm --filter runs in the package dir; INIT_CWD is where the person typed the command.
 const path = resolve(process.env.INIT_CWD ?? process.cwd(), file);
 const want = snapshotText(OFFERS);
+const count = snapshot(OFFERS).offers.length;
 if (check) {
   let have = "";
   try {
@@ -28,8 +29,8 @@ if (check) {
     console.error(`${path} is stale: run pnpm offers:export ${file}`);
     process.exit(1);
   }
-  console.log(`${path} matches the registry (${OFFERS.length} offers)`);
+  console.log(`${path} matches the registry (${count} offers)`);
 } else {
   writeFileSync(path, want);
-  console.log(`wrote ${OFFERS.length} offers to ${path}`);
+  console.log(`wrote ${count} offers to ${path}`);
 }

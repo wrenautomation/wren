@@ -4,7 +4,8 @@
  *
  * - `offer_versions`, `terms_versions`, `shape_versions`: append only (`never_edited` trigger).
  * - `shape_versions`: the business as one directed graph; every edit is a version.
- * - `funnels`, `funnel_versions`: read only history, read by `migrate.ts` alone.
+ * - `funnels`, `funnel_versions`: the old funnels, kept as history. Nothing reads them; the shape
+ *   replaced them (migration 0307 dropped the journey columns that pointed at them).
  * - `journeys`: one person on the shape. A cache of the spine events with subject `journey:<id>`.
  * - `deals`: made when a journey reaches an offer node.
  */
@@ -106,7 +107,7 @@ export const funnelVersions = pipeline.table(
     id: serial("id").notNull(),
     funnel: varchar("funnel", { length: 40 }).notNull(),
     number: integer("number").notNull(),
-    /** Legacy: the old funnel body. Read only by `migrate.ts`, which owns the type. */
+    /** The old funnel body. History only: nothing reads it. */
     body: jsonb("body").$type<Record<string, unknown>>().notNull(),
     why: text("why").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -155,13 +156,10 @@ export const journeys = pipeline.table(
   {
     id: uuid("id").defaultRandom().notNull(),
     profileId: integer("profile_id").notNull(),
-    /**
-     * The shape version number it is on now. Null only on a row `migrate.ts` has not moved yet.
-     * The column keeps the name `shape_version` until the legacy ones go (M3).
-     */
-    version: integer("shape_version"),
-    /** A node id of that version. Null only before `migrate.ts`. */
-    node: varchar("node", { length: 40 }),
+    /** The shape version number it is on now. */
+    version: integer("version").notNull(),
+    /** A node id of that version. */
+    node: varchar("node", { length: 40 }).notNull(),
     /** Each edge it crossed, in order. Rebuilt from the events like the rest of the row. */
     trail: jsonb("trail").$type<Crossing[]>().notNull().default(sql`'[]'::jsonb`),
     status: varchar("status", { length: 7, enum: JOURNEY_STATUSES }).notNull().default("open"),
@@ -175,32 +173,20 @@ export const journeys = pipeline.table(
     closedAt: timestamp("closed_at", { withTimezone: true }),
     /** The old Opportunities deal this came from (its uuid); set only by the retired fold. */
     legacyDeal: uuid("legacy_deal"),
-    /** Legacy, read only by migrate.ts: the funnel it was in. */
-    funnel: varchar("funnel", { length: 40 }),
-    /** Legacy, read only by migrate.ts: the funnel version it was on. */
-    funnelVersion: integer("version"),
-    /** Legacy, read only by migrate.ts: the funnel stage key. */
-    stage: varchar("stage", { length: 40 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_journeys" }),
-    index("ix_journeys_profile_funnel_status").on(t.profileId, t.funnel, t.status),
     index("ix_journeys_profile_status").on(t.profileId, t.status),
     index("ix_journeys_shape_version").on(t.version),
-    // Legacy, one open journey per person per funnel. One per person is enforced in code
-    // (an advisory lock on the profile); its index comes with M3.
-    uniqueIndex("uq_journeys_open").on(t.profileId, t.funnel).where(sql`status = 'open'`),
+    // One open journey per person. The code holds an advisory lock on the profile; this is the
+    // backstop that makes a second open row an error.
+    uniqueIndex("uq_journeys_open").on(t.profileId).where(sql`status = 'open'`),
     // The fold makes one journey per old deal, even when two folds run at once.
     uniqueIndex("uq_journeys_legacy_deal").on(t.legacyDeal).where(sql`legacy_deal is not null`),
     foreignKey({
       columns: [t.profileId],
       foreignColumns: [profiles.id],
       name: "fk_journeys_profile_id_profiles",
-    }),
-    foreignKey({
-      columns: [t.funnel, t.funnelVersion],
-      foreignColumns: [funnelVersions.funnel, funnelVersions.number],
-      name: "fk_journeys_funnel_version",
     }),
     foreignKey({
       columns: [t.version],
@@ -216,9 +202,9 @@ export const pipelineDeals = pipeline.table(
   "deals",
   {
     id: uuid("id").defaultRandom().notNull(),
-    /** One deal per journey (and offer node: `uq_deals_journey_node`). */
+    /** A journey holds one deal per offer node (`uq_deals_journey_node`). */
     journey: uuid("journey").notNull(),
-    /** The offer node the deal was made at. Null on a row `migrate.ts` has not moved yet. */
+    /** The offer node the deal was made at. A save with `moves` sends an open deal to the new node. Null on a deal made before the shape. */
     node: varchar("node", { length: 40 }),
     profileId: integer("profile_id").notNull(),
     offer: varchar("offer", { length: 64 }).notNull(),
@@ -237,7 +223,6 @@ export const pipelineDeals = pipeline.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_deals" }),
-    unique("uq_deals_journey").on(t.journey),
     unique("uq_deals_journey_node").on(t.journey, t.node),
     index("ix_deals_profile_id").on(t.profileId),
     index("ix_deals_terms_version").on(t.termsVersion),
