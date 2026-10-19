@@ -43,4 +43,4 @@ Wren runs on these objects from day one: one offer, three funnels (organic conte
 
 ## Spawned designs
 
-- (pending) domain model: offers, terms, funnels, journeys, deals on the spine.
+- `2026-10-18-journeys.md`: offers, terms, funnels, journeys, deals on the spine. Beads under wa-8pi (J1-J7).
