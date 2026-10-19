@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-07 @ 85f81a2
+verified: 2026-10-19 @ cedaf9ee
 entity: packages/core/src/vendors.ts:1
 ---
 
@@ -17,12 +17,12 @@ A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<clie
 
 ## Shape
 
-- `vendor_modes` (`packages/core/src/vendor-schema.ts:28`): unique client+vendor; mode, key_name, per_day, cap_cents (both default 0: nothing runs)
-- `vendor_usage` (`:62`): one row per metered call; bucket, units, est. micros; no FK (a ledger)
+- `vendor_modes` (`packages/core/src/vendor-schema.ts:28`): unique client+vendor+`purpose` (`default`, `bulk`, `drafts`); mode, key_name (the `ks_` ref that picks one key), per_day, cap_cents (both default 0: nothing runs). Gate, meter and the Vendors page read the `default` row; other purposes are own-key rows (`setPurposeKey`, `wren keys use`)
+- `vendor_usage` (`:64`): one row per metered call; bucket, units, est. micros, `key_id` (the key's `keyId` where Wren holds the value, null where a path holds it); no FK (a ledger)
 - `books.usage_lines` (`packages/books/src/schema.ts`): one owner's month of one managed vendor; draft or on_invoice; `writeUsageLines` (`packages/books/src/usage-lines.ts:36`), run by the Books day for this month and last; the next month's bill in [[clients/engagement]] carries the drafts and marks them `on_invoice` when the invoice is recorded
-- Code (`vendors.ts`): `VENDORS` (`:34`), `vendorSettings` (`:159`, `wren_settings` block `vendors`: markupPct 0, reservePct 50, managedForClients all but linkedin), `setOwnKey` (`:280`), `setManaged` (`:257`), `gate` (`:381`; a free vendor skips the $ cap, its share bounds it), `roomToday` (`:395`, the gate without the cap: the page's "Today"), `meter` (`:480`), `usageSince` (`:523`)
-- `KeyStore`: `pgKeyStore` in `packages/core/src/keys.ts` (sealed rows in `client_secrets`, events in `client_secret_events`); refs and shapes in `key-refs.ts`; `setOwnKey` binds a staged ref
-- Whose key a call runs on: `vendorKey` / `vendorKeys` (`packages/core/src/vendor-keys.ts`); own reads go straight to the vendor (`vendor-direct.ts`, Exa people and LinkedIn routes in `vendor-direct-exa.ts`); `meteredSites`, `keyedSites`, `meteredModel` (`metered.ts`); texts `keyedProvider` (`packages/channel-sms/src/keyed.ts`); Telnyx webhooks on an own account check the client's saved `TELNYX_PUBLIC_KEY` (`packages/channel-sms/src/signer.ts`, `SmsEvents/signer`); an own YouTube key reads on its own bucket (`ownRoom`, `youtubeReadRoom`); call sites in `designs/2026-10-07-vendor-keys.md`
+- Code (`vendors.ts`): `VENDORS` (`:34`), `vendorSettings` (`:159`, `wren_settings` block `vendors`: markupPct 0, reservePct 50, managedForClients all but linkedin), `setOwnKey` (`:316`), `setPurposeKey` (`:339`), `setManaged` (`:290`), `gate` (`:471`; a free vendor skips the $ cap, its share bounds it), `roomToday` (`:485`, the gate without the cap: the page's "Today"), `meter` (`:573`; takes `keyId`), `usageSince` (`:619`), `usageByKey` (`:647`, spend per key id since a date)
+- `KeyStore`: `pgKeyStore` in `packages/core/src/keys.ts` (sealed rows in `client_secrets`, events in `client_secret_events`); refs, shapes and the label rule in `key-refs.ts`; `setOwnKey` binds a staged ref. A key is (client, name, `label`): one live row per label (`default`, `bulk-2`), the account part of its address (`exa@bulk-2`). `keyId` (`key-id.ts`): first 12 hex of the SHA-256 of the trimmed value, a copy of credvault's rule pinned by a test vector
+- Whose key a call runs on: `vendorKey` / `vendorKeys` (`packages/core/src/vendor-keys.ts`; by `purpose`: the purpose's row, else `default`'s; own with no key is refused, never Wren's; `VendorKey.id` goes to `meter`); own reads go straight to the vendor (`vendor-direct.ts`, Exa people and LinkedIn routes in `vendor-direct-exa.ts`); `meteredSites`, `keyedSites`, `meteredModel` (`metered.ts`); texts `keyedProvider` (`packages/channel-sms/src/keyed.ts`); Telnyx webhooks on an own account check the client's saved `TELNYX_PUBLIC_KEY` (`packages/channel-sms/src/signer.ts`, `SmsEvents/signer`); an own YouTube key reads on its own bucket (`ownRoom`, `youtubeReadRoom`); call sites in `designs/2026-10-07-vendor-keys.md`
 - GCRA: `packages/core/src/buckets.ts` (research re-exports it)
 - `AccountsConsole` `vendors`, `setVendor`, `usage` (`packages/core/src/accounts-console.ts`): managed needs money (an admin); an own key comes as a staged ref (`keyRef`), never the key. `usage` totals Wren's key only; own-key use is its own line, billed to the client by the vendor. Web: `apps/portal/web/src/modules/account/Vendors.tsx`, `summary.tsx` (Vendor usage)
 
@@ -33,7 +33,7 @@ A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<clie
 
 ## If you change this
 
-- **Hits:** client caps and shares, draft lines, prices on the Vendors page
+- **Hits:** client caps and shares, draft lines, prices on the Vendors page; the Accounts page's keys (W2) read `client_secrets.label` and `usageByKey`
 - **Does not hit:** invoices (lines are drafts; a person puts them on Wise)
 
 ## Surfaces
@@ -44,3 +44,4 @@ A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<clie
 | Account → Vendors (client) | reads mode, room, usage, cap |
 | Clients → Vendor usage | reads this month across clients |
 | Books day | writes usage lines |
+| `wren keys put --label`, `keys use --purpose --key` | writes labelled keys, one purpose row per key |
