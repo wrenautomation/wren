@@ -60,6 +60,7 @@ const journey = (
   status: "open",
   flag: days >= 14 ? "stale" : null,
   entry: "Booked a call",
+  email: `${name.split(" ")[0]?.toLowerCase()}@example.test`,
   owner: null,
   daysInStage: days,
   version: 2,

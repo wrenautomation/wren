@@ -289,6 +289,8 @@ export function inboxPages(): ListPage[] {
       },
       columns: ["email", "what", "reason", "state", "at"],
       actions: ASK_ACTIONS,
+      // Open asks this reader decides: Today's Answer.
+      count: { state: ["open"], yours: ["yes"] },
     },
   ];
 }

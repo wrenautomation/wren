@@ -59,7 +59,7 @@ const placeName = (p: string) =>
   OTHER[p] ?? PLATFORM_SPECS[p as keyof typeof PLATFORM_SPECS]?.name ?? p;
 
 /** Where the next one of a piece gets made: one place per piece, whatever platform. */
-const makeAt = (piece: string, gs: readonly Goal[]): { href: string; label: string } => {
+export const makeAt = (piece: string, gs: readonly Goal[]): { href: string; label: string } => {
   const g = gs[0];
   if (piece === "story")
     return {

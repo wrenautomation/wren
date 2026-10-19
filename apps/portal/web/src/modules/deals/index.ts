@@ -34,7 +34,7 @@ export const clientDeals: Module = {
       empty: {
         open: "No open journeys.",
         mine: "No open journey was moved by you.",
-        stale: "Nothing has sat in a stage 14 days.",
+        stale: "No journey has sat in a stage past its limit.",
         done: "No journey is done yet.",
         dropped: "No journey is dropped.",
         all: "No journeys yet.",
@@ -49,6 +49,8 @@ export const clientDeals: Module = {
         "daysInStage",
         "movedAt",
       ],
+      // Wren's Today lists the stale ones as a move: Nudge or drop.
+      count: { flag: ["stale"] },
     },
     {
       id: "funnels",

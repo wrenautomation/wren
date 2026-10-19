@@ -427,7 +427,11 @@ export function App() {
     dropPreloadedLook();
     keep(LOOK_KEY, lookVars);
   }, [lookKnown, lookVars]);
-  const { waiting, read: waitRead } = useWaiting(
+  const {
+    waiting,
+    read: waitRead,
+    moves,
+  } = useWaiting(
     cards,
     current?.id,
     wren,
@@ -539,8 +543,15 @@ export function App() {
   // A phone's bottom tabs at home: Home (Today), then what he opens every day; Apps comes after.
   const dock: DockItem[] | undefined = launcher
     ? [
-        // Today holds no number: counts sit only where something waits on him (Inbox, To approve).
-        { id: "home", label: "Today", icon: "home", href: launcher, on: !open },
+        // Today's number is its Move lines (Wren's only): what waits on him, across the apps.
+        {
+          id: "home",
+          label: "Today",
+          icon: "home",
+          href: launcher,
+          count: wren ? moves.count : undefined,
+          on: !open,
+        },
         ...dockOf(cards, wren).map(({ app: m, pick }) => {
           const page = pick.page ? m.pages.find((p) => p.id === pick.page) : undefined;
           return {
@@ -702,6 +713,7 @@ export function App() {
               apps={cards}
               waiting={waiting}
               read={waitRead}
+              moves={moves}
               pins={pins}
               props={props(current.id)}
             />

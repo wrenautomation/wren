@@ -190,6 +190,8 @@ export interface Module {
   fallback?: true;
   /** The component it belongs to (`@wren/core/components`); none for the platform's own. */
   component?: string;
+  /** Parked: kept in the tree, but its pages are not counted or read, and Today leaves it out. */
+  parked?: true;
   /** The one button in its head, a page to go to. */
   action?: { page: string; label: string; icon: IconName };
   /** Tabs read from its data, beside its pages: Learn's places and collections. */

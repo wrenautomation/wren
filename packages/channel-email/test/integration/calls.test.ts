@@ -5,6 +5,7 @@
  */
 import { loadSettings } from "@wren/config";
 import { addClient } from "@wren/core/clients";
+import { serveRecords } from "@wren/core/records/serve";
 import { atomic, cachedDb, clientDatabaseUrl, setAuditActor } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import type { LlmClient } from "@wren/llm";
@@ -13,6 +14,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { briefOf, buildBrief, markSent, saveBrief } from "../../src/calls/brief.js";
 import { setCallOutcome } from "../../src/calls/outcome.js";
 import { matchBooking, upcomingCalls } from "../../src/calls/recording.js";
+import { callRecord } from "../../src/records.js";
 import { emailConsoleApi } from "../../src/restate/console.js";
 import { callBookings, threadEvents } from "../../src/schema.js";
 import { SendPolicy } from "../../src/send/policy.js";
@@ -187,6 +189,25 @@ describe("a client's Calls app", () => {
     await expect(api().callsOf({ ...operator, client: "delta", ids: [1] })).rejects.toMatchObject({
       status: 404,
     });
+  });
+});
+
+describe("calls within a day", () => {
+  it("flags a call that starts in the next 24 hours, and no other", async () => {
+    const hours = (h: number) => new Date(Date.now() + h * 3_600_000);
+    const at = (uid: string, name: string, start: Date, over = {}) =>
+      pg.db
+        .insert(callBookings)
+        .values({ uid, state: "booked", start, name, bookedAt: NOW, ...over });
+    await at("soon-1", "Soon Example", hours(3));
+    await at("later-1", "Later Example", hours(40));
+    await at("past-1", "Past Example", hours(-3));
+    await at("cancel-1", "Cancelled Example", hours(3), { state: "cancelled" });
+    const page = await serveRecords([callRecord], pg.db).list({
+      record: "email.call",
+      view: "soon",
+    });
+    expect(page.rows.map((r) => r.who)).toEqual(["Soon Example"]);
   });
 });
 

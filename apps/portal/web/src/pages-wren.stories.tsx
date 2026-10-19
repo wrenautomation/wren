@@ -4,6 +4,7 @@
  */
 import type { Meta } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
+import { AREAS_TEAM } from "./areas.js";
 import { refuse } from "./mocks/api.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
@@ -12,18 +13,76 @@ import { failedIn, pageAt } from "./mocks/page.js";
 const meta: Meta = { title: "Pages/Wren" };
 export default meta;
 
-export const Today = pageAt("/", { me: ADMIN });
-/** Every read fails, or only the counts: Today says so, never "Nothing waits on you." */
+/** A records answer with no rows. */
+const NONE = { record: "", view: null, rows: [], total: 0, counts: {}, next: null, totals: {} };
+
+/**
+ * Today: Write (a quota short on YouTube long-form and Instagram, met on LinkedIn and TikTok, X
+ * on Autopilot) and Move (Ada's and Bo's lines under their journeys, the rest under Others).
+ */
+export const Today = pageAt("/", {
+  me: ADMIN,
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByRole("heading", { name: /^Write/ })).toBeVisible();
+    await expect(await view.findByRole("heading", { name: /^Move/ })).toBeVisible();
+    await expect(await view.findByText("YouTube long-form")).toBeVisible();
+    await expect(await view.findByText("Autopilot")).toBeVisible();
+    // Met quotas fold away.
+    await expect(await view.findByText(/^Met today/)).toBeVisible();
+    await expect((await view.findAllByText("Prepare call")).length).toBeGreaterThan(1);
+    await expect((await view.findAllByText("Nudge or drop")).length).toBe(1);
+    await expect(await view.findByText("Others")).toBeVisible();
+    // Parked, activity and a draft are not moves.
+    await expect(view.queryByText("Kit")).toBeNull();
+  },
+});
+
+/** Nothing to write and nothing to move: Today says so once every read is in. */
+export const TodayEmpty = pageAt("/", {
+  me: ADMIN,
+  answers: {
+    "console/recordsList": () => NONE,
+    "console/recordsCounts": (b) => ({
+      totals: (Array.isArray(b.asks) ? b.asks : []).map(() => 0),
+    }),
+  },
+  check: async (page) => {
+    await expect(await within(page).findByText("Nothing waits on you.")).toBeVisible();
+    await expect(await within(page).findByText("Nothing is due today.")).toBeVisible();
+  },
+});
+
+/** Every read fails: Move says so with a retry, never "Nothing waits on you." */
 export const TodayFailed = pageAt("/", {
   me: ADMIN,
   mode: "fails",
-  check: failedIn("Waiting on you"),
+  check: failedIn("Move"),
 });
+
+/** Only the counts fail: Move says so, and Write still draws. */
 export const TodayCountsFailed = pageAt("/", {
   me: ADMIN,
   answers: { "console/recordsCounts": refuse(500, "The counts failed, as asked.") },
-  check: failedIn("Waiting on you"),
+  check: async (page) => {
+    await failedIn("Move")(page);
+    await expect(await within(page).findByText("YouTube long-form")).toBeVisible();
+  },
 });
+
+/** On a phone: the dock under the page carries the Move count, and the apps sit by area. */
+export const TodayPhone = {
+  ...pageAt("/", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByRole("heading", { name: /^Move/ })).toBeVisible();
+      const area = await view.findAllByRole("heading", { name: AREAS_TEAM[0]?.label ?? "" });
+      await expect(area.length).toBeGreaterThan(0);
+    },
+  }),
+  globals: { viewport: { value: "phone" } },
+};
 export const Inbox = pageAt("/inbox", { me: ADMIN });
 export const People = pageAt("/people", { me: ADMIN });
 export const Outbound = pageAt("/outbound", { me: ADMIN });

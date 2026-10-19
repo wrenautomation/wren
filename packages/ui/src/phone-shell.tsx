@@ -456,9 +456,9 @@ const TAB =
 /** The icon's seat: a capsule lit under the tab on screen, and it gives a little under a thumb. */
 const SEAT =
   "relative grid h-[30px] w-[52px] place-items-center rounded-full transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
-/** What waits under a tab: iOS's red badge at the icon's top right. */
+/** What waits under a tab: iOS's red badge at the icon's top right. Paper ink: white on dark mode's coral fails contrast. */
 const BADGE =
-  "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-bad) px-[5px] text-center text-[11px]/[17px] font-semibold text-white [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
+  "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-bad) px-[5px] text-center text-[11px]/[17px] font-semibold text-(--ui-paper) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
 
 function TabFace({
   icon,

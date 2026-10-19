@@ -30,7 +30,7 @@ import { AI_SPEND, AiSpend, idOf } from "./heads.js";
 import { CLIENT_FLAG_ACTIONS, ClientHealth, HEALTH_ACTIONS, healthExtras } from "./health.js";
 import { Infra } from "./infra.js";
 import { MENTION_ACTIONS, mentionExtras } from "./mentions.js";
-import { REPLY_ACTIONS } from "./replies.js";
+import { REPLY_ACTIONS, REPLY_WAITING } from "./replies.js";
 import { Workflows } from "./workflows.js";
 
 const TEAM = { audience: "team" } as const;
@@ -562,6 +562,8 @@ export const inbox: Module = {
         all: "Warm replies show here.",
       },
       actions: REPLY_ACTIONS,
+      // Counted for Today's moves (Reply: name), though the tab hides.
+      count: REPLY_WAITING,
     },
   ],
 };

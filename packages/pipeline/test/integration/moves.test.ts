@@ -224,6 +224,8 @@ describe("move and drop", () => {
     ]);
     const [row] = await journeyRows(pg.db, { id });
     expect(row).toMatchObject({ name: "Ada", stage: "signed", status: "done", owner: OP });
+    // The person's addresses ride along, so Today can group a move under this journey.
+    expect(row).toMatchObject({ profile, email: "fwd@example.test" });
   });
 
   it("drops, and rebuild puts a damaged row right from its events", async () => {

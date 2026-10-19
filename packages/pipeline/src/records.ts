@@ -7,6 +7,7 @@
  * through a record edit.
  */
 
+import { keysOfProfile } from "@wren/core/profiles";
 import { profiles } from "@wren/core/profiles-schema";
 import {
   actor,
@@ -439,6 +440,10 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
     db,
     rows.map((r) => r.j.id),
   );
+  // Each person's addresses, so a row from another record (a reply, a call) finds their journey.
+  const emails = new Map<number, string[]>();
+  for (const k of await keysOfProfile(db, [...new Set(rows.map((r) => r.j.profileId))]))
+    if (k.kind === "email") emails.set(k.profileId, [...(emails.get(k.profileId) ?? []), k.value]);
   const now = (o.now ?? new Date()).getTime();
   return rows.map(({ j, person, funnelName, body }) => {
     const days = Math.floor((now - j.movedAt.getTime()) / DAY_MS);
@@ -447,6 +452,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
       id: j.id,
       name: person ?? `Person ${j.profileId}`,
       profile: j.profileId,
+      email: (emails.get(j.profileId) ?? []).join(" "),
       funnel: j.funnel,
       funnel_name: funnelName,
       version: j.version,
@@ -477,6 +483,8 @@ export const journeyRecord = (): RecordType =>
     subtitle: "funnelName",
     fields: {
       name: text("Person"),
+      profile: number("Profile", { listed: false }),
+      email: text("Emails", { listed: false }),
       funnelName: text("Funnel"),
       funnel: text("Funnel id", { listed: false }),
       stage: text("Stage key", { listed: false }),

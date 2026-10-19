@@ -78,6 +78,8 @@ function rowsOf(meta: RecordMeta, n = 8): Row[] {
  * `marketing.cadence` rows as goals), where made-up cells would not fit.
  */
 let OWN: Record<string, Row[]> = {};
+/** Cells set by hand on top of made-up rows, for a record whose few fields a story reads. */
+let MADE: Record<string, Partial<Row>[]> = {};
 
 const METAS = new Map(TYPES.map((m) => [m.id, m]));
 const ROWS = new Map<string, Row[]>();
@@ -87,7 +89,12 @@ function recordOf(id: string) {
   if (!meta) return null;
   let rows = ROWS.get(id);
   if (!rows) {
-    rows = OWN[id] ?? rowsOf(meta);
+    const made = MADE[id];
+    rows =
+      OWN[id] ??
+      (made
+        ? rowsOf(meta, made.length).map((r, i) => ({ ...r, ...made[i] }) as Row)
+        : rowsOf(meta));
     ROWS.set(id, rows);
   }
   return { meta, rows };
@@ -122,8 +129,10 @@ const LOG = [
 export function recordsAnswers(
   own: Record<string, Row[]> = {},
   details: Record<string, (row: Row) => object> = {},
+  made: Record<string, Partial<Row>[]> = {},
 ): Answers {
   OWN = own;
+  MADE = made;
   // The console serves Wren's own and every client's component records; channels serve their own.
   const products = [
     ...new Set(["console", "email", "sms", ...PAGES.map((p) => p.record.split(".")[0] ?? "")]),

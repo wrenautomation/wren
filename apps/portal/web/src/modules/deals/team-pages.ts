@@ -23,6 +23,8 @@ export const TEAM_PIPELINE_PAGES: ModulePage[] = [
   {
     ...callsPage("Calls booked on cal.com or our calendar show here."),
     head: recorderHead,
+    // Calls that start within a day: Today's Prepare call.
+    count: { soon: ["yes"] },
   },
   {
     id: "entries",

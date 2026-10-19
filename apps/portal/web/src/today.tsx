@@ -1,8 +1,8 @@
 /**
- * "/": Today. Wren's (designs/2026-10-13-primitives-first.md): what to make, then what waits on
- * you as the things themselves (pieces with every platform they go to, then each other kind with
- * the first names in it), then what went out. A client's: what waits, a card per service bought.
- * On a phone, where the sidebar hides, the apps by area too (designs/2026-10-10-portal-areas.md).
+ * "/": Today. Wren's (designs/2026-10-19-portal-reshape.md): Write, today's quota per platform,
+ * then Move, what waits on you grouped by the person's journey. The two never mix. A client's:
+ * what waits, a card per service bought. On a phone, where the sidebar hides, the apps by area
+ * too (designs/2026-10-10-portal-areas.md).
  */
 import {
   AppCard,
@@ -15,29 +15,23 @@ import {
   PageHeader,
   type PinLine,
   PinnedRow,
+  PlatformMark,
   Section,
   Tag,
 } from "@wren/ui";
 import type { ReactNode } from "react";
-import { call } from "./api.js";
 import { areasOf } from "./areas.js";
 import { Contained } from "./contained.js";
-import { useCall } from "./load.js";
 import type { Module, PageProps } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { SetupNow } from "./modules/account/Now.js";
 import { SetupCard } from "./modules/account/SetupCard.js";
-import {
-  allWaiting,
-  happenings,
-  PieceCard,
-  usePieces,
-  WhatHappened,
-} from "./modules/marketing/pieces.js";
-import { goalsOf, MakeList, usePlan } from "./modules/marketing/plan.js";
+import { goalsOf, makeAt, usePlan } from "./modules/marketing/plan.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { HealthNow } from "./modules/wren/health.js";
-import { appTotal, type Waiting, type WaitingRead } from "./waiting.js";
+import type { Move } from "./moves.js";
+import { appTotal, type MovesRead, type Waiting, type WaitingRead } from "./waiting.js";
+import { met, type WriteLine, writeOf } from "./write.js";
 
 const ROW =
   "flex min-h-11 items-center gap-3 border-b border-(--ui-hair) px-1 text-[14.5px] text-(--ui-ink) no-underline transition-colors duration-150 ease-(--ui-ease) last:border-b-0 hover:bg-(--ui-hover)";
@@ -127,220 +121,157 @@ function NeedsYou({
   );
 }
 
-/**
- * To approve's other kinds: their name, where they list, and whether `who` is a person. `app`:
- * the app whose own tabs count them too (Engage's own tabs, and Invites), which then lists them
- * once, not twice.
- */
-const ASKS: Record<string, { label: string; view: string; person?: boolean; app?: string }> = {
-  invite: {
-    label: "First messages to new connections",
-    view: "invites",
-    person: true,
-    app: "engage",
-  },
-  connect: { label: "Connection notes", view: "invites", person: true, app: "engage" },
-  thread: { label: "Reddit thread comments", view: "threads", app: "engage" },
-  onpost: { label: "Comments on others' posts", view: "comments", app: "engage" },
-  reply: { label: "Inbox replies", view: "replies", person: true },
-  video: { label: "Videos", view: "videos" },
-  template: { label: "Template versions", view: "templates" },
-  workflow: { label: "Client workflows", view: "workflows" },
-  page: { label: "Pages", view: "pages" },
-  payment: { label: "Payment links", view: "payments" },
-  swap: { label: "Title and thumbnail swaps", view: "swaps" },
-};
-const APPROVAL = "marketing.approval";
+const MORE = cx("text-[13px] underline", MUTED);
 
-interface Ask {
-  key: string;
-  href: string;
-  icon: IconName;
-  label: string;
-  names: string[];
-  n: number;
-}
-type Row = Record<string, unknown>;
-type Meta = { id: string; title: string };
+/** A quota as words: "1 of 3 today". */
+const quotaLine = (l: WriteLine) => `${Math.min(l.have, l.want)} of ${l.want} today`;
 
-const nameOf = (v: unknown, person = false) => {
-  const t = String(v ?? "").trim();
-  if (!t) return "";
-  const s = person ? (t.split(/\s+/)[0] ?? t) : t;
-  return s.length > 42 ? `${s.slice(0, 41).trimEnd()}…` : s;
-};
-
-/** Each waiting page as its items: the first names in it, not just a count. */
-async function asksOf(apps: Module[], waiting: Waiting, team: boolean): Promise<Ask[]> {
-  const metas = await call<Meta[]>("console/recordsTypes", {}).catch(() => [] as Meta[]);
-  const titleOf = (record: string) => metas.find((m) => m.id === record)?.title ?? "name";
-  const pages = areasOf(apps, team).flatMap(({ apps }) =>
-    apps.flatMap((m) =>
-      m.pages
-        .filter((p) => !p.hidden && (waiting[m.id]?.[p.id] ?? 0) > 0)
-        .map((p) => ({ m, p, n: waiting[m.id]?.[p.id] ?? 0 })),
-    ),
-  );
-  const got = await Promise.all(
-    pages.map(async ({ m, p, n }): Promise<Ask[]> => {
-      const href = `/${m.id}/${p.id}`;
-      const record = "record" in p ? p.record : null;
-      const where = "count" in p ? p.count : null;
-      if (!record || !where)
-        return [{ key: href, href, icon: m.icon, label: p.label, names: [], n }];
-      if (record === APPROVAL) {
-        // Post drafts show as pieces above; every other kind gets its own line.
-        const { rows } = await call<{ rows: Row[] }>("console/recordsList", {
-          record,
-          where,
-          limit: 200,
-        });
-        const by = new Map<string, Row[]>();
-        const has = new Set(apps.map((x) => x.id));
-        for (const r of rows) {
-          const t = String(r.type);
-          if (t === "draft") continue;
-          const own = ASKS[t]?.app;
-          if (own && has.has(own)) continue;
-          by.set(t, [...(by.get(t) ?? []), r]);
-        }
-        return [...by].map(([t, rs]) => {
-          const a = ASKS[t] ?? { label: t, view: "waiting" };
-          return {
-            key: `${href}/${t}`,
-            href: `${href}?view=${a.view}`,
-            icon: m.icon,
-            label: a.label,
-            names: [...new Set(rs.map((r) => nameOf(r.who, a.person)).filter(Boolean))],
-            n: rs.length,
-          };
-        });
-      }
-      const { rows } = await call<{ rows: Row[] }>("console/recordsList", {
-        record,
-        where,
-        limit: 4,
-      });
-      const key = titleOf(record);
-      return [
-        {
-          key: href,
-          href,
-          icon: m.icon,
-          label: p.label,
-          names: rows.map((r) => nameOf(r[key])).filter(Boolean),
-          n,
-        },
-      ];
-    }),
-  );
-  return got.flat().sort((a, b) => b.n - a.n);
-}
-
-/** "Sam, Priya, Ana and 9 more". */
-const namesLine = (names: string[], n: number) => {
-  const shown = names.slice(0, 3);
-  if (!shown.length) return "";
-  const rest = n - shown.length;
-  return rest > 0 ? `${shown.join(", ")} and ${rest} more` : shown.join(", ");
-};
-
-function AskRow({ a }: { a: Ask }) {
-  const names = namesLine(a.names, a.n);
+/** One platform's line: what is left of today's quota, and where to make the next one. */
+function WriteRow({ l }: { l: WriteLine }) {
+  const done = met(l);
+  const auto = l.id === "autopilot";
+  const href = auto ? "/content/plan" : makeAt(l.next.piece, [l.next]).href;
   return (
     <li>
-      <a className={ROW} href={a.href}>
-        <Icon name={a.icon} className="text-(--ui-ink-2)" />
+      <a className={ROW} href={href}>
+        {done ? (
+          <Icon name="check" className="text-(--ui-good)" />
+        ) : auto ? (
+          <Icon name="bolt" className="text-(--ui-ink-2)" />
+        ) : (
+          <PlatformMark mark={l.id} />
+        )}
         <span className="min-w-0 truncate">
-          <span className="font-medium">{a.label}</span>
-          {names ? <span className={MUTED}> · {names}</span> : null}
+          <span className="font-medium">{l.label}</span>
+          <span className={MUTED}>
+            {" "}
+            · {quotaLine(l)}
+            {auto && l.folded.length ? ` · ${l.folded.join(", ")}` : ""}
+          </span>
         </span>
-        <span className={COUNT}>{a.n}</span>
       </a>
     </li>
   );
 }
 
-const PIECES_SHOWN = 3;
-
 /**
- * Wren's work: make, what waits (pieces, then each other kind), what went out. A failed read
- * says so above what did load, never "Nothing waits on you."
+ * Write: today's quota per platform from the content plan. Platforms still short come first;
+ * those that met theirs fold under one line. X, TikTok and Threads run on their own, one line.
  */
-function WrenWork({
-  apps,
-  waiting,
-  read,
-}: {
-  apps: Module[];
-  waiting: Waiting;
-  read: WaitingRead;
-}) {
+function WriteList() {
   const plan = usePlan();
-  const work = usePieces();
-  const key = JSON.stringify(waiting);
-  const asks = useCall(`today-asks:${key}`, () => asksOf(apps, waiting, true));
-  const goals = goalsOf(plan.data?.rows);
-  const pieces = (work.data?.pieces ?? []).filter((p) => allWaiting(p).length);
-  const lines = asks.data ?? [];
-  const error = work.error ?? asks.error ?? read.error;
-  const retry = () => {
-    work.retry();
-    asks.retry();
-    read.retry();
-  };
-  const loading = !error && (!work.data || !asks.data || read.loading);
-  const none = !error && !loading && !pieces.length && !lines.length;
+  const { lines, autopilot } = writeOf(goalsOf(plan.data?.rows));
+  const all = [...lines, ...(autopilot ? [autopilot] : [])];
+  const short = all.filter((l) => !met(l));
+  const done = all.filter(met);
   return (
-    <>
-      {goals.length ? (
-        <Section
-          title="Make"
-          note="This week's goals, by what you make"
-          actions={
-            <a className={cx("text-[13px] underline", MUTED)} href="/content/plan">
-              Marketing
-            </a>
-          }
-        >
-          <MakeList goals={goals} reload={plan.retry} />
-        </Section>
-      ) : null}
-      <Section
-        title="Waiting on you"
-        count={
-          loading || none || error ? undefined : pieces.length + lines.reduce((t, a) => t + a.n, 0)
-        }
-        actions={
-          pieces.length > PIECES_SHOWN ? (
-            <a className={cx("text-[13px] underline", MUTED)} href="/content/pieces?show=waiting">
-              All {pieces.length} pieces
-            </a>
-          ) : null
-        }
-      >
-        {error ? <LoadFailed error={error} onRetry={retry} what="list" /> : null}
-        {loading ? (
-          <Loading lines={5} />
-        ) : none ? (
-          <NothingWaits />
-        ) : !pieces.length && !lines.length ? null : (
-          <div className="grid grid-cols-1 gap-3">
-            {pieces.slice(0, PIECES_SHOWN).map((p) => (
-              <PieceCard key={p.id} piece={p} reload={work.retry} />
-            ))}
-            {lines.length ? (
-              <ul className="m-0 list-none p-0">
-                {lines.map((a) => (
-                  <AskRow key={a.key} a={a} />
+    <Section
+      title="Write"
+      note="Today's quota, by platform"
+      count={plan.data && !plan.error ? short.length : undefined}
+      actions={
+        <a className={MORE} href="/content/plan">
+          Plan
+        </a>
+      }
+    >
+      {plan.error ? <LoadFailed error={plan.error} onRetry={plan.retry} what="list" /> : null}
+      {plan.error ? null : !plan.data ? (
+        <Loading lines={4} />
+      ) : !all.length ? (
+        <p className="text-[14.5px] text-(--ui-ink-2)">Nothing is due today.</p>
+      ) : (
+        <>
+          {short.length ? (
+            <ul className="-my-2 list-none">
+              {short.map((l) => (
+                <WriteRow key={l.id} l={l} />
+              ))}
+            </ul>
+          ) : (
+            <p className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
+              <Icon name="check" className="text-(--ui-good)" />
+              Today's quota is met.
+            </p>
+          )}
+          {done.length ? (
+            <details className="mt-3 border-t border-(--ui-hair) pt-3">
+              <summary className={cx("cursor-pointer", MUTED)}>Met today · {done.length}</summary>
+              <ul className="mt-2 list-none">
+                {done.map((l) => (
+                  <WriteRow key={l.id} l={l} />
                 ))}
               </ul>
-            ) : null}
-          </div>
-        )}
-      </Section>
-      {work.data ? <WhatHappened items={happenings(work.data.pieces)} /> : null}
-    </>
+            </details>
+          ) : null}
+        </>
+      )}
+    </Section>
+  );
+}
+
+/** One thing to do: the verb, then whom or what it is about. */
+function MoveRow({ m }: { m: Move }) {
+  return (
+    <li>
+      <a className={ROW} href={m.href}>
+        <Icon name={m.icon} className="text-(--ui-ink-2)" />
+        <span className="min-w-0 truncate">
+          <span className="font-medium">{m.verb}</span>
+          <span className={MUTED}>: </span>
+          {m.what}
+        </span>
+        {m.n > 1 ? <span className={COUNT}>{m.n}</span> : null}
+      </a>
+    </li>
+  );
+}
+
+/**
+ * Move: what waits on you, grouped by the person's journey (person, funnel, stage), then
+ * everything else. A failed read says so above what did load, never "Nothing waits on you."
+ */
+function MoveList({ moves, read }: { moves: MovesRead; read: WaitingRead }) {
+  const error = moves.error ?? read.error;
+  const retry = () => {
+    read.retry();
+    moves.retry();
+  };
+  const loading = !error && moves.loading;
+  const none = !error && !loading && !moves.groups.length;
+  const journeys = moves.groups.some((g) => g.head);
+  return (
+    <Section title="Move" count={loading || none || error ? undefined : moves.count}>
+      {error ? <LoadFailed error={error} onRetry={retry} what="list" /> : null}
+      {loading ? (
+        <Loading lines={5} />
+      ) : none ? (
+        <NothingWaits />
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {moves.groups.map((g) => (
+            <div key={g.key}>
+              {g.head ? (
+                <p className="mb-1 text-[13px] font-medium">
+                  {g.head.person}
+                  <span className={MUTED}>
+                    {" "}
+                    · {[g.head.funnel, g.head.stage].filter(Boolean).join(" · ")}
+                  </span>
+                </p>
+              ) : journeys ? (
+                <p className={cx("mb-1 font-medium", MUTED)}>Others</p>
+              ) : null}
+              <ul className="-my-2 list-none">
+                {g.moves.map((m) => (
+                  <MoveRow key={m.key} m={m} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
   );
 }
 
@@ -375,12 +306,14 @@ export function WrenToday({
   apps,
   waiting,
   read,
+  moves,
   pins,
   props,
 }: {
   apps: Module[];
   waiting: Waiting;
   read: WaitingRead;
+  moves: MovesRead;
   pins: PinLine[];
   props: PageProps;
 }) {
@@ -388,7 +321,7 @@ export function WrenToday({
     <>
       <PageHeader
         title="Today"
-        lede={`${DATE.format(new Date())}. What waits on you, then every app.`}
+        lede={`${DATE.format(new Date())}. What to write, what to move, then every app.`}
       />
       {props.team ? (
         <SetupCard
@@ -400,7 +333,8 @@ export function WrenToday({
       {props.team ? <SetupNow client={props.client} team /> : null}
       {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
-      <WrenWork apps={apps} waiting={waiting} read={read} />
+      <WriteList />
+      <MoveList moves={moves} read={read} />
       <AppsByArea apps={apps} waiting={waiting} team />
     </>
   );

@@ -257,6 +257,8 @@ export const callRecord = defineRecord({
           case when cb.state = 'cancelled' then 'cancelled'
             when cb.outcome is not null then cb.outcome::text
             when cb.start > now() then 'upcoming' else 'past' end status,
+          case when cb.state <> 'cancelled' and cb.outcome is null and cb.start > now()
+            and cb.start < now() + interval '24 hours' then 'yes' else 'no' end soon,
           cb.outcome_reason reason, cb.outcome_by marked_by, cb.outcome_at marked,
           coalesce(nullif(concat_ws(' ', nullif(p.first_name, ''), nullif(p.last_name, '')), ''),
             p.full_name, cb.name, cb.email)::text who
@@ -271,6 +273,10 @@ export const callRecord = defineRecord({
     who: name("Who"),
     company: company("Company", { domain: "domain" }),
     status: status(CALL_STATUS),
+    soon: status(
+      { yes: { label: "Within a day", tone: "warn" }, no: { label: "No", tone: "neutral" } },
+      "Starts within a day",
+    ),
     start: date("Call"),
     reason: text("Why"),
     booked: date("Booked"),
@@ -287,6 +293,13 @@ export const callRecord = defineRecord({
       where: { status: "upcoming" },
       sort: "start",
       at: "booked",
+    },
+    {
+      id: "soon",
+      label: "Within a day",
+      where: { soon: "yes" },
+      sort: "start",
+      at: "start",
     },
     { id: "past", label: "To mark", where: { status: "past" }, sort: "-start", at: "start" },
     { id: "marked", label: "Marked", where: { status: MARKED }, sort: "-start", at: "start" },

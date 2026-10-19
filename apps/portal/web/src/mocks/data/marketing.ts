@@ -68,6 +68,7 @@ const goal = (
   piece: string,
   pieceName: string,
   done: number,
+  more: Partial<Goal> = {},
 ): Goal => ({
   id,
   platform,
@@ -85,12 +86,33 @@ const goal = (
   today: 0,
   queued: 1,
   write: 1,
+  ...more,
 });
 
+/**
+ * The week's goals, with today's quota on the daily ones: YouTube long-form and Instagram are
+ * short of it, LinkedIn and TikTok met it, so Today's Write list has all three states (open,
+ * folded, Autopilot).
+ */
 export const CADENCE: Goal[] = [
   goal("g1", "youtube", "YouTube", "long", "Long video", 1),
-  goal("g2", "tiktok", "TikTok", "vertical", "Short video", 2),
-  goal("g3", "linkedin", "LinkedIn", "written", "Written post", 3),
+  goal("g2", "tiktok", "TikTok", "vertical", "Short video", 2, { daily: 3, today: 3, write: 0 }),
+  goal("g3", "linkedin", "LinkedIn", "written", "Written post", 3, {
+    daily: 1,
+    today: 1,
+    write: 0,
+  }),
+  goal("g4", "reddit", "Reddit comments", "replies", "Replies", 2, {
+    daily: 5,
+    today: 2,
+    write: 3,
+  }),
+  goal("g5", "instagram", "Instagram", "vertical", "Short video", 1, {
+    daily: 3,
+    today: 0,
+    write: 2,
+  }),
+  goal("g6", "x", "X", "written", "Written post", 4, { daily: 4, today: 1, write: 2 }),
 ];
 
 /** Studio's "waiting" read (ContentDesk): no idea has a draft waiting. */
