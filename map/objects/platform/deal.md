@@ -3,11 +3,13 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-09 @ 8df889fb
+verified: 2026-10-18 @ 0f4d371b
 entity: packages/deals/src/schema.ts:68
 ---
 
 # deal
+
+Folding into journeys (`designs/2026-10-18-journeys.md`, J6): a funnel ([[platform/funnel]]) replaces a pipeline and a [[platform/journey]] replaces a deal. Prod held 0 deals on 2026-10-18. Until J6 lands, this package stays and its `deals` table is not `pipeline.deals`.
 
 Opportunities: a sale being worked, in one stage of one pipeline, for a client or for Wren (owner null). Tables `deal_pipelines`, `deals`, `deal_moves`; service `DealsConsole`; the Opportunities app (`deals`).
 

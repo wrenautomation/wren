@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-05 @ 65b4693
+verified: 2026-10-18 @ 0f4d371b
 entity: packages/offers/src/offer.ts:129
 ---
 
@@ -21,6 +21,7 @@ One home for the pitch: email enrollments name the offer (`enrollments.offer`), 
 - Price kinds: free, quoted, fixed, performance (setup + per unit, capped). Ids never change: retire and add.
 - `plan` (`Phase`, `offer.ts:94`): the weeks a bought offer runs, each with what we hand over and what we need. [[clients/engagement]] dates it on start. Never on the lander snapshot.
 - `addOn` (`offer.ts:191`): one component id the portal's Apps page offers once, checked, with Install and Skip (`apps/portal/web/src/modules/marketplace/AddOn.tsx`). A client's Install is an ask; the team installs. Never on the snapshot.
+- Versions (J1, `designs/2026-10-18-journeys.md`): `pipeline.offer_versions` keeps each published shape by hash (append only; the sync comes in J2). Payment terms are [[platform/terms]]; funnels sell one offer ([[platform/funnel]]). `Terms` is exported from here (`packages/offers/src/terms.ts`).
 - `pnpm offers:export ../lander/src/data/offers.json` (`package.json:23`)
 
 Citations: `packages/offers/src/offer.ts:129`, `packages/offers/src/index.ts:78`
@@ -28,6 +29,7 @@ Citations: `packages/offers/src/offer.ts:129`, `packages/offers/src/index.ts:78`
 ## Connected to
 
 - **owned-by:** nothing (leaf)
+- **owns:** the `Terms` type ([[platform/terms]])
 - **joins:** [[platform/niche]] (`offers`, `offerFacts`), [[email/enrollment]] (`offer`), `enrollment_outcomes` view
 
 ## If you change this
