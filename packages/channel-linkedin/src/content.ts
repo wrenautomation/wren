@@ -333,12 +333,14 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
       const myName = elements.some((c) => isProfileLink(c.actor)) ? (await userinfo()).name : null;
       const ours = (c: LiComment) =>
         c.actor === self || (isProfileLink(c.actor) && !!myName && sameName(c.actorName, myName));
+      // One read, one fallback time: rows without a timestamp keep the page's order under pageOf.
+      const readAt = now().getTime();
       const rows = elements.map((c, i) => ({
         id: (org ? (c.commentUrn ?? c.$URN) : null) ?? c.id ?? String(i),
         postId: id,
         author: c.actor ?? "",
         text: c.message?.text ?? "",
-        at: iso(c.created?.time),
+        at: iso(c.created?.time ?? readAt),
         ...(org && c.parentComment ? { parentId: c.parentComment } : {}),
         ...(ours(c) ? { mine: true } : {}),
       }));
