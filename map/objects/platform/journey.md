@@ -22,7 +22,7 @@ The row is a cache. The truth will be spine events with subject `journey:<id>`, 
 - `deals` (`schema.ts:167`, TS export `pipelineDeals`; `@wren/deals` keeps `deals`): one per journey (`uq_deals_journey`), `terms_version` null until signed terms are known, `collected_cents` a fold of payment events.
 - `nextStage(stages, from, to, status)` (`stages.ts:17`): forward only. Returns `{ to, skipped }` or null for same, earlier, unknown stage or a closed journey.
 - `scheduleOf(terms, signedAt, until?)` (`schedule.ts:47`): the dated lines a deal implies. No row stores it. See [[platform/terms]].
-- Migration `0294_pipeline`. All six `pipeline` tables are audited, area `money` (`packages/db/src/audit/install.ts`).
+- Migration `0295_pipeline`. All six `pipeline` tables are audited, area `money` (`packages/db/src/audit/install.ts`).
 
 Citations: `packages/pipeline/src/schema.ts:125`, `packages/pipeline/src/stages.ts:17`, `packages/pipeline/src/schedule.ts:47`
 

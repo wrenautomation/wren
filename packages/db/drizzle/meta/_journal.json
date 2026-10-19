@@ -2059,6 +2059,13 @@
       "when": 1792375564108,
       "tag": "0294_fetch_ladder",
       "breakpoints": true
+    },
+    {
+      "idx": 295,
+      "version": "7",
+      "when": 1792417767947,
+      "tag": "0295_pipeline",
+      "breakpoints": true
     }
   ]
 }

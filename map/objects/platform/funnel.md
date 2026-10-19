@@ -20,7 +20,7 @@ A stage key is the spine node id, so it never goes, moves or gets renamed: versi
 - `FunnelBody` (`model.ts:41`): `name`, `offer`, `stages`, `entries`. `Stage` has `key`, `label`, optional `sale`, `on` (a list of `Advance`: a trigger id and its `with`). `Entry` has `id`, `kind`, optional `channel`, `campaign`, `funnel { id, at? }`, `to`.
 - `checkFunnel(prev, next, ctx)` (`model.ts:69`): pure; returns plain-English errors. Keys valid and unique; one sale stage; known triggers; prefix rule vs `prev`; same offer; entries name real stages and funnels; no feed loop. The caller passes the trigger set, the funnel lookup and the feed graph, so the file imports no spine.
 - `funnels` (`schema.ts:86`): `id` slug, `status` live|off (off stops new journeys). `funnel_versions` (`schema.ts:102`): unique `(funnel, number)`, `body` jsonb.
-- `never_edited` trigger on `funnel_versions`, `offer_versions`, `terms_versions` (migration `0294_pipeline`), as `books`.
+- `never_edited` trigger on `funnel_versions`, `offer_versions`, `terms_versions` (migration `0295_pipeline`), as `books`.
 
 Citations: `packages/pipeline/src/model.ts:41`, `packages/pipeline/src/model.ts:69`, `packages/pipeline/src/schema.ts:102`
 
