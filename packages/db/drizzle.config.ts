@@ -54,7 +54,6 @@ export default defineConfig({
     "../sites/src/schema.ts",
     "../sites/src/views.ts",
     "../payments/src/schema.ts",
-    "../deals/src/schema.ts",
     "../pipeline/src/schema.ts",
     "../pipeline/src/views.ts",
     "../connectors/src/schema.ts",

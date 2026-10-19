@@ -2115,6 +2115,13 @@
       "when": 1792423784686,
       "tag": "0302_pipeline_legacy_deal_uuid",
       "breakpoints": true
+    },
+    {
+      "idx": 303,
+      "version": "7",
+      "when": 1792424416918,
+      "tag": "0303_deals_guard_and_drop",
+      "breakpoints": true
     }
   ]
 }
