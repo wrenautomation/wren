@@ -3,6 +3,7 @@
  * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "./mocks/api.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { failedIn, pageAt } from "./mocks/page.js";
@@ -44,3 +45,39 @@ export const Library = pageAt("/library", { me: ADMIN });
 export const Notes = pageAt("/notes", { me: ADMIN });
 export const Calendar = pageAt("/calendar", { me: ADMIN });
 export const Marketplace = pageAt("/marketplace", { me: ADMIN });
+
+/** The group editor reads journeys: pick "A journey", then a funnel, a stage and a status. */
+export const GroupsJourney = pageAt("/people/groups", {
+  me: ADMIN,
+  answers: {
+    "people/segmentContext": {
+      traits: ["plan"],
+      segments: [],
+      describe: false,
+      funnels: [
+        {
+          id: "organic",
+          name: "Organic",
+          stages: [
+            { key: "engaged", label: "Engaged" },
+            { key: "booked", label: "Booked" },
+          ],
+          entries: ["web", "mail"],
+        },
+      ],
+    },
+    "people/segmentPreview": { size: 2, sample: [], words: "journey in Organic" },
+  },
+  check: async (page) => {
+    const view = within(page);
+    await userEvent.click(await view.findByRole("button", { name: "New group" }));
+    await userEvent.click(await view.findByRole("button", { name: "Add condition" }));
+    await userEvent.selectOptions(await view.findByLabelText("Kind of condition"), "journey");
+    await userEvent.selectOptions(await view.findByLabelText("Funnel"), "organic");
+    await userEvent.selectOptions(await view.findByLabelText("Stage"), "booked");
+    await userEvent.selectOptions(await view.findByLabelText("Stage only or later"), "past");
+    await userEvent.selectOptions(await view.findByLabelText("Journey status"), "open");
+    await expect(await view.findByLabelText("Entry")).toBeVisible();
+    await waitFor(() => expect(view.getByLabelText("Stage")).toHaveValue("booked"));
+  },
+});

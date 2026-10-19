@@ -18,6 +18,7 @@ import {
   CONSENT_CONDITION_STATES,
   type Condition,
   type Group,
+  type JourneyCondition,
   MESSAGE_CHANNELS,
   MESSAGE_STATES,
   type Node,
@@ -59,6 +60,13 @@ const said = (err: unknown) => (err instanceof ApiError ? err.message : String(e
 interface Context {
   traits: string[];
   segments: { id: number; name: string; kind: string }[];
+  /** Funnels with their stages and entries, for the journey condition. */
+  funnels?: {
+    id: string;
+    name: string;
+    stages: { key: string; label: string }[];
+    entries: string[];
+  }[];
   describe: boolean;
 }
 interface Preview {
@@ -96,6 +104,13 @@ const CONDITION_KINDS: Record<Condition["kind"], string> = {
   consent: "Consent",
   segment: "In a group",
   step: "Funnel step",
+  journey: "A journey",
+};
+const JOURNEY_STATUS_LABELS: Record<string, string> = {
+  "": "any status",
+  open: "open",
+  done: "done",
+  dropped: "dropped",
 };
 const CONSENT_LABELS: Record<string, string> = {
   confirmed: "said yes",
@@ -136,6 +151,8 @@ function fresh(kind: Condition["kind"], c: Context): Condition {
       return { kind, segment: c.segments[0]?.id ?? 0 };
     case "step":
       return { kind, step: "replied", days: 30 };
+    case "journey":
+      return { kind, funnel: c.funnels?.[0]?.id, days: null };
   }
 }
 
@@ -240,6 +257,92 @@ function Days({ days, set }: { days: number | null; set: (p: { days: number | nu
         onChange={(e) => set({ days: e.target.value ? Math.max(1, Number(e.target.value)) : null })}
       />
       <span className={QUIET}>days</span>
+    </>
+  );
+}
+
+/** A journey in a funnel: its stage (at or past), status, entry and how recently it moved. */
+function JourneyEditor({
+  c,
+  ctx,
+  set,
+}: {
+  c: JourneyCondition;
+  ctx: Context;
+  set: (p: Partial<JourneyCondition>) => void;
+}) {
+  const funnels = ctx.funnels ?? [];
+  const funnel = funnels.find((f) => f.id === c.funnel);
+  return (
+    <>
+      <span className={QUIET}>in</span>
+      <Pick
+        label="Funnel"
+        value={c.funnel ?? ""}
+        options={{
+          "": "any funnel",
+          ...Object.fromEntries(funnels.map((f) => [f.id, f.name])),
+          ...(c.funnel && !funnel ? { [c.funnel]: c.funnel } : {}),
+        }}
+        onChange={(v) =>
+          set({ funnel: v || undefined, stage: undefined, reached: undefined, entry: undefined })
+        }
+      />
+      {c.funnel ? (
+        <>
+          <Pick
+            label="Stage"
+            value={c.stage ?? ""}
+            options={{
+              "": "any stage",
+              ...Object.fromEntries((funnel?.stages ?? []).map((st) => [st.key, st.label])),
+              ...(c.stage && !funnel?.stages.some((st) => st.key === c.stage)
+                ? { [c.stage]: c.stage }
+                : {}),
+            }}
+            onChange={(v) => set({ stage: v || undefined, reached: v ? c.reached : undefined })}
+          />
+          {c.stage ? (
+            <Pick
+              label="Stage only or later"
+              value={c.reached ? "past" : "at"}
+              options={{ at: "only", past: "or later" }}
+              onChange={(v) => set({ reached: v === "past" ? true : undefined })}
+            />
+          ) : null}
+          <Pick
+            label="Entry"
+            value={c.entry ?? ""}
+            options={{
+              "": "any entry",
+              ...Object.fromEntries((funnel?.entries ?? []).map((e) => [e, e])),
+              ...(c.entry && !funnel?.entries.includes(c.entry) ? { [c.entry]: c.entry } : {}),
+            }}
+            onChange={(v) => set({ entry: v || undefined })}
+          />
+        </>
+      ) : null}
+      <Pick
+        label="Journey status"
+        value={c.status ?? ""}
+        options={JOURNEY_STATUS_LABELS}
+        onChange={(v) => set({ status: v ? (v as JourneyCondition["status"]) : undefined })}
+      />
+      {c.days === null ? (
+        <span className={QUIET}>moved</span>
+      ) : (
+        <Pick
+          label="Which date"
+          value={c.window ?? "moved"}
+          options={{ moved: "last moved", opened: "opened" }}
+          onChange={(v) => set({ window: v === "opened" ? "opened" : undefined })}
+        />
+      )}
+      <span className={QUIET}>in the last</span>
+      <Days
+        days={c.days}
+        set={(p) => set(p.days === null ? { days: null, window: undefined } : p)}
+      />
     </>
   );
 }
@@ -433,6 +536,7 @@ function ConditionRow({
           <Days days={c.days} set={set} />
         </>
       ) : null}
+      {c.kind === "journey" ? <JourneyEditor c={c} ctx={ctx} set={set} /> : null}
       {c.kind === "consent" ? (
         <>
           <Pick
