@@ -33,6 +33,14 @@ Wren is built channel first: Marketing, Inbox, People, Content are tools. A busi
 
 Framework rule applies: before any custom state machine code, the planner vets XState (statecharts, versioned machines) against the spine and says which fits where.
 
+## Leads, ICP and enrichment
+
+Three things, no section of their own (agreed 2026-10-18):
+
+- **ICP** is part of the offer version: who, firmographics, qualifying and disqualifying signals. New ICP, new offer version. Funnels inherit it.
+- **Sourcing** (scraping, lists, Exa, job boards, signals) is a funnel entry of kind `sourced`. It fills the first stage of an outbound funnel with people who match the offer's ICP. Lives under Marketing → Outbound. `research` and discovery stay as they are and gain an entry config.
+- **Enrichment** (dossier, cross-platform search, Jev's lead verdict) is a stage step, not a stage. It runs on arrival, writes to the person, and may move or drop the journey. Each stage has a research depth: none, light, full. Examples: comment arrives → enrich → verdict → open journey or ignore; call booked → dossier → call prep in Today's Move list.
+
 ## Nav, later
 
 Agreed 2026-10-18. The big UI redesign waits (design language deferred). The model lands first; the portal reshapes after.
