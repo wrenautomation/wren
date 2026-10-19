@@ -25,6 +25,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   inbox_syncs: "a sync cursor, rewritten every pass",
   open_syncs: "a sync cursor, rewritten every pass",
   documents: "fetched page bodies, a cache",
+  fetch_tiers: "what the fetch ladder learned per domain, a cache with its own time",
   sightings: "raw crawl evidence, append-only",
   contact_candidates: "address guesses, a million writes",
   verifications: "verifier verdicts, a cache with its own times",

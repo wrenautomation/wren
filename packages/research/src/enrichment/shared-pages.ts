@@ -6,11 +6,14 @@
  * still written by its crawl, in its database: extraction joins on it there.
  */
 import type { Db } from "@wren/db";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
 import type { Fetcher, FetchResponse } from "../fetch/fetcher.js";
 import { htmlOf, type PageStore } from "../pages.js";
 import { documents } from "../schema.js";
 import { HTTP_TIER, pageRow } from "./crawler.js";
+
+/** The ladder's tiers (autobrowse's rungs): a kept page from one is served unless it is a shell. */
+const LADDER_PAGE_TIERS = ["impersonate", "render", "exit"];
 
 /** How long a kept page answers for its URL. */
 export const SHARED_PAGE_DAYS = 30;
@@ -24,6 +27,7 @@ export function sharedPages(main: Db, inner: Fetcher, store?: PageStore | null):
       const since = new Date(Date.now() - SHARED_PAGE_DAYS * 86_400_000);
       const [kept] = await main
         .select({
+          fetchTier: documents.fetchTier,
           finalUrl: documents.finalUrl,
           html: documents.html,
           htmlKey: documents.htmlKey,
@@ -34,14 +38,18 @@ export function sharedPages(main: Db, inner: Fetcher, store?: PageStore | null):
             eq(documents.url, url),
             eq(documents.kind, "webpage"),
             eq(documents.statusCode, 200),
-            eq(documents.fetchTier, HTTP_TIER),
+            or(
+              eq(documents.fetchTier, HTTP_TIER),
+              and(inArray(documents.fetchTier, LADDER_PAGE_TIERS), eq(documents.isShell, false)),
+            ),
             gt(documents.fetchedAt, since),
           ),
         )
         .orderBy(desc(documents.fetchedAt))
         .limit(1);
       const html = kept ? await htmlOf(kept, store).catch(() => null) : null;
-      if (kept && html !== null) return { status: 200, url: kept.finalUrl ?? url, text: html };
+      if (kept && html !== null)
+        return { status: 200, url: kept.finalUrl ?? url, text: html, tier: kept.fetchTier };
       const resp = await inner.get(url);
       if (resp.status === 200)
         await main

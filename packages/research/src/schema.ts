@@ -19,6 +19,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { FetchStep } from "./fetch/fetcher.js";
 
 /**
  * `snippet`: a search engine's few lines about a page (url = the page, not the
@@ -59,6 +60,10 @@ export const documents = pgTable(
     fetchTier: varchar("fetch_tier", { length: 16 }).default("httpx").notNull(),
     isShell: boolean("is_shell").default(false).notNull(),
     robotsDisallowed: boolean("robots_disallowed").default(false).notNull(),
+    /** The block that made this fetch climb the ladder, or the one that stopped it; null = none. */
+    blockReason: text("block_reason"),
+    /** Every rung the fetch tried, in order; null when the fetch had no ladder. */
+    fetchSteps: jsonb("fetch_steps").$type<FetchStep[]>(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_documents" }),
@@ -71,6 +76,24 @@ export const documents = pgTable(
     unique("uq_documents_url").on(t.url, t.contentHash),
     oneOf("ck_documents_documentkind", t.kind, DOCUMENT_KINDS),
   ],
+);
+
+/**
+ * Per domain, the lowest ladder rung that worked, so the next fetch starts there
+ * (designs/2026-10-18-fetch-ladder.md). A row older than `FETCH_TIER_DAYS` is stale.
+ */
+export const fetchTiers = pgTable(
+  "fetch_tiers",
+  {
+    /** Lowercase hostname, no leading `www.`. */
+    domain: text("domain").notNull(),
+    /** `impersonate`, `render` or `exit`: `plain` is never stored. */
+    tier: text("tier").notNull(),
+    /** The signal that made fetches climb to `tier`. */
+    block: text("block"),
+    learnedAt: timestamp("learned_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.domain], name: "pk_fetch_tiers" })],
 );
 
 export const enrichments = pgTable(

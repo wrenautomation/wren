@@ -13,6 +13,22 @@ import { pipeline } from "node:stream/promises";
 const DEFAULT_RETRIES = 3;
 const BACKOFF_MS = 2000;
 
+/** One rung of the fetch ladder a fetch tried, and what it met there. */
+export interface FetchStep {
+  tier: string;
+  status: number | null;
+  block: string | null;
+}
+
+/** What the fetch ladder learned about a fetch; absent on a fetch with no ladder. */
+export interface FetchTrail {
+  /** The rung that answered: `httpx` is wren's own plain fetch. */
+  tier?: string;
+  /** The block that made the fetch climb, or the one that stopped it. */
+  block?: string | null;
+  steps?: FetchStep[];
+}
+
 /**
  * A fetch that failed after retries. `status` is the last HTTP status when the
  * server answered (5xx after retries), null for transport failures: robots handling
@@ -22,9 +38,15 @@ const BACKOFF_MS = 2000;
 export class FetchError extends Error {
   override name = "FetchError";
   readonly status: number | null;
-  constructor(message: string, status: number | null = null) {
+  readonly tier: string | undefined;
+  readonly block: string | null | undefined;
+  readonly steps: FetchStep[] | undefined;
+  constructor(message: string, status: number | null = null, trail: FetchTrail = {}) {
     super(message);
     this.status = status;
+    this.tier = trail.tier;
+    this.block = trail.block;
+    this.steps = trail.steps;
   }
 }
 
@@ -39,7 +61,7 @@ export function userAgent(contact: string | null | undefined): string {
 }
 
 /** What one GET produced. `url` is the final URL after redirects. */
-export interface FetchResponse {
+export interface FetchResponse extends FetchTrail {
   status: number;
   url: string;
   text: string;

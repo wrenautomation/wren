@@ -187,7 +187,9 @@ import {
   youtubeSearchUnit,
 } from "../enrichment/youtube-search.js";
 import type { Fetcher } from "../fetch/fetcher.js";
+import { LadderFetcher } from "../fetch/ladder.js";
 import type { RobotsCache } from "../fetch/robots.js";
+import { tierMemory } from "../fetch/tier-memory.js";
 import { keepingAnswers } from "../findings.js";
 import { ACCOUNT_VENDOR, accountRoom, readLedger, SEARCH_VENDOR } from "../linkedin-reads.js";
 import type { PageStore } from "../pages.js";
@@ -268,6 +270,11 @@ export interface EnrichmentDeps {
   keys?: KeyStore | null;
   /** autobrowse's `meta` site, for the `instagram` reads; null = `instagram` refuses. */
   instagram?: SiteClient | null;
+  /**
+   * autobrowse's `web GET /fetch`, the fetch ladder: a crawl that meets a block (403, 429, 503, a
+   * JS shell) climbs impersonate, render and exit on the Mac. null = the crawl stays plain.
+   */
+  ladder?: SiteClient | null;
   /** autobrowse on the Mac (`desk`), for the signed-out `fb-public` reads; null = `adLibrary` refuses. */
   desk?: SiteClient | null;
   /** A niche's Ad Library keywords, its platform hosts and its screen (the niche registry's). */
@@ -552,9 +559,12 @@ export function makeEnrichment(deps: EnrichmentDeps) {
     input.extraHints ?? [...(deps.crawlHintsFor?.(niche) ?? [])];
   const scope = (ctx: restate.ObjectContext) => {
     const at = keyScope(ctx.key, deps.db, deps.clientDb);
+    // The ladder's memory is main's: a domain is the same fact for every client.
+    const climbing = (): Fetcher =>
+      deps.ladder ? new LadderFetcher(fetcher(), deps.ladder, tierMemory(deps.db)) : fetcher();
     // A client's crawl reads and feeds main's shared pages; Wren's crawl is main's already.
     const fetch = () =>
-      at.db === deps.db ? fetcher() : sharedPages(deps.db, fetcher(), deps.pages ?? null);
+      at.db === deps.db ? climbing() : sharedPages(deps.db, climbing(), deps.pages ?? null);
     return { ...at, fetch };
   };
   const companyRef = async (db: Db, id: number): Promise<Pick<Company, "id" | "domain">> => {

@@ -10,15 +10,16 @@ import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
 import { and, asc, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
-import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
+import { FetchError, type Fetcher, type FetchResponse, type FetchStep } from "../fetch/fetcher.js";
 import { looksLikeJsShell, readPage } from "../fetch/htmltext.js";
+import { HTTP_TIER } from "../fetch/ladder.js";
 import { canFetch, type RobotsCache } from "../fetch/robots.js";
 import { documents } from "../schema.js";
 import type { Shard } from "./shard.js";
 import { PEOPLE_PAGE_HINTS, peoplePageCandidates } from "./urls.js";
 
 export type RobotsMode = "warn" | "enforce";
-export const HTTP_TIER = "httpx";
+export { HTTP_TIER };
 export const EMPTY_HASH = createHash("sha256").update("").digest("hex");
 /** Postgres TEXT cannot hold NUL, and real sites serve it. */
 export const stripNul = (s: string): string => s.replaceAll("\x00", "");
@@ -96,22 +97,37 @@ export async function robotsAllows(
   return { proceed: true, disallowed: true };
 }
 
-/** A page under 400, else null; `refused` keeps the status that turned it away (403, 429). */
+/** What turned a fetch away: its status (403, 429), the block the ladder met and the rungs it tried. */
+interface Refusal {
+  status: number | null;
+  block: string | null;
+  steps: FetchStep[] | null;
+}
+
+/** A page under 400, else null; `refused` keeps what turned it away. */
 async function get(
   fetcher: Fetcher,
   url: string,
-  refused?: { status: number | null },
+  refused?: Refusal,
 ): Promise<FetchResponse | null> {
   let resp: FetchResponse;
   try {
     resp = await fetcher.get(url);
   } catch (err) {
     if (!(err instanceof FetchError)) throw err;
-    if (refused && err.status !== null) refused.status = err.status;
+    if (refused) {
+      if (err.status !== null) refused.status = err.status;
+      refused.block = err.block ?? null;
+      refused.steps = err.steps ?? null;
+    }
     return null;
   }
   if (resp.status < 400) return resp;
-  if (refused) refused.status = resp.status;
+  if (refused) {
+    refused.status = resp.status;
+    refused.block = resp.block ?? null;
+    refused.steps = resp.steps ?? null;
+  }
   return null;
 }
 
@@ -158,9 +174,11 @@ export function pageRow(
     title: page.title || null,
     text: page.text,
     html,
-    fetchTier: HTTP_TIER,
+    fetchTier: resp.tier ?? HTTP_TIER,
     isShell: looksLikeJsShell(html, page.text),
     robotsDisallowed: opts.robotsDisallowed ?? false,
+    blockReason: resp.block ?? null,
+    fetchSteps: resp.steps ?? null,
   };
 }
 
@@ -189,7 +207,7 @@ export async function crawlCompany(
   let homepage: FetchResponse | null = null;
   let homepageUrl = "";
   let homepageDisallowed = false;
-  const refused: { status: number | null } = { status: null };
+  const refused: Refusal = { status: null, block: null, steps: null };
   for (const url of [`https://${domain}`, `https://www.${domain}`, `http://${domain}`]) {
     const { proceed, disallowed } = await robotsAllows(fetcher, url, robots, mode, stats);
     if (!proceed) continue;
@@ -204,7 +222,8 @@ export async function crawlCompany(
     stats.homepage_unreachable += 1;
     // Tombstone: an empty-text attempt marker so the crawl-once query skips this
     // company next run. Extraction skips empty text; delete the row to retry. Its status is
-    // the last refusal (403, 429: a block) or null when nothing answered.
+    // the last refusal (403, 429: a block) or null when nothing answered; the block and the
+    // rungs tried are the ladder's, when it ran.
     await db.insert(documents).values({
       companyId: company.id,
       url: `https://${domain}`,
@@ -213,6 +232,8 @@ export async function crawlCompany(
       contentHash: EMPTY_HASH,
       title: null,
       text: "",
+      blockReason: refused.block,
+      fetchSteps: refused.steps,
     });
     return stats;
   }

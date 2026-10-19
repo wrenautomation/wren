@@ -959,6 +959,12 @@ export async function buildServices(
       robotsMode: settings.robotsMode,
       crawlHintsFor,
       pages,
+      // A blocked page climbs the fetch ladder (`web GET /fetch`); inside a unit's ctx.run, so the ingress. A render can take ~60 s.
+      ladder: ingressSites(ingressOf(settings), {
+        caller: "wren:crawl",
+        ...sitesHost(settings.autobrowseInstanceId),
+        timeoutMs: 120_000,
+      }),
       // `profiles` runs inside the unit's ctx.run, so through the ingress; a Mac that is off fails fast.
       sites: profileSites,
       linkedin: settings.poolLinkedin ?? null,
