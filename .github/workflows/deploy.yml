@@ -37,6 +37,11 @@ jobs:
         # Each changed file in packages/templates/defaults as a default version, in every database.
         run: pnpm -s wren templates sync
         env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
+      - name: offer versions
+        # Each registry offer whose shape changed, as the next offer version in main. A miss logs, never blocks the deploy.
+        continue-on-error: true
+        run: pnpm -s wren offers sync
+        env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
       - name: bundle
         run: |
           pnpm --filter @wren/worker build:lambda

@@ -201,6 +201,12 @@ and `in <group> <id|email>` (exits 1 when not). A rule can be inline, `@file` or
 `--channel`, `--days`, `--group`, `--rule`, `--attribution any|first|last`,
 `--people <key>:<step>` for the people behind one number, `--json`).
 
+## Offers, terms, funnels
+
+`wren offers sync` adds a version for each registry offer whose shape changed (main only; deploy runs it). `offers list` and `offers versions <offer>` read them.
+`wren terms add <offer> --plan <p> --from <date> --file <json> [--why]` adds the next version of a plan. `terms show <offer> [--plan] [--at <date>]` reads them. Amounts come from the file, never from code.
+`wren funnels add --file <json>` makes a funnel (`{ id, name?, why?, body }`). `append <funnel> --file <json>` adds a version and refuses a broken prefix. `show <funnel> [--version n]`, `list`, `off`, `on`. `terms` and `funnels` take `--client`.
+
 ## SOPs
 
 `wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n] [--no-screen]`

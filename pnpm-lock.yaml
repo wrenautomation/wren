@@ -147,6 +147,9 @@ importers:
       '@wren/outreach':
         specifier: workspace:*
         version: link:../../packages/outreach
+      '@wren/pipeline':
+        specifier: workspace:*
+        version: link:../../packages/pipeline
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
@@ -1216,6 +1219,9 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../offers
+      '@wren/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)

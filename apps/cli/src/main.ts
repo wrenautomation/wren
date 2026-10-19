@@ -56,6 +56,7 @@ import { registerNewsletter } from "./newsletter.js";
 import { registerNotes } from "./notes.js";
 import { registerPages } from "./pages.js";
 import { registerPeople } from "./people.js";
+import { registerPipeline } from "./pipeline.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
@@ -287,6 +288,7 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
+registerPipeline(program, withDb, withMainDb);
 registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,

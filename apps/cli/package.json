@@ -33,6 +33,7 @@
     "@wren/notes": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/outreach": "workspace:*",
+    "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/sites": "workspace:*",

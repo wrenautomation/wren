@@ -3,13 +3,13 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-18 @ 0f4d371b
+verified: 2026-10-19 @ 781f02d7
 entity: packages/pipeline/src/model.ts:41
 ---
 
 # funnel
 
-An ordered list of stages one kind of person walks to a sale. A funnel is a head row (`funnels`) and versions of its body (`funnel_versions`, append only). Built in part: types, schema and `checkFunnel`. The store and the generated spine workflow come in J2 and J3.
+An ordered list of stages one kind of person walks to a sale. A funnel is a head row (`funnels`) and versions of its body (`funnel_versions`, append only). The store and `wren funnels` are built; the generated spine workflow comes in J3.
 
 ## Why this shape
 
@@ -20,9 +20,10 @@ A stage key is the spine node id, so it never goes, moves or gets renamed: versi
 - `FunnelBody` (`model.ts:41`): `name`, `offer`, `stages`, `entries`. `Stage` has `key`, `label`, optional `sale`, `on` (a list of `Advance`: a trigger id and its `with`). `Entry` has `id`, `kind`, optional `channel`, `campaign`, `funnel { id, at? }`, `to`.
 - `checkFunnel(prev, next, ctx)` (`model.ts:69`): pure; returns plain-English errors. Keys valid and unique; one sale stage; known triggers; prefix rule vs `prev`; same offer; entries name real stages and funnels; no feed loop. The caller passes the trigger set, the funnel lookup and the feed graph, so the file imports no spine.
 - `funnels` (`schema.ts:86`): `id` slug, `status` live|off (off stops new journeys). `funnel_versions` (`schema.ts:102`): unique `(funnel, number)`, `body` jsonb.
+- Store (`packages/pipeline/src/store.ts`): `addFunnel` (head plus version 1), `appendFunnel` (checks the body against the newest version, refuses with every reason, refuses a body equal to the newest), `setFunnelStatus`, `funnelVersionsOf({ funnel?, live?, newest? })`, `funnelContext(db, id, triggers)` (builds `checkFunnel`'s ctx from the newest stored version of each funnel). Each write holds an advisory lock on `funnel:<id>`, so two appends take numbers 2 and 3. The caller passes the trigger ids; the CLI takes the `trigger` group of `LOGIC`. `appendFunnel` only writes the version: the carry of open journeys is J3's.
 - `never_edited` trigger on `funnel_versions`, `offer_versions`, `terms_versions` (migration `0295_pipeline`), as `books`.
 
-Citations: `packages/pipeline/src/model.ts:41`, `packages/pipeline/src/model.ts:69`, `packages/pipeline/src/schema.ts:102`
+Citations: `packages/pipeline/src/store.ts:331`, `packages/pipeline/src/model.ts:41`, `packages/pipeline/src/model.ts:69`, `packages/pipeline/src/schema.ts:102`
 
 ## Connected to
 
@@ -40,9 +41,9 @@ Citations: `packages/pipeline/src/model.ts:41`, `packages/pipeline/src/model.ts:
 
 | Surface | Role |
 |---|---|
-| none yet | J2 adds `wren funnels` |
+| `wren funnels list|add|append|show|off|on` (`apps/cli/src/pipeline.ts`), honours `--client` | writes, reads |
 
 ## See
 
 - Design: `designs/2026-10-18-journeys.md`
-- Tests: `packages/pipeline/src/model.test.ts`
+- Tests: `packages/pipeline/src/model.test.ts`, `packages/pipeline/test/integration/store.test.ts`

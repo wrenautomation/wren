@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-18 @ 0f4d371b
+verified: 2026-10-19 @ 781f02d7
 entity: packages/offers/src/terms.ts:6
 ---
 
@@ -19,9 +19,11 @@ Payment is part of the offer. A change is a new row with a later `effective_from
 
 - `Terms` (`terms.ts:6`): setup, monthly, per-unit with cap, `days`, `payDays`, plus `shareBps`, `floorCents`, `installments { count, everyDays }`, `trialDays`. `@wren/delivery` re-exports it (`packages/delivery/src/schema.ts`).
 - `terms_versions` (`schema.ts:65`): `offer`, `plan` (`standard`, `flat`, `partner-<n>`), `number`, `effective_from`, `body`. Unique `(offer, plan, number)`. Append only.
+- Store (`packages/pipeline/src/store.ts`): `addTerms` (next `number` per offer and plan under a lock; a date earlier than the plan's last version is refused), `liveTerms(db, offer, plan, at)` (highest `number` with `effective_from <= at`, or null), `termsHistory`.
+- `termsFor(offer, over, flat, live?)` (`packages/delivery/src/index.ts:1195`) stays pure; `onboard` reads `liveTerms` for plan `flat` or `standard` (`planOf`) and passes the body as `live`. No stored version: terms come from the offer's price as before. `agreements.terms_version` names the version only when the operator changed nothing.
 - `scheduleOf(terms, signedAt, until?)` (`schedule.ts:47`): setup or its parts, monthly lines, a per-unit line with its cap, a share line (no amount, "on reported revenue", floor shown). `trialDays` moves the first bill. With no `days` and no `until`, monthly lines run 12 months.
 
-Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/schema.ts:65`, `packages/pipeline/src/schedule.ts:47`
+Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/store.ts:216`, `packages/delivery/src/index.ts:1195`, `packages/pipeline/src/schema.ts:65`, `packages/pipeline/src/schedule.ts:47`
 
 ## Connected to
 
@@ -32,16 +34,17 @@ Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/schema.ts:65
 
 ## If you change this
 
-- **Hits:** `termsFor` and the contract text in `@wren/delivery`; old `agreements.terms` rows must still parse
+- **Hits:** `termsFor`, `onboard` and the contract text in `@wren/delivery`; old `agreements.terms` rows must still parse
 - **Does not hit:** invoices already issued
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| none yet | J2 adds `wren terms` |
+| `wren terms add|show` (`apps/cli/src/pipeline.ts`), honours `--client` | writes, reads |
+| `onboard` (`packages/delivery/src/index.ts:1255`) | reads the live version |
 
 ## See
 
 - Design: `designs/2026-10-18-journeys.md`
-- Tests: `packages/pipeline/src/schedule.test.ts`
+- Tests: `packages/pipeline/src/schedule.test.ts`, `packages/pipeline/test/integration/store.test.ts`, `packages/delivery/test/integration/terms-version.test.ts`

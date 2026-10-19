@@ -20,6 +20,8 @@ const CLIENT_SCOPED = new Set([
   "channels",
   "sites",
   "templates",
+  "terms",
+  "funnels",
   "workflows",
   "write",
 ]);
