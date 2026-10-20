@@ -409,3 +409,25 @@ describe("now", () => {
     expect(view.accounts[0]?.timeline.map((x) => x.kind)).toEqual(["stuck", "waiting"]);
   });
 });
+
+describe("the Claude API line", () => {
+  it("Wren's page shows the Claude API against its monthly budget; a client's never lists it", async () => {
+    await meter(pg.db, {
+      client: null,
+      vendor: "anthropic",
+      units: 5_000,
+      micros: 12_345_000,
+      part: "drafts",
+      at: T,
+    });
+    const wren = await api().vendors({ viewer: ADMIN, client: WREN });
+    expect(wren.vendors.find((x) => x.id === "anthropic")).toMatchObject({
+      name: "Claude API",
+      budgetMicros: 200_000_000,
+      month: { managed: { units: 5_000, micros: 12_345_000 } },
+    });
+    expect(wren.vendors.find((x) => x.id === "exa")?.budgetMicros).toBeNull();
+    const acme = await api().vendors({ viewer: AMY, client: "acme" });
+    expect(acme.vendors.some((x) => x.id === "anthropic")).toBe(false);
+  });
+});

@@ -11,6 +11,7 @@ import {
   clearMode,
   gate,
   meter,
+  meterTokens,
   modesOf,
   monthSpend,
   roomToday,
@@ -222,5 +223,58 @@ describe("managed", () => {
       ok: false,
       why: "Exa search isn't offered managed",
     });
+  });
+});
+
+describe("anthropic tokens", () => {
+  it("writes one row on Wren's line: tokens as units, dollars from the model's price", async () => {
+    const warns: string[] = [];
+    const at = new Date("2026-04-02T09:00:00Z");
+    const a = await meterTokens(pg.db, {
+      model: "claude-sonnet-5-5",
+      part: "watch.triage",
+      usage: { input: 1_000_000, output: 100_000, cacheRead: 200_000 },
+      at,
+    });
+    // 800k plain at 2, 200k read at 0.10, 100k out at 10, in dollars: 1.6 + 0.02 + 1.
+    expect(a).toEqual({ units: 1_100_000, micros: 2_620_000 });
+    await meterTokens(pg.db, {
+      model: "claude-haiku-5-5",
+      part: "fills",
+      usage: { input: 100_000, output: 0 },
+      at,
+    });
+    await meterTokens(pg.db, {
+      model: "claude-old-1",
+      part: "fills",
+      usage: { input: 10, output: 5 },
+      warn: (l) => warns.push(l),
+      at,
+    });
+    await meterTokens(pg.db, {
+      model: "claude-old-1",
+      part: "fills",
+      usage: { input: 10, output: 5 },
+      warn: (l) => warns.push(l),
+      at,
+    });
+    // An unknown model costs 0 and warns once.
+    expect(warns).toEqual(["anthropic: no price for model claude-old-1; costed 0"]);
+    const rows = (await usageSince(pg.db, null, at)).filter((r) => r.vendor === "anthropic");
+    expect(rows).toEqual([
+      { vendor: "anthropic", mode: "managed", units: 1_100_000 + 100_000 + 30, micros: 2_630_000 },
+    ]);
+  });
+
+  it("is Wren's only: a client can't take it managed", async () => {
+    await expect(
+      setManaged(pg.db, {
+        client: "acme",
+        vendor: "anthropic",
+        perDay: 1,
+        capCents: 100,
+        by: "op",
+      }),
+    ).rejects.toThrow("isn't offered managed");
   });
 });

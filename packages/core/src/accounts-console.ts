@@ -364,6 +364,8 @@ export function accountsApi(deps: AccountsDeps) {
       const used = await usageSince(db, owner.id, monthStart(at));
       const rows = [];
       for (const v of VENDORS) {
+        // Wren's own spend (Claude API) is no client's vendor: only Wren's page lists it.
+        if (v.wrenOnly && owner.id !== null) continue;
         const m = modes.find((x) => x.vendor === v.id);
         // Today is the room alone; the cap is money, said on its own line.
         const today = await roomToday(db, owner.id, v.id, at);
@@ -406,6 +408,8 @@ export function accountsApi(deps: AccountsDeps) {
           why: today.ok ? null : today.why,
           /** Why the cap stops it ("No monthly cap set", "... reached"); null when it doesn't. */
           capped: today.ok && !g.ok ? g.why : null,
+          /** What Wren means to spend on it a month, micro-dollars; null: no budget. */
+          budgetMicros: v.budgetMicros ?? null,
           /** This month on Wren's key (what Wren pays and bills), and on their own key. */
           month: { managed: sum("managed"), own: sum("own") },
         });
