@@ -107,7 +107,11 @@ export const dmRecord = defineRecord({
   channel: { field: "platform" },
   name: { one: "DM thread", many: "DM threads" },
   rows: async (db) => {
-    const threads = await listThreads(db, { limit: THREAD_ROWS });
+    // An invite alone is no DM thread: Invites holds it. A thread shows once a DM went either
+    // way, or a draft of ours waits to go.
+    const threads = (await listThreads(db, { limit: THREAD_ROWS })).filter(
+      (t) => t.dms > 0 || Boolean(t.contact.draft?.trim()),
+    );
     const reddit = threads.flatMap((t) =>
       t.contact.platform === "reddit" ? [t.contact.handle.toLowerCase()] : [],
     );

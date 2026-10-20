@@ -341,9 +341,9 @@ describe("linkedin invites", () => {
       ["Bob Test", null],
       ["Alice Test", "message"],
     ]);
-    // A bare invite is no DM sent: DMs' Sent leaves it to Invites.
+    // A bare invite is no DM thread: DMs leaves it to Invites until a message goes either way.
     const dms = (await dmRecord.rows?.(db())) ?? [];
-    expect(dms.find((r) => r.id === a.id)).toMatchObject({ turn: null });
+    expect(dms.find((r) => r.id === a.id)).toBeUndefined();
     await db().insert(reachMessages).values({
       contactId: a.id,
       direction: "in",

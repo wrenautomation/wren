@@ -24,6 +24,8 @@ export interface ThreadSummary {
   account: string | null;
   last: Pick<ReachMessage, "direction" | "kind" | "body" | "state" | "sentAt" | "createdAt"> | null;
   unread: boolean;
+  /** Messages either way that are not an invite: zero means no DM thread exists yet. */
+  dms: number;
 }
 
 export async function listThreads(db: Queryable, f: ThreadFilter = {}): Promise<ThreadSummary[]> {
@@ -53,17 +55,19 @@ export async function listThreads(db: Queryable, f: ThreadFilter = {}): Promise<
     .orderBy(desc(reachMessages.createdAt));
   const lastOf = new Map<number, ReachMessage>();
   const lastInAt = new Map<number, Date>();
+  const dmsOf = new Map<number, number>();
   for (const m of msgs) {
     if (!lastOf.has(m.contactId)) lastOf.set(m.contactId, m);
     if (m.direction === "in" && !lastInAt.has(m.contactId))
       lastInAt.set(m.contactId, m.sentAt ?? m.createdAt);
+    if (m.kind !== "connect") dmsOf.set(m.contactId, (dmsOf.get(m.contactId) ?? 0) + 1);
   }
   return contacts
     .map(({ contact, account }) => {
       const last = lastOf.get(contact.id) ?? null;
       const inAt = lastInAt.get(contact.id);
       const unread = Boolean(inAt && (!contact.readAt || contact.readAt < inAt));
-      return { contact, account, last, unread };
+      return { contact, account, last, unread, dms: dmsOf.get(contact.id) ?? 0 };
     })
     .filter((t) => !f.unread || t.unread);
 }
