@@ -10,6 +10,14 @@ import { z } from "zod";
 import { type Bucket, bucketRoom } from "./buckets.js";
 import { clients, wrenSettings } from "./clients/schema.js";
 import type { KeyStore } from "./keys.js";
+import {
+  ANTHROPIC_PRICES_AS_OF,
+  ANTHROPIC_PRICES_URL,
+  priceOf,
+  pricesText,
+  type TokenUsage,
+  tokenCost,
+} from "./model-prices.js";
 import { type VendorMode, type VendorModeRow, vendorModes, vendorUsage } from "./vendor-schema.js";
 
 export interface Vendor {
@@ -35,6 +43,13 @@ export interface Vendor {
   publicKeyName?: string;
   /** "Managed by Wren" isn't built for it yet: clients bring their own, and it says so. */
   managedDev?: true;
+  /** Wren's own spend only: no client reads through it, so no client page lists it. */
+  wrenOnly?: true;
+  /**
+   * What Wren means to spend on it a month, in micro-dollars; the Vendors page shows the month
+   * against it. Not a gate: nothing stops at it.
+   */
+  budgetMicros?: number;
 }
 
 const AS_OF = "2026-10-07";
@@ -122,6 +137,22 @@ export const VENDORS: readonly Vendor[] = [
     keyName: "MODEL_API_KEY",
   },
   {
+    // Wren's own Anthropic calls (drafts, fills, the Monitor), metered per response from the token
+    // counts at the client seam (`meterTokens`). Units are tokens; the price is per model
+    // (`model-prices.ts`), so `micros` is null. The budget is the monthly Claude Code credit.
+    id: "anthropic",
+    name: "Claude API",
+    unit: "token",
+    micros: null,
+    url: ANTHROPIC_PRICES_URL,
+    asOf: ANTHROPIC_PRICES_AS_OF,
+    quota: null,
+    own: null,
+    keyName: null,
+    wrenOnly: true,
+    budgetMicros: 200_000_000,
+  },
+  {
     id: "reddit",
     name: "Reddit reads",
     unit: "search",
@@ -168,6 +199,7 @@ export const vendorOf = (id: string): Vendor => {
 
 /** Said for a price: "$7.00 per 1,000 searches", "free", "no public price". */
 export function priceText(v: Vendor): string {
+  if (v.id === "anthropic") return pricesText();
   if (v.micros === null) return "no public price";
   if (v.micros === 0) return "free";
   return `$${((v.micros * 1000) / 1_000_000).toFixed(2)} per 1,000 ${unitsOf(v)}`;
@@ -193,7 +225,9 @@ export const vendorSettingsSchema = z.object({
    */
   managedForClients: z
     .array(z.string())
-    .default(VENDORS.filter((v) => v.id !== "linkedin" && !v.managedDev).map((v) => v.id)),
+    .default(
+      VENDORS.filter((v) => v.id !== "linkedin" && !v.managedDev && !v.wrenOnly).map((v) => v.id),
+    ),
 });
 export type VendorSettings = z.infer<typeof vendorSettingsSchema>;
 
@@ -293,7 +327,7 @@ export async function setManaged(
 ): Promise<void> {
   const v = vendorOf(o.vendor);
   const s = await vendorSettings(main);
-  if (v.managedDev || !s.managedForClients.includes(v.id))
+  if (v.managedDev || v.wrenOnly || !s.managedForClients.includes(v.id))
     throw new Error(`${v.name} isn't offered managed`);
   if (!Number.isInteger(o.perDay) || o.perDay < 0)
     throw new Error("share: a whole number, 0 or more");
@@ -606,6 +640,43 @@ export async function meter(
     });
     return { mode, bucket, micros };
   });
+}
+
+/** Models already warned about: one line a model per process, not one a call. */
+const UNPRICED = new Set<string>();
+
+/**
+ * Record one Anthropic response on Wren's own line: units are its tokens (prompt, cache and
+ * output), micro-dollars from the model's price. An unknown model costs 0 and warns. Never throws
+ * on a bad count; a DB failure is the caller's to catch (the wrapper logs and goes on).
+ */
+export async function meterTokens(
+  main: Db,
+  o: {
+    model: string;
+    usage: TokenUsage;
+    part: string;
+    runId?: string | null;
+    warn?: (line: string) => void;
+    at?: Date;
+  },
+): Promise<{ units: number; micros: number }> {
+  if (!priceOf(o.model) && !UNPRICED.has(o.model)) {
+    UNPRICED.add(o.model);
+    (o.warn ?? console.warn)(`anthropic: no price for model ${o.model}; costed 0`);
+  }
+  const units = Math.max(0, (o.usage.input ?? 0) + (o.usage.output ?? 0));
+  const micros = tokenCost(o.model, o.usage);
+  await meter(main, {
+    client: null,
+    vendor: "anthropic",
+    units,
+    micros,
+    part: o.part,
+    runId: o.runId ?? null,
+    ...(o.at ? { at: o.at } : {}),
+  });
+  return { units, micros };
 }
 
 export interface UsageSum {

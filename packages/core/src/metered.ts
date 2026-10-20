@@ -259,6 +259,12 @@ export function meteredModel<L extends { complete: (...args: never[]) => Promise
     return mine.llm;
   };
   const wrapped = Object.create(llm) as L;
+  // The call names its part (`opts.part`), so Wren's own client under it meters the response on
+  // that part's line (`observeUsage`); a client's own key never reports to Wren's.
+  const named = (args: unknown[]) =>
+    typeof args[0] === "string"
+      ? [args[0], { ...(args[1] as object | undefined), part: s.part }]
+      : args;
   wrapped.complete = ((...args: Parameters<L["complete"]>) =>
     keys.use(
       {
@@ -268,7 +274,10 @@ export function meteredModel<L extends { complete: (...args: never[]) => Promise
         part: s.part,
         runId: s.runId ?? null,
       },
-      (k) => (k.mode === "own" && k.key ? ownOf(k.key).complete(...args) : llm.complete(...args)),
+      (k) => {
+        const a = named(args) as Parameters<L["complete"]>;
+        return k.mode === "own" && k.key ? ownOf(k.key).complete(...a) : llm.complete(...a);
+      },
     )) as L["complete"];
   return wrapped;
 }

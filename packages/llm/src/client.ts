@@ -29,6 +29,11 @@ export interface CompleteOptions {
   maxTokens?: number;
   /** The system prompt: the standing instructions, apart from this call's input. */
   system?: string;
+  /**
+   * The part asking ("watch.triage", "drafts"): read by the usage meter (`observeUsage`) so a
+   * response lands on its part's line. No provider sees it.
+   */
+  part?: string;
 }
 
 export interface LlmClient {
@@ -154,6 +159,7 @@ export class AiSdkLlm implements LlmClient {
         output_tokens: usage.outputTokens ?? null,
         reasoning_tokens: usage.outputTokenDetails?.reasoningTokens ?? null,
         cache_read_tokens: usage.inputTokenDetails?.cacheReadTokens ?? null,
+        cache_write_tokens: usage.inputTokenDetails?.cacheWriteTokens ?? null,
       },
       response: {
         id: result.response.id,

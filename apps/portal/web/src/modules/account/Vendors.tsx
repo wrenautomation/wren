@@ -49,6 +49,14 @@ function Facts({ v, wren }: { v: VendorRow; wren: boolean }) {
       managed.units ? "On their key" : "This month",
       `${used(own, v.units)}${own.micros ? ", paid on their key" : ""}`,
     ]);
+  // Wren's own budget for the vendor: the month so far against it (not a gate).
+  if (v.budgetMicros !== null)
+    rows.push([
+      "Monthly budget",
+      `${dollars(managed.micros)} of ${dollars(v.budgetMicros)}${
+        managed.micros > v.budgetMicros ? ", over" : ""
+      }`,
+    ]);
   if (v.mode === "managed" && !wren) {
     // A vendor with no read limit stops on money alone: no share to set.
     if (v.quota !== null)

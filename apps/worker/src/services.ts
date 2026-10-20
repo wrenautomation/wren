@@ -316,7 +316,7 @@ import { makeTokens } from "@wren/core/tokens";
 import { makeTouchFeed } from "@wren/core/touch-feed";
 import { makeVaultKeys } from "@wren/core/vault-keys";
 import { vendorKeys } from "@wren/core/vendor-keys";
-import { gate } from "@wren/core/vendors";
+import { gate, meterTokens } from "@wren/core/vendors";
 import { makeWebhooks, turnedOffTeller, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { flowsWith } from "@wren/core/workflows";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
@@ -342,7 +342,16 @@ import {
 } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { learnSource } from "@wren/learn/decide";
-import { gatewayEmbed, llmForKey, loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
+import {
+  gatewayEmbed,
+  type LlmClient,
+  llmForKey,
+  loadLlmEnv,
+  makeLlm,
+  makeTracer,
+  observeUsage,
+  withPart,
+} from "@wren/llm";
 import {
   adLibraryFor,
   crawlHintsFor,
@@ -539,7 +548,34 @@ export async function buildServices(
 
   // Key fleets and provider keys live in llm.env (or the host's env); never logged.
   loadLlmEnv(settings.llmEnvPath, rootDir);
-  const llm = makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel });
+  // Every Anthropic response of Wren's own, once, at the client seam: tokens and dollars on the
+  // `anthropic` vendor, on the part that asked (a call's `opts.part`, else the default named
+  // here). Other providers pass through. A write that fails is logged, never the model call.
+  // Calls run inside their caller's journaled step, so a replay returns the journaled answer
+  // and writes no second row.
+  const counted = <L extends LlmClient>(m: L, part: string): L =>
+    m.provider === "anthropic"
+      ? observeUsage(m, {
+          part,
+          warn: (line) => log.warn(line),
+          record: (r) =>
+            meterTokens(db, {
+              model: r.model,
+              part: r.part,
+              warn: (line) => log.warn(line),
+              usage: {
+                input: r.usage.input,
+                output: r.usage.output,
+                cacheRead: r.usage.cache_read,
+                cacheWrite: r.usage.cache_write,
+              },
+            }),
+        })
+      : m;
+  const llm = counted(
+    makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
+    "llm",
+  );
   const ua = settings.fetchContact ? userAgent(settings.fetchContact) : null;
   if (!ua) log.warn("WREN_FETCH_CONTACT unset: crawl and render will refuse until it is");
   // Clients' own keys, sealed in main (designs/2026-10-07-key-store.md). The private key comes
@@ -693,7 +729,9 @@ export async function buildServices(
   // Casual names and prompt slots, cached in `fills`. No keys for it is a loud start, not
   // a quiet fallback to the rule-based names.
   const fill =
-    settings.fillLlm === "none" ? null : makeFiller(db, makeLlm(settings.fillLlm, process.env));
+    settings.fillLlm === "none"
+      ? null
+      : makeFiller(db, counted(makeLlm(settings.fillLlm, process.env), "fills"));
   const campaigns = new Map<string, Campaign>(
     NICHES.map((niche) => {
       const active = activeSenders(roster, niche.name);
@@ -1331,7 +1369,8 @@ export async function buildServices(
       : undefined,
   };
   // The Monitor's model (Cohere on prod): mail triage, the inbox, a client's drafts. Reach drafts have their own, below.
-  const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
+  const watchLlm =
+    settings.watchLlm === "none" ? null : counted(makeLlm(settings.watchLlm, process.env), "watch");
   // Reach drafts (thread replies, comments on others' posts, comment answers, DMs): each item's
   // model is its arm of the saved `drafts.model` test (default gateway free chain against
   // Cohere), apart from the Monitor's model; everything else the reach code asks still goes to
@@ -1340,7 +1379,7 @@ export async function buildServices(
   const armClient = (model: string) => {
     if (!armClients.has(model)) {
       try {
-        armClients.set(model, makeLlm(model, process.env));
+        armClients.set(model, counted(makeLlm(model, process.env), "drafts"));
       } catch {
         // No keys here (a laptop without the gateway): the arm is skipped, not the drafting.
         armClients.set(model, null);
@@ -1348,9 +1387,14 @@ export async function buildServices(
     }
     return armClients.get(model) ?? null;
   };
-  const draftsLlm = watchLlm ? new ArmedLlm(watchLlm, savedArms(db), armClient) : null;
+  const draftsLlm = watchLlm
+    ? new ArmedLlm(withPart(watchLlm, "drafts"), savedArms(db), armClient)
+    : null;
   // Google user data goes only to a model that doesn't train on it (Limited Use); none by default.
-  const googleLlm = settings.googleLlm === "none" ? null : makeLlm(settings.googleLlm, process.env);
+  const googleLlm =
+    settings.googleLlm === "none"
+      ? null
+      : counted(makeLlm(settings.googleLlm, process.env), "google");
   // A post's replies come in through reach's watch: it reads warm from now.
   const postedWarm = (ctx: ObjectContext, p: Platform, client: string | null) => {
     if (p === "reddit" || p === "linkedin") wakeWatch(ctx, client);
@@ -2193,7 +2237,7 @@ export async function buildServices(
           clientDb,
           { off: () => (settings.reachLive ? null : "WREN_REACH_LIVE is off") },
         ),
-        "watch.triage": triageStep(db, watchLlm),
+        "watch.triage": triageStep(db, watchLlm ? withPart(watchLlm, "watch.triage") : null),
         // A client's mail, by its own name: the model only with the part installed and its
         // `models` gate open, metered. Else the rules alone, and what they can't settle shows.
         "mail.triage": clientTriageStep(async (client) => {
@@ -2224,7 +2268,12 @@ export async function buildServices(
         // and an SOP it asked for written into its Notes once read.
         "learn.score": scoreStep(
           db,
-          learnJudges({ db, llm: watchLlm, keys, wrenPractices: () => practicesOf(db) }),
+          learnJudges({
+            db,
+            llm: watchLlm ? withPart(watchLlm, "learn") : null,
+            keys,
+            wrenPractices: () => practicesOf(db),
+          }),
           clientAskedOnRead(db, clientDb),
         ),
         // A bill in the Monitor's mail runs the books now; the books' pass is the box's.
