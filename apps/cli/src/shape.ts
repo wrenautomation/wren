@@ -5,10 +5,25 @@
  * Every write is a new version with a reason. `add-node`, `connect` and `remove` build the new body
  * from the newest one (`@wren/pipeline/edit`) and `saveShape` checks all of it. A file goes in
  * whole through `import`. `move` is the same handler as `wren journeys move`.
+ *
+ * History like git: `draft` keeps a body beside the live shape until a person applies it, `blame`
+ * reads one node's or edge's history, `undo` reverses one change of a past diff, `tag` names a
+ * version, and `mirror` copies each version to the private repo. Every save mirrors and says what
+ * the mirror did.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { TRIGGER_IDS } from "@wren/core/logic";
 import type { Db } from "@wren/db";
+import { historyOf } from "@wren/pipeline/blame";
+import { changeKey, changesOf } from "@wren/pipeline/diff";
+import {
+  applyDraft,
+  draftOf,
+  draftsOf,
+  dropDraft,
+  newDraft,
+  proposeDraft,
+} from "@wren/pipeline/drafts";
 import {
   edgeOf,
   editShape,
@@ -18,6 +33,8 @@ import {
   withoutEdge,
   withoutNode,
 } from "@wren/pipeline/edit";
+import { DRAFT_STATES, type DraftState, OPEN_DRAFT_STATES } from "@wren/pipeline/history";
+import { type MirrorResult, mirrorsOf } from "@wren/pipeline/mirror";
 import {
   ACTIONS,
   type Advance,
@@ -28,7 +45,7 @@ import {
   VIAS,
 } from "@wren/pipeline/model";
 import { openNowOf } from "@wren/pipeline/numbers";
-import { exportShape, importShape } from "@wren/pipeline/shape-file";
+import { exportShape, importShape, parseShape } from "@wren/pipeline/shape-file";
 import { startShape } from "@wren/pipeline/starter";
 import {
   diffShapes,
@@ -37,6 +54,8 @@ import {
   type ShapeDiff,
   shapeVersionsOf,
 } from "@wren/pipeline/store";
+import { addTag, tagsOf } from "@wren/pipeline/tags";
+import { planUndo, undoShape } from "@wren/pipeline/undo";
 import { type Command, InvalidArgumentError } from "commander";
 import { addMove, numberArg, type PipelineWrites, plain, who } from "./pipeline.js";
 
@@ -47,6 +66,10 @@ export interface ShapeDeps {
   withDb: WithDb;
   /** The worker's `Journeys` service, for `move`. */
   writes: PipelineWrites | undefined;
+  /** Copy this workspace's missing versions to the private repo: `--client`'s, else Wren's. */
+  mirror: (db: Db) => Promise<MirrorResult>;
+  /** The same for Wren and every client, one result a workspace (`mirror --all`). */
+  mirrorAll: () => Promise<Array<{ workspace: string; result: MirrorResult }>>;
 }
 
 // --- pure helpers ---------------------------------------------------------------------------
@@ -65,6 +88,13 @@ export function advanceArg(v: string): Advance {
 }
 
 const collect = (v: string, all: string[] = []): string[] => [...all, v];
+
+/** A draft state, or `all`. */
+function stateArg(v: string): DraftState | "all" {
+  if (v === "all" || (DRAFT_STATES as readonly string[]).includes(v))
+    return v as DraftState | "all";
+  throw new InvalidArgumentError(`use one of ${DRAFT_STATES.join(", ")} or all`);
+}
 
 /** One line for a node's own fields. */
 function detailOf(n: ShapeNode): string {
@@ -113,8 +143,11 @@ export function shapeLines(
   return lines;
 }
 
-/** A diff as text, one line per change. Empty when nothing differs. */
-export function diffLines(d: ShapeDiff): string[] {
+/**
+ * A diff as text, one line per change. Empty when nothing differs. With `keys`, each line ends in
+ * its change key in brackets, the key `undo` takes.
+ */
+export function diffLines(d: ShapeDiff, keys = false): string[] {
   const lines: string[] = [];
   if (d.name) lines.push(`name: ${d.name.from} -> ${d.name.to}`);
   for (const id of d.nodes.added) lines.push(`+ node ${id}`);
@@ -124,7 +157,38 @@ export function diffLines(d: ShapeDiff): string[] {
   for (const id of d.edges.added) lines.push(`+ edge ${id}`);
   for (const id of d.edges.removed) lines.push(`- edge ${id}`);
   for (const id of d.edges.changed) lines.push(`~ edge ${id} changed`);
-  return lines;
+  if (!keys) return lines;
+  // `changesOf` reads in the order the lines above are pushed.
+  const all = changesOf(d);
+  return lines.map((line, i) => `${line}  [${all[i] ? changeKey(all[i]) : ""}]`);
+}
+
+/** What the mirror did, as lines: `mirrored v<n> <sha7>`, `mirror off`, `mirror failed: <why>`. */
+export function mirrorLines(r: MirrorResult): string[] {
+  if (r.off) return ["mirror off"];
+  return [
+    ...r.committed.map((c) => `mirrored v${c.version} ${c.sha.slice(0, 7)}`),
+    ...(r.failed ? [`mirror failed: ${r.failed}`] : []),
+  ];
+}
+
+/** One draft as a list line. */
+export function draftLine(d: {
+  id: string;
+  state: string;
+  base: number;
+  updatedAt: Date;
+  createdBy: string;
+  name: string;
+}): string {
+  return `${d.id}  ${d.state}  v${d.base}  ${day(d.updatedAt)}  ${d.createdBy}  ${d.name}`;
+}
+
+/** A node's or edge's `blame` lines, as given: `v<n>  <day>  <by>  <how>  <note>`. */
+export function blameLines(
+  lines: Array<{ version: number; at: string; by: string; how: string; note: string }>,
+): string[] {
+  return lines.map((l) => `v${l.version}  ${l.at.slice(0, 10)}  ${l.by}  ${l.how}  ${l.note}`);
 }
 
 /** The fields `add-node` takes. */
@@ -195,6 +259,24 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
     .command("shape")
     .description("the business shape: sources, steps, offers and plans, and the edges between");
 
+  /** The mirror, as a result. A throw from the dependency reads as a failure, never as a crash. */
+  const mirrorSafe = async (db: Db): Promise<MirrorResult> => {
+    try {
+      return await deps.mirror(db);
+    } catch (e) {
+      return { committed: [], failed: e instanceof Error ? e.message : String(e) };
+    }
+  };
+  const printMirror = (r: MirrorResult | null): void => {
+    if (r) for (const line of mirrorLines(r)) console.log(line);
+  };
+  /** A write, then the mirror in the same database. The mirror never fails the write. */
+  const writeAndMirror = <T>(fn: (db: Db) => Promise<T>, saved: (r: T) => boolean = () => true) =>
+    withDb(async (db) => {
+      const result = await fn(db);
+      return { result, mirror: saved(result) ? await mirrorSafe(db) : null };
+    });
+
   const versionArg = (v: string) => numberArg(v);
 
   shape
@@ -217,23 +299,38 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
 
   shape
     .command("versions")
-    .description("Every version: number, day, who and why")
+    .description("Every version: number, day, who and why, then its tags and mirror commit")
     .action(async () => {
-      const all = await withDb((db) => shapeVersionsOf(db));
-      for (const v of all)
-        console.log(`v${v.number}  ${day(v.createdAt)}  ${v.createdBy}  ${v.note}`);
+      const { all, tags, mirrors } = await withDb(async (db) => ({
+        all: await shapeVersionsOf(db),
+        tags: await tagsOf(db),
+        mirrors: await mirrorsOf(db),
+      }));
+      for (const v of all) {
+        const names = tags.filter((t) => t.version === v.number).map((t) => t.name);
+        const sha = mirrors.find((m) => m.version === v.number)?.sha;
+        console.log(
+          [
+            `v${v.number}  ${day(v.createdAt)}  ${v.createdBy}  ${v.note}`,
+            names.length ? `[${names.join(", ")}]` : "",
+            sha ? sha.slice(0, 7) : "",
+          ]
+            .filter(Boolean)
+            .join("  "),
+        );
+      }
       if (!all.length) console.log("no shape yet");
     });
 
   shape
     .command("diff <a> <b>")
-    .description("What changed from version a to version b")
+    .description("What changed from version a to version b. Each line ends in its change key")
     .action(async (a: string, b: string) => {
       const [na, nb] = [versionArg(a), versionArg(b)];
       const all = await withDb((db) => shapeVersionsOf(db));
       const [va, vb] = [all.find((v) => v.number === na), all.find((v) => v.number === nb)];
       if (!va || !vb) throw new Error(`no version ${!va ? na : nb}`);
-      const lines = diffLines(diffShapes(va.body, vb.body));
+      const lines = diffLines(diffShapes(va.body, vb.body), true);
       for (const line of lines.length ? lines : ["no difference"]) console.log(line);
     });
 
@@ -260,15 +357,18 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
     .action((file: string, o: { note?: string }) =>
       plain(async () => {
         const text = readFileSync(file, "utf8");
-        const r = await withDb((db) =>
-          importShape(db, text, {
-            by: who(),
-            triggers: TRIGGER_IDS,
-            ...(o.note ? { note: o.note } : {}),
-          }),
+        const { result: r, mirror } = await writeAndMirror(
+          (db) =>
+            importShape(db, text, {
+              by: who(),
+              triggers: TRIGGER_IDS,
+              ...(o.note ? { note: o.note } : {}),
+            }),
+          (r) => !!r.shape,
         );
         for (const t of r.terms) console.log(`terms ${t.offer} ${t.plan} from ${t.effectiveFrom}`);
         console.log(r.shape ? `v${r.shape.number} saved` : "no change");
+        printMirror(mirror);
       }),
     );
 
@@ -279,8 +379,12 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
     )
     .action(() =>
       plain(async () => {
-        const v = await withDb((db) => startShape(db, { by: who(), triggers: TRIGGER_IDS }));
+        const { result: v, mirror } = await writeAndMirror(
+          (db) => startShape(db, { by: who(), triggers: TRIGGER_IDS }),
+          (v) => !!v,
+        );
         console.log(v ? `v${v.number} saved` : "a shape exists; nothing changed");
+        printMirror(mirror);
       }),
     );
 
@@ -316,7 +420,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
         plain(async () => {
           const node = nodeFrom(id, o);
           const edges = [...o.from.map((f) => edgeOf(f, id)), ...o.to.map((t) => edgeOf(id, t))];
-          const v = await withDb((db) =>
+          const { result: v, mirror } = await writeAndMirror((db) =>
             editShape(db, {
               change: (body) => withNode(body, node, edges),
               note: o.note,
@@ -325,6 +429,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
             }),
           );
           console.log(`v${v.number} saved`);
+          printMirror(mirror);
         }),
     );
 
@@ -347,7 +452,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
             ...(o.label ? { label: o.label } : {}),
             ...(o.id ? { id: o.id } : {}),
           });
-          const v = await withDb((db) =>
+          const { result: v, mirror } = await writeAndMirror((db) =>
             editShape(db, {
               change: (body) => withEdge(body, edge),
               note: o.note,
@@ -356,6 +461,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
             }),
           );
           console.log(`v${v.number} saved`);
+          printMirror(mirror);
         }),
     );
 
@@ -371,7 +477,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
     .action((id: string, o: { note: string; edge?: boolean; moveTo?: string; ghost?: boolean }) =>
       plain(async () => {
         if (o.moveTo && o.ghost) throw new Refused(["Use --move-to or --ghost, not both."]);
-        const v = await withDb(async (db) => {
+        const { result: v, mirror } = await writeAndMirror(async (db) => {
           if (!o.edge) {
             const open = await openOn(db, id);
             if (open > 0 && !o.moveTo && !o.ghost)
@@ -388,6 +494,199 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
           });
         });
         console.log(`v${v.number} saved`);
+        printMirror(mirror);
+      }),
+    );
+
+  // --- drafts, blame, undo, tags and the mirror -------------------------------------------
+
+  const draft = shape
+    .command("draft")
+    .description("A shape saved beside the live one, until a person applies or drops it");
+
+  draft
+    .command("new <file>")
+    .description(
+      "Save a shape file as a draft of the newest version. Its moves and note come along",
+    )
+    .requiredOption("--name <name>", "the draft's name; its id is made from it")
+    .option("--note <why>", "why, when the file has no note")
+    .action((file: string, o: { name: string; note?: string }) =>
+      plain(async () => {
+        const parsed = parseShape(readFileSync(file, "utf8"));
+        const note = parsed.note ?? o.note;
+        const d = await withDb((db) =>
+          newDraft(db, {
+            name: o.name,
+            body: parsed.body,
+            ...(parsed.moves ? { moves: parsed.moves } : {}),
+            ...(note ? { note } : {}),
+            by: who(),
+          }),
+        );
+        console.log(`draft ${d.id} saved on v${d.base}`);
+        if (parsed.terms?.length)
+          console.log("the file's terms are not part of a draft; import the file to add them");
+      }),
+    );
+
+  draft
+    .command("list")
+    .description(
+      "Drafts, newest change first. The open ones (draft and proposed) unless --state says",
+    )
+    .option("--state <state>", `${DRAFT_STATES.join(", ")} or all`, stateArg)
+    .action((o: { state?: DraftState | "all" }) =>
+      plain(async () => {
+        const states = o.state === "all" ? undefined : o.state ? [o.state] : OPEN_DRAFT_STATES;
+        const all = await withDb((db) => draftsOf(db, states ? { states } : {}));
+        for (const d of all) console.log(draftLine(d));
+        if (!all.length) console.log("no drafts");
+      }),
+    );
+
+  draft
+    .command("show <id>")
+    .description("A draft, and what it changes in the newest version, a line each")
+    .action((id: string) =>
+      plain(async () => {
+        const { d, live } = await withDb(async (db) => ({
+          d: await draftOf(db, id),
+          live: await newestShape(db),
+        }));
+        if (!d) throw new Refused([`There is no draft "${id}".`]);
+        console.log(draftLine(d));
+        if (d.note) console.log(d.note);
+        if (d.state === "applied") console.log(`applied as v${d.appliedVersion} by ${d.decidedBy}`);
+        if (d.state === "dropped") console.log(`dropped by ${d.decidedBy}: ${d.dropReason}`);
+        const lines = live ? diffLines(diffShapes(live.body, d.body)) : [];
+        for (const line of lines.length ? lines : ["no difference from the newest version"])
+          console.log(line);
+      }),
+    );
+
+  draft
+    .command("propose <id>")
+    .description("Ask a person to apply the draft")
+    .action((id: string) =>
+      plain(async () => {
+        const d = await withDb((db) => proposeDraft(db, { id, by: who() }));
+        console.log(`draft ${d.id} proposed`);
+      }),
+    );
+
+  draft
+    .command("apply <id>")
+    .description("Save the draft as the next version. It meets the checks of any version")
+    .action((id: string) =>
+      plain(async () => {
+        const { result: r, mirror } = await writeAndMirror((db) =>
+          applyDraft(db, { id, by: who(), triggers: TRIGGER_IDS }),
+        );
+        console.log(`v${r.version.number} saved from draft ${r.draft.id}`);
+        printMirror(mirror);
+      }),
+    );
+
+  draft
+    .command("drop <id>")
+    .description("Close the draft without a version")
+    .requiredOption("--reason <why>", "why it is dropped")
+    .action((id: string, o: { reason: string }) =>
+      plain(async () => {
+        const d = await withDb((db) => dropDraft(db, { id, by: who(), reason: o.reason }));
+        console.log(`draft ${d.id} dropped`);
+      }),
+    );
+
+  shape
+    .command("blame <id>")
+    .description(
+      "Every version that touched a node, or with --edge an edge: v<n>  day  who  how  why, newest first",
+    )
+    .option("--edge", "the id names an edge, not a node")
+    .action((id: string, o: { edge?: boolean }) =>
+      plain(async () => {
+        const all = await withDb((db) => shapeVersionsOf(db));
+        const lines = blameLines(historyOf(all, id, o.edge ? "edge" : "node"));
+        for (const line of lines.length ? lines : [`no history for ${id}`]) console.log(line);
+      }),
+    );
+
+  shape
+    .command("undo <a> <b> <change>")
+    .description(
+      "Reverse one change of the diff from version a to b, as the next version. <change> is a key from `shape diff`",
+    )
+    .option("--preview", "show what the undo would do and save nothing")
+    .action((a: string, b: string, change: string, o: { preview?: boolean }) =>
+      plain(async () => {
+        const ask = { a: versionArg(a), b: versionArg(b), change };
+        if (o.preview) {
+          const p = await withDb((db) => planUndo(db, { ...ask, triggers: TRIGGER_IDS }));
+          console.log(`undo: ${p.line}`);
+          console.log(`note: ${p.note}`);
+          console.log(`applies to v${p.newest.number}`);
+          for (const line of diffLines(p.diff)) console.log(line);
+          return;
+        }
+        const { result: v, mirror } = await writeAndMirror((db) =>
+          undoShape(db, { ...ask, by: who(), triggers: TRIGGER_IDS }),
+        );
+        console.log(`v${v.number} saved`);
+        printMirror(mirror);
+      }),
+    );
+
+  shape
+    .command("tag <name> <version>")
+    .description("Name one version, like a git tag. A tag is never moved or removed")
+    .option("--note <why>", "why the version has this name")
+    .action((name: string, version: string, o: { note?: string }) =>
+      plain(async () => {
+        const n = versionArg(version);
+        const t = await withDb((db) =>
+          addTag(db, {
+            name,
+            version: n,
+            ...(o.note ? { note: o.note } : {}),
+            by: who(),
+          }),
+        );
+        console.log(`tag ${t.name} on v${t.version}`);
+      }),
+    );
+
+  shape
+    .command("tags")
+    .description("Every tag: name, version, day, who and why")
+    .action(async () => {
+      const all = await withDb((db) => tagsOf(db));
+      for (const t of all)
+        console.log(
+          [`${t.name}  v${t.version}  ${day(t.createdAt)}  ${t.createdBy}`, t.note]
+            .filter(Boolean)
+            .join("  "),
+        );
+      if (!all.length) console.log("no tags");
+    });
+
+  shape
+    .command("mirror")
+    .description(
+      "Copy the versions the private repo lacks, oldest first. --all does Wren and every client",
+    )
+    .option("--all", "Wren's workspace and every client's")
+    .action((o: { all?: boolean }) =>
+      plain(async () => {
+        const runs = o.all
+          ? await deps.mirrorAll()
+          : [{ workspace: "this workspace", result: await withDb(mirrorSafe) }];
+        for (const { workspace, result } of runs) {
+          const lines = mirrorLines(result);
+          for (const line of lines.length ? lines : ["up to date"])
+            console.log(o.all ? `${workspace}: ${line}` : line);
+        }
       }),
     );
 

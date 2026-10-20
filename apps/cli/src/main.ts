@@ -10,8 +10,9 @@ import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { collectStatus, formatStatusLines, weekSlipped } from "@wren/content";
 import { WREN } from "@wren/core/access";
 import { type AuditSealer, SEALER_KEY } from "@wren/core/audit";
-import { type Client, clientUrl, getClient } from "@wren/core/clients";
+import { type Client, clientUrl, getClient, listClients } from "@wren/core/clients";
 import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
+import { githubRepo } from "@wren/core/github";
 import { linkPeople } from "@wren/core/leads";
 import {
   type AuditCheck,
@@ -25,6 +26,7 @@ import {
   verifyAudit,
 } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
+import { mirrorShapes, WREN_WORKSPACE } from "@wren/pipeline/mirror";
 import type { JourneysService } from "@wren/pipeline/restate";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
@@ -303,7 +305,35 @@ const journeyWrites: PipelineWrites = {
   },
 };
 registerPipeline(program, withDb, withMainDb, journeyWrites);
-registerShape(program, { withDb, writes: journeyWrites });
+// The shape's git mirror: a private repo, off without its token (designs/2026-10-19-business-map.md).
+const shapeMirror = (db: Db, workspace: string) =>
+  mirrorShapes(db, {
+    files: settings.shapesGithubToken
+      ? githubRepo({ token: settings.shapesGithubToken, repo: settings.shapesGithubRepo })
+      : null,
+    repo: settings.shapesGithubRepo,
+    workspace,
+  });
+registerShape(program, {
+  withDb,
+  writes: journeyWrites,
+  mirror: (db) => {
+    const id = program.opts<{ client?: string }>().client;
+    return shapeMirror(db, !id || id === WREN ? WREN_WORKSPACE : id);
+  },
+  mirrorAll: () =>
+    withMainDb(async (main) => {
+      const runs = [{ workspace: WREN_WORKSPACE, result: await shapeMirror(main, WREN_WORKSPACE) }];
+      for (const client of await listClients(main))
+        runs.push({
+          workspace: client.id,
+          result: await open(clientUrl(settings.databaseUrl, client), (db) =>
+            shapeMirror(db, client.id),
+          ),
+        });
+      return runs;
+    }),
+});
 registerGroups(program, { withDb });
 registerPeople(program, {
   withDb,

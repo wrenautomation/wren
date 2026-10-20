@@ -2,7 +2,10 @@ import { Command, InvalidArgumentError } from "commander";
 import { describe, expect, it, vi } from "vitest";
 import {
   advanceArg,
+  blameLines,
   diffLines,
+  draftLine,
+  mirrorLines,
   nodeFrom,
   registerShape,
   type ShapeDeps,
@@ -16,6 +19,8 @@ const none = (async () => {
 const deps = (over: Partial<ShapeDeps> = {}): ShapeDeps => ({
   withDb: none,
   writes: undefined,
+  mirror: async () => ({ off: true }),
+  mirrorAll: async () => [],
   ...over,
 });
 
@@ -142,6 +147,66 @@ describe("text", () => {
   });
 });
 
+describe("history text", () => {
+  it("ends each diff line in its change key when asked", () => {
+    const d = {
+      nodes: {
+        added: ["a"],
+        removed: ["b"],
+        renamed: [{ id: "c", from: "C", to: "D" }],
+        changed: ["c"],
+      },
+      edges: { added: ["e1"], removed: ["e2"], changed: ["e3"] },
+      name: { from: "X", to: "Y" },
+    };
+    expect(diffLines(d, true)).toEqual([
+      "name: X -> Y  [name]",
+      "+ node a  [node:a:added]",
+      "- node b  [node:b:removed]",
+      "~ node c renamed: C -> D  [node:c:renamed]",
+      "~ node c changed  [node:c:changed]",
+      "+ edge e1  [edge:e1:added]",
+      "- edge e2  [edge:e2:removed]",
+      "~ edge e3 changed  [edge:e3:changed]",
+    ]);
+  });
+
+  it("says what the mirror did, one line a commit", () => {
+    expect(mirrorLines({ off: true })).toEqual(["mirror off"]);
+    expect(mirrorLines({ committed: [{ version: 3, sha: "0123456789abcdef" }] })).toEqual([
+      "mirrored v3 0123456",
+    ]);
+    expect(
+      mirrorLines({
+        committed: [
+          { version: 1, sha: "aaaaaaaaaa" },
+          { version: 2, sha: "bbbbbbbbbb" },
+        ],
+        failed: "v3: boom",
+      }),
+    ).toEqual(["mirrored v1 aaaaaaa", "mirrored v2 bbbbbbb", "mirror failed: v3: boom"]);
+    expect(mirrorLines({ committed: [] })).toEqual([]);
+  });
+
+  it("prints a draft and a blame line", () => {
+    expect(
+      draftLine({
+        id: "add-a-call",
+        state: "proposed",
+        base: 4,
+        updatedAt: new Date("2027-02-03T10:00:00Z"),
+        createdBy: "ada",
+        name: "Add a call",
+      }),
+    ).toBe("add-a-call  proposed  v4  2027-02-03  ada  Add a call");
+    expect(
+      blameLines([
+        { version: 5, at: "2027-02-04T00:00:00.000Z", by: "bo", how: "renamed", note: "clearer" },
+      ]),
+    ).toEqual(["v5  2027-02-04  bo  renamed  clearer"]);
+  });
+});
+
 describe("commands", () => {
   it("registers the shape commands", () => {
     expect(names(program())).toEqual(["shape"]);
@@ -155,8 +220,37 @@ describe("commands", () => {
       "add-node",
       "connect",
       "remove",
+      "draft",
+      "blame",
+      "undo",
+      "tag",
+      "tags",
+      "mirror",
       "move",
     ]);
+    const draft = shapeCmd(program()).commands.find((c) => c.name() === "draft") as Command;
+    expect(names(draft)).toEqual(["new", "list", "show", "propose", "apply", "drop"]);
+  });
+
+  it("needs --name on draft new, --reason on draft drop, and a known --state", async () => {
+    await expect(
+      program().parseAsync(["shape", "draft", "new", "f.yaml"], { from: "user" }),
+    ).rejects.toThrow(/--name/);
+    await expect(
+      program().parseAsync(["shape", "draft", "drop", "d"], { from: "user" }),
+    ).rejects.toThrow(/--reason/);
+    await expect(
+      program().parseAsync(["shape", "draft", "list", "--state", "later"], { from: "user" }),
+    ).rejects.toThrow(/use one of draft, proposed, applied, dropped or all/);
+  });
+
+  it("reads versions of undo, tag and diff as whole numbers", async () => {
+    await expect(
+      program().parseAsync(["shape", "undo", "x", "2", "name"], { from: "user" }),
+    ).rejects.toThrow(/whole number/);
+    await expect(
+      program().parseAsync(["shape", "tag", "stable", "0"], { from: "user" }),
+    ).rejects.toThrow(/whole number/);
   });
 
   it("needs --note on add-node, connect and remove", async () => {

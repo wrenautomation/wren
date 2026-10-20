@@ -7,7 +7,7 @@
 import type { GithubFiles } from "@wren/core/github";
 import { atomic, type Queryable } from "@wren/db";
 import { asc, eq, notExists } from "drizzle-orm";
-import { shapeMirrors, shapeVersions } from "./schema.js";
+import { type ShapeMirror, shapeMirrors, shapeVersions } from "./schema.js";
 import { exportShape } from "./shape-file.js";
 import { lock } from "./store.js";
 
@@ -98,4 +98,9 @@ export async function mirrorShapes(
     console.warn(`shape mirror (${o.workspace}) failed: ${failed}`);
     return { committed: [], failed };
   }
+}
+
+/** Every mirrored version's commit, in version order. */
+export async function mirrorsOf(db: Queryable): Promise<ShapeMirror[]> {
+  return db.select().from(shapeMirrors).orderBy(asc(shapeMirrors.version));
 }
