@@ -24,6 +24,7 @@ import {
   logicOf,
   logicSteps,
   nextSlot,
+  segmentRepeatOf,
   type TriggerFacts,
   triggerHears,
   type Until,
@@ -1023,17 +1024,37 @@ export async function liveFor(db: Queryable, client: string, workflow: string): 
 
 const NONE: Tally = { arrived: 0, seen: 0, waiting: 0, failed: 0, out: 0 };
 
-/** Every Reply and Booking node in `flows` that hears `facts`, as where its event leaves. */
+/**
+ * Every Reply and Booking node in `flows` that hears `facts`, as where its event leaves. `repeat`
+ * marks a Group node set to each time: `heardAs` gives it each entry as its own arrival.
+ */
 export function hearersOf(
   flows: Iterable<Workflow>,
   facts: TriggerFacts,
-): Array<{ workflow: string; from: string }> {
-  const out: Array<{ workflow: string; from: string }> = [];
+): Array<{ workflow: string; from: string; repeat?: true }> {
+  const out: Array<{ workflow: string; from: string; repeat?: true }> = [];
   for (const f of flows)
     for (const n of f.nodes)
-      if (!f.off && triggerHears(n, facts)) out.push({ workflow: f.id, from: `${n.id}.out` });
+      if (!f.off && triggerHears(n, facts))
+        out.push({
+          workflow: f.id,
+          from: `${n.id}.out`,
+          ...(n.uses === "trigger.segment" && segmentRepeatOf(n.with?.repeat) === "each"
+            ? { repeat: true as const }
+            : {}),
+        });
   return out;
 }
+
+/**
+ * The event as a hearer takes it in. The spine enters a subject at a node once, so a Group node
+ * that repeats gets the entry's own row (`data.member`) on its subject: leaving the group and
+ * entering again is a new arrival, where a node that does not repeat sees the person once.
+ */
+export const heardAs = (h: { repeat?: true }, event: SpineEvent): SpineEvent =>
+  h.repeat && event.data.member !== undefined
+    ? { ...event, subject: `${event.subject}@${String(event.data.member)}` }
+    : event;
 
 export const SPINE_CLOCK = { name: "SpineClock" } as const;
 /** One Schedule node's clock: `<client>|<workflow>|<node>`, the client blank for Wren. */
@@ -1257,9 +1278,12 @@ export function makeSpine(d: SpineDeps) {
             req.facts,
           );
           for (const h of at)
-            ctx
-              .serviceSendClient<SpineService>(SPINE)
-              .emit({ client: req.client, ...h, events: [req.event] });
+            ctx.serviceSendClient<SpineService>(SPINE).emit({
+              client: req.client,
+              workflow: h.workflow,
+              from: h.from,
+              events: [heardAs(h, req.event)],
+            });
           const db = client ? d.clientDb(client) : d.main;
           // About the same lead on any channel: a reply by email frees a wait held on its texts.
           const until = untilOfFacts(req.facts);

@@ -8,6 +8,7 @@ import {
   clockKey,
   clockOfKey,
   clocksOf,
+  heardAs,
   hearersOf,
   hookEvent,
   passOn,
@@ -620,6 +621,41 @@ describe("fired triggers", () => {
       "any.out",
     ]);
     expect(replyFired(null, "email", 3).event.data).toEqual({ channel: "email", enrollmentId: 3 });
+  });
+
+  it("give a Group node set to each time every entry as its own arrival", () => {
+    const groups = defineWorkflow({
+      ...base,
+      id: "groups",
+      name: "groups",
+      nodes: [
+        { id: "once", uses: "trigger.segment", with: { segment: 7, on: "entered" } },
+        {
+          id: "each",
+          uses: "trigger.segment",
+          with: { segment: 7, on: "entered", repeat: "each" },
+        },
+      ],
+      wires: [],
+    });
+    const facts = { trigger: "trigger.segment" as const, segment: 7, change: "entered" as const };
+    const heard = hearersOf([groups], facts);
+    expect(heard).toEqual([
+      { workflow: "groups", from: "once.out" },
+      { workflow: "groups", from: "each.out", repeat: true },
+    ]);
+    const event: SpineEvent = {
+      subject: "profile:4",
+      kind: "lead",
+      data: { profile: 4, member: 31 },
+    };
+    // A node that does not repeat sees the person once; the repeating one sees each entry.
+    expect(heardAs(heard[0] as never, event)).toBe(event);
+    expect(heardAs(heard[1] as never, event).subject).toBe("profile:4@31");
+    expect(heardAs(heard[1] as never, { ...event, data: { profile: 4 } })).toEqual({
+      ...event,
+      data: { profile: 4 },
+    });
   });
 
   it("a workflow switched off hears nothing", () => {

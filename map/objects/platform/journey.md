@@ -9,7 +9,7 @@ entity: packages/pipeline/src/schema.ts:154
 
 # journey
 
-One person on one node of the shape (schema `pipeline`, table `journeys`), with the trail of edges they crossed and a `deals` row once they reach an offer node. A person has one open journey. Built: schema, the spine steps, the version carry, manual moves, records, console, numbers and the merge.
+One person on one node of the shape (schema `pipeline`, table `journeys`), with the trail of edges they crossed and a `deals` row once they reach an offer node. A person has one open journey; one who left a journey (done or dropped) and enters again, say by leaving a group and coming back, opens a new journey and the old one stays closed. Built: schema, the spine steps, the version carry, manual moves, records, console, numbers and the merge.
 
 ## Why this shape
 

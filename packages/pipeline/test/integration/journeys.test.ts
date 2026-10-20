@@ -11,6 +11,7 @@ import { type Rule, recomputeLive, saveSegment, segmentMembers } from "@wren/cor
 import { segmentsPass } from "@wren/core/segments-pass";
 import {
   type Fired,
+  heardAs,
   hearersOf,
   pgSpineStore,
   type SpineEvent,
@@ -116,7 +117,8 @@ async function hear(
   // Each call to the spine is its own invocation: a claim by another owner is refused.
   const w: Walk = { ...r.w, by: randomUUID(), flows: new Map(flows.map((f) => [f.id, f])) };
   const tallies = [];
-  for (const h of hearersOf(flows, facts)) tallies.push(await walk(w, h.workflow, h.from, [event]));
+  for (const h of hearersOf(flows, facts))
+    tallies.push(await walk(w, h.workflow, h.from, [heardAs(h, event)]));
   return tallies;
 }
 
@@ -436,6 +438,67 @@ describe("a new version", () => {
     await dropJourney(pg.db, { journey: j?.id as string, reason: "test" });
     for (const f of fires) await hear(r, flows, f.facts, f.event);
     expect((await journeyOf(profile))?.status).toBe("dropped");
+  });
+
+  it("a person who leaves the group and enters it again opens a new journey; the old one stays closed", async () => {
+    const flows = await flowsOf();
+    const r = rig();
+    const told = async (cursor: Awaited<ReturnType<typeof segmentsPass>>["cursor"] | null) => {
+      const pass = await segmentsPass(pg.db, null, flows, NOW, cursor);
+      for (const f of pass.fires.filter((x) => x.facts.trigger === "trigger.segment"))
+        await hear(r, flows, f.facts, f.event);
+      return pass.cursor;
+    };
+    const all = (profile: number) =>
+      pg.db
+        .select()
+        .from(journeys)
+        .where(eq(journeys.profileId, profile))
+        .orderBy(asc(journeys.openedAt));
+
+    // One person's first journey is dropped, the other's is done. Each leaves and comes back.
+    const dropped = await person("rea@example.test");
+    const done = await person("reb@example.test");
+    let cursor = await told(null);
+    for (const p of [dropped, done]) await setTraits(pg.db, p, { plan: "grp-pro" }, "t", NOW);
+    cursor = await told(cursor);
+    const [d1] = await all(dropped);
+    const [n1] = await all(done);
+    expect(d1).toMatchObject({ node: "booked", status: "open", entry: "warm" });
+    expect(n1).toMatchObject({ node: "booked", status: "open", entry: "warm" });
+
+    await dropJourney(pg.db, { journey: d1?.id as string, reason: "not now" });
+    await emit(
+      r,
+      await flowsOf(),
+      await moveEmit(pg.db, { journey: n1?.id as string, to: "other", by: "t" }),
+    );
+    expect((await all(done))[0]).toMatchObject({ node: "other", status: "done" });
+
+    // They leave: the group's entry trigger hears entries only, so nothing opens.
+    for (const p of [dropped, done]) await setTraits(pg.db, p, { plan: "grp-free" }, "t", NOW);
+    cursor = await told(cursor);
+    expect(await all(dropped)).toHaveLength(1);
+    expect(await all(done)).toHaveLength(1);
+
+    // They enter again: a new journey each, at the group source's node; the old ones stay closed.
+    for (const p of [dropped, done]) await setTraits(pg.db, p, { plan: "grp-pro" }, "t", NOW);
+    cursor = await told(cursor);
+    const again = await all(dropped);
+    expect(again).toHaveLength(2);
+    expect(again[0]).toMatchObject({ id: d1?.id, status: "dropped" });
+    expect(again[1]).toMatchObject({ node: "booked", status: "open", entry: "warm" });
+    const second = await all(done);
+    expect(second).toHaveLength(2);
+    expect(second[0]).toMatchObject({ id: n1?.id, node: "other", status: "done" });
+    expect(second[1]).toMatchObject({ node: "booked", status: "open", entry: "warm" });
+    // Both journeys name the group as their cause; the second names its own entry.
+    expect(again[1]?.entryRef).toMatchObject({ cause: { kind: "group", ref: String(group) } });
+    expect(again[1]?.entryRef).not.toEqual(again[0]?.entryRef);
+
+    // The same entry told twice opens nothing more: it is one entry.
+    await told(cursor);
+    expect(await all(dropped)).toHaveLength(2);
   });
 
   it("makes no deal while the offer has no version", async () => {

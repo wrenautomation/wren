@@ -1,7 +1,7 @@
 /** Segment rules (B5): parse and check, each condition kind as SQL, words, order, describe. */
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
-import { LOGIC, logicProblems, triggerHears } from "./logic.js";
+import { LOGIC, logicProblems, segmentRepeatOf, triggerHears } from "./logic.js";
 import {
   type Condition,
   compileRule,
@@ -324,6 +324,9 @@ describe("segment triggers", () => {
     expect(problems("trigger.trait", { trait: "Not A Key" })).toMatch(/trait key/);
     expect(problems("trigger.date", { trait: "renewal_date", offset: 400 })).toMatch(/-365 to 365/);
     expect(problems("trigger.date", { trait: "renewal_date", offset: -7 })).toBe("");
+    expect(problems("trigger.segment", { segment: 3, repeat: "each" })).toBe("");
+    expect(segmentRepeatOf("each")).toBe("each");
+    expect(segmentRepeatOf("anything else")).toBe("once");
     expect(problems("logic.segment", {})).toMatch(/group's number/);
     expect(problems("logic.segment", { segment: 3 })).toBe("");
   });

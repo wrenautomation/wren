@@ -285,7 +285,13 @@ export async function segmentsPass(
         `profile:${profile}`,
         profile,
         who.get(profile),
-        { segment: Number(m.segment_id), segment_name: String(m.name), change },
+        // `member` is this entry or exit's own row: a Group trigger that repeats keys on it.
+        {
+          segment: Number(m.segment_id),
+          segment_name: String(m.name),
+          change,
+          member: Number(m.id),
+        },
       ),
     );
   }

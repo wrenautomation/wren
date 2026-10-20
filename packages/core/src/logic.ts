@@ -240,6 +240,16 @@ export const TOUCH_ON_PLATFORMS = [
 /** A profile entering or leaving a group (designs/2026-10-14-customerio-audit.md, B5). */
 export const SEGMENT_CHANGES = { entered: "Enters", left: "Leaves" } as const;
 export type SegmentChange = keyof typeof SEGMENT_CHANGES;
+/**
+ * A Group trigger's repeat: a person enters the workflow once, or each time they enter (or leave)
+ * the group. A journey source in the shape takes each time: a person who comes back to the group
+ * starts a new journey.
+ */
+export const SEGMENT_REPEAT = { once: "Once per person", each: "Each time" } as const;
+export type SegmentRepeat = keyof typeof SEGMENT_REPEAT;
+/** A Group trigger's repeat: each time, else once. */
+export const segmentRepeatOf = (v: unknown): SegmentRepeat =>
+  String(v ?? "") === "each" ? "each" : "once";
 /** A date trait's trigger: on that date once, or on its day each year (a birthday). */
 export const DATE_EVERY = { once: "On the date", yearly: "Every year" } as const;
 export type DateEvery = keyof typeof DATE_EVERY;
@@ -996,7 +1006,7 @@ export const LOGIC: readonly LogicPart[] = [
   trigger(
     "segment",
     "Group",
-    "Starts when someone enters or leaves a group in People. Once per person.",
+    "Starts when someone enters or leaves a group in People. Once per person, or each time with Repeat.",
     "people",
     "lead",
     [
@@ -1009,11 +1019,20 @@ export const LOGIC: readonly LogicPart[] = [
         labels: { ...SEGMENT_CHANGES, any: "Either" },
         start: "entered",
       },
+      {
+        field: "repeat",
+        label: "Repeat",
+        type: "choice",
+        options: ["once", "each"],
+        labels: SEGMENT_REPEAT,
+        start: "once",
+      },
     ],
     (w) => {
       const on = text(w.on) || "entered";
       const what = on === "left" ? "Leaves" : on === "any" ? "Enters or leaves" : "Enters";
-      return `${what} group ${text(w.segment) || "?"}`;
+      const again = segmentRepeatOf(w.repeat) === "each" ? ", each time" : "";
+      return `${what} group ${text(w.segment) || "?"}${again}`;
     },
   ),
   trigger(
