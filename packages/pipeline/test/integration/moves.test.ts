@@ -177,6 +177,12 @@ describe("open", () => {
     await save(body(), "first");
   });
 
+  it("leaves no owner when the opener is not an address (an agent, a shell name)", async () => {
+    const profile = await person("agent-open@example.test");
+    await play(await openEmit(pg.db, { person: "agent-open@example.test", by: "agent:claude" }));
+    expect(await journeyOf(profile)).toMatchObject({ status: "open", owner: null });
+  });
+
   it("refuses a node no source feeds, a source that feeds nothing there, an unknown person", async () => {
     await person("open@example.test");
     expect((await reasons(open("open@example.test", { at: "booked" })))[0]).toMatch(
@@ -206,6 +212,8 @@ describe("open", () => {
     const j = await journeyOf(walkProfile);
     expect(j).toMatchObject({ node: "engaged", status: "open", entry: "ads1", version: 1 });
     expect(j?.entryRef).toMatchObject({ cause: { kind: "manual", ref: OP } });
+    // The opener owns it.
+    expect(j?.owner).toBe(OP);
     expect(j?.trail).toMatchObject([{ edge: "ads1_to_engaged", from: "ads1", to: "engaged" }]);
     expect(fired.map((f) => f.facts)).toEqual([
       { trigger: "trigger.journey", node: "engaged", change: "entered" },
@@ -485,7 +493,7 @@ describe("the pipeline records", () => {
     expect(open.rows.every((r) => r.status === "open")).toBe(true);
     expect((await list("dropped")).rows.some((r) => r.name === "Bo")).toBe(true);
     expect((await list("done")).rows.length).toBeGreaterThan(0);
-    // Mine: the journeys the operator moved by hand.
+    // Mine: the journeys the operator opened by hand (the opener owns it).
     expect((await list("mine")).rows.length).toBeGreaterThan(0);
     // Old rows are stale: the walker sits at engaged, which reads stale after 3 days.
     await pg.db.execute(
@@ -680,7 +688,14 @@ describe("loop edges", () => {
     const fresh = (await pg.db.select().from(journeys).where(eq(journeys.profileId, profile))).find(
       (j) => j.id !== id,
     );
-    expect(fresh).toMatchObject({ node: "engaged", status: "open", version: 2, entry: "mail" });
+    // The new journey keeps the owner.
+    expect(fresh).toMatchObject({
+      node: "engaged",
+      status: "open",
+      version: 2,
+      entry: "mail",
+      owner: OP,
+    });
     expect(fresh?.entryRef).toMatchObject({ loop: id, cause: { kind: "manual", ref: OP } });
     expect(fresh?.trail).toMatchObject([
       { edge: "booked_to_engaged", from: "booked", to: "engaged" },

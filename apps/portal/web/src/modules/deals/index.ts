@@ -43,7 +43,7 @@ export const clientDeals: Module = {
       record: "pipeline.journey",
       empty: {
         open: "No open journeys.",
-        mine: "No open journey was moved by you.",
+        mine: "No open journey is yours.",
         stale: "No journey has sat at a node past its limit.",
         ghost: "No journey sits on a node the shape dropped.",
         done: "No journey is done yet.",

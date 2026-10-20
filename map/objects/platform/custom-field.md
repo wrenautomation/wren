@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-09 @ 84ffb2b4
+verified: 2026-10-19 @ 5cab22cf
 entity: packages/core/src/custom-schema.ts:43
 ---
 
@@ -20,9 +20,9 @@ One layer over record types, not a column per field: no migration per client fie
 - `custom_fields`: `owner` (client, null is Wren; FK clients, cascade), `record` (type id), `key` (slug, fixed), `label`, `kind` (text, number, money, date, choice, yes_no, link; fixed), `options` (choice), `position`, `archived_at`. Unique (owner, record, key), nulls not distinct. 50 live per owner and type.
 - `custom_field_values`: (`field`, `row`) primary key, `value` jsonb (2,000 chars max as text). Null clears.
 - `custom_values`: business facts, (owner, key) unique; an empty value deletes.
-- A type opts in with `custom: { owner, exists? }` on its declaration (`CUSTOM_RECORDS`). None opts in since `@wren/deals` went (2026-10-19). `withCustomFields(types, db)` adds the live fields and merges edits (one form, one history, undo); `serveRecords` joins the values laterally.
+- A type opts in with `custom: { owner, exists? }` on its declaration (`CUSTOM_RECORDS`). `pipeline.journey` opts in again (`journeyRecord`, `packages/pipeline/src/records.ts`; the old `deals.deal` opt-in went with `@wren/deals`); the pipeline console sets `owner` to the client in a client workspace (`typesFor`, `console.ts`) and drops the form edit, since it has no `recordsEdit`. `pipeline.deal` does not opt in: it has no `deal:` subject in `CUSTOM_SUBJECTS`. The fields and values are read from the database that serves the record, so a client workspace shows a field only when its definition and values sit in that client's database; Settings > Fields and Set field still write to main. `withCustomFields(types, db)` adds the live fields and merges edits (one form, one history, undo); `serveRecords` joins the values laterally.
 - Copy: `customFacts(main, owner, subject)` gives `biz.<key>` and `field.<key>`; wired into workflow follow-up texts (`channel-sms/follow.ts`).
-- Workflow node `logic.set_field` (`setFieldStep`): one field on the subject's record (`CUSTOM_SUBJECTS`: `journey:` for `pipeline.journey`, which declares no `custom` yet); others leave by skip. Dry tests say what it would set.
+- Workflow node `logic.set_field` (`setFieldStep`): one field on the subject's record (`CUSTOM_SUBJECTS`: `journey:` for `pipeline.journey`); others leave by skip. Dry tests say what it would set.
 - Console routes `customFields`, `customFieldSave`, `customFieldOrder`, `businessFacts`, `businessFactSave` (`custom-console.ts`; read to see, `manage` to change).
 
 Citations: `packages/core/src/custom-schema.ts:43`, `packages/core/src/custom-fields.ts:1`, `packages/core/src/custom-console.ts:1`, `packages/core/src/records-serve.ts:439`, `apps/portal/web/src/modules/account/Fields.tsx:1`

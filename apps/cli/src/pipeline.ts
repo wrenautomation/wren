@@ -4,7 +4,7 @@
  * follow `--client`. Amounts are read from the database and printed; none is written here, except
  * a deal's terms (`deals sign`). The shape itself is `wren shape` (`shape.ts`).
  *
- * Moves on a journey (`open`, `move`, `drop`, `rebuild`) go through the worker's `Journeys`
+ * Moves on a journey (`open`, `move`, `drop`, `assign`, `rebuild`) go through the worker's `Journeys`
  * service, so the shape's own step writes the row. Reads go to the database.
  *
  * `wren deals` is new here. The older Opportunities deals have no command, so nothing clashes.
@@ -21,7 +21,13 @@ import {
   numberRows,
 } from "@wren/pipeline/numbers";
 import { dealRows, journeyRows, trailOf } from "@wren/pipeline/records";
-import type { DropRequest, MoveRequest, OpenRequest, RebuildRequest } from "@wren/pipeline/restate";
+import type {
+  AssignRequest,
+  DropRequest,
+  MoveRequest,
+  OpenRequest,
+  RebuildRequest,
+} from "@wren/pipeline/restate";
 import {
   addTerms,
   liveTerms,
@@ -41,6 +47,7 @@ export interface PipelineWrites {
     open(req: OpenRequest): Promise<unknown>;
     move(req: MoveRequest): Promise<unknown>;
     drop(req: DropRequest): Promise<unknown>;
+    assign(req: AssignRequest): Promise<unknown>;
     rebuild(req: RebuildRequest): Promise<unknown>;
   };
   /** The client id the command acts for; null is Wren's. */
@@ -271,6 +278,20 @@ export function registerPipeline(
       }),
     );
   journeys
+    .command("assign <journey>")
+    .description("Give a journey to a team member, or to nobody")
+    .option("--to <email>", "a team member's email")
+    .option("--clear", "give it to nobody")
+    .action((journey: string, o: { to?: string; clear?: boolean }) =>
+      plain(async () => {
+        if (!o.to === !o.clear) throw new Refused(["Give --to <email> or --clear, not both."]);
+        const { api, client } = worker(writes);
+        await call(() =>
+          api.assign({ client, journey, to: o.clear ? null : (o.to ?? null), by: who() }),
+        );
+      }),
+    );
+  journeys
     .command("rebuild <journey>")
     .description("Recompute the journey row from its spine events")
     .action((journey: string) =>
@@ -322,7 +343,7 @@ export function registerPipeline(
         .slice(0, o.limit);
       for (const r of rows)
         console.log(
-          `${r.id}  ${r.name}  v${r.version ?? "-"}  ${r.node_name} (${r.node})  ${r.status}${r.flag ? ` (${r.flag})` : ""}${r.ghost ? ` (${r.ghost})` : ""}  ${r.days_at_node}d`,
+          `${r.id}  ${r.name}  v${r.version ?? "-"}  ${r.node_name} (${r.node})  ${r.status}${r.flag ? ` (${r.flag})` : ""}${r.ghost ? ` (${r.ghost})` : ""}  ${r.days_at_node}d${r.owner ? `  ${r.owner}` : ""}`,
         );
       if (!rows.length) console.log("no journeys");
     });

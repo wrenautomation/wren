@@ -171,6 +171,8 @@ export const journeys = pipeline.table(
     openedAt: timestamp("opened_at", { withTimezone: true }).defaultNow().notNull(),
     movedAt: timestamp("moved_at", { withTimezone: true }).defaultNow().notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
+    /** The team member who works it: their address, as an `actor` field reads one. Null is nobody. */
+    owner: text("owner"),
     /** The old Opportunities deal this came from (its uuid); set only by the retired fold. */
     legacyDeal: uuid("legacy_deal"),
   },

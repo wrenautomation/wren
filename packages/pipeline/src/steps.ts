@@ -12,7 +12,7 @@ import type { SpineEvent, Step } from "@wren/core/spine";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { type CauseFacts, entryOf, MANUAL, opensAt, sourceEdge } from "./entry.js";
-import { openJourney, personOf, textOf, versionOf } from "./journeys.js";
+import { openJourney, ownerOf, personOf, textOf, versionOf } from "./journeys.js";
 import {
   type Crossing,
   DROPPED,
@@ -199,6 +199,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
             node: to,
             trail: [crossing],
             entry: old.entry,
+            owner: old.owner,
             entryRef: { subject: e.subject, cause, loop: old.id },
             openedAt: now(),
             movedAt: now(),
@@ -282,6 +283,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           node: to,
           trail: [crossing],
           entry: src?.id ?? MANUAL,
+          // A hand open is the opener's to work until someone else takes it.
+          owner: cause.kind === "manual" ? ownerOf(cause.ref) : null,
           entryRef: { subject: e.subject, cause, ...facts, ...(row ? { row } : {}) },
           openedAt: now(),
           movedAt: now(),

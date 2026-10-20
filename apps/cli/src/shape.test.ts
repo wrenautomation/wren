@@ -212,7 +212,7 @@ describe("commands", () => {
     };
     const p = program({
       writes: {
-        journeys: () => ({ open: ok, move: ok, drop: ok, rebuild: ok }),
+        journeys: () => ({ open: ok, move: ok, drop: ok, assign: ok, rebuild: ok }),
         client: () => "c1",
       },
     });

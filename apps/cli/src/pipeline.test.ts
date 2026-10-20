@@ -35,6 +35,7 @@ describe("commands", () => {
       "open",
       "move",
       "drop",
+      "assign",
       "rebuild",
       "show",
       "list",
@@ -80,7 +81,7 @@ describe("commands", () => {
       return { ok: true };
     };
     registerPipeline(p, none, none, {
-      journeys: () => ({ open: ok, move: ok, drop: ok, rebuild: ok }),
+      journeys: () => ({ open: ok, move: ok, drop: ok, assign: ok, rebuild: ok }),
       client: () => "c1",
     });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -92,13 +93,46 @@ describe("commands", () => {
       from: "user",
     });
     await p.parseAsync(["journeys", "drop", "j1", "--reason", "gone"], { from: "user" });
+    await p.parseAsync(["journeys", "assign", "j1", "--to", "ada@acme.example.test"], {
+      from: "user",
+    });
+    await p.parseAsync(["journeys", "assign", "j1", "--clear"], { from: "user" });
     log.mockRestore();
     expect(seen).toMatchObject([
       { client: "c1", journey: "j1", to: "won" },
       { client: "c1", journey: "j1", to: "lost", reason: "gone cold" },
       { client: "c1", person: "a@b.test", at: "ads" },
       { client: "c1", journey: "j1", reason: "gone" },
+      { client: "c1", journey: "j1", to: "ada@acme.example.test" },
+      { client: "c1", journey: "j1", to: null },
     ]);
+  });
+
+  it("takes an owner or a clear on journeys assign, never both or neither", async () => {
+    const seen: unknown[] = [];
+    const p = new Command("wren").exitOverride();
+    const none = (async () => {
+      throw new Error("no database in this test");
+    }) as never;
+    const ok = async (req: unknown) => {
+      seen.push(req);
+      return { ok: true };
+    };
+    registerPipeline(p, none, none, {
+      journeys: () => ({ open: ok, move: ok, drop: ok, assign: ok, rebuild: ok }),
+      client: () => null,
+    });
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    process.exitCode = undefined;
+    await p.parseAsync(["journeys", "assign", "j1"], { from: "user" });
+    await p.parseAsync(["journeys", "assign", "j1", "--to", "a@b.test", "--clear"], {
+      from: "user",
+    });
+    expect(seen).toEqual([]);
+    expect(err).toHaveBeenCalledTimes(2);
+    expect(process.exitCode).toBe(1);
+    process.exitCode = undefined;
+    err.mockRestore();
   });
 
   it("refuses a move when no worker is given", async () => {
