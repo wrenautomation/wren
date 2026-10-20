@@ -2,6 +2,7 @@
  * The Map's data and drawing, pure (no reads, so a test imports it alone): the windows, what a read
  * gives, and `graphOf`, which turns it into the graph kit's nodes and wires.
  */
+import type { VersionLine } from "@wren/pipeline/history";
 import type { ShapeBody, ShapeNode } from "@wren/pipeline/model";
 import { type GraphEdge, type GraphNode, money, num } from "@wren/ui";
 
@@ -22,15 +23,8 @@ export const windowOf = (s: string | null): Window =>
 export const windowSays = (w: Window): string =>
   w === "all" ? "in all time" : `in the last ${w} days`;
 
-export interface Version {
-  number: number;
-  parent: number | null;
-  note: string;
-  at: string;
-  by: string;
-  nodes: number;
-  edges: number;
-}
+/** A version as the shape's detail lists it: tags, the draft it came from, the git mirror. */
+export type Version = VersionLine;
 
 export interface Sum {
   amount: number;

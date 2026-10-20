@@ -5,6 +5,7 @@
  * sit on asks where they go first.
  */
 import { LOGIC, startWith } from "@wren/core/logic";
+import type { BlameLine } from "@wren/pipeline/history";
 import { ACTIONS, type Advance, RESEARCH_LEVELS, type ShapeNode, VIAS } from "@wren/pipeline/model";
 import {
   Button,
@@ -20,6 +21,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { useCall } from "../load.js";
 import { LogicForm, TRIGGER_NOTE } from "../modules/wren/logic-form.js";
 import type { PaletteLogic } from "../modules/wren/wiring.js";
+import { BlameList } from "./BlameList.js";
 import {
   type Draft,
   kindReason,
@@ -582,12 +584,15 @@ export function NodeEdit({
   people,
   at,
   onChange,
+  onHistory,
   onClose,
 }: PanelProps & {
   id: string;
   /** Open journeys on the saved shape's nodes. */
   people: readonly Person[];
   at: Record<string, string>;
+  /** A line of the node's history was picked: History opens on its version. */
+  onHistory: (line: BlameLine) => void;
 }) {
   const node = draft.body.nodes.find((n) => n.id === id);
   if (!node) return null;
@@ -612,13 +617,26 @@ export function NodeEdit({
         }
       />
       <Fields node={node} draft={draft} at={at} onChange={onChange} />
+      <BlameList at={at} ask={{ node: id }} label="Node history" onOpen={onHistory} />
       <Remove key={id} node={node} here={here} draft={draft} onChange={onChange} onGone={onClose} />
     </section>
   );
 }
 
 /** One line's label and kind, and its removal. */
-export function EdgeEdit({ id, draft, onChange, onClose }: PanelProps & { id: string }) {
+export function EdgeEdit({
+  id,
+  draft,
+  at,
+  onChange,
+  onHistory,
+  onClose,
+}: PanelProps & {
+  id: string;
+  at: Record<string, string>;
+  /** A line of the wire's history was picked: History opens on its version. */
+  onHistory: (line: BlameLine) => void;
+}) {
   const edge = draft.body.edges.find((e) => e.id === id);
   if (!edge) return null;
   const nameOf = (n: string) => draft.body.nodes.find((x) => x.id === n)?.name ?? n;
@@ -657,6 +675,7 @@ export function EdgeEdit({ id, draft, onChange, onClose }: PanelProps & { id: st
           hint={why ?? undefined}
         />
       </PanelBlock>
+      <BlameList at={at} ask={{ edge: id }} label="Line history" onOpen={onHistory} />
       <PanelBlock title="Remove">
         <div>
           <Button
