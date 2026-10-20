@@ -143,3 +143,16 @@ Calls the doc left open. Briefs in `designs/briefs/2026-10-19-business-map-*.md`
 - M3 removes `wren shape migrate` and its deploy step. 0307 guards (every journey on a node and version, one open journey per person), drops the funnel columns and renames `shape_version` to `version`. Why: after 0307 migrate has nothing to read; prod ran it in the M1 deploy (v1: 17 nodes, 16 edges). An empty database starts from `starter.yaml` (`wren shape start`).
 - `offers:export` leaves out draft offers (before, the snapshot did not filter by status). Why: the Growth Partner draft must not reach the lander until William writes its page.
 - M2.1 goes to the M3 UI builder, in the same worktree and commit series. Why: both change the same Map files (MapPage, Home, NodePanel, History); two builders would conflict.
+
+## Decisions (planner, 2026-10-20)
+
+Calls the "History like git" section left open. Briefs in `designs/briefs/2026-10-20-shape-git-*.md`.
+
+- The contract went in first (`history.ts`, change keys in `diff.ts`), then three builders at once: backend, Map UI, and blame plus undo as pure code. Why: the UI and the server agree on one set of types; the pure part has no files in common with the backend.
+- One mirror function for live saves and the backfill: each run commits every version with no mirror row, oldest first, under one lock, and stops at the first failure. Why: git log keeps number order even after an outage, and the first live save on prod backfills v1 and v2 without a separate step.
+- When the file already holds a version's text, the mirror row takes the path's newest commit sha. Why: a retry after a commit that landed must still write its row.
+- Undo refuses when a later version changed the same node or edge again ("undo the later change first"). Why: git revert's conflict rule; a silent overwrite would undo the later change too.
+- `shapeDiff` takes a version number or `draft:<id>` on each side. Why: compare a draft with live or any version through one route and one diff view.
+- Draft ids stay unique across every state, applied and dropped too. Why: a version's `draft` column must name one draft forever.
+- Every CLI save mirrors, not only import, apply and undo. Why: add-node, connect and remove write versions too; one rule is simpler.
+- The mirror writes plain `exportShape` text. The hand-written seed `sops/shapes/wren.yaml` (comments, `terms`, `moves`) loses those at head on the first mirror; git history keeps them. Client files use the client id as written, so Career Clarity Labs' mirror is a new file beside the hand-written seed: the main session decides whether the seed goes.
