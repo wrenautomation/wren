@@ -18,10 +18,10 @@ The lander's Markdown file is the post, so the site, its RSS and the newsletter'
 ## Shape
 
 - `blog_posts`: `slug` key, title, description, body, date, draft, published_at, emailed_at, commit_sha, from_ref (`packages/content/src/schema.ts`)
-- `slugOf`, `blogFile`, `blogProblem`, `githubRepo`, `keepBlogRow` (`packages/content/src/blog.ts`)
+- `slugOf`, `blogFile`, `blogProblem`, `keepBlogRow` (`packages/content/src/blog.ts`). The GitHub contents helper (`githubRepo`, `GithubFiles`: read, write, lastCommit) is core's `packages/core/src/github.ts`; the shape's git mirror uses it too ([[platform/shape]])
 - `Blog/wren`: posts, save (`from`: absent keeps `from_ref`, null clears it), audience, email (`packages/content/src/restate/blog.ts`)
 
-Citations: `packages/content/src/blog.ts:1`, `packages/content/src/restate/blog.ts:1`
+Citations: `packages/content/src/blog.ts:1`, `packages/core/src/github.ts:17`, `packages/content/src/restate/blog.ts:1`
 
 ## Connected to
 
