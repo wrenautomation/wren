@@ -336,7 +336,12 @@ export const shapeRecord = (): RecordType =>
       changedBy: actor("Changed by"),
     },
     views: [{ id: "all", label: "All", sort: "name", at: "changedAt" }],
-    actions: ["pipeline.shapeVersion", "pipeline.shapeDiff", "pipeline.shapeImport"],
+    actions: [
+      "pipeline.shapeVersion",
+      "pipeline.shapeDiff",
+      "pipeline.shapeImport",
+      "pipeline.shapeStart",
+    ],
     /** The newest body with each node's depth, and every version: what changed and why. */
     load: async (db) => {
       const versions = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number));

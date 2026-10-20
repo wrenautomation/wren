@@ -80,7 +80,7 @@ export interface MapData {
 }
 
 /** A node's kind in the graph kit, and the token that tints its tile: plan and offer carry the accent. */
-const LOOK: Record<ShapeNode["kind"], { kind: GraphNode["kind"]; tint: string }> = {
+export const LOOK: Record<ShapeNode["kind"], { kind: GraphNode["kind"]; tint: string }> = {
   source: { kind: "part", tint: "var(--ui-cue-2)" },
   step: { kind: "step", tint: "var(--ui-cue-1)" },
   offer: { kind: "record", tint: "var(--ui-active)" },
@@ -144,7 +144,6 @@ export function graphOf(data: MapData): { nodes: GraphNode[]; edges: GraphEdge[]
         hover: [`Now: ${num(g.people.length)}`, "Dropped from the newest version."],
         state: { label: "Ghost", tone: "warn" },
         dashed: true,
-        dim: true,
       });
   const edges: GraphEdge[] = data.body.edges.map((e) => {
     const n = data.edges.get(e.id) ?? 0;

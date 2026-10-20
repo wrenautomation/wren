@@ -1,5 +1,5 @@
+import type { ShapeDiff } from "@wren/pipeline/diff";
 import type { ShapeBody } from "@wren/pipeline/model";
-import type { ShapeDiff } from "@wren/pipeline/store";
 import { describe, expect, it } from "vitest";
 import { diffGraph, diffLines } from "./diff.js";
 

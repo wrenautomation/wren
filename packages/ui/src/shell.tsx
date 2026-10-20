@@ -177,6 +177,7 @@ export function AppShell({
   page,
   theme,
   wide = false,
+  bleed = false,
   display,
   customize,
   onGo,
@@ -209,6 +210,8 @@ export function AppShell({
   theme?: Theme | undefined;
   /** The page takes the window's full width (a list of records). */
   wide?: boolean | undefined;
+  /** The page fills the window edge to edge: no padding, the window's full height (the Map). */
+  bleed?: boolean | undefined;
   /** How he set the frame; left out, the defaults and no Layout button. */
   display?: DisplayControl | undefined;
   /** Under the Layout settings: a link to his own look. */
@@ -436,13 +439,23 @@ export function AppShell({
               className={cx(
                 // His text size: the page alone, so the frame's controls stay put.
                 "[zoom:var(--layout-zoom)]",
-                "mx-auto px-10 pt-9 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
+                "mx-auto outline-none",
+                bleed
+                  ? "h-full max-[900px]:h-auto"
+                  : "px-10 pt-9 pb-20 max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
                 // The phone's tabs sit over the page's foot: it scrolls clear of them.
-                nav && "max-[900px]:pb-[calc(96px+env(safe-area-inset-bottom))]",
+                nav &&
+                  (bleed
+                    ? "max-[900px]:pb-[calc(72px+env(safe-area-inset-bottom))]"
+                    : "max-[900px]:pb-[calc(96px+env(safe-area-inset-bottom))]"),
                 // A new page, or its data after the loader, fades in. Opacity only, so a fixed
                 // panel inside keeps the window as its frame.
                 "[&>*]:animate-[ui-fade_0.2s_var(--ui-ease)_backwards]",
-                wide ? "max-w-none min-[901px]:px-8" : "max-w-(--ui-main-width)",
+                bleed
+                  ? "max-w-none"
+                  : wide
+                    ? "max-w-none min-[901px]:px-8"
+                    : "max-w-(--ui-main-width)",
               )}
               id="main"
               ref={main}

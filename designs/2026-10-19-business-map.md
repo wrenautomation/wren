@@ -54,6 +54,17 @@ Home `/` is the Map. Today docks on the right as a panel (collapsible, remembere
 - Edit mode: palette of the four kinds (the workflow editor's palette component, new entries), drag to add, connect by handle, rename inline, remove (refused while people sit on the node; the panel shows how many and offers to move them). Save writes a version with a note. History panel lists versions; pick two to see the diff; restore writes a new version with the old body.
 - Empty DB: the Map opens with a starter palette and a "Start from Wren's shape" button that imports the committed starter (a kind-only template, no names or amounts).
 
+### Map page, M2.1 (William, 2026-10-19)
+
+The Map is its own surface at `/`: full canvas, edge to edge. It replaces "Today docks on the right" above.
+
+- Today leaves the docked column. A control on the Map opens it as a sheet (slide-over). On a phone it stays a tab. The canvas never shrinks when Today is closed.
+- Theme follows the app: light stays light, dark stays dark. App tokens only; no dark Map on a light app. This replaces "dark canvas" above.
+- High ticket: ribbons with depth, a calm palette from the tokens, node cards with weight, numbers on hover, soft corners. Motion only on real events (a person moves, a number changes). No decorative loops.
+- Node panel and History are overlays on the canvas (sheet or popover). They never squeeze the graph. Edit mode (M3) follows the same rule: the palette and the edit panels float over the canvas.
+- No new palette or type scale: the design language is still deferred.
+- Stories: full canvas with Today closed, Today open as a sheet, the phone tab, dark theme.
+
 ### CLI and agent
 
 `wren shape show|versions|diff|export|import|add-node|connect|remove|move`. Same records through `/api/agent` (`pipeline.shape` record with actions version, diff, import). The agent SKILL gains a shape section.
@@ -73,6 +84,7 @@ Home `/` is the Map. Today docks on the right as a panel (collapsible, remembere
 
 1. **Model and store** (xhigh): `ShapeBody`, `shapeVersions`, depth, journeys trail, moves as edges, numbers per node and edge, migration (funnels → one shape, stage keys → node ids, journeys keep position, versions kept), CLI `wren shape`, records. Views `stage_counts`, `stage_flow`, `entry_numbers` renamed to `node_counts`, `edge_flow`, `source_numbers` with the old names kept as views over them for one release.
 2. **Map page, read**: home `/` with Today docked, Sankey edges, node panel, window and client pickers, drill-downs, History read-only. Stories for the page and the parts (`gates.sh ui`).
+2.1. **Map surface** (William's feedback on M2): full canvas at `/`, Today as a sheet, theme matched, overlays for panels. Built with M3's UI.
 3. **Editing and seeds**: palette, connect, rename, remove guard, save with note, diff, restore, import/export, starter template, Wren's seed and the CCL seed.
 
 ## Decisions
@@ -110,3 +122,4 @@ Calls the doc left open. Briefs in `designs/briefs/2026-10-19-business-map-*.md`
 - M3 runs in two parts: backend (starter, Growth Partner offer, moves remap deals, guard migration) next to M2, then the Map edit UI after M2. Why: the backend touches no Map files; it saves a serial step.
 - M3 removes `wren shape migrate` and its deploy step. 0307 guards (every journey on a node and version, one open journey per person), drops the funnel columns and renames `shape_version` to `version`. Why: after 0307 migrate has nothing to read; prod ran it in the M1 deploy (v1: 17 nodes, 16 edges). An empty database starts from `starter.yaml` (`wren shape start`).
 - `offers:export` leaves out draft offers (before, the snapshot did not filter by status). Why: the Growth Partner draft must not reach the lander until William writes its page.
+- M2.1 goes to the M3 UI builder, in the same worktree and commit series. Why: both change the same Map files (MapPage, Home, NodePanel, History); two builders would conflict.

@@ -77,6 +77,14 @@ export interface GraphEdit {
   fits(from: string, to: string, ports?: GraphEnds): boolean;
   connect(from: string, to: string, ports?: GraphEnds): void;
   pick(from: string, to: string): void;
+  /** Why a line from `from` may not end at `to`, in a sentence; null when it may. Shown on hover. */
+  why?(from: string, to: string, ports?: GraphEnds): string | null;
+  /** The node showing a name box now (rename in place); null when none does. */
+  renaming?: string | null;
+  /** A double click on a node asks to rename it. Without it, a double click calls `onEnter`. */
+  begin?(id: string): void;
+  /** The box's answer: the new name, or null when the person backed out. */
+  rename?(id: string, name: string | null): void;
 }
 
 /** A port's id from its handle's ("out:replied"). */
@@ -135,6 +143,8 @@ export interface GraphProps {
   bare?: boolean | undefined;
   /** A node was double-clicked: the page's way in (the app that manages it). */
   onEnter?: ((id: string) => void) | undefined;
+  /** Fills the height of the box it sits in (which must have one), edge to edge: the Map's surface. */
+  stretch?: boolean | undefined;
 }
 
 const PAD = 20;
@@ -165,7 +175,7 @@ const ICON: Record<GraphKind, LucideIcon> = {
 };
 const TONE: Record<GraphTone, string> = {
   good: "text-(--ui-good-ink) before:bg-(--ui-good)",
-  warn: "text-(--warn) before:bg-(--warn)",
+  warn: "text-(--ui-warn-ink) before:bg-(--warn)",
   bad: "text-(--ui-bad) before:bg-(--ui-bad)",
   accent: "text-(--ui-live) before:bg-(--ui-live)",
   neutral: "text-(--ui-ink-2) before:bg-(--ui-ink-3)",
@@ -199,8 +209,10 @@ interface Shared {
   byId: ReadonlyMap<string, GraphNode>;
   /** The node last clicked: its ring. */
   selected: string | null;
+  /** Ribbons draw: cards get softer corners and more weight. */
+  soft: boolean;
   /** A wire being dragged: the kind it carries and the side it'll land on; the rest dim. */
-  drag: { kind: string | undefined; lands: "in" | "out" } | null;
+  drag: { kind: string | undefined; lands: "in" | "out"; node: string | undefined } | null;
 }
 const Ctx = createContext<Shared | null>(null);
 const useShared = () => {
@@ -208,6 +220,38 @@ const useShared = () => {
   if (!s) throw new Error("a graph node outside GraphCanvas");
   return s;
 };
+
+/** A node's name as a box, in place: Enter or leaving keeps it, Escape backs out. */
+function NameBox({ name, onDone }: { name: string; onDone: (v: string | null) => void }) {
+  const box = useRef<HTMLInputElement>(null);
+  const ended = useRef(false);
+  useEffect(() => {
+    box.current?.focus();
+    box.current?.select();
+  }, []);
+  const end = (v: string | null) => {
+    if (ended.current) return;
+    ended.current = true;
+    onDone(v);
+  };
+  return (
+    <Input
+      ref={box}
+      defaultValue={name}
+      maxLength={80}
+      aria-label="Node name"
+      className="nodrag nopan nowheel h-6 min-w-0 px-1 text-[13px] leading-4 font-semibold"
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") end(e.currentTarget.value);
+        else if (e.key === "Escape") end(null);
+      }}
+      onBlur={(e) => end(e.currentTarget.value)}
+    />
+  );
+}
 
 function KitNode({ id }: NodeProps) {
   const g = useShared();
@@ -251,11 +295,17 @@ function KitNode({ id }: NodeProps) {
         data-kind={n.kind}
         data-role={roleOf(n)}
         className={cn(
-          "relative flex h-full flex-col rounded-[8px] px-2.5 pt-2.5 pb-2.5 text-left text-(--ui-ink) no-underline transition-[opacity,box-shadow,translate] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
+          "relative flex h-full flex-col px-2.5 pt-2.5 pb-2.5 text-left text-(--ui-ink) no-underline transition-[opacity,box-shadow,translate] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
+          g.soft ? "rounded-[12px]" : "rounded-[8px]",
           (n.href || opens) && "cursor-pointer hover:-translate-y-0.5",
           end
             ? "border border-dashed border-(--ui-ink-3) bg-(--ui-tile)"
-            : "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/0.06)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
+            : cn(
+                "bg-(--ui-paper) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
+                g.soft
+                  ? "shadow-[inset_0_0_0_1px_var(--ui-hair),0_2px_4px_rgb(0_0_0/0.05),0_12px_24px_-14px_rgb(0_0_0/0.35)]"
+                  : "shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/0.06)]",
+              ),
           tone === "bad" && "shadow-[inset_0_0_0_1.5px_var(--ui-bad)]",
           tone === "warn" && "shadow-[inset_0_0_0_1.5px_var(--warn)]",
           g.hover === id && "shadow-[inset_0_0_0_1.5px_var(--ui-ink)]",
@@ -283,12 +333,16 @@ function KitNode({ id }: NodeProps) {
             <Mark className="size-4" aria-hidden="true" />
           </span>
           <span className="grid min-w-0 flex-1">
-            <span
-              className="kit-name truncate text-[13px] leading-4 font-semibold"
-              {...clipProps()}
-            >
-              {n.label}
-            </span>
+            {g.edit?.renaming === id ? (
+              <NameBox name={n.label} onDone={(v) => g.edit?.rename?.(id, v)} />
+            ) : (
+              <span
+                className="kit-name truncate text-[13px] leading-4 font-semibold"
+                {...clipProps()}
+              >
+                {n.label}
+              </span>
+            )}
             {n.note ? (
               <span className="truncate text-[11.5px] leading-4 text-(--ui-ink-2)" {...clipProps()}>
                 {n.note}
@@ -503,17 +557,20 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
         }}
       >
         {data.width !== null ? (
-          // A ribbon: it grows in once (the path is drawn from 0 to 1), and its width eases.
-          <path
-            d={data.d}
-            pathLength={1}
-            className="animate-ui-ribbon-in fill-none stroke-current transition-[stroke-width,stroke-opacity] duration-300 ease-(--ui-ease) motion-reduce:animate-none [[data-motion=less]_&]:animate-none"
-            style={{
-              strokeWidth: data.width,
-              strokeOpacity: on ? 0.75 : 0.4,
-              strokeDasharray: 1,
-            }}
-          />
+          // A ribbon: its width eases when its number changes. A wider, fainter stroke under it
+          // gives it depth. Nothing moves otherwise.
+          <>
+            <path
+              d={data.d}
+              className="fill-none stroke-current transition-[stroke-width,stroke-opacity] duration-300 ease-(--ui-ease)"
+              style={{ strokeWidth: data.width + 8, strokeOpacity: on ? 0.16 : 0.08 }}
+            />
+            <path
+              d={data.d}
+              className="fill-none stroke-current transition-[stroke-width,stroke-opacity] duration-300 ease-(--ui-ease)"
+              style={{ strokeWidth: data.width, strokeOpacity: on ? 0.75 : 0.4 }}
+            />
+          </>
         ) : (
           <path
             d={data.d}
@@ -656,9 +713,12 @@ export default function GraphCanvas({
   ribbons,
   bare,
   onEnter,
+  stretch,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [pane, setPane] = useState(0);
   const [screen, setScreen] = useState(() => globalThis.innerHeight || 900);
   useEffect(() => {
     const measure = () => setScreen(globalThis.innerHeight || 900);
@@ -675,6 +735,17 @@ export default function GraphCanvas({
     watch.observe(el);
     return () => watch.disconnect();
   }, []);
+  // A stretched graph takes the height of the box around it, and follows it.
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!stretch || !el) return;
+    const measure = () => setPane(el.clientHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [stretch]);
   const dir: Direction =
     direction === "down" || (direction === "auto" && width > 0 && width < NARROW)
       ? "DOWN"
@@ -795,7 +866,11 @@ export default function GraphCanvas({
   }, [l, nodes, edges, wires, byId, dir, ribbons]);
 
   const least = minHeight ?? 0;
-  const most = Math.max(least, maxHeight ?? Math.max(360, screen - CHROME));
+  const most = Math.max(
+    least,
+    stretch && pane ? pane : (maxHeight ?? Math.max(360, screen - CHROME)),
+  );
+  const fills = fill || stretch;
   const left = inset?.left ?? 0;
   const right = inset?.right ?? 0;
   const view = useMemo(() => {
@@ -816,7 +891,7 @@ export default function GraphCanvas({
     const map = !fits && !narrow;
     const height = Math.max(
       least,
-      fill
+      fills
         ? most
         : Math.min(most, Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0))),
     );
@@ -848,7 +923,7 @@ export default function GraphCanvas({
       fits: fits && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1,
       map,
     };
-  }, [l, width, most, least, fill, left, right, dir, show, focus, fit]);
+  }, [l, width, most, least, fills, left, right, dir, show, focus, fit]);
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;
@@ -875,11 +950,12 @@ export default function GraphCanvas({
         byId,
         selected,
         drag,
+        soft: !!ribbons,
       }
     : null;
 
   return (
-    <div className="grid w-full max-w-full gap-2">
+    <div ref={wrap} className={cn("grid w-full max-w-full gap-2", stretch && "h-full")}>
       {tools ? (
         <div className="flex flex-wrap items-center gap-2">
           <Input
@@ -971,7 +1047,7 @@ export default function GraphCanvas({
                   const from = handleType !== "target";
                   const list = (from ? n?.outs : n?.ins) ?? [];
                   const p = list.find((x) => x.id === portOf(handleId)) ?? list[0];
-                  setDrag({ kind: p?.kind, lands: from ? "in" : "out" });
+                  setDrag({ kind: p?.kind, lands: from ? "in" : "out", node: nodeId ?? undefined });
                 },
                 onConnectEnd: () => setDrag(null),
                 onPaneClick: () => {
@@ -983,7 +1059,7 @@ export default function GraphCanvas({
                   setSelected(n.id);
                   if (!byId.get(n.id)?.href) onOpen?.(n.id);
                 },
-                onNodeDoubleClick: (_, n) => onEnter?.(n.id),
+                onNodeDoubleClick: (_, n) => (edit?.begin ? edit.begin(n.id) : onEnter?.(n.id)),
                 onEdgeClick: (_, e) => edit?.pick(e.source, e.target),
                 onNodeMouseEnter: (e, n) => at(e, n.id),
                 onNodeMouseMove: (e, n) => at(e, n.id),
@@ -1001,6 +1077,7 @@ export default function GraphCanvas({
                   wire={wires.find((w) => w.id === hover.id)}
                   byId={byId}
                   room={width}
+                  why={whyNot(edit, drag, hover.id, byId)}
                 />
               ) : null}
             </GraphFrame>
@@ -1016,6 +1093,17 @@ export default function GraphCanvas({
   );
 }
 
+/** Why the wire being dragged may not end on `over`, or null (no drag, no reason, a fit). */
+function whyNot(
+  edit: GraphEdit | undefined,
+  drag: Shared["drag"],
+  over: string,
+  byId: ReadonlyMap<string, GraphNode>,
+): string | null {
+  if (!edit?.why || !drag?.node || !byId.has(over)) return null;
+  return drag.lands === "in" ? edit.why(drag.node, over) : edit.why(over, drag.node);
+}
+
 /** What's under the pointer, in full: a node's every number, or a wire's every line. */
 function HoverCard({
   at,
@@ -1023,14 +1111,17 @@ function HoverCard({
   wire,
   byId,
   room,
+  why,
 }: {
   at: { x: number; y: number };
   node: GraphNode | undefined;
   wire: { e: GraphEdge; lines: string[] } | undefined;
   byId: ReadonlyMap<string, GraphNode>;
   room: number;
+  /** Why the wire being dragged may not end here; it takes the card's place. */
+  why?: string | null | undefined;
 }) {
-  if (!node && !wire) return null;
+  if (!node && !wire && !why) return null;
   const left = at.x + 260 > room ? Math.max(4, at.x - 268) : at.x + 14;
   return (
     <div
@@ -1038,7 +1129,9 @@ function HoverCard({
       className="pointer-events-none absolute z-10 grid w-[252px] gap-1 border border-(--ui-hair) bg-(--ui-paper) p-3 text-[12.5px] leading-[1.4] text-(--ui-ink) shadow-(--ui-shadow)"
       style={{ left, top: at.y + 14 }}
     >
-      {node ? (
+      {why ? (
+        <span className="font-semibold text-(--ui-bad)">{why}</span>
+      ) : node ? (
         <>
           <span className="flex items-baseline justify-between gap-2">
             <span className="font-semibold">{node.label}</span>

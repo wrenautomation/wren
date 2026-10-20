@@ -12,15 +12,17 @@ import {
   Button,
   cx,
   DictateField,
+  FLOAT_PANEL,
   FormKept,
-  GRAPH_DROP,
   type GraphNode,
+  PaletteDrawer as GraphPalette,
   Icon,
   Input,
   LoadFailed,
+  type PaletteEntry,
+  type PaletteGroup,
+  PanelBlock,
   StateMark,
-  Tag,
-  Textarea,
   TextField,
   tipProps,
   useEdit,
@@ -34,6 +36,7 @@ import type { Drawn } from "../marketplace/boxes.js";
 import { FIELD, QUIET, SELECT } from "../work/bits.js";
 import { boxOf, roleOfPart } from "./canvas.js";
 import { DoorBlock, FieldMapForm, type Fresh } from "./doors.js";
+import { LogicForm, TRIGGER_NOTE } from "./logic-form.js";
 import { copyOf } from "./playback.js";
 import { dataText } from "./trace.js";
 import {
@@ -50,11 +53,8 @@ import {
 
 const WAIT = /^\d+ (minute|hour|day|week)s?$/;
 /** A panel floats over the canvas's edge, n8n-style, and scrolls inside. */
-export const PANEL =
-  "absolute top-3 z-10 grid max-h-[calc(100%-24px)] min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5 overflow-x-hidden overflow-y-auto border border-(--ui-hair) bg-(--ui-paper) p-4 text-[13.5px] shadow-(--ui-shadow)";
-const LEFT = "left-3 w-[280px]";
+export const PANEL = FLOAT_PANEL;
 export const RIGHT = "right-3 w-[360px]";
-const HEAD = "text-[11.5px] font-semibold tracking-[0.04em] text-(--ui-ink-3) uppercase";
 export const PRE =
   "m-0 max-h-[220px] overflow-auto bg-(--ui-tile) p-2.5 font-mono text-[11.5px] leading-[1.5] whitespace-pre-wrap text-(--ui-ink)";
 const ROLE_TINT: Record<string, string> = {
@@ -66,86 +66,36 @@ const ROLE_TINT: Record<string, string> = {
   deliver: "oklch(0.62 0.15 30)",
 };
 
-export function Block({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="grid gap-2">
-      <h3 className={HEAD}>{title}</h3>
-      {children}
-    </section>
-  );
-}
+export const Block = PanelBlock;
 
-/** One thing to add: its tile, name and line; dragged onto the canvas or clicked. */
-function Item({
-  id,
-  name,
-  blurb,
-  ready,
-  effects,
-  active,
-  onAdd,
-}: {
-  id: string;
-  name: string;
-  blurb: string;
-  ready: boolean;
-  effects: readonly string[];
-  active: boolean;
-  onAdd: (id: string) => void;
-}) {
-  const hue = ROLE_TINT[roleOfPart(id)] ?? ROLE_TINT.logic;
-  return (
-    <li
-      className={ready ? undefined : "cursor-not-allowed"}
-      {...tipProps(ready ? null : "In development")}
-    >
-      <button
-        type="button"
-        draggable={ready}
-        disabled={!ready}
-        onDragStart={(e) => {
-          e.dataTransfer.setData(GRAPH_DROP, id);
-          e.dataTransfer.effectAllowed = "copy";
-        }}
-        onClick={() => onAdd(id)}
-        className={cx(
-          "flex w-full cursor-grab items-start gap-2.5 border-0 bg-transparent px-2 py-2 text-left hover:bg-(--ui-hover) disabled:pointer-events-none disabled:opacity-55",
-          active && "bg-(--ui-hover)",
-        )}
-        {...tipProps(ready ? "Drag onto the canvas, or click to add" : null, { as: "none" })}
-      >
-        <span
-          aria-hidden="true"
-          className="mt-0.5 size-6 shrink-0 rounded-[6px]"
-          style={{ background: `color-mix(in oklch, ${hue} 22%, var(--ui-paper))` }}
-        />
-        <span className="grid min-w-0 flex-1 gap-0.5">
-          <span className="flex items-center gap-2 text-[13px] font-semibold text-(--ui-ink)">
-            <span className="truncate">{name}</span>
-            {!ready ? <Tag>In development</Tag> : null}
-            {effects.length ? <Tag tone="accent">{effects.join(", ")}</Tag> : null}
-          </span>
-          <span className="line-clamp-2 text-[12px] leading-[1.4] text-(--ui-ink-2)">{blurb}</span>
-        </span>
-      </button>
-    </li>
-  );
-}
-
-type Entry = { id: string; name: string; blurb: string; ready: boolean; effects: string[] };
-const fromLogic = (l: PaletteLogic): Entry => ({ ...l, effects: [...l.effects] });
-const fromItem = (p: PaletteItem): Entry => ({
+const tintOf = (id: string) => ROLE_TINT[roleOfPart(id)] ?? ROLE_TINT.logic ?? "";
+const fromLogic = (l: PaletteLogic): PaletteEntry => ({
+  id: l.id,
+  name: l.name,
+  blurb: l.blurb,
+  ready: l.ready,
+  effects: l.effects,
+  tint: tintOf(l.id),
+});
+const fromItem = (p: PaletteItem): PaletteEntry => ({
   id: p.id,
   name: p.name,
   blurb: p.blurb,
   ready: p.ready !== "planned",
   effects: p.effects,
+  tint: tintOf(p.id),
 });
 
-/**
- * The palette: triggers, logic, parts and workflows. `/` opens it with the search focused;
- * Enter adds the first match, Escape closes it.
- */
+/** What a workflow may add, in the palette's groups. */
+export const groupsOf = (palette: Palette): PaletteGroup[] => [
+  { title: "Triggers", entries: palette.logic.filter((l) => l.group === "trigger").map(fromLogic) },
+  { title: "Logic", entries: palette.logic.filter((l) => l.group === "logic").map(fromLogic) },
+  { title: "Actions", entries: palette.logic.filter((l) => l.group === "action").map(fromLogic) },
+  { title: "Parts", entries: palette.parts.map(fromItem) },
+  { title: "Workflows", entries: palette.workflows.map(fromItem) },
+];
+
+/** The workflow editor's palette: triggers, logic, parts and workflows (the kit's drawer). */
 export function PaletteDrawer({
   palette,
   onAdd,
@@ -155,76 +105,8 @@ export function PaletteDrawer({
   onAdd: (id: string) => void;
   onClose: () => void;
 }) {
-  const [q, setQ] = useState("");
-  const box = useRef<HTMLInputElement>(null);
-  useEffect(() => box.current?.focus(), []);
-  const groups = useMemo(() => {
-    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const hit = (e: Entry) =>
-      words.every((w) => `${e.name} ${e.blurb} ${e.id}`.toLowerCase().includes(w));
-    return (
-      [
-        ["Triggers", palette.logic.filter((l) => l.group === "trigger").map(fromLogic)],
-        ["Logic", palette.logic.filter((l) => l.group === "logic").map(fromLogic)],
-        ["Actions", palette.logic.filter((l) => l.group === "action").map(fromLogic)],
-        ["Parts", palette.parts.map(fromItem)],
-        ["Workflows", palette.workflows.map(fromItem)],
-      ] as const
-    )
-      .map(([title, list]) => [title, list.filter(hit)] as const)
-      .filter(([, list]) => list.length);
-  }, [palette, q]);
-  const first = groups.flatMap(([, l]) => l).find((e) => e.ready);
-  return (
-    <aside aria-label="Add a node" className={cx(PANEL, LEFT, "gap-3 p-3")}>
-      <div className="flex items-center gap-2">
-        <span className="relative flex-1">
-          <Icon
-            name="search"
-            size={14}
-            className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-(--ui-ink-3)"
-          />
-          {/* edit-ok: search box */}
-          <Input
-            ref={box}
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") onClose();
-              if (e.key === "Enter" && first) onAdd(first.id);
-            }}
-            placeholder="Search nodes"
-            aria-label="Search nodes"
-            className="h-8 pl-8 text-[13px]"
-          />
-        </span>
-        <Button
-          tone="quiet"
-          size="dense"
-          onClick={onClose}
-          aria-label="Close"
-          {...tipProps("Close", { as: "none" })}
-        >
-          <Icon name="close" />
-        </Button>
-      </div>
-      <p className={`text-[12px] ${QUIET}`}>Drag one onto the canvas, or click it.</p>
-      {groups.length ? (
-        groups.map(([title, list]) => (
-          <Block key={title} title={title}>
-            <ul className="m-0 -mx-1 grid list-none gap-0.5 p-0">
-              {list.map((e) => (
-                <Item key={e.id} {...e} active={e === first && !!q} onAdd={onAdd} />
-              ))}
-            </ul>
-          </Block>
-        ))
-      ) : (
-        <p className={QUIET}>Nothing matches.</p>
-      )}
-    </aside>
-  );
+  const groups = useMemo(() => groupsOf(palette), [palette]);
+  return <GraphPalette groups={groups} onAdd={onAdd} onClose={onClose} />;
 }
 
 /**
@@ -422,112 +304,11 @@ export function PanelHead({
   );
 }
 
-/** What a trigger hears, said once in its panel. */
-const TRIGGER_NOTE: Readonly<Record<string, string>> = {
-  "trigger.schedule":
-    "Fires at each slot once published. Clients keep no time zone yet, so it's set here.",
-  "trigger.form": "Each post enters once per email. Its URL comes with Publish.",
-  "trigger.reply":
-    "Fires when a lead replies to an email, a text or a DM. A lead enters once. A STOP never fires it.",
-  "trigger.booking":
-    "Fires on each cal.com booking, move or cancel, by the booking webhook. Who booked rides along.",
-  "trigger.flag":
-    "Fires within the hour a client flag is raised or clears. Only in Wren's own workflows.",
-  "trigger.payment":
-    "Fires when Stripe says a pay link was paid, refunded or failed, as you pick. In Wren's own workflows, a Wren invoice issued, paid, refunded or past due fires it too. Each fires once per change. The amount and who paid come with it.",
-  "trigger.touch":
-    "Fires once for each follow, connect, comment, reply, DM, like or mention on a social platform, within a few minutes. Pick the kind, who started it and the platform. Who it was with comes along.",
-  "trigger.document":
-    "Fires when someone opens, signs or declines a document you sent from Payments → Documents. Who and the total come with it.",
-  "logic.code":
-    "Runs in a sandbox: no internet, one second, 32 MB. Test this node to run it on a sample event.",
-  "trigger.app":
-    "Fires within the hour of a change in a client's connected app (Account → Connectors). The person's name, email and phone come with it.",
-  "trigger.journey":
-    "Fires when a person's journey enters a node of the shape, skips one or is dropped there. Pick the change and, if you like, one node. A node you leave empty means any.",
-};
-
 /** What a Wait until an event does with a late one, said once in its panel. */
 function untilNote(n: { uses?: string | null; with?: With | undefined }): string | null {
   const u = untilOf(n);
   if (!u) return null;
   return `Each event leaves once: when ${UNTIL_WORDS[u.until]} about it comes, or after ${u.most}. Anything later does nothing.`;
-}
-
-/**
- * A logic node's settings as a form, only those its mode uses. A built-in logic node's change
- * goes in the save; a trigger's is read only when it's the code's.
- */
-function LogicForm({
-  logic,
-  values,
-  set,
-}: {
-  logic: PaletteLogic;
-  values: With;
-  set: ((field: string, v: string | number) => void) | null;
-}) {
-  const base = useId();
-  const now = (field: string) =>
-    values[field] ?? logic.settings.find((s) => s.field === field)?.start ?? "";
-  return (
-    <div className="grid gap-2.5">
-      {logic.settings.map((s) => {
-        if (s.shows && Object.entries(s.shows).some(([f, want]) => String(now(f)) !== want)) {
-          return null;
-        }
-        const v = s.shows ? now(s.field) : (values[s.field] ?? "");
-        const at = `${base}-${s.field}`;
-        return (
-          <label key={s.field} htmlFor={at} className={FIELD}>
-            <span>{s.label}</span>
-            {s.type === "choice" ? (
-              <select
-                id={at}
-                className={SELECT}
-                value={String(v)}
-                disabled={!set}
-                onChange={(e) => set?.(s.field, e.target.value)}
-              >
-                {v === "" ? <option value="">Pick one</option> : null}
-                {(s.options ?? []).map((o) => (
-                  <option key={o} value={o}>
-                    {s.labels?.[o] ?? o}
-                  </option>
-                ))}
-              </select>
-            ) : s.type === "long" ? (
-              <Textarea
-                id={at}
-                rows={4}
-                className="font-mono text-[12px]"
-                value={String(v)}
-                readOnly={!set}
-                placeholder={s.hint}
-                onChange={(e) => set?.(s.field, e.target.value)}
-              />
-            ) : (
-              <Input
-                id={at}
-                type={s.type === "number" ? "number" : "text"}
-                value={String(v)}
-                readOnly={!set}
-                placeholder={s.hint}
-                onChange={(e) =>
-                  set?.(
-                    s.field,
-                    s.type === "number" && e.target.value !== ""
-                      ? Number(e.target.value)
-                      : e.target.value,
-                  )
-                }
-              />
-            )}
-          </label>
-        );
-      })}
-    </div>
-  );
 }
 
 type EventDetail = {

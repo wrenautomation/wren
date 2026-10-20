@@ -36,7 +36,7 @@ export const Default: Story = {
   play: drawn,
 };
 
-/** The Map's own look: night ground, no grid, no frame. */
+/** The ribbons on the night ground, with no grid and no frame. */
 export const Dark: Story = {
   render: () => (
     <div data-ui-theme="" style={NIGHT} className="bg-(--ui-canvas) p-4 text-(--ui-ink)">

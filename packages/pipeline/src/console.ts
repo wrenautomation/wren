@@ -7,6 +7,8 @@
  * - `offersSync`: add a version for each registry offer that changed (Wren's workspace only).
  * - `shapeVersion`, `shapeDiff`, `shapeImport`: save the next shape version, compare two, or read
  *   a shape file (YAML) into the next version.
+ * - `shapeStart`, `shapeExport`, `shapePreview`: the Map's own: start an empty workspace from the
+ *   starter, write a body as a file, and compare a file with the newest version before it saves.
  * - `journeysOpen`, `journeysMove`, `journeysDrop`: the `Journeys` service, as the operator.
  * - `dealsSign`: a deal's terms, once; a change needs `force` and is audited.
  * - `termsAdd`: the next version of one plan of one offer, as `wren terms add` (same checks).
@@ -49,7 +51,8 @@ import type { ShapeBody } from "./model.js";
 import { signDeal } from "./moves.js";
 import { PIPELINE_RECORDS } from "./records.js";
 import { JOURNEYS, type OpenRequest as JourneyOpen, type JourneysApi } from "./restate.js";
-import { importShape } from "./shape-file.js";
+import { exportShape, importShape, parseShape } from "./shape-file.js";
+import { startShape } from "./starter.js";
 import {
   addTerms,
   diffShapes,
@@ -86,6 +89,14 @@ export interface ShapeImportRequest extends PortalRequest {
   text: string;
   /** The version's note when the file has none. */
   note?: string;
+}
+export interface ShapeExportRequest extends PortalRequest {
+  /** The body to write as a file: the Map's draft, or a version it holds. */
+  body: unknown;
+}
+export interface ShapePreviewRequest extends PortalRequest {
+  /** The shape file's YAML text. */
+  text: string;
 }
 export interface JourneyOpenRequest extends PortalRequest {
   person: string;
@@ -234,6 +245,30 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
         terms: done.terms.map((t) => ({ offer: t.offer, plan: t.plan, version: t.number })),
       };
     },
+    shapeStart: async (req: PortalRequest) => {
+      const w = await workspace(req, "act");
+      const row = await refused(() => startShape(w.db, { by: by(req), triggers: TRIGGER_IDS }));
+      if (!row) throw new PortalRefusal("This workspace already has a shape.", 400);
+      return { version: row.number };
+    },
+    shapeExport: async (req: ShapeExportRequest) => {
+      await workspace(req, "read");
+      return { text: exportShape(bodyOf(req.body)) };
+    },
+    shapePreview: async (req: ShapePreviewRequest) => {
+      const w = await workspace(req, "read");
+      const file = await refused(async () => parseShape(String(req.text ?? "")));
+      const newest = await newestShape(w.db);
+      const none: ShapeBody = { name: file.body.name, nodes: [], edges: [] };
+      // Compared as an import would save it: the file against the newest version.
+      return {
+        a: newest?.number ?? null,
+        diff: diffShapes(newest?.body ?? none, file.body),
+        bodies: [newest?.body ?? none, file.body],
+        note: file.note ?? null,
+        moves: file.moves ?? null,
+      };
+    },
     termsAdd: async (req: TermsAddRequest) => {
       const w = await workspace(req, "act");
       if (w.client) throw new PortalRefusal("terms are added in Wren's workspace only", 400);
@@ -330,6 +365,29 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
         },
         (ctx: restate.Context, req: ShapeImportRequest) =>
           answer(() => ctx.run("shape import", () => answer(() => api.shapeImport(req)))),
+      ),
+      shapeStart: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS }) },
+        (ctx: restate.Context, req: PortalRequest) =>
+          answer(() => ctx.run("shape start", () => answer(() => api.shapeStart(req)))),
+      ),
+      shapeExport: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            body: z.looseObject({}).describe("The shape body: name, nodes, edges"),
+          }),
+        },
+        (_: restate.Context, req: ShapeExportRequest) => answer(() => api.shapeExport(req)),
+      ),
+      shapePreview: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            text: z.string().describe("The shape file, as YAML"),
+          }),
+        },
+        (_: restate.Context, req: ShapePreviewRequest) => answer(() => api.shapePreview(req)),
       ),
       journeysOpen: serviceHandler(
         {

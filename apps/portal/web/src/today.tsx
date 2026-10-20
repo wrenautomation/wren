@@ -314,7 +314,7 @@ export function WrenToday({
   moves: MovesRead;
   pins: PinLine[];
   props: PageProps;
-  /** Beside the Map, which has the page's title: no header of its own. */
+  /** In the Map's sheet, which has the title: no header of its own. */
   docked?: true | undefined;
 }) {
   return (
@@ -360,7 +360,7 @@ export function ClientToday({
   installed: ReadonlySet<string>;
   pins: PinLine[];
   props: PageProps;
-  /** Beside the Map, which has the page's title: no header of its own. */
+  /** In the Map's sheet, which has the title: no header of its own. */
   docked?: true | undefined;
 }) {
   const account = useAccount(props);
