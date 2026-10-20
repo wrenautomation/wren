@@ -8,7 +8,6 @@
 import type { FetchLike } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { PortalRefusal } from "@wren/core/refusal";
-import { connectionIdOf } from "./access.js";
 import {
   GBP_API,
   GOOGLE_API,
@@ -17,7 +16,8 @@ import {
   LINKEDIN_VERSION,
   TIKTOK_API,
   X_API,
-} from "./oauth.js";
+} from "@wrenautomation/autobrowse/oauth";
+import { connectionIdOf } from "./access.js";
 import type { SocialConnectionRow } from "./schema.js";
 import { videoSeconds } from "./video-length.js";
 

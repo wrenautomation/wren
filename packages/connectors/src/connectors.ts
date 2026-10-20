@@ -4,22 +4,29 @@
  * developer apps under Wren, or in the worker's env.
  */
 import { createHash } from "node:crypto";
-import type { FetchLike } from "@wren/core";
+import { type FetchLike, optionalInit } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
-import { OAuthError, randomState } from "@wren/core/oauth";
 import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
 import type { Db, Queryable } from "@wren/db";
+import {
+  type AppTokens,
+  appConnectUrl,
+  appExchange,
+  appRefresh,
+  type OAuthApp,
+  OAuthError,
+  randomState,
+} from "@wrenautomation/autobrowse/oauth";
 import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { APPS, appKeyName, CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
-import { type AppKeys, connectUrl, exchange, refresh } from "./oauth.js";
 import { whoHubspot } from "./pull/hubspot.js";
 import { whoJobber } from "./pull/jobber.js";
 import { whoQuickbooks } from "./pull/quickbooks.js";
 import type { WhoAmI } from "./pull/types.js";
 import { type ConnectorLink, connectorGrants, connectorLinks, type LinkExtra } from "./schema.js";
 
-export type ConnectorApps = Partial<Record<ConnectorApp, AppKeys>>;
+export type ConnectorApps = Partial<Record<ConnectorApp, OAuthApp>>;
 
 export interface ConnectorDeps {
   main: Db;
@@ -126,7 +133,7 @@ export function connectorAccess(deps: ConnectorDeps) {
   const now = () => deps.now?.() ?? new Date();
   const cache = new Map<number, { token: string; until: number }>();
 
-  const keysOf = async (app: ConnectorApp): Promise<AppKeys> => {
+  const keysOf = async (app: ConnectorApp): Promise<OAuthApp> => {
     const k = (await deps.apps())[app];
     if (!k)
       throw new ConnectorRefusal(
@@ -177,9 +184,14 @@ export function connectorAccess(deps: ConnectorDeps) {
       cache.set(l.id, { token: kept.access, until: kept.expiresAt });
       return kept.access;
     }
-    let t: Awaited<ReturnType<typeof refresh>>;
+    let t: AppTokens;
     try {
-      t = await refresh(deps.fetch, l.app, await keysOf(l.app), kept.refresh);
+      t = await appRefresh(
+        optionalInit(deps.fetch),
+        APPS[l.app],
+        await keysOf(l.app),
+        kept.refresh,
+      );
     } catch (err) {
       if (err instanceof OAuthError && err.revoked) {
         await broke(l.id, "Access was taken back or ran out. Connect it again.");
@@ -273,7 +285,10 @@ export function connectorAccess(deps: ConnectorDeps) {
         by: o.by.toLowerCase(),
         expiresAt: new Date(now().getTime() + CONNECT_MS),
       });
-      return connectUrl(o.app, keys, { redirect: connectorCallback(deps.origin, o.app), state });
+      return appConnectUrl(APPS[o.app], keys, {
+        redirect: connectorCallback(deps.origin, o.app),
+        state,
+      });
     },
 
     /** Where the app sends the person back: the state spent once, the token kept, the link made. */
@@ -301,7 +316,7 @@ export function connectorAccess(deps: ConnectorDeps) {
       const extra: LinkExtra = q.realmId ? { realm: q.realmId.slice(0, 64) } : {};
       try {
         const keys = store();
-        const t = await exchange(deps.fetch, q.app, await keysOf(q.app), {
+        const t = await appExchange(optionalInit(deps.fetch), APPS[q.app], await keysOf(q.app), {
           code: q.code,
           redirect: connectorCallback(deps.origin, q.app),
         });

@@ -1,7 +1,7 @@
 // Client social access, pure parts: the platform table, each sign-in with a fake platform, the
 // states the page shows and the calls a connected account makes. Synthetic ids; no network.
 
-import { OAuthError } from "@wren/core/oauth";
+import { OAuthError } from "@wrenautomation/autobrowse/oauth";
 import { describe, expect, it } from "vitest";
 import { connectionIdOf, loginOf, platformStates, socialAppsFrom, tokenName } from "./access.js";
 import { connectUrl, landCode, refreshToken, whoAmI } from "./oauth.js";

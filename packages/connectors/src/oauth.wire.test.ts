@@ -4,12 +4,26 @@
  * not count. Synthetic keys and tokens only.
  *
  * The block below is the only part that names where the functions live. The tests under it call
- * `connectUrl`, `exchange` and `refresh` and never change.
+ * `connectUrl`, `exchange` and `refresh` and never change. They first ran on wren's own module,
+ * then on `@wrenautomation/autobrowse/oauth`: only this block changed.
  */
 import { shapeOfError, wireRecorder } from "@wren/core/wire";
+import { appConnectUrl, appExchange, appRefresh } from "@wrenautomation/autobrowse/oauth";
 import { describe, expect, it } from "vitest";
 import { APPS, CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
-import { connectUrl, exchange, refresh } from "./oauth.js";
+
+type FetchLike = Parameters<typeof appRefresh>[0];
+type Keys = { id: string; secret: string };
+const connectUrl = (app: ConnectorApp, keys: Keys, o: { redirect: string; state: string }) =>
+  appConnectUrl(APPS[app], keys, o);
+const exchange = (
+  fetch: FetchLike,
+  app: ConnectorApp,
+  keys: Keys,
+  o: { code: string; redirect: string },
+) => appExchange(fetch, APPS[app], keys, o);
+const refresh = (fetch: FetchLike, app: ConnectorApp, keys: Keys, token: string) =>
+  appRefresh(fetch, APPS[app], keys, token);
 
 const KEYS = { id: "app-id", secret: "app-secret" };
 const REDIRECT = "https://app.test/oauth/connector";

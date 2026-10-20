@@ -4,11 +4,19 @@
  * does not count. Synthetic ids and tokens only.
  *
  * The block below is the only part that names where the functions live. The tests under it call
- * `connectUrl`, `consentUrl`, `exchange`, `refresh` and `appInTenant` and never change.
+ * `connectUrl`, `consentUrl`, `exchange`, `refresh` and `appInTenant` and never change. They
+ * first ran on wren's own module, then on `@wrenautomation/autobrowse/oauth`: only this block
+ * changed.
  */
 import { shapeOfError, type Wire, wireRecorder } from "@wren/core/wire";
+import {
+  appInTenant,
+  mailConnectUrl as connectUrl,
+  mailConsentUrl as consentUrl,
+  mailExchange as exchange,
+  mailRefresh as refresh,
+} from "@wrenautomation/autobrowse/oauth";
 import { describe, expect, it } from "vitest";
-import { appInTenant, connectUrl, consentUrl, exchange, refresh } from "./oauth.js";
 
 const APP = { id: "app-id", secret: "app-secret" };
 const jwt = (claims: object) => `h.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.s`;

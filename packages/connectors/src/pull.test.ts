@@ -1,8 +1,13 @@
 /** The apps' reads and sign-in against fake answers: no network. Synthetic data only. */
 import { CONNECTOR_APP_NAMES } from "@wren/core/logic";
+import {
+  appConnectUrl,
+  appExchange,
+  appRefresh,
+  OAuthError,
+} from "@wrenautomation/autobrowse/oauth";
 import { describe, expect, it } from "vitest";
 import { APPS, CONNECTOR_APPS } from "./apps.js";
-import { connectUrl, exchange, refresh } from "./oauth.js";
 import { pullHubspot } from "./pull/hubspot.js";
 import { pullJobber } from "./pull/jobber.js";
 import { pullQuickbooks } from "./pull/quickbooks.js";
@@ -11,7 +16,7 @@ import { peopleCsv } from "./sync.js";
 type Call = { url: string; init: RequestInit };
 const fake = (answer: (c: Call, n: number) => unknown, status = 200) => {
   const calls: Call[] = [];
-  const fetch = async (url: string, init: RequestInit) => {
+  const fetch = async (url: string, init: RequestInit = {}) => {
     const c = { url, init };
     calls.push(c);
     return new Response(JSON.stringify(answer(c, calls.length)), { status });
@@ -23,19 +28,23 @@ const body = (c: Call) => JSON.parse(String(c.init.body)) as Record<string, unkn
 
 describe("sign-in", () => {
   it("asks for read scopes, and none for Jobber (set on its app)", () => {
-    const hs = new URL(connectUrl("hubspot", KEYS, { redirect: "https://p.test/cb", state: "s1" }));
+    const hs = new URL(
+      appConnectUrl(APPS.hubspot, KEYS, { redirect: "https://p.test/cb", state: "s1" }),
+    );
     expect(hs.searchParams.get("scope")).toBe(
       "oauth crm.objects.contacts.read crm.objects.companies.read",
     );
     expect(hs.searchParams.get("state")).toBe("s1");
-    const jb = new URL(connectUrl("jobber", KEYS, { redirect: "https://p.test/cb", state: "s2" }));
+    const jb = new URL(
+      appConnectUrl(APPS.jobber, KEYS, { redirect: "https://p.test/cb", state: "s2" }),
+    );
     expect(jb.searchParams.has("scope")).toBe(false);
   });
 
   it("sends QuickBooks the app's keys as basic auth, the others in the body", async () => {
     const f = fake(() => ({ access_token: "a1", refresh_token: "r2", expires_in: 3600 }));
-    await exchange(f.fetch, "quickbooks", KEYS, { code: "c", redirect: "https://p.test/cb" });
-    await exchange(f.fetch, "hubspot", KEYS, { code: "c", redirect: "https://p.test/cb" });
+    await appExchange(f.fetch, APPS.quickbooks, KEYS, { code: "c", redirect: "https://p.test/cb" });
+    await appExchange(f.fetch, APPS.hubspot, KEYS, { code: "c", redirect: "https://p.test/cb" });
     const [qb, hs] = f.calls as [Call, Call];
     expect((qb.init.headers as Record<string, string>).authorization).toMatch(/^Basic /);
     expect(String(qb.init.body)).not.toContain("app-secret");
@@ -44,9 +53,13 @@ describe("sign-in", () => {
 
   it("keeps the old refresh token when none comes back, and says a revoked grant", async () => {
     const ok = fake(() => ({ access_token: "a2", expires_in: 60 }));
-    expect((await refresh(ok.fetch, "hubspot", KEYS, "r1")).refresh).toBe("r1");
+    expect((await appRefresh(ok.fetch, APPS.hubspot, KEYS, "r1")).refresh).toBe("r1");
     const no = fake(() => ({ error: "invalid_grant" }), 400);
-    await expect(refresh(no.fetch, "jobber", KEYS, "r1")).rejects.toMatchObject({ revoked: true });
+    await expect(appRefresh(no.fetch, APPS.jobber, KEYS, "r1")).rejects.toMatchObject({
+      revoked: true,
+    });
+    // One class across wren: `connectors.ts` tests a refusal with `instanceof OAuthError`.
+    await expect(appRefresh(no.fetch, APPS.jobber, KEYS, "r1")).rejects.toBeInstanceOf(OAuthError);
   });
 });
 

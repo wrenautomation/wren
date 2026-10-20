@@ -1,20 +1,22 @@
 // Wren's mail apps' OAuth, against fake token endpoints: scopes, URLs, refusals, the consent check.
-import { claimsOf, OAuthError, pkceChallenge } from "@wren/core/oauth";
-import { describe, expect, it } from "vitest";
 import {
   accessOf,
   appInTenant,
-  connectUrl,
-  consentUrl,
-  exchange,
+  claimsOf,
+  mailConnectUrl as connectUrl,
+  mailConsentUrl as consentUrl,
+  mailExchange as exchange,
   GMAIL_READ,
   GMAIL_SEND,
   GRAPH_READ,
   GRAPH_SEND,
   graphScopes,
-  refresh,
+  OAuthError,
+  pkceChallenge,
+  mailRefresh as refresh,
   scopesFor,
-} from "./oauth.js";
+} from "@wrenautomation/autobrowse/oauth";
+import { describe, expect, it } from "vitest";
 
 const APP = { id: "app-id", secret: "app-secret" };
 const jwt = (claims: object) => `h.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.s`;
