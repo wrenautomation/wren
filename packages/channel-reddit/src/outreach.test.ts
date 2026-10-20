@@ -49,21 +49,49 @@ describe("reddit outreach inbox", () => {
               created_utc: 1_790_000_000,
             },
           ],
+          // An answer to one of our comments; the inbox lists no `type` (autobrowse drops it).
+          [
+            "t1",
+            {
+              id: "c2",
+              name: "t1_c2",
+              author: "kim",
+              body: "which tool?",
+              was_comment: true,
+              parent_id: "t1_ours",
+              subreddit: "startups",
+              link_title: "Tools",
+              context: "/r/startups/comments/p2/tools/c2/?context=3",
+              created_utc: 1_790_000_100,
+            },
+          ],
         ]),
     });
     const ch = redditOutreach(sites, { account: "reddit@wren", now });
     const replies = await ch.replies(null);
     const comments = (await ch.comments?.()) ?? [];
     expect(replies.map((r) => r.handle)).toEqual(["dana"]);
+    // A reply under our post is the content side's row, spelled as the content reader spells it
+    // (post bare): both readers write one row. An answer to our comment stays a reach row.
     expect(comments).toMatchObject([
       {
         ref: "t1_c1",
-        post: "t3_p1",
-        parent: "t3_p1",
+        post: "p1",
+        parent: "p1",
         kind: "post_reply",
+        channel: "content",
         place: "smallbusiness",
         handle: "lee",
         url: "https://www.reddit.com/r/smallbusiness/comments/p1/invoices/c1/?context=3",
+      },
+      {
+        ref: "t1_c2",
+        post: "t3_p2",
+        parent: "t1_ours",
+        kind: "comment_reply",
+        channel: "reach",
+        place: "startups",
+        handle: "kim",
       },
     ]);
     expect(calls.filter(([, p]) => p === "/message/inbox")).toEqual([

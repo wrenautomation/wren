@@ -100,6 +100,9 @@ export async function keepComments(
       const gone = !mine && passed.has(passKey(null, c.handle));
       return {
         platform: account.platform,
+        // A comment on one of our posts is the content side's row (see `CommentIn.channel`); the
+        // account that read it stays on the row, which the check allows for content rows.
+        channel: c.channel ?? ("reach" as const),
         accountId: account.id,
         ref: c.ref.slice(0, 200),
         post: c.post.slice(0, 200),

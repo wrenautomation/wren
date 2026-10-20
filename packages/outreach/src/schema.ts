@@ -380,6 +380,9 @@ export const comments = pgTable(
     ),
     oneOf("ck_comments_kind", t.kind, COMMENT_KINDS),
     check("ck_comments_stars", sql`stars IS NULL OR (stars BETWEEN 1 AND 5)`),
+    // One spelling per Reddit comment, so the two readers (reach inbox, content thread) meet on
+    // the unique key instead of keeping the same comment twice (2026-10-20).
+    check("ck_comments_reddit_ref", sql`platform <> 'reddit' OR ref ~ '^t1_'`),
     oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
     oneOf("ck_comments_state", t.state, COMMENT_STATES),
     foreignKey({

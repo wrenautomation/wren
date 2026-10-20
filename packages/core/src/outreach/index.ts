@@ -85,6 +85,13 @@ export interface CommentIn {
   parent: string;
   /** `post_reply`, `comment_reply`, `username_mention`. */
   kind: string;
+  /**
+   * Which side owns the row: `reach` (default) for an answer to one of our comments; `content` for
+   * a comment on one of our posts, which the content side reads from the post's own thread too.
+   * Both then write the same row (same `ref`, `post` and `parent` spelling), and the unique key
+   * keeps one, whichever read came first.
+   */
+  channel?: "reach" | "content";
   /** Where it is: a subreddit; null where the platform has none. */
   place: string | null;
   postTitle: string | null;

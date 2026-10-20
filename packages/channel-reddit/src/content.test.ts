@@ -103,9 +103,10 @@ describe("reddit content channel", () => {
       shares: 1,
     });
     const comments = await ch.comments("t3_abc");
+    // The comment keeps its `t1_` fullname: the reach inbox spells it so, one row for both.
     expect(comments).toEqual([
       {
-        id: "c1",
+        id: "t1_c1",
         postId: "abc",
         author: "someone",
         text: "nice",
@@ -113,7 +114,7 @@ describe("reddit content channel", () => {
         url: "https://www.reddit.com/comments/abc",
       },
     ]);
-    await ch.reply?.("c1", "thanks");
+    await ch.reply?.("t1_c1", "thanks");
     expect(calls.at(-1)?.[2]).toMatchObject({ thing_id: "t1_c1", text: "thanks" });
   });
 

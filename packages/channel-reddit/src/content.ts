@@ -81,6 +81,11 @@ const at = (utc: number | undefined, now: () => Date) =>
   (utc ? new Date(utc * 1000) : now()).toISOString();
 /** `t3_abc` → `abc`: rows carry the bare id, calls take the fullname. */
 export const bareId = (id: string) => id.replace(/^t\d_/, "");
+/**
+ * A comment's one id in Wren: Reddit's `t1_` fullname, whichever reader saw it. Every reader keys
+ * a comment through this, so one comment is one `comments` row (`ck_comments_reddit_ref`).
+ */
+export const commentRef = (id: string) => `t1_${bareId(id)}`;
 const children = (l: Listing | undefined) => (l?.data?.children ?? []).map((c) => c.data);
 
 /** The answer's data, or the refusal Reddit gave (a 200 carrying errors) as a 422: final, not retried. */
@@ -229,14 +234,16 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
         read.nodes
           .filter((n) => n.handle !== "[deleted]")
           .reverse()
+          // Comment ids keep Reddit's `t1_` fullname: the reach inbox spells them so, and one
+          // comment seen by both readers must land on one row (`uq_comments_platform_ref`).
           .map((n) => ({
-            id: bareId(n.ref),
+            id: commentRef(n.ref),
             postId: bareId(id),
             author: n.handle,
             text: n.text,
             at: n.at,
             url: n.url,
-            ...(n.parent.startsWith("t1_") ? { parentId: bareId(n.parent) } : {}),
+            ...(n.parent.startsWith("t1_") ? { parentId: commentRef(n.parent) } : {}),
             ...(self && n.handle.toLowerCase() === self ? { mine: true } : {}),
           })),
         { ...q, limit: Math.min(Math.max(q.limit ?? 500, 1), 500) },
