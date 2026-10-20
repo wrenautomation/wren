@@ -65,6 +65,16 @@ wren call PipelineConsole/shapeImport --input '{"text":"<yaml>"}' --confirm shap
 wren call PipelineConsole/shapePreview --input '{"text":"<yaml>"}'   # what a file would change; saves nothing
 wren call PipelineConsole/shapeExport --input @body.json              # a body as YAML text
 wren call PipelineConsole/shapeStart --confirm shapeStart             # the starter shape, only when none exists
+wren call PipelineConsole/shapeDiff --input '{"a":2,"b":"draft:add-a-call"}'   # a version against a draft
+wren list pipeline.shape_draft               # drafts: open ones first; --view proposed|all
+wren get pipeline.shape_draft <id>           # one draft: body and moves
+wren call PipelineConsole/shapeDraftNew --input @draft.json --confirm shapeDraftNew
+wren call PipelineConsole/shapeDraftUpdate --input @draft.json --confirm shapeDraftUpdate
+wren call PipelineConsole/shapeDraftPropose --input '{"id":"add-a-call"}' --confirm shapeDraftPropose
+wren call PipelineConsole/shapeBlame --input '{"node":"<node-id>"}'   # or {"edge":"<edge-id>"}
+wren call PipelineConsole/shapeUndoPreview --input '{"a":1,"b":2,"change":"node:call:added"}'
+wren call PipelineConsole/shapeUndo --input '{"a":1,"b":2,"change":"node:call:added"}' --confirm shapeUndo
+wren call PipelineConsole/shapeTag --input '{"name":"before-pricing","version":3}' --confirm shapeTag
 ```
 
 - `shapeVersion` takes `{ body, note, moves? }`. `moves` is `{ "<old node>": "<new node>" }` for
@@ -74,9 +84,25 @@ wren call PipelineConsole/shapeStart --confirm shapeStart             # the star
 - `shapePreview` reads a file against the newest version: `{ a, diff, bodies, note, moves }`.
   `shapeStart` saves the kind-only starter (note "Starter") and refuses when a shape exists.
 - Say why in `note`. A version is never edited or deleted.
+- **An agent proposes; a person applies in the Map.** To change the shape, save a draft
+  (`shapeDraftNew`: `{ name, body, moves?, base?, note? }`; the id comes from the name), compare it
+  with `shapeDiff` (`b` can be `draft:<id>`), then `shapeDraftPropose` `{ id }`. Change a draft with
+  `shapeDraftUpdate` `{ id, body, moves?, note? }`. A draft is not checked until it is applied.
+  Do not call `shapeDraftApply` or `shapeDraftDrop` unless the user asked you to. The user applies
+  or drops it in the Map.
+- `shapeBlame` takes exactly one of `node` or `edge`. It answers `{ lines }`: each version that
+  added, removed, renamed or changed it, newest first, with who, when and why (`note`).
+- To undo one change, read `shapeDiff`, pick a line's `changeKey` (`node:<id>:added`,
+  `edge:<id>:changed`, `name`), and call `shapeUndoPreview` `{ a, b, change }` first. It saves
+  nothing. It answers the line, the note, the version it applies to and the diff, or refuses with
+  every reason (open people on a node the undo would remove, a change that is already gone). Show
+  the user, then call `shapeUndo`. It saves the next version with the note `Undo: <line>`.
+- `shapeTag` `{ name, version, note? }` names one version. A tag never moves or goes away.
+  `wren get pipeline.shape shape` lists each version with its tags and the link to its commit in
+  the private repo.
 - A person moves along an edge that exists. A move to any other node needs a reason.
   Remove a node only after you move its people.
-- On the repo's own CLI the same work is `wren shape show|versions|diff|export|import|add-node|connect|remove|move`.
+- On the repo's own CLI the same work is `wren shape show|versions|diff|export|import|add-node|connect|remove|move|draft|blame|undo|tag|tags|mirror`.
   `wren journeys` and `wren numbers --window 7|30|90|all` read people and counts.
 
 `--pretty` indents the JSON. `--host https://...` points at another Wren (a client's own address).
