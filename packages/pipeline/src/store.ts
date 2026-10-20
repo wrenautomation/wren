@@ -36,7 +36,7 @@ const refuse = (...errors: string[]): never => {
 };
 
 /** One writer at a time per key, until the transaction ends. */
-const lock = (tx: Tx, key: string) =>
+export const lock = (tx: Tx, key: string) =>
   tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${key}))`);
 
 export const hashOf = (v: unknown): string =>
@@ -283,6 +283,8 @@ export interface NewShape {
   triggers: ReadonlySet<string>;
   /** Where journeys on a node the new body drops go: `{ oldNode: newNode }`. */
   moves?: Moves;
+  /** The draft this version is applied from (`drafts.ts`). */
+  draft?: string;
 }
 
 /**
@@ -313,6 +315,7 @@ export async function saveShape(db: Queryable, input: NewShape): Promise<ShapeVe
         note: input.note,
         parent: last?.number ?? null,
         createdBy: input.by,
+        draft: input.draft ?? null,
       })
       .returning();
     if (!row) throw new Error("shape version insert returned nothing");
