@@ -62,12 +62,17 @@ wren list pipeline.number --view edge        # views node, edge, offer: counts p
 wren call PipelineConsole/shapeDiff --input '{"a":1,"b":2}'
 wren call PipelineConsole/shapeVersion --input @version.json --confirm shapeVersion
 wren call PipelineConsole/shapeImport --input '{"text":"<yaml>"}' --confirm shapeImport
+wren call PipelineConsole/shapePreview --input '{"text":"<yaml>"}'   # what a file would change; saves nothing
+wren call PipelineConsole/shapeExport --input @body.json              # a body as YAML text
+wren call PipelineConsole/shapeStart --confirm shapeStart             # the starter shape, only when none exists
 ```
 
 - `shapeVersion` takes `{ body, note, moves? }`. `moves` is `{ "<old node>": "<new node>" }` for
   people on a node the new body drops. `shapeImport` takes the YAML file text (`name`, `nodes`,
   `edges`, optional `note`, `moves`, `terms`). Both refuse with every reason, or with
   "Nothing changed." when the body equals the newest.
+- `shapePreview` reads a file against the newest version: `{ a, diff, bodies, note, moves }`.
+  `shapeStart` saves the kind-only starter (note "Starter") and refuses when a shape exists.
 - Say why in `note`. A version is never edited or deleted.
 - A person moves along an edge that exists. A move to any other node needs a reason.
   Remove a node only after you move its people.

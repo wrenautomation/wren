@@ -68,9 +68,11 @@ describe("routes", () => {
       "recordsExport",
       "recordsStats",
       "shapeDiff",
+      "shapeExport",
+      "shapePreview",
     ]);
     expect(names.filter((n) => PIPELINE_CONSOLE_ROUTES[n as never] === "act")).toEqual(
-      expect.arrayContaining(["termsAdd", "shapeVersion", "shapeImport"]),
+      expect.arrayContaining(["termsAdd", "shapeVersion", "shapeImport", "shapeStart"]),
     );
     expect(PIPELINE_CONSOLE_APPS["*"]).toBe("deals");
   });
@@ -142,6 +144,31 @@ describe("shape changes", () => {
       version: 3,
       changed: true,
     });
+  });
+
+  it("writes a body as a file and compares a file with the newest version", async () => {
+    const op = as(ADA, undefined, true);
+    const newest = (await shapeVersionsOf(pg.db)).at(-1);
+    const { text } = await api().shapeExport({ ...op, body: newest?.body });
+    expect(text).toBe(exportShape(newest?.body as ShapeBody));
+    const same = await api().shapePreview({ ...op, text });
+    expect(same).toMatchObject({ a: newest?.number, note: null });
+    expect(same.diff.nodes.added).toEqual([]);
+    const edited = text.replace("name: Engaged", "name: Replied");
+    const changed = await api().shapePreview({ ...op, text: edited });
+    expect(changed.diff.nodes.renamed).toEqual([{ id: "engaged", from: "Engaged", to: "Replied" }]);
+    expect(changed.bodies[1]?.nodes.find((n) => n.id === "engaged")?.name).toBe("Replied");
+    await expect(api().shapePreview({ ...op, text: "- not a shape" })).rejects.toMatchObject({
+      status: 400,
+    });
+    // A preview saves nothing.
+    expect((await shapeVersionsOf(pg.db)).length).toBe(newest?.number);
+  });
+
+  it("starts from the starter only in a workspace with no shape", async () => {
+    const op = as(ADA, undefined, true);
+    await expect(api().shapeStart(op)).rejects.toThrow(/already has a shape/);
+    await expect(api().shapeStart(as(VAL, "acme"))).rejects.toThrow(/can't do that/);
   });
 
   it("answers a store refusal as a portal refusal", async () => {
