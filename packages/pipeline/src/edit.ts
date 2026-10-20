@@ -7,7 +7,7 @@
 import type { Queryable } from "@wren/db";
 import { and, count, eq } from "drizzle-orm";
 import type { Moves } from "./carry.js";
-import type { ShapeChange } from "./diff.js";
+import { canonicalJson, changeKey, changesOf, diffShapes, type ShapeChange } from "./diff.js";
 import { edgeIdOf, type ShapeBody, type ShapeEdge, type ShapeNode } from "./model.js";
 import { journeys } from "./schema.js";
 import { newestShape, Refused, saveShape } from "./store.js";
@@ -102,10 +102,90 @@ export async function editShape(
  * newest body no longer holds what `b` had for that line. `saveShape` checks the result.
  */
 export function undoChange(
-  _newest: ShapeBody,
-  _a: ShapeBody,
-  _b: ShapeBody,
-  _change: ShapeChange,
+  newest: ShapeBody,
+  a: ShapeBody,
+  b: ShapeBody,
+  change: ShapeChange,
 ): ShapeBody {
-  throw new Error("undoChange: not built yet (brief 2026-10-20-shape-git-3)");
+  const key = changeKey(change);
+  if (!changesOf(diffShapes(a, b)).some((c) => changeKey(c) === key))
+    throw new Refused(["That change is not between these versions."]);
+  const later = (what: string) => new Refused([`${what} Undo the later change first.`]);
+  /** A node's name, from the newest body first, then b, then a. */
+  const nameOf = (id: string) =>
+    [newest, b, a].map((x) => x.nodes.find((n) => n.id === id)?.name).find((n) => n) ?? id;
+  const edgeName = (e: ShapeEdge) => `${nameOf(e.from)} to ${nameOf(e.to)}`;
+  const nodeIn = (body: ShapeBody, id: string) => body.nodes.find((n) => n.id === id);
+  const edgeIn = (body: ShapeBody, id: string) => body.edges.find((e) => e.id === id);
+  const sameJson = (x: unknown, y: unknown) => canonicalJson(x) === canonicalJson(y);
+  const withoutName = (n: ShapeNode): ShapeNode => ({ ...n, name: "" });
+
+  if (change.on === "name") {
+    if (newest.name !== b.name)
+      throw later(`The shape is now called ${newest.name}, not ${b.name}.`);
+    return { ...newest, name: a.name };
+  }
+
+  if (change.on === "node") {
+    const { id } = change;
+    const was = nodeIn(a, id);
+    const then = nodeIn(b, id);
+    const now = nodeIn(newest, id);
+    if (change.how === "added") {
+      if (!now) throw new Refused([`Node ${nameOf(id)} is not in the shape any more.`]);
+      return withoutNode(newest, id);
+    }
+    if (change.how === "removed") {
+      if (now) throw later(`Node ${now.name} is in the shape again.`);
+      if (!was) throw new Refused(["That change is not between these versions."]);
+      const kept = new Set(newest.nodes.map((n) => n.id));
+      kept.add(id);
+      const taken = new Set(newest.edges.map((e) => e.id));
+      const edges = a.edges.filter(
+        (e) =>
+          (e.from === id || e.to === id) && kept.has(e.from) && kept.has(e.to) && !taken.has(e.id),
+      );
+      return withNode(newest, was, edges);
+    }
+    if (!was || !then) throw new Refused(["That change is not between these versions."]);
+    if (!now) throw new Refused([`Node ${then.name} is not in the shape any more.`]);
+    if (change.how === "renamed") {
+      if (now.name !== then.name) throw later(`Node ${then.name} is now called ${now.name}.`);
+      return {
+        ...newest,
+        nodes: newest.nodes.map((n) => (n.id === id ? { ...n, name: was.name } : n)),
+      };
+    }
+    if (!sameJson(withoutName(now), withoutName(then)))
+      throw later(`Node ${now.name} was changed again.`);
+    return {
+      ...newest,
+      nodes: newest.nodes.map((n) => (n.id === id ? { ...was, name: n.name } : n)),
+    };
+  }
+
+  const { id } = change;
+  const was = edgeIn(a, id);
+  const then = edgeIn(b, id);
+  const now = edgeIn(newest, id);
+  if (change.how === "removed") {
+    if (!was) throw new Refused(["That change is not between these versions."]);
+    if (now) throw later(`Edge ${edgeName(now)} is in the shape again.`);
+    const missing = [was.from, was.to].filter((n) => !nodeIn(newest, n));
+    if (missing.length)
+      throw new Refused(
+        missing.map(
+          (n) => `Edge ${edgeName(was)} needs node ${nameOf(n)}, which is not in the shape.`,
+        ),
+      );
+    return withEdge(newest, was);
+  }
+  if (!then) throw new Refused(["That change is not between these versions."]);
+  if (!now || !sameJson(now, then))
+    throw later(
+      `Edge ${edgeName(then)} ${now ? "was changed again" : "is not in the shape any more"}.`,
+    );
+  if (change.how === "added") return withoutEdge(newest, id);
+  if (!was) throw new Refused(["That change is not between these versions."]);
+  return { ...newest, edges: newest.edges.map((e) => (e.id === id ? was : e)) };
 }
