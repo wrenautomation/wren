@@ -71,3 +71,7 @@ No LinkedIn activity and share pair is known today (checked on prod 2026-10-20: 
 - 2026-10-20 (planner) Keys are `ON UPDATE CASCADE`, `ON DELETE NO ACTION`. `platform_object_refs` (platform, ref) cascades too, so a learned link carries old aliases.
 - 2026-10-20 (planner) `platform_objects` is not audited: every sighting writes `last_seen`. The role tables are audited, so a cascade shows there. `platform_object_refs` is audited.
 - 2026-10-20 (planner) `linkRefs` has no runtime caller today (no LinkedIn pair is known). It ships with `wren objects find|link` and its tests, and merges by a declarative role list in core (`objects/roles.ts`). An integration test checks that list against every foreign key to `platform_objects` in the database.
+- 2026-10-20 (O2) A DM or invite id is a message, not an object: `draft_events` keeps it in `meta.external_id` and leaves `external_id` null.
+- 2026-10-20 (O2, O3) A send never fails on an id no rule reads. The writer keeps a null ref and a note (`resolveObjectOrNull`); a pasted ref no rule reads is refused.
+- 2026-10-20 (O2) `comments` columns stay varchar(200): views read the table, so its column types cannot change. `canonRef` caps a ref at 200.
+- 2026-10-20 Dry runs on prod and the three client databases (rolled back): 0311, 0312, 0313 apply. Main gets 6,621 objects and 6,371 aliases; 15 keys; 3 Reddit drafts move to `t3_`; no twins.
