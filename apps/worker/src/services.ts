@@ -1219,6 +1219,7 @@ export async function buildServices(
             files: githubRepo({
               token: settings.shapesGithubToken,
               repo: settings.shapesGithubRepo,
+              api: settings.shapesGithubApi,
             }),
             repo: settings.shapesGithubRepo,
           }

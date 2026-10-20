@@ -13,16 +13,21 @@ export interface GithubFiles {
   lastCommit(path: string): Promise<string | null>;
 }
 
-/** GitHub's contents API on `repo` ("owner/name"), main branch unless `branch` says, with a token for that repo. */
+/**
+ * The contents API on `repo` ("owner/name"), main branch unless `branch` says, with a token for
+ * that repo. `api` is GitHub's by default; a self-hosted Forgejo or Gitea answers the same
+ * contents and commits calls at `https://<host>/api/v1`, so one setting moves the repo there.
+ */
 export function githubRepo(o: {
   token: string;
   repo: string;
   branch?: string;
+  api?: string;
   fetch?: typeof fetch;
 }): GithubFiles {
   const f = o.fetch ?? fetch;
   const branch = o.branch ?? "main";
-  const api = `https://api.github.com/repos/${o.repo}`;
+  const api = `${(o.api ?? "https://api.github.com").replace(/\/+$/, "")}/repos/${o.repo}`;
   const at = (path: string) =>
     `${api}/contents/${path.split("/").map(encodeURIComponent).join("/")}`;
   const headers = {

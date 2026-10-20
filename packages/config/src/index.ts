@@ -222,6 +222,8 @@ export const settingsSchema = z.object({
   shapesGithubToken: z.string().min(1).optional(),
   /** The private repo the shape mirror commits to, owner/name. */
   shapesGithubRepo: z.string().default("wrenautomation/sops"),
+  /** The API the shape mirror talks to: GitHub's, or a self-hosted Forgejo/Gitea (`https://git.example.com/api/v1`), whose contents API matches. */
+  shapesGithubApi: z.string().url().default("https://api.github.com"),
   /** The lander's /api/edge bearer (its EDGE_TOKEN secret): flags pushed there. A secret. */
   siteEdgeToken: z.string().min(1).optional(),
   /**
@@ -663,6 +665,7 @@ export const ENV_KEYS = {
   landerRepo: "WREN_LANDER_REPO",
   shapesGithubToken: "WREN_SHAPES_GITHUB_TOKEN",
   shapesGithubRepo: "WREN_SHAPES_GITHUB_REPO",
+  shapesGithubApi: "WREN_SHAPES_GITHUB_API",
   siteEdgeToken: "WREN_SITE_EDGE_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
   searchSite: "WREN_SEARCH_SITE",

@@ -309,7 +309,11 @@ registerPipeline(program, withDb, withMainDb, journeyWrites);
 const shapeMirror = (db: Db, workspace: string) =>
   mirrorShapes(db, {
     files: settings.shapesGithubToken
-      ? githubRepo({ token: settings.shapesGithubToken, repo: settings.shapesGithubRepo })
+      ? githubRepo({
+          token: settings.shapesGithubToken,
+          repo: settings.shapesGithubRepo,
+          api: settings.shapesGithubApi,
+        })
       : null,
     repo: settings.shapesGithubRepo,
     workspace,
