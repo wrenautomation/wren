@@ -223,6 +223,13 @@ export {
   type Touch,
   wireLines,
 } from "./graph/index.js";
+export {
+  FLOAT_PANEL,
+  PaletteDrawer,
+  type PaletteEntry,
+  type PaletteGroup,
+  PanelBlock,
+} from "./graph/palette.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";
 export { clipProps, type TipOptions, type TipProps, tipProps, whenTip } from "./hint.js";
 export { HintLayer, Why } from "./hint-layer.js";

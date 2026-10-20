@@ -32,6 +32,7 @@ Every story set has `default`, `empty`, `loading`, `failed`, `worst-case`; extra
 | a before/after | `Diff` `diff.tsx:62` | `diff` | Tables |
 | tile sparks, trends, funnels | `Sparkline`, `TrendChart`, `BarsChart` `charts/index.tsx:43` | `charts` | Charts |
 | a graph: ribbons (people as width), loops, diff marks, export | `Graph` `graph/index.tsx`, `ribbonWidth` `graph/model.ts:111` | `ribbons` (`Graph/Ribbons`: default, dark, empty, loading, failed, loops, worst-case) | Motion |
+| the parts to drag onto a graph editor (the workflow editor) | `PaletteDrawer`, `PanelBlock` `graph/palette.tsx` | the workflow editor's page stories | Cards |
 | `queue`, `form`, `shop`, `overview` pages | `RecordQueue` `queue.tsx:52`, `RecordForm` `form.tsx:27`, `RecordShop` `shop.tsx:37`, `RecordOverview` `overview.tsx:135` | none yet | Lists and records, Cards |
 
 No part story: the portal's marketing pieces (`modules/marketing/pieces.tsx`, `plan.tsx`, `videos.tsx`) import `api.ts` at load. Tune them in their page story (`pages-wren--marketing`, `pages-wren--today`).
