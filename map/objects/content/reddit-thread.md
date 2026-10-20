@@ -3,8 +3,8 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-18 @ 83b009b9 (karma places)
-entity: packages/outreach/src/schema.ts:414
+verified: 2026-10-20 (O3, wa-yvs.3; thread, target and answer keyed to platform_objects)
+entity: packages/outreach/src/schema.ts:626
 ---
 
 # reddit-thread (Reddit discovery: places, threads, people)
@@ -17,9 +17,10 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 
 ## Shape
 
-- `reddit_places` (`schema.ts:381`): subreddit pk; `found_by`, raw about/rules/sample, `judged` (fit, rules in words, may comment/post, karma and age floors, pace), `state` found/watching/skipped, `account_id` (one pool account per place), `read_at` (monthly), `threads_at` (every 2 h)
-- `reddit_threads` (`:414`): post fullname pk; raw post, `dropped` (code's reason), `kind`/`fit`/`angle` (model), `target` (the post or a top-level comment that asks), `draft`, `sources`, `state` new/dropped/ranked/queued/commented/skipped, `answer_ref`, `score` (read back after 2 days)
-- `reddit_people` (`:345`): handle pk (lowercase); raw reads, code `facts` (age, karma, places, domains, peak hour), model `read` (quoted facts), `fit`, `site` (only a host in their own words)
+- `reddit_places` (`schema.ts:588`): subreddit pk; `found_by`, raw about/rules/sample, `judged` (fit, rules in words, may comment/post, karma and age floors, pace), `state` found/watching/skipped, `account_id` (one pool account per place), `read_at` (monthly), `threads_at` (every 2 h)
+- `reddit_threads` (`:626`): post fullname pk (`id`, `t3_<id>`); `platform` (always `reddit`, a check; the platform half of the keys below); raw post, `dropped` (code's reason), `kind`/`fit`/`angle` (model), `target` (the post or a top-level comment that asks), `draft`, `sources`, `state` new/dropped/ranked/queued/commented/skipped, `answer_ref`, `score` (read back after 2 days)
+- Objects (migration 0313, [[content/platform-object]]): `id` (the post), `target` (post or comment) and `answer_ref` (our comment) each hold a composite key (`platform`, column) to `platform_objects`, cascade on update. A thread cannot exist before its post is an object. `keepThreads` calls `resolveObjects` once per pass (3 statements per 5,000 threads, in the same transaction as the insert); a post whose name no rule reads is skipped. `draftThread` makes the `target` comment an object (kind comment, under the thread) with the update; a comment name no rule reads falls back to the post. `markCommented` makes our reply an object (under the comment it answers) in the same transaction as the row; a ref no rule reads stores no `answer_ref` and never fails the send. `queuePastedThread` refuses a name no rule reads (`ReachRefusal`)
+- `reddit_people` (`:551`): handle pk (lowercase); raw reads, code `facts` (age, karma, places, domains, peak hour), model `read` (quoted facts), `fit`, `site` (only a host in their own words)
 - Code: `packages/outreach/src/discovery/`: `reads.ts` (`signedOut`, `reader`: `searchPlaces` Reddit, `exaPlaces` Exa via `web /search`, `subredditsIn`), `places.ts` (`discoverySettingsSchema`, `topicsOf`, `judgePlace`, `keepPlace` flags rule changes, `accountFor`, `watchPlace`), `threads.ts` (`dropReason`, `rankThreads` (each pass ranks every unranked thread of the place, `unrankedThreads`, so one the model left out isn't stuck), `queueThreads` under the rung's cap, counted per account across all its subs (queued plus sent today), so the queue never outgrows what the account sends; `expireStale` skips any unslotted new or queued thread past 36 h in every sub, each pass, `draftThread` (the prompt carries Wren's facts, `factsBlock`; then the facts guard, `guardDraft`: made up twice is `dropped`, a `runs` row `guard`), `planThreadComment` (holds a sub whose karma or age rule we don't meet, [[content/reddit-requirement]]), `commentsToday`), `people.ts` (`personFacts`, `readWords`, `readPerson` 30-day fresh, `peopleToRead`: commenters on our posts and Reddit DM contacts)
 - A person read (`channel-reddit` `enrich`, 2026-10-15): one `/user/{h}/overview` (posts and comments together) plus the card; `find` and `learn` remember `author_fullname` ids so the first card read takes up to 100 cards in one `/api/user_data_by_account_ids` read; a 403 on a card reads the person without one and is not asked again that run. The signed-out reader (`reader` with no account) reads no cards at all (`cards: false`): Reddit has refused every signed-out card read (`/user/{h}/about`, `/api/user_data_by_account_ids`) with 403 since 2026-10-13, and autobrowse spent a read on each
 - Caps: a used daily cap (autobrowse's 429 with a wait of hours, `capWaitMs`) holds that reader until it resets, in the object's state `capHolds` (`reddit-public`, or an account), so no pass asks it again (2026-10-15). No error and no 6-hour sleep: while signed out is held, places, listings, people and scores wait; a draft reads its thread signed in as its account, a thread with no account waits. `place` lets a cap end the read instead of reading about and rules as unknown
@@ -35,6 +36,7 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 ## Connected to
 
 - **joins:** [[content/reddit-requirement]] (a sub's karma, age or unknown-gate hold: the comment stays queued, none sent, or goes from the other account)
+- **joins:** [[content/platform-object]] (`id`, `target` and `answer_ref` are keyed to it; `wren objects link` refuses when both thread rows exist)
 - **joins:** [[content/send-attempt]] (`commentThread` claims `thread:<id>` before sending; an unknown outcome is found on the site, sent once more, or waits in To approve)
 - **joins:** [[content/comment-proof]] (each sent comment checked at 2 min, 1 h, 24 h: live, hidden or missing)
 - **joins:** [[leads/touch]] (our comment is an ours touch `rt:<id>` on the OP, or a reply to the commenter who asked)

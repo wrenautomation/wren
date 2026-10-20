@@ -4,6 +4,7 @@
  * names. A comment in a sub we don't qualify for stays queued with its reason, comes off the
  * schedule, and goes from the other account when only that one qualifies.
  */
+import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
@@ -72,6 +73,7 @@ async function place(sub: string, accountId: string | null, purpose: "reach" | "
 }
 
 async function thread(id: string, sub: string, accountId: string | null, draft = "A fact.") {
+  await resolveObjects(db(), [{ platform: "reddit", kind: "post", raw: id }]);
   await db()
     .insert(redditThreads)
     .values({

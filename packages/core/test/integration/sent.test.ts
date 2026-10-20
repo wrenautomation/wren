@@ -12,6 +12,7 @@ import {
 } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { resolveObjects } from "../../src/objects/index.js";
 import { serveRecords } from "../../src/records-serve.js";
 import { SENT_RECORDS, sentDetail } from "../../src/sent-records.js";
 
@@ -403,15 +404,19 @@ describe("DMs, comments and newsletters", () => {
       (platform, ref, post, parent, kind, author, body, url, at, raw, answer, answered_at, channel)
       values ('youtube', 'c1', 'p1', 'p1', 'post_reply', 'Pat', 'Great video', 'https://example.test/c1',
         ${at(0)}, '{}'::jsonb, 'Thank you, Pat', ${at(10)}, 'content')`);
+    await resolveObjects(pg.db, [
+      { platform: "linkedin", kind: "post", raw: "urn:li:share:1" },
+      { platform: "reddit", kind: "post", raw: "t3_t1" },
+    ]);
     await run(sql`insert into reach_posts (ref, author, text, url, found_by, account, raw, comment, commented_at)
-      values ('r1', 'Sam', 'A post', 'https://example.test/r1', 'search', 'acct', '{}'::jsonb,
+      values ('urn:li:share:1', 'Sam', 'A post', 'https://example.test/r1', 'search', 'acct', '{}'::jsonb,
         'Nice point', ${at(20)})`);
     await run(
       sql`insert into reddit_places (subreddit, name, found_by) values ('example', 'example', 'named')`,
     );
     await run(sql`insert into reddit_threads
       (id, subreddit, title, body, author, url, posted_at, comments, raw, answer, answered_at)
-      values ('t1', 'example', 'Question', 'Body', 'kim', 'https://example.test/t1', ${at(0)}, 0,
+      values ('t3_t1', 'example', 'Question', 'Body', 'kim', 'https://example.test/t1', ${at(0)}, 0,
         '{}'::jsonb, 'Here is how', ${at(30)})`);
     const rows = await log();
     const kinds = [...rows.values()].map((r) => [r.id, r.kind, r.state]);
@@ -420,7 +425,7 @@ describe("DMs, comments and newsletters", () => {
       expect.arrayContaining(["comment", "sent"]),
       expect.arrayContaining(["comment", "sent"]),
     ]);
-    expect(rows.get("thread:t1")).toMatchObject({
+    expect(rows.get("thread:t3_t1")).toMatchObject({
       channel: "reddit",
       key_kind: "handle:reddit",
       campaign: "r/example",

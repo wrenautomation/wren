@@ -14,6 +14,7 @@ import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { factsBlock, humanBlock } from "@wren/core/facts";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
+import { CanonError, canonRef, resolveObject, resolveObjects } from "@wren/core/objects";
 import {
   COMMENT_RULE,
   cleanComment,
@@ -26,7 +27,7 @@ import type { AccountHealth } from "@wren/core/outreach";
 import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
 import { wallClock, zonedInstant } from "@wren/core/time";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -103,7 +104,21 @@ export function dropReason(
   return null;
 }
 
-/** Keep every new post raw; answers the ids that passed the code filter. */
+/** A Reddit post's fullname, or null for a name no rule reads. */
+function postRefOf(name: string | undefined): string | null {
+  if (!name) return null;
+  try {
+    return canonRef("reddit", "post", name);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Keep every new post raw; answers the ids that passed the code filter. Each post is a platform
+ * object first (`resolveObjects`: three statements for the whole pass), and its row keeps the ref
+ * that comes back.
+ */
 export async function keepThreads(
   db: Queryable,
   sub: string,
@@ -111,11 +126,12 @@ export async function keepThreads(
   o: { now: Date; ours: readonly string[]; judged: PlaceJudged | null; purpose?: PlacePurpose },
 ): Promise<string[]> {
   const passed = await passedOn(db, "reddit");
-  const rows = posts.flatMap((p) =>
-    p.name && p.created_utc
+  const rows = posts.flatMap((p) => {
+    const id = postRefOf(p.name);
+    return id && p.created_utc
       ? [
           {
-            id: p.name,
+            id,
             subreddit: sub,
             title: p.title ?? "",
             body: p.selftext ?? "",
@@ -129,15 +145,34 @@ export async function keepThreads(
               : dropReason(p, o),
           },
         ]
-      : [],
-  );
+      : [];
+  });
   if (!rows.length) return [];
-  const made = await db
-    .insert(redditThreads)
-    .values(rows.map((r) => ({ ...r, state: r.dropped ? ("dropped" as const) : ("new" as const) })))
-    .onConflictDoNothing()
-    .returning({ id: redditThreads.id, dropped: redditThreads.dropped });
-  return made.filter((m) => !m.dropped).map((m) => m.id);
+  return atomic(db, async (tx) => {
+    const refs = await resolveObjects(
+      tx,
+      rows.map((r) => ({
+        platform: "reddit" as const,
+        kind: "post" as const,
+        raw: r.id,
+        url: r.url,
+        author: r.author === "[deleted]" ? null : r.author,
+        at: r.postedAt,
+      })),
+    );
+    const made = await tx
+      .insert(redditThreads)
+      .values(
+        rows.map((r) => ({
+          ...r,
+          id: refs.get(r.id) ?? r.id,
+          state: r.dropped ? ("dropped" as const) : ("new" as const),
+        })),
+      )
+      .onConflictDoNothing()
+      .returning({ id: redditThreads.id, dropped: redditThreads.dropped });
+    return made.filter((m) => !m.dropped).map((m) => m.id);
+  });
 }
 
 const RANK_SYSTEM = `You pick Reddit threads where we can add something useful in a comment. We \
@@ -581,15 +616,21 @@ export async function draftThread(
     ...(opLine ? [{ label: `u/${t.author}`, text: opLine }] : []),
     ...ours.map((f) => ({ label: f.label, text: f.text.slice(0, 300) })),
   ];
-  await db
-    .update(redditThreads)
-    .set({
-      draft: g.text,
-      target: target?.name ?? t.id,
-      targetText: target ? `u/${target.author}: ${target.body ?? ""}` : null,
-      sources,
-    })
-    .where(eq(redditThreads.id, id));
+  // The comment we answer is a platform object (a top-level one: its parent is the post). A name
+  // no rule reads falls back to the post, which the thread row already names.
+  const targetRef = await atomic(db, async (tx) => {
+    const ref = target ? await commentRefOf(tx, t.id, target) : t.id;
+    await tx
+      .update(redditThreads)
+      .set({
+        draft: g.text,
+        target: ref,
+        targetText: target ? `u/${target.author}: ${target.body ?? ""}` : null,
+        sources,
+      })
+      .where(eq(redditThreads.id, id));
+    return ref;
+  });
   await recordDraft(db, {
     item: `thread:${id}`,
     kind: "thread",
@@ -598,11 +639,35 @@ export async function draftThread(
     via: "model",
     by: picked.llm.name,
     text: g.text,
-    llm: llmOf(out, "reddit.draft", { target: target?.name ?? t.id }),
+    llm: llmOf(out, "reddit.draft", { target: targetRef }),
     runId: out.call?.run_id ?? null,
     meta: armMeta(picked.arm),
   });
   return "drafted";
+}
+
+/**
+ * A top-level comment in a thread as a platform object: the ref the row keeps. Falls back to the
+ * thread's own post for a name no rule reads, so the key never fails on a model's pick.
+ */
+async function commentRefOf(
+  tx: Queryable,
+  post: string,
+  c: { name: string; author?: string },
+): Promise<string> {
+  try {
+    return await resolveObject(tx, {
+      platform: "reddit",
+      kind: "comment",
+      raw: c.name,
+      post,
+      parent: post,
+      author: c.author && c.author !== "[deleted]" ? c.author : null,
+    });
+  } catch (e) {
+    if (e instanceof CanonError) return post;
+    throw e;
+  }
 }
 
 export interface CommentPlan {
@@ -671,17 +736,42 @@ export async function markCommented(
   id: string,
   r: { body: string; ref: string | null; accountId: string; now: Date; by?: string },
 ): Promise<void> {
-  const [t] = await db
-    .update(redditThreads)
-    .set({
-      state: "commented",
-      answer: r.body,
-      answerRef: r.ref,
-      answeredAt: r.now,
-      accountId: r.accountId,
-    })
-    .where(eq(redditThreads.id, id))
-    .returning({ url: redditThreads.url });
+  // Our reply is a platform object before its ref lands on the row, in the same transaction: a
+  // key that fails cannot fail after the send. A ref no rule reads (the send answered something
+  // odd) is kept on the send ledger and the draft record, not here.
+  const { t, answerRef } = await atomic(db, async (tx) => {
+    const [thread] = await tx
+      .select({ target: redditThreads.target })
+      .from(redditThreads)
+      .where(eq(redditThreads.id, id));
+    let ref: string | null = null;
+    if (r.ref) {
+      try {
+        ref = await resolveObject(tx, {
+          platform: "reddit",
+          kind: "comment",
+          raw: r.ref,
+          post: id,
+          parent: thread?.target ?? id,
+          at: r.now,
+        });
+      } catch (e) {
+        if (!(e instanceof CanonError)) throw e;
+      }
+    }
+    const [row] = await tx
+      .update(redditThreads)
+      .set({
+        state: "commented",
+        answer: r.body,
+        answerRef: ref,
+        answeredAt: r.now,
+        accountId: r.accountId,
+      })
+      .where(eq(redditThreads.id, id))
+      .returning({ url: redditThreads.url });
+    return { t: row, answerRef: ref };
+  });
   await keepTouch(`rt:${id}`, () => touchFromThread(db, id));
   await recordDraft(db, {
     item: `thread:${id}`,
@@ -691,7 +781,7 @@ export async function markCommented(
     via: "person",
     by: r.by ?? null,
     text: r.body,
-    externalId: r.ref,
+    externalId: answerRef ?? r.ref,
     url: whereSent("reddit", t?.url ?? null, r.ref),
     ref: `sent:thread:${id}`,
   });

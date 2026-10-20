@@ -5,8 +5,9 @@
  */
 import { companies, people } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { resolveObjects } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   GROUP_READ_BUCKET,
@@ -108,6 +109,16 @@ describe("groupSearchUnit", () => {
       ["100002", null, null],
     ]);
     expect(posts[0]?.raw).toEqual({ hit: SEARCH.groups[0]?.posts[0] });
+    // Each group and post is a platform object first: the keys hold only because they are.
+    const objects = await db().execute<{ ref: string; kind: string }>(
+      sql`select ref, kind from platform_objects where platform = 'facebook' order by kind, ref`,
+    );
+    expect([...objects].map((o) => [o.kind, o.ref])).toEqual([
+      ["group", "123456789"],
+      ["group", "staffing-owners"],
+      ["post", "100001"],
+      ["post", "100002"],
+    ]);
 
     // The same search again: the latest hit, no second group or post.
     const again = await groupSearchUnit(db(), sites, { q: "owners", niche: "n" });
@@ -247,6 +258,10 @@ describe("mapPosts", () => {
     text: string | null,
     links: string | null,
   ) {
+    await resolveObjects(db(), [
+      { platform: "facebook", kind: "group", raw: `g${ref}` },
+      { platform: "facebook", kind: "post", raw: ref },
+    ]);
     const [g] = await db()
       .insert(socialGroups)
       .values({
@@ -344,6 +359,7 @@ describe("mapPosts", () => {
     await readPost("200005", "Sam Twin", "plain post", null);
     await readPost("200006", "Nobody Known", "Dune Hiring is great", null);
     // Never read: nothing to map.
+    await resolveObjects(db(), [{ platform: "facebook", kind: "post", raw: "200007" }]);
     await db()
       .insert(socialPosts)
       .values({

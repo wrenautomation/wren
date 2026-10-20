@@ -7,6 +7,7 @@
  *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_outreach_preview \
  *     npx tsx packages/content/test/outreach-preview.ts
  */
+import { resolveObjects } from "@wren/core/objects";
 import { createDb, migrate } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { INBOX_TABLES, seedInbox } from "./inbox-seed.js";
@@ -57,6 +58,9 @@ await db.execute(sql`insert into reach_messages (contact_id, account_id, directi
   values (${accepted}, ${main?.id}, 'out', 'connect', '', 'sent', ${ago(3000)}, ${ago(3000)})`);
 
 // Someone else's post, our comment drafted and queued.
+await resolveObjects(db, [
+  { platform: "linkedin", kind: "post", raw: "urn:li:activity:7000000000000000001" },
+]);
 await db.execute(sql`insert into reach_posts (platform, ref, author, handle, headline, text, url,
     posted_at, found_by, account, fit, why, state, draft, queued_at, raw)
   values ('linkedin', 'urn:li:activity:7000000000000000001', 'Pat Example', 'pat-example',

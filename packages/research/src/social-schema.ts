@@ -3,6 +3,7 @@
  * groups it found, and the public posts in them. Every read is kept whole in a `jsonb` column
  * and filtered when it is used; a post that never maps to a firm stays with its group.
  */
+import { platformObjects } from "@wren/core/objects-schema";
 import { companies, people } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
 import {
@@ -81,6 +82,13 @@ export const socialGroups = pgTable(
     unique("uq_social_groups_ref").on(t.network, t.ref),
     index("ix_social_groups_niche_read").on(t.niche, t.readAt),
     oneOf("ck_social_groups_socialnetwork", t.network, SOCIAL_NETWORKS),
+    // The group is a platform object (designs/2026-10-20-platform-objects.md); the unique key
+    // above is the index this key's cascade reads.
+    foreignKey({
+      columns: [t.network, t.ref],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_social_groups_network_ref_platform_objects",
+    }).onUpdate("cascade"),
   ],
 );
 export type SocialGroup = typeof socialGroups.$inferSelect;
@@ -134,6 +142,11 @@ export const socialPosts = pgTable(
     }),
     oneOf("ck_social_posts_socialnetwork", t.network, SOCIAL_NETWORKS),
     oneOf("ck_social_posts_postmapping", t.mappedBy, POST_MAPPINGS),
+    foreignKey({
+      columns: [t.network, t.ref],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_social_posts_network_ref_platform_objects",
+    }).onUpdate("cascade"),
   ],
 );
 export type SocialPost = typeof socialPosts.$inferSelect;

@@ -13,6 +13,7 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { draftTurns, editsFor, keepSentEdit } from "@wren/core/ask";
 import { recordDraft } from "@wren/core/draft-record";
+import { resolveObjects } from "@wren/core/objects";
 import { startTestRestate } from "@wren/core/testing";
 import {
   commentObjects,
@@ -268,6 +269,7 @@ describe("drafts from a terminal", () => {
 
 describe("a LinkedIn comment on someone else's post", () => {
   it("reads with the post, waits, takes his words, and closes once commented", async () => {
+    await resolveObjects(pg.db, [{ platform: "linkedin", kind: "post", raw: "urn:li:activity:9" }]);
     const [p] = await pg.db
       .insert(reachPosts)
       .values({

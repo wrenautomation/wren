@@ -6,6 +6,7 @@
  */
 import { recordDraft } from "@wren/core/draft-record";
 import { editRecord } from "@wren/core/edits";
+import { resolveObjects } from "@wren/core/objects";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -281,6 +282,9 @@ describe("marketing.approval: what we'd send", () => {
 
 describe("marketing.engage: outbound comments in one queue", () => {
   it("holds others' posts with our comment drafted; a post draft waits elsewhere", async () => {
+    await resolveObjects(pg.db, [
+      { platform: "linkedin", kind: "post", raw: "urn:li:activity:9901" },
+    ]);
     const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,
         found_by, account, fit, why, state, draft, queued_at, raw)
       values ('linkedin', 'urn:li:activity:9901', 'Synthetic Author', 'their synthetic post',
@@ -313,6 +317,9 @@ describe("marketing.engage: outbound comments in one queue", () => {
 
 describe("marketing.engage: Posted and Not live (comment proofs)", () => {
   it("lists sent comments newest first with their proof; Not live keeps hidden and missing", async () => {
+    await resolveObjects(pg.db, [
+      { platform: "linkedin", kind: "post", raw: "urn:li:activity:9921" },
+    ]);
     const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,
         found_by, account, state, comment, commented_at, raw)
       values ('linkedin', 'urn:li:activity:9921', 'Proof Author', 'a synthetic post',
@@ -342,6 +349,14 @@ describe("marketing.engage: Posted and Not live (comment proofs)", () => {
 
 describe("marketing.explore: found, not followed or picked yet", () => {
   it("found posts and ranked threads, best fit first; picked and old ones stay out", async () => {
+    await resolveObjects(pg.db, [
+      { platform: "linkedin", kind: "post", raw: "urn:li:activity:9911" },
+      ...["t3_syn1", "t3_syn2", "t3_syn3"].map((raw) => ({
+        platform: "reddit" as const,
+        kind: "post" as const,
+        raw,
+      })),
+    ]);
     const [p] = (await pg.db.execute(sql`insert into reach_posts (platform, ref, author, text, url,
         found_by, account, fit, why, state, raw)
       values ('linkedin', 'urn:li:activity:9911', 'Found Author', 'a found synthetic post',

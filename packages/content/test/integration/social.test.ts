@@ -17,6 +17,7 @@ import {
 } from "@wren/core/content";
 import { makeContent } from "@wren/core/content/restate";
 import type { Notifier } from "@wren/core/notify";
+import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import type { PassOutcome } from "@wren/core/restate";
 import type { SpineEvent } from "@wren/core/spine";
@@ -399,6 +400,10 @@ describe("SocialWatch", () => {
     });
     expect(inbox.find((r) => String(r.id).startsWith("connect:"))).toBeUndefined();
     // A comment drafted on someone else's LinkedIn post: the post, why, and our draft.
+    await resolveObjects(pg.db, [
+      { platform: "linkedin", kind: "post", raw: "urn:li:activity:1" },
+      { platform: "reddit", kind: "post", raw: "t3_q1" },
+    ]);
     const [lp] = await pg.db
       .insert(reachPosts)
       .values({

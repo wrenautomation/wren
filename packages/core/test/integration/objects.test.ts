@@ -2,6 +2,7 @@
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type { Platform } from "../../src/content/index.js";
 import {
   findObject,
   ITEM_HOMES,
@@ -35,6 +36,8 @@ beforeEach(async () => {
     "reach_posts",
     "reach_passes",
     "reddit_threads",
+    "social_posts",
+    "social_groups",
     "reddit_places",
     "reach_accounts",
     "draft_events",
@@ -88,6 +91,7 @@ async function comment(o: {
 }
 
 async function reachPost(platform: string, ref: string): Promise<number> {
+  await resolveObject(pg.db, { platform: platform as Platform, kind: "post", raw: ref });
   const [r] = await run(sql`
     insert into reach_posts (platform, ref, author, text, url, found_by, account, raw)
     values (${platform}, ${ref}, 'Example Author', 'a post', 'https://example.com/p', 'topic: test', ${`${platform}@test`}, '{}')
@@ -500,6 +504,9 @@ describe("linkRefs", () => {
 
   it("moves the columns that only name an object", async () => {
     await reddit();
+    await run(sql`insert into platform_objects (platform, ref, kind, post) values
+      ('reddit', 't3_old', 'post', null), ('reddit', 't1_zz', 'comment', 't3_old'),
+      ('reddit', 't1_ours', 'comment', 't3_old')`);
     await run(sql`insert into reddit_threads (id, subreddit, title, body, author, url, posted_at, comments, raw, target, answer_ref)
       values ('t3_old', 'example', 't', 'b', 'example-author', 'https://example.com', ${T(2).toISOString()}, 0, '{}', 't3_old', 't1_ours')`);
     await comment({ platform: "reddit", ref: "t1_zz", post: "t3_old", parent: "t3_old" });
@@ -529,16 +536,17 @@ describe("linkRefs", () => {
     expect((await run(sql`select post from platform_objects where ref = 't1_zz'`))[0]?.post).toBe(
       "t3_new",
     );
-    expect((await objects()).map((r) => r.ref)).toEqual(["t1_yy", "t1_zz", "t3_new"]);
+    expect((await objects()).map((r) => r.ref)).toEqual(["t1_ours", "t1_yy", "t1_zz", "t3_new"]);
   });
 
   it("refuses a table that keeps one row per object, names both rows and changes nothing", async () => {
     await reddit();
-    for (const id of ["t3_aaa", "t3_bbb"])
+    for (const id of ["t3_aaa", "t3_bbb"]) {
+      await resolveObject(pg.db, { platform: "reddit", kind: "post", raw: id });
       await run(sql`insert into reddit_threads (id, subreddit, title, body, author, url, posted_at, comments, raw)
         values (${id}, 'example', 't', 'b', 'example-author', 'https://example.com', ${T(2).toISOString()}, 0, '{}')`);
+    }
     await comment({ platform: "reddit", ref: "t1_zz", post: "t3_bbb", parent: "t3_bbb" });
-    await resolveObject(pg.db, { platform: "reddit", kind: "post", raw: "t3_aaa" });
     const before = await objects();
     const err = await linkRefs(pg.db, "reddit", "t3_aaa", "t3_bbb", { by: "test" }).catch((e) => e);
     expect(err).toBeInstanceOf(LinkRefusedError);
@@ -599,17 +607,78 @@ describe("linkRefs", () => {
 });
 
 describe("roles", () => {
-  it("lists every foreign key that points at platform_objects", async () => {
+  it("lists every foreign key that points at platform_objects, and every role has its key", async () => {
+    // One row per key: the table, the column that holds the ref, and the platform column beside it.
     const fks = await run(sql`
-      select c.conrelid::regclass::text tbl, a.attname col
-      from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+      select c.conrelid::regclass::text tbl,
+        max(a.attname) filter (where fa.attname = 'ref') col,
+        max(a.attname) filter (where fa.attname = 'platform') platform
+      from pg_constraint c
+      cross join lateral unnest(c.conkey, c.confkey) as k(src, dst)
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.src
+      join pg_attribute fa on fa.attrelid = c.confrelid and fa.attnum = k.dst
       where c.contype = 'f' and c.confrelid = 'platform_objects'::regclass
-        and c.conrelid <> 'platform_object_refs'::regclass`);
-    // A key is (platform, ref): both columns belong to a role.
-    const roles = new Set(
-      OBJECT_ROLES.flatMap((r) => [`${r.table}.${r.column}`, `${r.table}.${r.platform}`]),
+        and c.conrelid <> 'platform_object_refs'::regclass
+      group by c.oid, c.conrelid`);
+    const keys = fks.map((f) => `${f.tbl}.${f.col} on ${f.platform}`).sort();
+    const roles = OBJECT_ROLES.map((r) => `${r.table}.${r.column} on ${r.platform}`).sort();
+    expect(keys).toEqual(roles);
+  });
+
+  it("holds every post, comment and group to an object: an unknown ref fails on the key", async () => {
+    await reddit();
+    const why = async (q: ReturnType<typeof sql>): Promise<string> => {
+      try {
+        await pg.db.execute(q);
+        return "no error";
+      } catch (e) {
+        return String((e as { cause?: { message?: string } }).cause?.message ?? e);
+      }
+    };
+    const thread = (cols: string, vals: ReturnType<typeof sql>) =>
+      sql`insert into reddit_threads (id, subreddit, title, body, author, url, posted_at, comments, raw${sql.raw(cols)})
+        values ('t3_known', 'example', 't', 'b', 'example-author', 'https://example.com', ${T(2).toISOString()}, 0, '{}'${vals})`;
+    expect(await why(thread("", sql``))).toContain(
+      "fk_reddit_threads_platform_id_platform_objects",
     );
-    expect(fks.filter((f) => !roles.has(`${f.tbl}.${f.col}`))).toEqual([]);
+    await resolveObject(pg.db, { platform: "reddit", kind: "post", raw: "t3_known" });
+    expect(await why(thread(", target", sql`, 't1_nope'`))).toContain(
+      "fk_reddit_threads_platform_target_platform_objects",
+    );
+    expect(await why(thread(", answer_ref", sql`, 't1_nope'`))).toContain(
+      "fk_reddit_threads_platform_answer_ref_platform_objects",
+    );
+    expect(await why(thread("", sql``))).toBe("no error");
+    // The platform is always reddit.
+    expect(await why(sql`update reddit_threads set platform = 'x'`)).toContain(
+      "ck_reddit_threads_platform",
+    );
+    expect(
+      await why(sql`insert into reach_posts (platform, ref, author, text, url, found_by, account, raw)
+      values ('linkedin', 'urn:li:share:99', 'a', 'b', 'https://example.com/p', 'topic', 'x@test', '{}')`),
+    ).toContain("fk_reach_posts_platform_ref_platform_objects");
+    expect(
+      await why(sql`insert into social_groups (network, ref, niche, keyword, url, hit)
+      values ('facebook', 'example-group', 'n', 'k', 'https://example.com/g', '{}')`),
+    ).toContain("fk_social_groups_network_ref_platform_objects");
+    await resolveObject(pg.db, { platform: "facebook", kind: "group", raw: "example-group" });
+    await run(sql`insert into social_groups (network, ref, niche, keyword, url, hit)
+      values ('facebook', 'example-group', 'n', 'k', 'https://example.com/g', '{}')`);
+    expect(
+      await why(sql`insert into social_posts (network, group_id, ref, url, raw)
+      values ('facebook', (select id from social_groups limit 1), '1234567', 'https://example.com/p', '{}')`),
+    ).toContain("fk_social_posts_network_ref_platform_objects");
+  });
+
+  it("follows a spelling the link changes: the keys cascade", async () => {
+    await resolveObject(pg.db, { platform: "reddit", kind: "post", raw: "t3_cc" });
+    await run(sql`update platform_objects set ref = 't3_dd' where ref = 't3_cc'`);
+    await reddit();
+    await resolveObject(pg.db, { platform: "reddit", kind: "post", raw: "t3_ee" });
+    await run(sql`insert into reddit_threads (id, subreddit, title, body, author, url, posted_at, comments, raw)
+      values ('t3_ee', 'example', 't', 'b', 'example-author', 'https://example.com', ${T(2).toISOString()}, 0, '{}')`);
+    await run(sql`update platform_objects set ref = 't3_ff' where ref = 't3_ee'`);
+    expect((await run(sql`select id from reddit_threads`)).map((r) => r.id)).toEqual(["t3_ff"]);
   });
 
   it("names tables and columns that exist", async () => {
@@ -622,7 +691,7 @@ describe("roles", () => {
     );
     const missing: string[] = [];
     for (const r of OBJECT_ROLES) {
-      for (const c of [r.column, ...(r.platform ? [r.platform] : []), ...(r.key ?? []), "id"])
+      for (const c of [r.column, r.platform, ...(r.key ?? []), "id"])
         if (!cols.has(`${r.table}.${c}`)) missing.push(`${r.table}.${c}`);
     }
     for (const h of ITEM_HOMES)

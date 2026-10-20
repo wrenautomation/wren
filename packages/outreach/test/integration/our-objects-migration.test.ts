@@ -46,7 +46,7 @@ beforeAll(async () => {
   await run(
     `alter table comments add constraint ck_comments_reddit_ref check (platform <> 'reddit' or ref ~ '^t1_')`,
   );
-  await run(`truncate platform_object_refs, platform_objects`);
+  await run(`truncate platform_object_refs, platform_objects cascade`);
   await seed();
   for (const statement of STATEMENTS) await run(statement);
 });

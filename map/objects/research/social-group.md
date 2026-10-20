@@ -18,14 +18,17 @@ Every read is kept whole and filtered when used. A search keeps the route's whol
 ## Shape
 
 - `social_searches`: `network`, `niche`, `keyword`, `n`, `groups`, `answer` (jsonb), `searched_at`
-- `social_groups`: unique `(network, ref)`, `niche`, `keyword` (first finder), `name`, `url`, `about` (jsonb), `hit` (jsonb, last), `error`, `read_at`
-- `social_posts`: unique `(network, ref)`, `group_id`, `author`, `posted` (as shown, never parsed), `text`, `raw` (jsonb: `hit`, `post`, `comments`), `company_id`, `person_id`, `mapped_by`, `error`, `read_at`
+- `social_groups`: unique `(network, ref)`, a key to `platform_objects` (kind group), `niche`, `keyword` (first finder), `name`, `url`, `about` (jsonb), `hit` (jsonb, last), `error`, `read_at`
+- `social_posts`: unique `(network, ref)`, a key to `platform_objects` (kind post), `group_id`, `author`, `posted` (as shown, never parsed), `text`, `raw` (jsonb: `hit`, `post`, `comments`), `company_id`, `person_id`, `mapped_by`, `error`, `read_at`
+
+Objects (migration 0313, [[content/platform-object]]): a group and a post are objects before their rows land. `groupSearchUnit` calls `resolveObject` for the group and `resolveObjects` for its posts in the same transaction as the inserts; the facebook platform holds both kinds, so a group ref and a post ref must differ (they do on prod).
 
 Citations: `packages/research/src/social-schema.ts`, `packages/research/src/enrichment/fb-groups.ts`
 
 ## Connected to
 
 - **owns:** the group and post rows
+- **joins:** [[content/platform-object]] (`social_groups.ref` and `social_posts.ref` are keyed to it; `network` is the platform column)
 - **joins:** [[leads/company]] and [[leads/person]] (a mapped post), `findings` (the `post` finding)
 - **looks-like-but-is-not:** `ad_library` imports (a firm that pays for ads), which add firms; groups add evidence to firms already held
 

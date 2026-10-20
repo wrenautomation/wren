@@ -1,8 +1,8 @@
 /**
  * Platform objects (designs/2026-10-20-platform-objects.md): one row per post, comment or group on
  * a platform, under one canonical spelling (`objects/canon.ts`). `platform_object_refs` keeps every
- * other spelling seen (a bare id, a URL, a LinkedIn activity URN) and points it at the row. Role
- * tables that name a post or comment point at the row with a composite key (briefs O2 and O3).
+ * other spelling seen (a bare id, a URL, a LinkedIn activity URN) and points it at the row. Every
+ * role table (`objects/roles.ts`) points at the row with a composite key (platform, ref).
  * Writers go through `resolveObject` (`./objects/index.ts`), never insert here by hand.
  */
 import { oneOf } from "@wren/db/columns";

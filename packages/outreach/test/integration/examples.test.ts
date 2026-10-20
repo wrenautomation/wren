@@ -4,6 +4,7 @@
  * Synthetic rows only.
  */
 import { recordDraft } from "@wren/core/draft-record";
+import { resolveObjects } from "@wren/core/objects";
 import {
   commentObjects,
   seedObjects,
@@ -75,6 +76,10 @@ describe("comment examples", () => {
     await pg.db
       .insert(redditPlaces)
       .values({ subreddit: "smallbiz", name: "smallbiz", foundBy: "named" });
+    await resolveObjects(pg.db, [
+      { platform: "reddit", kind: "post", raw: "t3_synth1" },
+      { platform: "linkedin", kind: "post", raw: "urn:li:activity:1" },
+    ]);
     await pg.db.insert(redditThreads).values({
       id: "t3_synth1",
       subreddit: "smallbiz",

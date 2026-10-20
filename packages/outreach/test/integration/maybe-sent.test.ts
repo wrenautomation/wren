@@ -11,6 +11,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { SiteCallError } from "@wren/core/content";
 import { DESK, restateSites } from "@wren/core/content/restate";
+import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import {
   currentSendKey,
@@ -511,6 +512,9 @@ describe("a Reddit comment, the whole way (ReachDesk commentThread)", () => {
       ],
       { now: NOW, ours: [], judged: JUDGED },
     );
+    await resolveObjects(db(), [
+      { platform: "reddit", kind: "comment", raw: "t1_ask", post: "t3_p1", parent: "t3_p1" },
+    ]);
     await db()
       .update(redditThreads)
       .set({ state: "queued", draft: WORDS, target: "t1_ask" })
@@ -788,6 +792,7 @@ describe("Not sent, drop, for each kind of item", () => {
       now: NOW,
     });
   const onePost = async () => {
+    await resolveObjects(db(), [{ platform: "linkedin", kind: "post", raw: "urn:li:activity:1" }]);
     const [p] = await db()
       .insert(reachPosts)
       .values({
@@ -878,6 +883,7 @@ describe("Not sent, drop, for each kind of item", () => {
 
 describe("the scheduler", () => {
   it("leaves an unsure comment alone", async () => {
+    await resolveObjects(db(), [{ platform: "linkedin", kind: "post", raw: "urn:li:activity:1" }]);
     const [p] = await db()
       .insert(reachPosts)
       .values({

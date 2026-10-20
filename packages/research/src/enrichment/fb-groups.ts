@@ -12,6 +12,7 @@
  */
 import { extractDomain, isPlatformDomain, registrableDomain } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
+import { resolveObject, resolveObjects } from "@wren/core/objects";
 import { atomic, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { eq, sql } from "drizzle-orm";
@@ -247,12 +248,19 @@ export async function groupSearchUnit(
   await atomic(db, async (tx) => {
     await keep(tx, answer, hits.length);
     for (const g of readable) {
+      // The group and its posts are platform objects first; the rows keep the refs that come back.
+      const groupRef = await resolveObject(tx, {
+        platform: FB_GROUPS_NETWORK,
+        kind: "group",
+        raw: g.group,
+        url: g.url,
+      });
       const [row] = await tx
         .insert(socialGroups)
         .values(
           pgSafe({
             network: FB_GROUPS_NETWORK,
-            ref: g.group,
+            ref: groupRef,
             niche: w.niche,
             keyword: w.q,
             name: str(g.name),
@@ -270,14 +278,24 @@ export async function groupSearchUnit(
         .returning({ id: socialGroups.id, created: sql<boolean>`(xmax = 0)` });
       if (!row) throw new Error(`group ${g.group} neither inserted nor updated`);
       if (row.created) groupsNew++;
-      for (const p of (g.posts ?? []).filter((p) => POST_REF.test(p.post))) {
+      const posts = (g.posts ?? []).filter((p) => POST_REF.test(p.post));
+      const postRefs = await resolveObjects(
+        tx,
+        posts.map((p) => ({
+          platform: FB_GROUPS_NETWORK,
+          kind: "post" as const,
+          raw: p.post,
+          url: p.url,
+        })),
+      );
+      for (const p of posts) {
         const made = await tx
           .insert(socialPosts)
           .values(
             pgSafe({
               network: FB_GROUPS_NETWORK,
               groupId: row.id,
-              ref: p.post,
+              ref: postRefs.get(p.post) ?? p.post,
               url: p.url,
               raw: { hit: p },
             }),

@@ -4,6 +4,7 @@
  * the thread (the guard drops one we're already in), commented once, and scored.
  */
 import { fakeOutreachChannel } from "@wren/core/outreach";
+import type { Db, Tx } from "@wren/db";
 import {
   commentObjects,
   seedObjects,
@@ -12,7 +13,7 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
 import {
@@ -48,13 +49,47 @@ import { ReachRefusal } from "../../src/refusal.js";
 import { scheduleThreads, THREAD_PACE } from "../../src/scheduled.js";
 import { comments, type ReachAccount, redditPlaces, redditThreads } from "../../src/schema.js";
 
-const TABLES = ["reddit_threads", "reddit_places", "reddit_people", "comments", "reach_accounts"];
+const TABLES = [
+  "reddit_threads",
+  "reddit_places",
+  "reddit_people",
+  "comments",
+  "reach_accounts",
+  "platform_objects",
+];
 const NOW = new Date("2026-10-06T18:00:00Z");
 const DAY = 86_400_000;
 const utc = (hoursAgo: number) => NOW.getTime() / 1000 - hoursAgo * 3600;
 
 let pg: TestPostgres;
 const db = () => pg.db;
+
+/** A handle that counts the `execute` calls made inside its transactions. */
+function countingDb(real: Db): { db: Db; executes: () => number } {
+  let n = 0;
+  const wrapTx = (tx: Tx): Tx =>
+    new Proxy(tx, {
+      get(target, prop) {
+        const v = Reflect.get(target, prop, target);
+        if (prop === "execute")
+          return (...a: unknown[]) => {
+            n++;
+            return (v as (...x: unknown[]) => unknown).apply(target, a);
+          };
+        return typeof v === "function" ? v.bind(target) : v;
+      },
+    });
+  const wrapped = new Proxy(real, {
+    get(target, prop) {
+      const v = Reflect.get(target, prop, target);
+      if (prop === "transaction")
+        return (fn: (tx: Tx) => Promise<unknown>, cfg?: unknown) =>
+          (v as (...x: unknown[]) => unknown).call(target, (tx: Tx) => fn(wrapTx(tx)), cfg);
+      return typeof v === "function" ? v.bind(target) : v;
+    },
+  });
+  return { db: wrapped, executes: () => n };
+}
 
 beforeAll(async () => {
   pg = await startTestPostgres();
@@ -98,6 +133,24 @@ const judged = (over = {}) => ({
   medianComments: 6,
   ...over,
 });
+
+/** The platform objects for these refs, in ref order. */
+async function objectsOf(refs: string[]) {
+  const rows = await db().execute<{
+    ref: string;
+    kind: string;
+    post: string | null;
+    parent: string | null;
+    author: string | null;
+  }>(
+    sql`select ref, kind, post, parent, author from platform_objects
+      where platform = 'reddit' and ref in (${sql.join(
+        refs.map((r) => sql`${r}`),
+        sql`, `,
+      )}) order by ref`,
+  );
+  return [...rows];
+}
 
 const post = (n: number, over: Partial<Post> = {}): Post => ({
   id: `p${n}`,
@@ -202,6 +255,11 @@ describe("reddit discovery", () => {
     expect(await draftThread(db(), writer, first, { ...deps, read: thread })).toBe("drafted");
     const [t] = await db().select().from(redditThreads).where(eq(redditThreads.id, first));
     expect(t).toMatchObject({ target: "t1_ask", draft: "We send the invoice from the CRM." });
+    // The post and the comment we answer are objects: the comment under its post.
+    expect(await objectsOf(["t3_p1", "t1_ask"])).toEqual([
+      { ref: "t1_ask", kind: "comment", post: first, parent: first, author: "cfo_jane" },
+      { ref: "t3_p1", kind: "post", post: null, parent: null, author: "owner1" },
+    ]);
     const met = {
       post: post(2),
       comments: [{ name: "t1_x", author: "wrenautomation", body: "hi", depth: 0 }],
@@ -211,6 +269,13 @@ describe("reddit discovery", () => {
     const plan = await planThreadComment(db(), first, NOW);
     expect(plan.account.id).toBe(a.id);
     await markCommented(db(), first, { body: "x", ref: "t1_ours", accountId: a.id, now: NOW });
+    // Our reply is an object under the comment we answered, and the row names it.
+    expect(await objectsOf(["t1_ours"])).toEqual([
+      { ref: "t1_ours", kind: "comment", post: first, parent: "t1_ask", author: null },
+    ]);
+    expect(
+      (await db().select().from(redditThreads).where(eq(redditThreads.id, first)))[0],
+    ).toMatchObject({ platform: "reddit", answerRef: "t1_ours", state: "commented" });
     await expect(planThreadComment(db(), first, NOW)).rejects.toThrow(/already commented/);
     await keepScores(db(), [{ ref: "t1_ours", score: 7 }], NOW);
     const rows = (await threadRecord.rows?.(db())) ?? [];
@@ -344,6 +409,50 @@ describe("reddit discovery", () => {
     expect(places.find((r) => r.id === "excel")).toMatchObject({ purpose: "karma" });
   });
 
+  it("keeps thousands of threads in one pass: three object statements, one row each", async () => {
+    await addPlaces(db(), [{ name: "agency", foundBy: "named" }]);
+    const count = countingDb(db());
+    const posts = Array.from({ length: 3000 }, (_, i) =>
+      post(i, {
+        id: `big${i.toString(36)}`,
+        name: `t3_big${i.toString(36)}`,
+        permalink: `/r/agency/comments/big${i.toString(36)}/x/`,
+        created_utc: utc(1),
+      }),
+    );
+    const kept = await keepThreads(count.db, "agency", posts, {
+      now: NOW,
+      ours: [],
+      judged: judged(),
+    });
+    expect(kept).toHaveLength(3000);
+    // The alias lookup, the object upsert and the alias insert: once for the whole pass.
+    expect(count.executes()).toBe(3);
+    const [n] = await db().execute<{ threads: number; objects: number }>(sql`
+      select (select count(*)::int from reddit_threads) threads,
+             (select count(*)::int from platform_objects where platform = 'reddit' and kind = 'post') objects`);
+    expect(n).toEqual({ threads: 3000, objects: 3000 });
+    // A second pass finds every post kept and every object known.
+    expect(
+      await keepThreads(db(), "agency", posts, { now: NOW, ours: [], judged: judged() }),
+    ).toEqual([]);
+  });
+
+  it("skips a post whose name no rule reads, and keeps the rest", async () => {
+    await addPlaces(db(), [{ name: "agency", foundBy: "named" }]);
+    const kept = await keepThreads(
+      db(),
+      "agency",
+      [
+        post(1),
+        post(2, { name: "t1_notapost" }),
+        post(3, { name: "T3_ABC9", permalink: "/r/agency/comments/abc9/x/" }),
+      ],
+      { now: NOW, ours: [], judged: judged() },
+    );
+    expect(kept.sort()).toEqual(["t3_abc9", "t3_p1"]);
+  });
+
   it("karma threads: young only, their own queue room, slotted first and soon", async () => {
     const a = await account("reddit@wren", "WrenAutomation", 20, 2);
     for (const [sub, purpose] of [
@@ -363,7 +472,13 @@ describe("reddit discovery", () => {
       .set({ state: "queued", accountId: a.id, fit: 8, draft: "reach" })
       .where(eq(redditThreads.subreddit, "agency"));
     const k = (n: number, over: Partial<Post> = {}) =>
-      post(n, { id: `k${n}`, name: `t3_k${n}`, created_utc: utc(n / 2), ...over });
+      post(n, {
+        id: `k${n}`,
+        name: `t3_k${n}`,
+        permalink: `/r/excel/comments/k${n}/x/`,
+        created_utc: utc(n / 2),
+        ...over,
+      });
     const kept = await keepThreads(
       db(),
       "excel",

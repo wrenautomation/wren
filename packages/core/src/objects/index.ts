@@ -445,14 +445,10 @@ export interface RoleRows {
   ids: string[];
 }
 
-const applies = (role: ObjectRole, platform: string): boolean =>
-  role.fixed ? role.fixed === platform : true;
 const onPlatform = (role: ObjectRole, platform: string, as?: string) =>
-  role.platform
-    ? as
-      ? sql`${sql.identifier(as)}.${sql.identifier(role.platform)} = ${platform}`
-      : sql`${sql.identifier(role.platform)} = ${platform}`
-    : sql`true`;
+  as
+    ? sql`${sql.identifier(as)}.${sql.identifier(role.platform)} = ${platform}`
+    : sql`${sql.identifier(role.platform)} = ${platform}`;
 
 /** The role rows that name any of these spellings: which table and which ids hold the object. */
 export async function roleRowsOf(
@@ -467,7 +463,6 @@ export async function roleRowsOf(
     sql`, `,
   );
   for (const role of OBJECT_ROLES) {
-    if (!applies(role, platform)) continue;
     const [r] = await db.execute<{ n: number; ids: string[] | null }>(sql`
       select count(*)::int n, (array_agg(id::text order by id))[1:20] ids
       from ${sql.identifier(role.table)}
@@ -659,7 +654,7 @@ export async function linkRefs(
     const dropped = kept === x.ref ? y.ref : x.ref;
 
     // Refuse before any change: a table that keeps one row per object cannot fold two.
-    const roles = OBJECT_ROLES.filter((r) => applies(r, platform));
+    const roles = OBJECT_ROLES;
     for (const r of roles.filter((r) => r.twin === "refuse")) {
       const t = sql.identifier(r.table);
       const c = sql.identifier(r.column);

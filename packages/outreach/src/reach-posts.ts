@@ -18,6 +18,7 @@ import type { SiteClient } from "@wren/core/content";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { factsBlock, humanBlock } from "@wren/core/facts";
 import { droppedWhy, type Guarded, guardDraft, recordGuard } from "@wren/core/grounded";
+import { canonRef, resolveObjects } from "@wren/core/objects";
 import {
   COMMENT_RULE,
   cleanComment,
@@ -28,7 +29,7 @@ import {
 } from "@wren/core/our-posts";
 import type { RejectReason } from "@wren/core/reject-reasons";
 import { modelDrafts } from "@wren/core/reply-drafts";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -716,6 +717,8 @@ export function rankPost(
 /**
  * Keep new posts once (by platform and ref): ranked, or dropped with why (too old, ours, too short, a job ad,
  * not the audience's world). A post already kept is left as it is. Returns the ids kept as `found`.
+ * Each post is a platform object first (`resolveObjects`, three statements for the pass) and its row
+ * keeps the ref that comes back. A post whose ref no rule reads is skipped.
  */
 export async function keepPosts(
   db: Queryable,
@@ -735,52 +738,79 @@ export async function keepPosts(
 ): Promise<{ found: number[]; dropped: number }> {
   const out = { found: [] as number[], dropped: 0 };
   const passed = await passedOn(db, o.platform);
-  for (const p of posts) {
-    if (!p.ref) continue;
-    const handle = p.handle ?? (o.platform === "linkedin" ? vanityOf(p.authorUrl) : null);
-    const at = p.at ? new Date(p.at) : null;
-    const postedAt = at && !Number.isNaN(at.getTime()) ? at : null;
-    const { fit, why, off } = rankPost(p, { ...o, key: o.key ?? false });
-    const dropped =
-      postedAt && o.now.getTime() - postedAt.getTime() > o.maxAgeHours * HOUR
-        ? `older than ${o.maxAgeHours} hours`
-        : handle && o.ours.includes(handle)
-          ? "ours"
-          : passed.has(passKey(handle, p.author)) || passed.has(passKey(null, p.author))
-            ? "you passed on them"
-            : p.text.trim().length < 40
-              ? "too short to answer"
-              : off;
-    const [row] = await db
-      .insert(reachPosts)
-      .values({
+  const readable = posts.filter((p) => {
+    if (!p.ref) return false;
+    try {
+      canonRef(o.platform, "post", p.ref);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  if (!readable.length) return out;
+  return atomic(db, async (tx) => {
+    const handleOf = (p: FeedPost) =>
+      p.handle ?? (o.platform === "linkedin" ? vanityOf(p.authorUrl) : null);
+    const postedAtOf = (p: FeedPost) => {
+      const at = p.at ? new Date(p.at) : null;
+      return at && !Number.isNaN(at.getTime()) ? at : null;
+    };
+    const refs = await resolveObjects(
+      tx,
+      readable.map((p) => ({
         platform: o.platform,
-        ref: p.ref,
-        author: p.author,
-        authorUrl: p.authorUrl,
-        handle,
-        headline: p.headline ?? null,
-        text: p.text,
+        kind: "post" as const,
+        raw: p.ref,
         url: p.url,
-        postedAt,
-        reactions: p.reactions,
-        comments: p.comments,
-        foundBy: o.foundBy.slice(0, 200),
-        account: o.account,
-        fit,
-        why,
-        state: dropped ? "dropped" : "found",
-        stateReason: dropped,
-        raw: (p.raw ?? p) as Record<string, unknown>,
-        createdAt: o.now,
-      })
-      .onConflictDoNothing({ target: [reachPosts.platform, reachPosts.ref] })
-      .returning({ id: reachPosts.id, state: reachPosts.state });
-    if (!row) continue;
-    if (row.state === "found") out.found.push(row.id);
-    else out.dropped++;
-  }
-  return out;
+        author: handleOf(p),
+        at: postedAtOf(p),
+      })),
+    );
+    for (const p of readable) {
+      const handle = handleOf(p);
+      const postedAt = postedAtOf(p);
+      const { fit, why, off } = rankPost(p, { ...o, key: o.key ?? false });
+      const dropped =
+        postedAt && o.now.getTime() - postedAt.getTime() > o.maxAgeHours * HOUR
+          ? `older than ${o.maxAgeHours} hours`
+          : handle && o.ours.includes(handle)
+            ? "ours"
+            : passed.has(passKey(handle, p.author)) || passed.has(passKey(null, p.author))
+              ? "you passed on them"
+              : p.text.trim().length < 40
+                ? "too short to answer"
+                : off;
+      const [row] = await tx
+        .insert(reachPosts)
+        .values({
+          platform: o.platform,
+          ref: refs.get(p.ref) ?? p.ref,
+          author: p.author,
+          authorUrl: p.authorUrl,
+          handle,
+          headline: p.headline ?? null,
+          text: p.text,
+          url: p.url,
+          postedAt,
+          reactions: p.reactions,
+          comments: p.comments,
+          foundBy: o.foundBy.slice(0, 200),
+          account: o.account,
+          fit,
+          why,
+          state: dropped ? "dropped" : "found",
+          stateReason: dropped,
+          raw: (p.raw ?? p) as Record<string, unknown>,
+          createdAt: o.now,
+        })
+        .onConflictDoNothing({ target: [reachPosts.platform, reachPosts.ref] })
+        .returning({ id: reachPosts.id, state: reachPosts.state });
+      if (!row) continue;
+      if (row.state === "found") out.found.push(row.id);
+      else out.dropped++;
+    }
+    return out;
+  });
 }
 
 /** One platform's comments queued in the last day: the cap counts them. */

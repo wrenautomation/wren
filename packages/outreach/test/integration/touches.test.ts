@@ -5,6 +5,7 @@
  * compose facts.
  */
 
+import { resolveObjects } from "@wren/core/objects";
 import { companies, imports, leads, people } from "@wren/core/schema";
 import { lookupTouches, touchesFor, touchFactsFor } from "@wren/core/touches";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -93,6 +94,7 @@ beforeEach(async () => {
 
 /** Our comment on Sam's LinkedIn post, as his Comment click keeps it. */
 async function commentOnTheirPost(at: Date) {
+  await resolveObjects(db(), [{ platform: "linkedin", kind: "post", raw: "urn:li:activity:7001" }]);
   const [post] = await db()
     .insert(reachPosts)
     .values({

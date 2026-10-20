@@ -15,6 +15,7 @@ import { ingressOf } from "@wren/config";
 import { setWrenSettings } from "@wren/core/clients";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { siteCallErrorFrom } from "@wren/core/content/restate";
+import { resolveObjects } from "@wren/core/objects";
 import type { PassOutcome } from "@wren/core/restate";
 import { companies, people } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
@@ -426,6 +427,14 @@ describe("search words", () => {
       newTopics: 2,
     });
     // Last week's reads: "client reactivation" found only off-target posts.
+    await resolveObjects(
+      db(),
+      Array.from({ length: 15 }, (_, i) => ({
+        platform: "linkedin" as const,
+        kind: "post" as const,
+        raw: `urn:li:activity:${9_000 + i}`,
+      })),
+    );
     for (let i = 0; i < 15; i++)
       await db()
         .insert(reachPosts)
@@ -539,6 +548,7 @@ describe("what gets a draft", () => {
 
 describe("redraft", () => {
   const keep = async (p: FeedPost, draft: string, state: "queued" | "found" = "queued") => {
+    await resolveObjects(db(), [{ platform: "linkedin", kind: "post", raw: p.ref }]);
     const [r] = await db()
       .insert(reachPosts)
       .values({
@@ -624,6 +634,7 @@ describe("redraft", () => {
 
 describe("his Comment", () => {
   const queued = async (n: number, state: "queued" | "found" = "queued") => {
+    await resolveObjects(db(), [{ platform: "linkedin", kind: "post", raw: post(n).ref }]);
     const [r] = await db()
       .insert(reachPosts)
       .values({
@@ -808,6 +819,7 @@ describe("X and Instagram", () => {
 
 describe("his Comment, with a like and a follow", () => {
   const queuedOn = async (platform: ReachPostPlatform, ref: string, handle: string) => {
+    await resolveObjects(db(), [{ platform, kind: "post", raw: ref }]);
     const [r] = await db()
       .insert(reachPosts)
       .values({
@@ -1028,6 +1040,10 @@ describe("pick (Marketing → Feed, Explore)", () => {
   it("Follow on a found post follows its author; on a missing row says so", async () => {
     await settings({ account: "x@wren", pages: [] }, "x");
     await settings({ account: "linkedin@wren", pages: [] });
+    await resolveObjects(db(), [
+      { platform: "x", kind: "post", raw: "881" },
+      { platform: "linkedin", kind: "post", raw: "urn:li:activity:882" },
+    ]);
     const [x, li] = (await db().execute(sql`insert into reach_posts (platform, ref, author, handle,
         author_url, text, url, found_by, account, fit, why, state, raw)
       values ('x', '881', 'Synth', '@SynthAuthor', null, 'words', 'https://x.com/i/status/881',

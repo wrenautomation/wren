@@ -3,6 +3,7 @@
  * their platform's lane, never two inside the gap, under the day's cap, and a slot taken off the
  * schedule is no longer due. A failed slot is slotted again once, then skipped.
  */
+import { resolveObjects } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
@@ -23,6 +24,14 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, ["reach_posts"]);
+  await resolveObjects(
+    pg.db,
+    [1, 2, 3, 4, 5, 6].map((n) => ({
+      platform: "linkedin" as const,
+      kind: "post" as const,
+      raw: `urn:li:activity:${n}`,
+    })),
+  );
 });
 
 const row = (n: number, o: Partial<typeof reachPosts.$inferInsert> = {}) => ({

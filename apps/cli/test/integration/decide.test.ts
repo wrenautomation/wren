@@ -5,6 +5,7 @@
  */
 
 import { recordDraft } from "@wren/core/draft-record";
+import { resolveObjects } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { askSop, items, mark, saveLink } from "@wren/learn";
 import { learnDue, withLearnPicks } from "@wren/learn/decide";
@@ -129,6 +130,14 @@ describe("comment source", () => {
     await pg.db
       .insert(redditPlaces)
       .values({ subreddit: "smallbusiness", name: "smallbusiness", foundBy: "test" });
+    await resolveObjects(
+      pg.db,
+      ["t3_open", "t3_done"].map((raw) => ({
+        platform: "reddit" as const,
+        kind: "post" as const,
+        raw,
+      })),
+    );
     for (const id of ["t3_open", "t3_done"])
       await pg.db.insert(redditThreads).values({
         id,

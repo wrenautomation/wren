@@ -654,7 +654,12 @@ export const redditPlaces = pgTable(
 export const redditThreads = pgTable(
   "reddit_threads",
   {
-    /** The post's fullname, t3_…. */
+    /**
+     * Always `reddit`. A plain column, not a generated one, so the keys below can cascade
+     * (designs/2026-10-20-platform-objects.md).
+     */
+    platform: varchar("platform", { length: 16 }).notNull().default("reddit"),
+    /** The post's fullname, t3_…. A platform object. */
     id: varchar("id", { length: 20 }).notNull(),
     subreddit: varchar("subreddit", { length: 64 }).notNull(),
     title: text("title").notNull(),
@@ -692,6 +697,9 @@ export const redditThreads = pgTable(
     index("ix_reddit_threads_subreddit").on(t.subreddit),
     index("ix_reddit_threads_state").on(t.state),
     index("ix_reddit_threads_account_id").on(t.accountId),
+    index("ix_reddit_threads_platform_target").on(t.platform, t.target),
+    index("ix_reddit_threads_platform_answer_ref").on(t.platform, t.answerRef),
+    check("ck_reddit_threads_platform", sql`${t.platform} = 'reddit'`),
     oneOf("ck_reddit_threads_state", t.state, THREAD_STATES),
     oneOf("ck_reddit_threads_kind", t.kind, THREAD_KINDS),
     check("ck_reddit_threads_fit", sql`${t.fit} between 0 and 10`),
@@ -705,6 +713,22 @@ export const redditThreads = pgTable(
       foreignColumns: [reachAccounts.id],
       name: "fk_reddit_threads_account_id_reach_accounts",
     }).onDelete("set null"),
+    // The post, the comment we answer and our reply are platform objects, under one spelling.
+    foreignKey({
+      columns: [t.platform, t.id],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reddit_threads_platform_id_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.target],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reddit_threads_platform_target_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.answerRef],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reddit_threads_platform_answer_ref_platform_objects",
+    }).onUpdate("cascade"),
   ],
 );
 
@@ -780,9 +804,10 @@ export const reachPosts = pgTable(
       .default("linkedin"),
     /**
      * What the platform's routes take: LinkedIn's `urn:li:activity:N` (or `ugcPost`, `share`), X's
-     * post id, Instagram's shortcode.
+     * post id, Instagram's shortcode. A platform object; the key may rewrite it when a learned
+     * link gives a LinkedIn post its API URN.
      */
-    ref: varchar("ref", { length: 80 }).notNull(),
+    ref: varchar("ref", { length: 255 }).notNull(),
     author: text("author").notNull(),
     authorUrl: text("author_url"),
     /** The author's handle as `normalizeHandle` keeps it: X and Instagram usernames, LinkedIn vanity. */
@@ -823,6 +848,11 @@ export const reachPosts = pgTable(
     index("ix_reach_posts_state").on(t.state),
     oneOf("ck_reach_posts_state", t.state, REACH_POST_STATES),
     oneOf("ck_reach_posts_platform", t.platform, REACH_POST_PLATFORMS),
+    foreignKey({
+      columns: [t.platform, t.ref],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reach_posts_platform_ref_platform_objects",
+    }).onUpdate("cascade"),
   ],
 );
 

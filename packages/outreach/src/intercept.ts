@@ -5,7 +5,8 @@
  * now. Pasting overrides the filters a found post must pass: fit, audience words, age.
  */
 import { settingsFor, setWrenSettings } from "@wren/core/clients";
-import type { Queryable } from "@wren/db";
+import { CanonError, resolveObject } from "@wren/core/objects";
+import { atomic, type Queryable } from "@wren/db";
 import { eq, inArray, sql } from "drizzle-orm";
 import { accountFor, addPlaces, placeBySub } from "./discovery/places.js";
 import type { ThreadRead } from "./discovery/threads.js";
@@ -140,6 +141,13 @@ export async function followAccount(
   return true;
 }
 
+/** A spelling no rule reads is the person's paste, not a fault: a refusal he sees. */
+const refused =
+  (why: string) =>
+  (e: unknown): never => {
+    throw e instanceof CanonError ? new ReachRefusal(why) : e;
+  };
+
 /**
  * Keep a pasted post as found, past the filters, so it drafts now. One already waiting or
  * answered stays as it is: the answer says which.
@@ -150,41 +158,54 @@ export async function keepPasted(
   o: { platform: ReachPostPlatform; account: string; now: Date },
 ): Promise<{ id: number; state: string }> {
   const at = p.at ? new Date(p.at) : null;
-  const values = {
-    platform: o.platform,
-    ref: p.ref,
-    author: p.author,
-    authorUrl: p.authorUrl,
-    handle: p.handle ?? (o.platform === "linkedin" ? vanityOf(p.authorUrl) : null),
-    headline: p.headline ?? null,
-    text: p.text,
-    url: p.url,
-    postedAt: at && !Number.isNaN(at.getTime()) ? at : null,
-    reactions: p.reactions,
-    comments: p.comments,
-    foundBy: "pasted",
-    account: o.account,
-    fit: 100,
-    why: "you pasted it",
-    state: "found" as const,
-    stateReason: null,
-    raw: (p.raw ?? p) as Record<string, unknown>,
-    createdAt: o.now,
-  };
-  await db
-    .insert(reachPosts)
-    .values(values)
-    .onConflictDoUpdate({
-      target: [reachPosts.platform, reachPosts.ref],
-      set: { state: "found", stateReason: null, fit: 100, why: "you pasted it", text: p.text },
-      setWhere: inArray(reachPosts.state, ["found", "skipped", "dropped"]),
-    });
-  const [row] = await db
-    .select({ id: reachPosts.id, state: reachPosts.state })
-    .from(reachPosts)
-    .where(sql`${reachPosts.platform} = ${o.platform} and ${reachPosts.ref} = ${p.ref}`);
-  if (!row) throw new Error("the pasted post was not kept");
-  return row;
+  const postedAt = at && !Number.isNaN(at.getTime()) ? at : null;
+  const handle = p.handle ?? (o.platform === "linkedin" ? vanityOf(p.authorUrl) : null);
+  return atomic(db, async (tx) => {
+    // The post is a platform object first; the row keeps the ref that comes back.
+    const ref = await resolveObject(tx, {
+      platform: o.platform,
+      kind: "post",
+      raw: p.ref,
+      url: p.url,
+      author: handle,
+      at: postedAt,
+    }).catch(refused("that post has no usable address"));
+    const values = {
+      platform: o.platform,
+      ref,
+      author: p.author,
+      authorUrl: p.authorUrl,
+      handle,
+      headline: p.headline ?? null,
+      text: p.text,
+      url: p.url,
+      postedAt,
+      reactions: p.reactions,
+      comments: p.comments,
+      foundBy: "pasted",
+      account: o.account,
+      fit: 100,
+      why: "you pasted it",
+      state: "found" as const,
+      stateReason: null,
+      raw: (p.raw ?? p) as Record<string, unknown>,
+      createdAt: o.now,
+    };
+    await tx
+      .insert(reachPosts)
+      .values(values)
+      .onConflictDoUpdate({
+        target: [reachPosts.platform, reachPosts.ref],
+        set: { state: "found", stateReason: null, fit: 100, why: "you pasted it", text: p.text },
+        setWhere: inArray(reachPosts.state, ["found", "skipped", "dropped"]),
+      });
+    const [row] = await tx
+      .select({ id: reachPosts.id, state: reachPosts.state })
+      .from(reachPosts)
+      .where(sql`${reachPosts.platform} = ${o.platform} and ${reachPosts.ref} = ${ref}`);
+    if (!row) throw new Error("the pasted post was not kept");
+    return row;
+  });
 }
 
 /**
@@ -198,40 +219,54 @@ export async function queuePastedThread(
 ): Promise<{ id: string; state: string; title: string }> {
   const p = read.post;
   const sub = (p.subreddit ?? "").toLowerCase();
-  if (!p.name || !sub) throw new ReachRefusal("that thread didn't read");
+  const name = p.name;
+  if (!name || !sub) throw new ReachRefusal("that thread didn't read");
   await addPlaces(db, [{ name: sub, foundBy: "pasted" }]);
   const place = await placeBySub(db, sub);
   const accountId = place.accountId ?? (await accountFor(db, place, now));
-  const row = {
-    id: p.name,
-    subreddit: place.subreddit,
-    title: p.title ?? "",
-    body: p.selftext ?? "",
-    author: p.author ?? "[deleted]",
-    url: `https://www.reddit.com${p.permalink ?? `/comments/${p.id}`}`,
-    postedAt: new Date((p.created_utc ?? now.getTime() / 1000) * 1000),
-    comments: p.num_comments ?? 0,
-    raw: p as unknown as Record<string, unknown>,
-    dropped: null,
-    fit: 10,
-    angle: "you pasted it",
-    state: "queued" as const,
-    accountId,
-  };
-  await db
-    .insert(redditThreads)
-    .values(row)
-    .onConflictDoUpdate({
-      target: redditThreads.id,
-      set: { state: "queued", dropped: null, fit: 10, angle: "you pasted it", accountId },
-      setWhere: inArray(redditThreads.state, ["new", "ranked", "dropped", "skipped"]),
-    });
-  const [t] = await db
-    .select({ id: redditThreads.id, state: redditThreads.state })
-    .from(redditThreads)
-    .where(eq(redditThreads.id, p.name));
-  if (!t) throw new Error("the pasted thread was not kept");
-  return { ...t, title: row.title };
+  return atomic(db, async (tx) => {
+    // The thread is a platform object first; the row keeps the ref that comes back.
+    const url = `https://www.reddit.com${p.permalink ?? `/comments/${p.id}`}`;
+    const postedAt = new Date((p.created_utc ?? now.getTime() / 1000) * 1000);
+    const ref = await resolveObject(tx, {
+      platform: "reddit",
+      kind: "post",
+      raw: name,
+      url,
+      author: p.author && p.author !== "[deleted]" ? p.author : null,
+      at: postedAt,
+    }).catch(refused("that thread didn't read"));
+    const row = {
+      id: ref,
+      subreddit: place.subreddit,
+      title: p.title ?? "",
+      body: p.selftext ?? "",
+      author: p.author ?? "[deleted]",
+      url,
+      postedAt,
+      comments: p.num_comments ?? 0,
+      raw: p as unknown as Record<string, unknown>,
+      dropped: null,
+      fit: 10,
+      angle: "you pasted it",
+      state: "queued" as const,
+      accountId,
+    };
+    await tx
+      .insert(redditThreads)
+      .values(row)
+      .onConflictDoUpdate({
+        target: redditThreads.id,
+        set: { state: "queued", dropped: null, fit: 10, angle: "you pasted it", accountId },
+        setWhere: inArray(redditThreads.state, ["new", "ranked", "dropped", "skipped"]),
+      });
+    const [t] = await tx
+      .select({ id: redditThreads.id, state: redditThreads.state })
+      .from(redditThreads)
+      .where(eq(redditThreads.id, ref));
+    if (!t) throw new Error("the pasted thread was not kept");
+    return { ...t, title: row.title };
+  });
 }
 
 /** A pasted post the model had nothing for still waits on him, with no draft, to write himself. */

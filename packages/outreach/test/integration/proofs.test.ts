@@ -9,6 +9,7 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { type Proof, SiteCallError, type SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
+import { resolveObjects } from "@wren/core/objects";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -102,6 +103,11 @@ beforeEach(async () => {
     values (${ACCOUNT}, 'reddit', 'reddit@one', 'one_handle', 'active', '2026-09-01')`);
   await db().execute(sql`insert into reddit_places (subreddit, name, found_by)
     values ('example', 'example', 'test')`);
+  await resolveObjects(db(), [
+    { platform: "reddit", kind: "post", raw: "t3_p1" },
+    { platform: "reddit", kind: "comment", raw: "t1_c1", post: "t3_p1", parent: "t3_p1" },
+    { platform: "x", kind: "post", raw: "123" },
+  ]);
   await db().execute(sql`insert into reddit_threads (id, subreddit, title, body, author, url,
       posted_at, comments, raw, state, target, answer, answer_ref, answered_at, account_id)
     values ('t3_p1', 'example', 'A title', 'A body', 'op_user',
