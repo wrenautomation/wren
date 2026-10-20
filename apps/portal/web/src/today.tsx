@@ -22,14 +22,18 @@ import {
 import type { ReactNode } from "react";
 import { areasOf } from "./areas.js";
 import { Contained } from "./contained.js";
+import { proposalsLine } from "./map/drafts.js";
+import { useProposals } from "./map/read.js";
 import type { Module, PageProps } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { SetupNow } from "./modules/account/Now.js";
 import { SetupCard } from "./modules/account/SetupCard.js";
+import { atOf } from "./modules/deals/board.js";
 import { goalsOf, makeAt, usePlan } from "./modules/marketing/plan.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { HealthNow } from "./modules/wren/health.js";
 import type { Move } from "./moves.js";
+import { href } from "./route.js";
 import { appTotal, type MovesRead, type Waiting, type WaitingRead } from "./waiting.js";
 import { met, type WriteLine, writeOf } from "./write.js";
 
@@ -64,6 +68,28 @@ function Row({
         {count ? <span className={COUNT}>{count}</span> : null}
       </a>
     </li>
+  );
+}
+
+/**
+ * "N shape proposals wait", linking to the Map's History on Drafts. One small read of the proposed
+ * drafts' count (a page for it would add a sidebar tab, and a client's waiting counts come from
+ * page badges). Team only: the Map is the team's; nothing shows while none wait.
+ */
+function ProposalsLine({ props }: { props: PageProps }) {
+  const proposals = useProposals(atOf(props.client), props.team);
+  const text = proposalsLine(proposals.data ?? 0);
+  if (!props.team || !text) return null;
+  return (
+    <ul className="list-none">
+      <Row
+        href={href("/", { history: "drafts", ...atOf(props.client) })}
+        icon="stack"
+        count={proposals.data ?? 0}
+      >
+        {text}
+      </Row>
+    </ul>
   );
 }
 
@@ -336,6 +362,7 @@ export function WrenToday({
       {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
       <WriteList />
+      <ProposalsLine props={props} />
       <MoveList moves={moves} read={read} />
       <AppsByArea apps={apps} waiting={waiting} team />
     </>
@@ -388,6 +415,7 @@ export function ClientToday({
           props={props}
         />
       )}
+      <ProposalsLine props={props} />
       <NeedsYou apps={apps} waiting={waiting} read={read} />
       {bought.length ? (
         <AppGrid label="Your services">

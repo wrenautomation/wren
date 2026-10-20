@@ -5,9 +5,10 @@
  */
 import type { Row } from "@wren/core/records/serve";
 import { diffShapes } from "@wren/pipeline/diff";
+import type { VersionLine } from "@wren/pipeline/history";
 import { depthOf, type ShapeBody } from "@wren/pipeline/model";
 import { type Answers, refuse } from "../api.js";
-import { JOURNEY_ROWS, SHAPE } from "./journeys.js";
+import { JOURNEY_ROWS, SHAPE, SHAPE_VERSIONS } from "./journeys.js";
 import { NUMBERS } from "./offers.js";
 import { ago } from "./shell.js";
 
@@ -84,27 +85,6 @@ const DEPTHS: Record<string, number> = {
   standard: 4,
 };
 
-const VERSIONS = [
-  {
-    number: 2,
-    parent: 1,
-    note: "Dropped the Joined node.",
-    at: ago(9),
-    by: "Ada North",
-    nodes: 5,
-    edges: 4,
-  },
-  {
-    number: 1,
-    parent: null,
-    note: "First shape.",
-    at: ago(40),
-    by: "Ada North",
-    nodes: 6,
-    edges: 5,
-  },
-];
-
 /** The numbers of the plan and loop nodes the bigger shape adds, per window. */
 const PLAN_NUMBERS: Row[] = NUMBERS.filter((r) => r.id.toString().startsWith("signed")).flatMap(
   (r) => [
@@ -157,7 +137,7 @@ export function planAnswers(fallback: { get: Pipeline; list: Pipeline }): Answer
             row: { id: "shape" },
             related: [],
             activity: [],
-            detail: { body: SHAPE_PLAN, depths: DEPTHS, versions: VERSIONS },
+            detail: { body: SHAPE_PLAN, depths: DEPTHS, versions: SHAPE_VERSIONS },
           }
         : fallback.get(b),
     "pipeline/recordsList": (b) => {
@@ -191,7 +171,7 @@ export const FILE_SHAPE: ShapeBody = {
 /** The file's text; the preview reads a file with no `nodes:` line as not a shape. */
 export const FILE_TEXT = "name: Sample shape\nnodes:\n  - id: mail\n";
 
-const version = (body: ShapeBody, number: number, note: string) => ({
+const version = (body: ShapeBody, number: number, note: string): VersionLine => ({
   number,
   parent: number > 1 ? number - 1 : null,
   note,
@@ -199,6 +179,9 @@ const version = (body: ShapeBody, number: number, note: string) => ({
   by: "Ada North",
   nodes: body.nodes.length,
   edges: body.edges.length,
+  draft: null,
+  tags: [],
+  mirror: null,
 });
 
 /**
@@ -268,9 +251,7 @@ export function liveShape(
   more: readonly Row[] = [],
 ): Answers {
   let body = from;
-  let versions = from
-    ? [version(from, 2, "Dropped the Joined node."), version(SHAPE_V1, 1, "First shape.")]
-    : [];
+  let versions: VersionLine[] = from ? [...SHAPE_VERSIONS] : [];
   const save = (path: string, next: ShapeBody, note: string, b: Ask) => {
     MAP_CALLS.push({ path, body: b });
     const n = (versions[0]?.number ?? 0) + 1;

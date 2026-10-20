@@ -5,6 +5,16 @@
  */
 import type { Cell } from "@wren/core/records";
 import type { RecordAnswer, RecordsPage, Row } from "@wren/core/records/serve";
+import type {
+  BlameAnswer,
+  BlameAsk,
+  BlameLine,
+  DiffAnswer,
+  DraftDetail,
+  DraftRow,
+  DraftState,
+  ShapeRef,
+} from "@wren/pipeline/history";
 import type { ShapeBody } from "@wren/pipeline/model";
 import { call } from "../api.js";
 import { useCall } from "../load.js";
@@ -14,6 +24,7 @@ import type { Ghost, MapData, NodeNumbers, Person, Sum, Version, Window } from "
 const SHAPE = "pipeline.shape";
 const NUMBER = "pipeline.number";
 const JOURNEY = "pipeline.journey";
+const DRAFT = "pipeline.shape_draft";
 /** Rows one read takes (the server's cap), and how many reads one list makes at most. */
 const PAGE = 200;
 const PAGES = 5;
@@ -119,4 +130,77 @@ export async function readMap(client: string, window: Window): Promise<MapRead> 
 /** The Map's read: one per workspace and window. */
 export function useMap(client: string, window: Window) {
   return useCall(`map:${client}:${window}`, () => readMap(client, window));
+}
+
+// --- drafts, blame, differences: one hook per job, every card shares them -----------------------
+
+/** The `pipeline.shape_draft` views a card lists: open (the default), waiting on a decision, all. */
+export type DraftView = "open" | "proposed" | "all";
+
+const orNull = (v: Cell | undefined): string | null => (v == null || v === "" ? null : String(v));
+
+/** A `pipeline.shape_draft` row as the contract's `DraftRow`. */
+export const draftRowOf = (r: Row): DraftRow => ({
+  id: String(r.id),
+  name: text(r.name) ?? String(r.id),
+  state: String(r.state) as DraftState,
+  base: Number(r.base ?? 0),
+  note: text(r.note) ?? "",
+  createdBy: text(r.createdBy) ?? "",
+  createdAt: text(r.createdAt) ?? "",
+  updatedAt: text(r.updatedAt) ?? "",
+  appliedVersion: count(r.appliedVersion),
+  decidedBy: orNull(r.decidedBy),
+  decidedAt: orNull(r.decidedAt),
+  dropReason: orNull(r.dropReason),
+});
+
+const keyOf = (at: Record<string, string>, ...rest: (string | number)[]) =>
+  [JSON.stringify(at), ...rest].join(":");
+
+/** The workspace's drafts in `view`, newest first; none read while `on` is false. */
+export function useDrafts(at: Record<string, string>, view: DraftView, on = true) {
+  return useCall<DraftRow[]>(on ? `map-drafts:${keyOf(at, view)}` : null, async () =>
+    (await listAll(at, { record: DRAFT, view })).map(draftRowOf),
+  );
+}
+
+/** One draft: its row and its body and moves; none read while `id` is null. */
+export function useDraftDetail(at: Record<string, string>, id: string | null) {
+  return useCall<{ row: DraftRow; detail: DraftDetail }>(
+    id ? `map-draft:${keyOf(at, id)}` : null,
+    async () => {
+      const got = await call<RecordAnswer>("pipeline/recordsGet", { ...at, record: DRAFT, id });
+      return { row: draftRowOf(got.row), detail: got.detail as unknown as DraftDetail };
+    },
+  );
+}
+
+/** How many shape proposals wait on a decision (Today's line); a count only, one row asked for. */
+export function useProposals(at: Record<string, string>, on = true) {
+  return useCall<number>(on ? `map-proposals:${keyOf(at)}` : null, async () => {
+    const page = await call<RecordsPage>("pipeline/recordsList", {
+      ...at,
+      record: DRAFT,
+      view: "proposed",
+      limit: 1,
+    });
+    return page.total;
+  });
+}
+
+/** The versions that touched one node or one line, newest first; none read while `ask` is null. */
+export function useBlame(at: Record<string, string>, ask: BlameAsk | null) {
+  const which = ask?.node ? `node:${ask.node}` : ask?.edge ? `edge:${ask.edge}` : null;
+  return useCall<BlameLine[]>(which ? `map-blame:${keyOf(at, which)}` : null, async () => {
+    const got = await call<BlameAnswer>("pipeline/shapeBlame", { ...at, ...ask });
+    return got.lines;
+  });
+}
+
+/** The difference of two sides (versions or drafts), read when both are named. */
+export function useDiffOf(at: Record<string, string>, a: ShapeRef | null, b: ShapeRef | null) {
+  return useCall<DiffAnswer>(a !== null && b !== null ? `map-diff:${keyOf(at, a, b)}` : null, () =>
+    call<DiffAnswer>("pipeline/shapeDiff", { ...at, a, b }),
+  );
 }

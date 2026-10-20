@@ -10,6 +10,7 @@
  * The draft lives on this device until it saves (`Edit.tsx`).
  */
 
+import type { BlameLine } from "@wren/pipeline/history";
 import {
   Alert,
   Button,
@@ -21,26 +22,46 @@ import {
   Loading,
   PaletteDrawer,
   type PaletteGroup,
+  refreshAll,
   SELECT_CLASS,
   Segmented,
 } from "@wren/ui";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
 import { type PageProps, WREN } from "../module.js";
 import { atOf } from "../modules/deals/board.js";
 import { go, href, navigate } from "../route.js";
-import { DraftBar, DraftConflict, SaveDialog, useAltKey, useShapeDraft } from "./Draft.js";
+import {
+  DraftBar,
+  DraftConflict,
+  type OpenedDraft,
+  SaveDialog,
+  useAltKey,
+  useShapeDraft,
+} from "./Draft.js";
+import { DraftBanner, SaveAsDraftDialog } from "./DraftExits.js";
+import type { Compare } from "./DraftList.js";
 import { diffGraph } from "./diff.js";
+import { blamePick, draftIdOf, type HistoryTab, historyOf, newestOf, pairOf } from "./drafts.js";
 import { EdgeEdit, NodeEdit } from "./EditPanel.js";
 import type { Kind } from "./edit.js";
-import { addNode, connect, edgeBetween, KINDS, reasonFor, renameNode } from "./edit.js";
+import {
+  addNode,
+  cleanMoves,
+  connect,
+  edgeBetween,
+  KINDS,
+  reasonFor,
+  renameNode,
+  textOf,
+} from "./edit.js";
 import { fileNameOf, saveText } from "./file.js";
-import { History, useDiff } from "./History.js";
+import { History } from "./History.js";
 import { ImportDialog } from "./Import.js";
 import { graphOf, LOOK, type MapData, WINDOWS, type Window, windowOf } from "./model.js";
 import { NodePanel } from "./NodePanel.js";
 import { AT_LEFT } from "./overlay.js";
-import { useMap } from "./read.js";
+import { useDiffOf, useDraftDetail, useMap } from "./read.js";
 import { opensOf } from "./routes.js";
 
 /** The palette: the four parts a shape is made of. */
@@ -148,28 +169,62 @@ export function MapPage({
       { client: props.client, app: "deals" },
     );
   const editing = mayEdit && !!data && props.params.get("edit") === "1";
+  // A server draft opened in edit mode: `?edit=1&draft=<id>`.
+  const draftId = editing ? draftIdOf(props.params.get("draft")) : null;
 
   const [selected, setSelected] = useState<string | null>(null);
   const [line, setLine] = useState<string | null>(null);
   const [history, setHistory] = useState(false);
+  const [tab, setTab] = useState<HistoryTab>("versions");
   const [picked, setPicked] = useState<number[]>([]);
+  const [compare, setCompare] = useState<Compare | null>(null);
   const [palette, setPalette] = useState(true);
   const [loop, setLoop] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [file, setFile] = useState<{ name: string; text: string; stamp: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const alt = useAltKey();
-  const shape = useShapeDraft(props.client, data, mayEdit);
-  const diff = useDiff(at, history ? picked : []);
+  const openedRead = useDraftDetail(at, draftId);
+  const opened = useMemo<OpenedDraft | null>(
+    () =>
+      openedRead.data
+        ? {
+            body: openedRead.data.detail.body,
+            moves: openedRead.data.detail.moves ?? {},
+            version: openedRead.data.row.updatedAt,
+          }
+        : null,
+    [openedRead.data],
+  );
+  const shape = useShapeDraft(props.client, data, mayEdit, draftId, opened);
+  // The two sides the Map draws: the Versions tab's picked pair, or the Drafts tab's compared draft.
+  const pair = pairOf(picked);
+  const sides: [number | `draft:${string}`, number | `draft:${string}`] | null = !history
+    ? null
+    : tab === "drafts"
+      ? compare && [compare.a, compare.b]
+      : pair;
+  const diff = useDiffOf(at, sides?.[0] ?? null, sides?.[1] ?? null);
   const draft = editing ? shape.draft : null;
+
+  // `?history=drafts` (Today's line) opens History on that tab.
+  const historyParam = historyOf(props.params.get("history"));
+  useEffect(() => {
+    if (!historyParam) return;
+    setHistory(true);
+    setTab(historyParam);
+    setPicked([]);
+    setCompare(null);
+  }, [historyParam]);
 
   const drawn = useMemo(() => {
     if (!data) return null;
-    if (history && picked.length === 2 && diff.data)
+    if (sides && diff.data)
       return { ...diffGraph(diff.data.bodies[0], diff.data.bodies[1], diff.data.diff), diff: true };
     return { ...graphOf(draft ? { ...data, body: draft.body } : data), diff: false };
-  }, [data, draft, history, picked.length, diff.data]);
+  }, [data, draft, sides, diff.data]);
 
   const pick = (n: number) =>
     setPicked((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p.slice(-1), n]));
@@ -182,7 +237,41 @@ export function MapPage({
     setSelected(id);
     setLine(null);
   };
-  const setEdit = (on: boolean) => go("/", { edit: on ? "1" : null }, props.params);
+  const setEdit = (on: boolean) =>
+    go("/", { edit: on ? "1" : null, ...(on ? {} : { draft: null }) }, props.params);
+  const closeHistory = () => {
+    setHistory(false);
+    setPicked([]);
+    setCompare(null);
+    if (props.params.get("history")) go("/", { history: null }, props.params);
+  };
+  const openDraft = (id: string) => {
+    closeHistory();
+    go("/", { edit: "1", draft: id, history: null }, props.params);
+  };
+  // A line of a node's or wire's history: History opens on that version beside its parent.
+  const openVersion = (l: BlameLine) => {
+    setTab("versions");
+    setCompare(null);
+    setPicked(blamePick(l, data?.versions ?? []));
+    setHistory(true);
+  };
+  const updateDraft = async () => {
+    if (!draft || !draftId) return;
+    setNotice(null);
+    try {
+      await call("pipeline/shapeDraftUpdate", {
+        ...at,
+        id: draftId,
+        body: draft.body,
+        moves: cleanMoves(draft.body, draft.moves),
+      });
+      shape.saved(textOf(draft));
+      void refreshAll();
+    } catch (err) {
+      setNotice(messageOf(err));
+    }
+  };
 
   const add = (id: string) => {
     if (!draft || !KINDS.some((k) => k.kind === id)) return;
@@ -286,7 +375,8 @@ export function MapPage({
             size="dense"
             aria-pressed={history}
             onClick={() => {
-              setHistory((h) => !h);
+              if (history) closeHistory();
+              else setHistory(true);
               setPicked([]);
             }}
           >
@@ -329,6 +419,11 @@ export function MapPage({
         {trailing}
       </header>
       {notice ? <Alert className="mx-5 mt-3 mb-0 max-[900px]:mx-4">{notice}</Alert> : null}
+      {draftId && openedRead.error && !openedRead.data ? (
+        <div className="mx-5 mt-3 max-[900px]:mx-4">
+          <LoadFailed error={openedRead.error} onRetry={openedRead.retry} what="draft" />
+        </div>
+      ) : null}
       <div className="relative min-h-0 flex-1 max-[900px]:h-[68dvh] max-[900px]:min-h-[380px] max-[900px]:flex-none">
         {read.error && !read.data ? (
           <div className="p-5">
@@ -381,20 +476,25 @@ export function MapPage({
                 versions={data.versions}
                 picked={picked}
                 onPick={pick}
+                tab={tab}
+                onTab={setTab}
+                compare={compare}
+                onCompare={setCompare}
                 diff={diff}
                 at={at}
+                client={props.client}
                 canEdit={mayEdit}
+                onOpenDraft={openDraft}
                 onSaved={read.retry}
-                onClose={() => {
-                  setHistory(false);
-                  setPicked([]);
-                }}
+                onClose={closeHistory}
               />
             ) : draft && line ? (
               <EdgeEdit
                 id={line}
                 draft={draft}
+                at={at}
                 onChange={shape.set}
+                onHistory={openVersion}
                 onClose={() => setLine(null)}
               />
             ) : draft && editable && selected ? (
@@ -404,6 +504,7 @@ export function MapPage({
                 people={data.people}
                 at={at}
                 onChange={shape.set}
+                onHistory={openVersion}
                 onClose={() => select(null)}
               />
             ) : selected ? (
@@ -414,7 +515,18 @@ export function MapPage({
                 place={wren ? "wren" : "client"}
                 client={client}
                 at={at}
+                onHistory={openVersion}
                 onClose={() => select(null)}
+              />
+            ) : null}
+            {draft && draftId && openedRead.data ? (
+              <DraftBanner
+                row={openedRead.data.row}
+                unsaved={shape.dirty}
+                onClose={() => {
+                  select(null);
+                  go("/", { draft: null }, props.params);
+                }}
               />
             ) : null}
             {draft ? (
@@ -425,7 +537,11 @@ export function MapPage({
                 onPalette={() => setPalette((p) => !p)}
                 loop={loop}
                 onLoop={() => setLoop((l) => !l)}
+                opened={!!draftId}
+                below={!!draftId}
                 onSave={() => setSaving(true)}
+                onSaveDraft={() => setSavingDraft(true)}
+                onUpdate={() => void updateDraft()}
                 onDiscard={() => {
                   shape.discard();
                   select(null);
@@ -433,11 +549,28 @@ export function MapPage({
               />
             ) : null}
             {editing && shape.conflict ? (
-              <DraftConflict onKeep={shape.keepMine} onTake={shape.takeTheirs} />
+              <DraftConflict onKeep={shape.keepMine} onTake={shape.takeTheirs} below={!!draftId} />
             ) : null}
           </>
         )}
       </div>
+      {draft ? (
+        <SaveAsDraftDialog
+          client={props.client}
+          at={at}
+          draft={draft}
+          base={newestOf(data?.versions ?? [])}
+          open={savingDraft}
+          onOpenChange={setSavingDraft}
+          onSaved={(id, sent) => {
+            shape.saved(sent);
+            setSavingDraft(false);
+            select(null);
+            void refreshAll();
+            go("/", { edit: "1", draft: id }, props.params);
+          }}
+        />
+      ) : null}
       {draft ? (
         <SaveDialog
           client={props.client}

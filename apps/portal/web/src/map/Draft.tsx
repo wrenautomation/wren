@@ -5,6 +5,8 @@
  * (`useEdit`), so a reload or another page gives it back; if the shape moved meanwhile, the person
  * picks theirs or the saved one. Nothing is lost when the server refuses a save.
  */
+
+import type { ShapeBody } from "@wren/pipeline/model";
 import {
   Alert,
   Button,
@@ -26,37 +28,54 @@ import {
 } from "@wren/ui/components/ui/dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
+import { draftStoreKey, newestOf } from "./drafts.js";
 import {
   changesOf,
   cleanMoves,
   type Draft,
   draftOf,
+  type Moves,
   problemsOf,
-  serverText,
   textOf,
 } from "./edit.js";
 import type { MapData } from "./model.js";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** The newest version's number; 0 when there is none. */
-const newestOf = (data: MapData) => data.versions.reduce((m, v) => Math.max(m, v.number), 0);
+/** A server draft opened for editing: what it holds now, and when it was last saved. */
+export interface OpenedDraft {
+  body: ShapeBody;
+  moves: Moves;
+  /** The draft row's `updatedAt`: a moved one means the draft changed under the device's edits. */
+  version: string;
+}
 
 /**
- * The shape being edited. `draft` is the newest shape plus what the person changed (null while
- * nothing is read); `set` keeps it on this device. A draft equal to the newest shape is no draft.
+ * The shape being edited. `draft` is the shape it starts from plus what the person changed (null
+ * while nothing is read); `set` keeps it on this device. It starts from the newest shape, or, when
+ * a server draft is named (`draftId`), from that draft once `opened` has read it; the device edits
+ * of a draft live under their own key. A draft equal to its start is no draft.
  */
-export function useShapeDraft(client: string, data: MapData | null, mayEdit: boolean) {
-  const base = data?.body;
+export function useShapeDraft(
+  client: string,
+  data: MapData | null,
+  mayEdit: boolean,
+  draftId: string | null = null,
+  opened: OpenedDraft | null = null,
+) {
+  const base = draftId ? opened?.body : data?.body;
+  const moves = draftId ? opened?.moves : undefined;
   const store = useEdit(
-    data && mayEdit ? `map:draft:${client}` : null,
-    base ? serverText(base) : "",
-    { version: data ? String(newestOf(data)) : null },
+    data && mayEdit && (!draftId || opened) ? draftStoreKey(client, draftId) : null,
+    base ? textOf({ body: base, moves: moves ?? {} }) : "",
+    {
+      version: draftId ? (opened?.version ?? null) : data ? String(newestOf(data.versions)) : null,
+    },
   );
   const draft = useMemo<Draft | null>(() => {
     if (!base) return null;
-    return store.dirty ? draftOf(store.value, base) : { body: base, moves: {} };
-  }, [base, store.dirty, store.value]);
+    return store.dirty ? draftOf(store.value, base) : { body: base, moves: moves ?? {} };
+  }, [base, moves, store.dirty, store.value]);
   const problems = useMemo(() => (draft ? problemsOf(draft.body) : []), [draft]);
   return {
     draft,
@@ -101,11 +120,15 @@ export function useAltKey() {
 
 /** The bar floats over the canvas's foot; on a phone it sits at the top, since a panel takes the foot. */
 const BAR =
-  "absolute bottom-3 left-1/2 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 flex-wrap items-center gap-x-3 gap-y-2 rounded-[14px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[13.5px] text-(--ui-ink) shadow-(--ui-shadow) max-[900px]:top-3 max-[900px]:bottom-auto";
+  "absolute bottom-3 left-1/2 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 flex-wrap items-center gap-x-3 gap-y-2 rounded-[14px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[13.5px] text-(--ui-ink) shadow-(--ui-shadow) max-[900px]:bottom-auto";
+/** On a phone the bar sits at the top, under the draft banner when one is open. */
+const BAR_TOP = { plain: "max-[900px]:top-3", banner: "max-[900px]:top-24" } as const;
 
 /**
  * The edit bar: how many changes the draft holds, what `checkShape` finds wrong with it, and the
- * ways out: Save asks for a note; Discard asks twice.
+ * ways out: Save asks for a note and saves the next version; Save as draft keeps the work apart
+ * from the live shape; while a server draft is open, Update draft saves into it (and Save is not
+ * there: a draft goes live by Apply in History). Discard asks twice.
  */
 export function DraftBar({
   changes,
@@ -114,7 +137,11 @@ export function DraftBar({
   onPalette,
   loop,
   onLoop,
+  opened,
+  below,
   onSave,
+  onSaveDraft,
+  onUpdate,
   onDiscard,
 }: {
   changes: number;
@@ -124,12 +151,22 @@ export function DraftBar({
   /** New lines are loop lines (for touch, where Alt is not there). */
   loop: boolean;
   onLoop: () => void;
+  /** A server draft is open: Update draft shows, Save does not. */
+  opened: boolean;
+  /** The draft banner is over the canvas: on a phone the bar sits under it. */
+  below: boolean;
   onSave: () => void;
+  onSaveDraft: () => void;
+  onUpdate: () => void;
   onDiscard: () => void;
 }) {
   const [sure, setSure] = useState(false);
   return (
-    <div role="toolbar" aria-label="Edit the shape" className={BAR}>
+    <div
+      role="toolbar"
+      aria-label="Edit the shape"
+      className={cx(BAR, below ? BAR_TOP.banner : BAR_TOP.plain)}
+    >
       <Button tone="quiet" size="dense" aria-pressed={palette} onClick={onPalette}>
         <Icon name="plus" size={15} /> Add
       </Button>
@@ -190,14 +227,28 @@ export function DraftBar({
           <Button tone="quiet" size="dense" disabled={changes === 0} onClick={() => setSure(true)}>
             Discard
           </Button>
-          <Button
-            tone="primary"
-            size="dense"
-            disabled={changes === 0 || problems.length > 0}
-            onClick={onSave}
-          >
-            Save
+          <Button tone="quiet" size="dense" disabled={changes === 0} onClick={onSaveDraft}>
+            Save as draft
           </Button>
+          {opened ? (
+            <Button
+              tone="primary"
+              size="dense"
+              disabled={changes === 0 || problems.length > 0}
+              onClick={onUpdate}
+            >
+              Update draft
+            </Button>
+          ) : (
+            <Button
+              tone="primary"
+              size="dense"
+              disabled={changes === 0 || problems.length > 0}
+              onClick={onSave}
+            >
+              Save
+            </Button>
+          )}
         </>
       )}
     </div>
@@ -205,13 +256,22 @@ export function DraftBar({
 }
 
 /** The shape moved while the draft waited: keep the draft, or take the saved shape. */
-export function DraftConflict({ onKeep, onTake }: { onKeep: () => void; onTake: () => void }) {
+export function DraftConflict({
+  onKeep,
+  onTake,
+  below,
+}: {
+  onKeep: () => void;
+  onTake: () => void;
+  /** The draft banner is over the canvas: the note sits under it. */
+  below: boolean;
+}) {
   return (
     <div
       role="alert"
       className={cx(
-        "absolute top-3 left-1/2 z-20 grid max-w-[calc(100%-24px)] -translate-x-1/2 gap-2 rounded-[14px] border border-(--ui-hair) bg-(--ui-paper) px-4 py-3 text-[13.5px] text-(--ui-ink) shadow-(--ui-shadow)",
-        "max-[900px]:top-16",
+        "absolute left-1/2 z-20 grid max-w-[calc(100%-24px)] -translate-x-1/2 gap-2 rounded-[14px] border border-(--ui-hair) bg-(--ui-paper) px-4 py-3 text-[13.5px] text-(--ui-ink) shadow-(--ui-shadow)",
+        below ? "top-16 max-[900px]:top-48" : "top-3 max-[900px]:top-16",
       )}
     >
       <p>The shape changed while your draft waited. Pick one.</p>
@@ -306,6 +366,3 @@ export function SaveDialog({
     </Dialog>
   );
 }
-
-/** The workspace's newest version number, for words like "Save as version 4". */
-export { newestOf };

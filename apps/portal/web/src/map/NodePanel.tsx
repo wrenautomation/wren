@@ -3,9 +3,11 @@
  * newest first with a link to each journey, the crossings in and out over the window, and the way
  * into the app that manages it. Read only; the edit panel (`EditPanel.tsx`) has the fields.
  */
+import type { BlameLine } from "@wren/pipeline/history";
 import type { ShapeNode } from "@wren/pipeline/model";
 import { Button, ButtonLink, Icon, num } from "@wren/ui";
 import { href } from "../route.js";
+import { BlameList } from "./BlameList.js";
 import { type MapData, numbersSay, type Window, windowSays } from "./model.js";
 import { OVER_RIGHT } from "./overlay.js";
 import { opensOf, type Place } from "./routes.js";
@@ -27,6 +29,7 @@ export function NodePanel({
   place,
   client,
   at,
+  onHistory,
   onClose,
 }: {
   data: MapData;
@@ -37,6 +40,8 @@ export function NodePanel({
   client: string | null;
   /** The workspace as a link's params. */
   at: Record<string, string>;
+  /** A line of the node's history was picked: History opens on its version. */
+  onHistory: (line: BlameLine) => void;
   onClose: () => void;
 }) {
   const node = data.body.nodes.find((n) => n.id === id);
@@ -138,6 +143,8 @@ export function NodePanel({
           ) : null}
         </section>
       ) : null}
+
+      <BlameList at={at} ask={{ node: id }} label="Node history" onOpen={onHistory} />
 
       {main ? (
         <footer className="flex flex-wrap items-center gap-2">

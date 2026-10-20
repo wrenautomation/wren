@@ -9,13 +9,7 @@ import type { ShapeBody, ShapeNode } from "@wren/pipeline/model";
 import type { GraphEdge, GraphNode } from "@wren/ui";
 import { LOOK } from "./model.js";
 
-/** What `pipeline/shapeDiff` answers: the two versions, what changed, and both bodies (a, b). */
-export interface DiffAnswer {
-  a: number;
-  b: number;
-  diff: ShapeDiff;
-  bodies: [ShapeBody, ShapeBody];
-}
+export type { DiffAnswer } from "@wren/pipeline/history";
 
 /** A node as the graph kit draws it, with no numbers: a diff compares shapes, not people. */
 export const nodeOf = (n: ShapeNode, mark?: GraphNode["mark"]): GraphNode => ({
