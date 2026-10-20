@@ -8,6 +8,7 @@
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
 import { JourneyBoard } from "./board.js";
+import { fitExtras } from "./fit.js";
 import { TEAM_PIPELINE_PAGES } from "./team-pages.js";
 
 /**
@@ -52,6 +53,8 @@ export const clientDeals: Module = {
       },
       columns: ["name", "nodeName", "flag", "ghost", "entry", "owner", "daysAtNode", "movedAt"],
       legacy: nodeLegacy,
+      // The person's fit to the offer's ICP, from the light read at a node.
+      extras: fitExtras,
       // Wren's Today lists the stale ones as a move: Nudge or drop.
       count: { flag: ["stale"] },
     },

@@ -23,11 +23,19 @@ import { events } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import type { Terms } from "@wren/offers";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
+import type { Fit } from "./icp.js";
 import type { ShapeBody } from "./model.js";
 import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
 import { scheduleOf } from "./schedule.js";
-import { journeys, offerVersions, pipelineDeals, shapeVersions, termsVersions } from "./schema.js";
+import {
+  journeyResearch,
+  journeys,
+  offerVersions,
+  pipelineDeals,
+  shapeVersions,
+  termsVersions,
+} from "./schema.js";
 
 export const OFFER_RECORD = "pipeline.offer";
 export const SHAPE_RECORD = "pipeline.shape";
@@ -505,6 +513,18 @@ export const journeyRecord = (): RecordType =>
         .where(eq(journeys.id, String(id)))
         .limit(1);
       if (!r) return null;
+      // The newest light read that scored the person against the offer's ICP.
+      const [read] = await db
+        .select({ stage: journeyResearch.stage, fit: sql<Fit>`${journeyResearch.result} -> 'fit'` })
+        .from(journeyResearch)
+        .where(
+          and(
+            eq(journeyResearch.journey, String(id)),
+            sql`${journeyResearch.result} -> 'fit' is not null`,
+          ),
+        )
+        .orderBy(desc(journeyResearch.requestedAt))
+        .limit(1);
       return {
         trail: r.trail.map((c) => ({
           edge: c.edge,
@@ -514,6 +534,9 @@ export const journeyRecord = (): RecordType =>
           to_name: nameOf(r.body ?? undefined, c.to),
           at: c.at,
         })),
+        fit: read
+          ? { ...read.fit, node: read.stage, node_name: nameOf(r.body ?? undefined, read.stage) }
+          : null,
       };
     },
   });
