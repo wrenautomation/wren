@@ -30,6 +30,8 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { Moves } from "./carry.js";
+import { DRAFT_STATES } from "./history.js";
 import type { Crossing, ShapeBody } from "./model.js";
 
 export const pipeline = pgSchema("pipeline");
@@ -138,6 +140,8 @@ export const shapeVersions = pipeline.table(
     parent: integer("parent"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     createdBy: text("created_by").notNull(),
+    /** The draft it was applied from. Null for a version saved straight. */
+    draft: varchar("draft", { length: 40 }),
   },
   (t) => [
     primaryKey({ columns: [t.number], name: "pk_shape_versions" }),
@@ -146,10 +150,110 @@ export const shapeVersions = pipeline.table(
       foreignColumns: [t.number],
       name: "fk_shape_versions_parent_shape_versions",
     }),
+    foreignKey({
+      columns: [t.draft],
+      foreignColumns: [shapeDrafts.id],
+      name: "fk_shape_versions_draft_shape_drafts",
+    }),
     index("ix_shape_versions_parent").on(t.parent),
+    index("ix_shape_versions_draft").on(t.draft),
   ],
 );
 export type ShapeVersion = typeof shapeVersions.$inferSelect;
+
+/**
+ * A shape in the making (designs/2026-10-19-business-map.md, "History like git"): a body saved
+ * beside the live shape, forked from `base`. It waits (`draft`, `proposed`) until a person applies
+ * it as the next version or drops it with a reason. The row changes in place; the versions it
+ * makes never do.
+ */
+export const shapeDrafts = pipeline.table(
+  "shape_drafts",
+  {
+    /** A slug from the name (`draftIdOf`), unique in the workspace. */
+    id: varchar("id", { length: 40 }).notNull(),
+    name: text("name").notNull(),
+    body: jsonb("body").$type<ShapeBody>().notNull(),
+    /** Where journeys on a node the body drops go: `{ oldNode: newNode }`. */
+    moves: jsonb("moves").$type<Moves>().notNull().default(sql`'{}'::jsonb`),
+    /** The version it was forked from. */
+    base: integer("base").notNull(),
+    note: text("note").notNull().default(""),
+    state: varchar("state", { length: 8, enum: DRAFT_STATES }).notNull().default("draft"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    /** The version it became, once applied. */
+    appliedVersion: integer("applied_version"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    dropReason: text("drop_reason"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_shape_drafts" }),
+    foreignKey({
+      columns: [t.base],
+      foreignColumns: [shapeVersions.number],
+      name: "fk_shape_drafts_base_shape_versions",
+    }),
+    foreignKey({
+      columns: [t.appliedVersion],
+      foreignColumns: [shapeVersions.number],
+      name: "fk_shape_drafts_applied_version_shape_versions",
+    }),
+    index("ix_shape_drafts_base").on(t.base),
+    index("ix_shape_drafts_applied_version").on(t.appliedVersion),
+    oneOf("ck_shape_drafts_state", t.state, DRAFT_STATES),
+  ],
+);
+export type ShapeDraft = typeof shapeDrafts.$inferSelect;
+
+/** A name on a version, like a git tag. Never edited (the `never_edited` trigger). */
+export const shapeTags = pipeline.table(
+  "shape_tags",
+  {
+    /** 1 to 60 characters, trimmed. */
+    name: text("name").notNull(),
+    version: integer("version").notNull(),
+    note: text("note"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.name], name: "pk_shape_tags" }),
+    foreignKey({
+      columns: [t.version],
+      foreignColumns: [shapeVersions.number],
+      name: "fk_shape_tags_version_shape_versions",
+    }),
+    index("ix_shape_tags_version").on(t.version),
+  ],
+);
+export type ShapeTag = typeof shapeTags.$inferSelect;
+
+/**
+ * The commit a version landed as in the private repo (`mirror.ts`). A row only after the commit
+ * succeeded, so a version without one is the mirror's backlog.
+ */
+export const shapeMirrors = pipeline.table(
+  "shape_mirrors",
+  {
+    version: integer("version").notNull(),
+    repo: text("repo").notNull(),
+    path: text("path").notNull(),
+    sha: text("sha").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.version], name: "pk_shape_mirrors" }),
+    foreignKey({
+      columns: [t.version],
+      foreignColumns: [shapeVersions.number],
+      name: "fk_shape_mirrors_version_shape_versions",
+    }),
+  ],
+);
+export type ShapeMirror = typeof shapeMirrors.$inferSelect;
 
 export const journeys = pipeline.table(
   "journeys",
