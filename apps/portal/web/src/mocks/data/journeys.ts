@@ -6,6 +6,7 @@
  * `JOURNEY_CALLS` keeps what the board sent, so a story can check the move.
  */
 import type { Row } from "@wren/core/records/serve";
+import type { VersionLine } from "@wren/pipeline/history";
 import type { ShapeBody } from "@wren/pipeline/model";
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
@@ -106,31 +107,49 @@ export const JOURNEY_ROWS: Record<string, Row[]> = {
   ],
 };
 
+/**
+ * The shape's versions as the server lists them (`VersionLine`): a tag on the newest, the git
+ * mirror's commit on each. Synthetic names and shas.
+ */
+export const SHAPE_VERSIONS: VersionLine[] = [
+  {
+    number: 2,
+    parent: 1,
+    note: "Dropped the Joined node.",
+    at: ago(9),
+    by: "Ada North",
+    nodes: 5,
+    edges: 4,
+    draft: null,
+    tags: [{ name: "launch", note: "Shape we went live with.", by: "Ada North", at: ago(8) }],
+    mirror: {
+      sha: "9f3c2a1b7d0e4c58a6b1f2e3d4c5b6a798012345",
+      url: "https://example.test/shape/commit/9f3c2a1",
+    },
+  },
+  {
+    number: 1,
+    parent: null,
+    note: "First shape.",
+    at: ago(40),
+    by: "Ada North",
+    nodes: 6,
+    edges: 5,
+    draft: null,
+    tags: [],
+    mirror: {
+      sha: "1a2b3c4d5e6f708192a3b4c5d6e7f80912345678",
+      url: "https://example.test/shape/commit/1a2b3c4",
+    },
+  },
+];
+
 /** A record's `detail` for `recordsGet`: the shape's newest body, depths and versions. */
 export const JOURNEY_DETAIL: Record<string, (row: Row) => object> = {
   "pipeline.shape": () => ({
     body: SHAPE,
     depths: DEPTHS,
-    versions: [
-      {
-        number: 2,
-        parent: 1,
-        note: "Dropped the Joined node.",
-        at: ago(9),
-        by: "Ada North",
-        nodes: 5,
-        edges: 4,
-      },
-      {
-        number: 1,
-        parent: null,
-        note: "First shape.",
-        at: ago(40),
-        by: "Ada North",
-        nodes: 6,
-        edges: 5,
-      },
-    ],
+    versions: SHAPE_VERSIONS,
   }),
 };
 

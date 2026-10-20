@@ -7,13 +7,14 @@ import type { Answers } from "../api.js";
 import { APP_ANSWERS } from "./apps.js";
 import { JOURNEY_DETAIL, JOURNEY_ROWS, JOURNEY_WRITES } from "./journeys.js";
 import { MAP_ANSWERS } from "./map.js";
+import { DRAFT_ANSWERS, draftRecords } from "./map-drafts.js";
 import { AUTO_REPLY, CADENCE, PIECES, STUDIO_WAITING } from "./marketing.js";
 import { MOVE_ROWS } from "./moves.js";
 import { OFFER_ANSWERS, OFFER_DETAIL, OFFER_ROWS } from "./offers.js";
 import { recordsAnswers } from "./records.js";
 import { SHELL } from "./shell.js";
 
-export const ANSWERS: Answers = {
+const BASE: Answers = {
   ...recordsAnswers(
     { "marketing.cadence": CADENCE as unknown as Row[], ...JOURNEY_ROWS, ...OFFER_ROWS },
     { ...JOURNEY_DETAIL, ...OFFER_DETAIL },
@@ -27,4 +28,16 @@ export const ANSWERS: Answers = {
   "console/call:Pieces.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,
   "console/call:InboxDesk.autoReplies": AUTO_REPLY,
+};
+
+type Reply = (body: Record<string, unknown>) => unknown;
+
+/** `BASE`, with the drafts record and the draft routes in front of the shared records answers. */
+export const ANSWERS: Answers = {
+  ...BASE,
+  ...DRAFT_ANSWERS,
+  ...draftRecords({
+    get: BASE["pipeline/recordsGet"] as Reply,
+    list: BASE["pipeline/recordsList"] as Reply,
+  }),
 };

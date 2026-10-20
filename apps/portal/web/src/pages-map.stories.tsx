@@ -18,6 +18,7 @@ import {
   SHAPE_SPUR,
   SPUR_PERSON,
 } from "./mocks/data/map.js";
+import { REFUSED_UNDO } from "./mocks/data/map-drafts.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { type PageAt, pageAt } from "./mocks/page.js";
 
@@ -226,7 +227,7 @@ export const History = pageAt("/", {
     await node(page, "Engaged");
     await userEvent.click(within(page).getByRole("button", { name: /History/ }));
     const panel = await within(page).findByRole("region", { name: "History" });
-    const versions = within(panel).getAllByRole("button", { name: /^Version/ });
+    const versions = within(panel).getAllByRole("button", { name: /^Version \d/ });
     await expect(versions.map((v) => v.textContent)).toEqual([
       expect.stringContaining("Version 2"),
       expect.stringContaining("Version 1"),
@@ -608,5 +609,470 @@ export const ImportRefused = editAt("/", {
     const dialog = await within(document.body).findByRole("dialog", { name: "Import a shape" });
     await expect(await within(dialog).findByText("The file is not a shape file.")).toBeVisible();
     await expect(within(dialog).queryByRole("button", { name: "Save version" })).toBeNull();
+  },
+});
+
+// --- history: tags, shas, drafts, undo, node history ---------------------------------------------
+
+const openHistory = async (page: HTMLElement) => {
+  await node(page, "Engaged");
+  await userEvent.click(within(page).getByRole("button", { name: /History/ }));
+  return within(page).findByRole("region", { name: "History" });
+};
+const openDrafts = async (page: HTMLElement) => {
+  const panel = await openHistory(page);
+  await userEvent.click(await within(panel).findByRole("button", { name: "Drafts (3)" }));
+  return { panel, drafts: await within(panel).findByRole("region", { name: "Drafts" }) };
+};
+const draftRow = (drafts: HTMLElement, name: string) =>
+  within(drafts).findByRole("listitem", { name: `Draft ${name}` });
+
+/** Each version shows its tags and its commit in the git mirror, a short sha that opens the commit. */
+export const HistoryTagged = pageAt("/", {
+  me: ADMIN,
+  check: async (page) => {
+    const panel = await openHistory(page);
+    await expect(within(panel).getByText("launch")).toBeVisible();
+    const sha = within(panel).getByRole("link", { name: "Version 2 commit 9f3c2a1" });
+    await expect(sha).toHaveTextContent("9f3c2a1");
+    await expect(sha).toHaveAttribute("href", "https://example.test/shape/commit/9f3c2a1");
+    await expect(sha).toHaveAttribute("target", "_blank");
+    await expect(
+      within(panel).getByRole("link", { name: "Version 1 commit 1a2b3c4" }),
+    ).toBeVisible();
+  },
+});
+
+/** Tag a version: a name and a note, sent to the server; a tag has no edit and no delete. */
+export const HistoryTag = editAt("/", {
+  answers: liveShape(SHARED),
+  check: async (page) => {
+    const panel = await openHistory(page);
+    await userEvent.click(within(panel).getByRole("button", { name: "Tag version 1" }));
+    const form = await within(panel).findByRole("form", { name: "Tag version 1" });
+    await userEvent.type(within(form).getByRole("textbox", { name: "Tag name" }), "first-cut");
+    await userEvent.type(
+      within(form).getByRole("textbox", { name: "Tag note" }),
+      "Before the plan",
+    );
+    await userEvent.click(within(form).getByRole("button", { name: "Save tag" }));
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeTag"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({
+      name: "first-cut",
+      version: 1,
+      note: "Before the plan",
+    });
+  },
+});
+
+/** A login that only reads sees no Tag, Restore or draft action. */
+export const HistoryReadOnly = pageAt("/", {
+  me: { ...ADMIN, team: { role: "viewer", wren: ["read"], flags: {} } },
+  check: async (page) => {
+    const panel = await openHistory(page);
+    await expect(within(panel).queryByRole("button", { name: /^Tag version/ })).toBeNull();
+    await expect(within(panel).queryByRole("button", { name: /^Restore version/ })).toBeNull();
+    await userEvent.click(await within(panel).findByRole("button", { name: "Drafts (3)" }));
+    const drafts = await within(panel).findByRole("region", { name: "Drafts" });
+    await draftRow(drafts, "Add a plan");
+    await expect(within(drafts).queryByRole("button", { name: /^(Open|Apply|Drop) / })).toBeNull();
+    await expect(within(drafts).getByRole("button", { name: "Compare Add a plan" })).toBeVisible();
+  },
+});
+
+/** The Drafts tab counts the open drafts and lists them: name, state, base, author, day. */
+export const HistoryDrafts = pageAt("/", {
+  me: ADMIN,
+  check: async (page) => {
+    const { drafts } = await openDrafts(page);
+    const plan = await draftRow(drafts, "Add a plan");
+    await expect(within(plan).getByText("Proposed")).toBeVisible();
+    await expect(within(plan).getByText(/from version 2/)).toHaveTextContent("Bo Fenwick");
+    await expect(within(plan).queryByRole("button", { name: "Propose Add a plan" })).toBeNull();
+    const spur = await draftRow(drafts, "Follow-up step");
+    await expect(within(spur).getByText("Draft")).toBeVisible();
+    await expect(
+      within(spur).getByRole("button", { name: "Propose Follow-up step" }),
+    ).toBeVisible();
+    // Applied and dropped drafts stay out until asked for.
+    await expect(within(drafts).queryByRole("listitem", { name: "Draft Old idea" })).toBeNull();
+    await userEvent.click(within(drafts).getByRole("button", { name: "Show applied and dropped" }));
+    const old = await draftRow(drafts, "Old idea");
+    await expect(within(old).getByText("Dropped")).toBeVisible();
+    await expect(within(old).getByText("Dropped: Replaced by the plan draft.")).toBeVisible();
+    await expect(within(old).queryByRole("button", { name: "Apply Old idea" })).toBeNull();
+  },
+});
+
+/** Compare a draft with live: the lines show, and the Map draws the difference; pick a version too. */
+export const DraftCompare = pageAt("/", {
+  me: ADMIN,
+  check: async (page) => {
+    const { drafts } = await openDrafts(page);
+    await userEvent.click(
+      await within(drafts).findByRole("button", { name: "Compare Add a plan" }),
+    );
+    const compare = await within(drafts).findByRole("region", {
+      name: "Compare Add a plan with live",
+    });
+    await expect(
+      await within(compare).findByText("Added node Standard plan.", {}, LATE),
+    ).toBeVisible();
+    await waitFor(() => expect(within(page).getAllByText("New").length).toBeGreaterThan(0), LATE);
+    await userEvent.selectOptions(
+      within(compare).getByRole("combobox", { name: "Compare Add a plan with" }),
+      "1",
+    );
+    await expect(await within(compare).findByText("Removed node Joined.", {}, LATE)).toBeVisible();
+  },
+});
+
+/** Propose a draft that is still a draft; the server's answer is read again. */
+export const DraftPropose = editAt("/", {
+  check: async (page) => {
+    const { drafts } = await openDrafts(page);
+    await userEvent.click(
+      await within(drafts).findByRole("button", { name: "Propose Follow-up step" }),
+    );
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeDraftPropose"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({ id: "d2" });
+  },
+});
+
+/** Drop asks why; the reason goes with the drop. */
+export const DraftDrop = editAt("/", {
+  check: async (page) => {
+    const { drafts } = await openDrafts(page);
+    await userEvent.click(
+      await within(drafts).findByRole("button", { name: "Drop Follow-up step" }),
+    );
+    const dialog = await within(document.body).findByRole("dialog", {
+      name: "Drop Follow-up step",
+    });
+    const drop = within(dialog).getByRole("button", { name: "Drop draft" });
+    await expect(drop).toBeDisabled();
+    await userEvent.type(
+      within(dialog).getByRole("textbox", { name: "Why drop it" }),
+      "Not needed",
+    );
+    await userEvent.click(drop);
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeDraftDrop"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({ id: "d2", reason: "Not needed" });
+  },
+});
+
+/** Apply a draft that started from the newest version: its changes against live, then Apply. */
+export const DraftApply = editAt("/", {
+  check: async (page) => {
+    const { drafts } = await openDrafts(page);
+    await userEvent.click(await within(drafts).findByRole("button", { name: "Apply Add a plan" }));
+    const dialog = await within(document.body).findByRole("dialog", { name: "Apply Add a plan" });
+    await expect(await within(dialog).findByText("Added node Standard plan.")).toBeVisible();
+    await expect(within(dialog).queryByText("Live changed since this draft started.")).toBeNull();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeDraftApply"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({ id: "d1" });
+  },
+});
+
+/**
+ * Apply a draft that fell behind: the warning and what live changed since come first, then the
+ * draft against live. No merge: Apply takes the draft as it is.
+ */
+export const DraftApplyLiveChanged = editAt("/", {
+  check: async (page) => {
+    const { drafts } = await openDrafts(page);
+    await userEvent.click(
+      await within(drafts).findByRole("button", { name: "Apply Follow-up step" }),
+    );
+    const dialog = await within(document.body).findByRole("dialog", {
+      name: "Apply Follow-up step",
+    });
+    const moved = await within(dialog).findByRole("region", { name: "Live changed" });
+    await expect(within(moved).getByText("Live changed since this draft started.")).toBeVisible();
+    await expect(await within(moved).findByText("Removed node Joined.")).toBeVisible();
+    const against = within(dialog).getByRole("region", { name: "Draft against live" });
+    await expect(await within(against).findByText("Added node Follow up.")).toBeVisible();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeDraftApply"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({ id: "d2" });
+  },
+});
+
+/** The server refuses an apply: its sentence shows in the dialog and the draft stays. */
+export const DraftApplyRefused = editAt("/", {
+  answers: {
+    "pipeline/shapeDraftApply": () =>
+      refuse(400, 'Node "follow" has no flow edge into it. Nothing was saved.'),
+  },
+  check: async (page) => {
+    const { drafts } = await openDrafts(page);
+    await userEvent.click(
+      await within(drafts).findByRole("button", { name: "Apply Follow-up step" }),
+    );
+    const dialog = await within(document.body).findByRole("dialog", {
+      name: "Apply Follow-up step",
+    });
+    await expect(await within(dialog).findByText("Added node Follow up.")).toBeVisible();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await expect(
+      await within(dialog).findByText(/Node "follow" has no flow edge into it\./),
+    ).toBeVisible();
+  },
+});
+
+const pickBoth = async (panel: HTMLElement) => {
+  const versions = within(panel).getAllByRole("button", { name: /^Version \d/ });
+  await userEvent.click(versions[0] as HTMLElement);
+  await userEvent.click(versions[1] as HTMLElement);
+  return within(panel).findByRole("region", { name: "Changes" }, LATE);
+};
+
+/** Undo one line of a difference: the preview lists what it would change, a second Undo saves it. */
+export const HistoryUndoLine = editAt("/", {
+  check: async (page) => {
+    const panel = await openHistory(page);
+    const changes = await pickBoth(panel);
+    await userEvent.click(
+      await within(changes).findByRole("button", { name: "Undo: Removed node Joined." }),
+    );
+    const preview = await within(changes).findByRole("region", { name: "Undo preview" });
+    await expect(await within(preview).findByText("Added node Joined.")).toBeVisible();
+    await expect(within(preview).getByText("Note: Undo: Removed node Joined.")).toBeVisible();
+    await userEvent.click(within(preview).getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeUndo"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({ a: 1, b: 2, change: "node:joined:removed" });
+  },
+});
+
+/** A line that no longer fits the newest shape: the server's reasons show and Undo cannot run. */
+export const HistoryUndoRefused = editAt("/", {
+  check: async (page) => {
+    const panel = await openHistory(page);
+    const changes = await pickBoth(panel);
+    await userEvent.click(
+      await within(changes).findByRole("button", { name: "Undo: Added edge Engaged to Booked." }),
+    );
+    const preview = await within(changes).findByRole("region", { name: "Undo preview" });
+    await expect(
+      await within(preview).findByText(/^Booked changed again in version 3\./),
+    ).toBeVisible();
+    await expect(within(preview).getByRole("button", { name: "Undo" })).toBeDisabled();
+    await expect(MAP_CALLS).toEqual([]);
+    await expect(REFUSED_UNDO).toBe("edge:engaged_to_booked:added");
+  },
+});
+
+/** Node history: the versions that touched the node, newest first; a line opens that version. */
+export const NodeHistory = pageAt("/", {
+  me: ADMIN,
+  check: async (page) => {
+    await userEvent.click(await node(page, "Booked"));
+    const panel = await within(page).findByRole("region", { name: "Booked, details" });
+    const list = await within(panel).findByRole("region", { name: "Node history" });
+    const lines = await within(list).findAllByRole("button");
+    await expect(lines.map((l) => l.textContent)).toEqual([
+      expect.stringContaining("Version 2 · Changed"),
+      expect.stringContaining("Version 1 · Added"),
+    ]);
+    await userEvent.click(lines[0] as HTMLElement);
+    // History opens on version 2 beside its parent, and the Map draws the difference.
+    const history = await within(page).findByRole("region", { name: "History" });
+    await expect(await within(history).findByText("Removed node Joined.", {}, LATE)).toBeVisible();
+  },
+});
+
+/** Edit mode: a node's card and a line's card have the same history section. */
+export const EditHistory = editAt("/?edit=1", {
+  answers: liveShape(SHARED),
+  check: async (page) => {
+    await userEvent.click(await node(page, "Booked"));
+    const card = await within(page).findByRole("region", { name: "Booked, edit" });
+    const list = await within(card).findByRole("region", { name: "Node history" });
+    await expect(await within(list).findAllByRole("button")).toHaveLength(2);
+    const wire = await waitFor(() => {
+      const w = page.querySelector<HTMLElement>('.react-flow__edge[data-id="engaged>booked"]');
+      if (!w) throw new Error("no wire yet");
+      return w;
+    }, LATE);
+    await userEvent.click(wire);
+    const line = await within(page).findByRole("region", { name: "Engaged to Booked, edit" });
+    const lineList = await within(line).findByRole("region", { name: "Line history" });
+    await expect(
+      await within(lineList).findByRole("button", { name: /Version\s+2\s*·\s*Added/ }),
+    ).toBeVisible();
+  },
+});
+
+/** A node the saved shape lacks (just added in the draft) has no history yet, and says so. */
+export const EditHistoryNewNode = editAt("/?edit=1", {
+  answers: liveShape(SHARED),
+  check: async (page) => {
+    await node(page, "Engaged");
+    await dragPart(page, "Step");
+    const card = await within(page).findByRole("region", { name: "Step, edit" });
+    const list = await within(card).findByRole("region", { name: "Node history" });
+    await expect(await within(list).findByText("No history yet.")).toBeVisible();
+  },
+});
+
+// --- drafts in edit mode -----------------------------------------------------------------------
+
+const banner = (page: HTMLElement) => within(page).findByRole("status", { name: "Open draft" });
+
+/**
+ * A draft opened in edit mode (`?edit=1&draft=<id>`): the banner names it and where it started, the
+ * canvas draws the draft, and the bar saves into the draft ("Update draft"), not a version.
+ */
+export const EditOpenDraft = editAt("/?edit=1&draft=d1", {
+  answers: liveShape(SHARED),
+  check: async (page) => {
+    const open = await banner(page);
+    await expect(within(open).getByText("Add a plan")).toBeVisible();
+    await expect(within(open).getByText(/from version 2/)).toHaveTextContent("Bo Fenwick");
+    // The draft has a plan after the offer; the live shape does not.
+    await node(page, "Standard plan");
+    const bar = await toolbar(page);
+    await expect(within(bar).getByText("No changes")).toBeVisible();
+    await expect(within(bar).queryByRole("button", { name: "Save" })).toBeNull();
+    await expect(within(bar).getByRole("button", { name: "Update draft" })).toBeDisabled();
+    await userEvent.click(await node(page, "Booked"));
+    const card = await within(page).findByRole("region", { name: "Booked, edit" });
+    const name = within(card).getByRole("textbox", { name: "Name" });
+    await userEvent.clear(name);
+    await userEvent.type(name, "Call booked{Enter}");
+    await expect(await within(bar).findByText("Draft: 1 change")).toBeVisible();
+    await userEvent.click(within(bar).getByRole("button", { name: "Update draft" }));
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeDraftUpdate"]));
+    const sent = MAP_CALLS[0]?.body as { id: string; body: { nodes: { name: string }[] } };
+    await expect(sent.id).toBe("d1");
+    await expect(sent.body.nodes.map((n) => n.name)).toContain("Call booked");
+  },
+});
+
+/** Close asks first when edits are not saved in the draft; the edits stay on the device. */
+export const EditCloseDraft = editAt("/?edit=1&draft=d1", {
+  answers: liveShape(SHARED),
+  check: async (page) => {
+    const open = await banner(page);
+    await userEvent.click(await node(page, "Booked"));
+    const card = await within(page).findByRole("region", { name: "Booked, edit" });
+    const name = within(card).getByRole("textbox", { name: "Name" });
+    await userEvent.clear(name);
+    await userEvent.type(name, "Call booked{Enter}");
+    await expect(await within(await toolbar(page)).findByText("Draft: 1 change")).toBeVisible();
+    await userEvent.click(within(open).getByRole("button", { name: "Close" }));
+    await expect(within(open).getByText("Your edits stay on this device.")).toBeVisible();
+    await userEvent.click(within(open).getByRole("button", { name: "Close the draft" }));
+    // Back on the live shape: no banner, and Save is a version again.
+    await waitFor(() =>
+      expect(within(page).queryByRole("status", { name: "Open draft" })).toBeNull(),
+    );
+    await expect(
+      await within(await toolbar(page)).findByRole("button", { name: "Save" }),
+    ).toBeVisible();
+  },
+});
+
+/** A draft that does not exist: the page says so and the live shape stays editable. */
+export const EditDraftMissing = editAt("/?edit=1&draft=nope", {
+  answers: liveShape(SHARED),
+  check: async (page) => {
+    await node(page, "Engaged");
+    await expect(await within(page).findByText(/No such draft\./)).toBeVisible();
+    await expect(within(page).queryByRole("status", { name: "Open draft" })).toBeNull();
+  },
+});
+
+/** "Save as draft" in the bar: a name and a note, sent with the edits; the new draft opens. */
+export const EditSaveAsDraft = editAt("/?edit=1", {
+  answers: liveShape(SHARED),
+  check: async (page) => {
+    await userEvent.click(await node(page, "Booked"));
+    const card = await within(page).findByRole("region", { name: "Booked, edit" });
+    const name = within(card).getByRole("textbox", { name: "Name" });
+    await userEvent.clear(name);
+    await userEvent.type(name, "Call booked{Enter}");
+    const bar = await toolbar(page);
+    await expect(await within(bar).findByText("Draft: 1 change")).toBeVisible();
+    await userEvent.click(within(bar).getByRole("button", { name: "Save as draft" }));
+    const dialog = await within(document.body).findByRole("dialog", { name: "Save as draft" });
+    const save = within(dialog).getByRole("button", { name: "Save draft" });
+    await expect(save).toBeDisabled();
+    await userEvent.type(
+      within(dialog).getByRole("textbox", { name: "Draft name" }),
+      "Saved from edits",
+    );
+    await userEvent.click(save);
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeDraftNew"]));
+    const sent = MAP_CALLS[0]?.body as {
+      name: string;
+      base: number;
+      body: { nodes: { name: string }[] };
+    };
+    await expect(sent.name).toBe("Saved from edits");
+    await expect(sent.base).toBe(2);
+    await expect(sent.body.nodes.map((n) => n.name)).toContain("Call booked");
+    // The new draft is open now, and the device holds nothing for the live shape.
+    const open = await banner(page);
+    await expect(within(open).getByText("Saved from edits")).toBeVisible();
+    await expect(
+      await within(await toolbar(page)).findByRole("button", { name: "Update draft" }),
+    ).toBeVisible();
+  },
+});
+
+/** The server refuses the draft: its sentence shows in the dialog, and the name and edits stay. */
+export const EditSaveAsDraftRefused = editAt("/?edit=1", {
+  answers: {
+    ...liveShape(SHARED),
+    "pipeline/shapeDraftNew": () => refuse(400, "A draft named Spring is already open."),
+  },
+  check: async (page) => {
+    await userEvent.click(await node(page, "Booked"));
+    const card = await within(page).findByRole("region", { name: "Booked, edit" });
+    const name = within(card).getByRole("textbox", { name: "Name" });
+    await userEvent.clear(name);
+    await userEvent.type(name, "Call booked{Enter}");
+    await userEvent.click(
+      within(await toolbar(page)).getByRole("button", { name: "Save as draft" }),
+    );
+    const dialog = await within(document.body).findByRole("dialog", { name: "Save as draft" });
+    await userEvent.type(within(dialog).getByRole("textbox", { name: "Draft name" }), "Spring");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save draft" }));
+    await expect(
+      await within(dialog).findByText("A draft named Spring is already open."),
+    ).toBeVisible();
+    await expect(within(dialog).getByRole("textbox", { name: "Draft name" })).toHaveValue("Spring");
+  },
+});
+
+// --- Today ---------------------------------------------------------------------------------------
+
+/** Today says how many shape proposals wait, and links to History on the Drafts tab. */
+export const TodayProposals = {
+  ...pageAt("/", {
+    me: ADMIN,
+    check: async (page) => {
+      await node(page, "Engaged");
+      await userEvent.click(within(page).getByRole("button", { name: "Today" }));
+      const sheet = await within(document.body).findByRole("dialog", { name: "Today" });
+      const line = await within(sheet).findByText("1 shape proposal waits");
+      await expect(line.closest("a")).toHaveAttribute("href", "/?history=drafts");
+    },
+  }),
+  globals: { viewport: { value: "desktop" } },
+};
+
+/** The Today link lands on the Map with History open on Drafts. */
+export const HistoryOnDrafts = pageAt("/?history=drafts", {
+  me: ADMIN,
+  check: async (page) => {
+    await node(page, "Engaged");
+    const panel = await within(page).findByRole("region", { name: "History" });
+    await expect(await within(panel).findByRole("region", { name: "Drafts" })).toBeVisible();
+    await expect(
+      await within(panel).findByRole("listitem", { name: "Draft Add a plan" }),
+    ).toBeVisible();
   },
 });
