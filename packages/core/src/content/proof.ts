@@ -38,6 +38,11 @@ export interface ProofTarget {
   account?: string | null;
   /** The thread the comment is in, when `parent` is a comment (Reddit `t3_…`). */
   post?: string | null;
+  /**
+   * Our other logins on the platform (`reddit@two`): a stranger's view when the signed-out reader
+   * is spent, since a filtered comment is dropped from any other user's view too.
+   */
+  peers?: string[];
 }
 
 export interface CommentProof {
@@ -224,23 +229,51 @@ export function siteProof(deps: ProofDeps): CommentProof {
       sites
         .call<RedditListing>(site, "GET", "/api/info", { id: t.ref, raw_json: 1 }, account)
         .then((l) => l.data?.children?.[0]?.data ?? null);
-    let open: RedditThing | null;
+    // The stranger's reader: signed out, else one of our other logins (Reddit answers a
+    // signed-out reader 403 for hours at a time; a peer's view is as good as a stranger's).
+    let stranger: { site: string; account?: string; note: string | null } = {
+      site: "reddit-public",
+      note: null,
+    };
+    let open: RedditThing | null = null;
     try {
       open = await info("reddit-public");
     } catch (e) {
       // A used daily cap is the caller's to wait out, not a check that read nothing.
       if (capWaitMs(e) !== null) throw e;
-      return pending(t, `the public read failed: ${message(e)}`);
+      const why = `the public read failed: ${message(e)}`;
+      let read = false;
+      for (const peer of (t.peers ?? []).filter((p) => p !== t.account)) {
+        try {
+          open = await info("reddit", peer);
+        } catch {
+          continue;
+        }
+        stranger = {
+          site: "reddit",
+          account: peer,
+          note: `read as another account of ours; ${why}`,
+        };
+        read = true;
+        break;
+      }
+      if (!read) return pending(t, why);
     }
+    const tree = (a: string) =>
+      sites
+        .call<[RedditListing, RedditListing]>(
+          stranger.site,
+          "GET",
+          `/comments/${a}`,
+          { limit: 500, raw_json: 1 },
+          stranger.account,
+        )
+        .then(([, tree]) => tree);
     const a = article(t.post ?? t.parent) ?? article(open?.link_id);
     let inThread: boolean | null = null;
     if (readable(open) && a)
-      inThread = await sites
-        .call<[RedditListing, RedditListing]>("reddit-public", "GET", `/comments/${a}`, {
-          limit: 500,
-          raw_json: 1,
-        })
-        .then(([, tree]) => {
+      inThread = await tree(a)
+        .then((tree) => {
           const { ids, partial } = idsIn(tree);
           return ids.has(t.ref as string) ? true : partial ? null : false;
         })
@@ -255,15 +288,12 @@ export function siteProof(deps: ProofDeps): CommentProof {
     // A removal's reason is the moderator's reply under our comment; the send gate reads it.
     const why =
       (v.state === "hidden" || v.state === "missing") && a
-        ? await sites
-            .call<[RedditListing, RedditListing]>("reddit-public", "GET", `/comments/${a}`, {
-              limit: 500,
-              raw_json: 1,
-            })
-            .then(([, tree]) => modNoteIn(tree, t.ref as string))
+        ? await tree(a)
+            .then((tree) => modNoteIn(tree, t.ref as string))
             .catch(() => null)
         : null;
     if (why) v.note = join(v.note, why);
+    if (stranger.note) v.note = join(v.note, stranger.note);
     const url = redditPermalink(t, open ?? own);
     // www, not old.reddit: old.reddit sends a signed-out reader to its login wall.
     const s = await shoot(url, { ref: t.ref });

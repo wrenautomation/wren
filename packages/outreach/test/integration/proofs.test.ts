@@ -120,6 +120,7 @@ describe("comment proofs", () => {
       ref: "t1_c1",
       post: "t3_p1",
       account: "reddit@one",
+      peers: ["reddit@one"],
     });
     expect(await proofTarget(db(), "thread:t3_none")).toBeNull();
     expect(await proofTarget(db(), "bogus")).toBeNull();

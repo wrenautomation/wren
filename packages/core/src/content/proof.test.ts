@@ -173,6 +173,36 @@ describe("siteProof", () => {
     expect(d.log).not.toContain("reddit GET /api/info@reddit@one");
   });
 
+  it("reads as another account of ours when the signed-out reader is spent", async () => {
+    const d = desk({
+      "reddit-public GET /api/info": new Error("HTTP 403 (feed after a 403)"),
+      "reddit GET /api/info@reddit@two": listing(thing("hi")),
+      "reddit GET /comments/p1@reddit@two": [listing(), listing(thing("hi"))],
+      "web GET /proof/shot": { found: true, jpeg },
+    });
+    const p = await siteProof({ sites: d, now: () => NOW, keep: async () => "s3://b/k" }).check({
+      platform: "reddit",
+      ref: "t1_c1",
+      parent: "t3_p1",
+      url: null,
+      account: "reddit@one",
+      peers: ["reddit@one", "reddit@two"],
+    });
+    expect(p.state).toBe("live");
+    expect(p.note).toContain("read as another account of ours");
+    expect(d.log).not.toContain("reddit GET /api/info@reddit@one");
+    // No peer: the check waits, as before.
+    const alone = await siteProof({ sites: d, now: () => NOW }).check({
+      platform: "reddit",
+      ref: "t1_c1",
+      parent: "t3_p1",
+      url: null,
+      account: "reddit@one",
+    });
+    expect(alone.state).toBe("pending");
+    expect(alone.note).toContain("the public read failed");
+  });
+
   it("asks the account when strangers see a tombstone", async () => {
     const d = desk({
       "reddit-public GET /api/info": listing(thing("[deleted]", "")),
