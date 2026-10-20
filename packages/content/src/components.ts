@@ -92,7 +92,8 @@ export const CONTENT_COMPONENTS = [
     ready: true,
     settings: clientPlannerSchema,
     requires: { components: ["content.posting"], anyAccount: [...CHANNEL_ACCOUNTS] },
-    provides: { services: ["ContentPlanner"], loops: ["ContentPlanner"] },
+    // The SOPs it drafts from (`wren sop push`) are its playbooks.
+    provides: { services: ["ContentPlanner"], loops: ["ContentPlanner"], records: ["library.sop"] },
     // Drafts tomorrow's posts into the client's To approve, as it (its About), on its own models.
     clientLoops: (client) => [{ service: "ContentPlanner", key: clientKey(client, PLAN_UNIT) }],
     effects: ["spends"],
@@ -143,6 +144,7 @@ export const CONTENT_COMPONENTS = [
         "marketing.activity",
         "marketing.audience",
         "marketing.review",
+        "marketing.asked_reply",
       ],
     },
     // Replies and keyword DMs, once approved or on a keyword.
@@ -221,6 +223,7 @@ export const CONTENT_COMPONENTS = [
         "marketing.session",
         "marketing.survey_answer",
         "marketing.heat",
+        "marketing.survey",
       ],
       // Ads and Outreach are Wren's own, split from Marketing (designs/2026-10-11-split-marketing.md,
       // 2026-10-16-outreach-app.md).
@@ -255,7 +258,7 @@ export const CONTENT_COMPONENTS = [
     requires: { components: ["content.posting"] },
     provides: {
       services: ["VideoDesk"],
-      records: ["marketing.video"],
+      records: ["marketing.video", "library.media"],
       templates: [
         "prompt:content/video-ask",
         "prompt:content/video-edit",

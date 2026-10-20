@@ -304,6 +304,7 @@ export const RESEARCH_COMPONENTS = [
     // collectors (they spend) stay Wren's. Rides the pool, as social reads do.
     wrenSettings: true,
     requires: { components: [LEAD_SHEET] },
+    provides: { records: ["research.signal"] },
     in: [{ id: "firms", label: "companies in the queue", kind: "firm" }],
     out: [{ id: "signals", label: "companies with a fresh signal", kind: "firm" }],
     hypothesis: {

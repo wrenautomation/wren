@@ -8,54 +8,20 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { BOOKS_RECORDS } from "@wren/books/records";
-import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
-import { emailRecords } from "@wren/channel-email/records";
-import type { SendPolicy } from "@wren/channel-email/send/policy";
-import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/channel-search/records";
-import { textCopyRecord } from "@wren/channel-sms/records";
 import { loadSettings } from "@wren/config";
-import { videoRecord } from "@wren/content/records";
-import { askRecord } from "@wren/core/ask";
-import { type Client, changeRecord, clientRecord, teamRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
-import {
-  componentRecord,
-  eventRecord,
-  executionRecord,
-  handlerRecord,
-  loopRecord,
-} from "@wren/core/console";
 import { HOOK_PRESETS } from "@wren/core/door";
-import { MARKETING_RECORDS } from "@wren/core/marketing/records";
-import { MESSAGE_DEFAULTS } from "@wren/core/message-settings";
-import { profileRecords } from "@wren/core/profile-records";
 import { setRecordAccounts } from "@wren/core/record-accounts";
 import { metaOf } from "@wren/core/records";
 import { handlerForm } from "@wren/core/restate";
-import { SEGMENT_RECORDS } from "@wren/core/segment-records";
-import { SENT_RECORDS } from "@wren/core/sent/records";
 import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
-import type { Queryable } from "@wren/db";
-import { HEALTH_RECORDS } from "@wren/delivery/health";
-import { deliveryRecords } from "@wren/delivery/records";
-import { DOCUMENTS_RECORDS } from "@wren/documents/records";
-import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { NICHES } from "@wren/niches";
-import { dmCopyRecord } from "@wren/outreach/records";
-import { PAYMENTS_RECORDS } from "@wren/payments/records";
-import { PIPELINE_RECORDS } from "@wren/pipeline/records";
-import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
-import { SITES_RECORDS } from "@wren/sites/records";
-import { VOICE_RECORDS } from "@wren/voice/records";
-import { WATCH_RECORDS } from "@wren/watch/records";
 import type { Logger } from "pino";
 import { afterAll, describe, expect, it } from "vitest";
 import { COMPONENTS, PLATFORM } from "./components.js";
-import { MARKETING_NUMBERS } from "./marketing.js";
-import { reviewRecord } from "./review.js";
+import { recordTypes } from "./record-types.js";
 import { buildServices } from "./services.js";
 import { WORKFLOWS } from "./workflows.js";
 
@@ -117,54 +83,8 @@ async function bound(): Promise<Map<string, string[]>> {
   return new Map([...(await boundHandlers())].map(([s, h]) => [s, Object.keys(h)]));
 }
 
-/** Every record type the worker serves, built without a database. */
-const RECORD_TYPES = [
-  ...emailRecords([], {} as SendPolicy),
-  ...BOOKS_RECORDS,
-  ...WATCH_RECORDS,
-  ...LEARN_RECORDS,
-  sopRecordFor(null),
-  ...SITES_RECORDS,
-  ...PAYMENTS_RECORDS,
-  ...DOCUMENTS_RECORDS,
-  ...PIPELINE_RECORDS,
-  ...CALENDAR_RECORDS,
-  recordingRecord(),
-  ...VOICE_RECORDS,
-  ...MARKETING_NUMBERS,
-  sessionRecord({ site: { baseUrl: "", exportToken: "" }, signGet: async () => "" }),
-  surveyAnswerRecord({ baseUrl: "", exportToken: "" }),
-  heatRecord(),
-  videoRecord(),
-  dmCopyRecord("x"),
-  textCopyRecord([], "x"),
-  clientRecord,
-  ...HEALTH_RECORDS,
-  teamRecord,
-  changeRecord,
-  loopRecord(async () => []),
-  eventRecord,
-  executionRecord,
-  handlerRecord(async () => ({})),
-  componentRecord([], null, false),
-  ...deliveryRecords(
-    {} as Queryable,
-    "synthetic",
-    true,
-    undefined,
-    undefined,
-    undefined,
-    async () => MESSAGE_DEFAULTS,
-  ),
-  ...REACTIVATION_RECORDS,
-  ...MARKETING_RECORDS,
-  ...SENT_RECORDS,
-  ...SEGMENT_RECORDS,
-  ...profileRecords([], { research: true }),
-  settingOf({} as Client),
-  reviewRecord(),
-  askRecord,
-];
+/** Every record type the worker serves: the same list the portal and the page stories read. */
+const RECORD_TYPES = recordTypes();
 const RECORDS = RECORD_TYPES.map((t) => t.id);
 
 /** Who claims each name in `pick`, platform first. */
