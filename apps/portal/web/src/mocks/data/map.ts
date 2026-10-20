@@ -4,9 +4,10 @@
  * Synthetic data only.
  */
 import type { Row } from "@wren/core/records/serve";
-import type { ShapeBody } from "@wren/pipeline/model";
-import type { Answers } from "../api.js";
-import { SHAPE } from "./journeys.js";
+import { diffShapes } from "@wren/pipeline/diff";
+import { depthOf, type ShapeBody } from "@wren/pipeline/model";
+import { type Answers, refuse } from "../api.js";
+import { JOURNEY_ROWS, SHAPE } from "./journeys.js";
 import { NUMBERS } from "./offers.js";
 import { ago } from "./shell.js";
 
@@ -50,6 +51,28 @@ export const SHAPE_PLAN: ShapeBody = {
     { id: "signed_to_standard", from: "signed", to: "standard", kind: "flow" },
     { id: "booked_to_engaged", from: "booked", to: "engaged", kind: "loop" },
   ],
+};
+
+/** The newest shape with a dead-end step after Engaged: a node that can go with its person moved. */
+export const SHAPE_SPUR: ShapeBody = {
+  ...SHAPE,
+  nodes: [
+    ...SHAPE.nodes,
+    { id: "follow", kind: "step", name: "Follow up", action: "other", advance: [] },
+  ],
+  edges: [...SHAPE.edges, { id: "engaged_to_follow", from: "engaged", to: "follow", kind: "flow" }],
+};
+
+/** An open journey on the spur's Follow up step: one person who must move before it can go. */
+export const SPUR_PERSON: Row = {
+  ...(JOURNEY_ROWS["pipeline.journey"]?.[0] as Row),
+  id: "j8",
+  name: "Fay Lin",
+  profile: 8,
+  node: "follow",
+  nodeName: "Follow up",
+  email: "fay@example.test",
+  daysAtNode: 1,
 };
 
 const DEPTHS: Record<string, number> = {
@@ -149,8 +172,72 @@ export function planAnswers(fallback: { get: Pipeline; list: Pipeline }): Answer
   };
 }
 
+/** What the Map's writes sent since the last `forgetMapCalls()`, in order. */
+export const MAP_CALLS: { path: string; body: Record<string, unknown> }[] = [];
+export const forgetMapCalls = () => MAP_CALLS.splice(0);
+
+/** A file a person might import: the newest shape with one more step after Engaged. */
+export const FILE_SHAPE: ShapeBody = {
+  ...SHAPE,
+  nodes: [
+    ...SHAPE.nodes,
+    { id: "replied", kind: "step", name: "Replied", action: "reply", advance: [] },
+  ],
+  edges: [
+    ...SHAPE.edges,
+    { id: "engaged_to_replied", from: "engaged", to: "replied", kind: "flow" },
+  ],
+};
+/** The file's text; the preview reads a file with no `nodes:` line as not a shape. */
+export const FILE_TEXT = "name: Sample shape\nnodes:\n  - id: mail\n";
+
+const version = (body: ShapeBody, number: number, note: string) => ({
+  number,
+  parent: number > 1 ? number - 1 : null,
+  note,
+  at: ago(0),
+  by: "Ada North",
+  nodes: body.nodes.length,
+  edges: body.edges.length,
+});
+
+/**
+ * The Map's writes, answering as the server does when one lands. The file preview reads `FILE_TEXT`
+ * as a shape and anything without a `nodes:` line as not one.
+ */
+export const MAP_WRITES: Answers = {
+  "pipeline/shapeVersion": (b) => {
+    MAP_CALLS.push({ path: "shapeVersion", body: b });
+    return { version: 3 };
+  },
+  "pipeline/shapeImport": (b) => {
+    MAP_CALLS.push({ path: "shapeImport", body: b });
+    return { version: 3 };
+  },
+  "pipeline/shapeStart": (b) => {
+    MAP_CALLS.push({ path: "shapeStart", body: b });
+    return { version: 1 };
+  },
+  "pipeline/shapeExport": (b) => {
+    MAP_CALLS.push({ path: "shapeExport", body: b });
+    return { text: `name: ${String((b.body as ShapeBody | undefined)?.name ?? "")}\nnodes: []\n` };
+  },
+  "pipeline/shapePreview": (b) => {
+    const text = String(b.text ?? "");
+    if (!text.includes("nodes:")) return refuse(400, "The file is not a shape file.");
+    return {
+      a: 2,
+      diff: diffShapes(SHAPE, FILE_SHAPE),
+      bodies: [SHAPE, FILE_SHAPE],
+      note: null,
+      moves: null,
+    };
+  },
+};
+
 /** The History's difference of two versions: version 1 and 2 only. */
 export const MAP_ANSWERS: Answers = {
+  ...MAP_WRITES,
   "pipeline/shapeDiff": (b) => {
     const [a, c] = [Number(b.a), Number(b.b)];
     const same = a === c;
@@ -168,3 +255,56 @@ export const MAP_ANSWERS: Answers = {
     };
   },
 };
+
+/**
+ * A shape that changes as the story saves it: `shapeVersion`, `shapeImport` and `shapeStart` write
+ * the newest version, and the next read gives it back. `from` is the shape it starts with (null:
+ * none yet). They stand in front of the shared `recordsGet`, which `fallback` answers for the rest.
+ */
+export function liveShape(
+  fallback: { get: Pipeline; list?: Pipeline },
+  from: ShapeBody | null = SHAPE,
+  /** Open journeys beyond the shared ones (rows of `pipeline.journey`). */
+  more: readonly Row[] = [],
+): Answers {
+  let body = from;
+  let versions = from
+    ? [version(from, 2, "Dropped the Joined node."), version(SHAPE_V1, 1, "First shape.")]
+    : [];
+  const save = (path: string, next: ShapeBody, note: string, b: Ask) => {
+    MAP_CALLS.push({ path, body: b });
+    const n = (versions[0]?.number ?? 0) + 1;
+    body = next;
+    versions = [version(next, n, note), ...versions];
+    return { version: n };
+  };
+  return {
+    ...MAP_WRITES,
+    "pipeline/recordsList": (b) => {
+      const got = (fallback.list?.(b) ?? { rows: [], total: 0 }) as { rows: Row[]; total: number };
+      const where = (b.where ?? {}) as Record<string, unknown>;
+      if (b.record !== "pipeline.journey" || where.status !== "open" || !more.length) return got;
+      return { ...got, rows: [...got.rows, ...more], total: got.total + more.length };
+    },
+    "pipeline/recordsGet": (b) =>
+      b.record !== "pipeline.shape"
+        ? fallback.get(b)
+        : body
+          ? {
+              record: "pipeline.shape",
+              row: { id: "shape" },
+              related: [],
+              activity: [],
+              detail: { body, depths: depthOf(body), versions },
+            }
+          : { record: "pipeline.shape", row: null, detail: null },
+    "pipeline/shapeVersion": (b) => save("shapeVersion", b.body as ShapeBody, String(b.note), b),
+    "pipeline/shapeImport": (b) => save("shapeImport", FILE_SHAPE, String(b.note), b),
+    "pipeline/shapeStart": (b) => save("shapeStart", SHAPE, "Starter", b),
+    "pipeline/shapeDiff": (b) => {
+      const [a, c] = [Number(b.a), Number(b.b)];
+      const at = (n: number) => (n === 1 ? SHAPE_V1 : n === 2 ? SHAPE : (body ?? SHAPE));
+      return { a, b: c, diff: diffShapes(at(a), at(c)), bodies: [at(a), at(c)] };
+    },
+  };
+}

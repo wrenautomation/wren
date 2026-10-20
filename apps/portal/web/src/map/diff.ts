@@ -3,9 +3,11 @@
  * added ones marked added and the changed ones changed, with the older version's removed ones drawn
  * beside them, marked removed. `mark` is the graph kit's own diff look. Pure.
  */
+
+import type { ShapeDiff } from "@wren/pipeline/diff";
 import type { ShapeBody, ShapeNode } from "@wren/pipeline/model";
-import type { ShapeDiff } from "@wren/pipeline/store";
 import type { GraphEdge, GraphNode } from "@wren/ui";
+import { LOOK } from "./model.js";
 
 /** What `pipeline/shapeDiff` answers: the two versions, what changed, and both bodies (a, b). */
 export interface DiffAnswer {
@@ -15,25 +17,11 @@ export interface DiffAnswer {
   bodies: [ShapeBody, ShapeBody];
 }
 
-const KIND: Record<ShapeNode["kind"], GraphNode["kind"]> = {
-  source: "part",
-  step: "step",
-  offer: "record",
-  plan: "workflow",
-};
-
-const TINT: Record<ShapeNode["kind"], string> = {
-  source: "var(--ui-cue-2)",
-  step: "var(--ui-cue-1)",
-  offer: "var(--ui-active)",
-  plan: "var(--ui-active)",
-};
-
 /** A node as the graph kit draws it, with no numbers: a diff compares shapes, not people. */
 export const nodeOf = (n: ShapeNode, mark?: GraphNode["mark"]): GraphNode => ({
   id: n.id,
-  kind: KIND[n.kind],
-  tint: TINT[n.kind],
+  kind: LOOK[n.kind].kind,
+  tint: LOOK[n.kind].tint,
   label: n.name,
   ...(mark ? { mark } : {}),
 });

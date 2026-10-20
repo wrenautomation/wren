@@ -77,6 +77,14 @@ export interface GraphEdit {
   fits(from: string, to: string, ports?: GraphEnds): boolean;
   connect(from: string, to: string, ports?: GraphEnds): void;
   pick(from: string, to: string): void;
+  /** Why a line from `from` may not end at `to`, in a sentence; null when it may. Shown on hover. */
+  why?(from: string, to: string, ports?: GraphEnds): string | null;
+  /** The node showing a name box now (rename in place); null when none does. */
+  renaming?: string | null;
+  /** A double click on a node asks to rename it. Without it, a double click calls `onEnter`. */
+  begin?(id: string): void;
+  /** The box's answer: the new name, or null when the person backed out. */
+  rename?(id: string, name: string | null): void;
 }
 
 /** A port's id from its handle's ("out:replied"). */
@@ -204,7 +212,7 @@ interface Shared {
   /** Ribbons draw: cards get softer corners and more weight. */
   soft: boolean;
   /** A wire being dragged: the kind it carries and the side it'll land on; the rest dim. */
-  drag: { kind: string | undefined; lands: "in" | "out" } | null;
+  drag: { kind: string | undefined; lands: "in" | "out"; node: string | undefined } | null;
 }
 const Ctx = createContext<Shared | null>(null);
 const useShared = () => {
@@ -212,6 +220,38 @@ const useShared = () => {
   if (!s) throw new Error("a graph node outside GraphCanvas");
   return s;
 };
+
+/** A node's name as a box, in place: Enter or leaving keeps it, Escape backs out. */
+function NameBox({ name, onDone }: { name: string; onDone: (v: string | null) => void }) {
+  const box = useRef<HTMLInputElement>(null);
+  const ended = useRef(false);
+  useEffect(() => {
+    box.current?.focus();
+    box.current?.select();
+  }, []);
+  const end = (v: string | null) => {
+    if (ended.current) return;
+    ended.current = true;
+    onDone(v);
+  };
+  return (
+    <Input
+      ref={box}
+      defaultValue={name}
+      maxLength={80}
+      aria-label="Node name"
+      className="nodrag nopan nowheel h-6 min-w-0 px-1 text-[13px] leading-4 font-semibold"
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") end(e.currentTarget.value);
+        else if (e.key === "Escape") end(null);
+      }}
+      onBlur={(e) => end(e.currentTarget.value)}
+    />
+  );
+}
 
 function KitNode({ id }: NodeProps) {
   const g = useShared();
@@ -293,12 +333,16 @@ function KitNode({ id }: NodeProps) {
             <Mark className="size-4" aria-hidden="true" />
           </span>
           <span className="grid min-w-0 flex-1">
-            <span
-              className="kit-name truncate text-[13px] leading-4 font-semibold"
-              {...clipProps()}
-            >
-              {n.label}
-            </span>
+            {g.edit?.renaming === id ? (
+              <NameBox name={n.label} onDone={(v) => g.edit?.rename?.(id, v)} />
+            ) : (
+              <span
+                className="kit-name truncate text-[13px] leading-4 font-semibold"
+                {...clipProps()}
+              >
+                {n.label}
+              </span>
+            )}
             {n.note ? (
               <span className="truncate text-[11.5px] leading-4 text-(--ui-ink-2)" {...clipProps()}>
                 {n.note}
@@ -1003,7 +1047,7 @@ export default function GraphCanvas({
                   const from = handleType !== "target";
                   const list = (from ? n?.outs : n?.ins) ?? [];
                   const p = list.find((x) => x.id === portOf(handleId)) ?? list[0];
-                  setDrag({ kind: p?.kind, lands: from ? "in" : "out" });
+                  setDrag({ kind: p?.kind, lands: from ? "in" : "out", node: nodeId ?? undefined });
                 },
                 onConnectEnd: () => setDrag(null),
                 onPaneClick: () => {
@@ -1015,7 +1059,7 @@ export default function GraphCanvas({
                   setSelected(n.id);
                   if (!byId.get(n.id)?.href) onOpen?.(n.id);
                 },
-                onNodeDoubleClick: (_, n) => onEnter?.(n.id),
+                onNodeDoubleClick: (_, n) => (edit?.begin ? edit.begin(n.id) : onEnter?.(n.id)),
                 onEdgeClick: (_, e) => edit?.pick(e.source, e.target),
                 onNodeMouseEnter: (e, n) => at(e, n.id),
                 onNodeMouseMove: (e, n) => at(e, n.id),
@@ -1033,6 +1077,7 @@ export default function GraphCanvas({
                   wire={wires.find((w) => w.id === hover.id)}
                   byId={byId}
                   room={width}
+                  why={whyNot(edit, drag, hover.id, byId)}
                 />
               ) : null}
             </GraphFrame>
@@ -1048,6 +1093,17 @@ export default function GraphCanvas({
   );
 }
 
+/** Why the wire being dragged may not end on `over`, or null (no drag, no reason, a fit). */
+function whyNot(
+  edit: GraphEdit | undefined,
+  drag: Shared["drag"],
+  over: string,
+  byId: ReadonlyMap<string, GraphNode>,
+): string | null {
+  if (!edit?.why || !drag?.node || !byId.has(over)) return null;
+  return drag.lands === "in" ? edit.why(drag.node, over) : edit.why(over, drag.node);
+}
+
 /** What's under the pointer, in full: a node's every number, or a wire's every line. */
 function HoverCard({
   at,
@@ -1055,14 +1111,17 @@ function HoverCard({
   wire,
   byId,
   room,
+  why,
 }: {
   at: { x: number; y: number };
   node: GraphNode | undefined;
   wire: { e: GraphEdge; lines: string[] } | undefined;
   byId: ReadonlyMap<string, GraphNode>;
   room: number;
+  /** Why the wire being dragged may not end here; it takes the card's place. */
+  why?: string | null | undefined;
 }) {
-  if (!node && !wire) return null;
+  if (!node && !wire && !why) return null;
   const left = at.x + 260 > room ? Math.max(4, at.x - 268) : at.x + 14;
   return (
     <div
@@ -1070,7 +1129,9 @@ function HoverCard({
       className="pointer-events-none absolute z-10 grid w-[252px] gap-1 border border-(--ui-hair) bg-(--ui-paper) p-3 text-[12.5px] leading-[1.4] text-(--ui-ink) shadow-(--ui-shadow)"
       style={{ left, top: at.y + 14 }}
     >
-      {node ? (
+      {why ? (
+        <span className="font-semibold text-(--ui-bad)">{why}</span>
+      ) : node ? (
         <>
           <span className="flex items-baseline justify-between gap-2">
             <span className="font-semibold">{node.label}</span>

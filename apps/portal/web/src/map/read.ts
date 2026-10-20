@@ -49,7 +49,10 @@ const numbersOf = (r: Row): NodeNumbers => ({
 });
 
 /** Every row of a list, up to the caps. */
-async function listAll(at: Record<string, string>, ask: Record<string, unknown>): Promise<Row[]> {
+export async function listAll(
+  at: Record<string, string>,
+  ask: Record<string, unknown>,
+): Promise<Row[]> {
   const rows: Row[] = [];
   let cursor: string | undefined;
   for (let i = 0; i < PAGES; i++) {
