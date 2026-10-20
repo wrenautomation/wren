@@ -279,11 +279,11 @@ describe("the export", () => {
     });
     await pg.db.execute(sql`
       insert into comments (id, platform, channel, ref, post, parent, kind, author, body, url, at, raw)
-      values (9, 'reddit', 'content', 'c9', 'p1', 'p1', 'post_reply', 'javery42', 'why?', 'https://x.test/c9',
+      values (9, 'reddit', 'content', 't1_c9', 'p1', 'p1', 'post_reply', 'javery42', 'why?', 'https://x.test/c9',
         now(), '{}')`);
     await pg.db.execute(sql`
       insert into comments (id, platform, channel, ref, post, parent, kind, author, body, url, at, raw)
-      values (10, 'reddit', 'content', 'c10', 'p1', 'p1', 'post_reply', 'Jordan Avery', 'hi', 'https://x.test/c10',
+      values (10, 'reddit', 'content', 't1_c10', 'p1', 'p1', 'post_reply', 'Jordan Avery', 'hi', 'https://x.test/c10',
         now(), '{}')`);
     await recordDraft(pg.db, { item: "comment:10", event: "generated", via: "model", text: "x" });
     const r = (await trainRecords(pg.db, { items: ["comment:9"] }))[0];
@@ -363,7 +363,7 @@ describe("the backfill", () => {
     await pg.db.execute(sql`
       insert into comments (id, platform, channel, ref, post, parent, kind, author, body, url, at,
         raw, draft, state, answer, answer_ref, answered_at)
-      values (4, 'reddit', 'content', 'c4', 'p1', 'p1', 'post_reply', 'sam', 'how?',
+      values (4, 'reddit', 'content', 't1_c4', 'p1', 'p1', 'post_reply', 'sam', 'how?',
         'https://x.test/c4', now(), '{}', 'Like this.', 'answered', 'Like this, mostly.', 'c5',
         now() + interval '1 minute')`);
     await pg.db.execute(sql`
