@@ -64,7 +64,7 @@ export function RecorderBar() {
           tone="secondary"
           size="dense"
           busy={busy}
-          disabled={busy || got.loading}
+          disabled={busy || got.pending}
           onClick={() => press("record")}
         >
           Record now

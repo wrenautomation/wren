@@ -344,7 +344,7 @@ function LastOutput({ workflow, node }: { workflow: string; node: string }) {
   const got = useLast(workflow, node);
   if (got.error) return <LoadFailed error={got.error} onRetry={got.retry} what="event" />;
   if (!got.data)
-    return got.loading ? (
+    return got.pending || got.placeholder ? (
       <p className={QUIET}>Reading…</p>
     ) : (
       <p className={QUIET}>Nothing has reached it yet.</p>
@@ -369,7 +369,7 @@ function LastOutput({ workflow, node }: { workflow: string; node: string }) {
 function Copy({ w, node, client }: { w: Drawn; node: string; client: string | null }) {
   const got = useCall(`node-copy:${client ?? ""}:${w.id}:${node}`, () => copyOf(w, node, client));
   if (!got.data)
-    return got.loading ? (
+    return got.pending || got.placeholder ? (
       <p className={QUIET}>Reading…</p>
     ) : (
       <p className={QUIET}>No copy on this node.</p>

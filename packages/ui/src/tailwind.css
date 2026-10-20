@@ -423,17 +423,25 @@
   }
 }
 
-/* What a user action is doing. A pressed button still at work runs a bar under its label,
-   after a beat so a quick one never flickers. The rows it changed wash, then settle. */
+/* What a user action is doing. A pressed button still at work runs a short bar under its label:
+   one pass per cycle, off the button at both ends so the loop has no seam. It fades in after a
+   beat so a quick one never flickers. The rows it changed wash, then settle. */
 @theme {
-  --animate-ui-busy: ui-busy 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.3s infinite backwards;
+  --animate-ui-busy:
+    ui-busy 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite, ui-busy-in 0.25s ease-out 0.3s backwards;
   --animate-ui-changed: ui-changed 1.4s var(--ui-ease);
+  /* The bar is 40% of the button wide: -100% of itself is off the left edge, 250% off the right. */
   @keyframes ui-busy {
     from {
       translate: -100% 0;
     }
     to {
-      translate: 100% 0;
+      translate: 250% 0;
+    }
+  }
+  @keyframes ui-busy-in {
+    from {
+      opacity: 0;
     }
   }
   @keyframes ui-changed {

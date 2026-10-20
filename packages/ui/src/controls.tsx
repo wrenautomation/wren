@@ -85,8 +85,10 @@ export function Button({
   ...rest
 }: ButtonLook & {
   /**
-   * It was pressed and its work is running: it stays solid, with a bar under the label, and is
-   * turned off, so neither a click nor Enter presses it again.
+   * It was pressed and its work is running: it stays solid, with a short bar passing under the
+   * label (a still, full-width line under reduced motion), and is turned off, so neither a
+   * click nor Enter presses it again. A button acts on rows: pass `busy` only for the rows its
+   * press is at work on.
    */
   busy?: boolean | undefined;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
@@ -110,7 +112,7 @@ export function Button({
       {busy ? (
         <span
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-0.5 animate-ui-busy bg-current opacity-60 motion-reduce:animate-none"
+          className="absolute bottom-0 left-0 h-0.5 w-2/5 animate-ui-busy bg-current opacity-60 motion-reduce:w-full motion-reduce:animate-none"
         />
       ) : null}
     </ShadButton>

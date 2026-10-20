@@ -120,7 +120,7 @@ export function Agents() {
     lines.data ? countsOf(lines.data) : Promise.resolve(null),
   );
   if (lines.error && !lines.data) return <LoadFailed error={lines.error} onRetry={lines.retry} />;
-  if (!lines.data || loops.loading) return <Loading lines={6} />;
+  if (!lines.data || loops.pending) return <Loading lines={6} />;
   const agents = agentsOf(lines.data, loops.data ?? null);
   const head = tally(agents, counts.data ?? {});
   return (

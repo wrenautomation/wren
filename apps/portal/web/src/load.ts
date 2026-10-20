@@ -6,7 +6,12 @@ import { ApiError } from "./api.js";
 export type Load<T> = {
   data: T | null;
   error: ApiError | null;
+  /** A read is out, for any reason. For a refresh button, not a skeleton: use `pending`. */
   loading: boolean;
+  /** There is nothing to show yet and the read is out: the one state that draws a skeleton. */
+  pending: boolean;
+  /** The answer shown is the last key's, held while the next key's reads: dim it. */
+  placeholder: boolean;
   retry: () => void;
   /** The tick when the read now shown left: hand it to `useSaved` as `at`. */
   at: number;

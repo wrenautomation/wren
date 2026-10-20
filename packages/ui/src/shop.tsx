@@ -133,7 +133,7 @@ function Shop({
             ))}
           </ul>
         ) : rows.length ? (
-          <div className={cn("grid gap-8 transition-opacity", page.loading && "opacity-60")}>
+          <div className={cn("grid gap-8 transition-opacity", page.placeholder && "opacity-60")}>
             {groupsOf(rows, sections).map((g) => (
               <section key={g.id} aria-label={g.name ?? undefined} className="grid gap-3">
                 {g.name ? (

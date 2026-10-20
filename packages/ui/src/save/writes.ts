@@ -144,6 +144,8 @@ const FOLLOW_FIRST_MS = 400;
 const FOLLOW_MAX_MS = 5_000;
 /** The same, while the server pushes outcomes over the socket: asking is only the fallback. */
 const FOLLOW_PUSHED_MS = 20_000;
+/** A taken send the server has no record of this many asks in a row is lost: it fails honestly. */
+const LOST_MAX = 6;
 
 /** A record's key in a write: its scope (the type's plural, a page's name) and its id. */
 export const recordKey = (scope: string, id: string | number) => `${scope}\u0000${id}`;
@@ -215,8 +217,14 @@ export class Writes {
       reject: (err: Error) => void;
       tries: number;
       asking: boolean;
+      /** One reminder is waiting: a return asks at once and adds none. */
+      waiting: boolean;
+      /** Asks in a row that found no record of it. */
+      lost: number;
     }
   >();
+  /** Resends waiting for the server to take their call, by request id. */
+  private readonly taking = new Map<string, () => void>();
   /** This page load. */
   private readonly page = Math.random().toString(36).slice(2, 10);
   /** The socket that pushes outcomes is open. */
@@ -270,13 +278,15 @@ export class Writes {
 
   /**
    * The newest action press in `scope` still going, and its ids: a button shows it is at work
-   * after its page went and came back, not only while the page that pressed it stays.
+   * after its page went and came back, not only while the page that pressed it stays. A send
+   * the server is trying again is not at work here: its box says why, a button shows no bar.
+   * Match its ids to the row a button acts on (`runningOn`): `scope` is the whole family.
    */
   goingIn(scope: string): { what: string; ids: string[] } | null {
     const at = recordKey(scope, "");
     for (let i = this.list.length - 1; i >= 0; i--) {
       const w = this.list[i] as Write;
-      if (w.status !== "sending" || w.what === null) continue;
+      if (w.status !== "sending" || w.what === null || w.retry) continue;
       const ids = w.records.filter((r) => r.startsWith(at)).map((r) => r.slice(at.length));
       if (ids.length) return { what: w.what, ids };
     }
@@ -479,6 +489,15 @@ export class Writes {
       if (open(w.status) && !w.calls.length && w.page !== this.page && !this.live.has(w.key)) {
         // A press an earlier load started that never reached the wire: nothing to send it with.
         this.settle(w, "failed", "The page reloaded before it was sent. Send it again.");
+      } else if (
+        open(w.status) &&
+        w.calls.length &&
+        !this.live.has(w.key) &&
+        w.calls.every((c) => c.status === "sent" || c.status === "failed")
+      ) {
+        // Every call answered, yet nothing settled the press (a load ended between the two):
+        // its calls decide, or it would read "sending" for as long as the tab lives.
+        this.decide(w, null);
       }
     }
     await Promise.allSettled(asks);
@@ -604,10 +623,17 @@ export class Writes {
         this.settle(w, "failed", "The page reloaded before it was sent. Send it again.");
       return;
     }
+    // A return waits until the server took the call or answered it. A send it took goes on
+    // being followed, and nothing else on the return waits for its outcome.
+    const took = new Promise<void>((r) => this.taking.set(c.id, r));
+    const went = this.call(c.path, { ...c.body, requestId: c.id }, (b) => send(c.path, b)).then(
+      () => undefined,
+      () => undefined, // Said by its status; a lost one tries again on the next return.
+    );
     try {
-      await this.call(c.path, { ...c.body, requestId: c.id }, (b) => send(c.path, b));
-    } catch {
-      // Said by its status; a lost one tries again on the next return.
+      await Promise.race([went, took]);
+    } finally {
+      this.taking.delete(c.id);
     }
   }
 
@@ -635,8 +661,18 @@ export class Writes {
     if (w) w.accepted = true;
     this.changed();
     return new Promise((resolve, reject) => {
-      this.following.set(id, { path, body, resolve, reject, tries: 0, asking: false });
+      this.following.set(id, {
+        path,
+        body,
+        resolve,
+        reject,
+        tries: 0,
+        asking: false,
+        waiting: false,
+        lost: 0,
+      });
       this.remindFollowing(id);
+      this.taking.get(id)?.();
     });
   }
 
@@ -652,7 +688,7 @@ export class Writes {
 
   /** The server says how the call under `id` goes (pushed over the socket). */
   heard(id: string, got: WireState) {
-    if (this.following.has(id)) return void this.apply(id, got);
+    if (this.following.has(id)) return void this.apply(id, got).catch(() => undefined);
     // A call this page didn't send (an earlier load's) and isn't asking about: settle it here.
     const w = this.ownerOf(id) ?? this.byId(id);
     const c = w?.calls.find((x) => x.id === id);
@@ -662,15 +698,20 @@ export class Writes {
     else if (got.state === "sending") this.retrying(id, got.retry ?? null);
   }
 
+  /** One reminder per send: asking on a return and the next reminder never pile up chains. */
   private remindFollowing(id: string) {
     const f = this.following.get(id);
-    if (!f) return;
+    if (!f || f.waiting) return;
     const ms = Math.min(
       FOLLOW_FIRST_MS * 2 ** f.tries,
       this.pushing ? FOLLOW_PUSHED_MS : FOLLOW_MAX_MS,
     );
     f.tries += 1;
-    this.env.remind(ms, () => void this.askFollowing(id));
+    f.waiting = true;
+    this.env.remind(ms, () => {
+      f.waiting = false;
+      void this.askFollowing(id);
+    });
   }
 
   /** How a taken send went, from the server: in, refused (and why), or still going. */
@@ -693,6 +734,7 @@ export class Writes {
   private async apply(id: string, got: WireState) {
     const f = this.following.get(id);
     if (!f) return;
+    if (got.state !== "unknown") f.lost = 0;
     if (got.state === "sent") {
       this.following.delete(id);
       f.resolve(got.answer ?? null);
@@ -700,9 +742,16 @@ export class Writes {
       this.following.delete(id);
       f.reject(new Error(got.error));
     } else if (got.state === "sending") this.retrying(id, got.retry ?? null);
-    else if (got.state === "unknown" && f.body && this.hooks.send) {
-      // Taken, yet the server has no record (it keeps them a day): give it again, same id.
-      await this.hooks.send(f.path, { ...f.body, requestId: id });
+    else if (got.state === "unknown") {
+      f.lost += 1;
+      if (f.lost >= LOST_MAX) {
+        // Asked and given again, and still no record: say so, not "sending" for good.
+        this.following.delete(id);
+        f.reject(new Error("The server has no record of it. Send it again."));
+      } else if (f.body && this.hooks.send) {
+        // Taken, yet the server has no record (it keeps them a day): give it again, same id.
+        await this.hooks.send(f.path, { ...f.body, requestId: id });
+      }
     }
   }
 
@@ -728,6 +777,11 @@ export class Writes {
     c.error = error;
     if (this.live.has(w.key) && w.page === this.page) return this.changed();
     // No press here waits on it (an earlier load's): its calls decide.
+    this.decide(w, error);
+  }
+
+  /** A press nobody here waits on: it ends as its calls did. */
+  private decide(w: Write, error: string | null) {
     if (w.calls.some((x) => x.status === "failed"))
       this.settle(w, "failed", w.calls.find((x) => x.status === "failed")?.error ?? null);
     else if (w.calls.every((x) => x.status === "sent")) this.settle(w, "sent", null);
@@ -751,7 +805,9 @@ export class Writes {
     this.changed();
     if (!w.told && this.env.visible()) this.tellUntold();
     w.retry = null;
-    if (w.hide && status === "sent") void this.reread(w);
+    // A set-aside that went, or a send that landed with nobody waiting (after a reload): the
+    // page shows it. A send someone waits on is read again by whoever pressed it.
+    if (status === "sent" && (w.hide || (w.accepted && !waited))) void this.reread(w);
     if (status === "sent" && w.records.length)
       try {
         this.hooks.landed?.([...w.records]);
