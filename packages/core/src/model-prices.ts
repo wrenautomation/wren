@@ -73,6 +73,23 @@ export const MODEL_PRICES: readonly ModelPrice[] = [
       },
     ],
   },
+  {
+    // The worker's default Anthropic model (`DEFAULT_ANTHROPIC_MODEL` in @wren/llm).
+    model: "claude-haiku-4-5",
+    name: "Haiku 4.5",
+    tiers: [
+      {
+        upTo: null,
+        price: {
+          input: 1_000_000,
+          cacheWrite5m: 1_250_000,
+          cacheWrite1h: 2_000_000,
+          cacheRead: 100_000,
+          output: 5_000_000,
+        },
+      },
+    ],
+  },
 ];
 
 /** One request's tokens, as the provider counts them. */

@@ -67,6 +67,12 @@ describe("tokenCost", () => {
     expect(priceOf("claude-haiku-5-55")).toBeNull();
   });
 
+  it("prices the worker's default model, Haiku 4.5, by its dated id", () => {
+    expect(tokenCost("claude-haiku-4-5-20251001", { input: 1_000_000, output: 1_000_000 })).toBe(
+      1_000_000 + 5_000_000,
+    );
+  });
+
   it("costs an unknown model 0 and never throws", () => {
     expect(tokenCost("claude-mystery-9", { input: 1_000_000, output: 1_000_000 })).toBe(0);
     expect(priceOf("claude-mystery-9")).toBeNull();
