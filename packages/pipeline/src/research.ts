@@ -135,9 +135,11 @@ export async function requestResearch(
       .onConflictDoNothing();
     return { fresh: true, queued: state === "queued", traits: read?.traits ?? {} };
   });
-  // The model judges the plain-word rules after the claim. The step does not wait for it.
+  // The model judges the plain-word rules after the claim, outside its transaction. The step
+  // waits for it (at most `FIT_MODEL_MS`, never a throw): a promise left running is lost when the
+  // Lambda freezes after the handler answers.
   if (claim.fresh && ask.level === "light" && ask.icp && researcher.model && needsModel(ask.icp)) {
-    void refineFit(db, researcher.model, ask, ask.icp, claim.traits ?? {});
+    await refineFit(db, researcher.model, ask, ask.icp, claim.traits ?? {});
   }
   if (!claim.queued) return claim.fresh ? "light" : "none";
 
