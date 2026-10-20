@@ -38,6 +38,11 @@
 
 import { parseAddr } from "@wren/core/mail";
 import { atomic, type Db, type Queryable } from "@wren/db";
+import {
+  type InboxReader,
+  METADATA_HEADERS,
+  type MessageMetadata,
+} from "@wrenautomation/autobrowse/mail";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { SharedSuppressions } from "../guards.js";
 import {
@@ -66,27 +71,6 @@ import {
   type InboundKind,
   normalizeMessageId,
 } from "./inbound.js";
-
-/**
- * The cheap read: exactly the headers the classification and the match need,
- * so the sync never pulls a body it has no use for. Stored verbatim on the
- * event as the evidence behind its verdict.
- */
-export const METADATA_HEADERS = [
-  "Message-ID",
-  "In-Reply-To",
-  "References",
-  "From",
-  "Subject",
-  "Date",
-  "Auto-Submitted",
-  "X-Autoreply",
-  "X-Autorespond",
-  "X-Auto-Response-Suppress",
-  "Precedence",
-  "Content-Type",
-  "X-Failed-Recipients",
-] as const;
 
 // Sent mail, drafts and Hangouts are ours or not mail at all; everything else is a candidate.
 const QUERY = (epochSeconds: number) => `after:${epochSeconds} -in:sent -in:draft -in:chats`;
@@ -158,24 +142,6 @@ const CLASS_COUNTER: Readonly<Record<Exclude<InboundKind, "bounce">, SyncCounter
   unsubscribe: "unsubscribes",
   receipt: "receipts",
 };
-
-/** The provider's message object, read defensively: shapes are Gmail's, not ours. */
-export type MessageMetadata = Record<string, unknown>;
-
-/** The read half of a mailbox. `GmailClient` satisfies this structurally; tests hand the sync an in-memory fake. */
-export interface InboxReader {
-  listMessages(
-    sender: string,
-    query: string,
-    opts: { pageToken?: string | null; maxResults?: number; includeSpamTrash?: boolean },
-  ): Promise<[string[], string | null]>;
-  getMetadata(
-    sender: string,
-    messageId: string,
-    headers: readonly string[],
-  ): Promise<MessageMetadata>;
-  getRaw(sender: string, messageId: string): Promise<Uint8Array>;
-}
 
 // --------------------------------------------------------------------------
 // Reading the provider's object

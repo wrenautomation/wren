@@ -1,13 +1,13 @@
 /**
  * Inboxes on their own login: the mailboxes file, `SmtpTransport` against a fake SMTP
- * server on loopback, and `ImapReader` against an in-memory IMAP fake. Synthetic data only.
+ * server on loopback, and the Sent copy over an in-memory IMAP fake. Synthetic data only.
  */
 import { createServer, type Server } from "node:net";
+import type { Login } from "@wrenautomation/autobrowse/mail";
 import type { ImapFlow } from "imapflow";
 import SMTPConnection from "nodemailer/lib/smtp-connection";
 import { afterEach, describe, expect, it } from "vitest";
-import { ImapReader, RoutedReader } from "../inbox/imap.js";
-import { type Login, type Mailbox, parseMailboxes } from "./mailboxes.js";
+import { type Mailbox, parseMailboxes } from "./mailboxes.js";
 import { SmtpTransport, threadOf } from "./smtp.js";
 import { type OutgoingEmail, TransportAmbiguous, TransportRefused } from "./transport.js";
 
@@ -318,93 +318,5 @@ describe("SmtpTransport", () => {
     expect(imap.opened.every((o) => o.readOnly)).toBe(true);
     imap.folders.delete("Sent Items");
     await expect(smtp.find(ANN, "<m2@example.com>")).rejects.toThrow(/no Sent folder/);
-  });
-});
-
-describe("ImapReader", () => {
-  const AFTER = Date.parse("2026-10-05T12:00:00Z") / 1000;
-  const reply = (id: string) =>
-    Buffer.from(
-      `Message-ID: <${id}@example.org>\r\nFrom: Lead <lead@example.org>\r\nSubject: Re: A question\r\n` +
-        `References: <m0@example.com>\r\n <m1@example.com>\r\nX-Other: not asked for\r\n\r\nYes please.\r\n`,
-    );
-  function stocked(): FakeImap {
-    const imap = fakeImap();
-    imap.folders.get("INBOX")?.messages.push(
-      { uid: 1, raw: reply("old"), date: new Date("2026-10-05T09:00:00Z") }, // before `after`
-      { uid: 2, raw: reply("r1"), date: new Date("2026-10-05T14:00:00Z") },
-    );
-    imap.folders
-      .get("Junk")
-      ?.messages.push({ uid: 9, raw: reply("r2"), date: new Date("2026-10-06T08:00:00Z") });
-    // Sent is never read.
-    imap.folders
-      .get("Sent Items")
-      ?.messages.push({ uid: 5, raw: reply("ours"), date: new Date("2026-10-06T08:00:00Z") });
-    return imap;
-  }
-
-  it("lists INBOX and spam after the cursor, ids tagged by folder, validity and inbox", async () => {
-    const imap = stocked();
-    const reader = new ImapReader(mailboxOn(1), { imap: asClient(imap) });
-    const [ids, next] = await reader.listMessages(ANN, `after:${AFTER} -in:sent -in:draft`);
-    expect(next).toBeNull();
-    expect(ids).toHaveLength(2);
-    expect(ids[0]).toMatch(/^inbox:11:2:[0-9a-f]{8}$/);
-    expect(ids[1]).toMatch(/^spam:12:9:[0-9a-f]{8}$/);
-    expect(imap.opened.map((o) => o.path)).toEqual(["INBOX", "Junk"]);
-    expect(imap.opened.every((o) => o.readOnly)).toBe(true);
-  });
-
-  it("metadata comes back in Gmail's shape, the asked headers unfolded", async () => {
-    const imap = stocked();
-    const reader = new ImapReader(mailboxOn(1), { imap: asClient(imap) });
-    const [ids] = await reader.listMessages(ANN, `after:${AFTER}`);
-    const id = ids[0] as string;
-    const expected = {
-      payload: {
-        headers: [
-          { name: "Message-ID", value: "<r1@example.org>" },
-          { name: "From", value: "Lead <lead@example.org>" },
-          { name: "Subject", value: "Re: A question" },
-          { name: "References", value: "<m0@example.com> <m1@example.com>" },
-        ],
-      },
-      internalDate: String(Date.parse("2026-10-05T14:00:00Z")),
-      threadId: null,
-    };
-    expect(await reader.getMetadata(ANN, id)).toEqual(expected);
-    // A fresh reader (no listing cached) fetches the same shape.
-    const cold = new ImapReader(mailboxOn(1), { imap: asClient(imap) });
-    expect(await cold.getMetadata(ANN, id)).toEqual(expected);
-    expect(Buffer.from(await cold.getRaw(ANN, id)).toString("utf8")).toContain("Yes please.");
-  });
-
-  it("refuses an id from another inbox or a renumbered folder", async () => {
-    const imap = stocked();
-    const reader = new ImapReader(mailboxOn(1), { imap: asClient(imap) });
-    const [ids] = await reader.listMessages(ANN, `after:${AFTER}`);
-    const id = ids[0] as string;
-    await expect(reader.getRaw("bo@example.com", id)).rejects.toThrow(/not an id from/);
-    const inbox = imap.folders.get("INBOX");
-    if (inbox) inbox.uidValidity = 99n;
-    await expect(reader.getRaw(ANN, id)).rejects.toThrow(/renumbered/);
-  });
-
-  it("RoutedReader sends each inbox to its own reader", async () => {
-    const reader = new ImapReader(mailboxOn(1), { imap: asClient(stocked()) });
-    const gmailCalls: string[] = [];
-    const gmail = {
-      listMessages: async (sender: string) => {
-        gmailCalls.push(sender);
-        return [[], null] as [string[], null];
-      },
-      getMetadata: async () => ({}),
-      getRaw: async () => new Uint8Array(),
-    };
-    const routed = new RoutedReader(gmail, new Map([[ANN, reader]]));
-    expect((await routed.listMessages("Ann@example.com", `after:${AFTER}`, {}))[0]).toHaveLength(2);
-    await routed.listMessages("will@example.com", `after:${AFTER}`, {});
-    expect(gmailCalls).toEqual(["will@example.com"]);
   });
 });

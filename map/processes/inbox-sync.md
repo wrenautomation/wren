@@ -22,7 +22,7 @@ Evidence before action, append-only and idempotent: a lost race gets no row and 
 
 ## Steps
 
-1. `syncInbox` (`packages/channel-email/src/inbox/sync.ts:660`); inserts at `:422`, `:762`.
+1. `syncInbox` (`packages/channel-email/src/inbox/sync.ts:681`); inserts at `:395`, `:792`.
 2. Pure classification (`inbox/inbound.ts:474`).
 3. Stops and suppressions (`packages/core/src/suppress.ts:72`; `ENROLLMENT_TRANSITIONS`, `state.ts:29`).
 4. Hand-off to disposition (`restate/inbox-scheduler.ts:66`); `runDisposition` (`inbox/disposition.ts:337`).

@@ -46,11 +46,12 @@ import {
   usageMonth,
 } from "@wren/books";
 import { BOOKS_KEY, type Books } from "@wren/books/restate";
-import { expandHome, GmailClient } from "@wren/channel-email";
+import { GmailClient } from "@wren/channel-email";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
+import { expandHome } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 

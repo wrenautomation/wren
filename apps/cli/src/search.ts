@@ -10,7 +10,6 @@ import { mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/prom
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { expandHome, loadServiceAccountKey } from "@wren/channel-email";
 import {
   activeKeywords,
   addKeywords,
@@ -42,6 +41,7 @@ import { recordedRun } from "@wren/core";
 import { DESK } from "@wren/core/content/restate";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
+import { expandHome, loadServiceAccountKey } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";
 import { eq, inArray } from "drizzle-orm";
 import { ingressSites } from "./sites.js";
@@ -101,7 +101,10 @@ export function registerSearch(
     .action(async (o: { days: string }) => {
       const { site, origin } = need();
       const console_ = searchConsoleClient(
-        loadServiceAccountKey(expandHome(settings.googleServiceAccount)),
+        loadServiceAccountKey(
+          expandHome(settings.googleServiceAccount),
+          "WREN_GOOGLE_SERVICE_ACCOUNT",
+        ),
       );
       const urls = await sitemapUrls((u, i) => fetch(u, i), new URL("/sitemap.xml", origin).href);
       const { stats } = await withDb((db) =>

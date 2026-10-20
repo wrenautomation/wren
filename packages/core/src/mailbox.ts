@@ -57,13 +57,9 @@ export interface MailSender {
   reply(to: ReplyTo, body: string, ours: string): Promise<Replied>;
 }
 
-/** What the delegated Gmail client offers (channel-email's `GmailClient` fits). */
+/** What the delegated Gmail client offers (autobrowse's `GmailClient` fits). */
 export interface DelegatedGmail {
-  listMessages(
-    sender: string,
-    query: string,
-    opts?: { pageToken?: string | null; maxResults?: number },
-  ): Promise<[string[], string | null]>;
+  searchAll(sender: string, query: string): Promise<string[]>;
   getRaw(sender: string, messageId: string): Promise<Uint8Array>;
   getMetadata(sender: string, messageId: string, headers: readonly string[]): Promise<unknown>;
 }
@@ -95,19 +91,7 @@ export function metaOf(raw: unknown): MailMeta {
 export function delegatedMailbox(gmail: DelegatedGmail, address: string): Mailbox {
   return {
     address,
-    async search(query) {
-      const ids: string[] = [];
-      let pageToken: string | null = null;
-      do {
-        const [page, next]: [string[], string | null] = await gmail.listMessages(address, query, {
-          pageToken,
-          maxResults: 100,
-        });
-        ids.push(...page);
-        pageToken = next;
-      } while (pageToken);
-      return ids;
-    },
+    search: (query) => gmail.searchAll(address, query),
     raw: (id) => gmail.getRaw(address, id),
     meta: async (id) => metaOf(await gmail.getMetadata(address, id, ["From", "Subject"])),
   };

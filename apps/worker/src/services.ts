@@ -46,18 +46,11 @@ import {
   defaultLocalChecker,
   emailChecks,
   emailTouchStep,
-  expandHome,
   GmailClient,
   GmailTransport,
-  gmailPushTopic,
-  ImapReader,
-  type InboxReader,
-  InstantlyReader,
   InstantlyTransport,
-  imapClient,
   loadMailboxes,
   loadRoster,
-  loadServiceAccountKey,
   mailDomainTargets,
   makeFiller,
   makeNotifier,
@@ -65,9 +58,7 @@ import {
   type Notifier,
   type PostmasterClient,
   plainMailer,
-  postmasterToken,
   proberHosts,
-  RoutedReader,
   RoutedTransport,
   recheckLeads,
   rosterFleet,
@@ -76,10 +67,8 @@ import {
   senderDomain,
   senderFleet,
   sequencesSendScope,
-  serviceAccountToken,
   sharedFor,
   type Transport,
-  withImap,
 } from "@wren/channel-email";
 import {
   isGoogleMailbox,
@@ -427,6 +416,22 @@ import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
 import { makeMailReader } from "@wren/watch/clients";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
+import {
+  expandHome,
+  gmailPushTopic,
+  loadServiceAccountKey,
+  postmasterToken,
+  type ServiceAccountKey,
+  serviceAccountToken,
+} from "@wrenautomation/autobrowse/google";
+import {
+  ImapReader,
+  type InboxReader,
+  InstantlyReader,
+  imapClient,
+  RoutedReader,
+  withImap,
+} from "@wrenautomation/autobrowse/mail";
 import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
@@ -436,6 +441,10 @@ import { clientMarketing } from "./marketing.js";
 import { SETUPS } from "./setups.js";
 import { makeSourcedFeed } from "./sourced-feed.js";
 import { WORKFLOWS } from "./workflows.js";
+
+/** The service-account key at `path`; a bad key names wren's env var, not the piece's default. */
+const googleKey = (path: string): ServiceAccountKey =>
+  loadServiceAccountKey(path, "WREN_GOOGLE_SERVICE_ACCOUNT");
 
 /** The worker's application_name on every connection, kept on each audit event. */
 const WORKER_APP = "wren-worker";
@@ -712,10 +721,9 @@ export async function buildServices(
   const clients = { main: db, open: openClient, policy };
   // Drive import reads as the service account (a doc shared with it), else by public link; the
   // key loads on first use, so a worker without one still starts.
-  let driveKey: ReturnType<typeof loadServiceAccountKey> | null = null;
+  let driveKey: ServiceAccountKey | null = null;
   let driveToken: (() => Promise<string>) | null = null;
-  const driveKeyOf = () =>
-    (driveKey ??= loadServiceAccountKey(expandHome(settings.googleServiceAccount)));
+  const driveKeyOf = () => (driveKey ??= googleKey(expandHome(settings.googleServiceAccount)));
   // A client's cal.com is its autobrowse login (`clients.accounts.calcom`), read through the desk.
   const calcomSites = ingressSites(ingressOf(settings), {
     caller: "wren:calcom",
@@ -823,7 +831,7 @@ export async function buildServices(
   const reader: InboxReader = new RoutedReader(
     gmail,
     new Map<string, InboxReader>([
-      ...smtpInboxes.map(([address, m]) => [address, new ImapReader(m)] as const),
+      ...smtpInboxes.map(([address, m]) => [address, new ImapReader(m.imap)] as const),
       ...(instantlyReader
         ? instantlyInboxes.map((address) => [address, instantlyReader] as const)
         : []),
@@ -841,7 +849,7 @@ export async function buildServices(
       ? async (sender: string) =>
           noPush.has(sender)
             ? null
-            : gmail.watch(sender, gmailPushTopic(loadServiceAccountKey(keyPath).clientEmail))
+            : gmail.watch(sender, gmailPushTopic(googleKey(keyPath).clientEmail))
       : undefined;
 
   // Postmaster answers for the account that registered the domains; without
@@ -849,7 +857,7 @@ export async function buildServices(
   const postmaster: PostmasterClient | null = settings.postmasterUser
     ? {
         fetch: (url, init) => fetch(url, init),
-        token: await postmasterToken(loadServiceAccountKey(keyPath), settings.postmasterUser),
+        token: await postmasterToken(googleKey(keyPath), settings.postmasterUser),
       }
     : null;
   if (!postmaster) log.info("WREN_POSTMASTER_USER unset: no daily Postmaster pull");
@@ -869,14 +877,14 @@ export async function buildServices(
   // key still starts, and the stage then stops on its errors.
   let youtubeToken: (() => Promise<string>) | null = null;
   const youtube = youtubeApi(() => {
-    youtubeToken ??= serviceAccountToken(loadServiceAccountKey(keyPath), {
+    youtubeToken ??= serviceAccountToken(googleKey(keyPath), {
       scopes: [YOUTUBE_READ_SCOPE],
     });
     return youtubeToken();
   });
   // Our own booking calendar: Google as the account the settings name, by delegation on the
   // calendar scope, minted on first use; mail from portal@.
-  const calendarKey = () => loadServiceAccountKey(keyPath);
+  const calendarKey = () => googleKey(keyPath);
   const googleCalendar = new GoogleHost((account) =>
     serviceAccountToken(calendarKey(), { scopes: [CALENDAR_SCOPE], subject: account }),
   );
@@ -1579,7 +1587,7 @@ export async function buildServices(
       ? async (address: string): Promise<number | null> => {
           const via = watchVia.get(address.toLowerCase());
           if (via === "delegated")
-            return gmail.watch(address, gmailPushTopic(loadServiceAccountKey(keyPath).clientEmail));
+            return gmail.watch(address, gmailPushTopic(googleKey(keyPath).clientEmail));
           if (!settings.watchSiteTopic) return null;
           const r = await watchSites.call<{ expiration: string }>(
             "gmail",
@@ -1866,7 +1874,7 @@ export async function buildServices(
   if (settings.searchSite && settings.searchOrigin) {
     const search = {
       db,
-      console: searchConsoleClient(loadServiceAccountKey(keyPath)),
+      console: searchConsoleClient(googleKey(keyPath)),
       site: settings.searchSite,
       origin: settings.searchOrigin,
       fetch: (url: string, init?: RequestInit) => fetch(url, init),
@@ -2041,7 +2049,7 @@ export async function buildServices(
     ...socialChecks({ main: db, access: clientSocial }),
     ...dnsChecks(dohResolve),
     ...stripeChecks(db),
-    ...searchConsoleChecks(() => searchConsoleClient(loadServiceAccountKey(keyPath))),
+    ...searchConsoleChecks(() => searchConsoleClient(googleKey(keyPath))),
     ...calendarChecks(googleCalendar),
     ...metaChecks(
       ingressSites(ingressOf(settings), {

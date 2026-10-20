@@ -1,24 +1,17 @@
 /**
- * The Gmail wire, with no network anywhere (§4). Every request goes through
- * an injected fetch and every bearer comes from an injected token factory.
+ * The Gmail transport and wren's Gmail client, with no network anywhere (§4). Every request goes
+ * through an injected fetch and every bearer comes from an injected token factory. The wire's own
+ * cases (paging, token minting) are autobrowse's, in `test/google-piece.test.ts`.
  */
 import { generateKeyPairSync } from "node:crypto";
-import { describe, expect, it } from "vitest";
 import {
   GmailApiError,
-  GmailClient,
-  GmailTransport,
-  gmailPushTopic,
-  SEND_AND_READ_SCOPES,
-} from "./gmail.js";
-import {
-  GMAIL_MODIFY_SCOPE,
-  GMAIL_SEND_SCOPE,
   ServiceAccountKeyError,
-  serviceAccountToken,
   TokenRefreshError,
   type TokenSupplier,
-} from "./google-auth.js";
+} from "@wrenautomation/autobrowse/google";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { GMAIL_LIMIT_MS, GmailClient, GmailTransport } from "./gmail.js";
 import { buildMime, formatAddress } from "./mime.js";
 import { type OutgoingEmail, TransportAmbiguous, TransportRefused } from "./transport.js";
 
@@ -69,7 +62,6 @@ function build(
       seen.push(req);
       return handler(req);
     },
-    scopes: SEND_AND_READ_SCOPES,
     tokenFactory: tokenFactory ?? ((sender) => async () => `token-for-${sender}`),
   });
   return { client, seen };
@@ -395,134 +387,56 @@ describe("find: what reconcile asks", () => {
   });
 });
 
-describe("the client: tokens and the read side", () => {
-  it("one token supplier per sender", async () => {
-    const minted: string[] = [];
-    const { client } = build(accepted, (sender) => {
-      minted.push(sender);
-      return async () => `token-for-${sender}`;
-    });
-    const transport = new GmailTransport(client);
-    await transport.send(mail());
-    await transport.send(mail({ messageId: "<m2@wren-automation.com>" }));
-    await transport.send(mail({ fromAddress: "sam@wren-automation.org" }));
-    expect(minted).toEqual([SENDER, "sam@wren-automation.org"]);
-  });
-  it("list messages pages through the cursor", async () => {
-    const { client, seen } = build((req) =>
-      req.url.searchParams.has("pageToken")
-        ? jsonResponse(200, { messages: [{ id: "c" }] })
-        : jsonResponse(200, { messages: [{ id: "a" }, { id: "b" }], nextPageToken: "page-2" }),
-    );
-    let [ids, token] = await client.listMessages(SENDER, "after:1757289600", { maxResults: 2 });
-    expect([ids, token]).toEqual([["a", "b"], "page-2"]);
-    expect(seen[0]?.url.searchParams.get("q")).toBe("after:1757289600");
-    expect(seen[0]?.url.searchParams.get("maxResults")).toBe("2");
-    [ids, token] = await client.listMessages(SENDER, "after:1757289600", { pageToken: token });
-    expect([ids, token]).toEqual([["c"], null]);
-    expect(seen[0]?.url.searchParams.has("includeSpamTrash")).toBe(false);
-  });
-  it("list messages can be told to read spam and trash", async () => {
-    const { client, seen } = build(() => jsonResponse(200, { messages: [{ id: "a" }] }));
-    expect(await client.listMessages(SENDER, "after:1", { includeSpamTrash: true })).toEqual([
-      ["a"],
-      null,
-    ]);
-    expect(seen[0]?.url.searchParams.get("includeSpamTrash")).toBe("true");
-  });
-  it("get metadata asks for exactly the headers it names", async () => {
-    const payload = { id: "gmail-9", payload: { headers: [{ name: "Subject", value: "hi" }] } };
-    const { client, seen } = build(() => jsonResponse(200, payload));
-    expect(await client.getMetadata(SENDER, "gmail-9", ["Subject", "From"])).toEqual(payload);
-    expect(seen[0]?.url.searchParams.getAll("metadataHeaders")).toEqual(["Subject", "From"]);
-  });
-  it("get raw decodes gmail's unpadded base64url", async () => {
-    const body = Buffer.from("From: a@b.com\r\nSubject: hi\r\n\r\nbody\r\n");
-    const { client, seen } = build(() => jsonResponse(200, { raw: body.toString("base64url") }));
-    expect((await client.getRaw(SENDER, "gmail-9")).equals(body)).toBe(true);
-    expect(seen[0]?.url.searchParams.get("format")).toBe("raw");
-  });
-  it("watch asks for inbox changes on the service account's project topic", async () => {
-    const topic = gmailPushTopic("wren-sender@acme-proj.iam.gserviceaccount.com");
-    expect(topic).toBe("projects/acme-proj/topics/gmail-push");
-    const { client, seen } = build(() =>
-      jsonResponse(200, { historyId: "9", expiration: "1760000000000" }),
-    );
-    expect(await client.watch(SENDER, topic)).toBe(1_760_000_000_000);
-    expect(seen[0]?.method).toBe("POST");
-    expect(seen[0]?.url.pathname).toBe("/gmail/v1/users/me/watch");
-    expect(JSON.parse(seen[0]?.body ?? "")).toEqual({
-      topicName: topic,
-      labelIds: ["INBOX"],
-      labelFilterBehavior: "INCLUDE",
-    });
-  });
-  it("the read side asks for modify, not readonly", () => {
-    expect(SEND_AND_READ_SCOPES).toEqual([GMAIL_SEND_SCOPE, GMAIL_MODIFY_SCOPE]);
-    expect(GMAIL_MODIFY_SCOPE.endsWith("gmail.modify")).toBe(true);
-  });
-});
+describe("the client's time limit", () => {
+  afterEach(() => vi.restoreAllMocks());
 
-describe("service-account tokens", () => {
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
-  const key = {
-    clientEmail: "wren-sender@project.iam.gserviceaccount.com",
-    privateKey: privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
-    tokenUri: "https://oauth2.googleapis.com/token",
-  };
-
-  it("mints a signed jwt-bearer assertion acting as the subject and caches it", async () => {
-    const calls: string[] = [];
-    let clock = new Date("2026-09-08T13:00:00Z");
-    const supplier = serviceAccountToken(key, {
-      scopes: SEND_AND_READ_SCOPES,
-      subject: SENDER,
-      now: () => clock,
-      fetch: async (input, init = {}) => {
-        calls.push(input);
-        const form = new URLSearchParams(init.body as string);
-        expect(form.get("grant_type")).toBe("urn:ietf:params:oauth:grant-type:jwt-bearer");
-        const [h, p, s] = (form.get("assertion") ?? "").split(".");
-        expect(JSON.parse(Buffer.from(h ?? "", "base64url").toString())).toEqual({
-          alg: "RS256",
-          typ: "JWT",
-        });
-        const claims = JSON.parse(Buffer.from(p ?? "", "base64url").toString()) as Record<
-          string,
-          unknown
-        >;
-        expect(claims.sub).toBe(SENDER);
-        expect(claims.iss).toBe(key.clientEmail);
-        expect(claims.scope).toBe(`${GMAIL_SEND_SCOPE} ${GMAIL_MODIFY_SCOPE}`);
-        expect(claims.aud).toBe(key.tokenUri);
-        const { createVerify } = await import("node:crypto");
-        const verifier = createVerify("RSA-SHA256");
-        verifier.update(`${h}.${p}`);
-        expect(verifier.verify(publicKey, s ?? "", "base64url")).toBe(true);
-        return jsonResponse(200, { access_token: "ya29.abc", expires_in: 3600 });
-      },
+  /** Every limit asked of `AbortSignal.timeout`; its signal is ours to fire. */
+  function limits() {
+    const asked: number[] = [];
+    const fire = new AbortController();
+    vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) => {
+      asked.push(ms);
+      return fire.signal;
     });
-    expect(await supplier()).toBe("ya29.abc");
-    expect(await supplier()).toBe("ya29.abc");
-    expect(calls).toHaveLength(1);
-    clock = new Date(clock.getTime() + 3600_000);
-    await supplier();
-    expect(calls).toHaveLength(2);
+    const timeout = new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    return { asked, cut: () => fire.abort(timeout) };
+  }
+  /** A fetch that never answers until its signal aborts. */
+  const hung = (_input: string, init?: RequestInit) =>
+    new Promise<Response>((_, reject) => {
+      const signal = init?.signal;
+      if (signal?.aborted) reject(signal.reason);
+      signal?.addEventListener("abort", () => reject(signal.reason));
+    });
+
+  it("cuts a hung Gmail call at GMAIL_LIMIT_MS", async () => {
+    const { asked, cut } = limits();
+    const client = new GmailClient({ fetch: hung, tokenFactory: (s) => async () => `t-${s}` });
+    const pending = client.getRaw(SENDER, "gmail-9").catch((e: unknown) => e);
+    cut();
+    expect(((await pending) as Error).name).toBe("TimeoutError");
+    expect(asked).toEqual([GMAIL_LIMIT_MS]);
   });
 
-  it("a refusal from google is a TokenRefreshError without the assertion in it", async () => {
-    const supplier = serviceAccountToken(key, {
-      scopes: [GMAIL_SEND_SCOPE],
-      subject: SENDER,
-      fetch: async () =>
-        jsonResponse(401, {
-          error: "unauthorized_client",
-          error_description: "Client is unauthorized",
-        }),
-    });
-    const err = await supplier().catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(TokenRefreshError);
-    expect((err as Error).message).toContain("unauthorized_client: Client is unauthorized");
-    expect((err as Error).message).not.toContain("eyJ");
+  it("cuts the token exchange at the same limit", async () => {
+    const { asked, cut } = limits();
+    const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const key = {
+      clientEmail: "wren-sender@project.iam.gserviceaccount.com",
+      privateKey: privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+      tokenUri: "https://oauth2.googleapis.com/token",
+    };
+    const client = new GmailClient({ key, fetch: hung });
+    const pending = client.ensureToken(SENDER).catch((e: unknown) => e);
+    cut();
+    expect(((await pending) as Error).name).toBe("TimeoutError");
+    expect(asked).toEqual([GMAIL_LIMIT_MS]);
+  });
+
+  it("names wren's env var when the key cannot load", async () => {
+    const client = new GmailClient({ keyPath: "/nonexistent/key.json" });
+    const err = await client.ensureToken(SENDER).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ServiceAccountKeyError);
+    expect((err as Error).message).toContain("WREN_GOOGLE_SERVICE_ACCOUNT");
   });
 });

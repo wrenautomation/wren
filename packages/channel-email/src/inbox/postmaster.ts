@@ -29,10 +29,10 @@
  * over the v1 history that is still the only reputation Google ever gave us.
  */
 import { atomic, type Db, type Queryable } from "@wren/db";
+import { POSTMASTER_SCOPE, POSTMASTER_TRAFFIC_SCOPE } from "@wrenautomation/autobrowse/google";
 import { sql } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
 import { postmasterDays } from "../schema.js";
-import { POSTMASTER_SCOPE, POSTMASTER_TRAFFIC_SCOPE } from "../send/google-auth.js";
 
 export const API = "https://gmailpostmastertools.googleapis.com/v2";
 
