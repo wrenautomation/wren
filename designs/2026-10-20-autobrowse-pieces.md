@@ -55,3 +55,25 @@ YouTube Data API reads (plain key; revisit if quota bites).
 - npm version, not a workspace link: the repos are separate and CI builds wren alone.
 - Moves 3 and 4 touch live client connections. Each switch is a refactor behind the same
   token rows; no client reconnects. If a provider's refresh shape differs, wren's wins.
+- 10-20 build: pieces take `fetch`, not autobrowse's `HttpClient`. Each caller keeps its own
+  time limit and retry policy; a piece adds none. wren wraps Gmail with `timedFetch` (2 min) in a
+  thin `GmailClient` subclass; autobrowse wraps its `HttpClient` with `fetchOf`.
+- Google auth: wren's copy won (clearer key errors, signing error wrapped, `postmasterToken`).
+  The unified `./google` adds autobrowse's `SCOPES`, `delegatedScopes`, `authedJson`. The Gmail
+  wire is wren's `GmailClient` plus `searchAll`, `getMessage`, `sendAs`, `patchSendAs`;
+  autobrowse's per-user `gmailClient` now sits on it. `GmailTransport`, `plainMailer` and
+  `neverLeft` stay in wren: they decide what a send failure means.
+- `./mail`: `ImapReader` takes the IMAP login, not wren's roster row. The roster and
+  `InstantlyTransport` stay in wren.
+- `./oauth`: two error parsers stay two. Mail and connectors keep `tokenPost`/`oauthErrorOf`;
+  social connect keeps `platformJson`/`platformErrorOf` (Meta 190, HTTP 401, TikTok `ok`).
+  Merging them would change which errors read as revoked. Endpoints live once in
+  `OAUTH_PROVIDERS`; scopes, labels and UI copy stay in wren (`platforms.ts` and connectors
+  `apps.ts` stay import-free for the portal Worker). autobrowse's consent driver, mint cache
+  and `renew.ts` stay in `sites/`: they need env, files or the browser.
+- Move 4 skipped. autobrowse route modules are not browser-free (linkedin, tiktok and youtube
+  routes import browser flows or Playwright), and `./sites` exports the facade and Restate
+  service. Their `api` legs also differ from wren's direct mode (Meta `/me/accounts` page
+  tokens, URL media uploads, TikTok ranged upload and status polls, dead token to broke).
+  Matching them would change live client posting. Reddit stays parked. Revisit when route
+  `api` legs move into a pure module.
