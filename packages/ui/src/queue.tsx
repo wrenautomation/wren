@@ -9,7 +9,15 @@ import type { RecordsPage } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { type Action, applies, blockedOf, sayBlocked, useHeld, useRun } from "./action.js";
+import {
+  type Action,
+  applies,
+  blockedOf,
+  runningOn,
+  sayBlocked,
+  useHeld,
+  useRun,
+} from "./action.js";
 import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
 import { LoadFailed } from "./feedback.js";
@@ -233,7 +241,7 @@ function Queue({
               ref={list}
               className={cn(
                 "max-h-[calc(100dvh-260px)] overflow-auto border-t border-(--ui-hair) transition-opacity",
-                page.loading && "opacity-60",
+                page.placeholder && "opacity-60",
               )}
             >
               {rows.map((r, i) => {
@@ -327,7 +335,7 @@ function Queue({
                     <Button
                       tone={i === 0 ? "primary" : "secondary"}
                       size={i === 0 ? "next" : "dense"}
-                      busy={running?.action === a.id}
+                      busy={!!row && runningOn(running, a.id, [row.id])}
                       disabled={busy || !!(row && blockedOf(a, row))}
                       onClick={() => act(a)}
                     >

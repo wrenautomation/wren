@@ -42,6 +42,7 @@ import {
   type Call,
   callOnce,
   inputOf,
+  runningOn,
   runs,
   sayBlocked,
   useHeld,
@@ -550,7 +551,7 @@ export function Bulk({
   picked: Set<string>;
   run: (action: Action, ids: (string | number)[]) => void;
   busy: boolean;
-  running: { action: string } | null;
+  running: { action: string; ids: readonly (string | number)[] } | null;
   clear: () => void;
 }) {
   const chosen = rows.filter((r) => picked.has(String(r.id)));
@@ -571,7 +572,7 @@ export function Bulk({
                 <Button
                   tone="secondary"
                   size="dense"
-                  busy={running?.action === a.id}
+                  busy={runningOn(running, a.id, ids)}
                   disabled={busy}
                   onClick={() => run(a, ids)}
                 >
@@ -3063,7 +3064,7 @@ export function RecordBody({
                   <Button
                     tone={i === 0 ? "primary" : "secondary"}
                     size={i === 0 ? "next" : "dense"}
-                    busy={running?.action === a.id}
+                    busy={runningOn(running, a.id, [row.id])}
                     disabled={busy || !!blockedOf(a, row)}
                     onClick={() => runHead(a)}
                   >

@@ -3,7 +3,7 @@ type: object
 cluster: ui
 universe: live
 status: verified
-verified: 2026-10-17 @ fc7f19bb
+verified: 2026-10-20 @ aa9a34db
 entity: packages/ui/src/index.ts:1
 ---
 
@@ -21,6 +21,7 @@ One component per job, so a page never grows its own list or button and a client
 - Tokens: `--ui-*` on `:root` in `packages/ui/src/tailwind.css`; looks are `PRESETS` and `SHOWCASE` (`packages/ui/src/theme.tsx:141`, `:202`); frame widths are `--layout-*` (`packages/ui/src/display.ts`)
 - shadcn parts, owned copies: `packages/ui/src/components/ui/`
 - The one door: `packages/ui/src/kit-door.test.ts` fails an app import of a vendor library
+- `Button` (`packages/ui/src/controls.tsx:75`): `busy` turns it off and draws one short bar passing under the label (`ui-busy` in `tailwind.css`: one pass per cycle, off the button at both ends, faded in after 0.3 s; a still line under reduced motion). A button acts on rows, so pass `busy` from `runningOn(running, action, ids)` (`packages/ui/src/action.tsx:1129`), never from the action id alone
 - Record templates take a `RecordsApi` and a `Place` (`packages/ui/src/records.tsx`), so they render from any server, or from fixtures
 
 ## Connected to

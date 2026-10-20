@@ -21,7 +21,6 @@ import {
   classifyValue,
   clickedEmails,
   clickFollowUps,
-  expandHome,
   GmailClient,
   GmailTransport,
   liftSuppression,
@@ -62,6 +61,7 @@ import {
   requireNiche,
 } from "@wren/niches";
 import { sizeFromPpp } from "@wren/research/companies";
+import { expandHome } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";
 import { desc, gte, inArray, sql } from "drizzle-orm";
 import { registerAnswers } from "./answers.js";

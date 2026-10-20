@@ -23,6 +23,15 @@ export class DohStatusError extends DohError {
 export type Resolver = (name: string, rtype: DnsType) => Promise<string[]>;
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 
+/**
+ * `fetch` as autobrowse's pieces type it: `init` optional. The pieces always send one, so the
+ * wrapper changes no call; it only makes the type true.
+ */
+export const optionalInit =
+  (fetch: FetchLike) =>
+  (url: string, init?: RequestInit): Promise<Response> =>
+    fetch(url, init ?? {});
+
 export async function resolve(
   name: string,
   rtype: DnsType,

@@ -5,7 +5,11 @@
  * request indexing one page: a submitted sitemap is how Google hears of a new
  * one. The bearer never appears in an error.
  */
-import { type FetchLike, type ServiceAccountKey, serviceAccountToken } from "@wren/channel-email";
+import {
+  type FetchLike,
+  type ServiceAccountKey,
+  serviceAccountToken,
+} from "@wrenautomation/autobrowse/google";
 import { INSPECTION_VERDICTS, type InspectionVerdict } from "./schema.js";
 
 export const SEARCH_CONSOLE_SCOPE = "https://www.googleapis.com/auth/webmasters";

@@ -9,11 +9,23 @@ import { WREN } from "@wren/core/access";
 import { timedFetch } from "@wren/core/fetch-limit";
 import type { KeyStore } from "@wren/core/keys";
 import type { Mailbox, MailSender } from "@wren/core/mailbox";
-import { OAuthError, pkceVerifier, randomState } from "@wren/core/oauth";
 import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
 import { type AccountView, accountsOf, addAccount } from "@wren/core/setup";
 import { type AccountRow, clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
+import {
+  accessOf,
+  CONSUMER_GOOGLE,
+  CONSUMER_MICROSOFT,
+  type MailTokens,
+  mailConnectUrl,
+  mailConsentUrl,
+  mailExchange,
+  mailRefresh,
+  OAuthError,
+  pkceVerifier,
+  randomState,
+} from "@wrenautomation/autobrowse/oauth";
 import { and, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
 import { buildMime } from "../send/mime.js";
@@ -28,17 +40,7 @@ import {
   graphSend,
   MailApiError,
 } from "./mailbox.js";
-import {
-  accessOf,
-  CONSUMER_GOOGLE,
-  CONSUMER_MICROSOFT,
-  connectUrl,
-  consentUrl,
-  exchange,
-  type MailApp,
-  type MailApps,
-  refresh,
-} from "./oauth.js";
+import type { MailApp, MailApps } from "./oauth.js";
 import {
   type ConnectionRow,
   type GrantRow,
@@ -351,9 +353,9 @@ export function mailAccess(given: MailDeps) {
     }
     const saved = JSON.parse(stored) as { refresh: string };
     const app = await appFor(c.provider);
-    let t: Awaited<ReturnType<typeof refresh>>;
+    let t: MailTokens;
     try {
-      t = await refresh(deps.fetch, c.provider, app, {
+      t = await mailRefresh(deps.fetch, c.provider, app, {
         refresh: saved.refresh,
         tenant: c.provider === "microsoft" ? c.org : null,
       });
@@ -480,7 +482,7 @@ export function mailAccess(given: MailDeps) {
         by: o.by,
         expiresAt: new Date(now().getTime() + CONNECT_MS),
       });
-      return connectUrl(provider, app, {
+      return mailConnectUrl(provider, app, {
         redirect: callbackUrl(deps.origin, provider),
         state,
         verifier,
@@ -507,7 +509,7 @@ export function mailAccess(given: MailDeps) {
         by: o.by,
         expiresAt: new Date(now().getTime() + CONSENT_MS),
       });
-      return consentUrl(app, {
+      return mailConsentUrl(app, {
         tenant: org.ref,
         redirect: callbackUrl(deps.origin, "microsoft"),
         state,
@@ -595,9 +597,9 @@ export function mailAccess(given: MailDeps) {
       const [consent] = org
         ? await main.select().from(mailConsents).where(eq(mailConsents.accountId, org.id))
         : [];
-      let t: Awaited<ReturnType<typeof exchange>>;
+      let t: MailTokens;
       try {
-        t = await exchange(deps.fetch, g.provider, app, {
+        t = await mailExchange(deps.fetch, g.provider, app, {
           code: q.code,
           redirect: callbackUrl(deps.origin, g.provider),
           verifier: g.verifier,

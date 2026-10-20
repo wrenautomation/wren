@@ -3,7 +3,6 @@ export * from "./click-sync.js";
 export * from "./clicks.js";
 export * from "./disposition.js";
 export * from "./health.js";
-export * from "./imap.js";
 export * from "./inbound.js";
 export * from "./instantly.js";
 export {

@@ -9,11 +9,11 @@
 import { makeAuth } from "@wren/auth";
 // The narrow modules: the send index pulls in the whole outbox tick and Restate.
 import { GmailClient, plainMailer } from "@wren/channel-email/send/gmail";
-import { GMAIL_SEND_SCOPE, loadServiceAccountKey } from "@wren/channel-email/send/google-auth";
 import { loadSsmEnv } from "@wren/config/ssm";
 import { isOperator, mayHandOff, mayHaveAccount } from "@wren/core/clients";
 import { sealerFromEnv } from "@wren/core/keys";
 import { cachedDb } from "@wren/db";
+import { GMAIL_SEND_SCOPE, loadServiceAccountKey } from "@wrenautomation/autobrowse/google";
 import { IP_HEADER } from "../src/headers.js";
 import { fromEdge, toRequest, toResult, type UrlEvent, type UrlResult } from "./http.js";
 import { type KeyResult, keyIntake } from "./keys.js";
@@ -51,7 +51,7 @@ const EDGE = need("WREN_AUTH_EDGE_SECRET");
 
 const db = cachedDb(need("WREN_DATABASE_URL"), { app: "wren-auth" });
 const gmail = new GmailClient({
-  key: loadServiceAccountKey(need("WREN_GOOGLE_SERVICE_ACCOUNT")),
+  key: loadServiceAccountKey(need("WREN_GOOGLE_SERVICE_ACCOUNT"), "WREN_GOOGLE_SERVICE_ACCOUNT"),
   scopes: [GMAIL_SEND_SCOPE],
 });
 // Unset: saving a key answers 503 and sign-in works as before.

@@ -18,7 +18,7 @@
  */
 
 import * as restate from "@restatedev/restate-sdk";
-import { type FetchLike, siteExport } from "@wren/channel-email";
+import { siteExport } from "@wren/channel-email";
 import { recordedRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
@@ -39,6 +39,7 @@ import { surveyKinds, writeSurveyDays } from "@wren/core/survey-store";
 import type { Db, Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { importLanderClicks } from "@wren/sites/store";
+import type { FetchLike } from "@wrenautomation/autobrowse/google";
 import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
 import { SEARCH_COMPONENT, SEARCH_COMPONENTS, searchSettingsSchema } from "../components.js";

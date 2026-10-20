@@ -31,9 +31,10 @@ import {
 } from "@wren/core/restate";
 import { type FireTriggers, replyFired } from "@wren/core/spine";
 import type { Db } from "@wren/db";
+import type { InboxReader } from "@wrenautomation/autobrowse/mail";
 import { z } from "zod";
 import type { SharedSuppressions } from "../guards.js";
-import { DAY_MS, type InboxReader, type SyncStats, syncInbox } from "../inbox/sync.js";
+import { DAY_MS, type SyncStats, syncInbox } from "../inbox/sync.js";
 import type { Disposition } from "./disposition.js";
 
 /** Where one key's replies land, and which `Disposition` key labels them. */

@@ -36,6 +36,7 @@
     "./content/ingress": "./src/content/ingress.ts",
     "./content/page-inbox": "./src/content/page-inbox.ts",
     "./testing": "./src/testing.ts",
+    "./wire": "./src/wire.ts",
     "./content/restate": "./src/content/restate.ts",
     "./content/shapes": "./src/content/shapes.ts",
     "./content/slides": "./src/content/slides.ts",
@@ -165,8 +166,7 @@
     "./webhook-events": "./src/webhook-events.ts",
     "./workflows": "./src/workflows.ts",
     "./html": "./src/html.ts",
-    "./http": "./src/http.ts",
-    "./oauth": "./src/oauth.ts"
+    "./http": "./src/http.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

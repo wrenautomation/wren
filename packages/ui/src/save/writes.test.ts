@@ -33,6 +33,8 @@ function tab(storage = memoryStore()) {
   return {
     env,
     storage,
+    /** How many reminders wait to run. */
+    waiting: () => reminders.length,
     /** Time passes; reminders whose time came run (a hidden tab's may not: `fire` false). */
     pass(ms: number, fire = true) {
       now += ms;
@@ -425,11 +427,14 @@ function sendServer() {
 
 function sendStore(t: ReturnType<typeof tab>, s: ReturnType<typeof sendServer>) {
   const told: string[] = [];
+  let reads = 0;
   const w = new Writes(t.env);
   w.use({
     send: s.send,
     status: s.status,
-    reread: async () => undefined,
+    reread: async () => {
+      reads += 1;
+    },
     tell: (x) => told.push(`${x.label ?? x.key}:${x.status}${x.error ? `:${x.error}` : ""}`),
   });
   w.start();
@@ -447,7 +452,7 @@ function sendStore(t: ReturnType<typeof tab>, s: ReturnType<typeof sendServer>) 
           s.send("marketing/inboxReply", b),
         ),
     );
-  return { w, told, go };
+  return { w, told, go, reads: () => reads };
 }
 
 describe("a send (accept, then track)", () => {
@@ -634,5 +639,165 @@ describe("pushed outcomes and retries", () => {
     w.heard("req-0001", { state: "sent", answer: {} });
     await p;
     expect(landed).toEqual([[recordKey("threads", "t1")]]);
+  });
+});
+
+describe("a send that takes long", () => {
+  it("keeps one reminder, however many returns ask about it", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    void go("hello").catch(() => undefined);
+    await flush();
+    const one = t.waiting();
+    expect(one).toBe(1);
+    for (let i = 0; i < 4; i++) {
+      t.hide();
+      t.show();
+      await flush();
+      await flush();
+    }
+    expect(t.waiting()).toBe(one);
+    expect(w.lastOn(recordKey("threads", "t1"))?.status).toBe("sending");
+  });
+
+  it("after a reload, a return is not held up until the send lands", async () => {
+    const shared = memoryStore();
+    const t1 = tab(shared);
+    const s = sendServer();
+    const first = sendStore(t1, s);
+    void first.go("hello").catch(() => undefined);
+    await flush();
+    t1.leave();
+    first.w.stop();
+    const t2 = tab(shared);
+    const second = sendStore(t2, s);
+    await flush();
+    await flush();
+    // The server has it and is still at it: the first return read the page again regardless.
+    expect(second.w.lastOn(recordKey("threads", "t1"))?.status).toBe("sending");
+    expect(second.reads()).toBe(1);
+    t2.hide();
+    t2.show();
+    await flush();
+    await flush();
+    expect(second.reads()).toBe(2);
+    // It lands with nobody waiting: the page reads again to show it.
+    s.finish("req-0001", { answer: { sent: true } });
+    t2.pass(5_000);
+    await flush();
+    await flush();
+    expect(second.w.lastOn(recordKey("threads", "t1"))?.status).toBe("sent");
+    expect(second.reads()).toBeGreaterThan(2);
+    expect(second.w.goingIn("threads")).toBeNull();
+  });
+
+  it("settles a press whose calls all answered but that nothing settled", async () => {
+    const shared = memoryStore();
+    // A load that ended between its last call's answer and the press settling.
+    shared.setItem(
+      "wren.writes",
+      JSON.stringify([
+        {
+          id: "old-1",
+          key: "reply:t1:x",
+          what: "inbox.reply",
+          label: "Reply",
+          records: [recordKey("threads", "t1")],
+          input: null,
+          status: "sending",
+          error: null,
+          at: 1,
+          settled: null,
+          due: null,
+          hide: false,
+          read: false,
+          told: false,
+          page: "gone",
+          retried: false,
+          accepted: true,
+          calls: [
+            {
+              id: "old-1",
+              path: "marketing/inboxReply",
+              body: { body: "x" },
+              status: "sent",
+              error: null,
+              at: 1,
+              accepted: true,
+            },
+          ],
+        },
+      ]),
+    );
+    const t = tab(shared);
+    const { w } = sendStore(t, sendServer());
+    await flush();
+    await flush();
+    expect(w.lastOn(recordKey("threads", "t1"))?.status).toBe("sent");
+    expect(w.goingIn("threads")).toBeNull();
+    expect(w.pending).toBe(0);
+  });
+
+  it("fails honestly when the server has no record and giving it again does not bring one", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    // The server takes each post and forgets it.
+    w.use({ status: async () => ({ state: "unknown" }) });
+    let said: unknown = null;
+    const p = go("hello").catch((e: unknown) => {
+      said = e;
+    });
+    await flush();
+    for (let i = 0; i < 8 && !said; i++) {
+      t.pass(5_000);
+      await flush();
+      await flush();
+    }
+    await p;
+    expect((said as Error).message).toBe("The server has no record of it. Send it again.");
+    const last = w.lastOn(recordKey("threads", "t1"));
+    expect(last?.status).toBe("failed");
+    expect(last?.input).toEqual({ body: "hello" });
+    expect(w.goingIn("threads")).toBeNull();
+    // It was given again each time, under its one id.
+    expect(new Set(s.posts.map((b) => b.requestId))).toEqual(new Set(["req-0001"]));
+  });
+
+  it("a send the server is trying again is not at work for a button", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    const p = go("hello");
+    await flush();
+    expect(w.goingIn("threads")).toEqual({ what: "inbox.reply", ids: ["t1"] });
+    w.heard("req-0001", {
+      state: "sending",
+      retry: { count: 1, reason: "LinkedIn answered 503." },
+    });
+    expect(w.goingIn("threads")).toBeNull();
+    expect(w.lastOn(recordKey("threads", "t1"))?.status).toBe("sending");
+    s.finish("req-0001", { answer: { sent: true } });
+    t.pass(5_000);
+    await p;
+    expect(w.lastOn(recordKey("threads", "t1"))?.status).toBe("sent");
+  });
+
+  it("an answer pushed for a send that cannot be given again never throws unhandled", async () => {
+    const t = tab();
+    const s = sendServer();
+    const { w, go } = sendStore(t, s);
+    w.use({
+      send: async (path, body) => {
+        if (s.posts.length) throw new Error("offline");
+        return s.send(path, body);
+      },
+    });
+    void go("hello").catch(() => undefined);
+    await flush();
+    w.heard("req-0001", { state: "unknown" });
+    await flush();
+    expect(w.lastOn(recordKey("threads", "t1"))?.status).toBe("sending");
   });
 });

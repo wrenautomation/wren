@@ -12,16 +12,16 @@
  * reconcile fails it after the grace: check the mailbox before re-arming it.
  */
 import { createHash } from "node:crypto";
-import type { ImapFlow } from "imapflow";
-import SMTPConnection from "nodemailer/lib/smtp-connection";
 import {
   imapClient,
   inFolder,
   type Login,
-  type Mailbox,
   specialFolder,
   withImap,
-} from "./mailboxes.js";
+} from "@wrenautomation/autobrowse/mail";
+import type { ImapFlow } from "imapflow";
+import SMTPConnection from "nodemailer/lib/smtp-connection";
+import type { Mailbox } from "./mailboxes.js";
 import { buildMime } from "./mime.js";
 import {
   type OutgoingEmail,

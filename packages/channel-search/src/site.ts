@@ -3,7 +3,7 @@
  * search result shows), then `/llms.txt` (the words, from the same content
  * files as the pages). Read live, so a proposal quotes what is up now.
  */
-import type { FetchLike } from "@wren/channel-email";
+import type { FetchLike } from "@wrenautomation/autobrowse/google";
 import { PAGE_LIMIT_MS } from "./console.js";
 
 const decode = (s: string) =>

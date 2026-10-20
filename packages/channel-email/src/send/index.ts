@@ -3,7 +3,6 @@ export * from "./campaign-controls.js";
 export * from "./dates.js";
 export * from "./deliver.js";
 export * from "./gmail.js";
-export * from "./google-auth.js";
 export * from "./holidays.js";
 export * from "./lead-timezone.js";
 export * from "./mailboxes.js";

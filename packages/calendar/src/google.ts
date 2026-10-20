@@ -7,7 +7,7 @@
  * client's calendar does while its sends are off. The event id is ours, so a retried insert finds
  * the first one instead of making two. Tests use `FakeHost`, never Google.
  */
-import type { TokenSupplier } from "@wren/channel-email/send";
+import type { TokenSupplier } from "@wrenautomation/autobrowse/google";
 import type { Span } from "./slots.js";
 
 export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";

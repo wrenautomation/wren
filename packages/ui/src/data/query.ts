@@ -160,7 +160,15 @@ export function patchedSince(scope: object, key: string, data: unknown, left: nu
 export type Load<T> = {
   data: T | null;
   error: Error | null;
+  /**
+   * A read is out, for any reason: the first, one behind the rows on screen, the next key's.
+   * For a refresh button or a "wash once read again", not for a skeleton: use `pending`.
+   */
   loading: boolean;
+  /** There is nothing to show yet and the read is out: the one state that draws a skeleton. */
+  pending: boolean;
+  /** The answer shown is the last key's, held while the next key's reads: dim it, don't blank it. */
+  placeholder: boolean;
   retry: () => void;
   /** The tick (`tick()`) when the read now shown left; 0 for an answer kept from before. */
   at: number;
@@ -171,7 +179,10 @@ export const cachedOf = <T>(scope: object, key: string): T | undefined =>
   QUERIES.getQueryData<T>(keyOf(scope, key));
 
 /**
- * `fn` whenever `key` changes; the last answer stays on screen while the next loads. With a
+ * `fn` whenever `key` changes; the last answer stays on screen while the next loads. A read
+ * behind an answer already shown (a return to the tab, a write that landed, `retry`) changes
+ * only `loading`: `data` stays, so a page draws its skeleton on `pending` (no answer yet) and
+ * dims on `placeholder` (another key's answer), never on `loading`. With a
  * `scope`, an answer seen before (this tab, another tab, this device's last load) shows at once
  * while it reads again, and `writeThrough(scope, patch)` patches what's shown. `fn` gets the
  * answer it reads over, so a list can ask only for what changed (`./delta.ts`). A null `key`
@@ -217,6 +228,8 @@ export function useLoad<T>(
     data: key === null ? null : (q.data ?? null),
     error: key === null ? null : (q.error ?? null),
     loading: key !== null && (q.isFetching || q.isPending || asked !== answered),
+    pending: key !== null && q.isPending,
+    placeholder: key !== null && q.isPlaceholderData,
     retry: () => {
       const n = asked + 1;
       setAsked(n);

@@ -21,14 +21,10 @@ import {
 } from "@wren/core";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { InboxReader } from "@wrenautomation/autobrowse/mail";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import {
-  type InboxReader,
-  labelEvent,
-  recordOperatorReply,
-  syncInbox,
-} from "../../src/inbox/sync.js";
+import { labelEvent, recordOperatorReply, syncInbox } from "../../src/inbox/sync.js";
 import {
   type Enrollment,
   enrollments,

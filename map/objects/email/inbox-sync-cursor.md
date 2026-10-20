@@ -28,7 +28,7 @@ Citations: `packages/channel-email/src/schema.ts:410`
 
 ## If you change this
 
-- **Hits:** `syncInbox` (`inbox/sync.ts:660`), `InboxScheduler/{sender}`
+- **Hits:** `syncInbox` (`inbox/sync.ts:681`), `InboxScheduler/{sender}`
 - **Does not hit:** `open_syncs` (a separate cursor for a separate host)
 
 ## Surfaces

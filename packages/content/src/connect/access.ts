@@ -7,11 +7,11 @@ import { createHash } from "node:crypto";
 import type { FetchLike } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
-import { OAuthError, pkceVerifier, randomState } from "@wren/core/oauth";
 import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
 import { addAccount } from "@wren/core/setup";
 import { clientAccounts } from "@wren/core/setup-schema";
 import type { Db, Queryable } from "@wren/db";
+import { OAuthError, pkceVerifier, randomState } from "@wrenautomation/autobrowse/oauth";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import {
   connectUrl,

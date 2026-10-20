@@ -12,11 +12,11 @@ import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { accountsOf } from "@wren/core/setup";
 import { accountFacts } from "@wren/core/setup-schema";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { GMAIL_READ, GMAIL_SEND } from "@wrenautomation/autobrowse/oauth";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FACTS, mailAccess } from "../../src/access/access.js";
 import { mailConsoleApi } from "../../src/access/console.js";
-import { GMAIL_READ, GMAIL_SEND } from "../../src/access/oauth.js";
 import { mailChecks } from "../../src/access/setups.js";
 
 let pg: TestPostgres;

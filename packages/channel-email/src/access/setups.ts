@@ -7,10 +7,11 @@
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
 import { clientAccounts } from "@wren/core/setup-schema";
 import type { Queryable } from "@wren/db";
+import { appInTenant } from "@wrenautomation/autobrowse/oauth";
 import { and, eq } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
 import { domainOf, FACTS, type MailAccessApi, wantOf } from "./access.js";
-import { appInTenant, type MailApps } from "./oauth.js";
+import type { MailApps } from "./oauth.js";
 import { mailConnections, mailConsents } from "./schema.js";
 
 /** Admin console → Security → Access and data control → API controls → App access control. */

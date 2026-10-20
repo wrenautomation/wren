@@ -51,6 +51,7 @@
     "@wren/sites": "workspace:*",
     "@wren/voice": "workspace:*",
     "@wren/watch": "workspace:*",
+    "@wrenautomation/autobrowse": "0.5.0",
     "drizzle-orm": "0.45.2",
     "pino": "10.3.1",
     "tsx": "4.23.13"
