@@ -59,6 +59,7 @@ import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/c
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
 import { atWrenOf, MOVED_APPS, movedTo } from "./moved.js";
+import { PlayerHost } from "./player/index.js";
 import { HandSwitch, keepOf, TemplatePage } from "./records.js";
 import { href, navigate, setWorkspace, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
@@ -743,6 +744,8 @@ export function App() {
         </AppShell>
       </ShowRawErrors>
       <Toasts />
+      {/* The one player: over a page's slot, or docked bottom-right when the page goes. */}
+      <PlayerHost />
       {operator || viewing ? <ViewAsPicker /> : null}
       {noteAt && quick ? <QuickNote client={noteAt} open={quick} onOpenChange={setQuick} /> : null}
       {!operator && onDemo === false && current && current.id !== WREN.id ? (

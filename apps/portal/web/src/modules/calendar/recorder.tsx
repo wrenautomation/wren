@@ -1,7 +1,7 @@
 /**
  * Calls recorded on William's Mac (designs/2026-10-16-call-recording.md). `RecorderBar` heads
  * Calendar > Calls and Pipelines > Calls: Record now, or Stop and since when, read from the Mac.
- * `recordingExtras` is a recording's page: the video, the notes, then the transcript.
+ * `recordingExtras` is a recording's page: the video (the shell's player), the notes, then the transcript.
  */
 import type { RecorderState } from "@wren/calendar/recorder";
 import type { RecordingDetail } from "@wren/calendar/records";
@@ -12,6 +12,7 @@ import { type ReactNode, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { ListPage } from "../../module.js";
+import { PlayerSlot } from "../../player/index.js";
 import { pipelinesAt } from "../deals/id.js";
 
 const timeOf = (iso: string) =>
@@ -118,7 +119,7 @@ const clock = (s: number) => {
 };
 
 /** A recording's page: the video on top, the notes leading the details, the transcript after. */
-export const recordingExtras: NonNullable<ListPage["extras"]> = (detail): RecordExtras => {
+export const recordingExtras: NonNullable<ListPage["extras"]> = (detail, { row }): RecordExtras => {
   const d = detail as RecordingDetail | null;
   if (!d) return {};
   const transcript: ReactNode = d.segments.length ? (
@@ -139,12 +140,17 @@ export const recordingExtras: NonNullable<ListPage["extras"]> = (detail): Record
     ...(d.url
       ? {
           top: (
-            // biome-ignore lint/a11y/useMediaCaption: the transcript below is its caption.
-            <video
-              src={d.url}
-              controls
-              preload="metadata"
-              className="aspect-video w-full max-w-3xl rounded-(--ui-radius) bg-black"
+            // Played by the shell's player (../../player): the call goes on in the corner.
+            <PlayerSlot
+              eager
+              className="aspect-video w-full max-w-3xl rounded-(--ui-radius)"
+              item={{
+                id: `recording:${String(row.id)}`,
+                kind: "media",
+                media: "video",
+                src: d.url,
+                title: "Recorded call",
+              }}
             />
           ),
         }

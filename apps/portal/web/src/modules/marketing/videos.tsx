@@ -33,6 +33,7 @@ import {
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
+import { PlayerSlot } from "../../player/index.js";
 import { href } from "../../route.js";
 import { Finish, type FinishData } from "./finish.js";
 import { EditorTabs, StoryboardView } from "./storyboard.js";
@@ -179,13 +180,38 @@ const once = (act: RecordAct, action: string, input: Record<string, unknown> = {
     act(action, { ...input, requestId }, VIEWED),
   );
 
-const Player = ({ src }: { src: string | null }) =>
+/** The file's name without its signature: the same cut is the same player on every visit. */
+const cutOf = (src: string) => src.split("?")[0] ?? src;
+
+/**
+ * A finished video, played by the shell's player (`../../player`): it keeps playing in the
+ * corner when you leave the editor. `eager` takes the player only when nothing else plays.
+ */
+const Player = ({ id, title, src }: { id: string; title: string; src: string | null }) =>
   src ? (
-    // biome-ignore lint/a11y/useMediaCaption: captions are burned in or a YouTube CC track.
-    <video controls preload="metadata" src={src} className="w-full rounded bg-black" />
+    <PlayerSlot
+      eager
+      className="aspect-video w-full rounded"
+      item={{ id: `video:${id}:${cutOf(src)}`, kind: "media", media: "video", src, title }}
+    />
   ) : (
     <Empty>The preview shows here once the video is rendered.</Empty>
   );
+
+/** A vertical cut (a Short, the whole video in 9:16), one click from playing. */
+const Vertical = ({ id, title, src }: { id: string; title: string; src: string }) => (
+  <PlayerSlot
+    className="aspect-[9/16] h-80 max-w-full self-start rounded"
+    item={{
+      id: `video:${id}:${cutOf(src)}`,
+      kind: "media",
+      media: "video",
+      src,
+      title,
+      ratio: 9 / 16,
+    }}
+  />
+);
 
 /**
  * One field of the edit, saved through the engine on blur, Enter (one line), a hidden tab or a
@@ -1069,7 +1095,7 @@ function Ask({ video, turns, act }: { video: string; turns: Turn[]; act: RecordA
   );
 }
 
-const Shorts = ({ shorts }: { shorts: Video["shorts"] }) => (
+const Shorts = ({ id, shorts }: { id: string; shorts: Video["shorts"] }) => (
   <ol className="m-0 grid list-none gap-4 p-0">
     {shorts.map((s, i) => (
       <li key={`${s.from}-${s.to}`} className="grid gap-2">
@@ -1082,15 +1108,7 @@ const Shorts = ({ shorts }: { shorts: Video["shorts"] }) => (
           </span>{" "}
           {s.upload ? <Tag tone="green">{s.upload.status}</Tag> : null}
         </p>
-        {s.preview ? (
-          // biome-ignore lint/a11y/useMediaCaption: captions are burned in or a YouTube CC track.
-          <video
-            controls
-            preload="metadata"
-            src={s.preview}
-            className="h-80 max-w-full rounded bg-black"
-          />
-        ) : null}
+        {s.preview ? <Vertical id={id} title={s.title} src={s.preview} /> : null}
       </li>
     ))}
   </ol>
@@ -1547,7 +1565,7 @@ function timelineExtras(
           [
             "Preview",
             <div key="p" className="grid gap-2">
-              <Player src={v.preview} />
+              <Player id={String(row.id)} title={v.edit.title || "Video"} src={v.preview} />
               {v.fresh && v.preview ? <Checks checks={[v.fresh]} /> : null}
             </div>,
           ],
@@ -1588,13 +1606,7 @@ function timelineExtras(
           </p>
         ) : null}
         {v.vertical.preview ? (
-          // biome-ignore lint/a11y/useMediaCaption: captions are burned in or a YouTube CC track.
-          <video
-            controls
-            preload="metadata"
-            src={v.vertical.preview}
-            className="h-96 max-w-full rounded bg-black"
-          />
+          <Vertical id={String(row.id)} title="Vertical cut" src={v.vertical.preview} />
         ) : (
           <Empty>Rendered; its preview shows once it is uploaded.</Empty>
         )}
@@ -1633,7 +1645,8 @@ function timelineExtras(
   if (edit)
     editing.push(["Ask Claude", <Ask key="a" video={String(row.id)} turns={v.turns} act={act} />]);
   if (!narrow) sections.push(...editing);
-  if (v.shorts.length) sections.push(["Shorts", <Shorts key="s" shorts={v.shorts} />]);
+  if (v.shorts.length)
+    sections.push(["Shorts", <Shorts key="s" id={String(row.id)} shorts={v.shorts} />]);
   if (v.promos) sections.push(["Promos", <Promos key="pr" promos={v.promos} />]);
   sections.push([
     "From this video",

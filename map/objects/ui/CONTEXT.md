@@ -47,5 +47,6 @@ Home for the team (`apps/portal/web/src/map/`): `MapHome` (`Home.tsx`) puts `Map
 | [[ui/kit]] | what `@wren/ui` is, its one door, what a part change hits |
 | [[ui/story]] | how a story renders with no `/api`, where fixtures live, what the gates run |
 | [[ui/page-story]] | how a whole page renders on a fake server, where its answers live, what fails its test |
+| [[ui/player]] | the one media player in the shell: slots, the dock, resume, Picture-in-Picture |
 
 Next door: [[platform/portal-shell]] (the frame's behaviour), [[platform/records]] (what a record page serves).

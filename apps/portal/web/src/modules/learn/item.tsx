@@ -3,6 +3,9 @@
  * outside script loads) with its key moments above and its transcript beside, each line a seek;
  * an episode plays through `/media`; an Instagram, TikTok or X post shows its own embed; an
  * article reads clean. Where you stopped is kept, and the next visit starts there.
+ *
+ * Nothing plays in this file: a `PlayerSlot` marks where, and the shell's player (`../../player`)
+ * plays over it, keeps playing when you leave, and takes seeks from the moments and transcript.
  */
 import {
   Alert,
@@ -35,7 +38,8 @@ import {
 } from "@wren/ui/lib/lucide";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "../../load.js";
-import { navigate } from "../../route.js";
+import { PlayerSlot, usePlayer, usePlayerStore } from "../../player/index.js";
+import { href, navigate } from "../../route.js";
 import { changed, type ItemPage, keyOf, learn, type Moment, onChanged } from "./api.js";
 import { useRail } from "./frame.js";
 import {
@@ -52,11 +56,6 @@ import {
   useGrant,
 } from "./kinds.js";
 import { act, LEARN_KEYS, MoveDialog, markItems, SopDialog, TagDialog } from "./menus.js";
-
-/** A player both the moments and the transcript can drive. */
-interface Player {
-  seek: (t: number) => void;
-}
 
 /** Seconds into a played item worth keeping: past the first few, short of the last half minute. */
 const resumeAt = (p: number | null, d: number | null) =>
@@ -151,130 +150,52 @@ export function embedOf(type: string, url: string): { src: string; box: string }
   return null;
 }
 
-/** The YouTube player, spoken to over postMessage: the IFrame API without its script. */
+/** A YouTube video: the slot is its 16:9 box (9:16 for a Short); the shell's player fills it. */
 function YouTube({
+  item,
   vid,
-  start,
-  tall,
+  self,
   onTime,
-  playerRef,
 }: {
+  item: ItemPage;
   vid: string;
-  start: number;
-  tall: boolean;
+  self: string;
   onTime: (t: number, duration: number | null, playing: boolean) => void;
-  playerRef: React.MutableRefObject<Player | null>;
 }) {
-  const frame = useRef<HTMLIFrameElement>(null);
-  const ORIGIN = "https://www.youtube-nocookie.com";
-  const timeRef = useRef(onTime);
-  timeRef.current = onTime;
-  const src = useMemo(() => {
-    const q = new URLSearchParams({
-      enablejsapi: "1",
-      origin: location.origin,
-      rel: "0",
-      playsinline: "1",
-      ...(start ? { start: String(start) } : {}),
-    });
-    return `${ORIGIN}/embed/${vid}?${q}`;
-  }, [vid, start]);
-  useEffect(() => {
-    const post = (msg: object) =>
-      frame.current?.contentWindow?.postMessage(
-        JSON.stringify({ ...msg, id: 1, channel: "widget" }),
-        ORIGIN,
-      );
-    let heard = false;
-    let duration: number | null = null;
-    let playing = false;
-    const onMsg = (e: MessageEvent) => {
-      if (e.origin !== ORIGIN || e.source !== frame.current?.contentWindow) return;
-      let d: {
-        event?: string;
-        info?: { currentTime?: number; duration?: number; playerState?: number };
-      };
-      try {
-        d = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
-      } catch {
-        return;
-      }
-      heard = true;
-      const info = d.info;
-      if (!info) return;
-      if (typeof info.duration === "number" && info.duration > 0) duration = info.duration;
-      if (typeof info.playerState === "number") playing = info.playerState === 1;
-      if (typeof info.currentTime === "number")
-        timeRef.current(info.currentTime, duration, playing);
-    };
-    addEventListener("message", onMsg);
-    // Until the player answers, say we're listening; it starts sending its time after.
-    const hello = setInterval(() => {
-      if (heard) return clearInterval(hello);
-      post({ event: "listening" });
-    }, 400);
-    playerRef.current = {
-      seek: (t) => {
-        post({ event: "command", func: "seekTo", args: [t, true] });
-        post({ event: "command", func: "playVideo", args: [] });
-      },
-    };
-    return () => {
-      removeEventListener("message", onMsg);
-      clearInterval(hello);
-      playerRef.current = null;
-    };
-  }, [playerRef]);
+  const tall = item.type === "shorts";
   return (
-    <div
-      className={cx(
-        "overflow-hidden bg-black",
-        tall ? "mx-auto aspect-[9/16] max-h-[78vh]" : "aspect-video w-full",
-      )}
-    >
-      <iframe
-        ref={frame}
-        src={src}
-        title="YouTube video"
-        className="size-full border-0"
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-        allowFullScreen
-        referrerPolicy="strict-origin-when-cross-origin"
-      />
-    </div>
+    <PlayerSlot
+      eager
+      replace
+      className={
+        tall ? "mx-auto aspect-[9/16] w-[min(100%,calc(78vh*9/16))]" : "aspect-video w-full"
+      }
+      item={{
+        id: `learn:${item.id}`,
+        kind: "youtube",
+        src: vid,
+        title: item.title,
+        startAt: resumeAt(item.position, item.duration),
+        ratio: tall ? 9 / 16 : 16 / 9,
+        back: self,
+        onTime,
+      }}
+    />
   );
 }
 
 /** An episode, through our origin so the CSP stays at 'self'. */
 function Episode({
   item,
+  self,
   onTime,
-  playerRef,
 }: {
   item: ItemPage;
+  self: string;
   onTime: (t: number, duration: number | null, playing: boolean) => void;
-  playerRef: React.MutableRefObject<Player | null>;
 }) {
   const grant = useGrant(item.mediaUrl);
-  const audio = useRef<HTMLAudioElement>(null);
   const src = mediaSrc(item.mediaUrl, grant);
-  useEffect(() => {
-    playerRef.current = {
-      seek: (t) => {
-        const a = audio.current;
-        if (!a) return;
-        a.currentTime = t;
-        void a.play().catch(() => {});
-      },
-    };
-    return () => {
-      playerRef.current = null;
-    };
-  }, [playerRef]);
-  const tell = () => {
-    const a = audio.current;
-    if (a) onTime(a.currentTime, Number.isFinite(a.duration) ? a.duration : null, !a.paused);
-  };
   return (
     <div className="flex flex-col gap-4 border border-(--ui-hair) bg-(--ui-paper) p-4 sm:flex-row sm:items-center">
       <div className="w-full shrink-0 sm:w-40">
@@ -295,20 +216,20 @@ function Episode({
           {item.duration ? ` · ${clock(item.duration)}` : ""}
         </p>
         {src ? (
-          // biome-ignore lint/a11y/useMediaCaption: the transcript sits beside it.
-          <audio
-            ref={audio}
-            controls
-            preload="metadata"
-            src={src}
-            className="w-full"
-            onLoadedMetadata={(e) => {
-              const at = resumeAt(item.position, item.duration);
-              if (at) e.currentTarget.currentTime = at;
+          <PlayerSlot
+            eager
+            replace
+            className="h-[54px] w-full"
+            item={{
+              id: `learn:${item.id}`,
+              kind: "media",
+              media: "audio",
+              src,
+              title: item.title,
+              startAt: resumeAt(item.position, item.duration),
+              back: self,
+              onTime,
             }}
-            onTimeUpdate={tell}
-            onPause={tell}
-            onPlay={tell}
           />
         ) : grant === undefined ? (
           <div className="h-10 bg-(--ui-tile)" />
@@ -328,7 +249,7 @@ function Episode({
 }
 
 /** An Instagram, TikTok or X post: its own embed, or its picture and a way out. */
-function Embed({ item }: { item: ItemPage }) {
+function Embed({ item, self }: { item: ItemPage; self: string }) {
   const e = embedOf(item.type, item.url);
   const site = TYPES[item.type]?.site ?? "the page";
   if (!e)
@@ -356,14 +277,17 @@ function Embed({ item }: { item: ItemPage }) {
     );
   return (
     <div className="flex flex-col items-center gap-2">
-      <iframe
-        src={e.src}
-        title={`${TYPES[item.type]?.label} post`}
-        className={cx("w-full border border-(--ui-hair) bg-(--ui-paper)", e.box)}
-        loading="lazy"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation"
-        referrerPolicy="strict-origin-when-cross-origin"
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+      <PlayerSlot
+        eager
+        replace
+        className={cx("mx-auto w-full border border-(--ui-hair) bg-(--ui-paper)", e.box)}
+        item={{
+          id: `learn:${item.id}`,
+          kind: "embed",
+          src: e.src,
+          title: `${TYPES[item.type]?.label} post`,
+          back: self,
+        }}
       />
       <a
         href={item.url}
@@ -585,6 +509,8 @@ function Act({
       type="button"
       onClick={onClick}
       aria-pressed={on}
+      // The word hides on a phone, the name stays.
+      aria-label={label}
       className={cx(
         "inline-flex h-8 shrink-0 items-center gap-1.5 border px-2.5 text-[13px] transition-colors duration-150",
         on
@@ -653,11 +579,14 @@ export function ItemView({ id, back }: { id: string; back: string }) {
   useEffect(() => onChanged(retry), [retry]);
   const { rail } = useRail();
   const item = load.data;
-  const [now, setNow] = useState(0);
+  const pid = `learn:${id}`;
+  const store = usePlayerStore();
+  // The shell's player keeps the clock; the moments and the transcript follow it.
+  const now = usePlayer((s) => (s.item?.id === pid ? s.time : 0));
+  const ready = usePlayer((s) => s.item?.id === pid && s.heard);
+  const held = usePlayer((s) => s.item?.id === pid);
   const [dialog, setDialog] = useState<"move" | "tag" | "sop" | null>(null);
   usePageKeys(LEARN_KEYS);
-  const player = useRef<Player | null>(null);
-  const [ready, setReady] = useState(false);
 
   // Opened: out of the Inbox. Once per visit.
   const opened = useRef<string | null>(null);
@@ -668,23 +597,23 @@ export function ItemView({ id, back }: { id: string; back: string }) {
     if (item.status === "unread") void learn.open(item.id).then(changed, () => {});
   }, [item, id]);
 
-  // Where you are, kept every 15 seconds of play and on pause.
+  // Where you are, kept every 15 seconds of play and on pause. The shell's player calls this
+  // after the page is gone too, so it holds nothing of the page but the item's id.
   const saved = useRef({ at: 0, t: 0 });
+  const itemId = item?.id;
   const keepPlace = useCallback(
     (t: number, duration: number | null, playing: boolean) => {
-      setNow(t);
-      setReady(true);
-      if (!item) return;
+      if (itemId === undefined) return;
       const due = !playing || Date.now() - saved.current.at > 15_000;
       if (due && Math.abs(t - saved.current.t) >= 3) {
         saved.current = { at: Date.now(), t };
         // One at a time, the newest last: a slow write can't move the place back.
-        void LATEST.write(`learn.progress:${item.id}`, Math.floor(t), (at) =>
-          learn.progress(item.id, at, duration ? Math.round(duration) : null),
+        void LATEST.write(`learn.progress:${itemId}`, Math.floor(t), (at) =>
+          learn.progress(itemId, at, duration ? Math.round(duration) : null),
         );
       }
     },
-    [item],
+    [itemId],
   );
 
   // The keys an item page answers.
@@ -726,7 +655,9 @@ export function ItemView({ id, back }: { id: string; back: string }) {
   const vid = item.type === "youtube" || item.type === "shorts" ? youtubeId(item.url) : null;
   const plays = !!vid || (item.type === "podcast" && !!item.mediaUrl);
   const words = item.transcript ?? (item.text || null);
-  const seek = plays ? (s: number) => player.current?.seek(s) : null;
+  const seek = plays && held ? (s: number) => store.seek(s) : null;
+  // This item's own address: Expand in the dock opens it.
+  const self = href(`/learn/items/${item.id}`, {}, new URLSearchParams(back.split("?")[1] ?? ""));
   const len = lengthOf(item);
   const placeName = new URLSearchParams(back.split("?")[1] ?? "").get("in");
   const backLabel =
@@ -747,17 +678,11 @@ export function ItemView({ id, back }: { id: string; back: string }) {
   const progress = item.position && item.duration ? item.position / item.duration : 0;
 
   const media = vid ? (
-    <YouTube
-      vid={vid}
-      start={resumeAt(item.position, item.duration)}
-      tall={item.type === "shorts"}
-      onTime={keepPlace}
-      playerRef={player}
-    />
+    <YouTube item={item} vid={vid} self={self} onTime={keepPlace} />
   ) : item.type === "podcast" ? (
-    <Episode item={item} onTime={keepPlace} playerRef={player} />
+    <Episode item={item} self={self} onTime={keepPlace} />
   ) : item.type === "instagram" || item.type === "tiktok" || item.type === "x" ? (
-    <Embed item={item} />
+    <Embed item={item} self={self} />
   ) : null;
 
   return (

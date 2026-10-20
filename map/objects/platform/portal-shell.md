@@ -49,7 +49,7 @@ Areas group apps by job. A page that moves between apps, or an app that gets a n
 
 - **owns:** nothing stored
 - **owned-by:** [[platform/records]] (pages are record lists)
-- **joins:** [[platform/saved-views]] (rail pins, Today's tiles under `tiles:today`)
+- **joins:** [[platform/saved-views]] (rail pins, Today's tiles under `tiles:today`); [[ui/player]] (`App.tsx` renders its host once, beside the pages)
 - **looks-like-but-is-not:** a module's `nav` (an app's own tabs read from data, Learn's collections)
 
 ## If you change this

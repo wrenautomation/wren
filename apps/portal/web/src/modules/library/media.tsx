@@ -1,6 +1,7 @@
 /** The Library's Media: the file itself, played or shown, signed for a while. */
 import type { RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
+import { PlayerSlot } from "../../player/index.js";
 
 interface Media {
   kind: "video" | "short" | "thumbnail";
@@ -19,16 +20,22 @@ export const mediaExtras: NonNullable<ListPage["extras"]> = (detail, { row }) =>
     ) : m.kind === "thumbnail" ? (
       <img src={m.src} alt={name} className="w-full max-w-[640px] border border-(--ui-hair)" />
     ) : (
-      // biome-ignore lint/a11y/useMediaCaption: a rendered cut has its captions burned in.
-      <video
-        src={m.src}
-        controls
-        preload="metadata"
+      // Played by the shell's player (../../player): it goes on in the corner when you leave.
+      <PlayerSlot
+        eager
         className={
           m.kind === "short"
-            ? "max-h-[560px] w-auto max-w-full border border-(--ui-hair)"
-            : "w-full max-w-[720px] border border-(--ui-hair)"
+            ? "aspect-[9/16] h-[560px] max-h-[70vh] max-w-full self-start border border-(--ui-hair)"
+            : "aspect-video w-full max-w-[720px] border border-(--ui-hair)"
         }
+        item={{
+          id: `media:${m.src.split("?")[0] ?? m.src}`,
+          kind: "media",
+          media: "video",
+          src: m.src,
+          title: name || "Video",
+          ...(m.kind === "short" ? { ratio: 9 / 16 } : {}),
+        }}
       />
     ),
   } satisfies RecordExtras;
