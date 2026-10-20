@@ -77,3 +77,9 @@ YouTube Data API reads (plain key; revisit if quota bites).
   tokens, URL media uploads, TikTok ranged upload and status polls, dead token to broke).
   Matching them would change live client posting. Reddit stays parked. Revisit when route
   `api` legs move into a pure module.
+- Install weight: `@wrenautomation/autobrowse` brings its full dependency tree (Playwright,
+  Sentry, AWS SDK clients, hono) into wren's install. The Lambda bundles only the three piece
+  folders: worker zip 15,068,342 to 15,084,729 bytes, auth zip 1,335,815 to 1,353,112. If the
+  install cost hurts, split the pieces into their own package, or make the heavy deps optional.
+- Desk deploy runs the shared autobrowse checkout's HEAD, not origin. Pull that checkout
+  after a push, or the desk stays on the old commit.
