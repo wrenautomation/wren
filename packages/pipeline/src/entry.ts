@@ -10,7 +10,11 @@ export interface CauseFacts {
   /** A source id the cause names outright (a `/go/` link, a manual open). */
   entry?: string;
   channel?: string;
+  /** The platform a link names (utm_source): meta for a paid touch, whose channel is ads. */
+  platform?: string;
   campaign?: string;
+  /** The ad campaign's id in `ad_days`, when `campaign` is a name or a `/go/` word that names one. */
+  adCampaign?: string;
   /** A research list or discovery run id. */
   source?: string;
   /** A saved query's id. */
@@ -29,10 +33,12 @@ function matches(s: SourceNode, c: CauseFacts): boolean {
   if (s.via === "sourced") return !!s.source && c.source === s.source;
   if (s.via === "group") return !!s.group && c.group === s.group;
   // organic, outbound, ads, referral: by channel and campaign. A source with neither matches nothing.
+  // A channel is the cause's channel or its platform (`ads` or `meta`); a campaign is the word or
+  // the ad campaign's id.
   if (s.channel === undefined && s.campaign === undefined) return false;
   return (
-    (s.channel === undefined || same(s.channel, c.channel)) &&
-    (s.campaign === undefined || same(s.campaign, c.campaign))
+    (s.channel === undefined || same(s.channel, c.channel) || same(s.channel, c.platform)) &&
+    (s.campaign === undefined || same(s.campaign, c.campaign) || same(s.campaign, c.adCampaign))
   );
 }
 
