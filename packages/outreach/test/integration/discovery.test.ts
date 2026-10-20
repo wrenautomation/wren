@@ -4,7 +4,13 @@
  * the thread (the guard drops one we're already in), commented once, and scored.
  */
 import { fakeOutreachChannel } from "@wren/core/outreach";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+  truncate,
+} from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -422,6 +428,10 @@ describe("reddit discovery", () => {
       raw: {},
       sort: sort as never,
     });
+    await seedObjects(
+      db(),
+      commentObjects([1, 2, 3].map((n) => ({ platform: "reddit", ref: `t1_${n}`, post: "t3_x" }))),
+    );
     await db()
       .insert(comments)
       .values([said(1, "Fresh_One"), said(2, "New_Two"), said(3, "WrenAutomation", "ours")]);

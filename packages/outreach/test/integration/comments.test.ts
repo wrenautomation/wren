@@ -158,7 +158,7 @@ describe("comments", () => {
     const [c1, c2, c3, c4] = await keepComments(
       db(),
       a,
-      [comment(4), comment(3, { post: "t3_p2" }), comment(2), comment(1)],
+      [comment(4), comment(3, { post: "t3_p2", parent: "t3_p2" }), comment(2), comment(1)],
       [],
     );
     const ch = channelFor(a);

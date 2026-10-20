@@ -12,6 +12,7 @@ import {
   type Platform,
   type ReportDays,
 } from "@wren/core/content";
+import { canonRef } from "@wren/core/objects";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { accountMetricDays, contentDrafts, metricSources, postMetricDays } from "../schema.js";
@@ -149,7 +150,15 @@ export async function writeReportDays(
   r: ReportDays,
   now: Date,
 ): Promise<number> {
-  const ids = [...new Set(r.rows.map((x) => x.id))];
+  // A report spells a post as the platform does; the draft holds it in its one spelling.
+  const refOf = (id: string): string => {
+    try {
+      return canonRef(platform, "post", id);
+    } catch {
+      return id;
+    }
+  };
+  const ids = [...new Set(r.rows.map((x) => refOf(x.id)))];
   const drafts = ids.length
     ? await db
         .select({ id: contentDrafts.id, publishedId: contentDrafts.publishedId })
@@ -161,7 +170,7 @@ export async function writeReportDays(
     if (d.publishedId) draftsOf.set(d.publishedId, [...(draftsOf.get(d.publishedId) ?? []), d.id]);
   const byKey = new Map<string, typeof postMetricDays.$inferInsert>();
   for (const row of r.rows)
-    for (const draftId of draftsOf.get(row.id) ?? [])
+    for (const draftId of draftsOf.get(refOf(row.id)) ?? [])
       for (const v of row.values) {
         const key = (v.key ?? "").slice(0, 200);
         byKey.set(`${draftId}|${row.day}|${v.metric}|${key}`, {

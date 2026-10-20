@@ -6,7 +6,12 @@
  */
 import { editRecord } from "@wren/core/edits";
 import { serveRecords } from "@wren/core/records/serve";
-import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+} from "@wren/db/testing";
 import { comments, reachContacts, reachMessages } from "@wren/outreach";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -45,6 +50,7 @@ async function publishedVideo(kind: "long" | "short", views: number, at = daysAg
       ref: kind === "long" ? "video:42" : `video:${views}~short`,
     })
     .returning();
+  await seedObjects(pg.db, [{ platform: "youtube", ref: `yt-${kind}-${views}`, kind: "post" }]);
   const [d] = await pg.db
     .insert(contentDrafts)
     .values({
@@ -211,6 +217,12 @@ describe("conversation", () => {
       contactId,
     });
     const t = daysAgo(3);
+    await seedObjects(
+      pg.db,
+      commentObjects(
+        ["li-c1", "li-c2", "li-c3"].map((ref) => ({ platform: "linkedin", ref, post: "li-post" })),
+      ),
+    );
     await pg.db
       .insert(comments)
       .values([
@@ -268,6 +280,7 @@ describe("X conversation and the rows that wait for a first number", () => {
     expect(await row("Followers")).toMatchObject({ state: "waiting" });
 
     const t = daysAgo(4);
+    await seedObjects(pg.db, commentObjects([{ platform: "x", ref: "x-c1", post: "x-post" }]));
     await pg.db.insert(comments).values({
       platform: "x",
       channel: "content",
@@ -336,6 +349,7 @@ describe("X conversation and the rows that wait for a first number", () => {
       .insert(contentIdeas)
       .values({ text: "synthetic footer idea", source: "cli", ref: "video:4242" })
       .returning();
+    await seedObjects(pg.db, [{ platform: "youtube", ref: "yt-footer", kind: "post" }]);
     const [d] = await pg.db
       .insert(contentDrafts)
       .values({

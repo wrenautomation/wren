@@ -1,5 +1,5 @@
 /** Which posts get a look: young ones on free reads every 6 hours, X and browser reads daily; all weekly after a week. */
-import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { seedObjects, startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { lessonsFor } from "../../src/lessons.js";
@@ -30,6 +30,7 @@ async function post(
     .insert(contentIdeas)
     .values({ text: "synthetic idea", source: "cli" })
     .returning();
+  await seedObjects(pg.db, [{ platform, ref: id, kind: "post" }]);
   const [d] = await pg.db
     .insert(contentDrafts)
     .values({
@@ -89,6 +90,7 @@ describe("metricsDue", () => {
         .values({ text: "synthetic idea", source: "cli" })
         .returning();
       const born = new Date("2026-09-01T00:00:00Z");
+      await seedObjects(pg.db, [{ platform, ref: `sim-${platform}`, kind: "post" }]);
       const [d] = await pg.db
         .insert(contentDrafts)
         .values({

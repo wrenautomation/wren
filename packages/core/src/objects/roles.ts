@@ -84,6 +84,7 @@ export const OBJECT_ROLES: readonly ObjectRole[] = [
     kind: "post",
     twin: "move",
   },
+  // A post for the post, video and post_comment kinds; a comment for thread and comment.
   {
     table: "draft_events",
     platform: "platform",

@@ -16,7 +16,7 @@ import type { Viewer } from "@wren/core/portal";
 import type { PassOutcome } from "@wren/core/restate";
 import { spineRecorder, startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
-import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { seedObjects, startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { comments } from "@wren/outreach";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -186,6 +186,7 @@ describe("a client's company page and Business Profile", () => {
   });
 
   it("SocialWatch reads the page's comments and the Profile's reviews into its comments", async () => {
+    await seedObjects(omicron, [{ platform: "linkedin", ref: POST, kind: "post" }]);
     await omicron.insert(contentDrafts).values({
       ideaId: (await addIdea(omicron, "roof tips", "cli")).id,
       platform: "linkedin" as Platform,

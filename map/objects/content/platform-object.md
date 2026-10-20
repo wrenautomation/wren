@@ -3,13 +3,13 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-20 (O1, wa-yvs.1; no role table points at it yet)
+verified: 2026-10-20 (O1 wa-yvs.1; O2 wa-yvs.2: our posts and comments point at it)
 entity: packages/core/src/objects-schema.ts:23
 ---
 
 # platform-object (the one record of a post, comment or group on a platform)
 
-A post, a comment or a group, once per (`platform`, `ref`), whatever table names it. `ref` is the canonical id; every other spelling of it (a raw id, a short URL, LinkedIn's `activity` URN beside its `ugcPost` URN) is an alias that points at it. Designed in `designs/2026-10-20-platform-objects.md`. O1 (bead `wa-yvs.1`) builds the tables, the rules, the write path and the CLI. The tables are empty on prod: no role table writes here and none points here yet (O2 and O3 do both).
+A post, a comment or a group, once per (`platform`, `ref`), whatever table names it. `ref` is the canonical id; every other spelling of it (a raw id, a short URL, LinkedIn's `activity` URN beside its `ugcPost` URN) is an alias that points at it. Designed in `designs/2026-10-20-platform-objects.md`. O1 (bead `wa-yvs.1`) builds the tables, the rules, the write path and the CLI. O2 (bead `wa-yvs.2`, migration 0312) points our own side at it: `comments` (`ref`, `post`, `parent`, `answer_ref`), `comment_threads.post`, `comment_keywords.post`, `content_drafts.published_id` and `draft_events.external_id` each hold a ref by a composite key (update cascade, delete no action), and each writer resolves the object in its own transaction before the row. O3 does the same for the reach side.
 
 ## Why this shape
 
@@ -29,12 +29,12 @@ Citations: `packages/core/src/objects-schema.ts:23`, `packages/core/src/objects/
 
 ## Connected to
 
-- **joins:** [[content/comment]] (`comments.ref` twin rule `comment`; `post`, `parent`, `answer_ref` move; `comment:<id>` items and `c:`/`ca:` touches follow a fold)
+- **joins:** [[content/comment]] (`comments.ref` twin rule `comment`; `post`, `parent`, `answer_ref` move; `comment:<id>` items and `c:`/`ca:` touches follow a fold; the four columns hold keys `fk_comments_platform_*_platform_objects`; `resolveComments` writes a read's post and comments in one batch)
 - **joins:** [[content/reach-post]] (`reach_posts.ref` twin rule `reach`; `onpost:<id>` items and `rp:` touches follow a fold)
-- **joins:** [[content/comment-keyword]] (`comment_keywords.post`, and `comment_threads.post` in [[content/comment]]: a twin row is dropped)
+- **joins:** [[content/comment-keyword]] (`comment_keywords.post`, and `comment_threads.post` in [[content/comment]]: a twin row is dropped; both hold keys; a keyword with a post needs its platform)
 - **joins:** [[content/reddit-thread]] (`reddit_threads.id` refuses a link when both rows exist; `target` and `answer_ref` move)
 - **joins:** [[research/social-group]] (`social_posts.ref` and `social_groups.ref` refuse a twin; `network` is the platform column)
-- **joins:** [[content/draft]] (`content_drafts.published_id` moves) and [[content/draft-event]] (`external_id` moves; `item` moves with a fold)
+- **joins:** [[content/draft]] (`content_drafts.published_id` moves; key `fk_content_drafts_platform_published_id_platform_objects`) and [[content/draft-event]] (`external_id` moves; key `fk_draft_events_platform_external_id_platform_objects`; a DM or invite keeps its message id in `meta.external_id`; `item` moves with a fold)
 - **joins:** [[content/comment-proof]] and [[content/send-attempt]] (their `item` key moves from the dropped row's item to the kept one's)
 - **joins:** [[content/reach-pass]] (`item` moves with a reach fold) and [[leads/touch]] (`ref` of a comment or reach post moves with a fold)
 - **outside the tree:** autobrowse `sites` and `desk` return raw platform ids; they never see a ref. Wren canonicalises on the way in (`resolveObject`), so a change to a platform's id shape in autobrowse means a change to `canon.ts`. Recorded in `effects/CONTEXT.md`
@@ -42,15 +42,15 @@ Citations: `packages/core/src/objects-schema.ts:23`, `packages/core/src/objects/
 
 ## If you change this
 
-- **Hits:** every writer of a column in `OBJECT_ROLES` (O2 and O3 move each to `resolveObject`), `channel-reddit` (`commentRef`), the roles-vs-database test, `wren objects`
-- **Does not hit:** autobrowse (it returns raw ids as before), the lander, any role table's shape (no foreign key yet, no writer changed in O1)
+- **Hits:** every writer of a column in `OBJECT_ROLES` (O2 moved ours to `resolveObject`: `keepComments`, `keepPostComments`, `stamp`, `recordDraft`, `addKeyword`, `markAnswered`, `applyThread`, `adoptNode`; O3 moves the reach side), `channel-reddit` (`commentRef`), the roles-vs-database test, `wren objects`
+- **Does not hit:** autobrowse (it returns raw ids as before), the lander, a role table's columns (a key and an index are all 0312 adds; column widths stay, so `MAX_REF` is 200)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
 | `wren objects find` / `link` | reads / writes |
-| role writers (comments, reach posts, reddit threads, social reads, drafts) | none yet (O2, O3) |
+| role writers (comments, drafts and their events, keywords) | write, through `resolveObject`, `resolveObjectOrNull` and `resolveComments` (O2); reach posts, reddit threads, social reads: O3 |
 | portal | none |
 
 ## See

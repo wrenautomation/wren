@@ -12,11 +12,12 @@ import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { factsBlock, humanBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
 import { isVendorStop } from "@wren/core/metered";
+import { CanonError, resolveComments, resolveObjectOrNull } from "@wren/core/objects";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
 import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
 import type { SpineEvent, Step } from "@wren/core/spine";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, eq, inArray, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -93,42 +94,74 @@ export async function keepComments(
 ): Promise<Array<Pick<Comment, "id" | "platform" | "author" | "post">>> {
   if (!items.length) return [];
   const passed = await passedOn(db, account.platform);
-  const rows = [...items]
-    .sort((a, b) => a.at.localeCompare(b.at))
-    .map((c) => {
-      const mine = ours.some((h) => same(h, c.handle));
-      const gone = !mine && passed.has(passKey(null, c.handle));
-      return {
-        platform: account.platform,
-        // A comment on one of our posts is the content side's row (see `CommentIn.channel`); the
-        // account that read it stays on the row, which the check allows for content rows.
-        channel: c.channel ?? ("reach" as const),
-        accountId: account.id,
-        ref: c.ref.slice(0, 200),
-        post: c.post.slice(0, 200),
-        parent: c.parent.slice(0, 200),
-        // A type Reddit adds later is filed as a reply; the message itself stays in `raw`.
-        kind: (COMMENT_KINDS as readonly string[]).includes(c.kind)
-          ? (c.kind as CommentKind)
-          : ("comment_reply" as const),
-        place: c.place?.slice(0, 200) ?? null,
-        postTitle: c.postTitle,
-        author: c.handle.slice(0, 120),
-        body: c.text,
-        url: c.url,
-        at: new Date(c.at),
-        raw: c.raw,
-        ...(mine ? { sort: "ours" as const, state: "dropped" as const, why: "One of ours" } : {}),
-        ...(gone ? { state: "dropped" as const, why: "You passed on them" } : {}),
-      };
+  const kept = await atomic(db, async (tx) => {
+    // Each comment and its post are `platform_objects` first, in their one spelling: the reach
+    // reader and the content reader meet on the same row. A post no rule reads keeps nothing.
+    const byPost = new Map<string, CommentIn[]>();
+    for (const c of items) byPost.set(c.post, [...(byPost.get(c.post) ?? []), c]);
+    const refs = new Map<CommentIn, { ref: string; parent: string; post: string }>();
+    for (const [post, group] of byPost) {
+      try {
+        const seen = await resolveComments(
+          tx,
+          account.platform,
+          { raw: post },
+          group.map((c) => ({
+            raw: c.ref,
+            parent: c.parent,
+            author: c.handle,
+            at: new Date(c.at),
+            url: c.url,
+          })),
+        );
+        for (const c of group) {
+          const got = seen.refs.get(c.ref);
+          if (got) refs.set(c, { ...got, post: seen.post });
+        }
+      } catch (e) {
+        if (!(e instanceof CanonError)) throw e;
+      }
+    }
+    const rows = [...items]
+      .filter((c) => refs.has(c))
+      .sort((a, b) => a.at.localeCompare(b.at))
+      .map((c) => {
+        const got = refs.get(c) as { ref: string; parent: string; post: string };
+        const mine = ours.some((h) => same(h, c.handle));
+        const gone = !mine && passed.has(passKey(null, c.handle));
+        return {
+          platform: account.platform,
+          // A comment on one of our posts is the content side's row (see `CommentIn.channel`); the
+          // account that read it stays on the row, which the check allows for content rows.
+          channel: c.channel ?? ("reach" as const),
+          accountId: account.id,
+          ref: got.ref,
+          post: got.post,
+          parent: got.parent,
+          // A type Reddit adds later is filed as a reply; the message itself stays in `raw`.
+          kind: (COMMENT_KINDS as readonly string[]).includes(c.kind)
+            ? (c.kind as CommentKind)
+            : ("comment_reply" as const),
+          place: c.place?.slice(0, 200) ?? null,
+          postTitle: c.postTitle,
+          author: c.handle.slice(0, 120),
+          body: c.text,
+          url: c.url,
+          at: new Date(c.at),
+          raw: c.raw,
+          ...(mine ? { sort: "ours" as const, state: "dropped" as const, why: "One of ours" } : {}),
+          ...(gone ? { state: "dropped" as const, why: "You passed on them" } : {}),
+        };
+      });
+    if (!rows.length) return [];
+    return tx.insert(comments).values(rows).onConflictDoNothing().returning({
+      id: comments.id,
+      platform: comments.platform,
+      author: comments.author,
+      post: comments.post,
+      sort: comments.sort,
+      state: comments.state,
     });
-  const kept = await db.insert(comments).values(rows).onConflictDoNothing().returning({
-    id: comments.id,
-    platform: comments.platform,
-    author: comments.author,
-    post: comments.post,
-    sort: comments.sort,
-    state: comments.state,
   });
   const theirs = kept
     .filter((k) => k.sort !== "ours" && k.state !== "dropped")
@@ -388,26 +421,47 @@ export async function markAnswered(
   id: number,
   r: { body: string; ref: string | null; now: Date; by?: string; via?: "person" | "wren" },
 ) {
-  const [c] = await db
-    .update(comments)
-    .set({ state: "answered", answer: r.body, answerRef: r.ref, answeredAt: r.now })
-    .where(eq(comments.id, id))
-    .returning({
-      platform: comments.platform,
-      url: comments.url,
-      post: comments.post,
-      author: comments.author,
-      channel: comments.channel,
-      accountId: comments.accountId,
-      at: comments.at,
-    });
+  const { c, answerRef } = await atomic(db, async (tx) => {
+    const [row] = await tx
+      .select({
+        platform: comments.platform,
+        url: comments.url,
+        ref: comments.ref,
+        post: comments.post,
+        author: comments.author,
+        channel: comments.channel,
+        accountId: comments.accountId,
+        at: comments.at,
+      })
+      .from(comments)
+      .where(eq(comments.id, id));
+    // Our answer is an object under the comment it answers, before `answer_ref` names it. An id
+    // no rule reads leaves the answer kept without one: the send is done.
+    const answerRef =
+      row && r.ref
+        ? await resolveObjectOrNull(tx, {
+            platform: row.platform,
+            kind: "comment",
+            raw: r.ref,
+            post: row.post,
+            parent: row.ref,
+            at: r.now,
+          })
+        : null;
+    if (!row) return { c: undefined, answerRef };
+    await tx
+      .update(comments)
+      .set({ state: "answered", answer: r.body, answerRef, answeredAt: r.now })
+      .where(eq(comments.id, id));
+    return { c: row, answerRef };
+  });
   await keepTouch(`ca:${id}`, () => touchFromAnswer(db, id));
   // Their earlier messages in the thread waited on the same answer: it covers them too, so the
   // person's row stops waiting. A later one stays open (designs/2026-10-15-engage-threads.md).
   if (c)
     await db
       .update(comments)
-      .set({ state: "answered", answer: r.body, answerRef: r.ref, answeredAt: r.now })
+      .set({ state: "answered", answer: r.body, answerRef, answeredAt: r.now })
       .where(
         and(
           eq(comments.platform, c.platform),
@@ -429,7 +483,7 @@ export async function markAnswered(
       via: r.via ?? "person",
       by: r.by ?? null,
       text: r.body,
-      externalId: r.ref,
+      externalId: answerRef ?? r.ref,
       url: whereSent(c.platform, c.url, r.ref),
       ref: `sent:comment:${id}`,
     });

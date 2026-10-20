@@ -4,7 +4,7 @@
  * window reads the post's days; the swap's own day counts for neither. Fixed dates, synthetic
  * rows only.
  */
-import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { seedObjects, startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { comments } from "@wren/outreach";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -42,6 +42,7 @@ async function published(platform: "youtube" | "tiktok" | "linkedin", id: string
     .insert(contentIdeas)
     .values({ text: "synthetic idea", source: "cli" })
     .returning();
+  await seedObjects(pg.db, [{ platform, ref: id, kind: "post" }]);
   const [d] = await pg.db
     .insert(contentDrafts)
     .values({

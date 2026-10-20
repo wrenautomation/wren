@@ -19,7 +19,13 @@ import {
   type SendVerdict,
   SentFound,
 } from "@wren/core/send-verdict";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+  truncate,
+} from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
@@ -802,6 +808,7 @@ describe("Not sent, drop, for each kind of item", () => {
     return p?.id ?? 0;
   };
   const oneComment = async (state: "new" | "waiting" = "waiting") => {
+    await seedObjects(db(), commentObjects([{ platform: "instagram", ref: "c1", post: "p1" }]));
     const [c] = await db()
       .insert(comments)
       .values({
@@ -912,6 +919,7 @@ describe("the scheduler", () => {
 describe("a private reply (private:), with no key to ask: the desk says unknown", () => {
   const WORDS = "Here is the setup guide.";
   async function ourComment() {
+    await seedObjects(db(), commentObjects([{ platform: "instagram", ref: "c1", post: "p1" }]));
     const [c] = await db()
       .insert(comments)
       .values({

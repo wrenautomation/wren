@@ -7,7 +7,13 @@ import { keepSentEdit } from "@wren/core/ask";
 import { draftRecordOf, draftSteps, recordDraft, rejectWhy } from "@wren/core/draft-record";
 import { serveRecords } from "@wren/core/records/serve";
 import { type TrainRecord, trainPairs, trainRecords } from "@wren/core/train";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+  truncate,
+} from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -174,6 +180,7 @@ describe("rejectWhy", () => {
   });
 });
 
+let shares = 0;
 const shipped = async (o: { edit?: string; views?: number; reactions?: number } = {}) => {
   const { idea, draft } = await firstDraft();
   if (o.edit)
@@ -182,8 +189,9 @@ const shipped = async (o: { edit?: string; views?: number; reactions?: number } 
       by: "william@example.com",
     });
   await approveDrafts(pg.db, [draft.id], { now: new Date(), at: new Date(), by: "cli" });
+  const postId = `urn:li:share:${++shares}`;
   await markPublished(pg.db, draft.id, {
-    id: `urn:li:share:${draft.id}`,
+    id: postId,
     url: `https://www.linkedin.com/feed/update/${draft.id}`,
     publishedAt: new Date().toISOString(),
     fetchedWith: "api",
@@ -199,7 +207,7 @@ const shipped = async (o: { edit?: string; views?: number; reactions?: number } 
     asOf: new Date(Date.now() + 1000),
     fetchedWith: "api",
   });
-  return { idea, draft };
+  return { idea, draft, postId };
 };
 
 describe("the record page", () => {
@@ -228,13 +236,13 @@ describe("the record page", () => {
 
 describe("the export", () => {
   it("writes one record per draft with its prompt, versions, send and outcome, people out", async () => {
-    const { draft } = await shipped({ edit: "Shipped it. Ask william@example.com." });
+    const { draft, postId } = await shipped({ edit: "Shipped it. Ask william@example.com." });
     const [r] = (await trainRecords(pg.db)) as [TrainRecord];
     expect(r).toMatchObject({ schema: "wren.draft/1", id: `draft:${draft.id}#1`, kind: "post" });
     expect(String(r.input?.prompt)).toContain("The spend gate shipped");
     expect(r.versions.map((v) => v.by)).toEqual(["fake", "william@example.com"]);
     expect(r.final?.text).toBe("Shipped it. Ask [email].");
-    expect(r.final?.external_id).toBe(`urn:li:share:${draft.id}`);
+    expect(r.final?.external_id).toBe(postId);
     expect(r.outcome).toMatchObject({ views: 100, follows: 1, snapshots: 1 });
     const [kept] = await trainRecords(pg.db, { people: true });
     expect(kept?.final?.text).toBe("Shipped it. Ask william@example.com.");
@@ -252,8 +260,8 @@ describe("the export", () => {
     );
     await approveDrafts(pg.db, [draft.id], { now: new Date(), at: new Date(), by: "cli" });
     await markPublished(pg.db, draft.id, {
-      id: `urn:li:share:${draft.id}`,
-      url: `https://www.linkedin.com/feed/update/urn:li:share:${draft.id}`,
+      id: `urn:li:share:${++shares}`,
+      url: `https://www.linkedin.com/feed/update/${draft.id}`,
       publishedAt: new Date().toISOString(),
       fetchedWith: "api",
       notes: ["Reshares not set: refused"],
@@ -277,13 +285,20 @@ describe("the export", () => {
       text: "Thanks Jordan Avery, good catch.",
       llm: { prompt: "u/javery42 asked: why?" },
     });
+    await seedObjects(
+      pg.db,
+      commentObjects([
+        { platform: "reddit", ref: "t1_c9", post: "t3_p1" },
+        { platform: "reddit", ref: "t1_c10", post: "t3_p1" },
+      ]),
+    );
     await pg.db.execute(sql`
       insert into comments (id, platform, channel, ref, post, parent, kind, author, body, url, at, raw)
-      values (9, 'reddit', 'content', 'c9', 'p1', 'p1', 'post_reply', 'javery42', 'why?', 'https://x.test/c9',
+      values (9, 'reddit', 'content', 't1_c9', 't3_p1', 't3_p1', 'post_reply', 'javery42', 'why?', 'https://x.test/c9',
         now(), '{}')`);
     await pg.db.execute(sql`
       insert into comments (id, platform, channel, ref, post, parent, kind, author, body, url, at, raw)
-      values (10, 'reddit', 'content', 'c10', 'p1', 'p1', 'post_reply', 'Jordan Avery', 'hi', 'https://x.test/c10',
+      values (10, 'reddit', 'content', 't1_c10', 't3_p1', 't3_p1', 'post_reply', 'Jordan Avery', 'hi', 'https://x.test/c10',
         now(), '{}')`);
     await recordDraft(pg.db, { item: "comment:10", event: "generated", via: "model", text: "x" });
     const r = (await trainRecords(pg.db, { items: ["comment:9"] }))[0];
@@ -360,11 +375,15 @@ describe("the backfill", () => {
   });
 
   it("folds in a comment's answer and a DM he changed at send", async () => {
+    await seedObjects(
+      pg.db,
+      commentObjects([{ platform: "reddit", ref: "t1_c4", post: "t3_p1", answerRef: "t1_c5" }]),
+    );
     await pg.db.execute(sql`
       insert into comments (id, platform, channel, ref, post, parent, kind, author, body, url, at,
         raw, draft, state, answer, answer_ref, answered_at)
-      values (4, 'reddit', 'content', 'c4', 'p1', 'p1', 'post_reply', 'sam', 'how?',
-        'https://x.test/c4', now(), '{}', 'Like this.', 'answered', 'Like this, mostly.', 'c5',
+      values (4, 'reddit', 'content', 't1_c4', 't3_p1', 't3_p1', 'post_reply', 'sam', 'how?',
+        'https://x.test/c4', now(), '{}', 'Like this.', 'answered', 'Like this, mostly.', 't1_c5',
         now() + interval '1 minute')`);
     await pg.db.execute(sql`
       insert into runs (id, command, argv, started_at, finished_at, stats)

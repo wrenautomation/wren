@@ -3,8 +3,8 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-16 (keyword DMs on the ledger)
-entity: packages/content/src/schema.ts:1067
+verified: 2026-10-20 (O2, wa-yvs.2: post is a platform object)
+entity: packages/content/src/schema.ts:1093
 ---
 
 # comment-keyword
@@ -17,7 +17,7 @@ Meta's private reply is the only DM a page may send from a comment: one per comm
 
 ## Shape
 
-- `comment_keywords`: `keyword` (normalized), `platform` (null both), `post` (null every), `dm`, `reply` (public, optional), `active`; unique per keyword and scope
+- `comment_keywords`: `keyword` (normalized), `platform` (null both), `post` (null every; a [[content/platform-object]] post ref when set, key `fk_comment_keywords_platform_post_platform_objects`, migration 0312; the key reads null `platform` as unchecked, so `addKeyword` refuses a post with no platform and a post no rule reads, 400), `dm`, `reply` (public, optional), `active`; unique per keyword and scope
 - `keyword_hits`: `keyword_id` (cascade), `comment_id` (unique), `platform`, `author`, `state` queued/sent/failed, `why`, `ref`, `at`, `sent_at`
 - views `comment_keyword_records` (caught, sent, failed, last), `keyword_hit_records`
 

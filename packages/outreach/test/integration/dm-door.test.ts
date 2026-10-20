@@ -5,7 +5,13 @@
  */
 import { draftEvents } from "@wren/core/schema";
 import { lookupTouches } from "@wren/core/touches";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+  truncate,
+} from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { commentById, planPrivateReply, privateReplied } from "../../src/comments.js";
@@ -28,6 +34,7 @@ beforeEach(async () => {
 });
 
 async function contentComment(n: number, platform: "instagram" | "youtube", daysAgo: number) {
+  await seedObjects(db(), commentObjects([{ platform, ref: `c${n}`, post: "p1" }]));
   const [c] = await db()
     .insert(comments)
     .values({

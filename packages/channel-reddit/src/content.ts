@@ -80,11 +80,11 @@ interface JsonAnswer<T> {
 export const redditUrl = (permalink: string) => `https://www.reddit.com${permalink}`;
 const at = (utc: number | undefined, now: () => Date) =>
   (utc ? new Date(utc * 1000) : now()).toISOString();
-/** `t3_abc` → `abc`: rows carry the bare id, calls take the fullname. */
+/** `t3_abc` → `abc`. Calls take either form; the writers spell a post `t3_abc` in the database. */
 export const bareId = (id: string) => id.replace(/^t\d_/, "");
 /**
  * A comment's one id in Wren: Reddit's `t1_` fullname, whichever reader saw it. Every reader keys
- * a comment through this, so one comment is one `comments` row (`ck_comments_reddit_ref`). The
+ * a comment through this, so one comment is one `comments` row. The
  * rule lives in core (`@wren/core/objects`), beside every other platform's.
  */
 export { commentRef };

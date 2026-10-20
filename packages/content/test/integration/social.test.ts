@@ -22,7 +22,7 @@ import type { PassOutcome } from "@wren/core/restate";
 import type { SpineEvent } from "@wren/core/spine";
 import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import {
   answerComment,
   comments,
@@ -179,6 +179,7 @@ const sync = () => watch().sync() as Promise<PassOutcome<SocialStats>>;
 /** A published draft of `platform` post `id`, `days` old. */
 async function published(platform: "linkedin" | "youtube", id: string, days: number) {
   const idea = await addIdea(pg.db, `idea ${id}`, "cli");
+  await seedObjects(pg.db, [{ platform, ref: id, kind: "post" }]);
   await pg.db.insert(contentDrafts).values({
     ideaId: idea.id,
     platform,
@@ -206,12 +207,18 @@ const follow = (id: string, msAgo: number | null): ActivityRow => ({
 describe("SocialWatch", () => {
   it("keeps comments, activity and followers once; pings once; texts only when one asks", async () => {
     const desk = ingress().serviceClient<ReturnType<typeof makeSocialDesk>>({ name: "SocialDesk" });
-    await published("linkedin", "li-p1", 1);
+    await published("linkedin", "urn:li:share:1", 1);
     await published("youtube", "yt-p1", 5);
-    li.receive({ id: "li-c1", postId: "li-p1", author: "Ana", text: "Nice one", at: iso(60_000) });
     li.receive({
-      id: "li-c2",
-      postId: "li-p1",
+      id: "7001",
+      postId: "urn:li:share:1",
+      author: "Ana",
+      text: "Nice one",
+      at: iso(60_000),
+    });
+    li.receive({
+      id: "7002",
+      postId: "urn:li:share:1",
       author: "Wren Automation",
       text: "Thanks!",
       at: iso(30_000),
@@ -251,13 +258,13 @@ describe("SocialWatch", () => {
 
     const rows = await pg.db.select().from(comments).orderBy(comments.ref);
     expect(rows.map((r) => [r.ref, r.channel, r.accountId, r.kind, r.state])).toEqual([
-      ["li-c1", "content", null, "post_reply", "new"],
-      ["li-c2", "content", null, "post_reply", "dropped"],
+      ["7001", "content", null, "post_reply", "new"],
+      ["7002", "content", null, "post_reply", "dropped"],
       ["yt-c1", "content", null, "comment_reply", "new"],
     ]);
     expect(rows[0]).toMatchObject({
-      postTitle: "Post li-p1",
-      url: "https://linkedin.test/p/li-p1",
+      postTitle: "Post urn:li:share:1",
+      url: "https://linkedin.test/p/urn:li:share:1",
     });
     const [undated] = await pg.db.select().from(socialActivity).where(eq(socialActivity.ref, "f2"));
     expect(undated?.at.getTime()).toBeGreaterThan(Date.now() - 600_000);
@@ -328,8 +335,14 @@ describe("SocialWatch", () => {
   });
 
   it("Inbox lists every type; mark seen; followers per platform", async () => {
-    await published("linkedin", "li-p2", 1);
-    li.receive({ id: "li-c9", postId: "li-p2", author: "Cy", text: "Question?", at: iso(1000) });
+    await published("linkedin", "urn:li:share:2", 1);
+    li.receive({
+      id: "7009",
+      postId: "urn:li:share:2",
+      author: "Cy",
+      text: "Question?",
+      at: iso(1000),
+    });
     // YouTube: LinkedIn activity waits 2 hours from the last test's read.
     yt.happen(follow("f9", 1000));
     yt.happen(follow("f10", 2000));
@@ -502,10 +515,10 @@ describe("SocialWatch", () => {
   });
 
   it("a content comment plans with no account and refuses the reach answer and DM", async () => {
-    await published("linkedin", "li-p3", 1);
-    li.receive({ id: "li-c3", postId: "li-p3", author: "Di", text: "How?", at: iso(1000) });
+    await published("linkedin", "urn:li:share:3", 1);
+    li.receive({ id: "7003", postId: "urn:li:share:3", author: "Di", text: "How?", at: iso(1000) });
     await sync();
-    const [c] = await pg.db.select().from(comments).where(eq(comments.ref, "li-c3"));
+    const [c] = await pg.db.select().from(comments).where(eq(comments.ref, "7003"));
     const plan = await planAnswer(pg.db, c?.id as number, new Date());
     expect(plan).toMatchObject({ account: null, others: [] });
     await expect(
@@ -518,17 +531,29 @@ describe("SocialWatch", () => {
   });
 
   it("Refresh on a comment on our post reads that post again and keeps only what's new", async () => {
-    await published("linkedin", "li-p4", 1);
-    li.receive({ id: "li-c4", postId: "li-p4", author: "Ed", text: "First", at: iso(5000) });
+    await published("linkedin", "urn:li:share:4", 1);
+    li.receive({
+      id: "7004",
+      postId: "urn:li:share:4",
+      author: "Ed",
+      text: "First",
+      at: iso(5000),
+    });
     await sync();
-    const [c] = await pg.db.select().from(comments).where(eq(comments.ref, "li-c4"));
-    li.receive({ id: "li-c5", postId: "li-p4", author: "Ed", text: "Then this", at: iso(1000) });
+    const [c] = await pg.db.select().from(comments).where(eq(comments.ref, "7004"));
+    li.receive({
+      id: "7005",
+      postId: "urn:li:share:4",
+      author: "Ed",
+      text: "Then this",
+      at: iso(1000),
+    });
     const desk = ingress().serviceClient<ReturnType<typeof makeSocialDesk>>({ name: "SocialDesk" });
     expect(await desk.readPost({ id: c?.id as number })).toEqual({ read: true, kept: 1 });
     expect(await desk.readPost({ id: c?.id as number })).toEqual({ read: true, kept: 0 });
-    const kept = await pg.db.select().from(comments).where(eq(comments.ref, "li-c5"));
+    const kept = await pg.db.select().from(comments).where(eq(comments.ref, "7005"));
     expect(kept).toHaveLength(1);
-    expect(kept[0]).toMatchObject({ channel: "content", post: "li-p4" });
+    expect(kept[0]).toMatchObject({ channel: "content", post: "urn:li:share:4" });
   });
 
   // Last here: the hold outlives the test, on the loop's state.

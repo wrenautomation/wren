@@ -5,7 +5,8 @@
  */
 import type { ActivityRow, Audience, CommentRow, Platform } from "@wren/core/content";
 import { plural } from "@wren/core/notify";
-import type { Queryable } from "@wren/db";
+import { resolveComments } from "@wren/core/objects";
+import { atomic, type Queryable } from "@wren/db";
 import { askedInWords, type Comment, comments } from "@wren/outreach";
 import { keepTouch, touchFromAnswer, touchFromComment } from "@wren/outreach/touches";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
@@ -163,50 +164,70 @@ export async function keepPostComments(
   o: { reviews?: boolean; now?: Date } = {},
 ): Promise<KeptComment[]> {
   if (!rows.length) return [];
-  const values = [...rows]
-    .sort((a, b) => a.at.localeCompare(b.at))
-    .map((c) => {
-      const reply = !!c.parentId && c.parentId !== post.id;
-      // A review the owner already answered, on the site or by hand, counts as answered.
-      const answered =
-        o.reviews && c.repliedWith
-          ? {
-              state: "answered" as const,
-              answer: c.repliedWith,
-              answeredAt: o.now ?? new Date(),
-            }
-          : {};
-      return {
-        platform: post.platform,
-        channel: "content" as const,
-        accountId: null,
-        ref: c.id.slice(0, 200),
-        post: post.id.slice(0, 200),
-        parent: (reply ? (c.parentId as string) : post.id).slice(0, 200),
-        kind: o.reviews
-          ? ("review" as const)
-          : reply
-            ? ("comment_reply" as const)
-            : ("post_reply" as const),
-        stars: o.reviews ? (c.stars ?? null) : null,
-        place: null,
-        postTitle: post.title,
-        author: c.author.slice(0, 120),
-        body: c.text,
-        url: c.url ?? post.url ?? "",
+  // The post and every comment are `platform_objects` first, in their one spelling (the reach
+  // reader meets the same comment on the same row); the insert writes the refs they return.
+  const kept = await atomic(db, async (tx) => {
+    const seen = await resolveComments(
+      tx,
+      post.platform,
+      { raw: post.id, url: post.url },
+      rows.map((c) => ({
+        raw: c.id,
+        parent: c.parentId && c.parentId !== post.id ? c.parentId : null,
+        author: c.author,
         at: new Date(c.at),
-        raw: c.raw ?? c,
-        ...answered,
-        ...(c.mine ? { sort: "ours" as const, state: "dropped" as const, why: "One of ours" } : {}),
-      };
+        url: c.url,
+      })),
+    );
+    const values = [...rows]
+      .filter((c) => seen.refs.has(c.id))
+      .sort((a, b) => a.at.localeCompare(b.at))
+      .map((c) => {
+        const got = seen.refs.get(c.id) as { ref: string; parent: string };
+        // A review the owner already answered, on the site or by hand, counts as answered.
+        const answered =
+          o.reviews && c.repliedWith
+            ? {
+                state: "answered" as const,
+                answer: c.repliedWith,
+                answeredAt: o.now ?? new Date(),
+              }
+            : {};
+        return {
+          platform: post.platform,
+          channel: "content" as const,
+          accountId: null,
+          ref: got.ref,
+          post: seen.post,
+          parent: got.parent,
+          kind: o.reviews
+            ? ("review" as const)
+            : got.parent !== seen.post
+              ? ("comment_reply" as const)
+              : ("post_reply" as const),
+          stars: o.reviews ? (c.stars ?? null) : null,
+          place: null,
+          postTitle: post.title,
+          author: c.author.slice(0, 120),
+          body: c.text,
+          url: c.url ?? post.url ?? "",
+          at: new Date(c.at),
+          raw: c.raw ?? c,
+          ...answered,
+          ...(c.mine
+            ? { sort: "ours" as const, state: "dropped" as const, why: "One of ours" }
+            : {}),
+        };
+      });
+    if (!values.length) return [];
+    return tx.insert(comments).values(values).onConflictDoNothing().returning({
+      id: comments.id,
+      platform: comments.platform,
+      author: comments.author,
+      post: comments.post,
+      body: comments.body,
+      sort: comments.sort,
     });
-  const kept = await db.insert(comments).values(values).onConflictDoNothing().returning({
-    id: comments.id,
-    platform: comments.platform,
-    author: comments.author,
-    post: comments.post,
-    body: comments.body,
-    sort: comments.sort,
   });
   const theirs = kept
     .filter((k) => k.sort !== "ours")
@@ -226,23 +247,32 @@ export async function keepPostComments(
 async function answeredByHand(db: Queryable, post: RecentPost, rows: readonly CommentRow[]) {
   for (const c of rows) {
     if (!c.mine || !c.parentId || c.parentId === post.id) continue;
-    const [k] = await db
-      .update(comments)
-      .set({
-        state: "answered",
-        answer: c.text,
-        answerRef: c.id.slice(0, 200),
-        answeredAt: new Date(c.at),
-      })
-      .where(
-        and(
-          eq(comments.platform, post.platform),
-          eq(comments.ref, c.parentId.slice(0, 200)),
-          isNull(comments.answeredAt),
-          sql`${comments.sort} is distinct from 'ours'`,
-        ),
-      )
-      .returning({ id: comments.id });
+    // Our reply is an object before `answer_ref` names it.
+    const k = await atomic(db, async (tx) => {
+      const seen = await resolveComments(tx, post.platform, { raw: post.id, url: post.url }, [
+        { raw: c.id, parent: c.parentId, author: c.author, at: new Date(c.at), url: c.url },
+      ]);
+      const mine = seen.refs.get(c.id);
+      if (!mine || mine.parent === seen.post) return undefined;
+      const [row] = await tx
+        .update(comments)
+        .set({
+          state: "answered",
+          answer: c.text,
+          answerRef: mine.ref,
+          answeredAt: new Date(c.at),
+        })
+        .where(
+          and(
+            eq(comments.platform, post.platform),
+            eq(comments.ref, mine.parent),
+            isNull(comments.answeredAt),
+            sql`${comments.sort} is distinct from 'ours'`,
+          ),
+        )
+        .returning({ id: comments.id });
+      return row;
+    });
     if (k) await keepTouch(`ca:${k.id}`, () => touchFromAnswer(db, k.id));
   }
 }
@@ -299,16 +329,23 @@ async function keptElsewhere(db: Queryable, platform: Platform, r: CommentRow): 
     .limit(1);
   if (!twin) return false;
   if (fromMaps(twin.raw) && !fromMaps(r.raw))
-    await db
-      .update(comments)
-      .set({
-        ref: r.id.slice(0, 200),
-        post: r.postId.slice(0, 200),
-        parent: r.postId.slice(0, 200),
-        url: r.url ?? "",
-        raw: r.raw ?? r,
-      })
-      .where(eq(comments.id, twin.id));
+    await atomic(db, async (tx) => {
+      const seen = await resolveComments(tx, platform, { raw: r.postId }, [
+        { raw: r.id, author: r.author, at: new Date(r.at), url: r.url },
+      ]);
+      const got = seen.refs.get(r.id);
+      if (!got) return;
+      await tx
+        .update(comments)
+        .set({
+          ref: got.ref,
+          post: seen.post,
+          parent: got.parent,
+          url: r.url ?? "",
+          raw: r.raw ?? r,
+        })
+        .where(eq(comments.id, twin.id));
+    });
   return true;
 }
 

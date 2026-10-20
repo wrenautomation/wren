@@ -7,9 +7,10 @@
  */
 
 import { settingsFor } from "@wren/core/clients";
+import { resolveComments, resolveObjectOrNull } from "@wren/core/objects";
 import type { CommentIn, ThreadNode, ThreadRead } from "@wren/core/outreach";
 import { warmEveryMs } from "@wren/core/warm";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { and, asc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { keepComments } from "./comments.js";
@@ -265,16 +266,25 @@ export async function applyThread(
     if (c.state === "answered" || c.state === "dropped" || c.sort === "ours") continue;
     const ans = read.nodes.find((n) => n.parent === c.ref && isOurs(n.handle));
     if (!ans) continue;
-    const [done] = await db
-      .update(comments)
-      .set({
-        state: "answered",
-        answer: ans.text,
-        answerRef: ans.ref,
-        answeredAt: new Date(ans.at),
-      })
-      .where(and(eq(comments.id, c.id), inArray(comments.state, ["new", "waiting"])))
-      .returning({ id: comments.id });
+    const [done] = await atomic(db, async (tx) => {
+      // Our answer is an object under the comment it answers, before `answer_ref` names it. An
+      // id no rule reads leaves `answer_ref` empty; the row still closes.
+      const answerRef = await resolveObjectOrNull(tx, {
+        platform: t.platform,
+        kind: "comment",
+        raw: ans.ref,
+        post: t.post,
+        parent: c.ref,
+        author: ans.handle,
+        at: new Date(ans.at),
+        url: ans.url,
+      });
+      return tx
+        .update(comments)
+        .set({ state: "answered", answer: ans.text, answerRef, answeredAt: new Date(ans.at) })
+        .where(and(eq(comments.id, c.id), inArray(comments.state, ["new", "waiting"])))
+        .returning({ id: comments.id });
+    });
     if (!done) continue;
     answered.push(done.id);
     await keepTouch(`ca:${done.id}`, () => touchFromAnswer(db, done.id));
@@ -473,26 +483,39 @@ export async function adoptNode(db: Queryable, from: number, ref: string): Promi
   ).flatMap((a) => (a.handle ? [a.handle] : []));
   if (ours.some((h) => same(h, node.handle))) throw new ReachRefusal("that one is ours");
   const parent = snap?.nodes.find((n) => n.ref === node.parent);
-  const [made] = await db
-    .insert(comments)
-    .values({
-      platform: c.platform,
-      accountId: c.accountId,
-      channel: c.channel,
-      ref: node.ref,
-      post: c.post,
-      parent: node.parent,
-      kind: parent && ours.some((h) => same(h, parent.handle)) ? "comment_reply" : "thread_reply",
-      place: c.place,
-      postTitle: c.postTitle,
-      author: node.handle.slice(0, 120),
-      body: node.text,
-      url: node.url,
-      at: new Date(node.at),
-      raw: { via: "context" },
-    })
-    .onConflictDoNothing()
-    .returning({ id: comments.id });
+  const [made] = await atomic(db, async (tx) => {
+    const got = await resolveComments(tx, c.platform, { raw: c.post }, [
+      {
+        raw: node.ref,
+        parent: node.parent,
+        author: node.handle,
+        at: new Date(node.at),
+        url: node.url,
+      },
+    ]);
+    const at = got.refs.get(node.ref);
+    if (!at) throw new ReachRefusal("that comment's id is not one we read");
+    return tx
+      .insert(comments)
+      .values({
+        platform: c.platform,
+        accountId: c.accountId,
+        channel: c.channel,
+        ref: at.ref,
+        post: got.post,
+        parent: at.parent,
+        kind: parent && ours.some((h) => same(h, parent.handle)) ? "comment_reply" : "thread_reply",
+        place: c.place,
+        postTitle: c.postTitle,
+        author: node.handle.slice(0, 120),
+        body: node.text,
+        url: node.url,
+        at: new Date(node.at),
+        raw: { via: "context" },
+      })
+      .onConflictDoNothing()
+      .returning({ id: comments.id });
+  });
   if (made) {
     await keepTouch(`c:${made.id}`, () => touchFromComment(db, made.id));
     return made.id;

@@ -279,6 +279,13 @@ export function pageOf<T extends { publishedAt: string } | { at: string }>(
 export const previewOf = (text: string, max = 120): string =>
   text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 
+/** The post id a fake publish makes. LinkedIn and Reddit names posts one way only (`canonRef`), so
+ *  the fake answers in that way; every other platform takes `<platform>-<n>`. */
+const FAKE_POST_ID: Partial<Record<Platform, (n: number) => string>> = {
+  linkedin: (n) => `urn:li:share:${n}`,
+  reddit: (n) => `t3_p${n}`,
+};
+
 /** In-memory channel for tests and dry runs: publishes are kept, metrics are zeros until `count`. */
 export function fakeContentChannel(
   platform: Platform,
@@ -370,7 +377,7 @@ export function fakeContentChannel(
       comments.push({ ...c });
     },
     async publish(post) {
-      const id = `${platform}-${++n}`;
+      const id = (FAKE_POST_ID[platform] ?? ((k) => `${platform}-${k}`))(++n);
       const row = {
         id,
         url: urlOf(id),

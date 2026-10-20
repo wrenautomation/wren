@@ -71,13 +71,13 @@ describe("reddit outreach inbox", () => {
     const replies = await ch.replies(null);
     const comments = (await ch.comments?.()) ?? [];
     expect(replies.map((r) => r.handle)).toEqual(["dana"]);
-    // A reply under our post is the content side's row, spelled as the content reader spells it
-    // (post bare): both readers write one row. An answer to our comment stays a reach row.
+    // A reply under our post is the content side's row: both readers write one row. An answer to
+    // our comment stays a reach row.
     expect(comments).toMatchObject([
       {
         ref: "t1_c1",
-        post: "p1",
-        parent: "p1",
+        post: "t3_p1",
+        parent: "t3_p1",
         kind: "post_reply",
         channel: "content",
         place: "smallbusiness",

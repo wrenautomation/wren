@@ -4,9 +4,12 @@
  * Claude at his ask), the words, the time; a model's first version keeps what it was asked.
  * Append-only: nothing here updates or deletes a row.
  */
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { asc, eq, sql } from "drizzle-orm";
+import type { Platform } from "./content/index.js";
 import { isCommentCall, recordCommentCall } from "./decide/comments.js";
+import { resolveObjectOrNull } from "./objects/index.js";
+import type { ObjectKind } from "./objects-schema.js";
 import { REJECT_NOTE_MAX, REJECT_REASONS, type RejectReason } from "./reject-reasons.js";
 import {
   DRAFT_RECORD_KINDS,
@@ -62,6 +65,18 @@ export const kindOfItem = (item: string): DraftRecordKind => {
   const k = PREFIX_KIND[item.slice(0, item.indexOf(":"))];
   if (!k) throw new Error(`no draft kind for ${item}`);
   return k;
+};
+/**
+ * What `external_id` names, for the kinds whose send makes a post or a comment: a post, a video
+ * and a comment on another's post name the post; a thread reply and a comment answer name the
+ * comment. A DM or an invite makes a message, which is no object: its id stays in `meta`.
+ */
+const SENT_OBJECT: Readonly<Partial<Record<DraftRecordKind, ObjectKind>>> = {
+  post: "post",
+  video: "post",
+  post_comment: "post",
+  thread: "comment",
+  comment: "comment",
 };
 /** Kinds whose item holds one draft after another: a DM contact gets one per reply. */
 const ROUNDS: ReadonlySet<DraftRecordKind> = new Set(["dm", "invite"]);
@@ -122,15 +137,38 @@ export async function recordDraft(db: Queryable, s: DraftStep): Promise<void> {
       : sql`coalesce((select case when ${opens} then l.round + 1 else l.round end
           from draft_events l where l.item = ${s.item} order by l.at desc, l.id desc limit 1), 1)`;
   const json = (v: unknown) => (v == null ? null : JSON.stringify(v));
-  await db.execute(sql`
-    insert into draft_events (item, round, kind, platform, event, via, by, text, title, ask,
-      reason, note, llm, slot, external_id, url, meta, run_id, ref, at)
-    select ${s.item}, ${round}, ${kindSql}, ${s.platform ?? null}, ${s.event}, ${s.via},
-      ${s.by ?? null}, ${s.text ?? null}, ${s.title ?? null}, ${s.ask ?? null}, ${s.reason ?? null},
-      ${s.note ?? null}, ${json(s.llm)}::jsonb, ${s.slot ? s.slot.toISOString() : null}::timestamptz,
-      ${s.externalId ?? null}, ${s.url ?? null}, ${json(s.meta ?? {})}::jsonb, ${s.runId ?? null}::uuid,
-      ${s.ref ?? null}, coalesce(${s.at ? s.at.toISOString() : null}::timestamptz, clock_timestamp())
-    on conflict (ref) do nothing`);
+  await atomic(db, async (tx) => {
+    // The id a send made is a `platform_objects` row, spelled its one way. An id no rule reads
+    // (the send is done; the step must stay) is kept in `meta`, with the column empty.
+    const sentKind = SENT_OBJECT[kind];
+    let externalId = s.externalId?.trim() || null;
+    let meta = s.meta ?? {};
+    if (externalId && s.platform && sentKind) {
+      const ref = await resolveObjectOrNull(tx, {
+        platform: s.platform as Platform,
+        kind: sentKind,
+        raw: externalId,
+        url: s.url,
+      });
+      if (ref) externalId = ref;
+      else {
+        meta = { ...meta, external_id: externalId };
+        externalId = null;
+      }
+    } else if (externalId && !sentKind) {
+      meta = { ...meta, external_id: externalId };
+      externalId = null;
+    }
+    await tx.execute(sql`
+      insert into draft_events (item, round, kind, platform, event, via, by, text, title, ask,
+        reason, note, llm, slot, external_id, url, meta, run_id, ref, at)
+      select ${s.item}, ${round}, ${kindSql}, ${s.platform ?? null}, ${s.event}, ${s.via},
+        ${s.by ?? null}, ${s.text ?? null}, ${s.title ?? null}, ${s.ask ?? null}, ${s.reason ?? null},
+        ${s.note ?? null}, ${json(s.llm)}::jsonb, ${s.slot ? s.slot.toISOString() : null}::timestamptz,
+        ${externalId}, ${s.url ?? null}, ${json(meta)}::jsonb, ${s.runId ?? null}::uuid,
+        ${s.ref ?? null}, coalesce(${s.at ? s.at.toISOString() : null}::timestamptz, clock_timestamp())
+      on conflict (ref) do nothing`);
+  });
   if (isCommentCall({ kind, event: s.event, via: s.via, ref: s.ref ?? null }))
     await recordCommentCall(db, s.item);
 }

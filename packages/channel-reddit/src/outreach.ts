@@ -27,7 +27,6 @@ import {
 } from "@wren/core/outreach";
 import {
   answerOf,
-  bareId,
   commentRef,
   type Listing,
   REDDIT_SITE,
@@ -366,14 +365,14 @@ export function redditOutreach(
         if (!m.was_comment || !post) return [];
         // The inbox leaves `type` out (autobrowse's listing, 2026-10-20), so the parent says what
         // it answers. A reply under one of our posts is the content side's row: it reads the
-        // post's own thread and spells the post bare (`redditContent().comments`), so this writes
-        // the same row and the unique (platform, ref) keeps one.
+        // post's own thread (`redditContent().comments`), so this writes the same row and the
+        // unique (platform, ref) keeps one.
         const onPost = !m.parent_id || m.parent_id.startsWith("t3_");
         return [
           {
             ref: commentRef(m.name),
-            post: onPost ? bareId(post) : post,
-            parent: onPost ? bareId(post) : (m.parent_id as string),
+            post,
+            parent: onPost ? post : (m.parent_id as string),
             kind: onPost ? "post_reply" : (m.type ?? "comment_reply"),
             channel: onPost ? ("content" as const) : ("reach" as const),
             place: m.subreddit ?? null,

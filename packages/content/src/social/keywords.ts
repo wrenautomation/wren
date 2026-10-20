@@ -3,9 +3,11 @@
  * or Facebook post sends that person the keyword's DM, through Meta's private reply. The match
  * and the log live here; `KeywordDm` (`../restate/keyword-dm.ts`) sends.
  */
+
+import { resolveObjectOrNull } from "@wren/core/objects";
 import { date, defineRecord, link, number, prose, status, text } from "@wren/core/records";
 import { PortalRefusal } from "@wren/core/refusal";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { comments } from "@wren/outreach/schema";
 import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -53,18 +55,33 @@ export async function addKeyword(db: Queryable, input: unknown, by: string) {
   const got = INPUT.safeParse(input);
   if (!got.success) throw new PortalRefusal(got.error.issues[0]?.message ?? "check the form", 400);
   const k = got.data;
-  const [row] = await db
-    .insert(commentKeywords)
-    .values({
-      keyword: k.keyword,
-      dm: k.dm,
-      reply: k.reply || null,
-      platform: k.platform ?? null,
-      post: k.post || null,
-      updatedBy: by,
-    })
-    .onConflictDoNothing()
-    .returning({ id: commentKeywords.id, keyword: commentKeywords.keyword });
+  // A post is a platform's object: one platform must name it.
+  if (k.post && !k.platform) throw new PortalRefusal("pick the platform of that post", 400);
+  const row = await atomic(db, async (tx) => {
+    let post: string | null = null;
+    if (k.post && k.platform) {
+      const ref = await resolveObjectOrNull(tx, {
+        platform: k.platform,
+        kind: "post",
+        raw: k.post,
+      });
+      if (!ref) throw new PortalRefusal("that is not a post id or link we read", 400);
+      post = ref;
+    }
+    const [made] = await tx
+      .insert(commentKeywords)
+      .values({
+        keyword: k.keyword,
+        dm: k.dm,
+        reply: k.reply || null,
+        platform: k.platform ?? null,
+        post,
+        updatedBy: by,
+      })
+      .onConflictDoNothing()
+      .returning({ id: commentKeywords.id, keyword: commentKeywords.keyword });
+    return made;
+  });
   if (!row) throw new PortalRefusal(`"${k.keyword}" is set already there`, 409);
   return row;
 }

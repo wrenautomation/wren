@@ -113,6 +113,114 @@ export async function resolveObject(db: Queryable, input: ObjectInput): Promise<
   return refs[0] as string;
 }
 
+/**
+ * `resolveObject`, or null when no rule reads the spelling (a `CanonError`, thrown before any
+ * write). For a writer that records what already happened, a send or an answer, and must not fail
+ * on the id the platform gave.
+ */
+export async function resolveObjectOrNull(
+  db: Queryable,
+  input: ObjectInput,
+): Promise<string | null> {
+  try {
+    return await resolveObject(db, input);
+  } catch (e) {
+    if (e instanceof CanonError) return null;
+    throw e;
+  }
+}
+
+/** A comment a reader saw: its id, what it answers (the post, or another comment) and the rest. */
+export interface CommentSeen {
+  raw: string;
+  /** Null or the post's own spelling: a root comment. */
+  parent?: string | null | undefined;
+  author?: string | null | undefined;
+  at?: Date | null | undefined;
+  url?: string | null | undefined;
+}
+
+export interface CommentsResolved {
+  /** The post's ref. */
+  post: string;
+  /** Each kept comment's refs, by the `raw` it came in under. */
+  refs: Map<string, { ref: string; parent: string }>;
+  /** The `raw` of each comment no rule reads: it cannot be kept. */
+  unread: string[];
+}
+
+/**
+ * The post and its comments as objects, in the caller's transaction, for a writer that is about
+ * to insert `comments` rows: the post, each comment, and each parent comment a reply names (kept
+ * or not). A comment whose id no rule reads is left out and listed in `unread`. A post no rule
+ * reads throws a `CanonError`.
+ */
+export async function resolveComments(
+  db: Queryable,
+  platform: Platform,
+  post: {
+    raw: string;
+    url?: string | null | undefined;
+    author?: string | null | undefined;
+    at?: Date | null | undefined;
+  },
+  seen: readonly CommentSeen[],
+): Promise<CommentsResolved> {
+  const postRef = await resolveObject(db, { platform, kind: "post", ...post });
+  const isRoot = (parent: string | null | undefined): boolean => {
+    const p = parent?.trim();
+    if (!p || p === post.raw.trim()) return true;
+    try {
+      return canonRef(platform, "post", p) === postRef;
+    } catch {
+      return false;
+    }
+  };
+  const items = (list: readonly CommentSeen[]): ObjectInput[] =>
+    list.flatMap((c) => {
+      const root = isRoot(c.parent);
+      const base = { platform, kind: "comment" as const, post: post.raw };
+      return [
+        {
+          ...base,
+          raw: c.raw,
+          parent: root ? post.raw : c.parent,
+          author: c.author,
+          at: c.at,
+          url: c.url,
+        },
+        ...(root ? [] : [{ ...base, raw: c.parent as string }]),
+      ];
+    });
+  const refs = new Map<string, { ref: string; parent: string }>();
+  const unread: string[] = [];
+  const keep = (list: readonly CommentSeen[], got: Map<string, string>) => {
+    for (const c of list)
+      refs.set(c.raw, {
+        ref: got.get(c.raw) as string,
+        parent: isRoot(c.parent) ? postRef : (got.get(c.parent as string) as string),
+      });
+  };
+  try {
+    keep(seen, await resolveObjects(db, items(seen)));
+  } catch (e) {
+    if (!(e instanceof CanonError)) throw e;
+    // A spelling no rule reads throws before any write: find which comments carry one.
+    const good: CommentSeen[] = [];
+    for (const c of seen) {
+      try {
+        await resolveObjects(db, items([c]));
+        good.push(c);
+      } catch (e2) {
+        if (!(e2 instanceof CanonError)) throw e2;
+        unread.push(c.raw);
+      }
+    }
+    keep(good, await resolveObjects(db, items(good)));
+  }
+  return { post: postRef, refs, unread };
+}
+
 async function resolveChunk(db: Queryable, items: readonly ObjectInput[]): Promise<string[]> {
   if (!items.length) return [];
   // 1. Every spelling to look up, once: the object's own, its URL, its post and its parent.

@@ -33,6 +33,7 @@ import {
   type Surface,
 } from "./flags.js";
 import type { Until } from "./logic.js";
+import { platformObjects } from "./objects-schema.js";
 import { REJECT_REASONS } from "./reject-reasons.js";
 import {
   SURVEY_KINDS,
@@ -820,6 +821,10 @@ export const draftEvents = pgTable(
     llm: jsonb("llm").$type<Record<string, unknown>>(),
     /** Approved or scheduled for this time. */
     slot: timestamp("slot", { withTimezone: true }),
+    /**
+     * The platform's ref for what a send made, in `platform_objects`: the post of a `post`, `video`
+     * or `post_comment`, the comment of a `thread` or `comment`. Other kinds keep it in `meta`.
+     */
     externalId: varchar("external_id", { length: 255 }),
     url: text("url"),
     /** Links: idea, redraft_of, redrafted_as, message, playbook, undo. */
@@ -833,6 +838,12 @@ export const draftEvents = pgTable(
     primaryKey({ columns: [t.id], name: "pk_draft_events" }),
     index("ix_draft_events_item_id").on(t.item, t.id),
     index("ix_draft_events_kind_at").on(t.kind, t.at),
+    foreignKey({
+      columns: [t.platform, t.externalId],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_draft_events_platform_external_id_platform_objects",
+    }).onUpdate("cascade"),
+    index("ix_draft_events_platform_external_id").on(t.platform, t.externalId),
     unique("uq_draft_events_ref").on(t.ref),
     oneOf("ck_draft_events_kind", t.kind, DRAFT_RECORD_KINDS),
     oneOf("ck_draft_events_event", t.event, DRAFT_EVENTS),

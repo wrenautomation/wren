@@ -59,6 +59,11 @@ const objects = () => run(sql`select * from platform_objects order by platform, 
 const aliases = () =>
   run(sql`select platform, alias, ref from platform_object_refs order by platform, alias`);
 
+async function seed(platform: string, ref: string, kind: string, post: string | null) {
+  await run(sql`insert into platform_objects (platform, ref, kind, post)
+    values (${platform}, ${ref}, ${kind}, ${post}) on conflict do nothing`);
+}
+
 async function comment(o: {
   platform: string;
   ref: string;
@@ -67,6 +72,12 @@ async function comment(o: {
   state?: string;
   answer?: string;
 }): Promise<number> {
+  // Every ref a comment row names is an object first.
+  const parent = o.parent ?? o.post;
+  await seed(o.platform, o.post, "post", null);
+  await seed(o.platform, o.ref, "comment", o.post);
+  if (parent !== o.post) await seed(o.platform, parent, "comment", o.post);
+  if (o.answer) await seed(o.platform, `${o.ref}-ours`, "comment", o.post);
   const [r] = await run(sql`
     insert into comments (platform, channel, ref, post, parent, kind, author, body, url, at, raw, state, answer, answer_ref, answered_at)
     values (${o.platform}, 'content', ${o.ref}, ${o.post}, ${o.parent ?? o.post}, 'post_reply', 'example-author', 'a comment',
@@ -458,9 +469,11 @@ describe("linkRefs", () => {
 
   it("drops a thread or keyword row that repeats the kept row, and moves the rest", async () => {
     const acct = await account("linkedin");
-    for (const post of ["urn:li:share:41", "urn:li:share:42"])
+    for (const post of ["urn:li:share:41", "urn:li:share:42"]) {
+      await seed("linkedin", post, "post", null);
       await run(sql`insert into comment_threads (platform, post, account_id, active_at, until)
         values ('linkedin', ${post}, ${acct}, ${T(2).toISOString()}, ${T(9).toISOString()})`);
+    }
     await run(sql`insert into comment_keywords (keyword, platform, post, dm) values
       ('go', 'linkedin', 'urn:li:share:41', 'dm'), ('go', 'linkedin', 'urn:li:share:42', 'dm'),
       ('more', 'linkedin', 'urn:li:share:42', 'dm')`);
@@ -491,8 +504,6 @@ describe("linkRefs", () => {
       values ('t3_old', 'example', 't', 'b', 'example-author', 'https://example.com', ${T(2).toISOString()}, 0, '{}', 't3_old', 't1_ours')`);
     await comment({ platform: "reddit", ref: "t1_zz", post: "t3_old", parent: "t3_old" });
     await comment({ platform: "reddit", ref: "t1_yy", post: "t3_old", parent: "t1_zz" });
-    await run(sql`insert into platform_objects (platform, ref, kind, post) values
-      ('reddit', 't3_old', 'post', null), ('reddit', 't1_zz', 'comment', 't3_old')`);
     const out = await linkRefs(pg.db, "reddit", "t3_new", "t3_old", { by: "test" });
     expect(out.kept).toBe("t3_new");
     expect(out.moves.map((m) => `${m.table}.${m.column}:${m.moved}`)).toEqual([
@@ -518,7 +529,7 @@ describe("linkRefs", () => {
     expect((await run(sql`select post from platform_objects where ref = 't1_zz'`))[0]?.post).toBe(
       "t3_new",
     );
-    expect((await objects()).map((r) => r.ref)).toEqual(["t1_zz", "t3_new"]);
+    expect((await objects()).map((r) => r.ref)).toEqual(["t1_yy", "t1_zz", "t3_new"]);
   });
 
   it("refuses a table that keeps one row per object, names both rows and changes nothing", async () => {
@@ -594,7 +605,10 @@ describe("roles", () => {
       from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
       where c.contype = 'f' and c.confrelid = 'platform_objects'::regclass
         and c.conrelid <> 'platform_object_refs'::regclass`);
-    const roles = new Set(OBJECT_ROLES.map((r) => `${r.table}.${r.column}`));
+    // A key is (platform, ref): both columns belong to a role.
+    const roles = new Set(
+      OBJECT_ROLES.flatMap((r) => [`${r.table}.${r.column}`, `${r.table}.${r.platform}`]),
+    );
     expect(fks.filter((f) => !roles.has(`${f.tbl}.${f.col}`))).toEqual([]);
   });
 

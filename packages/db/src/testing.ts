@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
+import { sql } from "drizzle-orm";
 import postgres from "postgres";
 import { createDb, type DbHandle, migrate } from "./index.js";
 
@@ -165,4 +166,63 @@ export async function truncate(db: DbHandle["db"], tables: string[]): Promise<vo
   if (tables.length === 0) return;
   const list = tables.map((t) => `"${t}"`).join(", ");
   await db.execute(`TRUNCATE ${list} RESTART IDENTITY CASCADE`);
+}
+
+/** An object a test row names. A row that names a post or comment needs this first (its foreign key). */
+export interface SeedObject {
+  platform: string;
+  ref: string;
+  kind: "post" | "comment" | "group";
+  post?: string | null;
+}
+
+/** `platform_objects` rows for rows a test writes straight to a table. Skips one already there. */
+export async function seedObjects(
+  db: DbHandle["db"],
+  objects: readonly SeedObject[],
+): Promise<void> {
+  const seen = new Set<string>();
+  const rows = objects.filter((o) => {
+    const key = `${o.platform}\u0000${o.ref}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (!rows.length) return;
+  await db.execute(sql`INSERT INTO platform_objects (platform, ref, kind, post)
+    SELECT x.platform, x.ref, x.kind, x.post
+    FROM jsonb_to_recordset(${JSON.stringify(rows.map((o) => ({ ...o, post: o.post ?? null })))}::jsonb)
+      AS x(platform text, ref text, kind text, post text)
+    ON CONFLICT DO NOTHING`);
+}
+
+/** The objects a `comments` row names: its post, itself, a parent comment and its answer. */
+export function commentObjects(
+  rows: ReadonlyArray<{
+    platform: string;
+    ref: string;
+    post: string;
+    parent?: string | null | undefined;
+    answerRef?: string | null | undefined;
+  }>,
+): SeedObject[] {
+  return rows.flatMap((c) => [
+    { platform: c.platform, ref: c.post, kind: "post" as const },
+    { platform: c.platform, ref: c.ref, kind: "comment" as const, post: c.post },
+    ...(c.parent && c.parent !== c.post
+      ? [{ platform: c.platform, ref: c.parent, kind: "comment" as const, post: c.post }]
+      : []),
+    ...(c.answerRef
+      ? [{ platform: c.platform, ref: c.answerRef, kind: "comment" as const, post: c.post }]
+      : []),
+  ]);
+}
+
+/** The objects a list of our published posts names, by platform and published id. */
+export function postObjects(
+  rows: ReadonlyArray<{ platform: string; publishedId?: string | null | undefined }>,
+): SeedObject[] {
+  return rows.flatMap((d) =>
+    d.publishedId ? [{ platform: d.platform, ref: d.publishedId, kind: "post" as const }] : [],
+  );
 }

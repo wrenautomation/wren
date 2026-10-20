@@ -33,8 +33,8 @@ describe("content channel port", () => {
     const a = await ch.publish({ text: "first post" });
     const b = await ch.publish({ text: long });
     expect(a).toEqual({
-      id: "linkedin-1",
-      url: "https://linkedin.test/p/linkedin-1",
+      id: "urn:li:share:1",
+      url: "https://linkedin.test/p/urn:li:share:1",
       publishedAt: "2026-09-21T00:00:00.000Z",
       fetchedWith: "api",
     });

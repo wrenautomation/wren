@@ -3,7 +3,13 @@
  * The views read `now()` (an email counts as delivered after 48 hours), so every time here is an
  * offset from the clock when the file loads: nothing depends on today's date.
  */
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+  truncate,
+} from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { serveRecords } from "../../src/records-serve.js";
@@ -392,9 +398,10 @@ describe("DMs, comments and newsletters", () => {
   });
 
   it("lists comments we posted, on a post, a thread and a reply", async () => {
+    await seedObjects(pg.db, commentObjects([{ platform: "youtube", ref: "c1", post: "p1" }]));
     await run(sql`insert into comments
       (platform, ref, post, parent, kind, author, body, url, at, raw, answer, answered_at, channel)
-      values ('youtube', 'c1', 'p1', '', 'post_reply', 'Pat', 'Great video', 'https://example.test/c1',
+      values ('youtube', 'c1', 'p1', 'p1', 'post_reply', 'Pat', 'Great video', 'https://example.test/c1',
         ${at(0)}, '{}'::jsonb, 'Thank you, Pat', ${at(10)}, 'content')`);
     await run(sql`insert into reach_posts (ref, author, text, url, found_by, account, raw, comment, commented_at)
       values ('r1', 'Sam', 'A post', 'https://example.test/r1', 'search', 'acct', '{}'::jsonb,

@@ -9,7 +9,12 @@ import { ingressOf } from "@wren/config";
 import { editRecord } from "@wren/core/edits";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestRestate } from "@wren/core/testing";
-import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+} from "@wren/db/testing";
 import { sendAttempt } from "@wren/outreach";
 import { comments } from "@wren/outreach/schema";
 import { eq } from "drizzle-orm";
@@ -105,6 +110,12 @@ const comment = async (o: {
   ref?: string;
 }) => {
   n += 1;
+  await seedObjects(
+    pg.db,
+    commentObjects([
+      { platform: o.platform ?? "instagram", ref: o.ref ?? `c${n}`, post: o.post ?? "p1" },
+    ]),
+  );
   const [c] = await pg.db
     .insert(comments)
     .values({

@@ -5,7 +5,8 @@
  */
 import type { Published } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
-import type { Queryable } from "@wren/db";
+import { resolveObjectOrNull } from "@wren/core/objects";
+import { atomic, type Queryable } from "@wren/db";
 import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { keepFirstVariants } from "./analytics/variants.js";
 import { MAY_HAVE_GONE_OUT } from "./platforms.js";
@@ -104,39 +105,62 @@ async function stamp(
     by: string;
   },
 ): Promise<void> {
-  const [d] = await db
-    .update(contentDrafts)
-    .set({
-      status: "published",
-      publishedAt: p.at,
-      publishedId: p.publishedId,
+  await atomic(db, async (tx) => {
+    const [row] = await tx
+      .select({ platform: contentDrafts.platform })
+      .from(contentDrafts)
+      .where(eq(contentDrafts.id, id));
+    if (!row) return;
+    // The platform's post id is a `platform_objects` row first, in its one spelling. A draft that
+    // went out stays published when no rule reads its id: it has none, like a person's word.
+    const publishedId = p.publishedId
+      ? await resolveObjectOrNull(tx, {
+          platform: row.platform,
+          kind: "post",
+          raw: p.publishedId,
+          url: p.url,
+          at: p.at,
+        })
+      : null;
+    const unread = `The platform's id "${(p.publishedId ?? "").slice(0, 80)}" is not one we read, so its numbers are not read.`;
+    const error =
+      p.publishedId && !publishedId
+        ? [p.error, unread].filter(Boolean).join("; ").slice(0, 1000)
+        : p.error;
+    const [d] = await tx
+      .update(contentDrafts)
+      .set({
+        status: "published",
+        publishedAt: p.at,
+        publishedId,
+        url: p.url,
+        error,
+      })
+      .where(eq(contentDrafts.id, id))
+      .returning();
+    if (!d) return;
+    // Its title, thumbnail and hook as they went out: the first window of each.
+    await keepFirstVariants(tx, d, p.at, p.notes);
+    // The words as they went out, frozen with the platform's id.
+    await recordDraft(tx, {
+      item: `draft:${id}`,
+      platform: d.platform,
+      event: "sent",
+      via: p.via,
+      by: p.by,
+      text: d.text,
+      title: d.title,
+      externalId: publishedId ?? p.publishedId,
       url: p.url,
-      error: p.error,
-    })
-    .where(eq(contentDrafts.id, id))
-    .returning();
-  if (!d) return;
-  // Its title, thumbnail and hook as they went out: the first window of each.
-  await keepFirstVariants(db, d, p.at, p.notes);
-  // The words as they went out, frozen with the platform's id.
-  await recordDraft(db, {
-    item: `draft:${id}`,
-    platform: d.platform,
-    event: "sent",
-    via: p.via,
-    by: p.by,
-    text: d.text,
-    title: d.title,
-    externalId: p.publishedId,
-    url: p.url,
-    // The fields as they went out, and any the platform refused after.
-    meta: {
-      fields: d.extra,
-      ...(p.link ? { link: p.link } : {}),
-      ...(p.notes.length ? { notes: p.notes } : {}),
-    },
-    // A journaled step that runs again keeps one.
-    ref: `sent:draft:${id}`,
+      // The fields as they went out, and any the platform refused after.
+      meta: {
+        fields: d.extra,
+        ...(p.link ? { link: p.link } : {}),
+        ...(p.notes.length ? { notes: p.notes } : {}),
+      },
+      // A journaled step that runs again keeps one.
+      ref: `sent:draft:${id}`,
+    });
   });
 }
 

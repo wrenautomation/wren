@@ -1008,7 +1008,7 @@ describe("Content service", () => {
     const pub = (await h.publish?.(ctx, { platform: "linkedin", post: { text: "hi" } })) as {
       id: string;
     };
-    expect(pub.id).toBe("linkedin-1");
+    expect(pub.id).toBe("urn:li:share:1");
     const rows = (await h.list?.(ctx, { platform: "linkedin" })) as { id: string }[];
     expect(rows.map((r) => r.id)).toEqual([pub.id]);
   });

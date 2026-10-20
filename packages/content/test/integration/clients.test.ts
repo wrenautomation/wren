@@ -263,7 +263,7 @@ describe("metrics and social reads per client", () => {
     if (!p) throw new Error("not posted");
     kappaIn().count(p.id, { views: 40 });
     kappaIn().receive({
-      id: "c1",
+      id: "501",
       postId: p.id,
       author: "a reader",
       text: "How long did that take?",

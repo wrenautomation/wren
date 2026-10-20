@@ -20,6 +20,7 @@ import {
   type Platform as ContentPlatform,
   PROOF_STATES,
 } from "@wren/core/content";
+import { platformObjects } from "@wren/core/objects-schema";
 import { PASS_REASONS } from "@wren/core/pass-reasons";
 import { companies, people, runs } from "@wren/core/schema";
 import { baseColumns, oneOf } from "@wren/db/columns";
@@ -340,6 +341,7 @@ export const comments = pgTable(
     /** Whose inbox listed it: the account that answers it. Null on a content comment. */
     accountId: uuid("account_id"),
     channel: varchar("channel", { length: 16, enum: COMMENT_CHANNELS }).notNull().default("reach"),
+    /** The comment's ref in `platform_objects`; so are `post`, `parent` (a comment, or the post) and `answerRef`. */
     ref: varchar("ref", { length: 200 }).notNull(),
     post: varchar("post", { length: 200 }).notNull(),
     parent: varchar("parent", { length: 200 }).notNull(),
@@ -371,6 +373,9 @@ export const comments = pgTable(
     index("ix_comments_state").on(t.state),
     index("ix_comments_account_id").on(t.accountId),
     index("ix_comments_post").on(t.post),
+    index("ix_comments_platform_post").on(t.platform, t.post),
+    index("ix_comments_platform_parent").on(t.platform, t.parent),
+    index("ix_comments_platform_answer_ref").on(t.platform, t.answerRef),
     index("ix_comments_contact_id").on(t.contactId),
     oneOf("ck_comments_platform", t.platform, CONTENT_PLATFORMS),
     oneOf("ck_comments_channel", t.channel, COMMENT_CHANNELS),
@@ -380,9 +385,6 @@ export const comments = pgTable(
     ),
     oneOf("ck_comments_kind", t.kind, COMMENT_KINDS),
     check("ck_comments_stars", sql`stars IS NULL OR (stars BETWEEN 1 AND 5)`),
-    // One spelling per Reddit comment, so the two readers (reach inbox, content thread) meet on
-    // the unique key instead of keeping the same comment twice (2026-10-20).
-    check("ck_comments_reddit_ref", sql`platform <> 'reddit' OR ref ~ '^t1_'`),
     oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
     oneOf("ck_comments_state", t.state, COMMENT_STATES),
     foreignKey({
@@ -395,6 +397,28 @@ export const comments = pgTable(
       foreignColumns: [reachContacts.id],
       name: "fk_comments_contact_id_reach_contacts",
     }).onDelete("set null"),
+    // Every ref a row holds is a `platform_objects` row, spelled by `canonRef`: one spelling per
+    // object, so two readers meet on the unique key instead of keeping a comment twice.
+    foreignKey({
+      columns: [t.platform, t.ref],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_ref_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.post],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_post_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.parent],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_parent_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.answerRef],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_answer_ref_platform_objects",
+    }).onUpdate("cascade"),
   ],
 );
 
@@ -456,6 +480,11 @@ export const commentThreads = pgTable(
       foreignColumns: [reachAccounts.id],
       name: "fk_comment_threads_account_id_reach_accounts",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.platform, t.post],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comment_threads_platform_post_platform_objects",
+    }).onUpdate("cascade"),
   ],
 );
 export type CommentThread = typeof commentThreads.$inferSelect;

@@ -15,8 +15,11 @@ export class CanonError extends Error {
   override name = "CanonError";
 }
 
-/** The length of `platform_objects.ref`. */
-const MAX_REF = 255;
+/**
+ * The longest ref we keep. `platform_objects.ref` holds 255, but the role columns of `comments`
+ * and `comment_threads` hold 200 (views read them, so they stay), and a key cascade must fit.
+ */
+const MAX_REF = 200;
 
 export interface ObjectId {
   platform: Platform;

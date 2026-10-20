@@ -13,6 +13,7 @@ import {
   PLATFORMS,
   type Platform,
 } from "@wren/core/content";
+import { platformObjects } from "@wren/core/objects-schema";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
@@ -131,6 +132,7 @@ export const contentDrafts = pgTable(
     scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    /** The post's ref on its platform, in `platform_objects` (`canonRef`'s spelling). */
     publishedId: varchar("published_id", { length: 255 }),
     url: varchar("url", { length: 2048 }),
     /** The last publish error; cleared when re-approved. */
@@ -182,6 +184,12 @@ export const contentDrafts = pgTable(
       name: "fk_content_drafts_video_draft_content_drafts",
     }).onDelete("set null"),
     index("ix_content_drafts_video_draft").on(t.videoDraft),
+    foreignKey({
+      columns: [t.platform, t.publishedId],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_content_drafts_platform_published_id_platform_objects",
+    }).onUpdate("cascade"),
+    index("ix_content_drafts_platform_published_id").on(t.platform, t.publishedId),
     oneOf("ck_content_drafts_platform", t.platform, PLATFORMS),
     oneOf("ck_content_drafts_stage", t.stage, FUNNEL_STAGES),
     oneOf("ck_content_drafts_points_to", t.pointsTo, FUNNEL_TARGETS),
@@ -1089,7 +1097,7 @@ export const commentKeywords = pgTable(
     /** Lower case; matched as whole words, any case, anywhere in the comment. */
     keyword: varchar("keyword", { length: 40 }).notNull(),
     platform: varchar("platform", { length: 16 }).$type<KeywordPlatform>(),
-    /** One post's id on its platform; null: every post. */
+    /** One post's ref on its platform, in `platform_objects`; null: every post. Needs `platform` when set. */
     post: varchar("post", { length: 200 }),
     /** The DM, as written. */
     dm: text("dm").notNull(),
@@ -1102,6 +1110,12 @@ export const commentKeywords = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_comment_keywords" }),
+    foreignKey({
+      columns: [t.platform, t.post],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comment_keywords_platform_post_platform_objects",
+    }).onUpdate("cascade"),
+    index("ix_comment_keywords_platform_post").on(t.platform, t.post),
     uniqueIndex("uq_comment_keywords_scope").on(
       t.keyword,
       sql`coalesce(${t.platform}, '')`,

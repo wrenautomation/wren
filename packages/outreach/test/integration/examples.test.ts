@@ -4,7 +4,12 @@
  * Synthetic rows only.
  */
 import { recordDraft } from "@wren/core/draft-record";
-import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+} from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sortComment } from "../../src/comments.js";
@@ -22,6 +27,7 @@ afterAll(async () => {
 const NOW = new Date();
 
 async function comment(n: number, body: string, postTitle: string) {
+  await seedObjects(pg.db, commentObjects([{ platform: "youtube", ref: `c${n}`, post: "v1" }]));
   const [c] = await pg.db
     .insert(comments)
     .values({

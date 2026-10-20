@@ -110,6 +110,12 @@ export async function seedInbox(db: Queryable, now = new Date()): Promise<InboxS
       (${reachId}, ${accountId}, 'in', 'inbound', 'Thanks! Still drowning in voicemails.',
       'received', ${ago(now, 3800)}, ${ago(now, 3800)})`);
 
+  // A comment names its post and itself as objects (its foreign keys).
+  await db.execute(sql`insert into platform_objects (platform, ref, kind, post) values
+    ('youtube', 'seed-video-1', 'post', null),
+    ('youtube', 'seed-comment-1', 'comment', 'seed-video-1'),
+    ('youtube', 'seed-comment-2', 'comment', 'seed-video-1')
+    on conflict do nothing`);
   const commentId = await one(
     db,
     sql`insert into comments (platform, channel, ref, post, parent, kind, author, body, url, at,

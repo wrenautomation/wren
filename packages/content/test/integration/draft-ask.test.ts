@@ -14,7 +14,13 @@ import { ingressOf } from "@wren/config";
 import { draftTurns, editsFor, keepSentEdit } from "@wren/core/ask";
 import { recordDraft } from "@wren/core/draft-record";
 import { startTestRestate } from "@wren/core/testing";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+  truncate,
+} from "@wren/db/testing";
 import {
   addAccount,
   addProspects,
@@ -95,12 +101,14 @@ async function post(text: string) {
 }
 
 async function comment(state: "waiting" | "answered", draft: string | null) {
+  const ref = `c-${Math.random()}`;
+  await seedObjects(pg.db, commentObjects([{ platform: "linkedin", ref, post: "p1" }]));
   const [c] = await pg.db
     .insert(comments)
     .values({
       platform: "linkedin",
       channel: "content",
-      ref: `c-${Math.random()}`,
+      ref,
       post: "p1",
       parent: "p1",
       kind: "post_reply",

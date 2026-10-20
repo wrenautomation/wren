@@ -212,7 +212,8 @@ function recordOf(g: DraftEventRow[], outcomes: Map<string, TrainOutcome>): Trai
         text: s.text ?? versions.at(-1)?.text ?? null,
         title: s.title ?? versions.at(-1)?.title ?? null,
         at: s.at.toISOString(),
-        external_id: s.externalId,
+        // A DM's message id is no object: `recordDraft` keeps it in `meta.external_id`.
+        external_id: s.externalId ?? (s.meta.external_id as string | undefined) ?? null,
         url: s.url,
         fields: (s.meta.fields as Record<string, unknown> | undefined) ?? null,
       };

@@ -14,7 +14,13 @@ import type { Platform, Post, Published } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
 import type { Delivery } from "@wren/core/send-verdict";
 import { startTestRestate } from "@wren/core/testing";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  commentObjects,
+  seedObjects,
+  startTestPostgres,
+  type TestPostgres,
+  truncate,
+} from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { sendAttempt } from "@wren/outreach";
 import { eq, sql } from "drizzle-orm";
@@ -95,6 +101,13 @@ const replyKeys: (string | null)[] = [];
 /** autobrowse's journal of replies: a key it has seen answers again and writes nothing. */
 const repliedKeys = new Set<string>();
 const hooks = new Set<string>();
+/** The id a platform gives a post, spelled the way `canonRef` reads it: a LinkedIn share URN, else
+ *  `<platform>-<tag>`. A LinkedIn id is all digits, so a word maps to a number. */
+const postId = (platform: string, tag: number | "found" | "late"): string =>
+  platform === "linkedin"
+    ? `urn:li:share:${tag === "found" ? 9001 : tag === "late" ? 9002 : tag}`
+    : `${platform}-${tag}`;
+
 const fakeContent = restate.service({
   name: "Content",
   handlers: {
@@ -137,7 +150,9 @@ const fakeContent = restate.service({
         // The platform said no after the pass moved on: a refusal, with its status.
         if (verdict === "refused")
           throw new restate.TerminalError("the platform said no", { errorCode: 403 });
-        return sent(published(`${req.platform}-late`, `https://${req.platform}.test/p/${verdict}`));
+        return sent(
+          published(postId(req.platform, "late"), `https://${req.platform}.test/p/${verdict}`),
+        );
       }
       if (refuse.has(req.platform))
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
@@ -146,7 +161,7 @@ const fakeContent = restate.service({
       if (!key) {
         posted.push(req);
         return published(
-          `${req.platform}-${posted.length}`,
+          postId(req.platform, posted.length),
           `https://${req.platform}.test/p/${posted.length}`,
         );
       }
@@ -164,7 +179,7 @@ const fakeContent = restate.service({
           if (verify === "found")
             return final({
               kind: "found",
-              id: `${req.platform}-found`,
+              id: postId(req.platform, "found"),
               url: `https://${req.platform}.test/p/found`,
               at,
             });
@@ -206,7 +221,7 @@ const fakeContent = restate.service({
         if (fate === "found")
           return final({
             kind: "found",
-            id: `${req.platform}-found`,
+            id: postId(req.platform, "found"),
             url: `https://${req.platform}.test/p/found`,
             at,
           });
@@ -223,7 +238,7 @@ const fakeContent = restate.service({
         return final({
           kind: "sent",
           out: published(
-            `${req.platform}-${posted.length}`,
+            postId(req.platform, posted.length),
             `https://${req.platform}.test/p/${posted.length}`,
           ),
         });
@@ -514,7 +529,7 @@ describe("content loop", () => {
     const li = after.find((d) => d.platform === "linkedin");
     expect(li).toMatchObject({
       status: "published",
-      publishedId: expect.stringMatching(/^linkedin-/),
+      publishedId: expect.stringMatching(/^urn:li:share:/),
       url: expect.stringContaining("linkedin.test"),
     });
     // A LinkedIn video carries no link in its text: it goes in the first comment.
@@ -685,7 +700,7 @@ describe("content loop", () => {
     expect(writes[0]?.sendKey?.startsWith(`draft:${li.id} `)).toBe(true);
     expect(await getDraft(pg.db, li.id)).toMatchObject({
       status: "published",
-      publishedId: "linkedin-found",
+      publishedId: postId("linkedin", "found"),
       url: "https://linkedin.test/p/found",
       error: null,
     });
@@ -693,17 +708,17 @@ describe("content loop", () => {
     const sent = await pg.db.execute<{ external_id: string }>(
       sql`select external_id from draft_events where item = ${`draft:${li.id}`} and event = 'sent'`,
     );
-    expect([...sent]).toEqual([{ external_id: "linkedin-found" }]);
+    expect([...sent]).toEqual([{ external_id: postId("linkedin", "found") }]);
     expect(await sendAttempt(pg.db, `draft:${li.id}`)).toMatchObject({
       state: "sent",
-      ref: "linkedin-found",
+      ref: postId("linkedin", "found"),
       settledBy: "found",
     });
     // The first comment and the posted hook run as for any publish; the comment has a key of its own.
     expect(replied).toMatchObject([
       {
         platform: "linkedin",
-        commentId: "linkedin-found",
+        commentId: postId("linkedin", "found"),
         text: expect.stringContaining("/go/li/"),
       },
     ]);
@@ -920,13 +935,13 @@ describe("content loop", () => {
     expect(await settle(x.id, "posted")).toMatchObject({ found: true });
     expect(await getDraft(pg.db, x.id)).toMatchObject({
       status: "published",
-      publishedId: "linkedin-found",
+      publishedId: postId("linkedin", "found"),
       url: "https://linkedin.test/p/found",
     });
     expect(replied).toMatchObject([
       {
         platform: "linkedin",
-        commentId: "linkedin-found",
+        commentId: postId("linkedin", "found"),
         text: expect.stringContaining("/go/li/"),
       },
     ]);
@@ -967,7 +982,7 @@ describe("content loop", () => {
       { now: new Date() },
     );
     await sync();
-    views.set("linkedin-1", 200);
+    views.set(postId("linkedin", 1), 200);
     views.set("x-2", 50);
     refuse.add("x");
     const first = await look();
@@ -982,7 +997,7 @@ describe("content loop", () => {
     // Each look keeps its day's insights with the counts beside them.
     expect(first.stats?.looked[0]).toMatchObject({ insights: 5, gaps: 1 });
     // The counts read's answer goes on to insights, so a post is not read twice.
-    expect(insightReads).toEqual([{ seen: "linkedin-1" }, { seen: "x-2" }]);
+    expect(insightReads).toEqual([{ seen: postId("linkedin", 1) }, { seen: "x-2" }]);
     const saves = await pg.db
       .select({ value: postMetricDays.value })
       .from(postMetricDays)
@@ -1017,7 +1032,7 @@ describe("content loop", () => {
       { now: new Date() },
     );
     await sync();
-    const ids = posted.map((p, i) => `${p.platform}-${i + 1}`);
+    const ids = posted.map((p, i) => postId(p.platform, i + 1));
     expect(ids).toHaveLength(3);
     batching = true;
     const left = ids.find((id) => id.startsWith("x-")) as string;
@@ -1033,7 +1048,7 @@ describe("content loop", () => {
     expect(pass.stats?.looked).toHaveLength(3);
     expect(pass.stats?.failed).toEqual([]);
     // A batched look hands its own answer to insights, as a single one does.
-    expect(insightReads).toContainEqual({ batch: ids.find((id) => id.startsWith("linkedin-")) });
+    expect(insightReads).toContainEqual({ batch: ids.find((id) => id.startsWith("urn:li:")) });
     expect(await pg.db.select().from(contentMetrics)).toHaveLength(3);
   });
 
@@ -1054,7 +1069,7 @@ describe("content loop", () => {
     batchFails = true;
     const pass = await look();
     expect(batches).toEqual([]);
-    expect(singles.sort()).toEqual(posted.map((p, i) => `${p.platform}-${i + 1}`).sort());
+    expect(singles.sort()).toEqual(posted.map((p, i) => postId(p.platform, i + 1)).sort());
     expect(pass.stats?.looked).toHaveLength(2);
     expect(pass.stats?.failed).toEqual([]);
   });
@@ -1070,7 +1085,7 @@ describe("content loop", () => {
     await sync();
     const pass = await look();
     expect(batches).toEqual([]);
-    expect(singles).toEqual(["linkedin-1"]);
+    expect(singles).toEqual([postId("linkedin", 1)]);
     expect(pass.stats?.looked).toHaveLength(1);
   });
 
@@ -1364,6 +1379,7 @@ describe("daily drafts (ContentPlanner with draft on)", () => {
     const morning = rows.find((r) => r.platform === "reddit" && slotOf(r) === at(9, 30));
     if (!morning) throw new Error("no morning draft");
     await desk().reject({ ids: [morning.id] });
+    await seedObjects(pg.db, commentObjects([{ platform: "reddit", ref: "t1_q", post: "t3_p" }]));
     await pg.db.execute(sql`
       with a as (insert into reach_accounts (platform, account, started_on)
         values ('reddit', 'reddit@test', current_date) returning id)

@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-14 @ 288611dc (+ Inbox → Done, meta.arm)
+verified: 2026-10-20 (O2, wa-yvs.2: external_id is a platform object)
 entity: packages/core/src/schema.ts:650
 ---
 
@@ -17,7 +17,7 @@ Append-only, so the first version and its prompt can't be written over. One narr
 
 ## Shape
 
-- `item`, `round`, `kind`, `platform`, `event`, `via` (model, person, claude, wren), `by`, `text`, `title`, `ask`, `reason` (`REJECT_REASONS`, `packages/core/src/reject-reasons.ts:2`), `note`, `llm` (prompt, system, model, usage, raw answer on a model's `generated`), `slot`, `external_id`, `url`, `meta`, `run_id`, `ref`, `at`
+- `item`, `round`, `kind`, `platform`, `event`, `via` (model, person, claude, wren), `by`, `text`, `title`, `ask`, `reason` (`REJECT_REASONS`, `packages/core/src/reject-reasons.ts:2`), `note`, `llm` (prompt, system, model, usage, raw answer on a model's `generated`), `slot`, `external_id` (the post a post, video or comment-on-a-post made, the comment a thread reply or comment answer made: a [[content/platform-object]] ref, key `fk_draft_events_platform_external_id_platform_objects`, migration 0312; `recordDraft` resolves it in its own transaction, one no rule reads goes to `meta.external_id` with the column null; a DM or invite makes a message, not an object, so its id is always in `meta.external_id`), `url`, `meta`, `run_id`, `ref`, `at`
 
 On a reach draft (`thread`, `post_comment`, `comment`, `dm`, `invite_note`) the model's `generated` step carries `meta.arm`, the draft-model test arm that chose `by` (`designs/2026-10-14-draft-models.md`); history and the Inbox's own suggestions have none. The scorecard (`draftScorecard`, `packages/outreach/src/draft-models.ts`) reads the last model `generated` step against the `sent`/`approved`/`rejected` after it, guard drops from `runs` (`command = 'guard'`, `model` set only for an arm's draft), the comment proof and replies.
 
