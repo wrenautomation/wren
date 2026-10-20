@@ -1,12 +1,13 @@
 /**
- * The Map's details panel for one node (click): its numbers, the people on it newest first with a
- * link to each journey, the crossings in and out over the window, and the way into the app that
- * manages it. Read only.
+ * The Map's details for one node (click), a card over the canvas: its numbers, the people on it
+ * newest first with a link to each journey, the crossings in and out over the window, and the way
+ * into the app that manages it. Read only; the edit panel (`EditPanel.tsx`) has the fields.
  */
 import type { ShapeNode } from "@wren/pipeline/model";
 import { Button, ButtonLink, Icon, num } from "@wren/ui";
 import { href } from "../route.js";
 import { type MapData, numbersSay, type Window, windowSays } from "./model.js";
+import { OVER_RIGHT } from "./overlay.js";
 import { opensOf, type Place } from "./routes.js";
 
 /** The people listed before "and N more". */
@@ -58,7 +59,7 @@ export function NodePanel({
   return (
     <section
       aria-label={`${name}, details`}
-      className="flex min-w-0 flex-col gap-5 border-(--ui-hair) p-5 text-[14px] text-(--ui-ink) max-[900px]:border-t min-[901px]:w-80 min-[901px]:shrink-0 min-[901px]:border-l"
+      className={`${OVER_RIGHT} text-[14px] text-(--ui-ink)`}
     >
       <header className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -67,7 +68,7 @@ export function NodePanel({
             {node ? KIND[node.kind] : "Dropped from the newest version"}
           </p>
         </div>
-        <Button tone="quiet" size="sm" icon="close" onClick={onClose}>
+        <Button tone="quiet" size="dense" icon="close" onClick={onClose}>
           Close
         </Button>
       </header>
@@ -140,11 +141,11 @@ export function NodePanel({
 
       {main ? (
         <footer className="flex flex-wrap items-center gap-2">
-          <ButtonLink href={main.href} tone="primary" size="sm">
+          <ButtonLink href={main.href} tone="primary" size="dense">
             Open
           </ButtonLink>
           {more.map((o) => (
-            <ButtonLink key={o.href} href={o.href} tone="quiet" size="sm">
+            <ButtonLink key={o.href} href={o.href} tone="quiet" size="dense">
               {o.label}
             </ButtonLink>
           ))}

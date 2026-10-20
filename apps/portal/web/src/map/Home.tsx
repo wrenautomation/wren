@@ -1,15 +1,13 @@
 /**
- * "/" for Wren's team: the Map of the workspace's shape with Today docked on the right. The dock
- * collapses, and each viewer's choice is kept on the device. On a phone the dock is a tab under
- * the Map, not a side panel.
+ * "/" for Wren's team: the Map of the workspace's shape, the whole page, edge to edge. Today is a
+ * sheet that slides over it from the Map's header, closed until asked, so the canvas never gives up
+ * room for it. On a phone Today stays a tab under the Map.
  */
 import { Button, Icon, usePhone } from "@wren/ui";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@wren/ui/components/ui/sheet";
 import { type ReactNode, useState } from "react";
-import { keep, recall } from "../local.js";
 import type { PageProps } from "../module.js";
 import { MapPage } from "./MapPage.js";
-
-const DOCK_KEY = "wren.portal.map.dock";
 
 export function MapHome({
   props,
@@ -21,56 +19,60 @@ export function MapHome({
   /** Today's lists, without their page header. */
   today: ReactNode;
 }) {
-  const [open, setOpen] = useState(() => recall(DOCK_KEY) !== "closed");
   const phone = usePhone();
-  const set = (next: boolean) => {
-    setOpen(next);
-    keep(DOCK_KEY, next ? "open" : "closed");
-  };
+  const [sheet, setSheet] = useState(false);
+  const [tab, setTab] = useState(true);
   return (
-    <div className="flex min-w-0 gap-6 max-[900px]:flex-col">
-      <div className="min-w-0 flex-1">
-        <MapPage props={props} clients={clients} />
-      </div>
+    <div className="flex h-full min-w-0 flex-col max-[900px]:h-auto">
+      <MapPage
+        props={props}
+        clients={clients}
+        trailing={
+          phone ? null : (
+            <Button
+              tone="secondary"
+              size="dense"
+              aria-haspopup="dialog"
+              aria-expanded={sheet}
+              onClick={() => setSheet(true)}
+            >
+              <Icon name="home" size={15} /> Today
+            </Button>
+          )
+        }
+      />
       {phone ? (
-        <div className="min-w-0">
+        <div className="min-w-0 px-4 pt-3 pb-4">
           <Button
             tone="quiet"
-            size="sm"
-            aria-expanded={open}
-            aria-controls="today-dock"
-            onClick={() => set(!open)}
+            size="dense"
+            aria-expanded={tab}
+            aria-controls="today-tab"
+            onClick={() => setTab(!tab)}
           >
             <Icon name="home" size={15} /> Today
           </Button>
-          {open ? (
-            <div id="today-dock" className="mt-4">
+          {tab ? (
+            <div id="today-tab" className="mt-4">
               {today}
             </div>
           ) : null}
         </div>
-      ) : open ? (
-        <aside id="today-dock" aria-label="Today" className="w-96 max-w-[40%] shrink-0">
-          <div className="mb-3 flex items-center">
-            <h2 className="mr-auto text-[17px]/6 font-semibold">Today</h2>
-            <Button tone="quiet" size="sm" icon="right" onClick={() => set(false)}>
-              Hide
-            </Button>
-          </div>
-          {today}
-        </aside>
       ) : (
-        <div className="shrink-0">
-          <Button
-            tone="quiet"
-            size="sm"
-            aria-expanded={false}
-            aria-controls="today-dock"
-            onClick={() => set(true)}
+        <Sheet open={sheet} onOpenChange={setSheet}>
+          <SheetContent
+            side="right"
+            initialFocus={false}
+            className="gap-0 bg-(--ui-paper) text-(--ui-ink) data-[side=right]:w-[min(460px,94vw)] data-[side=right]:sm:max-w-[460px]"
           >
-            <Icon name="left" size={15} /> Today
-          </Button>
-        </div>
+            <SheetHeader className="border-b border-(--ui-hair) bg-transparent p-4">
+              <SheetTitle className="text-[17px]/6 font-semibold">Today</SheetTitle>
+            </SheetHeader>
+            <div id="today-sheet" className="min-h-0 flex-1 overflow-y-auto p-4">
+              {today}
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
     </div>
   );

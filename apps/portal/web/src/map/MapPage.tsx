@@ -1,21 +1,12 @@
 /**
- * The Map (designs/2026-10-19-business-map.md, "Map page"): the shape of the workspace drawn down
- * the page, each wire a ribbon as wide as the people who crossed it in the window. Hover a node for
- * its numbers, click for its details, double click to open the app that manages it. Read only;
- * editing comes with the next build.
+ * The Map (designs/2026-10-19-business-map.md, "Map page", "Map page, M2.1"): the shape of the
+ * workspace drawn down the page, each wire a ribbon as wide as the people who crossed it in the
+ * window. It is the whole page, edge to edge, in the app's own theme. Hover a node for its numbers,
+ * click for its details, double click to open the app that manages it. Details and History are
+ * cards over the canvas; neither takes room from it. Read only; editing comes with the next build.
  */
-import {
-  Button,
-  Graph,
-  Icon,
-  LoadFailed,
-  Loading,
-  PRESETS,
-  SELECT_CLASS,
-  Segmented,
-  themeVars,
-} from "@wren/ui";
-import { useMemo, useState } from "react";
+import { Button, Graph, Icon, LoadFailed, Loading, SELECT_CLASS, Segmented } from "@wren/ui";
+import { type ReactNode, useMemo, useState } from "react";
 import { type PageProps, WREN } from "../module.js";
 import { atOf } from "../modules/deals/board.js";
 import { go, href, navigate } from "../route.js";
@@ -25,9 +16,6 @@ import { graphOf, type MapData, WINDOWS, type Window, windowOf } from "./model.j
 import { NodePanel } from "./NodePanel.js";
 import { useMap } from "./read.js";
 import { opensOf } from "./routes.js";
-
-/** The Map is always on the night ground: a canvas, no grid, no chrome. */
-const NIGHT = themeVars(PRESETS.night);
 
 /** The node kinds a shape is made of, in the order the starter lists them. */
 const KINDS = ["Source", "Step", "Offer", "Plan"];
@@ -61,10 +49,13 @@ function NoShape() {
 export function MapPage({
   props,
   clients,
+  trailing,
 }: {
   props: PageProps;
   /** The workspaces the viewer may switch between, besides Wren's. */
   clients: readonly { id: string; name: string }[];
+  /** More controls at the header's end (the Today sheet's button). */
+  trailing?: ReactNode;
 }) {
   const window = windowOf(props.params.get("window"));
   const wren = props.client === WREN.id;
@@ -95,11 +86,9 @@ export function MapPage({
   return (
     <section
       aria-label="Map"
-      data-ui-theme=""
-      style={NIGHT}
-      className="flex min-w-0 flex-col overflow-hidden rounded-2xl bg-(--ui-canvas) text-(--ui-ink)"
+      className="flex min-h-0 min-w-0 flex-1 flex-col text-(--ui-ink) max-[900px]:flex-none"
     >
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 pt-4">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-(--ui-hair) px-5 py-3 max-[900px]:px-4">
         <h1 className="mr-auto text-[22px]/8 font-semibold">Map</h1>
         <Segmented
           label="Window"
@@ -129,7 +118,7 @@ export function MapPage({
         {data ? (
           <Button
             tone="quiet"
-            size="sm"
+            size="dense"
             aria-pressed={history}
             onClick={() => {
               setHistory((h) => !h);
@@ -139,55 +128,63 @@ export function MapPage({
             <Icon name="clock" size={15} /> History
           </Button>
         ) : null}
+        {trailing}
       </header>
-      <div className="flex min-w-0 flex-1 max-[900px]:flex-col">
-        <div className="min-w-0 flex-1 p-3">
-          {read.error && !read.data ? (
+      <div className="relative min-h-0 flex-1 max-[900px]:h-[68dvh] max-[900px]:min-h-[380px] max-[900px]:flex-none">
+        {read.error && !read.data ? (
+          <div className="p-5">
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
-          ) : !read.data ? (
+          </div>
+        ) : !read.data ? (
+          <div className="p-5">
             <Loading lines={8} />
-          ) : !data || !drawn ? (
-            <NoShape />
-          ) : (
-            <Graph
-              key={drawn.diff ? "diff" : "map"}
-              nodes={drawn.nodes}
-              edges={drawn.edges}
-              label={drawn.diff ? "Shape differences" : "Map of the shape"}
-              direction="down"
-              ribbons
-              bare
-              tools={false}
-              selected={shown}
-              onOpen={setSelected}
-              onPane={() => setSelected(null)}
-              onEnter={enter}
-              name="map"
-            />
-          )}
-        </div>
-        {data && history ? (
-          <History
-            versions={data.versions}
-            picked={picked}
-            onPick={pick}
-            diff={diff}
-            onClose={() => {
-              setHistory(false);
-              setPicked([]);
-            }}
-          />
-        ) : data && shown ? (
-          <NodePanel
-            data={data}
-            id={shown}
-            window={window as Window}
-            place={wren ? "wren" : "client"}
-            client={client}
-            at={at}
-            onClose={() => setSelected(null)}
-          />
-        ) : null}
+          </div>
+        ) : !data || !drawn ? (
+          <NoShape />
+        ) : (
+          <>
+            <div className="absolute inset-0">
+              <Graph
+                key={drawn.diff ? "diff" : "map"}
+                nodes={drawn.nodes}
+                edges={drawn.edges}
+                label={drawn.diff ? "Shape differences" : "Map of the shape"}
+                direction="down"
+                ribbons
+                bare
+                stretch
+                tools={false}
+                selected={shown}
+                onOpen={setSelected}
+                onPane={() => setSelected(null)}
+                onEnter={enter}
+                name="map"
+              />
+            </div>
+            {history ? (
+              <History
+                versions={data.versions}
+                picked={picked}
+                onPick={pick}
+                diff={diff}
+                onClose={() => {
+                  setHistory(false);
+                  setPicked([]);
+                }}
+              />
+            ) : shown ? (
+              <NodePanel
+                data={data}
+                id={shown}
+                window={window as Window}
+                place={wren ? "wren" : "client"}
+                client={client}
+                at={at}
+                onClose={() => setSelected(null)}
+              />
+            ) : null}
+          </>
+        )}
       </div>
     </section>
   );

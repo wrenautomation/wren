@@ -1,7 +1,7 @@
 /**
- * The Map on the fake server (designs/2026-10-19-business-map.md, "Map page"): Wren's Home for the
- * team, the shape drawn down the page with Today docked on the right. Hover, click and History run
- * in `play`. `pnpm --filter @wren/portal storybook`.
+ * The Map on the fake server (designs/2026-10-19-business-map.md, "Map page", "Map page, M2.1"):
+ * Wren's Home for the team, the shape drawn down the whole page. Today is a sheet over it (a tab on
+ * a phone). Hover, click and History run in `play`. `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
@@ -28,9 +28,16 @@ const SHARED = {
   list: ANSWERS["pipeline/recordsList"] as Reply,
 };
 
+const onPhone = () => matchMedia("(max-width: 900px)").matches;
+/** The Map's own width: the canvas box inside its section. */
+const widthOf = (page: HTMLElement) =>
+  page.querySelector<HTMLElement>('[aria-label="Map of the shape"]')?.getBoundingClientRect()
+    .width ?? 0;
+
 /**
  * Home for the team: the shape's sources, steps and offer, a ribbon between each, and the ghost, a
- * node an older version had that one person still sits on, dashed and faded with its count.
+ * node an older version had that one person still sits on, dashed with its count. The
+ * Map is the whole page; Today waits behind its header button.
  */
 export const Default = pageAt("/", {
   me: ADMIN,
@@ -38,13 +45,52 @@ export const Default = pageAt("/", {
     for (const name of ["Spring list", "Winter ads", "Engaged", "Booked", "Signed", "Joined"])
       await node(page, name);
     await expect(await within(page).findByRole("heading", { name: "Map" })).toBeVisible();
-    // Today is docked on the right, without its page title.
-    await expect(await within(page).findByRole("heading", { name: /^Write/ })).toBeVisible();
-    await expect(within(page).queryByRole("heading", { name: "Today", level: 1 })).toBeNull();
     // The ghost holds its one person.
     await expect(await node(page, "Joined")).toHaveTextContent("1");
+    // Today is no column beside the Map: closed, it takes no room (on a phone it is a tab).
+    await expect(within(page).queryByRole("heading", { name: "Today", level: 1 })).toBeNull();
+    if (!onPhone()) {
+      await expect(within(page).queryByRole("heading", { name: /^Write/ })).toBeNull();
+      const map = within(page).getByRole("region", { name: "Map" });
+      // Edge to edge of the window, which sits 10px in from the screen (--ui-frame).
+      await expect(Math.round(map.getBoundingClientRect().right)).toBeGreaterThanOrEqual(
+        innerWidth - 12,
+      );
+    }
   },
 });
+
+/** Today opens as a sheet over the Map from its header; the canvas keeps its width. */
+export const TodaySheet = {
+  ...pageAt("/", {
+    me: ADMIN,
+    check: async (page) => {
+      await node(page, "Engaged");
+      const before = widthOf(page);
+      await expect(before).toBeGreaterThan(300);
+      const open = within(page).getByRole("button", { name: "Today" });
+      await expect(open).toHaveAttribute("aria-expanded", "false");
+      await userEvent.click(open);
+      const sheet = await within(document.body).findByRole("dialog", { name: "Today" });
+      await expect(await within(sheet).findByRole("heading", { name: /^Write/ })).toBeVisible();
+      await expect(Math.abs(widthOf(page) - before)).toBeLessThan(20);
+    },
+  }),
+  globals: { viewport: { value: "desktop" } },
+};
+
+/** Dark theme: the Map wears the app's tokens, nothing forces a look of its own. */
+export const Dark = {
+  ...pageAt("/", {
+    me: ADMIN,
+    check: async (page) => {
+      await node(page, "Engaged");
+      await node(page, "Joined");
+      await expect(within(page).getByRole("region", { name: "Map" })).toBeVisible();
+    },
+  }),
+  globals: { theme: "dark" },
+};
 
 /** The window is in the address; 7 days is lit and the numbers are the window's. */
 export const Window = pageAt("/?window=7", {
@@ -88,7 +134,7 @@ export const Empty = pageAt("/", {
   },
 });
 
-/** Click a node: its details open on the right, people newest first, each a link to its journey. */
+/** Click a node: its details open as a card over the canvas, people newest first, each a link. */
 export const NodePanel = pageAt("/", {
   me: ADMIN,
   check: async (page) => {
@@ -153,25 +199,7 @@ export const Plan = pageAt("/", {
   },
 });
 
-/** The dock folds away and stays folded: the choice is kept on this device. */
-export const DockCollapsed = pageAt("/", {
-  me: ADMIN,
-  check: async (page) => {
-    await node(page, "Engaged");
-    // A phone has no dock to hide: Today is a tab (see Phone).
-    if (matchMedia("(max-width: 900px)").matches) return;
-    await userEvent.click(await within(page).findByRole("button", { name: "Hide" }));
-    await expect(within(page).queryByRole("heading", { name: /^Write/ })).toBeNull();
-    await expect(localStorage.getItem("wren.portal.map.dock")).toBe("closed");
-    const show = within(page).getByRole("button", { name: /Today/ });
-    await expect(show).toHaveAttribute("aria-expanded", "false");
-    await userEvent.click(show);
-    await expect(await within(page).findByRole("heading", { name: /^Write/ })).toBeVisible();
-    localStorage.removeItem("wren.portal.map.dock");
-  },
-});
-
-/** On a phone the Map fills the width and Today is a tab under it. */
+/** On a phone the Map fills the width and Today is a tab under it, open. */
 export const Phone = {
   ...pageAt("/", {
     me: ADMIN,
@@ -180,6 +208,10 @@ export const Phone = {
       const tab = within(page).getByRole("button", { name: /Today/ });
       await expect(tab).toHaveAttribute("aria-expanded", "true");
       await expect(await within(page).findByRole("heading", { name: /^Write/ })).toBeVisible();
+      // Closing the tab hides Today and leaves the Map as it was.
+      await userEvent.click(tab);
+      await expect(tab).toHaveAttribute("aria-expanded", "false");
+      await expect(within(page).queryByRole("heading", { name: /^Write/ })).toBeNull();
     },
   }),
   globals: { viewport: { value: "phone" } },

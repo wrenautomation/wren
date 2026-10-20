@@ -650,6 +650,7 @@ export function App() {
           at={`${location.pathname}${location.search}`}
           deep={!!open && route.path.length > 2}
           wide={open ? "template" in open.page || ("wide" in open.page && !!open.page.wide) : team}
+          bleed={!open && team && !!current}
         >
           {!current ? (
             <Loading lines={8} heading />

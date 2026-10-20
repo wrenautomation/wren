@@ -144,7 +144,6 @@ export function graphOf(data: MapData): { nodes: GraphNode[]; edges: GraphEdge[]
         hover: [`Now: ${num(g.people.length)}`, "Dropped from the newest version."],
         state: { label: "Ghost", tone: "warn" },
         dashed: true,
-        dim: true,
       });
   const edges: GraphEdge[] = data.body.edges.map((e) => {
     const n = data.edges.get(e.id) ?? 0;

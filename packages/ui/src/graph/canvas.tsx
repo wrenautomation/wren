@@ -135,6 +135,8 @@ export interface GraphProps {
   bare?: boolean | undefined;
   /** A node was double-clicked: the page's way in (the app that manages it). */
   onEnter?: ((id: string) => void) | undefined;
+  /** Fills the height of the box it sits in (which must have one), edge to edge: the Map's surface. */
+  stretch?: boolean | undefined;
 }
 
 const PAD = 20;
@@ -165,7 +167,7 @@ const ICON: Record<GraphKind, LucideIcon> = {
 };
 const TONE: Record<GraphTone, string> = {
   good: "text-(--ui-good-ink) before:bg-(--ui-good)",
-  warn: "text-(--warn) before:bg-(--warn)",
+  warn: "text-(--ui-warn-ink) before:bg-(--warn)",
   bad: "text-(--ui-bad) before:bg-(--ui-bad)",
   accent: "text-(--ui-live) before:bg-(--ui-live)",
   neutral: "text-(--ui-ink-2) before:bg-(--ui-ink-3)",
@@ -199,6 +201,8 @@ interface Shared {
   byId: ReadonlyMap<string, GraphNode>;
   /** The node last clicked: its ring. */
   selected: string | null;
+  /** Ribbons draw: cards get softer corners and more weight. */
+  soft: boolean;
   /** A wire being dragged: the kind it carries and the side it'll land on; the rest dim. */
   drag: { kind: string | undefined; lands: "in" | "out" } | null;
 }
@@ -251,11 +255,17 @@ function KitNode({ id }: NodeProps) {
         data-kind={n.kind}
         data-role={roleOf(n)}
         className={cn(
-          "relative flex h-full flex-col rounded-[8px] px-2.5 pt-2.5 pb-2.5 text-left text-(--ui-ink) no-underline transition-[opacity,box-shadow,translate] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
+          "relative flex h-full flex-col px-2.5 pt-2.5 pb-2.5 text-left text-(--ui-ink) no-underline transition-[opacity,box-shadow,translate] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
+          g.soft ? "rounded-[12px]" : "rounded-[8px]",
           (n.href || opens) && "cursor-pointer hover:-translate-y-0.5",
           end
             ? "border border-dashed border-(--ui-ink-3) bg-(--ui-tile)"
-            : "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/0.06)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
+            : cn(
+                "bg-(--ui-paper) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
+                g.soft
+                  ? "shadow-[inset_0_0_0_1px_var(--ui-hair),0_2px_4px_rgb(0_0_0/0.05),0_12px_24px_-14px_rgb(0_0_0/0.35)]"
+                  : "shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/0.06)]",
+              ),
           tone === "bad" && "shadow-[inset_0_0_0_1.5px_var(--ui-bad)]",
           tone === "warn" && "shadow-[inset_0_0_0_1.5px_var(--warn)]",
           g.hover === id && "shadow-[inset_0_0_0_1.5px_var(--ui-ink)]",
@@ -503,17 +513,20 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
         }}
       >
         {data.width !== null ? (
-          // A ribbon: it grows in once (the path is drawn from 0 to 1), and its width eases.
-          <path
-            d={data.d}
-            pathLength={1}
-            className="animate-ui-ribbon-in fill-none stroke-current transition-[stroke-width,stroke-opacity] duration-300 ease-(--ui-ease) motion-reduce:animate-none [[data-motion=less]_&]:animate-none"
-            style={{
-              strokeWidth: data.width,
-              strokeOpacity: on ? 0.75 : 0.4,
-              strokeDasharray: 1,
-            }}
-          />
+          // A ribbon: its width eases when its number changes. A wider, fainter stroke under it
+          // gives it depth. Nothing moves otherwise.
+          <>
+            <path
+              d={data.d}
+              className="fill-none stroke-current transition-[stroke-width,stroke-opacity] duration-300 ease-(--ui-ease)"
+              style={{ strokeWidth: data.width + 8, strokeOpacity: on ? 0.16 : 0.08 }}
+            />
+            <path
+              d={data.d}
+              className="fill-none stroke-current transition-[stroke-width,stroke-opacity] duration-300 ease-(--ui-ease)"
+              style={{ strokeWidth: data.width, strokeOpacity: on ? 0.75 : 0.4 }}
+            />
+          </>
         ) : (
           <path
             d={data.d}
@@ -656,9 +669,12 @@ export default function GraphCanvas({
   ribbons,
   bare,
   onEnter,
+  stretch,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [pane, setPane] = useState(0);
   const [screen, setScreen] = useState(() => globalThis.innerHeight || 900);
   useEffect(() => {
     const measure = () => setScreen(globalThis.innerHeight || 900);
@@ -675,6 +691,17 @@ export default function GraphCanvas({
     watch.observe(el);
     return () => watch.disconnect();
   }, []);
+  // A stretched graph takes the height of the box around it, and follows it.
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!stretch || !el) return;
+    const measure = () => setPane(el.clientHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [stretch]);
   const dir: Direction =
     direction === "down" || (direction === "auto" && width > 0 && width < NARROW)
       ? "DOWN"
@@ -795,7 +822,11 @@ export default function GraphCanvas({
   }, [l, nodes, edges, wires, byId, dir, ribbons]);
 
   const least = minHeight ?? 0;
-  const most = Math.max(least, maxHeight ?? Math.max(360, screen - CHROME));
+  const most = Math.max(
+    least,
+    stretch && pane ? pane : (maxHeight ?? Math.max(360, screen - CHROME)),
+  );
+  const fills = fill || stretch;
   const left = inset?.left ?? 0;
   const right = inset?.right ?? 0;
   const view = useMemo(() => {
@@ -816,7 +847,7 @@ export default function GraphCanvas({
     const map = !fits && !narrow;
     const height = Math.max(
       least,
-      fill
+      fills
         ? most
         : Math.min(most, Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0))),
     );
@@ -848,7 +879,7 @@ export default function GraphCanvas({
       fits: fits && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1,
       map,
     };
-  }, [l, width, most, least, fill, left, right, dir, show, focus, fit]);
+  }, [l, width, most, least, fills, left, right, dir, show, focus, fit]);
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;
@@ -875,11 +906,12 @@ export default function GraphCanvas({
         byId,
         selected,
         drag,
+        soft: !!ribbons,
       }
     : null;
 
   return (
-    <div className="grid w-full max-w-full gap-2">
+    <div ref={wrap} className={cn("grid w-full max-w-full gap-2", stretch && "h-full")}>
       {tools ? (
         <div className="flex flex-wrap items-center gap-2">
           <Input

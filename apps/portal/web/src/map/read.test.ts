@@ -99,7 +99,7 @@ describe("graphOf", () => {
       ["joined", "step"],
     ]);
     const ghost = g.nodes.find((n) => n.id === "joined");
-    expect(ghost).toMatchObject({ dashed: true, dim: true, number: { value: 1, label: "now" } });
+    expect(ghost).toMatchObject({ dashed: true, number: { value: 1, label: "now" } });
   });
 
   it("gives each node one number: people now, opened for a source, collected for a plan", () => {

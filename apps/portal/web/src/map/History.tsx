@@ -1,12 +1,14 @@
 /**
- * The Map's History (read only): the shape's versions newest first, number, note, author and
- * date. Pick two and the Map draws the difference, with the list of changes under them.
+ * The Map's History (read only), a card over the canvas: the shape's versions newest first,
+ * number, note, author and date. Pick two and the Map draws the difference, with the list of
+ * changes under them.
  */
 import { Button, cx, Icon, LoadFailed, Loading } from "@wren/ui";
 import { call } from "../api.js";
 import { useCall } from "../load.js";
 import { type DiffAnswer, diffLines } from "./diff.js";
 import type { Version } from "./model.js";
+import { OVER_RIGHT } from "./overlay.js";
 
 const DAY = new Intl.DateTimeFormat("en-CA", { dateStyle: "medium", timeZone: "America/Toronto" });
 const dayOf = (iso: string) => {
@@ -38,16 +40,13 @@ export function History({
 }) {
   const sorted = [...versions].sort((x, y) => y.number - x.number);
   return (
-    <section
-      aria-label="History"
-      className="flex min-w-0 flex-col gap-4 border-(--ui-hair) p-5 text-[14px] text-(--ui-ink) max-[900px]:border-t min-[901px]:w-80 min-[901px]:shrink-0 min-[901px]:border-l"
-    >
+    <section aria-label="History" className={cx(OVER_RIGHT, "text-[14px] text-(--ui-ink)")}>
       <header className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <h2 className="text-[17px]/6 font-semibold">History</h2>
           <p className="text-[13px] text-(--ui-ink-3)">Pick two versions to see what changed.</p>
         </div>
-        <Button tone="quiet" size="sm" icon="close" onClick={onClose}>
+        <Button tone="quiet" size="dense" icon="close" onClick={onClose}>
           Close
         </Button>
       </header>
