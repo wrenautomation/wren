@@ -345,6 +345,10 @@ export async function queueThreads(db: Queryable, sub: string, now: Date): Promi
   if (place?.state !== "watching") return [];
   const account = await accountById(db, place.accountId);
   const karma = place.purpose === "karma";
+  // A karma sub that removed our last comment without a word: nothing more queues there. Its
+  // drafts go out on their own (nobody clears a karma hold), so each would only sit held and
+  // spend the day's karma room; the other karma subs take it instead.
+  if (karma && (await gatesFor(db, [sub], now)).get(sub)?.hold) return [];
   const [q] = await db
     .select({
       n: sql<number>`count(*)::int`,

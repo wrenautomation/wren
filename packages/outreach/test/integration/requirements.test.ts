@@ -21,6 +21,7 @@ import {
   learnFromProof,
   learnText,
   planThreadComment,
+  queueThreads,
   setNeed,
 } from "../../src/index.js";
 import { keepProof } from "../../src/proofs.js";
@@ -64,10 +65,10 @@ async function account(key: string, handle: string, days: number, karma: number)
   }) as Promise<ReachAccount>;
 }
 
-async function place(sub: string, accountId: string | null) {
+async function place(sub: string, accountId: string | null, purpose: "reach" | "karma" = "reach") {
   await db()
     .insert(redditPlaces)
-    .values({ subreddit: sub, name: sub, foundBy: "named", state: "watching", accountId });
+    .values({ subreddit: sub, name: sub, foundBy: "named", state: "watching", accountId, purpose });
 }
 
 async function thread(id: string, sub: string, accountId: string | null, draft = "A fact.") {
@@ -141,6 +142,31 @@ describe("reddit requirements", () => {
     await learnFromProof(db(), "thread:t3_synth2", removal("missing", "[removed] to its author"));
     expect((await gatesFor(db(), ["quietmods"], NOW)).size).toBe(0);
     await expect(planThreadComment(db(), "t3_synth2", NOW)).resolves.toBeDefined();
+  });
+
+  it("a held karma sub queues nothing more; a held reach sub still queues for his clear", async () => {
+    const wren = await account("reddit@wren", "wren_user", 90, 400);
+    await place("karmasub", wren.id, "karma");
+    await place("reachsub", wren.id);
+    const ids = { karmasub: "t3_karma1", reachsub: "t3_reach1" } as const;
+    for (const sub of ["karmasub", "reachsub"] as const) {
+      await thread(ids[sub], sub, wren.id);
+      await db()
+        .update(redditThreads)
+        .set({ state: "ranked", draft: null })
+        .where(eq(redditThreads.id, ids[sub]));
+      await learnFromProof(
+        db(),
+        `thread:${ids[sub]}`,
+        removal("missing", "[removed] to its author"),
+      );
+    }
+    expect((await gatesFor(db(), ["karmasub"], NOW)).get("karmasub")?.hold).toBe(true);
+    expect(await queueThreads(db(), "karmasub", NOW)).toEqual([]);
+    expect(await queueThreads(db(), "reachsub", NOW)).toEqual([ids.reachsub]);
+    // Cleared, the karma sub queues again.
+    await clearGate(db(), "karmasub", NOW);
+    expect(await queueThreads(db(), "karmasub", NOW)).toEqual([ids.karmasub]);
   });
 
   it("lifts a hold when the same comment is live again", async () => {
