@@ -7,6 +7,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
+import type { GithubFiles } from "@wren/core/github";
 import { issueAudience, issueSends, mayMarket } from "@wren/core/marketing";
 import { exclusiveHandler, NO_INPUT, PORTAL_FIELDS, sharedHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
@@ -19,7 +20,6 @@ import {
   blogRow,
   blogRows,
   keepBlogRow,
-  type LanderRepo,
   markEmailed,
   slugOf,
 } from "../blog.js";
@@ -62,7 +62,7 @@ interface Issue {
 export interface BlogDeps {
   db: Db;
   /** The lander repo through a token for it (`WREN_LANDER_GITHUB_TOKEN`); null: the box is off. */
-  repo: LanderRepo | null;
+  repo: GithubFiles | null;
   /** The site the post goes up on. */
   site: string;
   /** His clock, for the post's date. */

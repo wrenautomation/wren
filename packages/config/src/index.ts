@@ -218,6 +218,10 @@ export const settingsSchema = z.object({
   landerGithubToken: z.string().min(1).optional(),
   /** The lander repo, owner/name. */
   landerRepo: z.string().default("wrenautomation/lander"),
+  /** A GitHub token that writes the private shapes repo's contents: the shape mirror commits each version with it. */
+  shapesGithubToken: z.string().min(1).optional(),
+  /** The private repo the shape mirror commits to, owner/name. */
+  shapesGithubRepo: z.string().default("wrenautomation/sops"),
   /** The lander's /api/edge bearer (its EDGE_TOKEN secret): flags pushed there. A secret. */
   siteEdgeToken: z.string().min(1).optional(),
   /**
@@ -657,6 +661,8 @@ export const ENV_KEYS = {
   siteExportToken: "WREN_SITE_EXPORT_TOKEN",
   landerGithubToken: "WREN_LANDER_GITHUB_TOKEN",
   landerRepo: "WREN_LANDER_REPO",
+  shapesGithubToken: "WREN_SHAPES_GITHUB_TOKEN",
+  shapesGithubRepo: "WREN_SHAPES_GITHUB_REPO",
   siteEdgeToken: "WREN_SITE_EDGE_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
   searchSite: "WREN_SEARCH_SITE",

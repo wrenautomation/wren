@@ -197,7 +197,6 @@ import {
   commentGuide,
   DEFAULT_VOICE,
   dmGuide,
-  githubRepo,
   putMedia,
   s3MediaHost,
   slidePainter,
@@ -281,6 +280,7 @@ import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
 import { backendsFromEnv, leadFitSource, makeDecide } from "@wren/core/decide";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
+import { githubRepo } from "@wren/core/github";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { makeLoopWatch } from "@wren/core/loop-watch";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";

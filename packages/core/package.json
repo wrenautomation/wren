@@ -50,6 +50,7 @@
     "./flags": "./src/flags.ts",
     "./experiment-store": "./src/experiment-store.ts",
     "./flag-store": "./src/flag-store.ts",
+    "./github": "./src/github.ts",
     "./grants": "./src/grants.ts",
     "./notify": "./src/notify.ts",
     "./survey-store": "./src/survey-store.ts",
