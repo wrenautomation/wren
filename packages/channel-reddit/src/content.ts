@@ -33,6 +33,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { redditCommentRef as commentRef } from "@wren/core/objects";
 import { threadOf, threadQuery } from "./thread.js";
 
 export const REDDIT_SITE = "reddit";
@@ -83,9 +84,11 @@ const at = (utc: number | undefined, now: () => Date) =>
 export const bareId = (id: string) => id.replace(/^t\d_/, "");
 /**
  * A comment's one id in Wren: Reddit's `t1_` fullname, whichever reader saw it. Every reader keys
- * a comment through this, so one comment is one `comments` row (`ck_comments_reddit_ref`).
+ * a comment through this, so one comment is one `comments` row (`ck_comments_reddit_ref`). The
+ * rule lives in core (`@wren/core/objects`), beside every other platform's.
  */
-export const commentRef = (id: string) => `t1_${bareId(id)}`;
+export { commentRef };
+
 const children = (l: Listing | undefined) => (l?.data?.children ?? []).map((c) => c.data);
 
 /** The answer's data, or the refusal Reddit gave (a 200 carrying errors) as a 422: final, not retried. */

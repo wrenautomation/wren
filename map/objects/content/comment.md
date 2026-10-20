@@ -45,3 +45,4 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 - **joins:** [[content/draft]] (the posts these comments sit under are content drafts)
 - **looks-like-but-is-not:** `content_metrics.comments` (a count per post, no bodies)
 - **joins:** [[content/funnel]] (his approved and rejected answers become examples for the next drafts)
+- **joins:** [[content/platform-object]] (the canonical ref of a comment and its post; `canonRef` decides the spelling, `linkRefs` folds twin rows; no foreign key from `comments` yet, O2 adds it)

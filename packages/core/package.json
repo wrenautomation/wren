@@ -142,6 +142,8 @@
     "./touch-feed": "./src/touch-feed.ts",
     "./touches": "./src/touches.ts",
     "./touches-schema": "./src/touches-schema.ts",
+    "./objects": "./src/objects/index.ts",
+    "./objects-schema": "./src/objects-schema.ts",
     "./custom-fields": "./src/custom-fields.ts",
     "./custom-schema": "./src/custom-schema.ts",
     "./templates/records": "./src/template-records.ts",

@@ -57,6 +57,7 @@ import { registerLearn } from "./learn.js";
 import { registerLoops } from "./loops.js";
 import { registerNewsletter } from "./newsletter.js";
 import { registerNotes } from "./notes.js";
+import { registerObjects } from "./objects.js";
 import { registerPages } from "./pages.js";
 import { registerPeople } from "./people.js";
 import { type PipelineWrites, registerPipeline } from "./pipeline.js";
@@ -292,6 +293,7 @@ registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);
+registerObjects(program, { withDb, by: actor });
 const journeyWrites: PipelineWrites = {
   journeys: () =>
     clients

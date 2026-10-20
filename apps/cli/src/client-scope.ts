@@ -15,6 +15,7 @@ const CLIENT_SCOPED = new Set([
   "lake",
   "learn",
   "notes",
+  "objects",
   "people",
   "journeys",
   "deals",

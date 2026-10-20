@@ -17,6 +17,7 @@ export default defineConfig({
     "../core/src/vendor-schema.ts",
     "../core/src/keys-schema.ts",
     "../core/src/touches-schema.ts",
+    "../core/src/objects-schema.ts",
     "../core/src/profiles-schema.ts",
     "../core/src/people-map-schema.ts",
     "../core/src/segments-schema.ts",
