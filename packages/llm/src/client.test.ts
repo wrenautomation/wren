@@ -94,6 +94,24 @@ describe("AiSdkLlm", () => {
     expect(thinks.doGenerateCalls[0]?.maxOutputTokens).toBe(2048 + 4096);
   });
 
+  it("anthropic caches the system prompt; other vendors send it plain", async () => {
+    const claude = textModel("x");
+    await new AiSdkLlm("anthropic", "claude-test", claude).complete("hi", { system: "rules" });
+    const [sys, user] = claude.doGenerateCalls[0]?.prompt ?? [];
+    expect(sys).toMatchObject({
+      role: "system",
+      content: "rules",
+      providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+    });
+    expect(user).toMatchObject({ role: "user" });
+    const groq = textModel("x");
+    await new AiSdkLlm("groq", "m", groq).complete("hi", { system: "rules" });
+    expect(groq.doGenerateCalls[0]?.prompt[0]).toEqual({ role: "system", content: "rules" });
+    const bare = textModel("x");
+    await new AiSdkLlm("anthropic", "claude-test", bare).complete("hi");
+    expect(bare.doGenerateCalls[0]?.prompt[0]).toMatchObject({ role: "user" });
+  });
+
   it("anthropic names the bare model id", () => {
     expect(new AiSdkLlm("anthropic", "claude-test", textModel("x")).name).toBe("claude-test");
   });

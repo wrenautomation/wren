@@ -32,8 +32,23 @@ const rowsOf = async (db: Queryable, q: ReturnType<typeof sql>): Promise<Row[]> 
 };
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 
+/** Our Reddit logins not yet retired: a stranger's view when the signed-out reader is spent. */
+async function redditPeers(db: Queryable): Promise<string[]> {
+  const rows = await rowsOf(
+    db,
+    sql`select account from reach_accounts where platform = 'reddit' and retired_at is null
+      order by account`,
+  );
+  return rows.map((r) => str(r.account)).filter((a): a is string => a !== null);
+}
+
 /** What `CommentProof.check` reads for a sent item; null when the item was never sent. */
 export async function proofTarget(db: Queryable, item: string): Promise<ProofTarget | null> {
+  const t = await target(db, item);
+  return t?.platform === "reddit" ? { ...t, peers: await redditPeers(db) } : t;
+}
+
+async function target(db: Queryable, item: string): Promise<ProofTarget | null> {
   const m = ITEM.exec(item);
   if (!m) return null;
   const [, kind, id] = m as unknown as [string, string, string];

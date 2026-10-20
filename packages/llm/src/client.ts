@@ -13,7 +13,13 @@
  */
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { APICallError, generateText, type LanguageModel, RetryError } from "ai";
+import {
+  APICallError,
+  generateText,
+  type LanguageModel,
+  RetryError,
+  type SystemModelMessage,
+} from "ai";
 import { ClaudeCodeLlm, DEFAULT_CLAUDE_CODE_MODEL } from "./claude-code.js";
 import { wellFormed } from "./parsing.js";
 
@@ -127,14 +133,36 @@ export class AiSdkLlm implements LlmClient {
     this.name = provider === "anthropic" ? modelId : `${provider}:${modelId}`;
   }
 
+  /**
+   * The system prompt is the standing part of a call, the same across a day's drafts. On
+   * Anthropic it carries a cache breakpoint, so the repeat reads at a tenth of the price. A short
+   * one (under the model's minimum, 1024 to 2048 tokens) is simply not cached: no error, no cost.
+   * Other vendors take the plain string; the breakpoint would be an ignored option there.
+   */
+  private input(
+    prompt: string,
+    system?: string,
+  ): { prompt: string; system?: string | SystemModelMessage } {
+    if (!system) return { prompt: wellFormed(prompt) };
+    if (this.provider !== "anthropic")
+      return { system: wellFormed(system), prompt: wellFormed(prompt) };
+    return {
+      system: {
+        role: "system",
+        content: wellFormed(system),
+        providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+      },
+      prompt: wellFormed(prompt),
+    };
+  }
+
   async complete(prompt: string, opts: CompleteOptions = {}): Promise<LlmResponse> {
     const started = performance.now();
     let result: Awaited<ReturnType<typeof generateText>>;
     try {
       result = await generateText({
         model: this.model,
-        ...(opts.system ? { system: wellFormed(opts.system) } : {}),
-        prompt: wellFormed(prompt),
+        ...this.input(prompt, opts.system),
         maxOutputTokens: Math.max(opts.maxTokens ?? 0, DEFAULT_MAX_TOKENS) + this.thinking,
         // Its retries included: a model that never answers would hold the caller's step.
         abortSignal: AbortSignal.timeout(LLM_LIMIT_MS),
