@@ -1210,7 +1210,20 @@ export async function buildServices(
     // Journeys: hand moves through the shape's own step, and the pipeline records
     // (designs/2026-10-18-journeys.md).
     makeJourneys({ db: (client) => (client ? clientDb(client) : db) }),
-    makePipelineConsole({ db, open: openClient }),
+    makePipelineConsole({
+      db,
+      open: openClient,
+      // The shape's git mirror: a private repo, off without its token (designs/2026-10-19-business-map.md).
+      shapes: settings.shapesGithubToken
+        ? {
+            files: githubRepo({
+              token: settings.shapesGithubToken,
+              repo: settings.shapesGithubRepo,
+            }),
+            repo: settings.shapesGithubRepo,
+          }
+        : null,
+    }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {

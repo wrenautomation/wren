@@ -23,6 +23,7 @@ import { events } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import type { Terms } from "@wren/offers";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
+import type { DraftDetail, DraftState, VersionLine } from "./history.js";
 import type { Fit } from "./icp.js";
 import type { ShapeBody } from "./model.js";
 import { isRowId, subjectOf } from "./moves.js";
@@ -33,12 +34,16 @@ import {
   journeys,
   offerVersions,
   pipelineDeals,
+  shapeDrafts,
+  shapeMirrors,
+  shapeTags,
   shapeVersions,
   termsVersions,
 } from "./schema.js";
 
 export const OFFER_RECORD = "pipeline.offer";
 export const SHAPE_RECORD = "pipeline.shape";
+export const SHAPE_DRAFT_RECORD = "pipeline.shape_draft";
 export const JOURNEY_RECORD = "pipeline.journey";
 export const DEAL_RECORD = "pipeline.deal";
 export const NUMBER_RECORD = "pipeline.number";
@@ -57,6 +62,12 @@ const OFFER_STATES = {
   paused: { label: "Paused", tone: "warn" },
   retired: { label: "Retired", tone: "neutral" },
 } as const;
+const DRAFT_STATES = {
+  draft: { label: "Draft", tone: "neutral" },
+  proposed: { label: "Proposed", tone: "warn" },
+  applied: { label: "Applied", tone: "good" },
+  dropped: { label: "Dropped", tone: "neutral" },
+} as const satisfies Record<DraftState, { label: string; tone: string }>;
 const KIND_STATES = {
   source: { label: "Source", tone: "neutral" },
   step: { label: "Step", tone: "neutral" },
@@ -349,25 +360,127 @@ export const shapeRecord = (): RecordType =>
       "pipeline.shapeDiff",
       "pipeline.shapeImport",
       "pipeline.shapeStart",
+      "pipeline.shapeBlame",
+      "pipeline.shapeUndoPreview",
+      "pipeline.shapeUndo",
+      "pipeline.shapeTag",
     ],
-    /** The newest body with each node's depth, and every version: what changed and why. */
+    /**
+     * The newest body with each node's depth, and every version: what changed and why, the draft
+     * it came from, its tags, and the commit it landed as in the private repo.
+     */
     load: async (db) => {
       const versions = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number));
       const top = versions[0];
       if (!top) return null;
-      return {
-        body: top.body,
-        depths: top.depths,
-        versions: versions.map((v) => ({
+      const tags = await db.select().from(shapeTags).orderBy(shapeTags.name);
+      const mirrors = new Map(
+        (await db.select().from(shapeMirrors)).map((m) => [m.version, m] as const),
+      );
+      const lines: VersionLine[] = versions.map((v) => {
+        const m = mirrors.get(v.number);
+        return {
           number: v.number,
           parent: v.parent,
           note: v.note,
-          at: v.createdAt,
+          at: v.createdAt.toISOString(),
           by: v.createdBy,
           nodes: v.body.nodes.length,
           edges: v.body.edges.length,
-        })),
-      };
+          draft: v.draft,
+          tags: tags
+            .filter((t) => t.version === v.number)
+            .map((t) => ({
+              name: t.name,
+              note: t.note,
+              by: t.createdBy,
+              at: t.createdAt.toISOString(),
+            })),
+          mirror: m ? { sha: m.sha, url: `https://github.com/${m.repo}/commit/${m.sha}` } : null,
+        };
+      });
+      return { body: top.body, depths: top.depths, versions: lines };
+    },
+  });
+
+// --- shape drafts ----------------------------------------------------------------------------
+
+/** Drafts as rows, newest change first. */
+export async function draftRows(db: Queryable) {
+  const rows = await db.select().from(shapeDrafts).orderBy(desc(shapeDrafts.updatedAt));
+  return rows.map((d) => ({
+    id: d.id,
+    name: d.name,
+    state: d.state,
+    base: d.base,
+    note: d.note,
+    created_by: d.createdBy,
+    created_at: d.createdAt,
+    updated_at: d.updatedAt,
+    applied_version: d.appliedVersion,
+    decided_by: d.decidedBy,
+    decided_at: d.decidedAt,
+    drop_reason: d.dropReason,
+  }));
+}
+
+/**
+ * Shape drafts (designs/2026-10-19-business-map.md, "History like git"): a body saved beside the
+ * live shape. An agent proposes, a person applies it as the next version or drops it. A row's
+ * fields are `DraftRow` (history.ts); its detail is the body and moves (`DraftDetail`).
+ */
+export const shapeDraftRecord = (): RecordType =>
+  defineRecord({
+    id: SHAPE_DRAFT_RECORD,
+    app: "deals",
+    channel: null,
+    name: { one: "shape draft", many: "shape drafts" },
+    rows: (db) => draftRows(db),
+    key: "id",
+    title: "name",
+    subtitle: "note",
+    fields: {
+      name: text("Draft"),
+      state: status(DRAFT_STATES, "State"),
+      base: number("Forked from"),
+      note: text("Why", { listed: false }),
+      createdBy: actor("Written by"),
+      createdAt: date("Written", { listed: false }),
+      updatedAt: date("Changed"),
+      appliedVersion: number("Version", { listed: false }),
+      decidedBy: actor("Decided by", { listed: false }),
+      decidedAt: date("Decided", { listed: false }),
+      dropReason: text("Why dropped", { listed: false }),
+    },
+    views: [
+      {
+        id: "open",
+        label: "Open",
+        where: { state: ["draft", "proposed"] },
+        sort: "-updatedAt",
+        at: "updatedAt",
+      },
+      {
+        id: "proposed",
+        label: "Proposed",
+        where: { state: "proposed" },
+        sort: "-updatedAt",
+        at: "updatedAt",
+      },
+      { id: "all", label: "All", sort: "-updatedAt", at: "updatedAt" },
+    ],
+    quick: ["name", "state"],
+    actions: [
+      "pipeline.shapeDraftNew",
+      "pipeline.shapeDraftUpdate",
+      "pipeline.shapeDraftPropose",
+      "pipeline.shapeDraftApply",
+      "pipeline.shapeDraftDrop",
+    ],
+    /** The draft's own body and moves: what applying it would save. */
+    load: async (db, id): Promise<DraftDetail | null> => {
+      const [d] = await db.select().from(shapeDrafts).where(eq(shapeDrafts.id, id)).limit(1);
+      return d ? { body: d.body, moves: d.moves } : null;
     },
   });
 
@@ -798,6 +911,7 @@ export const numberRecord = (): RecordType =>
 export const PIPELINE_RECORDS: readonly RecordType[] = [
   offerRecord(),
   shapeRecord(),
+  shapeDraftRecord(),
   journeyRecord(),
   dealRecord(),
   numberRecord(),

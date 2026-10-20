@@ -7,7 +7,7 @@
 import { atomic, type Queryable, type Tx } from "@wren/db";
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { Moves } from "./carry.js";
-import { type DraftState, OPEN_DRAFT_STATES } from "./history.js";
+import { type DraftState, OPEN_DRAFT_STATES, type ShapeRef } from "./history.js";
 import type { ShapeBody } from "./model.js";
 import { type ShapeDraft, type ShapeVersion, shapeDrafts, shapeVersions } from "./schema.js";
 import { lock, newestShape, Refused, saveShape } from "./store.js";
@@ -22,7 +22,7 @@ const ID_LENGTH = 40;
 export function draftIdOf(name: string): string {
   const slug = name
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
@@ -219,4 +219,27 @@ export async function dropDraft(
     if (!row) throw new Error("draft update returned nothing");
     return row;
   });
+}
+
+/** `12` or `draft:<id>` as a `ShapeRef`. Refused when it is neither. */
+export function parseRef(v: unknown): ShapeRef {
+  if (typeof v === "number" && Number.isInteger(v) && v > 0) return v;
+  if (typeof v === "string") {
+    if (/^[1-9]\d*$/.test(v)) return Number(v);
+    const id = /^draft:(.+)$/.exec(v)?.[1];
+    if (id) return `draft:${id}`;
+  }
+  throw new Refused([`"${String(v)}" is not a version number or draft:<id>.`]);
+}
+
+/** The body a ref names: a version's or a draft's. Refused when there is none. */
+export async function bodyOfRef(db: Queryable, ref: ShapeRef): Promise<ShapeBody> {
+  if (typeof ref === "number") {
+    const [v] = await db.select().from(shapeVersions).where(eq(shapeVersions.number, ref));
+    if (!v) throw new Refused([`There is no shape version ${ref}.`]);
+    return v.body;
+  }
+  const d = await draftOf(db, ref.slice("draft:".length));
+  if (!d) throw new Refused([`There is no draft "${ref.slice("draft:".length)}".`]);
+  return d.body;
 }

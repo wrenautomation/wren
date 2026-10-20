@@ -6,6 +6,7 @@ import {
   JOURNEY_RECORD,
   NUMBER_RECORD,
   OFFER_RECORD,
+  SHAPE_DRAFT_RECORD,
   SHAPE_RECORD,
   TERMS_RECORD,
 } from "./records.js";
@@ -28,6 +29,7 @@ export const PIPELINE_COMPONENTS = [
       records: [
         OFFER_RECORD,
         SHAPE_RECORD,
+        SHAPE_DRAFT_RECORD,
         JOURNEY_RECORD,
         DEAL_RECORD,
         NUMBER_RECORD,

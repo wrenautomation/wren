@@ -13,7 +13,11 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pipelineConsoleApi } from "../../src/console.js";
-import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "../../src/console-routes.js";
+import {
+  PIPELINE_CONSOLE_APPS,
+  PIPELINE_CONSOLE_ROUTES,
+  PIPELINE_CONSOLE_WRITES,
+} from "../../src/console-routes.js";
 import type { ShapeBody } from "../../src/model.js";
 import { assignJourney } from "../../src/moves.js";
 import { journeys } from "../../src/schema.js";
@@ -75,16 +79,33 @@ describe("routes", () => {
       "shapeDiff",
       "shapeExport",
       "shapePreview",
+      "shapeBlame",
+      "shapeUndoPreview",
     ]);
     expect(names.filter((n) => PIPELINE_CONSOLE_ROUTES[n as never] === "act")).toEqual(
-      expect.arrayContaining(["termsAdd", "shapeVersion", "shapeImport", "shapeStart"]),
+      expect.arrayContaining([
+        "termsAdd",
+        "shapeVersion",
+        "shapeImport",
+        "shapeStart",
+        "shapeDraftNew",
+        "shapeDraftUpdate",
+        "shapeDraftPropose",
+        "shapeDraftApply",
+        "shapeDraftDrop",
+        "shapeUndo",
+        "shapeTag",
+      ]),
     );
+    // Every act is a write: never cached, never on the demo.
+    const acts = names.filter((n) => PIPELINE_CONSOLE_ROUTES[n as never] === "act").sort();
+    expect([...PIPELINE_CONSOLE_WRITES].sort()).toEqual(acts);
     expect(PIPELINE_CONSOLE_APPS["*"]).toBe("deals");
   });
 });
 
 describe("the records", () => {
-  it("lists the seven types for Wren's team and for a client's viewer", async () => {
+  it("lists the eight types for Wren's team and for a client's viewer", async () => {
     const ids = (r: { id: string }[]) => r.map((t) => t.id).sort();
     const want = [
       "pipeline.deal",
@@ -93,6 +114,7 @@ describe("the records", () => {
       "pipeline.number",
       "pipeline.offer",
       "pipeline.shape",
+      "pipeline.shape_draft",
       "pipeline.terms",
     ];
     expect(ids(await api().recordsTypes(as(ADA, undefined, true)))).toEqual(want);

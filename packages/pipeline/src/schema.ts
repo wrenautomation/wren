@@ -20,6 +20,7 @@ import {
   index,
   integer,
   jsonb,
+  type PgTableExtraConfigValue,
   pgSchema,
   primaryKey,
   serial,
@@ -143,7 +144,8 @@ export const shapeVersions = pipeline.table(
     /** The draft it was applied from. Null for a version saved straight. */
     draft: varchar("draft", { length: 40 }),
   },
-  (t) => [
+  // Typed result: shape_versions and shape_drafts point at each other, and TS cannot infer a cycle.
+  (t): PgTableExtraConfigValue[] => [
     primaryKey({ columns: [t.number], name: "pk_shape_versions" }),
     foreignKey({
       columns: [t.parent],
@@ -189,7 +191,7 @@ export const shapeDrafts = pipeline.table(
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     dropReason: text("drop_reason"),
   },
-  (t) => [
+  (t): PgTableExtraConfigValue[] => [
     primaryKey({ columns: [t.id], name: "pk_shape_drafts" }),
     foreignKey({
       columns: [t.base],

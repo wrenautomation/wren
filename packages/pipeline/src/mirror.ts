@@ -30,6 +30,8 @@ export const mirrorPath = (workspace: string) => `shapes/${workspace}.yaml`;
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
 
 const told = new WeakSet<(line: string) => void>();
+/** One function for the process, so the default logger tells once too. */
+const consoleLog = (line: string): void => console.info(line);
 
 /**
  * Commit each version that has no `shape_mirrors` row, oldest first, to `files`. With `files`
@@ -47,7 +49,7 @@ export async function mirrorShapes(
     log?: (line: string) => void;
   },
 ): Promise<MirrorResult> {
-  const log = o.log ?? ((line: string) => console.info(line));
+  const log = o.log ?? consoleLog;
   if (!o.files) {
     if (!told.has(log)) {
       told.add(log);

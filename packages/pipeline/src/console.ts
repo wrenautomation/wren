@@ -9,6 +9,10 @@
  *   a shape file (YAML) into the next version.
  * - `shapeStart`, `shapeExport`, `shapePreview`: the Map's own: start an empty workspace from the
  *   starter, write a body as a file, and compare a file with the newest version before it saves.
+ * - `shapeDraftNew|Update|Propose|Apply|Drop`, `shapeBlame`, `shapeUndoPreview`, `shapeUndo`,
+ *   `shapeTag`: the shape's history like git (`history.ts` has what each takes and answers). A
+ *   save of the shape is followed by the mirror step: the version lands as a commit in the
+ *   private repo, and a failed mirror never fails the save.
  * - `journeysOpen`, `journeysMove`, `journeysDrop`, `journeysAssign`: the `Journeys` service, as the
  *   operator.
  * - `dealsSign`: a deal's terms, once; a change needs `force` and is audited.
@@ -20,6 +24,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import { withCustomFields } from "@wren/core/custom-fields";
+import type { GithubFiles } from "@wren/core/github";
 import { TRIGGER_IDS } from "@wren/core/logic";
 import {
   answer,
@@ -48,7 +53,37 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
 import { z } from "zod";
+import { historyOf } from "./blame.js";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "./console-routes.js";
+import {
+  applyDraft,
+  bodyOfRef,
+  dropDraft,
+  newDraft,
+  parseRef,
+  proposeDraft,
+  updateDraft,
+} from "./drafts.js";
+import type {
+  BlameAnswer,
+  BlameAsk,
+  DiffAnswer,
+  DiffAsk,
+  DraftApplyAnswer,
+  DraftDropAsk,
+  DraftIdAsk,
+  DraftNewAnswer,
+  DraftNewAsk,
+  DraftStateAnswer,
+  DraftUpdateAnswer,
+  DraftUpdateAsk,
+  TagAnswer,
+  TagAsk,
+  UndoAnswer,
+  UndoAsk,
+  UndoPreviewAnswer,
+} from "./history.js";
+import { type MirrorResult, mirrorShapes, WREN_WORKSPACE } from "./mirror.js";
 import type { ShapeBody } from "./model.js";
 import { signDeal } from "./moves.js";
 import { PIPELINE_RECORDS } from "./records.js";
@@ -64,6 +99,8 @@ import {
   shapeVersionsOf,
   syncOffers,
 } from "./store.js";
+import { addTag } from "./tags.js";
+import { planUndo, undoShape } from "./undo.js";
 
 export interface PipelineConsoleDeps {
   /** Main: the client registry, and Wren's own workspace. */
@@ -72,6 +109,8 @@ export interface PipelineConsoleDeps {
   open: (client: Pick<Client, "id" | "database">) => Db;
   /** Left out: `PIPELINE_RECORDS`. */
   records?: readonly RecordType[];
+  /** The private repo the shape mirror commits to, with its name; null or left out: the mirror is off. */
+  shapes?: { files: GithubFiles; repo: string } | null;
 }
 
 export interface ShapeVersionRequest extends PortalRequest {
@@ -81,11 +120,14 @@ export interface ShapeVersionRequest extends PortalRequest {
   /** Where journeys on a node the body drops go: `{ oldNode: newNode }`. */
   moves?: Record<string, string>;
 }
-export interface ShapeDiffRequest extends PortalRequest {
-  /** Version numbers. */
-  a: number;
-  b: number;
-}
+export type ShapeDiffRequest = PortalRequest & DiffAsk;
+export type DraftNewRequest = PortalRequest & DraftNewAsk;
+export type DraftUpdateRequest = PortalRequest & DraftUpdateAsk;
+export type DraftIdRequest = PortalRequest & DraftIdAsk;
+export type DraftDropRequest = PortalRequest & DraftDropAsk;
+export type BlameRequest = PortalRequest & BlameAsk;
+export type UndoRequest = PortalRequest & UndoAsk;
+export type TagRequest = PortalRequest & TagAsk;
 export interface ShapeImportRequest extends PortalRequest {
   /** The shape file's YAML text. */
   text: string;
@@ -148,7 +190,12 @@ const refused = async <T>(fn: () => Promise<T>): Promise<T> => {
 };
 
 /** The handlers as plain calls: the service wraps them, tests call them. */
-export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: PipelineConsoleDeps) {
+export function pipelineConsoleApi({
+  db,
+  open,
+  records = PIPELINE_RECORDS,
+  shapes = null,
+}: PipelineConsoleDeps) {
   /**
    * Whose pipeline: the client named, else Wren's for Wren's team, else the login's own client.
    * Refused past what the viewer may `p` in Opportunities there; a change never on the demo.
@@ -245,22 +292,16 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
       );
       return { version: row.number };
     },
-    shapeDiff: async (req: ShapeDiffRequest) => {
+    shapeDiff: async (req: ShapeDiffRequest): Promise<DiffAnswer> => {
       const w = await workspace(req, "read");
-      const all = await shapeVersionsOf(w.db);
-      const at = (n: number) => {
-        const v = all.find((x) => x.number === Number(n));
-        if (!v) throw new PortalRefusal(`There is no shape version ${n}.`, 400);
-        return v;
-      };
-      const [a, b] = [at(req.a), at(req.b)];
-      // The bodies too: the Map draws the two shapes as one, a removed node beside the added.
-      return {
-        a: a.number,
-        b: b.number,
-        diff: diffShapes(a.body, b.body),
-        bodies: [a.body, b.body],
-      };
+      // A version number or `draft:<id>`; the bodies too: the Map draws the two shapes as one, a
+      // removed node beside the added.
+      return refused(async () => {
+        const a = parseRef(req.a);
+        const b = parseRef(req.b);
+        const bodies: [ShapeBody, ShapeBody] = [await bodyOfRef(w.db, a), await bodyOfRef(w.db, b)];
+        return { a, b, diff: diffShapes(bodies[0], bodies[1]), bodies };
+      });
     },
     shapeImport: async (req: ShapeImportRequest) => {
       const w = await workspace(req, "act");
@@ -301,6 +342,123 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
         moves: file.moves ?? null,
       };
     },
+    shapeDraftNew: async (req: DraftNewRequest): Promise<DraftNewAnswer> => {
+      const w = await workspace(req, "act");
+      const who = by(req);
+      const row = await refused(() =>
+        newDraft(w.db, {
+          name: String(req.name ?? ""),
+          body: bodyOf(req.body),
+          ...(req.moves ? { moves: req.moves } : {}),
+          ...(req.base != null ? { base: Number(req.base) } : {}),
+          ...(req.note ? { note: req.note } : {}),
+          by: who,
+        }),
+      );
+      return { id: row.id, base: row.base };
+    },
+    shapeDraftUpdate: async (req: DraftUpdateRequest): Promise<DraftUpdateAnswer> => {
+      const w = await workspace(req, "act");
+      const row = await refused(() =>
+        updateDraft(w.db, {
+          id: String(req.id ?? ""),
+          by: by(req),
+          body: bodyOf(req.body),
+          ...(req.moves ? { moves: req.moves } : {}),
+          ...(req.note != null ? { note: req.note } : {}),
+        }),
+      );
+      return { id: row.id, updatedAt: row.updatedAt.toISOString() };
+    },
+    shapeDraftPropose: async (req: DraftIdRequest): Promise<DraftStateAnswer> => {
+      const w = await workspace(req, "act");
+      const who = by(req);
+      const row = await refused(() => proposeDraft(w.db, { id: String(req.id ?? ""), by: who }));
+      return { id: row.id, state: row.state };
+    },
+    shapeDraftApply: async (req: DraftIdRequest): Promise<DraftApplyAnswer> => {
+      const w = await workspace(req, "act");
+      const done = await refused(() =>
+        applyDraft(w.db, { id: String(req.id ?? ""), by: by(req), triggers: TRIGGER_IDS }),
+      );
+      return { id: done.draft.id, version: done.version.number };
+    },
+    shapeDraftDrop: async (req: DraftDropRequest): Promise<DraftStateAnswer> => {
+      const w = await workspace(req, "act");
+      const who = by(req);
+      const row = await refused(() =>
+        dropDraft(w.db, { id: String(req.id ?? ""), reason: String(req.reason ?? ""), by: who }),
+      );
+      return { id: row.id, state: row.state };
+    },
+    shapeBlame: async (req: BlameRequest): Promise<BlameAnswer> => {
+      const w = await workspace(req, "read");
+      const node = req.node ? String(req.node) : "";
+      const edge = req.edge ? String(req.edge) : "";
+      if (!node === !edge) throw new PortalRefusal("Name exactly one of node or edge.", 400);
+      return {
+        lines: historyOf(await shapeVersionsOf(w.db), node || edge, node ? "node" : "edge"),
+      };
+    },
+    shapeUndoPreview: async (req: UndoRequest): Promise<UndoPreviewAnswer> => {
+      const w = await workspace(req, "read");
+      const plan = await refused(() =>
+        planUndo(w.db, {
+          a: Number(req.a),
+          b: Number(req.b),
+          change: String(req.change ?? ""),
+          triggers: TRIGGER_IDS,
+        }),
+      );
+      return {
+        line: plan.line,
+        note: plan.note,
+        newest: plan.newest.number,
+        diff: plan.diff,
+        bodies: [plan.newest.body, plan.result],
+      };
+    },
+    shapeUndo: async (req: UndoRequest): Promise<UndoAnswer> => {
+      const w = await workspace(req, "act");
+      const row = await refused(() =>
+        undoShape(w.db, {
+          a: Number(req.a),
+          b: Number(req.b),
+          change: String(req.change ?? ""),
+          by: by(req),
+          triggers: TRIGGER_IDS,
+        }),
+      );
+      return { version: row.number };
+    },
+    shapeTag: async (req: TagRequest): Promise<TagAnswer> => {
+      const w = await workspace(req, "act");
+      const row = await refused(() =>
+        addTag(w.db, {
+          name: String(req.name ?? ""),
+          version: Number(req.version),
+          ...(req.note ? { note: req.note } : {}),
+          by: by(req),
+        }),
+      );
+      return { name: row.name, version: row.version };
+    },
+    /**
+     * The mirror step after a save: commit the versions the private repo lacks. A failed mirror
+     * is told in the answer and the log, never thrown: the save stands, the next run catches up.
+     */
+    mirror: async (req: PortalRequest): Promise<MirrorResult> => {
+      try {
+        const w = await workspace(req, "read");
+        return await mirrorShapes(w.db, {
+          files: shapes?.files ?? null,
+          repo: shapes?.repo ?? "",
+          workspace: w.client ?? WREN_WORKSPACE,
+        });
+      } catch (e) {
+        return { committed: [], failed: e instanceof Error ? e.message : String(e) };
+      }
+    },
     termsAdd: async (req: TermsAddRequest) => {
       const w = await workspace(req, "act");
       if (w.client) throw new PortalRefusal("terms are added in Wren's workspace only", 400);
@@ -332,7 +490,38 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
   };
 }
 
+/**
+ * A save of the shape, then the mirror step: the version lands as a commit in the private repo.
+ * Each is one journal entry, so a retry never saves twice. `api.mirror` never throws, so a failed
+ * mirror leaves the save standing; the next mirror run commits what is missing.
+ */
+export async function saveThenMirror<Q extends PortalRequest, T>(
+  ctx: Pick<restate.Context, "run">,
+  api: { mirror: (req: PortalRequest) => Promise<unknown> },
+  name: string,
+  req: Q,
+  save: (req: Q) => Promise<T>,
+): Promise<T> {
+  return answer(async () => {
+    const saved = await ctx.run(name, () => answer(() => save(req)));
+    await ctx.run("shape mirror", () => api.mirror(req));
+    return saved;
+  });
+}
+
 const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
+const bodySchema = z.looseObject({}).describe("The shape body: name, nodes, edges");
+const movesSchema = z
+  .record(z.string(), z.string())
+  .nullish()
+  .describe("Where journeys on a dropped node go: { oldNode: newNode }");
+const refSchema = z.union([z.number(), z.string()]);
+const undoFields = {
+  a: z.number().describe("The diff's first shape version"),
+  b: z.number().describe("The diff's second shape version"),
+  change: z.string().describe("A change key from the diff, like node:<id>:added"),
+};
+const draftId = z.string().describe("The draft's id, from the draft list");
 
 export function makePipelineConsole(deps: PipelineConsoleDeps) {
   const api = pipelineConsoleApi(deps);
@@ -375,14 +564,14 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
           }),
         },
         (ctx: restate.Context, req: ShapeVersionRequest) =>
-          answer(() => ctx.run("shape version", () => answer(() => api.shapeVersion(req)))),
+          saveThenMirror(ctx, api, "shape version", req, api.shapeVersion),
       ),
       shapeDiff: serviceHandler(
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
-            a: z.number().describe("A shape version number"),
-            b: z.number().describe("Another shape version number"),
+            a: refSchema.describe("A shape version number, or draft:<id>"),
+            b: refSchema.describe("Another shape version number, or draft:<id>"),
           }),
         },
         (_: restate.Context, req: ShapeDiffRequest) => answer(() => api.shapeDiff(req)),
@@ -396,12 +585,12 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
           }),
         },
         (ctx: restate.Context, req: ShapeImportRequest) =>
-          answer(() => ctx.run("shape import", () => answer(() => api.shapeImport(req)))),
+          saveThenMirror(ctx, api, "shape import", req, api.shapeImport),
       ),
       shapeStart: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS }) },
         (ctx: restate.Context, req: PortalRequest) =>
-          answer(() => ctx.run("shape start", () => answer(() => api.shapeStart(req)))),
+          saveThenMirror(ctx, api, "shape start", req, api.shapeStart),
       ),
       shapeExport: serviceHandler(
         {
@@ -420,6 +609,92 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
           }),
         },
         (_: restate.Context, req: ShapePreviewRequest) => answer(() => api.shapePreview(req)),
+      ),
+      shapeDraftNew: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            name: z.string().describe("The draft's name: a few words"),
+            body: bodySchema,
+            moves: movesSchema,
+            base: z
+              .number()
+              .nullish()
+              .describe("The shape version it forks. The newest when left out"),
+            note: z.string().nullish().describe("Why, in a sentence"),
+          }),
+        },
+        (ctx: restate.Context, req: DraftNewRequest) =>
+          answer(() => ctx.run("shape draft new", () => answer(() => api.shapeDraftNew(req)))),
+      ),
+      shapeDraftUpdate: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            id: draftId,
+            body: bodySchema,
+            moves: movesSchema,
+            note: z.string().nullish().describe("Why. Left out keeps the note"),
+          }),
+        },
+        (ctx: restate.Context, req: DraftUpdateRequest) =>
+          answer(() =>
+            ctx.run("shape draft update", () => answer(() => api.shapeDraftUpdate(req))),
+          ),
+      ),
+      shapeDraftPropose: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, id: draftId }) },
+        (ctx: restate.Context, req: DraftIdRequest) =>
+          answer(() =>
+            ctx.run("shape draft propose", () => answer(() => api.shapeDraftPropose(req))),
+          ),
+      ),
+      shapeDraftApply: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, id: draftId }) },
+        (ctx: restate.Context, req: DraftIdRequest) =>
+          saveThenMirror(ctx, api, "shape draft apply", req, api.shapeDraftApply),
+      ),
+      shapeDraftDrop: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            id: draftId,
+            reason: z.string().describe("Why it is dropped"),
+          }),
+        },
+        (ctx: restate.Context, req: DraftDropRequest) =>
+          answer(() => ctx.run("shape draft drop", () => answer(() => api.shapeDraftDrop(req)))),
+      ),
+      shapeBlame: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            node: z.string().nullish().describe("A node id. Give this or edge, not both"),
+            edge: z.string().nullish().describe("An edge id. Give this or node, not both"),
+          }),
+        },
+        (_: restate.Context, req: BlameRequest) => answer(() => api.shapeBlame(req)),
+      ),
+      shapeUndoPreview: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, ...undoFields }) },
+        (_: restate.Context, req: UndoRequest) => answer(() => api.shapeUndoPreview(req)),
+      ),
+      shapeUndo: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, ...undoFields }) },
+        (ctx: restate.Context, req: UndoRequest) =>
+          saveThenMirror(ctx, api, "shape undo", req, api.shapeUndo),
+      ),
+      shapeTag: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            name: z.string().describe("The tag: a release name, 1 to 60 characters"),
+            version: z.number().describe("The shape version it labels"),
+            note: z.string().nullish().describe("Why, in a sentence"),
+          }),
+        },
+        (ctx: restate.Context, req: TagRequest) =>
+          answer(() => ctx.run("shape tag", () => answer(() => api.shapeTag(req)))),
       ),
       journeysOpen: serviceHandler(
         {
