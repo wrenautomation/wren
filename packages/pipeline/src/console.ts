@@ -9,7 +9,8 @@
  *   a shape file (YAML) into the next version.
  * - `shapeStart`, `shapeExport`, `shapePreview`: the Map's own: start an empty workspace from the
  *   starter, write a body as a file, and compare a file with the newest version before it saves.
- * - `journeysOpen`, `journeysMove`, `journeysDrop`: the `Journeys` service, as the operator.
+ * - `journeysOpen`, `journeysMove`, `journeysDrop`, `journeysAssign`: the `Journeys` service, as the
+ *   operator.
  * - `dealsSign`: a deal's terms, once; a change needs `force` and is audited.
  * - `termsAdd`: the next version of one plan of one offer, as `wren terms add` (same checks).
  *
@@ -18,6 +19,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
+import { withCustomFields } from "@wren/core/custom-fields";
 import { TRIGGER_IDS } from "@wren/core/logic";
 import {
   answer,
@@ -43,7 +45,7 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import { type Db, snapshot } from "@wren/db";
+import { type Db, type Queryable, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
 import { z } from "zod";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "./console-routes.js";
@@ -116,6 +118,11 @@ export interface JourneyDropRequest extends PortalRequest {
   journey: string;
   reason: string;
 }
+export interface JourneyAssignRequest extends PortalRequest {
+  journey: string;
+  /** A team member's email; left out or null clears the owner. */
+  to?: string | null;
+}
 export interface DealSignRequest extends PortalRequest {
   deal: string;
   plan: string;
@@ -169,10 +176,33 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
     if (isDemo(req.viewer) || !email) throw new PortalRefusal("sign in to change journeys", 403);
     return email;
   };
+  /**
+   * The types as this workspace shows them: a type that takes custom fields gets the workspace's
+   * own (owner null is Wren's, else the client's id), read from the database that holds the rows.
+   * Their values are set by the Set field step; no form edits them here, so `edits` goes.
+   */
+  const typesFor = async (client: string | null, db: Queryable): Promise<RecordType[]> => {
+    const owned = records.map((t) =>
+      t.custom ? { ...t, custom: { ...t.custom, owner: client } } : t,
+    );
+    return (await withCustomFields(owned, db)).map((t) => {
+      if (!t.custom) return t;
+      const { edits: _edits, ...rest } = t;
+      return rest;
+    });
+  };
   const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
     const w = await workspace(req, "read");
-    return snapshot(w.db, (tx) =>
-      use(serveRecords(records, tx, undefined, fenceFor(req, w.client ?? WREN), meOf(req))),
+    return snapshot(w.db, async (tx) =>
+      use(
+        serveRecords(
+          await typesFor(w.client, tx),
+          tx,
+          undefined,
+          fenceFor(req, w.client ?? WREN),
+          meOf(req),
+        ),
+      ),
     );
   };
   const bodyOf = (v: unknown): ShapeBody => {
@@ -188,7 +218,9 @@ export function pipelineConsoleApi({ db, open, records = PIPELINE_RECORDS }: Pip
     recordsTypes: async (req: PortalRequest) => {
       const w = await workspace(req, "read");
       const fence = fenceFor(req, w.client ?? WREN);
-      return records.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
+      return (await typesFor(w.client, w.db))
+        .filter((t) => !fence || opens(t, fence(t)))
+        .map((t) => metaOf(t, false));
     },
     recordsList: (req: PortalRequest & ListAsk) => read(req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk) => read(req, (r) => r.get(req)),
@@ -447,6 +479,28 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
               client: w.client,
               journey: req.journey,
               reason: req.reason,
+              by: api.by(req),
+            });
+          }),
+      ),
+      journeysAssign: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            journey: z.string().describe("The journey's id"),
+            to: z
+              .string()
+              .nullish()
+              .describe("A team member's email; left out or null clears the owner"),
+          }),
+        },
+        (ctx: restate.Context, req: JourneyAssignRequest) =>
+          answer(async () => {
+            const w = await api.workspace(req, "act");
+            return journeys(ctx).assign({
+              client: w.client,
+              journey: req.journey,
+              to: req.to ?? null,
               by: api.by(req),
             });
           }),

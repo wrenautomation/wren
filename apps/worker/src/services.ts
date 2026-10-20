@@ -2121,7 +2121,12 @@ export async function buildServices(
         ...journeySteps({
           db: (client) => (client ? clientDb(client) : db),
           // A stage's `research` runs on the person-research code (free reads, then a queued run).
-          researcher: journeyResearcher({ main: db, ingress: ingressOf(settings) }),
+          // Its ICP fit asks the gateway model (the bulk one) about the plain-word rules; no other vendor.
+          researcher: journeyResearcher({
+            main: db,
+            ingress: ingressOf(settings),
+            model: llm.provider === "gateway" ? llm : null,
+          }),
         }),
         // Payments folded into the deal they name (`pipeline.money`).
         ...collectSteps({ db: (client) => (client ? clientDb(client) : db) }),

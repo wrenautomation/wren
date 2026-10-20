@@ -7,11 +7,11 @@
  *   s_<k>      `journey.stage` k: the arrival
  *
  * Workflow inputs `in.<k>` and `in.dropped` take manual moves and drops. A `group` source is a
- * `trigger.segment` node (`e_<source>`, `entered`) and a `sourced` source a `trigger.source` node
- * (`e_<source>`), each wired to the move node of every flow edge the source has. A parked source
- * builds nothing. The move and stage nodes are the workflow's own steps (`own`), not catalog
- * parts: a wire joins equal event kinds only, and each trigger fixes its own, so a move node
- * takes one input per kind it hears.
+ * `trigger.segment` node (`e_<source>`, `entered`, repeating: coming back to the group is a new
+ * journey) and a `sourced` source a `trigger.source` node (`e_<source>`), each wired to the move
+ * node of every flow edge the source has. A parked source builds nothing. The move and stage
+ * nodes are the workflow's own steps (`own`), not catalog parts: a wire joins equal event kinds
+ * only, and each trigger fixes its own, so a move node takes one input per kind it hears.
  */
 import type { EventKind, Port } from "@wren/core/components";
 import { logicOf } from "@wren/core/logic";
@@ -79,7 +79,8 @@ export function shapeWorkflow(versionNumber: number, body: ShapeBody, scope: Sco
     if (s.via === "group" && s.group) {
       const segment = Number(s.group);
       if (!Number.isSafeInteger(segment)) continue;
-      const settings = { segment, on: "entered" };
+      // Each time: a person who leaves the group and comes back starts a new journey.
+      const settings = { segment, on: "entered", repeat: "each" };
       kind = outKind({ trigger: SEGMENT_TRIGGER, with: settings });
       node = { id: `e_${s.id}`, uses: SEGMENT_TRIGGER, with: settings };
     } else if (s.via === "sourced" && s.source) {

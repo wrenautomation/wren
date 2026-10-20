@@ -41,6 +41,31 @@ describe("entryOf", () => {
     expect(entryOf(b, { channel: "meta", campaign: "camp-2" })?.id).toBe("ad_any");
   });
 
+  it("matches an ads source by the ad campaign's id as well as the campaign word", () => {
+    const ads = body([
+      { id: "ad_id", kind: "source", name: "By id", via: "ads", campaign: "120001" },
+      { id: "ad_word", kind: "source", name: "By word", via: "ads", campaign: "spring-offer" },
+    ]);
+    // A paid touch: channel ads, platform meta, the word the link carried, the id ad_days holds.
+    const paid = {
+      channel: "ads",
+      platform: "meta",
+      campaign: "spring-offer",
+      adCampaign: "120001",
+    };
+    expect(entryOf(ads, paid)?.id).toBe("ad_id");
+    const { adCampaign: _id, ...word } = paid;
+    expect(entryOf(ads, word)?.id).toBe("ad_word");
+    expect(entryOf(ads, { ...paid, campaign: "other" })?.id).toBe("ad_id");
+    expect(entryOf(ads, { channel: "ads", campaign: "other" })).toBeNull();
+  });
+
+  it("matches a source's channel to the cause's platform too", () => {
+    expect(entryOf(b, { channel: "ads", platform: "meta" })?.id).toBe("ad_any");
+    expect(entryOf(b, { channel: "ads", platform: "meta", campaign: "camp-1" })?.id).toBe("ad_a");
+    expect(entryOf(b, { channel: "ads", platform: "google" })).toBeNull();
+  });
+
   it("matches a sourced or group cause", () => {
     expect(entryOf(b, { source: "list-1" })?.id).toBe("list");
     expect(entryOf(b, { group: "7" })?.id).toBe("seg");

@@ -1,5 +1,6 @@
 export * from "./contacts.js";
 export * from "./elsewhere.js";
+export * from "./fit-traits.js";
 export * from "./lookup.js";
 export * from "./names.js";
 export * from "./profile-link.js";

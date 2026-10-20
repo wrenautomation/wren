@@ -3,17 +3,22 @@
  * do, and that every change goes through the store (so a refusal reads as a portal refusal).
  * Synthetic data only.
  */
+import { readFileSync } from "node:fs";
 import { addClient, addMember, addOperator } from "@wren/core/clients";
+import { saveCustomField, setFieldStep } from "@wren/core/custom-fields";
 import type { Viewer } from "@wren/core/portal";
 import { resolveProfile } from "@wren/core/profiles";
+import { events } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pipelineConsoleApi } from "../../src/console.js";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "../../src/console-routes.js";
 import type { ShapeBody } from "../../src/model.js";
+import { assignJourney } from "../../src/moves.js";
 import { journeys } from "../../src/schema.js";
 import { exportShape } from "../../src/shape-file.js";
-import { shapeVersionsOf } from "../../src/store.js";
+import { Refused, shapeVersionsOf } from "../../src/store.js";
 import { flow } from "../fixtures.js";
 
 let pg: TestPostgres;
@@ -312,5 +317,189 @@ describe("terms", () => {
     await expect(api().termsAdd({ ...as(OWNER, "acme"), ...ask })).rejects.toThrow(
       /Wren's workspace only/,
     );
+  });
+});
+
+describe("who works a journey", () => {
+  const op = () => as(ADA, undefined, true);
+  const NEO = "neo@acme.example.test";
+  const profileOf = async (email: string) =>
+    (await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))?.id as number;
+  const journeyFor = async (email: string, owner: string | null = null) => {
+    const [j] = await pg.db
+      .insert(journeys)
+      .values({
+        profileId: await profileOf(email),
+        version: 3,
+        node: "engaged",
+        entry: "manual",
+        owner,
+      })
+      .returning();
+    return j?.id as string;
+  };
+  const ownerOf = async (id: string) =>
+    (await pg.db.select({ o: journeys.owner }).from(journeys).where(eq(journeys.id, id)))[0]?.o;
+
+  it("gives a journey to a team member, in the form the Mine view reads, and clears it", async () => {
+    const id = await journeyFor("own1@example.test");
+    expect(await assignJourney(pg.db, pg.db, { journey: id, to: "  Ada@Example.Test " })).toEqual({
+      journey: id,
+      owner: ADA,
+    });
+    expect(await ownerOf(id)).toBe(ADA);
+    await assignJourney(pg.db, pg.db, { journey: id, to: null });
+    expect(await ownerOf(id)).toBeNull();
+  });
+
+  it("takes a client's member in that client's workspace only", async () => {
+    const id = await journeyFor("own2@example.test");
+    await addMember(pg.db, "acme", NEO, { role: "member" });
+    await assignJourney(pg.db, pg.db, { client: "acme", journey: id, to: NEO });
+    expect(await ownerOf(id)).toBe(NEO);
+    // Wren's operators work any client's journeys; a client's member does not work Wren's.
+    await assignJourney(pg.db, pg.db, { client: "acme", journey: id, to: ADA });
+    await expect(assignJourney(pg.db, pg.db, { journey: id, to: NEO })).rejects.toThrow(
+      /not on the team here/,
+    );
+  });
+
+  it("refuses a stranger, a name, and a journey that is not there", async () => {
+    const id = await journeyFor("own3@example.test");
+    const refusal = (p: Promise<unknown>) =>
+      p.then(
+        () => [] as string[],
+        (e: unknown) => (e instanceof Refused ? e.errors : [String(e)]),
+      );
+    expect(
+      await refusal(assignJourney(pg.db, pg.db, { journey: id, to: "x@nowhere.test" })),
+    ).toEqual(["x@nowhere.test is not on the team here."]);
+    expect(await refusal(assignJourney(pg.db, pg.db, { journey: id, to: "ada" }))).toEqual([
+      '"ada" is not an email address.',
+    ]);
+    expect(
+      await refusal(
+        assignJourney(pg.db, pg.db, { journey: "00000000-0000-4000-8000-000000000000", to: null }),
+      ),
+    ).toEqual(["No journey 00000000-0000-4000-8000-000000000000."]);
+    expect(await refusal(assignJourney(pg.db, pg.db, { journey: "nope", to: null }))).toEqual([
+      "No journey nope.",
+    ]);
+    expect(await ownerOf(id)).toBeNull();
+  });
+
+  it("shows the owner, and Mine lists the open journeys the viewer owns", async () => {
+    const mine = await journeyFor("own4@example.test", ADA);
+    await journeyFor("own5@example.test", NEO);
+    await journeyFor("own6@example.test");
+    const ask = { ...op(), record: "pipeline.journey", view: "mine", limit: 200 };
+    const page = await api().recordsList(ask);
+    expect(page.rows.map((r) => r.id)).toContain(mine);
+    expect(page.rows.every((r) => r.owner === ADA)).toBe(true);
+    const got = await api().recordsGet({ ...op(), record: "pipeline.journey", id: mine });
+    expect(got.row.owner).toBe(ADA);
+  });
+
+  it("backfills the owner once from the newest hand arrival, and only an address counts", async () => {
+    const sqlText = readFileSync(
+      new URL("../../../db/drizzle/0308_journey_owner.sql", import.meta.url),
+      "utf8",
+    );
+    const backfill = sqlText.split("--> statement-breakpoint")[1] ?? "";
+    expect(backfill).toMatch(/UPDATE "pipeline"."journeys"/);
+    const arrive = (id: string, ref: string, kind: string, ago: number, node = "s_engaged") =>
+      pg.db.insert(events).values({
+        workflow: "shape.v3",
+        node,
+        port: "in",
+        subject: `journey:${id}`,
+        kind: "journey",
+        data: { cause: { kind, ref } },
+        by: "t",
+        at: new Date(Date.now() - ago * 60_000),
+      });
+    const [a, b, c, d] = [
+      await journeyFor("bf1@example.test"),
+      await journeyFor("bf2@example.test"),
+      await journeyFor("bf3@example.test"),
+      await journeyFor("bf4@example.test"),
+    ] as [string, string, string, string];
+    // a: two hand arrivals; the newest wins, lowercased.
+    await arrive(a, "old@example.test", "manual", 30);
+    await arrive(a, "New@Example.Test", "manual", 10, "s_booked");
+    // b: a hand arrival by a shell name, an older one by an address: the newest decides, no address.
+    await arrive(b, "gina", "manual", 5, "s_booked");
+    await arrive(b, "gina@example.test", "manual", 50);
+    // c: only spine arrivals. d: a hand drop is not an arrival at a step.
+    await arrive(c, "touch:1", "touch", 5);
+    await arrive(d, "d@example.test", "manual", 5, "dropped");
+    await pg.db.execute(sql.raw(backfill));
+    expect(await ownerOf(a)).toBe("new@example.test");
+    expect(await ownerOf(b)).toBeNull();
+    expect(await ownerOf(c)).toBeNull();
+    expect(await ownerOf(d)).toBeNull();
+  });
+});
+
+describe("custom fields on a journey", () => {
+  const op = () => as(ADA, undefined, true);
+
+  it("shows a field the workspace defines, with the value the Set field step wrote", async () => {
+    const [p] = [
+      (await resolveProfile(pg.db, [{ kind: "email", value: "cf1@example.test" }], "test"))
+        ?.id as number,
+    ];
+    const [j] = await pg.db
+      .insert(journeys)
+      .values({ profileId: p, version: 3, node: "engaged", entry: "manual" })
+      .returning();
+    const id = j?.id as string;
+    await saveCustomField(
+      pg.db,
+      null,
+      { record: "pipeline.journey", label: "Roof age", kind: "number" },
+      "t",
+    );
+    const out = await setFieldStep(pg.db)(
+      "in",
+      { subject: `journey:${id}`, kind: "journey", data: { age: 20 } } as never,
+      {
+        client: null,
+        workflow: "shape.v3",
+        node: "n1",
+        with: { field: "roof_age", value: "{{data.age}}" },
+      },
+    );
+    expect(out[0]?.port).toBe("out");
+    const meta = await api().recordsTypes(op());
+    const journey = meta.find((t) => t.id === "pipeline.journey");
+    expect(journey?.fields.map((f) => f.key)).toContain("x_roof_age");
+    // No form edits it here: the Set field step does.
+    expect(journey?.edits).toBeNull();
+    const got = await api().recordsGet({ ...op(), record: "pipeline.journey", id });
+    expect(got.row.x_roof_age).toBe(20);
+    const page = await api().recordsList({
+      ...op(),
+      record: "pipeline.journey",
+      view: "all",
+      sort: "-x_roof_age",
+      limit: 200,
+    });
+    expect(page.rows.find((r) => r.id === id)?.x_roof_age).toBe(20);
+    expect(page.rows[0]?.id).toBe(id);
+    // Another owner's fields do not show in Wren's workspace.
+    await saveCustomField(
+      pg.db,
+      "acme",
+      { record: "pipeline.journey", label: "Pipe size", kind: "text" },
+      "t",
+    );
+    const again = (await api().recordsTypes(op())).find((t) => t.id === "pipeline.journey");
+    expect(again?.fields.map((f) => f.key)).not.toContain("x_pipe_size");
+    const theirs = (await api().recordsTypes(as(VAL, "acme"))).find(
+      (t) => t.id === "pipeline.journey",
+    );
+    expect(theirs?.fields.map((f) => f.key)).toContain("x_pipe_size");
+    expect(theirs?.fields.map((f) => f.key)).not.toContain("x_roof_age");
   });
 });

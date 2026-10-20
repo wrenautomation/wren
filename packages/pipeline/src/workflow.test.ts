@@ -129,7 +129,7 @@ describe("shapeWorkflow", () => {
     expect(w.nodes.find((n) => n.id === "e_warm")).toEqual({
       id: "e_warm",
       uses: "trigger.segment",
-      with: { segment: 7, on: "entered" },
+      with: { segment: 7, on: "entered", repeat: "each" },
     });
     const ws = wires(w);
     expect(ws).toContain("e_warm.out -> m_booked.lead");

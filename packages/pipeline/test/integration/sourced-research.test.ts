@@ -10,10 +10,16 @@ import { type Fired, hearersOf, pgSpineStore, type Walk, walk } from "@wren/core
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { shapeWorkflowsOf } from "../../src/journeys.js";
 import type { ShapeBody } from "../../src/model.js";
-import { type ResearchAsk, type Researcher, requestResearch } from "../../src/research.js";
+import { journeyRecord } from "../../src/records.js";
+import {
+  type ResearchAsk,
+  type Researcher,
+  refineFit,
+  requestResearch,
+} from "../../src/research.js";
 import { journeyResearch, journeys, offerVersions } from "../../src/schema.js";
 import { sourcedPass } from "../../src/sourced.js";
 import { journeySteps } from "../../src/steps.js";
@@ -302,6 +308,82 @@ describe("node research", () => {
     // Another repeat asks nothing.
     expect(await requestResearch(pg.db, r, ask, NOW)).toBe("none");
     expect(calls.full).toHaveLength(2);
+  });
+});
+
+describe("ICP fit in the light read", () => {
+  const icp = { who: "Small firms", industries: ["dental"], not: ["Large chain"] };
+  const traits = { industries: ["Dental practice"], about: ["Industry: dental practice"] };
+
+  async function journeyAsk(): Promise<ResearchAsk> {
+    const l = await list(1);
+    const [j] = await pg.db
+      .insert(journeys)
+      .values({ profileId: l.profiles[0] as number, version: 1, node: "booked", entry: "mail" })
+      .returning();
+    if (!j) throw new Error("no journey");
+    return {
+      client: null,
+      profile: j.profileId,
+      journey: j.id,
+      stage: "booked",
+      level: "light",
+      offer: "offer-a",
+      icp,
+    };
+  }
+  const resultOf = async (journey: string) =>
+    (await pg.db.select().from(journeyResearch).where(eq(journeyResearch.journey, journey)))[0]
+      ?.result as { fit?: { score: number; reasons: string[]; unknown: string[] } } | null;
+
+  it("stores the code score with the read, and a model fills in the plain-word rules after", async () => {
+    const ask = await journeyAsk();
+    const model = { complete: vi.fn(async () => ({ text: '{"who": "yes", "not": ["no"]}' })) };
+    const { r } = stub({ model, light: async () => ({ traits }) });
+
+    expect(await requestResearch(pg.db, r, ask, NOW)).toBe("light");
+    // The industry is checked in code; who and not wait for the model.
+    await vi.waitFor(async () => {
+      expect((await resultOf(ask.journey))?.fit).toMatchObject({ score: 100, unknown: [] });
+    });
+    const fit = (await resultOf(ask.journey))?.fit;
+    expect(fit?.reasons).toContain("Industry fits: Dental practice.");
+    expect(fit?.reasons).toContain("Clear of: Large chain.");
+    expect(model.complete).toHaveBeenCalledTimes(1);
+
+    // The record's detail shows it, with the node's name.
+    const detail = await journeyRecord().load?.(pg.db, ask.journey);
+    expect(detail).toMatchObject({ fit: { score: 100, node: "booked" } });
+    // A repeat of the step scores nothing again.
+    expect(await requestResearch(pg.db, r, ask, NOW)).toBe("none");
+    expect(model.complete).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the code score, and says why, when the model fails", async () => {
+    const ask = await journeyAsk();
+    const down = {
+      complete: async () => {
+        throw new Error("gateway down");
+      },
+    };
+    const { r } = stub({ light: async () => ({ traits }) });
+    expect(await requestResearch(pg.db, r, ask, NOW)).toBe("light");
+    // Without a model on the researcher the code score alone is stored.
+    expect((await resultOf(ask.journey))?.fit).toMatchObject({ score: 100 });
+    expect((await resultOf(ask.journey))?.fit?.unknown).toEqual(["who", "not: Large chain"]);
+
+    const fit = await refineFit(pg.db, down, ask, icp, traits);
+    expect(fit?.score).toBe(100);
+    expect(fit?.reasons[0]).toMatch(/^The model check failed \(gateway down\)/);
+    expect((await resultOf(ask.journey))?.fit?.reasons[0]).toMatch(/^The model check failed/);
+  });
+
+  it("scores nothing when the offer has no icp", async () => {
+    const ask = { ...(await journeyAsk()), icp: null };
+    const { r } = stub({ light: async () => ({ traits }) });
+    await requestResearch(pg.db, r, ask, NOW);
+    expect((await resultOf(ask.journey))?.fit).toBeUndefined();
+    expect(await journeyRecord().load?.(pg.db, ask.journey)).toMatchObject({ fit: null });
   });
 });
 

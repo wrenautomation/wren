@@ -22,6 +22,16 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 export const textOf = (v: unknown): string | undefined =>
   typeof v === "string" && v ? v : typeof v === "number" ? String(v) : undefined;
 
+/**
+ * A person on the team as a journey stores them: their address, lowercased, the form the `mine`
+ * view compares with the signed-in person. Null for anything that is not an address (an agent's
+ * name, a shell user): such a hand open has no owner.
+ */
+export const ownerOf = (v: unknown): string | null => {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s : null;
+};
+
 /** A profile id to its live profile: a merged one points at what it became. */
 async function liveProfile(db: Queryable, id: number): Promise<number | null> {
   let at = id;

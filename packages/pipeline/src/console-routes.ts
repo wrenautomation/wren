@@ -22,6 +22,7 @@ export const PIPELINE_CONSOLE_ROUTES = {
   journeysOpen: "act",
   journeysMove: "act",
   journeysDrop: "act",
+  journeysAssign: "act",
   dealsSign: "act",
   termsAdd: "act",
 } as const satisfies Record<string, Need>;
@@ -44,6 +45,7 @@ export const PIPELINE_CONSOLE_WRITES: readonly PipelineConsoleRoute[] = [
   "journeysOpen",
   "journeysMove",
   "journeysDrop",
+  "journeysAssign",
   "dealsSign",
   "termsAdd",
 ];

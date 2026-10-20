@@ -4,15 +4,17 @@
  * step then writes the row. No second write path. The cause is `manual`; the operator rides in
  * `cause.ref`, because a walk's own `by` is the Restate invocation id.
  *
- * Also here: `rebuildJourney` (the row, from its events) and `signDeal` (terms, once).
+ * Also here: `assignJourney` (the owner), `rebuildJourney` (the row, from its events) and
+ * `signDeal` (terms, once).
  */
 import { randomUUID } from "node:crypto";
+import { clientMembers, operators } from "@wren/core/clients";
 import { events } from "@wren/core/schema";
 import type { SpineEvent } from "@wren/core/spine";
 import { atomic, type Queryable } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { entryNodes, liveSources, sourceEdge } from "./entry.js";
-import { personOf, versionOf } from "./journeys.js";
+import { ownerOf, personOf, versionOf } from "./journeys.js";
 import { type Crossing, flowEdgesFrom, nodeOf, pathOf } from "./model.js";
 import { type Journey, journeys, pipelineDeals } from "./schema.js";
 import { liveTerms, newestShape, Refused } from "./store.js";
@@ -32,9 +34,11 @@ const manual = (by: string, now: Date) => ({
 });
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Can `id` be a row id? Asked before the database is: it would fail the query on a bad one. */
+export const isRowId = (id: string): boolean => UUID.test(id);
 /** Refuse an id that cannot be one, before the database does: its error would retry forever. */
 export function idOf(id: string, what: "journey" | "deal"): string {
-  if (!UUID.test(id)) throw new Refused([`No ${what} ${id}.`]);
+  if (!isRowId(id)) throw new Refused([`No ${what} ${id}.`]);
   return id;
 }
 
@@ -198,6 +202,46 @@ export async function moveEmit(
   };
 }
 
+/**
+ * Give a journey to a team member, or to nobody (`to` null). The owner is not part of the spine:
+ * a plain update of the column, never a move. `main` holds the team: Wren's operators, and for a
+ * client's workspace its members too. A closed journey takes an owner as well (the record keeps
+ * who worked it). Refused: no such journey, or an address that is nobody on the team here.
+ */
+export async function assignJourney(
+  db: Queryable,
+  main: Queryable,
+  p: { client?: string | null; journey: string; to: string | null },
+): Promise<{ journey: string; owner: string | null }> {
+  const id = idOf(p.journey, "journey");
+  let owner: string | null = null;
+  if (p.to !== null) {
+    owner = ownerOf(p.to);
+    if (!owner) throw new Refused([`"${p.to}" is not an email address.`]);
+    const [op] = await main
+      .select({ email: operators.email })
+      .from(operators)
+      .where(eq(operators.email, owner))
+      .limit(1);
+    const [member] =
+      op || !p.client
+        ? []
+        : await main
+            .select({ email: clientMembers.email })
+            .from(clientMembers)
+            .where(and(eq(clientMembers.clientId, p.client), eq(clientMembers.email, owner)))
+            .limit(1);
+    if (!op && !member) throw new Refused([`${owner} is not on the team here.`]);
+  }
+  const done = await db
+    .update(journeys)
+    .set({ owner })
+    .where(eq(journeys.id, id))
+    .returning({ id: journeys.id });
+  if (!done.length) throw new Refused([`No journey ${id}.`]);
+  return { journey: id, owner };
+}
+
 type RebuiltFields = Pick<Journey, "version" | "node" | "status" | "dropReason" | "trail">;
 export interface Rebuilt {
   before: RebuiltFields;
@@ -208,7 +252,7 @@ export interface Rebuilt {
 /**
  * Recompute a journey row from its spine events (subject `journey:<id>`): its version, node and
  * trail from the arrivals (a version carry counts, and its trail seeds), dropped from a drop or a
- * loop out, done from a node with no way on. What events cannot tell (person, entry, opened time)
+ * loop out, done from a node with no way on. What events cannot tell (person, entry, opened time, owner)
  * stays. Refused with no events.
  */
 export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt> {

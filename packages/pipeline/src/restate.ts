@@ -1,8 +1,8 @@
 /**
  * `Journeys`: the hand and agent moves on a journey (designs/2026-10-19-business-map.md). `open`
  * and `move` send the shape workflow's `in.<node>` input through `Spine/emit`, cause `manual`,
- * so the workflow's own `journey.move` step writes the row: no second write path. `drop` closes the row (`dropJourney`) and tells the spine. `rebuild` recomputes a
- * row from its events.
+ * so the workflow's own `journey.move` step writes the row: no second write path. `drop` closes the row (`dropJourney`) and tells the spine. `assign` sets who
+ * works a journey, a column the spine never reads. `rebuild` recomputes a row from its events.
  *
  * `client` is the workspace: null is Wren's. `by` is the operator, kept as the cause's `ref`.
  */
@@ -13,7 +13,15 @@ import type { Db } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { dropJourney } from "./journeys.js";
-import { type Emit, idOf, moveEmit, openEmit, personByKey, rebuildJourney } from "./moves.js";
+import {
+  assignJourney,
+  type Emit,
+  idOf,
+  moveEmit,
+  openEmit,
+  personByKey,
+  rebuildJourney,
+} from "./moves.js";
 import { journeys } from "./schema.js";
 import { Refused } from "./store.js";
 
@@ -54,6 +62,13 @@ export interface DropRequest {
   reason: string;
   by: string;
 }
+export interface AssignRequest {
+  client?: string | null;
+  journey: string;
+  /** A team member's email; null (or left out) gives it to nobody. */
+  to?: string | null;
+  by: string;
+}
 export interface RebuildRequest {
   client?: string | null;
   journey: string;
@@ -66,6 +81,10 @@ export type JourneysApi = {
     req: MoveRequest,
   ) => Promise<{ journey: string; from: string; to: string; status: string }>;
   drop: (ctx: restate.Context, req: DropRequest) => Promise<{ journey: string; node: string }>;
+  assign: (
+    ctx: restate.Context,
+    req: AssignRequest,
+  ) => Promise<{ journey: string; owner: string | null }>;
   rebuild: (ctx: restate.Context, req: RebuildRequest) => Promise<unknown>;
 };
 
@@ -183,6 +202,28 @@ export function makeJourneys(deps: JourneysDeps) {
           await emit(ctx, client, dropped);
           return { journey: req.journey, node: String(dropped.events[0]?.data.node ?? "") };
         },
+      ),
+      assign: serviceHandler(
+        {
+          input: z.looseObject({
+            ...WHO,
+            journey: z.string().describe("The journey's id"),
+            to: z
+              .string()
+              .nullish()
+              .describe("A team member's email; left out or null clears the owner"),
+          }),
+        },
+        (ctx: restate.Context, req: AssignRequest) =>
+          ctx.run("assign", () =>
+            run(() =>
+              assignJourney(deps.db(req.client ?? null), deps.db(null), {
+                client: req.client ?? null,
+                journey: req.journey,
+                to: req.to ?? null,
+              }),
+            ),
+          ),
       ),
       rebuild: serviceHandler(
         {

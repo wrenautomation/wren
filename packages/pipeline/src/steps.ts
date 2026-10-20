@@ -11,8 +11,9 @@ import { profileEvents } from "@wren/core/profiles-schema";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
+import { attributionOf, withAdCampaign } from "./attribution.js";
 import { type CauseFacts, entryOf, MANUAL, opensAt, sourceEdge } from "./entry.js";
-import { openJourney, personOf, textOf, versionOf } from "./journeys.js";
+import { openJourney, ownerOf, personOf, textOf, versionOf } from "./journeys.js";
 import {
   type Crossing,
   DROPPED,
@@ -163,6 +164,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
     if (profile === null) return [];
     const cause = causeOf(e, now());
     const facts = factsOf(e.data);
+    // A form's own touches: the page it came from and the visitor's first touch.
+    const seen = attributionOf(e.data);
     // The row that added the person to a sourced list.
     const row = textOf(e.data.row);
     const stamp = now().toISOString();
@@ -199,6 +202,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
             node: to,
             trail: [crossing],
             entry: old.entry,
+            owner: old.owner,
             entryRef: { subject: e.subject, cause, loop: old.id },
             openedAt: now(),
             movedAt: now(),
@@ -264,9 +268,18 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         .from(profileRollups)
         .where(eq(profileRollups.profileId, profile))
         .limit(1);
+      // Where the person came from: what the cause names, else what its page says. A paid touch
+      // adds the ad campaign's id. The first touch is the visitor's own, else the rollup's channel.
+      const came = await withAdCampaign(tx, { ...seen.cause, ...facts });
+      const first = seen.first ? await withAdCampaign(tx, seen.first) : null;
       // A named source with no edge to `to` cannot open it: choose as if none were named.
-      const named = facts.entry && sourceEdge(body, facts.entry, to) ? facts : unnamed(facts);
-      const src = entryOf(body, named, touch?.channel ? { channel: touch.channel } : null, to);
+      const named = came.entry && sourceEdge(body, came.entry, to) ? came : unnamed(came);
+      const src = entryOf(
+        body,
+        named,
+        first ?? (touch?.channel ? { channel: touch.channel } : null),
+        to,
+      );
       const edge = src ? sourceEdge(body, src.id, to) : undefined;
       const crossing: Crossing = {
         edge: edge?.id ?? null,
@@ -282,7 +295,15 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           node: to,
           trail: [crossing],
           entry: src?.id ?? MANUAL,
-          entryRef: { subject: e.subject, cause, ...facts, ...(row ? { row } : {}) },
+          // A hand open is the opener's to work until someone else takes it.
+          owner: cause.kind === "manual" ? ownerOf(cause.ref) : null,
+          entryRef: {
+            subject: e.subject,
+            cause,
+            ...came,
+            ...(first ? { first } : {}),
+            ...(row ? { row } : {}),
+          },
           openedAt: now(),
           movedAt: now(),
         })

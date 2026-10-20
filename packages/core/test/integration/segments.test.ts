@@ -417,6 +417,11 @@ describe("the segments pass", () => {
       phone: "+15550100002",
       source: "segment",
     });
+    // Each fire names its own membership row, so a repeating Group node can tell entries apart.
+    const entered = await run(
+      sql`select id from segment_member_events where profile_id = ${bo} and change = 'entered' order by id desc limit 1`,
+    );
+    expect(second.fires[1]?.event.data.member).toBe(Number(entered[0]?.id));
     // Told once: the next pass from its cursor tells nothing.
     const third = await segmentsPass(pg.db, null, flows, T(15, 13), second.cursor);
     expect(third.fires).toEqual([]);

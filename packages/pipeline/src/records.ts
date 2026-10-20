@@ -22,12 +22,20 @@ import {
 import { events } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import type { Terms } from "@wren/offers";
-import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
+import type { Fit } from "./icp.js";
 import type { ShapeBody } from "./model.js";
-import { subjectOf } from "./moves.js";
+import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
 import { scheduleOf } from "./schedule.js";
-import { journeys, offerVersions, pipelineDeals, shapeVersions, termsVersions } from "./schema.js";
+import {
+  journeyResearch,
+  journeys,
+  offerVersions,
+  pipelineDeals,
+  shapeVersions,
+  termsVersions,
+} from "./schema.js";
 
 export const OFFER_RECORD = "pipeline.offer";
 export const SHAPE_RECORD = "pipeline.shape";
@@ -365,30 +373,6 @@ export const shapeRecord = (): RecordType =>
 
 // --- journeys --------------------------------------------------------------------------------
 
-/**
- * The operator behind each journey's newest hand move or hand open: the cause's `ref` on a
- * `manual` arrival. Null where the spine moved it alone. The only owner a journey has.
- */
-async function ownersOf(db: Queryable, ids: readonly string[]): Promise<Map<string, string>> {
-  if (!ids.length) return new Map();
-  const rows = await db
-    .selectDistinctOn([events.subject], {
-      subject: events.subject,
-      ref: sql<string | null>`${events.data} -> 'cause' ->> 'ref'`,
-    })
-    .from(events)
-    .where(
-      and(
-        inArray(events.subject, ids.map(subjectOf)),
-        sql`${events.workflow} like 'shape.%'`,
-        sql`left(${events.node}, 2) = 's_'`,
-        sql`${events.data} -> 'cause' ->> 'kind' = 'manual'`,
-      ),
-    )
-    .orderBy(events.subject, desc(events.at));
-  return new Map(rows.flatMap((r) => (r.ref ? [[r.subject.slice("journey:".length), r.ref]] : [])));
-}
-
 /** A journey's arrivals and its drop, oldest first: what the spine saw. */
 export async function trailOf(db: Queryable, id: string) {
   const rows = await db
@@ -424,10 +408,6 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
     .from(shapeVersions)
     .orderBy(desc(shapeVersions.number))
     .limit(1);
-  const owners = await ownersOf(
-    db,
-    rows.map((r) => r.j.id),
-  );
   // Each person's addresses, so a row from another record (a reply, a call) finds their journey.
   const emails = new Map<number, string[]>();
   for (const k of await keysOfProfile(db, [...new Set(rows.map((r) => r.j.profileId))]))
@@ -457,7 +437,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
       flag: j.status === "open" && days >= idle ? "stale" : null,
       ghost: ghost ? "ghost" : null,
       entry: j.entry,
-      owner: owners.get(j.id) ?? null,
+      owner: j.owner,
       days_at_node: days,
       reason: j.dropReason,
       opened_at: j.openedAt,
@@ -488,7 +468,7 @@ export const journeyRecord = (): RecordType =>
       flag: status(JOURNEY_FLAGS, "Needs"),
       ghost: status(GHOST_STATES, "Ghost"),
       entry: text("Source"),
-      owner: actor("Moved by hand by"),
+      owner: actor("Owner"),
       daysAtNode: number("Days at node"),
       version: number("Shape version", { listed: false }),
       reason: text("Dropped because", { listed: false }),
@@ -520,6 +500,15 @@ export const journeyRecord = (): RecordType =>
     ],
     quick: ["node", "entry", "status"],
     related: [{ record: DEAL_RECORD, by: "journey" }],
+    // Its workspace's own fields (designs/2026-10-09-custom-fields.md). The console names the owner
+    // per request: null in Wren's workspace, the client's id in a client's.
+    custom: {
+      owner: null,
+      exists: async (db, id) =>
+        isRowId(id) &&
+        (await db.select({ id: journeys.id }).from(journeys).where(eq(journeys.id, id)).limit(1))
+          .length > 0,
+    },
     /** The edges it crossed, in order, with the node names of its own version. */
     load: async (db, id) => {
       const [r] = await db
@@ -529,6 +518,18 @@ export const journeyRecord = (): RecordType =>
         .where(eq(journeys.id, String(id)))
         .limit(1);
       if (!r) return null;
+      // The newest light read that scored the person against the offer's ICP.
+      const [read] = await db
+        .select({ stage: journeyResearch.stage, fit: sql<Fit>`${journeyResearch.result} -> 'fit'` })
+        .from(journeyResearch)
+        .where(
+          and(
+            eq(journeyResearch.journey, String(id)),
+            sql`${journeyResearch.result} -> 'fit' is not null`,
+          ),
+        )
+        .orderBy(desc(journeyResearch.requestedAt))
+        .limit(1);
       return {
         trail: r.trail.map((c) => ({
           edge: c.edge,
@@ -538,6 +539,9 @@ export const journeyRecord = (): RecordType =>
           to_name: nameOf(r.body ?? undefined, c.to),
           at: c.at,
         })),
+        fit: read
+          ? { ...read.fit, node: read.stage, node_name: nameOf(r.body ?? undefined, read.stage) }
+          : null,
       };
     },
   });
