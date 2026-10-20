@@ -41,6 +41,10 @@ const OPTIONAL = [
   "WREN_META_IG_ID",
   // The files bucket: `calls add` uploads each recorded call there (designs/2026-10-16-call-recording.md).
   "WREN_FILES_BUCKET",
+  // The shape mirror's git repo: `shape mirror`, `shape draft apply` and every shape save commit with them.
+  "WREN_SHAPES_GITHUB_TOKEN",
+  "WREN_SHAPES_GITHUB_REPO",
+  "WREN_SHAPES_GITHUB_API",
 ];
 const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
 // `keys put|delete` seal with the key store's public key (designs/2026-10-07-key-store.md). It lives in
