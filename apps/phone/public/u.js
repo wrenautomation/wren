@@ -1,4 +1,4 @@
-// A drop (autobrowse designs/2026-10-12-papers.md): a photo or PDF sealed in this browser under the key in
+// A drop (autobrowse designs/2026-10-20-files.md): a photo or document sealed in this browser under the key in
 // the link's fragment, posted as ciphertext once. The key never leaves this page; the Worker
 // keeps only the ciphertext until the Mac takes it. Text only through textContent.
 
@@ -106,7 +106,8 @@ async function main() {
   if (peek.filled) return say("Already sent. Ask for a new link to send another.");
   const input = h("input", {
     type: "file",
-    accept: "image/jpeg,image/png,image/heic,image/webp,application/pdf",
+    accept:
+      "image/jpeg,image/png,image/heic,image/webp,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.txt,text/plain,.md,text/markdown",
     hidden: "",
     onchange: () => input.files[0] && send(input.files[0]).catch(fail),
   });
@@ -114,7 +115,11 @@ async function main() {
     h("p", {}, `${peek.label}.`),
     h("p", {}, "Sealed on this phone before it leaves. Nobody but Wren's Mac can open it."),
     input,
-    h("button", { class: "primary", onclick: () => input.click() }, "Take or choose a photo"),
+    h(
+      "button",
+      { class: "primary", onclick: () => input.click() },
+      "Take a photo or choose a file",
+    ),
   );
 }
 
