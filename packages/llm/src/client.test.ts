@@ -75,7 +75,14 @@ describe("AiSdkLlm", () => {
     expect(res.text).toBe("answer");
     expect(res.latencyMs).not.toBeNull();
     expect(res.raw.stop_reason).toBe("stop");
-    expect(usageFromRaw(res.raw)).toEqual({ input: 10, output: 4, total: 14, reasoning: 1 });
+    expect(usageFromRaw(res.raw)).toEqual({
+      input: 10,
+      output: 4,
+      total: 14,
+      reasoning: 1,
+      cache_read: 0,
+      cache_write: 0,
+    });
   });
 
   it("asks for at least 2048 tokens, plus a thinking model's room", async () => {

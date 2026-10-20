@@ -34,6 +34,8 @@ describe("audit", () => {
       output: 300,
       total: 1500,
       reasoning: 250,
+      cache_read: null,
+      cache_write: null,
     });
     expect(finishReasonFromRaw(OPENAI_BODY)).toBe("length");
   });
@@ -44,7 +46,19 @@ describe("audit", () => {
       output: 8,
       total: 48,
       reasoning: null,
+      cache_read: null,
+      cache_write: null,
     });
+    expect(
+      usageFromRaw({
+        usage: {
+          input_tokens: 100,
+          output_tokens: 8,
+          cache_read_tokens: 60,
+          cache_write_tokens: 10,
+        },
+      }),
+    ).toMatchObject({ input: 100, cache_read: 60, cache_write: 10 });
     expect(finishReasonFromRaw(ANTHROPIC_BODY)).toBe("end_turn");
   });
 
@@ -74,7 +88,14 @@ describe("audit", () => {
     ).toEqual({
       model: "groq:openai/gpt-oss-120b",
       provider: "groq",
-      usage: { input: 1200, output: 300, total: 1500, reasoning: 250 },
+      usage: {
+        input: 1200,
+        output: 300,
+        total: 1500,
+        reasoning: 250,
+        cache_read: null,
+        cache_write: null,
+      },
       finish_reason: "length",
       latency_ms: 812,
       run_id: runId,

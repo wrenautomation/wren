@@ -13,6 +13,10 @@ export interface Usage {
   total: number | null;
   /** Hidden-thinking share of `output` on reasoning models; null when not broken out. */
   reasoning: number | null;
+  /** Of `input`: read from the provider's prompt cache; null when not broken out. */
+  cache_read: number | null;
+  /** Of `input`: written to the cache; null when not broken out. */
+  cache_write: number | null;
 }
 
 /** Stored as enrichments.output.call (snake_case: read by SQL views). */
@@ -40,6 +44,8 @@ export function usageFromRaw(raw: Raw): Usage | null {
   let output: number | null;
   let total: number | null;
   let reasoning: number | null;
+  let cacheRead: number | null = null;
+  let cacheWrite: number | null = null;
   if ("prompt_tokens" in usage || "completion_tokens" in usage) {
     const details = rec(usage.completion_tokens_details);
     input = num(usage.prompt_tokens);
@@ -51,11 +57,13 @@ export function usageFromRaw(raw: Raw): Usage | null {
     output = num(usage.output_tokens);
     total = null;
     reasoning = num(usage.reasoning_tokens);
+    cacheRead = num(usage.cache_read_tokens);
+    cacheWrite = num(usage.cache_write_tokens);
   } else {
     return null;
   }
   if (total === null && input !== null && output !== null) total = input + output;
-  return { input, output, total, reasoning };
+  return { input, output, total, reasoning, cache_read: cacheRead, cache_write: cacheWrite };
 }
 
 /** Why generation stopped, in the provider's own word ("stop", "length", "end_turn", ...). */
