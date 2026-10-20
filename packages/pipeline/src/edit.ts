@@ -7,6 +7,7 @@
 import type { Queryable } from "@wren/db";
 import { and, count, eq } from "drizzle-orm";
 import type { Moves } from "./carry.js";
+import type { ShapeChange } from "./diff.js";
 import { edgeIdOf, type ShapeBody, type ShapeEdge, type ShapeNode } from "./model.js";
 import { journeys } from "./schema.js";
 import { newestShape, Refused, saveShape } from "./store.js";
@@ -93,4 +94,18 @@ export async function editShape(
     triggers: o.triggers,
     ...(o.moves ? { moves: o.moves } : {}),
   });
+}
+
+/**
+ * The inverse of one change from version `a` to version `b`, applied to `newest`
+ * (designs/2026-10-19-business-map.md, "Undo one change"). Pure; refused (`Refused`) when the
+ * newest body no longer holds what `b` had for that line. `saveShape` checks the result.
+ */
+export function undoChange(
+  _newest: ShapeBody,
+  _a: ShapeBody,
+  _b: ShapeBody,
+  _change: ShapeChange,
+): ShapeBody {
+  throw new Error("undoChange: not built yet (brief 2026-10-20-shape-git-3)");
 }

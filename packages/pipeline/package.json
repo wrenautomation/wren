@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./blame": "./src/blame.ts",
     "./carry": "./src/carry.ts",
     "./collect": "./src/collect.ts",
     "./components": "./src/components.ts",
@@ -12,6 +13,7 @@
     "./diff": "./src/diff.ts",
     "./edit": "./src/edit.ts",
     "./entry": "./src/entry.ts",
+    "./history": "./src/history.ts",
     "./journeys": "./src/journeys.ts",
     "./model": "./src/model.ts",
     "./moves": "./src/moves.ts",
