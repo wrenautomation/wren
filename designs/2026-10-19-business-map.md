@@ -74,6 +74,22 @@ The Map is its own surface at `/`: full canvas, edge to edge. It replaces "Today
 1. Wren's shape, from `sops/direction/2026-10-18-business-direction.md`: sources youtube, linkedin (organic), reddit, instagram, facebook, x, tiktok, threads, linkedin-dm (outbound), ads (parked, present); steps comment → reply → dm → cta → visit → book → held → proposal → signed; offer Growth Partner; plans share-only (first partners) and setup + share + floor (after); loop edges from dropped steps back to dm after 90 days (today's recycling rule). The three live funnels fold into this shape as paths; journeys keep their position by mapping stage key → node id.
 2. Career Clarity Labs' shape, in its client DB: sources youtube and linkedin; steps follow their funnel to a booked call and a sale; offer their program; plan their price with Wren's 15% share recorded on the deal (the share is Wren's terms, not their plan). Seeded from the access and direction notes in sops; names and amounts never in the public repo.
 
+### History like git (William, 2026-10-20)
+
+William: "the version control for the map should be more like git. u could even use git." The history keeps git's model on Postgres, and git itself is the durable mirror. Postgres stays the source of truth: the Lambda has no filesystem, journeys point at node ids of a version, and the pipeline reads the live shape in one query. The window picker (7, 30, 90 days, all) stays as it is.
+
+**Drafts (branches).** A draft is a named shape body saved on the server, forked from a version (`base`), with its own `moves` and note. Table `pipeline.shape_drafts`: `id` (short slug from the name, unique per workspace), `name`, `body`, `moves`, `base` (version number), `note`, `state` (`draft` | `proposed` | `applied` | `dropped`), `created_by`, `created_at`, `updated_at`, `applied_version`, `decided_by`, `decided_at`, `drop_reason`. A draft is one head: saving it again overwrites its body (drafts are short lived and one person edits them; their edit history is not kept). `shape_versions` gains `draft` (nullable id): the version a draft became knows where it came from. Edit mode keeps today's device-local draft for speed and offers three exits: "Save version" (live, as today), "Save as draft" (named, server) and, on an open draft, "Update draft". Opening a draft draws it on the canvas in edit mode under a banner (name, base, author). The History panel gets a Drafts list: open, compare with live or any version, propose, apply, drop (with a reason). Compare of a draft against live uses the same diff view as two versions.
+
+**Proposals.** A draft in state `proposed` waits for a decision. Agents propose through the CLI and `/api/agent` (`wren shape draft new <file> --name --note`, `draft propose <id>`); the person applies or drops in the Map. Apply = `saveShape` with the draft's body and `moves`, note from the draft, author the applier; the draft becomes `applied` with the version number. Drop records who and why. A Today line counts proposals that wait ("2 shape proposals wait"). When live moved after the draft's base, the apply dialog shows the diff of base to live first and warns "live changed since this draft started". No merge: a draft applies whole or not at all. Why: shapes are small and edited by one person; merge is where the cost lives and the value is thin.
+
+**Blame (per-node history).** `historyOf(versions, nodeId)` (pure, `packages/pipeline/src/blame.ts`): every version that added, removed, renamed or changed the node, with who, when and why, newest first. The node panel gets a History section (the node's own) and the History panel links each line to the version. Edges the same way through the edge panel.
+
+**Undo one change.** Each line of a diff (node added, removed, renamed, changed; edge added, removed, changed) between versions a and b can be undone on the newest body: `undoChange(newest, a, b, change)` (pure, `edit.ts`) computes the inverse (re-add the node with its edges whose other ends still exist; remove the node and its edges; put the old name or fields back). Refused when the result fails `checkShape`. The UI shows the preview diff, then saves a version with the note "Undo: <line>". Restore of a whole version stays.
+
+**Tags.** Table `pipeline.shape_tags`: `name` (unique), `version`, `note`, `created_by`, `created_at`. Immutable labels on a version ("partner-1 signed", "q4 funnel"). `wren shape tag <name> <version> [--note]`, `wren shape tags`; History shows tags beside versions.
+
+**Git mirror.** Every saved version commits the workspace's shape file to the private sops repo (`shapes/<workspace>.yaml`, workspace `wren` or the client id) through GitHub's contents API, as a Restate step after the save (`ctx.run("shape mirror")`). Commit message `shape <workspace> v<n>: <note>` with the author in the body. Table `pipeline.shape_mirrors`: `version`, `repo`, `path`, `sha`, `at` (a separate table because `shape_versions` is append only). History shows the sha and links to the commit. The GitHub helper moves out of `packages/content/src/blog.ts` into one shared `packages/core/src/github.ts` (both the blog and the mirror use it). Config `WREN_SHAPES_GITHUB_TOKEN` (fine grained, contents read and write on that one repo) and `WREN_SHAPES_GITHUB_REPO` (default `wrenautomation/sops`). Without the token the mirror is off and the save still succeeds; a failed mirror never fails a save. `wren shape mirror [--all]` commits every version that has no mirror row, oldest first, so git log holds the whole history (backfill for Wren v1, v2 and CCL v1). The CLI's own saves (import, apply, undo) mirror directly after the write. `wren shape export` and `import` stay: the mirror makes the file the direction lock asked for ("source of truth / github + GUI") without a hand-run step. Drafts are not mirrored as branches yet (a `shape/<workspace>/<draft>` branch per draft is the natural next step).
+
 ## Not in scope
 
 - Automatic placement of people from signals beyond today's triggers (comments, DMs, bookings, payments already move journeys).
@@ -86,6 +102,7 @@ The Map is its own surface at `/`: full canvas, edge to edge. It replaces "Today
 2. **Map page, read**: home `/` with Today docked, Sankey edges, node panel, window and client pickers, drill-downs, History read-only. Stories for the page and the parts (`gates.sh ui`).
 2.1. **Map surface** (William's feedback on M2): full canvas at `/`, Today as a sheet, theme matched, overlays for panels. Built with M3's UI.
 3. **Editing and seeds**: palette, connect, rename, remove guard, save with note, diff, restore, import/export, starter template, Wren's seed and the CCL seed.
+4. **History like git**: drafts and proposals (store, routes, CLI, agent), blame, undo, tags, git mirror with backfill, and the History and node panel UI for them.
 
 ## Decisions
 
@@ -95,6 +112,9 @@ The Map is its own surface at `/`: full canvas, edge to edge. It replaces "Today
 - Versions append only, journeys pin one. Why: the same rule the funnels use today; a diff and a restore fall out of it.
 - Export to the private sops repo. Why: the shape names clients and amounts; wren is public.
 - Build on `GraphCanvas` and the workflow palette. Why: library first; the editor exists and is tested.
+- Git's model on Postgres, git as the mirror (2026-10-20). Why: William asked for history "more like git, u could even use git"; the Lambda has no filesystem and journeys need the live version in one query, so the rows stay the truth and every version also lands as a commit in the private sops repo through the contents API the blog already uses. No `isomorphic-git`: a bare repo on S3 would be custom plumbing for what the API gives.
+- Drafts are one head each, not append only; no merge. Why: short lived, one editor; merge is the expensive part of git and the shape is small. A draft applies whole after a diff.
+- Mirror failures never fail a save, and `shape_mirrors` is its own table. Why: a GitHub outage must not block the business; `shape_versions` has the never-edited trigger.
 
 ## Decisions (planner, 2026-10-19)
 
