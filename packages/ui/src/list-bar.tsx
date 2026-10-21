@@ -18,7 +18,6 @@ import {
   ChevronRight,
   CircleDot,
   Hash,
-  ListFilter,
   MoreHorizontal,
   Search,
   ToggleLeft,
@@ -710,8 +709,8 @@ function SaveView({
   return (
     <Popover {...pop.root}>
       <PopoverTrigger {...pop.trigger} className={CHIP}>
-        <Bookmark className="size-3.5" />
-        Save view
+        <Bookmark className="size-[15px] [stroke-width:1.8]" />
+        <span data-hp>Save view</span>
       </PopoverTrigger>
       <PopoverContent aria-label="Save view" align="start" className="w-64 gap-0 p-2">
         {sv ? (
@@ -752,11 +751,35 @@ function SaveView({
 /** Rows per state of each field, under every filter but that field's own (a page's `facets`). */
 export type Facets = Record<string, Record<string, number>>;
 
-/** One height, one hairline, one type size for every control in the bar. */
+/**
+ * A tool on the list's bar (artifact `.nt-top .tl button`): no frame, ink-3 at rest, the accent
+ * wash on hover. `CHIP_ON` is one that is set (`.tl button.on`): accent text on the tint.
+ */
 export const CHIP =
-  "inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
-const PILL =
-  "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px] hover:bg-(--ui-hover)";
+  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent px-[9px] py-1.5 text-[13px] font-semibold whitespace-nowrap text-(--ui-ink-3) no-underline transition-[background-color,color] duration-150 [border-radius:4px_10px_4px_10px] hover:bg-(--ui-accent-wash) focus-visible:outline-2 focus-visible:outline-(--ui-focus) data-[popup-open]:bg-(--ui-accent-wash) pointer-coarse:min-h-11 motion-reduce:transition-none";
+export const CHIP_ON = "bg-(--ui-accent-tint) text-(--ui-link) hover:bg-(--ui-accent-tint)";
+const PILL = cn(
+  "inline-flex max-w-full min-w-0 items-center text-[13px] font-semibold [border-radius:4px_10px_4px_10px] pointer-coarse:min-h-11",
+  CHIP_ON,
+);
+
+/** The bar's glyphs, drawn as the artifact's (`S` in design-language.src.html): 15px, 1.8 stroke. */
+const GLYPH = {
+  table: "M4 6h16M4 12h16M4 18h10",
+  group: "M4 5h16M7 10h13M7 15h13M7 20h13",
+  filter: "M4 6h16M7 12h10M10 18h4",
+} as const;
+export function BarGlyph({ name }: { name: keyof typeof GLYPH }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="size-[15px] flex-none fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.8]"
+    >
+      <path d={GLYPH[name]} />
+    </svg>
+  );
+}
 const POP = "w-72 gap-0 overflow-hidden bg-(--ui-paper) p-0 text-(--ui-ink)";
 const ROW =
   "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 px-2 text-left text-[13px] text-(--ui-ink) select-none";
@@ -1066,8 +1089,8 @@ function FilterPill({
     filterShape(field) === "states" ? raw.split(",").flatMap((id) => cueOf(field, id) ?? []) : [];
   const face = (
     <>
-      <span className="shrink-0 text-(--ui-ink-2)">{field.label}</span>
-      <span className="shrink-0 text-(--ui-ink-3)">{op}</span>
+      <span className="shrink-0">{field.label}</span>
+      <span className="shrink-0 font-normal">{op}</span>
       {cues.length ? (
         <span className="inline-flex shrink-0 items-center gap-1">
           {cues.slice(0, 3).map((c) => (
@@ -1079,7 +1102,7 @@ function FilterPill({
     </>
   );
   const faceClass =
-    "inline-flex h-full min-w-0 items-center gap-1 border-0 bg-transparent py-0 pr-1 pl-2.5 text-[13px]";
+    "inline-flex h-full min-w-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent py-1.5 pr-1 pl-[9px] font-[inherit] text-inherit";
   // The face cuts a long value short; the hover says all of it.
   const tip = tipProps(sayRaw(field, raw));
   return (
@@ -1103,7 +1126,7 @@ function FilterPill({
         aria-label={`Remove ${field.label} filter`}
         {...tipProps("Remove this filter", { as: "none" })}
         onClick={() => place.go(place.link({ [field.key]: null, pg: null }), true)}
-        className="mr-1 inline-flex size-6 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-3) hover:text-(--ui-ink)"
+        className="mr-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit [border-radius:3px_8px_3px_8px] hover:bg-(--ui-accent-wash)"
       >
         <X className="size-3.5" />
       </button>
@@ -1115,9 +1138,9 @@ function FilterPill({
 function FilterFace({ on }: { on: number }) {
   return (
     <>
-      <ListFilter className="size-3.5" />
-      Filter
-      {on ? <span className="text-(--ui-ink) tabular-nums">{on}</span> : null}
+      <BarGlyph name="filter" />
+      <span data-hp>Filter</span>
+      {on ? <span className="tabular-nums">{on}</span> : null}
     </>
   );
 }
@@ -1210,7 +1233,7 @@ export function ListBar({
     <button
       type="button"
       {...tipProps(sayFilters(params, filters))}
-      className={cn(CHIP, on.length && "text-(--ui-ink)")}
+      className={cn(CHIP, on.length && CHIP_ON)}
       onClick={() => openSheet(null)}
     >
       <FilterFace on={on.length} />
@@ -1220,7 +1243,7 @@ export function ListBar({
       <PopoverTrigger
         {...picker.trigger}
         {...tipProps(sayFilters(params, filters))}
-        className={cn(CHIP, on.length && "text-(--ui-ink)")}
+        className={cn(CHIP, on.length && CHIP_ON)}
       >
         <FilterFace on={on.length} />
       </PopoverTrigger>
@@ -1247,7 +1270,7 @@ export function ListBar({
         pg: null,
         ...Object.fromEntries(filters.map((f) => [f.key, null])),
       })}
-      className="inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center px-2 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
+      className={CHIP}
     >
       Clear
     </a>
@@ -1256,7 +1279,7 @@ export function ListBar({
     keep && saved ? <SaveView meta={meta} place={place} keep={keep} saved={saved} /> : null;
   const tail =
     end || display ? (
-      <span className="ml-auto flex items-center gap-3 text-[13px] text-(--ui-ink-2)">
+      <span className="flex items-center gap-0.5 text-[13px] text-(--ui-ink-3)">
         {end}
         {display}
       </span>
@@ -1266,46 +1289,67 @@ export function ListBar({
   const grouped = groupFields(meta).find((f) => f.key === params.get("group")) ?? null;
   const by = grouped ?? byField(meta);
   const shape = by ? (
-    <Segmented
-      label="Show rows as"
-      className="shrink-0"
-      items={[
-        { id: "table", label: "Table", href: place.link({ group: null, pg: null }), on: !grouped },
+    <nav
+      aria-label="Show rows as"
+      className="flex min-w-0 flex-1 gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {[
+        { id: "table", label: "Table", glyph: "table" as const, on: !grouped, at: null },
         {
           id: "by",
           label: `By ${by.label.toLowerCase()}`,
-          href: place.link({ group: by.key, pg: null }),
+          glyph: "group" as const,
           on: !!grouped,
+          at: by.key,
         },
-      ]}
-    />
+      ].map((v) => (
+        <a
+          key={v.id}
+          href={place.link({ group: v.at, pg: null })}
+          aria-current={v.on ? "page" : undefined}
+          className={cn(
+            CHIP,
+            "aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_-2px_0_var(--ui-ink)]",
+          )}
+        >
+          <BarGlyph name={v.glyph} />
+          {v.label}
+        </a>
+      ))}
+    </nav>
   ) : null;
 
+  // The artifact's `.nt-top`: the views at the left, the tools at the right.
   if (!narrow)
     return (
       <div className="flex flex-wrap items-center gap-2">
         {shape}
-        {search}
-        {accountChip}
-        {filter}
-        {pills}
-        {clear}
-        {save}
-        {tail}
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
+          {accountChip}
+          {pills}
+          {clear}
+          {filter}
+          {search}
+          {save}
+          {tail}
+        </div>
       </div>
     );
+  // A phone keeps the one line (artifact `.nt-top` at 720px): the tools drop their words.
   return (
     <div className="grid gap-2">
-      {shape}
-      {search}
-      <div className="flex flex-wrap items-center gap-2">
-        {accountChip}
-        {filter}
-        {save}
-        {clear}
-        {tail}
+      <div className="flex min-w-0 items-center gap-2">
+        {shape}
+        <div className="ml-auto flex min-w-0 items-center gap-0.5 [&_[data-hp]]:sr-only">
+          {accountChip}
+          {clear}
+          {filter}
+          {search}
+          {save}
+          {tail}
+        </div>
       </div>
-      {pills.length ? <div className="flex flex-wrap gap-2">{pills}</div> : null}
+      {pills.length ? <div className="flex flex-wrap gap-0.5">{pills}</div> : null}
       <Sheet open={sheet.open} onOpenChange={(o) => (o ? null : shut())}>
         <SheetContent
           // A phone opens it to tap, not type: no keyboard springs up.
@@ -1369,8 +1413,19 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
     return () => clearTimeout(t);
   }, [text, asked, place]);
   return (
-    <label className="relative flex h-8 pointer-coarse:h-11 w-full items-center sm:w-64">
-      <Search className="pointer-events-none absolute left-2.5 size-3.5 text-(--ui-ink-3)" />
+    // A tool like the bar's others (artifact `.tl` Search): no frame, the wash on hover and focus.
+    <label
+      className={cn(
+        CHIP,
+        "relative w-52 cursor-text has-[input:focus-visible]:bg-(--ui-accent-wash) has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-(--ui-focus)",
+        // A phone shows the glass alone (artifact `.tl` Search) and opens the field on a tap.
+        !asked &&
+          "max-[899.98px]:w-[33px] max-[899.98px]:transition-[width,background-color,color] max-[899.98px]:duration-200 max-[899.98px]:ease-(--ui-ease) max-[899.98px]:focus-within:w-40",
+        asked && "max-[899.98px]:w-40",
+        asked && CHIP_ON,
+      )}
+    >
+      <Search className="pointer-events-none size-[15px] flex-none [stroke-width:1.8]" />
       <input
         // edit-ok: search box
         type="search"
@@ -1381,7 +1436,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
         }}
         placeholder={`Search ${label}`}
         aria-label={`Search ${label}`}
-        className="h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]"
+        className="h-5 min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] font-semibold text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) [&::-webkit-search-cancel-button]:hidden"
       />
     </label>
   );

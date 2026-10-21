@@ -120,12 +120,13 @@ export function rowActsOf(
   return { main, more: can.filter((a) => !main.includes(a)) };
 }
 
+/** A row's icon button (artifact `.ib`): ink-3, the tint and accent on hover. */
 const ICON_BUTTON =
-  "inline-grid size-7 flex-none cursor-pointer place-items-center rounded-(--ui-radius) border-0 bg-transparent text-(--ui-ink-2) no-underline transition-colors hover:bg-(--ui-fill) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-fill)";
+  "inline-grid size-7 flex-none cursor-pointer place-items-center [border-radius:4px_10px_4px_10px] border-0 bg-transparent text-(--ui-ink-3) no-underline transition-[background-color,color,opacity] duration-150 motion-reduce:transition-none [&_svg]:size-4 [&_svg]:[stroke-width:1.9] hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:bg-(--ui-accent-tint) focus-visible:text-(--ui-link) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-accent-tint) data-[popup-open]:text-(--ui-link)";
 
 /** The one icon a row always shows: quiet until its row is hovered, then accent. */
 const QUIET_BUTTON =
-  "inline-grid size-7 flex-none cursor-pointer place-items-center [border-radius:var(--ui-leaf-button)] border-0 bg-transparent text-(--ui-ink-3) no-underline transition-colors group-hover:text-(--ui-link) hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:text-(--ui-link) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-accent-tint) data-[popup-open]:text-(--ui-link) pointer-coarse:size-11";
+  "inline-grid size-7 flex-none cursor-pointer place-items-center [border-radius:4px_10px_4px_10px] border-0 bg-transparent text-(--ui-ink-3) no-underline transition-[background-color,color,opacity] duration-150 motion-reduce:transition-none [&_svg]:size-4 [&_svg]:[stroke-width:1.9] group-hover:text-(--ui-link) hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:text-(--ui-link) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-accent-tint) data-[popup-open]:text-(--ui-link) pointer-coarse:size-11";
 
 /**
  * A row's actions, run where it sits. A wide row always shows one quiet icon at its end: the

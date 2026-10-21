@@ -91,6 +91,7 @@ import { away, NoLink } from "./item-link.js";
 import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
+  CHIP_ON,
   filtersOf,
   groupFields,
   type KeepApi,
@@ -723,10 +724,10 @@ function ListDisplay({
     <Popover {...pop.root}>
       <PopoverTrigger
         {...pop.trigger}
-        className={cn(CHIP, (grouping || place.params.has("cols")) && "text-(--ui-ink)")}
+        className={cn(CHIP, (grouping || place.params.has("cols")) && CHIP_ON)}
       >
-        <SlidersHorizontal className="size-3.5" />
-        Display
+        <SlidersHorizontal className="size-[15px] [stroke-width:1.8]" />
+        <span data-hp>Display</span>
       </PopoverTrigger>
       <PopoverContent align="end" className="max-h-[70dvh] w-60 gap-3 overflow-y-auto p-3">
         {frame ? (
@@ -803,9 +804,9 @@ function ListDisplay({
  * reads quieter, and a page that names nothing waiting keeps the one weight.
  */
 const TITLE_WEIGHT: Record<string, string> = {
-  true: "font-semibold text-(--ui-ink)",
+  true: "font-[650] text-(--ui-ink)",
   false: "font-normal text-(--ui-ink-2)",
-  null: "font-medium text-(--ui-ink)",
+  null: "font-[650] text-(--ui-ink)",
 };
 
 /** A tier's name and count: "Needs you 4" or "For info 9". */
@@ -1813,118 +1814,124 @@ function List({
         </div>
       ) : null}
 
-      <div className="grid gap-3">
-        <ViewTabs
-          meta={meta}
-          current={ask.view}
-          counts={page.data?.counts}
-          place={place}
-          saved={saved}
-          keep={api.keep}
-          loading={viewing}
-        />
-        <ListBar
-          meta={meta}
-          place={place}
-          shown={new Set(cols.map((f) => f.key))}
-          keep={api.keep}
-          saved={saved}
-          facets={facetsOf(api, ask)}
-          display={
-            <>
-              {display}
-              <ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />
-            </>
-          }
-          end={
-            picked.size ? (
-              <Bulk
-                actions={actions}
-                rows={rows}
-                picked={picked}
-                run={run}
-                busy={acting}
-                running={running}
-                clear={() => setPicked(new Set())}
-              />
-            ) : (
-              (busy ??
-              (page.data
-                ? `${num(page.data.total)} ${page.data.total === 1 ? meta.name.one : many}`
-                : ""))
-            )
-          }
-        />
-      </div>
+      <ViewTabs
+        meta={meta}
+        current={ask.view}
+        counts={page.data?.counts}
+        place={place}
+        saved={saved}
+        keep={api.keep}
+        loading={viewing}
+      />
 
-      {page.error && !page.data ? (
-        <LoadFailed error={page.error} onRetry={page.retry} />
-      ) : (
-        <div
-          ref={frameRef}
-          className={cn(
-            // A raised panel; its last row drops its rule, which the panel's rim draws. A phone's
-            // rows scroll with the page, not in a box of their own, clipped to its corners.
-            "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",
-            narrow ? "overflow-clip" : "max-h-[calc(100dvh-280px)] overflow-auto",
-          )}
-        >
-          <Rows
-            label={many}
-            noun={meta.name.one}
-            columns={columnsFor}
-            name={nameCol}
-            lines={rowLines}
-            loading={!page.data}
-            empty={!!page.data && !rows.length}
-            pick={pickOf}
-            act={actOf}
-            open={{
-              id: openId,
-              onOpen: (_, i) => {
-                setCursor(i);
-                openAt(i);
-              },
-            }}
-            cursor={cursor}
-            rowState={(r) => {
-              const id = String(r.id);
-              return { going: going.get(id), changed: changed.has(id) && !page.loading };
-            }}
-            onSettled={() => setChanged(new Set())}
-            wait={late?.promise ? waitOf : undefined}
-            foot={foot}
-            group={grouped ? { folded, toggle: toggleGroup } : undefined}
-            scroller={frameEl}
-            narrow={narrow}
-            swipes={(r) =>
-              withReply(
-                swipesOf(actions, r, (a) => rowRun(a, r)),
-                replyOn(r),
-              )
-            }
-          />
-          {page.data && !rows.length ? (
-            <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
-              {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
-              {!narrowed ? (
-                <ElseWhere meta={meta} current={ask.view} counts={page.data.counts} place={place} />
-              ) : null}
-              {narrowed ? (
-                <a
-                  href={place.link({
-                    q: null,
-                    ...Object.fromEntries(filtersOf(meta).map((f) => [f.key, null])),
-                  })}
-                  className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
-                >
-                  Clear filters
-                </a>
+      {
+        // The artifact's `.nt`: one raised panel, its tools (`.nt-top`) over the rows. The last
+        // row drops its rule, which the panel's rim draws. A phone's rows scroll with the page.
+        <div className="overflow-clip rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0">
+          <div className="px-3.5 pt-2.5 pb-2">
+            <ListBar
+              meta={meta}
+              place={place}
+              shown={new Set(cols.map((f) => f.key))}
+              keep={api.keep}
+              saved={saved}
+              facets={facetsOf(api, ask)}
+              display={
+                <>
+                  {display}
+                  <ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />
+                </>
+              }
+              end={
+                picked.size ? (
+                  <Bulk
+                    actions={actions}
+                    rows={rows}
+                    picked={picked}
+                    run={run}
+                    busy={acting}
+                    running={running}
+                    clear={() => setPicked(new Set())}
+                  />
+                ) : (
+                  // The count reads in the rows' foot (artifact `.ft`), not here.
+                  busy
+                )
+              }
+            />
+          </div>
+          {page.error && !page.data ? (
+            <div className="px-3.5 pb-3.5">
+              <LoadFailed error={page.error} onRetry={page.retry} />
+            </div>
+          ) : (
+            <div
+              ref={frameRef}
+              className={cn(!narrow && "max-h-[calc(100dvh-320px)] overflow-auto")}
+            >
+              <Rows
+                label={many}
+                noun={meta.name.one}
+                columns={columnsFor}
+                name={nameCol}
+                lines={rowLines}
+                loading={!page.data}
+                empty={!!page.data && !rows.length}
+                pick={pickOf}
+                act={actOf}
+                open={{
+                  id: openId,
+                  onOpen: (_, i) => {
+                    setCursor(i);
+                    openAt(i);
+                  },
+                }}
+                cursor={cursor}
+                rowState={(r) => {
+                  const id = String(r.id);
+                  return { going: going.get(id), changed: changed.has(id) && !page.loading };
+                }}
+                onSettled={() => setChanged(new Set())}
+                wait={late?.promise ? waitOf : undefined}
+                foot={foot}
+                group={grouped ? { folded, toggle: toggleGroup } : undefined}
+                scroller={frameEl}
+                narrow={narrow}
+                swipes={(r) =>
+                  withReply(
+                    swipesOf(actions, r, (a) => rowRun(a, r)),
+                    replyOn(r),
+                  )
+                }
+              />
+              {page.data && !rows.length ? (
+                <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
+                  {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
+                  {!narrowed ? (
+                    <ElseWhere
+                      meta={meta}
+                      current={ask.view}
+                      counts={page.data.counts}
+                      place={place}
+                    />
+                  ) : null}
+                  {narrowed ? (
+                    <a
+                      href={place.link({
+                        q: null,
+                        ...Object.fromEntries(filtersOf(meta).map((f) => [f.key, null])),
+                      })}
+                      className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
+                    >
+                      Clear filters
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
             </div>
-          ) : null}
+          )}
         </div>
-      )}
+      }
 
       <PageBar
         place={place}

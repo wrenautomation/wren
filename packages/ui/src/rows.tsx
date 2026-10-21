@@ -84,7 +84,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        "inline-flex max-w-full items-center gap-1.5 truncate px-2 py-0.5 text-[12.5px] font-semibold whitespace-nowrap [border-radius:var(--ui-leaf-chip)]",
+        "inline-flex max-w-full items-center gap-[5px] truncate px-2 py-0.5 text-[12.5px] font-semibold whitespace-nowrap [border-radius:3px_9px_3px_9px]",
         "bg-[color-mix(in_srgb,var(--c)_15%,var(--ui-paper))] text-[color-mix(in_srgb,var(--c)_72%,var(--ui-ink))]",
         className,
       )}
@@ -371,12 +371,15 @@ function GroupFold({
       type="button"
       aria-expanded={!shut}
       onClick={toggle}
-      className="flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-3.5 pt-3 pb-2 text-left text-[13px] text-(--ui-ink-3) select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--ui-focus) max-[900px]:min-h-11"
+      className="flex w-full cursor-pointer items-center gap-2.5 rounded-none border-0 bg-transparent px-3.5 pt-3 pb-2 text-left text-[13px] text-(--ui-ink-3) select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--ui-focus) max-[900px]:min-h-11"
     >
       <Icon
         name="down"
-        size={14}
-        className={cn("transition-transform duration-200 ease-(--ui-ease)", shut && "-rotate-90")}
+        size={15}
+        className={cn(
+          "[stroke-width:1.8] transition-transform duration-[250ms] ease-(--ui-spring) motion-reduce:transition-none",
+          shut && "-rotate-90",
+        )}
       />
       <Pill color={color}>{label}</Pill>
       <b className="font-bold text-(--ui-ink) tabular-nums">{stats.n}</b>
@@ -463,7 +466,7 @@ function NameCell<T>({
 }
 
 const OPEN_CHIP =
-  "ml-auto inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-[650] text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:var(--ui-leaf-chip)] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
+  "ml-auto inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-[650] text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:3px_8px_3px_8px] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
 
 /** A gutter box shows on its row's hover or focus. Its look is the global checkbox's (tailwind.css). */
 const BOX =
@@ -545,14 +548,12 @@ export function Rows<T>(p: RowsProps<T>) {
                       key={l.key}
                       {...line}
                       className={cn(
-                        "sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) text-[12px] font-semibold text-(--ui-ink-2)",
-                        l.kind === "tier"
-                          ? "[background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)]"
-                          : "bg-(--ui-paper)",
+                        // The fold's look (artifact `.gh`), a tier's head too.
+                        "sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) bg-(--ui-paper) text-[13px] font-semibold text-(--ui-ink-3)",
                       )}
                     >
                       {l.kind === "tier" ? (
-                        <div className="px-4 py-2">{l.head}</div>
+                        <div className="px-3.5 pt-3 pb-2">{l.head}</div>
                       ) : (
                         <GroupFold
                           label={l.label}
@@ -737,7 +738,9 @@ export function Rows<T>(p: RowsProps<T>) {
                   c.align === "end" && "flex-row-reverse",
                 )}
               >
-                {c.icon ? <Icon name={c.icon} size={15} className="text-(--ui-ink-3)" /> : null}
+                {c.icon ? (
+                  <Icon name={c.icon} size={15} className="text-(--ui-ink-3) [stroke-width:1.8]" />
+                ) : null}
                 {c.sort ?? <span className="truncate">{c.label}</span>}
               </span>
             </th>
@@ -786,15 +789,11 @@ export function Rows<T>(p: RowsProps<T>) {
                 );
               if (l.kind === "tier")
                 return (
-                  <tr
-                    key={l.key}
-                    {...line}
-                    className="h-8 border-b border-(--ui-hair) bg-(--ui-band)"
-                  >
+                  <tr key={l.key} {...line} className="border-b border-(--ui-hair)">
                     <th
                       colSpan={span}
                       scope="colgroup"
-                      className="px-3 text-left text-[12px] font-semibold text-(--ui-ink-2)"
+                      className="px-3.5 pt-3 pb-2 text-left text-[13px] font-semibold text-(--ui-ink-3)"
                     >
                       {l.head}
                     </th>
@@ -829,7 +828,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     if (e.animationName === "ui-changed") p.onSettled?.();
                   }}
                   className={cn(
-                    "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair) pointer-coarse:h-12 has-[+[data-group]]:border-b-0",
+                    "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair) transition-[background-color] duration-150 pointer-coarse:h-12 has-[+[data-group]]:border-b-0 motion-reduce:transition-none",
                     groundOf(r.isOpen, r.picked, l.index === cursor),
                     r.changed && "animate-ui-changed",
                     r.going && "bg-(--ui-wash)",
@@ -972,7 +971,7 @@ export function Rows<T>(p: RowsProps<T>) {
             <tr className="text-[12px] text-(--ui-ink-3)">
               <td
                 colSpan={span}
-                className="sticky bottom-0 h-[34px] border-t border-(--ui-hair) bg-(--ui-paper) py-0 pr-3.5 pl-[38px] max-[900px]:pl-3.5"
+                className="sticky bottom-0 border-t border-(--ui-hair) bg-(--ui-paper) pt-[9px] pr-3.5 pb-2.5 pl-[38px] max-[900px]:pl-3.5"
               >
                 {p.foot}
               </td>
