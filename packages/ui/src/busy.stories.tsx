@@ -1,19 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
-import { Busy, BusyBox } from "./busy.js";
+import { expect } from "storybook/test";
 import { Button, Tag } from "./controls.js";
-import { PageBar } from "./page-bar.js";
 import { Segmented } from "./phone.js";
 
 export default { title: "Busy" } satisfies Meta;
 
 type Story = StoryObj;
 
-/** The ring big in a modal, then small in each place it goes: a chip, buttons, a tab, the pager. */
+/** The ring in each place it goes: a chip, buttons, a tab. Never beside a title or a count. */
 export const Places: Story = {
   render: () => (
     <div className="grid max-w-lg gap-5">
-      <BusyBox title="Loading your map" note="4 lines, 18 stations" />
       <div className="flex flex-wrap items-center gap-3">
         <Tag tone="accent" busy>
           Drafting
@@ -34,9 +31,6 @@ export const Places: Story = {
           Send reply
         </Button>
       </div>
-      <h2 className="flex items-center gap-2 text-[15px] font-semibold">
-        Replies <Busy on />
-      </h2>
       <Segmented
         label="Views"
         items={[
@@ -45,29 +39,11 @@ export const Places: Story = {
           { id: "done", label: "Done", href: "#done", on: false },
         ]}
       />
-      <PageBar
-        place={{
-          params: new URLSearchParams(),
-          link: () => "#",
-          page: () => "#",
-          list: "#",
-          go: () => undefined,
-        }}
-        page={2}
-        pages={5}
-        total={120}
-        shown={25}
-        size={25}
-        narrow={false}
-        loading
-      />
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const c = within(canvasElement);
-    await expect(c.getByRole("status")).toHaveTextContent("Loading your map");
     // Each wait shows the one ring; nothing draws a bar.
-    await expect(canvasElement.querySelectorAll(".ui-busy[data-on]").length).toBeGreaterThan(6);
+    await expect(canvasElement.querySelectorAll(".ui-busy[data-on]").length).toBeGreaterThan(5);
     await expect(canvasElement.querySelectorAll(".ui-busy[data-done]")).toHaveLength(1);
   },
 };
