@@ -45,6 +45,7 @@ export const MARKS = [
   "discord",
   "google",
   "whatsapp",
+  "podcast",
   "email",
   "text",
   "call",
@@ -72,6 +73,7 @@ const MARK_ALIASES: Readonly<Record<string, Mark>> = {
   site: "web",
   lander: "web",
   website: "web",
+  podcasts: "podcast",
 };
 /** The mark a key names ("youtube", "sms" as text), or none. */
 export function markOf(key: string): Mark | undefined {
@@ -98,6 +100,7 @@ const HOSTS: Readonly<Record<string, Mark>> = {
   "google.com": "google",
   "whatsapp.com": "whatsapp",
   "wa.me": "whatsapp",
+  "podcasts.apple.com": "podcast",
 };
 /** A host's mark ("www.reddit.com/r/x" is Reddit; a bare site key like "youtube" too), or none. */
 export function markOfHost(site: string): Mark | undefined {

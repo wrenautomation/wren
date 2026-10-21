@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { type Action, Runner, type RunnerDeps, withExpect } from "./action.js";
+import { type Action, DONE_MS, Runner, type RunnerDeps, withExpect } from "./action.js";
 import { fakeWriteEnv } from "./save/test-kit.js";
 import { Writes } from "./save/writes.js";
 
@@ -81,6 +81,39 @@ describe("Runner: one action per press", () => {
     await settle();
     expect(s.calls.map((c) => c.input.ids)).toEqual([[1], [2]]);
     expect([...writes.hiddenIn("drafts")]).toEqual(["1", "2"]);
+  });
+});
+
+describe("Runner: what the button shows", () => {
+  it("shows a check on the press that worked for a moment, and none on a refusal", async () => {
+    vi.useFakeTimers();
+    try {
+      const { r, s } = runner();
+      const ok = r.go(APPROVE, [1], { ids: [1] });
+      await vi.advanceTimersByTimeAsync(0);
+      s.calls[0]?.ok({ done: [1] });
+      await ok;
+      expect(r.snapshot().done).toEqual({ action: "approve", ids: [1] });
+      await vi.advanceTimersByTimeAsync(DONE_MS);
+      expect(r.snapshot().done).toBeNull();
+      const no = r.go(APPROVE, [2], { ids: [2] });
+      await vi.advanceTimersByTimeAsync(0);
+      s.calls[1]?.fail(new Error("Refused"));
+      await no;
+      expect(r.snapshot().done).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps an optimistic press's rows as still sending until the server answers", async () => {
+    const { r, s, writes } = runner();
+    void r.go(SEND, [1], { ids: [1] });
+    await settle();
+    expect([...writes.sendingIn("drafts")]).toEqual([["1", "send"]]);
+    s.calls[0]?.ok();
+    await settle();
+    expect(writes.sendingIn("drafts").size).toBe(0);
   });
 });
 

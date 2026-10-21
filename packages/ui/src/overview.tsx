@@ -9,8 +9,10 @@ import type { RecordMeta } from "@wren/core/records";
 import type { Period, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { useEffect, useState } from "react";
+import { Busy } from "./busy.js";
 import { Sparkline, TrendChart } from "./charts/index.js";
 import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
+import { refreshing } from "./data/query.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
@@ -488,7 +490,10 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
     <section className={cn("grid grid-cols-[minmax(0,1fr)] content-start", FRAME)}>
       <Sweep />
       <div className={FRAME_HEAD}>
-        <h2 className={SECTION_TITLE}>{top.label}</h2>
+        <h2 className={cn("flex items-center gap-2", SECTION_TITLE)}>
+          {top.label}
+          <Busy on={refreshing(page)} />
+        </h2>
         <a href={top.href} className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
           All {meta.name.many}
           {page.data ? ` (${num(page.data.total)})` : ""}

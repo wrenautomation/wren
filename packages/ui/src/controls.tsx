@@ -83,6 +83,7 @@ export function Button({
   icon,
   arrow,
   busy,
+  done,
   disabled,
   children,
   className,
@@ -96,6 +97,8 @@ export function Button({
    * changes. A button acts on rows: pass `true` only for the rows its press is at work on.
    */
   busy?: boolean | undefined;
+  /** Its press just worked: a check shows in the ring's slot for a moment (`useRun`'s `done`). */
+  done?: boolean | undefined;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
   const l: ButtonLook = {
     tone,
@@ -114,7 +117,7 @@ export function Button({
       aria-busy={busy || undefined}
     >
       {inside(l)}
-      {busy === undefined ? null : <Busy on={busy} />}
+      {busy === undefined && done === undefined ? null : <Busy on={!!busy} done={done} />}
     </ShadButton>
   );
 }

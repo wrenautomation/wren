@@ -13,6 +13,7 @@ import {
   InputGroup,
   InputGroupAddon,
 } from "@wren/ui/components/ui/input-group"
+import { Busy } from "../../busy.js"
 import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({
@@ -67,8 +68,12 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  busy,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+  /** A search is out: the ring turns in the search mark's place, old results stay. */
+  busy?: boolean
+}) {
   return (
     <div data-slot="command-input-wrapper" className="p-1 pb-0">
       <InputGroup className="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
@@ -81,7 +86,12 @@ function CommandInput({
           {...props}
         />
         <InputGroupAddon>
-          <SearchIcon className="size-4 shrink-0 opacity-50" />
+          <span className="grid size-4 shrink-0 place-items-center *:[grid-area:1/1]">
+            <SearchIcon
+              className={cn("size-4 opacity-50 transition-opacity", busy && "opacity-0")}
+            />
+            <Busy on={!!busy} />
+          </span>
         </InputGroupAddon>
       </InputGroup>
     </div>

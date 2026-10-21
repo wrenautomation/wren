@@ -622,80 +622,71 @@
   }
 }
 
-/* What a user action is doing. A busy button or chip carries a slot after its label (busy.tsx);
-   the slot is always there, so the width never changes. Each look is a [data-busy] block. The
-   rows it changed wash, then settle. */
+/* The busy ring (busy.tsx): one mark for any wait. A faint track and one arc that turns. Its
+   ink is the live role; a primary button sets --ui-busy-ink to its own text. The slot is always
+   there once a part can go busy, so the width never changes. The rows an action changed wash,
+   then settle. A press that worked draws a check in the same slot. Reduced motion: the arc
+   stops and the check shows at once. */
 .ui-busy {
   display: inline-flex;
   flex: none;
   opacity: 0;
   transition: opacity 0.2s var(--ui-ease);
 }
-.ui-busy[data-on] {
+.ui-busy[data-on],
+.ui-busy[data-done] {
   opacity: 1;
 }
-/* The plain ring. Its ink is the live role; a primary button sets --ui-busy-ink to its own text. */
-.ui-busy[data-busy="ring"] {
-  width: 14px;
-  height: 14px;
-}
-.ui-busy[data-busy="ring"][data-big] {
-  width: 40px;
-  height: 40px;
-}
-.ui-busy[data-busy="ring"] > svg {
+.ui-busy > svg {
   width: 100%;
   height: 100%;
   overflow: visible;
 }
-.ui-busy[data-busy="ring"] circle {
+.ui-busy circle {
   fill: none;
   stroke: var(--ui-busy-ink, var(--ui-live));
-  stroke-width: 3;
+  stroke-width: 4.5;
   stroke-linecap: round;
-  stroke-dasharray: 70 25;
+}
+.ui-busy [data-track] {
+  opacity: 0.16;
+}
+.ui-busy [data-arc] {
+  stroke-dasharray: 28 100;
   transform-origin: 20px 20px;
 }
-.ui-busy[data-busy="ring"][data-on] circle {
-  animation: ui-ring-spin 0.9s linear infinite;
+.ui-busy[data-on] [data-arc] {
+  animation: ui-ring-spin 0.8s linear infinite;
+}
+.ui-busy [data-check] {
+  fill: none;
+  stroke: var(--ui-busy-ink, var(--ui-live));
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  opacity: 0;
+}
+.ui-busy[data-done] circle {
+  opacity: 0;
+}
+.ui-busy[data-done] [data-check] {
+  opacity: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.3s var(--ui-ease) 0.05s;
 }
 @keyframes ui-ring-spin {
   to {
     transform: rotate(360deg);
   }
 }
-.ui-busy[data-busy="dots"] {
-  gap: 3px;
-  width: 15px;
-}
-.ui-busy[data-busy="dots"] > i {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.3;
-}
-.ui-busy[data-busy="dots"][data-on] > i {
-  animation: ui-dot-step 1s ease-in-out infinite;
-}
-.ui-busy[data-busy="dots"][data-on] > i:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.ui-busy[data-busy="dots"][data-on] > i:nth-child(3) {
-  animation-delay: 0.4s;
-}
-@keyframes ui-dot-step {
-  40% {
-    opacity: 1;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .ui-busy[data-busy="dots"][data-on] > i {
+  .ui-busy[data-on] [data-arc] {
     animation: none;
-    opacity: 1;
   }
-  .ui-busy[data-busy="ring"][data-on] circle {
-    animation: none;
+  .ui-busy[data-done] [data-check] {
+    transition: none;
   }
 }
 @theme {

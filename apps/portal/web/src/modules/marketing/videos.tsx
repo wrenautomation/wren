@@ -894,8 +894,10 @@ function Pass({ p }: { p: Step }) {
       </span>
       {p.note ? <span className="whitespace-pre-wrap break-words">{p.note}</span> : null}
       {p.state === "running" ? (
-        <span className="animate-pulse text-(--ui-ink-3) motion-reduce:animate-none">
-          The agent is working on it…
+        <span>
+          <Tag tone="accent" busy>
+            The agent is working on it
+          </Tag>
         </span>
       ) : null}
       {p.state === "done" ? <span className="text-(--ui-ink-2)">{p.what}.</span> : null}

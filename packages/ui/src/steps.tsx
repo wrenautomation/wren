@@ -7,9 +7,11 @@
  * Plain data in, no fetching: the caller owns the work and passes its state.
  * Source: designs/2026-10-20-design-language/design-language.src.html, section 14, "Long job".
  */
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Busy } from "./busy.js";
 import { cx } from "./format.js";
 import { GROUP_LABEL } from "./layout.js";
+import { PlatformTile } from "./marks.js";
 
 export type StepState = "wait" | "run" | "done";
 
@@ -18,8 +20,9 @@ export interface StepCard {
   /** Unique in its step. */
   key: string;
   label: string;
-  /** Its mark: a node (a `SiteMark`), or one to two letters drawn on the accent. */
-  mark: ReactNode;
+  /** Its platform, as a key or a host ("reddit", "youtube.com"): its logo on its brand color.
+   * Any other site gets a globe. */
+  mark: string;
 }
 
 export interface JobStep {
@@ -81,22 +84,10 @@ function Status({ text }: { text: string }) {
 }
 
 function Card({ card }: { card: StepCard }) {
-  const { label, mark } = card;
   return (
     <span className="ui-card inline-flex items-center gap-[5px] [border-radius:var(--ui-leaf-chip)] bg-(--ui-paper) py-0.5 pr-[7px] pl-[3px] text-[11.5px] font-semibold whitespace-nowrap text-(--ui-ink-2) shadow-(--ui-raise)">
-      {typeof mark === "string" ? (
-        <i
-          aria-hidden="true"
-          className="grid size-4 flex-none place-items-center rounded-[4px] bg-(--ui-active) text-[9px] font-extrabold not-italic text-(--ui-on-accent)"
-        >
-          {mark}
-        </i>
-      ) : (
-        <span aria-hidden="true" className="grid size-4 flex-none place-items-center">
-          {mark}
-        </span>
-      )}
-      <em className="not-italic">{label}</em>
+      <PlatformTile mark={card.mark} />
+      <em className="not-italic">{card.label}</em>
     </span>
   );
 }
@@ -104,11 +95,21 @@ function Card({ card }: { card: StepCard }) {
 const MARK = "mt-0.5 grid size-4 flex-none place-items-center rounded-full border-2 border-solid";
 const TICK =
   "after:h-2 after:w-[5px] after:-translate-y-px after:rotate-45 after:border-solid after:border-(--ui-on-accent) after:border-r-2 after:border-b-2 after:content-['']";
-const STATE_MARK: Record<StepState, string> = {
+const STATE_MARK: Record<Exclude<StepState, "run">, string> = {
   wait: "border-(--ui-hair)",
-  run: "border-(--ui-active) bg-(--ui-active) animate-ui-run-pulse motion-reduce:animate-none",
   done: `border-(--ui-active) bg-(--ui-active) ${TICK}`,
 };
+
+/** A step's own mark: an empty dot, the busy ring while it runs, a tick once done. */
+function StepMark({ state }: { state: StepState }) {
+  if (state === "run")
+    return (
+      <span aria-hidden="true" className="mt-0.5 grid size-4 place-items-center">
+        <Busy on size="step" />
+      </span>
+    );
+  return <i aria-hidden="true" className={cx(MARK, STATE_MARK[state])} />;
+}
 
 function Step({ step }: { step: JobStep }) {
   const { title, state, detail, cards, count } = step;
@@ -122,7 +123,7 @@ function Step({ step }: { step: JobStep }) {
         state === "wait" && "text-(--ui-ink-3)",
       )}
     >
-      <i aria-hidden="true" className={cx(MARK, STATE_MARK[state])} />
+      <StepMark state={state} />
       <div className="grid gap-[3px]">
         <span className={state === "run" ? "font-semibold" : undefined}>{title}</span>
         {state === "wait" ? null : <Status text={detail ?? ""} />}

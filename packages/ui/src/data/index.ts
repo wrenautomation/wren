@@ -23,6 +23,7 @@ export {
   readCached,
   readTogether,
   refreshAll,
+  refreshing,
   stampOf,
   useLoad,
   writeThrough,

@@ -59,7 +59,7 @@ import {
   opensAs,
 } from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
-import { Button } from "./controls.js";
+import { Button, Tag } from "./controls.js";
 import { listChanged } from "./data/delta.js";
 import { type Load, readCached, useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
@@ -1316,6 +1316,10 @@ function List({
   const settledKey = useRef(rowsKey);
   if (!page.loading) settledKey.current = rowsKey;
   const dim = page.loading && !!page.data && settledKey.current !== rowsKey;
+  // A view's tab turns the ring while its rows read; the pager's count does for another page.
+  const settledView = useRef(ask.view);
+  if (!page.loading) settledView.current = ask.view;
+  const viewing = dim && settledView.current !== ask.view;
   // Rows set aside wait out their undo off the list; it reads again once their call lands.
   const held = useHeld(meta.name.many);
   const landed = useRef(held.landed);
@@ -1326,6 +1330,14 @@ function List({
   }, [held.landed, page.retry]);
   const many = meta.name.many;
   const actions = actsOf(meta, acts);
+  // A row an optimistic press sends stays, washed, its word and the ring on it, till the server
+  // answers (design language, "Optimistic"). Other held rows leave at once.
+  const going = new Map<string, string>();
+  for (const [id, what] of held.going) {
+    const word = actions.find((a) => a.id === what)?.optimistic;
+    if (word) going.set(id, word);
+  }
+  const goingKey = [...going.keys()].join(" ");
   /** The rows the last action changed: they wash once the list has read them again. */
   const [changed, setChanged] = useState<Set<string>>(new Set());
   const [picked, setPicked] = usePicked(place);
@@ -1352,14 +1364,15 @@ function List({
   });
   // What waits on the viewer comes first; `split` is where "For info" starts.
   const loaded = page.data?.rows;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `goingKey` is `going`, new each render.
   const { rows: tiered, split } = useMemo(
     () =>
       tiersOf(
-        (loaded ?? []).filter((r) => !held.ids.has(String(r.id))),
+        (loaded ?? []).filter((r) => !held.ids.has(String(r.id)) || going.has(String(r.id))),
         needs,
         !!grouped || !!ask.sort,
       ),
-    [loaded, needs, grouped, ask.sort, held.ids],
+    [loaded, needs, grouped, ask.sort, held.ids, goingKey],
   );
   /** Whether a row waits on the viewer; null where the page names nothing that waits. */
   const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
@@ -1658,7 +1671,7 @@ function List({
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageTitle title={title ?? cap(many)} />
+        <PageTitle title={title ?? cap(many)} busy={page.loading && !!page.data && !dim} />
         {/* One button: the first thing the page makes. The rest wait behind one menu. */}
         <div className="flex items-center gap-2">
           {forms[0] ? (
@@ -1701,6 +1714,7 @@ function List({
           place={place}
           saved={saved}
           keep={api.keep}
+          loading={viewing}
         />
         <ListBar
           meta={meta}
@@ -1920,6 +1934,7 @@ function List({
                         href={place.link({ [meta.name.one]: id, tab: null })}
                         open={id === openId}
                         changed={changed.has(id) && !page.loading}
+                        going={going.get(id)}
                         picked={table.picked(id)}
                         onPick={() => table.toggle(id)}
                         onOpen={() => {
@@ -2071,6 +2086,7 @@ function List({
                                 ? "bg-(--ui-hover) [--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]"
                                 : "[--row-ground:var(--ui-paper)] hover:bg-(--ui-hover) hover:[--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]",
                             changed.has(id) && !page.loading && "animate-ui-changed",
+                            going.has(id) && "bg-(--ui-wash)",
                           )}
                         >
                           <td className="pl-2.5">
@@ -2135,15 +2151,21 @@ function List({
                             </td>
                           ))}
                           <td className="relative pr-2 text-right">
-                            <RowActions
-                              title={titleOf(meta, r)}
-                              main={main}
-                              more={more}
-                              reply={replies}
-                              page={place.page(id)}
-                              busy={acting}
-                              run={(a) => rowRun(a, r)}
-                            />
+                            {going.has(id) ? (
+                              <Tag tone="accent" busy>
+                                {going.get(id)}
+                              </Tag>
+                            ) : (
+                              <RowActions
+                                title={titleOf(meta, r)}
+                                main={main}
+                                more={more}
+                                reply={replies}
+                                page={place.page(id)}
+                                busy={acting}
+                                run={(a) => rowRun(a, r)}
+                              />
+                            )}
                           </td>
                         </tr>
                       );
@@ -2207,6 +2229,7 @@ function List({
         shown={rows.length}
         size={size}
         narrow={narrow}
+        loading={dim && !viewing}
       />
 
       {openId ? (
@@ -2372,6 +2395,7 @@ function RowCard({
   href,
   open,
   changed,
+  going,
   picked,
   onPick,
   onOpen,
@@ -2393,6 +2417,8 @@ function RowCard({
   href: string;
   open: boolean;
   changed: boolean;
+  /** An optimistic press sends it: its word ("Passed") shows with the ring till the server answers. */
+  going?: string | undefined;
   picked: boolean;
   onPick: () => void;
   onOpen: () => void;
@@ -2418,6 +2444,7 @@ function RowCard({
         "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-14 [&>[data-face]]:items-start active:[&>[data-face]]:bg-(--ui-hover)",
         open && "[&>[data-face]]:bg-(--ui-fill)",
         changed && "[&>[data-face]]:animate-ui-changed",
+        going && "[&>[data-face]]:bg-(--ui-wash)",
       )}
     >
       <label className="grid size-12 flex-none cursor-pointer place-items-center">
@@ -2440,6 +2467,13 @@ function RowCard({
         >
           {title || <span className="text-(--ui-ink-3)">-</span>}
         </a>
+        {going ? (
+          <span>
+            <Tag tone="accent" busy>
+              {going}
+            </Tag>
+          </span>
+        ) : null}
         {foldOf(meta, row) ? (
           <FoldPreview
             messages={foldOf(meta, row) ?? []}
@@ -2762,7 +2796,7 @@ export function RecordBody({
     setChanged(ids.length > 0);
     onActed?.(ids);
   };
-  const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name, {
+  const { run, busy, running, done, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name, {
     // What this page draws: a yes names it, so one over newer words is refused.
     versionOf: (rowId) =>
       String(rowId) === id || String(rowId) === String(got.data?.row.id)
@@ -3064,6 +3098,7 @@ export function RecordBody({
                     tone={i === 0 ? "primary" : "secondary"}
                     size={i === 0 ? "next" : "dense"}
                     busy={runningOn(running, a.id, [row.id])}
+                    done={runningOn(done, a.id, [row.id])}
                     disabled={busy || !!blockedOf(a, row)}
                     onClick={() => runHead(a)}
                   >

@@ -17,6 +17,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { Busy } from "./busy.js";
 import { refreshAll } from "./data/query.js";
 import { num } from "./format.js";
 import { tipProps } from "./hint.js";
@@ -675,19 +676,10 @@ export function PullToRefresh({ on, top }: { on: boolean; top: string }) {
       className="pointer-events-none fixed left-1/2 z-20 grid size-9 place-items-center rounded-full border border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-2) shadow-(--ui-shadow)"
       style={{ top, opacity: 0, transform: "translate3d(-50%, -40px, 0)" }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width="18"
-        height="18"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        aria-hidden="true"
-        className={busy ? "animate-spin motion-reduce:animate-none" : undefined}
-      >
-        <path d="M21 12a9 9 0 1 1-6.2-8.56" />
-      </svg>
+      {/* The ring shows still while it pulls, and turns once the page reads again. */}
+      <span className="grid place-items-center [&>.ui-busy]:opacity-100">
+        <Busy on={busy} size="step" />
+      </span>
     </div>
   );
 }
@@ -700,6 +692,8 @@ export interface Segment {
   href: string;
   count?: number | undefined;
   on: boolean;
+  /** Its data still reads: the ring turns after the label. Set it to keep the slot. */
+  busy?: boolean | undefined;
   /** What it keeps, in words, on hover (a narrow desktop window). */
   tip?: string | undefined;
 }
@@ -747,6 +741,7 @@ export function Segmented({
                 {num(i.count)}
               </span>
             ) : null}
+            {i.busy === undefined ? null : <Busy on={i.busy} />}
           </a>
         ))}
       </div>

@@ -24,7 +24,7 @@ import { AccountPicker } from "./accounts.js";
 import { type Action, type Call, callOnce, useLastWrite } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
-import { Button } from "./controls.js";
+import { Button, Tag } from "./controls.js";
 import { SendStatus } from "./data/status.js";
 import { useEdit } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
@@ -114,8 +114,10 @@ export function DraftTurns({ turns }: { turns: readonly DraftTurnLine[] }) {
           </span>
           {t.message ? <span className="whitespace-pre-wrap break-words">{t.message}</span> : null}
           {t.state === "thinking" ? (
-            <span className="animate-pulse text-(--ui-ink-3) motion-reduce:animate-none">
-              Claude is working on it…
+            <span>
+              <Tag tone="accent" busy>
+                Claude is working on it
+              </Tag>
             </span>
           ) : null}
           {t.reply ? (

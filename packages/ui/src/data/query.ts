@@ -174,6 +174,10 @@ export type Load<T> = {
   at: number;
 };
 
+/** Data already shown reads again behind it (a refresh): the ring by the title, never a skeleton. */
+export const refreshing = (l: Pick<Load<unknown>, "loading" | "data" | "placeholder">) =>
+  l.loading && l.data !== null && !l.placeholder;
+
 /** The answer cached for `key` under `scope`, if any. */
 export const cachedOf = <T>(scope: object, key: string): T | undefined =>
   QUERIES.getQueryData<T>(keyOf(scope, key));

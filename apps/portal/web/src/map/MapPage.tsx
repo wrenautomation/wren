@@ -13,13 +13,13 @@
 import type { BlameLine } from "@wren/pipeline/history";
 import {
   Alert,
+  BusyBox,
   Button,
   canAt,
   Graph,
   type GraphEdit,
   Icon,
   LoadFailed,
-  Loading,
   PaletteDrawer,
   type PaletteGroup,
   refreshAll,
@@ -430,8 +430,8 @@ export function MapPage({
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
           </div>
         ) : !read.data ? (
-          <div className="p-5">
-            <Loading lines={8} />
+          <div className="grid h-full place-items-center p-5">
+            <BusyBox title="Loading your map" />
           </div>
         ) : !data || !drawn ? (
           <NoShape mayStart={mayEdit} at={at} onStarted={read.retry} />

@@ -4,6 +4,7 @@
  * plain steps (page title, section title, group label).
  */
 import { createContext, type ReactNode, useContext } from "react";
+import { Busy } from "./busy.js";
 import { cx } from "./format.js";
 import { Sweep } from "./sweep.js";
 
@@ -39,12 +40,27 @@ export const useAbout = () => useContext(AboutContext);
 export const ABOUT = "mt-1 max-w-[62ch] text-[14px] text-pretty text-(--ui-ink-2)";
 
 /** A page's title, with its line under it. */
-export function PageTitle({ title, lede }: { title: ReactNode; lede?: ReactNode }) {
+/**
+ * A page's title. `busy` turns the ring beside it while data already shown reads again (a
+ * refresh): the old data stays, nothing else moves.
+ */
+export function PageTitle({
+  title,
+  lede,
+  busy,
+}: {
+  title: ReactNode;
+  lede?: ReactNode;
+  busy?: boolean | undefined;
+}) {
   const about = useAbout();
   const line = lede ?? about;
   return (
     <div className="min-w-0">
-      <h1 className={PAGE_TITLE}>{title}</h1>
+      <h1 className={cx(PAGE_TITLE, busy !== undefined && "flex items-center gap-2")}>
+        {title}
+        {busy === undefined ? null : <Busy on={busy} />}
+      </h1>
       {line ? <p className={ABOUT}>{line}</p> : null}
     </div>
   );
@@ -85,6 +101,7 @@ export function Section({
   count,
   note,
   actions,
+  busy,
   plain = false,
   className,
   children,
@@ -96,6 +113,8 @@ export function Section({
   count?: number | undefined;
   note?: ReactNode;
   actions?: ReactNode;
+  /** Its data reads again behind what shows (a refresh): the ring turns beside the title. */
+  busy?: boolean | undefined;
   plain?: boolean | undefined;
   className?: string | undefined;
   children: ReactNode;
@@ -117,6 +136,7 @@ export function Section({
                   {count.toLocaleString("en-US")}
                 </span>
               )}
+              {busy === undefined ? null : <Busy on={busy} />}
             </h2>
           ) : null}
           {note ? (

@@ -21,8 +21,8 @@ afterEach(() => {
 });
 
 const CARDS = [
-  { key: "a", label: "example.com", mark: "E" },
-  { key: "b", label: "example.org", mark: "O" },
+  { key: "a", label: "reddit.com", mark: "reddit.com" },
+  { key: "b", label: "example.org", mark: "example.org" },
 ];
 const RUNNING: JobStep[] = [
   { title: "Searching", state: "done", detail: "2 sources", cards: CARDS, count: "2 sources" },
@@ -46,6 +46,17 @@ describe("Steps", () => {
     expect(items[1]?.getAttribute("aria-current")).toBe("step");
     expect(status()?.textContent).toBe("example.com · 3 pages");
     expect(host.querySelectorAll(".ui-card")).toHaveLength(2);
+  });
+
+  it("puts the platform's logo on its cards, a globe on a plain site, and the ring on the run", () => {
+    draw(RUNNING);
+    const tiles = [...host.querySelectorAll(".ui-card > [data-mark]")];
+    expect(tiles.map((t) => t.getAttribute("data-mark"))).toEqual(["reddit", "web"]);
+    expect((tiles[0] as HTMLElement).style.background).toMatch(/ff4500|255, 69, 0/i);
+    const run = host.querySelector("li[data-state=run]");
+    expect(run?.querySelector(":scope > span .ui-busy[data-on]")).not.toBeNull();
+    // The step's state marks its own mark only: no card carries the ring or the tick.
+    expect(host.querySelector(".ui-card .ui-busy, .ui-card [class*=after]")).toBeNull();
   });
 
   it("stacks a done step's cards into a deck with its count", () => {

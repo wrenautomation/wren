@@ -106,7 +106,7 @@ function Queue({
     setRev((n) => n + 1);
     setPicked(new Set());
   };
-  const { run, busy, running, dialog } = useRun(
+  const { run, busy, running, done, dialog } = useRun(
     acts?.call ?? (() => Promise.reject()),
     acted,
     meta.name,
@@ -336,6 +336,7 @@ function Queue({
                       tone={i === 0 ? "primary" : "secondary"}
                       size={i === 0 ? "next" : "dense"}
                       busy={!!row && runningOn(running, a.id, [row.id])}
+                      done={!!row && runningOn(done, a.id, [row.id])}
                       disabled={busy || !!(row && blockedOf(a, row))}
                       onClick={() => act(a)}
                     >

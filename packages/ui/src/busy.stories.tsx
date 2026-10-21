@@ -1,23 +1,26 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Busy } from "./busy.js";
+import { expect, within } from "storybook/test";
+import { Busy, BusyBox } from "./busy.js";
 import { Button, Tag } from "./controls.js";
-import { FRAME } from "./layout.js";
+import { PageBar } from "./page-bar.js";
+import { Segmented } from "./phone.js";
 
 export default { title: "Busy" } satisfies Meta;
 
 type Story = StoryObj;
 
-/** The ring big in a modal, and small on a chip and on each button tone. Then the dots. */
-export const Looks: Story = {
+/** The ring big in a modal, then small in each place it goes: a chip, buttons, a tab, the pager. */
+export const Places: Story = {
   render: () => (
-    <div className="grid max-w-md gap-4">
-      <div className={`${FRAME} grid justify-items-center gap-1 p-4 text-center`}>
-        <Busy on big />
-        <b className="mt-1.5 text-[14px] font-semibold">Loading your map</b>
-        <span className="text-[12.5px] text-(--ui-ink-2)">4 lines, 18 stations</span>
-      </div>
+    <div className="grid max-w-lg gap-5">
+      <BusyBox title="Loading your map" note="4 lines, 18 stations" />
       <div className="flex flex-wrap items-center gap-3">
-        <Tag busy>Drafting</Tag>
+        <Tag tone="accent" busy>
+          Drafting
+        </Tag>
+        <Tag tone="accent" busy>
+          Approved
+        </Tag>
         <Button tone="primary" busy>
           Send reply
         </Button>
@@ -27,10 +30,44 @@ export const Looks: Story = {
         <Button tone="quiet" busy>
           Send reply
         </Button>
+        <Button tone="secondary" busy={false} done>
+          Send reply
+        </Button>
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-[14px]">
-        Dots <Busy on variant="dots" />
-      </div>
+      <h2 className="flex items-center gap-2 text-[15px] font-semibold">
+        Replies <Busy on />
+      </h2>
+      <Segmented
+        label="Views"
+        items={[
+          { id: "all", label: "All", href: "#all", on: false },
+          { id: "waiting", label: "Waiting", href: "#waiting", on: true, busy: true },
+          { id: "done", label: "Done", href: "#done", on: false },
+        ]}
+      />
+      <PageBar
+        place={{
+          params: new URLSearchParams(),
+          link: () => "#",
+          page: () => "#",
+          list: "#",
+          go: () => undefined,
+        }}
+        page={2}
+        pages={5}
+        total={120}
+        shown={25}
+        size={25}
+        narrow={false}
+        loading
+      />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByRole("status")).toHaveTextContent("Loading your map");
+    // Each wait shows the one ring; nothing draws a bar.
+    await expect(canvasElement.querySelectorAll(".ui-busy[data-on]").length).toBeGreaterThan(6);
+    await expect(canvasElement.querySelectorAll(".ui-busy[data-done]")).toHaveLength(1);
+  },
 };

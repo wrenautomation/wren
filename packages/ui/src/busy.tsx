@@ -1,54 +1,54 @@
 /**
- * The busy state of a button or chip, one shared part. `on` says it is at work; the slot is
- * always there once a part can go busy, so the width never changes. The look is a variant.
- * "ring" is the default: the plain ring of section 14 ("Ring, bird ways", option 0), 14 px after a
- * label, 40 px in a modal. "dots" stays as an option. William picks the final look later (flight,
- * feathers, clutch, nest). To add one: add it to `VARIANTS` with its markup and its CSS in
- * tailwind.css, then change `BUSY` below. Nothing else changes. The bar, the sweep and the edge
- * pulse are out.
+ * The busy ring, the one mark for any wait (William, 10-21): a faint track and one arc that
+ * turns, 0.8 s a turn. 14 px after a label, 18 px in a running step, 40 px in a modal. `on` says
+ * it is at work. `done` says it just worked: a check draws in the same slot. A part that can go
+ * busy keeps the slot, so its width never changes. No bars, no sweeps. Source: designs/2026-10-20-design-language/design-language.src.html, `.rg`. CSS:
+ * `.ui-busy` in tailwind.css.
  */
-import type { ReactNode } from "react";
 
-/** Each busy look: its markup. `on` is true while at work. */
-const VARIANTS = {
-  ring: () => (
-    <svg viewBox="0 0 40 40" aria-hidden="true">
-      <circle cx="20" cy="20" r="15" />
-    </svg>
-  ),
-  dots: () => (
-    <>
-      <i />
-      <i />
-      <i />
-    </>
-  ),
-} satisfies Record<string, () => ReactNode>;
+const SIZES = { small: 14, step: 18, big: 40 } as const;
+export type BusySize = keyof typeof SIZES;
 
-export type BusyVariant = keyof typeof VARIANTS;
-
-/** The look every busy button and chip wears. One line to change. */
-export const BUSY: BusyVariant = "ring";
-
-/** `big` is the 40 px ring of a modal; the default is the 14 px one after a label. */
 export function Busy({
   on,
-  variant = BUSY,
-  big = false,
+  done = false,
+  size = "small",
 }: {
   on: boolean;
-  variant?: BusyVariant;
-  big?: boolean;
+  done?: boolean | undefined;
+  size?: BusySize;
 }) {
   return (
     <span
       aria-hidden="true"
-      data-busy={variant}
+      data-busy=""
       data-on={on ? "" : undefined}
-      data-big={big ? "" : undefined}
+      data-done={done && !on ? "" : undefined}
       className="ui-busy"
+      style={{ width: SIZES[size], height: SIZES[size] }}
     >
-      {VARIANTS[variant]()}
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <circle data-track="" cx="20" cy="20" r="15" />
+        <circle data-arc="" cx="20" cy="20" r="15" />
+        <path data-check="" d="M11 21l6 6 12-13" />
+      </svg>
     </span>
+  );
+}
+
+/**
+ * A wait with no path to show (a map that builds): a box with the big ring, what loads and, when
+ * known, how much. It is a live status, so a screen reader says the title once.
+ */
+export function BusyBox({ title, note }: { title: string; note?: string | undefined }) {
+  return (
+    <div
+      role="status"
+      className="mx-auto grid w-fit min-w-56 justify-items-center gap-1 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-4 pt-5 pb-4 text-center shadow-(--ui-shadow)"
+    >
+      <Busy on size="big" />
+      <b className="mt-1.5 text-[14px] font-semibold text-(--ui-ink)">{title}</b>
+      {note ? <span className="text-[12.5px] text-(--ui-ink-2)">{note}</span> : null}
+    </div>
   );
 }

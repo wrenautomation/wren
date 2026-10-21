@@ -31,7 +31,7 @@ export {
   BrowserRow,
   folderTree,
 } from "./browser.js";
-export { BUSY, Busy, type BusyVariant } from "./busy.js";
+export { Busy, BusyBox, type BusySize } from "./busy.js";
 export {
   type CardMedia,
   type CardOption,
@@ -79,6 +79,7 @@ export {
   readCached,
   readTogether,
   refreshAll,
+  refreshing,
   type SendLine,
   SendStatus,
   sendLineOf,
@@ -274,7 +275,15 @@ export {
   searchOf,
 } from "./list-search.js";
 export { type Look, LookEditor, lookOf, ThemeGallery } from "./look.js";
-export { hostMark, markName, PlatformMark, TintSwatch, tintColor, tintWash } from "./marks.js";
+export {
+  hostMark,
+  markName,
+  PlatformMark,
+  PlatformTile,
+  TintSwatch,
+  tintColor,
+  tintWash,
+} from "./marks.js";
 export {
   type OverviewProps,
   type OverviewTile,

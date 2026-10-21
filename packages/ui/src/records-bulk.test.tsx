@@ -43,7 +43,7 @@ function draw(picked: string[], running: { action: string; ids: (string | number
 }
 
 describe("a press is busy only on the rows it is at work on", () => {
-  it("a bulk button for other rows is turned off but shows no dots", () => {
+  it("a bulk button for other rows is turned off but shows no ring", () => {
     const b = draw(["2"], { action: "approve", ids: [1] });
     expect(b?.textContent).toContain("Approve");
     expect(b?.hasAttribute("aria-busy")).toBe(false);
@@ -51,7 +51,7 @@ describe("a press is busy only on the rows it is at work on", () => {
     expect(host.querySelector("[data-busy][data-on]")).toBeNull();
   });
 
-  it("a bulk button for the rows it works on shows its dots", () => {
+  it("a bulk button for the rows it works on shows its ring", () => {
     const b = draw(["1", "2"], { action: "approve", ids: [1] });
     expect(b?.getAttribute("aria-busy")).toBe("true");
     expect(host.querySelector("[data-busy][data-on]")).not.toBeNull();

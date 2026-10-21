@@ -294,6 +294,7 @@ Source: `controls.tsx` (`Button`, `ButtonLink`, `Tag`), `components/ui/button.ts
 - **Press edge:** the primary has `box-shadow: 0 3px 0 var(--ui-press-edge)` (`--ui-press-edge` is the accent 72% mixed with black; night sets `#7a69ad`). On press it sinks 3 px and the edge goes. It does not turn ink on hover. Buttons move on `--ui-spring`.
 - **Feedback:** active scale 0.97 (secondary and quiet). Disabled opacity 40%. Focus ring 2 px `--ui-focus`, offset 2 px. `arrow` nudges 3 px on hover.
 - **`busy`:** solid, `aria-busy`, disabled, the busy ring after the label (`Busy` in `busy.tsx`). Pass `busy` true or false on a button that can go busy, so the ring's slot is always there.
+- **`done`:** its press just worked: a check draws in the ring's slot for 2.4 s (`useRun`'s `done`, `DONE_MS`). Then the toast with Undo.
 - **Touch:** min height 44 px under `pointer-coarse`.
 - **Tag:** status chip. `px-[9px] py-0.5`, 12 px, semibold, leaf-chip corners. Tones neutral, accent, warn, green. Optional 6 px dot.
 - **Actions** (`action.tsx`): a reversible action runs at once and shows a toast with Undo for 10 s. Without undo it asks first. A blocked action shows turned off with its reason.
@@ -404,8 +405,7 @@ Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`
 - Hover and color: 100 to 200 ms. Dialogs 150 ms. Sheets 200 to 300 ms.
 - `ui-changed` (1.4 s): a row that changed washes live-color 14% to clear.
 - `ui-run-pulse` (1.6 s, opacity to 0.35), `ui-run-flow` (0.7 s linear), `ui-run-spark` (0.75 s): a live run.
-- `ui-ring-spin` (0.9 s): the busy ring of a button, a chip or a modal.
-- `ui-dot-step` (1 s): the dots, the other busy look.
+- `ui-ring-spin` (0.8 s linear): the busy ring, the one mark for any wait.
 - `ui-read` (900 ms): read-aloud bars.
 - `ui-fade`: page fade in.
 - `ui-ribbon-in` (0.9 s): the Map's ribbons grow in once on load (the real event: the data arrived); widths then ease on change. Off under reduced motion.
@@ -418,23 +418,24 @@ Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`
 
 Source: `designs/2026-10-20-design-language/design-language.src.html`, section 14 (`loading`). Rules only; the parts come later. A new token is allowed (for example a shimmer colour).
 
-**Timing.** Under 150 ms, show nothing. Up to 1 s, show a skeleton or a bar in place. Past 1 s, add words. Past 10 s, show steps and say the person can leave.
+**Timing.** Under 150 ms, show nothing. Up to 1 s, show a skeleton in place, or the ring beside what refreshes. Past 1 s, add words. Past 10 s, show steps and say the person can leave.
 
 | Kind | When | Looks like |
 |---|---|---|
 | Skeleton | first load of a page or sheet | Grey blocks in the shape of the content, with a slow lavender shimmer. The known header shows at once. |
-| Bar | refresh of data already shown | The old data stays. A 2 px lavender bar sweeps along the top of the panel. A changed number fades in once. |
-| Busy ring | a button's or chip's own action; a modal while a page builds | The label stays and the slot is reserved: no width change. A 14 px ring turns after the label (40 px in a modal), then the toast with Undo. |
-| Steps | any wait with stages | Each step names what it does and with what. The status line cross-fades and holds each line at least 600 ms, so it never flickers. Sources and targets fold in as small cards, then stack into a deck with a count when the step is done. Past 10 s: a clock, and "you can leave". Done, it folds to one line that stays as the record and opens on a click (`Steps` in `steps.tsx`). One part for research, send, import, a video render and the map. |
-| Stream | AI text | Text arrives as it comes, with a lavender caret and a "Drafting" chip. |
+| Refresh | data already shown reads again | The old data stays. The ring turns beside the panel or page title (`busy` on `Section` and `PageTitle`; `refreshing(load)`). A changed number fades in once. |
+| Busy | a button or chip at work | The label stays and the slot is reserved: no width change. The ring turns beside it, then a check, then the toast with Undo. |
+| Optimistic | a press with `optimistic` in a list | The row stays, washed, with the action's word and the ring ("Passed"), until the server answers. Then it leaves. A refusal brings it back with its words. A queue opens the next item at once. |
+| Steps | any wait with stages | Each step names what it does and with what. The status line cross-fades and holds each line at least 600 ms, so it never flickers. Sources and targets fold in as small cards with the platform's own logo on its brand colour (`PlatformTile` in `marks.tsx`, from `simple-icons`; a plain site gets a globe), then stack into a deck with a count when the step is done. Past 10 s: a clock, and "you can leave". Done, it folds to one line that stays as the record and opens on a click (`Steps` in `steps.tsx`). One part for research, send, import, a video render and the map. |
+| Stream | AI text | Text arrives as it comes, with a lavender caret and a "Drafting" chip with the ring. |
 
-**Busy look.** One shared part, `Busy`, used by `Button` and `Tag`. The look is a variant. The plain ring is the default; dots is the other built look. William picks the final look later (flight, feathers, clutch, nest: section 14, "Ring, bird ways"). The pick is one line (`BUSY` in `busy.tsx`) plus that look's CSS. The bottom bar, the sweep and the edge pulse are out.
+**The busy ring.** One shared part, `Busy` (`busy.tsx`), and one look (William, 10-21): a faint track (opacity 0.16) and one arc (dash 28 100, stroke 4.5, round cap) that turns, 0.8 s a turn. The ink is `--ui-live`; a primary button sets `--ui-busy-ink` to its own text. Sizes: 40 px in a modal (`BusyBox`), 18 px in the running step (it replaces the step's dot), 14 px elsewhere. Places: the running step, the optimistic chip, the pager count while the next page loads, a view tab whose rows still read, a button beside its label, a panel title on refresh, the AI chip, the ⌘K input (old results stay until new ones land), a modal, the phone's pull to refresh and a loading toast. No loading bars and no sweeps anywhere.
 
-**Pagination.** A pager stays where it exists. Never remove a pager or swap it for infinite scroll. The next page loads in place at the same height: skeleton rows at page size, no jump.
+**Pagination.** A pager stays where it exists. Never remove a pager or swap it for infinite scroll. The next page loads in place at the same height: the rows on screen dim and the ring turns after the count, no jump.
 
 **Not loading.** Empty, error and offline each look different from a wait. Error: one sentence and Retry. Offline: a banner, and writes queue.
 
-**Reduced motion.** The shimmer and the draw-in go. Bars still move. The busy ring stands still; the dots stop and show full.
+**Reduced motion.** The shimmer and the draw-in go. The ring stops and shows its arc still. A check shows at once.
 
 **The No Count Rule.** A number never counts up or jitters. A changed number fades in once (`ui-rise`, keyed by its value), on first load and on refresh.
 

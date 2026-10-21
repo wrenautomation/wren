@@ -105,8 +105,9 @@ export interface Action {
   /** The toast after it worked, from the handler's answer. */
   done?: (answer: unknown) => string;
   /**
-   * Said the moment it's sent ("Sent"): the records leave the list at once and the next one
-   * opens while the call runs. A refusal brings them back with its words.
+   * Said the moment it's sent ("Sent"). In a list its rows stay, washed, with this word and the
+   * ring, until the server answers; a queue opens the next one at once. A refusal brings them
+   * back with its words.
    */
   optimistic?: string;
   /**
@@ -243,11 +244,16 @@ export const held = (a: Action) =>
 export function useHeld(
   many: string,
   writes: Writes = WRITES,
-): { ids: ReadonlySet<string>; landed: number } {
+): {
+  ids: ReadonlySet<string>;
+  /** Of those, the ones a press still sends, with its action's id. */
+  going: ReadonlyMap<string, string | null>;
+  landed: number;
+} {
   const snap = useSyncExternalStore(writes.subscribe, writes.snapshot, writes.snapshot);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `snap` is what moves them.
   return useMemo(
-    () => ({ ids: writes.hiddenIn(many), landed: writes.landed() }),
+    () => ({ ids: writes.hiddenIn(many), going: writes.sendingIn(many), landed: writes.landed() }),
     [snap, many, writes],
   );
 }
@@ -605,7 +611,12 @@ export interface RunState {
   asked: Asked | null;
   /** The action at work and its ids, for its button. */
   running: { action: string; ids: Ids } | null;
+  /** The action that just worked and its ids: its button shows a check for `DONE_MS`. */
+  done: { action: string; ids: Ids } | null;
 }
+
+/** How long a button's check shows after its press worked. */
+export const DONE_MS = 2400;
 
 /** What a toast needs: sonner's `toast`, or a fake in tests. */
 export interface ToastFns {
@@ -657,7 +668,7 @@ export function withExpect(
  * or when the tab closes.
  */
 export class Runner {
-  private state: RunState = { asked: null, running: null };
+  private state: RunState = { asked: null, running: null, done: null };
   private readonly seen = new Set<() => void>();
   /** Presses whose call is out, optimistic ones too. */
   private readonly flying = new Set<string>();
@@ -781,7 +792,11 @@ export class Runner {
       } else if (this.writes.showing()) this.toast.error(wordsOf(err));
     } finally {
       this.flying.delete(press);
-      this.set({ running: null });
+      if (ok) {
+        const done = { action: action.id, ids };
+        this.set({ running: null, done });
+        setTimeout(() => this.state.done === done && this.set({ done: null }), DONE_MS);
+      } else this.set({ running: null });
       this.deps.after(changed);
     }
     return ok;
@@ -928,6 +943,8 @@ export function useRun(
   ) => Promise<boolean>;
   busy: boolean;
   running: { action: string; ids: (string | number)[] } | null;
+  /** The action that just worked on these ids: its button shows a check (`runningOn`). */
+  done: { action: string; ids: (string | number)[] } | null;
   dialog: ReactNode;
 } {
   const deps: RunnerDeps = {
@@ -945,11 +962,11 @@ export function useRun(
   if (!ref.current) ref.current = new Runner(deps);
   const runner = ref.current;
   runner.update(deps);
-  const { asked, running: here } = useSyncExternalStore(
-    runner.subscribe,
-    runner.snapshot,
-    runner.snapshot,
-  );
+  const {
+    asked,
+    running: here,
+    done,
+  } = useSyncExternalStore(runner.subscribe, runner.snapshot, runner.snapshot);
   // A press this page made before it went (another page, a reload) is still at work in `WRITES`.
   const snap = useSyncExternalStore(WRITES.subscribe, WRITES.snapshot, WRITES.snapshot);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `snap` is what moves it.
@@ -1099,7 +1116,7 @@ export function useRun(
   );
   const send = (action: Action, ids: (string | number)[], input: Record<string, unknown>) =>
     runner.send(action, ids, input);
-  return { run, send, busy, running, dialog };
+  return { run, send, busy, running, done, dialog };
 }
 
 /** The one place toasts show; an app mounts it once. */
