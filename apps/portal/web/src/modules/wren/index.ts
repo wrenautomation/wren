@@ -4,7 +4,7 @@
  */
 
 import { IN_HOUSE, totalOf } from "@wren/core/in-house";
-import type { Action } from "@wren/ui";
+import type { Action, OverviewQueue } from "@wren/ui";
 import { createElement } from "react";
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
@@ -428,6 +428,74 @@ const RULE_ACTIONS: Action[] = [
   },
 ];
 
+/**
+ * What waits on William, by queue: Overview E draws these, ranked by the oldest wait. Each reads
+ * its record's view for the count and its `wait` date for the oldest. The promise is how long a
+ * person may wait before the queue is late; 24h is the default for each.
+ */
+export const INBOX_QUEUES: OverviewQueue[] = [
+  {
+    label: "Waiting on you",
+    record: "marketing.inbox",
+    view: "waiting",
+    href: "/engage/inbox?view=waiting",
+    icon: "chat",
+    line: 0,
+    wait: "due",
+    promise: "24h",
+  },
+  {
+    label: "Issues for you",
+    record: "access.issue",
+    view: "waiting",
+    href: "/inbox/issues?view=waiting",
+    icon: "alert",
+    line: 2,
+    wait: "at",
+    promise: "24h",
+  },
+  {
+    label: "To approve",
+    record: "marketing.approval",
+    view: "waiting",
+    href: "/engage/approve?view=waiting",
+    icon: "check",
+    line: 1,
+    wait: "due",
+    promise: "24h",
+  },
+  {
+    label: "Mail that needs you",
+    record: "watch.mail",
+    view: "needs_you",
+    href: "/inbox/mail?view=needs_you",
+    icon: "mail",
+    line: 3,
+    wait: "at",
+    promise: "24h",
+  },
+  // Yours only: the console reads the signed-in person's mentions (`mine`).
+  {
+    label: "Mentions",
+    record: "notes.mention",
+    view: "unread",
+    href: "/inbox/mentions?view=unread",
+    icon: "at",
+    wait: "at",
+    promise: "24h",
+  },
+  {
+    label: "Asks for access",
+    record: "access.ask",
+    view: "waiting",
+    href: "/inbox/asks?view=waiting",
+    icon: "key",
+    line: 1,
+    wait: "at",
+    promise: "24h",
+  },
+];
+
 export const inbox: Module = {
   id: "inbox",
   name: "Inbox",
@@ -439,19 +507,9 @@ export const inbox: Module = {
     {
       ...overview,
       about: "Everything that waits on you, across channels.",
+      // The queues are Overview E; the period tiles are its trend cards.
+      queues: INBOX_QUEUES,
       tiles: [
-        {
-          label: "Waiting on you",
-          record: "marketing.inbox",
-          href: "/engage/inbox?view=waiting",
-          needs: true,
-        },
-        {
-          label: "To approve",
-          record: "marketing.approval",
-          href: "/engage/approve?view=waiting",
-          needs: true,
-        },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
         {
           label: "Booked",
@@ -459,50 +517,8 @@ export const inbox: Module = {
           href: pipelinesAt("calls", "view=booked"),
           period: 30,
         },
-        {
-          label: "Mail that needs you",
-          record: "watch.mail",
-          href: "/inbox/mail?view=needs_you",
-          needs: true,
-        },
-        // Yours only: the console reads the signed-in person's mentions (`mine`).
-        {
-          label: "Mentions",
-          record: "notes.mention",
-          href: "/inbox/mentions?view=unread",
-          needs: true,
-        },
-        {
-          label: "Issues for you",
-          record: "access.issue",
-          href: "/inbox/issues?view=waiting",
-          needs: true,
-        },
-        {
-          label: "Asks for access",
-          record: "access.ask",
-          href: "/inbox/asks?view=waiting",
-          needs: true,
-        },
-        { label: "Mail rules", record: "watch.rule", href: "/inbox/rules" },
       ],
-      top: [
-        {
-          label: "Waiting on you",
-          record: "marketing.inbox",
-          href: "/engage/inbox?view=waiting",
-          fields: ["type", "at"],
-          empty: "Nothing is waiting on you.",
-        },
-        {
-          label: "Mail that needs you",
-          record: "watch.mail",
-          href: "/inbox/mail?view=needs_you",
-          fields: ["sender", "at"],
-          empty: "Nothing in your inboxes needs you.",
-        },
-        CONVERSATION_TOP,
-      ],
+      top: [CONVERSATION_TOP],
     },
     {
       id: "mail",

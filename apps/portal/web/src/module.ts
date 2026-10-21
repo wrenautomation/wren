@@ -10,6 +10,7 @@ import type {
   DaySource,
   IconName,
   NavItem,
+  OverviewQueue,
   OverviewTile,
   OverviewTop,
   RecordAct,
@@ -141,6 +142,8 @@ export interface ListPage extends PageBase {
 export interface OverviewPage extends PageBase {
   template: "overview";
   tiles: OverviewTile[];
+  /** What waits on the viewer: with these the page is Overview E, its period tiles beside them. */
+  queues?: OverviewQueue[];
   top?: OverviewTop[];
   /** Drawn under the numbers by hand: the project's review, pulse and what's next. */
   below?: ComponentType<PageProps>;
