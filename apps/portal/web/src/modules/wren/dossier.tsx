@@ -3,10 +3,11 @@
  * its newest posts, and its people. Read only. A client sees it once Company dossier is installed;
  * until then the section points to the Shop.
  */
-import { Empty, LoadFailed, Loading } from "@wren/ui";
+import { Empty, LoadFailed, Loading, useNarrow } from "@wren/ui";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
-import { dayLabel, LIST, QUIET, SPLIT } from "../work/bits.js";
+import { dayLabel, QUIET } from "../work/bits.js";
+import { RowsPanel } from "../work/rows-panel.js";
 
 /** `@wren/research/dossier`'s `DossierBrief`, as `email/dossier` answers it. */
 interface BriefFact {
@@ -30,27 +31,62 @@ interface DossierBrief {
 
 const PART = "research.dossier";
 
-function FactLine({ f }: { f: BriefFact }) {
+/** A fact as a row: what it is, what the sheet holds, how it came, and the day. */
+function FactRows({ facts, label }: { facts: BriefFact[]; label: string }) {
+  const narrow = useNarrow();
   return (
-    <li className="grid gap-1">
-      <span className={SPLIT}>
-        <span className="min-w-0 break-words">
-          <b className="font-medium capitalize">{f.what}</b> {f.text}
-        </span>
-        <span className={`${QUIET} shrink-0 text-[13.5px]`}>{dayLabel(f.seen)}</span>
-      </span>
-      <span className={`${QUIET} text-[13.5px]`}>
-        {f.via}
-        {f.source ? (
-          <>
-            {" · "}
-            <a href={f.source} target="_blank" rel="noreferrer">
-              Source
-            </a>
-          </>
-        ) : null}
-      </span>
-    </li>
+    <RowsPanel<BriefFact>
+      rows={facts}
+      rowKey={(f) => `${f.what}:${f.seen}:${f.text}`}
+      label={label}
+      noun="fact"
+      name={{
+        label: "Fact",
+        icon: "text",
+        min: 140,
+        width: 160,
+        title: (f) => f.what,
+        weight: () => "font-medium capitalize text-(--ui-ink)",
+        // A phone's row has no text column: what the sheet holds goes under the name.
+        sub: narrow
+          ? (f) => <span className="text-[13px] text-(--ui-ink-2)">{f.text}</span>
+          : undefined,
+      }}
+      columns={[
+        {
+          key: "text",
+          label: "What the sheet holds",
+          icon: "lines",
+          min: 260,
+          cell: (f) => <span className="line-clamp-2 break-words">{f.text}</span>,
+        },
+        {
+          key: "via",
+          label: "Via",
+          icon: "link",
+          width: 200,
+          cell: (f) => (
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate">{f.via}</span>
+              {f.source ? (
+                <a href={f.source} target="_blank" rel="noreferrer" className="flex-none">
+                  Source
+                </a>
+              ) : null}
+            </span>
+          ),
+        },
+        {
+          key: "seen",
+          label: "Seen",
+          icon: "clock",
+          width: 110,
+          quiet: true,
+          phone: true,
+          cell: (f) => dayLabel(f.seen),
+        },
+      ]}
+    />
   );
 }
 
@@ -75,41 +111,53 @@ export function FirmDossier({ client, id }: { client: string; id: string }) {
       );
     return <LoadFailed error={got.error} onRetry={got.retry} />;
   }
-  if (!got.data) return <Loading lines={3} />;
+  if (!got.data) return <Loading shape="rows" lines={3} />;
   const d = got.data;
   if (!d.facts.length && !d.posts.length && !d.people.length)
     return <Empty>Nothing on this company yet. Facts show here as the sheet reads them.</Empty>;
   return (
     <div className="grid gap-6">
-      {d.facts.length ? (
-        <ul className={LIST}>
-          {d.facts.map((f) => (
-            <FactLine key={`${f.what}:${f.seen}:${f.text}`} f={f} />
-          ))}
-        </ul>
-      ) : null}
+      {d.facts.length ? <FactRows facts={d.facts} label="Facts" /> : null}
       {d.posts.length ? (
         <div className="grid gap-2">
           <h3 className="text-[13.5px] font-medium">Recent posts</h3>
-          <ul className={LIST}>
-            {d.posts.map((p) => (
-              <li key={`${p.site}:${p.url ?? p.text}`} className="grid gap-1">
-                <span className="break-words">{p.text || "No text"}</span>
-                <span className={`${QUIET} text-[13.5px]`}>
-                  {p.site} {p.kind}
-                  {p.published ? ` · ${dayLabel(p.published)}` : ""}
-                  {p.url ? (
-                    <>
-                      {" · "}
-                      <a href={p.url} target="_blank" rel="noreferrer">
-                        Open
-                      </a>
-                    </>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <RowsPanel<DossierBrief["posts"][number]>
+            rows={d.posts}
+            rowKey={(p) => `${p.site}:${p.url ?? p.text}`}
+            label="Recent posts"
+            noun="post"
+            name={{ label: "Post", icon: "text", min: 260, title: (p) => p.text || "No text" }}
+            columns={[
+              {
+                key: "site",
+                label: "Where",
+                icon: "link",
+                width: 160,
+                cell: (p) => `${p.site} ${p.kind}`,
+              },
+              {
+                key: "published",
+                label: "Published",
+                icon: "clock",
+                width: 110,
+                quiet: true,
+                phone: true,
+                cell: (p) => dayLabel(p.published),
+              },
+              {
+                key: "open",
+                label: "Link",
+                icon: "link",
+                width: 80,
+                cell: (p) =>
+                  p.url ? (
+                    <a href={p.url} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  ) : null,
+              },
+            ]}
+          />
         </div>
       ) : null}
       {d.people.map((p) => (
@@ -119,11 +167,7 @@ export function FirmDossier({ client, id }: { client: string; id: string }) {
             {p.title ? <span className={QUIET}>, {p.title}</span> : null}
           </h3>
           {p.facts.length ? (
-            <ul className={LIST}>
-              {p.facts.map((f) => (
-                <FactLine key={`${f.what}:${f.seen}:${f.text}`} f={f} />
-              ))}
-            </ul>
+            <FactRows facts={p.facts} label={`Facts on ${p.name}`} />
           ) : (
             <p className={QUIET}>No facts on them yet.</p>
           )}

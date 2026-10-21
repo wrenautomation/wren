@@ -4,12 +4,23 @@
  * runs until Publish.
  */
 import type { MadeWorkflow } from "@wren/core/spine";
-import { Button, FormKept, LoadFailed, Section, say, TextField, useEditForm } from "@wren/ui";
+import {
+  Button,
+  FormKept,
+  LoadFailed,
+  Loading,
+  Pill,
+  Section,
+  say,
+  TextField,
+  useEditForm,
+} from "@wren/ui";
 import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
 import { dayLabel, QUIET } from "../work/bits.js";
+import { RowsPanel } from "../work/rows-panel.js";
 
 const MOST = 1000;
 
@@ -18,6 +29,47 @@ export const madeAt = (id: string, client: string | null, ask?: string | null) =
   `/workflows/canvas?path=${encodeURIComponent(id)}${
     client ? `&client=${encodeURIComponent(client)}` : ""
   }&edit=1${ask ? `&ask=${encodeURIComponent(ask)}` : ""}`;
+
+/** A made workflow as rows: its name opens the canvas; live or draft, its steps and when it was made. */
+function MadeRows({ rows, client }: { rows: MadeWorkflow[]; client: string | null }) {
+  const state = (m: MadeWorkflow) => (m.live ? (m.draft ? "Live, draft open" : "Live") : "Draft");
+  return (
+    <RowsPanel<MadeWorkflow>
+      rows={rows}
+      rowKey={(m) => m.id}
+      label="made workflows"
+      noun="workflow"
+      name={{
+        label: "Workflow",
+        icon: "text",
+        min: 220,
+        title: (m) => m.made.name,
+        href: (m) => madeAt(m.id, client),
+      }}
+      columns={[
+        {
+          key: "state",
+          label: "State",
+          icon: "selected",
+          width: 170,
+          phone: true,
+          cell: (m) => (
+            <Pill color={m.live ? "var(--ui-good)" : "var(--ui-ink-3)"}>{state(m)}</Pill>
+          ),
+        },
+        { key: "steps", label: "Steps", icon: "hash", width: 90, cell: (m) => m.nodes },
+        {
+          key: "at",
+          label: "Made",
+          icon: "clock",
+          width: 120,
+          quiet: true,
+          cell: (m) => dayLabel(m.at),
+        },
+      ]}
+    />
+  );
+}
 
 export function MadeHere({ client }: { client: string | null }) {
   const got = useCall(`workflows-made:${client ?? ""}`, () =>
@@ -87,25 +139,12 @@ export function MadeHere({ client }: { client: string | null }) {
       </form>
       {got.error && !got.data ? <LoadFailed error={got.error} onRetry={got.retry} /> : null}
       {rows.length ? (
-        <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((m) => (
-            <li key={m.id}>
-              <a
-                href={madeAt(m.id, client)}
-                className="grid gap-1 border border-(--ui-hair) bg-(--ui-paper) p-3 text-[13.5px] text-(--ui-ink) no-underline hover:border-(--ui-link)"
-              >
-                <span className="font-medium">{m.made.name}</span>
-                <span className="text-[12.5px] text-(--ui-ink-3)">
-                  {m.live ? (m.draft ? "Live, draft open" : "Live") : "Draft"} · {m.nodes}{" "}
-                  {m.nodes === 1 ? "step" : "steps"} · {dayLabel(m.at)}
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
+        <MadeRows rows={rows} client={client} />
       ) : got.data ? (
         <p className={`m-0 ${QUIET}`}>Nothing made here. Describe one above.</p>
-      ) : null}
+      ) : got.error ? null : (
+        <Loading shape="rows" lines={3} />
+      )}
     </Section>
   );
 }
