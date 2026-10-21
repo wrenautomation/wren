@@ -150,10 +150,14 @@ export function groupFields(meta: RecordMeta): FieldMeta[] {
   return out;
 }
 
-/** The field "By" groups on: the platform, else the first status, else the first choice. */
+/**
+ * The field "By" groups on: the one the record names (`by`), else the platform, else the first
+ * status, else the first choice.
+ */
 export function byField(meta: RecordMeta): FieldMeta | null {
   const fields = groupFields(meta);
   return (
+    fields.find((f) => f.key === meta.by) ??
     siteField(meta) ??
     fields.find((f) => f.kind === "status") ??
     fields.find((f) => f.kind === "choice") ??

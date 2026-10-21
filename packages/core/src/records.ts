@@ -598,6 +598,11 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   /** Tabs, the first opened by default. */
   views: readonly SavedView[];
   /**
+   * The field the list's "By" button folds its rows on (Table | By Type). Absent: the platform,
+   * else the first status, else the first choice. It must hold states.
+   */
+  by?: keyof F & string;
+  /**
    * The filters always on the bar, one click each (`quickFilters` in @wren/ui). Absent: the
    * platform field first, then a few short pick lists.
    */
@@ -1026,6 +1031,8 @@ export interface RecordMeta {
   editNeeds?: "manage";
   /** The filters always on the bar; absent = picked by the web. */
   quick?: readonly string[];
+  /** The field "By" folds the rows on first; absent = the web picks (platform, status, choice). */
+  by?: string;
   /** The field holding each row's account, when it has one: filter, column, group by. */
   account?: string;
   /** Its rows fold (`RecordFold`): the field holding each row's messages, as JSON. */
@@ -1108,6 +1115,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     }),
     views: type.views,
     ...(type.quick ? { quick: type.quick } : {}),
+    ...(type.by ? { by: type.by } : {}),
     ...(type.account ? { account: type.account } : {}),
     ...(type.fold ? { fold: type.fold.into } : {}),
     related: (type.related ?? []).map((r) => ({ record: r.record })),
