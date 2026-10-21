@@ -96,10 +96,10 @@ function Chip({
       aria-pressed={on}
       onClick={onClick}
       className={cx(
-        "inline-flex min-h-7 cursor-pointer items-center gap-1.5 border px-2.5 text-[12.5px] [border-radius:var(--ui-leaf-chip)] transition-colors duration-150 pointer-coarse:min-h-11",
+        "inline-flex min-h-7 cursor-pointer items-center gap-1.5 border-0 px-2.5 font-semibold text-[12.5px] [border-radius:var(--ui-leaf-chip)] transition-colors duration-150 pointer-coarse:min-h-11",
         on
-          ? "border-(--ui-active) bg-(--ui-accent-tint) font-semibold text-(--ui-live)"
-          : "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-2) hover:bg-(--ui-hover)",
+          ? "bg-(--ui-accent-tint) text-(--ui-live) shadow-[inset_0_0_0_1px_var(--ui-active)]"
+          : "bg-(--ui-fill) text-(--ui-ink-2) hover:bg-(--ui-hover)",
       )}
     >
       {children}

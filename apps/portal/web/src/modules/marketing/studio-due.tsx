@@ -18,7 +18,7 @@ const CARD =
 
 /** The small label over a part: the kit's label case and tracking, not a new style. */
 export const EYEBROW =
-  "m-0 font-semibold text-[12px] text-(--ui-ink-2) [letter-spacing:var(--ui-label-tracking)] [text-transform:var(--ui-label-case)]";
+  "m-0 font-[650] text-[12.5px] text-(--ui-ink-2) [letter-spacing:var(--ui-label-tracking)] [text-transform:var(--ui-label-case)]";
 
 /** A line's name, or nothing: lines come from the plan and the shape. */
 function lineOf(due: Due, lines: ReadonlyMap<string, MetroLine>) {
@@ -40,7 +40,10 @@ export function DueCards({
   retry: () => void;
 }) {
   if (error && !loading && !due.length) return <LoadFailed error={error} onRetry={retry} />;
-  if (loading && !due.length) return <Loading lines={2} />;
+  if (loading && !due.length)
+    return (
+      <Loading shape="cards" lines={4} className="sm:flex-row [&>span]:min-w-0 [&>span]:flex-1" />
+    );
   if (!due.length) return null;
   return (
     <ul
@@ -58,7 +61,7 @@ export function DueCards({
                 {line ? <LineName line={line} /> : <span />}
                 {d.n > 1 ? <span className="tabular-nums">{d.n} to make</span> : null}
               </span>
-              <span className="font-semibold text-[15.5px] leading-snug">{d.name}</span>
+              <span className="font-[650] text-[15px] leading-snug">{d.name}</span>
               <span
                 className={cx(
                   "text-[12.5px]",
@@ -90,7 +93,7 @@ export function NewRow({ params, only }: { params: URLSearchParams; only: Platfo
         >
           <Icon name={m.mark} size={18} className="text-(--ui-active)" />
           <span className="grid gap-0.5">
-            <span className="font-semibold text-[14.5px]">{m.name}</span>
+            <span className="font-[650] text-[15px]">{m.name}</span>
             <span className={cx("text-[12.5px] leading-snug", QUIET)}>{m.where}</span>
           </span>
         </a>

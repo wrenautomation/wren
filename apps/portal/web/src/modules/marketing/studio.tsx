@@ -102,7 +102,7 @@ function StudioHome(props: PageProps) {
           ) : undefined
         }
       />
-      <div className="grid gap-7">
+      <div className="grid gap-7 max-sm:pb-32">
         {plan.data && n === 0 ? null : (
           <section aria-labelledby="studio-due" className="grid min-w-0 gap-3">
             <div className="flex items-baseline gap-3">

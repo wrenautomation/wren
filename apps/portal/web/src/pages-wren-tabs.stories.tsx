@@ -44,15 +44,27 @@ export const ContentStudioApprove = pageAt("/content/studio", {
     await expect(await within(document.body).findByRole("button", { name: /undo/i })).toBeVisible();
   },
 });
-export const ContentStudioCompose = pageAt("/content/studio?make=post", {
-  me: ADMIN,
-  answers: STUDIO,
-  check: async (page) => {
-    const view = within(page);
-    await expect(await view.findByRole("button", { name: /offer builder/i })).toBeVisible();
-    await expect(await view.findByRole("button", { name: /approve and slot/i })).toBeVisible();
+/** Compose filled in: the sample post, a line and an angle picked, so each platform shows its version. */
+const SAMPLE_POST = [
+  "Most service sites list seven things they do.",
+  "The ones that book calls list one.",
+  "Last month I rebuilt an offer page down to a single line: who it is for, what changes in 30 days, the price. Three fewer sections.",
+].join("\n\n");
+export const ContentStudioCompose = pageAt(
+  `/content/studio?make=post&idea=${encodeURIComponent(SAMPLE_POST)}`,
+  {
+    me: ADMIN,
+    answers: STUDIO,
+    check: async (page) => {
+      const view = within(page);
+      await userEvent.click(await view.findByRole("button", { name: /offer builder/i }));
+      await userEvent.click(await view.findByRole("button", { name: "Proof" }));
+      await expect(await view.findByRole("button", { name: /approve and slot/i })).toBeEnabled();
+      // The picked chip drops its focus ring: a shot of this story shows the page at rest.
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    },
   },
-});
+);
 export const ContentPieces = pageAt("/content/pieces", { me: ADMIN });
 export const ContentContent = pageAt("/content/content", { me: ADMIN });
 export const ContentOverview = pageAt("/content/overview", { me: ADMIN });

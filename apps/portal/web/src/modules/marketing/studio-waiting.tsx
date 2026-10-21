@@ -497,7 +497,7 @@ export function WaitingBoard(
       {load.error && !ideas ? (
         <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !ideas ? (
-        <Loading lines={4} />
+        <Loading shape="rows" lines={5} />
       ) : ideas.length === 0 ? (
         <Empty>{only ? `No ${nameOf(only)} draft waits on you.` : "No draft waits on you."}</Empty>
       ) : (
@@ -647,13 +647,15 @@ function columnsOf(o: {
     {
       key: "platforms",
       label: "Platforms",
-      className: "w-[17%] max-md:hidden",
+      className: "w-[20%] max-md:hidden",
       cell: (i) => (
         <span className="flex flex-wrap gap-1">
           {[...new Set(i.drafts.map((d) => d.platform))].map((p) => (
-            <Tag key={p} className="gap-1">
-              <PlatformMark mark={p} size={12} label={nameOf(p)} />
-              {nameOf(p)}
+            <Tag key={p}>
+              <span className="inline-flex items-center gap-1.5">
+                <PlatformMark mark={p} size={12} />
+                {nameOf(p)}
+              </span>
             </Tag>
           ))}
         </span>
