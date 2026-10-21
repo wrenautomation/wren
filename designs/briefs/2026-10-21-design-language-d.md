@@ -75,6 +75,10 @@ The graph `bodies` go from all three answers. Break the old shape freely; update
 - `shapeVersion`: also takes `from: number` in place of `body`: saves the stored body of version `from` (a restore). Exactly one of `body` and `from`, or refused. The CLI keeps `body`.
 - `shapeBlame`: takes exactly one of `node`, `edge`, `station`, `track`, `line`, `group` (`historyOfStored` with that `on`).
 - Update the request types and `describe` texts beside them.
+- Prod converts after D (William, 10-21), then C1 Part 4 refuses graph saves. So:
+  - Undo keys follow the newest version's model. When the newest is metro, `diff` and `changes` are the metro diff of `metroView(a)` to `metroView(b)`, even for two graphs. `undoStoredChange` refuses a graph key on a metro newest.
+  - Restore with `from: n` on a metro newest saves `metroView(body of n)`. `saveShape` refuses a graph over metro.
+  - A graph file imported on a metro newest stays refused, in one plain sentence.
 
 ### Records (`src/records.ts`)
 
@@ -191,7 +195,16 @@ Rewrite `MapPage.tsx` on `MetroMap`. Keep the URL contract of `routes.ts`.
 - **Loading** (section 14): `BusyBox` on first load of the map; old data stays on refresh with `Busy` beside the title; error is one sentence and Retry. No bars. TanStack Query (`useCall`) only.
 - **No body on the wire.** After D3a, `git grep -n "body" apps/portal/web/src/map` finds no call that sends a shape body. Say so in the report.
 
+### Every surface after the convert
+
+The convert is next (William, 10-21). Each web surface that reads the shape must work on a converted body. The shape detail's `body` stays `runOf` (the graph the runtime runs) after the convert; `metro` is the stored metro body.
+- `modules/deals/board.tsx` reads `detail.body.nodes` (columns by `pathOf`). It keeps working on the lowered graph. Add a story or test on the converted mock.
+- Map, History, Import, Undo, ⌘K, NodePanel, Today: on `metro` and the D1 answers only.
+- `git grep -nE "body\.(nodes|edges)" apps/portal/web/src` after D3a: each hit reads `detail.body` as the runtime graph, never a body sent to the server. List the hits in the report.
+
 ### Mocks and stories
+
+- The mock shape is the convert of the synthetic mock graph: `metro = metroOf(graph).body`, `body = graphOf(metro)` (`@wren/pipeline/convert`), as prod after `wren shape convert --write`. Keep one "graph live" mock as well (`metro` drawn by `metroOf`, `body` the graph) for the time before the convert.
 
 - `mocks/data/map.ts` and `map-drafts.ts`: answer the D1 contract (metro detail, `views`, `marks`, `changes`, `drawErrors`, numbers of kind station, track, line, the hub row). Synthetic names only.
 - `pages-map.stories.tsx`: delete the edit-mode stories. Keep or rewrite: home, panel open, draft view (banner, marks, Apply, Drop), history compare, export (asserts `MAP_CALLS` has `shapeExport` with `ref` and no `body`), import preview, cannot draw, phone. Plays and axe on each.

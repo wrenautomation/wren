@@ -418,14 +418,16 @@ export function registerPipeline(
         to?: string;
         json?: boolean;
       }) => {
-        const rows = await withDb((db) =>
-          numberRows(db, {
-            ...(o.source ? { source: o.source } : {}),
-            ...(o.offer ? { offer: o.offer } : {}),
-            ...(o.window ? { window: o.window } : {}),
-            ...(o.from ? { from: o.from } : {}),
-            ...(o.to ? { to: o.to } : {}),
-          }),
+        const rows = ownKinds(
+          await withDb((db) =>
+            numberRows(db, {
+              ...(o.source ? { source: o.source } : {}),
+              ...(o.offer ? { offer: o.offer } : {}),
+              ...(o.window ? { window: o.window } : {}),
+              ...(o.from ? { from: o.from } : {}),
+              ...(o.to ? { to: o.to } : {}),
+            }),
+          ),
         );
         if (o.json) {
           console.log(JSON.stringify(rows, null, 2));
@@ -435,6 +437,16 @@ export function registerPipeline(
         if (!rows.length) console.log("no numbers");
       },
     );
+}
+
+/**
+ * The rows a shape lists as it is stored. A graph newest also answers station, track and line rows
+ * for the Map; here they would repeat its node and edge rows, so they go. A metro newest has no
+ * node rows and keeps its own.
+ */
+export function ownKinds(rows: readonly NumberRow[]): NumberRow[] {
+  if (!rows.some((r) => r.kind === "node")) return [...rows];
+  return rows.filter((r) => r.kind === "node" || r.kind === "edge" || r.kind === "offer");
 }
 
 /** `7`, `30`, `90` or `all`. */

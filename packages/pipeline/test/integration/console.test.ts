@@ -141,8 +141,9 @@ describe("shape changes", () => {
     });
     const diff = await api().shapeDiff({ ...op, a: 1, b: 2 });
     expect(diff).toMatchObject({ a: 1, b: 2 });
-    expect(diff.bodies.map((b) => b.name)).toEqual([shape.name, "Console shape 2"]);
-    expect(JSON.stringify(diff.diff)).toMatch(/name/);
+    expect(diff.views?.map((v) => v.name)).toEqual([shape.name, "Console shape 2"]);
+    expect(diff.changes.map((c) => c.key)).toEqual(["name"]);
+    expect(diff.marks?.name).toEqual({ from: shape.name, to: "Console shape 2" });
     const page = await api().recordsList({ ...op, record: "pipeline.shape", view: "all" });
     expect(page.rows.map((r) => [r.name, r.version])).toEqual([["Console shape 2", 2]]);
     const got = await api().recordsGet({
@@ -176,15 +177,15 @@ describe("shape changes", () => {
   it("writes a body as a file and compares a file with the newest version", async () => {
     const op = as(ADA, undefined, true);
     const newest = (await shapeVersionsOf(pg.db)).at(-1);
-    const { text } = await api().shapeExport({ ...op, body: newest?.body });
+    const { text } = await api().shapeExport({ ...op, ref: newest?.number as number });
     expect(text).toBe(exportShape(newest?.body as ShapeBody));
+    expect((await api().shapeExport(op)).text).toBe(text);
     const same = await api().shapePreview({ ...op, text });
-    expect(same).toMatchObject({ a: newest?.number, note: null });
-    expect(same.diff.nodes.added).toEqual([]);
+    expect(same).toMatchObject({ a: newest?.number, note: null, changes: [] });
     const edited = text.replace("name: Engaged", "name: Replied");
     const changed = await api().shapePreview({ ...op, text: edited });
-    expect(changed.diff.nodes.renamed).toEqual([{ id: "engaged", from: "Engaged", to: "Replied" }]);
-    expect(changed.bodies[1]?.nodes.find((n) => n.id === "engaged")?.name).toBe("Replied");
+    expect(changed.changes.map((c) => c.key)).toEqual(["node:engaged:renamed"]);
+    expect(changed.views?.[1].stations.find((s) => s.id === "engaged")?.label).toBe("Replied");
     await expect(api().shapePreview({ ...op, text: "- not a shape" })).rejects.toMatchObject({
       status: 400,
     });

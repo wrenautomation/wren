@@ -195,7 +195,9 @@ describe("convertShape on a graph with journeys, a deal and events", () => {
       for (const k of ["arrived", "skipped", "left", "now", "crossings", "opened", "cost"] as const)
         expect(a[k], `${a.id} ${k}`).toEqual(b?.[k]);
     };
-    const stations = rowsAfter.filter((r) => r.kind === "station");
+    // The hub has no node: its row counts leads, and it is not one of the graph's stations.
+    expect(rowsAfter.find((r) => r.id === "station:hub")).toMatchObject({ nodeKind: "hub" });
+    const stations = rowsAfter.filter((r) => r.kind === "station" && r.label !== "hub");
     const lines = rowsAfter.filter((r) => r.kind === "line" && r.label !== "signed");
     const tracks = rowsAfter.filter(
       (r) => r.kind === "track" && r.from !== "hub" && r.to !== "hub",

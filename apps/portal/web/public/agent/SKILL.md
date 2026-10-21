@@ -63,7 +63,7 @@ wren call PipelineConsole/shapeDiff --input '{"a":1,"b":2}'
 wren call PipelineConsole/shapeVersion --input @version.json --confirm shapeVersion
 wren call PipelineConsole/shapeImport --input '{"text":"<yaml>"}' --confirm shapeImport
 wren call PipelineConsole/shapePreview --input '{"text":"<yaml>"}'   # what a file would change; saves nothing
-wren call PipelineConsole/shapeExport --input @body.json              # a body as YAML text
+wren call PipelineConsole/shapeExport --input '{"ref":2}'             # a version or draft:<id> as YAML text; no ref: the newest
 wren call PipelineConsole/shapeStart --confirm shapeStart             # the starter shape, only when none exists
 wren call PipelineConsole/shapeDiff --input '{"a":2,"b":"draft:add-a-call"}'   # a version against a draft
 wren list pipeline.shape_draft               # drafts: open ones first; --view proposed|all
@@ -71,17 +71,20 @@ wren get pipeline.shape_draft <id>           # one draft: body and moves
 wren call PipelineConsole/shapeDraftNew --input @draft.json --confirm shapeDraftNew
 wren call PipelineConsole/shapeDraftUpdate --input @draft.json --confirm shapeDraftUpdate
 wren call PipelineConsole/shapeDraftPropose --input '{"id":"add-a-call"}' --confirm shapeDraftPropose
-wren call PipelineConsole/shapeBlame --input '{"node":"<node-id>"}'   # or {"edge":"<edge-id>"}
+wren call PipelineConsole/shapeBlame --input '{"station":"<id>"}'     # or node, edge, track, line, group
 wren call PipelineConsole/shapeUndoPreview --input '{"a":1,"b":2,"change":"node:call:added"}'
 wren call PipelineConsole/shapeUndo --input '{"a":1,"b":2,"change":"node:call:added"}' --confirm shapeUndo
 wren call PipelineConsole/shapeTag --input '{"name":"before-pricing","version":3}' --confirm shapeTag
 ```
 
-- `shapeVersion` takes `{ body, note, moves? }`. `moves` is `{ "<old node>": "<new node>" }` for
+- `shapeVersion` takes `{ body, note, moves? }`, or `{ from, note }` to save a copy of version
+  `from` as the next one (a restore). Send exactly one of `body` and `from`. A restore of a graph version on a metro shape saves its drawn form. `moves` is `{ "<old node>": "<new node>" }` for
   people on a node the new body drops. `shapeImport` takes the YAML file text (`name`, `nodes`,
   `edges`, optional `note`, `moves`, `terms`). Both refuse with every reason, or with
   "Nothing changed." when the body equals the newest.
-- `shapePreview` reads a file against the newest version: `{ a, diff, bodies, note, moves }`.
+- `shapePreview` reads a file against the newest version: `{ a, diff, changes, views, marks, note, moves }`.
+  `changes` is `[{ key, line }]`; `views` and `marks` are the map's drawing of both sides (null when
+  a side cannot be drawn).
   `shapeStart` saves the kind-only starter (note "Starter") and refuses when a shape exists.
 - Say why in `note`. A version is never edited or deleted.
 - **An agent proposes; a person applies in the Map.** To change the shape, save a draft
@@ -90,11 +93,11 @@ wren call PipelineConsole/shapeTag --input '{"name":"before-pricing","version":3
   `shapeDraftUpdate` `{ id, body, moves?, note? }`. A draft is not checked until it is applied.
   Do not call `shapeDraftApply` or `shapeDraftDrop` unless the user asked you to. The user applies
   or drops it in the Map.
-- `shapeBlame` takes exactly one of `node` or `edge`. It answers `{ lines }`: each version that
+- `shapeBlame` takes exactly one of `node`, `edge`, `station`, `track`, `line` or `group`. It answers `{ lines }`: each version that
   added, removed, renamed or changed it, newest first, with who, when and why (`note`).
-- To undo one change, read `shapeDiff`, pick a line's `changeKey` (`node:<id>:added`,
-  `edge:<id>:changed`, `name`), and call `shapeUndoPreview` `{ a, b, change }` first. It saves
-  nothing. It answers the line, the note, the version it applies to and the diff, or refuses with
+- To undo one change, read `shapeDiff` (`{ a, b, diff, changes, views, marks }`), pick the `key`
+  of a line in `changes` (on a metro shape the keys are station, track and line keys, even for two graph versions; `node:<id>:added`, `edge:<id>:changed`, `station:<id>:added`, `name`), and call `shapeUndoPreview` `{ a, b, change }` first. It saves
+  nothing. It answers the line, the note, the version it applies to, and the diff with its `changes`, or refuses with
   every reason (open people on a node the undo would remove, a change that is already gone). Show
   the user, then call `shapeUndo`. It saves the next version with the note `Undo: <line>`.
 - `shapeTag` `{ name, version, note? }` names one version. A tag never moves or goes away.

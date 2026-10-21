@@ -6,7 +6,9 @@ import type { ShapeBody } from "./model.js";
 import { Refused } from "./refused.js";
 import {
   checkStored,
+  diffAnswerOf,
   diffStored,
+  drawnOf,
   historyOfStored,
   metroView,
   parseStoredChangeKey,
@@ -274,5 +276,60 @@ describe("historyOfStored", () => {
       [1, "added"],
     ]);
     expect(historyOfStored([v(1, shape(), "graph")], "shared_followup", "flow")).toEqual([]);
+  });
+});
+
+describe("diffAnswerOf", () => {
+  const base = shape();
+  const renamedBooked = (): ShapeBody => ({
+    ...base,
+    nodes: base.nodes.map((n) => (n.id === "booked" ? { ...n, name: "Call booked" } : n)),
+  });
+
+  it("answers two graphs with graph keys, both sides drawn and the marks", () => {
+    const a = diffAnswerOf(base, renamedBooked());
+    expect(a.diff.model).toBe("graph");
+    expect(a.changes).toEqual([
+      { key: "node:booked:renamed", line: "Renamed node Booked to Call booked." },
+    ]);
+    expect(a.views?.[0]).toEqual(metroView(base));
+    expect(a.views?.[1].stations.find((s) => s.id === "booked")?.label).toBe("Call booked");
+    expect(a.marks?.stations.renamed.map((r) => r.id)).toEqual(["booked"]);
+  });
+
+  it("answers a graph against a metro body with metro keys", () => {
+    const m = renamed(drawn(), "booked", "Call booked");
+    const a = diffAnswerOf(base, m);
+    expect(a.diff.model).toBe("metro");
+    expect(a.changes.map((c) => c.key)).toEqual(["station:booked:renamed"]);
+    expect(a.views?.[0]).toEqual(drawn());
+    expect(a.views?.[1]).toBe(m);
+  });
+
+  it("keys two graphs as metro when the newest version is metro", () => {
+    const a = diffAnswerOf(base, renamedBooked(), true);
+    expect(a.diff.model).toBe("metro");
+    expect(a.changes).toEqual([
+      { key: "station:booked:renamed", line: "Renamed station Booked to Call booked." },
+    ]);
+    // A graph that cannot be drawn keeps its graph keys.
+    const hub = (name: string): ShapeBody => ({
+      ...base,
+      nodes: [...base.nodes, { id: "hub", kind: "step", name, action: "reply", advance: [] }],
+    });
+    expect(diffAnswerOf(hub("Hub"), hub("Hub two"), true).diff.model).toBe("graph");
+  });
+
+  it("keeps the diff and the lines when a side cannot be drawn", () => {
+    const hub = (name: string): ShapeBody => ({
+      ...base,
+      nodes: [...base.nodes, { id: "hub", kind: "step", name, action: "reply", advance: [] }],
+    });
+    expect(drawnOf(hub("Hub"))).toMatchObject({ ok: false });
+    const a = diffAnswerOf(hub("Hub"), hub("Hub two"));
+    expect(a.views).toBeNull();
+    expect(a.marks).toBeNull();
+    expect(a.diff.model).toBe("graph");
+    expect(a.changes.map((c) => c.key)).toEqual(["node:hub:renamed"]);
   });
 });
