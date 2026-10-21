@@ -168,3 +168,15 @@ Briefs: `designs/briefs/2026-10-20-design-language-c1.md`.
 - Hub. The hub holds no one. People is the CRM: every lead and client, their record and timeline. The Map's hub draws the lead count, read from People. Why (William's lean, my call): a person record outlives any line; a place on the map is a view of it.
 - Tiers. No upsells yet. Converted offer lines are core; a free offer line is front. Upsell transfers wait until an upsell exists.
 - Loader. One plain ring (artifact v23). Flight and the bird variants are gone.
+
+## Decisions (planner D, 2026-10-21)
+
+Briefs: `designs/briefs/2026-10-21-design-language-d.md`.
+
+- The server answers every diff with the drawing. `shapeDiff`, `shapePreview` and `shapeUndoPreview` answer `views` (both sides as the map draws them), `marks` (the metro diff), `diff` (in the stored bodies' terms, for undo keys) and `changes` (key and line). The graph `bodies` go. Why: the web stops reading graph bodies, so C1 Part 4 needs no web change.
+- Export and restore go by ref. `shapeExport` takes `ref`; `shapeVersion` takes `from: n`. Why: the web never sends a shape body.
+- A draft's marks are against its base. The banner says when live moved; Apply shows base to live, as the business-map design says.
+- Lead count: People profiles, not merged, with no deal row of any status. Why: "the hub draws the lead count, read from People" (William, 10-21). Open for William: only people with a journey, or a lost deal counted as a lead again.
+- Diff marks: added in the good token, changed in warn, removed faded and dashed, each with a small tag and a legend. The artifact has no design for them. Open for William: the look.
+- Late has one rule (`waitsOf`): a person waited longer than the track's promise. Today and the map's late mark both read it.
+- Numbers on a graph live: node and edge rows stay, station, track and line rows are added beside them, so the CLI and the Map each read their own kinds.
