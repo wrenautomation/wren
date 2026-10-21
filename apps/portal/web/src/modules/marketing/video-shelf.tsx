@@ -5,13 +5,13 @@
  * stays: its links still open the same editor.
  */
 import type { Thumb } from "@wren/core/records";
-import { cx, Empty, Icon, LoadFailed, Loading, PlatformMark, Section, Tag } from "@wren/ui";
+import { cx, Empty, Icon, LoadFailed, Loading, PlatformMark, Tag } from "@wren/ui";
 import { useCall } from "../../load.js";
 import type { ListPage, PageProps } from "../../module.js";
 import { TemplatePage, wrenRecords } from "../../records.js";
 import { href } from "../../route.js";
-import { QUIET } from "../work/bits.js";
 import { usePieces } from "./pieces.js";
+import { CARD, EYEBROW, LIFT } from "./studio-due.js";
 import { type ShelfRow, shelfState, wentTo } from "./video-shelf-state.js";
 
 /** The cards Studio shows; All recordings lists the rest. */
@@ -70,15 +70,21 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
     .slice(0, SHELF_MAX);
   const thumbs = load.data?.thumbs ?? {};
   return (
-    <Section
-      title="Videos"
-      note="Newest first. Open one to edit it here."
-      actions={
-        <a className={cx("text-[13px] underline", QUIET)} href="/content/videos">
+    <section aria-labelledby="studio-videos" className="grid min-w-0 gap-2.5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 id="studio-videos" className={EYEBROW}>
+          Videos
+        </h2>
+        <span className="text-[12px] text-(--ui-ink-3)">
+          Newest first. Open one to edit it here.
+        </span>
+        <a
+          className="ml-auto text-[13px] font-medium text-(--ui-link) no-underline hover:underline"
+          href="/content/videos"
+        >
           All recordings
         </a>
-      }
-    >
+      </div>
       {load.error && !load.data ? (
         <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !load.data ? (
@@ -100,22 +106,22 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
               >
                 <a
                   href={studioVideoHref(r.id, params)}
-                  className="group grid overflow-hidden rounded-xl border border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink) no-underline transition-[border-color,box-shadow] duration-150 ease-(--ui-ease) hover:border-(--ui-ink-3) hover:shadow-[0_2px_8px_rgb(0_0_0/0.06)] focus-visible:outline-2 focus-visible:outline-(--ui-active)"
+                  className={cx(CARD, LIFT, "group grid overflow-hidden")}
                 >
                   <span className="relative block aspect-video overflow-hidden bg-black">
                     <Poster thumb={thumbs[String(r.id)]} title={r.title} />
-                    <span className="absolute right-2 bottom-2 rounded-md bg-black/75 px-1.5 py-0.5 text-[11.5px] font-medium text-white [font-variant-numeric:tabular-nums]">
+                    <span className="absolute right-2 bottom-2 bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-white [border-radius:4px_8px] [font-variant-numeric:tabular-nums]">
                       {r.cut}
                     </span>
                   </span>
-                  <span className="grid gap-2 p-3">
-                    <span className="line-clamp-2 min-h-[2.6em] text-[14px] leading-[1.3] font-medium">
+                  <span className="grid gap-2 px-4 py-3.5">
+                    <span className="line-clamp-2 min-h-[2.6em] text-[14px] leading-[1.3] font-semibold">
                       {r.title}
                     </span>
                     <span className="flex min-h-5 flex-wrap items-center gap-2">
                       <Tag tone={s.tone}>{s.label}</Tag>
                       {r.shorts ? (
-                        <span className={cx("text-[12.5px]", QUIET)}>
+                        <span className="text-[12px] text-(--ui-ink-3)">
                           {r.shorts} {r.shorts === 1 ? "Short" : "Shorts"}
                         </span>
                       ) : null}
@@ -134,7 +140,7 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
           })}
         </ul>
       )}
-    </Section>
+    </section>
   );
 }
 

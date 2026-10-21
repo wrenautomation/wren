@@ -9,7 +9,7 @@
  * ContentDesk through the console.
  */
 
-import { Icon, PageHeader, SELECT_CLASS } from "@wren/ui";
+import { cx, Icon } from "@wren/ui";
 import { useEffect } from "react";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
@@ -52,6 +52,17 @@ function ComposePage(props: PageProps & { asked: NonNullable<ReturnType<typeof m
   );
 }
 
+/** "week of Oct 20": the Monday of this week, as the head's kicker says it. */
+export function weekOf(now = new Date()): string {
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  return `week of ${monday.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+}
+
+/** The board's trigger as a native select: paper, a hair ring, a leaf; the menu is the device's. */
+const LINE_PICK =
+  "h-8 cursor-pointer appearance-none bg-(--ui-paper) py-0 pr-8 pl-[30px] text-[13px] font-semibold text-(--ui-ink) [border-radius:6px_14px] shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-shadow duration-150 ease-(--ui-ease) hover:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--ui-active)_60%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-focus) max-sm:h-11";
+
 function StudioHome(props: PageProps) {
   const plan = usePlan();
   const { lines, byId } = useOfferLines(props.client);
@@ -61,55 +72,75 @@ function StudioHome(props: PageProps) {
   const due = dueOf(goals).filter((d) => !line || d.line === line);
   const all = dueOf(goals);
   const n = all.length;
+  const pieces = `${n} ${n === 1 ? "piece" : "pieces"}`;
   // A plan that names no line for its pieces has nothing to filter by.
   const filter = lines.length > 0 && all.some((d) => d.line);
+  const shown = line ? byId.get(line) : undefined;
   return (
     <>
-      <PageHeader
-        title={
-          plan.data && n > 0
-            ? `The plan still asks for ${n} ${n === 1 ? "piece" : "pieces"}`
-            : "Studio"
-        }
-        lede={
-          plan.data && n === 0
-            ? "Every goal is on track. Make something new, or finish what waits on you."
-            : "Make something new, or finish what waits on you."
-        }
-        actions={
-          filter ? (
-            <label className="flex items-center gap-2 text-[13px] text-(--ui-ink-2)">
-              Line
-              <span className="flex items-center gap-2">
-                {line && byId.get(line) ? <LineMark line={byId.get(line)} /> : null}
-                <select
-                  aria-label="Line"
-                  className={SELECT_CLASS}
-                  value={line ?? ""}
-                  onChange={(e) =>
-                    navigate(href("/content/studio", { line: e.target.value }, props.params), true)
-                  }
-                >
-                  <option value="">All lines</option>
-                  {lines.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.label}
-                    </option>
-                  ))}
-                </select>
-              </span>
-            </label>
-          ) : undefined
-        }
-      />
-      <div className="grid gap-7 max-sm:pb-32">
+      <header className="mb-7 flex flex-wrap items-end gap-4 max-sm:mb-4">
+        <div className="grid min-w-0 gap-1">
+          <p className="m-0 text-[13px] font-medium text-(--ui-ink-3)">
+            Studio · <span className="max-sm:hidden">{weekOf()}</span>
+            <span className="sm:hidden">this week</span>
+          </p>
+          <h1 className="m-0 text-[28px] leading-[34px] font-bold tracking-[-0.02em] text-balance max-sm:text-[24px] max-sm:leading-[30px]">
+            {!plan.data || n === 0 ? (
+              "Studio"
+            ) : (
+              <>
+                <span className="max-sm:hidden">The plan still asks for {pieces}</span>
+                <span className="sm:hidden">{pieces} still due</span>
+              </>
+            )}
+          </h1>
+          {plan.data && n === 0 ? (
+            <p className="m-0 text-[13.5px] text-(--ui-ink-2)">
+              Every goal is on track. Make something new, or finish what waits on you.
+            </p>
+          ) : null}
+        </div>
+        {filter ? (
+          <label className="ml-auto flex items-center gap-2 text-[13px] text-(--ui-ink-3) max-sm:hidden">
+            Line
+            <span className="relative flex items-center">
+              <LineMark line={shown} className="pointer-events-none absolute left-3" />
+              <select
+                aria-label="Line"
+                className={LINE_PICK}
+                value={line ?? ""}
+                onChange={(e) =>
+                  navigate(href("/content/studio", { line: e.target.value }, props.params), true)
+                }
+              >
+                <option value="">All lines</option>
+                {lines.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+              <Icon
+                name="down"
+                size={12}
+                className="pointer-events-none absolute right-3 text-(--ui-ink-2)"
+              />
+            </span>
+          </label>
+        ) : null}
+      </header>
+      <div className="grid gap-7 max-sm:gap-[18px] max-sm:pb-32">
         {plan.data && n === 0 ? null : (
-          <section aria-labelledby="studio-due" className="grid min-w-0 gap-3">
-            <div className="flex items-baseline gap-3">
-              <h2 id="studio-due" className={EYEBROW}>
+          <section aria-labelledby="studio-due" className="grid min-w-0 gap-2.5">
+            {/* A phone's head already says what is due: the label stays for a screen reader. */}
+            <div className="flex items-baseline gap-3 max-sm:contents">
+              <h2 id="studio-due" className={cx(EYEBROW, "max-sm:sr-only")}>
                 Still due this week
               </h2>
-              <a href="/content/plan" className="text-[13px]">
+              <a
+                href="/content/plan"
+                className="text-[13px] font-medium text-(--ui-link) no-underline hover:underline max-sm:hidden"
+              >
                 Open the plan
               </a>
             </div>
@@ -122,7 +153,7 @@ function StudioHome(props: PageProps) {
             />
           </section>
         )}
-        <section aria-label="New" className="grid min-w-0 gap-3 max-sm:hidden">
+        <section aria-label="New" className="grid min-w-0 gap-2.5 max-sm:hidden">
           <h2 className={EYEBROW}>New</h2>
           <NewRow params={props.params} only={only} />
         </section>
@@ -132,7 +163,7 @@ function StudioHome(props: PageProps) {
       <a
         href={href("/content/studio", { make: "post" }, props.params)}
         aria-label="New post"
-        className="fixed right-4 bottom-[calc(88px+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) shadow-(--ui-shadow) sm:hidden"
+        className="fixed right-5 bottom-[calc(104px+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center bg-(--ui-primary) text-(--ui-on-accent) [border-radius:14px_28px] shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--ui-umbra)_50%,transparent)] transition-transform duration-200 ease-(--ui-spring) active:scale-95 motion-reduce:transition-none sm:hidden"
       >
         <Icon name="plus" size={22} />
       </a>

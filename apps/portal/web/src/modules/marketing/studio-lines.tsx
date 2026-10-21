@@ -18,12 +18,24 @@ export function useOfferLines(client: string) {
 export const lineColour = (l: Pick<MetroLine, "colour"> | undefined) =>
   l?.colour === undefined ? "var(--ui-ink-3)" : `var(--ui-line-${l.colour})`;
 
-/** The colour square before a line's name. */
-export function LineMark({ line, className }: { line: MetroLine | undefined; className?: string }) {
+/** The colour square before a line's name: 10 px in a row or a picker, 8 px on a card (`small`). */
+export function LineMark({
+  line,
+  small = false,
+  className,
+}: {
+  line: MetroLine | undefined;
+  small?: boolean;
+  className?: string;
+}) {
   return (
     <span
       aria-hidden="true"
-      className={cx("inline-block size-2.5 flex-none rounded-[2px]", className)}
+      className={cx(
+        "inline-block flex-none",
+        small ? "size-2 rounded-[2px]" : "size-2.5 rounded-[3px]",
+        className,
+      )}
       style={{ background: lineColour(line) }}
     />
   );
@@ -33,7 +45,7 @@ export function LineMark({ line, className }: { line: MetroLine | undefined; cla
 export function LineName({ line, className }: { line: MetroLine | undefined; className?: string }) {
   if (!line) return null;
   return (
-    <span className={cx("inline-flex min-w-0 items-center gap-1.5", className)}>
+    <span className={cx("inline-flex min-w-0 items-center gap-2", className)}>
       <LineMark line={line} />
       <span className="min-w-0 truncate">{line.label}</span>
     </span>
