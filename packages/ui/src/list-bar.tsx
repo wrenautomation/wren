@@ -312,9 +312,9 @@ export function useLastUsed(
   }, [keep, json, key, meta.id]);
 }
 
-const TAB =
+export const TAB =
   "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 py-2.5 text-[13px] font-medium no-underline";
-const tabTone = (on: boolean) =>
+export const tabTone = (on: boolean) =>
   on
     ? "border-transparent text-(--ui-ink)"
     : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)";

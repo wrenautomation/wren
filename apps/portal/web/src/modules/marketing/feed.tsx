@@ -15,7 +15,9 @@ import {
   PAGE_TITLE,
   relative,
   say,
+  TAB,
   TabBar,
+  tabTone,
 } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { call } from "../../api.js";
@@ -42,11 +44,7 @@ export function FeedTabs({ on }: { on: Tab }) {
           key={id}
           href={href}
           aria-current={id === on ? "page" : undefined}
-          className={cx(
-            // The view tab's pill (ui list-bar); `TabBar` slides the tint behind the one on screen.
-            "rounded-[4px_10px_4px_10px] px-[9px] py-1.5 font-semibold text-(--ui-ink-3) text-[13px] no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink)",
-            "aria-[current=page]:text-(--ui-active) aria-[current=page]:hover:bg-transparent",
-          )}
+          className={cx(TAB, tabTone(id === on))}
         >
           {label}
         </a>

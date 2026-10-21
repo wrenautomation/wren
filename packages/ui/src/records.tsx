@@ -96,6 +96,8 @@ import {
   groupFields,
   type KeepApi,
   ListBar,
+  TAB,
+  tabTone,
   useLastUsed,
   useNarrow,
   useSavedViews,
@@ -2563,10 +2565,6 @@ export function RecordPage({
   );
 }
 
-/** A section's tab: the view tab's pill (list-bar `TAB`); `TabBar` slides the tint behind the one on screen. */
-const TAB =
-  "flex shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] px-[9px] py-1.5 text-[13px] font-semibold no-underline transition-colors duration-150 ease-(--ui-ease)";
-
 /** One record: its head, then tabs for details, each related type, activity and sources. */
 export function RecordBody({
   meta,
@@ -2984,12 +2982,7 @@ export function RecordBody({
             key={t.id}
             href={place.link({ tab: t.id === "details" ? null : t.id })}
             aria-current={tab === t.id ? "page" : undefined}
-            className={cn(
-              TAB,
-              tab === t.id
-                ? "text-(--ui-active)"
-                : "text-(--ui-ink-3) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink)",
-            )}
+            className={cn(TAB, tabTone(tab === t.id))}
           >
             {t.label}
             {t.count !== undefined ? (
