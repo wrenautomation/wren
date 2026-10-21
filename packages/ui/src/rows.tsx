@@ -606,7 +606,8 @@ export function Rows<T>(p: RowsProps<T>) {
                       if (e.animationName === "ui-changed") p.onSettled?.();
                     }}
                     className={cn(
-                      "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash)",
+                      // The artifact's row hairline (`.r+.r, .gh+.r`) stays on a phone.
+                      "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash) [li+&>[data-face]]:shadow-[inset_0_1px_0_var(--ui-hair)]",
                       r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
                       r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                       r.changed && "[&>[data-face]]:animate-ui-changed",
@@ -671,7 +672,9 @@ export function Rows<T>(p: RowsProps<T>) {
         </ul>
         {/* The artifact's phone foot: the count alone (Late and Oldest hide under 720px). */}
         {!p.loading && rows && p.foot && !p.empty ? (
-          <div className="px-3.5 py-2.5 text-[12px] text-(--ui-ink-3)">{p.foot}</div>
+          <div className="px-3.5 pt-[9px] pb-2.5 text-[12px] text-(--ui-ink-3) shadow-[inset_0_1px_0_var(--ui-hair)]">
+            {p.foot}
+          </div>
         ) : null}
       </>
     );

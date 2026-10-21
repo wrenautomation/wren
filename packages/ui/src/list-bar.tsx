@@ -366,7 +366,8 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
         {...pop.trigger}
         className={cn(
           phone
-            ? "flex min-h-10 shrink-0 items-center gap-1 rounded-lg border-0 bg-(--ui-fill) px-3 text-[14px] font-medium text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
+            ? // The segmented control's height and ground (`.ui-seg`), so the two read as one row.
+              "flex shrink-0 items-center gap-1 self-stretch rounded-[10px] border-0 bg-(--ui-fill) px-3 text-[13.5px] text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
             : cn(TAB, "border-0 bg-transparent", tabTone(!!on)),
           on && "text-(--ui-ink)",
         )}
