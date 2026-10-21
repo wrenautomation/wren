@@ -279,8 +279,8 @@ export interface RowsProps<T> {
   className?: string | undefined;
 }
 
-const GUTTER = 36;
-const END = 36;
+const GUTTER = 28;
+const END = 44;
 const TH_LINE = "[&:not(:first-child)]:shadow-[inset_1px_0_0_var(--ui-hair)]";
 
 /** A row's ground, which its actions sit over at its right end. */
@@ -356,7 +356,7 @@ function GroupFold({
         className={cn("transition-transform duration-200 ease-(--ui-ease)", shut && "-rotate-90")}
       />
       <Pill color={color}>{label}</Pill>
-      <b className="font-semibold text-(--ui-ink) tabular-nums">{stats.n}</b>
+      <b className="font-bold text-(--ui-ink) tabular-nums">{stats.n}</b>
       {stats.oldest ? <Age hours={stats.oldest.hours} late={stats.oldest.late} /> : null}
     </button>
   );
@@ -397,8 +397,8 @@ function NameCell<T>({
           className={cn(
             // Cut inside the link, so focusing it never scrolls the cell sideways.
             "block no-underline",
-            narrow ? "line-clamp-2 text-[15px] leading-snug wrap-anywhere" : "truncate",
-            name.weight?.(row) ?? "font-medium text-(--ui-ink)",
+            narrow ? "line-clamp-2 leading-snug wrap-anywhere" : "truncate",
+            name.weight?.(row) ?? "font-[650] text-(--ui-ink)",
           )}
         >
           {title || <span className="text-(--ui-ink-3)">-</span>}
@@ -412,8 +412,9 @@ function NameCell<T>({
 const OPEN_CHIP =
   "ml-auto inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-[650] text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:var(--ui-leaf-chip)] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
 
+/** A gutter box shows on its row's hover or focus. Its look is the global checkbox's (tailwind.css). */
 const BOX =
-  "size-3.5 align-middle accent-(--ui-active) transition-opacity duration-150 focus-visible:opacity-100 checked:opacity-100";
+  "align-middle transition-opacity duration-150 focus-visible:opacity-100 checked:opacity-100";
 
 /** The rows part: see the file's head. */
 export function Rows<T>(p: RowsProps<T>) {
@@ -444,6 +445,8 @@ export function Rows<T>(p: RowsProps<T>) {
   const span = columns.length + 3;
   const anyPicked = (pick?.count ?? 0) > 0;
   const phoneCol = columns.find((c) => c.phone);
+  // Column lines draw in the table; a grouped table (the folds) reads by its rows only.
+  const ruled = p.group ? "" : TH_LINE;
   const totals = columns.some((c) => c.total);
   const rows = p.lines.filter((l) => l.kind === "row").length;
 
@@ -536,7 +539,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     if (e.animationName === "ui-changed") p.onSettled?.();
                   }}
                   className={cn(
-                    "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-14 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-hover)",
+                    "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-hover)",
                     r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
                     r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                     r.changed && "[&>[data-face]]:animate-ui-changed",
@@ -544,13 +547,12 @@ export function Rows<T>(p: RowsProps<T>) {
                   )}
                 >
                   {pick ? (
-                    <label className="grid size-12 flex-none cursor-pointer place-items-center">
+                    <label className="grid size-11 flex-none cursor-pointer place-items-center">
                       <input
                         type="checkbox"
                         aria-label={`Select ${name.title(l.row)}`}
                         checked={r.picked}
                         onChange={() => pick.toggle(l.key)}
-                        className="accent-(--ui-active)"
                       />
                     </label>
                   ) : (
@@ -567,7 +569,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     ) : null}
                   </div>
                   {side ? (
-                    <div className="max-w-[40%] flex-none truncate pr-1 text-right text-[13px] text-(--ui-ink-2)">
+                    <div className="max-w-[40%] flex-none truncate pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
                       {side}
                     </div>
                   ) : null}
@@ -601,7 +603,7 @@ export function Rows<T>(p: RowsProps<T>) {
       aria-label={p.label}
       // An empty view shows what fills it, not a row of column heads over nothing.
       className={cn(
-        "w-full table-fixed border-collapse text-[13px]",
+        "w-full table-fixed border-collapse text-[14px]",
         p.empty && "hidden",
         p.className,
       )}
@@ -626,7 +628,7 @@ export function Rows<T>(p: RowsProps<T>) {
         <tr className="text-[12.5px] text-(--ui-ink-3) [&>th]:font-normal">
           <th
             className={cn(
-              "group/all sticky top-0 z-10 h-[34px] w-9 border-y border-(--ui-hair) bg-(--ui-paper) pl-2.5 text-left",
+              "group/all sticky top-0 z-10 h-[34px] border-y border-(--ui-hair) bg-(--ui-paper) p-0 text-center",
             )}
           >
             {pick ? (
@@ -649,7 +651,7 @@ export function Rows<T>(p: RowsProps<T>) {
               scope="col"
               className={cn(
                 "sticky top-0 z-10 h-[34px] border-y border-(--ui-hair) bg-(--ui-paper) px-2.5 leading-tight whitespace-nowrap",
-                TH_LINE,
+                ruled,
                 c.align === "end" ? "text-right" : "text-left",
                 c.className,
               )}
@@ -660,16 +662,13 @@ export function Rows<T>(p: RowsProps<T>) {
                   c.align === "end" && "flex-row-reverse",
                 )}
               >
-                {c.icon ? <Icon name={c.icon} size={14} className="text-(--ui-ink-3)" /> : null}
+                {c.icon ? <Icon name={c.icon} size={15} className="text-(--ui-ink-3)" /> : null}
                 {c.sort ?? <span className="truncate">{c.label}</span>}
               </span>
             </th>
           ))}
           <th
-            className={cn(
-              "sticky top-0 z-10 w-9 border-y border-(--ui-hair) bg-(--ui-paper)",
-              TH_LINE,
-            )}
+            className={cn("sticky top-0 z-10 border-y border-(--ui-hair) bg-(--ui-paper)", ruled)}
           >
             <span className="sr-only">Actions</span>
           </th>
@@ -698,7 +697,7 @@ export function Rows<T>(p: RowsProps<T>) {
               const line = { "data-index": n, ref: lines.measure };
               if (l.kind === "group")
                 return (
-                  <tr key={l.key} {...line} className="border-b border-(--ui-hair)">
+                  <tr key={l.key} {...line} data-group="" className="border-b border-(--ui-hair)">
                     <td colSpan={span} className="p-0">
                       <GroupFold
                         label={l.label}
@@ -755,14 +754,14 @@ export function Rows<T>(p: RowsProps<T>) {
                     if (e.animationName === "ui-changed") p.onSettled?.();
                   }}
                   className={cn(
-                    "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair) pointer-coarse:h-12",
+                    "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair) pointer-coarse:h-12 has-[+[data-group]]:border-b-0",
                     groundOf(r.isOpen, r.picked, l.index === cursor),
                     r.changed && "animate-ui-changed",
                     r.going && "bg-(--ui-wash)",
                     own?.className,
                   )}
                 >
-                  <td className="pl-2.5">
+                  <td className="p-0 text-center">
                     {pick ? (
                       <input
                         type="checkbox"
@@ -778,7 +777,7 @@ export function Rows<T>(p: RowsProps<T>) {
                       />
                     ) : null}
                   </td>
-                  <td className={cn("px-2.5", shown, TH_LINE, name.className)}>
+                  <td className={cn("px-2.5", shown, ruled, name.className)}>
                     <div className="flex min-w-0 items-center gap-2">
                       <NameCell name={name} row={l.row} narrow={false} className="flex-1" />
                       <a href={name.href(l.row)} tabIndex={-1} className={OPEN_CHIP}>
@@ -795,18 +794,20 @@ export function Rows<T>(p: RowsProps<T>) {
                         // A cut cell drops its break chances: Chrome breaks at <wbr> even under
                         // nowrap, so "example.com" wrapped onto two lines.
                         "truncate px-2.5 [&_wbr]:hidden",
-                        TH_LINE,
+                        ruled,
                         shown,
                         c.align === "end" ? "text-right" : "text-left",
                         // When it happened reads quieter than what it is.
-                        c.quiet ? "text-(--ui-ink-3) tabular-nums" : "text-(--ui-ink-2)",
+                        c.quiet
+                          ? "text-(--ui-ink-3) tabular-nums"
+                          : "text-[13.5px] text-(--ui-ink-2)",
                         c.className,
                       )}
                     >
                       {c.cell(l.row, l.index)}
                     </td>
                   ))}
-                  <td className={cn("relative w-9 pr-2 text-right", TH_LINE)}>
+                  <td className={cn("relative pr-2 text-right", ruled)}>
                     {r.going ? (
                       <span className="absolute inset-y-0 right-2 z-1 flex items-center">
                         <Tag tone="accent" busy>
@@ -845,13 +846,13 @@ export function Rows<T>(p: RowsProps<T>) {
               <td
                 className={cn(
                   "sticky h-9 border-t border-(--ui-edge) bg-(--ui-paper)",
-                  p.foot ? "bottom-9" : "bottom-0",
+                  p.foot ? "bottom-[34px]" : "bottom-0",
                 )}
               />
               <td
                 className={cn(
                   "sticky border-t border-(--ui-edge) bg-(--ui-paper)",
-                  p.foot ? "bottom-9" : "bottom-0",
+                  p.foot ? "bottom-[34px]" : "bottom-0",
                 )}
               />
               {columns.map((c) => (
@@ -859,7 +860,7 @@ export function Rows<T>(p: RowsProps<T>) {
                   key={c.key}
                   className={cn(
                     "sticky truncate border-t border-(--ui-edge) bg-(--ui-paper) px-2.5",
-                    p.foot ? "bottom-9" : "bottom-0",
+                    p.foot ? "bottom-[34px]" : "bottom-0",
                     c.align === "end" ? "text-right" : "text-left",
                   )}
                 >
@@ -869,7 +870,7 @@ export function Rows<T>(p: RowsProps<T>) {
               <td
                 className={cn(
                   "sticky border-t border-(--ui-edge) bg-(--ui-paper)",
-                  p.foot ? "bottom-9" : "bottom-0",
+                  p.foot ? "bottom-[34px]" : "bottom-0",
                 )}
               />
             </tr>
@@ -878,7 +879,7 @@ export function Rows<T>(p: RowsProps<T>) {
             <tr className="text-[12px] text-(--ui-ink-3)">
               <td
                 colSpan={span}
-                className="sticky bottom-0 h-9 border-t border-(--ui-hair) bg-(--ui-paper) py-0 pr-3.5 pl-[38px] max-[900px]:pl-3.5"
+                className="sticky bottom-0 h-[34px] border-t border-(--ui-hair) bg-(--ui-paper) py-0 pr-3.5 pl-[38px] max-[900px]:pl-3.5"
               >
                 {p.foot}
               </td>
