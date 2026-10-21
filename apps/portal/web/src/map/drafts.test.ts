@@ -7,7 +7,6 @@ import {
   blamePick,
   draftIdOf,
   draftRef,
-  draftStoreKey,
   fromDraft,
   historyOf,
   LIVE_MOVED,
@@ -58,15 +57,6 @@ describe("draft address", () => {
     expect(historyOf("versions")).toBe("versions");
     expect(historyOf("other")).toBeNull();
     expect(historyOf(null)).toBeNull();
-  });
-});
-
-describe("draftStoreKey", () => {
-  it("keeps a draft's edits apart from the live shape's", () => {
-    expect(draftStoreKey("wren", null)).toBe("map:draft:wren");
-    expect(draftStoreKey("wren", "d1")).toBe("map:draft:wren:d1");
-    expect(draftStoreKey("wren", "d1")).not.toBe(draftStoreKey("wren", "d2"));
-    expect(draftStoreKey("acme", "d1")).not.toBe(draftStoreKey("wren", "d1"));
   });
 });
 

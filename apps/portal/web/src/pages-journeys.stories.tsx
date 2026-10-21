@@ -50,6 +50,25 @@ export const Board = pageAt("/pipelines/board", {
   },
 });
 
+/**
+ * The shape the board reads is a metro body lowered to the runtime graph (`graphOf`). Its columns
+ * come from the lowered nodes by depth: a source has none, and the hub is no column.
+ */
+export const BoardOnMetroShape = pageAt("/pipelines/board", {
+  me: ADMIN,
+  check: async (page) => {
+    await lane(page, "Engaged");
+    const names = within(page)
+      .getAllByRole("region")
+      .map((r) => r.getAttribute("aria-label"))
+      .filter((n) => n === "Engaged" || n === "Booked" || n === "Signed" || n === "First touch");
+    expect(names).toEqual(["Engaged", "Booked", "Signed"]);
+    expect(within(page).queryByRole("region", { name: "Spring list" })).toBeNull();
+    // The path between two columns follows the lowered edges: forward is allowed.
+    await inLane(page, "Engaged", "Ada North");
+  },
+});
+
 /** The same page the Pipelines link opens: `/pipelines` lands on the board. */
 export const BoardFromNav = pageAt("/pipelines", {
   me: ADMIN,

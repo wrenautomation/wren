@@ -6,7 +6,7 @@
  * target is a real page of a real app.
  */
 import type { ShapeNode } from "@wren/pipeline/model";
-import { href } from "../route.js";
+import { href, type Params } from "../route.js";
 
 /** One page to open. `node` adds the node's id as the page's `?node=` filter. */
 export interface Target {
@@ -142,3 +142,32 @@ export const mapNodeHref = (nodeId: string, client: string | null): string =>
 
 /** The node a Map address names (`?node=`), or none. The Map opens it, as a click would. */
 export const nodeOfParams = (params: URLSearchParams): string | null => params.get("node") || null;
+
+/** A part of the Map that has a panel: a station (the hub too), a track or a line. */
+export interface PanelRef {
+  kind: "station" | "track" | "line";
+  id: string;
+}
+
+/** The address param each panel kind uses. A station keeps `?node=`, the id older links carry. */
+const PANEL_PARAM = { station: "node", track: "track", line: "line" } as const;
+
+/** The panel a Map address names (`?node=`, `?track=` or `?line=`), or none. */
+export function panelOfParams(params: URLSearchParams): PanelRef | null {
+  for (const kind of ["station", "track", "line"] as const) {
+    const id = params.get(PANEL_PARAM[kind]);
+    if (id) return { kind, id };
+  }
+  return null;
+}
+
+/** The params that name a panel; every other kind is cleared. None closes the panel. */
+export const panelParams = (p: PanelRef | null): Params => ({
+  node: p?.kind === "station" ? p.id : null,
+  track: p?.kind === "track" ? p.id : null,
+  line: p?.kind === "line" ? p.id : null,
+});
+
+/** A track on the Map: the Map's home with the track's panel open (Today's task opens it). */
+export const mapTrackHref = (trackId: string, client: string | null): string =>
+  href("/", { track: trackId, client });

@@ -50,7 +50,7 @@ export function MapHome({
     (id: string) => {
       setSheet(false);
       setLit(null);
-      go("/", { node: id }, props.params);
+      go("/", { track: id, node: null, line: null }, props.params);
     },
     [props.params],
   );
@@ -63,7 +63,6 @@ export function MapHome({
         props={props}
         clients={clients}
         lit={lit}
-        onOpenTask={openTask}
         trailing={
           phone ? null : (
             <Button

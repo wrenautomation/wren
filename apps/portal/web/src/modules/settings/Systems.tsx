@@ -73,7 +73,11 @@ export function Systems({ client }: PageProps) {
         <Loading shape="rows" lines={6} />
       </>
     );
-  const { onShape, rest } = systemsOf(apps, shape.data, client === WREN.id ? "wren" : "client");
+  const { onShape, rest } = systemsOf(
+    apps,
+    shape.data.nodes,
+    client === WREN.id ? "wren" : "client",
+  );
   return (
     <>
       {header}

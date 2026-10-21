@@ -1,17 +1,20 @@
 /**
  * The Map's drafts, blame, tags and undo on the fake server: synthetic drafts of the sample shape
  * (`pipeline.shape_draft`, a record the worker adds with the server half; until then the fake
- * serves it here), and answers for every route the History and the node cards call. Writes log
- * into `MAP_CALLS` and answer as the server does when one lands; the lists do not change.
+ * serves it here), and answers for every route the History and the panels call. A draft's detail
+ * holds the runtime graph, the stored metro and the draw errors. A difference holds the change
+ * lines, both sides drawn and the marks, made by the server's own pure code. Writes log into
+ * `MAP_CALLS` and answer as the server does when one lands; the lists do not change.
  * Synthetic data only.
  */
 import type { Row } from "@wren/core/records/serve";
-import { changeLine, diffShapes, parseChangeKey } from "@wren/pipeline/diff";
-import type { BlameLine, DraftRow } from "@wren/pipeline/history";
-import type { ShapeBody } from "@wren/pipeline/model";
+import type { BlameLine, DraftRow, ShapeRef } from "@wren/pipeline/history";
+import type { MetroBody } from "@wren/pipeline/metro";
+import { metroChangeLine, parseMetroChangeKey } from "@wren/pipeline/metro-diff";
+import { diffAnswerOf, metroView, type StoredBody } from "@wren/pipeline/stored";
 import { type Answers, refuse } from "../api.js";
-import { SHAPE, SHAPE_VERSIONS } from "./journeys.js";
-import { MAP_ANSWERS, MAP_CALLS, SHAPE_PLAN, SHAPE_SPUR, SHAPE_V1 } from "./map.js";
+import { SHAPE_METRO, SHAPE_VERSIONS } from "./journeys.js";
+import { diffBetween, MAP_CALLS, SHAPE_PLAN, SHAPE_SPUR, SHAPE_V1, shapeDetail } from "./map.js";
 import { ago } from "./shell.js";
 
 type Ask = Record<string, unknown>;
@@ -49,22 +52,6 @@ export const STALE: DraftRow = {
   dropReason: null,
 };
 
-/** What "Save as draft" makes in the stories: a draft of the newest shape, opened right after. */
-export const SAVED: DraftRow = {
-  id: "d4",
-  name: "Saved from edits",
-  state: "draft",
-  base: 2,
-  note: "",
-  createdBy: "Ada North",
-  createdAt: ago(0),
-  updatedAt: ago(0),
-  appliedVersion: null,
-  decidedBy: null,
-  decidedAt: null,
-  dropReason: null,
-};
-
 const DROPPED: DraftRow = {
   id: "d3",
   name: "Old idea",
@@ -81,12 +68,11 @@ const DROPPED: DraftRow = {
 };
 
 /** Every draft the fake holds. */
-export const DRAFTS: DraftRow[] = [PROPOSED, STALE, SAVED, DROPPED];
-const BODIES: Record<string, ShapeBody> = {
+export const DRAFTS: DraftRow[] = [PROPOSED, STALE, DROPPED];
+const BODIES: Record<string, StoredBody> = {
   d1: SHAPE_PLAN,
   d2: SHAPE_SPUR,
   d3: SHAPE_V1,
-  d4: SHAPE,
 };
 
 const inView = (r: DraftRow, view: unknown) =>
@@ -95,6 +81,12 @@ const inView = (r: DraftRow, view: unknown) =>
     : view === "proposed"
       ? r.state === "proposed"
       : r.state === "draft" || r.state === "proposed";
+
+/** A draft's `detail`: the graph it runs as, its moves, and the metro the map draws. */
+const draftDetail = (stored: StoredBody) => {
+  const { body, metro, drawErrors } = shapeDetail(stored);
+  return { body, moves: {}, metro, drawErrors };
+};
 
 /**
  * `recordsList` and `recordsGet` for `pipeline.shape_draft`, in front of the shared answers that
@@ -129,7 +121,7 @@ export function draftRecords(fallback: { get: Reply; list: Reply }): Answers {
         row,
         related: [],
         activity: [],
-        detail: { body: BODIES[row.id] ?? SHAPE, moves: {} },
+        detail: draftDetail(BODIES[row.id] ?? SHAPE_METRO),
       };
     },
   };
@@ -147,47 +139,67 @@ const BLAME_NEW: BlameLine = {
 };
 const BLAME_FIRST: BlameLine = { version: 1, how: "added", note: "First shape.", by, at: ago(40) };
 
-/** The versions that touched one node or line: ids the sample shape does not know get a 400. */
+const idsOf = (m: MetroBody, kind: "stations" | "tracks" | "lines") => m[kind].map((x) => x.id);
+const KNOWN = {
+  station: [SHAPE_METRO, SHAPE_PLAN, SHAPE_SPUR].flatMap((m) => idsOf(m, "stations")),
+  track: [SHAPE_METRO, SHAPE_PLAN, SHAPE_SPUR].flatMap((m) => idsOf(m, "tracks")),
+  line: [SHAPE_METRO, SHAPE_PLAN, SHAPE_SPUR].flatMap((m) => idsOf(m, "lines")),
+};
+
+/** The versions that touched one part. Ids the sample shape does not know get a 400. */
 function blame(b: Ask): unknown {
-  const node = typeof b.node === "string" ? b.node : null;
-  const edge = typeof b.edge === "string" ? b.edge : null;
-  if (node === "joined")
+  const station = typeof b.station === "string" ? b.station : null;
+  const track = typeof b.track === "string" ? b.track : null;
+  const line = typeof b.line === "string" ? b.line : null;
+  if (station === "joined")
     return {
       lines: [
         { version: 2, how: "removed", note: SHAPE_VERSIONS[0]?.note ?? "", by, at: ago(9) },
         BLAME_FIRST,
       ] satisfies BlameLine[],
     };
-  if (node) {
-    if (![...SHAPE.nodes, ...SHAPE_PLAN.nodes, ...SHAPE_SPUR.nodes].some((n) => n.id === node))
-      return refuse(400, `The shape has no node "${node}".`);
-    return { lines: node === "booked" ? [BLAME_NEW, BLAME_FIRST] : [BLAME_FIRST] };
+  if (station) {
+    if (!KNOWN.station.includes(station))
+      return refuse(400, `The shape has no station "${station}".`);
+    return { lines: station === "booked" ? [BLAME_NEW, BLAME_FIRST] : [BLAME_FIRST] };
   }
-  if (edge) {
-    if (edge === "engaged_to_booked")
+  if (track) {
+    if (track === "engaged_to_booked")
       return {
         lines: [
-          { version: 2, how: "added", note: "Dropped the Joined node.", by, at: ago(9) },
+          { version: 2, how: "added", note: "Dropped the Joined station.", by, at: ago(9) },
         ] satisfies BlameLine[],
       };
+    if (!KNOWN.track.includes(track)) return refuse(400, `The shape has no track "${track}".`);
     return { lines: [BLAME_FIRST] };
   }
-  return refuse(400, "Name a node or a line.");
+  if (line) {
+    if (!KNOWN.line.includes(line)) return refuse(400, `The shape has no line "${line}".`);
+    return { lines: [BLAME_NEW, BLAME_FIRST] };
+  }
+  return refuse(400, "Name a station, a track or a line.");
 }
 
 // --- undo --------------------------------------------------------------------------------------
 
-/** The newest shape with Joined back: what undoing "Removed node Joined" would save. */
-const WITH_JOINED: ShapeBody = {
-  ...SHAPE,
-  nodes: [
-    ...SHAPE.nodes,
-    { id: "joined", kind: "step", name: "Joined", action: "other", advance: [] },
+/** The newest shape with Joined back: what undoing "Removed station Joined" would save. */
+const WITH_JOINED: MetroBody = {
+  ...SHAPE_METRO,
+  stations: [
+    ...SHAPE_METRO.stations,
+    {
+      id: "joined",
+      label: "Joined",
+      kind: "att",
+      line: "signed",
+      column: "sales",
+      action: "other",
+    },
   ],
 };
 
 /** An undo of a line the newest shape changed again is refused, with the server's reasons. */
-export const REFUSED_UNDO = "edge:engaged_to_booked:added";
+export const REFUSED_UNDO = "track:engaged_to_booked:added";
 
 function undoPreview(b: Ask): unknown {
   const key = String(b.change);
@@ -196,39 +208,32 @@ function undoPreview(b: Ask): unknown {
       400,
       "Booked changed again in version 3. Undo that change first, or edit the shape by hand.",
     );
-  const change = parseChangeKey(key);
+  const change = parseMetroChangeKey(key);
   if (!change) return refuse(400, "That line is not in the difference.");
-  const line = changeLine(SHAPE_V1, SHAPE, change);
+  const line = metroChangeLine(metroView(SHAPE_V1), SHAPE_METRO, change);
   return {
     line,
     note: `Undo: ${line}`,
     newest: 2,
-    diff: diffShapes(SHAPE, WITH_JOINED),
-    bodies: [SHAPE, WITH_JOINED],
+    ...diffAnswerOf(SHAPE_METRO, WITH_JOINED, true),
   };
 }
 
 // --- differences against a draft ---------------------------------------------------------------
 
-const bodyOf = (ref: string | number): ShapeBody => {
+const bodyAt = (ref: ShapeRef): StoredBody => {
   const s = String(ref);
-  if (s.startsWith("draft:")) return BODIES[s.slice("draft:".length)] ?? SHAPE;
-  return Number(s) === 1 ? SHAPE_V1 : SHAPE;
+  if (s.startsWith("draft:")) return BODIES[s.slice("draft:".length)] ?? SHAPE_METRO;
+  return Number(s) === 1 ? SHAPE_V1 : SHAPE_METRO;
 };
 
-const refOf = (v: unknown): string | number => {
+const refOf = (v: unknown): ShapeRef => {
   const s = String(v);
-  return s.startsWith("draft:") ? s : Number(s);
+  return s.startsWith("draft:") ? (s as ShapeRef) : Number(s);
 };
 
-/** `shapeDiff` with a draft on either side; two versions answer as before. */
-const shapeDiff: Reply = (b) => {
-  const [a, c] = [refOf(b.a), refOf(b.b)];
-  if (typeof a === "number" && typeof c === "number")
-    return (MAP_ANSWERS["pipeline/shapeDiff"] as Reply)(b);
-  const [x, y] = [bodyOf(a), bodyOf(c)];
-  return { a, b: c, diff: diffShapes(x, y), bodies: [x, y] };
-};
+/** `shapeDiff` with a draft on either side; two versions answer as `MAP_ANSWERS` does. */
+const shapeDiff: Reply = (b) => diffBetween(refOf(b.a), refOf(b.b), bodyAt);
 
 const logged =
   (path: string, answer: Reply): Reply =>
@@ -248,14 +253,6 @@ export const DRAFT_ANSWERS: Answers = {
   "pipeline/shapeTag": logged("shapeTag", (b) => ({
     name: String(b.name),
     version: Number(b.version),
-  })),
-  "pipeline/shapeDraftNew": logged("shapeDraftNew", (b) => ({
-    id: SAVED.id,
-    base: Number(b.base ?? 2),
-  })),
-  "pipeline/shapeDraftUpdate": logged("shapeDraftUpdate", (b) => ({
-    id: String(b.id),
-    updatedAt: ago(0),
   })),
   "pipeline/shapeDraftPropose": logged("shapeDraftPropose", (b) => ({
     ...rowOf(b.id),

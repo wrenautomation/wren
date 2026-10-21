@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   appsOnShape,
   mapNodeHref,
+  mapTrackHref,
   nodeOfParams,
   opensOf,
+  panelOfParams,
+  panelParams,
   ROUTES,
   rowOf,
   systemsOf,
@@ -128,5 +131,33 @@ describe("map node links", () => {
     expect(url.searchParams.get("client")).toBe("acme");
     expect(mapNodeHref("yt", null)).toBe("/?node=yt");
     expect(nodeOfParams(new URLSearchParams(""))).toBeNull();
+  });
+});
+
+describe("map panel links", () => {
+  it("reads the panel an address names", () => {
+    expect(panelOfParams(new URLSearchParams("node=booked"))).toEqual({
+      kind: "station",
+      id: "booked",
+    });
+    expect(panelOfParams(new URLSearchParams("track=a_to_b&window=7"))).toEqual({
+      kind: "track",
+      id: "a_to_b",
+    });
+    expect(panelOfParams(new URLSearchParams("line=signed"))).toEqual({
+      kind: "line",
+      id: "signed",
+    });
+    expect(panelOfParams(new URLSearchParams("window=7"))).toBeNull();
+  });
+
+  it("names one panel and clears the others", () => {
+    expect(panelParams({ kind: "track", id: "t" })).toEqual({ node: null, track: "t", line: null });
+    expect(panelParams(null)).toEqual({ node: null, track: null, line: null });
+  });
+
+  it("links a track, with the client when it is not Wren's", () => {
+    expect(mapTrackHref("t1", null)).toBe("/?track=t1");
+    expect(mapTrackHref("t1", "acme")).toBe("/?track=t1&client=acme");
   });
 });

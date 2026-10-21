@@ -1,6 +1,6 @@
 /**
  * The History card's Drafts tab: the shape's drafts, one row each (name, state, the version it
- * started from, who, when). A draft can be opened in edit mode, compared with the live shape or
+ * started from, who, when). A draft can be opened on the Map (a read), compared with the live shape or
  * any version (the Map draws the difference), proposed, applied or dropped with a reason. Apply
  * shows what the draft changes against live first, and warns when live moved on since the draft
  * started. There is no merge: a draft that fell behind is applied as it is, or dropped.
@@ -28,9 +28,9 @@ import {
 } from "@wren/ui/components/ui/dialog";
 import { useState } from "react";
 import { call } from "../api.js";
-import { diffLines } from "./diff.js";
 import { actionsOf, DRAFT_LOOK, dayOf, draftRef, LIVE_MOVED, liveMoved } from "./drafts.js";
 import type { Version } from "./model.js";
+import { messageOf, Refused } from "./Refused.js";
 import { type DraftView, useDiffOf, useDrafts } from "./read.js";
 
 /** The two sides a draft is compared on: another version (or live) and the draft. */
@@ -46,11 +46,11 @@ export function DiffLines({ diff, what = "difference" }: { diff: DiffRead; what?
   if (diff.error && !diff.data)
     return <LoadFailed error={diff.error} onRetry={diff.retry} what={what} />;
   if (!diff.data) return <Loading lines={3} />;
-  const lines = diffLines(diff.data.bodies[0], diff.data.bodies[1], diff.data.diff);
+  const lines = diff.data.changes;
   return lines.length ? (
     <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
       {lines.map((l) => (
-        <li key={l}>{l}</li>
+        <li key={l.key}>{l.line}</li>
       ))}
     </ul>
   ) : (
@@ -59,7 +59,7 @@ export function DiffLines({ diff, what = "difference" }: { diff: DiffRead; what?
 }
 
 /** A write on one draft: runs, shows a refusal as the server says it, then reads everything again. */
-function useDraftWrite(at: Record<string, string>, onDone: () => void) {
+export function useDraftWrite(at: Record<string, string>, onDone: () => void) {
   const [busy, setBusy] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
   const run = async (route: string, body: Record<string, unknown>): Promise<boolean> => {
@@ -71,7 +71,7 @@ function useDraftWrite(at: Record<string, string>, onDone: () => void) {
       onDone();
       return true;
     } catch (err) {
-      setRefused(err instanceof Error ? err.message : String(err));
+      setRefused(messageOf(err));
       return false;
     } finally {
       setBusy(false);
@@ -81,7 +81,7 @@ function useDraftWrite(at: Record<string, string>, onDone: () => void) {
 }
 
 /** What applying a draft changes against live, with a warning first when live moved on. */
-function ApplyDialog({
+export function ApplyDialog({
   row,
   newest,
   at,
@@ -122,7 +122,7 @@ function ApplyDialog({
           <p className="text-[12.5px] text-(--ui-ink-3)">The draft changes live like this:</p>
           <DiffLines diff={against} />
         </section>
-        {write.refused ? <Alert className="mb-0">{write.refused}</Alert> : null}
+        {write.refused ? <Refused text={write.refused} /> : null}
         <div className="flex justify-end gap-2">
           <Button tone="quiet" size="dense" onClick={onClose}>
             Cancel
@@ -143,7 +143,7 @@ function ApplyDialog({
 }
 
 /** Drops a draft; asks why first. The draft stays in "Show applied and dropped". */
-function DropDialog({
+export function DropDialog({
   row,
   client,
   at,
@@ -253,16 +253,14 @@ function DraftItem({
       {row.note ? <p className="text-(--ui-ink-2)">{row.note}</p> : null}
       {row.dropReason ? <p className="text-(--ui-ink-2)">Dropped: {row.dropReason}</p> : null}
       <div className="flex flex-wrap gap-1">
-        {canEdit && can.open ? (
-          <Button
-            tone="quiet"
-            size="dense"
-            aria-label={`Open ${row.name}`}
-            onClick={() => onOpen(row.id)}
-          >
-            Open
-          </Button>
-        ) : null}
+        <Button
+          tone="quiet"
+          size="dense"
+          aria-label={`Open ${row.name}`}
+          onClick={() => onOpen(row.id)}
+        >
+          Open
+        </Button>
         <Button
           tone="quiet"
           size="dense"
@@ -304,7 +302,7 @@ function DraftItem({
           </Button>
         ) : null}
       </div>
-      {propose.refused ? <Alert className="mb-0">{propose.refused}</Alert> : null}
+      {propose.refused ? <Refused text={propose.refused} /> : null}
       {mine ? (
         <section aria-label={`Compare ${row.name} with live`} className="grid gap-1.5">
           <label className="flex items-center gap-2 text-[12.5px] text-(--ui-ink-3)">

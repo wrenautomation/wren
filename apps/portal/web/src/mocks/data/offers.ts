@@ -127,7 +127,7 @@ const ENTRIES: Row[] = (
 
 const num = (
   id: string,
-  kind: "node" | "edge" | "offer",
+  kind: "node" | "edge" | "offer" | "station" | "track" | "line",
   label: string,
   position: number,
   n: Partial<Row> = {},
@@ -151,6 +151,7 @@ const num = (
   collected: null,
   scheduled: null,
   cost: null,
+  currency: null,
   last: day(2),
   ...n,
 });
@@ -197,13 +198,58 @@ const BASE_NUMBERS: Row[] = [
   }),
 ];
 
+/** A station's row: the Map reads these. `id` carries the kind, `node` is the station's own id. */
+const station = (id: string, label: string, n: Partial<Row>): Row =>
+  num(`station:${id}`, "station", label, 0, { node: id, nodeKind: "step", ...n });
+const track = (id: string, label: string, n: Partial<Row>): Row =>
+  num(`track:${id}`, "track", label, 0, { node: id, ...n });
+const line = (id: string, label: string, n: Partial<Row>): Row =>
+  num(`line:${id}`, "line", label, 0, { node: id, ...n });
+
+/**
+ * The rows of the metro Map (`./journeys.ts`'s `SHAPE_METRO`): a row for each station, track and
+ * line. The hub's `now` is the leads. The offer line has one row for each currency.
+ */
+const METRO_NUMBERS: Row[] = [
+  station("mail", "Spring list", { nodeKind: "att", opened: 11, deals: 2 }),
+  station("ads1", "Winter ads", { nodeKind: "att", opened: 6, deals: 1 }),
+  station("hub", "First touch", { nodeKind: "hub", now: 18, arrived: 17, medianDays: 1 }),
+  station("engaged", "Engaged", { arrived: 14, skipped: 0, left: 9, now: 5, medianDays: 4 }),
+  station("booked", "Booked", { arrived: 10, skipped: 1, left: 4, now: 6, medianDays: 6 }),
+  station("signed", "Signed", {
+    arrived: 4,
+    skipped: 0,
+    left: 0,
+    now: 0,
+    medianDays: 0,
+    collected: cad(1_000),
+  }),
+  track("mail_to_hub", "Spring list to First touch", { crossings: 11, from: "mail", to: "hub" }),
+  track("ads1_to_hub", "Winter ads to First touch", { crossings: 6, from: "ads1", to: "hub" }),
+  track("hub_to_engaged", "First touch to Engaged", { crossings: 14, from: "hub", to: "engaged" }),
+  track("engaged_to_booked", "Engaged to Booked", { crossings: 9, from: "engaged", to: "booked" }),
+  track("booked_to_signed", "Booked to Signed", { crossings: 4, from: "booked", to: "signed" }),
+  line("mail", "Spring list", { opened: 11, deals: 2 }),
+  line("ads1", "Winter ads", { opened: 6, deals: 1 }),
+  {
+    ...line("signed", "Signed", {
+      opened: 17,
+      deals: 3,
+      collected: cad(2_500),
+      scheduled: cad(1_500),
+      currency: "CAD",
+    }),
+    id: "line:signed:CAD",
+  },
+];
+
 /** How much of the "all" counts each window holds. */
 const SHARE: Record<string, number> = { all: 1, "90": 0.8, "30": 0.5, "7": 0.2 };
 const COUNTED = ["arrived", "skipped", "left", "crossings", "opened", "deals"] as const;
 
 /** `pipeline.number` holds a set of rows per window: the Numbers pages read "all", the Map the one it shows. */
 export const NUMBERS: Row[] = Object.entries(SHARE).flatMap(([window, share]) =>
-  BASE_NUMBERS.map((r) => {
+  [...BASE_NUMBERS, ...METRO_NUMBERS].map((r) => {
     const row: Row = { ...r, window, id: window === "all" ? r.id : `${r.id}@${window}` };
     for (const k of COUNTED) if (typeof r[k] === "number") row[k] = Math.round(r[k] * share);
     return row;
