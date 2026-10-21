@@ -12,14 +12,17 @@ export function Facts({
   className?: string | undefined;
 }) {
   return (
-    <dl className={cx("grid text-[14px]", className)}>
+    // The artifact's label and value list (`.pk dl`): ink-3 labels, no rules between.
+    <dl
+      className={cx(
+        "m-0 grid grid-cols-[minmax(96px,max-content)_minmax(0,1fr)] gap-x-2.5 gap-y-1.5 text-[13.5px]",
+        className,
+      )}
+    >
       {items.map(([label, value]) => (
-        <div
-          key={label}
-          className="grid grid-cols-[minmax(120px,34%)_1fr] gap-4 border-b border-(--ui-hair) py-2 max-[640px]:grid-cols-1 max-[640px]:gap-0.5"
-        >
-          <dt className="text-(--ui-ink-2)">{label}</dt>
-          <dd className="min-w-0 [overflow-wrap:anywhere]">{value}</dd>
+        <div key={label} className="contents">
+          <dt className="text-(--ui-ink-3)">{label}</dt>
+          <dd className="m-0 min-w-0 [overflow-wrap:anywhere]">{value}</dd>
         </div>
       ))}
     </dl>

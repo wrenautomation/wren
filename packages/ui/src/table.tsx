@@ -304,23 +304,26 @@ export type RowAttrs = HTMLAttributes<HTMLTableRowElement> & {
 
 /** How a `DataTable` looks: plain facts on the page, or framed in a panel. Lists of things are `Rows`. */
 const LOOKS = {
+  // The artifact's `table.mini` (#offers): facts on the page, no frame.
   plain: {
-    table: "w-full text-left text-[13.5px]",
-    head: "text-(--ui-ink-2)",
+    wrap: "",
+    table: "w-full border-collapse text-left text-[13.5px] [&_tbody>tr:last-child]:border-b-0",
+    head: "",
     headRow: "border-b border-(--ui-hair)",
-    th: "py-1.5 pr-3 font-normal",
-    row: "border-b border-(--ui-hair) align-top",
-    td: "py-1.5 pr-3",
+    th: "py-[7px] pr-2.5 text-[12.5px] font-[650] text-(--ui-ink-3)",
+    row: "border-b border-(--ui-hair) align-middle",
+    td: "py-[7px] pr-2.5",
   },
+  // The artifact's `.tw` table (#diff): a raised panel on the leaf corners.
   framed: {
-    table:
-      "w-full table-fixed border-collapse border border-(--ui-hair) text-[13px] [&_tbody>tr:last-child]:border-b-0",
-    head: "bg-(--ui-band) text-[12px] text-(--ui-ink-2)",
-    headRow: "",
-    th: "h-8 truncate border-b border-(--ui-edge) px-2 font-semibold first:w-1/2 first:pl-3",
-    row: "h-(--layout-row) border-b border-(--ui-hair)",
-    // The first cell wraps: a cut-off name says nothing. The rest cut.
-    td: "px-2 first:py-2 first:break-words first:pl-3 last:pr-3 [&:not(:first-child)]:truncate [&:not(:first-child)]:text-(--ui-ink-2)",
+    wrap: "bg-(--ui-paper) shadow-(--ui-raise) [border-radius:6px_24px_6px_24px]",
+    table: "w-full border-collapse text-[14px] [&_tbody>tr:last-child]:border-b-0",
+    head: "",
+    headRow: "border-b border-(--ui-hair)",
+    th: "px-3.5 py-2.5 text-[12.5px] font-[650] text-(--ui-ink-3)",
+    row: "border-b border-(--ui-hair) align-middle",
+    // The first cell names the row (`table.diff td:first-child`) and wraps; the rest are plain.
+    td: "px-3.5 py-2.5 first:font-[650] first:break-words",
   },
 } as const;
 
@@ -369,7 +372,13 @@ export function DataTable<T extends RowData>({
   const rows = table.getRowModel().rows;
   return (
     <>
-      <div className={cn(stack ? "hidden overflow-x-auto sm:block" : "overflow-x-auto", className)}>
+      <div
+        className={cn(
+          stack ? "hidden overflow-x-auto sm:block" : "overflow-x-auto",
+          at.wrap,
+          className,
+        )}
+      >
         <table className={at.table}>
           <thead className={at.head}>
             {table.getHeaderGroups().map((g) => (
@@ -427,7 +436,9 @@ export function DataTable<T extends RowData>({
                     if (said === "" || said === null || said === undefined) return null;
                     return (
                       <div key={c.id} className="grid min-w-0 gap-0.5">
-                        <dt className="text-[12px] text-(--ui-ink-3)">{labels.get(c.column.id)}</dt>
+                        <dt className="text-[12px] font-semibold text-(--ui-ink-3)">
+                          {labels.get(c.column.id)}
+                        </dt>
                         <dd className="[overflow-wrap:anywhere] tabular-nums">{said}</dd>
                       </div>
                     );
