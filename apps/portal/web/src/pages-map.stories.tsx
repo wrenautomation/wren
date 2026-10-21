@@ -523,9 +523,8 @@ export const History = mapAt("/", {
     await expect(await station(page, "Joined, removed")).toBeInTheDocument();
     const drawn = await mapOf(page);
     // The added track carries a person, so it draws as that person's pill.
-    await expect(
-      await drawn.findByRole("button", { name: /^Person task, .*, added$/ }, LATE),
-    ).toBeVisible();
+    const pill = await drawn.findByRole("button", { name: /^Person task, .*, added$/ }, LATE);
+    await waitFor(() => expect(pill).toBeVisible(), LATE);
     await expect(
       await drawn.findByRole("img", { name: "Track from Joined to Booked, removed" }, LATE),
     ).toBeInTheDocument();
