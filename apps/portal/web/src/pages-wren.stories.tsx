@@ -12,17 +12,6 @@ import { failedIn, pageAt } from "./mocks/page.js";
 const meta: Meta = { title: "Pages/Wren" };
 export default meta;
 
-/**
- * The element that holds Today. On a desktop it is the sheet behind the Map's "Today" button, which
- * this opens; on a phone it is the page, where Today is a tab under the Map and already open.
- */
-async function todayOf(page: HTMLElement): Promise<HTMLElement> {
-  const open = await within(page).findByRole("button", { name: "Today" });
-  if (open.getAttribute("aria-haspopup") !== "dialog") return page;
-  await userEvent.click(open);
-  return within(document.body).findByRole("dialog", { name: "Today" });
-}
-
 /** A records answer with no rows. */
 const NONE = { record: "", view: null, rows: [], total: 0, counts: {}, next: null, totals: {} };
 
@@ -33,7 +22,7 @@ const NONE = { record: "", view: null, rows: [], total: 0, counts: {}, next: nul
 export const Today = pageAt("/", {
   me: ADMIN,
   check: async (page) => {
-    const view = within(await todayOf(page));
+    const view = within(page);
     await expect(await view.findByRole("heading", { name: /^Write/ })).toBeVisible();
     await expect(await view.findByRole("heading", { name: /^Move/ })).toBeVisible();
     await expect(await view.findByText("YouTube long-form")).toBeVisible();
@@ -58,7 +47,7 @@ export const TodayEmpty = pageAt("/", {
     }),
   },
   check: async (page) => {
-    const view = within(await todayOf(page));
+    const view = within(page);
     await expect(await view.findByText("Nothing waits on you.")).toBeVisible();
     await expect(await view.findByText("Nothing is due today.")).toBeVisible();
   },
@@ -68,7 +57,7 @@ export const TodayEmpty = pageAt("/", {
 export const TodayFailed = pageAt("/", {
   me: ADMIN,
   mode: "fails",
-  check: async (page) => failedIn("Move")(await todayOf(page)),
+  check: async (page) => failedIn("Move")(page),
 });
 
 /** Only the counts fail: Move says so, and Write still draws. */
@@ -76,7 +65,7 @@ export const TodayCountsFailed = pageAt("/", {
   me: ADMIN,
   answers: { "console/recordsCounts": refuse(500, "The counts failed, as asked.") },
   check: async (page) => {
-    const today = await todayOf(page);
+    const today = page;
     await failedIn("Move")(today);
     await expect(await within(today).findByText("YouTube long-form")).toBeVisible();
   },

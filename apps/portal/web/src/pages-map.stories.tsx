@@ -221,7 +221,7 @@ export const Loading = {
     const frame = skeleton.parentElement as HTMLElement;
     await expect(skeleton.textContent).toBe("");
     await expect(within(frame).queryAllByText(/^Loading/)).toHaveLength(0);
-    const title = within(page).getByRole("heading", { name: "Map", level: 1 });
+    const title = within(page).getByRole("heading", { name: "Your business", level: 1 });
     await expect(title.parentElement?.querySelectorAll("[data-busy]").length).toBe(0);
     // It fills the frame the map fills.
     await expect(
@@ -479,13 +479,8 @@ export const Phone = {
       // Real size: the map is wider than the phone, so it pans inside its frame.
       const { pans } = await calm(page);
       await expect(pans).toBe(true);
-      const tab = within(page).getByRole("button", { name: /Today/ });
-      await expect(tab).toHaveAttribute("aria-expanded", "true");
+      // Today sits under the Map, open.
       await expect(await within(page).findByRole("heading", { name: /^Write/ })).toBeVisible();
-      // Closing the tab hides Today and leaves the Map as it was.
-      await userEvent.click(tab);
-      await expect(tab).toHaveAttribute("aria-expanded", "false");
-      await expect(within(page).queryByRole("heading", { name: /^Write/ })).toBeNull();
     },
   }),
   globals: { viewport: { value: "phone" } },
@@ -989,9 +984,7 @@ export const TodayProposals = {
   ...mapAt("/", {
     check: async (page) => {
       await station(page, "Engaged");
-      await userEvent.click(within(page).getByRole("button", { name: "Today" }));
-      const sheet = await within(document.body).findByRole("dialog", { name: "Today" });
-      const line = await within(sheet).findByText("1 shape proposal waits");
+      const line = await within(page).findByText("1 shape proposal waits");
       await expect(line.closest("a")).toHaveAttribute("href", "/?history=drafts");
     },
   }),
