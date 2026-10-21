@@ -279,32 +279,50 @@ export function checkShape(next: ShapeBody, ctx: ShapeCheckContext): string[] {
   return errors;
 }
 
+/** The fields of an entry that `checkEntry` reads: how a source finds people. */
+export interface EntryFields {
+  via: Via;
+  source?: string | undefined;
+  group?: string | undefined;
+}
+
+/**
+ * Check how a source finds people: its via, and the list or group it names. `who` opens each
+ * message (`Source "yt"`). The graph's sources and the metro model's out lines share it.
+ */
+export function checkEntry(
+  who: string,
+  e: EntryFields,
+  ctx: ShapeCheckContext,
+  errors: string[],
+): void {
+  if (!VIAS.includes(e.via)) {
+    errors.push(`${who} has via "${e.via}". Use ${VIAS.join(", ")}.`);
+  }
+  if (e.via === "sourced") {
+    if (!e.source) errors.push(`${who} has via sourced but names no source.`);
+    else if (!SOURCE_ID.test(e.source))
+      errors.push(`${who} names source "${e.source}", which is not a list's id (import:12).`);
+    else if (!ctx.source(e.source))
+      errors.push(`${who} names source ${e.source}, which does not exist.`);
+  }
+  if (e.via === "group") {
+    if (!e.group) errors.push(`${who} has via group but names no group.`);
+    else if (!GROUP_ID.test(e.group))
+      errors.push(`${who} names group "${e.group}", which is not a group's number.`);
+    else {
+      const g = ctx.group(e.group);
+      if (!g) errors.push(`${who} names group ${e.group}, which does not exist.`);
+      else if (!g.active)
+        errors.push(`${who} names group ${e.group}, which is archived. Restore it first.`);
+    }
+  }
+}
+
 function checkNode(n: ShapeNode, ctx: ShapeCheckContext, errors: string[]): void {
   const k = n.id;
   if (n.kind === "source") {
-    if (!VIAS.includes(n.via)) {
-      errors.push(`Source "${k}" has via "${n.via}". Use ${VIAS.join(", ")}.`);
-    }
-    if (n.via === "sourced") {
-      if (!n.source) errors.push(`Source "${k}" has via sourced but names no source.`);
-      else if (!SOURCE_ID.test(n.source))
-        errors.push(
-          `Source "${k}" names source "${n.source}", which is not a list's id (import:12).`,
-        );
-      else if (!ctx.source(n.source))
-        errors.push(`Source "${k}" names source ${n.source}, which does not exist.`);
-    }
-    if (n.via === "group") {
-      if (!n.group) errors.push(`Source "${k}" has via group but names no group.`);
-      else if (!GROUP_ID.test(n.group))
-        errors.push(`Source "${k}" names group "${n.group}", which is not a group's number.`);
-      else {
-        const g = ctx.group(n.group);
-        if (!g) errors.push(`Source "${k}" names group ${n.group}, which does not exist.`);
-        else if (!g.active)
-          errors.push(`Source "${k}" names group ${n.group}, which is archived. Restore it first.`);
-      }
-    }
+    checkEntry(`Source "${k}"`, n, ctx, errors);
     return;
   }
 
@@ -340,7 +358,10 @@ function checkNode(n: ShapeNode, ctx: ShapeCheckContext, errors: string[]): void
 }
 
 /** One directed cycle through `pairs`, as node ids from the start back to the start, or null. */
-function cycleOf(ids: readonly string[], pairs: readonly (readonly [string, string])[]) {
+export function cycleOf(
+  ids: readonly string[],
+  pairs: readonly (readonly [string, string])[],
+): string[] | null {
   const next = new Map<string, string[]>();
   for (const [a, b] of pairs) next.set(a, [...(next.get(a) ?? []), b]);
   const done = new Set<string>();

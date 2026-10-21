@@ -12,6 +12,7 @@ import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 import { carryJourneys, type Moves, remapDeals } from "./carry.js";
 import { canonicalJson } from "./diff.js";
 import { checkShape, depthOf, type ShapeBody, type ShapeCheckContext } from "./model.js";
+import { Refused } from "./refused.js";
 import {
   type OfferVersion,
   offerVersions,
@@ -23,13 +24,7 @@ import {
 
 export { canonicalJson, diffShapes, type ShapeDiff } from "./diff.js";
 
-/** A write the rules refuse. `errors` holds every reason, in plain English. */
-export class Refused extends Error {
-  constructor(readonly errors: string[]) {
-    super(errors.join(" "));
-    this.name = "Refused";
-  }
-}
+export { Refused };
 
 const refuse = (...errors: string[]): never => {
   throw new Refused(errors);
