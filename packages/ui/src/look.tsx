@@ -20,7 +20,6 @@ import {
   VARIANTS,
 } from "./palette-brand.js";
 import {
-  BASE,
   isShowcase,
   LOOK_NOTES,
   PRESETS,
@@ -30,6 +29,7 @@ import {
   type ShowcaseName,
   type Token,
   themeVars,
+  wholeVars,
 } from "./theme.js";
 
 /** What `readTheme` reads: a preset's name, an object of tokens, or null for Wren's. */
@@ -621,7 +621,7 @@ export function ThemeGallery({
             {list.map((name) => (
               <div key={name} className="grid content-start gap-2">
                 <div className="pointer-events-none overflow-hidden rounded-(--ui-radius-panel) shadow-(--ui-raise) select-none">
-                  <Preview vars={themeVars({ ...BASE, ...readTheme(name) })} />
+                  <Preview vars={wholeVars(readTheme(name))} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="min-w-0">

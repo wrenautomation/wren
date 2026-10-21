@@ -31,6 +31,7 @@ export {
   BrowserRow,
   folderTree,
 } from "./browser.js";
+export { BUSY, Busy, type BusyVariant } from "./busy.js";
 export {
   type CardMedia,
   type CardOption,
@@ -294,6 +295,7 @@ export {
   type Variant,
 } from "./palette-brand.js";
 export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
+export { Path, type PathState, type PathStep } from "./path.js";
 export { BottomSheet, type Segment, Segmented, SwipeRow, type Swipes } from "./phone.js";
 export { runs as tabRuns } from "./phone-nav.js";
 export { usePhone } from "./phone-shell.js";
@@ -491,6 +493,7 @@ export {
   type Token,
   themeVars,
   usePageTheme,
+  wholeVars,
 } from "./theme.js";
 export {
   type MiniLine,

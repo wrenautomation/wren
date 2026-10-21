@@ -676,7 +676,6 @@ const isSet = (f: FieldView) =>
 const listed = (xs: readonly string[]) =>
   xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
 
-const GROUP_HEAD = GROUP_LABEL;
 const GRID = "grid gap-5 @min-[440px]/fields:grid-cols-2";
 const when = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -816,7 +815,7 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
         aria-label="Basics"
         className={`grid gap-4 ${shape.funnel || shape.carousel || tiktok ? "border-t border-(--ui-hair) pt-5" : ""}`}
       >
-        <h3 className={GROUP_HEAD}>Basics</h3>
+        <h3 className={GROUP_LABEL}>Basics</h3>
         {shape.editable && shape.missing?.length ? (
           <p role="status" className="m-0 text-[13px] text-(--ui-bad)">
             Fill in {listed(shape.missing)} before Approve.
@@ -829,7 +828,7 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
       </section>
       {media.length || shape.media ? (
         <section aria-label="Media" className="grid gap-4 border-t border-(--ui-hair) pt-5">
-          <h3 className={GROUP_HEAD}>Media</h3>
+          <h3 className={GROUP_LABEL}>Media</h3>
           <div className={GRID}>
             {shape.media ? (
               <div className="grid min-w-0 gap-1 @min-[440px]/fields:col-span-2">
@@ -863,7 +862,7 @@ function Details({
       className="group/details border-t border-(--ui-hair) pt-5"
     >
       <summary className="flex w-fit cursor-pointer items-baseline gap-2 marker:text-(--ui-ink-3)">
-        <span className={GROUP_HEAD}>Details</span>
+        <span className={GROUP_LABEL}>Details</span>
         <span className="text-[12px] text-(--ui-ink-3)">
           {set ? `${set} of ${fields.length} set` : `${fields.length} not set`}
         </span>

@@ -2,6 +2,7 @@
 
 import { cn } from "cn";
 import { type AnchorHTMLAttributes, type ButtonHTMLAttributes, type ReactNode, useId } from "react";
+import { Busy } from "./busy.js";
 import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
 import { tipProps } from "./hint.js";
@@ -89,10 +90,10 @@ export function Button({
   ...rest
 }: ButtonLook & {
   /**
-   * It was pressed and its work is running: it stays solid, with a short bar passing under the
-   * label (a still, full-width line under reduced motion), and is turned off, so neither a
-   * click nor Enter presses it again. A button acts on rows: pass `busy` only for the rows its
-   * press is at work on.
+   * It was pressed and its work is running: it stays solid, with three dots stepping after the
+   * label, and is turned off, so neither a click nor Enter presses it again. Pass `busy` (true or
+   * false) on a button that can go busy, so the dots' slot is always there and the width never
+   * changes. A button acts on rows: pass `true` only for the rows its press is at work on.
    */
   busy?: boolean | undefined;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
@@ -102,7 +103,7 @@ export function Button({
     icon,
     arrow,
     children,
-    className: cn(busy && "relative overflow-hidden disabled:opacity-100", className),
+    className: cn(busy && "disabled:opacity-100", className),
   };
   return (
     <ShadButton
@@ -113,12 +114,7 @@ export function Button({
       aria-busy={busy || undefined}
     >
       {inside(l)}
-      {busy ? (
-        <span
-          aria-hidden="true"
-          className="absolute bottom-0 left-0 h-0.5 w-2/5 animate-ui-busy bg-current opacity-60 motion-reduce:w-full motion-reduce:animate-none"
-        />
-      ) : null}
+      {busy === undefined ? null : <Busy on={busy} />}
     </ShadButton>
   );
 }
@@ -161,12 +157,15 @@ const DOT = "before:size-1.5 before:rounded-full before:bg-current before:conten
 export function Tag({
   tone = "neutral",
   dot = false,
+  busy,
   title,
   className,
   children,
 }: {
   tone?: TagTone;
   dot?: boolean;
+  /** A chip that waits ("Drafting"): dots after the label. Pass true or false to keep the slot. */
+  busy?: boolean | undefined;
   title?: string | undefined;
   className?: string | undefined;
   children: ReactNode;
@@ -174,6 +173,7 @@ export function Tag({
   return (
     <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} {...tipProps(title)}>
       <span className="min-w-0 truncate">{children}</span>
+      {busy === undefined ? null : <Busy on={busy} />}
     </Badge>
   );
 }

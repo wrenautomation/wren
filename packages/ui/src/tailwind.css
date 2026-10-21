@@ -484,6 +484,22 @@
   }
 }
 
+/* Something new in a list rises in: a source in a Path, the fold line (path.tsx). */
+.ui-rise {
+  animation: ui-rise 0.35s var(--ui-ease) both;
+}
+@keyframes ui-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-rise {
+    animation: none;
+  }
+}
+
 /* The run view's motion: a live step pulses, a followed edge flows, a spark rides it. */
 @theme {
   --animate-ui-run-pulse: ui-run-pulse 1.6s var(--ui-ease) infinite;
@@ -513,27 +529,51 @@
   }
 }
 
-/* What a user action is doing. A pressed button still at work runs a short bar under its label:
-   one pass per cycle, off the button at both ends so the loop has no seam. It fades in after a
-   beat so a quick one never flickers. The rows it changed wash, then settle. */
+/* What a user action is doing. A busy button or chip carries a slot after its label (busy.tsx);
+   the slot is always there, so the width never changes. Each look is a [data-busy] block. The
+   rows it changed wash, then settle. */
+.ui-busy {
+  display: inline-flex;
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.2s var(--ui-ease);
+}
+.ui-busy[data-on] {
+  opacity: 1;
+}
+.ui-busy[data-busy="dots"] {
+  gap: 3px;
+  width: 15px;
+}
+.ui-busy[data-busy="dots"] > i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+}
+.ui-busy[data-busy="dots"][data-on] > i {
+  animation: ui-dot-step 1s ease-in-out infinite;
+}
+.ui-busy[data-busy="dots"][data-on] > i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.ui-busy[data-busy="dots"][data-on] > i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes ui-dot-step {
+  40% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-busy[data-busy="dots"][data-on] > i {
+    animation: none;
+    opacity: 1;
+  }
+}
 @theme {
-  --animate-ui-busy:
-    ui-busy 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite, ui-busy-in 0.25s ease-out 0.3s backwards;
   --animate-ui-changed: ui-changed 1.4s var(--ui-ease);
-  /* The bar is 40% of the button wide: -100% of itself is off the left edge, 250% off the right. */
-  @keyframes ui-busy {
-    from {
-      translate: -100% 0;
-    }
-    to {
-      translate: 250% 0;
-    }
-  }
-  @keyframes ui-busy-in {
-    from {
-      opacity: 0;
-    }
-  }
   @keyframes ui-changed {
     from {
       background-color: color-mix(in srgb, var(--ui-live) 14%, transparent);

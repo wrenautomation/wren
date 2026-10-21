@@ -53,7 +53,16 @@ describe("lookColors", () => {
 // The line tokens colour chart lines, sweeps and rules. A line is a graphic, not text: 3:1.
 describe("line tokens", () => {
   const LINE_NEED = 3;
-  const LINES = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => `line-${n}` as const);
+  const LINES = [
+    "line-0",
+    "line-1",
+    "line-2",
+    "line-3",
+    "line-4",
+    "line-5",
+    "line-6",
+    "line-7",
+  ] as const;
 
   it.each([
     ["day", {}],

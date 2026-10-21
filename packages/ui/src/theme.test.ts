@@ -13,6 +13,7 @@ import {
   SHOWCASE,
   TOKENS,
   themeVars,
+  wholeVars,
 } from "./theme.js";
 
 const PRESET_NAMES = Object.keys(PRESETS) as PresetName[];
@@ -402,6 +403,18 @@ describe("the Quiet Client Rule", () => {
     const night = themeVars(PRESETS.night);
     expect(night["--ui-leaf-panel"]).toBeUndefined();
     expect(night["--ui-sweep"]).toBeUndefined();
+  });
+
+  it("keeps the leaf in the Wren and night previews and plain corners in editorial's", () => {
+    // wholeVars puts BASE (which has a radius) under the look: the rule reads the look's own radius.
+    for (const name of ["wren", "night"] as const) {
+      const vars = wholeVars(readTheme(name));
+      expect(vars["--ui-leaf-panel"], name).toBe("6px 24px");
+      expect(vars["--ui-sweep"], name).toBe("1");
+    }
+    const editorial = wholeVars(readTheme("editorial"));
+    expect(editorial["--ui-leaf-panel"]).toBe("var(--ui-radius-panel)");
+    expect(editorial["--ui-sweep"]).toBe("0");
   });
 
   it("keeps the showcase looks on their own case and corners", () => {

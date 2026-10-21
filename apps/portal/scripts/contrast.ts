@@ -18,7 +18,7 @@
 /// <reference lib="dom.iterable" />
 import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { BASE, PRESETS, readTheme, SHOWCASE, type Theme, themeVars } from "@wren/ui/theme";
+import { PRESETS, readTheme, SHOWCASE, type Theme, wholeVars } from "@wren/ui/theme";
 import { type BrowserContext, chromium, type Page } from "playwright-core";
 
 const arg = (name: string) => {
@@ -91,7 +91,7 @@ async function scan(p: Page, look: string, page: string): Promise<Miss[]> {
     // Whole (BASE under the look), and !important: the page's own look lands late on slow pages.
     // No transitions: axe would read colors halfway from the old look to this one.
     await p.addStyleTag({
-      content: `:root { ${Object.entries(themeVars({ ...BASE, ...LOOKS[look] }))
+      content: `:root { ${Object.entries(wholeVars(LOOKS[look] ?? {}))
         .map(([k, v]) => `${k}: ${v} !important;`)
         .join(" ")} }
         *, ::before, ::after { transition: none !important; }`,

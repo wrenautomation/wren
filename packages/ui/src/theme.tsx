@@ -527,14 +527,28 @@ const PLAIN: Theme = {
   sweep: "0",
 };
 
-/** The theme as CSS custom properties: {"--ui-accent": "#3552d4"}. */
-export function themeVars(theme: Theme): Record<string, string> {
+function varsOf(theme: Theme): Record<string, string> {
   const vars: Record<string, string> = {};
-  const set = theme.radius ? { ...PLAIN, ...theme } : theme;
-  for (const [key, value] of Object.entries(set))
+  for (const [key, value] of Object.entries(theme))
     if (KNOWN.has(key) && typeof value === "string" && value)
       vars[`--ui-${key}`] = LENGTHS.has(key) && ZERO.test(value.trim()) ? "0px" : value;
   return vars;
+}
+
+/**
+ * The theme as CSS custom properties: {"--ui-accent": "#3552d4"}. A look that sets `radius` gets
+ * plain corners and no sweep (the Quiet Client Rule).
+ */
+export function themeVars(theme: Theme): Record<string, string> {
+  return varsOf(theme.radius ? { ...PLAIN, ...theme } : theme);
+}
+
+/**
+ * A look whole, for a preview or a scan: `BASE` under the look. The Quiet Client Rule reads the
+ * look's own `radius`, not `BASE`'s, so the Wren look and its night keep the leaf.
+ */
+export function wholeVars(look: Theme): Record<string, string> {
+  return { ...varsOf(BASE), ...themeVars(look) };
 }
 
 /** Put `theme` on `el` (the page's root by default). Returns the undo. */

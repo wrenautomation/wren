@@ -21,7 +21,6 @@ import { SELECT } from "../work/bits.js";
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
 const WARN = "text-[13px] text-(--ui-bad)";
-const GROUP_HEAD = `${GROUP_LABEL}`;
 
 /** The choices as now: saved, or as just picked. */
 export type TikTokValues = {
@@ -154,7 +153,7 @@ export function TikTokPanel({ values: v, choose, tiktok, video }: TikTokPanelPro
   );
   return (
     <section aria-label="TikTok" className="grid gap-5 border-t border-(--ui-hair) pt-5">
-      <h3 className={GROUP_HEAD}>TikTok</h3>
+      <h3 className={GROUP_LABEL}>TikTok</h3>
       <Account tiktok={tiktok} />
       <div className="grid gap-1.5">
         <label htmlFor="tiktok-privacy" className={LABEL}>
