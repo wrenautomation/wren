@@ -5,7 +5,7 @@
 import type { StoryObj } from "@storybook/react-vite";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { useState } from "react";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { Me } from "../api.js";
 import { PortalRouter } from "../router.js";
 import { type Answers, fakeApi, freshStory, type Mode, settled } from "./api.js";
@@ -62,3 +62,14 @@ export const failedIn = (title: string) => async (page: HTMLElement) => {
   await waitFor(() => expect(alert).toBeVisible());
   await expect(within(page).queryByText("Nothing waits on you.")).toBeNull();
 };
+
+/**
+ * The element that holds Today. On a desktop it is the sheet behind the Map's "Today" button, which
+ * this opens; on a phone it is the page, where Today is a tab under the Map and already open.
+ */
+export async function todayOf(page: HTMLElement): Promise<HTMLElement> {
+  const open = await within(page).findByRole("button", { name: "Today" });
+  if (open.getAttribute("aria-haspopup") !== "dialog") return page;
+  await userEvent.click(open);
+  return within(document.body).findByRole("dialog", { name: "Today" });
+}
