@@ -66,7 +66,12 @@ const STAGE_STATES: Record<string, State> = {
     line: -1,
     about: "An address only: never reached, never came to us.",
   },
-  lead: { label: "Lead", tone: "neutral", line: 0, about: "We reached them, or they showed a warm sign." },
+  lead: {
+    label: "Lead",
+    tone: "neutral",
+    line: 0,
+    about: "We reached them, or they showed a warm sign.",
+  },
   replied: {
     label: "Replied",
     tone: "good",
