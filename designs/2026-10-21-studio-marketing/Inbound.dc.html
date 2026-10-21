@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Marketing, inbound</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#f3f1ec;color:#0e0e0e;font-family:"Figtree",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0e0e0e;text-decoration:none}a:hover{color:#6a5a93}
+button{font:inherit;color:inherit;cursor:pointer}
+.row:hover{background:rgba(14,14,14,.03)}
+.row:hover .open{opacity:1}
+.ic{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:transparent;border:0;color:#63645e}
+.ic:hover{background:rgba(14,14,14,.06);color:#0e0e0e}
+.qv:hover{box-shadow:0 0 0 1px rgba(106,90,147,.6);transform:translateY(-1px)}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:1000px;width:100%;max-width:1440px;margin:0 auto;box-sizing:border-box">
+
+  <nav aria-label="Main" style="width:208px;box-sizing:border-box;padding:20px 14px;display:flex;flex-direction:column;gap:2px;border-right:1px solid rgba(14,14,14,.11)">
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 10px 18px">
+      <span aria-hidden="true" style="width:22px;height:22px;border-radius:5px 11px 5px 11px;background:#6a5a93;display:inline-block"></span>
+      <span style="font-weight:800;font-size:15px;letter-spacing:-.01em">Wren</span>
+    </div>
+    <a href="Offer.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Map</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:600;color:#0e0e0e;background:rgba(106,90,147,.10)">Inbox<span style="margin-left:auto;font-size:12px;color:#63645e">14</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">People</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Money</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Admin</a>
+    <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e;padding:18px 10px 6px">Pinned</div>
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Studio</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Engage<span style="margin-left:auto;font-size:12px;color:#63645e">9</span></a>
+    <a href="Outbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Outbound</a>
+  </nav>
+
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px 40px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+
+    <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:13px;color:#63645e;font-weight:500">Inbound · what people sent us</div>
+        <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em">14 people wait on a reply</h1>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;font-size:12px;color:#63645e;align-items:center">
+        <span style="display:inline-flex;align-items:center;gap:5px"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:#b7791f;display:inline-block"></span>3 past 24h</span>
+        <span>·</span><span>Oldest 2d</span>
+      </div>
+    </header>
+
+    <section aria-label="Queues" style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:12px">
+      <a class="qv" href="#" style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(106,90,147,.6),0 1px 2px rgba(14,14,14,.04);padding:14px 16px;display:flex;flex-direction:column;gap:6px;transition:all .2s cubic-bezier(.2,.9,.25,1.12)">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Replies</span>
+        <span style="font-size:26px;font-weight:700;letter-spacing:-.02em">6</span>
+        <span style="font-size:12px;color:#63645e">email, DM, text · a person answered us</span></a>
+      <a class="qv" href="#" style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11),0 1px 2px rgba(14,14,14,.04);padding:14px 16px;display:flex;flex-direction:column;gap:6px;transition:all .2s cubic-bezier(.2,.9,.25,1.12)">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Comments</span>
+        <span style="font-size:26px;font-weight:700;letter-spacing:-.02em">5</span>
+        <span style="font-size:12px;color:#63645e">on our posts · each answer adds a fact</span></a>
+      <a class="qv" href="#" style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11),0 1px 2px rgba(14,14,14,.04);padding:14px 16px;display:flex;flex-direction:column;gap:6px;transition:all .2s cubic-bezier(.2,.9,.25,1.12)">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Site</span>
+        <span style="font-size:26px;font-weight:700;letter-spacing:-.02em">2</span>
+        <span style="font-size:12px;color:#63645e">form, chat, booking · came from a page</span></a>
+      <a class="qv" href="#" style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11),0 1px 2px rgba(14,14,14,.04);padding:14px 16px;display:flex;flex-direction:column;gap:6px;transition:all .2s cubic-bezier(.2,.9,.25,1.12)">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Threads to join</span>
+        <span style="font-size:26px;font-weight:700;letter-spacing:-.02em">1</span>
+        <span style="font-size:12px;color:#63645e">Reddit, X · a question we can answer</span></a>
+    </section>
+
+    <section aria-label="Replies" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Replies · 6</h2>
+        <span style="font-size:12px;color:#63645e">a saved view of People</span>
+        <div style="margin-left:auto;display:flex;gap:4px;background:rgba(14,14,14,.05);padding:3px;border-radius:6px 12px 6px 12px">
+          <button style="padding:4px 10px;font-size:12px;font-weight:600;border:0;border-radius:5px 10px 5px 10px;background:#fff;box-shadow:0 1px 2px rgba(14,14,14,.08)">Table</button>
+          <button style="padding:4px 10px;font-size:12px;font-weight:500;border:0;border-radius:5px 10px 5px 10px;background:transparent;color:#56564f">By line</button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+        <div style="flex:999 1 520px;min-width:0;background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11),0 1px 2px rgba(14,14,14,.04);overflow:hidden">
+          <div style="overflow-x:auto"><div style="min-width:720px">
+            <div style="display:grid;grid-template-columns:36px minmax(0,1fr) 110px 150px 90px 90px 44px;align-items:center;border-bottom:1px solid rgba(14,14,14,.11);font-size:12px;font-weight:600;color:#63645e">
+              <span></span>
+              <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Person</span>
+              <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Stage</span>
+              <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Line</span>
+              <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Via</span>
+              <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Wait</span>
+              <span></span>
+            </div>
+            <sc-for list="{{replies}}" as="r" hint-placeholder-count="6">
+              <div class="row" style="display:grid;grid-template-columns:36px minmax(0,1fr) 110px 150px 90px 90px 44px;align-items:center;border-bottom:1px solid rgba(14,14,14,.11);font-size:14px;min-height:52px;background:{{r.bg}};transition:background .15s">
+                <span style="display:flex;justify-content:center"><input type="checkbox" aria-label="Select {{r.name}}" style="width:14px;height:14px;margin:0;accent-color:#6a5a93"></span>
+                <button onClick="{{r.pick}}" style="padding:8px 10px;border:0;background:transparent;text-align:left;border-left:1px solid rgba(14,14,14,.06);display:flex;align-items:center;gap:10px;min-width:0">
+                  <span aria-hidden="true" style="width:28px;height:28px;border-radius:50%;background:rgba(14,14,14,.08);display:inline-flex;align-items:center;justify-content:center;flex:none;font-size:11px;font-weight:700;color:#56564f">{{r.ini}}</span>
+                  <span style="display:flex;flex-direction:column;min-width:0">
+                    <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{r.name}}</span>
+                    <span style="font-size:12px;color:#63645e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{r.snippet}}</span>
+                  </span>
+                  <span class="open" style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px 8px 4px 8px;background:rgba(14,14,14,.05);color:#56564f;opacity:0;flex:none">Open</span>
+                </button>
+                <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);display:flex;align-items:center;gap:7px;font-size:13px"><span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;background:{{r.stageColor}};display:inline-block;flex:none"></span>{{r.stage}}</span>
+                <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);display:flex;align-items:center;gap:7px;font-size:13px"><span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;background:{{r.lineColor}};display:inline-block;flex:none"></span>{{r.line}}</span>
+                <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);font-size:13px;color:#56564f">{{r.via}}</span>
+                <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);font-size:13px;color:{{r.waitColor}};font-weight:500">{{r.wait}}</span>
+                <span style="display:flex;justify-content:center"><button class="ic" aria-label="Reply to {{r.name}}" onClick="{{r.pick}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3L2 7l4 4"/><path d="M2 7h7a5 5 0 015 5v1"/></svg></button></span>
+              </div>
+            </sc-for>
+            <div style="padding:10px 14px;font-size:12px;color:#63645e">6 people · 3 past 24h</div>
+          </div></div>
+        </div>
+
+        <aside aria-label="Peek" style="flex:1 1 320px;max-width:400px;min-width:0;background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11),0 4px 14px -6px rgba(40,30,70,.10);padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span aria-hidden="true" style="width:36px;height:36px;border-radius:50%;background:rgba(14,14,14,.08);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#56564f">{{cur.ini}}</span>
+            <div style="display:flex;flex-direction:column"><span style="font-weight:700;font-size:16px">{{cur.name}}</span><span style="font-size:12px;color:#63645e">{{cur.role}}</span></div>
+            <a href="#" style="margin-left:auto;font-size:12px;font-weight:600;padding:4px 9px;border-radius:4px 8px 4px 8px;background:rgba(14,14,14,.05);color:#56564f">Open</a>
+          </div>
+          <dl style="margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px">
+            <dt style="color:#63645e">Stage</dt><dd style="margin:0;display:flex;align-items:center;gap:7px"><span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;background:{{cur.stageColor}};display:inline-block"></span>{{cur.stage}}</dd>
+            <dt style="color:#63645e">Line</dt><dd style="margin:0;display:flex;align-items:center;gap:7px"><span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;background:{{cur.lineColor}};display:inline-block"></span>{{cur.line}}</dd>
+            <dt style="color:#63645e">Came in by</dt><dd style="margin:0">{{cur.source}}</dd>
+            <dt style="color:#63645e">Touches</dt><dd style="margin:0">{{cur.touches}}</dd>
+          </dl>
+          <div style="border-top:1px solid rgba(14,14,14,.11);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">They wrote · {{cur.via}}</span>
+            <p style="margin:0;font-size:14px;line-height:1.5">{{cur.message}}</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Draft reply</span>
+            <label for="reply" style="position:absolute;left:-9999px">Reply</label>
+            <textarea id="reply" rows="4" style="font:inherit;font-size:14px;line-height:1.5;padding:10px 12px;border:1px solid rgba(14,14,14,.11);border-radius:6px 14px 6px 14px;resize:vertical;background:#f3f1ec">{{cur.draft}}</textarea>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button style="padding:8px 14px;font-size:13px;font-weight:600;border:0;background:#6a5a93;color:#faf7f2;border-radius:6px 14px 6px 14px">Send</button>
+              <button style="padding:8px 12px;font-size:13px;font-weight:500;border:1px solid rgba(14,14,14,.11);background:#fff;border-radius:6px 14px 6px 14px">Book a call</button>
+              <button style="margin-left:auto;padding:8px 10px;font-size:13px;font-weight:500;border:0;background:transparent;color:#63645e">Pass</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { cur: 0 };
+  }
+  renderVals() {
+    const S = { Stranger: '#63645e', Lead: '#6a5a93', Replied: '#2f8a80', Booked: '#3d78b8', Client: '#c0567f' };
+    const L = { 'Offer builder': '#6a5a93', 'Reactivation': '#2f8a80', 'Free audit': '#3d78b8', 'Client portal': '#c0567f' };
+    const R = [
+      { name: 'Maya Okafor', ini: 'MO', role: 'Owner, 6-person landscaping firm', stage: 'Replied', line: 'Offer builder', via: 'Email', source: 'Cold email, step 2', touches: '3 emails, 1 comment', wait: '2d', late: true, snippet: 'Can this work for a seasonal business?', message: 'Interesting. We shut down Nov to Feb though. Can the offer page change by season, or is it one fixed thing?', draft: 'Yes. One line per season, each with its own page and price. I can show you the winter one on a 15 minute call this week.' },
+      { name: 'Dev Raman', ini: 'DR', role: 'Founder, bookkeeping practice', stage: 'Lead', line: 'Free audit', via: 'LinkedIn DM', source: 'Carousel comment', touches: '1 DM', wait: '31h', late: true, snippet: 'Saw the audit post. How long does it take?', message: 'Saw the audit post. How long does it take on my side?', draft: 'About 20 minutes of yours. I do the rest and send a one-page read the next day.' },
+      { name: 'Priya Natarajan', ini: 'PN', role: 'Studio owner, pilates', stage: 'Replied', line: 'Reactivation', via: 'Text', source: 'Reactivation text 1', touches: '2 texts', wait: '26h', late: true, snippet: 'Which clients would you text first?', message: 'Which clients would you text first? I have about 300 lapsed.', draft: 'The 90-day ones first, about 40 of them. Then the 180s. I can pull the list from your booking export.' },
+      { name: 'Tom Hadley', ini: 'TH', role: 'GM, HVAC company', stage: 'Booked', line: 'Offer builder', via: 'Email', source: 'Booking page', touches: '4 emails, 1 call', wait: '5h', late: false, snippet: 'Moved Thursday to 2pm, that ok?', message: 'Moved Thursday to 2pm, that ok?', draft: 'Works. See you Thursday at 2.' },
+      { name: 'Ana Lucía Reyes', ini: 'AR', role: 'Marketing lead, dental group', stage: 'Lead', line: 'Offer builder', via: 'Email', source: 'Newsletter reply', touches: '1 email', wait: '3h', late: false, snippet: 'Do you work with multi-location?', message: 'Do you work with multi-location practices? We have four.', draft: 'Yes. One offer line, four location pages. Happy to show how the pricing splits.' },
+      { name: 'Jordan Blake', ini: 'JB', role: 'Client, 2nd month', stage: 'Client', line: 'Client portal', via: 'Portal', source: 'Portal thread', touches: '12 threads', wait: '40m', late: false, snippet: 'Can I add my VA to the portal?', message: 'Can I add my VA to the portal? Just to approve posts.', draft: 'Done on my side. Send me their email and I will add them with approve-only access.' }
+    ];
+    const replies = R.map((r, i) => ({
+      ...r,
+      stageColor: S[r.stage], lineColor: L[r.line],
+      waitColor: r.late ? '#b7791f' : '#63645e',
+      bg: i === this.state.cur ? 'rgba(106,90,147,.06)' : 'transparent',
+      pick: () => this.setState({ cur: i })
+    }));
+    return { replies, cur: replies[this.state.cur] };
+  }
+}
+</script>
+</body>
+</html>

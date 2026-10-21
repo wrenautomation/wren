@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio, new post</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#f3f1ec;color:#0e0e0e;font-family:"Figtree",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0e0e0e;text-decoration:none}a:hover{color:#6a5a93}
+button{font:inherit;color:inherit;cursor:pointer}
+textarea{font:inherit;color:inherit}
+.tab{padding:6px 12px;font-size:13px;font-weight:500;border:0;background:transparent;color:#56564f;border-radius:5px 10px 5px 10px}
+.tab:hover{background:rgba(14,14,14,.05)}
+.tab.on{background:#fff;color:#0e0e0e;font-weight:600;box-shadow:0 1px 2px rgba(14,14,14,.08)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:12px;font-weight:600;border-radius:4px 10px 4px 10px;border:1px solid rgba(14,14,14,.11);background:#fff;color:#56564f}
+.chip.on{background:rgba(106,90,147,.10);border-color:rgba(106,90,147,.4);color:#0e0e0e}
+.q:hover{background:rgba(14,14,14,.04)}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:900px;width:100%;max-width:1440px;margin:0 auto;box-sizing:border-box">
+
+  <nav aria-label="Main" style="width:208px;box-sizing:border-box;padding:20px 14px;display:flex;flex-direction:column;gap:2px;border-right:1px solid rgba(14,14,14,.11)">
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 10px 18px">
+      <span aria-hidden="true" style="width:22px;height:22px;border-radius:5px 11px 5px 11px;background:#6a5a93;display:inline-block"></span>
+      <span style="font-weight:800;font-size:15px;letter-spacing:-.01em">Wren</span>
+    </div>
+    <a href="Offer.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Map</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Inbox<span style="margin-left:auto;font-size:12px;color:#63645e">14</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">People</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Money</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Admin</a>
+    <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e;padding:18px 10px 6px">Pinned</div>
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:600;color:#0e0e0e;background:rgba(106,90,147,.10)">Studio</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Engage<span style="margin-left:auto;font-size:12px;color:#63645e">9</span></a>
+    <a href="Outbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Outbound</a>
+  </nav>
+
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px 40px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+
+    <header style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+      <a href="Main.dc.html" style="font-size:13px;color:#63645e;display:inline-flex;align-items:center;gap:6px"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7.5 2L3.5 6l4 4"/></svg>Studio</a>
+      <span aria-hidden="true" style="color:#63645e">/</span>
+      <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em">New post</h1>
+      <div style="margin-left:auto;display:flex;gap:4px;background:rgba(14,14,14,.05);padding:3px;border-radius:6px 12px 6px 12px">
+        <button class="tab on">Post</button><button class="tab">Thread</button><button class="tab">Carousel</button><button class="tab">Story</button><button class="tab">Blog</button><button class="tab">Video</button>
+      </div>
+    </header>
+
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+      <section aria-label="Write" style="flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:14px">
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+          <span style="font-size:12px;font-weight:600;color:#63645e;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Line</span>
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="4">
+            <button class="chip {{l.cls}}" onClick="{{l.pick}}" aria-pressed="{{l.on}}"><span aria-hidden="true" style="width:8px;height:8px;border-radius:2px;background:{{l.color}};display:inline-block"></span>{{l.name}}</button>
+          </sc-for>
+          <span style="margin-left:auto;font-size:12px;color:#63645e">Fills the slot: <strong style="color:#0e0e0e;font-weight:600">{{slot}}</strong></span>
+        </div>
+
+        <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11),0 1px 2px rgba(14,14,14,.04);display:flex;flex-direction:column">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid rgba(14,14,14,.11)">
+            <span style="font-size:12px;font-weight:600;color:#63645e;margin-right:6px">Angle</span>
+            <button class="chip on">Proof</button><button class="chip">Contrarian</button><button class="chip">How I do it</button><button class="chip">Story</button>
+            <button style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;font-size:12px;font-weight:600;border:0;background:rgba(106,90,147,.10);color:#0e0e0e;border-radius:4px 10px 4px 10px"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#6a5a93" stroke-width="1.6"><path d="M6 1.5l1.2 3 3.3.3-2.5 2.2.8 3.3L6 8.6 3.2 10.3l.8-3.3L1.5 4.8l3.3-.3z"/></svg>Draft 3 angles</button>
+          </div>
+          <label for="body" style="position:absolute;left:-9999px">Post body</label>
+          <textarea id="body" rows="9" style="border:0;outline:0;resize:vertical;padding:18px 20px;font-size:16px;line-height:1.5;background:transparent;width:100%;box-sizing:border-box">Most service sites list seven things they do.
+
+The ones that book calls list one.
+
+Last month I rebuilt an offer page down to a single line: who it is for, what changes in 30 days, the price. Three fewer sections. Reply rate on the follow-up email went from 4% to 11%.
+
+The tool that made the page is the one I'm showing on Thursday.</textarea>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(14,14,14,.11);font-size:12px;color:#63645e">
+            <span><strong style="color:#0e0e0e;font-weight:600">412</strong> chars</span>
+            <span>·</span><span>Reads in 20s</span>
+            <span>·</span><span style="display:inline-flex;align-items:center;gap:5px"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:#17803d;display:inline-block"></span>Fits every picked platform</span>
+            <span style="margin-left:auto;display:flex;gap:4px">
+              <button class="chip">Shorter</button><button class="chip">Punchier open</button><button class="chip">Add the number</button>
+            </span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+          <span style="font-size:12px;font-weight:600;color:#63645e;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Media</span>
+          <button class="chip">Attach</button><button class="chip">Frame from the Thursday cut</button><button class="chip">Quote card</button>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:4px">
+          <button style="padding:10px 18px;font-size:14px;font-weight:600;border:0;background:#6a5a93;color:#faf7f2;border-radius:6px 16px 6px 16px">Approve and slot</button>
+          <button style="padding:10px 16px;font-size:14px;font-weight:600;border:1px solid rgba(14,14,14,.11);background:#fff;border-radius:6px 16px 6px 16px">Post now</button>
+          <button style="padding:10px 16px;font-size:14px;font-weight:500;border:0;background:transparent;color:#56564f;border-radius:6px 16px 6px 16px">Save draft</button>
+          <span style="margin-left:auto;font-size:12px;color:#63645e">Goes to <a href="Outbound.dc.html" style="color:#6a5a93;font-weight:500">To approve</a> if the line needs a second look</span>
+        </div>
+      </section>
+
+      <aside aria-label="Platforms" style="flex:1 1 320px;max-width:420px;min-width:0;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Side by side</h2>
+          <span style="margin-left:auto;font-size:12px;color:#63645e">{{pickedCount}} of 5 platforms</span>
+        </div>
+        <sc-for list="{{platforms}}" as="p" hint-placeholder-count="5">
+          <div class="q" style="background:#fff;border-radius:6px 20px 6px 20px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:12px 14px;display:flex;flex-direction:column;gap:8px;opacity:{{p.opacity}};transition:background .15s">
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="checkbox" id="{{p.id}}" aria-label="Post to {{p.name}}" onChange="{{p.toggle}}" checked="{{p.on}}" style="width:14px;height:14px;margin:0;accent-color:#6a5a93">
+              <label for="{{p.id}}" style="font-weight:600;font-size:14px">{{p.name}}</label>
+              <span style="font-size:12px;color:#63645e">{{p.account}}</span>
+              <span style="margin-left:auto;font-size:11px;font-weight:600;color:{{p.fitColor}}">{{p.fit}}</span>
+            </div>
+            <div style="font-size:13px;line-height:1.45;color:#56564f;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{p.preview}}</div>
+            <div style="display:flex;gap:6px;font-size:11px;color:#63645e"><span>{{p.slot}}</span><span>·</span><span>{{p.note}}</span></div>
+          </div>
+        </sc-for>
+      </aside>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { line: 'core', off: {} };
+  }
+  renderVals() {
+    const L = [
+      { id: 'core', name: 'Offer builder', color: '#6a5a93', slot: 'X · Tue 09:00' },
+      { id: 'front', name: 'Reactivation', color: '#2f8a80', slot: 'LinkedIn · Wed 09:00' },
+      { id: 'out', name: 'Free audit', color: '#3d78b8', slot: 'IG · Thu 13:00' },
+      { id: 'client', name: 'Client portal', color: '#c0567f', slot: 'Blog · Fri' }
+    ];
+    const lines = L.map((l) => {
+      const on = this.state.line === l.id;
+      return { ...l, on, cls: on ? 'on' : '', pick: () => this.setState({ line: l.id }) };
+    });
+    const cur = L.find((l) => l.id === this.state.line) || L[0];
+    const P = [
+      { id: 'x', name: 'X', account: '@wren', fit: 'Fits', fitColor: '#17803d', slot: 'Tue 09:00', note: 'single post, 412 chars', preview: 'Most service sites list seven things they do. The ones that book calls list one. Last month I rebuilt an offer page down to a single line...' },
+      { id: 'li', name: 'LinkedIn', account: 'Wren', fit: 'Fits', fitColor: '#17803d', slot: 'Tue 09:30', note: 'line breaks kept', preview: 'Most service sites list seven things they do.\n\nThe ones that book calls list one.' },
+      { id: 'th', name: 'Threads', account: '@wren', fit: 'Fits', fitColor: '#17803d', slot: 'Tue 10:00', note: 'first 500 chars', preview: 'Most service sites list seven things they do. The ones that book calls list one.' },
+      { id: 'ig', name: 'Instagram', account: '@wren', fit: 'Needs media', fitColor: '#b7791f', slot: 'Thu 13:00', note: 'add a quote card', preview: 'Caption from the post. No image picked yet.' },
+      { id: 'tt', name: 'TikTok', account: '@wren', fit: 'Video only', fitColor: '#63645e', slot: '21:00', note: 'skipped for a text post', preview: 'A text post does not go here. Pick Video to use this slot.' }
+    ];
+    const platforms = P.map((p) => {
+      const defaultOn = p.id !== 'tt';
+      const on = this.state.off[p.id] === undefined ? defaultOn : !this.state.off[p.id];
+      return { ...p, on, opacity: on ? 1 : 0.55, toggle: () => this.setState({ off: { ...this.state.off, [p.id]: on } }) };
+    });
+    return { lines, slot: cur.slot, platforms, pickedCount: platforms.filter((p) => p.on).length };
+  }
+}
+</script>
+</body>
+</html>

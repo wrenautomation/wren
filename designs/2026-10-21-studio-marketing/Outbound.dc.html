@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Marketing, outbound</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#f3f1ec;color:#0e0e0e;font-family:"Figtree",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0e0e0e;text-decoration:none}a:hover{color:#6a5a93}
+button{font:inherit;color:inherit;cursor:pointer}
+.row:hover{background:rgba(14,14,14,.03)}
+.ic{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:transparent;border:0;color:#63645e}
+.ic:hover{background:rgba(14,14,14,.06);color:#0e0e0e}
+.step{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:6px 14px 6px 14px;background:#fff;box-shadow:0 0 0 1px rgba(14,14,14,.11);min-width:0}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:1000px;width:100%;max-width:1440px;margin:0 auto;box-sizing:border-box">
+
+  <nav aria-label="Main" style="width:208px;box-sizing:border-box;padding:20px 14px;display:flex;flex-direction:column;gap:2px;border-right:1px solid rgba(14,14,14,.11)">
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 10px 18px">
+      <span aria-hidden="true" style="width:22px;height:22px;border-radius:5px 11px 5px 11px;background:#6a5a93;display:inline-block"></span>
+      <span style="font-weight:800;font-size:15px;letter-spacing:-.01em">Wren</span>
+    </div>
+    <a href="Offer.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Map</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Inbox<span style="margin-left:auto;font-size:12px;color:#63645e">14</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">People</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Money</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Admin</a>
+    <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e;padding:18px 10px 6px">Pinned</div>
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Studio</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Engage<span style="margin-left:auto;font-size:12px;color:#63645e">9</span></a>
+    <a href="Outbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:600;color:#0e0e0e;background:rgba(106,90,147,.10)">Outbound</a>
+  </nav>
+
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px 40px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+
+    <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:13px;color:#63645e;font-weight:500">Outbound · what we send</div>
+        <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em">184 touches go out today, 7 wait on you</h1>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button style="padding:8px 14px;font-size:13px;font-weight:600;border:1px solid rgba(14,14,14,.11);background:#fff;border-radius:6px 14px 6px 14px">New campaign</button>
+        <button style="padding:8px 14px;font-size:13px;font-weight:600;border:0;background:#6a5a93;color:#faf7f2;border-radius:6px 14px 6px 14px">Approve all 7</button>
+      </div>
+    </header>
+
+    <section aria-label="Today" style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:12px">
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Emails</span><span style="font-size:26px;font-weight:700;letter-spacing:-.02em">120</span><span style="font-size:12px;color:#63645e">9 inboxes · 14 each · warm</span></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">DMs</span><span style="font-size:26px;font-weight:700;letter-spacing:-.02em">38</span><span style="font-size:12px;color:#63645e">LinkedIn 20 · IG 12 · X 6</span></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Texts</span><span style="font-size:26px;font-weight:700;letter-spacing:-.02em">26</span><span style="font-size:12px;color:#63645e">reactivation only · stops 20:00</span></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Replied this week</span><span style="font-size:26px;font-weight:700;letter-spacing:-.02em">7.4%</span><span style="font-size:12px;color:#17803d;font-weight:500">up from 5.1%</span></div>
+    </section>
+
+    <section aria-label="Campaigns" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Campaigns · by line</h2>
+        <span style="font-size:12px;color:#63645e">each campaign runs one offer line</span>
+      </div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11),0 1px 2px rgba(14,14,14,.04);overflow:hidden">
+        <div style="overflow-x:auto"><div style="min-width:820px">
+          <div style="display:grid;grid-template-columns:36px minmax(0,1fr) 150px 110px 110px 110px 110px 44px;align-items:center;border-bottom:1px solid rgba(14,14,14,.11);font-size:12px;font-weight:600;color:#63645e">
+            <span></span>
+            <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Campaign</span>
+            <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Line</span>
+            <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Channel</span>
+            <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">In flight</span>
+            <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Replied</span>
+            <span style="padding:10px;border-left:1px solid rgba(14,14,14,.06)">Booked</span>
+            <span></span>
+          </div>
+          <sc-for list="{{camps}}" as="c" hint-placeholder-count="5">
+            <div class="row" style="display:grid;grid-template-columns:36px minmax(0,1fr) 150px 110px 110px 110px 110px 44px;align-items:center;border-bottom:1px solid rgba(14,14,14,.11);font-size:14px;min-height:52px;transition:background .15s">
+              <span style="display:flex;justify-content:center"><input type="checkbox" aria-label="Select {{c.name}}" style="width:14px;height:14px;margin:0;accent-color:#6a5a93"></span>
+              <a href="#" style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);display:flex;flex-direction:column;min-width:0">
+                <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{c.name}}</span>
+                <span style="font-size:12px;color:#63645e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{c.who}}</span></a>
+              <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);display:flex;align-items:center;gap:7px;font-size:13px"><span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;background:{{c.color}};display:inline-block;flex:none"></span>{{c.line}}</span>
+              <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);font-size:13px;color:#56564f">{{c.channel}}</span>
+              <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);font-size:13px">{{c.inflight}}</span>
+              <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);font-size:13px">{{c.replied}}</span>
+              <span style="padding:8px 10px;border-left:1px solid rgba(14,14,14,.06);font-size:13px">{{c.booked}}</span>
+              <span style="display:flex;justify-content:center"><button class="ic" aria-label="Pause {{c.name}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 2.5v9M9.5 2.5v9"/></svg></button></span>
+            </div>
+          </sc-for>
+          <div style="padding:10px 14px;font-size:12px;color:#63645e">5 campaigns · 2 lines paused by caps</div>
+        </div></div>
+      </div>
+    </section>
+
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+      <section aria-label="Sequence" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Sequence · Offer builder, owners 5–20 staff</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:10px;align-items:stretch">
+          <div class="step"><span style="font-size:11px;font-weight:600;color:#6a5a93">Day 0 · Email</span><span style="font-size:13px;font-weight:600">One line, one page</span><span style="font-size:12px;color:#63645e">opens 58%</span></div>
+          <div class="step"><span style="font-size:11px;font-weight:600;color:#6a5a93">Day 2 · Comment</span><span style="font-size:13px;font-weight:600">On their last post</span><span style="font-size:12px;color:#63645e">a fact, not praise</span></div>
+          <div class="step"><span style="font-size:11px;font-weight:600;color:#6a5a93">Day 4 · Email</span><span style="font-size:13px;font-weight:600">The 11-minute build</span><span style="font-size:12px;color:#63645e">links the video</span></div>
+          <div class="step"><span style="font-size:11px;font-weight:600;color:#6a5a93">Day 7 · DM</span><span style="font-size:13px;font-weight:600">Short ask</span><span style="font-size:12px;color:#63645e">LinkedIn, 2 lines</span></div>
+          <div class="step" style="box-shadow:0 0 0 1px rgba(14,14,14,.11);background:rgba(14,14,14,.03)"><span style="font-size:11px;font-weight:600;color:#63645e">Day 90 · Rest</span><span style="font-size:13px;font-weight:600">Recycle</span><span style="font-size:12px;color:#63645e">new angle next round</span></div>
+        </div>
+        <p style="margin:4px 0 0;font-size:13px;color:#56564f;line-height:1.5">A reply at any step stops the sequence and moves the person to <a href="Inbound.dc.html" style="color:#6a5a93;font-weight:500">Inbox · Replies</a>. Replies wait on you. Nothing auto-answers a person.</p>
+      </section>
+
+      <section aria-label="To approve" style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">To approve · 7</h2>
+          <span style="font-size:12px;color:#63645e">first sends to a new segment</span>
+        </div>
+        <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);overflow:hidden">
+          <sc-for list="{{approvals}}" as="a" hint-placeholder-count="4">
+            <div class="row" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(14,14,14,.11);font-size:13px;transition:background .15s">
+              <span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;background:{{a.color}};display:inline-block;flex:none"></span>
+              <span style="display:flex;flex-direction:column;min-width:0;flex:1">
+                <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{a.what}}</span>
+                <span style="font-size:12px;color:#63645e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{a.detail}}</span></span>
+              <button class="ic" aria-label="Approve {{a.what}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3 7-7"/></svg></button>
+              <button class="ic" aria-label="Edit {{a.what}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12l1-3.5 6.5-6.5 2.5 2.5L5.5 11z"/></svg></button>
+            </div>
+          </sc-for>
+          <div style="padding:10px 14px;font-size:12px;color:#63645e">3 more below</div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const L = { 'Offer builder': '#6a5a93', 'Reactivation': '#2f8a80', 'Free audit': '#3d78b8', 'Client portal': '#c0567f' };
+    const camps = [
+      { name: 'Owners, 5–20 staff', who: 'home services, 3 metros', line: 'Offer builder', channel: 'Email + DM', inflight: 412, replied: '8.1%', booked: 9 },
+      { name: 'Lapsed clients, 90d', who: 'studios and clinics', line: 'Reactivation', channel: 'Text', inflight: 140, replied: '12.0%', booked: 6 },
+      { name: 'Posted about ads this month', who: 'from X and LinkedIn reads', line: 'Free audit', channel: 'DM', inflight: 96, replied: '6.3%', booked: 3 },
+      { name: 'Agency owners', who: 'white-label pitch', line: 'Offer builder', channel: 'Email', inflight: 210, replied: '4.9%', booked: 4 },
+      { name: 'Month-two check-in', who: 'current clients', line: 'Client portal', channel: 'Portal + text', inflight: 11, replied: '—', booked: '—' }
+    ].map((c) => ({ ...c, color: L[c.line] }));
+    const approvals = [
+      { what: 'Email step 1 · 40 agency owners', detail: 'new segment, first send', line: 'Offer builder' },
+      { what: 'Text 1 · 22 lapsed clients', detail: 'studio A, 180-day list', line: 'Reactivation' },
+      { what: 'DM · 6 people who posted about ad spend', detail: 'audit offer, X', line: 'Free audit' },
+      { what: 'Reply · Maya Okafor', detail: 'seasonal question, draft ready', line: 'Offer builder' }
+    ].map((a) => ({ ...a, color: L[a.line] }));
+    return { camps, approvals };
+  }
+}
+</script>
+</body>
+</html>
