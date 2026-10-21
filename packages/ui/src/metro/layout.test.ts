@@ -1,4 +1,14 @@
 import { describe, expect, it } from "vitest";
+import {
+  CHIP_ROOM,
+  crossingsOf,
+  overlaps,
+  routeOf,
+  sceneBoxes,
+  sceneClashes,
+  textWidth,
+  trackEnds,
+} from "./geometry.js";
 import { layoutMetro, lineKeyOf, SPACE } from "./layout.js";
 import {
   COLD_OUTBOUND_VIEW,
@@ -11,7 +21,7 @@ import {
   SAMPLE_VIEWS,
   WEBINAR_VIEW,
 } from "./samples.js";
-import { isMark } from "./types.js";
+import { isMark, type MetroScene, type Point } from "./types.js";
 import type { MetroView } from "./view.js";
 
 const at = (scene: ReturnType<typeof layoutMetro>, id: string) => {
@@ -273,3 +283,131 @@ describe("lineKeyOf", () => {
     expect(s.lines?.gp?.l).toBe(lineKeyOf(DIFF_VIEW, "gp"));
   });
 });
+
+/** The clashes of one kind: the scene's own words start with these. */
+const KIND = {
+  names: /^name of /,
+  chips: /^chip /,
+  hub: /^track .* (passes under hub|enters hub|leaves hub)|^hub .* spans row/,
+  gaps: /^gaps in columns/,
+} as const;
+const clashesOf = (scene: MetroScene, kind: keyof typeof KIND) =>
+  sceneClashes(scene).filter((c) => KIND[kind].test(c));
+
+/** Every sample view, drawn. The diff view has marks and a removed station. */
+const DRAWN: [string, MetroView][] = [...SAMPLE_VIEWS, DIFF_VIEW].map((v) => [v.title ?? "", v]);
+
+/** Crossings each sample had before the hub, the rows and the labels were laid out together. */
+const CROSSINGS_BEFORE: Record<string, number> = {
+  "Client becomes a channel": 1,
+};
+
+describe("a calm map", () => {
+  it.each(DRAWN)("%s: no name sits on another name, a mark or a transfer label", (_t, v) => {
+    expect(clashesOf(layoutMetro(v), "names")).toEqual([]);
+  });
+
+  it.each(DRAWN)("%s: no task chip sits on a mark, the hub or a name", (_t, v) => {
+    expect(clashesOf(layoutMetro(v), "chips")).toEqual([]);
+  });
+
+  it.each(DRAWN)("%s: gaps in each column are equal, one step for the whole map", (_t, v) => {
+    expect(clashesOf(layoutMetro(v), "gaps")).toEqual([]);
+  });
+
+  it.each(DRAWN)(
+    "%s: no track passes under the hub, and the hub joins only the rows it spans",
+    (_t, v) => {
+      expect(clashesOf(layoutMetro(v), "hub")).toEqual([]);
+    },
+  );
+
+  it.each(DRAWN)("%s: has no more crossings than before", (t, v) => {
+    expect(crossingsOf(layoutMetro(v))).toBeLessThanOrEqual(CROSSINGS_BEFORE[t] ?? 0);
+  });
+
+  it.each(DRAWN)("%s: a task chip sits on its track, in the free part", (_t, v) => {
+    const s = layoutMetro(v);
+    const ends = trackEnds(s);
+    for (const r of s.tr) {
+      if (!r.at || !r.who) continue;
+      const e = ends(r);
+      const pts = e ? routeOf(r, e[0], e[1]) : [];
+      expect(onRoute(pts, r.at), r.id).toBe(true);
+    }
+  });
+
+  it("puts the hub's inputs left of it and each offer line's first station right of it", () => {
+    const s = layoutMetro(DIFF_VIEW);
+    const hub = at(s, "hub");
+    expect(at(s, "yt").x).toBeLessThan(hub.x);
+    expect(at(s, "lan").x).toBeGreaterThan(hub.x);
+  });
+
+  it("gives a column with no station a narrow width that still fits its name", () => {
+    const s = layoutMetro(COLD_OUTBOUND_VIEW);
+    const empty = (s.zones ?? []).filter(([a, b]) => {
+      return !s.st.some((m) => isMark(m) && m.x > a && m.x < b);
+    });
+    expect(empty.length).toBeGreaterThan(0);
+    for (const [a, b, name] of empty) {
+      expect(b - a, name).toBeLessThan(SPACE.step);
+      expect(b - a, name).toBeGreaterThanOrEqual(textWidth(name, 9.5, true));
+    }
+  });
+
+  it.each(DRAWN)("%s: a task chip keeps 12 px from every mark, on both sides", (_t, v) => {
+    const b = sceneBoxes(layoutMetro(v));
+    for (const c of [...b.chips, ...b.tracks].filter((x) => x.room))
+      for (const m of [...b.marks, ...b.hub])
+        expect(overlaps(c.box, m.box, CHIP_ROOM), `${c.id} / ${m.id}`).toBe(false);
+  });
+
+  it("widens the step before it folds a long chip to a dot", () => {
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      tracks: COLD_OUTBOUND_VIEW.tracks.map((t) =>
+        t.from === "rep" && t.to === "bk"
+          ? { ...t, by: "person", owner: "WJ", promise: "3650d" }
+          : t,
+      ),
+    };
+    const s = layoutMetro(v);
+    const track = s.tr.find((t) => t.a === "rep" && t.b === "bk");
+    expect(track?.dot).toBeUndefined();
+    expect(at(s, "bk").x - at(s, "rep").x).toBeGreaterThan(SPACE.step);
+    expect(sceneClashes(s)).toEqual([]);
+  });
+
+  it("folds a chip to a count dot when its track has no room", () => {
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      tracks: COLD_OUTBOUND_VIEW.tracks.map((t) =>
+        t.from === "rep" && t.to === "bk"
+          ? { ...t, by: "person", owner: "WJ", promise: "a promise that is much too long to fit" }
+          : t,
+      ),
+    };
+    const s = layoutMetro(v);
+    const track = s.tr.find((t) => t.a === "rep" && t.b === "bk");
+    expect(track?.dot).toBe(1);
+    expect(track?.at).toBeDefined();
+    expect(sceneClashes(s)).toEqual([]);
+  });
+
+  it("is the same scene each time", () => {
+    for (const [, v] of DRAWN) expect(layoutMetro(v)).toEqual(layoutMetro(v));
+  });
+});
+
+/** True when `p` lies on the polyline, within half a pixel. */
+function onRoute(pts: Point[], p: Point): boolean {
+  for (let i = 1; i < pts.length; i++) {
+    const [a, b] = [pts[i - 1] as Point, pts[i] as Point];
+    const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+    const len2 = dx * dx + dy * dy;
+    const t = len2 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2)) : 0;
+    if (Math.hypot(a[0] + t * dx - p[0], a[1] + t * dy - p[1]) <= 0.5) return true;
+  }
+  return false;
+}

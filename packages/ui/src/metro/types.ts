@@ -136,9 +136,11 @@ export interface MetroTrack {
   /** A person track: "WJ · 4h" is owner and promise. */
   who?: string;
   late?: boolean;
-  /** Where its pill sits, and a nudge down. */
+  /** Where its pill sits, and a nudge down. `layoutMetro` sets the place in the free part of the track. */
   at?: Point;
   bdy?: number;
+  /** The pill folded to a dot at `at` that says this many tasks: the track has no room for it. */
+  dot?: number;
   /** A branch label on the track, its glyph, its place. */
   cond?: string;
   condGlyph?: IconName | null;

@@ -7,6 +7,7 @@
  * join marks (`a`, `b`): scenes from `layoutMetro`, and the zoom scene. Hand-composed scenes whose
  * tracks run on points hold no such link, so focus cannot cut them.
  */
+import { textWidth } from "./geometry.js";
 import {
   isBadge,
   isCapsule,
@@ -67,8 +68,8 @@ const centre = (s: SceneStation): Point => [
   s.y,
 ];
 
-/** Rough width of a label in px, to leave room for it in the crop. */
-const labelWidth = (t: string) => t.length * 6.6 + 16;
+/** Width of a stub label in px (11px, semibold) with its padding: the room the crop leaves for it. */
+const labelWidth = (t: string) => textWidth(t, 11, true) + 16;
 
 /** The scene with only `spec` drawn, and a stub for each track that crosses its edge. */
 export function focusScene(scene: MetroScene, spec: FocusSpec): MetroScene {
@@ -139,6 +140,7 @@ export function focusScene(scene: MetroScene, spec: FocusSpec): MetroScene {
       late: _late,
       cond: _cond,
       cat: _cat,
+      dot: _dot,
       lab: _lab,
       mv: _mv,
       dots: _dots,

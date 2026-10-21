@@ -253,3 +253,51 @@ describe("MetroMap first load", () => {
     host.remove();
   });
 });
+
+describe("MetroMap scale and memo", () => {
+  const mount = async (node: React.ReactElement) => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(node));
+    return { host, root };
+  };
+
+  it("draws one scene px as one css px: the svg is as wide and as high as the scene", () => {
+    const s = layoutMetro(COLD_OUTBOUND_VIEW);
+    const html = renderToStaticMarkup(
+      <MetroMap view={COLD_OUTBOUND_VIEW} level={2} intro={false} />,
+    );
+    const svg = html.match(/<svg[^>]*>/)?.[0] ?? "";
+    expect(svg).toContain(`width="${s.w}"`);
+    expect(svg).toContain(`height="${s.h}"`);
+  });
+
+  it("keeps a glyph table at the width it asks for", () => {
+    const s = layoutMetro(COLD_OUTBOUND_VIEW);
+    const html = renderToStaticMarkup(<MetroSvg scene={s} width={300} />);
+    expect(html.match(/<svg[^>]*>/)?.[0]).toContain('width="300"');
+  });
+
+  it("lays the view out once per view, not once per render", async () => {
+    let reads = 0;
+    const counted: typeof COLD_OUTBOUND_VIEW = {
+      ...COLD_OUTBOUND_VIEW,
+      get stations() {
+        reads++;
+        return COLD_OUTBOUND_VIEW.stations;
+      },
+    };
+    const { host, root } = await mount(<MetroMap view={counted} level={2} intro={false} />);
+    const first = reads;
+    expect(first).toBeGreaterThan(0);
+    for (const lit of ["cold", "gp", null])
+      await act(async () =>
+        root.render(<MetroMap view={counted} level={2} intro={false} lit={lit} selected="rep" />),
+      );
+    expect(reads).toBe(first);
+    await act(async () => root.unmount());
+    host.remove();
+  });
+});
