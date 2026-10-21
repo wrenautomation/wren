@@ -4,9 +4,20 @@
  * Glyphs are the kit's (icons.tsx); the map's CSS (`.ic`) sets their stroke.
  */
 import type { CSSProperties, ReactNode } from "react";
-import { cx } from "../format.js";
+import { cx, initials } from "../format.js";
 import { type IconName, SvgGlyph } from "../icons.js";
-import { GLYPH_SIZE, leafPath, markerBox, rounded } from "./geometry.js";
+import {
+  chipWidth,
+  DOT,
+  GLYPH_SIZE,
+  labelOf,
+  leafPath,
+  markerBox,
+  pillWidth,
+  ruleWidth,
+  textWidth,
+  xferWidth,
+} from "./geometry.js";
 import {
   type BadgeStation,
   type CapsuleStation,
@@ -53,9 +64,6 @@ const marked = (name: string, mark: Mark | undefined) =>
 /** What a mark says to a screen reader: its name, its count and its diff mark. */
 const nameOf = (s: Pick<MarkStation, "n" | "s" | "t" | "mark">) =>
   marked(s.n ? (s.s ? `${s.n}, ${s.s}` : s.n) : s.t, s.mark);
-
-/** Rough width of a label in px (14px, weight 650), to set a tag beside it. */
-const textWidth = (t: string) => t.length * 7.4;
 
 /**
  * The small tag of a diff mark: a dot with + (added), ~ (changed) or the minus sign (removed).
@@ -124,8 +132,8 @@ export function Num({ text, on }: { text: string; on?: boolean | undefined }) {
 /** A free chip (a rounded wash with an optional glyph): retry, hold, version, branch label. */
 export function Chip({ x, y, t, icon }: ChipSpec) {
   const g = icon === undefined ? "repeat" : icon;
+  const w = chipWidth(t, g);
   if (!g) {
-    const w = t.length * 6.3 + 18;
     return (
       <g className="chip">
         <rect x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
@@ -135,7 +143,6 @@ export function Chip({ x, y, t, icon }: ChipSpec) {
       </g>
     );
   }
-  const w = t.length * 6.3 + 30;
   return (
     <g className="chip">
       <rect x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
@@ -149,7 +156,7 @@ export function Chip({ x, y, t, icon }: ChipSpec) {
 
 /** The rule of a split or join: all, any or N of M, in small caps on an ink tag. */
 export function RuleTag({ x, y, t }: { x: number; y: number; t: string }) {
-  const w = t.length * 7.4 + 14;
+  const w = ruleWidth(t);
   return (
     <g className="rule">
       <rect x={x - w / 2} y={y - 9} width={w} height={18} rx={5} />
@@ -162,6 +169,9 @@ export function RuleTag({ x, y, t }: { x: number; y: number; t: string }) {
 
 /** A part the body does not give ("?") is said in words for a screen reader. */
 const said = (v: string, none: string): string => (v === "?" || v === "" ? none : v);
+
+/** What the avatar holds: initials ("WJ" stays, "Ada North" becomes "AN"). The name stays in the label. */
+const ownerMark = (owner: string) => (owner.includes(" ") ? initials(owner) : owner);
 
 /** A person track's pill: the owner's initials and the promise ("WJ · 4h"). Amber when late. */
 export function Pill({
@@ -181,7 +191,7 @@ export function Pill({
   id?: string | undefined;
 }) {
   const [o = "", tm = ""] = who.split(" · ");
-  const w = tm.length * 7 + 42;
+  const w = pillWidth(who);
   return (
     <g
       className={cx("pill", late && "late")}
@@ -200,7 +210,7 @@ export function Pill({
       <rect x={x - w / 2} y={y - 13} width={w} height={26} rx={13} />
       <circle className="av" cx={x - w / 2 + 13} cy={y} r={10} />
       <text className="avt" x={x - w / 2 + 13} y={y + 3.5} textAnchor="middle">
-        {o}
+        {ownerMark(o)}
       </text>
       <text className="t" x={x - w / 2 + 28} y={y + 4.5}>
         {tm}
@@ -209,14 +219,49 @@ export function Pill({
   );
 }
 
-/** The path of a transfer: a 45 degree connector from `a` that merges into the line at `c`. */
-export function xferGeometry(a: Point, c: Point, f = 0.62) {
-  const dy = c[1] - a[1];
-  const dx = c[0] - a[0];
-  const k = Math.min(Math.abs(dy), Math.abs(dx));
-  const e: Point = [a[0] + Math.sign(dx) * k, c[1]];
-  const m: Point = [a[0] + (e[0] - a[0]) * f, a[1] + (e[1] - a[1]) * f];
-  return { d: rounded([a, e, c], 22), m };
+/**
+ * A person track's chip folded to a dot: the track has no room for the pill. It says how many
+ * tasks fold into it, keeps the pill's name for a screen reader and takes the same focus and clicks.
+ */
+export function CountDot({
+  x,
+  y,
+  n,
+  who,
+  late,
+  id,
+  mark,
+}: {
+  x: number;
+  y: number;
+  n: number;
+  who: string;
+  late?: boolean | undefined;
+  mark?: Mark | undefined;
+  id?: string | undefined;
+}) {
+  const [o = "", tm = ""] = who.split(" · ");
+  return (
+    <g
+      className={cx("pill dot", late && "late")}
+      {...(id
+        ? {
+            "data-tr": id,
+            ...asButton(
+              marked(
+                `Person task, ${said(o, "no owner")}, ${said(tm, "no promise")}${late ? ", late" : ""}`,
+                mark,
+              ),
+            ),
+          }
+        : {})}
+    >
+      <circle className="dt" cx={x} cy={y} r={DOT / 2} />
+      <text className="t" x={x} y={y + 4.2} textAnchor="middle">
+        {n}
+      </text>
+    </g>
+  );
 }
 
 /** The label of a transfer: a pill in the target line's colour. */
@@ -237,7 +282,7 @@ export function XferLabel({
   id?: string | undefined;
   mark?: Mark | undefined;
 }) {
-  const w = lab.length * 6.6 + 20;
+  const w = xferWidth(lab);
   return (
     <g
       className={cx("xp", on && "on")}
@@ -292,16 +337,7 @@ export function Marker({
   const stacked = s.bundle || t === "link";
   const rep = s.rep;
   const plans = s.plans;
-  const bot = top + h;
-  const p = s.p ?? "up";
-  const anchor = p === "right" ? "start" : p === "left" ? "end" : "middle";
-  const lx = p === "right" ? x + w / 2 + 10 : p === "left" ? x - w / 2 - 10 : x;
-  const ny =
-    p === "up"
-      ? top - 10 - (s.s ? 15 : 0)
-      : p === "down"
-        ? bot + 19 + (rep ? 26 : 0) + (plans ? 26 : 0)
-        : cy + (s.s ? -3 : 5);
+  const lab = labelOf(s);
   return (
     <>
       <g
@@ -338,32 +374,29 @@ export function Marker({
       {plans ? <Chip x={x} y={sp[1] + r + 17 + (rep ? 26 : 0)} t={plans} icon="card" /> : null}
       {s.n ? (
         <>
-          <text className="lab" x={lx} y={ny} textAnchor={anchor} {...delay(at, LABEL_LAG)}>
+          <text
+            className="lab"
+            x={lab.x}
+            y={lab.y}
+            textAnchor={lab.anchor}
+            {...delay(at, LABEL_LAG)}
+          >
             {s.n}
           </text>
           {s.s ? (
-            <text className="sub" x={lx} y={ny + 15} textAnchor={anchor} {...delay(at, LABEL_LAG)}>
+            <text
+              className="sub"
+              x={lab.x}
+              y={lab.sub}
+              textAnchor={lab.anchor}
+              {...delay(at, LABEL_LAG)}
+            >
               <Num text={s.s} on={at !== undefined} />
             </text>
           ) : null}
         </>
       ) : null}
-      {s.mark ? (
-        <MarkTag
-          mark={s.mark}
-          l={l}
-          {...(s.n
-            ? {
-                // Beside the label, on the side it reads towards.
-                x:
-                  anchor === "end"
-                    ? lx - textWidth(s.n) - 12
-                    : lx + (anchor === "start" ? textWidth(s.n) : textWidth(s.n) / 2) + 12,
-                y: ny - 4,
-              }
-            : { x: x + w / 2, y: top })}
-        />
-      ) : null}
+      {s.mark ? <MarkTag mark={s.mark} l={l} x={lab.tag[0]} y={lab.tag[1]} /> : null}
     </>
   );
 }

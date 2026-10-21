@@ -450,7 +450,7 @@ export function MapPage({
         ) : (
           <>
             {shown?.view ? (
-              <div className="absolute inset-0 overflow-auto">
+              <div className="absolute inset-0 flex flex-col">
                 <MetroMap
                   view={shown.view}
                   lit={lit ?? null}
@@ -461,7 +461,7 @@ export function MapPage({
                   onPick={onPick}
                   selected={panel && panel.kind !== "line" ? panel.id : null}
                   intro={false}
-                  className="min-h-full"
+                  className="min-h-0 flex-1"
                 />
               </div>
             ) : shown ? (

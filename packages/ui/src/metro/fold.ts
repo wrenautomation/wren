@@ -206,7 +206,7 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
     const kb = r.b ? into.get(r.b) : undefined;
     if (ka && ka === kb) return [];
     if (!ka && !kb) return [r];
-    const { pts: _pts, at: _at, ...rest } = r;
+    const { pts: _pts, at: _at, dot: _dot, cat: _cat, ...rest } = r;
     const pa = end(r.a, r.oa ?? r.o ?? 0, r.b) ?? r.pts?.[0];
     const pc = end(r.b, r.ob ?? r.o ?? 0, r.a) ?? r.pts?.[r.pts.length - 1];
     return [{ ...rest, ...(pa ? { pa } : {}), ...(pc ? { pc } : {}) }];

@@ -6,12 +6,13 @@
  */
 import { type ReactNode, type Ref, useId } from "react";
 import { cx } from "../format.js";
-import { beside, octPts, rounded } from "./geometry.js";
+import { beside, octPts, rounded, trackEnds, xferGeometry, xferWidth } from "./geometry.js";
 import {
   asButton,
   Badge,
   Capsule,
   Chip,
+  CountDot,
   FoldTab,
   MARK_WORD,
   Marker,
@@ -19,7 +20,6 @@ import {
   Pill,
   Ring,
   XferLabel,
-  xferGeometry,
 } from "./marks.js";
 import {
   isBadge,
@@ -50,13 +50,6 @@ export interface MetroSvgProps {
   ref?: Ref<SVGSVGElement>;
 }
 
-/** Where a track starts and ends; null when it has neither station nor points. */
-function ends(r: MetroTrack, at: (id: string, o: number) => Point | null): [Point, Point] | null {
-  const a = r.pa ?? (r.a ? at(r.a, r.oa ?? r.o ?? 0) : r.pts?.[0]);
-  const c = r.pc ?? (r.b ? at(r.b, r.ob ?? r.o ?? 0) : r.pts ? r.pts[r.pts.length - 1] : a);
-  return a && c ? [a, c] : null;
-}
-
 /**
  * The stroke of a track. An added or changed track takes the mark's colour from the CSS; the rest
  * keep their line colour. (An inline stroke would win over the CSS, so the mark leaves it out.)
@@ -79,10 +72,7 @@ export function landTimes(scene: MetroScene): (x: number) => number {
 export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref }: MetroSvgProps) {
   const uid = useId().replace(/\W/g, "");
   const byId = new Map(scene.st.map((s) => [s.id, s]));
-  const at = (id: string, o: number): Point | null => {
-    const s = byId.get(id);
-    return s ? [s.x ?? 0, s.y + o] : null;
-  };
+  const endsOf = trackEnds(scene);
   const colours = scene;
   /** The line that is lit keeps full strength; CSS dims every other `[data-l]` (`.mm.focus`). */
   const on = (l: string) => !!lit && l === lit;
@@ -134,7 +124,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   const dots: ReactNode[] = [];
   const labels: ReactNode[] = [];
   scene.tr.forEach((r, i) => {
-    const e = ends(r, at);
+    const e = endsOf(r);
     if (!e) return;
     const [a, c] = e;
     const k = r.id ?? `t${i}`;
@@ -224,7 +214,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
             key={`mt-${k}`}
             mark={r.mark}
             l={l}
-            x={m[0] + ((r.lab ?? "").length * 6.6 + 20) / 2 + 12}
+            x={m[0] + xferWidth(r.lab ?? "") / 2 + 12}
             y={m[1]}
           />,
         );
@@ -313,17 +303,31 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       );
     }
     if (r.who && r.who !== "auto") {
+      // The layout says where the pill sits, or that it folded to a dot; a hand-made scene may not.
       const m = r.at ?? [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
       labels.push(
-        <Pill
-          key={`p-${k}`}
-          x={m[0]}
-          y={m[1] + (r.bdy ?? 0)}
-          who={r.who}
-          late={r.late}
-          id={tid}
-          mark={r.mark}
-        />,
+        r.dot ? (
+          <CountDot
+            key={`p-${k}`}
+            x={m[0]}
+            y={m[1]}
+            n={r.dot}
+            who={r.who}
+            late={r.late}
+            id={tid}
+            mark={r.mark}
+          />
+        ) : (
+          <Pill
+            key={`p-${k}`}
+            x={m[0]}
+            y={m[1] + (r.bdy ?? 0)}
+            who={r.who}
+            late={r.late}
+            id={tid}
+            mark={r.mark}
+          />
+        ),
       );
     }
   });
@@ -356,7 +360,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       ref={ref}
       className={cx("mm", lit && "focus", intro && "ld")}
       viewBox={`${X0} 0 ${Wd} ${H}`}
-      {...(width ? { width, height: (H / Wd) * width } : {})}
+      // One scene px is one css px, so a label reads at its real size. A glyph table sets its own.
+      {...(width ? { width, height: (H / Wd) * width } : { width: Wd, height: H })}
       role={acts ? "group" : "img"}
       aria-label={scene.title ?? "Map"}
     >

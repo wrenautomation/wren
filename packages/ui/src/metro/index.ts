@@ -21,13 +21,32 @@ export {
   stepLevel,
   toggleGroup,
 } from "./fold.js";
-export { octPath, octPts, rounded } from "./geometry.js";
+export {
+  type Box,
+  type Boxed,
+  boxAt,
+  crossingsOf,
+  labelBoxes,
+  markBoxes,
+  octPath,
+  octPts,
+  overlaps,
+  rounded,
+  routeHits,
+  routeOf,
+  type SceneBoxes,
+  sceneBoxes,
+  sceneClashes,
+  textWidth,
+  xferGeometry,
+} from "./geometry.js";
 export { layoutMetro, lineKeyOf, SPACE } from "./layout.js";
 export { MetroLegend, MetroLevels, MetroMap, type MetroMapProps, type MetroPick } from "./map.js";
 export {
   Badge,
   Capsule,
   Chip,
+  CountDot,
   FoldTab,
   Leaf,
   MARK_GLYPH,
@@ -39,7 +58,6 @@ export {
   RuleTag,
   STATION_GLYPH,
   XferLabel,
-  xferGeometry,
 } from "./marks.js";
 export {
   type BadgeStation,
