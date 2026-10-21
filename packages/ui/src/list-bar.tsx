@@ -313,11 +313,11 @@ export function useLastUsed(
   }, [keep, json, key, meta.id]);
 }
 
-/** A view's tab (the artifact's `.nt-top .vw button`): 13 px 600, a leaf of 4 and 10; the row's `TabBar` underlines the one on screen. */
+/** A view's tab: a small pill (the artifact's `.nt-top` buttons), 13 px 600, a leaf of 4 and 10; the row's `TabBar` slides the tint behind the one on screen. */
 const TAB =
   "flex shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] px-[9px] py-1.5 text-[13px] font-semibold no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash)";
 const tabTone = (on: boolean) =>
-  on ? "text-(--ui-ink)" : "text-(--ui-ink-3) hover:text-(--ui-ink)";
+  on ? "text-(--ui-active) hover:bg-transparent" : "text-(--ui-ink-3) hover:text-(--ui-ink)";
 
 /** How many views show as tabs; the rest wait under More. */
 export const TABS = 5;
@@ -487,7 +487,7 @@ export function ViewTabs({
       <TabBar on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
       {tabs.map((v) =>
         v.saved ? (
-          <span key={v.id} className={cn(TAB, "gap-1", tabTone(v.on))}>
+          <span key={v.id} data-tab="" className={cn(TAB, "gap-1", tabTone(v.on))}>
             <a
               href={v.href}
               aria-current={v.on ? "page" : undefined}
@@ -1257,7 +1257,7 @@ export function ListBar({
     keep && saved ? <SaveView meta={meta} place={place} keep={keep} saved={saved} /> : null;
   const tail =
     end || display ? (
-      <span className="ml-auto flex items-center gap-3 text-[13px] text-(--ui-ink-2)">
+      <span className="flex items-center gap-3 text-[13px] text-(--ui-ink-2)">
         {end}
         {display}
       </span>
@@ -1283,8 +1283,9 @@ export function ListBar({
   ) : null;
 
   if (!narrow)
+    // A side control: the bar hugs its parts, never the page's width.
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex w-fit max-w-full flex-wrap items-center gap-2">
         {shape}
         {search}
         {accountChip}
@@ -1370,7 +1371,8 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
     return () => clearTimeout(t);
   }, [text, asked, place]);
   return (
-    <label className="relative flex h-8 pointer-coarse:h-11 w-full items-center sm:w-64">
+    // The field grows with what is typed, from its placeholder up to 14 rem; a phone gives it the row.
+    <label className="relative flex h-8 pointer-coarse:h-11 w-full items-center sm:w-fit">
       <Search className="pointer-events-none absolute left-2.5 size-3.5 text-(--ui-ink-3)" />
       <input
         // edit-ok: search box
@@ -1382,7 +1384,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
         }}
         placeholder={`Search ${label}`}
         aria-label={`Search ${label}`}
-        className="h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]"
+        className="h-8 pointer-coarse:h-11 w-full rounded-[6px_10px_6px_10px] border border-(--ui-hair) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)] sm:w-auto sm:max-w-56 sm:min-w-40 sm:[field-sizing:content]"
       />
     </label>
   );

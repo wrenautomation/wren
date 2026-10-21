@@ -89,7 +89,8 @@ export function PageBar({
       aria-label="Pages"
       className={cn(
         "flex items-center gap-3 pt-1.5 text-[12.5px] text-(--ui-ink-3)",
-        narrow ? "justify-center" : "justify-between",
+        // A side control: the count and the pages sit together, not at the page's two ends.
+        narrow ? "justify-center" : "w-fit gap-5",
       )}
     >
       {narrow ? null : (
