@@ -629,7 +629,7 @@ function KindMark({ idea, line }: { idea: Waiting; line: MetroLine | undefined }
   return (
     <span
       title={kind.name}
-      className="inline-flex size-7 flex-none items-center justify-center text-[11px] leading-none font-bold [border-radius:5px_11px] max-sm:size-[30px]"
+      className="inline-flex size-7 flex-none items-center justify-center text-[11px] leading-none font-semibold [border-radius:5px_11px] max-sm:size-[30px]"
       style={{ color: colour, background: `color-mix(in srgb, ${colour} 12%, transparent)` }}
     >
       <span aria-hidden="true">{KIND_LETTER[kind.id]}</span>

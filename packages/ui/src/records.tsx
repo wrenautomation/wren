@@ -138,6 +138,7 @@ import {
 import { SaveScope, useSavePage } from "./save/react.js";
 import { recordKey } from "./save/writes.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
+import { Sweep } from "./sweep.js";
 import { TabBar } from "./tab-bar.js";
 import { DataTable, type ListLine, useListTable } from "./table.js";
 import { sortTip } from "./view-says.js";
@@ -806,9 +807,9 @@ function ListDisplay({
  * reads quieter, and a page that names nothing waiting keeps the one weight.
  */
 const TITLE_WEIGHT: Record<string, string> = {
-  true: "font-[650] text-(--ui-ink)",
+  true: "font-semibold text-(--ui-ink)",
   false: "font-normal text-(--ui-ink-2)",
-  null: "font-[650] text-(--ui-ink)",
+  null: "font-semibold text-(--ui-ink)",
 };
 
 /** A tier's name and count: "Needs you 4" or "For info 9". */
@@ -2315,12 +2316,19 @@ export function Panel({
       className={cn(
         ROOT,
         docked
-          ? // The artifact's `.pk`: the panel's right half, its own height the list's.
-            "absolute inset-0 flex flex-col overflow-clip bg-(--ui-paper) [border-radius:0_24px_6px_0] shadow-[var(--ui-raise),-1px_0_0_var(--ui-hair)]"
+          ? // The artifact's `.pk`: the panel's right half, a grid cell, so the taller half sets
+            // the height of both.
+            "flex min-w-0 flex-col overflow-clip bg-(--ui-paper) [border-radius:0_24px_6px_0] shadow-[var(--ui-raise),-1px_0_0_var(--ui-hair)]"
           : // Off a phone it floats: inset from the edges, a sheet's corners, clipped to them.
-            "fixed inset-y-0 right-0 z-40 flex w-full flex-col bg-(--ui-paper) shadow-(--ui-shadow) sm:inset-y-2 sm:right-2 sm:w-[560px] sm:overflow-clip sm:rounded-(--ui-radius-sheet)",
+            "fixed inset-y-0 right-0 z-40 flex w-full flex-col bg-(--ui-paper) shadow-(--ui-shadow) sm:inset-y-2 sm:right-2 sm:w-[560px] sm:overflow-clip sm:rounded-(--ui-leaf-sheet)",
       )}
     >
+      {docked ? null : (
+        // A floating panel is a leaf (artifact `.modal`): the sweep on its round tips.
+        <div className="max-sm:hidden">
+          <Sweep radius={18} />
+        </div>
+      )}
       {peek ? (
         // The peek's head (artifact `.pk header`): who it is, then the way to the whole record,
         // the walk and the close, as the artifact's `.ib`.
@@ -2423,15 +2431,15 @@ export function Panel({
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-10 max-sm:pb-[calc(96px+env(safe-area-inset-bottom))]",
           peek ? "px-[18px] pt-3" : "px-4 pt-5 sm:px-6",
-          docked && "pb-4",
+          // A long record scrolls inside one screen, not down the page.
+          docked && "max-h-[calc(100dvh-160px)] pb-4",
         )}
       >
         {body}
       </div>
     </aside>
   );
-  // Docked, it takes the list's height and scrolls in it; a floating one is its own.
-  return docked ? <div className="relative min-h-[420px]">{aside}</div> : aside;
+  return aside;
 }
 
 /**

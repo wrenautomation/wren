@@ -181,7 +181,7 @@ export function ButtonLink({
 export type TagTone = "neutral" | "accent" | "warn" | "green" | "bad";
 
 const TAG =
-  "h-auto w-auto max-w-full gap-1.5 [--ui-gap:6px] px-2.5 py-[3px] border-0 rounded-(--ui-leaf-chip) text-[12.5px]/[1.55] font-semibold whitespace-nowrap overflow-visible [&_b]:font-bold";
+  "h-auto w-auto max-w-full gap-1.5 [--ui-gap:6px] px-2.5 py-[3px] border-0 rounded-(--ui-leaf-chip) text-[12.5px]/[1.55] font-semibold whitespace-nowrap overflow-visible [&_b]:font-semibold";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2) [&_b]:text-(--ui-ink)",
   accent: "bg-(--ui-accent-tint) text-(--ui-live)",

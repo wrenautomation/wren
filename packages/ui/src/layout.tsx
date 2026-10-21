@@ -10,12 +10,12 @@ import { Sweep } from "./sweep.js";
 
 /** The heading scale. A page has one title; each section one section title; a group in it a label. */
 export const PAGE_TITLE =
-  "font-(family-name:--ui-font-display) text-[22px] leading-[1.55] font-[650] tracking-[calc(-0.02em*var(--ui-display-squeeze))] text-balance";
+  "font-(family-name:--ui-font-display) text-[22px] leading-[1.55] font-semibold tracking-[calc(-0.02em*var(--ui-display-squeeze))] text-balance";
 /** The artifact's `h3`: 16 px, 650, -0.01em. */
-export const SECTION_TITLE = "text-[16px] leading-[1.55] font-[650] tracking-[-0.01em]";
+export const SECTION_TITLE = "text-[16px] leading-[1.55] font-semibold tracking-[-0.01em]";
 /** A group's label: sentence case, 12.5 px, 650, ink-3. A look can set case and tracking back. */
 export const GROUP_LABEL =
-  "text-[12.5px] leading-4 font-[650] tracking-(--ui-label-tracking) text-(--ui-ink-3) [text-transform:var(--ui-label-case)]";
+  "text-[12.5px] leading-4 font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-3) [text-transform:var(--ui-label-case)]";
 
 /** A part on the page: a raised panel on paper, its rim in the shadow, its corners a leaf. */
 export const FRAME = "relative rounded-(--ui-leaf-panel) bg-(--ui-paper) shadow-(--ui-raise)";
@@ -61,7 +61,7 @@ export const ABOUT = "max-w-[70ch] text-[13.5px] leading-[1.55] text-pretty text
 const KICKER = "m-0 text-[13px] leading-[18px] font-medium text-(--ui-ink-3)";
 /** A hub's big title (Studio board `h1`): 28 px, 700, -0.02em; 24 px on a phone. */
 const HERO_TITLE =
-  "m-0 text-[28px] leading-[34px] font-bold tracking-[-0.02em] text-balance max-sm:text-[24px] max-sm:leading-[30px]";
+  "m-0 text-[28px] leading-[34px] font-semibold tracking-[-0.02em] text-balance max-sm:text-[24px] max-sm:leading-[30px]";
 
 export function PageTitle({
   title,

@@ -314,7 +314,7 @@ function GmailRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 text-[14px]">
-      <span className="w-[168px] shrink-0 truncate font-bold">{from}</span>
+      <span className="w-[168px] shrink-0 truncate font-semibold">{from}</span>
       <span className="min-w-0 flex-1 truncate">
         {subject ? <b>{subject}</b> : null}
         <span className="text-[#5f6368]">
@@ -322,7 +322,7 @@ function GmailRow({
           {snippetOf(body)}
         </span>
       </span>
-      <span className="shrink-0 text-[12px] font-bold">9:41 AM</span>
+      <span className="shrink-0 text-[12px] font-semibold">9:41 AM</span>
     </div>
   );
 }

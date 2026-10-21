@@ -458,7 +458,7 @@ const SEAT =
   "relative grid h-[30px] w-[52px] place-items-center rounded-(--ui-leaf-nav) transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
 /** What waits under a tab: the sidebar's count pill (the artifact's `.nav .n`) at the icon's top right. */
 const BADGE =
-  "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-primary) px-[5px] text-center text-[11px]/[17px] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
+  "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-primary) px-[5px] text-center text-[11px]/[17px] font-semibold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
 
 function TabFace({
   icon,
@@ -591,7 +591,7 @@ function SheetLink({
 }
 
 const TILE_BADGE =
-  "absolute -top-2 -right-2 min-w-[18px] rounded-full bg-(--ui-primary) px-[5px] text-center text-[11px]/[17px] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
+  "absolute -top-2 -right-2 min-w-[18px] rounded-full bg-(--ui-primary) px-[5px] text-center text-[11px]/[17px] font-semibold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
 const TILE =
   "flex min-w-0 flex-col items-center gap-1.5 py-2 text-center text-[12px] leading-tight font-medium text-(--ui-ink) no-underline active:opacity-60";
 /** An app's mark: paper on the raise with the cards' leaf (4 and 14); the open app in the tint. */
@@ -643,7 +643,7 @@ export function AppsSheet({
                     {p.label}
                   </span>
                   {p.count ? (
-                    <span className="min-w-5 rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden">
+                    <span className="min-w-5 rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-semibold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden">
                       {num(p.count)}
                     </span>
                   ) : null}

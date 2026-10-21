@@ -186,7 +186,7 @@ export const Late: Story = {
     const late = canvasElement.querySelectorAll("[data-late]");
     await expect(late).toHaveLength(1);
     await expect(late[0]).toHaveTextContent("2 days");
-    await expect(getComputedStyle(late[0] as Element).fontWeight).toBe("650");
+    await expect(getComputedStyle(late[0] as Element).fontWeight).toBe("600");
     // An on-time wait stays quiet.
     await expect(canvas.getByText("20 hours")).not.toHaveAttribute("data-late");
     // A phone has no foot.

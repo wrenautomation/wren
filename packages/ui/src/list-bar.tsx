@@ -1322,7 +1322,8 @@ export function ListBar({
     // A side control: the bar hugs its parts, never the page's width.
     return (
       <div className="flex w-fit max-w-full flex-wrap items-center gap-2">
-        {shape}
+        {/* Whole, never clipped: beside a peek the tools wrap under it instead. */}
+        {shape ? <div className="flex flex-none">{shape}</div> : null}
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
           {accountChip}
           {pills}

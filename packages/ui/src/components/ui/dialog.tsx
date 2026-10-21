@@ -4,6 +4,7 @@ import { cn } from "cn"
 
 import { Button } from "@wren/ui/components/ui/button"
 import { XIcon } from "lucide-react"
+import { Sweep } from "../../sweep.js"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -58,6 +59,8 @@ function DialogContent({
         )}
         {...props}
       >
+        {/* The leaf's motif: the sweep on its two round tips (artifact `.modal`). */}
+        <Sweep radius={18} />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -124,7 +127,7 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
       data-slot="dialog-title"
       className={cn(
         // Clears the close X in the top right corner.
-        "pr-7 text-[15px] leading-[1.55] font-[650]",
+        "pr-7 text-[15px] leading-[1.55] font-semibold",
         className
       )}
       {...props}

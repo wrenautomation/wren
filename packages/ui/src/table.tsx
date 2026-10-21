@@ -310,7 +310,7 @@ const LOOKS = {
     table: "w-full border-collapse text-left text-[13.5px] [&_tbody>tr:last-child]:border-b-0",
     head: "",
     headRow: "border-b border-(--ui-hair)",
-    th: "py-[7px] pr-2.5 text-[12.5px] font-[650] text-(--ui-ink-3)",
+    th: "py-[7px] pr-2.5 text-[12.5px] font-semibold text-(--ui-ink-3)",
     row: "border-b border-(--ui-hair) align-middle",
     td: "py-[7px] pr-2.5",
   },
@@ -320,10 +320,10 @@ const LOOKS = {
     table: "w-full border-collapse text-[14px] [&_tbody>tr:last-child]:border-b-0",
     head: "",
     headRow: "border-b border-(--ui-hair)",
-    th: "px-3.5 py-2.5 text-[12.5px] font-[650] text-(--ui-ink-3)",
+    th: "px-3.5 py-2.5 text-[12.5px] font-semibold text-(--ui-ink-3)",
     row: "border-b border-(--ui-hair) align-middle",
     // The first cell names the row (`table.diff td:first-child`) and wraps; the rest are plain.
-    td: "px-3.5 py-2.5 first:font-[650] first:break-words",
+    td: "px-3.5 py-2.5 first:font-semibold first:break-words",
   },
 } as const;
 

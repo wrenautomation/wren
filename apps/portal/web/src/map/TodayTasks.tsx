@@ -42,7 +42,7 @@ export function TodayTasks({
   return (
     // The artifact's `.sheet .sh`: no frame, the h3 on the paper.
     <section aria-label="Tasks" className="grid gap-3">
-      <h2 className="m-0 flex items-baseline gap-2 text-[16px] font-[650] tracking-[-0.01em]">
+      <h2 className="m-0 flex items-baseline gap-2 text-[16px] font-semibold tracking-[-0.01em]">
         Today · waiting on you
         {tasks.length ? (
           <span className="text-[13px] font-normal text-(--ui-ink-2) tabular-nums">

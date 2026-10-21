@@ -380,7 +380,7 @@ function TrendCard({
       </span>
       {s ? (
         <>
-          <span className="text-[24px] font-bold tracking-[-0.02em] tabular-nums">
+          <span className="text-[24px] font-semibold tracking-[-0.02em] tabular-nums">
             {s.value === null ? (tile.none ?? "No figure yet") : fmt(s.value)}
           </span>
           {period ? (
@@ -393,7 +393,7 @@ function TrendCard({
                   <>
                     <b
                       className={cn(
-                        "font-[650]",
+                        "font-semibold",
                         delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)",
                       )}
                     >
@@ -458,7 +458,7 @@ function Tile({
         <>
           <span
             className={cn(
-              "text-[24px] font-bold tracking-[-0.02em] tabular-nums",
+              "text-[24px] font-semibold tracking-[-0.02em] tabular-nums",
               tile.needs && (s.value ?? 0) > 0 && "text-(--ui-warn-ink)",
               s.value === null && "text-[15px] leading-6 font-normal text-(--ui-ink-2)",
             )}
@@ -480,7 +480,7 @@ function Tile({
                   <>
                     <b
                       className={cn(
-                        "font-[650]",
+                        "font-semibold",
                         delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)",
                       )}
                     >

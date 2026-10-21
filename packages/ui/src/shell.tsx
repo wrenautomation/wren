@@ -595,7 +595,7 @@ const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)";
 /** The count after a name (the artifact's `.nav .n`): what waits on you there, an accent pill. */
 const COUNT =
-  "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums]";
+  "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-semibold text-(--ui-on-accent) [font-variant-numeric:tabular-nums]";
 /** What a count in the sidebar counts, for its hover. */
 const waits = (n: number) => tipProps(`${num(n)} waiting on you`);
 /** Which sidebar areas he shut or opened, kept in this browser. */
@@ -749,7 +749,7 @@ function AppCrumb({
         ) : null}
         {hidden ? (
           <Popover>
-            <PopoverTrigger className="inline-flex min-w-0 items-center gap-1 border-0 bg-transparent p-0 font-bold text-(--ui-ink) hover:text-(--ui-link) data-[popup-open]:text-(--ui-link)">
+            <PopoverTrigger className="inline-flex min-w-0 items-center gap-1 border-0 bg-transparent p-0 font-semibold text-(--ui-ink) hover:text-(--ui-link) data-[popup-open]:text-(--ui-link)">
               <span className="min-w-0 truncate" {...clipProps()}>
                 {page?.label ?? app.name}
               </span>
@@ -1248,7 +1248,7 @@ function WorkspaceName({
     <span
       className={cx(
         "truncate text-[14px] font-semibold",
-        brand && "min-[901px]:text-[16px] min-[901px]:leading-[1.55] min-[901px]:font-bold",
+        brand && "min-[901px]:text-[16px] min-[901px]:leading-[1.55] min-[901px]:font-semibold",
       )}
       {...clipProps()}
     >

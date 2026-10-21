@@ -72,7 +72,7 @@ const WIDTHS = ["w-[92%]", "w-[92%]", "w-[74%]", "w-[58%]"];
  */
 const STATE =
   "grid gap-1 rounded-[6px_14px_6px_14px] border border-(--ui-hair) p-4 text-[13.5px] leading-[1.55] text-(--ui-ink-2)";
-const STATE_TITLE = "text-[14.5px] font-[650] text-(--ui-ink)";
+const STATE_TITLE = "text-[14.5px] font-semibold text-(--ui-ink)";
 const STATE_BUTTON = "mt-1.5 justify-self-start";
 
 /** Nothing here yet: say why, and what fills it. */
@@ -162,7 +162,7 @@ export function Alert({
     <div
       className={cx(
         STATE,
-        "mb-4 [&_b]:text-[14.5px] [&_b]:font-[650] [&_b]:text-(--ui-bad)",
+        "mb-4 [&_b]:text-[14.5px] [&_b]:font-semibold [&_b]:text-(--ui-bad)",
         className,
       )}
       role="alert"

@@ -234,7 +234,7 @@ export function XThread({ text, link }: { text: string; link: string | null }) {
                 <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-1.5 pb-3">
                   <p className="flex items-baseline justify-between gap-2">
                     <span className="min-w-0 truncate">
-                      <span className="font-bold">Wren Automation</span>{" "}
+                      <span className="font-semibold">Wren Automation</span>{" "}
                       <span className={GRAY}>@wrenautomation · now</span>
                     </span>
                     <span

@@ -83,6 +83,8 @@ export const TodayPhone = {
   globals: { viewport: { value: "phone" } },
 };
 export const Inbox = pageAt("/inbox", { me: ADMIN });
+/** Your mail: the Monitor's queue of your own email. */
+export const InboxMail = pageAt("/inbox/mail?view=needs_you", { me: ADMIN });
 export const People = pageAt("/people", { me: ADMIN });
 export const Outbound = pageAt("/outbound", { me: ADMIN });
 export const Pipelines = pageAt("/pipelines", { me: ADMIN });

@@ -557,7 +557,7 @@
   stroke: var(--ui-ink-3);
 }
 .mm .cond text {
-  font-weight: 700;
+  font-weight: 600;
 }
 .mm .cond.else rect {
   stroke-dasharray: 3 3;

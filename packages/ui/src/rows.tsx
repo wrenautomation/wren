@@ -113,7 +113,7 @@ export function Age({ hours, late, className }: RowsWait & { className?: string 
       className={cn(
         "text-[13.5px] whitespace-nowrap tabular-nums",
         late
-          ? "font-[650] text-[color-mix(in_srgb,var(--ui-warn)_80%,var(--ui-ink))]"
+          ? "font-semibold text-[color-mix(in_srgb,var(--ui-warn)_80%,var(--ui-ink))]"
           : "text-(--ui-ink-2)",
         className,
       )}
@@ -163,16 +163,16 @@ export function RowsFoot({ stats, waits }: { stats: WaitStats; waits: boolean })
   return (
     <div className="flex flex-wrap gap-x-4.5 gap-y-1" title="Of the rows on this page">
       <span>
-        Count <b className="font-[650] text-(--ui-ink-2) tabular-nums">{stats.n}</b>
+        Count <b className="font-semibold text-(--ui-ink-2) tabular-nums">{stats.n}</b>
       </span>
       {waits ? (
         <>
           <span className="max-[720px]:hidden">
-            Late <b className="font-[650] text-(--ui-ink-2) tabular-nums">{stats.late}</b>
+            Late <b className="font-semibold text-(--ui-ink-2) tabular-nums">{stats.late}</b>
           </span>
           {stats.oldest ? (
             <span className="max-[720px]:hidden">
-              Oldest <b className="font-[650] text-(--ui-ink-2)">{waited(stats.oldest.hours)}</b>
+              Oldest <b className="font-semibold text-(--ui-ink-2)">{waited(stats.oldest.hours)}</b>
             </span>
           ) : null}
         </>
@@ -391,7 +391,7 @@ function GroupFold({
         )}
       />
       <Pill color={color}>{label}</Pill>
-      <b className="font-bold text-(--ui-ink) tabular-nums">{stats.n}</b>
+      <b className="font-semibold text-(--ui-ink) tabular-nums">{stats.n}</b>
       {stats.oldest ? (
         <span className="text-(--ui-ink-3)">
           oldest <Age hours={stats.oldest.hours} late={stats.oldest.late} className="text-[13px]" />
@@ -407,7 +407,7 @@ export function Avatar({ initials: text, lg = false }: { initials: string; lg?: 
     <span
       aria-hidden
       className={cn(
-        "grid flex-none place-items-center rounded-full bg-(--ui-accent-tint) font-bold text-(--ui-link)",
+        "grid flex-none place-items-center rounded-full bg-(--ui-accent-tint) font-semibold text-(--ui-link)",
         lg ? "size-8 text-[12px]" : "size-[22px] text-[10px]",
       )}
     >
@@ -442,7 +442,7 @@ function NameCell<T>({
     // Cut inside the link, so focusing it never scrolls the cell sideways.
     "block no-underline",
     narrow ? "line-clamp-2 leading-snug wrap-anywhere" : "truncate",
-    name.weight?.(row) ?? "font-[650] text-(--ui-ink)",
+    name.weight?.(row) ?? "font-semibold text-(--ui-ink)",
   );
   return (
     <div className={cn("flex min-w-0 items-center", sub ? "gap-2.5" : "gap-2", className)}>
@@ -478,7 +478,7 @@ function NameCell<T>({
 }
 
 const OPEN_CHIP =
-  "ml-auto inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-[650] text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:3px_8px_3px_8px] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
+  "ml-auto inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-semibold text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:3px_8px_3px_8px] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
 
 /** A gutter box shows on its row's hover or focus. Its look is the global checkbox's (tailwind.css). */
 const BOX =

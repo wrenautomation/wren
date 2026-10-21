@@ -38,7 +38,7 @@ export function sweepPath({ corner, radius = 24, width: W, height: H, inset = 0 
     : `M0 ${a}H${W - a - r}A${r} ${r} 0 0 1 ${W - a} ${a + r}V${H}`;
 }
 
-function TipLine({ tip, inner, uid }: { tip: Tip; inner?: boolean; uid: string }) {
+function TipLine({ tip, inner, uid }: { tip: Tip; inner?: boolean | undefined; uid: string }) {
   const { corner, width: W, height: H, stroke = 2 } = tip;
   const id = `${uid}${corner}${inner ? "i" : "o"}`;
   const g = corner === "bl" ? { x1: W, y1: H, x2: 0, y2: 0 } : { x1: 0, y1: 0, x2: W, y2: H };
@@ -71,9 +71,17 @@ function TipLine({ tip, inner, uid }: { tip: Tip; inner?: boolean; uid: string }
 
 /**
  * Put it first inside a `relative` panel or band. `band` makes it faint until hover or `open`;
- * an open band adds the inner line.
+ * an open band adds the inner line. `radius` is the leaf's round corner (a dialog's is 18).
  */
-export function Sweep({ band = false, open = false }: { band?: boolean; open?: boolean }) {
+export function Sweep({
+  band = false,
+  open = false,
+  radius,
+}: {
+  band?: boolean;
+  open?: boolean;
+  radius?: number | undefined;
+}) {
   const uid = useId().replace(/:/g, "");
   return (
     <span
@@ -83,9 +91,13 @@ export function Sweep({ band = false, open = false }: { band?: boolean; open?: b
       data-open={band && open ? "" : undefined}
     >
       {TIPS.map((t) => (
-        <TipLine key={t.corner} tip={t} uid={uid} />
+        <TipLine key={t.corner} tip={radius ? { ...t, radius } : t} uid={uid} />
       ))}
-      {band ? INNER.map((t) => <TipLine key={`${t.corner}i`} tip={t} inner uid={uid} />) : null}
+      {band
+        ? INNER.map((t) => (
+            <TipLine key={`${t.corner}i`} tip={radius ? { ...t, radius } : t} inner uid={uid} />
+          ))
+        : null}
     </span>
   );
 }

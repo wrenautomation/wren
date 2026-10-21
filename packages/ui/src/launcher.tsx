@@ -48,7 +48,7 @@ export function AppCard({
       >
         <span className="flex min-w-0 items-center gap-[9px]">
           <Icon name={icon} size={16} className="flex-none text-(--ui-ink-2)" />
-          <b className="min-w-0 font-[650]">{name}</b>
+          <b className="min-w-0 font-semibold">{name}</b>
         </span>
         {note ? <span className="text-[12.5px] text-(--ui-ink-3)">{note}</span> : null}
         <span className="text-[13px] text-pretty text-(--ui-ink-2)">{blurb}</span>

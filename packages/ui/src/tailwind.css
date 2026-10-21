@@ -311,6 +311,23 @@
     font: inherit;
     color: inherit;
   }
+  /* Semibold at most, numbers and titles too (William, 10-21): the browser's bold is 700. */
+  b,
+  strong,
+  th,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+  }
+  /* No preflight, so a bare button drops the browser's gray box here (William, 10-21). */
+  button {
+    background: none;
+    border: 0;
+  }
   input,
   textarea {
     caret-color: var(--ui-focus);
@@ -525,6 +542,22 @@
   pointer-events: none;
   -webkit-mask: linear-gradient(to left, #000 30%, transparent);
   mask: linear-gradient(to left, #000 30%, transparent);
+}
+/* The mirror arc on the leaf's other round tip, bottom left (William, 10-21: both corners). */
+.ui-nav-sweep[aria-current]::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 22px;
+  height: 14px;
+  border: solid var(--ui-active);
+  border-width: 0 0 1.5px 1.5px;
+  border-bottom-left-radius: 12px;
+  opacity: var(--ui-sweep);
+  pointer-events: none;
+  -webkit-mask: linear-gradient(to right, #000 30%, transparent);
+  mask: linear-gradient(to right, #000 30%, transparent);
 }
 
 /* A new page fades in. */
@@ -795,7 +828,7 @@
   text-align: center;
 }
 .ui-modal > b {
-  font-weight: 650;
+  font-weight: 600;
   font-size: 14px;
   margin-top: 6px;
   color: var(--ui-ink);
@@ -909,7 +942,7 @@ html[data-morph="cards"]::view-transition-new(*) {
   background: none;
   color: inherit;
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
 }

@@ -87,7 +87,7 @@ export function SiteMark({ site }: { site: string }) {
       .toUpperCase() || "?";
   return (
     <span
-      className="grid size-[18px] flex-none place-items-center rounded-full bg-(--ui-ink) text-[10px] leading-none font-bold text-(--ui-on-ink)"
+      className="grid size-[18px] flex-none place-items-center rounded-full bg-(--ui-ink) text-[10px] leading-none font-semibold text-(--ui-on-ink)"
       aria-hidden="true"
     >
       {letter}

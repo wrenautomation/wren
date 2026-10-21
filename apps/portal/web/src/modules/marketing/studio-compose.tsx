@@ -143,7 +143,7 @@ export function Compose(
         <span aria-hidden="true" className="text-(--ui-ink-3)">
           /
         </span>
-        <h1 className="m-0 text-[20px] leading-[26px] font-bold tracking-[-0.02em]">
+        <h1 className="m-0 text-[20px] leading-[26px] font-semibold tracking-[-0.02em]">
           New {kind.name.toLowerCase()}
         </h1>
         <Segmented

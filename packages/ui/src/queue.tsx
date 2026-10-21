@@ -267,7 +267,7 @@ function Queue({
                       className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-px text-[12.5px] text-(--ui-ink) no-underline"
                     >
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[14px] font-[650]" {...clipProps()}>
+                        <span className="truncate text-[14px] font-semibold" {...clipProps()}>
                           {titleOf(meta, r)}
                         </span>
                         {dated && r[dated.key] ? (

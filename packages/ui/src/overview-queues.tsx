@@ -148,7 +148,7 @@ export function QueuePanel({
       className={cn(FRAME, "grid gap-3 px-3.5 pt-[18px] pb-2")}
     >
       <div className="mx-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <b className="text-[48px] leading-[.9] font-[750] tracking-[-0.04em] tabular-nums">
+        <b className="text-[48px] leading-[.9] font-semibold tracking-[-0.04em] tabular-nums">
           {num(sum.total)}
         </b>
         <span className="text-[15px] text-(--ui-ink-2)">
@@ -232,7 +232,7 @@ function QueueRow({ r }: { r: RankedQueue }) {
       </span>
       <b
         className={cn(
-          "min-w-7 px-2 py-0.5 text-center text-[15px] font-bold tabular-nums [border-radius:3px_10px_3px_10px]",
+          "min-w-7 px-2 py-0.5 text-center text-[15px] font-semibold tabular-nums [border-radius:3px_10px_3px_10px]",
           quiet ? "text-(--ui-ink-3)" : "bg-(--ui-fill)",
         )}
       >

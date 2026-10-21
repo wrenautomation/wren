@@ -138,7 +138,7 @@ function YouTubeVideo({ s, text, title, device }: Post) {
         <DeviceFrame label="Watch page, phone" width={PHONE}>
           {art}
           <div className="grid gap-2 p-3">
-            <p className="line-clamp-2 text-[18px] leading-6 font-bold">{name}</p>
+            <p className="line-clamp-2 text-[18px] leading-6 font-semibold">{name}</p>
             <p className={`text-[12px] ${GRAY}`}>
               {ytMeta} <span className="font-semibold text-black">...more</span>
             </p>
@@ -186,7 +186,7 @@ function YouTubeVideo({ s, text, title, device }: Post) {
       <DeviceFrame label="Watch page, laptop" width={600}>
         {art}
         <div className="grid gap-3 p-3">
-          <p className="line-clamp-2 text-[20px] leading-7 font-bold">{name}</p>
+          <p className="line-clamp-2 text-[20px] leading-7 font-semibold">{name}</p>
           <div className="flex items-center gap-3">
             <Avatar size={40} />
             <span className="min-w-0 flex-1 truncate text-[16px] font-semibold">
@@ -371,7 +371,7 @@ function Reddit({ text, title, fields, device }: Post) {
           {title || "No title"}
         </p>
         {flair || on(fields, "nsfw") || on(fields, "spoiler") ? (
-          <p className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+          <p className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
             {on(fields, "nsfw") ? (
               <span className="rounded-full bg-[#ff4500] px-2 py-0.5 text-white">NSFW</span>
             ) : null}
@@ -509,7 +509,7 @@ function X({ s, text, fields }: Post) {
         <Avatar size={40} />
         <div className="grid min-w-0 flex-1 gap-1.5">
           <p className="truncate">
-            <span className="font-bold">Wren Automation</span>{" "}
+            <span className="font-semibold">Wren Automation</span>{" "}
             <span className={GRAY}>@wrenautomation · now</span>
           </p>
           {replyTo ? <p className={`text-[14px] ${GRAY}`}>Replying to post {replyTo}</p> : null}
