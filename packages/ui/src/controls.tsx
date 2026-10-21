@@ -187,7 +187,7 @@ const TAG_TONE: Record<TagTone, string> = {
   accent: "bg-(--ui-accent-tint) text-(--ui-live)",
   warn: "bg-[color-mix(in_srgb,var(--ui-warn)_15%,transparent)] text-[color-mix(in_srgb,var(--ui-warn)_70%,var(--ui-ink))]",
   green:
-    "bg-[color-mix(in_srgb,var(--ui-good)_13%,transparent)] text-[color-mix(in_srgb,var(--ui-good)_75%,var(--ui-ink))]",
+    "bg-[color-mix(in_srgb,var(--ui-good)_13%,transparent)] text-[color-mix(in_srgb,var(--ui-good)_65%,var(--ui-ink))]",
   bad: "bg-[color-mix(in_srgb,var(--ui-bad)_12%,transparent)] text-[color-mix(in_srgb,var(--ui-bad)_75%,var(--ui-ink))]",
 };
 const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";
