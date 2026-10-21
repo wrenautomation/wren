@@ -289,6 +289,7 @@ export {
 } from "./marks.js";
 export {
   type OverviewProps,
+  type OverviewQueue,
   type OverviewTile,
   type OverviewTop,
   RecordOverview,
@@ -384,7 +385,6 @@ export {
   stateColor,
   statsOf,
   type WaitStats,
-  waitWords,
 } from "./rows.js";
 export {
   dwellOf,

@@ -15,6 +15,7 @@ import { ClientLook } from "../account/Look.js";
 import { People } from "../account/People.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { pipelinesAt } from "../deals/id.js";
+import { INBOX_QUEUES, queueLate } from "../inbox-queues.js";
 import { CONVERSATION_TOP, DONE_PAGE, MARKETING_PAGES } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
 import { Agents } from "./Agents.js";
@@ -439,19 +440,9 @@ export const inbox: Module = {
     {
       ...overview,
       about: "Everything that waits on you, across channels.",
+      // The queues are Overview E; the period tiles are its trend cards.
+      queues: INBOX_QUEUES,
       tiles: [
-        {
-          label: "Waiting on you",
-          record: "marketing.inbox",
-          href: "/engage/inbox?view=waiting",
-          needs: true,
-        },
-        {
-          label: "To approve",
-          record: "marketing.approval",
-          href: "/engage/approve?view=waiting",
-          needs: true,
-        },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
         {
           label: "Booked",
@@ -459,50 +450,8 @@ export const inbox: Module = {
           href: pipelinesAt("calls", "view=booked"),
           period: 30,
         },
-        {
-          label: "Mail that needs you",
-          record: "watch.mail",
-          href: "/inbox/mail?view=needs_you",
-          needs: true,
-        },
-        // Yours only: the console reads the signed-in person's mentions (`mine`).
-        {
-          label: "Mentions",
-          record: "notes.mention",
-          href: "/inbox/mentions?view=unread",
-          needs: true,
-        },
-        {
-          label: "Issues for you",
-          record: "access.issue",
-          href: "/inbox/issues?view=waiting",
-          needs: true,
-        },
-        {
-          label: "Asks for access",
-          record: "access.ask",
-          href: "/inbox/asks?view=waiting",
-          needs: true,
-        },
-        { label: "Mail rules", record: "watch.rule", href: "/inbox/rules" },
       ],
-      top: [
-        {
-          label: "Waiting on you",
-          record: "marketing.inbox",
-          href: "/engage/inbox?view=waiting",
-          fields: ["type", "at"],
-          empty: "Nothing is waiting on you.",
-        },
-        {
-          label: "Mail that needs you",
-          record: "watch.mail",
-          href: "/inbox/mail?view=needs_you",
-          fields: ["sender", "at"],
-          empty: "Nothing in your inboxes needs you.",
-        },
-        CONVERSATION_TOP,
-      ],
+      top: [CONVERSATION_TOP],
     },
     {
       id: "mail",
@@ -510,6 +459,7 @@ export const inbox: Module = {
       about: "Your own email that needs you, pulled from the rest.",
       template: "list",
       record: "watch.mail",
+      late: queueLate("watch.mail"),
       empty: {
         needs_you: "Nothing in your inboxes needs you.",
         held: "Mail the Monitor holds shows here, searchable.",
@@ -540,6 +490,7 @@ export const inbox: Module = {
       about: "Notes where someone tagged you with @.",
       template: "list",
       record: "notes.mention",
+      late: queueLate("notes.mention"),
       empty: {
         unread: "Nothing new. When someone tags you with @ in a note, it shows here.",
         all: "When someone tags you with @ in a note or a comment, it shows here.",

@@ -542,6 +542,8 @@ export const inboxRecord = defineRecord({
   id: "marketing.inbox",
   app: "marketing",
   channel: { field: "platform" },
+  // Table | By Type: comment, DM, email, mail, text, chat, activity.
+  by: "type",
   name: { one: "inbox item", many: "inbox items" },
   rows: async (db) => {
     const cs = (await commentRecord.rows?.(db)) ?? [];
@@ -687,7 +689,6 @@ export const inboxRecord = defineRecord({
       },
       "Status",
     ),
-    assignee: actor("Assignee"),
     snooze: date("Snoozed until"),
     type: status(
       cued({
@@ -702,6 +703,7 @@ export const inboxRecord = defineRecord({
       "Type",
     ),
     platform: status(PLATFORM_LABELS, "Site"),
+    assignee: actor("Assignee"),
     kind: status(
       cued({
         post_reply: neutral("On our post"),
@@ -746,7 +748,7 @@ export const inboxRecord = defineRecord({
     account: accountField("On"),
     mailbox: text("Mailbox"),
     at: date("When"),
-    due: date("Due"),
+    due: date("Waiting since"),
     url: link("Open"),
   },
   views: [
@@ -1188,7 +1190,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       askedBy: text("Asked by"),
       unsure: text("Why we're unsure"),
       at: date("When"),
-      due: date("Due"),
+      due: date("Waiting since"),
       url: link("Open"),
       outreach: link("In Outreach"),
       onSite: link("Open on site"),

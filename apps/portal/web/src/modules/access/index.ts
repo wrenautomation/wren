@@ -7,6 +7,7 @@
 import { ACCESS_CHANNELS, APPS, CHANNEL_NAMES, type Permission } from "@wren/core/access";
 import type { Action, FormField } from "@wren/ui";
 import type { ListPage } from "../../module.js";
+import { queueLate } from "../inbox-queues.js";
 
 const said = (word: string) => () => word;
 /** Each is checked again on the row by the console: who manages, who can act, who can grant. */
@@ -268,6 +269,7 @@ export function inboxPages(): ListPage[] {
       about: "Problems raised on a record, waiting on a fix.",
       template: "list",
       record: "access.issue",
+      late: queueLate("access.issue"),
       empty: {
         waiting: "No issues wait on you.",
         open: "No open issues.",
@@ -282,6 +284,7 @@ export function inboxPages(): ListPage[] {
       about: "Requests for access, waiting on an answer.",
       template: "list",
       record: "access.ask",
+      late: queueLate("access.ask"),
       empty: {
         waiting: "Nobody is waiting on you for access.",
         mine: "You haven't asked for anything.",

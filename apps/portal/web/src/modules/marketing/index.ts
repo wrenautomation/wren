@@ -14,6 +14,7 @@ import type { Action, FormField } from "@wren/ui";
 import { createElement } from "react";
 import type { DayPage, ListPage, Module, ModulePage } from "../../module.js";
 import { DOC_ACTIONS } from "../documents/documents.js";
+import { queueLate } from "../inbox-queues.js";
 import { PAY_ACTIONS } from "../payments/index.js";
 import { BROADCAST_DECIDE_ACTIONS } from "../people/broadcasts.js";
 import { CREDIT_ACTIONS } from "../wren/credits.js";
@@ -1250,9 +1251,10 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   about: "Messages, comments and replies waiting on you, from every channel.",
   template: "list",
   record: "marketing.inbox",
+  late: queueLate("marketing.inbox"),
   card: INBOX_CARD,
-  // Their words preview under who; Kind, Where and Open sit on the thread itself.
-  columns: ["who", "platform", "type", "state", "pick", "postTitle", "assignee", "at"],
+  // F1 of the design language: who (their words under), type, site, owner, waiting. State, post, suggests and the rest wait in Display. The person's stage is not on the row.
+  columns: ["who", "type", "platform", "assignee", "due"],
   empty: {
     waiting: "Nothing waits on you.",
     mine: "Nothing is assigned to you. Take a thread with T.",
@@ -1303,6 +1305,7 @@ export const APPROVAL_PAGE: ListPage = {
   about: "Drafts, replies and posts that wait on your yes before they go out.",
   template: "list",
   record: "marketing.approval",
+  late: queueLate("marketing.approval"),
   card: APPROVAL_CARD,
   // New and waiting rows wait on a yes; queued ones are for info.
   needs: { state: ["new", "waiting"] },

@@ -10,6 +10,7 @@ import type {
   DaySource,
   IconName,
   NavItem,
+  OverviewQueue,
   OverviewTile,
   OverviewTop,
   RecordAct,
@@ -130,7 +131,12 @@ export interface ListPage extends PageBase {
    * ("24h", "2d"). The field draws as a wait, rows past the promise read late, and the foot counts
    * them (`@wren/core/promise` is the one late rule).
    */
-  late?: { field: string; promise?: string };
+  late?: {
+    field: string;
+    promise?: string;
+    /** Only rows whose `field` holds one of `values` can read late; the rest show their age. */
+    open?: { field: string; values: readonly string[] };
+  };
   /**
    * What a row click opens. The default is a peek: the row's properties (`fields`, else the
    * list's columns), its newest activity, and the page's reply box or the row's main action,
@@ -153,6 +159,8 @@ export interface ListPage extends PageBase {
 export interface OverviewPage extends PageBase {
   template: "overview";
   tiles: OverviewTile[];
+  /** What waits on the viewer: with these the page is Overview E, its period tiles beside them. */
+  queues?: OverviewQueue[];
   top?: OverviewTop[];
   /** Drawn under the numbers by hand: the project's review, pulse and what's next. */
   below?: ComponentType<PageProps>;

@@ -1,19 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { walkTo } from "./records.js";
-import { drawnOf, type RowsLine, type RowsWait, statsOf, waitWords } from "./rows.js";
+import { drawnOf, type RowsLine, type RowsWait, statsOf, waitFrom } from "./rows.js";
 
 const wait = (hours: number, late = false): RowsWait => ({ hours, late });
-
-describe("waitWords", () => {
-  it("says minutes under an hour, hours under a day, then days", () => {
-    expect(waitWords(0.25)).toBe("15 minutes");
-    expect(waitWords(1 / 60)).toBe("1 minute");
-    expect(waitWords(1)).toBe("1 hour");
-    expect(waitWords(6)).toBe("6 hours");
-    expect(waitWords(24)).toBe("1 day");
-    expect(waitWords(49)).toBe("2 days");
-  });
-});
 
 describe("statsOf", () => {
   it("counts every row, the late ones, and the longest wait", () => {
@@ -25,6 +14,23 @@ describe("statsOf", () => {
   it("an empty set has no oldest", () => {
     expect(statsOf([])).toEqual({ n: 0, late: 0, oldest: null });
     expect(statsOf([null, null])).toEqual({ n: 2, late: 0, oldest: null });
+  });
+});
+
+describe("waitFrom", () => {
+  const now = new Date("2026-10-17T15:00:00Z");
+  const old = "2026-10-15T15:00:00Z"; // 48 hours before now
+  it("an open row past its promise is late", () => {
+    expect(waitFrom(old, "24h", true, now)).toEqual({ hours: 48, late: true });
+  });
+  it("an answered row past its promise shows its age and is not late", () => {
+    const w = waitFrom(old, "24h", false, now);
+    expect(w).toEqual({ hours: 48, late: false });
+    // The foot's Late count follows.
+    expect(statsOf([w, waitFrom(old, "24h", true, now)]).late).toBe(1);
+  });
+  it("a row with no start date does not wait", () => {
+    expect(waitFrom("", "24h", true, now)).toBeNull();
   });
 });
 
