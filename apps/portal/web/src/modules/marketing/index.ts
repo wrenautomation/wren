@@ -1253,8 +1253,8 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   record: "marketing.inbox",
   late: queueLate("marketing.inbox"),
   card: INBOX_CARD,
-  // Their words preview under who; Kind, Where and Open sit on the thread itself.
-  columns: ["who", "type", "platform", "state", "assignee", "due", "postTitle", "pick"],
+  // F1 of the design language: who (their words under), type, site, owner, waiting. State, post, suggests and the rest wait in Display. The person's stage is not on the row.
+  columns: ["who", "type", "platform", "assignee", "due"],
   empty: {
     waiting: "Nothing waits on you.",
     mine: "Nothing is assigned to you. Take a thread with T.",

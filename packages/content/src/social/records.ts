@@ -689,7 +689,6 @@ export const inboxRecord = defineRecord({
       },
       "Status",
     ),
-    assignee: actor("Assignee"),
     snooze: date("Snoozed until"),
     type: status(
       cued({
@@ -704,6 +703,7 @@ export const inboxRecord = defineRecord({
       "Type",
     ),
     platform: status(PLATFORM_LABELS, "Site"),
+    assignee: actor("Assignee"),
     kind: status(
       cued({
         post_reply: neutral("On our post"),

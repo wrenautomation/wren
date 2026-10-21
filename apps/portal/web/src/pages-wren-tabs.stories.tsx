@@ -104,6 +104,11 @@ export const EngageInboxByType = pageAt("/engage/inbox?view=all", {
     await waitFor(() => expect(page.querySelectorAll("[data-late]").length).toBeGreaterThan(0));
     // The foot counts them (Late and Oldest hide on a phone).
     await expect(await view.findByText("Count")).toBeVisible();
+    // Only open threads read late: a thread already answered shows its age and is not counted.
+    const foot = (await view.findByText("Count")).parentElement?.parentElement;
+    const nums = Array.from(foot?.querySelectorAll("b") ?? []).map((b) => Number(b.textContent));
+    await expect(nums[0]).toBeGreaterThan(0);
+    await expect(nums[1] ?? 0).toBeLessThan(nums[0] ?? 0);
     await userEvent.click(await view.findByRole("link", { name: "By type" }));
     const fold = await view.findByRole("button", { name: /DM/ });
     await expect(fold).toHaveAttribute("aria-expanded", "true");
