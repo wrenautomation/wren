@@ -4,7 +4,18 @@
  * owner changes it; everyone else sees who owns it.
  */
 import { ownerName } from "@wren/notes/types";
-import { Button, FormKept, GROUP_LABEL, SelectField, say, TextField, useEditForm } from "@wren/ui";
+import {
+  Button,
+  FormKept,
+  GROUP_LABEL,
+  Rows,
+  type RowsLine,
+  SelectField,
+  say,
+  TextField,
+  useEditForm,
+  useNarrow,
+} from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { WREN } from "../../module.js";
 import {
   docPath,
@@ -28,6 +39,12 @@ import { Dot } from "./versions.js";
 const SELECT =
   "h-8 min-w-0 border border-(--ui-hair) bg-(--ui-paper) px-1.5 text-[13px] text-(--ui-ink)";
 const ROLES = Object.entries(ROLE_LABEL) as [ShareRole, string][];
+
+/** One line of "People with access": the owner first, then each share. */
+interface Access {
+  who: string;
+  role: ShareRole | "owner";
+}
 
 function RolePick({
   value,
@@ -129,6 +146,16 @@ export function ShareDialog({
       .then(() => say.done("Link copied. Only people with access can open it."))
       .catch(say.failed);
 
+  const narrow = useNarrow();
+  const access = useMemo<RowsLine<Access>[]>(
+    () =>
+      [
+        { who: note.owner, role: "owner" as const },
+        ...shares.map((s) => ({ who: s.who, role: s.role as ShareRole })),
+      ].map((row, index) => ({ kind: "row", key: `${row.role}:${row.who}`, index, row })),
+    [note.owner, shares],
+  );
+
   const options = [
     ...(wren ? [["team", "Wren's team"]] : []),
     ...(people?.clients ?? []).map((c) => [`client:${c.id}`, `${c.name}'s people`]),
@@ -187,31 +214,45 @@ export function ShareDialog({
         ) : null}
         <section className="grid gap-1">
           <h3 className={`m-0 ${GROUP_LABEL}`}>People with access</h3>
-          <ul className="m-0 flex list-none flex-col p-0">
-            <li className="flex items-center gap-2 py-1.5 text-[13.5px]">
-              <Dot email={note.owner} />
-              <span className="min-w-0 flex-1 truncate">{ownerName(note.owner)}</span>
-              <span className="text-[13px] text-(--ui-ink-2)">Owner</span>
-            </li>
-            {shares.map((s) => (
-              <li key={s.who} className="flex items-center gap-2 py-1.5 text-[13.5px]">
-                <Dot email={s.who} />
-                <span className="min-w-0 flex-1 truncate">{nameOf(s.who)}</span>
-                {owner ? (
-                  <RolePick
-                    value={s.role as ShareRole}
-                    onChange={(r) => void share(s.who, r)}
-                    label={`${nameOf(s.who)}'s role`}
-                    remove
-                  />
-                ) : (
-                  <span className="text-[13px] text-(--ui-ink-2)">
-                    {ROLE_LABEL[s.role as ShareRole]}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto border border-(--ui-hair)">
+            <Rows<Access>
+              label="people with access"
+              noun="person"
+              narrow={narrow}
+              scroller="window"
+              lines={access}
+              name={{
+                label: "Person",
+                icon: "user",
+                min: 180,
+                title: (a) => (a.role === "owner" ? ownerName(note.owner) : nameOf(a.who)),
+                weight: () => "font-normal text-(--ui-ink)",
+                mark: (a) => <Dot email={a.who} />,
+              }}
+              columns={[
+                {
+                  key: "role",
+                  label: "Access",
+                  icon: "key",
+                  width: 150,
+                  phone: true,
+                  cell: (a) =>
+                    a.role === "owner" ? (
+                      "Owner"
+                    ) : owner ? (
+                      <RolePick
+                        value={a.role}
+                        onChange={(r) => void share(a.who, r)}
+                        label={`${nameOf(a.who)}'s role`}
+                        remove
+                      />
+                    ) : (
+                      ROLE_LABEL[a.role]
+                    ),
+                },
+              ]}
+            />
+          </div>
         </section>
         <section className="grid gap-1.5">
           <h3 className={`m-0 ${GROUP_LABEL}`}>General access</h3>

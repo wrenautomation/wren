@@ -2,7 +2,20 @@
  * Board dialogs: a new board, and a board's settings (its name and columns, who it is shared with,
  * archive). Sharing is the note's: a person, the team, or at Wren a client.
  */
-import { Button, FormKept, Input, SelectField, say, TextField, useEditForm } from "@wren/ui";
+import {
+  Button,
+  FormKept,
+  Icon,
+  Input,
+  Rows,
+  type RowsLine,
+  SelectField,
+  say,
+  TextField,
+  tipProps,
+  useEditForm,
+  useNarrow,
+} from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
+import { useMemo } from "react";
 import { useCall } from "../../load.js";
 import { WREN } from "../../module.js";
 import { type BoardInfo, notes, ROLE_LABEL, type ShareRole, useBoard } from "./api.js";
@@ -118,6 +132,11 @@ export function BoardDialog({
   // Who it's shared with, from the board's own read (the owner's alone); Wren's clients to pick.
   const held = useBoard(client, owner ? board.id : null);
   const shares = held.data?.shares ?? [];
+  const narrow = useNarrow();
+  const shareLines = useMemo<RowsLine<{ who: string; role: string }>[]>(
+    () => shares.map((s, index) => ({ kind: "row", key: s.who, index, row: s })),
+    [shares],
+  );
   const readShares = () => held.retry();
   const people = useCall(owner && client === WREN.id ? `notes:people:${client}` : null, () =>
     notes(client, "people"),
@@ -304,24 +323,45 @@ export function BoardDialog({
                 </select>
               </label>
             )}
-            <ul className="m-0 grid list-none gap-1 p-0">
-              {shares.map((s) => (
-                <li key={s.who} className="flex items-center gap-2 text-[13px]">
-                  <span className="min-w-0 flex-1 truncate">{s.who}</span>
-                  <span className="text-(--ui-ink-2)">
-                    {ROLE_LABEL[s.role as ShareRole] ?? s.role}
-                  </span>
-                  <Button
-                    tone="secondary"
-                    size="dense"
-                    type="button"
-                    onClick={() => void share(s.who, null)}
-                  >
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
+            {shares.length ? (
+              <div className="overflow-x-auto border border-(--ui-hair)">
+                <Rows<{ who: string; role: string }>
+                  label="shared with"
+                  noun="share"
+                  narrow={narrow}
+                  scroller="window"
+                  lines={shareLines}
+                  name={{
+                    label: "Shared with",
+                    icon: "user",
+                    min: 180,
+                    title: (s) => s.who,
+                    weight: () => "font-normal text-(--ui-ink)",
+                  }}
+                  columns={[
+                    {
+                      key: "role",
+                      label: "Access",
+                      icon: "key",
+                      width: 130,
+                      phone: true,
+                      cell: (s) => ROLE_LABEL[s.role as ShareRole] ?? s.role,
+                    },
+                  ]}
+                  end={(s) => (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${s.who}`}
+                      {...tipProps("Remove", { as: "none" })}
+                      onClick={() => void share(s.who, null)}
+                      className="inline-flex size-8 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink)"
+                    >
+                      <Icon name="close" size={14} />
+                    </button>
+                  )}
+                />
+              </div>
+            ) : null}
             <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => void addShare(e)}>
               <TextField
                 form={shareForm}
