@@ -10,7 +10,7 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
-import { type FocusSpec, focusScene } from "./focus.js";
+import { type FocusSpec, focusScene, nameOf } from "./focus.js";
 import { autoZoom, type MetroZoom, type OpenMap, stepLevel, toggleGroup } from "./fold.js";
 import { centreOf, fadeIn, GLIDE_MS, glide, glideHeight } from "./glide.js";
 import { layoutMetro } from "./layout.js";
@@ -109,6 +109,11 @@ export function MetroMap(props: MetroMapProps) {
 
   // The first load happens once, on mount. A level change or a refresh never brings it back.
   const [intro, setIntro] = useState(props.intro !== false);
+  // A new shape inside the window (a focus, a view, a level) ends it before the marks are drawn.
+  const first = useRef<string | null>(null);
+  const shape = shapeOf(scene);
+  if (first.current === null) first.current = shape;
+  if (intro && shape !== first.current) setIntro(false);
   useEffect(() => {
     if (!intro) return;
     const t = setTimeout(() => setIntro(false), INTRO_MS);
@@ -305,6 +310,9 @@ export function MetroMap(props: MetroMapProps) {
     }
     // The old frame lies over the new one while the marks move.
     prev.frame.classList.add("old");
+    // The copy shows the map as it stood: its first-load classes would draw it in again.
+    prev.frame.classList.remove("ld");
+    for (const n of prev.frame.querySelectorAll<SVGElement>(".num")) n.style.animation = "none";
     layer.replaceChildren(prev.frame);
     glide({ old: prev.frame, next: s, anchor: anchor.current });
     if (prev.h !== h.offsetHeight) glideHeight(h, prev.h, h.offsetHeight);
@@ -334,7 +342,7 @@ export function MetroMap(props: MetroMapProps) {
           <p className="metro-count" aria-live="polite">
             {focus ? (
               <>
-                {scene.title}: <b>{marks}</b> marks, <b>{stubs}</b> stubs.
+                Focus on {nameOf(scene, focus)}: <b>{marks}</b> marks, <b>{stubs}</b> stubs.
               </>
             ) : (
               <>

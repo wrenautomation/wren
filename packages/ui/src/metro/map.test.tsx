@@ -1,3 +1,6 @@
+// @vitest-environment happy-dom
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { landTimes, MetroSvg } from "./draw.js";
@@ -149,5 +152,38 @@ describe("MetroMap", () => {
     expect(html).toMatch(/data-stub="hub"[^>]*aria-label="from First touch"/);
     expect(html).toContain("Focus: Webinar funnel");
     expect(html).not.toContain('data-id="bk"');
+  });
+});
+
+describe("MetroMap first load", () => {
+  const mount = async (node: React.ReactElement) => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(node));
+    return { host, root };
+  };
+
+  it("plays on mount", async () => {
+    const { host, root } = await mount(<MetroMap view={WEBINAR_VIEW} level={2} />);
+    expect(host.querySelector(".metro-host.ld")).not.toBeNull();
+    expect(host.innerHTML).toContain("animation-delay");
+    await act(async () => root.unmount());
+    host.remove();
+  });
+
+  it("never plays again when the shape changes inside its window", async () => {
+    const { host, root } = await mount(<MetroMap view={WEBINAR_VIEW} level={2} />);
+    expect(host.querySelector(".ld")).not.toBeNull();
+    await act(async () =>
+      root.render(
+        <MetroMap view={WEBINAR_VIEW} level={2} focus={{ kind: "flow", id: "Webinar funnel" }} />,
+      ),
+    );
+    expect(host.querySelector(".ld")).toBeNull();
+    expect(host.querySelector(".metro-host svg")?.getAttribute("class")).not.toContain("ld");
+    await act(async () => root.unmount());
+    host.remove();
   });
 });
