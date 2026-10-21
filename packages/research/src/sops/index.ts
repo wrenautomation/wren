@@ -6,34 +6,17 @@
  * model for the next SOP.md from all of it; iterating is editing notes.md or
  * SOP.md and building again. Nothing here touches a database.
  */
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { promisify } from "node:util";
 import type { LlmClient } from "@wren/llm";
+import { askGemini, askShown, SHOWN } from "./gemini.js";
+import { clock, run, runFor, TOOL_MS } from "./tools.js";
+import { renderWatched, type VideoMeta, type WatchOptions, watch } from "./watch.js";
 
-const run = promisify(execFile);
-
-/** yt-dlp's metadata call, or a download and remux of a reel, past this is stuck. */
-const TOOL_MS = 300_000;
-
-/** Run a tool; past `ms` it is killed and the error says which tool and how long. */
-async function runFor(
-  cmd: string,
-  args: string[],
-  ms: number,
-  opts: { maxBuffer?: number } = {},
-): Promise<{ stdout: string }> {
-  try {
-    return await run(cmd, args, { ...opts, timeout: ms, killSignal: "SIGKILL" });
-  } catch (err) {
-    if ((err as { killed?: boolean }).killed)
-      throw new Error(`${basename(cmd)} timed out after ${Math.round(ms / 1000)}s`);
-    throw err;
-  }
-}
+export * from "./watch.js";
+export { askGemini, clock };
 
 export const DEFAULT_PRIORITY = 5;
 
@@ -47,14 +30,6 @@ const frontMatter = (fields: Record<string, string | number>) =>
   `---\n${Object.entries(fields)
     .map(([k, v]) => `${k}: ${typeof v === "string" ? JSON.stringify(v) : v}`)
     .join("\n")}\n---\n\n`;
-
-export const clock = (s: number): string => {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = Math.floor(s % 60);
-  const mm = `${m}:${String(sec).padStart(2, "0")}`;
-  return h ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}` : mm;
-};
 
 /** What `yt-dlp -J` prints; only what we read. */
 export interface VideoInfo {
@@ -129,100 +104,7 @@ const captionTracks = (info: VideoInfo) =>
     .flatMap((t) => t ?? [])
     .filter((t) => t.ext === "json3");
 
-const GEMINI = (model: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-// Rotated per try: a busy (503) or reciting model hands the ask to the next.
-const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
 const CLIP_S = 600;
-
-/**
- * What to read off the frames; shared by YouTube clips and downloaded videos. Gemini won't repeat
- * text it knows from the web (RECITATION); `paraphrase` asks for what that text says instead.
- */
-const SHOWN = (start: number, paraphrase: boolean) =>
-  `Transcribe in full, verbatim, every document, list, table, slide, template or other text the speaker shows on screen in this clip, each under a [h:mm:ss] heading of the video time it appears (the clip starts at ${clock(start)}). For every image, screenshot, chart, diagram or UI on screen, extract the information it carries, not what it looks like: the text in it, setting names and their values, numbers, prices, limits, labels, before and after states, and what is highlighted, circled, crossed out, ticked or pointed at. Write each as a line starting with its [h:mm:ss] then [visual], stating the fact as a reader would use it ("Instantly warmup settings: daily limit 10, slow ramp on, +1 per day, reply rate 95%"), not "a screenshot of the settings page". Skip visuals that carry no information (decoration, layout, gestures, transitions) and repeats of anything already captured. Skip the speaker's face, chat windows, b-roll and stock footage, and anything already shown earlier in the clip.${paraphrase ? " Where a shown passage is published text (a post, article, page), give its first line word for word, then every point it makes in your own words." : ""}`;
-
-let nextKey = 0;
-
-/** One Gemini call gives up after this long: a stalled socket would wait out undici's 5 minutes, per try. */
-const GEMINI_CALL_MS = 180_000;
-/** One ask, its retries and backoffs together, gives up after this long. */
-const GEMINI_ASK_MS = 360_000;
-
-/**
- * One Gemini call. Keys rotate on 429/403, a busy flash (503) hands to lite, backing off 2s
- * doubling to 1 min. A call that stalls or drops is a refusal too. After 24 refusals, or
- * `askMs` (6 minutes), it returns `unread` with the last one.
- */
-export async function askGemini(
-  body: unknown,
-  keys: readonly string[],
-  fetchFn: typeof fetch,
-  label: string,
-  limits: { callMs?: number; askMs?: number; pause?: (ms: number) => Promise<void> } = {},
-): Promise<{ text: string } | { unread: string }> {
-  const until = Date.now() + (limits.askMs ?? GEMINI_ASK_MS);
-  const pause = limits.pause ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  let last = "";
-  let wait = 2000;
-  let recited = 0;
-  for (let i = 0; i < 24 && Date.now() < until; i++) {
-    const key = keys[nextKey++ % keys.length] as string;
-    const model = GEMINI_MODELS[i % GEMINI_MODELS.length] as string;
-    let res: Response;
-    let json: {
-      candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[];
-      error?: { message?: string };
-    };
-    try {
-      res = await fetchFn(GEMINI(model), {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-goog-api-key": key },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(limits.callMs ?? GEMINI_CALL_MS),
-      });
-      json = (await res.json()) as typeof json;
-    } catch (err) {
-      last = `${model} ${err instanceof Error ? err.message : String(err)}`;
-      await pause(wait);
-      wait = Math.min(wait * 2, 60_000);
-      continue;
-    }
-    const text = (json.candidates?.[0]?.content?.parts ?? [])
-      .map((p) => p.text ?? "")
-      .join("")
-      .trim();
-    if (text) return { text };
-    const reason = json.candidates?.[0]?.finishReason;
-    // Recitation is per model and try, not per key: no backoff, and three strikes go back to the caller.
-    if (reason === "RECITATION") {
-      if (++recited === 3) return { unread: "RECITATION" };
-      continue;
-    }
-    // A 200 with no text (blocked, cut off) is a refusal too: try the next key and model.
-    last = res.ok
-      ? `${model} empty, ${reason ?? "no candidate"}`
-      : `${model} HTTP ${res.status} ${json.error?.message ?? ""}`.trim();
-    if (!res.ok && ![401, 402, 403, 429, 500, 503].includes(res.status))
-      throw new Error(`gemini ${label}: ${last}`);
-    await pause(wait);
-    wait = Math.min(wait * 2, 60_000);
-  }
-  return { unread: last || "timed out" };
-}
-
-/** The on-screen ask, asked again as a paraphrase when Gemini won't recite. */
-async function askShown(
-  body: (paraphrase: boolean) => unknown,
-  keys: readonly string[],
-  fetchFn: typeof fetch,
-  label: string,
-): Promise<{ text: string } | { unread: string }> {
-  const r = await askGemini(body(false), keys, fetchFn, label);
-  return "unread" in r && r.unread === "RECITATION"
-    ? askGemini(body(true), keys, fetchFn, label)
-    : r;
-}
 
 /**
  * What the video shows on screen (documents, slides, tables, templates), read by Gemini straight
@@ -412,132 +294,38 @@ export async function youtubeByUrl(
   };
 }
 
-// Gemini takes 20 MB a request inline, and base64 adds a third.
-const INLINE_MAX = 14_000_000;
-
 /**
- * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X). No captions there, so Gemini
- * hears the speech and reads the screen from a 540p download (short side) sent inline.
+ * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X). No captions there, so `watch`
+ * hears the audio and reads the frames with Cohere (Gemini adds its read of the screen when a
+ * key works); the source holds the caption, then its Speech, On screen and Cuts.
  */
 export async function videoSource(
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
-  opts: { geminiKeys: readonly string[]; fetchFn?: typeof fetch; ffmpeg?: string },
+  opts: Omit<WatchOptions, "ytDlp">,
 ): Promise<Source> {
-  if (!opts.geminiKeys.length)
-    throw new Error(`${url}: no captions off YouTube, so it needs GEMINI keys to transcribe`);
-  const fetchFn = opts.fetchFn ?? fetch;
-  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
-  const dir = await mkdtemp(join(tmpdir(), "sop-video-"));
-  try {
-    const { stdout } = await runFor(
-      cmd,
-      [
-        ...pre,
-        ...["-j", "--no-simulate", "--no-warnings", "--no-playlist"],
-        // `res` is the short side, so a vertical reel gets 540x960, not its 1080x1920.
-        ...["-S", "res:540", "-f", "bv*+ba/b", "--remux-video", "mp4"],
-        ...["-o", join(dir, "video.%(ext)s"), url],
-      ],
-      TOOL_MS,
-      { maxBuffer: 256 * 1024 * 1024 },
-    );
-    const info = JSON.parse(stdout) as VideoInfo & {
-      extractor_key?: string;
-      description?: string;
-      uploader?: string;
-      width?: number;
-      height?: number;
-    };
-    const file = (await readdir(dir)).find((f) => f.endsWith(".mp4"));
-    if (!file) throw new Error(`${url}: yt-dlp wrote no mp4`);
-    let bytes: Buffer = await readFile(join(dir, file));
-    // Over the inline cap: made small enough to fit. Inline only; the Files API would pin one key's project.
-    if (bytes.length > INLINE_MAX) {
-      const big = bytes.length;
-      bytes = await shrink(join(dir, file), join(dir, "small.mp4"), info, opts.ffmpeg);
-      if (bytes.length > INLINE_MAX)
-        throw new Error(
-          `${url}: ${(big / 1e6).toFixed(1)} MB at 540p, still ${(bytes.length / 1e6).toFixed(1)} MB made small, over the inline cap`,
-        );
-    }
-    const video = { inlineData: { mimeType: "video/mp4", data: bytes.toString("base64") } };
-    const ask = (text: string) => ({ contents: [{ parts: [video, { text }] }] });
-    // Two asks, so a screen Gemini won't recite never costs the speech.
-    const [speech, screen] = await Promise.all([
-      askGemini(
-        ask(
-          "Transcribe the speech in this video: every word spoken, in paragraphs, each starting with its [m:ss] video time. Fix only obvious mishearings. Markdown, no heading. If nobody speaks, reply with the single word none.",
-        ),
-        opts.geminiKeys,
-        fetchFn,
-        `${info.id} speech`,
-      ),
-      askShown(
-        (paraphrase) =>
-          ask(
-            `${SHOWN(0, paraphrase)} Markdown. If nothing is shown, reply with the single word none.`,
-          ),
-        opts.geminiKeys,
-        fetchFn,
-        `${info.id} screen`,
-      ),
-    ]);
-    if ("unread" in speech)
-      throw new Error(`gemini ${info.id} speech: unread, last ${speech.unread}`);
-    if ("unread" in screen) console.warn(`gemini ${info.id} screen: unread, last ${screen.unread}`);
-    const shown = "text" in screen ? screen.text : `(not read: ${screen.unread})`;
-    const kind = (info.extractor_key ?? "video").toLowerCase();
-    const caption = info.description?.trim() ?? "";
-    const title = caption.split("\n")[0]?.slice(0, 100) || info.title;
-    const uploaded = info.upload_date?.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
-    const by = info.channel ?? info.uploader;
-    return {
-      name: `${kind}-${info.id}.md`,
-      md: `${frontMatter({
-        source: `${kind}:${info.id}`,
-        title,
-        url: info.webpage_url ?? url,
-        ...(by ? { channel: by } : {}),
-        ...(uploaded ? { uploaded } : {}),
-        priority,
-        ...(info.duration ? { duration: Math.round(info.duration) } : {}),
-        ...(info.thumbnail ? { thumbnail: info.thumbnail } : {}),
-      })}# ${title}\n\n${caption ? `## Caption\n\n${caption}\n\n` : ""}## Speech\n\n${speech.text}\n\n## On screen\n\n${shown}\n`,
-    };
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-}
-
-/**
- * A video re-encoded to fit `INLINE_MAX`: short side 360, 15 fps, mono speech, and a bitrate
- * that spends 85% of the cap over its length (four minutes when yt-dlp didn't say).
- */
-async function shrink(
-  src: string,
-  out: string,
-  info: { duration?: number; width?: number; height?: number },
-  ffmpeg = process.env.WREN_FFMPEG ?? "ffmpeg",
-): Promise<Buffer> {
-  const seconds = info.duration && info.duration > 0 ? info.duration : 240;
-  const audio = 48_000;
-  const video = Math.max(120_000, Math.floor((INLINE_MAX * 8 * 0.85) / seconds - audio));
-  const tall = (info.height ?? 1) >= (info.width ?? 0);
-  await runFor(
-    ffmpeg,
-    [
-      ...["-y", "-loglevel", "error", "-i", src],
-      ...["-vf", tall ? "scale=360:-2" : "scale=-2:360", "-r", "15"],
-      ...["-c:v", "libx264", "-preset", "veryfast", "-b:v", String(video)],
-      ...["-maxrate", String(video), "-bufsize", String(video * 2)],
-      ...["-c:a", "aac", "-b:a", String(audio), "-ac", "1"],
-      ...["-movflags", "+faststart", out],
-    ],
-    TOOL_MS,
-  );
-  return readFile(out);
+  const watched = await watch(url, { ...opts, ytDlp });
+  const info = watched.info as VideoMeta;
+  const kind = (info.extractor_key ?? "video").toLowerCase();
+  const caption = info.description?.trim() ?? "";
+  const title = caption.split("\n")[0]?.slice(0, 100) || info.title;
+  const uploaded = info.upload_date?.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
+  const by = info.channel ?? info.uploader;
+  const duration = info.duration ?? watched.durationS;
+  return {
+    name: `${kind}-${info.id}.md`,
+    md: `${frontMatter({
+      source: `${kind}:${info.id}`,
+      title,
+      url: info.webpage_url ?? url,
+      ...(by ? { channel: by } : {}),
+      ...(uploaded ? { uploaded } : {}),
+      priority,
+      ...(duration ? { duration: Math.round(duration) } : {}),
+      ...(info.thumbnail ? { thumbnail: info.thumbnail } : {}),
+    })}# ${title}\n\n${caption ? `## Caption\n\n${caption}\n\n` : ""}${renderWatched(watched)}\n`,
+  };
 }
 
 const AUDIO_MAX = 600_000_000;

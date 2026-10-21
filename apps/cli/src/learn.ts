@@ -72,6 +72,7 @@ import {
 import type { Command } from "commander";
 import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { ingressSites } from "./sites.js";
+import { watchKeys } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -145,7 +146,7 @@ export function registerLearn(
           ? await audioSource(mediaUrl, { url, title, creator, geminiKeys })
           : youtube
             ? await youtubeSource(url, settings.ytDlp, undefined, { geminiKeys })
-            : await videoSource(url, settings.ytDlp, undefined, { geminiKeys });
+            : await videoSource(url, settings.ytDlp, undefined, watchKeys(settings, rootDir));
       return { file: s.name, md: s.md };
     };
   };

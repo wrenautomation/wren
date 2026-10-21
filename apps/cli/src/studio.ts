@@ -27,6 +27,7 @@ import {
   CROPPED,
   type CroppedFormat,
   CUT_HASH,
+  cohereLooker,
   coverHash,
   cutHash,
   cutKnobs,
@@ -104,6 +105,7 @@ import { desc, sql } from "drizzle-orm";
 import { readText } from "./content.js";
 import { autobrowseDrive } from "./sop.js";
 import { registerVideoAsk } from "./video-ask.js";
+import { type WatchFlags, watchVideo, withWatchOptions } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -956,66 +958,68 @@ export function registerStudio(
       );
     });
 
-  video
-    .command("watch")
-    .description(
-      "add each new finished OBS or Cap recording once (the desk runs this every minute)",
-    )
-    .option(
-      "--quiet <s>",
-      "seconds an OBS file stays untouched before it counts as finished",
-      Number,
-      60,
-    )
-    .action(async (o: { quiet: number }) => {
-      const obs = await obsRecordingDir();
-      // OBS files are finished once quiet and closed; a Cap project once its meta says Complete.
-      const found = [
-        ...(obs ? await findRecordings(obs, o.quiet) : []),
-        ...(await findCapProjects()),
-      ];
-      // Seen ones live here, so a minute with nothing new never opens the database.
-      const ledger = join(homedir(), ".cache/wren/recordings-seen.json");
-      const seen: string[] = JSON.parse((await readFile(ledger, "utf8").catch(() => "[]")) || "[]");
-      for (const input of found.filter((f) => !seen.includes(f))) {
-        if (!isCap(input) && (await isOpen(input))) continue;
-        // Once each, whatever comes of it: a failed add is retried by hand (wren video add).
-        seen.push(input);
-        await mkdir(dirname(ledger), { recursive: true });
-        await writeFile(ledger, JSON.stringify(seen));
-        await withDb(async (db) => {
-          // A Cap project's tracks are files inside it.
-          const had = await db
-            .select({ id: videoEdits.id })
-            .from(videoEdits)
-            .where(
-              sql`${videoEdits.tracks}->'main'->>'path' = ${input} OR starts_with(${videoEdits.tracks}->'main'->>'path', ${`${input}/`})`,
-            );
-          if (had.length) return console.log(`${input}: already video ${had[0]?.id}`);
-          const e = await addVideo(db, input, {
-            ffmpeg: settings.ffmpeg,
-            log: (l) => console.log(l),
-          });
-          console.log(`${input}: added as video ${e.id}`);
-          // The editing agent's first pass (designs/2026-10-13-video-review.md): it arrives edited.
-          await clients
-            .connect(ingressOf(settings))
-            .serviceSendClient<{ edit: (ctx: unknown, req: { id: number }) => Promise<unknown> }>({
-              name: "VideoDesk",
-            })
-            .edit({ id: e.id })
-            .then(
-              () => console.log(`video ${e.id}: the agent is editing it`),
-              (err: unknown) =>
-                console.error(
-                  `video ${e.id}: the agent didn't start (${err instanceof Error ? err.message : err}); run it from the page`,
-                ),
-            );
-        }).catch((err: unknown) =>
-          console.error(`${input}: ${err instanceof Error ? err.message : err}`),
-        );
-      }
-    });
+  withWatchOptions(
+    video
+      .command("watch [input]")
+      .description(
+        "with a URL or file: read the video (speech, on-screen text by frame time, cuts), stores nothing. With none: add each new finished OBS or Cap recording once (the desk runs this every minute)",
+      )
+      .option(
+        "--quiet <s>",
+        "no input: seconds an OBS file stays untouched before it counts as finished",
+        Number,
+        60,
+      ),
+  ).action(async (input: string | undefined, o: { quiet: number } & WatchFlags) => {
+    if (input) return watchVideo(input, o, settings, rootDir);
+    const obs = await obsRecordingDir();
+    // OBS files are finished once quiet and closed; a Cap project once its meta says Complete.
+    const found = [
+      ...(obs ? await findRecordings(obs, o.quiet) : []),
+      ...(await findCapProjects()),
+    ];
+    // Seen ones live here, so a minute with nothing new never opens the database.
+    const ledger = join(homedir(), ".cache/wren/recordings-seen.json");
+    const seen: string[] = JSON.parse((await readFile(ledger, "utf8").catch(() => "[]")) || "[]");
+    for (const input of found.filter((f) => !seen.includes(f))) {
+      if (!isCap(input) && (await isOpen(input))) continue;
+      // Once each, whatever comes of it: a failed add is retried by hand (wren video add).
+      seen.push(input);
+      await mkdir(dirname(ledger), { recursive: true });
+      await writeFile(ledger, JSON.stringify(seen));
+      await withDb(async (db) => {
+        // A Cap project's tracks are files inside it.
+        const had = await db
+          .select({ id: videoEdits.id })
+          .from(videoEdits)
+          .where(
+            sql`${videoEdits.tracks}->'main'->>'path' = ${input} OR starts_with(${videoEdits.tracks}->'main'->>'path', ${`${input}/`})`,
+          );
+        if (had.length) return console.log(`${input}: already video ${had[0]?.id}`);
+        const e = await addVideo(db, input, {
+          ffmpeg: settings.ffmpeg,
+          log: (l) => console.log(l),
+        });
+        console.log(`${input}: added as video ${e.id}`);
+        // The editing agent's first pass (designs/2026-10-13-video-review.md): it arrives edited.
+        await clients
+          .connect(ingressOf(settings))
+          .serviceSendClient<{ edit: (ctx: unknown, req: { id: number }) => Promise<unknown> }>({
+            name: "VideoDesk",
+          })
+          .edit({ id: e.id })
+          .then(
+            () => console.log(`video ${e.id}: the agent is editing it`),
+            (err: unknown) =>
+              console.error(
+                `video ${e.id}: the agent didn't start (${err instanceof Error ? err.message : err}); run it from the page`,
+              ),
+          );
+      }).catch((err: unknown) =>
+        console.error(`${input}: ${err instanceof Error ? err.message : err}`),
+      );
+    }
+  });
 
   video
     .command("look <id>")
@@ -1032,6 +1036,9 @@ export function registerStudio(
           // Keys from llm.env, as the SOP reader loads them; never logged.
           loadLlmEnv(settings.llmEnvPath, rootDir);
           looker = geminiLooker(fleetKeys(process.env, "gemini"));
+        } else if (o.with === "cohere") {
+          loadLlmEnv(settings.llmEnvPath, rootDir);
+          looker = cohereLooker(fleetKeys(process.env, "cohere"), { ffmpeg: settings.ffmpeg });
         } else if (o.with === "twelvelabs") {
           const s = await stat(e.files.cutMain);
           looker = twelvelabsLooker(process.env.TWELVELABS_API_KEY, {
