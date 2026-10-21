@@ -1,28 +1,16 @@
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon } from "lucide-react"
-import { Busy } from "../../busy.js"
+import { Ring } from "../../busy.js"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
-      icons={{
-        success: (
-          <CircleCheckIcon className="size-4" />
-        ),
-        info: (
-          <InfoIcon className="size-4" />
-        ),
-        warning: (
-          <TriangleAlertIcon className="size-4" />
-        ),
-        error: (
-          <OctagonXIcon className="size-4" />
-        ),
-        loading: (
-          <Busy on />
-        ),
-      }}
+      // The artifact's toast: bottom centre, 22 px up, words and Undo, no icon.
+      position="bottom-center"
+      offset={22}
+      mobileOffset={22}
+      gap={8}
+      icons={{ loading: <Ring /> }}
       style={
         {
           "--normal-bg": "var(--ui-ink)",

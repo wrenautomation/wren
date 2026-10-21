@@ -1,5 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button, ButtonLink, type ButtonTone, Tag, type TagTone } from "./controls.js";
+import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
+import {
+  Button,
+  ButtonLink,
+  type ButtonTone,
+  Check,
+  Checks,
+  Seg,
+  Tag,
+  type TagTone,
+  Track,
+} from "./controls.js";
 import { WORST } from "./fixtures/index.js";
 
 export default { title: "Controls" } satisfies Meta;
@@ -7,7 +19,7 @@ export default { title: "Controls" } satisfies Meta;
 type Story = StoryObj;
 
 const TONES: ButtonTone[] = ["primary", "secondary", "quiet"];
-const TAGS: TagTone[] = ["neutral", "accent", "warn", "green"];
+const TAGS: TagTone[] = ["neutral", "accent", "warn", "green", "bad"];
 const row = "flex flex-wrap items-center gap-3";
 
 /** Every tone at every size, and the tags. */
@@ -100,4 +112,81 @@ export const WorstCase: Story = {
       </div>
     </div>
   ),
+};
+
+/** The parts of artifact #parts: chips, the switch, a goal and a check list. */
+export const Parts: Story = {
+  render: function Render() {
+    const [view, setView] = useState<"week" | "month" | "year">("week");
+    const [done, setDone] = useState({ a: true, b: false, c: false });
+    const count = Object.values(done).filter(Boolean).length;
+    return (
+      <div className="grid max-w-md gap-6">
+        <div className={row}>
+          <Tag>
+            Replies <b>3</b>
+          </Tag>
+          <Tag tone="accent" busy>
+            Drafting
+          </Tag>
+          <Tag tone="green">Booked</Tag>
+          <Tag tone="warn">Waiting</Tag>
+          <Tag tone="bad">Bounced</Tag>
+        </div>
+        <Seg
+          label="Range"
+          value={view}
+          onChange={setView}
+          items={[
+            { value: "week", label: "Week" },
+            { value: "month", label: "Month", busy: view === "month" },
+            { value: "year", label: "Year" },
+          ]}
+        />
+        <Seg
+          dense
+          label="Show"
+          value="table"
+          onChange={() => {}}
+          items={[
+            { value: "table", label: "Table" },
+            { value: "line", label: "By line" },
+          ]}
+          className="justify-self-start"
+        />
+        <Track
+          value={count}
+          max={3}
+          label={
+            <>
+              This week: <b>{count} of 3</b> done
+            </>
+          }
+          name="This week"
+        />
+        <Checks>
+          <Check
+            checked={done.a}
+            onChange={(a) => setDone({ ...done, a })}
+            note="r/coaching · due today"
+          >
+            Comment on 5 new threads
+          </Check>
+          <Check checked={done.b} onChange={(b) => setDone({ ...done, b })} note="due Thu">
+            Film this week's video
+          </Check>
+          <Check checked={done.c} onChange={(c) => setDone({ ...done, c })} note="oldest 6 h">
+            Answer 3 replies
+          </Check>
+        </Checks>
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await userEvent.click(c.getByRole("button", { name: "Year" }));
+    await expect(c.getByRole("button", { name: "Year" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(c.getByRole("checkbox", { name: /Film this week/ }));
+    await expect(c.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+  },
 };

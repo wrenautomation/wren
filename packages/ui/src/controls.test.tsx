@@ -16,7 +16,7 @@ describe("Button", () => {
     expect(html).not.toContain("aria-busy");
   });
 
-  it("keeps the ring's slot when it can go busy, so the width stays", () => {
+  it("holds the ring faded out when it can go busy, so the width stays", () => {
     const idle = renderToStaticMarkup(<Button busy={false}>Approve</Button>);
     expect(idle).toContain("data-busy");
     expect(idle).not.toContain("data-on");

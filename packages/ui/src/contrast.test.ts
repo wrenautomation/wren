@@ -35,9 +35,9 @@ describe("every text color on every ground", () => {
 describe("lookColors", () => {
   it("reads hex, rgb and color-mix as tailwind.css writes them", () => {
     const c = lookColors({ paper: "#fff", ink: "#000", tile: "rgb(255 255 255 / 0.045)" });
-    expect(c("fill")).toEqual([0, 0, 0, 0.06]);
+    expect(c("fill")).toEqual([0, 0, 0, 0.05]);
     expect(c("tile")).toEqual([255, 255, 255, 0.045]);
-    expect(c("wash")[3]).toBe(1);
+    expect(c("wash")[3]).toBeCloseTo(0.06, 5);
   });
 
   it("gives WCAG's ratio", () => {

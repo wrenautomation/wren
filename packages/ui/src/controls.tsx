@@ -2,11 +2,12 @@
 
 import { cn } from "cn";
 import { type AnchorHTMLAttributes, type ButtonHTMLAttributes, type ReactNode, useId } from "react";
-import { Busy } from "./busy.js";
+import { Ring } from "./busy.js";
 import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
+import { RingSlot } from "./motion.js";
 
 /**
  * `primary` is the one action on a screen (the accent), named where it is used; `secondary`, the
@@ -29,26 +30,32 @@ interface ButtonLook {
 }
 
 /**
- * shadcn's button, in the kit's look: a leaf hint for corners, sentence case, accent. The primary
- * keeps a press edge under it and sinks 3 px when pressed (secondary tones set their own hover).
+ * shadcn's button as the artifact's `.btn`: a leaf hint for corners, sentence case, accent. The
+ * primary keeps a press edge under it and sinks 3 px when pressed; the secondary (`.btn.q`) is
+ * paper with a hairline and a hairline edge. No hover fill: the press is the feedback.
  */
 const BUTTON =
-  "h-auto gap-[0.8em] px-4 py-[9px] border-0 [border-radius:var(--ui-leaf-button)] bg-(--ui-primary) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[14px]/[1.55] tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,transform,opacity] duration-150 ease-(--ui-spring) hover:bg-(--ui-primary) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)";
-const BUTTON_SIZE = { md: "", sm: "px-3.5 py-1.5 text-[13px]/[1.55]", dense: "", next: "" };
-const DENSE = "h-8 px-3 py-0 text-[13px]/none";
+  "h-auto gap-[0.8em] px-4 py-[9px] border-0 rounded-(--ui-leaf-button) bg-(--ui-primary) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[14px]/[1.55] tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline whitespace-nowrap cursor-pointer transition-[transform,box-shadow] duration-[120ms] ease-[ease] hover:bg-(--ui-primary) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)";
+const BUTTON_SIZE = {
+  md: "",
+  sm: "px-3.5 [--ui-act-pad:14px] py-1.5 text-[13px]/[1.55]",
+  dense: "",
+  next: "",
+};
+const DENSE = "h-8 px-3 [--ui-act-pad:12px] py-0 text-[13px]/none";
 const NEXT = "h-9 px-4 text-[14px]/none font-semibold";
 const DENSE_TONE: Record<ButtonTone, string> = {
   primary: DENSE,
-  secondary: `${DENSE} shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-wash) hover:text-(--ui-ink)`,
-  quiet: `${DENSE} px-2 no-underline hover:bg-(--ui-hover)`,
+  secondary: `${DENSE} shadow-[inset_0_0_0_1px_var(--ui-hair)]`,
+  quiet: `${DENSE} px-2 [--ui-act-pad:8px] no-underline hover:bg-(--ui-hover)`,
 };
 const BUTTON_TONE: Record<ButtonTone, string> = {
   primary:
     "[--ui-busy-ink:currentColor] shadow-[0_3px_0_var(--ui-press-edge)] active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[0_0_0_var(--ui-press-edge)]",
   secondary:
-    "bg-(--ui-paper) text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair),0_2px_0_var(--ui-hair)] hover:bg-(--ui-wash) active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[inset_0_0_0_1px_var(--ui-hair),0_0_0_var(--ui-hair)]",
+    "bg-(--ui-paper) text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair),0_2px_0_var(--ui-hair)] hover:bg-(--ui-paper) active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[inset_0_0_0_1px_var(--ui-hair),0_0_0_var(--ui-hair)]",
   quiet:
-    "px-0 py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
+    "px-0 [--ui-act-pad:0px] py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
 };
 
 const look = ({ tone = "secondary", size = "md", className }: ButtonLook) =>
@@ -84,6 +91,7 @@ export function Button({
   arrow,
   busy,
   done,
+  doneLabel = "Done",
   disabled,
   children,
   className,
@@ -91,14 +99,17 @@ export function Button({
   ...rest
 }: ButtonLook & {
   /**
-   * It was pressed and its work is running: it stays solid, with the busy ring turning after the
-   * label, and is turned off, so neither a click nor Enter presses it again. Pass `busy` (true or
-   * false) on a button that can go busy, so the ring's slot is always there and the width never
-   * changes. A button acts on rows: pass `true` only for the rows its press is at work on.
+   * It was pressed and its work is running: it stays solid and is turned off, so neither a click
+   * nor Enter presses it again. The label moves 9 px left and the ring fades in at the right, in
+   * the button's own padding: no slot, and the width never changes. Pass `busy` (true or false)
+   * on a button that can go busy. A button acts on rows: pass `true` only for the rows its press
+   * is at work on.
    */
   busy?: boolean | undefined;
-  /** Its press just worked: a check shows in the ring's slot for a moment (`useRun`'s `done`). */
+  /** Its press just worked: `doneLabel` rises in over the label for a moment (`useRun`'s `done`). */
   done?: boolean | undefined;
+  /** The words a press that worked shows ("Sent"). "Done" by default. */
+  doneLabel?: ReactNode;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
   const l: ButtonLook = {
     tone,
@@ -108,16 +119,32 @@ export function Button({
     children,
     className: cn(busy && "disabled:opacity-100", className),
   };
+  const acts = busy !== undefined || done !== undefined;
+  const shown = !!done && !busy;
   return (
     <ShadButton
       type={type}
-      className={look(l)}
+      className={cn(look(l), acts && "ui-act")}
       {...rest}
       disabled={busy || disabled}
       aria-busy={busy || undefined}
+      data-done={shown ? "" : undefined}
     >
-      {inside(l)}
-      {busy === undefined && done === undefined ? null : <Busy on={!!busy} done={done} />}
+      {acts ? (
+        <>
+          <span className="ui-act-lb" aria-hidden={shown || undefined}>
+            {inside(l)}
+          </span>
+          <span className="ui-act-ok" aria-hidden={!shown || undefined}>
+            {doneLabel}
+          </span>
+          <span className="ui-act-ring" aria-hidden="true">
+            <Ring on={!!busy} />
+          </span>
+        </>
+      ) : (
+        inside(l)
+      )}
     </ShadButton>
   );
 }
@@ -141,18 +168,21 @@ export function ButtonLink({
 }
 
 /**
- * `accent` marks what needs you or what changed; `warn` what went wrong and waits on someone (the
- * nav's counts' amber); `green` a result; `neutral` the rest.
+ * The artifact's chip (`.pt`). `accent` marks what needs you or what changed; `warn` what waits on
+ * someone (the nav's counts' amber); `green` a result; `bad` what failed; `neutral` the rest.
+ * A `<b>` inside is a count: bold, in ink.
  */
-export type TagTone = "neutral" | "accent" | "warn" | "green";
+export type TagTone = "neutral" | "accent" | "warn" | "green" | "bad";
 
 const TAG =
-  "h-auto max-w-full gap-1.5 px-2.5 py-[3px] border-0 [border-radius:var(--ui-leaf-chip)] text-[12.5px]/[1.5] font-semibold align-[1px]";
+  "h-auto w-auto max-w-full gap-1.5 [--ui-gap:6px] px-2.5 py-[3px] border-0 rounded-(--ui-leaf-chip) text-[12.5px]/[1.55] font-semibold whitespace-nowrap overflow-visible [&_b]:font-bold";
 const TAG_TONE: Record<TagTone, string> = {
-  neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
+  neutral: "bg-(--ui-fill) text-(--ui-ink-2) [&_b]:text-(--ui-ink)",
   accent: "bg-(--ui-accent-tint) text-(--ui-live)",
-  warn: "bg-(--ui-warn-tint) text-(--ui-warn-ink)",
-  green: "bg-(--ui-good-tint) text-(--ui-good-ink)",
+  warn: "bg-[color-mix(in_srgb,var(--ui-warn)_15%,transparent)] text-[color-mix(in_srgb,var(--ui-warn)_70%,var(--ui-ink))]",
+  green:
+    "bg-[color-mix(in_srgb,var(--ui-good)_13%,transparent)] text-[color-mix(in_srgb,var(--ui-good)_75%,var(--ui-ink))]",
+  bad: "bg-[color-mix(in_srgb,var(--ui-bad)_12%,transparent)] text-[color-mix(in_srgb,var(--ui-bad)_75%,var(--ui-ink))]",
 };
 const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";
 
@@ -167,7 +197,7 @@ export function Tag({
 }: {
   tone?: TagTone;
   dot?: boolean;
-  /** A chip that waits ("Drafting"): the ring after the label. Pass true or false to keep the slot. */
+  /** A chip at work ("Drafting"): the ring after the label while true. No slot when false. */
   busy?: boolean | undefined;
   title?: string | undefined;
   className?: string | undefined;
@@ -176,7 +206,7 @@ export function Tag({
   return (
     <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} {...tipProps(title)}>
       <span className="min-w-0 truncate">{children}</span>
-      {busy === undefined ? null : <Busy on={busy} />}
+      <RingSlot on={!!busy} />
     </Badge>
   );
 }
@@ -216,4 +246,127 @@ export function ScrollText({
       </div>
     </div>
   );
+}
+
+/**
+ * A segmented switch (the artifact's `.seg`): one choice of a few, each a pressed button. An item
+ * at work shows the ring after its label while `busy`; it moves for the ring and moves back.
+ */
+export function Seg<T extends string>({
+  label,
+  items,
+  value,
+  onChange,
+  dense = false,
+  className,
+}: {
+  /** What the group picks, for assistive tech. */
+  label: string;
+  items: readonly { value: T; label: ReactNode; busy?: boolean | undefined }[];
+  value: T;
+  onChange: (value: T) => void;
+  /** The small switch for a tool row ("Table / By line"): 12.5 px words, less pad. */
+  dense?: boolean | undefined;
+  className?: string | undefined;
+}) {
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: a group of toggle buttons, as the artifact draws it.
+    <div
+      role="group"
+      aria-label={label}
+      data-size={dense ? "dense" : undefined}
+      className={cn("ui-seg", className)}
+    >
+      {items.map((i) => (
+        <button
+          key={i.value}
+          type="button"
+          aria-pressed={i.value === value}
+          onClick={() => onChange(i.value)}
+        >
+          {i.label}
+          <RingSlot on={!!i.busy} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Progress toward a goal (the artifact's `.track`): an 8 px bar, the accent grown to `value` of
+ * `max` on the spring. With `label`, the words sit over it ("This week: 1 of 3 done").
+ */
+export function Track({
+  value,
+  max = 1,
+  label,
+  name,
+  className,
+}: {
+  value: number;
+  max?: number;
+  label?: ReactNode;
+  /** What it measures, for assistive tech, when `label` is not plain words. */
+  name?: string | undefined;
+  className?: string | undefined;
+}) {
+  const share = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
+  const bar = (
+    <div
+      role="progressbar"
+      aria-label={name}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      className={cn("ui-track", !label && className)}
+    >
+      <i style={{ width: `${share * 100}%` }} />
+    </div>
+  );
+  if (!label) return bar;
+  return (
+    <div className={cn("ui-goal", className)}>
+      <span>{label}</span>
+      {bar}
+    </div>
+  );
+}
+
+/**
+ * One line of a check list (the artifact's `.ck`): the box, the words and a small note. Checked,
+ * the box fills and grows, the tick draws in, and the words go faint with a hairline strike. Put
+ * a few in a `.ui-checks` group (`Checks`).
+ */
+export function Check({
+  checked,
+  onChange,
+  note,
+  disabled,
+  children,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  note?: ReactNode;
+  disabled?: boolean | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <label className="ui-ck">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.currentTarget.checked)}
+      />
+      <span>
+        {children}
+        {note ? <small>{note}</small> : null}
+      </span>
+    </label>
+  );
+}
+
+/** A check list: the lines 2 px apart. */
+export function Checks({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("ui-checks", className)}>{children}</div>;
 }

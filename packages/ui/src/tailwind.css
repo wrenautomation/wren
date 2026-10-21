@@ -49,6 +49,11 @@
   --ui-leaf-button: 6px 10px; /* a hint only: a button reads as a button first */
   --ui-leaf-chip: 3px 10px; /* tags, chips, pills */
   --ui-leaf-nav: 3px 12px; /* sidebar rows and page tabs */
+  --ui-leaf-sheet: 6px 18px; /* dialogs and the modal wait */
+  --ui-leaf-box: 6px 14px; /* side sheets and state boxes */
+  --ui-leaf-seg: 3px 9px; /* a segment in a segmented control */
+  --ui-leaf-bar: 2px 8px; /* a progress track */
+  --ui-leaf-line: 3px 8px; /* a skeleton line */
   --ui-sweep: 1; /* the lavender sweep on panel and band tips: 1 on, 0 off */
   /* Map line colours, one per offer. Each reads at 3:1 on paper, light and night. */
   --ui-line-0: #6a5a93;
@@ -88,14 +93,15 @@
 :root,
 [data-ui-theme] {
   --ui-tile: var(--ui-canvas); /* a well inside the paper */
-  --ui-wash: color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper)); /* row hover */
+  /* Row hover: the artifact's wash. */
+  --ui-wash: color-mix(in srgb, var(--ui-accent) 6%, transparent);
   /* The strip a part is headed by: a table's column heads, a section's title, a dialog's head. */
   --ui-band: color-mix(in srgb, var(--ui-tile) 75%, var(--ui-paper));
   --ui-on-ink: var(--ui-paper);
-  --ui-hair: color-mix(in srgb, var(--ui-ink) 22%, transparent); /* every border and rule */
-  --ui-edge: color-mix(in srgb, var(--ui-ink) 32%, transparent); /* around what takes input */
-  --ui-fill: color-mix(in srgb, var(--ui-ink) 6%, transparent); /* counts, tracks, ghosts */
-  --ui-hover: color-mix(in srgb, var(--ui-ink) 4.5%, transparent);
+  --ui-hair: color-mix(in srgb, var(--ui-ink) 11%, transparent); /* every border and rule */
+  --ui-edge: var(--ui-hair); /* around what takes input: a field is a hairline too */
+  --ui-fill: color-mix(in srgb, var(--ui-ink) 5%, transparent); /* counts, tracks, chips, ghosts */
+  --ui-hover: var(--ui-wash);
   --ui-glass: color-mix(in srgb, var(--ui-paper) 88%, transparent);
   /* All the accent marks (60-30-10): parts take these, never --ui-accent itself. */
   --ui-primary: var(--ui-accent); /* the one primary button */
@@ -104,7 +110,7 @@
   --ui-focus: var(--ui-accent); /* the focus ring */
   --ui-live: var(--ui-accent); /* a real event: running, new, just changed */
   --ui-press-edge: color-mix(in srgb, var(--ui-accent) 72%, #000); /* under a primary button */
-  --ui-accent-wash: color-mix(in srgb, var(--ui-accent) 7%, transparent);
+  --ui-accent-wash: var(--ui-wash);
   --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
@@ -132,17 +138,13 @@
      wraps panels. min() keeps a square look square: 0 times anything is 0. */
   --ui-radius-panel: min(calc(var(--ui-radius) * 2), calc(var(--ui-radius) + 4px));
   --ui-radius-sheet: min(calc(var(--ui-radius) * 3), calc(var(--ui-radius) + 8px));
-  /* Shadows, low and tinted with the accent, each with a faint rim in place of a hard border. */
-  --ui-umbra: color-mix(in srgb, var(--ui-shade) 88%, var(--ui-accent));
-  --ui-rim: color-mix(in srgb, var(--ui-hair) 45%, transparent);
-  --ui-raise: /* a panel on its ground: lists, cards, sections, the window */
-    0 0 0 1px var(--ui-rim), 0 1px 2px color-mix(in srgb, var(--ui-umbra) 5%, transparent),
-    0 3px 10px -4px color-mix(in srgb, var(--ui-umbra) 9%, transparent);
-  --ui-float: /* what floats over the page: popovers, menus, the hover text */
-    0 0 0 1px var(--ui-rim), 0 4px 12px -4px color-mix(in srgb, var(--ui-umbra) 14%, transparent),
-    0 18px 40px -16px color-mix(in srgb, var(--ui-umbra) 26%, transparent);
-  --ui-shadow: /* overlays: dialogs, sheets, the record panel */
-    0 0 0 1px var(--ui-rim), 0 30px 80px -30px color-mix(in srgb, var(--ui-umbra) 45%, transparent);
+  /* Shadows. One lift, the artifact's raise: a hairline ring and a low, soft fall. The night
+     preset sets its own raise (deeper and black). Floats and overlays take the same lift. */
+  --ui-rim: var(--ui-hair);
+  --ui-raise:
+    0 0 0 1px var(--ui-hair), 0 1px 2px rgb(14 14 14 / 0.04), 0 4px 14px -6px rgb(40 30 70 / 0.1);
+  --ui-float: var(--ui-raise); /* popovers, menus, the hover text */
+  --ui-shadow: var(--ui-raise); /* dialogs, sheets, the record panel */
   /* The sidebar's ground, inside the window: between the canvas and the paper. */
   --ui-ground: color-mix(in srgb, var(--ui-canvas) 55%, var(--ui-paper));
 }
@@ -313,8 +315,8 @@
   textarea {
     caret-color: var(--ui-focus);
   }
-  /* A checkbox (artifact `.ck .bx`): 20 px, radius 6, a 1.6 px ink-3 ring; checked it fills with
-     the accent and draws a tick; mixed it draws a bar. */
+  /* A checkbox (artifact `.ck .bx`): 20 px, radius 6, a 1.6 px ink-3 ring. Checked, it fills with
+     the accent, grows to 1.08 on the spring and draws its tick left to right; mixed, a bar. */
   input[type="checkbox"] {
     appearance: none;
     display: inline-grid;
@@ -322,36 +324,45 @@
     place-items: center;
     width: 20px;
     height: 20px;
+    margin: 0;
     border-radius: 6px;
     background: transparent;
     box-shadow: inset 0 0 0 1.6px var(--ui-ink-3);
     cursor: pointer;
     transition:
-      background-color 0.2s var(--ui-ease),
-      box-shadow 0.2s var(--ui-ease);
+      background-color 0.2s,
+      box-shadow 0.2s,
+      transform 0.3s var(--ui-spring);
   }
   input[type="checkbox"]::before {
     content: "";
-    width: 5px;
-    height: 9px;
-    border: solid var(--ui-on-accent);
-    border-width: 0 2px 2px 0;
-    transform: translateY(-1px) rotate(45deg) scale(0);
-    transition: transform 0.2s var(--ui-spring);
+    width: 13px;
+    height: 13px;
+    background: var(--ui-on-accent);
+    -webkit-mask:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 5' fill='none' stroke='%23000' stroke-width='3'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    mask:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 5' fill='none' stroke='%23000' stroke-width='3'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 0.3s var(--ui-ease) 0.05s;
   }
   input[type="checkbox"]:checked,
   input[type="checkbox"]:indeterminate {
     background: var(--ui-primary);
     box-shadow: none;
+    transform: scale(1.08);
   }
   input[type="checkbox"]:checked::before {
-    transform: translateY(-1px) rotate(45deg) scale(1);
+    clip-path: inset(0);
   }
   input[type="checkbox"]:indeterminate::before {
     width: 10px;
-    height: 0;
-    border-width: 0 0 2px;
-    transform: none;
+    height: 2px;
+    -webkit-mask: none;
+    mask: none;
+    clip-path: none;
   }
   input[type="checkbox"]:disabled {
     opacity: 0.4;
@@ -386,45 +397,25 @@
   /* Reduced motion drops movement, not feedback: fades and color changes stay, since they
      show what changed. Popups lose their slide and zoom; a moving transition loses its move.
      "Less" motion under Layout does the same on any device. */
+  /* Reduced motion, as the artifact turns it off: no animation and no transition, anywhere. The
+     viewer's own "less motion" setting does the same. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
       /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      transition-property:
-        opacity, color, background-color, border-color, text-decoration-color, fill, stroke !important;
+      animation: none !important;
       /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      --tw-enter-translate-x: 0 !important;
-      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      --tw-enter-translate-y: 0 !important;
-      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      --tw-enter-scale: 1 !important;
-      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      --tw-exit-translate-x: 0 !important;
-      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      --tw-exit-translate-y: 0 !important;
-      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      --tw-exit-scale: 1 !important;
+      transition: none !important;
     }
   }
   [data-motion="less"] *,
   [data-motion="less"] *::before,
   [data-motion="less"] *::after {
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-    transition-property:
-      opacity, color, background-color, border-color, text-decoration-color, fill, stroke !important;
+    animation: none !important;
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-    --tw-enter-translate-x: 0 !important;
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-    --tw-enter-translate-y: 0 !important;
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-    --tw-enter-scale: 1 !important;
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-    --tw-exit-translate-x: 0 !important;
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-    --tw-exit-translate-y: 0 !important;
-    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-    --tw-exit-scale: 1 !important;
+    transition: none !important;
   }
   /* Preflight for the shadcn parts only: each one carries data-slot. */
   [data-slot],
@@ -660,25 +651,27 @@
   }
 }
 
-/* The busy ring (busy.tsx): one mark for any wait. A faint track and one arc that turns. Its
-   ink is the live role; a primary button sets --ui-busy-ink to its own text. The slot is always
-   there once a part can go busy, so the width never changes. The rows an action changed wash,
-   then settle. A press that worked draws a check in the same slot. Reduced motion: the arc
-   stops and the check shows at once. */
+/* The busy ring (busy.tsx), the artifact's `.rg`: a faint track and one arc that turns. Its ink is
+   the live role; a primary button sets --ui-busy-ink to its own text. It shows only while at
+   work: no slot waits for it. Reduced motion stops the arc (the rule above). */
 .ui-busy {
-  display: inline-flex;
   flex: none;
-  opacity: 0;
-  transition: opacity 0.2s var(--ui-ease);
-}
-.ui-busy[data-on],
-.ui-busy[data-done] {
-  opacity: 1;
-}
-.ui-busy > svg {
-  width: 100%;
-  height: 100%;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-left: 4px;
   overflow: visible;
+}
+.ui-busy[data-size="step"] {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+.ui-busy[data-size="big"] {
+  width: 40px;
+  height: 40px;
+  margin: 0;
 }
 .ui-busy circle {
   fill: none;
@@ -692,40 +685,103 @@
 .ui-busy [data-arc] {
   stroke-dasharray: 28 100;
   transform-origin: 20px 20px;
-}
-.ui-busy[data-on] [data-arc] {
   animation: ui-ring-spin 0.8s linear infinite;
-}
-.ui-busy [data-check] {
-  fill: none;
-  stroke: var(--ui-busy-ink, var(--ui-live));
-  stroke-width: 4.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 30;
-  stroke-dashoffset: 30;
-  opacity: 0;
-}
-.ui-busy[data-done] circle {
-  opacity: 0;
-}
-.ui-busy[data-done] [data-check] {
-  opacity: 1;
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset 0.3s var(--ui-ease) 0.05s;
 }
 @keyframes ui-ring-spin {
   to {
     transform: rotate(360deg);
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .ui-busy[data-on] [data-arc] {
-    animation: none;
-  }
-  .ui-busy[data-done] [data-check] {
-    transition: none;
-  }
+/* The ring where it takes room (motion.tsx `RingSlot`): Motion grows its width from 0. The slot
+   gives back the row's gap (`--ui-gap`) and the ring takes it inside, so the gap grows with it.
+   No gap set: the ring sits 4 px after the words (`.rg`); a chip sets 6 px, so 8 (`.crg`). */
+.ui-ring-slot {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+  line-height: 0;
+  vertical-align: -1px;
+  margin-left: calc(0px - var(--ui-gap, 0px));
+}
+.ui-ring-slot > .ui-busy {
+  margin-left: calc(var(--ui-gap, 2px) + 2px);
+}
+/* A button that can go busy (`.btn.act2`): the label and its done words share one cell, and the
+   ring waits in its own place at the right. At work, the label moves 9 px left and the ring fades
+   in; done, the words rise in over the label; then all goes back. The width never changes. */
+.ui-act {
+  display: inline-grid;
+  position: relative;
+  grid-template-columns: minmax(0, auto);
+}
+.ui-act > .ui-act-lb,
+.ui-act > .ui-act-ok {
+  grid-area: 1 / 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+  transition:
+    opacity 0.2s,
+    transform 0.3s var(--ui-spring);
+}
+.ui-act > .ui-act-lb {
+  transition:
+    opacity 0.2s,
+    transform 0.3s var(--ui-ease);
+}
+.ui-act > .ui-act-ok {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.ui-act[data-done] > .ui-act-ok {
+  opacity: 1;
+  transform: none;
+}
+.ui-act[data-done] > .ui-act-lb {
+  opacity: 0;
+}
+.ui-act > .ui-act-ring {
+  position: absolute;
+  /* 9 px in from a 16 px pad, as drawn: 2 px clear of the moved label at any pad. */
+  right: calc(var(--ui-act-pad, 16px) - 7px);
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  line-height: 0;
+}
+.ui-act > .ui-act-ring .ui-busy {
+  margin: 0;
+}
+.ui-act[aria-busy="true"] > .ui-act-lb {
+  transform: translateX(-9px);
+}
+.ui-act[aria-busy="true"] > .ui-act-ring {
+  opacity: 1;
+}
+/* The modal wait (`.modal`): the big ring, a title and a note, centred in a hairline leaf. */
+.ui-modal {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 18px 14px 14px;
+  border: 1px solid var(--ui-hair);
+  border-radius: var(--ui-leaf-sheet);
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+.ui-modal > b {
+  font-weight: 650;
+  font-size: 14px;
+  margin-top: 6px;
+  color: var(--ui-ink);
+}
+.ui-modal > span {
+  font-size: 12.5px;
+  color: var(--ui-ink-2);
 }
 @theme {
   --animate-ui-changed: ui-changed 1.4s var(--ui-ease);
@@ -790,21 +846,155 @@ html[data-morph="cards"]::view-transition-new(*) {
   animation: none;
 }
 
-/* A toast (artifact `.toast`): ink ground, paper text, a leaf, 10 by 14 padding. Sonner's own
-   sheet is unlayered, so these rules match its weight. Its action reads as the bold underline. */
+/* A toast (artifact `.toast`): bottom centre, 22 px up, ink ground, paper text, the button leaf,
+   10 by 14 padding, 14 px. It rises on the spring in .45 s and fades in .2 s. Its width fits
+   its words. Its action is the bold underline (Undo). Sonner's sheet is unlayered, so these
+   rules match its weight. Icons stay off but the ring of a toast that waits. */
 [data-sonner-toaster] [data-sonner-toast] {
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: min(var(--width), calc(100vw - 32px));
   padding: 10px 14px;
   font-size: 14px;
+  line-height: 1.55;
   gap: 12px;
   box-shadow: none;
+  border: 0;
+  border-radius: var(--ui-leaf-button);
+  transition:
+    transform 0.45s var(--ui-spring),
+    opacity 0.2s,
+    height 0.4s var(--ui-ease);
+}
+[data-sonner-toaster] [data-sonner-toast]:not([data-type="loading"]) [data-icon] {
+  display: none;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-icon] .ui-busy {
+  margin: 0;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-icon] .ui-busy circle {
+  stroke: var(--ui-paper);
+}
+[data-sonner-toaster] [data-sonner-toast] [data-title] {
+  font-weight: 400;
+  line-height: 1.55;
 }
 [data-sonner-toaster] [data-sonner-toast] [data-button] {
   height: auto;
   padding: 0;
+  margin: 0;
   background: none;
   color: inherit;
+  font: inherit;
   font-weight: 700;
   text-decoration: underline;
+  cursor: pointer;
+}
+
+/* A segmented switch (artifact `.seg`): a fill well, 3 px in, 2 px apart. The pressed one is
+   paper with the raise. */
+.ui-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  background: var(--ui-fill);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.ui-seg > button {
+  font: inherit;
+  font-size: 13.5px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-ink-2);
+  padding: 6px 12px;
+  border-radius: var(--ui-leaf-seg);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition:
+    background 0.2s var(--ui-ease),
+    color 0.2s;
+}
+.ui-seg > button[aria-pressed="true"] {
+  background: var(--ui-paper);
+  color: var(--ui-ink);
+  font-weight: 600;
+  box-shadow: var(--ui-raise);
+}
+.ui-seg > button:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+/* Progress (artifact `.track`): an 8 px fill bar; the accent grows on the spring. */
+/* The dense switch, for a tool row: the same parts, smaller. */
+.ui-seg[data-size="dense"] {
+  padding: 2px;
+  border-radius: 8px;
+}
+.ui-seg[data-size="dense"] > button {
+  font-size: 12.5px;
+  padding: 3px 10px;
+}
+.ui-track {
+  height: 8px;
+  border-radius: var(--ui-leaf-bar);
+  background: var(--ui-fill);
+  overflow: hidden;
+}
+.ui-track > i {
+  display: block;
+  height: 100%;
+  border-radius: var(--ui-leaf-bar);
+  background: var(--ui-primary);
+  transition: width 0.6s var(--ui-spring);
+}
+.ui-goal {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ui-ink-2);
+}
+.ui-goal b {
+  color: var(--ui-ink);
+}
+
+/* A check list (artifact `.checks`, `.ck`): a box and its words; the row washes on hover. Done,
+   the words go faint and a hairline strikes them. */
+.ui-checks {
+  display: grid;
+  gap: 2px;
+}
+.ui-ck {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.ui-ck:hover {
+  background: var(--ui-wash);
+}
+.ui-ck > span {
+  min-width: 0;
+  color: var(--ui-ink);
+  transition: color 0.2s;
+}
+.ui-ck > span > small {
+  display: block;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+}
+.ui-ck:has(input:checked) > span {
+  color: var(--ui-ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--ui-hair);
 }
 
 /* The Wren bird as a mask (artifact `.brand i`, 30 by 22): the sidebar paints it in the accent. */

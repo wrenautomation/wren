@@ -73,7 +73,7 @@ const over = (top: Rgba, under: Rgba): Rgba => {
 /** The defaults tailwind.css makes from the set tokens (its `:root`). */
 const MADE: Theme = {
   tile: "var(--ui-canvas)",
-  wash: "color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper))",
+  wash: "color-mix(in srgb, var(--ui-accent) 6%, transparent)",
   band: "color-mix(in srgb, var(--ui-tile) 75%, var(--ui-paper))",
   ground: "color-mix(in srgb, var(--ui-canvas) 55%, var(--ui-paper))",
   "on-ink": "var(--ui-paper)",
@@ -81,9 +81,9 @@ const MADE: Theme = {
   active: "var(--ui-accent)",
   link: "var(--ui-accent)",
   live: "var(--ui-accent)",
-  fill: "color-mix(in srgb, var(--ui-ink) 6%, transparent)",
-  hover: "color-mix(in srgb, var(--ui-ink) 4.5%, transparent)",
-  "accent-wash": "color-mix(in srgb, var(--ui-accent) 7%, transparent)",
+  fill: "color-mix(in srgb, var(--ui-ink) 5%, transparent)",
+  hover: "var(--ui-wash)",
+  "accent-wash": "var(--ui-wash)",
   "accent-tint": "color-mix(in srgb, var(--ui-accent) 10%, transparent)",
   "good-tint": "color-mix(in srgb, var(--ui-good) 10%, transparent)",
   "bad-tint": "color-mix(in srgb, var(--ui-bad) 6%, transparent)",
