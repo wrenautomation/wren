@@ -307,6 +307,7 @@ export {
   type Variant,
 } from "./palette-brand.js";
 export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
+export type { PeekLine, PeekSpec } from "./peek.js";
 export { BottomSheet, type Segment, Segmented, SwipeRow, type Swipes } from "./phone.js";
 export { runs as tabRuns } from "./phone-nav.js";
 export { usePhone } from "./phone-shell.js";
@@ -345,6 +346,7 @@ export {
   type Load,
   type Needs,
   Panel as RecordPanel,
+  type PeekWire,
   type Place,
   pageAskOf,
   prefetchList,

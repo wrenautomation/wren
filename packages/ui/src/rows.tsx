@@ -376,6 +376,21 @@ function GroupFold({
   );
 }
 
+/** A person's initials in a round tint: 22px in a row, `lg` 32px in a peek's head. */
+export function Avatar({ initials: text, lg = false }: { initials: string; lg?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid flex-none place-items-center rounded-full bg-(--ui-accent-tint) font-bold text-(--ui-link)",
+        lg ? "size-8 text-[12px]" : "size-[22px] text-[10px]",
+      )}
+    >
+      {text}
+    </span>
+  );
+}
+
 /** A name: avatar or mark, the title (a link), and the Open chip on hover. */
 function NameCell<T>({
   name,
@@ -406,16 +421,7 @@ function NameCell<T>({
   );
   return (
     <div className={cn("flex min-w-0 items-center gap-2", className)}>
-      {initial ? (
-        <span
-          aria-hidden
-          className="grid size-[22px] flex-none place-items-center rounded-full bg-(--ui-accent-tint) text-[10px] font-bold text-(--ui-link)"
-        >
-          {initial}
-        </span>
-      ) : (
-        mark
-      )}
+      {initial ? <Avatar initials={initial} /> : mark}
       <div className="grid min-w-0 flex-1">
         {link ? (
           <a href={link} {...clipProps()} className={titled}>

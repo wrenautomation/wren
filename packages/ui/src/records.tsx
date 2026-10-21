@@ -45,6 +45,7 @@ import {
   runningOn,
   runs,
   sayBlocked,
+  setsAside,
   useHeld,
   useRun,
 } from "./action.js";
@@ -59,7 +60,7 @@ import {
   opensAs,
 } from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
-import { Button } from "./controls.js";
+import { Button, ButtonLink } from "./controls.js";
 import { listChanged } from "./data/delta.js";
 import { type Load, readCached, useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
@@ -73,7 +74,7 @@ import {
   History,
   thinking,
 } from "./edits.js";
-import { Empty, LoadFailed } from "./feedback.js";
+import { Empty, LoadFailed, Loading } from "./feedback.js";
 import {
   actorParts,
   type CiteTo,
@@ -113,6 +114,7 @@ import {
 import { PageBar } from "./page-bar.js";
 import { offsetOf, PAGE_SIZE, PAGE_SIZES, pageAt, pagesOf, sizeOf } from "./pager.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
+import { type PeekAction, type PeekLine, type PeekSpec, PeekTitle, PeekView } from "./peek.js";
 import { BottomSheet, type Swipes, toneOf, useSheet } from "./phone.js";
 import { usePhone } from "./phone-shell.js";
 import {
@@ -127,6 +129,7 @@ import { detailPatch, patchRecord } from "./record-patch.js";
 import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
 import {
   Age,
+  avatarOf,
   KIND_ICON,
   Rows,
   type RowsAct,
@@ -246,6 +249,11 @@ export interface RecordExtras {
    */
   drawn?: readonly string[];
   sources?: RecordSource[];
+  /**
+   * Its newest items for the peek, up to three: who, where, when and the words. A type that
+   * keeps an activity needs none of this: the peek reads that.
+   */
+  recent?: PeekLine[];
   /** Read the record again in this many ms: something still works on it (Claude on a draft). */
   poll?: number;
   /** The draft it holds, edited in place first in the details (`DraftBox`). */
@@ -365,6 +373,11 @@ export interface RecordTemplateProps {
    */
   late?: Late | undefined;
   /**
+   * What a row click opens: a peek (properties, the newest activity, the reply box or main
+   * action) with the full record one click on. `false` opens the whole record in the panel.
+   */
+  peek?: false | PeekSpec | undefined;
+  /**
    * The list as cards (`./cards.ts`): what each card shows beside the columns; read from the
    * columns when left out. `false` keeps it rows only (a log, an audit, a day's numbers).
    */
@@ -379,10 +392,13 @@ export interface RowReplyBox {
   box: (detail: unknown, row: Row, act: RecordAct) => ReactNode;
 }
 
-/** A list's watched wait: the field that holds its start, and the promise. */
+/**
+ * A list's watched wait: the field that holds its start, and the promise. With no promise the
+ * field only reads as how long ago (People's last touch): never late, no count in the foot.
+ */
 export interface Late {
   field: string;
-  promise: string;
+  promise?: string | undefined;
 }
 
 /** Field → the states in which a row waits on the viewer. */
@@ -952,6 +968,7 @@ export function RecordList(props: RecordTemplateProps) {
     reply,
     card,
     display,
+    peek,
   } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
@@ -975,6 +992,7 @@ export function RecordList(props: RecordTemplateProps) {
       reply={reply}
       card={card}
       display={display}
+      peek={peek}
     />
   );
 }
@@ -1269,6 +1287,7 @@ function List({
   reply,
   card,
   display,
+  peek,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -1285,6 +1304,7 @@ function List({
   reply: RecordTemplateProps["reply"];
   card: CardOption | undefined;
   display: ReactNode;
+  peek: RecordTemplateProps["peek"];
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -1392,7 +1412,7 @@ function List({
     cols: shownColumns(meta, columnsOf(meta, params, columns), tiered, {
       byHand: params.has("cols"),
       narrow,
-      wait: late?.field,
+      wait: late?.promise ? late.field : undefined,
     }),
     sort,
     group: grouped,
@@ -1488,6 +1508,10 @@ function List({
           close={close}
         />
       ) : null;
+    return askBox(a, r, close);
+  };
+  /** The words an action asks for, typed in a box: under its row, or in its peek. */
+  const askBox = (a: Action, r: Row, close: () => void) => {
     const start = startOf(a, r);
     return (
       <AskBox
@@ -1500,6 +1524,14 @@ function List({
           return send(a, [r.id], inputOf(a, { ids: [r.id], [field]: start }, text));
         }}
       />
+    );
+  };
+  /** The peek's one thing to do on a row: what moves it on, else what asks, never what sets it aside first. */
+  const mainOf = (r: Row): Action | null => {
+    const { main, more } = rowActsOf(actions, r, false);
+    const all = [...main, ...more];
+    return (
+      all.find((a) => !a.ask && !setsAside(a.label)) ?? all.find((a) => !a.ask) ?? all[0] ?? null
     );
   };
 
@@ -1744,7 +1776,7 @@ function List({
       // When it happened reads quieter than what it is; a watched wait draws as its own.
       quiet: f.kind === "date" && f.key !== late?.field,
       // A phone's row shows one beside the name: the watched wait, else the first of them.
-      phone: late ? f.key === late.field : i === 0,
+      phone: late?.promise ? f.key === late.field : i === 0,
       total: footed ? <FieldTotal field={f} total={totals?.[f.key]} to={place.link} /> : undefined,
       cell: (r) => {
         const w = f.key === late?.field ? waitOf(r) : null;
@@ -1790,7 +1822,22 @@ function List({
       run: (a) => rowRun(a, r),
     };
   };
-  const foot = <RowsFoot stats={statsOf(rows.map(waitOf))} waits={!!late} />;
+  const foot = <RowsFoot stats={statsOf(rows.map(waitOf))} waits={!!late?.promise} />;
+  /** The peek's pieces, from the same row actions and reply box the row uses; none: the whole record. */
+  const peeked: PeekWire | undefined =
+    peek === false
+      ? undefined
+      : {
+          fields: peek?.fields
+            ? peek.fields.flatMap((k) => meta.fields.find((f) => f.key === k) ?? [])
+            : columnsOf(meta, params, columns).filter((f) => f.key !== meta.title),
+          reply,
+          replyOn: (r) => !!replyOn(r),
+          mainOf,
+          press: rowRun,
+          ask: askBox,
+          busyOn: (a, r) => runningOn(running, a.id, [r.id]),
+        };
   const headed = head?.(meta, () => acted([]));
   const forms = actions.filter((a) => a.form && !a.each);
   // Its rows' keys sit in the sheet on ?, not under the list.
@@ -2027,7 +2074,7 @@ function List({
                 return { going: going.get(id), changed: changed.has(id) && !page.loading };
               }}
               onSettled={() => setChanged(new Set())}
-              wait={late ? waitOf : undefined}
+              wait={late?.promise ? waitOf : undefined}
               foot={foot}
               group={grouped ? { folded, toggle: toggleGroup } : undefined}
               scroller={frameEl}
@@ -2086,6 +2133,8 @@ function List({
           step={(d) => openAt(openIndex + d, true)}
           rev={rev}
           onActed={acted}
+          peek={peeked}
+          listRow={openRow}
         />
       ) : null}
       {dialog}
@@ -2175,6 +2224,32 @@ export function withReply(swipes: Swipes | null, reply: (() => void) | null): Sw
   return { lead: swipes?.lead, trail: [...(swipes?.trail ?? []).slice(0, 1), act] };
 }
 
+/**
+ * A list row's own `act`: its action pressed as one write (`pressAct`), then the list read again.
+ * The reply box under a row and the peek's both send through it.
+ */
+function rowAct(
+  meta: RecordMeta,
+  api: RecordsApi,
+  acts: RecordActs | undefined,
+  row: Row,
+  acted: (ids: (string | number)[]) => void,
+): RecordAct {
+  const here: Target = rowTarget(meta, row, api.access?.client ?? "");
+  if (!api.access) delete here.client;
+  const record = recordKey(meta.name.many, String(row.id));
+  return Object.assign(
+    async (action: string, input: Record<string, unknown> = {}) => {
+      const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
+      if (!a || !acts) throw new Error("You can't do that here.");
+      const out = await pressAct(acts.call, a, row.id, record, input);
+      acted([row.id]);
+      return out;
+    },
+    { record },
+  );
+}
+
 /** The page's own reply box under a row, from the record's detail. */
 function RowReply({
   meta,
@@ -2195,19 +2270,7 @@ function RowReply({
 }) {
   const id = String(row.id);
   const got = useLoad(`${meta.id}:${id}:reply`, () => api.get({ record: meta.id, id }), api);
-  const here: Target = rowTarget(meta, row, api.access?.client ?? "");
-  if (!api.access) delete here.client;
-  const record = recordKey(meta.name.many, id);
-  const act: RecordAct = Object.assign(
-    async (action: string, input: Record<string, unknown> = {}) => {
-      const a = actsOf(meta, acts, true, here).find((x) => x.id === action);
-      if (!a || !acts) throw new Error("You can't do that here.");
-      const out = await pressAct(acts.call, a, row.id, record, input);
-      acted([row.id]);
-      return out;
-    },
-    { record },
-  );
+  const act = rowAct(meta, api, acts, row, acted);
   return (
     <ReplyFrame close={close}>
       {got.data ? (
@@ -2258,7 +2321,32 @@ export function Kbd({ children }: { children: ReactNode }) {
 const ICON =
   "inline-flex size-8 pointer-coarse:size-11 border-0 bg-transparent items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30 transition-[background-color,color,scale] duration-150 ease-(--ui-ease) active:scale-[0.94]";
 
-/** A record beside its list: up and down walk the list, a link opens it as a page. */
+/** The peek head's round buttons: the leaf corner and the accent hover, as the artifact's `.ib`. */
+const PEEK_ICON = cn(
+  ICON,
+  "[border-radius:var(--ui-leaf-button)] hover:bg-(--ui-accent-tint) hover:text-(--ui-link)",
+);
+
+/** What the peek takes from the list: the same row actions and reply box the row itself uses. */
+export interface PeekWire {
+  /** The properties, in order. */
+  fields: FieldMeta[];
+  reply: RowReplyBox | undefined;
+  /** Whether the page's reply answers this row. */
+  replyOn: (row: Row) => boolean;
+  /** The one thing to do on this row, when the page has no reply box. */
+  mainOf: (row: Row) => Action | null;
+  /** The row's own press (`rowRun`): the write, the Undo toast. */
+  press: (action: Action, row: Row) => void;
+  /** The box an action that asks for words types them in. */
+  ask: (action: Action, row: Row, close: () => void) => ReactNode;
+  busyOn: (action: Action, row: Row) => boolean;
+}
+
+/**
+ * A record beside its list: up and down walk the list, a link opens it as a page. With `peek`
+ * its body is the peek (`./peek.tsx`); without, the whole record.
+ */
 export function Panel({
   meta,
   types,
@@ -2272,6 +2360,8 @@ export function Panel({
   step,
   rev,
   onActed,
+  peek,
+  listRow,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -2285,10 +2375,40 @@ export function Panel({
   step: (by: number) => void;
   rev: number;
   onActed: (changed: (string | number)[]) => void;
+  peek?: PeekWire | undefined;
+  /** The row as the list holds it: the peek's head before its own read lands. */
+  listRow?: Row | undefined;
 }) {
   const phone = usePhone();
   const shut = place.link({ [meta.name.one]: null, tab: null });
-  const body = (
+  // The peek reads the record as the full one does (same key, same cache), once, for its head
+  // and its body. Another row's answer, held while this one reads, never draws here.
+  const got = useLoad<RecordAnswer>(
+    peek ? `${meta.id}:${id}:${rev}` : null,
+    () => api.get({ record: meta.id, id }),
+    api,
+  );
+  const read = got.data && String(got.data.row.id) === id ? got.data : null;
+  const row = peek ? (read?.row ?? listRow ?? null) : null;
+  const title = row ? titleOf(meta, row) : "";
+  const named = meta.fields.find((f) => f.key === meta.title)?.kind === "name";
+  const avatar = named ? avatarOf(title) : null;
+  const body = peek ? (
+    <PeekContent
+      key={id}
+      meta={meta}
+      id={id}
+      api={api}
+      place={place}
+      extras={extras}
+      acts={acts}
+      onActed={onActed}
+      wire={peek}
+      got={got}
+      read={read}
+      row={row}
+    />
+  ) : (
     <RecordBody
       key={id}
       meta={meta}
@@ -2344,6 +2464,7 @@ export function Panel({
           </div>
         }
       >
+        {peek && row ? <PeekTitle avatar={avatar} title={title} className="mb-3" /> : null}
         {body}
       </BottomSheet>
     );
@@ -2356,62 +2477,187 @@ export function Panel({
         "fixed inset-y-0 right-0 z-40 flex w-full flex-col bg-(--ui-paper) shadow-(--ui-shadow) sm:inset-y-2 sm:right-2 sm:w-[560px] sm:overflow-clip sm:rounded-(--ui-radius-sheet)",
       )}
     >
-      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) bg-(--ui-band) px-3 max-sm:box-content max-sm:h-14 max-sm:pt-[env(safe-area-inset-top)] max-sm:pr-[max(12px,env(safe-area-inset-right))] max-sm:pl-[max(4px,env(safe-area-inset-left))]">
-        {/* A phone: the panel is the screen, so the way back leads. */}
-        <a
-          href={place.link({ [meta.name.one]: null, tab: null })}
-          className="inline-flex h-11 items-center gap-1 pr-3 pl-1 text-[15px] font-medium text-(--ui-ink) no-underline sm:hidden"
-        >
-          <ChevronLeft className="size-5" />
-          {cap(meta.name.many)}
-        </a>
-        <button
-          type="button"
-          className={ICON}
-          aria-label="Previous"
-          {...tipProps("Previous", { keys: "K", as: "none" })}
-          disabled={index <= 0}
-          onClick={() => step(-1)}
-        >
-          <ChevronUp className="size-4" />
-        </button>
-        <button
-          type="button"
-          className={ICON}
-          aria-label="Next"
-          {...tipProps("Next", { keys: "J", as: "none" })}
-          disabled={index < 0 || index >= count - 1}
-          onClick={() => step(1)}
-        >
-          <ChevronDown className="size-4" />
-        </button>
-        <span className="ml-1 text-[12px] text-(--ui-ink-3) max-sm:hidden">
-          {index >= 0 ? `${num(index + 1)} of ${num(count)}` : ""}
-        </span>
-        <a
-          href={place.page(id)}
-          className={cn(ICON, "ml-auto")}
-          aria-label="Open as a page"
-          {...tipProps("Open as a page", { as: "none" })}
-        >
-          <Maximize2 className="size-3.5" />
-        </a>
-        <a
-          href={place.link({ [meta.name.one]: null, tab: null })}
-          className={cn(ICON, "max-sm:hidden")}
-          aria-label="Close"
-          {...tipProps("Close", { keys: "Esc", as: "none" })}
-        >
-          <X className="size-4" />
-        </a>
-      </div>
+      {peek ? (
+        // The peek's head: who it is, then the way to the whole record, the walk and the close.
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-(--ui-hair) px-4.5">
+          {row ? (
+            <PeekTitle avatar={avatar} title={title} className="flex-1" />
+          ) : (
+            <span className="flex-1" />
+          )}
+          <ButtonLink
+            tone="secondary"
+            size="dense"
+            icon="expand"
+            href={place.page(id)}
+            {...tipProps("Open the full record", { as: "none" })}
+          >
+            Open
+          </ButtonLink>
+          <button
+            type="button"
+            className={PEEK_ICON}
+            aria-label="Previous"
+            {...tipProps("Previous", { keys: "K", as: "none" })}
+            disabled={index <= 0}
+            onClick={() => step(-1)}
+          >
+            <ChevronUp className="size-4" />
+          </button>
+          <button
+            type="button"
+            className={PEEK_ICON}
+            aria-label="Next"
+            {...tipProps("Next", { keys: "J", as: "none" })}
+            disabled={index < 0 || index >= count - 1}
+            onClick={() => step(1)}
+          >
+            <ChevronDown className="size-4" />
+          </button>
+          <a
+            href={shut}
+            className={PEEK_ICON}
+            aria-label="Close"
+            {...tipProps("Close", { keys: "Esc", as: "none" })}
+          >
+            <X className="size-4" />
+          </a>
+        </div>
+      ) : (
+        <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) bg-(--ui-band) px-3 max-sm:box-content max-sm:h-14 max-sm:pt-[env(safe-area-inset-top)] max-sm:pr-[max(12px,env(safe-area-inset-right))] max-sm:pl-[max(4px,env(safe-area-inset-left))]">
+          {/* A phone: the panel is the screen, so the way back leads. */}
+          <a
+            href={shut}
+            className="inline-flex h-11 items-center gap-1 pr-3 pl-1 text-[15px] font-medium text-(--ui-ink) no-underline sm:hidden"
+          >
+            <ChevronLeft className="size-5" />
+            {cap(meta.name.many)}
+          </a>
+          <button
+            type="button"
+            className={ICON}
+            aria-label="Previous"
+            {...tipProps("Previous", { keys: "K", as: "none" })}
+            disabled={index <= 0}
+            onClick={() => step(-1)}
+          >
+            <ChevronUp className="size-4" />
+          </button>
+          <button
+            type="button"
+            className={ICON}
+            aria-label="Next"
+            {...tipProps("Next", { keys: "J", as: "none" })}
+            disabled={index < 0 || index >= count - 1}
+            onClick={() => step(1)}
+          >
+            <ChevronDown className="size-4" />
+          </button>
+          <span className="ml-1 text-[12px] text-(--ui-ink-3) max-sm:hidden">
+            {index >= 0 ? `${num(index + 1)} of ${num(count)}` : ""}
+          </span>
+          <a
+            href={place.page(id)}
+            className={cn(ICON, "ml-auto")}
+            aria-label="Open as a page"
+            {...tipProps("Open as a page", { as: "none" })}
+          >
+            <Maximize2 className="size-3.5" />
+          </a>
+          <a
+            href={shut}
+            className={cn(ICON, "max-sm:hidden")}
+            aria-label="Close"
+            {...tipProps("Close", { keys: "Esc", as: "none" })}
+          >
+            <X className="size-4" />
+          </a>
+        </div>
+      )}
       <div
         key={id}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-5 pb-10 max-sm:pb-[calc(96px+env(safe-area-inset-bottom))] sm:px-6"
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-10 max-sm:pb-[calc(96px+env(safe-area-inset-bottom))]",
+          peek ? "px-4.5 pt-4" : "px-4 pt-5 sm:px-6",
+        )}
       >
         {body}
       </div>
     </aside>
+  );
+}
+
+/**
+ * The peek's body (`./peek.tsx`) from the record's one read: its properties, its newest items
+ * (the type's own, else its activity) and, to act, the page's reply box or the row's main action.
+ */
+function PeekContent({
+  meta,
+  id,
+  api,
+  place,
+  extras,
+  acts,
+  onActed,
+  wire,
+  got,
+  read,
+  row,
+}: {
+  meta: RecordMeta;
+  id: string;
+  api: RecordsApi;
+  place: Place;
+  extras: RecordTemplateProps["extras"];
+  acts: RecordActs | undefined;
+  onActed: (changed: (string | number)[]) => void;
+  wire: PeekWire;
+  got: Load<RecordAnswer>;
+  read: RecordAnswer | null;
+  row: Row | null;
+}) {
+  /** An action that asks for words, its box open here. */
+  const [asking, setAsking] = useState<Action | null>(null);
+  if (got.error && !read)
+    return <LoadFailed error={got.error} onRetry={got.retry} what={meta.name.one} />;
+  if (!row) return <Loading heading lines={4} />;
+  const act = rowAct(meta, api, acts, row, onActed);
+  const more = read && extras ? extras(read.detail, read.row, act, got.at) : {};
+  const recent: PeekLine[] | null = read
+    ? (more.recent ??
+      read.activity?.slice(0, 3).map((l) => ({
+        who: l.kind ? words(l.kind) : undefined,
+        at: l.at,
+        text: l.what,
+      })) ??
+      null)
+    : null;
+  const main = wire.mainOf(row);
+  const action: PeekAction | null = main
+    ? {
+        label: main.label,
+        busy: wire.busyOn(main, row),
+        run: () => (main.ask ? setAsking(main) : wire.press(main, row)),
+      }
+    : null;
+  const reply =
+    asking != null
+      ? wire.ask(asking, row, () => setAsking(null))
+      : read && wire.reply && wire.replyOn(read.row)
+        ? wire.reply.box(read.detail, read.row, act)
+        : null;
+  return (
+    <PeekView
+      props={wire.fields.map((f) => ({
+        label: f.label,
+        node: blank(row[f.key]) ? null : <FieldCell field={f} cell={row[f.key]} />,
+      }))}
+      recent={recent}
+      waiting={!read}
+      reply={reply}
+      action={action}
+      openHref={place.page(id)}
+    />
   );
 }
 
