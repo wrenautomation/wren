@@ -382,9 +382,35 @@
       font-size: 16px !important;
     }
   }
+  /* Focus (William, 10-21): a mouse or a finger draws no ring and never the browser's blue. A
+     keyboard focus draws the accent ring. A hover changes only the wash. A text field shows its
+     accent caret, not a ring: a click in a field matches :focus-visible too, and CSS cannot tell
+     a click from a Tab there. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus {
+    outline: none;
+  }
   :focus-visible {
     outline: 2px solid var(--ui-focus);
     outline-offset: 2px;
+  }
+  :is(
+    input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="range"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="color"],
+      [type="file"]
+    ),
+    textarea,
+    [contenteditable]:not([contenteditable="false"])
+  ):focus-visible {
+    outline: none;
   }
   b,
   strong {
@@ -422,11 +448,6 @@
   [data-slot]::before,
   [data-slot]::after {
     border: 0 solid var(--border);
-    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
-  }
-  /* A focused part shows the full accent, never the half-strength ring above. */
-  [data-slot]:focus-visible {
-    outline-color: var(--ui-focus);
   }
   button[data-slot] {
     background: none;

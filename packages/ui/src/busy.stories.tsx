@@ -158,6 +158,7 @@ export const Toggle: Story = {
     );
   },
   play: async ({ canvasElement }) => {
+    await document.fonts.ready;
     const c = within(canvasElement);
     const button = c.getByRole("button", { name: /Send reply/ });
     const run = c.getByRole("button", { name: /Run|Stop/ });

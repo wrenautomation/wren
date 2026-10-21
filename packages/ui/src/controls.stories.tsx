@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
+import { Input } from "./components/ui/input.js";
 import {
   Button,
   ButtonLink,
@@ -188,5 +189,41 @@ export const Parts: Story = {
     await expect(c.getByRole("button", { name: "Year" })).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(c.getByRole("checkbox", { name: /Film this week/ }));
     await expect(c.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+  },
+};
+
+/**
+ * Focus (William, 10-21): a click draws no ring, a Tab draws the accent ring, and a text field
+ * shows its caret, never a ring.
+ */
+export const Focus: Story = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button tone="primary">Send reply</Button>
+      <Button tone="quiet">Later</Button>
+      <Input aria-label="Search" placeholder="Search" className="w-48" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const send = c.getByRole("button", { name: "Send reply" });
+    const later = c.getByRole("button", { name: "Later" });
+    const field = c.getByRole("textbox", { name: "Search" });
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--ui-focus").trim();
+    const probe = document.createElement("i");
+    probe.style.color = accent;
+    canvasElement.append(probe);
+    const ring = getComputedStyle(probe).color;
+    probe.remove();
+    const style = (el: Element) => getComputedStyle(el).outlineStyle;
+    // A test click is a script focus, so the mouse case runs in a real browser (Playwright).
+    await expect(style(send)).toBe("none");
+    await userEvent.click(field);
+    await expect(style(field)).toBe("none");
+    await expect(getComputedStyle(field).borderColor).not.toBe(ring);
+    await userEvent.tab({ shift: true });
+    await expect(document.activeElement).toBe(later);
+    await expect(style(later)).toBe("solid");
+    await expect(getComputedStyle(later).outlineColor).toBe(ring);
   },
 };
