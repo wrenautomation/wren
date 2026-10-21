@@ -141,8 +141,8 @@ td .was{color:var(--ink-3);text-decoration:line-through;text-decoration-color:va
 @keyframes shim{to{transform:translateX(100%)}}
 .sk .ln{display:grid;gap:6px}.sk .ln i:last-child{width:70%;height:10px}.sk i.pt{width:48px;height:20px}
 .rows .row{animation:rin .35s var(--ease) both}@keyframes rin{from{opacity:0;transform:translateY(4px)}}
-.ldmap svg{min-width:0}.ldmap.in .trk,.ldmap.in .case{stroke-dasharray:1400;stroke-dashoffset:1400;animation:drawin 1.2s var(--ease) forwards}
-.ldmap.in .mk{opacity:0;animation:pop .4s var(--spring) forwards .9s}.ldmap.in .lbl,.ldmap.in .zone{opacity:0;animation:fade .4s forwards 1.1s}
+.ldmap svg{min-width:0}.ldmap.in .trk,.ldmap.in .case{stroke-dasharray:560;stroke-dashoffset:560;animation:drawin 2.4s cubic-bezier(.4,0,.3,1) forwards}
+.ldmap.in .mk{opacity:0;animation:pop .5s var(--spring) forwards}.ldmap.in .lab,.ldmap.in .sub{opacity:0;animation:fade .5s forwards}.ldmap.in .zone{opacity:0;animation:fade .6s forwards .1s}
 @keyframes drawin{to{stroke-dashoffset:0}}@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}@keyframes fade{to{opacity:1}}
 .ldmap.in .mk{transform-box:fill-box;transform-origin:center}
 .sweep{position:absolute;left:0;top:-4px;height:2px;width:0;background:var(--accent);border-radius:2px;opacity:0}.on .sweep{animation:sweep 1.2s var(--ease) forwards}
@@ -150,10 +150,27 @@ td .was{color:var(--ink-3);text-decoration:line-through;text-decoration-color:va
 .nums{display:flex;gap:28px;flex-wrap:wrap;padding-top:6px}.nums b{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:block}.nums span{font-size:13px;color:var(--ink-2)}
 .btn.act2 .ok,.btn.act2 .lb{grid-area:1/1;transition:opacity .2s,transform .3s var(--spring)}.btn.act2{display:inline-grid}.btn.act2 .ok{opacity:0;transform:translateY(6px)}
 .btn.act2.done .ok{opacity:1;transform:none}.btn.act2.done .lb{opacity:0}.btn.act2.is-busy .busy{animation:busy 1.4s linear forwards}
+.ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:16px}.way{display:grid;gap:10px;justify-items:start;align-content:start}.way small{font-size:12.5px;font-weight:650;color:var(--ink-3)}.way p{margin:0;font-size:13px;color:var(--ink-2)}
+.vb{position:relative;overflow:hidden}.pt.vb{padding:5px 12px}
+.v-bar.is-busy .busy{animation:busy 1.6s linear forwards}.pt .busy{position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--accent);opacity:.8}
+.v-sweep.is-busy::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.5) 50%,transparent 65%);animation:bsweep 1.1s var(--ease) infinite}
+.btn.q.v-sweep.is-busy::after,.pt.v-sweep.is-busy::after{background:linear-gradient(100deg,transparent 35%,var(--tint) 50%,transparent 65%)}
+@keyframes bsweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.btn.v-pulse.is-busy{animation:edgepulse 1s ease-in-out infinite}@keyframes edgepulse{50%{box-shadow:0 3px 0 color-mix(in srgb,var(--accent) 45%,white)}}
+.pt.v-pulse.is-busy{animation:chippulse 1s ease-in-out infinite}@keyframes chippulse{50%{box-shadow:0 0 0 2px var(--tint),inset 0 0 0 1px var(--accent)}}
+.dots{display:inline-flex;gap:3px;width:15px;margin-left:8px;vertical-align:middle;opacity:0;transition:opacity .2s}.dots i{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.3}
+.is-busy .dots{opacity:1}.is-busy .dots i{animation:dstep 1s ease-in-out infinite}.is-busy .dots i:nth-child(2){animation-delay:.2s}.is-busy .dots i:nth-child(3){animation-delay:.4s}@keyframes dstep{40%{opacity:1}}
+.ring{display:inline-block;width:11px;height:11px;margin-left:8px;vertical-align:-1px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;opacity:0;transition:opacity .2s}.is-busy .ring{opacity:.9;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .msheet{border:1px solid var(--hair);border-radius:6px 14px 6px 14px;overflow:hidden;transform:translateX(30px);opacity:0;transition:transform .45s var(--ease),opacity .25s}.on .msheet{transform:none;opacity:1}
 .mh{padding:12px 14px;border-bottom:1px solid var(--hair)}.mh b{display:block;font-weight:650}.mh span{font-size:13px;color:var(--ink-2)}.mb{padding:4px 10px}
 .row.pend{background:var(--wash);animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{50%{background:transparent}}
 .row.back{animation:shake .4s}.row .bad{color:var(--bad);font-weight:600}@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:20px}.pathbox{display:grid;gap:8px;align-content:start}.pathbox small{font-size:12.5px;font-weight:650;color:var(--ink-3)}
+.path{display:grid;gap:8px}.path .step{display:grid;grid-template-columns:16px 1fr auto;column-gap:10px;align-items:start}.path .step i{margin-top:2px}.path .step .s{grid-column:3}
+.step .tt{display:grid;gap:2px}.step .sub{font-size:12.5px;color:var(--ink-2);transition:opacity .18s,transform .18s;min-height:1.3em}.step .sub.sw{opacity:0;transform:translateY(3px)}
+.srcs{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}.src{font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px 8px 3px 8px;background:var(--fill);color:var(--ink-2);animation:rin .35s var(--ease) both;display:inline-flex;gap:4px;align-items:center}.src::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.7}
+.fold1{display:none;font-size:13.5px;color:var(--ink-2);align-items:center;gap:8px;cursor:pointer;animation:rin .35s var(--ease) both}.fold1 i{width:16px;height:16px;border-radius:50%;background:var(--accent);display:grid;place-items:center;flex:none}.fold1 i::after{content:"";width:5px;height:8px;border:solid var(--on-accent);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.pathbox.folded .path{display:none}.pathbox.folded .fold1{display:flex}
 .steps{display:grid;gap:6px}.step{display:flex;gap:10px;align-items:center;font-size:14px}.step i{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--hair);flex:none}
 .step.run i{border-color:var(--accent);background:var(--accent);animation:pulse 1.2s ease-in-out infinite}.step.done i{border-color:var(--accent);background:var(--accent)}.step.done i::after{content:"";width:5px;height:8px;border:solid var(--on-accent);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
 .step.wait{color:var(--ink-3)}.step .s{margin-left:auto;font-size:12.5px;color:var(--ink-3)}
@@ -164,7 +181,7 @@ td .was{color:var(--ink-3);text-decoration:line-through;text-decoration-color:va
 .navbody{min-height:150px}.navbody .rows{display:none}.navbody .rows.show{display:block}
 .states{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}.stt{border:1px solid var(--hair);border-radius:6px 14px 6px 14px;padding:16px;display:grid;gap:4px;font-size:13.5px;color:var(--ink-2)}.stt b{color:var(--ink);font-weight:650;font-size:14.5px}
 .stt.err b{color:var(--bad)}.stt .btn{justify-self:start;margin-top:6px}.stt.off{grid-template-columns:auto 1fr;align-items:center;column-gap:10px}.stt.off i{width:10px;height:10px;border-radius:50%;background:var(--warn);grid-row:1/3}.stt.off span{grid-column:2}
-@media (prefers-reduced-motion:reduce){.sk i::after,.rows .row,.ldmap.in .trk,.ldmap.in .case{animation:none}.ldmap.in .mk,.ldmap.in .lbl,.ldmap.in .zone{animation:fade .3s forwards}.row.pend,.step.run i,.dot{animation:none}}
+@media (prefers-reduced-motion:reduce){.v-sweep.is-busy::after,.v-pulse.is-busy,.is-busy .dots i{animation:none}.is-busy .dots i{opacity:1}.sk i::after,.rows .row,.ldmap.in .trk,.ldmap.in .case{animation:none}.ldmap.in .mk,.ldmap.in .lbl,.ldmap.in .zone{animation:fade .3s forwards}.row.pend,.step.run i,.dot{animation:none}}
 
 .scen{display:grid;gap:16px}
 .app.prop{min-height:0;margin-top:14px}.sys{display:grid;gap:8px}.sys h4{margin:8px 0 0;font-size:13.5px;font-weight:650}
@@ -603,18 +620,31 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
   <div class="rule"><b>Skeleton</b><span>First load of a page or sheet</span><small>Grey blocks in the shape of the content, a slow lavender shimmer. The header is known, so it shows at once.</small></div>
   <div class="rule"><b>Bar</b><span>Refresh of data already shown</span><small>Old data stays. A 2 px lavender bar sweeps along the top of the panel. Numbers tick to the new value.</small></div>
   <div class="rule"><b>Busy edge</b><span>A button's own action</span><small>The label stays. A bar fills along the bottom edge. Then a check, then the toast with Undo.</small></div>
-  <div class="rule"><b>Steps</b><span>A job over ten seconds</span><small>Each step with its state. A line says you can leave. The job carries on in Restate.</small></div>
+  <div class="rule"><b>Path</b><span>Any wait with more than one stage</span><small>Each step names what it does and with what: the sources, the account, the count. Text cross-fades. Sources animate in as they are read. Done, it folds to one line that stays as the record.</small></div>
+  <div class="rule"><b>Steps</b><span>A job over ten seconds</span><small>A path with a clock. A line says you can leave. The job carries on in Restate.</small></div>
   <div class="rule"><b>Stream</b><span>AI text</span><small>Words arrive as they come, with a lavender caret. A chip says "Drafting".</small></div>
   <div class="rule"><b>Not loading</b><span>Empty, error, offline</span><small>Each looks different from a wait. Error: one sentence and Retry. Offline: a banner, writes queue.</small></div>
   <div class="rule"><b>Reduced motion</b><span>Shimmer and draw-in go</span><small>Skeletons sit still, maps fade in, bars still move (they carry information).</small></div>
  </div>
  <div class="grid lg" id="lgrid">
   <div class="panel deco-on ld-page"><span class="k">Page first load · skeleton</span><div class="ldbox"><div class="rows" data-s="sk"></div></div></div>
-  <div class="panel deco-on ld-map"><span class="k">Map load · lines draw in, stations land, numbers tick</span><div class="ldbox map ldmap" data-s="map"></div></div>
+  <div class="panel deco-on ld-map"><span class="k">Map load · the line draws, stations land as it passes, numbers tick last</span><div class="ldbox map ldmap" data-s="map"></div></div>
   <div class="panel deco-on ld-bar"><span class="k">Refresh · data stays, bar sweeps, numbers tick</span><div class="ldbox"><i class="sweep"></i><div class="nums"><div><b data-n="81">81</b><span>on the map</span></div><div><b data-n="12">12</b><span>waiting on you</span></div><div><b data-n="4">4</b><span>late</span></div></div></div></div>
   <div class="panel deco-on ld-btn"><span class="k">Button · busy edge, check, toast</span><div class="ldbox"><div class="row-b"><button class="btn act2" type="button"><span class="lb">Send reply</span><span class="ok">Sent</span><i class="busy"></i></button><button class="btn q" type="button">Later</button></div><p class="lead" style="font-size:13px">Same width before, during and after. Undo lives in the toast, 6 s.</p></div></div>
+  <div class="panel deco-on ld-busy wide"><span class="k">Busy, five ways · for buttons, chips and anything small. Pick one</span><div class="ldbox"><div class="ways">
+   <div class="way"><small>1 · Bar (now)</small><button class="btn vb v-bar" type="button">Send reply<i class="busy"></i></button><span class="pt vb v-bar">Drafting<i class="busy"></i></span><p>Fills along the bottom edge.</p></div>
+   <div class="way"><small>2 · Sweep</small><button class="btn vb v-sweep" type="button">Send reply</button><span class="pt vb v-sweep">Drafting</span><p>The leaf's own light sweep passes over it. Same motif as the panels.</p></div>
+   <div class="way"><small>3 · Edge pulse</small><button class="btn vb v-pulse" type="button">Send reply</button><span class="pt vb v-pulse">Drafting</span><p>The press edge breathes lavender. Reads as "held down".</p></div>
+   <div class="way"><small>4 · Dots</small><button class="btn vb v-dots" type="button">Send reply<span class="dots"><i></i><i></i><i></i></span></button><span class="pt vb v-dots">Drafting<span class="dots"><i></i><i></i><i></i></span></span><p>Three dots step after the label. The slot is always there, so no shift.</p></div>
+   <div class="way"><small>5 · Ring</small><button class="btn vb v-ring" type="button">Send reply<i class="ring"></i></button><span class="pt vb v-ring">Drafting<i class="ring"></i></span><p>A small arc turns after the label. Plain, known.</p></div>
+  </div><p class="lead" style="font-size:13px">Each one keeps the label and the width. Click to replay. One of these becomes the rule for every small wait; the bar stays for panels only if you drop it here.</p></div></div>
   <div class="panel deco-on ld-sheet"><span class="k">Sheet open · header at once, body fills</span><div class="ldbox"><div class="msheet"><div class="mh"><b>Review call</b><span>Growth Partner · day 28</span></div><div class="mb rows" data-s="sk3"></div></div></div></div>
   <div class="panel deco-on ld-opt"><span class="k">Optimistic · moves now, comes back on failure</span><div class="ldbox"><div class="rows" id="optrows"></div><div class="row-b"><button class="btn q" type="button" data-fail="0">Approve</button><button class="btn q" type="button" data-fail="1">Approve, server fails</button></div></div></div>
+  <div class="panel deco-on ld-path wide"><span class="k">Path · the wait says what it does, with what. Text cross-fades, sources animate in, then it folds to one line</span><div class="ldbox"><div class="paths">
+   <div class="pathbox" data-p="research"><small>Research a person</small><div class="path"></div><div class="fold1"></div></div>
+   <div class="pathbox" data-p="send"><small>Send a reply</small><div class="path"></div><div class="fold1"></div></div>
+   <div class="pathbox" data-p="map"><small>Open the map</small><div class="path"></div><div class="fold1"></div></div>
+  </div><p class="lead" style="font-size:13px">The same part everywhere: research, send, map, import, a video render. Click a folded line to open its path again.</p></div></div>
   <div class="panel deco-on ld-job"><span class="k">Long job · steps, leave-safe</span><div class="ldbox"><div class="steps"></div><p class="lead jl" style="font-size:13px">Still working · <span class="t">0 s</span>. You can leave. It carries on.</p></div></div>
   <div class="panel deco-on ld-ai"><span class="k">AI draft · streams in</span><div class="ldbox"><div class="row-b"><span class="pt"><i class="dot"></i>Drafting</span></div><p class="stream"></p></div></div>
   <div class="panel deco-on ld-find"><span class="k">⌘K · old results stay until new ones land</span><div class="ldbox"><div class="finp"><span class="q"></span><i class="sweep"></i></div><div class="rows fres"></div></div></div>
@@ -1161,16 +1191,29 @@ const D={};
 D.page=p=>{const r=$('[data-s="sk"]',p);r.innerHTML=sk(4);later("pg",()=>r.innerHTML=PEOPLE.map(row).join(""),1600)};
 D.map=p=>{const b=$(".ldmap",p),M=70;b.classList.remove("in");b.innerHTML=draw({w:700,h:150,still:true,zones:[[0,230,"Marketing"],[230,520,"Sales"],[520,700,"Money"]],
  st:[{id:"h",t:"hub",x:90,y:M,n:"First touch",s:"0",span:[M,M]},{id:"r",t:"att",x:250,y:M,n:"Replied",s:"0"},{id:"c",t:"time",x:400,y:M,n:"Call held",s:"0"},{id:"$",t:"cash",x:600,y:M,n:"Retainer",s:"$0"}],
- tr:[{l:"ob",w:"core",r:20,pts:[[90,M],[600,M]]}]});void b.offsetWidth;b.classList.add("in");
- later("mp",()=>{all(".mk text",b).forEach(t=>{const v={0:81,1:4,2:2}[t.dataset.i];});const subs=all(".lbl .sub, .lbl text:nth-child(2)",b);[["81",0],["4",1],["2",2],["$12k / mo",3]].forEach(([v,i])=>{const t=subs[i];if(t){if(/^\d+$/.test(v))tick(t,+v,700);else t.textContent=v}})},1300)};
+ tr:[{l:"ob",w:"core",r:20,pts:[[90,M],[600,M]]}]});void b.offsetWidth;b.classList.add("in");all(".mk",b).forEach((m,i)=>m.style.animationDelay=(.5+i*.55)+"s");all(".lab,.sub",b).forEach((m,i)=>m.style.animationDelay=(.8+(i>>1)*.55)+"s");
+ later("mp",()=>{const subs=all("text.sub",b);[["81",0],["4",1],["2",2],["$12k / mo",3]].forEach(([v,i])=>{const t=subs[i];if(t){if(/^\d+$/.test(v))tick(t,+v,700);else t.textContent=v}})},2900)};
 D.bar=p=>{p.classList.remove("on");void p.offsetWidth;p.classList.add("on");later("br",()=>all(".nums b",p).forEach(b=>{b.textContent=b.dataset.n;tick(b,+b.dataset.n+[3,-2,1][[...b.parentNode.parentNode.children].indexOf(b.parentNode)],700)}),900)};
 D.btn=p=>{const b=$(".act2",p);b.classList.remove("done","is-busy");void b.offsetWidth;b.classList.add("is-busy");later("bt",()=>{b.classList.remove("is-busy");b.classList.add("done");const t=$("#toast");if(t){$("#tt").textContent="Reply sent.";t.classList.add("on");later("ts",()=>t.classList.remove("on"),6000)}},1400);later("bt2",()=>b.classList.remove("done"),4200)};
+D.busy=p=>{all(".vb",p).forEach(b=>{b.classList.remove("is-busy");void b.offsetWidth;b.classList.add("is-busy")});later("bz",()=>all(".vb",p).forEach(b=>b.classList.remove("is-busy")),2600)};
 D.sheet=p=>{p.classList.remove("on");const r=$('[data-s="sk3"]',p);r.innerHTML=sk(3);void p.offsetWidth;p.classList.add("on");later("sh",()=>r.innerHTML=PEOPLE.slice(0,3).map(row).join(""),1500)};
 D.opt=(p,fail)=>{const r=$("#optrows");r.innerHTML=[PEOPLE[0],PEOPLE[2]].map(row).join("");if(fail===undefined)return;const first=r.firstElementChild;first.classList.add("pend");$(".pt",first).textContent="Approved";first.classList.remove("w");
  later("op",()=>{first.classList.remove("pend");if(fail){first.classList.add("back");$(".pt",first).outerHTML='<span class="bad">Didn\'t save · retry</span>'}else{first.style.transition="opacity .3s";first.style.opacity="0";later("op2",()=>first.remove(),320)}},1400)};
 D.job=p=>{const S=["Render · 1080p","Upload · YouTube","Upload · LinkedIn","Upload · X","Write the post rows"],box=$(".steps",p),tt=$(".jl .t",p);let i=0,t0=Date.now();
  const paint=()=>box.innerHTML=S.map((s,k)=>`<div class="step ${k<i?"done":k===i?"run":"wait"}"><i></i>${s}<span class="s">${k<i?"done":k===i?"running":""}</span></div>`).join("");paint();
  const id=setInterval(()=>{tt.textContent=Math.round((Date.now()-t0)/1000)+" s";if(Math.random()<.18&&i<S.length){i++;paint()}if(i>=S.length){clearInterval(id);tt.textContent="done in "+Math.round((Date.now()-t0)/1000)+" s"}},400);timers.set("job",id);p._stop=()=>clearInterval(id)};
+const PATHS={
+ research:[{t:"Searching",sub:n=>`${n} sources`,to:12,dur:1100,src:["reddit","linkedin","site","youtube","x","podcast"]},{t:"Reading",sub:n=>`${n} of 12 · reddit.com, linkedin.com`,to:12,dur:1600},{t:"Writing the brief",sub:n=>["pulling quotes","three themes","done"][Math.min(2,Math.floor(n/5))],to:12,dur:1200}],
+ send:[{t:"Checks",sub:n=>["spam words","links","unsubscribe line","all pass"][Math.min(3,Math.floor(n/3))],to:12,dur:900},{t:"Sending",sub:()=>"from hello@ · Reddit DM",to:12,dur:800},{t:"Delivered",sub:()=>"1.2 s",to:12,dur:300}],
+ map:[{t:"Loading the shape",sub:n=>`${Math.min(4,Math.ceil(n/3))} lines`,to:12,dur:700},{t:"Placing stations",sub:n=>`${Math.round(n*1.5)} of 18`,to:12,dur:900},{t:"Numbers",sub:n=>n<12?"this week":"this week · 81 on the map",to:12,dur:900}]};
+const SUM={research:"Read 12 sources · 3.9 s",send:"Sent · Reddit DM · 1.2 s",map:"Loaded · 4 lines, 18 stations"};
+const runPath=(box,key)=>{const S=PATHS[key],path=$(".path",box),fold=$(".fold1",box);box.classList.remove("folded");if(box._stop)box._stop();let i=0,n=0,t0=0,raf;
+ const paint=()=>path.innerHTML=S.map((st,k)=>`<div class="step ${k<i?"done":k===i?"run":"wait"}"><i></i><div class="tt">${st.t}<span class="sub">${k<i?st.sub(st.to):k===i?st.sub(n):""}</span>${k===i&&st.src?'<div class="srcs"></div>':k<i&&st.src?'<div class="srcs">'+st.src.map(x=>`<span class="src">${x}</span>`).join("")+'</div>':""}</div><span class="s">${k<i?"done":k===i?"":""}</span></div>`).join("");
+ paint();const sub=()=>$(".step.run .sub",path),setSub=t=>{const e=sub();if(!e||e.textContent===t)return;e.classList.add("sw");setTimeout(()=>{e.textContent=t;e.classList.remove("sw")},180)};
+ const tickf=ts=>{if(!t0)t0=ts;const st=S[i];const k=Math.min(1,(ts-t0)/st.dur);const nn=Math.round(k*st.to);if(nn!==n){n=nn;setSub(st.sub(n));if(st.src){const sr=$(".srcs",path);const want=Math.min(st.src.length,Math.ceil(n/2));while(sr&&sr.children.length<want)sr.insertAdjacentHTML("beforeend",`<span class="src">${st.src[sr.children.length]}</span>`)}}
+  if(k>=1){i++;n=0;t0=ts;if(i>=S.length){later("pf"+key,()=>{fold.innerHTML=`<i></i>${SUM[key]}`;box.classList.add("folded")},500);return}paint()}raf=requestAnimationFrame(tickf)};
+ raf=requestAnimationFrame(tickf);box._stop=()=>cancelAnimationFrame(raf)};
+D.path=p=>all(".pathbox",p).forEach(b=>runPath(b,b.dataset.p));
 D.ai=p=>{const el=$(".stream",p),txt="Hi Maya, saw your thread on career pivots after 35. The part on ‘quiet quitting the plan’ matched what three of our clients said this month. Want the 12 minute breakdown?";el.textContent="";el.classList.add("live");let i=0;const id=setInterval(()=>{i+=1+Math.floor(Math.random()*3);el.textContent=txt.slice(0,i);if(i>=txt.length){clearInterval(id);el.classList.remove("live")}},45);p._stop=()=>clearInterval(id)};
 D.find=p=>{const q=$(".q",p),res=$(".fres",p),Q="youtube",R0=[["YouTube line","line · 47 in Reddit… "],["Posting · YouTube","app"],["Video review","station · Delivery"]],R1=[["Yo","…"]];let i=0;res.innerHTML="";
  const id=setInterval(()=>{i++;q.textContent=Q.slice(0,i);if(i===2){res.innerHTML=[["YouTube line","line"],["Your mail","Inbox"]].map(([a,b])=>`<div class="row"><b>${a}</b><span class="pt">${b}</span></div>`).join("")}
@@ -1184,7 +1227,7 @@ D.nav=p=>{const body=$(".navbody",p),show=k=>{all(".rows",body).forEach(r=>r.cla
  if(!p._wired){p._wired=1;$(".seg",p).onclick=e=>{const b=e.target.closest("button");if(b){e.stopPropagation();show(b.dataset.p)}}}};
 D.states=()=>{};
 const grid=$("#lgrid");if(!grid)return;const start=()=>{for(const k in D){const p=$(".ld-"+k,grid);if(p)D[k](p)}};start();
-grid.addEventListener("click",e=>{const p=e.target.closest(".panel");if(!p)return;const k=[...p.classList].find(c=>c.startsWith("ld-")).slice(3);if(e.target.closest("button[data-fail]")){D.opt(p,+e.target.dataset.fail);return}if(e.target.closest(".btn")&&k!=="btn")return;if(p._stop)p._stop();D[k](p)});
+grid.addEventListener("click",e=>{const fb=e.target.closest(".pathbox.folded");if(fb){e.stopPropagation();runPath(fb,fb.dataset.p);return}const p=e.target.closest(".panel");if(!p)return;const k=[...p.classList].find(c=>c.startsWith("ld-")).slice(3);if(e.target.closest("button[data-fail]")){D.opt(p,+e.target.dataset.fail);return}if(e.target.closest(".btn")&&k!=="btn"&&k!=="busy")return;if(p._stop)p._stop();D[k](p)});
 })();
 const LGPRE=[{},{send:1,wait:1,sort:1},{send:1,ab:1,wait:1,sort:1}];
 const LGSH={
