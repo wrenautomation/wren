@@ -103,8 +103,8 @@ describe("drafts through the console", () => {
     // A draft against the live version: the call node and its edge are new.
     const diff = await a.shapeDiff({ ...op(), a: 1, b: "draft:add-a-call" });
     expect(diff).toMatchObject({ a: 1, b: "draft:add-a-call" });
-    expect(diff.diff.nodes.added).toEqual(["call"]);
-    expect(diff.bodies[1].nodes.map((n) => n.id)).toContain("call");
+    expect(diff.changes.map((c) => c.key)).toContain("node:call:added");
+    expect(diff.views?.[1].stations.map((s) => s.id)).toContain("call");
     await expect(a.shapeDiff({ ...op(), a: 1, b: "draft:none" })).rejects.toThrow(
       /no draft "none"/,
     );
@@ -193,8 +193,11 @@ describe("blame, undo and tags", () => {
       note: "Undo: Added node Call.",
       newest: 2,
     });
-    expect(p.diff.nodes.removed).toEqual(["call"]);
-    expect(p.bodies[1].nodes.map((n) => n.id)).not.toContain("call");
+    expect(p.changes.map((c) => c.key)).toEqual([
+      "node:call:removed",
+      "edge:engaged_to_call:removed",
+    ]);
+    expect(p.views?.[1].stations.map((s) => s.id)).not.toContain("call");
     expect((await shapeVersionsOf(pg.db)).length).toBe(2);
 
     await expect(

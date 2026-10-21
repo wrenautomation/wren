@@ -467,7 +467,7 @@ describe("the numbers views", () => {
       [],
     );
     const one = await numberRows(pg.db, { source: "ads1" });
-    expect(one.filter((r) => r.kind !== "offer").map((r) => r.id)).toEqual(["node:ads1"]);
+    expect(one.filter((r) => r.kind === "node").map((r) => r.id)).toEqual(["node:ads1"]);
     const ads = one.find((r) => r.id === "node:ads1");
     expect(one.find((r) => r.kind === "offer")?.deals).toBe(ads?.deals);
   });

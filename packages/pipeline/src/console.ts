@@ -76,12 +76,15 @@ import type {
   DraftStateAnswer,
   DraftUpdateAnswer,
   DraftUpdateAsk,
+  PreviewAnswer,
+  ShapeRef,
   TagAnswer,
   TagAsk,
   UndoAnswer,
   UndoAsk,
   UndoPreviewAnswer,
 } from "./history.js";
+import { isMetro } from "./metro.js";
 import { type MirrorResult, mirrorShapes, WREN_WORKSPACE } from "./mirror.js";
 import type { ShapeBody } from "./model.js";
 import { signDeal } from "./moves.js";
@@ -91,14 +94,20 @@ import { exportShape, importShape, parseShape } from "./shape-file.js";
 import { startShape } from "./starter.js";
 import {
   addTerms,
-  diffShapes,
+  GRAPH_OVER_METRO,
   newestShape,
   Refused,
   saveShape,
   shapeVersionsOf,
   syncOffers,
 } from "./store.js";
-import { historyOfStored, runOf } from "./stored.js";
+import {
+  type BlameOn,
+  diffAnswerOf,
+  historyOfStored,
+  metroView,
+  type StoredBody,
+} from "./stored.js";
 import { addTag } from "./tags.js";
 import { planUndo, undoShape } from "./undo.js";
 
@@ -116,7 +125,11 @@ export interface PipelineConsoleDeps {
 export interface ShapeVersionRequest extends PortalRequest {
   /** Why it changed. */
   note: string;
-  body: unknown;
+  /** A body to save, or `from`. The CLI and agents send a body; the web never does. */
+  body?: unknown;
+  /** A restore: save the stored body of this version as the next one. */
+  from?: number;
+
   /** Where journeys on a node the body drops go: `{ oldNode: newNode }`. */
   moves?: Record<string, string>;
 }
@@ -135,8 +148,8 @@ export interface ShapeImportRequest extends PortalRequest {
   note?: string;
 }
 export interface ShapeExportRequest extends PortalRequest {
-  /** The body to write as a file: the Map's draft, or a version it holds. */
-  body: unknown;
+  /** The version or `draft:<id>` to write as a file; the newest version when left out. */
+  ref?: ShapeRef;
 }
 export interface ShapePreviewRequest extends PortalRequest {
   /** The shape file's YAML text. */
@@ -178,6 +191,33 @@ export interface TermsAddRequest extends PortalRequest {
   body: unknown;
   why: string;
 }
+
+/** What a blame can ask about: the graph's node and edge, and the map model's own kinds. */
+const BLAME_ONS = [
+  "node",
+  "edge",
+  "station",
+  "track",
+  "line",
+  "group",
+] as const satisfies readonly BlameOn[];
+
+const noShape = (): never => {
+  throw new Refused(["This workspace has no shape yet."]);
+};
+
+/**
+ * The body to save for a restore of version `n`. A graph version over a metro newest is saved as
+ * its drawn form, as the store refuses a graph body there. Refused when there is no such version.
+ */
+const restoreBody = async (db: Db, n: unknown): Promise<StoredBody> => {
+  const version = Number(n);
+  if (!Number.isInteger(version) || version < 1)
+    throw new Refused([`"${String(n)}" is not a version number.`]);
+  const body = await bodyOfRef(db, version);
+  const newest = await newestShape(db);
+  return newest && isMetro(newest.body) && !isMetro(body) ? metroView(body) : body;
+};
 
 /** A store refusal as the portal's: its reasons in one message, status 400. */
 const refused = async <T>(fn: () => Promise<T>): Promise<T> => {
@@ -281,9 +321,12 @@ export function pipelineConsoleApi({
     },
     shapeVersion: async (req: ShapeVersionRequest) => {
       const w = await workspace(req, "act");
-      const row = await refused(() =>
+      // Exactly one of `body` and `from`. A restore reads the stored body of an older version.
+      if ((req.body != null) === (req.from != null))
+        throw new PortalRefusal("Send exactly one of body or from.", 400);
+      const row = await refused(async () =>
         saveShape(w.db, {
-          body: bodyOf(req.body),
+          body: req.from != null ? await restoreBody(w.db, req.from) : bodyOf(req.body),
           note: String(req.note ?? ""),
           by: by(req),
           triggers: TRIGGER_IDS,
@@ -294,17 +337,14 @@ export function pipelineConsoleApi({
     },
     shapeDiff: async (req: ShapeDiffRequest): Promise<DiffAnswer> => {
       const w = await workspace(req, "read");
-      // A version number or `draft:<id>`; the bodies too: the Map draws the two shapes as one, a
-      // removed node beside the added.
+      // A version number or `draft:<id>`. The answer carries the lines and both sides drawn, so
+      // the web never needs a body.
       return refused(async () => {
         const a = parseRef(req.a);
         const b = parseRef(req.b);
-        // The web answers in graph terms: a metro body is lowered with `runOf`.
-        const bodies: [ShapeBody, ShapeBody] = [
-          runOf(await bodyOfRef(w.db, a)),
-          runOf(await bodyOfRef(w.db, b)),
-        ];
-        return { a, b, diff: diffShapes(bodies[0], bodies[1]), bodies };
+        const newest = await newestShape(w.db);
+        const [from, to] = [await bodyOfRef(w.db, a), await bodyOfRef(w.db, b)];
+        return { a, b, ...diffAnswerOf(from, to, newest ? isMetro(newest.body) : false) };
       });
     },
     shapeImport: async (req: ShapeImportRequest) => {
@@ -329,22 +369,25 @@ export function pipelineConsoleApi({
       return { version: row.number };
     },
     shapeExport: async (req: ShapeExportRequest) => {
-      await workspace(req, "read");
-      return { text: exportShape(bodyOf(req.body)) };
+      const w = await workspace(req, "read");
+      return refused(async () => {
+        const ref =
+          req.ref != null ? parseRef(req.ref) : ((await newestShape(w.db))?.number ?? noShape());
+        return { text: exportShape(await bodyOfRef(w.db, ref)) };
+      });
     },
-    shapePreview: async (req: ShapePreviewRequest) => {
+    shapePreview: async (req: ShapePreviewRequest): Promise<PreviewAnswer> => {
       const w = await workspace(req, "read");
       const file = await refused(async () => parseShape(String(req.text ?? "")));
       const newest = await newestShape(w.db);
+      if (newest && isMetro(newest.body) && !isMetro(file.body))
+        throw new PortalRefusal(GRAPH_OVER_METRO, 400);
       const none: ShapeBody = { name: file.body.name, nodes: [], edges: [] };
-      // Compared as an import would save it: the file against the newest version. The web answers
-      // in graph terms, so a metro body on either side is lowered with `runOf`.
-      const was = newest ? runOf(newest.body) : none;
-      const now = runOf(file.body);
+      // Compared as an import would save it: the file against the newest version.
+      const parts = await refused(async () => diffAnswerOf(newest ? newest.body : none, file.body));
       return {
         a: newest?.number ?? null,
-        diff: diffShapes(was, now),
-        bodies: [was, now],
+        ...parts,
         note: file.note ?? null,
         moves: file.moves ?? null,
       };
@@ -400,11 +443,12 @@ export function pipelineConsoleApi({
     },
     shapeBlame: async (req: BlameRequest): Promise<BlameAnswer> => {
       const w = await workspace(req, "read");
-      const node = req.node ? String(req.node) : "";
-      const edge = req.edge ? String(req.edge) : "";
-      if (!node === !edge) throw new PortalRefusal("Name exactly one of node or edge.", 400);
+      const named = BLAME_ONS.filter((on) => req[on]);
+      const on = named[0];
+      if (named.length !== 1 || !on)
+        throw new PortalRefusal(`Name exactly one of ${BLAME_ONS.join(", ")}.`, 400);
       return {
-        lines: historyOfStored(await shapeVersionsOf(w.db), node || edge, node ? "node" : "edge"),
+        lines: historyOfStored(await shapeVersionsOf(w.db), String(req[on]), on),
       };
     },
     shapeUndoPreview: async (req: UndoRequest): Promise<UndoPreviewAnswer> => {
@@ -421,8 +465,7 @@ export function pipelineConsoleApi({
         line: plan.line,
         note: plan.note,
         newest: plan.newest.number,
-        diff: diffShapes(runOf(plan.newest.body), runOf(plan.result)),
-        bodies: [runOf(plan.newest.body), runOf(plan.result)],
+        ...diffAnswerOf(plan.newest.body, plan.result),
       };
     },
     shapeUndo: async (req: UndoRequest): Promise<UndoAnswer> => {
@@ -526,7 +569,9 @@ const refSchema = z.union([z.number(), z.string()]);
 const undoFields = {
   a: z.number().describe("The diff's first shape version"),
   b: z.number().describe("The diff's second shape version"),
-  change: z.string().describe("A change key from the diff, like node:<id>:added"),
+  change: z
+    .string()
+    .describe("A change key from the diff, like node:<id>:added or station:<id>:added"),
 };
 const draftId = z.string().describe("The draft's id, from the draft list");
 
@@ -563,7 +608,13 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
           input: z.looseObject({
             ...PORTAL_FIELDS,
             note: z.string().describe("Why, in a sentence"),
-            body: z.looseObject({}).describe("The shape body: name, nodes, edges"),
+            body: bodySchema
+              .nullish()
+              .describe("The shape body: name, nodes, edges. Give this or from, not both"),
+            from: z
+              .number()
+              .nullish()
+              .describe("A shape version to save again as the next one. Give this or body"),
             moves: z
               .record(z.string(), z.string())
               .nullish()
@@ -603,7 +654,9 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
-            body: z.looseObject({}).describe("The shape body: name, nodes, edges"),
+            ref: refSchema
+              .nullish()
+              .describe("A shape version number, or draft:<id>. The newest version when left out"),
           }),
         },
         (_: restate.Context, req: ShapeExportRequest) => answer(() => api.shapeExport(req)),
@@ -676,8 +729,12 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
         {
           input: z.looseObject({
             ...PORTAL_FIELDS,
-            node: z.string().nullish().describe("A node id. Give this or edge, not both"),
-            edge: z.string().nullish().describe("An edge id. Give this or node, not both"),
+            node: z.string().nullish().describe("A graph node id. Give one of the six, not more"),
+            edge: z.string().nullish().describe("A graph edge id"),
+            station: z.string().nullish().describe("A station id"),
+            track: z.string().nullish().describe("A track id"),
+            line: z.string().nullish().describe("A line id"),
+            group: z.string().nullish().describe("A group id"),
           }),
         },
         (_: restate.Context, req: BlameRequest) => answer(() => api.shapeBlame(req)),

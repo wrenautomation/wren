@@ -231,4 +231,21 @@ describe("metroRowsOf", () => {
     expect(by(rows, "line:mail")).toBeUndefined();
     expect(by(rows, "station:yt")).toBeDefined();
   });
+
+  it("adds the hub row with the lead count, and leaves it out for a source filter", () => {
+    const rows = metroRowsOf(metro(), graphRows(), offers, {}, 7);
+    expect(by(rows, "station:hub")).toMatchObject({
+      kind: "station",
+      label: "hub",
+      nodeKind: "hub",
+      now: 7,
+      arrived: null,
+      crossings: null,
+    });
+    expect(by(rows, "station:hub")?.name).toBe(metro().stations.find((s) => s.id === "hub")?.label);
+    expect(by(metroRowsOf(metro(), graphRows(), offers, {}), "station:hub")?.now).toBeNull();
+    expect(by(metroRowsOf(metro(), graphRows(), offers, { source: "yt" }, 7), "station:hub")).toBe(
+      undefined,
+    );
+  });
 });
