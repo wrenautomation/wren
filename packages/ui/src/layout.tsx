@@ -10,7 +10,7 @@ import { Sweep } from "./sweep.js";
 
 /** The heading scale. A page has one title; each section one section title; a group in it a label. */
 export const PAGE_TITLE =
-  "font-(family-name:--ui-font-display) text-[28px] leading-[34px] font-semibold tracking-[calc(-0.022em*var(--ui-display-squeeze))] text-balance max-[900px]:text-[22px] max-[900px]:leading-7";
+  "font-(family-name:--ui-font-display) text-[22px] leading-7 font-[650] tracking-[calc(-0.02em*var(--ui-display-squeeze))] text-balance";
 export const SECTION_TITLE = "text-[16px] leading-[22px] font-semibold";
 /** A group's label: sentence case, 12.5 px, 650, ink-3. A look can set case and tracking back. */
 export const GROUP_LABEL =
@@ -37,7 +37,7 @@ export const AboutProvider = AboutContext.Provider;
 export const useAbout = () => useContext(AboutContext);
 
 /** The line under a title: the page's own lede, else what the page is for. */
-export const ABOUT = "mt-1 max-w-[62ch] text-[14px] text-pretty text-(--ui-ink-2)";
+export const ABOUT = "mt-1 max-w-[62ch] text-[13.5px] text-pretty text-(--ui-ink-2)";
 
 /** A page's title, with its line under it. */
 /**
@@ -80,10 +80,7 @@ export function PageHeader({
 }) {
   return (
     <header
-      className={cx(
-        "mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-(--ui-hair) pb-5",
-        className,
-      )}
+      className={cx("mb-3.5 flex flex-wrap items-end justify-between gap-x-6 gap-y-2.5", className)}
     >
       <PageTitle title={title} lede={lede} />
       {actions ? <div className={ACTIONS}>{actions}</div> : null}
