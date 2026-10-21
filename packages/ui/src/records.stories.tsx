@@ -73,6 +73,29 @@ export const Late: Story = {
   },
 };
 
+/** Table | By state: the setting folds the rows into one group per state, and Table undoes it. */
+export const ByField: Story = {
+  render: () => <Page />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    const by = canvas.getByRole("link", { name: "By state" });
+    await expect(canvas.getByRole("link", { name: "Table" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await userEvent.click(by);
+    await waitFor(() => expect(by).toHaveAttribute("aria-current", "page"));
+    // Each state is a fold with its count; press one and its rows leave.
+    const fold = await canvas.findByRole("button", { name: /^Waiting/ });
+    await expect(fold).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(fold);
+    await expect(fold).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(canvas.getByRole("link", { name: "Table" }));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: /^Waiting/ })).toBeNull());
+  },
+};
+
 /** Rows picked: the bar swaps its count for the selection and the bulk actions. */
 export const Bulk: Story = {
   render: () => <Page at="view=waiting" />,

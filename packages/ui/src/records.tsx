@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
-import { accountFieldOf } from "./accounts.js";
 import {
   type Action,
   applies,
@@ -103,9 +102,9 @@ import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
   filtersOf,
+  groupFields,
   type KeepApi,
   ListBar,
-  siteField,
   useLastUsed,
   useNarrow,
   useSavedViews,
@@ -689,12 +688,10 @@ function ListDisplay({
   const shell = useFrame();
   const pop = useHoverPop();
   const frame = cards === null ? shell : null;
-  const site = siteField(meta);
   const all =
     narrow || cards === false ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
-  const account = accountFieldOf(meta);
-  // Group by its platform, or by the account each row is on: one at a time.
-  const groups = [site, account].flatMap((f) => (f?.states ? [f] : []));
+  // Group by its platform, the account each row is on, or any status or choice: one at a time.
+  const groups = groupFields(meta);
   if (!frame && !groups.length && !all.length) return null;
   const shown = new Set(columnsOf(meta, place.params, columns).map((f) => f.key));
   const fallback = columnsOf(meta, new URLSearchParams(), columns)

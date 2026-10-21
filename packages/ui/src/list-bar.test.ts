@@ -1,7 +1,7 @@
-/** Quick filters (offered first by Filter) and which views show as tabs. */
-import { defineRecord, metaOf, name, number, status } from "@wren/core/records";
+/** Quick filters (offered first by Filter), which views show as tabs, and what rows group by. */
+import { choice, defineRecord, metaOf, name, number, status } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
-import { quickFilters, splitViews } from "./list-bar.js";
+import { byField, groupFields, quickFilters, splitViews } from "./list-bar.js";
 
 const two = {
   a: { label: "A", tone: "neutral" as const },
@@ -51,6 +51,46 @@ describe("quickFilters", () => {
       "extra",
       "count",
     ]);
+  });
+});
+
+describe("groupFields and byField", () => {
+  const kinds = () => ({ x: "X", y: "Y" });
+  const typed = (o: { site?: boolean; choices?: boolean }) =>
+    metaOf(
+      defineRecord({
+        id: "t.group",
+        app: "marketing",
+        channel: o.site ? { field: "platform" } : null,
+        name: { one: "row", many: "rows" },
+        rows: async () => [],
+        key: "id",
+        title: "who",
+        fields: {
+          who: name("Who"),
+          count: number("Count"),
+          ...(o.choices ? { niche: choice(kinds, "Niche") } : {}),
+          state: status(two, "State"),
+          platform: status(two, "Site"),
+        },
+        views: [{ id: "all", label: "All" }],
+      }),
+      false,
+    );
+  it("offers the platform, then every status or choice, never twice", () => {
+    expect(groupFields(typed({ site: true, choices: true })).map((f) => f.key)).toEqual([
+      "platform",
+      "niche",
+      "state",
+    ]);
+  });
+  it("offers nothing where no field has states", () => {
+    const plain = typed({});
+    expect(groupFields({ ...plain, fields: plain.fields.filter((f) => !f.states) })).toEqual([]);
+  });
+  it("By takes the platform, else the first status, else the first choice", () => {
+    expect(byField(typed({ site: true }))?.key).toBe("platform");
+    expect(byField(typed({ choices: true }))?.key).toBe("state");
   });
 });
 
