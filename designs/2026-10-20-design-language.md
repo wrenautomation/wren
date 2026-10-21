@@ -111,12 +111,13 @@ Briefs: `designs/briefs/2026-10-20-design-language-c1.md`.
 - Plan nodes become cash stations with `terms` and `offer`. Price stays off the station (C2).
 - Columns: comment, reply, dm, email, text, cta and visit are marketing; other steps and the deal station are sales; steps after a deal station are delivery; cash is money. A column never goes left along a track. Why: today has no column; this is the nearest rule the artifact shows.
 - Kinds: proposal, signed and other are attention, as the artifact's Proposal station.
-- `placesOf` replaces `depthOf`: column first, then path. It is stored in `depths` for metro bodies, so the SQL readers and the web read it unchanged. The column takes the name `places` in the HELD part.
+- `placesOf` replaces `depthOf` for the map: column first, then path. It is worked out on read, not stored. (Changed 10-21: `depths` stays graph depth, because the profile merge compares depths across versions and a place is a different scale.)
+- A new column `shape_versions.run` holds `runOf(body)`, the graph the runtime runs. `saveShape` writes it. The SQL readers (`edge_flow`, `source_numbers`, `stage_flow`, `journeyShape`) read `run`, so they work on both models. Why: a metro body has no `nodes` or `edges`, and the lowering lives in TypeScript only.
 - Loops become `back` tracks, not exits. Why: crossing one opens a new journey, as a loop does today.
 - Display names are `label` and colours are a token index, as the renderer's view. Group membership lives on the group (`stations[]`), not on the station.
 - Hold and version chips are numbers, not stored fields. The retry cap is `retries` on the station.
 - Flows live in the body, not in a table of their own. Why: a journey pins one version; a separate versioned flow would need a second pin per journey, and diff, blame and the mirror already work on one body.
 - `attach` holds refs only (an id or a URL), never content.
 - The portal web keeps the graph (`runOf`) until area D. Why: the web Map reads nodes and edges.
-- Push: parts 1 to 3 are additive. Part 4 (graph bodies refused, `depths` renamed) is HELD with the prod convert, for William's yes, and waits for area D.
+- Push: parts 1 to 3 are additive. Part 4 (graph bodies refused) is HELD with the prod convert, for William's yes, and waits for area D.
 - C2 items stay out: repeat, bundles, credits, packages, delivery loops, rewarm.

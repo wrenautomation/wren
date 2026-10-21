@@ -125,7 +125,7 @@ New files only, plus `Refused` moved to `src/refused.ts` (re-exported from `stor
 0. **Fix from Part 1**: `metroOf` sets `by` from the to-station's `advance`, not the from-station's (a node's `advance` is what moves a journey into it). Update its tests.
 1. **`stored.ts`**: `type StoredBody = ShapeBody | MetroBody`; `runOf(stored): ShapeBody` (graph as is; metro through `graphOf`); `metroView(stored): MetroBody` (metro as is; graph through `metroOf`, which must not fail on a body `checkShape` accepts); `placesOfStored(stored)` (`depthOf` for a graph, `placesOf` for metro).
 2. **Schema types**: `shape_versions.body` and `shape_drafts.body` become `$type<StoredBody>()`. No migration. Let the typecheck find every reader. Runtime readers (journeys `versionOf`, `bodyOf`, `shapeWorkflowsOf`, moves, entry, steps, carry, numbers, worker, core, research, delivery) read `runOf(...)`. Keep `ShapeBody` as the runtime type; do not change its fields.
-3. **Store**: `saveShape` takes a `StoredBody`. A metro body: `checkMetro(body, ctx)`, then `lowerable`, then `checkShape(graphOf(body), ctx)`; every reason in one `Refused`. `depths` = `placesOfStored(body)`. "Nothing changed." compares stored bodies with `canonicalJson`. Carry and remap as today (identity ids). Drafts take either model.
+3. **Store**: `saveShape` takes a `StoredBody`. A metro body: `checkMetro(body, ctx)`, then `lowerable`, then `checkShape(graphOf(body), ctx)`; every reason in one `Refused`. `depths` = `placesOfStored(body)` (changed in Part 2b: graph depth always). "Nothing changed." compares stored bodies with `canonicalJson`. Carry and remap as today (identity ids). Drafts take either model.
 4. **Diff, blame, undo, YAML, mirror**: one entry point each over stored bodies.
    - Diff: both graph: `diffShapes` as today. Else `diffMetro(metroView(a), metroView(b))`. Return a tagged value (`{model: "graph", diff}` or `{model: "metro", diff}`) where the CLI and console need both. The portal web's routes keep answering in graph terms (`runOf` on both sides) so the web Map works unchanged until area D.
    - Blame: `node` and `edge` read `runOf` of each version; `line`, `station`, `track`, `group`, `frame` read `metroView` of each version.
@@ -136,6 +136,21 @@ New files only, plus `Refused` moved to `src/refused.ts` (re-exported from `stor
 7. **CLI** (`apps/cli/src/shape.ts`): `wren shape convert [--version <n>] [--out <file>] [--write] [--note <text>]`. Without `--write` it writes nothing. It prints: the metro YAML (or writes it to `--out`), the `notes`, `checkMetro` errors, whether `graphOf` gives back the same graph and the same workflow, and the deal rule report: per offer line, its first station after the hub and its deal station, and how many open journeys sit on stations between them (these open a deal early under the artifact's rule, see Decisions). `--write` saves the metro body as the next version (note: `Convert to the metro model`, or `--note`). `shape show` prints lines, stations and tracks for a metro body. `add-node`, `connect` and `remove` refuse on a metro body: "Export, edit the YAML, import." `blame` and `undo` take the new keys.
 8. **Tests**: integration in `packages/pipeline/test/integration` for save, carry, diff, blame and undo across a graph version then a metro version (run only the files you touched). CLI unit test for convert without `--write` on a synthetic database or the unit seam the CLI uses today.
 9. **Map card** `map/objects/platform/shape.md`: the metro model, `runOf` and `metroView`, the convert command, the HELD part. Run `map/_meta/build.sh`, then `--check`.
+
+---
+
+## Part 2b: SQL readers, convert report, model guards
+
+Planner review of Part 2 (10-21). Build this before Part 3.
+
+1. **`run` column**: migration (next free number, additive, `drizzle-kit generate`): `shape_versions.run jsonb`, backfilled with `body` where `body ->> 'model'` is null, then not null. `saveShape` writes `run = runOf(body)` and `depths = depthOf(runOf(body))` for both models. `depths` is graph depth always: revert `placesOfStored` in the store, and drop the `isMetro ? runDepthsOf : depths` branches (`journeys.ts`, `records.ts`); the column is right now. Places: `placesOf(metroView(body))` on read (records `places`, CLI `show`).
+2. **SQL readers read `run`**: the views `edge_flow`, `source_numbers`, `stage_flow` (`views.ts`) and `journeyShape` (`packages/core/src/segments.ts`). The migration drops and makes the views again, as `0306_shape.sql` did. `./scripts/gates.sh schema` must pass. Fix the `numbers.ts` header line "a version stored as a metro body has no crossings yet".
+3. **Model guards in `saveShape`**: a graph body over a metro newest is refused: "The shape is on the metro model. Import a metro file (wren shape export, edit, import)." This covers the web save, draft apply and import in one place. In `undoStoredChange`: a metro key on a graph newest is refused: "The shape is on the graph model. Undo by node or edge."
+4. **Convert in the pipeline**: `convertShape(db, {note, by, triggers})` in a pipeline module saves the newest graph as metro, the CLI `--write` calls it. Before it saves, it must prove: `checkStored` passes, `canonicalJson(graphOf(metro))` equals the newest graph, and `shapeWorkflow` of both is equal. Any miss refuses, with the reason.
+5. **Convert report** (printed with and without `--write`): the notes; the checks (ok or each reason); graph equal yes/no; workflow equal yes/no; the deal rule: for each offer line, its first station and its deal station, and when they differ, the open journeys on stations between them (the people the artifact rule would open a deal for earlier).
+6. **Line numbers per currency**: an offer line row follows what the graph offer rows do with currency. If those give one row per currency, do the same; else refuse to sum two currencies (null money, `currency` null) and say so in the comment.
+7. **Tests**: integration `convertShape` end to end on the test database: seed a graph with events, convert, then `edge_flow`, `source_numbers`, `journeyShape` and `numberRows` give the same numbers as before the convert. Unit: each guard, the report lines.
+8. Map card: update the HELD block (the SQL readers are done; only the guard stays HELD). Rebuild the map.
 
 ---
 
@@ -152,7 +167,7 @@ New files only, plus `Refused` moved to `src/refused.ts` (re-exported from `stor
 
 Message subject starts `HELD:`. One commit.
 
-1. Migration `0314_metro_only.sql` (next free number at the time): an insert trigger on `shape_versions` and `shape_drafts` that refuses a body without `model = 'metro'`; rename `shape_versions.depths` to `places`. Update `schema.ts`, the store and the SQL readers (`packages/core/src/segments.ts`, `packages/core/src/profile-pipeline.ts`, records, CLI).
+1. Migration `0314_metro_only.sql` (next free number at the time): an insert trigger on `shape_versions` and `shape_drafts` that refuses a body without `model = 'metro'`. No rename: `depths` stays graph depth (Part 2b).
 2. `saveShape` and `parseShape` refuse a graph body: "Convert first: wren shape convert."
 3. Run `./scripts/gates.sh schema`.
 
