@@ -207,7 +207,9 @@ export const PanelOrSheet: Story = {
     if (isWide(canvasElement)) {
       // Docked in the list's panel (artifact `.nt-pk`): its right half, not over the page.
       expect(peek.tagName).toBe("ASIDE");
-      expect(getComputedStyle(peek).position).toBe("absolute");
+      expect(getComputedStyle(peek).position).toBe("static");
+      // A grid cell, so a short list never cuts the record off.
+      expect(peek.scrollHeight).toBeLessThanOrEqual(peek.clientHeight + 1);
       const list = canvasElement.querySelector("table")?.closest("[class*='grid-cols-2']");
       expect(list?.contains(peek)).toBe(true);
     } else {
