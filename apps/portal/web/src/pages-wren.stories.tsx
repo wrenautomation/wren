@@ -118,7 +118,7 @@ export const LearnList = pageAt("/learn/items", {
       await expect(
         within(page).getByRole("checkbox", { name: "Select every item shown" }),
       ).toBeInTheDocument();
-    else await expect(link.closest("li")).not.toBeNull();
+    else await expect(link.closest("li")).toHaveAttribute("data-item");
     // Press a box: the file is picked, and the bulk bar shows.
     await userEvent.click(boxes[0] as HTMLElement);
     await waitFor(() => expect(boxes[0]).toBeChecked());

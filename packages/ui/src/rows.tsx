@@ -10,7 +10,14 @@
  */
 import type { FieldMeta, State, Tone } from "@wren/core/records";
 import { cn } from "cn";
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef } from "react";
+import {
+  type CSSProperties,
+  type LiHTMLAttributes,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { Tag } from "./controls.js";
 import { initials } from "./format.js";
 import { clipProps } from "./hint.js";
@@ -21,6 +28,11 @@ import { RowActions } from "./row-acts.js";
 import { type RowAttrs, useLines } from "./table.js";
 
 export { StageSquare };
+
+/** What a phone row takes from a page's `rowProps`: an li's attributes, minus the ones `SwipeRow` owns. */
+type LiAttrs = Omit<LiHTMLAttributes<HTMLLIElement>, "onClick"> & {
+  [data: `data-${string}`]: string | number | boolean | undefined;
+};
 
 /** The glyph before a column's head, by what the column holds. One table, so every list reads alike. */
 export const KIND_ICON: Record<FieldMeta["kind"], IconName> = {
@@ -541,15 +553,13 @@ export function Rows<T>(p: RowsProps<T>) {
               const r = rowOf(l);
               const act = p.act?.(l.row);
               const side = phoneCol?.cell(l.row, l.index);
-              // The page's class and data marks (a late mark, a focus hook) ride on the phone's row too.
-              const own = p.rowProps?.(l.row, l.index);
-              const marks = Object.fromEntries(
-                Object.entries(own ?? {}).filter(([k]) => k.startsWith("data-")),
-              );
+              // The page's own attributes (a mark, a drag, a focus hook) ride on the phone's row too.
+              // They are typed for a table row; an li takes the same events.
+              const { className: own, ...attrs } = (p.rowProps?.(l.row, l.index) ?? {}) as LiAttrs;
               return (
                 <SwipeRow
                   key={l.key}
-                  {...marks}
+                  {...attrs}
                   swipes={p.swipes?.(l.row) ?? null}
                   data-row={l.index}
                   data-index={n}
@@ -568,7 +578,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                     r.changed && "[&>[data-face]]:animate-ui-changed",
                     r.going && "[&>[data-face]]:bg-(--ui-wash)",
-                    own?.className,
+                    own,
                   )}
                 >
                   {pick ? (
