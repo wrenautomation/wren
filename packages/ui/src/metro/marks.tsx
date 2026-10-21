@@ -160,6 +160,9 @@ export function RuleTag({ x, y, t }: { x: number; y: number; t: string }) {
   );
 }
 
+/** A part the body does not give ("?") is said in words for a screen reader. */
+const said = (v: string, none: string): string => (v === "?" || v === "" ? none : v);
+
 /** A person track's pill: the owner's initials and the promise ("WJ · 4h"). Amber when late. */
 export function Pill({
   x,
@@ -185,7 +188,12 @@ export function Pill({
       {...(id
         ? {
             "data-tr": id,
-            ...asButton(marked(`Person task, ${o}, ${tm}${late ? ", late" : ""}`, mark)),
+            ...asButton(
+              marked(
+                `Person task, ${said(o, "no owner")}, ${said(tm, "no promise")}${late ? ", late" : ""}`,
+                mark,
+              ),
+            ),
           }
         : {})}
     >
