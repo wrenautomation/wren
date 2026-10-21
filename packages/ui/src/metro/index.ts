@@ -15,6 +15,7 @@ export {
   flagsAt,
   flagZoom,
   foldScene,
+  LEVEL_NAMES,
   type MetroZoom,
   normalise,
   type OpenMap,

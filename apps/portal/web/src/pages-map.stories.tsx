@@ -1,7 +1,7 @@
 /**
  * The Map on the fake server (designs/2026-10-21-design-language-d.md, part D3a): Wren's Home for
- * the team, the shape drawn by the metro renderer down the whole page. Today is a sheet over it (a
- * tab on a phone). A part opens its panel, a draft opens with its marks, History draws a compare.
+ * the team, the shape drawn by the metro renderer, Today under it (artifact section 07). A part
+ * opens its panel, a draft opens with its marks, History draws a compare.
  * Hover, click and Apply run in `play`. `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -144,14 +144,16 @@ const mapAt = (at: string, opts: PageAt = {}) => ({
 
 /**
  * Home for the team: the shape's lines, stations and tracks, the hub with its lead count, and the
- * ghost, a part an older version had that one person still sits on, in a note above the map. The
- * Map is the whole page; Today waits behind its header button.
+ * ghost, a part an older version had that one person still sits on, in a note above the map. Today
+ * sits under the Map.
  */
 export const Default = mapAt("/", {
   check: async (page) => {
     for (const name of ["Spring list", "Winter ads", "Engaged", "Booked", "Signed"])
       await station(page, name);
-    await expect(await within(page).findByRole("heading", { name: "Map" })).toBeVisible();
+    await expect(await within(page).findByRole("heading", { name: "Your business" })).toBeVisible();
+    await expect(within(page).getByText(/people on the map now/)).toBeVisible();
+    await expect(within(page).getByRole("group", { name: "Zoom level" })).toBeVisible();
     // The hub reads its lead count.
     await expect(await station(page, "First touch")).toHaveAccessibleName("First touch, 18 leads");
     // A calm map: real size, centred or panning, nothing on top of anything, no more crossings.
@@ -159,10 +161,12 @@ export const Default = mapAt("/", {
     await expect(crossingsOfShape(SHAPE_METRO)).toBeLessThanOrEqual(CROSSINGS_PINNED.default);
     // The ghost holds its one person.
     await expect(within(page).getByRole("button", { name: "Open Joined" })).toBeVisible();
-    // Today is no column beside the Map: closed, it takes no room (on a phone it is a tab).
-    await expect(within(page).queryByRole("heading", { name: "Today", level: 1 })).toBeNull();
+    // Today sits under the Map: its tasks and its lists.
+    await expect(
+      await within(page).findByRole("heading", { name: /^Today · waiting on you/ }),
+    ).toBeVisible();
+    await expect(await within(page).findByRole("heading", { name: /^Write/ })).toBeInTheDocument();
     if (!onPhone()) {
-      await expect(within(page).queryByRole("heading", { name: /^Write/ })).toBeNull();
       const map = within(page).getByRole("region", { name: "Map" });
       // Edge to edge of the window, which sits 10px in from the screen (--ui-frame).
       await expect(Math.round(map.getBoundingClientRect().right)).toBeGreaterThanOrEqual(
@@ -172,21 +176,16 @@ export const Default = mapAt("/", {
   },
 });
 
-/** Today opens as a sheet over the Map from its header; a task opens its track. */
-export const TodaySheet = {
+/** Today under the Map: the late task first; a task opens its track. */
+export const Today = {
   ...mapAt("/", {
     check: async (page) => {
       await station(page, "Engaged");
-      const open = within(page).getByRole("button", { name: "Today" });
-      await expect(open).toHaveAttribute("aria-expanded", "false");
-      await userEvent.click(open);
-      const sheet = await within(document.body).findByRole("dialog", { name: "Today" });
-      await expect(await within(sheet).findByRole("heading", { name: /^Write/ })).toBeVisible();
-      // The tasks sit at the top: the late one first.
-      const tasks = await within(sheet).findAllByRole("button", { name: /waiting at/ });
+      // The tasks sit at the top of Today: the late one first.
+      const tasks = await within(page).findAllByRole("button", { name: /waiting at/ });
       await expect(tasks[0]).toHaveTextContent("Booked");
       await expect(tasks[0]).toHaveTextContent(/Late · promise 4h/);
-      // A task opens its track panel and closes the sheet.
+      // A task opens its track panel.
       await userEvent.click(tasks[0] as HTMLElement);
       const panel = await within(page).findByRole("region", { name: "Engaged to Booked, details" });
       await expect(within(panel).getByText("Moved by Ada North")).toBeVisible();
@@ -217,8 +216,8 @@ export const Loading = {
     const page = canvasElement;
     const skeleton = await within(page).findByRole("status", { name: "Loading" }, LATE);
     await expect(skeleton).toBeVisible();
-    // No words on the map's frame, no ring beside any title, no box. (The phone page also draws
-    // the Today sheet's own ghost lines below the map; they are not the map's.)
+    // No words on the map's frame, no ring beside any title, no box. (Today under the map draws
+    // its own ghost lines; they are not the map's.)
     const frame = skeleton.parentElement as HTMLElement;
     await expect(skeleton.textContent).toBe("");
     await expect(within(frame).queryAllByText(/^Loading/)).toHaveLength(0);

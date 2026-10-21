@@ -574,50 +574,23 @@
   opacity: 0.55;
 }
 
-/* The map's frame: level buttons and the count line above, the drawing below. */
+/* The map's frame (the artifact's `.zbar`): level buttons at the left, the count line at the right, the drawing below. */
 .metro-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 16px;
+  justify-content: space-between;
+  gap: 10px 16px;
   margin-bottom: 10px;
 }
 .metro-count {
   margin: 0;
-  font: 500 13px var(--ui-font);
+  font: 400 13px var(--ui-font);
   color: var(--ui-ink-2);
   font-variant-numeric: tabular-nums;
 }
 .metro-count b {
   color: var(--ui-ink);
-}
-.metro-levels {
-  border: 0;
-  margin: 0;
-  min-width: 0;
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 10px;
-  background: var(--ui-wash);
-}
-.metro-levels button {
-  all: unset;
-  box-sizing: border-box;
-  cursor: pointer;
-  padding: 5px 12px;
-  border-radius: 8px;
-  font: 650 13px var(--ui-font);
-  color: var(--ui-ink-2);
-}
-.metro-levels button[aria-pressed="true"] {
-  background: var(--ui-paper);
-  color: var(--ui-ink);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--ui-ink) 16%, transparent);
-}
-.metro-levels button:focus-visible {
-  outline: 2px solid var(--ui-focus);
-  outline-offset: 1px;
 }
 
 /*

@@ -107,11 +107,11 @@ export function flagZoom(o: {
   };
 }
 
+/** The level names of `autoZoom`, outermost first. */
+export const LEVEL_NAMES: readonly string[] = ["Parts", "Groups", "Stations"];
+
 /** Zoom for a scene that names its lines and groups: levels fold it by rule (`foldScene`). */
-export function autoZoom(
-  scene: MetroScene,
-  names: readonly string[] = ["Parts", "Groups", "Stations"],
-): MetroZoom {
+export function autoZoom(scene: MetroScene, names: readonly string[] = LEVEL_NAMES): MetroZoom {
   const last = names.length - 1;
   return {
     names,

@@ -2,7 +2,7 @@
  * Today's tasks (artifact section 07): one card per person track, late first. Hover or focus a
  * task and its line lights on the Map; a click opens its track. The list comes from `tasksOf`.
  */
-import { cx, Section, Tag } from "@wren/ui";
+import { cx, Tag } from "@wren/ui";
 import { hoursSay, type Task } from "./tasks.js";
 
 /** The owner's initials in a round tile. */
@@ -40,7 +40,16 @@ export function TodayTasks({
   onOpen: (id: string) => void;
 }) {
   return (
-    <Section title="Tasks" count={tasks.length || undefined} className="mb-4">
+    // The artifact's `.sheet .sh`: no frame, the h3 on the paper.
+    <section aria-label="Tasks" className="grid gap-3">
+      <h2 className="m-0 flex items-baseline gap-2 text-[16px] font-[650] tracking-[-0.01em]">
+        Today · waiting on you
+        {tasks.length ? (
+          <span className="text-[13px] font-normal text-(--ui-ink-2) tabular-nums">
+            {tasks.length}
+          </span>
+        ) : null}
+      </h2>
       {tasks.length ? (
         <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))] gap-x-3 gap-y-1">
           {tasks.map((t) => (
@@ -75,6 +84,6 @@ export function TodayTasks({
       ) : (
         <p className="text-[14px] text-(--ui-ink-2)">No tasks waiting.</p>
       )}
-    </Section>
+    </section>
   );
 }

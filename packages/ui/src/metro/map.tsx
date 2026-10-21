@@ -12,6 +12,7 @@
  * screen.
  */
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Seg } from "../controls.js";
 import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene, nameOf } from "./focus.js";
@@ -54,6 +55,8 @@ export interface MetroMapProps {
 
   /** The level buttons and the count line. Default: on. */
   controls?: boolean | undefined;
+  /** The level buttons in the bar. Off when the page puts `MetroLevels` in its own header. Default: on. */
+  levels?: boolean | undefined;
   /**
    * Draw one part only (a line, group, station or flow) and a faded stub for each track that
    * crosses its edge. Shows every station of that part, whatever the level.
@@ -355,7 +358,7 @@ export function MetroMap(props: MetroMapProps) {
     >
       {controls ? (
         <div className="metro-bar">
-          {focus ? null : (
+          {focus || props.levels === false ? null : (
             <MetroLevels
               names={zoom.names}
               level={mixed ? null : level}
@@ -418,7 +421,7 @@ const hasMarks = (s: MetroScene) =>
 const NONE: OpenMap = Object.freeze({});
 const EMPTY: MetroScene = { h: 80, st: [], tr: [] };
 
-/** The level buttons: one per level, the level shown pressed. `null`: a mix, none pressed. */
+/** The level buttons (the artifact's `.seg`): one per level, the level shown pressed. `null`: a mix, none pressed. */
 export function MetroLevels({
   names,
   level,
@@ -431,13 +434,13 @@ export function MetroLevels({
   label?: string;
 }) {
   return (
-    <fieldset className="metro-levels" aria-label={label}>
-      {names.map((n, i) => (
-        <button key={n} type="button" aria-pressed={level === i} onClick={() => onLevel(i)}>
-          {n}
-        </button>
-      ))}
-    </fieldset>
+    <Seg
+      label={label}
+      className="metro-levels"
+      value={level === null ? "" : String(level)}
+      items={names.map((n, i) => ({ value: String(i), label: n }))}
+      onChange={(v) => onLevel(Number(v))}
+    />
   );
 }
 

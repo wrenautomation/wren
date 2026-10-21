@@ -10,15 +10,17 @@
  */
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
-import { Button, Callout, canAt, Icon, LoadFailed, SELECT_CLASS, Segmented } from "@wren/ui";
+import { Button, canAt, Icon, LoadFailed, SELECT_CLASS, Segmented } from "@wren/ui";
 import {
+  LEVEL_NAMES,
+  MetroLevels,
   MetroMap,
   type MetroPick,
   MetroSkeleton,
   type MetroView,
   type OpenMap,
 } from "@wren/ui/metro";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
 import { type PageProps, WREN } from "../module.js";
 import { atOf } from "../modules/deals/board.js";
@@ -136,14 +138,11 @@ function useKeptView(client: string): [Kept, (part: Kept) => void] {
 export function MapPage({
   props,
   clients,
-  trailing,
   lit,
 }: {
   props: PageProps;
   /** The workspaces the viewer may switch between, besides Wren's. */
   clients: readonly { id: string; name: string }[];
-  /** More controls at the header's end (the Today sheet's button). */
-  trailing?: ReactNode;
   /** The line key Today lights on hover (`lineKeyOf`). */
   lit?: string | null;
 }) {
@@ -334,84 +333,99 @@ export function MapPage({
   const waiting = !!draftId && !row && !opened.error;
 
   return (
-    <section
-      aria-label="Map"
-      className="flex min-h-0 min-w-0 flex-1 flex-col text-(--ui-ink) max-[900px]:flex-none"
-    >
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-(--ui-hair) px-5 py-3 max-[900px]:px-4">
-        <h1 className="mr-auto text-[22px]/8 font-semibold">Map</h1>
-        <Segmented
-          label="Window"
-          className="max-w-full"
-          items={WINDOWS.map((w) => ({
-            id: w.id,
-            label: w.label,
-            href: href("/", { window: w.id === "30" ? null : w.id }, props.params),
-            on: w.id === window,
-          }))}
-        />
-        <select
-          aria-label="Client"
-          className={`${SELECT_CLASS} !w-auto`}
-          value={props.client}
-          onChange={(e) =>
-            go("/", { client: e.target.value === WREN.id ? null : e.target.value }, props.params)
-          }
-        >
-          <option value={WREN.id}>Wren</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        {data ? (
-          <Button
-            tone="quiet"
-            size="dense"
-            aria-pressed={history}
-            onClick={() => {
-              if (history) closeHistory();
-              else setHistory(true);
-              setPicked([]);
-            }}
+    <section aria-label="Map" className="flex min-w-0 flex-none flex-col text-(--ui-ink)">
+      {/* The artifact's `.atop`: the title and how many people are on the map, the tools at the right. */}
+      <header className="flex flex-wrap items-end justify-between gap-2.5 px-[clamp(12px,2.5vw,24px)] pt-[18px] pb-3.5">
+        <div className="mr-auto min-w-0">
+          <h1 className="text-[22px]/7 font-semibold tracking-[-0.02em]">Your business</h1>
+          <p className="text-[13.5px] text-(--ui-ink-2)">
+            {data
+              ? `${data.people.length} ${data.people.length === 1 ? "person" : "people"} on the map now. Pinch or switch to zoom.`
+              : "The map of your business."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <Segmented
+            label="Window"
+            className="max-w-full"
+            items={WINDOWS.map((w) => ({
+              id: w.id,
+              label: w.label,
+              href: href("/", { window: w.id === "30" ? null : w.id }, props.params),
+              on: w.id === window,
+            }))}
+          />
+          <select
+            aria-label="Client"
+            className={`${SELECT_CLASS} !w-auto`}
+            value={props.client}
+            onChange={(e) =>
+              go("/", { client: e.target.value === WREN.id ? null : e.target.value }, props.params)
+            }
           >
-            <Icon name="clock" size={15} /> History
-          </Button>
-        ) : null}
-        {data ? (
-          <Button tone="quiet" size="dense" onClick={() => void exportShape()}>
-            <Icon name="download" size={15} /> Export
-          </Button>
-        ) : null}
-        {mayEdit ? (
-          <>
-            <Button tone="quiet" size="dense" onClick={() => picker.current?.click()}>
-              <Icon name="upload" size={15} /> Import
-            </Button>
-            <input
-              ref={picker}
-              type="file"
-              accept=".yaml,.yml,text/yaml"
-              aria-label="Shape file"
-              className="hidden"
-              onChange={(e) => {
-                void importFile(e.target.files?.[0]);
-                e.target.value = "";
+            <option value={WREN.id}>Wren</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          {data ? (
+            <Button
+              tone="quiet"
+              size="dense"
+              aria-pressed={history}
+              onClick={() => {
+                if (history) closeHistory();
+                else setHistory(true);
+                setPicked([]);
               }}
+            >
+              <Icon name="clock" size={15} /> History
+            </Button>
+          ) : null}
+          {data ? (
+            <Button tone="quiet" size="dense" onClick={() => void exportShape()}>
+              <Icon name="download" size={15} /> Export
+            </Button>
+          ) : null}
+          {mayEdit ? (
+            <>
+              <Button tone="quiet" size="dense" onClick={() => picker.current?.click()}>
+                <Icon name="upload" size={15} /> Import
+              </Button>
+              <input
+                ref={picker}
+                type="file"
+                accept=".yaml,.yml,text/yaml"
+                aria-label="Shape file"
+                className="hidden"
+                onChange={(e) => {
+                  void importFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </>
+          ) : null}
+          {shown?.view ? (
+            <MetroLevels
+              names={LEVEL_NAMES}
+              level={Object.keys(kept.open ?? {}).length ? null : (kept.level ?? 0)}
+              onLevel={(n) => keepNow({ level: n, open: {} })}
             />
-          </>
-        ) : null}
-        {trailing}
+          ) : null}
+        </div>
       </header>
       {notice ? (
-        <div className="mx-5 mt-3 max-[900px]:mx-4">
+        <div className="px-[clamp(12px,2.5vw,24px)] pb-2">
           <Refused text={notice} />
         </div>
       ) : null}
       {data?.ghosts.length ? (
-        <Callout tone="warn" className="mx-5 mt-3 mb-0 max-[900px]:mx-4">
-          <span>The newest version dropped a part that people are still on: </span>
+        // One quiet line, the count bar's type: the artifact draws no box over the map.
+        <p className="flex flex-wrap items-center gap-x-1 px-[clamp(12px,2.5vw,24px)] pb-2 text-[13px] text-(--ui-ink-2)">
+          <span className="mr-1 size-2 rounded-full bg-(--ui-warn)" aria-hidden="true" />
+          <span>The newest version dropped a part that people are still on:</span>
           {data.ghosts.map((g) => (
             <Button
               key={g.id}
@@ -423,14 +437,14 @@ export function MapPage({
               {g.name} ({g.people.length})
             </Button>
           ))}
-        </Callout>
+        </p>
       ) : null}
       {draftId && opened.error && !opened.data ? (
-        <div className="mx-5 mt-3 max-[900px]:mx-4">
+        <div className="px-[clamp(12px,2.5vw,24px)] pb-2">
           <LoadFailed error={opened.error} onRetry={opened.retry} what="draft" />
         </div>
       ) : null}
-      <div className="relative min-h-0 flex-1 max-[900px]:h-[68dvh] max-[900px]:min-h-[380px] max-[900px]:flex-none">
+      <div className="relative h-[62dvh] min-h-[420px] flex-none max-[900px]:h-[68dvh] max-[900px]:min-h-[380px]">
         {read.error && !read.data ? (
           <div className="p-5">
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
@@ -450,10 +464,11 @@ export function MapPage({
                   onLevel={setLevel}
                   open={kept.open}
                   onOpen={setOpen}
+                  levels={false}
                   onPick={onPick}
                   selected={panel && panel.kind !== "line" ? panel.id : null}
                   intro={false}
-                  className="min-h-0 flex-1"
+                  className="min-h-0 flex-1 [&_.metro-bar]:px-[clamp(12px,2.5vw,24px)]"
                 />
               </div>
             ) : shown ? (

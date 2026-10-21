@@ -1,10 +1,7 @@
 /**
- * "/" for Wren's team: the Map of the workspace's shape, the whole page, edge to edge. Today is a
- * sheet that slides over it from the Map's header, closed until asked, so the canvas never gives up
- * room for it. On a phone Today stays a tab under the Map.
+ * "/" for Wren's team: the Map of the workspace's shape, and Today under it (artifact section 07).
+ * Hover a task to light its line on the Map; a click opens its track.
  */
-import { Button, Icon, usePhone } from "@wren/ui";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@wren/ui/components/ui/sheet";
 import { lineKeyOf } from "@wren/ui/metro";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import type { PageProps } from "../module.js";
@@ -25,9 +22,6 @@ export function MapHome({
   /** Today's lists, without their page header. */
   today: ReactNode;
 }) {
-  const phone = usePhone();
-  const [sheet, setSheet] = useState(false);
-  const [tab, setTab] = useState(true);
   // The same read as the Map's: one cached answer. Tasks wait for it and for a drawable shape.
   const read = useMap(props.client, windowOf(props.params.get("window")));
   const data = read.data?.map ?? null;
@@ -48,7 +42,6 @@ export function MapHome({
   );
   const openTask = useCallback(
     (id: string) => {
-      setSheet(false);
       setLit(null);
       go("/", { track: id, node: null, line: null }, props.params);
     },
@@ -56,66 +49,13 @@ export function MapHome({
   );
   const list = tasks ? <TodayTasks tasks={tasks} onLight={light} onOpen={openTask} /> : null;
   return (
-    <div className="flex h-full min-w-0 flex-col max-[900px]:h-auto">
-      <MapPage
-        props={props}
-        clients={clients}
-        lit={lit}
-        trailing={
-          phone ? null : (
-            <Button
-              tone="secondary"
-              size="dense"
-              aria-haspopup="dialog"
-              aria-expanded={sheet}
-              onClick={() => setSheet(true)}
-            >
-              <Icon name="home" size={15} /> Today
-            </Button>
-          )
-        }
-      />
-      {phone ? (
-        <div className="min-w-0 px-4 pt-3 pb-4">
-          <Button
-            tone="quiet"
-            size="dense"
-            aria-expanded={tab}
-            aria-controls="today-tab"
-            onClick={() => setTab(!tab)}
-          >
-            <Icon name="home" size={15} /> Today
-          </Button>
-          {tab ? (
-            <div id="today-tab" className="mt-4">
-              {list}
-              {today}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <Sheet
-          open={sheet}
-          onOpenChange={(open) => {
-            setSheet(open);
-            if (!open) setLit(null);
-          }}
-        >
-          <SheetContent
-            side="right"
-            initialFocus={false}
-            className="gap-0 bg-(--ui-paper) text-(--ui-ink) data-[side=right]:w-[min(460px,94vw)] data-[side=right]:sm:max-w-[460px]"
-          >
-            <SheetHeader className="border-b border-(--ui-hair) bg-transparent p-4">
-              <SheetTitle className="text-[17px]/6 font-semibold">Today</SheetTitle>
-            </SheetHeader>
-            <div id="today-sheet" className="min-h-0 flex-1 overflow-y-auto p-4">
-              {list}
-              {today}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
+    <div className="flex min-w-0 flex-col">
+      <MapPage props={props} clients={clients} lit={lit} />
+      {/* The artifact's Today sheet under the map: a hair on top, the same side pad as the map. */}
+      <div className="grid min-w-0 content-start gap-3 border-t border-(--ui-hair) px-[clamp(12px,2.5vw,24px)] pt-4 pb-5">
+        {list}
+        {today}
+      </div>
     </div>
   );
 }
