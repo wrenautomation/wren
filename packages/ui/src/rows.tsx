@@ -288,7 +288,7 @@ function groundOf(open: boolean, picked: boolean, cursor: boolean) {
   if (open)
     return "bg-(--ui-fill) [--row-ground:color-mix(in_srgb,var(--ui-ink)_6%,var(--ui-paper))]";
   if (picked)
-    return "bg-(--ui-accent-tint) [--row-ground:color-mix(in_srgb,var(--ui-accent)_10%,var(--ui-paper))]";
+    return "bg-(--ui-accent-tint) [--row-ground:color-mix(in_srgb,var(--ui-active)_10%,var(--ui-paper))]";
   if (cursor)
     return "bg-(--ui-hover) [--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]";
   return "[--row-ground:var(--ui-paper)] hover:bg-(--ui-hover) hover:[--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]";
@@ -383,7 +383,7 @@ function NameCell<T>({
       {initial ? (
         <span
           aria-hidden
-          className="grid size-[22px] flex-none place-items-center rounded-full bg-(--ui-accent-tint) text-[10px] font-bold text-(--ui-accent)"
+          className="grid size-[22px] flex-none place-items-center rounded-full bg-(--ui-accent-tint) text-[10px] font-bold text-(--ui-link)"
         >
           {initial}
         </span>
@@ -413,7 +413,7 @@ const OPEN_CHIP =
   "ml-auto inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-[650] text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:var(--ui-leaf-chip)] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
 
 const BOX =
-  "size-3.5 align-middle accent-(--ui-accent) transition-opacity duration-150 focus-visible:opacity-100 checked:opacity-100";
+  "size-3.5 align-middle accent-(--ui-active) transition-opacity duration-150 focus-visible:opacity-100 checked:opacity-100";
 
 /** The rows part: see the file's head. */
 export function Rows<T>(p: RowsProps<T>) {
@@ -550,7 +550,7 @@ export function Rows<T>(p: RowsProps<T>) {
                         aria-label={`Select ${name.title(l.row)}`}
                         checked={r.picked}
                         onChange={() => pick.toggle(l.key)}
-                        className="accent-(--ui-accent)"
+                        className="accent-(--ui-active)"
                       />
                     </label>
                   ) : (

@@ -125,7 +125,7 @@ const ICON_BUTTON =
 
 /** The one icon a row always shows: quiet until its row is hovered, then accent. */
 const QUIET_BUTTON =
-  "inline-grid size-7 flex-none cursor-pointer place-items-center [border-radius:var(--ui-leaf-button)] border-0 bg-transparent text-(--ui-ink-3) no-underline transition-colors group-hover:text-(--ui-accent) hover:bg-(--ui-accent-tint) hover:text-(--ui-accent) focus-visible:text-(--ui-accent) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-accent-tint) data-[popup-open]:text-(--ui-accent) pointer-coarse:size-11";
+  "inline-grid size-7 flex-none cursor-pointer place-items-center [border-radius:var(--ui-leaf-button)] border-0 bg-transparent text-(--ui-ink-3) no-underline transition-colors group-hover:text-(--ui-link) hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:text-(--ui-link) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-accent-tint) data-[popup-open]:text-(--ui-link) pointer-coarse:size-11";
 
 /**
  * A row's actions, run where it sits. A wide row always shows one quiet icon at its end: the
