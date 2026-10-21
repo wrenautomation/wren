@@ -2,18 +2,28 @@
  * Looking at the picture (designs/2026-10-06-video-editor.md): a model watches the cut file and
  * writes moments, Shorts ideas, chapters and thumbnail frames onto the edit. Nothing applies them;
  * Claude Code reads them like the transcript. Gemini reads a 360p copy through the Files API with
- * the SOP reader's fleet keys and model order. TwelveLabs indexes the same copy once in
+ * the SOP reader's fleet keys and model order. Cohere reads no video: the SOP reader's `watch`
+ * hands it the scene cuts and a vision model's line per frame, and a text model answers from those
+ * and the transcript. TwelveLabs indexes the same copy once in
  * `wren-videos` (Marengo, for `wren video find`) and asks Pegasus; its free plan is 600 minutes
  * across indexing and analysis, so it stops before a call that would pass them.
  */
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { askGemini, clock } from "@wren/research/sops";
+import {
+  askGemini,
+  COHERE_TEXT_MODEL,
+  clock,
+  cohereChat,
+  cutsLine,
+  onScreenLines,
+  watch,
+} from "@wren/research/sops";
 import { z } from "zod";
 import { fromCutTime, type Span, toCutTime } from "./cuts.js";
 import type { Look, Word } from "./schema.js";
 
-export const LOOK_PROVIDERS = ["gemini", "twelvelabs"] as const;
+export const LOOK_PROVIDERS = ["gemini", "twelvelabs", "cohere"] as const;
 export type LookProvider = (typeof LOOK_PROVIDERS)[number];
 
 /**
@@ -26,15 +36,25 @@ export type Looker = (
   prior?: Look["media"],
 ) => Promise<Omit<Look, "at">>;
 
-const ASK = (transcript: string) =>
-  `You are helping edit this YouTube video. Watch it and answer in JSON only, with times in seconds of this file:
-{"summary": one line on what the video is,
+const SHAPE = `{"summary": one line on what the video is,
  "moments": [{"at": s, "why": what happens on screen that matters}] (screen changes, demos, strong lines; up to 15),
  "shorts": [{"from": s, "to": s, "title": short title}] (8 to 12 clips of 20 to 60 s, each opening on a hook in its first 2 seconds, making one point that makes sense alone, ending clean; they work visually),
  "chapters": [{"at": s, "title": 2 to 5 words}] (first at 0, at screen or topic changes),
- "thumbnails": [{"at": s, "why": why this frame}] (3 frames: face clear, expressive, screen readable)}
+ "thumbnails": [{"at": s, "why": why this frame}] (3 frames: face clear, expressive, screen readable)}`;
+
+const ASK = (transcript: string) =>
+  `You are helping edit this YouTube video. Watch it and answer in JSON only, with times in seconds of this file:
+${SHAPE}
 The transcript, for exact words:
 ${transcript}`;
+
+/** The same ask for a model that cannot play the video: it gets what `watch` found instead. */
+const ASK_SEEN = (transcript: string, seen: string) =>
+  `You are helping edit this YouTube video. You cannot play it. You have the scene cuts ffmpeg found, and what a vision model read off one frame in every few seconds, each line under its frame time ("not read" means that frame is unknown: do not guess it; faces and expressions are not described). Answer in JSON only, with times in seconds of this file:
+${SHAPE}
+The transcript, for exact words:
+${transcript}
+${seen}`;
 
 const sec = z.coerce.number().min(0);
 const lookSchema = z.object({
@@ -134,6 +154,38 @@ export function geminiLooker(keys: readonly string[], fetchFn: typeof fetch = fe
         headers: { "x-goog-api-key": up.key },
       }).catch(() => {});
     }
+  };
+}
+
+/**
+ * Cohere on the cut file (360p): `watch` for the cuts and the on-screen text (the transcript is
+ * the edit's own, so it skips the speech), then one text ask for the same JSON as the other
+ * providers. Times are cut-file seconds.
+ */
+export function cohereLooker(
+  keys: readonly string[],
+  o: { ffmpeg?: string; fetchFn?: typeof fetch; pause?: (ms: number) => Promise<void> } = {},
+): Looker {
+  if (!keys.length) throw new Error("no COHERE keys");
+  return async (file, transcript) => {
+    const seen = await watch(file, { cohereKeys: keys, speech: false, ...o });
+    const prompt = ASK_SEEN(
+      transcript,
+      `Scene cuts: ${cutsLine(seen)}\nOn screen:\n${onScreenLines(seen).join("\n") || "(no text read)"}`,
+    );
+    const text = await cohereChat(
+      keys,
+      {
+        model: COHERE_TEXT_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: 4096,
+      },
+      { ...o, label: "look" },
+    );
+    if (!text) throw new Error("cohere look: no answer");
+    return parseLook(text.replace(/^```(json)?|```$/g, ""));
   };
 }
 
