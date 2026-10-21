@@ -453,7 +453,7 @@ export function AppShell({
                 "mx-auto outline-none",
                 bleed
                   ? "h-full max-[900px]:h-auto"
-                  : "px-10 pt-9 pb-20 max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
+                  : "px-[clamp(12px,2.5vw,24px)] pt-[18px] pb-20 max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
                 // The phone's tabs sit over the page's foot: it scrolls clear of them.
                 nav &&
                   (bleed
@@ -462,11 +462,7 @@ export function AppShell({
                 // A new page, or its data after the loader, fades in. Opacity only, so a fixed
                 // panel inside keeps the window as its frame.
                 "[&>*]:animate-[ui-fade_0.2s_var(--ui-ease)_backwards]",
-                bleed
-                  ? "max-w-none"
-                  : wide
-                    ? "max-w-none min-[901px]:px-8"
-                    : "max-w-(--ui-main-width)",
+                bleed || wide ? "max-w-none" : "max-w-(--ui-main-width)",
               )}
               id="main"
               ref={main}

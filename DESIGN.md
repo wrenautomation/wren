@@ -203,11 +203,11 @@ Source: `packages/ui/src/tailwind.css` (body, `--ui-font*`), `packages/ui/src/la
 
 - **Family:** Figtree Variable only, self-hosted by `@fontsource-variable/figtree`. No second display face. `--ui-font-display` equals `--ui-font` in the Wren look. Display weight is `--ui-display-weight` (500).
 - **Body:** 15 px / 1.55, 400, tabular figures, antialiased.
-- **Page title:** 28 px / 34 px, 600, tracking -0.022em, balanced wrap. Phone: 22 px / 28 px.
+- **Page title:** 22 px / 28 px, 650, tracking -0.02em (artifact `.atop h3`), balanced wrap. Same on phone.
 - **Section title:** 16 px / 22 px, 600.
 - **Group label:** 12.5 px / 16 px, 650, sentence case, ink-3. Case and tracking read `--ui-label-case` and `--ui-label-tracking` (none and 0), so a look can set capitals back. One constant: `GROUP_LABEL` in `layout.tsx`. The Map's column names keep small caps.
 - **Rows and app text:** 14 px. Dense controls and bars: 13 px. Table heads: 12 px.
-- **Lede (`ABOUT`):** 14 px ink-2, one line, max 62ch.
+- **Lede (`ABOUT`):** 13.5 px ink-2 (artifact `.atop p`), one line, max 62ch.
 - **Links:** underlined 1 px, offset 0.24em, ink-3, current color on hover.
 - **Selection:** accent ground, on-accent text.
 
@@ -223,8 +223,9 @@ Source: `packages/ui/src/layout.tsx`, `shell.tsx`, `frame.tsx`, `display.ts`, `t
 
 - **Frame vars** are `--layout-*`, not `--ui-*`, so a client's look cannot set widths. Side 190 px, pages 208 px, row 40 px (snug 32), nav row 34 (snug 28), tab row 34 (snug 30), zoom 1.
 - **Window:** `AppShell` is a grid `var(--layout-side) / minmax(0,1fr)` with a 54 px top bar. The app sits in one rounded window with a `--ui-frame` (10 px) margin on the canvas.
-- **Main width:** 1240 px (`--ui-main-width`). Wide pages use full width with `px-8`. Lists use the full window width.
-- **PageHeader:** wraps, items end, gap-x 24, gap-y 12, bottom hairline, `pb-5`, `mb-7`.
+- **Main width:** 1240 px (`--ui-main-width`). Page padding is `18px clamp(12px, 2.5vw, 24px)` (artifact `.amain`); a wide page only drops the max width. Phone keeps 16 px. Lists use the full window width.
+- **PageHeader:** wraps, items end, gap-x 24, gap-y 10, no rule, `mb-3.5` (artifact `.atop`).
+- **Segmented control** (`frame.tsx`, `phone.tsx`; artifact `.seg`): fill ground, radius 10, 3 px padding, gap 2 px. Buttons 13.5 px, padding 6 px 12 px, radius `3px 9px 3px 9px`. The choice on screen is paper, ink, 600, `--ui-raise`. Focus is a 2 px focus outline, 1 px offset.
 - **Section:** a framed panel with a band head strip. Framed sections stack 28 px apart. `plain` drops the frame; sibling plain sections stack 40 px apart.
 - **Fieldset:** a frame whose legend is the head strip (group label). Body is a grid, gap 16, padding 16.
 - **Display settings** (`display.ts`): sidebar and pages widths, rows roomy or snug, text small, normal or large (zooms `main` only), canvas frame on or off, counts on or off, motion full or less.

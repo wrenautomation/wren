@@ -358,12 +358,12 @@ export function Segmented<T extends string>({
   return (
     <fieldset className="m-0 grid min-w-0 gap-1.5 border-0 p-0">
       <legend className="mb-1.5 p-0 text-[12.5px] font-medium text-(--ui-ink-2)">{label}</legend>
-      <div className="grid auto-cols-fr grid-flow-col border border-(--ui-edge) bg-(--ui-fill) p-0.5">
+      <div className="grid auto-cols-fr grid-flow-col gap-0.5 rounded-[10px] bg-(--ui-fill) p-[3px]">
         {options.map(([v, text]) => (
           <label
             key={v}
             className={cn(
-              "relative flex h-7 cursor-pointer items-center justify-center rounded-md px-2 text-[12.5px] font-medium whitespace-nowrap text-(--ui-ink-2) transition-[background-color,color,box-shadow] duration-150 ease-(--ui-ease) hover:text-(--ui-ink) has-[:checked]:bg-(--ui-paper) has-[:checked]:text-(--ui-ink) has-[:checked]:shadow-[0_0_0_1px_var(--ui-hair)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-(--ui-focus)",
+              "relative flex cursor-pointer items-center justify-center rounded-[3px_9px_3px_9px] px-3 py-1.5 text-[13.5px] whitespace-nowrap text-(--ui-ink-2) transition-[background-color,color,box-shadow] duration-200 ease-(--ui-ease) pointer-coarse:min-h-11 hover:text-(--ui-ink) has-[:checked]:bg-(--ui-paper) has-[:checked]:font-semibold has-[:checked]:text-(--ui-ink) has-[:checked]:shadow-(--ui-raise) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-(--ui-focus)",
             )}
           >
             <input
