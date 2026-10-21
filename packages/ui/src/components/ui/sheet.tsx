@@ -84,8 +84,8 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      // A head strip: banded, ruled off from the body.
-      className={cn("flex flex-col gap-0.5 border-b border-(--ui-hair) bg-(--ui-band) p-4", className)}
+      // A head on the paper, ruled off from the body (artifact `.mh`).
+      className={cn("flex flex-col gap-0.5 border-b border-(--ui-hair) p-4", className)}
       {...props}
     />
   )
@@ -95,7 +95,7 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-band) p-4", className)}
+      className={cn("mt-auto flex flex-col gap-2 border-t border-(--ui-hair) p-4", className)}
       {...props}
     />
   )

@@ -84,8 +84,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      // A head strip: banded, ruled off from the body.
-      className={cn("-mx-4 -mt-4 flex flex-col gap-2 border-b border-(--ui-hair) bg-(--ui-band) px-4 py-3.5", className)}
+      // A head on the paper, ruled off from the body (artifact `.mh`).
+      className={cn("-mx-4 -mt-4 flex flex-col gap-2 border-b border-(--ui-hair) px-4 py-3.5", className)}
       {...props}
     />
   )
@@ -103,7 +103,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-2xl border-t border-(--ui-hair) bg-(--ui-band) p-4 sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-2xl border-t border-(--ui-hair) p-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
