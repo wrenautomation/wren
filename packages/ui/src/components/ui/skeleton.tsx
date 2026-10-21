@@ -4,7 +4,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="skeleton"
-      className={cn("ui-skeleton relative overflow-hidden rounded-[3px_8px_3px_8px] bg-(--ui-fill)", className)}
+      className={cn("ui-skeleton relative overflow-hidden rounded-(--ui-leaf-line) bg-(--ui-fill)", className)}
       {...props}
     />
   )

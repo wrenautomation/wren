@@ -13,7 +13,7 @@ import {
   InputGroup,
   InputGroupAddon,
 } from "@wren/ui/components/ui/input-group"
-import { Busy } from "../../busy.js"
+import { Ring } from "../../busy.js"
 import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({
@@ -24,7 +24,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "flex size-full flex-col overflow-hidden rounded-2xl! bg-popover p-1 text-popover-foreground",
+        "flex size-full flex-col overflow-hidden rounded-(--ui-leaf-sheet)! bg-popover p-1 text-popover-foreground",
         className
       )}
       {...props}
@@ -54,7 +54,7 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-2xl! p-0 data-open:animate-none data-closed:animate-none",
+          "top-1/3 translate-y-0 overflow-hidden rounded-(--ui-leaf-sheet)! p-0 data-open:animate-none data-closed:animate-none",
           className
         )}
         showCloseButton={showCloseButton}
@@ -76,23 +76,28 @@ function CommandInput({
 }) {
   return (
     <div data-slot="command-input-wrapper" className="p-1 pb-0">
-      <InputGroup className="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
+      <InputGroup className="h-auto! min-h-[38px] rounded-(--ui-leaf-button)! border-(--ui-hair) bg-transparent shadow-none! *:data-[slot=input-group-addon]:pl-3!">
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
-            "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            "w-full py-[9px] pr-7 text-[14px]/[1.55] outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
             className
           )}
           {...props}
         />
         <InputGroupAddon>
-          <span className="grid size-4 shrink-0 place-items-center *:[grid-area:1/1]">
-            <SearchIcon
-              className={cn("size-4 opacity-50 transition-opacity", busy && "opacity-0")}
-            />
-            <Busy on={!!busy} />
-          </span>
+          <SearchIcon className="size-4 opacity-50" />
         </InputGroupAddon>
+        {/* The artifact's `.frg`: the ring waits at the right and fades in while results load. */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 leading-none opacity-0 transition-opacity duration-200 [&_.ui-busy]:m-0",
+            busy && "opacity-100"
+          )}
+        >
+          <Ring />
+        </span>
       </InputGroup>
     </div>
   )

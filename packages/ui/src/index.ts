@@ -32,11 +32,21 @@ export {
   BrowserRow,
   folderTree,
 } from "./browser.js";
-export { Busy, BusyBox, type BusySize } from "./busy.js";
+export { Busy, BusyBox, type BusySize, Ring } from "./busy.js";
 export { BarsChart, type BarsRow, Sparkline, TrendChart } from "./charts/index.js";
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
-export { Button, ButtonLink, type ButtonTone, Tag, type TagTone } from "./controls.js";
+export {
+  Button,
+  ButtonLink,
+  type ButtonTone,
+  Check,
+  Checks,
+  Seg,
+  Tag,
+  type TagTone,
+  Track,
+} from "./controls.js";
 export { COPIED_MS, CodeBlock, Copyable, CopyButton, useCopy } from "./copy.js";
 export {
   moved,
