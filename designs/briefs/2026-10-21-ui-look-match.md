@@ -8,6 +8,11 @@ Worktree `~/worktrees/wren-look`, branch `look`, from branch `rows`. Effort high
 
 Read first: the artifact CSS (lines 1 to 335) and its sections `app` (line 462) and `prop` (line 608); `packages/ui/src/shell.tsx`, `packages/ui/src/phone-shell.tsx`, `packages/ui/src/shell.stories.tsx`, `packages/ui/src/tailwind.css` (tokens).
 
+
+## Artifact check (William 10-21: the artifact is the reference)
+
+Built page: `designs/2026-10-20-design-language/design-language.html` (artifact SuhuZqr8). Open it in a browser. Your sections: all of them: `#tokens`, `#parts`, `#app`, `#prop` (E sidebar, F focus), `#loading`, `#inbox`. Before hand-off, put each section and your story shot side by side, at 1280 and 390, light and dark. Fix each difference. List any difference you leave, with the reason. The busy ring goes on buttons only, never beside a title. A first load uses the shaped skeleton (`Loading`), never `BusyBox`.
+
 ## Work
 
 1. The sidebar first. Match `.side`, `.brand`, `.nav`, `.nav[aria-current]` (tint ground, weight 600, the accent corner arc `::after` with its mask), `.nav .n` (the count pill), `.nav svg` (16px, stroke 1.8), `.nl` (the "Pinned" label), `.side .kbd` (the "⌘K finds any app" line at the foot). Width 190px. Ground `color-mix(in srgb, var(--ui-canvas) 55%, var(--ui-paper))`, a hairline right edge, padding 14px 10px, gap 2px. Leaf corners from the tokens (`--ui-leaf-nav` is 3 12).

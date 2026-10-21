@@ -4,6 +4,11 @@ Design: `designs/2026-10-21-crm-rows-everywhere.md` (parts 4 and 5). Needs R1 (`
 
 Each batch is one builder, one worktree `~/worktrees/wren-rows-b<N>`, branch `rows-b<N>`, from branch `rows`. Effort high (B5 xhigh). One builder at a time.
 
+
+## Artifact check (William 10-21: the artifact is the reference)
+
+Built page: `designs/2026-10-20-design-language/design-language.html` (artifact SuhuZqr8). Open it in a browser. Your sections: `#inbox` panels F1 and F2 for every list you move; `#parts` and `#app` for the page around it; `#loading` for first loads. Each batch's commit names the sections it checked. Before hand-off, put each section and your story shot side by side, at 1280 and 390, light and dark. Fix each difference. List any difference you leave, with the reason. The busy ring goes on buttons only, never beside a title. A first load uses the shaped skeleton (`Loading`), never `BusyBox`.
+
 ## The rule for each file
 
 - **LIST** (rows of things, each one a record or an item): draw it with `Rows`. Delete the hand row code. Keep what the rows do: links, actions, pick, drag, inline edit.
