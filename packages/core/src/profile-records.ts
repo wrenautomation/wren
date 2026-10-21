@@ -58,26 +58,30 @@ const CHANNELS = cued({
   profile: { label: "Profile", tone: "neutral" },
 } as const);
 
-const STAGE_STATES = cued({
+/** A stage is a lane colour (`State.line`): lead 0, replied 1, client 2, booked 3; -1 draws ink-3. */
+const STAGE_STATES: Record<string, State> = {
   stranger: {
     label: "Stranger",
     tone: "neutral",
+    line: -1,
     about: "An address only: never reached, never came to us.",
   },
-  lead: { label: "Lead", tone: "neutral", about: "We reached them, or they showed a warm sign." },
+  lead: { label: "Lead", tone: "neutral", line: 0, about: "We reached them, or they showed a warm sign." },
   replied: {
     label: "Replied",
     tone: "good",
+    line: 1,
     about: "Wrote back on any channel, sent a form or chatted.",
   },
-  booked: { label: "Booked", tone: "good", about: "Booked a call that wasn't cancelled." },
+  booked: { label: "Booked", tone: "good", line: 3, about: "Booked a call that wasn't cancelled." },
   client: {
     label: "Client",
     tone: "good",
+    line: 2,
     about: "Paid, signs in to a workspace, or marked a client.",
   },
-  past_client: { label: "Past client", tone: "neutral", about: "Marked a past client." },
-} as const);
+  past_client: { label: "Past client", tone: "neutral", line: -1, about: "Marked a past client." },
+};
 
 const WARMTH = cued({
   warm: {
