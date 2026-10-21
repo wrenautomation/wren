@@ -64,7 +64,7 @@ export function historyOf(
 }
 
 /** ISO text of a Date or of a time already written as text. */
-function isoOf(at: Date | string): string {
+export function isoOf(at: Date | string): string {
   const d = new Date(at);
   return Number.isNaN(d.getTime()) ? String(at) : d.toISOString();
 }

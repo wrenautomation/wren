@@ -12,6 +12,7 @@ import { atomic, type Queryable } from "@wren/db";
 import type { Terms } from "@wren/offers";
 import { parse, stringify } from "yaml";
 import type { Moves } from "./carry.js";
+import { ordered } from "./metro-file.js";
 import { edgeIdOf, type ShapeBody, type ShapeEdge, type ShapeNode } from "./model.js";
 import type { ShapeVersion, TermsVersion } from "./schema.js";
 import {
@@ -35,18 +36,6 @@ export interface ShapeFile {
 
 const isMap = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
-
-/** Keys a reader wants first, in this order. Others follow in the order they were set. */
-const FIRST = ["id", "kind", "name", "from", "to", "label"];
-
-const ordered = (o: Record<string, unknown>): Record<string, unknown> =>
-  Object.fromEntries(
-    Object.entries(o).sort(([a], [b]) => {
-      const x = FIRST.indexOf(a);
-      const y = FIRST.indexOf(b);
-      return (x < 0 ? FIRST.length : x) - (y < 0 ? FIRST.length : y);
-    }),
-  );
 
 /** A shape body as YAML text: name, nodes, edges. Reads back to the same body. */
 export function exportShape(body: ShapeBody): string {

@@ -476,3 +476,80 @@ export const metroShape = (): MetroBody => ({
     },
   ],
 });
+
+/**
+ * Two metro bodies, `a` older and `b` newer, whose diff holds every kind of change: the shape
+ * name; a line, station, track, group and frame each added, removed and changed; a line, station
+ * and group each renamed; a line and a station renamed and changed at once. Nothing in `b` is
+ * checked: a diff and an undo need no valid body.
+ */
+export const metroPair = (): { a: MetroBody; b: MetroBody } => {
+  const a = metroShape();
+  a.lines.push({ id: "spare", label: "Spare", tier: "front" });
+  a.groups.push(
+    { id: "prepwork", label: "Prep work", line: "growth", stations: ["prep"] },
+    { id: "onboarding", label: "Onboarding", line: "growth", stations: ["onboard"] },
+  );
+  a.frames.push({
+    id: "keep",
+    stations: ["pitch_a"],
+    trigger: { trigger: "trigger.reply" },
+    exit: "done",
+  });
+  const b = structuredClone(a);
+  b.name = "Newer name";
+  // Lines: added, removed, renamed, changed, renamed and changed.
+  b.lines = b.lines.filter((l) => l.id !== "spare");
+  b.lines.push({ id: "extra", label: "Extra", tier: "core", offer: "offer-c", colour: 3 });
+  const line = (id: string) => b.lines.find((l) => l.id === id) as MetroBody["lines"][number];
+  line("nurture").label = "Warm";
+  line("growth").colour = 5;
+  line("social").label = "Socials";
+  line("social").entry = { via: "organic", channel: "tiktok" };
+  // Stations: added (with a track), removed (with its tracks), renamed, changed, both.
+  b.stations = b.stations.filter((s) => s.id !== "docs");
+  b.stations.push({
+    id: "fresh",
+    label: "Fresh",
+    kind: "att",
+    line: "growth",
+    column: "sales",
+    action: "other",
+  });
+  const station = (id: string) =>
+    b.stations.find((s) => s.id === id) as MetroBody["stations"][number];
+  station("book").label = "Booking";
+  station("prep").idleDays = 3;
+  station("reply").label = "Reply to us";
+  station("reply").research = "full";
+  // Tracks: added x2, removed x3 (two with the removed station), changed.
+  b.tracks = b.tracks.filter(
+    (t) => !["fork_to_docs", "docs_to_merge", "pay_to_done"].includes(t.id),
+  );
+  b.tracks.push(
+    { id: "fresh_to_review", from: "fresh", to: "review", line: "growth", by: "system" },
+    { id: "reply_to_book", from: "reply", to: "book", line: "growth", by: "system" },
+  );
+  const track = (id: string) => b.tracks.find((t) => t.id === id) as MetroBody["tracks"][number];
+  track("book_to_wait").by = "person";
+  track("book_to_wait").owner = "Sam";
+  // Groups: added, removed, renamed, changed.
+  b.groups = b.groups.filter((g) => g.id !== "closing");
+  b.groups.push({ id: "wrap", label: "Wrap", line: "growth", stations: ["pay"] });
+  const group = (id: string) => b.groups.find((g) => g.id === id) as MetroBody["groups"][number];
+  group("prepwork").label = "Preparation";
+  group("onboarding").stations = ["onboard", "shared"];
+  // Frames: added, removed, changed.
+  b.frames = b.frames.filter((f) => f.id !== "stop");
+  b.frames.push({
+    id: "halt",
+    stations: ["prep"],
+    trigger: { trigger: "trigger.reply" },
+    exit: "done",
+  });
+  (b.frames.find((f) => f.id === "keep") as MetroBody["frames"][number]).stations = [
+    "pitch_a",
+    "pitch_b",
+  ];
+  return { a, b };
+};
