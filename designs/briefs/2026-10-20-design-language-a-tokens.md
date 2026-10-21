@@ -50,3 +50,19 @@ Claude-Session: https://claude.ai/code/session_01PpzL4T1jZXndKhYDqy2SGC
 ```
 
 Commit A in full before you start E. A and E share no commit. Do not push. Do not run the full gate; the planner runs it.
+
+## Loading rules in DESIGN.md (William, 2026-10-20)
+
+Source: artifact section 14 "Loading" (section id `loading`; CSS after `/* 14 loading */`) and the design doc's "UI soundness" section. Both are in `/Users/williamjin/Documents/wren_automation/wren/designs/` (commit 4bbaeaee, not yet on origin). Add a Loading section to DESIGN.md with these rules:
+
+- Timing: nothing under 150 ms; skeleton or bar in place up to 1 s; words past 1 s; steps and "you can leave" past 10 s.
+- Skeleton: first load of a page or sheet. Grey blocks in the shape of the content, slow lavender shimmer. The known header shows at once.
+- Bar: refresh of data already shown. Old data stays. A 2 px lavender bar sweeps along the top of the panel. Numbers tick to the new value.
+- Busy edge: a button's own action. The label and width stay. A bar fills along the bottom edge, then a check, then the toast with Undo.
+- Steps: a job over 10 s. Each step with its state, and a line that says the person can leave.
+- Stream: AI text arrives as it comes, with a lavender caret and a "Drafting" chip.
+- Not loading: empty, error and offline each look different from a wait. Error: one sentence and Retry. Offline: a banner; writes queue.
+- Reduced motion: shimmer and draw-in go; bars still move.
+- Never a spinner in place of a label. Never a layout shift. A query lives in the cache, so a page left while it loads still loads on return.
+
+Docs only in A. No new loading parts unless one is a token (for example a shimmer colour).

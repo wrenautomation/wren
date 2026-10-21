@@ -49,3 +49,14 @@ Do not push. Do not run the full gate; the planner runs it.
 - State persists across navigation. A query that was loading when the person left still shows loading, then its data, when they come back. Keep it in the query cache, never in component state.
 - Open sheets, zoom level and pins are remembered per viewer (viewer prefs, `usePref`).
 - Systems page: keep it simple and grouped. A first cut is fine.
+
+## Loading (artifact section 14, now in the repo copy)
+
+Read section id `loading` in `/Users/williamjin/Documents/wren_automation/wren/designs/2026-10-20-design-language/design-language.src.html` and the doc's "UI soundness" section in `/Users/williamjin/Documents/wren_automation/wren/designs/2026-10-20-design-language.md`. Every list and sheet E touches (sidebar, dock, Systems page, ⌘K station finder) follows it:
+
+- First load: skeleton in the shape of the content; the known header shows at once.
+- Refresh: old data stays; 2 px bar along the top.
+- ⌘K: old results stay until new ones land.
+- Empty, error and offline differ from a wait. Error: one sentence and Retry.
+- Nothing under 150 ms. No spinner in place of a label. No layout shift. Reduced motion: no shimmer.
+- One popover or sheet open at a time.
