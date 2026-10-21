@@ -302,7 +302,7 @@ export type RowAttrs = HTMLAttributes<HTMLTableRowElement> & {
   [data: `data-${string}`]: string | number | boolean | undefined;
 };
 
-/** How a `DataTable` looks: plain facts on the page, or framed as a small list in a panel. */
+/** How a `DataTable` looks: plain facts on the page, or framed in a panel. Lists of things are `Rows`. */
 const LOOKS = {
   plain: {
     table: "w-full text-left text-[13.5px]",
@@ -321,15 +321,6 @@ const LOOKS = {
     row: "h-(--layout-row) border-b border-(--ui-hair)",
     // The first cell wraps: a cut-off name says nothing. The rest cut.
     td: "px-2 first:py-2 first:break-words first:pl-3 last:pr-3 [&:not(:first-child)]:truncate [&:not(:first-child)]:text-(--ui-ink-2)",
-  },
-  /** A list of things to pick and open (Learn's files): fixed columns, roomier rows. */
-  list: {
-    table: "w-full table-fixed border-collapse text-[13.5px]",
-    head: "border-b border-(--ui-hair)",
-    headRow: "",
-    th: "h-9 px-2 text-[12px] font-medium text-(--ui-ink-2)",
-    row: "border-b border-(--ui-hair) transition-colors duration-100 hover:bg-(--ui-wash)",
-    td: "px-2 py-2",
   },
 } as const;
 

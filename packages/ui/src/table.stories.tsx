@@ -17,9 +17,9 @@ export default { title: "Table" } satisfies Meta;
 type Story = StoryObj;
 
 const key = (r: { id: string }) => r.id;
-const LOOKS = ["plain", "framed", "list"] as const;
+const LOOKS = ["plain", "framed"] as const;
 
-/** The three looks, one under the other. */
+/** The two looks, one under the other. */
 export const Default: Story = {
   render: () => (
     <div className="grid gap-8">

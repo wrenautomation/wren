@@ -338,7 +338,7 @@ Source: `records.tsx`, `list-bar.tsx`, `fields.tsx`, `card-grid.tsx`.
 
 Source: `table.tsx` (TanStack Table plus Virtual; `VIRTUAL_FROM` = 120 rows), `records.tsx`.
 
-- `DataTable` looks: `plain` (13.5 px, hairline rows, ink-2 heads), `framed` (13 px, hair border, band head 12 px, `--ui-edge` head underline, fixed layout, first cell wraps, rest truncate in ink-2), `list` (13.5 px, h-9 heads, hover wash).
+- `DataTable` looks: `plain` (13.5 px, hairline rows, ink-2 heads), `framed` (13 px, hair border, band head 12 px, `--ui-edge` head underline, fixed layout, first cell wraps, rest truncate in ink-2). A list of things is `Rows`, not a `DataTable`.
 - `stack` turns each row into a card on phone: first cell on top, the rest as label and value (12 px ink-3 label).
 - Long lists virtualize past 120 rows. A column totals footer is allowed.
 
@@ -378,7 +378,7 @@ Source: `phone-shell.tsx`, `phone.tsx`, `phone-nav.ts`, `shell.tsx`.
 - **Bottom tabs:** Home first, Apps last, three section tabs between. Labels 10.5 px medium. Current tab is semibold `--ui-active` with a 52 x 30 capsule in `--ui-accent-tint`. Count badge is a red pill (`--ui-bad`) at the icon's top right.
 - **Apps sheet:** a grid of 56 px square marks by area. Badge is an amber chip. Opens at half height.
 - **Bottom sheet:** detents, a 36 x 5 px grabber, drag down to close, `SPRING` curve `cubic-bezier(0.32, 0.72, 0, 1)`, 300 ms.
-- **Rows:** `RowCard` with `SwipeRow`. Swipe right shows the first safe action; swipe left shows up to two, the destructive one last. A full swipe runs the far one. A touch within 24 px of the left edge belongs to back swipe.
+- **Rows:** `Rows` draws a phone's row as a `SwipeRow`: the name, one property and the quiet action. Swipe right shows the first safe action; swipe left shows up to two, the destructive one last. A full swipe runs the far one. A touch within 24 px of the left edge belongs to back swipe.
 - **Pull to refresh:** arms at 56 px, max 84 px.
 - **Back:** edge swipe back works only in standalone (PWA). The back stack lives in `sessionStorage` key `wren:phone-walk`.
 - Card stacks use `grid-cols-1` (Safari auto column issue).
