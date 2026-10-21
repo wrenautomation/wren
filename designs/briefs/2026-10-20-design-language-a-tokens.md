@@ -66,3 +66,10 @@ Source: artifact section 14 "Loading" (section id `loading`; CSS after `/* 14 lo
 - Never a spinner in place of a label. Never a layout shift. A query lives in the cache, so a page left while it loads still loads on return.
 
 Docs only in A. No new loading parts unless one is a token (for example a shimmer colour).
+
+## Path loader and busy dots (William, 2026-10-21)
+
+Source: the doc's "UI soundness" section (commit fffd33b3) and artifact section 14 "Path" and "Busy, five ways" (CSS `.path`, `.pathbox`, `.dots`). Read both from `/Users/williamjin/Documents/wren_automation/wren/designs/`.
+
+1. **Path loader.** One shared part in `packages/ui/src/path.tsx`, exported from `index.ts`, with a story. Any wait with more than one stage shows its steps. Each step names what it does and with what (sources, account, count). Status text cross-fades. Sources animate in as they are read. Done, the path folds to one line that stays as the record and reopens on click. Props are plain data (steps with label, detail, state, sources); no fetching inside. Research, send, map open, import and video render use it later. Reduced motion: no cross-fade or slide, states still change. Play test: the folded line reopens on click and on Enter.
+2. **Busy dots.** The bottom bar is out for buttons and chips. Use dots (artifact `.dots`): the label stays, the dot slot is reserved, the width does not change. Put it in the shared Button and Tag busy state. Drop the "busy edge" bottom bar from the DESIGN.md Loading section; write dots in its place and note that William picks the final style later.

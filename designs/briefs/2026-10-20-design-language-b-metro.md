@@ -69,3 +69,7 @@ Do not push. Do not run the full gate; the planner runs it. Report each stage's 
 - No data fetching in `metro/`. Data comes in as props; the portal reads it through TanStack Query (area D).
 - Zoom level and open folds are controlled props with change callbacks (`level`, `onLevel`, `open`, `onOpen`), uncontrolled by default. The portal stores them per viewer. The map keeps no state that a remount loses when the parent passes it.
 - Any popover or sheet the map opens closes on outside click and on Esc.
+
+## Map first load (William, 2026-10-21)
+
+In `MetroMap`, on first load: each line draws over about 2.4 s, stations land as the line passes, labels fade in with their station, numbers tick last. Artifact section 14 "Map load" (`.ldmap` CSS; read `/Users/williamjin/Documents/wren_automation/wren/designs/2026-10-20-design-language/design-language.src.html`). Only on first mount, never on a level change or refresh. Reduced motion: no draw-in; marks fade in. A prop turns it off (stories and tests). This goes in stage 1.
