@@ -9,6 +9,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { OFFERS, type Offer, type Terms } from "@wren/offers";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { MetroBody } from "../../src/metro.js";
 import { depthOf } from "../../src/model.js";
 import { journeys } from "../../src/schema.js";
 import {
@@ -21,7 +22,7 @@ import {
   shapeVersionsOf,
   syncOffers,
 } from "../../src/store.js";
-import { flow, grown, shape, TRIGGERS } from "../fixtures.js";
+import { asMetro, flow, grown, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -190,8 +191,16 @@ describe("terms", () => {
 });
 
 describe("shape", () => {
+  const saveMetro = (body: MetroBody, note = "first", moves?: Record<string, string>) =>
+    saveShape(pg.db, {
+      body,
+      note,
+      by: "t",
+      triggers: TRIGGERS,
+      ...(moves ? { moves } : {}),
+    });
   const save = (body = shape(), note = "first", moves?: Record<string, string>) =>
-    saveShape(pg.db, { body, note, by: "t", triggers: TRIGGERS, ...(moves ? { moves } : {}) });
+    saveMetro(asMetro(body), note, moves);
 
   it("saves the first version with its depths, and says nothing changed on a repeat", async () => {
     expect(await newestShape(pg.db)).toBeNull();
@@ -204,11 +213,10 @@ describe("shape", () => {
   });
 
   it("refuses a body that breaks the rules, and a note that is empty", async () => {
-    const broken = shape({
-      edges: [flow("yt", "engaged"), flow("engaged", "yt")],
-    });
-    const why = (await reasons(save(broken, "x"))).join(" ");
-    expect(why).toMatch(/Nothing enters a source/);
+    // A graph that breaks a rule cannot be drawn as metro, so the broken body is a metro one.
+    const broken = { ...asMetro(shape()), name: "" };
+    const why = (await reasons(saveMetro(broken, "x"))).join(" ");
+    expect(why).toMatch(/needs a name/);
     expect(await reasons(save(grown([], []), "  "))).toEqual(["Say why."]);
     expect((await shapeVersionsOf(pg.db)).map((r) => r.number)).toEqual([1]);
   });
@@ -231,7 +239,7 @@ describe("shape", () => {
     ]);
 
     const cycle = grown([], [flow("signed", "booked")]);
-    expect((await reasons(save(cycle, "x"))).join(" ")).toMatch(/Flow edges form a loop/);
+    expect((await reasons(save(cycle, "x"))).join(" ")).toMatch(/Tracks form a loop/);
     expect((await shapeVersionsOf(pg.db)).map((r) => r.number)).toEqual([1]);
   });
 

@@ -43,7 +43,8 @@ import {
 import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { addTerms, newestShape, Refused, saveShape } from "../../src/store.js";
-import { flow, grown, loop, TRIGGERS } from "../fixtures.js";
+import { runOf, type StoredBody } from "../../src/stored.js";
+import { asMetro, flow, grown, loop, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -103,7 +104,7 @@ const body = (): ShapeBody => {
 };
 
 const save = (b: ShapeBody, note: string) =>
-  saveShape(pg.db, { body: b, note, by: "t", triggers: TRIGGERS });
+  saveShape(pg.db, { body: asMetro(b), note, by: "t", triggers: TRIGGERS });
 
 async function person(email: string, name = "Ada") {
   const r = await resolveProfile(pg.db, [{ kind: "email", value: email }], "test", { name });
@@ -346,7 +347,7 @@ describe("sign", () => {
     const { id } = await start("sign@example.test", { to: ["signed"] });
     const [deal] = await pg.db.select().from(pipelineDeals).where(eq(pipelineDeals.journey, id));
     const d = deal?.id as string;
-    const shape = (await newestShape(pg.db))?.body as ShapeBody;
+    const shape = runOf((await newestShape(pg.db))?.body as StoredBody);
     const standard = async () =>
       (await planNumbersOf(pg.db, shape)).find((p) => p.node === "standard");
     const before = await standard();
@@ -407,48 +408,51 @@ describe("the numbers views", () => {
     const grew = (id: string, k: keyof NumberRow) => by(after, id, k) - by(before, id, k);
 
     expect(
-      ["arrived", "skipped", "left", "now"].map((k) => grew("node:engaged", k as never)),
+      ["arrived", "skipped", "left", "now"].map((k) => grew("station:engaged", k as never)),
     ).toEqual([3, 0, 2, 1]);
     expect(
-      ["arrived", "skipped", "left", "now"].map((k) => grew("node:booked", k as never)),
+      ["arrived", "skipped", "left", "now"].map((k) => grew("station:booked", k as never)),
     ).toEqual([2, 0, 1, 1]);
     // Proposal was passed over by a, never stopped at.
     expect(
-      ["arrived", "skipped", "left", "now"].map((k) => grew("node:proposal", k as never)),
+      ["arrived", "skipped", "left", "now"].map((k) => grew("station:proposal", k as never)),
     ).toEqual([0, 1, 0, 0]);
     expect(
-      ["arrived", "skipped", "left", "now"].map((k) => grew("node:signed", k as never)),
+      ["arrived", "skipped", "left", "now"].map((k) => grew("station:signed", k as never)),
     ).toEqual([1, 0, 0, 1]);
-    expect(after.get("node:engaged")).toMatchObject({ nodeKind: "step", name: "Engaged" });
-    expect(after.get("node:engaged")?.medianDays).toBeGreaterThanOrEqual(0);
-    expect(after.get("node:engaged")?.position).toBeLessThan(
-      after.get("node:booked")?.position as number,
+    expect(after.get("station:engaged")).toMatchObject({ nodeKind: "step", name: "Engaged" });
+    expect(after.get("station:engaged")?.medianDays).toBeGreaterThanOrEqual(0);
+    expect(after.get("station:engaged")?.position).toBeLessThan(
+      after.get("station:booked")?.position as number,
     );
 
-    for (const [edge, n] of [
-      ["ads1_to_engaged", 1],
-      ["mail_to_engaged", 2],
+    // Tracks: a source's own track counts what it sends; the hub track counts every entry.
+    for (const [track, n] of [
+      ["ads1_to_hub", 1],
+      ["mail_to_hub", 2],
+      ["hub_to_engaged", 3],
       ["engaged_to_booked", 2],
       ["booked_to_proposal", 1],
       ["proposal_to_signed", 1],
     ] as const)
-      expect(grew(`edge:${edge}`, "crossings"), edge).toBe(n);
-    expect(after.get("edge:engaged_to_booked")).toMatchObject({
-      kind: "edge",
+      expect(grew(`track:${track}`, "crossings"), track).toBe(n);
+    expect(after.get("track:engaged_to_booked")).toMatchObject({
+      kind: "track",
       from: "engaged",
       to: "booked",
       name: "Engaged to Booked",
     });
 
-    expect(after.get("node:ads1")).toMatchObject({ nodeKind: "source", cost: 20 });
-    expect(grew("node:ads1", "opened")).toBe(1);
-    expect(grew("node:ads1", "deals")).toBe(1);
-    expect(grew("node:mail", "opened")).toBe(2);
-    expect(grew("node:mail", "deals")).toBe(0);
-    expect(after.get("node:mail")?.cost).toBeNull();
+    expect(after.get("station:ads1")).toMatchObject({ nodeKind: "source", cost: 20 });
+    expect(grew("station:ads1", "opened")).toBe(1);
+    expect(grew("station:ads1", "deals")).toBe(1);
+    expect(grew("station:mail", "opened")).toBe(2);
+    expect(grew("station:mail", "deals")).toBe(0);
+    expect(after.get("station:mail")?.cost).toBeNull();
 
-    const offer = (m: Map<string, NumberRow>) => [...m.values()].find((r) => r.kind === "offer");
-    expect(offer(after)).toMatchObject({ label: "offer-a" });
+    // The offer's numbers sit on its line, one row for each currency.
+    const offer = (m: Map<string, NumberRow>) => m.get("line:signed:USD");
+    expect(offer(after)).toMatchObject({ kind: "line", currency: "USD" });
     expect((offer(after)?.deals ?? 0) - (offer(before)?.deals ?? 0)).toBe(1);
   });
 
@@ -460,15 +464,27 @@ describe("the numbers views", () => {
     expect((await nodeCountsOf(pg.db, { window: 7 })).length).toBeGreaterThan(0);
     const far = await numberRows(pg.db, { from: "2999-01-01" });
     expect(
-      far.filter((r) => r.kind === "node" && r.nodeKind === "step").every((r) => r.arrived === 0),
+      far
+        .filter((r) => r.kind === "station" && r.nodeKind === "step")
+        .every((r) => r.arrived === 0),
     ).toBe(true);
 
+    // No offer matches: the offer line keeps no currency row.
     expect((await numberRows(pg.db, { offer: "other" })).filter((r) => r.kind === "offer")).toEqual(
       [],
     );
+    expect(
+      (await numberRows(pg.db, { offer: "other" })).filter((r) => r.kind === "line" && r.currency),
+    ).toEqual([]);
     const one = await numberRows(pg.db, { source: "ads1" });
-    expect(one.filter((r) => r.kind !== "offer").map((r) => r.id)).toEqual(["node:ads1"]);
-    const ads = one.find((r) => r.id === "node:ads1");
+    expect(one.filter((r) => r.kind !== "offer").map((r) => r.id)).toEqual([
+      "line:ads1",
+      "line:signed:USD",
+      "line:unrouted",
+      "station:ads1",
+    ]);
+    const ads = one.find((r) => r.id === "station:ads1");
+    expect(one.find((r) => r.id === "line:signed:USD")?.deals).toBe(ads?.deals);
     expect(one.find((r) => r.kind === "offer")?.deals).toBe(ads?.deals);
   });
 });
@@ -550,18 +566,30 @@ describe("the pipeline records", () => {
     });
     const deals = await api.list({ record: "pipeline.deal", view: "all" });
     expect(deals.rows.length).toBeGreaterThan(0);
-    const nodes = await api.list({ record: "pipeline.number", view: "node" });
-    expect(nodes.rows.some((r) => r.node === "engaged")).toBe(true);
-    const edges = await api.list({ record: "pipeline.number", view: "edge" });
-    expect(edges.rows.some((r) => r.node === "booked_to_proposal")).toBe(true);
+    // The newest shape is metro: its rows are stations, tracks and lines. The per node and per
+    // edge views read graph rows, so they are empty until the web moves (area D).
+    for (const v of ["node", "edge"])
+      expect((await api.list({ record: "pipeline.number", view: v })).rows, v).toEqual([]);
     const offers = await api.list({ record: "pipeline.number", view: "offer" });
     expect(offers.rows.map((r) => r.node)).toEqual(["offer-a"]);
+    const all = (kind: string) =>
+      api.list({
+        record: "pipeline.number",
+        where: { kind, window: "all" },
+        sort: "position",
+        limit: 100,
+      });
+    const nodes = await all("station");
+    expect(nodes.rows.some((r) => r.node === "engaged")).toBe(true);
+    const edges = await all("track");
+    expect(edges.rows.some((r) => r.node === "booked_to_proposal")).toBe(true);
+    expect((await all("line")).rows.some((r) => r.node === "signed")).toBe(true);
     // The views read the whole history; the Map reads a window by its field.
     expect(nodes.rows.every((r) => r.window === "all")).toBe(true);
     for (const w of ["7", "30", "90"]) {
       const win = await api.list({
         record: "pipeline.number",
-        where: { kind: "node", window: w },
+        where: { kind: "station", window: w },
         sort: "position",
         limit: 100,
       });

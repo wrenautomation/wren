@@ -15,7 +15,7 @@ import type { ShapeBody } from "../../src/model.js";
 import { journeys } from "../../src/schema.js";
 import { Refused, shapeVersionsOf } from "../../src/store.js";
 import { runOf } from "../../src/stored.js";
-import { flow } from "../fixtures.js";
+import { asMetro, flow } from "../fixtures.js";
 
 let pg: TestPostgres;
 const OWNER = "owner@acme.example.test";
@@ -89,11 +89,15 @@ afterAll(() => pg.stop());
 describe("drafts through the console", () => {
   it("saves a draft, lists it, compares it with a version, and applies it", async () => {
     const a = api();
-    expect(await a.shapeVersion({ ...op(), note: "first", body: base })).toEqual({ version: 1 });
-    expect(await a.shapeDraftNew({ ...op(), name: "Add a call", body: withCall })).toEqual({
-      id: "add-a-call",
-      base: 1,
+    expect(await a.shapeVersion({ ...op(), note: "first", body: asMetro(base) })).toEqual({
+      version: 1,
     });
+    expect(await a.shapeDraftNew({ ...op(), name: "Add a call", body: asMetro(withCall) })).toEqual(
+      {
+        id: "add-a-call",
+        base: 1,
+      },
+    );
 
     const list = await a.recordsList({ ...op(), record: "pipeline.shape_draft", view: "open" });
     expect(list.rows.map((r) => [r.id, r.state])).toEqual([["add-a-call", "draft"]]);
@@ -137,11 +141,15 @@ describe("drafts through the console", () => {
 
   it("updates and drops a draft, and refuses a viewer", async () => {
     const a = api();
-    await a.shapeDraftNew({ ...op(), name: "Try a rename", body: { ...base, name: "Renamed" } });
+    await a.shapeDraftNew({
+      ...op(),
+      name: "Try a rename",
+      body: asMetro({ ...base, name: "Renamed" }),
+    });
     const u = await a.shapeDraftUpdate({
       ...op(),
       id: "try-a-rename",
-      body: { ...base, name: "Renamed twice" },
+      body: asMetro({ ...base, name: "Renamed twice" }),
       note: "second try",
     });
     expect(u.id).toBe("try-a-rename");
@@ -153,7 +161,7 @@ describe("drafts through the console", () => {
       state: "dropped",
     });
     await expect(
-      a.shapeDraftNew({ ...as(VAL, "acme"), name: "Viewer draft", body: base }),
+      a.shapeDraftNew({ ...as(VAL, "acme"), name: "Viewer draft", body: asMetro(base) }),
     ).rejects.toThrow(/can't do that/);
     await expect(a.shapeDraftApply({ ...as(VAL, "acme"), id: "add-a-call" })).rejects.toThrow(
       /can't do that/,
@@ -165,9 +173,11 @@ describe("drafts through the console", () => {
       view: "all",
     });
     expect(rows.rows.length).toBeGreaterThan(0);
-    await expect(a.shapeDraftNew({ ...op(), name: "", body: base })).rejects.toMatchObject({
-      status: 400,
-    });
+    await expect(a.shapeDraftNew({ ...op(), name: "", body: asMetro(base) })).rejects.toMatchObject(
+      {
+        status: 400,
+      },
+    );
   });
 });
 
@@ -187,10 +197,10 @@ describe("blame, undo and tags", () => {
 
   it("previews an undo without saving, and refuses every bad key with its reasons", async () => {
     const a = api();
-    const p = await a.shapeUndoPreview({ ...op(), a: 1, b: 2, change: "node:call:added" });
+    const p = await a.shapeUndoPreview({ ...op(), a: 1, b: 2, change: "station:call:added" });
     expect(p).toMatchObject({
-      line: "Added node Call.",
-      note: "Undo: Added node Call.",
+      line: "Added station Call.",
+      note: "Undo: Added station Call.",
       newest: 2,
     });
     expect(p.diff.nodes.removed).toEqual(["call"]);
@@ -201,13 +211,17 @@ describe("blame, undo and tags", () => {
       a.shapeUndoPreview({ ...op(), a: 1, b: 2, change: "bogus" }),
     ).rejects.toMatchObject({ status: 400, message: expect.stringContaining("names no change") });
     await expect(
-      a.shapeUndoPreview({ ...op(), a: 1, b: 2, change: "node:engaged:renamed" }),
+      a.shapeUndoPreview({ ...op(), a: 1, b: 2, change: "station:engaged:renamed" }),
     ).rejects.toMatchObject({
       status: 400,
       message: expect.stringContaining("not between these versions"),
     });
+    // A graph key finds no change on a metro newest version.
     await expect(
-      a.shapeUndoPreview({ ...op(), a: 1, b: 9, change: "node:call:added" }),
+      a.shapeUndoPreview({ ...op(), a: 1, b: 2, change: "node:call:added" }),
+    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining("metro model") });
+    await expect(
+      a.shapeUndoPreview({ ...op(), a: 1, b: 9, change: "station:call:added" }),
     ).rejects.toThrow(/no shape version 9/);
   });
 
@@ -221,7 +235,7 @@ describe("blame, undo and tags", () => {
       .values({ profileId: profile, version: 2, node: "call", entry: "manual" })
       .returning();
     if (!j) throw new Error("no journey");
-    const ask = { ...op(), a: 1, b: 2, change: "node:call:added" };
+    const ask = { ...op(), a: 1, b: 2, change: "station:call:added" };
     await expect(a.shapeUndoPreview(ask)).rejects.toThrow(
       "1 open journey sits on call. Move them first.",
     );
@@ -232,14 +246,14 @@ describe("blame, undo and tags", () => {
 
   it("saves an undo as the next version with the note Undo, and a viewer cannot", async () => {
     const a = api();
-    const ask = { a: 1, b: 2, change: "node:call:added" };
+    const ask = { a: 1, b: 2, change: "station:call:added" };
     await expect(a.shapeUndo({ ...as(VAL, "acme"), ...ask })).rejects.toThrow(/can't do that/);
     expect(await a.shapeUndo({ ...op(), ...ask })).toEqual({ version: 3 });
     const v3 = (await shapeVersionsOf(pg.db)).at(-1);
     expect(v3).toMatchObject({
       number: 3,
       parent: 2,
-      note: "Undo: Added node Call.",
+      note: "Undo: Added station Call.",
       createdBy: ADA,
     });
     expect(v3 && runOf(v3.body).nodes.map((n) => n.id)).toEqual(["manual", "engaged"]);
@@ -277,7 +291,11 @@ describe("blame, undo and tags", () => {
 describe("the mirror step", () => {
   it("commits the missing versions to the workspace's file, and is off without a repo", async () => {
     const a = api();
-    await a.shapeVersion({ ...op(), note: "renamed", body: { ...base, name: "History shape 2" } });
+    await a.shapeVersion({
+      ...op(),
+      note: "renamed",
+      body: asMetro({ ...base, name: "History shape 2" }),
+    });
     const r = await a.mirror(op());
     expect(r).toMatchObject({ committed: [{ version: 4 }] });
     const last = github.commits.at(-1);
@@ -304,7 +322,11 @@ describe("the mirror step", () => {
       open: () => pg.db,
       shapes: { files: failing, repo: "o/shapes" },
     });
-    await a.shapeVersion({ ...op(), note: "again", body: { ...base, name: "History shape 3" } });
+    await a.shapeVersion({
+      ...op(),
+      note: "again",
+      body: asMetro({ ...base, name: "History shape 3" }),
+    });
     const r = await a.mirror(op());
     expect(r).toMatchObject({ committed: [], failed: expect.stringContaining("repo gone") });
     const stranger = await a.mirror(as("nobody@example.test"));

@@ -27,7 +27,7 @@ import type { ShapeBody } from "../../src/model.js";
 import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { saveShape } from "../../src/store.js";
-import { flow, TRIGGERS } from "../fixtures.js";
+import { asMetro, flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -40,7 +40,7 @@ beforeAll(async () => {
     why: "t",
     createdBy: "t",
   });
-  await saveShape(pg.db, { body: body(), note: "first", by: "t", triggers: TRIGGERS });
+  await saveShape(pg.db, { body: asMetro(body()), note: "first", by: "t", triggers: TRIGGERS });
 });
 afterAll(() => pg.stop());
 

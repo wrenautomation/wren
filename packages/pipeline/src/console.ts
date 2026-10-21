@@ -82,6 +82,7 @@ import type {
   UndoAsk,
   UndoPreviewAnswer,
 } from "./history.js";
+import { isMetro } from "./metro.js";
 import { type MirrorResult, mirrorShapes, WREN_WORKSPACE } from "./mirror.js";
 import type { ShapeBody } from "./model.js";
 import { signDeal } from "./moves.js";
@@ -98,7 +99,7 @@ import {
   shapeVersionsOf,
   syncOffers,
 } from "./store.js";
-import { historyOfStored, runOf } from "./stored.js";
+import { historyOfStored, runOf, type StoredBody } from "./stored.js";
 import { addTag } from "./tags.js";
 import { planUndo, undoShape } from "./undo.js";
 
@@ -252,7 +253,9 @@ export function pipelineConsoleApi({
       ),
     );
   };
-  const bodyOf = (v: unknown): ShapeBody => {
+  /** A metro body, or a graph body, which the store then refuses (`CONVERT_FIRST`). */
+  const bodyOf = (v: unknown): StoredBody => {
+    if (isMetro(v)) return v;
     const nodes = (v as { nodes?: unknown } | null)?.nodes;
     if (!v || typeof v !== "object" || !Array.isArray(nodes))
       throw new PortalRefusal("the body needs nodes", 400);

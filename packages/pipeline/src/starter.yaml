@@ -1,19 +1,46 @@
 # The starter shape: kinds only. No account, no channel, no amount, no terms.
 # An empty database starts here (`wren shape start`, or "Start from the starter" on the Map).
 # Rename, rewire and add; every save after this is a version with a note.
+# It is the metro form of the first starter graph (`metroOf`): every station id is the node id
+# it had, and every track id the edge id.
+model: metro
 name: Business map
-nodes:
+lines:
   - id: source
-    kind: source
-    name: Source
-    via: organic
+    label: Source
+    tier: out
+    entry:
+      via: organic
   - id: outbound
-    kind: source
-    name: Outbound
-    via: outbound
+    label: Outbound
+    tier: out
+    entry:
+      via: outbound
+  - id: offer
+    label: Offer
+    tier: core
+    offer: growth-partner
+    colour: 0
+stations:
+  - id: source
+    kind: att
+    label: Source
+    line: source
+    column: marketing
+  - id: outbound
+    kind: att
+    label: Outbound
+    line: outbound
+    column: marketing
+  - id: hub
+    kind: hub
+    label: First touch
+    column: marketing
   - id: comment
-    kind: step
-    name: Comment
+    kind: att
+    label: Comment
+    line: offer
+    column: marketing
     action: comment
     advance:
       - trigger: trigger.touch
@@ -21,42 +48,85 @@ nodes:
           kind: comment
           direction: ours
   - id: reply
-    kind: step
-    name: Reply
+    kind: att
+    label: Reply
+    line: offer
+    column: marketing
     action: reply
     advance:
       - trigger: trigger.reply
   - id: booked_call
-    kind: step
-    name: Booked call
+    kind: time
+    label: Booked call
+    line: offer
+    column: sales
     action: book
     advance:
       - trigger: trigger.booking
         with:
           on: booked
   - id: offer
-    kind: offer
-    name: Offer
-    offer: growth-partner
+    kind: att
+    label: Offer
+    line: offer
+    column: sales
+    deal: true
     advance: []
   - id: plan
-    kind: plan
-    name: Plan
+    kind: cash
+    label: Plan
+    line: offer
+    column: money
     terms: standard
+    offer: growth-partner
     advance:
       - trigger: trigger.document
         with:
           on: signed
-edges:
-  - from: source
+tracks:
+  - id: source_to_hub
+    from: source
+    to: hub
+    line: source
+    by: system
+  - id: outbound_to_hub
+    from: outbound
+    to: hub
+    line: outbound
+    by: system
+  - id: hub_to_comment
+    from: hub
     to: comment
-  - from: comment
+    line: offer
+    by: system
+    entries:
+      - source
+  - id: hub_to_reply
+    from: hub
     to: reply
-  - from: outbound
+    line: offer
+    by: system
+    entries:
+      - outbound
+  - id: comment_to_reply
+    from: comment
     to: reply
-  - from: reply
+    by: system
+    line: offer
+  - id: reply_to_booked_call
+    from: reply
     to: booked_call
-  - from: booked_call
+    by: system
+    line: offer
+  - id: booked_call_to_offer
+    from: booked_call
     to: offer
-  - from: offer
+    by: person
+    line: offer
+  - id: offer_to_plan
+    from: offer
     to: plan
+    by: system
+    line: offer
+groups: []
+frames: []

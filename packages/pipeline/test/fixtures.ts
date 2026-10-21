@@ -1,8 +1,20 @@
 /**
  * Synthetic shapes for the pipeline tests. One place, so no test builds its own copy.
  */
+import type { Queryable } from "@wren/db";
+import { sql } from "drizzle-orm";
+import { graphOf, metroOf } from "../src/convert.js";
 import type { MetroBody } from "../src/metro.js";
-import type { ShapeBody, ShapeCheckContext, ShapeEdge, ShapeNode } from "../src/model.js";
+import {
+  depthOf,
+  type ShapeBody,
+  type ShapeCheckContext,
+  type ShapeEdge,
+  type ShapeNode,
+} from "../src/model.js";
+import { type ShapeVersion, shapeVersions } from "../src/schema.js";
+import { starterShape } from "../src/starter.js";
+import { newestShape } from "../src/store.js";
 
 export const TRIGGERS = new Set([
   "trigger.reply",
@@ -73,6 +85,56 @@ export const shape = (over: Partial<ShapeBody> = {}): ShapeBody => ({
   ],
   ...over,
 });
+
+/**
+ * The metro body a graph is saved as. Every stored body is a metro body (HELD, C1 part 4), so a
+ * test that seeds a graph shape saves `asMetro(graph)`: station ids are the node ids and track ids
+ * the edge ids, so journeys and deals keep their place. Throws what `metroOf` refuses.
+ */
+export const asMetro = (graph: ShapeBody): MetroBody => {
+  const made = metroOf(graph);
+  if (!made.ok) throw new Error(`asMetro: ${made.errors.join(" ")}`);
+  return made.body;
+};
+
+/**
+ * A graph version as a database from before 0315 holds it: `saveShape` and the metro-only trigger
+ * both refuse a graph body now, so this writes the row with that trigger off. Only the tests of
+ * `convertShape`, the graph undo and the graph edits use it, for the graph the convert starts from.
+ */
+export async function seedGraph(
+  db: Queryable,
+  body: ShapeBody,
+  note = "graph",
+): Promise<ShapeVersion> {
+  const last = await newestShape(db);
+  await db.execute(
+    sql`alter table pipeline.shape_versions disable trigger shape_versions_metro_only`,
+  );
+  try {
+    const [row] = await db
+      .insert(shapeVersions)
+      .values({
+        number: (last?.number ?? 0) + 1,
+        body,
+        run: body,
+        depths: depthOf(body),
+        note,
+        parent: last?.number ?? null,
+        createdBy: "t",
+      })
+      .returning();
+    if (!row) throw new Error("seedGraph: insert returned nothing");
+    return row;
+  } finally {
+    await db.execute(
+      sql`alter table pipeline.shape_versions enable trigger shape_versions_metro_only`,
+    );
+  }
+}
+
+/** The starter as the graph the runtime runs: its edges in the order `graphOf` lists them. */
+export const starterGraph = (): ShapeBody => graphOf(starterShape().body);
 
 /** A shape with extra nodes and edges added to `shape()`. */
 export const grown = (nodes: ShapeNode[], edges: ShapeEdge[]): ShapeBody => {

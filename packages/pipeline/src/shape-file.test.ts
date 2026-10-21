@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { flow, grown, shape } from "../test/fixtures.js";
+import { asMetro, metroShape, shape, wideShape } from "../test/fixtures.js";
+import { exportMetro } from "./metro-file.js";
 import { exportShape, parseShape } from "./shape-file.js";
-import { canonicalJson, Refused } from "./store.js";
-import { runOf } from "./stored.js";
+import { CONVERT_FIRST, canonicalJson, Refused } from "./store.js";
 
 const refusal = (text: string): string[] => {
   try {
@@ -14,16 +14,37 @@ const refusal = (text: string): string[] => {
   throw new Error("parsed");
 };
 
+/** A small metro file: one out line, its station. */
+const small = `model: metro
+name: Small
+lines:
+  - id: yt
+    label: YouTube
+    tier: out
+    entry:
+      via: organic
+stations:
+  - id: yt
+    kind: att
+    label: YouTube
+    line: yt
+    column: marketing
+`;
+
 describe("exportShape and parseShape", () => {
-  it("round trip to the same body", () => {
-    const body = grown(
-      [{ id: "again", kind: "step", name: "Again", action: "other", advance: [] }],
-      [flow("standard", "again", { kind: "loop", label: "renew" })],
-    );
+  it.each([
+    ["metroShape()", metroShape],
+    ["metroOf(wideShape())", () => asMetro(wideShape())],
+  ])("round trip to the same metro body: %s", (_name, make) => {
+    const body = make();
     expect(canonicalJson(parseShape(exportShape(body)).body)).toBe(canonicalJson(body));
   });
 
-  it("writes the id, kind and name of a node first", () => {
+  it("writes a metro body with exportMetro", () => {
+    expect(exportShape(metroShape())).toBe(exportMetro(metroShape()));
+  });
+
+  it("still writes the id, kind and name of a graph node first, so an old version can be read", () => {
     const text = exportShape(shape());
     expect(text).toContain("nodes:\n  - id: yt\n    kind: source\n    name: YouTube\n");
     expect(text).toContain(
@@ -33,17 +54,9 @@ describe("exportShape and parseShape", () => {
 });
 
 describe("parseShape", () => {
-  const file = `
-name: Small
-note: first cut
-nodes:
-  - { id: yt, kind: source, name: YouTube, via: organic }
-  - { id: engaged, kind: step, name: Engaged, action: reply, advance: [] }
-edges:
-  - { from: yt, to: engaged }
-  - { id: back, from: engaged, to: engaged, kind: loop }
+  const file = `${small}note: first cut
 moves:
-  old: engaged
+  old: yt
 terms:
   - offer: offer-a
     plan: standard
@@ -52,29 +65,22 @@ terms:
     body: { currency: USD }
 `;
 
-  it("gives an edge its default id and kind", () => {
-    const f = parseShape(file);
-    const edges = runOf(f.body).edges;
-    expect(edges[0]).toEqual({
-      id: "yt_to_engaged",
-      from: "yt",
-      to: "engaged",
-      kind: "flow",
-    });
-    expect(edges[1]?.id).toBe("back");
-    expect(edges[1]?.kind).toBe("loop");
+  it("refuses a graph file: convert first", () => {
+    expect(refusal(exportShape(shape()))).toEqual([CONVERT_FIRST]);
+    expect(refusal("name: S\nnodes: []\nedges: []\n")).toEqual([CONVERT_FIRST]);
   });
 
-  it("reads the note, moves and terms", () => {
+  it("reads the note, moves and terms of a metro file", () => {
     const f = parseShape(file);
     expect(f.note).toBe("first cut");
-    expect(f.moves).toEqual({ old: "engaged" });
+    expect(f.moves).toEqual({ old: "yt" });
     expect(f.terms?.[0]).toMatchObject({ offer: "offer-a", plan: "standard", why: "first" });
   });
 
   it("leaves the optional parts out when the file has none", () => {
-    const f = parseShape("name: S\nnodes: []\nedges: []\n");
-    expect(f).toEqual({ body: { name: "S", nodes: [], edges: [] } });
+    const f = parseShape(small);
+    expect(Object.keys(f)).toEqual(["body"]);
+    expect(f.body.model).toBe("metro");
   });
 
   it("refuses text that is not YAML", () => {
@@ -82,31 +88,24 @@ terms:
   });
 
   it("refuses a file with no map at the top", () => {
-    expect(refusal("- a\n- b\n")).toEqual(["The file needs name, nodes and edges at the top."]);
+    expect(refusal("- a\n- b\n")).toEqual([
+      "The file needs model, name, lines and stations at the top.",
+    ]);
+  });
+
+  it("refuses a model that is not metro", () => {
+    expect(refusal("model: graph\nname: S\n")).toEqual(["model is metro."]);
   });
 
   it("names every problem at once", () => {
-    const errors = refusal(`
-name: ""
-nodes:
-  - { kind: source }
-edges:
-  - { from: a }
-moves: [x]
+    const errors = refusal(`${small}moves: [x]
 terms: [{ offer: o }]
 note: 3
 `);
     expect(errors).toEqual([
-      "The shape needs a name.",
-      "Node 1 needs an id.",
-      "Edge 1 needs from and to.",
       "moves maps an old node id to a new one.",
       "Terms 1 needs offer, plan, from, body and why.",
       "note is text.",
     ]);
-  });
-
-  it("needs a list of nodes", () => {
-    expect(refusal("name: S\nnodes: 3\n")).toContain("nodes is a list.");
   });
 });

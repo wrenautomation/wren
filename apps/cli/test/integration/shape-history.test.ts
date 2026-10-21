@@ -9,6 +9,7 @@ import { tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
 import type { GithubFiles } from "@wren/core/github";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { metroOf } from "@wren/pipeline/convert";
 import { mirrorShapes } from "@wren/pipeline/mirror";
 import type { ShapeBody } from "@wren/pipeline/model";
 import { exportShape } from "@wren/pipeline/shape-file";
@@ -101,9 +102,12 @@ const withCall: ShapeBody = {
 };
 
 const dir = mkdtempSync(join(tmpdir(), "wren-shape-history-"));
+/** A shape file of a graph, as the metro file the store takes (a graph file is refused). */
 const fileOf = (name: string, body: ShapeBody, extra = "") => {
+  const metro = metroOf(body);
+  if (!metro.ok) throw new Error(metro.errors.join(" "));
   const path = join(dir, name);
-  writeFileSync(path, exportShape(body) + extra);
+  writeFileSync(path, exportShape(metro.body) + extra);
   return path;
 };
 
@@ -129,8 +133,8 @@ describe("wren shape history", () => {
 
     const shown = (await run("draft", "show", "add-a-call")).out;
     expect(shown[1]).toBe("Add the call step");
-    expect(shown).toContain("+ node call");
-    expect(shown).toContain("+ edge engaged_to_call");
+    expect(shown).toContain("Added station Call.");
+    expect(shown).toContain("Added track Engaged to Call.");
 
     expect((await run("draft", "propose", "add-a-call")).out).toEqual([
       "draft add-a-call proposed",
@@ -176,8 +180,8 @@ describe("wren shape history", () => {
   it("prints each diff line with its change key", async () => {
     const r = await run("diff", "1", "2");
     expect(r.out).toEqual([
-      "+ node call  [node:call:added]",
-      "+ edge engaged_to_call  [edge:engaged_to_call:added]",
+      "Added station Call.  [station:call:added]",
+      "Added track Engaged to Call.  [track:engaged_to_call:added]",
     ]);
   });
 
@@ -190,21 +194,21 @@ describe("wren shape history", () => {
   });
 
   it("previews an undo without saving, then saves it and mirrors", async () => {
-    const preview = await run("undo", "1", "2", "node:call:added", "--preview");
+    const preview = await run("undo", "1", "2", "station:call:added", "--preview");
     expect(preview.out.slice(0, 3)).toEqual([
-      "undo: Added node Call.",
-      "note: Undo: Added node Call.",
+      "undo: Added station Call.",
+      "note: Undo: Added station Call.",
       "applies to v2",
     ]);
-    expect(preview.out).toContain("- node call");
+    expect(preview.out).toContain("Removed station Call.");
     expect((await run("versions")).out.filter((l) => l.startsWith("v"))).toHaveLength(2);
 
-    const done = await run("undo", "1", "2", "node:call:added");
+    const done = await run("undo", "1", "2", "station:call:added");
     expect(done.out).toEqual(["v3 saved", "mirrored v3 c0ffee3"]);
-    expect(commits[2]?.message).toMatch(/^shape wren v3: Undo: Added node Call\./);
+    expect(commits[2]?.message).toMatch(/^shape wren v3: Undo: Added station Call\./);
 
     // The change is gone: the second undo is refused and saves nothing.
-    const second = await run("undo", "1", "2", "node:call:added");
+    const second = await run("undo", "1", "2", "station:call:added");
     expect(second.out).toEqual([]);
     expect(second.err.length).toBeGreaterThan(0);
     expect(process.exitCode).toBe(1);
@@ -227,26 +231,17 @@ describe("wren shape history", () => {
     const versions = (await run("versions")).out;
     expect(versions[0]).toMatch(/^v1 .* first {2}c0ffee1$/);
     expect(versions[1]).toMatch(/^v2 .* Add the call step {2}\[with-call\] {2}c0ffee2$/);
-    expect(versions[2]).toMatch(/^v3 .* Undo: Added node Call\. {2}c0ffee3$/);
+    expect(versions[2]).toMatch(/^v3 .* Undo: Added station Call\. {2}c0ffee3$/);
   });
 
   it("runs the mirror by hand, and a broken repo never fails a save", async () => {
     expect((await run("mirror")).out).toEqual(["up to date"]);
     expect((await run("mirror", "--all")).out).toEqual(["wren: up to date"]);
     breakWrites = true;
+    // A save with a broken repo still saves: the mirror line says what failed.
     const saved = await run(
-      "add-node",
-      "won",
-      "--kind",
-      "step",
-      "--name",
-      "Won",
-      "--action",
-      "reply",
-      "--from",
-      "engaged",
-      "--advance",
-      "trigger.booking",
+      "import",
+      fileOf("renamed.yaml", { ...base, name: "History shape 4" }),
       "--note",
       "closing",
     );

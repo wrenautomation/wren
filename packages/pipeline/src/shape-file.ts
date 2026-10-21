@@ -1,13 +1,13 @@
 /**
  * The shape as a YAML file (designs/2026-10-19-business-map.md): the way to read it, diff it in
  * git, and write a whole new version at once. `exportShape` writes a body; `importShape` reads
- * `{ name, nodes, edges, note?, moves?, terms? }` and saves the next version.
+ * a metro file and saves the next version.
  *
- * A file with `model: metro` at the top is the metro model (`metro-file.ts`): `lines`, `stations`,
- * `tracks`, `groups` and `frames` in place of `nodes` and `edges`. `note`, `moves` and `terms`
- * work the same in both. `exportShape` writes whichever model the body is.
+ * A file has `model: metro` at the top (`metro-file.ts`): `lines`, `stations`, `tracks`, `groups`
+ * and `frames`, then optional `flows`, and optional `note`, `moves` and `terms`. `exportShape`
+ * still writes a graph body as `name`, `nodes` and `edges`, so an old graph version can be read;
+ * `parseShape` refuses such a file (HELD, C1 part 4): it needs `wren shape convert` first.
  *
- * An edge needs no `id` (it defaults to `<from>_to_<to>`) and no `kind` (it defaults to `flow`).
  * `terms` is a list of terms versions (`NewTerms` without `by`). Each is added to its plan unless
  * the plan's newest version already has that body, so an import is safe to repeat.
  */
@@ -16,12 +16,12 @@ import { atomic, type Queryable } from "@wren/db";
 import type { Terms } from "@wren/offers";
 import { parse, stringify } from "yaml";
 import type { Moves } from "./carry.js";
-import { isMetro } from "./metro.js";
+import { isMetro, type MetroBody } from "./metro.js";
 import { exportMetro, ordered, parseMetroBody } from "./metro-file.js";
-import { edgeIdOf, type ShapeBody, type ShapeEdge, type ShapeNode } from "./model.js";
 import type { ShapeVersion, TermsVersion } from "./schema.js";
 import {
   addTerms,
+  CONVERT_FIRST,
   canonicalJson,
   type NewTerms,
   newestShape,
@@ -34,8 +34,7 @@ import { type StoredBody, sameStored } from "./stored.js";
 export type TermsEntry = Omit<NewTerms, "by">;
 
 export interface ShapeFile {
-  /** A graph body, or a metro body when the file says `model: metro`. */
-  body: StoredBody;
+  body: MetroBody;
   note?: string;
   moves?: Moves;
   terms?: TermsEntry[];
@@ -57,30 +56,6 @@ export function exportShape(body: StoredBody): string {
   });
 }
 
-/** The graph body of a parsed file; what is wrong goes in `errors`. */
-function graphBodyOf(doc: Record<string, unknown>, errors: string[]): ShapeBody {
-  if (typeof doc.name !== "string" || !doc.name.trim()) errors.push("The shape needs a name.");
-  if (!Array.isArray(doc.nodes)) errors.push("nodes is a list.");
-  if (doc.edges !== undefined && !Array.isArray(doc.edges)) errors.push("edges is a list.");
-  const nodes: ShapeNode[] = [];
-  for (const [i, n] of (Array.isArray(doc.nodes) ? doc.nodes : []).entries()) {
-    if (!isMap(n) || typeof n.id !== "string") errors.push(`Node ${i + 1} needs an id.`);
-    else nodes.push(n as unknown as ShapeNode);
-  }
-  const edges: ShapeEdge[] = [];
-  for (const [i, e] of (Array.isArray(doc.edges) ? doc.edges : []).entries()) {
-    if (!isMap(e) || typeof e.from !== "string" || typeof e.to !== "string")
-      errors.push(`Edge ${i + 1} needs from and to.`);
-    else
-      edges.push({
-        ...e,
-        id: typeof e.id === "string" ? e.id : edgeIdOf(e.from, e.to),
-        kind: e.kind === undefined ? "flow" : e.kind,
-      } as ShapeEdge);
-  }
-  return { name: String(doc.name), nodes, edges };
-}
-
 /** Text to a shape file. Refused, with every reason found, when it is not one. */
 export function parseShape(text: string): ShapeFile {
   const errors: string[] = [];
@@ -90,8 +65,9 @@ export function parseShape(text: string): ShapeFile {
   } catch (e) {
     throw new Refused([`The file is not valid YAML: ${(e as Error).message.split("\n")[0]}`]);
   }
-  if (!isMap(doc)) throw new Refused(["The file needs name, nodes and edges at the top."]);
-  let body: StoredBody | undefined;
+  if (!isMap(doc))
+    throw new Refused(["The file needs model, name, lines and stations at the top."]);
+  let body: MetroBody | undefined;
   if (doc.model === "metro") {
     // `note`, `moves` and `terms` are the file's, read below; the rest is the metro body.
     const rest = Object.fromEntries(
@@ -104,9 +80,10 @@ export function parseShape(text: string): ShapeFile {
       errors.push(...e.errors);
     }
   } else if (doc.model !== undefined) {
-    errors.push("model is metro, or leave it out for the graph.");
+    errors.push("model is metro.");
   } else {
-    body = graphBodyOf(doc, errors);
+    // A graph file: the one way on is `wren shape convert`, which writes a metro file.
+    errors.push(CONVERT_FIRST);
   }
   let moves: Moves | undefined;
   if (doc.moves !== undefined) {

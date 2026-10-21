@@ -13,7 +13,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { depthOf } from "../../src/model.js";
 import { journeys, shapeVersions } from "../../src/schema.js";
-import { shape } from "../fixtures.js";
+import { asMetro, shape } from "../fixtures.js";
 
 const FILE = new URL("../../../db/drizzle/0303_deals_guard_and_drop.sql", import.meta.url);
 const [GUARD = "", ...DROPS] = readFileSync(FILE, "utf8").split("--> statement-breakpoint");
@@ -46,7 +46,7 @@ beforeAll(async () => {
   // A journey names a shape version.
   await pg.db.insert(shapeVersions).values({
     number: 1,
-    body: shape(),
+    body: asMetro(shape()),
     run: shape(),
     depths: depthOf(shape()),
     note: "first",

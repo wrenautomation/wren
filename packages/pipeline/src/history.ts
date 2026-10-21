@@ -7,6 +7,7 @@
 import type { Moves } from "./carry.js";
 import type { ShapeDiff } from "./diff.js";
 import type { ShapeBody } from "./model.js";
+import type { StoredBody } from "./stored.js";
 
 /** A draft's life: saved, waiting on a decision, made a version, or dropped with a reason. */
 export const DRAFT_STATES = ["draft", "proposed", "applied", "dropped"] as const;
@@ -90,7 +91,8 @@ export interface BlameLine {
 
 export interface DraftNewAsk {
   name: string;
-  body: ShapeBody;
+  /** A metro body; the store refuses a graph body (`CONVERT_FIRST`). */
+  body: StoredBody;
   moves?: Moves;
   /** The version it forks; the newest when left out. */
   base?: number;
@@ -102,7 +104,7 @@ export interface DraftNewAnswer {
 }
 export interface DraftUpdateAsk {
   id: string;
-  body: ShapeBody;
+  body: StoredBody;
   moves?: Moves;
   /** Left out keeps the note. */
   note?: string;

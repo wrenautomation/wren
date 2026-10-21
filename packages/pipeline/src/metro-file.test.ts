@@ -35,7 +35,7 @@ describe("exportMetro and parseMetroBody", () => {
   const cases: Array<[string, () => MetroBody]> = [
     ["metroShape()", metroShape],
     ["metroOf(wideShape())", () => metroOfGraph(wideShape())],
-    ["metroOf(starter)", () => metroOfGraph(starterShape().body)],
+    ["the starter", () => starterShape().body],
     ["the older body of metroPair()", () => metroPair().a],
     ["the newer body of metroPair()", () => metroPair().b],
   ];

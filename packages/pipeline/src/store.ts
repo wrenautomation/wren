@@ -285,24 +285,26 @@ export interface NewShape {
   draft?: string;
 }
 
-/** What `saveShape` says to a graph body over a metro newest version. One way only: graph to metro. */
-export const GRAPH_OVER_METRO =
-  "The shape is on the metro model. Import a metro file (wren shape export, edit, import).";
+/**
+ * What a save says to a graph body. Every stored body is a metro body (HELD, C1 part 4); the one
+ * way from a graph is `convertShape`, which reads the stored graph and writes metro.
+ */
+export const CONVERT_FIRST = "Convert first: wren shape convert.";
 
 /**
- * The next shape version. Refused with every reason `checkStored` finds (a metro body: `checkMetro`
- * and `lowerable`, then `checkShape` on what it lowers to), with "Nothing changed." when the body
- * equals the newest as stored, with `GRAPH_OVER_METRO` for a graph body over a metro newest
- * version, and when a `moves` target is no node of the body. `run` holds the graph the runtime
- * runs and `depths` its depth, for both models. Open journeys carry to it, and open deals at a
- * moved node follow, in the same transaction (`carryJourneys`, `remapDeals`).
+ * The next shape version. Refused with every reason `checkStored` finds (`checkMetro` and
+ * `lowerable`, then `checkShape` on what it lowers to), with "Nothing changed." when the body
+ * equals the newest as stored, with `CONVERT_FIRST` for a graph body, and when a `moves` target
+ * is no node of the body. `run` holds the graph the runtime runs and `depths` its depth. Open
+ * journeys carry to it, and open deals at a moved node follow, in the same transaction
+ * (`carryJourneys`, `remapDeals`).
  */
 export async function saveShape(db: Queryable, input: NewShape): Promise<ShapeVersion> {
   if (!input.note.trim()) throw new Refused(["Say why."]);
+  if (!isMetro(input.body)) throw new Refused([CONVERT_FIRST]);
   return atomic(db, async (tx) => {
     await lock(tx, "shape");
     const last = await newestShape(tx);
-    if (last && isMetro(last.body) && !isMetro(input.body)) return refuse(GRAPH_OVER_METRO);
     if (last && sameStored(last.body, input.body)) return refuse("Nothing changed.");
     const errors = checkStored(input.body, await shapeContext(tx, input.triggers));
     const run = runOf(input.body);

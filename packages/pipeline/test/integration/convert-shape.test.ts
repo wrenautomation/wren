@@ -1,8 +1,9 @@
 /**
  * `convertShape` end to end, on a real Postgres (designs/2026-10-20-design-language.md, area C1):
  * a graph shape with journeys, a deal and events becomes a metro version, and every number the
- * SQL views and readers give is the same as before. The guards refuse a graph body over a metro
- * newest version, and a second convert. The walks use the real store and steps, no Restate.
+ * SQL views and readers give is the same as before. The graph rows are seeded with the metro-only
+ * trigger off (`seedGraph`), as a database from before the guard holds them. The store refuses a
+ * graph body (`CONVERT_FIRST`), and a second convert. The walks use the real store and steps, no Restate.
  * Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
@@ -28,15 +29,9 @@ import {
 } from "../../src/numbers.js";
 import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
-import {
-  addTerms,
-  GRAPH_OVER_METRO,
-  Refused,
-  saveShape,
-  shapeVersionsOf,
-} from "../../src/store.js";
+import { addTerms, CONVERT_FIRST, Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
 import { undoShape } from "../../src/undo.js";
-import { shape, TRIGGERS } from "../fixtures.js";
+import { seedGraph, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -133,12 +128,7 @@ async function readers() {
 
 describe("convertShape on a graph with journeys, a deal and events", () => {
   it("saves the metro version and every number stays the same", async () => {
-    const v1 = await saveShape(pg.db, {
-      body: shape(),
-      note: "graph",
-      by: "t",
-      triggers: TRIGGERS,
-    });
+    const v1 = await seedGraph(pg.db, shape());
     expect(isMetro(v1.body)).toBe(false);
     expect(v1.run).toEqual(v1.body);
 
@@ -243,10 +233,10 @@ describe("convertShape on a graph with journeys, a deal and events", () => {
     expect(flow.filter((f) => f.version === 2).reduce((n, f) => n + (f.crossings ?? 0), 0)).toBe(1);
   });
 
-  it("refuses a graph body over a metro newest version, and a second convert", async () => {
+  it("refuses a graph body, and a second convert", async () => {
     expect(
       await reasons(saveShape(pg.db, { body: shape(), note: "back", by: "t", triggers: TRIGGERS })),
-    ).toEqual([GRAPH_OVER_METRO]);
+    ).toEqual([CONVERT_FIRST]);
     expect(
       await reasons(convertShape(pg.db, { note: "again", by: "t", triggers: TRIGGERS })),
     ).toEqual(["The shape is on the metro model already."]);
@@ -266,7 +256,7 @@ describe("convertShape on a graph with a stray field", () => {
           n.id === "standard" ? ({ ...n, zzNote: null } as unknown as ShapeNode) : n,
         ),
       };
-      const v1 = await saveShape(own.db, { body: odd, note: "graph", by: "t", triggers: TRIGGERS });
+      const v1 = await seedGraph(own.db, odd);
       expect(JSON.stringify(v1.body)).toContain("zzNote");
 
       const { version, report } = await convertShape(own.db, {
@@ -307,7 +297,7 @@ describe("convertShape refuses", () => {
       // The same parts as the fixture, listed in another order than the metro model gives back.
       const g = shape();
       const swapped = { ...g, edges: [...g.edges].reverse() };
-      await saveShape(own.db, { body: swapped, note: "graph", by: "t", triggers: TRIGGERS });
+      await seedGraph(own.db, swapped);
       const why = await reasons(convertShape(own.db, { note: "x", by: "t", triggers: TRIGGERS }));
       expect(why).toContain("The metro body does not give the same graph back.");
       expect(why.join(" ")).toMatch(/another order/);
@@ -324,42 +314,32 @@ describe("convertShape refuses", () => {
     }
   });
 
-  it("keeps a graph undo working while the newest version is a graph", async () => {
+  it("refuses a graph undo: the undo is a graph body, and a graph body is refused", async () => {
     const own = await startTestPostgres();
     try {
       const g = shape();
-      const v1 = await saveShape(own.db, { body: g, note: "graph", by: "t", triggers: TRIGGERS });
+      const v1 = await seedGraph(own.db, g);
       const renamed = {
         ...g,
         nodes: g.nodes.map((n) => (n.id === "booked" ? { ...n, name: "Call booked" } : n)),
       };
-      const v2 = await saveShape(own.db, {
-        body: renamed,
-        note: "rename",
-        by: "t",
-        triggers: TRIGGERS,
-      });
-      const undone = await undoShape(own.db, {
-        a: v1.number,
-        b: v2.number,
-        change: "node:booked:renamed",
-        by: "t",
-        triggers: TRIGGERS,
-      });
-      expect(isMetro(undone.body)).toBe(false);
-      expect(undone.body).toEqual(v1.body);
-      // A metro key on a graph newest version is refused.
-      expect(
-        await reasons(
+      const v2 = await seedGraph(own.db, renamed, "rename");
+      const undo = (change: string) =>
+        reasons(
           undoShape(own.db, {
             a: v1.number,
             b: v2.number,
-            change: "station:booked:renamed",
+            change,
             by: "t",
             triggers: TRIGGERS,
           }),
-        ),
-      ).toEqual(["The shape is on the graph model. Undo by node or edge."]);
+        );
+      expect(await undo("node:booked:renamed")).toEqual([CONVERT_FIRST]);
+      // A metro key on a graph newest version is refused as before.
+      expect(await undo("station:booked:renamed")).toEqual([
+        "The shape is on the graph model. Undo by node or edge.",
+      ]);
+      expect((await shapeVersionsOf(own.db)).map((v) => v.number)).toEqual([1, 2]);
     } finally {
       await own.stop();
     }

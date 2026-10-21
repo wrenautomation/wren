@@ -11,7 +11,7 @@ import { type MirrorResult, mirrorShapes } from "../../src/mirror.js";
 import { shapeMirrors } from "../../src/schema.js";
 import { exportShape } from "../../src/shape-file.js";
 import { saveShape, shapeVersionsOf } from "../../src/store.js";
-import { shape, TRIGGERS } from "../fixtures.js";
+import { asMetro, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -58,7 +58,7 @@ function fakeGithub() {
 const save = (n: number) => {
   const body = shape({ name: `Mirror shape ${n}` });
   return saveShape(pg.db, {
-    body,
+    body: asMetro(body),
     note: `change ${n}`,
     by: "ada@example.test",
     triggers: TRIGGERS,
@@ -117,7 +117,7 @@ describe("mirrorShapes", () => {
   it("names a client's file by its workspace, and keeps a note to one line", async () => {
     await pg.db.delete(shapeMirrors);
     await saveShape(pg.db, {
-      body: shape({ name: "Mirror shape 9" }),
+      body: asMetro(shape({ name: "Mirror shape 9" })),
       note: "first line\nsecond   line",
       by: "ada@example.test",
       triggers: TRIGGERS,

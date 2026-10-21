@@ -27,7 +27,7 @@ import { moveEmit, openEmit } from "../../src/moves.js";
 import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { addTerms, saveShape } from "../../src/store.js";
-import { flow, grown, shape, TRIGGERS } from "../fixtures.js";
+import { asMetro, flow, grown, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 let group: number;
@@ -78,7 +78,13 @@ const NOW = new Date("2026-10-19T12:00:00Z");
 const groupRule = (...of: Rule["of"]): Rule => ({ kind: "group", match: "all", of });
 
 const save = (body = shape(), note = "next", moves?: Record<string, string>) =>
-  saveShape(pg.db, { body, note, by: "t", triggers: TRIGGERS, ...(moves ? { moves } : {}) });
+  saveShape(pg.db, {
+    body: asMetro(body),
+    note,
+    by: "t",
+    triggers: TRIGGERS,
+    ...(moves ? { moves } : {}),
+  });
 
 async function person(email: string, name = "Ada") {
   const r = await resolveProfile(pg.db, [{ kind: "email", value: email }], "test", { name });

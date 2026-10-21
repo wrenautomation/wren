@@ -18,7 +18,7 @@ import { sourceNumbersOf } from "../../src/numbers.js";
 import { journeys } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { saveShape } from "../../src/store.js";
-import { flow, TRIGGERS } from "../fixtures.js";
+import { asMetro, flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -30,7 +30,7 @@ beforeAll(async () => {
            (current_date, 'as2', '120001', 'Spring Offer', 'b', 'USD', 7.5, 1, 1, 1, 1, 1),
            (current_date, 'as3', '120002', 'Other', 'c', 'USD', 3, 1, 1, 1, 1, 1)`);
   await saveShape(pg.db, {
-    body: body(),
+    body: asMetro(body()),
     note: "first",
     by: "t",
     triggers: new Set([...TRIGGERS, "trigger.form"]),

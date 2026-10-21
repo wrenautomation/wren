@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ctx, flow, grown, metroShape, shape, wideShape } from "../test/fixtures.js";
+import { ctx, flow, grown, metroShape, shape, starterGraph, wideShape } from "../test/fixtures.js";
 import {
   graphOf,
   isStrayNote,
@@ -12,7 +12,6 @@ import {
 import { canonicalJson } from "./diff.js";
 import { type Attach, checkMetro, HUB, type MetroBody, placesOf } from "./metro.js";
 import { depthOf, holds, type ShapeBody, type ShapeNode } from "./model.js";
-import { starterShape } from "./starter.js";
 import { shapeWorkflow } from "./workflow.js";
 
 const byId = <T extends { id: string }>(xs: T[]): T[] =>
@@ -99,7 +98,7 @@ const twoOffers = (): ShapeBody =>
   );
 
 const CASES: Array<[string, () => ShapeBody]> = [
-  ["the starter", () => starterShape().body],
+  ["the starter", () => starterGraph()],
   ["shape()", () => shape()],
   ["wideShape()", () => wideShape()],
   [
@@ -657,7 +656,7 @@ describe("lowerable and graphOf: attach and flows", () => {
 
 describe("placesOf", () => {
   it.each([
-    ["the starter", () => starterShape().body],
+    ["the starter", () => starterGraph()],
     ["wideShape()", () => wideShape()],
     ["shape()", () => shape()],
   ])("orders the holding nodes of %s as depthOf does", (_name, make) => {

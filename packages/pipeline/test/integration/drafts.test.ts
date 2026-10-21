@@ -18,12 +18,19 @@ import {
   proposeDraft,
   updateDraft,
 } from "../../src/drafts.js";
+import type { MetroBody } from "../../src/metro.js";
 import type { ShapeBody } from "../../src/model.js";
 import { journeys, shapeDrafts } from "../../src/schema.js";
-import { newestShape, Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
+import {
+  CONVERT_FIRST,
+  newestShape,
+  Refused,
+  saveShape,
+  shapeVersionsOf,
+} from "../../src/store.js";
 import { runOf } from "../../src/stored.js";
 import { addTag, tagsOf } from "../../src/tags.js";
-import { flow, grown, shape, TRIGGERS } from "../fixtures.js";
+import { asMetro, flow, grown, metroShape, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -37,9 +44,11 @@ const reasons = (p: Promise<unknown>) =>
     () => [],
     (e: unknown) => (e instanceof Refused ? e.errors : [String(e)]),
   );
-const extra = grown(
-  [{ id: "kept", kind: "step", name: "Kept", action: "other", advance: [] }],
-  [flow("standard", "kept")],
+const extra = asMetro(
+  grown(
+    [{ id: "kept", kind: "step", name: "Kept", action: "other", advance: [] }],
+    [flow("standard", "kept")],
+  ),
 );
 /** `shape()` without the "booked" step: engaged leads straight to proposal. */
 const withoutBooked = (): ShapeBody => {
@@ -60,17 +69,17 @@ const journeyRow = async (id: string) =>
 
 describe("drafts", () => {
   it("refuses a draft before the workspace has a shape, and a name with nothing in it", async () => {
-    expect(await reasons(newDraft(pg.db, { name: "First", body: shape(), by: BY }))).toEqual([
-      "Start or import a shape first.",
-    ]);
-    await saveShape(pg.db, { body: shape(), note: "first", by: BY, triggers: TRIGGERS });
-    expect(await reasons(newDraft(pg.db, { name: "  ", body: shape(), by: BY }))).toEqual([
+    expect(
+      await reasons(newDraft(pg.db, { name: "First", body: asMetro(shape()), by: BY })),
+    ).toEqual(["Start or import a shape first."]);
+    await saveShape(pg.db, { body: asMetro(shape()), note: "first", by: BY, triggers: TRIGGERS });
+    expect(await reasons(newDraft(pg.db, { name: "  ", body: asMetro(shape()), by: BY }))).toEqual([
       "The draft needs a name.",
     ]);
   });
 
   it("saves a draft from the newest version, whatever its body, and refuses a taken id in any state", async () => {
-    const half = { name: "Half done", nodes: [], edges: [] } as ShapeBody;
+    const half = { ...metroShape(), name: "Half done", lines: [], stations: [], tracks: [] };
     const d = await newDraft(pg.db, { name: "Add a Step", body: half, by: BY, note: "try it" });
     expect(d).toMatchObject({
       id: "add-a-step",
@@ -82,21 +91,21 @@ describe("drafts", () => {
       moves: {},
       appliedVersion: null,
     });
-    expect(await reasons(newDraft(pg.db, { name: "add a step", body: shape(), by: BY }))).toEqual([
-      'A draft "add-a-step" exists. Pick another name.',
-    ]);
     expect(
-      await reasons(newDraft(pg.db, { name: "Fork", body: shape(), base: 9, by: BY })),
+      await reasons(newDraft(pg.db, { name: "add a step", body: asMetro(shape()), by: BY })),
+    ).toEqual(['A draft "add-a-step" exists. Pick another name.']);
+    expect(
+      await reasons(newDraft(pg.db, { name: "Fork", body: asMetro(shape()), base: 9, by: BY })),
     ).toEqual(["There is no shape version 9."]);
     // A dropped draft still holds its id.
     await dropDraft(pg.db, { id: "add-a-step", reason: "wrong idea", by: BY });
-    expect(await reasons(newDraft(pg.db, { name: "Add a step", body: shape(), by: BY }))).toEqual([
-      'A draft "add-a-step" exists. Pick another name.',
-    ]);
+    expect(
+      await reasons(newDraft(pg.db, { name: "Add a step", body: asMetro(shape()), by: BY })),
+    ).toEqual(['A draft "add-a-step" exists. Pick another name.']);
   });
 
   it("updates the body and moves, keeps the note unless one is given, and keeps the state", async () => {
-    await newDraft(pg.db, { name: "Edit me", body: shape(), by: BY, note: "why" });
+    await newDraft(pg.db, { name: "Edit me", body: asMetro(shape()), by: BY, note: "why" });
     const a = await updateDraft(pg.db, {
       id: "edit-me",
       body: extra,
@@ -113,13 +122,24 @@ describe("drafts", () => {
     ]);
   });
 
+  it("refuses a graph body, on a new draft and on a changed one", async () => {
+    expect(await reasons(newDraft(pg.db, { name: "Graph", body: shape(), by: BY }))).toEqual([
+      CONVERT_FIRST,
+    ]);
+    await newDraft(pg.db, { name: "Metro first", body: extra, by: BY });
+    expect(await reasons(updateDraft(pg.db, { id: "metro-first", body: shape(), by: BY }))).toEqual(
+      [CONVERT_FIRST],
+    );
+    await dropDraft(pg.db, { id: "metro-first", reason: "test", by: BY });
+  });
+
   it("proposes a draft once, and a proposed draft can still change", async () => {
     await newDraft(pg.db, { name: "Propose me", body: extra, by: BY });
     expect((await proposeDraft(pg.db, { id: "propose-me", by: BY })).state).toBe("proposed");
     expect(await reasons(proposeDraft(pg.db, { id: "propose-me", by: BY }))).toEqual([
       'The draft "propose-me" is proposed. Only a draft can be proposed.',
     ]);
-    const u = await updateDraft(pg.db, { id: "propose-me", body: shape(), by: BY });
+    const u = await updateDraft(pg.db, { id: "propose-me", body: asMetro(shape()), by: BY });
     expect(u.state).toBe("proposed");
   });
 
@@ -159,9 +179,9 @@ describe("drafts", () => {
     expect(
       await reasons(applyDraft(pg.db, { id: "ship-kept", by: BY, triggers: TRIGGERS })),
     ).toEqual(['The draft "ship-kept" is applied. Only an open draft changes.']);
-    expect(await reasons(updateDraft(pg.db, { id: "ship-kept", body: shape(), by: BY }))).toEqual([
-      'The draft "ship-kept" is applied. Only an open draft changes.',
-    ]);
+    expect(
+      await reasons(updateDraft(pg.db, { id: "ship-kept", body: asMetro(shape()), by: BY })),
+    ).toEqual(['The draft "ship-kept" is applied. Only an open draft changes.']);
   });
 
   it("moves a journey on a dropped node by the draft's moves", async () => {
@@ -178,7 +198,7 @@ describe("drafts", () => {
     if (!j) throw new Error("no journey");
     await newDraft(pg.db, {
       name: "Drop booked",
-      body: withoutBooked(),
+      body: asMetro(withoutBooked()),
       moves: { booked: "proposal" },
       note: "skip the call",
       by: BY,
@@ -193,18 +213,19 @@ describe("drafts", () => {
 
   it("leaves the draft proposed when the checks refuse it, and when nothing changed", async () => {
     const before = (await shapeVersionsOf(pg.db)).length;
-    const broken = shape({ edges: [flow("yt", "engaged"), flow("engaged", "yt")] });
+    // A metro body that fails a check: a graph that breaks a rule cannot be drawn as metro at all.
+    const broken = { ...asMetro(shape()), name: "" };
     await newDraft(pg.db, { name: "Broken", body: broken, by: BY });
     await proposeDraft(pg.db, { id: "broken", by: BY });
     const why = (
       await reasons(applyDraft(pg.db, { id: "broken", by: BY, triggers: TRIGGERS }))
     ).join(" ");
-    expect(why).toMatch(/Nothing enters a source/);
+    expect(why).toMatch(/needs a name/);
     expect((await draftOf(pg.db, "broken"))?.state).toBe("proposed");
     expect(await shapeVersionsOf(pg.db)).toHaveLength(before);
 
     const newest = await newestShape(pg.db);
-    await newDraft(pg.db, { name: "Same", body: newest?.body as ShapeBody, by: BY });
+    await newDraft(pg.db, { name: "Same", body: newest?.body as MetroBody, by: BY });
     expect(await reasons(applyDraft(pg.db, { id: "same", by: BY, triggers: TRIGGERS }))).toEqual([
       "Nothing changed.",
     ]);
@@ -252,8 +273,8 @@ describe("drafts", () => {
   });
 
   it("numbers two concurrent applies apart: one lands, the other waits and still applies", async () => {
-    await newDraft(pg.db, { name: "Race one", body: shape({ name: "Race one" }), by: BY });
-    await newDraft(pg.db, { name: "Race two", body: shape({ name: "Race two" }), by: BY });
+    await newDraft(pg.db, { name: "Race one", body: asMetro(shape({ name: "Race one" })), by: BY });
+    await newDraft(pg.db, { name: "Race two", body: asMetro(shape({ name: "Race two" })), by: BY });
     const rows = await Promise.all([
       applyDraft(pg.db, { id: "race-one", by: BY, triggers: TRIGGERS }),
       applyDraft(pg.db, { id: "race-two", by: BY, triggers: TRIGGERS }),
@@ -267,7 +288,7 @@ describe("drafts", () => {
       pg.db.insert(shapeDrafts).values({
         id: "ghost-base",
         name: "Ghost",
-        body: shape(),
+        body: asMetro(shape()),
         base: 9999,
         createdBy: BY,
       }),

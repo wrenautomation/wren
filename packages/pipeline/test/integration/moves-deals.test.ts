@@ -7,11 +7,12 @@ import { resolveProfile } from "@wren/core/profiles";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { graphOf } from "../../src/convert.js";
 import { withoutNode } from "../../src/edit.js";
 import type { ShapeNode } from "../../src/model.js";
 import { journeys, pipelineDeals } from "../../src/schema.js";
 import { newestShape, Refused, saveShape } from "../../src/store.js";
-import { flow, grown, TRIGGERS } from "../fixtures.js";
+import { asMetro, flow, grown, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -26,6 +27,9 @@ const offerNode = (id: string): ShapeNode => ({
   offer: "offer-a",
   advance: [],
 });
+/** The newest body without node `id`, as the metro body a save takes. */
+const without = async (id: string) =>
+  asMetro(withoutNode(graphOf((await newestShape(pg.db))?.body as never), id));
 const body = () =>
   grown(
     ["o1", "o2", "o3", "o4"].map(offerNode),
@@ -68,7 +72,7 @@ const nodesOf = async (journey: string) =>
 
 describe("moves and deals", () => {
   it("sends an open deal to the new node, with its journey, and leaves the rest", async () => {
-    await saveShape(pg.db, { body: body(), note: "v1", by: "t", triggers: TRIGGERS });
+    await saveShape(pg.db, { body: asMetro(body()), note: "v1", by: "t", triggers: TRIGGERS });
     const [a, b, c, d] = [
       await journeyAt("a@example.test", "o1"),
       await journeyAt("b@example.test", "o1"),
@@ -82,7 +86,7 @@ describe("moves and deals", () => {
     await dealAt(d, "o3");
 
     const v2 = await saveShape(pg.db, {
-      body: withoutNode((await newestShape(pg.db))?.body as never, "o1"),
+      body: await without("o1"),
       note: "Merge o1 into o2",
       by: "t",
       triggers: TRIGGERS,
@@ -109,7 +113,7 @@ describe("moves and deals", () => {
     const before = await pg.db.select().from(pipelineDeals);
     await expect(
       saveShape(pg.db, {
-        body: withoutNode((await newestShape(pg.db))?.body as never, "o2"),
+        body: await without("o2"),
         note: "Bad move",
         by: "t",
         triggers: TRIGGERS,
@@ -129,7 +133,7 @@ describe("moves and deals", () => {
     ] as const;
     const [dealE, dealF] = [await dealAt(e, "o2"), await dealAt(f, "o3")] as const;
     const v3 = await saveShape(pg.db, {
-      body: withoutNode((await newestShape(pg.db))?.body as never, "o2"),
+      body: await without("o2"),
       note: "Merge o2 into o3, o3 into o4",
       by: "t",
       triggers: TRIGGERS,

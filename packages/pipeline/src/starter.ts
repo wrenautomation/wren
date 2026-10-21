@@ -5,8 +5,6 @@
  */
 import { readFileSync } from "node:fs";
 import type { Queryable } from "@wren/db";
-import { isMetro } from "./metro.js";
-import type { ShapeBody } from "./model.js";
 import type { ShapeVersion } from "./schema.js";
 import { importShape, parseShape, type ShapeFile } from "./shape-file.js";
 import { newestShape } from "./store.js";
@@ -17,11 +15,7 @@ export const STARTER_NOTE = "Starter";
 const starterText = (): string => readFileSync(new URL("./starter.yaml", import.meta.url), "utf8");
 
 /** The starter as a shape file. Read on each call, so a caller may change what it gets. */
-export const starterShape = (): ShapeFile & { body: ShapeBody } => {
-  const file = parseShape(starterText());
-  if (isMetro(file.body)) throw new Error("The starter file must be a graph.");
-  return { ...file, body: file.body };
-};
+export const starterShape = (): ShapeFile => parseShape(starterText());
 
 /**
  * Save the starter as the next version, with the note "Starter". Null, and nothing written, when

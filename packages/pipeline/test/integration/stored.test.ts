@@ -17,7 +17,7 @@ import { shapeRecord, shapeRows } from "../../src/records.js";
 import { journeys } from "../../src/schema.js";
 import { exportShape, parseShape } from "../../src/shape-file.js";
 import {
-  GRAPH_OVER_METRO,
+  CONVERT_FIRST,
   newestShape,
   Refused,
   saveShape,
@@ -32,7 +32,7 @@ import {
   storedChangesOf,
 } from "../../src/stored.js";
 import { planUndo, undoShape } from "../../src/undo.js";
-import { metroShape, shape, TRIGGERS } from "../fixtures.js";
+import { metroShape, seedGraph, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -73,7 +73,7 @@ describe("a graph version, then the metro model", () => {
   let journey = "";
 
   it("saves a graph, then its metro form, and carries an open journey across", async () => {
-    const v1 = await save(shape(), "graph");
+    const v1 = await seedGraph(pg.db, shape());
     expect(isMetro(v1.body)).toBe(false);
     journey = await journeyAt("ada@example.test", 1, "booked");
 
@@ -168,34 +168,26 @@ describe("a graph version, then the metro model", () => {
     expect(why).toEqual(["The shape is on the metro model now. Undo by station or track."]);
   });
 
-  it("refuses a graph body over a metro newest version, and saves nothing", async () => {
+  it("refuses a graph body, and saves nothing", async () => {
     const why = await reasons(save(shape(), "back to a graph"));
-    expect(why).toEqual([GRAPH_OVER_METRO]);
+    expect(why).toEqual([CONVERT_FIRST]);
     expect((await shapeVersionsOf(pg.db)).map((v) => v.number)).toEqual([1, 2, 3, 4]);
   });
 
-  it("refuses a metro key on a graph newest version, and undoes a graph key there", async () => {
+  it("refuses a metro key on a graph newest version, and a graph key's undo is a graph body", async () => {
     // A graph newest version needs a database of its own: this one is on the metro model for good.
     const own = await startTestPostgres();
     try {
       const g = shape();
-      const v1 = await saveShape(own.db, { body: g, note: "graph", by: "t", triggers: TRIGGERS });
+      await seedGraph(own.db, g);
       const renamed = {
         ...g,
         nodes: g.nodes.map((n) => (n.id === "booked" ? { ...n, name: "Call booked" } : n)),
       };
-      const v2 = await saveShape(own.db, {
-        body: renamed,
-        note: "rename a node",
-        by: "t",
-        triggers: TRIGGERS,
-      });
+      await seedGraph(own.db, renamed, "rename a node");
       const undo = (change: string) =>
         undoShape(own.db, { a: 1, b: 2, change, by: "t", triggers: TRIGGERS });
-      const undone = await undo("node:booked:renamed");
-      expect(isMetro(undone.body)).toBe(false);
-      expect(undone.body).toEqual(v1.body);
-      expect(v2.number).toBe(2);
+      expect(await reasons(undo("node:booked:renamed"))).toEqual([CONVERT_FIRST]);
       expect(await reasons(undo("station:booked:renamed"))).toEqual([ON_GRAPH]);
     } finally {
       await own.stop();
@@ -211,8 +203,11 @@ describe("the file", () => {
     const text = exportShape(m);
     expect(text.startsWith("model: metro")).toBe(true);
     expect(parseShape(text).body).toEqual(m);
+    // A graph file still writes, to read an old version; it no longer reads back.
     expect(exportShape(shape())).not.toContain("model:");
-    expect(parseShape(exportShape(shape())).body).toEqual(shape());
+    expect(await reasons(Promise.resolve().then(() => parseShape(exportShape(shape()))))).toEqual([
+      CONVERT_FIRST,
+    ]);
   });
 });
 

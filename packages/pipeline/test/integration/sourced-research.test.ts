@@ -24,7 +24,7 @@ import { journeyResearch, journeys, offerVersions } from "../../src/schema.js";
 import { sourcedPass } from "../../src/sourced.js";
 import { journeySteps } from "../../src/steps.js";
 import { Refused, saveShape } from "../../src/store.js";
-import { flow, TRIGGERS } from "../fixtures.js";
+import { asMetro, flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 /** The lists the shape names: two that open at the first node, one that opens at the research node. */
@@ -42,7 +42,7 @@ beforeAll(async () => {
   });
   lists = { first: await list(2), unkeyed: await list(1), research: await list(1) };
   await saveShape(pg.db, {
-    body: body(lists),
+    body: asMetro(body(lists)),
     note: "first",
     by: "t",
     triggers: TRIGGERS,
@@ -400,7 +400,7 @@ describe("a sourced list in a saved shape", () => {
         edges: [...b.edges, flow("late", "engaged")],
       };
     };
-    const ask = (b: ShapeBody) => ({ body: b, note: "t", by: "t", triggers: TRIGGERS });
+    const ask = (b: ShapeBody) => ({ body: asMetro(b), note: "t", by: "t", triggers: TRIGGERS });
     await expect(saveShape(pg.db, ask(at("import:999999")))).rejects.toThrow(Refused);
     const l = await list(1);
     await expect(saveShape(pg.db, ask(at(l.source)))).resolves.toMatchObject({ number: 2 });

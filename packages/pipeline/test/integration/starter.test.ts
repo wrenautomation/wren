@@ -5,9 +5,10 @@
 import { TRIGGER_IDS } from "@wren/core/logic";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { isMetro } from "../../src/metro.js";
 import { starterShape, startShape } from "../../src/starter.js";
 import { newestShape, saveShape, shapeVersionsOf } from "../../src/store.js";
-import { shape } from "../fixtures.js";
+import { asMetro, shape } from "../fixtures.js";
 
 let empty: TestPostgres;
 let used: TestPostgres;
@@ -23,6 +24,7 @@ describe("startShape", () => {
     const v = await start(empty);
     expect(v).toMatchObject({ number: 1, note: "Starter", createdBy: "t", parent: null });
     expect(v?.body).toEqual(starterShape().body);
+    expect(v && isMetro(v.body)).toBe(true);
     expect(v?.depths.source).toBe(0);
   });
 
@@ -32,7 +34,12 @@ describe("startShape", () => {
   });
 
   it("leaves a database that has another shape alone", async () => {
-    await saveShape(used.db, { body: shape(), note: "Mine", by: "t", triggers: TRIGGER_IDS });
+    await saveShape(used.db, {
+      body: asMetro(shape()),
+      note: "Mine",
+      by: "t",
+      triggers: TRIGGER_IDS,
+    });
     expect(await start(used)).toBeNull();
     expect((await newestShape(used.db))?.note).toBe("Mine");
   });

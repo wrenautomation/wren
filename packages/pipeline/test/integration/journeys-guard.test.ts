@@ -12,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { depthOf } from "../../src/model.js";
 import { shapeVersions } from "../../src/schema.js";
-import { shape } from "../fixtures.js";
+import { asMetro, shape } from "../fixtures.js";
 
 const FILE = new URL("../../../db/drizzle/0307_journeys_guard.sql", import.meta.url);
 const [GUARD = "", ...CHANGES] = readFileSync(FILE, "utf8").split("--> statement-breakpoint");
@@ -28,7 +28,7 @@ beforeAll(async () => {
   await pg.db.execute(sql`drop index pipeline.uq_journeys_open`);
   await pg.db.insert(shapeVersions).values({
     number: 1,
-    body: shape(),
+    body: asMetro(shape()),
     run: shape(),
     depths: depthOf(shape()),
     note: "first",

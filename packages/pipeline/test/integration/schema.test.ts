@@ -14,10 +14,11 @@ import {
   journeys,
   offerVersions,
   pipelineDeals,
+  shapeDrafts,
   shapeVersions,
   termsVersions,
 } from "../../src/schema.js";
-import { shape } from "../fixtures.js";
+import { asMetro, shape } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -48,7 +49,7 @@ describe("version rows", () => {
       .values({ funnel: "test", number: 1, body: old, why: "first", createdBy: "t" });
     await pg.db.insert(shapeVersions).values({
       number: 1,
-      body: shape(),
+      body: asMetro(shape()),
       run: shape(),
       depths: depthOf(shape()),
       note: "first",
@@ -174,5 +175,55 @@ describe("journeys", () => {
     expect(await refusal(pg.db.insert(pipelineDeals).values(deal("o1")))).toMatch(
       /"uq_deals_journey_node"/,
     );
+  });
+});
+
+describe("metro only (0315)", () => {
+  const SAID = "Convert first: wren shape convert.";
+  const row = (body: unknown) => ({
+    number: 2,
+    body: body as never,
+    run: shape(),
+    depths: depthOf(shape()),
+    note: "second",
+    createdBy: "t",
+  });
+  const draft = (body: unknown) => ({
+    id: "d1",
+    name: "D1",
+    body: body as never,
+    base: 1,
+    createdBy: "t",
+  });
+
+  it("refuses a new version whose body is a graph, or has no model", async () => {
+    expect(await refusal(pg.db.insert(shapeVersions).values(row(shape())))).toBe(SAID);
+    expect(await refusal(pg.db.insert(shapeVersions).values(row({ model: "graph" })))).toBe(SAID);
+    expect(await refusal(pg.db.insert(shapeVersions).values(row({})))).toBe(SAID);
+  });
+
+  it("refuses a draft whose body is a graph, on insert and on a new body", async () => {
+    expect(await refusal(pg.db.insert(shapeDrafts).values(draft(shape())))).toBe(SAID);
+    await pg.db.insert(shapeDrafts).values(draft(asMetro(shape())));
+    expect(
+      await refusal(
+        pg.db
+          .update(shapeDrafts)
+          .set({ body: shape() as never })
+          .where(eq(shapeDrafts.id, "d1")),
+      ),
+    ).toBe(SAID);
+    // A change of state is not a new body: a draft stored before 0315 can still be dropped.
+    await pg.db.execute(
+      sql`alter table pipeline.shape_drafts disable trigger shape_drafts_metro_only`,
+    );
+    await pg.db
+      .update(shapeDrafts)
+      .set({ body: shape() as never })
+      .where(eq(shapeDrafts.id, "d1"));
+    await pg.db.execute(
+      sql`alter table pipeline.shape_drafts enable trigger shape_drafts_metro_only`,
+    );
+    await pg.db.update(shapeDrafts).set({ state: "dropped" }).where(eq(shapeDrafts.id, "d1"));
   });
 });

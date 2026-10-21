@@ -8,8 +8,9 @@ import { atomic, type Queryable, type Tx } from "@wren/db";
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { Moves } from "./carry.js";
 import { type DraftState, OPEN_DRAFT_STATES, type ShapeRef } from "./history.js";
+import { isMetro } from "./metro.js";
 import { type ShapeDraft, type ShapeVersion, shapeDrafts, shapeVersions } from "./schema.js";
-import { lock, newestShape, Refused, saveShape } from "./store.js";
+import { CONVERT_FIRST, lock, newestShape, Refused, saveShape } from "./store.js";
 import type { StoredBody } from "./stored.js";
 
 const ID_LENGTH = 40;
@@ -68,7 +69,7 @@ function mustBeOpen(d: ShapeDraft): void {
 
 export interface NewDraft {
   name: string;
-  /** A graph body or a metro body. */
+  /** A metro body: a graph body is refused (`CONVERT_FIRST`). */
   body: StoredBody;
   moves?: Moves;
   /** The version it forks; the newest when left out. */
@@ -79,11 +80,12 @@ export interface NewDraft {
 
 /**
  * Save a draft in state `draft`. The body is not checked: a draft may be half done, and apply
- * checks it. Refused when the workspace has no shape, `base` is no version, or any draft, in any
- * state, already holds the id.
+ * checks it. Refused when the body is a graph (`CONVERT_FIRST`), the workspace has no shape, `base`
+ * is no version, or any draft, in any state, already holds the id.
  */
 export async function newDraft(db: Queryable, input: NewDraft): Promise<ShapeDraft> {
   const id = draftIdOf(input.name);
+  if (!isMetro(input.body)) throw new Refused([CONVERT_FIRST]);
   return atomic(db, async (tx) => {
     await lock(tx, `shape_draft:${id}`);
     const newest = await newestShape(tx);
@@ -114,7 +116,7 @@ export async function newDraft(db: Queryable, input: NewDraft): Promise<ShapeDra
 
 export interface DraftUpdate {
   id: string;
-  /** A graph body or a metro body. */
+  /** A metro body: a graph body is refused (`CONVERT_FIRST`). */
   body: StoredBody;
   /** Replaces the moves; none clears them. */
   moves?: Moves;
@@ -123,8 +125,12 @@ export interface DraftUpdate {
   by: string;
 }
 
-/** Overwrite a draft's body and moves (and its note when given). Its state stays. */
+/**
+ * Overwrite a draft's body and moves (and its note when given). Its state stays. Refused when the
+ * body is a graph (`CONVERT_FIRST`).
+ */
 export async function updateDraft(db: Queryable, input: DraftUpdate): Promise<ShapeDraft> {
+  if (!isMetro(input.body)) throw new Refused([CONVERT_FIRST]);
   return atomic(db, async (tx) => {
     mustBeOpen(await lockedDraft(tx, input.id));
     const [row] = await tx

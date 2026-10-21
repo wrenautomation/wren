@@ -22,8 +22,9 @@ import type { ShapeBody } from "../../src/model.js";
 import { assignJourney } from "../../src/moves.js";
 import { journeys } from "../../src/schema.js";
 import { exportShape } from "../../src/shape-file.js";
-import { Refused, shapeVersionsOf } from "../../src/store.js";
-import { flow } from "../fixtures.js";
+import { Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
+import { runOf, type StoredBody } from "../../src/stored.js";
+import { asMetro, flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 const OWNER = "owner@acme.example.test";
@@ -132,13 +133,22 @@ describe("the records", () => {
 });
 
 describe("shape changes", () => {
-  it("saves a version, reads two apart, and imports a file, as an operator", async () => {
+  it("refuses a graph body: every stored body is metro (HELD, C1 part 4)", async () => {
     const op = as(ADA, undefined, true);
-    expect(await api().shapeVersion({ ...op, note: "first", body: shape })).toEqual({ version: 1 });
+    await expect(api().shapeVersion({ ...op, note: "first", body: shape })).rejects.toThrow(
+      /Convert first/,
+    );
+    expect(await shapeVersionsOf(pg.db)).toEqual([]);
+  });
+
+  it("reads two versions apart in graph terms, as an operator", async () => {
+    const op = as(ADA, undefined, true);
+    // The console's own save takes a graph body and is refused now, so the store seeds both.
+    const save = (body: ShapeBody, note: string) =>
+      saveShape(pg.db, { body: asMetro(body), note, by: ADA, triggers: TRIGGERS });
+    await save(shape, "first");
     const grown = { ...shape, name: "Console shape 2" };
-    expect(await api().shapeVersion({ ...op, note: "renamed", body: grown })).toEqual({
-      version: 2,
-    });
+    await save(grown, "renamed");
     const diff = await api().shapeDiff({ ...op, a: 1, b: 2 });
     expect(diff).toMatchObject({ a: 1, b: 2 });
     expect(diff.bodies.map((b) => b.name)).toEqual([shape.name, "Console shape 2"]);
@@ -160,7 +170,7 @@ describe("shape changes", () => {
   it("reads a shape file into the next version, and says when nothing changed", async () => {
     const op = as(ADA, undefined, true);
     const newest = (await shapeVersionsOf(pg.db)).at(-1);
-    const text = exportShape(newest?.body as ShapeBody);
+    const text = exportShape(newest?.body as StoredBody);
     expect(await api().shapeImport({ ...op, text })).toEqual({
       version: 2,
       changed: false,
@@ -173,15 +183,21 @@ describe("shape changes", () => {
     });
   });
 
-  it("writes a body as a file and compares a file with the newest version", async () => {
+  it("writes a graph body as a file and compares a metro file with the newest version", async () => {
     const op = as(ADA, undefined, true);
     const newest = (await shapeVersionsOf(pg.db)).at(-1);
-    const { text } = await api().shapeExport({ ...op, body: newest?.body });
-    expect(text).toBe(exportShape(newest?.body as ShapeBody));
+    // The export still writes a graph file, to read an old version; it no longer reads back.
+    const graph = runOf(newest?.body as StoredBody);
+    const exported = await api().shapeExport({ ...op, body: graph });
+    expect(exported.text).toBe(exportShape(graph));
+    await expect(api().shapePreview({ ...op, text: exported.text })).rejects.toMatchObject({
+      status: 400,
+    });
+    const text = exportShape(newest?.body as StoredBody);
     const same = await api().shapePreview({ ...op, text });
     expect(same).toMatchObject({ a: newest?.number, note: null });
     expect(same.diff.nodes.added).toEqual([]);
-    const edited = text.replace("name: Engaged", "name: Replied");
+    const edited = text.replace("label: Engaged", "label: Replied");
     const changed = await api().shapePreview({ ...op, text: edited });
     expect(changed.diff.nodes.renamed).toEqual([{ id: "engaged", from: "Engaged", to: "Replied" }]);
     expect(changed.bodies[1]?.nodes.find((n) => n.id === "engaged")?.name).toBe("Replied");
