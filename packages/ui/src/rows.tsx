@@ -1,9 +1,11 @@
 /**
- * One rows part for every list (designs/2026-10-21-crm-rows-everywhere.md): the F1 look of the
- * design language's Inbox section. A header with a glyph before each label and hairline column
- * lines; hairline rows; a gutter box that shows on hover; a name with its avatar and an Open chip;
- * one quiet icon at the row's end; a count foot. A group is a fold. A phone draws the same rows as
- * a name, one property and the quiet icon, and swipes.
+ * One rows part for every list (designs/2026-10-21-crm-rows-everywhere.md): the design language's
+ * Inbox F2, F3 and F4 in one. No column lines and no row lines: one hairline under the head, and
+ * rows told apart by their height, the hover wash and the open tint, each a leaf-cornered band. A
+ * glyph before each label; a gutter box that shows on hover; a name with its avatar and an Open
+ * chip, over a message's first words with a large avatar (F4); one quiet icon at the row's end; a
+ * count foot. A group is a fold (F2); a click opens the peek beside the list (F3). A phone draws
+ * the same rows as a name, one property and the quiet icon, and swipes.
  *
  * `List` (records) maps a record type and its page into `Rows`; a hand page with plain data passes
  * columns and rows. `DataTable` and `FactsTable` stay for facts. The table is a real `<table>`.
@@ -303,7 +305,6 @@ export interface RowsProps<T> {
 
 const GUTTER = 28;
 const END = 44;
-const TH_LINE = "[&:not(:first-child)]:shadow-[inset_1px_0_0_var(--ui-hair)]";
 
 /**
  * A row's ground, which its actions sit over at its right end. As the artifact's `.nt .r`: the
@@ -311,11 +312,15 @@ const TH_LINE = "[&:not(:first-child)]:shadow-[inset_1px_0_0_var(--ui-hair)]";
  */
 function groundOf(open: boolean, picked: boolean, cursor: boolean) {
   if (open || picked)
-    return "bg-(--ui-accent-tint) [--row-ground:color-mix(in_srgb,var(--ui-active)_10%,var(--ui-paper))]";
+    return "[&>td]:bg-(--ui-accent-tint) [--row-ground:color-mix(in_srgb,var(--ui-active)_10%,var(--ui-paper))]";
   if (cursor)
-    return "bg-(--ui-accent-wash) [--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
-  return "[--row-ground:var(--ui-paper)] hover:bg-(--ui-accent-wash) hover:[--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
+    return "[&>td]:bg-(--ui-accent-wash) [--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
+  return "[--row-ground:var(--ui-paper)] hover:[&>td]:bg-(--ui-accent-wash) hover:[--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
 }
+
+/** A row's ground is a band with leaf ends (the artifact's chip corners), drawn on its cells. */
+const BAND =
+  "[&>td]:transition-[background-color] [&>td]:duration-150 motion-reduce:[&>td]:transition-none [&>td:first-child]:[border-radius:4px_0_0_10px] [&>td:last-child]:[border-radius:0_10px_4px_0]";
 
 type Drawn<T> = RowsLine<T> & { stats?: WaitStats };
 
@@ -436,13 +441,16 @@ function NameCell<T>({
     name.weight?.(row) ?? "font-[650] text-(--ui-ink)",
   );
   return (
-    <div className={cn("flex min-w-0 items-center gap-2", className)}>
-      {initial ? <Avatar initials={initial} /> : mark}
-      <div className="grid min-w-0 flex-1">
+    <div className={cn("flex min-w-0 items-center", sub ? "gap-2.5" : "gap-2", className)}>
+      {initial ? <Avatar initials={initial} lg={!!sub} /> : mark}
+      <div className="grid min-w-0 flex-1 gap-px">
         {link ? (
-          <a href={link} {...clipProps()} className={titled}>
-            {text}
-          </a>
+          // A block of its own: a link alone on its line, not a link in a run of text.
+          <div>
+            <a href={link} {...clipProps()} className={titled}>
+              {text}
+            </a>
+          </div>
         ) : onOpen ? (
           <button
             type="button"
@@ -502,7 +510,6 @@ export function Rows<T>(p: RowsProps<T>) {
   const anyPicked = (pick?.count ?? 0) > 0;
   const phoneCol = columns.find((c) => c.phone);
   // Column lines draw in the table; a grouped table (the folds) reads by its rows only.
-  const ruled = p.group ? "" : TH_LINE;
   const totals = columns.some((c) => c.total);
   const rows = p.lines.filter((l) => l.kind === "row").length;
 
@@ -530,7 +537,7 @@ export function Rows<T>(p: RowsProps<T>) {
           {p.loading ? (
             Array.from({ length: 8 }, (_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-              <li key={i} className="grid gap-2 border-b border-(--ui-hair) px-4 py-4">
+              <li key={i} className="grid gap-2 px-4 py-4">
                 <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
                 <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
               </li>
@@ -549,7 +556,7 @@ export function Rows<T>(p: RowsProps<T>) {
                       {...line}
                       className={cn(
                         // The fold's look (artifact `.gh`), a tier's head too.
-                        "sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) bg-(--ui-paper) text-[13px] font-semibold text-(--ui-ink-3)",
+                        "sticky top-(--phone-bar,0px) z-2 bg-(--ui-paper) text-[13px] font-semibold text-(--ui-ink-3)",
                       )}
                     >
                       {l.kind === "tier" ? (
@@ -567,11 +574,7 @@ export function Rows<T>(p: RowsProps<T>) {
                   );
                 if (l.kind === "box")
                   return (
-                    <li
-                      key={l.key}
-                      {...line}
-                      className="border-b border-(--ui-hair) bg-(--ui-wash) px-4 py-3"
-                    >
+                    <li key={l.key} {...line} className="bg-(--ui-wash) px-4 py-3">
                       {l.node}
                     </li>
                   );
@@ -599,7 +602,7 @@ export function Rows<T>(p: RowsProps<T>) {
                       if (e.animationName === "ui-changed") p.onSettled?.();
                     }}
                     className={cn(
-                      "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash)",
+                      "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash)",
                       r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
                       r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                       r.changed && "[&>[data-face]]:animate-ui-changed",
@@ -664,9 +667,7 @@ export function Rows<T>(p: RowsProps<T>) {
         </ul>
         {/* The artifact's phone foot: the count alone (Late and Oldest hide under 720px). */}
         {!p.loading && rows && p.foot && !p.empty ? (
-          <div className="border-t border-(--ui-hair) px-3.5 py-2.5 text-[12px] text-(--ui-ink-3)">
-            {p.foot}
-          </div>
+          <div className="px-3.5 py-2.5 text-[12px] text-(--ui-ink-3)">{p.foot}</div>
         ) : null}
       </>
     );
@@ -676,7 +677,7 @@ export function Rows<T>(p: RowsProps<T>) {
       aria-label={p.label}
       // An empty view shows what fills it, not a row of column heads over nothing.
       className={cn(
-        "w-full table-fixed border-collapse text-[14px]",
+        "w-full table-fixed border-separate border-spacing-0 text-[14px]",
         p.empty && "hidden",
         p.className,
       )}
@@ -701,7 +702,7 @@ export function Rows<T>(p: RowsProps<T>) {
         <tr className="text-[12.5px] text-(--ui-ink-3) [&>th]:font-normal">
           <th
             className={cn(
-              "group/all sticky top-0 z-10 h-[34px] border-y border-(--ui-hair) bg-(--ui-paper) p-0 text-center",
+              "group/all sticky top-0 z-10 h-[34px] border-b border-(--ui-hair) bg-(--ui-paper) p-0 text-center",
             )}
           >
             {pick ? (
@@ -726,8 +727,7 @@ export function Rows<T>(p: RowsProps<T>) {
               key={c.key}
               scope="col"
               className={cn(
-                "sticky top-0 z-10 h-[34px] border-y border-(--ui-hair) bg-(--ui-paper) px-2.5 leading-tight whitespace-nowrap",
-                ruled,
+                "sticky top-0 z-10 h-[34px] border-b border-(--ui-hair) bg-(--ui-paper) px-2.5 leading-tight whitespace-nowrap",
                 c.align === "end" ? "text-right" : "text-left",
                 c.className,
               )}
@@ -745,9 +745,7 @@ export function Rows<T>(p: RowsProps<T>) {
               </span>
             </th>
           ))}
-          <th
-            className={cn("sticky top-0 z-10 border-y border-(--ui-hair) bg-(--ui-paper)", ruled)}
-          >
+          <th className="sticky top-0 z-10 border-b border-(--ui-hair) bg-(--ui-paper)">
             <span className="sr-only">Actions</span>
           </th>
         </tr>
@@ -756,7 +754,7 @@ export function Rows<T>(p: RowsProps<T>) {
         {p.loading ? (
           Array.from({ length: 10 }, (_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-            <tr key={i} className="h-(--layout-row) border-b border-(--ui-hair)">
+            <tr key={i} className="h-(--layout-row)">
               <td colSpan={span} className="px-3">
                 <div className="h-3 w-2/3 animate-pulse bg-(--ui-fill)" />
               </td>
@@ -775,7 +773,7 @@ export function Rows<T>(p: RowsProps<T>) {
               const line = { "data-index": n, ref: lines.measure };
               if (l.kind === "group")
                 return (
-                  <tr key={l.key} {...line} data-group="" className="border-b border-(--ui-hair)">
+                  <tr key={l.key} {...line} data-group="">
                     <td colSpan={span} className="p-0">
                       <GroupFold
                         label={l.label}
@@ -789,7 +787,7 @@ export function Rows<T>(p: RowsProps<T>) {
                 );
               if (l.kind === "tier")
                 return (
-                  <tr key={l.key} {...line} className="border-b border-(--ui-hair)">
+                  <tr key={l.key} {...line}>
                     <th
                       colSpan={span}
                       scope="colgroup"
@@ -801,7 +799,7 @@ export function Rows<T>(p: RowsProps<T>) {
                 );
               if (l.kind === "box")
                 return (
-                  <tr key={l.key} {...line} className="border-b border-(--ui-hair) bg-(--ui-wash)">
+                  <tr key={l.key} {...line} className="bg-(--ui-wash)">
                     <td />
                     <td colSpan={span - 1} className="px-3 py-3">
                       {l.node}
@@ -811,7 +809,7 @@ export function Rows<T>(p: RowsProps<T>) {
               const r = rowOf(l);
               const own = p.rowProps?.(l.row, l.index);
               const act = p.act?.(l.row);
-              const shown = name.sub ? "py-1.5" : "";
+              const shown = name.sub ? "py-2" : "";
               return (
                 <tr
                   key={l.key}
@@ -828,10 +826,11 @@ export function Rows<T>(p: RowsProps<T>) {
                     if (e.animationName === "ui-changed") p.onSettled?.();
                   }}
                   className={cn(
-                    "group h-(--layout-row) cursor-pointer border-b border-(--ui-hair) transition-[background-color] duration-150 pointer-coarse:h-12 has-[+[data-group]]:border-b-0 motion-reduce:transition-none",
+                    "group h-(--layout-row) cursor-pointer pointer-coarse:h-12",
+                    BAND,
                     groundOf(r.isOpen, r.picked, l.index === cursor),
                     r.changed && "animate-ui-changed",
-                    r.going && "bg-(--ui-wash)",
+                    r.going && "[&>td]:bg-(--ui-wash)",
                     own?.className,
                   )}
                 >
@@ -851,7 +850,7 @@ export function Rows<T>(p: RowsProps<T>) {
                       />
                     ) : null}
                   </td>
-                  <td className={cn("px-2.5", shown, ruled, name.className)}>
+                  <td className={cn("px-2.5", shown, name.className)}>
                     <div className="flex min-w-0 items-center gap-2">
                       <NameCell
                         name={name}
@@ -886,7 +885,6 @@ export function Rows<T>(p: RowsProps<T>) {
                         // A cut cell drops its break chances: Chrome breaks at <wbr> even under
                         // nowrap, so "example.com" wrapped onto two lines.
                         "truncate px-2.5 [&_wbr]:hidden",
-                        ruled,
                         shown,
                         c.align === "end" ? "text-right" : "text-left",
                         // When it happened reads quieter than what it is.
@@ -899,7 +897,7 @@ export function Rows<T>(p: RowsProps<T>) {
                       {c.cell(l.row, l.index)}
                     </td>
                   ))}
-                  <td className={cn("relative pr-2 text-right", ruled)}>
+                  <td className="relative pr-2 text-right">
                     {r.going ? (
                       <span className="absolute inset-y-0 right-2 z-1 flex items-center">
                         <Tag tone="accent" busy>

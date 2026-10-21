@@ -372,9 +372,13 @@ export function DataTable<T extends RowData>({
   const rows = table.getRowModel().rows;
   return (
     <>
+      {/* A narrow screen scrolls the table sideways: the keys reach it too. */}
       <div
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a box that scrolls needs focus to scroll by keyboard.
+        tabIndex={0}
         className={cn(
           stack ? "hidden overflow-x-auto sm:block" : "overflow-x-auto",
+          "focus-visible:outline-2 focus-visible:outline-(--ui-focus)",
           at.wrap,
           className,
         )}

@@ -251,7 +251,7 @@ export function RowActions({
       {lead === "menu" ? null : (
         <span
           className={cn(
-            "absolute inset-y-[-8px] right-full z-1 flex items-center gap-0.5 pr-0.5 pl-8 transition-opacity duration-150",
+            "absolute inset-y-0 right-full z-1 flex items-center gap-0.5 pr-0.5 pl-8 transition-opacity duration-150",
             "[background:linear-gradient(to_right,transparent,var(--row-ground)_1.75rem)]",
             open
               ? "opacity-100"

@@ -240,7 +240,7 @@ function Queue({
             <ul
               ref={list}
               // The artifact's Refresh: old rows stay, never dimmed, while the next ones read.
-              className="max-h-[calc(100dvh-260px)] overflow-auto border-t border-(--ui-hair)"
+              className="grid max-h-[calc(100dvh-260px)] gap-px overflow-auto"
             >
               {rows.map((r, i) => {
                 const id = String(r.id);
@@ -249,8 +249,9 @@ function Queue({
                   <li
                     key={id}
                     className={cn(
-                      "flex items-start gap-2.5 border-b border-(--ui-hair) px-2.5 py-2.5",
-                      on ? "bg-(--ui-fill)" : "hover:bg-(--ui-hover)",
+                      // The rows part's band (rows.tsx): no lines, the wash on hover, the tint when open.
+                      "flex items-start gap-2.5 px-2.5 py-2 transition-[background-color] duration-150 [border-radius:4px_10px_4px_10px] motion-reduce:transition-none",
+                      on ? "bg-(--ui-accent-tint)" : "hover:bg-(--ui-accent-wash)",
                     )}
                   >
                     <input
@@ -258,20 +259,20 @@ function Queue({
                       aria-label={`Select ${titleOf(meta, r)}`}
                       checked={picked.has(id)}
                       onChange={() => pick(id)}
-                      className="mt-1 size-3.5 accent-(--ui-ink)"
+                      className="mt-1 size-3.5 accent-(--ui-active)"
                     />
                     <a
                       href={place.link({ [one]: id, tab: null })}
                       aria-current={on ? "true" : undefined}
-                      className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5 text-[13px] text-(--ui-ink) no-underline"
+                      className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-px text-[12.5px] text-(--ui-ink) no-underline"
                     >
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[14px] font-medium" {...clipProps()}>
+                        <span className="truncate text-[14px] font-[650]" {...clipProps()}>
                           {titleOf(meta, r)}
                         </span>
                         {dated && r[dated.key] ? (
                           <span
-                            className="shrink-0 text-[12px] text-(--ui-ink-2)"
+                            className="shrink-0 text-[12.5px] text-(--ui-ink-3) tabular-nums"
                             {...dateTip(new Date(String(r[dated.key])))}
                           >
                             {relative(new Date(String(r[dated.key])))}
@@ -279,7 +280,7 @@ function Queue({
                         ) : null}
                       </span>
                       {meta.subtitle && r[meta.subtitle] ? (
-                        <span className="flex min-w-0 items-center gap-1.5 text-(--ui-ink-2)">
+                        <span className="flex min-w-0 items-center gap-1.5 text-(--ui-ink-3)">
                           {(() => {
                             const cue = subtitleCue(meta, r);
                             return cue ? <Cue state={cue} /> : null;
