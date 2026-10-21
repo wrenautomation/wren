@@ -18,7 +18,6 @@ import {
   Empty,
   FeedPost,
   holdWithUndo,
-  Icon,
   Input,
   LoadFailed,
   Loading,
@@ -73,8 +72,8 @@ import {
   waited,
   when,
 } from "./studio-common.js";
-import { EYEBROW } from "./studio-due.js";
-import { LineName } from "./studio-lines.js";
+import { CARD, EYEBROW } from "./studio-due.js";
+import { LineName, lineColour } from "./studio-lines.js";
 
 type Act = "approve" | "now" | "rewrite" | "reject";
 /** Each card's flush, so a yes on the whole board saves every card's typing first. */
@@ -195,11 +194,11 @@ function DraftCard({
   };
 
   return (
-    <div className="grid content-start gap-2 rounded-(--ui-radius) bg-(--ui-paper) p-3 shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+    <div className="grid content-start gap-2 bg-(--ui-paper) px-3.5 py-3 [border-radius:6px_20px] shadow-(--ui-raise)">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5">
           <PlatformMark mark={d.platform} size={16} />
-          <span className="text-[13.5px] font-semibold">{nameOf(d.platform)}</span>
+          <span className="text-[14px] font-semibold">{nameOf(d.platform)}</span>
           {d.state === "failed" ? <Tag tone="warn">Failed</Tag> : null}
           {d.story ? (
             <Tag tone="accent">Story</Tag>
@@ -461,11 +460,18 @@ export function WaitingBoard(
 
   return (
     <section aria-labelledby="studio-waiting" className="min-w-0">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h2 id="studio-waiting" className={EYEBROW}>
           Waiting{ideas ? ` · ${ids.length}` : ""}
         </h2>
-        <div className="flex items-center gap-2">
+        {/* A phone has room for one word: the other view, as a link. */}
+        <a
+          href={href("/content/studio", { view: view === "line" ? "" : "line" }, props.params)}
+          className="text-[13px] font-medium text-(--ui-link) no-underline hover:underline sm:hidden"
+        >
+          {view === "line" ? "Table" : "By line"}
+        </a>
+        <div className="flex items-center gap-2 max-sm:hidden">
           {ids.length > 1 ? (
             <Button
               size="dense"
@@ -503,7 +509,7 @@ export function WaitingBoard(
       ) : ideas.length === 0 ? (
         <Empty>{only ? `No ${nameOf(only)} draft waits on you.` : "No draft waits on you."}</Empty>
       ) : (
-        <div className="overflow-x-auto border border-(--ui-hair) bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)]">
+        <div className={cx(CARD, "overflow-hidden max-sm:[border-radius:6px_20px]")}>
           <Rows<Waiting>
             label="drafts"
             noun="draft"
@@ -512,7 +518,7 @@ export function WaitingBoard(
             scroller="window"
             lines={lines}
             columns={columns}
-            name={draftName(narrow)}
+            name={draftName(narrow, props.lines)}
             open={{ id: open, onOpen: (i) => setOpen(i.ideaId) }}
             rowProps={(i) => ({ "data-late": lateSlot(i) ? "" : undefined })}
             end={(i) => (
@@ -532,14 +538,21 @@ export function WaitingBoard(
                 : undefined
             }
           />
-          <p className="m-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-(--ui-hair) border-t px-4 py-2.5 text-[12.5px] text-(--ui-ink-2)">
+          <p className="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 px-3.5 py-2.5 text-[12px] text-(--ui-ink-3) max-sm:gap-x-1">
             <span>
               {ids.length === 1 ? "1 draft" : `${ids.length} drafts`}
               {ideas.length !== ids.length ? ` in ${ideas.length} ideas` : ""}
             </span>
             {late ? (
-              <span className="inline-flex items-center gap-1.5 text-(--ui-warn-ink)">
-                <span aria-hidden="true" className="size-1.5 rounded-full bg-(--ui-warn)" />
+              <span className="inline-flex items-center gap-1.5 sm:ml-auto">
+                {/* A desk sets it apart with a dot; a phone runs it on, as the board does. */}
+                <span
+                  aria-hidden="true"
+                  className="size-1.5 rounded-full bg-(--ui-warn) max-sm:hidden"
+                />
+                <span aria-hidden="true" className="sm:hidden">
+                  ·
+                </span>
                 {late} past its slot
               </span>
             ) : null}
@@ -599,30 +612,57 @@ function linesOf(ideas: Waiting[], groups: ReturnType<typeof byLine> | null): Ro
   ]);
 }
 
+/** The letter each kind's mark carries in a row: P, T, C, S, B, V. */
+const KIND_LETTER: Record<ReturnType<typeof kindOfIdea>, string> = {
+  post: "P",
+  thread: "T",
+  carousel: "C",
+  story: "S",
+  blog: "B",
+  video: "V",
+};
+
+/** A row's kind: its letter on a tint of its line's colour, ink-3 when it serves no line. */
+function KindMark({ idea, line }: { idea: Waiting; line: MetroLine | undefined }) {
+  const kind = makeKind(kindOfIdea(idea));
+  const colour = lineColour(line);
+  return (
+    <span
+      title={kind.name}
+      className="inline-flex size-7 flex-none items-center justify-center text-[11px] leading-none font-bold [border-radius:5px_11px] max-sm:size-[30px]"
+      style={{ color: colour, background: `color-mix(in srgb, ${colour} 12%, transparent)` }}
+    >
+      <span aria-hidden="true">{KIND_LETTER[kind.id]}</span>
+      <span className="sr-only">{kind.name}</span>
+    </span>
+  );
+}
+
+/** A platform a draft goes to, as the board's small tag: 11 px, 600, a fill, a leaf. */
+const PLATFORM_TAG =
+  "inline-flex items-center px-[7px] py-[3px] text-[11px] leading-[14px] font-semibold text-(--ui-ink-2) bg-(--ui-fill) [border-radius:4px_8px] whitespace-nowrap";
+
 /** The draft: its kind's mark, the words and the hook. A phone's row adds the slot and the wait. */
-function draftName(narrow: boolean): RowsName<Waiting> {
+function draftName(narrow: boolean, lines: ReadonlyMap<string, MetroLine>): RowsName<Waiting> {
   return {
     label: "Draft",
     icon: "doc",
     min: 220,
     title: (i) => headlineOf(i).title,
-    mark: (i) => {
-      const kind = makeKind(kindOfIdea(i));
-      return (
-        <span className="flex flex-none" title={kind.name}>
-          <Icon name={kind.mark} size={16} className="text-(--ui-active)" />
-          <span className="sr-only">{kind.name}</span>
-        </span>
-      );
-    },
+    mark: (i) => <KindMark idea={i} line={i.line ? lines.get(i.line) : undefined} />,
     sub: (i) => {
       const { hook } = headlineOf(i);
       return (
         <>
-          {hook ? <span className={cx("truncate text-[12.5px]", QUIET)}>{hook}</span> : null}
+          {hook && !narrow ? (
+            <span className="truncate text-[12px] text-(--ui-ink-3)">{hook}</span>
+          ) : null}
           {narrow ? (
             <span
-              className={cx("truncate text-[12px]", lateSlot(i) ? "text-(--ui-warn-ink)" : QUIET)}
+              className={cx(
+                "truncate text-[12px]",
+                lateSlot(i) ? "text-(--ui-warn-ink)" : "text-(--ui-ink-3)",
+              )}
             >
               {[slotWords(i), waited(i)].filter(Boolean).join(" · ")}
             </span>
@@ -640,7 +680,7 @@ function columnsOf(lines: ReadonlyMap<string, MetroLine>): RowsColumn<Waiting>[]
       key: "line",
       label: "Line",
       icon: "branch",
-      width: 130,
+      width: 150,
       cell: (i) => (
         <LineName line={i.line ? lines.get(i.line) : undefined} className="text-[13px]" />
       ),
@@ -649,16 +689,13 @@ function columnsOf(lines: ReadonlyMap<string, MetroLine>): RowsColumn<Waiting>[]
       key: "platforms",
       label: "Platforms",
       icon: "globe",
-      width: 230,
+      width: 180,
       cell: (i) => (
         <span className="flex flex-wrap gap-1">
           {[...new Set(i.drafts.map((d) => d.platform))].map((p) => (
-            <Tag key={p}>
-              <span className="inline-flex items-center gap-1.5">
-                <PlatformMark mark={p} size={12} />
-                {nameOf(p)}
-              </span>
-            </Tag>
+            <span key={p} className={PLATFORM_TAG}>
+              {nameOf(p)}
+            </span>
           ))}
         </span>
       ),
@@ -667,12 +704,12 @@ function columnsOf(lines: ReadonlyMap<string, MetroLine>): RowsColumn<Waiting>[]
       key: "slot",
       label: "Slot",
       icon: "calendar",
-      width: 140,
+      width: 130,
       cell: (i) => (
         <span
           className={cx(
-            "inline-flex items-center gap-1.5 text-[13px]",
-            lateSlot(i) ? "text-(--ui-warn-ink)" : QUIET,
+            "inline-flex min-w-0 items-center gap-1.5 text-[13px]",
+            lateSlot(i) ? "text-(--ui-warn-ink)" : "text-(--ui-ink-2)",
           )}
         >
           {lateSlot(i) ? (
@@ -686,12 +723,12 @@ function columnsOf(lines: ReadonlyMap<string, MetroLine>): RowsColumn<Waiting>[]
       key: "age",
       label: "Age",
       icon: "clock",
-      width: 84,
+      width: 110,
       cell: (i) => (
         <span
           className={cx(
-            "text-[13px] tabular-nums",
-            lateSlot(i) ? "font-semibold text-(--ui-warn-ink)" : QUIET,
+            "text-[13px] font-medium tabular-nums",
+            lateSlot(i) ? "text-(--ui-warn-ink)" : "text-(--ui-ink-3)",
           )}
         >
           {waited(i)}
@@ -721,7 +758,7 @@ function ApproveButton({
       aria-label={`Approve ${title}`}
       title={missing.length ? `Fill in ${listed([...new Set(missing)])} first` : "Approve"}
       disabled={demo || missing.length > 0}
-      className="text-(--ui-good-ink)"
+      className="text-(--ui-ink-3) hover:text-(--ui-active)"
       onClick={(e) => {
         e.stopPropagation();
         approve();

@@ -15,7 +15,6 @@ import {
   cx,
   EditConflict,
   Icon,
-  PageHeader,
   PlatformMark,
   Section,
   Segmented,
@@ -43,7 +42,7 @@ import {
   targetOf,
   when,
 } from "./studio-common.js";
-import { EYEBROW } from "./studio-due.js";
+import { CARD, EYEBROW } from "./studio-due.js";
 import { LineMark } from "./studio-lines.js";
 
 /** The angles a post can take: his note on how it argues. */
@@ -80,6 +79,17 @@ function summary(posts: { results: WriteResult[] }[], go: Go): string[] {
   return lines;
 }
 
+/** A small label before a row of chips: 12 px, 600, ink-3, the kit's label case and tracking. */
+const ROW_LABEL =
+  "m-0 mr-1 text-[12px] leading-4 font-semibold text-(--ui-ink-3) [letter-spacing:var(--ui-label-tracking)] [text-transform:var(--ui-label-case)]";
+
+/** About 200 words a minute: "Reads in 20s". */
+const readsIn = (text: string) => {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const s = Math.max(1, Math.round((words / 200) * 60));
+  return s < 60 ? `${s}s` : `${Math.round(s / 60)} min`;
+};
+
 /** A pick-one chip: the line or the angle. Pressing the chosen one clears it. */
 function Chip({
   on,
@@ -96,10 +106,10 @@ function Chip({
       aria-pressed={on}
       onClick={onClick}
       className={cx(
-        "inline-flex min-h-7 cursor-pointer items-center gap-1.5 border-0 px-2.5 font-semibold text-[12.5px] [border-radius:var(--ui-leaf-chip)] transition-colors duration-150 pointer-coarse:min-h-11",
+        "inline-flex cursor-pointer items-center gap-1.5 px-2.5 py-[5px] text-[12px] leading-4 font-semibold [border-radius:4px_10px] border border-solid transition-[background-color,border-color,color] duration-150 ease-(--ui-ease) pointer-coarse:min-h-11 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-focus) motion-reduce:transition-none",
         on
-          ? "bg-(--ui-accent-tint) text-(--ui-live) shadow-[inset_0_0_0_1px_var(--ui-active)]"
-          : "bg-(--ui-fill) text-(--ui-ink-2) hover:bg-(--ui-hover)",
+          ? "border-[color-mix(in_srgb,var(--ui-active)_40%,transparent)] bg-(--ui-accent-tint) text-(--ui-ink)"
+          : "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)",
       )}
     >
       {children}
@@ -123,26 +133,30 @@ export function Compose(
   const made = () => setSent(true);
   return (
     <>
-      <PageHeader
-        title={`New ${kind.name.toLowerCase()}`}
-        lede={
-          <a href={back} className="inline-flex items-center gap-1 no-underline">
-            <Icon name="left" size={14} /> Studio
-          </a>
-        }
-        actions={
-          <Segmented
-            label="What you're making"
-            className="max-w-full"
-            items={offeredFor(only).map((m) => ({
-              id: m.id,
-              label: m.id === "blog" ? "Blog" : m.name,
-              href: href("/content/studio", { make: m.id }, props.params),
-              on: m.id === make,
-            }))}
-          />
-        }
-      />
+      <header className="mb-5 flex flex-wrap items-center gap-3">
+        <a
+          href={back}
+          className="inline-flex items-center gap-1.5 text-[13px] text-(--ui-ink-3) no-underline hover:text-(--ui-link)"
+        >
+          <Icon name="left" size={12} /> Studio
+        </a>
+        <span aria-hidden="true" className="text-(--ui-ink-3)">
+          /
+        </span>
+        <h1 className="m-0 text-[20px] leading-[26px] font-bold tracking-[-0.02em]">
+          New {kind.name.toLowerCase()}
+        </h1>
+        <Segmented
+          label="What you're making"
+          className="max-w-full sm:ml-auto max-sm:basis-full"
+          items={offeredFor(only).map((m) => ({
+            id: m.id,
+            label: m.id === "blog" ? "Blog" : m.name,
+            href: href("/content/studio", { make: m.id }, props.params),
+            on: m.id === make,
+          }))}
+        />
+      </header>
       {make === "carousel" ? (
         <CarouselBox demo={props.demo} only={only} made={made} />
       ) : make === "story" ? (
@@ -265,15 +279,16 @@ function PostBox(
     form.setValue(name, now === value ? "" : value, { shouldDirty: true });
   const back = href("/content/studio", { make: "", idea: "", from: "", about: "" }, props.params);
 
+  // The board's flex: the write column takes the room; the side holds 320 to 420 px and wraps under it.
   return (
-    <div className="grid items-start gap-x-6 gap-y-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="grid min-w-0 gap-4">
+    <div className="flex flex-wrap items-start gap-5">
+      <section aria-label="Write" className="grid min-w-0 flex-[999_1_480px] gap-3.5">
         {props.lines.length ? (
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className={cx(EYEBROW, "mr-1")}>Line</h2>
+            <h2 className={ROW_LABEL}>Line</h2>
             {props.lines.map((l) => (
               <Chip key={l.id} on={line === l.id} onClick={() => pick("line", l.id, line)}>
-                <LineMark line={l} />
+                <LineMark line={l} small />
                 {l.label}
               </Chip>
             ))}
@@ -300,10 +315,10 @@ function PostBox(
           onKeepMine={form.keepMine}
           onTakeTheirs={form.takeTheirs}
         />
-        <div className="overflow-hidden border border-(--ui-hair) bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)]">
+        <div className={cx(CARD, "flex flex-col overflow-hidden")}>
           {thread ? null : (
-            <div className="flex flex-wrap items-center gap-2 border-(--ui-hair) border-b px-4 py-2.5">
-              <span className={cx("mr-1 text-[12.5px]", QUIET)}>Angle</span>
+            <div className="flex flex-wrap items-center gap-1.5 border-(--ui-hair) border-b px-3.5 py-2.5">
+              <span className="mr-1.5 text-[12px] font-semibold text-(--ui-ink-3)">Angle</span>
               {ANGLES.map((a) => (
                 <Chip key={a} on={angle === a} onClick={() => pick("angle", a, angle)}>
                   {a}
@@ -316,7 +331,7 @@ function PostBox(
             name="text"
             aria-label="Your post"
             rows={batch ? 14 : 10}
-            box="min-h-[220px] rounded-none border-0 px-4 py-3 text-[15px] leading-[1.55] shadow-none focus-visible:ring-0"
+            box="min-h-[220px] resize-y rounded-none border-0 bg-transparent px-5 py-[18px] text-[16px] leading-[1.5] shadow-none focus-visible:ring-0 md:text-[16px]"
             placeholder={
               thread
                 ? `Your thread, ${THREAD_MIN} to ${THREAD_MAX} posts. Put a line of --- between posts.`
@@ -324,15 +339,27 @@ function PostBox(
             }
             disabled={props.demo}
           />
-          <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 border-(--ui-hair) border-t px-4 py-2.5 text-[12.5px] text-(--ui-ink-2)">
+          <p className="m-0 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-(--ui-hair) border-t px-3.5 py-2.5 text-[12px] text-(--ui-ink-3)">
             <span className="tabular-nums">
               <b className="font-semibold text-(--ui-ink)">{text.length}</b> chars
             </span>
-            {batch ? <span>{posts.length} posts</span> : null}
+            {batch ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{posts.length} posts</span>
+              </>
+            ) : null}
+            {text.trim() ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>Reads in {readsIn(text)}</span>
+              </>
+            ) : null}
+            {posts.length && !ai ? <span aria-hidden="true">·</span> : null}
             {posts.length && !ai ? (
               <span
                 className={cx(
-                  "inline-flex items-center gap-1.5",
+                  "inline-flex items-center gap-[5px]",
                   unfit.length ? "text-(--ui-bad)" : "",
                 )}
               >
@@ -366,20 +393,35 @@ function PostBox(
             AI writes each platform's version
           </label>
         )}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button tone="primary" size="dense" disabled={off} onClick={() => void send("slot")}>
-            {busy === "slot" ? "Scheduling…" : "Approve and slot"}
+        <div className="flex flex-wrap items-center gap-2.5 pt-1">
+          <Button
+            tone="primary"
+            busy={busy === "slot"}
+            disabled={off}
+            onClick={() => void send("slot")}
+          >
+            Approve and slot
           </Button>
-          <Button size="dense" tone="secondary" disabled={off} onClick={() => void send("now")}>
-            {busy === "now" ? "Posting…" : sure ? `Post ${count} now?` : "Post now"}
+          <Button
+            tone="secondary"
+            busy={busy === "now"}
+            disabled={off}
+            onClick={() => void send("now")}
+          >
+            {sure ? `Post ${count} now?` : "Post now"}
           </Button>
           {sure ? (
-            <Button size="dense" tone="quiet" onClick={() => setSure(false)}>
+            <Button tone="quiet" onClick={() => setSure(false)}>
               Cancel
             </Button>
           ) : null}
-          <Button size="dense" tone="quiet" disabled={off} onClick={() => void send("draft")}>
-            {busy === "draft" ? "Saving…" : "Save draft"}
+          <Button
+            tone="quiet"
+            busy={busy === "draft"}
+            disabled={off}
+            onClick={() => void send("draft")}
+          >
+            Save draft
           </Button>
         </div>
         {said.length ? (
@@ -393,13 +435,16 @@ function PostBox(
           </div>
         ) : null}
         {error ? <p className={ERROR}>{error}</p> : null}
-      </div>
+      </section>
 
-      <aside aria-label="Side by side" className="grid min-w-0 gap-3">
-        <div className="flex items-baseline justify-between gap-2">
+      <aside
+        aria-label="Side by side"
+        className="grid min-w-0 max-w-[420px] flex-[1_1_320px] gap-3 max-sm:max-w-none"
+      >
+        <div className="flex items-center justify-between gap-2">
           <h2 className={EYEBROW}>Side by side</h2>
           {thread ? null : (
-            <span className={cx("text-[12.5px]", QUIET)}>
+            <span className="text-[12px] text-(--ui-ink-3)">
               {picked.length} of {TEXT.length} platforms
             </span>
           )}
@@ -448,39 +493,38 @@ function PlatformCard({
   const max = PLATFORM_SPECS[platform].maxChars;
   const shown = versions.filter((v): v is NonNullable<typeof v> => !!v);
   const bad = shown.filter((v) => "reason" in v);
-  const first = shown[0];
   return (
     <div
       className={cx(
-        "grid content-start gap-2 border border-(--ui-hair) bg-(--ui-paper) p-3 [border-radius:var(--ui-leaf-panel)]",
-        !on && "opacity-60",
+        "grid content-start gap-2 bg-(--ui-paper) px-3.5 py-3 [border-radius:6px_20px] shadow-(--ui-raise) transition-[opacity,background-color] duration-150 ease-(--ui-ease) hover:bg-(--ui-hover) motion-reduce:transition-none",
+        !on && "opacity-55",
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <label className="flex min-w-0 items-center gap-2 text-[13.5px]">
-          <input type="checkbox" checked={on} onChange={toggle} />
+      <div className="flex items-center gap-2.5">
+        <label className="flex min-w-0 items-center gap-2.5 text-[14px]">
+          <input type="checkbox" checked={on} onChange={toggle} className="accent-(--ui-active)" />
           <PlatformMark mark={platform} size={16} />
           <b className="truncate font-semibold">{targetOf(platform)}</b>
         </label>
         {on && shown.length && !ai ? (
           <span
             className={cx(
-              "text-[12px] [font-variant-numeric:tabular-nums]",
+              "ml-auto text-[11px] font-semibold",
               bad.length ? "text-(--ui-bad)" : "text-(--ui-good-ink)",
             )}
           >
-            {bad.length
-              ? "Doesn't fit"
-              : first && !("reason" in first)
-                ? `Fits · ${first.text.length} / ${max}`
-                : "Fits"}
+            {bad.length ? "Doesn't fit" : "Fits"}
           </span>
         ) : null}
       </div>
       {!on ? null : ai ? (
-        <p className={cx("m-0 text-[13px]", QUIET)}>Wren writes this version when you send.</p>
+        <p className="m-0 text-[13px] leading-[1.45] text-(--ui-ink-2)">
+          Wren writes this version when you send.
+        </p>
       ) : shown.length === 0 ? (
-        <p className={cx("m-0 text-[13px]", QUIET)}>Your words show here as they will post.</p>
+        <p className="m-0 text-[13px] leading-[1.45] text-(--ui-ink-2)">
+          Your words show here as they will post.
+        </p>
       ) : (
         <ul className="m-0 grid list-none gap-2 p-0">
           {shown.map((v, n) => (
@@ -494,9 +538,12 @@ function PlatformCard({
               ) : (
                 <>
                   {v.title ? <b className="text-[14px]">{v.title}</b> : null}
-                  <p className="m-0 line-clamp-6 text-[13.5px] leading-[1.5] whitespace-pre-wrap">
+                  <p className="m-0 line-clamp-3 text-[13px] leading-[1.45] whitespace-pre-wrap text-(--ui-ink-2)">
                     {v.text}
                   </p>
+                  <span className="text-[11px] text-(--ui-ink-3) tabular-nums">
+                    {v.text.length} / {max} chars
+                  </span>
                 </>
               )}
             </li>
@@ -519,7 +566,7 @@ function ThreadPreview({ text }: { text: string }) {
           <li
             // biome-ignore lint/suspicious/noArrayIndexKey: a post's place in the thread is its name.
             key={n}
-            className="grid gap-1.5 border border-(--ui-hair) bg-(--ui-paper) p-3 [border-radius:var(--ui-leaf-panel)]"
+            className="grid gap-2 bg-(--ui-paper) px-3.5 py-3 [border-radius:6px_20px] shadow-(--ui-raise)"
           >
             <div className="flex items-center justify-between gap-2">
               <Tag>
