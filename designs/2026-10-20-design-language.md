@@ -30,7 +30,7 @@ This doc supersedes the "banded funnel" form decision in `2026-10-19-business-ma
 - Both: the export and import YAML format (`exportShape`, `shapes/*.yaml` in sops), `diff.ts` change keys, `historyOf` and undo move to station and track ids. Numbers per station and track replace per node and edge.
 - Migration in two steps, as the business map did: first additive (old code runs on it, a CLI converts each live shape to a new version and maps journeys and deals by id, history keeps old ids). Then the guard and drops, in a later commit.
 
-**D. Map page on the renderer.** Home `/` draws the live shape with B, zoom and folds, node panel and History as overlays, edit mode on the new marks, Today from person tracks (owner and promise, late first, hover lights the line). Needs B and C1. Next after tonight.
+**D. Map page on the renderer.** Home `/` draws the live shape with B: zoom, folds, node panel and History as overlays, Today from person tracks (owner and promise, late first, hover lights the line). No GUI editor (William, 10-21): the old graph edit mode goes. A draft draws on the Map under a banner (name, base, author) with its diff marked (added, changed, removed), plus Apply and Drop. Numbers read per station and track by id; a converted station keeps its node id, so today's numbers carry over. The hub shows a lead count read from People. Needs B and C1 (both on main). Then the prod convert, then C1 Part 4 (held).
 
 **E. Sidebar** and **F. Focus view**: proposals, below. Built last. William checks them in the artifact (section 13).
 
@@ -63,6 +63,27 @@ William: "a system to isolate and open just a monthly retainer of the whole syst
 Why no in-app tabs: the browser already has tabs, windows, history and restore. A URL per part gives all of them free, and links work in Slack, notes and SOPs. A custom tab bar duplicates that and breaks on a phone.
 
 Open for William: should a focus page allow edits (a draft scoped to that part), or read and attach only at first.
+
+## Proposal G: editing the shape (William, 2026-10-21)
+
+William: "the metro map has no gui editor thing which is fine, but you are able to edit and we are able to iterate on it correct? Thinking of two editing modes: claude / llm conversation and you editing it with cli or skill or code edits (needs to support multi user in the future, extensible) and you making edits by looking at our draw.wrenautomation stuff as well."
+
+Today: edits go through a file. `wren shape export`, edit the YAML, `wren shape draft new`, then `propose` and `apply`. Claude can edit and iterate this way now. The graph commands (`add-node`, `connect`, `remove`) refuse metro bodies once C1 Part 4 lands.
+
+Target:
+- One edit path: typed ops on a draft. Ops add, rename, move and remove lines, stations, tracks and groups, set a field, and attach or detach a ref. Each op names ids, so ops from many people merge.
+- Every editor writes ops:
+  1. CLI `wren shape edit <draft> <op>` and the agent skill: Claude in a session, any agent through `/api/agent`.
+  2. Conversation: a chat beside the Map. The model calls the same ops as tools. The draft draws live beside the chat.
+  3. Sketch: Claude reads a drawing on draw.wrenautomation.com (excalidraw skill), writes ops into a draft and shows the diff.
+  4. Code: edit the YAML file, then `draft new`, as today.
+  5. A GUI later, on the same ops.
+- Nothing edits live. A draft becomes a new version only when a person applies it after they review its diff on the Map.
+- Multi user: each person keeps their own drafts. Apply checks the base. If live moved since, the draft merges by id: changes to different stations and tracks merge; one field changed on both sides is a conflict that shows both values. The merge uses the change keys of `diff.ts`.
+- No CRDT or live co-editing (Yjs, Automerge). Why: shape edits are rare and reviewed; drafts and an id merge give multi user without a sync server. Look again if two people must edit one draft at once.
+- Extensible: a new mark is one new op kind and one schema case; every editor gets it.
+
+Order: G1 (ops, CLI, skill, merge) builds with D. G2 (Map chat) builds after D. Sketch needs no code past G1, only the skill steps.
 
 ## UI soundness (William, 2026-10-20, green light on everything)
 
@@ -140,3 +161,10 @@ Briefs: `designs/briefs/2026-10-20-design-language-c1.md`.
 - The portal web keeps the graph (`runOf`) until area D. Why: the web Map reads nodes and edges.
 - Push: parts 1 to 3 are additive. Part 4 (graph bodies refused) is HELD with the prod convert, for William's yes, and waits for area D.
 - C2 items stay out: repeat, bundles, credits, packages, delivery loops, rewarm.
+
+## Decisions (William, 2026-10-21)
+
+- Deal rule. A deal opens when an offer is made and locked (a proposal sent with its terms fixed), or when the person takes a free or paid offer. Before that the person is a lead. Each offer line has one deal station at that point. The artifact rule (a deal opens at the first station of the line) is dropped. A converted shape keeps today's offer node as its deal station.
+- Hub. The hub holds no one. People is the CRM: every lead and client, their record and timeline. The Map's hub draws the lead count, read from People. Why (William's lean, my call): a person record outlives any line; a place on the map is a view of it.
+- Tiers. No upsells yet. Converted offer lines are core; a free offer line is front. Upsell transfers wait until an upsell exists.
+- Loader. One plain ring (artifact v23). Flight and the bird variants are gone.
