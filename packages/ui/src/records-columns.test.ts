@@ -81,6 +81,17 @@ describe("shownColumns", () => {
       state,
     ]);
   });
+  it("on a phone puts the wait a page watches first after the state", () => {
+    const seen = field("seen", "date");
+    const dated = rows.map((r) => ({ ...r, seen: "2026-10-13" }));
+    expect(
+      shownColumns(meta, [name, state, city, seen], dated, {
+        byHand: false,
+        narrow: true,
+        wait: "seen",
+      }),
+    ).toEqual([name, state, seen, city]);
+  });
 });
 
 describe("fitOf", () => {

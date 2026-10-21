@@ -6,6 +6,7 @@
 
 import type { Target } from "@wren/core/access";
 import type { ChangeLine, EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
+import { hoursSince, lateOf } from "@wren/core/promise";
 import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
   ExportAsk,
@@ -126,6 +127,7 @@ import { recordHead } from "./record-head.js";
 import { detailPatch, patchRecord } from "./record-patch.js";
 import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
 import {
+  Age,
   KIND_ICON,
   Rows,
   type RowsAct,
@@ -134,6 +136,7 @@ import {
   type RowsLine,
   type RowsName,
   type RowsPick,
+  type RowsWait,
   stateColor,
   statsOf,
 } from "./rows.js";
@@ -357,6 +360,12 @@ export interface RecordTemplateProps {
    */
   needs?: Needs | undefined;
   /**
+   * The wait the list watches: `field` holds when the person began to wait, `promise` is how long
+   * they may ("24h"). The field draws as a wait, rows past the promise read late, and the foot and
+   * each group's fold count them.
+   */
+  late?: Late | undefined;
+  /**
    * The list as cards (`./cards.ts`): what each card shows beside the columns; read from the
    * columns when left out. `false` keeps it rows only (a log, an audit, a day's numbers).
    */
@@ -369,6 +378,12 @@ export interface RecordTemplateProps {
 export interface RowReplyBox {
   when?: Needs | undefined;
   box: (detail: unknown, row: Row, act: RecordAct) => ReactNode;
+}
+
+/** A list's watched wait: the field that holds its start, and the promise. */
+export interface Late {
+  field: string;
+  promise: string;
 }
 
 /** Field → the states in which a row waits on the viewer. */
@@ -936,6 +951,7 @@ export function RecordList(props: RecordTemplateProps) {
     head,
     title,
     needs,
+    late,
     reply,
     card,
     display,
@@ -958,6 +974,7 @@ export function RecordList(props: RecordTemplateProps) {
       head={head}
       title={title}
       needs={needs}
+      late={late}
       reply={reply}
       card={card}
       display={display}
@@ -1181,7 +1198,7 @@ export function shownColumns(
   meta: RecordMeta,
   cols: FieldMeta[],
   rows: Row[],
-  { byHand, narrow }: { byHand: boolean; narrow: boolean },
+  { byHand, narrow, wait }: { byHand: boolean; narrow: boolean; wait?: string | undefined },
 ): FieldMeta[] {
   const title = (r: Row) => r[meta.title];
   // A column that mostly says the title again ("Text" whose first line is the "Post", on at least
@@ -1206,10 +1223,15 @@ export function shownColumns(
   const state = states.find(tells) ?? states[0];
   // A card: the title, the state, then the next fields, up to three; a state the same on every
   // row says nothing.
-  // The account a row is on comes first after its state: on a phone it says who sends.
+  // The wait a page watches comes first after its state, then the account a row is on: on a phone
+  // it says who sends.
   const rest = filled
     .filter((f) => f.key !== meta.title && f !== state && (f.kind !== "status" || tells(f)))
-    .sort((a, b) => Number(b.key === meta.account) - Number(a.key === meta.account));
+    .sort(
+      (a, b) =>
+        Number(b.key === wait) - Number(a.key === wait) ||
+        Number(b.key === meta.account) - Number(a.key === meta.account),
+    );
   const lead = filled.filter((f) => f.key === meta.title);
   return [...lead, ...(state ? [state] : []), ...rest].slice(0, lead.length + NARROW_FIELDS);
 }
@@ -1246,6 +1268,7 @@ function List({
   head,
   title,
   needs,
+  late,
   reply,
   card,
   display,
@@ -1261,6 +1284,7 @@ function List({
   head: RecordTemplateProps["head"];
   title: string | undefined;
   needs: Needs | undefined;
+  late: Late | undefined;
   reply: RecordTemplateProps["reply"];
   card: CardOption | undefined;
   display: ReactNode;
@@ -1350,6 +1374,16 @@ function List({
   );
   /** Whether a row waits on the viewer; null where the page names nothing that waits. */
   const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
+  // One clock for the page: every row's wait reads against the moment its rows loaded.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page of rows is a new moment.
+  const now = useMemo(() => new Date(), [loaded]);
+  /** How long a row has waited and whether that is late; null where it has no start or no promise. */
+  const waitOf = (r: Row): RowsWait | null => {
+    if (!late) return null;
+    const at = textOf(r[late.field]);
+    const hours = hoursSince(at, now);
+    return hours === null ? null : { hours, late: lateOf(at, late.promise, now) };
+  };
   const size = sizeOf(params);
   const pages = pagesOf(page.data?.total ?? 0, size);
   const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
@@ -1361,6 +1395,7 @@ function List({
     cols: shownColumns(meta, columnsOf(meta, params, columns), tiered, {
       byHand: params.has("cols"),
       narrow,
+      wait: late?.field,
     }),
     sort,
     group: grouped,
@@ -1709,12 +1744,15 @@ function List({
       width: widths[f.key],
       min: widthOf(f),
       sort: <SortHead field={f} place={place} sort={sort} dir={table.sorted(f.key)} />,
-      // When it happened reads quieter than what it is.
-      quiet: f.kind === "date",
-      // A phone's row shows the first of them beside the name.
-      phone: i === 0,
+      // When it happened reads quieter than what it is; a watched wait draws as its own.
+      quiet: f.kind === "date" && f.key !== late?.field,
+      // A phone's row shows one beside the name: the watched wait, else the first of them.
+      phone: late ? f.key === late.field : i === 0,
       total: footed ? <FieldTotal field={f} total={totals?.[f.key]} to={place.link} /> : undefined,
-      cell: (r) => <FieldCell field={f} cell={r[f.key]} />,
+      cell: (r) => {
+        const w = f.key === late?.field ? waitOf(r) : null;
+        return w ? <Age {...w} /> : <FieldCell field={f} cell={r[f.key]} />;
+      },
     }));
   const rowLines = drawn.map<RowsLine<Row>>((l) => {
     if (l.kind === "row") return l;
@@ -1755,7 +1793,7 @@ function List({
       run: (a) => rowRun(a, r),
     };
   };
-  const foot = <RowsFoot stats={statsOf(rows.map(() => null))} waits={false} />;
+  const foot = <RowsFoot stats={statsOf(rows.map(waitOf))} waits={!!late} />;
   const headed = head?.(meta, () => acted([]));
   const forms = actions.filter((a) => a.form && !a.each);
   // Its rows' keys sit in the sheet on ?, not under the list.
@@ -1992,6 +2030,7 @@ function List({
                 return { going: going.get(id), changed: changed.has(id) && !page.loading };
               }}
               onSettled={() => setChanged(new Set())}
+              wait={late ? waitOf : undefined}
               foot={foot}
               group={grouped ? { folded, toggle: toggleGroup } : undefined}
               scroller={frameEl}
