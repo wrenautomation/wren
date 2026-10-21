@@ -728,3 +728,43 @@ html[data-morph="cards"]::view-transition-new(*) {
   object-fit: cover;
   object-position: left top;
 }
+
+/* The skeleton's shimmer (artifact `.sk i::after`): a tint sweeps across the fill. */
+.ui-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--ui-accent-tint), transparent);
+  transform: translateX(-100%);
+  animation: ui-shim 1.6s linear infinite;
+}
+@keyframes ui-shim {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton::after {
+    animation: none;
+  }
+}
+[data-motion="less"] .ui-skeleton::after {
+  animation: none;
+}
+
+/* A toast (artifact `.toast`): ink ground, paper text, a leaf, 10 by 14 padding. Sonner's own
+   sheet is unlayered, so these rules match its weight. Its action reads as the bold underline. */
+[data-sonner-toaster] [data-sonner-toast] {
+  padding: 10px 14px;
+  font-size: 14px;
+  gap: 12px;
+  box-shadow: none;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-button] {
+  height: auto;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
