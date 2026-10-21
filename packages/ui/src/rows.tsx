@@ -204,6 +204,8 @@ export interface RowsName<T> {
   mark?: ((row: T) => ReactNode) | undefined;
   /** Under the title: a message's first words. */
   sub?: ((row: T) => ReactNode) | undefined;
+  /** After the title: small marks (a pin, a star, a tag). */
+  tail?: ((row: T) => ReactNode) | undefined;
 }
 
 /** One line `Rows` draws, in order: a group's fold, a tier's band, a row, or a box under a row. */
@@ -269,8 +271,8 @@ export interface RowsProps<T> {
   foot?: ReactNode;
   /** Groups that fold: which are shut, and shut or open one. */
   group?: { folded: ReadonlySet<string>; toggle: (key: string) => void } | undefined;
-  /** The element that scrolls the rows; a phone's page scrolls them. */
-  scroller: HTMLElement | null;
+  /** The element that scrolls the rows, or "window" where the page does (a phone's always does). */
+  scroller: HTMLElement | null | "window";
   narrow: boolean;
   /** A phone row's swipes. */
   swipes?: ((row: T) => Swipes | null) | undefined;
@@ -378,6 +380,7 @@ function NameCell<T>({
   const initial = name.avatar?.(row);
   const mark = initial ? null : (name.mark?.(row) ?? null);
   const sub = name.sub?.(row);
+  const tail = name.tail?.(row);
   return (
     <div className={cn("flex min-w-0 items-center gap-2", className)}>
       {initial ? (
@@ -405,6 +408,7 @@ function NameCell<T>({
         </a>
         {sub}
       </div>
+      {tail}
     </div>
   );
 }

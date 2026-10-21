@@ -9,15 +9,17 @@ import {
   Button,
   clipProps,
   cx,
-  DataTable,
   Empty,
   Input,
   LoadFailed,
   Loading,
   PAGE_TITLE,
+  Rows,
+  type RowsLine,
   relative,
   showKeys,
   tipProps,
+  useNarrow,
   usePageKeys,
   usePref,
 } from "@wren/ui";
@@ -818,11 +820,11 @@ const STATE_LINES: Record<Card["state"], string> = {
   ready: "",
 };
 
-function Dot({ c }: { c: Card }) {
+function Dot({ c, className = "mt-[0.45em]" }: { c: Card; className?: string }) {
   if (c.status !== "unread") return null;
   return (
     <span
-      className="mt-[0.45em] inline-block size-2 shrink-0 rounded-full bg-(--ui-live)"
+      className={cx("inline-block size-2 shrink-0 rounded-full bg-(--ui-live)", className)}
       {...tipProps("New, not opened yet", { as: "none" })}
     >
       <span className="sr-only">New</span>
@@ -1081,59 +1083,59 @@ export function ItemMenu({
   );
 }
 
+/** The list view: Learn's files as `Rows`. A drag, a focus and a menu ride on each row. */
 function ListTable({
   items,
   all,
   pickAll,
   ...r
 }: RowProps & { items: Card[]; all: boolean; pickAll: (on: boolean) => void }) {
+  const narrow = useNarrow();
+  const lines = useMemo<RowsLine<Card>[]>(
+    () => items.map((c, index) => ({ kind: "row", key: String(c.id), index, row: c })),
+    [items],
+  );
   return (
-    <DataTable
-      look="list"
-      data={items}
-      rowKey={(c) => c.id}
-      rowProps={(c) => ({
-        "data-item": c.id,
-        draggable: true,
-        onDragStart: (e) => r.drag(e, c),
-        onFocusCapture: () => r.onFocus(c.id),
-        className: cx(
-          r.sel.has(c.id) && "bg-(--ui-accent-wash)",
-          r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-active)]",
-        ),
-      })}
-      columns={[
-        {
-          key: "pick",
-          className: "w-9",
-          label: (
-            <Box
-              on={all}
-              label={all ? "Unselect all" : "Select all"}
-              onPick={() => pickAll(!all)}
-            />
-          ),
-          cell: (c) => <PickBox c={c} on={r.sel.has(c.id)} toggle={r.toggle} />,
-        },
-        {
-          key: "title",
+    <div className="overflow-x-auto">
+      <Rows<Card>
+        label="items"
+        noun="item"
+        narrow={narrow}
+        // The page scrolls the rows: Learn's list has no panel of its own.
+        scroller="window"
+        lines={lines}
+        cursor={items.findIndex((c) => c.id === r.focusId)}
+        rowProps={(c) => ({
+          "data-item": c.id,
+          draggable: true,
+          onDragStart: (e) => r.drag(e, c),
+          onFocusCapture: () => r.onFocus(c.id),
+        })}
+        pick={{
+          picked: (id) => r.sel.has(Number(id)),
+          toggle: (id, range) => r.toggle(Number(id), range),
+          all,
+          some: r.sel.size > 0 && !all,
+          toggleAll: () => pickAll(!all),
+          count: r.sel.size,
+        }}
+        name={{
           label: "Title",
-          className: "min-w-0",
-          cell: (c) => (
-            <div className="flex min-w-0 items-center gap-2">
+          icon: "text",
+          min: 200,
+          title: (c) => c.title,
+          href: (c) => itemHref(c.id, r.params),
+          // A new file reads heavier than one read.
+          weight: (c) =>
+            c.status === "unread" ? "font-semibold text-(--ui-ink)" : "font-normal text-(--ui-ink)",
+          mark: (c) => (
+            <span className="flex flex-none items-center gap-2">
               <TypeMark type={c.type} size={15} label={TYPES[c.type]?.label} />
-              <Dot c={c} />
-              <a
-                href={itemHref(c.id, r.params)}
-                draggable={false}
-                className={cx(
-                  "truncate no-underline hover:underline",
-                  c.status === "unread" ? "font-semibold text-(--ui-ink)" : "text-(--ui-ink)",
-                )}
-                {...clipProps()}
-              >
-                {c.title}
-              </a>
+              <Dot c={c} className="" />
+            </span>
+          ),
+          tail: (c) => (
+            <>
               {c.pinned ? <Pin size={12} className="shrink-0 text-(--ui-ink-2)" /> : null}
               {c.starred ? (
                 <Star size={12} fill="currentColor" className="shrink-0 text-(--ui-warn)" />
@@ -1146,58 +1148,63 @@ function ListTable({
                   #{t}
                 </span>
               ))}
-            </div>
+            </>
           ),
-        },
-        {
-          key: "source",
-          label: "Source",
-          className: "hidden w-44 md:table-cell",
-          cell: (c) => (
-            <span className="flex min-w-0 items-center gap-1.5 text-(--ui-ink-2)">
-              <Avatar url={c.source?.avatar ?? null} name={sourceName(c)} size={16} />
-              <span className="truncate">{sourceName(c)}</span>
-            </span>
-          ),
-        },
-        {
-          key: "length",
-          label: "Length",
-          className: "hidden w-24 text-(--ui-ink-2) tabular-nums sm:table-cell",
-          cell: (c) => lengthOf(c) ?? "",
-        },
-        {
-          key: "score",
-          label: "Score",
-          // The model's Worth it or Skip sits beside the score while Learn shows picks.
-          className: "w-28",
-          cell: (c) => (
-            <span className="inline-flex items-center gap-1">
-              <ScoreBadge score={c.score} />
-              <PickBadge pick={c.pick} />
-            </span>
-          ),
-        },
-        {
-          key: "status",
-          label: "Status",
-          className: "hidden w-24 text-(--ui-ink-2) lg:table-cell",
-          cell: (c) => (c.status === "unread" ? "New" : c.status === "read" ? "Read" : "Archived"),
-        },
-        {
-          key: "added",
-          label: "Added",
-          className: "hidden w-28 text-(--ui-ink-2) sm:table-cell",
-          cell: (c) => relative(new Date(c.at)),
-        },
-        {
-          key: "menu",
-          label: "",
-          className: "w-10 px-1 py-1",
-          cell: (c) => <ItemMenu c={c} place={r.place} dialog={r.dialog} />,
-        },
-      ]}
-    />
+        }}
+        columns={[
+          {
+            key: "source",
+            label: "Source",
+            icon: "user",
+            width: 160,
+            cell: (c) => (
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Avatar url={c.source?.avatar ?? null} name={sourceName(c)} size={16} />
+                <span className="truncate">{sourceName(c)}</span>
+              </span>
+            ),
+          },
+          {
+            key: "length",
+            label: "Length",
+            icon: "clock",
+            width: 84,
+            cell: (c) => lengthOf(c) ?? "",
+          },
+          {
+            key: "score",
+            label: "Score",
+            icon: "gauge",
+            width: 112,
+            // A phone's row shows the score; the model's Worth it or Skip sits beside it.
+            phone: true,
+            cell: (c) => (
+              <span className="inline-flex items-center gap-1">
+                <ScoreBadge score={c.score} />
+                <PickBadge pick={c.pick} />
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            icon: "selected",
+            width: 84,
+            cell: (c) =>
+              c.status === "unread" ? "New" : c.status === "read" ? "Read" : "Archived",
+          },
+          {
+            key: "added",
+            label: "Added",
+            icon: "clock",
+            width: 104,
+            quiet: true,
+            cell: (c) => relative(new Date(c.at)),
+          },
+        ]}
+        end={(c) => <ItemMenu c={c} place={r.place} dialog={r.dialog} />}
+      />
+    </div>
   );
 }
 
@@ -1291,10 +1298,10 @@ function BulkBar({
           {ids.length} selected
         </span>
         <button type="button" className={btn} onClick={() => dialog("move")}>
-          <FolderInput size={15} /> <span className="hidden sm:inline">Move to</span>
+          <FolderInput size={15} /> <span className="sr-only sm:not-sr-only">Move to</span>
         </button>
         <button type="button" className={btn} onClick={() => dialog("tag")}>
-          <Tag size={15} /> <span className="hidden sm:inline">Tag</span>
+          <Tag size={15} /> <span className="sr-only sm:not-sr-only">Tag</span>
         </button>
         <button
           type="button"
@@ -1302,14 +1309,15 @@ function BulkBar({
           onClick={() => void markItems(ids, allLater ? "unlater" : "later")}
         >
           <Clock size={15} />{" "}
-          <span className="hidden sm:inline">{allLater ? "Off later" : "Later"}</span>
+          <span className="sr-only sm:not-sr-only">{allLater ? "Off later" : "Later"}</span>
         </button>
         <button
           type="button"
           className={btn}
           onClick={() => void markItems(ids, allStar ? "unstar" : "star")}
         >
-          <Star size={15} /> <span className="hidden sm:inline">{allStar ? "Unstar" : "Star"}</span>
+          <Star size={15} />{" "}
+          <span className="sr-only sm:not-sr-only">{allStar ? "Unstar" : "Star"}</span>
         </button>
         <button
           type="button"
@@ -1317,10 +1325,12 @@ function BulkBar({
           onClick={() => void markItems(ids, place === "archived" ? "unarchive" : "archive")}
         >
           {place === "archived" ? <ArchiveRestore size={15} /> : <Archive size={15} />}
-          <span className="hidden sm:inline">{place === "archived" ? "Unarchive" : "Archive"}</span>
+          <span className="sr-only sm:not-sr-only">
+            {place === "archived" ? "Unarchive" : "Archive"}
+          </span>
         </button>
         <button type="button" className={btn} onClick={() => dialog("sop")}>
-          <Sparkles size={15} /> <span className="hidden sm:inline">Add to SOP</span>
+          <Sparkles size={15} /> <span className="sr-only sm:not-sr-only">Add to SOP</span>
         </button>
         <button
           type="button"

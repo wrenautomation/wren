@@ -263,7 +263,7 @@ export {
   useAbout,
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
-export type { KeepApi, SavedViewLine } from "./list-bar.js";
+export { type KeepApi, type SavedViewLine, useNarrow } from "./list-bar.js";
 export {
   LIST_FORMS,
   LIST_SEARCH,
