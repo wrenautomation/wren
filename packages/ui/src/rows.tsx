@@ -150,11 +150,11 @@ export function RowsFoot({ stats, waits }: { stats: WaitStats; waits: boolean })
       </span>
       {waits ? (
         <>
-          <span>
+          <span className="max-[720px]:hidden">
             Late <b className="font-[650] text-(--ui-ink-2) tabular-nums">{stats.late}</b>
           </span>
           {stats.oldest ? (
-            <span>
+            <span className="max-[720px]:hidden">
               Oldest <b className="font-[650] text-(--ui-ink-2)">{waited(stats.oldest.hours)}</b>
             </span>
           ) : null}
@@ -363,7 +363,9 @@ function GroupFold({
       />
       <Pill color={color}>{label}</Pill>
       <b className="font-bold text-(--ui-ink) tabular-nums">{stats.n}</b>
-      {stats.oldest ? <Age hours={stats.oldest.hours} late={stats.oldest.late} /> : null}
+      {stats.oldest ? (
+        <span className="text-(--ui-ink-3)">oldest {waited(stats.oldest.hours)}</span>
+      ) : null}
     </button>
   );
 }
@@ -487,142 +489,151 @@ export function Rows<T>(p: RowsProps<T>) {
 
   if (narrow)
     return (
-      <ul
-        ref={list}
-        className={cn("list-none", p.empty && "hidden", p.className)}
-        aria-label={p.label}
-      >
-        {p.loading ? (
-          Array.from({ length: 8 }, (_, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-            <li key={i} className="grid gap-2 border-b border-(--ui-hair) px-4 py-4">
-              <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
-              <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
-            </li>
-          ))
-        ) : (
-          <>
-            {lines.before ? <li aria-hidden style={{ height: lines.before }} /> : null}
-            {lines.shown.map((n) => {
-              const l = drawn[n];
-              if (!l) return null;
-              const line = { "data-index": n, ref: lines.measure };
-              if (l.kind === "tier" || l.kind === "group")
+      <>
+        <ul
+          ref={list}
+          className={cn("list-none", p.empty && "hidden", p.className)}
+          aria-label={p.label}
+        >
+          {p.loading ? (
+            Array.from({ length: 8 }, (_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
+              <li key={i} className="grid gap-2 border-b border-(--ui-hair) px-4 py-4">
+                <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
+                <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
+              </li>
+            ))
+          ) : (
+            <>
+              {lines.before ? <li aria-hidden style={{ height: lines.before }} /> : null}
+              {lines.shown.map((n) => {
+                const l = drawn[n];
+                if (!l) return null;
+                const line = { "data-index": n, ref: lines.measure };
+                if (l.kind === "tier" || l.kind === "group")
+                  return (
+                    <li
+                      key={l.key}
+                      {...line}
+                      className={cn(
+                        "sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) text-[12px] font-semibold text-(--ui-ink-2)",
+                        l.kind === "tier"
+                          ? "[background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)]"
+                          : "bg-(--ui-paper)",
+                      )}
+                    >
+                      {l.kind === "tier" ? (
+                        <div className="px-4 py-2">{l.head}</div>
+                      ) : (
+                        <GroupFold
+                          label={l.label}
+                          color={l.color}
+                          stats={l.stats ?? statsOf([])}
+                          shut={!!p.group?.folded.has(l.key)}
+                          toggle={() => p.group?.toggle(l.key)}
+                        />
+                      )}
+                    </li>
+                  );
+                if (l.kind === "box")
+                  return (
+                    <li
+                      key={l.key}
+                      {...line}
+                      className="border-b border-(--ui-hair) bg-(--ui-wash) px-4 py-3"
+                    >
+                      {l.node}
+                    </li>
+                  );
+                const r = rowOf(l);
+                const act = p.act?.(l.row);
+                const side = phoneCol?.cell(l.row, l.index);
+                // The page's own attributes (a mark, a drag, a focus hook) ride on the phone's row too.
+                // They are typed for a table row; an li takes the same events.
+                const { className: own, ...attrs } = (p.rowProps?.(l.row, l.index) ??
+                  {}) as LiAttrs;
                 return (
-                  <li
+                  <SwipeRow
                     key={l.key}
-                    {...line}
+                    {...attrs}
+                    swipes={p.swipes?.(l.row) ?? null}
+                    data-row={l.index}
+                    data-index={n}
+                    measure={lines.measure}
+                    onTap={(e) => {
+                      // Its box, links and buttons do their own thing.
+                      if ((e.target as Element).closest("input, a, button, label")) return;
+                      r.onOpen();
+                    }}
+                    onAnimationEnd={(e) => {
+                      if (e.animationName === "ui-changed") p.onSettled?.();
+                    }}
                     className={cn(
-                      "sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) text-[12px] font-semibold text-(--ui-ink-2)",
-                      l.kind === "tier"
-                        ? "[background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)]"
-                        : "bg-(--ui-paper)",
+                      "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-hover)",
+                      r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
+                      r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
+                      r.changed && "[&>[data-face]]:animate-ui-changed",
+                      r.going && "[&>[data-face]]:bg-(--ui-wash)",
+                      own,
                     )}
                   >
-                    {l.kind === "tier" ? (
-                      <div className="px-4 py-2">{l.head}</div>
+                    {pick ? (
+                      <label className="grid size-11 flex-none cursor-pointer place-items-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${name.title(l.row)}`}
+                          checked={r.picked}
+                          onChange={() => pick.toggle(l.key)}
+                        />
+                      </label>
                     ) : (
-                      <GroupFold
-                        label={l.label}
-                        color={l.color}
-                        stats={l.stats ?? statsOf([])}
-                        shut={!!p.group?.folded.has(l.key)}
-                        toggle={() => p.group?.toggle(l.key)}
-                      />
+                      <span className="w-4 flex-none" />
                     )}
-                  </li>
-                );
-              if (l.kind === "box")
-                return (
-                  <li
-                    key={l.key}
-                    {...line}
-                    className="border-b border-(--ui-hair) bg-(--ui-wash) px-4 py-3"
-                  >
-                    {l.node}
-                  </li>
-                );
-              const r = rowOf(l);
-              const act = p.act?.(l.row);
-              const side = phoneCol?.cell(l.row, l.index);
-              // The page's own attributes (a mark, a drag, a focus hook) ride on the phone's row too.
-              // They are typed for a table row; an li takes the same events.
-              const { className: own, ...attrs } = (p.rowProps?.(l.row, l.index) ?? {}) as LiAttrs;
-              return (
-                <SwipeRow
-                  key={l.key}
-                  {...attrs}
-                  swipes={p.swipes?.(l.row) ?? null}
-                  data-row={l.index}
-                  data-index={n}
-                  measure={lines.measure}
-                  onTap={(e) => {
-                    // Its box, links and buttons do their own thing.
-                    if ((e.target as Element).closest("input, a, button, label")) return;
-                    r.onOpen();
-                  }}
-                  onAnimationEnd={(e) => {
-                    if (e.animationName === "ui-changed") p.onSettled?.();
-                  }}
-                  className={cn(
-                    "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-hover)",
-                    r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
-                    r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
-                    r.changed && "[&>[data-face]]:animate-ui-changed",
-                    r.going && "[&>[data-face]]:bg-(--ui-wash)",
-                    own,
-                  )}
-                >
-                  {pick ? (
-                    <label className="grid size-11 flex-none cursor-pointer place-items-center">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${name.title(l.row)}`}
-                        checked={r.picked}
-                        onChange={() => pick.toggle(l.key)}
-                      />
-                    </label>
-                  ) : (
-                    <span className="w-4 flex-none" />
-                  )}
-                  <div className="min-w-0 flex-1 py-3 pr-2">
-                    <NameCell name={name} row={l.row} narrow onOpen={r.onOpen} />
-                    {r.going ? (
-                      <span className="mt-1 block">
-                        <Tag tone="accent" busy>
-                          {r.going}
-                        </Tag>
-                      </span>
-                    ) : null}
-                  </div>
-                  {side ? (
-                    <div className="max-w-[40%] flex-none truncate pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
-                      {side}
+                    <div className="min-w-0 flex-1 py-3 pr-2">
+                      <NameCell name={name} row={l.row} narrow onOpen={r.onOpen} />
+                      {r.going ? (
+                        <span className="mt-1 block">
+                          <Tag tone="accent" busy>
+                            {r.going}
+                          </Tag>
+                        </span>
+                      ) : null}
                     </div>
-                  ) : null}
-                  <div className="flex size-11 flex-none items-center justify-center">
-                    {act ? (
-                      <RowActions
-                        lone
-                        title={name.title(l.row)}
-                        main={act.main}
-                        more={act.more}
-                        reply={act.reply}
-                        page={act.page}
-                        busy={act.busy}
-                        run={act.run}
-                      />
-                    ) : (
-                      (p.end?.(l.row) ?? null)
-                    )}
-                  </div>
-                </SwipeRow>
-              );
-            })}
-            {lines.after ? <li aria-hidden style={{ height: lines.after }} /> : null}
-          </>
-        )}
-      </ul>
+                    {side ? (
+                      <div className="max-w-[40%] flex-none truncate pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
+                        {side}
+                      </div>
+                    ) : null}
+                    <div className="flex size-11 flex-none items-center justify-center">
+                      {act ? (
+                        <RowActions
+                          lone
+                          title={name.title(l.row)}
+                          main={act.main}
+                          more={act.more}
+                          reply={act.reply}
+                          page={act.page}
+                          busy={act.busy}
+                          run={act.run}
+                        />
+                      ) : (
+                        (p.end?.(l.row) ?? null)
+                      )}
+                    </div>
+                  </SwipeRow>
+                );
+              })}
+              {lines.after ? <li aria-hidden style={{ height: lines.after }} /> : null}
+            </>
+          )}
+        </ul>
+        {/* The artifact's phone foot: the count alone (Late and Oldest hide under 720px). */}
+        {!p.loading && rows && p.foot && !p.empty ? (
+          <div className="border-t border-(--ui-hair) px-3.5 py-2.5 text-[12px] text-(--ui-ink-3)">
+            {p.foot}
+          </div>
+        ) : null}
+      </>
     );
 
   return (

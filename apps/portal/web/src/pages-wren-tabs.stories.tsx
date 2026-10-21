@@ -91,6 +91,28 @@ export const EngageDms = pageAt("/engage/dms", { me: ADMIN });
 export const EngageInvites = pageAt("/engage/invites", { me: ADMIN });
 export const EngagePeople = pageAt("/engage/people", { me: ADMIN });
 export const EngageInbox = pageAt("/engage/inbox", { me: ADMIN });
+/**
+ * Engage's Inbox as a queue table (rows-everywhere F1, F2): its wait column reads late past 24h,
+ * the foot counts them, and "By type" folds the rows by kind, each fold with its count and oldest
+ * wait. A fold shuts on a press.
+ */
+export const EngageInboxByType = pageAt("/engage/inbox?view=all", {
+  me: ADMIN,
+  check: async (page) => {
+    const view = within(page);
+    // A row that waited past its promise says so in its wait, as text.
+    await waitFor(() => expect(page.querySelectorAll("[data-late]").length).toBeGreaterThan(0));
+    // The foot counts them (Late and Oldest hide on a phone).
+    await expect(await view.findByText("Count")).toBeVisible();
+    await userEvent.click(await view.findByRole("link", { name: "By type" }));
+    const fold = await view.findByRole("button", { name: /DM/ });
+    await expect(fold).toHaveAttribute("aria-expanded", "true");
+    // Two groups show, each its own fold.
+    await expect(await view.findByRole("button", { name: /Comment/ })).toBeVisible();
+    await userEvent.click(fold);
+    await expect(fold).toHaveAttribute("aria-expanded", "false");
+  },
+});
 export const EngageApprove = pageAt("/engage/approve", { me: ADMIN });
 export const EngageComments = pageAt("/engage/comments", { me: ADMIN });
 export const EngageReviews = pageAt("/engage/reviews", { me: ADMIN });
