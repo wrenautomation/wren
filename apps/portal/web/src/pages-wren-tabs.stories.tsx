@@ -5,8 +5,10 @@
  * a story is a static export. `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { ANSWERS } from "./mocks/data/index.js";
 import { ADMIN } from "./mocks/data/me.js";
+import { studioAnswers } from "./mocks/data/studio.js";
 import { pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Wren apps" };
@@ -14,7 +16,55 @@ export default meta;
 
 // Content: one story per tab.
 export const ContentPlan = pageAt("/content/plan", { me: ADMIN });
-export const ContentStudio = pageAt("/content/studio", { me: ADMIN });
+
+// Studio: the desk (due cards, New, the waiting table), then compose with a line and a kind chosen.
+// The shape has two sample lines; a phone shows the same page narrower (the story tests run at 390).
+const STUDIO = studioAnswers({
+  get: ANSWERS["pipeline/recordsGet"] as (b: Record<string, unknown>) => unknown,
+  list: ANSWERS["pipeline/recordsList"] as (b: Record<string, unknown>) => unknown,
+});
+export const ContentStudio = pageAt("/content/studio", {
+  me: ADMIN,
+  answers: STUDIO,
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByRole("heading", { name: /still due this week/i })).toBeVisible();
+    await expect(await view.findByRole("table", {}, { timeout: 5000 })).toBeVisible();
+  },
+});
+/** A row's check approves in place: the row goes aside and the toast offers Undo. */
+export const ContentStudioApprove = pageAt("/content/studio", {
+  me: ADMIN,
+  answers: STUDIO,
+  check: async (page) => {
+    const view = within(page);
+    const row = "Behind the scenes: rebuilding the offer page";
+    await userEvent.click(await view.findByRole("button", { name: `Approve ${row}` }));
+    await waitFor(() => expect(view.queryByText(row)).toBeNull());
+    await expect(await within(document.body).findByRole("button", { name: /undo/i })).toBeVisible();
+  },
+});
+/** Compose filled in: the sample post, a line and an angle picked, so each platform shows its version. */
+const SAMPLE_POST = [
+  "Most service sites list seven things they do.",
+  "The ones that book calls list one.",
+  "Last month I rebuilt an offer page down to a single line: who it is for, what changes in 30 days, the price. Three fewer sections.",
+].join("\n\n");
+export const ContentStudioCompose = pageAt(
+  `/content/studio?make=post&idea=${encodeURIComponent(SAMPLE_POST)}`,
+  {
+    me: ADMIN,
+    answers: STUDIO,
+    check: async (page) => {
+      const view = within(page);
+      await userEvent.click(await view.findByRole("button", { name: /offer builder/i }));
+      await userEvent.click(await view.findByRole("button", { name: "Proof" }));
+      await expect(await view.findByRole("button", { name: /approve and slot/i })).toBeEnabled();
+      // The picked chip drops its focus ring: a shot of this story shows the page at rest.
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    },
+  },
+);
 export const ContentPieces = pageAt("/content/pieces", { me: ADMIN });
 export const ContentContent = pageAt("/content/content", { me: ADMIN });
 export const ContentOverview = pageAt("/content/overview", { me: ADMIN });
