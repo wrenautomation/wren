@@ -151,8 +151,9 @@ export const wideShape = (): ShapeBody => {
 };
 
 /**
- * A hand-made metro body with every station kind, track kind and logic kind. It passes
- * `checkMetro` with `ctx()`. The runtime cannot run it (`lowerable` says why).
+ * A hand-made metro body with every station kind, track kind and logic kind, every attach kind,
+ * and one shared flow that its link station opens. It passes `checkMetro` with `ctx()`. The
+ * runtime cannot run it (`lowerable` says why).
  */
 export const metroShape = (): MetroBody => ({
   model: "metro",
@@ -173,7 +174,18 @@ export const metroShape = (): MetroBody => ({
       entry: { via: "group", segment: "7", parked: true },
     },
     { id: "nurture", label: "Nurture", tier: "front", colour: 2 },
-    { id: "growth", label: "Growth", tier: "core", offer: "offer-a", colour: 0 },
+    {
+      id: "growth",
+      label: "Growth",
+      tier: "core",
+      offer: "offer-a",
+      colour: 0,
+      attach: [
+        { kind: "sop", ref: "growth-playbook", label: "Playbook" },
+        { kind: "link", ref: "https://example.com/growth" },
+        { kind: "page", ref: "growth-landing" },
+      ],
+    },
     {
       id: "retain",
       label: "Retain",
@@ -209,6 +221,10 @@ export const metroShape = (): MetroBody => ({
       advance: [{ trigger: "trigger.reply" }],
       research: "light",
       idleDays: 7,
+      attach: [
+        { kind: "template", ref: "book-first/opener" },
+        { kind: "funnel", ref: "reply-funnel", label: "Reply funnel" },
+      ],
     },
     { id: "qualify", label: "Fit?", kind: "condition", line: "growth", column: "sales" },
     {
@@ -465,7 +481,18 @@ export const metroShape = (): MetroBody => ({
     },
     { id: "pay_to_done", from: "pay", to: "done", kind: "exit", by: "system" },
   ],
-  groups: [{ id: "closing", label: "Closing", line: "growth", stations: ["proposal", "signed"] }],
+  groups: [
+    {
+      id: "closing",
+      label: "Closing",
+      line: "growth",
+      stations: ["proposal", "signed"],
+      attach: [
+        { kind: "doc", ref: "closing-checklist" },
+        { kind: "note", ref: "8b0e6a52-3f1c-4d5e-9a77-1c2d3e4f5a6b", label: "Closing notes" },
+      ],
+    },
+  ],
   frames: [
     {
       id: "stop",
@@ -473,6 +500,34 @@ export const metroShape = (): MetroBody => ({
       stations: ["pitch_a", "pitch_b"],
       trigger: { trigger: "trigger.reply" },
       exit: "gone",
+    },
+  ],
+  flows: [
+    {
+      id: "shared_followup",
+      label: "Follow-up flow",
+      stations: [
+        {
+          id: "nudge",
+          label: "Nudge",
+          kind: "att",
+          line: "growth",
+          column: "delivery",
+          action: "email",
+          attach: [{ kind: "template", ref: "book-first/nudge" }],
+        },
+        {
+          id: "check_in",
+          label: "Check in",
+          kind: "time",
+          line: "growth",
+          column: "delivery",
+          action: "call",
+        },
+      ],
+      tracks: [
+        { id: "nudge_to_check_in", from: "nudge", to: "check_in", line: "growth", by: "system" },
+      ],
     },
   ],
 });

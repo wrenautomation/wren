@@ -462,7 +462,7 @@ describe("the metro model", () => {
   });
 
   it("reads --on as a kind, and refuses a stray word", () => {
-    for (const ok of ["node", "edge", "line", "station", "track", "group", "frame"])
+    for (const ok of ["node", "edge", "line", "station", "track", "group", "frame", "flow"])
       expect(blameOnArg(ok)).toBe(ok);
     expect(() => blameOnArg("hub")).toThrow(InvalidArgumentError);
   });

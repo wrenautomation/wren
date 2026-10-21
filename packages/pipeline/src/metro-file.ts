@@ -5,7 +5,7 @@
  * `checkMetro`'s job. Pure: it reads no database and no file.
  */
 import { stringify } from "yaml";
-import type { MetroBody } from "./metro.js";
+import type { Attach, MetroBody, MetroFlow } from "./metro.js";
 import { Refused } from "./refused.js";
 
 /** Keys a reader wants first, in this order. Others follow in the order they were set. */
@@ -21,9 +21,26 @@ export const ordered = (o: Record<string, unknown>): Record<string, unknown> =>
     }),
   );
 
-/** A metro body as YAML text: model, name, lines, stations, tracks, groups, frames. */
+/**
+ * A metro body as YAML text: model, name, lines, stations, tracks, groups, frames, then flows when
+ * the body has the key. A body with no `flows` key writes none, so the file reads back exactly.
+ */
 export function exportMetro(body: MetroBody): string {
-  const list = (xs: readonly object[]) => xs.map((x) => ordered({ ...x }));
+  /** One item with its keys in reading order, and each attach item as kind, ref, label. */
+  const one = (x: object): Record<string, unknown> => {
+    const o: Record<string, unknown> = { ...x };
+    if (Array.isArray(o.attach)) {
+      o.attach = o.attach.map((a: Attach) => ({
+        kind: a.kind,
+        ref: a.ref,
+        ...(a.label !== undefined ? { label: a.label } : {}),
+      }));
+    }
+    return ordered(o);
+  };
+  const list = (xs: readonly object[]) => xs.map(one);
+  const flow = (f: MetroFlow) =>
+    ordered({ ...f, stations: list(f.stations), tracks: list(f.tracks) });
   return stringify({
     model: "metro",
     name: body.name,
@@ -32,13 +49,24 @@ export function exportMetro(body: MetroBody): string {
     tracks: list(body.tracks),
     groups: list(body.groups),
     frames: list(body.frames),
+    ...(body.flows ? { flows: body.flows.map(flow) } : {}),
   });
 }
 
 // --- Reading ------------------------------------------------------------------------------------
 
 /** A field is one of these types. A trailing `!` means it is required. */
-type Type = "text" | "number" | "true" | "texts" | "map" | "trigger" | "triggers" | "entry";
+type Type =
+  | "text"
+  | "number"
+  | "true"
+  | "texts"
+  | "map"
+  | "trigger"
+  | "triggers"
+  | "entry"
+  | "attaches"
+  | "list";
 type Schema = Record<string, Type | `${Type}!`>;
 
 const TRIGGER: Schema = { trigger: "text!", with: "map" };
@@ -50,6 +78,7 @@ const ENTRY: Schema = {
   segment: "text",
   parked: "true",
 };
+const ATTACH: Schema = { kind: "text!", ref: "text!", label: "text" };
 const LINE: Schema = {
   id: "text!",
   label: "text!",
@@ -58,6 +87,7 @@ const LINE: Schema = {
   colour: "number",
   entry: "entry",
   planned: "true",
+  attach: "attaches",
 };
 const STATION: Schema = {
   id: "text!",
@@ -77,6 +107,7 @@ const STATION: Schema = {
   flow: "text",
   retries: "number",
   planned: "true",
+  attach: "attaches",
 };
 const TRACK: Schema = {
   id: "text!",
@@ -95,7 +126,13 @@ const TRACK: Schema = {
   label: "text",
   planned: "true",
 };
-const GROUP: Schema = { id: "text!", label: "text!", line: "text!", stations: "texts!" };
+const GROUP: Schema = {
+  id: "text!",
+  label: "text!",
+  line: "text!",
+  stations: "texts!",
+  attach: "attaches",
+};
 const FRAME: Schema = {
   id: "text!",
   label: "text",
@@ -103,7 +140,9 @@ const FRAME: Schema = {
   trigger: "trigger!",
   exit: "text!",
 };
-const TOP = ["model", "name", "lines", "stations", "tracks", "groups", "frames"];
+/** A flow's own fields. Its stations and tracks are read as lists of the body's kind. */
+const FLOW: Schema = { id: "text!", label: "text!", stations: "list", tracks: "list" };
+const TOP = ["model", "name", "lines", "stations", "tracks", "groups", "frames", "flows"];
 
 /** What a reader is told a field must be. */
 const WORD: Record<Type, string> = {
@@ -115,6 +154,8 @@ const WORD: Record<Type, string> = {
   trigger: "a trigger with a trigger id and optional with",
   triggers: "a list of triggers, each with a trigger id and optional with",
   entry: "a map with via, and optional channel, campaign, source, segment and parked",
+  attaches: "a list of attached refs, each with a kind, a ref and an optional label",
+  list: "a list",
 };
 
 const isMap = (v: unknown): v is Record<string, unknown> =>
@@ -150,6 +191,15 @@ function has(t: Type, v: unknown, who: string, errors: string[]): boolean {
       if (!isMap(v)) return false;
       checkFields(who, v, ENTRY, errors);
       return true;
+    case "attaches":
+      if (!Array.isArray(v)) return false;
+      for (const [i, x] of v.entries()) {
+        if (!isMap(x)) return false;
+        checkFields(`${who} ${i + 1}`, x, ATTACH, errors);
+      }
+      return true;
+    case "list":
+      return true; // its items are read by `readList`, which reports a value that is no list
   }
 }
 
@@ -203,6 +253,24 @@ function readList(
 }
 
 /**
+ * The flows of the file, each with its stations and tracks read against the same fields as the
+ * body's. Undefined when the file has no `flows`, so the body gets no key. A reason inside a flow
+ * names the flow.
+ */
+function readFlows(doc: Record<string, unknown>, errors: string[]): MetroFlow[] | undefined {
+  if (doc.flows === undefined) return undefined;
+  const heads = readList(doc, "flows", "Flow", FLOW, true, errors);
+  return heads.map((head) => {
+    const h = head as Record<string, unknown>;
+    const inner: string[] = [];
+    const stations = readList(h, "stations", "Station", STATION, true, inner);
+    const tracks = readList(h, "tracks", "Track", TRACK, false, inner);
+    for (const e of inner) errors.push(`Flow "${String(h.id)}": ${e}`);
+    return { ...h, stations, tracks } as unknown as MetroFlow;
+  });
+}
+
+/**
  * A parsed YAML value to a metro body. Refused, with every reason found, when a field has the
  * wrong type, a needed field is missing or the file holds a field the model does not know.
  */
@@ -219,6 +287,7 @@ export function parseMetroBody(doc: unknown): MetroBody {
   const tracks = readList(doc, "tracks", "Track", TRACK, false, errors);
   const groups = readList(doc, "groups", "Group", GROUP, false, errors);
   const frames = readList(doc, "frames", "Frame", FRAME, false, errors);
+  const flows = readFlows(doc, errors);
   if (errors.length) throw new Refused(errors);
   return {
     model: "metro",
@@ -228,5 +297,6 @@ export function parseMetroBody(doc: unknown): MetroBody {
     tracks,
     groups,
     frames,
+    ...(flows ? { flows } : {}),
   } as MetroBody;
 }

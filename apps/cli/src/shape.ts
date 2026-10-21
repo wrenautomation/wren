@@ -240,7 +240,7 @@ export function convertLines(plan: ConvertPlan): string[] {
   return plan.already ? ["The shape is on the metro model already."] : reportLines(plan.report);
 }
 
-const BLAME_ON = ["node", "edge", "line", "station", "track", "group", "frame"] as const;
+const BLAME_ON = ["node", "edge", "line", "station", "track", "group", "frame", "flow"] as const;
 
 /** What `blame --on` names. */
 export function blameOnArg(v: string): BlameOn {
@@ -744,7 +744,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
   shape
     .command("blame <id>")
     .description(
-      "Every version that touched a node, or with --edge an edge, or with --on a line, station, track, group or frame: v<n>  day  who  how  why, newest first",
+      "Every version that touched a node, or with --edge an edge, or with --on a line, station, track, group, frame or flow: v<n>  day  who  how  why, newest first",
     )
     .option("--edge", "the id names an edge, not a node")
     .option("--on <kind>", `what the id names: ${BLAME_ON.join(", ")}`, blameOnArg)

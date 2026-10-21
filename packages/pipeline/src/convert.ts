@@ -406,7 +406,8 @@ export function metroOf(graph: ShapeBody): MetroResult {
  * makes nothing.
  *
  * Meant for a body whose `lowerable` is empty. On another it stays deterministic: a station that
- * is not att, time or cash is left out, and so is every track that touches one.
+ * is not att, time or cash is left out, and so is every track that touches one. `attach` and
+ * `flows` lower to nothing: the graph is the same with or without them.
  */
 export function graphOf(metro: MetroBody): ShapeBody {
   const lineBy = new Map(metro.lines.map((l) => [l.id, l] as const));

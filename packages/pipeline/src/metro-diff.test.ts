@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { flow, metroPair, metroShape, shape } from "../test/fixtures.js";
 import { metroOf } from "./convert.js";
 import { canonicalJson } from "./diff.js";
-import type { MetroBody } from "./metro.js";
+import type { Attach, MetroBody, MetroFlow, MetroStation } from "./metro.js";
 import { historyOfMetro, type MetroBlameVersion } from "./metro-blame.js";
 import {
   diffMetro,
@@ -230,6 +230,225 @@ describe("metroChangeLine", () => {
   });
 });
 
+describe("diffMetro: flows", () => {
+  const flowOf = (b: MetroBody, id = "shared_followup"): MetroFlow => {
+    const f = b.flows?.find((x) => x.id === id);
+    if (!f) throw new Error(`no flow ${id}`);
+    return f;
+  };
+  const keys = (a: MetroBody, b: MetroBody) => metroChangesOf(diffMetro(a, b)).map(metroChangeKey);
+  const second = (): MetroFlow => ({
+    id: "second",
+    label: "Second flow",
+    stations: [
+      { id: "a", label: "A", kind: "att", line: "growth", column: "sales", action: "other" },
+    ],
+    tracks: [],
+  });
+
+  it("finds a flow added, removed, renamed and changed", () => {
+    const a = metroShape();
+    const added = structuredClone(a);
+    added.flows?.push(second());
+    expect(keys(a, added)).toEqual(["flow:second:added"]);
+    expect(keys(added, a)).toEqual(["flow:second:removed"]);
+    const renamed = structuredClone(a);
+    flowOf(renamed).label = "Follow up";
+    expect(keys(a, renamed)).toEqual(["flow:shared_followup:renamed"]);
+    expect(diffMetro(a, renamed).flows.renamed).toEqual([
+      { id: "shared_followup", from: "Follow-up flow", to: "Follow up" },
+    ]);
+  });
+
+  it("calls any station or track change inside a flow a change of the flow", () => {
+    const a = metroShape();
+    const station = structuredClone(a);
+    flowOf(station).stations[1] = {
+      ...(flowOf(station).stations[1] as MetroStation),
+      idleDays: 4,
+    };
+    expect(keys(a, station)).toEqual(["flow:shared_followup:changed"]);
+    const track = structuredClone(a);
+    (flowOf(track).tracks[0] as MetroBody["tracks"][number]).by = "person";
+    expect(keys(a, track)).toEqual(["flow:shared_followup:changed"]);
+    const added = structuredClone(a);
+    flowOf(added).stations.push({
+      id: "more",
+      label: "More",
+      kind: "att",
+      line: "growth",
+      column: "delivery",
+      action: "other",
+    });
+    expect(keys(a, added)).toEqual(["flow:shared_followup:changed"]);
+    const dropped = structuredClone(a);
+    flowOf(dropped).tracks = [];
+    expect(keys(a, dropped)).toEqual(["flow:shared_followup:changed"]);
+  });
+
+  it("counts a rename and a change in one version as two changes, rename first", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    flowOf(b).label = "Follow up";
+    (flowOf(b).tracks[0] as MetroBody["tracks"][number]).by = "person";
+    expect(keys(a, b)).toEqual(["flow:shared_followup:renamed", "flow:shared_followup:changed"]);
+  });
+
+  it("does not change the body for a flow station with the id of a body station", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    flowOf(b).stations.push({
+      ...(b.stations.find((s) => s.id === "reply") as MetroStation),
+      id: "reply",
+    });
+    expect(keys(a, b)).toEqual(["flow:shared_followup:changed"]);
+  });
+
+  it("reads a body with no flows as one with none: every flow is added or removed", () => {
+    const a = metroShape();
+    const none = structuredClone(a);
+    delete none.flows;
+    expect(keys(none, a)).toEqual(["flow:shared_followup:added"]);
+    expect(keys(a, none)).toEqual(["flow:shared_followup:removed"]);
+    const empty = structuredClone(a);
+    empty.flows = [];
+    expect(keys(none, empty)).toEqual([]);
+    expect(keys(empty, none)).toEqual([]);
+  });
+
+  it("puts flows last, after frames", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    b.flows?.push(second());
+    b.frames.push({
+      id: "halt",
+      stations: ["prep"],
+      trigger: { trigger: "trigger.reply" },
+      exit: "done",
+    });
+    b.name = "Other";
+    expect(keys(a, b)).toEqual(["name", "frame:halt:added", "flow:second:added"]);
+  });
+
+  it("ignores where a flow sits in the list", () => {
+    const a = metroShape();
+    a.flows?.push(second());
+    const b = structuredClone(a);
+    b.flows?.reverse();
+    expect(keys(a, b)).toEqual([]);
+  });
+});
+
+describe("diffMetro: attach", () => {
+  const keys = (a: MetroBody, b: MetroBody) => metroChangesOf(diffMetro(a, b)).map(metroChangeKey);
+  const doc: Attach = { kind: "doc", ref: "extra-doc" };
+
+  it("calls an attach change a change of its line, station and group", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    (b.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach?.push(doc);
+    (b.stations.find((s) => s.id === "reply") as MetroBody["stations"][number]).attach = [];
+    (b.groups.find((g) => g.id === "closing") as MetroBody["groups"][number]).attach?.shift();
+    expect(keys(a, b)).toEqual([
+      "line:growth:changed",
+      "station:reply:changed",
+      "group:closing:changed",
+    ]);
+  });
+
+  it("calls an attach added or removed a change, never an add or remove of the item", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    (b.lines.find((l) => l.id === "nurture") as MetroBody["lines"][number]).attach = [doc];
+    expect(keys(a, b)).toEqual(["line:nurture:changed"]);
+    expect(keys(b, a)).toEqual(["line:nurture:changed"]);
+  });
+
+  it("calls a label, kind or ref change of an attach a change, and a label alone no rename", () => {
+    const a = metroShape();
+    for (const edit of [
+      (x: Attach) => (x.label = "New label"),
+      (x: Attach) => (x.ref = "other-ref"),
+      (x: Attach) => (x.kind = "page"),
+    ]) {
+      const b = structuredClone(a);
+      const first = (b.lines.find((l) => l.id === "growth") as MetroBody["lines"][number])
+        .attach?.[0] as Attach;
+      edit(first);
+      expect(keys(a, b)).toEqual(["line:growth:changed"]);
+    }
+  });
+
+  it("sees an attach on a station inside a flow as a change of the flow", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    const nudge = b.flows?.[0]?.stations[0] as MetroBody["stations"][number];
+    nudge.attach = [{ kind: "template", ref: "book-first/other" }];
+    expect(keys(a, b)).toEqual(["flow:shared_followup:changed"]);
+  });
+
+  it("finds nothing when the attach order and key order are the same", () => {
+    const a = metroShape();
+    const b = JSON.parse(JSON.stringify(a)) as MetroBody;
+    const items = (b.stations.find((s) => s.id === "reply") as MetroBody["stations"][number])
+      .attach as Attach[];
+    b.stations = b.stations.map((s) =>
+      s.id === "reply"
+        ? {
+            ...s,
+            attach: items.map((i) => ({
+              ...(i.label ? { label: i.label } : {}),
+              ref: i.ref,
+              kind: i.kind,
+            })),
+          }
+        : s,
+    );
+    expect(keys(a, b)).toEqual([]);
+  });
+
+  it("treats a different attach order as a change", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    (b.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach?.reverse();
+    expect(keys(a, b)).toEqual(["line:growth:changed"]);
+  });
+});
+
+describe("flow keys and lines", () => {
+  it("read and write the flow keys", () => {
+    for (const how of ["added", "removed", "renamed", "changed"] as const) {
+      expect(parseMetroChangeKey(`flow:shared_followup:${how}`)).toEqual({
+        on: "flow",
+        id: "shared_followup",
+        how,
+      });
+      expect(metroChangeKey({ on: "flow", id: "shared_followup", how })).toBe(
+        `flow:shared_followup:${how}`,
+      );
+    }
+    expect(parseMetroChangeKey("flow:x:renamed")).toEqual({ on: "flow", id: "x", how: "renamed" });
+    expect(parseMetroChangeKey("flow:x:bad")).toBeNull();
+    expect(parseMetroChangeKey("flow:x")).toBeNull();
+    expect(parseMetroChangeKey("flows:x:added")).toBeNull();
+  });
+
+  it("say each flow change in one plain line, by label", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    (b.flows?.[0] as MetroFlow).label = "Follow up";
+    const line = (how: "added" | "removed" | "renamed" | "changed") =>
+      metroChangeLine(a, b, { on: "flow", id: "shared_followup", how });
+    expect(line("added")).toBe("Added flow Follow up.");
+    expect(line("removed")).toBe("Removed flow Follow-up flow.");
+    expect(line("renamed")).toBe("Renamed flow Follow-up flow to Follow up.");
+    expect(line("changed")).toBe("Changed flow Follow up.");
+    expect(metroChangeLine(a, b, { on: "flow", id: "ghost", how: "changed" })).toBe(
+      "Changed flow ghost.",
+    );
+  });
+});
+
 // --- Blame ----------------------------------------------------------------------------------
 
 const version = (
@@ -374,6 +593,62 @@ describe("historyOfMetro", () => {
     ).toEqual([
       [5, "added"],
       [4, "removed"],
+      [1, "added"],
+    ]);
+  });
+});
+
+describe("historyOfMetro: flows and attach", () => {
+  it("gives a flow its added, renamed, changed and removed lines", () => {
+    const a = metroShape();
+    const renamed = structuredClone(a);
+    (renamed.flows?.[0] as MetroFlow).label = "Follow up";
+    const changed = structuredClone(renamed);
+    (changed.flows?.[0] as MetroFlow).tracks = [];
+    const gone = structuredClone(changed);
+    gone.flows = [];
+    const none = structuredClone(a);
+    delete none.flows;
+    const versions = [
+      version(1, none),
+      version(2, a),
+      version(3, renamed),
+      version(4, changed),
+      version(5, gone),
+    ];
+    const lines = historyOfMetro(versions, "shared_followup", "flow");
+    expect(lines.map((l) => [l.version, l.how])).toEqual([
+      [5, "removed"],
+      [4, "changed"],
+      [3, "renamed"],
+      [2, "added"],
+    ]);
+    expect(lines[2]).toMatchObject({ from: "Follow-up flow", to: "Follow up" });
+  });
+
+  it("gives an item an attach change as a changed line", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    (b.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach?.push({
+      kind: "doc",
+      ref: "extra-doc",
+    });
+    const lines = historyOfMetro([version(1, a), version(2, b)], "growth", "line");
+    expect(lines.map((l) => [l.version, l.how])).toEqual([
+      [2, "changed"],
+      [1, "added"],
+    ]);
+  });
+
+  it("keeps a flow apart from a line, station or group of the same id", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    (b.flows?.[0] as MetroFlow).id = "closing";
+    const versions = [version(1, a), version(2, b)];
+    expect(historyOfMetro(versions, "closing", "flow").map((l) => [l.version, l.how])).toEqual([
+      [2, "added"],
+    ]);
+    expect(historyOfMetro(versions, "closing", "group").map((l) => [l.version, l.how])).toEqual([
       [1, "added"],
     ]);
   });

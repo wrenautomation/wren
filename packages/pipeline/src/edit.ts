@@ -205,9 +205,9 @@ export function undoChange(
 /**
  * The inverse of one change from version `a` to version `b`, applied to `newest`, for stored
  * bodies. A `node:` or `edge:` key is a graph key: it needs a graph newest body. A line, station,
- * track, group or frame key is a metro key: it runs on the map view of all three bodies and gives
- * a metro body, so it needs a metro newest body (else refused with `ON_GRAPH`). `name` is in both:
- * the newest body's model decides. Pure; refused with `Refused`.
+ * track, group, frame or flow key is a metro key: it runs on the map view of all three bodies and
+ * gives a metro body, so it needs a metro newest body (else refused with `ON_GRAPH`). `name` is in
+ * both: the newest body's model decides. Pure; refused with `Refused`.
  */
 export function undoStoredChange(
   newest: StoredBody,

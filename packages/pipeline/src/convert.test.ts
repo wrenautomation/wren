@@ -10,7 +10,7 @@ import {
   withoutStrayFields,
 } from "./convert.js";
 import { canonicalJson } from "./diff.js";
-import { checkMetro, HUB, type MetroBody, placesOf } from "./metro.js";
+import { type Attach, checkMetro, HUB, type MetroBody, placesOf } from "./metro.js";
 import { depthOf, holds, type ShapeBody, type ShapeNode } from "./model.js";
 import { starterShape } from "./starter.js";
 import { shapeWorkflow } from "./workflow.js";
@@ -28,6 +28,52 @@ const made = (g: ShapeBody) => {
   const r = metroOf(g);
   if (!r.ok) throw new Error(r.errors.join(" "));
   return r;
+};
+
+/** The attach every item of the new kind carries in these tests: one of each way to name a thing. */
+const ATTACH: Attach[] = [
+  { kind: "sop", ref: "playbook", label: "Playbook" },
+  { kind: "link", ref: "https://example.com/a" },
+];
+
+/**
+ * A copy of a body with an attach on every line, station and group, and a flow of two stations
+ * that nothing links to. `attach` and `flows` lower to nothing, so the copy runs as the body did.
+ */
+const withExtras = (body: MetroBody): MetroBody => {
+  const line = body.lines.find((l) => l.tier !== "out") ?? (body.lines[0] as MetroBody["lines"][0]);
+  return {
+    ...structuredClone(body),
+    lines: body.lines.map((l) => ({ ...l, attach: structuredClone(ATTACH) })),
+    stations: body.stations.map((s) => ({ ...s, attach: structuredClone(ATTACH) })),
+    groups: body.groups.map((g) => ({ ...g, attach: structuredClone(ATTACH) })),
+    flows: [
+      {
+        id: "spare_flow",
+        label: "Spare flow",
+        stations: [
+          {
+            id: "spare_a",
+            label: "A",
+            kind: "att",
+            line: line.id,
+            column: "sales",
+            action: "other",
+            attach: structuredClone(ATTACH),
+          },
+          {
+            id: "spare_b",
+            label: "B",
+            kind: "att",
+            line: line.id,
+            column: "sales",
+            action: "other",
+          },
+        ],
+        tracks: [{ id: "spare_ab", from: "spare_a", to: "spare_b", line: line.id, by: "system" }],
+      },
+    ],
+  };
 };
 
 const step = (id: string, action: "comment" | "other" = "other"): ShapeNode => ({
@@ -106,6 +152,24 @@ describe("metroOf and graphOf: the round trip", () => {
       expect(shapeWorkflow(1, sorted(graphOf(body)), "wren")).toEqual(
         shapeWorkflow(1, sorted(g), "wren"),
       );
+    });
+
+    it("ignores attach and flows: the body with them lowers and runs the same", () => {
+      const { body } = made(make());
+      const extra = withExtras(body);
+      expect(checkMetro(extra, ctx())).toEqual([]);
+      expect(lowerable(extra)).toEqual(lowerable(body));
+      expect(JSON.stringify(graphOf(extra))).toBe(JSON.stringify(graphOf(body)));
+      expect(shapeWorkflow(1, sorted(graphOf(extra)), "wren")).toEqual(
+        shapeWorkflow(1, sorted(graphOf(body)), "wren"),
+      );
+    });
+
+    it("draws no attach and no flows from a graph", () => {
+      const { body } = made(make());
+      expect("flows" in body).toBe(false);
+      expect(JSON.stringify(body)).not.toContain('"attach"');
+      expect(JSON.stringify(body)).not.toContain('"flows"');
     });
 
     it("never changes its input, and the output shares nothing with it", () => {
@@ -548,6 +612,46 @@ describe("lowerable", () => {
     expect(g.edges.map((e) => e.id)).toContain("social_to_reply");
     expect(g.edges.map((e) => e.id)).toContain("list_to_reply");
     expect(g.edges.map((e) => e.id)).not.toContain("team_to_reply");
+  });
+});
+
+describe("lowerable and graphOf: attach and flows", () => {
+  /** The fixture without attach and without flows. A link station stays: only its flow goes. */
+  const bare = (): MetroBody => {
+    const m = structuredClone(metroShape());
+    delete m.flows;
+    for (const x of [...m.lines, ...m.stations, ...m.groups]) delete x.attach;
+    return m;
+  };
+
+  it("says nothing about them: the reasons are those of the body without them", () => {
+    expect(lowerable(metroShape())).toEqual(lowerable(bare()));
+    expect(lowerable(metroShape()).join(" ")).not.toMatch(/attach|flows/);
+  });
+
+  it("still refuses a link station, and names the station, not the flow", () => {
+    expect(lowerable(metroShape())).toContain(
+      'Station "shared" is a link station. The runtime does not run it yet.',
+    );
+  });
+
+  it("lowers to the graph of the body without them", () => {
+    expect(JSON.stringify(graphOf(metroShape()))).toBe(JSON.stringify(graphOf(bare())));
+  });
+
+  it("does not lower the stations of a flow", () => {
+    const ids = graphOf(metroShape()).nodes.map((n) => n.id);
+    expect(ids).not.toContain("nudge");
+    expect(ids).not.toContain("check_in");
+  });
+
+  it("lowers a flow station and a body station of the same id as the body one only", () => {
+    const m = metroShape();
+    const { attach: _attach, ...reply } = m.stations.find(
+      (s) => s.id === "reply",
+    ) as MetroBody["stations"][number];
+    m.flows?.[0]?.stations.push(reply);
+    expect(JSON.stringify(graphOf(m))).toBe(JSON.stringify(graphOf(bare())));
   });
 });
 

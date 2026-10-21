@@ -11,6 +11,7 @@ import {
   withoutEdge,
   withoutNode,
 } from "./edit.js";
+import type { MetroBody } from "./metro.js";
 import type { ShapeBody, ShapeNode } from "./model.js";
 import { Refused } from "./store.js";
 
@@ -323,6 +324,35 @@ describe("undoStoredChange guards", () => {
   it("refuses a graph key on a metro newest version", () => {
     expect(() => undoStoredChange(m, g, g, { on: "node", id: "booked", how: "changed" })).toThrow(
       /on the metro model now/,
+    );
+  });
+
+  it("refuses a flow key on a graph newest version", () => {
+    const run = () =>
+      undoStoredChange(g, g, g, { on: "flow", id: "shared_followup", how: "added" });
+    expect(run).toThrow(Refused);
+    expect(run).toThrow(ON_GRAPH);
+  });
+
+  it("undoes a flow key on a metro newest version, and an attach as a change of its owner", () => {
+    const a = m;
+    const b = structuredClone(a);
+    (b.flows?.[0] as NonNullable<MetroBody["flows"]>[number]).label = "Follow up";
+    (b.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [];
+    const flowBack = undoStoredChange(b, a, b, {
+      on: "flow",
+      id: "shared_followup",
+      how: "renamed",
+    }) as MetroBody;
+    expect(flowBack.flows?.[0]?.label).toBe("Follow-up flow");
+    expect(flowBack.lines.find((l) => l.id === "growth")?.attach).toEqual([]);
+    const lineBack = undoStoredChange(b, a, b, {
+      on: "line",
+      id: "growth",
+      how: "changed",
+    }) as MetroBody;
+    expect(lineBack.lines.find((l) => l.id === "growth")?.attach).toEqual(
+      a.lines.find((l) => l.id === "growth")?.attach,
     );
   });
 

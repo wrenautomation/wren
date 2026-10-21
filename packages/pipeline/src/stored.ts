@@ -121,7 +121,7 @@ export interface StoredBlameVersion {
   createdAt: Date | string;
 }
 
-/** What a blame asks for: a graph node or edge, or a line, station, track, group or frame. */
+/** What a blame asks for: a graph node or edge, or a line, station, track, group, frame, flow. */
 export type BlameOn = "node" | "edge" | MetroOn;
 
 /**

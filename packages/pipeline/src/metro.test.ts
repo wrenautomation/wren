@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ctx, metroShape, shape } from "../test/fixtures.js";
 import {
+  ATTACH_KINDS,
+  type Attach,
   checkMetro,
   isMetro,
   kindOfAction,
   LOGIC_KINDS,
   type MetroBody,
+  type MetroFlow,
   type MetroStation,
   type MetroTrack,
   STATION_KINDS,
@@ -752,6 +755,382 @@ describe("checkMetro: frames", () => {
     ]);
     expect(says((b) => (stop(b).exit = "ghost"))).toEqual([
       'Frame "stop" sends people to "ghost", which is not an exit station.',
+    ]);
+  });
+});
+
+describe("checkMetro: attach", () => {
+  const growth = (b: MetroBody) => b.lines.find((l) => l.id === "growth") as MetroBody["lines"][0];
+  /** The reasons when the first line of the body holds exactly `attach`. */
+  const withAttach = (attach: unknown): string[] =>
+    says((b) => (growth(b).attach = attach as Attach[]));
+
+  it("holds every attach kind in the fixture, and passes", () => {
+    const b = metroShape();
+    const kinds = new Set(
+      [
+        ...b.lines.flatMap((l) => l.attach ?? []),
+        ...b.stations.flatMap((s) => s.attach ?? []),
+        ...b.groups.flatMap((g) => g.attach ?? []),
+      ].map((a) => a.kind),
+    );
+    expect(kinds).toEqual(new Set(ATTACH_KINDS));
+    expect(checkMetro(b, ctx())).toEqual([]);
+  });
+
+  it("takes an id or an https URL, and an empty list", () => {
+    expect(
+      withAttach([
+        { kind: "sop", ref: "growth-playbook" },
+        { kind: "template", ref: "recruiting-sms#1" },
+        { kind: "doc", ref: "https://docs.example.com/d/1?x=y#top", label: "Plan" },
+        { kind: "note", ref: "8b0e6a52-3f1c-4d5e-9a77-1c2d3e4f5a6b" },
+        { kind: "link", ref: "https://example.com" },
+      ]),
+    ).toEqual([]);
+    expect(withAttach([])).toEqual([]);
+  });
+
+  it("wants a known kind", () => {
+    expect(withAttach([{ kind: "wiki", ref: "x" }])).toEqual([
+      'Line "growth" attach 1 has kind "wiki". Use sop, link, page, funnel, doc, template, note.',
+    ]);
+    expect(withAttach([{ ref: "x" }])).toEqual([
+      'Line "growth" attach 1 has kind "undefined". Use sop, link, page, funnel, doc, template, note.',
+    ]);
+  });
+
+  it("wants a ref of 1 to 500 characters with no spaces", () => {
+    const need = 'Line "growth" attach 1 needs a ref of 1 to 500 characters.';
+    expect(withAttach([{ kind: "sop", ref: "" }])).toEqual([need]);
+    expect(withAttach([{ kind: "sop" }])).toEqual([need]);
+    expect(withAttach([{ kind: "sop", ref: 7 }])).toEqual([need]);
+    expect(withAttach([{ kind: "sop", ref: "a".repeat(500) }])).toEqual([]);
+    expect(withAttach([{ kind: "sop", ref: "a".repeat(501) }])).toEqual([need]);
+    expect(withAttach([{ kind: "sop", ref: "two words" }])).toEqual([
+      'Line "growth" attach 1 has a ref with a space in it.',
+    ]);
+    expect(withAttach([{ kind: "sop", ref: "tab\there" }])).toEqual([
+      'Line "growth" attach 1 has a ref with a space in it.',
+    ]);
+  });
+
+  it("takes no other scheme than https, and wants a link to be a URL", () => {
+    for (const ref of ["http://example.com", "javascript:alert(1)", "mailto:a@b.co", "ftp://x"]) {
+      expect(withAttach([{ kind: "doc", ref }])).toEqual([
+        `Line "growth" attach 1 has ref "${ref}". Use an id or an https:// URL.`,
+      ]);
+    }
+    expect(withAttach([{ kind: "link", ref: "example.com" }])).toEqual([
+      'Line "growth" attach 1 is a link, so its ref must be an https:// URL.',
+    ]);
+  });
+
+  it("wants a label of 80 characters at most", () => {
+    expect(withAttach([{ kind: "sop", ref: "x", label: "a".repeat(80) }])).toEqual([]);
+    expect(withAttach([{ kind: "sop", ref: "x", label: "a".repeat(81) }])).toEqual([
+      'Line "growth" attach 1 has a label longer than 80 characters.',
+    ]);
+    expect(withAttach([{ kind: "sop", ref: "x", label: 5 }])).toEqual([
+      'Line "growth" attach 1 has a label longer than 80 characters.',
+    ]);
+  });
+
+  it("numbers the items, and reports each fault", () => {
+    expect(
+      withAttach([
+        { kind: "sop", ref: "ok" },
+        { kind: "nope", ref: "a b" },
+      ]),
+    ).toEqual([
+      'Line "growth" attach 2 has kind "nope". Use sop, link, page, funnel, doc, template, note.',
+      'Line "growth" attach 2 has a ref with a space in it.',
+    ]);
+  });
+
+  it("wants a list of maps", () => {
+    expect(withAttach("sop:x")).toEqual(['Line "growth" needs an attach list.']);
+    expect(withAttach([null])).toEqual(['Line "growth" attach 1 needs a kind and a ref.']);
+  });
+
+  it("checks stations, groups and the stations of a flow the same way", () => {
+    const bad = [{ kind: "wiki", ref: "x" }] as unknown as Attach[];
+    const why = (name: string) =>
+      `${name} attach 1 has kind "wiki". Use sop, link, page, funnel, doc, template, note.`;
+    expect(says((b) => (station(b, "reply").attach = bad))).toEqual([why('Station "reply"')]);
+    expect(
+      says((b) => {
+        const g = b.groups[0];
+        if (g) g.attach = bad;
+      }),
+    ).toEqual([why('Group "closing"')]);
+    expect(
+      says((b) => {
+        const s = b.flows?.[0]?.stations[0];
+        if (s) s.attach = bad;
+      }),
+    ).toEqual([`Flow "shared_followup": ${why('Station "nudge"')}`]);
+  });
+});
+
+describe("checkMetro: flows", () => {
+  const followup = (b: MetroBody): MetroFlow => {
+    const f = b.flows?.find((x) => x.id === "shared_followup");
+    if (!f) throw new Error("no flow shared_followup");
+    return f;
+  };
+  /** A second flow `other` of two stations, as a shared flow would be. */
+  const other = (over: Partial<MetroFlow> = {}): MetroFlow => ({
+    id: "other",
+    label: "Other flow",
+    stations: [
+      { id: "one", label: "One", kind: "att", line: "growth", column: "sales", action: "other" },
+      { id: "two", label: "Two", kind: "att", line: "growth", column: "sales", action: "other" },
+    ],
+    tracks: [{ id: "one_to_two", from: "one", to: "two", line: "growth", by: "system" }],
+    ...over,
+  });
+  const link = (id: string, flow: string): MetroStation => ({
+    id,
+    label: id,
+    kind: "link",
+    line: "growth",
+    column: "delivery",
+    flow,
+  });
+
+  it("passes a body with no flows key, or an empty list, when no station links", () => {
+    const unlink = (b: MetroBody) => {
+      station(b, "shared").kind = "att";
+      delete station(b, "shared").flow;
+      station(b, "shared").action = "other";
+    };
+    expect(
+      says((b) => {
+        unlink(b);
+        delete b.flows;
+      }),
+    ).toEqual([]);
+    expect(
+      says((b) => {
+        unlink(b);
+        b.flows = [];
+      }),
+    ).toEqual([]);
+  });
+
+  it("wants a flow for every link, so a body with no flows cannot link", () => {
+    expect(says((b) => delete b.flows)).toEqual([
+      'Link "shared" names flow "shared_followup", which is not in the shape.',
+    ]);
+    expect(says((b) => (b.flows = []))).toEqual([
+      'Link "shared" names flow "shared_followup", which is not in the shape.',
+    ]);
+  });
+
+  it("wants flow ids in the id rule, unique, and a label", () => {
+    expect(says((b) => (followup(b).id = "Bad Flow"))).toEqual([
+      'Flow id "Bad Flow" must be lowercase letters, digits and underscores, starting with a letter.',
+      'Link "shared" names flow "shared_followup", which is not in the shape.',
+    ]);
+    expect(says((b) => b.flows?.push(other({ id: "shared_followup" })))).toEqual([
+      'Flow id "shared_followup" is used twice.',
+    ]);
+    expect(says((b) => (followup(b).label = " "))).toEqual([
+      'Flow "shared_followup": It needs a label.',
+    ]);
+  });
+
+  it("keeps the ids of a flow to the flow: the body and other flows may reuse them", () => {
+    expect(
+      says((b) => {
+        const { attach: _attach, ...reply } = station(b, "reply");
+        followup(b).stations.push(reply);
+        b.flows?.push(other({ stations: followup(b).stations.map((s) => ({ ...s })), tracks: [] }));
+      }),
+    ).toEqual([]);
+    expect(
+      says((b) => followup(b).tracks.push({ ...(followup(b).tracks[0] as MetroTrack) })),
+    ).toEqual(['Flow "shared_followup": Track id "nudge_to_check_in" is used twice.']);
+    expect(
+      says((b) => followup(b).stations.push({ ...(followup(b).stations[0] as MetroStation) })),
+    ).toEqual(['Flow "shared_followup": Station id "nudge" is used twice.']);
+  });
+
+  it("holds no hub, and keeps the reserved ids", () => {
+    expect(
+      says((b) =>
+        followup(b).stations.push({ id: "hub", label: "Hub", kind: "hub", column: "marketing" }),
+      ),
+    ).toEqual(['Flow "shared_followup": Station "hub" is a hub. A flow holds no hub.']);
+    expect(says((b) => followup(b).stations.push(extra({ id: "hub" })))).toEqual([
+      'Flow "shared_followup": Station id "hub" is reserved for the hub station.',
+    ]);
+    expect(says((b) => followup(b).stations.push(extra({ id: "dropped" })))).toEqual([
+      'Flow "shared_followup": Station id "dropped" is reserved for dropped journeys.',
+    ]);
+  });
+
+  it("runs the station rules inside a flow, and names the flow", () => {
+    expect(says((b) => ((followup(b).stations[0] as MetroStation).idleDays = 0))).toEqual([
+      'Flow "shared_followup": Station "nudge" has idleDays 0. Use a whole number of days from 1 to 365.',
+    ]);
+    expect(says((b) => ((followup(b).stations[0] as MetroStation).line = "ghost"))).toEqual([
+      'Flow "shared_followup": Station "nudge" is on line "ghost", which does not exist.',
+    ]);
+    expect(says((b) => followup(b).stations.push(extra({ column: "nowhere" as never })))).toEqual([
+      'Flow "shared_followup": Station "extra" has column "nowhere". Use marketing, sales, delivery, money.',
+    ]);
+  });
+
+  it("runs the track rules inside a flow", () => {
+    expect(says((b) => ((followup(b).tracks[0] as MetroTrack).to = "ghost"))).toEqual([
+      'Flow "shared_followup": Track "nudge_to_check_in" names station "ghost", which is not in the shape.',
+    ]);
+    expect(says((b) => ((followup(b).tracks[0] as MetroTrack).by = "robot" as never))).toEqual([
+      'Flow "shared_followup": Track "nudge_to_check_in" has by "robot". Use system or person.',
+    ]);
+    expect(
+      says((b) =>
+        followup(b).tracks.push({
+          id: "up",
+          from: "check_in",
+          to: "nudge",
+          line: "growth",
+          by: "system",
+        }),
+      ),
+    ).toEqual([
+      'Flow "shared_followup": Tracks form a loop: nudge -> check_in -> nudge. Make one of them a back track.',
+    ]);
+  });
+
+  it("runs the branch rules inside a flow", () => {
+    expect(
+      says((b) => {
+        const f = followup(b);
+        f.stations.push({
+          id: "fit",
+          label: "Fit?",
+          kind: "condition",
+          line: "growth",
+          column: "delivery",
+        });
+        f.tracks.push({
+          id: "check_in_to_fit",
+          from: "check_in",
+          to: "fit",
+          line: "growth",
+          by: "system",
+        });
+        f.tracks.push({
+          id: "fit_to_nudge",
+          from: "fit",
+          to: "nudge",
+          line: "growth",
+          by: "system",
+          else: true,
+        });
+      }),
+    ).toContain('Flow "shared_followup": Condition "fit" needs 2 or 3 branches, not 1.');
+  });
+
+  it("runs the order rule inside a flow: a track never goes left", () => {
+    expect(
+      says((b) => {
+        const f = followup(b);
+        (f.stations[0] as MetroStation).column = "money";
+      }),
+    ).toEqual([
+      'Flow "shared_followup": Track "nudge_to_check_in" goes from money to delivery. A track never goes left.',
+    ]);
+  });
+
+  it("takes no entries in a flow, because it has no hub", () => {
+    expect(says((b) => ((followup(b).tracks[0] as MetroTrack).entries = ["social"]))).toEqual([
+      'Flow "shared_followup": Track "nudge_to_check_in" has entries but does not leave the hub.',
+    ]);
+  });
+
+  it("wants a link of the body to name a flow of the body", () => {
+    expect(says((b) => (station(b, "shared").flow = "ghost"))).toEqual([
+      'Link "shared" names flow "ghost", which is not in the shape.',
+    ]);
+    expect(says((b) => b.flows?.push(other()))).toEqual([]);
+    expect(says((b) => (station(b, "shared").flow = "other"))).toEqual([
+      'Link "shared" names flow "other", which is not in the shape.',
+    ]);
+  });
+
+  it("lets a flow link to another flow", () => {
+    expect(
+      says((b) => {
+        b.flows?.push(other());
+        followup(b).stations.push(link("more", "other"));
+        followup(b).tracks.push({
+          id: "check_in_to_more",
+          from: "check_in",
+          to: "more",
+          line: "growth",
+          by: "system",
+        });
+      }),
+    ).toEqual([]);
+  });
+
+  it("wants a link inside a flow to name a flow of the body", () => {
+    expect(says((b) => followup(b).stations.push(link("more", "ghost")))).toEqual([
+      'Flow "shared_followup": Link "more" names flow "ghost", which is not in the shape.',
+    ]);
+  });
+
+  it("refuses a flow that links to itself", () => {
+    expect(says((b) => followup(b).stations.push(link("again", "shared_followup")))).toEqual([
+      'Flow "shared_followup": Link "again" names this flow. A flow does not link to itself.',
+    ]);
+  });
+
+  it("refuses links that loop", () => {
+    const loop = (b: MetroBody) => {
+      b.flows?.push(other({ stations: [...other().stations, link("back", "shared_followup")] }));
+      followup(b).stations.push(link("onward", "other"));
+    };
+    expect(says(loop)).toEqual([
+      "Flows link in a loop: shared_followup -> other -> shared_followup.",
+    ]);
+    // Three flows in a ring.
+    expect(
+      says((b) => {
+        b.flows?.push(
+          other({ stations: [...other().stations, link("l2", "third")] }),
+          other({ id: "third", stations: [...other().stations, link("l3", "shared_followup")] }),
+        );
+        followup(b).stations.push(link("l1", "other"));
+      }),
+    ).toEqual(["Flows link in a loop: shared_followup -> other -> third -> shared_followup."]);
+    // Two links down a chain, and two links to one flow, are not a loop.
+    expect(
+      says((b) => {
+        b.flows?.push(
+          other({ stations: [...other().stations, link("a", "third"), link("b", "third")] }),
+          other({ id: "third" }),
+        );
+        followup(b).stations.push(link("c", "other"), link("d", "other"));
+      }),
+    ).toEqual([]);
+  });
+
+  it("wants flows to be a list", () => {
+    expect(says((b) => (b.flows = {} as never))).toEqual(["flows is a list of flows."]);
+  });
+
+  it("reports a fault in a flow next to a fault in the body", () => {
+    const b = metroShape();
+    station(b, "reply").idleDays = 0;
+    followup(b).label = "";
+    expect(checkMetro(b, ctx())).toEqual([
+      'Station "reply" has idleDays 0. Use a whole number of days from 1 to 365.',
+      'Flow "shared_followup": It needs a label.',
     ]);
   });
 });

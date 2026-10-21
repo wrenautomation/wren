@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ctx, metroShape, shape } from "../test/fixtures.js";
 import { graphOf, lowerable, metroOf } from "./convert.js";
-import type { MetroBody } from "./metro.js";
+import type { MetroBody, MetroFlow } from "./metro.js";
 import type { ShapeBody } from "./model.js";
 import { Refused } from "./refused.js";
 import {
@@ -43,6 +43,39 @@ describe("runOf and metroView", () => {
     expect(metroView(shape())).toEqual(m);
   });
 
+  it("draws a graph with no attach and no flows", () => {
+    const m = metroView(shape());
+    expect("flows" in m).toBe(false);
+    for (const x of [...m.lines, ...m.stations, ...m.groups]) expect("attach" in x).toBe(false);
+  });
+
+  it("lowers a metro body with attach and flows to the graph it had without them", () => {
+    const base = drawn();
+    const extra: MetroBody = {
+      ...base,
+      lines: base.lines.map((l) => ({ ...l, attach: [{ kind: "sop", ref: "playbook" }] })),
+      flows: [
+        {
+          id: "spare",
+          label: "Spare",
+          stations: [
+            {
+              id: "s1",
+              label: "S1",
+              kind: "att",
+              line: "signed",
+              column: "sales",
+              action: "other",
+            },
+          ],
+          tracks: [],
+        },
+      ],
+    };
+    expect(checkStored(extra, ctx())).toEqual([]);
+    expect(runOf(extra)).toEqual(runOf(base));
+  });
+
   it("refuses to draw a graph that has a node called hub", () => {
     const g: ShapeBody = {
       ...shape(),
@@ -73,6 +106,37 @@ describe("checkStored", () => {
     expect(lowerable(m).length).toBeGreaterThan(0);
   });
 
+  it("gives a fault in attach or in a flow, and refuses a body that links a flow", () => {
+    const m = drawn();
+    const bad: MetroBody = {
+      ...m,
+      lines: m.lines.map((l, i) => (i === 0 ? { ...l, attach: [{ kind: "sop", ref: "a b" }] } : l)),
+      flows: [{ id: "f", label: "", stations: [], tracks: [] }],
+    };
+    expect(checkStored(bad, ctx())).toEqual([
+      `Line "${m.lines[0]?.id}" attach 1 has a ref with a space in it.`,
+      'Flow "f": It needs a label.',
+    ]);
+    const linked: MetroBody = {
+      ...m,
+      stations: [
+        ...m.stations,
+        {
+          id: "again",
+          label: "Again",
+          kind: "link",
+          line: "signed",
+          column: "delivery",
+          flow: "f",
+        },
+      ],
+      flows: [{ id: "f", label: "F", stations: [], tracks: [] }],
+    };
+    expect(checkStored(linked, ctx())).toEqual([
+      'Station "again" is a link station. The runtime does not run it yet.',
+    ]);
+  });
+
   it("refuses a trigger the context does not know", () => {
     const m = drawn();
     const bad: MetroBody = {
@@ -91,6 +155,18 @@ describe("sameStored", () => {
     const flipped: ShapeBody = { edges: g.edges, nodes: g.nodes, name: g.name };
     expect(sameStored(g, flipped)).toBe(true);
     expect(sameStored(g, drawn())).toBe(false);
+  });
+});
+
+describe("sameStored: attach and flows", () => {
+  it("tells a body with a flow or an attach from one without", () => {
+    const m = drawn();
+    const flowed: MetroBody = { ...m, flows: [{ id: "f", label: "F", stations: [], tracks: [] }] };
+    expect(sameStored(m, flowed)).toBe(false);
+    expect(sameStored(flowed, structuredClone(flowed))).toBe(true);
+    const attached = structuredClone(m);
+    (attached.lines[0] as MetroBody["lines"][0]).attach = [{ kind: "doc", ref: "d" }];
+    expect(sameStored(m, attached)).toBe(false);
   });
 });
 
@@ -122,7 +198,26 @@ describe("diffStored", () => {
     expect(change && storedChangeLine(a, b, change)).toBe("Renamed station Booked to Call booked.");
   });
 
+  it("diffs a flow and an attach as flow and owner changes, and says each in a line", () => {
+    const a = metroShape();
+    const b = structuredClone(a);
+    (b.flows?.[0] as MetroFlow).label = "Follow up";
+    (b.lines.find((l) => l.id === "growth") as MetroBody["lines"][0]).attach = [];
+    const d = diffStored(a, b);
+    const keys = storedChangesOf(d).map(storedChangeKey);
+    expect(keys).toEqual(["line:growth:changed", "flow:shared_followup:renamed"]);
+    for (const k of keys) {
+      const c = parseStoredChangeKey(k);
+      expect(c && storedChangeKey(c)).toBe(k);
+    }
+    expect(storedChangeLines(a, b, d)).toEqual([
+      "Changed line Growth.",
+      "Renamed flow Follow-up flow to Follow up.",
+    ]);
+  });
+
   it("reads a key of either model, and none for a stray word", () => {
+    expect(parseStoredChangeKey("flow:f:added")).toEqual({ on: "flow", id: "f", how: "added" });
     expect(parseStoredChangeKey("node:a:added")).toEqual({ on: "node", id: "a", how: "added" });
     expect(parseStoredChangeKey("track:a_to_b:removed")).toEqual({
       on: "track",
@@ -165,5 +260,19 @@ describe("historyOfStored", () => {
       [2, "renamed"],
       [1, "added"],
     ]);
+  });
+
+  it("follows a flow across versions, and a flow of the graph model has none", () => {
+    const m = metroShape();
+    const renamedFlow = structuredClone(m);
+    (renamedFlow.flows?.[0] as MetroFlow).label = "Follow up";
+    const versions = [v(1, m, "first"), v(2, renamedFlow, "rename")];
+    expect(
+      historyOfStored(versions, "shared_followup", "flow").map((l) => [l.version, l.how]),
+    ).toEqual([
+      [2, "renamed"],
+      [1, "added"],
+    ]);
+    expect(historyOfStored([v(1, shape(), "graph")], "shared_followup", "flow")).toEqual([]);
   });
 });

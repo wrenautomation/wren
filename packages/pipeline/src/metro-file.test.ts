@@ -45,7 +45,7 @@ describe("exportMetro and parseMetroBody", () => {
     expect(parseMetroBody(parse(exportMetro(body)))).toEqual(body);
   });
 
-  it("writes model first, then name, lines, stations, tracks, groups, frames", () => {
+  it("writes model first, then name, lines, stations, tracks, groups, frames, flows", () => {
     const text = exportMetro(metroShape());
     const tops = text.split("\n").filter((l) => /^[a-z]/.test(l));
     expect(tops).toEqual([
@@ -56,7 +56,70 @@ describe("exportMetro and parseMetroBody", () => {
       "tracks:",
       "groups:",
       "frames:",
+      "flows:",
     ]);
+  });
+
+  it("writes no flows key for a body that has none, and reads it back without one", () => {
+    const body = metroShape();
+    delete body.flows;
+    body.stations = body.stations.filter((s) => s.kind !== "link");
+    const text = exportMetro(body);
+    expect(text).not.toContain("flows");
+    const back = parseMetroBody(parse(text));
+    expect("flows" in back).toBe(false);
+    expect(back).toEqual(body);
+  });
+
+  it("writes an empty flows list as an empty list, and reads it back as one", () => {
+    const body: MetroBody = { ...metroShape(), flows: [] };
+    body.stations = body.stations.filter((s) => s.kind !== "link");
+    const text = exportMetro(body);
+    expect(text).toContain("flows: []");
+    expect(parseMetroBody(parse(text)).flows).toEqual([]);
+  });
+
+  it("writes the id and label of a flow first, then its stations and tracks", () => {
+    const text = exportMetro(metroShape());
+    expect(text).toContain(
+      "flows:\n  - id: shared_followup\n    label: Follow-up flow\n    stations:\n      - id: nudge\n        kind: att\n        label: Nudge\n",
+    );
+    expect(text).toContain(
+      "    tracks:\n      - id: nudge_to_check_in\n        from: nudge\n        to: check_in\n",
+    );
+  });
+
+  it("writes each attach as kind, ref, then label", () => {
+    const text = exportMetro(metroShape());
+    expect(text).toContain(
+      "    attach:\n      - kind: sop\n        ref: growth-playbook\n        label: Playbook\n      - kind: link\n        ref: https://example.com/growth\n",
+    );
+  });
+
+  it("reads attach and flows back exactly: an empty attach, a label, a flow station attach", () => {
+    const body = metroShape();
+    (body.lines.find((l) => l.id === "nurture") as MetroBody["lines"][number]).attach = [];
+    const back = parseMetroBody(parse(exportMetro(body)));
+    expect(back).toEqual(body);
+    expect(back.lines.find((l) => l.id === "nurture")?.attach).toEqual([]);
+    expect(back.lines.find((l) => l.id === "growth")?.attach?.[0]).toEqual({
+      kind: "sop",
+      ref: "growth-playbook",
+      label: "Playbook",
+    });
+    expect(back.flows?.[0]?.stations[0]?.attach).toEqual([
+      { kind: "template", ref: "book-first/nudge" },
+    ]);
+    expect("attach" in (back.lines.find((l) => l.id === "retain") ?? {})).toBe(false);
+  });
+
+  it("keeps a ref that looks like another type as text", () => {
+    const body = metroShape();
+    (body.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [
+      { kind: "note", ref: "123", label: "true" },
+      { kind: "doc", ref: "null" },
+    ];
+    expect(parseMetroBody(parse(exportMetro(body)))).toEqual(body);
   });
 
   it("writes the id, kind and label of a station first, and from and to of a track", () => {
@@ -265,6 +328,125 @@ describe("parseMetroBody", () => {
       'Track "t" has no from.',
       'Track "t" has no to.',
       'Track "t" has no by.',
+    ]);
+  });
+
+  it("reads attach on a line, a station and a group, and flows with their own stations", () => {
+    const body = parseMetroBody({
+      ...small(),
+      lines: [
+        {
+          id: "social",
+          label: "Social",
+          tier: "out",
+          entry: { via: "organic" },
+          attach: [{ kind: "sop", ref: "playbook", label: "Playbook" }],
+        },
+      ],
+      groups: [
+        {
+          id: "g",
+          label: "G",
+          line: "social",
+          stations: ["social"],
+          attach: [{ kind: "doc", ref: "d" }],
+        },
+      ],
+      flows: [
+        {
+          id: "f",
+          label: "F",
+          stations: [
+            { id: "s", label: "S", kind: "att", line: "social", column: "marketing", attach: [] },
+          ],
+          tracks: [],
+        },
+      ],
+    });
+    expect(body.lines[0]?.attach).toEqual([{ kind: "sop", ref: "playbook", label: "Playbook" }]);
+    expect(body.groups[0]?.attach).toEqual([{ kind: "doc", ref: "d" }]);
+    expect(body.flows).toEqual([
+      {
+        id: "f",
+        label: "F",
+        stations: [
+          { id: "s", label: "S", kind: "att", line: "social", column: "marketing", attach: [] },
+        ],
+        tracks: [],
+      },
+    ]);
+  });
+
+  it("leaves a body with no flows key without one, and a flow with no tracks key with none", () => {
+    expect("flows" in parseMetroBody(small())).toBe(false);
+    const body = parseMetroBody({ ...small(), flows: [{ id: "f", label: "F", stations: [] }] });
+    expect(body.flows).toEqual([{ id: "f", label: "F", stations: [], tracks: [] }]);
+  });
+
+  it("refuses attach that is not a list of maps, and an attach with a wrong field", () => {
+    const line = (attach: unknown) => ({
+      ...small(),
+      lines: [{ id: "social", label: "Social", tier: "out", attach }],
+    });
+    expect(refusal(line("x"))[0]).toBe(
+      'Line "social": attach is a list of attached refs, each with a kind, a ref and an optional label.',
+    );
+    expect(refusal(line(["x"]))[0]).toMatch(/^Line "social": attach is a list of attached refs/);
+    expect(refusal(line([{ kind: "sop" }]))).toEqual(['Line "social" attach 1 has no ref.']);
+    expect(refusal(line([{ ref: "x" }]))).toEqual(['Line "social" attach 1 has no kind.']);
+    expect(refusal(line([{ kind: "sop", ref: "x", label: 5 }]))).toEqual([
+      'Line "social" attach 1: label is text.',
+    ]);
+    expect(refusal(line([{ kind: "sop", ref: "x", size: 5 }]))).toEqual([
+      'Line "social" attach 1: size is not a field.',
+    ]);
+    expect(refusal(line([{ kind: 4, ref: "x" }]))).toEqual([
+      'Line "social" attach 1: kind is text.',
+    ]);
+  });
+
+  it("leaves an unknown attach kind for checkMetro: it still parses", () => {
+    const body = parseMetroBody({
+      ...small(),
+      lines: [{ id: "social", label: "Social", tier: "out", attach: [{ kind: "wiki", ref: "x" }] }],
+    });
+    expect(body.lines[0]?.attach).toEqual([{ kind: "wiki", ref: "x" }]);
+  });
+
+  it("refuses flows that is not a list, and a flow that is not a map", () => {
+    expect(refusal({ ...small(), flows: {} })).toEqual(["flows is a list."]);
+    expect(refusal({ ...small(), flows: null })).toEqual(["flows is a list."]);
+    expect(refusal({ ...small(), flows: ["x"] })).toEqual(["Flow 1 is a map of fields."]);
+  });
+
+  it("refuses a flow with a field missing or unknown, by the flow's id", () => {
+    expect(refusal({ ...small(), flows: [{ id: "f", stations: [] }] })).toEqual([
+      'Flow "f" has no label.',
+    ]);
+    expect(refusal({ ...small(), flows: [{ label: "F", stations: [] }] })).toEqual([
+      "Flow 1 has no id.",
+    ]);
+    expect(
+      refusal({ ...small(), flows: [{ id: "f", label: "F", stations: [], hub: true }] }),
+    ).toEqual(['Flow "f": hub is not a field.']);
+  });
+
+  it("names the flow in a reason inside it", () => {
+    const flows = [
+      {
+        id: "f",
+        label: "F",
+        stations: [{ id: "s", label: "S", column: "marketing" }, "x"],
+        tracks: [{ id: "t", from: "s", to: "s", by: "system", weight: "60" }],
+      },
+      { id: "g", label: "G", stations: "x", tracks: {} },
+    ];
+    expect(refusal({ ...small(), flows })).toEqual([
+      'Flow "f": Station "s" has no kind.',
+      'Flow "f": Station 2 is a map of fields.',
+      'Flow "f": Track "t": weight is a number.',
+      'Flow "g": stations is a list.',
+      'Flow "g": tracks is a list.',
     ]);
   });
 

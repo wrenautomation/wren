@@ -6,7 +6,12 @@
  *
  * Ids are identities. A station id is the node id it came from, a track id is the edge id, an out
  * line id is the source id, an offer line id is the offer node id. Ids are unique within each kind
- * (lines, stations, tracks, groups, frames), not across kinds: a line and a station may share one.
+ * (lines, stations, tracks, groups, frames, flows), not across kinds: a line and a station may
+ * share one. A flow is a scope of its own: its station and track ids are unique inside the flow
+ * only, so a flow's station may share an id with a station of the body.
+ *
+ * `attach` and `flows` lower to nothing (`graphOf` reads neither): the runtime and the workflow do
+ * not see them. `attach` holds refs, never content.
  */
 import {
   ACTIONS,
@@ -80,6 +85,21 @@ export const COND_WORDS_MAX = 4;
 /** A promise or a wait: a whole number and a unit, minutes, hours or days (`30m`, `4h`, `2d`). */
 export const DURATION = /^\d+[mhd]$/;
 
+/** What a part can hold a ref to. The ref names it by id, or by an `https://` URL. */
+export const ATTACH_KINDS = ["sop", "link", "page", "funnel", "doc", "template", "note"] as const;
+export type AttachKind = (typeof ATTACH_KINDS)[number];
+/** The longest a ref may be, in characters. */
+export const ATTACH_REF_MAX = 500;
+/** The longest an attach label may be, in characters. */
+export const ATTACH_LABEL_MAX = 80;
+
+/** A ref to something that belongs to a part: an id or an `https://` URL. No content is copied. */
+export interface Attach {
+  kind: AttachKind;
+  ref: string;
+  label?: string;
+}
+
 /** How a line finds people: today's source fields, with `group` now called `segment`. */
 export interface LineEntry {
   via: Via;
@@ -101,6 +121,7 @@ export interface MetroLine {
   /** Out lines only, and required there. */
   entry?: LineEntry;
   planned?: true;
+  attach?: Attach[];
 }
 
 export interface MetroStation {
@@ -130,6 +151,7 @@ export interface MetroStation {
   /** The retry chip: the cap, 1 to 10. */
   retries?: number;
   planned?: true;
+  attach?: Attach[];
 }
 
 export interface MetroTrack {
@@ -165,6 +187,7 @@ export interface MetroGroup {
   label: string;
   line: string;
   stations: string[];
+  attach?: Attach[];
 }
 
 export interface MetroFrame {
@@ -184,6 +207,20 @@ export interface MetroBody {
   tracks: MetroTrack[];
   groups: MetroGroup[];
   frames: MetroFrame[];
+  /** Shared flows: a `link` station opens one. None: the key is left out. */
+  flows?: MetroFlow[];
+}
+
+/**
+ * A flow shared by every part that links to it. It is a small map of its own: stations and tracks,
+ * checked by the same rules as the body's, with no hub. Its ids are unique inside the flow. A flow
+ * has no groups and no frames, and nothing in it is run.
+ */
+export interface MetroFlow {
+  id: string;
+  label: string;
+  stations: MetroStation[];
+  tracks: MetroTrack[];
 }
 
 /** Is this stored body on the metro model? A body without `model` is the old graph. */
@@ -277,6 +314,11 @@ export function checkMetro(body: MetroBody, ctx: ShapeCheckContext): string[] {
   checkOrder(stations, tracks, stationBy, errors);
   checkGroups(groups, lineBy, stationBy, errors);
   checkFrames(frames, stationBy, ctx, errors);
+
+  for (const l of lines) checkAttach(`Line "${l.id}"`, l.attach, errors);
+  for (const s of stations) checkAttach(`Station "${s.id}"`, s.attach, errors);
+  for (const g of groups) checkAttach(`Group "${g.id}"`, g.attach, errors);
+  checkFlows(body, lineBy, ctx, errors);
   return errors;
 }
 
@@ -289,12 +331,136 @@ function checkHub(stations: readonly MetroStation[], errors: string[]): void {
   for (const s of hubs) {
     if (s.id !== HUB) errors.push(`The hub station must have the id "${HUB}", not "${s.id}".`);
   }
+  checkReserved(stations, errors);
+}
+
+/** The ids no station but the hub may take, and the one no station may take. */
+function checkReserved(stations: readonly MetroStation[], errors: string[]): void {
   for (const s of stations) {
     if (s.id === HUB && s.kind !== "hub") {
       errors.push(`Station id "${HUB}" is reserved for the hub station.`);
     }
     if (s.id === DROPPED) errors.push(`Station id "${s.id}" is reserved for dropped journeys.`);
   }
+}
+
+/** An attach ref: no spaces, and an `https://` URL when it has a scheme at all. */
+const REF_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
+ * The attach list of one part (`who` names it): each item has a known kind, a ref of 1 to
+ * `ATTACH_REF_MAX` characters with no spaces, and a label of `ATTACH_LABEL_MAX` characters at most.
+ * A ref is an id or an `https://` URL: one that starts with another scheme is refused, and a link
+ * is always a URL. Nothing else is checked: what the ref names is not read.
+ */
+function checkAttach(who: string, attach: readonly Attach[] | undefined, errors: string[]): void {
+  if (attach === undefined) return;
+  if (!Array.isArray(attach)) {
+    errors.push(`${who} needs an attach list.`);
+    return;
+  }
+  for (const [i, a] of attach.entries()) {
+    const at = `${who} attach ${i + 1}`;
+    if (!a || typeof a !== "object") {
+      errors.push(`${at} needs a kind and a ref.`);
+      continue;
+    }
+    if (!ATTACH_KINDS.includes(a.kind)) {
+      errors.push(`${at} has kind "${a.kind}". Use ${ATTACH_KINDS.join(", ")}.`);
+    }
+    if (typeof a.ref !== "string" || a.ref.length === 0 || a.ref.length > ATTACH_REF_MAX) {
+      errors.push(`${at} needs a ref of 1 to ${ATTACH_REF_MAX} characters.`);
+    } else if (/\s/.test(a.ref)) {
+      errors.push(`${at} has a ref with a space in it.`);
+    } else if (REF_SCHEME.test(a.ref) && !a.ref.startsWith("https://")) {
+      errors.push(`${at} has ref "${a.ref}". Use an id or an https:// URL.`);
+    } else if (a.kind === "link" && !a.ref.startsWith("https://")) {
+      errors.push(`${at} is a link, so its ref must be an https:// URL.`);
+    }
+    if (
+      a.label !== undefined &&
+      (typeof a.label !== "string" || a.label.length > ATTACH_LABEL_MAX)
+    ) {
+      errors.push(`${at} has a label longer than ${ATTACH_LABEL_MAX} characters.`);
+    }
+  }
+}
+
+/**
+ * The shared flows of the body, and every link that names one. A flow is checked on its own by the
+ * rules of the body: ids, stations, tracks, branches and order, with the lines of the body, no
+ * hub, and its own ids. Then each link station (in the body or in a flow) must name a flow that
+ * exists, a flow must not link to itself, and the links between flows must not loop.
+ */
+function checkFlows(
+  body: MetroBody,
+  lineBy: ReadonlyMap<string, MetroLine>,
+  ctx: ShapeCheckContext,
+  errors: string[],
+): void {
+  const flows = body.flows ?? [];
+  if (!Array.isArray(flows)) {
+    errors.push("flows is a list of flows.");
+    return;
+  }
+  checkIds(
+    "Flow",
+    flows.map((f) => f.id),
+    NODE_ID_MAX,
+    errors,
+  );
+  const flowBy = indexOf(flows);
+  /** Flow to flow, once per link station inside a flow, for the loop check. */
+  const links: Array<[string, string]> = [];
+
+  for (const f of flows) {
+    const inside: string[] = [];
+    if (typeof f.label !== "string" || f.label.trim() === "") inside.push("It needs a label.");
+    const { stations, tracks } = f;
+    checkIds(
+      "Station",
+      stations.map((s) => s.id),
+      NODE_ID_MAX,
+      inside,
+    );
+    checkIds(
+      "Track",
+      tracks.map((t) => t.id),
+      EDGE_ID_MAX,
+      inside,
+    );
+    for (const s of stations) {
+      if (s.kind === "hub") inside.push(`Station "${s.id}" is a hub. A flow holds no hub.`);
+    }
+    checkReserved(stations, inside);
+    const stationBy = indexOf(stations);
+    checkStations(stations, lineBy, ctx, inside);
+    checkTracks(tracks, stationBy, lineBy, inside);
+    checkLogic(stations, tracks, inside);
+    checkOrder(stations, tracks, stationBy, inside);
+    for (const s of stations) checkAttach(`Station "${s.id}"`, s.attach, inside);
+    for (const s of stations) {
+      if (s.kind !== "link" || typeof s.flow !== "string" || s.flow === "") continue;
+      if (s.flow === f.id)
+        inside.push(`Link "${s.id}" names this flow. A flow does not link to itself.`);
+      else if (!flowBy.has(s.flow))
+        inside.push(`Link "${s.id}" names flow "${s.flow}", which is not in the shape.`);
+      else links.push([f.id, s.flow]);
+    }
+    for (const e of inside) errors.push(`Flow "${f.id}": ${e}`);
+  }
+
+  for (const s of body.stations) {
+    if (s.kind !== "link" || typeof s.flow !== "string" || s.flow === "") continue;
+    if (!flowBy.has(s.flow)) {
+      errors.push(`Link "${s.id}" names flow "${s.flow}", which is not in the shape.`);
+    }
+  }
+  const loop = cycleOf(
+    flows.map((f) => f.id),
+    links,
+  );
+  if (loop) errors.push(`Flows link in a loop: ${loop.join(" -> ")}.`);
 }
 
 function checkLine(l: MetroLine, ctx: ShapeCheckContext, errors: string[]): void {

@@ -2,13 +2,14 @@
  * What changed between two metro bodies, by id (designs/2026-10-20-design-language.md, area C1).
  * The metro twin of `diff.ts`: pure and free of the database. A line, station or group renamed
  * and changed in one diff is two changes. A track or a frame has no name, so it is added,
- * removed or changed.
+ * removed or changed. A flow is named: renamed is its label, changed is anything else in it, a
+ * station or a track inside it included. An `attach` change is `changed` on the part that holds it.
  */
 import { canonicalJson } from "./diff.js";
 import type { MetroBody } from "./metro.js";
 
-/** The five kinds of thing a metro body lists, in the order a diff reads them. */
-export const METRO_ONS = ["line", "station", "track", "group", "frame"] as const;
+/** The six kinds of thing a metro body lists, in the order a diff reads them. */
+export const METRO_ONS = ["line", "station", "track", "group", "frame", "flow"] as const;
 export type MetroOn = (typeof METRO_ONS)[number];
 
 /** The body list each kind lives in. */
@@ -18,17 +19,18 @@ export const METRO_LISTS = {
   track: "tracks",
   group: "groups",
   frame: "frames",
+  flow: "flows",
 } as const satisfies Record<MetroOn, keyof MetroBody>;
 
 /** The kinds with a name (`label`): only these can be renamed. */
-export const NAMED_ONS = ["line", "station", "group"] as const satisfies readonly MetroOn[];
+export const NAMED_ONS = ["line", "station", "group", "flow"] as const satisfies readonly MetroOn[];
 export const isNamed = (on: MetroOn): on is (typeof NAMED_ONS)[number] =>
   (NAMED_ONS as readonly MetroOn[]).includes(on);
 
 type Item = { id: string; label?: string };
 
-/** The items of kind `on`, as plain id and label. */
-export const itemsOf = (body: MetroBody, on: MetroOn): Item[] => body[METRO_LISTS[on]];
+/** The items of kind `on`, as plain id and label. A body with no `flows` has none. */
+export const itemsOf = (body: MetroBody, on: MetroOn): Item[] => body[METRO_LISTS[on]] ?? [];
 
 /** What changed in one list. */
 export interface MetroPart {
@@ -46,6 +48,7 @@ export interface MetroDiff {
   tracks: MetroPart;
   groups: MetroPart;
   frames: MetroPart;
+  flows: MetroPart;
   /** The shape's own name changed. */
   name: { from: string; to: string } | null;
 }
@@ -94,7 +97,7 @@ function partOf(on: MetroOn, a: MetroBody, b: MetroBody): MetroPart {
   return part;
 }
 
-/** Lines, stations, tracks, groups and frames added, removed, renamed and changed. Pure. */
+/** Lines, stations, tracks, groups, frames and flows added, removed, renamed and changed. Pure. */
 export function diffMetro(a: MetroBody, b: MetroBody): MetroDiff {
   return {
     lines: partOf("line", a, b),
@@ -102,6 +105,7 @@ export function diffMetro(a: MetroBody, b: MetroBody): MetroDiff {
     tracks: partOf("track", a, b),
     groups: partOf("group", a, b),
     frames: partOf("frame", a, b),
+    flows: partOf("flow", a, b),
     name: a.name === b.name ? null : { from: a.name, to: b.name },
   };
 }
@@ -114,7 +118,7 @@ export function diffMetro(a: MetroBody, b: MetroBody): MetroDiff {
 export type MetroChange =
   | { on: "name" }
   | {
-      on: "line" | "station" | "group";
+      on: "line" | "station" | "group" | "flow";
       id: string;
       how: "added" | "removed" | "renamed" | "changed";
     }
@@ -144,7 +148,7 @@ const PLAIN_HOWS = ["added", "removed", "changed"] as const;
 /** A key back to its change; null when it names none. */
 export function parseMetroChangeKey(key: string): MetroChange | null {
   if (key === "name") return { on: "name" };
-  const m = /^(line|station|track|group|frame):(.+):([a-z]+)$/.exec(key);
+  const m = /^(line|station|track|group|frame|flow):(.+):([a-z]+)$/.exec(key);
   if (!m) return null;
   const [, on = "", id = "", how = ""] = m;
   const hows: readonly string[] = isNamed(on as MetroOn) ? NAMED_HOWS : PLAIN_HOWS;
@@ -159,6 +163,7 @@ export const METRO_WORD: Record<MetroOn, string> = {
   track: "track",
   group: "group",
   frame: "frame",
+  flow: "flow",
 };
 
 /**

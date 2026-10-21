@@ -1,7 +1,8 @@
 /**
- * Blame for the metro model: one line's, station's, track's, group's or frame's own history. The
- * twin of `blame.ts`: pure, the versions in, the lines out. A station keeps its history across
- * the convert from the graph model, because `metroOf` keeps ids (a station id is the node id).
+ * Blame for the metro model: one line's, station's, track's, group's, frame's or flow's own
+ * history. The twin of `blame.ts`: pure, the versions in, the lines out. A station keeps its
+ * history across the convert from the graph model, because `metroOf` keeps ids (a station id is
+ * the node id). A flow's history includes the stations and tracks inside it: they are `changed`.
  */
 import { isoOf } from "./blame.js";
 import type { BlameLine } from "./history.js";

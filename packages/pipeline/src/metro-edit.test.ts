@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { metroPair, metroShape } from "../test/fixtures.js";
 import { canonicalJson } from "./diff.js";
-import type { MetroBody } from "./metro.js";
+import type { Attach, MetroBody, MetroFlow, MetroStation } from "./metro.js";
 import {
   diffMetro,
   type MetroChange,
@@ -487,5 +487,332 @@ describe("undoMetroChange", () => {
     expect(out).not.toBe(b);
     expect(out.stations).not.toBe(b.stations);
     expect(out.tracks).toBe(b.tracks);
+  });
+});
+
+describe("undoMetroChange: flows", () => {
+  const flowOf = (b: MetroBody, id = "shared_followup"): MetroFlow => {
+    const f = b.flows?.find((x) => x.id === id);
+    if (!f) throw new Error(`no flow ${id}`);
+    return f;
+  };
+  /** A second flow, as a shared flow would be. */
+  const second = (): MetroFlow => ({
+    id: "second",
+    label: "Second flow",
+    stations: [
+      { id: "a", label: "A", kind: "att", line: "growth", column: "sales", action: "other" },
+      { id: "b", label: "B", kind: "att", line: "growth", column: "sales", action: "other" },
+    ],
+    tracks: [{ id: "a_to_b", from: "a", to: "b", line: "growth", by: "system" }],
+  });
+  const link = (id: string, flow: string): MetroStation => ({
+    id,
+    label: id,
+    kind: "link",
+    line: "growth",
+    column: "delivery",
+    flow,
+  });
+
+  it("round trips: a flow added, removed, renamed and changed, each undone on b", () => {
+    const a = edited(metroShape(), (x) => {
+      x.flows?.push(second(), { ...second(), id: "third", label: "Third flow" });
+    });
+    const b = edited(a, (x) => {
+      x.flows = (x.flows ?? []).filter((f) => f.id !== "second");
+      x.flows?.push({ ...second(), id: "fourth", label: "Fourth flow" });
+      flowOf(x, "third").label = "Third one";
+      flowOf(x).tracks = [];
+    });
+    const changes = metroChangesOf(diffMetro(a, b));
+    expect(changes.map(metroChangeKey)).toEqual([
+      "flow:fourth:added",
+      "flow:second:removed",
+      "flow:third:renamed",
+      "flow:shared_followup:changed",
+    ]);
+    for (const c of changes) {
+      const key = metroChangeKey(c);
+      expect(keysOf(b, undoMetroChange(b, a, b, c)), key).toEqual([inverseKey(c)]);
+    }
+  });
+
+  it("brings back the older label of a flow, and leaves its stations and tracks", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      flowOf(x).label = "Follow up";
+      flowOf(x).tracks = [];
+    });
+    const out = undoMetroChange(b, a, b, change("flow:shared_followup:renamed"));
+    expect(flowOf(out)).toEqual({ ...flowOf(b), label: "Follow-up flow" });
+  });
+
+  it("brings back the older stations and tracks of a flow, and leaves its label", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      flowOf(x).label = "Follow up";
+      flowOf(x).tracks = [];
+      flowOf(x).stations = flowOf(x).stations.slice(0, 1);
+    });
+    const out = undoMetroChange(b, a, b, change("flow:shared_followup:changed"));
+    expect(flowOf(out)).toEqual({ ...flowOf(a), label: "Follow up" });
+  });
+
+  it("brings back the whole flow it removed, and nothing else of the body", () => {
+    const a = edited(metroShape(), (x) => {
+      x.flows?.push(second());
+    });
+    const b = edited(a, (x) => {
+      x.flows = (x.flows ?? []).filter((f) => f.id !== "second");
+    });
+    const out = undoMetroChange(b, a, b, change("flow:second:removed"));
+    expect(out.flows?.map((f) => f.id)).toEqual(["shared_followup", "second"]);
+    expect(flowOf(out, "second")).toEqual(flowOf(a, "second"));
+    expect({ ...out, flows: undefined }).toEqual({ ...b, flows: undefined });
+  });
+
+  it("brings a flow back into a body that has no flows key", () => {
+    const a = edited(metroShape(), (x) => {
+      x.stations = x.stations.filter((s) => s.kind !== "link");
+      x.tracks = x.tracks.filter((t) => t.from !== "shared" && t.to !== "shared");
+      x.groups = x.groups.map((g) => ({
+        ...g,
+        stations: g.stations.filter((id) => id !== "shared"),
+      }));
+    });
+    const b = edited(a, (x) => {
+      delete x.flows;
+    });
+    const out = undoMetroChange(b, a, b, change("flow:shared_followup:removed"));
+    expect(out.flows).toEqual(a.flows);
+  });
+
+  it("takes an added flow away, and drops the flows key when none are left", () => {
+    const a = edited(metroShape(), (x) => {
+      x.stations = x.stations.filter((s) => s.kind !== "link");
+      delete x.flows;
+    });
+    const b = edited(a, (x) => {
+      x.flows = [second()];
+    });
+    const out = undoMetroChange(b, a, b, change("flow:second:added"));
+    expect("flows" in out).toBe(false);
+    expect(canonicalJson(out)).toBe(canonicalJson(a));
+  });
+
+  it("takes an added flow away alone when other flows stay", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      x.flows?.push(second());
+    });
+    const out = undoMetroChange(b, a, b, change("flow:second:added"));
+    expect(out.flows).toEqual(a.flows);
+  });
+
+  it("refuses to take an added flow that a station of the body still links", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      x.flows?.push(second());
+      x.stations.push(link("use_second", "second"));
+    });
+    expect(refusal(b, a, b, "flow:second:added")).toEqual([
+      "Flow Second flow is still linked by station use_second. Undo the later change first.",
+    ]);
+  });
+
+  it("refuses to take an added flow that another flow still links", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      x.flows?.push(second());
+      flowOf(x).stations.push(link("deeper", "second"));
+    });
+    expect(refusal(b, a, b, "flow:second:added")).toEqual([
+      "Flow Second flow is still linked by station deeper of flow Follow-up flow. Undo the later change first.",
+    ]);
+  });
+
+  it("refuses a removed flow that links a flow now gone", () => {
+    const a = edited(metroShape(), (x) => {
+      x.flows?.push(second());
+      flowOf(x, "second").stations.push(link("up", "shared_followup"));
+    });
+    const b = edited(a, (x) => {
+      x.flows = [];
+      x.stations = x.stations.filter((s) => s.kind !== "link");
+    });
+    expect(refusal(b, a, b, "flow:second:removed")).toEqual([
+      "Flow Second flow needs flow Follow-up flow, which is not in the shape.",
+    ]);
+  });
+
+  it("refuses a removed station that links a flow now gone, until the flow is back", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      x.flows = [];
+      x.stations = x.stations.filter((s) => s.id !== "shared");
+      x.tracks = x.tracks.filter((t) => t.from !== "shared" && t.to !== "shared");
+      x.groups = x.groups.map((g) => ({
+        ...g,
+        stations: g.stations.filter((id) => id !== "shared"),
+      }));
+    });
+    expect(refusal(b, a, b, "station:shared:removed")).toEqual([
+      "Station Follow-up needs flow Follow-up flow, which is not in the shape.",
+    ]);
+    const withFlow = undoMetroChange(b, a, b, change("flow:shared_followup:removed"));
+    const out = undoMetroChange(withFlow, a, b, change("station:shared:removed"));
+    expect(out.stations.find((s) => s.id === "shared")).toEqual(
+      a.stations.find((s) => s.id === "shared"),
+    );
+  });
+
+  it("refuses a flow rename or change that was made again, or whose flow is gone", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      flowOf(x).label = "Follow up";
+      flowOf(x).tracks = [];
+    });
+    const again = edited(b, (x) => {
+      flowOf(x).label = "Follow on";
+      flowOf(x).stations = flowOf(x).stations.slice(0, 1);
+    });
+    expect(refusal(again, a, b, "flow:shared_followup:renamed")).toEqual([
+      "Flow Follow up is now called Follow on. Undo the later change first.",
+    ]);
+    expect(refusal(again, a, b, "flow:shared_followup:changed")).toEqual([
+      "Flow Follow on was changed again. Undo the later change first.",
+    ]);
+    const gone = edited(b, (x) => {
+      x.flows = [];
+    });
+    expect(refusal(gone, a, b, "flow:shared_followup:renamed")).toEqual([
+      "Flow Follow up is not in the shape any more.",
+    ]);
+    expect(refusal(gone, a, b, "flow:shared_followup:changed")).toEqual([
+      "Flow Follow up is not in the shape any more.",
+    ]);
+  });
+
+  it("refuses a removed flow that is back, and a change that is not between the versions", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      x.flows = [];
+    });
+    expect(refusal(a, a, b, "flow:shared_followup:removed")).toEqual([
+      "Flow Follow-up flow is in the shape again. Undo the later change first.",
+    ]);
+    expect(refusal(b, a, b, "flow:ghost:added")).toEqual([
+      "That change is not between these versions.",
+    ]);
+    expect(refusal(b, a, b, "flow:shared_followup:renamed")).toEqual([
+      "That change is not between these versions.",
+    ]);
+  });
+
+  it("never changes its inputs", () => {
+    const a = edited(metroShape(), (x) => {
+      x.flows?.push(second());
+    });
+    const b = edited(a, (x) => {
+      x.flows = (x.flows ?? []).filter((f) => f.id !== "second");
+      flowOf(x).label = "Follow up";
+      flowOf(x).tracks = [];
+    });
+    const before = canonicalJson([a, b]);
+    for (const c of metroChangesOf(diffMetro(a, b))) {
+      undoMetroChange(b, a, b, c);
+      expect(canonicalJson([a, b]), metroChangeKey(c)).toBe(before);
+    }
+  });
+});
+
+describe("undoMetroChange: attach", () => {
+  const attachOf = (
+    b: MetroBody,
+    on: "line" | "station" | "group",
+    id: string,
+  ): Attach[] | undefined =>
+    (
+      b[on === "line" ? "lines" : on === "station" ? "stations" : "groups"] as Array<{
+        id: string;
+        attach?: Attach[];
+      }>
+    ).find((x) => x.id === id)?.attach;
+  const doc: Attach = { kind: "doc", ref: "extra-doc", label: "Extra" };
+
+  it("brings back the older attach of a line, a station and a group", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      (x.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [doc];
+      delete (x.stations.find((s) => s.id === "reply") as MetroStation).attach;
+      (x.groups.find((g) => g.id === "closing") as MetroBody["groups"][number]).attach?.push(doc);
+    });
+    expect(keysOf(a, b)).toEqual([
+      "group:closing:changed",
+      "line:growth:changed",
+      "station:reply:changed",
+    ]);
+    for (const [on, id] of [
+      ["line", "growth"],
+      ["station", "reply"],
+      ["group", "closing"],
+    ] as const) {
+      const out = undoMetroChange(b, a, b, change(`${on}:${id}:changed`));
+      expect(attachOf(out, on, id), `${on}:${id}`).toEqual(attachOf(a, on, id));
+    }
+  });
+
+  it("takes an attach away from a line that had none, and puts it back", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      (x.lines.find((l) => l.id === "nurture") as MetroBody["lines"][number]).attach = [doc];
+    });
+    const out = undoMetroChange(b, a, b, change("line:nurture:changed"));
+    expect(canonicalJson(out)).toBe(canonicalJson(a));
+    const back = undoMetroChange(a, b, a, change("line:nurture:changed"));
+    expect(attachOf(back, "line", "nurture")).toEqual([doc]);
+  });
+
+  it("keeps a later rename of the item when it undoes the attach", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      (x.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [doc];
+    });
+    const newest = edited(b, (x) => {
+      (x.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).label = "Grow";
+    });
+    const out = undoMetroChange(newest, a, b, change("line:growth:changed"));
+    const growth = out.lines.find((l) => l.id === "growth");
+    expect(growth?.label).toBe("Grow");
+    expect(growth?.attach).toEqual(attachOf(a, "line", "growth"));
+  });
+
+  it("refuses when the attach was changed again", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      (x.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [doc];
+    });
+    const newest = edited(b, (x) => {
+      (x.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [
+        doc,
+        { kind: "sop", ref: "later" },
+      ];
+    });
+    expect(refusal(newest, a, b, "line:growth:changed")).toEqual([
+      "Line Growth was changed again. Undo the later change first.",
+    ]);
+  });
+
+  it("undoes the attach of a station inside a flow as a change of the flow", () => {
+    const a = metroShape();
+    const b = edited(a, (x) => {
+      const nudge = x.flows?.[0]?.stations[0] as MetroStation;
+      nudge.attach = [doc];
+    });
+    const out = undoMetroChange(b, a, b, change("flow:shared_followup:changed"));
+    expect(out.flows?.[0]?.stations[0]?.attach).toEqual([
+      { kind: "template", ref: "book-first/nudge" },
+    ]);
   });
 });

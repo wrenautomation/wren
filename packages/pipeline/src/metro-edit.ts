@@ -1,10 +1,12 @@
 /**
  * Undo one change of a metro body (designs/2026-10-20-design-language.md, area C1): the twin of
  * `undoChange` in `edit.ts`. Pure; refused (`Refused`) when the newest body no longer holds what
- * `b` had for that line. The caller runs `checkMetro` on the result.
+ * `b` had for that line. The caller runs `checkMetro` on the result. A flow is undone as a whole:
+ * a change to a station or track inside it is `changed` on the flow, and undo puts back the flow
+ * as `a` had it.
  */
 import { canonicalJson } from "./diff.js";
-import type { MetroBody, MetroGroup, MetroStation, MetroTrack } from "./metro.js";
+import type { MetroBody, MetroFlow, MetroGroup, MetroStation, MetroTrack } from "./metro.js";
 import {
   diffMetro,
   isNamed,
@@ -20,11 +22,21 @@ import { Refused } from "./refused.js";
 
 type Row = { id: string; label?: string };
 
-const rows = (body: MetroBody, on: MetroOn): Row[] => body[METRO_LISTS[on]];
+const rows = (body: MetroBody, on: MetroOn): Row[] => body[METRO_LISTS[on]] ?? [];
 
-/** The body with list `on` replaced. Any other list stays as it is. */
-const withRows = (body: MetroBody, on: MetroOn, next: Row[]): MetroBody =>
-  ({ ...body, [METRO_LISTS[on]]: next }) as unknown as MetroBody;
+/**
+ * The body with list `on` replaced. Any other list stays as it is. The flows list is optional:
+ * when it ends up empty the key goes, so a body with no flows is the body it was before.
+ */
+function withRows(body: MetroBody, on: MetroOn, next: Row[]): MetroBody {
+  if (on !== "flow") return { ...body, [METRO_LISTS[on]]: next } as unknown as MetroBody;
+  const { flows: _, ...rest } = body;
+  return next.length > 0 ? { ...rest, flows: next as MetroFlow[] } : rest;
+}
+
+/** The flows these stations link to: the `flow` of each link station. */
+const linksOf = (stations: readonly MetroStation[]): string[] =>
+  stations.flatMap((s) => (s.kind === "link" && s.flow !== undefined ? [s.flow] : []));
 
 const sameJson = (x: unknown, y: unknown): boolean => canonicalJson(x) === canonicalJson(y);
 const withoutLabel = (r: Row): Row => ({ ...r, label: "" });
@@ -116,6 +128,20 @@ export function undoMetroChange(
           holds.map((h) => `${who} still holds ${h}. Undo the later change first.`),
         );
     }
+    if (on === "flow") {
+      const holds = [
+        ...newest.stations.filter((s) => s.flow === id).map((s) => `station ${s.label}`),
+        ...(newest.flows ?? []).flatMap((f) =>
+          f.stations
+            .filter((s) => s.flow === id)
+            .map((s) => `station ${s.label} of flow ${f.label}`),
+        ),
+      ];
+      if (holds.length)
+        throw new Refused(
+          holds.map((h) => `${who} is still linked by ${h}. Undo the later change first.`),
+        );
+    }
     return withRows(
       newest,
       on,
@@ -128,11 +154,15 @@ export function undoMetroChange(
     if (!was) throw notBetween();
     const lineIds = new Set(newest.lines.map((l) => l.id));
     const stationIds = new Set(newest.stations.map((s) => s.id));
+    const flowIds = new Set((newest.flows ?? []).map((f) => f.id));
     const missing: Array<[MetroOn, string]> = [];
     const need = (of: MetroOn, ids: Array<string | undefined>, have: Set<string>) => {
       for (const x of ids) if (x !== undefined && !have.has(x)) missing.push([of, x]);
     };
-    if (on === "station") need("line", [(was as MetroStation).line], lineIds);
+    if (on === "station") {
+      need("line", [(was as MetroStation).line], lineIds);
+      need("flow", linksOf([was as MetroStation]), flowIds);
+    }
     if (on === "track") {
       const t = was as MetroTrack;
       need("station", [t.from, t.to], stationIds);
@@ -147,6 +177,7 @@ export function undoMetroChange(
       const f = was as unknown as { stations: string[]; exit: string };
       need("station", [...f.stations, f.exit], stationIds);
     }
+    if (on === "flow") need("flow", linksOf((was as MetroFlow).stations), flowIds);
     if (missing.length)
       throw new Refused(
         missing.map(
