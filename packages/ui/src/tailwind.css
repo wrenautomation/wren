@@ -925,6 +925,15 @@ html[data-morph="cards"]::view-transition-new(*) {
 }
 
 /* Progress (artifact `.track`): an 8 px fill bar; the accent grows on the spring. */
+/* The dense switch, for a tool row: the same parts, smaller. */
+.ui-seg[data-size="dense"] {
+  padding: 2px;
+  border-radius: 8px;
+}
+.ui-seg[data-size="dense"] > button {
+  font-size: 12.5px;
+  padding: 3px 10px;
+}
 .ui-track {
   height: 8px;
   border-radius: var(--ui-leaf-bar);

@@ -143,6 +143,17 @@ export const Parts: Story = {
             { value: "year", label: "Year" },
           ]}
         />
+        <Seg
+          dense
+          label="Show"
+          value="table"
+          onChange={() => {}}
+          items={[
+            { value: "table", label: "Table" },
+            { value: "line", label: "By line" },
+          ]}
+          className="justify-self-start"
+        />
         <Track
           value={count}
           max={3}

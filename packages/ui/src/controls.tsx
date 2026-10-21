@@ -260,6 +260,7 @@ export function Seg<T extends string>({
   items,
   value,
   onChange,
+  dense = false,
   className,
 }: {
   /** What the group picks, for assistive tech. */
@@ -267,11 +268,18 @@ export function Seg<T extends string>({
   items: readonly { value: T; label: ReactNode; busy?: boolean | undefined }[];
   value: T;
   onChange: (value: T) => void;
+  /** The small switch for a tool row ("Table / By line"): 12.5 px words, less pad. */
+  dense?: boolean | undefined;
   className?: string | undefined;
 }) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: a group of toggle buttons, as the artifact draws it.
-    <div role="group" aria-label={label} className={cn("ui-seg", className)}>
+    <div
+      role="group"
+      aria-label={label}
+      data-size={dense ? "dense" : undefined}
+      className={cn("ui-seg", className)}
+    >
       {items.map((i) => (
         <button
           key={i.value}
