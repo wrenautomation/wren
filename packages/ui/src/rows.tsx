@@ -364,7 +364,9 @@ function GroupFold({
       <Pill color={color}>{label}</Pill>
       <b className="font-bold text-(--ui-ink) tabular-nums">{stats.n}</b>
       {stats.oldest ? (
-        <span className="text-(--ui-ink-3)">oldest {waited(stats.oldest.hours)}</span>
+        <span className="text-(--ui-ink-3)">
+          oldest <Age hours={stats.oldest.hours} late={stats.oldest.late} className="text-[13px]" />
+        </span>
       ) : null}
     </button>
   );
