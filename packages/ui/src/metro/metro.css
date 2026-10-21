@@ -2,9 +2,8 @@
 .mm {
   --case: var(--ui-paper);
   display: block;
-  width: 100%;
-  height: auto;
-  min-width: 0;
+  /* The svg carries its own width and height: one scene px is one css px, never scaled to fit. */
+  max-width: none;
 }
 .mm pattern circle {
   fill: var(--ui-ink-3);
@@ -218,7 +217,8 @@
   filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--ui-ink) 18%, transparent))
     drop-shadow(0 4px 10px color-mix(in srgb, var(--ui-ink) 12%, transparent));
 }
-.mm .pill rect {
+.mm .pill rect,
+.mm .pill .dt {
   fill: var(--ui-paper);
 }
 .mm .pill .av {
@@ -233,7 +233,8 @@
   fill: var(--ui-ink);
   font-variant-numeric: tabular-nums;
 }
-.mm .pill.late rect {
+.mm .pill.late rect,
+.mm .pill.late .dt {
   fill: var(--ui-warn);
 }
 .mm .pill.late .t {
@@ -427,18 +428,42 @@
   stroke: var(--ui-focus);
   stroke-width: 2;
 }
+/* The frame fills the room it is given, so the host can centre the map in it. */
+.metro {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+/* The host is the one scroller. The stage centres a small map across and keeps it at the top; a big one starts at the edge. */
 .metro-host {
   position: relative;
-  overflow: hidden;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   touch-action: pan-x pan-y;
+}
+.metro-stage {
+  position: relative;
+  flex: none;
+  /* Across the middle of the frame, at the top of it (as in the design language's "Map in the app"):
+     a small map never floats in the middle of an empty frame. A big one starts at the edge. */
+  align-self: flex-start;
+  margin: 0 auto;
 }
 .metro-host .cap {
   animation: none;
+}
+.metro-host:focus-visible {
+  outline: 2px solid var(--ui-active);
+  outline-offset: -2px;
 }
 .metro-old {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 .metro-old svg {
   display: block;
@@ -760,4 +785,56 @@
   background: var(--ui-paper);
   color: var(--tag-ink);
   font: 800 12px / 1 var(--ui-font);
+}
+
+/* The first read of a map: the dot grid, a few ghost lines and stations, no words. Nothing shows for
+   the first 150 ms (section 14), then it fades in. Reduced motion: no pulse, no fade. */
+.metro-skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--ui-ink-3) 28%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 16px 16px;
+  animation: metro-skeleton-in 0.25s ease-out 150ms backwards;
+}
+.metro-skeleton-art {
+  display: block;
+  max-width: none;
+  margin: 0 auto;
+  animation: metro-skeleton-pulse 1.8s ease-in-out infinite;
+}
+.metro-skeleton .sk-line {
+  fill: none;
+  stroke: var(--ui-hair);
+  stroke-linecap: round;
+}
+.metro-skeleton .sk-solid {
+  fill: var(--ui-fill);
+  stroke: var(--ui-hair);
+  stroke-width: 2.5;
+}
+.metro-skeleton .sk-bar {
+  fill: var(--ui-hair);
+}
+@keyframes metro-skeleton-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes metro-skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .metro-skeleton {
+    animation-duration: 1ms;
+  }
+  .metro-skeleton-art {
+    animation: none;
+  }
 }

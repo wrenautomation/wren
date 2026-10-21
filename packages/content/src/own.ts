@@ -113,6 +113,10 @@ export interface WaitingIdea {
     thread: boolean;
     /** The required fields still unset, by label: Approve refuses until each is set. */
     missing: string[];
+    /** When the draft was made, ISO: its age. */
+    at: string;
+    /** The time it was set to post (ISO), or null for the next free slot. */
+    slot: string | null;
   }[];
 }
 
@@ -141,6 +145,8 @@ export async function waitingIdeas(db: Queryable, limit = 120): Promise<WaitingI
       carousel: isCarousel(d),
       thread: d.extra?.kind === "thread",
       missing: missingFields(d.platform, d.extra, d.title),
+      at: d.createdAt.toISOString(),
+      slot: d.scheduledFor?.toISOString() ?? null,
     });
     out.set(d.ideaId, at);
   }

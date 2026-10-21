@@ -885,33 +885,56 @@ export class Runner {
    */
   private hold(action: Action, ids: Ids): boolean {
     const { call, after } = this.deps;
-    const h = this.writes.hold(
-      { key: `held ${pressOf(action.handler, ids)}`, ...this.pressed(action, ids), ms: UNDO_MS },
-      (requestId) =>
-        call(action.handler, { ids, requestId }).then((answer) => {
-          after(ids);
-          return answer;
-        }),
-    );
-    // Already set aside and waiting: a second press is the same one.
-    if (!h) return false;
-    this.set({ asked: null });
     let line = `${action.label}: done`;
     try {
       line = action.done?.(undefined) ?? line;
     } catch {}
-    this.toast.success(line, {
-      duration: UNDO_MS,
-      action: {
-        label: "Undo",
-        onClick: () => {
-          if (!h.undo()) return void this.toast.error("Too late to undo.");
-          this.toast.success("Undone");
-        },
-      },
+    const ok = holdWithUndo({
+      press: { key: `held ${pressOf(action.handler, ids)}`, ...this.pressed(action, ids) },
+      commit: (requestId) =>
+        call(action.handler, { ids, requestId }).then((answer) => {
+          after(ids);
+          return answer;
+        }),
+      line,
+      writes: this.writes,
+      toast: this.toast,
     });
+    // Already set aside and waiting: a second press is the same one.
+    if (!ok) return false;
+    this.set({ asked: null });
     return true;
   }
+}
+
+/**
+ * Sets a press aside for `UNDO_MS` with an undo toast: its records leave lists at once, and the
+ * call goes when the time ends. False when the same press is already held. The one undo part:
+ * a record's action (`Runner`) and a row's own button (Studio's Approve) both use it.
+ */
+export function holdWithUndo(o: {
+  press: PressOptions;
+  commit: (requestId: string) => Promise<unknown>;
+  /** What the toast says: "Approve: done". */
+  line: string;
+  writes?: Writes | undefined;
+  toast?: ToastFns | undefined;
+}): boolean {
+  const writes = o.writes ?? WRITES;
+  const t = o.toast ?? toast;
+  const h = writes.hold({ ...o.press, ms: UNDO_MS }, o.commit);
+  if (!h) return false;
+  t.success(o.line, {
+    duration: UNDO_MS,
+    action: {
+      label: "Undo",
+      onClick: () => {
+        if (!h.undo()) return void t.error("Too late to undo.");
+        t.success("Undone");
+      },
+    },
+  });
+  return true;
 }
 
 /** Where a dialog's typing waits on the device, for this action on these rows. */

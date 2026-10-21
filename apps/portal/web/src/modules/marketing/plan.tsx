@@ -51,11 +51,13 @@ export interface Goal {
   today: number | null;
   queued: number | null;
   write: number | null;
+  /** The offer line it serves (a line id in the shape), when the plan says. */
+  line?: string | null;
 }
 
 const RECORD = "marketing.cadence";
 const OTHER: Record<string, string> = { newsletter: "Blog" };
-const placeName = (p: string) =>
+export const placeName = (p: string) =>
   OTHER[p] ?? PLATFORM_SPECS[p as keyof typeof PLATFORM_SPECS]?.name ?? p;
 
 /** Where the next one of a piece gets made: one place per piece, whatever platform. */
@@ -212,6 +214,39 @@ export function toMakeLine(goals: Goal[]): string {
   return left.length
     ? `To make this week: ${left.map((p) => `${p.n} ${p.name.toLowerCase()}`).join(", ")}.`
     : "Every goal is on track.";
+}
+
+/** One piece the plan still asks for this week: what it needs, where it goes, and whether it is late. */
+export interface Due {
+  piece: string;
+  name: string;
+  /** The goals that still lack posts: the platforms it feeds. */
+  goals: Goal[];
+  /** How many it still needs. */
+  n: number;
+  /** The offer line it serves, when the plan says. */
+  line: string | null;
+  /** A daily goal is behind today. */
+  late: boolean;
+  make: { href: string; label: string };
+}
+
+/** The pieces still due this week, in plan order. */
+export function dueOf(goals: Goal[]): Due[] {
+  return byPiece(goals)
+    .map((p) => {
+      const open = counted(p.goals).filter((g) => (g.write ?? 0) > 0);
+      return {
+        piece: p.piece,
+        name: p.name,
+        goals: open,
+        n: toMake(p.goals),
+        line: open.find((g) => g.line)?.line ?? null,
+        late: open.some((g) => g.daily !== null && (g.today ?? 0) < g.daily),
+        make: makeAt(p.piece, counted(p.goals).length ? counted(p.goals) : p.goals),
+      };
+    })
+    .filter((d) => d.n > 0);
 }
 
 /** "2 drafts and 1 video": a rendered cut to review counts as a video. */
