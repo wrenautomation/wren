@@ -7,7 +7,8 @@ import type { NowView } from "@wren/core/accounts/console";
 import { Section, Tag, type TagTone } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
-import { dayLabel, LIST, QUIET, SPLIT } from "../work/bits.js";
+import { PageRows, rowLines } from "../../page-rows.js";
+import { dayLabel, QUIET } from "../work/bits.js";
 import { ownerOf } from "./Accounts.js";
 
 type Item = NowView["items"][number];
@@ -56,29 +57,37 @@ export function SetupNow({ client, team }: { client: string; team: boolean }) {
       title="Now"
       note={across ? "Setups across clients that need the team." : "Setups that need a look."}
     >
-      <ul className={LIST} aria-label="Now">
-        {d.items.map((x) => {
-          const tag = nowTag(x, d.team);
-          const href = hrefOf(x);
-          return (
-            <li key={x.id} className="grid gap-1">
-              <span className={SPLIT}>
-                {href ? (
-                  <a href={href} className="min-w-0 font-medium">
-                    {x.title}
-                  </a>
-                ) : (
-                  <span className="min-w-0 font-medium">{x.title}</span>
-                )}
-                <Tag tone={tag.tone}>{tag.label}</Tag>
-              </span>
-              <span className={QUIET}>
-                {[across ? x.clientName : null, x.why, dayLabel(x.at)].filter(Boolean).join(" · ")}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+      <PageRows<Item>
+        label="Now"
+        noun="setup"
+        lines={rowLines(d.items, (x) => String(x.id))}
+        name={{
+          label: "Setup",
+          icon: "workflow",
+          min: 240,
+          title: (x) => x.title,
+          href: (x) => hrefOf(x) ?? undefined,
+          weight: () => "font-medium text-(--ui-ink)",
+          sub: (x) => (
+            <span className={`${QUIET} truncate`}>
+              {[across ? x.clientName : null, x.why, dayLabel(x.at)].filter(Boolean).join(" · ")}
+            </span>
+          ),
+        }}
+        columns={[
+          {
+            key: "tag",
+            label: "State",
+            icon: "pulse",
+            width: 190,
+            phone: true,
+            cell: (x) => {
+              const tag = nowTag(x, d.team);
+              return <Tag tone={tag.tone}>{tag.label}</Tag>;
+            },
+          },
+        ]}
+      />
     </Section>
   );
 }

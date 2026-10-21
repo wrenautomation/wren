@@ -14,16 +14,19 @@ import {
   LoadFailed,
   Loading,
   PageHeader,
+  Pill,
   Section,
   SelectField,
   Tag,
   TextField,
   useEditForm,
+  useNarrow,
 } from "@wren/ui";
 import { useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { ERROR, Kept, QUIET, TOOLS } from "../work/bits.js";
 import { Secret } from "./Webhooks.js";
 
@@ -68,6 +71,8 @@ export function AiTools(props: PageProps) {
     call<Token[]>("console/tokens", where),
   );
   const [busy, setBusy] = useState(false);
+  const narrow = useNarrow();
+  const { go, stateOf } = useGoing();
   const [error, setError] = useState<string | null>(null);
   const [made, setMade] = useState<string | null>(null);
   // One write at a time; a second press of the same one is one action (its request id).
@@ -135,44 +140,67 @@ export function AiTools(props: PageProps) {
         ) : tokens.length === 0 ? (
           <Empty>No tokens yet.</Empty>
         ) : (
-          <ul className="m-0 grid list-none gap-3 p-0">
-            {tokens.map((t) => (
-              <li
-                key={t.id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-(--ui-hair) pb-3"
-              >
-                <span className="grid gap-0.5">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <b>{t.name}</b>
-                    <code className={cx("text-[12px]", QUIET)}>{t.prefix}…</code>
-                    {t.client ? <Tag tone="neutral">{t.client}</Tag> : null}
-                    <Tag tone="neutral">{accessOf(t.verbs)}</Tag>
-                  </span>
-                  {t.apps ? (
-                    <span className={cx("text-[13px]", QUIET)}>
-                      Only {t.apps.map((a) => APPS[a] ?? a).join(", ")}
-                    </span>
-                  ) : null}
-                  <span className={cx("text-[13px]", QUIET)}>
-                    Made {day(t.createdAt)}
-                    {t.lastUsedAt ? `, last used ${day(t.lastUsedAt)}` : ", never used"}
-                    {t.expiresAt ? `, ends ${day(t.expiresAt)}` : ""}
-                  </span>
+          <PageRows<Token>
+            label="Your tokens"
+            noun="token"
+            lines={rowLines(tokens, (t) => t.id)}
+            rowState={(t) => stateOf(t.id)}
+            name={{
+              label: "Token",
+              icon: "key",
+              min: 240,
+              title: (t) => t.name,
+              tail: (t) => (t.client ? <Tag tone="neutral">{t.client}</Tag> : null),
+              sub: (t) => (
+                <span className={cx("truncate text-[12.5px]", QUIET)}>
+                  <code>{t.prefix}…</code>, made {day(t.createdAt)}
+                  {t.expiresAt ? `, ends ${day(t.expiresAt)}` : ""}
                 </span>
-                <Button
-                  size="sm"
-                  tone="quiet"
-                  disabled={busy}
-                  onClick={() => {
-                    if (confirm(`Remove ${t.name}? Any tool using it stops at once.`))
-                      void run("tokenRevoke", { id: t.id });
-                  }}
-                >
-                  Remove
-                </Button>
-              </li>
-            ))}
-          </ul>
+              ),
+            }}
+            columns={[
+              {
+                key: "access",
+                label: "Can",
+                icon: "shield",
+                width: 190,
+                phone: true,
+                cell: (t) => <Pill>{accessOf(t.verbs)}</Pill>,
+              },
+              {
+                key: "apps",
+                label: "Apps",
+                icon: "apps",
+                min: 150,
+                className: "max-[1100px]:hidden",
+                cell: (t) => (t.apps ? t.apps.map((a) => APPS[a] ?? a).join(", ") : "Every app"),
+              },
+              {
+                key: "used",
+                label: "Last used",
+                icon: "clock",
+                width: 130,
+                quiet: true,
+                className: "max-[900px]:hidden",
+                cell: (t) => (t.lastUsedAt ? day(t.lastUsedAt) : "Never"),
+              },
+            ]}
+            end={(t) => (
+              <RowDoes
+                title={t.name}
+                lone={narrow}
+                busy={busy}
+                does={[
+                  {
+                    id: "remove",
+                    label: "Remove",
+                    confirm: `Remove ${t.name}? Any tool using it stops at once.`,
+                    run: () => go(t.id, "Removing", () => run("tokenRevoke", { id: t.id })),
+                  },
+                ]}
+              />
+            )}
+          />
         )}
         {error ? (
           <p className={ERROR} role="alert">

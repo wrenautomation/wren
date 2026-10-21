@@ -6,6 +6,7 @@
 import type { TikTokNumbers } from "@wren/content/connect";
 import { cx } from "@wren/ui";
 import { useState } from "react";
+import { PageRows, rowLines } from "../../page-rows.js";
 
 /** As `QUIET` in `../work/bits`, which loads the API: this file stays plain. */
 const QUIET = "text-(--ui-ink-2)";
@@ -83,42 +84,56 @@ export function TikTokNumbersView({ n }: { n: TikTokNumbers }) {
       {n.recent.length ? (
         <div className="grid gap-2">
           <p className={cx(QUIET, "m-0 text-[12.5px]")}>Newest videos</p>
-          <ul className="m-0 grid list-none gap-2 p-0">
-            {n.recent.map((v) => {
-              const title = v.title?.trim() || "Untitled video";
-              const when = day(v.postedAt);
-              return (
-                <li key={v.id} className="flex min-w-0 items-center gap-3">
-                  <CdnImage
-                    url={v.cover}
-                    className="h-12 w-[27px] shrink-0 rounded-[3px] bg-(--ui-tile) object-cover"
-                    fallback={
-                      <span className="h-12 w-[27px] shrink-0 rounded-[3px] bg-(--ui-tile)" />
-                    }
-                  />
-                  <div className="grid min-w-0 flex-1 gap-0.5">
-                    {v.url ? (
-                      <a
-                        href={v.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate text-[14px] hover:underline"
-                      >
-                        {title}
-                      </a>
-                    ) : (
-                      <span className="truncate text-[14px]">{title}</span>
-                    )}
-                    <span className={cx(QUIET, "text-[12.5px] tabular-nums")}>
-                      {count(v.views)} views
-                      {v.likes !== null ? ` · ${count(v.likes)} likes` : ""}
-                      {when ? ` · ${when}` : ""}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <PageRows<TikTokNumbers["recent"][number]>
+            label="Newest videos"
+            noun="video"
+            lines={rowLines(n.recent, (v) => v.id)}
+            name={{
+              label: "Video",
+              icon: "play",
+              min: 240,
+              title: (v) => v.title?.trim() || "Untitled video",
+              ...(n.recent.some((v) => v.url) ? { href: (v) => v.url ?? "" } : {}),
+              mark: (v) => (
+                <CdnImage
+                  url={v.cover}
+                  className="h-12 w-[27px] shrink-0 rounded-[3px] bg-(--ui-tile) object-cover"
+                  fallback={
+                    <span className="h-12 w-[27px] shrink-0 rounded-[3px] bg-(--ui-tile)" />
+                  }
+                />
+              ),
+            }}
+            columns={[
+              {
+                key: "views",
+                label: "Views",
+                icon: "eye",
+                align: "right",
+                width: 110,
+                phone: true,
+                cell: (v) => <span className="tabular-nums">{count(v.views)} views</span>,
+              },
+              {
+                key: "likes",
+                label: "Likes",
+                icon: "star",
+                align: "right",
+                width: 110,
+                className: "max-[900px]:hidden",
+                cell: (v) => (v.likes !== null ? `${count(v.likes)} likes` : "-"),
+              },
+              {
+                key: "posted",
+                label: "Posted",
+                icon: "calendar",
+                width: 110,
+                quiet: true,
+                className: "max-[900px]:hidden",
+                cell: (v) => day(v.postedAt) ?? "-",
+              },
+            ]}
+          />
         </div>
       ) : n.gaps.length ? null : (
         <p className={cx(QUIET, "m-0 text-[13.5px]")}>No videos on this account yet.</p>

@@ -7,12 +7,14 @@ import {
   Loading,
   month,
   PageHeader,
+  Pill,
   Section,
   Tag,
 } from "@wren/ui";
 import type { AccountView } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { BLOCK, dayLabel, LIST, QUIET, SPLIT } from "../work/bits.js";
+import { PageRows, rowLines } from "../../page-rows.js";
+import { dayLabel, QUIET } from "../work/bits.js";
 import { useAccount } from "./load.js";
 
 const STATUS: Record<AccountView["bought"][number]["status"], string> = {
@@ -21,6 +23,8 @@ const STATUS: Record<AccountView["bought"][number]["status"], string> = {
   paused: "Paused",
   done: "Finished",
 };
+
+type Bought = AccountView["bought"][number];
 
 const roleOf = (you: AccountView["you"]) =>
   you.role === "owner" ? "Owner" : you.role === "member" ? "Member" : you.wren ? "Wren's team" : "";
@@ -43,6 +47,7 @@ export function Overview(props: PageProps) {
     );
   const a = acct.data;
   const more = a.people - a.owners.length;
+  const lines = rowLines(a.bought, (b) => String(b.id));
   return (
     <>
       <PageHeader title={a.name} lede={`Working with Wren since ${month(a.since)}.`} />
@@ -50,21 +55,41 @@ export function Overview(props: PageProps) {
         {a.bought.length === 0 ? (
           <Empty>Nothing started yet.</Empty>
         ) : (
-          <ul className={LIST}>
-            {a.bought.map((b) => (
-              <li key={b.id} className={SPLIT}>
-                <span>
-                  <a href={`/${b.app}/overview`}>
-                    <b>{b.offer}</b>
-                  </a>
-                  <span className={`${QUIET} ${BLOCK}`}>
-                    {b.status === "onboarding" ? "Starts" : "Started"} {dayLabel(b.startsOn)}
-                  </span>
-                </span>
-                <Tag tone={b.status === "active" ? "green" : "neutral"}>{STATUS[b.status]}</Tag>
-              </li>
-            ))}
-          </ul>
+          <PageRows<Bought>
+            label="What you have with us"
+            noun="offer"
+            lines={lines}
+            name={{
+              label: "Offer",
+              icon: "briefcase",
+              min: 200,
+              title: (b) => b.offer,
+              href: (b) => `/${b.app}/overview`,
+            }}
+            columns={[
+              {
+                key: "since",
+                label: "Since",
+                icon: "calendar",
+                width: 160,
+                quiet: true,
+                cell: (b) =>
+                  `${b.status === "onboarding" ? "Starts" : "Started"} ${dayLabel(b.startsOn)}`,
+              },
+              {
+                key: "status",
+                label: "Status",
+                icon: "pulse",
+                width: 150,
+                phone: true,
+                cell: (b) => (
+                  <Pill color={b.status === "active" ? "var(--ui-good)" : "var(--ui-ink-3)"}>
+                    {STATUS[b.status]}
+                  </Pill>
+                ),
+              },
+            ]}
+          />
         )}
       </Section>
       <Section

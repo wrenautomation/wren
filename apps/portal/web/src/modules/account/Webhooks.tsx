@@ -19,12 +19,14 @@ import {
   TextField,
   tipProps,
   useEditForm,
+  useNarrow,
 } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { ERROR, QUIET, TOOLS } from "../work/bits.js";
 
 interface Hook {
@@ -87,6 +89,25 @@ const hookTag = (h: Hook) =>
   ) : (
     <Tag tone={h.active ? "green" : "neutral"}>{h.active ? "On" : "Off"}</Tag>
   );
+/** What a hook's row says under it: why it is off, that it fails, a test's answer. */
+const notes = (h: Hook, tested: string | undefined) =>
+  h.disabledAt || (h.active && h.failingSince) || tested ? (
+    <div className="grid gap-1 text-[13px]">
+      {h.disabledAt ? (
+        <p className="m-0" role="status">
+          Turned off {at(h.disabledAt)}. {h.disabledWhy} Nothing is sent until it's turned back on.
+        </p>
+      ) : h.active && h.failingSince ? (
+        <p className="m-0">
+          Failing since {at(h.failingSince)}. It turns off after {OFF_AFTER_DAYS} days of failures.
+        </p>
+      ) : null}
+      {h.prevUntil ? (
+        <p className={cx("m-0", QUIET)}>The old secret also signs until {at(h.prevUntil)}.</p>
+      ) : null}
+      {tested ? <p className="m-0">{tested}</p> : null}
+    </div>
+  ) : null;
 const PRE =
   "m-0 max-h-[220px] overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 font-mono text-[12px] leading-[1.5] whitespace-pre-wrap break-all";
 const at = (iso: string) =>
@@ -174,6 +195,8 @@ export function Webhooks(props: PageProps) {
     call<Hooks>("delivery/webhooks", { client: props.client, asClient: !props.team }),
   );
   const act = useRun(props, load.retry);
+  const narrow = useNarrow();
+  const going = useGoing();
   const [secret, setSecret] = useState<string | null>(null);
   const [tested, setTested] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<string | null>(null);
@@ -223,80 +246,94 @@ export function Webhooks(props: PageProps) {
         ) : data.webhooks.length === 0 ? (
           <Empty>No webhooks yet.</Empty>
         ) : (
-          <ul className="m-0 grid list-none gap-4 p-0">
-            {data.webhooks.map((h) => (
-              <li key={h.id} className="grid gap-2 border-b border-(--ui-hair) pb-4">
-                <p className="m-0 flex flex-wrap items-center gap-2">
-                  <b>{h.name}</b>
-                  {hookTag(h)}
-                </p>
-                <code className="break-all text-[13px]">{h.url}</code>
-                {h.disabledAt ? (
-                  <p className="m-0 text-[13px]" role="status">
-                    Turned off {at(h.disabledAt)}. {h.disabledWhy} Nothing is sent until it's turned
-                    back on.
-                  </p>
-                ) : h.active && h.failingSince ? (
-                  <p className="m-0 text-[13px]">
-                    Failing since {at(h.failingSince)}. It turns off after {OFF_AFTER_DAYS} days of
-                    failures.
-                  </p>
-                ) : null}
-                <p className={cx("m-0 text-[13px]", QUIET)}>
-                  Hears{" "}
-                  {h.events.map((e, i) => (
+          <PageRows<Hook>
+            label="Webhooks"
+            noun="webhook"
+            lines={rowLines(
+              data.webhooks,
+              (h) => h.id,
+              (h) => notes(h, tested[h.id]),
+            )}
+            rowState={(h) => going.stateOf(h.id)}
+            name={{
+              label: "Webhook",
+              icon: "link",
+              min: 260,
+              title: (h) => h.name,
+              sub: (h) => <code className="truncate text-[12.5px] text-(--ui-ink-3)">{h.url}</code>,
+            }}
+            columns={[
+              {
+                key: "state",
+                label: "State",
+                icon: "pulse",
+                width: 130,
+                phone: true,
+                cell: (h) => hookTag(h),
+              },
+              {
+                key: "events",
+                label: "Hears",
+                icon: "bolt",
+                min: 220,
+                className: "max-[1000px]:hidden",
+                cell: (h) =>
+                  h.events.map((e, i) => (
                     <span key={e} {...tipProps(says(e))}>
                       {i ? ", " : ""}
                       <code className="text-[12px]">{e}</code>
                     </span>
-                  ))}
-                  {h.prevUntil ? `. The old secret also signs until ${at(h.prevUntil)}` : ""}
-                </p>
-                {tested[h.id] ? <p className="m-0 text-[13px]">{tested[h.id]}</p> : null}
-                {data.canManage ? (
-                  <div className={TOOLS}>
-                    <Button size="sm" tone="secondary" busy={act.busy} onClick={() => void test(h)}>
-                      Send test
-                    </Button>
-                    <Button
-                      size="sm"
-                      tone="quiet"
-                      disabled={act.busy}
-                      onClick={() => void act.run("webhookEdit", { id: h.id, active: !h.active })}
-                    >
-                      {h.active ? "Turn off" : h.disabledAt ? "Turn back on" : "Turn on"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      tone="quiet"
-                      disabled={act.busy}
-                      onClick={async () => {
-                        if (!confirm("Make a new secret? The old one keeps working for 24 hours."))
-                          return;
-                        const got = await act.run<{ secret: string }>("webhookRotate", {
-                          id: h.id,
-                        });
-                        if (got) setSecret(got.secret);
-                      }}
-                    >
-                      New secret
-                    </Button>
-                    <Button
-                      size="sm"
-                      tone="quiet"
-                      disabled={act.busy}
-                      onClick={() => {
-                        if (confirm(`Remove ${h.name}? Its log goes too.`))
-                          void act.run("webhookRemove", { id: h.id });
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+                  )),
+              },
+            ]}
+            end={
+              data.canManage
+                ? (h) => (
+                    <RowDoes
+                      title={h.name}
+                      lone={narrow}
+                      busy={act.busy}
+                      does={[
+                        {
+                          id: "test",
+                          label: "Send test",
+                          run: () => going.go(h.id, "Testing", () => test(h)),
+                        },
+                        {
+                          id: "toggle",
+                          label: h.active ? "Turn off" : h.disabledAt ? "Turn back on" : "Turn on",
+                          run: () =>
+                            going.go(h.id, h.active ? "Turning off" : "Turning on", () =>
+                              act.run("webhookEdit", { id: h.id, active: !h.active }),
+                            ),
+                        },
+                        {
+                          id: "rotate",
+                          label: "New secret",
+                          confirm: "Make a new secret? The old one keeps working for 24 hours.",
+                          run: () =>
+                            going.go(h.id, "Making a secret", async () => {
+                              const got = await act.run<{ secret: string }>("webhookRotate", {
+                                id: h.id,
+                              });
+                              if (got) setSecret(got.secret);
+                            }),
+                        },
+                        {
+                          id: "remove",
+                          label: "Remove",
+                          confirm: `Remove ${h.name}? Its log goes too.`,
+                          run: () =>
+                            going.go(h.id, "Removing", () =>
+                              act.run("webhookRemove", { id: h.id }),
+                            ),
+                        },
+                      ]}
+                    />
+                  )
+                : undefined
+            }
+          />
         )}
         {act.error ? (
           <p className={ERROR} role="alert">
@@ -358,43 +395,65 @@ export function Webhooks(props: PageProps) {
           {data.deliveries.length === 0 ? (
             <Empty>Nothing sent yet.</Empty>
           ) : (
-            <ul className="m-0 grid list-none border-t border-(--ui-hair) p-0">
-              {data.deliveries.map((d) => (
-                <li key={d.id} className="border-b border-(--ui-hair)">
-                  <button
-                    type="button"
-                    aria-expanded={open === d.id}
-                    onClick={() => setOpen(open === d.id ? null : d.id)}
-                    className="grid w-full cursor-pointer gap-0.5 border-0 bg-transparent px-1 py-2 text-left text-[13.5px] text-(--ui-ink) hover:bg-(--ui-hover)"
-                  >
-                    <span className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-medium">{d.event}</span>
-                      <Tag tone={STATE[stateOf(d)].tone}>{STATE[stateOf(d)].label}</Tag>
-                    </span>
-                    <span
-                      className={cx("flex flex-wrap justify-between gap-2 text-[12.5px]", QUIET)}
-                    >
-                      <span>
-                        {nameOf(d.subscription)} · {answerOf(d)} · {d.attempts}{" "}
-                        {d.attempts === 1 ? "try" : "tries"}
-                        {stateOf(d) === "retrying" && d.nextAt
-                          ? ` · retrying at ${at(d.nextAt)}`
-                          : ""}
-                      </span>
-                      <span className="tabular-nums">{at(d.at)}</span>
-                    </span>
-                  </button>
-                  {open === d.id ? (
+            <PageRows<Delivery>
+              label="Deliveries"
+              noun="delivery"
+              lines={rowLines(
+                data.deliveries,
+                (d) => d.id,
+                (d) =>
+                  open === d.id ? (
                     <OneDelivery
                       id={d.id}
                       canManage={data.canManage}
                       props={props}
                       onSent={load.retry}
                     />
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+                  ) : null,
+              )}
+              open={{ id: open, onOpen: (d) => setOpen(open === d.id ? null : d.id) }}
+              name={{
+                label: "Event",
+                icon: "bolt",
+                min: 220,
+                title: (d) => d.event,
+                sub: (d) => (
+                  <span className="truncate text-[12.5px] text-(--ui-ink-3)">
+                    {nameOf(d.subscription)}
+                  </span>
+                ),
+              }}
+              columns={[
+                {
+                  key: "state",
+                  label: "State",
+                  icon: "pulse",
+                  width: 120,
+                  phone: true,
+                  cell: (d) => <Tag tone={STATE[stateOf(d)].tone}>{STATE[stateOf(d)].label}</Tag>,
+                },
+                {
+                  key: "answer",
+                  label: "Answer",
+                  icon: "chat",
+                  min: 220,
+                  className: "max-[1000px]:hidden",
+                  cell: (d) =>
+                    `${answerOf(d)} · ${d.attempts} ${d.attempts === 1 ? "try" : "tries"}${
+                      stateOf(d) === "retrying" && d.nextAt ? ` · retrying at ${at(d.nextAt)}` : ""
+                    }`,
+                },
+                {
+                  key: "at",
+                  label: "Sent",
+                  icon: "clock",
+                  width: 150,
+                  quiet: true,
+                  className: "max-[900px]:hidden",
+                  cell: (d) => at(d.at),
+                },
+              ]}
+            />
           )}
         </Section>
       ) : null}
