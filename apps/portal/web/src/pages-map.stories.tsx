@@ -271,7 +271,7 @@ export const TrackPanel = mapAt("/?track=engaged_to_booked", {
     await expect(within(panel).getByText("Moved by Ada North")).toBeVisible();
     await expect(within(panel).getByText("Promise 4h")).toBeVisible();
     await expect(within(panel).getByText(/waiting at Engaged/)).toHaveTextContent("Late");
-    await expect(within(panel).getByText(/^Crossed: \d+/)).toBeVisible();
+    await expect(within(panel).getByText("Crossed: 5")).toBeVisible();
     await expect(await within(panel).findByRole("region", { name: "Track history" })).toBeVisible();
   },
 });
