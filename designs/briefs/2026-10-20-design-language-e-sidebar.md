@@ -40,3 +40,12 @@ Claude-Session: https://claude.ai/code/session_01PpzL4T1jZXndKhYDqy2SGC
 ```
 
 Do not push. Do not run the full gate; the planner runs it.
+
+## UI rules (William, 2026-10-20)
+
+- Data through TanStack Query only. No ad hoc fetch state in components.
+- Loading states match the artifact's section 14 "Loading" (`design-language.src.html`, section id `loading`). The coordinator adds it to the repo copy; pull or read it from `/Users/williamjin/Documents/wren_automation/wren/designs/2026-10-20-design-language/design-language.src.html` before you build loading states. If it is not there yet, build the rest first.
+- Popovers and sheets close on outside click and on Esc.
+- State persists across navigation. A query that was loading when the person left still shows loading, then its data, when they come back. Keep it in the query cache, never in component state.
+- Open sheets, zoom level and pins are remembered per viewer (viewer prefs, `usePref`).
+- Systems page: keep it simple and grouped. A first cut is fine.

@@ -63,3 +63,9 @@ Claude-Session: https://claude.ai/code/session_01PpzL4T1jZXndKhYDqy2SGC
 ```
 
 Do not push. Do not run the full gate; the planner runs it. Report each stage's sha.
+
+## UI rules for the React wrapper (William, 2026-10-20)
+
+- No data fetching in `metro/`. Data comes in as props; the portal reads it through TanStack Query (area D).
+- Zoom level and open folds are controlled props with change callbacks (`level`, `onLevel`, `open`, `onOpen`), uncontrolled by default. The portal stores them per viewer. The map keeps no state that a remount loses when the parent passes it.
+- Any popover or sheet the map opens closes on outside click and on Esc.
