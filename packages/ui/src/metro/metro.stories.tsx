@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { FactsTable } from "../table.js";
 import { MetroSvg } from "./draw.js";
 import type { MetroZoom } from "./fold.js";
 import { layoutMetro } from "./layout.js";
@@ -51,30 +52,22 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 /** A glyph table (sections 04 and 09): one cell per mark, with what it says and how it works. */
 function GlyphTable({ rows }: { rows: GlyphRow[] }) {
   return (
-    <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr className="text-left text-[var(--ui-ink-3)]">
-          <th className="p-2 font-medium">Mark</th>
-          <th className="p-2 font-medium">What it says</th>
-          <th className="p-2 font-medium">How it works</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.name} className="border-t border-[var(--ui-hair)] align-top">
-            <td className="w-[110px] p-2">
-              <MetroSvg scene={r.scene} bare still width={88} />
-              <div className="font-medium">{r.name}</div>
-            </td>
-            <td className="p-2">
-              {r.what}
-              {r.example ? <div className="text-[var(--ui-ink-3)]">{r.example}</div> : null}
-            </td>
-            <td className="p-2 text-[var(--ui-ink-2)]">{r.how}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <FactsTable
+      head={["Mark", "What it says", "How it works"]}
+      rows={rows.map((r) => [
+        <div key="mark" className="w-[88px]">
+          <MetroSvg scene={r.scene} bare still width={88} />
+          <div className="font-medium">{r.name}</div>
+        </div>,
+        <div key="what">
+          {r.what}
+          {r.example ? <div className="text-[var(--ui-ink-3)]">{r.example}</div> : null}
+        </div>,
+        <span key="how" className="text-[var(--ui-ink-2)]">
+          {r.how}
+        </span>,
+      ])}
+    />
   );
 }
 
