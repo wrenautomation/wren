@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { walkTo } from "./records.js";
-import { drawnOf, type RowsLine, type RowsWait, statsOf } from "./rows.js";
+import { drawnOf, type RowsLine, type RowsWait, statsOf, waitFrom } from "./rows.js";
 
 const wait = (hours: number, late = false): RowsWait => ({ hours, late });
 
@@ -14,6 +14,23 @@ describe("statsOf", () => {
   it("an empty set has no oldest", () => {
     expect(statsOf([])).toEqual({ n: 0, late: 0, oldest: null });
     expect(statsOf([null, null])).toEqual({ n: 2, late: 0, oldest: null });
+  });
+});
+
+describe("waitFrom", () => {
+  const now = new Date("2026-10-17T15:00:00Z");
+  const old = "2026-10-15T15:00:00Z"; // 48 hours before now
+  it("an open row past its promise is late", () => {
+    expect(waitFrom(old, "24h", true, now)).toEqual({ hours: 48, late: true });
+  });
+  it("an answered row past its promise shows its age and is not late", () => {
+    const w = waitFrom(old, "24h", false, now);
+    expect(w).toEqual({ hours: 48, late: false });
+    // The foot's Late count follows.
+    expect(statsOf([w, waitFrom(old, "24h", true, now)]).late).toBe(1);
+  });
+  it("a row with no start date does not wait", () => {
+    expect(waitFrom("", "24h", true, now)).toBeNull();
   });
 });
 

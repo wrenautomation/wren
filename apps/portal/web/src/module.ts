@@ -131,7 +131,12 @@ export interface ListPage extends PageBase {
    * ("24h", "2d"). The field draws as a wait, rows past the promise read late, and the foot counts
    * them (`@wren/core/promise` is the one late rule).
    */
-  late?: { field: string; promise: string };
+  late?: {
+    field: string;
+    promise: string;
+    /** Only rows whose `field` holds one of `values` can read late; the rest show their age. */
+    open?: { field: string; values: readonly string[] };
+  };
   /**
    * A list's cards (Rows / Cards in its bar): what each card shows, read from `columns` when left
    * out. `false` keeps it rows only: logs, audits, runs, a day's numbers.

@@ -6,7 +6,6 @@
 
 import type { Target } from "@wren/core/access";
 import type { ChangeLine, EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
-import { hoursSince, lateOf } from "@wren/core/promise";
 import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
   ExportAsk,
@@ -138,6 +137,7 @@ import {
   type RowsWait,
   stateColor,
   statsOf,
+  waitFrom,
 } from "./rows.js";
 import { SaveScope, useSavePage } from "./save/react.js";
 import { recordKey } from "./save/writes.js";
@@ -383,6 +383,8 @@ export interface RowReplyBox {
 export interface Late {
   field: string;
   promise: string;
+  /** Only rows whose `field` holds one of `values` can read late; the rest show their age. */
+  open?: { field: string; values: readonly string[] } | undefined;
 }
 
 /** Field → the states in which a row waits on the viewer. */
@@ -1377,9 +1379,8 @@ function List({
   /** How long a row has waited and whether that is late; null where it has no start or no promise. */
   const waitOf = (r: Row): RowsWait | null => {
     if (!late) return null;
-    const at = textOf(r[late.field]);
-    const hours = hoursSince(at, now);
-    return hours === null ? null : { hours, late: lateOf(at, late.promise, now) };
+    const open = !late.open || late.open.values.includes(textOf(r[late.open.field]));
+    return waitFrom(textOf(r[late.field]), late.promise, open, now);
   };
   const size = sizeOf(params);
   const pages = pagesOf(page.data?.total ?? 0, size);

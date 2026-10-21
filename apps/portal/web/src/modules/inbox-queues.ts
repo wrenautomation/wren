@@ -69,9 +69,29 @@ export const INBOX_QUEUES: OverviewQueue[] = [
   },
 ];
 
-/** A queue's wait as a list page declares it (`late`): the same field and promise as its queue. */
-export function queueLate(record: string): { field: string; promise: string } {
+/**
+ * The states in which a queue's rows wait on the viewer: the same field and values as the record's
+ * "waiting" view (`where`). Only those rows can read late; an answered row shows its age.
+ * Sources: INBOX_OPEN and INBOX_WAITING in `@wren/content` social records, the `needs_you` mail
+ * queue, unread mentions, and open issues and asks.
+ */
+const OPEN: Record<string, { field: string; values: readonly string[] }> = {
+  "marketing.inbox": { field: "status", values: ["open"] },
+  "marketing.approval": { field: "state", values: ["new", "waiting"] },
+  "watch.mail": { field: "queue", values: ["needs_you"] },
+  "notes.mention": { field: "state", values: ["unread"] },
+  "access.issue": { field: "state", values: ["open"] },
+  "access.ask": { field: "state", values: ["open"] },
+};
+
+/** A queue's wait as a list page declares it (`late`): the same field, promise and open states. */
+export function queueLate(record: string): {
+  field: string;
+  promise: string;
+  open: { field: string; values: readonly string[] };
+} {
   const q = INBOX_QUEUES.find((x) => x.record === record);
-  if (!q) throw new Error(`${record} is not an Inbox queue`);
-  return { field: q.wait, promise: q.promise };
+  const open = OPEN[record];
+  if (!q || !open) throw new Error(`${record} is not an Inbox queue`);
+  return { field: q.wait, promise: q.promise, open };
 }

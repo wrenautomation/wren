@@ -8,6 +8,7 @@
  * `List` (records) maps a record type and its page into `Rows`; a hand page with plain data passes
  * columns and rows. `DataTable` and `FactsTable` stay for facts. The table is a real `<table>`.
  */
+import { hoursSince, lateOf } from "@wren/core/promise";
 import type { FieldMeta, State, Tone } from "@wren/core/records";
 import { cn } from "cn";
 import {
@@ -127,6 +128,15 @@ export interface WaitStats {
   late: number;
   /** The longest wait, or null when no row waits. */
   oldest: RowsWait | null;
+}
+
+/**
+ * A row's wait from the date it began (`at`). Past `promise` it reads late, but only while the row
+ * is `open`: an answered row shows its age and never as late. No date: it does not wait (null).
+ */
+export function waitFrom(at: string, promise: string, open: boolean, now: Date): RowsWait | null {
+  const hours = hoursSince(at, now);
+  return hours === null ? null : { hours, late: open && lateOf(at, promise, now) };
 }
 
 /** The count, late count and oldest wait of `waits`, one per row (null: the row does not wait). */
