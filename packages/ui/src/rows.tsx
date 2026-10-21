@@ -303,6 +303,8 @@ export interface RowsProps<T> {
 }
 
 const GUTTER = 28;
+/** The head's hairlines, over and under (`.nt .hd`), drawn inside so a sticky head keeps them. */
+const HEAD_RULE = "shadow-[inset_0_1px_0_var(--ui-hair),inset_0_-1px_0_var(--ui-hair)]";
 const END = 44;
 
 /**
@@ -317,9 +319,12 @@ function groundOf(open: boolean, picked: boolean, cursor: boolean) {
   return "[--row-ground:var(--ui-paper)] hover:[&>td]:bg-(--ui-accent-wash) hover:[--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
 }
 
-/** A row's ground is a band with leaf ends (the artifact's chip corners), drawn on its cells. */
+/**
+ * A row's ground, drawn on its cells, and its hairline (the artifact's `.nt .r+.r, .gh+.r`): one
+ * over each row that follows a row or a group's fold. No column lines.
+ */
 const BAND =
-  "[&>td]:transition-[background-color] [&>td]:duration-150 motion-reduce:[&>td]:transition-none [&>td:first-child]:[border-radius:4px_0_0_10px] [&>td:last-child]:[border-radius:0_10px_4px_0]";
+  "[&>td]:transition-[background-color] [&>td]:duration-150 motion-reduce:[&>td]:transition-none [tr[data-row]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)] [tr[data-group]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)]";
 
 type Drawn<T> = RowsLine<T> & { stats?: WaitStats };
 
@@ -701,7 +706,8 @@ export function Rows<T>(p: RowsProps<T>) {
         <tr className="text-[12.5px] text-(--ui-ink-3) [&>th]:font-normal">
           <th
             className={cn(
-              "group/all sticky top-0 z-10 h-[34px] border-b border-(--ui-hair) bg-(--ui-paper) p-0 text-center",
+              "group/all sticky top-0 z-10 h-[34px] bg-(--ui-paper) p-0 text-center",
+              HEAD_RULE,
             )}
           >
             {pick ? (
@@ -726,7 +732,8 @@ export function Rows<T>(p: RowsProps<T>) {
               key={c.key}
               scope="col"
               className={cn(
-                "sticky top-0 z-10 h-[34px] border-b border-(--ui-hair) bg-(--ui-paper) px-2.5 leading-tight whitespace-nowrap",
+                "sticky top-0 z-10 h-[34px] bg-(--ui-paper) px-2.5 leading-tight whitespace-nowrap",
+                HEAD_RULE,
                 c.align === "end" ? "text-right" : "text-left",
                 c.className,
               )}
@@ -744,7 +751,7 @@ export function Rows<T>(p: RowsProps<T>) {
               </span>
             </th>
           ))}
-          <th className="sticky top-0 z-10 border-b border-(--ui-hair) bg-(--ui-paper)">
+          <th className={cn("sticky top-0 z-10 bg-(--ui-paper)", HEAD_RULE)}>
             <span className="sr-only">Actions</span>
           </th>
         </tr>
@@ -934,13 +941,13 @@ export function Rows<T>(p: RowsProps<T>) {
             <tr className="text-[12px] text-(--ui-ink-2)">
               <td
                 className={cn(
-                  "sticky h-9 border-t border-(--ui-edge) bg-(--ui-paper)",
+                  "sticky h-9 shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper)",
                   p.foot ? "bottom-[34px]" : "bottom-0",
                 )}
               />
               <td
                 className={cn(
-                  "sticky border-t border-(--ui-edge) bg-(--ui-paper)",
+                  "sticky shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper)",
                   p.foot ? "bottom-[34px]" : "bottom-0",
                 )}
               />
@@ -948,7 +955,7 @@ export function Rows<T>(p: RowsProps<T>) {
                 <td
                   key={c.key}
                   className={cn(
-                    "sticky truncate border-t border-(--ui-edge) bg-(--ui-paper) px-2.5",
+                    "sticky truncate shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper) px-2.5",
                     p.foot ? "bottom-[34px]" : "bottom-0",
                     c.align === "end" ? "text-right" : "text-left",
                   )}
@@ -958,7 +965,7 @@ export function Rows<T>(p: RowsProps<T>) {
               ))}
               <td
                 className={cn(
-                  "sticky border-t border-(--ui-edge) bg-(--ui-paper)",
+                  "sticky shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper)",
                   p.foot ? "bottom-[34px]" : "bottom-0",
                 )}
               />
@@ -968,7 +975,7 @@ export function Rows<T>(p: RowsProps<T>) {
             <tr className="text-[12px] text-(--ui-ink-3)">
               <td
                 colSpan={span}
-                className="sticky bottom-0 border-t border-(--ui-hair) bg-(--ui-paper) pt-[9px] pr-3.5 pb-2.5 pl-[38px] max-[900px]:pl-3.5"
+                className="sticky bottom-0 bg-(--ui-paper) shadow-[inset_0_1px_0_var(--ui-hair)] pt-[9px] pr-3.5 pb-2.5 pl-[38px] max-[900px]:pl-3.5"
               >
                 {p.foot}
               </td>

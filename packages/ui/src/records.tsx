@@ -3186,20 +3186,14 @@ function Beside({
   );
 }
 
-/**
- * A record's facts as a framed two-column table: labels on the band, values on paper. Clipped to
- * its soft corners; the last line drops its rule, which the frame draws.
- */
-const DL =
-  "grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] overflow-clip rounded-(--ui-radius-panel) border border-(--ui-hair) text-[14px] [&>:nth-last-child(-n+2)]:border-b-0";
+/** A record's facts as label and value, no frame and no rules (the artifact's `.pk dl`). */
+const DL = "m-0 grid grid-cols-[96px_minmax(0,1fr)] gap-x-2.5 gap-y-1.5 text-[13.5px]";
 
 function Line({ label, children }: { label: string; children: ReactNode }) {
   return (
     <>
-      <dt className="border-r border-b border-(--ui-hair) bg-(--ui-band) px-3 py-2.5 text-[13px] text-(--ui-ink-2)">
-        {label}
-      </dt>
-      <dd className="min-w-0 border-b border-(--ui-hair) px-3 py-2.5 break-words">{children}</dd>
+      <dt className="text-(--ui-ink-3)">{label}</dt>
+      <dd className="m-0 min-w-0 break-words">{children}</dd>
     </>
   );
 }

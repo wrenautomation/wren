@@ -9,7 +9,7 @@ import type { RecordMeta } from "@wren/core/records";
 import type { Period, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { useEffect, useState } from "react";
-import { Sparkline, TrendChart } from "./charts/index.js";
+import { TrendChart } from "./charts/index.js";
 import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
 import { Empty, LoadFailed, Loading } from "./feedback.js";
 import { FieldCell } from "./fields.js";
@@ -135,13 +135,6 @@ export function tileHref(tile: OverviewTile, meta: RecordMeta, now = new Date())
   return `${path}?${params}`;
 }
 
-/** Tiles on each full-width row: at most four, as even as they go, so no tile sits alone. */
-export function perRow(n: number): number[] {
-  const rows = Math.ceil(n / 4);
-  return Array.from({ length: rows }, (_, r) => Math.floor(n / rows) + (r < n % rows ? 1 : 0));
-}
-const SPAN = ["", "lg:col-span-12", "lg:col-span-6", "lg:col-span-4", "lg:col-span-3"];
-
 export function RecordOverview({
   title,
   as,
@@ -171,7 +164,6 @@ export function RecordOverview({
   const settled = tiles.length > 0 && tiles.every((t) => t.label in blank);
   const folded = settled ? tiles.filter((t) => blank[t.label]) : [];
   const shown = tiles.filter((t) => !folded.includes(t));
-  const spans = perRow(shown.length).flatMap((k) => Array<string>(k).fill(SPAN[k] ?? ""));
   const told = (label: string, shown: Shown) =>
     setStats((s) => (s[label]?.stat === shown.stat ? s : { ...s, [label]: shown }));
   const said = (label: string, empty: boolean) =>
@@ -217,18 +209,15 @@ export function RecordOverview({
         </div>
       ) : (
         <div
-          className={cn("grid grid-cols-2 gap-px p-px lg:grid-cols-12", !shown.length && "hidden")}
+          className={cn(
+            "grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-2.5",
+            !shown.length && "hidden",
+          )}
         >
           {tiles.map((t) => {
             const meta = metaOf(t.record);
-            const i = shown.indexOf(t);
-            // Two to a row on a phone; an odd last one takes the whole row.
-            const wide = i === shown.length - 1 && shown.length % 2 === 1;
             return (
-              <div
-                key={t.label}
-                className={cn("grid", i < 0 ? "hidden" : spans[i], wide && "max-lg:col-span-2")}
-              >
+              <div key={t.label} className={cn("grid", !shown.includes(t) && "hidden")}>
                 {meta && pref.ready ? (
                   <Tile tile={t} meta={meta} api={api} onStat={told} onBlank={said} />
                 ) : (
@@ -276,8 +265,9 @@ export function RecordOverview({
   );
 }
 
-// Each tile draws its own hairline (an outline over the 1px gap).
-const TILE = "grid content-start gap-1 bg-(--ui-paper) p-4 outline outline-(--ui-hair)";
+// A tile is the artifact's trend card (`.ix .tr`): a raised leaf, no hairline.
+const TILE =
+  "grid content-start gap-1 bg-(--ui-paper) px-3.5 py-3 shadow-(--ui-raise) [border-radius:6px_18px]";
 
 function TileGhost() {
   return (
@@ -449,31 +439,27 @@ function Tile({
       href={tileHref(tile, meta)}
       className={cn(
         TILE,
-        "text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
+        "text-(--ui-ink) no-underline outline-none transition-[background-color] duration-200 hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash) motion-reduce:transition-none",
         // Waiting on you: an amber rule and wash, so it reads before the outcome tiles.
         tile.needs &&
           (s?.value ?? 0) > 0 &&
           "bg-(--ui-warn-tint) shadow-[inset_0_3px_0_var(--ui-warn)] hover:bg-(--ui-warn-tint)",
       )}
     >
-      <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-[13px] text-(--ui-ink-2)">
-        <span className="font-medium text-(--ui-ink)">{tile.label}</span>
-        <span>
-          {pick
-            ? newest
-            : period
-              ? tile.median
-                ? `Median, ${periodName(period).toLowerCase()}`
-                : periodName(period)
-              : "Now"}
-        </span>
+      <span className="text-[12.5px] text-(--ui-ink-3)">
+        {tile.label}
+        {pick
+          ? newest && ` · ${newest}`
+          : period
+            ? ` · ${tile.median ? "median, " : ""}${periodName(period).toLowerCase()}`
+            : ""}
       </span>
       {s ? (
         <>
           <span
             className={cn(
-              "text-[28px] leading-9 font-semibold tracking-[-0.02em]",
-              tile.needs && (s.value ?? 0) > 0 && "text-[36px] leading-10 text-(--ui-warn-ink)",
+              "text-[24px] font-bold tracking-[-0.02em] tabular-nums",
+              tile.needs && (s.value ?? 0) > 0 && "text-(--ui-warn-ink)",
               s.value === null && "text-[15px] leading-6 font-normal text-(--ui-ink-2)",
             )}
           >
@@ -481,30 +467,30 @@ function Tile({
           </span>
           {period || pick ? (
             <>
-              <span className="text-[13px] text-(--ui-ink-2)">
-                {[
-                  s.latest != null ? `Newest ${fmt(s.latest)}` : "",
-                  delta === null || !before
-                    ? ""
-                    : delta === 0
-                      ? `Same as ${before}`
-                      : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))} vs ${before}`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-              <Sparkline
+              <Spark
                 series={s.series}
                 slots={period === "month" ? daysIn(new Date()) : s.series.length}
-                label={tile.label}
-                format={fmt}
-                fallback={
-                  <Bars
-                    series={s.series}
-                    slots={period === "month" ? daysIn(new Date()) : s.series.length}
-                  />
-                }
               />
+              <span className="text-[12.5px] text-(--ui-ink-3)">
+                {s.latest != null ? `Newest ${fmt(s.latest)}` : null}
+                {s.latest != null && delta !== null && before ? " · " : null}
+                {delta === null || !before ? null : delta === 0 ? (
+                  `Same as ${before}`
+                ) : (
+                  <>
+                    <b
+                      className={cn(
+                        "font-[650]",
+                        delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)",
+                      )}
+                    >
+                      {delta > 0 ? "+" : "−"}
+                      {fmt(Math.abs(delta))}
+                    </b>
+                    {` vs ${before}`}
+                  </>
+                )}
+              </span>
             </>
           ) : null}
         </>
@@ -545,10 +531,10 @@ function Trends({
               aria-selected={t === on}
               onClick={() => setPick(t.label)}
               className={cn(
-                "h-7 cursor-pointer border-0 px-2.5 text-[13px]",
+                "cursor-pointer border-0 px-[9px] py-1.5 text-[13px] font-semibold transition-colors duration-150 [border-radius:4px_10px_4px_10px] outline-none focus-visible:outline-2 focus-visible:outline-(--ui-focus)",
                 t === on
-                  ? "bg-(--ui-ink) text-(--ui-paper)"
-                  : "bg-transparent text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:text-(--ui-ink)",
+                  ? "bg-(--ui-accent-tint) text-(--ui-active)"
+                  : "bg-transparent text-(--ui-ink-3) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink)",
               )}
             >
               {t.label}
@@ -596,38 +582,6 @@ export function Spark({ series, slots }: { series: RecordsStat["series"]; slots:
   );
 }
 
-/** A bar a day (a pick's, a month), the tallest at full height; a quiet line under days with
- * none. A month keeps a slot for each of its days, so the bars fill in as it goes. */
-function Bars({ series, slots }: { series: RecordsStat["series"]; slots: number }) {
-  const max = Math.max(0, ...series.map((p) => p.value ?? 0));
-  const w = 100 / Math.max(1, slots, series.length);
-  return (
-    <svg
-      viewBox="0 0 100 28"
-      preserveAspectRatio="none"
-      className="mt-2 h-7 w-full"
-      aria-hidden="true"
-    >
-      <rect x="0" y="27" width="100" height="1" fill="var(--ui-fill)" />
-      {max
-        ? series.map((p, i) => {
-            const h = p.value && p.value > 0 ? Math.max(2, (p.value / max) * 28) : 0;
-            return (
-              <rect
-                key={p.at}
-                x={i * w + w * 0.15}
-                width={w * 0.7}
-                y={28 - h}
-                height={h}
-                fill="var(--chart-1)"
-              />
-            );
-          })
-        : null}
-    </svg>
-  );
-}
-
 function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: RecordsApi }) {
   const ask = askFor(meta, top.href);
   const sort = split(top.href).params.get("sort");
@@ -668,12 +622,12 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
       ) : (
         <ul className="m-0 mt-3 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
           {rows.map((r) => (
-            <li key={String(r.id)} className="border-t border-(--ui-hair) first:border-t-0">
+            <li key={String(r.id)}>
               <a
                 href={open(r)}
                 // Counts that don't fit beside the title go under it, as on a phone.
                 className={cn(
-                  "flex flex-wrap items-center gap-x-4 gap-y-0.5 px-5 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
+                  "mx-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 px-3 text-(--ui-ink) no-underline outline-none transition-[background-color] duration-150 [border-radius:4px_10px_4px_10px] hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash)",
                   line ? "py-2.5" : "min-h-10 py-1.5",
                 )}
               >

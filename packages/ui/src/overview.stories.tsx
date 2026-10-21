@@ -8,10 +8,10 @@ export default { title: "Overview", parameters: { layout: "fullscreen" } } satis
 type Story = StoryObj;
 
 /** Each queue's longest wait is in `WAITS`: two days, a day and a half, six hours, five, three, 20 minutes. */
-function Page({ api }: { api: ReturnType<typeof fakeOverview> }) {
+function Page({ api, plain = false }: { api: ReturnType<typeof fakeOverview>; plain?: boolean }) {
   return (
     <div className="p-4 sm:p-6">
-      <RecordOverview title="Inbox" api={api} tiles={TILES} queues={QUEUES} />
+      <RecordOverview title="Inbox" api={api} tiles={TILES} queues={plain ? undefined : QUEUES} />
     </div>
   );
 }
@@ -100,5 +100,14 @@ export const Phone: Story = {
     await expect(first.getBoundingClientRect().bottom).toBeLessThan(
       card.getBoundingClientRect().top,
     );
+  },
+};
+
+/** No queues (Money): the numbers as trend cards, no hairline grid. */
+export const TilesOnly: Story = {
+  render: () => <Page api={fakeOverview()} plain />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("link", { name: /Replies/ })).toBeVisible();
   },
 };
