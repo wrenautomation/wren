@@ -730,7 +730,8 @@ function AppCrumb({
   const paged = app.tabs.length > 1;
   const hidden = !!(display?.display.pagesShut || display?.display.sideShut) && paged;
   return (
-    <div className="-my-1.5 flex min-h-8 min-w-0 items-center gap-2 max-[900px]:hidden">
+    // Over a title the crumb leaves no gap; over anything else (a failure, a list) it keeps 8 px.
+    <div className="-my-1.5 flex min-h-8 min-w-0 items-center gap-2 max-[900px]:hidden [&:not(:has(+:is(h1,header),+*>:is(h1,header):first-child))]:mb-2">
       <nav aria-label="Breadcrumb" className={cx(CRUMB, "flex min-w-0 items-center gap-1")}>
         {paged || !page ? (
           <a

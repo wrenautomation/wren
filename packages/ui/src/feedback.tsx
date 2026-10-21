@@ -3,7 +3,6 @@ import { createContext, type ReactNode, useContext } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { Button, Tag } from "./controls.js";
 import { cx } from "./format.js";
-import { Icon } from "./icons.js";
 
 /**
  * Ghosts in the shape of the content, never a spinner: lines of text, table
@@ -67,27 +66,33 @@ export function Loading({
 const GHOST = "h-3";
 const WIDTHS = ["w-[92%]", "w-[92%]", "w-[74%]", "w-[58%]"];
 
+/**
+ * A state in a hairline frame, a leaf of 6 and 14 (the artifact's `.stt`): no ground, so it reads
+ * as a place to fill. Its title in ink (in red when it failed), then one line, then its button.
+ */
+const STATE =
+  "grid gap-1 rounded-[6px_14px_6px_14px] border border-(--ui-hair) p-4 text-[13.5px] leading-[1.55] text-(--ui-ink-2)";
+const STATE_TITLE = "text-[14.5px] font-[650] text-(--ui-ink)";
+const STATE_BUTTON = "mt-1.5 justify-self-start";
+
 /** Nothing here yet: say why, and what fills it. */
 export function Empty({
+  title,
   action,
   className,
   children,
 }: {
+  /** A short name for the state, over the line: "Nothing here yet". */
+  title?: ReactNode;
   action?: ReactNode;
   className?: string | undefined;
   children: ReactNode;
 }) {
   return (
-    <div
-      data-empty=""
-      className={cx(
-        // A hairline frame, a leaf of 6 and 14 (artifact `.stt`): no ground, so it reads as a place to fill.
-        "flex flex-col items-center gap-4 rounded-[6px_14px_6px_14px] border border-(--ui-hair) px-6 py-12 text-center text-[13.5px] text-(--ui-ink-2)",
-        className,
-      )}
-    >
-      <p className="max-w-[46ch] text-pretty">{children}</p>
-      {action ?? null}
+    <div data-empty="" className={cx(STATE, className)}>
+      {title ? <b className={STATE_TITLE}>{title}</b> : null}
+      <p className="max-w-[60ch] text-pretty">{children}</p>
+      {action ? <div className={STATE_BUTTON}>{action}</div> : null}
     </div>
   );
 }
@@ -113,7 +118,10 @@ export function InDevelopment({
   );
 }
 
-/** A standing note on how this screen works ("Nothing sends until you approve it"). */
+/**
+ * A standing note on how this screen works ("Nothing sends until you approve it"): the artifact's
+ * `.qb`, a wash with a leaf of 6 and 24. `warn` takes the amber tint in place of the wash.
+ */
 export function Callout({
   tone,
   className,
@@ -127,10 +135,8 @@ export function Callout({
   return (
     <p
       className={cx(
-        "mb-5 w-fit max-w-[72ch] rounded-(--ui-radius) border border-l-[3px] px-4 py-[11px] text-[14px] text-pretty",
-        tone === "warn"
-          ? "border-(--ui-hair) border-l-(--ui-warn) bg-(--ui-warn-tint) text-(--ui-ink)"
-          : "border-(--ui-hair) border-l-(--ui-ink-3) bg-(--ui-band) text-(--ui-ink-2)",
+        "mb-5 grid w-fit max-w-[72ch] gap-2 rounded-[6px_24px_6px_24px] px-[18px] py-4 text-[15px] leading-[1.55] text-pretty text-(--ui-ink)",
+        tone === "warn" ? "bg-(--ui-warn-tint)" : "bg-(--ui-accent-wash)",
         className,
       )}
     >
@@ -139,7 +145,10 @@ export function Callout({
   );
 }
 
-/** Something failed. The message names the problem and what to do; `onRetry` adds the button that does it. */
+/**
+ * Something failed (the artifact's `.stt.err`). The message names the problem and what to do;
+ * `onRetry` adds the button that does it. A `<b>` in the message is its title, in red.
+ */
 export function Alert({
   onRetry,
   className,
@@ -152,15 +161,18 @@ export function Alert({
   return (
     <div
       className={cx(
-        "mb-4 flex items-start gap-2.5 rounded-(--ui-radius) border border-l-[3px] border-(--ui-hair) border-l-(--ui-bad) bg-(--ui-bad-tint) px-3.5 py-3 text-[14px]",
+        STATE,
+        "mb-4 [&_b]:text-[14.5px] [&_b]:font-[650] [&_b]:text-(--ui-bad)",
         className,
       )}
       role="alert"
     >
-      <Icon name="close" size={14} className="mt-[3px] stroke-2 text-(--ui-bad)" />
-      <div>{children}</div>
+      {/* One sentence is the failure itself: it takes the title's red, as the artifact draws it. */}
+      <div className="grid gap-1">
+        {typeof children === "string" ? <b className="block">{children}</b> : children}
+      </div>
       {onRetry ? (
-        <Button tone="quiet" size="sm" className="-my-1 ml-auto flex-none" onClick={onRetry}>
+        <Button tone="quiet" size="sm" className={STATE_BUTTON} onClick={onRetry}>
           Try again
         </Button>
       ) : null}
@@ -223,7 +235,7 @@ export function LoadFailed({
   const f = failureOf(error, what);
   return (
     <Alert onRetry={f.again ? onRetry : undefined} className={className}>
-      <span className="block text-(--ui-ink)">{f.line}</span>
+      <b className="block">{f.line}</b>
       {raw && f.raw && f.raw !== f.line ? (
         <span className="mt-1 block font-mono text-[12px] text-(--ui-ink-3) break-all">
           {f.raw}

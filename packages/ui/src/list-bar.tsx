@@ -313,12 +313,11 @@ export function useLastUsed(
   }, [keep, json, key, meta.id]);
 }
 
+/** A view's tab (the artifact's `.nt-top .vw button`): 13 px 600, a leaf of 4 and 10; the row's `TabBar` underlines the one on screen. */
 const TAB =
-  "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 py-2.5 text-[13px] font-medium no-underline";
+  "flex shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] px-[9px] py-1.5 text-[13px] font-semibold no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash)";
 const tabTone = (on: boolean) =>
-  on
-    ? "border-transparent text-(--ui-ink)"
-    : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)";
+  on ? "text-(--ui-ink)" : "text-(--ui-ink-3) hover:text-(--ui-ink)";
 
 /** How many views show as tabs; the rest wait under More. */
 export const TABS = 5;
@@ -369,7 +368,7 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
         className={cn(
           phone
             ? "flex min-h-10 shrink-0 items-center gap-1 rounded-lg border-0 bg-(--ui-fill) px-3 text-[14px] font-medium text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
-            : cn(TAB, "rounded-none border-0 border-b-2 bg-transparent px-0", tabTone(!!on)),
+            : cn(TAB, "border-0 bg-transparent", tabTone(!!on)),
           on && "text-(--ui-ink)",
         )}
       >
@@ -484,10 +483,7 @@ export function ViewTabs({
       </div>
     );
   return (
-    <nav
-      className="relative flex gap-6 overflow-x-auto border-b border-(--ui-hair)"
-      aria-label="Views"
-    >
+    <nav className="relative flex gap-0.5 overflow-x-auto" aria-label="Views">
       <TabBar on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
       {tabs.map((v) =>
         v.saved ? (
@@ -503,7 +499,7 @@ export function ViewTabs({
             {v.saved.shared ? (
               <span className="text-[11px] font-normal text-(--ui-ink-3)">Team</span>
             ) : null}
-            {v.busy === undefined ? null : <Busy on={v.busy} />}
+            {v.busy ? <Busy on /> : null}
             {v.on ? menu : null}
           </span>
         ) : (
@@ -516,7 +512,7 @@ export function ViewTabs({
           >
             <span className="max-w-48 truncate">{v.label}</span>
             <span className="text-(--ui-ink-2)">{v.count !== undefined ? short(v.count) : ""}</span>
-            {v.busy === undefined ? null : <Busy on={v.busy} />}
+            {v.busy ? <Busy on /> : null}
           </a>
         ),
       )}
@@ -527,11 +523,12 @@ export function ViewTabs({
 }
 
 const ITEM =
-  "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
+  "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 [border-radius:var(--ui-leaf-nav)] border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-accent-wash) disabled:opacity-40";
+/** A field in the bar (the artifact's `.finp`): a hairline, a leaf of 6 and 10. */
 const INPUT =
-  "h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]";
-/** A view's name box: the bar's square look over the kit's input. */
-const NAME_BOX = cn(INPUT, "rounded-none md:text-[13px]");
+  "h-8 pointer-coarse:h-11 w-full rounded-[6px_10px_6px_10px] border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]";
+/** A view's name box: the bar's field over the kit's input. */
+const NAME_BOX = cn(INPUT, "md:text-[13px]");
 const sayOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** The open saved view's menu: rename, share, move, delete. */
@@ -752,11 +749,15 @@ function SaveView({
 /** Rows per state of each field, under every filter but that field's own (a page's `facets`). */
 export type Facets = Record<string, Record<string, number>>;
 
-/** One height, one hairline, one type size for every control in the bar. */
+/** A tool in the bar (the artifact's `.nt-top .tl button`): one height, no frame, 13 px 600 in ink-3. */
 export const CHIP =
-  "inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
+  "inline-flex h-8 pointer-coarse:h-11 shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] border-0 bg-transparent px-[9px] text-[13px] font-semibold text-(--ui-ink-3) transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink)";
+/** A tool that is on (`.tl button.on`): the accent on its tint. */
+const CHIP_ON =
+  "bg-(--ui-accent-tint) text-(--ui-active) hover:bg-(--ui-accent-tint) hover:text-(--ui-active)";
+/** A filter in force: a tool that is on, with its value and an ×. */
 const PILL =
-  "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px] hover:bg-(--ui-hover)";
+  "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center rounded-[4px_10px_4px_10px] bg-(--ui-accent-tint) text-[13px] font-semibold text-(--ui-active)";
 const POP = "w-72 gap-0 overflow-hidden bg-(--ui-paper) p-0 text-(--ui-ink)";
 const ROW =
   "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 px-2 text-left text-[13px] text-(--ui-ink) select-none";
@@ -975,7 +976,7 @@ function FilterPanel({
                   ref: inSight(i === nav.at),
                   onMouseMove: () => nav.setAt(i),
                   ...tipProps(v ? sayRaw(f, v) : undefined),
-                  className: cn(ROW, i === nav.at && "bg-(--ui-hover)"),
+                  className: cn(ROW, i === nav.at && "bg-(--ui-accent-wash)"),
                 } as const;
                 if (phone)
                   return (
@@ -1210,7 +1211,7 @@ export function ListBar({
     <button
       type="button"
       {...tipProps(sayFilters(params, filters))}
-      className={cn(CHIP, on.length && "text-(--ui-ink)")}
+      className={cn(CHIP, on.length && CHIP_ON)}
       onClick={() => openSheet(null)}
     >
       <FilterFace on={on.length} />
@@ -1220,7 +1221,7 @@ export function ListBar({
       <PopoverTrigger
         {...picker.trigger}
         {...tipProps(sayFilters(params, filters))}
-        className={cn(CHIP, on.length && "text-(--ui-ink)")}
+        className={cn(CHIP, on.length && CHIP_ON)}
       >
         <FilterFace on={on.length} />
       </PopoverTrigger>

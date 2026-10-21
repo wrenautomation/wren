@@ -50,7 +50,7 @@ export function TabBar({ on, row }: { on: string | undefined; row: string }) {
     <span
       ref={bar}
       aria-hidden="true"
-      className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-0 bg-(--ui-active) opacity-0 transition-[transform,width] duration-300 ease-(--ui-ease)"
+      className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-0 bg-(--ui-ink) opacity-0 transition-[transform,width] duration-300 ease-(--ui-ease)"
     />
   );
 }
