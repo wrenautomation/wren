@@ -196,7 +196,7 @@ export const MainAction: Story = {
   },
 };
 
-/** A wide screen floats a 560px panel; a phone slides up a sheet. */
+/** A wide screen docks the peek in the list's panel; a phone slides up a sheet. */
 export const PanelOrSheet: Story = {
   render: () => <Host />,
   play: async ({ canvasElement }) => {
@@ -205,8 +205,11 @@ export const PanelOrSheet: Story = {
     const peek = await peekOf();
     await within(peek).findByRole("heading", { name: "Ada North" });
     if (isWide(canvasElement)) {
+      // Docked in the list's panel (artifact `.nt-pk`): its right half, not over the page.
       expect(peek.tagName).toBe("ASIDE");
-      expect(Math.round(peek.getBoundingClientRect().width)).toBe(560);
+      expect(getComputedStyle(peek).position).toBe("absolute");
+      const list = canvasElement.querySelector("table")?.closest("[class*='grid-cols-2']");
+      expect(list?.contains(peek)).toBe(true);
     } else {
       expect(peek.getAttribute("role")).toBe("dialog");
       expect(peek.hasAttribute("data-sheet")).toBe(true);

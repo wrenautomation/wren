@@ -49,7 +49,7 @@ import {
   useRun,
 } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
-import { Button, ButtonLink } from "./controls.js";
+import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
 import { type Load, readCached, useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
@@ -1776,6 +1776,27 @@ function List({
   // Its rows' keys sit in the sheet on ?, not under the list.
   const keyLines = actionKeys(actions, rows);
   usePageKeys(keyLines.length ? { title: `On ${many}`, keys: keyLines } : null);
+  // A peek on a wide screen docks in the list's panel; the whole record, or a phone's, floats.
+  const docked = !!openId && !!peeked && !narrow;
+  const panel = openId ? (
+    <Panel
+      meta={meta}
+      types={types}
+      id={openId}
+      api={api}
+      place={place}
+      extras={extras}
+      acts={acts}
+      index={openIndex}
+      count={rows.length}
+      step={(d) => openAt(openIndex + d, true)}
+      rev={rev}
+      onActed={acted}
+      peek={peeked}
+      listRow={openRow}
+      docked={docked}
+    />
+  ) : null;
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1827,109 +1848,119 @@ function List({
       {
         // The artifact's `.nt`: one raised panel, its tools (`.nt-top`) over the rows. The last
         // row drops its rule, which the panel's rim draws. A phone's rows scroll with the page.
-        <div className="overflow-clip rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0">
-          <div className="px-3.5 pt-2.5 pb-2">
-            <ListBar
-              meta={meta}
-              place={place}
-              shown={new Set(cols.map((f) => f.key))}
-              keep={api.keep}
-              saved={saved}
-              facets={facetsOf(api, ask)}
-              display={
-                <>
-                  {display}
-                  <ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />
-                </>
-              }
-              end={
-                picked.size ? (
-                  <Bulk
-                    actions={actions}
-                    rows={rows}
-                    picked={picked}
-                    run={run}
-                    busy={acting}
-                    running={running}
-                    clear={() => setPicked(new Set())}
-                  />
-                ) : (
-                  // The count reads in the rows' foot (artifact `.ft`), not here.
-                  busy
-                )
-              }
-            />
-          </div>
-          {page.error && !page.data ? (
-            <div className="px-3.5 pb-3.5">
-              <LoadFailed error={page.error} onRetry={page.retry} />
-            </div>
-          ) : (
-            <div
-              ref={frameRef}
-              className={cn(!narrow && "max-h-[calc(100dvh-320px)] overflow-auto")}
-            >
-              <Rows
-                label={many}
-                noun={meta.name.one}
-                columns={columnsFor}
-                name={nameCol}
-                lines={rowLines}
-                loading={!page.data}
-                empty={!!page.data && !rows.length}
-                pick={pickOf}
-                act={actOf}
-                open={{
-                  id: openId,
-                  onOpen: (_, i) => {
-                    setCursor(i);
-                    openAt(i);
-                  },
-                }}
-                cursor={cursor}
-                rowState={(r) => {
-                  const id = String(r.id);
-                  return { going: going.get(id), changed: changed.has(id) && !page.loading };
-                }}
-                onSettled={() => setChanged(new Set())}
-                wait={late?.promise ? waitOf : undefined}
-                foot={foot}
-                group={grouped ? { folded, toggle: toggleGroup } : undefined}
-                scroller={frameEl}
-                narrow={narrow}
-                swipes={(r) =>
-                  withReply(
-                    swipesOf(actions, r, (a) => rowRun(a, r)),
-                    replyOn(r),
+        // A peek docks at its right (`.nt-pk`): the two halves share one rim.
+        <div className={cn(docked && "grid grid-cols-2")}>
+          <div
+            className={cn(
+              "overflow-clip bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",
+              docked ? "min-w-0 [border-radius:6px_0_0_24px]" : "rounded-(--ui-radius-panel)",
+            )}
+          >
+            <div className="px-3.5 pt-2.5 pb-2">
+              <ListBar
+                meta={meta}
+                place={place}
+                shown={new Set(cols.map((f) => f.key))}
+                keep={api.keep}
+                saved={saved}
+                facets={facetsOf(api, ask)}
+                display={
+                  <>
+                    {display}
+                    <ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />
+                  </>
+                }
+                end={
+                  picked.size ? (
+                    <Bulk
+                      actions={actions}
+                      rows={rows}
+                      picked={picked}
+                      run={run}
+                      busy={acting}
+                      running={running}
+                      clear={() => setPicked(new Set())}
+                    />
+                  ) : (
+                    // The count reads in the rows' foot (artifact `.ft`), not here.
+                    busy
                   )
                 }
               />
-              {page.data && !rows.length ? (
-                <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
-                  {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
-                  {!narrowed ? (
-                    <ElseWhere
-                      meta={meta}
-                      current={ask.view}
-                      counts={page.data.counts}
-                      place={place}
-                    />
-                  ) : null}
-                  {narrowed ? (
-                    <a
-                      href={place.link({
-                        q: null,
-                        ...Object.fromEntries(filtersOf(meta).map((f) => [f.key, null])),
-                      })}
-                      className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
-                    >
-                      Clear filters
-                    </a>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
-          )}
+            {page.error && !page.data ? (
+              <div className="px-3.5 pb-3.5">
+                <LoadFailed error={page.error} onRetry={page.retry} />
+              </div>
+            ) : (
+              <div
+                ref={frameRef}
+                className={cn(!narrow && "max-h-[calc(100dvh-320px)] overflow-auto")}
+              >
+                <Rows
+                  label={many}
+                  noun={meta.name.one}
+                  // A docked peek leaves the list its name and first two columns (`.nt-pk .nt`).
+                  columns={docked ? columnsFor.slice(0, 2) : columnsFor}
+                  name={nameCol}
+                  lines={rowLines}
+                  loading={!page.data}
+                  empty={!!page.data && !rows.length}
+                  pick={pickOf}
+                  act={actOf}
+                  open={{
+                    id: openId,
+                    onOpen: (_, i) => {
+                      setCursor(i);
+                      openAt(i);
+                    },
+                  }}
+                  cursor={cursor}
+                  rowState={(r) => {
+                    const id = String(r.id);
+                    return { going: going.get(id), changed: changed.has(id) && !page.loading };
+                  }}
+                  onSettled={() => setChanged(new Set())}
+                  wait={late?.promise ? waitOf : undefined}
+                  foot={foot}
+                  group={grouped ? { folded, toggle: toggleGroup } : undefined}
+                  scroller={frameEl}
+                  narrow={narrow}
+                  swipes={(r) =>
+                    withReply(
+                      swipesOf(actions, r, (a) => rowRun(a, r)),
+                      replyOn(r),
+                    )
+                  }
+                />
+                {page.data && !rows.length ? (
+                  <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
+                    {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
+                    {!narrowed ? (
+                      <ElseWhere
+                        meta={meta}
+                        current={ask.view}
+                        counts={page.data.counts}
+                        place={place}
+                      />
+                    ) : null}
+                    {narrowed ? (
+                      <a
+                        href={place.link({
+                          q: null,
+                          ...Object.fromEntries(filtersOf(meta).map((f) => [f.key, null])),
+                        })}
+                        className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
+                      >
+                        Clear filters
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+          {docked ? panel : null}
         </div>
       }
 
@@ -1943,24 +1974,7 @@ function List({
         narrow={narrow}
       />
 
-      {openId ? (
-        <Panel
-          meta={meta}
-          types={types}
-          id={openId}
-          api={api}
-          place={place}
-          extras={extras}
-          acts={acts}
-          index={openIndex}
-          count={rows.length}
-          step={(d) => openAt(openIndex + d, true)}
-          rev={rev}
-          onActed={acted}
-          peek={peeked}
-          listRow={openRow}
-        />
-      ) : null}
+      {openId && !docked ? panel : null}
       {dialog}
     </div>
   );
@@ -2145,11 +2159,9 @@ export function Kbd({ children }: { children: ReactNode }) {
 const ICON =
   "inline-flex size-8 pointer-coarse:size-11 border-0 bg-transparent items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30 transition-[background-color,color,scale] duration-150 ease-(--ui-ease) active:scale-[0.94]";
 
-/** The peek head's round buttons: the leaf corner and the accent hover, as the artifact's `.ib`. */
-const PEEK_ICON = cn(
-  ICON,
-  "[border-radius:var(--ui-leaf-button)] hover:bg-(--ui-accent-tint) hover:text-(--ui-link)",
-);
+/** The peek head's buttons, as the artifact's `.ib`: 28px, the leaf corner, the accent hover. */
+const PEEK_ICON =
+  "inline-grid size-7 flex-none cursor-pointer place-items-center border-0 bg-transparent p-0 text-(--ui-ink-3) no-underline transition-[background-color,color,opacity] duration-150 [border-radius:4px_10px_4px_10px] hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:bg-(--ui-accent-tint) focus-visible:text-(--ui-link) disabled:opacity-30 disabled:hover:bg-transparent pointer-coarse:size-11 motion-reduce:transition-none [&_svg]:size-4 [&_svg]:[stroke-width:1.9]";
 
 /** What the peek takes from the list: the same row actions and reply box the row itself uses. */
 export interface PeekWire {
@@ -2186,6 +2198,7 @@ export function Panel({
   onActed,
   peek,
   listRow,
+  docked = false,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -2202,6 +2215,8 @@ export function Panel({
   peek?: PeekWire | undefined;
   /** The row as the list holds it: the peek's head before its own read lands. */
   listRow?: Row | undefined;
+  /** The peek sits in the list's panel, at its right (artifact `.nt-pk`), not over the page. */
+  docked?: boolean;
 }) {
   const phone = usePhone();
   const shut = place.link({ [meta.name.one]: null, tab: null });
@@ -2292,32 +2307,35 @@ export function Panel({
         {body}
       </BottomSheet>
     );
-  return (
+  const aside = (
     <aside
       aria-label={cap(meta.name.one)}
       className={cn(
         ROOT,
-        // Off a phone it floats: inset from the edges, a sheet's corners, clipped to them.
-        "fixed inset-y-0 right-0 z-40 flex w-full flex-col bg-(--ui-paper) shadow-(--ui-shadow) sm:inset-y-2 sm:right-2 sm:w-[560px] sm:overflow-clip sm:rounded-(--ui-radius-sheet)",
+        docked
+          ? // The artifact's `.pk`: the panel's right half, its own height the list's.
+            "absolute inset-0 flex flex-col overflow-clip bg-(--ui-paper) [border-radius:0_24px_6px_0] shadow-[var(--ui-raise),-1px_0_0_var(--ui-hair)]"
+          : // Off a phone it floats: inset from the edges, a sheet's corners, clipped to them.
+            "fixed inset-y-0 right-0 z-40 flex w-full flex-col bg-(--ui-paper) shadow-(--ui-shadow) sm:inset-y-2 sm:right-2 sm:w-[560px] sm:overflow-clip sm:rounded-(--ui-radius-sheet)",
       )}
     >
       {peek ? (
-        // The peek's head: who it is, then the way to the whole record, the walk and the close.
-        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-(--ui-hair) px-4.5">
+        // The peek's head (artifact `.pk header`): who it is, then the way to the whole record,
+        // the walk and the close, as the artifact's `.ib`.
+        <div className="flex shrink-0 items-center gap-2.5 px-[18px] pt-4">
           {row ? (
             <PeekTitle avatar={avatar} title={title} className="flex-1" />
           ) : (
             <span className="flex-1" />
           )}
-          <ButtonLink
-            tone="secondary"
-            size="dense"
-            icon="expand"
+          <a
             href={place.page(id)}
+            className={PEEK_ICON}
+            aria-label="Open"
             {...tipProps("Open the full record", { as: "none" })}
           >
-            Open
-          </ButtonLink>
+            <Maximize2 />
+          </a>
           <button
             type="button"
             className={PEEK_ICON}
@@ -2326,7 +2344,7 @@ export function Panel({
             disabled={index <= 0}
             onClick={() => step(-1)}
           >
-            <ChevronUp className="size-4" />
+            <ChevronUp />
           </button>
           <button
             type="button"
@@ -2336,7 +2354,7 @@ export function Panel({
             disabled={index < 0 || index >= count - 1}
             onClick={() => step(1)}
           >
-            <ChevronDown className="size-4" />
+            <ChevronDown />
           </button>
           <a
             href={shut}
@@ -2344,7 +2362,7 @@ export function Panel({
             aria-label="Close"
             {...tipProps("Close", { keys: "Esc", as: "none" })}
           >
-            <X className="size-4" />
+            <X />
           </a>
         </div>
       ) : (
@@ -2402,13 +2420,16 @@ export function Panel({
         key={id}
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-10 max-sm:pb-[calc(96px+env(safe-area-inset-bottom))]",
-          peek ? "px-4.5 pt-4" : "px-4 pt-5 sm:px-6",
+          peek ? "px-[18px] pt-3" : "px-4 pt-5 sm:px-6",
+          docked && "pb-4",
         )}
       >
         {body}
       </div>
     </aside>
   );
+  // Docked, it takes the list's height and scrolls in it; a floating one is its own.
+  return docked ? <div className="relative min-h-[420px]">{aside}</div> : aside;
 }
 
 /**
