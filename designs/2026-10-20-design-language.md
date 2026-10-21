@@ -30,9 +30,9 @@ This doc supersedes the "banded funnel" form decision in `2026-10-19-business-ma
 
 **D. Map page on the renderer.** Home `/` draws the live shape with B, zoom and folds, node panel and History as overlays, edit mode on the new marks, Today from person tracks (owner and promise, late first, hover lights the line). Needs B and C1. Next after tonight.
 
-**E. Sidebar** and **F. Focus view**: proposals, below. They wait on William's yes in the artifact (section 13) and go last.
+**E. Sidebar** and **F. Focus view**: proposals, below. Built last. William checks them in the artifact (section 13).
 
-## Proposal E: sidebar (William, 2026-10-20; not set)
+## Proposal E: sidebar (William, 2026-10-20; built last)
 
 William: "our dashboard sidebar should be minimized a lot more, all those tools are conditional, and come attached to certain nodes / workflows. those systems are still first class, and within our admin system, i think all of them should be shown (but some of them will be for debugging, and some of them will actually exist as part of a real shape of our business, like platform outreach and youtube posting for example)."
 
@@ -46,7 +46,7 @@ William: "our dashboard sidebar should be minimized a lot more, all those tools 
 
 Open for William: pins vs recents for daily tools; whether a client sees Systems at all.
 
-## Proposal F: focus view (William, 2026-10-20; not set)
+## Proposal F: focus view (William, 2026-10-20; built last)
 
 William: "a system to isolate and open just a monthly retainer of the whole system, or even just a particular booking meeting, as it might have some data connected to it: links, funnels, sops, etc."
 
@@ -64,13 +64,13 @@ Open for William: should a focus page allow edits (a draft scoped to that part),
 
 ## Order and push policy
 
-Tonight: A and B (planner 1, at most 2 builders) and C1 (planner 2, 1 builder at xhigh). At most 3 builders across both. Then D and C2. E and F last, after William's yes.
+Tonight: A, B, then E (planner 1, at most 2 builders) and C1 with `attach` and `flows` last (planner 2, 1 builder at xhigh). At most 3 builders across both. Then D, C2, F.
 
-Push: A and B push when the hand-off gate passes; they are UI and reversible. C1 pushes only its additive half (schema, types, renderer data shape, converter as a CLI that is not run on prod). The conversion run on prod and the guard and drop migration wait for William's yes.
+Push: A, B and E push when the hand-off gate passes; they are UI and reversible. C1 pushes only its additive half (schema, types, renderer data shape, converter as a CLI that is not run on prod). The conversion run on prod and the guard and drop migration wait for William's yes.
 
 ## Decisions
 
 - The artifact is the source of truth; the repo holds a v12 copy of its source for builders. Why: William iterates in the artifact; builders need a fixed input they can read offline.
 - Metro replaces the banded funnel. Why: William picked the metro language through artifact v1 to v12; colour is the offer, weight is the job, the icon is what the person gives.
 - One renderer for the artifact, the stories and the app. Why: the spec and the app draw from the same code (section 10, "Map marks").
-- E and F are proposals and go last. Why: William: "these should be tackled last regardless since they aren't set in stone."
+- E and F go last and stay open to change. Why: William: "these should be tackled last regardless since they aren't set in stone."
