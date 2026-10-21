@@ -21,7 +21,7 @@ import { engage } from "./outreach/index.js";
 import { payments } from "./payments/index.js";
 import { clientPeople, people } from "./people/index.js";
 import { reactivation } from "./reactivation/index.js";
-import { settings } from "./settings/index.js";
+import { clientSettings, settings } from "./settings/index.js";
 import { clientSites, sites } from "./sites/index.js";
 import { texts } from "./texts/index.js";
 import { voice } from "./voice/index.js";
@@ -67,6 +67,8 @@ export const MODULES: Module[] = [
   clientCalendar,
   calendar,
   voice,
+  // One address, two apps, as People: a client's Admin in its own, Wren's Settings in Wren's.
+  clientSettings,
   settings,
   account,
 ];

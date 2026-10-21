@@ -122,7 +122,9 @@ export const NavigationSurvives = story(async ({ canvasElement }) => {
   await page.findByRole("button", { name: "Keep playing in the corner" });
   await waitFor(() => expect(audio(canvasElement)).not.toBeNull());
   const el = audio(canvasElement);
-  await userEvent.click(await page.findByRole("link", { name: "Learn" }));
+  // Learn's own page. A wide screen links it twice: the sidebar's row and the top bar.
+  const [learn] = await page.findAllByRole("link", { name: "Learn" });
+  if (learn) await userEvent.click(learn);
   const dock = await within(canvasElement.ownerDocument.body).findByRole("region", {
     name: "Mini player",
   });

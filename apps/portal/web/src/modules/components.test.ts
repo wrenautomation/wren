@@ -39,9 +39,17 @@ describe("apps and components", () => {
       "marketplace",
       "learn",
       "notes",
+      "settings",
       "account",
     ]);
-    expect(ids(false, [])).toEqual(["people", "marketplace", "learn", "notes", "account"]);
+    expect(ids(false, [])).toEqual([
+      "people",
+      "marketplace",
+      "learn",
+      "notes",
+      "settings",
+      "account",
+    ]);
     expect(ids(true, [])).toEqual([
       "work",
       "reactivation",
@@ -58,6 +66,7 @@ describe("apps and components", () => {
       "sites",
       "notes",
       "calendar",
+      "settings",
       "account",
     ]);
     expect(ids(false, ["calendar.booking"])).toEqual([
@@ -66,6 +75,7 @@ describe("apps and components", () => {
       "learn",
       "notes",
       "calendar",
+      "settings",
       "account",
     ]);
     expect(ids(false, ["research.lead_sheet"])).toEqual([
@@ -74,6 +84,7 @@ describe("apps and components", () => {
       "marketplace",
       "learn",
       "notes",
+      "settings",
       "account",
     ]);
     expect(ids(false, ["calls.outcome"])).toEqual([
@@ -82,6 +93,7 @@ describe("apps and components", () => {
       "marketplace",
       "learn",
       "notes",
+      "settings",
       "account",
     ]);
     expect(ids(false, ["marketing.stats"])).toEqual([
@@ -90,6 +102,7 @@ describe("apps and components", () => {
       "marketing",
       "learn",
       "notes",
+      "settings",
       "account",
     ]);
     // Wren's own Content in Wren's workspace, never the client's Marketing.
@@ -109,6 +122,7 @@ describe("apps and components", () => {
       "learn",
       "sites",
       "notes",
+      "settings",
       "account",
     ]);
   });

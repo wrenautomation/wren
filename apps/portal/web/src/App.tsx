@@ -44,7 +44,8 @@ import {
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
-import { areasOf, dockOf, phoneTabsOf } from "./areas.js";
+import { AppsProvider } from "./apps-context.js";
+import { dockOf, phoneTabsOf, sidebarOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
@@ -52,6 +53,7 @@ import { useCall } from "./load.js";
 import { keep, recall } from "./local.js";
 import { LookProvider } from "./look-pref.js";
 import { MapHome } from "./map/Home.js";
+import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
@@ -59,6 +61,7 @@ import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/c
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
 import { atWrenOf, MOVED_APPS, movedTo } from "./moved.js";
+import { homeIcon, homeOf, jumps } from "./palette-items.js";
 import { PlayerHost } from "./player/index.js";
 import { HandSwitch, keepOf, TemplatePage } from "./records.js";
 import { href, navigate, setWorkspace, useRoute } from "./route.js";
@@ -174,32 +177,6 @@ function useGoKeys(keys: Map<string, string>) {
     return () => removeEventListener("keydown", onKey, true);
   }, [keys]);
 }
-
-/** ⌘K's list: Today, then every page this viewer may open, by app, with its G key if it has one. */
-const jumps = (
-  apps: Module[],
-  launcher: string | undefined,
-  keys: Map<string, string>,
-): PaletteItem[] => {
-  const keyOf = new Map([...keys].map(([k, href]) => [href, `G ${k.toUpperCase()}`]));
-  return [
-    ...(launcher ? [{ label: "Today", group: "Wren", href: launcher, icon: "home" as const }] : []),
-    ...apps.flatMap((m) =>
-      m.pages
-        .filter((p) => !p.hidden)
-        .map((p) => ({
-          label: p.label,
-          group: m.name,
-          href: pathOf(m, p),
-          icon: m.icon,
-          // A parked app's pages stay here, tagged: it is out of the sidebar, not gone.
-          hint: m.parked
-            ? ["parked", keyOf.get(pathOf(m, p))].filter(Boolean).join(" ")
-            : keyOf.get(pathOf(m, p)),
-        })),
-    ),
-  ];
-};
 
 /**
  * The apps and pages this viewer may see (`requires`): the team's own only in team view, a
@@ -335,6 +312,7 @@ export function App() {
   const [only] = cards;
   // One app needs no Today: its first page is home.
   const launcher = cards.length > 1 ? "/" : undefined;
+  const homeLabel = homeOf(team);
   const home = launcher ?? (only ? firstOf(only) : "/");
   const account = apps.find((m) => m.menu);
 
@@ -355,18 +333,21 @@ export function App() {
   const [quick, setQuick] = useQuickNoteKey(noteAt !== null);
   // ⌘K finds records as you type in each app here that can (`find`: people, clients, deals,
   // workflows, templates, pages, Learn's items); never on a sample.
+  // Stations too: the live shape's nodes, each opening on the Map (Wren's team only).
   const finders = apps.filter((m) => m.find);
+  const stations = team && !!current && !sample;
   const finder =
-    current && !sample && finders.length
+    current && !sample && (finders.length || stations)
       ? async (q: string): Promise<PaletteItem[]> =>
           (
-            await Promise.all(
-              finders.map((m) =>
+            await Promise.all([
+              ...finders.map((m) =>
                 (m.find?.(q, current.id) ?? Promise.resolve([]))
                   .then((rows) => rows.map((r) => ({ ...r, group: m.name, icon: m.icon })))
                   .catch(() => []),
               ),
-            )
+              ...(stations ? [stationItems(current.id, q).catch(() => [])] : []),
+            ])
           ).flat()
       : undefined;
   // The team's snippets, inserted in any draft it writes: Wren's, wherever it drafts.
@@ -504,55 +485,71 @@ export function App() {
       : null;
   const action = open?.module.action;
   const counts = open ? (waiting[open.module.id] ?? {}) : {};
-  // Every app by area, what waits in each beside it; none with one app (the demo).
+  // The fixed items under the Map, what waits in each beside it; none with one app (the demo).
+  // An app opened from elsewhere (a pin, ⌘K, the Map) gets a row while it is open, so its pages show.
+  const rowOf = (m: Module, name = m.name) => ({
+    id: m.id,
+    name,
+    icon: m.icon,
+    href: firstOf(m),
+    count: appTotal(waiting[m.id]),
+    off: !wren && !!m.component && !installed.has(m.component),
+    pages: m.pages
+      .filter((p) => !p.hidden && p.id !== m.action?.page)
+      .map((p) => ({
+        id: p.id,
+        label: p.label,
+        href: pathOf(m, p),
+        ...(p.group ? { group: p.group } : {}),
+        ...(waiting[m.id]?.[p.id] ? { count: waiting[m.id]?.[p.id] } : {}),
+      })),
+  });
+  const fixed = sidebarOf(cards);
   const areas: NavArea[] | undefined = launcher
-    ? areasOf(cards, wren).map(({ area, apps }) => ({
-        id: area.id,
-        label: area.label,
-        ...(area.shut ? { shut: true } : {}),
-        apps: apps.map((m) => ({
-          id: m.id,
-          name: m.name,
-          icon: m.icon,
-          href: firstOf(m),
-          count: appTotal(waiting[m.id]),
-          off: !wren && !!m.component && !installed.has(m.component),
-          pages: m.pages
-            .filter((p) => !p.hidden && p.id !== m.action?.page)
-            .map((p) => ({
-              id: p.id,
-              label: p.label,
-              href: pathOf(m, p),
-              ...(p.group ? { group: p.group } : {}),
-              ...(waiting[m.id]?.[p.id] ? { count: waiting[m.id]?.[p.id] } : {}),
-            })),
-        })),
-      }))
+    ? [
+        {
+          id: "main",
+          label: "",
+          apps: [
+            ...fixed.map(({ label, app }) => rowOf(app, label)),
+            ...(open && !open.module.menu && !fixed.some((f) => f.app.id === open.module.id)
+              ? [rowOf(open.module)]
+              : []),
+          ],
+        },
+      ]
     : undefined;
 
-  // A phone's bottom tabs at home: Home (Today), then what he opens every day; Apps comes after.
+  // A phone's bottom tabs at home: the Map, then Inbox, People and his first pin; Apps comes after.
   const dock: DockItem[] | undefined = launcher
     ? [
-        // Today's number is its Move lines (Wren's only): what waits on him, across the apps.
+        // The Map's number is its Move lines (Wren's only): what waits on him, across the apps.
         {
           id: "home",
-          label: "Today",
-          icon: "home",
+          label: homeLabel,
+          icon: homeIcon(homeLabel),
           href: launcher,
           count: wren ? moves.count : undefined,
           on: !open,
         },
-        ...dockOf(cards, wren).map(({ app: m, pick }) => {
-          const page = pick.page ? m.pages.find((p) => p.id === pick.page) : undefined;
-          return {
-            id: page ? `${m.id}/${page.id}` : m.id,
-            label: pick.label ?? page?.label ?? m.name,
-            icon: pick.icon ?? m.icon,
-            href: page ? pathOf(m, page) : firstOf(m),
-            count: page ? waiting[m.id]?.[page.id] : appTotal(waiting[m.id]),
-            on: open?.module.id === m.id && (!page || lit === page.id),
-          };
-        }),
+        ...dockOf(cards, pins).map((d) =>
+          "pin" in d
+            ? {
+                id: `pin:${d.pin.href}`,
+                label: d.pin.label,
+                icon: d.pin.icon,
+                href: d.pin.href,
+                on: onPage === d.pin.href,
+              }
+            : {
+                id: d.app.id,
+                label: d.label,
+                icon: d.app.icon,
+                href: firstOf(d.app),
+                count: appTotal(waiting[d.app.id]),
+                on: open?.module.id === d.app.id,
+              },
+        ),
       ]
     : undefined;
 
@@ -573,205 +570,213 @@ export function App() {
     : [];
 
   return (
-    <SnippetsProvider source={snippets}>
-      {/* A failure's raw text, under its plain sentence: Wren's team only. */}
-      <ShowRawErrors value={team}>
-        <AppShell
-          brand={{ name: "Wren", href: home, stamp: STAMP }}
-          workspace={{
-            current,
-            chip: demo ? { label: "Sample company", href: `/${REACTIVATION}/real` } : undefined,
-            href: account ? firstOf(account) : undefined,
-            label: "Account",
-          }}
-          launcher={launcher}
-          home={launcher ? { label: "Today", href: launcher } : undefined}
-          areas={areas}
-          dock={dock}
-          bar={viewing ? <ViewAsStrip me={me.data} /> : undefined}
-          pins={railPins}
-          app={
-            open
-              ? {
-                  id: open.module.id,
-                  name: open.module.name,
-                  icon: open.module.icon,
-                  href: firstOf(open.module),
-                  tabs: openTabs,
-                  dock: phoneTabsOf(open.module.id, openTabs),
-                  current: lit,
-                  action:
-                    action && action.page !== open.page.id ? (
-                      <ButtonLink
-                        href={`/${open.module.id}/${action.page}`}
-                        tone="quiet"
-                        size="sm"
-                        icon={action.icon}
-                      >
-                        {action.label}
-                      </ButtonLink>
-                    ) : undefined,
-                }
-              : null
-          }
-          actions={
-            <>
-              {operator && !viewing && onDemo === false ? (
-                <Button tone="quiet" size="sm" onClick={() => openViewAs()}>
-                  View as
-                </Button>
-              ) : null}
-              {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
-              {current && onDemo === false && apps.some((m) => m.id === "learn") ? (
-                <LearnBell key={current.id} client={current.id} />
-              ) : null}
-              {account ? (
-                <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
-                  Account
-                </ButtonLink>
-              ) : null}
-              {signOutUrl ? (
-                <ButtonLink href={signOutUrl} tone="quiet" size="sm">
-                  Sign out
-                </ButtonLink>
-              ) : null}
-            </>
-          }
-          page={open ? pathOf(open.module, open.page) : "/"}
-          theme={theme}
-          display={display}
-          customize={
-            wren ? (
-              <a className={MORE_LINK} href="/settings/look">
-                Colors and type
-              </a>
-            ) : null
-          }
-          onGo={navigate}
-          at={`${location.pathname}${location.search}`}
-          deep={!!open && route.path.length > 2}
-          wide={open ? "template" in open.page || ("wide" in open.page && !!open.page.wide) : team}
-          bleed={!open && team && !!current}
-        >
-          {!current ? (
-            <Loading lines={8} heading />
-          ) : open && missing ? (
-            <Empty
-              action={
-                <ButtonLink
-                  tone="primary"
-                  size="dense"
-                  href={`/marketplace/catalog/${encodeURIComponent(missing)}`}
-                >
-                  Open in Marketplace
-                </ButtonLink>
-              }
-            >
-              {open.module.name} isn't installed for {current.name}.
-            </Empty>
-          ) : open ? (
-            <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
-              <LookProvider value={wren ? myLook : null}>
-                <AboutProvider value={open.page.about}>
-                  <Suspense fallback={<Loading lines={8} heading />}>
-                    {"Page" in open.page ? (
-                      open.page.across ? (
-                        <HandSwitch
-                          {...props(current.id)}
-                          across={open.page.across}
-                          path={pathOf(open.module, open.page)}
-                        >
-                          <open.page.Page {...props(current.id)} />
-                        </HandSwitch>
-                      ) : (
-                        <open.page.Page {...props(current.id)} />
-                      )
-                    ) : (
-                      <TemplatePage
-                        {...props(current.id)}
-                        app={open.module.name}
-                        page={open.page}
-                        path={pathOf(open.module, open.page)}
-                        id={route.path[2]}
-                      />
-                    )}
-                  </Suspense>
-                </AboutProvider>
-              </LookProvider>
-            </Contained>
-          ) : team ? (
-            <MapHome
-              key={current.id}
-              props={props(current.id)}
-              clients={clients}
-              today={
-                wren ? (
-                  <WrenToday
-                    docked
-                    apps={cards}
-                    waiting={waiting}
-                    read={waitRead}
-                    moves={moves}
-                    pins={pins}
-                    props={props(current.id)}
-                  />
-                ) : (
-                  <ClientToday
-                    docked
-                    key={current.id}
-                    name={current.name}
-                    apps={cards}
-                    waiting={waiting}
-                    read={waitRead}
-                    installed={installed}
-                    props={props(current.id)}
-                    pins={pins}
-                  />
-                )
-              }
-            />
-          ) : (
-            <ClientToday
-              key={current.id}
-              name={current.name}
-              apps={cards}
-              waiting={waiting}
-              read={waitRead}
-              installed={installed}
-              props={props(current.id)}
-              pins={pins}
-            />
-          )}
-        </AppShell>
-      </ShowRawErrors>
-      <Toasts />
-      {/* The one player: over a page's slot, or docked bottom-right when the page goes. */}
-      <PlayerHost />
-      {operator || viewing ? <ViewAsPicker /> : null}
-      {noteAt && quick ? <QuickNote client={noteAt} open={quick} onOpenChange={setQuick} /> : null}
-      {!operator && onDemo === false && current && current.id !== WREN.id ? (
-        <SurveyCard client={current.id} />
-      ) : null}
-      {jump === null ? null : (
-        <Suspense fallback={null}>
-          <CommandPalette
-            open={jump}
-            onOpenChange={setJump}
-            items={[...jumps(apps, launcher, keys), ...viewAsItem, ...others]}
-            onPick={(href) => (href === VIEW_AS_HREF ? openViewAs() : navigate(href))}
-            capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
-            card={noteAt ? (title) => void makeCard(noteAt, title) : undefined}
-            find={finder}
-            recentKey={finder ? current?.id : undefined}
-            ask={
-              me.data?.team?.wren.includes("run")
-                ? (q) => void askClaude(q, location.pathname + location.search)
-                : undefined
+    <AppsProvider value={cards}>
+      <SnippetsProvider source={snippets}>
+        {/* A failure's raw text, under its plain sentence: Wren's team only. */}
+        <ShowRawErrors value={team}>
+          <AppShell
+            brand={{ name: "Wren", href: home, stamp: STAMP }}
+            workspace={{
+              current,
+              chip: demo ? { label: "Sample company", href: `/${REACTIVATION}/real` } : undefined,
+              href: account ? firstOf(account) : undefined,
+              label: "Account",
+            }}
+            launcher={launcher}
+            home={
+              launcher ? { label: homeLabel, href: launcher, icon: homeIcon(homeLabel) } : undefined
             }
-          />
-        </Suspense>
-      )}
-    </SnippetsProvider>
+            areas={areas}
+            dock={dock}
+            bar={viewing ? <ViewAsStrip me={me.data} /> : undefined}
+            pins={railPins}
+            app={
+              open
+                ? {
+                    id: open.module.id,
+                    name: open.module.name,
+                    icon: open.module.icon,
+                    href: firstOf(open.module),
+                    tabs: openTabs,
+                    dock: phoneTabsOf(open.module.id, openTabs),
+                    current: lit,
+                    action:
+                      action && action.page !== open.page.id ? (
+                        <ButtonLink
+                          href={`/${open.module.id}/${action.page}`}
+                          tone="quiet"
+                          size="sm"
+                          icon={action.icon}
+                        >
+                          {action.label}
+                        </ButtonLink>
+                      ) : undefined,
+                  }
+                : null
+            }
+            actions={
+              <>
+                {operator && !viewing && onDemo === false ? (
+                  <Button tone="quiet" size="sm" onClick={() => openViewAs()}>
+                    View as
+                  </Button>
+                ) : null}
+                {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
+                {current && onDemo === false && apps.some((m) => m.id === "learn") ? (
+                  <LearnBell key={current.id} client={current.id} />
+                ) : null}
+                {account ? (
+                  <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
+                    Account
+                  </ButtonLink>
+                ) : null}
+                {signOutUrl ? (
+                  <ButtonLink href={signOutUrl} tone="quiet" size="sm">
+                    Sign out
+                  </ButtonLink>
+                ) : null}
+              </>
+            }
+            page={open ? pathOf(open.module, open.page) : "/"}
+            theme={theme}
+            display={display}
+            customize={
+              wren ? (
+                <a className={MORE_LINK} href="/settings/look">
+                  Colors and type
+                </a>
+              ) : null
+            }
+            onGo={navigate}
+            at={`${location.pathname}${location.search}`}
+            deep={!!open && route.path.length > 2}
+            wide={
+              open ? "template" in open.page || ("wide" in open.page && !!open.page.wide) : team
+            }
+            bleed={!open && team && !!current}
+          >
+            {!current ? (
+              <Loading lines={8} heading />
+            ) : open && missing ? (
+              <Empty
+                action={
+                  <ButtonLink
+                    tone="primary"
+                    size="dense"
+                    href={`/marketplace/catalog/${encodeURIComponent(missing)}`}
+                  >
+                    Open in Marketplace
+                  </ButtonLink>
+                }
+              >
+                {open.module.name} isn't installed for {current.name}.
+              </Empty>
+            ) : open ? (
+              <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
+                <LookProvider value={wren ? myLook : null}>
+                  <AboutProvider value={open.page.about}>
+                    <Suspense fallback={<Loading lines={8} heading />}>
+                      {"Page" in open.page ? (
+                        open.page.across ? (
+                          <HandSwitch
+                            {...props(current.id)}
+                            across={open.page.across}
+                            path={pathOf(open.module, open.page)}
+                          >
+                            <open.page.Page {...props(current.id)} />
+                          </HandSwitch>
+                        ) : (
+                          <open.page.Page {...props(current.id)} />
+                        )
+                      ) : (
+                        <TemplatePage
+                          {...props(current.id)}
+                          app={open.module.name}
+                          page={open.page}
+                          path={pathOf(open.module, open.page)}
+                          id={route.path[2]}
+                        />
+                      )}
+                    </Suspense>
+                  </AboutProvider>
+                </LookProvider>
+              </Contained>
+            ) : team ? (
+              <MapHome
+                key={current.id}
+                props={props(current.id)}
+                clients={clients}
+                today={
+                  wren ? (
+                    <WrenToday
+                      docked
+                      apps={cards}
+                      waiting={waiting}
+                      read={waitRead}
+                      moves={moves}
+                      pins={pins}
+                      props={props(current.id)}
+                    />
+                  ) : (
+                    <ClientToday
+                      docked
+                      key={current.id}
+                      name={current.name}
+                      apps={cards}
+                      waiting={waiting}
+                      read={waitRead}
+                      installed={installed}
+                      props={props(current.id)}
+                      pins={pins}
+                    />
+                  )
+                }
+              />
+            ) : (
+              <ClientToday
+                key={current.id}
+                name={current.name}
+                apps={cards}
+                waiting={waiting}
+                read={waitRead}
+                installed={installed}
+                props={props(current.id)}
+                pins={pins}
+              />
+            )}
+          </AppShell>
+        </ShowRawErrors>
+        <Toasts />
+        {/* The one player: over a page's slot, or docked bottom-right when the page goes. */}
+        <PlayerHost />
+        {operator || viewing ? <ViewAsPicker /> : null}
+        {noteAt && quick ? (
+          <QuickNote client={noteAt} open={quick} onOpenChange={setQuick} />
+        ) : null}
+        {!operator && onDemo === false && current && current.id !== WREN.id ? (
+          <SurveyCard client={current.id} />
+        ) : null}
+        {jump === null ? null : (
+          <Suspense fallback={null}>
+            <CommandPalette
+              open={jump}
+              onOpenChange={setJump}
+              items={[...jumps(apps, launcher, homeLabel, keys), ...viewAsItem, ...others]}
+              onPick={(href) => (href === VIEW_AS_HREF ? openViewAs() : navigate(href))}
+              capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
+              card={noteAt ? (title) => void makeCard(noteAt, title) : undefined}
+              find={finder}
+              recentKey={finder ? current?.id : undefined}
+              ask={
+                me.data?.team?.wren.includes("run")
+                  ? (q) => void askClaude(q, location.pathname + location.search)
+                  : undefined
+              }
+            />
+          </Suspense>
+        )}
+      </SnippetsProvider>
+    </AppsProvider>
   );
 }
 

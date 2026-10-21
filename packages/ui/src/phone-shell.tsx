@@ -124,7 +124,7 @@ export function usePhoneWalk({
     const items = dock ?? (home ? [{ ...home, id: HOME, icon: "home" as IconName }] : []);
     const homeTab = items.find((d) => d.id === HOME);
     // No badge on Home: what waits there is counted again on the tabs and apps it waits in.
-    const first = homeTab ? [{ ...homeTab, label: "Home", count: undefined, holds: [HOME] }] : [];
+    const first = homeTab ? [{ ...homeTab, count: undefined, holds: [HOME] }] : [];
     if (!app)
       return {
         tabs: [

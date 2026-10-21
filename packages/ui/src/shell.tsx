@@ -107,10 +107,12 @@ export interface NavArea {
   shut?: boolean | undefined;
 }
 
-/** The sidebar's first link: Today. */
+/** The sidebar's first link: the Map, or Today. */
 export interface NavHome {
   label: string;
   href: string;
+  /** Its mark; Today's home when left out. */
+  icon?: IconName | undefined;
   count?: number | undefined;
 }
 
@@ -867,7 +869,7 @@ function Fold({ app, open, shown }: { app: NavApp; open: OpenApp | null; shown: 
 const FINE_POINTER = "(hover: hover) and (pointer: fine)";
 
 /**
- * Beside the window: home, the pins, then every app under its area, the open one marked. An area
+ * Beside the window: home (the Map), the fixed apps, then the pins, the open one marked. An area
  * of one app needs no heading. A closed app's pages show beside its row on hover.
  */
 function SideNav({
@@ -961,7 +963,7 @@ function SideNav({
           aria-current={app ? undefined : "true"}
           {...(folded ? tipProps(home.label, { side: "right", as: "none" }) : {})}
         >
-          <Icon name="home" />
+          <Icon name={home.icon ?? "home"} />
           <span className={folded ? "sr-only" : "min-w-0 truncate"} {...clipProps()}>
             {home.label}
           </span>
@@ -972,23 +974,14 @@ function SideNav({
           ) : null}
         </a>
       ) : null}
-      {pins && !folded ? (
-        <PinnedRail
-          pins={pins.pins}
-          current={pins.current}
-          onMove={pins.onMove}
-          onRemove={pins.onRemove}
-          onClear={pins.onClear}
-        />
-      ) : null}
       <nav aria-label="Apps" className="flex flex-col gap-2">
         {shown.map((area) => (
           <section key={area.id} className="flex flex-col gap-0.5">
-            {area.apps.length > 1 && folded ? (
+            {area.label && area.apps.length > 1 && folded ? (
               <h2 className="mx-1.5 my-1 h-0 overflow-hidden border-t border-(--ui-hair) text-[0px]">
                 {area.label}
               </h2>
-            ) : area.apps.length > 1 ? (
+            ) : area.label && area.apps.length > 1 ? (
               <h2 className={cx(GROUP, "mt-0 border-t-0 pt-2 pr-1")}>
                 <button
                   type="button"
@@ -1063,6 +1056,15 @@ function SideNav({
           </section>
         ))}
       </nav>
+      {pins && !folded ? (
+        <PinnedRail
+          pins={pins.pins}
+          current={pins.current}
+          onMove={pins.onMove}
+          onRemove={pins.onRemove}
+          onClear={pins.onClear}
+        />
+      ) : null}
       {hovered?.pages && menu.open ? (
         // A closed app's pages beside its row; the triangle keeps it open on the way over.
         <div

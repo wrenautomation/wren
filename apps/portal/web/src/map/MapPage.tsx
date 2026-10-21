@@ -62,7 +62,7 @@ import { graphOf, LOOK, type MapData, WINDOWS, type Window, windowOf } from "./m
 import { NodePanel } from "./NodePanel.js";
 import { AT_LEFT } from "./overlay.js";
 import { useDiffOf, useDraftDetail, useMap } from "./read.js";
-import { opensOf } from "./routes.js";
+import { nodeOfParams, opensOf } from "./routes.js";
 
 /** The palette: the four parts a shape is made of. */
 const PARTS: readonly PaletteGroup[] = [
@@ -172,7 +172,9 @@ export function MapPage({
   // A server draft opened in edit mode: `?edit=1&draft=<id>`.
   const draftId = editing ? draftIdOf(props.params.get("draft")) : null;
 
-  const [selected, setSelected] = useState<string | null>(null);
+  // `?node=` opens a node's panel: a link from ⌘K or Admin → Systems, or a click kept in the address.
+  const named = nodeOfParams(props.params);
+  const [selected, setSelected] = useState<string | null>(named);
   const [line, setLine] = useState<string | null>(null);
   const [history, setHistory] = useState(false);
   const [tab, setTab] = useState<HistoryTab>("versions");
@@ -236,7 +238,15 @@ export function MapPage({
   const select = (id: string | null) => {
     setSelected(id);
     setLine(null);
+    if (id !== named) navigate(href("/", { node: id }, props.params), true);
   };
+  // A new address that names a node (⌘K while the Map is open) opens it.
+  useEffect(() => {
+    if (named) {
+      setSelected(named);
+      setLine(null);
+    }
+  }, [named]);
   const setEdit = (on: boolean) =>
     go("/", { edit: on ? "1" : null, ...(on ? {} : { draft: null }) }, props.params);
   const closeHistory = () => {

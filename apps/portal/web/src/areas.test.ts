@@ -1,10 +1,19 @@
 /** Every app sits in one area, and an area shows only the apps a workspace has. */
 import { describe, expect, it } from "vitest";
-import { AREAS_CLIENT, AREAS_TEAM, areasOf, dockOf, pageIcon, phoneTabsOf } from "./areas.js";
+import {
+  AREAS_CLIENT,
+  AREAS_TEAM,
+  areasOf,
+  dockOf,
+  pageIcon,
+  phoneTabsOf,
+  SIDEBAR,
+  sidebarOf,
+} from "./areas.js";
 
 // The apps read the page's address as they load; a bare one does here.
 Object.assign(globalThis, { location: new URL("https://app.example.test/") });
-const { MODULES } = await import("./modules/index.js");
+const { MODULES, appsIn } = await import("./modules/index.js");
 
 const team = (m: { requires?: { audience?: string } }) => m.requires?.audience === "team";
 
@@ -64,33 +73,65 @@ describe("areas", () => {
     expect(areasOf(apps, true).flatMap((a) => a.apps.map((m) => m.id))).toEqual(["calendar"]);
   });
 
-  it("docks the daily pages a team has, then its first apps", () => {
-    const pages = (...ids: string[]) => ids.map((id) => ({ id }));
-    const wren = [
-      { id: "notes", pages: pages("home") },
-      { id: "inbox", pages: pages("mail") },
-      { id: "pipelines", pages: pages("board") },
-      { id: "content", pages: pages("plan", "studio", "pieces") },
-      { id: "engage", pages: pages("engage", "dms") },
-    ];
-    expect(dockOf(wren, true).map((d) => d.pick.page ?? d.app.id)).toEqual([
-      "pipelines",
-      "studio",
-      "engage",
-    ]);
-    // A parked app never docks, even as a first app.
-    const bare = [{ id: "notes", parked: true as const, pages: pages("home") }, wren[1]];
-    expect(dockOf(bare as typeof wren, true).map((d) => d.app.id)).toEqual(["inbox"]);
+  it("fixes the sidebar at Inbox, People, Money, Admin, each an app that exists", () => {
+    expect(SIDEBAR.map((i) => i.label)).toEqual(["Inbox", "People", "Money", "Admin"]);
+    const wren = MODULES.filter(team);
+    for (const i of SIDEBAR)
+      expect(
+        wren.map((m) => m.id),
+        i.app,
+      ).toContain(i.app);
   });
 
-  it("docks a client's first apps by area, with no daily picks", () => {
-    const pages = (...ids: string[]) => ids.map((id) => ({ id }));
-    const client = [
-      { id: "notes", pages: pages("home") },
-      { id: "marketing", pages: pages("inbox") },
-      { id: "money", pages: pages("x") },
-    ];
-    expect(dockOf(client, false).map((d) => d.app.id)).toEqual(["marketing", "money", "notes"]);
+  it("gives Wren's team all four items, in order, and skips an app a workspace lacks", () => {
+    const apps = ["settings", "money", "people", "inbox", "content"].map((id) => ({ id }));
+    expect(sidebarOf(apps).map((i) => [i.label, i.app.id])).toEqual([
+      ["Inbox", "inbox"],
+      ["People", "people"],
+      ["Money", "money"],
+      ["Admin", "settings"],
+    ]);
+    // A client has no Inbox or Money app: People and Admin only.
+    expect(
+      sidebarOf([{ id: "people" }, { id: "marketing" }, { id: "settings" }]).map((i) => i.label),
+    ).toEqual(["People", "Admin"]);
+    expect(
+      sidebarOf([{ id: "inbox", parked: true as const }, { id: "money" }]).map((i) => i.label),
+    ).toEqual(["Money"]);
+  });
+
+  it("finds the real items in each workspace's apps", () => {
+    const all = new Set(MODULES.flatMap((m) => (m.component ? [m.component] : [])));
+    for (const wren of [true, false]) {
+      const apps = appsIn(MODULES, { wren, team: wren, installed: all });
+      expect(sidebarOf(apps).map((i) => i.label)).toEqual(
+        wren ? ["Inbox", "People", "Money", "Admin"] : ["People", "Admin"],
+      );
+    }
+  });
+
+  it("docks Inbox, People, then the first pin that opens", () => {
+    const apps = [{ id: "inbox" }, { id: "people" }, { id: "money" }, { id: "content" }];
+    const pins = [{ href: "/content/studio" }, { href: "/engage/engage" }];
+    expect(dockOf(apps, pins).map((d) => ("pin" in d ? d.pin.href : d.app.id))).toEqual([
+      "inbox",
+      "people",
+      "/content/studio",
+    ]);
+    expect(dockOf(apps, [])).toHaveLength(2);
+  });
+
+  it("docks fewer when a workspace lacks an item, and never past the bar", () => {
+    const client = [{ id: "people" }, { id: "settings" }];
+    expect(
+      dockOf(client, [{ href: "/marketing/content" }]).map((d) =>
+        "pin" in d ? d.pin.href : d.app.id,
+      ),
+    ).toEqual(["people", "/marketing/content"]);
+    // A parked app never docks.
+    expect(dockOf([{ id: "inbox", parked: true as const }], [])).toEqual([]);
+    const pins = [{ href: "/a" }, { href: "/b" }];
+    expect(dockOf([{ id: "inbox" }, { id: "people" }], pins, 3)).toHaveLength(2);
   });
 });
 

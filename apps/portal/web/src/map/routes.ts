@@ -88,3 +88,57 @@ export function opensOf(
 ): { label: string; href: string }[] {
   return ROUTES[rowOf(n)][place].map((t) => ({ label: t.label, href: linkOf(t, n, client) }));
 }
+
+/** What `appsOnShape` reads of a node. A parked source opens nothing, so it names no app. */
+export type NodeRef = Pick<ShapeNode, "id" | "name" | "kind"> & {
+  via?: string;
+  channel?: string;
+  parked?: true | undefined;
+};
+
+/**
+ * The apps the live nodes open, each with the nodes that open it, in node order. It reads the one
+ * table above, so an app's place on the shape never has a second source. A parked node is not live.
+ */
+export function appsOnShape(
+  nodes: readonly NodeRef[],
+  place: Place,
+): Map<string, { id: string; name: string }[]> {
+  const out = new Map<string, { id: string; name: string }[]>();
+  for (const n of nodes) {
+    if (n.parked) continue;
+    for (const t of ROUTES[rowOf(n)][place]) {
+      const list = out.get(t.app) ?? [];
+      if (!list.some((x) => x.id === n.id)) list.push({ id: n.id, name: n.name });
+      out.set(t.app, list);
+    }
+  }
+  return out;
+}
+
+/**
+ * Admin → Systems: the apps a viewer may open in two groups. "On your shape" holds each app a live
+ * node opens, with those nodes. "Not on the shape" holds the rest. A parked app is in neither.
+ */
+export function systemsOf<A extends { id: string; parked?: true | undefined }>(
+  apps: readonly A[],
+  nodes: readonly NodeRef[],
+  place: Place,
+): { onShape: { app: A; nodes: { id: string; name: string }[] }[]; rest: A[] } {
+  const on = appsOnShape(nodes, place);
+  const shown = apps.filter((m) => !m.parked);
+  return {
+    onShape: shown.flatMap((app) => {
+      const held = on.get(app.id);
+      return held ? [{ app, nodes: held }] : [];
+    }),
+    rest: shown.filter((m) => !on.has(m.id)),
+  };
+}
+
+/** A station on the Map: the Map's home, with the node open. */
+export const mapNodeHref = (nodeId: string, client: string | null): string =>
+  href("/", { node: nodeId, client });
+
+/** The node a Map address names (`?node=`), or none. The Map opens it, as a click would. */
+export const nodeOfParams = (params: URLSearchParams): string | null => params.get("node") || null;
