@@ -59,3 +59,28 @@ Push: A, B and E push when the hand-off gate passes; they are UI and reversible.
 - One renderer for the artifact, the stories and the app. Why: the spec and the app draw from the same code (section 10, "Map marks").
 - Sidebar has five fixed items, tools attach to the shape, Admin lists all. Why: William: tools are "conditional, and come attached to certain nodes / workflows" but "still first class".
 - Pins over recents. Why: recents move under the hand; a pin stays where the person put it.
+
+## Decisions (planner C1, 2026-10-20)
+
+Briefs: `designs/briefs/2026-10-20-design-language-c1.md`.
+
+- Two models in one column. A body with `model: "metro"` is the new model; a body without it is the graph. Why: old code runs on the first step, and no migration is needed for it.
+- The runtime keeps the graph. `runOf` lowers a metro body with `graphOf`, the exact inverse of the converter. Why: workflow, moves and deals stay the same after a convert, and Restate replays each `shape.v<n>` unchanged. Logic stations, exits, frames and links are types and checks only until the runtime runs them.
+- Ids are identities. Station id = node id, track id = edge id, out line id = source id, offer line id = offer node id. Why: journeys, deals, research and the trail need no remap, and history keeps the old ids.
+- Ids are unique within each kind (lines, stations, tracks, groups, frames, flows), not across kinds. Why: the artifact's own samples give a line and a group one id (`rd`); a focus URL names the kind. A station keeps its id across versions; versions only add and remove.
+- Each source becomes an out line with one start station (its id) and a track to the hub. Each source edge becomes an entry on a hub track (`entries`). Why: outreach ends at the hub, and the runtime still knows which station each source lands on (DM source on `dm`, ads on `visit`).
+- The hub holds no one in C1. It is the opening. Why: nobody sits on a source today.
+- Each offer node becomes an offer line (tier core) and a station on it with `deal: true`. Steps go on the line of the nearest deal station downstream. Why: the artifact draws the sales steps after the hub on the offer's line.
+- The deal still opens at the deal station (today's offer node). The artifact's rule ("a deal opens at the first station of an offer line") would open deals at the first step after the hub. `wren shape convert` reports how many open journeys that moves. Open for William.
+- Plan nodes become cash stations with `terms` and `offer`. Price stays off the station (C2).
+- Columns: comment, reply, dm, email, text, cta and visit are marketing; other steps and the deal station are sales; steps after a deal station are delivery; cash is money. A column never goes left along a track. Why: today has no column; this is the nearest rule the artifact shows.
+- Kinds: proposal, signed and other are attention, as the artifact's Proposal station.
+- `placesOf` replaces `depthOf`: column first, then path. It is stored in `depths` for metro bodies, so the SQL readers and the web read it unchanged. The column takes the name `places` in the HELD part.
+- Loops become `back` tracks, not exits. Why: crossing one opens a new journey, as a loop does today.
+- Display names are `label` and colours are a token index, as the renderer's view. Group membership lives on the group (`stations[]`), not on the station.
+- Hold and version chips are numbers, not stored fields. The retry cap is `retries` on the station.
+- Flows live in the body, not in a table of their own. Why: a journey pins one version; a separate versioned flow would need a second pin per journey, and diff, blame and the mirror already work on one body.
+- `attach` holds refs only (an id or a URL), never content.
+- The portal web keeps the graph (`runOf`) until area D. Why: the web Map reads nodes and edges.
+- Push: parts 1 to 3 are additive. Part 4 (graph bodies refused, `depths` renamed) is HELD with the prod convert, for William's yes, and waits for area D.
+- C2 items stay out: repeat, bundles, credits, packages, delivery loops, rewarm.
