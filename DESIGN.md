@@ -314,7 +314,7 @@ Source: `components/ui/input.tsx`, `textarea.tsx`, `fields.tsx`, `form.tsx`.
 - Disabled: opacity 50%.
 - Coarse pointers: font 16 px (no iOS zoom), checkbox 22 px.
 - Textareas grow (`field-sizing: content`, min 64 px).
-- Checkboxes use `accent-color: ink`.
+- Checkboxes (artifact `.ck .bx`, one base rule in `tailwind.css`): 20 px, radius 6, a 1.6 px ink-3 ring. Checked, the accent fills and a tick draws (200 ms, `--ui-spring`). Mixed, a bar. Focus is the global 2 px ring.
 
 ### Lists and records
 
