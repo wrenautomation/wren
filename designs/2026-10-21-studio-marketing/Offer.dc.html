@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer builder, the line it runs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#f3f1ec;color:#0e0e0e;font-family:"Figtree",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0e0e0e;text-decoration:none}a:hover{color:#6a5a93}
+button{font:inherit;color:inherit;cursor:pointer}
+.st{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:6px 18px 6px 18px;background:#fff;box-shadow:0 0 0 1px rgba(14,14,14,.11);min-width:0;position:relative}
+.st:hover{box-shadow:0 0 0 1px rgba(106,90,147,.6),0 6px 18px -8px rgba(40,30,70,.25)}
+.dot{position:absolute;left:-7px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:#fff;border:3px solid #6a5a93;box-sizing:border-box}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:1000px;width:100%;max-width:1440px;margin:0 auto;box-sizing:border-box">
+
+  <nav aria-label="Main" style="width:208px;box-sizing:border-box;padding:20px 14px;display:flex;flex-direction:column;gap:2px;border-right:1px solid rgba(14,14,14,.11)">
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 10px 18px">
+      <span aria-hidden="true" style="width:22px;height:22px;border-radius:5px 11px 5px 11px;background:#6a5a93;display:inline-block"></span>
+      <span style="font-weight:800;font-size:15px;letter-spacing:-.01em">Wren</span>
+    </div>
+    <a href="Offer.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:600;color:#0e0e0e;background:rgba(106,90,147,.10)">Map</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Inbox<span style="margin-left:auto;font-size:12px;color:#63645e">14</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">People</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Money</a>
+    <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Admin</a>
+    <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e;padding:18px 10px 6px">Pinned</div>
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Studio</a>
+    <a href="Inbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Engage<span style="margin-left:auto;font-size:12px;color:#63645e">9</span></a>
+    <a href="Outbound.dc.html" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px 14px 6px 14px;font-size:14px;font-weight:500;color:#56564f">Outbound</a>
+  </nav>
+
+  <main style="flex:999 1 560px;min-width:0;padding:28px 36px 40px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+
+    <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:13px;color:#63645e;font-weight:500;display:flex;align-items:center;gap:8px"><a href="#" style="color:#63645e">Map</a><span aria-hidden="true">/</span><span>Line</span></div>
+        <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:12px"><span aria-hidden="true" style="width:18px;height:18px;border-radius:5px;background:#6a5a93;display:inline-block"></span>Offer builder</h1>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-left:4px">
+        <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px 8px 4px 8px;background:rgba(106,90,147,.10);color:#0e0e0e">core</span>
+        <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px 8px 4px 8px;background:rgba(14,14,14,.05);color:#56564f">$1.5k + $500 a meeting</span>
+        <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px 8px 4px 8px;background:rgba(14,14,14,.05);color:#56564f">live since Oct 1</span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button style="padding:8px 14px;font-size:13px;font-weight:600;border:1px solid rgba(14,14,14,.11);background:#fff;border-radius:6px 14px 6px 14px">Edit the offer</button>
+        <a href="Main.dc.html" style="padding:8px 14px;font-size:13px;font-weight:600;border:0;background:#6a5a93;color:#faf7f2;border-radius:6px 14px 6px 14px;display:inline-flex">Make something for it</a>
+      </div>
+    </header>
+
+    <section aria-label="The offer" style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:12px">
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Who</span><span style="font-size:15px;font-weight:600;line-height:1.35">Service owners, 5 to 20 staff, who sell by call</span></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Promise</span><span style="font-size:15px;font-weight:600;line-height:1.35">One offer page and a booked calendar in 30 days</span></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Proof</span><span style="font-size:15px;font-weight:600;line-height:1.35">Reply rate 4% to 11% on the rebuilt page</span></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:#63645e;font-weight:500">Price</span><span style="font-size:15px;font-weight:600;line-height:1.35">$1.5k setup, $500 a booked meeting, cap $15k</span></div>
+    </section>
+
+    <section aria-label="The line" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">The line · marketing to money</h2>
+        <span style="font-size:12px;color:#63645e">every station is a screen in this canvas</span>
+        <div style="margin-left:auto;display:flex;gap:16px;font-size:12px;color:#63645e">
+          <span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid #6a5a93;box-sizing:border-box;display:inline-block"></span>station</span>
+          <span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:14px;height:4px;background:#6a5a93;display:inline-block;border-radius:2px"></span>this line</span>
+          <span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:14px;height:4px;background:#2f8a80;display:inline-block;border-radius:2px"></span>interchange</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">
+        <span style="padding:0 0 6px 14px">Marketing</span><span style="padding:0 0 6px 14px">Sales</span><span style="padding:0 0 6px 14px">Delivery</span><span style="padding:0 0 6px 14px">Money</span>
+      </div>
+
+      <div style="position:relative;padding:14px 0">
+        <div aria-hidden="true" style="position:absolute;left:14px;right:14px;top:50%;height:6px;margin-top:-3px;background:#6a5a93;border-radius:3px"></div>
+        <div aria-hidden="true" style="position:absolute;left:14px;top:50%;width:25%;height:6px;margin-top:-13px;background:#2f8a80;border-radius:3px;opacity:.9"></div>
+        <div style="position:relative;display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:28px;padding:0 14px">
+          <a class="st" href="Main.dc.html"><span class="dot" aria-hidden="true"></span>
+            <span style="font-size:11px;font-weight:600;color:#6a5a93">Studio + Outbound</span>
+            <span style="font-size:14px;font-weight:600">Content and 3 campaigns</span>
+            <span style="font-size:12px;color:#63645e">14 posts this month · 622 in flight</span></a>
+          <a class="st" href="Inbound.dc.html"><span class="dot" aria-hidden="true"></span>
+            <span style="font-size:11px;font-weight:600;color:#6a5a93">Inbox + People</span>
+            <span style="font-size:14px;font-weight:600">Replies, calls, offer sent</span>
+            <span style="font-size:12px;color:#63645e">31 replied · 13 booked · 5 offers out</span></a>
+          <a class="st" href="#"><span class="dot" aria-hidden="true"></span>
+            <span style="font-size:11px;font-weight:600;color:#6a5a93">Portal</span>
+            <span style="font-size:14px;font-weight:600">Page built, calendar wired</span>
+            <span style="font-size:12px;color:#63645e">4 clients in build · 2 live</span></a>
+          <a class="st" href="#"><span class="dot" aria-hidden="true"></span>
+            <span style="font-size:11px;font-weight:600;color:#6a5a93">Money</span>
+            <span style="font-size:14px;font-weight:600">Setup, then per meeting</span>
+            <span style="font-size:12px;color:#63645e">6 invoices open · 1 late</span></a>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:28px;padding:0 14px;font-size:12px;color:#63645e">
+        <span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:10px;height:10px;border-radius:3px;background:#2f8a80;display:inline-block"></span>Reactivation joins here: a lapsed client is a lead again</span>
+        <span>A reply stops the sequence. The person waits on you.</span>
+        <span>The client sees the same line in their portal.</span>
+        <span>$500 fires when the meeting shows on the calendar.</span>
+      </div>
+    </section>
+
+    <section aria-label="What this line changes" style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px">
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:16px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Pick the line, get the voice</span>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#56564f">Studio drafts in this offer's words: the who, the promise, the proof. Change the offer once and every new draft follows.</p></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:16px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Every send carries the line</span>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#56564f">Campaigns, comments, DMs and texts tag the line. Inbox groups replies by it. People shows which line each person rides.</p></div>
+      <div style="background:#fff;border-radius:6px 24px 6px 24px;box-shadow:0 0 0 1px rgba(14,14,14,.11);padding:16px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#63645e">Money reads the same stations</span>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#56564f">The price lives on the line. A booked meeting at the Sales station is the event that bills. No second system.</p></div>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
