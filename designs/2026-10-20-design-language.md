@@ -2,7 +2,7 @@
 
 2026-10-20. William, on artifact v12: "keep this artifact up we are using this as the source of truth for the full redesign, and well iterate through this artifact as well." Green light to build.
 
-**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v14). The artifact wins over this doc when they differ. A copy of its source at v14 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
+**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v15). The artifact wins over this doc when they differ. A copy of its source at v15 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
 
 This doc supersedes the "banded funnel" form decision in `2026-10-19-business-map.md`. The shape store, drafts, history, blame, undo, tags and the git mirror from that doc stay.
 
@@ -15,6 +15,8 @@ This doc supersedes the "banded funnel" form decision in `2026-10-19-business-ma
 | 07 The map in the app | Map home, Today from person tracks, sidebar | D, E |
 | 08 Offers, plans and bundles | pricing model, delivery loops, rewarm | C |
 | 11 Target state | the shape model inversion | C |
+| 13 To check | sidebar and focus view plans | E, F |
+| 14 Loading | every wait and what it shows; rules for the portal below | A (rules), every UI area |
 
 ## Areas
 
@@ -61,6 +63,19 @@ William: "a system to isolate and open just a monthly retainer of the whole syst
 Why no in-app tabs: the browser already has tabs, windows, history and restore. A URL per part gives all of them free, and links work in Slack, notes and SOPs. A custom tab bar duplicates that and breaks on a phone.
 
 Open for William: should a focus page allow edits (a draft scoped to that part), or read and attach only at first.
+
+## UI soundness (William, 2026-10-20, green light on everything)
+
+William: "make sure ui is principally sound (tanstack query, similarly sleek loading animations, popups close when they should on user clicks, state persists appropriately ex. one loading we click to another it isn't we click back if its still loading it shows, etc.)"
+
+- Data through TanStack Query only. No fetch state in components. A query left while it loads still loads, then shows, when the person comes back; the cache holds it, never the page.
+- Loading per artifact section 14: nothing under 150 ms; skeleton or bar in place up to 1 s; words past 1 s; steps and "you can leave" past 10 s. Old data stays on refresh. A button keeps its label and width while busy. Never a spinner in place of a label, never a layout shift.
+- Popovers, menus and sheets close on outside click and Esc. One open at a time.
+- Per-viewer state (open sheet, zoom, pins, filters) persists across navigation.
+- Empty, error and offline each look different from a wait. Error: one sentence and Retry.
+- Reduced motion: shimmer and draw-in go; bars still move.
+
+Systems page (E): William calls the row list "a bit incoherent", fine for a first cut. Flesh out later, no input needed.
 
 ## Order and push policy
 

@@ -133,6 +133,39 @@ td .was{color:var(--ink-3);text-decoration:line-through;text-decoration-color:va
 .why{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:6px 20px;margin:0;padding:0;list-style:none;font-size:13.5px;color:var(--ink-2)}
 .why li{padding-left:14px;position:relative}.why li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:1px 3px 1px 3px;background:var(--accent)}
 .why b{color:var(--ink);font-weight:650}
+/* 14 loading */
+.lg .panel{cursor:pointer}.lg .panel.wide{grid-column:1/-1}.ldbox{position:relative;display:grid;gap:10px;min-height:120px;align-content:start}
+.sk{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--hair)}.sk:first-child{border-top:0}
+.sk i{display:block;background:var(--fill);border-radius:3px 8px 3px 8px;height:12px;position:relative;overflow:hidden}.sk i.av{width:34px;height:34px;border-radius:50%}
+.sk i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--tint),transparent);transform:translateX(-100%);animation:shim 1.6s linear infinite}
+@keyframes shim{to{transform:translateX(100%)}}
+.sk .ln{display:grid;gap:6px}.sk .ln i:last-child{width:70%;height:10px}.sk i.pt{width:48px;height:20px}
+.rows .row{animation:rin .35s var(--ease) both}@keyframes rin{from{opacity:0;transform:translateY(4px)}}
+.ldmap svg{min-width:0}.ldmap.in .trk,.ldmap.in .case{stroke-dasharray:1400;stroke-dashoffset:1400;animation:drawin 1.2s var(--ease) forwards}
+.ldmap.in .mk{opacity:0;animation:pop .4s var(--spring) forwards .9s}.ldmap.in .lbl,.ldmap.in .zone{opacity:0;animation:fade .4s forwards 1.1s}
+@keyframes drawin{to{stroke-dashoffset:0}}@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}@keyframes fade{to{opacity:1}}
+.ldmap.in .mk{transform-box:fill-box;transform-origin:center}
+.sweep{position:absolute;left:0;top:-4px;height:2px;width:0;background:var(--accent);border-radius:2px;opacity:0}.on .sweep{animation:sweep 1.2s var(--ease) forwards}
+@keyframes sweep{0%{width:0;opacity:1}80%{width:100%;opacity:1}100%{width:100%;opacity:0}}
+.nums{display:flex;gap:28px;flex-wrap:wrap;padding-top:6px}.nums b{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:block}.nums span{font-size:13px;color:var(--ink-2)}
+.btn.act2 .ok,.btn.act2 .lb{grid-area:1/1;transition:opacity .2s,transform .3s var(--spring)}.btn.act2{display:inline-grid}.btn.act2 .ok{opacity:0;transform:translateY(6px)}
+.btn.act2.done .ok{opacity:1;transform:none}.btn.act2.done .lb{opacity:0}.btn.act2.is-busy .busy{animation:busy 1.4s linear forwards}
+.msheet{border:1px solid var(--hair);border-radius:6px 14px 6px 14px;overflow:hidden;transform:translateX(30px);opacity:0;transition:transform .45s var(--ease),opacity .25s}.on .msheet{transform:none;opacity:1}
+.mh{padding:12px 14px;border-bottom:1px solid var(--hair)}.mh b{display:block;font-weight:650}.mh span{font-size:13px;color:var(--ink-2)}.mb{padding:4px 10px}
+.row.pend{background:var(--wash);animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{50%{background:transparent}}
+.row.back{animation:shake .4s}.row .bad{color:var(--bad);font-weight:600}@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.steps{display:grid;gap:6px}.step{display:flex;gap:10px;align-items:center;font-size:14px}.step i{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--hair);flex:none}
+.step.run i{border-color:var(--accent);background:var(--accent);animation:pulse 1.2s ease-in-out infinite}.step.done i{border-color:var(--accent);background:var(--accent)}.step.done i::after{content:"";width:5px;height:8px;border:solid var(--on-accent);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.step.wait{color:var(--ink-3)}.step .s{margin-left:auto;font-size:12.5px;color:var(--ink-3)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 1s ease-in-out infinite}.morerow{display:flex;gap:5px;justify-content:center;padding:12px}.morerow .dot:nth-child(2){animation-delay:.2s}.morerow .dot:nth-child(3){animation-delay:.4s}
+.stream{font-size:14.5px;line-height:1.55;min-height:3.2em;margin:0}.stream.live::after{content:"";display:inline-block;width:2px;height:1em;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:pulse .8s steps(2) infinite}
+.finp{position:relative;border:1px solid var(--hair);border-radius:6px 10px 6px 10px;padding:9px 12px;font-size:14px;min-height:38px}.finp .q::after{content:"";display:inline-block;width:1px;height:1em;background:var(--ink);vertical-align:-2px;animation:pulse .9s steps(2) infinite}.finp .sweep{top:auto;bottom:-1px}
+.fres .row{grid-template-columns:1fr auto}.fres .row.dim{opacity:.45}
+.navbody{min-height:150px}.navbody .rows{display:none}.navbody .rows.show{display:block}
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}.stt{border:1px solid var(--hair);border-radius:6px 14px 6px 14px;padding:16px;display:grid;gap:4px;font-size:13.5px;color:var(--ink-2)}.stt b{color:var(--ink);font-weight:650;font-size:14.5px}
+.stt.err b{color:var(--bad)}.stt .btn{justify-self:start;margin-top:6px}.stt.off{grid-template-columns:auto 1fr;align-items:center;column-gap:10px}.stt.off i{width:10px;height:10px;border-radius:50%;background:var(--warn);grid-row:1/3}.stt.off span{grid-column:2}
+@media (prefers-reduced-motion:reduce){.sk i::after,.rows .row,.ldmap.in .trk,.ldmap.in .case{animation:none}.ldmap.in .mk,.ldmap.in .lbl,.ldmap.in .zone{animation:fade .3s forwards}.row.pend,.step.run i,.dot{animation:none}}
+
 .scen{display:grid;gap:16px}
 .app.prop{min-height:0;margin-top:14px}.sys{display:grid;gap:8px}.sys h4{margin:8px 0 0;font-size:13.5px;font-weight:650}
 .sys table{min-width:0}.sys td{padding:7px 10px;border-top:1px solid var(--hair);vertical-align:top}.sys td:nth-child(3){color:var(--ink-2)}.sys td.dim{color:var(--ink-3);font-style:italic}
@@ -205,7 +238,7 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
  <h1><span class="mark" aria-hidden="true"></span>Wren design language</h1>
  <p class="lead">One page for how Wren looks and how the business map reads. It joins the UI language, the Metro map types and the new zoom levels. Where this page and <code>DESIGN.md</code> disagree, this page wins. Section 11 lists the code and schema changes it needs.</p>
 </header>
-<nav class="tn" aria-label="Sections"><a href="#tokens">Tokens</a><a href="#motif">Motif</a><a href="#parts">Parts</a><a href="#metro">Metro</a><a href="#zoom">Zoom</a><a href="#scen">Scenarios</a><a href="#app">App</a><a href="#offers">Offers</a><a href="#logic">Logic</a><a href="#diff">DESIGN.md</a><a href="#target">Target</a><a href="#links">Earlier</a><a href="#prop">Check</a><span class="sp"></span>
+<nav class="tn" aria-label="Sections"><a href="#tokens">Tokens</a><a href="#motif">Motif</a><a href="#parts">Parts</a><a href="#metro">Metro</a><a href="#zoom">Zoom</a><a href="#scen">Scenarios</a><a href="#app">App</a><a href="#offers">Offers</a><a href="#logic">Logic</a><a href="#diff">DESIGN.md</a><a href="#target">Target</a><a href="#links">Earlier</a><a href="#prop">Check</a><a href="#loading">Loading</a><span class="sp"></span>
  <div class="seg" role="group" aria-label="Theme"><button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div></nav>
 
 <section id="tokens">
@@ -560,6 +593,34 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
    <div class="ai"><i class="k a">Doc</i><div><b>Documents</b><span>Report</span></div></div>
    <button class="add" type="button">+ Attach</button>
   </aside>
+ </div>
+</section>
+
+<section id="loading">
+ <h2><span class="n">14</span>Loading</h2>
+ <p class="lead">Every wait the app has, and what it shows. Rules first. Under 150 ms, show nothing. Up to one second, a skeleton or a bar in the place the content will take. Past one second, add words. Past ten, show steps and say the person can leave. Loading never replaces a label with a spinner, never shifts layout, and never forgets: a query lives in the cache, so a page left while it loads still loads when you come back. Every demo replays on click.</p>
+ <div class="rules">
+  <div class="rule"><b>Skeleton</b><span>First load of a page or sheet</span><small>Grey blocks in the shape of the content, a slow lavender shimmer. The header is known, so it shows at once.</small></div>
+  <div class="rule"><b>Bar</b><span>Refresh of data already shown</span><small>Old data stays. A 2 px lavender bar sweeps along the top of the panel. Numbers tick to the new value.</small></div>
+  <div class="rule"><b>Busy edge</b><span>A button's own action</span><small>The label stays. A bar fills along the bottom edge. Then a check, then the toast with Undo.</small></div>
+  <div class="rule"><b>Steps</b><span>A job over ten seconds</span><small>Each step with its state. A line says you can leave. The job carries on in Restate.</small></div>
+  <div class="rule"><b>Stream</b><span>AI text</span><small>Words arrive as they come, with a lavender caret. A chip says "Drafting".</small></div>
+  <div class="rule"><b>Not loading</b><span>Empty, error, offline</span><small>Each looks different from a wait. Error: one sentence and Retry. Offline: a banner, writes queue.</small></div>
+  <div class="rule"><b>Reduced motion</b><span>Shimmer and draw-in go</span><small>Skeletons sit still, maps fade in, bars still move (they carry information).</small></div>
+ </div>
+ <div class="grid lg" id="lgrid">
+  <div class="panel deco-on ld-page"><span class="k">Page first load · skeleton</span><div class="ldbox"><div class="rows" data-s="sk"></div></div></div>
+  <div class="panel deco-on ld-map"><span class="k">Map load · lines draw in, stations land, numbers tick</span><div class="ldbox map ldmap" data-s="map"></div></div>
+  <div class="panel deco-on ld-bar"><span class="k">Refresh · data stays, bar sweeps, numbers tick</span><div class="ldbox"><i class="sweep"></i><div class="nums"><div><b data-n="81">81</b><span>on the map</span></div><div><b data-n="12">12</b><span>waiting on you</span></div><div><b data-n="4">4</b><span>late</span></div></div></div></div>
+  <div class="panel deco-on ld-btn"><span class="k">Button · busy edge, check, toast</span><div class="ldbox"><div class="row-b"><button class="btn act2" type="button"><span class="lb">Send reply</span><span class="ok">Sent</span><i class="busy"></i></button><button class="btn q" type="button">Later</button></div><p class="lead" style="font-size:13px">Same width before, during and after. Undo lives in the toast, 6 s.</p></div></div>
+  <div class="panel deco-on ld-sheet"><span class="k">Sheet open · header at once, body fills</span><div class="ldbox"><div class="msheet"><div class="mh"><b>Review call</b><span>Growth Partner · day 28</span></div><div class="mb rows" data-s="sk3"></div></div></div></div>
+  <div class="panel deco-on ld-opt"><span class="k">Optimistic · moves now, comes back on failure</span><div class="ldbox"><div class="rows" id="optrows"></div><div class="row-b"><button class="btn q" type="button" data-fail="0">Approve</button><button class="btn q" type="button" data-fail="1">Approve, server fails</button></div></div></div>
+  <div class="panel deco-on ld-job"><span class="k">Long job · steps, leave-safe</span><div class="ldbox"><div class="steps"></div><p class="lead jl" style="font-size:13px">Still working · <span class="t">0 s</span>. You can leave. It carries on.</p></div></div>
+  <div class="panel deco-on ld-ai"><span class="k">AI draft · streams in</span><div class="ldbox"><div class="row-b"><span class="pt"><i class="dot"></i>Drafting</span></div><p class="stream"></p></div></div>
+  <div class="panel deco-on ld-find"><span class="k">⌘K · old results stay until new ones land</span><div class="ldbox"><div class="finp"><span class="q"></span><i class="sweep"></i></div><div class="rows fres"></div></div></div>
+  <div class="panel deco-on ld-more"><span class="k">Long list · loads more at the end, never jumps</span><div class="ldbox"><div class="rows more"></div><div class="morerow"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div></div></div>
+  <div class="panel deco-on ld-nav wide"><span class="k">Leave and come back · the query keeps loading in the cache, not the page</span><div class="ldbox"><div class="seg" role="group" aria-label="Page"><button data-p="people" aria-pressed="true">People</button><button data-p="money" aria-pressed="false">Money</button></div><div class="navbody"><div class="rows" data-p="people"></div><div class="rows" data-p="money"></div></div><p class="lead navh" style="font-size:13px">Click Money while People loads, then back. People is still loading, or done, as the clock says. Never restarted.</p></div></div>
+  <div class="panel deco-on ld-states wide"><span class="k">Not loading · empty, error, offline</span><div class="ldbox states"><div class="stt"><b>Nothing here yet</b><span>No one on this station this week.</span></div><div class="stt err"><b>Couldn't load people.</b><span>The server did not answer.</span><button class="btn q" type="button">Retry</button></div><div class="stt off"><i></i><b>Offline.</b><span>Changes save when you're back.</span></div></div></div>
  </div>
 </section>
 </div>
@@ -1089,6 +1150,42 @@ const LX=[
    T([[610,M],[700,M],[700,M-95],[160,M-95],[160,M],[230,M]],"gp","core",{r:22,cond:"renews · every 30 days",cat:[430,M-95]}),
    T([[700,M],[840,M]],"gp","core",{k:"stub",cond:"to Rewarm",cat:[790,M]}),{k:"exit",pa:[420,M],b:"ch"},{k:"exit",pa:[660,M],b:"fp"}]};
  const el=document.getElementById("fmap");if(el)el.innerHTML=draw(sc)})();
+// 14 loading demos
+(()=>{const $=(s,r=document)=>r.querySelector(s),all=(s,r=document)=>[...r.querySelectorAll(s)];
+const PEOPLE=[["MR","Maya Reyes","Career coach · replied on Reddit","4h","w"],["JT","Jon Tate","Course creator · call Thu 2:00 pm","Booked",""],["AL","Ana Lind","Agency owner · proposal sent","2d","w"],["KO","Kai Ode","Coach · DM answered","Reply",""]];
+const row=([a,n,s,p,c],i)=>`<div class="row" style="animation-delay:${i*60}ms"><div class="av">${a}</div><div><b>${n}</b><span>${s}</span></div><span class="pt ${c}">${p}</span></div>`;
+const sk=n=>Array.from({length:n},()=>`<div class="sk"><i class="av"></i><div class="ln"><i></i><i></i></div><i class="pt"></i></div>`).join("");
+const timers=new Map,later=(k,f,ms)=>{clearTimeout(timers.get(k+ms));timers.set(k+ms,setTimeout(f,ms))};
+const tick=(el,to,ms=600)=>{const from=+el.textContent||0,t0=performance.now();const f=t=>{const k=Math.min(1,(t-t0)/ms);el.textContent=Math.round(from+(to-from)*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)};
+const D={};
+D.page=p=>{const r=$('[data-s="sk"]',p);r.innerHTML=sk(4);later("pg",()=>r.innerHTML=PEOPLE.map(row).join(""),1600)};
+D.map=p=>{const b=$(".ldmap",p),M=70;b.classList.remove("in");b.innerHTML=draw({w:700,h:150,still:true,zones:[[0,230,"Marketing"],[230,520,"Sales"],[520,700,"Money"]],
+ st:[{id:"h",t:"hub",x:90,y:M,n:"First touch",s:"0",span:[M,M]},{id:"r",t:"att",x:250,y:M,n:"Replied",s:"0"},{id:"c",t:"time",x:400,y:M,n:"Call held",s:"0"},{id:"$",t:"cash",x:600,y:M,n:"Retainer",s:"$0"}],
+ tr:[{l:"ob",w:"core",r:20,pts:[[90,M],[600,M]]}]});void b.offsetWidth;b.classList.add("in");
+ later("mp",()=>{all(".mk text",b).forEach(t=>{const v={0:81,1:4,2:2}[t.dataset.i];});const subs=all(".lbl .sub, .lbl text:nth-child(2)",b);[["81",0],["4",1],["2",2],["$12k / mo",3]].forEach(([v,i])=>{const t=subs[i];if(t){if(/^\d+$/.test(v))tick(t,+v,700);else t.textContent=v}})},1300)};
+D.bar=p=>{p.classList.remove("on");void p.offsetWidth;p.classList.add("on");later("br",()=>all(".nums b",p).forEach(b=>{b.textContent=b.dataset.n;tick(b,+b.dataset.n+[3,-2,1][[...b.parentNode.parentNode.children].indexOf(b.parentNode)],700)}),900)};
+D.btn=p=>{const b=$(".act2",p);b.classList.remove("done","is-busy");void b.offsetWidth;b.classList.add("is-busy");later("bt",()=>{b.classList.remove("is-busy");b.classList.add("done");const t=$("#toast");if(t){$("#tt").textContent="Reply sent.";t.classList.add("on");later("ts",()=>t.classList.remove("on"),6000)}},1400);later("bt2",()=>b.classList.remove("done"),4200)};
+D.sheet=p=>{p.classList.remove("on");const r=$('[data-s="sk3"]',p);r.innerHTML=sk(3);void p.offsetWidth;p.classList.add("on");later("sh",()=>r.innerHTML=PEOPLE.slice(0,3).map(row).join(""),1500)};
+D.opt=(p,fail)=>{const r=$("#optrows");r.innerHTML=[PEOPLE[0],PEOPLE[2]].map(row).join("");if(fail===undefined)return;const first=r.firstElementChild;first.classList.add("pend");$(".pt",first).textContent="Approved";first.classList.remove("w");
+ later("op",()=>{first.classList.remove("pend");if(fail){first.classList.add("back");$(".pt",first).outerHTML='<span class="bad">Didn\'t save · retry</span>'}else{first.style.transition="opacity .3s";first.style.opacity="0";later("op2",()=>first.remove(),320)}},1400)};
+D.job=p=>{const S=["Render · 1080p","Upload · YouTube","Upload · LinkedIn","Upload · X","Write the post rows"],box=$(".steps",p),tt=$(".jl .t",p);let i=0,t0=Date.now();
+ const paint=()=>box.innerHTML=S.map((s,k)=>`<div class="step ${k<i?"done":k===i?"run":"wait"}"><i></i>${s}<span class="s">${k<i?"done":k===i?"running":""}</span></div>`).join("");paint();
+ const id=setInterval(()=>{tt.textContent=Math.round((Date.now()-t0)/1000)+" s";if(Math.random()<.18&&i<S.length){i++;paint()}if(i>=S.length){clearInterval(id);tt.textContent="done in "+Math.round((Date.now()-t0)/1000)+" s"}},400);timers.set("job",id);p._stop=()=>clearInterval(id)};
+D.ai=p=>{const el=$(".stream",p),txt="Hi Maya, saw your thread on career pivots after 35. The part on ‘quiet quitting the plan’ matched what three of our clients said this month. Want the 12 minute breakdown?";el.textContent="";el.classList.add("live");let i=0;const id=setInterval(()=>{i+=1+Math.floor(Math.random()*3);el.textContent=txt.slice(0,i);if(i>=txt.length){clearInterval(id);el.classList.remove("live")}},45);p._stop=()=>clearInterval(id)};
+D.find=p=>{const q=$(".q",p),res=$(".fres",p),Q="youtube",R0=[["YouTube line","line · 47 in Reddit… "],["Posting · YouTube","app"],["Video review","station · Delivery"]],R1=[["Yo","…"]];let i=0;res.innerHTML="";
+ const id=setInterval(()=>{i++;q.textContent=Q.slice(0,i);if(i===2){res.innerHTML=[["YouTube line","line"],["Your mail","Inbox"]].map(([a,b])=>`<div class="row"><b>${a}</b><span class="pt">${b}</span></div>`).join("")}
+  if(i===4){all(".row",res).forEach(r=>r.classList.add("dim"));p.classList.add("on")}if(i===6){p.classList.remove("on");res.innerHTML=R0.map(([a,b])=>`<div class="row"><b>${a}</b><span class="pt">${b}</span></div>`).join("")}if(i>=Q.length)clearInterval(id)},260);p._stop=()=>clearInterval(id)};
+D.more=p=>{const r=$(".more",p);r.innerHTML=PEOPLE.slice(0,2).map(row).join("");later("mo",()=>r.insertAdjacentHTML("beforeend",PEOPLE.slice(2).map(row).join("")),1800)};
+// leave and come back: one fake query cache shared by both tabs
+const NAV={people:{state:"idle",data:null},money:{state:"done",data:[["$","Retainer · Maya","Oct 3","$1k","g"],["$","Audit · Jon","Oct 9","$500","g"]]}};
+D.nav=p=>{const body=$(".navbody",p),show=k=>{all(".rows",body).forEach(r=>r.classList.toggle("show",r.dataset.p===k));all(".seg button",p).forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===k));const q=NAV[k],r=$(`.rows[data-p="${k}"]`,body);
+  r.innerHTML=q.state==="done"?q.data.map(row).join(""):sk(3)};
+ NAV.people={state:"loading",data:null};show("people");later("nv",()=>{NAV.people={state:"done",data:PEOPLE};if($('.seg [aria-pressed="true"]',p).dataset.p==="people")show("people")},5000);
+ if(!p._wired){p._wired=1;$(".seg",p).onclick=e=>{const b=e.target.closest("button");if(b){e.stopPropagation();show(b.dataset.p)}}}};
+D.states=()=>{};
+const grid=$("#lgrid");if(!grid)return;const start=()=>{for(const k in D){const p=$(".ld-"+k,grid);if(p)D[k](p)}};start();
+grid.addEventListener("click",e=>{const p=e.target.closest(".panel");if(!p)return;const k=[...p.classList].find(c=>c.startsWith("ld-")).slice(3);if(e.target.closest("button[data-fail]")){D.opt(p,+e.target.dataset.fail);return}if(e.target.closest(".btn")&&k!=="btn")return;if(p._stop)p._stop();D[k](p)});
+})();
 const LGPRE=[{},{send:1,wait:1,sort:1},{send:1,ab:1,wait:1,sort:1}];
 const LGSH={
  hub:{kd:"Start",t:"New lead",p:"Every protocol has one start. People enter here and run the newest version.",facts:[F("This week","40"),F("Version","v3"),F("Still on v2","12")],rules:["An edit makes a new version. People already inside stay on their version until they finish.","A person who enters again follows the re-entry rule: rest 90, 180 or 30 days."]},
