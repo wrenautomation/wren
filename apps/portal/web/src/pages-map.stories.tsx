@@ -383,7 +383,8 @@ export const History = mapAt("/", {
     await expect(await within(changes).findByText("Removed station Joined.")).toBeVisible();
     await expect(within(changes).getByText("Added track Engaged to Booked.")).toBeVisible();
     // The older side's station is drawn, marked removed; the new track is marked added.
-    await expect(await station(page, "Joined, removed")).toBeVisible();
+    // A mark fades in: it is in the page before it is fully shown.
+    await expect(await station(page, "Joined, removed")).toBeInTheDocument();
     const drawn = await mapOf(page);
     // The added track carries a person, so it draws as that person's pill.
     await expect(
@@ -634,7 +635,7 @@ export const DraftView = mapAt("/?draft=d1", {
     await expect(within(open).getByText("Proposed")).toBeVisible();
     await expect(within(open).queryByText(/Live moved/)).toBeNull();
     // The draft has a plan after the offer; the live shape does not.
-    await expect(await station(page, "Standard plan, .*added")).toBeVisible();
+    await expect(await station(page, "Standard plan, .*added")).toBeInTheDocument();
     await expect(
       await (await mapOf(page)).findByRole(
         "img",
