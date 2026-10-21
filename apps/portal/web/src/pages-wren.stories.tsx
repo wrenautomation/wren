@@ -162,7 +162,11 @@ const shows =
 export const OffersAll = pageAt("/offers/all", { me: ADMIN, check: shows("Starter", "Growth") });
 export const OffersTerms = pageAt("/offers/terms", {
   me: ADMIN,
-  check: shows("standard", "growth"),
+  check: async (page) => {
+    await shows("standard")(page);
+    // A phone's row shows one property beside the name (the state): the offer reads in the wide table.
+    if (within(page).queryByRole("table")) await shows("growth")(page);
+  },
 });
 /** The read fails: the page says so and never "No terms are live yet." */
 export const OffersTermsFailed = pageAt("/offers/terms", {

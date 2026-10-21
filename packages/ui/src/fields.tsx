@@ -22,7 +22,7 @@ import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useRef, useSta
 import { AccountBadge } from "./accounts.js";
 import { duration, linkLabel, money, num } from "./format.js";
 import { tipProps, whenTip } from "./hint.js";
-import { PlatformMark, TintSwatch } from "./marks.js";
+import { PlatformMark, StageSquare, TintSwatch } from "./marks.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
 const TONE: Record<Tone, string> = {
@@ -34,10 +34,11 @@ const TONE: Record<Tone, string> = {
 
 /**
  * A value's cue, by one rule (designs/2026-10-07-visual-cues.md): a platform or channel's mark, a
- * kind of thing's tint swatch, else its tone's dot. `mono` draws a mark in the text's color.
+ * stage's lane square, a kind of thing's tint swatch, else its tone's dot. `mono` draws a mark in the text's color.
  */
 export function Cue({ state, mono, size }: { state: State; mono?: boolean; size?: number }) {
   if (state.mark) return <PlatformMark mark={state.mark} mono={mono ?? false} size={size ?? 14} />;
+  if (state.line !== undefined) return <StageSquare line={state.line} />;
   if (state.tint !== undefined) return <TintSwatch tint={state.tint} />;
   return <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", TONE[state.tone])} />;
 }
@@ -56,7 +57,7 @@ export function StateMark({ state, mono }: { state: State; mono?: boolean }) {
 export function cueOf(f: FieldMeta | undefined, value: string): State | null {
   if (!f || !value) return null;
   const s = f.states?.[value] ?? (f.kind === "choice" ? stateOf(f, value) : undefined);
-  return s && (s.mark || s.tint !== undefined) ? s : null;
+  return s && (s.mark || s.line !== undefined || s.tint !== undefined) ? s : null;
 }
 
 const WIDTH = { s: 108, m: 144, l: 200 } as const;

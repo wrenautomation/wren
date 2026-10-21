@@ -224,3 +224,18 @@ export function TintSwatch({ tint, className }: { tint: number; className?: stri
 
 /** The soft wash of a tint, for a group's heading. */
 export const tintWash = (tint: number) => `color-mix(in srgb, ${tintColor(tint)} 10%, transparent)`;
+
+/** A lane's colour, 0 to 7 (`--ui-line-N`, the Map's lines); -1 is ink-3, the grey of no lane. */
+export const lineColor = (line: number) =>
+  line < 0 ? "var(--ui-ink-3)" : `var(--ui-line-${((line % 8) + 8) % 8})`;
+
+/** A stage's mark: an 8px leaf square in its lane's colour, before the stage's label. */
+export function StageSquare({ line, className }: { line: number; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn("inline-block size-2 shrink-0 rounded-[1px_3px]", className)}
+      style={{ background: lineColor(line) }}
+    />
+  );
+}
