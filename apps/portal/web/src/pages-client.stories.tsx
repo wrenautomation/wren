@@ -48,7 +48,10 @@ const peekOf = () =>
 export const PersonPeek = pageAt("/people/people?person=1", {
   check: async () => {
     await waitFor(() => expect(peekOf()).not.toBeNull());
-    const peek = within(peekOf() as HTMLElement);
+    const shell = peekOf() as HTMLElement;
+    // A wide screen floats a panel; a phone slides up a sheet.
+    if (shell.tagName !== "ASIDE") expect(shell.hasAttribute("data-sheet")).toBe(true);
+    const peek = within(shell);
     await expect(await peek.findByRole("heading", { name: "Ada North" })).toBeVisible();
     for (const label of ["Stage", "Warmth", "Persona", "Last touch", "Last touch on"])
       await expect(peek.getByText(label, { selector: "dt" })).toBeVisible();
