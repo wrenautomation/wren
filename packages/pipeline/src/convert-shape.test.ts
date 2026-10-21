@@ -8,7 +8,7 @@ import {
   reportLines,
 } from "./convert-shape.js";
 import type { MetroBody } from "./metro.js";
-import type { ShapeBody } from "./model.js";
+import type { ShapeBody, ShapeNode } from "./model.js";
 import { Refused } from "./refused.js";
 
 const none = new Map<string, number>();
@@ -88,6 +88,66 @@ describe("planConvert", () => {
     const g = shape();
     const { report } = planOf({ ...g, edges: [...g.edges].reverse() });
     expect(report).toMatchObject({ notes: [], graphEqual: false });
+    expect(refusalsOf(report).join(" ")).toMatch(/another order/);
+  });
+
+  it("converts a plan node with a made-up field, notes it and proves graph equal", () => {
+    const g = shape();
+    const odd: ShapeBody = {
+      ...g,
+      nodes: g.nodes.map((n) =>
+        n.id === "standard" ? ({ ...n, zzNote: null } as unknown as ShapeNode) : n,
+      ),
+    };
+    const { body, report } = planOf(odd);
+    expect(body.model).toBe("metro");
+    expect(report).toMatchObject({
+      notes: ['Node standard: field "zzNote" is not part of the model and is dropped.'],
+      checks: [],
+      graphEqual: true,
+      workflowEqual: true,
+    });
+    expect(refusalsOf(report)).toEqual([]);
+    expect(reportLines(report).slice(0, 4)).toEqual([
+      `note: ${report.notes[0]}`,
+      "checks: ok",
+      "graph equal: yes",
+      "workflow equal: yes",
+    ]);
+  });
+
+  it("strips only the noted field: a stray field does not hide a real drop", () => {
+    const g = shape();
+    const odd: ShapeBody = {
+      ...g,
+      nodes: g.nodes.map((n) =>
+        n.id === "standard" ? ({ ...n, zzNote: null } as unknown as ShapeNode) : n,
+      ),
+      edges: g.edges.map((e) => (e.id === "yt_to_engaged" ? { ...e, id: "yt_in" } : e)),
+    };
+    const { report } = planOf(odd);
+    expect(report.graphEqual).toBe(false);
+    expect(report.notes).toHaveLength(2);
+    const why = refusalsOf(report);
+    expect(why).toContain("The metro body does not give the same graph back.");
+    // The real drop is a reason. The stray field is not, and the order hint stays out.
+    expect(why.filter((w) => w.startsWith("The convert drops: "))).toEqual([
+      `The convert drops: ${report.notes[1]}`,
+    ]);
+    expect(why.join(" ")).not.toMatch(/zzNote|another order/);
+  });
+
+  it("hints at order when the only notes are stray fields and the order differs", () => {
+    const g = shape();
+    const odd: ShapeBody = {
+      ...g,
+      nodes: g.nodes.map((n) =>
+        n.id === "standard" ? ({ ...n, zzNote: null } as unknown as ShapeNode) : n,
+      ),
+      edges: [...g.edges].reverse(),
+    };
+    const { report } = planOf(odd);
+    expect(report.graphEqual).toBe(false);
     expect(refusalsOf(report).join(" ")).toMatch(/another order/);
   });
 

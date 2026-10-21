@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { convertShape } from "../../src/convert-shape.js";
 import { shapeWorkflowsOf } from "../../src/journeys.js";
 import { isMetro } from "../../src/metro.js";
+import type { ShapeNode } from "../../src/model.js";
 import { type Emit, moveEmit, openEmit, signDeal } from "../../src/moves.js";
 import {
   edgeFlowOf,
@@ -250,6 +251,42 @@ describe("convertShape on a graph with journeys, a deal and events", () => {
       await reasons(convertShape(pg.db, { note: "again", by: "t", triggers: TRIGGERS })),
     ).toEqual(["The shape is on the metro model already."]);
     expect((await shapeVersionsOf(pg.db)).map((v) => v.number)).toEqual([1, 2]);
+  });
+});
+
+describe("convertShape on a graph with a stray field", () => {
+  it("saves the metro version, notes the field and leaves the run as the graph without it", async () => {
+    const own = await startTestPostgres();
+    try {
+      const g = shape();
+      // A made-up field on a plan node, as old data can carry.
+      const odd = {
+        ...g,
+        nodes: g.nodes.map((n) =>
+          n.id === "standard" ? ({ ...n, zzNote: null } as unknown as ShapeNode) : n,
+        ),
+      };
+      const v1 = await saveShape(own.db, { body: odd, note: "graph", by: "t", triggers: TRIGGERS });
+      expect(JSON.stringify(v1.body)).toContain("zzNote");
+
+      const { version, report } = await convertShape(own.db, {
+        note: "Move the shape to the metro model.",
+        by: "t",
+        triggers: TRIGGERS,
+      });
+      expect(version).toMatchObject({ number: 2, parent: 1 });
+      expect(isMetro(version.body)).toBe(true);
+      expect(report).toMatchObject({
+        notes: ['Node standard: field "zzNote" is not part of the model and is dropped.'],
+        checks: [],
+        graphEqual: true,
+        workflowEqual: true,
+      });
+      expect(version.run).toEqual(g);
+      expect((await shapeVersionsOf(own.db)).map((v) => v.number)).toEqual([1, 2]);
+    } finally {
+      await own.stop();
+    }
   });
 });
 

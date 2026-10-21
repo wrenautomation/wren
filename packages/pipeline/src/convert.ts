@@ -22,6 +22,7 @@ import {
   edgeIdOf,
   type HoldNode,
   isSource,
+  type NodeKind,
   type OfferNode,
   type ShapeBody,
   type ShapeEdge,
@@ -51,6 +52,65 @@ const UNROUTED_LABEL = "Not on an offer";
 const HUB_LABEL = "First touch";
 
 const COLUMN_ORDER: readonly Column[] = ["marketing", "sales", "delivery", "money"];
+
+/** The fields the graph model holds on each kind of node, and on an edge. Any other field is stray. */
+const NODE_FIELDS: Record<NodeKind, readonly string[]> = {
+  source: ["id", "kind", "name", "via", "channel", "campaign", "source", "group", "parked"],
+  step: ["id", "kind", "name", "action", "advance", "research", "idleDays"],
+  offer: ["id", "kind", "name", "offer", "advance", "research", "idleDays"],
+  plan: ["id", "kind", "name", "terms", "advance", "idleDays"],
+};
+const EDGE_FIELDS: readonly string[] = ["id", "from", "to", "kind", "label"];
+
+/** A field on a node or an edge that is not part of the model. The convert drops it. */
+export interface StrayField {
+  of: "node" | "edge";
+  id: string;
+  field: string;
+}
+
+const STRAY_END = "is not part of the model and is dropped.";
+
+/** The note for a stray field. */
+export const strayNote = (s: StrayField): string =>
+  `${s.of === "node" ? "Node" : "Edge"} ${s.id}: field "${s.field}" ${STRAY_END}`;
+
+/** True for a note made by `strayNote`: a drop that changes nothing the model holds. */
+export const isStrayNote = (note: string): boolean => note.endsWith(STRAY_END);
+
+/** The fields of one node or edge that are not in `known`. */
+const strayKeys = (x: object, known: readonly string[]): string[] =>
+  Object.keys(x).filter((k) => !known.includes(k));
+
+/** Every stray field of a graph, nodes first and then edges, each in body order. Pure. */
+export function strayFieldsOf(graph: ShapeBody): StrayField[] {
+  const out: StrayField[] = [];
+  for (const n of graph.nodes) {
+    // A kind the model does not know is `checkShape`'s to refuse, not a stray field.
+    const known = NODE_FIELDS[n.kind];
+    if (!known) continue;
+    for (const field of strayKeys(n, known)) out.push({ of: "node", id: n.id, field });
+  }
+  for (const e of graph.edges) {
+    for (const field of strayKeys(e, EDGE_FIELDS)) out.push({ of: "edge", id: e.id, field });
+  }
+  return out;
+}
+
+/** The graph without exactly the fields `strayFieldsOf` lists. Pure. A node or edge with none is the same object. */
+export function withoutStrayFields(graph: ShapeBody): ShapeBody {
+  const strip = <T extends object>(x: T, known: readonly string[] | undefined): T => {
+    const gone = known ? strayKeys(x, known) : [];
+    return gone.length
+      ? (Object.fromEntries(Object.entries(x).filter(([k]) => !gone.includes(k))) as T)
+      : x;
+  };
+  return {
+    ...graph,
+    nodes: graph.nodes.map((n) => strip(n, NODE_FIELDS[n.kind])),
+    edges: graph.edges.map((e) => strip(e, EDGE_FIELDS)),
+  };
+}
 
 /** `base`, or `base_2`, `base_3` and so on, the first one not in `taken`. The id is taken. */
 function freeId(base: string, taken: Set<string>): string {
@@ -89,7 +149,9 @@ function nearest(
 /**
  * Draw a graph body in the metro model. Refused, with every reason, only when the graph holds
  * what the model cannot draw. `notes` lists what the metro model cannot keep: the body still
- * converts, but `graphOf` gives back a graph that differs by exactly those things.
+ * converts, but `graphOf` gives back a graph that differs by exactly those things. A field that the
+ * graph model does not hold on a node or an edge is one of them (`strayFieldsOf`). It does not
+ * change what the shape runs, so the convert proof ignores it (`withoutStrayFields`).
  *
  * The rules, in short:
  * - A source is an out line with one start station (its id) and a track to the hub. A source edge
@@ -120,7 +182,7 @@ export function metroOf(graph: ShapeBody): MetroResult {
       errors.push(`Edge "${e.id}" ends at source "${e.to}". Nothing enters a source.`);
     }
   }
-  const notes: string[] = [];
+  const notes: string[] = strayFieldsOf(graph).map(strayNote);
   // A source holds nobody, so a loop edge from one is never crossed. Leave it out and say so.
   const edges: ShapeEdge[] = [];
   for (const e of graph.edges) {

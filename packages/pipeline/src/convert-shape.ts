@@ -6,7 +6,8 @@
  *
  * The proofs, on the metro body `metroOf` draws:
  * - `checkStored` passes (the body is valid and lowers),
- * - `graphOf` of it is the newest graph, byte for byte after `canonicalJson`,
+ * - `graphOf` of it is the newest graph, byte for byte after `canonicalJson`, less the stray
+ *   fields the notes name (a field on a node or an edge that the graph model does not hold),
  * - `shapeWorkflow` of both is the same workflow, in both scopes.
  * Any miss refuses with the reason. So a convert never changes what the runtime runs.
  *
@@ -16,7 +17,7 @@
  * journeys are open on the stations between them.
  */
 import { atomic, type Queryable } from "@wren/db";
-import { graphOf, metroOf } from "./convert.js";
+import { graphOf, isStrayNote, metroOf, withoutStrayFields } from "./convert.js";
 import { canonicalJson } from "./diff.js";
 import { isMetro, type MetroBody, placesOf } from "./metro.js";
 import type { ShapeBody, ShapeCheckContext } from "./model.js";
@@ -43,11 +44,14 @@ export interface DealRule {
 }
 
 export interface ConvertReport {
-  /** What the metro model cannot keep (`metroOf` notes). */
+  /** What the metro model cannot keep (`metroOf` notes), a stray field included. */
   notes: string[];
   /** Why `checkStored` refuses the metro body. Empty when it passes. */
   checks: string[];
-  /** `graphOf` of the metro body is the newest graph. */
+  /**
+   * `graphOf` of the metro body is the newest graph. A stray field (a field the model does not
+   * hold, noted in `notes`) is left out of the newest graph first. Nothing else is.
+   */
   graphEqual: boolean;
   /** `shapeWorkflow` of both is the same, in both scopes. */
   workflowEqual: boolean;
@@ -108,9 +112,11 @@ export function refusalsOf(r: ConvertReport): string[] {
   const out = r.checks.map((c) => `The metro body fails a check: ${c}`);
   if (!r.graphEqual) {
     out.push("The metro body does not give the same graph back.");
-    out.push(...r.notes.map((n) => `The convert drops: ${n}`));
-    // No note and still not equal: the same parts in another order (nodes or edges).
-    if (!r.notes.length)
+    // A stray field is noted but does not break the proof, so it is not a reason.
+    const lost = r.notes.filter((n) => !isStrayNote(n));
+    out.push(...lost.map((n) => `The convert drops: ${n}`));
+    // No other note and still not equal: the same parts in another order (nodes or edges).
+    if (!lost.length)
       out.push(
         "The graph lists its nodes or edges in another order than the metro model gives back.",
       );
@@ -167,7 +173,7 @@ export function planConvert(
     report: {
       notes: drawn.notes,
       checks: checkStored(drawn.body, ctx),
-      graphEqual: canonicalJson(back) === canonicalJson(stored),
+      graphEqual: canonicalJson(back) === canonicalJson(withoutStrayFields(stored)),
       workflowEqual: sameWorkflow(number, back, stored),
       deals: dealRulesOf(drawn.body, open),
     },

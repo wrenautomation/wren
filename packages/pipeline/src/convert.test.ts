@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ctx, flow, grown, metroShape, shape, wideShape } from "../test/fixtures.js";
-import { graphOf, lowerable, metroOf } from "./convert.js";
+import {
+  graphOf,
+  isStrayNote,
+  lowerable,
+  metroOf,
+  strayFieldsOf,
+  strayNote,
+  withoutStrayFields,
+} from "./convert.js";
 import { canonicalJson } from "./diff.js";
 import { checkMetro, HUB, type MetroBody, placesOf } from "./metro.js";
 import { depthOf, holds, type ShapeBody, type ShapeNode } from "./model.js";
@@ -614,5 +622,102 @@ describe("placesOf", () => {
     m.tracks.push({ id: "again", from: "standard", to: "engaged", kind: "back", by: "person" });
     const place = placesOf(m);
     expect(place.engaged).toBe(2);
+  });
+});
+
+/** A graph with one made-up field added to a node. */
+const withNodeField = (g: ShapeBody, id: string, field: string, value: unknown): ShapeBody => ({
+  ...g,
+  nodes: g.nodes.map((n) => (n.id === id ? ({ ...n, [field]: value } as ShapeNode) : n)),
+});
+
+describe("stray fields", () => {
+  it("finds none on a body of known fields, each node kind with every optional field", () => {
+    expect(strayFieldsOf(shape())).toEqual([]);
+    expect(strayFieldsOf(wideShape())).toEqual([]);
+    const full: ShapeBody = {
+      name: "Full",
+      nodes: [
+        {
+          id: "s",
+          kind: "source",
+          name: "S",
+          via: "ads",
+          channel: "meta",
+          campaign: "c1",
+          source: "import:1",
+          group: "7",
+          parked: true,
+        },
+        {
+          id: "a",
+          kind: "step",
+          name: "A",
+          action: "email",
+          advance: [],
+          research: "light",
+          idleDays: 3,
+        },
+        {
+          id: "o",
+          kind: "offer",
+          name: "O",
+          offer: "offer-a",
+          advance: [],
+          research: "light",
+          idleDays: 3,
+        },
+        { id: "p", kind: "plan", name: "P", terms: "standard", advance: [], idleDays: 3 },
+      ],
+      edges: [{ id: "a_to_o", from: "a", to: "o", kind: "flow", label: "yes" }],
+    };
+    expect(strayFieldsOf(full)).toEqual([]);
+  });
+
+  it("lists a made-up field on a node and on an edge, nodes first, in body order", () => {
+    const g = withNodeField(shape(), "standard", "zzNote", null);
+    const e = g.edges.map((x, i) => (i === 0 ? { ...x, zzTag: 1 } : x));
+    const stray = strayFieldsOf({ ...g, edges: e });
+    expect(stray).toEqual([
+      { of: "node", id: "standard", field: "zzNote" },
+      { of: "edge", id: g.edges[0]?.id, field: "zzTag" },
+    ]);
+  });
+
+  it("calls a field of another node kind stray: a plan holds no research", () => {
+    const g = withNodeField(shape(), "standard", "research", "light");
+    expect(strayFieldsOf(g)).toEqual([{ of: "node", id: "standard", field: "research" }]);
+  });
+
+  it("notes each stray field, and metroOf puts the notes first", () => {
+    const g = withNodeField(shape(), "standard", "zzNote", null);
+    const r = made(g);
+    expect(r.notes).toEqual([
+      'Node standard: field "zzNote" is not part of the model and is dropped.',
+    ]);
+    expect(r.notes.every(isStrayNote)).toBe(true);
+    expect(strayNote({ of: "edge", id: "e1", field: "x" })).toBe(
+      'Edge e1: field "x" is not part of the model and is dropped.',
+    );
+    expect(isStrayNote('Source edge "e1" has the label "x". It is dropped.')).toBe(false);
+  });
+
+  it("draws the same metro body with and without the stray field", () => {
+    const g = withNodeField(shape(), "standard", "zzNote", null);
+    expect(made(g).body).toEqual(made(shape()).body);
+    expect(canonicalJson(graphOf(made(g).body))).toBe(canonicalJson(withoutStrayFields(g)));
+  });
+
+  it("strips exactly the stray fields, and keeps every node and edge that has none", () => {
+    const g = shape();
+    const same = withoutStrayFields(g);
+    expect(same).toEqual(g);
+    expect(same.nodes.every((n, i) => n === g.nodes[i])).toBe(true);
+    expect(same.edges.every((e, i) => e === g.edges[i])).toBe(true);
+    const odd = withNodeField(g, "standard", "zzNote", null);
+    expect(withoutStrayFields(odd)).toEqual(g);
+    // Known fields stay, whatever their value.
+    const known = withNodeField(g, "standard", "idleDays", 9);
+    expect(withoutStrayFields(known)).toEqual(known);
   });
 });
