@@ -13,6 +13,7 @@ import type { Db } from "@wren/db";
 import { desc, sql } from "drizzle-orm";
 import { liveSources as liveSourceNodes } from "./entry.js";
 import { shapeVersions } from "./schema.js";
+import { runOf } from "./stored.js";
 
 /** The last `people.id` seen, per list id. */
 export type SourceCursors = Record<string, number>;
@@ -35,7 +36,7 @@ export async function liveSources(db: Db): Promise<string[]> {
     .orderBy(desc(shapeVersions.number))
     .limit(1);
   if (!newest) return [];
-  const ids = liveSourceNodes(newest.body).flatMap((n) =>
+  const ids = liveSourceNodes(runOf(newest.body)).flatMap((n) =>
     n.via === "sourced" && n.source ? [n.source] : [],
   );
   return [...new Set(ids)].filter((s) => SOURCE_ID.test(s)).sort();

@@ -11,8 +11,10 @@ import type { SpineEvent } from "@wren/core/spine";
 import { checkWorkflows, type Workflow } from "@wren/core/workflows";
 import { atomic, type Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { isMetro } from "./metro.js";
 import { DROPPED, type ShapeBody } from "./model.js";
 import { type Journey, journeys, shapeVersions } from "./schema.js";
+import { runDepthsOf, runOf } from "./stored.js";
 import { type Scope, shapeFlowId, shapeWorkflow } from "./workflow.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -77,7 +79,11 @@ export async function personOf(
   return null;
 }
 
-/** One shape version's body and depths, and the newest number; null when there is no such version. */
+/**
+ * One shape version as the runtime runs it, and the newest number; null when there is no such
+ * version. The body is a graph (`runOf`: a metro body is lowered). The depths are graph depths,
+ * never the places a metro version stores.
+ */
 export async function versionOf(db: Queryable, version: number) {
   const [row] = await db
     .select({ body: shapeVersions.body, depths: shapeVersions.depths })
@@ -90,7 +96,11 @@ export async function versionOf(db: Queryable, version: number) {
     .from(shapeVersions)
     .orderBy(desc(shapeVersions.number))
     .limit(1);
-  return { body: row.body, depths: row.depths, newest: top?.number ?? version };
+  return {
+    body: runOf(row.body),
+    depths: isMetro(row.body) ? runDepthsOf(row.body) : row.depths,
+    newest: top?.number ?? version,
+  };
 }
 
 /**
@@ -116,7 +126,7 @@ export async function shapeWorkflowsOf(
   const out: Workflow[] = [];
   for (const r of rows) {
     try {
-      out.push(shapeWorkflow(r.number, r.body, scope));
+      out.push(shapeWorkflow(r.number, runOf(r.body), scope));
     } catch (err) {
       log(`shape v${r.number}: ${err instanceof Error ? err.message : String(err)}`);
     }

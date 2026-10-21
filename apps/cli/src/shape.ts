@@ -7,14 +7,19 @@
  * whole through `import`. `move` is the same handler as `wren journeys move`.
  *
  * History like git: `draft` keeps a body beside the live shape until a person applies it, `blame`
- * reads one node's or edge's history, `undo` reverses one change of a past diff, `tag` names a
- * version, and `mirror` copies each version to the private repo. Every save mirrors and says what
- * the mirror did.
+ * reads one node's, edge's, line's, station's or track's history, `undo` reverses one change of a
+ * past diff, `tag` names a version, and `mirror` copies each version to the private repo. Every
+ * save mirrors and says what the mirror did.
+ *
+ * A version is a graph or on the metro model (designs/2026-10-20-design-language.md, area C1).
+ * `show`, `diff`, `export`, `blame` and `undo` read both. `convert` turns a graph into a metro
+ * body; with `--write` it saves that as the next version. `add-node`, `connect` and `remove` edit
+ * the graph only: on a metro version they refuse, and the way is export, edit the YAML, import.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { TRIGGER_IDS } from "@wren/core/logic";
 import type { Db } from "@wren/db";
-import { historyOf } from "@wren/pipeline/blame";
+import { metroOf } from "@wren/pipeline/convert";
 import { changeKey, changesOf } from "@wren/pipeline/diff";
 import {
   applyDraft,
@@ -27,6 +32,7 @@ import {
 import {
   edgeOf,
   editShape,
+  ON_METRO,
   openOn,
   withEdge,
   withNode,
@@ -34,13 +40,13 @@ import {
   withoutNode,
 } from "@wren/pipeline/edit";
 import { DRAFT_STATES, type DraftState, OPEN_DRAFT_STATES } from "@wren/pipeline/history";
+import { isMetro, type MetroBody } from "@wren/pipeline/metro";
 import { type MirrorResult, mirrorsOf } from "@wren/pipeline/mirror";
 import {
   ACTIONS,
   type Advance,
   RESEARCH_LEVELS,
   type Research,
-  type ShapeBody,
   type ShapeNode,
   VIAS,
 } from "@wren/pipeline/model";
@@ -48,12 +54,22 @@ import { openNowOf } from "@wren/pipeline/numbers";
 import { exportShape, importShape, parseShape } from "@wren/pipeline/shape-file";
 import { startShape } from "@wren/pipeline/starter";
 import {
-  diffShapes,
   newestShape,
   Refused,
   type ShapeDiff,
+  saveShape,
   shapeVersionsOf,
 } from "@wren/pipeline/store";
+import {
+  type BlameOn,
+  diffStored,
+  historyOfStored,
+  type StoredBody,
+  type StoredDiff,
+  storedChangeKey,
+  storedChangeLines,
+  storedChangesOf,
+} from "@wren/pipeline/stored";
 import { addTag, tagsOf } from "@wren/pipeline/tags";
 import { planUndo, undoShape } from "@wren/pipeline/undo";
 import { type Command, InvalidArgumentError } from "commander";
@@ -118,10 +134,11 @@ function detailOf(n: ShapeNode): string {
  * `open` maps a node id to how many open journeys sit there now.
  */
 export function shapeLines(
-  v: { number: number; createdAt: Date; createdBy: string; note: string; body: ShapeBody },
+  v: { number: number; createdAt: Date; createdBy: string; note: string; body: StoredBody },
   depths: Record<string, number>,
   open: ReadonlyMap<string, number>,
 ): string[] {
+  if (isMetro(v.body)) return metroLines({ ...v, body: v.body }, depths, open);
   const lines = [
     `${v.body.name}  v${v.number}  ${day(v.createdAt)}  ${v.createdBy}`,
     v.note,
@@ -144,6 +161,39 @@ export function shapeLines(
 }
 
 /**
+ * A metro version as text: the lines, then the stations by place with the journeys open on each,
+ * then the tracks. `places` is the version's `depths` column, which holds places for a metro body.
+ */
+export function metroLines(
+  v: { number: number; createdAt: Date; createdBy: string; note: string; body: MetroBody },
+  places: Record<string, number>,
+  open: ReadonlyMap<string, number>,
+): string[] {
+  const lines = [
+    `${v.body.name}  v${v.number}  ${day(v.createdAt)}  ${v.createdBy}`,
+    v.note,
+    "",
+    "lines",
+  ];
+  for (const l of v.body.lines)
+    lines.push(`  ${l.id}  ${l.tier}  ${l.label}${l.offer ? `  offer ${l.offer}` : ""}`);
+  lines.push("", "stations");
+  const stations = [...v.body.stations].sort((a, b) => (places[a.id] ?? 0) - (places[b.id] ?? 0));
+  for (const s of stations) {
+    const here = open.get(s.id);
+    lines.push(
+      `  ${places[s.id] ?? 0}  ${s.id}  ${s.kind}  ${s.label}${s.line ? `  line ${s.line}` : ""}${s.action ? `  action ${s.action}` : ""}${here ? `  open ${here}` : ""}`,
+    );
+  }
+  lines.push("", "tracks");
+  for (const t of v.body.tracks)
+    lines.push(
+      `  ${t.id}  ${t.from} -> ${t.to}${t.line ? `  line ${t.line}` : ""}${t.kind ? `  (${t.kind})` : ""}${t.by === "person" ? "  by person" : ""}${t.label ? `  "${t.label}"` : ""}`,
+    );
+  return lines;
+}
+
+/**
  * A diff as text, one line per change. Empty when nothing differs. With `keys`, each line ends in
  * its change key in brackets, the key `undo` takes.
  */
@@ -161,6 +211,51 @@ export function diffLines(d: ShapeDiff, keys = false): string[] {
   // `changesOf` reads in the order the lines above are pushed.
   const all = changesOf(d);
   return lines.map((line, i) => `${line}  [${all[i] ? changeKey(all[i]) : ""}]`);
+}
+
+/**
+ * A diff of either model as text, one line per change. `a` is the older body and `b` the newer.
+ * A graph diff reads as `diffLines` does. A metro diff reads as sentences. With `keys`, each line
+ * ends in its change key in brackets, the key `undo` takes.
+ */
+export function storedDiffLines(
+  a: StoredBody,
+  b: StoredBody,
+  d: StoredDiff,
+  keys = false,
+): string[] {
+  if (d.model === "graph") return diffLines(d.diff, keys);
+  const lines = storedChangeLines(a, b, d);
+  if (!keys) return lines;
+  return storedChangesOf(d).map((c, i) => `${lines[i]}  [${storedChangeKey(c)}]`);
+}
+
+/** What `convert` makes of a stored body. */
+export interface Converted {
+  /** The metro body. */
+  body: MetroBody;
+  /** The body as a shape file (YAML). */
+  text: string;
+  /** What the convert dropped or changed, one line each. Empty when it lost nothing. */
+  notes: string[];
+  /** The body was on the metro model already. */
+  already: boolean;
+}
+
+/** A stored body on the metro model. Pure. Refused with every reason when a graph cannot convert. */
+export function convertBody(stored: StoredBody): Converted {
+  if (isMetro(stored)) return { body: stored, text: exportShape(stored), notes: [], already: true };
+  const r = metroOf(stored);
+  if (!r.ok) throw new Refused(r.errors);
+  return { body: r.body, text: exportShape(r.body), notes: r.notes, already: false };
+}
+
+const BLAME_ON = ["node", "edge", "line", "station", "track", "group", "frame"] as const;
+
+/** What `blame --on` names. */
+export function blameOnArg(v: string): BlameOn {
+  if ((BLAME_ON as readonly string[]).includes(v)) return v as BlameOn;
+  throw new InvalidArgumentError(`use one of ${BLAME_ON.join(", ")}`);
 }
 
 /** What the mirror did, as lines: `mirrored v<n> <sha7>`, `mirror off`, `mirror failed: <why>`. */
@@ -325,14 +420,16 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
   shape
     .command("diff <a> <b>")
     .description("What changed from version a to version b. Each line ends in its change key")
-    .action(async (a: string, b: string) => {
-      const [na, nb] = [versionArg(a), versionArg(b)];
-      const all = await withDb((db) => shapeVersionsOf(db));
-      const [va, vb] = [all.find((v) => v.number === na), all.find((v) => v.number === nb)];
-      if (!va || !vb) throw new Error(`no version ${!va ? na : nb}`);
-      const lines = diffLines(diffShapes(va.body, vb.body), true);
-      for (const line of lines.length ? lines : ["no difference"]) console.log(line);
-    });
+    .action((a: string, b: string) =>
+      plain(async () => {
+        const [na, nb] = [versionArg(a), versionArg(b)];
+        const all = await withDb((db) => shapeVersionsOf(db));
+        const [va, vb] = [all.find((v) => v.number === na), all.find((v) => v.number === nb)];
+        if (!va || !vb) throw new Error(`no version ${!va ? na : nb}`);
+        const lines = storedDiffLines(va.body, vb.body, diffStored(va.body, vb.body), true);
+        for (const line of lines.length ? lines : ["no difference"]) console.log(line);
+      }),
+    );
 
   shape
     .command("export")
@@ -349,6 +446,54 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
       if (o.out) writeFileSync(o.out, text);
       else process.stdout.write(text);
     });
+
+  shape
+    .command("convert")
+    .description(
+      "A version on the metro model, as a shape file (YAML), and what the convert dropped. With --write, save it as the next version",
+    )
+    .option("--version <n>", "a version number; the newest when left out", versionArg)
+    .option("--out <file>", "write the file here instead of printing it")
+    .option("--write", "save the metro model as the next version (the newest only)")
+    .option("--note <text>", "why, with --write", "Move the shape to the metro model.")
+    .action((o: { version?: number; out?: string; write?: boolean; note: string }) =>
+      plain(async () => {
+        const show = (c: Converted) => {
+          if (o.out) {
+            writeFileSync(o.out, c.text);
+            console.log(`wrote ${o.out}`);
+          } else process.stdout.write(c.text);
+          for (const n of c.notes) console.error(n);
+        };
+        if (!o.write) {
+          const all = await withDb((db) => shapeVersionsOf(db));
+          const v = o.version ? all.find((x) => x.number === o.version) : all[all.length - 1];
+          if (!v) throw new Refused([o.version ? `no version ${o.version}` : "no shape yet"]);
+          show(convertBody(v.body));
+          return;
+        }
+        const { result: r, mirror } = await writeAndMirror(async (db) => {
+          const newest = await newestShape(db);
+          if (!newest) throw new Refused(["The workspace has no shape yet."]);
+          if (o.version && o.version !== newest.number)
+            throw new Refused([
+              `Only the newest version can be written. v${o.version} is not the newest (v${newest.number}).`,
+            ]);
+          const c = convertBody(newest.body);
+          if (c.already) throw new Refused(["The shape is on the metro model already."]);
+          const version = await saveShape(db, {
+            body: c.body,
+            note: o.note,
+            by: who(),
+            triggers: TRIGGER_IDS,
+          });
+          return { c, version };
+        });
+        for (const n of r.c.notes) console.log(n);
+        console.log(`v${r.version.number} saved`);
+        printMirror(mirror);
+      }),
+    );
 
   shape
     .command("import <file>")
@@ -478,6 +623,9 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
       plain(async () => {
         if (o.moveTo && o.ghost) throw new Refused(["Use --move-to or --ghost, not both."]);
         const { result: v, mirror } = await writeAndMirror(async (db) => {
+          // The graph edits refuse on a metro version. Say so before the open-journeys advice.
+          const newest = await newestShape(db);
+          if (newest && isMetro(newest.body)) throw new Refused([ON_METRO]);
           if (!o.edge) {
             const open = await openOn(db, id);
             if (open > 0 && !o.moveTo && !o.ghost)
@@ -559,7 +707,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
         if (d.note) console.log(d.note);
         if (d.state === "applied") console.log(`applied as v${d.appliedVersion} by ${d.decidedBy}`);
         if (d.state === "dropped") console.log(`dropped by ${d.decidedBy}: ${d.dropReason}`);
-        const lines = live ? diffLines(diffShapes(live.body, d.body)) : [];
+        const lines = live ? storedDiffLines(live.body, d.body, diffStored(live.body, d.body)) : [];
         for (const line of lines.length ? lines : ["no difference from the newest version"])
           console.log(line);
       }),
@@ -602,13 +750,15 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
   shape
     .command("blame <id>")
     .description(
-      "Every version that touched a node, or with --edge an edge: v<n>  day  who  how  why, newest first",
+      "Every version that touched a node, or with --edge an edge, or with --on a line, station, track, group or frame: v<n>  day  who  how  why, newest first",
     )
     .option("--edge", "the id names an edge, not a node")
-    .action((id: string, o: { edge?: boolean }) =>
+    .option("--on <kind>", `what the id names: ${BLAME_ON.join(", ")}`, blameOnArg)
+    .action((id: string, o: { edge?: boolean; on?: BlameOn }) =>
       plain(async () => {
+        if (o.edge && o.on) throw new Refused(["Use --edge or --on, not both."]);
         const all = await withDb((db) => shapeVersionsOf(db));
-        const lines = blameLines(historyOf(all, id, o.edge ? "edge" : "node"));
+        const lines = blameLines(historyOfStored(all, id, o.on ?? (o.edge ? "edge" : "node")));
         for (const line of lines.length ? lines : [`no history for ${id}`]) console.log(line);
       }),
     );
@@ -616,7 +766,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
   shape
     .command("undo <a> <b> <change>")
     .description(
-      "Reverse one change of the diff from version a to b, as the next version. <change> is a key from `shape diff`",
+      "Reverse one change of the diff from version a to b, as the next version. <change> is a key from `shape diff`, like node:<id>:added or station:<id>:added",
     )
     .option("--preview", "show what the undo would do and save nothing")
     .action((a: string, b: string, change: string, o: { preview?: boolean }) =>
@@ -627,7 +777,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
           console.log(`undo: ${p.line}`);
           console.log(`note: ${p.note}`);
           console.log(`applies to v${p.newest.number}`);
-          for (const line of diffLines(p.diff)) console.log(line);
+          for (const line of storedDiffLines(p.newest.body, p.result, p.diff)) console.log(line);
           return;
         }
         const { result: v, mirror } = await writeAndMirror((db) =>

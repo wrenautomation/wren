@@ -8,9 +8,13 @@ import type { Queryable } from "@wren/db";
 import { and, count, eq } from "drizzle-orm";
 import type { Moves } from "./carry.js";
 import { canonicalJson, changeKey, changesOf, diffShapes, type ShapeChange } from "./diff.js";
+import { isMetro } from "./metro.js";
+import type { MetroChange } from "./metro-diff.js";
+import { undoMetroChange } from "./metro-edit.js";
 import { edgeIdOf, type ShapeBody, type ShapeEdge, type ShapeNode } from "./model.js";
 import { journeys } from "./schema.js";
 import { newestShape, Refused, saveShape } from "./store.js";
+import { metroView, runOf, type StoredBody, type StoredChange } from "./stored.js";
 
 /** The body with `node` added, and `edges` with it. Refused when the id is taken. */
 export function withNode(body: ShapeBody, node: ShapeNode, edges: ShapeEdge[] = []): ShapeBody {
@@ -71,9 +75,13 @@ export async function openOn(db: Queryable, id: string): Promise<number> {
   return row?.n ?? 0;
 }
 
+/** What an edit of the graph says when the newest version is on the metro model. */
+export const ON_METRO = "The shape is on the metro model. Export, edit the YAML, import.";
+
 /**
  * Read the newest body, apply `change` and save the result as the next version. Refused when
- * there is no shape yet, or when `saveShape` refuses.
+ * there is no shape yet, when the newest version is on the metro model (these edits are graph
+ * edits: export, edit the YAML, import), or when `saveShape` refuses.
  */
 export async function editShape(
   db: Queryable,
@@ -87,6 +95,7 @@ export async function editShape(
 ) {
   const newest = await newestShape(db);
   if (!newest) throw new Refused(["The workspace has no shape yet. Import one first."]);
+  if (isMetro(newest.body)) throw new Refused([ON_METRO]);
   return saveShape(db, {
     body: o.change(newest.body),
     note: o.note,
@@ -188,4 +197,25 @@ export function undoChange(
   if (change.how === "added") return withoutEdge(newest, id);
   if (!was) throw new Refused(["That change is not between these versions."]);
   return { ...newest, edges: newest.edges.map((e) => (e.id === id ? was : e)) };
+}
+
+/**
+ * The inverse of one change from version `a` to version `b`, applied to `newest`, for stored
+ * bodies. A `node:` or `edge:` key is a graph key: it needs a graph newest body. A line, station,
+ * track, group or frame key is a metro key: it runs on the map view of all three bodies and gives
+ * a metro body. `name` is in both: the newest body's model decides. Pure; refused with `Refused`.
+ */
+export function undoStoredChange(
+  newest: StoredBody,
+  a: StoredBody,
+  b: StoredBody,
+  change: StoredChange,
+): StoredBody {
+  const graphKey = change.on === "node" || change.on === "edge";
+  if (graphKey || (change.on === "name" && !isMetro(newest))) {
+    if (isMetro(newest))
+      throw new Refused(["The shape is on the metro model now. Undo by station or track."]);
+    return undoChange(newest, runOf(a), runOf(b), change as ShapeChange);
+  }
+  return undoMetroChange(metroView(newest), metroView(a), metroView(b), change as MetroChange);
 }

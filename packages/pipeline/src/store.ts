@@ -11,7 +11,7 @@ import type { Offer, Terms } from "@wren/offers";
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 import { carryJourneys, type Moves, remapDeals } from "./carry.js";
 import { canonicalJson } from "./diff.js";
-import { checkShape, depthOf, type ShapeBody, type ShapeCheckContext } from "./model.js";
+import type { ShapeCheckContext } from "./model.js";
 import { Refused } from "./refused.js";
 import {
   type OfferVersion,
@@ -21,6 +21,7 @@ import {
   type TermsVersion,
   termsVersions,
 } from "./schema.js";
+import { checkStored, placesOfStored, runOf, type StoredBody, sameStored } from "./stored.js";
 
 export { canonicalJson, diffShapes, type ShapeDiff } from "./diff.js";
 
@@ -271,7 +272,8 @@ export async function shapeVersionsOf(db: Queryable): Promise<ShapeVersion[]> {
 }
 
 export interface NewShape {
-  body: ShapeBody;
+  /** A graph body or a metro body (`stored.ts`). */
+  body: StoredBody;
   /** Why it changed. Not empty. */
   note: string;
   by: string;
@@ -283,20 +285,20 @@ export interface NewShape {
 }
 
 /**
- * The next shape version. Refused with every reason `checkShape` finds, with "Nothing changed."
- * when the body equals the newest, and when a `moves` target is no node of the body. Open
- * journeys carry to it, and open deals at a moved node follow, in the same transaction
- * (`carryJourneys`, `remapDeals`).
+ * The next shape version. Refused with every reason `checkStored` finds (a metro body: `checkMetro`
+ * and `lowerable`, then `checkShape` on what it lowers to), with "Nothing changed." when the body
+ * equals the newest as stored, and when a `moves` target is no node of the body. `depths` holds
+ * the body's places (`placesOfStored`). Open journeys carry to it, and open deals at a moved node
+ * follow, in the same transaction (`carryJourneys`, `remapDeals`).
  */
 export async function saveShape(db: Queryable, input: NewShape): Promise<ShapeVersion> {
   if (!input.note.trim()) throw new Refused(["Say why."]);
   return atomic(db, async (tx) => {
     await lock(tx, "shape");
     const last = await newestShape(tx);
-    if (last && canonicalJson(last.body) === canonicalJson(input.body))
-      return refuse("Nothing changed.");
-    const errors = checkShape(input.body, await shapeContext(tx, input.triggers));
-    const ids = new Set(input.body.nodes.map((n) => n.id));
+    if (last && sameStored(last.body, input.body)) return refuse("Nothing changed.");
+    const errors = checkStored(input.body, await shapeContext(tx, input.triggers));
+    const ids = new Set(runOf(input.body).nodes.map((n) => n.id));
     for (const [from, to] of Object.entries(input.moves ?? {})) {
       if (!ids.has(to)) errors.push(`Cannot move ${from} to ${to}: the shape has no node ${to}.`);
     }
@@ -306,7 +308,7 @@ export async function saveShape(db: Queryable, input: NewShape): Promise<ShapeVe
       .values({
         number: (last?.number ?? 0) + 1,
         body: input.body,
-        depths: depthOf(input.body),
+        depths: placesOfStored(input.body),
         note: input.note,
         parent: last?.number ?? null,
         createdBy: input.by,

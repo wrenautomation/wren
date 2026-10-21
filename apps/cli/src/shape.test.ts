@@ -1,15 +1,20 @@
+import { diffStored, type StoredBody } from "@wren/pipeline/stored";
 import { Command, InvalidArgumentError } from "commander";
 import { describe, expect, it, vi } from "vitest";
 import {
   advanceArg,
   blameLines,
+  blameOnArg,
+  convertBody,
   diffLines,
   draftLine,
+  metroLines,
   mirrorLines,
   nodeFrom,
   registerShape,
   type ShapeDeps,
   shapeLines,
+  storedDiffLines,
 } from "./shape.js";
 
 const none = (async () => {
@@ -215,6 +220,7 @@ describe("commands", () => {
       "versions",
       "diff",
       "export",
+      "convert",
       "import",
       "start",
       "add-node",
@@ -314,5 +320,150 @@ describe("commands", () => {
     await p.parseAsync(["shape", "move", "j1", "won", "--reason", "by hand"], { from: "user" });
     log.mockRestore();
     expect(seen).toMatchObject([{ client: "c1", journey: "j1", to: "won", reason: "by hand" }]);
+  });
+});
+
+describe("the metro model", () => {
+  /** A graph that converts: a source, a booking step, and an offer. */
+  const graph = {
+    name: "Test shape",
+    nodes: [
+      { id: "yt", kind: "source", name: "YouTube", via: "organic" },
+      {
+        id: "booked",
+        kind: "step",
+        name: "Booked",
+        action: "book",
+        advance: [{ trigger: "trigger.booking" }],
+      },
+      {
+        id: "signed",
+        kind: "offer",
+        name: "Signed",
+        offer: "offer-a",
+        advance: [{ trigger: "trigger.document" }],
+      },
+    ],
+    edges: [
+      { id: "yt_to_booked", from: "yt", to: "booked", kind: "flow" },
+      { id: "booked_to_signed", from: "booked", to: "signed", kind: "flow" },
+    ],
+  } as unknown as StoredBody;
+
+  it("converts a graph to a metro body and its file", () => {
+    const c = convertBody(graph);
+    expect(c.already).toBe(false);
+    expect(c.body.model).toBe("metro");
+    expect(c.text.startsWith("model: metro")).toBe(true);
+    expect(c.notes).toEqual([]);
+  });
+
+  it("keeps a metro body as it is", () => {
+    const first = convertBody(graph);
+    const again = convertBody(first.body);
+    expect(again).toMatchObject({ already: true, notes: [] });
+    expect(again.body).toBe(first.body);
+    expect(again.text).toBe(first.text);
+  });
+
+  it("refuses a graph that cannot convert, with the reason", () => {
+    const bad = {
+      name: "Bad",
+      nodes: [
+        { id: "yt", kind: "source", name: "YouTube", via: "organic" },
+        { id: "hub", kind: "step", name: "Hub", action: "book", advance: [] },
+      ],
+      edges: [{ id: "yt_to_hub", from: "yt", to: "hub", kind: "flow" }],
+    } as unknown as StoredBody;
+    expect(() => convertBody(bad)).toThrow(/keeps the id "hub" for its hub/);
+  });
+
+  it("prints a metro body: lines, stations by place, tracks", () => {
+    const { body } = convertBody(graph);
+    const lines = metroLines(
+      {
+        number: 2,
+        createdAt: new Date("2027-01-02T00:00:00Z"),
+        createdBy: "ada",
+        note: "why",
+        body,
+      },
+      { yt: 0, hub: 1, booked: 2, signed: 3 },
+      new Map([["booked", 2]]),
+    );
+    expect(lines[0]).toBe("Test shape  v2  2027-01-02  ada");
+    expect(lines).toContain("lines");
+    expect(lines).toContain("  yt  out  YouTube");
+    expect(lines).toContain("  signed  core  Signed  offer offer-a");
+    expect(lines).toContain("  2  booked  time  Booked  line signed  action book  open 2");
+    expect(lines).toContain("  yt_to_hub  yt -> hub  line yt");
+    expect(lines.indexOf("lines")).toBeLessThan(lines.indexOf("stations"));
+    expect(lines.indexOf("stations")).toBeLessThan(lines.indexOf("tracks"));
+  });
+
+  it("shows a metro version through shapeLines", () => {
+    const { body } = convertBody(graph);
+    const lines = shapeLines(
+      { number: 2, createdAt: new Date(0), createdBy: "ada", note: "why", body },
+      {},
+      new Map(),
+    );
+    expect(lines).toContain("stations");
+    expect(lines).not.toContain("nodes");
+  });
+
+  it("prints a metro diff as sentences, and a graph diff as before", () => {
+    const a = convertBody(graph).body;
+    const b = {
+      ...a,
+      stations: a.stations.map((x) => (x.id === "booked" ? { ...x, label: "Call" } : x)),
+    };
+    expect(storedDiffLines(a, b, diffStored(a, b))).toEqual(["Renamed station Booked to Call."]);
+    expect(storedDiffLines(a, b, diffStored(a, b), true)).toEqual([
+      "Renamed station Booked to Call.  [station:booked:renamed]",
+    ]);
+    const g2 = {
+      ...(graph as { name: string; nodes: unknown[]; edges: unknown[] }),
+      name: "Other",
+    } as unknown as StoredBody;
+    expect(storedDiffLines(graph, g2, diffStored(graph, g2))).toEqual([
+      "name: Test shape -> Other",
+    ]);
+  });
+
+  it("reads --on as a kind, and refuses a stray word", () => {
+    for (const ok of ["node", "edge", "line", "station", "track", "group", "frame"])
+      expect(blameOnArg(ok)).toBe(ok);
+    expect(() => blameOnArg("hub")).toThrow(InvalidArgumentError);
+  });
+
+  it("prints a version as a metro file without --write, and writes nothing", async () => {
+    const versions = [
+      { number: 1, body: graph },
+      { number: 2, body: graph },
+    ];
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    process.exitCode = undefined;
+    await program({ withDb: (async () => versions) as never }).parseAsync(
+      ["shape", "convert", "--version", "1"],
+      { from: "user" },
+    );
+    const out = write.mock.calls.map((c) => String(c[0])).join("");
+    write.mockRestore();
+    expect(out.startsWith("model: metro")).toBe(true);
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("says when the version is missing", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    process.exitCode = undefined;
+    await program({ withDb: (async () => [{ number: 1, body: graph }]) as never }).parseAsync(
+      ["shape", "convert", "--version", "9"],
+      { from: "user" },
+    );
+    expect(err).toHaveBeenCalledWith(expect.stringContaining("no version 9"));
+    expect(process.exitCode).toBe(1);
+    process.exitCode = undefined;
+    err.mockRestore();
   });
 });

@@ -37,6 +37,7 @@
     "./starter": "./src/starter.ts",
     "./steps": "./src/steps.ts",
     "./store": "./src/store.ts",
+    "./stored": "./src/stored.ts",
     "./tags": "./src/tags.ts",
     "./undo": "./src/undo.ts",
     "./views": "./src/views.ts",

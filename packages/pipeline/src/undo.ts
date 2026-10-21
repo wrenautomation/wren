@@ -1,43 +1,52 @@
 /**
  * Undo one change of a past diff (designs/2026-10-19-business-map.md, "Undo one change"): the
- * console and the CLI plan and save it here, one path. `undoChange` (`edit.ts`) is the pure
- * inverse; this reads the versions, adds the checks that need the database (the whole result
- * through `checkShape`, open journeys on a node the undo would remove) and saves the result as the
- * next version with the note `Undo: <line>`.
+ * console and the CLI plan and save it here, one path. `undoStoredChange` (`edit.ts`) is the pure
+ * inverse, for either model; this reads the versions, adds the checks that need the database (the
+ * whole result through `checkStored`, open journeys on a node the undo would remove) and saves the
+ * result as the next version with the note `Undo: <line>`.
  */
 import { atomic, type Queryable } from "@wren/db";
-import { canonicalJson, changeLine, diffShapes, parseChangeKey, type ShapeDiff } from "./diff.js";
-import { openOn, undoChange } from "./edit.js";
-import { checkShape, type ShapeBody } from "./model.js";
+import { openOn, undoStoredChange } from "./edit.js";
 import type { ShapeVersion } from "./schema.js";
 import { lock, Refused, saveShape, shapeContext, shapeVersionsOf } from "./store.js";
+import {
+  checkStored,
+  diffStored,
+  parseStoredChangeKey,
+  runOf,
+  type StoredBody,
+  type StoredDiff,
+  sameStored,
+  storedChangeLine,
+} from "./stored.js";
 
 export interface UndoPlan {
-  /** The change as `changeLine` says it. */
+  /** The change as `storedChangeLine` says it. */
   line: string;
   /** The note the undo saves with. */
   note: string;
   /** The newest version: what the undo applies to. */
   newest: ShapeVersion;
-  /** The newest body after the undo. */
-  result: ShapeBody;
+  /** The newest body after the undo. A metro key gives a metro body. */
+  result: StoredBody;
   /** From the newest body to the result. */
-  diff: ShapeDiff;
+  diff: StoredDiff;
 }
 
 /**
  * What undoing `change` of the diff from version `a` to `b` would do to the newest version.
- * Refused with every reason: a key that names no change, a missing version, `undoChange`'s own
- * refusal, a result `checkShape` fails, open journeys on a node the undo removes.
+ * Refused with every reason: a key that names no change, a missing version, the pure undo's own
+ * refusal (a graph key on a metro newest body too), a result `checkStored` fails, open journeys on
+ * a node the undo removes.
  */
 export async function planUndo(
   db: Queryable,
   o: { a: number; b: number; change: string; triggers: ReadonlySet<string> },
 ): Promise<UndoPlan> {
-  const change = parseChangeKey(o.change);
+  const change = parseStoredChangeKey(o.change);
   if (!change)
     throw new Refused([
-      `"${o.change}" names no change. Use a key from the diff, like node:<id>:added.`,
+      `"${o.change}" names no change. Use a key from the diff, like node:<id>:added or station:<id>:added.`,
     ]);
   const all = await shapeVersionsOf(db);
   const newest = all[all.length - 1];
@@ -50,32 +59,34 @@ export async function planUndo(
         : ["The workspace has no shape yet."],
     );
   const errors: string[] = [];
-  let result: ShapeBody | null = null;
+  let result: StoredBody | null = null;
   try {
-    result = undoChange(newest.body, a.body, b.body, change);
+    result = undoStoredChange(newest.body, a.body, b.body, change);
   } catch (e) {
     if (!(e instanceof Refused)) throw e;
     errors.push(...e.errors);
   }
-  if (change.on === "node" && change.how === "added") {
-    const open = await openOn(db, change.id);
-    if (open > 0)
-      errors.push(
-        `${open} open ${open === 1 ? "journey sits" : "journeys sit"} on ${change.id}. Move them first.`,
-      );
-  }
   if (result) {
-    if (canonicalJson(result) === canonicalJson(newest.body)) errors.push("Nothing changed.");
-    errors.push(...checkShape(result, await shapeContext(db, o.triggers)));
+    // A node the undo drops (a node or a station that was added) may hold open journeys.
+    const kept = new Set(runOf(result).nodes.map((n) => n.id));
+    for (const gone of runOf(newest.body).nodes.filter((n) => !kept.has(n.id))) {
+      const open = await openOn(db, gone.id);
+      if (open > 0)
+        errors.push(
+          `${open} open ${open === 1 ? "journey sits" : "journeys sit"} on ${gone.id}. Move them first.`,
+        );
+    }
+    if (sameStored(result, newest.body)) errors.push("Nothing changed.");
+    errors.push(...checkStored(result, await shapeContext(db, o.triggers)));
   }
   if (errors.length || !result) throw new Refused(errors);
-  const line = changeLine(a.body, b.body, change);
+  const line = storedChangeLine(a.body, b.body, change);
   return {
     line,
     note: `Undo: ${line}`,
     newest,
     result,
-    diff: diffShapes(newest.body, result),
+    diff: diffStored(newest.body, result),
   };
 }
 

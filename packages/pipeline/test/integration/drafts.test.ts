@@ -21,6 +21,7 @@ import {
 import type { ShapeBody } from "../../src/model.js";
 import { journeys, shapeDrafts } from "../../src/schema.js";
 import { newestShape, Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
+import { runOf } from "../../src/stored.js";
 import { addTag, tagsOf } from "../../src/tags.js";
 import { flow, grown, shape, TRIGGERS } from "../fixtures.js";
 
@@ -103,7 +104,7 @@ describe("drafts", () => {
       by: BY,
     });
     expect(a).toMatchObject({ state: "draft", note: "why", moves: { x: "kept" } });
-    expect(a.body.nodes.map((n) => n.id)).toContain("kept");
+    expect(runOf(a.body).nodes.map((n) => n.id)).toContain("kept");
     const b = await updateDraft(pg.db, { id: "edit-me", body: extra, note: "better why", by: BY });
     expect(b).toMatchObject({ note: "better why", moves: {} });
     expect(b.updatedAt.getTime()).toBeGreaterThanOrEqual(a.updatedAt.getTime());
@@ -245,7 +246,7 @@ describe("drafts", () => {
     expect(() => parseRef("nope")).toThrow(Refused);
     expect(() => parseRef(0)).toThrow(Refused);
     expect((await bodyOfRef(pg.db, 1)).name).toBe("Test shape");
-    expect((await bodyOfRef(pg.db, "draft:propose-me")).nodes.length).toBeGreaterThan(0);
+    expect(runOf(await bodyOfRef(pg.db, "draft:propose-me")).nodes.length).toBeGreaterThan(0);
     expect(await reasons(bodyOfRef(pg.db, "draft:none"))).toEqual(['There is no draft "none".']);
     expect(await reasons(bodyOfRef(pg.db, 99))).toEqual(["There is no shape version 99."]);
   });

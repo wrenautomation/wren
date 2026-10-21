@@ -25,9 +25,11 @@ import type { Terms } from "@wren/offers";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { DraftDetail, DraftState, VersionLine } from "./history.js";
 import type { Fit } from "./icp.js";
+import { isMetro, type MetroBody, placesOf } from "./metro.js";
 import type { ShapeBody } from "./model.js";
 import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
+import { Refused } from "./refused.js";
 import { scheduleOf } from "./schedule.js";
 import {
   journeyResearch,
@@ -40,6 +42,7 @@ import {
   shapeVersions,
   termsVersions,
 } from "./schema.js";
+import { metroView, runDepthsOf, runOf } from "./stored.js";
 
 export const OFFER_RECORD = "pipeline.offer";
 export const SHAPE_RECORD = "pipeline.shape";
@@ -98,6 +101,9 @@ const NUMBER_KINDS = {
   node: { label: "Node", tone: "neutral" },
   edge: { label: "Edge", tone: "neutral" },
   offer: { label: "Offer", tone: "neutral" },
+  station: { label: "Station", tone: "neutral" },
+  track: { label: "Track", tone: "neutral" },
+  line: { label: "Line", tone: "neutral" },
 } as const;
 
 const nameOf = (body: ShapeBody | undefined, id: string) =>
@@ -130,11 +136,10 @@ export async function offerRows(db: Queryable, o: { now?: Date } = {}) {
     .where(eq(journeys.status, "open"))
     .limit(ROWS);
   for (const h of heads) {
-    const at = h.body.nodes.find((n) => n.id === h.node);
+    const nodes = runOf(h.body).nodes;
+    const at = nodes.find((n) => n.id === h.node);
     const seen = [h.node, ...h.trail.map((c) => c.to).reverse()];
-    const offer = seen
-      .map((id) => h.body.nodes.find((n) => n.id === id))
-      .find((n) => n?.kind === "offer");
+    const offer = seen.map((id) => nodes.find((n) => n.id === id)).find((n) => n?.kind === "offer");
     const id = at?.kind === "offer" ? at.offer : offer?.kind === "offer" ? offer.offer : null;
     if (id) open.set(id, (open.get(id) ?? 0) + 1);
   }
@@ -319,13 +324,15 @@ export async function shapeRows(db: Queryable) {
     .select({ n: sql<number>`count(*)::int` })
     .from(journeys)
     .where(eq(journeys.status, "open"));
+  // Counts are of the graph the runtime runs, whichever model the version is stored as.
+  const run = runOf(top.body);
   return [
     {
       id: "shape",
       name: top.body.name,
       version: top.number,
-      nodes: top.body.nodes.length,
-      edges: top.body.edges.length,
+      nodes: run.nodes.length,
+      edges: run.edges.length,
       open_journeys: opens[0]?.n ?? 0,
       why: top.note,
       changed_at: top.createdAt,
@@ -367,7 +374,9 @@ export const shapeRecord = (): RecordType =>
     ],
     /**
      * The newest body with each node's depth, and every version: what changed and why, the draft
-     * it came from, its tags, and the commit it landed as in the private repo.
+     * it came from, its tags, and the commit it landed as in the private repo. `body` and `depths`
+     * are the graph the runtime runs, whichever model is stored. `metro` and `places` are the map
+     * model and the station places; both are null when the graph cannot be drawn as a metro.
      */
     load: async (db) => {
       const versions = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number));
@@ -379,14 +388,15 @@ export const shapeRecord = (): RecordType =>
       );
       const lines: VersionLine[] = versions.map((v) => {
         const m = mirrors.get(v.number);
+        const run = runOf(v.body);
         return {
           number: v.number,
           parent: v.parent,
           note: v.note,
           at: v.createdAt.toISOString(),
           by: v.createdBy,
-          nodes: v.body.nodes.length,
-          edges: v.body.edges.length,
+          nodes: run.nodes.length,
+          edges: run.edges.length,
           draft: v.draft,
           tags: tags
             .filter((t) => t.version === v.number)
@@ -399,9 +409,26 @@ export const shapeRecord = (): RecordType =>
           mirror: m ? { sha: m.sha, url: `https://github.com/${m.repo}/commit/${m.sha}` } : null,
         };
       });
-      return { body: top.body, depths: top.depths, versions: lines };
+      const metro = metroOrNull(top.body);
+      return {
+        body: runOf(top.body),
+        depths: isMetro(top.body) ? runDepthsOf(top.body) : top.depths,
+        metro,
+        places: metro ? placesOf(metro) : null,
+        versions: lines,
+      };
     },
   });
+
+/** The map model of a stored body, or null when a graph cannot be drawn (a node called `hub`). */
+function metroOrNull(body: Parameters<typeof metroView>[0]): MetroBody | null {
+  try {
+    return metroView(body);
+  } catch (e) {
+    if (e instanceof Refused) return null;
+    throw e;
+  }
+}
 
 // --- shape drafts ----------------------------------------------------------------------------
 
@@ -480,7 +507,7 @@ export const shapeDraftRecord = (): RecordType =>
     /** The draft's own body and moves: what applying it would save. */
     load: async (db, id): Promise<DraftDetail | null> => {
       const [d] = await db.select().from(shapeDrafts).where(eq(shapeDrafts.id, id)).limit(1);
-      return d ? { body: d.body, moves: d.moves } : null;
+      return d ? { body: runOf(d.body), moves: d.moves } : null;
     },
   });
 
@@ -526,7 +553,9 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
   for (const k of await keysOfProfile(db, [...new Set(rows.map((r) => r.j.profileId))]))
     if (k.kind === "email") emails.set(k.profileId, [...(emails.get(k.profileId) ?? []), k.value]);
   const now = (o.now ?? new Date()).getTime();
-  return rows.map(({ j, person, body }) => {
+  const topGraph = top ? runOf(top.body) : undefined;
+  return rows.map(({ j, person, body: stored }) => {
+    const body = stored ? runOf(stored) : null;
     const days = Math.floor((now - j.movedAt.getTime()) / DAY_MS);
     const node = j.node;
     const at = body?.nodes.find((n) => n.id === node);
@@ -536,7 +565,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
       j.status === "open" &&
       !!top &&
       j.version < top.number &&
-      !top.body.nodes.some((n) => n.id === node);
+      !topGraph?.nodes.some((n) => n.id === node);
     return {
       id: j.id,
       name: person ?? `Person ${j.profileId}`,
@@ -631,6 +660,7 @@ export const journeyRecord = (): RecordType =>
         .where(eq(journeys.id, String(id)))
         .limit(1);
       if (!r) return null;
+      const graph = r.body ? runOf(r.body) : undefined;
       // The newest light read that scored the person against the offer's ICP.
       const [read] = await db
         .select({ stage: journeyResearch.stage, fit: sql<Fit>`${journeyResearch.result} -> 'fit'` })
@@ -647,14 +677,12 @@ export const journeyRecord = (): RecordType =>
         trail: r.trail.map((c) => ({
           edge: c.edge,
           from: c.from,
-          from_name: c.from ? nameOf(r.body ?? undefined, c.from) : null,
+          from_name: c.from ? nameOf(graph, c.from) : null,
           to: c.to,
-          to_name: nameOf(r.body ?? undefined, c.to),
+          to_name: nameOf(graph, c.to),
           at: c.at,
         })),
-        fit: read
-          ? { ...read.fit, node: read.stage, node_name: nameOf(r.body ?? undefined, read.stage) }
-          : null,
+        fit: read ? { ...read.fit, node: read.stage, node_name: nameOf(graph, read.stage) } : null,
       };
     },
   });
@@ -767,7 +795,7 @@ export async function entryRows(db: Queryable) {
     .from(journeys)
     .groupBy(journeys.entry);
   const by = new Map(counts.map((c) => [c.entry, c]));
-  return top.body.nodes.flatMap((n) => {
+  return runOf(top.body).nodes.flatMap((n) => {
     if (n.kind !== "source") return [];
     const c = by.get(n.id);
     return [

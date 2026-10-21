@@ -8,9 +8,9 @@ import { atomic, type Queryable, type Tx } from "@wren/db";
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { Moves } from "./carry.js";
 import { type DraftState, OPEN_DRAFT_STATES, type ShapeRef } from "./history.js";
-import type { ShapeBody } from "./model.js";
 import { type ShapeDraft, type ShapeVersion, shapeDrafts, shapeVersions } from "./schema.js";
 import { lock, newestShape, Refused, saveShape } from "./store.js";
+import type { StoredBody } from "./stored.js";
 
 const ID_LENGTH = 40;
 
@@ -68,7 +68,8 @@ function mustBeOpen(d: ShapeDraft): void {
 
 export interface NewDraft {
   name: string;
-  body: ShapeBody;
+  /** A graph body or a metro body. */
+  body: StoredBody;
   moves?: Moves;
   /** The version it forks; the newest when left out. */
   base?: number;
@@ -113,7 +114,8 @@ export async function newDraft(db: Queryable, input: NewDraft): Promise<ShapeDra
 
 export interface DraftUpdate {
   id: string;
-  body: ShapeBody;
+  /** A graph body or a metro body. */
+  body: StoredBody;
   /** Replaces the moves; none clears them. */
   moves?: Moves;
   /** Left out keeps the note. */
@@ -232,8 +234,8 @@ export function parseRef(v: unknown): ShapeRef {
   throw new Refused([`"${String(v)}" is not a version number or draft:<id>.`]);
 }
 
-/** The body a ref names: a version's or a draft's. Refused when there is none. */
-export async function bodyOfRef(db: Queryable, ref: ShapeRef): Promise<ShapeBody> {
+/** The body a ref names, as stored: a version's or a draft's. Refused when there is none. */
+export async function bodyOfRef(db: Queryable, ref: ShapeRef): Promise<StoredBody> {
   if (typeof ref === "number") {
     const [v] = await db.select().from(shapeVersions).where(eq(shapeVersions.number, ref));
     if (!v) throw new Refused([`There is no shape version ${ref}.`]);

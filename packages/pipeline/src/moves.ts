@@ -18,6 +18,7 @@ import { ownerOf, personOf, versionOf } from "./journeys.js";
 import { type Crossing, flowEdgesFrom, nodeOf, pathOf } from "./model.js";
 import { type Journey, journeys, pipelineDeals } from "./schema.js";
 import { liveTerms, newestShape, Refused } from "./store.js";
+import { runOf } from "./stored.js";
 import { parseShapeFlow, shapeFlowId } from "./workflow.js";
 
 /** What `Spine/emit` takes, less the workspace. */
@@ -82,7 +83,7 @@ export async function openEmit(
   const now = p.now ?? new Date();
   const newest = await newestShape(db);
   if (!newest) throw new Refused(["No shape yet."]);
-  const { body } = newest;
+  const body = runOf(newest.body);
   const nodes = entryNodes(body);
   const at = p.at ?? nodes[0];
   if (!at || !nodes.includes(at))

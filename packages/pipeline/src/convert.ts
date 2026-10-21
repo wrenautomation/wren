@@ -312,7 +312,7 @@ export function metroOf(graph: ShapeBody): MetroResult {
       id: e.id,
       from: e.from,
       to: e.to,
-      by: (from?.advance ?? []).length > 0 ? "system" : "person",
+      by: (to?.advance ?? []).length > 0 ? "system" : "person",
     };
     if (e.kind === "loop") track.kind = "back";
     else if (from?.line !== undefined && to?.line !== undefined && from.line !== to.line) {

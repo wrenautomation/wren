@@ -53,7 +53,6 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
 import { z } from "zod";
-import { historyOf } from "./blame.js";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "./console-routes.js";
 import {
   applyDraft,
@@ -99,6 +98,7 @@ import {
   shapeVersionsOf,
   syncOffers,
 } from "./store.js";
+import { historyOfStored, runOf } from "./stored.js";
 import { addTag } from "./tags.js";
 import { planUndo, undoShape } from "./undo.js";
 
@@ -299,7 +299,11 @@ export function pipelineConsoleApi({
       return refused(async () => {
         const a = parseRef(req.a);
         const b = parseRef(req.b);
-        const bodies: [ShapeBody, ShapeBody] = [await bodyOfRef(w.db, a), await bodyOfRef(w.db, b)];
+        // The web answers in graph terms: a metro body is lowered with `runOf`.
+        const bodies: [ShapeBody, ShapeBody] = [
+          runOf(await bodyOfRef(w.db, a)),
+          runOf(await bodyOfRef(w.db, b)),
+        ];
         return { a, b, diff: diffShapes(bodies[0], bodies[1]), bodies };
       });
     },
@@ -333,11 +337,14 @@ export function pipelineConsoleApi({
       const file = await refused(async () => parseShape(String(req.text ?? "")));
       const newest = await newestShape(w.db);
       const none: ShapeBody = { name: file.body.name, nodes: [], edges: [] };
-      // Compared as an import would save it: the file against the newest version.
+      // Compared as an import would save it: the file against the newest version. The web answers
+      // in graph terms, so a metro body on either side is lowered with `runOf`.
+      const was = newest ? runOf(newest.body) : none;
+      const now = runOf(file.body);
       return {
         a: newest?.number ?? null,
-        diff: diffShapes(newest?.body ?? none, file.body),
-        bodies: [newest?.body ?? none, file.body],
+        diff: diffShapes(was, now),
+        bodies: [was, now],
         note: file.note ?? null,
         moves: file.moves ?? null,
       };
@@ -397,7 +404,7 @@ export function pipelineConsoleApi({
       const edge = req.edge ? String(req.edge) : "";
       if (!node === !edge) throw new PortalRefusal("Name exactly one of node or edge.", 400);
       return {
-        lines: historyOf(await shapeVersionsOf(w.db), node || edge, node ? "node" : "edge"),
+        lines: historyOfStored(await shapeVersionsOf(w.db), node || edge, node ? "node" : "edge"),
       };
     },
     shapeUndoPreview: async (req: UndoRequest): Promise<UndoPreviewAnswer> => {
@@ -414,8 +421,8 @@ export function pipelineConsoleApi({
         line: plan.line,
         note: plan.note,
         newest: plan.newest.number,
-        diff: plan.diff,
-        bodies: [plan.newest.body, plan.result],
+        diff: diffShapes(runOf(plan.newest.body), runOf(plan.result)),
+        bodies: [runOf(plan.newest.body), runOf(plan.result)],
       };
     },
     shapeUndo: async (req: UndoRequest): Promise<UndoAnswer> => {

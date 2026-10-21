@@ -7,15 +7,23 @@
  * scheduled; per offer: the same by offer. A window cuts the daily views by day: 7, 30, 90 days
  * or all.
  *
+ * A newest version on the metro model answers per line, station and track instead of per node and
+ * edge (`metroRowsOf`). The numbers are the graph's numbers under the ids that carry over: a
+ * station is its node, a plain or back track is its edge, a hub track is the sum of the source
+ * edges its entries name, an out line is its source, an offer line is its offer. The views read
+ * the graph shape of a version, so a version stored as a metro body has no crossings yet.
+ *
  * Cost is Meta's spend on an `ads` source's campaign, in the ad account's currency; the views do
  * not convert, so a source on two currencies would add them. One currency per workspace holds today.
  */
 import type { Queryable } from "@wren/db";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
-import { isSource, type ShapeBody } from "./model.js";
+import { isMetro, type MetroBody } from "./metro.js";
+import { edgeIdOf, isSource, type ShapeBody } from "./model.js";
 import { scheduleOf } from "./schedule.js";
 import { journeys, pipelineDeals, termsVersions } from "./schema.js";
 import { newestShape } from "./store.js";
+import { runOf } from "./stored.js";
 import { edgeFlow, nodeCounts, sourceNumbers } from "./views.js";
 
 export type NumberWindow = 7 | 30 | 90 | "all";
@@ -260,18 +268,19 @@ export async function planNumbersOf(
   return out;
 }
 
-export type NumberKind = "node" | "edge" | "offer";
+/** Node, edge and offer rows for a graph; line, station, track and offer rows for a metro body. */
+export type NumberKind = "node" | "edge" | "offer" | "station" | "track" | "line";
 /** One row of the `pipeline.number` record. */
 export interface NumberRow {
   id: string;
   kind: NumberKind;
-  /** The node id, the edge id or the offer id. */
+  /** The node, station, edge, track, line or offer id. */
   label: string;
-  /** The node's name, the edge as `from to`, the offer id. */
+  /** The node's or station's name, the edge or track as `from to`, the line's label, the offer id. */
   name: string;
-  /** Depth in the newest shape (a node, from `depths`); 0 for the rest. */
+  /** Position in the newest shape (a node or station, from `depths`); 0 for the rest. */
   position: number;
-  /** Node rows: the node's kind. */
+  /** Node and station rows: the kind of node it is (a station: the node it lowers to). */
   nodeKind: string | null;
   arrived: number | null;
   skipped: number | null;
@@ -279,13 +288,13 @@ export interface NumberRow {
   /** Open journeys at the node now. */
   now: number | null;
   medianDays: number | null;
-  /** Edge rows. */
+  /** Edge and track rows. */
   crossings: number | null;
   from: string | null;
   to: string | null;
-  /** Source node rows. */
+  /** Source node and out line rows. */
   opened: number | null;
-  /** Source, plan and offer rows. */
+  /** Source, plan, offer and line rows. */
   deals: number | null;
   collected: number | null;
   /** Plan and offer rows: what the signed terms bill over their schedule. */
@@ -316,7 +325,85 @@ const blank = {
   last: null,
 } as const;
 
-/** All the numbers as rows: per node and edge of the newest shape, per offer. */
+/**
+ * The rows of a metro newest version, from the rows of the graph it lowers to: lines first, then
+ * stations, then tracks. Pure. The ids carry over (see the header), so every number is read, none
+ * is worked out again. A track into the hub reads every source edge of its out line. With a
+ * `source` filter only that out line, its station and the offer lines stay, as for a graph.
+ */
+export function metroRowsOf(
+  metro: MetroBody,
+  graph: readonly NumberRow[],
+  offers: readonly OfferNumber[],
+  f: NumbersFilter = {},
+): NumberRow[] {
+  const nodes = new Map(graph.filter((r) => r.kind === "node").map((r) => [r.label, r] as const));
+  const edges = graph.filter((r) => r.kind === "edge");
+  const edgeBy = new Map(edges.map((r) => [r.label, r] as const));
+  const labelOf = new Map(metro.stations.map((s) => [s.id, s.label] as const));
+  const hubs = new Set(metro.stations.filter((s) => s.kind === "hub").map((s) => s.id));
+  const outIds = metro.lines.filter((l) => l.tier === "out").map((l) => l.id);
+  const out: NumberRow[] = [];
+
+  for (const l of metro.lines) {
+    const base = { id: `line:${l.id}`, kind: "line" as const, label: l.id, name: l.label };
+    if (l.tier === "out") {
+      if (f.source && l.id !== f.source) continue;
+      out.push({ ...(nodes.get(l.id) ?? blank), ...base, position: 0, nodeKind: null });
+      continue;
+    }
+    const mine = offers.filter((o) => o.offer === l.offer);
+    out.push({
+      ...blank,
+      ...base,
+      position: 0,
+      ...(l.offer === undefined
+        ? {}
+        : {
+            deals: mine.reduce((n, o) => n + o.deals, 0),
+            collected: money(mine.reduce((n, o) => n + o.collectedCents, 0)),
+            scheduled: money(mine.reduce((n, o) => n + o.scheduledCents, 0)),
+            currency: mine[0]?.currency ?? null,
+          }),
+    });
+  }
+
+  for (const s of metro.stations) {
+    const node = nodes.get(s.id);
+    if (!node) continue;
+    out.push({ ...node, id: `station:${s.id}`, kind: "station", label: s.id, name: s.label });
+  }
+
+  if (f.source) return out;
+  for (const t of metro.tracks) {
+    // The graph edges this track stands for.
+    const own = hubs.has(t.from)
+      ? (t.entries ?? outIds).map((entry) => edgeBy.get(edgeIdOf(entry, t.to)))
+      : hubs.has(t.to)
+        ? edges.filter((r) => r.from === t.from)
+        : [edgeBy.get(t.id)];
+    const found = own.filter((r): r is NumberRow => r !== undefined);
+    const last = found.reduce<string | null>(
+      (m, r) => (r.last && (!m || r.last > m) ? r.last : m),
+      null,
+    );
+    out.push({
+      ...blank,
+      id: `track:${t.id}`,
+      kind: "track",
+      label: t.id,
+      name: `${labelOf.get(t.from) ?? t.from} to ${labelOf.get(t.to) ?? t.to}`,
+      position: 0,
+      crossings: found.reduce((n, r) => n + (r.crossings ?? 0), 0),
+      from: t.from,
+      to: t.to,
+      last,
+    });
+  }
+  return out;
+}
+
+/** All the numbers as rows: per node and edge of the newest shape (per line, station and track on the metro model), per offer. */
 export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<NumberRow[]> {
   const newest = await newestShape(db);
   const [counts, flow, sources, offers, medians, now] = await Promise.all([
@@ -329,7 +416,10 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
   ]);
   const rows: NumberRow[] = [];
   if (newest) {
-    const { body, depths } = newest;
+    // The graph the runtime runs; a metro body is lowered. `depths` are depths for a graph and
+    // places for a metro body.
+    const { depths } = newest;
+    const body = runOf(newest.body);
     const total = new Map<
       string,
       { arrived: number; skipped: number; left: number; last: string | null }
@@ -427,6 +517,11 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
           last: t?.last ?? null,
         });
       }
+    }
+    // Same numbers, under the metro model's names.
+    if (isMetro(newest.body)) {
+      const graphRows = rows.splice(0);
+      rows.push(...metroRowsOf(newest.body, graphRows, offers, f));
     }
   }
   for (const o of offers)

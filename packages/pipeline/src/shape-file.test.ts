@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { flow, grown, shape } from "../test/fixtures.js";
 import { exportShape, parseShape } from "./shape-file.js";
 import { canonicalJson, Refused } from "./store.js";
+import { runOf } from "./stored.js";
 
 const refusal = (text: string): string[] => {
   try {
@@ -53,14 +54,15 @@ terms:
 
   it("gives an edge its default id and kind", () => {
     const f = parseShape(file);
-    expect(f.body.edges[0]).toEqual({
+    const edges = runOf(f.body).edges;
+    expect(edges[0]).toEqual({
       id: "yt_to_engaged",
       from: "yt",
       to: "engaged",
       kind: "flow",
     });
-    expect(f.body.edges[1]?.id).toBe("back");
-    expect(f.body.edges[1]?.kind).toBe("loop");
+    expect(edges[1]?.id).toBe("back");
+    expect(edges[1]?.kind).toBe("loop");
   });
 
   it("reads the note, moves and terms", () => {

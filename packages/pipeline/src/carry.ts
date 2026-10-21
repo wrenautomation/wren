@@ -16,6 +16,7 @@ import { atomic, type Queryable } from "@wren/db";
 import { and, eq, inArray, lt } from "drizzle-orm";
 import type { Crossing } from "./model.js";
 import { journeys, pipelineDeals, shapeVersions } from "./schema.js";
+import { runOf } from "./stored.js";
 import { shapeFlowId } from "./workflow.js";
 
 /** The `by` of the arrivals carry writes. */
@@ -41,7 +42,7 @@ export async function carryJourneys(
       .where(eq(shapeVersions.number, toVersion))
       .limit(1);
     if (!target) return 0;
-    const inBody = new Set(target.body.nodes.map((n) => n.id));
+    const inBody = new Set(runOf(target.body).nodes.map((n) => n.id));
     const open = await tx
       .select()
       .from(journeys)

@@ -337,13 +337,14 @@ describe("metroOf: the model it draws", () => {
     expect(track("upsell_step_to_signed_b")?.kind).toBeUndefined();
   });
 
-  it("sets by to system when the from-station has an advance trigger, else person", () => {
+  it("sets by to system when the to-station has an advance trigger, else person", () => {
+    // A node's advance moves a journey into it, so the end of the track decides who moves it.
     const { body } = made(shape());
     const by = (id: string) => body.tracks.find((t) => t.id === id)?.by;
     expect(by("engaged_to_booked")).toBe("system");
-    expect(by("booked_to_proposal")).toBe("system");
-    expect(by("proposal_to_signed")).toBe("person");
-    expect(by("signed_to_standard")).toBe("system");
+    expect(by("booked_to_proposal")).toBe("person");
+    expect(by("proposal_to_signed")).toBe("system");
+    expect(by("signed_to_standard")).toBe("person");
   });
 
   it("draws a loop edge as a back track with its label and no line", () => {

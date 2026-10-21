@@ -14,6 +14,7 @@ import { pipelineConsoleApi, saveThenMirror } from "../../src/console.js";
 import type { ShapeBody } from "../../src/model.js";
 import { journeys } from "../../src/schema.js";
 import { Refused, shapeVersionsOf } from "../../src/store.js";
+import { runOf } from "../../src/stored.js";
 import { flow } from "../fixtures.js";
 
 let pg: TestPostgres;
@@ -241,8 +242,8 @@ describe("blame, undo and tags", () => {
       note: "Undo: Added node Call.",
       createdBy: ADA,
     });
-    expect(v3?.body.nodes.map((n) => n.id)).toEqual(["manual", "engaged"]);
-    expect(v3?.body.edges.map((e) => e.id)).toEqual(["manual_to_engaged"]);
+    expect(v3 && runOf(v3.body).nodes.map((n) => n.id)).toEqual(["manual", "engaged"]);
+    expect(v3 && runOf(v3.body).edges.map((e) => e.id)).toEqual(["manual_to_engaged"]);
     // The change is gone now: undoing it again says so, and nothing is saved.
     await expect(a.shapeUndo({ ...op(), ...ask })).rejects.toMatchObject({ status: 400 });
     expect((await shapeVersionsOf(pg.db)).length).toBe(3);

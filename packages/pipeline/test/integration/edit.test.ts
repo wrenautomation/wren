@@ -11,6 +11,7 @@ import { edgeOf, editShape, openOn, withEdge, withNode, withoutNode } from "../.
 import type { ShapeNode } from "../../src/model.js";
 import { journeys } from "../../src/schema.js";
 import { newestShape, Refused, saveShape } from "../../src/store.js";
+import { runOf } from "../../src/stored.js";
 import { shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
@@ -22,6 +23,11 @@ afterAll(() => pg.stop());
 const won: ShapeNode = { id: "won", kind: "step", name: "Won", action: "other", advance: [] };
 const person = async (email: string) =>
   (await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))?.id as number;
+/** The graph the newest version runs. */
+const graphNewest = async () => {
+  const top = await newestShape(pg.db);
+  return top && runOf(top.body);
+};
 const edit = (change: Parameters<typeof editShape>[1]["change"], moves?: Record<string, string>) =>
   editShape(pg.db, {
     change,
@@ -42,7 +48,7 @@ describe("editShape", () => {
     await expect(edit((b) => withNode(b, won))).rejects.toThrow(Refused);
     const v2 = await edit((b) => withNode(b, won, [edgeOf("standard", "won")]));
     expect(v2.number).toBe(2);
-    expect((await newestShape(pg.db))?.body.nodes.map((n) => n.id)).toContain("won");
+    expect((await graphNewest())?.nodes.map((n) => n.id)).toContain("won");
   });
 
   it("counts the open journeys on a node", async () => {
@@ -92,7 +98,7 @@ describe("editShape", () => {
 
   it("connects two nodes with a loop edge", async () => {
     const v = await edit((b) => withEdge(b, edgeOf("proposal", "engaged", { loop: true })));
-    expect((await newestShape(pg.db))?.body.edges.at(-1)).toMatchObject({
+    expect((await graphNewest())?.edges.at(-1)).toMatchObject({
       id: "proposal_loop_engaged",
       kind: "loop",
     });
