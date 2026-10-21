@@ -47,8 +47,8 @@ export const Places: Story = {
     // Each wait shows the one ring; nothing draws a bar.
     await expect(canvasElement.querySelectorAll("[aria-busy=true] .ui-busy").length).toBe(3);
     await expect(canvasElement.querySelectorAll("button[data-done]")).toHaveLength(1);
-    // A chip holds no slot: the ring is there only while it works.
-    await expect(canvasElement.querySelectorAll(".ui-ring-slot")).toHaveLength(2);
+    // A chip or a tab holds no slot: the ring is there only while it works (two chips, one tab).
+    await expect(canvasElement.querySelectorAll(".ui-ring-slot")).toHaveLength(3);
   },
 };
 
