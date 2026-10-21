@@ -390,7 +390,7 @@ const tone = (c: Call, now: Date) =>
 const flag = (c: Call) =>
   c.state === "booked" && c.outcome === "no_show" ? CALL_OUTCOME_LABELS.no_show.label : null;
 const BLOCK =
-  "rounded-[var(--ui-radius)] border-0 text-left transition-shadow hover:z-20 hover:shadow-md focus-visible:z-20 aria-pressed:z-20 aria-pressed:ring-2 aria-pressed:ring-(--ui-ink) aria-pressed:ring-offset-1 aria-pressed:ring-offset-(--ui-paper)";
+  "rounded-[var(--ui-radius)] border-0 text-left transition-[filter] hover:z-20 hover:brightness-[0.97] focus-visible:z-20 aria-pressed:z-20 aria-pressed:ring-2 aria-pressed:ring-(--ui-active) aria-pressed:ring-offset-1 aria-pressed:ring-offset-(--ui-paper)";
 
 /** Week or Day: hours down the side, a column per day. */
 function Grid({

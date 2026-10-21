@@ -123,7 +123,7 @@ export function PageChip({
   );
   return page.href ? (
     <a
-      className={cx(chip, "hover:border-(--ui-link) hover:text-(--ui-link)")}
+      className={cx(chip, "hover:bg-(--ui-wash)")}
       data-tone={tone}
       href={page.href}
       target="_blank"

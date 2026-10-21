@@ -21,6 +21,7 @@ import { Busy } from "./busy.js";
 import { refreshAll } from "./data/query.js";
 import { num } from "./format.js";
 import { tipProps } from "./hint.js";
+import { RingSlot } from "./motion.js";
 import { rubber, settle, swipeEnd } from "./phone-nav.js";
 
 /** Apple's sheet curve: quick off the mark, long soft landing. */
@@ -722,27 +723,24 @@ export function Segmented({
     el.scrollLeft = hit.offsetLeft - (el.clientWidth - hit.offsetWidth) / 2;
   }, [on]);
   return (
+    // The kit's switch (`Seg`, the artifact's `.seg`) as links: the page each choice opens.
     <nav aria-label={label} className={cn("min-w-0", className)}>
-      <div
-        ref={track}
-        className="flex gap-0.5 overflow-x-auto rounded-[10px] bg-(--ui-fill) p-[3px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
+      <div ref={track} className="ui-seg [&::-webkit-scrollbar]:hidden" data-fill="">
         {items.map((i) => (
           <a
             key={i.id}
             href={i.href}
             aria-current={i.on ? "page" : undefined}
             {...tipProps(i.tip)}
-            className="flex min-h-9 min-w-fit flex-1 items-center justify-center gap-1.5 rounded-[3px_9px_3px_9px] px-3 text-[13.5px] whitespace-nowrap text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] duration-200 ease-(--ui-ease) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-(--ui-raise)"
+            className="gap-1.5 [--ui-gap:6px]"
           >
             {i.label}
             {i.count !== undefined ? (
-              <span className="text-[12.5px] text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+              <span className="text-[12.5px] font-normal text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
                 {num(i.count)}
               </span>
             ) : null}
-            {/* The ring takes room only while it turns: at rest the tab is its label alone. */}
-            {i.busy ? <Busy on /> : null}
+            <RingSlot on={!!i.busy} />
           </a>
         ))}
       </div>

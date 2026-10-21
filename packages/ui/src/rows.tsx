@@ -73,7 +73,7 @@ export function stateColor(s: State | undefined): string {
   return TONE[s.tone];
 }
 
-/** A colour pill: a soft ground of its colour and text of its colour, in ink. */
+/** A colour pill: the kit's chip (`Tag`, the artifact's `.pt`) on a soft ground of its colour. */
 export function Pill({
   color,
   className,
@@ -84,16 +84,15 @@ export function Pill({
   children: ReactNode;
 }) {
   return (
-    <span
+    <Tag
       className={cn(
-        "inline-flex max-w-full items-center gap-[5px] truncate px-2 py-0.5 text-[12.5px] font-semibold whitespace-nowrap [border-radius:3px_9px_3px_9px]",
-        "bg-[color-mix(in_srgb,var(--c)_15%,var(--ui-paper))] text-[color-mix(in_srgb,var(--c)_72%,var(--ui-ink))]",
+        "bg-[color-mix(in_srgb,var(--c)_15%,var(--ui-paper))]! text-[color-mix(in_srgb,var(--c)_72%,var(--ui-ink))]!",
         className,
       )}
       style={{ "--c": color ?? "var(--ui-ink-3)" } as CSSProperties}
     >
       {children}
-    </span>
+    </Tag>
   );
 }
 

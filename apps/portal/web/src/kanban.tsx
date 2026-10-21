@@ -79,4 +79,4 @@ export function Lane({
 
 /** A phone's stand-in for a drag: the card's own picker. */
 export const SELECT =
-  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[13.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
+  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[13.5px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";

@@ -145,7 +145,7 @@ function ContactLinks({ links }: { links: Contact[] }) {
               href={l.href}
               {...(web ? { target: "_blank", rel: "noopener" } : {})}
               aria-label={`${NAME[l.kind]}: ${l.label}`}
-              className="inline-flex h-9 items-center gap-2 border border-(--ui-hair) bg-(--ui-paper) px-3 text-[14px] text-(--ui-ink) no-underline hover:border-(--ui-link) hover:text-(--ui-link)"
+              className="inline-flex h-9 items-center gap-2 border border-(--ui-hair) bg-(--ui-paper) px-3 text-[14px] text-(--ui-ink) no-underline hover:bg-(--ui-wash) hover:text-(--ui-link)"
             >
               <Icon name={ICON[l.kind]} size={14} className="text-(--ui-ink-3)" />
               {web && l.kind !== "linkedin" ? `${NAME[l.kind]} ${l.label}` : l.label}
@@ -230,7 +230,7 @@ function Picker({
                   className={`grid min-w-16 flex-none gap-0.5 border px-3 py-2.5 text-center text-[13px] ${
                     on
                       ? "border-(--ui-active) bg-(--ui-accent-wash) text-(--ui-active)"
-                      : "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink) hover:border-(--ui-ink-3)"
+                      : "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink) hover:bg-(--ui-wash)"
                   }`}
                 >
                   <span>{fmt(first, zone, { weekday: "short" })}</span>
@@ -251,7 +251,7 @@ function Picker({
                 key={s}
                 type="button"
                 onClick={() => pick(s)}
-                className="border border-(--ui-hair) bg-(--ui-paper) px-2 py-3 text-[15px] font-medium text-(--ui-ink) hover:border-(--ui-link) hover:text-(--ui-link)"
+                className="border border-(--ui-hair) bg-(--ui-paper) px-2 py-3 text-[15px] font-medium text-(--ui-ink) hover:bg-(--ui-wash)"
               >
                 {fmt(s, zone, { hour: "numeric", minute: "2-digit" })}
               </button>

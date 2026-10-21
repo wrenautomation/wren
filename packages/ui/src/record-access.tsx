@@ -198,7 +198,7 @@ export function RecordIssues({
 }
 
 const SELECT =
-  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm";
+  "h-8 w-full min-w-0 rounded-[6px_10px_6px_10px] border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus-visible:border-(--ui-focus)";
 
 const LONG: [string, string][] = [
   ["1", "A day"],

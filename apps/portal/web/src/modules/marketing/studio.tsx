@@ -9,7 +9,7 @@
  * ContentDesk through the console.
  */
 
-import { cx, Icon } from "@wren/ui";
+import { cx, Icon, PageHeader } from "@wren/ui";
 import { useEffect } from "react";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
@@ -78,57 +78,61 @@ function StudioHome(props: PageProps) {
   const shown = line ? byId.get(line) : undefined;
   return (
     <>
-      <header className="mb-7 flex flex-wrap items-end gap-4 max-sm:mb-4">
-        <div className="grid min-w-0 gap-1">
-          <p className="m-0 text-[13px] font-medium text-(--ui-ink-3)">
+      <PageHeader
+        className="mb-7 gap-4 max-sm:mb-4"
+        hero
+        kicker={
+          <>
             Studio · <span className="max-sm:hidden">{weekOf()}</span>
             <span className="sm:hidden">this week</span>
-          </p>
-          <h1 className="m-0 text-[28px] leading-[34px] font-bold tracking-[-0.02em] text-balance max-sm:text-[24px] max-sm:leading-[30px]">
-            {!plan.data || n === 0 ? (
-              "Studio"
-            ) : (
-              <>
-                <span className="max-sm:hidden">The plan still asks for {pieces}</span>
-                <span className="sm:hidden">{pieces} still due</span>
-              </>
-            )}
-          </h1>
-          {plan.data && n === 0 ? (
-            <p className="m-0 text-[13.5px] text-(--ui-ink-2)">
-              Every goal is on track. Make something new, or finish what waits on you.
-            </p>
-          ) : null}
-        </div>
-        {filter ? (
-          <label className="ml-auto flex items-center gap-2 text-[13px] text-(--ui-ink-3) max-sm:hidden">
-            Line
-            <span className="relative flex items-center">
-              <LineMark line={shown} className="pointer-events-none absolute left-3" />
-              <select
-                aria-label="Line"
-                className={LINE_PICK}
-                value={line ?? ""}
-                onChange={(e) =>
-                  navigate(href("/content/studio", { line: e.target.value }, props.params), true)
-                }
-              >
-                <option value="">All lines</option>
-                {lines.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="down"
-                size={12}
-                className="pointer-events-none absolute right-3 text-(--ui-ink-2)"
-              />
-            </span>
-          </label>
-        ) : null}
-      </header>
+          </>
+        }
+        title={
+          !plan.data || n === 0 ? (
+            "Studio"
+          ) : (
+            <>
+              <span className="max-sm:hidden">The plan still asks for {pieces}</span>
+              <span className="sm:hidden">{pieces} still due</span>
+            </>
+          )
+        }
+        lede={
+          plan.data && n === 0
+            ? "Every goal is on track. Make something new, or finish what waits on you."
+            : false
+        }
+        actions={
+          filter ? (
+            <label className="ml-auto flex items-center gap-2 text-[13px] text-(--ui-ink-3) max-sm:hidden">
+              Line
+              <span className="relative flex items-center">
+                <LineMark line={shown} className="pointer-events-none absolute left-3" />
+                <select
+                  aria-label="Line"
+                  className={LINE_PICK}
+                  value={line ?? ""}
+                  onChange={(e) =>
+                    navigate(href("/content/studio", { line: e.target.value }, props.params), true)
+                  }
+                >
+                  <option value="">All lines</option>
+                  {lines.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+                <Icon
+                  name="down"
+                  size={12}
+                  className="pointer-events-none absolute right-3 text-(--ui-ink-2)"
+                />
+              </span>
+            </label>
+          ) : null
+        }
+      />
       <div className="grid gap-7 max-sm:gap-[18px] max-sm:pb-32">
         {plan.data && n === 0 ? null : (
           <section aria-labelledby="studio-due" className="grid min-w-0 gap-2.5">

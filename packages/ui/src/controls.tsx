@@ -1,7 +1,13 @@
 /** Things you press: square buttons, and pill tags for status. */
 
 import { cn } from "cn";
-import { type AnchorHTMLAttributes, type ButtonHTMLAttributes, type ReactNode, useId } from "react";
+import {
+  type AnchorHTMLAttributes,
+  type ButtonHTMLAttributes,
+  type CSSProperties,
+  type ReactNode,
+  useId,
+} from "react";
 import { Ring } from "./busy.js";
 import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
@@ -193,6 +199,7 @@ export function Tag({
   busy,
   title,
   className,
+  style,
   children,
 }: {
   tone?: TagTone;
@@ -201,10 +208,16 @@ export function Tag({
   busy?: boolean | undefined;
   title?: string | undefined;
   className?: string | undefined;
+  /** For a colour of its own (a lane's, a tint's): `rows` Pill sets `--c`. */
+  style?: CSSProperties | undefined;
   children: ReactNode;
 }) {
   return (
-    <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} {...tipProps(title)}>
+    <Badge
+      className={cn(TAG, TAG_TONE[tone], dot && DOT, className)}
+      {...(style ? { style } : {})}
+      {...tipProps(title)}
+    >
       <span className="min-w-0 truncate">{children}</span>
       <RingSlot on={!!busy} />
     </Badge>
@@ -258,6 +271,7 @@ export function Seg<T extends string>({
   value,
   onChange,
   dense = false,
+  fill = false,
   className,
 }: {
   /** What the group picks, for assistive tech. */
@@ -267,6 +281,8 @@ export function Seg<T extends string>({
   onChange: (value: T) => void;
   /** The small switch for a tool row ("Table / By line"): 12.5 px words, less pad. */
   dense?: boolean | undefined;
+  /** Fill the row: each choice takes an equal share. */
+  fill?: boolean | undefined;
   className?: string | undefined;
 }) {
   return (
@@ -275,6 +291,7 @@ export function Seg<T extends string>({
       role="group"
       aria-label={label}
       data-size={dense ? "dense" : undefined}
+      data-fill={fill || undefined}
       className={cn("ui-seg", className)}
     >
       {items.map((i) => (

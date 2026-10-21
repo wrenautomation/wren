@@ -226,7 +226,7 @@ export function useEditForm<V extends FieldValues>(o: EditFormOptions<V>): EditF
 /** A field's label above its box; the class every form's fields share. */
 export const FIELD_CLASS = "flex min-w-0 flex-col gap-1.5 text-[13px] text-(--ui-ink-2)";
 export const SELECT_CLASS =
-  "min-h-[38px] w-full border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
+  "min-h-[38px] w-full border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";
 
 interface FieldBase<V extends FieldValues> {
   form: { control: Control<V> };

@@ -85,7 +85,7 @@ function Status({ text }: { text: string }) {
 
 function Card({ card }: { card: StepCard }) {
   return (
-    <span className="ui-card inline-flex items-center gap-[5px] [border-radius:var(--ui-leaf-chip)] bg-(--ui-paper) py-0.5 pr-[7px] pl-[3px] text-[11.5px] font-semibold whitespace-nowrap text-(--ui-ink-2) shadow-(--ui-raise)">
+    <span className="ui-card inline-flex items-center gap-[5px] rounded-(--ui-leaf-chip) bg-(--ui-paper) py-0.5 pr-[7px] pl-[3px] text-[11.5px] font-semibold whitespace-nowrap text-(--ui-ink-2) shadow-(--ui-raise)">
       <PlatformTile mark={card.mark} />
       <em className="not-italic">{card.label}</em>
     </span>

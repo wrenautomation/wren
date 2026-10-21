@@ -314,7 +314,7 @@ export function useLastUsed(
 
 /** A view's tab: a small pill (the artifact's `.nt-top` buttons), 13 px 600, a leaf of 4 and 10; the row's `TabBar` slides the tint behind the one on screen. */
 export const TAB =
-  "flex shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] px-[9px] py-1.5 text-[13px] font-semibold no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) motion-reduce:transition-none";
+  "relative isolate flex shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] px-[9px] py-1.5 text-[13px] font-semibold no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) motion-reduce:transition-none";
 export const tabTone = (on: boolean) =>
   on ? "text-(--ui-active) hover:bg-transparent" : "text-(--ui-ink-3) hover:text-(--ui-ink)";
 
@@ -483,7 +483,6 @@ export function ViewTabs({
     );
   return (
     <nav className="relative flex gap-0.5 overflow-x-auto" aria-label="Views">
-      <TabBar on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
       {tabs.map((v) =>
         v.saved ? (
           <span key={v.id} data-tab="" className={cn(TAB, "gap-1 [--ui-gap:4px]", tabTone(v.on))}>
@@ -500,6 +499,7 @@ export function ViewTabs({
             ) : null}
             <RingSlot on={!!v.busy} />
             {v.on ? menu : null}
+            {v.on ? <TabBar row={`views:${meta.id}`} /> : null}
           </span>
         ) : (
           <a
@@ -512,6 +512,7 @@ export function ViewTabs({
             <span className="max-w-48 truncate">{v.label}</span>
             <span className="text-(--ui-ink-2)">{v.count !== undefined ? short(v.count) : ""}</span>
             <RingSlot on={!!v.busy} />
+            {v.on ? <TabBar row={`views:${meta.id}`} /> : null}
           </a>
         ),
       )}
@@ -1306,10 +1307,7 @@ export function ListBar({
           key={v.id}
           href={place.link({ group: v.at, pg: null })}
           aria-current={v.on ? "page" : undefined}
-          className={cn(
-            CHIP,
-            v.on && CHIP_ON,
-          )}
+          className={cn(CHIP, v.on && CHIP_ON)}
         >
           <BarGlyph name={v.glyph} />
           {v.label}

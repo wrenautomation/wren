@@ -93,8 +93,8 @@ const DIM = "opacity-35";
 /** A step's shadow: working beats picked, picked beats hover. */
 const LIFT = {
   active: "-translate-y-0.5 shadow-[inset_0_0_0_1.5px_var(--ui-active)]",
-  picked: "shadow-[inset_0_0_0_1px_var(--ui-hair)] outline-2 outline-offset-2 outline-(--ui-focus)",
-  rest: "shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:-translate-y-0.5 hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
+  picked: "shadow-[inset_0_0_0_1px_var(--ui-hair)] bg-(--ui-accent-tint)!",
+  rest: "shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-wash)",
 };
 const INDEX: Record<RunStepState, string> = {
   idle: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-hair)]",

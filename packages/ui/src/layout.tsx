@@ -3,6 +3,7 @@
  * the next: a hair frame, a head on the paper with no rule, and a heading scale with
  * plain steps (page title, section title, group label).
  */
+import { cn } from "cn";
 import { createContext, type ReactNode, useContext } from "react";
 import { cx } from "./format.js";
 import { Sweep } from "./sweep.js";
@@ -17,8 +18,7 @@ export const GROUP_LABEL =
   "text-[12.5px] leading-4 font-[650] tracking-(--ui-label-tracking) text-(--ui-ink-3) [text-transform:var(--ui-label-case)]";
 
 /** A part on the page: a raised panel on paper, its rim in the shadow, its corners a leaf. */
-export const FRAME =
-  "relative [border-radius:var(--ui-leaf-panel)] bg-(--ui-paper) shadow-(--ui-raise)";
+export const FRAME = "relative rounded-(--ui-leaf-panel) bg-(--ui-paper) shadow-(--ui-raise)";
 /**
  * What a framed part is headed by (artifact `.panel`): on the paper, no band and no rule, 18 px
  * from the top and 20 from the side. `ui-head` is the mark the body reads to close the gap to 12.
@@ -43,7 +43,7 @@ export const NAV_LABEL =
  * row takes. Snug density takes 3 px off each side.
  */
 export const NAV_ROW =
-  "ui-nav-sweep flex w-full min-w-0 items-center gap-[9px] [border-radius:var(--ui-leaf-nav)] px-2 py-1.5 in-data-[density=snug]:py-[3px] text-[14px] leading-[1.55] text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) [&>svg]:[stroke-width:1.8]";
+  "ui-nav-sweep flex w-full min-w-0 items-center gap-[9px] rounded-(--ui-leaf-nav) px-2 py-1.5 in-data-[density=snug]:py-[3px] text-[14px] leading-[1.55] text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) [&>svg]:[stroke-width:1.8]";
 /** The sidebar row on screen (`.nav[aria-current]`). */
 export const NAV_ON =
   "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=true]:bg-(--ui-accent-tint) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink)";
@@ -57,12 +57,29 @@ export const useAbout = () => useContext(AboutContext);
 export const ABOUT = "max-w-[70ch] text-[13.5px] leading-[1.55] text-pretty text-(--ui-ink-2)";
 
 /** A page's title, with its line under it. A refresh leaves the old data and marks nothing. */
-export function PageTitle({ title, lede }: { title: ReactNode; lede?: ReactNode }) {
+/** A page's kicker over its title (Studio board: "Studio · week of Oct 20"): 13 px, 500, ink-3. */
+const KICKER = "m-0 text-[13px] leading-[18px] font-medium text-(--ui-ink-3)";
+/** A hub's big title (Studio board `h1`): 28 px, 700, -0.02em; 24 px on a phone. */
+const HERO_TITLE =
+  "m-0 text-[28px] leading-[34px] font-bold tracking-[-0.02em] text-balance max-sm:text-[24px] max-sm:leading-[30px]";
+
+export function PageTitle({
+  title,
+  lede,
+  kicker,
+  hero = false,
+}: {
+  title: ReactNode;
+  lede?: ReactNode;
+  kicker?: ReactNode;
+  hero?: boolean | undefined;
+}) {
   const about = useAbout();
   const line = lede ?? about;
   return (
-    <div className="min-w-0">
-      <h1 className={PAGE_TITLE}>{title}</h1>
+    <div className={cx("min-w-0", kicker ? "grid gap-1" : undefined)}>
+      {kicker ? <p className={KICKER}>{kicker}</p> : null}
+      <h1 className={hero ? HERO_TITLE : PAGE_TITLE}>{title}</h1>
       {line ? <p className={ABOUT}>{line}</p> : null}
     </div>
   );
@@ -71,20 +88,26 @@ export function PageTitle({ title, lede }: { title: ReactNode; lede?: ReactNode 
 export function PageHeader({
   title,
   lede,
+  kicker,
+  hero,
   actions,
   className,
 }: {
-  title: string;
-  /** Its own line under the title; without one, the page's declared `about` shows. */
+  title: ReactNode;
+  /** Its own line under the title; without one, the page's declared `about` shows; `false`, none. */
   lede?: ReactNode;
+  /** A small line over the title: where you are and when ("Studio · week of Oct 20"). */
+  kicker?: ReactNode;
+  /** The hub's big title (Studio): 28 px, 700. */
+  hero?: boolean | undefined;
   actions?: ReactNode;
   className?: string | undefined;
 }) {
   return (
     <header
-      className={cx("mb-3.5 flex flex-wrap items-end justify-between gap-x-6 gap-y-2.5", className)}
+      className={cn("mb-3.5 flex flex-wrap items-end justify-between gap-x-6 gap-y-2.5", className)}
     >
-      <PageTitle title={title} lede={lede} />
+      <PageTitle title={title} lede={lede} kicker={kicker} hero={hero} />
       {actions ? <div className={ACTIONS}>{actions}</div> : null}
     </header>
   );

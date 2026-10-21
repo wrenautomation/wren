@@ -38,7 +38,6 @@ type Tab = (typeof TABS)[number][0];
 export function FeedTabs({ on }: { on: Tab }) {
   return (
     <nav aria-label="Feed" className="relative flex gap-0.5 pb-1.5">
-      <TabBar on={on} row="feed" />
       {TABS.map(([id, label, href]) => (
         <a
           key={id}
@@ -47,6 +46,7 @@ export function FeedTabs({ on }: { on: Tab }) {
           className={cx(TAB, tabTone(id === on))}
         >
           {label}
+          {id === on ? <TabBar row="feed" /> : null}
         </a>
       ))}
     </nav>

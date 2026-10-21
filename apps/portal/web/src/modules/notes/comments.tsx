@@ -154,7 +154,7 @@ export function goTo(editor: Editor, t: Thread) {
 // ---- The panel ---------------------------------------------------------------------------------
 
 const FIELD =
-  "w-full resize-y border border-(--ui-hair) bg-(--ui-paper) px-2 py-1.5 text-[13px] text-(--ui-ink) outline-none focus:border-(--ui-focus)";
+  "w-full resize-y border border-(--ui-hair) bg-(--ui-paper) px-2 py-1.5 text-[13px] text-(--ui-ink) outline-none focus-visible:border-(--ui-focus)";
 
 /**
  * A text box where `@` offers the people here, and inserts their email. The Inbox's note box is

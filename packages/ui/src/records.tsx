@@ -2976,7 +2976,6 @@ export function RecordBody({
       {more.top}
 
       <nav className="relative flex gap-0.5 overflow-x-auto pb-1.5" aria-label="Sections">
-        <TabBar on={tab} row={`sections:${meta.id}`} />
         {tabs.map((t) => (
           <a
             key={t.id}
@@ -2988,6 +2987,7 @@ export function RecordBody({
             {t.count !== undefined ? (
               <span className="text-(--ui-ink-3)">{num(t.count)}</span>
             ) : null}
+            {tab === t.id ? <TabBar row={`sections:${meta.id}`} /> : null}
           </a>
         ))}
       </nav>

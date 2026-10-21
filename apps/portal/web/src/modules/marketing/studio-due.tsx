@@ -15,7 +15,7 @@ import { LineMark } from "./studio-lines.js";
 
 /** A leaf card raised on the canvas: paper, the panel's corners, the raise's ring and shade. */
 export const CARD =
-  "block min-w-0 bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)] shadow-(--ui-raise) text-(--ui-ink) no-underline";
+  "block min-w-0 bg-(--ui-paper) rounded-(--ui-leaf-panel) shadow-(--ui-raise) text-(--ui-ink) no-underline";
 
 /**
  * A card that opens something (New, a due piece): it lifts 1 px on hover with an accent ring, on

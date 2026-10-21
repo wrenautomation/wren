@@ -1631,7 +1631,7 @@ function TextPanel({
                   onFocus={() => onPick(i)}
                   onChange={(e) => put(i, { text: e.target.value })}
                   className={cx(
-                    "h-8 min-w-0 flex-1 rounded-md border bg-(--ui-paper) px-2 text-[13.5px] outline-none focus:border-(--ui-focus)",
+                    "h-8 min-w-0 flex-1 rounded-md border bg-(--ui-paper) px-2 text-[13.5px] outline-none focus-visible:border-(--ui-focus)",
                     o.text.trim() ? "border-(--ui-hair)" : "border-(--ui-bad)",
                   )}
                 />
@@ -1857,7 +1857,7 @@ function LineRow({
             void send();
           } else if (e.key === "Escape") edit.discard();
         }}
-        className="h-7 min-w-0 flex-1 rounded-[5px] border border-transparent bg-transparent px-1.5 text-[13px] outline-none hover:border-(--ui-hair) focus:border-(--ui-focus) focus:bg-(--ui-paper)"
+        className="h-7 min-w-0 flex-1 rounded-[5px] border border-transparent bg-transparent px-1.5 text-[13px] outline-none hover:bg-(--ui-wash) focus-visible:border-(--ui-focus) focus:bg-(--ui-paper)"
       />
       {said ? (
         <span

@@ -88,7 +88,7 @@ const words = (id: string) => (id.charAt(0).toUpperCase() + id.slice(1)).replace
 
 const LABEL = "flex flex-col gap-1.5 text-[13px] text-(--ui-ink-2)";
 const SELECT =
-  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-base text-(--ui-ink) outline-none focus-visible:border-ring md:text-sm";
+  "h-8 w-full min-w-0 rounded-[6px_10px_6px_10px] border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus-visible:border-(--ui-focus)";
 const ROW = "flex flex-wrap items-center gap-2";
 
 /** A stored look as the editor holds it; anything `readTheme` can't read is Wren's. */

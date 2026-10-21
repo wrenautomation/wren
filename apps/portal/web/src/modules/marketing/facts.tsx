@@ -243,8 +243,8 @@ function FactRow({
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             className={cx(
-              "block w-full resize-none rounded-(--ui-radius) border border-transparent bg-transparent px-2 py-1.5 text-[15px] leading-[1.55] text-pretty [field-sizing:content] placeholder:text-(--ui-ink-3) hover:bg-(--ui-hover) focus:border-(--ui-hair) focus:bg-(--ui-paper) focus:outline-none",
-              long && "border-(--ui-bad)/50 focus:border-(--ui-bad)",
+              "block w-full resize-none rounded-(--ui-radius) border border-transparent bg-transparent px-2 py-1.5 text-[15px] leading-[1.55] text-pretty [field-sizing:content] placeholder:text-(--ui-ink-3) hover:bg-(--ui-hover) focus:bg-(--ui-paper) focus:outline-none",
+              long && "border-(--ui-bad)/50",
             )}
           />
         ) : (

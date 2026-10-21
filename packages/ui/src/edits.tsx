@@ -188,7 +188,7 @@ export function EditField({
         type="button"
         onClick={begin}
         aria-label={`Edit ${field.label}`}
-        className="group/edit -mx-1.5 -my-0.5 flex w-[calc(100%+12px)] min-w-0 items-start gap-2 rounded-(--ui-radius) px-1.5 py-0.5 text-left hover:bg-(--ui-wash) focus-visible:bg-(--ui-wash) focus-visible:outline-none"
+        className="group/edit -mx-1.5 -my-0.5 flex w-[calc(100%+12px)] min-w-0 items-start gap-2 rounded-(--ui-radius) px-1.5 py-0.5 text-left hover:bg-(--ui-wash) focus-visible:bg-(--ui-wash) focus-visible:outline-2 focus-visible:outline-(--ui-focus)"
       >
         <span
           className={cn(

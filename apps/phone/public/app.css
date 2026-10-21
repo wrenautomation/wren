@@ -17,17 +17,19 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141413;
-    --surface: #1d1d1b;
-    --ink: #edebe6;
-    --muted: #9b978d;
-    --line: #2e2d2a;
-    --accent: #a898d4;
-    --out: #edebe6;
-    --out-ink: #141413;
-    --in: #262523;
-    --bad: #e0715c;
-    --ok: #7cbf87;
+    /* The design language's night (designs/2026-10-20-design-language): canvas, paper, ink,
+       ink-2, hair, accent, fill, bad, good. */
+    --bg: #0d0d0c;
+    --surface: #171716;
+    --ink: #f2f0ea;
+    --muted: #a9a79f;
+    --line: color-mix(in srgb, #f2f0ea 11%, transparent);
+    --accent: #a596d6;
+    --out: #f2f0ea;
+    --out-ink: #0d0d0c;
+    --in: color-mix(in srgb, #f2f0ea 5%, #171716);
+    --bad: #ff6b5e;
+    --ok: #4cc27a;
   }
 }
 

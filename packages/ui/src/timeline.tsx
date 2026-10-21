@@ -828,7 +828,7 @@ function Line({
       </span>
       <div
         className={cn(
-          "group relative min-w-0 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 transition-[background-color,border-color] duration-150 hover:border-(--ui-edge) hover:bg-(--ui-hover)",
+          "group relative min-w-0 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 transition-[background-color] duration-150 hover:bg-(--ui-hover)",
           fresh && "animate-ui-changed",
         )}
       >

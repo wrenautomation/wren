@@ -327,7 +327,7 @@ function Moments({
               "flex w-44 shrink-0 flex-col gap-1 border px-3 py-2 text-left transition-colors duration-200",
               i === at
                 ? "border-(--ui-active) bg-(--ui-accent-wash)"
-                : "border-(--ui-hair) bg-(--ui-paper) hover:border-(--ui-ink-3)",
+                : "border-(--ui-hair) bg-(--ui-paper) hover:bg-(--ui-wash)",
             )}
           >
             <span className="font-semibold text-(--ui-ink-2) text-[12px] tabular-nums">

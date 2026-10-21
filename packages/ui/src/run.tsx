@@ -538,7 +538,7 @@ export function RunView({
               <button
                 type="button"
                 className={cx(
-                  "cursor-pointer rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-2 py-px font-[inherit] text-[11px] leading-[inherit] font-semibold text-(--ui-ink-2) hover:border-(--ui-link) hover:text-(--ui-link) aria-expanded:border-(--ui-active) aria-expanded:text-(--ui-active) @max-[420px]/run:justify-self-start",
+                  "cursor-pointer rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-2 py-px font-[inherit] text-[11px] leading-[inherit] font-semibold text-(--ui-ink-2) hover:bg-(--ui-wash) aria-expanded:border-(--ui-active) aria-expanded:text-(--ui-active) @max-[420px]/run:justify-self-start",
                   l.source ? "@max-[420px]/run:col-3" : "@max-[420px]/run:col-2",
                 )}
                 aria-expanded={opened?.id === l.id}

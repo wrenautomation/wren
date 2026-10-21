@@ -297,22 +297,22 @@ function KitNode({ id }: NodeProps) {
         className={cn(
           "relative flex h-full flex-col px-2.5 pt-2.5 pb-2.5 text-left text-(--ui-ink) no-underline transition-[opacity,box-shadow,translate] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
           g.soft ? "rounded-[12px]" : "rounded-[8px]",
-          (n.href || opens) && "cursor-pointer hover:-translate-y-0.5",
+          (n.href || opens) && "cursor-pointer",
           end
             ? "border border-dashed border-(--ui-ink-3) bg-(--ui-tile)"
             : cn(
-                "bg-(--ui-paper) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_6px_16px_-6px_rgb(0_0_0/0.25)]",
+                "bg-(--ui-paper) hover:bg-(--ui-wash)",
                 g.soft
                   ? "shadow-[inset_0_0_0_1px_var(--ui-hair),0_2px_4px_rgb(0_0_0/0.05),0_12px_24px_-14px_rgb(0_0_0/0.35)]"
                   : "shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/0.06)]",
               ),
           tone === "bad" && "shadow-[inset_0_0_0_1.5px_var(--ui-bad)]",
           tone === "warn" && "shadow-[inset_0_0_0_1.5px_var(--warn)]",
-          g.hover === id && "shadow-[inset_0_0_0_1.5px_var(--ui-ink)]",
+          g.hover === id && "bg-(--ui-wash)!",
           n.dim && "opacity-55",
           faded && "opacity-20",
           g.lit?.has(id) && "shadow-[inset_0_0_0_2px_var(--ui-live)]",
-          g.selected === id && "outline-2 outline-offset-2 outline-(--ui-focus)",
+          g.selected === id && "bg-(--ui-accent-tint)!",
           mark === "added" && "shadow-[inset_0_0_0_2px_var(--ui-good)]",
           mark === "changed" && "shadow-[inset_0_0_0_2px_var(--warn)]",
           mark === "removed" && "shadow-[inset_0_0_0_2px_var(--ui-bad)] [&_.kit-name]:line-through",

@@ -49,7 +49,7 @@ export function TodayTasks({
                 type="button"
                 className={cx(
                   "grid w-full cursor-pointer grid-cols-[34px_1fr] gap-2.5 border-0 border-t border-solid border-(--ui-hair) bg-transparent p-2.5 text-left text-(--ui-ink)",
-                  "[border-radius:var(--ui-leaf-chip)] transition-colors duration-200 hover:bg-(--ui-wash) focus-visible:bg-(--ui-wash)",
+                  "rounded-(--ui-leaf-chip) transition-colors duration-200 hover:bg-(--ui-wash) focus-visible:bg-(--ui-wash)",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-(--ui-focus)",
                 )}
                 onPointerEnter={() => onLight(t.line)}

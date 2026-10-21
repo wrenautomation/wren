@@ -519,7 +519,7 @@ function TemplateCard({
   return (
     <a
       href={to}
-      className="flex h-full flex-col gap-1.5 border border-(--ui-hair) bg-(--ui-paper) p-4 text-left no-underline hover:border-(--ui-link)"
+      className="flex h-full flex-col gap-1.5 border border-(--ui-hair) bg-(--ui-paper) p-4 text-left no-underline hover:bg-(--ui-wash)"
     >
       <span className="text-[14.5px] font-medium text-(--ui-ink)">{name}</span>
       <span className={cx("text-[13px]", QUIET)}>{blurb}</span>

@@ -70,7 +70,7 @@
   --layout-side: 190px;
   --layout-pages: 208px;
   --layout-zoom: 1;
-  --layout-row: 40px; /* a list's row */
+  --layout-row: 42px; /* a list's row */
   --layout-nav-row: 34px; /* an app in the sidebar */
   --layout-tab-row: 34px; /* a page in the app's column */
   --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -924,7 +924,7 @@ html[data-morph="cards"]::view-transition-new(*) {
   padding: 3px;
   gap: 2px;
 }
-.ui-seg > button {
+.ui-seg > :is(button, a) {
   font: inherit;
   font-size: 13.5px;
   border: 0;
@@ -935,28 +935,40 @@ html[data-morph="cards"]::view-transition-new(*) {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  text-decoration: none;
   transition:
     background 0.2s var(--ui-ease),
     color 0.2s;
 }
-.ui-seg > button[aria-pressed="true"] {
+.ui-seg > :is(button, a):is([aria-pressed="true"], [aria-current="page"]) {
   background: var(--ui-paper);
   color: var(--ui-ink);
   font-weight: 600;
   box-shadow: var(--ui-raise);
 }
-.ui-seg > button:focus-visible {
+.ui-seg > :is(button, a):focus-visible {
   outline: 2px solid var(--ui-focus);
   outline-offset: 1px;
 }
-
+/* A switch that fills its row: each choice takes an equal share. A row too narrow scrolls. */
+.ui-seg[data-fill] {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ui-seg[data-fill] > :is(button, a) {
+  flex: 1 0 auto;
+}
 /* Progress (artifact `.track`): an 8 px fill bar; the accent grows on the spring. */
 /* The dense switch, for a tool row: the same parts, smaller. */
 .ui-seg[data-size="dense"] {
   padding: 2px;
   border-radius: 8px;
 }
-.ui-seg[data-size="dense"] > button {
+.ui-seg[data-size="dense"] > :is(button, a) {
   font-size: 12.5px;
   padding: 3px 10px;
 }

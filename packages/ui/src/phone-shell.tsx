@@ -455,7 +455,7 @@ const TAB =
   "group relative flex min-w-0 flex-col items-center justify-center gap-[2px] border-0 bg-transparent p-0 text-[10.5px] leading-none font-medium text-(--ui-ink-2) no-underline [-webkit-tap-highlight-color:transparent] aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-expanded:font-semibold aria-expanded:text-(--ui-ink)";
 /** The icon's seat: the sidebar's leaf (3 and 12) in the tint under the tab on screen; it gives a little under a thumb. */
 const SEAT =
-  "relative grid h-[30px] w-[52px] place-items-center [border-radius:var(--ui-leaf-nav)] transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
+  "relative grid h-[30px] w-[52px] place-items-center rounded-(--ui-leaf-nav) transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
 /** What waits under a tab: the sidebar's count pill (the artifact's `.nav .n`) at the icon's top right. */
 const BADGE =
   "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-primary) px-[5px] text-center text-[11px]/[17px] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
@@ -554,7 +554,7 @@ export function PhoneTabs({
 
 /** A sheet's row: the sidebar's row at a thumb's height, the page on screen in the tint. */
 const SHEET_ROW =
-  "mx-2 flex min-h-12 items-center gap-3 [border-radius:var(--ui-leaf-nav)] px-2 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-accent-wash) aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold";
+  "mx-2 flex min-h-12 items-center gap-3 rounded-(--ui-leaf-nav) px-2 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-accent-wash) aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold";
 /** A sheet's group heading: the sidebar's `.nl`, held at the top while its rows pass under. */
 const SHEET_HEAD =
   "sticky top-0 z-1 bg-(--ui-paper) px-4 pt-3 pb-1 text-[12px] leading-[1.55] font-semibold text-(--ui-ink-3)";

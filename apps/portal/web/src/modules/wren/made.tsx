@@ -92,7 +92,7 @@ export function MadeHere({ client }: { client: string | null }) {
             <li key={m.id}>
               <a
                 href={madeAt(m.id, client)}
-                className="grid gap-1 border border-(--ui-hair) bg-(--ui-paper) p-3 text-[13.5px] text-(--ui-ink) no-underline hover:border-(--ui-link)"
+                className="grid gap-1 border border-(--ui-hair) bg-(--ui-paper) p-3 text-[13.5px] text-(--ui-ink) no-underline hover:bg-(--ui-wash)"
               >
                 <span className="font-medium">{m.made.name}</span>
                 <span className="text-[12.5px] text-(--ui-ink-3)">

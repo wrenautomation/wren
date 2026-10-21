@@ -3,7 +3,6 @@
  * so the first paint is already his; the edge he drags a panel by; the Layout panel; and the
  * keys sheet on ?, which lists the frame's keys and each page's own (designs/2026-10-11-portal-polish.md).
  */
-import { cn } from "cn";
 import {
   type CSSProperties,
   createContext,
@@ -25,6 +24,7 @@ import {
   DialogTitle,
 } from "./components/ui/dialog.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
+import { Seg } from "./controls.js";
 import { usePref } from "./customize.js";
 import {
   DISPLAY,
@@ -356,29 +356,18 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <fieldset className="m-0 grid min-w-0 gap-1.5 border-0 p-0">
-      <legend className="mb-1.5 p-0 text-[12.5px] font-medium text-(--ui-ink-2)">{label}</legend>
-      <div className="grid auto-cols-fr grid-flow-col gap-0.5 rounded-[10px] bg-(--ui-fill) p-[3px]">
-        {options.map(([v, text]) => (
-          <label
-            key={v}
-            className={cn(
-              "relative flex cursor-pointer items-center justify-center rounded-[3px_9px_3px_9px] px-3 py-1.5 text-[13.5px] whitespace-nowrap text-(--ui-ink-2) transition-[background-color,color,box-shadow] duration-200 ease-(--ui-ease) pointer-coarse:min-h-11 hover:text-(--ui-ink) has-[:checked]:bg-(--ui-paper) has-[:checked]:font-semibold has-[:checked]:text-(--ui-ink) has-[:checked]:shadow-(--ui-raise) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-(--ui-focus)",
-            )}
-          >
-            <input
-              type="radio"
-              className="sr-only"
-              name={label}
-              value={v}
-              checked={value === v}
-              onChange={() => onChange(v)}
-            />
-            {text}
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <div className="grid min-w-0 gap-1.5">
+      <span aria-hidden="true" className="text-[12.5px] font-medium text-(--ui-ink-2)">
+        {label}
+      </span>
+      <Seg
+        label={label}
+        fill
+        value={value}
+        items={options.map(([v, text]) => ({ value: v, label: text }))}
+        onChange={onChange}
+      />
+    </div>
   );
 }
 

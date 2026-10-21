@@ -46,7 +46,7 @@ import { Said, useRun } from "./detail.js";
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
 const SELECT =
-  "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
+  "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
 
 /** The save key of the form being built: the boxes inside mark it, the engine keeps the words. */

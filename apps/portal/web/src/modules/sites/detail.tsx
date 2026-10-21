@@ -61,7 +61,7 @@ const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
 
 const SELECT =
-  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none";
+  "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
 const usd = (n: number) => (n ? money(n, "USD") : "");

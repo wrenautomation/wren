@@ -19,7 +19,7 @@ import {
 } from "./api.js";
 
 export const SELECT =
-  "min-h-[32px] max-w-full border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[13px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none disabled:bg-(--ui-wash) disabled:text-(--ui-ink-2)";
+  "min-h-[32px] max-w-full border border-(--ui-hair) bg-(--ui-paper) px-2 py-1 text-[13px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none disabled:bg-(--ui-wash) disabled:text-(--ui-ink-2)";
 
 /** Who owns a card: their initial in their hue, the wren mark for an agent, an empty ring for nobody. */
 export function Avatar({ who, size = 22 }: { who: string | null; size?: number }) {

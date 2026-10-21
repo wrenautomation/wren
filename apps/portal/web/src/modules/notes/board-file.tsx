@@ -128,7 +128,7 @@ export function ImportDialog({
             aria-label="Pasted table"
             placeholder="Or paste rows here, with the headings on top"
             rows={5}
-            className="w-full border border-(--ui-hair) bg-(--ui-paper) p-2 text-[13px] text-(--ui-ink) focus:border-(--ui-focus) focus:outline-none"
+            className="w-full border border-(--ui-hair) bg-(--ui-paper) p-2 text-[13px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none"
             onChange={(e) => {
               setMap(null);
               paste.set(e.target.value);

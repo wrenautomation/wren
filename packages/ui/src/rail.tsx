@@ -123,7 +123,7 @@ export function Rail({
                       {s.href ? (
                         <a
                           href={s.href}
-                          className="no-underline after:absolute after:-inset-y-1.5 after:right-1 after:-left-1.5 after:content-[''] focus-visible:outline-none @max-[820px]/rail:after:inset-0"
+                          className="no-underline after:absolute after:-inset-y-1.5 after:right-1 after:-left-1.5 after:content-[''] focus-visible:rounded-[3px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus) @max-[820px]/rail:after:inset-0"
                         >
                           {name}
                         </a>

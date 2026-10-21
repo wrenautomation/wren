@@ -11,7 +11,7 @@ type Story = StoryObj;
 /** A closed band and an open one: faint at rest, full on hover, an inner line when open. */
 function Band({ label, open }: { label: string; open?: boolean }) {
   return (
-    <div className="relative [border-radius:var(--ui-leaf-panel)] bg-(--ui-band) px-4 py-3 text-[14px]">
+    <div className="relative rounded-(--ui-leaf-panel) bg-(--ui-band) px-4 py-3 text-[14px]">
       <Sweep band open={open ?? false} />
       {label}
     </div>
@@ -42,13 +42,13 @@ export const Parts: Story = {
           <Tag>Live</Tag>
         </div>
         <nav aria-label="Pages" className="grid w-56 gap-0.5">
-          <a href="#a" className="ui-nav-sweep [border-radius:var(--ui-leaf-nav)] px-2.5 py-1.5">
+          <a href="#a" className="ui-nav-sweep rounded-(--ui-leaf-nav) px-2.5 py-1.5">
             Overview
           </a>
           <a
             href="#b"
             aria-current="page"
-            className="ui-nav-sweep [border-radius:var(--ui-leaf-nav)] bg-(--ui-accent-wash) px-2.5 py-1.5"
+            className="ui-nav-sweep rounded-(--ui-leaf-nav) bg-(--ui-accent-wash) px-2.5 py-1.5"
           >
             Posts
           </a>
