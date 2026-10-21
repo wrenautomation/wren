@@ -983,6 +983,37 @@ describe("checkMetro: flows", () => {
     ]);
   });
 
+  it("lets a flow have no lines, because a shared flow belongs to no line", () => {
+    const noLines = (b: MetroBody) => {
+      const f = followup(b);
+      f.stations = f.stations.map(({ line: _line, ...rest }) => rest);
+      f.tracks = f.tracks.map(({ line: _line, ...rest }) => rest);
+    };
+    expect(says(noLines)).toEqual([]);
+    // The body keeps its rule: a station and a track still need a line there.
+    expect(
+      says((b) => {
+        delete station(b, "reply").line;
+      }),
+    ).toContain('Station "reply" needs a line.');
+  });
+
+  it("wants a line a flow names to be a line of the body", () => {
+    expect(says((b) => ((followup(b).tracks[0] as MetroTrack).line = "ghost"))).toEqual([
+      'Flow "shared_followup": Track "nudge_to_check_in" is on line "ghost", which does not exist.',
+    ]);
+    expect(
+      says((b) => {
+        const f = followup(b);
+        f.stations = f.stations.map(({ line: _line, ...rest }) => rest);
+        f.tracks = f.tracks.map(({ line: _line, ...rest }) => rest);
+        (f.stations[1] as MetroStation).line = "ghost";
+      }),
+    ).toEqual([
+      'Flow "shared_followup": Station "check_in" is on line "ghost", which does not exist.',
+    ]);
+  });
+
   it("runs the track rules inside a flow", () => {
     expect(says((b) => ((followup(b).tracks[0] as MetroTrack).to = "ghost"))).toEqual([
       'Flow "shared_followup": Track "nudge_to_check_in" names station "ghost", which is not in the shape.',

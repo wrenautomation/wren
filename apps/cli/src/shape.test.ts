@@ -431,6 +431,56 @@ describe("the metro model", () => {
     expect(lines.indexOf("stations")).toBeLessThan(lines.indexOf("tracks"));
   });
 
+  it("prints attach counts, the groups and the flows of a metro body", () => {
+    const { body } = convertBody(graph);
+    const ref = { kind: "sop", ref: "sop-1" } as const;
+    const withParts = {
+      ...body,
+      lines: body.lines.map((l) => (l.id === "signed" ? { ...l, attach: [ref, ref] } : l)),
+      stations: body.stations.map((s) => (s.id === "booked" ? { ...s, attach: [ref] } : s)),
+      groups: [
+        { id: "closing", label: "Closing", line: "signed", stations: ["signed"], attach: [ref] },
+        { id: "plain", label: "Plain", line: "signed", stations: ["booked"] },
+      ],
+      flows: [
+        {
+          id: "shared_followup",
+          label: "Shared follow-up",
+          stations: [
+            { id: "nudge", label: "Nudge", kind: "att", column: "sales", action: "other" },
+            { id: "check_in", label: "Check in", kind: "att", column: "sales", action: "other" },
+          ],
+          tracks: [{ id: "nudge_to_check_in", from: "nudge", to: "check_in", by: "system" }],
+        },
+        { id: "empty", label: "Empty", stations: [], tracks: [] },
+      ],
+    } as unknown as typeof body;
+    const lines = metroLines(
+      { number: 2, createdAt: new Date(0), createdBy: "ada", note: "why", body: withParts },
+      { yt: 0, hub: 1, booked: 2, signed: 3 },
+      new Map(),
+    );
+    expect(lines).toContain("  signed  core  Signed  offer offer-a  attach 2");
+    expect(lines).toContain("  2  booked  time  Booked  line signed  action book  attach 1");
+    expect(lines).toContain("  yt  out  YouTube");
+    expect(lines).toContain("groups");
+    expect(lines).toContain("  closing  Closing  line signed  attach 1");
+    expect(lines).toContain("  plain  Plain  line signed");
+    expect(lines).toContain("flows");
+    expect(lines).toContain("  shared_followup  Shared follow-up  stations 2  tracks 1");
+    expect(lines).toContain("  empty  Empty  stations 0  tracks 0");
+    expect(lines.indexOf("tracks")).toBeLessThan(lines.indexOf("flows"));
+    // A body with no flows and no groups prints neither section.
+    const plain = metroLines(
+      { number: 2, createdAt: new Date(0), createdBy: "ada", note: "why", body },
+      {},
+      new Map(),
+    );
+    expect(plain).not.toContain("flows");
+    expect(plain).not.toContain("groups");
+    expect(plain.join("\n")).not.toContain("attach");
+  });
+
   it("shows a metro version through shapeLines", () => {
     const { body } = convertBody(graph);
     const lines = shapeLines(

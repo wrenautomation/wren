@@ -165,9 +165,15 @@ export function shapeLines(
   return lines;
 }
 
+/** `  attach 2` for a part that has attach items, else nothing. */
+const attachMark = (p: { attach?: readonly unknown[] }): string =>
+  p.attach?.length ? `  attach ${p.attach.length}` : "";
+
 /**
  * A metro version as text: the lines, then the stations by place with the journeys open on each,
- * then the tracks. `places` is the version's `depths` column, which holds places for a metro body.
+ * then the tracks, then the groups and the flows when the body has any. A line, station or group
+ * with attach shows `attach <n>`. `places` is the version's `depths` column, which holds places
+ * for a metro body.
  */
 export function metroLines(
   v: { number: number; createdAt: Date; createdBy: string; note: string; body: MetroBody },
@@ -181,13 +187,15 @@ export function metroLines(
     "lines",
   ];
   for (const l of v.body.lines)
-    lines.push(`  ${l.id}  ${l.tier}  ${l.label}${l.offer ? `  offer ${l.offer}` : ""}`);
+    lines.push(
+      `  ${l.id}  ${l.tier}  ${l.label}${l.offer ? `  offer ${l.offer}` : ""}${attachMark(l)}`,
+    );
   lines.push("", "stations");
   const stations = [...v.body.stations].sort((a, b) => (places[a.id] ?? 0) - (places[b.id] ?? 0));
   for (const s of stations) {
     const here = open.get(s.id);
     lines.push(
-      `  ${places[s.id] ?? 0}  ${s.id}  ${s.kind}  ${s.label}${s.line ? `  line ${s.line}` : ""}${s.action ? `  action ${s.action}` : ""}${here ? `  open ${here}` : ""}`,
+      `  ${places[s.id] ?? 0}  ${s.id}  ${s.kind}  ${s.label}${s.line ? `  line ${s.line}` : ""}${s.action ? `  action ${s.action}` : ""}${here ? `  open ${here}` : ""}${attachMark(s)}`,
     );
   }
   lines.push("", "tracks");
@@ -195,6 +203,17 @@ export function metroLines(
     lines.push(
       `  ${t.id}  ${t.from} -> ${t.to}${t.line ? `  line ${t.line}` : ""}${t.kind ? `  (${t.kind})` : ""}${t.by === "person" ? "  by person" : ""}${t.label ? `  "${t.label}"` : ""}`,
     );
+  if (v.body.groups.length > 0) {
+    lines.push("", "groups");
+    for (const g of v.body.groups)
+      lines.push(`  ${g.id}  ${g.label}  line ${g.line}${attachMark(g)}`);
+  }
+  const flows = v.body.flows ?? [];
+  if (flows.length > 0) {
+    lines.push("", "flows");
+    for (const f of flows)
+      lines.push(`  ${f.id}  ${f.label}  stations ${f.stations.length}  tracks ${f.tracks.length}`);
+  }
   return lines;
 }
 

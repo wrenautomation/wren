@@ -389,8 +389,9 @@ function checkAttach(who: string, attach: readonly Attach[] | undefined, errors:
 /**
  * The shared flows of the body, and every link that names one. A flow is checked on its own by the
  * rules of the body: ids, stations, tracks, branches and order, with the lines of the body, no
- * hub, and its own ids. Then each link station (in the body or in a flow) must name a flow that
- * exists, a flow must not link to itself, and the links between flows must not loop.
+ * hub, and its own ids. A station or track in a flow may have no line; one that names a line
+ * must name a line of the body. Then each link station (in the body or in a flow) must name a flow
+ * that exists, a flow must not link to itself, and the links between flows must not loop.
  */
 function checkFlows(
   body: MetroBody,
@@ -434,8 +435,8 @@ function checkFlows(
     }
     checkReserved(stations, inside);
     const stationBy = indexOf(stations);
-    checkStations(stations, lineBy, ctx, inside);
-    checkTracks(tracks, stationBy, lineBy, inside);
+    checkStations(stations, lineBy, ctx, inside, true);
+    checkTracks(tracks, stationBy, lineBy, inside, true);
     checkLogic(stations, tracks, inside);
     checkOrder(stations, tracks, stationBy, inside);
     for (const s of stations) checkAttach(`Station "${s.id}"`, s.attach, inside);
@@ -499,6 +500,7 @@ function checkStations(
   lineBy: ReadonlyMap<string, MetroLine>,
   ctx: ShapeCheckContext,
   errors: string[],
+  inFlow = false,
 ): void {
   const dealsOn = new Map<string, string[]>();
   for (const s of stations) {
@@ -513,12 +515,13 @@ function checkStations(
       errors.push(`Station "${k}" has column "${s.column}". Use ${COLUMNS.join(", ")}.`);
     }
 
-    // The line: none on the hub, optional on an exit, required on the rest.
+    // The line: none on the hub, optional on an exit, required on the rest. Optional in a flow:
+    // a shared flow serves every line that links to it, so it belongs to none. A line given must exist.
     const line = s.line === undefined ? undefined : lineBy.get(s.line);
     if (s.kind === "hub") {
       if (s.line !== undefined) errors.push(`The hub station "${k}" has no line.`);
     } else if (s.line === undefined) {
-      if (s.kind !== "exit") errors.push(`Station "${k}" needs a line.`);
+      if (s.kind !== "exit" && !inFlow) errors.push(`Station "${k}" needs a line.`);
     } else if (!line) {
       errors.push(`Station "${k}" is on line "${s.line}", which does not exist.`);
     }
@@ -601,6 +604,7 @@ function checkTracks(
   stationBy: ReadonlyMap<string, MetroStation>,
   lineBy: ReadonlyMap<string, MetroLine>,
   errors: string[],
+  inFlow = false,
 ): void {
   const tierOf = (s: MetroStation | undefined): Tier | undefined =>
     s?.line === undefined ? undefined : lineBy.get(s.line)?.tier;
@@ -643,7 +647,7 @@ function checkTracks(
     if (t.line !== undefined && !line) {
       errors.push(`Track "${k}" is on line "${t.line}", which does not exist.`);
     }
-    if (t.kind === undefined && t.line === undefined) {
+    if (t.kind === undefined && t.line === undefined && !inFlow) {
       errors.push(`Track "${k}" needs a line.`);
     }
     if (t.kind === "exit" && to && to.kind !== "exit") {
