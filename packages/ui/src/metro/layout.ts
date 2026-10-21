@@ -17,6 +17,7 @@
 import {
   along,
   type Box,
+  CHIP_ROOM,
   chipBox,
   crossingsOf,
   dotBox,
@@ -79,7 +80,7 @@ for (let t = 0; t <= GROW.maxStep + GROW.maxRow; t++)
     if (t - ky <= GROW.maxStep) TRIES.push([t - ky, ky]);
 /** Air between two names, or a name and a mark. */
 const CLEAR = 6;
-/** Air between a chip and a mark. */
+/** Air between a chip and a name, a transfer's label or another chip. Marks get `CHIP_ROOM`. */
 const CHIP_CLEAR = 3;
 /** The least room between the drawing and the scene's edge. */
 const EDGE = 8;
@@ -458,24 +459,26 @@ function build(
 // ---------------------------------------------------------------------------------------------
 // Names and chips.
 
-const blocked = (box: Box, obstacles: readonly Box[], gap: number) =>
-  obstacles.some((o) => overlaps(box, o, gap));
+/** Boxes to keep a gap from. */
+type Clear = readonly [obstacles: readonly Box[], gap: number];
+
+const blocked = (box: Box, clears: readonly Clear[]) =>
+  clears.some(([obstacles, gap]) => obstacles.some((o) => overlaps(box, o, gap)));
 
 /**
  * The middle of the longest free run of a route: the point where a box set there clears every
- * obstacle. Null when no point on the route is free.
+ * obstacle by its own gap. Null when no point on the route is free.
  */
 function freeSpot(
   pts: readonly Point[],
   boxAt: (at: Point) => Box,
-  obstacles: readonly Box[],
-  gap: number,
+  ...clears: Clear[]
 ): Point | null {
   const n = Math.max(2, Math.ceil(lengthOf(pts)));
   let best: [number, number] | null = null;
   let from = -1;
   for (let i = 0; i <= n + 1; i++) {
-    const free = i <= n && !blocked(boxAt(along(pts, i / n)), obstacles, gap);
+    const free = i <= n && !blocked(boxAt(along(pts, i / n)), clears);
     if (free && from < 0) from = i;
     if (!free && from >= 0) {
       if (!best || i - from > best[1]) best = [from, i - from];
@@ -533,16 +536,18 @@ function dress(sc: MetroScene, fold: boolean): boolean {
     names.push(...best.boxes);
   }
 
-  // Chips go where nothing else is: marks, names and the chips placed before.
-  const taken: Box[] = [...[...own.values()].flat(), ...xfers, ...names];
+  // Chips go where nothing else is: `CHIP_ROOM` from a mark, `CHIP_CLEAR` from names, transfer
+  // labels and the chips placed before.
+  const solid: Box[] = [...own.values()].flat();
+  const taken: Box[] = [...xfers, ...names];
   for (const { r, pts } of routes) {
     if (r.cond) {
       const glyph = r.condGlyph ?? null;
       const at = freeSpot(
         pts,
         (q) => chipBox(q[0], q[1], r.cond as string, glyph),
-        taken,
-        CHIP_CLEAR,
+        [solid, CHIP_ROOM],
+        [taken, CHIP_CLEAR],
       );
       if (at) {
         r.cat = at;
@@ -551,7 +556,7 @@ function dress(sc: MetroScene, fold: boolean): boolean {
     }
     if (!r.who || r.who === "auto" || r.k === "exit" || r.k === "xfer") continue;
     const who = r.who;
-    const at = freeSpot(pts, (q) => pillBox(q, who), taken, CHIP_CLEAR);
+    const at = freeSpot(pts, (q) => pillBox(q, who), [solid, CHIP_ROOM], [taken, CHIP_CLEAR]);
     if (at) {
       r.at = at;
       taken.push(pillBox(at, who));
@@ -562,7 +567,7 @@ function dress(sc: MetroScene, fold: boolean): boolean {
       continue;
     }
     // No room for the pill: a dot, in the middle of the longest free run, else at the middle.
-    const dot = freeSpot(pts, dotBox, taken, CHIP_CLEAR) ?? along(pts, 0.5);
+    const dot = freeSpot(pts, dotBox, [solid, CHIP_CLEAR], [taken, CHIP_CLEAR]) ?? along(pts, 0.5);
     r.at = dot;
     r.dot = 1;
     taken.push(dotBox(dot));

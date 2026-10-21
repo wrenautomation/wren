@@ -10,18 +10,14 @@
  */
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
+import { Button, Callout, canAt, Icon, LoadFailed, SELECT_CLASS, Segmented } from "@wren/ui";
 import {
-  Busy,
-  BusyBox,
-  Button,
-  Callout,
-  canAt,
-  Icon,
-  LoadFailed,
-  SELECT_CLASS,
-  Segmented,
-} from "@wren/ui";
-import { MetroMap, type MetroPick, type MetroView, type OpenMap } from "@wren/ui/metro";
+  MetroMap,
+  type MetroPick,
+  MetroSkeleton,
+  type MetroView,
+  type OpenMap,
+} from "@wren/ui/metro";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
 import { type PageProps, WREN } from "../module.js";
@@ -343,9 +339,7 @@ export function MapPage({
       className="flex min-h-0 min-w-0 flex-1 flex-col text-(--ui-ink) max-[900px]:flex-none"
     >
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-(--ui-hair) px-5 py-3 max-[900px]:px-4">
-        <h1 className="mr-auto flex items-center gap-2 text-[22px]/8 font-semibold">
-          Map <Busy on={read.loading && !!read.data} />
-        </h1>
+        <h1 className="mr-auto text-[22px]/8 font-semibold">Map</h1>
         <Segmented
           label="Window"
           className="max-w-full"
@@ -442,9 +436,7 @@ export function MapPage({
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
           </div>
         ) : !read.data || waiting ? (
-          <div className="grid h-full place-items-center p-5">
-            <BusyBox title={waiting ? "Loading the draft" : "Loading your map"} />
-          </div>
+          <MetroSkeleton />
         ) : !data ? (
           <NoShape mayStart={mayEdit} at={at} onStarted={read.retry} />
         ) : (

@@ -91,8 +91,8 @@ const onTop = (svg: Element): string[] => {
 };
 
 /**
- * The map is drawn at real size (one scene px is one css px), sits in the middle of its frame when
- * it is smaller, and pans inside it when it is bigger. Returns whether it pans.
+ * The map is drawn at real size (one scene px is one css px), sits at the top of its frame and
+ * across its middle when it is smaller, and pans inside it when it is bigger. Returns whether it pans.
  */
 const calm = async (page: HTMLElement) => {
   await document.fonts.ready;
@@ -109,6 +109,8 @@ const calm = async (page: HTMLElement) => {
   const pans = host.scrollWidth > host.clientWidth + 1 || host.scrollHeight > host.clientHeight + 1;
   if (at.width < host.clientWidth - 2)
     await expect(Math.abs(at.left - room.left - (room.right - at.right))).toBeLessThan(2);
+  // Under the title, as in the design language's "Map in the app": never down the middle of an empty frame.
+  if (at.height < host.clientHeight - 2) await expect(Math.abs(at.top - room.top)).toBeLessThan(2);
   return { svg, host, pans };
 };
 
@@ -203,6 +205,30 @@ export const Dark = {
     },
   }),
   globals: { theme: "dark" },
+};
+
+/**
+ * The first read of the map has not come back: no box, no ring, no words. The frame holds the dot
+ * grid and a few ghost lines and stations, the size the map will fill. The title carries no ring.
+ */
+export const Loading = {
+  ...mapAt("/", { mode: "pending" }),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const page = canvasElement;
+    const skeleton = await within(page).findByRole("status", { name: "Loading" }, LATE);
+    await expect(skeleton).toBeVisible();
+    // No words on the map's frame, no ring beside any title, no box. (The phone page also draws
+    // the Today sheet's own ghost lines below the map; they are not the map's.)
+    const frame = skeleton.parentElement as HTMLElement;
+    await expect(skeleton.textContent).toBe("");
+    await expect(within(frame).queryAllByText(/^Loading/)).toHaveLength(0);
+    const title = within(page).getByRole("heading", { name: "Map", level: 1 });
+    await expect(title.parentElement?.querySelectorAll("[data-busy]").length).toBe(0);
+    // It fills the frame the map fills.
+    await expect(
+      Math.abs(skeleton.getBoundingClientRect().height - frame.clientHeight),
+    ).toBeLessThan(2);
+  },
 };
 
 /** The window is in the address; 7 days is lit and the numbers are the window's. */
@@ -422,6 +448,21 @@ export const Big = mapAt("/", {
     // A frame that scrolls takes focus, so the arrow keys pan it.
     await waitFor(() => expect(host).toHaveAttribute("tabindex", "0"));
     await expect(crossingsOfShape(SHAPE_BIG)).toBeLessThanOrEqual(CROSSINGS_PINNED.big);
+    // It opens at the left edge: the first station is in view and nothing is scrolled away.
+    await expect(host.scrollLeft).toBe(0);
+    const first = await station(page, "Social");
+    const [a, b] = [first.getBoundingClientRect(), host.getBoundingClientRect()];
+    await expect(a.left).toBeGreaterThanOrEqual(b.left);
+    await expect(a.right).toBeLessThanOrEqual(b.right);
+  },
+});
+
+/** A map bigger than its frame pans: scrolled to the far corner, the last station is in view. */
+export const BigPan = mapAt("/", {
+  answers: bigAnswers(SHARED),
+  check: async (page) => {
+    await station(page, "Retainer");
+    const { host } = await calm(page);
     host.scrollTo({ left: host.scrollWidth, top: host.scrollHeight });
     const last = await station(page, "Retainer");
     await waitFor(() => {
@@ -432,7 +473,6 @@ export const Big = mapAt("/", {
   },
 });
 
-/** On a phone the Map fills the width and Today is a tab under it, open. */
 export const Phone = {
   ...mapAt("/", {
     check: async (page) => {

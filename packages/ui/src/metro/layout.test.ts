@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { crossingsOf, routeOf, sceneClashes, textWidth, trackEnds } from "./geometry.js";
+import {
+  CHIP_ROOM,
+  crossingsOf,
+  overlaps,
+  routeOf,
+  sceneBoxes,
+  sceneClashes,
+  textWidth,
+  trackEnds,
+} from "./geometry.js";
 import { layoutMetro, lineKeyOf, SPACE } from "./layout.js";
 import {
   COLD_OUTBOUND_VIEW,
@@ -345,6 +354,29 @@ describe("a calm map", () => {
       expect(b - a, name).toBeLessThan(SPACE.step);
       expect(b - a, name).toBeGreaterThanOrEqual(textWidth(name, 9.5, true));
     }
+  });
+
+  it.each(DRAWN)("%s: a task chip keeps 12 px from every mark, on both sides", (_t, v) => {
+    const b = sceneBoxes(layoutMetro(v));
+    for (const c of [...b.chips, ...b.tracks].filter((x) => x.room))
+      for (const m of [...b.marks, ...b.hub])
+        expect(overlaps(c.box, m.box, CHIP_ROOM), `${c.id} / ${m.id}`).toBe(false);
+  });
+
+  it("widens the step before it folds a long chip to a dot", () => {
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      tracks: COLD_OUTBOUND_VIEW.tracks.map((t) =>
+        t.from === "rep" && t.to === "bk"
+          ? { ...t, by: "person", owner: "WJ", promise: "3650d" }
+          : t,
+      ),
+    };
+    const s = layoutMetro(v);
+    const track = s.tr.find((t) => t.a === "rep" && t.b === "bk");
+    expect(track?.dot).toBeUndefined();
+    expect(at(s, "bk").x - at(s, "rep").x).toBeGreaterThan(SPACE.step);
+    expect(sceneClashes(s)).toEqual([]);
   });
 
   it("folds a chip to a count dot when its track has no room", () => {

@@ -33,17 +33,14 @@ export function TodayTasks({
   tasks,
   onLight,
   onOpen,
-  busy,
 }: {
   tasks: readonly Task[];
   /** The line to light on the Map, or null when the pointer or focus leaves. */
   onLight: (line: string | null) => void;
   onOpen: (id: string) => void;
-  /** The tasks read again behind what shows. */
-  busy?: boolean | undefined;
 }) {
   return (
-    <Section title="Tasks" count={tasks.length || undefined} busy={busy} className="mb-4">
+    <Section title="Tasks" count={tasks.length || undefined} className="mb-4">
       {tasks.length ? (
         <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))] gap-x-3 gap-y-1">
           {tasks.map((t) => (

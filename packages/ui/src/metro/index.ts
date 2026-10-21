@@ -25,6 +25,7 @@ export {
   type Box,
   type Boxed,
   boxAt,
+  CHIP_ROOM,
   crossingsOf,
   labelBoxes,
   markBoxes,
@@ -59,6 +60,7 @@ export {
   STATION_GLYPH,
   XferLabel,
 } from "./marks.js";
+export { MetroSkeleton } from "./skeleton.js";
 export {
   type BadgeStation,
   type CapsuleStation,

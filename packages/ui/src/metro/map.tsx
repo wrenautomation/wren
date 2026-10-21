@@ -7,8 +7,9 @@
  * both. Hover or focus on a line lights it; Enter or Space on a mark picks it or opens its fold;
  * a wheel with ctrl or meta, a Safari pinch and a touch pinch step the level.
  *
- * Scale: one scene px is one css px. The host centres a map smaller than itself and scrolls a map
- * wider or taller than itself, so a label reads at its real size on any screen.
+ * Scale: one scene px is one css px. The host centres a map smaller than itself across its width,
+ * at the top, and scrolls a map wider or taller than itself, so a label reads at its real size on any
+ * screen.
  */
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "../format.js";

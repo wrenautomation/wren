@@ -221,6 +221,9 @@ export const pillWidth = (who: string): number =>
 export const pillBox = (at: Point, who: string, bdy = 0): Box =>
   boxAt(at[0], at[1] + bdy, pillWidth(who), 26);
 
+/** Air a person's pill or a branch chip keeps from every mark, on both sides (William, 10-21). */
+export const CHIP_ROOM = 12;
+
 /** The dot a pill folds to when its track has no room: a ring 20 across. */
 export const DOT = 20;
 export const dotBox = (at: Point): Box => boxAt(at[0], at[1], DOT, DOT);
@@ -432,6 +435,8 @@ export function crossingsOf(scene: Pick<MetroScene, "st" | "tr">): number {
 export interface Boxed {
   id: string;
   box: Box;
+  /** A chip that keeps `CHIP_ROOM` clear of every mark: a person's pill or a branch chip. */
+  room?: true;
 }
 
 /** Every box a scene fills, by kind. The layout and the tests read these; the drawing agrees. */
@@ -467,10 +472,13 @@ export function sceneBoxes(scene: Pick<MetroScene, "st" | "tr">): SceneBoxes {
       out.tracks.push({
         id,
         box: chipBox(...(r.cat ?? mid(e[0], e[1])), r.cond, r.condGlyph ?? null),
+        room: true,
       });
     if (r.k !== "exit" && r.who && r.who !== "auto") {
       const at = r.at ?? mid(e[0], e[1]);
-      out.chips.push({ id, box: r.dot ? dotBox(at) : pillBox(at, r.who, r.bdy) });
+      out.chips.push(
+        r.dot ? { id, box: dotBox(at) } : { id, box: pillBox(at, r.who, r.bdy), room: true },
+      );
     }
   });
   return out;
@@ -493,7 +501,11 @@ export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): st
       if (overlaps(l.box, m.box)) out.push(`name of ${l.id} meets mark ${m.id}`);
   });
   for (const c of [...b.chips, ...b.tracks]) {
-    for (const m of solid) if (overlaps(c.box, m.box)) out.push(`chip ${c.id} meets mark ${m.id}`);
+    for (const m of solid) {
+      if (overlaps(c.box, m.box)) out.push(`chip ${c.id} meets mark ${m.id}`);
+      else if (c.room && overlaps(c.box, m.box, CHIP_ROOM))
+        out.push(`chip ${c.id} is less than ${CHIP_ROOM}px from mark ${m.id}`);
+    }
     for (const l of b.labels)
       if (overlaps(c.box, l.box)) out.push(`chip ${c.id} meets name of ${l.id}`);
   }

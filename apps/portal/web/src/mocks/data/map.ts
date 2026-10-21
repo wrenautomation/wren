@@ -207,8 +207,8 @@ export const SHAPE_BIG: MetroBody = {
     { id: "hub_to_ref_ask", from: "hub", to: "ref_ask", line: "referral", by: "system" },
     ...run("referral", ["ref_ask", "ref_intro", "ref_thanks"]),
     {
-      id: "pay_to_retain_start",
-      from: "pay",
+      id: "kickoff_to_retain_start",
+      from: "kickoff",
       to: "retain_start",
       line: "retain",
       kind: "xfer",
