@@ -2,7 +2,7 @@
 
 2026-10-20. William, on artifact v12: "keep this artifact up we are using this as the source of truth for the full redesign, and well iterate through this artifact as well." Green light to build.
 
-**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v16). The artifact wins over this doc when they differ. A copy of its source at v16 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
+**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v17). The artifact wins over this doc when they differ. A copy of its source at v17 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
 
 This doc supersedes the "banded funnel" form decision in `2026-10-19-business-map.md`. The shape store, drafts, history, blame, undo, tags and the git mirror from that doc stay.
 
@@ -75,7 +75,8 @@ William: "make sure ui is principally sound (tanstack query, similarly sleek loa
 - Empty, error and offline each look different from a wait. Error: one sentence and Retry.
 - Reduced motion: shimmer and draw-in go; bars still move.
 - Path loader (William, 10-21: "smooth step loads more prominently throughout the UI is good design practice"): any wait with more than one stage shows its steps. Each step names what it does and with what (sources, account, count). Status text cross-fades. Sources animate in as they are read. Done, the path folds to one line that stays as the record and reopens on click. Same component for research, send, map open, import, video render. Artifact section 14 "Path".
-- Small busy state (button, chip): the bottom bar is out for small parts. William picks one of section 14 "Busy, five ways" (sweep, edge pulse, dots, ring). Until he picks, builders use dots (4).
+- Small busy state (button, chip): bar, sweep and edge pulse are out (William, 10-21). He picks one of section 14 "Busy, Wren ways": trace (the double border runs around the leaf), corner ink (light pools in the leaf tips), leaf turn (corners trade sides), shuttle (a station rides a short track), wren (the mark hops); dots and ring kept as plain fallbacks. Until he picks, builders use dots.
+- Pagination stays (William, 10-21: "everything should be paginated as well, it already is, just don't remove that"). The next page loads in place at the same height. No infinite scroll.
 - Map first load: the line draws over ~2.4 s, stations land as the line passes, labels fade in with their station, numbers tick last.
 
 Systems page (E): William calls the row list "a bit incoherent", fine for a first cut. Flesh out later, no input needed.
