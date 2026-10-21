@@ -2,7 +2,7 @@
 
 2026-10-20. William, on artifact v12: "keep this artifact up we are using this as the source of truth for the full redesign, and well iterate through this artifact as well." Green light to build.
 
-**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v19). The artifact wins over this doc when they differ. A copy of its source at v19 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
+**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v20). The artifact wins over this doc when they differ. A copy of its source at v20 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
 
 This doc supersedes the "banded funnel" form decision in `2026-10-19-business-map.md`. The shape store, drafts, history, blame, undo, tags and the git mirror from that doc stay.
 
@@ -76,7 +76,7 @@ William: "make sure ui is principally sound (tanstack query, similarly sleek loa
 - Reduced motion: shimmer and draw-in go; bars still move.
 - Steps (William, 10-21, "the path was not done correctly", redone as section 14 "Long job"): any wait with stages shows its steps. Each step names what it does and with what. The status line cross-fades on a timer, never on every frame (the old one flickered). Sources and targets fold in as small icon cards, then stack into a deck with a count when the step is done. Past ten seconds: a clock and "you can leave". Done, the whole thing folds to one line that stays as the record and reopens on click. One component for research, send, import, video render, map open.
 - Numbers never count up or jitter (William, 10-21). A changed number fades in once, on refresh and on first load.
-- Busy state (modal, chip, button): one ring, 40 px in a modal, 14 px small. William (10-21) wants "a dot ring type loading modal, very custom to our app and something bird related", or the plain ring if the custom one is not simple and distinct. Section 14 "Ring, bird ways": flight (a wren flies the dot ring with a comet tail; William likes this one), feathers, clutch (five eggs warm in turn), nest (three arcs), plain ring. Until he picks, builders use the plain ring, as one component with the variant as a prop.
+- Busy state (modal, chip, button): one ring, 40 px in a modal, 14 px small. William (10-21) wants "a dot ring type loading modal, very custom to our app and something bird related", or the plain ring if the custom one is not simple and distinct. Section 14 "Ring, bird ways": flight (a wren flies a ring of feather barbs with a thick comet tail, bold at 14 px; William likes this one), feathers, clutch (five eggs warm in turn), nest (three arcs), plain ring. Until he picks, builders use the plain ring, as one component with the variant as a prop.
 - Pagination stays (William, 10-21: "everything should be paginated as well, it already is, just don't remove that"). The next page loads in place at the same height. No infinite scroll.
 - Map first load: the line draws over ~2.4 s, stations land as the line passes, labels fade in with their station, numbers tick last.
 
