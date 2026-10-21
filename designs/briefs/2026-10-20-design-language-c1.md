@@ -167,7 +167,7 @@ Planner review of Part 2 (10-21). Build this before Part 3.
 
 Message subject starts `HELD:`. One commit.
 
-1. Migration `0314_metro_only.sql` (next free number at the time): an insert trigger on `shape_versions` and `shape_drafts` that refuses a body without `model = 'metro'`. No rename: `depths` stays graph depth (Part 2b).
+1. Migration `0315_metro_only.sql` (0314 is `shape_run`; take the next free number at the time): an insert trigger on `shape_versions` and `shape_drafts` that refuses a body without `model = 'metro'`. No rename: `depths` stays graph depth (Part 2b).
 2. `saveShape` and `parseShape` refuse a graph body: "Convert first: wren shape convert."
 3. Run `./scripts/gates.sh schema`.
 
