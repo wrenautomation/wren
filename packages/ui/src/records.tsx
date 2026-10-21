@@ -48,16 +48,6 @@ import {
   useHeld,
   useRun,
 } from "./action.js";
-import { CardHead, CardStrip, FormSwitch, GRID, morphTo, RecordCard } from "./card-grid.js";
-import {
-  type CardOption,
-  cardOf,
-  cardWords,
-  type ListForm,
-  listFormOf,
-  listFormParam,
-  opensAs,
-} from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button, ButtonLink } from "./controls.js";
 import { listChanged } from "./data/delta.js";
@@ -125,7 +115,7 @@ import {
 } from "./record-access.js";
 import { recordHead } from "./record-head.js";
 import { detailPatch, patchRecord } from "./record-patch.js";
-import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
+import { AskBox, ReplyFrame, rowActsOf } from "./row-acts.js";
 import {
   Age,
   avatarOf,
@@ -377,11 +367,6 @@ export interface RecordTemplateProps {
    * action) with the full record one click on. `false` opens the whole record in the panel.
    */
   peek?: false | PeekSpec | undefined;
-  /**
-   * The list as cards (`./cards.ts`): what each card shows beside the columns; read from the
-   * columns when left out. `false` keeps it rows only (a log, an audit, a day's numbers).
-   */
-  card?: CardOption | undefined;
   /** More of how the list shows, first in its bar's display: a page's Timeline or List. */
   display?: ReactNode;
 }
@@ -686,28 +671,22 @@ export function columnsOf(
 /**
  * How the list shows, in one popover (Linear's Display): its columns, rows grouped by platform
  * where it mixes them, and row height. A phone shows the title and one state whatever is
- * picked, so it has no columns there. As cards it has no row height, and its columns pick the
- * cards' facts only where the page leaves them to the columns.
+ * picked, so it has no columns there.
  */
 function ListDisplay({
   meta,
   place,
   columns,
   narrow,
-  cards,
 }: {
   meta: RecordMeta;
   place: Place;
   columns: string[] | undefined;
   narrow: boolean;
-  /** As cards: whether the columns pick their facts. Null as rows. */
-  cards: boolean | null;
 }) {
-  const shell = useFrame();
+  const frame = useFrame();
   const pop = useHoverPop();
-  const frame = cards === null ? shell : null;
-  const all =
-    narrow || cards === false ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
+  const all = narrow ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
   // Group by its platform, the account each row is on, or any status or choice: one at a time.
   const groups = groupFields(meta);
   if (!frame && !groups.length && !all.length) return null;
@@ -786,7 +765,7 @@ function ListDisplay({
         {all.length ? (
           <fieldset className="m-0 grid min-w-0 border-0 p-0">
             <legend className="mb-1.5 p-0 text-[12.5px] font-medium text-(--ui-ink-2)">
-              {cards ? "On cards" : "Columns"}
+              Columns
             </legend>
             {listed.map((f) => (
               <div key={f.key} className="-mx-1.5 flex items-center">
@@ -968,7 +947,6 @@ export function RecordList(props: RecordTemplateProps) {
     needs,
     late,
     reply,
-    card,
     display,
     peek,
   } = props;
@@ -992,7 +970,6 @@ export function RecordList(props: RecordTemplateProps) {
       needs={needs}
       late={late}
       reply={reply}
-      card={card}
       display={display}
       peek={peek}
     />
@@ -1238,7 +1215,7 @@ export function shownColumns(
   const tells = (f: FieldMeta) => new Set(rows.map((r) => String(r[f.key] ?? ""))).size > 1;
   const states = filled.filter((f) => f.key !== meta.title && f.kind === "status");
   const state = states.find(tells) ?? states[0];
-  // A card: the title, the state, then the next fields, up to three; a state the same on every
+  // A phone row: the title, the state, then the next fields, up to three; a state the same on every
   // row says nothing.
   // The wait a page watches comes first after its state, then the account a row is on: on a phone
   // it says who sends.
@@ -1253,12 +1230,8 @@ export function shownColumns(
   return [...lead, ...(state ? [state] : []), ...rest].slice(0, lead.length + NARROW_FIELDS);
 }
 
-/** How many fields a phone's card shows under its title. */
+/** How many fields a phone row shows under its title. */
 const NARROW_FIELDS = 3;
-
-/** A card's place while its list loads. */
-const CARD_HOLD =
-  "grid h-36 content-start gap-2 rounded-(--ui-radius-panel) border border-(--ui-hair) bg-(--ui-paper) p-3";
 
 export function ListSkeleton() {
   return (
@@ -1287,7 +1260,6 @@ function List({
   needs,
   late,
   reply,
-  card,
   display,
   peek,
 }: {
@@ -1304,7 +1276,6 @@ function List({
   needs: Needs | undefined;
   late: Late | undefined;
   reply: RecordTemplateProps["reply"];
-  card: CardOption | undefined;
   display: ReactNode;
   peek: RecordTemplateProps["peek"];
 }) {
@@ -1314,25 +1285,15 @@ function List({
   const grouped = ask.group ? (meta.fields.find((f) => f.key === ask.group) ?? null) : null;
   // The page the address names: `pg` from 1, read as rows to skip.
   const at = pageAt(params.get("pg"));
-  // Rows or cards: the address's, drawn from `form` so a switch moves each row into its card.
   const narrow = useNarrow();
-  const wanted = listFormOf(params, card, narrow);
-  const [form, setForm] = useState(wanted);
-  useEffect(() => setForm(wanted), [wanted]);
-  const spec = card === false ? undefined : card;
-  const pictured = form === "cards" && !!meta.thumbs && spec?.media !== null;
-  const listed = pageAskOf(meta, params);
-  const asked: ListAsk = pictured ? { ...listed, thumbs: true } : listed;
+  const asked: ListAsk = pageAskOf(meta, params);
   const page = useLoad<RecordsPage>(
     JSON.stringify(asked),
     (before) => listChanged((a) => api.list(a), asked, before),
     api,
   );
-  // The list dims while other rows load, not while the same rows fetch their pictures.
-  const rowsKey = JSON.stringify(listed);
-  const settledKey = useRef(rowsKey);
-  if (!page.loading) settledKey.current = rowsKey;
-  const dim = page.loading && !!page.data && settledKey.current !== rowsKey;
+  // The list dims while other rows load.
+  const dim = page.loading && !!page.data;
   // A view's tab turns the ring while its rows read; the pager's count does for another page.
   const settledView = useRef(ask.view);
   if (!page.loading) settledView.current = ask.view;
@@ -1452,27 +1413,6 @@ function List({
       place.go(place.link({ pg: pages > 1 ? String(pages) : null }), true);
   }, [page.data, at, pages]);
   const widths = widthsOf(meta, cols, rows, narrow ? undefined : room);
-  const cardsOn = form === "cards";
-  const parts = cardsOn
-    ? cardOf(
-        meta,
-        shownColumns(meta, columnsOf(meta, params, columns), rows, {
-          byHand: params.has("cols"),
-          narrow: false,
-        }),
-        spec,
-        rows,
-      )
-    : null;
-  const thumbs = page.data?.thumbs;
-  const switchForm = (to: ListForm) => {
-    if (to === form) return;
-    morphTo(
-      frame.current,
-      () => setForm(to),
-      () => place.go(place.link(listFormParam(to, opensAs(card, narrow))), true),
-    );
-  };
   const saved = useSavedViews(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
@@ -1480,7 +1420,6 @@ function List({
   const openId = params.get(meta.name.one);
   const [cursor, setCursor] = useState(-1);
   const [busy, setBusy] = useState<string | null>(null);
-  const cards = useRef<HTMLUListElement>(null);
   /** The row a box is open under: an action's words (a reason, a reply), or the page's reply. */
   const [boxed, setBoxed] = useState<{ id: string; action: Action | null } | null>(null);
   /** A row's action from where it sits: one that asks for words opens a box under the row. */
@@ -1550,7 +1489,7 @@ function List({
       if (boxed?.id === l.key) drawn.push({ kind: "box", key: `box:${l.key}`, row: l.row });
     }
   }
-  /** The groups shut by a press on their head; rows fold only (cards show every group open). */
+  /** The groups shut by a press on their head. */
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
   const toggleGroup = useCallback(
     (key: string) =>
@@ -1563,12 +1502,7 @@ function List({
   );
   const hidden = (i: number) => {
     const g = groupOfRow[i];
-    return !cardsOn && g !== undefined && folded.has(g);
-  };
-  /** Scroll row `i` into view. Rows do it themselves when the cursor moves; cards here. */
-  const reveal = (i: number) => {
-    if (cardsOn)
-      cards.current?.querySelector(`[data-row="${i}"]`)?.scrollIntoView({ block: "nearest" });
+    return g !== undefined && folded.has(g);
   };
 
   const openAt = (i: number, replace = false) => {
@@ -1596,7 +1530,6 @@ function List({
     run,
     rowRun,
     replyOn,
-    reveal,
   });
   keys.current = {
     cursor,
@@ -1610,7 +1543,6 @@ function List({
     run,
     rowRun,
     replyOn,
-    reveal,
   };
   useEffect(() => {
     const press = (e: KeyboardEvent) => {
@@ -1624,7 +1556,6 @@ function List({
         if (next < 0) return;
         setCursor(next);
         if (k.openIndex >= 0) k.openAt(next, true);
-        k.reveal(next);
       } else if (e.key === "Enter" && k.openIndex < 0 && at >= 0) k.openAt(at);
       else if (e.key === "Escape" && k.openIndex >= 0)
         k.place.go(k.place.link({ [k.one]: null, tab: null }), true);
@@ -1902,14 +1833,7 @@ function List({
           display={
             <>
               {display}
-              {card === false ? null : <FormSwitch form={form} onChange={switchForm} />}
-              <ListDisplay
-                meta={meta}
-                place={place}
-                columns={columns}
-                narrow={narrow}
-                cards={cardsOn ? !spec?.facts : null}
-              />
+              <ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />
             </>
           }
           end={
@@ -1941,153 +1865,47 @@ function List({
           className={cn(
             "transition-opacity",
             // A raised panel; its last row drops its rule, which the panel's rim draws. A phone's
-            // rows scroll with the page, not in a box of their own, clipped to its corners. Cards
-            // are panels each, on the page's ground, and scroll with it.
-            cardsOn && rows.length
-              ? "grid gap-2"
-              : "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",
-            narrow || cardsOn ? "overflow-clip" : "max-h-[calc(100dvh-280px)] overflow-auto",
+            // rows scroll with the page, not in a box of their own, clipped to its corners.
+            "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",
+            narrow ? "overflow-clip" : "max-h-[calc(100dvh-280px)] overflow-auto",
             dim && "opacity-60",
           )}
         >
-          {cardsOn && parts ? (
-            <>
-              {page.data && rows.length ? (
-                <CardStrip
-                  meta={meta}
-                  place={place}
-                  sort={sort}
-                  all={table.all}
-                  some={table.some}
-                  onAll={table.toggleAll}
-                />
-              ) : null}
-              <ul ref={cards} className={cn(GRID, page.data && !rows.length && "hidden")}>
-                {!page.data
-                  ? Array.from({ length: 8 }, (_, i) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-                      <li key={i} className={CARD_HOLD}>
-                        <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
-                        <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
-                      </li>
-                    ))
-                  : drawn.map((l) => {
-                      if (l.kind === "tier")
-                        return (
-                          <CardHead key={l.key}>
-                            <TierLabel needs={l.needs} n={l.n} />
-                          </CardHead>
-                        );
-                      if (l.kind === "group")
-                        return (
-                          <CardHead key={l.key}>
-                            <span className="inline-flex items-center gap-1.5">
-                              <FieldCell field={l.field} cell={l.first[l.field.key]} />
-                            </span>
-                          </CardHead>
-                        );
-                      if (l.kind === "box")
-                        return (
-                          <li
-                            key={l.key}
-                            className="col-span-full rounded-(--ui-radius-panel) border border-(--ui-hair) bg-(--ui-wash) px-3 py-3"
-                          >
-                            {boxFor(l.row)}
-                          </li>
-                        );
-                      const { row: r, index: i } = l;
-                      const id = l.key;
-                      const waiting = waits(r);
-                      const replies = replyOn(r);
-                      const { main, more } = rowActsOf(actions, r, !!replies);
-                      const said = cardWords(parts, (key) => wordsOf(meta, r, key));
-                      const fold = foldOf(meta, r);
-                      return (
-                        <RecordCard
-                          key={id}
-                          row={r}
-                          index={i}
-                          parts={parts}
-                          thumb={thumbs?.[id]}
-                          pending={pictured && !thumbs}
-                          title={said.title}
-                          titleClass={TITLE_WEIGHT[String(waiting)] ?? ""}
-                          body={firstWords(said.body)}
-                          fold={
-                            fold ? (
-                              <FoldPreview messages={fold} lines={3} quiet={waiting === false} />
-                            ) : undefined
-                          }
-                          spent={said.spent}
-                          quiet={waiting === false}
-                          href={place.link({ [meta.name.one]: id, tab: null })}
-                          cursor={i === cursor}
-                          open={id === openId}
-                          changed={changed.has(id) && !page.loading}
-                          picked={table.picked(id)}
-                          anyPicked={picked.size > 0}
-                          onPick={() => table.toggle(id)}
-                          onOpen={() => {
-                            setCursor(i);
-                            openAt(i);
-                          }}
-                          onSettled={() => setChanged(new Set())}
-                          actions={
-                            main.length || more.length || replies ? (
-                              <RowActions
-                                still
-                                title={titleOf(meta, r)}
-                                main={main}
-                                more={more}
-                                reply={replies}
-                                page={place.page(id)}
-                                busy={acting}
-                                run={(a) => rowRun(a, r)}
-                              />
-                            ) : null
-                          }
-                        />
-                      );
-                    })}
-              </ul>
-            </>
-          ) : (
-            <Rows
-              label={many}
-              noun={meta.name.one}
-              columns={columnsFor}
-              name={nameCol}
-              lines={rowLines}
-              loading={!page.data}
-              empty={!!page.data && !rows.length}
-              pick={pickOf}
-              act={actOf}
-              open={{
-                id: openId,
-                onOpen: (_, i) => {
-                  setCursor(i);
-                  openAt(i);
-                },
-              }}
-              cursor={cursor}
-              rowState={(r) => {
-                const id = String(r.id);
-                return { going: going.get(id), changed: changed.has(id) && !page.loading };
-              }}
-              onSettled={() => setChanged(new Set())}
-              wait={late?.promise ? waitOf : undefined}
-              foot={foot}
-              group={grouped ? { folded, toggle: toggleGroup } : undefined}
-              scroller={frameEl}
-              narrow={narrow}
-              swipes={(r) =>
-                withReply(
-                  swipesOf(actions, r, (a) => rowRun(a, r)),
-                  replyOn(r),
-                )
-              }
-            />
-          )}
+          <Rows
+            label={many}
+            noun={meta.name.one}
+            columns={columnsFor}
+            name={nameCol}
+            lines={rowLines}
+            loading={!page.data}
+            empty={!!page.data && !rows.length}
+            pick={pickOf}
+            act={actOf}
+            open={{
+              id: openId,
+              onOpen: (_, i) => {
+                setCursor(i);
+                openAt(i);
+              },
+            }}
+            cursor={cursor}
+            rowState={(r) => {
+              const id = String(r.id);
+              return { going: going.get(id), changed: changed.has(id) && !page.loading };
+            }}
+            onSettled={() => setChanged(new Set())}
+            wait={late?.promise ? waitOf : undefined}
+            foot={foot}
+            group={grouped ? { folded, toggle: toggleGroup } : undefined}
+            scroller={frameEl}
+            narrow={narrow}
+            swipes={(r) =>
+              withReply(
+                swipesOf(actions, r, (a) => rowRun(a, r)),
+                replyOn(r),
+              )
+            }
+          />
           {page.data && !rows.length ? (
             <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
               {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}

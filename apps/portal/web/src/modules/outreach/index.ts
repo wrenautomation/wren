@@ -11,7 +11,6 @@ import { createElement } from "react";
 import { findRecords } from "../../find.js";
 import type { ListPage, Module } from "../../module.js";
 import { draftActions, withDraft } from "../marketing/ask.js";
-import { ENGAGE_CARD } from "../marketing/cards.js";
 import { copyExtras, dmExtras } from "../marketing/dms.js";
 import { factsDropped } from "../marketing/facts.js";
 import {
@@ -85,7 +84,6 @@ const ENGAGE_PAGE: ListPage = {
   about: "Comments to write on other people's posts and threads.",
   template: "list",
   record: "marketing.engage",
-  card: ENGAGE_CARD,
   columns: ["who", "platform", "type", "state", "pick", "held", "proof", "at"],
   empty: {
     waiting: "No comment waits on you. Paste a link above to add one.",

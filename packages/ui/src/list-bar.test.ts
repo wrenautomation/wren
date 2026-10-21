@@ -1,7 +1,15 @@
 /** Quick filters (offered first by Filter), which views show as tabs, and what rows group by. */
 import { choice, defineRecord, metaOf, name, number, status } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
-import { byField, groupFields, quickFilters, splitViews } from "./list-bar.js";
+import {
+  byField,
+  groupFields,
+  keptOf,
+  lastOf,
+  quickFilters,
+  restoreOf,
+  splitViews,
+} from "./list-bar.js";
 
 const two = {
   a: { label: "A", tone: "neutral" as const },
@@ -114,5 +122,48 @@ describe("splitViews", () => {
       tabs: ["all", "a", "sv:1", "sv:2", "sv:3"],
       more: ["sv:4"],
     });
+  });
+});
+
+describe("where a list was left, as a pref", () => {
+  const p = (s: string) => new URLSearchParams(s);
+  it("kept with the rest of where he left the list", () => {
+    expect(lastOf(p("view=all&sort=-at&as=rows&q=hi&sv=3"))).toEqual({
+      sv: 3,
+      view: "all",
+      sort: "-at",
+      as: "rows",
+    });
+  });
+  it("a saved view keeps a timeline page's list", () => {
+    expect(keptOf(rec({}), p("view=all&as=rows"))).toContain("as=rows");
+  });
+  it("restored on a bare link, with his view", () => {
+    expect(restoreOf({ view: "all", as: "rows" }, p(""), false)).toEqual({
+      change: { view: "all", sort: null, cols: null, as: "rows" },
+    });
+  });
+  it("restored when the link names a view but not the form", () => {
+    expect(restoreOf({ view: "all", as: "rows" }, p("view=done"), false)).toEqual({
+      change: { as: "rows" },
+    });
+  });
+  it("a link that names it, or a saved view, wins", () => {
+    expect(restoreOf({ as: "rows" }, p("as=rows&view=all"), false)).toBeNull();
+    expect(restoreOf({ view: "all", as: "rows" }, p("sv=4"), false)).toBeNull();
+  });
+  it("a saved view he used last opens when it still exists", () => {
+    expect(restoreOf({ sv: 4 }, p(""), false, new Set([4]))).toEqual({ sv: 4 });
+  });
+  it("cards are gone: an old cards pref is dropped, the rest still restores", () => {
+    expect(lastOf(p("as=cards&view=all"))).toEqual({ view: "all" });
+    expect(restoreOf({ as: "cards" }, p(""), false)).toBeNull();
+    expect(restoreOf({ view: "all", as: "cards" }, p(""), false)).toEqual({
+      change: { view: "all", sort: null, cols: null },
+    });
+  });
+  it("nothing kept, nothing changed", () => {
+    expect(restoreOf(undefined, p(""), false)).toBeNull();
+    expect(restoreOf({}, p(""), false)).toBeNull();
   });
 });

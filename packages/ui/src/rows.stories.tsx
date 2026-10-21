@@ -50,11 +50,14 @@ function Host({
   groups = false,
   wait = false,
   page = true,
+  opens = true,
 }: {
   groups?: boolean;
   wait?: boolean;
   /** False: a title has no page of its own, so it opens the row. */
   page?: boolean;
+  /** False: a row opens nothing (a token, a webhook), and ⋯ has no page. */
+  opens?: boolean;
 }) {
   const narrow = useNarrow();
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
@@ -133,11 +136,11 @@ function Host({
             main: [DONE],
             more: [],
             reply: null,
-            page: `#${p.id}`,
+            page: opens ? `#${p.id}` : undefined,
             busy: false,
             run: () => setRan((was) => [...was, p.id]),
           })}
-          open={{ id: openId, onOpen: (p) => setOpenId(p.id) }}
+          open={opens ? { id: openId, onOpen: (p) => setOpenId(p.id) } : undefined}
           wait={wait ? waitOf : undefined}
           foot={<RowsFoot stats={statsOf(wait ? waits : PEOPLE.map(() => null))} waits={wait} />}
           group={
@@ -280,6 +283,19 @@ export const TitleOpens: Story = {
     await expect(title).toHaveAttribute("aria-haspopup", "dialog");
     await userEvent.click(title);
     await expect(canvas.getByTestId("open")).toHaveTextContent("Open p1");
+  },
+};
+
+/** A row with no page and nothing to open: its title is plain text, with no Open chip. */
+export const TitlePlain: Story = {
+  render: () => <Host page={false} opens={false} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    await expect(canvas.queryByRole("button", { name: "Ada North" })).toBeNull();
+    await expect(canvas.queryByRole("link", { name: "Ada North" })).toBeNull();
+    await expect(canvas.getByText("Ada North").tagName).toBe("SPAN");
+    await expect(canvas.queryByRole("button", { name: "Open" })).toBeNull();
   },
 };
 

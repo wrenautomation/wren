@@ -53,6 +53,7 @@ import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving }
 import { num, short } from "./format.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop, useSubmenus } from "./hover-pop.js";
+import { LIST_FORMS } from "./list-search.js";
 import { Segmented } from "./phone.js";
 import type { Place } from "./records.js";
 import { TabBar } from "./tab-bar.js";
@@ -165,7 +166,7 @@ export function byField(meta: RecordMeta): FieldMeta | null {
   );
 }
 
-/** The address keys a list's state rides in; `as` is rows or cards (`./cards.ts`). */
+/** The address keys a list's state rides in; `as` is a timeline page's list or axis. */
 const STATE = ["view", "q", "sort", "group", "cols", "as", "size"];
 const keysOf = (meta: RecordMeta) => [...STATE, ...filtersOf(meta).map((f) => f.key)];
 
@@ -218,7 +219,7 @@ export function useSavedViews(keep: KeepApi | undefined, record: string): Saved 
   return { lines: got.data ?? [], ready, reload: got.retry };
 }
 
-/** What a list remembers between visits: its tab (a saved one too), sort, columns, rows or cards. */
+/** What a list remembers between visits: its tab (a saved one too), sort, columns, list or axis. */
 export interface LastUsed {
   sv?: number;
   view?: string;
@@ -227,23 +228,29 @@ export interface LastUsed {
   as?: string;
 }
 
+/** `as` when it names a form a list still draws. */
+const formOf = (v: string | null | undefined) =>
+  (LIST_FORMS as readonly (string | null | undefined)[]).includes(v) ? (v as string) : undefined;
+
 /** What the address keeps for next time (`list:<record>` in his prefs). */
 export function lastOf(p: URLSearchParams): LastUsed {
   const now: LastUsed = {};
   const sv = Number(p.get("sv"));
   if (Number.isSafeInteger(sv) && sv > 0) now.sv = sv;
-  for (const k of ["view", "sort", "cols", "as"] as const) {
+  for (const k of ["view", "sort", "cols"] as const) {
     const v = p.get(k);
     if (v) now[k] = v;
   }
+  const as = formOf(p.get("as"));
+  if (as) now.as = as;
   return now;
 }
 
 /**
  * Where a list opens, from what he used last and what the link names: a saved view by its id
  * (`{sv}`), else the address's `change`, else nothing. A link that names a view, a sort or columns
- * wins; one with only filters still gets his columns; rows or cards follow him unless the link
- * names them (`as`) or a saved view.
+ * wins; one with only filters still gets his columns; a timeline page's list or axis follows him
+ * unless the link names it (`as`) or a saved view. A form no longer drawn (cards) is dropped.
  */
 export function restoreOf(
   last: LastUsed | undefined,
@@ -253,7 +260,8 @@ export function restoreOf(
 ): { sv: number } | { change: Record<string, string | null> } | null {
   if (!last) return null;
   const named = ["view", "sv", "sort", "cols"].some((k) => p.has(k));
-  const form = !p.has("as") && !p.has("sv") && last.as ? { as: last.as } : {};
+  const as = formOf(last.as);
+  const form = !p.has("as") && !p.has("sv") && as ? { as } : {};
   if (named) return form.as ? { change: form } : null;
   if (last.sv && saved.has(last.sv) && !filtered) return { sv: last.sv };
   const change: Record<string, string | null> = filtered

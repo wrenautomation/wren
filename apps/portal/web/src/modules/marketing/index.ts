@@ -22,15 +22,6 @@ import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { withAnalytics } from "./analytics.js";
 import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { AutoReplyPage } from "./auto-reply.js";
-import {
-  APPROVAL_CARD,
-  ASKED_REPLY_CARD,
-  COMMENT_CARD,
-  DRAFT_CARD,
-  INBOX_CARD,
-  POST_CARD,
-  VIDEO_CARD,
-} from "./cards.js";
 import { NumbersBelow } from "./chart.js";
 import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
 import { dmExtras, dmLooks } from "./dms.js";
@@ -1252,7 +1243,6 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   template: "list",
   record: "marketing.inbox",
   late: queueLate("marketing.inbox"),
-  card: INBOX_CARD,
   // F1 of the design language: who (their words under), type, site, owner, waiting. State, post, suggests and the rest wait in Display. The person's stage is not on the row.
   columns: ["who", "type", "platform", "assignee", "due"],
   empty: {
@@ -1306,7 +1296,6 @@ export const APPROVAL_PAGE: ListPage = {
   template: "list",
   record: "marketing.approval",
   late: queueLate("marketing.approval"),
-  card: APPROVAL_CARD,
   // New and waiting rows wait on a yes; queued ones are for info.
   needs: { state: ["new", "waiting"] },
   // Kind says what Type does, in more words.
@@ -1675,7 +1664,6 @@ export const MARKETING_PAGES = {
     lights: "pieces",
     template: "list",
     record: "marketing.draft",
-    card: DRAFT_CARD,
     empty: {
       next: "Nothing waits on you or is scheduled. Make something in Studio.",
       waiting: "No draft waits on you.",
@@ -1693,7 +1681,6 @@ export const MARKETING_PAGES = {
     about: "Every post that went out, best first.",
     template: "list",
     record: "marketing.post",
-    card: POST_CARD,
     // The rest of its numbers sit on the post, under How it did.
     columns: ["title", "platform", "published", "format", "stage", "views", "engagement", "clicks"],
     empty: {
@@ -1710,7 +1697,6 @@ export const MARKETING_PAGES = {
     about: "Comments on your posts, waiting on a reply.",
     template: "list",
     record: "marketing.comment",
-    card: COMMENT_CARD,
     // Their words preview under who; Where, On and Open sit on the comment itself.
     columns: ["who", "platform", "kind", "postTitle", "sort", "state", "at"],
     empty: {
@@ -1733,7 +1719,6 @@ export const MARKETING_PAGES = {
     lights: "studio",
     template: "list",
     record: "marketing.video",
-    card: VIDEO_CARD,
     empty: {
       waiting: "No rendered video waits on you.",
       all: "Videos show here a minute after OBS or Cap stops recording on the Mac.",
@@ -2102,7 +2087,6 @@ const CLIENT_APPROVE: ListPage = {
   about: "Inbox replies and broadcasts that wait on a yes, and sends that may have gone out.",
   template: "list",
   record: "marketing.asked_reply",
-  card: ASKED_REPLY_CARD,
   columns: ["who", "kind", "why", "sendAt", "held", "account", "at"],
   empty: {
     waiting: "No Inbox reply or broadcast waits on a yes.",

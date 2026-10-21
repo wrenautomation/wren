@@ -6,7 +6,6 @@
  */
 import type { Module, ModulePage } from "../../module.js";
 import { broadcastsPage, recipientsPage } from "./broadcasts.js";
-import { PERSON_CARD } from "./cards.js";
 import { channelsPage } from "./channels.js";
 import { importPage } from "./import.js";
 import { LEAD_ACTIONS, withLeadCheck } from "./lead-check.js";
@@ -23,7 +22,6 @@ export const PEOPLE_PAGES: ModulePage[] = [
     about: "Everyone, once each: where they stand, and whether they ever came toward us.",
     template: "list",
     record: "people.profile",
-    card: PERSON_CARD,
     empty: {
       all: "People show here once a lead, a text, a form or a booking names them.",
       warm: "Nobody has come toward us yet: no reply, visit, open or sign-up.",

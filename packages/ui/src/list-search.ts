@@ -15,8 +15,8 @@ const sortKey = z.string().regex(/^-?[\w.]+$/);
 const key = z.string().regex(/^[\w.]+$/);
 const count = z.coerce.number().int().positive();
 
-/** What `as` may say: rows, cards, or a timeline page's axis. */
-export const LIST_FORMS = ["rows", "cards", "timeline"] as const;
+/** What `as` may say: a timeline page's list (`rows`) or its axis. */
+export const LIST_FORMS = ["rows", "timeline"] as const;
 
 /**
  * The keys every list reads. A value that doesn't fit drops; unknown keys pass through as they

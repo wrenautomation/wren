@@ -252,8 +252,8 @@ export interface RowsAct {
   main: Parameters<typeof RowActions>[0]["main"];
   more: Parameters<typeof RowActions>[0]["more"];
   reply: (() => void) | null;
-  /** The record's own page. */
-  page: string;
+  /** The record's own page; none: ⋯ has no "Open as a page". */
+  page?: string | undefined;
   busy: boolean;
   run: Parameters<typeof RowActions>[0]["run"];
 }
@@ -305,15 +305,16 @@ const GUTTER = 28;
 const END = 44;
 const TH_LINE = "[&:not(:first-child)]:shadow-[inset_1px_0_0_var(--ui-hair)]";
 
-/** A row's ground, which its actions sit over at its right end. */
+/**
+ * A row's ground, which its actions sit over at its right end. As the artifact's `.nt .r`: the
+ * open row (and a picked one) on the accent tint, hover and the key cursor on the accent wash.
+ */
 function groundOf(open: boolean, picked: boolean, cursor: boolean) {
-  if (open)
-    return "bg-(--ui-fill) [--row-ground:color-mix(in_srgb,var(--ui-ink)_6%,var(--ui-paper))]";
-  if (picked)
+  if (open || picked)
     return "bg-(--ui-accent-tint) [--row-ground:color-mix(in_srgb,var(--ui-active)_10%,var(--ui-paper))]";
   if (cursor)
-    return "bg-(--ui-hover) [--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]";
-  return "[--row-ground:var(--ui-paper)] hover:bg-(--ui-hover) hover:[--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]";
+    return "bg-(--ui-accent-wash) [--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
+  return "[--row-ground:var(--ui-paper)] hover:bg-(--ui-accent-wash) hover:[--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
 }
 
 type Drawn<T> = RowsLine<T> & { stats?: WaitStats };
@@ -414,8 +415,8 @@ function NameCell<T>({
   name: RowsName<T>;
   row: T;
   narrow: boolean;
-  /** What a title with no page does. */
-  onOpen: () => void;
+  /** What a title with no page does; none: the title is plain text. */
+  onOpen: (() => void) | undefined;
   className?: string;
 }) {
   const title = name.title(row);
@@ -439,7 +440,7 @@ function NameCell<T>({
           <a href={link} {...clipProps()} className={titled}>
             {text}
           </a>
-        ) : (
+        ) : onOpen ? (
           <button
             type="button"
             aria-haspopup="dialog"
@@ -449,6 +450,10 @@ function NameCell<T>({
           >
             {text}
           </button>
+        ) : (
+          <span {...clipProps()} className={titled}>
+            {text}
+          </span>
         )}
         {sub}
       </div>
@@ -593,7 +598,7 @@ export function Rows<T>(p: RowsProps<T>) {
                       if (e.animationName === "ui-changed") p.onSettled?.();
                     }}
                     className={cn(
-                      "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-hover)",
+                      "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash)",
                       r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
                       r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                       r.changed && "[&>[data-face]]:animate-ui-changed",
@@ -614,7 +619,12 @@ export function Rows<T>(p: RowsProps<T>) {
                       <span className="w-4 flex-none" />
                     )}
                     <div className="min-w-0 flex-1 py-3 pr-2">
-                      <NameCell name={name} row={l.row} narrow onOpen={r.onOpen} />
+                      <NameCell
+                        name={name}
+                        row={l.row}
+                        narrow
+                        onOpen={open ? r.onOpen : undefined}
+                      />
                       {r.going ? (
                         <span className="mt-1 block">
                           <Tag tone="accent" busy>
@@ -848,7 +858,7 @@ export function Rows<T>(p: RowsProps<T>) {
                         name={name}
                         row={l.row}
                         narrow={false}
-                        onOpen={r.onOpen}
+                        onOpen={open ? r.onOpen : undefined}
                         className="flex-1"
                       />
                       {name.href ? (
@@ -856,7 +866,7 @@ export function Rows<T>(p: RowsProps<T>) {
                           <Icon name="expand" size={12} />
                           Open
                         </a>
-                      ) : (
+                      ) : open ? (
                         <button
                           type="button"
                           tabIndex={-1}
@@ -866,7 +876,7 @@ export function Rows<T>(p: RowsProps<T>) {
                           <Icon name="expand" size={12} />
                           Open
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                   {columns.map((c) => (

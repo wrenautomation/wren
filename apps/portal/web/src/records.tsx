@@ -30,7 +30,6 @@ import {
 import type { ReactNode } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
-import { cardFor } from "./cards.js";
 import { useFlags } from "./flags.js";
 import { inLane } from "./lanes.js";
 import { dropCall, patchCalls, readCall } from "./load.js";
@@ -951,7 +950,6 @@ export function TemplatePage({
     needs: page.needs ?? page.count,
     late: page.late,
     peek: page.peek,
-    card: cardFor(page),
     // Every record lists the notes that @ it, after its own sections.
     extras: (detail: unknown, row: Row, act: RecordAct, readAt: number) => {
       const own = extras ? extras(detail, { ...props, row, act, readAt }) : {};
@@ -969,8 +967,8 @@ export function TemplatePage({
   if (id) return <RecordPage {...shared} id={id} back={back} wide={wide} />;
   if (page.template === "form") return <RecordForm {...shared} />;
   if (page.template === "shop") return <RecordShop {...shared} />;
-  // A timeline page opens as its axis; `as=rows` (or cards) is the List, one switch away.
-  const listed = params.get("as") === "rows" || params.get("as") === "cards";
+  // A timeline page opens as its axis; `as=rows` is the List, one switch away.
+  const listed = params.get("as") === "rows";
   if (page.timeline && page.template === "list" && !listed)
     return switched(
       <RecordTimeline

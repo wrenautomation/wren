@@ -6,7 +6,6 @@ import type { Row } from "@wren/core/records/serve";
 import type {
   Access,
   Action,
-  CardOption,
   DaySource,
   IconName,
   NavItem,
@@ -143,11 +142,6 @@ export interface ListPage extends PageBase {
    * with the full record one click on. `false` opens the whole record in the panel.
    */
   peek?: false | { fields?: string[] };
-  /**
-   * A list's cards (Rows / Cards in its bar): what each card shows, read from `columns` when left
-   * out. `false` keeps it rows only: logs, audits, runs, a day's numbers.
-   */
-  card?: CardOption;
   /**
    * A list that opens as a timeline (`RecordTimeline`): its lines on an axis by day, the List one
    * switch away (`as=rows`). Its date field and the fields each line shows.

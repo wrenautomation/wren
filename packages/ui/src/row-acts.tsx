@@ -150,8 +150,8 @@ export function RowActions({
   more: readonly Action[];
   /** The page draws a reply box: Reply leads. */
   reply: (() => void) | null;
-  /** The record's own page. */
-  page: string;
+  /** The record's own page; none: ⋯ has no "Open as a page". */
+  page?: string | undefined;
   busy: boolean;
   run: (a: Action) => void;
   /** In place and always shown: a card's foot, not a row's end. */
@@ -210,13 +210,15 @@ export function RowActions({
             {a.label}
           </button>
         ))}
-        <a
-          href={page}
-          className="flex h-8 w-full items-center gap-2 rounded-(--ui-radius) px-2 text-[13px] text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
-        >
-          <Maximize2 className="size-3.5 text-(--ui-ink-2)" aria-hidden />
-          Open as a page
-        </a>
+        {page ? (
+          <a
+            href={page}
+            className="flex h-8 w-full items-center gap-2 rounded-(--ui-radius) px-2 text-[13px] text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
+          >
+            <Maximize2 className="size-3.5 text-(--ui-ink-2)" aria-hidden />
+            Open as a page
+          </a>
+        ) : null}
       </PopoverContent>
     </Popover>
   );
