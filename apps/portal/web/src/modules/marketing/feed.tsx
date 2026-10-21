@@ -35,7 +35,7 @@ type Tab = (typeof TABS)[number][0];
 /** The three views, as links: Explore is a list page of its own. */
 export function FeedTabs({ on }: { on: Tab }) {
   return (
-    <nav aria-label="Feed" className="relative flex gap-1 border-(--ui-hair) border-b">
+    <nav aria-label="Feed" className="relative flex gap-0.5 pb-1.5">
       <TabBar on={on} row="feed" />
       {TABS.map(([id, label, href]) => (
         <a
@@ -43,8 +43,9 @@ export function FeedTabs({ on }: { on: Tab }) {
           href={href}
           aria-current={id === on ? "page" : undefined}
           className={cx(
-            "-mb-px border-transparent border-b-2 px-3 py-2 font-medium text-[14px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
-            "aria-[current=page]:text-(--ui-ink)",
+            // The view tab's pill (ui list-bar); `TabBar` slides the tint behind the one on screen.
+            "rounded-[4px_10px_4px_10px] px-[9px] py-1.5 font-semibold text-(--ui-ink-3) text-[13px] no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink)",
+            "aria-[current=page]:text-(--ui-active) aria-[current=page]:hover:bg-transparent",
           )}
         >
           {label}

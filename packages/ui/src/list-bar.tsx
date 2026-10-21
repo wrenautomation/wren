@@ -35,7 +35,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import { AccountFilter, accountFieldOf } from "./accounts.js";
-import { Busy } from "./busy.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import {
   Sheet,
@@ -53,6 +52,7 @@ import { num, short } from "./format.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop, useSubmenus } from "./hover-pop.js";
 import { LIST_FORMS } from "./list-search.js";
+import { RingSlot } from "./motion.js";
 import { Segmented } from "./phone.js";
 import type { Place } from "./records.js";
 import { TabBar } from "./tab-bar.js";
@@ -490,7 +490,7 @@ export function ViewTabs({
       <TabBar on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
       {tabs.map((v) =>
         v.saved ? (
-          <span key={v.id} className={cn(TAB, "gap-1", tabTone(v.on))}>
+          <span key={v.id} className={cn(TAB, "gap-1 [--ui-gap:4px]", tabTone(v.on))}>
             <a
               href={v.href}
               aria-current={v.on ? "page" : undefined}
@@ -502,7 +502,7 @@ export function ViewTabs({
             {v.saved.shared ? (
               <span className="text-[11px] font-normal text-(--ui-ink-3)">Team</span>
             ) : null}
-            {v.busy === undefined ? null : <Busy on={v.busy} />}
+            <RingSlot on={!!v.busy} />
             {v.on ? menu : null}
           </span>
         ) : (
@@ -511,11 +511,11 @@ export function ViewTabs({
             href={v.href}
             aria-current={v.on ? "page" : undefined}
             {...tipProps(v.tip)}
-            className={cn(TAB, tabTone(v.on))}
+            className={cn(TAB, "[--ui-gap:6px]", tabTone(v.on))}
           >
             <span className="max-w-48 truncate">{v.label}</span>
             <span className="text-(--ui-ink-2)">{v.count !== undefined ? short(v.count) : ""}</span>
-            {v.busy === undefined ? null : <Busy on={v.busy} />}
+            <RingSlot on={!!v.busy} />
           </a>
         ),
       )}

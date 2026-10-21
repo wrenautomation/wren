@@ -2563,8 +2563,9 @@ export function RecordPage({
   );
 }
 
+/** A section's tab: the view tab's pill (list-bar `TAB`); `TabBar` slides the tint behind the one on screen. */
 const TAB =
-  "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 py-2.5 text-[13px] font-medium no-underline";
+  "flex shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] px-[9px] py-1.5 text-[13px] font-semibold no-underline transition-colors duration-150 ease-(--ui-ease)";
 
 /** One record: its head, then tabs for details, each related type, activity and sources. */
 export function RecordBody({
@@ -2976,10 +2977,7 @@ export function RecordBody({
       </header>
       {more.top}
 
-      <nav
-        className="relative flex gap-5 overflow-x-auto border-b border-(--ui-hair) max-sm:justify-between max-sm:gap-2"
-        aria-label="Sections"
-      >
+      <nav className="relative flex gap-0.5 overflow-x-auto pb-1.5" aria-label="Sections">
         <TabBar on={tab} row={`sections:${meta.id}`} />
         {tabs.map((t) => (
           <a
@@ -2989,8 +2987,8 @@ export function RecordBody({
             className={cn(
               TAB,
               tab === t.id
-                ? "border-transparent text-(--ui-ink)"
-                : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)",
+                ? "text-(--ui-active)"
+                : "text-(--ui-ink-3) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink)",
             )}
           >
             {t.label}
