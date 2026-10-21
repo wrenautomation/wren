@@ -94,3 +94,22 @@ Push: A, B and E push when the hand-off gate passes; they are UI and reversible.
 - Metro replaces the banded funnel. Why: William picked the metro language through artifact v1 to v12; colour is the offer, weight is the job, the icon is what the person gives.
 - One renderer for the artifact, the stories and the app. Why: the spec and the app draw from the same code (section 10, "Map marks").
 - E and F go last and stay open to change. Why: William: "these should be tackled last regardless since they aren't set in stone."
+- Sidebar has five fixed items, tools attach to the shape, Admin lists all. Why: William: tools are "conditional, and come attached to certain nodes / workflows" but "still first class".
+- Pins over recents. Why: recents move under the hand; a pin stays where the person put it.
+
+## Decisions (planner, 2026-10-20)
+
+Calls the doc leaves open, for areas A, B and E.
+
+- **Order.** A and B build first. E and B's subset mode build last, each in its own commit. Why: William checks E and subset in the artifact first; A and B can push while those wait.
+- **Token names.** The repo prefix stays `--ui-`. Lines are `--ui-line-0` to `--ui-line-7`. The press edge is `--ui-press-edge` (`--ui-edge` already means the border of a field). The metro reads `--ui-line-N`, `--ui-ink`, `--ui-ink-3`, `--ui-paper`, `--ui-bad`, `--ui-warn` and `--ui-accent` by name. Why: one prefix for every token; the artifact's bare names map one to one.
+- **Line colours.** `--ui-line-0` to `--ui-line-3` take the artifact values, day and night. `--ui-line-4` to `--ui-line-7` are new hues, each at least 3:1 on paper, with night variants. Why: section 10 allows up to 8; amber stays for late.
+- **Leaf corners.** New tokens hold the corner pairs: `--ui-leaf-panel` (6 24), `--ui-leaf-button` (6 10), `--ui-leaf-chip` (3 10), `--ui-leaf-nav` (3 12). `--ui-radius` and its derived panel and sheet radii do not change. Window and sheet stay 14. Why: the rounded utilities take one value; a leaf needs two.
+- **Quiet Client Rule.** Leaf corners, sentence case buttons and the sweep are the Wren look and its night. A look that sets its own radius keeps plain corners. A look that wanted uppercase sets it in its own preset. Soft and editorial do not change. Why: DESIGN.md, Quiet Client Rule.
+- **Night.** Only the section 10 row changes: accent `#a596d6`, on-accent `#15121f`, press edge `#7a69ad`, line night variants. The other night values stay; the contrast tests own them.
+- **Metro output.** The renderer is React SVG elements, not an SVG string. Glyphs come from `packages/ui/src/icons.tsx`; a missing Lucide glyph goes there, not into a metro table. Why: one icon set; React keys drive the fold glide.
+- **Metro layers.** `MetroScene` is positioned, a faithful port of the artifact's scene. `MetroView` is the store's shape, with no positions. `layoutMetro(view)` returns a scene. Area D maps the store to `MetroView`. Why: the artifact maps are hand placed; the app needs a layout from plain data.
+- **Subset.** A `focus` input `{kind: line | group | station | flow, id}` draws only that part. Stub tracks at its edges are short, faded, and named for where they come from and go to. A stub click calls back with the part it names. Routes and pages are area F.
+- **Systems.** `map/routes.ts` `ROUTES` stays the one kind-to-app table. "On your shape" holds each app that a live node's row opens; the row names those nodes. Why: no second copy of the table.
+- **Pins.** The existing rail pins (`RailPref`) are the pins. No second store.
+- **Client Systems.** A client sees Admin → Systems only with the `manage` permission. Why: no `settings` permission exists; `manage` holds the look and people, the nearest scope.
