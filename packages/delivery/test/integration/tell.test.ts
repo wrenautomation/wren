@@ -36,6 +36,7 @@ const made = async (client: string, description: string, dueOn: string, cents = 
     await addInvoice(pg.db, await engagementOf(pg.db, client), {
       description,
       cents,
+      issuedOn: "2026-10-10",
       dueOn,
       by: BY,
     })
