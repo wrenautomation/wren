@@ -2,19 +2,26 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { FakeRecordsOptions } from "./fixtures/records.js";
 import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo, WORST_LEADS } from "./fixtures/records.js";
-import { Panel, RecordList } from "./records.js";
+import { Panel, RecordList, type Late as Watched } from "./records.js";
 
 export default { title: "Records", parameters: { layout: "fullscreen" } } satisfies Meta;
 
 type Story = StoryObj;
 
-type Demo = FakeRecordsOptions & { at?: string; picked?: (string | number)[] };
+type Demo = FakeRecordsOptions & { at?: string; picked?: (string | number)[]; late?: Watched };
 
-function Page({ at = "view=all", ...o }: Demo) {
+function Page({ at = "view=all", late, ...o }: Demo) {
   const { api, place, acts } = useRecordsDemo({ at, ...o });
   return (
     <div className="p-4 sm:p-6">
-      <RecordList record={LEAD_META.id} api={api} place={place} acts={acts} needs={LEAD_NEEDS} />
+      <RecordList
+        record={LEAD_META.id}
+        api={api}
+        place={place}
+        acts={acts}
+        needs={LEAD_NEEDS}
+        late={late}
+      />
     </div>
   );
 }
@@ -47,6 +54,46 @@ export const RowsLoading: Story = {
 /** Types read, the rows' read fails. */
 export const RowsFailed: Story = {
   render: () => <Page list="fails" />,
+};
+
+/** A page that watches a wait: its field draws as one, rows past the promise read late, the foot counts them. */
+export const Late: Story = {
+  render: () => <Page at="view=waiting" late={{ field: "seen", promise: "24h" }} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    // Six leads wait, each last seen days ago: all six are past 24 hours.
+    await expect(canvasElement.querySelectorAll("[data-late]")).toHaveLength(6);
+    // A phone has no foot.
+    if (canvas.queryByRole("table")) {
+      const foot = canvas.getByTitle("Of the rows on this page");
+      await expect(foot).toHaveTextContent("Count 6");
+      await expect(foot).toHaveTextContent("Late 6");
+    }
+  },
+};
+
+/** Table | By state: the setting folds the rows into one group per state, and Table undoes it. */
+export const ByField: Story = {
+  render: () => <Page />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    const by = canvas.getByRole("link", { name: "By state" });
+    await expect(canvas.getByRole("link", { name: "Table" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await userEvent.click(by);
+    await waitFor(() => expect(by).toHaveAttribute("aria-current", "page"));
+    // Each state is a fold with its count; press one and its rows leave.
+    const fold = await canvas.findByRole("button", { name: /^Waiting/ });
+    await expect(fold).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(fold);
+    await expect(fold).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(canvas.getByRole("link", { name: "Table" }));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: /^Waiting/ })).toBeNull());
+  },
 };
 
 /** Rows picked: the bar swaps its count for the selection and the bulk actions. */

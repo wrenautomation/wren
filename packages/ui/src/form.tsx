@@ -45,7 +45,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
         .map(([k, s]) => ({
           key: k,
           label: s.label,
-          cue: s.mark || s.tint !== undefined ? s : null,
+          cue: s.mark || s.line !== undefined || s.tint !== undefined ? s : null,
           rows: rows.filter((r) => r[part.key] === k),
         }))
         .filter((s) => s.rows.length)

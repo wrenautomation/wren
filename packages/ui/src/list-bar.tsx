@@ -135,6 +135,32 @@ export function siteField(meta: RecordMeta): FieldMeta | null {
   return meta.fields.find((f) => f.key === key && f.states) ?? null;
 }
 
+/**
+ * The fields rows may group by: the platform, the account each row is on, then every status or
+ * choice field. A choice reaches the web as states too, so one rule groups them all.
+ */
+export function groupFields(meta: RecordMeta): FieldMeta[] {
+  const out: FieldMeta[] = [];
+  const add = (f: FieldMeta | null | undefined) => {
+    if (f?.states && !out.includes(f)) out.push(f);
+  };
+  add(siteField(meta));
+  add(accountFieldOf(meta));
+  for (const f of meta.fields) if (f.kind === "status" || f.kind === "choice") add(f);
+  return out;
+}
+
+/** The field "By" groups on: the platform, else the first status, else the first choice. */
+export function byField(meta: RecordMeta): FieldMeta | null {
+  const fields = groupFields(meta);
+  return (
+    siteField(meta) ??
+    fields.find((f) => f.kind === "status") ??
+    fields.find((f) => f.kind === "choice") ??
+    null
+  );
+}
+
 /** The address keys a list's state rides in; `as` is rows or cards (`./cards.ts`). */
 const STATE = ["view", "q", "sort", "group", "cols", "as", "size"];
 const keysOf = (meta: RecordMeta) => [...STATE, ...filtersOf(meta).map((f) => f.key)];
@@ -1224,10 +1250,29 @@ export function ListBar({
       </span>
     ) : null;
   const search = searchable ? <SearchBox place={place} label={many} /> : null;
+  // Table or By <field>: the one setting that folds the rows into groups, kept in `?group=`.
+  const grouped = groupFields(meta).find((f) => f.key === params.get("group")) ?? null;
+  const by = grouped ?? byField(meta);
+  const shape = by ? (
+    <Segmented
+      label="Show rows as"
+      className="shrink-0"
+      items={[
+        { id: "table", label: "Table", href: place.link({ group: null, pg: null }), on: !grouped },
+        {
+          id: "by",
+          label: `By ${by.label.toLowerCase()}`,
+          href: place.link({ group: by.key, pg: null }),
+          on: !!grouped,
+        },
+      ]}
+    />
+  ) : null;
 
   if (!narrow)
     return (
       <div className="flex flex-wrap items-center gap-2">
+        {shape}
         {search}
         {accountChip}
         {filter}
@@ -1239,6 +1284,7 @@ export function ListBar({
     );
   return (
     <div className="grid gap-2">
+      {shape}
       {search}
       <div className="flex flex-wrap items-center gap-2">
         {accountChip}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { usesOf } from "./profile-records.js";
+import { profileRecord, usesOf } from "./profile-records.js";
 import { emailKey, keyOf, keysOf, nameOfFields, phoneKey } from "./profiles.js";
 import { handleOfUrl, profileFrom } from "./profiles-backfill.js";
 import type { Workflow } from "./workflows.js";
@@ -80,5 +80,20 @@ describe("usesOf", () => {
     expect(uses.get("event:text_received")).toEqual(["Follow up"]);
     expect(uses.get("trait:plan")).toEqual(["Follow up"]);
     expect(uses.get("event:booking")).toEqual(["Book"]);
+  });
+});
+
+describe("stage states", () => {
+  it("draw a lane colour each; stranger and past client draw ink-3", () => {
+    const states = profileRecord.fields.stage?.states ?? {};
+    const lines = Object.fromEntries(Object.entries(states).map(([k, s]) => [k, s.line]));
+    expect(lines).toEqual({
+      stranger: -1,
+      lead: 0,
+      replied: 1,
+      booked: 3,
+      client: 2,
+      past_client: -1,
+    });
   });
 });
