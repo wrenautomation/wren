@@ -1859,7 +1859,9 @@ function List({
         // The artifact's `.nt`: one raised panel, its tools (`.nt-top`) over the rows. The last
         // row drops its rule, which the panel's rim draws. A phone's rows scroll with the page.
         // A peek docks at its right (`.nt-pk`): the two halves share one rim.
-        <div className={cn(docked && "grid grid-cols-2")}>
+        // min-w-0: a grid item's least width is its table's, which pushed the panel past the page
+        // and fed the room measure its own overflow.
+        <div className={cn("min-w-0", docked && "grid grid-cols-2")}>
           <div
             className={cn(
               "overflow-clip bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",

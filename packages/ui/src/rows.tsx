@@ -447,7 +447,9 @@ function NameCell<T>({
   return (
     <div className={cn("flex min-w-0 items-center", sub ? "gap-2.5" : "gap-2", className)}>
       {initial ? <Avatar initials={initial} lg={!!sub} /> : mark}
-      <div className="grid min-w-0 flex-1 gap-px">
+      {/* One track that may shrink: an item's least width is its whole line, so "auto" let a
+          long title spill over the next columns (William, 10-21). */}
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-px">
         {link ? (
           // A block of its own: a link alone on its line, not a link in a run of text.
           <div>
@@ -477,8 +479,9 @@ function NameCell<T>({
   );
 }
 
+// Over the title's end, not beside it: hidden, it would still take the title's room.
 const OPEN_CHIP =
-  "ml-auto inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-semibold text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:3px_8px_3px_8px] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
+  "absolute top-1/2 right-0 -translate-y-1/2 inline-flex flex-none items-center gap-1 px-[7px] py-0.5 text-[11.5px] font-semibold text-(--ui-ink-2) no-underline opacity-0 transition-opacity duration-150 [border-radius:3px_8px_3px_8px] bg-(--ui-paper) shadow-[0_0_0_1px_var(--ui-hair)] group-hover:opacity-100 group-focus-within:opacity-100 group-data-cursor:opacity-100 max-[900px]:hidden";
 
 /** A gutter box shows on its row's hover or focus. Its look is the global checkbox's (tailwind.css). */
 const BOX =
@@ -860,7 +863,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     ) : null}
                   </td>
                   <td className={cn("px-2.5", shown, name.className)}>
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="relative flex min-w-0 items-center gap-2">
                       <NameCell
                         name={name}
                         row={l.row}
