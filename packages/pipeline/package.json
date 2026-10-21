@@ -23,6 +23,8 @@
     "./metro-diff": "./src/metro-diff.ts",
     "./metro-edit": "./src/metro-edit.ts",
     "./metro-file": "./src/metro-file.ts",
+    "./metro-merge": "./src/metro-merge.ts",
+    "./metro-ops": "./src/metro-ops.ts",
     "./mirror": "./src/mirror.ts",
     "./model": "./src/model.ts",
     "./moves": "./src/moves.ts",
