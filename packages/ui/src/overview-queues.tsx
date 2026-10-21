@@ -13,7 +13,6 @@ import { num, waited } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { FRAME } from "./layout.js";
 import type { RecordsApi } from "./records.js";
-import { Sweep } from "./sweep.js";
 
 export interface OverviewQueue {
   label: string;
@@ -148,7 +147,6 @@ export function QueuePanel({
       aria-label="What waits on you"
       className={cn(FRAME, "grid gap-3 px-3.5 pt-[18px] pb-2")}
     >
-      <Sweep />
       <div className="mx-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
         <b className="text-[48px] leading-[.9] font-[750] tracking-[-0.04em] tabular-nums">
           {num(sum.total)}
@@ -162,7 +160,7 @@ export function QueuePanel({
               {sum.late ? (
                 <>
                   {" · "}
-                  <span data-late="" className={LATE}>
+                  <span data-late="">
                     {sum.late} {sum.late === 1 ? "queue" : "queues"} late
                   </span>
                 </>
@@ -203,7 +201,7 @@ function QueueRow({ r }: { r: RankedQueue }) {
     <a
       href={q.href}
       className={cn(
-        "grid grid-cols-[10px_18px_minmax(0,1fr)_auto_12px] items-center gap-3 px-3 py-2.5 text-[15px] no-underline transition-colors [border-radius:var(--ui-leaf-nav)] hover:bg-(--ui-wash)",
+        "grid grid-cols-[10px_18px_minmax(0,1fr)_auto_12px] items-center gap-3 px-3 py-2.5 text-[15px] no-underline transition-[background-color] duration-200 outline-none [border-radius:4px_12px_4px_12px] hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash) motion-reduce:transition-none",
         quiet ? "text-(--ui-ink-3)" : "text-(--ui-ink)",
       )}
     >
@@ -212,7 +210,11 @@ function QueueRow({ r }: { r: RankedQueue }) {
         className={cn("size-2.5 [border-radius:2px_5px_2px_5px]", quiet && "opacity-50")}
         style={{ background: colorOf(q) }}
       />
-      <Icon name={q.icon} size={18} className={quiet ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)"} />
+      <Icon
+        name={q.icon}
+        size={18}
+        className={cn("[stroke-width:1.8]", quiet ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)")}
+      />
       <span className="grid min-w-0 leading-[1.3]">
         <span className="truncate">{q.label}</span>
         {r.error ? (
@@ -230,13 +232,19 @@ function QueueRow({ r }: { r: RankedQueue }) {
       </span>
       <b
         className={cn(
-          "min-w-7 px-2 py-0.5 text-center text-[15px] font-bold tabular-nums [border-radius:var(--ui-leaf-chip)]",
+          "min-w-7 px-2 py-0.5 text-center text-[15px] font-bold tabular-nums [border-radius:3px_10px_3px_10px]",
           quiet ? "text-(--ui-ink-3)" : "bg-(--ui-fill)",
         )}
       >
         {r.error ? "–" : num(r.total)}
       </b>
-      <Icon name="right" size={12} className="text-(--ui-ink-3)" />
+      <svg
+        viewBox="0 0 12 12"
+        aria-hidden="true"
+        className="size-3 fill-none stroke-(--ui-ink-3) [stroke-width:2]"
+      >
+        <path d="M4 2l4 4-4 4" />
+      </svg>
     </a>
   );
 }
@@ -249,7 +257,6 @@ function QueuesGhost({ lines }: { lines: number }) {
       aria-label="What waits on you"
       className={cn(FRAME, "grid gap-3 px-3.5 pt-[18px] pb-2")}
     >
-      <Sweep />
       <Skeleton className="mx-1.5 h-[43px] w-44" />
       <Skeleton className="mx-1.5 h-2.5" />
       <Loading shape="rows" lines={lines} label="Loading what waits on you" className="py-0" />

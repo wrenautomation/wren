@@ -1292,12 +1292,12 @@ function List({
     (before) => listChanged((a) => api.list(a), asked, before),
     api,
   );
-  // The list dims while other rows load.
-  const dim = page.loading && !!page.data;
+  // Other rows read while these show. The artifact's Refresh: old data stays, never dimmed.
+  const refresh = page.loading && !!page.data;
   // A view's tab turns the ring while its rows read; the pager's count does for another page.
   const settledView = useRef(ask.view);
   if (!page.loading) settledView.current = ask.view;
-  const viewing = dim && settledView.current !== ask.view;
+  const viewing = refresh && settledView.current !== ask.view;
   // Rows set aside wait out their undo off the list; it reads again once their call lands.
   const held = useHeld(meta.name.many);
   const landed = useRef(held.landed);
@@ -1863,12 +1863,10 @@ function List({
         <div
           ref={frameRef}
           className={cn(
-            "transition-opacity",
             // A raised panel; its last row drops its rule, which the panel's rim draws. A phone's
             // rows scroll with the page, not in a box of their own, clipped to its corners.
             "rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",
             narrow ? "overflow-clip" : "max-h-[calc(100dvh-280px)] overflow-auto",
-            dim && "opacity-60",
           )}
         >
           <Rows

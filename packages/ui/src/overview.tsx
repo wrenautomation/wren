@@ -382,7 +382,7 @@ function TrendCard({
   return (
     <a
       href={tileHref(tile, meta)}
-      className="grid content-start gap-1 bg-(--ui-paper) px-3.5 py-3 text-(--ui-ink) no-underline shadow-(--ui-raise) [border-radius:6px_18px] hover:bg-(--ui-wash)"
+      className="grid content-start gap-1 bg-(--ui-paper) px-3.5 py-3 text-(--ui-ink) no-underline shadow-(--ui-raise) outline-none transition-[background-color] duration-200 [border-radius:6px_18px] hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash) motion-reduce:transition-none"
     >
       <span className="text-[12.5px] text-(--ui-ink-3)">
         {tile.label}
@@ -395,13 +395,7 @@ function TrendCard({
           </span>
           {period ? (
             <>
-              <Sparkline
-                series={s.series}
-                slots={slots}
-                label={tile.label}
-                format={fmt}
-                fallback={<Bars series={s.series} slots={slots} />}
-              />
+              <Spark series={s.series} slots={slots} />
               <span className="text-[12.5px] text-(--ui-ink-3)">
                 {delta === null ? null : delta === 0 ? (
                   `Same as ${before}`
@@ -409,7 +403,7 @@ function TrendCard({
                   <>
                     <b
                       className={cn(
-                        "font-semibold",
+                        "font-[650]",
                         delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)",
                       )}
                     >
@@ -566,6 +560,39 @@ function Trends({
         <TrendChart series={got.stat.series} label={on.label} format={got.format} />
       </div>
     </section>
+  );
+}
+
+/** How many bars a trend card draws, whatever its stretch: the artifact's `.spark` has seven. */
+const SPARK = 7;
+
+/**
+ * A trend card's bars (artifact `.spark`): the stretch cut in seven, each bar the sum of its days,
+ * the tallest at full height. A month keeps a slot for each of its days, so days still to come
+ * draw a quiet stub.
+ */
+export function Spark({ series, slots }: { series: RecordsStat["series"]; slots: number }) {
+  const days = Math.max(slots, series.length, 1);
+  const sums = Array.from({ length: SPARK }, () => 0);
+  series.forEach((p, i) => {
+    const at = Math.min(SPARK - 1, Math.floor((i * SPARK) / days));
+    sums[at] = (sums[at] ?? 0) + Math.max(0, p.value ?? 0);
+  });
+  const max = Math.max(0, ...sums);
+  return (
+    <div aria-hidden="true" className="flex h-[26px] items-end gap-[3px]">
+      {sums.map((v, i) => (
+        <i
+          // biome-ignore lint/suspicious/noArrayIndexKey: the seven slots never move
+          key={i}
+          className={cn(
+            "block flex-1 rounded-[1px_3px_1px_3px]",
+            v ? "bg-(--ui-chart-1) opacity-75" : "h-0.5 bg-(--ui-fill)",
+          )}
+          style={v ? { height: `${Math.round((v / max) * 100)}%` } : undefined}
+        />
+      ))}
+    </div>
   );
 }
 

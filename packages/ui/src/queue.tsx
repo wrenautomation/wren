@@ -239,10 +239,8 @@ function Queue({
             </div>
             <ul
               ref={list}
-              className={cn(
-                "max-h-[calc(100dvh-260px)] overflow-auto border-t border-(--ui-hair) transition-opacity",
-                page.placeholder && "opacity-60",
-              )}
+              // The artifact's Refresh: old rows stay, never dimmed, while the next ones read.
+              className="max-h-[calc(100dvh-260px)] overflow-auto border-t border-(--ui-hair)"
             >
               {rows.map((r, i) => {
                 const id = String(r.id);
