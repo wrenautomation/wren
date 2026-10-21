@@ -68,9 +68,9 @@ spacing:
   frame: 10px
   row: 40px
   row-snug: 32px
-  nav-row: 32px
+  nav-row: 34px
   tab-row: 34px
-  side: 224px
+  side: 190px
   pages: 208px
   main: 1240px
   touch: 44px
@@ -152,7 +152,7 @@ Source: `packages/ui/src/tailwind.css` (`:root`, light "Wren" preset). Values in
 
 ### Status
 - **Done Green** (`--ui-good`, ink `--ui-good-ink`).
-- **Waiting Amber** (`--ui-warn`, ink `--ui-warn-ink`): waiting on you. Only for things that need a person, such as the sidebar count.
+- **Waiting Amber** (`--ui-warn`, ink `--ui-warn-ink`): waiting on you. Only for things that need a person, such as a late tag. The sidebar count is an accent pill.
 - **Failed Red** (`--ui-bad`).
 - Not started is gray (`--ui-ink-3`).
 
@@ -169,7 +169,7 @@ Source: `packages/ui/src/tailwind.css` (`:root`, light "Wren" preset). Values in
 | `--ui-scrim` | shade 16% | behind dialogs and sheets |
 | `--ui-accent-wash` / `-tint` | accent 7% / 10% | current page, current tab, selected tile |
 | `--ui-good-tint`, `--ui-bad-tint`, `--ui-warn-tint` | 10%, 6%, 9% | Tag and count grounds |
-| `--ui-ground` | canvas 45% over paper | the window's page area |
+| `--ui-ground` | canvas 55% over paper | the sidebar's ground inside the window |
 
 ### Role tokens
 `--ui-primary`, `--ui-active`, `--ui-link`, `--ui-focus` and `--ui-live` all resolve to the accent. Parts take a role, never `--ui-accent` itself. A look can re-point one role.
@@ -221,7 +221,7 @@ Source: `packages/ui/src/tailwind.css` (body, `--ui-font*`), `packages/ui/src/la
 
 Source: `packages/ui/src/layout.tsx`, `shell.tsx`, `frame.tsx`, `display.ts`, `tailwind.css`.
 
-- **Frame vars** are `--layout-*`, not `--ui-*`, so a client's look cannot set widths. Side 224 px, pages 208 px, row 40 px (snug 32), nav row 32 (snug 28), tab row 34 (snug 30), zoom 1.
+- **Frame vars** are `--layout-*`, not `--ui-*`, so a client's look cannot set widths. Side 190 px, pages 208 px, row 40 px (snug 32), nav row 34 (snug 28), tab row 34 (snug 30), zoom 1.
 - **Window:** `AppShell` is a grid `var(--layout-side) / minmax(0,1fr)` with a 54 px top bar. The app sits in one rounded window with a `--ui-frame` (10 px) margin on the canvas.
 - **Main width:** 1240 px (`--ui-main-width`). Wide pages use full width with `px-8`. Lists use the full window width.
 - **PageHeader:** wraps, items end, gap-x 24, gap-y 12, bottom hairline, `pb-5`, `mb-7`.
@@ -358,10 +358,13 @@ Source: `card-grid.tsx`, `layout.tsx` (`FRAME`).
 Source: `shell.tsx`, `frame.tsx`, `page-bar.tsx`, `launcher.tsx`, `palette.tsx`.
 
 - **Top bar:** 54 px. App mark 30 px square on `--ui-fill`, control radius. App name 17 px display weight. Icon buttons 32 px (44 px coarse), clear, wash on hover, 150 ms.
-- **Sidebar app row:** `--layout-nav-row` high, leaf-nav corners, 14 px medium ink-2. Current: paper ground, semibold, inset hair plus a 3 px left bar in `--ui-active`, and a short sweep on the top right.
-- **Page tab:** `--layout-tab-row` high, leaf-nav corners, 14 px medium. Current: `--ui-accent-wash`, semibold, 3 px left bar, short sweep. Depth indents 10, 24, 36, 48 px.
+- **Sidebar:** inside the window's card, not beside it. The card spans both columns. The sidebar takes `--layout-side` (190 px) at its left on `--ui-ground`, with a hairline right edge, padding 14 px top and 10 px sides, rows 2 px apart. The page is on paper. A phone has no sidebar ground.
+- **Brand line:** the mark, 9 px, the workspace name at 16 px, 700.
+- **Sidebar app row:** `--layout-nav-row` high, leaf-nav corners, 14 px regular ink-2, 9 px gap, 16 px icon at stroke 1.8. Current: `--ui-accent-tint`, semibold ink, and the short sweep on the top right.
+- **Sidebar label ("Pinned"):** 12 px, 600, sentence case, ink-3. **Foot line:** "⌘K finds any app", 11.5 px, 600, ink-3, at the bottom.
+- **Page tab:** `--layout-tab-row` high, leaf-nav corners, 14 px regular. Current: `--ui-accent-tint`, semibold, short sweep. Depth indents 8, 24, 36, 48 px.
 - **Group heading:** the group label (12.5 px, 650, sentence case, ink-3) over a top hairline.
-- **Count badge:** amber (`--ui-warn-tint`, `--ui-warn-ink`), 12 px semibold, min width 20. Folded sidebar shows a 6 px amber dot.
+- **Count badge:** an accent pill (`--ui-primary`, text `--ui-on-accent`), 12 px bold, min width 20, full round. Folded sidebar shows a 6 px accent dot.
 - **Hover text:** rests 400 ms, never on touch.
 - **Palette:** command-K, `cmdk` in a dialog. Sheet radius.
 - **Dialog:** sheet radius, `--ui-shadow`, 150 ms zoom 95% plus fade, `max-w-sm`. Head and foot are band strips with hairlines.

@@ -62,11 +62,11 @@
   --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
   --ui-main-width: 1240px;
   /* The frame as the viewer sets it (display.ts): panel widths, text size, row heights. */
-  --layout-side: 224px;
+  --layout-side: 190px;
   --layout-pages: 208px;
   --layout-zoom: 1;
   --layout-row: 40px; /* a list's row */
-  --layout-nav-row: 32px; /* an app in the sidebar */
+  --layout-nav-row: 34px; /* an app in the sidebar */
   --layout-tab-row: 34px; /* a page in the app's column */
   --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ui-spring: cubic-bezier(0.2, 0.9, 0.25, 1.12); /* things you press or open */
@@ -143,8 +143,8 @@
     0 18px 40px -16px color-mix(in srgb, var(--ui-umbra) 26%, transparent);
   --ui-shadow: /* overlays: dialogs, sheets, the record panel */
     0 0 0 1px var(--ui-rim), 0 30px 80px -30px color-mix(in srgb, var(--ui-umbra) 45%, transparent);
-  /* The ground a page's panels sit on, inside the window: between the canvas and the paper. */
-  --ui-ground: color-mix(in srgb, var(--ui-canvas) 45%, var(--ui-paper));
+  /* The sidebar's ground, inside the window: between the canvas and the paper. */
+  --ui-ground: color-mix(in srgb, var(--ui-canvas) 55%, var(--ui-paper));
 }
 
 /* The night theme flips the tokens, so shadcn's own dark styles stay off. */
