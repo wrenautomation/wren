@@ -7,7 +7,7 @@ import { areasOf } from "../../areas.js";
 import type { Module } from "../../module.js";
 import { appsIn, MODULES } from "../index.js";
 
-const LINK =
+export const LINK =
   "text-(--ui-ink) underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:decoration-(--ui-ink)";
 
 const pagesOf = (m: Module) => m.pages.filter((p) => !p.hidden);
@@ -55,19 +55,18 @@ export function Guide() {
       <Section title="Getting around">
         <ul className="grid max-w-[68ch] list-none gap-2.5 text-[14px] leading-relaxed">
           <li>
-            The sidebar lists every app by what it's for. Today, at its top, shows what needs you
-            across all of them.
+            The sidebar has the Map, Inbox, People, Money and Admin. The Map, at its top, shows your
+            business as a graph. Click a node to open the app behind it. Admin, then Systems, lists
+            every app.
           </li>
-          <li>
-            Open an app and its pages run down the window's left side. Hover an app in the sidebar
-            to see its pages without leaving the one you're on.
-          </li>
+          <li>Open an app and its pages run down the window's left side.</li>
           <li>
             <Key>⌘</Key> <Key>K</Key> opens any page, record or action by name. Type <em>note:</em>{" "}
             to jot something down.
           </li>
           <li>
-            The pin at the top right of a page keeps it under Today. Drag pins to reorder them.
+            The pin at the top right of a page keeps it in the sidebar, under the five. Drag pins to
+            reorder them.
           </li>
           <li>
             Layout, the sliders at the sidebar's foot, sets widths, row height and text size. Drag a

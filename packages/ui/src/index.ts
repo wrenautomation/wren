@@ -31,6 +31,7 @@ export {
   BrowserRow,
   folderTree,
 } from "./browser.js";
+export { Busy, BusyBox, type BusySize } from "./busy.js";
 export {
   type CardMedia,
   type CardOption,
@@ -78,6 +79,7 @@ export {
   readCached,
   readTogether,
   refreshAll,
+  refreshing,
   type SendLine,
   SendStatus,
   sendLineOf,
@@ -273,7 +275,15 @@ export {
   searchOf,
 } from "./list-search.js";
 export { type Look, LookEditor, lookOf, ThemeGallery } from "./look.js";
-export { hostMark, markName, PlatformMark, TintSwatch, tintColor, tintWash } from "./marks.js";
+export {
+  hostMark,
+  markName,
+  PlatformMark,
+  PlatformTile,
+  TintSwatch,
+  tintColor,
+  tintWash,
+} from "./marks.js";
 export {
   type OverviewProps,
   type OverviewTile,
@@ -458,6 +468,8 @@ export {
   type TrailStep,
   useSourcePick,
 } from "./sources.js";
+export { HOLD, type JobStep, type StepCard, type StepState, Steps } from "./steps.js";
+export { Sweep } from "./sweep.js";
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
 export { TabBar } from "./tab-bar.js";
 export {
@@ -490,6 +502,7 @@ export {
   type Token,
   themeVars,
   usePageTheme,
+  wholeVars,
 } from "./theme.js";
 export {
   type MiniLine,

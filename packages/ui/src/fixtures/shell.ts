@@ -41,19 +41,31 @@ const app = (id: string, name: string, icon: NavApp["icon"], count?: number): Na
   count,
 });
 
-/** Three areas; Setup is shut, and holds an app not installed for this client (dimmed). */
+/**
+ * Wren's team: the Map above, then Inbox, People, Money and Admin, with no heading. Leads was
+ * opened from elsewhere (a pin), so it has a row while it is open.
+ */
 const AREAS: NavArea[] = [
-  { id: "work", label: "Work", apps: [app("inbox", "Inbox", "inbox", 3)] },
   {
-    id: "sell",
-    label: "Sell",
+    id: "main",
+    label: "",
     apps: [
+      app("inbox", "Inbox", "inbox", 3),
+      app("people", "People", "people"),
+      app("money", "Money", "money"),
+      app("settings", "Admin", "sliders"),
       { ...app("leads", "Leads", "people", 6), pages: PAGES },
-      app("marketing", "Marketing", "megaphone"),
-      { ...app("reviews", "Reviews", "star"), off: true },
     ],
   },
-  { id: "setup", label: "Setup", shut: true, apps: [app("settings", "Settings", "sliders")] },
+];
+
+/** A client's workspace: the items whose app it has. There is no Inbox or Money app here. */
+const CLIENT_AREAS: NavArea[] = [
+  {
+    id: "main",
+    label: "",
+    apps: [app("people", "People", "people"), app("settings", "Admin", "sliders")],
+  },
 ];
 
 const OPEN: OpenApp = {
@@ -84,7 +96,7 @@ export const SHELL: ShellProps = {
   brand: { name: "Example Co", href: "#/", stamp: STAMP },
   workspace: { current: { id: "w1", name: "Northwind Dental" }, label: "Account" },
   launcher: "#/",
-  home: { label: "Today", href: "#/", count: 9 },
+  home: { label: "Map", href: "#/", icon: "workflow", count: 9 },
   areas: AREAS,
   dock: DOCK,
   app: OPEN,
@@ -107,6 +119,16 @@ export const SHELL_DEMO: ShellProps = {
   workspace: { ...SHELL.workspace, chip: { label: "Sample company", href: "#/real" } },
   app: OPEN,
   page: "/leads/waiting",
+};
+
+/** A client's own view: Today at home, only the items its workspace has, a pin under them. */
+export const SHELL_CLIENT: ShellProps = {
+  ...SHELL,
+  home: { label: "Today", href: "#/", count: 2 },
+  areas: CLIENT_AREAS,
+  app: null,
+  page: "/",
+  pins: { ...(SHELL.pins as NonNullable<ShellProps["pins"]>), pins: PINS.slice(0, 1) },
 };
 
 /** The workspace's name is not in yet: the shell shows a ghost where it goes. */

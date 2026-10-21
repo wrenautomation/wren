@@ -15,7 +15,7 @@ import {
   ySyncPluginKey,
 } from "@tiptap/y-tiptap";
 import { Y_BODY } from "@wren/notes/types";
-import { Button, Icon, relative, say, tipProps } from "@wren/ui";
+import { Button, GROUP_LABEL, Icon, relative, say, tipProps } from "@wren/ui";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
 import { hueOf, type NoteComments, type NotePeople, notes } from "./api.js";
@@ -668,9 +668,7 @@ export function CommentsPanel({
         {suggestions.length && editor ? (
           <section aria-label="Suggestions" className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <h3 className="m-0 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-                Suggestions
-              </h3>
+              <h3 className={`m-0 ${GROUP_LABEL}`}>Suggestions</h3>
               {canAccept && suggestions.length > 1 ? (
                 <span className="ml-auto flex gap-3">
                   <button

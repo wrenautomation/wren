@@ -36,6 +36,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { AccountFilter, accountFieldOf } from "./accounts.js";
+import { Busy } from "./busy.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import {
   Sheet,
@@ -312,6 +313,8 @@ interface MoreView {
   href: string;
   count?: number | undefined;
   on: boolean;
+  /** The open view's rows still read: the ring turns after its label. */
+  busy?: boolean | undefined;
   /** What the tab keeps, in words, on hover. */
   tip?: string | undefined;
 }
@@ -376,6 +379,7 @@ export function ViewTabs({
   place,
   saved,
   keep,
+  loading = false,
 }: {
   meta: RecordMeta;
   current: string | undefined;
@@ -383,6 +387,8 @@ export function ViewTabs({
   place: Place;
   saved?: Saved | undefined;
   keep?: KeepApi | undefined;
+  /** The open view's rows still read: the ring turns on its tab. */
+  loading?: boolean | undefined;
 }) {
   const sv = place.params.get("sv");
   const lines = saved?.lines ?? [];
@@ -395,6 +401,7 @@ export function ViewTabs({
       href: place.link({ view: i === 0 ? null : v.id, pg: null, sort: null, sv: null }),
       count: counts ? (counts[v.id] ?? 0) : undefined,
       on: v.id === current && !sv,
+      busy: v.id === current && !sv ? loading : undefined,
       tip: sayView(meta, v),
     })),
     ...lines.map((v, at) => ({
@@ -402,6 +409,7 @@ export function ViewTabs({
       label: v.name,
       href: savedLink(meta, place, v),
       on: String(v.id) === sv,
+      busy: String(v.id) === sv ? loading : undefined,
       tip: `${saySaved(meta, v.params)}${v.shared ? " · Shared with the team" : ""}`,
       saved: v,
       at,
@@ -457,6 +465,7 @@ export function ViewTabs({
             {v.saved.shared ? (
               <span className="text-[11px] font-normal text-(--ui-ink-3)">Team</span>
             ) : null}
+            {v.busy === undefined ? null : <Busy on={v.busy} />}
             {v.on ? menu : null}
           </span>
         ) : (
@@ -469,6 +478,7 @@ export function ViewTabs({
           >
             <span className="max-w-48 truncate">{v.label}</span>
             <span className="text-(--ui-ink-2)">{v.count !== undefined ? short(v.count) : ""}</span>
+            {v.busy === undefined ? null : <Busy on={v.busy} />}
           </a>
         ),
       )}

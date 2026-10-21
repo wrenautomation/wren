@@ -21,6 +21,7 @@ import {
   useLoad,
   useTypes,
 } from "./records.js";
+import { Sweep } from "./sweep.js";
 
 const NO_CALL = () => Promise.reject(new Error("Nothing to run this."));
 
@@ -30,7 +31,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
   // ponytail: one page of 200 lines; a form that long wants a List.
   const page = useLoad(record, () => api.list({ record, limit: 200 }), api);
   const names = meta?.name ?? { one: "item", many: "items" };
-  const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, page.retry, names);
+  const { run, busy, running, done, dialog } = useRun(acts?.call ?? NO_CALL, page.retry, names);
   const error = (types.error && !types.data) || (page.error && !page.data);
   if (error) return <Alert onRetry={types.retry}>{(types.error ?? page.error)?.message}</Alert>;
   if (!meta || !page.data) return <ListSkeleton />;
@@ -61,6 +62,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
       {sections.map((s) => (
         // Each part framed under a banded head, its rows ruled inside: what belongs together reads so.
         <section key={s.key} className={cn("grid", FRAME)}>
+          <Sweep />
           {s.label ? (
             <div className={FRAME_HEAD}>
               <h2 className={cn("flex items-center gap-2", SECTION_TITLE)}>
@@ -91,6 +93,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
                           tone="secondary"
                           size="dense"
                           busy={runningOn(running, a.id, [r.id])}
+                          done={runningOn(done, a.id, [r.id])}
                           disabled={busy}
                           onClick={() => run(a, [r.id], startOf(a, r))}
                         >

@@ -19,6 +19,7 @@ import {
   ACTIONS,
   Button,
   DeviceFrame,
+  GROUP_LABEL,
   Input,
   type RecordAct,
   SaveConflict,
@@ -45,8 +46,6 @@ export type CarouselShape = {
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
-const GROUP_HEAD =
-  "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
 const SITE: Record<string, string> = { linkedin: "LinkedIn", instagram: "Instagram" };
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
@@ -199,7 +198,7 @@ export function SlidesEditor({
   return (
     <section aria-label="Slides" className="grid gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className={GROUP_HEAD}>Slides</h3>
+        <h3 className={GROUP_LABEL}>Slides</h3>
         <span className={HINT}>
           {slides.length} of {SLIDES_MIN} to {SLIDES_MAX}
           {others.length

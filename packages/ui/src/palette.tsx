@@ -114,8 +114,9 @@ export function CommandPalette({
   const [q, setQ] = useState("");
   const box = useRef<HTMLInputElement>(null);
   const recent = useMemo(() => (open ? readRecent(recentKey) : []), [open, recentKey]);
+  const finding = useFound(find, q);
   const found = byRecent(
-    useFound(find, q),
+    finding.items,
     recent.map((i) => i.href),
   );
   const foundGroups = [...new Set(found.map((i) => i.group))];
@@ -166,10 +167,18 @@ export function CommandPalette({
       <Command>
         {/* The box sits 4px into its wrapper, so the mic does too. */}
         <DictateField target={box} line className="[&>button]:top-2 [&>button]:right-2">
-          <CommandInput ref={box} placeholder="Do or go to…" value={q} onValueChange={setQ} />
+          <CommandInput
+            ref={box}
+            placeholder="Do or go to…"
+            value={q}
+            onValueChange={setQ}
+            busy={finding.pending}
+          />
         </DictateField>
         <CommandList>
-          {note || made || found.length ? null : <CommandEmpty>Nothing by that name.</CommandEmpty>}
+          {note || made || found.length || finding.pending ? null : (
+            <CommandEmpty>Nothing by that name.</CommandEmpty>
+          )}
           {scope.search && q.trim() ? (
             <CommandGroup heading="Search">
               <CommandItem
@@ -310,11 +319,14 @@ export function CommandPalette({
   );
 }
 
-/** What `find` answers for the words typed, asked 250 ms after the last key; a late answer is dropped. */
+/**
+ * What `find` answers for the words typed, asked 250 ms after the last key; a late answer is
+ * dropped. The last answer stays on screen until the next lands; `pending` says one is out.
+ */
 function useFound(
   find: ((q: string) => Promise<PaletteItem[]>) | undefined,
   q: string,
-): PaletteItem[] {
+): { items: PaletteItem[]; pending: boolean } {
   const [found, setFound] = useState<{ q: string; items: PaletteItem[] }>({ q: "", items: [] });
   const words = q.trim();
   // The latest `find`, so a parent's new function each render never asks again.
@@ -336,5 +348,6 @@ function useFound(
       clearTimeout(t);
     };
   }, [can, words]);
-  return found.q === words ? found.items : [];
+  if (!can || words.length < 2) return { items: [], pending: false };
+  return { items: found.items, pending: found.q !== words };
 }

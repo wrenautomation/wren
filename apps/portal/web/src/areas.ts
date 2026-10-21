@@ -1,8 +1,9 @@
 /**
- * The sidebar's areas: apps grouped by the job they do (designs/2026-10-10-portal-areas.md,
- * 2026-10-19-portal-reshape.md). Wren's team and a client each have their own map. An id a
- * workspace lacks is skipped, an area left empty isn't shown, and an app no area names lands in
- * Tools. A parked app (`Module.parked`) is in no area.
+ * The sidebar is five fixed items: the Map, then Inbox, People, Money and Admin (SIDEBAR). Every
+ * other app opens from the Map, Admin > Systems, a pin or the command menu. The areas below group
+ * apps by the job they do, for the pages that still list them (Today and the phone's Apps tab).
+ * An id a workspace lacks is skipped, an area left empty isn't shown, and an app no area names
+ * lands in Tools. A parked app (`Module.parked`) is in no area.
  */
 import type { IconName } from "@wren/ui";
 
@@ -99,41 +100,45 @@ export function areasOf<T extends { id: string; parked?: true | undefined }>(
     .filter((a) => a.apps.length);
 }
 
-/** One of a phone's bottom tabs: an app, or one of its pages under its own name and icon. */
-export interface DockPick {
-  app: string;
-  page?: string;
-  label?: string;
-  icon?: IconName;
+/**
+ * The sidebar's fixed items under the Map: Inbox, People, Money, Admin (designs/2026-10-20-design-
+ * language.md, "Sidebar"). Admin is the Settings app. An item whose app a workspace lacks is
+ * skipped: a client has no Inbox or Money app. Every other app opens from the Map, Admin → Systems,
+ * a pin or ⌘K.
+ */
+export const SIDEBAR = [
+  { label: "Inbox", app: "inbox" },
+  { label: "People", app: "people" },
+  { label: "Money", app: "money" },
+  { label: "Admin", app: "settings" },
+] as const;
+
+/** The fixed items this workspace has, in order, each with its app. A parked app is skipped. */
+export function sidebarOf<T extends { id: string; parked?: true | undefined }>(
+  apps: readonly T[],
+): { label: string; app: T }[] {
+  return SIDEBAR.flatMap(({ label, app: id }) => {
+    const app = apps.find((m) => !m.parked && m.id === id);
+    return app ? [{ label, app }] : [];
+  });
 }
 
-/** What Wren's team opens every day, at a phone's thumb: the pipeline, make, reply. */
-export const DOCK_TEAM: readonly DockPick[] = [
-  { app: "pipelines" },
-  { app: "content", page: "studio", label: "Studio", icon: "write" },
-  { app: "engage", page: "engage", label: "Engage", icon: "reply" },
-];
+/** One of a phone's bottom tabs after the Map: a fixed item's app, or a pin. */
+export type DockPick<T, P> = { label: string; app: T } | { pin: P };
 
 /**
- * A phone's tabs after Today: Wren's team gets its daily picks that this workspace has. A client
- * gets its first apps by area. Either fills up to `size` with the first apps by area.
+ * A phone's tabs after the Map: Inbox, People, then the person's first pin. A pin that does not
+ * open (moved, or a page they may not see) is not in `pins`, so the first one that opens docks.
+ * `size` counts the Map's tab too.
  */
-export function dockOf<
-  T extends { id: string; pages: readonly { id: string }[]; parked?: true | undefined },
->(apps: readonly T[], team: boolean, size = 3): { app: T; pick: DockPick }[] {
-  const has = (p: DockPick) =>
-    apps.find(
-      (m) => !m.parked && m.id === p.app && (!p.page || m.pages.some((x) => x.id === p.page)),
-    );
-  const out = (team ? DOCK_TEAM : []).flatMap((pick) => {
-    const app = has(pick);
-    return app ? [{ app, pick }] : [];
-  });
-  for (const { apps: inArea } of areasOf(apps, team))
-    for (const app of inArea)
-      if (out.length < size && !out.some((o) => o.app.id === app.id))
-        out.push({ app, pick: { app: app.id } });
-  return out.slice(0, size);
+export function dockOf<T extends { id: string; parked?: true | undefined }, P>(
+  apps: readonly T[],
+  pins: readonly P[],
+  size = 4,
+): DockPick<T, P>[] {
+  const fixed = sidebarOf(apps).filter((i) => i.app.id === "inbox" || i.app.id === "people");
+  const first = pins[0];
+  return [...fixed, ...(first === undefined ? [] : [{ pin: first }])].slice(0, size - 1);
 }
 
 /** One of an app's own bottom tabs on a phone: a page, under a short name and its icon. */

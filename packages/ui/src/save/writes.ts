@@ -303,6 +303,19 @@ export class Writes {
     return out;
   }
 
+  /**
+   * Ids in `scope` a hiding press still sends (not one held for its undo), with the action that
+   * pressed it: an optimistic press's row can stay, washed, until the server answers.
+   */
+  sendingIn(scope: string): Map<string, string | null> {
+    const at = recordKey(scope, "");
+    const out = new Map<string, string | null>();
+    for (const w of this.list)
+      if (w.hide && (w.status === "sending" || w.status === "unsure"))
+        for (const r of w.records) if (r.startsWith(at)) out.set(r.slice(at.length), w.what);
+    return out;
+  }
+
   /** How many hiding presses have landed: a list reads again when it moves. */
   landed(): number {
     return this.list.filter((w) => w.hide && w.status === "sent").length;

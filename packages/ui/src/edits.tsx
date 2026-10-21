@@ -605,8 +605,10 @@ export function AskClaude({
               </span>
               <span className="whitespace-pre-wrap break-words">{t.message}</span>
               {t.state === "thinking" ? (
-                <span className="animate-pulse text-(--ui-ink-3) motion-reduce:animate-none">
-                  Claude is working on it…
+                <span>
+                  <Tag tone="accent" busy>
+                    Claude is working on it
+                  </Tag>
                 </span>
               ) : null}
               {t.reply ? (

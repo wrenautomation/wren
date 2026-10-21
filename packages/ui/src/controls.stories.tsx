@@ -54,7 +54,7 @@ export const Empty: Story = {
   ),
 };
 
-/** Pressed and running: `busy` keeps it solid with a bar under the label. */
+/** Pressed and running: `busy` keeps it solid with the busy ring after the label. */
 export const Loading: Story = {
   render: () => (
     <div className={row}>
@@ -66,6 +66,7 @@ export const Loading: Story = {
       <Button size="dense" busy>
         Saving
       </Button>
+      <Tag busy>Drafting</Tag>
     </div>
   ),
 };

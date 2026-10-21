@@ -1,0 +1,652 @@
+/* biome-ignore-all lint/style/noDescendingSpecificity: the marks are ported in the artifact's order; no rule here relies on cascade order between kinds. */
+.mm {
+  --case: var(--ui-paper);
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+}
+.mm pattern circle {
+  fill: var(--ui-ink-3);
+  opacity: 0.28;
+}
+.mm .trk {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 0.25s;
+}
+.mm .case {
+  fill: none;
+  stroke: var(--ui-paper);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mm .trk.plan {
+  stroke-dasharray: 1 12;
+  /* biome-ignore lint/complexity/noImportantStyles: a planned line is thin, whatever its job; the weight is an inline style. */
+  stroke-width: 7px !important;
+}
+.mm .xfer {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mm .xp {
+  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--ui-ink) 20%, transparent));
+}
+.mm .xp text {
+  font: 700 11px var(--ui-font);
+  fill: var(--ui-on-accent);
+  letter-spacing: 0.02em;
+}
+.mm .spur {
+  fill: none;
+  stroke: var(--ui-ink-3);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 2 5;
+  opacity: 0.8;
+}
+.mm .mk {
+  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--ui-ink) 22%, transparent))
+    drop-shadow(0 3px 8px color-mix(in srgb, var(--ui-ink) 10%, transparent));
+}
+.mm .mk .ic {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mm .m-hub .b {
+  fill: var(--ui-active);
+}
+.mm .m-hub .ic {
+  stroke: var(--ui-on-accent);
+  stroke-width: 2.4;
+}
+.mm .m-att .b {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-3);
+  stroke-width: 1.5;
+}
+.mm .m-att .ic {
+  stroke: var(--ui-ink-2);
+  stroke-width: 2.6;
+}
+.mm .m-time .b {
+  fill: var(--ui-ink);
+}
+.mm .m-time .ic {
+  stroke: var(--ui-paper);
+  stroke-width: 2.8;
+}
+.mm .m-cash .b {
+  fill: var(--ui-ink);
+}
+.mm .m-cash .ic {
+  stroke: var(--ui-paper);
+  stroke-width: 2.8;
+}
+.mm .m-exit .b {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-3);
+  stroke-width: 1.5;
+}
+.mm .m-exit .ic {
+  stroke: var(--ui-ink-3);
+  stroke-width: 2.8;
+}
+.mm .m-exit.bad .b {
+  fill: var(--ui-bad);
+  stroke: none;
+}
+.mm .spur.bad {
+  stroke: var(--ui-bad);
+}
+.mm .m-exit.bad .ic {
+  stroke: var(--ui-on-accent);
+}
+.mm .m-plan .b {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.mm .m-plan .ic {
+  stroke: var(--ui-ink-3);
+  stroke-width: 2.6;
+}
+.mm .mk .ring {
+  fill: none;
+  stroke: var(--ui-paper);
+  stroke-width: 2.5;
+}
+.mm .lab,
+.mm .sub,
+.mm .xl,
+.mm .chip text {
+  paint-order: stroke;
+  stroke: var(--ui-paper);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.mm .lab {
+  font: 650 14px var(--ui-font);
+  fill: var(--ui-ink);
+  letter-spacing: -0.005em;
+}
+.mm .sub {
+  font: 500 12px var(--ui-font);
+  fill: var(--ui-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.mm .xl {
+  font: 700 10.5px var(--ui-font);
+}
+.mm .pill {
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--ui-ink) 18%, transparent))
+    drop-shadow(0 4px 10px color-mix(in srgb, var(--ui-ink) 12%, transparent));
+}
+.mm .pill rect {
+  fill: var(--ui-paper);
+}
+.mm .pill .av {
+  fill: var(--ui-active);
+}
+.mm .pill .avt {
+  font: 800 9.5px var(--ui-font);
+  fill: var(--ui-on-accent);
+}
+.mm .pill .t {
+  font: 700 12px var(--ui-font);
+  fill: var(--ui-ink);
+  font-variant-numeric: tabular-nums;
+}
+.mm .pill.late rect {
+  fill: var(--ui-warn);
+}
+.mm .pill.late .t {
+  fill: var(--ui-on-accent);
+}
+.mm .pill.late .av {
+  fill: color-mix(in srgb, var(--ui-on-accent) 28%, transparent);
+}
+.mm .chip rect {
+  fill: var(--ui-wash);
+}
+.mm .chip text {
+  font: 700 11px var(--ui-font);
+  fill: var(--ui-ink-2);
+  stroke: none;
+}
+.mm .chip .ic {
+  fill: none;
+  stroke: var(--ui-ink-2);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mm .zl {
+  stroke: var(--ui-hair);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+.mm .zt {
+  font: 700 9.5px var(--ui-font);
+  letter-spacing: 0.1em;
+  fill: var(--ui-ink-3);
+  opacity: 0.85;
+}
+.mm .mv {
+  fill: var(--ui-on-accent);
+  opacity: 0.92;
+}
+.mm.focus [data-l]:not(.on) {
+  opacity: 0.14;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm .mv {
+    display: none;
+  }
+  .mm .trk {
+    transition: none;
+  }
+}
+.mm .cap {
+  cursor: pointer;
+  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--ui-ink) 18%, transparent))
+    drop-shadow(0 4px 10px color-mix(in srgb, var(--ui-ink) 10%, transparent));
+  animation: mm-capin 0.45s var(--ui-ease) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.mm .cap .cb {
+  fill: var(--ui-paper);
+  stroke-width: 3.5;
+}
+.mm .cap .cr {
+  fill: none;
+  stroke: none;
+}
+.mm .cap.late .cr {
+  stroke: var(--ui-warn);
+  stroke-width: 2.5;
+}
+.mm .cap .cn {
+  font: 800 13px var(--ui-font);
+  fill: var(--ui-ink);
+  font-variant-numeric: tabular-nums;
+}
+.mm .cap:hover .cb,
+.mm .cap:focus-visible .cb {
+  fill: color-mix(in srgb, var(--ui-active) 7%, var(--ui-paper));
+}
+.mm .cap:focus-visible {
+  outline: none;
+}
+.mm .cap:focus-visible .cr {
+  stroke: var(--ui-focus);
+  stroke-width: 2;
+}
+@keyframes mm-capin {
+  from {
+    opacity: 0;
+    transform: scaleX(0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm .cap {
+    animation: none;
+  }
+}
+.mm .hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+  stroke-linecap: round;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.mm .mk[data-id],
+.mm .pill[data-tr],
+.mm .xp[data-tr] {
+  cursor: pointer;
+}
+.mm .mk[data-id]:focus-visible {
+  outline: none;
+}
+.mm .mk[data-id]:focus-visible .ring,
+.mm .mk.sel .ring {
+  stroke: var(--ui-focus);
+  stroke-width: 3;
+}
+.mm .hit.sel {
+  stroke: var(--ui-focus);
+  stroke-opacity: 0.22;
+}
+.mm .pill[data-tr]:focus-visible,
+.mm .xp[data-tr]:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+.mm .m-cash .stk {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink);
+  stroke-width: 2;
+}
+.mm .mv[data-l="out"] {
+  fill: var(--ui-ink-2);
+}
+.mm .cap .ic {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mm .ring .ic {
+  stroke: var(--ui-ink);
+}
+.mm .cap .sub {
+  font: 600 11.5px var(--ui-font);
+  fill: var(--ui-ink-3);
+}
+.mm .bdg .bi .ic {
+  stroke: var(--ui-paper);
+}
+.mm .bdg .bn {
+  font: 750 15px var(--ui-font);
+  fill: var(--ui-ink);
+}
+.mm .bdg .bs {
+  font: 600 12px var(--ui-font);
+  fill: var(--ui-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.mm .cap.sel .cr,
+.mm .cap[data-id]:focus-visible .cr {
+  stroke: var(--ui-focus);
+  stroke-width: 2.5;
+}
+.mm .fold {
+  cursor: pointer;
+}
+.mm .fold .lf {
+  fill: color-mix(in srgb, var(--ui-active) 9%, var(--ui-paper));
+  stroke: color-mix(in srgb, var(--ui-active) 22%, var(--ui-paper));
+  stroke-width: 1;
+}
+.mm .fold text {
+  font: 700 12.5px var(--ui-font);
+  fill: var(--ui-ink-2);
+}
+.mm .fold .ic {
+  fill: none;
+  stroke: var(--ui-ink-2);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mm .fold:hover .lf {
+  fill: color-mix(in srgb, var(--ui-active) 18%, var(--ui-paper));
+}
+.mm .fold:focus-visible {
+  outline: none;
+}
+.mm .fold:focus-visible .lf {
+  stroke: var(--ui-focus);
+  stroke-width: 2;
+}
+.metro-host {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-x pan-y;
+}
+.metro-host .cap {
+  animation: none;
+}
+.metro-old {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.metro-old svg {
+  display: block;
+}
+.mm .m-dec .b {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink);
+  stroke-width: 2.2;
+}
+.mm .m-dec .ic {
+  stroke: var(--ui-ink);
+  stroke-width: 2.6;
+}
+.mm .m-race .b {
+  fill: var(--ui-ink);
+}
+.mm .m-race .ic {
+  stroke: var(--ui-paper);
+  stroke-width: 2.4;
+}
+.mm .m-par .b {
+  fill: var(--ui-ink);
+}
+.mm .m-par .ring {
+  fill: none;
+}
+.mm .rule rect {
+  fill: var(--ui-ink);
+}
+.mm .rule text {
+  font: 800 9.5px var(--ui-font);
+  letter-spacing: 0.08em;
+  fill: var(--ui-paper);
+}
+.mm .m-ab .b {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-2);
+  stroke-width: 1.8;
+  stroke-dasharray: 3 2.5;
+}
+.mm .m-ab .ic {
+  stroke: var(--ui-ink-2);
+  stroke-width: 2.6;
+}
+.mm .m-ok .b {
+  fill: var(--ui-active);
+}
+.mm .m-ok .ic {
+  stroke: var(--ui-on-accent);
+  stroke-width: 2.4;
+}
+.mm .m-link .b {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink);
+  stroke-width: 2;
+}
+.mm .m-link .stk {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-3);
+  stroke-width: 1.5;
+}
+.mm .m-link .ic {
+  stroke: var(--ui-ink);
+  stroke-width: 2.6;
+}
+.mm .by circle {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-3);
+  stroke-width: 1.2;
+}
+.mm .by .ic {
+  stroke: var(--ui-ink-2);
+  stroke-width: 2.6;
+}
+.mm .by-me circle {
+  fill: var(--ui-active);
+  stroke: none;
+}
+.mm .by-me .ic {
+  stroke: var(--ui-on-accent);
+}
+.mm .trk.ab {
+  stroke-dasharray: none;
+}
+.mm .cond rect {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-3);
+  stroke-width: 1;
+}
+.mm .cond rect {
+  stroke: var(--ui-ink-3);
+}
+.mm .cond text {
+  font-weight: 700;
+}
+.mm .cond.else rect {
+  stroke-dasharray: 3 3;
+}
+.mm .cond.else text {
+  fill: var(--ui-ink-3);
+  font-style: italic;
+}
+.mm .brk rect {
+  fill: none;
+  stroke: var(--ui-bad);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 6;
+  opacity: 0.55;
+}
+
+/* The map's frame: level buttons and the count line above, the drawing below. */
+.metro-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  margin-bottom: 10px;
+}
+.metro-count {
+  margin: 0;
+  font: 500 13px var(--ui-font);
+  color: var(--ui-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.metro-count b {
+  color: var(--ui-ink);
+}
+.metro-levels {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--ui-wash);
+}
+.metro-levels button {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font: 650 13px var(--ui-font);
+  color: var(--ui-ink-2);
+}
+.metro-levels button[aria-pressed="true"] {
+  background: var(--ui-paper);
+  color: var(--ui-ink);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ui-ink) 16%, transparent);
+}
+.metro-levels button:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+/*
+ * First load (MetroMap, once on mount): each line draws over 2.4 s, stations land as it passes
+ * (station i pops at 0.5 + i * 0.55 s, its label at 0.8 + i * 0.55 s), zones fade at 0.1 s,
+ * numbers fade in last at 2.9 s (no count-up). A level
+ * change or a refresh never brings it back. Reduced motion: no draw-in, the marks fade in.
+ */
+.mm.ld .trk,
+.mm.ld .case {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: mm-drawin 2.4s cubic-bezier(0.4, 0, 0.3, 1) forwards;
+}
+.mm.ld .trk.plan,
+.mm.ld .xfer,
+.mm.ld .spur,
+.mm.ld .xp,
+.mm.ld .pill,
+.mm.ld .cond {
+  opacity: 0;
+  animation: mm-fade 0.6s 1.4s forwards;
+}
+.mm.ld .zt,
+.mm.ld .zl {
+  opacity: 0;
+  animation: mm-fade 0.6s 0.1s forwards;
+}
+.mm.ld .mk {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mm-pop 0.5s var(--ui-ease) forwards;
+}
+.mm.ld .lab,
+.mm.ld .sub {
+  opacity: 0;
+  animation: mm-fade 0.5s forwards;
+}
+.mm.ld .cap,
+.mm.ld .chip,
+.mm.ld .fold {
+  opacity: 0;
+  animation: mm-fade 0.5s 1.6s forwards;
+}
+/* A number fades in once when its value changes; it never counts. */
+.mm .num {
+  animation: mm-numin 0.4s both;
+}
+@keyframes mm-numin {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes mm-drawin {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes mm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mm-fade {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm .num {
+    animation: none;
+  }
+  .mm.ld .trk,
+  .mm.ld .case {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .mm.ld .mk,
+  .mm.ld .lab,
+  .mm.ld .sub,
+  .mm.ld .zt,
+  .mm.ld .zl {
+    /* biome-ignore lint/complexity/noImportantStyles: the per-mark delay is an inline style; reduced motion must win over it. */
+    animation: mm-fade 0.3s forwards !important;
+  }
+  .mm.ld .mk {
+    transform: none;
+  }
+}
+
+/* Focus: the tracks that leave the focused part, faded, with where they go. */
+.mm .stub {
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.15s var(--ui-ease);
+}
+.mm .stub:hover,
+.mm .stub:focus-visible {
+  opacity: 1;
+}
+.mm .stub-trk {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 2 9;
+}
+.mm .stub-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+}
+.mm .stub-lab {
+  fill: var(--ui-ink-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+.mm .stub:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 3px;
+}

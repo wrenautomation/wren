@@ -2,6 +2,7 @@
 
 import { cn } from "cn";
 import { type AnchorHTMLAttributes, type ButtonHTMLAttributes, type ReactNode, useId } from "react";
+import { Busy } from "./busy.js";
 import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
 import { tipProps } from "./hint.js";
@@ -27,11 +28,14 @@ interface ButtonLook {
   className?: string | undefined;
 }
 
-/** shadcn's button, in the kit's look: square, uppercase, accent; ink on hover. */
+/**
+ * shadcn's button, in the kit's look: a leaf hint for corners, sentence case, accent. The primary
+ * keeps a press edge under it and sinks 3 px when pressed (secondary tones set their own hover).
+ */
 const BUTTON =
-  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius) bg-(--ui-primary) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,scale,opacity] duration-200 ease-(--ui-ease) hover:bg-(--ui-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)";
+  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 [border-radius:var(--ui-leaf-button)] bg-(--ui-primary) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,transform,opacity] duration-150 ease-(--ui-spring) hover:bg-(--ui-primary) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)";
 const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none", dense: "", next: "" };
-const DENSE = "h-8 px-3 py-0 text-[13px]/none font-medium tracking-normal [text-transform:none]";
+const DENSE = "h-8 px-3 py-0 text-[13px]/none";
 const NEXT = "h-9 px-4 text-[14px]/none font-semibold";
 const DENSE_TONE: Record<ButtonTone, string> = {
   primary: DENSE,
@@ -39,11 +43,12 @@ const DENSE_TONE: Record<ButtonTone, string> = {
   quiet: `${DENSE} px-2 no-underline hover:bg-(--ui-hover)`,
 };
 const BUTTON_TONE: Record<ButtonTone, string> = {
-  primary: "",
+  primary:
+    "[--ui-busy-ink:currentColor] shadow-[0_3px_0_var(--ui-press-edge)] active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[0_0_0_var(--ui-press-edge)]",
   secondary:
-    "bg-transparent text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink)] hover:bg-(--ui-ink) hover:text-(--ui-on-ink)",
+    "bg-transparent text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink)] hover:bg-(--ui-ink) hover:text-(--ui-on-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97]",
   quiet:
-    "px-0 py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
+    "px-0 py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
 };
 
 const look = ({ tone = "secondary", size = "md", className }: ButtonLook) =>
@@ -78,6 +83,7 @@ export function Button({
   icon,
   arrow,
   busy,
+  done,
   disabled,
   children,
   className,
@@ -85,12 +91,14 @@ export function Button({
   ...rest
 }: ButtonLook & {
   /**
-   * It was pressed and its work is running: it stays solid, with a short bar passing under the
-   * label (a still, full-width line under reduced motion), and is turned off, so neither a
-   * click nor Enter presses it again. A button acts on rows: pass `busy` only for the rows its
-   * press is at work on.
+   * It was pressed and its work is running: it stays solid, with the busy ring turning after the
+   * label, and is turned off, so neither a click nor Enter presses it again. Pass `busy` (true or
+   * false) on a button that can go busy, so the ring's slot is always there and the width never
+   * changes. A button acts on rows: pass `true` only for the rows its press is at work on.
    */
   busy?: boolean | undefined;
+  /** Its press just worked: a check shows in the ring's slot for a moment (`useRun`'s `done`). */
+  done?: boolean | undefined;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
   const l: ButtonLook = {
     tone,
@@ -98,7 +106,7 @@ export function Button({
     icon,
     arrow,
     children,
-    className: cn(busy && "relative overflow-hidden disabled:opacity-100", className),
+    className: cn(busy && "disabled:opacity-100", className),
   };
   return (
     <ShadButton
@@ -109,12 +117,7 @@ export function Button({
       aria-busy={busy || undefined}
     >
       {inside(l)}
-      {busy ? (
-        <span
-          aria-hidden="true"
-          className="absolute bottom-0 left-0 h-0.5 w-2/5 animate-ui-busy bg-current opacity-60 motion-reduce:w-full motion-reduce:animate-none"
-        />
-      ) : null}
+      {busy === undefined && done === undefined ? null : <Busy on={!!busy} done={done} />}
     </ShadButton>
   );
 }
@@ -144,7 +147,7 @@ export function ButtonLink({
 export type TagTone = "neutral" | "accent" | "warn" | "green";
 
 const TAG =
-  "h-auto max-w-full gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius) text-[12px]/[1.5] font-semibold align-[1px]";
+  "h-auto max-w-full gap-1.5 px-[9px] py-0.5 border-0 [border-radius:var(--ui-leaf-chip)] text-[12px]/[1.5] font-semibold align-[1px]";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
   accent: "bg-(--ui-accent-tint) text-(--ui-live)",
@@ -157,12 +160,15 @@ const DOT = "before:size-1.5 before:rounded-full before:bg-current before:conten
 export function Tag({
   tone = "neutral",
   dot = false,
+  busy,
   title,
   className,
   children,
 }: {
   tone?: TagTone;
   dot?: boolean;
+  /** A chip that waits ("Drafting"): the ring after the label. Pass true or false to keep the slot. */
+  busy?: boolean | undefined;
   title?: string | undefined;
   className?: string | undefined;
   children: ReactNode;
@@ -170,6 +176,7 @@ export function Tag({
   return (
     <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} {...tipProps(title)}>
       <span className="min-w-0 truncate">{children}</span>
+      {busy === undefined ? null : <Busy on={busy} />}
     </Badge>
   );
 }

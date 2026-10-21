@@ -37,6 +37,7 @@ import {
 import { cx } from "./format.js";
 import { tipProps } from "./hint.js";
 import { Icon } from "./icons.js";
+import { GROUP_LABEL } from "./layout.js";
 import type { KeepApi } from "./list-bar.js";
 
 const MIRROR = "wren.display";
@@ -193,9 +194,7 @@ function Keys({ keys }: { keys: string }) {
 export function KeyList({ section }: { section: KeySection }) {
   return (
     <section className="grid gap-2">
-      <h3 className="text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-        {section.title}
-      </h3>
+      <h3 className={GROUP_LABEL}>{section.title}</h3>
       <dl className="grid grid-cols-[minmax(0,auto)_1fr] gap-x-4 gap-y-2 text-[13.5px]">
         {section.keys.map(([k, what]) => (
           <div key={k} className="contents">

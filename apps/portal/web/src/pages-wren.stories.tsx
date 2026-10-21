@@ -4,7 +4,6 @@
  */
 import type { Meta } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
-import { AREAS_TEAM } from "./areas.js";
 import { refuse } from "./mocks/api.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
@@ -83,15 +82,13 @@ export const TodayCountsFailed = pageAt("/", {
   },
 });
 
-/** On a phone: the dock under the page carries the Move count, and the apps sit by area. */
+/** On a phone: the dock under the page carries the Move count, . */
 export const TodayPhone = {
   ...pageAt("/", {
     me: ADMIN,
     check: async (page) => {
       const view = within(page);
       await expect(await view.findByRole("heading", { name: /^Move/ })).toBeVisible();
-      const area = await view.findAllByRole("heading", { name: AREAS_TEAM[0]?.label ?? "" });
-      await expect(area.length).toBeGreaterThan(0);
     },
   }),
   globals: { viewport: { value: "phone" } },
@@ -222,3 +219,15 @@ export const PipelinesEntries = pageAt("/pipelines/entries", {
   me: ADMIN,
   check: shows("Spring list", "Winter ads"),
 });
+
+// Admin > Systems: every app, split by the synthetic shape. The shape's nodes fill the first group.
+export const SettingsSystems = pageAt("/settings/systems", {
+  me: ADMIN,
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByRole("heading", { name: /^On your shape/ })).toBeVisible();
+    await expect(await view.findByRole("heading", { name: /^Not on the shape/ })).toBeVisible();
+  },
+});
+// While the shape is slow, Systems shows its header and a skeleton, not a blank page.
+export const SettingsSystemsPending = pageAt("/settings/systems", { me: ADMIN, mode: "pending" });

@@ -394,8 +394,14 @@ function Frame({
           placeholder={beat.kind === "short" ? "Change this Short" : "Change this part"}
           aria-label={`Change ${beatName(beat)}`}
           maxLength={1000}
-          className={cx(asking && "animate-pulse")}
         />
+      ) : null}
+      {editable && asking ? (
+        <span>
+          <Tag tone="accent" busy>
+            Working on it
+          </Tag>
+        </span>
       ) : null}
     </article>
   );

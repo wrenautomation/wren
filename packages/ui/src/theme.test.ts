@@ -6,12 +6,14 @@ import {
   BASE,
   dropPreloadedLook,
   isShowcase,
+  NIGHT_LINES,
   PRESETS,
   type PresetName,
   readTheme,
   SHOWCASE,
   TOKENS,
   themeVars,
+  wholeVars,
 } from "./theme.js";
 
 const PRESET_NAMES = Object.keys(PRESETS) as PresetName[];
@@ -31,7 +33,7 @@ describe("readTheme", () => {
       const t = readTheme("night");
       t.accent = "red";
       t.font = "serif";
-      expect(PRESETS.night.accent).toBe("#e8794a");
+      expect(PRESETS.night.accent).toBe("#a596d6");
       expect("font" in PRESETS.night).toBe(false);
     });
 
@@ -300,12 +302,12 @@ describe("themeVars", () => {
   it.each(["radius", "frame", "main-width"] as const)(
     "turns a bare 0 into 0px for the length token %s",
     (key) => {
-      expect(themeVars({ [key]: "0" })).toEqual({ [`--ui-${key}`]: "0px" });
+      expect(themeVars({ [key]: "0" })[`--ui-${key}`]).toBe("0px");
     },
   );
 
   it.each(["0.0", "00", ".0", "-0", "+0.00"])("treats %s as a zero length too", (zero) => {
-    expect(themeVars({ radius: zero })).toEqual({ "--ui-radius": "0px" });
+    expect(themeVars({ radius: zero })["--ui-radius"]).toBe("0px");
   });
 
   it("leaves a zero with a unit, and a non-zero, alone", () => {
@@ -326,7 +328,7 @@ describe("themeVars", () => {
   });
 
   it("leaves non-zero lengths alone", () => {
-    expect(themeVars({ radius: "18px", frame: "0px", "main-width": "10" })).toEqual({
+    expect(themeVars({ radius: "18px", frame: "0px", "main-width": "10" })).toMatchObject({
       "--ui-radius": "18px",
       "--ui-frame": "0px",
       "--ui-main-width": "10",
@@ -338,10 +340,101 @@ describe("themeVars", () => {
     expect(vars["--ui-frame"]).toBe("0px");
   });
 
-  it("keeps the soft preset's unitless trackings as 0", () => {
+  it("leaves the soft preset's case and tracking to the sentence-case base", () => {
     const vars = themeVars(PRESETS.soft);
-    expect(vars["--ui-label-tracking"]).toBe("0");
-    expect(vars["--ui-button-tracking"]).toBe("0");
+    expect(vars["--ui-label-case"]).toBeUndefined();
+    expect(vars["--ui-button-case"]).toBeUndefined();
+    expect(vars["--ui-label-tracking"]).toBeUndefined();
+  });
+});
+
+// The Quiet Client Rule: a look that sets its own corners shows plain corners and no sweep, and
+// a look that wanted uppercase says so. Only the Wren look and its night wear the leaf and sweep.
+describe("the Quiet Client Rule", () => {
+  const LEAF = ["leaf-panel", "leaf-button", "leaf-chip", "leaf-nav"] as const;
+
+  it("gives plain corners to a look that sets radius", () => {
+    const vars = themeVars({ radius: "6px" });
+    expect(vars["--ui-leaf-panel"]).toBe("var(--ui-radius-panel)");
+    for (const k of ["button", "chip", "nav"])
+      expect(vars[`--ui-leaf-${k}`]).toBe("var(--ui-radius)");
+    expect(vars["--ui-sweep"]).toBe("0");
+  });
+
+  it("leaves the leaf and sweep to the base when radius is unset", () => {
+    const vars = themeVars({ accent: "#3552d4" });
+    for (const k of LEAF) expect(vars[`--ui-${k}`]).toBeUndefined();
+    expect(vars["--ui-sweep"]).toBeUndefined();
+  });
+
+  it("lets a look keep its own leaf or sweep when it sets them", () => {
+    const vars = themeVars({ radius: "6px", "leaf-panel": "4px 8px", sweep: "1" });
+    expect(vars["--ui-leaf-panel"]).toBe("4px 8px");
+    expect(vars["--ui-sweep"]).toBe("1");
+  });
+
+  it.each([
+    ["soft", PRESETS.soft],
+    ["editorial", PRESETS.editorial],
+    ["gilded", SHOWCASE.gilded],
+    ["riso", SHOWCASE.riso],
+  ] as const)("gives the %s look plain corners and no sweep", (_name, look) => {
+    const vars = themeVars(look);
+    expect(vars["--ui-leaf-panel"]).toBe("var(--ui-radius-panel)");
+    expect(vars["--ui-sweep"]).toBe("0");
+  });
+
+  it("gives the editorial look its uppercase labels and buttons back", () => {
+    const vars = themeVars(PRESETS.editorial);
+    expect(vars["--ui-label-case"]).toBe("uppercase");
+    expect(vars["--ui-button-case"]).toBe("uppercase");
+  });
+
+  it("keeps the soft look sentence case, as it was", () => {
+    const vars = themeVars(PRESETS.soft);
+    expect(vars["--ui-label-case"]).toBeUndefined();
+    expect(vars["--ui-button-case"]).toBeUndefined();
+    expect(PRESETS.soft.radius).toBe("12px");
+  });
+
+  it("keeps the base and the night look on the leaf and sweep", () => {
+    expect(BASE["leaf-panel"]).toBe("6px 24px");
+    expect(BASE.sweep).toBe("1");
+    const night = themeVars(PRESETS.night);
+    expect(night["--ui-leaf-panel"]).toBeUndefined();
+    expect(night["--ui-sweep"]).toBeUndefined();
+  });
+
+  it("keeps the leaf in the Wren and night previews and plain corners in editorial's", () => {
+    // wholeVars puts BASE (which has a radius) under the look: the rule reads the look's own radius.
+    for (const name of ["wren", "night"] as const) {
+      const vars = wholeVars(readTheme(name));
+      expect(vars["--ui-leaf-panel"], name).toBe("6px 24px");
+      expect(vars["--ui-sweep"], name).toBe("1");
+    }
+    const editorial = wholeVars(readTheme("editorial"));
+    expect(editorial["--ui-leaf-panel"]).toBe("var(--ui-radius-panel)");
+    expect(editorial["--ui-sweep"]).toBe("0");
+  });
+
+  it("keeps the showcase looks on their own case and corners", () => {
+    for (const look of Object.values(SHOWCASE)) {
+      const vars = themeVars(look);
+      if (look.radius) expect(vars["--ui-sweep"]).toBe("0");
+    }
+  });
+
+  it("gives a dark client brand the night lines and a light one the day lines", () => {
+    const dark = readTheme({
+      preset: "wren",
+      brand: { color: "#7969a3", variant: "tint", scheme: "dark" },
+    });
+    const light = readTheme({
+      preset: "wren",
+      brand: { color: "#7969a3", variant: "tint", scheme: "light" },
+    });
+    expect(dark["line-5"]).toBe(NIGHT_LINES["line-5"]);
+    expect(light["line-5"]).toBeUndefined();
   });
 });
 

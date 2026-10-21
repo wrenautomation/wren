@@ -82,33 +82,34 @@ const links = (scope: ReturnType<typeof within>, name: string) =>
   scope.queryAllByRole("link", { name: named(name) }).length;
 
 /**
- * The sidebar at home: Primary and Marketing open, Tools shut, and no parked app. A phone has no
+ * The sidebar at home: the Map, then Inbox, People, Money and Admin, and no other app. Parked and
+ * unpinned apps keep their routes and their place in ⌘K, not in the sidebar. A phone has no
  * sidebar, so the look at phone width checks the bottom tabs in PhoneDock instead.
  */
-export const SidebarAreas = pageAt("/", {
+export const SidebarItems = pageAt("/", {
   me: ADMIN,
   check: async (page) => {
     if (onPhone()) return;
     const nav = within(await within(page).findByRole("navigation", { name: "Apps" }));
-    const area = (name: string) => nav.getByRole("button", { name: named(name) });
-    await expect(area("Primary")).toHaveAttribute("aria-expanded", "true");
-    await expect(area("Marketing")).toHaveAttribute("aria-expanded", "true");
-    await expect(area("Tools")).toHaveAttribute("aria-expanded", "false");
-    for (const name of ["Pipelines", "People", "Content", "Engage", "Outbound", "Ads", "Analytics"])
+    for (const name of ["Inbox", "People", "Money", "Admin"])
       expect(links(nav, name), `${name} is in the sidebar`).toBeGreaterThan(0);
-    // Parked apps keep their routes and their place in the command menu, not in the sidebar.
+    for (const name of ["Pipelines", "Content", "Engage", "Outbound", "Ads", "Analytics"])
+      expect(links(nav, name), `${name} opens from the Map, not the sidebar`).toBe(0);
     for (const name of ["Notes", "Learn", "Voice"])
       expect(links(nav, name), `${name} is parked`).toBe(0);
+    await expect(within(page).getAllByRole("link", { name: named("Map") }).length).toBeGreaterThan(
+      0,
+    );
   },
 });
 
-/** A phone's bottom tabs at home: Home (Today), Pipelines, Studio, Engage, then Apps. */
+/** A phone's bottom tabs at home: the Map, Inbox, People, then Apps. */
 export const PhoneDock = pageAt("/", {
   me: ADMIN,
   check: async (page) => {
     if (!onPhone()) return;
     const dock = within(await within(page).findByRole("navigation", { name: "Tabs" }));
-    for (const name of ["Home", "Pipelines", "Studio", "Engage"])
+    for (const name of ["Map", "Inbox", "People"])
       expect(links(dock, name), `${name} is a tab`).toBe(1);
     await expect(dock.getByRole("button", { name: named("Apps") })).toBeVisible();
   },

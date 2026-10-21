@@ -15,7 +15,7 @@ import { LoadFailed } from "./feedback.js";
 import { Cue, cueOf, FieldCell, filterShape } from "./fields.js";
 import { num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
-import { PageTitle } from "./layout.js";
+import { GROUP_LABEL, PageTitle } from "./layout.js";
 import {
   askOf,
   cap,
@@ -273,9 +273,7 @@ function Facet({
   };
   return (
     <fieldset className="m-0 grid min-w-0 gap-1 border-0 p-0">
-      <legend className="mb-1.5 p-0 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-        {f.label}
-      </legend>
+      <legend className={`mb-1.5 p-0 ${GROUP_LABEL}`}>{f.label}</legend>
       {states.map(([id, st]) => (
         <label
           key={id}

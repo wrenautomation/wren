@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Banknote,
   BookOpen,
+  Bot,
   Boxes,
   Briefcase,
   Calendar,
@@ -20,12 +21,16 @@ import {
   Clock,
   Code,
   CreditCard,
+  DollarSign,
   Download,
   Ellipsis,
   ExternalLink,
+  Eye,
   FileText,
   Flag,
+  GitBranch,
   Globe,
+  History,
   Hourglass,
   House,
   Inbox,
@@ -34,6 +39,7 @@ import {
   LayoutGrid,
   Link,
   List,
+  LogOut,
   type LucideIcon,
   Mail,
   Megaphone,
@@ -41,28 +47,36 @@ import {
   Merge,
   MessageSquare,
   Mic,
+  Minimize2,
+  OctagonX,
   PanelLeft,
   Pause,
   Pencil,
   PenLine,
+  Percent,
   Phone,
   Pin,
   Play,
   Plus,
   Presentation,
   RefreshCw,
+  Repeat,
   Reply,
+  RotateCcw,
   Search,
   Shapes,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Split,
+  SquareArrowOutUpRight,
   SquareKanban,
   Star,
   StickyNote,
   Target,
   Upload,
+  User,
+  UserCheck,
   Users,
   Workflow,
   X,
@@ -138,6 +152,21 @@ const ICONS = {
   help: CircleHelp,
   keys: Keyboard,
   more: Ellipsis,
+  // The metro map's marks (metro/): what a person gives, how a flow splits, what a step repeats.
+  eye: Eye,
+  dollar: DollarSign,
+  exit: LogOut,
+  shrink: Minimize2,
+  percent: Percent,
+  approve: UserCheck,
+  shared: SquareArrowOutUpRight,
+  bot: Bot,
+  user: User,
+  undo: RotateCcw,
+  branch: GitBranch,
+  history: History,
+  stop: OctagonX,
+  repeat: Repeat,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;
@@ -163,6 +192,35 @@ export function Icon({
       className={cx("flex-none", className)}
       size={size}
       strokeWidth={1.75}
+      aria-hidden="true"
+    />
+  );
+}
+
+/**
+ * A glyph inside an SVG, centred on (x, y): the metro map's marks. A nested svg, so the map's CSS
+ * (`.ic`) sets the stroke and its width on the 24 grid, as it does for every mark.
+ */
+export function SvgGlyph({
+  name,
+  x,
+  y,
+  size,
+  className,
+}: {
+  name: IconName;
+  x: number;
+  y: number;
+  size: number;
+  className?: string;
+}) {
+  const Drawn = isIconName(name) ? ICONS[name] : UNKNOWN;
+  return (
+    <Drawn
+      className={cx("ic", className)}
+      x={x - size / 2}
+      y={y - size / 2}
+      size={size}
       aria-hidden="true"
     />
   );

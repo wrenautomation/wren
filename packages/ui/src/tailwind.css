@@ -37,12 +37,28 @@
   --ui-font-display: var(--ui-font); /* headings and big figures */
   --ui-display-weight: 500;
   --ui-display-squeeze: 1; /* how tight headings sit: 1 is Wren's, 0 is none */
-  --ui-label-case: uppercase; /* the small labels over columns and nav groups */
-  --ui-label-tracking: 0.09em;
-  --ui-button-case: uppercase;
-  --ui-button-tracking: 0.08em;
-  --ui-button-weight: 600;
+  --ui-label-case: none; /* the small labels over columns and nav groups: sentence case */
+  --ui-label-tracking: 0;
+  --ui-button-case: none; /* sentence case; a look that wants capitals sets these three */
+  --ui-button-tracking: 0;
+  --ui-button-weight: 650;
   --ui-radius: 6px; /* a control's corner; panels and sheets grow from it, and 0px squares all */
+  /* The leaf: two opposite corners round, two tight (the mark's feather). Wren's look and its
+     night only. A look that sets its own radius gets plain corners (themeVars). */
+  --ui-leaf-panel: 6px 24px; /* panels, bands, cards */
+  --ui-leaf-button: 6px 10px; /* a hint only: a button reads as a button first */
+  --ui-leaf-chip: 3px 10px; /* tags, chips, pills */
+  --ui-leaf-nav: 3px 12px; /* sidebar rows and page tabs */
+  --ui-sweep: 1; /* the lavender sweep on panel and band tips: 1 on, 0 off */
+  /* Map line colours, one per offer. Each reads at 3:1 on paper, light and night. */
+  --ui-line-0: #6a5a93;
+  --ui-line-1: #2f8a80;
+  --ui-line-2: #c0567f;
+  --ui-line-3: #3d78b8;
+  --ui-line-4: #a04c9c;
+  --ui-line-5: #2b84a3;
+  --ui-line-6: #6f8a2a;
+  --ui-line-7: #5a66c4;
   --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
   --ui-main-width: 1240px;
   /* The frame as the viewer sets it (display.ts): panel widths, text size, row heights. */
@@ -53,6 +69,7 @@
   --layout-nav-row: 32px; /* an app in the sidebar */
   --layout-tab-row: 34px; /* a page in the app's column */
   --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-spring: cubic-bezier(0.2, 0.9, 0.25, 1.12); /* things you press or open */
   --ui-backdrop: none; /* image layers behind the window: a showcase look's gradients */
   --ui-grain: 0; /* film grain over everything, 0 to 0.2; drawn only under [data-grain] */
   --ui-lift: 0 0 #0000; /* the window's own glow or hard shadow, past its hairline */
@@ -86,6 +103,7 @@
   --ui-link: var(--ui-accent); /* text that goes somewhere */
   --ui-focus: var(--ui-accent); /* the focus ring */
   --ui-live: var(--ui-accent); /* a real event: running, new, just changed */
+  --ui-press-edge: color-mix(in srgb, var(--ui-accent) 72%, #000); /* under a primary button */
   --ui-accent-wash: color-mix(in srgb, var(--ui-accent) 7%, transparent);
   --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
@@ -205,6 +223,14 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   /* shadcn's scale on the kit's: lg a control, xl a panel, 2xl a sheet. */
+  --color-line-0: var(--ui-line-0);
+  --color-line-1: var(--ui-line-1);
+  --color-line-2: var(--ui-line-2);
+  --color-line-3: var(--ui-line-3);
+  --color-line-4: var(--ui-line-4);
+  --color-line-5: var(--ui-line-5);
+  --color-line-6: var(--ui-line-6);
+  --color-line-7: var(--ui-line-7);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -387,10 +413,183 @@
   }
 }
 
+/* The sweep on a leaf panel's tips (sweep.tsx). Off when a look turns --ui-sweep to 0. */
+.ui-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--ui-sweep);
+  transition: opacity 0.35s var(--ui-ease);
+}
+.ui-sweep > svg {
+  position: absolute;
+  overflow: visible;
+}
+.ui-sweep > [data-tip="tr"] {
+  top: 0;
+  right: 0;
+}
+.ui-sweep > [data-tip="bl"] {
+  bottom: 0;
+  left: 0;
+}
+.ui-sweep[data-band]:not([data-open]) {
+  opacity: calc(var(--ui-sweep) * 0.4);
+}
+:hover > .ui-sweep[data-band] {
+  opacity: var(--ui-sweep);
+}
+.ui-sweep > [data-inner] {
+  opacity: 0;
+  transition:
+    opacity 0.4s var(--ui-ease),
+    transform 0.5s var(--ui-spring);
+}
+.ui-sweep > [data-inner][data-tip="tr"] {
+  transform: translate(2px, -2px);
+}
+.ui-sweep > [data-inner][data-tip="bl"] {
+  transform: translate(-2px, 2px);
+}
+.ui-sweep[data-open] > [data-inner] {
+  opacity: 0.55;
+  transform: none;
+}
+
+/* A nav row that is the page on screen: the sweep on its top right tip (shell.tsx). */
+.ui-nav-sweep {
+  position: relative;
+}
+.ui-nav-sweep[aria-current]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 14px;
+  border: solid var(--ui-active);
+  border-width: 1.5px 1.5px 0 0;
+  border-top-right-radius: 12px;
+  opacity: var(--ui-sweep);
+  pointer-events: none;
+  -webkit-mask: linear-gradient(to left, #000 30%, transparent);
+  mask: linear-gradient(to left, #000 30%, transparent);
+}
+
 /* A new page fades in. */
 @keyframes ui-fade {
   from {
     opacity: 0;
+  }
+}
+
+/* Something new rises in: the fold line of Steps, a changed number (fades in once, never counts). */
+.ui-rise {
+  animation: ui-rise 0.35s var(--ui-ease) both;
+}
+@keyframes ui-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-rise {
+    animation: none;
+  }
+}
+
+/* Steps (steps.tsx). The status line cross-fades: the old line goes up and out, the new one
+   comes up and in. A card folds down into place; a done step's cards stack into a deck. */
+.ui-status > [data-out] {
+  animation: ui-status-out 0.22s var(--ui-ease) forwards;
+}
+.ui-status > [data-in] {
+  animation: ui-status-in 0.22s var(--ui-ease) both;
+}
+@keyframes ui-status-out {
+  to {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@keyframes ui-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+.ui-cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 4px;
+  min-height: 24px;
+  perspective: 500px;
+}
+.ui-card {
+  margin: 0 5px 4px 0;
+  transform-origin: 50% 0;
+  animation: ui-card-fold 0.55s var(--ui-ease) both;
+  transition:
+    margin 0.4s var(--ui-ease),
+    padding 0.4s var(--ui-ease);
+}
+.ui-card > em {
+  max-width: 140px;
+  overflow: hidden;
+  transition:
+    max-width 0.4s var(--ui-ease),
+    opacity 0.3s;
+}
+.ui-cards[data-stack] > .ui-card {
+  margin-right: -9px;
+  padding-right: 3px;
+}
+.ui-cards[data-stack] > .ui-card > em {
+  max-width: 0;
+  opacity: 0;
+}
+.ui-cards-count {
+  margin: 0 0 4px 14px;
+  font-size: 11.5px;
+  color: var(--ui-ink-3);
+  opacity: 0;
+  transition: opacity 0.3s 0.3s;
+}
+.ui-cards[data-stack] > .ui-cards-count {
+  opacity: 1;
+}
+.ui-cards:not([data-stack]) > .ui-cards-count {
+  display: none;
+}
+@keyframes ui-card-fold {
+  from {
+    opacity: 0;
+    transform: rotateX(-90deg) translateY(-6px);
+  }
+  55% {
+    transform: rotateX(14deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-card,
+  .ui-status > [data-out],
+  .ui-status > [data-in] {
+    animation: none;
+  }
+  .ui-status > [data-out] {
+    opacity: 0;
+  }
+  .ui-card,
+  .ui-card > em,
+  .ui-cards-count {
+    transition: none;
   }
 }
 
@@ -423,27 +622,75 @@
   }
 }
 
-/* What a user action is doing. A pressed button still at work runs a short bar under its label:
-   one pass per cycle, off the button at both ends so the loop has no seam. It fades in after a
-   beat so a quick one never flickers. The rows it changed wash, then settle. */
+/* The busy ring (busy.tsx): one mark for any wait. A faint track and one arc that turns. Its
+   ink is the live role; a primary button sets --ui-busy-ink to its own text. The slot is always
+   there once a part can go busy, so the width never changes. The rows an action changed wash,
+   then settle. A press that worked draws a check in the same slot. Reduced motion: the arc
+   stops and the check shows at once. */
+.ui-busy {
+  display: inline-flex;
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.2s var(--ui-ease);
+}
+.ui-busy[data-on],
+.ui-busy[data-done] {
+  opacity: 1;
+}
+.ui-busy > svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ui-busy circle {
+  fill: none;
+  stroke: var(--ui-busy-ink, var(--ui-live));
+  stroke-width: 4.5;
+  stroke-linecap: round;
+}
+.ui-busy [data-track] {
+  opacity: 0.16;
+}
+.ui-busy [data-arc] {
+  stroke-dasharray: 28 100;
+  transform-origin: 20px 20px;
+}
+.ui-busy[data-on] [data-arc] {
+  animation: ui-ring-spin 0.8s linear infinite;
+}
+.ui-busy [data-check] {
+  fill: none;
+  stroke: var(--ui-busy-ink, var(--ui-live));
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  opacity: 0;
+}
+.ui-busy[data-done] circle {
+  opacity: 0;
+}
+.ui-busy[data-done] [data-check] {
+  opacity: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.3s var(--ui-ease) 0.05s;
+}
+@keyframes ui-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-busy[data-on] [data-arc] {
+    animation: none;
+  }
+  .ui-busy[data-done] [data-check] {
+    transition: none;
+  }
+}
 @theme {
-  --animate-ui-busy:
-    ui-busy 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite, ui-busy-in 0.25s ease-out 0.3s backwards;
   --animate-ui-changed: ui-changed 1.4s var(--ui-ease);
-  /* The bar is 40% of the button wide: -100% of itself is off the left edge, 250% off the right. */
-  @keyframes ui-busy {
-    from {
-      translate: -100% 0;
-    }
-    to {
-      translate: 250% 0;
-    }
-  }
-  @keyframes ui-busy-in {
-    from {
-      opacity: 0;
-    }
-  }
   @keyframes ui-changed {
     from {
       background-color: color-mix(in srgb, var(--ui-live) 14%, transparent);

@@ -5,7 +5,7 @@
  * (`?v=`). A client's post links its own video straight. Each choice saves on its own.
  */
 import type { RecordAct } from "@wren/ui";
-import { Tag } from "@wren/ui";
+import { GROUP_LABEL, Tag } from "@wren/ui";
 import { useState } from "react";
 import { SELECT } from "../work/bits.js";
 
@@ -45,8 +45,6 @@ const TARGETS = [
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
-const GROUP_HEAD =
-  "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
 const GRID = "grid grid-cols-[minmax(0,1fr)] gap-5 @min-[440px]/fields:grid-cols-2";
 
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
@@ -225,7 +223,7 @@ export function FunnelFields({
   return (
     <section aria-label="Funnel" className="grid gap-4">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className={GROUP_HEAD}>Funnel</h3>
+        <h3 className={GROUP_LABEL}>Funnel</h3>
         <span className="text-[12px] text-(--ui-ink-3)">{summary}</span>
       </div>
       <div className={GRID}>

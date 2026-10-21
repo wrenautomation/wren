@@ -43,18 +43,18 @@ function draw(picked: string[], running: { action: string; ids: (string | number
 }
 
 describe("a press is busy only on the rows it is at work on", () => {
-  it("a bulk button for other rows is turned off but draws no bar", () => {
+  it("a bulk button for other rows is turned off but shows no ring", () => {
     const b = draw(["2"], { action: "approve", ids: [1] });
     expect(b?.textContent).toContain("Approve");
     expect(b?.hasAttribute("aria-busy")).toBe(false);
     expect(b?.hasAttribute("disabled")).toBe(true);
-    expect(host.querySelector('[aria-hidden="true"].animate-ui-busy')).toBeNull();
+    expect(host.querySelector("[data-busy][data-on]")).toBeNull();
   });
 
-  it("a bulk button for the rows it works on draws its bar", () => {
+  it("a bulk button for the rows it works on shows its ring", () => {
     const b = draw(["1", "2"], { action: "approve", ids: [1] });
     expect(b?.getAttribute("aria-busy")).toBe("true");
-    expect(host.querySelector('[aria-hidden="true"].animate-ui-busy')).not.toBeNull();
+    expect(host.querySelector("[data-busy][data-on]")).not.toBeNull();
   });
 
   it("ids from a stored write come back as text and still match", () => {
