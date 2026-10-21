@@ -3,6 +3,7 @@
  * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
+import { expect, waitFor, within } from "storybook/test";
 import { failedIn, pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Client" };
@@ -29,8 +30,33 @@ export const Settings = pageAt("/settings");
 export const Library = pageAt("/library");
 export const Account = pageAt("/account");
 
-/** A record open in its panel, over the list (`?<record's one name>=<id>`). */
-export const PersonOpen = pageAt("/people/people?profile=1");
+/** The list: a person's name with an avatar, their stage as its square, their last touch as an age. */
+export const PeopleList = pageAt("/people/people", {
+  check: async (page) => {
+    const names = await within(page).findAllByRole("link", { name: "Ada North" });
+    await expect(names[0]).toBeVisible();
+  },
+});
+
+/** The open record's panel (wide) or sheet (phone). */
+const peekOf = () =>
+  document.body.querySelector<HTMLElement>(
+    'aside[aria-label="Person"], [role="dialog"][aria-label="Person"]',
+  );
+
+/** A person's peek (`?<record's one name>=<id>`): their properties, newest activity and one action. */
+export const PersonPeek = pageAt("/people/people?person=1", {
+  check: async () => {
+    await waitFor(() => expect(peekOf()).not.toBeNull());
+    const peek = within(peekOf() as HTMLElement);
+    await expect(await peek.findByRole("heading", { name: "Ada North" })).toBeVisible();
+    for (const label of ["Stage", "Warmth", "Persona", "Last touch", "Last touch on"])
+      await expect(peek.getByText(label, { selector: "dt" })).toBeVisible();
+    const last = await peek.findByRole("region", { name: "Last activity" });
+    await expect(within(last).getByText("Asked if the winter run has room.")).toBeVisible();
+    await expect(peek.getByRole("link", { name: "Open the full record" })).toBeVisible();
+  },
+});
 
 /** The shell while nothing has come back, and when every read fails: an error, never "nothing waits". */
 export const Loading = pageAt("/", { mode: "pending" });

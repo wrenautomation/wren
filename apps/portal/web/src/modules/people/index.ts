@@ -38,9 +38,13 @@ export const PEOPLE_PAGES: ModulePage[] = [
       merged: "No two profiles have turned out to be one person yet.",
     },
     columns: ["name", "stage", "warmth", "warmthLine", "persona", "lastTouchAt"],
+    // How long ago, never late: a last touch has no promise.
+    late: { field: "lastTouchAt" },
+    peek: { fields: ["stage", "warmth", "persona", "lastTouchAt", "lastChannel"] },
     // Research this person and its Keep and Drop are Wren's: the server describes them to Wren alone.
     actions: [addToGroup, researchAction, ...inlineDecide],
-    extras: (detail, at) => withLeadCheck(profileExtras(detail, at.act), detail, at.row.id),
+    extras: (detail, at) =>
+      withLeadCheck(profileExtras(detail, at.act, String(at.row.name ?? "")), detail, at.row.id),
   },
   {
     id: "timeline",

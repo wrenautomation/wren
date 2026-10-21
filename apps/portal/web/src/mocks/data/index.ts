@@ -12,12 +12,59 @@ import { AUTO_REPLY, CADENCE, PIECES, STUDIO_WAITING } from "./marketing.js";
 import { MOVE_ROWS } from "./moves.js";
 import { OFFER_ANSWERS, OFFER_DETAIL, OFFER_ROWS } from "./offers.js";
 import { recordsAnswers } from "./records.js";
-import { SHELL } from "./shell.js";
+import { ago, SHELL } from "./shell.js";
+
+/** A person's page read: their newest timeline lines, for the peek (`profileExtras`). */
+const PERSON_DETAIL = (row: Row) => ({
+  timeline: [],
+  total: 3,
+  href: "#",
+  visits: null,
+  warmth: null,
+  reach: null,
+  research: null,
+  leadFit: null,
+  lines: [
+    {
+      id: `${row.id}-3`,
+      at: ago(0.4),
+      kind: "reply",
+      summary: "Asked if the winter run has room.",
+      link: null,
+      context: null,
+      note: null,
+      kindState: { label: "Replied", tone: "good" },
+      channelState: { label: "Email", tone: "neutral" },
+    },
+    {
+      id: `${row.id}-2`,
+      at: ago(2),
+      kind: "email_sent",
+      summary: "Sent: A quote for the winter run.",
+      link: null,
+      context: null,
+      note: null,
+      kindState: { label: "Email sent", tone: "neutral" },
+      channelState: { label: "Email", tone: "neutral" },
+    },
+    {
+      id: `${row.id}-1`,
+      at: ago(5),
+      kind: "visit",
+      summary: "Read the pricing page.",
+      link: null,
+      context: null,
+      note: null,
+      kindState: { label: "Visit", tone: "neutral" },
+      channelState: null,
+    },
+  ],
+});
 
 const BASE: Answers = {
   ...recordsAnswers(
     { "marketing.cadence": CADENCE as unknown as Row[], ...JOURNEY_ROWS, ...OFFER_ROWS },
-    { ...JOURNEY_DETAIL, ...OFFER_DETAIL },
+    { ...JOURNEY_DETAIL, ...OFFER_DETAIL, "people.profile": PERSON_DETAIL },
     MOVE_ROWS,
   ),
   ...SHELL,

@@ -130,7 +130,13 @@ export interface ListPage extends PageBase {
    * ("24h", "2d"). The field draws as a wait, rows past the promise read late, and the foot counts
    * them (`@wren/core/promise` is the one late rule).
    */
-  late?: { field: string; promise: string };
+  late?: { field: string; promise?: string };
+  /**
+   * What a row click opens. The default is a peek: the row's properties (`fields`, else the
+   * list's columns), its newest activity, and the page's reply box or the row's main action,
+   * with the full record one click on. `false` opens the whole record in the panel.
+   */
+  peek?: false | { fields?: string[] };
   /**
    * A list's cards (Rows / Cards in its bar): what each card shows, read from `columns` when left
    * out. `false` keeps it rows only: logs, audits, runs, a day's numbers.

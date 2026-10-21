@@ -949,6 +949,7 @@ export function TemplatePage({
     art: page.art,
     needs: page.needs ?? page.count,
     late: page.late,
+    peek: page.peek,
     card: cardFor(page),
     // Every record lists the notes that @ it, after its own sections.
     extras: (detail: unknown, row: Row, act: RecordAct, readAt: number) => {

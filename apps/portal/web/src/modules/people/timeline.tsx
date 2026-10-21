@@ -10,6 +10,7 @@ import {
   Alert,
   Facts,
   type IconName,
+  type PeekLine,
   PlatformMark,
   type RecordAct,
   type RecordExtras,
@@ -328,13 +329,30 @@ function Visits({ visits }: { visits: Visit[] }) {
   );
 }
 
+/** What we did to them, not what they did: a line of these says "You". */
+const OURS = /_sent$|^(voice_call|call|touch|workflow)$/;
+/** A line nobody did: the profile changed. */
+const SYSTEM_KINDS = new Set(["trait", "merge"]);
+
+/** The peek's newest items: their newest timeline lines, who did it, where, when. */
+function recentOf(detail: Detail, name: string): PeekLine[] {
+  return (detail.lines ?? []).slice(0, 3).map((l) => ({
+    who: SYSTEM_KINDS.has(l.kind) ? undefined : OURS.test(l.kind) ? "You" : name,
+    channel: l.channelState?.label,
+    at: l.at,
+    text: l.summary ?? l.kindState?.label ?? cap(l.kind.replaceAll("_", " ")),
+  }));
+}
+
 /**
  * The profile page's Profiles, Research, Warmth and Timeline sections, and Site visits when it
  * has a visitor key. Research shows for Wren's own people; the page reads again while a run works.
+ * `name` is the person's, for the peek's newest lines.
  */
-export const profileExtras = (detail: unknown, act?: RecordAct): RecordExtras =>
+export const profileExtras = (detail: unknown, act?: RecordAct, name = "They"): RecordExtras =>
   isDetail(detail)
     ? {
+        recent: recentOf(detail, name),
         ...(researching(detail.research) ? { poll: RESEARCH_POLL_MS } : {}),
         sections: [
           ...(detail.reach
