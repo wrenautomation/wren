@@ -160,7 +160,7 @@ Source: `packages/ui/src/tailwind.css` (`:root`, light "Wren" preset). Values in
 | Token | Is | Use |
 |---|---|---|
 | `--ui-wash` | 50% canvas over paper | row hover, tier and group bands, empty hints |
-| `--ui-band` | 75% canvas over paper | head strips: table heads, section titles, dialog head and foot |
+| `--ui-band` | 75% canvas over paper | head strips: table heads |
 | `--ui-hair` | ink 22% | every border and rule |
 | `--ui-edge` | ink 32% | around inputs, table head underline |
 | `--ui-fill` | ink 6% | pressed, selected row, chip fill |
@@ -226,7 +226,7 @@ Source: `packages/ui/src/layout.tsx`, `shell.tsx`, `frame.tsx`, `display.ts`, `t
 - **Main width:** 1240 px (`--ui-main-width`). Page padding is `18px clamp(12px, 2.5vw, 24px)` (artifact `.amain`); a wide page only drops the max width. Phone keeps 16 px. Lists use the full window width.
 - **PageHeader:** wraps, items end, gap-x 24, gap-y 10, no rule, `mb-3.5` (artifact `.atop`).
 - **Segmented control** (`frame.tsx`, `phone.tsx`; artifact `.seg`): fill ground, radius 10, 3 px padding, gap 2 px. Buttons 13.5 px, padding 6 px 12 px, radius `3px 9px 3px 9px`. The choice on screen is paper, ink, 600, `--ui-raise`. Focus is a 2 px focus outline, 1 px offset.
-- **Section:** a framed panel with a band head strip. Framed sections stack 28 px apart. `plain` drops the frame; sibling plain sections stack 40 px apart.
+- **Section:** a framed panel (artifact `.panel`) with its title on the paper: no band, no rule. Framed sections stack 28 px apart. `plain` drops the frame; sibling plain sections stack 40 px apart.
 - **Fieldset:** a frame whose legend is the head strip (group label). Body is a grid, gap 16, padding 16.
 - **Display settings** (`display.ts`): sidebar and pages widths, rows roomy or snug, text small, normal or large (zooms `main` only), canvas frame on or off, counts on or off, motion full or less.
 - **Resizers** sit on panel edges: drag, arrows, Enter folds, double-click resets. Sidebar 184 to 360 px (folds under 140). Pages 160 to 320 px (hides under 110).
@@ -347,7 +347,7 @@ Source: `table.tsx` (TanStack Table plus Virtual; `VIRTUAL_FROM` = 120 rows), `r
 
 Source: `card-grid.tsx`, `layout.tsx` (`FRAME`).
 
-- **Frame:** `FRAME` is leaf-panel corners, paper, `--ui-raise`, with a `Sweep`. `FRAME_HEAD` is a band strip: bottom hairline, `px-4 py-2.5`. `FRAME_BODY` is `p-4`.
+- **Frame:** `FRAME` is leaf-panel corners, paper, `--ui-raise`, with a `Sweep`. `FRAME_HEAD` is on the paper (no band, no rule): `px-5 pt-[18px]`. `FRAME_BODY` is `p-5`, with 12 px above it under a head.
 - **Card grid:** `repeat(auto-fill, minmax(min(100%, 260px), 1fr))`, gap 12. Card is panel radius, hair border, paper, raise, 150 ms transitions. Selected: ink border plus 1 px ink ring. Hover: edge border.
 - **Media:** wash ground, bottom hairline, aspect from `MEDIA_RATIO`.
 - **Pick box:** 28 px (44 px coarse).
@@ -360,6 +360,7 @@ Source: `shell.tsx`, `frame.tsx`, `page-bar.tsx`, `launcher.tsx`, `palette.tsx`.
 
 - **Top bar:** 54 px. App mark 30 px square on `--ui-fill`, control radius. App name 17 px display weight. Icon buttons 32 px (44 px coarse), clear, wash on hover, 150 ms.
 - **Sidebar:** inside the window's card, not beside it. The card spans both columns. The sidebar takes `--layout-side` (190 px) at its left on `--ui-ground`, with a hairline right edge, padding 14 px top and 10 px sides, rows 2 px apart. The page is on paper. A phone has no sidebar ground.
+- **Sidebar brand:** the Wren bird as a 30 by 22 mask in `--ui-primary` (`.ui-mark`), then the name in 15 px semibold. The phone top bar keeps the tile image.
 - **Brand line:** the mark, 9 px, the workspace name at 16 px, 700.
 - **Sidebar app row:** `--layout-nav-row` high, leaf-nav corners, 14 px regular ink-2, 9 px gap, 16 px icon at stroke 1.8. Current: `--ui-accent-tint`, semibold ink, and the short sweep on the top right.
 - **Sidebar label ("Pinned"):** 12 px, 600, sentence case, ink-3. **Foot line:** "⌘K finds any app", 11.5 px, 600, ink-3, at the bottom.
@@ -368,7 +369,7 @@ Source: `shell.tsx`, `frame.tsx`, `page-bar.tsx`, `launcher.tsx`, `palette.tsx`.
 - **Count badge:** an accent pill (`--ui-primary`, text `--ui-on-accent`), 12 px bold, min width 20, full round. Folded sidebar shows a 6 px accent dot.
 - **Hover text:** rests 400 ms, never on touch.
 - **Palette:** command-K, `cmdk` in a dialog. Sheet radius.
-- **Dialog:** sheet radius, `--ui-shadow`, 150 ms zoom 95% plus fade, `max-w-sm`. Head and foot are band strips with hairlines.
+- **Dialog:** sheet radius, `--ui-shadow`, 150 ms zoom 95% plus fade, `max-w-sm`. Head and foot are on the paper, with hairlines.
 - **Side sheet:** 3/4 width up to `max-w-sm`, `--ui-shadow`, 200 ms.
 - **Popover:** 288 px wide, sheet radius, `--ui-float`, 100 ms. Under 900 px it becomes a bottom sheet.
 - **Toasts:** sonner on an ink ground with paper text, leaf corners, padding 10 x 14, 14 px; the action is a bold underline (artifact `.toast`).
@@ -422,20 +423,20 @@ Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`
 
 Source: `designs/2026-10-20-design-language/design-language.src.html`, section 14 (`loading`). Rules only; the parts come later. A new token is allowed (for example a shimmer colour).
 
-**Timing.** Under 150 ms, show nothing. Up to 1 s, show a skeleton in place, or the ring beside what refreshes. Past 1 s, add words. Past 10 s, show steps and say the person can leave.
+**Timing.** Under 150 ms, show nothing. Up to 1 s, show a skeleton in place. A refresh marks nothing. Past 1 s, add words. Past 10 s, show steps and say the person can leave.
 
 | Kind | When | Looks like |
 |---|---|---|
 | Skeleton | first load of a page or sheet | Grey blocks in the shape of the content, with a slow lavender shimmer. The known header shows at once. |
-| Refresh | data already shown reads again | The old data stays. The ring turns beside the panel or page title (`busy` on `Section` and `PageTitle`; `refreshing(load)`). A changed number fades in once. |
+| Refresh | data already shown reads again | The old data stays and nothing marks it: no ring beside a page or section title or a count (William, 10-21). A changed number fades in once. |
 | Busy | a button or chip at work | The label stays and the slot is reserved: no width change. The ring turns beside it, then a check, then the toast with Undo. |
 | Optimistic | a press with `optimistic` in a list | The row stays, washed, with the action's word and the ring ("Passed"), until the server answers. Then it leaves. A refusal brings it back with its words. A queue opens the next item at once. |
 | Steps | any wait with stages | Each step names what it does and with what. The status line cross-fades and holds each line at least 600 ms, so it never flickers. Sources and targets fold in as small cards with the platform's own logo on its brand colour (`PlatformTile` in `marks.tsx`, from `simple-icons`; a plain site gets a globe), then stack into a deck with a count when the step is done. Past 10 s: a clock, and "you can leave". Done, it folds to one line that stays as the record and opens on a click (`Steps` in `steps.tsx`). One part for research, send, import, a video render and the map. |
 | Stream | AI text | Text arrives as it comes, with a lavender caret and a "Drafting" chip with the ring. |
 
-**The busy ring.** One shared part, `Busy` (`busy.tsx`), and one look (William, 10-21): a faint track (opacity 0.16) and one arc (dash 28 100, stroke 4.5, round cap) that turns, 0.8 s a turn. The ink is `--ui-live`; a primary button sets `--ui-busy-ink` to its own text. Sizes: 40 px in a modal (`BusyBox`), 18 px in the running step (it replaces the step's dot), 14 px elsewhere. Places: the running step, the optimistic chip, the pager count while the next page loads, a view tab whose rows still read, a button beside its label, a panel title on refresh, the AI chip, the ⌘K input (old results stay until new ones land), a modal, the phone's pull to refresh and a loading toast. No loading bars and no sweeps anywhere.
+**The busy ring.** One shared part, `Busy` (`busy.tsx`), and one look (William, 10-21): a faint track (opacity 0.16) and one arc (dash 28 100, stroke 4.5, round cap) that turns, 0.8 s a turn. The ink is `--ui-live`; a primary button sets `--ui-busy-ink` to its own text. Sizes: 18 px in the running step (it replaces the step's dot), 14 px elsewhere. Places: the running step, the optimistic chip, a view tab whose rows still read (inside the tab only), a button beside its label (a page arrow too, inside the button only), the AI chip, the ⌘K input (old results stay until new ones land), the phone's pull to refresh and a loading toast. Never beside a page or section title, a count or the pager count. A first load gets the shaped skeleton (`Loading`), never a loading box or modal. No loading bars and no sweeps anywhere.
 
-**Pagination.** A pager stays where it exists. Never remove a pager or swap it for infinite scroll. The next page loads in place at the same height: the rows on screen dim and the ring turns after the count, no jump.
+**Pagination.** A pager stays where it exists. Never remove a pager or swap it for infinite scroll. The next page loads in place at the same height: the rows on screen dim and nothing else marks it, no jump.
 
 **Not loading.** Empty, error and offline each look different from a wait. Error: one sentence and Retry. Offline: a banner, and writes queue.
 

@@ -60,7 +60,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
         </p>
       ) : null}
       {sections.map((s) => (
-        // Each part framed under a banded head, its rows ruled inside: what belongs together reads so.
+        // Each part framed under a head on the paper, its rows ruled inside: what belongs together reads so.
         <section key={s.key} className={cn("grid", FRAME)}>
           <Sweep />
           {s.label ? (

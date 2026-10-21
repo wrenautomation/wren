@@ -6,7 +6,6 @@
  */
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Busy } from "./busy.js";
 import { num } from "./format.js";
 import { type Slot, slotsOf, spanOf } from "./pager.js";
 import type { Place } from "./records.js";
@@ -24,7 +23,6 @@ export function PageBar({
   shown,
   size,
   narrow,
-  loading = false,
 }: {
   place: Place;
   /** The page on show, from 1. */
@@ -35,8 +33,6 @@ export function PageBar({
   shown: number;
   size: number;
   narrow: boolean;
-  /** The next page reads: the ring turns after the count. */
-  loading?: boolean;
 }) {
   if (pages <= 1) return null;
   const to = (n: number) => place.link({ pg: n <= 1 ? null : String(n) });
@@ -102,14 +98,12 @@ export function PageBar({
       {narrow ? null : (
         <span className="inline-flex items-center gap-1.5 tabular-nums">
           {num(from)}–{num(upto)} of {num(total)}
-          <Busy on={loading} />
         </span>
       )}
       <div className="flex items-center gap-1">
         {arrow(-1)}
         {slotsOf(page, pages, narrow ? 1 : 2).map(slot)}
         {arrow(1)}
-        {narrow ? <Busy on={loading} /> : null}
       </div>
     </nav>
   );

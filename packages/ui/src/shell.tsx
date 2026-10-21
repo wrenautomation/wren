@@ -320,7 +320,19 @@ export function AppShell({
             aria-label={brand.name}
             {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
           >
-            <img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
+            <img
+              className={cx("flex-none", nav && "min-[901px]:hidden")}
+              src={brand.stamp}
+              alt=""
+              width={26}
+              height={26}
+            />
+            {nav ? (
+              <i
+                className="ui-mark h-[22px] w-[30px] flex-none max-[900px]:hidden"
+                aria-hidden="true"
+              />
+            ) : null}
             {nav ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
           </a>
           {nav ? null : (

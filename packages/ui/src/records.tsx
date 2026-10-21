@@ -1671,7 +1671,7 @@ function List({
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageTitle title={title ?? cap(many)} busy={page.loading && !!page.data && !dim} />
+        <PageTitle title={title ?? cap(many)} />
         {/* One button: the first thing the page makes. The rest wait behind one menu. */}
         <div className="flex items-center gap-2">
           {forms[0] ? (
@@ -2229,7 +2229,6 @@ function List({
         shown={rows.length}
         size={size}
         narrow={narrow}
-        loading={dim && !viewing}
       />
 
       {openId ? (
