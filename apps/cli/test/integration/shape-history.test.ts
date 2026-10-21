@@ -132,7 +132,8 @@ describe("wren shape history", () => {
     expect((await run("draft", "list")).out[0]).toMatch(/^add-a-call {2}draft {2}v1 {2}\d{4}-/);
 
     const shown = (await run("draft", "show", "add-a-call")).out;
-    expect(shown[1]).toBe("Add the call step");
+    expect(shown[1]).toBe(`by ${who()}`);
+    expect(shown[2]).toBe("Add the call step");
     expect(shown).toContain("Added station Call.");
     expect(shown).toContain("Added track Engaged to Call.");
 
@@ -250,6 +251,37 @@ describe("wren shape history", () => {
     expect(process.exitCode).toBeUndefined();
     breakWrites = false;
     expect((await run("mirror")).out).toEqual(["mirrored v4 c0ffee4"]);
+  });
+
+  it("edits a draft by ops, shows the plan, and applies it", async () => {
+    const made = await run("draft", "new", "--name", "By ops");
+    expect(made.out[0]).toMatch(/^draft by-ops saved on v4$/);
+
+    const op = '{"op":"rename","on":"station","id":"engaged","label":"Replied"}';
+    const edited = await run("edit", "by-ops", op);
+    expect(edited.err).toEqual([]);
+    expect(edited.out.at(-1)).toMatch(/^draft by-ops: \d+ changes from v4$/);
+    const file = join(dir, "ops.json");
+    writeFileSync(
+      file,
+      JSON.stringify([{ op: "set", on: "station", id: "engaged", field: "idleDays", value: 4 }]),
+    );
+    expect((await run("edit", "by-ops", "--ops", file)).err).toEqual([]);
+
+    const both = await run("edit", "by-ops", op, "--ops", file);
+    expect(both.err[0]).toMatch(/Not both, not neither/);
+    process.exitCode = undefined;
+    const bad = await run("edit", "by-ops", '{"op":"remove","on":"station","id":"nope"}');
+    expect(bad.err.join(" ")).toMatch(/nope/);
+    process.exitCode = undefined;
+
+    const shown = (await run("draft", "show", "by-ops")).out;
+    expect(shown[1]).toBe(`by ${who()}`);
+    expect(shown.some((l) => l.startsWith("conflict:"))).toBe(false);
+    expect(shown.some((l) => /Replied/.test(l))).toBe(true);
+    const applied = await run("draft", "apply", "by-ops");
+    expect(applied.err).toEqual([]);
+    expect(applied.out[0]).toBe("v5 saved from draft by-ops");
   });
 });
 

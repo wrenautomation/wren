@@ -1,5 +1,6 @@
 import { TRIGGER_IDS } from "@wren/core/logic";
 import { planConvert } from "@wren/pipeline/convert-shape";
+import { Refused } from "@wren/pipeline/refused";
 import { exportShape } from "@wren/pipeline/shape-file";
 import { diffStored, type StoredBody } from "@wren/pipeline/stored";
 import { Command, InvalidArgumentError } from "commander";
@@ -14,6 +15,7 @@ import {
   metroLines,
   mirrorLines,
   nodeFrom,
+  opsInput,
   registerShape,
   type ShapeDeps,
   shapeLines,
@@ -229,6 +231,7 @@ describe("commands", () => {
       "add-node",
       "connect",
       "remove",
+      "edit",
       "draft",
       "blame",
       "undo",
@@ -239,6 +242,30 @@ describe("commands", () => {
     ]);
     const draft = shapeCmd(program()).commands.find((c) => c.name() === "draft") as Command;
     expect(names(draft)).toEqual(["new", "list", "show", "propose", "apply", "drop"]);
+  });
+
+  it("reads the op of edit from text or from a file, and refuses both or neither", () => {
+    const read = (f: string) =>
+      f === "ops.json" ? '[{"op":"remove","on":"track","id":"t"}]' : "x";
+    const op = '{"op":"rename","on":"shape","name":"New"}';
+    expect(opsInput(op, undefined, read)).toEqual({ op: "rename", on: "shape", name: "New" });
+    expect(opsInput(undefined, "ops.json", read)).toEqual([{ op: "remove", on: "track", id: "t" }]);
+    const both = /Give an op as JSON text, or --ops <file>/;
+    expect(() => opsInput(op, "ops.json", read)).toThrow(Refused);
+    expect(() => opsInput(op, "ops.json", read)).toThrow(both);
+    expect(() => opsInput(undefined, undefined, read)).toThrow(both);
+    expect(() => opsInput("{nope", undefined, read)).toThrow(/not valid JSON/);
+    expect(() => opsInput(undefined, "other.json", read)).toThrow(/not valid JSON/);
+  });
+
+  it("refuses edit with both an op and --ops, before it reads the database", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    process.exitCode = undefined;
+    await program().parseAsync(["shape", "edit", "d", "{}", "--ops", "f.json"], { from: "user" });
+    expect(err).toHaveBeenCalledWith(expect.stringMatching(/Not both, not neither/));
+    expect(process.exitCode).toBe(1);
+    process.exitCode = undefined;
+    err.mockRestore();
   });
 
   it("needs --name on draft new, --reason on draft drop, and a known --state", async () => {

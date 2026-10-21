@@ -1,7 +1,6 @@
 /**
  * The Map's drafts and history lines, pure (no reads, so a test imports it alone): the address of
- * an opened draft, the key its device edits live under, what each draft state allows, and the
- * words of a blame line. The wire types are `@wren/pipeline/history`'s; nothing here copies them.
+ * an opened draft, what each draft state allows, and the words of a blame line. The wire types are `@wren/pipeline/history`'s; nothing here copies them.
  */
 import type { State } from "@wren/core/records";
 import type {
@@ -21,13 +20,6 @@ export const draftIdOf = (s: string | null): string | null => {
   const id = s?.trim() ?? "";
   return id ? id : null;
 };
-
-/**
- * Where a draft's unsaved edits live on this device. A draft's edits and the live shape's never
- * share a key, so they never mix.
- */
-export const draftStoreKey = (client: string, draft: string | null): string =>
-  draft ? `map:draft:${client}:${draft}` : `map:draft:${client}`;
 
 /** What History opens on: `?history=drafts` opens it on Drafts, `?history=1` on Versions. */
 export type HistoryTab = "versions" | "drafts";

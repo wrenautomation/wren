@@ -25,11 +25,10 @@ import type { Terms } from "@wren/offers";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { DraftDetail, DraftState, VersionLine } from "./history.js";
 import type { Fit } from "./icp.js";
-import { type MetroBody, placesOf } from "./metro.js";
+import { placesOf } from "./metro.js";
 import type { ShapeBody } from "./model.js";
 import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
-import { Refused } from "./refused.js";
 import { scheduleOf } from "./schedule.js";
 import {
   journeyResearch,
@@ -42,7 +41,7 @@ import {
   shapeVersions,
   termsVersions,
 } from "./schema.js";
-import { metroView, runOf } from "./stored.js";
+import { drawnOf, runOf } from "./stored.js";
 
 export const OFFER_RECORD = "pipeline.offer";
 export const SHAPE_RECORD = "pipeline.shape";
@@ -376,7 +375,8 @@ export const shapeRecord = (): RecordType =>
      * The newest body with each node's depth, and every version: what changed and why, the draft
      * it came from, its tags, and the commit it landed as in the private repo. `body` and `depths`
      * are the graph the runtime runs, whichever model is stored. `metro` and `places` are the map
-     * model and the station places; both are null when the graph cannot be drawn as a metro.
+     * model and the station places; both are null when the graph cannot be drawn as a metro, and
+     * `drawErrors` says why (empty when it draws).
      */
     load: async (db) => {
       const versions = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number));
@@ -409,26 +409,18 @@ export const shapeRecord = (): RecordType =>
           mirror: m ? { sha: m.sha, url: `https://github.com/${m.repo}/commit/${m.sha}` } : null,
         };
       });
-      const metro = metroOrNull(top.body);
+      const drawn = drawnOf(top.body);
+      const metro = drawn.ok ? drawn.metro : null;
       return {
         body: runOf(top.body),
         depths: top.depths,
         metro,
+        drawErrors: drawn.ok ? [] : drawn.errors,
         places: metro ? placesOf(metro) : null,
         versions: lines,
       };
     },
   });
-
-/** The map model of a stored body, or null when a graph cannot be drawn (a node called `hub`). */
-function metroOrNull(body: Parameters<typeof metroView>[0]): MetroBody | null {
-  try {
-    return metroView(body);
-  } catch (e) {
-    if (e instanceof Refused) return null;
-    throw e;
-  }
-}
 
 // --- shape drafts ----------------------------------------------------------------------------
 
@@ -454,7 +446,7 @@ export async function draftRows(db: Queryable) {
 /**
  * Shape drafts (designs/2026-10-19-business-map.md, "History like git"): a body saved beside the
  * live shape. An agent proposes, a person applies it as the next version or drops it. A row's
- * fields are `DraftRow` (history.ts); its detail is the body and moves (`DraftDetail`).
+ * fields are `DraftRow` (history.ts); its detail is the body, moves and the drawing (`DraftDetail`).
  */
 export const shapeDraftRecord = (): RecordType =>
   defineRecord({
@@ -500,6 +492,7 @@ export const shapeDraftRecord = (): RecordType =>
     actions: [
       "pipeline.shapeDraftNew",
       "pipeline.shapeDraftUpdate",
+      "pipeline.shapeDraftEdit",
       "pipeline.shapeDraftPropose",
       "pipeline.shapeDraftApply",
       "pipeline.shapeDraftDrop",
@@ -507,7 +500,15 @@ export const shapeDraftRecord = (): RecordType =>
     /** The draft's own body and moves: what applying it would save. */
     load: async (db, id): Promise<DraftDetail | null> => {
       const [d] = await db.select().from(shapeDrafts).where(eq(shapeDrafts.id, id)).limit(1);
-      return d ? { body: runOf(d.body), moves: d.moves } : null;
+      if (!d) return null;
+      // A metro draft draws as itself, a graph draft through `metroOf`.
+      const drawn = drawnOf(d.body);
+      return {
+        body: runOf(d.body),
+        moves: d.moves,
+        metro: drawn.ok ? drawn.metro : null,
+        drawErrors: drawn.ok ? [] : drawn.errors,
+      };
     },
   });
 

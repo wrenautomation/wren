@@ -14,17 +14,22 @@
  * currency (as the graph's offer rows are). The views read the `run` column of a version, the
  * graph the runtime runs, so a metro version has crossings like any other.
  *
+ * A graph newest that the map can draw keeps its node and edge rows and adds the metro rows after
+ * them, so the Map reads stations and tracks by id whatever the model. The hub has no node: its
+ * row counts the leads (`leadsOf`).
+ *
  * Cost is Meta's spend on an `ads` source's campaign, in the ad account's currency; the views do
  * not convert, so a source on two currencies would add them. One currency per workspace holds today.
  */
+import { profiles } from "@wren/core/profiles-schema";
 import type { Queryable } from "@wren/db";
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import { isMetro, type MetroBody, placesOf } from "./metro.js";
 import { edgeIdOf, isSource, type ShapeBody } from "./model.js";
 import { scheduleOf } from "./schedule.js";
 import { journeys, pipelineDeals, termsVersions } from "./schema.js";
 import { newestShape } from "./store.js";
-import { runOf } from "./stored.js";
+import { drawnOf, runOf } from "./stored.js";
 import { edgeFlow, nodeCounts, sourceNumbers } from "./views.js";
 
 export type NumberWindow = 7 | 30 | 90 | "all";
@@ -134,6 +139,23 @@ export async function openNowOf(db: Queryable): Promise<Map<string, number>> {
     .where(eq(journeys.status, "open"))
     .groupBy(journeys.node);
   return new Map(rows.flatMap((x) => (x.node ? [[x.node, x.n] as const] : [])));
+}
+
+/**
+ * The people who are leads: profiles that are not merged into another and hold no deal of any
+ * status. The hub station shows this count; the hub holds no journey.
+ */
+export async function leadsOf(db: Queryable): Promise<number> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(profiles)
+    .where(
+      and(
+        isNull(profiles.mergedInto),
+        sql`not exists (select 1 from ${pipelineDeals} where ${pipelineDeals.profileId} = ${profiles.id})`,
+      ),
+    );
+  return r?.n ?? 0;
 }
 
 /** A deal with what the numbers need: where it was made, its terms and the journey's source. */
@@ -331,12 +353,15 @@ const blank = {
  * stations, then tracks. Pure. The ids carry over (see the header), so every number is read, none
  * is worked out again. A track into the hub reads every source edge of its out line. With a
  * `source` filter only that out line, its station and the offer lines stay, as for a graph.
+ * The hub has no node: its row carries `leads` as `now` (null when not counted), and a `source`
+ * filter leaves it out.
  */
 export function metroRowsOf(
   metro: MetroBody,
   graph: readonly NumberRow[],
   offers: readonly OfferNumber[],
   f: NumbersFilter = {},
+  leads: number | null = null,
 ): NumberRow[] {
   const nodes = new Map(graph.filter((r) => r.kind === "node").map((r) => [r.label, r] as const));
   const edges = graph.filter((r) => r.kind === "edge");
@@ -378,6 +403,20 @@ export function metroRowsOf(
   }
 
   for (const s of metro.stations) {
+    if (s.kind === "hub") {
+      if (!f.source)
+        out.push({
+          ...blank,
+          id: `station:${s.id}`,
+          kind: "station",
+          label: s.id,
+          name: s.label,
+          position: 0,
+          nodeKind: "hub",
+          now: leads,
+        });
+      continue;
+    }
     const node = nodes.get(s.id);
     if (!node) continue;
     out.push({ ...node, id: `station:${s.id}`, kind: "station", label: s.id, name: s.label });
@@ -527,10 +566,15 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
         });
       }
     }
-    // Same numbers, under the metro model's names.
+    // Same numbers, under the metro model's names. A metro newest answers only these rows. A
+    // graph newest keeps its node and edge rows and adds these after them when it draws.
+    const leads = f.source ? null : await leadsOf(db);
     if (isMetro(newest.body)) {
       const graphRows = rows.splice(0);
-      rows.push(...metroRowsOf(newest.body, graphRows, offers, f));
+      rows.push(...metroRowsOf(newest.body, graphRows, offers, f, leads));
+    } else {
+      const drawn = drawnOf(newest.body);
+      if (drawn.ok) rows.push(...metroRowsOf(drawn.metro, [...rows], offers, f, leads));
     }
   }
   for (const o of offers)

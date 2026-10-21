@@ -6,14 +6,16 @@
  */
 import { type ReactNode, type Ref, useId } from "react";
 import { cx } from "../format.js";
-import { octPts, rounded } from "./geometry.js";
+import { beside, octPts, rounded } from "./geometry.js";
 import {
   asButton,
   Badge,
   Capsule,
   Chip,
   FoldTab,
+  MARK_WORD,
   Marker,
+  MarkTag,
   Pill,
   Ring,
   XferLabel,
@@ -24,6 +26,7 @@ import {
   isCapsule,
   isRing,
   lineColour,
+  type Mark,
   type MetroScene,
   type MetroTrack,
   type Point,
@@ -53,6 +56,13 @@ function ends(r: MetroTrack, at: (id: string, o: number) => Point | null): [Poin
   const c = r.pc ?? (r.b ? at(r.b, r.ob ?? r.o ?? 0) : r.pts ? r.pts[r.pts.length - 1] : a);
   return a && c ? [a, c] : null;
 }
+
+/**
+ * The stroke of a track. An added or changed track takes the mark's colour from the CSS; the rest
+ * keep their line colour. (An inline stroke would win over the CSS, so the mark leaves it out.)
+ */
+const strokeOf = (mark: Mark | undefined, colour: string) =>
+  mark === "added" || mark === "changed" ? undefined : colour;
 
 /**
  * Seconds into the first load when the line reaches a station. As the artifact: station i pops at
@@ -95,6 +105,29 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       </text>,
     );
   });
+
+  /** A track's diff tag, beside it. A track with no pill of its own is named by the tag. */
+  const tag = (k: string, r: MetroTrack, pts: Point[], l: string | undefined) => {
+    const named = !(r.who && r.who !== "auto");
+    // A track with a pill keeps the middle; the tag sits nearer its start.
+    const [x, y] = beside(pts, named ? 0.25 : 0.18, 20);
+    const mark = r.mark as Mark;
+    const nm = (id: string | undefined) => {
+      const s = id ? byId.get(id) : undefined;
+      return (s && "n" in s && s.n) || id || "?";
+    };
+    return (
+      <MarkTag
+        key={`mt-${k}`}
+        mark={mark}
+        x={x}
+        y={y}
+        l={l}
+        named={named}
+        label={`Track from ${nm(r.a)} to ${nm(r.b)}, ${MARK_WORD[mark]}`}
+      />
+    );
+  };
 
   const cases: ReactNode[] = [];
   const tracks: ReactNode[] = [];
@@ -167,8 +200,9 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
           key={`x-${k}`}
           className={cx("xfer", on(l) && "on")}
           data-l={l}
+          {...(r.mark ? { "data-mark": r.mark } : {})}
           d={d}
-          style={{ stroke: lineColour(colours, l) }}
+          style={{ stroke: strokeOf(r.mark, lineColour(colours, l)) }}
         />,
         hit(d, l),
       );
@@ -181,8 +215,19 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
           l={l}
           on={on(l)}
           id={tid}
+          mark={r.mark}
         />,
       );
+      if (r.mark)
+        labels.push(
+          <MarkTag
+            key={`mt-${k}`}
+            mark={r.mark}
+            l={l}
+            x={m[0] + ((r.lab ?? "").length * 6.6 + 20) / 2 + 12}
+            y={m[1]}
+          />,
+        );
       return;
     }
 
@@ -197,7 +242,16 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         );
       }
       const bad = r.b ? (byId.get(r.b) as { bad?: boolean } | undefined)?.bad : false;
-      tracks.push(<path key={`s-${k}`} className={cx("spur", bad && "bad")} d={d} />, hit(d));
+      tracks.push(
+        <path
+          key={`s-${k}`}
+          className={cx("spur", bad && "bad")}
+          {...(r.mark ? { "data-mark": r.mark } : {})}
+          d={d}
+        />,
+        hit(d),
+      );
+      if (r.mark) labels.push(tag(k, r, r.pts ?? octPts(a, c), undefined));
       return;
     }
 
@@ -221,13 +275,15 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         key={`t-${k}`}
         className={cx("trk", r.k === "plan" && "plan", r.k === "ab" && "ab", on(l) && "on")}
         data-l={l}
+        {...(r.mark ? { "data-mark": r.mark } : {})}
         d={d}
         {...draw}
-        style={{ stroke: lineColour(colours, l), strokeWidth: w }}
+        style={{ stroke: strokeOf(r.mark, lineColour(colours, l)), strokeWidth: w }}
       />,
       hit(d, l),
     );
-    if (r.k !== "plan" && (l !== "out" || r.mv) && !(isStill && !r.mv)) {
+    if (r.mark) labels.push(tag(k, r, r.pts ?? octPts(a, c), l));
+    if (r.mark !== "removed" && r.k !== "plan" && (l !== "out" || r.mv) && !(isStill && !r.mv)) {
       const n = r.dots ?? 1;
       const du = r.dur ?? 4 + (i % 3);
       for (let j = 0; j < n; j++) {
@@ -259,7 +315,15 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     if (r.who && r.who !== "auto") {
       const m = r.at ?? [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
       labels.push(
-        <Pill key={`p-${k}`} x={m[0]} y={m[1] + (r.bdy ?? 0)} who={r.who} late={r.late} id={tid} />,
+        <Pill
+          key={`p-${k}`}
+          x={m[0]}
+          y={m[1] + (r.bdy ?? 0)}
+          who={r.who}
+          late={r.late}
+          id={tid}
+          mark={r.mark}
+        />,
       );
     }
   });

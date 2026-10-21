@@ -4,12 +4,12 @@
  * cannot run), and a second "Undo" saves it as the next version. The server refuses an undo that
  * no longer fits the newest shape; its sentence shows and nothing is saved.
  */
-import { changeLines } from "@wren/pipeline/diff";
 import type { UndoPreviewAnswer } from "@wren/pipeline/history";
-import { Alert, Button, Loading } from "@wren/ui";
+import { Button, Loading } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../api.js";
 import { useCall } from "../load.js";
+import { messageOf, Refused } from "./Refused.js";
 
 export function UndoLine({
   at,
@@ -24,7 +24,7 @@ export function UndoLine({
   at: Record<string, string>;
   a: number;
   b: number;
-  /** `changeKey` of the line. */
+  /** The change's key, from the difference's `changes`. */
   change: string;
   line: string;
   /** The viewer may save a version: Undo shows. */
@@ -48,14 +48,12 @@ export function UndoLine({
       setOpen(false);
       onUndone();
     } catch (err) {
-      setRefused(err instanceof Error ? err.message : String(err));
+      setRefused(messageOf(err));
     } finally {
       setBusy(false);
     }
   };
-  const lines = preview.data
-    ? changeLines(preview.data.bodies[0], preview.data.bodies[1], preview.data.diff)
-    : [];
+  const lines = preview.data?.changes.map((c) => c.line) ?? [];
   return (
     <li>
       <div className="flex items-start gap-2">
@@ -78,7 +76,7 @@ export function UndoLine({
           className="my-1.5 grid gap-2 rounded-(--ui-radius) bg-(--ui-wash) p-3"
         >
           {preview.error && !preview.data ? (
-            <Alert className="mb-0">{preview.error.message}</Alert>
+            <Refused text={preview.error.message} />
           ) : !preview.data ? (
             <Loading lines={2} />
           ) : (
@@ -94,7 +92,7 @@ export function UndoLine({
               <p className="text-[12.5px] text-(--ui-ink-3)">Note: {preview.data.note}</p>
             </>
           )}
-          {refused ? <Alert className="mb-0">{refused}</Alert> : null}
+          {refused ? <Refused text={refused} /> : null}
           <div className="flex gap-2">
             <Button
               tone="primary"

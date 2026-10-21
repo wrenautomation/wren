@@ -14,7 +14,8 @@ import { type FocusSpec, focusScene, nameOf } from "./focus.js";
 import { autoZoom, type MetroZoom, type OpenMap, stepLevel, toggleGroup } from "./fold.js";
 import { centreOf, fadeIn, GLIDE_MS, glide, glideHeight } from "./glide.js";
 import { layoutMetro } from "./layout.js";
-import type { MetroPart, MetroScene, Point } from "./types.js";
+import { MARK_GLYPH, MARK_WORD } from "./marks.js";
+import type { Mark, MetroPart, MetroScene, Point } from "./types.js";
 import type { MetroView } from "./view.js";
 import "./metro.css";
 
@@ -321,6 +322,8 @@ export function MetroMap(props: MetroMapProps) {
     return () => clearTimeout(t);
   }, [scene]);
 
+  // The legend shows while the map has a mark. Marks show at every level (a fold carries them).
+  const drawsMarks = hasMarks(scene);
   const marks = scene.st.length;
   const stubs = scene.tr.filter((r) => r.stub).length;
   const caps = scene.st.filter((s) => "cap" in s || "ring" in s || "badge" in s).length;
@@ -363,15 +366,21 @@ export function MetroMap(props: MetroMapProps) {
             )}
           </p>
           {props.children}
+          {drawsMarks ? <MetroLegend /> : null}
         </div>
       ) : null}
       <div ref={host} className={cx("metro-host", intro && "ld")}>
+        {drawsMarks && !controls ? <MetroLegend over /> : null}
         <MetroSvg ref={svg} scene={scene} still={still} intro={intro} selected={picked} lit={lit} />
         <div ref={old} className="metro-old" aria-hidden="true" />
       </div>
     </div>
   );
 }
+
+/** True when the scene draws a diff mark on any station or track. */
+const hasMarks = (s: MetroScene) =>
+  s.st.some((x) => ("mark" in x ? x.mark : false)) || s.tr.some((r) => r.mark);
 
 const NONE: OpenMap = Object.freeze({});
 const EMPTY: MetroScene = { h: 80, st: [], tr: [] };
@@ -396,5 +405,27 @@ export function MetroLevels({
         </button>
       ))}
     </fieldset>
+  );
+}
+
+const MARKS: Mark[] = ["added", "changed", "removed"];
+
+/**
+ * The three diff marks and their words. `MetroMap` draws it when its scene has a mark: in the
+ * controls bar, or over the map's top corner when the bar is off. It takes no room from the map.
+ */
+export function MetroLegend({ over }: { over?: boolean | undefined }) {
+  return (
+    <ul className={cx("metro-legend", over && "over")} aria-label="Diff marks">
+      {MARKS.map((m) => (
+        <li key={m}>
+          <span className="metro-tag" data-mark={m} aria-hidden="true">
+            {MARK_GLYPH[m]}
+          </span>
+          {MARK_WORD[m][0]?.toUpperCase()}
+          {MARK_WORD[m].slice(1)}
+        </li>
+      ))}
+    </ul>
   );
 }

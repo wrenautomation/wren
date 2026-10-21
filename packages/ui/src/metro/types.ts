@@ -29,6 +29,9 @@ export type StationKind =
 
 export type Side = "up" | "down" | "left" | "right";
 
+/** A diff mark: the part is new, changed or gone since the other side. */
+export type Mark = "added" | "changed" | "removed";
+
 /** An ordinary station: a marker with a name and a count under it. */
 export interface MarkStation {
   id: string;
@@ -58,6 +61,8 @@ export interface MarkStation {
   /** The flow it belongs to (a workflow). Focus on a flow reads this. */
   flow?: string;
   now?: number;
+  /** A diff mark: ring and tag. */
+  mark?: Mark;
 }
 
 /** A run of stations folded into one capsule. */
@@ -72,6 +77,8 @@ export interface CapsuleStation {
   /** A late person track inside rings it amber. */
   late?: boolean;
   grp?: string;
+  /** A diff mark: any mark inside shows on the capsule. */
+  mark?: Mark;
 }
 
 /** A loop folded: one ring in the line colour. */
@@ -146,6 +153,8 @@ export interface MetroTrack {
   /** The task a person track makes on Today. */
   task?: string;
   med?: string;
+  /** A diff mark: stroke and tag. */
+  mark?: Mark;
   /** A stub: this track leaves the focused part. It draws faded, with a label, and is a button. */
   stub?: StubSpec;
 }

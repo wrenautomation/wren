@@ -1,6 +1,14 @@
+import type { NumberRow } from "@wren/pipeline/numbers";
 import { Command, InvalidArgumentError } from "commander";
 import { describe, expect, it, vi } from "vitest";
-import { dayArg, numberArg, numberLines, registerPipeline, windowArg } from "./pipeline.js";
+import {
+  dayArg,
+  numberArg,
+  numberLines,
+  ownKinds,
+  registerPipeline,
+  windowArg,
+} from "./pipeline.js";
 
 describe("arguments", () => {
   it("takes a real day only", () => {
@@ -200,5 +208,20 @@ describe("commands", () => {
         from: "user",
       }),
     ).rejects.toThrow(/YYYY-MM-DD/);
+  });
+});
+
+describe("ownKinds", () => {
+  const row = (kind: string) => ({ id: `${kind}:x`, kind }) as unknown as NumberRow;
+  const kinds = (rows: NumberRow[]) => rows.map((r) => r.kind);
+
+  it("keeps a graph newest to node, edge and offer rows", () => {
+    const rows = ["node", "station", "edge", "track", "line", "offer"].map(row);
+    expect(kinds(ownKinds(rows))).toEqual(["node", "edge", "offer"]);
+  });
+
+  it("keeps every row of a metro newest, which has no node rows", () => {
+    const rows = ["line", "station", "track", "offer"].map(row);
+    expect(kinds(ownKinds(rows))).toEqual(["line", "station", "track", "offer"]);
   });
 });

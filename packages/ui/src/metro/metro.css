@@ -122,6 +122,76 @@
   stroke: var(--ui-paper);
   stroke-width: 2.5;
 }
+/*
+ * Diff marks (a draft or a compare). Added is green, changed is amber, removed is faint and
+ * dashed. Tokens only. The ring rules come before the focus rules below, so a pick still shows.
+ */
+.mm .mk[data-mark="added"] .ring {
+  stroke: var(--ui-good);
+  stroke-width: 4;
+}
+.mm .mk[data-mark="changed"] .ring {
+  stroke: var(--ui-warn);
+  stroke-width: 4;
+}
+/* The children fade, not the group: the first load animates the group's own opacity. */
+.mm .mk[data-mark="removed"] > * {
+  opacity: 0.45;
+}
+.mm .cap[data-mark="added"] .cr {
+  stroke: var(--ui-good);
+  stroke-width: 2.5;
+}
+.mm .cap[data-mark="changed"] .cr {
+  stroke: var(--ui-warn);
+  stroke-width: 2.5;
+}
+.mm .cap[data-mark="removed"] .cb,
+.mm .cap[data-mark="removed"] .cn {
+  opacity: 0.45;
+}
+.mm .trk[data-mark="added"],
+.mm .xfer[data-mark="added"],
+.mm .spur[data-mark="added"] {
+  stroke: var(--ui-good);
+}
+.mm .trk[data-mark="changed"],
+.mm .xfer[data-mark="changed"],
+.mm .spur[data-mark="changed"] {
+  stroke: var(--ui-warn);
+}
+.mm .trk[data-mark="removed"],
+.mm .xfer[data-mark="removed"],
+.mm .spur[data-mark="removed"] {
+  stroke-dasharray: 10 8;
+  opacity: 0.45;
+}
+/* The tag: a paper dot with a ring and a glyph in the mark's ink (7:1 or better, night too). */
+.mm .mtag {
+  pointer-events: none;
+  --tag: var(--ui-good);
+  --tag-ink: var(--ui-good-ink);
+}
+.mm .mtag[data-mark="changed"],
+.metro-tag[data-mark="changed"] {
+  --tag: var(--ui-warn);
+  --tag-ink: var(--ui-warn-ink);
+}
+.mm .mtag[data-mark="removed"],
+.metro-tag[data-mark="removed"] {
+  --tag: var(--ui-ink-3);
+  --tag-ink: var(--ui-ink-2);
+}
+.mm .mtag circle {
+  fill: var(--ui-paper);
+  stroke: var(--tag);
+  stroke-width: 2;
+}
+.mm .mtag text {
+  font: 800 13px var(--ui-font);
+  fill: var(--tag-ink);
+}
+
 .mm .lab,
 .mm .sub,
 .mm .xl,
@@ -649,4 +719,45 @@
 .mm .stub:focus-visible {
   outline: 2px solid var(--ui-focus);
   outline-offset: 3px;
+}
+
+/* The legend: the three diff marks and their words. In the bar when the map has one, else over the corner. */
+.metro-legend {
+  display: inline-flex;
+  gap: 12px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+  font: 600 12px var(--ui-font);
+  color: var(--ui-ink-2);
+}
+.metro-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.metro-legend.over {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: var(--ui-paper);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ui-ink) 16%, transparent);
+}
+.metro-tag {
+  --tag: var(--ui-good);
+  --tag-ink: var(--ui-good-ink);
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--tag);
+  border-radius: 50%;
+  background: var(--ui-paper);
+  color: var(--tag-ink);
+  font: 800 12px / 1 var(--ui-font);
 }

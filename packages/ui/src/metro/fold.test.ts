@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { autoZoom, flagsAt, foldScene, normalise, stepLevel, toggleGroup } from "./fold.js";
-import { loopZoom, protocolZoom, ZOOM_SCENE, zoomScenario } from "./samples.js";
+import {
+  autoZoom,
+  capsuleMark,
+  flagsAt,
+  foldScene,
+  normalise,
+  stepLevel,
+  toggleGroup,
+} from "./fold.js";
+import { layoutMetro } from "./layout.js";
+import { DIFF_VIEW, loopZoom, protocolZoom, ZOOM_SCENE, zoomScenario } from "./samples.js";
 import { isCapsule, isMark } from "./types.js";
 
 describe("flagsAt and normalise", () => {
@@ -125,5 +134,27 @@ describe("autoZoom and foldScene", () => {
     if (!cap?.grp) throw new Error("no capsule");
     const open = foldScene(ZOOM_SCENE, 0, { [cap.grp]: true });
     expect(open.st.length).toBeGreaterThan(folded.st.length);
+  });
+});
+
+describe("a fold keeps the diff marks", () => {
+  it("gives a capsule the mark its stations share, else changed", () => {
+    expect(capsuleMark([{ mark: "added" }, { mark: "added" }], [])).toBe("added");
+    expect(capsuleMark([{ mark: "added" }, {}], [])).toBe("changed");
+    expect(capsuleMark([{}, {}], [{ mark: "removed" }])).toBe("changed");
+    expect(capsuleMark([{}, {}], [])).toBeUndefined();
+    expect(capsuleMark([{ mark: "removed" }], [])).toBe("removed");
+  });
+
+  it("marks the capsule of a folded run", () => {
+    const scene = foldScene(layoutMetro(DIFF_VIEW), 0);
+    const caps = scene.st.filter(isCapsule);
+    expect(caps.find((c) => c.id === "web@1")?.mark).toBe("added");
+    expect(caps.find((c) => c.id === "gp@1")?.mark).toBe("changed");
+  });
+
+  it("keeps the mark of a track that reattaches to a capsule", () => {
+    const scene = foldScene(layoutMetro(DIFF_VIEW), 0);
+    expect(scene.tr.find((t) => t.id === "t-hub-lan")?.mark).toBe("added");
   });
 });

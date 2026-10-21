@@ -5,9 +5,10 @@
  * Times are ISO text: the shape every answer has on the wire.
  */
 import type { Moves } from "./carry.js";
-import type { ShapeDiff } from "./diff.js";
+import type { MetroBody } from "./metro.js";
+import type { MetroDiff } from "./metro-diff.js";
 import type { ShapeBody } from "./model.js";
-import type { StoredBody } from "./stored.js";
+import type { StoredBody, StoredDiff } from "./stored.js";
 
 /** A draft's life: saved, waiting on a decision, made a version, or dropped with a reason. */
 export const DRAFT_STATES = ["draft", "proposed", "applied", "dropped"] as const;
@@ -37,10 +38,14 @@ export interface DraftRow {
   dropReason: string | null;
 }
 
-/** A draft's detail (`recordsGet` of `pipeline.shape_draft`): its body and moves. */
+/** A draft's detail (`recordsGet` of `pipeline.shape_draft`). `body` is the graph it runs as. */
 export interface DraftDetail {
   body: ShapeBody;
   moves: Moves;
+  /** The draft as the map draws it; null when it cannot be drawn. */
+  metro: MetroBody | null;
+  /** Why it cannot be drawn; empty when it can. */
+  drawErrors: string[];
 }
 
 /** An immutable label on a version. */
@@ -91,8 +96,11 @@ export interface BlameLine {
 
 export interface DraftNewAsk {
   name: string;
-  /** A metro body; the store refuses a graph body (`CONVERT_FIRST`). */
-  body: StoredBody;
+  /**
+   * A metro body; the store refuses a graph body (`CONVERT_FIRST`). Left out: the draft forks the
+   * base version as a metro body.
+   */
+  body?: StoredBody;
   moves?: Moves;
   /** The version it forks; the newest when left out. */
   base?: number;
@@ -101,6 +109,31 @@ export interface DraftNewAsk {
 export interface DraftNewAnswer {
   id: string;
   base: number;
+}
+export interface DraftEditAsk {
+  id: string;
+  /** One op or a list of ops (`metro-ops.ts`). */
+  ops: unknown;
+}
+export interface DraftEditAnswer {
+  id: string;
+  /** What the ops changed, a line each. */
+  lines: string[];
+  /** Why apply would refuse the draft as it stands. Fix them with more ops. */
+  warnings: string[];
+}
+export interface DraftPlanAnswer {
+  id: string;
+  /** The version the draft forked. */
+  base: number;
+  /** The newest version. */
+  live: number;
+  /** True when live moved since the base. */
+  moved: boolean;
+  /** One line per conflict: both values. Any conflict blocks apply. */
+  conflicts: string[];
+  /** What apply would change in live, a line each. */
+  lines: string[];
 }
 export interface DraftUpdateAsk {
   id: string;
@@ -132,17 +165,41 @@ export interface DiffAsk {
   a: ShapeRef;
   b: ShapeRef;
 }
+/** One change, as its undo key and a plain line, in `storedChangesOf` order. */
+export interface ChangeLine {
+  key: string;
+  line: string;
+}
+/** What `shapeDiff` answers: from `a` to `b`. */
 export interface DiffAnswer {
   a: ShapeRef;
   b: ShapeRef;
-  diff: ShapeDiff;
-  /** The two bodies, a then b. */
-  bodies: [ShapeBody, ShapeBody];
+  /** In the stored bodies' terms: graph keys when both are graphs. Undo takes these keys. */
+  diff: StoredDiff;
+  changes: ChangeLine[];
+  /** Both sides as the map draws them. Null when a side cannot be drawn (`metroView` refused). */
+  views: [MetroBody, MetroBody] | null;
+  /** `diffMetro(views[0], views[1])`: the marks. Null with `views`. */
+  marks: MetroDiff | null;
 }
-/** Exactly one of `node` or `edge`. */
+/** What `shapePreview` answers: from the newest version to the file. */
+export interface PreviewAnswer {
+  a: number | null;
+  diff: StoredDiff;
+  changes: ChangeLine[];
+  views: [MetroBody, MetroBody] | null;
+  marks: MetroDiff | null;
+  note: string | null;
+  moves: Moves | null;
+}
+/** Exactly one of these. A node or an edge reads the graph; the rest read the map model. */
 export interface BlameAsk {
   node?: string;
   edge?: string;
+  station?: string;
+  track?: string;
+  line?: string;
+  group?: string;
 }
 export interface BlameAnswer {
   lines: BlameLine[];
@@ -155,15 +212,17 @@ export interface UndoAsk {
   change: string;
 }
 export interface UndoPreviewAnswer {
-  /** The line, as `changeLine` says it. */
+  /** The line, as `storedChangeLine` says it. */
   line: string;
   /** The note the undo saves with: `Undo: <line>`. */
   note: string;
   /** The newest version the undo applies to. */
   newest: number;
   /** From the newest body to the result. */
-  diff: ShapeDiff;
-  bodies: [ShapeBody, ShapeBody];
+  diff: StoredDiff;
+  changes: ChangeLine[];
+  views: [MetroBody, MetroBody] | null;
+  marks: MetroDiff | null;
 }
 export interface UndoAnswer {
   version: number;

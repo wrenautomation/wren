@@ -286,7 +286,7 @@ export interface NewShape {
 }
 
 /**
- * What a save says to a graph body. Every stored body is a metro body (HELD, C1 part 4); the one
+ * What a save says to a graph body. Every stored body is a metro body (C1 part 4); the one
  * way from a graph is `convertShape`, which reads the stored graph and writes metro.
  */
 export const CONVERT_FIRST = "Convert first: wren shape convert.";

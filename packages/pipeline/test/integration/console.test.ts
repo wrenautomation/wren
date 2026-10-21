@@ -80,6 +80,7 @@ describe("routes", () => {
       "shapeDiff",
       "shapeExport",
       "shapePreview",
+      "shapeDraftPlan",
       "shapeBlame",
       "shapeUndoPreview",
     ]);
@@ -91,6 +92,7 @@ describe("routes", () => {
         "shapeStart",
         "shapeDraftNew",
         "shapeDraftUpdate",
+        "shapeDraftEdit",
         "shapeDraftPropose",
         "shapeDraftApply",
         "shapeDraftDrop",
@@ -133,7 +135,7 @@ describe("the records", () => {
 });
 
 describe("shape changes", () => {
-  it("refuses a graph body: every stored body is metro (HELD, C1 part 4)", async () => {
+  it("refuses a graph body: every stored body is metro (C1 part 4)", async () => {
     const op = as(ADA, undefined, true);
     await expect(api().shapeVersion({ ...op, note: "first", body: shape })).rejects.toThrow(
       /Convert first/,
@@ -151,8 +153,9 @@ describe("shape changes", () => {
     await save(grown, "renamed");
     const diff = await api().shapeDiff({ ...op, a: 1, b: 2 });
     expect(diff).toMatchObject({ a: 1, b: 2 });
-    expect(diff.bodies.map((b) => b.name)).toEqual([shape.name, "Console shape 2"]);
-    expect(JSON.stringify(diff.diff)).toMatch(/name/);
+    expect(diff.views?.map((v) => v.name)).toEqual([shape.name, "Console shape 2"]);
+    expect(diff.changes.map((c) => c.key)).toEqual(["name"]);
+    expect(diff.marks?.name).toEqual({ from: shape.name, to: "Console shape 2" });
     const page = await api().recordsList({ ...op, record: "pipeline.shape", view: "all" });
     expect(page.rows.map((r) => [r.name, r.version])).toEqual([["Console shape 2", 2]]);
     const got = await api().recordsGet({
@@ -183,24 +186,25 @@ describe("shape changes", () => {
     });
   });
 
-  it("writes a graph body as a file and compares a metro file with the newest version", async () => {
+  it("writes a version as a file and compares a metro file with the newest version", async () => {
     const op = as(ADA, undefined, true);
     const newest = (await shapeVersionsOf(pg.db)).at(-1);
-    // The export still writes a graph file, to read an old version; it no longer reads back.
-    const graph = runOf(newest?.body as StoredBody);
-    const exported = await api().shapeExport({ ...op, body: graph });
-    expect(exported.text).toBe(exportShape(graph));
-    await expect(api().shapePreview({ ...op, text: exported.text })).rejects.toMatchObject({
+    const { text } = await api().shapeExport({ ...op, ref: newest?.number as number });
+    expect(text).toBe(exportShape(newest?.body as StoredBody));
+    expect((await api().shapeExport(op)).text).toBe(text);
+    // A graph file no longer reads back: it needs the convert first.
+    const graph = exportShape(runOf(newest?.body as StoredBody));
+    await expect(api().shapePreview({ ...op, text: graph })).rejects.toMatchObject({
       status: 400,
+      message: expect.stringContaining("Convert first"),
     });
-    const text = exportShape(newest?.body as StoredBody);
     const same = await api().shapePreview({ ...op, text });
-    expect(same).toMatchObject({ a: newest?.number, note: null });
-    expect(same.diff.nodes.added).toEqual([]);
+    expect(same).toMatchObject({ a: newest?.number, note: null, changes: [] });
     const edited = text.replace("label: Engaged", "label: Replied");
+    expect(edited).not.toBe(text);
     const changed = await api().shapePreview({ ...op, text: edited });
-    expect(changed.diff.nodes.renamed).toEqual([{ id: "engaged", from: "Engaged", to: "Replied" }]);
-    expect(changed.bodies[1]?.nodes.find((n) => n.id === "engaged")?.name).toBe("Replied");
+    expect(changed.changes.map((c) => c.key)).toEqual(["station:engaged:renamed"]);
+    expect(changed.views?.[1].stations.find((s) => s.id === "engaged")?.label).toBe("Replied");
     await expect(api().shapePreview({ ...op, text: "- not a shape" })).rejects.toMatchObject({
       status: 400,
     });

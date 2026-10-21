@@ -4,6 +4,7 @@
  * never asks for a hand-placed coordinate.
  */
 import type { IconName } from "../icons.js";
+import type { Mark } from "./types.js";
 
 /** What a line is for: outreach (grey, thin), a front end (medium), the core (thick). */
 export type LineTier = "out" | "front" | "core";
@@ -17,6 +18,8 @@ export interface ViewLine {
   colour?: number;
   /** An offer not live yet: it draws dotted. */
   plan?: boolean;
+  /** A diff mark. Goes on each of its tracks and stations that have no mark of their own. */
+  mark?: Mark;
 }
 
 /** The kinds the layout places. A split or join gate is `split` or `join`. */
@@ -60,9 +63,13 @@ export interface ViewStation {
   repeatIcon?: IconName | null;
   plans?: string;
   bundle?: boolean;
+  /** A diff mark. */
+  mark?: Mark;
 }
 
 export interface ViewTrack {
+  /** The track's id in the store. `onPick` answers it. Default: `${from}-${to}`. */
+  id?: string;
   from: string;
   to: string;
   /** A system moves the person; a person acts, with an owner and a promise. */
@@ -78,6 +85,8 @@ export interface ViewTrack {
   moving?: boolean;
   /** The track is planned, not live. */
   plan?: boolean;
+  /** A diff mark. */
+  mark?: Mark;
 }
 
 export interface ViewGroup {

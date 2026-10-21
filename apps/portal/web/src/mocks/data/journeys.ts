@@ -6,7 +6,9 @@
  * `JOURNEY_CALLS` keeps what the board sent, so a story can check the move.
  */
 import type { Row } from "@wren/core/records/serve";
+import { graphOf, metroOf } from "@wren/pipeline/convert";
 import type { VersionLine } from "@wren/pipeline/history";
+import type { MetroBody, MetroTrack } from "@wren/pipeline/metro";
 import type { ShapeBody } from "@wren/pipeline/model";
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
@@ -15,8 +17,11 @@ import { ago } from "./shell.js";
 export const JOURNEY_CALLS: { path: string; body: Record<string, unknown> }[] = [];
 export const forgetCalls = () => JOURNEY_CALLS.splice(0);
 
-/** The newest version of the synthetic shape. */
-export const SHAPE: ShapeBody = {
+/**
+ * The synthetic shape as a graph: the "graph live" mock. A workspace that stores a graph answers
+ * with this body, and the server draws the metro from it (`metroOf`).
+ */
+export const SHAPE_GRAPH: ShapeBody = {
   name: "Sample shape",
   nodes: [
     { id: "mail", kind: "source", name: "Spring list", via: "outbound", channel: "email" },
@@ -45,6 +50,37 @@ export const SHAPE: ShapeBody = {
   ],
 };
 const DEPTHS: Record<string, number> = { mail: 0, ads1: 0, engaged: 1, booked: 2, signed: 3 };
+
+/**
+ * Who acts on a track, by track id. A graph has no owners, so the mock gives two tracks one, for
+ * Today's tasks. The promise on the second is long, so no story turns late as the date moves on.
+ */
+const OWNERS: Record<string, Pick<MetroTrack, "owner" | "promise">> = {
+  engaged_to_booked: { owner: "Ada North", promise: "4h" },
+  booked_to_signed: { owner: "Cai Moreno", promise: "3650d" },
+};
+
+/**
+ * A graph as the stored metro body of the mock: `metroOf`, then a person on the tracks in `OWNERS`.
+ * Throws when the graph cannot be drawn, which no mock graph is.
+ */
+export function metroFor(graph: ShapeBody): MetroBody {
+  const drawn = metroOf(graph);
+  if (!drawn.ok) throw new Error(drawn.errors.join(" "));
+  return {
+    ...drawn.body,
+    tracks: drawn.body.tracks.map((t) => {
+      const own = OWNERS[t.id];
+      return own ? { ...t, by: "person", ...own } : t;
+    }),
+  };
+}
+
+/** The newest version as the stored metro body. */
+export const SHAPE_METRO: MetroBody = metroFor(SHAPE_GRAPH);
+
+/** The newest version as the runtime graph: the metro body lowered, as the server keeps it. */
+export const SHAPE: ShapeBody = graphOf(SHAPE_METRO);
 
 const NAMES: Record<string, string> = {
   engaged: "Engaged",
@@ -148,6 +184,8 @@ export const SHAPE_VERSIONS: VersionLine[] = [
 export const JOURNEY_DETAIL: Record<string, (row: Row) => object> = {
   "pipeline.shape": () => ({
     body: SHAPE,
+    metro: SHAPE_METRO,
+    drawErrors: [],
     depths: DEPTHS,
     versions: SHAPE_VERSIONS,
   }),

@@ -1,6 +1,6 @@
--- HELD (C1 part 4): every new shape version and shape draft is a metro body. A graph body is
+-- C1 part 4: every new shape version and shape draft is a metro body. A graph body is
 -- refused at the door. Rows stored before this stay as they are: the triggers fire on new rows only.
--- A draft is also checked when its body is written again (`updateDraft`); a state change is not.
+-- A draft is also checked when its body is written again (`updateDraft`, `editDraft`); a state change is not.
 CREATE FUNCTION "pipeline"."metro_only"() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.body ->> 'model' IS DISTINCT FROM 'metro' THEN

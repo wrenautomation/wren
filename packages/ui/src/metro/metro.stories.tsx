@@ -9,6 +9,7 @@ import { layoutMetro } from "./layout.js";
 import { MetroMap, type MetroPick } from "./map.js";
 import {
   COLD_OUTBOUND_VIEW,
+  DIFF_VIEW,
   DOWNSELL_VIEW,
   type GlyphRow,
   INDUSTRIES,
@@ -400,5 +401,80 @@ export const FocusStubPlay: Story = {
       ),
     );
     await expect(canvas.getByText(/Went to station hub/)).toBeVisible();
+  },
+};
+
+// ---------------------------------------------------------------------------------------------
+// Diff marks, hub count and track ids.
+
+/** One of each mark on stations, tracks and a whole line, with the legend in the controls corner. */
+export const DiffMarks: Story = {
+  name: "Diff marks",
+  render: () => <MetroMap view={DIFF_VIEW} level={2} intro={false} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Stations: the mark is in the name.
+    await expect(canvas.getByRole("button", { name: /^Replied.*, added$/ })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: /^Call booked.*, changed$/ })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: /^Dropped, removed$/ })).toBeVisible();
+    // The whole line: its own stations carry the mark.
+    await expect(canvas.getByRole("button", { name: /^Visited lander.*, added$/ })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: /^Webinar ticket.*, added$/ })).toBeVisible();
+    // Tracks: a named tag, or the pill's own name.
+    await expect(
+      canvas.getByRole("img", { name: "Track from YouTube to First touch, changed" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("img", { name: "Track from Replied to Call booked, added" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("img", { name: "Track from Call booked to Dropped, removed" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("button", { name: "Person task, WJ, 2d, removed" }),
+    ).toBeVisible();
+    // The legend names the three marks.
+    const legend = canvas.getByRole("list", { name: "Diff marks" });
+    await expect(within(legend).getAllByRole("listitem")).toHaveLength(3);
+    // A removed mark stays clickable.
+    await userEvent.click(canvas.getByRole("button", { name: /^Dropped, removed$/ }));
+  },
+};
+
+/** The hub draws its count under its label. */
+export const HubCount: Story = {
+  name: "Hub count",
+  render: () => <MetroMap view={DIFF_VIEW} level={2} intro={false} controls={false} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "First touch, 18 leads" })).toBeVisible();
+    await expect(canvas.getByText("18 leads")).toBeVisible();
+    // The legend still shows over the corner when the bar is off.
+    await expect(canvas.getByRole("list", { name: "Diff marks" })).toBeVisible();
+  },
+};
+
+/** A click on a track answers the track's own id. */
+export const PickedTrackId: Story = {
+  name: "Picked track id",
+  render: function Render() {
+    const [picked, setPicked] = useState<MetroPick | null>(null);
+    return (
+      <MetroMap view={DIFF_VIEW} level={2} intro={false} onPick={setPicked}>
+        <output className="text-sm text-[var(--ui-ink-2)]">
+          {picked ? `Picked ${picked.kind} ${picked.id}` : "Nothing picked"}
+        </output>
+      </MetroMap>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const hit = canvasElement.querySelector<SVGElement>('[data-tr="t-chk-bk"]');
+    if (!hit) throw new Error("no track t-chk-bk");
+    await userEvent.click(hit);
+    await waitFor(() => expect(canvas.getByText("Picked track t-chk-bk")).toBeVisible());
+    // A pill track answers its id too.
+    await userEvent.click(canvas.getByRole("button", { name: "Person task, WJ, 2d, removed" }));
+    await waitFor(() => expect(canvas.getByText("Picked track t-bk-pay")).toBeVisible());
   },
 };

@@ -1,18 +1,29 @@
 /**
- * The Map's reads beyond the shared ones (`journeys.ts`, `offers.ts`): the History's difference of
- * two versions, and a bigger shape with a plan and a loop for the stories that need one.
- * Synthetic data only.
+ * The Map's reads beyond the shared ones (`journeys.ts`, `offers.ts`): the answers of the D1
+ * contract (`@wren/pipeline/history`). Each detail holds the runtime graph (`body`) and the stored
+ * metro body (`metro`). A difference holds the change lines, both sides drawn (`views`) and the
+ * marks. The mock makes them with the server's own pure code (`diffAnswerOf`), so a change line
+ * reads as the real one does. No answer carries a body to save: a write names a version (`from`)
+ * or a text. Synthetic data only.
  */
 import type { Row } from "@wren/core/records/serve";
-import { diffShapes } from "@wren/pipeline/diff";
-import type { VersionLine } from "@wren/pipeline/history";
+import type { DiffAnswer, ShapeRef, VersionLine } from "@wren/pipeline/history";
+import type { MetroBody } from "@wren/pipeline/metro";
 import { depthOf, type ShapeBody } from "@wren/pipeline/model";
+import { diffAnswerOf, drawnOf, runOf, type StoredBody } from "@wren/pipeline/stored";
 import { type Answers, refuse } from "../api.js";
-import { JOURNEY_ROWS, SHAPE, SHAPE_VERSIONS } from "./journeys.js";
+import {
+  JOURNEY_ROWS,
+  metroFor,
+  SHAPE,
+  SHAPE_GRAPH,
+  SHAPE_METRO,
+  SHAPE_VERSIONS,
+} from "./journeys.js";
 import { NUMBERS } from "./offers.js";
 import { ago } from "./shell.js";
 
-/** The first version: Engaged led to a Joined step, which led to Booked. */
+/** The first version, stored as a graph: Engaged led to a Joined step, which led to Booked. */
 export const SHAPE_V1: ShapeBody = {
   name: "Sample shape",
   nodes: [
@@ -29,42 +40,46 @@ export const SHAPE_V1: ShapeBody = {
   ],
 };
 
-/** What changed from version 1 to 2 (the server's `diffShapes`). */
-export const DIFF_1_2 = {
-  nodes: { added: [], removed: ["joined"], renamed: [], changed: [] },
-  edges: {
-    added: ["engaged_to_booked"],
-    removed: ["engaged_to_joined", "joined_to_booked"],
-    changed: [],
-  },
-  name: null,
-};
-
 /** The newest shape with a plan after the offer, and a loop back from Booked to Engaged. */
-export const SHAPE_PLAN: ShapeBody = {
-  ...SHAPE,
+export const SHAPE_PLAN: MetroBody = metroFor({
+  ...SHAPE_GRAPH,
   nodes: [
-    ...SHAPE.nodes,
+    ...SHAPE_GRAPH.nodes,
     { id: "standard", kind: "plan", name: "Standard plan", terms: "standard", advance: [] },
   ],
   edges: [
-    ...SHAPE.edges,
+    ...SHAPE_GRAPH.edges,
     { id: "signed_to_standard", from: "signed", to: "standard", kind: "flow" },
     { id: "booked_to_engaged", from: "booked", to: "engaged", kind: "loop" },
   ],
-};
+});
 
-/** The newest shape with a dead-end step after Engaged: a node that can go with its person moved. */
-export const SHAPE_SPUR: ShapeBody = {
-  ...SHAPE,
+/** The newest shape with a dead-end step after Engaged: a station that can go with its person moved. */
+export const SHAPE_SPUR: MetroBody = metroFor({
+  ...SHAPE_GRAPH,
   nodes: [
-    ...SHAPE.nodes,
+    ...SHAPE_GRAPH.nodes,
     { id: "follow", kind: "step", name: "Follow up", action: "other", advance: [] },
   ],
-  edges: [...SHAPE.edges, { id: "engaged_to_follow", from: "engaged", to: "follow", kind: "flow" }],
+  edges: [
+    ...SHAPE_GRAPH.edges,
+    { id: "engaged_to_follow", from: "engaged", to: "follow", kind: "flow" },
+  ],
+});
+
+/** A graph the map cannot draw: the metro model keeps the id `hub` for its own station. */
+export const SHAPE_HUB_CLASH: ShapeBody = {
+  ...SHAPE_GRAPH,
+  nodes: SHAPE_GRAPH.nodes.map((n) => (n.id === "engaged" ? { ...n, id: "hub" } : n)),
+  edges: SHAPE_GRAPH.edges.map((e) => ({
+    ...e,
+    id: e.id.replace("engaged", "hub"),
+    from: e.from === "engaged" ? "hub" : e.from,
+    to: e.to === "engaged" ? "hub" : e.to,
+  })),
 };
 
-/** An open journey on the spur's Follow up step: one person who must move before it can go. */
+/** An open journey on the spur's Follow up station: one person who must move before it can go. */
 export const SPUR_PERSON: Row = {
   ...(JOURNEY_ROWS["pipeline.journey"]?.[0] as Row),
   id: "j8",
@@ -76,34 +91,22 @@ export const SPUR_PERSON: Row = {
   daysAtNode: 1,
 };
 
-const DEPTHS: Record<string, number> = {
-  mail: 0,
-  ads1: 0,
-  engaged: 1,
-  booked: 2,
-  signed: 3,
-  standard: 4,
-};
-
-/** The numbers of the plan and loop nodes the bigger shape adds, per window. */
-const PLAN_NUMBERS: Row[] = NUMBERS.filter((r) => r.id.toString().startsWith("signed")).flatMap(
-  (r) => [
+/** The numbers of the plan station and the plan's tracks, per window. */
+const PLAN_NUMBERS: Row[] = [
+  ...NUMBERS.filter((r) => String(r.id).startsWith("station:signed")).map((r) => ({
+    ...r,
+    id: String(r.id).replace("signed", "standard"),
+    node: "standard",
+    label: "Standard plan",
+    now: 3,
+    scheduled: { amount: 3_000, currency: "CAD" },
+    collected: { amount: 1_800, currency: "CAD" },
+    deals: 3,
+  })),
+  ...NUMBERS.filter((r) => String(r.id).startsWith("track:booked_to_signed")).flatMap((r) => [
     {
       ...r,
-      id: String(r.id).replace("signed", "standard"),
-      node: "standard",
-      label: "Standard plan",
-      nodeKind: "plan",
-      position: 4,
-      now: 3,
-      scheduled: { amount: 3_000, currency: "CAD" },
-      collected: { amount: 1_800, currency: "CAD" },
-      deals: 3,
-    },
-    {
-      ...r,
-      id: String(r.id).replace("signed", "signed_to_standard"),
-      kind: "edge",
+      id: String(r.id).replace("booked_to_signed", "signed_to_standard"),
       node: "signed_to_standard",
       crossings: 3,
       from: "signed",
@@ -111,82 +114,130 @@ const PLAN_NUMBERS: Row[] = NUMBERS.filter((r) => r.id.toString().startsWith("si
     },
     {
       ...r,
-      id: String(r.id).replace("signed", "booked_to_engaged"),
-      kind: "edge",
+      id: String(r.id).replace("booked_to_signed", "booked_to_engaged"),
       node: "booked_to_engaged",
       crossings: 2,
       from: "booked",
       to: "engaged",
     },
-  ],
-);
+  ]),
+];
 
 type Ask = Record<string, unknown>;
 type Pipeline = (b: Ask) => unknown;
 
+/** A `pipeline.shape` row's detail for a stored body: the graph the runtime runs, and the drawing. */
+export function shapeDetail(stored: StoredBody, versions: readonly VersionLine[] = SHAPE_VERSIONS) {
+  const body = runOf(stored);
+  const drawn = drawnOf(stored);
+  return {
+    body,
+    metro: drawn.ok ? drawn.metro : null,
+    drawErrors: drawn.ok ? [] : drawn.errors,
+    depths: depthOf(body),
+    versions,
+  };
+}
+
+const shapeRow = (stored: StoredBody, versions: readonly VersionLine[]) => ({
+  record: "pipeline.shape",
+  row: { id: "shape" },
+  related: [],
+  activity: [],
+  detail: shapeDetail(stored, versions),
+});
+
 /**
- * Answers for a story that wants the bigger shape. They stand in front of the shared `recordsGet`
- * and `recordsList`, which `fallback` answers for every other record.
+ * Answers for a story that wants a bigger shape or one of its own. They stand in front of the
+ * shared `recordsGet` and `recordsList`, which `fallback` answers for every other record.
  */
-export function planAnswers(fallback: { get: Pipeline; list: Pipeline }): Answers {
+export function shapeAnswers(
+  fallback: { get: Pipeline; list: Pipeline },
+  stored: StoredBody,
+  extra: readonly Row[] = [],
+): Answers {
   return {
     "pipeline/recordsGet": (b) =>
-      b.record === "pipeline.shape"
-        ? {
-            record: "pipeline.shape",
-            row: { id: "shape" },
-            related: [],
-            activity: [],
-            detail: { body: SHAPE_PLAN, depths: DEPTHS, versions: SHAPE_VERSIONS },
-          }
-        : fallback.get(b),
+      b.record === "pipeline.shape" ? shapeRow(stored, SHAPE_VERSIONS) : fallback.get(b),
     "pipeline/recordsList": (b) => {
       const got = fallback.list(b) as { rows: Row[]; total: number };
       if (b.record !== "pipeline.number") return got;
       const where = (b.where ?? {}) as Record<string, unknown>;
-      const extra = PLAN_NUMBERS.filter(
+      const more = extra.filter(
         (r) => r.kind === where.kind && (where.window === undefined || r.window === where.window),
       );
-      return { ...got, rows: [...got.rows, ...extra], total: got.total + extra.length };
+      return { ...got, rows: [...got.rows, ...more], total: got.total + more.length };
     },
   };
 }
+
+/** `planAnswers`: the newest shape with a plan and a loop. */
+export const planAnswers = (fallback: { get: Pipeline; list: Pipeline }): Answers =>
+  shapeAnswers(fallback, SHAPE_PLAN, PLAN_NUMBERS);
 
 /** What the Map's writes sent since the last `forgetMapCalls()`, in order. */
 export const MAP_CALLS: { path: string; body: Record<string, unknown> }[] = [];
 export const forgetMapCalls = () => MAP_CALLS.splice(0);
 
-/** A file a person might import: the newest shape with one more step after Engaged. */
-export const FILE_SHAPE: ShapeBody = {
-  ...SHAPE,
-  nodes: [
-    ...SHAPE.nodes,
-    { id: "replied", kind: "step", name: "Replied", action: "reply", advance: [] },
+/** A file a person might import: the newest shape with one more station after Engaged. */
+export const FILE_METRO: MetroBody = {
+  ...SHAPE_METRO,
+  stations: [
+    ...SHAPE_METRO.stations,
+    {
+      id: "replied",
+      label: "Replied",
+      kind: "att",
+      line: "signed",
+      column: "sales",
+      action: "reply",
+    },
   ],
-  edges: [
-    ...SHAPE.edges,
-    { id: "engaged_to_replied", from: "engaged", to: "replied", kind: "flow" },
+  tracks: [
+    ...SHAPE_METRO.tracks,
+    { id: "engaged_to_replied", from: "engaged", to: "replied", line: "signed", by: "system" },
   ],
 };
 /** The file's text; the preview reads a file with no `nodes:` line as not a shape. */
 export const FILE_TEXT = "name: Sample shape\nnodes:\n  - id: mail\n";
 
-const version = (body: ShapeBody, number: number, note: string): VersionLine => ({
-  number,
-  parent: number > 1 ? number - 1 : null,
-  note,
-  at: ago(0),
-  by: "Ada North",
-  nodes: body.nodes.length,
-  edges: body.edges.length,
-  draft: null,
-  tags: [],
-  mirror: null,
-});
+/** The difference from `a` to `b` as the server answers it: `bodyAt` gives each side's stored body. */
+export function diffBetween(
+  a: ShapeRef,
+  b: ShapeRef,
+  bodyAt: (ref: ShapeRef) => StoredBody,
+): DiffAnswer {
+  return { a, b, ...diffAnswerOf(bodyAt(a), bodyAt(b), true) };
+}
+
+/** Versions 1 and 2 of the default shape. Anything newer reads as the newest. */
+const bodyOf = (ref: ShapeRef): StoredBody => (Number(ref) === 1 ? SHAPE_V1 : SHAPE_METRO);
+
+const refOf = (v: unknown): ShapeRef => {
+  const s = String(v);
+  return s.startsWith("draft:") ? (s as ShapeRef) : Number(s);
+};
+
+const version = (stored: StoredBody, number: number, note: string): VersionLine => {
+  const run = runOf(stored);
+  return {
+    number,
+    parent: number > 1 ? number - 1 : null,
+    note,
+    at: ago(0),
+    by: "Ada North",
+    nodes: run.nodes.length,
+    edges: run.edges.length,
+    draft: null,
+    tags: [],
+    mirror: null,
+  };
+};
 
 /**
- * The Map's writes, answering as the server does when one lands. The file preview reads `FILE_TEXT`
- * as a shape and anything without a `nodes:` line as not one.
+ * The Map's writes, answering as the server does when one lands. A write names a version (`from`)
+ * or a text, never a body. The file preview reads `FILE_TEXT` as a shape and anything without a
+ * `nodes:` line as not one.
  */
 export const MAP_WRITES: Answers = {
   "pipeline/shapeVersion": (b) => {
@@ -195,7 +246,7 @@ export const MAP_WRITES: Answers = {
   },
   "pipeline/shapeImport": (b) => {
     MAP_CALLS.push({ path: "shapeImport", body: b });
-    return { version: 3 };
+    return { version: 3, changed: true, terms: [] };
   },
   "pipeline/shapeStart": (b) => {
     MAP_CALLS.push({ path: "shapeStart", body: b });
@@ -203,15 +254,14 @@ export const MAP_WRITES: Answers = {
   },
   "pipeline/shapeExport": (b) => {
     MAP_CALLS.push({ path: "shapeExport", body: b });
-    return { text: `name: ${String((b.body as ShapeBody | undefined)?.name ?? "")}\nnodes: []\n` };
+    return { text: `name: Sample shape\nref: ${String(b.ref ?? "newest")}\n` };
   },
   "pipeline/shapePreview": (b) => {
     const text = String(b.text ?? "");
     if (!text.includes("nodes:")) return refuse(400, "The file is not a shape file.");
     return {
       a: 2,
-      diff: diffShapes(SHAPE, FILE_SHAPE),
-      bodies: [SHAPE, FILE_SHAPE],
+      ...diffAnswerOf(SHAPE_METRO, FILE_METRO, true),
       note: null,
       moves: null,
     };
@@ -221,44 +271,39 @@ export const MAP_WRITES: Answers = {
 /** The History's difference of two versions: version 1 and 2 only. */
 export const MAP_ANSWERS: Answers = {
   ...MAP_WRITES,
-  "pipeline/shapeDiff": (b) => {
-    const [a, c] = [Number(b.a), Number(b.b)];
-    const same = a === c;
-    return {
-      a,
-      b: c,
-      diff: same
-        ? {
-            nodes: { added: [], removed: [], renamed: [], changed: [] },
-            edges: { added: [], removed: [], changed: [] },
-            name: null,
-          }
-        : DIFF_1_2,
-      bodies: [SHAPE_V1, SHAPE],
-    };
-  },
+  "pipeline/shapeDiff": (b) => diffBetween(refOf(b.a), refOf(b.b), bodyOf),
 };
 
 /**
- * A shape that changes as the story saves it: `shapeVersion`, `shapeImport` and `shapeStart` write
- * the newest version, and the next read gives it back. `from` is the shape it starts with (null:
- * none yet). They stand in front of the shared `recordsGet`, which `fallback` answers for the rest.
+ * A shape that changes as the story saves it: `shapeVersion` (with `from`), `shapeImport` and
+ * `shapeStart` write the newest version, and the next read gives it back. `from` is the shape it
+ * starts with (null: none yet). They stand in front of the shared `recordsGet`, which `fallback`
+ * answers for the rest.
  */
 export function liveShape(
   fallback: { get: Pipeline; list?: Pipeline },
-  from: ShapeBody | null = SHAPE,
+  from: StoredBody | null = SHAPE_METRO,
   /** Open journeys beyond the shared ones (rows of `pipeline.journey`). */
   more: readonly Row[] = [],
 ): Answers {
-  let body = from;
+  const bodies = new Map<number, StoredBody>(
+    from
+      ? [
+          [1, SHAPE_V1],
+          [2, from],
+        ]
+      : [],
+  );
   let versions: VersionLine[] = from ? [...SHAPE_VERSIONS] : [];
-  const save = (path: string, next: ShapeBody, note: string, b: Ask) => {
+  const newest = () => bodies.get(versions[0]?.number ?? 0) ?? null;
+  const save = (path: string, next: StoredBody, note: string, b: Ask) => {
     MAP_CALLS.push({ path, body: b });
     const n = (versions[0]?.number ?? 0) + 1;
-    body = next;
+    bodies.set(n, next);
     versions = [version(next, n, note), ...versions];
     return { version: n };
   };
+  const at = (ref: ShapeRef): StoredBody => bodies.get(Number(ref)) ?? newest() ?? SHAPE_METRO;
   return {
     ...MAP_WRITES,
     "pipeline/recordsList": (b) => {
@@ -267,25 +312,24 @@ export function liveShape(
       if (b.record !== "pipeline.journey" || where.status !== "open" || !more.length) return got;
       return { ...got, rows: [...got.rows, ...more], total: got.total + more.length };
     },
-    "pipeline/recordsGet": (b) =>
-      b.record !== "pipeline.shape"
-        ? fallback.get(b)
-        : body
-          ? {
-              record: "pipeline.shape",
-              row: { id: "shape" },
-              related: [],
-              activity: [],
-              detail: { body, depths: depthOf(body), versions },
-            }
-          : { record: "pipeline.shape", row: null, detail: null },
-    "pipeline/shapeVersion": (b) => save("shapeVersion", b.body as ShapeBody, String(b.note), b),
-    "pipeline/shapeImport": (b) => save("shapeImport", FILE_SHAPE, String(b.note), b),
-    "pipeline/shapeStart": (b) => save("shapeStart", SHAPE, "Starter", b),
-    "pipeline/shapeDiff": (b) => {
-      const [a, c] = [Number(b.a), Number(b.b)];
-      const at = (n: number) => (n === 1 ? SHAPE_V1 : n === 2 ? SHAPE : (body ?? SHAPE));
-      return { a, b: c, diff: diffShapes(at(a), at(c)), bodies: [at(a), at(c)] };
+    "pipeline/recordsGet": (b) => {
+      if (b.record !== "pipeline.shape") return fallback.get(b);
+      const body = newest();
+      return body
+        ? shapeRow(body, versions)
+        : { record: "pipeline.shape", row: null, detail: null };
     },
+    "pipeline/shapeVersion": (b) => {
+      const n = typeof b.from === "number" ? b.from : null;
+      if (n === null) return refuse(400, "Name the version to save from.");
+      return save("shapeVersion", at(n), String(b.note), b);
+    },
+    "pipeline/shapeImport": (b) =>
+      Object.assign(save("shapeImport", FILE_METRO, String(b.note), b), {
+        changed: true,
+        terms: [],
+      }),
+    "pipeline/shapeStart": (b) => save("shapeStart", SHAPE_METRO, "Starter", b),
+    "pipeline/shapeDiff": (b) => diffBetween(refOf(b.a), refOf(b.b), at),
   };
 }

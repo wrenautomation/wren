@@ -87,7 +87,7 @@ export const shape = (over: Partial<ShapeBody> = {}): ShapeBody => ({
 });
 
 /**
- * The metro body a graph is saved as. Every stored body is a metro body (HELD, C1 part 4), so a
+ * The metro body a graph is saved as. Every stored body is a metro body (C1 part 4), so a
  * test that seeds a graph shape saves `asMetro(graph)`: station ids are the node ids and track ids
  * the edge ids, so journeys and deals keep their place. Throws what `metroOf` refuses.
  */

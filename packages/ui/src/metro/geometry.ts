@@ -86,3 +86,54 @@ export function leafPath(x: number, y: number, w: number, h: number, a: number, 
 
 /** Mid point of two points. */
 export const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+
+/** The point `f` (0 to 1) of the way along a polyline, by length. */
+export function along(pts: readonly Point[], f: number): Point {
+  const first = pts[0] ?? [0, 0];
+  const lens = pts
+    .slice(1)
+    .map((q, i) => Math.hypot(q[0] - (pts[i] as Point)[0], q[1] - (pts[i] as Point)[1]));
+  let rest = lens.reduce((a, b) => a + b, 0) * Math.min(1, Math.max(0, f));
+  for (let i = 0; i < lens.length; i++) {
+    const len = lens[i] as number;
+    const a = pts[i] as Point;
+    const b = pts[i + 1] as Point;
+    if (rest <= len || i === lens.length - 1)
+      return len ? [a[0] + ((b[0] - a[0]) * rest) / len, a[1] + ((b[1] - a[1]) * rest) / len] : a;
+    rest -= len;
+  }
+  return first;
+}
+
+/**
+ * A point `gap` px to the side of the route `f` of the way along it: above a level or diagonal run,
+ * right of an upright one. A tag set there sits clear of the line.
+ */
+export function beside(pts: readonly Point[], f: number, gap: number): Point {
+  const [x, y] = along(pts, f);
+  // The direction of the route there: the segment that holds the point.
+  let dx = 0;
+  let dy = 0;
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1] as Point;
+    const b = pts[i] as Point;
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (!len) continue;
+    // Distance from the point to the segment (both ends measured, enough for a polyline).
+    const d = Math.abs((b[0] - a[0]) * (a[1] - y) - (a[0] - x) * (b[1] - a[1])) / len;
+    const t = ((x - a[0]) * (b[0] - a[0]) + (y - a[1]) * (b[1] - a[1])) / (len * len);
+    if (t >= -1e-6 && t <= 1 + 1e-6 && d < best) {
+      best = d;
+      dx = (b[0] - a[0]) / len;
+      dy = (b[1] - a[1]) / len;
+    }
+  }
+  let nx = dy;
+  let ny = -dx;
+  if (ny > 0 || (ny === 0 && nx < 0)) {
+    nx = -nx;
+    ny = -ny;
+  }
+  return [x + nx * gap, y + ny * gap];
+}

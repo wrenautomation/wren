@@ -6,16 +6,14 @@
  * it would change, then saves a new version with that version's body (the old versions stay;
  * history only grows). "Tag" names a version for good. Drafts: `DraftList.tsx`.
  */
-import { changeKey, changeLine, changesOf, diffShapes } from "@wren/pipeline/diff";
-import type { ShapeBody } from "@wren/pipeline/model";
-import { Alert, Button, cx, Icon, LoadFailed, Loading, Tag } from "@wren/ui";
+import { Button, cx, Icon, LoadFailed, Loading, Tag } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../api.js";
 import { type Compare, DraftsPanel } from "./DraftList.js";
-import { diffLines } from "./diff.js";
 import { dayOf, fromDraft, type HistoryTab, newestOf, refLabel, shortSha } from "./drafts.js";
 import type { Version } from "./model.js";
 import { OVER_RIGHT } from "./overlay.js";
+import { messageOf, Refused } from "./Refused.js";
 import { useDiffOf, useDrafts } from "./read.js";
 import { TagForm } from "./TagForm.js";
 import { UndoLine } from "./Undo.js";
@@ -38,31 +36,24 @@ function Restore({
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const diff = useDiffOf(at, n, newest);
+  // Newest to `n`: the changes the restore makes.
+  const diff = useDiffOf(at, newest, n);
   const [busy, setBusy] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
-  const body: ShapeBody | undefined = diff.data?.bodies[0];
+  // The server copies version `n`; no shape travels.
   const save = async () => {
-    if (!body) return;
     setBusy(true);
     setRefused(null);
     try {
-      await call("pipeline/shapeVersion", { ...at, body, note: restoreNote(n) });
+      await call("pipeline/shapeVersion", { ...at, from: n, note: restoreNote(n) });
       onSaved();
     } catch (err) {
-      setRefused(err instanceof Error ? err.message : String(err));
+      setRefused(messageOf(err));
     } finally {
       setBusy(false);
     }
   };
-  // The difference reads from the newest shape to version `n`: that is what the restore changes.
-  const lines = diff.data
-    ? diffLines(
-        diff.data.bodies[1],
-        diff.data.bodies[0],
-        diffShapes(diff.data.bodies[1], diff.data.bodies[0]),
-      )
-    : [];
+  const lines = diff.data?.changes.map((c) => c.line) ?? [];
   return (
     <section
       aria-label={`Restore version ${n}`}
@@ -89,13 +80,13 @@ function Restore({
           Version {n} is the same as the newest. Nothing to restore.
         </p>
       )}
-      {refused ? <Alert className="mb-0">{refused}</Alert> : null}
+      {refused ? <Refused text={refused} /> : null}
       <div className="flex gap-2">
         <Button
           tone="primary"
           size="dense"
           busy={busy}
-          disabled={!body || lines.length === 0}
+          disabled={!diff.data || lines.length === 0}
           onClick={() => void save()}
         >
           Restore
@@ -337,10 +328,7 @@ function Changes({
   onUndone: () => void;
 }) {
   const [a, b] = [diff.a, diff.b];
-  const lines = changesOf(diff.diff).map((c) => ({
-    key: changeKey(c),
-    line: changeLine(diff.bodies[0], diff.bodies[1], c),
-  }));
+  const lines = diff.changes;
   return (
     <section aria-label="Changes">
       <h3 className="mb-1.5 text-[13px] font-semibold text-(--ui-ink-2)">

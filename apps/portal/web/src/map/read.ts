@@ -1,6 +1,6 @@
 /**
  * The Map's reads (designs/2026-10-19-business-map.md, "Map page"): the newest shape with its
- * versions, the window's numbers per node, edge and offer, the open journeys, and the ghosts (a
+ * versions, the window's numbers per station, track and line, the open journeys, and the ghosts (a
  * journey on a node the newest version dropped). One hook; the page draws what it returns (`model.ts`).
  */
 import type { Cell } from "@wren/core/records";
@@ -15,6 +15,7 @@ import type {
   DraftState,
   ShapeRef,
 } from "@wren/pipeline/history";
+import type { MetroBody } from "@wren/pipeline/metro";
 import type { ShapeBody } from "@wren/pipeline/model";
 import { call } from "../api.js";
 import { useCall } from "../load.js";
@@ -59,6 +60,16 @@ const numbersOf = (r: Row): NodeNumbers => ({
   scheduled: sumOf(r.scheduled),
 });
 
+/** The line rows by line id. An offer line has one row for each currency, so a line holds a list. */
+function linesOf(rows: Row[]): Map<string, NodeNumbers[]> {
+  const by = new Map<string, NodeNumbers[]>();
+  for (const r of rows) {
+    const n = numbersOf(r);
+    by.set(n.id, [...(by.get(n.id) ?? []), n]);
+  }
+  return by;
+}
+
 /** Every row of a list, up to the caps. */
 export async function listAll(
   at: Record<string, string>,
@@ -95,14 +106,18 @@ export async function readMap(client: string, window: Window): Promise<MapRead> 
   });
   const detail = got.detail as {
     body?: ShapeBody;
+    metro?: MetroBody | null;
+    /** From the server once D1 lands; read as empty until then. */
+    drawErrors?: string[];
     depths?: Record<string, number>;
     versions?: Version[];
   } | null;
   if (!detail?.body) return { map: null };
   const per = (kind: string) => listAll(at, { record: NUMBER, where: { kind, window } });
-  const [nodes, edges, open, ghosts] = await Promise.all([
-    per("node"),
-    per("edge"),
+  const [stations, tracks, lines, open, ghosts] = await Promise.all([
+    per("station"),
+    per("track"),
+    per("line"),
     listAll(at, { record: JOURNEY, where: { status: "open" }, sort: "-movedAt" }),
     listAll(at, { record: JOURNEY, view: "ghost" }),
   ]);
@@ -116,11 +131,15 @@ export async function readMap(client: string, window: Window): Promise<MapRead> 
   return {
     map: {
       body: detail.body,
+      metro: detail.metro ?? null,
+      drawErrors: detail.drawErrors ?? [],
       depths: detail.depths ?? {},
       versions: detail.versions ?? [],
-      nodes: new Map(nodes.map(numbersOf).map((n) => [n.id, n])),
-      // A numbers row's `node` is the shape's own id; its row id carries the window too.
-      edges: new Map(edges.map((r) => [String(r.node), count(r.crossings) ?? 0])),
+      // A numbers row's `node` is the shape's own id; its row id carries the window too. The hub
+      // has a station row: its `now` is the leads.
+      stations: new Map(stations.map(numbersOf).map((n) => [n.id, n])),
+      tracks: new Map(tracks.map((r) => [String(r.node), count(r.crossings) ?? 0])),
+      lines: linesOf(lines),
       people,
       ghosts: [...held.values()],
     },
@@ -189,9 +208,13 @@ export function useProposals(at: Record<string, string>, on = true) {
   });
 }
 
-/** The versions that touched one node or one line, newest first; none read while `ask` is null. */
+/** The kinds a blame ask names: exactly one is set. */
+const BLAME_KINDS = ["station", "track", "line", "group", "node", "edge"] as const;
+
+/** The versions that touched one station, track, line or group, newest first; none read while `ask` is null. */
 export function useBlame(at: Record<string, string>, ask: BlameAsk | null) {
-  const which = ask?.node ? `node:${ask.node}` : ask?.edge ? `edge:${ask.edge}` : null;
+  const kind = ask ? BLAME_KINDS.find((k) => ask[k]) : undefined;
+  const which = ask && kind ? `${kind}:${ask[kind]}` : null;
   return useCall<BlameLine[]>(which ? `map-blame:${keyOf(at, which)}` : null, async () => {
     const got = await call<BlameAnswer>("pipeline/shapeBlame", { ...at, ...ask });
     return got.lines;

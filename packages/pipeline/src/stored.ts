@@ -20,7 +20,7 @@ import {
   type ShapeChange,
   type ShapeDiff,
 } from "./diff.js";
-import type { BlameLine } from "./history.js";
+import type { BlameLine, ChangeLine } from "./history.js";
 import { checkMetro, isMetro, type MetroBody } from "./metro.js";
 import { historyOfMetro } from "./metro-blame.js";
 import {
@@ -54,6 +54,21 @@ export function metroView(stored: StoredBody): MetroBody {
   return drawn.body;
 }
 
+/**
+ * The map model of a stored body, or the reasons it cannot be drawn. A metro body always draws;
+ * a graph does not when it holds a node called `hub`.
+ */
+export function drawnOf(
+  stored: StoredBody,
+): { ok: true; metro: MetroBody } | { ok: false; errors: string[] } {
+  try {
+    return { ok: true, metro: metroView(stored) };
+  } catch (e) {
+    if (e instanceof Refused) return { ok: false, errors: e.errors };
+    throw e;
+  }
+}
+
 /** True when two stored bodies hold the same data, whatever the key order. */
 export const sameStored = (a: StoredBody, b: StoredBody): boolean =>
   canonicalJson(a) === canonicalJson(b);
@@ -78,6 +93,13 @@ export type StoredDiff = { model: "graph"; diff: ShapeDiff } | { model: "metro";
 export function diffStored(a: StoredBody, b: StoredBody): StoredDiff {
   if (!isMetro(a) && !isMetro(b)) return { model: "graph", diff: diffShapes(a, b) };
   return { model: "metro", diff: diffMetro(metroView(a), metroView(b)) };
+}
+
+/** Two bodies as a metro diff, when both draw; else as they are. */
+function metroDiffOf(a: StoredBody, b: StoredBody): StoredDiff {
+  const [da, db] = [drawnOf(a), drawnOf(b)];
+  if (!da.ok || !db.ok) return diffStored(a, b);
+  return { model: "metro", diff: diffMetro(da.metro, db.metro) };
 }
 
 /** One change of either model. `name` is the same value in both. */
@@ -109,6 +131,36 @@ export function storedChangeLine(a: StoredBody, b: StoredBody, c: StoredChange):
 /** Every change of `d` (from `a` to `b`) as a plain line. */
 export const storedChangeLines = (a: StoredBody, b: StoredBody, d: StoredDiff): string[] =>
   storedChangesOf(d).map((c) => storedChangeLine(a, b, c));
+
+/** What the web shows of a diff from `a` to `b`: the diff, its lines, and both sides drawn. */
+export interface DiffParts {
+  /** In the stored bodies' terms: graph keys when both are graphs. Undo takes these keys. */
+  diff: StoredDiff;
+  changes: ChangeLine[];
+  /** Both sides as the map draws them. Null when a side cannot be drawn. */
+  views: [MetroBody, MetroBody] | null;
+  /** `diffMetro(views[0], views[1])`: the marks. Null with `views`. */
+  marks: MetroDiff | null;
+}
+
+/**
+ * One diff answer for every handler: the diff in the stored terms, each change as its undo key and
+ * a plain line, and both sides drawn with the marks between them. A side that cannot be drawn
+ * leaves `views` and `marks` null; the diff and the lines stay.
+ *
+ * `onMetro` says the newest version is a metro body. Undo takes keys of the newest version's
+ * model, so two graph bodies then diff as a metro diff, when both draw.
+ */
+export function diffAnswerOf(a: StoredBody, b: StoredBody, onMetro = false): DiffParts {
+  const diff = onMetro && !isMetro(a) && !isMetro(b) ? metroDiffOf(a, b) : diffStored(a, b);
+  const changes = storedChangesOf(diff).map((c) => ({
+    key: storedChangeKey(c),
+    line: storedChangeLine(a, b, c),
+  }));
+  const [da, db] = [drawnOf(a), drawnOf(b)];
+  if (!da.ok || !db.ok) return { diff, changes, views: null, marks: null };
+  return { diff, changes, views: [da.metro, db.metro], marks: diffMetro(da.metro, db.metro) };
+}
 
 // --- blame ----------------------------------------------------------------------------------
 

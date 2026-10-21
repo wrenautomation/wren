@@ -13,6 +13,7 @@ import {
   type ChipSpec,
   type FoldSpec,
   lineColour,
+  type Mark,
   type MarkStation,
   type MetroScene,
   type Point,
@@ -37,9 +38,62 @@ export const STATION_GLYPH: Record<Exclude<StationKind, "par">, IconName> = {
 
 type Colours = Pick<MetroScene, "colours">;
 
-/** What a mark says to a screen reader: its name and its count. */
-const nameOf = (s: Pick<MarkStation, "n" | "s" | "t">) =>
-  s.n ? (s.s ? `${s.n}, ${s.s}` : s.n) : s.t;
+/** The word and the tag glyph of each diff mark. */
+export const MARK_WORD: Record<Mark, string> = {
+  added: "added",
+  changed: "changed",
+  removed: "removed",
+};
+export const MARK_GLYPH: Record<Mark, string> = { added: "+", changed: "~", removed: "\u2212" };
+
+/** A name with its diff mark said at the end: "Replied, 9, added". */
+const marked = (name: string, mark: Mark | undefined) =>
+  mark ? `${name}, ${MARK_WORD[mark]}` : name;
+
+/** What a mark says to a screen reader: its name, its count and its diff mark. */
+const nameOf = (s: Pick<MarkStation, "n" | "s" | "t" | "mark">) =>
+  marked(s.n ? (s.s ? `${s.n}, ${s.s}` : s.n) : s.t, s.mark);
+
+/** Rough width of a label in px (14px, weight 650), to set a tag beside it. */
+const textWidth = (t: string) => t.length * 7.4;
+
+/**
+ * The small tag of a diff mark: a dot with + (added), ~ (changed) or the minus sign (removed).
+ * It is hidden from a screen reader unless `named`: then it is the one name the part has.
+ */
+export function MarkTag({
+  x,
+  y,
+  mark,
+  l,
+  named,
+  label,
+}: {
+  x: number;
+  y: number;
+  mark: Mark;
+  /** The line it sits on, so it dims with the line. */
+  l?: string | undefined;
+  named?: boolean | undefined;
+  /** What the tag says when named, ending in the mark word. */
+  label?: string | undefined;
+}) {
+  return (
+    <g
+      className="mtag"
+      data-mark={mark}
+      {...(l ? { "data-l": l } : {})}
+      {...(named
+        ? { role: "img", "aria-label": label ?? MARK_WORD[mark] }
+        : { "aria-hidden": true })}
+    >
+      <circle cx={x} cy={y} r={8} />
+      <text x={x} y={y + 4} textAnchor="middle">
+        {MARK_GLYPH[mark]}
+      </text>
+    </g>
+  );
+}
 
 /** What makes an SVG group a button: SVG has no button element, so it takes the role and focus. */
 export const asButton = (label: string) =>
@@ -106,6 +160,9 @@ export function RuleTag({ x, y, t }: { x: number; y: number; t: string }) {
   );
 }
 
+/** A part the body does not give ("?") is said in words for a screen reader. */
+const said = (v: string, none: string): string => (v === "?" || v === "" ? none : v);
+
 /** A person track's pill: the owner's initials and the promise ("WJ · 4h"). Amber when late. */
 export function Pill({
   x,
@@ -113,11 +170,13 @@ export function Pill({
   who,
   late,
   id,
+  mark,
 }: {
   x: number;
   y: number;
   who: string;
   late?: boolean | undefined;
+  mark?: Mark | undefined;
   /** The track's id: the pill takes focus and clicks. */
   id?: string | undefined;
 }) {
@@ -129,7 +188,12 @@ export function Pill({
       {...(id
         ? {
             "data-tr": id,
-            ...asButton(`Person task, ${o}, ${tm}${late ? ", late" : ""}`),
+            ...asButton(
+              marked(
+                `Person task, ${said(o, "no owner")}, ${said(tm, "no promise")}${late ? ", late" : ""}`,
+                mark,
+              ),
+            ),
           }
         : {})}
     >
@@ -163,6 +227,7 @@ export function XferLabel({
   l,
   on,
   id,
+  mark,
 }: {
   m: Point;
   lab: string;
@@ -170,13 +235,14 @@ export function XferLabel({
   l: string;
   on?: boolean | undefined;
   id?: string | undefined;
+  mark?: Mark | undefined;
 }) {
   const w = lab.length * 6.6 + 20;
   return (
     <g
       className={cx("xp", on && "on")}
       data-l={l}
-      {...(id ? { "data-tr": id, ...asButton(`Transfer, ${lab}`) } : {})}
+      {...(id ? { "data-tr": id, ...asButton(marked(`Transfer, ${lab}`, mark)) } : {})}
     >
       <rect
         x={m[0] - w / 2}
@@ -246,6 +312,7 @@ export function Marker({
           selected && "sel",
           on && "on",
         )}
+        {...(s.mark ? { "data-mark": s.mark } : {})}
         {...(l ? { "data-l": l } : {})}
         {...delay(at)}
         {...(click && s.id ? { "data-id": s.id, ...asButton(nameOf(s)) } : {})}
@@ -281,6 +348,22 @@ export function Marker({
           ) : null}
         </>
       ) : null}
+      {s.mark ? (
+        <MarkTag
+          mark={s.mark}
+          l={l}
+          {...(s.n
+            ? {
+                // Beside the label, on the side it reads towards.
+                x:
+                  anchor === "end"
+                    ? lx - textWidth(s.n) - 12
+                    : lx + (anchor === "start" ? textWidth(s.n) : textWidth(s.n) / 2) + 12,
+                y: ny - 4,
+              }
+            : { x: x + w / 2, y: top })}
+        />
+      ) : null}
     </>
   );
 }
@@ -311,8 +394,9 @@ export function Capsule({
       className={cx("cap", c.late && "late", selected && "sel", on && "on")}
       data-l={c.l}
       data-g={c.id}
+      {...(c.mark ? { "data-mark": c.mark } : {})}
       {...foldedAttrs(c)}
-      {...asButton(`${c.n}: ${c.now} people. Open`)}
+      {...asButton(marked(`${c.n}: ${c.now} people. Open`, c.mark))}
     >
       <rect
         className="cr"
@@ -337,6 +421,9 @@ export function Capsule({
       <text className="lab" x={m} y={c.y - h / 2 - 10} textAnchor="middle">
         {c.n}
       </text>
+      {c.mark ? (
+        <MarkTag mark={c.mark} x={m + textWidth(c.n) / 2 + 12} y={c.y - h / 2 - 14} />
+      ) : null}
     </g>
   );
 }

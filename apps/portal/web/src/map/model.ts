@@ -1,10 +1,11 @@
 /**
- * The Map's data and drawing, pure (no reads, so a test imports it alone): the windows, what a read
- * gives, and `graphOf`, which turns it into the graph kit's nodes and wires.
+ * The Map's data, pure (no reads, so a test imports it alone): the windows, what a read gives, and
+ * the lines a panel says. `view.ts` turns it into the drawing.
  */
 import type { VersionLine } from "@wren/pipeline/history";
-import type { ShapeBody, ShapeNode } from "@wren/pipeline/model";
-import { type GraphEdge, type GraphNode, money, num } from "@wren/ui";
+import type { MetroBody } from "@wren/pipeline/metro";
+import type { ShapeBody } from "@wren/pipeline/model";
+import { money, num } from "@wren/ui";
 
 export const WINDOWS = [
   { id: "7", label: "7 days" },
@@ -63,31 +64,30 @@ export interface Ghost {
 
 export interface MapData {
   body: ShapeBody;
+  /** The shape as the map draws it; null when it cannot be drawn. */
+  metro: MetroBody | null;
+  /** Why it cannot be drawn; empty when it can. */
+  drawErrors: string[];
   depths: Record<string, number>;
   versions: Version[];
-  nodes: Map<string, NodeNumbers>;
-  /** People who crossed each edge in the window. */
-  edges: Map<string, number>;
+  /** The numbers of each station over the window, by station id. The hub's `now` is the leads. */
+  stations: Map<string, NodeNumbers>;
+  /** People who crossed each track in the window, by track id. */
+  tracks: Map<string, number>;
+  /** The numbers of each line, by line id. An offer line has one row for each currency. */
+  lines: Map<string, NodeNumbers[]>;
   /** Open journeys, newest move first. */
   people: Person[];
   ghosts: Ghost[];
 }
 
-/** A node's kind in the graph kit, and the token that tints its tile: plan and offer carry the accent. */
-export const LOOK: Record<ShapeNode["kind"], { kind: GraphNode["kind"]; tint: string }> = {
-  source: { kind: "part", tint: "var(--ui-cue-2)" },
-  step: { kind: "step", tint: "var(--ui-cue-1)" },
-  offer: { kind: "record", tint: "var(--ui-active)" },
-  plan: { kind: "workflow", tint: "var(--ui-active)" },
-};
-
 const cash = (s: Sum | null) => (s ? money(s.amount, s.currency, true) : "none");
 
-/** The lines of a node's hover card: its numbers over the window. */
-export function numbersSay(n: ShapeNode["kind"], x: NodeNumbers | undefined): string[] {
+/** What a station says in a panel: its numbers over the window. The hub says its leads. */
+export function stationSays(kind: string, x: NodeNumbers | undefined): string[] {
   if (!x) return ["No numbers yet."];
-  if (n === "source") return [`Opened: ${num(x.opened ?? 0)}`, `Deals: ${num(x.deals ?? 0)}`];
-  if (n === "plan")
+  if (kind === "hub") return [`Leads: ${num(x.now ?? 0)}`];
+  if (kind === "cash")
     return [
       `Now: ${num(x.now ?? 0)}`,
       `Deals: ${num(x.deals ?? 0)}`,
@@ -102,53 +102,14 @@ export function numbersSay(n: ShapeNode["kind"], x: NodeNumbers | undefined): st
   ];
 }
 
-/** The graph kit's nodes and wires for the Map: ribbons by crossings, loops thin, ghosts dashed. */
-export function graphOf(data: MapData): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const nodes: GraphNode[] = data.body.nodes.map((n) => {
-    const x = data.nodes.get(n.id);
-    const look = LOOK[n.kind];
-    const number =
-      n.kind === "plan"
-        ? x?.collected
-          ? { value: x.collected.amount, label: `${x.collected.currency} collected` }
-          : { value: 0, label: "collected" }
-        : n.kind === "source"
-          ? { value: x?.opened ?? 0, label: "opened" }
-          : { value: x?.now ?? 0, label: "now" };
-    return {
-      id: n.id,
-      kind: look.kind,
-      tint: look.tint,
-      label: n.name,
-      number,
-      hover: numbersSay(n.kind, x),
-      ...(n.kind === "source" && n.parked
-        ? { dim: true, state: { label: "Parked", tone: "neutral" as const } }
-        : {}),
-    };
-  });
-  for (const g of data.ghosts)
-    if (!nodes.some((n) => n.id === g.id))
-      nodes.push({
-        id: g.id,
-        kind: "step",
-        tint: LOOK.step.tint,
-        label: g.name,
-        number: { value: g.people.length, label: "now" },
-        hover: [`Now: ${num(g.people.length)}`, "Dropped from the newest version."],
-        state: { label: "Ghost", tone: "warn" },
-        dashed: true,
-      });
-  const edges: GraphEdge[] = data.body.edges.map((e) => {
-    const n = data.edges.get(e.id) ?? 0;
-    return {
-      from: e.from,
-      to: e.to,
-      ...(e.label ? { label: e.label } : {}),
-      weight: n,
-      count: { value: n },
-      ...(e.kind === "loop" ? { loop: true as const } : {}),
-    };
-  });
-  return { nodes, edges };
+/** What a line says in a panel: its numbers over the window, one set for each currency. */
+export function lineSays(rows: readonly NodeNumbers[] | undefined): string[] {
+  if (!rows?.length) return ["No numbers yet."];
+  return rows.flatMap((x) => [
+    ...(x.opened != null ? [`Opened: ${num(x.opened)}`] : []),
+    `Deals: ${num(x.deals ?? 0)}`,
+    ...(x.collected || x.scheduled
+      ? [`Collected: ${cash(x.collected)}`, `Scheduled: ${cash(x.scheduled)}`]
+      : []),
+  ]);
 }

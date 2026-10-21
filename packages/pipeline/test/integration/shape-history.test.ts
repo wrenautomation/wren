@@ -14,7 +14,7 @@ import { pipelineConsoleApi, saveThenMirror } from "../../src/console.js";
 import type { ShapeBody } from "../../src/model.js";
 import { journeys } from "../../src/schema.js";
 import { Refused, shapeVersionsOf } from "../../src/store.js";
-import { runOf } from "../../src/stored.js";
+import { metroView, runOf } from "../../src/stored.js";
 import { asMetro, flow } from "../fixtures.js";
 
 let pg: TestPostgres;
@@ -107,8 +107,8 @@ describe("drafts through the console", () => {
     // A draft against the live version: the call node and its edge are new.
     const diff = await a.shapeDiff({ ...op(), a: 1, b: "draft:add-a-call" });
     expect(diff).toMatchObject({ a: 1, b: "draft:add-a-call" });
-    expect(diff.diff.nodes.added).toEqual(["call"]);
-    expect(diff.bodies[1].nodes.map((n) => n.id)).toContain("call");
+    expect(diff.changes.map((c) => c.key)).toContain("station:call:added");
+    expect(diff.views?.[1].stations.map((s) => s.id)).toContain("call");
     await expect(a.shapeDiff({ ...op(), a: 1, b: "draft:none" })).rejects.toThrow(
       /no draft "none"/,
     );
@@ -203,8 +203,8 @@ describe("blame, undo and tags", () => {
       note: "Undo: Added station Call.",
       newest: 2,
     });
-    expect(p.diff.nodes.removed).toEqual(["call"]);
-    expect(p.bodies[1].nodes.map((n) => n.id)).not.toContain("call");
+    expect(p.changes.map((c) => c.key)).toContain("station:call:removed");
+    expect(p.views?.[1].stations.map((s) => s.id)).not.toContain("call");
     expect((await shapeVersionsOf(pg.db)).length).toBe(2);
 
     await expect(
@@ -364,5 +364,49 @@ describe("save, then mirror", () => {
       }),
     ).rejects.toBeTruthy();
     expect(calls).toEqual(["shape undo"]);
+  });
+});
+
+describe("ops on a metro live through the console", () => {
+  it("edits a draft by ops, plans it, and applies it", async () => {
+    const a = api();
+    const live = (await shapeVersionsOf(pg.db)).at(-1);
+    if (!live) throw new Error("no live version");
+    const made = await a.shapeDraftNew({ ...op(), name: "Ops by console" });
+    expect(made).toEqual({ id: "ops-by-console", base: live.number });
+
+    const ops = [{ op: "rename", on: "station", id: "engaged", label: "Replied" }];
+    const edited = await a.shapeDraftEdit({ ...op(), id: made.id, ops });
+    expect(edited.id).toBe(made.id);
+    expect(edited.lines.length).toBeGreaterThan(0);
+    expect(edited.warnings).toEqual([]);
+    // One op, not a list, is the same.
+    await a.shapeDraftEdit({ ...op(), id: made.id, ops: ops[0] });
+    await expect(
+      a.shapeDraftEdit({
+        ...op(),
+        id: made.id,
+        ops: [{ op: "remove", on: "station", id: "nope" }],
+      }),
+    ).rejects.toThrow(/nope/);
+    await expect(a.shapeDraftEdit({ ...as(VAL, "acme"), id: made.id, ops })).rejects.toThrow(
+      /can't do that/,
+    );
+
+    const plan = await a.shapeDraftPlan({ ...op(), id: made.id });
+    expect(plan).toMatchObject({ id: made.id, base: live.number, live: live.number });
+    expect(plan.moved).toBe(false);
+    expect(plan.conflicts).toEqual([]);
+    expect(plan.lines.length).toBeGreaterThan(0);
+    // A viewer of the client may read the plan, as they read a draft.
+    const read = await a.shapeDraftPlan({ ...as(VAL, "acme"), id: made.id });
+    expect(read.lines).toEqual(plan.lines);
+
+    const applied = await a.shapeDraftApply({ ...op(), id: made.id });
+    expect(applied).toEqual({ id: made.id, version: live.number + 1 });
+    const out = (await shapeVersionsOf(pg.db)).at(-1);
+    expect(out && metroView(out.body).stations.find((x) => x.id === "engaged")?.label).toBe(
+      "Replied",
+    );
   });
 });

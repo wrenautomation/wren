@@ -1,7 +1,7 @@
 /**
  * Small shape edits on a real Postgres (designs/2026-10-19-business-map.md): the CLI's add-node,
  * connect and remove read the newest body, change it and save the next version. Every stored body
- * is metro now (HELD, C1 part 4), so a graph edit has nothing to edit: a metro newest is refused
+ * is metro now (C1 part 4), so a graph edit has nothing to edit: a metro newest is refused
  * with `ON_METRO`, and a graph newest (a database from before) saves a graph body, which is
  * refused with `CONVERT_FIRST`. The graph edits themselves are tested on the pure layer
  * (`src/edit.test.ts`). Synthetic data only.
