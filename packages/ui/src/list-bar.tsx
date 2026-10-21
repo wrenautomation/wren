@@ -1160,9 +1160,12 @@ export function ListBar({
   end,
   facets,
   display,
+  compact = false,
 }: {
   meta: RecordMeta;
   place: Place;
+  /** Beside a docked peek (artifact `.nt-pk .nt-top`): the one line, the tools without words. */
+  compact?: boolean;
   /** The fields on screen, offered first by Filter. */
   shown: Set<string>;
   keep?: KeepApi | undefined;
@@ -1285,7 +1288,7 @@ export function ListBar({
         {display}
       </span>
     ) : null;
-  const search = searchable ? <SearchBox place={place} label={many} /> : null;
+  const search = searchable ? <SearchBox place={place} label={many} glass={compact} /> : null;
   // Table or By <field>: the one setting that folds the rows into groups, kept in `?group=`.
   const grouped = groupFields(meta).find((f) => f.key === params.get("group")) ?? null;
   const by = grouped ?? byField(meta);
@@ -1318,7 +1321,7 @@ export function ListBar({
   ) : null;
 
   // The artifact's `.nt-top`: the views at the left, the tools at the right.
-  if (!narrow)
+  if (!narrow && !compact)
     // A side control: the bar hugs its parts, never the page's width.
     return (
       <div className="flex w-fit max-w-full flex-wrap items-center gap-2">
@@ -1335,7 +1338,8 @@ export function ListBar({
         </div>
       </div>
     );
-  // A phone keeps the one line (artifact `.nt-top` at 720px): the tools drop their words.
+  // A phone, or a list beside its peek, keeps the one line (artifact `.nt-top` at 720px): the
+  // tools drop their words.
   return (
     <div className="grid gap-2">
       <div className="flex min-w-0 items-center gap-2">
@@ -1391,7 +1395,16 @@ export function ListBar({
 }
 
 /** The search box: it asks once typing stops. */
-export function SearchBox({ place, label }: { place: Place; label: string }) {
+export function SearchBox({
+  place,
+  label,
+  glass = false,
+}: {
+  place: Place;
+  label: string;
+  /** The glass alone at any width, as a phone's (a list beside its peek). */
+  glass?: boolean;
+}) {
   const asked = place.params.get("q") ?? "";
   const [text, setText] = useState(asked);
   /** He's typing: his words win until they're in the address. */
@@ -1423,6 +1436,10 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
         !asked &&
           "max-[899.98px]:w-[33px] max-[899.98px]:min-w-0 max-[899.98px]:transition-[width,background-color,color] max-[899.98px]:duration-200 max-[899.98px]:ease-(--ui-ease) max-[899.98px]:focus-within:w-40",
         asked && "max-[899.98px]:w-40",
+        glass &&
+          (asked
+            ? "w-40"
+            : "w-[33px] min-w-0 transition-[width,background-color,color] duration-200 ease-(--ui-ease) focus-within:w-40"),
         asked && CHIP_ON,
       )}
     >

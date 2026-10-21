@@ -1781,6 +1781,13 @@ function List({
   usePageKeys(keyLines.length ? { title: `On ${many}`, keys: keyLines } : null);
   // A peek on a wide screen docks in the list's panel; the whole record, or a phone's, floats.
   const docked = !!openId && !!peeked && !narrow;
+  // The time it waits, else the first date: the artifact's 76px column at the right.
+  const when =
+    columnsFor.find((c) => c.key === late?.field) ??
+    columnsFor.find((c, i) => i > 0 && cols.find((f) => f.key === c.key)?.kind === "date");
+  const dockedColumns = [columnsFor[0], when].filter(
+    (c, i, all): c is RowsColumn<Row> => !!c && all.indexOf(c) === i,
+  );
   const panel = openId ? (
     <Panel
       meta={meta}
@@ -1863,6 +1870,7 @@ function List({
               <ListBar
                 meta={meta}
                 place={place}
+                compact={docked}
                 shown={new Set(cols.map((f) => f.key))}
                 keep={api.keep}
                 saved={saved}
@@ -1903,14 +1911,15 @@ function List({
                 <Rows
                   label={many}
                   noun={meta.name.one}
-                  // A docked peek leaves the list its name and first two columns (`.nt-pk .nt`).
-                  columns={docked ? columnsFor.slice(0, 2) : columnsFor}
+                  // A docked peek leaves the list its name, one column and its time (`.nt-pk .nt`).
+                  columns={docked ? dockedColumns : columnsFor}
                   name={nameCol}
                   lines={rowLines}
                   loading={!page.data}
                   empty={!!page.data && !rows.length}
                   pick={pickOf}
-                  act={actOf}
+                  // Beside the peek a row is a name to pick: its tools are in the peek.
+                  act={docked ? undefined : actOf}
                   open={{
                     id: openId,
                     onOpen: (_, i) => {

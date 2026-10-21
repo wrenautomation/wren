@@ -868,7 +868,7 @@ export function Rows<T>(p: RowsProps<T>) {
                         onOpen={open ? r.onOpen : undefined}
                         className="flex-1"
                       />
-                      {name.href ? (
+                      {r.isOpen ? null : name.href ? (
                         <a href={name.href(l.row)} tabIndex={-1} className={OPEN_CHIP}>
                           <Icon name="expand" size={12} />
                           Open
