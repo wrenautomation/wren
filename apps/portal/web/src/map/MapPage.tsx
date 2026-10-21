@@ -147,6 +147,10 @@ export function MapPage({
   clients: readonly { id: string; name: string }[];
   /** More controls at the header's end (the Today sheet's button). */
   trailing?: ReactNode;
+  /** The line key Today lights on hover (`lineKeyOf`). Read by the metro page. */
+  lit?: string | null;
+  /** Today opened a task: its track id. Read by the metro page. */
+  onOpenTask?: (id: string) => void;
 }) {
   const window = windowOf(props.params.get("window"));
   const wren = props.client === WREN.id;

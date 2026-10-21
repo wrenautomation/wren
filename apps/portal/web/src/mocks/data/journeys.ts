@@ -9,6 +9,7 @@ import type { Row } from "@wren/core/records/serve";
 import type { VersionLine } from "@wren/pipeline/history";
 import type { ShapeBody } from "@wren/pipeline/model";
 import type { Answers } from "../api.js";
+import { SHAPE_METRO } from "./map-metro.js";
 import { ago } from "./shell.js";
 
 /** The writes the board sent since the last `forgetCalls()`, in order. */
@@ -148,6 +149,8 @@ export const SHAPE_VERSIONS: VersionLine[] = [
 export const JOURNEY_DETAIL: Record<string, (row: Row) => object> = {
   "pipeline.shape": () => ({
     body: SHAPE,
+    metro: SHAPE_METRO,
+    drawErrors: [],
     depths: DEPTHS,
     versions: SHAPE_VERSIONS,
   }),

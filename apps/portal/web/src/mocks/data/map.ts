@@ -137,7 +137,13 @@ export function planAnswers(fallback: { get: Pipeline; list: Pipeline }): Answer
             row: { id: "shape" },
             related: [],
             activity: [],
-            detail: { body: SHAPE_PLAN, depths: DEPTHS, versions: SHAPE_VERSIONS },
+            detail: {
+              body: SHAPE_PLAN,
+              metro: null,
+              drawErrors: [],
+              depths: DEPTHS,
+              versions: SHAPE_VERSIONS,
+            },
           }
         : fallback.get(b),
     "pipeline/recordsList": (b) => {
@@ -276,7 +282,7 @@ export function liveShape(
               row: { id: "shape" },
               related: [],
               activity: [],
-              detail: { body, depths: depthOf(body), versions },
+              detail: { body, metro: null, drawErrors: [], depths: depthOf(body), versions },
             }
           : { record: "pipeline.shape", row: null, detail: null },
     "pipeline/shapeVersion": (b) => save("shapeVersion", b.body as ShapeBody, String(b.note), b),

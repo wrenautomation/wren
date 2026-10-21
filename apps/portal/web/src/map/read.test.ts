@@ -21,6 +21,8 @@ const body: ShapeBody = {
 const none = { opened: null, deals: null, collected: null, scheduled: null };
 const data: MapData = {
   body,
+  metro: null,
+  drawErrors: [],
   depths: {},
   versions: [],
   nodes: new Map([

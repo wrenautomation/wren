@@ -3,6 +3,7 @@
  * gives, and `graphOf`, which turns it into the graph kit's nodes and wires.
  */
 import type { VersionLine } from "@wren/pipeline/history";
+import type { MetroBody } from "@wren/pipeline/metro";
 import type { ShapeBody, ShapeNode } from "@wren/pipeline/model";
 import { type GraphEdge, type GraphNode, money, num } from "@wren/ui";
 
@@ -63,6 +64,10 @@ export interface Ghost {
 
 export interface MapData {
   body: ShapeBody;
+  /** The shape as the map draws it; null when it cannot be drawn. */
+  metro: MetroBody | null;
+  /** Why it cannot be drawn; empty when it can. */
+  drawErrors: string[];
   depths: Record<string, number>;
   versions: Version[];
   nodes: Map<string, NodeNumbers>;

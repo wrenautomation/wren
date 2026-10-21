@@ -15,6 +15,7 @@ import type {
   DraftState,
   ShapeRef,
 } from "@wren/pipeline/history";
+import type { MetroBody } from "@wren/pipeline/metro";
 import type { ShapeBody } from "@wren/pipeline/model";
 import { call } from "../api.js";
 import { useCall } from "../load.js";
@@ -95,6 +96,9 @@ export async function readMap(client: string, window: Window): Promise<MapRead> 
   });
   const detail = got.detail as {
     body?: ShapeBody;
+    metro?: MetroBody | null;
+    /** From the server once D1 lands; read as empty until then. */
+    drawErrors?: string[];
     depths?: Record<string, number>;
     versions?: Version[];
   } | null;
@@ -116,6 +120,8 @@ export async function readMap(client: string, window: Window): Promise<MapRead> 
   return {
     map: {
       body: detail.body,
+      metro: detail.metro ?? null,
+      drawErrors: detail.drawErrors ?? [],
       depths: detail.depths ?? {},
       versions: detail.versions ?? [],
       nodes: new Map(nodes.map(numbersOf).map((n) => [n.id, n])),

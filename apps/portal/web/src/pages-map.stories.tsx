@@ -4,9 +4,11 @@
  * (`?edit=1`) adds the palette, the draft bar and the edit cards. Hover, click, drag and Save run in
  * `play`. `pnpm --filter @wren/portal storybook`.
  */
-import type { Meta } from "@storybook/react-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { EDITS } from "@wren/ui";
-import { expect, fireEvent, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, fn, spyOn, userEvent, waitFor, within } from "storybook/test";
+import { TodayTasks } from "./map/TodayTasks.js";
+import type { Task } from "./map/tasks.js";
 import { freshStory, refuse } from "./mocks/api.js";
 import { ANSWERS } from "./mocks/data/index.js";
 import {
@@ -98,6 +100,10 @@ export const TodaySheet = {
       await userEvent.click(open);
       const sheet = await within(document.body).findByRole("dialog", { name: "Today" });
       await expect(await within(sheet).findByRole("heading", { name: /^Write/ })).toBeVisible();
+      // The tasks sit at the top: the late one first.
+      const tasks = await within(sheet).findAllByRole("button", { name: /waiting at/ });
+      await expect(tasks[0]).toHaveTextContent("Call scheduled");
+      await expect(tasks[0]).toHaveTextContent(/Late · promise 4h/);
       await expect(Math.abs(widthOf(page) - before)).toBeLessThan(20);
     },
   }),
@@ -1076,3 +1082,87 @@ export const HistoryOnDrafts = pageAt("/?history=drafts", {
     ).toBeVisible();
   },
 });
+
+const TASKS: Task[] = [
+  {
+    id: "reply_to_book",
+    name: "Book calls with people who replied",
+    owner: "Ada North",
+    initials: "AN",
+    line: "web",
+    lineName: "Webinar",
+    at: "Replied",
+    waiting: 4,
+    medianHours: 6,
+    promise: "4h",
+    promiseHours: 4,
+    late: true,
+  },
+  {
+    id: "post_to_hub",
+    name: "Comment on new threads",
+    owner: "Cai Moreno",
+    initials: "CM",
+    line: "yt",
+    lineName: "YouTube",
+    at: "Post a video",
+    waiting: 2,
+    medianHours: 3,
+    promise: "1d",
+    promiseHours: 24,
+    late: false,
+  },
+  {
+    id: "book_to_pay",
+    name: "Send the contract",
+    owner: "Bo Fenwick",
+    initials: "BF",
+    line: "web",
+    lineName: "Webinar",
+    at: "Booked",
+    waiting: 0,
+    medianHours: null,
+    promise: "2d",
+    promiseHours: 48,
+    late: false,
+  },
+];
+
+/** Today's task card: the late task first, hover or focus lights its line, a click opens it. */
+export const Tasks: StoryObj<typeof TodayTasks> = {
+  args: { tasks: TASKS, onLight: fn(), onOpen: fn() },
+  render: (a) => (
+    <div className="max-w-[460px] p-4">
+      <TodayTasks {...a} />
+    </div>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const rows = await within(canvasElement).findAllByRole("button", { name: /waiting at/ });
+    await expect(rows).toHaveLength(3);
+    await expect(rows[0]).toHaveTextContent("Book calls with people who replied");
+    await expect(rows[0]).toHaveTextContent("Webinar · 4 waiting at Replied");
+    await expect(rows[0]).toHaveTextContent("Late · promise 4h, median 6h");
+    await expect(rows[1]).toHaveTextContent("Promise 1d");
+    await userEvent.hover(rows[0] as HTMLElement);
+    await expect(args.onLight).toHaveBeenLastCalledWith("web");
+    await userEvent.unhover(rows[0] as HTMLElement);
+    await expect(args.onLight).toHaveBeenLastCalledWith(null);
+    (rows[1] as HTMLElement).focus();
+    await expect(args.onLight).toHaveBeenLastCalledWith("yt");
+    await userEvent.click(rows[1] as HTMLElement);
+    await expect(args.onOpen).toHaveBeenCalledWith("post_to_hub");
+  },
+};
+
+/** No person track, or none with anyone to act on: the empty line. */
+export const NoTasks: StoryObj<typeof TodayTasks> = {
+  args: { tasks: [], onLight: fn(), onOpen: fn() },
+  render: (a) => (
+    <div className="max-w-[460px] p-4">
+      <TodayTasks {...a} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText("No tasks waiting.")).toBeVisible();
+  },
+};
