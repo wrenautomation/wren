@@ -59,7 +59,7 @@ function draw(sc){const S=Object.fromEntries(sc.st.map(s=>[s.id,s])),P=(id,o=0)=
   if(r.k==="xfer"){const[x1,x2,x3]=xfer(a,c,r.l,r.lab,fid,r.f);cs+=x1;t+=x2+hit(x2.match(/ d="([^"]+)"/)[1]);b+=x3;return}
   if(r.k==="exit"){const d=r.pts?rnd(r.pts):oct(a,c);if(r.cond){const m=r.cat||[(a[0]+c[0])/2,(a[1]+c[1])/2];b+=`<g class="cond">${chip(m[0],m[1],r.cond,r.ci||null)}</g>`}t+=`<path class="spur${r.b&&S[r.b].bad?" bad":""}" d="${d}"/>`+hit(d);return}
   const d=r.pts?rnd(r.pts,r.r):r.path?r.path:oct(a,c),w=W[r.w];
-  cs+=`<path class="case" data-l="${r.l}" d="${d}" style="stroke-width:${w+6}"/>`;t+=`<path class="trk${r.k==="plan"?" plan":r.k==="ab"?" ab":""}" data-l="${r.l}" d="${d}" style="stroke:${C[r.l]};stroke-width:${w}"/>`+hit(d);
+  cs+=`<path class="case" data-l="${r.l}" d="${d}" style="stroke-width:${w+6}"/>`;t+=`<path class="trk${r.k==="plan"?" plan":r.k==="ab"?" ab":r.k==="stub"?" stub":""}" data-l="${r.l}" d="${d}" style="stroke:${C[r.l]};stroke-width:${w}"/>`+hit(d);
   if(r.k!=="plan"&&(r.l!=="out"||r.mv)&&!(sc.still&&!r.mv)){const n=r.dots||1,du=r.dur||4+i%3;for(let j=0;j<n;j++)mv+=`<circle class="mv" data-l="${r.l}" r="${r.w==="core"?3.4:r.l==="out"?3:2.6}"><animateMotion dur="${du}s" begin="${-j*du/n-i*.7}s" repeatCount="indefinite" path="${d}"/></circle>`;}
   if(r.cond){const m=r.cat||[(a[0]+c[0])/2,(a[1]+c[1])/2];b+=`<g class="cond${r.cond==="else"?" else":""}">${chip(m[0],m[1],r.cond,r.ci||null)}</g>`}
   if(r.who&&r.who!=="auto"){const m=r.at||[(a[0]+c[0])/2,(a[1]+c[1])/2];b+=pill(m[0],m[1]+(r.bdy||0),r.who,r.late,fid)}});

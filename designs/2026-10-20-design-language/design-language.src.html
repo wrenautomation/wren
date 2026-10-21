@@ -133,7 +133,16 @@ td .was{color:var(--ink-3);text-decoration:line-through;text-decoration-color:va
 .why{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:6px 20px;margin:0;padding:0;list-style:none;font-size:13.5px;color:var(--ink-2)}
 .why li{padding-left:14px;position:relative}.why li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:1px 3px 1px 3px;background:var(--accent)}
 .why b{color:var(--ink);font-weight:650}
-.scen{display:grid;gap:16px}.lx .uses{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.lx .uses span{font:700 11.5px var(--body);color:var(--ink-2);background:var(--wash);border-radius:6px;padding:3px 8px}#lxt{flex-wrap:wrap}
+.scen{display:grid;gap:16px}
+.app.prop{min-height:0;margin-top:14px}.sys{display:grid;gap:8px}.sys h4{margin:8px 0 0;font-size:13.5px;font-weight:650}
+.sys table{min-width:0}.sys td{padding:7px 10px;border-top:1px solid var(--hair);vertical-align:top}.sys td:nth-child(3){color:var(--ink-2)}.sys td.dim{color:var(--ink-3);font-style:italic}
+.app.focus{grid-template-columns:minmax(0,1fr) 250px}.app.focus .amain{grid-column:1}.crumb{font-size:13px;color:var(--ink-3)}.crumb b{color:var(--ink)}
+.att{grid-row:1/3;grid-column:2;border-left:1px solid var(--hair);padding:16px 14px;display:grid;gap:8px;align-content:start;background:color-mix(in srgb,var(--canvas) 40%,var(--paper))}
+.att h4{margin:4px 0 2px;font-size:13.5px;font-weight:650}.att h4 span{color:var(--ink-3);font-weight:600;margin-left:6px}
+.ai{display:flex;gap:10px;align-items:center;font-size:13px}.ai b{display:block;font-weight:600}.ai span{display:block;color:var(--ink-3);font-size:12px}
+.ai .k{font:700 10px var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--accent);background:var(--wash);border-radius:3px 8px 3px 8px;padding:4px 6px;min-width:34px;text-align:center}.ai .k.a{color:var(--ink-2)}
+.att .add{margin-top:6px;font:650 13px var(--body);color:var(--accent);background:none;border:1px dashed var(--ink-3);border-radius:6px 10px 6px 10px;padding:7px 10px;cursor:pointer}
+#fmap svg{min-width:0}.side .kbd{margin-top:auto;font:600 11.5px var(--body);color:var(--ink-3);padding:8px 10px}.lx .uses{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.lx .uses span{font:700 11.5px var(--body);color:var(--ink-2);background:var(--wash);border-radius:6px;padding:3px 8px}#lxt{flex-wrap:wrap}
 /* zoom */
 .zbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
 .zc{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}.zc b{color:var(--ink)}
@@ -196,7 +205,7 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
  <h1><span class="mark" aria-hidden="true"></span>Wren design language</h1>
  <p class="lead">One page for how Wren looks and how the business map reads. It joins the UI language, the Metro map types and the new zoom levels. Where this page and <code>DESIGN.md</code> disagree, this page wins. Section 11 lists the code and schema changes it needs.</p>
 </header>
-<nav class="tn" aria-label="Sections"><a href="#tokens">Tokens</a><a href="#motif">Motif</a><a href="#parts">Parts</a><a href="#metro">Metro</a><a href="#zoom">Zoom</a><a href="#scen">Scenarios</a><a href="#app">App</a><a href="#offers">Offers</a><a href="#logic">Logic</a><a href="#diff">DESIGN.md</a><a href="#target">Target</a><a href="#links">Earlier</a><span class="sp"></span>
+<nav class="tn" aria-label="Sections"><a href="#tokens">Tokens</a><a href="#motif">Motif</a><a href="#parts">Parts</a><a href="#metro">Metro</a><a href="#zoom">Zoom</a><a href="#scen">Scenarios</a><a href="#app">App</a><a href="#offers">Offers</a><a href="#logic">Logic</a><a href="#diff">DESIGN.md</a><a href="#target">Target</a><a href="#links">Earlier</a><a href="#prop">Check</a><span class="sp"></span>
  <div class="seg" role="group" aria-label="Theme"><button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div></nav>
 
 <section id="tokens">
@@ -326,16 +335,19 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
 <section id="app">
  <h2><span class="n">07</span>The map in the app</h2>
  <p class="lead">The map is the home page. Today sits under it. Every person track becomes a task with an owner and a promise, so the day's list comes from the map, not from a separate to-do app. Late tasks go first. Hover a task to light its line.</p>
+ <p class="lead">The sidebar has five items: Map, Inbox, People, Money, Admin. Every other app opens from the station or line that uses it: the YouTube line opens posting, a DM station opens Outreach. Admin → Systems lists every app in two groups, on your shape (it names the stations) and not on the shape (debug and internal). Pin an app to keep it one click away. ⌘K finds any app, page or station.</p>
  <div class="app" id="appf">
   <nav class="side" aria-label="Apps">
    <div class="brand"><i></i>Wren</div>
    <div class="nav" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 12H12l3.8-5M12 12l3.8 5"/></svg>Map<span class="n" id="navn">5</span></div>
    <div class="nav"><svg viewBox="0 0 24 24"><path d="M4 6h16v10H8l-4 4z"/></svg>Inbox</div>
-   <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Write</div>
-   <div class="nl">Records</div>
    <div class="nav"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>People</div>
-   <div class="nav"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>Offers</div>
    <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 4v16M8 8h6a3 3 0 010 6H9a3 3 0 000 6h7"/></svg>Money</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>Admin</div>
+   <div class="nl">Pinned</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Studio</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><path d="M4 6h16v10H8l-4 4z"/></svg>Engage</div>
+   <div class="kbd">⌘K finds any app</div>
   </nav>
   <main class="amain">
    <div class="atop"><div><h3>Your business</h3><p>81 people on the map now. Pinch or switch to zoom.</p></div>
@@ -463,6 +475,91 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
   <a href="https://claude.ai/artifact/Si3MffUd6f5UCfcMTRBXr5"><b>Map form</b><span>Form-first map editing</span></a>
   <a href="https://claude.ai/artifact/N9XejF1sJhTcVxtBUcXNDt"><b>Brand directions</b><span>Palette and mark studies</span></a>
   <a href="https://claude.ai/artifact/Nt5oVDrderw1XSDCUQgGzn"><b>GoHighLevel audit</b><span>What to take, part by part</span></a>
+ </div>
+</section>
+
+<section id="prop">
+ <h2><span class="n">13</span>To check: sidebar and focus view</h2>
+ <p class="lead">Two plans from 2026-10-20. Not set. They build last, after the tokens, the renderer and the shape model. Change anything here and the build follows.</p>
+
+ <h3>E. The sidebar</h3>
+ <p class="lead">Five items. Every other app is attached to the station, line or flow that uses it, and opens from there. Admin → Systems shows all of them.</p>
+ <div class="rules">
+  <div class="rule"><b>Sidebar</b><span>Map, Inbox, People, Money, Admin</span><small>Fixed. Map is home. The same five for a client workspace.</small></div>
+  <div class="rule"><b>Attached apps</b><span>Open from the mark that uses them</span><small>The YouTube line opens posting. A DM station opens Outreach. A cash station opens Payments. The station sheet carries the link.</small></div>
+  <div class="rule"><b>Admin → Systems</b><span>Every app, in two groups</span><small>On your shape: the row names its stations. Not on the shape: debug and internal tools. Parked apps show in neither.</small></div>
+  <div class="rule"><b>Pins</b><span>Per person, under the five</span><small>Studio and Engage stay one click away for the people who use them daily. Pins, not recents: recents move under the hand.</small></div>
+  <div class="rule"><b>⌘K</b><span>Finds any app, page or station</span><small>Type "youtube" and get the line, its posting app and its numbers.</small></div>
+  <div class="rule"><b>Phone</b><span>Map, Inbox, People, first pin</span><small>Four tabs. Admin sits under More.</small></div>
+ </div>
+ <div class="app prop" id="sysf">
+  <nav class="side" aria-label="Apps">
+   <div class="brand"><i></i>Wren</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 12H12l3.8-5M12 12l3.8 5"/></svg>Map</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><path d="M4 6h16v10H8l-4 4z"/></svg>Inbox</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>People</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 4v16M8 8h6a3 3 0 010 6H9a3 3 0 000 6h7"/></svg>Money</div>
+   <div class="nav" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>Admin</div>
+   <div class="nl">Pinned</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Studio</div>
+   <div class="nav"><svg viewBox="0 0 24 24"><path d="M4 6h16v10H8l-4 4z"/></svg>Engage</div>
+   <div class="kbd">⌘K finds any app</div>
+  </nav>
+  <main class="amain">
+   <div class="atop"><div><h3>Systems</h3><p>Admin › Systems. Every app, and where it sits on the shape.</p></div></div>
+   <div class="sys">
+    <h4>On your shape</h4>
+    <table class="mini"><tbody>
+     <tr><td><b>Content</b></td><td>YouTube line, X line</td><td>Posts and comments</td></tr>
+     <tr><td><b>Outreach</b></td><td>Reddit line · DM, LinkedIn line · DM</td><td>Platform outreach</td></tr>
+     <tr><td><b>Calendar</b></td><td>Call booked, Call held, Review call</td><td>Bookings</td></tr>
+     <tr><td><b>Documents</b></td><td>Proposal</td><td>E-sign</td></tr>
+     <tr><td><b>Payments</b></td><td>Retainer · monthly bill</td><td>Plans and failed payments</td></tr>
+     <tr><td><b>Workflows</b></td><td>Follow-up loop, Sort reply</td><td>The logic marks</td></tr>
+    </tbody></table>
+    <h4>Not on the shape</h4>
+    <table class="mini"><tbody>
+     <tr><td><b>Handlers</b></td><td class="dim">debug</td><td>Restate handlers and retries</td></tr>
+     <tr><td><b>Loops</b></td><td class="dim">debug</td><td>Scheduled loops and their last run</td></tr>
+     <tr><td><b>Review</b></td><td class="dim">internal</td><td>App review packets</td></tr>
+     <tr><td><b>Marketplace</b></td><td class="dim">held</td><td>Connectors</td></tr>
+     <tr><td><b>Settings</b></td><td class="dim">internal</td><td>Workspace, access, keys</td></tr>
+    </tbody></table>
+   </div>
+  </main>
+ </div>
+
+ <h3>F. Focus view: open one part on its own</h3>
+ <p class="lead">Any line, group, station or shared flow opens on its own page at its own URL. The page draws that part only, with faded stubs where people come in and go out. Beside it, what the part holds: SOPs, links, pages, docs, notes, and the apps it uses. A URL per part means ⌘-click opens it in a new window, and a link works in Slack, a note or an SOP. Wren builds no tab bar of its own.</p>
+ <div class="rules">
+  <div class="rule"><b>URL</b><span>/map/line/growth-partner, /map/station/review-call</span><small>Stable ids that survive versions. Browser tabs, windows and history do the isolation.</small></div>
+  <div class="rule"><b>Stubs</b><span>Faded tracks at the edges</span><small>Each stub names where it comes from or goes to. Click one to focus that part instead.</small></div>
+  <div class="rule"><b>Breadcrumb</b><span>Map › Growth Partner › Monthly loop › Review call</span><small>Esc goes up one level.</small></div>
+  <div class="rule"><b>Attached</b><span>SOPs, links, pages, docs, templates, notes</span><small>On the part and on every station inside it. Add and remove from the panel. Apps it uses are listed too.</small></div>
+  <div class="rule"><b>Numbers</b><span>That part only</span><small>People on it now, arrived and left in the window, median days, money if it holds a cash station.</small></div>
+  <div class="rule"><b>Shared flow</b><span>One page for every use</span><small>The link mark opens the flow. Its page lists the offers that use it.</small></div>
+  <div class="rule"><b>Open</b><span>Edits here?</span><small>Your call: read and attach only at first, or a draft scoped to the part.</small></div>
+ </div>
+ <div class="app prop focus" id="focf">
+  <main class="amain">
+   <div class="atop"><div><p class="crumb"><span>Map</span> › <span>Growth Partner</span> › <b>Monthly loop</b></p><h3>Monthly loop</h3><p>7 clients in the loop · $12k / mo · median 4 months</p></div>
+    <div class="seg" role="group"><button aria-pressed="true">Groups</button><button>Stations</button></div></div>
+   <div class="map amap" id="fmap"></div>
+  </main>
+  <aside class="att" aria-label="Attached">
+   <h4>Attached <span>6</span></h4>
+   <div class="ai"><i class="k">SOP</i><div><b>Monthly review call</b><span>sops/delivery/review-call.md</span></div></div>
+   <div class="ai"><i class="k">SOP</i><div><b>Report build</b><span>sops/delivery/report.md</span></div></div>
+   <div class="ai"><i class="k">Page</i><div><b>Client portal · Reports</b><span>app.wren… /reports</span></div></div>
+   <div class="ai"><i class="k">Doc</i><div><b>Retainer agreement</b><span>Documents · template v3</span></div></div>
+   <div class="ai"><i class="k">Link</i><div><b>Cal.com · review slot</b><span>30 min, Tuesdays</span></div></div>
+   <div class="ai"><i class="k">Note</i><div><b>Churn reasons, Q3</b><span>Notes · 2 pages</span></div></div>
+   <h4>Apps</h4>
+   <div class="ai"><i class="k a">Cal</i><div><b>Calendar</b><span>Review call</span></div></div>
+   <div class="ai"><i class="k a">Pay</i><div><b>Payments</b><span>Monthly bill · 3 plans</span></div></div>
+   <div class="ai"><i class="k a">Doc</i><div><b>Documents</b><span>Report</span></div></div>
+   <button class="add" type="button">+ Attach</button>
+  </aside>
  </div>
 </section>
 </div>
@@ -983,6 +1080,15 @@ const LX=[
   box.querySelector("svg").animate([{opacity:0},{opacity:1}],{duration:220,easing:"ease-out"});
   tabs.querySelectorAll("button").forEach((b,j)=>b.setAttribute("aria-pressed",j===i))};
  tabs.innerHTML=LX.map((e,i)=>`<button data-i="${i}">${e.tab}</button>`).join("");tabs.onclick=ev=>{const b=ev.target.closest("button");if(b)show(+b.dataset.i)};show(0)})();
+// focus view mock: one group alone, stubs at its edges
+(()=>{const M=135,T=(pts,l,w="core",o={})=>({l,w,r:20,pts,...o});
+ const sc={w:900,h:280,still:true,zones:[[0,900,"Delivery · Monthly loop"]],
+  st:[{id:"rp",t:"att",x:230,y:M,p:"down",n:"Report",s:"day 25"},{id:"rv",t:"time",x:420,y:M,n:"Review call",s:"day 28",p:"up"},{id:"bl",t:"cash",x:610,y:M,n:"Monthly bill",s:"day 30 · $1k",rep:"3 plans"},
+   {id:"ch",t:"exit",x:420,y:M+85,n:"Churned",s:"2 · rest 180 days",p:"right",bad:1},{id:"fp",t:"exit",x:700,y:M+85,n:"Failed payment",s:"1",p:"right",bad:1}],
+  tr:[T([[60,M],[230,M]],"gp","core",{k:"stub",cond:"from Kickoff",cat:[130,M]}),T([[230,M],[610,M]],"gp","core",{who:"WJ · 2d",at:[330,M]}),
+   T([[610,M],[700,M],[700,M-95],[160,M-95],[160,M],[230,M]],"gp","core",{r:22,cond:"renews · every 30 days",cat:[430,M-95]}),
+   T([[700,M],[840,M]],"gp","core",{k:"stub",cond:"to Rewarm",cat:[790,M]}),{k:"exit",pa:[420,M],b:"ch"},{k:"exit",pa:[660,M],b:"fp"}]};
+ const el=document.getElementById("fmap");if(el)el.innerHTML=draw(sc)})();
 const LGPRE=[{},{send:1,wait:1,sort:1},{send:1,ab:1,wait:1,sort:1}];
 const LGSH={
  hub:{kd:"Start",t:"New lead",p:"Every protocol has one start. People enter here and run the newest version.",facts:[F("This week","40"),F("Version","v3"),F("Still on v2","12")],rules:["An edit makes a new version. People already inside stay on their version until they finish.","A person who enters again follows the re-entry rule: rest 90, 180 or 30 days."]},
