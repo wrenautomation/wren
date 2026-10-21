@@ -370,7 +370,7 @@ export function PhoneTop({
             </a>
           ) : (
             <a
-              className="inline-flex h-11 min-w-0 items-center gap-2 px-2 text-[13px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) uppercase no-underline"
+              className="inline-flex h-11 min-w-0 items-center gap-2 px-2 text-[13px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)] no-underline"
               href={app.href}
               onClick={() => moving("tab")}
             >
@@ -555,7 +555,7 @@ export function PhoneTabs({
 const SHEET_ROW =
   "flex min-h-12 items-center gap-3 border-b border-(--ui-hair) px-4 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-hover) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-active)";
 const SHEET_HEAD =
-  "sticky top-0 z-1 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-1.5 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) uppercase";
+  "sticky top-0 z-1 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-1.5 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
 
 /** A link in a sheet: shuts it as it goes. */
 function SheetLink({

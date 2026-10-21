@@ -14,15 +14,14 @@ import {
   tiktokDeclaration,
   tiktokLabel,
 } from "@wren/core/content/tiktok";
-import { tipProps } from "@wren/ui";
+import { GROUP_LABEL, tipProps } from "@wren/ui";
 import { useState } from "react";
 import { SELECT } from "../work/bits.js";
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
 const WARN = "text-[13px] text-(--ui-bad)";
-const GROUP_HEAD =
-  "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
+const GROUP_HEAD = `${GROUP_LABEL}`;
 
 /** The choices as now: saved, or as just picked. */
 export type TikTokValues = {

@@ -5,6 +5,7 @@
 import { cn } from "cn";
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "./icons.js";
+import { GROUP_LABEL } from "./layout.js";
 
 /** `yours` waits on the viewer; `next` runs on the next pass; `waiting` is parked for a while. */
 export type RailState = "done" | "next" | "waiting" | "yours" | "idle";
@@ -82,10 +83,7 @@ export function Rail({
             className="min-w-0 flex-1"
             style={{ flexGrow: Math.max(g.steps.length, 1) }}
           >
-            <p
-              className="mb-3 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)] @max-[820px]/rail:mb-1"
-              id={`ui-rail-${g.id}`}
-            >
+            <p className={`mb-3 ${GROUP_LABEL} @max-[820px]/rail:mb-1`} id={`ui-rail-${g.id}`}>
               {g.label}
             </p>
             <ol

@@ -26,6 +26,7 @@ import {
   useLoad,
   useTypes,
 } from "./records.js";
+import { Sweep } from "./sweep.js";
 
 export interface OverviewTile {
   label: string;
@@ -405,6 +406,7 @@ function Trends({
   if (!on || !got) return null;
   return (
     <section className={cn("grid grid-cols-[minmax(0,1fr)]", FRAME)} aria-label="By day">
+      <Sweep />
       <div className={FRAME_HEAD}>
         <h2 className={SECTION_TITLE}>By day</h2>
         <div role="tablist" aria-label="Which number" className="flex flex-wrap gap-1">
@@ -484,6 +486,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
   };
   return (
     <section className={cn("grid grid-cols-[minmax(0,1fr)] content-start", FRAME)}>
+      <Sweep />
       <div className={FRAME_HEAD}>
         <h2 className={SECTION_TITLE}>{top.label}</h2>
         <a href={top.href} className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">

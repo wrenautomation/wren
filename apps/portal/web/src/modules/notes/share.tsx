@@ -4,7 +4,7 @@
  * owner changes it; everyone else sees who owns it.
  */
 import { ownerName } from "@wren/notes/types";
-import { Button, FormKept, SelectField, say, TextField, useEditForm } from "@wren/ui";
+import { Button, FormKept, GROUP_LABEL, SelectField, say, TextField, useEditForm } from "@wren/ui";
 import {
   Dialog,
   DialogContent,
@@ -186,9 +186,7 @@ export function ShareDialog({
           </>
         ) : null}
         <section className="grid gap-1">
-          <h3 className="m-0 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-            People with access
-          </h3>
+          <h3 className={`m-0 ${GROUP_LABEL}`}>People with access</h3>
           <ul className="m-0 flex list-none flex-col p-0">
             <li className="flex items-center gap-2 py-1.5 text-[13.5px]">
               <Dot email={note.owner} />
@@ -216,9 +214,7 @@ export function ShareDialog({
           </ul>
         </section>
         <section className="grid gap-1.5">
-          <h3 className="m-0 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-            General access
-          </h3>
+          <h3 className={`m-0 ${GROUP_LABEL}`}>General access</h3>
           <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
             {owner ? (
               <>
@@ -252,9 +248,7 @@ export function ShareDialog({
         </section>
         {owner && people?.people.length ? (
           <section className="grid gap-1.5">
-            <h3 className="m-0 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-              Owner
-            </h3>
+            <h3 className={`m-0 ${GROUP_LABEL}`}>Owner</h3>
             <div className="flex flex-wrap items-center gap-2">
               <select
                 aria-label="New owner"

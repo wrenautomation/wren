@@ -8,6 +8,7 @@
 import { type ReactNode, useId } from "react";
 import { cx } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
+import { GROUP_LABEL } from "./layout.js";
 import { hostMark, PlatformMark } from "./marks.js";
 import { Sure } from "./sources.js";
 
@@ -55,8 +56,7 @@ const seenOn = (iso: string) =>
 const QUERY =
   "rounded-(--ui-radius) bg-(--ui-fill) px-2.5 py-px text-[13px] font-normal text-(--ui-ink) wrap-anywhere before:content-['“'] after:content-['”']";
 const KEPT = "grid gap-2 border-t border-(--ui-hair) pt-3";
-const KEPT_TITLE =
-  "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
+const KEPT_TITLE = `${GROUP_LABEL}`;
 
 const ICONS: Record<RunWorkIcon, IconName> = {
   mail: "mail",

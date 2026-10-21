@@ -32,9 +32,24 @@ export const TOKENS = [
   "button-tracking",
   "button-weight",
   "radius",
+  "leaf-panel",
+  "leaf-button",
+  "leaf-chip",
+  "leaf-nav",
+  "sweep",
   "frame",
   "main-width",
   "ease",
+  "spring",
+  // The map's line colours, one per offer (the metro reads them by name).
+  "line-0",
+  "line-1",
+  "line-2",
+  "line-3",
+  "line-4",
+  "line-5",
+  "line-6",
+  "line-7",
   // Showcase only: image layers behind the window (gradients, never a fetch) and film grain.
   "backdrop",
   "grain",
@@ -54,6 +69,7 @@ export const TOKENS = [
   "link",
   "focus",
   "live",
+  "press-edge",
   "accent-wash",
   "accent-tint",
   "good-tint",
@@ -123,19 +139,57 @@ export const BASE: Theme = {
   "font-display": "var(--ui-font)",
   "display-weight": "500",
   "display-squeeze": "1",
+  "label-case": "none",
+  "label-tracking": "0",
+  "button-case": "none",
+  "button-tracking": "0",
+  "button-weight": "650",
+  radius: "6px",
+  "leaf-panel": "6px 24px",
+  "leaf-button": "6px 10px",
+  "leaf-chip": "3px 10px",
+  "leaf-nav": "3px 12px",
+  sweep: "1",
+  frame: "10px",
+  "main-width": "1240px",
+  ease: "cubic-bezier(0.16, 1, 0.3, 1)",
+  spring: "cubic-bezier(0.2, 0.9, 0.25, 1.12)",
+  "line-0": "#6a5a93",
+  "line-1": "#2f8a80",
+  "line-2": "#c0567f",
+  "line-3": "#3d78b8",
+  "line-4": "#a04c9c",
+  "line-5": "#2b84a3",
+  "line-6": "#6f8a2a",
+  "line-7": "#5a66c4",
+  backdrop: "none",
+  grain: "0",
+  lift: "0 0 #0000",
+};
+
+/** The line colours at night: lighter, each 3:1 or more on the night paper. */
+export const NIGHT_LINES = {
+  "line-0": "#a596d6",
+  "line-1": "#5cc3b6",
+  "line-2": "#e588ac",
+  "line-3": "#7fb0e6",
+  "line-4": "#d493d0",
+  "line-5": "#6bc0de",
+  "line-6": "#a9c25f",
+  "line-7": "#97a1ec",
+} satisfies Theme;
+
+/**
+ * What a look gets when it wants capitals: the case and tracking Wren had before it went to
+ * sentence case. A look that wants capitals spreads this first, then sets what differs.
+ */
+const CAPS = {
   "label-case": "uppercase",
   "label-tracking": "0.09em",
   "button-case": "uppercase",
   "button-tracking": "0.08em",
   "button-weight": "600",
-  radius: "6px",
-  frame: "10px",
-  "main-width": "1240px",
-  ease: "cubic-bezier(0.16, 1, 0.3, 1)",
-  backdrop: "none",
-  grain: "0",
-  lift: "0 0 #0000",
-};
+} satisfies Theme;
 
 /** Ready-made looks. `wren` is the kit as it ships. */
 export const PRESETS = {
@@ -149,8 +203,9 @@ export const PRESETS = {
     ink: "#f2f0ea",
     "ink-2": "#a9a79f",
     "ink-3": "#98968f",
-    accent: "#e8794a",
-    "on-accent": "#1a0c06",
+    accent: "#a596d6",
+    "on-accent": "#15121f",
+    "press-edge": "#7a69ad",
     good: "#4cc27a",
     "good-ink": "#6fd394",
     bad: "#ff6b5e",
@@ -158,6 +213,7 @@ export const PRESETS = {
     "warn-ink": "#ebbd6e",
     shade: "#000",
     scrim: "rgb(0 0 0 / 0.5)",
+    ...NIGHT_LINES,
   },
   soft: {
     canvas: "#eef1f6",
@@ -172,13 +228,11 @@ export const PRESETS = {
     font: 'ui-rounded, "SF Pro Rounded", system-ui, sans-serif',
     "display-weight": "600",
     "display-squeeze": "0.5",
-    "label-case": "none",
-    "label-tracking": "0",
-    "button-case": "none",
-    "button-tracking": "0",
+    "button-weight": "600",
     radius: "12px",
   },
   editorial: {
+    ...CAPS,
     canvas: "#f4f1ea",
     paper: "#fffdf8",
     ink: "#1a1a17",
@@ -191,6 +245,7 @@ export const PRESETS = {
     "font-display": '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif',
     "display-weight": "400",
     "display-squeeze": "0.2",
+    radius: "6px", // its own, so it keeps plain corners (themeVars)
     frame: "0",
   },
 } satisfies Record<string, Theme>;
@@ -201,6 +256,7 @@ export const PRESETS = {
  */
 export const SHOWCASE = {
   aurora: {
+    ...CAPS,
     scheme: "dark",
     canvas: "#07080f",
     paper: "#0f111f",
@@ -229,6 +285,7 @@ export const SHOWCASE = {
     lift: "0 0 0 1px rgb(255 255 255 / 0.06), 0 30px 90px -20px rgb(124 245 200 / 0.35)",
   },
   synthwave: {
+    ...CAPS,
     scheme: "dark",
     canvas: "#120726",
     paper: "#1a0b34",
@@ -257,6 +314,7 @@ export const SHOWCASE = {
     lift: "0 0 0 1px rgb(255 47 214 / 0.5), 0 0 70px -8px rgb(255 47 214 / 0.55)",
   },
   terminal: {
+    ...CAPS,
     scheme: "dark",
     canvas: "#020603",
     paper: "#050d07",
@@ -286,6 +344,7 @@ export const SHOWCASE = {
     frame: "14px",
   },
   gilded: {
+    ...CAPS,
     scheme: "dark",
     canvas: "#0b0a08",
     paper: "#131210",
@@ -307,6 +366,7 @@ export const SHOWCASE = {
     "display-squeeze": "0.1",
     "label-tracking": "0.22em",
     "button-tracking": "0.18em",
+    radius: "6px", // its own, so it keeps plain corners (themeVars)
     backdrop:
       "radial-gradient(80% 60% at 50% -10%, rgb(212 175 55 / 0.16), transparent 70%), radial-gradient(40% 40% at 100% 100%, rgb(212 175 55 / 0.07), transparent 70%)",
     grain: "0.06",
@@ -314,6 +374,8 @@ export const SHOWCASE = {
     frame: "16px",
   },
   riso: {
+    ...CAPS,
+    radius: "6px", // its own, so it keeps plain corners (themeVars)
     canvas: "#f1ece1",
     paper: "#fbf8f1",
     tile: "#f3eee3",
@@ -336,6 +398,7 @@ export const SHOWCASE = {
     frame: "18px",
   },
   brutal: {
+    ...CAPS,
     canvas: "#ffe94d",
     paper: "#fff",
     tile: "#fff7c2",
@@ -429,7 +492,9 @@ export function readTheme(raw: unknown): Theme {
   const brand = readBrand(input.brand);
   if (brand) {
     for (const t of DERIVED) delete theme[t];
-    Object.assign(theme, brandTheme(brand).theme);
+    // The map's lines follow the brand's scheme: the night set on a dark brand, else Wren's.
+    for (const k of Object.keys(NIGHT_LINES)) delete theme[k as Token];
+    Object.assign(theme, brandTheme(brand).theme, brand.scheme === "dark" ? NIGHT_LINES : {});
   }
   for (const [key, value] of Object.entries(input)) {
     if (!KNOWN.has(key)) continue;
@@ -449,10 +514,24 @@ function preset(name: unknown): Theme {
     : {};
 }
 
+/**
+ * The Quiet Client Rule for corners: a look that sets its own `radius` keeps plain corners, so
+ * its leaf tokens read that radius (a panel's derived one) and its sweep is off. Leaf corners
+ * and the sweep are the Wren look and its night.
+ */
+const PLAIN: Theme = {
+  "leaf-panel": "var(--ui-radius-panel)",
+  "leaf-button": "var(--ui-radius)",
+  "leaf-chip": "var(--ui-radius)",
+  "leaf-nav": "var(--ui-radius)",
+  sweep: "0",
+};
+
 /** The theme as CSS custom properties: {"--ui-accent": "#3552d4"}. */
 export function themeVars(theme: Theme): Record<string, string> {
   const vars: Record<string, string> = {};
-  for (const [key, value] of Object.entries(theme))
+  const set = theme.radius ? { ...PLAIN, ...theme } : theme;
+  for (const [key, value] of Object.entries(set))
     if (KNOWN.has(key) && typeof value === "string" && value)
       vars[`--ui-${key}`] = LENGTHS.has(key) && ZERO.test(value.trim()) ? "0px" : value;
   return vars;

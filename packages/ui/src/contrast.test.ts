@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { failingPairs, lookColors, NEED, pairsOf, ratioOf } from "./contrast.js";
 import { VARIANTS } from "./palette-brand.js";
-import { PRESETS, readTheme, SHOWCASE, type Theme } from "./theme.js";
+import { NIGHT_LINES, PRESETS, readTheme, SHOWCASE, type Theme } from "./theme.js";
 
 const said = (look: Theme) =>
   failingPairs(look).map((p) => `${p.text} on ${p.on} ${p.ratio.toFixed(2)}:1`);
@@ -47,5 +47,34 @@ describe("lookColors", () => {
 
   it("fails a gray that reads under 4.5:1", () => {
     expect(said({ "ink-3": "#9c9c96" }).length).toBeGreaterThan(0);
+  });
+});
+
+// The line tokens colour chart lines, sweeps and rules. A line is a graphic, not text: 3:1.
+describe("line tokens", () => {
+  const LINE_NEED = 3;
+  const LINES = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => `line-${n}` as const);
+
+  it.each([
+    ["day", {}],
+    ["night", PRESETS.night],
+  ] as const)("reads at 3:1 on the %s paper", (_name, look) => {
+    const c = lookColors(look);
+    const paper = c("paper");
+    for (const line of LINES) {
+      const ratio = ratioOf(c(line), paper);
+      expect(ratio, `${line} ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(LINE_NEED);
+    }
+  });
+
+  it("gives the night look a lighter set than the day look", () => {
+    expect(PRESETS.night["line-0"]).toBe(NIGHT_LINES["line-0"]);
+    expect(PRESETS.night["line-5"]).toBe(NIGHT_LINES["line-5"]);
+  });
+
+  it("keeps the eight lines apart from each other", () => {
+    const c = lookColors({});
+    const hex = LINES.map((l) => c(l).slice(0, 3).join(","));
+    expect(new Set(hex).size).toBe(LINES.length);
   });
 });

@@ -6,16 +6,13 @@ import type { ReactNode } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
 import { num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
+import { GROUP_LABEL } from "./layout.js";
 
 /** A row of app cards, under a label when there's more than one row. */
 export function AppGrid({ label, children }: { label?: string | undefined; children: ReactNode }) {
   return (
     <section className="[section+&]:mt-11" aria-label={label}>
-      {label ? (
-        <h2 className="mb-3.5 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-          {label}
-        </h2>
-      ) : null}
+      {label ? <h2 className={`mb-3.5 ${GROUP_LABEL}`}>{label}</h2> : null}
       <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-4">
         {children}
       </ul>

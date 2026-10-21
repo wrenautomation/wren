@@ -6,6 +6,7 @@
 import { cn } from "cn";
 import { type MouseEvent, type ReactNode, useCallback, useState } from "react";
 import { Icon } from "./icons.js";
+import { GROUP_LABEL } from "./layout.js";
 
 /** A numbered chip in running text, pointing at a source card. */
 export function Cite({
@@ -231,9 +232,7 @@ export function Trail({
             "after:absolute after:top-[19px] after:bottom-0.5 after:left-[5.5px] after:w-0.5 after:rounded-[1px] after:bg-(--ui-accent-tint) after:content-[''] last:after:content-none"
           }
         >
-          <p className="mb-2.5 text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
-            {s.label}
-          </p>
+          <p className={`mb-2.5 ${GROUP_LABEL}`}>{s.label}</p>
           <div>{s.children}</div>
         </li>
       ))}

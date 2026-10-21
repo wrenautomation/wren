@@ -37,12 +37,28 @@
   --ui-font-display: var(--ui-font); /* headings and big figures */
   --ui-display-weight: 500;
   --ui-display-squeeze: 1; /* how tight headings sit: 1 is Wren's, 0 is none */
-  --ui-label-case: uppercase; /* the small labels over columns and nav groups */
-  --ui-label-tracking: 0.09em;
-  --ui-button-case: uppercase;
-  --ui-button-tracking: 0.08em;
-  --ui-button-weight: 600;
+  --ui-label-case: none; /* the small labels over columns and nav groups: sentence case */
+  --ui-label-tracking: 0;
+  --ui-button-case: none; /* sentence case; a look that wants capitals sets these three */
+  --ui-button-tracking: 0;
+  --ui-button-weight: 650;
   --ui-radius: 6px; /* a control's corner; panels and sheets grow from it, and 0px squares all */
+  /* The leaf: two opposite corners round, two tight (the mark's feather). Wren's look and its
+     night only. A look that sets its own radius gets plain corners (themeVars). */
+  --ui-leaf-panel: 6px 24px; /* panels, bands, cards */
+  --ui-leaf-button: 6px 10px; /* a hint only: a button reads as a button first */
+  --ui-leaf-chip: 3px 10px; /* tags, chips, pills */
+  --ui-leaf-nav: 3px 12px; /* sidebar rows and page tabs */
+  --ui-sweep: 1; /* the lavender sweep on panel and band tips: 1 on, 0 off */
+  /* Map line colours, one per offer. Each reads at 3:1 on paper, light and night. */
+  --ui-line-0: #6a5a93;
+  --ui-line-1: #2f8a80;
+  --ui-line-2: #c0567f;
+  --ui-line-3: #3d78b8;
+  --ui-line-4: #a04c9c;
+  --ui-line-5: #2b84a3;
+  --ui-line-6: #6f8a2a;
+  --ui-line-7: #5a66c4;
   --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
   --ui-main-width: 1240px;
   /* The frame as the viewer sets it (display.ts): panel widths, text size, row heights. */
@@ -53,6 +69,7 @@
   --layout-nav-row: 32px; /* an app in the sidebar */
   --layout-tab-row: 34px; /* a page in the app's column */
   --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-spring: cubic-bezier(0.2, 0.9, 0.25, 1.12); /* things you press or open */
   --ui-backdrop: none; /* image layers behind the window: a showcase look's gradients */
   --ui-grain: 0; /* film grain over everything, 0 to 0.2; drawn only under [data-grain] */
   --ui-lift: 0 0 #0000; /* the window's own glow or hard shadow, past its hairline */
@@ -86,6 +103,7 @@
   --ui-link: var(--ui-accent); /* text that goes somewhere */
   --ui-focus: var(--ui-accent); /* the focus ring */
   --ui-live: var(--ui-accent); /* a real event: running, new, just changed */
+  --ui-press-edge: color-mix(in srgb, var(--ui-accent) 72%, #000); /* under a primary button */
   --ui-accent-wash: color-mix(in srgb, var(--ui-accent) 7%, transparent);
   --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
@@ -205,6 +223,14 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   /* shadcn's scale on the kit's: lg a control, xl a panel, 2xl a sheet. */
+  --color-line-0: var(--ui-line-0);
+  --color-line-1: var(--ui-line-1);
+  --color-line-2: var(--ui-line-2);
+  --color-line-3: var(--ui-line-3);
+  --color-line-4: var(--ui-line-4);
+  --color-line-5: var(--ui-line-5);
+  --color-line-6: var(--ui-line-6);
+  --color-line-7: var(--ui-line-7);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -385,6 +411,70 @@
   [role="option"] {
     border-radius: var(--ui-radius);
   }
+}
+
+/* The sweep on a leaf panel's tips (sweep.tsx). Off when a look turns --ui-sweep to 0. */
+.ui-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--ui-sweep);
+  transition: opacity 0.35s var(--ui-ease);
+}
+.ui-sweep > svg {
+  position: absolute;
+  overflow: visible;
+}
+.ui-sweep > [data-tip="tr"] {
+  top: 0;
+  right: 0;
+}
+.ui-sweep > [data-tip="bl"] {
+  bottom: 0;
+  left: 0;
+}
+.ui-sweep[data-band]:not([data-open]) {
+  opacity: calc(var(--ui-sweep) * 0.4);
+}
+:hover > .ui-sweep[data-band] {
+  opacity: var(--ui-sweep);
+}
+.ui-sweep > [data-inner] {
+  opacity: 0;
+  transition:
+    opacity 0.4s var(--ui-ease),
+    transform 0.5s var(--ui-spring);
+}
+.ui-sweep > [data-inner][data-tip="tr"] {
+  transform: translate(2px, -2px);
+}
+.ui-sweep > [data-inner][data-tip="bl"] {
+  transform: translate(-2px, 2px);
+}
+.ui-sweep[data-open] > [data-inner] {
+  opacity: 0.55;
+  transform: none;
+}
+
+/* A nav row that is the page on screen: the sweep on its top right tip (shell.tsx). */
+.ui-nav-sweep {
+  position: relative;
+}
+.ui-nav-sweep[aria-current]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 14px;
+  border: solid var(--ui-active);
+  border-width: 1.5px 1.5px 0 0;
+  border-top-right-radius: 12px;
+  opacity: var(--ui-sweep);
+  pointer-events: none;
+  -webkit-mask: linear-gradient(to left, #000 30%, transparent);
+  mask: linear-gradient(to left, #000 30%, transparent);
 }
 
 /* A new page fades in. */

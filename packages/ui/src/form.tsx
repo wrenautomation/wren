@@ -21,6 +21,7 @@ import {
   useLoad,
   useTypes,
 } from "./records.js";
+import { Sweep } from "./sweep.js";
 
 const NO_CALL = () => Promise.reject(new Error("Nothing to run this."));
 
@@ -61,6 +62,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
       {sections.map((s) => (
         // Each part framed under a banded head, its rows ruled inside: what belongs together reads so.
         <section key={s.key} className={cn("grid", FRAME)}>
+          <Sweep />
           {s.label ? (
             <div className={FRAME_HEAD}>
               <h2 className={cn("flex items-center gap-2", SECTION_TITLE)}>

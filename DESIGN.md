@@ -1,6 +1,6 @@
 ---
 name: Wren Portal
-description: The look of the Wren portal and its client products. Soft corners, warm paper, one lavender accent, dense calm lists. Derived from packages/ui as shipped.
+description: The look of the Wren portal and its client products. Leaf corners, warm paper, one lavender accent, dense calm lists. Derived from packages/ui as shipped.
 colors:
   canvas: "#f3f1ec"
   paper: "#ffffff"
@@ -9,11 +9,20 @@ colors:
   ink-3: "#63645e"
   accent: "#6a5a93"
   on-accent: "#faf7f2"
+  press-edge: "#4c416a"
   good: "#17803d"
   good-ink: "#136b33"
   warn: "#b7791f"
   warn-ink: "#895911"
   bad: "#c31c15"
+  line-0: "#6a5a93"
+  line-1: "#2f8a80"
+  line-2: "#c0567f"
+  line-3: "#3d78b8"
+  line-4: "#a04c9c"
+  line-5: "#2b84a3"
+  line-6: "#6f8a2a"
+  line-7: "#5a66c4"
 typography:
   page-title:
     fontFamily: "Figtree Variable, system-ui, sans-serif"
@@ -43,15 +52,18 @@ typography:
     lineHeight: 1.4
   label:
     fontFamily: "Figtree Variable, system-ui, sans-serif"
-    fontSize: 12px
-    fontWeight: 600
+    fontSize: 12.5px
+    fontWeight: 650
     lineHeight: 16px
-    letterSpacing: 0.09em
 rounded:
   control: 6px
   panel: 10px
   sheet: 14px
   full: 9999px
+  leaf-panel: 6px 24px
+  leaf-button: 6px 10px
+  leaf-chip: 3px 10px
+  leaf-nav: 3px 12px
 spacing:
   frame: 10px
   row: 40px
@@ -67,14 +79,14 @@ components:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.on-accent}"
     typography: "{typography.dense}"
-    rounded: "{rounded.control}"
+    rounded: "{rounded.leaf-button}"
     height: 32px
     padding: 0 12px
   button-secondary:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
     typography: "{typography.dense}"
-    rounded: "{rounded.control}"
+    rounded: "{rounded.leaf-button}"
     height: 32px
     padding: 0 12px
   input:
@@ -87,7 +99,7 @@ components:
   frame:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.panel}"
+    rounded: "{rounded.leaf-panel}"
     padding: 16px
   dialog:
     backgroundColor: "{colors.paper}"
@@ -114,17 +126,17 @@ Source of truth is `packages/ui/src`. Each section names its file. Change the co
 Mode: Operate. Scan speed, one way to do each thing, and native expectations beat expression.
 
 Key characteristics:
-- Soft corners at three sizes (6, 10, 14 px). Derived from one token.
+- Leaf corners: two tight corners and two round ones, on panels, bands, buttons, chips and nav rows. A lavender sweep runs along the two round tips. The window and sheets stay at 14 px.
 - One accent, Smoky Lavender, used rarely and only through role tokens.
 - Figtree Variable at 13 to 15 px for the app. Tabular figures everywhere.
 - Hairline borders. Raised surfaces use a ring plus a soft shadow.
 - Outcome first. Every number links to its rows. Empty states say what fills them.
 - Motion marks real events: a row changed, a run is live, a button is busy.
-- No UI motif at present. The wing mark and `--ui-motif` were removed on 2026-10-14. A motif is planned as its own pass.
+- The leaf and the sweep are the motif. They echo the mark's feather. The old wing mark and `--ui-motif` stay removed (2026-10-14).
 
 **The Source Rule.** Tokens live in `packages/ui/src/tailwind.css` (`:root`) and are overridden per look by `packages/ui/src/theme.tsx`. A part reads `var(--ui-*)`. It never writes a hex.
 
-**The Quiet Client Rule.** Clients get the plain presets only. Showcase looks, backdrops, grain and lift belong to Wren's own portal. `setLook` refuses them for a client.
+**The Quiet Client Rule.** Clients get the plain presets only. Showcase looks, backdrops, grain and lift belong to Wren's own portal. `setLook` refuses them for a client. The leaf, sentence case and the sweep are the Wren look and its night. A look that sets its own `radius` gets plain corners and no sweep: `themeVars` sets the leaf tokens to its plain radius and `--ui-sweep` to 0. A look that wants uppercase sets it in its own preset (`CAPS` in `theme.tsx`). `theme.test.ts` checks each rule.
 
 ## Colors
 
@@ -165,13 +177,16 @@ Source: `packages/ui/src/tailwind.css` (`:root`, light "Wren" preset). Values in
 ### Cues
 `--ui-cue-1` to `--ui-cue-8`: `#6b84b8 #4f9a8f #9a8fc4 #b77a62 #a86f9e #5f97b8 #8f9a5c #b8738a`. They tell kinds of things apart (`TintSwatch`, `tintWash` in `marks.tsx`). They never mean status.
 
+### Lines
+`--ui-line-0` to `--ui-line-7`: `#6a5a93 #2f8a80 #c0567f #3d78b8 #a04c9c #2b84a3 #6f8a2a #5a66c4`. Night: `#a596d6 #5cc3b6 #e588ac #7fb0e6 #d493d0 #6bc0de #a9c25f #97a1ec`. They draw lines (chart series, map ribbons, rules that name a thing). Each reads at 3:1 on paper, day and night (`contrast.test.ts`). Lines 4 to 7 keep clear of amber and red, so they never read as status. They never mean status.
+
 ### Chart
 `--chart-1` accent, `--chart-2` ink-2, `--chart-3` good, `--chart-4` accent 45% over paper, `--chart-5` ink-3.
 
 ### Other looks (`theme.tsx` PRESETS)
-- **night** (dark): canvas `#0d0d0c`, paper `#171716`, ink `#f2f0ea`, accent `#e8794a`.
-- **soft**: canvas `#eef1f6`, accent `#3552d4`, rounded system font, radius 12 px, no uppercase.
-- **editorial**: canvas `#f4f1ea`, paper `#fffdf8`, accent `#1d5a45`, serif display, radius frame 0.
+- **night** (dark): canvas `#0d0d0c`, paper `#171716`, ink `#f2f0ea`, accent `#a596d6` (lavender), on-accent `#15121f`, press edge `#7a69ad`. Keeps the leaf and the sweep. Lines are lighter (below).
+- **soft**: canvas `#eef1f6`, accent `#3552d4`, rounded system font, radius 12 px, plain corners, sentence case.
+- **editorial**: canvas `#f4f1ea`, paper `#fffdf8`, accent `#1d5a45`, serif display, radius 6 px (plain corners), uppercase labels and buttons, frame 0.
 - Showcase (Wren only): aurora, synthwave, terminal, gilded, riso, brutal.
 
 **The Rare Lavender Rule.** Roughly 10% of any screen. It marks the primary action, the current page, links, focus and live things. Never a fill behind a whole panel.
@@ -186,11 +201,11 @@ Source: `packages/ui/src/tailwind.css` (`:root`, light "Wren" preset). Values in
 
 Source: `packages/ui/src/tailwind.css` (body, `--ui-font*`), `packages/ui/src/layout.tsx` (PAGE_TITLE, SECTION_TITLE, GROUP_LABEL).
 
-- **Family:** Figtree Variable, self-hosted by `@fontsource-variable/figtree`. `--ui-font-display` equals `--ui-font` in the Wren look. Display weight is `--ui-display-weight` (500).
+- **Family:** Figtree Variable only, self-hosted by `@fontsource-variable/figtree`. No second display face. `--ui-font-display` equals `--ui-font` in the Wren look. Display weight is `--ui-display-weight` (500).
 - **Body:** 15 px / 1.55, 400, tabular figures, antialiased.
 - **Page title:** 28 px / 34 px, 600, tracking -0.022em, balanced wrap. Phone: 22 px / 28 px.
 - **Section title:** 16 px / 22 px, 600.
-- **Group label:** 12 px / 16 px, 600, uppercase, tracking `--ui-label-tracking` (0.09em), ink-2. The case and tracking read `--ui-label-case`, so a look can drop uppercase.
+- **Group label:** 12.5 px / 16 px, 650, sentence case, ink-3. Case and tracking read `--ui-label-case` and `--ui-label-tracking` (none and 0), so a look can set capitals back. One constant: `GROUP_LABEL` in `layout.tsx`. The Map's column names keep small caps.
 - **Rows and app text:** 14 px. Dense controls and bars: 13 px. Table heads: 12 px.
 - **Lede (`ABOUT`):** 14 px ink-2, one line, max 62ch.
 - **Links:** underlined 1 px, offset 0.24em, ink-3, current color on hover.
@@ -198,7 +213,7 @@ Source: `packages/ui/src/tailwind.css` (body, `--ui-font*`), `packages/ui/src/la
 
 **The Tabular Rule.** Numbers use tabular figures in lists, counts, dates and tiles. Dates and counts read in ink-3 beside names.
 
-**The Sentence Case Rule.** The token default for buttons is uppercase, 13.5 px, 600, tracking 0.08em. That suits marketing-like surfaces. Record templates (`ROOT` in `records.tsx`) set `--ui-button-case: none`, tracking 0 and weight 500, so app buttons read in sentence case. Uppercase stays for group labels.
+**The Sentence Case Rule.** Buttons and group labels read in sentence case everywhere: weight 650, tracking 0. One rule, no per-page override. A look that wants capitals sets `--ui-button-case`, `--ui-label-case` and their tracking in its own preset.
 
 **The Weight Carries Waiting Rule.** A row that waits on the viewer is semibold and ink. A row for info is regular ink-2. A page that names nothing waiting keeps medium.
 
@@ -240,13 +255,30 @@ Source: `packages/ui/src/tailwind.css`.
 
 Source: `packages/ui/src/tailwind.css` (`--ui-radius`, `@theme` radius scale), `theme.tsx`.
 
-- **Control** `--ui-radius` 6 px: buttons, inputs, chips, tags, menu items, nav rows.
-- **Panel** `--ui-radius-panel` = min(2 x radius, radius + 4 px) = 10 px: frames, cards, popover bars.
+- **Control** `--ui-radius` 6 px: inputs, menu items, and every control that is not a leaf.
+- **Panel** `--ui-radius-panel` = min(2 x radius, radius + 4 px) = 10 px: popover bars, and the plain panel of a look with its own radius.
 - **Sheet** `--ui-radius-sheet` = min(3 x radius, radius + 8 px) = 14 px: the window, dialogs, record panel, bottom sheets, popovers.
 - Dots, step marks, the sheet grabber and the phone tab capsule stay fully round.
 - A look that sets `--ui-radius` re-derives all three.
 
-**The Three Corners Rule.** Use control, panel or sheet. Nothing else rounds, except full-round dots.
+### The leaf
+
+A leaf has two tight corners and two round ones: the top left and bottom right are the first value, the top right and bottom left the second. Four tokens, each a two-value `border-radius`:
+
+| Token | Value | Use |
+|---|---|---|
+| `--ui-leaf-panel` | 6px 24px | panels, bands, cards (`FRAME`) |
+| `--ui-leaf-button` | 6px 10px | buttons. A hint only: a button reads as a button first |
+| `--ui-leaf-chip` | 3px 10px | tags, chips, pills |
+| `--ui-leaf-nav` | 3px 12px | sidebar rows and page tabs |
+
+A part writes `[border-radius:var(--ui-leaf-panel)]`. A head strip inside a panel uses `rounded-t-[inherit]`.
+
+### The sweep
+
+`Sweep` (`sweep.tsx`) draws a lavender line along the two round tips of a panel or band: the top right and the bottom left. The line fades out at both ends. A closed band shows it faint, and hover brings it up. An open band adds a fainter inner line. Nav rows with `aria-current` show a short sweep on the top right. Checks and avatars stay plain. `--ui-sweep` (1 on, 0 off) scales it, and it reads the `--ui-active` role, so a look re-colours it with the accent. The parent must be `relative`. Gradient ids come from `useId`.
+
+**The Leaf Rule.** Panels, bands, buttons, chips and nav rows are leaves. The window, dialogs and sheets stay at 14 px. Nothing else gets a new corner size, except full-round dots.
 
 ## Components
 
@@ -256,13 +288,14 @@ Each family names its source. Shadcn parts in `components/ui` are owned copies o
 
 Source: `controls.tsx` (`Button`, `ButtonLink`, `Tag`), `components/ui/button.tsx`.
 
-- **Tones:** `primary` (accent ground, on-accent text, hover turns ink), `secondary` (default; clear ground, 1 px ink inset ring, hover fills ink), `quiet` (ink-2 text, 14 px, underline).
+- **Tones:** `primary` (accent ground, on-accent text, a press edge under it), `secondary` (default; clear ground, 1 px ink inset ring, hover fills ink), `quiet` (ink-2 text, 14 px, underline).
 - **Sizes:** `md`, `sm` (12.5 px), `dense` (h-8, px-3, 13 px medium, sentence case, secondary ring is hair, hover wash), `next` (h-9, px-4, 14 px semibold).
 - **`next`** is the one action most pressed on a record or queue item. Only one per view.
-- **Feedback:** active scale 0.97. Disabled opacity 40%. Focus ring 2 px `--ui-focus`, offset 2 px. `arrow` nudges 3 px on hover.
+- **Press edge:** the primary has `box-shadow: 0 3px 0 var(--ui-press-edge)` (`--ui-press-edge` is the accent 72% mixed with black; night sets `#7a69ad`). On press it sinks 3 px and the edge goes. It does not turn ink on hover. Buttons move on `--ui-spring`.
+- **Feedback:** active scale 0.97 (secondary and quiet). Disabled opacity 40%. Focus ring 2 px `--ui-focus`, offset 2 px. `arrow` nudges 3 px on hover.
 - **`busy`:** solid, `aria-busy`, disabled, a 2 px bar under the label.
 - **Touch:** min height 44 px under `pointer-coarse`.
-- **Tag:** status chip. `px-[9px] py-0.5`, 12 px, semibold, radius control. Tones neutral, accent, warn, green. Optional 6 px dot.
+- **Tag:** status chip. `px-[9px] py-0.5`, 12 px, semibold, leaf-chip corners. Tones neutral, accent, warn, green. Optional 6 px dot.
 - **Actions** (`action.tsx`): a reversible action runs at once and shows a toast with Undo for 10 s. Without undo it asks first. A blocked action shows turned off with its reason.
 
 **The Undo Rule.** Undo, not confirm, for what can be reversed.
@@ -312,7 +345,7 @@ Source: `table.tsx` (TanStack Table plus Virtual; `VIRTUAL_FROM` = 120 rows), `r
 
 Source: `card-grid.tsx`, `layout.tsx` (`FRAME`).
 
-- **Frame:** `FRAME` is panel radius, paper, `--ui-raise`. `FRAME_HEAD` is a band strip: bottom hairline, `px-4 py-2.5`. `FRAME_BODY` is `p-4`.
+- **Frame:** `FRAME` is leaf-panel corners, paper, `--ui-raise`, with a `Sweep`. `FRAME_HEAD` is a band strip: bottom hairline, `px-4 py-2.5`. `FRAME_BODY` is `p-4`.
 - **Card grid:** `repeat(auto-fill, minmax(min(100%, 260px), 1fr))`, gap 12. Card is panel radius, hair border, paper, raise, 150 ms transitions. Selected: ink border plus 1 px ink ring. Hover: edge border.
 - **Media:** wash ground, bottom hairline, aspect from `MEDIA_RATIO`.
 - **Pick box:** 28 px (44 px coarse).
@@ -324,9 +357,9 @@ Source: `card-grid.tsx`, `layout.tsx` (`FRAME`).
 Source: `shell.tsx`, `frame.tsx`, `page-bar.tsx`, `launcher.tsx`, `palette.tsx`.
 
 - **Top bar:** 54 px. App mark 30 px square on `--ui-fill`, control radius. App name 17 px display weight. Icon buttons 32 px (44 px coarse), clear, wash on hover, 150 ms.
-- **Sidebar app row:** `--layout-nav-row` high, 14 px medium ink-2. Current: paper ground, semibold, inset hair plus a 3 px left bar in `--ui-active`.
-- **Page tab:** `--layout-tab-row` high, 14 px medium. Current: `--ui-accent-wash`, semibold, 3 px left bar. Depth indents 10, 24, 36, 48 px.
-- **Group heading:** 11.5 px, semibold, group-label tracking, uppercase, ink-2, top hairline.
+- **Sidebar app row:** `--layout-nav-row` high, leaf-nav corners, 14 px medium ink-2. Current: paper ground, semibold, inset hair plus a 3 px left bar in `--ui-active`, and a short sweep on the top right.
+- **Page tab:** `--layout-tab-row` high, leaf-nav corners, 14 px medium. Current: `--ui-accent-wash`, semibold, 3 px left bar, short sweep. Depth indents 10, 24, 36, 48 px.
+- **Group heading:** the group label (12.5 px, 650, sentence case, ink-3) over a top hairline.
 - **Count badge:** amber (`--ui-warn-tint`, `--ui-warn-ink`), 12 px semibold, min width 20. Folded sidebar shows a 6 px amber dot.
 - **Hover text:** rests 400 ms, never on touch.
 - **Palette:** command-K, `cmdk` in a dialog. Sheet radius.
@@ -366,7 +399,8 @@ Source: `charts/draw.tsx`, `components/ui/chart.tsx` (Recharts through shadcn ch
 
 Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`.
 
-- `--ui-ease`: `cubic-bezier(0.16, 1, 0.3, 1)`.
+- `--ui-ease`: `cubic-bezier(0.16, 1, 0.3, 1)`. Things that settle.
+- `--ui-spring`: `cubic-bezier(0.2, 0.9, 0.25, 1.12)`. Things you press or open: buttons, the sweep's inner line.
 - Hover and color: 100 to 200 ms. Dialogs 150 ms. Sheets 200 to 300 ms.
 - `ui-changed` (1.4 s): a row that changed washes live-color 14% to clear.
 - `ui-run-pulse` (1.6 s, opacity to 0.35), `ui-run-flow` (0.7 s linear), `ui-run-spark` (0.75 s): a live run.
@@ -378,6 +412,30 @@ Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`
 **The Real Event Rule.** Motion shows something that happened or is happening. No ambient motion, no entrance choreography.
 
 **The Reduced Motion Rule.** Under the device setting or `data-motion="less"`, transforms, translates and scales drop. Opacity and color transitions stay, so feedback stays.
+
+## Loading
+
+Source: `designs/2026-10-20-design-language/design-language.src.html`, section 14 (`loading`). Rules only; the parts come later. A new token is allowed (for example a shimmer colour).
+
+**Timing.** Under 150 ms, show nothing. Up to 1 s, show a skeleton or a bar in place. Past 1 s, add words. Past 10 s, show steps and say the person can leave.
+
+| Kind | When | Looks like |
+|---|---|---|
+| Skeleton | first load of a page or sheet | Grey blocks in the shape of the content, with a slow lavender shimmer. The known header shows at once. |
+| Bar | refresh of data already shown | The old data stays. A 2 px lavender bar sweeps along the top of the panel. Numbers tick to the new value. |
+| Busy edge | a button's own action | The label and width stay. A bar fills along the bottom edge, then a check, then the toast with Undo. |
+| Steps | a job over 10 s | Each step with its state, and a line that says the person can leave. |
+| Stream | AI text | Text arrives as it comes, with a lavender caret and a "Drafting" chip. |
+
+**Not loading.** Empty, error and offline each look different from a wait. Error: one sentence and Retry. Offline: a banner, and writes queue.
+
+**Reduced motion.** The shimmer and the draw-in go. Bars still move.
+
+**The No Spinner Rule.** Never a spinner in place of a label.
+
+**The No Shift Rule.** A load never moves the layout. A skeleton keeps the final size.
+
+**The Cache Rule.** A query lives in the query cache, not in a component. A page left while it loads still loads, and shows the data on return.
 
 ## Do's and Don'ts
 
@@ -395,10 +453,12 @@ Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`
 - **Don't** write a hex or a raw `rgb()` in a part. Add a token.
 - **Don't** use amber, green or red for anything but their meaning.
 - **Don't** add a shadow outside raise, float and shadow.
-- **Don't** add a corner size outside 6, 10 and 14 px.
+- **Don't** add a corner size outside the control, panel, sheet and leaf tokens.
 - **Don't** set widths from a look. Frame vars are `--layout-*`.
 - **Don't** give a client a showcase look, backdrop or grain.
-- **Don't** show a skeleton that sits for seconds. Show the facts that exist.
+- **Don't** let a skeleton sit past a second without words. Show the facts that exist.
 - **Don't** add "Ask AI" buttons, favicon chips or ambient animation.
 - **Don't** import `lucide-react`, `@base-ui/react`, `cmdk` or `sonner` in an app. Go through `@wren/ui` (`kit-door.test.ts` checks it).
-- **Don't** add a UI motif here. It is planned as its own pass.
+- **Don't** add a second motif. The leaf and the sweep are the motif.
+- **Don't** set uppercase in a part. Read `--ui-label-case` or `--ui-button-case`.
+- **Don't** use a spinner in place of a label (see Loading).

@@ -19,6 +19,7 @@ import {
   ACTIONS,
   Button,
   DeviceFrame,
+  GROUP_LABEL,
   Input,
   type RecordAct,
   SaveConflict,
@@ -45,8 +46,7 @@ export type CarouselShape = {
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
-const GROUP_HEAD =
-  "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
+const GROUP_HEAD = GROUP_LABEL;
 const SITE: Record<string, string> = { linkedin: "LinkedIn", instagram: "Instagram" };
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 

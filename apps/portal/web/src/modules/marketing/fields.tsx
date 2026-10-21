@@ -11,6 +11,7 @@ import type { RecordAct, RecordExtras } from "@wren/ui";
 import {
   ACTIONS,
   Button,
+  GROUP_LABEL,
   Input,
   SaveConflict,
   type Saved,
@@ -675,8 +676,7 @@ const isSet = (f: FieldView) =>
 const listed = (xs: readonly string[]) =>
   xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
 
-const GROUP_HEAD =
-  "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
+const GROUP_HEAD = GROUP_LABEL;
 const GRID = "grid gap-5 @min-[440px]/fields:grid-cols-2";
 const when = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {

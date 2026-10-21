@@ -598,9 +598,8 @@ export function Bulk({
   );
 }
 
-/** Sentence-case 13px buttons inside the templates, and their type. */
-export const ROOT =
-  "[--ui-button-case:none] [--ui-button-tracking:0] [--ui-button-weight:500] text-[14px] text-(--ui-ink) [font-variant-numeric:tabular-nums]";
+/** The templates' type. Buttons follow the tokens, as everywhere. */
+export const ROOT = "text-[14px] text-(--ui-ink) [font-variant-numeric:tabular-nums]";
 
 /**
  * Which columns show: the address's `cols` in its order (the title first), else the page's,

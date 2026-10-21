@@ -458,6 +458,7 @@ export {
   type TrailStep,
   useSourcePick,
 } from "./sources.js";
+export { Sweep } from "./sweep.js";
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
 export { TabBar } from "./tab-bar.js";
 export {
