@@ -1,5 +1,5 @@
 /**
- * Studio's waiting drafts, on the shared `DataTable`: an idea a row (kind, words, line, platforms,
+ * Studio's waiting drafts, on the shared `Rows`: an idea a row (kind, words, line, platforms,
  * slot, age), a check to approve it in place with an Undo, and a click that opens its platforms
  * side by side to edit, rewrite, post now or drop. "Schedule all" saves every open card's typing
  * first. By line groups the rows under each offer line.
@@ -13,7 +13,6 @@ import {
   BottomSheet,
   Button,
   cx,
-  DataTable,
   DeviceFrame,
   EditConflict,
   Empty,
@@ -27,15 +26,19 @@ import {
   PHONE_WIDTH,
   PlatformMark,
   patchRecord,
+  Rows,
+  type RowsColumn,
+  type RowsLine,
+  type RowsName,
   recordKey,
   SaveConflict,
   SaveStatus,
   Segmented,
-  type TableColumn,
   Tag,
   Textarea,
   useEdit,
   useHeld,
+  useNarrow,
   usePhone,
   useSaved,
 } from "@wren/ui";
@@ -450,12 +453,11 @@ export function WaitingBoard(
 
   const view = props.params.get("view") === "line" ? "line" : "table";
   const groups = view === "line" && ideas ? byLine(ideas, props.lines) : null;
-  const columns = columnsOf({
-    lines: props.lines,
-    demo: props.demo,
-    open: setOpen,
-    approve: (i) => void approve(i),
-  });
+  const narrow = useNarrow();
+  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
+  // Under its line's fold, a row needs no Line column.
+  const columns = columnsOf(props.lines).filter((c) => !groups || c.key !== "line");
+  const lines = linesOf(ideas ?? [], groups);
 
   return (
     <section aria-labelledby="studio-waiting" className="min-w-0">
@@ -501,35 +503,35 @@ export function WaitingBoard(
       ) : ideas.length === 0 ? (
         <Empty>{only ? `No ${nameOf(only)} draft waits on you.` : "No draft waits on you."}</Empty>
       ) : (
-        <div className="overflow-hidden border border-(--ui-hair) bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)]">
-          {groups ? (
-            groups.map((g, n) => (
-              <div key={g.id} className={n ? "border-(--ui-hair) border-t" : ""}>
-                <p className="m-0 flex items-center gap-2 bg-(--ui-band) px-4 py-2 font-semibold text-[13px]">
-                  {g.line ? <LineName line={g.line} /> : <span>No line</span>}
-                  <span className="font-normal text-(--ui-ink-3) tabular-nums">
-                    {g.ideas.length}
-                  </span>
-                </p>
-                <DataTable
-                  look="list"
-                  columns={columns}
-                  data={g.ideas}
-                  rowKey={(i) => i.ideaId}
-                  rowProps={rowProps(setOpen)}
-                  className={cx(n > 0 && "[&_thead]:sr-only")}
-                />
-              </div>
-            ))
-          ) : (
-            <DataTable
-              look="list"
-              columns={columns}
-              data={ideas}
-              rowKey={(i) => i.ideaId}
-              rowProps={rowProps(setOpen)}
-            />
-          )}
+        <div className="overflow-x-auto border border-(--ui-hair) bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)]">
+          <Rows<Waiting>
+            label="drafts"
+            noun="draft"
+            narrow={narrow}
+            // The page scrolls the rows: the board has no panel of its own.
+            scroller="window"
+            lines={lines}
+            columns={columns}
+            name={draftName(narrow)}
+            open={{ id: open, onOpen: (i) => setOpen(i.ideaId) }}
+            rowProps={(i) => ({ "data-late": lateSlot(i) ? "" : undefined })}
+            end={(i) => (
+              <ApproveButton idea={i} demo={props.demo} approve={() => void approve(i)} />
+            )}
+            group={
+              groups
+                ? {
+                    folded,
+                    toggle: (key) =>
+                      setFolded((was) => {
+                        const next = new Set(was);
+                        if (!next.delete(key)) next.add(key);
+                        return next;
+                      }),
+                  }
+                : undefined
+            }
+          />
           <p className="m-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-(--ui-hair) border-t px-4 py-2.5 text-[12.5px] text-(--ui-ink-2)">
             <span>
               {ids.length === 1 ? "1 draft" : `${ids.length} drafts`}
@@ -563,13 +565,6 @@ export function WaitingBoard(
   );
 }
 
-/** A row opens its idea; the title's button is the one a keyboard reaches. */
-const rowProps = (open: (id: string) => void) => (i: Waiting) => ({
-  onClick: () => open(i.ideaId),
-  className: "cursor-pointer",
-  "data-late": lateSlot(i) ? "" : undefined,
-});
-
 /** Ideas grouped under their offer line, in the shape's order; ideas with no line last. */
 function byLine(ideas: Waiting[], lines: ReadonlyMap<string, MetroLine>) {
   const out = [...lines.values()].map((line) => ({
@@ -584,70 +579,77 @@ function byLine(ideas: Waiting[], lines: ReadonlyMap<string, MetroLine>) {
   ];
 }
 
-/** The columns: kind, words, line, platforms, slot, age, approve. A phone keeps three. */
-function columnsOf(o: {
-  lines: ReadonlyMap<string, MetroLine>;
-  demo: boolean;
-  open: (id: string) => void;
-  approve: (i: Waiting) => void;
-}): TableColumn<Waiting>[] {
-  return [
+/** The lines `Rows` draws: the ideas in order, or a fold for each offer line with its ideas. */
+function linesOf(ideas: Waiting[], groups: ReturnType<typeof byLine> | null): RowsLine<Waiting>[] {
+  const row = (i: Waiting, index: number): RowsLine<Waiting> => ({
+    kind: "row",
+    key: i.ideaId,
+    index,
+    row: i,
+  });
+  if (!groups) return ideas.map(row);
+  let index = 0;
+  return groups.flatMap((g) => [
     {
-      key: "kind",
-      label: <span className="sr-only">Kind</span>,
-      className: "w-10 pr-0 pl-4",
-      cell: (i) => {
-        const kind = makeKind(kindOfIdea(i));
-        return (
-          <span className="flex" title={kind.name}>
-            <Icon name={kind.mark} size={16} className="text-(--ui-active)" />
-            <span className="sr-only">{kind.name}</span>
-          </span>
-        );
-      },
+      kind: "group" as const,
+      key: g.id,
+      label: g.line ? <LineName line={g.line} /> : <span>No line</span>,
     },
-    {
-      key: "draft",
-      label: "Draft",
-      cell: (i) => {
-        const { title, hook } = headlineOf(i);
-        const slot = lateSlot(i);
-        return (
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            onClick={(e) => {
-              e.stopPropagation();
-              o.open(i.ideaId);
-            }}
-            className="grid w-full min-w-0 cursor-pointer gap-0.5 border-0 bg-transparent p-0 text-left"
-          >
-            <span className="truncate font-semibold text-[14px] text-(--ui-ink)">{title}</span>
-            {hook ? <span className={cx("truncate text-[12.5px]", QUIET)}>{hook}</span> : null}
+    ...g.ideas.map((i) => row(i, index++)),
+  ]);
+}
+
+/** The draft: its kind's mark, the words and the hook. A phone's row adds the slot and the wait. */
+function draftName(narrow: boolean): RowsName<Waiting> {
+  return {
+    label: "Draft",
+    icon: "doc",
+    min: 220,
+    title: (i) => headlineOf(i).title,
+    mark: (i) => {
+      const kind = makeKind(kindOfIdea(i));
+      return (
+        <span className="flex flex-none" title={kind.name}>
+          <Icon name={kind.mark} size={16} className="text-(--ui-active)" />
+          <span className="sr-only">{kind.name}</span>
+        </span>
+      );
+    },
+    sub: (i) => {
+      const { hook } = headlineOf(i);
+      return (
+        <>
+          {hook ? <span className={cx("truncate text-[12.5px]", QUIET)}>{hook}</span> : null}
+          {narrow ? (
             <span
-              className={cx(
-                "truncate text-[12px] sm:hidden",
-                slot ? "text-(--ui-warn-ink)" : QUIET,
-              )}
+              className={cx("truncate text-[12px]", lateSlot(i) ? "text-(--ui-warn-ink)" : QUIET)}
             >
               {[slotWords(i), waited(i)].filter(Boolean).join(" · ")}
             </span>
-          </button>
-        );
-      },
+          ) : null}
+        </>
+      );
     },
+  };
+}
+
+/** The columns beside the draft: line, platforms, slot, age. A phone keeps the draft alone. */
+function columnsOf(lines: ReadonlyMap<string, MetroLine>): RowsColumn<Waiting>[] {
+  return [
     {
       key: "line",
       label: "Line",
-      className: "w-[16%] max-lg:hidden",
+      icon: "branch",
+      width: 130,
       cell: (i) => (
-        <LineName line={i.line ? o.lines.get(i.line) : undefined} className="text-[13px]" />
+        <LineName line={i.line ? lines.get(i.line) : undefined} className="text-[13px]" />
       ),
     },
     {
       key: "platforms",
       label: "Platforms",
-      className: "w-[20%] max-md:hidden",
+      icon: "globe",
+      width: 230,
       cell: (i) => (
         <span className="flex flex-wrap gap-1">
           {[...new Set(i.drafts.map((d) => d.platform))].map((p) => (
@@ -664,7 +666,8 @@ function columnsOf(o: {
     {
       key: "slot",
       label: "Slot",
-      className: "w-[14%] max-sm:hidden",
+      icon: "calendar",
+      width: 140,
       cell: (i) => (
         <span
           className={cx(
@@ -682,7 +685,8 @@ function columnsOf(o: {
     {
       key: "age",
       label: "Age",
-      className: "w-[8%] max-sm:hidden",
+      icon: "clock",
+      width: 84,
       cell: (i) => (
         <span
           className={cx(
@@ -694,34 +698,38 @@ function columnsOf(o: {
         </span>
       ),
     },
-    {
-      key: "approve",
-      label: <span className="sr-only">Approve</span>,
-      end: true,
-      className: "w-14 pr-3",
-      cell: (i) => {
-        const missing = i.drafts.flatMap((d) => d.missing ?? []);
-        const { title } = headlineOf(i);
-        return (
-          <Button
-            tone="quiet"
-            size="dense"
-            icon="check"
-            aria-label={`Approve ${title}`}
-            title={missing.length ? `Fill in ${listed([...new Set(missing)])} first` : "Approve"}
-            disabled={o.demo || missing.length > 0}
-            className="text-(--ui-good-ink)"
-            onClick={(e) => {
-              e.stopPropagation();
-              o.approve(i);
-            }}
-          >
-            <span className="sr-only">Approve</span>
-          </Button>
-        );
-      },
-    },
   ];
+}
+
+/** A row's check: approve the idea in place; it waits on a draft that lacks something. */
+function ApproveButton({
+  idea,
+  demo,
+  approve,
+}: {
+  idea: Waiting;
+  demo: boolean;
+  approve: () => void;
+}) {
+  const missing = idea.drafts.flatMap((d) => d.missing ?? []);
+  const { title } = headlineOf(idea);
+  return (
+    <Button
+      tone="quiet"
+      size="dense"
+      icon="check"
+      aria-label={`Approve ${title}`}
+      title={missing.length ? `Fill in ${listed([...new Set(missing)])} first` : "Approve"}
+      disabled={demo || missing.length > 0}
+      className="text-(--ui-good-ink)"
+      onClick={(e) => {
+        e.stopPropagation();
+        approve();
+      }}
+    >
+      <span className="sr-only">Approve</span>
+    </Button>
+  );
 }
 
 /** One idea's drafts, side by side: a side sheet on a desk, a bottom sheet on a phone. */

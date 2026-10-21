@@ -29,7 +29,8 @@ export const ContentStudio = pageAt("/content/studio", {
   check: async (page) => {
     const view = within(page);
     await expect(await view.findByRole("heading", { name: /still due this week/i })).toBeVisible();
-    await expect(await view.findByRole("table", {}, { timeout: 5000 })).toBeVisible();
+    // The drafts: a table wide, a list on a phone; both carry the label.
+    await expect(await view.findByLabelText("drafts", {}, { timeout: 5000 })).toBeVisible();
   },
 });
 /** A row's check approves in place: the row goes aside and the toast offers Undo. */
@@ -42,6 +43,18 @@ export const ContentStudioApprove = pageAt("/content/studio", {
     await userEvent.click(await view.findByRole("button", { name: `Approve ${row}` }));
     await waitFor(() => expect(view.queryByText(row)).toBeNull());
     await expect(await within(document.body).findByRole("button", { name: /undo/i })).toBeVisible();
+  },
+});
+/** A draft's title opens its platforms side by side in a sheet. */
+export const ContentStudioOpen = pageAt("/content/studio", {
+  me: ADMIN,
+  answers: STUDIO,
+  check: async (page) => {
+    const view = within(page);
+    // Not the draft the Approve story sets aside: its hold outlives that story.
+    const title = "Most service sites list seven things they do.";
+    await userEvent.click(await view.findByRole("button", { name: title }, { timeout: 5000 }));
+    await expect(await within(document.body).findByRole("dialog")).toBeVisible();
   },
 });
 /** Compose filled in: the sample post, a line and an angle picked, so each platform shows its version. */

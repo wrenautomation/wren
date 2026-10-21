@@ -194,8 +194,8 @@ export interface RowsName<T> {
   min?: number | undefined;
   className?: string | undefined;
   title: (row: T) => string;
-  /** The row's own page. */
-  href: (row: T) => string;
+  /** The row's own page. None: the title is a button that opens the row (a side sheet). */
+  href?: ((row: T) => string) | undefined;
   /** The title's weight and ink. */
   weight?: ((row: T) => string) | undefined;
   /** Initials in a round avatar. */
@@ -369,11 +369,14 @@ function NameCell<T>({
   name,
   row,
   narrow,
+  onOpen,
   className,
 }: {
   name: RowsName<T>;
   row: T;
   narrow: boolean;
+  /** What a title with no page does. */
+  onOpen: () => void;
   className?: string;
 }) {
   const title = name.title(row);
@@ -381,6 +384,14 @@ function NameCell<T>({
   const mark = initial ? null : (name.mark?.(row) ?? null);
   const sub = name.sub?.(row);
   const tail = name.tail?.(row);
+  const link = name.href?.(row);
+  const text = title || <span className="text-(--ui-ink-3)">-</span>;
+  const titled = cn(
+    // Cut inside the link, so focusing it never scrolls the cell sideways.
+    "block no-underline",
+    narrow ? "line-clamp-2 leading-snug wrap-anywhere" : "truncate",
+    name.weight?.(row) ?? "font-[650] text-(--ui-ink)",
+  );
   return (
     <div className={cn("flex min-w-0 items-center gap-2", className)}>
       {initial ? (
@@ -394,18 +405,21 @@ function NameCell<T>({
         mark
       )}
       <div className="grid min-w-0 flex-1">
-        <a
-          href={name.href(row)}
-          {...clipProps()}
-          className={cn(
-            // Cut inside the link, so focusing it never scrolls the cell sideways.
-            "block no-underline",
-            narrow ? "line-clamp-2 leading-snug wrap-anywhere" : "truncate",
-            name.weight?.(row) ?? "font-[650] text-(--ui-ink)",
-          )}
-        >
-          {title || <span className="text-(--ui-ink-3)">-</span>}
-        </a>
+        {link ? (
+          <a href={link} {...clipProps()} className={titled}>
+            {text}
+          </a>
+        ) : (
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={onOpen}
+            {...clipProps()}
+            className={cn(titled, "w-full cursor-pointer border-0 bg-transparent p-0 text-left")}
+          >
+            {text}
+          </button>
+        )}
         {sub}
       </div>
       {tail}
@@ -527,12 +541,15 @@ export function Rows<T>(p: RowsProps<T>) {
               const r = rowOf(l);
               const act = p.act?.(l.row);
               const side = phoneCol?.cell(l.row, l.index);
-              // The page's own attributes (a mark, a focus hook) ride on the phone's row too.
-              const { className: own, ...attrs } = p.rowProps?.(l.row, l.index) ?? {};
+              // The page's class and data marks (a late mark, a focus hook) ride on the phone's row too.
+              const own = p.rowProps?.(l.row, l.index);
+              const marks = Object.fromEntries(
+                Object.entries(own ?? {}).filter(([k]) => k.startsWith("data-")),
+              );
               return (
                 <SwipeRow
                   key={l.key}
-                  {...attrs}
+                  {...marks}
                   swipes={p.swipes?.(l.row) ?? null}
                   data-row={l.index}
                   data-index={n}
@@ -551,7 +568,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                     r.changed && "[&>[data-face]]:animate-ui-changed",
                     r.going && "[&>[data-face]]:bg-(--ui-wash)",
-                    own,
+                    own?.className,
                   )}
                 >
                   {pick ? (
@@ -567,7 +584,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     <span className="w-4 flex-none" />
                   )}
                   <div className="min-w-0 flex-1 py-3 pr-2">
-                    <NameCell name={name} row={l.row} narrow />
+                    <NameCell name={name} row={l.row} narrow onOpen={r.onOpen} />
                     {r.going ? (
                       <span className="mt-1 block">
                         <Tag tone="accent" busy>
@@ -651,7 +668,10 @@ export function Rows<T>(p: RowsProps<T>) {
                   anyPicked && "opacity-100",
                 )}
               />
-            ) : null}
+            ) : (
+              // A head with no text fails a reader; the gutter holds no box here.
+              <span className="sr-only">Row</span>
+            )}
           </th>
           {[{ ...name, key: "name", align: undefined }, ...columns].map((c) => (
             <th
@@ -787,11 +807,29 @@ export function Rows<T>(p: RowsProps<T>) {
                   </td>
                   <td className={cn("px-2.5", shown, ruled, name.className)}>
                     <div className="flex min-w-0 items-center gap-2">
-                      <NameCell name={name} row={l.row} narrow={false} className="flex-1" />
-                      <a href={name.href(l.row)} tabIndex={-1} className={OPEN_CHIP}>
-                        <Icon name="expand" size={12} />
-                        Open
-                      </a>
+                      <NameCell
+                        name={name}
+                        row={l.row}
+                        narrow={false}
+                        onOpen={r.onOpen}
+                        className="flex-1"
+                      />
+                      {name.href ? (
+                        <a href={name.href(l.row)} tabIndex={-1} className={OPEN_CHIP}>
+                          <Icon name="expand" size={12} />
+                          Open
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={r.onOpen}
+                          className={OPEN_CHIP}
+                        >
+                          <Icon name="expand" size={12} />
+                          Open
+                        </button>
+                      )}
                     </div>
                   </td>
                   {columns.map((c) => (

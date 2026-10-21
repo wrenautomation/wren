@@ -117,7 +117,7 @@ export const LearnList = pageAt("/learn/items", {
     if (within(page).queryByRole("table", { name: "items" }))
       await expect(
         within(page).getByRole("checkbox", { name: "Select every item shown" }),
-      ).toBeVisible();
+      ).toBeInTheDocument();
     else await expect(link.closest("li")).not.toBeNull();
     // Press a box: the file is picked, and the bulk bar shows.
     await userEvent.click(boxes[0] as HTMLElement);

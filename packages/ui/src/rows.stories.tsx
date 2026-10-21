@@ -46,7 +46,16 @@ const waitOf = (p: Person): RowsWait => ({
 
 const DONE: Action = { id: "done", label: "Mark done", handler: "demo/done" };
 
-function Host({ groups = false, wait = false }: { groups?: boolean; wait?: boolean }) {
+function Host({
+  groups = false,
+  wait = false,
+  page = true,
+}: {
+  groups?: boolean;
+  wait?: boolean;
+  /** False: a title has no page of its own, so it opens the row. */
+  page?: boolean;
+}) {
   const narrow = useNarrow();
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
@@ -100,7 +109,7 @@ function Host({ groups = false, wait = false }: { groups?: boolean; wait?: boole
             label: "Name",
             icon: "user",
             title: (p) => p.name,
-            href: (p) => `#${p.id}`,
+            href: page ? (p) => `#${p.id}` : undefined,
             avatar: (p) => initials(p.name) || null,
           }}
           lines={lines}
@@ -257,6 +266,20 @@ export const Opens: Story = {
     // A press on the box opens nothing.
     await userEvent.click(canvas.getByRole("checkbox", { name: "Select Dee Okafor" }));
     await expect(open).toHaveTextContent("Open p3");
+  },
+};
+
+/** A title with no page of its own is a button: it opens the row, wide and on a phone. */
+export const TitleOpens: Story = {
+  render: () => <Host page={false} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    await expect(canvas.queryByRole("link", { name: "Ada North" })).toBeNull();
+    const title = canvas.getByRole("button", { name: "Ada North" });
+    await expect(title).toHaveAttribute("aria-haspopup", "dialog");
+    await userEvent.click(title);
+    await expect(canvas.getByTestId("open")).toHaveTextContent("Open p1");
   },
 };
 
