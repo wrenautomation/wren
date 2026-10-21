@@ -3,6 +3,7 @@ import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { FactsTable } from "../table.js";
 import { MetroSvg } from "./draw.js";
+import type { FocusSpec } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
 import { layoutMetro } from "./layout.js";
 import { MetroMap, type MetroPick } from "./map.js";
@@ -27,6 +28,7 @@ import {
   WEBINAR_VIEW,
   zoomScenario,
 } from "./samples.js";
+import type { MetroPart } from "./types.js";
 
 export default { title: "Metro", parameters: { layout: "padded" } } satisfies Meta;
 
@@ -337,5 +339,66 @@ export const FirstLoad: Story = {
     // Tests run with reduced motion; the class is still on for the first moments.
     expect(canvasElement.querySelector(".metro-host")).not.toBeNull();
     expect(canvasElement.querySelectorAll("[data-id]").length).toBeGreaterThan(0);
+  },
+};
+
+// ---------------------------------------------------------------------------------------------
+// Focus: one part of the map, with faded stubs to where its tracks come from and go to.
+
+const stubNote = "Stubs are faded. Click one to go to the part on its far side.";
+
+function Focused({ focus, view }: { focus: FocusSpec; view?: typeof WEBINAR_VIEW }) {
+  const [now, setNow] = useState<FocusSpec>(focus);
+  const [last, setLast] = useState<MetroPart | null>(null);
+  return (
+    <MetroMap
+      {...(view ? { view } : { zoom: zoomScenario() })}
+      focus={now}
+      intro={false}
+      onStub={(p) => {
+        setLast(p);
+        setNow(p);
+      }}
+    >
+      <output className="text-sm text-[var(--ui-ink-2)]">
+        {stubNote} {last ? `Went to ${last.kind} ${last.id}.` : ""}
+      </output>
+    </MetroMap>
+  );
+}
+
+/** A line alone: Growth Partner. */
+export const FocusLine: Story = {
+  render: () => <Focused focus={{ kind: "line", id: "gp" }} />,
+};
+
+/** A group alone: Reddit. */
+export const FocusGroup: Story = {
+  render: () => <Focused focus={{ kind: "group", id: "rd" }} />,
+};
+
+/** One station and the tracks in and out of it. */
+export const FocusStation: Story = {
+  render: () => <Focused focus={{ kind: "station", id: "bk" }} />,
+};
+
+/** A flow alone: the webinar funnel, from a view. */
+export const FocusFlow: Story = {
+  render: () => <Focused focus={{ kind: "flow", id: "Webinar funnel" }} view={WEBINAR_VIEW} />,
+};
+
+/** A click on a stub focuses the part on its far side. */
+export const FocusStubPlay: Story = {
+  render: () => <Focused focus={{ kind: "line", id: "gp" }} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const stub = canvas.getByRole("button", { name: "from First touch" });
+    await userEvent.click(stub);
+    await waitFor(() =>
+      expect(canvasElement.querySelector("[data-focus]")?.getAttribute("data-focus")).toBe(
+        "station:hub",
+      ),
+    );
+    await expect(canvas.getByText(/Went to station hub/)).toBeVisible();
   },
 };

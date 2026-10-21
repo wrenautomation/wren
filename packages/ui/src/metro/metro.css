@@ -620,3 +620,33 @@
     transform: none;
   }
 }
+
+/* Focus: the tracks that leave the focused part, faded, with where they go. */
+.mm .stub {
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.15s var(--ui-ease);
+}
+.mm .stub:hover,
+.mm .stub:focus-visible {
+  opacity: 1;
+}
+.mm .stub-trk {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 2 9;
+}
+.mm .stub-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+}
+.mm .stub-lab {
+  fill: var(--ui-ink-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+.mm .stub:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 3px;
+}

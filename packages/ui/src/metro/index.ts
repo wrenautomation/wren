@@ -1,6 +1,15 @@
 /** The metro map: marks, drawing, layout and zoom. Import from `@wren/ui/metro`. */
 export { landTimes, MetroSvg, type MetroSvgProps } from "./draw.js";
 export {
+  type FocusSpec,
+  focusScene,
+  inPart,
+  nameOf,
+  partOf,
+  STUB,
+  stubsOf,
+} from "./focus.js";
+export {
   autoZoom,
   type Flags,
   flagsAt,
@@ -43,12 +52,14 @@ export {
   type LineKey,
   lineColour,
   type MarkStation,
+  type MetroPart,
   type MetroScene,
   type MetroTrack,
   type Point,
   type RingStation,
   type SceneStation,
   type StationKind,
+  type StubSpec,
   WEIGHT,
   type Weight,
   type Zone,

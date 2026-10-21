@@ -55,6 +55,8 @@ export interface MarkStation {
   /** Zoom reads these: the line it is on, its group, the people in it now. */
   ln?: string;
   g?: string;
+  /** The flow it belongs to (a workflow). Focus on a flow reads this. */
+  flow?: string;
   now?: number;
 }
 
@@ -144,6 +146,22 @@ export interface MetroTrack {
   /** The task a person track makes on Today. */
   task?: string;
   med?: string;
+  /** A stub: this track leaves the focused part. It draws faded, with a label, and is a button. */
+  stub?: StubSpec;
+}
+
+/** A part of the map that focus can single out. */
+export interface MetroPart {
+  kind: "line" | "group" | "station" | "flow";
+  id: string;
+}
+
+/** The far side of a stub track: where it comes from (`in`) or goes to (`out`). */
+export interface StubSpec {
+  part: MetroPart;
+  side: "in" | "out";
+  /** "from Reddit", "to Call booked". */
+  label: string;
 }
 
 /** [x from, x to, name] */
@@ -175,6 +193,8 @@ export interface FoldSpec {
 
 export interface MetroScene {
   title?: string;
+  /** The left edge of what shows and its width. A focused scene crops to its part. */
+  x0?: number;
   w?: number;
   h: number;
   zones?: Zone[];

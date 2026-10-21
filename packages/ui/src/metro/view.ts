@@ -44,6 +44,8 @@ export interface ViewStation {
   column: string;
   /** Zoom folds a run of stations with the same group into one capsule. */
   group?: string;
+  /** The flow (workflow) it belongs to. */
+  flow?: string;
   label?: string;
   /** The line under the label: a count, a price. */
   sub?: string;

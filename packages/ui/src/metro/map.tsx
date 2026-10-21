@@ -10,10 +10,11 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
+import { type FocusSpec, focusScene } from "./focus.js";
 import { autoZoom, type MetroZoom, type OpenMap, stepLevel, toggleGroup } from "./fold.js";
 import { centreOf, fadeIn, GLIDE_MS, glide, glideHeight } from "./glide.js";
 import { layoutMetro } from "./layout.js";
-import type { MetroScene, Point } from "./types.js";
+import type { MetroPart, MetroScene, Point } from "./types.js";
 import type { MetroView } from "./view.js";
 import "./metro.css";
 
@@ -48,6 +49,13 @@ export interface MetroMapProps {
 
   /** The level buttons and the count line. Default: on. */
   controls?: boolean | undefined;
+  /**
+   * Draw one part only (a line, group, station or flow) and a faded stub for each track that
+   * crosses its edge. Shows every station of that part, whatever the level.
+   */
+  focus?: FocusSpec | null | undefined;
+  /** A click, Enter or Space on a stub: the part on its far side. */
+  onStub?: ((part: MetroPart) => void) | undefined;
   /** No dots move. */
   still?: boolean | undefined;
   /** The first-load draw-in. Default: on. Off for stories and tests. Never on a level change. */
@@ -90,8 +98,13 @@ export function MetroMap(props: MetroMapProps) {
   const [hover, setHover] = useState<string | null>(null);
   const lit = props.lit !== undefined ? props.lit : hover;
 
-  const base = useMemo(() => zoom.scene(level, open), [zoom, level, open]);
-  const scene = base;
+  const focus = props.focus ?? null;
+  const base = useMemo(
+    // A focused part shows all its stations: the deepest level, nothing folded.
+    () => (focus ? zoom.scene(zoom.names.length - 1, {}) : zoom.scene(level, open)),
+    [zoom, level, open, focus],
+  );
+  const scene = useMemo(() => (focus ? focusScene(base, focus) : base), [base, focus]);
   const mixed = Object.keys(open).length > 0;
 
   // The first load happens once, on mount. A level change or a refresh never brings it back.
@@ -103,8 +116,8 @@ export function MetroMap(props: MetroMapProps) {
   }, [intro]);
 
   // Callbacks and state the native listeners read; they never go stale.
-  const live = useRef({ level, open, zoom, onPick });
-  live.current = { level, open, zoom, onPick };
+  const live = useRef({ level, open, zoom, onPick, onStub: props.onStub, focused: !!focus });
+  live.current = { level, open, zoom, onPick, onStub: props.onStub, focused: !!focus };
   const anchor = useRef<Point | null>(null);
   const set = (
     next: { level: number; open: OpenMap },
@@ -137,6 +150,18 @@ export function MetroMap(props: MetroMapProps) {
     if (!el) return;
     const act = (target: Element) => {
       const { zoom: z, level: lv, open: op } = live.current;
+      const stub = target.closest<SVGElement>("[data-stub]");
+      if (stub?.dataset.stub) {
+        const kind = stub.dataset.stubKind as MetroPart["kind"];
+        live.current.onStub?.({ kind, id: stub.dataset.stub });
+        return;
+      }
+      if (live.current.focused) {
+        const node = target.closest<SVGElement>("[data-id],[data-tr]");
+        if (node?.dataset.id) pickRef.current({ kind: "station", id: node.dataset.id });
+        else if (node?.dataset.tr) pickRef.current({ kind: "track", id: node.dataset.tr });
+        return;
+      }
       const fold = target.closest<SVGElement>("[data-fold]");
       if (fold?.dataset.fold) {
         const k = fold.dataset.fold;
@@ -159,7 +184,7 @@ export function MetroMap(props: MetroMapProps) {
     const click = (e: MouseEvent) => e.target instanceof Element && act(e.target);
     const key = (e: KeyboardEvent) => {
       if ((e.key !== "Enter" && e.key !== " ") || !(e.target instanceof Element)) return;
-      if (!e.target.closest("[data-id],[data-tr],[data-fold]")) return;
+      if (!e.target.closest("[data-id],[data-tr],[data-fold],[data-stub]")) return;
       e.preventDefault();
       act(e.target);
     };
@@ -172,6 +197,7 @@ export function MetroMap(props: MetroMapProps) {
     // Steps. Trackpad pinch arrives as ctrl + wheel; a plain wheel still scrolls the page.
     const step = (d: number, at?: Point | null) => {
       const { zoom: z, level: lv, open: op } = live.current;
+      if (live.current.focused) return;
       const n = stepLevel(z, lv, d);
       if (n !== lv || Object.keys(op).length) setRef.current({ level: n, open: NONE }, null, at);
     };
@@ -288,30 +314,45 @@ export function MetroMap(props: MetroMapProps) {
   }, [scene]);
 
   const marks = scene.st.length;
+  const stubs = scene.tr.filter((r) => r.stub).length;
   const caps = scene.st.filter((s) => "cap" in s || "ring" in s || "badge" in s).length;
   return (
-    <div className={cx("metro", className)} data-level={level}>
+    <div
+      className={cx("metro", className)}
+      data-level={level}
+      {...(focus ? { "data-focus": `${focus.kind}:${focus.id}` } : {})}
+    >
       {controls ? (
         <div className="metro-bar">
-          <MetroLevels
-            names={zoom.names}
-            level={mixed ? null : level}
-            onLevel={(n) => set({ level: n, open: NONE })}
-          />
+          {focus ? null : (
+            <MetroLevels
+              names={zoom.names}
+              level={mixed ? null : level}
+              onLevel={(n) => set({ level: n, open: NONE })}
+            />
+          )}
           <p className="metro-count" aria-live="polite">
-            {mixed ? "Mixed" : zoom.names[level]}: <b>{marks}</b> marks
-            {caps ? (
+            {focus ? (
               <>
-                , <b>{caps}</b> folded
+                {scene.title}: <b>{marks}</b> marks, <b>{stubs}</b> stubs.
               </>
-            ) : null}
-            {zoom.total > marks ? (
+            ) : (
               <>
-                {" "}
-                of <b>{zoom.total}</b>
+                {mixed ? "Mixed" : zoom.names[level]}: <b>{marks}</b> marks
+                {caps ? (
+                  <>
+                    , <b>{caps}</b> folded
+                  </>
+                ) : null}
+                {zoom.total > marks ? (
+                  <>
+                    {" "}
+                    of <b>{zoom.total}</b>
+                  </>
+                ) : null}
+                .
               </>
-            ) : null}
-            .
+            )}
           </p>
           {props.children}
         </div>

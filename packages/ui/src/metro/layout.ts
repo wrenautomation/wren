@@ -262,6 +262,7 @@ function mark(s: ViewStation, x: number, y: number, extra: Partial<MarkStation>)
     ...(s.plans ? { plans: s.plans } : {}),
     ...(s.kind === "hub" ? {} : { ln: s.line }),
     ...(s.group ? { g: s.group } : {}),
+    ...(s.flow ? { flow: s.flow } : {}),
     ...(s.now !== undefined ? { now: s.now } : {}),
     ...extra,
   };

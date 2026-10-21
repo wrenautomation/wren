@@ -8,6 +8,7 @@ import { type ReactNode, type Ref, useId } from "react";
 import { cx } from "../format.js";
 import { octPts, rounded } from "./geometry.js";
 import {
+  asButton,
   Badge,
   Capsule,
   Chip,
@@ -80,12 +81,16 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   const land = intro ? landTimes(scene) : null;
   const H = scene.h;
   const Wd = scene.w ?? 960;
+  const X0 = scene.x0 ?? 0;
 
   const zones: ReactNode[] = [];
-  (scene.zones ?? []).forEach(([x0, , n], i) => {
-    if (i) zones.push(<line key={`zl${x0}`} className="zl" x1={x0} y1={6} x2={x0} y2={H - 22} />);
+  (scene.zones ?? []).forEach(([x0, x1, n], i) => {
+    // A cropped scene (focus) draws only the zones in view, and keeps a name on screen.
+    if (x1 <= X0 || x0 >= X0 + Wd) return;
+    if (i && x0 > X0)
+      zones.push(<line key={`zl${x0}`} className="zl" x1={x0} y1={6} x2={x0} y2={H - 22} />);
     zones.push(
-      <text key={`zt${x0}`} className="zt" x={x0 + (i ? 8 : 0)} y={H - 8}>
+      <text key={`zt${x0}`} className="zt" x={Math.max(x0 + (i ? 8 : 0), X0 + 8)} y={H - 8}>
         {n}
       </text>,
     );
@@ -101,6 +106,38 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     const [a, c] = e;
     const k = r.id ?? `t${i}`;
     const tid = click && r.id ? r.id : undefined;
+    if (r.stub) {
+      const l = r.l ?? "out";
+      const path = rounded(octPts(a, c));
+      const out = r.stub.side === "out";
+      const tip = out ? c : a;
+      labels.push(
+        <g
+          key={`stub-${k}`}
+          className="stub"
+          data-l={l}
+          data-stub={r.stub.part.id}
+          data-stub-kind={r.stub.part.kind}
+          {...asButton(r.stub.label)}
+        >
+          <path className="stub-hit" d={path} />
+          <path
+            className="stub-trk"
+            d={path}
+            style={{ stroke: lineColour(colours, l), strokeWidth: WEIGHT[r.w ?? "front"] }}
+          />
+          <text
+            className="stub-lab"
+            x={tip[0] + (out ? 8 : -8)}
+            y={tip[1] + 4}
+            textAnchor={out ? "start" : "end"}
+          >
+            {r.stub.label}
+          </text>
+        </g>,
+      );
+      return;
+    }
     const isSel = !!tid && selected === tid;
     const hit = (d: string, l?: string) =>
       tid ? (
@@ -248,13 +285,13 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   });
 
   // A map you can act on is a group of buttons; a still picture is an image.
-  const acts = click || scene.st.some((s) => !("t" in s));
+  const acts = click || scene.st.some((s) => !("t" in s)) || scene.tr.some((r) => r.stub);
   const grid = `${uid}dg`;
   return (
     <svg
       ref={ref}
       className={cx("mm", lit && "focus", intro && "ld")}
-      viewBox={`0 0 ${Wd} ${H}`}
+      viewBox={`${X0} 0 ${Wd} ${H}`}
       {...(width ? { width, height: (H / Wd) * width } : {})}
       role={acts ? "group" : "img"}
       aria-label={scene.title ?? "Map"}
@@ -267,7 +304,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
               <circle cx={1} cy={1} r={1} />
             </pattern>
           </defs>
-          <rect width={Wd} height={H} fill={`url(#${grid})`} />
+          <rect x={X0} width={Wd} height={H} fill={`url(#${grid})`} />
         </>
       )}
       {zones}

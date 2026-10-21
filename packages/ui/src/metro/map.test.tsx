@@ -12,6 +12,7 @@ import {
   protocolZoom,
   SAMPLE_VIEWS,
   SCENARIOS,
+  WEBINAR_VIEW,
   ZOOM_SCENE,
   zoomScenario,
 } from "./samples.js";
@@ -136,5 +137,17 @@ describe("MetroMap", () => {
       expect(found.length, view.title).toBeGreaterThan(0);
       for (const [id, label] of found) expect(label, `${view.title}: ${id}`).toBeTruthy();
     }
+  });
+
+  it("draws a focused part: its stations, stub buttons with a name, and no level buttons", () => {
+    const html = renderToStaticMarkup(
+      <MetroMap view={WEBINAR_VIEW} focus={{ kind: "flow", id: "Webinar funnel" }} intro={false} />,
+    );
+    expect(html).toContain('data-focus="flow:Webinar funnel"');
+    expect(html).not.toContain("metro-levels");
+    expect(html).toContain("from First touch");
+    expect(html).toMatch(/data-stub="hub"[^>]*aria-label="from First touch"/);
+    expect(html).toContain("Focus: Webinar funnel");
+    expect(html).not.toContain('data-id="bk"');
   });
 });
