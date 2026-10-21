@@ -25,7 +25,7 @@ import type { Terms } from "@wren/offers";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { DraftDetail, DraftState, VersionLine } from "./history.js";
 import type { Fit } from "./icp.js";
-import { isMetro, type MetroBody, placesOf } from "./metro.js";
+import { type MetroBody, placesOf } from "./metro.js";
 import type { ShapeBody } from "./model.js";
 import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
@@ -42,7 +42,7 @@ import {
   shapeVersions,
   termsVersions,
 } from "./schema.js";
-import { metroView, runDepthsOf, runOf } from "./stored.js";
+import { metroView, runOf } from "./stored.js";
 
 export const OFFER_RECORD = "pipeline.offer";
 export const SHAPE_RECORD = "pipeline.shape";
@@ -412,7 +412,7 @@ export const shapeRecord = (): RecordType =>
       const metro = metroOrNull(top.body);
       return {
         body: runOf(top.body),
-        depths: isMetro(top.body) ? runDepthsOf(top.body) : top.depths,
+        depths: top.depths,
         metro,
         places: metro ? placesOf(metro) : null,
         versions: lines,

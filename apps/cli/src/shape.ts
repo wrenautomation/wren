@@ -19,7 +19,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { TRIGGER_IDS } from "@wren/core/logic";
 import type { Db } from "@wren/db";
-import { metroOf } from "@wren/pipeline/convert";
+import {
+  type ConvertPlan,
+  convertShape,
+  planConvert,
+  reportLines,
+} from "@wren/pipeline/convert-shape";
 import { changeKey, changesOf } from "@wren/pipeline/diff";
 import {
   applyDraft,
@@ -40,7 +45,7 @@ import {
   withoutNode,
 } from "@wren/pipeline/edit";
 import { DRAFT_STATES, type DraftState, OPEN_DRAFT_STATES } from "@wren/pipeline/history";
-import { isMetro, type MetroBody } from "@wren/pipeline/metro";
+import { isMetro, type MetroBody, placesOf } from "@wren/pipeline/metro";
 import { type MirrorResult, mirrorsOf } from "@wren/pipeline/mirror";
 import {
   ACTIONS,
@@ -57,7 +62,7 @@ import {
   newestShape,
   Refused,
   type ShapeDiff,
-  saveShape,
+  shapeContext,
   shapeVersionsOf,
 } from "@wren/pipeline/store";
 import {
@@ -230,24 +235,9 @@ export function storedDiffLines(
   return storedChangesOf(d).map((c, i) => `${lines[i]}  [${storedChangeKey(c)}]`);
 }
 
-/** What `convert` makes of a stored body. */
-export interface Converted {
-  /** The metro body. */
-  body: MetroBody;
-  /** The body as a shape file (YAML). */
-  text: string;
-  /** What the convert dropped or changed, one line each. Empty when it lost nothing. */
-  notes: string[];
-  /** The body was on the metro model already. */
-  already: boolean;
-}
-
-/** A stored body on the metro model. Pure. Refused with every reason when a graph cannot convert. */
-export function convertBody(stored: StoredBody): Converted {
-  if (isMetro(stored)) return { body: stored, text: exportShape(stored), notes: [], already: true };
-  const r = metroOf(stored);
-  if (!r.ok) throw new Refused(r.errors);
-  return { body: r.body, text: exportShape(r.body), notes: r.notes, already: false };
+/** What `convert` prints besides the file: the report, or that the shape is on the metro model already. */
+export function convertLines(plan: ConvertPlan): string[] {
+  return plan.already ? ["The shape is on the metro model already."] : reportLines(plan.report);
 }
 
 const BLAME_ON = ["node", "edge", "line", "station", "track", "group", "frame"] as const;
@@ -383,7 +373,9 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
         const all = await shapeVersionsOf(db);
         const v = o.version ? all.find((x) => x.number === o.version) : all[all.length - 1];
         if (!v) return null;
-        return shapeLines(v, v.depths, await openNowOf(db));
+        // The column holds graph depth; a metro version is drawn by place, worked out here.
+        const depths = isMetro(v.body) ? placesOf(v.body) : v.depths;
+        return shapeLines(v, depths, await openNowOf(db));
       });
       if (!out) {
         console.log(o.version ? `no version ${o.version}` : "no shape yet");
@@ -450,7 +442,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
   shape
     .command("convert")
     .description(
-      "A version on the metro model, as a shape file (YAML), and what the convert dropped. With --write, save it as the next version",
+      "A version on the metro model, as a shape file (YAML), and a report of what the convert keeps. With --write, save it as the next version if every proof holds",
     )
     .option("--version <n>", "a version number; the newest when left out", versionArg)
     .option("--out <file>", "write the file here instead of printing it")
@@ -458,18 +450,28 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
     .option("--note <text>", "why, with --write", "Move the shape to the metro model.")
     .action((o: { version?: number; out?: string; write?: boolean; note: string }) =>
       plain(async () => {
-        const show = (c: Converted) => {
-          if (o.out) {
-            writeFileSync(o.out, c.text);
-            console.log(`wrote ${o.out}`);
-          } else process.stdout.write(c.text);
-          for (const n of c.notes) console.error(n);
+        // The file goes to stdout unless `--out`; the report then goes to stderr, so a pipe stays a file.
+        const say = (lines: string[]) => {
+          for (const line of lines) (o.out || o.write ? console.log : console.error)(line);
         };
         if (!o.write) {
-          const all = await withDb((db) => shapeVersionsOf(db));
-          const v = o.version ? all.find((x) => x.number === o.version) : all[all.length - 1];
+          // Read what the proofs need in one go, then prove with no database.
+          const read = await withDb(async (db) => ({
+            all: await shapeVersionsOf(db),
+            ctx: await shapeContext(db, TRIGGER_IDS),
+            open: await openNowOf(db),
+          }));
+          const v = o.version
+            ? read.all.find((x) => x.number === o.version)
+            : read.all[read.all.length - 1];
           if (!v) throw new Refused([o.version ? `no version ${o.version}` : "no shape yet"]);
-          show(convertBody(v.body));
+          const got = planConvert(v.body, v.number, read.ctx, read.open);
+          const text = exportShape(got.body);
+          if (o.out) {
+            writeFileSync(o.out, text);
+            console.log(`wrote ${o.out}`);
+          } else process.stdout.write(text);
+          say(convertLines(got));
           return;
         }
         const { result: r, mirror } = await writeAndMirror(async (db) => {
@@ -479,17 +481,9 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
             throw new Refused([
               `Only the newest version can be written. v${o.version} is not the newest (v${newest.number}).`,
             ]);
-          const c = convertBody(newest.body);
-          if (c.already) throw new Refused(["The shape is on the metro model already."]);
-          const version = await saveShape(db, {
-            body: c.body,
-            note: o.note,
-            by: who(),
-            triggers: TRIGGER_IDS,
-          });
-          return { c, version };
+          return convertShape(db, { note: o.note, by: who(), triggers: TRIGGER_IDS });
         });
-        for (const n of r.c.notes) console.log(n);
+        say(reportLines(r.report));
         console.log(`v${r.version.number} saved`);
         printMirror(mirror);
       }),

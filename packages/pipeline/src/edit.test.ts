@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { flow, grown, shape } from "../test/fixtures.js";
+import { flow, grown, metroShape, shape } from "../test/fixtures.js";
 import { changeKey, changesOf, diffShapes, type ShapeChange } from "./diff.js";
-import { edgeOf, undoChange, withEdge, withNode, withoutEdge, withoutNode } from "./edit.js";
+import {
+  edgeOf,
+  ON_GRAPH,
+  undoChange,
+  undoStoredChange,
+  withEdge,
+  withNode,
+  withoutEdge,
+  withoutNode,
+} from "./edit.js";
 import type { ShapeBody, ShapeNode } from "./model.js";
 import { Refused } from "./store.js";
 
@@ -292,5 +301,35 @@ describe("undoChange", () => {
         expect(back.nodes.renamed).toEqual([{ id: c.id, from: r?.to, to: r?.from }]);
       }
     }
+  });
+});
+
+describe("undoStoredChange guards", () => {
+  const g = shape();
+  const m = metroShape();
+
+  it("refuses a metro key on a graph newest version", () => {
+    for (const change of [
+      { on: "station", id: "book", how: "changed" },
+      { on: "line", id: "growth", how: "renamed" },
+      { on: "group", id: "g", how: "added" },
+    ] as const) {
+      const run = () => undoStoredChange(g, g, g, change);
+      expect(run).toThrow(Refused);
+      expect(run).toThrow(ON_GRAPH);
+    }
+  });
+
+  it("refuses a graph key on a metro newest version", () => {
+    expect(() => undoStoredChange(m, g, g, { on: "node", id: "booked", how: "changed" })).toThrow(
+      /on the metro model now/,
+    );
+  });
+
+  it("still undoes a graph key on a graph newest version, and the name", () => {
+    const a = g;
+    const b = shape({ name: "Other" });
+    const out = undoStoredChange(b, a, b, { on: "name" });
+    expect((out as ShapeBody).name).toBe(a.name);
   });
 });

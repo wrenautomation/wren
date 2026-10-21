@@ -1324,11 +1324,12 @@ export async function describeSegment(
 export async function journeyShape(db: Queryable): Promise<JourneyShape> {
   const got = await rows(
     db,
-    sql`select body, depths from pipeline.shape_versions order by number desc limit 1`,
+    sql`select run, depths from pipeline.shape_versions order by number desc limit 1`,
   );
   const row = got[0];
   if (!row) return { nodes: [], sources: [] };
-  const body = row.body as { nodes?: { id: string; name?: string; kind: string }[] };
+  // `run` is the graph the runtime runs, for a graph version and a metro version alike.
+  const body = row.run as { nodes?: { id: string; name?: string; kind: string }[] };
   const depths = (row.depths ?? {}) as Record<string, number>;
   const all = body.nodes ?? [];
   return {

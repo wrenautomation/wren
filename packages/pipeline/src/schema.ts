@@ -33,7 +33,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { Moves } from "./carry.js";
 import { DRAFT_STATES } from "./history.js";
-import type { Crossing } from "./model.js";
+import type { Crossing, ShapeBody } from "./model.js";
 import type { StoredBody } from "./stored.js";
 
 export const pipeline = pgSchema("pipeline");
@@ -136,9 +136,12 @@ export const shapeVersions = pipeline.table(
     number: integer("number").notNull(),
     body: jsonb("body").$type<StoredBody>().notNull(),
     /**
-     * `placesOfStored(body)`, written by the store: graph depths for a graph body, column places
-     * for a metro body. SQL readers read a column, not a recursive query.
+     * The graph the runtime runs: `runOf(body)`, written by the store. The body itself for a
+     * graph, the lowered graph for a metro body. SQL readers (the views, `journeyShape`) read
+     * this column, so they never lower a metro body.
      */
+    run: jsonb("run").$type<ShapeBody>().notNull(),
+    /** `depthOf(run)`, written by the store: graph depth, for both models. */
     depths: jsonb("depths").$type<Record<string, number>>().notNull(),
     note: text("note").notNull(),
     /** The version this one was saved from. Null for the first. */

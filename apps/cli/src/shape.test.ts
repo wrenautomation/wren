@@ -1,3 +1,6 @@
+import { TRIGGER_IDS } from "@wren/core/logic";
+import { planConvert } from "@wren/pipeline/convert-shape";
+import { exportShape } from "@wren/pipeline/shape-file";
 import { diffStored, type StoredBody } from "@wren/pipeline/stored";
 import { Command, InvalidArgumentError } from "commander";
 import { describe, expect, it, vi } from "vitest";
@@ -5,7 +8,7 @@ import {
   advanceArg,
   blameLines,
   blameOnArg,
-  convertBody,
+  convertLines,
   diffLines,
   draftLine,
   metroLines,
@@ -350,20 +353,47 @@ describe("the metro model", () => {
     ],
   } as unknown as StoredBody;
 
-  it("converts a graph to a metro body and its file", () => {
+  /** What the proofs read: triggers that exist, no groups, no sourced lists, journeys open. */
+  const ctx = {
+    triggers: TRIGGER_IDS,
+    group: () => undefined,
+    source: () => undefined,
+  };
+  const convertBody = (stored: StoredBody, open = new Map<string, number>()) =>
+    planConvert(stored, 1, ctx, open);
+
+  it("converts a graph to a metro body and proves it", () => {
     const c = convertBody(graph);
     expect(c.already).toBe(false);
     expect(c.body.model).toBe("metro");
-    expect(c.text.startsWith("model: metro")).toBe(true);
-    expect(c.notes).toEqual([]);
+    expect(exportShape(c.body).startsWith("model: metro")).toBe(true);
+    if (c.already) return;
+    expect(c.report).toMatchObject({
+      notes: [],
+      checks: [],
+      graphEqual: true,
+      workflowEqual: true,
+    });
   });
 
-  it("keeps a metro body as it is", () => {
+  it("prints the report, with the deal rule and the open journeys it would move", () => {
+    const c = convertBody(graph, new Map([["booked", 2]]));
+    expect(convertLines(c)).toEqual([
+      "notes: none",
+      "checks: ok",
+      "graph equal: yes",
+      "workflow equal: yes",
+      "deal rule signed: first station booked, deal station signed, " +
+        "open before the deal station: 2 (booked 2)",
+    ]);
+  });
+
+  it("keeps a metro body as it is, and says so", () => {
     const first = convertBody(graph);
     const again = convertBody(first.body);
-    expect(again).toMatchObject({ already: true, notes: [] });
+    expect(again).toMatchObject({ already: true });
     expect(again.body).toBe(first.body);
-    expect(again.text).toBe(first.text);
+    expect(convertLines(again)).toEqual(["The shape is on the metro model already."]);
   });
 
   it("refuses a graph that cannot convert, with the reason", () => {
@@ -437,27 +467,38 @@ describe("the metro model", () => {
     expect(() => blameOnArg("hub")).toThrow(InvalidArgumentError);
   });
 
-  it("prints a version as a metro file without --write, and writes nothing", async () => {
+  /** What `convert` reads from the database, in one piece. */
+  const reads = (versions: { number: number; body: StoredBody }[]) =>
+    (async () => ({ all: versions, ctx, open: new Map<string, number>() })) as never;
+
+  it("prints a version as a metro file and the report, without --write, and writes nothing", async () => {
     const versions = [
       { number: 1, body: graph },
       { number: 2, body: graph },
     ];
     const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
     process.exitCode = undefined;
-    await program({ withDb: (async () => versions) as never }).parseAsync(
-      ["shape", "convert", "--version", "1"],
-      { from: "user" },
-    );
+    await program({ withDb: reads(versions) }).parseAsync(["shape", "convert", "--version", "1"], {
+      from: "user",
+    });
     const out = write.mock.calls.map((c) => String(c[0])).join("");
+    const report = err.mock.calls.map((c) => String(c[0]));
     write.mockRestore();
+    err.mockRestore();
     expect(out.startsWith("model: metro")).toBe(true);
+    // The file is alone on stdout, so a pipe stays a file; the report is on stderr.
+    expect(report).toContain("checks: ok");
+    expect(report).toContain("graph equal: yes");
+    expect(report).toContain("workflow equal: yes");
+    expect(report.some((l) => l.startsWith("deal rule signed: "))).toBe(true);
     expect(process.exitCode).toBeUndefined();
   });
 
   it("says when the version is missing", async () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     process.exitCode = undefined;
-    await program({ withDb: (async () => [{ number: 1, body: graph }]) as never }).parseAsync(
+    await program({ withDb: reads([{ number: 1, body: graph }]) }).parseAsync(
       ["shape", "convert", "--version", "9"],
       { from: "user" },
     );

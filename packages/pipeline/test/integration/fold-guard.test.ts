@@ -47,6 +47,7 @@ beforeAll(async () => {
   await pg.db.insert(shapeVersions).values({
     number: 1,
     body: shape(),
+    run: shape(),
     depths: depthOf(shape()),
     note: "first",
     createdBy: "t",

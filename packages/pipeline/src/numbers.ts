@@ -10,15 +10,16 @@
  * A newest version on the metro model answers per line, station and track instead of per node and
  * edge (`metroRowsOf`). The numbers are the graph's numbers under the ids that carry over: a
  * station is its node, a plain or back track is its edge, a hub track is the sum of the source
- * edges its entries name, an out line is its source, an offer line is its offer. The views read
- * the graph shape of a version, so a version stored as a metro body has no crossings yet.
+ * edges its entries name, an out line is its source, an offer line is its offer, one row for each
+ * currency (as the graph's offer rows are). The views read the `run` column of a version, the
+ * graph the runtime runs, so a metro version has crossings like any other.
  *
  * Cost is Meta's spend on an `ads` source's campaign, in the ad account's currency; the views do
  * not convert, so a source on two currencies would add them. One currency per workspace holds today.
  */
 import type { Queryable } from "@wren/db";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
-import { isMetro, type MetroBody } from "./metro.js";
+import { isMetro, type MetroBody, placesOf } from "./metro.js";
 import { edgeIdOf, isSource, type ShapeBody } from "./model.js";
 import { scheduleOf } from "./schedule.js";
 import { journeys, pipelineDeals, termsVersions } from "./schema.js";
@@ -352,20 +353,28 @@ export function metroRowsOf(
       out.push({ ...(nodes.get(l.id) ?? blank), ...base, position: 0, nodeKind: null });
       continue;
     }
-    const mine = offers.filter((o) => o.offer === l.offer);
-    out.push({
-      ...blank,
-      ...base,
-      position: 0,
-      ...(l.offer === undefined
-        ? {}
-        : {
-            deals: mine.reduce((n, o) => n + o.deals, 0),
-            collected: money(mine.reduce((n, o) => n + o.collectedCents, 0)),
-            scheduled: money(mine.reduce((n, o) => n + o.scheduledCents, 0)),
-            currency: mine[0]?.currency ?? null,
-          }),
-    });
+    // One row for each currency, as the graph's offer rows: two currencies are never added.
+    const mine = l.offer === undefined ? [] : offers.filter((o) => o.offer === l.offer);
+    if (l.offer === undefined || mine.length === 0) {
+      out.push({
+        ...blank,
+        ...base,
+        position: 0,
+        ...(l.offer === undefined ? {} : { deals: 0, collected: 0, scheduled: 0 }),
+      });
+      continue;
+    }
+    for (const o of mine)
+      out.push({
+        ...blank,
+        ...base,
+        id: `line:${l.id}:${o.currency}`,
+        position: 0,
+        deals: o.deals,
+        collected: money(o.collectedCents),
+        scheduled: money(o.scheduledCents),
+        currency: o.currency,
+      });
   }
 
   for (const s of metro.stations) {
@@ -416,9 +425,9 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
   ]);
   const rows: NumberRow[] = [];
   if (newest) {
-    // The graph the runtime runs; a metro body is lowered. `depths` are depths for a graph and
-    // places for a metro body.
-    const { depths } = newest;
+    // The graph the runtime runs; a metro body is lowered. Positions are graph depths for a
+    // graph and places (worked out here) for a metro body.
+    const depths = isMetro(newest.body) ? placesOf(newest.body) : newest.depths;
     const body = runOf(newest.body);
     const total = new Map<
       string,

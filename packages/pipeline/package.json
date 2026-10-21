@@ -11,6 +11,7 @@
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
     "./convert": "./src/convert.ts",
+    "./convert-shape": "./src/convert-shape.ts",
     "./diff": "./src/diff.ts",
     "./drafts": "./src/drafts.ts",
     "./edit": "./src/edit.ts",

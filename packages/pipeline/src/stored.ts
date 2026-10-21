@@ -21,7 +21,7 @@ import {
   type ShapeDiff,
 } from "./diff.js";
 import type { BlameLine } from "./history.js";
-import { checkMetro, isMetro, type MetroBody, placesOf } from "./metro.js";
+import { checkMetro, isMetro, type MetroBody } from "./metro.js";
 import { historyOfMetro } from "./metro-blame.js";
 import {
   diffMetro,
@@ -33,7 +33,7 @@ import {
   metroChangesOf,
   parseMetroChangeKey,
 } from "./metro-diff.js";
-import { checkShape, depthOf, type ShapeBody, type ShapeCheckContext } from "./model.js";
+import { checkShape, type ShapeBody, type ShapeCheckContext } from "./model.js";
 import { Refused } from "./refused.js";
 
 export type StoredBody = ShapeBody | MetroBody;
@@ -53,16 +53,6 @@ export function metroView(stored: StoredBody): MetroBody {
   if (!drawn.ok) throw new Refused(drawn.errors);
   return drawn.body;
 }
-
-/** What goes in `depths`: column places for a metro body, graph depths for a graph. */
-export const placesOfStored = (stored: StoredBody): Record<string, number> =>
-  isMetro(stored) ? placesOf(stored) : depthOf(stored);
-
-/**
- * The graph depth of each node the runtime runs. Not the same as `placesOfStored` for a metro
- * body, whose `depths` column holds places. Readers that need depth use this.
- */
-export const runDepthsOf = (stored: StoredBody): Record<string, number> => depthOf(runOf(stored));
 
 /** True when two stored bodies hold the same data, whatever the key order. */
 export const sameStored = (a: StoredBody, b: StoredBody): boolean =>

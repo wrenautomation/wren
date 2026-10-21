@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ctx, metroShape, shape } from "../test/fixtures.js";
 import { graphOf, lowerable, metroOf } from "./convert.js";
-import { type MetroBody, placesOf } from "./metro.js";
-import { depthOf, type ShapeBody } from "./model.js";
+import type { MetroBody } from "./metro.js";
+import type { ShapeBody } from "./model.js";
 import { Refused } from "./refused.js";
 import {
   checkStored,
@@ -10,8 +10,6 @@ import {
   historyOfStored,
   metroView,
   parseStoredChangeKey,
-  placesOfStored,
-  runDepthsOf,
   runOf,
   sameStored,
   storedChangeKey,
@@ -58,18 +56,6 @@ describe("runOf and metroView", () => {
     };
     expect(checkStored(g, ctx())).toEqual([]);
     expect(() => metroView(g)).toThrow(Refused);
-  });
-});
-
-describe("depths and places", () => {
-  it("stores graph depths for a graph and places for a metro body", () => {
-    expect(placesOfStored(shape())).toEqual(depthOf(shape()));
-    expect(placesOfStored(drawn())).toEqual(placesOf(drawn()));
-  });
-
-  it("reads the graph depth of a metro body for the runtime", () => {
-    expect(runDepthsOf(drawn())).toEqual(depthOf(graphOf(drawn())));
-    expect(runDepthsOf(shape())).toEqual(depthOf(shape()));
   });
 });
 

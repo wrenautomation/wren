@@ -145,14 +145,43 @@ describe("metroRowsOf", () => {
     });
   });
 
-  it("gives an offer line its offer's numbers", () => {
-    const line = by(metroRowsOf(metro(), graphRows(), offers), "line:signed");
+  it("gives an offer line its offer's numbers, one row for each currency", () => {
+    const line = by(metroRowsOf(metro(), graphRows(), offers), "line:signed:USD");
     expect(line).toMatchObject({
       kind: "line",
+      label: "signed",
       deals: 3,
       collected: 50,
       scheduled: 120,
       currency: "USD",
+    });
+  });
+
+  it("never adds two currencies: a row each, as the graph's offer rows", () => {
+    const eur: OfferNumber = {
+      offer: "offer-a",
+      currency: "EUR",
+      deals: 1,
+      signed: 1,
+      collectedCents: 700,
+      scheduledCents: 900,
+    };
+    const rows = metroRowsOf(metro(), graphRows(), [...offers, eur]);
+    const mine = rows.filter((r) => r.kind === "line" && r.label === "signed");
+    expect(mine.map((r) => r.id)).toEqual(["line:signed:USD", "line:signed:EUR"]);
+    expect(by(rows, "line:signed:USD")).toMatchObject({ deals: 3, collected: 50, currency: "USD" });
+    expect(by(rows, "line:signed:EUR")).toMatchObject({ deals: 1, collected: 7, currency: "EUR" });
+    expect(by(rows, "line:signed")).toBeUndefined();
+  });
+
+  it("gives an offer line with no deals one row of zeros and no currency", () => {
+    const line = by(metroRowsOf(metro(), graphRows(), []), "line:signed");
+    expect(line).toMatchObject({
+      kind: "line",
+      deals: 0,
+      collected: 0,
+      scheduled: 0,
+      currency: null,
     });
   });
 
@@ -197,7 +226,7 @@ describe("metroRowsOf", () => {
       { source: "yt" },
     );
     expect(rows.filter((r) => r.kind === "track")).toEqual([]);
-    expect(rows.filter((r) => r.kind === "line" && r.id !== "line:signed")).toHaveLength(1);
+    expect(rows.filter((r) => r.kind === "line" && r.label !== "signed")).toHaveLength(1);
     expect(by(rows, "line:yt")).toBeDefined();
     expect(by(rows, "line:mail")).toBeUndefined();
     expect(by(rows, "station:yt")).toBeDefined();

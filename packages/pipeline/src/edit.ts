@@ -75,6 +75,9 @@ export async function openOn(db: Queryable, id: string): Promise<number> {
   return row?.n ?? 0;
 }
 
+/** What an undo by station, track or line says when the newest version is on the graph model. */
+export const ON_GRAPH = "The shape is on the graph model. Undo by node or edge.";
+
 /** What an edit of the graph says when the newest version is on the metro model. */
 export const ON_METRO = "The shape is on the metro model. Export, edit the YAML, import.";
 
@@ -203,7 +206,8 @@ export function undoChange(
  * The inverse of one change from version `a` to version `b`, applied to `newest`, for stored
  * bodies. A `node:` or `edge:` key is a graph key: it needs a graph newest body. A line, station,
  * track, group or frame key is a metro key: it runs on the map view of all three bodies and gives
- * a metro body. `name` is in both: the newest body's model decides. Pure; refused with `Refused`.
+ * a metro body, so it needs a metro newest body (else refused with `ON_GRAPH`). `name` is in both:
+ * the newest body's model decides. Pure; refused with `Refused`.
  */
 export function undoStoredChange(
   newest: StoredBody,
@@ -217,5 +221,7 @@ export function undoStoredChange(
       throw new Refused(["The shape is on the metro model now. Undo by station or track."]);
     return undoChange(newest, runOf(a), runOf(b), change as ShapeChange);
   }
+  // A metro key would build a metro body, and a graph newest version never turns into one by undo.
+  if (!isMetro(newest)) throw new Refused([ON_GRAPH]);
   return undoMetroChange(metroView(newest), metroView(a), metroView(b), change as MetroChange);
 }

@@ -10,13 +10,19 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { lowerable, metroOf } from "../../src/convert.js";
 import { applyDraft, draftOf, newDraft } from "../../src/drafts.js";
-import { editShape, ON_METRO } from "../../src/edit.js";
+import { editShape, ON_GRAPH, ON_METRO } from "../../src/edit.js";
 import { isMetro, type MetroBody, placesOf } from "../../src/metro.js";
 import { numberRows } from "../../src/numbers.js";
 import { shapeRecord, shapeRows } from "../../src/records.js";
 import { journeys } from "../../src/schema.js";
 import { exportShape, parseShape } from "../../src/shape-file.js";
-import { newestShape, Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
+import {
+  GRAPH_OVER_METRO,
+  newestShape,
+  Refused,
+  saveShape,
+  shapeVersionsOf,
+} from "../../src/store.js";
 import {
   diffStored,
   historyOfStored,
@@ -74,7 +80,9 @@ describe("a graph version, then the metro model", () => {
     const v2 = await save(drawn(), "Move the shape to the metro model.");
     expect(v2).toMatchObject({ number: 2, parent: 1 });
     expect(isMetro(v2.body)).toBe(true);
-    expect(v2.depths).toEqual(placesOf(drawn()));
+    // `run` and `depths` are the graph's, for a metro version too; places are worked out on read.
+    expect(v2.run).toEqual(v1.body);
+    expect(v2.depths).toEqual(v1.depths);
 
     const [after] = await pg.db.select().from(journeys).where(eq(journeys.id, journey));
     expect(after).toMatchObject({ version: 2, node: "booked", status: "open" });
@@ -160,25 +168,38 @@ describe("a graph version, then the metro model", () => {
     expect(why).toEqual(["The shape is on the metro model now. Undo by station or track."]);
   });
 
-  it("undoes a graph key while the newest version is a graph", async () => {
-    // A fresh history in the same database: version 5 is a graph, version 6 renames a node.
-    const g = shape();
-    g.nodes = g.nodes.map((n) => (n.id === "yt" ? { ...n, name: "Video" } : n));
-    const v5 = await save(g, "back to a graph");
-    expect(isMetro(v5.body)).toBe(false);
-    const g2 = shape();
-    g2.nodes = g2.nodes.map((n) => (n.id === "yt" ? { ...n, name: "Video" } : n));
-    g2.nodes = g2.nodes.map((n) => (n.id === "booked" ? { ...n, name: "Call booked" } : n));
-    const v6 = await save(g2, "rename a node");
-    const undone = await undoShape(pg.db, {
-      a: v5.number,
-      b: v6.number,
-      change: "node:booked:renamed",
-      by: "t",
-      triggers: TRIGGERS,
-    });
-    expect(isMetro(undone.body)).toBe(false);
-    expect(undone.body).toEqual(v5.body);
+  it("refuses a graph body over a metro newest version, and saves nothing", async () => {
+    const why = await reasons(save(shape(), "back to a graph"));
+    expect(why).toEqual([GRAPH_OVER_METRO]);
+    expect((await shapeVersionsOf(pg.db)).map((v) => v.number)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("refuses a metro key on a graph newest version, and undoes a graph key there", async () => {
+    // A graph newest version needs a database of its own: this one is on the metro model for good.
+    const own = await startTestPostgres();
+    try {
+      const g = shape();
+      const v1 = await saveShape(own.db, { body: g, note: "graph", by: "t", triggers: TRIGGERS });
+      const renamed = {
+        ...g,
+        nodes: g.nodes.map((n) => (n.id === "booked" ? { ...n, name: "Call booked" } : n)),
+      };
+      const v2 = await saveShape(own.db, {
+        body: renamed,
+        note: "rename a node",
+        by: "t",
+        triggers: TRIGGERS,
+      });
+      const undo = (change: string) =>
+        undoShape(own.db, { a: 1, b: 2, change, by: "t", triggers: TRIGGERS });
+      const undone = await undo("node:booked:renamed");
+      expect(isMetro(undone.body)).toBe(false);
+      expect(undone.body).toEqual(v1.body);
+      expect(v2.number).toBe(2);
+      expect(await reasons(undo("station:booked:renamed"))).toEqual([ON_GRAPH]);
+    } finally {
+      await own.stop();
+    }
   });
 });
 
@@ -197,9 +218,10 @@ describe("the file", () => {
 
 describe("drafts and the records", () => {
   it("keeps a metro draft and applies it as the next version", async () => {
-    const before = (await newestShape(pg.db))?.number ?? 0;
-    // Land on a metro version first, so the draft forks a metro body.
-    const base = await save(drawn(), "metro again");
+    // The newest version is metro (v4), so the draft forks a metro body.
+    const base = await newestShape(pg.db);
+    if (!base) throw new Error("no shape");
+    expect(isMetro(base.body)).toBe(true);
     const draft = await newDraft(pg.db, {
       name: "Metro draft",
       body: relabel(drawn(), "engaged", "Replied"),
@@ -212,7 +234,6 @@ describe("drafts and the records", () => {
     const applied = await applyDraft(pg.db, { id: draft.id, by: "t", triggers: TRIGGERS });
     expect(applied.version.number).toBe(base.number + 1);
     expect(isMetro(applied.version.body)).toBe(true);
-    expect(applied.version.number).toBeGreaterThan(before);
   });
 
   it("answers the shape record in graph terms, with the metro view beside it", async () => {

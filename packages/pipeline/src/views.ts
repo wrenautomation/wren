@@ -7,6 +7,9 @@
  * arrival, so every view skips it. History from before the shape (`funnel.%` workflows) is not
  * counted.
  *
+ * The views that read the shape (`edge_flow`, `source_numbers`, `stage_flow`) read the `run` column
+ * of `shape_versions`: the graph the runtime runs, for a graph body and a metro body alike.
+ *
  * `stage_counts`, `stage_flow` and `entry_numbers` are the old views, kept for one release as
  * projections of the new ones (`funnel` is `'shape'`). Nothing new reads them.
  */
@@ -81,7 +84,7 @@ export const edgeFlow = pipeline
   cross join lateral jsonb_array_elements_text(case when jsonb_typeof(a.data -> 'edges') = 'array'
     then a.data -> 'edges' else '[]'::jsonb end) x(edge)
   join pipeline.shape_versions sv on sv.number = a.version
-  join lateral jsonb_array_elements(sv.body -> 'edges') ed on ed ->> 'id' = x.edge
+  join lateral jsonb_array_elements(sv.run -> 'edges') ed on ed ->> 'id' = x.edge
   group by a.version, x.edge, ed ->> 'from', ed ->> 'to', (a.at at time zone 'UTC')::date`);
 
 /**
@@ -106,10 +109,10 @@ export const sourceNumbers = pipeline
     from pipeline.journeys j left join pipeline.deals d on d.journey = j.id
     group by j.entry, (j.opened_at at time zone 'UTC')::date
   ), newest as (
-    select v.body from pipeline.shape_versions v order by v.number desc limit 1
+    select v.run from pipeline.shape_versions v order by v.number desc limit 1
   ), campaigns as (
     select n ->> 'id' source, n ->> 'campaign' campaign
-    from newest, jsonb_array_elements(newest.body -> 'nodes') n
+    from newest, jsonb_array_elements(newest.run -> 'nodes') n
     where n ->> 'kind' = 'source' and n ->> 'via' = 'ads' and n ->> 'campaign' is not null
   ), spent as (
     select c.source, a.day, 0 opened, 0 deals, 0::bigint collected_cents, sum(a.spend)::float cost
@@ -151,10 +154,10 @@ export const stageFlow = pipeline
   })
   .as(sql`
   with newest as (
-    select v.body from pipeline.shape_versions v order by v.number desc limit 1
+    select v.run from pipeline.shape_versions v order by v.number desc limit 1
   ), pairs as (
     select ed ->> 'from' stage, ed ->> 'to' next_stage
-    from newest, jsonb_array_elements(newest.body -> 'edges') ed
+    from newest, jsonb_array_elements(newest.run -> 'edges') ed
     where ed ->> 'kind' = 'flow'
   ), reached as (
     select node, sum(arrived)::int n from pipeline.node_counts group by node
