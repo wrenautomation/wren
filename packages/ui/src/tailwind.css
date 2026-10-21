@@ -484,7 +484,7 @@
   }
 }
 
-/* Something new in a list rises in: a source in a Path, the fold line (path.tsx). */
+/* Something new rises in: the fold line of Steps, a changed number (fades in once, never counts). */
 .ui-rise {
   animation: ui-rise 0.35s var(--ui-ease) both;
 }
@@ -497,6 +497,99 @@
 @media (prefers-reduced-motion: reduce) {
   .ui-rise {
     animation: none;
+  }
+}
+
+/* Steps (steps.tsx). The status line cross-fades: the old line goes up and out, the new one
+   comes up and in. A card folds down into place; a done step's cards stack into a deck. */
+.ui-status > [data-out] {
+  animation: ui-status-out 0.22s var(--ui-ease) forwards;
+}
+.ui-status > [data-in] {
+  animation: ui-status-in 0.22s var(--ui-ease) both;
+}
+@keyframes ui-status-out {
+  to {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@keyframes ui-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+.ui-cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 4px;
+  min-height: 24px;
+  perspective: 500px;
+}
+.ui-card {
+  margin: 0 5px 4px 0;
+  transform-origin: 50% 0;
+  animation: ui-card-fold 0.55s var(--ui-ease) both;
+  transition:
+    margin 0.4s var(--ui-ease),
+    padding 0.4s var(--ui-ease);
+}
+.ui-card > em {
+  max-width: 140px;
+  overflow: hidden;
+  transition:
+    max-width 0.4s var(--ui-ease),
+    opacity 0.3s;
+}
+.ui-cards[data-stack] > .ui-card {
+  margin-right: -9px;
+  padding-right: 3px;
+}
+.ui-cards[data-stack] > .ui-card > em {
+  max-width: 0;
+  opacity: 0;
+}
+.ui-cards-count {
+  margin: 0 0 4px 14px;
+  font-size: 11.5px;
+  color: var(--ui-ink-3);
+  opacity: 0;
+  transition: opacity 0.3s 0.3s;
+}
+.ui-cards[data-stack] > .ui-cards-count {
+  opacity: 1;
+}
+.ui-cards:not([data-stack]) > .ui-cards-count {
+  display: none;
+}
+@keyframes ui-card-fold {
+  from {
+    opacity: 0;
+    transform: rotateX(-90deg) translateY(-6px);
+  }
+  55% {
+    transform: rotateX(14deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-card,
+  .ui-status > [data-out],
+  .ui-status > [data-in] {
+    animation: none;
+  }
+  .ui-status > [data-out] {
+    opacity: 0;
+  }
+  .ui-card,
+  .ui-card > em,
+  .ui-cards-count {
+    transition: none;
   }
 }
 

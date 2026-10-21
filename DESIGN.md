@@ -423,10 +423,9 @@ Source: `designs/2026-10-20-design-language/design-language.src.html`, section 1
 | Kind | When | Looks like |
 |---|---|---|
 | Skeleton | first load of a page or sheet | Grey blocks in the shape of the content, with a slow lavender shimmer. The known header shows at once. |
-| Bar | refresh of data already shown | The old data stays. A 2 px lavender bar sweeps along the top of the panel. Numbers tick to the new value. |
+| Bar | refresh of data already shown | The old data stays. A 2 px lavender bar sweeps along the top of the panel. A changed number fades in once. |
 | Busy ring | a button's or chip's own action; a modal while a page builds | The label stays and the slot is reserved: no width change. A 14 px ring turns after the label (40 px in a modal), then the toast with Undo. |
-| Path | a job with named steps | Each step names what it does and with what. Detail text cross-fades, sources animate in, and done folds to one line that opens on a click (`Path` in `path.tsx`). |
-| Steps | a job over 10 s | Each step with its state, and a line that says the person can leave. |
+| Steps | any wait with stages | Each step names what it does and with what. The status line cross-fades and holds each line at least 600 ms, so it never flickers. Sources and targets fold in as small cards, then stack into a deck with a count when the step is done. Past 10 s: a clock, and "you can leave". Done, it folds to one line that stays as the record and opens on a click (`Steps` in `steps.tsx`). One part for research, send, import, a video render and the map. |
 | Stream | AI text | Text arrives as it comes, with a lavender caret and a "Drafting" chip. |
 
 **Busy look.** One shared part, `Busy`, used by `Button` and `Tag`. The look is a variant. The plain ring is the default; dots is the other built look. William picks the final look later (flight, feathers, clutch, nest: section 14, "Ring, bird ways"). The pick is one line (`BUSY` in `busy.tsx`) plus that look's CSS. The bottom bar, the sweep and the edge pulse are out.
@@ -436,6 +435,8 @@ Source: `designs/2026-10-20-design-language/design-language.src.html`, section 1
 **Not loading.** Empty, error and offline each look different from a wait. Error: one sentence and Retry. Offline: a banner, and writes queue.
 
 **Reduced motion.** The shimmer and the draw-in go. Bars still move. The busy ring stands still; the dots stop and show full.
+
+**The No Count Rule.** A number never counts up or jitters. A changed number fades in once (`ui-rise`, keyed by its value), on first load and on refresh.
 
 **The No Spinner Rule.** Never a spinner in place of a label.
 

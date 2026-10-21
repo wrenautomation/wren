@@ -295,7 +295,6 @@ export {
   type Variant,
 } from "./palette-brand.js";
 export { type Scope, type ScopeItem, useScope } from "./palette-scope.js";
-export { Path, type PathState, type PathStep } from "./path.js";
 export { BottomSheet, type Segment, Segmented, SwipeRow, type Swipes } from "./phone.js";
 export { runs as tabRuns } from "./phone-nav.js";
 export { usePhone } from "./phone-shell.js";
@@ -460,6 +459,7 @@ export {
   type TrailStep,
   useSourcePick,
 } from "./sources.js";
+export { HOLD, type JobStep, type StepCard, type StepState, Steps } from "./steps.js";
 export { Sweep } from "./sweep.js";
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";
 export { TabBar } from "./tab-bar.js";
