@@ -293,7 +293,7 @@ Source: `controls.tsx` (`Button`, `ButtonLink`, `Tag`), `components/ui/button.ts
 - **`next`** is the one action most pressed on a record or queue item. Only one per view.
 - **Press edge:** the primary has `box-shadow: 0 3px 0 var(--ui-press-edge)` (`--ui-press-edge` is the accent 72% mixed with black; night sets `#7a69ad`). On press it sinks 3 px and the edge goes. It does not turn ink on hover. Buttons move on `--ui-spring`.
 - **Feedback:** active scale 0.97 (secondary and quiet). Disabled opacity 40%. Focus ring 2 px `--ui-focus`, offset 2 px. `arrow` nudges 3 px on hover.
-- **`busy`:** solid, `aria-busy`, disabled, three dots after the label (`Busy` in `busy.tsx`). Pass `busy` true or false on a button that can go busy, so the dots' slot is always there.
+- **`busy`:** solid, `aria-busy`, disabled, the busy ring after the label (`Busy` in `busy.tsx`). Pass `busy` true or false on a button that can go busy, so the ring's slot is always there.
 - **Touch:** min height 44 px under `pointer-coarse`.
 - **Tag:** status chip. `px-[9px] py-0.5`, 12 px, semibold, leaf-chip corners. Tones neutral, accent, warn, green. Optional 6 px dot.
 - **Actions** (`action.tsx`): a reversible action runs at once and shows a toast with Undo for 10 s. Without undo it asks first. A blocked action shows turned off with its reason.
@@ -404,7 +404,8 @@ Source: `tailwind.css` (keyframes), `card-grid.tsx`, `controls.tsx`, `phone.tsx`
 - Hover and color: 100 to 200 ms. Dialogs 150 ms. Sheets 200 to 300 ms.
 - `ui-changed` (1.4 s): a row that changed washes live-color 14% to clear.
 - `ui-run-pulse` (1.6 s, opacity to 0.35), `ui-run-flow` (0.7 s linear), `ui-run-spark` (0.75 s): a live run.
-- `ui-dot-step` (1 s): the dots of a busy button or chip.
+- `ui-ring-spin` (0.9 s): the busy ring of a button, a chip or a modal.
+- `ui-dot-step` (1 s): the dots, the other busy look.
 - `ui-read` (900 ms): read-aloud bars.
 - `ui-fade`: page fade in.
 - `ui-ribbon-in` (0.9 s): the Map's ribbons grow in once on load (the real event: the data arrived); widths then ease on change. Off under reduced motion.
@@ -423,18 +424,18 @@ Source: `designs/2026-10-20-design-language/design-language.src.html`, section 1
 |---|---|---|
 | Skeleton | first load of a page or sheet | Grey blocks in the shape of the content, with a slow lavender shimmer. The known header shows at once. |
 | Bar | refresh of data already shown | The old data stays. A 2 px lavender bar sweeps along the top of the panel. Numbers tick to the new value. |
-| Busy dots | a button's or chip's own action | The label stays and the slot is reserved: no width change. Three dots step after the label, then the toast with Undo. |
+| Busy ring | a button's or chip's own action; a modal while a page builds | The label stays and the slot is reserved: no width change. A 14 px ring turns after the label (40 px in a modal), then the toast with Undo. |
 | Path | a job with named steps | Each step names what it does and with what. Detail text cross-fades, sources animate in, and done folds to one line that opens on a click (`Path` in `path.tsx`). |
 | Steps | a job over 10 s | Each step with its state, and a line that says the person can leave. |
 | Stream | AI text | Text arrives as it comes, with a lavender caret and a "Drafting" chip. |
 
-**Busy look.** One shared part, `Busy`, used by `Button` and `Tag`. The look is a variant: only "dots" is built. William picks the final look later (ring, trace, corner ink, leaf turn, shuttle, wren hop: section 14, "Busy, Wren ways"). The pick is one line (`BUSY` in `busy.tsx`) plus that look's CSS. The bottom bar, the sweep and the edge pulse are out.
+**Busy look.** One shared part, `Busy`, used by `Button` and `Tag`. The look is a variant. The plain ring is the default; dots is the other built look. William picks the final look later (flight, feathers, clutch, nest: section 14, "Ring, bird ways"). The pick is one line (`BUSY` in `busy.tsx`) plus that look's CSS. The bottom bar, the sweep and the edge pulse are out.
 
 **Pagination.** A pager stays where it exists. Never remove a pager or swap it for infinite scroll. The next page loads in place at the same height: skeleton rows at page size, no jump.
 
 **Not loading.** Empty, error and offline each look different from a wait. Error: one sentence and Retry. Offline: a banner, and writes queue.
 
-**Reduced motion.** The shimmer and the draw-in go. Bars and the busy dots still move (the dots stop and show full).
+**Reduced motion.** The shimmer and the draw-in go. Bars still move. The busy ring stands still; the dots stop and show full.
 
 **The No Spinner Rule.** Never a spinner in place of a label.
 

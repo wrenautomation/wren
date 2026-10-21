@@ -16,18 +16,18 @@ describe("Button", () => {
     expect(html).not.toContain("aria-busy");
   });
 
-  it("keeps the dots' slot when it can go busy, so the width stays", () => {
+  it("keeps the ring's slot when it can go busy, so the width stays", () => {
     const idle = renderToStaticMarkup(<Button busy={false}>Approve</Button>);
     expect(idle).toContain("data-busy");
     expect(idle).not.toContain("data-on");
     expect(renderToStaticMarkup(<Button busy>Approve</Button>)).toContain("data-on");
   });
 
-  it("has no dots slot when it never goes busy", () => {
+  it("has no busy slot when it never goes busy", () => {
     expect(renderToStaticMarkup(<Button>Approve</Button>)).not.toContain("data-busy");
   });
 
-  it("gives a chip the same dots", () => {
+  it("gives a chip the same ring", () => {
     expect(renderToStaticMarkup(<Tag busy>Drafting</Tag>)).toContain("data-on");
     expect(renderToStaticMarkup(<Tag>Drafting</Tag>)).not.toContain("data-busy");
   });

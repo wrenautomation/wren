@@ -44,7 +44,7 @@ const DENSE_TONE: Record<ButtonTone, string> = {
 };
 const BUTTON_TONE: Record<ButtonTone, string> = {
   primary:
-    "shadow-[0_3px_0_var(--ui-press-edge)] active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[0_0_0_var(--ui-press-edge)]",
+    "[--ui-busy-ink:currentColor] shadow-[0_3px_0_var(--ui-press-edge)] active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[0_0_0_var(--ui-press-edge)]",
   secondary:
     "bg-transparent text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink)] hover:bg-(--ui-ink) hover:text-(--ui-on-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97]",
   quiet:
@@ -90,9 +90,9 @@ export function Button({
   ...rest
 }: ButtonLook & {
   /**
-   * It was pressed and its work is running: it stays solid, with three dots stepping after the
+   * It was pressed and its work is running: it stays solid, with the busy ring turning after the
    * label, and is turned off, so neither a click nor Enter presses it again. Pass `busy` (true or
-   * false) on a button that can go busy, so the dots' slot is always there and the width never
+   * false) on a button that can go busy, so the ring's slot is always there and the width never
    * changes. A button acts on rows: pass `true` only for the rows its press is at work on.
    */
   busy?: boolean | undefined;
@@ -164,7 +164,7 @@ export function Tag({
 }: {
   tone?: TagTone;
   dot?: boolean;
-  /** A chip that waits ("Drafting"): dots after the label. Pass true or false to keep the slot. */
+  /** A chip that waits ("Drafting"): the ring after the label. Pass true or false to keep the slot. */
   busy?: boolean | undefined;
   title?: string | undefined;
   className?: string | undefined;

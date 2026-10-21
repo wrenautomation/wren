@@ -541,6 +541,36 @@
 .ui-busy[data-on] {
   opacity: 1;
 }
+/* The plain ring. Its ink is the live role; a primary button sets --ui-busy-ink to its own text. */
+.ui-busy[data-busy="ring"] {
+  width: 14px;
+  height: 14px;
+}
+.ui-busy[data-busy="ring"][data-big] {
+  width: 40px;
+  height: 40px;
+}
+.ui-busy[data-busy="ring"] > svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ui-busy[data-busy="ring"] circle {
+  fill: none;
+  stroke: var(--ui-busy-ink, var(--ui-live));
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 70 25;
+  transform-origin: 20px 20px;
+}
+.ui-busy[data-busy="ring"][data-on] circle {
+  animation: ui-ring-spin 0.9s linear infinite;
+}
+@keyframes ui-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .ui-busy[data-busy="dots"] {
   gap: 3px;
   width: 15px;
@@ -570,6 +600,9 @@
   .ui-busy[data-busy="dots"][data-on] > i {
     animation: none;
     opacity: 1;
+  }
+  .ui-busy[data-busy="ring"][data-on] circle {
+    animation: none;
   }
 }
 @theme {
