@@ -90,7 +90,8 @@ export interface BlameLine {
 
 export interface DraftNewAsk {
   name: string;
-  body: ShapeBody;
+  /** A graph body. Left out: the draft forks the base version as stored. */
+  body?: ShapeBody;
   moves?: Moves;
   /** The version it forks; the newest when left out. */
   base?: number;
@@ -99,6 +100,33 @@ export interface DraftNewAsk {
 export interface DraftNewAnswer {
   id: string;
   base: number;
+}
+export interface DraftEditAsk {
+  id: string;
+  /** One op or a list of ops (`metro-ops.ts`). */
+  ops: unknown;
+}
+export interface DraftEditAnswer {
+  id: string;
+  /** What the ops changed, a line each. */
+  lines: string[];
+  /** Why apply would refuse the draft as it stands. Fix them with more ops. */
+  warnings: string[];
+}
+export interface DraftPlanAnswer {
+  id: string;
+  /** The version the draft forked. */
+  base: number;
+  /** The newest version. */
+  live: number;
+  /** True when live moved since the base. */
+  moved: boolean;
+  /** One line per conflict: both values. Any conflict blocks apply. */
+  conflicts: string[];
+  /** What apply would change in live, a line each. */
+  lines: string[];
+  /** Why apply would refuse before the conflicts. Set when live is a graph. */
+  refused?: string;
 }
 export interface DraftUpdateAsk {
   id: string;

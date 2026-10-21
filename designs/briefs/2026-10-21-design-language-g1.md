@@ -8,7 +8,7 @@ Read first: `packages/pipeline/src/{metro,metro-diff,metro-edit,metro-file,conve
 
 ## The target in one paragraph
 
-Every editor writes typed ops into a draft: the CLI, an agent through `/api/agent`, later the Map chat (G2). An op names ids. Ops act on a metro body. A draft forked from a graph version is drawn with `metroView` first, in memory. A draft is not checked in full until apply; an op batch is refused only when the body it makes is not a metro body in structure (`parseMetroBody`), and `checkMetro` and `lowerable` come back as warnings. Apply checks the base: when live moved, the draft merges by id, three way (base, live, draft). Different items, and different fields of one item, merge. One field changed on both sides to different values is a conflict that shows both values, and it blocks apply. Prod stays a graph: when live is a graph, apply saves `graphOf(merged)`, and only when nothing is lost on the way.
+Every editor writes typed ops into a draft: the CLI, an agent through `/api/agent`, later the Map chat (G2). An op names ids. Ops act on a metro body. A draft forked from a graph version is drawn with `metroView` first, in memory. A draft is not checked in full until apply; an op batch is refused only when the body it makes is not a metro body in structure (`parseMetroBody`), and `checkMetro` and `lowerable` come back as warnings. Apply checks the base: when live moved, the draft merges by id, three way (base, live, draft). Different items, and different fields of one item, merge. One field changed on both sides to different values is a conflict that shows both values, and it blocks apply. Apply needs a metro live: when live is a graph, apply refuses with "Live is a graph. Run `wren shape convert` first." (William 10-21: prod converts fully before G1 lands).
 
 No CRDT. No UI (area D owns the web). Never run `wren shape convert --write` on prod. Never push branch `shape-c1-held`.
 
@@ -124,28 +124,26 @@ interface ApplyPlan {
   /** True when live moved since the draft's base. */
   moved: boolean;
   conflicts: Conflict[]; conflictLines: string[];
-  /** The body apply would save: graph when live is a graph, metro when live is metro. */
+  /** The body apply would save: the draft as a metro body, merged with live when live moved. */
   body: StoredBody;
   /** What the body changes in live, a line each (`storedChangeLines`). */
   lines: string[];
-  /** What a graph live cannot hold of the merged body, a line each. Empty: nothing lost. */
-  lost: string[];
+  /** Set when live is a graph: "Live is a graph. Run `wren shape convert` first." */
+  refused?: string;
 }
 ```
 
   Rules:
-  - Not moved and the draft body is a graph: `body` = the draft body (today's behaviour).
-  - Else merged = `mergeMetro(metroView(base), metroView(live), metroView(draft))` when moved, `metroView(draft)` when not.
-  - Live is metro: `body` = merged.
-  - Live is a graph: `body` = `graphOf(merged)`. `lost` = `lowerable(merged)`, plus, when that is empty, `metroChangeLine` of each change from `metroOf(graphOf(merged))` to `merged` (what the graph drops: a group, an attach, a line's colour, a station placed where the converter would not place it). Why: saving a metro body over a graph live converts prod, and that is William's call (`wren shape convert --write`).
-- `applyDraft`: take `lock(tx, "shape")` first (transaction scoped, so `saveShape` takes it again safely), then the draft lock, then `planApply` in the same transaction. Refused with `conflictLines` when there are conflicts, with `lost` (after the line "The live shape is on the graph model, and it cannot hold these changes. Converting it is William's call: wren shape convert.") when `lost` is not empty. Else `saveShape` with `plan.body`, the draft's moves and note, as today.
+  - merged = `mergeMetro(metroView(base), metroView(live), metroView(draft))` when moved, `metroView(draft)` when not. `body` = merged.
+  - Live is a graph: `refused` is set. The plan still answers, so `draft show` and `shapeDraftPlan` can print it.
+- `applyDraft`: take `lock(tx, "shape")` first (transaction scoped, so `saveShape` takes it again safely), then the draft lock, then `planApply` in the same transaction. Refused with `refused` alone when it is set, else with `conflictLines` when there are conflicts. Else `saveShape` with `plan.body`, the draft's moves and note, as today.
 
 ### 2. Console (`src/console.ts`, `src/console-routes.ts`, `src/history.ts`)
 
 - `shapeDraftEdit` (`act`, in `PIPELINE_CONSOLE_WRITES`): input `{ id, ops }`; `ops` is one op or an array (`MetroOpSchema`, described for `describe`). Answer `{ id, lines, warnings }`. Wrap in `ctx.run("shape draft edit", …)` as `shapeDraftUpdate` does.
-- `shapeDraftPlan` (`read`): input `{ id }`. Answer `{ id, base, live, moved, conflicts: conflictLines, lines, lost }`.
+- `shapeDraftPlan` (`read`): input `{ id }`. Answer `{ id, base, live, moved, conflicts: conflictLines, lines, refused? }`.
 - `shapeDraftNew`: `body` optional.
-- `shapeDraftApply` stays `act` (Decision below). Its refusal carries the conflict or lost lines in the guard's words.
+- `shapeDraftApply` stays `act` (Decision below). Its refusal carries the graph-live line or the conflict lines.
 - Types for the asks and answers in `history.ts`, beside the other draft types.
 - `/api/agent` needs no new tool: `wren call PipelineConsole/shapeDraftEdit` reaches it through `call`. Check `apps/portal/src/agent.ts` and `apps/portal/src/edge.ts` (or wherever the Worker lists the PipelineConsole routes it opens) and add the two routes there if a list exists.
 
@@ -153,7 +151,7 @@ interface ApplyPlan {
 
 - `wren shape edit <draft> [op]`: `op` is one op as JSON text. `--ops <file>` reads one op or an array from a JSON file, `--ops -` from stdin. Exactly one of `op` and `--ops`. Prints each line of `lines`, then `warning: <w>` for each warning, then `draft <id>: <n> changes from v<live>`.
 - `wren shape draft new [file] --name <name>`: the file is optional; without it the draft forks the newest version (or `--base <n>`).
-- `wren shape draft show <id>`: prints the author (`by <created_by>`), then the apply plan: `live moved since v<base> (now v<live>)` when it moved, each conflict line (`conflict: …`), each lost line (`lost on the graph model: …`), then the lines apply would change. Replace today's direct diff there.
+- `wren shape draft show <id>`: prints the author (`by <created_by>`), then the apply plan: `live moved since v<base> (now v<live>)` when it moved, each conflict line (`conflict: …`), `refused: …` when live is a graph, then the lines apply would change. Replace today's direct diff there.
 - `wren shape draft apply <id>`: unchanged call; the refusal prints its lines.
 - Update the file's header comment: graph edits (`add-node`, `connect`, `remove`) stay for graph versions; ops edit drafts on both.
 
@@ -163,7 +161,7 @@ In the Shape section, replace the draft lines with the op path. Steps for Claude
 1. Make a draft: `wren call PipelineConsole/shapeDraftNew --input '{"name":"…","note":"…"}' --confirm shapeDraftNew` (no body: it forks live).
 2. Write ops: `wren call PipelineConsole/shapeDraftEdit --input @ops.json --confirm shapeDraftEdit`. List the op kinds with one example each, in JSON. Ids name things; read them first with `wren get pipeline.shape shape`.
 3. Read warnings: each is a reason apply will refuse. Fix them with more ops.
-4. Show the diff: `wren call PipelineConsole/shapeDraftPlan --input '{"id":"…"}'`. Show the user `lines`, and any `conflicts` or `lost`.
+4. Show the diff: `wren call PipelineConsole/shapeDraftPlan --input '{"id":"…"}'`. Show the user `lines`, and any `conflicts` or `refused`.
 5. Propose: `shapeDraftPropose`. Never apply or drop unless the user asked.
 
 From a drawing: read the board on draw.wrenautomation.com with the excalidraw skill (`draw` CLI: export the scene or take a screenshot), map each box to a station and each arrow to a track (reuse ids that exist; ask when a shape is unclear), write the ops into a draft, then step 4. Never edit live.
@@ -172,13 +170,13 @@ Mirror the same in the repo skill, if `.claude/skills/wren/SKILL.md` or the port
 
 ### 5. Tests
 
-- Integration (`packages/pipeline/test/integration/drafts.test.ts`, run only the files you touch): `editDraft` on a draft forked from a graph version stores a metro body; a refused batch leaves the draft as it was; a closed draft refuses edits. Apply with no move on a graph live saves a graph (`isMetro` false) whose `run` equals `graphOf` of the draft; apply after live moved merges two disjoint edits; a conflict refuses and saves nothing; a metro-only change (a group, an attach) on a graph live is refused with the lost line; on a metro live the merged metro body saves. `planApply` answers the same as apply would do.
+- Integration (`packages/pipeline/test/integration/drafts.test.ts`, run only the files you touch): `editDraft` on a draft forked from a graph version stores a metro body; a refused batch leaves the draft as it was; a closed draft refuses edits. Apply on a metro live with no move saves the draft (a rename and an `idleDays` land on the run); apply after live moved merges two disjoint edits; a conflict refuses and saves nothing; a metro-only change (an attach) saves; apply on a graph live refuses with the convert line and saves nothing (its own database, since a graph cannot follow a metro version). `planApply` answers the same as apply would do.
 - Console unit or integration for `shapeDraftEdit` and `shapeDraftPlan` as `console.test.ts` does for the other draft routes.
 - CLI unit test for `edit` argument parsing (op text, `--ops` file, both refused), as the CLI tests do today.
 
 ### 6. Map
 
-`map/objects/platform/shape.md`: ops, the three-way merge, the graph-live lowering rule, the two routes and the CLI command, with citations. Run `map/_meta/build.sh`, then `--check`.
+`map/objects/platform/shape.md`: ops, the three-way merge, the graph-live refusal, the two routes and the CLI command, with citations. Run `map/_meta/build.sh`, then `--check`.
 
 ---
 
@@ -187,7 +185,7 @@ Mirror the same in the repo skill, if `.claude/skills/wren/SKILL.md` or the port
 - **Move** means where a thing sits: a station's line, column and group; a track's ends; a group's line; a line's place in the stack. Why: every other field is `set`; each thing has one way to change it.
 - **Ops on four kinds.** Lines, stations, tracks, groups, the name, attach. Frames and flows wait for a need; the merge still keeps them.
 - **Unchecked drafts, checked batches.** A batch is refused only for a broken structure; `checkMetro` and `lowerable` are warnings. Why: drafts are half done by design (`newDraft` does not check), and a join station needs its tracks before it passes.
-- **Prod stays a graph on apply.** When live is a graph, apply saves `graphOf(merged)` and refuses what the graph drops. Why: a metro body over a graph live is the convert, which is William's call.
+- **Apply needs a metro live.** When live is a graph, apply refuses with "Live is a graph. Run `wren shape convert` first." Why: William 10-21, prod converts fully before G1 lands.
 - **Permission.** Apply needs `act` on Journeys (`deals`), the permission every shape write needs today. No new permission. Why: none exists for the shape; `manage` would take apply from operators. Open for William.
 - **Author.** `created_by` is the author. No edit log. Why: a draft is one head (business-map design); the version records who applied it.
 

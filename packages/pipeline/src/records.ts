@@ -500,6 +500,7 @@ export const shapeDraftRecord = (): RecordType =>
     actions: [
       "pipeline.shapeDraftNew",
       "pipeline.shapeDraftUpdate",
+      "pipeline.shapeDraftEdit",
       "pipeline.shapeDraftPropose",
       "pipeline.shapeDraftApply",
       "pipeline.shapeDraftDrop",

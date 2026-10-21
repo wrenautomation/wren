@@ -79,6 +79,7 @@ describe("routes", () => {
       "shapeDiff",
       "shapeExport",
       "shapePreview",
+      "shapeDraftPlan",
       "shapeBlame",
       "shapeUndoPreview",
     ]);
@@ -90,6 +91,7 @@ describe("routes", () => {
         "shapeStart",
         "shapeDraftNew",
         "shapeDraftUpdate",
+        "shapeDraftEdit",
         "shapeDraftPropose",
         "shapeDraftApply",
         "shapeDraftDrop",

@@ -15,6 +15,10 @@
  * `show`, `diff`, `export`, `blame` and `undo` read both. `convert` turns a graph into a metro
  * body; with `--write` it saves that as the next version. `add-node`, `connect` and `remove` edit
  * the graph only: on a metro version they refuse, and the way is export, edit the YAML, import.
+ *
+ * Edits to a draft are ops (`@wren/pipeline/metro-ops`): `edit` writes them to a draft on both
+ * models. `draft show` prints what apply would do: the merge when live moved, the conflicts, and
+ * why apply refuses a graph live. Graph edits stay for graph versions.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { TRIGGER_IDS } from "@wren/core/logic";
@@ -28,10 +32,11 @@ import {
 import { changeKey, changesOf } from "@wren/pipeline/diff";
 import {
   applyDraft,
-  draftOf,
   draftsOf,
   dropDraft,
+  editDraft,
   newDraft,
+  planApply,
   proposeDraft,
 } from "@wren/pipeline/drafts";
 import {
@@ -266,6 +271,27 @@ export function blameOnArg(v: string): BlameOn {
   if ((BLAME_ON as readonly string[]).includes(v)) return v as BlameOn;
   throw new InvalidArgumentError(`use one of ${BLAME_ON.join(", ")}`);
 }
+
+/**
+ * The ops `edit` sends: one op as JSON text, or `--ops <file>` (`-` is stdin) holding one op or a
+ * list. Exactly one of the two. `read` gives a file's text.
+ */
+export function opsInput(
+  op: string | undefined,
+  file: string | undefined,
+  read: (file: string) => string,
+): unknown {
+  if ((op === undefined) === (file === undefined))
+    throw new Refused(["Give an op as JSON text, or --ops <file>. Not both, not neither."]);
+  const text = op ?? read(file as string);
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Refused([`The ops are not valid JSON: ${(e as Error).message}`]);
+  }
+}
+
+const readText = (file: string): string => readFileSync(file === "-" ? 0 : file, "utf8");
 
 /** What the mirror did, as lines: `mirrored v<n> <sha7>`, `mirror off`, `mirror failed: <why>`. */
 export function mirrorLines(r: MirrorResult): string[] {
@@ -661,32 +687,53 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
 
   // --- drafts, blame, undo, tags and the mirror -------------------------------------------
 
+  shape
+    .command("edit <draft> [op]")
+    .description(
+      'Edit a draft with ops. [op] is one op as JSON text, like \'{"op":"rename","on":"station","id":"book","label":"Book a call"}\'. Or --ops <file> (- for stdin) with one op or a list. All or nothing',
+    )
+    .option("--ops <file>", "a JSON file with one op or a list of ops; - reads stdin")
+    .action((id: string, op: string | undefined, o: { ops?: string }) =>
+      plain(async () => {
+        const ops = opsInput(op, o.ops, readText);
+        const { done, plan } = await withDb(async (db) => ({
+          done: await editDraft(db, { id, ops, by: who(), triggers: TRIGGER_IDS }),
+          plan: await planApply(db, id),
+        }));
+        for (const line of done.lines) console.log(line);
+        for (const w of done.warnings) console.log(`warning: ${w}`);
+        console.log(`draft ${id}: ${plan.lines.length} changes from v${plan.live}`);
+      }),
+    );
+
   const draft = shape
     .command("draft")
     .description("A shape saved beside the live one, until a person applies or drops it");
 
   draft
-    .command("new <file>")
+    .command("new [file]")
     .description(
-      "Save a shape file as a draft of the newest version. Its moves and note come along",
+      "Save a draft. With a shape file it holds that file, its moves and note. Without one it forks the newest version, or --base",
     )
     .requiredOption("--name <name>", "the draft's name; its id is made from it")
     .option("--note <why>", "why, when the file has no note")
-    .action((file: string, o: { name: string; note?: string }) =>
+    .option("--base <n>", "the version to fork; the newest when left out", versionArg)
+    .action((file: string | undefined, o: { name: string; note?: string; base?: number }) =>
       plain(async () => {
-        const parsed = parseShape(readFileSync(file, "utf8"));
-        const note = parsed.note ?? o.note;
+        const parsed = file ? parseShape(readFileSync(file, "utf8")) : undefined;
+        const note = parsed?.note ?? o.note;
         const d = await withDb((db) =>
           newDraft(db, {
             name: o.name,
-            body: parsed.body,
-            ...(parsed.moves ? { moves: parsed.moves } : {}),
+            ...(parsed ? { body: parsed.body } : {}),
+            ...(parsed?.moves ? { moves: parsed.moves } : {}),
+            ...(o.base !== undefined ? { base: o.base } : {}),
             ...(note ? { note } : {}),
             by: who(),
           }),
         );
         console.log(`draft ${d.id} saved on v${d.base}`);
-        if (parsed.terms?.length)
+        if (parsed?.terms?.length)
           console.log("the file's terms are not part of a draft; import the file to add them");
       }),
     );
@@ -708,20 +755,24 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
 
   draft
     .command("show <id>")
-    .description("A draft, and what it changes in the newest version, a line each")
+    .description(
+      "A draft, who wrote it, and what applying it would do: the merge, the conflicts, why apply would refuse, and the changes a line each",
+    )
     .action((id: string) =>
       plain(async () => {
-        const { d, live } = await withDb(async (db) => ({
-          d: await draftOf(db, id),
-          live: await newestShape(db),
-        }));
-        if (!d) throw new Refused([`There is no draft "${id}".`]);
+        const plan = await withDb((db) => planApply(db, id));
+        const d = plan.draft;
         console.log(draftLine(d));
+        console.log(`by ${d.createdBy}`);
         if (d.note) console.log(d.note);
         if (d.state === "applied") console.log(`applied as v${d.appliedVersion} by ${d.decidedBy}`);
         if (d.state === "dropped") console.log(`dropped by ${d.decidedBy}: ${d.dropReason}`);
-        const lines = live ? storedDiffLines(live.body, d.body, diffStored(live.body, d.body)) : [];
-        for (const line of lines.length ? lines : ["no difference from the newest version"])
+        if (plan.moved) console.log(`live moved since v${plan.base} (now v${plan.live})`);
+        for (const c of plan.conflictLines) console.log(`conflict: ${c}`);
+        if (plan.refused) console.log(`refused: ${plan.refused}`);
+        for (const line of plan.lines.length
+          ? plan.lines
+          : ["no difference from the newest version"])
           console.log(line);
       }),
     );

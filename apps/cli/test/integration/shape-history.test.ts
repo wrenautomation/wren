@@ -128,9 +128,11 @@ describe("wren shape history", () => {
     expect((await run("draft", "list")).out[0]).toMatch(/^add-a-call {2}draft {2}v1 {2}\d{4}-/);
 
     const shown = (await run("draft", "show", "add-a-call")).out;
-    expect(shown[1]).toBe("Add the call step");
-    expect(shown).toContain("+ node call");
-    expect(shown).toContain("+ edge engaged_to_call");
+    expect(shown[1]).toBe(`by ${who()}`);
+    expect(shown[2]).toBe("Add the call step");
+    // Live is a graph, so apply would refuse; the plan says so and still lists the changes.
+    expect(shown).toContain("refused: Live is a graph. Run `wren shape convert` first.");
+    expect(shown.some((l) => /call/.test(l) && l !== shown[2])).toBe(true);
 
     expect((await run("draft", "propose", "add-a-call")).out).toEqual([
       "draft add-a-call proposed",
@@ -138,19 +140,20 @@ describe("wren shape history", () => {
     expect((await run("draft", "list", "--state", "draft")).out).toEqual(["no drafts"]);
     expect((await run("draft", "list", "--state", "proposed")).out).toHaveLength(1);
 
-    const applied = await run("draft", "apply", "add-a-call");
-    expect(applied.out).toEqual([
-      "v2 saved from draft add-a-call",
-      "mirrored v1 c0ffee1",
-      "mirrored v2 c0ffee2",
-    ]);
+    const refused = await run("draft", "apply", "add-a-call");
+    expect(refused.err).toEqual(["Live is a graph. Run `wren shape convert` first."]);
+    expect(process.exitCode).toBe(1);
+    process.exitCode = undefined;
+
+    // The rest of this file reads a graph history, so version 2 comes from the file itself.
+    const saved = await run("import", fileOf("call.yaml", withCall), "--note", "Add the call step");
+    expect(saved.out).toEqual(["v2 saved", "mirrored v1 c0ffee1", "mirrored v2 c0ffee2"]);
     expect(commits.map((c) => c.message.split("\n")[0])).toEqual([
       "shape wren v1: first",
       "shape wren v2: Add the call step",
     ]);
+    await run("draft", "drop", "add-a-call", "--reason", "saved by import");
     expect((await run("draft", "list")).out).toEqual(["no drafts"]);
-    expect((await run("draft", "list", "--state", "all")).out[0]).toMatch(/add-a-call {2}applied/);
-    expect((await run("draft", "show", "add-a-call")).out).toContain(`applied as v2 by ${who()}`);
   });
 
   it("drops a draft with a reason and refuses to touch it after", async () => {
@@ -255,6 +258,39 @@ describe("wren shape history", () => {
     expect(process.exitCode).toBeUndefined();
     breakWrites = false;
     expect((await run("mirror")).out).toEqual(["mirrored v4 c0ffee4"]);
+  });
+
+  it("edits a draft by ops on a metro live, shows the plan, and applies it", async () => {
+    const convert = await run("convert", "--write", "--note", "Convert");
+    expect(convert.err).toEqual([]);
+    const made = await run("draft", "new", "--name", "By ops");
+    expect(made.out[0]).toMatch(/^draft by-ops saved on v5$/);
+
+    const op = '{"op":"rename","on":"station","id":"engaged","label":"Replied"}';
+    const edited = await run("edit", "by-ops", op);
+    expect(edited.err).toEqual([]);
+    expect(edited.out.at(-1)).toMatch(/^draft by-ops: \d+ changes from v5$/);
+    const file = join(dir, "ops.json");
+    writeFileSync(
+      file,
+      JSON.stringify([{ op: "set", on: "station", id: "engaged", field: "idleDays", value: 4 }]),
+    );
+    expect((await run("edit", "by-ops", "--ops", file)).err).toEqual([]);
+
+    const both = await run("edit", "by-ops", op, "--ops", file);
+    expect(both.err[0]).toMatch(/Not both, not neither/);
+    process.exitCode = undefined;
+    const bad = await run("edit", "by-ops", '{"op":"remove","on":"station","id":"nope"}');
+    expect(bad.err.join(" ")).toMatch(/nope/);
+    process.exitCode = undefined;
+
+    const shown = (await run("draft", "show", "by-ops")).out;
+    expect(shown[1]).toBe(`by ${who()}`);
+    expect(shown.some((l) => l.startsWith("conflict:"))).toBe(false);
+    expect(shown.some((l) => /Replied/.test(l))).toBe(true);
+    const applied = await run("draft", "apply", "by-ops");
+    expect(applied.err).toEqual([]);
+    expect(applied.out[0]).toBe("v6 saved from draft by-ops");
   });
 });
 

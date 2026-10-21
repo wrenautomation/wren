@@ -11,11 +11,12 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pipelineConsoleApi, saveThenMirror } from "../../src/console.js";
+import { metroOf } from "../../src/convert.js";
 import type { ShapeBody } from "../../src/model.js";
-import { journeys } from "../../src/schema.js";
-import { Refused, shapeVersionsOf } from "../../src/store.js";
-import { runOf } from "../../src/stored.js";
-import { flow } from "../fixtures.js";
+import { journeys, shapeDrafts } from "../../src/schema.js";
+import { Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
+import { metroView, runOf } from "../../src/stored.js";
+import { flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 const OWNER = "owner@acme.example.test";
@@ -122,10 +123,27 @@ describe("drafts through the console", () => {
       view: "proposed",
     });
     expect(proposed.rows).toHaveLength(1);
-    expect(await a.shapeDraftApply({ ...op(), id: "add-a-call" })).toEqual({
+    // Apply needs a metro live. On this graph it refuses, and the plan says why.
+    await expect(a.shapeDraftApply({ ...op(), id: "add-a-call" })).rejects.toThrow(
+      "Live is a graph. Run `wren shape convert` first.",
+    );
+    expect(await a.shapeDraftPlan({ ...op(), id: "add-a-call" })).toMatchObject({
       id: "add-a-call",
-      version: 2,
+      moved: false,
+      refused: "Live is a graph. Run `wren shape convert` first.",
     });
+    // The rest of this file reads a graph history, so version 2 is saved as the draft would be.
+    await saveShape(pg.db, {
+      body: withCall,
+      note: "Draft Add a call",
+      by: ADA,
+      triggers: TRIGGERS,
+      draft: "add-a-call",
+    });
+    await pg.db
+      .update(shapeDrafts)
+      .set({ state: "applied", appliedVersion: 2, decidedBy: ADA })
+      .where(eq(shapeDrafts.id, "add-a-call"));
     const after = await a.recordsList({ ...op(), record: "pipeline.shape_draft", view: "open" });
     expect(after.rows).toEqual([]);
     const versions = await shapeVersionsOf(pg.db);
@@ -342,5 +360,59 @@ describe("save, then mirror", () => {
       }),
     ).rejects.toBeTruthy();
     expect(calls).toEqual(["shape undo"]);
+  });
+});
+
+describe("ops on a metro live through the console", () => {
+  it("edits a draft by ops, plans it, and applies it", async () => {
+    const a = api();
+    // The history above is a graph. Convert it, then work on metro.
+    const live = (await shapeVersionsOf(pg.db)).at(-1);
+    if (!live) throw new Error("no live version");
+    const drawn = metroOf(runOf(live.body));
+    if (!drawn.ok) throw new Error(drawn.errors.join(" "));
+    const metro = await saveShape(pg.db, {
+      body: drawn.body,
+      note: "Convert",
+      by: ADA,
+      triggers: TRIGGERS,
+    });
+    const made = await a.shapeDraftNew({ ...op(), name: "Ops by console" });
+    expect(made).toEqual({ id: "ops-by-console", base: metro.number });
+
+    const ops = [{ op: "rename", on: "station", id: "engaged", label: "Replied" }];
+    const edited = await a.shapeDraftEdit({ ...op(), id: made.id, ops });
+    expect(edited.id).toBe(made.id);
+    expect(edited.lines.length).toBeGreaterThan(0);
+    expect(edited.warnings).toEqual([]);
+    // One op, not a list, is the same.
+    await a.shapeDraftEdit({ ...op(), id: made.id, ops: ops[0] });
+    await expect(
+      a.shapeDraftEdit({
+        ...op(),
+        id: made.id,
+        ops: [{ op: "remove", on: "station", id: "nope" }],
+      }),
+    ).rejects.toThrow(/nope/);
+    await expect(a.shapeDraftEdit({ ...as(VAL, "acme"), id: made.id, ops })).rejects.toThrow(
+      /can't do that/,
+    );
+
+    const plan = await a.shapeDraftPlan({ ...op(), id: made.id });
+    expect(plan).toMatchObject({ id: made.id, base: metro.number, live: metro.number });
+    expect(plan.moved).toBe(false);
+    expect(plan.conflicts).toEqual([]);
+    expect(plan.refused).toBeUndefined();
+    expect(plan.lines.length).toBeGreaterThan(0);
+    // A viewer of the client may read the plan, as they read a draft.
+    const read = await a.shapeDraftPlan({ ...as(VAL, "acme"), id: made.id });
+    expect(read.lines).toEqual(plan.lines);
+
+    const applied = await a.shapeDraftApply({ ...op(), id: made.id });
+    expect(applied).toEqual({ id: made.id, version: metro.number + 1 });
+    const out = (await shapeVersionsOf(pg.db)).at(-1);
+    expect(out && metroView(out.body).stations.find((x) => x.id === "engaged")?.label).toBe(
+      "Replied",
+    );
   });
 });
