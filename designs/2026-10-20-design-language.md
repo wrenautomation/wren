@@ -168,6 +168,8 @@ Briefs: `designs/briefs/2026-10-20-design-language-c1.md`.
 - Hub. The hub holds no one. People is the CRM: every lead and client, their record and timeline. The Map's hub draws the lead count, read from People. Why (William's lean, my call): a person record outlives any line; a place on the map is a view of it.
 - Tiers. No upsells yet. Converted offer lines are core; a free offer line is front. Upsell transfers wait until an upsell exists.
 - Loader. One plain ring (artifact v23). Flight and the bird variants are gone.
+- Inbox Overview (artifact v27, section 15). The total that waits on you, a bar split by queue, then the queues ranked by oldest wait. Replies and Booked trend cards sit at the side. Amber marks only a late queue: text or a dot, never a fill. Mail rules leaves the overview. The square tiles with amber tops go.
+- Queue tables. Each queue opens one table part, shared with People (TanStack Table). Views: Table (column lines, property icons, queue pill, Open on hover, count footer) and By queue (folds with count and oldest wait). No board. A row click opens a side peek with the person, the last message and a reply box; on the phone the peek is a sheet. A row shows one quiet icon action; more show on hover. The icon acts in place, with Undo.
 
 ## Decisions (planner D, 2026-10-21)
 

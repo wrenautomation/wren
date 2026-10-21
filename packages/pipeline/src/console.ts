@@ -9,7 +9,7 @@
  *   a shape file (YAML) into the next version.
  * - `shapeStart`, `shapeExport`, `shapePreview`: the Map's own: start an empty workspace from the
  *   starter, write a body as a file, and compare a file with the newest version before it saves.
- * - `shapeDraftNew|Update|Propose|Apply|Drop`, `shapeBlame`, `shapeUndoPreview`, `shapeUndo`,
+ * - `shapeDraftNew|Update|Edit|Propose|Apply|Drop`, `shapeDraftPlan`, `shapeBlame`, `shapeUndoPreview`, `shapeUndo`,
  *   `shapeTag`: the shape's history like git (`history.ts` has what each takes and answers). A
  *   save of the shape is followed by the mirror step: the version lands as a commit in the
  *   private repo, and a failed mirror never fails the save.
@@ -58,8 +58,10 @@ import {
   applyDraft,
   bodyOfRef,
   dropDraft,
+  editDraft,
   newDraft,
   parseRef,
+  planApply,
   proposeDraft,
   updateDraft,
 } from "./drafts.js";
@@ -70,9 +72,12 @@ import type {
   DiffAsk,
   DraftApplyAnswer,
   DraftDropAsk,
+  DraftEditAnswer,
+  DraftEditAsk,
   DraftIdAsk,
   DraftNewAnswer,
   DraftNewAsk,
+  DraftPlanAnswer,
   DraftStateAnswer,
   DraftUpdateAnswer,
   DraftUpdateAsk,
@@ -85,6 +90,7 @@ import type {
   UndoPreviewAnswer,
 } from "./history.js";
 import { isMetro } from "./metro.js";
+import { MetroOpSchema } from "./metro-ops.js";
 import { type MirrorResult, mirrorShapes, WREN_WORKSPACE } from "./mirror.js";
 import type { ShapeBody } from "./model.js";
 import { signDeal } from "./moves.js";
@@ -136,6 +142,7 @@ export interface ShapeVersionRequest extends PortalRequest {
 export type ShapeDiffRequest = PortalRequest & DiffAsk;
 export type DraftNewRequest = PortalRequest & DraftNewAsk;
 export type DraftUpdateRequest = PortalRequest & DraftUpdateAsk;
+export type DraftEditRequest = PortalRequest & DraftEditAsk;
 export type DraftIdRequest = PortalRequest & DraftIdAsk;
 export type DraftDropRequest = PortalRequest & DraftDropAsk;
 export type BlameRequest = PortalRequest & BlameAsk;
@@ -398,7 +405,7 @@ export function pipelineConsoleApi({
       const row = await refused(() =>
         newDraft(w.db, {
           name: String(req.name ?? ""),
-          body: bodyOf(req.body),
+          ...(req.body != null ? { body: bodyOf(req.body) } : {}),
           ...(req.moves ? { moves: req.moves } : {}),
           ...(req.base != null ? { base: Number(req.base) } : {}),
           ...(req.note ? { note: req.note } : {}),
@@ -419,6 +426,31 @@ export function pipelineConsoleApi({
         }),
       );
       return { id: row.id, updatedAt: row.updatedAt.toISOString() };
+    },
+    shapeDraftEdit: async (req: DraftEditRequest): Promise<DraftEditAnswer> => {
+      const w = await workspace(req, "act");
+      const done = await refused(() =>
+        editDraft(w.db, {
+          id: String(req.id ?? ""),
+          ops: req.ops,
+          by: by(req),
+          triggers: TRIGGER_IDS,
+        }),
+      );
+      return { id: done.draft.id, lines: done.lines, warnings: done.warnings };
+    },
+    shapeDraftPlan: async (req: DraftIdRequest): Promise<DraftPlanAnswer> => {
+      const w = await workspace(req, "read");
+      const plan = await refused(() => planApply(w.db, String(req.id ?? "")));
+      return {
+        id: plan.draft.id,
+        base: plan.base,
+        live: plan.live,
+        moved: plan.moved,
+        conflicts: plan.conflictLines,
+        lines: plan.lines,
+        ...(plan.refused ? { refused: plan.refused } : {}),
+      };
     },
     shapeDraftPropose: async (req: DraftIdRequest): Promise<DraftStateAnswer> => {
       const w = await workspace(req, "act");
@@ -675,7 +707,9 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
           input: z.looseObject({
             ...PORTAL_FIELDS,
             name: z.string().describe("The draft's name: a few words"),
-            body: bodySchema,
+            body: bodySchema
+              .nullish()
+              .describe("A graph body. Left out: the draft forks the base version as it is"),
             moves: movesSchema,
             base: z
               .number()
@@ -701,6 +735,23 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
           answer(() =>
             ctx.run("shape draft update", () => answer(() => api.shapeDraftUpdate(req))),
           ),
+      ),
+      shapeDraftEdit: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            id: draftId,
+            ops: z
+              .union([MetroOpSchema, z.array(MetroOpSchema).min(1)])
+              .describe("One edit, or a list of edits, made in order. All or nothing"),
+          }),
+        },
+        (ctx: restate.Context, req: DraftEditRequest) =>
+          answer(() => ctx.run("shape draft edit", () => answer(() => api.shapeDraftEdit(req)))),
+      ),
+      shapeDraftPlan: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, id: draftId }) },
+        (_: restate.Context, req: DraftIdRequest) => answer(() => api.shapeDraftPlan(req)),
       ),
       shapeDraftPropose: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, id: draftId }) },

@@ -46,7 +46,7 @@ const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
  * The body without station `id`, every track that touches it, its place in a group and in a
  * frame. A group or a frame left with no station goes too, and so does a frame that exits there.
  */
-function withoutStation(body: MetroBody, id: string): MetroBody {
+export function withoutStation(body: MetroBody, id: string): MetroBody {
   /** The members of a group or a frame without `id`; null when none are left. */
   const left = (stations: string[]): string[] | null => {
     const rest = stations.filter((s) => s !== id);

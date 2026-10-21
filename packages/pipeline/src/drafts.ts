@@ -4,13 +4,16 @@
  * version or drops it with a reason. Every write holds a lock on the draft's id; `applyDraft`
  * saves through `saveShape`, so a draft meets the same checks as any version.
  */
-import { atomic, type Queryable, type Tx } from "@wren/db";
+import { atomic, type Queryable, snapshot, type Tx } from "@wren/db";
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { Moves } from "./carry.js";
 import { type DraftState, OPEN_DRAFT_STATES, type ShapeRef } from "./history.js";
+import { isMetro } from "./metro.js";
+import { type Conflict, conflictLine, mergeMetro } from "./metro-merge.js";
+import { editMetro } from "./metro-ops.js";
 import { type ShapeDraft, type ShapeVersion, shapeDrafts, shapeVersions } from "./schema.js";
-import { lock, newestShape, Refused, saveShape } from "./store.js";
-import type { StoredBody } from "./stored.js";
+import { lock, newestShape, Refused, saveShape, shapeContext } from "./store.js";
+import { diffStored, metroView, type StoredBody, storedChangeLines } from "./stored.js";
 
 const ID_LENGTH = 40;
 
@@ -68,8 +71,8 @@ function mustBeOpen(d: ShapeDraft): void {
 
 export interface NewDraft {
   name: string;
-  /** A graph body or a metro body. */
-  body: StoredBody;
+  /** A graph body or a metro body. Left out: the body of `base`, as stored. */
+  body?: StoredBody;
   moves?: Moves;
   /** The version it forks; the newest when left out. */
   base?: number;
@@ -79,8 +82,9 @@ export interface NewDraft {
 
 /**
  * Save a draft in state `draft`. The body is not checked: a draft may be half done, and apply
- * checks it. Refused when the workspace has no shape, `base` is no version, or any draft, in any
- * state, already holds the id.
+ * checks it. Without a `body` the draft forks `base` as it is stored: a graph stays a graph until
+ * the first edit. Refused when the workspace has no shape, `base` is no version, or any draft, in
+ * any state, already holds the id.
  */
 export async function newDraft(db: Queryable, input: NewDraft): Promise<ShapeDraft> {
   const id = draftIdOf(input.name);
@@ -90,7 +94,7 @@ export async function newDraft(db: Queryable, input: NewDraft): Promise<ShapeDra
     if (!newest) throw new Refused(["Start or import a shape first."]);
     const base = input.base ?? newest.number;
     const [fork] = await tx
-      .select({ number: shapeVersions.number })
+      .select({ number: shapeVersions.number, body: shapeVersions.body })
       .from(shapeVersions)
       .where(eq(shapeVersions.number, base));
     if (!fork) throw new Refused([`There is no shape version ${base}.`]);
@@ -100,7 +104,7 @@ export async function newDraft(db: Queryable, input: NewDraft): Promise<ShapeDra
       .values({
         id,
         name: input.name.trim(),
-        body: input.body,
+        body: input.body ?? fork.body,
         moves: input.moves ?? {},
         base,
         note: input.note ?? "",
@@ -142,6 +146,39 @@ export async function updateDraft(db: Queryable, input: DraftUpdate): Promise<Sh
   });
 }
 
+export interface DraftEdit {
+  id: string;
+  /** One op or a list of ops (`metro-ops.ts`). */
+  ops: unknown;
+  /** Who edits. The author stays `created_by`: a draft has one head and no edit log. */
+  by: string;
+  triggers: ReadonlySet<string>;
+}
+
+/**
+ * Edit a draft with ops, all or nothing, in one transaction. The draft becomes a metro body (a
+ * graph is drawn first). A batch is refused only when the result is not a metro body in
+ * structure; what `checkMetro` and `lowerable` find comes back as `warnings`. `lines` say what
+ * the batch changed. A refused batch leaves the draft as it was.
+ */
+export async function editDraft(
+  db: Queryable,
+  input: DraftEdit,
+): Promise<{ draft: ShapeDraft; lines: string[]; warnings: string[] }> {
+  return atomic(db, async (tx) => {
+    const d = await lockedDraft(tx, input.id);
+    mustBeOpen(d);
+    const edited = editMetro(d.body, input.ops, await shapeContext(tx, input.triggers));
+    const [draft] = await tx
+      .update(shapeDrafts)
+      .set({ body: edited.body, updatedAt: sql`now()` })
+      .where(eq(shapeDrafts.id, input.id))
+      .returning();
+    if (!draft) throw new Error("draft update returned nothing");
+    return { draft, lines: edited.lines, warnings: edited.warnings };
+  });
+}
+
 /** `draft` to `proposed`: it waits for a person to apply or drop it. */
 export async function proposeDraft(
   db: Queryable,
@@ -161,21 +198,90 @@ export async function proposeDraft(
   });
 }
 
+/** What apply would do with a draft. */
+export interface ApplyPlan {
+  draft: ShapeDraft;
+  base: number;
+  live: number;
+  /** True when live moved since the draft's base. */
+  moved: boolean;
+  conflicts: Conflict[];
+  conflictLines: string[];
+  /** The body apply would save: the draft, merged with live when live moved. Always metro. */
+  body: StoredBody;
+  /** What the body changes in live, a line each. */
+  lines: string[];
+  /** Why apply would refuse before it looks at conflicts. Set when live is a graph. */
+  refused?: string;
+}
+
+/** Apply needs a metro live. The convert is William's call. */
+export const GRAPH_LIVE = "Live is a graph. Run `wren shape convert` first.";
+
 /**
- * Make the draft the next version, in one transaction: `saveShape` (its checks, "Nothing
- * changed." and its carry of open journeys all pass through, and the draft stays as it was),
- * then the draft is `applied` with the version, who and when. The version's note is the draft's
- * note, else `Draft <name>`.
+ * What applying the draft would do, without doing it. Reads the draft, its base version and the
+ * newest, in one snapshot. The body is the draft as a metro body. When live moved, it merges by
+ * id, three way (`mergeMetro`): one field changed on both sides to different values is a
+ * conflict. When live is a graph, `refused` says so; the rest of the plan still answers.
+ */
+export async function planApply(db: Queryable, id: string): Promise<ApplyPlan> {
+  return snapshot(db, async (tx) => {
+    const draft = await draftOf(tx, id);
+    if (!draft) throw new Refused([`There is no draft "${id}".`]);
+    const live = await newestShape(tx);
+    if (!live) throw new Refused(["Start or import a shape first."]);
+    const [base] = await tx
+      .select()
+      .from(shapeVersions)
+      .where(eq(shapeVersions.number, draft.base));
+    if (!base) throw new Refused([`There is no shape version ${draft.base}.`]);
+    const moved = live.number !== draft.base;
+    const mine = metroView(draft.body);
+    let body = mine;
+    let conflicts: Conflict[] = [];
+    let conflictLines: string[] = [];
+    if (moved) {
+      const [was, now] = [metroView(base.body), metroView(live.body)];
+      const m = mergeMetro(was, now, mine);
+      body = m.body;
+      conflicts = m.conflicts;
+      conflictLines = m.conflicts.map((c) => conflictLine(c, [now, mine, was]));
+    }
+    return {
+      draft,
+      base: base.number,
+      live: live.number,
+      moved,
+      conflicts,
+      conflictLines,
+      body,
+      lines: storedChangeLines(live.body, body, diffStored(live.body, body)),
+      ...(isMetro(live.body) ? {} : { refused: GRAPH_LIVE }),
+    };
+  });
+}
+
+/**
+ * Make the draft the next version, in one transaction: `planApply` (the merge), then `saveShape`
+ * (its checks, "Nothing changed." and its carry of open journeys all pass through, and the draft
+ * stays as it was), then the draft is `applied` with the version, who and when. Refused with
+ * `GRAPH_LIVE` when live is a graph, and with the conflict lines when the merge has conflicts.
+ * The version's note is the draft's note, else `Draft <name>`.
  */
 export async function applyDraft(
   db: Queryable,
   input: { id: string; by: string; triggers: ReadonlySet<string> },
 ): Promise<{ draft: ShapeDraft; version: ShapeVersion }> {
   return atomic(db, async (tx) => {
+    // The shape lock first, then the draft's: `saveShape` takes the shape lock again, which is safe.
+    await lock(tx, "shape");
     const d = await lockedDraft(tx, input.id);
     mustBeOpen(d);
+    const plan = await planApply(tx, d.id);
+    if (plan.refused) throw new Refused([plan.refused]);
+    if (plan.conflictLines.length > 0) throw new Refused(plan.conflictLines);
     const version = await saveShape(tx, {
-      body: d.body,
+      body: plan.body,
       moves: d.moves,
       note: d.note || `Draft ${d.name}`,
       by: input.by,

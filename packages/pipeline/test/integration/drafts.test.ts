@@ -13,15 +13,18 @@ import {
   draftOf,
   draftsOf,
   dropDraft,
+  editDraft,
   newDraft,
   parseRef,
+  planApply,
   proposeDraft,
   updateDraft,
 } from "../../src/drafts.js";
+import { isMetro } from "../../src/metro.js";
 import type { ShapeBody } from "../../src/model.js";
-import { journeys, shapeDrafts } from "../../src/schema.js";
+import { journeys, type ShapeDraft, shapeDrafts } from "../../src/schema.js";
 import { newestShape, Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
-import { runOf } from "../../src/stored.js";
+import { metroView, runOf, type StoredBody } from "../../src/stored.js";
 import { addTag, tagsOf } from "../../src/tags.js";
 import { flow, grown, shape, TRIGGERS } from "../fixtures.js";
 
@@ -63,7 +66,8 @@ describe("drafts", () => {
     expect(await reasons(newDraft(pg.db, { name: "First", body: shape(), by: BY }))).toEqual([
       "Start or import a shape first.",
     ]);
-    await saveShape(pg.db, { body: shape(), note: "first", by: BY, triggers: TRIGGERS });
+    // Apply needs a metro live, so the first version is the metro drawing of the test shape.
+    await saveShape(pg.db, { body: metroView(shape()), note: "first", by: BY, triggers: TRIGGERS });
     expect(await reasons(newDraft(pg.db, { name: "  ", body: shape(), by: BY }))).toEqual([
       "The draft needs a name.",
     ]);
@@ -252,8 +256,16 @@ describe("drafts", () => {
   });
 
   it("numbers two concurrent applies apart: one lands, the other waits and still applies", async () => {
-    await newDraft(pg.db, { name: "Race one", body: shape({ name: "Race one" }), by: BY });
-    await newDraft(pg.db, { name: "Race two", body: shape({ name: "Race two" }), by: BY });
+    // Both fork live and change different things, so the second merges onto the first.
+    const [first, second] = metroView((await newestShape(pg.db))?.body as StoredBody).stations;
+    const ops = [
+      { op: "rename", on: "shape", name: "Race one" },
+      { op: "rename", on: "station", id: second?.id ?? first?.id, label: "Race two" },
+    ];
+    for (const [i, name] of ["Race one", "Race two"].entries()) {
+      const d = await newDraft(pg.db, { name, by: BY });
+      await editDraft(pg.db, { id: d.id, ops: [ops[i]], by: BY, triggers: TRIGGERS });
+    }
     const rows = await Promise.all([
       applyDraft(pg.db, { id: "race-one", by: BY, triggers: TRIGGERS }),
       applyDraft(pg.db, { id: "race-two", by: BY, triggers: TRIGGERS }),
@@ -315,5 +327,182 @@ describe("tags", () => {
       pg.db.execute(sql`delete from pipeline.shape_tags where name = 'launch'`),
     ).rejects.toThrow();
     expect((await tagsOf(pg.db)).find((t) => t.name === "launch")?.version).toBe(2);
+  });
+});
+
+describe("draft ops, plan and apply", () => {
+  let n = 0;
+  /** A fresh live version, the metro drawing of the test shape, so every test starts from a known newest. */
+  const freshLive = async () => {
+    n += 1;
+    const v = await saveShape(pg.db, {
+      body: metroView(shape({ name: `Ops shape ${n}` })),
+      note: `ops ${n}`,
+      by: BY,
+      triggers: TRIGGERS,
+    });
+    return v.number;
+  };
+  const edit = (id: string, ops: unknown) =>
+    editDraft(pg.db, { id, ops, by: BY, triggers: TRIGGERS });
+  const apply = (id: string) => applyDraft(pg.db, { id, by: BY, triggers: TRIGGERS });
+  const rename = (id: string, label: string) => ({ op: "rename", on: "station", id, label });
+  const stationLabel = (b: StoredBody, id: string) =>
+    metroView(b).stations.find((x) => x.id === id)?.label;
+  /** Live moves on its own: a station renamed, saved as the next version. */
+  const moveLive = async (id: string, label: string) => {
+    const live = metroView((await newestShape(pg.db))?.body as StoredBody);
+    await saveShape(pg.db, {
+      body: { ...live, stations: live.stations.map((x) => (x.id === id ? { ...x, label } : x)) },
+      note: `live ${label}`,
+      by: BY,
+      triggers: TRIGGERS,
+    });
+  };
+
+  it("stores a metro body when it edits a draft that holds a graph", async () => {
+    const base = await freshLive();
+    const d = await newDraft(pg.db, { name: "Ops metro", body: shape(), by: BY });
+    expect(d.base).toBe(base);
+    expect(isMetro(d.body)).toBe(false);
+    const r = await edit(d.id, [rename("booked", "Book a call")]);
+    expect(r.lines.length).toBeGreaterThan(0);
+    expect(r.warnings).toEqual([]);
+    const saved = await draftOf(pg.db, d.id);
+    expect(isMetro(saved?.body)).toBe(true);
+    expect(stationLabel(saved?.body as StoredBody, "booked")).toBe("Book a call");
+  });
+
+  it("forks the newest version when the draft has no body", async () => {
+    const base = await freshLive();
+    const live = await newestShape(pg.db);
+    const d = await newDraft(pg.db, { name: "Ops fork", by: BY });
+    expect(d.base).toBe(base);
+    expect(d.body).toEqual(live?.body);
+  });
+
+  it("leaves the draft as it was when one op of a batch is refused", async () => {
+    await freshLive();
+    const d = await newDraft(pg.db, { name: "Ops refused", by: BY });
+    const before = (await draftOf(pg.db, d.id))?.body;
+    const bad = await reasons(
+      edit(d.id, [rename("booked", "Fine"), { op: "remove", on: "station", id: "nope" }]),
+    );
+    expect(bad.join(" ")).toMatch(/nope/);
+    expect((await draftOf(pg.db, d.id))?.body).toEqual(before);
+  });
+
+  it("refuses edits to a draft that is applied or dropped", async () => {
+    await freshLive();
+    const a = await newDraft(pg.db, { name: "Ops closed a", by: BY });
+    await edit(a.id, [rename("booked", "Closed A")]);
+    await apply(a.id);
+    expect((await reasons(edit(a.id, [rename("booked", "Again")])))[0]).toMatch(/applied/);
+    const b = await newDraft(pg.db, { name: "Ops closed b", by: BY });
+    await dropDraft(pg.db, { id: b.id, reason: "no", by: BY });
+    expect((await reasons(edit(b.id, [rename("booked", "Again")])))[0]).toMatch(/dropped/);
+  });
+
+  it("applies with no move as the draft, and the run sees the rename and the idleDays", async () => {
+    await freshLive();
+    const d = await newDraft(pg.db, { name: "Ops plain", by: BY });
+    await edit(d.id, [
+      rename("booked", "Book a call"),
+      { op: "set", on: "station", id: "proposal", field: "idleDays", value: 5 },
+    ]);
+    const draft = (await draftOf(pg.db, d.id)) as ShapeDraft;
+    const plan = await planApply(pg.db, d.id);
+    expect(plan).toMatchObject({ moved: false, conflicts: [] });
+    expect(plan.refused).toBeUndefined();
+    const { version } = await apply(d.id);
+    expect(isMetro(version.body)).toBe(true);
+    expect(version.body).toEqual(draft.body);
+    expect(plan.body).toEqual(version.body);
+    const run = runOf(version.body);
+    expect(run).toEqual(runOf(draft.body));
+    expect(run.nodes.find((x) => x.id === "booked")?.name).toBe("Book a call");
+    expect(run.nodes.find((x) => x.id === "proposal")).toMatchObject({ idleDays: 5 });
+  });
+
+  it("plans nothing and refuses 'Nothing changed.' for a draft with no edit", async () => {
+    await freshLive();
+    const d = await newDraft(pg.db, { name: "Ops untouched", by: BY });
+    expect(await planApply(pg.db, d.id)).toMatchObject({ moved: false, conflicts: [], lines: [] });
+    expect(await reasons(apply(d.id))).toEqual(["Nothing changed."]);
+    expect((await draftOf(pg.db, d.id))?.state).toBe("draft");
+  });
+
+  it("merges two disjoint edits when live moved", async () => {
+    const base = await freshLive();
+    const d = await newDraft(pg.db, { name: "Ops merge", by: BY });
+    await edit(d.id, [rename("booked", "Book a call")]);
+    await moveLive("engaged", "Replied");
+    const plan = await planApply(pg.db, d.id);
+    expect(plan).toMatchObject({ base, moved: true, conflicts: [], live: base + 1 });
+    const { version } = await apply(d.id);
+    expect(version.number).toBe(base + 2);
+    expect(isMetro(version.body)).toBe(true);
+    expect(stationLabel(version.body, "booked")).toBe("Book a call");
+    expect(stationLabel(version.body, "engaged")).toBe("Replied");
+    expect(plan.body).toEqual(version.body);
+  });
+
+  it("refuses a conflict by name and saves nothing", async () => {
+    await freshLive();
+    const d = await newDraft(pg.db, { name: "Ops conflict", by: BY });
+    await edit(d.id, [rename("booked", "Mine")]);
+    await moveLive("booked", "Theirs");
+    const before = (await shapeVersionsOf(pg.db)).length;
+    const plan = await planApply(pg.db, d.id);
+    expect(plan.conflicts).toHaveLength(1);
+    expect(plan.conflictLines.join(" ")).toMatch(/booked/i);
+    expect(await reasons(apply(d.id))).toEqual(plan.conflictLines);
+    expect((await shapeVersionsOf(pg.db)).length).toBe(before);
+    expect((await draftOf(pg.db, d.id))?.state).toBe("draft");
+  });
+
+  it("saves a metro-only change, a group and an attach, on a metro live", async () => {
+    await freshLive();
+    const d = await newDraft(pg.db, { name: "Ops metro only", by: BY });
+    await edit(d.id, [
+      {
+        op: "attach",
+        on: "station",
+        id: "booked",
+        ref: { kind: "note", ref: "call-notes", label: "Notes" },
+      },
+    ]);
+    const { version } = await apply(d.id);
+    expect(metroView(version.body).stations.find((x) => x.id === "booked")?.attach).toEqual([
+      { kind: "note", ref: "call-notes", label: "Notes" },
+    ]);
+  });
+});
+
+describe("apply on a graph live", () => {
+  let gpg: TestPostgres;
+  beforeAll(async () => {
+    gpg = await startTestPostgres();
+  });
+  afterAll(() => gpg.stop());
+
+  it("refuses with the convert line, saves nothing, and still plans", async () => {
+    await saveShape(gpg.db, { body: shape(), note: "graph", by: BY, triggers: TRIGGERS });
+    const d = await newDraft(gpg.db, { name: "Graph live", by: BY });
+    await editDraft(gpg.db, {
+      id: d.id,
+      ops: [{ op: "rename", on: "station", id: "booked", label: "Book a call" }],
+      by: BY,
+      triggers: TRIGGERS,
+    });
+    const line = "Live is a graph. Run `wren shape convert` first.";
+    const plan = await planApply(gpg.db, d.id);
+    expect(plan.refused).toBe(line);
+    expect(plan.lines.length).toBeGreaterThan(0);
+    expect(await reasons(applyDraft(gpg.db, { id: d.id, by: BY, triggers: TRIGGERS }))).toEqual([
+      line,
+    ]);
+    expect((await shapeVersionsOf(gpg.db)).length).toBe(1);
+    expect((await draftOf(gpg.db, d.id))?.state).toBe("draft");
   });
 });

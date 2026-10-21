@@ -87,12 +87,34 @@ wren call PipelineConsole/shapeTag --input '{"name":"before-pricing","version":3
   a side cannot be drawn).
   `shapeStart` saves the kind-only starter (note "Starter") and refuses when a shape exists.
 - Say why in `note`. A version is never edited or deleted.
-- **An agent proposes; a person applies in the Map.** To change the shape, save a draft
-  (`shapeDraftNew`: `{ name, body, moves?, base?, note? }`; the id comes from the name), compare it
-  with `shapeDiff` (`b` can be `draft:<id>`), then `shapeDraftPropose` `{ id }`. Change a draft with
-  `shapeDraftUpdate` `{ id, body, moves?, note? }`. A draft is not checked until it is applied.
-  Do not call `shapeDraftApply` or `shapeDraftDrop` unless the user asked you to. The user applies
-  or drops it in the Map.
+- **An agent proposes; a person applies in the Map.** To change the shape, edit a draft with ops.
+  Five steps:
+  1. `wren call PipelineConsole/shapeDraftNew --input '{"name":"…","note":"…"}' --confirm shapeDraftNew`.
+     Send no body. The draft forks the live shape.
+  2. `wren call PipelineConsole/shapeDraftEdit --input @ops.json --confirm shapeDraftEdit`. The
+     input is `{ "id": "<draft id>", "ops": [ … ] }` (one op may stand alone). All ops apply, or none.
+     Read the ids first: `wren get pipeline.shape shape`. The answer is `{ id, lines, warnings }`.
+     Op kinds, one example each:
+     - add: `{"op":"add","on":"station","item":{"id":"call","label":"Call","kind":"time","line":"signed","column":"sales","action":"book"}}` (`on`: line, station, track or group)
+     - rename: `{"op":"rename","on":"station","id":"call","label":"Book a call"}` (the shape: `{"op":"rename","on":"shape","name":"…"}`)
+     - move: `{"op":"move","on":"station","id":"call","column":"delivery"}` (also a track's ends, a group's line, a line's place)
+     - remove: `{"op":"remove","on":"track","id":"engaged_to_call"}`
+     - set: `{"op":"set","on":"station","id":"call","field":"idleDays","value":5}` (`null` removes the field)
+     - attach: `{"op":"attach","on":"station","id":"call","ref":{"kind":"sop","ref":"call-script"}}`
+     - detach: `{"op":"detach","on":"station","id":"call","ref":"call-script"}`
+  3. Read `warnings`. Each one is a reason apply will refuse. Fix them with more ops.
+  4. `wren call PipelineConsole/shapeDraftPlan --input '{"id":"…"}'`. Show the user `lines` (what
+     apply changes), `conflicts` (live moved on a field the draft also changed) and `refused`
+     (live is a graph: it needs `wren shape convert` first).
+  5. `shapeDraftPropose` `{ id }`. Never call `shapeDraftApply` or `shapeDraftDrop` unless the user
+     asked you to. The user applies or drops it in the Map.
+  `shapeDraftNew` may still take a whole `body` (`{ name, body, moves?, base?, note? }`), and
+  `shapeDraftUpdate` `{ id, body, moves?, note? }` replaces one. Compare with `shapeDiff` (`b` can
+  be `draft:<id>`). A draft is not checked until it is applied.
+- **From a drawing.** Read the board on draw.wrenautomation.com with the excalidraw skill (the
+  `draw` CLI). Map each box to a station and each arrow to a track. Reuse the ids that exist; ask
+  the user when a box or an arrow is unclear. Write the ops into a draft, then do step 4. Never
+  edit the live shape.
 - `shapeBlame` takes exactly one of `node`, `edge`, `station`, `track`, `line` or `group`. It answers `{ lines }`: each version that
   added, removed, renamed or changed it, newest first, with who, when and why (`note`).
 - To undo one change, read `shapeDiff` (`{ a, b, diff, changes, views, marks }`), pick the `key`
@@ -105,7 +127,8 @@ wren call PipelineConsole/shapeTag --input '{"name":"before-pricing","version":3
   the private repo.
 - A person moves along an edge that exists. A move to any other node needs a reason.
   Remove a node only after you move its people.
-- On the repo's own CLI the same work is `wren shape show|versions|diff|export|import|add-node|connect|remove|move|draft|blame|undo|tag|tags|mirror`.
+- On the repo's own CLI the same work is `wren shape show|versions|diff|export|import|add-node|connect|remove|move|edit|draft|blame|undo|tag|tags|mirror`.
+  `wren shape edit <draft> '<op json>'` (or `--ops <file>`) is step 2; `wren shape draft show <id>` is step 4.
   `wren journeys` and `wren numbers --window 7|30|90|all` read people and counts.
 
 `--pretty` indents the JSON. `--host https://...` points at another Wren (a client's own address).

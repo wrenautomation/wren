@@ -253,6 +253,77 @@ table.mini{min-width:0;font-size:13.5px}table.mini th,table.mini td{padding:7px 
 ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var(--ink-2)}
 /*@RENDER_CSS*/
 .mm .zt{text-transform:none;letter-spacing:.02em;font-size:11px;font-weight:650}
+
+/* 15 inbox overview */
+.ix{display:grid;gap:14px}.ix h4{margin:0;font-size:13px;font-weight:650;color:var(--ink-3);display:flex;gap:8px;align-items:baseline}.ix h4 b{color:var(--ink);font-weight:700}
+.ix svg.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ix .late{color:color-mix(in srgb,var(--warn) 80%,var(--ink))}.ix .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);display:inline-block;flex:none}
+.ix .num{font-variant-numeric:tabular-nums}
+.ix .spark{display:flex;align-items:end;gap:3px;height:26px}.ix .spark i{flex:1;background:var(--accent);opacity:.75;border-radius:1px 3px 1px 3px}
+.ix .tr{display:grid;gap:4px;padding:12px 14px;border-radius:6px 18px 6px 18px;background:var(--paper);box-shadow:var(--raise)}
+.ix .tr .v{font-size:24px;font-weight:700;letter-spacing:-.02em}.ix .tr .d{font-size:12.5px;color:var(--ink-3)}.ix .tr .d b{color:var(--good);font-weight:650}
+.ix-list{background:var(--paper);border-radius:6px 24px 6px 24px;box-shadow:var(--raise);padding:6px}
+.ix-list a{display:grid;grid-template-columns:18px 1fr auto 12px;gap:12px;align-items:center;padding:10px 12px;border-radius:4px 12px 4px 12px;color:var(--ink);text-decoration:none;transition:background .2s}
+.ix-list a:hover,.ix-list a:focus-visible{background:var(--wash);outline:none}.ix-list a+a{box-shadow:0 -1px 0 var(--hair)}
+.ix-list a span{display:grid;line-height:1.3}.ix-list a small{font-size:12.5px;color:var(--ink-3)}.ix-list a small.late{color:color-mix(in srgb,var(--warn) 80%,var(--ink))}
+.ix-list a .c{font-size:15px;font-weight:700;min-width:28px;text-align:center;padding:2px 8px;border-radius:3px 10px 3px 10px;background:var(--fill)}
+.ix-list a .ch{width:12px;height:12px;stroke:var(--ink-3);fill:none;stroke-width:2}
+.ix-side{display:grid;gap:10px}
+.ix-foot{font-size:13px;color:var(--ink-3);display:flex;gap:16px;flex-wrap:wrap}.ix-foot b{color:var(--ink);font-weight:650}.ix-foot em{font-style:normal;color:var(--good);font-weight:600}
+
+.ix-e{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;align-items:start}
+.ix-e .hero{background:var(--paper);border-radius:6px 24px 6px 24px;box-shadow:var(--raise);padding:18px 14px 8px;display:grid;gap:12px}
+.ix-e .hero>.big,.ix-e .hero>.bar{margin-inline:6px}
+.ix-e .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.ix-e .big b{font-size:48px;font-weight:750;letter-spacing:-.04em;line-height:.9}.ix-e .big span{color:var(--ink-2)}
+.ix-e .bar{display:flex;height:10px;gap:2px}.ix-e .bar i{border-radius:2px 6px 2px 6px}
+.ix-e .ix-list{box-shadow:none;padding:0;border-radius:0}.ix-e .ix-list a{grid-template-columns:10px 18px 1fr auto 12px}
+.ix-e .ix-list a>i{width:10px;height:10px;border-radius:2px 5px 2px 5px}.ix-e .ix-list a svg.ic{color:var(--ink-2)}
+
+@media (max-width:720px){.ix-e{grid-template-columns:1fr}}
+/* 15 queue tables (Notion-style CRM) */
+.nt{--cols:28px minmax(0,1.6fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,.8fr) 84px 44px;background:var(--paper);border-radius:6px 24px 6px 24px;box-shadow:var(--raise);overflow:hidden;font-size:14px}
+.nt-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px 0}
+.nt-top .vw{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.nt-top .vw button,.nt-top .tl button{font:inherit;font-size:13px;font-weight:600;border:0;background:transparent;color:var(--ink-3);display:inline-flex;gap:6px;align-items:center;padding:6px 9px;border-radius:4px 10px 4px 10px;cursor:pointer;white-space:nowrap}
+.nt-top .vw button[aria-pressed="true"]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}.nt-top button:hover{background:var(--wash)}
+.nt-top .tl{display:flex;gap:2px}.nt-top .tl button.on{color:var(--accent);background:var(--tint)}
+.nt svg.i,.pk svg.i{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nt .hd,.nt .r{display:grid;grid-template-columns:var(--cols);align-items:center}
+.nt .hd{height:34px;font-size:12.5px;color:var(--ink-3);box-shadow:0 1px 0 var(--hair),0 -1px 0 var(--hair);margin-top:8px}
+.nt .hd>span{display:flex;gap:6px;align-items:center;padding:0 10px;white-space:nowrap;overflow:hidden}
+.nt.lines .hd>span+span,.nt.lines .r>span+span{box-shadow:-1px 0 0 var(--hair)}
+.nt .r{min-height:42px;position:relative;cursor:pointer;transition:background .15s}.nt .r>span{padding:0 10px;min-width:0;display:flex;align-items:center;gap:7px;align-self:stretch}
+.nt .r+.r,.nt .gh+.r{box-shadow:0 -1px 0 var(--hair)}.nt .r:hover,.nt .r:focus-visible,.nt .r.sel{background:var(--wash);outline:none}.nt .r.sel{background:var(--tint)}
+.nt .gut{justify-content:center;padding:0!important}.nt .gut input{margin:0;opacity:0;accent-color:var(--accent);transition:opacity .15s}.nt .r:hover .gut input,.nt .gut input:checked{opacity:1}
+.nt .nm{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt .av{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:10px;font-weight:700;background:var(--tint);color:var(--accent)}
+.nt .av.lg{width:32px;height:32px;font-size:12px}
+.nt .open{margin-left:auto;font-size:11.5px;font-weight:650;color:var(--ink-2);padding:2px 7px;border-radius:3px 8px 3px 8px;background:var(--paper);box-shadow:0 0 0 1px var(--hair);opacity:0;transition:opacity .15s;display:inline-flex;gap:4px;align-items:center}
+.nt .r:hover .open{opacity:1}
+.pl{--c:var(--ink-3);display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:3px 9px 3px 9px;font-size:12.5px;font-weight:600;white-space:nowrap;background:color-mix(in srgb,var(--c) 15%,var(--paper));color:color-mix(in srgb,var(--c) 72%,var(--ink));overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sq{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--ink-2);font-size:13.5px}.sq::before{content:"";width:8px;height:8px;border-radius:1px 3px 1px 3px;background:var(--c);flex:none}
+.nt .mut{color:var(--ink-2);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt .age{font-size:13.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}.nt .age.late{color:color-mix(in srgb,var(--warn) 80%,var(--ink));font-weight:650}
+.nt .ib,.pk .ib{width:28px;height:28px;border:0;border-radius:4px 10px 4px 10px;background:transparent;color:var(--ink-3);display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s,opacity .15s}
+.nt .ib svg,.pk .ib svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nt .ib:hover,.nt .ib:focus-visible,.pk .ib:hover{background:var(--tint);color:var(--accent);outline:none}.nt .r:hover .ib.p{color:var(--accent)}
+.nt .ft{display:flex;gap:18px;padding:9px 14px 10px 38px;font-size:12px;color:var(--ink-3);box-shadow:0 -1px 0 var(--hair)}.nt .ft b{color:var(--ink-2);font-weight:650}
+.nt .gh{display:flex;gap:10px;align-items:center;padding:12px 14px 8px;font-size:13px;color:var(--ink-3);cursor:pointer;user-select:none}.nt .gh b{color:var(--ink);font-variant-numeric:tabular-nums}
+.nt .gh svg{transition:transform .25s var(--spring)}.nt .grp.shut .gh svg{transform:rotate(-90deg)}.nt .grp.shut .r{display:none}
+.nt .two{display:grid!important;align-content:center;gap:1px;padding-block:8px!important}.nt .two b{font-weight:650;font-size:14px}.nt .two small{font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt .who{display:grid!important;grid-template-columns:32px minmax(0,1fr);gap:10px!important}
+.mtr{display:grid;gap:4px;width:100%}.mtr i{display:block;height:4px;border-radius:2px;background:var(--fill);position:relative;overflow:hidden}.mtr i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);background:var(--ink-3);border-radius:2px}.mtr.late i::after{background:var(--warn)}
+.mtr span{font-size:12.5px;color:var(--ink-3)}.mtr.late span{color:color-mix(in srgb,var(--warn) 80%,var(--ink));font-weight:650}
+.nt-pk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+.nt-pk .nt{--cols:28px minmax(0,1.4fr) minmax(0,1.1fr) 76px;border-radius:6px 0 0 24px;box-shadow:var(--raise)}
+.pk{background:var(--paper);border-radius:0 24px 6px 0;box-shadow:var(--raise),-1px 0 0 var(--hair);padding:16px 18px;display:grid;gap:12px;align-content:start}
+.pk header{display:flex;gap:10px;align-items:center}.pk header b{font-size:17px;font-weight:700}.pk header .x{margin-left:auto}
+.pk dl{display:grid;grid-template-columns:96px 1fr;gap:6px 10px;margin:0;font-size:13.5px}.pk dt{color:var(--ink-3)}.pk dd{margin:0;min-width:0;display:flex;align-items:center;gap:6px}
+.pk .msg{background:var(--wash);padding:10px 12px;border-radius:4px 14px 14px 14px;font-size:14px;color:var(--ink)}.pk .msg small{display:block;color:var(--ink-3);font-size:12px;margin-bottom:3px}
+.pk .rp{display:grid;gap:8px}.pk textarea{font:inherit;font-size:14px;resize:none;border:0;border-radius:4px 12px 4px 12px;padding:9px 11px;background:var(--canvas);color:var(--ink);box-shadow:inset 0 0 0 1px var(--hair)}
+.pk .rp div{display:flex;gap:8px;justify-content:end}.pk .btn{padding:6px 14px;font-size:13px}
+@media (max-width:720px){.nt{--cols:minmax(0,1fr) auto 40px!important}.nt .hp{display:none!important}.nt .hd{display:none}.nt .r{padding-left:6px}.nt .open{display:none}
+ .nt-pk{grid-template-columns:1fr}.nt-pk .nt{border-radius:6px 24px 0 0}.pk{border-radius:0 0 6px 24px;box-shadow:var(--raise),0 -1px 0 var(--hair)}.nt .ft{padding-left:14px}}
 </style>
 
 <div class="wrap">
@@ -261,7 +332,7 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
  <h1><span class="mark" aria-hidden="true"></span>Wren design language</h1>
  <p class="lead">One page for how Wren looks and how the business map reads. It joins the UI language, the Metro map types and the new zoom levels. Where this page and <code>DESIGN.md</code> disagree, this page wins. Section 11 lists the code and schema changes it needs.</p>
 </header>
-<nav class="tn" aria-label="Sections"><a href="#tokens">Tokens</a><a href="#motif">Motif</a><a href="#parts">Parts</a><a href="#metro">Metro</a><a href="#zoom">Zoom</a><a href="#scen">Scenarios</a><a href="#app">App</a><a href="#offers">Offers</a><a href="#logic">Logic</a><a href="#diff">DESIGN.md</a><a href="#target">Target</a><a href="#links">Earlier</a><a href="#prop">Check</a><a href="#loading">Loading</a><span class="sp"></span>
+<nav class="tn" aria-label="Sections"><a href="#tokens">Tokens</a><a href="#motif">Motif</a><a href="#parts">Parts</a><a href="#metro">Metro</a><a href="#zoom">Zoom</a><a href="#scen">Scenarios</a><a href="#app">App</a><a href="#offers">Offers</a><a href="#logic">Logic</a><a href="#diff">DESIGN.md</a><a href="#target">Target</a><a href="#links">Earlier</a><a href="#prop">Check</a><a href="#loading">Loading</a><a href="#inbox">Inbox</a><span class="sp"></span>
  <div class="seg" role="group" aria-label="Theme"><button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div></nav>
 
 <section id="tokens">
@@ -651,6 +722,73 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
   <div class="panel deco-on ld-states wide"><span class="k">Not loading · empty, error, offline</span><div class="ldbox states"><div class="stt"><b>Nothing here yet</b><span>No one on this station this week.</span></div><div class="stt err"><b>Couldn't load people.</b><span>The server did not answer.</span><button class="btn q" type="button">Retry</button></div><div class="stt off"><i></i><b>Offline.</b><span>Changes save when you're back.</span></div></div></div>
  </div>
 </section>
+
+<section id="inbox">
+ <h2><span class="n">15</span>Inbox</h2>
+ <p class="lead">Locked (William, 2026-10-21). E is the Inbox Overview. Each queue opens F: the People table with more flare (F1), a "By queue" fold (F2), and a side peek on row click (F3). No board. Sample data.</p>
+ <div class="rules">
+  <div class="rule"><b>Overview</b><span>Queues first, trends second</span><small>Queues and trends never share one grid. Mail rules stays under Inbox → Mail rules.</small></div>
+  <div class="rule"><b>Amber</b><span>Only for late</span><small>A queue or row is late when it waits past its promise. Amber text or a dot, never a fill.</small></div>
+  <div class="rule"><b>Queue tables</b><span>One table part for all</span><small>Same part as People: views, filter, columns, select. A queue is a saved view of it.</small></div>
+  <div class="rule"><b>Actions</b><span>One quiet icon, more on hover</span><small>No text buttons in rows. The row opens the person; the icon acts in place, with Undo.</small></div>
+ </div>
+ <div class="grid g2">
+  <div class="panel" style="grid-column:1/-1"><span class="k">E · locked · number + queue list + trends</span><div class="ix"><div class="ix-e"><div class="hero" id="ixe"></div><div class="ix-side" id="ixet"></div></div></div></div>
+ </div>
+ <h3>Queue tables · locked</h3>
+ <p class="lead">Base: today's People table (tabs, search, filter, square stage marks, hairline rows). Flare from Notion: property icons in the header, colour pills, avatars, Open on hover, a count footer. Axes: flat or grouped, where the person opens, one line or two.</p>
+ <div class="grid g2">
+  <div class="panel" style="grid-column:1/-1"><span class="k">F1 · locked, default view · column lines, property icons, queue pill, Open on hover, count footer</span><div class="nt lines" id="f1"></div></div>
+  <div class="panel" style="grid-column:1/-1"><span class="k">F2 · locked, the "By queue" view · each queue a fold with its oldest wait; click a group to fold it</span><div class="nt" id="f2"></div></div>
+  <div class="panel" style="grid-column:1/-1"><span class="k">F3 · locked, what a row click opens · narrow table left, the person and a reply box right; no page change</span><div class="nt-pk" id="f3"></div></div>
+  <div class="panel" style="grid-column:1/-1"><span class="k">F4 · not picked; its wait meter can come back as a column option · name over the last message, a wait meter against the promise</span><div class="nt" id="f4"></div></div>
+ </div>
+ <p class="lead">Build: one table part shared with People (TanStack Table). Views: Table and By queue only. A row click opens the peek; on the phone the peek is a sheet. The row icon acts in place, with Undo.</p>
+</section>
+<script>
+(()=>{const I={wait:'<path d="M4 6h16v10H8l-4 4z"/>',ok:'<path d="M5 12l4 4 10-10"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',at:'<circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 005 0V12a9 9 0 10-3.5 7.1"/>',bug:'<circle cx="12" cy="12" r="8"/><path d="M12 8v5M12 16h.01"/>',key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/>'};
+const ic=k=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${I[k]}</svg>`;
+const Q=[["Waiting on you",4,"oldest 2 days","wait",1,"var(--l0)"],["Issues for you",4,"1 past due","bug",1,"var(--l2)"],["To approve",5,"oldest 6 hours","ok",0,"var(--l1)"],["Mail that needs you",2,"oldest 5 hours","mail",0,"var(--l3)"],["Mentions",4,"oldest 3 hours","at",0,"var(--ink-3)"],["Asks for access",1,"20 minutes","key",0,"color-mix(in srgb,var(--l1) 50%,var(--paper))"]];
+const T=[["Replies",35,"+14",[3,6,5,4,7,6,5]],["Booked",9,"+3",[1,2,1,2,3,2,2]]];
+const sp=a=>{const m=Math.max(...a);return`<div class="spark" aria-hidden="true">${a.map(v=>`<i style="height:${Math.round(v/m*100)}%"></i>`).join("")}</div>`};
+const tr=([n,v,d,a])=>`<div class="tr"><span class="d">${n} · last 30 days</span><span class="v num">${v}</span>${sp(a)}<span class="d"><b>${d}</b> vs the 30 days before</span></div>`;
+const $=id=>document.getElementById(id);const tot=Q.reduce((n,q)=>n+q[1],0);const L=n=>Q.find(q=>q[0]===n);
+$("ixe").innerHTML=`<div class="big"><b class="num">${tot}</b><span>wait on you · <span class="late">2 queues late</span> · oldest 2 days</span></div><div class="bar">${Q.map(q=>`<i style="flex:${q[1]};background:${q[5]}"></i>`).join("")}</div><div class="ix-list">${Q.map(([n,v,o,k,l,c])=>`<a href="#inbox"><i style="background:${c}"></i>${ic(k)}<span>${n}<small class="${l?"late":""}">${o}</small></span><b class="c num">${v}</b><svg class="ch" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg></a>`).join("")}</div>`;
+$("ixet").innerHTML=T.map(tr).join("");
+const S={mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',in:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10v6M8 7v.01M12 16v-4a2 2 0 014 0v4"/>',dm:'<path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/>',at:'<circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 005 0V12a9 9 0 10-3.5 7.1"/>',bug:'<circle cx="12" cy="12" r="8"/><path d="M12 8v5M12 16h.01"/>',
+ Reply:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 016 6v4"/>',Approve:'<path d="M5 12l4 4 10-10"/>',Open:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>',
+ aa:'<path d="M4 18l5-12 5 12M6 14h6M15 18v-5a2 2 0 014 0v5M15 15h4"/>',sel:'<circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/>',clk:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',per:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',lst:'<path d="M4 6h16M4 12h16M4 18h10"/>',grp:'<path d="M4 5h16M7 10h13M7 15h13M7 20h13"/>',brd:'<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/>',flt:'<path d="M4 6h16M7 12h10M10 18h4"/>',srt:'<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>',srch:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/>',chev:'<path d="M6 9l6 6 6-6"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',ex:'<path d="M15 3h6v6M21 3l-7 7M9 21H3v-6M3 21l7-7"/>'};
+const sv=k=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${S[k]}</svg>`;
+const ST={Stranger:"var(--ink-3)",Lead:"var(--l0)",Replied:"var(--l1)",Booked:"var(--l3)",Client:"var(--l2)"};
+const R=[["AN","Ada North","No answer to the second message yet.","Waiting on you","Lead","Email","mail","You","2 days",1,140,"Reply"],
+ ["GH","Gus Held","Replied with a question about timing.","Waiting on you","Replied","LinkedIn","in","Sam","1 day",1,110,"Reply"],
+ ["RS","Rae Sol","The export link on the report is broken.","Issues for you","Client","Report","bug","You","past due",1,120,"Open"],
+ ["FL","Fay Lin","Draft: Thanks Fay, happy to walk you through it.","To approve","Replied","Reddit DM","dm","Sam","6 hours",0,50,"Approve"],
+ ["BF","Bo Fenwick","Asked for a copy of the last report.","Mail that needs you","Client","Email","mail","You","5 hours",0,40,"Reply"],
+ ["KA","Kit Alder","Named Wren in a post about follow-ups.","Mentions","Stranger","X","at","",'3 hours',0,25,"Open"]];
+const pl=q=>`<span class="pl" style="--c:${L(q)[5]}">${q}</span>`;const sq=st=>`<span class="sq" style="--c:${ST[st]}">${st}</span>`;
+const own=o=>o?`<span class="av">${o[0]}</span><span class="mut">${o}</span>`:`<span class="mut">·</span>`;
+const ib=a=>`<button class="ib p" type="button" aria-label="${a}" title="${a}"><svg viewBox="0 0 24 24">${S[a]}</svg></button>`;
+const top=(v,tools)=>`<div class="nt-top"><div class="vw" role="group" aria-label="Views">${[["lst","Table"],["grp","By queue"]].map(([k,n])=>`<button type="button" aria-pressed="${k===v}">${sv(k)}${n}</button>`).join("")}</div><div class="tl">${tools||""}<button type="button" aria-label="Filter">${sv("flt")}<span class="hp">Filter</span></button><button type="button" aria-label="Sort" class="on">${sv("srt")}<span class="hp">Oldest first</span></button><button type="button" aria-label="Search">${sv("srch")}</button></div></div>`;
+const hd=cols=>`<div class="hd"><span></span>${cols.map(([k,n,h])=>`<span class="${h?"hp":""}">${k?sv(k):""}${n}</span>`).join("")}</div>`;
+const ft=`<div class="ft"><span>Count <b>${R.length}</b></span><span class="hp">Late <b>3</b></span><span class="hp">Oldest <b>2 days</b></span></div>`;
+const row1=r=>{const[a,n,t,q,st,c,ck,o,age,late,,act]=r;return`<div class="r" tabindex="0"><span class="gut hp"><input type="checkbox" aria-label="Select ${n}"></span><span><span class="av">${a}</span><span class="nm">${n}</span><span class="open">${sv("ex")}Open</span></span><span class="hp">${pl(q)}</span><span class="hp">${sq(st)}</span><span class="hp mut">${sv(ck)}${c}</span><span class="hp">${own(o)}</span><span><span class="age ${late?"late":""}">${age}</span></span><span>${ib(act)}</span></div>`};
+const C1=[["aa","Name"],["sel","Queue",1],["sel","Stage",1],["mail","Channel",1],["per","Owner",1],["clk","Waiting"],["",""]];
+$("f1").innerHTML=top("lst")+hd(C1)+R.map(row1).join("")+ft;
+const row2=r=>row1(r).replace(/<span class="hp"><span class="pl"[^]*?<\/span><\/span>/,"");
+$("f2").style.setProperty("--cols","28px minmax(0,1.7fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,.8fr) 84px 44px");
+$("f2").innerHTML=top("grp")+hd(C1.filter(c=>c[1]!=="Queue"))+Q.filter(q=>R.some(r=>r[3]===q[0])).map(([n,v,o,k,l,c])=>`<div class="grp"><div class="gh" role="button" tabindex="0">${sv("chev")}<span class="pl" style="--c:${c}">${n}</span><b>${v}</b><span class="${l?"late":""}">${o}</span></div>${R.filter(r=>r[3]===n).map(row2).join("")}</div>`).join("")+ft;
+$("f2").addEventListener("click",e=>{const g=e.target.closest(".gh");if(g)g.parentElement.classList.toggle("shut")});
+const pk=r=>{const[a,n,t,q,st,c,ck,o,age,late,,act]=r;return`<header><span class="av lg">${a}</span><b>${n}</b><button class="ib x" type="button" aria-label="Close">${sv("x")}</button></header><dl><dt>Queue</dt><dd>${pl(q)}</dd><dt>Stage</dt><dd>${sq(st)}</dd><dt>Channel</dt><dd>${sv(ck)}${c}</dd><dt>Owner</dt><dd>${o||"·"}</dd><dt>Waiting</dt><dd class="${late?"late":""}">${age}</dd></dl><div class="msg"><small>${n} · ${c}</small>${t}</div><div class="rp"><textarea rows="3" aria-label="Reply">${act==="Approve"?t.replace("Draft: ",""):""}</textarea><div><button class="btn q" type="button">Done</button><button class="btn" type="button">${act==="Approve"?"Approve":"Send"}</button></div></div>`};
+$("f3").innerHTML=`<div class="nt">${top("lst")}${hd([["aa","Name"],["sel","Queue",1],["clk","Waiting"]])}${R.map((r,i)=>`<div class="r ${i===0?"sel":""}" tabindex="0" data-i="${i}"><span class="gut hp"><input type="checkbox" aria-label="Select ${r[1]}"></span><span><span class="av">${r[0]}</span><span class="nm">${r[1]}</span></span><span class="hp">${pl(r[3])}</span><span><span class="age ${r[9]?"late":""}">${r[8]}</span></span></div>`).join("")}</div><aside class="pk" aria-live="polite">${pk(R[0])}</aside>`;
+$("f3").querySelector(".nt").style.setProperty("--cols","28px minmax(0,1.4fr) minmax(0,1.1fr) 76px");
+$("f3").addEventListener("click",e=>{const r=e.target.closest(".r[data-i]");if(!r)return;$("f3").querySelectorAll(".r").forEach(x=>x.classList.toggle("sel",x===r));$("f3").querySelector(".pk").innerHTML=pk(R[+r.dataset.i])});
+$("f4").style.setProperty("--cols","28px minmax(0,2.2fr) minmax(0,1fr) minmax(0,.8fr) 44px minmax(0,.9fr) 44px");
+$("f4").innerHTML=top("lst")+hd([["aa","Person"],["sel","Queue",1],["sel","Stage",1],["per","",1],["clk","Waiting"],["",""]])+R.map(r=>{const[a,n,t,q,st,c,ck,o,age,late,pct,act]=r;return`<div class="r" tabindex="0"><span class="gut hp"><input type="checkbox" aria-label="Select ${n}"></span><span class="who"><span class="av lg">${a}</span><span class="two"><b>${n}</b><small>${sv(ck).replace('class="i"','class="i" style="width:12px;height:12px;vertical-align:-2px"')} ${t}</small></span></span><span class="hp">${pl(q)}</span><span class="hp">${sq(st)}</span><span class="hp">${o?`<span class="av" title="${o}">${o[0]}</span>`:""}</span><span><span class="mtr ${late?"late":""}" style="--w:${Math.min(pct,100)}%"><i></i><span>${age}</span></span></span><span>${ib(act)}</span></div>`}).join("")+ft;
+document.querySelectorAll("#inbox .vw").forEach(g=>g.addEventListener("click",e=>{const b=e.target.closest("button");if(b)g.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))}));
+})();
+</script>
+
 </div>
 <div class="toast" id="toast" role="status"><span id="tt">Reply sent.</span><button type="button" id="undo">Undo</button></div>
 
