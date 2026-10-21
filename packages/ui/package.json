@@ -16,7 +16,8 @@
     "./lib/*": "./src/lib/*.ts",
     "./storybook/frame": "./.storybook/frame.tsx",
     "./storybook/tests": "./.storybook/story-tests.ts",
-    "./fixtures": "./src/fixtures/index.ts"
+    "./fixtures": "./src/fixtures/index.ts",
+    "./metro": "./src/metro/index.ts"
   },
   "bin": {
     "wren-stories": "./.storybook/run.mjs",
