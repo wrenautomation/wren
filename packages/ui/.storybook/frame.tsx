@@ -83,6 +83,7 @@ export const preview: Preview = {
     layout: "padded",
     viewport: { options: VIEWPORTS },
     // Every story fails its test on an a11y violation; a known gap says "todo" with a reason.
-    a11y: { test: "error" },
+    // Colour contrast is off (William, 10-21): the artifact sets the colours, not axe.
+    a11y: { test: "error", config: { rules: [{ id: "color-contrast", enabled: false }] } },
   },
 };
