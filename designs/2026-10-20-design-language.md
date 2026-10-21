@@ -2,7 +2,7 @@
 
 2026-10-20. William, on artifact v12: "keep this artifact up we are using this as the source of truth for the full redesign, and well iterate through this artifact as well." Green light to build.
 
-**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v12). The artifact wins over this doc when they differ. A copy of its source at v12 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
+**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v22). The artifact wins over this doc when they differ. A copy of its source at v23 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
 
 This doc supersedes the "banded funnel" form decision in `2026-10-19-business-map.md`. The shape store, drafts, history, blame, undo, tags and the git mirror from that doc stay.
 
@@ -15,6 +15,8 @@ This doc supersedes the "banded funnel" form decision in `2026-10-19-business-ma
 | 07 The map in the app | Map home, Today from person tracks, sidebar | D, E |
 | 08 Offers, plans and bundles | pricing model, delivery loops, rewarm | C |
 | 11 Target state | the shape model inversion | C |
+| 13 To check | sidebar and focus view plans | E, F |
+| 14 Loading | every wait and what it shows; rules for the portal below | A (rules), every UI area |
 
 ## Areas
 
@@ -30,9 +32,9 @@ This doc supersedes the "banded funnel" form decision in `2026-10-19-business-ma
 
 **D. Map page on the renderer.** Home `/` draws the live shape with B, zoom and folds, node panel and History as overlays, edit mode on the new marks, Today from person tracks (owner and promise, late first, hover lights the line). Needs B and C1. Next after tonight.
 
-**E. Sidebar.** See below.
+**E. Sidebar** and **F. Focus view**: proposals, below. Built last. William checks them in the artifact (section 13).
 
-## Sidebar (William, 2026-10-20)
+## Proposal E: sidebar (William, 2026-10-20; built last)
 
 William: "our dashboard sidebar should be minimized a lot more, all those tools are conditional, and come attached to certain nodes / workflows. those systems are still first class, and within our admin system, i think all of them should be shown (but some of them will be for debugging, and some of them will actually exist as part of a real shape of our business, like platform outreach and youtube posting for example)."
 
@@ -46,9 +48,44 @@ William: "our dashboard sidebar should be minimized a lot more, all those tools 
 
 Open for William: pins vs recents for daily tools; whether a client sees Systems at all.
 
+## Proposal F: focus view (William, 2026-10-20; built last)
+
+William: "a system to isolate and open just a monthly retainer of the whole system, or even just a particular booking meeting, as it might have some data connected to it: links, funnels, sops, etc."
+
+**F. Focus view.**
+- Any line, group, station or shared flow opens on its own page at its own URL: `/map/<kind>/<id>`. The page draws only that part with B's subset mode. Stub tracks at its edges name where people come from and go to; click a stub to focus that part.
+- A breadcrumb leads back: Map › Growth Partner › Monthly loop › Review call. Esc goes up one level.
+- Beside the map, an attached panel lists what the part holds: SOPs, links, funnel pages, docs, templates, notes, and the apps it uses. The panel reads `attach[]` on the part and on every station inside it. Add and remove from the panel.
+- Below, the people on it now and the numbers for that part only (the Map's window).
+- A shared flow (the link mark) is a named sub-shape. Every link station that uses it opens the same focus page, which lists the offers that use it.
+- Open in a new window: every focus page is a plain URL, so ⌘-click and the browser's own tabs and windows do the isolation. Wren builds no tab bar of its own.
+
+Why no in-app tabs: the browser already has tabs, windows, history and restore. A URL per part gives all of them free, and links work in Slack, notes and SOPs. A custom tab bar duplicates that and breaks on a phone.
+
+Open for William: should a focus page allow edits (a draft scoped to that part), or read and attach only at first.
+
+## UI soundness (William, 2026-10-20, green light on everything)
+
+William: "make sure ui is principally sound (tanstack query, similarly sleek loading animations, popups close when they should on user clicks, state persists appropriately ex. one loading we click to another it isn't we click back if its still loading it shows, etc.)"
+
+- Data through TanStack Query only. No fetch state in components. A query left while it loads still loads, then shows, when the person comes back; the cache holds it, never the page.
+- Loading per artifact section 14: nothing under 150 ms; skeleton, or the ring beside what refreshes, up to 1 s; words past 1 s; steps and "you can leave" past 10 s. Old data stays on refresh. A button keeps its label and width while busy. Never a spinner in place of a label, never a layout shift.
+- Popovers, menus and sheets close on outside click and Esc. One open at a time.
+- Per-viewer state (open sheet, zoom, pins, filters) persists across navigation.
+- Empty, error and offline each look different from a wait. Error: one sentence and Retry.
+- Reduced motion: shimmer and draw-in go; the ring stops and shows its tail still.
+- No loading bars or sweeps anywhere (William, 10-21). The ring is the one busy mark: beside the label in a button, beside the title on refresh, in the AI chip, inside the ⌘K input, in a modal.
+- Steps (William, 10-21, "the path was not done correctly", redone as section 14 "Long job"): any wait with stages shows its steps. Each step names what it does and with what. The status line cross-fades on a timer, never on every frame (the old one flickered). Sources and targets fold in as small cards that carry the platform's real logo in its brand colour (Simple Icons, CC0: the `simple-icons` npm package; a plain site gets a globe), then stack into a deck with a count when the step is done. Past ten seconds: a clock and "you can leave". Done, the whole thing folds to one line that stays as the record and reopens on click. One component for research, send, import, video render, map open.
+- Numbers never count up or jitter (William, 10-21). A changed number fades in once, on refresh and on first load.
+- Busy state: one plain ring (William, 10-21: Flight and the bird variants dropped). A faint track and one accent arc that turns, 0.8 s a turn. 40 px in a modal, 18 px in a running step, 14 px elsewhere. It needs the `spin` keyframes. One component, no variant prop. Places: the running step, the optimistic chip ("Approved" + ring until the server answers), the pager count while a page loads, a tab whose query still loads, a button beside its label, a panel title on refresh, the AI chip, the ⌘K input, a modal.
+- Pagination stays (William, 10-21: "everything should be paginated as well, it already is, just don't remove that"). The next page loads in place at the same height. No infinite scroll.
+- Map first load: the line draws over ~2.4 s, stations land as the line passes, labels fade in with their station, numbers tick last.
+
+Systems page (E): William calls the row list "a bit incoherent", fine for a first cut. Flesh out later, no input needed.
+
 ## Order and push policy
 
-Tonight: A, B, E (planner 1, at most 2 builders) and C1 (planner 2, 1 builder at xhigh). At most 3 builders across both. D and C2 next.
+Tonight: A, B, then E (planner 1, at most 2 builders) and C1 with `attach` and `flows` last (planner 2, 1 builder at xhigh). At most 3 builders across both. Then D, C2, F.
 
 Push: A, B and E push when the hand-off gate passes; they are UI and reversible. C1 pushes only its additive half (schema, types, renderer data shape, converter as a CLI that is not run on prod). The conversion run on prod and the guard and drop migration wait for William's yes.
 
@@ -57,8 +94,7 @@ Push: A, B and E push when the hand-off gate passes; they are UI and reversible.
 - The artifact is the source of truth; the repo holds a v12 copy of its source for builders. Why: William iterates in the artifact; builders need a fixed input they can read offline.
 - Metro replaces the banded funnel. Why: William picked the metro language through artifact v1 to v12; colour is the offer, weight is the job, the icon is what the person gives.
 - One renderer for the artifact, the stories and the app. Why: the spec and the app draw from the same code (section 10, "Map marks").
-- Sidebar has five fixed items, tools attach to the shape, Admin lists all. Why: William: tools are "conditional, and come attached to certain nodes / workflows" but "still first class".
-- Pins over recents. Why: recents move under the hand; a pin stays where the person put it.
+- E and F go last and stay open to change. Why: William: "these should be tackled last regardless since they aren't set in stone."
 
 ## Decisions (planner C1, 2026-10-20)
 

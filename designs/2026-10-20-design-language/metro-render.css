@@ -60,3 +60,5 @@
 .trk.ab{stroke-dasharray:none}
 .cond rect{fill:var(--paper);stroke:var(--ink-3);stroke-width:1}.cond rect{stroke:var(--ink-3)}.cond text{font-weight:700}.cond.else rect{stroke-dasharray:3 3}.cond.else text{fill:var(--ink-3);font-style:italic}
 .brk rect{fill:none;stroke:var(--bad);stroke-width:1.5;stroke-dasharray:6 6;opacity:.55}
+
+.trk.stub{stroke-dasharray:2 9;opacity:.45}
