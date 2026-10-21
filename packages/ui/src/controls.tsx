@@ -33,20 +33,20 @@ interface ButtonLook {
  * keeps a press edge under it and sinks 3 px when pressed (secondary tones set their own hover).
  */
 const BUTTON =
-  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 [border-radius:var(--ui-leaf-button)] bg-(--ui-primary) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,transform,opacity] duration-150 ease-(--ui-spring) hover:bg-(--ui-primary) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)";
-const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none", dense: "", next: "" };
+  "h-auto gap-[0.8em] px-4 py-[9px] border-0 [border-radius:var(--ui-leaf-button)] bg-(--ui-primary) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[14px]/[1.55] tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,transform,opacity] duration-150 ease-(--ui-spring) hover:bg-(--ui-primary) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)";
+const BUTTON_SIZE = { md: "", sm: "px-3.5 py-1.5 text-[13px]/[1.55]", dense: "", next: "" };
 const DENSE = "h-8 px-3 py-0 text-[13px]/none";
 const NEXT = "h-9 px-4 text-[14px]/none font-semibold";
 const DENSE_TONE: Record<ButtonTone, string> = {
   primary: DENSE,
-  secondary: `${DENSE} shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) hover:text-(--ui-ink)`,
+  secondary: `${DENSE} shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-wash) hover:text-(--ui-ink)`,
   quiet: `${DENSE} px-2 no-underline hover:bg-(--ui-hover)`,
 };
 const BUTTON_TONE: Record<ButtonTone, string> = {
   primary:
     "[--ui-busy-ink:currentColor] shadow-[0_3px_0_var(--ui-press-edge)] active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[0_0_0_var(--ui-press-edge)]",
   secondary:
-    "bg-transparent text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink)] hover:bg-(--ui-ink) hover:text-(--ui-on-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97]",
+    "bg-(--ui-paper) text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair),0_2px_0_var(--ui-hair)] hover:bg-(--ui-wash) active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[inset_0_0_0_1px_var(--ui-hair),0_0_0_var(--ui-hair)]",
   quiet:
     "px-0 py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
 };
@@ -147,7 +147,7 @@ export function ButtonLink({
 export type TagTone = "neutral" | "accent" | "warn" | "green";
 
 const TAG =
-  "h-auto max-w-full gap-1.5 px-[9px] py-0.5 border-0 [border-radius:var(--ui-leaf-chip)] text-[12px]/[1.5] font-semibold align-[1px]";
+  "h-auto max-w-full gap-1.5 px-2.5 py-[3px] border-0 [border-radius:var(--ui-leaf-chip)] text-[12.5px]/[1.5] font-semibold align-[1px]";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
   accent: "bg-(--ui-accent-tint) text-(--ui-live)",

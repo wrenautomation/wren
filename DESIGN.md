@@ -289,15 +289,15 @@ Each family names its source. Shadcn parts in `components/ui` are owned copies o
 
 Source: `controls.tsx` (`Button`, `ButtonLink`, `Tag`), `components/ui/button.tsx`.
 
-- **Tones:** `primary` (accent ground, on-accent text, a press edge under it), `secondary` (default; clear ground, 1 px ink inset ring, hover fills ink), `quiet` (ink-2 text, 14 px, underline).
-- **Sizes:** `md`, `sm` (12.5 px), `dense` (h-8, px-3, 13 px medium, sentence case, secondary ring is hair, hover wash), `next` (h-9, px-4, 14 px semibold).
+- **Tones:** `primary` (accent ground, on-accent text, a press edge under it), `secondary` (default; artifact `.btn.q`: paper ground, ink text, a 1 px hair ring and a 2 px hair edge, hover washes), `quiet` (ink-2 text, 14 px, underline).
+- **Sizes:** `md` (14 px / 650, padding 9 x 16, artifact `.btn`), `sm` (13 px, padding 6 x 14, artifact `.pk .btn`), `dense` (h-8, px-3, 13 px medium, sentence case, secondary ring is hair, hover wash), `next` (h-9, px-4, 14 px semibold).
 - **`next`** is the one action most pressed on a record or queue item. Only one per view.
-- **Press edge:** the primary has `box-shadow: 0 3px 0 var(--ui-press-edge)` (`--ui-press-edge` is the accent 72% mixed with black; night sets `#7a69ad`). On press it sinks 3 px and the edge goes. It does not turn ink on hover. Buttons move on `--ui-spring`.
-- **Feedback:** active scale 0.97 (secondary and quiet). Disabled opacity 40%. Focus ring 2 px `--ui-focus`, offset 2 px. `arrow` nudges 3 px on hover.
+- **Press edge:** the primary has `box-shadow: 0 3px 0 var(--ui-press-edge)` (`--ui-press-edge` is the accent 72% mixed with black; night sets `#7a69ad`). On press it sinks 3 px and the edge goes; the secondary does the same with its hair edge. It does not turn ink on hover. Buttons move on `--ui-spring`.
+- **Feedback:** active scale 0.97 (quiet). Disabled opacity 40%. Focus ring 2 px `--ui-focus`, offset 2 px. `arrow` nudges 3 px on hover.
 - **`busy`:** solid, `aria-busy`, disabled, the busy ring after the label (`Busy` in `busy.tsx`). Pass `busy` true or false on a button that can go busy, so the ring's slot is always there.
 - **`done`:** its press just worked: a check draws in the ring's slot for 2.4 s (`useRun`'s `done`, `DONE_MS`). Then the toast with Undo.
 - **Touch:** min height 44 px under `pointer-coarse`.
-- **Tag:** status chip. `px-[9px] py-0.5`, 12 px, semibold, leaf-chip corners. Tones neutral, accent, warn, green. Optional 6 px dot.
+- **Tag:** status chip. `px-2.5 py-[3px]`, 12.5 px, semibold (artifact `.pt`), leaf-chip corners. Tones neutral, accent, warn, green. Optional 6 px dot.
 - **Actions** (`action.tsx`): a reversible action runs at once and shows a toast with Undo for 10 s. Without undo it asks first. A blocked action shows turned off with its reason.
 
 **The Undo Rule.** Undo, not confirm, for what can be reversed.
@@ -325,8 +325,8 @@ Source: `records.tsx`, `list-bar.tsx`, `fields.tsx`, `card-grid.tsx`.
 - **Head row:** sticky, h-9, `--ui-band`, 12 px semibold ink-2, `--ui-edge` underline.
 - **List bar** (`list-bar.tsx`): chips and pills h-8 (44 px coarse), 13 px, hair border, paper ground. Saved views are tabs with counts: 3 quick tabs, then up to 5 views, then More. A tab has a 2 px underline; on is ink, off is ink-2.
 - **Record panel:** fixed right. Phone full width. At sm+: 560 px wide, floats 8 px in, sheet radius, `--ui-shadow`. Tabs have a 2 px underline. Facts use a two-column `dl` (150 px label).
-- **Skeleton:** `animate-pulse`, wash ground, h-10 lines.
-- **Empty:** dashed `--ui-edge` box, wash ground, 14 px ink-2. It says what will fill the list.
+- **Skeleton:** fill ground, leaf corners 3 and 8, a lavender tint sweeps across in 1.6 s (`.ui-skeleton::after`, artifact `.sk i`). Still under reduced or less motion.
+- **Empty:** hair box (artifact `.stt`), corners 6 and 14, no ground, 13.5 px ink-2. It says what will fill the list.
 - **Keys:** arrows and J/K move. A approve, E edit, S skip. `[` `]` panels. `?` lists keys. G then a letter goes to a page. Command-K opens the palette. Arrows are left to menus, listboxes, dialogs, sliders, tab lists and radio groups.
 
 **The Needs You Rule.** What waits on the viewer leads, reads heavier, and counts in amber. What is for info reads quieter.
@@ -371,7 +371,7 @@ Source: `shell.tsx`, `frame.tsx`, `page-bar.tsx`, `launcher.tsx`, `palette.tsx`.
 - **Dialog:** sheet radius, `--ui-shadow`, 150 ms zoom 95% plus fade, `max-w-sm`. Head and foot are band strips with hairlines.
 - **Side sheet:** 3/4 width up to `max-w-sm`, `--ui-shadow`, 200 ms.
 - **Popover:** 288 px wide, sheet radius, `--ui-float`, 100 ms. Under 900 px it becomes a bottom sheet.
-- **Toasts:** sonner, themed from tokens.
+- **Toasts:** sonner on an ink ground with paper text, leaf corners, padding 10 x 14, 14 px; the action is a bold underline (artifact `.toast`).
 
 ### Phone
 
