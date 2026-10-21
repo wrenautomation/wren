@@ -309,7 +309,7 @@ export function BottomSheet({
         tabIndex={-1}
         data-sheet=""
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 mx-auto flex h-[calc(100dvh-env(safe-area-inset-top)-10px)] w-full max-w-[640px] flex-col overflow-hidden border-t border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink) shadow-(--ui-shadow) outline-none will-change-transform sm:border-x",
+          "fixed inset-x-0 bottom-0 z-40 mx-auto flex h-[calc(100dvh-env(safe-area-inset-top)-10px)] w-full max-w-[640px] flex-col overflow-hidden rounded-[6px_24px_0_0] border-t border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink) shadow-(--ui-shadow) outline-none will-change-transform sm:border-x",
           className,
         )}
         style={{ transform: "translate3d(0, 100%, 0)" }}
@@ -741,7 +741,8 @@ export function Segmented({
                 {num(i.count)}
               </span>
             ) : null}
-            {i.busy === undefined ? null : <Busy on={i.busy} />}
+            {/* The ring takes room only while it turns: at rest the tab is its label alone. */}
+            {i.busy ? <Busy on /> : null}
           </a>
         ))}
       </div>

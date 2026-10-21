@@ -9,6 +9,7 @@ import {
   SHELL_WORST,
 } from "./fixtures/shell.js";
 import { WORST } from "./fixtures/worst.js";
+import { PageHeader } from "./layout.js";
 import { AppShell } from "./shell.js";
 
 export default {
@@ -20,12 +21,9 @@ export default {
 
 type Story = StoryObj;
 
-/** A short page for the shell to frame. */
+/** A short page for the shell to frame: its head, as every page opens. */
 const Page = ({ title }: { title: string }) => (
-  <div className="grid gap-2 py-6">
-    <h1 className="text-[24px] font-semibold">{title}</h1>
-    <p className="text-(--ui-ink-2)">The page runs here, inside the window.</p>
-  </div>
+  <PageHeader title={title} lede="The page runs here, inside the window." />
 );
 
 /** Wren's sidebar: the Map, Inbox, People, Money, Admin, then pins; the open app's pages down the window's edge. On a phone, the app bar and tabs. */

@@ -347,7 +347,7 @@ export function PhoneTop({
   return (
     <header
       ref={bar}
-      className="sticky top-0 z-20 hidden border-b border-(--ui-hair) bg-(--ui-glass) pt-[env(safe-area-inset-top)] backdrop-blur-[16px] backdrop-saturate-[1.6] max-[900px]:block"
+      className="sticky top-0 z-20 hidden border-b border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-canvas)_86%,transparent)] backdrop-blur-[14px] backdrop-saturate-[1.6] pt-[env(safe-area-inset-top)] max-[900px]:block"
     >
       <div className="grid h-12 grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)] items-center gap-2 px-2">
         <div className="flex min-w-0 items-center">
@@ -452,13 +452,13 @@ function useEdgeBack(link: RefObject<HTMLAnchorElement | null> | null) {
 // --- The bottom tabs ------------------------------------------------------------------------
 
 const TAB =
-  "group relative flex min-w-0 flex-col items-center justify-center gap-[2px] border-0 bg-transparent p-0 text-[10.5px] leading-none font-medium text-(--ui-ink-2) no-underline [-webkit-tap-highlight-color:transparent] aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-active) aria-expanded:text-(--ui-active)";
-/** The icon's seat: a capsule lit under the tab on screen, and it gives a little under a thumb. */
+  "group relative flex min-w-0 flex-col items-center justify-center gap-[2px] border-0 bg-transparent p-0 text-[10.5px] leading-none font-medium text-(--ui-ink-2) no-underline [-webkit-tap-highlight-color:transparent] aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-expanded:font-semibold aria-expanded:text-(--ui-ink)";
+/** The icon's seat: the sidebar's leaf (3 and 12) in the tint under the tab on screen; it gives a little under a thumb. */
 const SEAT =
-  "relative grid h-[30px] w-[52px] place-items-center rounded-full transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
-/** What waits under a tab: iOS's red badge at the icon's top right. Paper ink: white on dark mode's coral fails contrast. */
+  "relative grid h-[30px] w-[52px] place-items-center [border-radius:var(--ui-leaf-nav)] transition-[background-color,scale] duration-150 ease-(--ui-ease) group-active:scale-[0.9] group-aria-[current=page]:bg-(--ui-accent-tint) group-aria-expanded:bg-(--ui-accent-tint)";
+/** What waits under a tab: the sidebar's count pill (the artifact's `.nav .n`) at the icon's top right. */
 const BADGE =
-  "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-bad) px-[5px] text-center text-[11px]/[17px] font-semibold text-(--ui-paper) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
+  "absolute top-[-3px] left-[30px] h-[17px] min-w-[17px] rounded-full bg-(--ui-primary) px-[5px] text-center text-[11px]/[17px] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
 
 function TabFace({
   icon,
@@ -503,7 +503,7 @@ export function PhoneTabs({
     <nav
       aria-label={app ? `${app.name} tabs` : "Tabs"}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 hidden border-t border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-paper)_97%,transparent)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] backdrop-blur-[24px] backdrop-saturate-[1.8]",
+        "fixed inset-x-0 bottom-0 z-30 hidden border-t border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-canvas)_86%,transparent)] backdrop-blur-[14px] backdrop-saturate-[1.6] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]",
         !hidden && "max-[900px]:block",
       )}
     >
@@ -552,10 +552,12 @@ export function PhoneTabs({
 
 // --- Sheet: every app, and the section's other pages ------------------------------------------------------------
 
+/** A sheet's row: the sidebar's row at a thumb's height, the page on screen in the tint. */
 const SHEET_ROW =
-  "flex min-h-12 items-center gap-3 border-b border-(--ui-hair) px-4 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-hover) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-active)";
+  "mx-2 flex min-h-12 items-center gap-3 [border-radius:var(--ui-leaf-nav)] px-2 text-[16px] text-(--ui-ink) no-underline active:bg-(--ui-accent-wash) aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold";
+/** A sheet's group heading: the sidebar's `.nl`, held at the top while its rows pass under. */
 const SHEET_HEAD =
-  "sticky top-0 z-1 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-1.5 text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
+  "sticky top-0 z-1 bg-(--ui-paper) px-4 pt-3 pb-1 text-[12px] leading-[1.55] font-semibold text-(--ui-ink-3)";
 
 /** A link in a sheet: shuts it as it goes. */
 function SheetLink({
@@ -589,11 +591,12 @@ function SheetLink({
 }
 
 const TILE_BADGE =
-  "absolute -top-2 -right-2 min-w-[18px] rounded-(--ui-radius) bg-(--ui-warn-ink) px-[5px] text-center text-[11px]/[17px] font-semibold text-(--ui-paper) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
+  "absolute -top-2 -right-2 min-w-[18px] rounded-full bg-(--ui-primary) px-[5px] text-center text-[11px]/[17px] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden";
 const TILE =
   "flex min-w-0 flex-col items-center gap-1.5 py-2 text-center text-[12px] leading-tight font-medium text-(--ui-ink) no-underline active:opacity-60";
+/** An app's mark: paper on the raise with the cards' leaf (4 and 14); the open app in the tint. */
 const TILE_MARK =
-  "relative grid size-14 place-items-center border border-(--ui-hair) bg-(--ui-tile) text-(--ui-ink-2) in-aria-[current=page]:border-(--ui-active) in-aria-[current=page]:bg-(--ui-accent-tint) in-aria-[current=page]:text-(--ui-active)";
+  "relative grid size-14 place-items-center rounded-[4px_14px_4px_14px] bg-(--ui-paper) text-(--ui-ink-2) shadow-(--ui-raise) in-aria-[current=page]:bg-(--ui-accent-tint) in-aria-[current=page]:text-(--ui-ink)";
 
 /**
  * Every app, as a phone's home screen: by area, a grid of marks. Whose workspace it is and his
@@ -640,7 +643,7 @@ export function AppsSheet({
                     {p.label}
                   </span>
                   {p.count ? (
-                    <span className="text-[14px] text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]">
+                    <span className="min-w-5 rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums] in-data-[counts=off]:hidden">
                       {num(p.count)}
                     </span>
                   ) : null}

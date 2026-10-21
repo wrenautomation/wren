@@ -1,6 +1,7 @@
 /**
  * The launcher: one card per app, each opening into that app's pages. More apps make more cards,
- * never a longer menu.
+ * never a longer menu. A card is the artifact's `.links a`: paper on the raise, a leaf of 4 and 14,
+ * its name in 650, one line in ink-2; it lifts 2 px with an accent ring under the pointer.
  */
 import type { ReactNode } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
@@ -13,7 +14,7 @@ export function AppGrid({ label, children }: { label?: string | undefined; child
   return (
     <section className="[section+&]:mt-11" aria-label={label}>
       {label ? <h2 className={`mb-3.5 ${GROUP_LABEL}`}>{label}</h2> : null}
-      <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-4">
+      <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-2.5">
         {children}
       </ul>
     </section>
@@ -42,27 +43,16 @@ export function AppCard({
   return (
     <li>
       <a
-        className="group/app flex h-full flex-col gap-2 rounded-(--ui-radius-panel) bg-(--ui-paper) px-[22px] pt-5 pb-[22px] no-underline shadow-(--ui-raise) transition-colors duration-350 ease-(--ui-ease) hover:bg-(--ui-wash)"
+        className="flex h-full flex-col gap-0.5 rounded-[4px_14px_4px_14px] bg-(--ui-paper) px-4 py-3 text-[15px] leading-[1.55] text-(--ui-ink) no-underline shadow-(--ui-raise) transition-[transform,box-shadow] duration-200 ease-(--ui-ease) hover:-translate-y-0.5 hover:shadow-[var(--ui-raise),0_0_0_2px_var(--ui-focus)] focus-visible:-translate-y-0.5 focus-visible:shadow-[var(--ui-raise),0_0_0_2px_var(--ui-focus)] focus-visible:outline-none"
         href={href}
       >
-        <span className="mb-2 flex items-center justify-between">
-          <span
-            className="grid size-10 flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)"
-            aria-hidden="true"
-          >
-            <Icon name={icon} size={20} />
-          </span>
-          <Icon
-            name="arrow"
-            className="text-(--ui-ink-3) transition-[color,transform] duration-350 ease-(--ui-ease) group-hover/app:translate-x-[3px] group-hover/app:text-(--ui-link)"
-          />
+        <span className="flex min-w-0 items-center gap-[9px]">
+          <Icon name={icon} size={16} className="flex-none text-(--ui-ink-2)" />
+          <b className="min-w-0 font-[650]">{name}</b>
         </span>
-        <span className="font-(family-name:--ui-font-display) text-[20px]/[1.2] font-(--ui-display-weight) tracking-[-0.015em]">
-          {name}
-        </span>
-        {note ? <span className="-mt-1.5 text-[12.5px] text-(--ui-ink-3)">{note}</span> : null}
-        <span className="text-[14px]/[1.5] text-pretty text-(--ui-ink-2)">{blurb}</span>
-        {children ? <span className="mt-auto pt-3.5">{children}</span> : null}
+        {note ? <span className="text-[12.5px] text-(--ui-ink-3)">{note}</span> : null}
+        <span className="text-[13px] text-pretty text-(--ui-ink-2)">{blurb}</span>
+        {children ? <span className="mt-auto pt-2.5">{children}</span> : null}
       </a>
     </li>
   );
@@ -73,7 +63,7 @@ export interface GlanceFigure {
   value: number | string;
 }
 
-const GLANCE = "flex flex-wrap gap-x-[26px] gap-y-2.5 border-t border-(--ui-hair) pt-3.5";
+const GLANCE = "flex flex-wrap gap-x-[26px] gap-y-2.5 border-t border-(--ui-hair) pt-2.5";
 
 /** An app's few numbers on its card, and what's waiting on the viewer. Null while they load. */
 export function AppGlance({ figures, note }: { figures: GlanceFigure[] | null; note?: ReactNode }) {

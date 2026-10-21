@@ -163,8 +163,10 @@ export function CommandPalette({
       onOpenChange={onOpenChange}
       title="Go to"
       description="Do something here, or go to an app or page"
+      // The artifact's panel leaf (6 and 24) on the frame and the list it clips.
+      className="rounded-[6px_24px_6px_24px]! shadow-(--ui-shadow)"
     >
-      <Command>
+      <Command className="rounded-[6px_24px_6px_24px]!">
         {/* The box sits 4px into its wrapper, so the mic does too. */}
         <DictateField target={box} line className="[&>button]:top-2 [&>button]:right-2">
           <CommandInput

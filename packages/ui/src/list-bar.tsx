@@ -312,12 +312,11 @@ export function useLastUsed(
   }, [keep, json, key, meta.id]);
 }
 
+/** A view's tab: a small pill (the artifact's `.nt-top` buttons), 13 px 600, a leaf of 4 and 10; the row's `TabBar` slides the tint behind the one on screen. */
 export const TAB =
-  "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 py-2.5 text-[13px] font-medium no-underline";
+  "flex shrink-0 items-center gap-1.5 rounded-[4px_10px_4px_10px] px-[9px] py-1.5 text-[13px] font-semibold no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) motion-reduce:transition-none";
 export const tabTone = (on: boolean) =>
-  on
-    ? "border-transparent text-(--ui-ink)"
-    : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)";
+  on ? "text-(--ui-active) hover:bg-transparent" : "text-(--ui-ink-3) hover:text-(--ui-ink)";
 
 /** How many views show as tabs; the rest wait under More. */
 export const TABS = 5;
@@ -368,7 +367,7 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
         className={cn(
           phone
             ? "flex min-h-10 shrink-0 items-center gap-1 rounded-lg border-0 bg-(--ui-fill) px-3 text-[14px] font-medium text-(--ui-ink-2) aria-expanded:text-(--ui-ink)"
-            : cn(TAB, "rounded-none border-0 border-b-2 bg-transparent px-0", tabTone(!!on)),
+            : cn(TAB, "border-0 bg-transparent", tabTone(!!on)),
           on && "text-(--ui-ink)",
         )}
       >
@@ -483,14 +482,11 @@ export function ViewTabs({
       </div>
     );
   return (
-    <nav
-      className="relative flex gap-6 overflow-x-auto border-b border-(--ui-hair)"
-      aria-label="Views"
-    >
+    <nav className="relative flex gap-0.5 overflow-x-auto" aria-label="Views">
       <TabBar on={sv ? `sv:${sv}` : current} row={`views:${meta.id}`} />
       {tabs.map((v) =>
         v.saved ? (
-          <span key={v.id} className={cn(TAB, "gap-1 [--ui-gap:4px]", tabTone(v.on))}>
+          <span key={v.id} data-tab="" className={cn(TAB, "gap-1 [--ui-gap:4px]", tabTone(v.on))}>
             <a
               href={v.href}
               aria-current={v.on ? "page" : undefined}
@@ -526,11 +522,12 @@ export function ViewTabs({
 }
 
 const ITEM =
-  "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) disabled:opacity-40";
+  "flex h-8 pointer-coarse:h-11 w-full items-center gap-2 rounded-(--ui-leaf-nav) border-0 bg-transparent px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-accent-wash) disabled:opacity-40";
+/** A field in the bar (the artifact's `.finp`): a hairline, a leaf of 6 and 10. */
 const INPUT =
-  "h-8 pointer-coarse:h-11 w-full border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-focus) focus:shadow-[0_0_0_1px_var(--ui-focus)]";
-/** A view's name box: the bar's square look over the kit's input. */
-const NAME_BOX = cn(INPUT, "rounded-none md:text-[13px]");
+  "h-8 pointer-coarse:h-11 w-full rounded-[6px_10px_6px_10px] border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus-visible:border-(--ui-focus) focus-visible:shadow-[0_0_0_1px_var(--ui-focus)]";
+/** A view's name box: the bar's field over the kit's input. */
+const NAME_BOX = cn(INPUT, "md:text-[13px]");
 const sayOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** The open saved view's menu: rename, share, move, delete. */
@@ -753,13 +750,15 @@ export type Facets = Record<string, Record<string, number>>;
 
 /**
  * A tool on the list's bar (artifact `.nt-top .tl button`): no frame, ink-3 at rest, the accent
- * wash on hover. `CHIP_ON` is one that is set (`.tl button.on`): accent text on the tint.
+ * wash on hover. `CHIP_ON` is one that is set (`.tl button.on`): the active ink on the tint.
  */
 export const CHIP =
-  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent px-[9px] py-1.5 text-[13px] font-semibold whitespace-nowrap text-(--ui-ink-3) no-underline transition-[background-color,color] duration-150 [border-radius:4px_10px_4px_10px] hover:bg-(--ui-accent-wash) focus-visible:outline-2 focus-visible:outline-(--ui-focus) data-[popup-open]:bg-(--ui-accent-wash) pointer-coarse:min-h-11 motion-reduce:transition-none";
-export const CHIP_ON = "bg-(--ui-accent-tint) text-(--ui-link) hover:bg-(--ui-accent-tint)";
+  "inline-flex h-8 pointer-coarse:h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-[4px_10px_4px_10px] border-0 bg-transparent px-[9px] text-[13px] font-semibold whitespace-nowrap text-(--ui-ink-3) no-underline transition-[background-color,color] duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-(--ui-focus) data-[popup-open]:bg-(--ui-accent-wash) motion-reduce:transition-none";
+export const CHIP_ON =
+  "bg-(--ui-accent-tint) text-(--ui-active) hover:bg-(--ui-accent-tint) hover:text-(--ui-active)";
+/** A filter in force: a tool that is on, with its value and an ×. */
 const PILL = cn(
-  "inline-flex max-w-full min-w-0 items-center text-[13px] font-semibold [border-radius:4px_10px_4px_10px] pointer-coarse:min-h-11",
+  "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center rounded-[4px_10px_4px_10px] text-[13px] font-semibold",
   CHIP_ON,
 );
 
@@ -998,7 +997,7 @@ function FilterPanel({
                   ref: inSight(i === nav.at),
                   onMouseMove: () => nav.setAt(i),
                   ...tipProps(v ? sayRaw(f, v) : undefined),
-                  className: cn(ROW, i === nav.at && "bg-(--ui-hover)"),
+                  className: cn(ROW, i === nav.at && "bg-(--ui-accent-wash)"),
                 } as const;
                 if (phone)
                   return (
@@ -1309,7 +1308,7 @@ export function ListBar({
           aria-current={v.on ? "page" : undefined}
           className={cn(
             CHIP,
-            "aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_-2px_0_var(--ui-ink)]",
+            v.on && CHIP_ON,
           )}
         >
           <BarGlyph name={v.glyph} />
@@ -1321,8 +1320,9 @@ export function ListBar({
 
   // The artifact's `.nt-top`: the views at the left, the tools at the right.
   if (!narrow)
+    // A side control: the bar hugs its parts, never the page's width.
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex w-fit max-w-full flex-wrap items-center gap-2">
         {shape}
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
           {accountChip}
@@ -1413,14 +1413,15 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
     return () => clearTimeout(t);
   }, [text, asked, place]);
   return (
-    // A tool like the bar's others (artifact `.tl` Search): no frame, the wash on hover and focus.
+    // A tool like the bar's others (artifact `.tl` Search): no frame, the wash on hover and while
+    // typing. It hugs its placeholder and grows with the words, 160 to 224 px.
     <label
       className={cn(
         CHIP,
-        "relative w-52 cursor-text has-[input:focus-visible]:bg-(--ui-accent-wash) has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-(--ui-focus)",
+        "relative w-fit min-w-40 max-w-56 cursor-text focus-within:bg-(--ui-accent-wash)",
         // A phone shows the glass alone (artifact `.tl` Search) and opens the field on a tap.
         !asked &&
-          "max-[899.98px]:w-[33px] max-[899.98px]:transition-[width,background-color,color] max-[899.98px]:duration-200 max-[899.98px]:ease-(--ui-ease) max-[899.98px]:focus-within:w-40",
+          "max-[899.98px]:w-[33px] max-[899.98px]:min-w-0 max-[899.98px]:transition-[width,background-color,color] max-[899.98px]:duration-200 max-[899.98px]:ease-(--ui-ease) max-[899.98px]:focus-within:w-40",
         asked && "max-[899.98px]:w-40",
         asked && CHIP_ON,
       )}
@@ -1436,7 +1437,7 @@ export function SearchBox({ place, label }: { place: Place; label: string }) {
         }}
         placeholder={`Search ${label}`}
         aria-label={`Search ${label}`}
-        className="h-5 min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] font-semibold text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) [&::-webkit-search-cancel-button]:hidden"
+        className="h-5 min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] font-semibold text-(--ui-ink) outline-none [field-sizing:content] placeholder:text-(--ui-ink-3) [&::-webkit-search-cancel-button]:hidden"
       />
     </label>
   );
