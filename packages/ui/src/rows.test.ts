@@ -1,19 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { walkTo } from "./records.js";
-import { drawnOf, type RowsLine, type RowsWait, statsOf, waitWords } from "./rows.js";
+import { drawnOf, type RowsLine, type RowsWait, statsOf } from "./rows.js";
 
 const wait = (hours: number, late = false): RowsWait => ({ hours, late });
-
-describe("waitWords", () => {
-  it("says minutes under an hour, hours under a day, then days", () => {
-    expect(waitWords(0.25)).toBe("15 minutes");
-    expect(waitWords(1 / 60)).toBe("1 minute");
-    expect(waitWords(1)).toBe("1 hour");
-    expect(waitWords(6)).toBe("6 hours");
-    expect(waitWords(24)).toBe("1 day");
-    expect(waitWords(49)).toBe("2 days");
-  });
-});
 
 describe("statsOf", () => {
   it("counts every row, the late ones, and the longest wait", () => {

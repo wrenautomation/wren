@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hoursSay, hoursSince, lateOf, promiseHours } from "./promise.js";
+import { hoursSince, lateOf, promiseHours } from "./promise.js";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 36e5).toISOString();
@@ -13,14 +13,6 @@ describe("promiseHours", () => {
   it("answers null for anything else", () => {
     for (const bad of ["", "soon", "4", "h", "4 h", "1.5h", "-2h"])
       expect(promiseHours(bad)).toBeNull();
-  });
-});
-
-describe("hoursSay", () => {
-  it("says minutes, hours, then days", () => {
-    expect(hoursSay(0.5)).toBe("30m");
-    expect(hoursSay(6)).toBe("6h");
-    expect(hoursSay(72)).toBe("3d");
   });
 });
 

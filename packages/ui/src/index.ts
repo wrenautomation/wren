@@ -383,7 +383,6 @@ export {
   stateColor,
   statsOf,
   type WaitStats,
-  waitWords,
 } from "./rows.js";
 export {
   dwellOf,

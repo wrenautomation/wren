@@ -19,7 +19,7 @@ import {
   useRef,
 } from "react";
 import { Tag } from "./controls.js";
-import { initials } from "./format.js";
+import { initials, waited } from "./format.js";
 import { clipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import { lineColor, StageSquare, tintColor } from "./marks.js";
@@ -94,14 +94,6 @@ export function Pill({
   );
 }
 
-/** A wait as words: "40 minutes", "6 hours", "2 days". */
-export function waitWords(hours: number): string {
-  const one = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
-  if (hours < 1) return one(Math.max(1, Math.round(hours * 60)), "minute");
-  if (hours < 24) return one(Math.round(hours), "hour");
-  return one(Math.floor(hours / 24), "day");
-}
-
 /** How long a row has waited, and whether that is past its promise. */
 export interface RowsWait {
   hours: number;
@@ -124,7 +116,7 @@ export function Age({ hours, late, className }: RowsWait & { className?: string 
         className,
       )}
     >
-      {waitWords(hours)}
+      {waited(hours)}
     </span>
   );
 }
@@ -163,7 +155,7 @@ export function RowsFoot({ stats, waits }: { stats: WaitStats; waits: boolean })
           </span>
           {stats.oldest ? (
             <span>
-              Oldest <b className="font-[650] text-(--ui-ink-2)">{waitWords(stats.oldest.hours)}</b>
+              Oldest <b className="font-[650] text-(--ui-ink-2)">{waited(stats.oldest.hours)}</b>
             </span>
           ) : null}
         </>
