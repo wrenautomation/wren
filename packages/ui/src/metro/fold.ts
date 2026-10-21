@@ -9,6 +9,7 @@
 import {
   type CapsuleStation,
   isMark,
+  type Mark,
   type MarkStation,
   type MetroScene,
   type MetroTrack,
@@ -120,6 +121,19 @@ export function autoZoom(
   };
 }
 
+/**
+ * The mark of a folded run: the mark all its stations share, else "changed" when anything inside
+ * (a station or a track between them) carries one. A fold must not hide a diff.
+ */
+export function capsuleMark(
+  stations: readonly { mark?: Mark | undefined }[],
+  tracks: readonly { mark?: Mark | undefined }[],
+): Mark | undefined {
+  const first = stations[0]?.mark;
+  if (first && stations.every((s) => s.mark === first)) return first;
+  return [...stations, ...tracks].some((x) => x.mark) ? "changed" : undefined;
+}
+
 const zoneOf = (scene: MetroScene, x: number) =>
   (scene.zones ?? []).findIndex(([a, b]) => x >= a && x < b);
 
@@ -149,6 +163,8 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
     const line = scene.lines?.[first.ln] ?? { n: first.ln, l: first.ln };
     const xs = m.map((s) => s.x);
     const ids = new Set(m.map((s) => s.id));
+    const inside = scene.tr.filter((r) => r.a && r.b && ids.has(r.a) && ids.has(r.b));
+    const mark = capsuleMark(m, inside);
     const lo = Math.min(...xs);
     const hi = Math.max(...xs);
     const zone = scene.zones?.[zoneOf(scene, first.x)]?.[2];
@@ -165,7 +181,8 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
       x: (lo + hi) / 2,
       y: first.y,
       l: line.l,
-      late: scene.tr.some((r) => r.late && r.a && r.b && ids.has(r.a) && ids.has(r.b)),
+      late: inside.some((r) => r.late),
+      ...(mark ? { mark } : {}),
       now: m.reduce((a, s) => a + (s.now ?? 0), 0),
       n: name,
     });

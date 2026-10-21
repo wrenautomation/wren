@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { layoutMetro, SPACE } from "./layout.js";
+import { layoutMetro, lineKeyOf, SPACE } from "./layout.js";
 import {
   COLD_OUTBOUND_VIEW,
+  DIFF_VIEW,
   DOWNSELL_VIEW,
   LADDER_VIEW,
   LATE_VIEW,
@@ -174,5 +175,101 @@ describe("layoutMetro", () => {
     const big = layoutMetro(LADDER_VIEW);
     expect(big.w ?? 0).toBeGreaterThan(small.w ?? 0);
     expect(big.h).toBeGreaterThan(small.h);
+  });
+});
+
+describe("track ids", () => {
+  it("takes the view's track id as the scene track id", () => {
+    const s = layoutMetro(DIFF_VIEW);
+    expect(s.tr.map((t) => t.id)).toEqual(DIFF_VIEW.tracks.map((t) => t.id));
+  });
+
+  it("falls back to from-to without an id", () => {
+    const s = layoutMetro(COLD_OUTBOUND_VIEW);
+    expect(s.tr.find((t) => t.a === "rep" && t.b === "bk")?.id).toBe("rep-bk");
+  });
+
+  it("keeps ids apart when two tracks share one", () => {
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      tracks: [
+        { id: "same", from: "rep", to: "bk", by: "system" },
+        { id: "same", from: "bk", to: "held", by: "system" },
+      ],
+    };
+    const ids = layoutMetro(v).tr.map((t) => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids[0]).toBe("same");
+  });
+
+  it("keeps an id on an exit, a hub track and a transfer", () => {
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      tracks: COLD_OUTBOUND_VIEW.tracks.map((t) => ({ ...t, id: `x:${t.from}:${t.to}` })),
+    };
+    const s = layoutMetro(v);
+    expect(s.tr.find((t) => t.b === "lost")?.id).toBe("x:held:lost");
+    expect(s.tr.find((t) => t.a === "hub")?.id).toBe("x:hub:rep");
+    expect(s.tr.find((t) => t.b === "hub")?.id).toBe("x:c1:hub");
+    const p = layoutMetro({
+      ...PLANNED_VIEW,
+      tracks: PLANNED_VIEW.tracks.map((t) => ({ ...t, id: `x:${t.from}:${t.to}` })),
+    });
+    const x = p.tr.find((t) => t.k === "xfer");
+    expect(x?.id).toBe(`x:${x?.a}:${x?.b}`);
+  });
+});
+
+describe("diff marks", () => {
+  const s = layoutMetro(DIFF_VIEW);
+
+  it("passes a station's own mark and a track's own mark", () => {
+    expect(at(s, "chk").mark).toBe("added");
+    expect(at(s, "bk").mark).toBe("changed");
+    expect(at(s, "old").mark).toBe("removed");
+    expect(s.tr.find((t) => t.id === "t-yt-hub")?.mark).toBe("changed");
+    expect(s.tr.find((t) => t.id === "t-chk-bk")?.mark).toBe("added");
+    expect(s.tr.find((t) => t.id === "t-bk-pay")?.mark).toBe("removed");
+    // An exit track keeps its mark too.
+    expect(s.tr.find((t) => t.id === "t-bk-old")?.mark).toBe("removed");
+  });
+
+  it("puts a line's mark on its tracks and stations that have none of their own", () => {
+    expect(at(s, "lan").mark).toBe("added");
+    expect(at(s, "tix").mark).toBe("added");
+    expect(s.tr.find((t) => t.id === "t-lan-tix")?.mark).toBe("added");
+    // The track from the hub into the line joins it, so it is marked; the hub is not.
+    expect(s.tr.find((t) => t.id === "t-hub-lan")?.mark).toBe("added");
+    expect(at(s, "hub").mark).toBeUndefined();
+  });
+
+  it("leaves what has no mark unmarked, and lets a mark of its own beat the line's", () => {
+    expect(at(s, "pay").mark).toBeUndefined();
+    expect(s.tr.find((t) => t.id === "t-hub-chk")?.mark).toBeUndefined();
+    const v: MetroView = {
+      ...DIFF_VIEW,
+      stations: DIFF_VIEW.stations.map((st) => (st.id === "tix" ? { ...st, mark: "changed" } : st)),
+    };
+    expect(at(layoutMetro(v), "tix").mark).toBe("changed");
+  });
+
+  it("is off when no mark is given", () => {
+    const plain = layoutMetro(COLD_OUTBOUND_VIEW);
+    expect(plain.st.some((m) => "mark" in m)).toBe(false);
+    expect(plain.tr.some((t) => "mark" in t)).toBe(false);
+  });
+});
+
+describe("lineKeyOf", () => {
+  it("answers out for any outreach line and the id for an offer line", () => {
+    expect(lineKeyOf(DIFF_VIEW, "yt")).toBe("out");
+    expect(lineKeyOf(DIFF_VIEW, "web")).toBe("web");
+    expect(lineKeyOf(DIFF_VIEW, "nope")).toBe("nope");
+  });
+
+  it("is the key the scene draws a line's marks with", () => {
+    const s = layoutMetro(DIFF_VIEW);
+    expect(s.lines?.yt?.l).toBe(lineKeyOf(DIFF_VIEW, "yt"));
+    expect(s.lines?.gp?.l).toBe(lineKeyOf(DIFF_VIEW, "gp"));
   });
 });

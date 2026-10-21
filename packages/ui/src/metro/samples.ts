@@ -1073,6 +1073,78 @@ export const WEBINAR_VIEW: MetroView = {
   ],
 };
 
+/**
+ * A draft against live: one of each diff mark on stations, tracks and a whole line, and the
+ * store's track ids on every track. Synthetic.
+ */
+export const DIFF_VIEW: MetroView = {
+  title: "A draft against live",
+  lines: [
+    { id: "yt", tier: "out" },
+    // A whole new line: its stations and tracks take the mark.
+    { id: "web", offer: "Webinar", tier: "front", colour: 0, mark: "added" },
+    { id: "gp", offer: "Growth Partner", tier: "core", colour: 2 },
+  ],
+  stations: [
+    { id: "yt", kind: "att", line: "yt", column: "Marketing", label: "YouTube", sub: "420" },
+    {
+      id: "hub",
+      kind: "hub",
+      line: "yt",
+      column: "Marketing",
+      label: "First touch",
+      sub: "18 leads",
+    },
+    { id: "lan", kind: "att", line: "web", column: "Sales", label: "Visited lander", sub: "180" },
+    { id: "tix", kind: "cash", line: "web", column: "Sales", label: "Webinar ticket", sub: "46" },
+    {
+      id: "chk",
+      kind: "att",
+      line: "gp",
+      column: "Sales",
+      label: "Replied",
+      sub: "9",
+      mark: "added",
+    },
+    {
+      id: "bk",
+      kind: "time",
+      line: "gp",
+      column: "Sales",
+      label: "Call booked",
+      sub: "6",
+      mark: "changed",
+    },
+    {
+      id: "old",
+      kind: "exit",
+      line: "gp",
+      column: "Sales",
+      label: "Dropped",
+      bad: true,
+      mark: "removed",
+    },
+    { id: "pay", kind: "cash", line: "gp", column: "Money", label: "Growth Partner", sub: "3" },
+  ],
+  tracks: [
+    { id: "t-yt-hub", from: "yt", to: "hub", by: "system", mark: "changed" },
+    { id: "t-hub-lan", from: "hub", to: "lan", by: "system" },
+    { id: "t-lan-tix", from: "lan", to: "tix", by: "system" },
+    { id: "t-hub-chk", from: "hub", to: "chk", by: "system" },
+    { id: "t-chk-bk", from: "chk", to: "bk", by: "system", mark: "added" },
+    { id: "t-bk-old", from: "bk", to: "old", by: "system", mark: "removed" },
+    {
+      id: "t-bk-pay",
+      from: "bk",
+      to: "pay",
+      by: "person",
+      owner: "WJ",
+      promise: "2d",
+      mark: "removed",
+    },
+  ],
+};
+
 /** Value ladder: each rung is a money station; upsell connectors carry people up. */
 export const LADDER_VIEW: MetroView = {
   title: "Value ladder",

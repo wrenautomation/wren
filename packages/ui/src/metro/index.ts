@@ -22,8 +22,8 @@ export {
   toggleGroup,
 } from "./fold.js";
 export { octPath, octPts, rounded } from "./geometry.js";
-export { layoutMetro, SPACE } from "./layout.js";
-export { MetroLevels, MetroMap, type MetroMapProps, type MetroPick } from "./map.js";
+export { layoutMetro, lineKeyOf, SPACE } from "./layout.js";
+export { MetroLegend, MetroLevels, MetroMap, type MetroMapProps, type MetroPick } from "./map.js";
 export {
   Badge,
   Capsule,
@@ -51,6 +51,7 @@ export {
   isRing,
   type LineKey,
   lineColour,
+  type Mark,
   type MarkStation,
   type MetroPart,
   type MetroScene,

@@ -55,6 +55,15 @@ const WEIGHT_OF: Record<ViewLine["tier"], Weight> = { out: "out", front: "front"
 /** The key a scene uses for a line: "out" for any outreach line, the id for an offer. */
 const keyOf = (l: ViewLine) => (l.tier === "out" ? "out" : l.id);
 
+/**
+ * The key `lit` and a mark's `data-l` take for a line: "out" for any outreach line, the id for an
+ * offer's line. An id the view does not list is its own key.
+ */
+export function lineKeyOf(view: Pick<MetroView, "lines">, lineId: string): string {
+  const l = view.lines.find((x) => x.id === lineId);
+  return l ? keyOf(l) : lineId;
+}
+
 export function layoutMetro(view: MetroView): MetroScene {
   const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
   for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
@@ -139,7 +148,7 @@ export function layoutMetro(view: MetroView): MetroScene {
     const x = xOf(s);
     const sy = isHub ? firstY : (rowY.get(s.line) ?? firstY);
     pos.set(s.id, [x, sy]);
-    st.push(mark(s, x, sy, isHub ? { span: [firstY, lastY] } : {}));
+    st.push(mark(s, x, sy, isHub ? { span: [firstY, lastY] } : {}, line));
   }
   // Exits: under the source, one step lower for each further exit of the same source.
   const taken = new Map<string, number>();
@@ -152,7 +161,7 @@ export function layoutMetro(view: MetroView): MetroScene {
     taken.set(src, n + 1);
     const p: Point = [from[0] + n * 64, from[1] + SPACE.exit];
     pos.set(s.id, p);
-    st.push(mark(s, p[0], p[1], { p: "right" }));
+    st.push(mark(s, p[0], p[1], { p: "right" }, line));
   }
 
   // Tracks.
@@ -164,16 +173,28 @@ export function layoutMetro(view: MetroView): MetroScene {
     const pa = pos.get(t.from);
     const pb = pos.get(t.to);
     if (!a || !b || !pa || !pb) return;
-    const id = `${t.from}-${t.to}${tr.some((r) => r.id === `${t.from}-${t.to}`) ? `-${i}` : ""}`;
-    if (b.kind === "exit") {
-      tr.push({ id, k: "exit", a: a.id, b: b.id, ...(t.label ? { cond: t.label } : {}) });
-      return;
-    }
+    // The store's track id when given; else from-to. A repeat id gets its index.
+    const own = t.id ?? `${t.from}-${t.to}`;
+    const id = tr.some((r) => r.id === own) ? `${own}-${i}` : own;
     const la = lineOf(a);
     const lb = lineOf(b);
+    // The track's own mark, else the mark of the line it sits on (the line it joins, for a transfer).
+    const markOf = t.mark ?? (b.kind === "hub" ? la : (lb ?? la))?.mark;
+    if (b.kind === "exit") {
+      tr.push({
+        id,
+        k: "exit",
+        a: a.id,
+        b: b.id,
+        ...(markOf ? { mark: markOf } : {}),
+        ...(t.label ? { cond: t.label } : {}),
+      });
+      return;
+    }
     const owner = t.by === "person" ? who(t) : undefined;
     const common = {
       id,
+      ...(markOf ? { mark: markOf } : {}),
       ...(owner ? { who: owner } : {}),
       ...(t.late ? { late: true } : {}),
       ...(t.task ? { task: t.task } : {}),
@@ -246,7 +267,15 @@ function who(t: ViewTrack): string {
   return `${t.owner ?? "?"} · ${t.promise ?? "?"}`;
 }
 
-function mark(s: ViewStation, x: number, y: number, extra: Partial<MarkStation>): MarkStation {
+function mark(
+  s: ViewStation,
+  x: number,
+  y: number,
+  extra: Partial<MarkStation>,
+  lines: Map<string, ViewLine>,
+): MarkStation {
+  // Its own mark, else its line's. The hub joins every line, so it has no line mark.
+  const m = s.mark ?? (s.kind === "hub" ? undefined : lines.get(s.line)?.mark);
   return {
     id: s.id,
     t: KIND[s.kind],
@@ -264,6 +293,7 @@ function mark(s: ViewStation, x: number, y: number, extra: Partial<MarkStation>)
     ...(s.group ? { g: s.group } : {}),
     ...(s.flow ? { flow: s.flow } : {}),
     ...(s.now !== undefined ? { now: s.now } : {}),
+    ...(m ? { mark: m } : {}),
     ...extra,
   };
 }

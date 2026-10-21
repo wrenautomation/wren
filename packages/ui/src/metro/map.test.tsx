@@ -8,6 +8,7 @@ import { layoutMetro } from "./layout.js";
 import { MetroMap } from "./map.js";
 import {
   COLD_OUTBOUND_VIEW,
+  DIFF_VIEW,
   INDUSTRIES,
   LOOP_SCENE,
   loopZoom,
@@ -67,6 +68,71 @@ describe("MetroSvg", () => {
     const scene = layoutMetro(COLD_OUTBOUND_VIEW);
     expect(renderToStaticMarkup(<MetroSvg scene={scene} />)).not.toContain("animation-delay");
     expect(renderToStaticMarkup(<MetroSvg scene={scene} intro />)).toContain("animation-delay");
+  });
+});
+
+describe("diff marks", () => {
+  const html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={2} intro={false} />);
+
+  it("says each mark in the name of the station", () => {
+    const found = Object.fromEntries(names(html).map(([id, label]) => [id, label]));
+    expect(found.chk).toBe("Replied, 9, added");
+    expect(found.bk).toBe("Call booked, 6, changed");
+    expect(found.old).toMatch(/removed$/);
+    expect(found.hub).toBe("First touch, 18 leads");
+  });
+
+  it("says each mark on a track: a named tag on a plain track, the pill on a person track", () => {
+    expect(html).toContain('aria-label="Track from YouTube to First touch, changed"');
+    expect(html).toContain('aria-label="Track from Replied to Call booked, added"');
+    expect(html).toContain('aria-label="Track from Call booked to Dropped, removed"');
+    expect(html).toContain('aria-label="Person task, WJ, 2d, removed"');
+  });
+
+  it("leaves the inline stroke off an added or changed track, so the mark colour shows", () => {
+    expect(html).toMatch(/<path class="trk"[^>]*data-mark="added"[^>]*style="stroke-width:/);
+    expect(html).toMatch(/<path class="trk"[^>]*data-mark="removed"[^>]*style="stroke:var\(--ui-/);
+  });
+
+  it("stops the dots on a removed track", () => {
+    const moving = renderToStaticMarkup(<MetroSvg scene={layoutMetro(DIFF_VIEW)} />);
+    const paths = [...moving.matchAll(/<animateMotion[^>]*path="([^"]*)"/g)].map((m) => m[1]);
+    const scene = layoutMetro(DIFF_VIEW);
+    // The removed person track runs from Call booked to Growth Partner: its path has no dots.
+    const bk = scene.st.find((m) => m.id === "bk");
+    expect(paths.length).toBeGreaterThan(0);
+    expect(paths.some((p) => p?.startsWith(`M${bk?.x} ${bk?.y}`))).toBe(false);
+  });
+
+  it("shows the legend only when the map has a mark", () => {
+    expect(html).toContain("metro-legend");
+    for (const w of ["Added", "Changed", "Removed"]) expect(html).toContain(w);
+    const plain = renderToStaticMarkup(
+      <MetroMap view={COLD_OUTBOUND_VIEW} level={2} intro={false} />,
+    );
+    expect(plain).not.toContain("metro-legend");
+  });
+
+  it("puts the legend in the bar, or over the corner when the bar is off", () => {
+    expect(html).toMatch(/metro-bar[\s\S]*metro-legend/);
+    const bare = renderToStaticMarkup(
+      <MetroMap view={DIFF_VIEW} level={2} intro={false} controls={false} />,
+    );
+    expect(bare).toContain("metro-legend over");
+    expect(bare).not.toContain("metro-bar");
+  });
+
+  it("shows a mark on a folded capsule", () => {
+    const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={0} intro={false} />);
+    expect(folded).toMatch(/class="cap[^"]*"[^>]*data-mark="added"/);
+    expect(folded).toContain("metro-legend");
+  });
+});
+
+describe("the hub", () => {
+  it("draws its count under its label", () => {
+    const html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={2} intro={false} />);
+    expect(html).toMatch(/class="lab"[^>]*>First touch<\/text><text class="sub"[^>]*>.*18 leads/);
   });
 });
 
