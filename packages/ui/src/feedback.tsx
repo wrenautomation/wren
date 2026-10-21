@@ -64,7 +64,7 @@ export function Loading({
   );
 }
 
-const GHOST = "h-3 bg-(--ui-fill)";
+const GHOST = "h-3";
 const WIDTHS = ["w-[92%]", "w-[92%]", "w-[74%]", "w-[58%]"];
 
 /** Nothing here yet: say why, and what fills it. */
@@ -81,8 +81,8 @@ export function Empty({
     <div
       data-empty=""
       className={cx(
-        // A dashed frame: a place that fills, apart from the solid frames of parts that have.
-        "flex flex-col items-center gap-4 rounded-(--ui-radius-panel) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
+        // A hairline frame, a leaf of 6 and 14 (artifact `.stt`): no ground, so it reads as a place to fill.
+        "flex flex-col items-center gap-4 rounded-[6px_14px_6px_14px] border border-(--ui-hair) px-6 py-12 text-center text-[13.5px] text-(--ui-ink-2)",
         className,
       )}
     >
@@ -92,7 +92,7 @@ export function Empty({
   );
 }
 
-/** A part that isn't built yet: a dashed frame like Empty, its tag first, then what works meanwhile. */
+/** A part that isn't built yet: a hairline frame like Empty, its tag first, then what works meanwhile. */
 export function InDevelopment({
   className,
   children,
@@ -103,7 +103,7 @@ export function InDevelopment({
   return (
     <div
       className={cx(
-        "flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-(--ui-radius-panel) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-4 py-3 text-[14px] text-pretty text-(--ui-ink-2)",
+        "flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-[6px_14px_6px_14px] border border-(--ui-hair) px-4 py-3 text-[13.5px] text-pretty text-(--ui-ink-2)",
         className,
       )}
     >
