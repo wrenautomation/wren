@@ -95,7 +95,7 @@ const goal = (
  * folded, Autopilot).
  */
 export const CADENCE: Goal[] = [
-  goal("g1", "youtube", "YouTube", "long", "Long video", 1),
+  goal("g1", "youtube", "YouTube", "long", "Long video", 1, { line: "signed" }),
   goal("g2", "tiktok", "TikTok", "vertical", "Short video", 2, { daily: 3, today: 3, write: 0 }),
   goal("g3", "linkedin", "LinkedIn", "written", "Written post", 3, {
     daily: 1,
@@ -108,15 +108,20 @@ export const CADENCE: Goal[] = [
     write: 3,
   }),
   goal("g5", "instagram", "Instagram", "vertical", "Short video", 1, {
+    line: "react",
     daily: 3,
     today: 0,
     write: 2,
   }),
-  goal("g6", "x", "X", "written", "Written post", 4, { daily: 4, today: 1, write: 2 }),
+  goal("g6", "x", "X", "written", "Written post", 4, {
+    line: "signed",
+    daily: 4,
+    today: 1,
+    write: 2,
+  }),
 ];
 
-/** Studio's "waiting" read (ContentDesk): no idea has a draft waiting. */
-export const STUDIO_WAITING = { ideas: [] };
+export { STUDIO_WAITING } from "./studio.js";
 
 /** Auto-reply's modes: Wren's own (InboxDesk through the console) and a client's alike. */
 export const AUTO_REPLY = {

@@ -5,19 +5,24 @@
  * Hover, click and Apply run in `play`. `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { crossingsOf, layoutMetro } from "@wren/ui/metro";
 import { expect, fn, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { TodayTasks } from "./map/TodayTasks.js";
 import type { Task } from "./map/tasks.js";
+import { viewOf } from "./map/view.js";
 import { freshStory, refuse } from "./mocks/api.js";
 import { ANSWERS } from "./mocks/data/index.js";
-import { SHAPE_GRAPH } from "./mocks/data/journeys.js";
+import { SHAPE_GRAPH, SHAPE_METRO } from "./mocks/data/journeys.js";
 import {
+  bigAnswers,
   FILE_TEXT,
   forgetMapCalls,
   liveShape,
   MAP_CALLS,
   planAnswers,
+  SHAPE_BIG,
   SHAPE_HUB_CLASH,
+  SHAPE_PLAN,
   shapeAnswers,
 } from "./mocks/data/map.js";
 import { REFUSED_UNDO } from "./mocks/data/map-drafts.js";
@@ -54,6 +59,67 @@ const station = async (page: HTMLElement, name: RegExp | string) => {
   );
 };
 
+/**
+ * What the map draws on top of something else, by the boxes on screen: a name on a name, a mark,
+ * a task chip or a label; a chip on a mark. Empty means calm. A name and the line under it touch
+ * on purpose. The layout test checks the same in the scene; this reads what the browser drew.
+ */
+const onTop = (svg: Element): string[] => {
+  const box = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    return { x0: r.left, x1: r.right, y0: r.top + 2, y1: r.bottom - 2 };
+  };
+  const meet = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
+    a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  const word = (el: Element) => el.textContent?.trim() || el.getAttribute("class") || "?";
+  const names = [...svg.querySelectorAll("text.lab, text.sub")];
+  const solid = [...svg.querySelectorAll(".mk .b, .pill, .chip, .xp")];
+  const out: string[] = [];
+  names.forEach((a, i) => {
+    for (const b of names.slice(i + 1)) {
+      if (a.nextElementSibling === b) continue;
+      if (meet(box(a), box(b))) out.push(`"${word(a)}" meets "${word(b)}"`);
+    }
+    for (const m of solid)
+      if (meet(box(a), box(m))) out.push(`"${word(a)}" meets a ${word(m)} mark`);
+  });
+  const chips = [...svg.querySelectorAll(".pill, .chip")];
+  for (const c of chips)
+    for (const m of svg.querySelectorAll(".mk .b"))
+      if (meet(box(c), box(m))) out.push(`chip "${word(c)}" meets a mark`);
+  return out;
+};
+
+/**
+ * The map is drawn at real size (one scene px is one css px), sits at the top of its frame and
+ * across its middle when it is smaller, and pans inside it when it is bigger. Returns whether it pans.
+ */
+const calm = async (page: HTMLElement) => {
+  await document.fonts.ready;
+  const svg = (await waitFor(() => {
+    const el = page.querySelector<SVGSVGElement>("svg[role='group']");
+    if (!el) throw new Error("The map is not drawn yet.");
+    return el;
+  }, LATE)) as SVGSVGElement;
+  const host = svg.closest<HTMLElement>(".metro-host") as HTMLElement;
+  const at = svg.getBoundingClientRect();
+  await expect(Math.abs(at.width - Number(svg.getAttribute("width")))).toBeLessThan(1);
+  await expect(onTop(svg)).toEqual([]);
+  const room = host.getBoundingClientRect();
+  const pans = host.scrollWidth > host.clientWidth + 1 || host.scrollHeight > host.clientHeight + 1;
+  if (at.width < host.clientWidth - 2)
+    await expect(Math.abs(at.left - room.left - (room.right - at.right))).toBeLessThan(2);
+  // Under the title, as in the design language's "Map in the app": never down the middle of an empty frame.
+  if (at.height < host.clientHeight - 2) await expect(Math.abs(at.top - room.top)).toBeLessThan(2);
+  return { svg, host, pans };
+};
+
+/** Crossings each fake shape draws now. Before the rows were ordered the big shape drew 2; the rest drew the same. */
+const CROSSINGS_PINNED = { default: 0, plan: 0, big: 0 };
+/** The tracks of `metro` that cross in the layout the page draws. */
+const crossingsOfShape = (metro: Parameters<typeof viewOf>[0]) =>
+  crossingsOf(layoutMetro(viewOf(metro, { stations: new Map() }, [], new Date())));
+
 type Reply = (b: Record<string, unknown>) => unknown;
 const SHARED = {
   get: ANSWERS["pipeline/recordsGet"] as Reply,
@@ -88,6 +154,9 @@ export const Default = mapAt("/", {
     await expect(await within(page).findByRole("heading", { name: "Map" })).toBeVisible();
     // The hub reads its lead count.
     await expect(await station(page, "First touch")).toHaveAccessibleName("First touch, 18 leads");
+    // A calm map: real size, centred or panning, nothing on top of anything, no more crossings.
+    await calm(page);
+    await expect(crossingsOfShape(SHAPE_METRO)).toBeLessThanOrEqual(CROSSINGS_PINNED.default);
     // The ghost holds its one person.
     await expect(within(page).getByRole("button", { name: "Open Joined" })).toBeVisible();
     // Today is no column beside the Map: closed, it takes no room (on a phone it is a tab).
@@ -132,9 +201,34 @@ export const Dark = {
     check: async (page) => {
       await station(page, "Engaged");
       await expect(within(page).getByRole("region", { name: "Map" })).toBeVisible();
+      await calm(page);
     },
   }),
   globals: { theme: "dark" },
+};
+
+/**
+ * The first read of the map has not come back: no box, no ring, no words. The frame holds the dot
+ * grid and a few ghost lines and stations, the size the map will fill. The title carries no ring.
+ */
+export const Loading = {
+  ...mapAt("/", { mode: "pending" }),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const page = canvasElement;
+    const skeleton = await within(page).findByRole("status", { name: "Loading" }, LATE);
+    await expect(skeleton).toBeVisible();
+    // No words on the map's frame, no ring beside any title, no box. (The phone page also draws
+    // the Today sheet's own ghost lines below the map; they are not the map's.)
+    const frame = skeleton.parentElement as HTMLElement;
+    await expect(skeleton.textContent).toBe("");
+    await expect(within(frame).queryAllByText(/^Loading/)).toHaveLength(0);
+    const title = within(page).getByRole("heading", { name: "Map", level: 1 });
+    await expect(title.parentElement?.querySelectorAll("[data-busy]").length).toBe(0);
+    // It fills the frame the map fills.
+    await expect(
+      Math.abs(skeleton.getBoundingClientRect().height - frame.clientHeight),
+    ).toBeLessThan(2);
+  },
 };
 
 /** The window is in the address; 7 days is lit and the numbers are the window's. */
@@ -336,14 +430,56 @@ export const Plan = mapAt("/", {
     await expect(await station(page, "Standard plan")).toHaveAccessibleName(
       /^Standard plan, 3 now/,
     );
+    await calm(page);
+    await expect(crossingsOfShape(SHAPE_PLAN)).toBeLessThanOrEqual(CROSSINGS_PINNED.plan);
   },
 });
 
-/** On a phone the Map fills the width and Today is a tab under it, open. */
+/**
+ * A big shape: ten lines and thirty-odd stations. It draws bigger than the page, at real size, so
+ * the Map pans inside its frame: scroll to the far corner and the last stations are there.
+ */
+export const Big = mapAt("/", {
+  answers: bigAnswers(SHARED),
+  check: async (page) => {
+    await station(page, "Retainer");
+    const { host, pans } = await calm(page);
+    await expect(pans).toBe(true);
+    // A frame that scrolls takes focus, so the arrow keys pan it.
+    await waitFor(() => expect(host).toHaveAttribute("tabindex", "0"));
+    await expect(crossingsOfShape(SHAPE_BIG)).toBeLessThanOrEqual(CROSSINGS_PINNED.big);
+    // It opens at the left edge: the first station is in view and nothing is scrolled away.
+    await expect(host.scrollLeft).toBe(0);
+    const first = await station(page, "Social");
+    const [a, b] = [first.getBoundingClientRect(), host.getBoundingClientRect()];
+    await expect(a.left).toBeGreaterThanOrEqual(b.left);
+    await expect(a.right).toBeLessThanOrEqual(b.right);
+  },
+});
+
+/** A map bigger than its frame pans: scrolled to the far corner, the last station is in view. */
+export const BigPan = mapAt("/", {
+  answers: bigAnswers(SHARED),
+  check: async (page) => {
+    await station(page, "Retainer");
+    const { host } = await calm(page);
+    host.scrollTo({ left: host.scrollWidth, top: host.scrollHeight });
+    const last = await station(page, "Retainer");
+    await waitFor(() => {
+      const [a, b] = [last.getBoundingClientRect(), host.getBoundingClientRect()];
+      if (a.right > b.right || a.bottom > b.bottom || a.left < b.left || a.top < b.top)
+        throw new Error("The last station is not in view yet.");
+    });
+  },
+});
+
 export const Phone = {
   ...mapAt("/", {
     check: async (page) => {
       await station(page, "Engaged");
+      // Real size: the map is wider than the phone, so it pans inside its frame.
+      const { pans } = await calm(page);
+      await expect(pans).toBe(true);
       const tab = within(page).getByRole("button", { name: /Today/ });
       await expect(tab).toHaveAttribute("aria-expanded", "true");
       await expect(await within(page).findByRole("heading", { name: /^Write/ })).toBeVisible();

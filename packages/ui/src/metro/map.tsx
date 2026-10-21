@@ -6,6 +6,10 @@
  * kept here when it does not. The map keeps no state a remount would lose when the parent passes
  * both. Hover or focus on a line lights it; Enter or Space on a mark picks it or opens its fold;
  * a wheel with ctrl or meta, a Safari pinch and a touch pinch step the level.
+ *
+ * Scale: one scene px is one css px. The host centres a map smaller than itself across its width,
+ * at the top, and scrolls a map wider or taller than itself, so a label reads at its real size on any
+ * screen.
  */
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "../format.js";
@@ -322,6 +326,22 @@ export function MetroMap(props: MetroMapProps) {
     return () => clearTimeout(t);
   }, [scene]);
 
+  // A map bigger than its frame pans inside it: the frame takes focus so the arrow keys scroll it.
+  const stage = useRef<HTMLDivElement>(null);
+  const [pans, setPans] = useState(false);
+  useLayoutEffect(() => {
+    const h = host.current;
+    if (!h) return;
+    const read = () =>
+      setPans(h.scrollWidth > h.clientWidth + 1 || h.scrollHeight > h.clientHeight + 1);
+    read();
+    if (typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(read);
+    watch.observe(h);
+    if (stage.current) watch.observe(stage.current);
+    return () => watch.disconnect();
+  }, []);
+
   // The legend shows while the map has a mark. Marks show at every level (a fold carries them).
   const drawsMarks = hasMarks(scene);
   const marks = scene.st.length;
@@ -369,10 +389,23 @@ export function MetroMap(props: MetroMapProps) {
           {drawsMarks ? <MetroLegend /> : null}
         </div>
       ) : null}
-      <div ref={host} className={cx("metro-host", intro && "ld")}>
+      <div
+        ref={host}
+        className={cx("metro-host", intro && "ld")}
+        {...(pans ? { tabIndex: 0, role: "group", "aria-label": "Scrollable map" } : {})}
+      >
         {drawsMarks && !controls ? <MetroLegend over /> : null}
-        <MetroSvg ref={svg} scene={scene} still={still} intro={intro} selected={picked} lit={lit} />
-        <div ref={old} className="metro-old" aria-hidden="true" />
+        <div ref={stage} className="metro-stage">
+          <MetroSvg
+            ref={svg}
+            scene={scene}
+            still={still}
+            intro={intro}
+            selected={picked}
+            lit={lit}
+          />
+          <div ref={old} className="metro-old" aria-hidden="true" />
+        </div>
       </div>
     </div>
   );
