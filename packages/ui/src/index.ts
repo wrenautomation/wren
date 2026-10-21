@@ -287,6 +287,7 @@ export {
 } from "./marks.js";
 export {
   type OverviewProps,
+  type OverviewQueue,
   type OverviewTile,
   type OverviewTop,
   RecordOverview,

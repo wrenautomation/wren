@@ -9,15 +9,15 @@ import type { RecordMeta } from "@wren/core/records";
 import type { Period, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { useEffect, useState } from "react";
-import { Busy } from "./busy.js";
 import { Sparkline, TrendChart } from "./charts/index.js";
 import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
-import { refreshing } from "./data/query.js";
-import { Empty, LoadFailed } from "./feedback.js";
+import { Empty, LoadFailed, Loading } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
 import { clipProps, tipProps } from "./hint.js";
-import { FRAME, FRAME_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
+import { FRAME, FRAME_BODY, FRAME_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
+import { useNarrow } from "./list-bar.js";
+import { type OverviewQueue, QueuePanel } from "./overview-queues.js";
 import {
   askOf,
   cap,
@@ -29,6 +29,8 @@ import {
   useTypes,
 } from "./records.js";
 import { Sweep } from "./sweep.js";
+
+export type { OverviewQueue } from "./overview-queues.js";
 
 export interface OverviewTile {
   label: string;
@@ -78,6 +80,11 @@ export interface OverviewProps {
   as?: "section" | undefined;
   api: RecordsApi;
   tiles: OverviewTile[];
+  /**
+   * What waits on the viewer, by queue: with these, the page draws Overview E (the total, a bar,
+   * the queues ranked by their oldest wait) and its period tiles as trend cards beside it.
+   */
+  queues?: OverviewQueue[] | undefined;
   top?: OverviewTop[] | undefined;
   /** The pref his tile order and hidden tiles are kept under ("tiles:inbox.overview"). */
   keepAs?: string | undefined;
@@ -135,13 +142,25 @@ export function perRow(n: number): number[] {
 }
 const SPAN = ["", "lg:col-span-12", "lg:col-span-6", "lg:col-span-4", "lg:col-span-3"];
 
-export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }: OverviewProps) {
+export function RecordOverview({
+  title,
+  as,
+  api,
+  tiles: all,
+  queues = [],
+  top = [],
+  keepAs,
+}: OverviewProps) {
   const types = useTypes(api);
+  const narrow = useNarrow();
   const keep = keepAs ? api.keep : undefined;
   const pref = usePref<TilesPref>(keep, keepAs ?? "tiles");
   // A tile whose record isn't here (its part not installed) is left out, not a ghost forever.
   const here = (t: { record: string }) => !types.data || types.data.some((m) => m.id === t.record);
   const tiles = arrangeTiles(all, pref.value).shown.filter(here);
+  // Queues too: one whose record isn't here is left out. With none left, the tiles stand alone.
+  const queuesHere = types.data ? queues.filter(here) : queues;
+  const asE = queuesHere.length > 0;
   // Each period tile's answer, for the chart under them: asked once, by the tile.
   const [stats, setStats] = useState<Readonly<Record<string, Shown>>>({});
   // Each tile says once it reads nothing (zero now and before, or no figure): once every tile
@@ -173,28 +192,53 @@ export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }:
           ) : null}
         </div>
       ) : null}
-      <div
-        className={cn("grid grid-cols-2 gap-px p-px lg:grid-cols-12", !shown.length && "hidden")}
-      >
-        {tiles.map((t) => {
-          const meta = metaOf(t.record);
-          const i = shown.indexOf(t);
-          // Two to a row on a phone; an odd last one takes the whole row.
-          const wide = i === shown.length - 1 && shown.length % 2 === 1;
-          return (
-            <div
-              key={t.label}
-              className={cn("grid", i < 0 ? "hidden" : spans[i], wide && "max-lg:col-span-2")}
-            >
-              {meta && pref.ready ? (
-                <Tile tile={t} meta={meta} api={api} onStat={told} onBlank={said} />
-              ) : (
-                <TileGhost />
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {asE ? (
+        <div
+          className={cn(
+            "grid items-start gap-3.5",
+            narrow ? "grid-cols-[minmax(0,1fr)]" : "grid-cols-[minmax(0,3fr)_minmax(0,2fr)]",
+          )}
+        >
+          <QueuePanel queues={queuesHere} api={api} ready={!!types.data} />
+          <div className={cn("grid gap-2.5", !shown.length && "hidden")}>
+            {tiles.map((t) => {
+              const meta = metaOf(t.record);
+              return (
+                <div key={t.label} className={cn("grid", !shown.includes(t) && "hidden")}>
+                  {meta && pref.ready ? (
+                    <TrendCard tile={t} meta={meta} api={api} onStat={told} onBlank={said} />
+                  ) : (
+                    <TileGhost />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div
+          className={cn("grid grid-cols-2 gap-px p-px lg:grid-cols-12", !shown.length && "hidden")}
+        >
+          {tiles.map((t) => {
+            const meta = metaOf(t.record);
+            const i = shown.indexOf(t);
+            // Two to a row on a phone; an odd last one takes the whole row.
+            const wide = i === shown.length - 1 && shown.length % 2 === 1;
+            return (
+              <div
+                key={t.label}
+                className={cn("grid", i < 0 ? "hidden" : spans[i], wide && "max-lg:col-span-2")}
+              >
+                {meta && pref.ready ? (
+                  <Tile tile={t} meta={meta} api={api} onStat={told} onBlank={said} />
+                ) : (
+                  <TileGhost />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {folded.length ? (
         <p className="m-0 -mt-4 text-[13.5px] text-(--ui-ink-2)">
           Nothing yet:{" "}
@@ -209,10 +253,11 @@ export function RecordOverview({ title, as, api, tiles: all, top = [], keepAs }:
           .
         </p>
       ) : null}
-      {types.data && !tiles.length && !top.some(here) ? (
+      {types.data && !asE && !tiles.length && !top.some(here) ? (
         <Empty>These numbers show once the parts that count them are installed.</Empty>
       ) : null}
-      <Trends tiles={tiles} stats={stats} />
+      {/* E draws its trends as cards beside the queues; the chart by day is the tiles' own. */}
+      {asE ? null : <Trends tiles={tiles} stats={stats} />}
       {top.length ? (
         <div
           className={cn(
@@ -249,20 +294,14 @@ interface Shown {
   format: (n: number) => string;
 }
 
-function Tile({
-  tile,
-  meta,
-  api,
-  onStat,
-  onBlank,
-}: {
-  tile: OverviewTile;
-  meta: RecordMeta;
-  api: RecordsApi;
-  onStat: (label: string, shown: Shown) => void;
-  /** Once loaded: whether it reads nothing at all, now or before. A failed tile stays. */
-  onBlank: (label: string, empty: boolean) => void;
-}) {
+/** One tile's read and how its numbers read: the same under a tile and under a trend card. */
+function useTileStat(
+  tile: OverviewTile,
+  meta: RecordMeta,
+  api: RecordsApi,
+  onStat: (label: string, shown: Shown) => void,
+  onBlank: (label: string, empty: boolean) => void,
+) {
   const ask = askFor(meta, tile.href);
   const { period, pick } = tile;
   const load = useLoad(
@@ -315,6 +354,98 @@ function Tile({
     if (s) onBlank(tile.label, !s.value && !s.prior && !s.latest && !s.series.some((x) => x.value));
     else if (load.error) onBlank(tile.label, false);
   }, [s, load.error]);
+  return { load, s, fmt, delta };
+}
+
+/**
+ * A period tile under Overview E (artifact `.tr`): a leaf card with its label and stretch, the
+ * number, a bar a day and the change against the stretch before.
+ */
+function TrendCard({
+  tile,
+  meta,
+  api,
+  onStat,
+  onBlank,
+}: {
+  tile: OverviewTile;
+  meta: RecordMeta;
+  api: RecordsApi;
+  onStat: (label: string, shown: Shown) => void;
+  onBlank: (label: string, empty: boolean) => void;
+}) {
+  const { load, s, fmt, delta } = useTileStat(tile, meta, api, onStat, onBlank);
+  if (!load.data && !load.error) return <TileGhost />;
+  const { period } = tile;
+  const before = period ? priorName(period) : "";
+  const slots = period === "month" ? daysIn(new Date()) : (s?.series.length ?? 0);
+  return (
+    <a
+      href={tileHref(tile, meta)}
+      className="grid content-start gap-1 bg-(--ui-paper) px-3.5 py-3 text-(--ui-ink) no-underline shadow-(--ui-raise) [border-radius:6px_18px] hover:bg-(--ui-wash)"
+    >
+      <span className="text-[12.5px] text-(--ui-ink-3)">
+        {tile.label}
+        {period ? ` · ${periodName(period).toLowerCase()}` : ""}
+      </span>
+      {s ? (
+        <>
+          <span className="text-[24px] font-bold tracking-[-0.02em] tabular-nums">
+            {s.value === null ? (tile.none ?? "No figure yet") : fmt(s.value)}
+          </span>
+          {period ? (
+            <>
+              <Sparkline
+                series={s.series}
+                slots={slots}
+                label={tile.label}
+                format={fmt}
+                fallback={<Bars series={s.series} slots={slots} />}
+              />
+              <span className="text-[12.5px] text-(--ui-ink-3)">
+                {delta === null ? null : delta === 0 ? (
+                  `Same as ${before}`
+                ) : (
+                  <>
+                    <b
+                      className={cn(
+                        "font-semibold",
+                        delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)",
+                      )}
+                    >
+                      {delta > 0 ? "+" : "−"}
+                      {fmt(Math.abs(delta))}
+                    </b>
+                    {` vs ${before}`}
+                  </>
+                )}
+              </span>
+            </>
+          ) : null}
+        </>
+      ) : (
+        <span className="text-[13px] text-(--ui-bad)">{load.error?.message}</span>
+      )}
+    </a>
+  );
+}
+
+function Tile({
+  tile,
+  meta,
+  api,
+  onStat,
+  onBlank,
+}: {
+  tile: OverviewTile;
+  meta: RecordMeta;
+  api: RecordsApi;
+  onStat: (label: string, shown: Shown) => void;
+  /** Once loaded: whether it reads nothing at all, now or before. A failed tile stays. */
+  onBlank: (label: string, empty: boolean) => void;
+}) {
+  const { period, pick } = tile;
+  const { load, s, fmt, delta } = useTileStat(tile, meta, api, onStat, onBlank);
   if (!load.data && !load.error) return <TileGhost />;
   // A pick names its row's month and compares with the row before.
   const newest = pick ? month(s?.series.at(-1)?.at ?? null) : "";
@@ -431,7 +562,7 @@ function Trends({
           ))}
         </div>
       </div>
-      <div className="p-4">
+      <div className={FRAME_BODY}>
         <TrendChart series={got.stat.series} label={on.label} format={got.format} />
       </div>
     </section>
@@ -490,30 +621,32 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
     <section className={cn("grid grid-cols-[minmax(0,1fr)] content-start", FRAME)}>
       <Sweep />
       <div className={FRAME_HEAD}>
-        <h2 className={cn("flex items-center gap-2", SECTION_TITLE)}>
-          {top.label}
-          <Busy on={refreshing(page)} />
-        </h2>
+        <h2 className={SECTION_TITLE}>{top.label}</h2>
         <a href={top.href} className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
           All {meta.name.many}
           {page.data ? ` (${num(page.data.total)})` : ""}
         </a>
       </div>
       {page.error && !page.data ? (
-        <LoadFailed className="m-4" error={page.error} onRetry={page.retry} />
+        <LoadFailed className="mx-5 mt-3 mb-5" error={page.error} onRetry={page.retry} />
       ) : !page.data ? (
-        <div className="m-4 h-32 animate-pulse bg-(--ui-fill)" aria-busy="true" />
+        <Loading
+          shape="rows"
+          lines={3}
+          label={`Loading ${top.label}`}
+          className="px-5 pt-0.5 pb-2"
+        />
       ) : !rows.length ? (
-        <p className="px-4 py-3.5 text-[13px] text-(--ui-ink-2)">{top.empty}</p>
+        <p className="px-5 pt-3 pb-4 text-[13px] text-(--ui-ink-2)">{top.empty}</p>
       ) : (
-        <ul className="m-0 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
+        <ul className="m-0 mt-3 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
           {rows.map((r) => (
             <li key={String(r.id)} className="border-t border-(--ui-hair) first:border-t-0">
               <a
                 href={open(r)}
                 // Counts that don't fit beside the title go under it, as on a phone.
                 className={cn(
-                  "flex flex-wrap items-center gap-x-4 gap-y-0.5 px-4 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
+                  "flex flex-wrap items-center gap-x-4 gap-y-0.5 px-5 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
                   line ? "py-2.5" : "min-h-10 py-1.5",
                 )}
               >

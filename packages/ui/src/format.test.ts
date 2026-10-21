@@ -11,6 +11,7 @@ import {
   month,
   num,
   soon,
+  waited,
 } from "./format.js";
 
 describe("money", () => {
@@ -345,5 +346,21 @@ describe("ellipsize", () => {
   });
   it("counts whole characters, so an emoji is never split", () => {
     expect(ellipsize("🚀🔥👩🏽‍💻abc", 3)).toBe("🚀🔥…");
+  });
+});
+
+describe("waited", () => {
+  it("says a wait in the largest plain unit", () => {
+    expect([0.33, 0.001, 1, 6, 30, 47.4, 47.6, 50, 100].map(waited)).toEqual([
+      "20 minutes",
+      "1 minute",
+      "1 hour",
+      "6 hours",
+      "30 hours",
+      "47 hours",
+      "2 days",
+      "2 days",
+      "4 days",
+    ]);
   });
 });

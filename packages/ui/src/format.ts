@@ -157,3 +157,19 @@ export const cx = (...names: (string | false | null | undefined)[]) =>
 /** `text` cut to `max` characters with an ellipsis, for a label an SVG chart cannot wrap. */
 export const ellipsize = (text: string, max: number) =>
   [...text].length > max ? `${[...text].slice(0, max - 1).join("")}…` : text;
+
+/** How long a wait is, in words: "20 minutes", "6 hours", "2 days". Never under a minute. */
+export function waited(hours: number): string {
+  const minutes = Math.max(1, Math.round(hours * 60));
+  const [unit, n] =
+    minutes < 60
+      ? ["minute", minutes]
+      : Math.round(hours) < 48
+        ? ["hour", Math.round(hours)]
+        : ["day", Math.round(hours / 24)];
+  return new Intl.NumberFormat("en", {
+    style: "unit",
+    unit: unit as string,
+    unitDisplay: "long",
+  }).format(n as number);
+}

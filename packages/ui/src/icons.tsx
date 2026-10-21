@@ -5,6 +5,7 @@
 import {
   Activity,
   ArrowRight,
+  AtSign,
   Banknote,
   BookOpen,
   Bot,
@@ -16,6 +17,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
   CircleDot,
   CircleHelp,
   Clock,
@@ -35,6 +37,7 @@ import {
   House,
   Inbox,
   Keyboard,
+  KeyRound,
   Layers,
   LayoutGrid,
   Link,
@@ -151,6 +154,10 @@ const ICONS = {
   panel: PanelLeft,
   help: CircleHelp,
   keys: Keyboard,
+  // The Inbox queues' marks (overview E): an issue, a mention, an ask for access.
+  alert: CircleAlert,
+  at: AtSign,
+  key: KeyRound,
   more: Ellipsis,
   // The metro map's marks (metro/): what a person gives, how a flow splits, what a step repeats.
   eye: Eye,
