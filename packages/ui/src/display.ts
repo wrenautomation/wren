@@ -31,7 +31,7 @@ export interface Display {
 }
 
 export const DISPLAY: Display = {
-  side: 224,
+  side: 190,
   sideShut: false,
   pages: 208,
   pagesShut: false,

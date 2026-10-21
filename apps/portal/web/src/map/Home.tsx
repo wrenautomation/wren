@@ -54,9 +54,7 @@ export function MapHome({
     },
     [props.params],
   );
-  const list = tasks ? (
-    <TodayTasks tasks={tasks} onLight={light} onOpen={openTask} busy={read.loading} />
-  ) : null;
+  const list = tasks ? <TodayTasks tasks={tasks} onLight={light} onOpen={openTask} /> : null;
   return (
     <div className="flex h-full min-w-0 flex-col max-[900px]:h-auto">
       <MapPage

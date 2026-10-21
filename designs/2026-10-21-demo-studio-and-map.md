@@ -42,3 +42,13 @@ Fix:
 ## Out of scope
 
 G2 map chat (wa-7oo.12), F focus view (wa-7oo.10), pricing C2. The People/Inbox rows rollout runs in its own planner; Studio uses `table.tsx` as it is on main.
+
+## Decisions (planner, 2026-10-21)
+
+Briefs: `designs/briefs/2026-10-21-demo-studio-and-map.md`.
+
+- Hand rules, no elkjs. Why: the metro layout is a fixed grid (columns are zones, lines are rows), and each defect is a local change in `layoutMetro`. elkjs runs async, which breaks "pure and sync" and adds a memo per version for no gain.
+- Chips and labels are placed by `layoutMetro`, not at draw time. Why: the overlap test reads the scene, not the DOM.
+- One text-width estimate in `geometry.ts` for layout, draw and tests.
+- Offer-line stations in the hub's column sit right of the hub. Why: each offer line starts at the hub, so no track passes under it.
+- Hand-off gate for these UI-only briefs: `./scripts/gates.sh ui`, then `./scripts/gates.sh lint`. No Docker gates: nothing here touches the database.

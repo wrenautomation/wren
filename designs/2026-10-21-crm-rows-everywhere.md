@@ -40,3 +40,21 @@ Out: the Map (last), the pricing model C2 (last).
 - One write path for each action. Test a tab-away, a race and a grouped view for each.
 - Story tests are render, play and axe. No pixel baselines.
 - Sample data only. The repo is public.
+
+## Decisions (planner, 2026-10-21)
+
+Briefs: `designs/briefs/2026-10-21-crm-rows-{r1,r2,r3,inventory}.md`.
+
+- **One part.** `Rows` (`packages/ui/src/rows.tsx`) draws every list. `List` (records) and hand pages both feed it. `DataTable` and `FactsTable` stay for facts only. A real `<table>` stays (roles, axe, the libs guard).
+- **Late.** One helper, `lateOf` in `packages/core/src/promise.ts`. A list page declares `late: { field, promise }`. The Map keeps its own copy until the Map work lands.
+- **Stage colours.** `State.line` (0 to 7, `--ui-line-N`) is a new field. `tint` stays for kinds (the `--ui-cue-N` palette).
+- **Inbox data.** No cross-product union record. `marketing.inbox` already unions the channels. Each other queue (approvals, mail, mentions, issues, asks) keeps its own record and page. Overview E is the cross-queue view. Its count and oldest come from one list read per queue.
+- **Phone.** The kit's one breakpoint (900px) stays. The artifact's 720px is not added.
+
+William's call (defaults in place, change any):
+
+1. Queue promises: 24h for every Inbox queue.
+2. The peek floats at the right (560px), over the table. The artifact draws it beside a narrowed table.
+3. The peek is the default for every list. A page opts out with `peek: false`.
+4. People has no owner field. The peek leaves Owner out. Adding one is a data change.
+5. Group count and oldest are of the loaded page, not the whole list.

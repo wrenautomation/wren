@@ -4,7 +4,7 @@
  * one portal call, so the answer is shared and kept.
  */
 import type { RecordAnswer } from "@wren/core/records/serve";
-import type { MetroBody, MetroStation } from "@wren/pipeline/metro";
+import type { MetroBody, MetroLine, MetroStation } from "@wren/pipeline/metro";
 import type { ShapeBody, ShapeNode } from "@wren/pipeline/model";
 import type { PaletteItem } from "@wren/ui";
 import { call } from "../api.js";
@@ -19,6 +19,8 @@ const key = (client: string) => `shape-nodes:${client}`;
 export interface ShapeParts {
   nodes: ShapeNode[];
   stations: MetroStation[];
+  /** The metro lines: an offer line has the tier `core`, an offer and a colour. */
+  lines: MetroLine[];
 }
 
 async function readShape(client: string): Promise<ShapeParts> {
@@ -28,11 +30,19 @@ async function readShape(client: string): Promise<ShapeParts> {
     id: "shape",
   });
   const detail = got.detail as { body?: ShapeBody; metro?: MetroBody | null } | null;
-  return { nodes: detail?.body?.nodes ?? [], stations: detail?.metro?.stations ?? [] };
+  return {
+    nodes: detail?.body?.nodes ?? [],
+    stations: detail?.metro?.stations ?? [],
+    lines: detail?.metro?.lines ?? [],
+  };
 }
 
 /** The workspace's shape parts; none for a workspace with no shape. */
 export const useShapeNodes = (client: string) => useCall(key(client), () => readShape(client));
+
+/** The shape's offer lines (a line with an offer and a colour): Studio's line chips and squares. */
+export const offerLinesOf = (lines: readonly MetroLine[] | undefined): MetroLine[] =>
+  (lines ?? []).filter((l) => l.tier === "core");
 
 /** ⌘K's stations: the metro stations whose label or id has the typed words, each opening on the Map. */
 export async function stationItems(client: string, words: string): Promise<PaletteItem[]> {

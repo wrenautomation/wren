@@ -125,10 +125,11 @@ export function arrangeTiles<T extends { label: string }>(
   };
 }
 
-const GROUP =
-  "px-2.5 pt-3 pb-1 text-[11.5px] font-medium tracking-[0.04em] text-(--ui-ink-3) uppercase";
+/** The sidebar's label ("Pinned"): sentence case, 12px, 600, ink-3 (the artifact's `.nl`). */
+const GROUP = "px-2 pt-3 pb-1 text-[12px] font-semibold text-(--ui-ink-3)";
+/** A pinned page: a sidebar row (the artifact's `.nav`), the one on screen tinted with its arc. */
 const ROW =
-  "flex h-[34px] min-w-0 items-center gap-[11px] rounded-(--ui-radius) px-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-[current=page]:text-(--ui-ink)";
+  "ui-nav-sweep flex min-h-(--layout-nav-row) min-w-0 items-center gap-[9px] [border-radius:var(--ui-leaf-nav)] px-2 text-[14px] text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) [&>svg]:[stroke-width:1.8]";
 const QUIET =
   "inline-flex items-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) focus-visible:text-(--ui-ink)";
 
@@ -220,7 +221,7 @@ export function PinnedRail({
               aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
               onKeyDown={key(i)}
             >
-              <Icon name={p.icon} size={15} />
+              <Icon name={p.icon} />
               <span className="truncate">{p.label}</span>
             </a>
             <button

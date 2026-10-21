@@ -8,7 +8,7 @@
  */
 import type { Row } from "@wren/core/records/serve";
 import type { DiffAnswer, ShapeRef, VersionLine } from "@wren/pipeline/history";
-import type { MetroBody } from "@wren/pipeline/metro";
+import type { MetroBody, MetroStation, MetroTrack } from "@wren/pipeline/metro";
 import { depthOf, type ShapeBody } from "@wren/pipeline/model";
 import { diffAnswerOf, drawnOf, runOf, type StoredBody } from "@wren/pipeline/stored";
 import { type Answers, refuse } from "../api.js";
@@ -78,6 +78,162 @@ export const SHAPE_HUB_CLASH: ShapeBody = {
     to: e.to === "engaged" ? "hub" : e.to,
   })),
 };
+
+/**
+ * A big shape, to pan: four outreach lines into the hub, two front ends and four offer lines, with
+ * a condition, an exit, a transfer and a back track. Each line runs left to right in its columns,
+ * so the drawing is wider and taller than a page and the Map scrolls inside its frame. Invented
+ * names only.
+ */
+type StationKind = MetroStation["kind"];
+const at = (
+  id: string,
+  label: string,
+  line: string,
+  column: MetroStation["column"],
+  kind: StationKind = "att",
+  over: Partial<MetroStation> = {},
+): MetroStation => ({
+  id,
+  label,
+  kind,
+  line,
+  column,
+  ...(kind === "att" || kind === "time"
+    ? { action: kind === "time" ? "book" : "other", ...over }
+    : over),
+});
+/** The tracks along a line, in order: `a_to_b` for each neighbour pair. */
+const run = (line: string, ids: string[], over: Partial<MetroTrack> = {}): MetroTrack[] =>
+  ids.slice(1).map((to, i) => {
+    const from = ids[i] as string;
+    return { id: `${from}_to_${to}`, from, to, line, by: "system", ...over };
+  });
+
+export const SHAPE_BIG: MetroBody = {
+  model: "metro",
+  name: "Big sample shape",
+  lines: [
+    { id: "social", label: "Social", tier: "out", entry: { via: "organic", channel: "youtube" } },
+    {
+      id: "cold",
+      label: "Cold",
+      tier: "out",
+      entry: { via: "outbound", channel: "email", campaign: "spring" },
+    },
+    { id: "list", label: "List", tier: "out", entry: { via: "sourced", source: "import:12" } },
+    { id: "team", label: "Team", tier: "out", entry: { via: "group", segment: "7" } },
+    { id: "nurture", label: "Nurture", tier: "front", colour: 2 },
+    { id: "webinar", label: "Webinar", tier: "front", colour: 3 },
+    { id: "growth", label: "Growth", tier: "core", offer: "starter", colour: 0 },
+    { id: "audit", label: "Audit", tier: "core", offer: "audit", colour: 4 },
+    { id: "referral", label: "Referral", tier: "core", offer: "referral", colour: 5 },
+    { id: "retain", label: "Retain", tier: "core", offer: "retainer", colour: 1, planned: true },
+  ],
+  stations: [
+    at("social", "Social", "social", "marketing"),
+    at("cold", "Cold", "cold", "marketing"),
+    at("list", "List", "list", "marketing"),
+    at("team", "Team", "team", "marketing"),
+    { id: "hub", label: "First touch", kind: "hub", column: "marketing" },
+    at("nurture_start", "Nurture start", "nurture", "marketing"),
+    at("nurture_wait", "Warm up", "nurture", "sales", "time"),
+    at("nurture_reply", "Replied", "nurture", "sales"),
+    at("nurture_book", "Booked", "nurture", "sales", "time"),
+    at("web_signup", "Sign up", "webinar", "marketing"),
+    at("web_remind", "Remind", "webinar", "sales"),
+    at("web_attend", "Attend", "webinar", "sales", "time"),
+    at("web_offer", "Offer", "webinar", "sales"),
+    at("web_pay", "Webinar seat", "webinar", "money", "cash", { terms: "standard" }),
+    at("reply", "Reply", "growth", "marketing", "att", { action: "reply" }),
+    at("qualify", "Fit?", "growth", "sales", "condition"),
+    at("book", "Book", "growth", "sales", "time"),
+    at("held", "Held", "growth", "sales", "time", { action: "held" }),
+    at("proposal", "Proposal", "growth", "sales", "att", { action: "proposal" }),
+    at("signed", "Signed", "growth", "sales", "att", { deal: true }),
+    at("onboard", "Onboard", "growth", "delivery"),
+    at("kickoff", "Kick-off", "growth", "delivery", "time", { action: "call" }),
+    at("pay", "Pay", "growth", "money", "cash", { terms: "standard" }),
+    at("audit_ask", "Ask", "audit", "marketing", "att", { action: "form" }),
+    at("audit_call", "Audit call", "audit", "sales", "time", { action: "call" }),
+    at("audit_report", "Report", "audit", "delivery"),
+    at("audit_pay", "Audit fee", "audit", "money", "cash", { terms: "standard" }),
+    at("ref_ask", "Ask for names", "referral", "delivery"),
+    at("ref_intro", "Intro", "referral", "delivery"),
+    at("ref_thanks", "Thank you", "referral", "money"),
+    at("retain_start", "Retain start", "retain", "delivery"),
+    at("retain_check", "Check in", "retain", "delivery", "time", { action: "call" }),
+    at("retain_pay", "Retainer", "retain", "money", "cash", { terms: "retainer", planned: true }),
+    { id: "gone", label: "Not a fit", kind: "exit", column: "sales", failure: true },
+    { id: "done", label: "Done", kind: "exit", column: "money" },
+  ],
+  tracks: [
+    ...["social", "cold", "list", "team"].map(
+      (l): MetroTrack => ({ id: `${l}_to_hub`, from: l, to: "hub", line: l, by: "system" }),
+    ),
+    ...run("nurture", ["hub", "nurture_start", "nurture_wait", "nurture_reply", "nurture_book"]),
+    ...run("webinar", ["hub", "web_signup", "web_remind", "web_attend", "web_offer", "web_pay"]),
+    {
+      id: "hub_to_reply",
+      from: "hub",
+      to: "reply",
+      line: "growth",
+      by: "system",
+      entries: ["social", "cold", "list"],
+    },
+    { id: "reply_to_qualify", from: "reply", to: "qualify", line: "growth", by: "system" },
+    {
+      id: "qualify_to_book",
+      from: "qualify",
+      to: "book",
+      line: "growth",
+      by: "system",
+      cond: "fits",
+    },
+    { id: "qualify_to_gone", from: "qualify", to: "gone", kind: "exit", by: "system" },
+    ...run("growth", ["book", "held", "proposal"]),
+    {
+      id: "proposal_to_signed",
+      from: "proposal",
+      to: "signed",
+      line: "growth",
+      by: "person",
+      owner: "Sam Reed",
+      promise: "1d",
+    },
+    ...run("growth", ["signed", "onboard", "kickoff", "pay"]),
+    { id: "hub_to_audit_ask", from: "hub", to: "audit_ask", line: "audit", by: "system" },
+    ...run("audit", ["audit_ask", "audit_call", "audit_report", "audit_pay"]),
+    { id: "hub_to_ref_ask", from: "hub", to: "ref_ask", line: "referral", by: "system" },
+    ...run("referral", ["ref_ask", "ref_intro", "ref_thanks"]),
+    {
+      id: "kickoff_to_retain_start",
+      from: "kickoff",
+      to: "retain_start",
+      line: "retain",
+      kind: "xfer",
+      by: "system",
+      label: "upsell",
+    },
+    ...run("retain", ["retain_start", "retain_check", "retain_pay"]),
+    {
+      id: "renew",
+      from: "retain_pay",
+      to: "retain_start",
+      kind: "back",
+      by: "system",
+      label: "after 90 days",
+      planned: true,
+    },
+    { id: "pay_to_done", from: "pay", to: "done", kind: "exit", by: "system" },
+  ],
+  groups: [],
+  frames: [],
+};
+
+/** `bigAnswers`: the big shape on the page. */
+export const bigAnswers = (fallback: { get: Pipeline; list: Pipeline }): Answers =>
+  shapeAnswers(fallback, SHAPE_BIG);
 
 /** An open journey on the spur's Follow up station: one person who must move before it can go. */
 export const SPUR_PERSON: Row = {

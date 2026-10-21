@@ -89,6 +89,7 @@
     "./profiles-backfill": "./src/profiles-backfill.ts",
     "./profiles-bulk": "./src/profiles-bulk.ts",
     "./profiles-link": "./src/profiles-link.ts",
+    "./promise": "./src/promise.ts",
     "./profile-records": "./src/profile-records.ts",
     "./profile-findings": "./src/profile-findings.ts",
     "./segments": "./src/segments.ts",
