@@ -9,11 +9,11 @@ import type { PageDetail } from "@wren/sites/detail";
 import type { SplitResult } from "@wren/sites/split";
 import {
   Button,
-  clipProps,
   EditConflict,
   FactsTable,
   Input,
   num,
+  Pill,
   type RecordAct,
   Tag,
   type TagTone,
@@ -22,6 +22,7 @@ import {
 import { useState } from "react";
 import { useEditJson } from "../people/edit-json.js";
 import { QUIET } from "../work/bits.js";
+import { RowsPanel } from "../work/rows-panel.js";
 import { Said, useRun } from "./detail.js";
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
@@ -37,6 +38,7 @@ const TONE: Record<string, TagTone> = {
   too_early: "neutral",
   no_goals: "neutral",
 };
+type Arm = SplitResult["arms"][number];
 const day = (at: unknown) => new Date(String(at)).toLocaleDateString("en-CA");
 const pct = (n: number) => `${Math.min(99, Math.floor(n * 100))}%`;
 const goalOf = (s: SplitResult, a: SplitResult["arms"][number]) =>
@@ -286,45 +288,75 @@ function Ended({ s, act }: { s: SplitResult; act: RecordAct }) {
           : `Stopped on ${day(s.split.endedAt)}.`}
       </p>
       {others.length ? (
-        <ul className="grid gap-2">
-          {others.map((a) => (
-            <li
-              key={a.label}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-(--ui-hair) pb-2 text-[14px]"
-            >
-              <span className="font-medium">{a.label}</span>
-              <span className="grid min-w-0">
-                <a className="truncate underline" href={`/sites/pages/${a.page}`} {...clipProps()}>
-                  {a.title}
-                </a>
-                <span className={`truncate ${HINT}`}>/o/{a.slug}</span>
+        <RowsPanel<Arm>
+          rows={others}
+          rowKey={(a) => a.label}
+          label="Other versions"
+          noun="version"
+          name={{
+            label: "Version",
+            icon: "text",
+            min: 200,
+            title: (a) => a.title,
+            href: (a) => `/sites/pages/${a.page}`,
+            mark: (a) => (
+              <span className="grid size-[22px] flex-none place-items-center bg-(--ui-fill) text-[12px] font-semibold">
+                {a.label}
               </span>
-              <span>
-                {a.status === "retired" ? (
-                  <Tag tone="neutral">Retired</Tag>
+            ),
+          }}
+          columns={[
+            {
+              key: "status",
+              label: "Status",
+              icon: "selected",
+              width: 170,
+              phone: true,
+              cell: (a) =>
+                a.status === "retired" ? (
+                  <Pill>Retired</Pill>
                 ) : a.retiring ? (
-                  <Tag tone="accent">Waiting to retire</Tag>
+                  <Pill color="var(--ui-active)">Waiting to retire</Pill>
                 ) : (
-                  <Button
-                    size="sm"
-                    tone="secondary"
-                    busy={busy === a.page}
-                    onClick={() =>
-                      void run(
-                        a.page,
-                        "sites.retireAsk",
-                        { id: a.page },
-                        `Asked. ${a.label} comes down on a yes in To approve.`,
-                      )
-                    }
-                  >
-                    Retire {a.label}
-                  </Button>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
+                  <Pill color="var(--ui-good)">Live</Pill>
+                ),
+            },
+            {
+              key: "slug",
+              label: "Address",
+              icon: "link",
+              min: 160,
+              quiet: true,
+              cell: (a) => `/o/${a.slug}`,
+            },
+          ]}
+          // Retire is the row's one action, in the row's own icon. One at a time: `run` holds a
+          // second press until the first answers, and every icon waits.
+          act={(a) =>
+            a.status === "retired" || a.retiring
+              ? null
+              : {
+                  main: [
+                    {
+                      id: "sites.retireAsk",
+                      label: `Retire ${a.label}`,
+                      handler: "sites/retireAsk",
+                    },
+                  ],
+                  more: [],
+                  reply: null,
+                  page: `/sites/pages/${a.page}`,
+                  busy: busy !== null,
+                  run: () =>
+                    void run(
+                      a.page,
+                      "sites.retireAsk",
+                      { id: a.page },
+                      `Asked. ${a.label} comes down on a yes in To approve.`,
+                    ),
+                }
+          }
+        />
       ) : null}
       <span className={HINT}>
         A retired page answers gone at its address. Its numbers stay here.
