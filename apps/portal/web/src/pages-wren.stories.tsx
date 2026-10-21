@@ -103,6 +103,28 @@ export const Ads = pageAt("/ads", { me: ADMIN });
 export const Analytics = pageAt("/analytics", { me: ADMIN });
 export const Sites = pageAt("/sites", { me: ADMIN });
 export const Learn = pageAt("/learn", { me: ADMIN });
+/** Learn's items as a list (a viewer's kept choice): `Rows`, a box and a menu on each file. */
+export const LearnList = pageAt("/learn/items", {
+  me: ADMIN,
+  answers: { "console/prefs": { "learn.view": "list" }, "learn/seen": {} },
+  check: async (page) => {
+    const boxes = await within(page).findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    await expect(boxes).toHaveLength(3);
+    const link = within(page).getByRole("link", { name: "Five ways to win back old customers" });
+    await expect(link).toBeVisible();
+    // Rows, not cards (a card has no select-all box and sits in an article): a table on a wide
+    // screen, a list item on a phone.
+    if (within(page).queryByRole("table", { name: "items" }))
+      await expect(
+        within(page).getByRole("checkbox", { name: "Select every item shown" }),
+      ).toBeInTheDocument();
+    else await expect(link.closest("li")).toHaveAttribute("data-item");
+    // Press a box: the file is picked, and the bulk bar shows.
+    await userEvent.click(boxes[0] as HTMLElement);
+    await waitFor(() => expect(boxes[0]).toBeChecked());
+    await expect(await within(page).findByText(/^1 selected/)).toBeVisible();
+  },
+});
 export const Workflows = pageAt("/workflows", { me: ADMIN });
 export const Loops = pageAt("/loops", { me: ADMIN });
 export const Handlers = pageAt("/handlers", { me: ADMIN });
@@ -162,7 +184,11 @@ const shows =
 export const OffersAll = pageAt("/offers/all", { me: ADMIN, check: shows("Starter", "Growth") });
 export const OffersTerms = pageAt("/offers/terms", {
   me: ADMIN,
-  check: shows("standard", "growth"),
+  check: async (page) => {
+    await shows("standard")(page);
+    // A phone's row shows one property beside the name (the state): the offer reads in the wide table.
+    if (within(page).queryByRole("table")) await shows("growth")(page);
+  },
 });
 /** The read fails: the page says so and never "No terms are live yet." */
 export const OffersTermsFailed = pageAt("/offers/terms", {

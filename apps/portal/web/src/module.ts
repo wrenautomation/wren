@@ -127,6 +127,12 @@ export interface ListPage extends PageBase {
    */
   needs?: Readonly<Record<string, readonly string[]>>;
   /**
+   * The wait a list watches: `field` is when the person began to wait, `promise` how long they may
+   * ("24h", "2d"). The field draws as a wait, rows past the promise read late, and the foot counts
+   * them (`@wren/core/promise` is the one late rule).
+   */
+  late?: { field: string; promise: string };
+  /**
    * A list's cards (Rows / Cards in its bar): what each card shows, read from `columns` when left
    * out. `false` keeps it rows only: logs, audits, runs, a day's numbers.
    */

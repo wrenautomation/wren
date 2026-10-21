@@ -82,6 +82,7 @@ export {
   type TextOverlay,
 } from "./finish.js";
 export {
+  cohereLooker,
   cutTranscript,
   geminiLooker,
   LOOK_PROVIDERS,

@@ -6,6 +6,7 @@
 
 import type { Target } from "@wren/core/access";
 import type { ChangeLine, EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
+import { hoursSince, lateOf } from "@wren/core/promise";
 import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
   ExportAsk,
@@ -34,7 +35,6 @@ import {
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
-import { accountFieldOf } from "./accounts.js";
 import {
   type Action,
   applies,
@@ -59,7 +59,7 @@ import {
   opensAs,
 } from "./cards.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
-import { Button, Tag } from "./controls.js";
+import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
 import { type Load, readCached, useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText, type RecordDraft } from "./draft.js";
@@ -92,7 +92,7 @@ import {
   widthOf,
 } from "./fields.js";
 import { FoldList, FoldPreview, foldOf } from "./fold.js";
-import { linkLabel, num } from "./format.js";
+import { initials, linkLabel, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
@@ -102,9 +102,9 @@ import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
   CHIP,
   filtersOf,
+  groupFields,
   type KeepApi,
   ListBar,
-  siteField,
   useLastUsed,
   useNarrow,
   useSavedViews,
@@ -113,7 +113,7 @@ import {
 import { PageBar } from "./page-bar.js";
 import { offsetOf, PAGE_SIZE, PAGE_SIZES, pageAt, pagesOf, sizeOf } from "./pager.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
-import { BottomSheet, SwipeRow, type Swipes, toneOf, useSheet } from "./phone.js";
+import { BottomSheet, type Swipes, toneOf, useSheet } from "./phone.js";
 import { usePhone } from "./phone-shell.js";
 import {
   type AccessApi,
@@ -125,11 +125,25 @@ import {
 import { recordHead } from "./record-head.js";
 import { detailPatch, patchRecord } from "./record-patch.js";
 import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
+import {
+  Age,
+  KIND_ICON,
+  Rows,
+  type RowsAct,
+  type RowsColumn,
+  RowsFoot,
+  type RowsLine,
+  type RowsName,
+  type RowsPick,
+  type RowsWait,
+  stateColor,
+  statsOf,
+} from "./rows.js";
 import { SaveScope, useSavePage } from "./save/react.js";
 import { recordKey } from "./save/writes.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { TabBar } from "./tab-bar.js";
-import { DataTable, type ListLine, useLines, useListTable } from "./table.js";
+import { DataTable, type ListLine, useListTable } from "./table.js";
 import { sortTip } from "./view-says.js";
 
 /** The four record calls, bound to a workspace. */
@@ -345,6 +359,12 @@ export interface RecordTemplateProps {
    */
   needs?: Needs | undefined;
   /**
+   * The wait the list watches: `field` holds when the person began to wait, `promise` is how long
+   * they may ("24h"). The field draws as a wait, rows past the promise read late, and the foot and
+   * each group's fold count them.
+   */
+  late?: Late | undefined;
+  /**
    * The list as cards (`./cards.ts`): what each card shows beside the columns; read from the
    * columns when left out. `false` keeps it rows only (a log, an audit, a day's numbers).
    */
@@ -357,6 +377,12 @@ export interface RecordTemplateProps {
 export interface RowReplyBox {
   when?: Needs | undefined;
   box: (detail: unknown, row: Row, act: RecordAct) => ReactNode;
+}
+
+/** A list's watched wait: the field that holds its start, and the promise. */
+export interface Late {
+  field: string;
+  promise: string;
 }
 
 /** Field → the states in which a row waits on the viewer. */
@@ -462,6 +488,22 @@ export function walkKey(e: KeyboardEvent): 1 | -1 | 0 {
   if (e.defaultPrevented || e.shiftKey) return 0;
   if (e.target instanceof Element && e.target.closest(OWN_ARROWS)) return 0;
   return e.key === "ArrowDown" ? 1 : -1;
+}
+
+/**
+ * The row a walk key lands on: `step` rows on from `at`, past those a shut group hides; at the
+ * end it stays, and from no row it takes the first in view. -1 when every row is hidden.
+ */
+export function walkTo(
+  at: number,
+  step: 1 | -1,
+  count: number,
+  hidden: (i: number) => boolean,
+): number {
+  for (let i = at + step; i >= 0 && i < count; i += step) if (!hidden(i)) return i;
+  if (at >= 0 && at < count && !hidden(at)) return at;
+  for (let i = 0; i < count; i++) if (!hidden(i)) return i;
+  return -1;
 }
 
 /** What an empty list says in this view. */
@@ -646,12 +688,10 @@ function ListDisplay({
   const shell = useFrame();
   const pop = useHoverPop();
   const frame = cards === null ? shell : null;
-  const site = siteField(meta);
   const all =
     narrow || cards === false ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
-  const account = accountFieldOf(meta);
-  // Group by its platform, or by the account each row is on: one at a time.
-  const groups = [site, account].flatMap((f) => (f?.states ? [f] : []));
+  // Group by its platform, the account each row is on, or any status or choice: one at a time.
+  const groups = groupFields(meta);
   if (!frame && !groups.length && !all.length) return null;
   const shown = new Set(columnsOf(meta, place.params, columns).map((f) => f.key));
   const fallback = columnsOf(meta, new URLSearchParams(), columns)
@@ -761,35 +801,6 @@ function ListDisplay({
   );
 }
 
-/** A drawn line's place in a long list: its index, and the ref that measures it. */
-type LineProps = { "data-index": number; ref: (el: Element | null) => void };
-
-/** A group's first row: its mark and label across the table, as a band. */
-function GroupHead({
-  field,
-  value,
-  span,
-  line,
-}: {
-  field: FieldMeta;
-  value: string;
-  span: number;
-  line?: LineProps;
-}) {
-  const state = field.states?.[value];
-  const cue = cueOf(field, value);
-  return (
-    <tr {...line} className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
-      <td colSpan={span} className="px-3 text-[12px] font-semibold text-(--ui-ink-2)">
-        <span className="inline-flex items-center gap-1.5">
-          {cue ? <Cue state={cue} /> : null}
-          {state?.label ?? (value || `No ${field.label.toLowerCase()}`)}
-        </span>
-      </td>
-    </tr>
-  );
-}
-
 /**
  * A row's title by whether it waits on the viewer: what waits reads heavier, what is for info
  * reads quieter, and a page that names nothing waiting keeps the one weight.
@@ -809,31 +820,6 @@ export function TierLabel({ needs, n }: { needs: boolean; n: number }) {
       </span>
       <span className="font-normal text-(--ui-ink-3) tabular-nums">{num(n)}</span>
     </span>
-  );
-}
-
-/** The band over a tier of rows. */
-function TierHead({
-  needs,
-  n,
-  span,
-  line,
-}: {
-  needs: boolean;
-  n: number;
-  span: number;
-  line?: LineProps;
-}) {
-  return (
-    <tr {...line} className="h-8 border-b border-(--ui-hair) bg-(--ui-band)">
-      <th
-        colSpan={span}
-        scope="colgroup"
-        className="px-3 text-left text-[12px] font-semibold text-(--ui-ink-2)"
-      >
-        <TierLabel needs={needs} n={n} />
-      </th>
-    </tr>
   );
 }
 
@@ -962,6 +948,7 @@ export function RecordList(props: RecordTemplateProps) {
     head,
     title,
     needs,
+    late,
     reply,
     card,
     display,
@@ -984,6 +971,7 @@ export function RecordList(props: RecordTemplateProps) {
       head={head}
       title={title}
       needs={needs}
+      late={late}
       reply={reply}
       card={card}
       display={display}
@@ -1207,7 +1195,7 @@ export function shownColumns(
   meta: RecordMeta,
   cols: FieldMeta[],
   rows: Row[],
-  { byHand, narrow }: { byHand: boolean; narrow: boolean },
+  { byHand, narrow, wait }: { byHand: boolean; narrow: boolean; wait?: string | undefined },
 ): FieldMeta[] {
   const title = (r: Row) => r[meta.title];
   // A column that mostly says the title again ("Text" whose first line is the "Post", on at least
@@ -1232,10 +1220,15 @@ export function shownColumns(
   const state = states.find(tells) ?? states[0];
   // A card: the title, the state, then the next fields, up to three; a state the same on every
   // row says nothing.
-  // The account a row is on comes first after its state: on a phone it says who sends.
+  // The wait a page watches comes first after its state, then the account a row is on: on a phone
+  // it says who sends.
   const rest = filled
     .filter((f) => f.key !== meta.title && f !== state && (f.kind !== "status" || tells(f)))
-    .sort((a, b) => Number(b.key === meta.account) - Number(a.key === meta.account));
+    .sort(
+      (a, b) =>
+        Number(b.key === wait) - Number(a.key === wait) ||
+        Number(b.key === meta.account) - Number(a.key === meta.account),
+    );
   const lead = filled.filter((f) => f.key === meta.title);
   return [...lead, ...(state ? [state] : []), ...rest].slice(0, lead.length + NARROW_FIELDS);
 }
@@ -1272,6 +1265,7 @@ function List({
   head,
   title,
   needs,
+  late,
   reply,
   card,
   display,
@@ -1287,6 +1281,7 @@ function List({
   head: RecordTemplateProps["head"];
   title: string | undefined;
   needs: Needs | undefined;
+  late: Late | undefined;
   reply: RecordTemplateProps["reply"];
   card: CardOption | undefined;
   display: ReactNode;
@@ -1376,6 +1371,16 @@ function List({
   );
   /** Whether a row waits on the viewer; null where the page names nothing that waits. */
   const waits = (r: Row) => (needs ? waitsOn(needs, r) : null);
+  // One clock for the page: every row's wait reads against the moment its rows loaded.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page of rows is a new moment.
+  const now = useMemo(() => new Date(), [loaded]);
+  /** How long a row has waited and whether that is late; null where it has no start or no promise. */
+  const waitOf = (r: Row): RowsWait | null => {
+    if (!late) return null;
+    const at = textOf(r[late.field]);
+    const hours = hoursSince(at, now);
+    return hours === null ? null : { hours, late: lateOf(at, late.promise, now) };
+  };
   const size = sizeOf(params);
   const pages = pagesOf(page.data?.total ?? 0, size);
   const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
@@ -1387,6 +1392,7 @@ function List({
     cols: shownColumns(meta, columnsOf(meta, params, columns), tiered, {
       byHand: params.has("cols"),
       narrow,
+      wait: late?.field,
     }),
     sort,
     group: grouped,
@@ -1453,7 +1459,6 @@ function List({
   const openId = params.get(meta.name.one);
   const [cursor, setCursor] = useState(-1);
   const [busy, setBusy] = useState<string | null>(null);
-  const body = useRef<HTMLTableSectionElement>(null);
   const cards = useRef<HTMLUListElement>(null);
   /** The row a box is open under: an action's words (a reason, a reply), or the page's reply. */
   const [boxed, setBoxed] = useState<{ id: string; action: Action | null } | null>(null);
@@ -1498,30 +1503,39 @@ function List({
     );
   };
 
-  const linesRoot = useCallback(() => body.current ?? cards.current, []);
   // The bands and rows to draw, a row's open box (a reason, a reply) as its own line under it.
   const drawn: (ListLine | { kind: "box"; key: string; row: Row })[] = [];
-  /** Each row's line, by its place among the rows. */
-  const rowLine: number[] = [];
+  /** The group each row sits in, by its place among the rows: a shut group's rows leave the walk. */
+  const groupOfRow: (string | undefined)[] = [];
+  let inGroup: string | undefined;
   for (const l of table.lines) {
     drawn.push(l);
-    if (l.kind !== "row") continue;
-    rowLine[l.index] = drawn.length - 1;
-    if (boxed?.id === l.key) drawn.push({ kind: "box", key: `box:${l.key}`, row: l.row });
+    if (l.kind === "group") inGroup = l.key;
+    else if (l.kind === "tier") inGroup = undefined;
+    else {
+      groupOfRow[l.index] = inGroup;
+      if (boxed?.id === l.key) drawn.push({ kind: "box", key: `box:${l.key}`, row: l.row });
+    }
   }
-  // A long list draws the lines in view: the panel scrolls them, on a phone the page does.
-  const lines = useLines({
-    count: cardsOn ? 0 : drawn.length,
-    scroller: narrow ? "window" : frameEl,
-    root: linesRoot,
-    estimate: narrow ? 76 : 40,
-  });
-  const span = cols.length + 2;
-  /** Scroll row `i` into view, drawing it first in a long list. */
+  /** The groups shut by a press on their head; rows fold only (cards show every group open). */
+  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
+  const toggleGroup = useCallback(
+    (key: string) =>
+      setFolded((was) => {
+        const next = new Set(was);
+        if (!next.delete(key)) next.add(key);
+        return next;
+      }),
+    [],
+  );
+  const hidden = (i: number) => {
+    const g = groupOfRow[i];
+    return !cardsOn && g !== undefined && folded.has(g);
+  };
+  /** Scroll row `i` into view. Rows do it themselves when the cursor moves; cards here. */
   const reveal = (i: number) => {
     if (cardsOn)
       cards.current?.querySelector(`[data-row="${i}"]`)?.scrollIntoView({ block: "nearest" });
-    else lines.reveal(rowLine[i] ?? i);
   };
 
   const openAt = (i: number, replace = false) => {
@@ -1541,6 +1555,7 @@ function List({
     cursor,
     openIndex,
     rows,
+    hidden,
     openAt,
     place,
     one: meta.name.one,
@@ -1554,6 +1569,7 @@ function List({
     cursor,
     openIndex,
     rows,
+    hidden,
     openAt,
     place,
     one: meta.name.one,
@@ -1571,7 +1587,8 @@ function List({
       const step = walkKey(e);
       if (step) {
         e.preventDefault();
-        const next = Math.max(0, Math.min(k.rows.length - 1, at + step));
+        const next = walkTo(at, step, k.rows.length, k.hidden);
+        if (next < 0) return;
         setCursor(next);
         if (k.openIndex >= 0) k.openAt(next, true);
         k.reveal(next);
@@ -1663,6 +1680,117 @@ function List({
         : undefined,
     }),
   );
+  // What the rows part draws: the record's fields as its columns, the title as the name, the
+  // table's lines (groups, tiers, rows, a row's open box) as its lines.
+  const titleField = meta.fields.find((f) => f.key === meta.title);
+  const nameCol: RowsName<Row> = {
+    label: titleField?.label ?? cap(meta.name.one),
+    icon: titleField ? KIND_ICON[titleField.kind] : "text",
+    sort:
+      titleField && cols.includes(titleField) ? (
+        <SortHead field={titleField} place={place} sort={sort} dir={table.sorted(titleField.key)} />
+      ) : undefined,
+    width: widths[meta.title],
+    min: titleField ? widthOf(titleField, true) : undefined,
+    title: (r) => titleOf(meta, r),
+    href: (r) => place.link({ [meta.name.one]: String(r.id), tab: null }),
+    weight: (r) => TITLE_WEIGHT[String(waits(r))] ?? "",
+    // A person's name shows as initials in a round avatar.
+    avatar: titleField?.kind === "name" ? (r) => initials(titleOf(meta, r)) || null : undefined,
+    sub:
+      preview || meta.fold
+        ? (r) => {
+            const quiet = waits(r) === false;
+            const messages = foldOf(meta, r);
+            // One person's messages in one thread: the newest, each marked.
+            if (messages)
+              return narrow ? (
+                <FoldPreview
+                  messages={messages}
+                  lines={3}
+                  quiet={quiet}
+                  className="text-[13.5px] leading-snug"
+                />
+              ) : (
+                <FoldPreview messages={messages} quiet={quiet} className="text-[12.5px]" />
+              );
+            // A message's first words under who sent it, as a mail list shows.
+            return preview ? (
+              <span
+                className={cn(
+                  narrow
+                    ? "line-clamp-2 text-[13.5px] leading-snug"
+                    : "block truncate text-[12.5px]",
+                  quiet ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
+                )}
+                {...clipProps()}
+              >
+                {firstWords(textOf(r[preview.key]))}
+              </span>
+            ) : null;
+          }
+        : undefined,
+  };
+  const columnsFor = cols
+    .filter((f) => f.key !== meta.title)
+    .map<RowsColumn<Row>>((f, i) => ({
+      key: f.key,
+      label: f.label,
+      icon: KIND_ICON[f.kind],
+      align: f.column?.align === "end" ? "end" : undefined,
+      width: widths[f.key],
+      min: widthOf(f),
+      sort: <SortHead field={f} place={place} sort={sort} dir={table.sorted(f.key)} />,
+      // When it happened reads quieter than what it is; a watched wait draws as its own.
+      quiet: f.kind === "date" && f.key !== late?.field,
+      // A phone's row shows one beside the name: the watched wait, else the first of them.
+      phone: late ? f.key === late.field : i === 0,
+      total: footed ? <FieldTotal field={f} total={totals?.[f.key]} to={place.link} /> : undefined,
+      cell: (r) => {
+        const w = f.key === late?.field ? waitOf(r) : null;
+        return w ? <Age {...w} /> : <FieldCell field={f} cell={r[f.key]} />;
+      },
+    }));
+  const rowLines = drawn.map<RowsLine<Row>>((l) => {
+    if (l.kind === "row") return l;
+    if (l.kind === "box") return { kind: "box", key: l.key, node: boxFor(l.row) };
+    if (l.kind === "tier")
+      return { kind: "tier", key: l.key, head: <TierLabel needs={l.needs} n={l.n} /> };
+    const state = l.field.states?.[l.value];
+    const cue = cueOf(l.field, l.value);
+    return {
+      kind: "group",
+      key: l.key,
+      color: stateColor(state),
+      label: (
+        <>
+          {cue?.mark ? <Cue state={cue} /> : null}
+          {state?.label ?? (l.value || `No ${l.field.label.toLowerCase()}`)}
+        </>
+      ),
+    };
+  });
+  const pickOf: RowsPick = {
+    picked: table.picked,
+    toggle: (id) => table.toggle(id),
+    all: table.all,
+    some: table.some,
+    toggleAll: table.toggleAll,
+    count: picked.size,
+  };
+  const actOf = (r: Row): RowsAct => {
+    const replies = replyOn(r);
+    const { main, more } = rowActsOf(actions, r, !!replies);
+    return {
+      main,
+      more,
+      reply: replies,
+      page: place.page(String(r.id)),
+      busy: acting,
+      run: (a) => rowRun(a, r),
+    };
+  };
+  const foot = <RowsFoot stats={statsOf(rows.map(waitOf))} waits={!!late} />;
   const headed = head?.(meta, () => acted([]));
   const forms = actions.filter((a) => a.form && !a.each);
   // Its rows' keys sit in the sheet on ?, not under the list.
@@ -1875,329 +2003,42 @@ function List({
                     })}
               </ul>
             </>
-          ) : narrow ? (
-            <ul ref={cards} className={cn("list-none", page.data && !rows.length && "hidden")}>
-              {!page.data ? (
-                Array.from({ length: 8 }, (_, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-                  <li key={i} className="grid gap-2 border-b border-(--ui-hair) px-4 py-4">
-                    <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
-                    <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
-                  </li>
-                ))
-              ) : (
-                <>
-                  {lines.before ? <li aria-hidden style={{ height: lines.before }} /> : null}
-                  {lines.shown.map((at) => {
-                    const l = drawn[at];
-                    if (!l) return null;
-                    const line = { "data-index": at, ref: lines.measure };
-                    if (l.kind === "tier" || l.kind === "group")
-                      return (
-                        <li
-                          key={l.key}
-                          {...line}
-                          className="sticky top-(--phone-bar,0px) z-2 border-b border-(--ui-hair) [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)] px-4 py-2 text-[12px] font-semibold text-(--ui-ink-2)"
-                        >
-                          {l.kind === "tier" ? (
-                            <TierLabel needs={l.needs} n={l.n} />
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5">
-                              <FieldCell field={l.field} cell={l.first[l.field.key]} />
-                            </span>
-                          )}
-                        </li>
-                      );
-                    if (l.kind === "box")
-                      return (
-                        <li
-                          key={l.key}
-                          {...line}
-                          className="border-b border-(--ui-hair) bg-(--ui-wash) px-4 py-3"
-                        >
-                          {boxFor(l.row)}
-                        </li>
-                      );
-                    const { row: r, index: i } = l;
-                    const id = l.key;
-                    return (
-                      <RowCard
-                        key={id}
-                        meta={meta}
-                        row={r}
-                        index={i}
-                        line={at}
-                        measure={lines.measure}
-                        fields={cols.filter((f) => f.key !== meta.title)}
-                        preview={preview}
-                        waits={waits(r)}
-                        href={place.link({ [meta.name.one]: id, tab: null })}
-                        open={id === openId}
-                        changed={changed.has(id) && !page.loading}
-                        going={going.get(id)}
-                        picked={table.picked(id)}
-                        onPick={() => table.toggle(id)}
-                        onOpen={() => {
-                          setCursor(i);
-                          openAt(i);
-                        }}
-                        onSettled={() => setChanged(new Set())}
-                        swipes={withReply(
-                          swipesOf(actions, r, (a) => rowRun(a, r)),
-                          replyOn(r),
-                        )}
-                      />
-                    );
-                  })}
-                  {lines.after ? <li aria-hidden style={{ height: lines.after }} /> : null}
-                </>
-              )}
-            </ul>
           ) : (
-            // table-ok: the record list draws its own rows (groups, boxes, spacers) from useListTable.
-            <table
-              // An empty view shows what fills it, not a row of column heads over nothing.
-              className={cn(
-                "w-full table-fixed border-collapse text-[13px]",
-                page.data && !rows.length && "hidden",
-              )}
-              style={{
-                minWidth:
-                  72 +
-                  cols.reduce((n, f) => n + (widths[f.key] ?? widthOf(f, f.key === meta.title)), 0),
+            <Rows
+              label={many}
+              noun={meta.name.one}
+              columns={columnsFor}
+              name={nameCol}
+              lines={rowLines}
+              loading={!page.data}
+              empty={!!page.data && !rows.length}
+              pick={pickOf}
+              act={actOf}
+              open={{
+                id: openId,
+                onOpen: (_, i) => {
+                  setCursor(i);
+                  openAt(i);
+                },
               }}
-            >
-              <colgroup>
-                <col style={{ width: 36 }} />
-                {cols.map((f) => (
-                  // A column with no width takes what the others leave; the min width keeps its share.
-                  <col
-                    key={f.key}
-                    style={widths[f.key] === undefined ? undefined : { width: widths[f.key] }}
-                  />
-                ))}
-                <col style={{ width: 36 }} />
-              </colgroup>
-              <thead>
-                <tr className="text-[12px] text-(--ui-ink-2) [&>th]:font-semibold">
-                  <th className="sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) pl-2.5 text-left">
-                    <input
-                      type="checkbox"
-                      aria-label={`Select every ${meta.name.one} shown`}
-                      checked={table.all}
-                      onChange={table.toggleAll}
-                      className="size-3.5 align-middle accent-(--ui-ink)"
-                    />
-                  </th>
-                  {cols.map((f) => (
-                    <th
-                      key={f.key}
-                      scope="col"
-                      className={cn(
-                        // A long head takes two lines, so its column fits its numbers.
-                        "sticky top-0 z-10 h-9 border-b border-(--ui-edge) bg-(--ui-band) px-3 py-1 leading-tight",
-                        f.column?.align === "end" ? "text-right" : "text-left",
-                      )}
-                    >
-                      <SortHead field={f} place={place} sort={sort} dir={table.sorted(f.key)} />
-                    </th>
-                  ))}
-                  <th className="sticky top-0 z-10 border-b border-(--ui-edge) bg-(--ui-band)">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody ref={body}>
-                {!page.data ? (
-                  Array.from({ length: 10 }, (_, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-                    <tr key={i} className="h-(--layout-row) border-b border-(--ui-hair)">
-                      <td colSpan={span} className="px-3">
-                        <div className="h-3 w-2/3 animate-pulse bg-(--ui-fill)" />
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <>
-                    {lines.before ? (
-                      <tr aria-hidden style={{ height: lines.before }}>
-                        <td colSpan={span} />
-                      </tr>
-                    ) : null}
-                    {lines.shown.map((at) => {
-                      const l = drawn[at];
-                      if (!l) return null;
-                      const line = { "data-index": at, ref: lines.measure };
-                      if (l.kind === "group")
-                        return (
-                          <GroupHead
-                            key={l.key}
-                            line={line}
-                            field={l.field}
-                            value={l.value}
-                            span={span}
-                          />
-                        );
-                      if (l.kind === "tier")
-                        return (
-                          <TierHead key={l.key} line={line} needs={l.needs} n={l.n} span={span} />
-                        );
-                      if (l.kind === "box")
-                        return (
-                          <tr
-                            key={l.key}
-                            {...line}
-                            className="border-b border-(--ui-hair) bg-(--ui-wash)"
-                          >
-                            <td />
-                            <td colSpan={cols.length + 1} className="px-3 py-3">
-                              {boxFor(l.row)}
-                            </td>
-                          </tr>
-                        );
-                      const { row: r, index: i } = l;
-                      const id = l.key;
-                      const open = id === openId;
-                      const waiting = waits(r);
-                      const replies = replyOn(r);
-                      const { main, more } = rowActsOf(actions, r, !!replies);
-                      const fold = foldOf(meta, r);
-                      return (
-                        <tr
-                          key={id}
-                          {...line}
-                          data-row={i}
-                          data-cursor={i === cursor && !open ? "" : undefined}
-                          onClick={(e) => {
-                            // Its checkbox, links and buttons do their own thing.
-                            if ((e.target as Element).closest("input, a, button")) return;
-                            setCursor(i);
-                            openAt(i);
-                          }}
-                          onAnimationEnd={(e) => {
-                            if (e.animationName === "ui-changed") setChanged(new Set());
-                          }}
-                          className={cn(
-                            "group h-(--layout-row) cursor-pointer border-b pointer-coarse:h-12 border-(--ui-hair)",
-                            // The row's ground, which its actions sit over at its right end.
-                            open
-                              ? "bg-(--ui-fill) [--row-ground:color-mix(in_srgb,var(--ui-ink)_6%,var(--ui-paper))]"
-                              : i === cursor
-                                ? "bg-(--ui-hover) [--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]"
-                                : "[--row-ground:var(--ui-paper)] hover:bg-(--ui-hover) hover:[--row-ground:color-mix(in_srgb,var(--ui-ink)_4.5%,var(--ui-paper))]",
-                            changed.has(id) && !page.loading && "animate-ui-changed",
-                            going.has(id) && "bg-(--ui-wash)",
-                          )}
-                        >
-                          <td className="pl-2.5">
-                            <input
-                              type="checkbox"
-                              aria-label={`Select ${titleOf(meta, r)}`}
-                              checked={table.picked(id)}
-                              onChange={() => table.toggle(id)}
-                              className="size-3.5 align-middle accent-(--ui-ink)"
-                            />
-                          </td>
-                          {cols.map((f) => (
-                            <td
-                              key={f.key}
-                              {...clipProps()}
-                              className={cn(
-                                // A cut cell drops its break chances: Chrome breaks at <wbr> even
-                                // under nowrap, so "example.com" wrapped onto two lines.
-                                "truncate px-3 [&_wbr]:hidden",
-                                f.key === meta.title && preview && "py-1.5",
-                                f.column?.align === "end" ? "text-right" : "text-left",
-                                // When it happened reads quieter than what it is.
-                                f.key !== meta.title &&
-                                  (f.kind === "date"
-                                    ? "text-(--ui-ink-3) tabular-nums"
-                                    : "text-(--ui-ink-2)"),
-                              )}
-                            >
-                              {f.key === meta.title ? (
-                                <a
-                                  href={place.link({ [meta.name.one]: id, tab: null })}
-                                  {...clipProps()}
-                                  className={cn(
-                                    // Cut inside the link, so focusing it never scrolls the cell sideways.
-                                    "block truncate no-underline",
-                                    TITLE_WEIGHT[String(waiting)],
-                                  )}
-                                >
-                                  {titleOf(meta, r) || <span className="text-(--ui-ink-3)">-</span>}
-                                </a>
-                              ) : null}
-                              {f.key === meta.title && fold ? (
-                                // One person's messages in one thread: the newest, each marked.
-                                <FoldPreview
-                                  messages={fold}
-                                  quiet={waiting === false}
-                                  className="text-[12.5px]"
-                                />
-                              ) : f.key === meta.title && preview ? (
-                                // A message's first words under who sent it, as a mail list shows.
-                                <span
-                                  className={cn(
-                                    "block truncate text-[12.5px]",
-                                    waiting === false ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
-                                  )}
-                                >
-                                  {firstWords(textOf(r[preview.key]))}
-                                </span>
-                              ) : f.key === meta.title ? null : (
-                                <FieldCell field={f} cell={r[f.key]} />
-                              )}
-                            </td>
-                          ))}
-                          <td className="relative pr-2 text-right">
-                            {going.has(id) ? (
-                              <Tag tone="accent" busy>
-                                {going.get(id)}
-                              </Tag>
-                            ) : (
-                              <RowActions
-                                title={titleOf(meta, r)}
-                                main={main}
-                                more={more}
-                                reply={replies}
-                                page={place.page(id)}
-                                busy={acting}
-                                run={(a) => rowRun(a, r)}
-                              />
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {lines.after ? (
-                      <tr aria-hidden style={{ height: lines.after }}>
-                        <td colSpan={span} />
-                      </tr>
-                    ) : null}
-                  </>
-                )}
-              </tbody>
-              {footed ? (
-                <tfoot>
-                  <tr className="text-[12px] text-(--ui-ink-2)">
-                    <td className="sticky bottom-0 h-9 border-t border-(--ui-edge) bg-(--ui-paper)" />
-                    {cols.map((f) => (
-                      <td
-                        key={f.key}
-                        className={cn(
-                          "sticky bottom-0 truncate border-t border-(--ui-edge) bg-(--ui-paper) px-3",
-                          f.column?.align === "end" ? "text-right" : "text-left",
-                        )}
-                      >
-                        <FieldTotal field={f} total={totals?.[f.key]} to={place.link} />
-                      </td>
-                    ))}
-                    <td className="sticky bottom-0 border-t border-(--ui-edge) bg-(--ui-paper)" />
-                  </tr>
-                </tfoot>
-              ) : null}
-            </table>
+              cursor={cursor}
+              rowState={(r) => {
+                const id = String(r.id);
+                return { going: going.get(id), changed: changed.has(id) && !page.loading };
+              }}
+              onSettled={() => setChanged(new Set())}
+              wait={late ? waitOf : undefined}
+              foot={foot}
+              group={grouped ? { folded, toggle: toggleGroup } : undefined}
+              scroller={frameEl}
+              narrow={narrow}
+              swipes={(r) =>
+                withReply(
+                  swipesOf(actions, r, (a) => rowRun(a, r)),
+                  replyOn(r),
+                )
+              }
+            />
           )}
           {page.data && !rows.length ? (
             <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
@@ -2377,133 +2218,6 @@ function RowReply({
         <div className="h-28 animate-pulse rounded-(--ui-radius) bg-(--ui-fill)" />
       )}
     </ReplyFrame>
-  );
-}
-
-/**
- * One row on a phone: a card a thumb can hit, its title on two lines, the first words under it,
- * then three of its fields. A tap opens the record; the box picks it for the bulk actions.
- */
-function RowCard({
-  meta,
-  row,
-  index,
-  fields,
-  preview,
-  waits,
-  href,
-  open,
-  changed,
-  going,
-  picked,
-  onPick,
-  onOpen,
-  onSettled,
-  swipes,
-  line,
-  measure,
-}: {
-  meta: RecordMeta;
-  row: Row;
-  index: number;
-  /** Its line in a long list, and the ref that measures it. */
-  line?: number;
-  measure?: (el: Element | null) => void;
-  fields: FieldMeta[];
-  preview: FieldMeta | undefined;
-  /** It waits on the viewer (true), is for info (false), or the page names nothing waiting. */
-  waits: boolean | null;
-  href: string;
-  open: boolean;
-  changed: boolean;
-  /** An optimistic press sends it: its word ("Passed") shows with the ring till the server answers. */
-  going?: string | undefined;
-  picked: boolean;
-  onPick: () => void;
-  onOpen: () => void;
-  onSettled: () => void;
-  swipes: Swipes | null;
-}) {
-  const title = titleOf(meta, row);
-  return (
-    <SwipeRow
-      swipes={swipes}
-      data-row={index}
-      data-index={line}
-      measure={measure}
-      onTap={(e) => {
-        // Its box, links and buttons do their own thing.
-        if ((e.target as Element).closest("input, a, button, label")) return;
-        onOpen();
-      }}
-      onAnimationEnd={(e) => {
-        if (e.animationName === "ui-changed") onSettled();
-      }}
-      className={cn(
-        "cursor-pointer border-b border-(--ui-hair) last:border-b-0 [&>[data-face]]:flex [&>[data-face]]:min-h-14 [&>[data-face]]:items-start active:[&>[data-face]]:bg-(--ui-hover)",
-        open && "[&>[data-face]]:bg-(--ui-fill)",
-        changed && "[&>[data-face]]:animate-ui-changed",
-        going && "[&>[data-face]]:bg-(--ui-wash)",
-      )}
-    >
-      <label className="grid size-12 flex-none cursor-pointer place-items-center">
-        <input
-          type="checkbox"
-          aria-label={`Select ${title}`}
-          checked={picked}
-          onChange={onPick}
-          className="accent-(--ui-ink)"
-        />
-      </label>
-      <div className="grid min-w-0 flex-1 gap-1 py-3 pr-4">
-        <a
-          href={href}
-          className={cn(
-            "line-clamp-2 text-[15px] leading-snug no-underline wrap-anywhere",
-            TITLE_WEIGHT[String(waits)],
-          )}
-          {...clipProps()}
-        >
-          {title || <span className="text-(--ui-ink-3)">-</span>}
-        </a>
-        {going ? (
-          <span>
-            <Tag tone="accent" busy>
-              {going}
-            </Tag>
-          </span>
-        ) : null}
-        {foldOf(meta, row) ? (
-          <FoldPreview
-            messages={foldOf(meta, row) ?? []}
-            lines={3}
-            quiet={waits === false}
-            className="text-[13.5px] leading-snug"
-          />
-        ) : preview ? (
-          <span
-            className={cn(
-              "line-clamp-2 text-[13.5px] leading-snug",
-              waits === false ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
-            )}
-            {...clipProps()}
-          >
-            {firstWords(textOf(row[preview.key]))}
-          </span>
-        ) : null}
-        {fields.length ? (
-          <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-2) [&>*]:max-w-full [&>*]:min-w-0 [&>*]:truncate">
-            {fields.map((f) =>
-              blank(row[f.key]) ? null : (
-                <span key={f.key} {...tipProps(f.label)}>
-                  <FieldCell field={f} cell={row[f.key]} />
-                </span>
-              ),
-            )}
-          </span>
-        ) : null}
-      </div>
-    </SwipeRow>
   );
 }
 

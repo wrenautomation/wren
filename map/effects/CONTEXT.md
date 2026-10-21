@@ -37,7 +37,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | what a record lets a person or Claude edit (`edits`, `changes`, History, Undo, Ask Claude) | [[platform/edits]] | [[platform/records]], [[ledger/run]], `packages/ui/src/edits.tsx` |
 | what a viewer keeps of a list (saved views, last view, columns) and his prefs | [[platform/saved-views]] | [[platform/records]], `packages/ui/src/list-bar.tsx` |
 | media hosting | [[content/media]] | [[content/platform]], `deploy/terraform` |
-| video editing: cuts, captions, looks (`wren video …`) | [[content/video-edit]] | `packages/studio/`, [[platform/settings]] (`studio.cuts`), `packages/research/src/sops/index.ts` (`askGemini`) |
+| video editing: cuts, captions, looks (`wren video …`) | [[content/video-edit]] | `packages/studio/`, [[platform/settings]] (`studio.cuts`), `packages/research/src/sops/gemini.ts` (`askGemini`), `packages/research/src/sops/watch.ts` (`watch`, Cohere) |
 | Meta ads | [[ads/ad-launch]] | [[processes/ads-launch-watch]], [[content/idea]] |
 | what a firm's site publishes (phones, LinkedIn, socials) | [[research/contact-point]] | [[research/document]], [[sms/sms-contact]], `lead_sheet` |
 | a firm's public team (one people search per firm) | [[research/team-search]] | [[leads/person]], [[processes/pool-feed]] |

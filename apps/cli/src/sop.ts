@@ -29,6 +29,7 @@ import {
   youtubeSource,
 } from "@wren/research/sops";
 import type { Command } from "commander";
+import { watchKeys } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -84,10 +85,10 @@ export function registerSop(
             console.warn("no GEMINI keys in llm.env: captions only, on-screen content skipped");
           sources = [await youtubeSource(what, settings.ytDlp, priority, { geminiKeys })];
         } else if (/^https?:\/\//.test(what)) {
-          // Reels, TikTok, X: no captions, so Gemini hears and reads the download.
-          loadLlmEnv(settings.llmEnvPath, rootDir);
-          const geminiKeys = fleetKeys(process.env, "gemini");
-          sources = [await videoSource(what, settings.ytDlp, priority, { geminiKeys })];
+          // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
+          sources = [
+            await videoSource(what, settings.ytDlp, priority, watchKeys(settings, rootDir)),
+          ];
         } else if (what.startsWith("drive:")) {
           if (!opts.account) throw new Error("drive: needs --account <address>");
           const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);

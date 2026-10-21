@@ -23,6 +23,11 @@ export interface State {
   mark?: Mark;
   /** It names a kind of thing: a swatch in this of the kit's 8 tints (0 to 7), in place of the dot. */
   tint?: number;
+  /**
+   * A lane colour, 0 to 7 (`--ui-line-N`, the Map's lines): a stage drawn as a square before its
+   * label. `-1` is a square in ink-3 (no lane: the Map's outreach grey). It wins over `tint`.
+   */
+  line?: number;
   /** What the state means and what moves a row on from it: the hover on its chip. */
   about?: string;
 }

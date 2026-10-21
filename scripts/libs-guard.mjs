@@ -4,8 +4,8 @@
  * TanStack Router, TanStack Table, React Hook Form through `useEditForm`. Fails on:
  * - the history API outside the router (`history.pushState`/`replaceState`, a `popstate`
  *   listener), unless it says why in a `route-ok: <reason>` comment on it or the three lines above;
- * - a `<table>` outside the shared table (`packages/ui/src/table.tsx`), unless `table-ok: <reason>`
- *   (a document's own layout, a list drawing its own rows from `useListTable`);
+ * - a `<table>` outside the shared tables (`packages/ui/src/table.tsx`, and `rows.tsx`, the rows
+ *   part every list draws), unless `table-ok: <reason>` (a document's own layout);
  * - a form read off the page (`new FormData(<form>)`), or `useKeptForm`, which `useEditForm`
  *   replaced; `new FormData()` that builds an upload is fine;
  * - a `<form>` in a file with no `useEditForm`/`EditForm`, `useEdit` (one box) or `useSaved` (the
@@ -17,6 +17,7 @@ import { excused, lineAt, portalSources } from "./portal-sources.mjs";
 /** The router's own files: the address goes through them. */
 const ROUTER = new Set(["apps/portal/web/src/route.ts", "apps/portal/web/src/router.tsx"]);
 const TABLE = "packages/ui/src/table.tsx";
+const ROWS = "packages/ui/src/rows.tsx";
 
 const RULES = [
   {
@@ -27,9 +28,9 @@ const RULES = [
   },
   {
     re: /<table\b/g,
-    skip: (file) => file === TABLE,
+    skip: (file) => file === TABLE || file === ROWS,
     mark: "table-ok:",
-    says: "a hand-drawn table: use DataTable, FactsTable or useListTable from @wren/ui",
+    says: "a hand-drawn table: use Rows, DataTable or FactsTable from @wren/ui",
   },
   {
     re: /\bnew FormData\(\s*[^)\s]|\buseKeptForm\(/g,

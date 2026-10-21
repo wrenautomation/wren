@@ -264,7 +264,7 @@ export {
   useAbout,
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
-export type { KeepApi, SavedViewLine } from "./list-bar.js";
+export { type KeepApi, type SavedViewLine, useNarrow } from "./list-bar.js";
 export {
   LIST_FORMS,
   LIST_SEARCH,
@@ -278,9 +278,11 @@ export {
 export { type Look, LookEditor, lookOf, ThemeGallery } from "./look.js";
 export {
   hostMark,
+  lineColor,
   markName,
   PlatformMark,
   PlatformTile,
+  StageSquare,
   TintSwatch,
   tintColor,
   tintWash,
@@ -363,6 +365,26 @@ export {
   waitsOn,
 } from "./records.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
+export {
+  Age,
+  avatarOf,
+  drawnOf,
+  KIND_ICON,
+  Pill,
+  Rows,
+  type RowsAct,
+  type RowsColumn,
+  RowsFoot,
+  type RowsLine,
+  type RowsName,
+  type RowsPick,
+  type RowsProps,
+  type RowsWait,
+  stateColor,
+  statsOf,
+  type WaitStats,
+  waitWords,
+} from "./rows.js";
 export {
   dwellOf,
   expectedOf,
