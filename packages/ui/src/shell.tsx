@@ -276,7 +276,7 @@ export function AppShell({
       className={cx(
         "relative",
         nav
-          ? "grid h-dvh grid-cols-[var(--layout-side)_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
+          ? "grid h-dvh grid-cols-[calc(var(--layout-side)_+_var(--ui-frame))_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
           : "flex h-dvh flex-col",
         // A phone: one column that scrolls as the page, nothing past its sides, clear of the notch.
         "max-[900px]:block max-[900px]:h-auto max-[900px]:overflow-x-clip max-[900px]:pr-[env(safe-area-inset-right)] max-[900px]:pl-[env(safe-area-inset-left)]",
@@ -306,15 +306,15 @@ export function AppShell({
           className={cx(
             "flex min-w-0 items-center gap-1.5",
             nav &&
-              "[grid-area:top] min-[901px]:mt-(--ui-frame) min-[901px]:mb-2 min-[901px]:h-[52px] min-[901px]:pr-2.5 min-[901px]:pl-(--ui-frame)",
-            folded && "min-[901px]:justify-center min-[901px]:pr-0",
+              "min-[901px]:gap-0 [grid-area:top] z-10 min-[901px]:mt-(--ui-frame) min-[901px]:h-14 min-[901px]:items-start min-[901px]:pt-3.5 min-[901px]:pr-2.5 min-[901px]:pl-[calc(var(--ui-frame)+10px)]",
+            folded && "min-[901px]:justify-center",
           )}
         >
           <a
             className={cx(
               HOVER,
               "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
-              nav && "min-[901px]:pr-1",
+              nav && "min-[901px]:h-[30px] min-[901px]:pr-0 min-[901px]:pl-2",
             )}
             href={brand.href}
             aria-label={brand.name}
@@ -329,7 +329,7 @@ export function AppShell({
             </span>
           )}
           <div className={cx("flex min-w-0 items-center gap-1.5", folded && "min-[901px]:hidden")}>
-            <WorkspaceName workspace={workspace} />
+            <WorkspaceName workspace={workspace} brand={nav} />
           </div>
           {workspace.chip ? (
             <a
@@ -351,7 +351,7 @@ export function AppShell({
             className={cx(
               "ml-auto flex flex-none items-center gap-1.5",
               nav &&
-                "[grid-area:me] min-[901px]:mr-2.5 min-[901px]:ml-(--ui-frame) min-[901px]:flex-wrap min-[901px]:border-t min-[901px]:border-(--ui-hair) min-[901px]:py-2.5",
+                "[grid-area:me] z-10 min-[901px]:mr-2.5 min-[901px]:mb-(--ui-frame) min-[901px]:ml-[calc(var(--ui-frame)+10px)] min-[901px]:flex-wrap min-[901px]:border-t min-[901px]:border-(--ui-hair) min-[901px]:py-2.5",
               folded && "min-[901px]:hidden",
             )}
           >
@@ -361,7 +361,7 @@ export function AppShell({
         ) : null}
         {folded ? (
           // Folded, his buttons wait behind one: the sidebar is only as wide as an icon.
-          <div className="hidden flex-col items-center gap-1 border-t border-(--ui-hair) py-2.5 pl-(--ui-frame) [grid-area:me] min-[901px]:flex">
+          <div className="z-10 hidden flex-col items-center gap-1 border-t border-(--ui-hair) py-2.5 pl-(--ui-frame) [grid-area:me] min-[901px]:mb-(--ui-frame) min-[901px]:flex">
             {custom}
             {actions ? (
               <Popover>
@@ -405,7 +405,7 @@ export function AppShell({
           range={SIDE}
           host={host}
           cssVar="--layout-side"
-          style={{ left: "calc(var(--layout-side) - 5px)" }}
+          style={{ left: "calc(var(--layout-side) + var(--ui-frame) - 5px)" }}
           onDone={(n) =>
             display.set(n.shut ? { sideShut: true } : { side: n.width, sideShut: false })
           }
@@ -415,11 +415,19 @@ export function AppShell({
       <div
         className={cx(
           "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) bg-(--ui-paper) shadow-[var(--ui-raise),var(--ui-lift)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
+          // The sidebar lives inside the window's card: the card spans both columns, the
+          // sidebar's ground is painted at its left, and the sidebar's cells sit above it.
           nav
-            ? "[grid-area:window] my-(--ui-frame) mr-(--ui-frame)"
+            ? "relative [grid-area:2/1/-1/-1] mx-(--ui-frame) my-(--ui-frame) min-[901px]:pl-(--layout-side)"
             : "mx-(--ui-frame) mb-(--ui-frame)",
         )}
       >
+        {nav ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 w-(--layout-side) border-r border-(--ui-hair) bg-(--ui-ground) max-[900px]:hidden"
+          />
+        ) : null}
         {app ? <AppBar app={app} pins={pins} display={display} /> : null}
         <div className="flex min-h-0 min-w-0 flex-1 max-[900px]:block">
           {/* With a sidebar, the open app's pages fold out under its row there instead. */}
@@ -428,7 +436,7 @@ export function AppShell({
           ) : null}
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-(--ui-ground) [scrollbar-width:thin] max-[900px]:overflow-visible"
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible"
             ref={scroller}
           >
             {app ? (
@@ -574,9 +582,9 @@ const APPNAME =
   "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
 const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)";
-/** The count after a tab's name: what waits on you there, so it reads as a badge, not a footnote. */
+/** The count after a name (the artifact's `.nav .n`): what waits on you there, an accent pill. */
 const COUNT =
-  "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden bg-(--ui-warn-tint) px-1.5 text-center text-[12px]/5 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+  "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/5 font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums]";
 /** What a count in the sidebar counts, for its hover. */
 const waits = (n: number) => tipProps(`${num(n)} waiting on you`);
 /** Which sidebar areas he shut or opened, kept in this browser. */
@@ -590,13 +598,13 @@ function readShut(): Record<string, boolean> {
   }
 }
 /** A group's heading, ruled off from the pages above it. */
-const GROUP = `mt-2.5 border-t border-(--ui-hair) px-2.5 pt-3 pb-1 ${GROUP_LABEL}`;
-/** The page on screen: a lavender wash, bolder, and an accent bar on its left edge. */
+const GROUP = `mt-2.5 border-t border-(--ui-hair) px-2 pt-3 pb-1 ${GROUP_LABEL}`;
+/** The page on screen (the artifact's `.nav[aria-current]`): a tint, bolder; `ui-nav-sweep` draws its arc. */
 const TAB_ON =
-  "aria-[current=page]:bg-(--ui-accent-wash) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_3px_0_0_var(--ui-active)]";
+  "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink)";
 
 /** A sidebar tab's indent by its depth. */
-const DEPTH = ["pl-2.5", "pl-6", "pl-9", "pl-12"];
+const DEPTH = ["pl-2", "pl-6", "pl-9", "pl-12"];
 /** A tab with something dragged over it that it takes. */
 const TAB_OVER =
   "bg-(--ui-accent-wash) text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-active)]";
@@ -607,7 +615,7 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
   const className = cx(
     HOVER,
     // A long label ("Waiting on you") wraps to a second line instead of cutting off.
-    "flex min-h-(--layout-tab-row) w-full min-w-0 items-center gap-[11px] ui-nav-sweep [border-radius:var(--ui-leaf-nav)] py-1.5 pr-2.5 text-[14px] leading-[18px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
+    "flex min-h-(--layout-tab-row) w-full min-w-0 items-center gap-[9px] ui-nav-sweep [border-radius:var(--ui-leaf-nav)] py-1.5 pr-2 text-[14px] leading-[18px] text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
     DEPTH[Math.min(t.depth ?? 0, DEPTH.length - 1)],
     TAB_ON,
     over && TAB_OVER,
@@ -656,12 +664,13 @@ function SideTab({ t, on }: { t: NavItem; on: boolean }) {
 
 /** Folded: the icon alone, centered; what waits is a dot on its corner. */
 const FOLDED_ROW = "relative justify-center px-0";
-const DOT = "absolute top-1.5 right-1.5 size-1.5 bg-(--ui-warn-ink) in-data-[counts=off]:hidden";
+const DOT =
+  "absolute top-1.5 right-1.5 size-1.5 rounded-full bg-(--ui-primary) in-data-[counts=off]:hidden";
 
 /** An app's row in the sidebar: its mark, its name, what waits in it. */
 const APP_ROW = cx(
   HOVER,
-  "flex h-(--layout-nav-row) w-full min-w-0 items-center gap-2.5 ui-nav-sweep [border-radius:var(--ui-leaf-nav)] px-2.5 text-[14px] font-medium text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-paper) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) aria-[current=true]:shadow-[inset_0_0_0_1px_var(--ui-hair),inset_3px_0_0_var(--ui-active)]",
+  "flex h-(--layout-nav-row) w-full min-w-0 items-center gap-[9px] ui-nav-sweep [border-radius:var(--ui-leaf-nav)] px-2 text-[14px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-accent-tint) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) [&>svg]:[stroke-width:1.8]",
 );
 
 /** The open app's pages, under its row: grouped, a group of one page standing alone. */
@@ -950,10 +959,10 @@ function SideNav({
     <aside
       ref={aside}
       className={cx(
-        "flex min-h-0 flex-col gap-2 overflow-y-auto [scrollbar-width:none]",
+        "flex min-h-0 flex-col gap-0.5 overflow-y-auto [scrollbar-width:none]",
         drawer
           ? "h-full px-3 pt-[calc(52px+env(safe-area-inset-top))] pb-[calc(12px+env(safe-area-inset-bottom))] [--layout-nav-row:44px]"
-          : "pr-2.5 pb-3 pl-(--ui-frame) [grid-area:nav] max-[900px]:hidden",
+          : "z-10 pr-2.5 pb-3 pl-[calc(var(--ui-frame)+10px)] [grid-area:nav] max-[900px]:hidden",
       )}
     >
       {home ? (
@@ -974,7 +983,7 @@ function SideNav({
           ) : null}
         </a>
       ) : null}
-      <nav aria-label="Apps" className="flex flex-col gap-2">
+      <nav aria-label="Apps" className="flex flex-col gap-0.5">
         {shown.map((area) => (
           <section key={area.id} className="flex flex-col gap-0.5">
             {area.label && area.apps.length > 1 && folded ? (
@@ -1021,7 +1030,7 @@ function SideNav({
                       APP_ROW,
                       folded && FOLDED_ROW,
                       // Off: a faded icon and a lighter name; the name keeps its contrast.
-                      a.off && "font-normal [&_svg]:opacity-45",
+                      a.off && "[&_svg]:opacity-45",
                       hovered?.id === a.id && "bg-(--ui-hover)",
                     )}
                     href={a.href}
@@ -1037,7 +1046,7 @@ function SideNav({
                         })
                       : {})}
                   >
-                    <Icon name={a.icon} className={lit(a) ? "text-(--ui-active)" : ""} />
+                    <Icon name={a.icon} />
                     <span className={folded ? "sr-only" : "min-w-0 truncate"} {...clipProps()}>
                       {a.name}
                     </span>
@@ -1065,6 +1074,12 @@ function SideNav({
           onClear={pins.onClear}
         />
       ) : null}
+      {folded || drawer ? null : (
+        // The artifact's `.side .kbd`: the sidebar's foot line, pushed down by its auto margin.
+        <p className="mt-auto flex-none px-2.5 py-2 text-[11.5px] font-semibold text-(--ui-ink-3)">
+          ⌘K finds any app
+        </p>
+      )}
       {hovered?.pages && menu.open ? (
         // A closed app's pages beside its row; the triangle keeps it open on the way over.
         <div
@@ -1072,7 +1087,7 @@ function SideNav({
           className="fixed z-40 w-56 overflow-y-auto rounded-(--ui-radius-sheet) bg-(--ui-paper) p-1.5 shadow-(--ui-float)"
           style={{
             top: flyTop ?? rowTop ?? 8,
-            left: (aside.current?.getBoundingClientRect().right ?? 224) - 2,
+            left: (aside.current?.getBoundingClientRect().right ?? 190) - 2,
             maxHeight: "calc(100vh - 16px)",
             visibility: flyTop === null ? "hidden" : "visible",
           }}
@@ -1224,28 +1239,43 @@ function AppHead({
 }
 
 const WS = "relative flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) px-2";
+/** The sidebar's brand line (the artifact's `.brand`): the name 16px and 700, 9px after the mark. */
+const WS_BRAND = "min-[901px]:h-[30px] min-[901px]:pr-1 min-[901px]:pl-[9px]";
 const WS_LINK = `${WS} ${HOVER} no-underline`;
 
 /** Whose workspace this is: its name, a link when it has one. */
-function WorkspaceName({ workspace }: { workspace: Workspace }) {
+function WorkspaceName({
+  workspace,
+  brand = false,
+}: {
+  workspace: Workspace;
+  /** Beside the sidebar's mark on a computer: the brand line's size and weight. */
+  brand?: boolean;
+}) {
   const { current, href, label } = workspace;
   if (!current)
     return (
-      <span className={WS} aria-busy="true">
+      <span className={cx(WS, brand && WS_BRAND)} aria-busy="true">
         <Skeleton className="h-3 w-[110px]" />
       </span>
     );
   const face = (
-    <span className="truncate text-[14px] font-semibold" {...clipProps()}>
+    <span
+      className={cx(
+        "truncate text-[14px] font-semibold",
+        brand && "min-[901px]:text-[16px] min-[901px]:font-bold",
+      )}
+      {...clipProps()}
+    >
       {current.name}
     </span>
   );
   return href ? (
-    <a className={WS_LINK} href={href} {...tipProps(label)}>
+    <a className={cx(WS_LINK, brand && WS_BRAND)} href={href} {...tipProps(label)}>
       {face}
     </a>
   ) : (
-    <span className={WS}>{face}</span>
+    <span className={cx(WS, brand && WS_BRAND)}>{face}</span>
   );
 }
 
