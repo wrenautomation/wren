@@ -692,14 +692,19 @@
     transform: rotate(360deg);
   }
 }
-/* The ring in a chip (`.crg`): inline, 2 px past the gap. */
-.ui-chip-ring {
-  display: inline-block;
+/* The ring where it takes room (motion.tsx `RingSlot`): Motion grows its width from 0. The slot
+   gives back the row's gap (`--ui-gap`) and the ring takes it inside, so the gap grows with it.
+   No gap set: the ring sits 4 px after the words (`.rg`); a chip sets 6 px, so 8 (`.crg`). */
+.ui-ring-slot {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
   line-height: 0;
   vertical-align: -1px;
+  margin-left: calc(0px - var(--ui-gap, 0px));
 }
-.ui-chip-ring .ui-busy {
-  margin-left: 2px;
+.ui-ring-slot > .ui-busy {
+  margin-left: calc(var(--ui-gap, 2px) + 2px);
 }
 /* A button that can go busy (`.btn.act2`): the label and its done words share one cell, and the
    ring waits in its own place at the right. At work, the label moves 9 px left and the ring fades

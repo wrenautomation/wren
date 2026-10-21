@@ -7,6 +7,7 @@ import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
+import { RingSlot } from "./motion.js";
 
 /**
  * `primary` is the one action on a screen (the accent), named where it is used; `secondary`, the
@@ -174,7 +175,7 @@ export function ButtonLink({
 export type TagTone = "neutral" | "accent" | "warn" | "green" | "bad";
 
 const TAG =
-  "h-auto w-auto max-w-full gap-1.5 px-2.5 py-[3px] border-0 rounded-(--ui-leaf-chip) text-[12.5px]/[1.55] font-semibold whitespace-nowrap overflow-visible [&_b]:font-bold";
+  "h-auto w-auto max-w-full gap-1.5 [--ui-gap:6px] px-2.5 py-[3px] border-0 rounded-(--ui-leaf-chip) text-[12.5px]/[1.55] font-semibold whitespace-nowrap overflow-visible [&_b]:font-bold";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2) [&_b]:text-(--ui-ink)",
   accent: "bg-(--ui-accent-tint) text-(--ui-live)",
@@ -205,11 +206,7 @@ export function Tag({
   return (
     <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} {...tipProps(title)}>
       <span className="min-w-0 truncate">{children}</span>
-      {busy ? (
-        <span className="ui-chip-ring" aria-hidden="true">
-          <Ring />
-        </span>
-      ) : null}
+      <RingSlot on={!!busy} />
     </Badge>
   );
 }
@@ -288,7 +285,7 @@ export function Seg<T extends string>({
           onClick={() => onChange(i.value)}
         >
           {i.label}
-          {i.busy ? <Ring /> : null}
+          <RingSlot on={!!i.busy} />
         </button>
       ))}
     </div>

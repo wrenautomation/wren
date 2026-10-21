@@ -289,6 +289,7 @@ export {
   tintColor,
   tintWash,
 } from "./marks.js";
+export { EASE, FADE, MOVE, RingSlot, SPRING } from "./motion.js";
 export {
   type OverviewProps,
   type OverviewQueue,
