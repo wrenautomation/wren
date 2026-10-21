@@ -2,7 +2,7 @@
 
 2026-10-20. William, on artifact v12: "keep this artifact up we are using this as the source of truth for the full redesign, and well iterate through this artifact as well." Green light to build.
 
-**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v20). The artifact wins over this doc when they differ. A copy of its source at v20 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
+**Source of truth:** the private artifact "Wren design language" (claude.ai/artifact/SuhuZqr8NPMQMDdd5UKWuu, v21). The artifact wins over this doc when they differ. A copy of its source at v21 sits in `designs/2026-10-20-design-language/`: `design-language.src.html` (every section, sample data only), `metro-render.js` and `metro-render.css` (the renderer every map on the page uses). Builders port from those files. They never fetch the artifact.
 
 This doc supersedes the "banded funnel" form decision in `2026-10-19-business-map.md`. The shape store, drafts, history, blame, undo, tags and the git mirror from that doc stay.
 
@@ -69,12 +69,13 @@ Open for William: should a focus page allow edits (a draft scoped to that part),
 William: "make sure ui is principally sound (tanstack query, similarly sleek loading animations, popups close when they should on user clicks, state persists appropriately ex. one loading we click to another it isn't we click back if its still loading it shows, etc.)"
 
 - Data through TanStack Query only. No fetch state in components. A query left while it loads still loads, then shows, when the person comes back; the cache holds it, never the page.
-- Loading per artifact section 14: nothing under 150 ms; skeleton or bar in place up to 1 s; words past 1 s; steps and "you can leave" past 10 s. Old data stays on refresh. A button keeps its label and width while busy. Never a spinner in place of a label, never a layout shift.
+- Loading per artifact section 14: nothing under 150 ms; skeleton, or the ring beside what refreshes, up to 1 s; words past 1 s; steps and "you can leave" past 10 s. Old data stays on refresh. A button keeps its label and width while busy. Never a spinner in place of a label, never a layout shift.
 - Popovers, menus and sheets close on outside click and Esc. One open at a time.
 - Per-viewer state (open sheet, zoom, pins, filters) persists across navigation.
 - Empty, error and offline each look different from a wait. Error: one sentence and Retry.
-- Reduced motion: shimmer and draw-in go; bars still move.
-- Steps (William, 10-21, "the path was not done correctly", redone as section 14 "Long job"): any wait with stages shows its steps. Each step names what it does and with what. The status line cross-fades on a timer, never on every frame (the old one flickered). Sources and targets fold in as small icon cards, then stack into a deck with a count when the step is done. Past ten seconds: a clock and "you can leave". Done, the whole thing folds to one line that stays as the record and reopens on click. One component for research, send, import, video render, map open.
+- Reduced motion: shimmer and draw-in go; the ring stops and shows its tail still.
+- No loading bars or sweeps anywhere (William, 10-21). The ring is the one busy mark: beside the label in a button, beside the title on refresh, in the AI chip, inside the ⌘K input, in a modal.
+- Steps (William, 10-21, "the path was not done correctly", redone as section 14 "Long job"): any wait with stages shows its steps. Each step names what it does and with what. The status line cross-fades on a timer, never on every frame (the old one flickered). Sources and targets fold in as small cards that carry the platform's real logo in its brand colour (Simple Icons, CC0: the `simple-icons` npm package; a plain site gets a globe), then stack into a deck with a count when the step is done. Past ten seconds: a clock and "you can leave". Done, the whole thing folds to one line that stays as the record and reopens on click. One component for research, send, import, video render, map open.
 - Numbers never count up or jitter (William, 10-21). A changed number fades in once, on refresh and on first load.
 - Busy state (modal, chip, button): one ring, 40 px in a modal, 14 px small. William (10-21) wants "a dot ring type loading modal, very custom to our app and something bird related", or the plain ring if the custom one is not simple and distinct. Section 14 "Ring, bird ways": flight (a wren flies a ring of feather barbs with a thick comet tail, bold at 14 px; William likes this one), feathers, clutch (five eggs warm in turn), nest (three arcs), plain ring. Until he picks, builders use the plain ring, as one component with the variant as a prop.
 - Pagination stays (William, 10-21: "everything should be paginated as well, it already is, just don't remove that"). The next page loads in place at the same height. No infinite scroll.
