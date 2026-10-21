@@ -72,4 +72,4 @@ Do not push. Do not run the full gate; the planner runs it. Report each stage's 
 
 ## Map first load (William, 2026-10-21)
 
-In `MetroMap`, on first load: each line draws over about 2.4 s, stations land as the line passes, labels fade in with their station, numbers tick last. Artifact section 14 "Map load" (`.ldmap` CSS; read `/Users/williamjin/Documents/wren_automation/wren/designs/2026-10-20-design-language/design-language.src.html`). Only on first mount, never on a level change or refresh. Reduced motion: no draw-in; marks fade in. A prop turns it off (stories and tests). This goes in stage 1.
+In `MetroMap`, on first load: each line draws over about 2.4 s, stations land as the line passes, labels fade in with their station, numbers fade in last (never count up; artifact v19). Artifact section 14 "Map load" (`.ldmap` CSS; read `/Users/williamjin/Documents/wren_automation/wren/designs/2026-10-20-design-language/design-language.src.html`). Only on first mount, never on a level change or refresh. Reduced motion: no draw-in; marks fade in. A prop turns it off (stories and tests). This goes in stage 1.

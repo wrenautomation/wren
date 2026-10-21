@@ -57,7 +57,7 @@ Source: artifact section 14 "Loading" (section id `loading`; CSS after `/* 14 lo
 
 - Timing: nothing under 150 ms; skeleton or bar in place up to 1 s; words past 1 s; steps and "you can leave" past 10 s.
 - Skeleton: first load of a page or sheet. Grey blocks in the shape of the content, slow lavender shimmer. The known header shows at once.
-- Bar: refresh of data already shown. Old data stays. A 2 px lavender bar sweeps along the top of the panel. Numbers tick to the new value.
+- Bar: refresh of data already shown. Old data stays. A 2 px lavender bar sweeps along the top of the panel. A changed number fades in once; numbers never count up.
 - Busy edge: a button's own action. The label and width stay. A bar fills along the bottom edge, then a check, then the toast with Undo.
 - Steps: a job over 10 s. Each step with its state, and a line that says the person can leave.
 - Stream: AI text arrives as it comes, with a lavender caret and a "Drafting" chip.
@@ -78,3 +78,14 @@ Source: the doc's "UI soundness" section (commit fffd33b3) and artifact section 
 
 - Busy is one shared component with the variant as a prop. Build `dots` only. Keep a typed slot for `ring` and the section 14 "Busy, Wren ways" candidates (trace, corner ink, leaf turn, shuttle, wren hop). Bar, sweep and edge pulse are out.
 - Pagination stays where it exists. Never swap a pager for infinite scroll. The next page loads in place at the same height (skeleton rows at page size). Write this in DESIGN.md Loading.
+
+## Steps replace the Path loader (William, 2026-10-21, artifact v19)
+
+William rejected the Path loader ("glitchy, not done correctly"). Section 14 "Long job" replaces it with one part, `Steps` in `packages/ui/src/steps.tsx`. `path.tsx` is gone.
+
+- The status line cross-fades on a timer. Each line holds at least 600 ms; only the latest waiting line shows. No render per frame.
+- Sources and targets fold in as small icon cards (rotateX fold). A done step stacks them into a deck with a count.
+- Past 10 s: a clock and "you can leave".
+- Done: it folds to one line that reopens on click.
+- Numbers never count up or jitter. A changed number fades in once.
+- Busy default is the plain ring. William likes "Flight" and may pick it, so the variant stays a prop.
