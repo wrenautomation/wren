@@ -9,8 +9,9 @@ import { Sweep } from "./sweep.js";
 
 /** The heading scale. A page has one title; each section one section title; a group in it a label. */
 export const PAGE_TITLE =
-  "font-(family-name:--ui-font-display) text-[22px] leading-7 font-[650] tracking-[calc(-0.02em*var(--ui-display-squeeze))] text-balance";
-export const SECTION_TITLE = "text-[16px] leading-[22px] font-semibold";
+  "font-(family-name:--ui-font-display) text-[22px] leading-[1.55] font-[650] tracking-[calc(-0.02em*var(--ui-display-squeeze))] text-balance";
+/** The artifact's `h3`: 16 px, 650, -0.01em. */
+export const SECTION_TITLE = "text-[16px] leading-[1.55] font-[650] tracking-[-0.01em]";
 /** A group's label: sentence case, 12.5 px, 650, ink-3. A look can set case and tracking back. */
 export const GROUP_LABEL =
   "text-[12.5px] leading-4 font-[650] tracking-(--ui-label-tracking) text-(--ui-ink-3) [text-transform:var(--ui-label-case)]";
@@ -33,13 +34,27 @@ export const FRAME_BODY =
 
 const ACTIONS = "flex flex-wrap items-center gap-2.5";
 
+/** A label in the sidebar or a sheet ("Pinned"): the artifact's `.nl`, 12 px, 600, ink-3, no rule. */
+export const NAV_LABEL =
+  "px-2 pt-3 pb-1 text-[12px] leading-[1.55] font-semibold text-(--ui-ink-3)";
+/**
+ * A row in the sidebar (the artifact's `.nav`): 6 px by 8, 14 px ink-2, a leaf of 3 and 12; the
+ * row on screen is tinted and bolder, and `ui-nav-sweep` draws its arc. Hover is the wash a task
+ * row takes. Snug density takes 3 px off each side.
+ */
+export const NAV_ROW =
+  "ui-nav-sweep flex w-full min-w-0 items-center gap-[9px] [border-radius:var(--ui-leaf-nav)] px-2 py-1.5 in-data-[density=snug]:py-[3px] text-[14px] leading-[1.55] text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) [&>svg]:[stroke-width:1.8]";
+/** The sidebar row on screen (`.nav[aria-current]`). */
+export const NAV_ON =
+  "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=true]:bg-(--ui-accent-tint) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink)";
+
 const AboutContext = createContext<string | undefined>(undefined);
 /** The open page's `about`: one line under its title saying what it's for. */
 export const AboutProvider = AboutContext.Provider;
 export const useAbout = () => useContext(AboutContext);
 
 /** The line under a title: the page's own lede, else what the page is for. */
-export const ABOUT = "mt-1 max-w-[62ch] text-[13.5px] text-pretty text-(--ui-ink-2)";
+export const ABOUT = "max-w-[70ch] text-[13.5px] leading-[1.55] text-pretty text-(--ui-ink-2)";
 
 /** A page's title, with its line under it. A refresh leaves the old data and marks nothing. */
 export function PageTitle({ title, lede }: { title: ReactNode; lede?: ReactNode }) {
@@ -120,7 +135,7 @@ export function Section({
             </h2>
           ) : null}
           {note ? (
-            <p className="mt-0.5 max-w-[68ch] text-[13.5px] text-pretty text-(--ui-ink-2)">
+            <p className="max-w-[70ch] text-[13.5px] leading-[1.55] text-pretty text-(--ui-ink-2)">
               {note}
             </p>
           ) : null}
@@ -130,13 +145,13 @@ export function Section({
     ) : null;
   if (plain)
     return (
-      <section className={cx("[section+&]:mt-10", className)}>
+      <section className={cx("[section+&]:mt-3.5", className)}>
         {head}
         {children}
       </section>
     );
   return (
-    <section className={cx("min-w-0 [:is(section,[data-empty])+&]:mt-7", FRAME, className)}>
+    <section className={cx("min-w-0 [:is(section,[data-empty])+&]:mt-3.5", FRAME, className)}>
       <Sweep />
       {head}
       <div className={FRAME_BODY}>{children}</div>

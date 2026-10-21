@@ -33,7 +33,7 @@ import {
 } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
-import { GROUP_LABEL } from "./layout.js";
+import { NAV_LABEL, NAV_ON, NAV_ROW } from "./layout.js";
 import { headed, runs, total } from "./phone-nav.js";
 import {
   AppsSheet,
@@ -306,7 +306,8 @@ export function AppShell({
           className={cx(
             "flex min-w-0 items-center gap-1.5",
             nav &&
-              "min-[901px]:gap-0 [grid-area:top] z-10 min-[901px]:mt-(--ui-frame) min-[901px]:h-14 min-[901px]:items-start min-[901px]:pt-3.5 min-[901px]:pr-2.5 min-[901px]:pl-[calc(var(--ui-frame)+10px)]",
+              // The artifact's `.brand` in `.side`: 14 px over the side, 4 over the line, 14 under it.
+              "min-[901px]:gap-0 [grid-area:top] z-10 min-[901px]:mt-(--ui-frame) min-[901px]:pt-[18px] min-[901px]:pb-[14px] min-[901px]:pr-[11px] min-[901px]:pl-[calc(var(--ui-frame)+10px)]",
             folded && "min-[901px]:justify-center",
           )}
         >
@@ -314,7 +315,7 @@ export function AppShell({
             className={cx(
               HOVER,
               "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
-              nav && "min-[901px]:h-[30px] min-[901px]:pr-0 min-[901px]:pl-2",
+              nav && "min-[901px]:h-auto min-[901px]:pr-0 min-[901px]:pl-2",
             )}
             href={brand.href}
             aria-label={brand.name}
@@ -440,7 +441,6 @@ export function AppShell({
             className="pointer-events-none absolute inset-y-0 left-0 w-(--layout-side) border-r border-(--ui-hair) bg-(--ui-ground) max-[900px]:hidden"
           />
         ) : null}
-        {app ? <AppBar app={app} pins={pins} display={display} /> : null}
         <div className="flex min-h-0 min-w-0 flex-1 max-[900px]:block">
           {/* With a sidebar, the open app's pages fold out under its row there instead. */}
           {app && !nav && !d.pagesShut ? (
@@ -480,6 +480,7 @@ export function AppShell({
               ref={main}
               tabIndex={-1}
             >
+              {app && !bleed ? <AppCrumb app={app} pins={pins} display={display} /> : null}
               <FrameProvider value={display ?? null}>{children}</FrameProvider>
             </main>
             {/* Offline, or writes not yet answered: one mark for the whole portal. */}
@@ -584,6 +585,8 @@ const HOVER = `${EASE} hover:bg-(--ui-hover)`;
 const CHIP =
   "min-w-0 max-w-40 truncate bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium text-(--ui-ink-2) no-underline";
 const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
+/** Where the page sits (the artifact's `.crumb`): 13 px ink-3, the page in ink. */
+const CRUMB = "text-[13px] leading-[1.55] text-(--ui-ink-3)";
 const ICON_BUTTON = `${HOVER} inline-grid size-8 pointer-coarse:size-11 border-0 bg-transparent p-0 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) hover:text-(--ui-ink) aria-pressed:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover) data-[popup-open]:text-(--ui-ink)`;
 const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;
 const APPNAME =
@@ -592,7 +595,7 @@ const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)";
 /** The count after a name (the artifact's `.nav .n`): what waits on you there, an accent pill. */
 const COUNT =
-  "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/5 font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums]";
+  "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-bold text-(--ui-on-accent) [font-variant-numeric:tabular-nums]";
 /** What a count in the sidebar counts, for its hover. */
 const waits = (n: number) => tipProps(`${num(n)} waiting on you`);
 /** Which sidebar areas he shut or opened, kept in this browser. */
@@ -605,11 +608,8 @@ function readShut(): Record<string, boolean> {
     return {};
   }
 }
-/** A group's heading, ruled off from the pages above it. */
-const GROUP = `mt-2.5 border-t border-(--ui-hair) px-2 pt-3 pb-1 ${GROUP_LABEL}`;
-/** The page on screen (the artifact's `.nav[aria-current]`): a tint, bolder; `ui-nav-sweep` draws its arc. */
-const TAB_ON =
-  "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink)";
+/** A group's heading: the artifact's `.nl`, no rule. */
+const GROUP = NAV_LABEL;
 
 /** A sidebar tab's indent by its depth. */
 const DEPTH = ["pl-2", "pl-6", "pl-9", "pl-12"];
@@ -621,11 +621,11 @@ const TAB_OVER =
 function SideTab({ t, on }: { t: NavItem; on: boolean }) {
   const [over, setOver] = useState(false);
   const className = cx(
-    HOVER,
     // A long label ("Waiting on you") wraps to a second line instead of cutting off.
-    "flex min-h-(--layout-tab-row) w-full min-w-0 items-center gap-[9px] ui-nav-sweep [border-radius:var(--ui-leaf-nav)] py-1.5 pr-2 text-[14px] leading-[18px] text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink)",
+    NAV_ROW,
+    NAV_ON,
+    "transition-[background-color,color,box-shadow]",
     DEPTH[Math.min(t.depth ?? 0, DEPTH.length - 1)],
-    TAB_ON,
     over && TAB_OVER,
   );
   const body = (
@@ -676,10 +676,7 @@ const DOT =
   "absolute top-1.5 right-1.5 size-1.5 rounded-full bg-(--ui-primary) in-data-[counts=off]:hidden";
 
 /** An app's row in the sidebar: its mark, its name, what waits in it. */
-const APP_ROW = cx(
-  HOVER,
-  "flex h-(--layout-nav-row) w-full min-w-0 items-center gap-[9px] ui-nav-sweep [border-radius:var(--ui-leaf-nav)] px-2 text-[14px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink) aria-[current=true]:bg-(--ui-accent-tint) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink) [&>svg]:[stroke-width:1.8]",
-);
+const APP_ROW = cx(NAV_ROW, NAV_ON);
 
 /** The open app's pages, under its row: grouped, a group of one page standing alone. */
 function AppTabs({ app }: { app: OpenApp }) {
@@ -689,10 +686,10 @@ function AppTabs({ app }: { app: OpenApp }) {
         {runs(app.tabs).flatMap((r, i, all) => [
           ...(headed(r)
             ? [
-                // The first group sits right under the app's row: no rule above it.
+                // The first group sits right under the app's row.
                 <li
                   key={`g:${r.group}`}
-                  className={cx(GROUP, i === 0 && "mt-0 border-t-0 pt-1")}
+                  className={cx(GROUP, i === 0 && "pt-1")}
                   aria-hidden="true"
                 >
                   {r.group}
@@ -703,11 +700,7 @@ function AppTabs({ app }: { app: OpenApp }) {
             // A page after a group stands apart, so it doesn't read as that group's last.
             <li
               key={t.id}
-              className={
-                j === 0 && !headed(r) && headed(all[i - 1])
-                  ? "mt-2.5 border-t border-(--ui-hair) pt-2.5"
-                  : undefined
-              }
+              className={j === 0 && !headed(r) && headed(all[i - 1]) ? "mt-2.5" : undefined}
             >
               <SideTab t={t} on={t.id === app.current} />
             </li>
@@ -719,11 +712,12 @@ function AppTabs({ app }: { app: OpenApp }) {
 }
 
 /**
- * The open app on a computer, across the window's top: its name, the page on screen, its one
- * button and the pin. Its pages fold out under its row in the sidebar (`SideNav`), or run down
- * the left edge under it without one (`AppColumn`).
+ * Where the page sits, over its title (the artifact's `.crumb` in `.atop`): the app, then the page
+ * in ink. No band and no rule. Its buttons (the app's one action, the pin) sit at its right end and
+ * hang past its 20 px line, so the title follows the crumb with no gap, as the artifact draws it.
+ * Pages hidden, or the sidebar folded to icons, the page's name opens them.
  */
-function AppBar({
+function AppCrumb({
   app,
   pins,
   display,
@@ -734,76 +728,57 @@ function AppBar({
 }) {
   const page = app.tabs.find((t) => t.id === app.current);
   const paged = app.tabs.length > 1;
-  // Pages hidden, or the sidebar folded to icons: the page's name opens them.
   const hidden = !!(display?.display.pagesShut || display?.display.sideShut) && paged;
   return (
-    <div className="flex h-[52px] flex-none items-center gap-2 border-b border-(--ui-hair) bg-(--ui-band) pr-3 pl-3 max-[900px]:hidden">
-      {display && paged && !display.display.sideShut ? (
-        <button
-          type="button"
-          className={ICON_BUTTON}
-          aria-pressed={!hidden}
-          aria-label={hidden ? "Show pages" : "Hide pages"}
-          {...tipProps(hidden ? "Show pages" : "Hide pages", { keys: "]", as: "none" })}
-          onClick={() => display.set({ pagesShut: !hidden })}
-        >
-          <Icon name="panel" />
-        </button>
-      ) : null}
-      <a
-        className={cx(
-          APPNAME,
-          HOVER,
-          "h-9 rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold",
-        )}
-        href={app.href}
-      >
-        <span className={APPMARK} aria-hidden="true">
-          <Icon name={app.icon} />
-        </span>
-        <span className="min-w-0 truncate" {...clipProps()}>
-          {app.name}
-        </span>
-      </a>
-      {hidden ? (
-        // The pages hidden, the page's name opens them.
-        <>
-          <span className={SLASH} aria-hidden="true">
-            /
+    <div className="-my-1.5 flex min-h-8 min-w-0 items-center gap-2 max-[900px]:hidden">
+      <nav aria-label="Breadcrumb" className={cx(CRUMB, "flex min-w-0 items-center gap-1")}>
+        {paged || !page ? (
+          <a
+            className="min-w-0 truncate text-inherit no-underline hover:text-(--ui-ink)"
+            href={app.href}
+            {...clipProps()}
+          >
+            {app.name}
+          </a>
+        ) : null}
+        {paged && (page || hidden) ? (
+          <span className="flex-none" aria-hidden="true">
+            ›
           </span>
+        ) : null}
+        {hidden ? (
           <Popover>
-            <PopoverTrigger
-              className={cx(
-                HOVER,
-                "inline-flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) border-0 bg-transparent px-2 text-[15px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)",
-              )}
-            >
+            <PopoverTrigger className="inline-flex min-w-0 items-center gap-1 border-0 bg-transparent p-0 font-bold text-(--ui-ink) hover:text-(--ui-link) data-[popup-open]:text-(--ui-link)">
               <span className="min-w-0 truncate" {...clipProps()}>
                 {page?.label ?? app.name}
               </span>
-              <Icon name="down" className="flex-none" />
+              <Icon name="down" size={14} className="flex-none" />
             </PopoverTrigger>
             <PopoverContent align="start" className="max-h-[70dvh] w-60 overflow-y-auto p-1.5">
               <AppTabs app={app} />
             </PopoverContent>
           </Popover>
-        </>
-      ) : page && page.href !== app.href ? (
-        <>
-          <span className={SLASH} aria-hidden="true">
-            /
-          </span>
-          <span
-            className="min-w-0 truncate px-1 text-[15px] font-medium text-(--ui-ink-2)"
-            {...clipProps()}
-          >
-            {page.label}
-          </span>
-        </>
-      ) : null}
-      {app.action || pins ? (
+        ) : page || !paged ? (
+          <b className="min-w-0 truncate text-(--ui-ink)" aria-current="page" {...clipProps()}>
+            {paged ? page?.label : app.name}
+          </b>
+        ) : null}
+      </nav>
+      {app.action || pins || (display && paged && !display.display.sideShut) ? (
         <div className="ml-auto flex flex-none items-center gap-1.5">
           {app.action}
+          {display && paged && !display.display.sideShut ? (
+            <button
+              type="button"
+              className={ICON_BUTTON}
+              aria-pressed={!hidden}
+              aria-label={hidden ? "Show pages" : "Hide pages"}
+              {...tipProps(hidden ? "Show pages" : "Hide pages", { keys: "]", as: "none" })}
+              onClick={() => display.set({ pagesShut: !hidden })}
+            >
+              <Icon name="panel" />
+            </button>
+          ) : null}
           {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
         </div>
       ) : null}
@@ -863,7 +838,8 @@ function Fold({ app, open, shown }: { app: NavApp; open: OpenApp | null; shown: 
       inert={!shown}
     >
       <div className="min-h-0 overflow-hidden">
-        <div className="mt-0.5 mb-1.5 ml-[18px] border-l border-(--ui-hair) pl-1.5">
+        {/* Its pages' names line up under the app's name: 8 px, the 16 px mark, 9 px. */}
+        <div className="mt-0.5 mb-1.5 ml-[25px]">
           <AppTabs
             app={
               open ?? {
@@ -970,7 +946,7 @@ function SideNav({
         "flex min-h-0 flex-col gap-0.5 overflow-y-auto [scrollbar-width:none]",
         drawer
           ? "h-full px-3 pt-[calc(52px+env(safe-area-inset-top))] pb-[calc(12px+env(safe-area-inset-bottom))] [--layout-nav-row:44px]"
-          : "z-10 pr-2.5 pb-3 pl-[calc(var(--ui-frame)+10px)] [grid-area:nav] max-[900px]:hidden",
+          : "z-10 pt-0.5 pr-[11px] pb-3 pl-[calc(var(--ui-frame)+10px)] [grid-area:nav] max-[900px]:hidden",
       )}
     >
       {home ? (
@@ -999,7 +975,7 @@ function SideNav({
                 {area.label}
               </h2>
             ) : area.label && area.apps.length > 1 ? (
-              <h2 className={cx(GROUP, "mt-0 border-t-0 pt-2 pr-1")}>
+              <h2 className={cx(GROUP, "pr-1")}>
                 <button
                   type="button"
                   className="flex w-full items-center gap-1.5 rounded-none border-0 bg-transparent p-0 text-left font-[inherit] text-inherit [letter-spacing:inherit] [text-transform:inherit] hover:text-(--ui-ink)"
@@ -1084,7 +1060,7 @@ function SideNav({
       ) : null}
       {folded || drawer ? null : (
         // The artifact's `.side .kbd`: the sidebar's foot line, pushed down by its auto margin.
-        <p className="mt-auto flex-none px-2.5 py-2 text-[11.5px] font-semibold text-(--ui-ink-3)">
+        <p className="mt-auto flex-none px-2.5 py-2 text-[11.5px] leading-[normal] font-semibold text-(--ui-ink-3)">
           ⌘K finds any app
         </p>
       )}
@@ -1248,7 +1224,7 @@ function AppHead({
 
 const WS = "relative flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) px-2";
 /** The sidebar's brand line (the artifact's `.brand`): the name 16px and 700, 9px after the mark. */
-const WS_BRAND = "min-[901px]:h-[30px] min-[901px]:pr-1 min-[901px]:pl-[9px]";
+const WS_BRAND = "min-[901px]:h-auto min-[901px]:pr-1 min-[901px]:pl-[9px]";
 const WS_LINK = `${WS} ${HOVER} no-underline`;
 
 /** Whose workspace this is: its name, a link when it has one. */
@@ -1271,7 +1247,7 @@ function WorkspaceName({
     <span
       className={cx(
         "truncate text-[14px] font-semibold",
-        brand && "min-[901px]:text-[16px] min-[901px]:font-bold",
+        brand && "min-[901px]:text-[16px] min-[901px]:leading-[1.55] min-[901px]:font-bold",
       )}
       {...clipProps()}
     >

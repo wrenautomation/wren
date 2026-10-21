@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover
 import { cx } from "./format.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
+import { NAV_LABEL, NAV_ON, NAV_ROW } from "./layout.js";
 import type { KeepApi } from "./list-bar.js";
 import { Latest } from "./save/latest.js";
 
@@ -125,11 +126,8 @@ export function arrangeTiles<T extends { label: string }>(
   };
 }
 
-/** The sidebar's label ("Pinned"): sentence case, 12px, 600, ink-3 (the artifact's `.nl`). */
-const GROUP = "px-2 pt-3 pb-1 text-[12px] font-semibold text-(--ui-ink-3)";
 /** A pinned page: a sidebar row (the artifact's `.nav`), the one on screen tinted with its arc. */
-const ROW =
-  "ui-nav-sweep flex min-h-(--layout-nav-row) min-w-0 items-center gap-[9px] [border-radius:var(--ui-leaf-nav)] px-2 text-[14px] text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) [&>svg]:[stroke-width:1.8]";
+const ROW = cx(NAV_ROW, NAV_ON);
 const QUIET =
   "inline-flex items-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) focus-visible:text-(--ui-ink)";
 
@@ -165,7 +163,7 @@ export function PinnedRail({
   return (
     <nav aria-label="Pinned">
       <div className="group/pins flex items-center justify-between pr-1">
-        <span className={GROUP}>Pinned</span>
+        <span className={NAV_LABEL}>Pinned</span>
         <button
           type="button"
           className={cx(
