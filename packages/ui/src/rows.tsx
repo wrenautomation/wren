@@ -527,9 +527,12 @@ export function Rows<T>(p: RowsProps<T>) {
               const r = rowOf(l);
               const act = p.act?.(l.row);
               const side = phoneCol?.cell(l.row, l.index);
+              // The page's own attributes (a mark, a focus hook) ride on the phone's row too.
+              const { className: own, ...attrs } = p.rowProps?.(l.row, l.index) ?? {};
               return (
                 <SwipeRow
                   key={l.key}
+                  {...attrs}
                   swipes={p.swipes?.(l.row) ?? null}
                   data-row={l.index}
                   data-index={n}
@@ -548,6 +551,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                     r.changed && "[&>[data-face]]:animate-ui-changed",
                     r.going && "[&>[data-face]]:bg-(--ui-wash)",
+                    own,
                   )}
                 >
                   {pick ? (

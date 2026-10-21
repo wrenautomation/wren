@@ -110,9 +110,15 @@ export const LearnList = pageAt("/learn/items", {
   check: async (page) => {
     const boxes = await within(page).findAllByRole("checkbox", { name: /^Select (?!every)/ });
     await expect(boxes).toHaveLength(3);
-    await expect(
-      within(page).getByRole("link", { name: "Five ways to win back old customers" }),
-    ).toBeVisible();
+    const link = within(page).getByRole("link", { name: "Five ways to win back old customers" });
+    await expect(link).toBeVisible();
+    // Rows, not cards (a card has no select-all box and sits in an article): a table on a wide
+    // screen, a list item on a phone.
+    if (within(page).queryByRole("table", { name: "items" }))
+      await expect(
+        within(page).getByRole("checkbox", { name: "Select every item shown" }),
+      ).toBeVisible();
+    else await expect(link.closest("li")).not.toBeNull();
     // Press a box: the file is picked, and the bulk bar shows.
     await userEvent.click(boxes[0] as HTMLElement);
     await waitFor(() => expect(boxes[0]).toBeChecked());
