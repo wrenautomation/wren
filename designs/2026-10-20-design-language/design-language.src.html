@@ -902,8 +902,9 @@ const ZS={title:"Reddit to a booked call, at three zoom levels",w:1240,h:280,zon
   {a:"hub",b:"a1",l:"ob",w:"front",oa:140},{a:"a1",b:"a2",l:"ob",w:"front"},{a:"a2",b:"prop",k:"xfer",l:"gp",lab:"upsell"}]};
 const NAMES=["Parts","Groups","Stations"];
 function zoomView(host,seg,level,{still=false,onDraw}={}){const st={level,open:new Set()};
- const render=()=>{const v=zoom(ZS,st.level,st.open);host.innerHTML=draw({...v,still});focusable(host);
+ const render=()=>{const v=zoom(ZS,st.level,st.open);host.innerHTML=openedTabs(ZS,st.level,st.open)+draw({...v,still});focusable(host);
   host.querySelectorAll(".cap").forEach(c=>{const go=()=>{st.open.add(c.dataset.g);render()};c.onclick=go;c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
+  host.querySelectorAll("[data-fold]").forEach(f=>{const go=()=>{st.open.delete(f.dataset.fold);render()};f.onclick=go;f.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
   seg.querySelectorAll("[data-z]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.z===st.level));onDraw&&onDraw(v,st)};
  seg.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{st.level=+b.dataset.z;st.open.clear();render()});
  // trackpad pinch arrives as ctrl + wheel

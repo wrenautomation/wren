@@ -11,6 +11,8 @@ export type LineTier = "out" | "front" | "core";
 
 export interface ViewLine {
   id: string;
+  /** Its name ("Growth Partner"): a capsule shows it. */
+  label?: string;
   /** The offer this line sells. An outreach line has none. */
   offer?: string;
   tier: LineTier;

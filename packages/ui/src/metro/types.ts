@@ -145,6 +145,10 @@ export interface MetroTrack {
   cond?: string;
   condGlyph?: IconName | null;
   cat?: Point;
+  /** A track back along its own row runs on a rail this far under the row (`layoutMetro` sets it). */
+  back?: number;
+  /** Tracks on one rail with one branch label show it once: this one draws no chip. */
+  condShared?: boolean;
   /** Dots move along it: how many, how many seconds a lap. */
   mv?: boolean;
   dots?: number;
@@ -194,6 +198,15 @@ export interface FrameSpec {
   h: number;
 }
 
+/** A group opened by hand: where its capsule was, and its name. */
+export interface OpenedSpec {
+  grp: string;
+  t: string;
+  cap: [number, number];
+  y: number;
+  l: LineKey;
+}
+
 /** The tab of an open group. Click it to fold the group back. */
 export interface FoldSpec {
   x: number;
@@ -224,6 +237,8 @@ export interface MetroScene {
   chips?: ChipSpec[];
   frames?: FrameSpec[];
   folds?: FoldSpec[];
+  /** Groups the viewer opened by hand that this level folds: the capsule's outline stays, with a fold knob. */
+  opened?: OpenedSpec[];
 }
 
 /** The artifact's four line keys, so its scenes draw unchanged. */

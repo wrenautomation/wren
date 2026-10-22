@@ -11,6 +11,7 @@
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
 import { Button, canAt, Icon, LoadFailed, SELECT_CLASS, Segmented } from "@wren/ui";
+import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   LEVEL_NAMES,
   MetroLevels,
@@ -195,6 +196,7 @@ export function MapPage({
   const [compare, setCompare] = useState<Compare | null>(null);
   const [file, setFile] = useState<{ name: string; text: string; stamp: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [tools, setTools] = useState(false);
 
   // A draft opened with `?draft=<id>`: its row and metro, and what it changes against its base.
   const draftId = draftIdOf(props.params.get("draft"));
@@ -344,73 +346,107 @@ export function MapPage({
               : "The map of your business."}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <Segmented
-            label="Window"
-            className="max-w-full"
-            items={WINDOWS.map((w) => ({
-              id: w.id,
-              label: w.label,
-              href: href("/", { window: w.id === "30" ? null : w.id }, props.params),
-              on: w.id === window,
-            }))}
-          />
-          <select
-            aria-label="Client"
-            className={`${SELECT_CLASS} !w-auto`}
-            value={props.client}
-            onChange={(e) =>
-              go("/", { client: e.target.value === WREN.id ? null : e.target.value }, props.params)
-            }
-          >
-            <option value={WREN.id}>Wren</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {data ? (
-            <Button
-              tone="quiet"
-              size="dense"
-              aria-pressed={history}
-              onClick={() => {
-                if (history) closeHistory();
-                else setHistory(true);
-                setPicked([]);
-              }}
+        {/* The artifact's bar holds the zoom switch only; the other tools sit behind ⋯. */}
+        <div className="flex items-center gap-2">
+          <Popover open={tools} onOpenChange={setTools}>
+            <PopoverTrigger
+              aria-label="Map tools"
+              className="inline-flex size-8 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
             >
-              <Icon name="clock" size={15} /> History
-            </Button>
-          ) : null}
-          {data ? (
-            <Button tone="quiet" size="dense" onClick={() => void exportShape()}>
-              <Icon name="download" size={15} /> Export
-            </Button>
-          ) : null}
-          {mayEdit ? (
-            <>
-              <Button tone="quiet" size="dense" onClick={() => picker.current?.click()}>
-                <Icon name="upload" size={15} /> Import
-              </Button>
-              <input
-                ref={picker}
-                type="file"
-                accept=".yaml,.yml,text/yaml"
-                aria-label="Shape file"
-                className="hidden"
-                onChange={(e) => {
-                  void importFile(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
+              <Icon name="more" size={16} />
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              aria-label="Map tools"
+              className="w-64 gap-2 bg-(--ui-paper) p-2 text-(--ui-ink)"
+            >
+              <Segmented
+                label="Window"
+                className="max-w-full"
+                items={WINDOWS.map((w) => ({
+                  id: w.id,
+                  label: w.label,
+                  href: href("/", { window: w.id === "30" ? null : w.id }, props.params),
+                  on: w.id === window,
+                }))}
               />
-            </>
+              <select
+                aria-label="Client"
+                className={SELECT_CLASS}
+                value={props.client}
+                onChange={(e) =>
+                  go(
+                    "/",
+                    { client: e.target.value === WREN.id ? null : e.target.value },
+                    props.params,
+                  )
+                }
+              >
+                <option value={WREN.id}>Wren</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {data ? (
+                <Button
+                  tone="quiet"
+                  size="dense"
+                  aria-pressed={history}
+                  onClick={() => {
+                    setTools(false);
+                    if (history) closeHistory();
+                    else setHistory(true);
+                    setPicked([]);
+                  }}
+                >
+                  <Icon name="clock" size={15} /> History
+                </Button>
+              ) : null}
+              {data ? (
+                <Button
+                  tone="quiet"
+                  size="dense"
+                  onClick={() => {
+                    setTools(false);
+                    void exportShape();
+                  }}
+                >
+                  <Icon name="download" size={15} /> Export
+                </Button>
+              ) : null}
+              {mayEdit ? (
+                <Button
+                  tone="quiet"
+                  size="dense"
+                  onClick={() => {
+                    setTools(false);
+                    picker.current?.click();
+                  }}
+                >
+                  <Icon name="upload" size={15} /> Import
+                </Button>
+              ) : null}
+            </PopoverContent>
+          </Popover>
+          {mayEdit ? (
+            <input
+              ref={picker}
+              type="file"
+              accept=".yaml,.yml,text/yaml"
+              aria-label="Shape file"
+              className="hidden"
+              onChange={(e) => {
+                void importFile(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
           ) : null}
           {shown?.view ? (
             <MetroLevels
               names={LEVEL_NAMES}
-              level={Object.keys(kept.open ?? {}).length ? null : (kept.level ?? 0)}
+              level={Object.keys(kept.open ?? {}).length ? null : (kept.level ?? 1)}
               onLevel={(n) => keepNow({ level: n, open: {} })}
             />
           ) : null}
@@ -444,7 +480,7 @@ export function MapPage({
           <LoadFailed error={opened.error} onRetry={opened.retry} what="draft" />
         </div>
       ) : null}
-      <div className="relative h-[62dvh] min-h-[420px] flex-none max-[900px]:h-[68dvh] max-[900px]:min-h-[380px]">
+      <div className="relative min-h-[420px] flex-none max-[900px]:min-h-[380px]">
         {read.error && !read.data ? (
           <div className="p-5">
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
@@ -456,19 +492,19 @@ export function MapPage({
         ) : (
           <>
             {shown?.view ? (
-              <div className="absolute inset-0 flex flex-col">
+              <div className="flex flex-col">
                 <MetroMap
                   view={shown.view}
                   lit={lit ?? null}
-                  level={kept.level}
+                  level={kept.level ?? 1}
                   onLevel={setLevel}
                   open={kept.open}
                   onOpen={setOpen}
-                  levels={false}
+                  controls={false}
                   onPick={onPick}
                   selected={panel && panel.kind !== "line" ? panel.id : null}
                   intro={false}
-                  className="min-h-0 flex-1 [&_.metro-bar]:px-[clamp(12px,2.5vw,24px)]"
+                  className="metro-fit"
                 />
               </div>
             ) : shown ? (

@@ -428,6 +428,25 @@
   stroke: var(--ui-focus);
   stroke-width: 2;
 }
+/* A group opened by hand: its capsule's outline stays on the track, faint, with a fold knob at
+   its left end. Click the knob to fold the group back where it was. */
+.mm .opn {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.7;
+  pointer-events: none;
+}
+/* Fit: the map scales to the page width, as in the design language's "Map in the app". It never
+   shrinks below 760px or 85% of its real size (--w, set by the svg): past that it pans across. */
+.metro-fit .metro-stage {
+  width: 100%;
+}
+.metro-fit .mm {
+  width: 100%;
+  min-width: max(760px, calc(var(--w, 0px) * 0.85));
+  height: auto;
+}
 /* The frame fills the room it is given, so the host can centre the map in it. */
 .metro {
   display: flex;
@@ -454,6 +473,12 @@
 }
 .metro-host .cap {
   animation: none;
+}
+/* A mouse click focuses a mark or the frame: no browser ring then (Safari draws a blue box).
+   The keyboard keeps the rings set under :focus-visible. */
+.mm [tabindex]:focus:not(:focus-visible),
+.metro-host:focus:not(:focus-visible) {
+  outline: none;
 }
 .metro-host:focus-visible {
   outline: 2px solid var(--ui-active);

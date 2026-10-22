@@ -13,6 +13,7 @@ import {
   type MarkStation,
   type MetroScene,
   type MetroTrack,
+  type OpenedSpec,
   type Point,
   type SceneStation,
 } from "./types.js";
@@ -139,7 +140,7 @@ const zoneOf = (scene: MetroScene, x: number) =>
 
 /**
  * The scene at a level. Level 2 and up: every station. Level 1: the named groups (`station.g`).
- * Level 0: one run per line per column. A group in `open` stays open.
+ * Level 0: one run per line per column. A group in `open` stays open and is named in `opened`, so the map can offer to fold it.
  */
 export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}): MetroScene {
   if (level >= 2) return scene;
@@ -150,11 +151,38 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
         ? (s.g ?? null)
         : `${s.ln}@${zoneOf(scene, s.x)}`;
   const groups = new Map<string, MarkStation[]>();
+  const opened = new Map<string, MarkStation[]>();
   for (const s of scene.st) {
     if (!isMark(s)) continue;
     const k = key(s);
-    if (k && !open[k]) groups.set(k, [...(groups.get(k) ?? []), s]);
+    if (!k) continue;
+    const to = open[k] ? opened : groups;
+    to.set(k, [...(to.get(k) ?? []), s]);
   }
+  const nameOf = (k: string, first: MarkStation) => {
+    const line = scene.lines?.[first.ln ?? ""] ?? { n: first.ln ?? k, l: first.ln ?? k };
+    const zone = scene.zones?.[zoneOf(scene, first.x)]?.[2];
+    return level === 1
+      ? (scene.groups?.[k] ?? k)
+      : line.l === "out" || !zone
+        ? line.n
+        : `${line.n} · ${zone.toLowerCase().replace(/^./, (c) => c.toUpperCase())}`;
+  };
+  // The groups opened by hand that would fold here: the map lists them, each one folds back.
+  const shut = [...opened]
+    .filter(([, m]) => m.length > 1 && m[0]?.ln)
+    .map(([k, m]): OpenedSpec => {
+      const first = m[0] as MarkStation;
+      const xs = m.map((s) => s.x);
+      const l = scene.lines?.[first.ln ?? ""]?.l ?? first.ln ?? k;
+      return {
+        grp: k,
+        t: nameOf(k, first),
+        cap: [Math.min(...xs), Math.max(...xs)],
+        y: first.y,
+        l,
+      };
+    });
   const into = new Map<string, string>();
   const caps: CapsuleStation[] = [];
   for (const [k, m] of groups) {
@@ -167,13 +195,7 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
     const mark = capsuleMark(m, inside);
     const lo = Math.min(...xs);
     const hi = Math.max(...xs);
-    const zone = scene.zones?.[zoneOf(scene, first.x)]?.[2];
-    const name =
-      level === 1
-        ? (scene.groups?.[k] ?? k)
-        : line.l === "out" || !zone
-          ? line.n
-          : `${line.n} · ${zone.toLowerCase().replace(/^./, (c) => c.toUpperCase())}`;
+    const name = nameOf(k, first);
     caps.push({
       id: k,
       grp: k,
@@ -211,6 +233,15 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
     const pc = end(r.b, r.ob ?? r.o ?? 0, r.a) ?? r.pts?.[r.pts.length - 1];
     return [{ ...rest, ...(pa ? { pa } : {}), ...(pc ? { pc } : {}) }];
   });
+  // A rail's label shows once: on the first track left on it.
+  const lead = new Set<string>();
+  for (const [i, r] of tr.entries()) {
+    if (!r.back || !r.cond) continue;
+    const k = `${r.b && into.has(r.b) ? into.get(r.b) : r.b}|${r.cond}|${r.back}`;
+    const { condShared: _shared, ...rest } = r;
+    tr[i] = lead.has(k) ? { ...rest, condShared: true } : rest;
+    lead.add(k);
+  }
   const st: SceneStation[] = scene.st.filter((s) => !into.has(s.id)).concat(caps);
-  return { ...scene, st, tr };
+  return { ...scene, st, tr, ...(shut.length ? { opened: shut } : {}) };
 }
