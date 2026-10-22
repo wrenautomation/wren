@@ -1,0 +1,3 @@
+ALTER TABLE "content_ideas" ADD COLUMN "line" varchar(64);--> statement-breakpoint
+ALTER TABLE "content_ideas" ADD COLUMN "angle" varchar(16);--> statement-breakpoint
+ALTER TABLE "content_ideas" ADD CONSTRAINT "ck_content_ideas_angle" CHECK (("angle")::text = ANY ((ARRAY['Proof'::character varying, 'Contrarian'::character varying, 'How I do it'::character varying, 'Story'::character varying])::text[]));
