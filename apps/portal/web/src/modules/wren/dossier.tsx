@@ -3,7 +3,7 @@
  * its newest posts, and its people. Read only. A client sees it once Company dossier is installed;
  * until then the section points to the Shop.
  */
-import { Empty, LoadFailed, Loading, useNarrow } from "@wren/ui";
+import { Empty, LoadFailed, Loading, tipProps, useNarrow } from "@wren/ui";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { dayLabel, QUIET } from "../work/bits.js";
@@ -58,7 +58,11 @@ function FactRows({ facts, label }: { facts: BriefFact[]; label: string }) {
           label: "What the sheet holds",
           icon: "lines",
           min: 260,
-          cell: (f) => <span className="line-clamp-2 break-words">{f.text}</span>,
+          cell: (f) => (
+            <span className="block truncate" {...tipProps(f.text)}>
+              {f.text}
+            </span>
+          ),
         },
         {
           key: "via",

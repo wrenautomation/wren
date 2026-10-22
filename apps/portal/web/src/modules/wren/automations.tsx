@@ -313,7 +313,7 @@ function AutomationRows({
           icon: "lines",
           min: 150,
           cell: (r) => (
-            <span className="line-clamp-2 text-(--ui-ink-2)" {...tipProps(r.trigger)}>
+            <span className="block truncate text-(--ui-ink-2)" {...tipProps(r.trigger)}>
               {r.trigger}
             </span>
           ),
