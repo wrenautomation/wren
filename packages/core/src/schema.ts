@@ -1,5 +1,5 @@
 import { oneOf } from "@wren/db/columns";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -1161,6 +1161,14 @@ export const companies = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     importId: integer("import_id"),
     raw: jsonb("raw"),
+    /**
+     * The headcount's digits from `raw` (Form ADV `5A`, Clutch "Company Size", `agency.team_size`;
+     * a range's low end). Stored, so the people map never unpacks `raw` per person.
+     */
+    headcount: text("headcount").generatedAlwaysAs(
+      (): SQL =>
+        sql`case when jsonb_typeof(raw) = 'object' then nullif(regexp_replace(split_part(coalesce(nullif(raw ->> '5A', ''), nullif(raw ->> 'Company Size', ''), nullif(raw ->> 'agency.team_size', '')), '-', 1), '[^0-9]', '', 'g'), '') end`,
+    ),
     sourceKey: varchar("source_key", { length: 64 }),
     socialUrl: varchar("social_url", { length: 512 }),
     /** The firm's LinkedIn page (`https://www.linkedin.com/company/<handle>/`), trusted only when its website is `domain`. */

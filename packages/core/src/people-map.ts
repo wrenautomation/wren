@@ -308,10 +308,7 @@ export function rollupRows(scope: Scope): SQL {
     select distinct on (k.profile_id) k.profile_id, k.source
     from k order by k.profile_id, k.first_seen, k.id),
   who as (
-    select distinct on (k.profile_id) k.profile_id, pp.title, c.niche,
-      case when jsonb_typeof(c.raw) = 'object' then nullif(regexp_replace(split_part(coalesce(
-        nullif(c.raw ->> '5A', ''), nullif(c.raw ->> 'Company Size', ''),
-        nullif(c.raw ->> 'agency.team_size', '')), '-', 1), '[^0-9]', '', 'g'), '') end headcount
+    select distinct on (k.profile_id) k.profile_id, pp.title, c.niche, c.headcount
     from k
     join people pp on pp.id = k.value::int
     join companies c on c.id = pp.company_id

@@ -1,0 +1,1 @@
+ALTER TABLE "companies" ADD COLUMN "headcount" text GENERATED ALWAYS AS (case when jsonb_typeof(raw) = 'object' then nullif(regexp_replace(split_part(coalesce(nullif(raw ->> '5A', ''), nullif(raw ->> 'Company Size', ''), nullif(raw ->> 'agency.team_size', '')), '-', 1), '[^0-9]', '', 'g'), '') end) STORED;
