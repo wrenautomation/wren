@@ -49,6 +49,7 @@ function marksOf(part: MetroDiff["lines"] | undefined): Marks {
 
 const lineOf = (l: BodyLine, mark?: "added" | "changed" | "removed"): ViewLine => ({
   id: l.id,
+  ...(l.label ? { label: l.label } : {}),
   ...(l.offer !== undefined ? { offer: l.offer } : {}),
   tier: l.tier,
   ...(l.colour !== undefined ? { colour: l.colour } : {}),
@@ -66,7 +67,7 @@ function stationOf(
   const sub =
     s.kind === "hub"
       ? x?.now != null
-        ? `${x.now} leads`
+        ? `${x.now.toLocaleString("en-US")} ${x.now === 1 ? "lead" : "leads"}`
         : undefined
       : x && x.now != null && x.medianDays != null
         ? `${x.now} now · ${days(x.medianDays)} d`

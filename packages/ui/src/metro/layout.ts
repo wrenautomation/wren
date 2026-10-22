@@ -3,7 +3,8 @@
  *
  * Columns are zones, left to right. Each line is a row. The hub is one marker across the rows it
  * joins; the stations that lead into it sit left of it and the offer lines start right of it, so no
- * track passes under it. An exit sits under its source. A track between two lines becomes a 45
+ * track passes under it. The offer lines sit in the middle of the outreach rows, and outreach rows
+ * sit close, so the hub stays short. An exit sits under its source. A track between two lines becomes a 45
  * degree transfer. Rows are ordered to cut crossings.
  *
  * The layout owns every place. A name goes above or below its station, whichever is free. A task
@@ -60,6 +61,8 @@ export const SPACE = {
   step: 120,
   /** A row without exits; one with exits adds `exit`. */
   row: 96,
+  /** Between two outreach rows: their marks are small and their names one line. */
+  out: 56,
   exit: 70,
   /** Above the first row (room for the hub's name). */
   top: 68,
@@ -127,12 +130,13 @@ interface Prep {
   exitsOn: Set<string>;
   /** Lines that have a track into or out of the hub. */
   joined: Set<string>;
-  /** The lines in the order the view gives them: joined first, outreach before offers. */
+  /** The lines in the order the view gives them, by class. */
   base: ViewLine[];
+  /** Each line's class: the first half of the joined outreach, the joined offers, the second half, then the rest. */
+  rank: Map<string, number>;
 }
 
-const rankOf = (p: Pick<Prep, "joined">, l: ViewLine) =>
-  (p.joined.has(l.id) ? 0 : 2) + (l.tier === "out" ? 0 : 1);
+const rankOf = (p: Pick<Prep, "rank">, l: ViewLine) => p.rank.get(l.id) ?? 5;
 
 function prepare(view: MetroView): Prep {
   const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
@@ -171,7 +175,26 @@ function prepare(view: MetroView): Prep {
     if (b.kind === "hub" && a.kind !== "hub") joined.add(a.line);
     if (a.kind === "hub" && b.kind !== "hub") joined.add(b.line);
   }
-  const p = { joined };
+  // The joined offers go in the middle of the joined outreach, so the core leaves the hub halfway.
+  const rank = new Map<string, number>();
+  const outIn = lines.filter((l) => joined.has(l.id) && l.tier === "out");
+  const above = Math.ceil(outIn.length / 2);
+  for (const l of lines) {
+    const i = outIn.indexOf(l);
+    rank.set(
+      l.id,
+      joined.has(l.id)
+        ? l.tier === "out"
+          ? i < above
+            ? 0
+            : 2
+          : 1
+        : l.tier === "out"
+          ? 3
+          : 4,
+    );
+  }
+  const p = { rank };
   const base = [...lines].sort((a, b) => rankOf(p, a) - rankOf(p, b));
   return {
     view,
@@ -183,6 +206,7 @@ function prepare(view: MetroView): Prep {
     exitsOn,
     joined,
     base,
+    rank,
   };
 }
 
@@ -271,15 +295,18 @@ function build(
   const { view, columns, line, byId, hub, exitOf } = p;
   const step = SPACE.step + kx * GROW.step;
   const rowH = SPACE.row + ky * GROW.row;
+  const outH = SPACE.out + ky * GROW.row;
   const inset = step / 2;
 
-  // Rows.
+  // Rows. Two outreach rows in a row sit close; any other pair takes a full row.
   const rowY = new Map<string, number>();
   let y = SPACE.top;
-  for (const l of order) {
+  order.forEach((l, i) => {
     rowY.set(l.id, y);
-    y += rowH + (p.exitsOn.has(l.id) ? SPACE.exit : 0);
-  }
+    const next = order[i + 1];
+    const close = l.tier === "out" && next?.tier === "out" && !p.exitsOn.has(l.id);
+    y += (close ? outH : rowH) + (p.exitsOn.has(l.id) ? SPACE.exit : 0);
+  });
   const firstY = SPACE.top;
   const bottom = Math.max(y - rowH + 56, firstY + 56);
   // The hub spans the rows it joins; with no track it is a plain marker on the first row.
@@ -430,7 +457,7 @@ function build(
       .map((s) => [
         s.line,
         {
-          n: line.get(s.line)?.offer ?? s.line,
+          n: line.get(s.line)?.label ?? line.get(s.line)?.offer ?? s.line,
           l: keyOf(line.get(s.line) ?? { id: s.line, tier: "front" }),
         },
       ]),

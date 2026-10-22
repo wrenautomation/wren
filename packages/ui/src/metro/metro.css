@@ -428,6 +428,52 @@
   stroke: var(--ui-focus);
   stroke-width: 2;
 }
+/* The groups opened by hand: one fold tab each (the artifact's .fold), above the map. */
+.metro-opened {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 8px;
+  list-style: none;
+}
+.metro-fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 14px 0 12px;
+  border: 1px solid color-mix(in srgb, var(--ui-active) 22%, var(--ui-paper));
+  border-radius: 4px 14px 4px 14px;
+  background: color-mix(in srgb, var(--ui-active) 9%, var(--ui-paper));
+  color: var(--ui-ink-2);
+  font: 700 12.5px var(--ui-font);
+  cursor: pointer;
+}
+.metro-fold::before {
+  content: "";
+  width: 10px;
+  height: 2.4px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.metro-fold:hover {
+  background: color-mix(in srgb, var(--ui-active) 18%, var(--ui-paper));
+}
+.metro-fold:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+/* Fit: the map scales to the page width, as in the design language's "Map in the app". It never
+   shrinks below 760px or 85% of its real size (--w, set by the svg): past that it pans across. */
+.metro-fit .metro-stage {
+  width: 100%;
+}
+.metro-fit .mm {
+  width: 100%;
+  min-width: max(760px, calc(var(--w, 0px) * 0.85));
+  height: auto;
+}
 /* The frame fills the room it is given, so the host can centre the map in it. */
 .metro {
   display: flex;
@@ -454,6 +500,12 @@
 }
 .metro-host .cap {
   animation: none;
+}
+/* A mouse click focuses a mark or the frame: no browser ring then (Safari draws a blue box).
+   The keyboard keeps the rings set under :focus-visible. */
+.mm [tabindex]:focus:not(:focus-visible),
+.metro-host:focus:not(:focus-visible) {
+  outline: none;
 }
 .metro-host:focus-visible {
   outline: 2px solid var(--ui-active);

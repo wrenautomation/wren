@@ -4,7 +4,7 @@
  * level switch can glide the marks that stay (map.tsx). No colour is fixed here: lines read
  * `--ui-line-N`, the rest reads the ink and paper tokens, so night comes from the tokens.
  */
-import { type ReactNode, type Ref, useId } from "react";
+import { type CSSProperties, type ReactNode, type Ref, useId } from "react";
 import { cx } from "../format.js";
 import { beside, octPts, rounded, trackEnds, xferGeometry, xferWidth } from "./geometry.js";
 import {
@@ -362,6 +362,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       viewBox={`${X0} 0 ${Wd} ${H}`}
       // One scene px is one css px, so a label reads at its real size. A glyph table sets its own.
       {...(width ? { width, height: (H / Wd) * width } : { width: Wd, height: H })}
+      // The real width, for a frame that fits the map to its page (`.metro-fit`).
+      style={{ "--w": `${Wd}px` } as CSSProperties}
       role={acts ? "group" : "img"}
       aria-label={scene.title ?? "Map"}
     >

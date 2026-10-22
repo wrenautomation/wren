@@ -224,6 +224,8 @@ export interface MetroScene {
   chips?: ChipSpec[];
   frames?: FrameSpec[];
   folds?: FoldSpec[];
+  /** Groups the viewer opened by hand that this level folds: the map offers to fold each back. */
+  opened?: { grp: string; t: string }[];
 }
 
 /** The artifact's four line keys, so its scenes draw unchanged. */

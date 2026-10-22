@@ -96,3 +96,9 @@ function focusable(root){root.querySelectorAll("svg.mm").forEach(v=>{v.addEventL
 
 // a fold handle on an open group: click it to fold the group back
 const foldTab=(x,y,t,grp)=>{const w=t.length*6.9+46;return`<g class="fold" data-fold="${grp}" tabindex="0" role="button" aria-label="Fold ${t}">${leaf(x-w/2,y-15,w,30,4,14,' class="lf"')}${icon("min",x-w/2+18,y,15)}<text x="${x-w/2+32}" y="${y+4.5}">${t}</text></g>`};
+// the groups the viewer opened, above the map: one fold tab each (a tab on the map hits the next row)
+function openedTabs(sc,level,open){if(level>=2)return"";const col=x=>sc.zones.findIndex(([a,b])=>x>=a&&x<b);let out="";
+ for(const k of open){const m=sc.st.filter(s=>s.t!=="hub"&&s.t!=="exit"&&s.ln&&(level===1?s.g:s.ln+"@"+col(s.x))===k);if(m.length<2)continue;
+  const L=sc.lines[m[0].ln],n=level===1?sc.groups[k]:L.l==="out"?L.n:L.n+" · "+sc.zones[col(m[0].x)][2].toLowerCase().replace(/^./,c=>c.toUpperCase());
+  out+=`<li><button type="button" class="mfold" data-fold="${k}" aria-label="Fold ${n}">${n}</button></li>`}
+ return out?`<ul class="mopened" aria-label="Opened groups">${out}</ul>`:""}

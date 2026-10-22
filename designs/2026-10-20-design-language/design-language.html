@@ -316,6 +316,16 @@ ul.ol{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px;color:var
 
 .trk.stub{stroke-dasharray:2 9;opacity:.45}
 
+/* the groups opened by hand: one fold tab each, above the map */
+.mopened{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0 0 8px;list-style:none}
+.mfold{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 12px;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--paper));border-radius:4px 14px 4px 14px;background:color-mix(in srgb,var(--accent) 9%,var(--paper));color:var(--ink-2);font:700 12.5px var(--body);cursor:pointer}
+.mfold::before{content:"";width:10px;height:2.4px;border-radius:2px;background:currentColor}
+.mfold:hover{background:color-mix(in srgb,var(--accent) 18%,var(--paper))}
+.mfold:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* a mouse click focuses a mark: no browser ring then (Safari draws a blue box); the keyboard keeps its rings */
+.mm [tabindex]:focus:not(:focus-visible){outline:none}
+
 .mm .zt{text-transform:none;letter-spacing:.02em;font-size:11px;font-weight:650}
 
 /* 15 inbox overview */
@@ -955,6 +965,12 @@ function focusable(root){root.querySelectorAll("svg.mm").forEach(v=>{v.addEventL
 
 // a fold handle on an open group: click it to fold the group back
 const foldTab=(x,y,t,grp)=>{const w=t.length*6.9+46;return`<g class="fold" data-fold="${grp}" tabindex="0" role="button" aria-label="Fold ${t}">${leaf(x-w/2,y-15,w,30,4,14,' class="lf"')}${icon("min",x-w/2+18,y,15)}<text x="${x-w/2+32}" y="${y+4.5}">${t}</text></g>`};
+// the groups the viewer opened, above the map: one fold tab each (a tab on the map hits the next row)
+function openedTabs(sc,level,open){if(level>=2)return"";const col=x=>sc.zones.findIndex(([a,b])=>x>=a&&x<b);let out="";
+ for(const k of open){const m=sc.st.filter(s=>s.t!=="hub"&&s.t!=="exit"&&s.ln&&(level===1?s.g:s.ln+"@"+col(s.x))===k);if(m.length<2)continue;
+  const L=sc.lines[m[0].ln],n=level===1?sc.groups[k]:L.l==="out"?L.n:L.n+" · "+sc.zones[col(m[0].x)][2].toLowerCase().replace(/^./,c=>c.toUpperCase());
+  out+=`<li><button type="button" class="mfold" data-fold="${k}" aria-label="Fold ${n}">${n}</button></li>`}
+ return out?`<ul class="mopened" aria-label="Opened groups">${out}</ul>`:""}
 
 // theme
 function theme(t){t==="auto"?document.documentElement.removeAttribute("data-theme"):document.documentElement.setAttribute("data-theme",t);
@@ -1064,8 +1080,9 @@ const ZS={title:"Reddit to a booked call, at three zoom levels",w:1240,h:280,zon
   {a:"hub",b:"a1",l:"ob",w:"front",oa:140},{a:"a1",b:"a2",l:"ob",w:"front"},{a:"a2",b:"prop",k:"xfer",l:"gp",lab:"upsell"}]};
 const NAMES=["Parts","Groups","Stations"];
 function zoomView(host,seg,level,{still=false,onDraw}={}){const st={level,open:new Set()};
- const render=()=>{const v=zoom(ZS,st.level,st.open);host.innerHTML=draw({...v,still});focusable(host);
+ const render=()=>{const v=zoom(ZS,st.level,st.open);host.innerHTML=openedTabs(ZS,st.level,st.open)+draw({...v,still});focusable(host);
   host.querySelectorAll(".cap").forEach(c=>{const go=()=>{st.open.add(c.dataset.g);render()};c.onclick=go;c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
+  host.querySelectorAll("[data-fold]").forEach(f=>{const go=()=>{st.open.delete(f.dataset.fold);render()};f.onclick=go;f.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
   seg.querySelectorAll("[data-z]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.z===st.level));onDraw&&onDraw(v,st)};
  seg.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{st.level=+b.dataset.z;st.open.clear();render()});
  // trackpad pinch arrives as ctrl + wheel
