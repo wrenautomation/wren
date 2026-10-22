@@ -378,6 +378,7 @@ export {
   waitsOn,
 } from "./records.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
+export { RowActions, rowActsOf } from "./row-acts.js";
 export {
   Age,
   avatarOf,

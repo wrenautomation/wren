@@ -1,27 +1,33 @@
 /** People: who sees this account's projects. An owner or a manager invites and removes. */
 import {
-  Button,
+  avatarOf,
   Empty,
   LoadFailed,
   Loading,
   PageHeader,
+  Pill,
   Section,
   SelectField,
-  Tag,
   TextField,
   useEditForm,
+  useNarrow,
 } from "@wren/ui";
 import { useState } from "react";
 import type { PageProps } from "../../module.js";
+import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { PersonAccess } from "../access/PersonAccess.js";
-import { BLOCK, dayLabel, ERROR, Form, LIST, NARROW, QUIET, SPLIT, useAct } from "../work/bits.js";
+import { dayLabel, ERROR, Form, NARROW, QUIET, useAct } from "../work/bits.js";
 import { usePeople } from "./load.js";
+
+type Member = NonNullable<ReturnType<typeof usePeople>["data"]>["people"][number];
 
 const BUILT_IN: Record<string, string> = { owner: "Owner", viewer: "Viewer" };
 
 /** `bare`: inside a client's record on Wren's Clients app, under its own heading. */
 export function People(props: PageProps & { bare?: boolean }) {
   const people = usePeople(props);
+  const narrow = useNarrow();
+  const { go, stateOf } = useGoing();
   const act = useAct(props, people.retry);
   const manage = people.data?.canManage ?? false;
   // Built-ins first, then the account's own roles; a role's name by its id for the tags.
@@ -52,48 +58,73 @@ export function People(props: PageProps & { bare?: boolean }) {
         ) : people.data.people.length === 0 ? (
           <Empty>Invite someone below and they show here.</Empty>
         ) : (
-          <ul className={LIST}>
-            {people.data.people.map((m) => (
-              <li key={m.email} className={`${SPLIT} flex-wrap`}>
-                <span>
-                  <b>{m.email}</b>{" "}
-                  {m.role === "member" ? null : <Tag tone="neutral">{roleName(m.role)}</Tag>}
-                  <span className={`${QUIET} ${BLOCK}`}>
-                    {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}
-                    {m.invitedBy ? ` · invited by ${m.invitedBy}` : ""}
-                  </span>
+          <PageRows<Member>
+            label="People"
+            noun="person"
+            lines={rowLines(
+              people.data.people,
+              (m) => m.email,
+              (m) =>
+                open === m.email ? (
+                  <PersonAccess client={props.client} email={m.email} role={m.role} />
+                ) : null,
+            )}
+            rowState={(m) => stateOf(m.email)}
+            // Their title opens their access below the row, for whoever manages.
+            open={
+              manage
+                ? { id: open, onOpen: (m) => setOpen(open === m.email ? null : m.email) }
+                : undefined
+            }
+            name={{
+              label: "Person",
+              icon: "user",
+              min: 240,
+              title: (m) => m.email,
+              avatar: (m) => avatarOf(m.email),
+              sub: (m) => (
+                <span className={`${QUIET} truncate text-[12.5px]`}>
+                  {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}
+                  {m.invitedBy ? ` · invited by ${m.invitedBy}` : ""}
                 </span>
-                {manage ? (
-                  <span className="flex shrink-0 gap-1">
-                    <Button
-                      size="sm"
-                      tone="quiet"
-                      aria-expanded={open === m.email}
-                      onClick={() => setOpen(open === m.email ? null : m.email)}
-                    >
-                      Access
-                    </Button>
-                    <Button
-                      size="sm"
-                      tone="quiet"
-                      disabled={act.busy}
-                      onClick={() => {
-                        if (confirm(`Remove ${m.email}? They lose access right away.`))
-                          void act.run("remove", { email: m.email });
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </span>
-                ) : null}
-                {open === m.email ? (
-                  <div className="basis-full pt-3">
-                    <PersonAccess client={props.client} email={m.email} role={m.role} />
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+              ),
+            }}
+            columns={[
+              {
+                key: "role",
+                label: "Role",
+                icon: "shield",
+                width: 160,
+                phone: true,
+                cell: (m) => <Pill>{roleName(m.role)}</Pill>,
+              },
+            ]}
+            end={
+              manage
+                ? (m) => (
+                    <RowDoes
+                      title={m.email}
+                      lone={narrow}
+                      busy={act.busy}
+                      does={[
+                        {
+                          id: "access",
+                          label: "Access",
+                          run: () => setOpen(open === m.email ? null : m.email),
+                        },
+                        {
+                          id: "remove",
+                          label: "Remove",
+                          confirm: `Remove ${m.email}? They lose access right away.`,
+                          run: () =>
+                            go(m.email, "Removing", () => act.run("remove", { email: m.email })),
+                        },
+                      ]}
+                    />
+                  )
+                : undefined
+            }
+          />
         )}
         {act.error && !manage ? <p className={ERROR}>{act.error}</p> : null}
       </Section>
