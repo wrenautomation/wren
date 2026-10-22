@@ -5,7 +5,7 @@
 ## Answer first
 
 - **E-sign: self-host Documenso.** Wren's Documents app calls its API. Documenso seals the PDF, signs it with our certificate and writes the audit certificate. Wren stores both and shows the status. Built behind config. Documenso does not fit on the database box, so it is not running yet. William picks the host (see RAM).
-- **Newsletter: self-host Listmonk.** It runs on the database box (about 35 MB). It holds lists, subscribers and campaigns. It never sends mail. It posts each message to Wren, and Wren sends it from portal@ after `mayMarket`. Built and running.
+- **Newsletter: self-host Listmonk.** It runs on the database box (about 45 MB). It holds lists, subscribers and campaigns. It never sends mail. It posts each message to Wren, and Wren sends it from portal@ after `mayMarket`. Listmonk is up on the box. The Wren side runs after the next deploy; until then `Newsletter.send` uses the old loop.
 - **customer.io:** nothing in code uses it. Only the 14-day trial from 10-14 exists. Nothing to retire.
 
 ## What runs today
@@ -61,11 +61,11 @@ Probed on Listmonk 6.2.0:
 
 Flow:
 
-1. `wren newsletter send <slug>` calls `Newsletter.send` (same key `<topic>:<slug>`, same input). It syncs the topic, makes a campaign tagged `issue:<topic>:<slug>` and starts it. `--test` still sends one mail direct.
+1. `wren newsletter send <slug>` calls `Newsletter.send` (same key `<topic>:<slug>`, same input). It syncs the topic, makes a campaign tagged `issue:<topic>:<slug>` and starts it. `--test` still sends one mail direct. A re-send of the same slug finds the campaign by that tag and does not make a second.
 2. Listmonk posts each message to `http://127.0.0.1:8080/ListmonkIntake/post` on the box. Loopback only, no secret.
 3. `ListmonkIntake.post` hands each message to the object `ListmonkMail` keyed `<campaign>:<recipient>`, and answers 200 at once. A repeat of the same message does nothing.
 4. `ListmonkMail.send` does what the old loop did for one address: skip if the issue already went to it, `mayMarket`, `marketingEnvelope`, send through `portalMail`, `recordMarketingSend` with evidence naming the issue. A skip is not an error. `wren newsletter status` is unchanged.
-5. A campaign made in the Listmonk UI works too. With no `issue:` tag, the issue key is `<topic>:<campaign name as slug>-<campaign id>`. The topic comes from the list's `wren-topic:` tag.
+5. A campaign made in the Listmonk UI works too. Tag it `wren-topic:<topic>`. The issue key is then `<topic>:<campaign name as slug>-<first 8 characters of the campaign uuid>`. A campaign with no topic tag, or an unknown topic, stops with a clear error and sends nothing.
 
 Sync, `ListmonkSync` (loop object, hourly, and on each `Newsletter.send`):
 
@@ -73,7 +73,9 @@ Sync, `ListmonkSync` (loop object, hourly, and on each `Newsletter.send`):
 - Listmonk to Wren: a subscriber who is `unsubscribed` or blocklisted in Listmonk, with `subscription_updated_at` later than the consent's last change in Wren, becomes `withdrawConsent`. A later re-confirm in Wren wins. No ping-pong.
 - Sign-up stays on the lander. Double opt-in and proof stay in Wren. Listmonk's own sign-up pages are off.
 
-Until Listmonk config is set (`WREN_LISTMONK_URL`, `WREN_LISTMONK_USER`, `WREN_LISTMONK_TOKEN`), `Newsletter.send` uses the old direct loop. Delete that path once Listmonk has sent one real issue.
+Until Listmonk config is set (`WREN_LISTMONK_URL`, `WREN_LISTMONK_USER`, `WREN_LISTMONK_TOKEN`), `Newsletter.send` uses the old direct loop, and `ListmonkSync` waits (paused, with the reason in the console). Delete the old path once Listmonk has sent one real issue.
+
+Commands: `wren listmonk setup` (settings and template; safe to run again) and `wren listmonk sync` (both ways, now).
 
 ## RAM
 
@@ -81,7 +83,8 @@ Measured 2026-10-21.
 
 | Host | Total | Available | Note |
 |---|---|---|---|
-| Database box `wren-pg` (t4g.small) | 1,841 MB | 280 MB | 526 MB of 2,047 MB swap already used. Restate 462, Postgres 427, worker 228, browser 152 MiB |
+| Database box `wren-pg` (t4g.small), before Listmonk | 1,841 MB | 280 MB | 526 MB of 2,047 MB swap already used. Restate 462, Postgres 427, worker 228, browser 152 MiB |
+| Same box, Listmonk running (10-21) | 1,841 MB | 279 MB | Swap 575 MB. Listmonk 44 MiB (`docker stats`), Postgres 372, Restate 443, worker 236 |
 | Each RackNerd VPS | 1 GB | about 545 MB | Mail probers |
 | Mac (desk) | 16 GB | n/a | Sleeps, not a host |
 
@@ -94,7 +97,7 @@ Measured 2026-10-21.
 
 Result:
 
-- Listmonk fits on the box: 35 MB against 280 MB free. It runs with a 128 MB limit.
+- Listmonk fits on the box: 44 MiB measured there, against 280 MB free. It runs with a 128 MB limit.
 - Documenso does not fit on the box. It needs about 520 MB with its database. The box would swap harder and hurt Restate and Postgres. It does not fit a 1 GB VPS either: 545 MB free leaves no room for a signing.
 
 ### Hosting options for Documenso (William picks; nothing bought)
@@ -112,8 +115,8 @@ My pick is C, then D if William wants $0. The code needs only a URL and a token,
 
 ## Migration
 
-1. Listmonk goes up on the box (done in this change; see the log below).
-2. `wren listmonk setup` applies settings and the template. `wren listmonk sync` fills the lists.
+1. Listmonk is up on the box (done; see the log below). Settings and template are applied.
+2. After the next deploy: start the loop with `ListmonkSync/all/start` on the Restate ingress. `wren listmonk sync` fills the lists now.
 3. `wren newsletter send <slug> --test <address>` on our own domain, then the first real issue.
 4. After one real issue, delete the direct send path.
 5. Documenso: William picks a host, runs `deploy/documenso/` (compose file in this change), sets the three config values, makes the API token and the webhook, and sends one test document to himself.
@@ -130,16 +133,27 @@ My pick is C, then D if William wants $0. The code needs only a URL and a token,
 
 ## Outside changes made (log)
 
-Filled in as they happen.
+Done by the builder on 2026-10-21, outside the repo. Nothing was bought. No mail was sent.
 
-| When | What |
-|---|---|
-| | |
+| What | Where | Undo |
+|---|---|---|
+| New SecureString `/wren/prod/listmonk`: JSON `admin_user`, `admin_password`, `db_password` (random, 28 characters) | SSM | Delete the parameter |
+| The same three fields merged into `/wren/prod/cache` (its `password` field is unchanged). The box role cannot read a new parameter until Terraform grants it, and it can read this one. | SSM | After the Terraform apply below, remove the three fields from `cache` and run `box-listmonk.sh` again with the default parameter |
+| `wren-box-listmonk` installed in `/usr/local/bin`, run once with `/wren/prod/cache`. It made the Postgres role and database `listmonk` on `wren-pg`, the container env file in `/var/lib/wren-pg/listmonk/` (mode 600) and the container `wren-listmonk` (`listmonk/listmonk:v6.2.0`, host network, 128 MB). | the box | `docker rm -f wren-listmonk`; drop the database and role |
+| Block for `lists.wrenautomation.com` appended to `/var/lib/wren-pg/restate/Caddyfile` by hand (copy kept as `Caddyfile.bak-listmonk`), Caddy reloaded, certificate issued. `box-restate.sh` in this change writes the same block. The box copy of `wren-box-restate` is older than main and was not replaced. | the box | Restore the `.bak-listmonk` file and reload |
+| DNS: `A lists.wrenautomation.com` to the box address, DNS only (like `restate.`) | Cloudflare | Delete the record |
+| Listmonk: API user `wren-api` (Super Admin role, type api). Its token is in `/wren/prod/env-2`. The sample lists and subscribers were deleted. `wren listmonk setup` set the messenger `wren`, 1 message a second, 1,500 in 24 hours, tracking off, public pages off, and made the template `wren plain`. | Listmonk | Remove the user in the admin |
+| `/wren/prod/env-2`: added `WREN_LISTMONK_URL`, `WREN_LISTMONK_USER`, `WREN_LISTMONK_TOKEN` by JSON merge. No push-secrets. The parameter is now 4,005 of 4,096 characters (standard tier). | SSM | Remove the three keys |
+
+Needs the owner of the local Terraform state: `tofu import aws_ssm_parameter.listmonk /wren/prod/listmonk`, then `tofu apply` (`deploy/terraform/postgres.tf`). After that the deploy step for Listmonk reads its own parameter.
+
+The workers read `env-2` at start. They pick up the three Listmonk keys at the next deploy.
 
 ## For William
 
 - Pick the Documenso host (options above). Then follow `deploy/documenso/README.md`.
-- First login to Listmonk at `https://lists.wrenautomation.com/admin`. The admin login is in SSM `/wren/prod/listmonk` (`admin_user`, `admin_password`). Change the password.
+- First login to Listmonk at `https://lists.wrenautomation.com/admin`. The admin login is in SSM `/wren/prod/listmonk` (`admin_user`, `admin_password`). Read it with `node scripts/secrets.mjs run /wren/prod/listmonk -- ...`. The admin page is open to the web behind that login only.
+- Run the two Terraform commands in the log (import, apply).
 - Decide on a trusted signing certificate for Documenso (costs money; optional).
 - Keep the Documenso `.p12` passphrase and a copy of the `.p12` in credvault. Losing it does not break old PDFs, but new seals would use a new certificate.
 - Read the signing page text in Documenso once and check it is fine for your contracts. Not legal advice. A lawyer should read the contract text.
@@ -147,6 +161,7 @@ Filled in as they happen.
 ## Left over
 
 - Client broadcasts (`Broadcast`) stay on their own sender. They send per client from the client's mailbox, and a client's list is not in Wren's Listmonk. Moving them needs one Listmonk list per client.
+- `env-2` has 91 characters free. The Documenso keys need a new parameter (`env-3`: a Terraform resource, a grant, a place in the worker's list).
 - Plain text only. Listmonk can send HTML. The old rule stands: plain text lands in the inbox.
 - customer.io trial from 10-14 lapses by itself. Nothing in code to remove.
 - Bounces on newsletter mail are still matched by Message-ID in Wren. Listmonk never sees them. Its bounce screens stay empty.
