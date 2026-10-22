@@ -90,7 +90,8 @@ export const edgeFlow = pipeline
 /**
  * Per source node and the day a journey opened: journeys opened, their deals and what the deals
  * collected. Cost is Meta's `ad_days.spend` that day on the source's campaign, for an `ads`
- * source of the newest shape; null for any other (no cost model yet).
+ * source of the newest shape; null for any other (no cost model yet). The source's campaign is
+ * Meta's id, its name or the name as a `/go/` word, as `adCampaignOf` reads a touch's.
  */
 export const sourceNumbers = pipeline
   .view("source_numbers", {
@@ -117,6 +118,8 @@ export const sourceNumbers = pipeline
   ), spent as (
     select c.source, a.day, 0 opened, 0 deals, 0::bigint collected_cents, sum(a.spend)::float cost
     from campaigns c join ad_days a on a.campaign_id = c.campaign
+      or lower(a.campaign_name) = lower(c.campaign)
+      or trim(both '-' from regexp_replace(lower(a.campaign_name), '[^a-z0-9]+', '-', 'g')) = lower(c.campaign)
     group by c.source, a.day
   )
   select source, day, sum(opened)::int opened, sum(deals)::int deals,

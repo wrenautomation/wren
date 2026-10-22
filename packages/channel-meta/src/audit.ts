@@ -10,14 +10,15 @@
  * health = pass / known, coverage = known / applicable, graded at 80, provisional at 60.
  */
 import { z } from "zod";
-import type {
-  AdAccount,
-  AdRow,
-  AdSetRow,
-  CampaignRow,
-  InsightRow,
-  MetaAds,
-  PixelRow,
+import {
+  type AdAccount,
+  type AdRow,
+  type AdSetRow,
+  type CampaignRow,
+  type InsightRow,
+  type MetaAds,
+  type PixelRow,
+  URL_TAGS,
 } from "./ads.js";
 
 export const auditSettingsSchema = z
@@ -512,7 +513,7 @@ const FIX: Record<string, string> = {
   "measurement.pixel_firing":
     "Fire a test event (Events Manager → Test events) and check the pixel's site.",
   "measurement.utm":
-    "Add url_tags (utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}) to each creative.",
+    `Add url_tags (${URL_TAGS}) to each creative.`,
   "creative.formats":
     "Add a second format (video or carousel beside the image) as its own hypothesis.",
   "creative.per_adset":
