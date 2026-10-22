@@ -77,6 +77,8 @@ const ADDED = {
     // 2026-10-18 fetch ladder: why the render pass has a page, and each rung it tried.
     "documents.block_reason",
     "documents.fetch_steps",
+    // 2026-10-22 headcount, stored: the people map read it out of raw per person.
+    "companies.headcount",
   ]),
   constraints: new Set([
     "uq_messages_link_code",

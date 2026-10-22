@@ -49,6 +49,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   run_events: "a run's own event log",
   fills: "AI-filled text, cached and remade",
   platform_objects: "one row per platform post or comment; every sighting rewrites last_seen",
+  profile_list: "the People list row, rebuilt by triggers from tables that are logged",
   draft_events: "the draft record, already an append-only log with who and when",
   decisions: "machine answers, an append-only log with their own times and costs",
   decision_calls: "his calls beside them, an append-only log with who and when",
