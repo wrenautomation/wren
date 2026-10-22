@@ -32,13 +32,16 @@ git merge-base --is-ancestor origin/main "$sha" ||
   { echo "$sha does not contain origin/main: cherry-pick it onto origin/main first" >&2; exit 1; }
 CHECKS_LOCKED=1 lockf -s "$L" sh "$0" --check "$sha"
 
-# GitHub's 500s come in outages: wait for Actions and Git to be up, then push (3 tries).
+# GitHub's 500s come in outages. A push needs only Git; a degraded Actions delays CI, not the push,
+# so say so and go on. PUSH_NOW=1 skips the status page (it can lag, or be down itself).
 up() {
+  [ "${PUSH_NOW:-}" = 1 ] && return 0
   curl -s https://www.githubstatus.com/api/v2/components.json | python3 -c "import json,sys
 c={x['name']:x['status'] for x in json.load(sys.stdin)['components']}
-sys.exit(0 if c.get('Actions')=='operational' and c.get('Git Operations')=='operational' else 1)"
+if c.get('Actions')!='operational': print('Actions is '+str(c.get('Actions'))+': CI may run late', file=sys.stderr)
+sys.exit(0 if c.get('Git Operations')=='operational' else 1)"
 }
-until up; do echo "waiting for GitHub"; sleep 120; done
+until up; do echo "waiting for GitHub Git Operations (PUSH_NOW=1 to skip)"; sleep 120; done
 # The checked commit, never the main ref: other sessions commit to main while checks run.
 for try in 1 2 3; do git -C "$W" push -q origin "$sha:main" && break; [ $try = 3 ] && exit 1; sleep 60; done
 echo "pushed $sha"
