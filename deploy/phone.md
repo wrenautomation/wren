@@ -42,6 +42,9 @@ from `apps/phone/`:
     # The lander's EXPORT_TOKEN (wren's WREN_SITE_EXPORT_TOKEN): it signs each application the
     # lander pushes to /webhooks/site. Until set, those get 503 and the 30-minute pass finds them.
     printf %s "$WREN_SITE_EXPORT_TOKEN" | npx wrangler secret put SITE_EXPORT_TOKEN
+    # The secret in Documenso's webhook setting (deploy/documenso/README.md). Each event must carry
+    # it in X-Documenso-Secret. Until set, /webhooks/documenso gets 503.
+    printf %s "$DOCUMENSO_WEBHOOK_SECRET" | npx wrangler secret put DOCUMENSO_WEBHOOK_SECRET
     npx wrangler deploy
 
 The worker (Lambda) must already serve `SmsDesk` and `SmsEvents`, and migration
