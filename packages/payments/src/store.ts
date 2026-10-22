@@ -196,7 +196,7 @@ const MONEY: PayStatus[] = ["processing", "unpaid", "paid", "refunded"];
 export async function markFailed(main: Db, id: string, why: string): Promise<void> {
   await main
     .update(payLinks)
-    .set({ status: "failed", why: why.slice(0, 500) })
+    .set({ status: "failed", why: why.slice(0, 5000) })
     .where(and(eq(payLinks.id, id), notInArray(payLinks.status, MONEY)));
 }
 

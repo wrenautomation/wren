@@ -469,7 +469,7 @@ export async function clickReview(db: Queryable, token: string, now: Date) {
 export async function saveFeedback(db: Queryable, token: string, words: string, now: Date) {
   const [a] = await db
     .update(reviewAsks)
-    .set({ feedback: words.trim().slice(0, 4000), feedbackAt: now })
+    .set({ feedback: words.trim().slice(0, 100_000), feedbackAt: now })
     .where(eq(reviewAsks.token, token))
     .returning({ id: reviewAsks.id });
   return !!a;

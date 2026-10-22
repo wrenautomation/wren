@@ -18,7 +18,7 @@ export function calendarChecks(host: CalendarHost): Record<string, SetupCheck> {
         // Google answers a missing delegation at the token: unauthorized_client.
         return /unauthorized_client|invalid_grant|access_denied|no calendar for|\b40[13]\b/.test(m)
           ? { ok: false, why: "Wren's service account isn't allowed on this calendar yet" }
-          : { ok: false, why: `Couldn't read the calendar: ${m.slice(0, 200)}` };
+          : { ok: false, why: `Couldn't read the calendar: ${m.slice(0, 2000)}` };
       }
     },
   };

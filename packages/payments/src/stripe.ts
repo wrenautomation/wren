@@ -63,7 +63,7 @@ export function stripeErrorOf(err: unknown): unknown {
     status === 409 ||
     status >= 500;
   return new StripeError(
-    (err.message || `Stripe answered ${status}`).slice(0, 300),
+    (err.message || `Stripe answered ${status}`).slice(0, 3000),
     status,
     err.code ?? null,
     transient,

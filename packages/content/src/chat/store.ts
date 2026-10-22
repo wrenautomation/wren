@@ -96,7 +96,7 @@ export async function say(
   now = new Date(),
 ): Promise<{ key: string; lines: ChatLine[]; started: boolean }> {
   const body = bodyOf(input.body);
-  const name = typeof input.name === "string" ? input.name.trim().slice(0, 120) || null : null;
+  const name = typeof input.name === "string" ? input.name.trim().slice(0, 1200) || null : null;
   const { email, phone } = contactOf(input.contact);
   let key = typeof input.key === "string" && input.key ? input.key : null;
   let thread: ChatThread;

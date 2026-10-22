@@ -109,7 +109,7 @@ export function pasteHandlers(deps: ReachDeps) {
       wakeReads(ctx);
       return {
         did: "queued",
-        said: `Queued "${t.title.slice(0, 80)}". Its draft lands here within a few minutes.`,
+        said: `Queued "${t.title.slice(0, 800)}". Its draft lands here within a few minutes.`,
         item: `thread:${t.id}`,
       };
     }

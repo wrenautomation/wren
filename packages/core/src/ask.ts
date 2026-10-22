@@ -121,7 +121,7 @@ export function makeAsk(main: Db) {
           } catch (err) {
             if (!(err instanceof restate.TerminalError)) throw err;
             await ctx.run("save", () =>
-              finishRun(main, req.id, { error: err.message.slice(0, 500) }),
+              finishRun(main, req.id, { error: err.message.slice(0, 5000) }),
             );
           }
         },
@@ -158,7 +158,7 @@ export function makeAsk(main: Db) {
           } catch (err) {
             if (!(err instanceof restate.TerminalError)) throw err;
             await ctx.run("save", () =>
-              finishRun(main, req.id, { error: err.message.slice(0, 500) }),
+              finishRun(main, req.id, { error: err.message.slice(0, 5000) }),
             );
           }
         },

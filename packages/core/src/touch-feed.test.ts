@@ -52,8 +52,8 @@ describe("touchFired", () => {
     expect(f.event.data.profile).toBe(7);
   });
   it("cuts long text", () => {
-    const f = touchFired(null, { ...row, text: "x".repeat(900) });
-    expect((f.event.data.text as string).length).toBe(500);
+    const f = touchFired(null, { ...row, text: "x".repeat(9000) });
+    expect((f.event.data.text as string).length).toBe(5000);
   });
   it("is heard by a Touch trigger that matches, not by one that does not", () => {
     const f = touchFired(null, row);

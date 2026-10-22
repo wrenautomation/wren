@@ -41,9 +41,9 @@ describe("dead letters", () => {
   });
 
   it("one line per letter, the error cut short", () => {
-    const line = letterLine({ id: 3, target: "A/b", key: "k", error: `x\n${"y".repeat(300)}` });
+    const line = letterLine({ id: 3, target: "A/b", key: "k", error: `x\n${"y".repeat(3000)}` });
     expect(line.startsWith("#3 A/b (k): x y")).toBe(true);
-    expect(line.length).toBeLessThan(150);
+    expect(line.length).toBeLessThan(1250);
   });
 
   it("reads the failure off a Paused event", () => {

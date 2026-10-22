@@ -160,7 +160,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               out.threads += kept.threads;
               out.messages += kept.messages;
             } catch (err) {
-              out.errors.push(`${c.platform}: ${errorText(err)}`.slice(0, 300));
+              out.errors.push(`${c.platform}: ${errorText(err)}`.slice(0, 3000));
             }
           }
           return out;

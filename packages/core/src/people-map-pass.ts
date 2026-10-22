@@ -78,7 +78,7 @@ export function makePeopleMap(d: PeopleMapDeps) {
               ? await peopleMapPass(d.clientDb(client))
               : await peopleMapPass(d.main, { site: d.site ?? null });
           } catch (err) {
-            return { error: String(err).slice(0, 500) };
+            return { error: String(err).slice(0, 5000) };
           }
         });
         ctx.set(LAST, { at: now.toISOString(), ...out });

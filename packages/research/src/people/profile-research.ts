@@ -274,13 +274,13 @@ export function findingsOf(
 /** The words for a failure on a run's page: what stopped, not a stack. */
 export function errorWords(err: unknown): string {
   if (err instanceof SiteCallError) {
-    const why = err.message.replace(/\s+/g, " ").slice(0, 160);
+    const why = err.message.replace(/\s+/g, " ").slice(0, 1600);
     return err.status >= 500
       ? `The ${err.site} site failed (${err.status}): ${why}`
       : `The ${err.site} site refused the request (${err.status}): ${why}`;
   }
   const text = (err instanceof Error ? err.message : String(err)).replace(/\s+/g, " ");
-  return text.slice(0, 300) || "The run failed.";
+  return text.slice(0, 3000) || "The run failed.";
 }
 
 /**
@@ -363,7 +363,7 @@ export async function failProfileResearch(
 ): Promise<void> {
   await db
     .update(profileLookups)
-    .set({ state: "failed", error: error.slice(0, 1000), finishedAt: sql`now()` })
+    .set({ state: "failed", error: error.slice(0, 10_000), finishedAt: sql`now()` })
     .where(
       and(eq(profileLookups.id, lookupId), inArray(profileLookups.state, ["queued", "running"])),
     );

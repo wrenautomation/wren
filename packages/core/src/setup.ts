@@ -391,7 +391,7 @@ async function setFact(
     accountId,
     fact,
     state,
-    why: o.why === null ? null : pgSafe(o.why).slice(0, 500),
+    why: o.why === null ? null : pgSafe(o.why).slice(0, 5000),
     seen: o.seen === undefined ? null : pgSafe(o.seen),
     by: o.by,
     checkedAt: o.now,
@@ -812,7 +812,7 @@ export async function agentDone(
       events: [accountEvent(`${setupSubject(acct.id, run.gen)}#a${now.getTime()}`, acct.id)],
     };
   }
-  const why = `The agent couldn't: ${got.why}`.slice(0, 2000);
+  const why = `The agent couldn't: ${got.why}`.slice(0, 20_000);
   const set = await main
     .update(setupRuns)
     .set({ state: "waiting_wren", why })

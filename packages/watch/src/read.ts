@@ -74,7 +74,7 @@ export async function readMail(
         if (row) stats.kept.push(row.id);
       }
     } catch (err) {
-      stats.failed.push({ mailbox: box.address, error: String(err).slice(0, 500) });
+      stats.failed.push({ mailbox: box.address, error: String(err).slice(0, 5000) });
     }
   }
   return stats;

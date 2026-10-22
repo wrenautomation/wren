@@ -40,7 +40,7 @@ export const adLaunches = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     stoppedAt: timestamp("stopped_at", { withTimezone: true }),
     /** Why AdsWatch stopped it, when it did. */
-    stopReason: varchar("stop_reason", { length: 300 }),
+    stopReason: varchar("stop_reason", { length: 3000 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_ad_launches" }),

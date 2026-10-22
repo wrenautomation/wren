@@ -264,7 +264,7 @@ export async function rankThreads(
       .set({
         kind: r.kind,
         fit: Math.round(r.fit),
-        angle: r.angle.replace(/\s+/g, " ").trim().slice(0, 300),
+        angle: r.angle.replace(/\s+/g, " ").trim().slice(0, 3000),
         state: "ranked",
       })
       .where(and(eq(redditThreads.id, r.id), eq(redditThreads.state, "new")));

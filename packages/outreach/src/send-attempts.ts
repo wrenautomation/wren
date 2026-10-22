@@ -130,7 +130,7 @@ export async function settleUnsure(
 ): Promise<void> {
   await db
     .update(sendAttempts)
-    .set({ state: "unsure", why: s.why.slice(0, 1000), invocation: null, updatedAt: s.now })
+    .set({ state: "unsure", why: s.why.slice(0, 10_000), invocation: null, updatedAt: s.now })
     .where(eq(sendAttempts.item, item));
 }
 
@@ -168,7 +168,7 @@ export async function parkUnsure(
     target: a.target,
     url: a.url,
     tries: a.tries,
-    why: a.why.slice(0, 1000),
+    why: a.why.slice(0, 10_000),
     updatedAt: a.now,
   };
   await db

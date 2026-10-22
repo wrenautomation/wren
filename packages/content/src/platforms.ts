@@ -213,9 +213,8 @@ export function lookWords(
 /** A draft as a person knows it, for what a refusal says: its title and platform, never its id. */
 export function named(r: { title?: string | null; text: string; platform: string }): string {
   const words = (r.title || r.text || "").replace(/\s+/g, " ").trim();
-  const short = words.length > 60 ? `${words.slice(0, 57)}…` : words;
   const where = PLATFORM_SPECS[r.platform as Platform]?.name ?? r.platform;
-  return short ? `"${short}" on ${where}` : `The ${where} draft`;
+  return words ? `"${words}" on ${where}` : `The ${where} draft`;
 }
 
 /** A draft gone from the list since it was read: deleted, or another tab moved it. */

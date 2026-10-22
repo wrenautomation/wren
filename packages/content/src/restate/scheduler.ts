@@ -425,7 +425,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     stats: PublishStats,
   ): Promise<void> {
     const name = PLATFORM_SPECS[p.platform].name;
-    const why = reason.slice(0, 300);
+    const why = reason.slice(0, 3000);
     const now = new Date(await ctx.date.now());
     await ctx.run(`unsure ${p.draftId}`, async () => {
       await parkUnsure(o.db, {

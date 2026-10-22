@@ -73,6 +73,6 @@ export async function sentMailReply(
 /** It didn't: why, in the provider's or the mailbox's words. */
 export async function failedMailReply(db: Queryable, id: number, why: string): Promise<void> {
   await db.execute(
-    sql`update watch.mail_sent set state = 'failed', why = ${why.slice(0, 500)} where id = ${id}`,
+    sql`update watch.mail_sent set state = 'failed', why = ${why.slice(0, 5000)} where id = ${id}`,
   );
 }

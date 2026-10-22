@@ -392,7 +392,7 @@ export function makeSegments(d: SegmentsDeps) {
             const db = client ? d.clientDb(client) : d.main;
             return await segmentsPass(db, client, await d.flows(client), now, from);
           } catch (err) {
-            return { error: String(err).slice(0, 500) };
+            return { error: String(err).slice(0, 5000) };
           }
         });
         if ("error" in out) {

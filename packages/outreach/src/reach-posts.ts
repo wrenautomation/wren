@@ -1110,7 +1110,7 @@ async function leave(
     .update(reachPosts)
     .set({
       state: "dropped",
-      stateReason: o.why.slice(0, 300),
+      stateReason: o.why.slice(0, 3000),
       ...(o.fit !== undefined ? { fit: o.fit } : {}),
       ...(o.rankWhy ? { why: o.rankWhy } : {}),
     })
@@ -1125,7 +1125,7 @@ async function leave(
       by: o.by,
       text: p.draft,
       reason: o.reason,
-      note: o.why.slice(0, 300),
+      note: o.why.slice(0, 3000),
     });
 }
 

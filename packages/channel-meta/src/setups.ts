@@ -24,7 +24,7 @@ const NOT_AN_ID = { ok: false, why: "The ad account id should look like act_123"
 const failed = (err: unknown) =>
   isRefusal(err)
     ? { ok: false, why: "Wren can't read this ad account yet" }
-    : { ok: false, why: `Couldn't reach Meta: ${(err as Error).message.slice(0, 200)}` };
+    : { ok: false, why: `Couldn't reach Meta: ${(err as Error).message.slice(0, 2000)}` };
 
 interface Promotable {
   id: string;

@@ -518,7 +518,7 @@ export const workflowTemplates = pgTable(
   {
     /** The template's id, `saved_<name>`: what installs and To approve name it by. */
     id: varchar("id", { length: 64 }).notNull(),
-    name: varchar("name", { length: 120 }).notNull(),
+    name: varchar("name", { length: 1200 }).notNull(),
     blurb: text("blurb").default("").notNull(),
     /** The code's workflow it rewires. */
     workflow: varchar("workflow", { length: 64 }).notNull(),
@@ -903,7 +903,7 @@ export const snippets = pgTable(
   {
     id: serial("id").notNull(),
     workspace: varchar("workspace", { length: 64 }).notNull(),
-    title: varchar("title", { length: 120 }).notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
     body: text("body").notNull(),
     /** Free text, shared by the team. */
     tags: text("tags").array().default(sql`'{}'::text[]`).notNull(),
@@ -1523,7 +1523,7 @@ export const messageSettings = pgTable(
     /** A client's mailbox its email marketing sends from: one connected in Account → Mailboxes. */
     sender: varchar("sender", { length: 320 }),
     /** The postal address every marketing email carries (CAN-SPAM). */
-    postal: varchar("postal", { length: 300 }),
+    postal: varchar("postal", { length: 1000 }),
     updatedBy: varchar("updated_by", { length: 200 }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

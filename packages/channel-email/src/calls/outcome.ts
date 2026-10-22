@@ -39,7 +39,7 @@ export async function setCallOutcome(db: Queryable, o: OutcomeAsk): Promise<Mark
   const where: SQL[] = [inArray(callBookings.id, [...o.ids]), eq(callBookings.state, "booked")];
   // Taking one back needs no start check; marking one does: nobody no-shows ahead of time.
   if (!clearing) where.push(isNotNull(callBookings.start), lte(callBookings.start, o.now));
-  const reason = clearing ? null : o.reason?.trim().slice(0, 500) || null;
+  const reason = clearing ? null : o.reason?.trim().slice(0, 5000) || null;
   const rows = await db
     .update(callBookings)
     .set({

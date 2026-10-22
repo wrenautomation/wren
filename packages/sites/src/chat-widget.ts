@@ -17,7 +17,7 @@ export function chatJs(): string {
 const me=document.currentScript;if(!me||window.__wrenChat)return;window.__wrenChat=1;
 const base=new URL(me.src).origin,api=base+${JSON.stringify(CHAT_PATH)};
 const color=/^#[0-9a-fA-F]{3,8}$/.test(me.dataset.color||"")?me.dataset.color:"#1b1714";
-const greeting=(me.dataset.greeting||"Questions? Ask here and we'll answer.").slice(0,200);
+const greeting=(me.dataset.greeting||"Questions? Ask here and we'll answer.").slice(0, 2000);
 const store="wren-chat:"+base;
 let key=null,after=0,open=false,timer=0,busy=false;
 try{key=localStorage.getItem(store)}catch(e){}

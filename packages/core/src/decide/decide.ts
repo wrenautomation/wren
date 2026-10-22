@@ -139,7 +139,7 @@ export async function decide(db: Queryable, d: DecideInput): Promise<DecisionRow
     } catch (err) {
       const f = failureOf(err);
       if (f === "key")
-        throw new DecideStop(`${b.name} refused the key: ${String(err).slice(0, 200)}`);
+        throw new DecideStop(`${b.name} refused the key: ${String(err).slice(0, 2000)}`);
       if (f === "refused")
         return await keep(db, {
           kind: d.kind,
@@ -150,7 +150,7 @@ export async function decide(db: Queryable, d: DecideInput): Promise<DecisionRow
           state: d.state,
           questions,
           latencyMs: Date.now() - t0,
-          error: String(err).slice(0, 500),
+          error: String(err).slice(0, 5000),
           ref,
         });
       lastErr = err;

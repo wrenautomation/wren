@@ -73,7 +73,7 @@ function saidOf(b: Json): string {
     b.detail ??
     b.title ??
     "";
-  return String(m).split(/\r?\n/)[0]?.slice(0, 200) || "refused";
+  return String(m).split(/\r?\n/)[0]?.slice(0, 2000) || "refused";
 }
 const codeOf = (b: Json) =>
   b.error && typeof b.error === "object" ? (b.error as Json).code : undefined;

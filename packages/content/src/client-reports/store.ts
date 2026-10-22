@@ -271,7 +271,7 @@ async function readLines(
           value: null,
           prior: null,
           currency: null,
-          error: err instanceof Error ? err.message.slice(0, 200) : "the read failed",
+          error: err instanceof Error ? err.message.slice(0, 2000) : "the read failed",
         });
       }
     }
@@ -360,7 +360,7 @@ export async function runReport(
         });
         sentTo.push(email);
       } catch (err) {
-        failed.push(`${email}: ${err instanceof Error ? err.message.slice(0, 120) : "not sent"}`);
+        failed.push(`${email}: ${err instanceof Error ? err.message.slice(0, 1200) : "not sent"}`);
       }
     }
     if (failed.length) why = failed.join("; ");

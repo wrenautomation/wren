@@ -269,8 +269,8 @@ export async function judgePlace(
   return {
     ...j,
     fit: Math.round(j.fit),
-    why: j.why.replace(/\s+/g, " ").trim().slice(0, 300),
-    rules: j.rules.replace(/\s+/g, " ").trim().slice(0, 400),
+    why: j.why.replace(/\s+/g, " ").trim().slice(0, 3000),
+    rules: j.rules.replace(/\s+/g, " ").trim().slice(0, 4000),
     ...pace,
   };
 }
@@ -425,7 +425,7 @@ export async function movePlace(db: Queryable, sub: string, account: string): Pr
 export async function failPlace(db: Queryable, sub: string, why: string, now: Date): Promise<void> {
   await db
     .update(redditPlaces)
-    .set({ readAt: now, fit: null, judged: null, raw: { error: why.slice(0, 300) } })
+    .set({ readAt: now, fit: null, judged: null, raw: { error: why.slice(0, 3000) } })
     .where(eq(redditPlaces.subreddit, key(sub)));
 }
 

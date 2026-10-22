@@ -329,7 +329,7 @@ export function mailAccess(given: MailDeps) {
     cache.delete(accountId);
     await main
       .update(mailConnections)
-      .set({ state: "broken", why: why.slice(0, 300), checkedAt: now() })
+      .set({ state: "broken", why: why.slice(0, 3000), checkedAt: now() })
       .where(eq(mailConnections.accountId, accountId));
   };
 
@@ -565,7 +565,7 @@ export function mailAccess(given: MailDeps) {
           said:
             q.error === "access_denied" || q.error === "consent_required"
               ? "Nothing was granted. You can try again from Account → Mail."
-              : `Google or Microsoft said no (${String(q.error).slice(0, 60)}).`,
+              : `Google or Microsoft said no (${String(q.error).slice(0, 600)}).`,
           client,
           check: [],
         };

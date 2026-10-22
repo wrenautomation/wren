@@ -192,11 +192,10 @@ async function applyInbound(
   // it cannot be texted back. The raw event row keeps it; the note and the
   // alert carry the text so a code is readable at once.
   if (!E164.test(e.from)) {
-    const body = e.text.length > 160 ? `${e.text.slice(0, 159)}…` : e.text;
     return {
-      outcome: `from ${e.from} (not a phone number): ${body}`,
-      notify: `SMS from ${e.from} to ${formatPhone(e.to)}: ${body}`,
-      alert: { title: `SMS from ${e.from}`, body, url: "/", tag: `sender-${e.from}` },
+      outcome: `from ${e.from} (not a phone number): ${e.text}`,
+      notify: `SMS from ${e.from} to ${formatPhone(e.to)}: ${e.text}`,
+      alert: { title: `SMS from ${e.from}`, body: e.text, url: "/", tag: `sender-${e.from}` },
     };
   }
   const number = await numberByE164(db, e.to);

@@ -67,7 +67,7 @@ export async function listDrafts(
       template: m.template,
       duplicate: duplicate ? String(duplicate.domain ?? duplicate.company_id ?? "") : "",
       subject: m.subject,
-      firstLine: (m.body.split("\n")[0] ?? "").slice(0, 60),
+      firstLine: m.body.split("\n")[0] ?? "",
     };
   });
 }

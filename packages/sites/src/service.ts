@@ -387,7 +387,7 @@ export function sitesPublicApi(
         ? "no door for this page's owner"
         : ok
           ? null
-          : (res.error ?? `door answered ${res.status}`).slice(0, 300);
+          : (res.error ?? `door answered ${res.status}`).slice(0, 3000);
       await markForm(main, form, ok, why);
     },
 

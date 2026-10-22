@@ -95,7 +95,7 @@ export const docTemplates = pgTable(
     id: uuid("id").defaultRandom().notNull(),
     client: varchar("client", { length: 40 }).notNull(),
     kind: varchar("kind", { length: 10 }).notNull(),
-    name: varchar("name", { length: 120 }).notNull(),
+    name: varchar("name", { length: 1200 }).notNull(),
     /** Light marks: `# `, `## `, `- `, blank lines. Slots in `{...}`. */
     body: text("body").notNull().default(""),
     lines: jsonb("lines").$type<DocLine[]>().notNull().default([]),
@@ -134,7 +134,7 @@ export const docs = pgTable(
     kind: varchar("kind", { length: 10 }).notNull(),
     /** Per client and kind: `EST-0007`. */
     number: varchar("number", { length: 16 }).notNull(),
-    title: varchar("title", { length: 200 }).notNull(),
+    title: varchar("title", { length: 2000 }).notNull(),
     /** Filled when made: slots left `{...}` block Send. */
     body: text("body").notNull().default(""),
     lines: jsonb("lines").$type<DocLine[]>().notNull().default([]),

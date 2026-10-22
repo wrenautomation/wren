@@ -60,7 +60,7 @@ export const boards = pgTable(
   "boards",
   {
     id: uuid("id").defaultRandom().notNull(),
-    name: varchar("name", { length: 120 }).notNull(),
+    name: varchar("name", { length: 1200 }).notNull(),
     columns: jsonb("columns").$type<BoardColumn[]>().notNull(),
     /** An email, or `agent:<name>`. */
     owner: varchar("owner", { length: 200 }).notNull(),
@@ -112,7 +112,7 @@ export const notes = pgTable(
     parentId: uuid("parent_id"),
     /** `dump`: a person's capture note, one per person per workspace. `task`: a board's card. */
     kind: varchar("kind", { length: 8, enum: KINDS }).notNull().default("note"),
-    title: varchar("title", { length: 300 }).notNull().default(""),
+    title: varchar("title", { length: 3000 }).notNull().default(""),
     body: jsonb("body").$type<NoteJson>().notNull().default({ type: "doc", content: [] }),
     text: text("text").notNull().default(""),
     search: tsvector("search").generatedAlwaysAs(
@@ -259,8 +259,8 @@ export const noteVersions = pgTable(
     noteId: uuid("note_id").notNull(),
     number: integer("number").notNull(),
     kind: varchar("kind", { length: 8, enum: VERSION_KINDS }).notNull(),
-    name: varchar("name", { length: 200 }),
-    title: varchar("title", { length: 300 }).notNull().default(""),
+    name: varchar("name", { length: 2000 }),
+    title: varchar("title", { length: 3000 }).notNull().default(""),
     body: jsonb("body").$type<NoteJson>().notNull(),
     text: text("text").notNull(),
     authors: text("authors").array().notNull().default(sql`'{}'::text[]`),
@@ -287,7 +287,7 @@ export const noteLinks = pgTable(
   {
     noteId: uuid("note_id").notNull(),
     target: varchar("target", { length: 300 }).notNull(),
-    label: varchar("label", { length: 300 }).notNull().default(""),
+    label: varchar("label", { length: 3000 }).notNull().default(""),
   },
   (t) => [
     primaryKey({ columns: [t.noteId, t.target], name: "pk_note_links" }),
@@ -327,7 +327,7 @@ export const noteComments = pgTable(
     parentId: uuid("parent_id"),
     anchor: jsonb("anchor").$type<CommentAnchor>(),
     /** The words it was left on, as they were. */
-    quote: varchar("quote", { length: 500 }).notNull().default(""),
+    quote: varchar("quote", { length: 5000 }).notNull().default(""),
     body: text("body").notNull(),
     /** Emails it `@`s. */
     mentions: text("mentions").array().notNull().default(sql`'{}'::text[]`),
@@ -471,7 +471,7 @@ export const taskMoves = pgTable(
     assignee: varchar("assignee", { length: 200 }),
     by: varchar("by", { length: 200 }).notNull(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
-    why: varchar("why", { length: 300 }),
+    why: varchar("why", { length: 3000 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_task_moves" }),

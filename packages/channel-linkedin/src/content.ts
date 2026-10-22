@@ -426,7 +426,7 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
       // Over the day's cap: nothing read today, not a failure.
       if (err instanceof SiteCallError && err.status === 429) return { values: [], gaps: [], asOf };
       // A browser read that broke: said where the number sits, never retried as a storm.
-      const why = (err instanceof Error ? err.message : String(err)).slice(0, 300);
+      const why = (err instanceof Error ? err.message : String(err)).slice(0, 3000);
       into.gaps.push(...knownGaps(gapStateOf(err) ?? "error", why, ANALYTICS_METRICS));
     }
     return { ...into, asOf };
@@ -468,7 +468,7 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
       };
     } catch (err) {
       if (err instanceof SiteCallError && err.status === 429) return { days: [], gaps: [], asOf };
-      const why = (err instanceof Error ? err.message : String(err)).slice(0, 300);
+      const why = (err instanceof Error ? err.message : String(err)).slice(0, 3000);
       return { days: [], gaps: knownGaps(gapStateOf(err) ?? "error", why, wanted), asOf };
     }
   }

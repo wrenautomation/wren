@@ -164,7 +164,7 @@ export async function readItem(
     } catch (err) {
       // A feed item with some text still reads; a bare saved link fails until a retry.
       if (!text) {
-        const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+        const error = (err instanceof Error ? err.message : String(err)).slice(0, 5000);
         await db.update(items).set({ readFailure: error }).where(eq(items.id, id));
         return "failed";
       }
@@ -262,7 +262,7 @@ export async function readVideo(
     if (!g.ok) {
       await db
         .update(items)
-        .set({ readFailure: `Waits for models: ${g.why}`.slice(0, 500) })
+        .set({ readFailure: `Waits for models: ${g.why}`.slice(0, 5000) })
         .where(eq(items.id, id));
       return "waits";
     }
@@ -295,7 +295,7 @@ export async function readVideo(
       await meter(db, { client, vendor: "models", units: 1, part: "learn.read", at: now });
     return "read";
   } catch (err) {
-    const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+    const error = (err instanceof Error ? err.message : String(err)).slice(0, 5000);
     await db.update(items).set({ readFailure: error }).where(eq(items.id, id));
     return "failed";
   }

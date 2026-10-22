@@ -99,7 +99,7 @@ export async function writeAsked(
       await db.update(sopSources).set({ points: new Date() }).where(eq(sopSources.id, ask.id));
       out.push({ sop: ask.sop, file: name, error: null });
     } catch (err) {
-      const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+      const error = (err instanceof Error ? err.message : String(err)).slice(0, 5000);
       // Written but not extracted stays added: `wren sop extract` finishes it.
       await db
         .update(sopSources)
@@ -335,7 +335,7 @@ export async function writeClientAsked(
         .where(eq(sopSources.id, ask.id));
       out.push({ sop: ask.sop, note: note.id, error: null });
     } catch (err) {
-      const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+      const error = (err instanceof Error ? err.message : String(err)).slice(0, 5000);
       await db.update(sopSources).set({ error, state: "failed" }).where(eq(sopSources.id, ask.id));
       out.push({ sop: ask.sop, note: null, error });
     }

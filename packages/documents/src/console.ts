@@ -425,7 +425,7 @@ const LINE = z.looseObject({
   tax_pct: z.union([z.number(), z.string()]).nullish().describe("Tax percent on this line"),
 });
 const FIELDS = {
-  title: z.string().max(200).nullish().describe("The title the signer sees"),
+  title: z.string().max(2000).nullish().describe("The title the signer sees"),
   body: z.string().max(50_000).nullish().describe("The words: # and ## headings, - lists, {slots}"),
   lines: z.array(LINE).max(50).nullish().describe("Line items"),
   depositPct: z.union([z.number(), z.string()]).nullish().describe("Deposit on signing, percent"),
@@ -579,7 +579,7 @@ export function makeDocumentsConsole(deps: DocumentsConsoleDeps) {
             ...PORTAL_FIELDS,
             id: z.string().nullish().describe("The template to change; none: a new one"),
             kind: z.enum(["contract", "proposal", "estimate"]).nullish(),
-            name: z.string().max(120).nullish(),
+            name: z.string().max(1200).nullish(),
             body: FIELDS.body,
             lines: FIELDS.lines,
             depositPct: FIELDS.depositPct,

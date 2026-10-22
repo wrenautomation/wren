@@ -230,7 +230,7 @@ export function errorText(err: unknown): string {
       : root instanceof Error
         ? `${root.name}: ${root.message}`
         : String(root);
-  return (query === null ? text : `${query}: ${text}`).slice(0, 300);
+  return (query === null ? text : `${query}: ${text}`).slice(0, 3000);
 }
 
 /** `insert "runs"` for a driver error carrying its SQL; null otherwise. */

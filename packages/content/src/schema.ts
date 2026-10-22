@@ -127,7 +127,7 @@ export const contentDrafts = pgTable(
     /** The body: a post, a caption, a video description. */
     text: text("text").notNull(),
     /** YouTube's title, TikTok's; null where the platform has none. */
-    title: varchar("title", { length: 200 }),
+    title: varchar("title", { length: 2000 }),
     media: jsonb("media").$type<Media>(),
     /** The platform's post shape past text and file (`@wren/core/content/shapes`): checked on save and publish. */
     extra: jsonb("extra").$type<Record<string, unknown>>().notNull().default({}),
@@ -504,7 +504,7 @@ export const marketingPostRecords = pgView("marketing_post_records", {
   account: text("account"),
 }).as(sql`
   select concat_ws('/', d.idea_id, d.platform, d.id) id, d.platform::text platform,
-    coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title,
+    coalesce(d.title, left(split_part(d.text, chr(10), 1), 1200))::text title,
     d.published_at published, d.stage::text stage, ${sql.raw(formatSql)} format,
     m.views, m.reactions, m.comments, m.shares,
     m.reactions + m.comments + m.shares engaged,
@@ -656,7 +656,7 @@ export const draftActivity = pgView("draft_activity", {
         when 'generated' then case e.via when 'model' then 'Drafted by ' || coalesce(e.by, 'the model')
           else 'Written by ' || coalesce(e.by, 'Wren') end
         when 'edited' then case e.via when 'claude' then 'Claude rewrote it, asked by ' || coalesce(e.by, 'you')
-          || coalesce(': ' || left(e.ask, 200), '')
+          || coalesce(': ' || left(e.ask, 2000), '')
           else 'Edited by ' || coalesce(e.by, 'a person') end
           || case when e.meta ? 'undo' then ' (undo)' when e.meta ? 'at_send' then ' at send' else '' end
         when 'approved' then 'Approved' || coalesce(' by ' || e.by, '')
@@ -668,7 +668,7 @@ export const draftActivity = pgView("draft_activity", {
             when 'timing' then 'Bad timing' when 'repeat' then 'Said before' end, '')
           || coalesce(' · ' || e.note, '')
         when 'sent' then 'Sent' || coalesce(' · ' || e.url, '')
-        else 'Failed' || coalesce(': ' || left(e.note, 200), '') end what
+        else 'Failed' || coalesce(': ' || left(e.note, 2000), '') end what
     from draft_events e
     union all
     select 'draft:' || d.id, m.as_of, null, 'metrics',
@@ -677,10 +677,10 @@ export const draftActivity = pgView("draft_activity", {
     from content_metrics m join content_drafts d on d.id = m.draft_id
     union all
     select 'draft:' || v.draft_id, v.started_at, null, 'variant',
-      initcap(v.field) || ' swapped to: ' || left(v.value, 200)
+      initcap(v.field) || ' swapped to: ' || left(v.value, 2000)
     from post_variants v where v.source = 'swap' and v.started_at is not null
     union all
-    select 'draft:' || d.id, c.at, null, 'reply', 'Reply from ' || c.author || ': ' || left(c.body, 200)
+    select 'draft:' || d.id, c.at, null, 'reply', 'Reply from ' || c.author || ': ' || left(c.body, 2000)
     from comments c join content_drafts d on d.published_id = c.post and d.platform::text = c.platform::text
     where c.sort is distinct from 'ours'
   )
@@ -720,7 +720,7 @@ export const doneRecords = pgView("done_records", {
   day: text("day"),
 }).as(sql`
   select e.id, e.item, e.kind, e.platform, e.event, e.via, e.by,
-    coalesce(nullif(e.title, ''), left(regexp_replace(e.text, '[[:space:]]+', ' ', 'g'), 140), e.item) what,
+    coalesce(nullif(e.title, ''), left(regexp_replace(e.text, '[[:space:]]+', ' ', 'g'), 1400), e.item) what,
     e.text words, e.note, e.url,
     case split_part(e.item, ':', 1)
       when 'draft' then '/marketing/drafts/' when 'comment' then '/marketing/comments/'
@@ -828,7 +828,7 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
   account: text("account"),
 }).as(sql`
   select d.id::text id, d.platform::text platform,
-    coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title, d.text,
+    coalesce(d.title, left(split_part(d.text, chr(10), 1), 1200))::text title, d.text,
     d.status::text state, length(d.text) chars,
     case when d.edited then 'edited' else 'model' end written, d.note, d.error,
     d.stage::text stage, d.points_to::text "to",
@@ -928,7 +928,7 @@ export const chatThreads = pgTable(
   {
     id: serial("id").notNull(),
     keyHash: varchar("key_hash", { length: 64 }).notNull(),
-    name: varchar("name", { length: 120 }),
+    name: varchar("name", { length: 1200 }),
     email: varchar("email", { length: 200 }),
     phone: varchar("phone", { length: 32 }),
     /** The page it started on. */

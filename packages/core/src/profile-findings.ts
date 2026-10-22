@@ -96,7 +96,7 @@ export async function abandonProfileResearch(
 ): Promise<void> {
   await db
     .update(profileLookups)
-    .set({ state: "failed", error: why.slice(0, 1000), finishedAt: sql`now()` })
+    .set({ state: "failed", error: why.slice(0, 10_000), finishedAt: sql`now()` })
     .where(and(eq(profileLookups.id, lookupId), eq(profileLookups.state, "queued")));
 }
 

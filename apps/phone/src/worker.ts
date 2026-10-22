@@ -906,7 +906,7 @@ async function review(req: Request, bindings: Env, path: RegExpExecArray): Promi
   if (req.method !== "POST") return json({ error: "GET or POST" }, 405);
   const raw = await readBody(req, MAX_BODY);
   if (raw === null) return json({ error: "too large" }, 413);
-  const words = (new URLSearchParams(raw).get("words") ?? "").trim().slice(0, 4000);
+  const words = (new URLSearchParams(raw).get("words") ?? "").trim().slice(0, 100_000);
   if (!words) return feedbackForm();
   let res: Response;
   try {

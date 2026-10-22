@@ -214,7 +214,7 @@ export async function deliveryOf<T>(
     if (trace.wrote)
       return {
         kind: "unknown",
-        reason: `a write answered, then: ${err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200)}`,
+        reason: `a write answered, then: ${err instanceof Error ? err.message.slice(0, 2000) : String(err).slice(0, 2000)}`,
         since: new Date().toISOString(),
       };
     throw err;

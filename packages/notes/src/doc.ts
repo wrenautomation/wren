@@ -214,13 +214,13 @@ export function linksOf(json: NoteJson): Link[] {
     if (n.type === "mention" && typeof n.attrs?.id === "string" && n.attrs.id.includes(":")) {
       const target = n.attrs.id.slice(0, 300);
       if (!out.has(target))
-        out.set(target, { target, label: String(n.attrs.label ?? "").slice(0, 300) });
+        out.set(target, { target, label: String(n.attrs.label ?? "").slice(0, 3000) });
     }
     for (const m of n.marks ?? [])
       if (m.type === "link" && typeof m.attrs?.href === "string") {
         const id = NOTE_HREF.exec(m.attrs.href)?.[1];
         if (id && !out.has(`note:${id}`))
-          out.set(`note:${id}`, { target: `note:${id}`, label: (n.text ?? "").slice(0, 300) });
+          out.set(`note:${id}`, { target: `note:${id}`, label: (n.text ?? "").slice(0, 3000) });
       }
     for (const k of n.content ?? []) walk(k);
   };

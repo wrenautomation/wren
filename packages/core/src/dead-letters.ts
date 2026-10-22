@@ -62,7 +62,7 @@ export function pausedOf(rows: readonly Record<string, unknown>[]): Paused[] {
         invocationId: id,
         target,
         key: str(r.target_service_key),
-        error: str(r.last_failure)?.slice(0, 2000) ?? null,
+        error: str(r.last_failure)?.slice(0, 20_000) ?? null,
         invokedBy: str(r.invoked_by_target) ?? str(r.invoked_by),
         pausedAt: new Date(str(r.modified_at) ?? Date.now()),
       },
@@ -167,7 +167,7 @@ export const pausedUnder =
           str(paused.last_failure) ??
           (id ? await journalFailure(admin, id) : null) ??
           "no error kept";
-        return `${target}: ${error}`.slice(0, 500);
+        return `${target}: ${error}`.slice(0, 5000);
       }
       ids = rows.flatMap((r) => {
         const id = str(r.id);
@@ -180,7 +180,7 @@ export const pausedUnder =
 /** One line per letter for the alert: a pointer, the error cut short. */
 export function letterLine(l: Pick<DeadLetterRow, "id" | "target" | "key" | "error">): string {
   const what = l.key ? `${l.target} (${l.key})` : l.target;
-  return `#${l.id} ${what}${l.error ? `: ${l.error.replace(/\s+/g, " ").slice(0, 120)}` : ""}`;
+  return `#${l.id} ${what}${l.error ? `: ${l.error.replace(/\s+/g, " ").slice(0, 1200)}` : ""}`;
 }
 
 export interface DeadLetterDeps {

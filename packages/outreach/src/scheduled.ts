@@ -319,7 +319,7 @@ export async function sendFailed(
     .update(reachPosts)
     .set({
       sendAt: null,
-      stateReason: `${SEND_FAILED}${why}`.slice(0, 500),
+      stateReason: `${SEND_FAILED}${why}`.slice(0, 5000),
       ...(again ? { state: "skipped" as const } : {}),
     })
     .where(and(eq(reachPosts.id, Number(id)), eq(reachPosts.state, "queued")));
@@ -342,7 +342,7 @@ export async function sendHeld(
   }
   await db
     .update(reachPosts)
-    .set({ sendAt: null, stateReason: `Nothing went out: ${why}`.slice(0, 500) })
+    .set({ sendAt: null, stateReason: `Nothing went out: ${why}`.slice(0, 5000) })
     .where(and(eq(reachPosts.id, Number(id)), eq(reachPosts.state, "queued")));
 }
 

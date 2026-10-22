@@ -139,7 +139,7 @@ async function relinkOld(ctx: restate.ObjectContext, deps: WatchDeps, now: Date)
   const done = await ctx.run("relink mail", () =>
     relinkMail(deps.db, deps.mailboxes, window).then(
       (r) => ({ ...r, error: null }),
-      (e: unknown) => ({ linked: 0, tried: 0, oldest: null, error: String(e).slice(0, 300) }),
+      (e: unknown) => ({ linked: 0, tried: 0, oldest: null, error: String(e).slice(0, 3000) }),
     ),
   );
   if (done.error) {

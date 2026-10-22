@@ -50,7 +50,7 @@ export const customFields = pgTable(
     record: varchar("record", { length: 80 }).notNull(),
     /** Stable while the label changes: what copy and workflows name. */
     key: varchar("key", { length: 40 }).notNull(),
-    label: varchar("label", { length: 80 }).notNull(),
+    label: varchar("label", { length: 800 }).notNull(),
     kind: varchar("kind", { length: 8 }).notNull(),
     /** A choice's options, in order. */
     options: jsonb("options").$type<CustomOption[]>(),
@@ -102,8 +102,8 @@ export const customValues = pgTable(
     id: uuid("id").defaultRandom().notNull(),
     owner: varchar("owner", { length: 40 }),
     key: varchar("key", { length: 40 }).notNull(),
-    label: varchar("label", { length: 80 }).notNull(),
-    value: varchar("value", { length: 2000 }).notNull(),
+    label: varchar("label", { length: 800 }).notNull(),
+    value: varchar("value", { length: 20000 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

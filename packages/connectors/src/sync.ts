@@ -180,7 +180,7 @@ export async function syncLink(deps: SyncDeps, id: number): Promise<SyncResult> 
     if (err instanceof PullError) {
       await deps.main
         .update(connectorLinks)
-        .set({ why: `The last read failed: ${err.message}`.slice(0, 300) })
+        .set({ why: `The last read failed: ${err.message}`.slice(0, 3000) })
         .where(eq(connectorLinks.id, l.id));
       return none("connected", err.message);
     }

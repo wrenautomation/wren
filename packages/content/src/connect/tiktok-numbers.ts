@@ -99,7 +99,7 @@ export async function tiktokNumbers(
     try {
       await capped(read(), ms);
     } catch (err) {
-      out.gaps.push(`${what}: ${err instanceof Error ? err.message.slice(0, 120) : "no answer"}`);
+      out.gaps.push(`${what}: ${err instanceof Error ? err.message.slice(0, 1200) : "no answer"}`);
     }
   };
 

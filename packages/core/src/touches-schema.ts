@@ -197,7 +197,7 @@ export const personTouchLines = pgView("person_touch_lines", {
           when 'like' then 'They liked our post'
           else 'They mentioned us' end
       end
-      || coalesce(': ' || nullif(left(regexp_replace(t.text, '\\s+', ' ', 'g'), 200), ''), '')
+      || coalesce(': ' || nullif(left(regexp_replace(t.text, '\\s+', ' ', 'g'), 2000), ''), '')
       || case when t.direction <> 'ours' then ''
         when t.response is not null then ' · ' || initcap(t.response)
           || coalesce(' ' || to_char(t.response_at, 'YYYY-MM-DD'), '')
