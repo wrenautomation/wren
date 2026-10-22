@@ -560,6 +560,7 @@ export const marketingPostRecords = pgView("marketing_post_records", {
  * the contact or its linked handle, booked after our first DM). A commenter counts as DMed when
  * the DM came from the comment, or a DM we sent later went to the same handle or platform id
  * (a client's X DMs, our `dm` touches). Comments we dropped are out of the base.
+ * `booked` joins bookings to leads once; inlined, it scanned `leads` per thread (17 s).
  */
 export const marketingConversation = pgView("marketing_conversation", {
   id: text("id"),
@@ -595,16 +596,19 @@ export const marketingConversation = pgView("marketing_conversation", {
       min(m.sent_at) first_out from reach_contacts r
     join reach_messages m on m.contact_id = r.id and m.direction = 'out' and m.state = 'sent'
     group by r.id),
+  booked as materialized (
+    select b.booked_at, ld.id lead_id, ld.person_id
+    from call_bookings b join leads ld on lower(ld.email) = lower(b.email)),
   threads as (
     select f.platform, f.first_out,
       exists (select 1 from reach_messages i where i.contact_id = f.contact and i.direction = 'in'
         and i.created_at > f.first_out) answered,
-      exists (select 1 from leads ld join call_bookings b on lower(b.email) = lower(ld.email)
+      exists (select 1 from booked b
         where b.booked_at > f.first_out
-          and (ld.person_id = f.person_id
+          and (b.person_id = f.person_id
             or exists (select 1 from social_handles h
               where h.platform = f.platform and lower(h.handle) = lower(f.handle)
-                and (h.lead_id = ld.id or h.person_id = ld.person_id)))) booked
+                and (h.lead_id = b.lead_id or h.person_id = b.person_id)))) booked
     from firsts f),
   cs as (
     select s.span, case when grouping(t.platform) = 1 then 'all' else t.platform end platform,
