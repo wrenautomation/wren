@@ -121,6 +121,12 @@ describe("linkedin content channel", () => {
       ["2", false],
       ["3", false],
     ]);
+    // The page's name rides along; the link stays the author, their identity.
+    expect(cs[1]).toMatchObject({
+      author: "https://www.linkedin.com/in/someone/",
+      authorName: "Sam Lee",
+    });
+    expect(cs[2]?.authorName).toBeUndefined();
   });
 
   it("refuses an answer it can't name, before anything sends", async () => {

@@ -125,6 +125,8 @@ export interface CommentRow {
   id: string;
   postId: string;
   author: string;
+  /** Their name, when `author` is a link or id (a LinkedIn profile link). */
+  authorName?: string;
   text: string;
   at: string;
   /** Set when we answered it (the reply's id). */

@@ -215,6 +215,16 @@ describe("kept comments", () => {
     ]);
   });
 
+  it("names a kept author on a later read, once", async () => {
+    await keepPostComments(pg.db, post, [row("c1", { author: "https://example.com/in/sam" })]);
+    await keepPostComments(pg.db, post, [row("c1", { authorName: "Sam Lee" })]);
+    await keepPostComments(pg.db, post, [row("c1", { authorName: "Someone Else" })]);
+    const [c] = await pg.db.execute<{ name: string; n: number }>(
+      sql`select raw->>'authorName' name, (count(*) over ())::int n from comments where ref = 't1_c1'`,
+    );
+    expect(c).toEqual({ name: "Sam Lee", n: 1 });
+  });
+
   it("is one row when the reach reader sees the reply first, then the content reader", async () => {
     const a = await addAccount(pg.db, {
       platform: "reddit",

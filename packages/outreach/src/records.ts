@@ -273,7 +273,11 @@ export const commentRecord = defineRecord({
   rows: async (db) =>
     (
       (await db.execute(sql`
-      select c.id, c.author who, c.platform, c.channel, c.kind, c.place, c.post, c.post_title, c.body,
+      select c.id,
+        -- Their name; a LinkedIn profile link read before names were kept shows as its slug.
+        coalesce(nullif(c.raw->>'authorName', ''),
+          substring(c.author from '^https?://(?:www\\.)?linkedin\\.com/in/([^/?#]+)'), c.author) who,
+        c.platform, c.channel, c.kind, c.place, c.post, c.post_title, c.body,
         c.sort, c.why, c.draft, c.state, c.answer, c.at, c.answered_at, c.url,
         coalesce(da.account, a.account) account,
         c.contact_id, p.read p_read, p.fit p_fit, p.site p_site,

@@ -154,6 +154,12 @@ const authorOf = (platform: string, author: string) =>
 const ownAccount = async (db: Queryable, c: Pick<Comment, "accountId">) =>
   (await accountName(db, c.accountId)) ?? OWN_ACCOUNT;
 
+/** Their name off the platform's answer (`CommentRow.authorName`), when the author is a link. */
+const nameOf = (raw: unknown): string | null => {
+  const name = (raw as { authorName?: unknown } | null)?.authorName;
+  return typeof name === "string" && name.trim() ? name : null;
+};
+
 /**
  * Their comment on our post, reply under ours, or mention: theirs. A reply whose parent is a
  * touch of ours answers it. Ours (`sort = ours`) are skipped: our answers are `ca:` touches.
@@ -177,6 +183,7 @@ export async function touchFromComment(db: Queryable, id: number) {
   return recordTouch(db, {
     platform: c.platform,
     handle: authorOf(c.platform, c.author),
+    name: nameOf(c.raw),
     kind,
     direction: "theirs",
     account: await ownAccount(db, c),

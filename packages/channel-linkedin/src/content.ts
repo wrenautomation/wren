@@ -339,6 +339,7 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         id: (org ? (c.commentUrn ?? c.$URN) : null) ?? c.id ?? String(i),
         postId: id,
         author: c.actor ?? "",
+        ...(c.actorName ? { authorName: c.actorName } : {}),
         text: c.message?.text ?? "",
         at: iso(c.created?.time ?? readAt),
         ...(org && c.parentComment ? { parentId: c.parentComment } : {}),

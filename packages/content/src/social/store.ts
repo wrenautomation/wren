@@ -219,6 +219,23 @@ export async function keepPostComments(
             : {}),
         };
       });
+    // A row kept before its reader named authors takes the name on the next read.
+    for (const c of rows) {
+      const got = c.authorName ? seen.refs.get(c.id) : undefined;
+      if (!got) continue;
+      await tx
+        .update(comments)
+        .set({
+          raw: sql`${comments.raw} || jsonb_build_object('authorName', ${c.authorName}::text)`,
+        })
+        .where(
+          and(
+            eq(comments.platform, post.platform),
+            eq(comments.ref, got.ref),
+            sql`coalesce(${comments.raw}->>'authorName', '') = ''`,
+          ),
+        );
+    }
     if (!values.length) return [];
     return tx.insert(comments).values(values).onConflictDoNothing().returning({
       id: comments.id,
