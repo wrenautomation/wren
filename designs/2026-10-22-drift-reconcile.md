@@ -26,12 +26,12 @@ A partial list (as many rows back as asked) holds only the newest. Absence in it
 | Kind | Platforms with a lister | Wren side | State |
 |---|---|---|---|
 | connections | LinkedIn `/connections` (200) | `reach_contacts` (platform, handle) | **built** (this doc) |
-| follows | X `/2/users/me/following` | touches `follow` ours | next: `backfillOutreachTouches` pattern |
+| follows | X `/2/users/me/following`; Reddit `/subreddits/mine/subscriber` (users as `u_<name>`); YouTube `subscriptions?mine=true`; Instagram, TikTok, Threads: none yet | touches `follow` ours | next: X, then Reddit and YouTube (routes exist), then a desk-browser flow each for Instagram, TikTok, Threads |
 | own posts | LinkedIn `/rest/posts`, X user tweets, IG media, Page posts, TikTok video/list, YouTube uploads, Threads, Reddit submitted | `platform_objects` via `resolveObject`, `content_drafts` | next: first find where the analytics readers land; a flag on that reader, never a second reader |
 | own comments | Reddit `/comments`, X replies | `comments` | later |
 | DMs | LinkedIn `/messaging`, Meta conversations | `reach_messages` | the reply watch reads these already |
 
-No lister, so no reconcile: IG following, YouTube subscriptions, TikTok, Threads and Reddit follows. We do not emulate one.
+Every site shows its own following list. Instagram, TikTok and Threads keep it out of their official APIs, so each needs a desk-browser flow that reads the page, the way LinkedIn `/connections` does. One read a day each, under the account's caps.
 
 ## LinkedIn connections (built)
 
