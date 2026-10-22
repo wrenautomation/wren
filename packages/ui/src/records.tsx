@@ -85,7 +85,7 @@ import {
 import { FoldList, FoldPreview, foldOf } from "./fold.js";
 import { initials, linkLabel, money, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
-import { clipProps, tipProps } from "./hint.js";
+import { tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
 import { useHoverPop } from "./hover-pop.js";
 import { away, NoLink } from "./item-link.js";
@@ -457,7 +457,7 @@ const wordsOf = (meta: RecordMeta, row: Row, key: string) => {
 };
 export const titleOf = (meta: RecordMeta, row: Row) => wordsOf(meta, row, meta.title);
 /** A message's opening words on one line: its line breaks as spaces, its marks dropped. */
-const firstWords = (t: string) => stripMarks(t).replace(/\s+/g, " ").trim().slice(0, 200);
+const firstWords = (t: string) => stripMarks(t).replace(/\s+/g, " ").trim();
 export const subtitleOf = (meta: RecordMeta, row: Row) =>
   meta.subtitle ? wordsOf(meta, row, meta.subtitle) : "";
 /** The subtitle's cue when it names a platform or a kind (a draft's "LinkedIn"), else null. */
@@ -904,12 +904,7 @@ function SortHead({
   const on = dir !== false;
   const desc = dir === "desc";
   const end = field.column?.align === "end";
-  if (!field.sortable)
-    return (
-      <span className="line-clamp-2 whitespace-normal" {...clipProps()}>
-        {field.label}
-      </span>
-    );
+  if (!field.sortable) return <span className="whitespace-normal">{field.label}</span>;
   // Numbers and dates start high; words and states start at the top of their order.
   const first = end ? `-${field.key}` : field.key;
   const next = on ? (desc ? field.key : `-${field.key}`) : first;
@@ -924,7 +919,7 @@ function SortHead({
         on ? "text-(--ui-ink)" : "text-inherit",
       )}
     >
-      <span className="line-clamp-2 whitespace-normal">{field.label}</span>
+      <span className="whitespace-normal">{field.label}</span>
       {on ? <Arrow className="size-3 shrink-0" /> : null}
     </a>
   );
@@ -1705,11 +1700,10 @@ function List({
               <span
                 className={cn(
                   narrow
-                    ? "line-clamp-2 text-[13.5px] leading-snug"
-                    : "block truncate text-[12.5px]",
+                    ? "text-[13.5px] leading-snug"
+                    : "block wrap-anywhere whitespace-normal text-[12.5px]",
                   quiet ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
                 )}
-                {...clipProps()}
               >
                 {firstWords(textOf(r[preview.key]))}
               </span>
@@ -2296,7 +2290,7 @@ export function Panel({
         head={
           <div className="flex h-11 items-center gap-1 border-b border-(--ui-hair) px-2">
             <SheetDone />
-            <span className="min-w-0 flex-1 truncate text-center text-[13px] text-(--ui-ink-2)">
+            <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-center text-[13px] text-(--ui-ink-2)">
               {index >= 0 ? `${num(index + 1)} of ${num(count)}` : ""}
             </span>
             <button
@@ -2895,7 +2889,7 @@ export function RecordBody({
             {/* A title with no spaces (a profile link) breaks, not runs under the actions. */}
             <h2 className={`${PAGE_TITLE} wrap-anywhere`}>{titleOf(meta, row)}</h2>
             {sub ? (
-              <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)" {...clipProps()}>
+              <p className="mt-0.5 text-[14px] text-(--ui-ink-2)">
                 {subCue ? (
                   <span className="mr-1.5 inline-flex align-[-0.1em]">
                     <Cue state={subCue} size={15} />

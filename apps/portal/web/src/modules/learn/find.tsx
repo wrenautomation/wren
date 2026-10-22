@@ -4,16 +4,7 @@
  * a LinkedIn page or person joins the comments' follows instead (`ReachDesk.paste`), read first
  * each day. Wren's own workspace only: the search reads as Wren's accounts.
  */
-import {
-  Button,
-  clipProps,
-  Rows,
-  type RowsLine,
-  say,
-  TextField,
-  useEditForm,
-  useNarrow,
-} from "@wren/ui";
+import { Button, Rows, type RowsLine, say, TextField, useEditForm, useNarrow } from "@wren/ui";
 import { useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useFolds } from "../../use-folds.js";
@@ -178,7 +169,9 @@ export function FindCreators() {
                 // A phone has no About column: the handle goes under the name.
                 sub: narrow
                   ? (h) => (
-                      <span className="truncate text-[12.5px] text-(--ui-ink-3)">{h.handle}</span>
+                      <span className="wrap-anywhere whitespace-normal text-[12.5px] text-(--ui-ink-3)">
+                        {h.handle}
+                      </span>
                     )
                   : undefined,
               }}
@@ -188,7 +181,7 @@ export function FindCreators() {
                   label: "Profile",
                   icon: "link",
                   cell: (h) => (
-                    <a href={h.url} target="_blank" rel="noreferrer" {...clipProps()}>
+                    <a href={h.url} target="_blank" rel="noreferrer">
                       {h.handle}
                     </a>
                   ),

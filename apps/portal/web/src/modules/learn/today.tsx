@@ -199,7 +199,7 @@ function TodayRows({ items }: { items: TodayLine[] }) {
           i.line || (narrow && i.pick) ? (
             <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-(--ui-ink-3)">
               {narrow ? <PickBadge pick={i.pick} className="shrink-0" /> : null}
-              <span className="truncate">{i.line}</span>
+              <span className="wrap-anywhere whitespace-normal">{i.line}</span>
             </span>
           ) : null,
         tail: (i) => (narrow ? null : <PickBadge pick={i.pick} className="shrink-0" />),
@@ -213,7 +213,7 @@ function TodayRows({ items }: { items: TodayLine[] }) {
           cell: (i) => (
             <span className="inline-flex max-w-full items-center gap-1.5">
               <TypeMark type={i.type} size={13} />
-              <span className="truncate">{i.source}</span>
+              <span className="wrap-anywhere whitespace-normal">{i.source}</span>
             </span>
           ),
         },

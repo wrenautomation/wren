@@ -47,7 +47,7 @@ export function LineName({ line, className }: { line: MetroLine | undefined; cla
   return (
     <span className={cx("inline-flex min-w-0 items-center gap-2", className)}>
       <LineMark line={line} />
-      <span className="min-w-0 truncate">{line.label}</span>
+      <span className="min-w-0 wrap-anywhere whitespace-normal">{line.label}</span>
     </span>
   );
 }

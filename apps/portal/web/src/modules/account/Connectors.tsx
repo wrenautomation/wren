@@ -91,7 +91,11 @@ function Links({ links, mayAct, act }: { links: Link[]; mayAct: boolean; act: Ac
         icon: "link",
         min: 220,
         title: whoOf,
-        sub: (l) => <span className={`${QUIET} truncate text-[12.5px]`}>Connected by {l.by}</span>,
+        sub: (l) => (
+          <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+            Connected by {l.by}
+          </span>
+        ),
       }}
       columns={[
         {

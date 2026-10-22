@@ -273,7 +273,7 @@ export function Compose({
                 aria-current={i === hi ? "true" : undefined}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(p.email)}
-                className="w-full truncate border-0 bg-transparent px-2 py-1 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) aria-[current=true]:bg-(--ui-hover)"
+                className="w-full wrap-anywhere whitespace-normal border-0 bg-transparent px-2 py-1 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) aria-[current=true]:bg-(--ui-hover)"
               >
                 {p.email}
                 {p.opens === false ? (
@@ -312,7 +312,7 @@ function Who({ email, at, edited }: { email: string; at: string; edited?: string
         className="inline-block size-2.5 flex-none rounded-full"
         style={{ background: hueOf(email) }}
       />
-      <span className="truncate font-medium text-(--ui-ink)">{email}</span>
+      <span className="wrap-anywhere whitespace-normal font-medium text-(--ui-ink)">{email}</span>
       <span className="flex-none">
         {relative(new Date(at))}
         {edited ? " · edited" : ""}
@@ -433,7 +433,7 @@ function ThreadCard({
       className="flex flex-col gap-2 border border-(--ui-hair) bg-(--ui-paper) p-3 data-on:border-(--ui-active)"
     >
       {t.quote ? (
-        <p className="m-0 line-clamp-2 border-l-2 border-(--ui-ink-3) pl-2 text-[12px] text-(--ui-ink-2)">
+        <p className="m-0 border-l-2 border-(--ui-ink-3) pl-2 text-[12px] text-(--ui-ink-2)">
           {t.quote}
         </p>
       ) : null}
@@ -612,7 +612,7 @@ export function CommentsPanel({
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto p-3 max-lg:max-h-96 lg:max-h-[calc(100dvh-180px)]">
         {draft && data?.canComment ? (
           <div className="flex flex-col gap-2 border border-(--ui-active) bg-(--ui-paper) p-3">
-            <p className="m-0 line-clamp-2 border-l-2 border-(--ui-ink-3) pl-2 text-[12px] text-(--ui-ink-2)">
+            <p className="m-0 border-l-2 border-(--ui-ink-3) pl-2 text-[12px] text-(--ui-ink-2)">
               {draft.quote}
             </p>
             <Compose

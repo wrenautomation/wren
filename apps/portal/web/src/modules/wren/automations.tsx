@@ -292,11 +292,11 @@ function AutomationRows({
           const bad = errors[r.id];
           return narrow || failing || bad ? (
             <span className="grid gap-0.5 text-[12.5px]">
-              {narrow ? <span className="line-clamp-2 text-(--ui-ink-2)">{r.trigger}</span> : null}
+              {narrow ? <span className="text-(--ui-ink-2)">{r.trigger}</span> : null}
               {failing ? (
                 <a
                   href={linksOf(r).failed ?? linksOf(r).open}
-                  className="line-clamp-2 text-(--ui-bad) no-underline hover:underline"
+                  className="text-(--ui-bad) no-underline hover:underline"
                 >
                   {r.error}
                 </a>
@@ -313,7 +313,10 @@ function AutomationRows({
           icon: "lines",
           min: 150,
           cell: (r) => (
-            <span className="block truncate text-(--ui-ink-2)" {...tipProps(r.trigger)}>
+            <span
+              className="block wrap-anywhere whitespace-normal text-(--ui-ink-2)"
+              {...tipProps(r.trigger)}
+            >
               {r.trigger}
             </span>
           ),
@@ -333,7 +336,7 @@ function AutomationRows({
           width: 210,
           cell: (r) =>
             r.runs !== null ? (
-              <span className="whitespace-nowrap">
+              <span>
                 <Count n={r.runs} to={linksOf(r).runs} label={RUNS_TIP(r)} /> {RUNS_WORD(r)}
                 {r.failed ? (
                   <>

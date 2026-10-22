@@ -367,12 +367,12 @@ function Frame({
         {beat.onCut ? ` · plays at ${clock(beat.onCut.from)}` : ""}
       </p>
       {beat.said ? (
-        <p className="m-0 line-clamp-4 text-[13.5px]/[1.45] text-(--ui-ink)">{beat.said}</p>
+        <p className="m-0 text-[13.5px]/[1.45] text-(--ui-ink)">{beat.said}</p>
       ) : (
         <p className="m-0 text-[13px] text-(--ui-ink-3)">Nothing said plays here.</p>
       )}
       {beat.struck ? (
-        <p className="m-0 line-clamp-2 text-[12.5px] text-(--ui-ink-3)">
+        <p className="m-0 text-[12.5px] text-(--ui-ink-3)">
           Cut: <s>{beat.struck}</s>
         </p>
       ) : null}

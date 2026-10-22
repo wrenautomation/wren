@@ -70,7 +70,7 @@ function Row({
     <li>
       <a className={ROW} href={href}>
         <Icon name={icon} className="text-(--ui-ink-2)" />
-        <span className="min-w-0 truncate">{children}</span>
+        <span className="min-w-0 wrap-anywhere whitespace-normal">{children}</span>
         {count ? <span className={COUNT}>{count}</span> : null}
       </a>
     </li>

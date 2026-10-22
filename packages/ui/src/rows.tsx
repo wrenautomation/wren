@@ -23,7 +23,6 @@ import {
 } from "react";
 import { Tag } from "./controls.js";
 import { initials, waited } from "./format.js";
-import { clipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import { lineColor, StageSquare, tintColor } from "./marks.js";
 import { SwipeRow, type Swipes } from "./phone.js";
@@ -419,7 +418,9 @@ function NameCell<T>({
   const titled = cn(
     // Cut inside the link, so focusing it never scrolls the cell sideways.
     "block no-underline",
-    narrow ? "line-clamp-2 text-[14px] leading-[1.55] wrap-anywhere" : "truncate",
+    narrow
+      ? "text-[14px] leading-[1.55] wrap-anywhere whitespace-normal"
+      : "wrap-anywhere whitespace-normal",
     name.weight?.(row) ?? "font-[650] text-(--ui-ink)",
   );
   return (
@@ -431,7 +432,7 @@ function NameCell<T>({
         {link ? (
           // A block of its own: a link alone on its line, not a link in a run of text.
           <div>
-            <a href={link} {...clipProps()} className={titled}>
+            <a href={link} className={titled}>
               {text}
             </a>
           </div>
@@ -440,15 +441,12 @@ function NameCell<T>({
             type="button"
             aria-haspopup="dialog"
             onClick={onOpen}
-            {...clipProps()}
             className={cn(titled, "w-full cursor-pointer border-0 bg-transparent p-0 text-left")}
           >
             {text}
           </button>
         ) : (
-          <span {...clipProps()} className={titled}>
-            {text}
-          </span>
+          <span className={titled}>{text}</span>
         )}
         {sub}
       </div>
@@ -617,7 +615,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     ) : null}
                   </div>
                   {side ? (
-                    <div className="max-w-[40%] flex-none truncate pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
+                    <div className="max-w-[40%] flex-none wrap-anywhere whitespace-normal pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
                       {side}
                     </div>
                   ) : null}
@@ -717,7 +715,7 @@ export function Rows<T>(p: RowsProps<T>) {
                 {c.icon ? (
                   <Icon name={c.icon} size={15} className="text-(--ui-ink-3) [stroke-width:1.8]" />
                 ) : null}
-                {c.sort ?? <span className="truncate">{c.label}</span>}
+                {c.sort ?? <span className="wrap-anywhere whitespace-normal">{c.label}</span>}
               </span>
             </th>
           ))}
@@ -862,11 +860,10 @@ export function Rows<T>(p: RowsProps<T>) {
                   {columns.map((c) => (
                     <td
                       key={c.key}
-                      {...clipProps()}
                       className={cn(
                         // A cut cell drops its break chances: Chrome breaks at <wbr> even under
                         // nowrap, so "example.com" wrapped onto two lines.
-                        "truncate px-2.5 [&_wbr]:hidden",
+                        "wrap-anywhere whitespace-normal px-2.5 [&_wbr]:hidden",
                         shown,
                         c.align === "end" ? "text-right" : "text-left",
                         // When it happened reads quieter than what it is.

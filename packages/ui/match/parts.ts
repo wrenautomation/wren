@@ -61,7 +61,7 @@ export const PARTS: readonly Part[] = [
     artifact: { file: DL, at: `${ART} .nm` },
     story: {
       id: "rows--default",
-      at: { 390: `${ROW} a[href]`, 1280: `${ROW} td:nth-child(2) a[data-tip]` },
+      at: { 390: `${ROW} a[href]`, 1280: `${ROW} td:nth-child(2) a[href]` },
     },
     props: TEXT,
   },

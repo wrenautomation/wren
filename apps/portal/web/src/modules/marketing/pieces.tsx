@@ -9,7 +9,6 @@ import { PLATFORM_SPECS } from "@wren/content/write";
 import {
   Button,
   ButtonLink,
-  clipProps,
   cx,
   dateTip,
   Empty,
@@ -264,9 +263,7 @@ export function PieceCard({
             {piece.title || "Untitled"}
           </h3>
           {piece.text && piece.text.trim() !== piece.title ? (
-            <p className={cx("m-0 mt-1 line-clamp-2 max-w-[70ch] text-[13.5px]", QUIET)}>
-              {piece.text}
-            </p>
+            <p className={cx("m-0 mt-1 max-w-[70ch] text-[13.5px]", QUIET)}>{piece.text}</p>
           ) : null}
         </div>
         {review ? (
@@ -674,7 +671,7 @@ export function WhatHappened({ items, limit = 8 }: { items: Happening[]; limit?:
                     <Icon name="edit" />
                   )}
                 </span>
-                <p className="m-0 min-w-0 truncate text-[14px]" {...clipProps()}>
+                <p className="m-0 min-w-0 wrap-anywhere whitespace-normal text-[14px]">
                   <span className={cx(b.state === "failed" ? "text-(--ui-bad)" : "")}>
                     {b.state === "failed" ? "Failed on" : "Went live on"} {branchName(b)}:
                   </span>{" "}

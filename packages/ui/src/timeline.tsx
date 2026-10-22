@@ -16,7 +16,7 @@ import { listChanged } from "./data/delta.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
-import { clipProps, tipProps } from "./hint.js";
+import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import { NoLink, SourceLink } from "./item-link.js";
 import { PageTitle } from "./layout.js";
@@ -844,12 +844,14 @@ function Line({
             whoHref ? (
               <a
                 href={whoHref}
-                className="relative z-1 min-w-0 truncate font-medium text-(--ui-ink) no-underline hover:underline"
+                className="relative z-1 min-w-0 wrap-anywhere whitespace-normal font-medium text-(--ui-ink) no-underline hover:underline"
               >
                 {who}
               </a>
             ) : (
-              <span className="min-w-0 truncate font-medium text-(--ui-ink)">{who}</span>
+              <span className="min-w-0 wrap-anywhere whitespace-normal font-medium text-(--ui-ink)">
+                {who}
+              </span>
             )
           ) : null}
           {narrow ? (
@@ -862,8 +864,7 @@ function Line({
           {/* The whole card opens the line; the person and the source stay their own links. */}
           <a
             href={place.page(row.id)}
-            className="min-w-0 flex-1 truncate text-[13.5px] text-(--ui-ink) no-underline after:absolute after:inset-0 after:content-['']"
-            {...clipProps()}
+            className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-[13.5px] text-(--ui-ink) no-underline after:absolute after:inset-0 after:content-['']"
           >
             {summary || "-"}
           </a>
@@ -1100,7 +1101,7 @@ export function TimelineMini({
                   {/* Whole: only a huge post's paragraph is cut, at eight lines. */}
                   <a
                     href={l.href}
-                    className="line-clamp-8 min-w-0 flex-1 text-[13.5px] wrap-anywhere text-(--ui-ink) no-underline hover:underline"
+                    className="min-w-0 flex-1 text-[13.5px] wrap-anywhere whitespace-normal text-(--ui-ink) no-underline hover:underline"
                   >
                     {l.summary || "-"}
                   </a>

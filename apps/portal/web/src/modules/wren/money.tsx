@@ -150,7 +150,7 @@ function MonthSplit() {
     (a, i): SplitRow => ({
       key: a.name,
       label: a.name,
-      note: a.vendors.slice(0, 3).join(", ") + (a.vendors.length > 3 ? ", …" : ""),
+      note: a.vendors.join(", "),
       weight: a.sum,
       value: money(a.sum, currency),
       color: `var(--ui-line-${(i % LINES) + 1})`,

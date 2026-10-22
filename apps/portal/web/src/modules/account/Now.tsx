@@ -69,7 +69,7 @@ export function SetupNow({ client, team }: { client: string; team: boolean }) {
           href: hrefOf,
           weight: () => "font-medium text-(--ui-ink)",
           sub: (x) => (
-            <span className={`${QUIET} truncate`}>
+            <span className={`${QUIET} wrap-anywhere whitespace-normal`}>
               {[across ? x.clientName : null, x.why, dayLabel(x.at)].filter(Boolean).join(" · ")}
             </span>
           ),

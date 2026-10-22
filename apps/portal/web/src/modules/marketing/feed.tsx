@@ -182,9 +182,7 @@ function FeedItem({ c, onMuted }: { c: Card; onMuted: () => void }) {
         >
           {c.title}
         </a>
-        {c.summary ? (
-          <p className="m-0 line-clamp-3 text-[13.5px] text-(--ui-ink-2)">{c.summary}</p>
-        ) : null}
+        {c.summary ? <p className="m-0 text-[13.5px] text-(--ui-ink-2)">{c.summary}</p> : null}
         <div className="mt-1 flex flex-wrap gap-2">
           {replyable(c.url) ? (
             <Button

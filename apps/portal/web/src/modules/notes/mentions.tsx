@@ -75,7 +75,7 @@ export function NoteMentions({ client }: PageProps) {
             mark: () => <Icon name="note" size={15} className="flex-none text-(--ui-ink-2)" />,
             sub: (m) =>
               m.comment || narrow ? (
-                <span className="truncate text-[12.5px] text-(--ui-ink-2)">
+                <span className="wrap-anywhere whitespace-normal text-[12.5px] text-(--ui-ink-2)">
                   {narrow ? `${m.by}${m.comment ? `: ${m.comment}` : ""}` : m.comment}
                 </span>
               ) : null,

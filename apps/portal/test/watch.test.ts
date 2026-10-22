@@ -134,7 +134,7 @@ describe("readWrite", () => {
     expect(reasonOf("first\nsecond")).toBe("first");
     expect(reasonOf("auth failed: Bearer abc.def")).toBe("auth failed: Bearer [hidden]");
     expect(reasonOf(`id ${"x".repeat(50)} bad`)).toBe("id [hidden] bad");
-    expect(reasonOf("y ".repeat(200)).length).toBeLessThanOrEqual(200);
+    expect(reasonOf("y ".repeat(200))).toBe("y ".repeat(200).trim());
   });
 
   it("finds the admin API: set, Restate Cloud's port, or /admin on the box", () => {

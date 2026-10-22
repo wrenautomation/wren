@@ -47,7 +47,9 @@ export function PeekTitle({
   return (
     <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
       {avatar ? <Avatar initials={avatar} lg /> : null}
-      <h2 className="m-0 min-w-0 flex-1 truncate text-[17px] font-semibold">{title}</h2>
+      <h2 className="m-0 min-w-0 flex-1 wrap-anywhere whitespace-normal text-[17px] font-semibold">
+        {title}
+      </h2>
     </div>
   );
 }

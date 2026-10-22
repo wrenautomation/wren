@@ -136,7 +136,9 @@ export function lookProblems(root: Element = document.body): string[] {
     else if (
       (s.overflowX === "auto" || s.overflowX === "scroll") &&
       el.scrollHeight > el.clientHeight + 1 &&
-      !el.closest("[data-look-scroll]")
+      !el.closest("[data-look-scroll]") &&
+      // A list at its least may scroll sideways (fitRoom in records.tsx): its table says how wide.
+      ![...el.querySelectorAll("table")].some((t) => parseFloat(t.style.minWidth) > el.clientWidth)
     )
       out.push(`scrolls sideways: ${name(el)} is ${spill}px wider than its ${el.clientWidth}px`);
   }

@@ -16,7 +16,7 @@ import {
 } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { useLoad } from "./data/query.js";
-import { clipProps, tipProps } from "./hint.js";
+import { tipProps } from "./hint.js";
 
 export interface SnippetLine {
   id: number;
@@ -254,15 +254,10 @@ export function InsertSnippet({
                     i === at && "bg-(--ui-hover)",
                   )}
                 >
-                  <span
-                    className="truncate text-[13px] font-medium text-(--ui-ink)"
-                    {...clipProps()}
-                  >
+                  <span className="wrap-anywhere whitespace-normal text-[13px] font-medium text-(--ui-ink)">
                     {s.title}
                   </span>
-                  <span className="line-clamp-2 text-[12px] text-(--ui-ink-2)" {...clipProps()}>
-                    {s.body}
-                  </span>
+                  <span className="text-[12px] text-(--ui-ink-2)">{s.body}</span>
                 </button>
                 <FavoriteStar
                   on={fav.ids.includes(s.id)}

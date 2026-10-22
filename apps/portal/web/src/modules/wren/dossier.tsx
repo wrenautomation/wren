@@ -59,7 +59,7 @@ function FactRows({ facts, label }: { facts: BriefFact[]; label: string }) {
           icon: "lines",
           min: 260,
           cell: (f) => (
-            <span className="block truncate" {...tipProps(f.text)}>
+            <span className="block wrap-anywhere whitespace-normal" {...tipProps(f.text)}>
               {f.text}
             </span>
           ),
@@ -71,7 +71,7 @@ function FactRows({ facts, label }: { facts: BriefFact[]; label: string }) {
           width: 200,
           cell: (f) => (
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate">{f.via}</span>
+              <span className="wrap-anywhere whitespace-normal">{f.via}</span>
               {f.source ? (
                 <a href={f.source} target="_blank" rel="noreferrer" className="flex-none">
                   Source

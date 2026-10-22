@@ -154,10 +154,10 @@ export function MessagePreview({
               <span className="size-10 shrink-0 rounded-full bg-[#d9d9de]" />
               <span className="grid min-w-0 flex-1">
                 <span className="flex justify-between gap-2 font-semibold">
-                  <span className="truncate">{from}</span>
+                  <span className="wrap-anywhere whitespace-normal">{from}</span>
                   <span className="shrink-0 font-normal text-[#6b6b70]">now</span>
                 </span>
-                <span className="truncate text-[#6b6b70]">
+                <span className="wrap-anywhere whitespace-normal text-[#6b6b70]">
                   {message.subject ? `${message.subject}: ` : ""}
                   {snippetOf(body)}
                 </span>
@@ -241,7 +241,7 @@ export function MessagePreview({
 const LockScreen = ({ from, body }: { from: string; body: string }) => (
   <div className="m-2 rounded-2xl bg-[#e9e9ee] p-3 text-[15px] leading-[1.3] text-black">
     <p className="flex justify-between font-semibold">
-      <span className="truncate">{from}</span>
+      <span className="wrap-anywhere whitespace-normal">{from}</span>
       <span className="font-normal text-[#6b6b70]">now</span>
     </p>
     <p className="line-clamp-4 break-words">{snippetOf(body)}</p>
@@ -314,8 +314,10 @@ function GmailRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 text-[14px]">
-      <span className="w-[168px] shrink-0 truncate font-semibold">{from}</span>
-      <span className="min-w-0 flex-1 truncate">
+      <span className="w-[168px] shrink-0 wrap-anywhere whitespace-normal font-semibold">
+        {from}
+      </span>
+      <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
         {subject ? <b>{subject}</b> : null}
         <span className="text-[#5f6368]">
           {subject ? " - " : ""}
@@ -339,10 +341,10 @@ function IosMailRow({
   return (
     <div className="grid gap-0.5 px-4 py-2.5 leading-[1.3]">
       <p className="flex justify-between gap-2 text-[17px] font-semibold">
-        <span className="truncate">{from}</span>
+        <span className="wrap-anywhere whitespace-normal">{from}</span>
         <span className="shrink-0 text-[15px] font-normal text-[#6d6d72]">9:41</span>
       </p>
-      {subject ? <p className="truncate text-[15px]">{subject}</p> : null}
+      {subject ? <p className="wrap-anywhere whitespace-normal text-[15px]">{subject}</p> : null}
       <p className="line-clamp-2 text-[15px] text-[#6d6d72]">{snippetOf(body)}</p>
     </div>
   );
@@ -426,7 +428,7 @@ export function FeedPost({
     <div style={{ fontSize: size }} className="grid gap-2 p-4 leading-[1.4]">
       <p className="flex items-center gap-2 font-semibold">
         <span className="size-8 shrink-0 rounded-full bg-[#d9d9de]" />
-        <span className="truncate">{from}</span>
+        <span className="wrap-anywhere whitespace-normal">{from}</span>
         <span className="ml-auto shrink-0 font-normal text-[#6b6b70]">now</span>
       </p>
       {title ? <p className="text-[1.15em] font-semibold leading-[1.25]">{title}</p> : null}

@@ -1202,7 +1202,7 @@ function Promos({ promos }: { promos: Promo[] }) {
                   ))}
                 </span>
               </div>
-              <p className="m-0 line-clamp-2 text-[13px] text-(--ui-ink-2)">
+              <p className="m-0 text-[13px] text-(--ui-ink-2)">
                 {ds[0] ? firstLine(ds[0].text) : `Not drafted. Promote, then pick "${row.pick}".`}
               </p>
             </li>

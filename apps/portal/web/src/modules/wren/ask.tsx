@@ -176,7 +176,7 @@ export function Ask() {
               width: 170,
               cell: (r) =>
                 r.page && placeOf(String(r.page)) ? (
-                  <a href={String(r.page)} className="truncate">
+                  <a href={String(r.page)} className="wrap-anywhere whitespace-normal">
                     {placeOf(String(r.page))}
                   </a>
                 ) : null,

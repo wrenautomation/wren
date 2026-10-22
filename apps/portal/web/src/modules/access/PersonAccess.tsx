@@ -249,7 +249,9 @@ export function PersonAccess({
               title: (g) => String(g.what),
               sub: (g) =>
                 g.reason ? (
-                  <span className={`${QUIET} truncate text-[12.5px]`}>{String(g.reason)}</span>
+                  <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+                    {String(g.reason)}
+                  </span>
                 ) : null,
             }}
             columns={[]}

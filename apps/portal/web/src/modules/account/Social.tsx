@@ -107,7 +107,9 @@ function Accounts({
         mark: (c) => <AccountFace url={c.avatarUrl} name={c.name ?? whoOf(c)} />,
         sub: (c) =>
           c.handle && c.name && c.name !== c.handle ? (
-            <span className={`${QUIET} truncate text-[12.5px]`}>{c.name}</span>
+            <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+              {c.name}
+            </span>
           ) : null,
       }}
       columns={[

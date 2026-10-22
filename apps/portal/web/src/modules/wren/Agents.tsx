@@ -100,9 +100,7 @@ function AgentCard({ a, counts }: { a: Agent; counts: Counts | null }) {
             <Tag tone={s.tone} dot>
               {s.label}
             </Tag>
-            {a.error ? (
-              <span className="text-[12.5px] text-(--ui-bad) line-clamp-2">{a.error}</span>
-            ) : null}
+            {a.error ? <span className="text-[12.5px] text-(--ui-bad) ">{a.error}</span> : null}
           </span>
         }
       />

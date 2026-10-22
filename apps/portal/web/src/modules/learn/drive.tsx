@@ -7,7 +7,6 @@
  */
 import {
   Button,
-  clipProps,
   cx,
   Empty,
   Input,
@@ -358,7 +357,7 @@ function Browse({ params }: { params: URLSearchParams }) {
           ) : null}
           <div className="flex min-w-0 items-center gap-2.5">
             {src ? <Avatar url={src.avatar} name={src.name} size={32} /> : null}
-            <h1 className={cx("truncate", PAGE_TITLE)}>{title}</h1>
+            <h1 className={cx("wrap-anywhere whitespace-normal", PAGE_TITLE)}>{title}</h1>
             {data ? (
               <span className="shrink-0 text-[14px] text-(--ui-ink-2) tabular-nums">
                 {data.total.toLocaleString("en-US")}
@@ -685,7 +684,7 @@ function Chips({
                 onClick={() => set({ src: flip(srcs, String(s.id)) })}
               >
                 <Avatar url={s.avatar} name={s.name} size={20} />
-                <span className="max-w-40 truncate">{s.name}</span>
+                <span className="max-w-40 wrap-anywhere whitespace-normal">{s.name}</span>
                 <span className="tabular-nums">{s.n}</span>
               </button>
             );
@@ -707,7 +706,9 @@ function Chips({
                       className="flex h-8 w-full items-center gap-2 border-0 bg-transparent px-2 text-left text-[13px] hover:bg-(--ui-hover)"
                     >
                       <Avatar url={s.avatar} name={s.name} size={16} />
-                      <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                      <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
+                        {s.name}
+                      </span>
                       {on ? <Check size={14} className="text-(--ui-active)" /> : null}
                       <span className="text-[12px] text-(--ui-ink-2) tabular-nums">{s.n}</span>
                     </button>
@@ -915,24 +916,21 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
             <a
               href={link}
               draggable={false}
-              className="line-clamp-2 text-(--ui-ink) no-underline hover:underline"
-              {...clipProps()}
+              className="text-(--ui-ink) no-underline hover:underline"
             >
               {c.title}
             </a>
           </h3>
           <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[12.5px] text-(--ui-ink-2)">
             <TypeMark type={c.type} size={13} label={TYPES[c.type]?.label} />
-            <span className="truncate" {...clipProps()}>
-              {sourceName(c)}
-            </span>
+            <span className="wrap-anywhere whitespace-normal">{sourceName(c)}</span>
           </p>
           <p className="m-0 text-[12.5px] text-(--ui-ink-2) tabular-nums">
             {len ? `${len} · ` : ""}
             {relative(new Date(c.at))}
           </p>
           {c.summary || STATE_LINES[c.state] ? (
-            <p className="mt-1.5 line-clamp-2 text-[13px] text-(--ui-ink-2) leading-relaxed">
+            <p className="mt-1.5 text-[13px] text-(--ui-ink-2) leading-relaxed">
               {c.summary ?? STATE_LINES[c.state]}
             </p>
           ) : null}
@@ -1154,7 +1152,7 @@ function ListTable({
             cell: (c) => (
               <span className="flex min-w-0 items-center gap-1.5">
                 <Avatar url={c.source?.avatar ?? null} name={sourceName(c)} size={16} />
-                <span className="truncate">{sourceName(c)}</span>
+                <span className="wrap-anywhere whitespace-normal">{sourceName(c)}</span>
               </span>
             ),
           },

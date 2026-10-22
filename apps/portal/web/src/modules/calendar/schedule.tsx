@@ -511,16 +511,22 @@ function Grid({
                       }}
                     >
                       {lines < 2 ? (
-                        <span className="block truncate">
+                        <span className="block wrap-anywhere whitespace-normal">
                           <span className="font-semibold">{c.name}</span>
                           <span className="opacity-85">, {time}</span>
                         </span>
                       ) : (
                         <>
-                          <span className="block truncate font-semibold">{c.name}</span>
-                          <span className="block truncate opacity-85">{time}</span>
+                          <span className="block wrap-anywhere whitespace-normal font-semibold">
+                            {c.name}
+                          </span>
+                          <span className="block wrap-anywhere whitespace-normal opacity-85">
+                            {time}
+                          </span>
                           {lines >= 3 && c.offer ? (
-                            <span className="block truncate opacity-85">{c.offer}</span>
+                            <span className="block wrap-anywhere whitespace-normal opacity-85">
+                              {c.offer}
+                            </span>
                           ) : null}
                         </>
                       )}
@@ -604,7 +610,7 @@ function Month({
                 type="button"
                 onClick={() => pick(c.id)}
                 {...tipProps(`${c.name}, ${span(c)}${flag(c) ? `, ${flag(c)}` : ""}`)}
-                className={`truncate px-1.5 py-px text-[11.5px] leading-4 ${BLOCK} ${tone(c, now)}`}
+                className={`wrap-anywhere whitespace-normal px-1.5 py-px text-[11.5px] leading-4 ${BLOCK} ${tone(c, now)}`}
               >
                 <span className="opacity-85">{brief(c.start)}</span>{" "}
                 <span className="font-semibold">{c.name}</span>

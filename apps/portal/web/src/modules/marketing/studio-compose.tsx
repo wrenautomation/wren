@@ -510,7 +510,7 @@ function PlatformCard({
         <label className="flex min-w-0 items-center gap-2.5 text-[14px]">
           <input type="checkbox" checked={on} onChange={toggle} className="accent-(--ui-active)" />
           <PlatformMark mark={platform} size={16} />
-          <b className="truncate font-semibold">{targetOf(platform)}</b>
+          <b className="wrap-anywhere whitespace-normal font-semibold">{targetOf(platform)}</b>
         </label>
         {on && shown.length && !ai ? (
           <span
@@ -544,7 +544,7 @@ function PlatformCard({
               ) : (
                 <>
                   {v.title ? <b className="text-[14px]">{v.title}</b> : null}
-                  <p className="m-0 line-clamp-3 text-[13px] leading-[1.45] whitespace-pre-wrap text-(--ui-ink-2)">
+                  <p className="m-0 text-[13px] leading-[1.45] whitespace-pre-wrap text-(--ui-ink-2)">
                     {v.text}
                   </p>
                   <span className="text-[11px] text-(--ui-ink-3) tabular-nums">

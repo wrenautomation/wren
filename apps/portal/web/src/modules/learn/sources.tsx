@@ -6,7 +6,6 @@
  */
 import {
   Button,
-  clipProps,
   cx,
   Empty,
   FormKept,
@@ -306,8 +305,7 @@ function SourceHost({ s }: { s: SourceRow }) {
         href={s.page ?? s.url}
         target="_blank"
         rel="noreferrer"
-        className="truncate text-[12.5px] text-(--ui-ink-3) no-underline hover:text-(--ui-ink)"
-        {...clipProps()}
+        className="wrap-anywhere whitespace-normal text-[12.5px] text-(--ui-ink-3) no-underline hover:text-(--ui-ink)"
       >
         {hostOf(s.page ?? s.url)}
       </a>

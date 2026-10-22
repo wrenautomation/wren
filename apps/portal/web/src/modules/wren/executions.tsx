@@ -167,7 +167,10 @@ export function Executions({
               href: (r) => href(here, { run: r.id }, params),
               sub: (r) => (
                 <span className={cx("grid gap-0.5 text-[12px]", QUIET)}>
-                  <span className="truncate" {...tipProps(r.subject, { as: "none" })}>
+                  <span
+                    className="wrap-anywhere whitespace-normal"
+                    {...tipProps(r.subject, { as: "none" })}
+                  >
                     {r.state === "waiting" && r.due
                       ? `At ${nameAt(w, r.node)}${r.until ? "," : ""}${forText(r.until)} until ${when(r.due)}`
                       : r.state === "failed"

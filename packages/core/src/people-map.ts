@@ -169,7 +169,7 @@ export function rollupRows(scope: Scope): SQL {
     select s.profile_id,
       case when s.kind in ('reply', 'dm') or (s.kind = 'comment' and s.answers is not null)
         then 'replied' else 'engaged' end,
-      s.platform, s.at, 1, 'They ' || s.kind || coalesce(': ' || left(s.text, 80), '')
+      s.platform, s.at, 1, 'They ' || s.kind || coalesce(': ' || s.text, '')
     from social s where s.direction = 'theirs'
     union all
     select s.profile_id, case when s.response = 'replied' then 'replied' else 'engaged' end,
@@ -373,8 +373,8 @@ export function rollupRows(scope: Scope): SQL {
       ),
     )},
     subs.subscriptions, a.replied_channels, a.replied_last_channel,
-    a.first_touch_at, a.first_channel, left(a.first_touch, 400) first_touch,
-    a.last_touch_at, a.last_channel, left(a.last_touch, 400) last_touch,
+    a.first_touch_at, a.first_channel, a.first_touch,
+    a.last_touch_at, a.last_channel, a.last_touch,
     came.source came_from,
     left(concat_ws(' ', nullif(per.persona_niche, 'unknown'), nullif(per.persona_role, 'unknown')), 64)
       persona_raw,

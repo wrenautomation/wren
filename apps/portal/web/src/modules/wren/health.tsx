@@ -347,9 +347,7 @@ function HealthRows({ rows }: { rows: NowLine[] }) {
         href: (r) => r.href,
         sub: (r) => {
           const why = [r.score ? `Score ${r.score}` : null, r.detail].filter(Boolean).join(" · ");
-          return why ? (
-            <span className="line-clamp-2 text-[12.5px] text-(--ui-ink-3)">{why}</span>
-          ) : null;
+          return why ? <span className="text-[12.5px] text-(--ui-ink-3)">{why}</span> : null;
         },
       }}
       columns={[

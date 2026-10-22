@@ -31,7 +31,7 @@ export function ClientAccounts({ client }: { client: string }) {
             min: 220,
             title: (a) => a.siteLabel,
             weight: () => "font-medium text-(--ui-ink)",
-            sub: (a) => <span className={`${QUIET} truncate`}>{a.ref}</span>,
+            sub: (a) => <span className={`${QUIET} wrap-anywhere whitespace-normal`}>{a.ref}</span>,
           }}
           columns={[
             {
@@ -139,7 +139,7 @@ export function VendorUsage() {
                   title: (r) => r.vendorName,
                   weight: () => "font-medium text-(--ui-ink)",
                   sub: (r) => (
-                    <span className={`${QUIET} truncate`}>
+                    <span className={`${QUIET} wrap-anywhere whitespace-normal`}>
                       {unitsText(r.units, r.unit)}
                       {r.mode === "own"
                         ? `, on their own key. ${r.vendorName} bills them.`

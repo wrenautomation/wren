@@ -4,7 +4,6 @@
  */
 import {
   ButtonLink,
-  clipProps,
   cx,
   LoadFailed,
   Loading,
@@ -282,22 +281,17 @@ function ShelfCard({ c, tall }: { c: Card; tall: boolean }) {
             {...tipProps("New, not opened yet")}
           />
         ) : null}
-        <span
-          className="line-clamp-2 font-semibold text-[14px] leading-snug group-hover:underline"
-          {...clipProps()}
-        >
+        <span className="font-semibold text-[14px] leading-snug group-hover:underline">
           {c.title}
         </span>
       </span>
       <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-(--ui-ink-2)">
         <Avatar url={c.source?.avatar ?? null} name={name} size={16} />
-        <span className="truncate">{name}</span>
+        <span className="wrap-anywhere whitespace-normal">{name}</span>
         {len && !tall ? <span className="shrink-0">· {len}</span> : null}
       </span>
       {c.summary && !tall ? (
-        <span className="line-clamp-2 text-[12.5px] text-(--ui-ink-2) leading-relaxed">
-          {c.summary}
-        </span>
+        <span className="text-[12.5px] text-(--ui-ink-2) leading-relaxed">{c.summary}</span>
       ) : null}
     </a>
   );

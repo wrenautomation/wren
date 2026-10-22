@@ -236,7 +236,7 @@ export {
   PanelBlock,
 } from "./graph/palette.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";
-export { clipProps, type TipOptions, type TipProps, tipProps, whenTip } from "./hint.js";
+export { type TipOptions, type TipProps, tipProps, whenTip } from "./hint.js";
 export { HintLayer, Why } from "./hint-layer.js";
 export {
   HOVER_CLOSE_MS,

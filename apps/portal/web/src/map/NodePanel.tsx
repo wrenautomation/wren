@@ -64,7 +64,7 @@ function Card({
     >
       <header className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[17px]/6 font-semibold">{name}</h2>
+          <h2 className="wrap-anywhere whitespace-normal text-[17px]/6 font-semibold">{name}</h2>
           <p className="text-[13px] text-(--ui-ink-3)">{kind}</p>
         </div>
         <Button tone="quiet" size="dense" icon="close" onClick={onClose}>
@@ -110,7 +110,7 @@ function PeopleHere({
                 href={href(`/pipelines/journeys/${encodeURIComponent(p.id)}`, at)}
                 className="flex min-h-9 items-center gap-2 text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
               >
-                <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{p.name}</span>
                 <span className="text-[12.5px] text-(--ui-ink-3)">
                   {p.daysAtNode < 1 ? "today" : `${num(p.daysAtNode)} d`}
                 </span>
@@ -170,7 +170,7 @@ function Tracks({
                   className="flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-(--ui-ink-2) hover:bg-(--ui-hover)"
                 >
                   <Icon name={dir === "in" ? "left" : "right"} size={14} />
-                  <span className="min-w-0 flex-1 truncate">
+                  <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
                     {dir === "in" ? "from" : "to"} {r.who}
                     {r.back ? " (back)" : ""}
                   </span>
@@ -345,7 +345,7 @@ function LinePanel(p: PartProps & { id: string }) {
                   onClick={() => p.onOpen({ kind: "station", id: s.id })}
                   className="flex min-h-9 w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-(--ui-ink) hover:bg-(--ui-hover)"
                 >
-                  <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                  <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{s.label}</span>
                   <span className="text-[12.5px] text-(--ui-ink-3)">{STATION_WORD[s.kind]}</span>
                 </button>
               </li>

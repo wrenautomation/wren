@@ -14,7 +14,7 @@ import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js
 import { Empty, LoadFailed, Loading } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
-import { clipProps, tipProps } from "./hint.js";
+import { tipProps } from "./hint.js";
 import { FLAT_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
 import { useNarrow } from "./list-bar.js";
 import { type OverviewQueue, QueuePanel } from "./overview-queues.js";
@@ -632,11 +632,11 @@ export function TopRecords({
                 )}
               >
                 <span className="grid min-w-0 flex-1 basis-40 gap-0.5">
-                  <span className="truncate font-medium" {...clipProps()}>
+                  <span className="wrap-anywhere whitespace-normal font-medium">
                     {cap(titleOf(meta, r) || textOf(r.id))}
                   </span>
                   {line && r[line.key] ? (
-                    <span className="line-clamp-2 text-pretty text-(--ui-ink-2)" {...clipProps()}>
+                    <span className="text-pretty text-(--ui-ink-2)">
                       <FieldCell field={line} cell={r[line.key]} />
                     </span>
                   ) : null}
@@ -654,7 +654,7 @@ export function TopRecords({
                   .map((f) => (
                     <span
                       key={f.key}
-                      className="max-w-full shrink-0 truncate text-(--ui-ink-2)"
+                      className="max-w-full shrink-0 wrap-anywhere whitespace-normal text-(--ui-ink-2)"
                       {...tipProps(f.label)}
                     >
                       {/* A bare amount says nothing: it reads "Per reply: CA$12", or "none". */}

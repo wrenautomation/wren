@@ -260,7 +260,11 @@ export function Webhooks(props: PageProps) {
               icon: "link",
               min: 260,
               title: (h) => h.name,
-              sub: (h) => <code className="truncate text-[12.5px] text-(--ui-ink-3)">{h.url}</code>,
+              sub: (h) => (
+                <code className="wrap-anywhere whitespace-normal text-[12.5px] text-(--ui-ink-3)">
+                  {h.url}
+                </code>
+              ),
             }}
             columns={[
               {
@@ -418,7 +422,7 @@ export function Webhooks(props: PageProps) {
                 min: 220,
                 title: (d) => d.event,
                 sub: (d) => (
-                  <span className="truncate text-[12.5px] text-(--ui-ink-3)">
+                  <span className="wrap-anywhere whitespace-normal text-[12.5px] text-(--ui-ink-3)">
                     {nameOf(d.subscription)}
                   </span>
                 ),

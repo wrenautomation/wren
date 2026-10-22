@@ -122,7 +122,7 @@ function Folder({
           type="button"
           onClick={() => onFolder(node.path)}
           aria-current={at === node.path ? "true" : undefined}
-          className="border-0 bg-transparent cursor-pointer min-w-0 flex-1 truncate text-left"
+          className="border-0 bg-transparent cursor-pointer min-w-0 flex-1 wrap-anywhere whitespace-normal text-left"
         >
           {node.name}
         </button>
@@ -343,7 +343,7 @@ export function Browser({
             type="button"
             onClick={() => onFolder("")}
             aria-current={folder === "" ? "true" : undefined}
-            className="border-0 bg-transparent cursor-pointer min-w-0 flex-1 truncate pl-1 text-left"
+            className="border-0 bg-transparent cursor-pointer min-w-0 flex-1 wrap-anywhere whitespace-normal pl-1 text-left"
           >
             {rootLabel}
           </button>
@@ -379,7 +379,7 @@ export function Browser({
           nameOf={nameOf}
         />
         <div className="mt-3 hidden h-8 items-center justify-between gap-2 lg:mt-0 lg:flex">
-          <h2 className="truncate text-[15px] font-semibold">{title}</h2>
+          <h2 className="wrap-anywhere whitespace-normal text-[15px] font-semibold">{title}</h2>
           {folderActions}
         </div>
         {folderActions ? <div className="mt-2 lg:hidden">{folderActions}</div> : null}

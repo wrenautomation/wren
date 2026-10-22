@@ -137,18 +137,16 @@ export function LearnBell({ client }: { client: string }) {
                   <span className="min-w-0 flex-1">
                     <span
                       className={cx(
-                        "line-clamp-2 text-[13.5px] leading-5",
+                        "text-[13.5px] leading-5",
                         a.seen ? "font-normal" : "font-semibold",
                       )}
                     >
                       {a.title}
                     </span>
                     {a.line ? (
-                      <span className="mt-0.5 line-clamp-1 text-[12.5px] text-(--ui-ink-2)">
-                        {a.line}
-                      </span>
+                      <span className="mt-0.5 text-[12.5px] text-(--ui-ink-2)">{a.line}</span>
                     ) : null}
-                    <span className="mt-1 block truncate text-[12px] text-(--ui-ink-2)">
+                    <span className="mt-1 block wrap-anywhere whitespace-normal text-[12px] text-(--ui-ink-2)">
                       {WHY[a.why]} · {a.source} · {relative(new Date(a.at))}
                     </span>
                   </span>

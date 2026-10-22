@@ -106,7 +106,7 @@ function ShowRow({
           {src ? null : <option value={rule.key}>(a field below this one)</option>}
           {sources.map((a) => (
             <option key={a.key} value={a.key}>
-              {a.kind === "hidden" ? a.key : a.label.slice(0, 40) || a.key}
+              {a.kind === "hidden" ? a.key : a.label || a.key}
             </option>
           ))}
         </select>
@@ -337,7 +337,7 @@ function FieldRow({
 /** A show rule in words over its field: "Shown when Service is Repair". */
 function ShownWhen({ rule, fields }: { rule: ShowRule; fields: FormField[] }) {
   const src = fields.find((f) => f.key === rule.key);
-  const name = src ? (src.kind === "hidden" ? src.key : src.label.slice(0, 40)) : rule.key;
+  const name = src ? (src.kind === "hidden" ? src.key : src.label) : rule.key;
   const vals = rule.op === "is" || rule.op === "not" ? ` ${(rule.values ?? []).join(" or ")}` : "";
   return (
     <span className="text-[12px] text-[#5b6170]">

@@ -1,6 +1,6 @@
 /** Hover text: the attributes a caller spreads, where a tip sits, and when it shows. */
 import { describe, expect, it } from "vitest";
-import { ariaKeys, clipProps, hintFlow, placeTip, tipProps, whenTip } from "./hint.js";
+import { ariaKeys, hintFlow, placeTip, tipProps, whenTip } from "./hint.js";
 
 describe("tipProps", () => {
   it("is the text on the element and for a screen reader, or nothing", () => {
@@ -30,11 +30,6 @@ describe("tipProps", () => {
 
   it("adds nothing for a screen reader when the element already says it", () => {
     expect(tipProps("Close", { as: "none" })).toEqual({ "data-tip": "Close" });
-  });
-
-  it("clipProps leaves the words to the element's own text", () => {
-    expect(clipProps()).toEqual({ "data-tip": "", "data-tip-clip": "" });
-    expect(clipProps("Longer")).toEqual({ "data-tip": "Longer", "data-tip-clip": "" });
   });
 });
 

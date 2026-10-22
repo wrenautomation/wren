@@ -319,7 +319,9 @@ function Reviews({ moments }: { moments: MomentView[] }) {
           avatar: (r) => avatarOf(r.review.email),
           sub: (r) =>
             r.review.words ? (
-              <span className={`${QUIET} truncate text-[12.5px]`}>"{r.review.words}"</span>
+              <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+                "{r.review.words}"
+              </span>
             ) : null,
         }}
         columns={[

@@ -799,7 +799,7 @@ function StatesFilter({
           className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
         >
           <Tick on={on.has(id)} />
-          <span className="min-w-0 flex-1 truncate">
+          <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
             <StateMark state={st} />
           </span>
           {counts ? (

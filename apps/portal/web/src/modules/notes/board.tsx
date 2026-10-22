@@ -7,7 +7,6 @@
 import { ownerName } from "@wren/notes/types";
 import {
   Button,
-  clipProps,
   cx,
   Empty,
   Icon,
@@ -509,7 +508,6 @@ function CardFace({
         )}
         href={docPath(c.id)}
         draggable={false}
-        {...clipProps()}
       >
         {c.name}
       </a>

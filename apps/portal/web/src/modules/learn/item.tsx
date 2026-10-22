@@ -333,7 +333,7 @@ function Moments({
             <span className="font-semibold text-(--ui-ink-2) text-[12px] tabular-nums">
               {clock(m.t)}
             </span>
-            <span className="line-clamp-2 text-[13px] text-(--ui-ink) leading-snug">{m.label}</span>
+            <span className="text-[13px] text-(--ui-ink) leading-snug">{m.label}</span>
           </button>
         ))}
       </div>

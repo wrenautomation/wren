@@ -214,7 +214,7 @@ export function History({
                       />
                       <span className="min-w-0 flex-1">
                         <span className="block font-semibold">Version {v.number}</span>
-                        <span className="block truncate text-(--ui-ink-2)">
+                        <span className="block wrap-anywhere whitespace-normal text-(--ui-ink-2)">
                           {v.note || "No note"}
                         </span>
                         <span className="block text-[12.5px] text-(--ui-ink-3)">

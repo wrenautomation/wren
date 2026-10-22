@@ -152,7 +152,7 @@ export function AiTools(props: PageProps) {
               title: (t) => t.name,
               tail: (t) => (t.client ? <Tag tone="neutral">{t.client}</Tag> : null),
               sub: (t) => (
-                <span className={cx("truncate text-[12.5px]", QUIET)}>
+                <span className={cx("wrap-anywhere whitespace-normal text-[12.5px]", QUIET)}>
                   <code>{t.prefix}…</code>, made {day(t.createdAt)}
                   {t.expiresAt ? `, ends ${day(t.expiresAt)}` : ""}
                 </span>

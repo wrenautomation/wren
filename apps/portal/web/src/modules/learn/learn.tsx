@@ -192,7 +192,7 @@ function HitRows({ hits }: { hits: Hit[] }) {
         title: (h) => h.title,
         href: (h) => `/learn/items/${h.id}`,
         sub: (h) => (
-          <span className="line-clamp-2 text-[12.5px] leading-snug text-(--ui-ink-2)">
+          <span className="text-[12.5px] leading-snug text-(--ui-ink-2)">
             <Snippet text={h.snippet} />
           </span>
         ),

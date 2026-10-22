@@ -148,11 +148,9 @@ export function ImportDialog({
                 {Array.from({ length: width }, (_, i) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: a sheet's columns are their places.
                   <label key={i} className="flex items-center gap-2 text-[13px]">
-                    <span className="w-40 min-w-0 truncate text-(--ui-ink-2)">
+                    <span className="w-40 min-w-0 wrap-anywhere whitespace-normal text-(--ui-ink-2)">
                       {header ? table[0]?.[i] || `Column ${i + 1}` : `Column ${i + 1}`}
-                      <span className="ml-1 text-(--ui-ink-3)">
-                        {table[header ? 1 : 0]?.[i]?.slice(0, 20)}
-                      </span>
+                      <span className="ml-1 text-(--ui-ink-3)">{table[header ? 1 : 0]?.[i]}</span>
                     </span>
                     <select
                       aria-label={`Column ${i + 1} is`}

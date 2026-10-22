@@ -11,7 +11,6 @@ import { pathOf, type ShapeBody } from "@wren/pipeline/model";
 import {
   ACTIONS,
   Button,
-  clipProps,
   cx,
   Empty,
   FormKept,
@@ -389,10 +388,9 @@ function Card({
       )}
     >
       <a
-        className="min-w-0 truncate font-medium text-(--ui-ink) no-underline hover:underline"
+        className="min-w-0 wrap-anywhere whitespace-normal font-medium text-(--ui-ink) no-underline hover:underline"
         href={href(`/pipelines/journeys/${encodeURIComponent(j.id)}`, at)}
         draggable={false}
-        {...clipProps()}
       >
         {j.name}
       </a>
@@ -405,14 +403,10 @@ function Card({
         {j.flag === "stale" ? <span className="font-medium text-(--ui-bad)">Stale</span> : null}
         {j.ghost ? <span className="font-medium">Older version</span> : null}
         {j.entry ? (
-          <span className="max-w-full truncate" {...clipProps()}>
-            {j.entry}
-          </span>
+          <span className="max-w-full wrap-anywhere whitespace-normal">{j.entry}</span>
         ) : null}
         {j.owner ? (
-          <span className="max-w-full truncate" {...clipProps()}>
-            {j.owner}
-          </span>
+          <span className="max-w-full wrap-anywhere whitespace-normal">{j.owner}</span>
         ) : null}
       </div>
       {write ? (

@@ -273,7 +273,9 @@ export function PanelHead({
   return (
     <header className="flex items-start gap-3">
       <span className="grid min-w-0 flex-1 gap-0.5">
-        <span className="truncate text-[16px] font-semibold text-(--ui-ink)">{title}</span>
+        <span className="wrap-anywhere whitespace-normal text-[16px] font-semibold text-(--ui-ink)">
+          {title}
+        </span>
         <span className={`text-[12.5px] ${QUIET}`}>{kind}</span>
       </span>
       {state ? (

@@ -83,7 +83,7 @@ export function People(props: PageProps & { bare?: boolean }) {
               title: (m) => m.email,
               avatar: (m) => avatarOf(m.email),
               sub: (m) => (
-                <span className={`${QUIET} truncate text-[12.5px]`}>
+                <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
                   {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}
                   {m.invitedBy ? ` · invited by ${m.invitedBy}` : ""}
                 </span>

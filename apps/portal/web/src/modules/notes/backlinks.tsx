@@ -45,7 +45,7 @@ function Backlinks({ client, target }: { client: string; target: string }) {
           mark: () => <Icon name="note" size={15} className="flex-none text-(--ui-ink-2)" />,
           sub: (n) =>
             n.excerpt ? (
-              <span className="truncate text-[12.5px] font-normal text-(--ui-ink-2)">
+              <span className="wrap-anywhere whitespace-normal text-[12.5px] font-normal text-(--ui-ink-2)">
                 {n.excerpt}
               </span>
             ) : null,

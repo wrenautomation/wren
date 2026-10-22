@@ -655,12 +655,14 @@ function draftName(narrow: boolean, lines: ReadonlyMap<string, MetroLine>): Rows
       return (
         <>
           {hook && !narrow ? (
-            <span className="truncate text-[12px] text-(--ui-ink-3)">{hook}</span>
+            <span className="wrap-anywhere whitespace-normal text-[12px] text-(--ui-ink-3)">
+              {hook}
+            </span>
           ) : null}
           {narrow ? (
             <span
               className={cx(
-                "truncate text-[12px]",
+                "wrap-anywhere whitespace-normal text-[12px]",
                 lateSlot(i) ? "text-(--ui-warn-ink)" : "text-(--ui-ink-3)",
               )}
             >
@@ -715,7 +717,7 @@ function columnsOf(lines: ReadonlyMap<string, MetroLine>): RowsColumn<Waiting>[]
           {lateSlot(i) ? (
             <span aria-hidden="true" className="size-1.5 flex-none rounded-full bg-(--ui-warn)" />
           ) : null}
-          <span className="truncate">{slotWords(i)}</span>
+          <span className="wrap-anywhere whitespace-normal">{slotWords(i)}</span>
         </span>
       ),
     },
@@ -801,7 +803,7 @@ function Peek({
     <Sheet open onOpenChange={(o) => !o && close()}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[520px]">
         <SheetHeader>
-          <SheetTitle className="line-clamp-2 pr-8">{title}</SheetTitle>
+          <SheetTitle className="pr-8">{title}</SheetTitle>
           <SheetDescription className="sr-only">
             The platforms this draft goes to. Edit the words, approve, post now or drop.
           </SheetDescription>

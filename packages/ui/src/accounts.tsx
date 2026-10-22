@@ -54,7 +54,7 @@ export function AccountBadge({
       {...tipProps(warn ?? (state.label === value ? null : value))}
     >
       <Face state={state} />
-      <span className="min-w-0 truncate">{state.label}</span>
+      <span className="min-w-0 wrap-anywhere whitespace-normal">{state.label}</span>
       {warn ? (
         <TriangleAlert aria-label="Warning" className="size-3.5 shrink-0 text-(--ui-warn-ink)" />
       ) : null}
@@ -91,7 +91,7 @@ export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place 
         data-account-filter=""
       >
         {one ? <Face state={accountState(field, one)} /> : <User className="size-3.5" />}
-        <span className="max-w-[160px] truncate">
+        <span className="max-w-[160px] wrap-anywhere whitespace-normal">
           {one
             ? accountState(field, one).label
             : picked.length
@@ -123,7 +123,7 @@ export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place 
               onClick={() => pick(key)}
             >
               <Face state={state} />
-              <span className="min-w-0 flex-1 truncate">{state.label}</span>
+              <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{state.label}</span>
               {picked.includes(key) ? <Check className="size-3.5" /> : null}
             </button>
           ))}
@@ -175,7 +175,7 @@ export function AccountPicker({
             className={cn(CHIP, "text-(--ui-ink)", busy && "opacity-60")}
           >
             <PlatformMark mark={pick.platform} />
-            <span className="max-w-[200px] truncate">{label}</span>
+            <span className="max-w-[200px] wrap-anywhere whitespace-normal">{label}</span>
             {current?.warn ? (
               <TriangleAlert aria-hidden className="size-3.5 text-(--ui-warn-ink)" />
             ) : null}
@@ -196,7 +196,7 @@ export function AccountPicker({
                     <PlatformMark mark={pick.platform} />
                   </span>
                   <span className="grid min-w-0 flex-1 gap-0.5">
-                    <span className="truncate">
+                    <span className="wrap-anywhere whitespace-normal">
                       {o.label}
                       {o.key === pick.fallback ? (
                         <span className="text-(--ui-ink-3)"> · default</span>

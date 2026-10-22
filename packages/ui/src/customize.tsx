@@ -220,7 +220,7 @@ export function PinnedRail({
               onKeyDown={key(i)}
             >
               <Icon name={p.icon} />
-              <span className="truncate">{p.label}</span>
+              <span className="wrap-anywhere whitespace-normal">{p.label}</span>
             </a>
             <button
               type="button"
@@ -340,7 +340,7 @@ export function TilesMenu({
                     put(order, gone);
                   }}
                 />
-                <span className="truncate">{label}</span>
+                <span className="wrap-anywhere whitespace-normal">{label}</span>
               </label>
               <button
                 type="button"

@@ -102,12 +102,12 @@ function SplitLine({ r }: { r: SplitRow }) {
         />
       ) : null}
       <span className="grid min-w-0 leading-[1.3]">
-        <span className="truncate">{r.label}</span>
+        <span className="wrap-anywhere whitespace-normal">{r.label}</span>
         {r.note ? (
           <small
             data-late={r.noteTone === "late" ? "" : undefined}
             className={cn(
-              "truncate text-[12.5px]",
+              "wrap-anywhere whitespace-normal text-[12.5px]",
               r.noteTone === "late"
                 ? LATE
                 : r.noteTone === "bad"

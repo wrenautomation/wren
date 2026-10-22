@@ -120,7 +120,7 @@ export function ImportPanel({
     <section aria-label="Import a shape" className={`${OVER_RIGHT} text-[14px] text-(--ui-ink)`}>
       <header>
         <h2 className="text-[17px]/6 font-semibold">Import a shape</h2>
-        <p className="truncate text-[13px] text-(--ui-ink-3)">{name}</p>
+        <p className="wrap-anywhere whitespace-normal text-[13px] text-(--ui-ink-3)">{name}</p>
       </header>
       {preview.error && !preview.data ? (
         <>

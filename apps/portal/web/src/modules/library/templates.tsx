@@ -15,7 +15,6 @@ import {
   Browser,
   BrowserRow,
   Button,
-  clipProps,
   DictateField,
   Diff,
   EditConflict,
@@ -237,12 +236,12 @@ export function Templates({ params, demo, can }: PageProps) {
                     draggable={writes}
                   >
                     <span className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[14px] font-medium" {...clipProps()}>
+                      <span className="wrap-anywhere whitespace-normal text-[14px] font-medium">
                         {nameLabel(r.name)}
                       </span>
                       <Tag tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</Tag>
                     </span>
-                    <span className={`truncate text-[12.5px] ${QUIET}`}>
+                    <span className={`wrap-anywhere whitespace-normal text-[12.5px] ${QUIET}`}>
                       {[
                         CHANNEL[r.kind] ?? r.kind,
                         folderLabel(r.folder, folder) || null,
@@ -454,7 +453,7 @@ function RefLine({ refText }: { refText: string }) {
   const { copied, copy } = useCopy();
   return (
     <p className="flex min-w-0 items-center gap-2 text-[12px] text-(--ui-ink-3)">
-      <code className="min-w-0 truncate font-mono">{refText}</code>
+      <code className="min-w-0 wrap-anywhere whitespace-normal font-mono">{refText}</code>
       <button
         type="button"
         onClick={() => copy(refText)}

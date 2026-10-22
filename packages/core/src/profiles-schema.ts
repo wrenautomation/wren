@@ -283,7 +283,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'sms_message:' || s.id, k.profile_id, coalesce(s.received_at, s.sent_at, s.created_at),
     case when s.direction = 'in' then 'text_received' else 'text_sent' end, 'sms',
-    left(s.body, 160), s.body, '/marketing/texts/' || c.id, 'sms_messages', null
+    s.body, s.body, '/marketing/texts/' || c.id, 'sms_messages', null
   from profile_keys k
   join sms_contacts c on c.e164 = k.value
   join sms_messages s on s.contact_id = c.id
@@ -310,7 +310,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'touch:' || t.id, k.profile_id, t.at, 'touch', h.platform,
     case t.direction when 'ours' then 'We ' else 'They ' end || t.kind
-      || coalesce(': ' || left(t.text, 140), ''),
+      || coalesce(': ' || t.text, ''),
     t.text, t.link, 'touches', nullif(case when t.url ~ '${sql.raw(BROKEN_IG_URL)}' then null else t.url end, '')
   from profile_keys k
   join social_handles h on k.kind = 'handle:' || h.platform and h.handle = k.value
@@ -354,7 +354,7 @@ export const profileTimeline = pgView("profile_timeline", {
   where coalesce(f.client, p.client) is null
   union all
   select 'chat_message:' || m.id, k.profile_id, m.at, 'chat', 'site',
-    case when m.direction = 'in' then 'They wrote: ' else 'We wrote: ' end || left(m.body, 140),
+    case when m.direction = 'in' then 'They wrote: ' else 'We wrote: ' end || m.body,
     m.body, null, 'chat_messages', null
   from (
     select t.id, k.profile_id from profile_keys k
