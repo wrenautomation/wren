@@ -140,6 +140,43 @@ export async function journalOf(
   }));
 }
 
+/** How deep `pausedUnder` looks: Content → sites → desk is three calls. */
+const PAUSED_DEPTH = 5;
+
+/**
+ * The paused call under an invocation, itself or a call it made (to `PAUSED_DEPTH` levels): its
+ * target and failure, or null when nothing under it is paused. A caller waits on a paused call
+ * for good, until someone retries or kills it in the dead-letter queue.
+ */
+export const pausedUnder =
+  (admin: RestateAdmin) =>
+  async (invocationId: string): Promise<string | null> => {
+    let ids = [safeId(invocationId)].filter(Boolean);
+    for (let depth = 0; depth <= PAUSED_DEPTH && ids.length; depth++) {
+      const list = ids.map((id) => `'${id}'`).join(", ");
+      const rows = await admin(
+        depth === 0
+          ? `SELECT id, target, status, last_failure FROM sys_invocation WHERE id IN (${list})`
+          : `SELECT id, target, status, last_failure FROM sys_invocation WHERE invoked_by_id IN (${list})`,
+      );
+      const paused = rows.find((r) => r.status === "paused");
+      if (paused) {
+        const target = str(paused.target) ?? "a call";
+        const id = str(paused.id);
+        const error =
+          str(paused.last_failure) ??
+          (id ? await journalFailure(admin, id) : null) ??
+          "no error kept";
+        return `${target}: ${error}`.slice(0, 500);
+      }
+      ids = rows.flatMap((r) => {
+        const id = str(r.id);
+        return id ? [safeId(id)] : [];
+      });
+    }
+    return null;
+  };
+
 /** One line per letter for the alert: a pointer, the error cut short. */
 export function letterLine(l: Pick<DeadLetterRow, "id" | "target" | "key" | "error">): string {
   const what = l.key ? `${l.target} (${l.key})` : l.target;

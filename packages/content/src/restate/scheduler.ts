@@ -31,6 +31,12 @@
  * publish Restate paused never answers, and a pass waiting on it held this key's lock for hours.
  * Past the wait the call runs on alone: the draft stays `publishing`, its invocation id is kept
  * in `publishing` state, and each later pass looks at it for a moment and settles the row.
+ *
+ * A call under it that Restate paused (a desk call after a connection reset) holds it for good.
+ * Past `PARK_AFTER_MS`, a pass that finds a paused call under an open publish parks the draft
+ * unsure: To approve, "May have gone out". The pass keeps looking at it. A retry in the
+ * dead-letter queue lets it answer, and the answer settles the row and the ledger. A person's
+ * word in To approve ends the look and cancels the call.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
@@ -51,6 +57,7 @@ import { type Delivery, isDelivery } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
 import {
   claimSend,
+  forgetUnsure,
   parkUnsure,
   pickedAccount,
   ReachRefusal,
@@ -83,6 +90,8 @@ export const PUBLISH_WAIT_MS = LIMITS.publish;
 const SETTLE_LOOK_MS = 1000;
 /** State key: the publishes a pass moved on from, still to settle. */
 const PUBLISHING = "publishing";
+/** How long an open publish runs before a pass asks if a call under it is paused. */
+export const PARK_AFTER_MS = 2 * 60 * 60 * 1000;
 
 /** A publish still running after its pass moved on. */
 export interface OpenPublish {
@@ -104,6 +113,8 @@ export interface OpenPublish {
   sendKey?: string;
   /** A take-over: an `unknown` answer is asked once more. */
   recheck?: boolean;
+  /** A call under it was paused: the draft waits in To approve while the call may still answer. */
+  parked?: boolean;
 }
 
 /** A publish about to go out: everything but its invocation. */
@@ -146,6 +157,10 @@ export interface ContentSchedulerDeps {
   clientDb?: ((client: string) => Db) | null;
   /** How long a pass waits on one publish (default `PUBLISH_WAIT_MS`); tests shorten it. */
   publishWaitMs?: number;
+  /** The paused call under an invocation, or null (`pausedUnder`); absent, nothing is parked. */
+  pausedUnder?: ((invocationId: string) => Promise<string | null>) | null;
+  /** How old an open publish is before a pass asks (default `PARK_AFTER_MS`); tests shorten it. */
+  parkAfterMs?: number;
 }
 
 export interface PublishStats {
@@ -166,6 +181,7 @@ export interface PublishStats {
 export function makeContentScheduler(deps: ContentSchedulerDeps) {
   const idleMs = deps.idleMs ?? DEFAULT_IDLE_MS;
   const publishWaitMs = deps.publishWaitMs ?? PUBLISH_WAIT_MS;
+  const parkAfterMs = deps.parkAfterMs ?? PARK_AFTER_MS;
   return makeLoopObject("ContentScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const owner = clientOfKey(ctx.key);
@@ -209,6 +225,12 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
   ): Promise<OpenPublish[]> {
     const still: OpenPublish[] = [];
     for (const p of (await ctx.get<OpenPublish[]>(PUBLISHING)) ?? []) {
+      // Parked, then a person said what became of it (sent again, dropped, marked posted): his.
+      // The paused call is cancelled, so a retry in the dead-letter queue never posts it after.
+      if (p.parked && !(await ctx.run(`still parked ${p.draftId}`, () => stillParked(o, p)))) {
+        ctx.invocation(restate.InvocationIdParser.fromString(p.invocationId)).cancel();
+        continue;
+      }
       try {
         const got = await ctx
           .invocation(restate.InvocationIdParser.fromString(p.invocationId))
@@ -216,11 +238,49 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
           .orTimeout(SETTLE_LOOK_MS);
         await answered(ctx, o, content, p, got, stats, busy);
       } catch (err) {
-        if (err instanceof restate.TimeoutError) still.push(p);
+        if (err instanceof restate.TimeoutError) still.push(await parkIfPaused(ctx, o, p, stats));
         else await ended(ctx, o, p, err, stats);
       }
     }
     return still;
+  }
+
+  /** The ledger row still waits on a person under this publish's key. */
+  async function stillParked(o: { db: Db }, p: OpenPublish): Promise<boolean> {
+    const row = await sendAttempt(o.db, itemOf(p));
+    return row?.state === "unsure" && (!p.sendKey || row.sendKey === p.sendKey);
+  }
+
+  /**
+   * An open publish past `parkAfterMs` with a paused call under it: parked unsure, so it waits
+   * in To approve and not on the queue. It stays open: a retry there lets it answer.
+   */
+  async function parkIfPaused(
+    ctx: restate.ObjectContext,
+    o: { db: Db; client: string | null },
+    p: OpenPublish,
+    stats: PublishStats,
+  ): Promise<OpenPublish> {
+    const ask = deps.pausedUnder;
+    if (p.parked || !ask) return p;
+    const age = (await ctx.date.now()) - new Date(p.since).getTime();
+    if (age < parkAfterMs) return p;
+    const paused = await ctx.run(`paused under ${p.draftId}`, () => ask(p.invocationId));
+    if (!paused) return p;
+    await unsure(
+      ctx,
+      o,
+      p,
+      `a call under its publish is paused in the dead-letter queue (${paused}); a retry there settles it`,
+      stats,
+    );
+    return { ...p, parked: true };
+  }
+
+  /** The ledger row goes: the item sends as if never tried. A parked row waited as unsure. */
+  async function release(db: Db, p: OpenPublish): Promise<void> {
+    await releaseSend(db, itemOf(p));
+    if (p.parked) await forgetUnsure(db, itemOf(p));
   }
 
   /** The ledger row's item for a draft. */
@@ -286,7 +346,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
   ): Promise<void> {
     await ctx.run(`failed ${p.draftId}`, async () => {
       await markFailed(o.db, p.draftId, error);
-      await releaseSend(o.db, itemOf(p));
+      await release(o.db, p);
     });
     stats.failed.push({ id: p.draftId, platform: p.platform, error });
   }
@@ -306,7 +366,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
   ): Promise<void> {
     await ctx.run(`waiting ${p.draftId}`, async () => {
       await markWaiting(o.db, p.draftId, why);
-      await releaseSend(o.db, itemOf(p));
+      await release(o.db, p);
     });
     busy.add(p.platform);
     stats.waiting = [...(stats.waiting ?? []), { id: p.draftId, platform: p.platform }];
@@ -324,7 +384,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     const until = new Date((await ctx.date.now()) + waitMs);
     await ctx.run(`capped ${p.draftId}`, async () => {
       await markCapped(o.db, p.draftId, until, why);
-      await releaseSend(o.db, itemOf(p));
+      await release(o.db, p);
     });
     stats.waiting = [...(stats.waiting ?? []), { id: p.draftId, platform: p.platform }];
   }

@@ -270,7 +270,7 @@ import {
   restateSites,
 } from "@wren/core/content/restate";
 import { setFieldStep } from "@wren/core/custom-fields";
-import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
+import { makeDeadLetters, pausedUnder, restateAdminPatch } from "@wren/core/dead-letters";
 import { backendsFromEnv, leadFitSource, makeDecide } from "@wren/core/decide";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
@@ -1508,6 +1508,10 @@ export async function buildServices(
       db,
       posted: postedWarm,
       clientDb,
+      // A publish held by a paused desk call waits in To approve, not on the queue.
+      pausedUnder: settings.restateAdminUrl
+        ? pausedUnder(restateAdmin(settings.restateAdminUrl, settings.restateAuthToken))
+        : null,
       ...contentNotify,
     }),
     makeContentMetrics({ db, clientDb, ...contentNotify }),
