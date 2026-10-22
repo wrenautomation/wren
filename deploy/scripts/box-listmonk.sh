@@ -15,19 +15,17 @@ name=wren-listmonk
 
 if ! secrets="$(aws ssm get-parameter --region "$region" --name "$param" --with-decryption \
   --query Parameter.Value --output text 2>/dev/null)"; then
-  echo "listmonk: $param is not set; skipped"
+  echo "listmonk: $param is not set or not readable; skipped"
   exit 0
 fi
 field() { python3 -c 'import json,sys; sys.stdout.write(json.loads(sys.argv[1]).get(sys.argv[2],""))' "$secrets" "$1"; }
 admin_user="$(field admin_user)" admin_pw="$(field admin_password)" db_pw="$(field db_password)"
 unset secrets
-# The password goes into SQL: letters and digits only.
-for v in "$admin_user" "$admin_pw" "$db_pw"; do
-  if ! [[ "$v" =~ ^[A-Za-z0-9]{12,}$ ]]; then
-    echo "listmonk: $param needs admin_user, admin_password and db_password, letters and digits, 12+ characters" >&2
-    exit 1
-  fi
-done
+# The database password goes into SQL: letters and digits only.
+if ! [[ "$admin_user" =~ ^[a-z][a-z0-9_-]{2,31}$ && "$admin_pw" =~ ^[A-Za-z0-9]{16,}$ && "$db_pw" =~ ^[A-Za-z0-9]{16,}$ ]]; then
+  echo "listmonk: $param needs admin_user (a short name), admin_password and db_password (letters and digits, 16+)" >&2
+  exit 1
+fi
 
 # The role and the database, on the box Postgres. Safe to run again; the password is set each time.
 pguser="$(docker exec wren-pg printenv POSTGRES_USER)"
