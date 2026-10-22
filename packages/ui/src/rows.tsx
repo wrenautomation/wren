@@ -158,29 +158,6 @@ export function statsOf(waits: readonly (RowsWait | null)[]): WaitStats {
   return { n: waits.length, late, oldest };
 }
 
-/** The foot's line: "Count 6 · Late 3 · Oldest 2 days". Late and Oldest show where rows wait. */
-export function RowsFoot({ stats, waits }: { stats: WaitStats; waits: boolean }) {
-  return (
-    <div className="flex flex-wrap gap-x-4.5 gap-y-1" title="Of the rows on this page">
-      <span>
-        Count <b className="font-semibold text-(--ui-ink-2) tabular-nums">{stats.n}</b>
-      </span>
-      {waits ? (
-        <>
-          <span className="max-[720px]:hidden">
-            Late <b className="font-semibold text-(--ui-ink-2) tabular-nums">{stats.late}</b>
-          </span>
-          {stats.oldest ? (
-            <span className="max-[720px]:hidden">
-              Oldest <b className="font-semibold text-(--ui-ink-2)">{waited(stats.oldest.hours)}</b>
-            </span>
-          ) : null}
-        </>
-      ) : null}
-    </div>
-  );
-}
-
 /** A column of `Rows`: its head and what each row shows in it. */
 export interface RowsColumn<T> {
   key: string;
@@ -288,8 +265,6 @@ export interface RowsProps<T> {
   onSettled?: (() => void) | undefined;
   /** How long a row has waited and whether that is late. */
   wait?: ((row: T) => RowsWait | null) | undefined;
-  /** The foot; set where the page has none of its own. */
-  foot?: ReactNode;
   /** Groups that fold: which are shut, and shut or open one. */
   group?: { folded: ReadonlySet<string>; toggle: (key: string) => void } | undefined;
   /** The element that scrolls the rows, or "window" where the page does (a phone's always does). */
@@ -303,6 +278,9 @@ export interface RowsProps<T> {
 }
 
 const GUTTER = 28;
+/** The totals row's cells: the list's last line, a hairline over them. */
+const TOTAL = "h-9 shadow-[inset_0_1px_0_var(--ui-hair)]";
+
 /** The head's hairlines, over and under (`.nt .hd`), drawn inside so a sticky head keeps them. */
 const HEAD_RULE = "shadow-[inset_0_1px_0_var(--ui-hair),inset_0_-1px_0_var(--ui-hair)]";
 const END = 44;
@@ -494,7 +472,7 @@ export function Rows<T>(p: RowsProps<T>) {
   const list = useRef<HTMLUListElement>(null);
   const drawn = drawnOf(p.lines, p.group?.folded, p.wait);
   const root = useCallback(() => body.current ?? list.current, []);
-  // A long list draws the lines in view: the panel scrolls them, on a phone the page does.
+  // A long list draws the lines in view of what scrolls the page.
   const lines = useLines({
     count: drawn.length,
     scroller: narrow ? "window" : p.scroller,
@@ -535,151 +513,137 @@ export function Rows<T>(p: RowsProps<T>) {
 
   if (narrow)
     return (
-      <>
-        <ul
-          ref={list}
-          className={cn("list-none", p.empty && "hidden", p.className)}
-          aria-label={p.label}
-        >
-          {p.loading ? (
-            Array.from({ length: 8 }, (_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
-              <li key={i} className="grid gap-2 px-4 py-4">
-                <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
-                <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
-              </li>
-            ))
-          ) : (
-            <>
-              {lines.before ? <li aria-hidden style={{ height: lines.before }} /> : null}
-              {lines.shown.map((n) => {
-                const l = drawn[n];
-                if (!l) return null;
-                const line = { "data-index": n, ref: lines.measure };
-                if (l.kind === "tier" || l.kind === "group")
-                  return (
-                    <li
-                      key={l.key}
-                      {...line}
-                      className={cn(
-                        // The fold's look (artifact `.gh`), a tier's head too.
-                        "sticky top-(--phone-bar,0px) z-2 bg-(--ui-paper) text-[13px] font-semibold text-(--ui-ink-3)",
-                      )}
-                    >
-                      {l.kind === "tier" ? (
-                        <div className="px-3.5 pt-3 pb-2">{l.head}</div>
-                      ) : (
-                        <GroupFold
-                          label={l.label}
-                          color={l.color}
-                          stats={l.stats ?? statsOf([])}
-                          shut={!!p.group?.folded.has(l.key)}
-                          toggle={() => p.group?.toggle(l.key)}
-                        />
-                      )}
-                    </li>
-                  );
-                if (l.kind === "box")
-                  return (
-                    <li key={l.key} {...line} className="bg-(--ui-wash) px-4 py-3">
-                      {l.node}
-                    </li>
-                  );
-                const r = rowOf(l);
-                const act = p.act?.(l.row);
-                const side = phoneCol?.cell(l.row, l.index);
-                // The page's own attributes (a mark, a drag, a focus hook) ride on the phone's row too.
-                // They are typed for a table row; an li takes the same events.
-                const { className: own, ...attrs } = (p.rowProps?.(l.row, l.index) ??
-                  {}) as LiAttrs;
+      <ul
+        ref={list}
+        className={cn("list-none", p.empty && "hidden", p.className)}
+        aria-label={p.label}
+      >
+        {p.loading ? (
+          Array.from({ length: 8 }, (_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
+            <li key={i} className="grid gap-2 px-4 py-4">
+              <div className="h-3.5 w-2/3 animate-pulse bg-(--ui-fill)" />
+              <div className="h-3 w-1/3 animate-pulse bg-(--ui-wash)" />
+            </li>
+          ))
+        ) : (
+          <>
+            {lines.before ? <li aria-hidden style={{ height: lines.before }} /> : null}
+            {lines.shown.map((n) => {
+              const l = drawn[n];
+              if (!l) return null;
+              const line = { "data-index": n, ref: lines.measure };
+              if (l.kind === "tier" || l.kind === "group")
                 return (
-                  <SwipeRow
+                  <li
                     key={l.key}
-                    {...attrs}
-                    swipes={p.swipes?.(l.row) ?? null}
-                    data-row={l.index}
-                    data-index={n}
-                    measure={lines.measure}
-                    onTap={(e) => {
-                      // Its box, links and buttons do their own thing.
-                      if ((e.target as Element).closest("input, a, button, label")) return;
-                      r.onOpen();
-                    }}
-                    onAnimationEnd={(e) => {
-                      if (e.animationName === "ui-changed") p.onSettled?.();
-                    }}
+                    {...line}
                     className={cn(
-                      // The artifact's row hairline (`.r+.r, .gh+.r`) stays on a phone.
-                      "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash) [li+&>[data-face]]:shadow-[inset_0_1px_0_var(--ui-hair)]",
-                      r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
-                      r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
-                      r.changed && "[&>[data-face]]:animate-ui-changed",
-                      r.going && "[&>[data-face]]:bg-(--ui-wash)",
-                      own,
+                      // The fold's look (artifact `.gh`), a tier's head too.
+                      "sticky top-(--phone-bar,0px) z-2 bg-(--ui-paper) text-[13px] font-semibold text-(--ui-ink-3)",
                     )}
                   >
-                    {pick ? (
-                      <label className="grid size-11 flex-none cursor-pointer place-items-center">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${name.title(l.row)}`}
-                          checked={r.picked}
-                          onChange={() => pick.toggle(l.key)}
-                        />
-                      </label>
+                    {l.kind === "tier" ? (
+                      <div className="px-3.5 pt-3 pb-2">{l.head}</div>
                     ) : (
-                      <span className="w-4 flex-none" />
-                    )}
-                    <div className="min-w-0 flex-1 py-3 pr-2">
-                      <NameCell
-                        name={name}
-                        row={l.row}
-                        narrow
-                        onOpen={open ? r.onOpen : undefined}
+                      <GroupFold
+                        label={l.label}
+                        color={l.color}
+                        stats={l.stats ?? statsOf([])}
+                        shut={!!p.group?.folded.has(l.key)}
+                        toggle={() => p.group?.toggle(l.key)}
                       />
-                      {r.going ? (
-                        <span className="mt-1 block">
-                          <Tag tone="accent" busy>
-                            {r.going}
-                          </Tag>
-                        </span>
-                      ) : null}
-                    </div>
-                    {side ? (
-                      <div className="max-w-[40%] flex-none truncate pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
-                        {side}
-                      </div>
-                    ) : null}
-                    <div className="flex size-11 flex-none items-center justify-center">
-                      {act ? (
-                        <RowActions
-                          lone
-                          title={name.title(l.row)}
-                          main={act.main}
-                          more={act.more}
-                          reply={act.reply}
-                          page={act.page}
-                          busy={act.busy}
-                          run={act.run}
-                        />
-                      ) : (
-                        (p.end?.(l.row) ?? null)
-                      )}
-                    </div>
-                  </SwipeRow>
+                    )}
+                  </li>
                 );
-              })}
-              {lines.after ? <li aria-hidden style={{ height: lines.after }} /> : null}
-            </>
-          )}
-        </ul>
-        {/* The artifact's phone foot: the count alone (Late and Oldest hide under 720px). */}
-        {!p.loading && rows && p.foot && !p.empty ? (
-          <div className="px-3.5 pt-[9px] pb-2.5 text-[12px] text-(--ui-ink-3) shadow-[inset_0_1px_0_var(--ui-hair)]">
-            {p.foot}
-          </div>
-        ) : null}
-      </>
+              if (l.kind === "box")
+                return (
+                  <li key={l.key} {...line} className="bg-(--ui-wash) px-4 py-3">
+                    {l.node}
+                  </li>
+                );
+              const r = rowOf(l);
+              const act = p.act?.(l.row);
+              const side = phoneCol?.cell(l.row, l.index);
+              // The page's own attributes (a mark, a drag, a focus hook) ride on the phone's row too.
+              // They are typed for a table row; an li takes the same events.
+              const { className: own, ...attrs } = (p.rowProps?.(l.row, l.index) ?? {}) as LiAttrs;
+              return (
+                <SwipeRow
+                  key={l.key}
+                  {...attrs}
+                  swipes={p.swipes?.(l.row) ?? null}
+                  data-row={l.index}
+                  data-index={n}
+                  measure={lines.measure}
+                  onTap={(e) => {
+                    // Its box, links and buttons do their own thing.
+                    if ((e.target as Element).closest("input, a, button, label")) return;
+                    r.onOpen();
+                  }}
+                  onAnimationEnd={(e) => {
+                    if (e.animationName === "ui-changed") p.onSettled?.();
+                  }}
+                  className={cn(
+                    // The artifact's row hairline (`.r+.r, .gh+.r`) stays on a phone.
+                    "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash) [li+&>[data-face]]:shadow-[inset_0_1px_0_var(--ui-hair)]",
+                    r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
+                    r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
+                    r.changed && "[&>[data-face]]:animate-ui-changed",
+                    r.going && "[&>[data-face]]:bg-(--ui-wash)",
+                    own,
+                  )}
+                >
+                  {pick ? (
+                    <label className="grid size-11 flex-none cursor-pointer place-items-center">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${name.title(l.row)}`}
+                        checked={r.picked}
+                        onChange={() => pick.toggle(l.key)}
+                      />
+                    </label>
+                  ) : (
+                    <span className="w-4 flex-none" />
+                  )}
+                  <div className="min-w-0 flex-1 py-3 pr-2">
+                    <NameCell name={name} row={l.row} narrow onOpen={open ? r.onOpen : undefined} />
+                    {r.going ? (
+                      <span className="mt-1 block">
+                        <Tag tone="accent" busy>
+                          {r.going}
+                        </Tag>
+                      </span>
+                    ) : null}
+                  </div>
+                  {side ? (
+                    <div className="max-w-[40%] flex-none truncate pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
+                      {side}
+                    </div>
+                  ) : null}
+                  <div className="flex size-11 flex-none items-center justify-center">
+                    {act ? (
+                      <RowActions
+                        lone
+                        title={name.title(l.row)}
+                        main={act.main}
+                        more={act.more}
+                        reply={act.reply}
+                        page={act.page}
+                        busy={act.busy}
+                        run={act.run}
+                      />
+                    ) : (
+                      (p.end?.(l.row) ?? null)
+                    )}
+                  </div>
+                </SwipeRow>
+              );
+            })}
+            {lines.after ? <li aria-hidden style={{ height: lines.after }} /> : null}
+          </>
+        )}
+      </ul>
     );
 
   return (
@@ -947,52 +911,25 @@ export function Rows<T>(p: RowsProps<T>) {
           </>
         )}
       </tbody>
-      {!p.loading && rows && (p.foot || totals) ? (
+      {!p.loading && rows && totals ? (
         <tfoot>
-          {totals ? (
-            <tr className="text-[12px] text-(--ui-ink-2)">
+          <tr className="text-[12px] text-(--ui-ink-2)">
+            <td className={TOTAL} />
+            <td className={TOTAL} />
+            {columns.map((c) => (
               <td
+                key={c.key}
                 className={cn(
-                  "sticky h-9 shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper)",
-                  p.foot ? "bottom-[34px]" : "bottom-0",
+                  TOTAL,
+                  "overflow-visible px-2.5 whitespace-nowrap",
+                  c.align === "end" ? "text-right" : "text-left",
                 )}
-              />
-              <td
-                className={cn(
-                  "sticky shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper)",
-                  p.foot ? "bottom-[34px]" : "bottom-0",
-                )}
-              />
-              {columns.map((c) => (
-                <td
-                  key={c.key}
-                  className={cn(
-                    "sticky truncate shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper) px-2.5",
-                    p.foot ? "bottom-[34px]" : "bottom-0",
-                    c.align === "end" ? "text-right" : "text-left",
-                  )}
-                >
-                  {c.total}
-                </td>
-              ))}
-              <td
-                className={cn(
-                  "sticky shadow-[inset_0_1px_0_var(--ui-hair)] bg-(--ui-paper)",
-                  p.foot ? "bottom-[34px]" : "bottom-0",
-                )}
-              />
-            </tr>
-          ) : null}
-          {p.foot ? (
-            <tr className="text-[12px] text-(--ui-ink-3)">
-              <td
-                colSpan={span}
-                className="sticky bottom-0 bg-(--ui-paper) shadow-[inset_0_1px_0_var(--ui-hair)] pt-[9px] pr-3.5 pb-2.5 pl-[38px] max-[900px]:pl-3.5"
               >
-                {p.foot}
+                {c.total}
               </td>
-            </tr>
-          ) : null}
+            ))}
+            <td className={TOTAL} />
+          </tr>
         </tfoot>
       ) : null}
     </table>

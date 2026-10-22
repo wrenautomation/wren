@@ -18,6 +18,7 @@ import type {
   RecordsStat,
   Row,
   StatsAsk,
+  Total,
 } from "@wren/core/records/serve";
 import { cn } from "cn";
 import {
@@ -82,7 +83,7 @@ import {
   widthOf,
 } from "./fields.js";
 import { FoldList, FoldPreview, foldOf } from "./fold.js";
-import { initials, linkLabel, num } from "./format.js";
+import { initials, linkLabel, money, num } from "./format.js";
 import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } from "./frame.js";
 import { clipProps, tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
@@ -126,13 +127,11 @@ import {
   Rows,
   type RowsAct,
   type RowsColumn,
-  RowsFoot,
   type RowsLine,
   type RowsName,
   type RowsPick,
   type RowsWait,
   stateColor,
-  statsOf,
   waitFrom,
 } from "./rows.js";
 import { SaveScope, useSavePage } from "./save/react.js";
@@ -140,7 +139,7 @@ import { recordKey } from "./save/writes.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 import { Sweep } from "./sweep.js";
 import { TabBar } from "./tab-bar.js";
-import { DataTable, type ListLine, useListTable } from "./table.js";
+import { DataTable, type ListLine, scrollerOf, useListTable } from "./table.js";
 import { sortTip } from "./view-says.js";
 
 /** The four record calls, bound to a workspace. */
@@ -986,8 +985,8 @@ const blank = (c: Cell | undefined) =>
 /** A canvas to measure words in the list's own font; null off a browser. */
 let pen: CanvasRenderingContext2D | null | undefined;
 /**
- * Words' width in characters of 7.2px, the unit the widths count in: measured in the page's
- * 13px font when there is one ("Companies" is 7, not 9), else one per character.
+ * Words' width in characters of 7.2px, the unit the widths count in: measured in the list's
+ * 14px font when there is one ("Companies" is 7.5, not 9), else one per character.
  */
 function lenOf(s: string): number {
   if (pen === undefined) {
@@ -999,7 +998,7 @@ function lenOf(s: string): number {
     }
   }
   if (!pen) return s.length;
-  pen.font = `13px ${getComputedStyle(document.body).fontFamily}`;
+  pen.font = `14px ${getComputedStyle(document.body).fontFamily}`;
   return pen.measureText(s).width / 7.2;
 }
 
@@ -1021,7 +1020,7 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
   if (Array.isArray(c)) return lenOf(c.join(", "));
   if (c && typeof c === "object") {
     if ("name" in c) return lenOf(c.name);
-    if ("amount" in c) return c.amount.toFixed(2).length + 3;
+    if ("amount" in c) return lenOf(money(c.amount, c.currency)) + 1;
     return `${c.n} of ${c.of}`.length;
   }
   return f.column?.align === "end" ? String(c).length + 3 : lenOf(String(c));
@@ -1036,14 +1035,19 @@ const maxOf = (f: FieldMeta) => Math.max(f.column?.max ?? 0, widthOf(f));
 /**
  * A column's width for the rows shown: what its head and its widest cell need, within its
  * kind's bounds. A column of "Post" stays narrow, so the title has the room; a firm's name or a
- * short state shows whole.
+ * short state shows whole. A figure's column also fits its head on one line and its sum.
  */
-export function fitOf(f: FieldMeta, rows: Row[]): number {
+export function fitOf(f: FieldMeta, rows: Row[], total?: Total): number {
   if (!rows.length) return widthOf(f);
-  // The head may take two lines: its longest word, or half of it, and room for the sort arrow.
+  // A word head may take two lines: its longest word, or half of it, and room for the sort arrow.
+  // A figure's head keeps one line beside its kind's icon.
   const words = f.label.split(/\s+/);
-  const head = Math.max(...words.map(lenOf), Math.ceil(lenOf(f.label) / 2)) + 3;
-  const chars = Math.max(head, ...rows.map((r) => charsOf(f, r[f.key])));
+  const head =
+    f.column?.align === "end"
+      ? lenOf(f.label) + 6
+      : Math.max(...words.map(lenOf), Math.ceil(lenOf(f.label) / 2)) + 3;
+  const sum = total && "sum" in total ? lenOf(money(total.sum, total.currency)) + 1 : 0;
+  const chars = Math.max(head, sum, ...rows.map((r) => charsOf(f, r[f.key])));
   return Math.min(maxOf(f), Math.max(64, pxOf(chars)));
 }
 
@@ -1053,8 +1057,14 @@ export function fitOf(f: FieldMeta, rows: Row[]): number {
  * share the room, so "Redis or Valkey" doesn't sit in half the table while its reason reads
  * "Costliest...".
  */
-export function widthsOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[], room?: number) {
-  const widths = sharedOf(meta, cols, rows);
+export function widthsOf(
+  meta: RecordMeta,
+  cols: FieldMeta[],
+  rows: Row[],
+  room?: number,
+  totals?: Record<string, Total>,
+) {
+  const widths = sharedOf(meta, cols, rows, totals);
   return room ? growRoom(meta, cols, rows, fitRoom(meta, cols, widths, room), room) : widths;
 }
 
@@ -1170,9 +1180,15 @@ export function fitRoom(
 }
 
 /** Each column's width for the rows alone, before the room is known. */
-function sharedOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
+function sharedOf(
+  meta: RecordMeta,
+  cols: FieldMeta[],
+  rows: Row[],
+  totals?: Record<string, Total>,
+) {
   const widths: Record<string, number | undefined> = {};
-  for (const f of cols) widths[f.key] = f.key === meta.title ? undefined : fitOf(f, rows);
+  for (const f of cols)
+    widths[f.key] = f.key === meta.title ? undefined : fitOf(f, rows, totals?.[f.key]);
   const title = cols.find((f) => f.key === meta.title);
   // A title with a message under it keeps the room: the message is what the row is.
   const previews = meta.fields.some((f) => f.key === meta.subtitle && f.kind === "prose");
@@ -1402,13 +1418,15 @@ function List({
     },
     [scroller],
   );
+  // The rows scroll with the page: the shell's scroller, or the window on a phone.
+  const pageScroller = useMemo(() => (frameEl ? scrollerOf(frameEl) : null), [frameEl]);
   // A new page starts at the top of the list, not wherever the pager was pressed.
   const was = useRef(at);
   useEffect(() => {
     if (was.current === at) return;
     was.current = at;
-    frame.current?.scrollTo?.(0, 0);
-    frame.current?.scrollIntoView({ block: "nearest" });
+    const el = frame.current;
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
   }, [at]);
   // A page past the end (rows left since the link was made) lands on the last one.
   // biome-ignore lint/correctness/useExhaustiveDependencies: place changes every render.
@@ -1416,7 +1434,7 @@ function List({
     if (page.data && at > pages)
       place.go(place.link({ pg: pages > 1 ? String(pages) : null }), true);
   }, [page.data, at, pages]);
-  const widths = widthsOf(meta, cols, rows, narrow ? undefined : room);
+  const widths = widthsOf(meta, cols, rows, narrow ? undefined : room, totals);
   const saved = useSavedViews(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
@@ -1758,7 +1776,6 @@ function List({
       run: (a) => rowRun(a, r),
     };
   };
-  const foot = <RowsFoot stats={statsOf(rows.map(waitOf))} waits={!!late?.promise} />;
   /** The peek's pieces, from the same row actions and reply box the row uses; none: the whole record. */
   const peeked: PeekWire | undefined =
     peek === false
@@ -1856,19 +1873,13 @@ function List({
       />
 
       {
-        // The artifact's `.nt`: one raised panel, its tools (`.nt-top`) over the rows. The last
-        // row drops its rule, which the panel's rim draws. A phone's rows scroll with the page.
-        // A peek docks at its right (`.nt-pk`): the two halves share one rim.
-        // min-w-0: a grid item's least width is its table's, which pushed the panel past the page
+        // A flat list (William, 10-21): its tools over the rows, on the page, no panel and no
+        // scroll of its own. The page scrolls the rows. A peek docks at its right and stays in view.
+        // min-w-0: a grid item's least width is its table's, which pushed the list past the page
         // and fed the room measure its own overflow.
-        <div className={cn("min-w-0", docked && "grid grid-cols-2")}>
-          <div
-            className={cn(
-              "overflow-clip bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0",
-              docked ? "min-w-0 [border-radius:6px_0_0_24px]" : "rounded-(--ui-radius-panel)",
-            )}
-          >
-            <div className="px-3.5 pt-2.5 pb-2">
+        <div className={cn("min-w-0", docked && "grid grid-cols-2 items-start gap-4")}>
+          <div className={cn("min-w-0", "[&_tbody>tr:last-child]:border-b-0")}>
+            <div className="pb-2">
               <ListBar
                 meta={meta}
                 place={place}
@@ -1895,23 +1906,17 @@ function List({
                       clear={() => setPicked(new Set())}
                     />
                   ) : (
-                    // The count reads in the rows' foot (artifact `.ft`), not here.
                     busy
                   )
                 }
               />
             </div>
             {page.error && !page.data ? (
-              <div className="px-3.5 pb-3.5">
+              <div className="pb-3.5">
                 <LoadFailed error={page.error} onRetry={page.retry} />
               </div>
             ) : (
-              <div
-                ref={frameRef}
-                // A wide table scrolls sideways in its panel, on purpose (look.ts).
-                data-look-scroll
-                className={cn(!narrow && "max-h-[calc(100dvh-320px)] overflow-auto")}
-              >
+              <div ref={frameRef}>
                 <Rows
                   label={many}
                   noun={meta.name.one}
@@ -1938,9 +1943,8 @@ function List({
                   }}
                   onSettled={() => setChanged(new Set())}
                   wait={late?.promise ? waitOf : undefined}
-                  foot={foot}
                   group={grouped ? { folded, toggle: toggleGroup } : undefined}
-                  scroller={frameEl}
+                  scroller={pageScroller}
                   narrow={narrow}
                   swipes={(r) =>
                     withReply(
@@ -2329,9 +2333,8 @@ export function Panel({
       className={cn(
         ROOT,
         docked
-          ? // The artifact's `.pk`: the panel's right half, a grid cell, so the taller half sets
-            // the height of both.
-            "flex min-w-0 flex-col overflow-clip bg-(--ui-paper) [border-radius:0_24px_6px_0] shadow-[var(--ui-raise),-1px_0_0_var(--ui-hair)]"
+          ? // Beside the flat list: a raised panel that stays in view while the page scrolls the rows.
+            "sticky top-4 flex min-w-0 flex-col overflow-clip rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise)"
           : // Off a phone it floats: inset from the edges, a sheet's corners, clipped to them.
             "fixed inset-y-0 right-0 z-40 flex w-full flex-col bg-(--ui-paper) shadow-(--ui-shadow) sm:inset-y-2 sm:right-2 sm:w-[560px] sm:overflow-clip sm:rounded-(--ui-leaf-sheet)",
       )}

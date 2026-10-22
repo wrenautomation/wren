@@ -385,7 +385,6 @@ export {
   Rows,
   type RowsAct,
   type RowsColumn,
-  RowsFoot,
   type RowsLine,
   type RowsName,
   type RowsPick,

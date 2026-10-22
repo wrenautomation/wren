@@ -8,7 +8,7 @@ import { initials } from "./format.js";
 import { useNarrow } from "./list-bar.js";
 import { lineColor } from "./marks.js";
 import { RecordList } from "./records.js";
-import { Age, Rows, RowsFoot, type RowsLine, type RowsWait, statsOf } from "./rows.js";
+import { Age, Rows, type RowsLine, type RowsWait } from "./rows.js";
 
 export default { title: "Rows", parameters: { layout: "fullscreen" } } satisfies Meta;
 
@@ -77,7 +77,6 @@ function Host({
     for (const p of PEOPLE.filter((x) => x.stage === stage.key))
       lines.push({ kind: "row", key: p.id, index: index++, row: p });
   }
-  const waits = PEOPLE.map(waitOf);
   return (
     <div className="p-4 sm:p-6">
       <p className="mb-2 text-[13px]">
@@ -142,7 +141,6 @@ function Host({
           })}
           open={opens ? { id: openId, onOpen: (p) => setOpenId(p.id) } : undefined}
           wait={wait ? waitOf : undefined}
-          foot={<RowsFoot stats={statsOf(wait ? waits : PEOPLE.map(() => null))} waits={wait} />}
           group={
             groups
               ? {
@@ -176,26 +174,19 @@ export const Grouped: Story = {
   render: () => <Host groups />,
 };
 
-/** A wait column with a promise: the late row reads amber and the foot counts it. */
+/** A wait column with a promise: the late row reads amber. */
 export const Late: Story = {
   render: () => <Host wait />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
-    // One person is past 24 hours; the foot's "Oldest" word is not a wait.
+    // One person is past 24 hours.
     const late = canvasElement.querySelectorAll("[data-late]");
     await expect(late).toHaveLength(1);
     await expect(late[0]).toHaveTextContent("2 days");
     await expect(getComputedStyle(late[0] as Element).fontWeight).toBe("600");
     // An on-time wait stays quiet.
     await expect(canvas.getByText("20 hours")).not.toHaveAttribute("data-late");
-    // A phone has no foot.
-    if (isWide(canvasElement)) {
-      const foot = canvas.getByTitle("Of the rows on this page");
-      await expect(foot).toHaveTextContent("Count 5");
-      await expect(foot).toHaveTextContent("Late 1");
-      await expect(foot).toHaveTextContent("Oldest 2 days");
-    }
   },
 };
 

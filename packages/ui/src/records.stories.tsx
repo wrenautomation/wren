@@ -56,7 +56,7 @@ export const RowsFailed: Story = {
   render: () => <Page list="fails" />,
 };
 
-/** A page that watches a wait: its field draws as one, rows past the promise read late, the foot counts them. */
+/** A page that watches a wait: its field draws as one, rows past the promise read late. */
 export const Late: Story = {
   render: () => <Page at="view=waiting" late={{ field: "seen", promise: "24h" }} />,
   play: async ({ canvasElement }) => {
@@ -64,12 +64,6 @@ export const Late: Story = {
     await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
     // Six leads wait, each last seen days ago: all six are past 24 hours.
     await expect(canvasElement.querySelectorAll("[data-late]")).toHaveLength(6);
-    // A phone has no foot.
-    if (canvas.queryByRole("table")) {
-      const foot = canvas.getByTitle("Of the rows on this page");
-      await expect(foot).toHaveTextContent("Count 6");
-      await expect(foot).toHaveTextContent("Late 6");
-    }
   },
 };
 

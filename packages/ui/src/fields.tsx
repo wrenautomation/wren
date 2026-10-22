@@ -313,17 +313,15 @@ function Actor({ value }: { value: string }) {
 }
 
 /**
- * Whether a column's footer has news: a sum, a rate, or rows that are missing it. "All filled",
- * "100% empty", the most common state and the newest date say nothing the rows above and the
- * view's counts don't, so the footer leaves them out.
+ * Whether a column's footer has news: a sum or a rate. How many rows miss a field, the most common
+ * state and the newest date say nothing the rows above and the view's counts don't (William, 10-21:
+ * "100% empty" was clutter), so the footer leaves them out.
  */
 export function totalSays(f: FieldMeta, t: Total | undefined): boolean {
   if (!t) return false;
   if ("sum" in t) return true;
-  if ("newest" in t || "most" in t) return false;
-  if (f.kind === "rate" || f.kind === "verdict") return t.of > 0;
-  const empty = t.of - t.n;
-  return empty > 0 && empty < t.of;
+  if (f.kind === "rate" || f.kind === "verdict") return "of" in t && t.of > 0;
+  return false;
 }
 
 /**
@@ -355,22 +353,7 @@ export function FieldTotal({
   const may = (op: Op) => f.ops.includes(op);
   if ("sum" in t)
     return link(money(t.sum, t.currency), may("empty") ? { [f.key]: "+" } : null, "Sum");
-  if ("newest" in t) {
-    const d = dateOf(t.newest);
-    return d
-      ? link(
-          `Newest ${relative(d)}`,
-          f.sortable ? { sort: `-${f.key}` } : null,
-          whenTip(d, relative(d)),
-        )
-      : null;
-  }
-  if ("most" in t)
-    return link(
-      `${stateOf(f, t.most).label} ${pct(t.n / t.of)}`,
-      may("in") ? { [f.key]: t.most } : null,
-      `Most common: ${num(t.n)} of ${num(t.of)}`,
-    );
+  if (!("of" in t) || "most" in t) return null;
   if (f.kind === "rate")
     return link(
       t.of < FEW ? quiet(`${num(t.n)} of ${num(t.of)}`) : pct(t.n / t.of),
@@ -379,21 +362,11 @@ export function FieldTotal({
         ? "All rows, too few to tell"
         : `All rows: ${num(t.n)} of ${num(t.of)}, likely ${range(t.n, t.of)}`,
     );
-  if (f.kind === "verdict")
-    return link(
-      `${pct(t.n / t.of)} valid`,
-      may("in") ? { [f.key]: "valid" } : null,
-      `${num(t.n)} of ${num(t.of)}`,
-    );
-  // Text: what's missing is the news, so the figure opens the empty rows.
-  const empty = t.of - t.n;
-  return empty
-    ? link(
-        `${pct(empty / t.of)} empty`,
-        may("empty") ? { [f.key]: "-" } : null,
-        `${num(empty)} of ${num(t.of)} empty`,
-      )
-    : quiet("All filled");
+  return link(
+    `${pct(t.n / t.of)} valid`,
+    may("in") ? { [f.key]: "valid" } : null,
+    `${num(t.n)} of ${num(t.of)}`,
+  );
 }
 
 const range = (n: number, of: number) => {
