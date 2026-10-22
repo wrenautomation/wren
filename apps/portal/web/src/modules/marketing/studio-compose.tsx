@@ -3,10 +3,17 @@
  * thread) has its line and angle chips, the words, and each platform's version side by side with
  * how it fits, checked as he types by the server's own rules in `@wren/content/write`. A carousel,
  * a story and a blog post keep their own boxes. The words stay in the edits store until sent.
- * The line and the angle are his notes for now: the write call does not take them.
+ * The line and the angle go with the words and stay on the idea: the waiting board shows the line.
  */
 
-import { ownDraftOf, ownThreadOf, PLATFORM_SPECS, splitPosts } from "@wren/content/write";
+import {
+  IDEA_ANGLES,
+  type IdeaAngle,
+  ownDraftOf,
+  ownThreadOf,
+  PLATFORM_SPECS,
+  splitPosts,
+} from "@wren/content/write";
 import type { Platform } from "@wren/core/content";
 import { THREAD_MAX, THREAD_MIN, threadPosts, X_POST_MAX } from "@wren/core/content/thread";
 import type { MetroLine } from "@wren/pipeline/metro";
@@ -44,9 +51,6 @@ import {
 } from "./studio-common.js";
 import { CARD, EYEBROW } from "./studio-due.js";
 import { LineMark } from "./studio-lines.js";
-
-/** The angles a post can take: his note on how it argues. */
-const ANGLES = ["Proof", "Contrarian", "How I do it", "Story"] as const;
 
 type Go = "draft" | "slot" | "now";
 interface WriteResult {
@@ -261,6 +265,8 @@ function PostBox(
         ...(ai ? { adapt: true } : {}),
         ...(thread ? { thread: true } : {}),
         ...(about ? { from: about.from } : {}),
+        ...(line ? { line } : {}),
+        ...(angle ? { angle: angle as IdeaAngle } : {}),
         go,
       });
       setSaid(summary(out.posts, go));
@@ -319,7 +325,7 @@ function PostBox(
           {thread ? null : (
             <div className="flex flex-wrap items-center gap-1.5 border-(--ui-hair) border-b px-3.5 py-2.5">
               <span className="mr-1.5 text-[12px] font-semibold text-(--ui-ink-3)">Angle</span>
-              {ANGLES.map((a) => (
+              {IDEA_ANGLES.map((a) => (
                 <Chip key={a} on={angle === a} onClick={() => pick("angle", a, angle)}>
                   {a}
                 </Chip>

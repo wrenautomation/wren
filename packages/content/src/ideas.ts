@@ -2,6 +2,13 @@ import type { Media } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { type ContentIdea, contentIdeas, type IdeaSource, type IdeaStatus } from "./schema.js";
+import type { IdeaAngle } from "./write.js";
+
+/** His notes on an idea from Studio: the offer line it serves and how it argues. */
+export interface IdeaMark {
+  line?: string | null;
+  angle?: IdeaAngle | null;
+}
 
 /**
  * Insert one idea. Blank text is refused so nothing is ever drafted from nothing. `ref` hangs it
@@ -13,12 +20,20 @@ export async function addIdea(
   source: IdeaSource,
   media: Media | null = null,
   ref: string | null = null,
+  mark: IdeaMark = {},
 ): Promise<ContentIdea> {
   const trimmed = text.trim();
   if (trimmed === "") throw new Error("idea text is empty");
   const [row] = await db
     .insert(contentIdeas)
-    .values({ text: trimmed, source, media, ref })
+    .values({
+      text: trimmed,
+      source,
+      media,
+      ref,
+      line: mark.line ?? null,
+      angle: mark.angle ?? null,
+    })
     .returning();
   if (!row) throw new Error("insert returned no row");
   return row;

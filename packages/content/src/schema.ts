@@ -35,6 +35,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { IDEA_ANGLES } from "./write.js";
 
 export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
@@ -80,6 +81,10 @@ export const contentIdeas = pgTable(
     status: varchar("status", { length: 16, enum: IDEA_STATUSES }).notNull().default("open"),
     /** What the planner made it from (`build_log:<day>`, `comment:<id>`), so it is made once; null for a person's. */
     ref: varchar("ref", { length: 200 }),
+    /** The offer line it serves: a line id in the workspace's shape. Null = none named. */
+    line: varchar("line", { length: 64 }),
+    /** How it argues (`IDEA_ANGLES`). Null = none named. */
+    angle: varchar("angle", { length: 16, enum: IDEA_ANGLES }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_content_ideas" }),
@@ -87,6 +92,7 @@ export const contentIdeas = pgTable(
     unique("uq_content_ideas_ref").on(t.ref),
     oneOf("ck_content_ideas_source", t.source, IDEA_SOURCES),
     oneOf("ck_content_ideas_status", t.status, IDEA_STATUSES),
+    oneOf("ck_content_ideas_angle", t.angle, IDEA_ANGLES),
   ],
 );
 
