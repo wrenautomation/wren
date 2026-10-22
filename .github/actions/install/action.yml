@@ -1,0 +1,21 @@
+name: install
+description: Node, pnpm and node_modules. A lockfile seen before restores node_modules and skips the install.
+# 10-22: the pnpm store cache (754 MB) took ~7 s to restore and the install ~10 s more to link.
+# node_modules keyed on the lockfile skips the link. A new lockfile installs from the network once.
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v5
+      with: { node-version-file: .node-version }
+    - id: modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules
+          apps/*/node_modules
+          packages/*/node_modules
+        key: modules-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.node-version', 'pnpm-lock.yaml') }}
+    - if: steps.modules.outputs.cache-hit != 'true'
+      run: pnpm install --frozen-lockfile
+      shell: bash

@@ -22,10 +22,7 @@ jobs:
       TURBO_TEAM: wren
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with: { node-version-file: .node-version, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/install
       - run: ./scripts/gates.sh ${{ matrix.gate }}
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"

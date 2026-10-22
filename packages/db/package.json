@@ -17,6 +17,7 @@
     "migrate": "tsx src/migrate-cli.ts",
     "check": "drizzle-kit check",
     "test:integration": "vitest run test/integration",
+    "test:schema": "vitest run test/integration/schema.test.ts",
     "test:unit": "vitest run src"
   },
   "dependencies": {

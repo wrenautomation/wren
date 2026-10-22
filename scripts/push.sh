@@ -54,7 +54,7 @@ dep=d[0]['c'] if d and d[0]['s']=='completed' else ('none' if ci not in ('pendin
 print(ci, dep or 'pending')")
   set -- $out
   [ "$1" = pending ] || [ "$2" = pending ] || break
-  sleep 10
+  sleep 5
 done
 echo "RESULT $sha ci=$1 deploy=$2"
 [ "$2" = success ]
