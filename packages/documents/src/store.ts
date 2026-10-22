@@ -6,7 +6,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { clients } from "@wren/core/clients";
 import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
-import { atomic, type Db, type Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
 import { type AnyColumn, and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   depositOf as depositShare,
@@ -19,17 +19,20 @@ import {
 } from "./lines.js";
 import {
   DOC_KINDS,
+  DOC_SIGNINGS,
   type Doc,
   type DocChannel,
   type DocEventType,
   type DocKind,
   type DocLine,
+  type DocSigning,
   type DocStatus,
   type DocTemplate,
   docCounters,
   docEvents,
   docs,
   docTemplates,
+  type SealedFiles,
 } from "./schema.js";
 
 export * from "./lines.js";
@@ -67,6 +70,12 @@ export const isKind = (v: unknown): v is DocKind => DOC_KINDS.includes(v as DocK
 /** The consent box's words. A change to them is a new version. */
 export const CONSENT_VERSION = "2026-10-09";
 export const CONSENT_WORDS = "I agree to sign electronically. Typing my name is my signature.";
+/** The line printed in a sealed document, above the signature. A change to it is a new version. */
+export const SEALED_CONSENT_VERSION = "2026-10-21";
+export const SEALED_CONSENT_WORDS =
+  "By signing I agree to use electronic records and an electronic signature. My signature here has the same effect as a handwritten one. I can keep a copy and ask for a paper one.";
+
+export const isSigning = (v: unknown): v is DocSigning => DOC_SIGNINGS.includes(v as DocSigning);
 
 /** Statuses a recipient can still act on. */
 export const OPEN: readonly DocStatus[] = ["sent", "viewed"];
@@ -404,6 +413,7 @@ export interface NewDoc {
   email?: string | null;
   contact?: number | null;
   channel?: DocChannel | null;
+  signing?: DocSigning | null;
   /** Slot values, filled into the words and line names now. */
   facts?: Readonly<Record<string, string>>;
   by: string;
@@ -487,6 +497,7 @@ export async function makeDoc(main: Db, n: NewDoc): Promise<Doc> {
         lines: filled,
         contact: n.contact ?? null,
         channel,
+        signing: n.signing ?? "own",
         expiresDays: n.expiresDays !== undefined ? daysOf(n.expiresDays) : (t?.expiresDays ?? 30),
         createdAt: n.now,
         createdBy: n.by,
@@ -522,6 +533,7 @@ export interface DocPatch {
   email?: unknown;
   contact?: number | null | undefined;
   channel?: unknown;
+  signing?: unknown;
   /** The version the editor opened on; a change since refuses. */
   expect?: unknown;
 }
@@ -584,6 +596,7 @@ export async function editDoc(
       email,
       ...(contact !== undefined ? { contact } : {}),
       channel,
+      ...(isSigning(p.signing) ? { signing: p.signing } : {}),
       status: "draft",
       why: null,
       updatedAt: now,
@@ -619,6 +632,8 @@ export function sendBlocker(d: Doc): string | null {
   if (d.kind !== "contract" && !d.lines.length) return "Add a line item first";
   if (d.channel === "email" && !d.email) return "Add their email first";
   if (d.channel === "sms" && !d.contact) return "Pick their text thread first";
+  // The signing page of a sealed document is made for one email address.
+  if (d.signing === "sealed" && !d.email) return "Add their email first: the signing page needs it";
   if (!d.title.trim()) return "Give it a title first";
   return null;
 }
@@ -631,12 +646,21 @@ export async function askSend(
   main: Db,
   client: string,
   id: string,
-  a: { facts: Readonly<Record<string, string>>; by: string; approved: boolean; now: Date },
+  a: {
+    facts: Readonly<Record<string, string>>;
+    by: string;
+    approved: boolean;
+    /** The e-signature provider is set up: a sealed document may go. */
+    sealedOn?: boolean;
+    now: Date;
+  },
 ): Promise<Doc> {
   return atomic(main, async (tx) => {
     const d = await docOf(tx, client, id);
     if (d.status !== "draft" && d.status !== "failed")
       throw new DocRefusal("it's already on its way or done", 409);
+    if (d.signing === "sealed" && !a.sealedOn)
+      throw new DocRefusal("E-signature is not set up here. An admin turns it on.", 409);
     const facts = factsFor(d, a.facts);
     const filled = {
       ...d,
@@ -695,16 +719,19 @@ export async function declineDocs(
   return rows.length;
 }
 
-/** Called off by the client: the link stops working. A signed one stays signed. */
+/**
+ * Called off by the client: the link stops working. A signed one stays signed. Returns the ones
+ * called off, with the provider's envelope when there is one: it must be cancelled too.
+ */
 export async function voidDocs(
   main: Db,
   client: string,
   ids: readonly string[],
   by: string,
   now: Date,
-): Promise<number> {
+): Promise<Array<{ id: string; envelopeId: string | null }>> {
   const good = ids.filter((id) => UUID.test(id));
-  if (!good.length) return 0;
+  if (!good.length) return [];
   return atomic(main, async (tx) => {
     const rows = await tx
       .update(docs)
@@ -712,9 +739,9 @@ export async function voidDocs(
       .where(
         and(eq(docs.client, client), inArray(docs.id, good), inArray(docs.status, [...VOIDABLE])),
       )
-      .returning({ id: docs.id });
+      .returning({ id: docs.id, envelopeId: docs.envelopeId });
     for (const r of rows) await addEvent(tx, r.id, "voided", { by, at: now });
-    return rows.length;
+    return rows;
   });
 }
 
@@ -747,22 +774,57 @@ export async function duplicateDoc(
 }
 
 /**
+ * The expiry set and the fingerprint frozen on the first send; a later one keeps both. A sealed
+ * document has no expiry here: the provider's signing page has its own.
+ */
+async function freeze(tx: Tx, id: string, now: Date, tokenHash?: string): Promise<Doc> {
+  const [d] = await tx.select().from(docs).where(eq(docs.id, id)).for("update");
+  if (!d) throw new DocRefusal("no such document", 404);
+  const expiresAt =
+    d.signing === "sealed"
+      ? null
+      : (d.expiresAt ?? new Date(now.getTime() + d.expiresDays * 86_400_000));
+  const sha = d.sha256 ?? shaOf({ ...d, expiresAt });
+  const [row] = await tx
+    .update(docs)
+    .set({ ...(tokenHash ? { tokenHash } : {}), expiresAt, sha256: sha, updatedAt: now })
+    .where(eq(docs.id, id))
+    .returning();
+  return row as Doc;
+}
+
+/**
  * The link for a send or a reminder: a new token each time, so an older link stops working.
  * The first send sets the expiry and freezes the fingerprint.
  */
 export async function issueLink(main: Db, id: string, now: Date): Promise<string> {
   const { token, hash } = newToken();
-  await atomic(main, async (tx) => {
-    const [d] = await tx.select().from(docs).where(eq(docs.id, id)).for("update");
-    if (!d) throw new DocRefusal("no such document", 404);
-    const expiresAt = d.expiresAt ?? new Date(now.getTime() + d.expiresDays * 86_400_000);
-    const sha = d.sha256 ?? shaOf({ ...d, expiresAt });
-    await tx
-      .update(docs)
-      .set({ tokenHash: hash, expiresAt, sha256: sha, updatedAt: now })
-      .where(eq(docs.id, id));
-  });
+  await atomic(main, (tx) => freeze(tx, id, now, hash));
   return token;
+}
+
+/** A sealed document's first send: the same freeze, and no link (the provider has the signing page). */
+export const freezeDoc = (main: Db, id: string, now: Date): Promise<Doc> =>
+  atomic(main, (tx) => freeze(tx, id, now));
+
+/**
+ * The provider's envelope for a document, kept once. `was` is the envelope it held before this
+ * send (null for the first): a repeat of the same call finds the new one in place. Returns the one
+ * the document holds, which differs from `envelopeId` when two calls raced.
+ */
+export async function keepEnvelope(
+  main: Db,
+  id: string,
+  envelopeId: string,
+  now: Date,
+  was: string | null = null,
+): Promise<string> {
+  await main
+    .update(docs)
+    .set({ envelopeId, updatedAt: now })
+    .where(and(eq(docs.id, id), sql`${docs.envelopeId} is not distinct from ${was}`));
+  const d = await docById(main, id);
+  return d?.envelopeId ?? envelopeId;
 }
 
 /** Out: the text queued, or the email gone. A reminder keeps the status it had. */
@@ -875,7 +937,8 @@ export interface Signing extends Visit {
 
 /** Signed by a typed name, an email and the consent box, on the text the page showed. */
 export async function signDoc(main: Db, d: Doc, s: Signing): Promise<Doc> {
-  if (!OPEN.includes(d.status as DocStatus)) throw new DocRefusal("This can't be signed now", 409);
+  if (!OPEN.includes(d.status as DocStatus) || d.signing === "sealed")
+    throw new DocRefusal("This can't be signed now", 409);
   const name = String(s.name ?? "")
     .trim()
     .replace(/\s+/g, " ");
@@ -920,7 +983,7 @@ export async function signDoc(main: Db, d: Doc, s: Signing): Promise<Doc> {
 
 /** Declined by the recipient, with a reason if they gave one. */
 export async function declineDoc(main: Db, d: Doc, v: Visit & { why?: unknown }): Promise<Doc> {
-  if (!OPEN.includes(d.status as DocStatus))
+  if (!OPEN.includes(d.status as DocStatus) || d.signing === "sealed")
     throw new DocRefusal("This can't be declined now", 409);
   const why =
     String(v.why ?? "")
@@ -942,6 +1005,90 @@ export async function declineDoc(main: Db, d: Doc, v: Visit & { why?: unknown })
     });
     return row;
   });
+}
+
+// ---- Sealed documents: what the provider says ----
+
+/**
+ * Statuses a sealed document can still be signed from. The signer signed on the provider's page,
+ * so a late signature counts: it is a fact, not a request. A document called off meanwhile and
+ * one past its date still become signed when the envelope completes.
+ */
+const SIGNABLE_SEALED: readonly DocStatus[] = [...OPEN, "expired", "void"];
+
+export interface SealedSigner {
+  name: string | null;
+  email: string | null;
+  at: Date;
+}
+
+/** The envelope completed: the document is signed, and the sealed files are where it keeps them. */
+export async function sealSigned(
+  main: Db,
+  d: Doc,
+  s: { signer: SealedSigner; files: SealedFiles; now: Date },
+): Promise<Doc | null> {
+  return atomic(main, async (tx) => {
+    const [row] = await tx
+      .update(docs)
+      .set({
+        status: "signed",
+        signedAt: s.signer.at,
+        signerName: s.signer.name?.slice(0, 200) ?? d.name,
+        signerEmail: s.signer.email?.toLowerCase().slice(0, 200) ?? d.email,
+        consentVersion: SEALED_CONSENT_VERSION,
+        sealed: s.files,
+        updatedAt: s.now,
+      })
+      .where(and(eq(docs.id, d.id), inArray(docs.status, [...SIGNABLE_SEALED])))
+      .returning();
+    if (!row) return null;
+    await addEvent(tx, d.id, "signed", {
+      by: "documenso",
+      at: s.signer.at,
+      note: `${row.signerName ?? ""} <${row.signerEmail ?? ""}>${d.status === "void" ? " (after it was called off)" : ""}`.trim(),
+    });
+    return row;
+  });
+}
+
+/** The signer refused on the provider's page. */
+export async function sealedRejected(
+  main: Db,
+  d: Doc,
+  s: { why: string | null; now: Date },
+): Promise<Doc | null> {
+  return atomic(main, async (tx) => {
+    const why = s.why?.trim().slice(0, 1000) || null;
+    const [row] = await tx
+      .update(docs)
+      .set({ status: "declined", declinedAt: s.now, declinedWhy: why, updatedAt: s.now })
+      .where(and(eq(docs.id, d.id), inArray(docs.status, [...OPEN])))
+      .returning();
+    if (!row) return null;
+    await addEvent(tx, d.id, "declined", { by: "documenso", at: s.now, note: why });
+    return row;
+  });
+}
+
+/** The envelope was cancelled on the provider's side (the client's own void is already done). */
+export async function sealedCancelled(main: Db, d: Doc, now: Date): Promise<Doc | null> {
+  return atomic(main, async (tx) => {
+    const [row] = await tx
+      .update(docs)
+      .set({ status: "void", updatedAt: now })
+      .where(and(eq(docs.id, d.id), inArray(docs.status, [...OPEN])))
+      .returning();
+    if (!row) return null;
+    await addEvent(tx, d.id, "voided", { by: "documenso", at: now });
+    return row;
+  });
+}
+
+/** The document an envelope belongs to. */
+export async function docByEnvelope(main: Queryable, envelopeId: string): Promise<Doc | null> {
+  const [row] = await main.select().from(docs).where(eq(docs.envelopeId, envelopeId));
+  return row ?? null;
 }
 
 /**

@@ -36,6 +36,27 @@ export const DOC_CHANNELS = ["email", "sms"] as const;
 export type DocChannel = (typeof DOC_CHANNELS)[number];
 
 /**
+ * How a document is signed (designs/2026-10-21-esign-and-newsletter.md). own: the typed name on
+ * Wren's page. sealed: Documenso signs and seals the PDF; Wren keeps the sealed copy and the
+ * audit certificate.
+ */
+export const DOC_SIGNINGS = ["own", "sealed"] as const;
+export type DocSigning = (typeof DOC_SIGNINGS)[number];
+
+/** The sealed files of a signed document, as keys in the files bucket. */
+export interface SealedFiles {
+  /** The PDF with the signature, sealed by the provider's certificate. */
+  pdf: string;
+  /** The provider's signing certificate (who, when, from where). */
+  certificate: string;
+  /** The provider's audit log of every step. */
+  audit: string;
+  /** SHA-256 of the sealed PDF's bytes, hex. */
+  sha256: string;
+  at: string;
+}
+
+/**
  * draft: being written. waiting: Send asked, on a yes. sending: yes given, the message on its
  * way. sent: out. viewed: opened. signed, declined, expired: done. void: called off by the client.
  * failed: the send refused (`why`); it can be sent again.
@@ -128,6 +149,12 @@ export const docs = pgTable(
     /** Their texting thread: `sms_contacts.id` in the client's database. */
     contact: integer("contact"),
     channel: varchar("channel", { length: 8 }).notNull().default("email"),
+    /** How it is signed; set when Send is asked. */
+    signing: varchar("signing", { length: 8 }).notNull().default("own"),
+    /** The provider's envelope, made when a sealed document goes out. */
+    envelopeId: varchar("envelope_id", { length: 40 }),
+    /** Where the sealed copy and the audit certificate are kept; null until signed. */
+    sealed: jsonb("sealed").$type<SealedFiles>(),
     status: varchar("status", { length: 8 }).notNull().default("draft"),
     why: text("why"),
     /** SHA-256 of the link's token, hex; the token itself is never kept. */
@@ -161,6 +188,7 @@ export const docs = pgTable(
     index("ix_docs_client_created").on(t.client, t.createdAt),
     uniqueIndex("uq_docs_number").on(t.client, t.number),
     uniqueIndex("uq_docs_token").on(t.tokenHash),
+    uniqueIndex("uq_docs_envelope").on(t.envelopeId).where(sql`${t.envelopeId} is not null`),
     index("ix_docs_status").on(t.status),
     index("ix_docs_template").on(t.template),
     foreignKey({
@@ -175,6 +203,7 @@ export const docs = pgTable(
     }).onDelete("set null"),
     oneOf("ck_docs_kind", t.kind, DOC_KINDS),
     oneOf("ck_docs_channel", t.channel, DOC_CHANNELS),
+    oneOf("ck_docs_signing", t.signing, DOC_SIGNINGS),
     oneOf("ck_docs_status", t.status, DOC_STATUSES),
     check("ck_docs_totals", sql`${t.totalCents} = ${t.subtotalCents} + ${t.taxCents}`),
     check(

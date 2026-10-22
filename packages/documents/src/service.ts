@@ -6,6 +6,10 @@
  *   window). `remind` sends the same again with a new link; the old one stops working.
  * - `serve`, `act`, `pdf`, `deposit`: the signing page's calls, as the portal Worker passes them
  *   at `/o/d/<token>`. No sign-in: the token is the key, and only its SHA-256 is kept.
+ * - A sealed document (`signing: "sealed"`) is signed on Documenso's page instead
+ *   (designs/2026-10-21-esign-and-newsletter.md). `send` makes the envelope and mails its link.
+ *   `signed` hears Documenso's webhooks: opened, completed (the sealed PDF, certificate and audit
+ *   log are kept in the files bucket), rejected, cancelled. `cancel` calls an envelope off.
  *
  * Opened, signed and declined each tell the spine (`trigger.document`), so workflows and the
  * webhooks out hear them. A deposit is a pay link made on the client's Stripe key when the
@@ -34,29 +38,43 @@ import { stripeApi } from "@wren/payments/stripe";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DOCUMENTS } from "./components.js";
-import { docPdf } from "./pdf.js";
+import { type Documenso, DocumensoError, eventOf } from "./documenso.js";
+import { docPdf, sealedPdf } from "./pdf.js";
 import { docPage, lookOf, type PageCtx, shutPage } from "./render.js";
-import type { Doc, DocKind } from "./schema.js";
+import type { Doc, DocKind, SealedFiles } from "./schema.js";
 import {
   DocRefusal,
   declineDoc,
+  docByEnvelope,
   docById,
   docByToken,
   docEventsOf,
   docPath,
+  freezeDoc,
   issueLink,
   KIND_NAME,
+  keepEnvelope,
   keepPayLink,
   markFailed,
   markSent,
   money,
   remindable,
+  sealedCancelled,
+  sealedRejected,
+  sealSigned,
   seeDoc,
   signDoc,
 } from "./store.js";
 
 /** Mail from the client's name. */
 export type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;
+
+/** The files bucket as Documents uses it: `FileStore` of `@wren/delivery/files` fits. */
+export interface SealedStore {
+  put(key: string, bytes: Uint8Array, type: string): Promise<void>;
+  /** A short-lived download link. */
+  getUrl(key: string): Promise<string>;
+}
 
 export interface DocumentsDeps
   extends Pick<
@@ -67,6 +85,12 @@ export interface DocumentsDeps
   mailer: ((from: string) => SendMail) | null;
   /** The spine's ear for `trigger.document`; unset where no Spine runs. */
   fire?: FireTriggers;
+  /** The e-signature provider; null or unset: sealed documents can't go out. */
+  documenso?: Documenso | null;
+  /** Where the sealed PDF, certificate and audit log are kept; null or unset: none are. */
+  files?: SealedStore | null;
+  /** Retry of the provider's calls, as `stripeRetry` is for Stripe's. */
+  esignRetry?: PaymentsDeps["stripeRetry"];
 }
 
 export const DOCUMENTS_SERVICE = { name: "Documents" } as const;
@@ -114,7 +138,9 @@ export function docEmail(business: string, d: Doc, url: string, remind = false) 
       "",
       `${remind ? "A reminder: " : ""}${business} sent you ${d.kind === "estimate" ? "an" : "a"} ${kindWord(d)}: ${d.title}.${d.totalCents ? ` Total ${money(d.totalCents, d.currency)}.` : ""}`,
       "",
-      "Read and sign it here:",
+      d.signing === "sealed"
+        ? "Read and e-sign it here. We keep your name, email, device address and the time as proof:"
+        : "Read and sign it here:",
       url,
       "",
       d.expiresAt ? `It's open until ${new Date(d.expiresAt).toISOString().slice(0, 10)}.` : "",
@@ -259,11 +285,99 @@ async function mailSigned(deps: DocumentsDeps, d: Doc, url: string) {
 
 type Made = { url: string } | { error: string };
 
+/**
+ * A provider step: its refusal is the answer (`error`), its trouble is retried, and only when
+ * retries run out does the step fail, saying why. The same shape as `stripeStep`.
+ */
+async function esignStep<T extends object>(
+  ctx: restate.Context,
+  name: string,
+  retry: NonNullable<PaymentsDeps["stripeRetry"]>,
+  fn: () => Promise<T>,
+): Promise<T | { error: string }> {
+  try {
+    return await ctx.run(
+      name,
+      async (): Promise<T | { error: string }> => {
+        try {
+          return await fn();
+        } catch (err) {
+          if (err instanceof DocumensoError && !err.transient)
+            return { error: `E-signature: ${err.message}` };
+          throw err;
+        }
+      },
+      retry,
+    );
+  } catch (err) {
+    if (!(err instanceof restate.TerminalError)) throw err;
+    return { error: `E-signature: ${err.message}` };
+  }
+}
+
+/** Where a document's sealed files live in the bucket, under the client's own prefix. */
+export const sealedKeys = (d: Pick<Doc, "client" | "id" | "number">) => {
+  const at = (name: string) => `clients/${d.client}/documents/${d.id}/${d.number}-${name}.pdf`;
+  return { pdf: at("signed"), certificate: at("certificate"), audit: at("audit") };
+};
+
 export function makeDocuments(deps: DocumentsDeps) {
   const { main } = deps;
   const now = async (ctx: restate.Context) => new Date(await ctx.date.now());
   const linkOf = async (client: string, token: string) =>
     `https://${await hostOf(main, client, deps.portal)}${docPath(token)}`;
+  const retry = deps.esignRetry ?? deps.stripeRetry ?? STRIPE_RETRY;
+
+  /**
+   * A sealed document's signing link: the envelope made from the frozen text (a new one when the
+   * document held an older one, which is called off), then live. A reminder takes the live link.
+   */
+  async function sealedLink(
+    ctx: restate.Context,
+    d: Doc,
+    business: string,
+    remind: boolean,
+    at: Date,
+  ): Promise<Made> {
+    const dx = deps.documenso;
+    if (!dx)
+      return {
+        error: "E-signature is not set up here. An admin sets WREN_DOCUMENSO_URL and _TOKEN.",
+      };
+    const email = d.email;
+    if (!email) return { error: "Nowhere to send it" };
+    let envelope = d.envelopeId;
+    if (!remind) {
+      const was = d.envelopeId;
+      const made = await esignStep(ctx, "envelope", retry, async () => {
+        const frozen = await freezeDoc(main, d.id, at);
+        // A try of this step that got as far as keeping its envelope: use that one.
+        if (frozen.envelopeId && frozen.envelopeId !== was) return { id: frozen.envelopeId };
+        const id = await dx.create({
+          title: d.title,
+          externalId: d.id,
+          signer: { name: d.name?.trim() || email, email },
+          pdf: await sealedPdf(frozen, business),
+        });
+        const kept = await keepEnvelope(main, d.id, id, at, was);
+        // Another call won, or the text changed since a failed send: the loser is called off.
+        const loser = kept !== id ? id : was;
+        if (loser) await dx.withdraw(loser, "Replaced by a newer version").catch(() => {});
+        return { id: kept };
+      });
+      if ("error" in made) return made;
+      envelope = made.id;
+    }
+    const id = envelope;
+    if (!id) return { error: "It has no signing page to remind about" };
+    return esignStep(ctx, "link", retry, async () => {
+      if (!remind) return { url: await dx.distribute(id) };
+      const live = await dx.look(id);
+      if (live.status !== "PENDING" || !live.url)
+        throw new DocumensoError(409, "it is not waiting for a signature");
+      return { url: live.url };
+    });
+  }
   const ASK = {
     client: z.string().max(40).nullish().describe("The host's owner; null on the app host"),
     apex: z.boolean().nullish().describe("Asked on Wren's own site"),
@@ -303,13 +417,24 @@ export function makeDocuments(deps: DocumentsDeps) {
           });
           if (!got) return { sent: false, url: null };
           const d = got.doc as unknown as Doc;
-          const url = await ctx.run("link", async () =>
-            linkOf(d.client, await issueLink(main, d.id, at)),
-          );
+          const remind = !!req.remind;
+          const made: Made =
+            d.signing === "sealed"
+              ? await sealedLink(ctx, d, got.business, remind, at)
+              : {
+                  url: await ctx.run("link", async () =>
+                    linkOf(d.client, await issueLink(main, d.id, at)),
+                  ),
+                };
+          if ("error" in made) {
+            const said = made.error;
+            if (!remind) await ctx.run("failed", () => markFailed(main, d.id, said, at));
+            return { sent: false, why: said, url: null };
+          }
+          const url = made.url;
           const fresh = (await ctx.run("reload", () => docById(main, d.id))) as unknown as Doc;
           let message: number | null = null;
           let why: string | null = null;
-          const remind = !!req.remind;
           if (d.channel === "sms" && d.contact) {
             try {
               const r = await ctx.serviceClient<SmsDeskService>({ name: "SmsDesk" }).reply({
@@ -441,6 +566,11 @@ export function makeDocuments(deps: DocumentsDeps) {
           const d = await docByToken(main, req.token, ownerAsked(req.client, req.apex), new Date());
           if (!d || !["sent", "viewed", "signed", "declined"].includes(d.status))
             return pageFor(main, d, req);
+          // A sealed copy is the provider's file, kept as it came: sent from the bucket.
+          if (d.signing === "sealed") {
+            if (d.status !== "signed" || !d.sealed || !deps.files) return pageFor(main, null, req);
+            return { status: 303, location: await deps.files.getUrl(d.sealed.pdf) };
+          }
           const o = await ownerOf(main, d.client);
           const bytes = await docPdf(d, await docEventsOf(main, d.id), o.business);
           return {
@@ -449,6 +579,106 @@ export function makeDocuments(deps: DocumentsDeps) {
             filename: `${d.number}${d.status === "signed" ? "-signed" : ""}.pdf`,
           };
         }),
+      ),
+
+      /**
+       * Documenso's webhook, as the phone Worker passes it (it checked the secret). Opened marks
+       * the document viewed. Completed keeps the sealed PDF, certificate and audit log, marks it
+       * signed and mails the signer's copy. Rejected and cancelled close it. Any other event, and
+       * one for an envelope Wren did not make, is answered and left. A repeat changes nothing.
+       */
+      signed: serviceHandler(
+        {
+          input: z.looseObject({
+            event: z.string().describe("Documenso's event, as DOCUMENT_COMPLETED"),
+            payload: z.looseObject({}).describe("The document, as Documenso sends it"),
+          }),
+          effect: "sends",
+        },
+        async (ctx: restate.Context, body: { event: string; payload: object }) => {
+          const ev = eventOf(body);
+          if (!ev) return { ok: false, why: "not a document event" };
+          const at = await now(ctx);
+          const found = await ctx.run("find", () => docByEnvelope(main, ev.envelopeId));
+          if (!found) return { ok: false, why: "no document has this envelope" };
+          const d = found as unknown as Doc;
+          if (ev.event === "DOCUMENT_OPENED") {
+            const seen = await ctx.run("viewed", () => seeDoc(main, d, { now: at }));
+            if (seen === "first" && deps.fire) {
+              const fresh = await ctx.run("reload", () => docById(main, d.id));
+              if (fresh) deps.fire(ctx, docFired(fresh as unknown as Doc, "viewed"));
+            }
+            return { ok: true };
+          }
+          if (ev.event === "DOCUMENT_REJECTED") {
+            const done = await ctx.run("rejected", () =>
+              sealedRejected(main, d, { why: ev.signer?.rejectionReason ?? null, now: at }),
+            );
+            if (done && deps.fire) deps.fire(ctx, docFired(done as unknown as Doc, "declined"));
+            return { ok: true };
+          }
+          if (ev.event === "DOCUMENT_CANCELLED") {
+            await ctx.run("cancelled", () => sealedCancelled(main, d, at));
+            return { ok: true };
+          }
+          if (ev.event !== "DOCUMENT_COMPLETED") return { ok: true, ignored: ev.event };
+          if (d.status === "signed" && d.sealed) return { ok: true };
+          const dx = deps.documenso;
+          if (!dx || !deps.files)
+            return { ok: false, why: "no provider or bucket to keep the copy" };
+          const files = deps.files;
+          const kept = await esignStep(ctx, "files", retry, async (): Promise<SealedFiles> => {
+            const bytes = await dx.sealed(ev.envelopeId);
+            const keys = sealedKeys(d);
+            await files.put(keys.pdf, bytes.pdf, "application/pdf");
+            await files.put(keys.certificate, bytes.certificate, "application/pdf");
+            await files.put(keys.audit, bytes.audit, "application/pdf");
+            return { ...keys, sha256: bytes.sha256, at: at.toISOString() };
+          });
+          if ("error" in kept) throw new restate.TerminalError(kept.error);
+          const when = new Date(ev.signer?.signedAt ?? ev.completedAt ?? at);
+          const done = await ctx.run("signed", () =>
+            sealSigned(main, d, {
+              signer: {
+                name: ev.signer?.name ?? null,
+                email: ev.signer?.email ?? null,
+                at: when,
+              },
+              files: kept,
+              now: at,
+            }),
+          );
+          if (!done) return { ok: true };
+          const signed = done as unknown as Doc;
+          if (deps.fire) deps.fire(ctx, docFired(signed, "signed"));
+          // The signer's copy is Wren's own page, whose link opens the sealed PDF.
+          const url = await ctx.run("url", async () =>
+            linkOf(d.client, await issueLink(main, d.id, at)),
+          );
+          await ctx.run("mail signed", () => mailSigned(deps, signed, url));
+          return { ok: true };
+        },
+      ),
+
+      /** Calls a sealed document's envelope off: a live one is cancelled, a draft deleted. */
+      cancel: serviceHandler(
+        {
+          input: z.looseObject({
+            id: z.string().describe("The document's id"),
+            by: z.string().nullish().describe("Who asked"),
+          }),
+          ingressPrivate: true,
+        },
+        async (ctx: restate.Context, req: { id: string; by?: string | null }) => {
+          const dx = deps.documenso;
+          const d = await ctx.run("load", () => docById(main, req.id));
+          if (!dx || !d?.envelopeId) return { done: false };
+          const envelope = d.envelopeId;
+          const out = await esignStep(ctx, "cancel", retry, async () => ({
+            did: await dx.withdraw(envelope, `Withdrawn${req.by ? ` by ${req.by}` : ""}`),
+          }));
+          return "error" in out ? { done: false, why: out.error } : { done: true, did: out.did };
+        },
       ),
 
       /**

@@ -42,6 +42,11 @@ export const DOCUMENTS_COMPONENTS = [
         },
         {
           is: "needs",
+          says: "Documenso, our own e-signature server, only for a sealed signature: a certificate-signed PDF with consent, time, IP and email kept.",
+          built: "Documents.send, Documents.signed (WREN_DOCUMENSO_URL and _TOKEN)",
+        },
+        {
+          is: "needs",
           says: "Stripe connected, only for a deposit on signing.",
           built: "the Stripe setup (setup.stripe)",
         },

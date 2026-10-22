@@ -74,10 +74,12 @@ const rowsOf = async (db: Queryable, client: string, id?: string) =>
     currency: d.currency.toUpperCase(),
     status: d.status,
     channel: d.channel,
+    signing: d.signing,
     email: d.email,
     why: d.why ?? d.declinedWhy,
     body: d.body,
     sha256: d.sha256,
+    sealed_sha256: d.sealed?.sha256 ?? null,
     pay_link: d.payLink,
     created_at: d.createdAt,
     created_by: d.createdBy,
@@ -111,10 +113,18 @@ export function documentRecordFor(client: string): RecordType {
         { sms: { label: "Text", tone: "neutral" }, email: { label: "Email", tone: "neutral" } },
         "Sent by",
       ),
+      signing: status(
+        {
+          own: { label: "Typed name", tone: "neutral" },
+          sealed: { label: "Sealed e-signature", tone: "good" },
+        },
+        "Signing",
+      ),
       email: text("Email"),
       why: text("Why"),
       body: prose("Words", { listed: false }),
       sha256: text("Fingerprint (SHA-256)", { listed: false }),
+      sealedSha256: text("Sealed PDF (SHA-256)", { listed: false }),
       createdAt: date("Made"),
       createdBy: actor("Made by"),
       approvedBy: actor("Approved by"),
@@ -184,6 +194,10 @@ export function documentRecordFor(client: string): RecordType {
           from: [e.ip, e.agent].filter(Boolean).join(", ") || null,
         })),
         deposit: pay ? { status: pay.status, url: pay.url, paid_at: pay.paidAt } : null,
+        /** The sealed copy, once signed: the parts `DocumentsConsole/pdf` serves, by `part`. */
+        sealed: raw?.sealed
+          ? { parts: ["pdf", "certificate", "audit"], sha256: raw.sealed.sha256, at: raw.sealed.at }
+          : null,
         /** The whole draft, for the editor: rows leave out the lines and the thread. */
         edit: raw
           ? {
@@ -196,6 +210,7 @@ export function documentRecordFor(client: string): RecordType {
               email: raw.email,
               contact: raw.contact,
               channel: raw.channel,
+              signing: raw.signing,
               depositPct:
                 raw.depositCents && raw.totalCents
                   ? Math.round((raw.depositCents * 100) / raw.totalCents)

@@ -321,6 +321,7 @@ import { s3Files } from "@wren/delivery/files";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
 import { makeDocumentsConsole } from "@wren/documents/console";
+import { documenso } from "@wren/documents/documenso";
 import { makeDocuments } from "@wren/documents/service";
 import {
   askNoteSop,
@@ -793,6 +794,12 @@ export async function buildServices(
           token: settings.listmonkToken,
         })
       : null;
+  // E-signature for sealed documents lives in Documenso when both of its settings are set.
+  const esign =
+    settings.documensoUrl && settings.documensoToken
+      ? documenso({ url: settings.documensoUrl, token: settings.documensoToken })
+      : null;
+  const sealedFiles = settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : null;
   // People broadcasts' email (B6): Wren's own, from portal@ with the marketing envelope. Null
   // without portal@, the lander's link key or a postal address: email broadcasts then refuse.
   const shared = settings.siteExportToken;
@@ -1241,8 +1248,14 @@ export async function buildServices(
     makePayReconcile({ ...payDeps, mailer: bookerMailer, fire: fireAll, ...notify }),
     // Contracts, proposals and estimates to sign; a deposit on the same Stripe key
     // (designs/2026-10-09-documents.md).
-    makeDocuments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
-    makeDocumentsConsole(payDeps),
+    makeDocuments({
+      ...payDeps,
+      mailer: bookerMailer,
+      fire: fireAll,
+      documenso: esign,
+      files: sealedFiles,
+    }),
+    makeDocumentsConsole({ ...payDeps, files: sealedFiles, sealed: !!esign && !!sealedFiles }),
     // Journeys: hand moves through the shape's own step, and the pipeline records
     // (designs/2026-10-18-journeys.md).
     makeJourneys({ db: (client) => (client ? clientDb(client) : db) }),
