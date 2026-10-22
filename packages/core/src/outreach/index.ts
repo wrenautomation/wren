@@ -162,6 +162,15 @@ export interface Found {
   fetchedWith: FetchedWith;
 }
 
+/** One card of the connections list. `connectedOn`: the day the site shows, when it shows one. */
+export interface Connection {
+  handle: string;
+  name: string | null;
+  url: string | null;
+  headline: string | null;
+  connectedOn: Date | null;
+}
+
 export interface OutreachChannel {
   readonly platform: ReachPlatform;
   /** The autobrowse credential this adapter speaks as (`reddit@alt`). */
@@ -172,8 +181,11 @@ export interface OutreachChannel {
   relationship?(handle: string): Promise<Relationship>;
   /** Irreversible. Absent when the platform has no connect step. `NoInvite` when nothing went out. */
   connect?(handle: string, note: string | null): Promise<Sent | NoInvite>;
-  /** Recently added connections, newest first: one read finds every accepted invite. */
-  connections?(): Promise<string[]>;
+  /**
+   * Recently added connections, newest first, at most `max`: one read finds every accepted
+   * invite, and every connection made on the site by hand. Fewer than `max` = the whole list.
+   */
+  connections?(max: number): Promise<Connection[]>;
   /** Irreversible. Withdraws a pending invite; anything else withdraws nothing and says what it read. */
   withdraw?(handle: string): Promise<{ withdrawn: boolean; relationship: Relationship }>;
   /** Irreversible. `subject` is used where the platform has one (Reddit). */
@@ -367,8 +379,17 @@ export function fakeOutreachChannel(
             if (sent.length > before) relationships.set(handle, "pending");
           }
         },
-        async connections() {
-          return [...relationships].filter(([, r]) => r === "connected").map(([h]) => h);
+        async connections(max) {
+          return [...relationships]
+            .filter(([, r]) => r === "connected")
+            .slice(0, max)
+            .map(([handle]) => ({
+              handle,
+              name: null,
+              url: null,
+              headline: null,
+              connectedOn: null,
+            }));
         },
         async withdraw(handle) {
           const relationship = relationships.get(handle) ?? "none";

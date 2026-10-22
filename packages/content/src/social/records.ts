@@ -34,7 +34,13 @@ import { creditsList } from "@wren/delivery/billing";
 import { creditApprovalId } from "@wren/delivery/billing/console";
 import { KIND_NAME } from "@wren/documents/lines";
 import { docApprovalId, waitingDocs } from "@wren/documents/store";
-import { accountPickFor, type SendAttempt, threadContextOf, unsureSends } from "@wren/outreach";
+import {
+  accountPickFor,
+  invitedSql,
+  type SendAttempt,
+  threadContextOf,
+  unsureSends,
+} from "@wren/outreach";
 import {
   COMMENT_FOLD,
   commentRecord,
@@ -242,7 +248,8 @@ const videoRows = (db: Queryable) =>
       where state = 'rendered' order by updated_at desc limit ${ACTIVITY_ROWS}`,
   );
 
-/** Accepted invites nobody wrote to yet: no message either way past the invite. */
+/** Accepted invites nobody wrote to yet: no message either way past the invite. A connection
+ * made on the site (no invite of ours) is no invite record. */
 const acceptedRows = (db: Queryable) =>
   rowsOf(
     db,
@@ -252,6 +259,7 @@ const acceptedRows = (db: Queryable) =>
       from reach_contacts c left join reach_accounts a on a.id = c.account_id
       left join draft_accounts da on da.item = 'invite:' || c.id
       where c.connected_at is not null and c.state not in ('opted_out', 'blocked')
+        and ${invitedSql(sql`c.id`)}
         and not exists (select 1 from reach_messages m where m.contact_id = c.id
           and (m.direction = 'in' or m.kind <> 'connect'))
       order by c.connected_at desc limit ${ACTIVITY_ROWS}`,

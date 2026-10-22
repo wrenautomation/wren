@@ -177,6 +177,7 @@ import {
 import {
   applyWithdraw,
   approveInvites,
+  emptySweep,
   INVITE_SEQUENCE,
   type InviteSettings,
   inviteSettings,
@@ -571,7 +572,7 @@ async function invitesPass(
   const ch = channelsFor(deps, ctx)(a);
   const sweep = ch
     ? await sweepInvites(deps.db, ch, a, s, now, (name, fn) => ctx.run(name, fn))
-    : { accepted: [], withdrawn: 0, gone: 0, errors: ["no channel"] };
+    : emptySweep(["no channel"]);
   const top = await ctx.run(`top up ${a.account}`, () =>
     topUp(deps.db, {
       settings: s,
@@ -1095,6 +1096,7 @@ async function watchPass(
           accepted || toComment ? "Marketing → To approve" : null,
           ...replies.errors,
           ...kept.errors,
+          ...(invites?.sweep.errors ?? []),
           ...health.errors,
           ...drafts.errors,
         ]

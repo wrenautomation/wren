@@ -9,7 +9,7 @@
  * relationship: from the profile's buttons (connected, pending, none).
  * connect: an invite, with a note when given; `NoInvite` when the page offers
  * none (already connected, invite pending, Follow only). connections: the recently
- * added, which is where accepts show. withdraw: a pending invite, read first.
+ * added, with the day each connected, which is where accepts show. withdraw: a pending invite, read first.
  * message: a 1st-degree message;
  * the loop asks `relationship` first and never messages a pending invite.
  * replies: the unread conversations in the inbox (one row per thread; the
@@ -18,6 +18,7 @@
 import type { SiteClient } from "@wren/core/content";
 import {
   type AccountHealth,
+  type Connection,
   type FindQuery,
   type Found,
   HANDLE_RE,
@@ -39,6 +40,13 @@ const NO_INVITE: readonly NoInviteReason[] = ["connected", "pending", "follow-on
 const noInviteOf = (r: string | undefined): NoInviteReason =>
   NO_INVITE.find((x) => x === r) ?? "unknown";
 
+/** The day in a card's "Connected on October 22, 2026", at midnight UTC; null when absent. */
+export function connectedOn(text: string | undefined): Date | null {
+  const day = /connected on (.+)$/i.exec(text?.trim() ?? "")?.[1];
+  const at = day ? Date.parse(`${day} UTC`) : Number.NaN;
+  return Number.isNaN(at) ? null : new Date(at);
+}
+
 export interface LinkedInOutreachOptions {
   account: string;
   /** When the account started reaching out under wren (the ramp's day one). */
@@ -55,6 +63,8 @@ interface Person {
   headline?: string;
   location?: string;
   current?: string;
+  /** A connections card's own words: "Connected on October 22, 2026". */
+  connected?: string;
 }
 interface Role {
   title: string;
@@ -184,9 +194,15 @@ export function linkedinOutreach(sites: SiteClient, o: LinkedInOutreachOptions):
       return { ref: null, at, fetchedWith };
     },
 
-    async connections(): Promise<string[]> {
-      const r = await call<{ connections: Person[] }>("GET", "/connections", { max: 40 });
-      return r.connections.map((c) => c.vanity);
+    async connections(max): Promise<Connection[]> {
+      const r = await call<{ connections: Person[] }>("GET", "/connections", { max });
+      return r.connections.map((c) => ({
+        handle: /%[0-9a-f]{2}/i.test(c.vanity) ? c.vanity : encodeURIComponent(c.vanity),
+        name: c.name || null,
+        url: c.url || null,
+        headline: c.headline || null,
+        connectedOn: connectedOn(c.connected),
+      }));
     },
 
     async withdraw(handle) {

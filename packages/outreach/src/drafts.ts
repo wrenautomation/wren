@@ -22,6 +22,7 @@ import { contactById } from "./contacts.js";
 import { personLine } from "./discovery/people.js";
 import { pickedReachAccount } from "./draft-accounts.js";
 import { armMeta, guardBy, modelFor } from "./draft-llm.js";
+import { invitedSql } from "./invites.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   comments,
@@ -92,6 +93,7 @@ export async function contactsToDraft(db: Queryable, limit: number): Promise<num
           AND NOT EXISTS (SELECT 1 FROM reach_messages o WHERE o.contact_id = c.id
             AND o.direction = 'out' AND o.created_at > i.at))
         OR (i.id IS NULL AND c.connected_at IS NOT NULL AND c.draft_at IS NULL
+          AND ${invitedSql(sql`c.id`)}
           AND NOT EXISTS (SELECT 1 FROM reach_messages o WHERE o.contact_id = c.id
             AND o.direction = 'out' AND o.kind <> 'connect')))
     ORDER BY coalesce(i.at, c.connected_at) LIMIT ${limit}`)) as unknown as Array<{ id: number }>;
@@ -151,15 +153,23 @@ export async function dmContext(db: Queryable, contactId: number, now = new Date
         company: string | null;
       }>)
     : [];
+  /** Their accept of our invite, not a connection made on the site, with nothing said since. */
+  const accepted =
+    !!c.connectedAt &&
+    thread.some(
+      (m) =>
+        m.kind === "connect" &&
+        m.direction === "out" &&
+        (m.state === "sent" || m.state === "unknown"),
+    ) &&
+    !thread.some((m) => m.kind !== "connect");
   const facts = [
     `Name: ${c.name ?? c.handle}`,
     c.headline ? `Headline: ${c.headline}` : null,
     person?.title ? `Title: ${person.title}` : null,
     person?.company ? `Company: ${person.company}` : null,
     rp ? personLine(rp) : null,
-    c.connectedAt && !thread.some((m) => m.kind !== "connect")
-      ? "They just accepted my LinkedIn invite."
-      : null,
+    accepted ? "They just accepted my LinkedIn invite." : null,
     ...said.map((s) => `They commented${s.post ? ` on "${s.post}"` : ""}: ${s.body}`),
   ].filter(Boolean);
   const lines = thread
@@ -168,9 +178,7 @@ export async function dmContext(db: Queryable, contactId: number, now = new Date
   return {
     contact: c,
     /** The Inbox's kind: a first message to an accepted invite, or a reply on a thread. */
-    record: (c.connectedAt && !thread.some((m) => m.direction === "in" || m.kind !== "connect")
-      ? "invite"
-      : "dm") as "dm" | "invite",
+    record: (accepted ? "invite" : "dm") as "dm" | "invite",
     lastIn: [...thread].reverse().find((m) => m.direction === "in")?.id ?? null,
     /** His own words on the thread: true, so a claim they make may be said again. */
     mine: [

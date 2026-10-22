@@ -8,9 +8,9 @@
  * `withdrawAfterDays`. The sender is the settings' `account`; empty = nothing tops up.
  */
 import { settingsFor } from "@wren/core/clients";
-import type { OutreachChannel, Relationship } from "@wren/core/outreach";
+import type { Connection, OutreachChannel, Relationship } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { healthOf } from "./accounts.js";
 import { addProspects, setContactState } from "./contacts.js";
@@ -26,6 +26,21 @@ export const INVITE_SEQUENCE = "linkedin-invite";
 const DAY_MS = 86_400_000;
 /** autobrowse caps withdraws at 20 a day; four sweeps a day take 5 each. */
 const WITHDRAWS_PER_SWEEP = 5;
+/** The connections read: autobrowse's most. Fewer back = the whole list. */
+export const CONNECTIONS_READ = 200;
+/** `found_in` of a contact first seen in the connections list: made on the site, not by wren. */
+export const FOUND_IN_CONNECTIONS = "linkedin connections";
+/** Lost invites (`unknown`) settled by a relationship read per sweep, well in the 80-a-day cap. */
+const SETTLES_PER_SWEEP = 5;
+/**
+ * The contact got an invite from wren (sent, or lost on the way). A connection without one was
+ * made on the site: no "just accepted my invite" first message.
+ */
+export const invitedSql = (contactId: SQL) => sql`exists (select 1 from reach_messages iv
+  where iv.contact_id = ${contactId} and iv.kind = 'connect' and iv.direction = 'out'
+    and iv.state in ('sent', 'unknown'))`;
+/** A connection with this state keeps it: the date is still set. */
+const KEEPS_STATE = new Set(["replied", "opted_out", "blocked"]);
 /** Titles that decide. Tier 1 owns the firm or runs it; tier 2 runs a part of it. */
 const TIER1 =
   "\\y(founder|co-founder|owner|co-owner|ceo|cfo|coo|cto|cmo|cro|chief|(?<!vice )president|partner|principal|managing director|managing member)\\y";
@@ -429,34 +444,156 @@ export async function skipInvites(
   return rows.map((r) => r.contactId);
 }
 
-/** Invited contacts of `account` now among its connections: `connected`. Returns their ids. */
+/**
+ * Contacts now among `account`'s connections, wren's invites or not: `connected` on the day the
+ * site shows (never before the invite went out). `accepted`: ours, by id; `byHand`: the rest.
+ */
 export async function markAccepted(
   db: Queryable,
   accountId: string,
-  handles: readonly string[],
+  connections: readonly Connection[],
   now: Date,
-): Promise<number[]> {
-  if (handles.length === 0) return [];
+): Promise<{ accepted: number[]; byHand: number }> {
+  if (connections.length === 0) return { accepted: [], byHand: 0 };
+  const day = new Map(connections.map((c) => [c.handle.toLowerCase(), c.connectedOn ?? now]));
   const rows = await db
-    .update(reachContacts)
-    .set({ state: "connected", connectedAt: now, stateReason: null, endedAt: null })
+    .select({
+      id: reachContacts.id,
+      handle: reachContacts.handle,
+      state: reachContacts.state,
+      invited: sql<boolean>`${invitedSql(sql`${reachContacts.id}`)}`,
+    })
+    .from(reachContacts)
+    .where(
+      and(
+        eq(reachContacts.platform, "linkedin"),
+        or(eq(reachContacts.accountId, accountId), isNull(reachContacts.accountId)),
+        isNull(reachContacts.connectedAt),
+        inArray(sql`lower(${reachContacts.handle})`, [...day.keys()]),
+      ),
+    );
+  const done: Array<{ id: number; at: Date; invited: boolean }> = [];
+  for (const r of rows) {
+    const on = day.get(r.handle.toLowerCase()) ?? now;
+    const [row] = await db
+      .update(reachContacts)
+      .set({
+        accountId,
+        connectedAt: sql`greatest(${on.toISOString()}::timestamptz, (select max(sent_at) from
+          reach_messages where contact_id = ${r.id} and kind = 'connect'))`,
+        ...(KEEPS_STATE.has(r.state)
+          ? {}
+          : { state: "connected" as const, stateReason: null, endedAt: null }),
+      })
+      .where(eq(reachContacts.id, r.id))
+      .returning({ at: reachContacts.connectedAt });
+    done.push({ id: r.id, at: row?.at ?? on, invited: r.invited });
+  }
+  await keepTouch("accepted", async () => {
+    let n = 0;
+    for (const d of done) n += await touchInvites(db, [d.id], "accepted", d.at);
+    return n;
+  });
+  return {
+    accepted: done.filter((d) => d.invited).map((d) => d.id),
+    byHand: done.filter((d) => !d.invited).length,
+  };
+}
+
+/** Connections wren never saw: contacts from the site, with no draft and no sequence. */
+export async function backfillConnections(
+  db: Queryable,
+  connections: readonly Connection[],
+): Promise<number> {
+  const { added } = await addProspects(
+    db,
+    "linkedin",
+    connections.map((c) => ({
+      handle: c.handle,
+      url: c.url ?? `https://www.linkedin.com/in/${c.handle}/`,
+      name: c.name,
+      headline: c.headline,
+      foundIn: FOUND_IN_CONNECTIONS,
+    })),
+  );
+  return added;
+}
+
+/** Invites whose send was lost (`unknown`): the oldest, with no accept seen. */
+export async function lostInvites(
+  db: Queryable,
+  accountId: string,
+  limit = SETTLES_PER_SWEEP,
+): Promise<Array<{ contactId: number; messageId: number; handle: string }>> {
+  const rows = (await db.execute(sql`
+    SELECT m.id, c.id contact_id, c.handle FROM reach_messages m
+    JOIN reach_contacts c ON c.id = m.contact_id
+    WHERE c.account_id = ${accountId} AND c.connected_at IS NULL
+      AND m.kind = 'connect' AND m.direction = 'out' AND m.state = 'unknown'
+    ORDER BY m.created_at LIMIT ${limit}`)) as unknown as Array<{
+    id: number;
+    contact_id: number;
+    handle: string;
+  }>;
+  return rows.map((r) => ({ contactId: r.contact_id, messageId: r.id, handle: r.handle }));
+}
+
+/** What the site says of a lost invite: out (`sent`), accepted, or never sent (`failed`). */
+export async function settleLost(
+  db: Queryable,
+  inv: { contactId: number; messageId: number },
+  rel: Relationship,
+  now: Date,
+): Promise<"sent" | "accepted" | "failed" | null> {
+  if (rel === "pending" || rel === "connected") {
+    await db
+      .update(reachMessages)
+      .set({ state: "sent", stateReason: "lost send: the site shows the invite" })
+      .where(eq(reachMessages.id, inv.messageId));
+    if (rel === "pending") return "sent";
+    await db
+      .update(reachContacts)
+      .set({ state: "connected", connectedAt: now, stateReason: null, endedAt: null })
+      .where(eq(reachContacts.id, inv.contactId));
+    await keepTouch("accepted", () => touchInvites(db, [inv.contactId], "accepted", now));
+    return "accepted";
+  }
+  if (rel === "none") {
+    const reason = "lost send: the site shows no invite";
+    await db
+      .update(reachMessages)
+      .set({ state: "failed", stateReason: reason })
+      .where(eq(reachMessages.id, inv.messageId));
+    await setContactState(db, inv.contactId, "unreachable", { reason, now });
+    return "failed";
+  }
+  return null;
+}
+
+/**
+ * The site's count against wren's, for one account. A partial read (`max` rows back) holds
+ * only the newest, so only a whole list says who left: absence in a partial one says nothing.
+ */
+export async function connectionsDrift(
+  db: Queryable,
+  accountId: string,
+  connections: readonly Connection[],
+  max: number,
+): Promise<{ site: number; wren: number; gone: string[] } | null> {
+  if (connections.length >= max) return null;
+  const on = new Set(connections.map((c) => c.handle.toLowerCase()));
+  const rows = await db
+    .select({ handle: reachContacts.handle })
+    .from(reachContacts)
     .where(
       and(
         eq(reachContacts.platform, "linkedin"),
         eq(reachContacts.accountId, accountId),
-        inArray(reachContacts.state, ["enrolled", "unreachable"]),
-        isNull(reachContacts.connectedAt),
-        isNull(reachContacts.withdrawnAt),
-        inArray(
-          sql`lower(${reachContacts.handle})`,
-          handles.map((h) => h.toLowerCase()),
-        ),
+        sql`${reachContacts.connectedAt} is not null`,
       ),
-    )
-    .returning({ id: reachContacts.id });
-  const ids = rows.map((r) => r.id);
-  await keepTouch("accepted", () => touchInvites(db, ids, "accepted", now));
-  return ids;
+    );
+  const gone = rows.map((r) => r.handle).filter((h) => !on.has(h.toLowerCase()));
+  return { site: connections.length, wren: rows.length, gone };
 }
 
 /** Invites from `account` still pending after `days`, oldest first. */
@@ -515,14 +652,34 @@ export async function applyWithdraw(
 
 export interface SweepStats {
   accepted: number[];
+  /** Connections made on the site by hand, new to wren. */
+  backfilled: number;
+  /** Contacts newly connected without our invite (the backfilled among them). */
+  byHand: number;
+  /** Lost sends the site settled. */
+  settled: number;
+  /** The site's count against wren's; null when the read was partial. `gone`: left since. */
+  drift: { site: number; wren: number; gone: string[] } | null;
   withdrawn: number;
   gone: number;
   errors: string[];
 }
 
+export const emptySweep = (errors: string[] = []): SweepStats => ({
+  accepted: [],
+  backfilled: 0,
+  byHand: 0,
+  settled: 0,
+  drift: null,
+  withdrawn: 0,
+  gone: 0,
+  errors,
+});
+
 /**
- * One account's invites: accepts from its recent connections, then the oldest stale invites
- * withdrawn. Platform calls sit between journaled database steps.
+ * One account's invites, reconciled with the site: its connections (up to `CONNECTIONS_READ`)
+ * mark accepts and backfill the ones made by hand, lost sends are read once more, then the oldest
+ * stale invites are withdrawn. Platform calls sit between journaled database steps.
  */
 export async function sweepInvites(
   db: Queryable,
@@ -532,12 +689,35 @@ export async function sweepInvites(
   now: Date,
   run: Journal = (_n, fn) => fn(),
 ): Promise<SweepStats> {
-  const stats: SweepStats = { accepted: [], withdrawn: 0, gone: 0, errors: [] };
+  const stats = emptySweep();
   if (!ch.connections || !ch.withdraw) return stats;
-  const handles = await ch.connections();
-  stats.accepted = await run(`accepted ${account.account}`, () =>
-    markAccepted(db, account.id, handles, now),
-  );
+  const connections = await ch.connections(CONNECTIONS_READ);
+  const read = await run(`accepted ${account.account}`, async () => {
+    const backfilled = await backfillConnections(db, connections);
+    const { accepted, byHand } = await markAccepted(db, account.id, connections, now);
+    const drift = await connectionsDrift(db, account.id, connections, CONNECTIONS_READ);
+    return { backfilled, accepted, byHand, drift };
+  });
+  Object.assign(stats, read);
+  // After the backfill, a whole list and wren agree but for who left: else a read is wrong.
+  const d = read.drift;
+  if (d && d.site !== d.wren - d.gone.length)
+    stats.errors.push(
+      `drift: the site lists ${d.site} connections, wren ${d.wren - d.gone.length}`,
+    );
+  if (ch.relationship) {
+    const lost = await run(`lost ${account.account}`, () => lostInvites(db, account.id));
+    for (const inv of lost) {
+      try {
+        const rel = await ch.relationship(inv.handle);
+        const out = await run(`settle ${inv.messageId}`, () => settleLost(db, inv, rel, now));
+        if (out) stats.settled++;
+        if (out === "accepted") stats.accepted.push(inv.contactId);
+      } catch (err) {
+        stats.errors.push(`${inv.handle}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
   const stale = await run(`stale ${account.account}`, () =>
     staleInvites(db, account.id, s.withdrawAfterDays, now),
   );

@@ -16,6 +16,15 @@ import { keepComments, markAnswered } from "../../src/comments.js";
 import { dmContext } from "../../src/drafts.js";
 import { personContact } from "../../src/from-people.js";
 import { markAccepted } from "../../src/invites.js";
+
+const conn = (handle: string) => ({
+  handle,
+  name: null,
+  url: null,
+  headline: null,
+  connectedOn: null,
+});
+
 import { markPostCommented } from "../../src/reach-posts.js";
 import { personRecord } from "../../src/records.js";
 import {
@@ -288,7 +297,9 @@ describe("touches", () => {
       })
       .returning();
     await touchFromMessage(db(), (invite as { id: number }).id);
-    expect(await markAccepted(db(), linkedin.id, ["sam-test"], ago(1))).toEqual([c.id]);
+    expect((await markAccepted(db(), linkedin.id, [conn("sam-test")], ago(1))).accepted).toEqual([
+      c.id,
+    ]);
 
     const all = await touchesFor(db(), { personId });
     expect(all.map((t) => [t.kind, t.response])).toEqual([
