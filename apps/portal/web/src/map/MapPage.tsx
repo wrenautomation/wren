@@ -355,7 +355,11 @@ export function MapPage({
             >
               <Icon name="more" size={16} />
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 gap-2 bg-(--ui-paper) p-2 text-(--ui-ink)">
+            <PopoverContent
+              align="end"
+              aria-label="Map tools"
+              className="w-64 gap-2 bg-(--ui-paper) p-2 text-(--ui-ink)"
+            >
               <Segmented
                 label="Window"
                 className="max-w-full"
@@ -371,7 +375,11 @@ export function MapPage({
                 className={SELECT_CLASS}
                 value={props.client}
                 onChange={(e) =>
-                  go("/", { client: e.target.value === WREN.id ? null : e.target.value }, props.params)
+                  go(
+                    "/",
+                    { client: e.target.value === WREN.id ? null : e.target.value },
+                    props.params,
+                  )
                 }
               >
                 <option value={WREN.id}>Wren</option>
@@ -496,7 +504,7 @@ export function MapPage({
                   onPick={onPick}
                   selected={panel && panel.kind !== "line" ? panel.id : null}
                   intro={false}
-                  className="metro-fit [&_.metro-opened]:px-[clamp(12px,2.5vw,24px)]"
+                  className="metro-fit"
                 />
               </div>
             ) : shown ? (

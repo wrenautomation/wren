@@ -27,6 +27,7 @@ import {
   type Mark,
   type MarkStation,
   type MetroScene,
+  type OpenedSpec,
   type Point,
   type RingStation,
   type StationKind,
@@ -567,6 +568,43 @@ export function Leaf({
   className?: string;
 }) {
   return <path className={className} d={leafPath(x, y, w, h, a, b)} />;
+}
+
+/** How far left of its first station an open group's outline starts: the knob sits there. */
+const KNOB = 34;
+
+/**
+ * A group opened by hand keeps its capsule's place: a faint outline round its stations on the
+ * track, and a fold knob on the outline's left end. Same height as the capsule, so it never
+ * reaches the next row's labels.
+ */
+export function OpenedOutline({ o, colours }: { o: OpenedSpec; colours: Colours }) {
+  const [x0, x1] = o.cap;
+  const h = 30;
+  const X = x0 - KNOB;
+  return (
+    <rect
+      className="opn"
+      x={X}
+      y={o.y - h / 2}
+      width={x1 - X + 16}
+      height={h}
+      rx={h / 2}
+      style={{ stroke: lineColour(colours, o.l) }}
+    />
+  );
+}
+
+/** The fold knob: the artifact's fold leaf with its glyph only; the name is its label. */
+export function OpenedKnob({ o }: { o: OpenedSpec }) {
+  const x = o.cap[0] - KNOB;
+  return (
+    <g className="fold knob" data-fold={o.grp} {...asButton(`Fold ${o.t}`)}>
+      <title>{`Fold ${o.t}`}</title>
+      <Leaf x={x - 15} y={o.y - 15} w={30} h={30} a={4} b={14} className="lf" />
+      <SvgGlyph name="shrink" x={x} y={o.y} size={15} />
+    </g>
+  );
 }
 
 /** A fold tab on an open group: click it to fold the group back. */

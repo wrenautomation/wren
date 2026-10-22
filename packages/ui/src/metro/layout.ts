@@ -183,15 +183,7 @@ function prepare(view: MetroView): Prep {
     const i = outIn.indexOf(l);
     rank.set(
       l.id,
-      joined.has(l.id)
-        ? l.tier === "out"
-          ? i < above
-            ? 0
-            : 2
-          : 1
-        : l.tier === "out"
-          ? 3
-          : 4,
+      joined.has(l.id) ? (l.tier === "out" ? (i < above ? 0 : 2) : 1) : l.tier === "out" ? 3 : 4,
     );
   }
   const p = { rank };
@@ -515,6 +507,42 @@ function freeSpot(
   return best ? along(pts, (best[0] + (best[1] - 1) / 2) / n) : null;
 }
 
+/** How far under its row the first rail runs, and the step to the next one. */
+const RAIL = { first: 30, step: 14 };
+
+/**
+ * A track back to an earlier station on its own row would draw under the line itself, and its
+ * chip would sit on the stations between. It runs on a rail under the row instead. Tracks back to
+ * one station with one branch label share a rail and show the label once.
+ */
+function rails(sc: MetroScene) {
+  const byId = new Map(sc.st.filter(isMark).map((s) => [s.id, s]));
+  const rows = new Map<number, Map<string, MetroTrack[]>>();
+  for (const r of sc.tr) {
+    if (r.k || r.pts || !r.a || !r.b) continue;
+    const [a, b] = [byId.get(r.a), byId.get(r.b)];
+    if (!a || !b || a.y !== b.y || b.x >= a.x) continue;
+    const row = rows.get(a.y) ?? new Map<string, MetroTrack[]>();
+    const key = `${r.b}|${r.cond ?? ""}`;
+    row.set(key, [...(row.get(key) ?? []), r]);
+    rows.set(a.y, row);
+  }
+  const startX = (r: MetroTrack) => byId.get(r.a ?? "")?.x ?? 0;
+  for (const row of rows.values()) {
+    // The shortest rail runs nearest the row, so no rail crosses another's riser.
+    const groups = [...row.values()].sort(
+      (p, q) => Math.max(...p.map(startX)) - Math.max(...q.map(startX)),
+    );
+    groups.forEach((g, i) => {
+      g.sort((p, q) => startX(q) - startX(p));
+      g.forEach((r, j) => {
+        r.back = RAIL.first + RAIL.step * i;
+        if (j && r.cond) r.condShared = true;
+      });
+    });
+  }
+}
+
 /**
  * Choose a side for every name and a place for every chip. Names go above, else below, else beside
  * their station. A chip goes in the middle of the free part of its track; when none is free the
@@ -568,7 +596,7 @@ function dress(sc: MetroScene, fold: boolean): boolean {
   const solid: Box[] = [...own.values()].flat();
   const taken: Box[] = [...xfers, ...names];
   for (const { r, pts } of routes) {
-    if (r.cond) {
+    if (r.cond && !r.condShared) {
       const glyph = r.condGlyph ?? null;
       const at = freeSpot(
         pts,
@@ -657,6 +685,7 @@ export function layoutMetro(view: MetroView): MetroScene {
   let out: MetroScene | undefined;
   for (const [i, [kx, ky]] of TRIES.entries()) {
     const { scene, bottom } = build(p, order, kx, ky);
+    rails(scene);
     const ok = dress(scene, i === TRIES.length - 1);
     out = sizeTo(scene, bottom);
     if (ok) break;

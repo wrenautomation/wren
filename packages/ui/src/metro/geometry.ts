@@ -337,7 +337,17 @@ export function trackEnds(scene: Pick<MetroScene, "st">): (r: MetroTrack) => [Po
 
 /** The corners of the route a track draws from `a` to `c`. */
 export const routeOf = (r: MetroTrack, a: Point, c: Point): Point[] =>
-  r.k === "xfer" ? xferGeometry(a, c, r.f).pts : (r.pts ?? octPts(a, c));
+  r.k === "xfer"
+    ? xferGeometry(a, c, r.f).pts
+    : (r.pts ?? (r.back ? railPts(a, c, r.back) : octPts(a, c)));
+
+/** A track back along its own row: down from its start, along under the row, up into its end. */
+export const railPts = (a: Point, c: Point, d: number): Point[] => [
+  a,
+  [a[0], a[1] + d],
+  [c[0], c[1] + d],
+  c,
+];
 
 const side = (p: Point, q: Point, o: Point) =>
   (q[0] - p[0]) * (o[1] - p[1]) - (q[1] - p[1]) * (o[0] - p[0]);

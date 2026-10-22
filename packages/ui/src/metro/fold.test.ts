@@ -135,6 +135,13 @@ describe("autoZoom and foldScene", () => {
     const open = foldScene(ZOOM_SCENE, 0, { [cap.grp]: true });
     expect(open.st.length).toBeGreaterThan(folded.st.length);
   });
+
+  it("keeps the opened group's capsule place, so its fold knob sits where the capsule was", () => {
+    const cap = foldScene(ZOOM_SCENE, 0).st.find(isCapsule);
+    if (!cap?.grp) throw new Error("no capsule");
+    const [o] = foldScene(ZOOM_SCENE, 0, { [cap.grp]: true }).opened ?? [];
+    expect(o).toMatchObject({ grp: cap.grp, t: cap.n, cap: cap.cap, y: cap.y, l: cap.l });
+  });
 });
 
 describe("a fold keeps the diff marks", () => {

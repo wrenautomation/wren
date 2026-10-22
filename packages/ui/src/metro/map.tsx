@@ -392,25 +392,6 @@ export function MetroMap(props: MetroMapProps) {
           {drawsMarks ? <MetroLegend /> : null}
         </div>
       ) : null}
-      {scene.opened?.length && !focus ? (
-        <ul className="metro-opened" aria-label="Opened groups">
-          {scene.opened.map((g) => (
-            <li key={g.grp}>
-              <button
-                type="button"
-                className="metro-fold"
-                aria-label={`Fold ${g.t}`}
-                onClick={(e) => {
-                  set(toggleGroup(zoom, { level, open }, g.grp, false), e.currentTarget);
-                  pick({ kind: "group", id: zoom.foldId?.[g.grp] ?? g.grp, group: g.grp });
-                }}
-              >
-                {g.t}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
       <div
         ref={host}
         className={cx("metro-host", intro && "ld")}

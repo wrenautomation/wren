@@ -101,7 +101,13 @@ describe("viewOf", () => {
   it("takes lines, stations, tracks and groups from the body", () => {
     expect(v.title).toBe("Sample");
     expect(v.lines.map((l) => l.id)).toEqual(["yt", "web"]);
-    expect(v.lines[1]).toEqual({ id: "web", label: "Webinar", offer: "starter", tier: "front", colour: 0 });
+    expect(v.lines[1]).toEqual({
+      id: "web",
+      label: "Webinar",
+      offer: "starter",
+      tier: "front",
+      colour: 0,
+    });
     expect(v.stations.map((s) => s.id)).toEqual(["post", "hub", "reply", "book", "check", "pay"]);
     expect(v.tracks.map((t) => t.id)).toEqual([
       "post_to_hub",

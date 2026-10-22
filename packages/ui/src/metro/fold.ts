@@ -13,6 +13,7 @@ import {
   type MarkStation,
   type MetroScene,
   type MetroTrack,
+  type OpenedSpec,
   type Point,
   type SceneStation,
 } from "./types.js";
@@ -170,7 +171,18 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
   // The groups opened by hand that would fold here: the map lists them, each one folds back.
   const shut = [...opened]
     .filter(([, m]) => m.length > 1 && m[0]?.ln)
-    .map(([k, m]) => ({ grp: k, t: nameOf(k, m[0] as MarkStation) }));
+    .map(([k, m]): OpenedSpec => {
+      const first = m[0] as MarkStation;
+      const xs = m.map((s) => s.x);
+      const l = scene.lines?.[first.ln ?? ""]?.l ?? first.ln ?? k;
+      return {
+        grp: k,
+        t: nameOf(k, first),
+        cap: [Math.min(...xs), Math.max(...xs)],
+        y: first.y,
+        l,
+      };
+    });
   const into = new Map<string, string>();
   const caps: CapsuleStation[] = [];
   for (const [k, m] of groups) {
@@ -221,6 +233,15 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
     const pc = end(r.b, r.ob ?? r.o ?? 0, r.a) ?? r.pts?.[r.pts.length - 1];
     return [{ ...rest, ...(pa ? { pa } : {}), ...(pc ? { pc } : {}) }];
   });
+  // A rail's label shows once: on the first track left on it.
+  const lead = new Set<string>();
+  for (const [i, r] of tr.entries()) {
+    if (!r.back || !r.cond) continue;
+    const k = `${r.b && into.has(r.b) ? into.get(r.b) : r.b}|${r.cond}|${r.back}`;
+    const { condShared: _shared, ...rest } = r;
+    tr[i] = lead.has(k) ? { ...rest, condShared: true } : rest;
+    lead.add(k);
+  }
   const st: SceneStation[] = scene.st.filter((s) => !into.has(s.id)).concat(caps);
   return { ...scene, st, tr, ...(shut.length ? { opened: shut } : {}) };
 }

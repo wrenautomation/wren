@@ -94,6 +94,12 @@ const onTop = (svg: Element): string[] => {
  * The map is drawn at real size (one scene px is one css px), sits at the top of its frame and
  * across its middle when it is smaller, and pans inside it when it is bigger. Returns whether it pans.
  */
+/** Window, Client, History, Export and Import sit in the ⋯ menu; it opens in a portal. */
+const tools = async (page: HTMLElement) => {
+  await userEvent.click(within(page).getByRole("button", { name: "Map tools" }));
+  return within(document.body);
+};
+
 const calm = async (page: HTMLElement) => {
   await document.fonts.ready;
   const svg = (await waitFor(() => {
@@ -103,7 +109,10 @@ const calm = async (page: HTMLElement) => {
   }, LATE)) as SVGSVGElement;
   const host = svg.closest<HTMLElement>(".metro-host") as HTMLElement;
   const at = svg.getBoundingClientRect();
-  await expect(Math.abs(at.width - Number(svg.getAttribute("width")))).toBeLessThan(1);
+  // Fit to width (design language §07): the frame's width, never under 760px or 85% of the real size.
+  const real = Number(svg.getAttribute("width"));
+  const fit = Math.max(host.clientWidth, 760, real * 0.85);
+  await expect(Math.abs(at.width - fit)).toBeLessThan(2);
   await expect(onTop(svg)).toEqual([]);
   const room = host.getBoundingClientRect();
   const pans = host.scrollWidth > host.clientWidth + 1 || host.scrollHeight > host.clientHeight + 1;
@@ -234,7 +243,7 @@ export const Loading = {
 export const Window = mapAt("/?window=7", {
   check: async (page) => {
     await station(page, "Engaged");
-    await expect(within(page).getByRole("link", { name: "7 days" })).toHaveAttribute(
+    await expect((await tools(page)).getByRole("link", { name: "7 days" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -316,7 +325,7 @@ export const CannotDraw = mapAt("/", {
     await expect(within(why).getAllByRole("listitem").length).toBeGreaterThan(0);
     await expect(within(page).queryByRole("group", { name: /./ })).toBeNull();
     // History and Export still answer for the shape.
-    await expect(within(page).getByRole("button", { name: /History/ })).toBeVisible();
+    await expect((await tools(page)).getByRole("button", { name: /History/ })).toBeVisible();
   },
 });
 
@@ -490,7 +499,7 @@ export const Phone = {
 
 const openHistory = async (page: HTMLElement) => {
   await station(page, "Engaged");
-  await userEvent.click(within(page).getByRole("button", { name: /History/ }));
+  await userEvent.click((await tools(page)).getByRole("button", { name: /History/ }));
   return within(page).findByRole("region", { name: "History" });
 };
 const pickBoth = async (panel: HTMLElement) => {
@@ -539,8 +548,8 @@ export const HistoryRestore = mapAt("/", {
     await expect(sent).toMatchObject({ from: 1, note: "Restore v1" });
     await expect(sent).not.toHaveProperty("body");
     // The restore is the newest version now.
-    await userEvent.click(within(page).getByRole("button", { name: /History/ }));
-    await userEvent.click(within(page).getByRole("button", { name: /History/ }));
+    await userEvent.click((await tools(page)).getByRole("button", { name: /History/ }));
+    await userEvent.click((await tools(page)).getByRole("button", { name: /History/ }));
     const again = await within(page).findByRole("region", { name: "History" });
     await expect(await within(again).findByText("Restore v1")).toBeVisible();
   },
@@ -911,7 +920,7 @@ export const Export = mapAt("/", {
       names.push(this.download);
     });
     try {
-      await userEvent.click(within(page).getByRole("button", { name: "Export" }));
+      await userEvent.click((await tools(page)).getByRole("button", { name: "Export" }));
       await waitFor(() => expect(names).toEqual(["sample-shape.yaml"]));
       await expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeExport"]);
       const sent = MAP_CALLS[0]?.body as Record<string, unknown>;
@@ -929,7 +938,7 @@ export const ExportDraft = mapAt("/?draft=d1", {
     await banner(page);
     const click = spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     try {
-      await userEvent.click(within(page).getByRole("button", { name: "Export" }));
+      await userEvent.click((await tools(page)).getByRole("button", { name: "Export" }));
       await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeExport"]));
       const sent = MAP_CALLS[0]?.body as Record<string, unknown>;
       await expect(sent).toMatchObject({ ref: "draft:d1" });

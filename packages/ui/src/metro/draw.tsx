@@ -6,7 +6,15 @@
  */
 import { type CSSProperties, type ReactNode, type Ref, useId } from "react";
 import { cx } from "../format.js";
-import { beside, octPts, rounded, trackEnds, xferGeometry, xferWidth } from "./geometry.js";
+import {
+  beside,
+  octPts,
+  rounded,
+  routeOf,
+  trackEnds,
+  xferGeometry,
+  xferWidth,
+} from "./geometry.js";
 import {
   asButton,
   Badge,
@@ -17,6 +25,8 @@ import {
   MARK_WORD,
   Marker,
   MarkTag,
+  OpenedKnob,
+  OpenedOutline,
   Pill,
   Ring,
   XferLabel,
@@ -246,7 +256,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     }
 
     const l = r.l ?? "out";
-    const d = r.pts ? rounded(r.pts, r.r) : rounded(octPts(a, c));
+    const route = routeOf(r, a, c);
+    const d = rounded(route, r.pts ? r.r : undefined);
     const w = WEIGHT[r.w ?? "front"];
     // First load: the line draws along its length (a dotted plan line fades in instead).
     const draw = intro && r.k !== "plan" ? { pathLength: 1 } : {};
@@ -272,7 +283,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       />,
       hit(d, l),
     );
-    if (r.mark) labels.push(tag(k, r, r.pts ?? octPts(a, c), l));
+    if (r.mark) labels.push(tag(k, r, route, l));
     if (r.mark !== "removed" && r.k !== "plan" && (l !== "out" || r.mv) && !(isStill && !r.mv)) {
       const n = r.dots ?? 1;
       const du = r.dur ?? 4 + (i % 3);
@@ -294,8 +305,9 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         );
       }
     }
-    if (r.cond) {
-      const m = r.cat ?? [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
+    if (r.cond && !r.condShared) {
+      // A rail's chip sits on the rail, under the row.
+      const m = r.cat ?? [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2 + (r.back ?? 0)];
       labels.push(
         <g key={`cd-${k}`} className={cx("cond", r.cond === "else" && "else")}>
           <Chip x={m[0]} y={m[1]} t={r.cond} icon={r.condGlyph ?? null} />
@@ -379,6 +391,9 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         </>
       )}
       {zones}
+      {(scene.opened ?? []).map((o) => (
+        <OpenedOutline key={`on${o.grp}`} o={o} colours={colours} />
+      ))}
       {cases}
       {tracks}
       {dots}
@@ -395,6 +410,9 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       ))}
       {stations}
       {labels}
+      {(scene.opened ?? []).map((o) => (
+        <OpenedKnob key={`ok${o.grp}`} o={o} />
+      ))}
     </svg>
   );
 }

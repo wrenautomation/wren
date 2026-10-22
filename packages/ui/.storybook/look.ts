@@ -117,8 +117,9 @@ export function lookProblems(root: Element = document.body): string[] {
     if (!shown(el) || el.closest("[data-look-over],[inert]") || !seen1(el)) continue;
     const s = getComputedStyle(el);
     const spill = el.scrollWidth - el.clientWidth;
-    // A reader-only label (`sr-only`) is cut to a pixel on purpose.
-    if (spill <= 1 || el.clientWidth <= 2) continue;
+    // A reader-only label (`sr-only`) is cut to a pixel on purpose. SVG text has no CSS box to
+    // spill from: a scaled map gives scrollWidth and clientWidth in different units.
+    if (spill <= 1 || el.clientWidth <= 2 || el instanceof SVGElement) continue;
     const own = [...el.childNodes].some((c) => c.nodeType === 3 && c.textContent?.trim());
     // Words that run out of their own box into the next one.
     if (own && s.overflowX === "visible" && s.whiteSpace.startsWith("nowrap"))

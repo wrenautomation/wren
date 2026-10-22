@@ -428,41 +428,14 @@
   stroke: var(--ui-focus);
   stroke-width: 2;
 }
-/* The groups opened by hand: one fold tab each (the artifact's .fold), above the map. */
-.metro-opened {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0 0 8px;
-  list-style: none;
-}
-.metro-fold {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 30px;
-  padding: 0 14px 0 12px;
-  border: 1px solid color-mix(in srgb, var(--ui-active) 22%, var(--ui-paper));
-  border-radius: 4px 14px 4px 14px;
-  background: color-mix(in srgb, var(--ui-active) 9%, var(--ui-paper));
-  color: var(--ui-ink-2);
-  font: 700 12.5px var(--ui-font);
-  cursor: pointer;
-}
-.metro-fold::before {
-  content: "";
-  width: 10px;
-  height: 2.4px;
-  border-radius: 2px;
-  background: currentColor;
-}
-.metro-fold:hover {
-  background: color-mix(in srgb, var(--ui-active) 18%, var(--ui-paper));
-}
-.metro-fold:focus-visible {
-  outline: 2px solid var(--ui-focus);
-  outline-offset: 2px;
+/* A group opened by hand: its capsule's outline stays on the track, faint, with a fold knob at
+   its left end. Click the knob to fold the group back where it was. */
+.mm .opn {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.7;
+  pointer-events: none;
 }
 /* Fit: the map scales to the page width, as in the design language's "Map in the app". It never
    shrinks below 760px or 85% of its real size (--w, set by the svg): past that it pans across. */
