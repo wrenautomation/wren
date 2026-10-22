@@ -177,6 +177,7 @@ import {
 import {
   applyWithdraw,
   approveInvites,
+  DRIFT_ERROR,
   emptySweep,
   INVITE_SEQUENCE,
   type InviteSettings,
@@ -1071,6 +1072,7 @@ async function watchPass(
   await setLastPass(ctx, outcome);
   const notifier = deps.notifier;
   const accepted = invites?.sweep.accepted.length ?? 0;
+  const drift = invites?.sweep.errors.find((e) => e.startsWith(DRIFT_ERROR)) ?? null;
   const toComment = posts.reduce((n, p) => n + p.queued, 0);
   if (
     notifier &&
@@ -1078,6 +1080,7 @@ async function watchPass(
       kept.kept > 0 ||
       threads.kept > 0 ||
       accepted > 0 ||
+      drift ||
       toComment > 0 ||
       health.frozen.length > 0)
   ) {
@@ -1086,6 +1089,7 @@ async function watchPass(
       kept.kept ? `${kept.kept} new comments` : null,
       threads.kept ? `${threads.kept} follow-ups in threads` : null,
       accepted ? `${accepted} accepted invites` : null,
+      drift ? "LinkedIn connections drift" : null,
       toComment ? `${toComment} post comments to approve` : null,
     ].filter(Boolean);
     await ctx.run("notify", () =>

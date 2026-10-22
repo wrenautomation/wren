@@ -39,6 +39,8 @@ const SETTLES_PER_SWEEP = 5;
 export const invitedSql = (contactId: SQL) => sql`exists (select 1 from reach_messages iv
   where iv.contact_id = ${contactId} and iv.kind = 'connect' and iv.direction = 'out'
     and iv.state in ('sent', 'unknown'))`;
+/** The error line a mismatch left after the backfill writes: a read is wrong, a person looks. */
+export const DRIFT_ERROR = "drift:";
 /** A connection with this state keeps it: the date is still set. */
 const KEEPS_STATE = new Set(["replied", "opted_out", "blocked"]);
 /** Titles that decide. Tier 1 owns the firm or runs it; tier 2 runs a part of it. */
@@ -703,7 +705,7 @@ export async function sweepInvites(
   const d = read.drift;
   if (d && d.site !== d.wren - d.gone.length)
     stats.errors.push(
-      `drift: the site lists ${d.site} connections, wren ${d.wren - d.gone.length}`,
+      `${DRIFT_ERROR} the site lists ${d.site} connections, wren ${d.wren - d.gone.length}`,
     );
   if (ch.relationship) {
     const lost = await run(`lost ${account.account}`, () => lostInvites(db, account.id));
