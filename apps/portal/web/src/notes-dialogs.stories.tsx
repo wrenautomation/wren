@@ -14,8 +14,8 @@ const meta: Meta = { title: "Pages/Notes dialogs" };
 export default meta;
 
 const START: NoteShare[] = [
-  { who: "sam@acme.example", role: "edit" },
-  { who: "jo@acme.example", role: "view" },
+  { who: "sam@acme.example", role: "edit", by: "owner@acme.example", at: null },
+  { who: "jo@acme.example", role: "view", by: "owner@acme.example", at: null },
 ];
 let shares = START;
 const NOTE = {
@@ -36,8 +36,11 @@ const answers: Answers = {
   "notes/share": (b) => {
     shares = b.role
       ? shares.some((s) => s.who === b.who)
-        ? shares.map((s) => (s.who === b.who ? { ...s, role: String(b.role) } : s))
-        : [...shares, { who: String(b.who), role: String(b.role) }]
+        ? shares.map((s) => (s.who === b.who ? { ...s, role: b.role as NoteShare["role"] } : s))
+        : [
+            ...shares,
+            { who: String(b.who), role: b.role as NoteShare["role"], by: "you", at: null },
+          ]
       : shares.filter((s) => s.who !== b.who);
     return { shares };
   },

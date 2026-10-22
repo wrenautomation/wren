@@ -29,7 +29,7 @@ function Backlinks({ client, target }: { client: string; target: string }) {
       </p>
     );
   return (
-    <div className="overflow-x-auto border border-(--ui-hair) bg-(--ui-paper)">
+    <div className="overflow-x-auto">
       <Rows<NoteBack>
         label="notes that link here"
         noun="note"

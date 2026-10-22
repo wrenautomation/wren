@@ -162,7 +162,7 @@ export function SourcesBody({ title, tabs }: { title: string; tabs?: ReactNode }
             {
               key: "alerts",
               label: "Your alerts",
-              icon: "bell",
+              icon: "alert",
               width: 130,
               phone: true,
               cell: (s) => (s.stopped ? <Stopped /> : <AlertSelect s={s} />),
@@ -172,7 +172,7 @@ export function SourcesBody({ title, tabs }: { title: string; tabs?: ReactNode }
                   {
                     key: "tell",
                     label: clientOf() === null ? "Everyone and Discord" : "Everyone here",
-                    icon: "users" as const,
+                    icon: "people" as const,
                     width: 140,
                     cell: (s: SourceRow) => (s.stopped ? null : <TellSelect s={s} />),
                   },
@@ -181,7 +181,7 @@ export function SourcesBody({ title, tabs }: { title: string; tabs?: ReactNode }
             {
               key: "stop",
               label: "Stop",
-              icon: "x",
+              icon: "close",
               width: 120,
               cell: (s) => (s.stopped ? null : <StopButton s={s} />),
             },

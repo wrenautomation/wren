@@ -18,10 +18,10 @@ const accountAt = (at: string, check?: (page: HTMLElement) => void | Promise<voi
   beforeEach: [freshStory, forgetAccount],
 });
 
-/** The table row holding `text`. */
+/** The row holding `text`: a table row, or a phone's list item. */
 const rowOf = async (page: HTMLElement, text: string | RegExp) => {
   const cell = await within(page).findByText(text);
-  const row = cell.closest("tr");
+  const row = cell.closest<HTMLElement>("tr, li");
   if (!row) throw new Error(`"${text}" is not in a row`);
   return within(row);
 };

@@ -126,7 +126,7 @@ function Digest<T>({
   noun: string;
   narrow: boolean;
   lines: RowsLine<T>[];
-  name: RowsName<T> & { href: (row: T) => string };
+  name: Omit<RowsName<T>, "href"> & { href: (row: T) => string };
   columns: RowsColumn<T>[];
   group?: { folded: ReadonlySet<string>; toggle: (key: string) => void } | undefined;
 }) {

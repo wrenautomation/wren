@@ -23,7 +23,23 @@ const keep =
     return out(body);
   };
 
-const HOOKS = () => [
+/** A webhook as the page reads it; the fields a write changes may be set or not. */
+interface Hook {
+  id: string;
+  name: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  by: string;
+  at: string;
+  rotatedAt: string | null;
+  prevUntil: string | null;
+  failingSince: string | null;
+  disabledAt: string | null;
+  disabledWhy: string | null;
+}
+
+const HOOKS = (): Hook[] => [
   {
     id: "wh1",
     name: "Zapier: new reply",

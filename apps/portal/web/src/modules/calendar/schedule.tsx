@@ -15,10 +15,7 @@ import {
   type RecordActs,
   RecordPanel,
   type RecordsApi,
-  Rows,
-  RowsFoot,
   type RowsLine,
-  statsOf,
   tipProps,
   useNarrow,
   usePageKeys,
@@ -29,6 +26,7 @@ import { permissionOf } from "../../../../src/services.js";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
+import { PageRows } from "../../page-rows.js";
 import { recordsApi } from "../../records-api.js";
 import { href, navigate } from "../../route.js";
 import { callExtras } from "../calls/brief.js";
@@ -666,52 +664,47 @@ function Agenda({
   const count = lines.filter((l) => l.kind === "row").length;
   if (!count) return <p className="text-[14px] text-(--ui-ink-2)">No calls in these 30 days.</p>;
   return (
-    <div className="overflow-x-auto border border-(--ui-hair) bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)]">
-      <Rows<Call>
-        label="calls"
-        noun="call"
-        narrow={narrow}
-        scroller="window"
-        lines={lines}
-        open={{ id: openId, onOpen: (c) => pick(c.id) }}
-        foot={<RowsFoot stats={statsOf(Array.from({ length: count }, () => null))} waits={false} />}
-        name={{
-          label: "Call",
-          icon: "phone",
-          min: 220,
-          title: (c) => c.name,
-          weight: (c) =>
-            c.state === "cancelled"
-              ? "font-normal text-(--ui-ink-3) line-through"
-              : "font-[650] text-(--ui-ink)",
-          mark: (c) => (
-            <span
-              aria-hidden
-              className={`size-2.5 flex-none rounded-[var(--ui-radius)] ${tone(c, now)}`}
-            />
-          ),
-        }}
-        columns={[
-          {
-            key: "time",
-            label: "Time",
-            icon: "clock",
-            width: 190,
-            phone: true,
-            cell: (c) => (narrow ? clock(c.start) : span(c)),
-          },
-          { key: "offer", label: "Offer", icon: "tag", width: 180, cell: (c) => c.offer ?? "" },
-          {
-            key: "status",
-            label: "Status",
-            icon: "check",
-            width: 170,
-            quiet: true,
-            cell: (c) => said(c, now),
-          },
-        ]}
-      />
-    </div>
+    <PageRows<Call>
+      label="calls"
+      noun="call"
+      lines={lines}
+      open={{ id: openId, onOpen: (c) => pick(c.id) }}
+      name={{
+        label: "Call",
+        icon: "phone",
+        min: 220,
+        title: (c) => c.name,
+        weight: (c) =>
+          c.state === "cancelled"
+            ? "font-normal text-(--ui-ink-3) line-through"
+            : "font-[650] text-(--ui-ink)",
+        mark: (c) => (
+          <span
+            aria-hidden
+            className={`size-2.5 flex-none rounded-[var(--ui-radius)] ${tone(c, now)}`}
+          />
+        ),
+      }}
+      columns={[
+        {
+          key: "time",
+          label: "Time",
+          icon: "clock",
+          width: 190,
+          phone: true,
+          cell: (c) => (narrow ? clock(c.start) : span(c)),
+        },
+        { key: "offer", label: "Offer", icon: "tag", width: 180, cell: (c) => c.offer ?? "" },
+        {
+          key: "status",
+          label: "Status",
+          icon: "check",
+          width: 170,
+          quiet: true,
+          cell: (c) => said(c, now),
+        },
+      ]}
+    />
   );
 }
 

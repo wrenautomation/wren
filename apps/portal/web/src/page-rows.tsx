@@ -1,18 +1,16 @@
 /**
  * A page's list of rows: the one shape every portal page uses for `Rows` (designs/2026-10-21-
  * crm-rows-everywhere.md). It sets what is the same on each page: a phone's rows, the page as the
- * scroller, the bordered panel and a count foot. A page brings its columns, its lines and what
+ * scroller, and no panel or count foot (the app is flat). A page brings its columns, its lines and what
  * its rows do. A row's actions are `RowDoes`: each runs the page's own write path.
  */
 import {
   type Action,
   RowActions,
   Rows,
-  RowsFoot,
   type RowsLine,
   type RowsProps,
   rowActsOf,
-  statsOf,
   useNarrow,
 } from "@wren/ui";
 import { type ReactNode, useRef, useState } from "react";
@@ -74,36 +72,16 @@ export function RowDoes({
   );
 }
 
-type PageRowsProps<T> = Omit<RowsProps<T>, "narrow" | "scroller" | "foot"> & {
-  /** The foot; none draws the count. `false`: no foot. */
-  foot?: ReactNode | false;
-  /** The panel's own classes. */
-  panel?: string;
+type PageRowsProps<T> = Omit<RowsProps<T>, "narrow" | "scroller"> & {
+  /** A pane too narrow for columns (a side list) draws the phone's shape at any width. */
+  narrow?: boolean;
+  scroller?: RowsProps<T>["scroller"];
 };
 
-/** `Rows` in its panel, for a page whose rows scroll with the page. */
-export function PageRows<T>({ foot, panel, ...p }: PageRowsProps<T>) {
-  const narrow = useNarrow();
-  const count = p.lines.filter((l) => l.kind === "row").length;
-  return (
-    <div
-      className={
-        panel ??
-        "overflow-x-auto border border-(--ui-hair) bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)]"
-      }
-    >
-      <Rows<T>
-        {...p}
-        narrow={narrow}
-        scroller="window"
-        foot={
-          foot === false
-            ? undefined
-            : (foot ?? <RowsFoot stats={statsOf(Array(count).fill(null))} waits={false} />)
-        }
-      />
-    </div>
-  );
+/** `Rows` on the page, flat as the records lists: no panel, no inner scroll, no count foot. */
+export function PageRows<T>({ narrow: fixed, scroller = "window", ...p }: PageRowsProps<T>) {
+  const screen = useNarrow();
+  return <Rows<T> {...p} narrow={fixed ?? screen} scroller={scroller} />;
 }
 
 /**

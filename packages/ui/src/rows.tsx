@@ -192,8 +192,8 @@ export interface RowsName<T> {
   min?: number | undefined;
   className?: string | undefined;
   title: (row: T) => string;
-  /** The row's own page. None: the title is a button that opens the row (a side sheet). */
-  href?: ((row: T) => string) | undefined;
+  /** The row's own page. None (or null for a row): the title is a button that opens the row. */
+  href?: ((row: T) => string | null) | undefined;
   /** The title's weight and ink. */
   weight?: ((row: T) => string) | undefined;
   /** Initials in a round avatar. */
@@ -835,9 +835,9 @@ export function Rows<T>(p: RowsProps<T>) {
                         onOpen={open ? r.onOpen : undefined}
                         className="flex-1"
                       />
-                      {r.isOpen ? null : name.href ? (
+                      {r.isOpen ? null : name.href?.(l.row) ? (
                         <a
-                          href={name.href(l.row)}
+                          href={name.href(l.row) ?? undefined}
                           tabIndex={-1}
                           className={OPEN_CHIP}
                           data-look-over

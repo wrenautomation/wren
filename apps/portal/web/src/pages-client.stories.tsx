@@ -35,7 +35,6 @@ export const CalendarAgenda = pageAt("/calendar?v=list&d=2026-10-12", {
     await expect(within(page).getByText("Thursday, October 15")).toBeVisible();
     const ada = await within(page).findByRole("button", { name: "Ada North" });
     await expect(within(page).getByText("Reactivation")).toBeVisible();
-    await expect(within(page).getByText(/^Count/)).toBeVisible();
     // A press on a call puts it in the address, which opens its panel.
     await userEvent.click(ada);
     await waitFor(() => expect(ada.closest("tr, li")).toHaveAttribute("data-row"));
@@ -55,7 +54,6 @@ export const NotesRows: StoryObj = {
         within(page).queryByRole("table", { name: "notes" }) ??
           within(page).getByRole("list", { name: "notes" }),
       ).toBeInTheDocument();
-      await expect(within(page).getByText(/^Count/)).toBeVisible();
       // Spring promo plan starts starred. Press it: it reads again and shows unstarred.
       await userEvent.click(
         await within(page).findByRole("button", { name: "Unstar Spring promo plan" }),
@@ -92,7 +90,6 @@ export const NoteMentions = pageAt("/notes/mentions", {
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute("href", "/notes/doc/n1");
     await expect(within(page).getByRole("img", { name: "New" })).toBeVisible();
-    await expect(within(page).getByText(/^Count/)).toBeVisible();
   },
 });
 export const Voice = pageAt("/voice");

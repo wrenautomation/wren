@@ -15,12 +15,10 @@ import {
   Loading,
   PageHeader,
   Rows,
-  RowsFoot,
   type RowsLine,
   relative,
   Section,
   say,
-  statsOf,
   Tag,
   TextField,
   tipProps,
@@ -252,7 +250,6 @@ export function NotesHome({ client, params, demo }: PageProps) {
               scroller="window"
               lines={lines}
               open={{ id: null, onOpen: (n) => navigate(docPath(n.id)) }}
-              foot={<RowsFoot stats={statsOf(lines.map(() => null))} waits={false} />}
               name={{
                 label: "Note",
                 icon: "note",

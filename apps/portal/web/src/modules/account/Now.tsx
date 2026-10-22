@@ -66,7 +66,7 @@ export function SetupNow({ client, team }: { client: string; team: boolean }) {
           icon: "workflow",
           min: 240,
           title: (x) => x.title,
-          href: (x) => hrefOf(x) ?? undefined,
+          href: hrefOf,
           weight: () => "font-medium text-(--ui-ink)",
           sub: (x) => (
             <span className={`${QUIET} truncate`}>
