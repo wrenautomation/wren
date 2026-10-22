@@ -38,7 +38,24 @@ export const PEOPLE_PAGES: ModulePage[] = [
     columns: ["name", "stage", "warmth", "warmthLine", "persona", "lastTouchAt"],
     // How long ago, never late: a last touch has no promise.
     late: { field: "lastTouchAt" },
-    peek: { fields: ["stage", "warmth", "persona", "lastTouchAt", "lastChannel"] },
+    peek: {
+      fields: [
+        "stage",
+        "warmth",
+        "warmthLine",
+        "persona",
+        "emails",
+        "phones",
+        "subscriptions",
+        "cameFrom",
+        "repliedLast",
+        "repliedChannel",
+        "lastTouchAt",
+        "lastChannel",
+        "firstChannel",
+        "lead",
+      ],
+    },
     // Research this person and its Keep and Drop are Wren's: the server describes them to Wren alone.
     actions: [addToGroup, researchAction, ...inlineDecide],
     extras: (detail, at) =>

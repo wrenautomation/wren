@@ -66,7 +66,7 @@ export function PeekView({
 }: {
   /** The properties, label and drawn value, in order. */
   props: { label: string; node: ReactNode }[];
-  /** The newest items, up to three; null when the record keeps none. */
+  /** The record's recent items, as many as it holds; null when it keeps none. */
   recent: PeekLine[] | null;
   /** The record is still being read: its activity shows as a skeleton in its place. */
   waiting?: boolean;

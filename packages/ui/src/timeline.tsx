@@ -1096,11 +1096,11 @@ export function TimelineMini({
                     {at?.toLocaleString("en-US", { ...SHORT, ...TIME }) ?? ""}
                   </time>
                 </div>
-                <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 items-start gap-2">
+                  {/* Whole: only a huge post's paragraph is cut, at eight lines. */}
                   <a
                     href={l.href}
-                    className="min-w-0 flex-1 truncate text-[13.5px] text-(--ui-ink) no-underline hover:underline"
-                    {...clipProps()}
+                    className="line-clamp-8 min-w-0 flex-1 text-[13.5px] wrap-anywhere text-(--ui-ink) no-underline hover:underline"
                   >
                     {l.summary || "-"}
                   </a>
