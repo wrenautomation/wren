@@ -36,4 +36,10 @@ export interface Env {
   WRITE_WATCH?: DurableObjectNamespace;
   /** The cap on public posts per visitor (./limit.ts). Unset = no cap. */
   PUBLIC_LIMIT?: RateLimit;
+  /** "1": local dev on prod data, on this machine's host only (./dev.ts). Never set on prod. */
+  WREN_DEV?: string;
+  /** "1": dev may write to prod. Unset = dev reads only. */
+  WREN_DEV_WRITES?: string;
+  /** The operator dev acts as. */
+  WREN_DEV_EMAIL?: string;
 }

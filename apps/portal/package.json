@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p web && tsc --noEmit -p scripts",
     "test:unit": "vitest run",
     "build": "vite build web",
-    "dev": "vite build web && wrangler dev",
+    "dev": "node ../../scripts/secrets.mjs run /wren/prod/env -- vite web",
     "deploy": "vite build web && wrangler deploy",
     "preview": "vite build web && tsx scripts/preview.ts",
     "e2e:writes": "tsx scripts/writes-e2e.ts",
@@ -15,6 +15,7 @@
     "storybook": "wren-storybook 61001",
     "stories:build": "storybook build --quiet",
     "stories:shot": "wren-shot --port 61001",
+    "look": "wren-look --port 61001",
     "test:stories": "wren-stories"
   },
   "dependencies": {
@@ -58,6 +59,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.61.0",
     "@cloudflare/workers-types": "5.20260927.1",
     "@storybook/addon-a11y": "10.6.2",
     "@storybook/addon-vitest": "10.6.2",

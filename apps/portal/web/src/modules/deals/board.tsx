@@ -383,7 +383,8 @@ function Card({
       draggable={write}
       onDragStart={(e) => dragStart(e, MIME, j.id)}
       className={cx(
-        "grid gap-1 border border-(--ui-hair) bg-(--ui-paper) p-2.5 text-[13px]",
+        // One track that may shrink: a long name cuts in the card, never past its lane.
+        "grid grid-cols-[minmax(0,1fr)] gap-1 border border-(--ui-hair) bg-(--ui-paper) p-2.5 text-[13px]",
         write && "cursor-grab active:cursor-grabbing",
       )}
     >
@@ -404,12 +405,12 @@ function Card({
         {j.flag === "stale" ? <span className="font-medium text-(--ui-bad)">Stale</span> : null}
         {j.ghost ? <span className="font-medium">Older version</span> : null}
         {j.entry ? (
-          <span className="truncate" {...clipProps()}>
+          <span className="max-w-full truncate" {...clipProps()}>
             {j.entry}
           </span>
         ) : null}
         {j.owner ? (
-          <span className="truncate" {...clipProps()}>
+          <span className="max-w-full truncate" {...clipProps()}>
             {j.owner}
           </span>
         ) : null}

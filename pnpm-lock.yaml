@@ -357,6 +357,9 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
+      '@cloudflare/vite-plugin':
+        specifier: 1.61.0
+        version: 1.61.0(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))(wrangler@4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@26.6.4))
       '@cloudflare/workers-types':
         specifier: 5.20260927.1
         version: 5.20260927.1
@@ -1860,6 +1863,9 @@ importers:
       '@vitest/browser-playwright':
         specifier: 5.0.1
         version: 5.0.1(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(playwright@1.63.0)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))(vitest@5.0.1)
+      '@wrenautomation/autobrowse':
+        specifier: 0.7.0
+        version: 0.7.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       fake-indexeddb:
         specifier: 6.2.5
         version: 6.2.5
@@ -2476,6 +2482,13 @@ packages:
     peerDependenciesMeta:
       workerd:
         optional: true
+
+  '@cloudflare/vite-plugin@1.61.0':
+    resolution: {integrity: sha512-+ksYktyH08JCGBfqrVANyx5ex7F/k1Da54K+ZQ6fFJPfeCbY98oIM0UBdxq2m9G6qO3cDTIGapqWc6QxM+QDUQ==}
+    hasBin: true
+    peerDependencies:
+      vite: ^6.1.0 || ^7.0.0 || ^8.0.0
+      wrangler: ^4.142.0
 
   '@cloudflare/workerd-darwin-64@1.20260926.1':
     resolution: {integrity: sha512-VCIpwgJu5Dm1o+VHLclNOKIdpttEqss7oDHS5DYxgVoonM9Dxxxr1xCQvJbh6IXFuQ1DDrbm5krjte5NsTgX3Q==}
@@ -3702,6 +3715,7 @@ packages:
   '@opentelemetry/sdk-trace-base@2.12.0':
     resolution: {integrity: sha512-JOERgZCxRM06FEJ5kEWxlSRChah6MmXDx3KwCruqEv/iEyLkTokCSemf2y1w8oIHtfrr8EVTpzebq/31vn2Cpg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.3.0 <1.10.0'
 
@@ -5626,6 +5640,11 @@ packages:
 
   '@wrenautomation/autobrowse@0.5.0':
     resolution: {integrity: sha512-8WKnrGykdtNnnQgXbKn3XB+gs39t7P7RTJpVu2nKJmgFGe4XSiyTvA4WCy74KttquU2lhJoySO6lt9YJETO5OQ==}
+    engines: {node: '>=24'}
+    hasBin: true
+
+  '@wrenautomation/autobrowse@0.7.0':
+    resolution: {integrity: sha512-ZKPd7BVevdjKqO/Aa713zbO2KeB7Myy81lW4OzS1oITgxZXIwb7lHoMpQNWuiUdd/fuEwivQNbgn1yJw7N6Ehw==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -9424,22 +9443,22 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/credential-provider-node': 3.972.83
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/client-cloudfront@3.1136.0':
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/credential-provider-node': 3.972.83
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/client-cloudtrail@3.1136.0':
@@ -9480,11 +9499,11 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/credential-provider-node': 3.972.83
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/client-route-53@3.1136.0':
@@ -9492,11 +9511,11 @@ snapshots:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/credential-provider-node': 3.972.83
       '@aws-sdk/middleware-sdk-route53': 3.972.27
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/client-s3@3.1136.0':
@@ -9529,11 +9548,11 @@ snapshots:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/credential-provider-node': 3.972.83
       '@aws-sdk/signature-v4-multi-region': 3.996.46
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/core@3.978.0':
@@ -9550,19 +9569,19 @@ snapshots:
   '@aws-sdk/credential-provider-env@3.972.71':
     dependencies:
       '@aws-sdk/core': 3.978.0
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-http@3.972.73':
     dependencies:
       '@aws-sdk/core': 3.978.0
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-ini@3.973.16':
@@ -9575,19 +9594,19 @@ snapshots:
       '@aws-sdk/credential-provider-sso': 3.973.15
       '@aws-sdk/credential-provider-web-identity': 3.972.77
       '@aws-sdk/nested-clients': 3.997.45
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/credential-provider-imds': 4.5.2
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-login@3.972.78':
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/nested-clients': 3.997.45
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-node@3.972.83':
@@ -9607,9 +9626,9 @@ snapshots:
   '@aws-sdk/credential-provider-process@3.972.71':
     dependencies:
       '@aws-sdk/core': 3.978.0
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-sso@3.973.15':
@@ -9617,18 +9636,18 @@ snapshots:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/nested-clients': 3.997.45
       '@aws-sdk/token-providers': 3.1129.0
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/credential-provider-web-identity@3.972.77':
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/nested-clients': 3.997.45
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/middleware-sdk-ec2@3.972.59':
@@ -9659,11 +9678,11 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/signature-v4-multi-region': 3.996.46
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/s3-request-presigner@3.1136.0':
@@ -9686,9 +9705,9 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/nested-clients': 3.997.45
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/types@3.974.5':
@@ -9703,7 +9722,7 @@ snapshots:
 
   '@aws-sdk/xml-builder@3.972.40':
     dependencies:
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws/lambda-invoke-store@0.3.0': {}
@@ -10046,6 +10065,20 @@ snapshots:
       unenv: 2.0.0-rc.24
     optionalDependencies:
       workerd: 1.20260926.1
+
+  '@cloudflare/vite-plugin@1.61.0(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))(wrangler@4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@26.6.4))':
+    dependencies:
+      '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20260926.1)
+      miniflare: 5.20260926.0-alpha(@types/node@26.6.4)
+      unenv: 2.0.0-rc.24
+      vite: 8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)
+      workerd: 1.20260926.1
+      wrangler: 4.142.0(@cloudflare/workers-types@5.20260927.1)(@types/node@26.6.4)
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - '@types/node'
+      - bufferutil
+      - utf-8-validate
 
   '@cloudflare/workerd-darwin-64@1.20260926.1':
     optional: true
@@ -11979,7 +12012,7 @@ snapshots:
   '@smithy/credential-provider-imds@4.5.2':
     dependencies:
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@smithy/fetch-http-handler@5.8.0':
@@ -11997,7 +12030,7 @@ snapshots:
   '@smithy/signature-v4@5.7.3':
     dependencies:
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@smithy/types@4.18.0':
@@ -12940,6 +12973,48 @@ snapshots:
   '@workflow/serde@4.1.0': {}
 
   '@wrenautomation/autobrowse@0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))':
+    dependencies:
+      '@aws-sdk/client-acm': 3.1136.0
+      '@aws-sdk/client-cloudfront': 3.1136.0
+      '@aws-sdk/client-ec2': 3.1136.0
+      '@aws-sdk/client-iam': 3.1136.0
+      '@aws-sdk/client-route-53': 3.1136.0
+      '@aws-sdk/client-s3': 3.1136.0
+      '@aws-sdk/client-ssm': 3.1136.0
+      '@hono/node-server': 2.1.1(hono@4.13.8)
+      '@restatedev/restate-sdk': 1.17.1
+      '@restatedev/restate-sdk-clients': 1.17.1
+      '@restatedev/restate-sdk-tunnel': 1.17.1(@restatedev/restate-sdk@1.17.1)
+      '@sentry/node': 10.75.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      commander: 15.0.0
+      credvault: 0.13.0
+      entities: 8.1.0
+      hono: 4.13.8
+      imapflow: 2.2.4
+      impit: 0.14.5
+      libmime: 5.4.7
+      mammoth: 1.13.0
+      nodemailer: 10.0.15
+      obs-websocket-js: 5.0.8
+      patchright: 1.63.0
+      pino: 10.3.1
+      playwright: 1.63.0
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      smol-toml: 1.8.0
+      tldts: 7.4.16
+      tsx: 4.23.13
+      unpdf: 1.8.1
+      zod: 4.6.5
+    transitivePeerDependencies:
+      - '@napi-rs/canvas'
+      - '@opentelemetry/core'
+      - '@opentelemetry/exporter-trace-otlp-http'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
+  '@wrenautomation/autobrowse@0.7.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))':
     dependencies:
       '@aws-sdk/client-acm': 3.1136.0
       '@aws-sdk/client-cloudfront': 3.1136.0

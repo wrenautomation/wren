@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { gzipSync } from "node:zlib";
+import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type Rollup } from "vite";
 import { BUILD_FILE, BUILD_META } from "../src/build.js";
+import { nodeStubs } from "./node-stubs.js";
 
 /**
  * Sonner adds its CSS as a <style> at load, which the CSP's style-src refuses. The same CSS comes
@@ -127,11 +129,48 @@ function buildId(): Plugin {
   };
 }
 
+/**
+ * `pnpm dev` (designs/2026-10-21-dev-loop.md): the Worker runs inside Vite, the app hot-reloads,
+ * and the API reads prod through Restate as the operator WREN_DEV_EMAIL. The token comes from SSM
+ * into this process's env (scripts/secrets.mjs run), never a file. Writes stay off unless
+ * WREN_DEV_WRITES=1 (../src/dev.ts).
+ */
+const DEV_VARS = {
+  WREN_DEV: "1",
+  WREN_DEV_WRITES: process.env.WREN_DEV_WRITES ?? "",
+  // The team operator; another with WREN_DEV_EMAIL.
+  WREN_DEV_EMAIL: process.env.WREN_DEV_EMAIL ?? "william@wrenautomation.com",
+  // Local is no client's host.
+  APP_HOST: "",
+  RESTATE_INGRESS_URL: process.env.WREN_DEV_INGRESS ?? "https://restate.wrenautomation.com",
+  RESTATE_AUTH_TOKEN: process.env.RESTATE_AUTH_TOKEN ?? "",
+};
+const worker = () =>
+  cloudflare({
+    configPath: `${import.meta.dirname}/../wrangler.toml`,
+    config: (c) => {
+      c.vars = { ...c.vars, ...DEV_VARS };
+    },
+    persistState: false,
+  });
+
 // Built into ../dist, which the Worker serves as its assets. `replay.html` is the session player,
 // `book.html` a client's public booking page (`src/book.ts`).
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: import.meta.dirname,
-  plugins: [react(), tailwindcss(), sonnerStyles, ownOrtWasm, serverOnly, buildId()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    sonnerStyles,
+    ownOrtWasm,
+    serverOnly,
+    buildId(),
+    ...(command === "serve" ? [nodeStubs, worker()] : []),
+  ],
+  // The dev mark (src/dev-banner.tsx): the dev server only.
+  ...(command === "serve"
+    ? { define: { __WREN_DEV__: JSON.stringify({ writes: DEV_VARS.WREN_DEV_WRITES === "1" }) } }
+    : {}),
   // Dictation's speech model runs in a module worker (src/dictation/model.worker.ts).
   worker: { format: "es", plugins: () => [noOrtWasm] },
   build: {
@@ -145,4 +184,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

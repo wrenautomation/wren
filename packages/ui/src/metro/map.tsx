@@ -395,6 +395,8 @@ export function MetroMap(props: MetroMapProps) {
       <div
         ref={host}
         className={cx("metro-host", intro && "ld")}
+        // The map pans both ways on purpose (look.ts).
+        data-look-scroll
         {...(pans ? { tabIndex: 0, role: "group", "aria-label": "Scrollable map" } : {})}
       >
         {drawsMarks && !controls ? <MetroLegend over /> : null}
@@ -452,7 +454,12 @@ const MARKS: Mark[] = ["added", "changed", "removed"];
  */
 export function MetroLegend({ over }: { over?: boolean | undefined }) {
   return (
-    <ul className={cx("metro-legend", over && "over")} aria-label="Diff marks">
+    <ul
+      className={cx("metro-legend", over && "over")}
+      aria-label="Diff marks"
+      // Over the map's corner by design: the map pans out from under it (look.ts).
+      {...(over ? { "data-look-over": "" } : {})}
+    >
       {MARKS.map((m) => (
         <li key={m}>
           <span className="metro-tag" data-mark={m} aria-hidden="true">

@@ -3,6 +3,7 @@ import { DictationProvider, HintLayer, ReadingProvider } from "@wren/ui";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { openLocalCopy } from "./api.js";
+import { DevBanner } from "./dev-banner.js";
 import { dictation } from "./dictation/index.js";
 import { reading } from "./reading/index.js";
 import { PortalRouter } from "./router.js";
@@ -22,6 +23,7 @@ void Promise.race([openLocalCopy(), new Promise((r) => setTimeout(r, 250))]).the
           <ReadingProvider engine={reading}>
             <PortalRouter />
             <HintLayer />
+            <DevBanner />
           </ReadingProvider>
         </DictationProvider>
       </StrictMode>,

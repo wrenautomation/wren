@@ -907,7 +907,7 @@ function SortHead({
   const end = field.column?.align === "end";
   if (!field.sortable)
     return (
-      <span className="line-clamp-2" {...clipProps()}>
+      <span className="line-clamp-2 whitespace-normal" {...clipProps()}>
         {field.label}
       </span>
     );
@@ -925,7 +925,7 @@ function SortHead({
         on ? "text-(--ui-ink)" : "text-inherit",
       )}
     >
-      <span className="line-clamp-2">{field.label}</span>
+      <span className="line-clamp-2 whitespace-normal">{field.label}</span>
       {on ? <Arrow className="size-3 shrink-0" /> : null}
     </a>
   );
@@ -1908,6 +1908,8 @@ function List({
             ) : (
               <div
                 ref={frameRef}
+                // A wide table scrolls sideways in its panel, on purpose (look.ts).
+                data-look-scroll
                 className={cn(!narrow && "max-h-[calc(100dvh-320px)] overflow-auto")}
               >
                 <Rows

@@ -35,6 +35,13 @@ stories() { echo "==> stories build" && pnpm turbo run stories:build --concurren
 # Every story as a test: it renders, its play runs, axe checks it (light at 390, dark at 1280).
 # One package at a time: each starts a Chromium, and the Mac holds one.
 visual() { echo "==> story tests" && pnpm turbo run test:stories --concurrency=1 --output-logs=errors-only; }
+# Every page story laid out on messy, prod-like data, as text (designs/2026-10-21-dev-loop.md): words
+# over words, words past their box, a pane that scrolls sideways. Runs on the built portal Storybook.
+look() {
+  echo "==> page layout, messy data" &&
+    pnpm turbo run stories:build --filter=@wren/portal --output-logs=errors-only &&
+    (cd apps/portal && pnpm -s exec wren-look --all --static storybook-static --messy)
+}
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
 # The local copy's IndexedDB transactions (packages/ui/src/data/local.ts) aren't Postgres.
@@ -130,7 +137,7 @@ ui() {
     pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
     writes && edits && reads && libs &&
     echo "==> unit tests related to the changed files" &&
-    related packages/ui "$files" && related apps/portal "$files" && visual
+    related packages/ui "$files" && related apps/portal "$files" && visual && look
 }
 # `vitest related` in one package, on its changed .ts/.tsx files; none changed, nothing runs.
 related() {
@@ -144,6 +151,7 @@ case "${1:-all}" in
   ui) ui ;;
   unit) unit ;;
   visual) visual ;;
+  look) look ;;
   integration) integration ;;
   schema) schema ;;
   drift) drift ;;
@@ -151,5 +159,5 @@ case "${1:-all}" in
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
   checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|changed|ui|checks|unit|visual|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
+  *) echo "usage: $0 [lint|changed|ui|checks|unit|visual|look|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac

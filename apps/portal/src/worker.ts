@@ -38,6 +38,7 @@ import { LIVE_PREFIX } from "@wren/notes/room";
 import { AGENT_PATH, agentRoute, operatorToken } from "./agent.js";
 import { bookRoute } from "./book.js";
 import { BUILD_FILE, BUILD_HEADER, isStale, STALE_CODE, STALE_SEND, STALE_WRITE } from "./build.js";
+import { devRefusal, devViewer, isDev } from "./dev.js";
 import { dictate } from "./dictate.js";
 import { docsRoute } from "./docs.js";
 import { forward, json } from "./edge.js";
@@ -76,6 +77,7 @@ export type Viewer = { email: string; operator?: boolean } | { demo: true };
 async function viewerOf(req: Request, env: Env): Promise<Viewer | Response> {
   const host = new URL(req.url).hostname;
   if (host === env.DEMO_HOST) return { demo: true };
+  if (isDev(req, env)) return devViewer(env);
   if (!env.AUTH_ORIGIN) return json({ error: "Sign-in isn't set up yet." }, 503);
   let who: Awaited<ReturnType<typeof verifyToken>>;
   try {
@@ -346,6 +348,9 @@ async function mediaGrant(req: Request, env: Env, site: Site): Promise<Response>
 export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
+    // Local dev on prod data: writes off unless asked for (./dev.ts).
+    const refused = isDev(req, env) ? devRefusal(req, env) : null;
+    if (refused) return refused;
     const site = await siteOf(req, env, ctx);
     const over = await publicLimit(req, env, pathname, (r) =>
       pathname.startsWith(`${AGENT_PATH}/`) ? operatorToken(r, env) : Promise.resolve(false),

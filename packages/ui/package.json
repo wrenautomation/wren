@@ -22,7 +22,8 @@
   "bin": {
     "wren-stories": "./.storybook/run.mjs",
     "wren-shot": "./.storybook/shot.mjs",
-    "wren-storybook": "./.storybook/serve.mjs"
+    "wren-storybook": "./.storybook/serve.mjs",
+    "wren-look": "./.storybook/look.mjs"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -44,6 +45,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
     "@vitest/browser-playwright": "5.0.1",
+    "@wrenautomation/autobrowse": "0.7.0",
     "fake-indexeddb": "6.2.5",
     "happy-dom": "20.14.5",
     "playwright": "1.63.0",

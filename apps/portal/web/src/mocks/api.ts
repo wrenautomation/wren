@@ -100,7 +100,33 @@ export function answerOf(
     const { [REFUSAL]: status, ...rest } = got as { [REFUSAL]: number; error: string };
     return { status, body: rest };
   }
-  return { status: 200, body: got };
+  return { status: 200, body: messy ? stretch(got) : got };
+}
+
+/**
+ * Messy mode (the `data` toolbar, `wren-look --messy`): every answer's records as prod's look, not
+ * the table's tidy one. A string with a space is words a person wrote (a subject, a name, a note),
+ * so it grows long, with marks and other scripts; ids, enums, dates and addresses have no space and
+ * stay, so the app still runs. The app's own words (a field's label, a view's name, a state) stay
+ * as shipped: those are ours, not the data's. Fixed text, so a run is the same each time.
+ */
+const MESSY_TAIL = " and a much longer real world line, as prod data has: Ünïcödé, 長い件名, 📬";
+const OURS = new Set([
+  "label", "description", "hint", "noun", "plural", "placeholder", "help", "empty",
+  "states", "views", "fields", "columns",
+]);
+let messy = false;
+export const setMessy = (on: boolean) => {
+  messy = on;
+};
+export function stretch(v: unknown): unknown {
+  if (typeof v === "string") return v.includes(" ") && v.length < 400 ? v + MESSY_TAIL : v;
+  if (Array.isArray(v)) return v.map(stretch);
+  if (v && typeof v === "object")
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [k, OURS.has(k) ? x : stretch(x)]),
+    );
+  return v;
 }
 
 type Call = { path: string; body?: Record<string, unknown> };
