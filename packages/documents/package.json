@@ -7,6 +7,7 @@
     "./components": "./src/components.ts",
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
+    "./documenso": "./src/documenso.ts",
     "./lines": "./src/lines.ts",
     "./pdf": "./src/pdf.ts",
     "./records": "./src/records.ts",

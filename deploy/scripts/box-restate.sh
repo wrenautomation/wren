@@ -10,6 +10,7 @@ region="$1" bucket="$2" param="${3:-/wren/prod/restate}"
 D=/var/lib/wren-pg/restate
 HOST=restate.wrenautomation.com
 DESK=desk.wrenautomation.com
+LISTS=lists.wrenautomation.com
 mkdir -p "$D/data" "$D/caddy"
 umask 077
 
@@ -89,6 +90,17 @@ $HOST {
 	handle {
 		respond 401
 	}
+}
+EOF
+# Listmonk (box-listmonk.sh) on loopback 9000: the admin and the API, each behind its own login. The
+# worker and the CLI call the API from outside the box. Its sign-up and unsubscribe pages and its
+# tracking links stay shut: people join on the lander and leave through Wren's own link.
+cat >> "$D/Caddyfile.new" <<EOF
+
+$LISTS {
+	@public path /subscription* /api/public* /archive* /link/* /campaign/* /public/*
+	respond @public 404
+	reverse_proxy 127.0.0.1:9000
 }
 EOF
 

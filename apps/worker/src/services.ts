@@ -88,6 +88,7 @@ import {
   makeCallBriefs,
 } from "@wren/channel-email/calls";
 import { EMAIL_TOUCH } from "@wren/channel-email/components";
+import { type Listmonk, listmonk } from "@wren/channel-email/listmonk";
 import {
   type Campaign,
   DISPOSITION_KEY,
@@ -101,6 +102,9 @@ import {
   makeDisposition,
   makeEmailConsole,
   makeInboxScheduler,
+  makeListmonkIntake,
+  makeListmonkMail,
+  makeListmonkSync,
   makeMarketing,
   makeNewsletter,
   makeOpensScheduler,
@@ -112,6 +116,7 @@ import {
   makeResolution,
   makeSendScheduler,
   type SendScope,
+  syncTopicByName,
 } from "@wren/channel-email/restate";
 import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/channel-email/views";
 import { linkedinContent } from "@wren/channel-linkedin";
@@ -316,6 +321,7 @@ import { s3Files } from "@wren/delivery/files";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
 import { makeDocumentsConsole } from "@wren/documents/console";
+import { documenso } from "@wren/documents/documenso";
 import { makeDocuments } from "@wren/documents/service";
 import {
   askNoteSop,
@@ -779,6 +785,21 @@ export async function buildServices(
           name: "Wren",
         })
       : null;
+  // The newsletter's lists, subscribers and campaigns live in Listmonk when its three settings are set.
+  const lm: Listmonk | null =
+    settings.listmonkUrl && settings.listmonkUser && settings.listmonkToken
+      ? listmonk({
+          url: settings.listmonkUrl,
+          user: settings.listmonkUser,
+          token: settings.listmonkToken,
+        })
+      : null;
+  // E-signature for sealed documents lives in Documenso when both of its settings are set.
+  const esign =
+    settings.documensoUrl && settings.documensoToken
+      ? documenso({ url: settings.documensoUrl, token: settings.documensoToken })
+      : null;
+  const sealedFiles = settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : null;
   // People broadcasts' email (B6): Wren's own, from portal@ with the marketing envelope. Null
   // without portal@, the lander's link key or a postal address: email broadcasts then refuse.
   const shared = settings.siteExportToken;
@@ -1176,7 +1197,21 @@ export async function buildServices(
       from: settings.portalFrom ?? null,
       postal: settings.marketingPostal ?? null,
       send: portalMail,
+      ...(lm ? { listmonk: lm, syncTopic: (topic) => syncTopicByName({ db, lm }, topic) } : {}),
     }),
+    // Listmonk (designs/2026-10-21-esign-and-newsletter.md): its postback door, the mail it sends
+    // through portal@, and the hourly sync of lists. Without Listmonk's config the door answers
+    // and mails nothing, and the sync stays off.
+    makeListmonkIntake(),
+    makeListmonkMail({
+      db,
+      shared: settings.siteExportToken ?? null,
+      site: settings.siteBaseUrl.replace(/\/+$/, ""),
+      from: settings.portalFrom ?? null,
+      postal: settings.marketingPostal ?? null,
+      send: portalMail,
+    }),
+    makeListmonkSync({ db, lm }),
     // Write's Blog box: posts committed to the lander repo, then mailed (designs/2026-10-13-blog-box.md).
     makeBlog({
       db,
@@ -1213,8 +1248,14 @@ export async function buildServices(
     makePayReconcile({ ...payDeps, mailer: bookerMailer, fire: fireAll, ...notify }),
     // Contracts, proposals and estimates to sign; a deposit on the same Stripe key
     // (designs/2026-10-09-documents.md).
-    makeDocuments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
-    makeDocumentsConsole(payDeps),
+    makeDocuments({
+      ...payDeps,
+      mailer: bookerMailer,
+      fire: fireAll,
+      documenso: esign,
+      files: sealedFiles,
+    }),
+    makeDocumentsConsole({ ...payDeps, files: sealedFiles, sealed: !!esign && !!sealedFiles }),
     // Journeys: hand moves through the shape's own step, and the pipeline records
     // (designs/2026-10-18-journeys.md).
     makeJourneys({ db: (client) => (client ? clientDb(client) : db) }),

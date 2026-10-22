@@ -85,6 +85,20 @@ resource "aws_ssm_parameter" "cache" {
   }
 }
 
+# Listmonk on the box (deploy/scripts/box-listmonk.sh), as JSON {admin_user, admin_password,
+# db_password}. Set by hand. Made outside Terraform first: `tofu import aws_ssm_parameter.listmonk
+# /wren/prod/listmonk` before the apply that grants the box this read.
+resource "aws_ssm_parameter" "listmonk" {
+  name        = "${local.ssm_root}/listmonk"
+  description = "JSON for the box's Listmonk: admin_user, admin_password, db_password"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_security_group" "pg" {
   name        = "${local.prefix}-pg"
   description = "Postgres over TLS from anywhere; no SSH (use SSM Session Manager)"
@@ -208,9 +222,9 @@ locals {
     [aws_ssm_parameter.pg_password.arn],
     aws_ssm_parameter.browser_token[*].arn,
     # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
-    [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.keystore.arn],
+    [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.env_3.arn, aws_ssm_parameter.keystore.arn],
     [aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
-    [aws_ssm_parameter.restate.arn, aws_ssm_parameter.cache.arn],
+    [aws_ssm_parameter.restate.arn, aws_ssm_parameter.cache.arn, aws_ssm_parameter.listmonk.arn],
   )
 }
 

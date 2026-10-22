@@ -289,6 +289,16 @@ export const settingsSchema = z.object({
   /** The postal address every marketing email carries (CAN-SPAM, CASL). Unset = no newsletter. */
   marketingPostal: z.string().min(1).optional(),
   portalFrom: z.string().email().optional(),
+  /** Listmonk's base URL (designs/2026-10-21-esign-and-newsletter.md): the newsletter's lists, subscribers and campaigns. All three unset = the newsletter sends direct. */
+  listmonkUrl: z.string().url().optional(),
+  /** The Listmonk API user the worker acts as. */
+  listmonkUser: z.string().min(1).optional(),
+  /** That API user's token. A secret: never logged, never in argv. */
+  listmonkToken: z.string().min(1).optional(),
+  /** Documenso's base URL: "Send for signature" on a document. Unset = e-sign is off. */
+  documensoUrl: z.string().url().optional(),
+  /** A Documenso API token. A secret: never logged, never in argv. */
+  documensoToken: z.string().min(1).optional(),
   /** A mailbox the service account may impersonate that can send as `portalFrom`. */
   portalMailbox: z.string().email().optional(),
   /** `on` mails client reports from portal@; anything else keeps each run unmailed. */
@@ -689,6 +699,11 @@ export const ENV_KEYS = {
   portalOrigin: "WREN_PORTAL_ORIGIN",
   marketingPostal: "WREN_MARKETING_POSTAL",
   portalFrom: "WREN_PORTAL_FROM",
+  listmonkUrl: "WREN_LISTMONK_URL",
+  listmonkUser: "WREN_LISTMONK_USER",
+  listmonkToken: "WREN_LISTMONK_TOKEN",
+  documensoUrl: "WREN_DOCUMENSO_URL",
+  documensoToken: "WREN_DOCUMENSO_TOKEN",
   portalMailbox: "WREN_PORTAL_MAILBOX",
   clientReportsMail: "WREN_CLIENT_REPORTS_MAIL",
   wiseApiToken: "WISE_API_TOKEN",

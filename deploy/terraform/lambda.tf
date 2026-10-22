@@ -26,6 +26,20 @@ resource "aws_ssm_parameter" "env_2" {
   }
 }
 
+# The third part of the env, once env-2 is full (4,096 characters, standard tier). Holds the
+# Documenso URL and API token (designs/2026-10-21-esign-and-newsletter.md). Set by hand; the loader
+# skips it while it is "{}" and while the role can't read it yet.
+resource "aws_ssm_parameter" "env_3" {
+  name        = "${local.ssm_root}/env-3"
+  description = "JSON object of env names to values, after env-2: WREN_DOCUMENSO_URL, WREN_DOCUMENSO_TOKEN"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value, tier]
+  }
+}
+
 # The key store's private keys (designs/2026-10-07-key-store.md): {"WREN_KEYSTORE_KEY": "kid:…"},
 # written once by scripts/keystore-key.mjs. The worker reads it; the sign-in Lambda never does.
 resource "aws_ssm_parameter" "keystore" {
@@ -96,6 +110,7 @@ data "aws_iam_policy_document" "worker" {
     resources = [
       aws_ssm_parameter.env.arn,
       aws_ssm_parameter.env_2.arn,
+      aws_ssm_parameter.env_3.arn,
       aws_ssm_parameter.keystore.arn,
       aws_ssm_parameter.roster.arn,
       aws_ssm_parameter.mailboxes.arn,
@@ -172,6 +187,7 @@ resource "aws_lambda_function" "worker" {
         WREN_SSM_ENV_PARAM = join(",", [
           aws_ssm_parameter.env.name,
           aws_ssm_parameter.env_2.name,
+          aws_ssm_parameter.env_3.name,
           aws_ssm_parameter.keystore.name,
         ])
         WREN_SSM_ROSTER_PARAM    = aws_ssm_parameter.roster.name

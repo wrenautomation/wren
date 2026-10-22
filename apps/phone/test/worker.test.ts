@@ -361,6 +361,58 @@ describe("cal.com webhook", () => {
   });
 });
 
+describe("Documenso webhook", () => {
+  const SECRET = "documenso-test-secret";
+  const hook = JSON.stringify({
+    event: "DOCUMENT_COMPLETED",
+    createdAt: "2026-10-22T02:10:38.768Z",
+    payload: { envelopeId: "envelope_abc", externalId: "doc_1", recipients: [] },
+  });
+  const send = (body: string, secret: string | null = SECRET) =>
+    call("/webhooks/documenso", {
+      method: "POST",
+      headers: secret === null ? {} : { "x-documenso-secret": secret },
+      body,
+    });
+  beforeEach(() => {
+    env.DOCUMENSO_WEBHOOK_SECRET = SECRET;
+  });
+
+  it("forwards an event to Documents/signed, keyed by envelope + event + time", async () => {
+    expect((await send(hook)).status).toBe(200);
+    expect((await send(hook)).status).toBe(200);
+    expect(restateCalls).toHaveLength(2);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Documents/signed/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe(
+      "documenso-envelope_abc-DOCUMENT_COMPLETED-2026-10-22T02:10:38.768Z",
+    );
+    expect(restateCalls[1]?.headers.get("idempotency-key")).toBe(
+      restateCalls[0]?.headers.get("idempotency-key"),
+    );
+    expect(restateCalls[0]?.body).toBe(hook);
+  });
+
+  it("refuses a missing or wrong secret and forwards nothing", async () => {
+    expect((await send(hook, null)).status).toBe(401);
+    expect((await send(hook, "other")).status).toBe(401);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("refuses a body with no event or envelope", async () => {
+    expect((await send("nope")).status).toBe(400);
+    expect((await send(JSON.stringify({ event: "DOCUMENT_SENT", payload: {} }))).status).toBe(400);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("answers 502 when Restate fails; 503 with no secret configured; 405 for a GET", async () => {
+    restateStatus = 500;
+    expect((await send(hook)).status).toBe(502);
+    delete env.DOCUMENSO_WEBHOOK_SECRET;
+    expect((await send(hook)).status).toBe(503);
+    expect((await call("/webhooks/documenso", { method: "GET" })).status).toBe(405);
+  });
+});
+
 describe("site application push", () => {
   const TOKEN = "site-token";
   const sign = async (body: string, secret = TOKEN) => {

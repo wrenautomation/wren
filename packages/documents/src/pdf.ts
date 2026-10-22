@@ -6,7 +6,15 @@
  */
 import { PDFDocument, type PDFFont, type PDFPage, rgb, StandardFonts } from "pdf-lib";
 import type { Doc, DocEvent, DocKind } from "./schema.js";
-import { CONSENT_WORDS, KIND_NAME, lineAmount, lineTax, money } from "./store.js";
+import {
+  CONSENT_WORDS,
+  KIND_NAME,
+  lineAmount,
+  lineTax,
+  money,
+  SEALED_CONSENT_VERSION,
+  SEALED_CONSENT_WORDS,
+} from "./store.js";
 
 const W = 612;
 const H = 792;
@@ -96,28 +104,27 @@ function row(p: Pen, cells: string[], bold = false) {
 const when = (d: Date | string | null) =>
   d ? `${new Date(d).toISOString().replace("T", " ").slice(0, 19)} UTC` : "";
 
-/** The PDF's bytes for one document and its events. */
-export async function docPdf(
-  d: Doc,
-  events: readonly DocEvent[],
-  business: string,
-): Promise<Uint8Array> {
+/** A new PDF with the document's own dates, and the pen on its first page. */
+async function start(d: Doc, business: string, at: Date | string): Promise<Pen> {
   const pdf = await PDFDocument.create();
-  const kind = KIND_NAME[d.kind as DocKind];
-  const at = d.signedAt ?? d.declinedAt ?? d.sentAt ?? d.createdAt;
-  pdf.setTitle(ansi(`${kind} ${d.number}: ${d.title}`));
+  pdf.setTitle(ansi(`${KIND_NAME[d.kind as DocKind]} ${d.number}: ${d.title}`));
   pdf.setAuthor(ansi(business));
   pdf.setProducer("Wren");
   pdf.setCreator("Wren");
   pdf.setCreationDate(new Date(d.createdAt));
   pdf.setModificationDate(new Date(at));
-  const p: Pen = {
+  return {
     pdf,
     page: pdf.addPage([W, H]),
     y: H - M,
     font: await pdf.embedFont(StandardFonts.Helvetica),
     bold: await pdf.embedFont(StandardFonts.HelveticaBold),
   };
+}
+
+/** The words, the lines and the totals: what the signer reads. */
+function writeDoc(p: Pen, d: Doc, business: string) {
+  const kind = KIND_NAME[d.kind as DocKind];
   write(p, `${business}  |  ${kind} ${d.number}`, { size: 10, gap: 8 });
   write(p, d.title, { bold: true, size: 18, gap: 6 });
   if (d.name) write(p, `For ${d.name}`, { gap: 10 });
@@ -146,7 +153,17 @@ export async function docPdf(
     if (d.depositCents)
       row(p, ["Deposit due on signing", "", "", money(d.depositCents, d.currency)]);
   }
+}
 
+/** The PDF's bytes for one document and its events. */
+export async function docPdf(
+  d: Doc,
+  events: readonly DocEvent[],
+  business: string,
+): Promise<Uint8Array> {
+  const kind = KIND_NAME[d.kind as DocKind];
+  const p = await start(d, business, d.signedAt ?? d.declinedAt ?? d.sentAt ?? d.createdAt);
+  writeDoc(p, d, business);
   newPage(p);
   write(p, "Signing record", { bold: true, size: 16, gap: 8 });
   write(p, `Document: ${kind} ${d.number}, from ${business}`);
@@ -173,7 +190,32 @@ export async function docPdf(
       },
     );
   }
-  return pdf.save({ useObjectStreams: false });
+  return p.pdf.save({ useObjectStreams: false });
+}
+
+/**
+ * The PDF Documenso signs, for a document sent for signature: the words and totals, the consent
+ * line, then the signature block. `{{signature, r1}}` and `{{date, r1}}` are placeholders:
+ * Documenso puts the signer's fields there and covers the text. The sealed copy gets its own
+ * certificate page from Documenso, so there is no signing record here. The same document always
+ * gives the same bytes.
+ */
+export async function sealedPdf(d: Doc, business: string): Promise<Uint8Array> {
+  const p = await start(d, business, d.sentAt ?? d.createdAt);
+  writeDoc(p, d, business);
+  const need = 150;
+  if (p.y < M + need) newPage(p);
+  p.y -= 18;
+  write(p, "Electronic records and signature", { bold: true, size: 13, gap: 2 });
+  write(p, `${SEALED_CONSENT_WORDS} (version ${SEALED_CONSENT_VERSION})`, { gap: 18 });
+  const at = (label: string, mark: string) => {
+    p.page.drawText(label, { x: M, y: p.y, size: SIZE, font: p.bold });
+    p.page.drawText(mark, { x: M + 80, y: p.y, size: SIZE, font: p.font });
+    p.y -= 40;
+  };
+  at("Signature:", "{{signature, r1}}");
+  at("Date:", "{{date, r1}}");
+  return p.pdf.save({ useObjectStreams: false });
 }
 
 /**

@@ -244,8 +244,15 @@ export const EMAIL_COMPONENTS = [
     missing: ["Not built per client yet: Wren's own lists only"],
     requires: { components: [] },
     provides: {
-      services: ["Marketing", "Newsletter", "BounceScheduler"],
-      loops: ["BounceScheduler"],
+      services: [
+        "Marketing",
+        "Newsletter",
+        "BounceScheduler",
+        "ListmonkIntake",
+        "ListmonkMail",
+        "ListmonkSync",
+      ],
+      loops: ["BounceScheduler", "ListmonkSync"],
       records: ["marketing.subscriber", "marketing.topic"],
     },
     effects: ["sends"],
@@ -258,6 +265,12 @@ export const EMAIL_COMPONENTS = [
           is: "needs",
           says: "A postal address in every mail and a sender for marketing.",
           built: "the Newsletter object, postal from WREN_MARKETING_POSTAL",
+        },
+        {
+          is: "needs",
+          says: "Lists, subscribers and campaigns in Listmonk; the mail still goes from portal@.",
+          built:
+            "ListmonkIntake, ListmonkMail, ListmonkSync, set by WREN_LISTMONK_URL, _USER, _TOKEN",
         },
         { is: "fixed", says: "One rule decides who may get mail, and a signup keeps its proof." },
       ],

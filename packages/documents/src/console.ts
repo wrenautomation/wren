@@ -50,7 +50,7 @@ import { z } from "zod";
 import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "./console-routes.js";
 import { docPdf } from "./pdf.js";
 import { documentRecordFor, templateRecordFor } from "./records.js";
-import type { Doc, DocChannel, DocTemplate } from "./schema.js";
+import type { Doc, DocChannel, DocSigning, DocTemplate } from "./schema.js";
 import { docs, docTemplates } from "./schema.js";
 import {
   DOCUMENTS_SERVICE,
@@ -69,6 +69,7 @@ import {
   duplicateDoc,
   editDoc,
   ensureStarters,
+  isSigning,
   makeDoc,
   remindable,
   saveTemplate,
@@ -78,7 +79,10 @@ import {
   voidDocs,
 } from "./store.js";
 
-export type DocumentsConsoleDeps = Pick<DocumentsDeps, "main" | "open">;
+export interface DocumentsConsoleDeps extends Pick<DocumentsDeps, "main" | "open" | "files"> {
+  /** The e-signature provider is set up: a sealed document may be sent. */
+  sealed?: boolean;
+}
 
 /** What a new document or a draft's change may carry. */
 export interface DocFields {
@@ -96,6 +100,8 @@ export interface DocFields {
   /** A texting thread's id, as the Texts record shows it. */
   contact?: number | string | null;
   channel?: string | null;
+  /** `own`: the typed name on Wren's page. `sealed`: signed and sealed by the provider. */
+  signing?: string | null;
   /** The version the editor opened on (`version` in the record's detail). */
   expect?: unknown;
 }
@@ -189,6 +195,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
     return null;
   };
   const channelOf = (v: unknown): DocChannel | null => (v === "sms" || v === "email" ? v : null);
+  const signingOf = (v: unknown): DocSigning | null => (isSigning(v) ? v : null);
 
   return {
     recordsTypes: async (req: PortalRequest) => {
@@ -245,6 +252,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
         email,
         contact: thread?.id ?? null,
         channel: channelOf(req.channel) ?? (thread && !req.email ? "sms" : null),
+        signing: signingOf(req.signing),
         facts: await factsOf(main, client),
         by: viewer.email,
         now,
@@ -273,6 +281,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
           email: req.email === undefined ? undefined : req.email,
           contact: thread === undefined ? undefined : (thread?.id ?? null),
           channel: req.channel ?? undefined,
+          signing: req.signing ?? undefined,
           expect: req.expect,
         },
         now,
@@ -287,6 +296,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
         facts: await factsOf(main, client),
         by: viewer.email,
         approved: await approves(req, client),
+        sealedOn: !!deps.sealed,
         now,
       });
       return { docs: [doc] };
@@ -302,10 +312,15 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
       return { done: await declineDocs(main, ids, by(req), now) };
     },
 
+    /** Called off. The ones with a provider's envelope are listed: `Documents/cancel` calls it off too. */
     void: async (req: IdsRequest, now: Date) => {
       const { client, viewer } = await pickForWrite(main, req);
       const ids = (Array.isArray(req.ids) ? req.ids : []).map((x) => docIdOf(String(x)));
-      return { done: await voidDocs(main, client.id, ids, viewer.email, now) };
+      const rows = await voidDocs(main, client.id, ids, viewer.email, now);
+      return {
+        done: rows.length,
+        envelopes: rows.filter((r) => r.envelopeId).map((r) => r.id),
+      };
     },
 
     /** A reminder may go: checked here, sent by `Documents/send`. */
@@ -324,10 +339,22 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
       };
     },
 
-    /** The document as a PDF: the signed copy once signed. */
-    pdf: async (req: IdRequest) => {
+    /**
+     * The document as a PDF: the signed copy once signed. A sealed one is the provider's file in
+     * the bucket, so it comes as a short-lived link (`url`) and `part` picks the PDF, the
+     * signing certificate or the audit log.
+     */
+    pdf: async (req: IdRequest & { part?: string | null }) => {
       const client = await pickClient(main, req);
       const d = await docOf(main, client.id, String(req.id));
+      if (d.sealed) {
+        if (!deps.files) throw new PortalRefusal("the signed copy can't be fetched here", 503);
+        const part = req.part === "certificate" || req.part === "audit" ? req.part : "pdf";
+        return {
+          name: `${d.number}-${part === "pdf" ? "signed" : part}.pdf`,
+          url: await deps.files.getUrl(d.sealed[part]),
+        };
+      }
       const bytes = await docPdf(d, await docEventsOf(main, d.id), client.name);
       return {
         name: `${d.number}${d.status === "signed" ? "-signed" : ""}.pdf`,
@@ -375,6 +402,7 @@ const brief = (d: Doc) => ({
   number: d.number,
   status: d.status,
   blocked: d.status === "draft" ? sendBlocker(d) : null,
+  signing: d.signing,
   version: versionAt(d.updatedAt),
 });
 
@@ -407,6 +435,10 @@ const FIELDS = {
   phone: z.string().max(40).nullish().describe("A number with a texting thread"),
   contact: z.union([z.number(), z.string()]).nullish().describe("A texting thread's id"),
   channel: z.enum(["sms", "email"]).nullish().describe("Text or email"),
+  signing: z
+    .enum(["own", "sealed"])
+    .nullish()
+    .describe("own: typed name on our page. sealed: e-signature sealed by Documenso"),
 };
 
 export function makeDocumentsConsole(deps: DocumentsConsoleDeps) {
@@ -506,7 +538,16 @@ export function makeDocumentsConsole(deps: DocumentsConsoleDeps) {
           }),
       ),
       decline: serviceHandler(IDS, call("decline", api.decline)),
-      void: serviceHandler(IDS, call("void", api.void)),
+      /** Called off; a sealed one's envelope is cancelled too. */
+      void: serviceHandler(IDS, (ctx: restate.Context, req: IdsRequest) =>
+        answer(async () => {
+          const at = await now(ctx);
+          const { done, envelopes } = await ctx.run("void", () => answer(() => api.void(req, at)));
+          for (const id of envelopes)
+            ctx.serviceSendClient<DocumentsService>(DOCUMENTS_SERVICE).cancel({ id, by: by(req) });
+          return { done };
+        }),
+      ),
       /** The same message again with a new link: the old one stops working. */
       remind: serviceHandler({ ...ID, effect: "sends" }, (ctx: restate.Context, req: IdRequest) =>
         answer(async () => {
@@ -519,7 +560,19 @@ export function makeDocumentsConsole(deps: DocumentsConsoleDeps) {
         }),
       ),
       duplicate: serviceHandler(ID, call("duplicate", api.duplicate)),
-      pdf: serviceHandler(ID, (_: restate.Context, req: IdRequest) => answer(() => api.pdf(req))),
+      pdf: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID.input.shape,
+            part: z
+              .enum(["pdf", "certificate", "audit"])
+              .nullish()
+              .describe("A sealed copy's part"),
+          }),
+        },
+        (_: restate.Context, req: IdRequest & { part?: string | null }) =>
+          answer(() => api.pdf(req)),
+      ),
       templateSave: serviceHandler(
         {
           input: z.looseObject({
