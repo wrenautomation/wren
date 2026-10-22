@@ -152,7 +152,10 @@ const emailRows = (db: Queryable) =>
       order by at desc limit ${ACTIVITY_ROWS}`,
   );
 
-/** Text threads they wrote in: their last word, and whether ours came after or it's unread. */
+/**
+ * Text threads they wrote in: their last word, and whether ours came after or it's unread. Read
+ * from their texts (`ix_sms_messages_in`), never per contact: most contacts never wrote.
+ */
 const textRows = (db: Queryable) =>
   rowsOf(
     db,
@@ -160,10 +163,9 @@ const textRows = (db: Queryable) =>
         exists (select 1 from sms_messages o where o.contact_id = c.id and o.direction = 'out'
           and o.state <> 'skipped' and o.created_at > i.at) answered,
         (c.read_at is null or c.read_at < i.at) unread
-      from sms_contacts c
-      join lateral (select body, received_at at from sms_messages
-        where contact_id = c.id and direction = 'in'
-        order by received_at desc limit 1) i on true
+      from (select distinct on (contact_id) contact_id, body, received_at at from sms_messages
+        where direction = 'in' order by contact_id, received_at desc nulls last) i
+      join sms_contacts c on c.id = i.contact_id
       order by i.at desc limit ${ACTIVITY_ROWS}`,
   );
 

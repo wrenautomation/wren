@@ -336,6 +336,10 @@ export const smsMessages = pgTable(
     primaryKey({ columns: [t.id], name: "pk_sms_messages" }),
     index("ix_sms_messages_run_id").on(t.runId),
     index("ix_sms_messages_contact_id").on(t.contactId),
+    // Their texts, newest per contact: the inbox reads these, not every contact.
+    index("ix_sms_messages_in")
+      .on(t.contactId, t.receivedAt.desc())
+      .where(sql`(direction)::text = 'in'::text`),
     index("ix_sms_messages_state_due").on(t.state, t.dueAt),
     index("ix_sms_messages_number_attempted").on(t.numberId, t.attemptedAt),
     uniqueIndex("uq_sms_messages_provider_id").on(t.providerId),
