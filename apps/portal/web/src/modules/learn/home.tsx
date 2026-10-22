@@ -9,15 +9,19 @@ import {
   LoadFailed,
   Loading,
   PAGE_TITLE,
+  Pill,
+  Rows,
   relative,
   SECTION_TITLE,
-  StateMark,
+  stateColor,
   tipProps,
+  useNarrow,
 } from "@wren/ui";
 import { ChevronLeft, ChevronRight, Link, Rss, Smartphone } from "@wren/ui/lib/lucide";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { navigate } from "../../route.js";
 import { type Card, type Home, inWorkspace, keyOf, learn, onChanged } from "./api.js";
 import { LearnFrame, useRail } from "./frame.js";
 import { Avatar, lengthOf, PickBadge, ScoreBadge, Thumb, TYPES, TypeMark } from "./kinds.js";
@@ -121,33 +125,59 @@ function Shelves({ home }: { home: Home }) {
       {home.sops.length ? (
         <section className="flex flex-col gap-3">
           <h2 className={cx("m-0", SECTION_TITLE)}>SOP changes lately</h2>
-          <ul className="m-0 list-none border-(--ui-hair) border-t p-0">
-            {home.sops.map((s) => (
-              <li
-                key={s.id}
-                className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-(--ui-hair) border-b py-2.5 text-[13.5px]"
-              >
-                <TypeMark type={s.type} size={14} />
-                <a
-                  href={`/learn/items/${s.itemId}`}
-                  className="min-w-0 flex-1 truncate text-(--ui-ink) no-underline hover:underline"
-                  {...clipProps()}
-                >
-                  {s.title}
-                </a>
-                <span className="inline-flex items-center gap-2 text-(--ui-ink-2)">
-                  into <span className="font-medium text-(--ui-ink)">{s.sop}</span>
-                  <StateMark state={SOP_STATES[s.state]} />
-                </span>
-                <span className="w-24 text-right text-[12.5px] text-(--ui-ink-2)">
-                  {relative(new Date(s.at))}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <SopRows sops={home.sops} />
         </section>
       ) : null}
     </>
+  );
+}
+
+type Sop = Home["sops"][number];
+
+/** The SOPs items went into lately: a row each, newest first, the item a link. */
+function SopRows({ sops }: { sops: Sop[] }) {
+  const narrow = useNarrow();
+  return (
+    <Rows<Sop>
+      label="SOP changes"
+      noun="change"
+      narrow={narrow}
+      scroller="window"
+      lines={sops.map((row, index) => ({ kind: "row", key: String(row.id), index, row }))}
+      name={{
+        label: "Item",
+        icon: "text",
+        title: (s) => s.title,
+        href: (s) => `/learn/items/${s.itemId}`,
+        mark: (s) => <TypeMark type={s.type} size={14} />,
+        // A phone has no SOP column: it goes under the title.
+        sub: narrow
+          ? (s) => <span className="text-[12.5px] text-(--ui-ink-3)">into {s.sop}</span>
+          : undefined,
+      }}
+      columns={[
+        { key: "sop", label: "Into SOP", icon: "text", cell: (s) => s.sop },
+        {
+          key: "state",
+          label: "State",
+          icon: "selected",
+          width: 120,
+          phone: true,
+          cell: (s) => (
+            <Pill color={stateColor(SOP_STATES[s.state])}>{SOP_STATES[s.state].label}</Pill>
+          ),
+        },
+        {
+          key: "at",
+          label: "When",
+          icon: "clock",
+          width: 130,
+          quiet: true,
+          cell: (s) => relative(new Date(s.at)),
+        },
+      ]}
+      open={{ id: null, onOpen: (s) => navigate(`/learn/items/${s.itemId}`) }}
+    />
   );
 }
 

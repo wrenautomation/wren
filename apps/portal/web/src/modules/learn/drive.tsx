@@ -40,7 +40,6 @@ import {
   List,
   Pin,
   RotateCw,
-  Rows3,
   Search,
   Sparkles,
   Star,
@@ -98,11 +97,10 @@ import {
   trailOf,
 } from "./menus.js";
 
-type View = "cards" | "list" | "compact";
+type View = "cards" | "list";
 const VIEWS: { id: View; label: string; Icon: typeof List }[] = [
   { id: "cards", label: "Cards", Icon: LayoutGrid },
   { id: "list", label: "List", Icon: List },
-  { id: "compact", label: "Compact", Icon: Rows3 },
 ];
 const SORTS = [
   ["newest", "Newest"],
@@ -165,7 +163,9 @@ function Browse({ params }: { params: URLSearchParams }) {
 
   const keep = useMemo(() => keepOf(null, { app: "learn", asClient: false }), []);
   const pref = usePref<View>(keep, "learn.view");
-  const view: View = pref.value && VIEWS.some((v) => v.id === pref.value) ? pref.value : "cards";
+  // "compact" was a third view, kept per viewer: it reads as the list now.
+  const kept = (pref.value as string | null) === "compact" ? "list" : pref.value;
+  const view: View = kept && VIEWS.some((v) => v.id === kept) ? kept : "cards";
 
   const data = load.data;
   const items = data?.items ?? [];
@@ -417,7 +417,7 @@ function Browse({ params }: { params: URLSearchParams }) {
       {load.error && !data ? (
         <LoadFailed error={load.error} onRetry={load.retry} />
       ) : !data ? (
-        <Loading lines={6} shape={view === "cards" ? "cards" : "lines"} />
+        <Loading lines={6} shape={view === "cards" ? "cards" : "rows"} />
       ) : !items.length ? (
         <Empty
           action={
@@ -458,19 +458,13 @@ function Browse({ params }: { params: URLSearchParams }) {
             <CardTile key={c.id} c={c} {...row} />
           ))}
         </div>
-      ) : view === "list" ? (
+      ) : (
         <ListTable
           items={items}
           {...row}
           all={sel.size === items.length}
           pickAll={(on) => setSel(new Set(on ? items.map((c) => c.id) : []))}
         />
-      ) : (
-        <ul className="m-0 list-none border-(--ui-hair) border-t p-0">
-          {items.map((c) => (
-            <CompactRow key={c.id} c={c} {...row} />
-          ))}
-        </ul>
       )}
 
       {data?.more ? (
@@ -1205,68 +1199,6 @@ function ListTable({
         end={(c) => <ItemMenu c={c} place={r.place} dialog={r.dialog} />}
       />
     </div>
-  );
-}
-
-function CompactRow({ c, ...r }: RowProps & { c: Card }) {
-  const on = r.sel.has(c.id);
-  const len = lengthOf(c);
-  return (
-    <li
-      data-item={c.id}
-      draggable
-      onDragStart={(e) => r.drag(e, c)}
-      onFocusCapture={() => r.onFocus(c.id)}
-      className={cx(
-        "group/row flex h-10 min-w-0 items-center gap-2.5 border-(--ui-hair) border-b px-1 text-[13.5px] transition-colors duration-100 hover:bg-(--ui-wash)",
-        on && "bg-(--ui-accent-wash)",
-        r.focusId === c.id && "shadow-[inset_3px_0_0_var(--ui-active)]",
-      )}
-    >
-      <PickBox
-        c={c}
-        on={on}
-        toggle={r.toggle}
-        className={cx(
-          !on &&
-            !r.picking &&
-            "opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100",
-        )}
-      />
-      <span className="inline-flex w-2 justify-center">
-        {c.status === "unread" ? (
-          <span
-            className="size-2 rounded-full bg-(--ui-live)"
-            {...tipProps("New, not opened yet")}
-          />
-        ) : null}
-      </span>
-      <TypeMark type={c.type} size={15} label={TYPES[c.type]?.label} />
-      <a
-        href={itemHref(c.id, r.params)}
-        draggable={false}
-        className={cx(
-          "min-w-0 flex-1 truncate no-underline hover:underline",
-          c.status === "unread" ? "font-semibold text-(--ui-ink)" : "text-(--ui-ink)",
-        )}
-        {...clipProps()}
-      >
-        {c.title}
-      </a>
-      <span className="hidden max-w-44 shrink-0 truncate text-[12.5px] text-(--ui-ink-2) md:inline">
-        {sourceName(c)}
-      </span>
-      <span className="hidden w-20 shrink-0 text-right text-[12.5px] text-(--ui-ink-2) tabular-nums sm:inline">
-        {len ?? ""}
-      </span>
-      <span className="w-7 shrink-0 text-right">
-        <ScoreBadge score={c.score} />
-      </span>
-      <span className="hidden w-24 shrink-0 text-right text-[12.5px] text-(--ui-ink-2) sm:inline">
-        {relative(new Date(c.at))}
-      </span>
-      <ItemMenu c={c} place={r.place} dialog={r.dialog} />
-    </li>
   );
 }
 

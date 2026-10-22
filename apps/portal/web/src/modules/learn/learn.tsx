@@ -11,10 +11,12 @@ import {
   LoadFailed,
   Loading,
   PageHeader,
+  Rows,
   relative,
   Tag,
   TextField,
   useEditForm,
+  useNarrow,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
@@ -174,6 +176,58 @@ function Snippet({ text }: { text: string }): ReactNode {
   );
 }
 
+/** The hits: a row each, the matching words under the title. */
+function HitRows({ hits }: { hits: Hit[] }) {
+  const narrow = useNarrow();
+  return (
+    <Rows<Hit>
+      label="search hits"
+      noun="hit"
+      narrow={narrow}
+      scroller="window"
+      lines={hits.map((row, index) => ({ kind: "row", key: String(row.id), index, row }))}
+      name={{
+        label: "Item",
+        icon: "text",
+        title: (h) => h.title,
+        href: (h) => `/learn/items/${h.id}`,
+        sub: (h) => (
+          <span className="line-clamp-2 text-[12.5px] leading-snug text-(--ui-ink-2)">
+            <Snippet text={h.snippet} />
+          </span>
+        ),
+      }}
+      columns={[
+        {
+          key: "kind",
+          label: "Kind",
+          icon: "tag",
+          width: 110,
+          cell: (h) => <Tag tone="neutral">{KINDS[h.kind] ?? h.kind}</Tag>,
+        },
+        { key: "source", label: "Source", icon: "link", cell: (h) => h.source },
+        {
+          key: "score",
+          label: "Score",
+          icon: "gauge",
+          width: 90,
+          phone: true,
+          cell: (h) => (h.score !== null ? `${h.score}/10` : null),
+        },
+        {
+          key: "at",
+          label: "Found",
+          icon: "clock",
+          width: 130,
+          quiet: true,
+          cell: (h) => relative(new Date(h.at)),
+        },
+      ]}
+      open={{ id: null, onOpen: (h) => navigate(`/learn/items/${h.id}`) }}
+    />
+  );
+}
+
 /** Search across every transcript, summary and title. */
 export function SearchPage({ params, client }: PageProps) {
   inWorkspace(client);
@@ -220,28 +274,11 @@ function SearchBody({ params }: { params: URLSearchParams }) {
       ) : hits.error && !hits.data ? (
         <LoadFailed error={hits.error} onRetry={hits.retry} />
       ) : !hits.data ? (
-        <Loading lines={4} />
+        <Loading shape="rows" lines={4} />
       ) : !hits.data.hits.length ? (
         <Empty>Nothing says that.</Empty>
       ) : (
-        <ol className="flex list-none flex-col gap-4 p-0">
-          {hits.data.hits.map((h) => (
-            <li key={h.id} className="border-(--ui-hair) border-t pt-4">
-              <a href={`/learn/items/${h.id}`} className="font-medium">
-                {h.title}
-              </a>
-              <p className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-(--ui-ink-3)">
-                <Tag tone="neutral">{KINDS[h.kind] ?? h.kind}</Tag>
-                <span>{h.source}</span>
-                {h.score !== null ? <span>{h.score}/10</span> : null}
-                <span>{relative(new Date(h.at))}</span>
-              </p>
-              <p className="mt-2 text-[13.5px] text-(--ui-ink-2) leading-relaxed">
-                <Snippet text={h.snippet} />
-              </p>
-            </li>
-          ))}
-        </ol>
+        <HitRows hits={hits.data.hits} />
       )}
     </>
   );
