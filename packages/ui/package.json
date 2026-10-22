@@ -23,7 +23,8 @@
     "wren-stories": "./.storybook/run.mjs",
     "wren-shot": "./.storybook/shot.mjs",
     "wren-storybook": "./.storybook/serve.mjs",
-    "wren-look": "./.storybook/look.mjs"
+    "wren-look": "./.storybook/look.mjs",
+    "wren-match": "./.storybook/match.mjs"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

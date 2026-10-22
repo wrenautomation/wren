@@ -42,6 +42,13 @@ look() {
     pnpm turbo run stories:build --filter=@wren/portal --output-logs=errors-only &&
     (cd apps/portal && pnpm -s exec wren-look --all --static storybook-static --messy)
 }
+# Parts against the artifacts, as computed styles (designs/2026-10-21-artifact-match.md). Its own
+# target until Rows reaches zero; then it joins ui.
+match() {
+  echo "==> artifact match" &&
+    pnpm turbo run stories:build --filter=@wren/ui --output-logs=errors-only &&
+    (cd packages/ui && node .storybook/match.mjs --static storybook-static)
+}
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
 # The local copy's IndexedDB transactions (packages/ui/src/data/local.ts) aren't Postgres.
@@ -152,6 +159,7 @@ case "${1:-all}" in
   unit) unit ;;
   visual) visual ;;
   look) look ;;
+  match) match ;;
   integration) integration ;;
   schema) schema ;;
   drift) drift ;;
@@ -159,5 +167,5 @@ case "${1:-all}" in
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
   checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|changed|ui|checks|unit|visual|look|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
+  *) echo "usage: $0 [lint|changed|ui|checks|unit|visual|look|match|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac
