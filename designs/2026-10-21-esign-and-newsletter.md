@@ -38,7 +38,7 @@ Limits to know:
 
 ### How it connects
 
-A document has a `signing` field: `own` (the default, the typed-name flow) or `sealed` (Documenso). The console form sets it. A sealed document needs an email address.
+A document has a `signing` field: `own` (the default, the typed-name flow) or `sealed` (Documenso). The console API takes it on `create`. No form control sets it yet (see Left over). A sealed document needs an email address.
 
 1. Send. The console calls `Documents.send`. For a sealed document, step `envelope` builds the PDF from the frozen text with `{{signature, r1}}` and `{{date, r1}}` placeholders and the consent line. It creates the envelope with `externalId` = the document id, `distributionMethod: NONE` and all Documenso emails off. The envelope id is kept on the document (`docs.envelope_id`, unique). Step `link` makes it live and returns the signer's link. A repeat finds the same link, so a retried step is safe.
 2. Wren mails that link under the client's name through the client's mailer, or texts it. Documenso needs no SMTP. A reminder reuses the live link and makes no second envelope. A sealed document has no Wren expiry. Documenso's own recipient expiry applies.
@@ -181,8 +181,10 @@ Documenso: nothing was changed outside the repo. The probes ran in Docker on the
 - Client broadcasts (`Broadcast`) stay on their own sender. They send per client from the client's mailbox, and a client's list is not in Wren's Listmonk. Moving them needs one Listmonk list per client.
 - `env-2` has 91 characters free, so the Documenso keys go in `env-3` (built, empty until Documenso is up).
 - Known gaps in the sealed send. A retried `envelope` step that fails between making the envelope and keeping its id can leave a draft envelope in Documenso. It is never sent. A terminal failure of the `files` step on completed leaves the document `sent` and shows as a failed call in Restate; repeat it by hand (Replay above).
-- The console has no screen for the signed copy yet. The `pdf` handler returns the link.
-- Migration `0316_docs_sealed` may clash with another branch's 0316 at merge. Renumber and rebuild the journal then.
+- No UI control for `signing`: the portal's Documents form cannot make a sealed document. Only the console API (`DocumentsConsole.create`) accepts `signing: "sealed"`.
+- The console's `pdf` action on a sealed signed document returns `{name, url}` (and `part`); the web reads the old shape (`pdf` base64) and does not use this yet. The signer's e-mailed link `/o/d/<token>/pdf` works: the edge passes the 303 through.
+- Documenso also emits `RECIPIENT_EXPIRED`. Wren ignores it: a sealed document has no Wren expiry, and the event's payload was not probed. If Documenso expires a recipient, the document stays `sent`.
+- Migration `0316_docs_sealed`: `origin/main` (661483e8) ends at 0315, so 0316 is free today. Another branch that adds a 0316 first means renumbering and rebuilding the journal.
 - Plain text only. Listmonk can send HTML. The old rule stands: plain text lands in the inbox.
 - customer.io trial from 10-14 lapses by itself. Nothing in code to remove.
 - Bounces on newsletter mail are still matched by Message-ID in Wren. Listmonk never sees them. Its bounce screens stay empty.

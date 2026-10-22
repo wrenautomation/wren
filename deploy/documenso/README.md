@@ -8,7 +8,7 @@ database box. Use a host with 2 GB and Docker (see "Hosting options" in the desi
 
 1. DNS: an `A` record for the sign-in name (for example `sign.<your domain>`) to the host. DNS only.
 2. Make the signing certificate. It is self-made: the seal proves the file did not change.
-   Use a long passphrase.
+   Use a long passphrase. Set it first: `export CERT_PASS=...`.
 
        openssl genrsa -out private.key 3072
        openssl req -new -x509 -key private.key -out certificate.crt -days 3650 -subj "/O=Wren Automation/CN=Wren e-sign"
