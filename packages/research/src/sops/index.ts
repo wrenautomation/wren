@@ -11,12 +11,13 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
+import { expandCites, numberCites } from "./cites.js";
 import { askGemini, askShown, SHOWN } from "./gemini.js";
 import { clock, run, runFor, TOOL_MS } from "./tools.js";
 import { renderWatched, type VideoMeta, type WatchOptions, watch } from "./watch.js";
 
 export * from "./watch.js";
-export { askGemini, clock };
+export { askGemini, clock, expandCites, numberCites };
 
 export const DEFAULT_PRIORITY = 5;
 
@@ -549,7 +550,12 @@ export async function readSopDir(dir: string): Promise<SopDir> {
     }),
   );
   sources.sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name));
-  return { dir, notes: await read("notes.md"), current: await read("SOP.md"), sources };
+  return {
+    dir,
+    notes: await read("notes.md"),
+    current: expandCites(await read("SOP.md")),
+    sources,
+  };
 }
 
 const NOTES_STUB = `# Notes
@@ -640,7 +646,10 @@ export async function buildSop(dir: string, llm: LlmClient): Promise<string> {
     throw new Error(`${dir}: nothing to build from (no sources, empty notes.md)`);
   const name = basename(dir);
   const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 8000 });
-  const sop = `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`;
+  const sop = await numberCites(
+    dir,
+    `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`,
+  );
   await writeFile(join(dir, "SOP.md"), sop);
   await writeSkill(dir);
   // ponytail: tokens ≈ chars/4; swap in a real tokenizer if the estimate starts to matter.

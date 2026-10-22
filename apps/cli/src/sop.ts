@@ -6,7 +6,7 @@
  * again. Drive reads go through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, readdir, readFile, symlink, unlink } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, symlink, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
@@ -20,8 +20,10 @@ import {
   DEFAULT_PRIORITY,
   type DriveGet,
   driveSources,
+  expandCites,
   extractPoints,
   fileSource,
+  numberCites,
   readSopDir,
   type Source,
   videoSource,
@@ -105,6 +107,27 @@ export function registerSop(
         for (const s of sources) console.log(await addSource(dir, s));
       },
     );
+
+  sop
+    .command("cite [name]")
+    .description(
+      "number the citations in SOP.md ([1 12:03]) with one Sources list; every SOP when no name",
+    )
+    .action(async (name?: string) => {
+      const names = name
+        ? [name]
+        : (await readdir(sopsDir, { withFileTypes: true }))
+            .filter((e) => e.isDirectory() && e.name !== "shapes")
+            .map((e) => e.name);
+      for (const n of names) {
+        const file = join(sopsDir, n, "SOP.md");
+        const md = await readFile(file, "utf8").catch(() => "");
+        if (!md) continue;
+        const next = await numberCites(join(sopsDir, n), expandCites(md));
+        if (next !== md) await writeFile(file, next);
+        console.log(`${n}${next === md ? " (same)" : ""}`);
+      }
+    });
 
   sop
     .command("build <name>")

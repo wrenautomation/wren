@@ -12,7 +12,9 @@ import {
   captionsMarkdown,
   clock,
   driveSources,
+  expandCites,
   gatewayGemini,
+  numberCites,
   readSopDir,
   sopPrompt,
   youtubeByUrl,
@@ -85,24 +87,52 @@ describe("sops", () => {
 
   it("builds from notes and sources, highest priority first, keeping the current SOP in view", async () => {
     dir = await mkdtemp(join(tmpdir(), "sop-"));
-    await addSource(dir, { name: "a.md", md: "---\npriority: 2\n---\nlow" });
-    await addSource(dir, { name: "b.md", md: "---\npriority: 9\n---\nhigh" });
+    await addSource(dir, { name: "file-a.md", md: "---\npriority: 2\n---\nlow" });
+    await addSource(dir, { name: "file-b.md", md: "---\npriority: 9\n---\nhigh" });
     await writeFile(join(dir, "notes.md"), "mine");
     let prompt = "";
     const llm = new FakeLlm({
       respond: async (p) => {
         prompt = p;
-        return "```markdown\n# SOP\n\n1. Do it [b 0:00]\n```";
+        return "```markdown\n# SOP\n\n1. Do it [file-b 0:00]\n```";
       },
     });
-    expect(await buildSop(dir, llm)).toBe("# SOP\n\n1. Do it [b 0:00]\n");
-    expect(prompt.indexOf('file="b"')).toBeLessThan(prompt.indexOf('file="a"'));
+    expect(await buildSop(dir, llm)).toBe(
+      "# SOP\n\n1. Do it [1 0:00]\n\n## Sources\n\n1. file-b\n",
+    );
+    expect(prompt.indexOf('file="file-b"')).toBeLessThan(prompt.indexOf('file="file-a"'));
     expect(prompt).toContain("<notes>\nmine\n</notes>");
     expect(prompt).toContain("There is no SOP.md yet");
     const again = await readSopDir(dir);
     expect(again.current).toContain("Do it");
     expect(sopPrompt({ name: "x", ...again })).toContain("There is a current SOP.md below");
     expect(await readFile(join(dir, "notes.md"), "utf8")).toBe("mine");
+  });
+});
+
+describe("numbered citations", () => {
+  let dir = "";
+  afterEach(() => (dir ? rm(dir, { recursive: true, force: true }) : undefined));
+  it("numbers by first use, lists each source once, and round-trips", async () => {
+    dir = await mkdtemp(join(tmpdir(), "sop-"));
+    await addSource(dir, {
+      name: "youtube-abc.md",
+      md: '---\ntitle: "Talk"\nurl: "https://y"\n---\nx',
+    });
+    await addSource(dir, { name: "file-g.md", md: '---\ntitle: "G"\n---\nx' });
+    const long =
+      "- A [file-g] [youtube-abc 1:02]\n- B [youtube-abc caption] [other-zz 3:04] [youtube-abc 5:00, 6:00]\n";
+    const short = await numberCites(dir, long);
+    expect(short).toBe(
+      '- A [1] [2 1:02]\n- B [2 caption] [other-zz 3:04] [2 5:00, 6:00]\n\n## Sources\n\n1. file-g, "G"\n2. youtube-abc, "Talk", https://y\n',
+    );
+    expect(expandCites(short)).toBe(long);
+    expect(
+      await numberCites(
+        dir,
+        `${short.split("\n## Sources")[0]}- C [file-g 0:01]\n${short.slice(short.indexOf("\n## Sources"))}`,
+      ),
+    ).toContain("- C [1 0:01]");
   });
 });
 
