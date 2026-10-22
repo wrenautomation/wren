@@ -262,14 +262,12 @@ export function pipelineConsoleApi({
   };
   /**
    * The types as this workspace shows them: a type that takes custom fields gets the workspace's
-   * own (owner null is Wren's, else the client's id), read from the database that holds the rows.
-   * Their values are set by the Set field step; no form edits them here, so `edits` goes.
+   * own, read from the database that holds the rows (main for Wren, a client's own for it). In
+   * either, the workspace's fields keep owner null. Their values are set by the Set field step;
+   * no form edits them here, so `edits` goes.
    */
-  const typesFor = async (client: string | null, db: Queryable): Promise<RecordType[]> => {
-    const owned = records.map((t) =>
-      t.custom ? { ...t, custom: { ...t.custom, owner: client } } : t,
-    );
-    return (await withCustomFields(owned, db)).map((t) => {
+  const typesFor = async (db: Queryable): Promise<RecordType[]> => {
+    return (await withCustomFields(records, db)).map((t) => {
       if (!t.custom) return t;
       const { edits: _edits, ...rest } = t;
       return rest;
@@ -279,13 +277,7 @@ export function pipelineConsoleApi({
     const w = await workspace(req, "read");
     return snapshot(w.db, async (tx) =>
       use(
-        serveRecords(
-          await typesFor(w.client, tx),
-          tx,
-          undefined,
-          fenceFor(req, w.client ?? WREN),
-          meOf(req),
-        ),
+        serveRecords(await typesFor(tx), tx, undefined, fenceFor(req, w.client ?? WREN), meOf(req)),
       ),
     );
   };
@@ -304,7 +296,7 @@ export function pipelineConsoleApi({
     recordsTypes: async (req: PortalRequest) => {
       const w = await workspace(req, "read");
       const fence = fenceFor(req, w.client ?? WREN);
-      return (await typesFor(w.client, w.db))
+      return (await typesFor(w.db))
         .filter((t) => !fence || opens(t, fence(t)))
         .map((t) => metaOf(t, false));
     },

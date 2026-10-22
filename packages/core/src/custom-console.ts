@@ -1,7 +1,9 @@
 /**
  * Settings → Fields and Business facts (designs/2026-10-09-custom-fields.md): an owner's custom
  * fields on each record type that takes them, and their business facts. Anyone who reads there
- * sees them; changing them needs `manage` there. Values are edited on the record itself.
+ * sees them; changing them needs `manage` there. Values are edited on the record itself. Fields
+ * sit beside the records they are on: Wren's in main, a client's in its own database (`onClient`),
+ * where the owner is null (the database is theirs). Business facts are main's, by owner.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
@@ -34,7 +36,13 @@ const recordOf = (v: unknown): string => {
   return v;
 };
 
-export function customApi(main: Db) {
+/** A client's own database for one call. */
+export type OnClientDb = <T>(client: string, fn: (db: Db) => Promise<T>) => Promise<T>;
+
+export function customApi(main: Db, onClient: OnClientDb) {
+  /** The database an owner's fields sit in; there, they are kept with owner null. */
+  const fieldsDb = <T>(owner: string | null, fn: (db: Db) => Promise<T>): Promise<T> =>
+    owner === null ? fn(main) : onClient(owner, fn);
   /** Where the request looks, as an owner (null is Wren), refused past `need` there. */
   const at = async (req: PortalRequest, need: "read" | "manage") => {
     const p = await placeOf(main, req);
@@ -45,13 +53,16 @@ export function customApi(main: Db) {
   const change = async <T>(
     req: PortalRequest,
     fn: (tx: Queryable, owner: string | null, by: string) => Promise<T>,
+    where: "fields" | "main" = "fields",
   ) => {
     if (lookingOnly(req)) throw new PortalRefusal("Look reads only", 403);
     const { owner, by } = await at(req, "manage");
-    return serializable(main, async (tx) => {
-      await setAuditActor(tx, by);
-      return fn(tx, owner, by);
-    });
+    const run = (db: Db, kept: string | null) =>
+      serializable(db, async (tx) => {
+        await setAuditActor(tx, by);
+        return fn(tx, kept, by);
+      });
+    return where === "main" ? run(main, owner) : fieldsDb(owner, (db) => run(db, null));
   };
   return {
     customFields: async (req: Input): Promise<FieldsView> => {
@@ -61,7 +72,9 @@ export function customApi(main: Db) {
       return {
         records,
         record,
-        fields: record ? await customFieldsOf(main, owner, record, { archived: true }) : [],
+        fields: record
+          ? await fieldsDb(owner, (db) => customFieldsOf(db, null, record, { archived: true }))
+          : [],
       };
     },
     customFieldSave: (req: Input): Promise<CustomField> =>
@@ -88,19 +101,23 @@ export function customApi(main: Db) {
       return businessFacts(main, owner);
     },
     businessFactSave: (req: Input): Promise<CustomValue[]> =>
-      change(req, async (tx, owner, by) => {
-        await saveBusinessFact(
-          tx,
-          owner,
-          {
-            ...(typeof req.key === "string" && req.key ? { key: req.key } : {}),
-            label: String(req.label ?? ""),
-            value: String(req.value ?? ""),
-          },
-          by,
-        );
-        return businessFacts(tx, owner);
-      }),
+      change(
+        req,
+        async (tx, owner, by) => {
+          await saveBusinessFact(
+            tx,
+            owner,
+            {
+              ...(typeof req.key === "string" && req.key ? { key: req.key } : {}),
+              label: String(req.label ?? ""),
+              value: String(req.value ?? ""),
+            },
+            by,
+          );
+          return businessFacts(tx, owner);
+        },
+        "main",
+      ),
   };
 }
 export type CustomApi = ReturnType<typeof customApi>;

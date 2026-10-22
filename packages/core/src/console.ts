@@ -56,6 +56,7 @@ import {
   changeRecord,
   clients,
   clientUrl,
+  findClient,
   isOwner,
   LastAdmin,
   normalEmail,
@@ -2620,7 +2621,17 @@ export function consoleApi({
   };
   return {
     ...accessApi({ main, typesFor, rowAt }),
-    ...customApi(main),
+    ...customApi(main, async (id, fn) => {
+      const client = await findClient(main, id);
+      if (!client) throw new PortalRefusal("no such client", 404);
+      if (!mainUrl) throw new PortalRefusal("this worker can't reach the client's database", 503);
+      const handle = createDb(clientUrl(mainUrl, client), { max: 1, app: "wren-console" });
+      try {
+        return await fn(handle.db);
+      } finally {
+        await handle.close();
+      }
+    }),
     adminFor,
     async view(req: ViewRequest): Promise<ViewAnswer> {
       team(req);

@@ -208,7 +208,9 @@ describe("copy and workflows", () => {
       by,
     );
     await saveBusinessFact(pg.db, null, { label: "Phone", value: "(416) 555-0100" }, by);
-    const step = setFieldStep(pg.db);
+    const step = setFieldStep(pg.db, () => {
+      throw new Error("Wren's workflow opens no client database");
+    });
     const at = {
       client: null,
       workflow: "wf",
@@ -227,6 +229,48 @@ describe("copy and workflows", () => {
     });
     const skip = await step("in", { subject: "lead:sms:1", kind: "lead", data: {} } as never, at);
     expect(skip[0]?.port).toBe("skip");
+  });
+
+  it("a client's fields and values sit in its own database, its business facts in main", async () => {
+    const theirs = await startTestPostgres();
+    await pg.db.execute(
+      sql`insert into clients (id, name, database) values ('acme', 'Acme', 'wren_client_acme') on conflict do nothing`,
+    );
+    try {
+      // In its own database a client's fields keep owner null: the database is theirs.
+      await saveCustomField(
+        theirs.db,
+        null,
+        { record: "pipeline.journey", label: "Pipe size", kind: "text" },
+        by,
+      );
+      await saveBusinessFact(pg.db, "acme", { label: "Phone", value: "(416) 555-0199" }, by);
+      const step = setFieldStep(pg.db, (client) => {
+        expect(client).toBe("acme");
+        return theirs.db;
+      });
+      const out = await step(
+        "in",
+        { subject: "journey:9", kind: "journey", data: { size: "3/4" } } as never,
+        {
+          client: "acme",
+          workflow: "wf",
+          node: "n1",
+          with: { field: "pipe_size", value: "{{data.size}}" },
+        },
+      );
+      expect(out[0]?.port).toBe("out");
+      const [mainValues] = (await pg.db.execute(
+        sql`select count(*)::int as n from custom_field_values`,
+      )) as unknown as { n: number }[];
+      expect(mainValues?.n).toBe(0);
+      expect(await customFacts(pg.db, "acme", "journey:9", theirs.db)).toEqual({
+        "biz.phone": "(416) 555-0199",
+        "field.pipe_size": "3/4",
+      });
+    } finally {
+      await theirs.stop();
+    }
   });
 
   it("an empty business fact removes it", async () => {

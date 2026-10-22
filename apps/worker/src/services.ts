@@ -2393,7 +2393,7 @@ export async function buildServices(
         // Send webhook: any https URL past the SSRF guard (designs/2026-10-07-webhooks-out.md).
         "logic.webhook": webhookStep(),
         // Set field: one custom field on the subject's record (designs/2026-10-09-custom-fields.md).
-        "logic.set_field": setFieldStep(db),
+        "logic.set_field": setFieldStep(db, clientDb),
         // In segment: yes or no by a People segment now (designs/2026-10-15-channel-stats.md).
         "logic.segment": segmentStep(db, clientDb),
         // Send message and Notify me (designs/2026-10-14-automations.md): one person's broadcast,
