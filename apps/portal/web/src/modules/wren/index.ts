@@ -26,10 +26,11 @@ import { FirmDossier } from "./dossier.js";
 import { executionExtras } from "./executions.js";
 import { FLAG_ACTIONS } from "./flags.js";
 import { handlers } from "./handlers.js";
-import { AI_SPEND, AiSpend, idOf } from "./heads.js";
+import { AiSpend, idOf } from "./heads.js";
 import { CLIENT_FLAG_ACTIONS, ClientHealth, HEALTH_ACTIONS, healthExtras } from "./health.js";
 import { Infra } from "./infra.js";
 import { MENTION_ACTIONS, mentionExtras } from "./mentions.js";
+import { MoneyOverview } from "./money.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "./replies.js";
 import { Workflows } from "./workflows.js";
 
@@ -629,61 +630,11 @@ export const money: Module = {
   requires: { ...TEAM, needs: "money" },
   pages: [
     {
-      ...overview,
+      id: "overview",
+      label: "Overview",
       about: "Where Wren's money goes, at a glance.",
-      tiles: [
-        {
-          label: "Spend",
-          record: "books.spend",
-          href: "/money/spend?view=all",
-          period: "month",
-          sum: "amount",
-        },
-        {
-          label: "AI spend",
-          record: "books.spend",
-          href: `/money/spend?view=all&${AI_SPEND}`,
-          period: "month",
-          sum: "amount",
-        },
-        {
-          label: "Model calls",
-          record: "email.model",
-          href: "/money/models?view=all",
-          period: "month",
-          sum: "calls",
-        },
-        {
-          label: "Model cost",
-          record: "email.model",
-          href: "/money/models?view=all",
-          period: "month",
-          sum: "usd",
-        },
-        { label: "Subscriptions", record: "books.subscription", href: "/money/subscriptions" },
-        {
-          label: "Renewing soon",
-          record: "books.subscription",
-          href: "/money/subscriptions?view=soon",
-          needs: true,
-        },
-      ],
-      top: [
-        {
-          label: "Biggest spend this month",
-          record: "books.spend",
-          href: "/money/spend?view=this_month&sort=-amount",
-          fields: ["account", "amount"],
-          empty: "No spend this month yet.",
-        },
-        {
-          label: "Renewing soon",
-          record: "books.subscription",
-          href: "/money/subscriptions?view=soon",
-          fields: ["renewsOn", "cost"],
-          empty: "Nothing renews soon.",
-        },
-      ],
+      Page: MoneyOverview,
+      wide: true,
     },
     {
       id: "spend",

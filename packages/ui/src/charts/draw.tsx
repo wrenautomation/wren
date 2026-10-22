@@ -20,7 +20,7 @@ import {
   ChartTooltipContent,
 } from "../components/ui/chart.js";
 import { ellipsize } from "../format.js";
-import type { BarsProps, SparkProps, TrendProps } from "./index.js";
+import type { BarsProps, ColumnsProps, SparkProps, TrendProps } from "./index.js";
 
 const day = (at: unknown) =>
   typeof at === "string" && at
@@ -181,6 +181,55 @@ export function Bars({ rows, label, format = plain }: BarsProps) {
           <LabelList
             dataKey="text"
             position="right"
+            className="fill-(--ui-ink-2) text-[12px] tabular-nums"
+          />
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+/**
+ * A figure per period, oldest first, as columns: whether it grows. Each column says its value on
+ * top, so no axis is needed; a bill that lands once a month reads as one column, not a spike.
+ */
+export function Columns({ rows, label, format = plain, height = 180 }: ColumnsProps) {
+  const config = { value: { label, color: "var(--chart-1)" } } satisfies ChartConfig;
+  const data = rows.map((r) => ({ name: r.label, value: r.value, text: format(r.value) }));
+  return (
+    <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
+      <BarChart data={data} margin={{ top: 22, right: 0, bottom: 0, left: 0 }}>
+        <XAxis
+          dataKey="name"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tick={{ fill: "var(--ui-ink-2)", fontSize: 12 }}
+        />
+        <ChartTooltip
+          cursor={false}
+          isAnimationActive={false}
+          content={(p) => (
+            <ChartTooltipContent
+              active={p.active}
+              payload={p.payload as never}
+              label={p.label}
+              config={config}
+              format={format}
+            />
+          )}
+        />
+        <Bar
+          dataKey="value"
+          fill="var(--color-value)"
+          maxBarSize={56}
+          minPointSize={2}
+          radius={[2, 6, 2, 6]}
+          isAnimationActive={false}
+        >
+          <LabelList
+            dataKey="text"
+            position="top"
             className="fill-(--ui-ink-2) text-[12px] tabular-nums"
           />
         </Bar>

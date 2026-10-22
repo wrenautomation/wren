@@ -17,6 +17,12 @@ export const SECTION_TITLE = "text-[16px] leading-[1.55] font-semibold tracking-
 export const GROUP_LABEL =
   "text-[12.5px] leading-4 font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-3) [text-transform:var(--ui-label-case)]";
 
+/**
+ * A flat part's head: its title and a link or tabs at the right, on the page itself, no panel
+ * around it (10-21: the app stays flat, so a part is a heading and its content).
+ */
+export const FLAT_HEAD = "flex flex-wrap items-center justify-between gap-x-6 gap-y-2";
+
 /** A part on the page: a raised panel on paper, its rim in the shadow, its corners a leaf. */
 export const FRAME = "relative rounded-(--ui-leaf-panel) bg-(--ui-paper) shadow-(--ui-raise)";
 /**
