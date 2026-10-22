@@ -299,19 +299,15 @@ function Day({
           {key === today ? "today" : "this day"}.
         </Empty>
       ) : (
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-x-10 gap-y-8 lg:grid-cols-2 2xl:grid-cols-3">
           {busy.map((g) => {
             const its = groups.get(g) ?? [];
             const s = label(g);
             return (
-              <section
-                key={g}
-                aria-label={s.label}
-                className="min-w-0 rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise)"
-              >
+              <section key={g} aria-label={s.label} className="min-w-0">
                 <h2
                   className={cn(
-                    "flex items-center gap-2 border-b border-(--ui-hair) bg-(--ui-band) px-4 py-3",
+                    "flex items-center gap-2 border-b border-(--ui-hair) pb-2.5",
                     SECTION_TITLE,
                   )}
                 >
@@ -329,7 +325,7 @@ function Day({
                   return (
                     <div
                       key={src.record + src.label}
-                      className="px-4 py-3 [&+&]:border-t [&+&]:border-(--ui-hair)"
+                      className="py-3 [&+&]:border-t [&+&]:border-(--ui-hair)"
                     >
                       <h3 className={cn("mb-1.5", GROUP_LABEL)}>{src.label}</h3>
                       <ul className="grid grid-cols-1">

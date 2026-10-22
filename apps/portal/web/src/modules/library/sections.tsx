@@ -4,7 +4,7 @@
  */
 import { renderPage } from "@wren/sites/render";
 import { SECTIONS, type SectionType, templateOf } from "@wren/sites/templates";
-import { FRAME, FRAME_BODY, FRAME_HEAD, GROUP_LABEL, PageHeader } from "@wren/ui";
+import { FLAT_HEAD, GROUP_LABEL, PageHeader } from "@wren/ui";
 import { useMemo } from "react";
 import { QUIET } from "../work/bits.js";
 
@@ -19,14 +19,12 @@ function Block({ b }: { b: SectionType }) {
     [b],
   );
   return (
-    <section className={FRAME} aria-label={b.name}>
-      <div className={FRAME_HEAD}>
+    <section aria-label={b.name}>
+      <div className={FLAT_HEAD}>
         <span className={GROUP_LABEL}>{b.name}</span>
         <span className={`text-[13px] ${QUIET}`}>{b.blurb}</span>
       </div>
-      <div
-        className={`${FRAME_BODY} grid gap-3 min-[900px]:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]`}
-      >
+      <div className={`grid gap-3 pt-3 min-[900px]:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]`}>
         <ul className="grid content-start gap-1 text-[13.5px]">
           {b.fields.map((f) => (
             <li key={f.key}>
@@ -57,7 +55,7 @@ export function Sections() {
         title="Sections"
         lede="The blocks a Sections page is made of, in any order. Add them from a page's copy in Sites."
       />
-      <div className="grid gap-4">
+      <div className="grid gap-10">
         {SECTIONS.map((b) => (
           <Block key={b.type} b={b} />
         ))}

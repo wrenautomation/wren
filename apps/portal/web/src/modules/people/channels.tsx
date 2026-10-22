@@ -171,7 +171,7 @@ export function Channels(props: PageProps) {
       ) : !got.data ? (
         <Loading lines={6} />
       ) : (
-        <Section plain>
+        <Section>
           <Table
             stats={got.data}
             by={by}

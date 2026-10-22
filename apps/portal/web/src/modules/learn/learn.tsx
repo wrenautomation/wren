@@ -8,7 +8,6 @@ import {
   Empty,
   Fieldset,
   FormKept,
-  FRAME,
   LoadFailed,
   Loading,
   PageHeader,
@@ -137,7 +136,7 @@ export function AddPage({ params, client }: PageProps) {
       ) : state.error ? (
         <Alert>{state.error}</Alert>
       ) : state.saved ? (
-        <div className={`flex max-w-2xl flex-col gap-3 p-4 ${FRAME}`}>
+        <div className="flex max-w-2xl flex-col gap-3">
           <p className="text-[15px] text-(--ui-ink)">{savedLine(state.saved)}</p>
           <p className="break-all text-[13px] text-(--ui-ink-2)">{state.saved.url}</p>
           <div className="flex gap-3 text-[13px]">

@@ -81,7 +81,7 @@ function ProposalsLine({ props }: { props: PageProps }) {
   const text = proposalsLine(proposals.data ?? 0);
   if (!props.team || !text) return null;
   return (
-    <ul className="list-none">
+    <ul className="mt-4 list-none">
       <Row
         href={href("/", { history: "drafts", ...atOf(props.client) })}
         icon="stack"
@@ -303,7 +303,7 @@ function AppsByArea({ apps, waiting, team }: { apps: Module[]; waiting: Waiting;
   return (
     <div className="mt-12 min-[901px]:hidden">
       {areasOf(apps, team).map(({ area, apps }) => (
-        <Section key={area.id} title={area.label} plain>
+        <Section key={area.id} title={area.label}>
           <ul className="list-none border-y border-(--ui-hair)">
             {apps.map((m) => (
               <Row key={m.id} href={firstOf(m)} icon={m.icon} count={appTotal(waiting[m.id])}>

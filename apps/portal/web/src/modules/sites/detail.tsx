@@ -958,10 +958,8 @@ export const pageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }
 export const clientPageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
   extrasOf(detail as PageDetail | null, row, act, true);
 
-/** A section's body in a frame, under its label. */
-const framed = (body: ReactNode) => (
-  <div className={`${FRAME} ${FRAME_BODY} min-w-0 overflow-x-auto`}>{body}</div>
-);
+/** A section's body, flat under its label. */
+const framed = (body: ReactNode) => <div className="min-w-0 overflow-x-auto">{body}</div>;
 
 function extrasOf(d: PageDetail | null, row: Row, act: RecordAct, client: boolean): RecordExtras {
   if (!d) return {};

@@ -29,9 +29,11 @@ export interface BarsRow {
   tone?: string | undefined;
 }
 export interface ColumnsProps {
-  /** Oldest first: "Aug", "Sep", "Oct". */
-  rows: readonly { label: string; value: number }[];
+  /** Oldest first: "Aug", "Sep", "Oct". With `parts`, `parts` holds each part's share of `value`. */
+  rows: readonly { label: string; value: number; parts?: readonly number[] | undefined }[];
   label: string;
+  /** Stacks each column from these, bottom first, with a key under the chart. */
+  parts?: readonly { label: string; color: string }[] | undefined;
   format?: ((n: number) => string) | undefined;
   height?: number | undefined;
 }

@@ -3325,7 +3325,7 @@ function Related({
   const cols = meta.fields.filter((f) => f.column).slice(0, 4);
   return (
     <DataTable
-      look="framed"
+      look="plain"
       data={page.data.rows}
       rowKey={(r) => String(r.id)}
       columns={cols.map((f) => ({

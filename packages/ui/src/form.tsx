@@ -8,7 +8,7 @@ import { applies, runningOn, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { Cue, FieldCell } from "./fields.js";
-import { FRAME, FRAME_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
+import { FLAT_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
   cap,
@@ -21,7 +21,6 @@ import {
   useLoad,
   useTypes,
 } from "./records.js";
-import { Sweep } from "./sweep.js";
 
 const NO_CALL = () => Promise.reject(new Error("Nothing to run this."));
 
@@ -60,11 +59,10 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
         </p>
       ) : null}
       {sections.map((s) => (
-        // Each part framed under a head on the paper, its rows ruled inside: what belongs together reads so.
-        <section key={s.key} className={cn("grid", FRAME)}>
-          <Sweep />
+        // Each part flat under its head, its rows ruled: what belongs together reads so.
+        <section key={s.key} className="grid">
           {s.label ? (
-            <div className={FRAME_HEAD}>
+            <div className={cn(FLAT_HEAD, "pb-1")}>
               <h2 className={cn("flex items-center gap-2", SECTION_TITLE)}>
                 {s.cue ? <Cue state={s.cue} size={15} /> : null}
                 {s.label}
@@ -77,7 +75,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
               return (
                 <div
                   key={String(r.id)}
-                  className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-0.5 border-b border-(--ui-hair) px-4 py-2.5 sm:grid-cols-[180px_minmax(0,1fr)_auto]"
+                  className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-0.5 border-b border-(--ui-hair) py-2.5 sm:grid-cols-[180px_minmax(0,1fr)_auto]"
                 >
                   <dt className="text-[13px] text-(--ui-ink-2)">{titleOf(meta, r)}</dt>
                   <dd className="m-0 text-[14px] break-words whitespace-pre-wrap">

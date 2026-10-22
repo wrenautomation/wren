@@ -6,7 +6,6 @@
 import { cn } from "cn";
 import { createContext, type ReactNode, useContext } from "react";
 import { cx } from "./format.js";
-import { Sweep } from "./sweep.js";
 
 /** The heading scale. A page has one title; each section one section title; a group in it a label. */
 export const PAGE_TITLE =
@@ -120,8 +119,8 @@ export function PageHeader({
 }
 
 /**
- * A part of a page, framed with its title on the paper. `plain` leaves the frame off, for a
- * section around something that draws its own (a list of records, a grid of cards).
+ * A part of a page: its title, then its content, flat on the page (10-22: no panel around a part).
+ * The next part keeps 32 px off it.
  */
 export function Section({
   title,
@@ -129,7 +128,6 @@ export function Section({
   count,
   note,
   actions,
-  plain = false,
   className,
   children,
 }: {
@@ -140,17 +138,12 @@ export function Section({
   count?: number | undefined;
   note?: ReactNode;
   actions?: ReactNode;
-  plain?: boolean | undefined;
   className?: string | undefined;
   children: ReactNode;
 }) {
   const head =
     title || note || actions ? (
-      <div
-        className={
-          plain ? "mb-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-3" : FRAME_HEAD
-        }
-      >
+      <div className={cx("ui-head", FLAT_HEAD)}>
         <div className="min-w-0">
           {title ? (
             <h2 className={cx("flex items-center gap-2", SECTION_TITLE)}>
@@ -172,23 +165,15 @@ export function Section({
         {actions ? <div className={ACTIONS}>{actions}</div> : null}
       </div>
     ) : null;
-  if (plain)
-    return (
-      <section className={cx("[section+&]:mt-3.5", className)}>
-        {head}
-        {children}
-      </section>
-    );
   return (
-    <section className={cx("min-w-0 [:is(section,[data-empty])+&]:mt-3.5", FRAME, className)}>
-      <Sweep />
+    <section className={cx("min-w-0 [:is(section,[data-empty])+&]:mt-8", className)}>
       {head}
-      <div className={FRAME_BODY}>{children}</div>
+      <div className="[.ui-head+&]:pt-3 [&>:is(ul,ol,dl):first-child]:border-t-0">{children}</div>
     </section>
   );
 }
 
-/** A group of fields in a form, framed, with its name as the legend in the head. */
+/** A group of fields in a form, flat, with its name as the legend in the head. */
 export function Fieldset({
   legend,
   note,
@@ -201,9 +186,9 @@ export function Fieldset({
   children: ReactNode;
 }) {
   return (
-    <fieldset className={cx("m-0 min-w-0 p-0", FRAME, className)}>
-      {/* Floated full width, a legend leaves the border's notch and reads as the head. */}
-      <legend className="float-left w-full px-5 pt-[18px]">
+    <fieldset className={cx("m-0 min-w-0 border-0 p-0", className)}>
+      {/* Floated full width, a legend sits in the flow and reads as the head. */}
+      <legend className="float-left w-full p-0">
         <span className={cx("block", GROUP_LABEL)}>{legend}</span>
         {note ? (
           <span className="mt-0.5 block max-w-[68ch] text-[13px] text-pretty text-(--ui-ink-2)">
@@ -211,8 +196,7 @@ export function Fieldset({
           </span>
         ) : null}
       </legend>
-      <div className="clear-both grid gap-4 p-5 pt-3">{children}</div>
-      <Sweep />
+      <div className="clear-both grid gap-4 pt-3">{children}</div>
     </fieldset>
   );
 }
