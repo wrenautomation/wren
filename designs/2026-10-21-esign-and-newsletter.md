@@ -26,8 +26,8 @@ Law first. A US e-signature stands under ESIGN and UETA when it has: consent to 
 | Intent and signature tied to the record | Signing page, fields on the PDF | Placeholders in the PDF we make |
 | Tamper evidence | PDF signed with our `.p12` (CAdES, checked in a probe: `/SubFilter /ETSI.CAdES.detached`) | Store the sealed PDF and its sha256 |
 | Audit trail: time, IP, email, agent | Audit-log PDF and certificate PDF, both downloadable by API | Store both next to the PDF |
-| Consent to electronic records | A line in the document body | `docPdf` prints the line on every PDF |
-| Status | Webhooks: sent, opened, signed, completed, rejected, cancelled | Map to `docs.status` and `doc_events` |
+| Consent to electronic records | A line in the document body | `sealedPdf` prints the line on the PDF; `consentVersion` names it |
+| Status | Webhooks: sent, opened, completed, rejected, cancelled | Map to `docs.status` and `doc_events` (table below) |
 
 Why not our own: sealing a PDF with a certificate, and the audit certificate, are what William said not to build. The own flow stays for simple quotes. "Send for signature" is the sealed path.
 
@@ -38,15 +38,30 @@ Limits to know:
 
 ### How it connects
 
-1. `Documents.signature` (new handler): builds the PDF with `{{signature, r1}}` and `{{date, r1}}` placeholders. Documenso turns them into fields (checked in a probe). It creates the envelope with `distributionMethod: NONE`, all Documenso emails off, and distributes. The result holds the signer's link.
-2. Wren mails that link from portal@ through `portalMail`. Documenso needs no SMTP.
-3. Documenso posts webhooks to the phone Worker, `/webhooks/documenso`. The Worker checks `X-Documenso-Secret` in constant time and forwards to Restate with an idempotency key. No secret set: 503 "webhooks off".
-4. `Documents.signed` (new handler) maps the event. On completed it downloads the sealed PDF, the certificate and the audit log. It puts them in the files bucket under `clients/<client>/documents/<doc>/` and sets `docs.sha256` to the sealed PDF's hash.
-5. Status map: sent to `sent`, opened to `viewed`, completed to `signed`, rejected to `declined`, cancelled to `void`.
+A document has a `signing` field: `own` (the default, the typed-name flow) or `sealed` (Documenso). The console form sets it. A sealed document needs an email address.
+
+1. Send. The console calls `Documents.send`. For a sealed document, step `envelope` builds the PDF from the frozen text with `{{signature, r1}}` and `{{date, r1}}` placeholders and the consent line. It creates the envelope with `externalId` = the document id, `distributionMethod: NONE` and all Documenso emails off. The envelope id is kept on the document (`docs.envelope_id`, unique). Step `link` makes it live and returns the signer's link. A repeat finds the same link, so a retried step is safe.
+2. Wren mails that link under the client's name through the client's mailer, or texts it. Documenso needs no SMTP. A reminder reuses the live link and makes no second envelope. A sealed document has no Wren expiry. Documenso's own recipient expiry applies.
+3. Documenso posts webhooks to the phone Worker, `/webhooks/documenso`. The Worker checks `X-Documenso-Secret` in constant time and forwards to Restate with the key `documenso-<envelope>-<event>-<createdAt>`. No secret set: 503. Wrong secret: 401.
+4. `Documents.signed` maps the event:
+
+   | Documenso event | Wren |
+   |---|---|
+   | SENT | ignored (Wren set `sent` itself) |
+   | OPENED | `viewed` |
+   | COMPLETED | `signed` |
+   | REJECTED | `declined`, with the signer's reason |
+   | CANCELLED | `void` |
+
+   On completed it downloads the sealed PDF, the certificate and the audit log. It puts them in the files bucket under `clients/<client>/documents/<doc>/` and keeps the keys and the sealed PDF's SHA-256 in `docs.sealed`. `docs.sha256` stays the fingerprint of the text. The signer's name, email and time come from the event. `consentVersion` is set to the sealed version. Then it mails the signed copy. A repeat of completed does nothing. A signature that lands after a void still counts, with a note on the event.
+5. Void. The console's Void calls `Documents.cancel`. It cancels a live envelope or deletes a draft one, then voids the document.
+6. The signer's page link and the console's `pdf` handler give the signed copy as a short-lived bucket link (`part`: `pdf`, `certificate` or `audit`). No console screen uses it yet.
 
 Webhook bodies carry each signer's token. Wren keeps only the event, the status and the envelope id, never the token.
 
-Config (all optional; unset means "e-sign provider is off"): `WREN_DOCUMENSO_URL`, `WREN_DOCUMENSO_TOKEN`, `WREN_DOCUMENSO_WEBHOOK_SECRET` (phone Worker: `DOCUMENSO_WEBHOOK_SECRET`).
+Config (all optional; unset means "e-sign provider is off", and a sealed send stops with a clear reason): `WREN_DOCUMENSO_URL` and `WREN_DOCUMENSO_TOKEN`, in SSM `/wren/prod/env-3`. The Worker has `DOCUMENSO_WEBHOOK_SECRET`; the same value is in Documenso's webhook setting. Wren's own config has no webhook secret.
+
+Replay: a failed `COMPLETED` call (visible in Restate) is safe to repeat by hand with `Documents/signed` and the same body. The handler is idempotent.
 
 ## Newsletter: Listmonk with the postback messenger
 
@@ -129,6 +144,7 @@ My pick is C, then D if William wants $0. The code needs only a URL and a token,
 | Listmonk postback | `ListmonkIntake`, `ListmonkMail` | Listmonk settings, messenger `wren` |
 | Documenso API | `packages/documents/src/documenso.ts` | `WREN_DOCUMENSO_URL` |
 | Documenso webhook | `apps/phone/src/worker.ts` `/webhooks/documenso`, `Documents.signed` | Documenso webhook, header `X-Documenso-Secret` |
+| Config | `/wren/prod/env-3` (`WREN_DOCUMENSO_URL`, `WREN_DOCUMENSO_TOKEN`), Terraform `aws_ssm_parameter.env_3` | Documenso host, `deploy/documenso/` |
 | Sealed files | files bucket, `clients/<client>/documents/...` | none |
 
 ## Outside changes made (log)
@@ -149,11 +165,13 @@ Needs the owner of the local Terraform state: `tofu import aws_ssm_parameter.lis
 
 The workers read `env-2` at start. They pick up the three Listmonk keys at the next deploy.
 
+Documenso: nothing was changed outside the repo. The probes ran in Docker on the Mac only, and their containers are removed. The new parameter `/wren/prod/env-3` is a Terraform resource; `tofu apply` makes it (empty, `{}`), grants the box and the Lambda role the read, and the worker lists name it. The loader skips it while it is empty or unreadable.
+
 ## For William
 
 - Pick the Documenso host (options above). Then follow `deploy/documenso/README.md`.
 - First login to Listmonk at `https://lists.wrenautomation.com/admin`. The admin login is in SSM `/wren/prod/listmonk` (`admin_user`, `admin_password`). Read it with `node scripts/secrets.mjs run /wren/prod/listmonk -- ...`. The admin page is open to the web behind that login only.
-- Run the two Terraform commands in the log (import, apply).
+- Run the two Terraform commands in the log (import, apply). The same apply makes `env-3`.
 - Decide on a trusted signing certificate for Documenso (costs money; optional).
 - Keep the Documenso `.p12` passphrase and a copy of the `.p12` in credvault. Losing it does not break old PDFs, but new seals would use a new certificate.
 - Read the signing page text in Documenso once and check it is fine for your contracts. Not legal advice. A lawyer should read the contract text.
@@ -161,7 +179,10 @@ The workers read `env-2` at start. They pick up the three Listmonk keys at the n
 ## Left over
 
 - Client broadcasts (`Broadcast`) stay on their own sender. They send per client from the client's mailbox, and a client's list is not in Wren's Listmonk. Moving them needs one Listmonk list per client.
-- `env-2` has 91 characters free. The Documenso keys need a new parameter (`env-3`: a Terraform resource, a grant, a place in the worker's list).
+- `env-2` has 91 characters free, so the Documenso keys go in `env-3` (built, empty until Documenso is up).
+- Known gaps in the sealed send. A retried `envelope` step that fails between making the envelope and keeping its id can leave a draft envelope in Documenso. It is never sent. A terminal failure of the `files` step on completed leaves the document `sent` and shows as a failed call in Restate; repeat it by hand (Replay above).
+- The console has no screen for the signed copy yet. The `pdf` handler returns the link.
+- Migration `0316_docs_sealed` may clash with another branch's 0316 at merge. Renumber and rebuild the journal then.
 - Plain text only. Listmonk can send HTML. The old rule stands: plain text lands in the inbox.
 - customer.io trial from 10-14 lapses by itself. Nothing in code to remove.
 - Bounces on newsletter mail are still matched by Message-ID in Wren. Listmonk never sees them. Its bounce screens stay empty.
