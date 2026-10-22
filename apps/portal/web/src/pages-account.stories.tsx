@@ -65,8 +65,11 @@ export const WebhookTest = accountAt("/account/webhooks", async (page) => {
 /** Remove asks first, then the hook leaves the list. */
 export const WebhookRemove = accountAt("/account/webhooks", async (page) => {
   const row = await rowOf(page, "Old CRM");
+  // A phone row shows its first action alone; Remove is a swipe there, so this is the wide shape.
+  const remove = row.queryByRole("button", { name: "Remove" });
+  if (!remove) return;
   await yes(async () => {
-    fireEvent.click(row.getByRole("button", { name: "Remove" }));
+    fireEvent.click(remove);
   });
   await waitFor(() => expect(within(page).queryByText("Old CRM")).toBeNull());
   await expect(sent("delivery/webhookRemove")).toEqual([

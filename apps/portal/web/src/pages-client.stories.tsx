@@ -34,7 +34,8 @@ export const CalendarAgenda = pageAt("/calendar/schedule?v=list&d=2026-10-12", {
     await expect(await within(page).findByText("Tuesday, October 13")).toBeVisible();
     await expect(within(page).getByText("Thursday, October 15")).toBeVisible();
     const ada = await within(page).findByRole("button", { name: "Ada North" });
-    await expect(within(page).getByText("Reactivation")).toBeVisible();
+    // The Offer column is wide only; a phone keeps the name and the time.
+    if (window.innerWidth > 640) await expect(within(page).getByText("Reactivation")).toBeVisible();
     // A press on a call puts it in the address, which opens its panel.
     await userEvent.click(ada);
     await waitFor(() => expect(ada.closest("tr, li")).toHaveAttribute("data-row"));
