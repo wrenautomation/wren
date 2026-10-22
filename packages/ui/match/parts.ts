@@ -6,8 +6,11 @@
  * A prop is one name, read on both sides, or a [artifact, story] pair when the two draw the same
  * thing another way (a border on one side, an inset shadow on the other: the colour is compared).
  *
- * Rows parts the artifact does not draw get no pair: hover, selected, stage squares, late and the
- * group head. The count footer went on 10-22 (the flat app). Add a pair when the artifact draws one.
+ * Rows pins the Design Language's queue table row (`#inbox`, `.nt`, list f1): one line, a 22px
+ * avatar, 42px tall. It is the flat, dense row; the two-line row (f2, f4) and the people row
+ * (`#parts .rows`) are not lists Rows draws. The flat app (10-22) drops f1's column lines, its
+ * raised box and its count footer, so those get no pair. Nor do hover, selected, stage squares,
+ * late and the group head yet. Add a pair when a part is drawn on both sides.
  */
 export type Prop = string | readonly [artifact: string, story: string];
 
@@ -22,21 +25,19 @@ export type Part = {
 
 const DL = "2026-10-20-design-language/design-language.html";
 const ROW = "#storybook-root [data-row='0']";
+const ART = "#f1 .r";
 const TEXT = ["font-family", "font-size", "font-weight", "line-height", "letter-spacing", "color"];
 
 export const PARTS: readonly Part[] = [
   {
-    // The artifact's row is a grid of avatar, two lines and a chip, padded 10px 4px; it has no
-    // fill of its own. Its table (`.tw td`, 10px 14px) is the other row it draws: this map pins
-    // the people row, and the dense table row is William's call (designs/2026-10-21-artifact-match.md).
     name: "row",
-    artifact: { file: DL, at: "#parts .rows > .row" },
+    artifact: { file: DL, at: ART },
     story: { id: "rows--default", at: { 390: `${ROW} > [data-face]`, 1280: ROW } },
     props: ["height"],
   },
   {
     name: "row rule",
-    artifact: { file: DL, at: "#parts .rows > .row + .row" },
+    artifact: { file: DL, at: `${ART} + .r` },
     story: {
       id: "rows--default",
       at: {
@@ -44,20 +45,20 @@ export const PARTS: readonly Part[] = [
         1280: "#storybook-root [data-row='1'] > td:nth-child(2)",
       },
     },
-    props: [["border-top-color", "box-shadow"]],
+    props: ["box-shadow"],
   },
   {
     name: "row name gap",
-    artifact: { file: DL, at: "#parts .rows > .row" },
+    artifact: { file: DL, at: `${ART} > span:nth-child(2)` },
     story: {
       id: "rows--default",
-      at: { 390: `${ROW} [data-face] .gap-2`, 1280: `${ROW} td:nth-child(2) .flex-1` },
+      at: { 390: `${ROW} [data-face] .gap-\\[7px\\]`, 1280: `${ROW} td:nth-child(2) .flex-1` },
     },
     props: ["column-gap"],
   },
   {
     name: "row title",
-    artifact: { file: DL, at: "#parts .rows > .row b" },
+    artifact: { file: DL, at: `${ART} .nm` },
     story: {
       id: "rows--default",
       at: { 390: `${ROW} a[href]`, 1280: `${ROW} td:nth-child(2) a[data-tip]` },
@@ -66,7 +67,7 @@ export const PARTS: readonly Part[] = [
   },
   {
     name: "avatar",
-    artifact: { file: DL, at: "#parts .rows > .row .av" },
+    artifact: { file: DL, at: `${ART} .av` },
     story: {
       id: "rows--default",
       at: { 390: `${ROW} span[aria-hidden]`, 1280: `${ROW} td:nth-child(2) span[aria-hidden]` },
@@ -83,8 +84,14 @@ export const PARTS: readonly Part[] = [
   },
   {
     name: "list head",
-    artifact: { file: DL, at: "#metro .tw th:nth-child(2)" },
+    artifact: { file: DL, at: "#f1 .hd > span:nth-child(2)" },
     story: { id: "rows--default", at: { 1280: "#storybook-root thead th:nth-child(2)" } },
-    props: [...TEXT, "padding-left", "padding-right", "height"],
+    props: [...TEXT, "padding-left", "padding-right"],
+  },
+  {
+    name: "list head height",
+    artifact: { file: DL, at: "#f1 .hd" },
+    story: { id: "rows--default", at: { 1280: "#storybook-root thead th:nth-child(2)" } },
+    props: ["height"],
   },
 ];

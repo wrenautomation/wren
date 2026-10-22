@@ -385,7 +385,7 @@ export function Avatar({ initials: text, lg = false }: { initials: string; lg?: 
     <span
       aria-hidden
       className={cn(
-        "grid flex-none place-items-center rounded-full bg-(--ui-accent-tint) font-semibold text-(--ui-link)",
+        "grid flex-none place-items-center rounded-full bg-(--ui-accent-tint) font-bold text-(--ui-link)",
         lg ? "size-8 text-[12px]" : "size-[22px] text-[10px]",
       )}
     >
@@ -419,11 +419,11 @@ function NameCell<T>({
   const titled = cn(
     // Cut inside the link, so focusing it never scrolls the cell sideways.
     "block no-underline",
-    narrow ? "line-clamp-2 leading-snug wrap-anywhere" : "truncate",
-    name.weight?.(row) ?? "font-semibold text-(--ui-ink)",
+    narrow ? "line-clamp-2 text-[14px] leading-[1.55] wrap-anywhere" : "truncate",
+    name.weight?.(row) ?? "font-[650] text-(--ui-ink)",
   );
   return (
-    <div className={cn("flex min-w-0 items-center", sub ? "gap-2.5" : "gap-2", className)}>
+    <div className={cn("flex min-w-0 items-center", sub ? "gap-2.5" : "gap-[7px]", className)}>
       {initial ? <Avatar initials={initial} lg={!!sub} /> : mark}
       {/* One track that may shrink: an item's least width is its whole line, so "auto" let a
           long title spill over the next columns (William, 10-21). */}
@@ -586,7 +586,7 @@ export function Rows<T>(p: RowsProps<T>) {
                   }}
                   className={cn(
                     // The artifact's row hairline (`.r+.r, .gh+.r`) stays on a phone.
-                    "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-11 [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash) [li+&>[data-face]]:shadow-[inset_0_1px_0_var(--ui-hair)]",
+                    "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-[42px] [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash) [li+&>[data-face]]:shadow-[inset_0_1px_0_var(--ui-hair)]",
                     r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
                     r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                     r.changed && "[&>[data-face]]:animate-ui-changed",
@@ -595,7 +595,7 @@ export function Rows<T>(p: RowsProps<T>) {
                   )}
                 >
                   {pick ? (
-                    <label className="grid size-11 flex-none cursor-pointer place-items-center">
+                    <label className="grid w-11 flex-none cursor-pointer place-items-center self-stretch">
                       <input
                         type="checkbox"
                         aria-label={`Select ${name.title(l.row)}`}
@@ -606,7 +606,7 @@ export function Rows<T>(p: RowsProps<T>) {
                   ) : (
                     <span className="w-4 flex-none" />
                   )}
-                  <div className="min-w-0 flex-1 py-3 pr-2">
+                  <div className="min-w-0 flex-1 py-2.5 pr-2">
                     <NameCell name={name} row={l.row} narrow onOpen={open ? r.onOpen : undefined} />
                     {r.going ? (
                       <span className="mt-1 block">
@@ -621,7 +621,7 @@ export function Rows<T>(p: RowsProps<T>) {
                       {side}
                     </div>
                   ) : null}
-                  <div className="flex size-11 flex-none items-center justify-center">
+                  <div className="flex w-10 flex-none items-center justify-center self-stretch">
                     {act ? (
                       <RowActions
                         lone
@@ -702,7 +702,7 @@ export function Rows<T>(p: RowsProps<T>) {
               key={c.key}
               scope="col"
               className={cn(
-                "sticky top-0 z-10 h-[34px] bg-(--ui-paper) px-2.5 leading-tight whitespace-nowrap",
+                "sticky top-0 z-10 h-[34px] bg-(--ui-paper) px-2.5 leading-[1.55] whitespace-nowrap",
                 HEAD_RULE,
                 c.align === "end" ? "text-right" : "text-left",
                 c.className,

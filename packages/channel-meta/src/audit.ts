@@ -512,8 +512,7 @@ const FIX: Record<string, string> = {
     "Install the Meta pixel on the landing pages the website-event ad sets send to.",
   "measurement.pixel_firing":
     "Fire a test event (Events Manager → Test events) and check the pixel's site.",
-  "measurement.utm":
-    `Add url_tags (${URL_TAGS}) to each creative.`,
+  "measurement.utm": `Add url_tags (${URL_TAGS}) to each creative.`,
   "creative.formats":
     "Add a second format (video or carousel beside the image) as its own hypothesis.",
   "creative.per_adset":

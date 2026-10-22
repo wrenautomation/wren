@@ -42,8 +42,7 @@ look() {
     pnpm turbo run stories:build --filter=@wren/portal --output-logs=errors-only &&
     (cd apps/portal && pnpm -s exec wren-look --all --static storybook-static --messy)
 }
-# Parts against the artifacts, as computed styles (designs/2026-10-21-artifact-match.md). Its own
-# target until Rows reaches zero; then it joins ui.
+# Parts against the artifacts, as computed styles (designs/2026-10-21-artifact-match.md). Part of ui.
 match() {
   echo "==> artifact match" &&
     pnpm turbo run stories:build --filter=@wren/ui --output-logs=errors-only &&
@@ -144,7 +143,7 @@ ui() {
     pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
     writes && edits && reads && libs &&
     echo "==> unit tests related to the changed files" &&
-    related packages/ui "$files" && related apps/portal "$files" && visual && look
+    related packages/ui "$files" && related apps/portal "$files" && visual && look && match
 }
 # `vitest related` in one package, on its changed .ts/.tsx files; none changed, nothing runs.
 related() {
