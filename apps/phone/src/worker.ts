@@ -9,6 +9,10 @@
  * - `/webhooks/calcom`: cal.com's booking webhook, HMAC checked against
  *   `CALCOM_WEBHOOK_SECRET`, then `CallBookings/ingest/send` keyed by trigger + uid +
  *   start. Unsigned = 401, PING = 200 and goes no further, Restate down = 502.
+ * - `/webhooks/documenso`: Documenso's e-signature events (designs/2026-10-21-esign-and-newsletter.md).
+ *   The `X-Documenso-Secret` header is checked against `DOCUMENSO_WEBHOOK_SECRET`, then
+ *   `Documents/signed/send` keyed by envelope + event + time, so a repeat is applied once.
+ *   Unset secret = 503, wrong = 401, Restate down = 502.
  * - `/webhooks/telnyx/<client>`, `/webhooks/calcom/<client>`: the same for a client's
  *   messaging profile and cal.com, into its database (`SmsEvents/ingestFor`,
  *   `CallBookings/ingestFor`). A client's cal.com signs with its own secret, from
@@ -309,6 +313,47 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
         "idempotency-key": `calcom-${client ? `${client}-` : ""}${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
       }),
       body: forwarded(raw, client),
+    });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+  return json({ ok: true });
+}
+
+/**
+ * Documenso's webhook: the shared secret in `X-Documenso-Secret` checked here, then
+ * `Documents/signed/send` keyed by envelope, event and time. Documents ignores an event it has no
+ * use for and an envelope it did not make.
+ */
+async function documensoWebhook(req: Request, env: Env): Promise<Response> {
+  if (!env.DOCUMENSO_WEBHOOK_SECRET) {
+    return json({ error: "webhooks off: no DOCUMENSO_WEBHOOK_SECRET" }, 503);
+  }
+  const given = req.headers.get("x-documenso-secret") ?? "";
+  if (!(await sameSecret(given, env.DOCUMENSO_WEBHOOK_SECRET))) {
+    return json({ error: "bad secret" }, 401);
+  }
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  let body: { event?: unknown; createdAt?: unknown; payload?: { envelopeId?: unknown } };
+  try {
+    body = JSON.parse(raw) as typeof body;
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
+  const envelope = body.payload?.envelopeId;
+  if (typeof body.event !== "string" || typeof envelope !== "string" || envelope === "") {
+    return json({ error: "no event or envelope" }, 400);
+  }
+  let res: Response;
+  try {
+    res = await fetch(ingress(env, "Documents/signed/send"), {
+      method: "POST",
+      headers: restateHeaders(env, {
+        "idempotency-key": `documenso-${envelope}-${body.event}-${String(body.createdAt ?? "")}`,
+      }),
+      body: raw,
     });
   } catch {
     return json({ error: "restate unreachable" }, 502);
@@ -885,6 +930,9 @@ export default {
       const client = wren ? null : clientIn(pathname, site);
       if (!wren && !client) continue;
       return req.method === "POST" ? hook(req, env, client) : json({ error: "POST only" }, 405);
+    }
+    if (pathname === "/webhooks/documenso") {
+      return req.method === "POST" ? documensoWebhook(req, env) : json({ error: "POST only" }, 405);
     }
     if (pathname === "/webhooks/linq") {
       return req.method === "POST" ? linqWebhook(req, env) : json({ error: "POST only" }, 405);
