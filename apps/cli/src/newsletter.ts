@@ -4,6 +4,7 @@
  * and with `--yes` hands it to the `Newsletter` object, which sends each one once.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
+import { issueTag, listmonk } from "@wren/channel-email/listmonk";
 import type { Newsletter } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
 import { issueAudience, issueSends, mayMarket, saveTopic } from "@wren/core/marketing";
@@ -113,5 +114,16 @@ export function registerNewsletter(program: Command, withMainDb: WithDb, setting
         Promise.all([issueSends(db, key), issueAudience(db, o.topic)]),
       );
       console.log(`${key}: sent to ${sent} of ${all.length} confirmed.`);
+      // With Listmonk, the issue is a campaign there: its state says whether it is still going out.
+      const { listmonkUrl: url, listmonkUser: user, listmonkToken: token } = settings;
+      if (!url || !user || !token) return;
+      const tag = issueTag(o.topic, slug);
+      const found = (await listmonk({ url, user, token }).campaigns(tag)).find((c) =>
+        c.tags?.includes(tag),
+      );
+      if (found)
+        console.log(
+          `Listmonk campaign #${found.id}: ${found.status}, ${found.sent ?? 0} of ${found.to_send ?? 0} posted.`,
+        );
     });
 }

@@ -88,6 +88,7 @@ import {
   makeCallBriefs,
 } from "@wren/channel-email/calls";
 import { EMAIL_TOUCH } from "@wren/channel-email/components";
+import { type Listmonk, listmonk } from "@wren/channel-email/listmonk";
 import {
   type Campaign,
   DISPOSITION_KEY,
@@ -101,6 +102,9 @@ import {
   makeDisposition,
   makeEmailConsole,
   makeInboxScheduler,
+  makeListmonkIntake,
+  makeListmonkMail,
+  makeListmonkSync,
   makeMarketing,
   makeNewsletter,
   makeOpensScheduler,
@@ -112,6 +116,7 @@ import {
   makeResolution,
   makeSendScheduler,
   type SendScope,
+  syncTopicByName,
 } from "@wren/channel-email/restate";
 import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/channel-email/views";
 import { linkedinContent } from "@wren/channel-linkedin";
@@ -779,6 +784,15 @@ export async function buildServices(
           name: "Wren",
         })
       : null;
+  // The newsletter's lists, subscribers and campaigns live in Listmonk when its three settings are set.
+  const lm: Listmonk | null =
+    settings.listmonkUrl && settings.listmonkUser && settings.listmonkToken
+      ? listmonk({
+          url: settings.listmonkUrl,
+          user: settings.listmonkUser,
+          token: settings.listmonkToken,
+        })
+      : null;
   // People broadcasts' email (B6): Wren's own, from portal@ with the marketing envelope. Null
   // without portal@, the lander's link key or a postal address: email broadcasts then refuse.
   const shared = settings.siteExportToken;
@@ -1176,7 +1190,21 @@ export async function buildServices(
       from: settings.portalFrom ?? null,
       postal: settings.marketingPostal ?? null,
       send: portalMail,
+      ...(lm ? { listmonk: lm, syncTopic: (topic) => syncTopicByName({ db, lm }, topic) } : {}),
     }),
+    // Listmonk (designs/2026-10-21-esign-and-newsletter.md): its postback door, the mail it sends
+    // through portal@, and the hourly sync of lists. Without Listmonk's config the door answers
+    // and mails nothing, and the sync stays off.
+    makeListmonkIntake(),
+    makeListmonkMail({
+      db,
+      shared: settings.siteExportToken ?? null,
+      site: settings.siteBaseUrl.replace(/\/+$/, ""),
+      from: settings.portalFrom ?? null,
+      postal: settings.marketingPostal ?? null,
+      send: portalMail,
+    }),
+    makeListmonkSync({ db, lm }),
     // Write's Blog box: posts committed to the lander repo, then mailed (designs/2026-10-13-blog-box.md).
     makeBlog({
       db,

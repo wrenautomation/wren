@@ -84,6 +84,24 @@ jobs:
           head -1 "$RUNNER_TEMP/vk.out" | grep -q '^Success'
         env:
           BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
+      - name: listmonk on the database box
+        # The newsletter's lists and campaigns (designs/2026-10-21-esign-and-newsletter.md). No SSM
+        # param /wren/prod/listmonk yet: the script says so and skips. Unchanged: left running.
+        run: |
+          script="$(base64 -w0 deploy/scripts/box-listmonk.sh)"
+          jq -n --arg s "$script" '{commands: [
+            "echo \($s) | base64 -d > /usr/local/bin/wren-box-listmonk",
+            "chmod +x /usr/local/bin/wren-box-listmonk",
+            "/usr/local/bin/wren-box-listmonk us-east-1"]}' > "$RUNNER_TEMP/lm.json"
+          id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
+            --comment "listmonk $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/lm.json" \
+            --query Command.CommandId --output text)"
+          aws ssm wait command-executed --command-id "$id" --instance-id "$BOX_INSTANCE_ID" || true
+          aws ssm get-command-invocation --command-id "$id" --instance-id "$BOX_INSTANCE_ID" \
+            --query '[Status,StandardOutputContent]' --output text | tee "$RUNNER_TEMP/lm.out"
+          head -1 "$RUNNER_TEMP/lm.out" | grep -q '^Success'
+        env:
+          BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
       - name: restart the pool chain on the database box
         # Before the Lambda registers: Restate keeps a service on the deployment that last
         # offered it, and this Lambda build leaves the chain out (WREN_POOL_CHAIN_HOST=box).

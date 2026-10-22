@@ -624,6 +624,57 @@ export async function issueAudience(db: Queryable, topic: string) {
     .orderBy(asc(consents.id));
 }
 
+/** The consent of one address on one topic, or null: how a message from outside finds its proof. */
+export async function consentIdOf(
+  db: Queryable,
+  channel: MarketingChannel,
+  address: string,
+  topic: string,
+): Promise<number | null> {
+  const row = await consentOf(
+    db,
+    channel,
+    addressOf(channel, address),
+    await topicId(db, topic, channel),
+  );
+  return row?.id ?? null;
+}
+
+/** Every email topic: the lists a sender mirrors. */
+export function emailTopics(db: Queryable) {
+  return db
+    .select({ name: topics.name, publicName: topics.publicName })
+    .from(topics)
+    .where(eq(topics.channel, "email"))
+    .orderBy(asc(topics.id));
+}
+
+/**
+ * Every consent on an email topic, whatever its state, with when it last changed. A mirror of the
+ * topic (Listmonk's list) reads it to push who is in and to tell a later change on its side from
+ * an older one on ours.
+ */
+export async function topicConsents(db: Queryable, topic: string) {
+  const rows = await db
+    .select({
+      consentId: consents.id,
+      address: consents.address,
+      state: consents.state,
+      confirmedAt: consents.confirmedAt,
+      withdrawnAt: consents.withdrawnAt,
+      createdAt: consents.createdAt,
+    })
+    .from(consents)
+    .where(eq(consents.topicId, await topicId(db, topic, "email")))
+    .orderBy(asc(consents.id));
+  return rows.map(({ confirmedAt, withdrawnAt, createdAt, ...c }) => ({
+    ...c,
+    changedAt: new Date(
+      Math.max(...[confirmedAt, withdrawnAt, createdAt].map((d) => d?.getTime() ?? 0)),
+    ),
+  }));
+}
+
 /** Whether this issue already went to this consent: a send's evidence names its issue. */
 export async function issueSentTo(db: Queryable, consentId: number, issue: string) {
   const [hit] = await db
