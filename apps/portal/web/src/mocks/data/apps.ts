@@ -5,10 +5,11 @@
  */
 
 import type { TemplateListRow } from "@wren/core/templates/console";
+import type { NotesApi } from "@wren/notes/console";
 import type { DeliveryHome, Overview } from "../../api.js";
 import type { Browsed, Card, Home, Rail, SourceRow } from "../../modules/learn/api.js";
 import type { NotesHome } from "../../modules/notes/api.js";
-import type { Answers } from "../api.js";
+import { type Answers, serve } from "../api.js";
 import { CLIENT } from "./me.js";
 import { ago } from "./shell.js";
 
@@ -310,6 +311,7 @@ const NOTES: NotesHome = {
   notes: [
     note("n1", "Spring promo plan", "note", 0.5),
     note("n2", "Call back the Brandt job", "task", 2),
+    note("n3", "Crew schedule for November", "note", 4),
   ],
   me: "owner@acme.example",
   workspace: CLIENT.id,
@@ -317,6 +319,28 @@ const NOTES: NotesHome = {
   canManage: true,
   train: false,
 };
+
+/**
+ * Notes that remember their stars, as the server does: Star writes, and the next read of the list
+ * shows it. `reset` puts the first note back, for a story's start.
+ */
+export function starring() {
+  const on = new Set(["n1"]);
+  return {
+    reset: () => {
+      on.clear();
+      on.add("n1");
+    },
+    answers: serve<NotesApi>("notes", {
+      home: () => ({ ...NOTES, notes: NOTES.notes.map((n) => ({ ...n, starred: on.has(n.id) })) }),
+      star: (b) => {
+        if (b.on === false) on.delete(String(b.id));
+        else on.add(String(b.id));
+        return { starred: b.on !== false };
+      },
+    }),
+  };
+}
 
 /** The week of the stories' clock: two booked calls, open hours each weekday. */
 const day = (d: number, h: number) =>

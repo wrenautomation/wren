@@ -15,7 +15,12 @@ import {
   type RecordActs,
   RecordPanel,
   type RecordsApi,
+  Rows,
+  RowsFoot,
+  type RowsLine,
+  statsOf,
   tipProps,
+  useNarrow,
   usePageKeys,
   useTypes,
 } from "@wren/ui";
@@ -301,7 +306,7 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
       ) : view === "month" ? (
         <Month days={days} anchor={anchor} calls={calls} now={now} pick={pick} go={go} />
       ) : view === "list" ? (
-        <Agenda days={days} calls={calls} now={now} pick={pick} />
+        <Agenda days={days} calls={calls} now={now} pick={pick} openId={openId} />
       ) : (
         <Grid days={days} calls={calls} open={open} now={now} pick={pick} openId={openId} />
       )}
@@ -629,56 +634,83 @@ function Agenda({
   calls,
   now,
   pick,
+  openId,
 }: {
   days: Date[];
   calls: Call[];
   now: Date;
   pick: (id: number) => void;
+  openId: string | null;
 }) {
-  const withCalls = days
-    .map((d) => ({ d, mine: calls.filter((c) => dayKey(c.start) === dayKey(d)) }))
-    .filter((x) => x.mine.length);
-  if (!withCalls.length)
-    return <p className="text-[14px] text-(--ui-ink-2)">No calls in these 30 days.</p>;
-  return (
-    <div className="grid gap-5">
-      {withCalls.map(({ d, mine }) => (
-        <section key={dayKey(d)} className="grid gap-1">
-          <h2
-            className={`m-0 text-[13px] font-semibold ${
-              dayKey(d) === dayKey(now) ? "text-(--ui-active)" : "text-(--ui-ink-2)"
-            }`}
-          >
+  const narrow = useNarrow();
+  // One band per day with calls, then its calls in time order; the rows' index runs through all.
+  const lines = useMemo<RowsLine<Call>[]>(() => {
+    const out: RowsLine<Call>[] = [];
+    let index = 0;
+    for (const d of days) {
+      const mine = calls.filter((c) => dayKey(c.start) === dayKey(d));
+      if (!mine.length) continue;
+      out.push({
+        kind: "tier",
+        key: `day:${dayKey(d)}`,
+        head: (
+          <span className={dayKey(d) === dayKey(now) ? "text-(--ui-active)" : undefined}>
             {fmt(d, { weekday: "long", month: "long", day: "numeric" })}
-          </h2>
-          {mine.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => pick(c.id)}
-              className="grid grid-cols-[9rem_1fr_auto] items-baseline gap-3 border-0 border-b border-(--ui-hair) bg-transparent px-1 py-2 text-left text-[14px] hover:bg-(--ui-hover) max-sm:grid-cols-[1fr_auto]"
-            >
-              <span className="text-(--ui-ink-2) max-sm:hidden">{span(c)}</span>
-              <span
-                className={`flex min-w-0 items-baseline gap-2 ${
-                  c.state === "cancelled" ? "text-(--ui-ink-3) line-through" : "text-(--ui-ink)"
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className={`size-2.5 shrink-0 self-center rounded-[var(--ui-radius)] ${tone(c, now)}`}
-                />
-                <span className="min-w-0">
-                  <span className="sm:hidden text-(--ui-ink-2)">{clock(c.start)} </span>
-                  {c.name}
-                  {c.offer ? <span className="text-(--ui-ink-3)"> · {c.offer}</span> : null}
-                </span>
-              </span>
-              <span className="text-[12px] text-(--ui-ink-3)">{said(c, now)}</span>
-            </button>
-          ))}
-        </section>
-      ))}
+          </span>
+        ),
+      });
+      for (const c of mine) out.push({ kind: "row", key: String(c.id), index: index++, row: c });
+    }
+    return out;
+  }, [days, calls, now]);
+  const count = lines.filter((l) => l.kind === "row").length;
+  if (!count) return <p className="text-[14px] text-(--ui-ink-2)">No calls in these 30 days.</p>;
+  return (
+    <div className="overflow-x-auto border border-(--ui-hair) bg-(--ui-paper) [border-radius:var(--ui-leaf-panel)]">
+      <Rows<Call>
+        label="calls"
+        noun="call"
+        narrow={narrow}
+        scroller="window"
+        lines={lines}
+        open={{ id: openId, onOpen: (c) => pick(c.id) }}
+        foot={<RowsFoot stats={statsOf(Array.from({ length: count }, () => null))} waits={false} />}
+        name={{
+          label: "Call",
+          icon: "phone",
+          min: 220,
+          title: (c) => c.name,
+          weight: (c) =>
+            c.state === "cancelled"
+              ? "font-normal text-(--ui-ink-3) line-through"
+              : "font-[650] text-(--ui-ink)",
+          mark: (c) => (
+            <span
+              aria-hidden
+              className={`size-2.5 flex-none rounded-[var(--ui-radius)] ${tone(c, now)}`}
+            />
+          ),
+        }}
+        columns={[
+          {
+            key: "time",
+            label: "Time",
+            icon: "clock",
+            width: 190,
+            phone: true,
+            cell: (c) => (narrow ? clock(c.start) : span(c)),
+          },
+          { key: "offer", label: "Offer", icon: "tag", width: 180, cell: (c) => c.offer ?? "" },
+          {
+            key: "status",
+            label: "Status",
+            icon: "check",
+            width: 170,
+            quiet: true,
+            cell: (c) => said(c, now),
+          },
+        ]}
+      />
     </div>
   );
 }
