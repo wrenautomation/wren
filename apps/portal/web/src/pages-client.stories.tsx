@@ -29,7 +29,7 @@ export const Notes = pageAt("/notes");
 export const Calendar = pageAt("/calendar");
 
 /** The agenda as `Rows`: a band per day, a call a row, and a press opens it beside the list. */
-export const CalendarAgenda = pageAt("/calendar?v=list&d=2026-10-12", {
+export const CalendarAgenda = pageAt("/calendar/schedule?v=list&d=2026-10-12", {
   check: async (page) => {
     await expect(await within(page).findByText("Tuesday, October 13")).toBeVisible();
     await expect(within(page).getByText("Thursday, October 15")).toBeVisible();

@@ -20,8 +20,9 @@ const accountAt = (at: string, check?: (page: HTMLElement) => void | Promise<voi
 
 /** The row holding `text`: a table row, or a phone's list item. */
 const rowOf = async (page: HTMLElement, text: string | RegExp) => {
-  const cell = await within(page).findByText(text);
-  const row = cell.closest<HTMLElement>("tr, li");
+  // The first match in a row: a delivery log under a list names its hook again.
+  const cells = await within(page).findAllByText(text);
+  const row = cells.map((c) => c.closest<HTMLElement>("tr, li")).find(Boolean);
   if (!row) throw new Error(`"${text}" is not in a row`);
   return within(row);
 };
@@ -48,7 +49,7 @@ async function fromMenu(row: ReturnType<typeof within>, title: string | RegExp, 
 
 /** Webhooks: a row each with its state and what it hears; a failed test or off hook says why under it. */
 export const Webhooks = accountAt("/account/webhooks", async (page) => {
-  await expect(await within(page).findByText("Zapier: new reply")).toBeVisible();
+  await expect((await within(page).findAllByText("Zapier: new reply"))[0]).toBeVisible();
   await expect(await within(page).findByText(/Failing since/)).toBeVisible();
   await expect(await within(page).findByText(/Turned off/, { selector: "p" })).toBeVisible();
 });
@@ -75,7 +76,7 @@ export const WebhookRemove = accountAt("/account/webhooks", async (page) => {
 
 /** Two quick presses on two rows send one test: one write at a time. */
 export const WebhookTwoRows = accountAt("/account/webhooks", async (page) => {
-  await within(page).findByText("Sheet of bookings");
+  await within(page).findAllByText("Sheet of bookings");
   const [a, b] = within(page).getAllByRole("button", { name: "Send test" });
   if (!a || !b) throw new Error("two rows have Send test");
   fireEvent.click(a);

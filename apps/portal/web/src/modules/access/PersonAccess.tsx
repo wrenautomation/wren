@@ -214,9 +214,9 @@ export function PersonAccess({
     <div className="grid gap-4 text-[14px]">
       <section className="grid gap-1">
         <div className={SPLIT}>
-          <h4 className="text-[13px] font-medium text-(--ui-ink-2)">
+          <h2 className="m-0 text-[13px] font-medium text-(--ui-ink-2)">
             Role: {String(theirs?.name ?? role)}
-          </h4>
+          </h2>
           {/* View as is Wren's team's: the picker opens on this person. */}
           {me.data?.operator && !viewing ? (
             <Button
@@ -235,7 +235,7 @@ export function PersonAccess({
         )}
       </section>
       <section className="grid gap-2">
-        <h4 className="text-[13px] font-medium text-(--ui-ink-2)">Extra grants</h4>
+        <h2 className="m-0 text-[13px] font-medium text-(--ui-ink-2)">Extra grants</h2>
         {live.length ? (
           <PageRows<Grant>
             label="Extra grants"

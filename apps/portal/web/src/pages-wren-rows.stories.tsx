@@ -23,7 +23,7 @@ import {
   MADE_FLOWS,
   rowsOf,
 } from "./mocks/data/wren-rows.js";
-import { pageAt, todayOf } from "./mocks/page.js";
+import { pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Wren rows" };
 export default meta;
@@ -66,7 +66,8 @@ export const HealthAtRisk = pageAt("/", {
     "console.flag": { rows: FLAG_ROWS },
   }),
   check: async (page) => {
-    const view = within(await todayOf(page));
+    // Client health sits on Wren's home, under the map.
+    const view = within(page);
     const rows = await view.findByLabelText("Client health");
     // The sheet slides in: wait for it to settle before the visible checks.
     await waitFor(async () => {

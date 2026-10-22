@@ -70,7 +70,10 @@ export const Share: StoryObj = {
     await expect(list.getByText("Owner")).toBeVisible();
     const role = list.getByRole("combobox", { name: "sam@acme.example's role" });
     await userEvent.selectOptions(role, "view");
-    await waitFor(() => expect(role).toHaveValue("view"));
+    // The row draws again from the server's answer: read the select afresh.
+    await waitFor(() =>
+      expect(list.getByRole("combobox", { name: "sam@acme.example's role" })).toHaveValue("view"),
+    );
     // Two removes fast: both rows go and neither press is lost.
     await userEvent.selectOptions(
       list.getByRole("combobox", { name: "sam@acme.example's role" }),
