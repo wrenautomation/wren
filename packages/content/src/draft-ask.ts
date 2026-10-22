@@ -514,8 +514,9 @@ export async function writeDraft(
  */
 export async function undoDraft(db: Queryable, item: string, by: string) {
   const { record, id } = itemOf(item);
+  // A clear (a DM canceled) wrote null over words: undo puts the words back too.
   const last = (await draftTurns(db, record, id)).findLast(
-    (t) => t.state === "done" && t.draft !== null,
+    (t) => t.state === "done" && (t.draft !== null || t.before !== null),
   );
   if (!last) throw new Error("nothing to undo");
   return writeDraft(db, item, last.before, {

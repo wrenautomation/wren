@@ -2889,7 +2889,8 @@ export function RecordBody({
             under it (a sheet with five actions). */}
         <div className="flex flex-wrap items-start justify-between gap-3 max-sm:flex-col">
           <div className="min-w-0 sm:flex-[1_1_16rem]">
-            <h2 className={PAGE_TITLE}>{titleOf(meta, row)}</h2>
+            {/* A title with no spaces (a profile link) breaks, not runs under the actions. */}
+            <h2 className={`${PAGE_TITLE} wrap-anywhere`}>{titleOf(meta, row)}</h2>
             {sub ? (
               <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)" {...clipProps()}>
                 {subCue ? (

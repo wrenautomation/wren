@@ -362,6 +362,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/dmReply": (id, { body }) =>
     handlerCall("ReachDesk", "reply", { contactId: num(id), ...words(body) }, { confirm: "reply" }),
   "marketing/dmRead": (id) => handlerCall("ReachDesk", "markRead", { contactId: num(id) }),
+  // An empty draft is a no (`writeDraft`): the drafter waits for their next word.
+  "marketing/dmCancel": (id) => handlerCall("DraftAsk", "set", { record: "dm", id, text: "" }),
   // An untouched draft isn't sent: the desk answers with the draft it holds.
   "marketing/commentAnswer": (id, { body }) =>
     handlerCall(

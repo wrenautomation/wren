@@ -326,6 +326,19 @@ export const DM_ACTIONS: Action[] = [
   },
 ];
 
+/** A DM of ours not sent yet, dropped: it waits until they write again; Undo puts it back. */
+export const DM_CANCEL: Action = {
+  id: "marketing.dmCancel",
+  label: "Cancel",
+  handler: "marketing/dmCancel",
+  undo: "marketing/dmUndo",
+  bulk: true,
+  key: "x",
+  when: { turn: ["draft"] },
+  optimistic: "Canceled",
+  done: said("Canceled. A new draft comes only if they write."),
+};
+
 /**
  * A comment's whole thread (thread-context.tsx): a reply to any comment in it, and reading it
  * on the site again. Run from inside the view only.
@@ -1705,8 +1718,11 @@ export const MARKETING_PAGES = {
       all: "Comments on our posts and under our comments show here.",
     },
     actions: [...COMMENT_ACTIONS, ...COMMENT_ASK, ...THREAD_VIEW_ACTIONS],
+    // A click opens the whole comment beside the list: their words, then our answer to edit.
+    peek: false,
+    // An answered comment shows our answer as sent ("Our answer"), not an empty box.
     extras: withDraft(
-      COMMENT_DRAFT,
+      (row) => (row.state === "answered" ? null : COMMENT_DRAFT),
       withThread(() => ({})),
     ),
   },

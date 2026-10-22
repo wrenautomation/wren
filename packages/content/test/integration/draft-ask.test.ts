@@ -478,5 +478,11 @@ describe("DM drafts", () => {
     expect(detail.ask).toHaveLength(1);
     await desk().undo({ record: "dm", id: String(jo.id) });
     expect((await readDraft(pg.db, `dm:${jo.id}`)).draft).toBe("A sheet, mostly.");
+
+    // Cancel empties the DM; Undo puts its words back.
+    await desk().set({ record: "dm", id: String(jo.id), text: "" });
+    expect((await readDraft(pg.db, `dm:${jo.id}`)).draft).toBeNull();
+    await desk().undo({ record: "dm", id: String(jo.id) });
+    expect((await readDraft(pg.db, `dm:${jo.id}`)).draft).toBe("A sheet, mostly.");
   });
 });

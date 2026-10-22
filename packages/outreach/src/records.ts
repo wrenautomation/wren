@@ -216,6 +216,7 @@ export const dmRecord = defineRecord({
   actions: [
     "marketing.dmReply",
     "marketing.dmRead",
+    "marketing.dmCancel",
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",

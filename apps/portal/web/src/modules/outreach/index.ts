@@ -17,6 +17,7 @@ import {
   ACCOUNT_ACTIONS,
   CONNECT_ACTIONS,
   DM_ACTIONS,
+  DM_CANCEL,
   DM_DRAFT,
   ENGAGE_ACTIONS,
   ENGAGE_DRAFT,
@@ -130,6 +131,7 @@ export const engage: Module = {
       },
       actions: [
         ...DM_ACTIONS,
+        DM_CANCEL,
         ...draftActions("dm", { state: ["new", "enrolled", "connected", "replied", "finished"] }),
       ],
       extras: withDraft(DM_DRAFT, dmExtras),
