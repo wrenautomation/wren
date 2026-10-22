@@ -12,7 +12,7 @@ A green push to main is a deploy: migrate, publish a Lambda version, register it
 
 ## Input → Movement → Output
 
-The `ci` workflow's lint, unit and schema gates passing on `main`. `deploy` starts the bundles, the box services (SSM) and a not-live version upload of each Cloudflare Worker at once. It runs `pnpm db:migrate`, publishes a new function version, registers it with Restate, then sends each Worker's uploaded version all traffic (`wrangler versions deploy`). Helpers: `deploy/scripts/ci-steps.sh`. Output: the new services live, loops resume where their journals left them.
+The `ci` workflow's lint, unit and schema gates passing on `main`. `deploy` starts the bundles, the box services (SSM) and a not-live version upload of each Cloudflare Worker at once. It runs `pnpm db:migrate`, publishes a new function version, registers it with Restate, then sends each Worker's uploaded version all traffic (`wrangler versions deploy`). Script: `deploy/scripts/deploy.sh`. Output: the new services live, loops resume where their journals left them.
 
 ## Why this shape
 

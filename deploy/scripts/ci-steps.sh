@@ -1,24 +1,26 @@
-# Helpers for .github/workflows/deploy.yml, sourced by its steps. Background work outlives
-# its step (the runner reaps it at job end), so a later step can wait on it by name.
+# Helpers for deploy/scripts/deploy.sh. One shell: the runner ends a step's background work
+# with the step (10-22: work started in one step never finished in the next).
 #   bg <name> <cmd...>     run in the background; log and exit code in $RUNNER_TEMP/bg
-#   await <name...>        wait for each, print its log, fail if any failed
+#   await <name...>        wait for each (10 min cap), print its log, fail if any failed or ran out
 #   ssm_run <comment> <file.json>   run a command doc on the box, print its output, fail unless Success
 #   box_script <name> <script> [args...]   install deploy/scripts/<script> on the box as wren-box-<name> and run it
 D="$RUNNER_TEMP/bg"
 mkdir -p "$D"
 
+# Every helper keeps its names local: a task runs inside bg's subshell and would rename its files.
 bg() {
-  n=$1; shift
+  local n=$1; shift
   # set +e: the step shell's -e would end the subshell before it writes the exit code.
   # Its own stdio off the step's pipes, or the runner waits for it before the step ends.
   ( set +e; "$@" > "$D/$n.log" 2>&1; echo $? > "$D/$n.rc" ) > /dev/null 2>&1 < /dev/null &
 }
 
 await() {
-  failed=
+  local n t rc failed=
   for n in "$@"; do
-    while [ ! -s "$D/$n.rc" ]; do sleep 1; done
-    rc=$(cat "$D/$n.rc")
+    t=0
+    while [ ! -s "$D/$n.rc" ] && [ $t -lt 600 ]; do sleep 1; t=$((t + 1)); done
+    rc=$(cat "$D/$n.rc" 2>/dev/null || echo "none after ${t}s")
     echo "::group::$n (exit $rc)"; cat "$D/$n.log"; echo "::endgroup::"
     [ "$rc" = 0 ] || failed="$failed $n"
   done
@@ -27,6 +29,7 @@ await() {
 
 # Polls each second: `aws ssm wait` polls every 5.
 ssm_run() {
+  local id out
   id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
     --comment "$1 $GITHUB_SHA" --parameters "file://$2" --query Command.CommandId --output text)"
   while :; do
@@ -39,7 +42,7 @@ ssm_run() {
 }
 
 box_script() {
-  n=$1 s=$2; shift 2
+  local n=$1 s=$2 b; shift 2
   b="$(base64 -w0 "deploy/scripts/$s")"
   jq -n --arg s "$b" --arg n "$n" --arg a "$*" '{commands: [
     "echo \($s) | base64 -d > /usr/local/bin/wren-box-\($n)",
@@ -53,7 +56,7 @@ box_script() {
 # A version with a new Durable Object migration cannot upload: cf_flip runs a full deploy for it.
 #   cf_upload <app> [secrets.json]    cf_flip <app> [secrets.json]
 cf_upload() {
-  app=$1 sec=${2:-}
+  local app=$1 sec=${2:-}
   cd "apps/$app" || return 1
   if [ -n "$(jq -r '.scripts.build // empty' package.json)" ]; then pnpm run build || return 1; fi
   # The version id from wrangler's own record of the upload (WRANGLER_OUTPUT_FILE_PATH, one JSON per line).
@@ -71,7 +74,8 @@ cf_upload() {
 }
 
 cf_flip() {
-  app=$1 sec=${2:-} vid=$(cat "$D/$1.vid")
+  local app=$1 sec=${2:-} vid
+  vid=$(cat "$D/$1.vid")
   cd "apps/$app" || return 1
   if [ "$vid" = full ]; then
     npx wrangler deploy ${sec:+--secrets-file "$sec"}
