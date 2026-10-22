@@ -43,7 +43,12 @@ export function lookProblems(root: Element = document.body): string[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     const el = n.parentElement;
-    if (!el || !n.textContent?.trim() || !shown(el) || el.closest("[data-look-over],[aria-hidden=true],script,style,svg"))
+    if (
+      !el ||
+      !n.textContent?.trim() ||
+      !shown(el) ||
+      el.closest("[data-look-over],[aria-hidden=true],script,style,svg")
+    )
       continue;
     const range = document.createRange();
     range.selectNodeContents(n);
@@ -119,7 +124,12 @@ export function lookProblems(root: Element = document.body): string[] {
     if (own && s.overflowX === "visible" && s.whiteSpace.startsWith("nowrap"))
       out.push(`text past its box: ${name(el)} runs ${spill}px over`);
     // A cut line with no "…": the reader can't tell words are missing.
-    else if (own && s.overflowX !== "visible" && s.textOverflow !== "ellipsis" && s.whiteSpace.startsWith("nowrap"))
+    else if (
+      own &&
+      s.overflowX !== "visible" &&
+      s.textOverflow !== "ellipsis" &&
+      s.whiteSpace.startsWith("nowrap")
+    )
       out.push(`text cut without "…": ${name(el)} loses ${spill}px`);
     // A pane that scrolls down and sideways: a page or pane scrolls down only, unless it says it
     // may. A strip of tabs or a code block scrolls sideways alone, on purpose.

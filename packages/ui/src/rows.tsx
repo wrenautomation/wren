@@ -872,7 +872,12 @@ export function Rows<T>(p: RowsProps<T>) {
                         className="flex-1"
                       />
                       {r.isOpen ? null : name.href ? (
-                        <a href={name.href(l.row)} tabIndex={-1} className={OPEN_CHIP} data-look-over>
+                        <a
+                          href={name.href(l.row)}
+                          tabIndex={-1}
+                          className={OPEN_CHIP}
+                          data-look-over
+                        >
                           <Icon name="expand" size={12} />
                           Open
                         </a>

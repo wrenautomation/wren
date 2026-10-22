@@ -13,7 +13,8 @@ export function DevBanner() {
       data-look-over
       className="pointer-events-none fixed right-3 bottom-3 z-[1000] rounded-full border border-(--ui-hair) bg-(--ui-paper) px-3 py-1 text-[12px] text-(--ui-ink-2) shadow-(--ui-shadow)"
     >
-      dev · prod data · {WREN_DEV.writes ? <b className="text-(--ui-bad)">writes on</b> : "writes off"}
+      dev · prod data ·{" "}
+      {WREN_DEV.writes ? <b className="text-(--ui-bad)">writes on</b> : "writes off"}
     </div>
   );
 }

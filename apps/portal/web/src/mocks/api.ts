@@ -112,8 +112,18 @@ export function answerOf(
  */
 const MESSY_TAIL = " and a much longer real world line, as prod data has: Ünïcödé, 長い件名, 📬";
 const OURS = new Set([
-  "label", "description", "hint", "noun", "plural", "placeholder", "help", "empty",
-  "states", "views", "fields", "columns",
+  "label",
+  "description",
+  "hint",
+  "noun",
+  "plural",
+  "placeholder",
+  "help",
+  "empty",
+  "states",
+  "views",
+  "fields",
+  "columns",
 ]);
 let messy = false;
 export const setMessy = (on: boolean) => {
@@ -123,9 +133,7 @@ export function stretch(v: unknown): unknown {
   if (typeof v === "string") return v.includes(" ") && v.length < 400 ? v + MESSY_TAIL : v;
   if (Array.isArray(v)) return v.map(stretch);
   if (v && typeof v === "object")
-    return Object.fromEntries(
-      Object.entries(v).map(([k, x]) => [k, OURS.has(k) ? x : stretch(x)]),
-    );
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, OURS.has(k) ? x : stretch(x)]));
   return v;
 }
 
