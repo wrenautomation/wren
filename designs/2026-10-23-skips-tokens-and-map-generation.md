@@ -46,7 +46,7 @@ Recommendation: do not build tokens now. Build them with the first split station
 
 The runtime allows every forward skip. So the map does not ask the designer to draw them. It shows the skips people made.
 
-- Data: each `moved` event with a non-empty `skipped` is one skip from `from` to `to`. A new view `pipeline.skip_flow`: per version, `from`, `to`, window: count and share of the people who left `from`. It reads the same arrivals as `node_counts`; put it beside that view in `views.ts`.
+- Data: built as `pipeline.move_flow` (beside `node_counts` in `views.ts`). One row per version, `from_node`, `to_node`, day: `moves`, `skips`, `loops`. Each arrival is one move; a drop is a move to `dropped`. A skip from A to C over B is one move, never two edge crossings. The skip rows in `numbers.ts` read it; the share's base is `left` of `from` in `node_counts`.
 - The dashed ring needs no new view: `node_counts` has `skipped` and `arrived`. Its share is skipped / (arrived + skipped), so people who dropped before the station do not count.
 - Draw rule:
   - Share 5% or more and 3 people or more: an **express arc**. A thin arc over the stations it passes, in the line colour, with the count. This is the arc in William's sketch.
@@ -55,11 +55,13 @@ The runtime allows every forward skip. So the map does not ask the designer to d
 - A designer can still draw an arc on purpose, as a planned express (dotted, like a planned track). It lowers to nothing: the runtime already allows the move.
 - Engine: a new `ViewTrack` kind `express` `{ from, to, count }`. Layout keeps room above the line for arcs. The lab score counts an arc that cuts a name as an overlap.
 
-Thresholds are open decision 2. With few people a share swings: 1 of 2 is 50%. So the arc rule tests the share's low bound (Wilson, 90%), not the raw share. Below that, the count on the station is the only mark. At today's volume no arc shows for a while.
+Thresholds are open decision 2. With few people a share swings: 1 of 2 is 50%. So the arc rule and the ring rule test the share's low bound (Wilson, one-sided 90%), not the raw share. Below that, the count on the station is the only mark. At today's volume no arc shows for a while.
+
+Built 10-23: number rows of kind `skip` carry `mark: "express"` when the arc rule holds; node and station rows carry `mark: "optional"` for the ring. The drawing (the `express` track kind) is not built yet.
 
 ## Map placement
 
-`2026-10-23-metro-layout-lab.md` holds this. Placers today: `current`, `elk-bk`, `elk-ns`. Still to do: `dagre`, `dot` (bead wa-g4p). Then pick one path by score and by eye. Add the express arcs to the cases before the pick.
+`2026-10-23-metro-layout-lab.md` holds this. Placers today: `current`, `elk-bk`, `elk-ns`, `elk-lp` (ELK order, LP y). Still to do: `dagre`, `dot` (bead wa-g4p). Then pick one path by score and by eye. Add the express arcs to the cases before the pick.
 
 ## Map generation
 
@@ -110,23 +112,30 @@ Less useful here:
 - Automata learning (L*, RPNI): process mining does the same job better on noisy logs.
 - Sequence mining (PrefixSpan): useful only to list the top paths.
 
-Order:
+Order (decided 10-23):
 
-1. Skip arcs and rings in SQL (no algorithm).
-2. Discovery on a client's CRM export, for onboarding. It has data now.
-3. Markov values for each node, with the shape as the prior.
-4. Conformance, when shapes have branches.
-5. Soundness, only when tokens are built.
+1. Skip arcs and rings in SQL (no algorithm). Built.
+2. Markov values for each node, with the shape as the prior. Built.
+3. Discovery on a client's CRM export, at the edge (PM4Py), with the first export.
+4. Later: tokens, soundness, conformance, minimization.
 
-Open decision 4 holds this order.
+## The trail chain (built 10-23)
+
+Pure TypeScript in `packages/pipeline`. Nothing in it reads the database; `numbers.ts` reads `move_flow` and hands the moves in.
+
+- `chain.ts`: the ADT. `chainOf(body, moves, { prior, goal })` gives a `Chain`: the states (nodes that hold journeys), the goal set, and each node's exits. An exit has `seen` (moves people made), `skips` and `prior` (add-k: 1 per drawn edge, 1 for a drop). The goal is the plan nodes, else the offer nodes, else the ends. `dropped` and the goal end the chain. A loop edge is a move like any other, so the case is the person's chain of journeys, not one journey. Moves of nodes the newest body lacks are left out.
+- `chain-methods.ts`: the algorithms, each behind an interface with a registry and a default id. A better method takes a slot with no change to the callers.
+  - `NodeValuer` (`values(chain) → Map<node, { reach, steps }>`). Default `markov`: the absorbing chain, solved with LU (`ml-matrix`), never a full inverse. `reach` is the chance to reach the goal. `steps` is the expected moves to the goal of the people who reach it: (N·B)/B. A node with no path to an end gets reach 0 and steps null.
+  - `SkipRule` (`arc`, `ring`). Default `wilson`; `share` (the raw share) stays as the other.
+  - `valuerOf(id)` and `skipRuleOf(id)` throw on an unknown id and list the known ones. `NumbersFilter` takes `valuer` and `skipRule` ids.
+- Out: node and station rows get `reach`, `steps` and `mark`; skip rows get `crossings` and `mark`. The CLI (`wren pipeline numbers`) prints them.
+- Not yet: steps weighted by dwell time (days), and the drawing.
 
 ## Open decisions
 
 1. Tokens: wait for the first split a client needs (recommended), or build now.
 2. Skip thresholds: arc at 5% and 3 people, dashed ring at 30%.
 3. Planned express arcs: allow (recommended, they lower to nothing) or leave them out.
-4. Build order of the trail methods: skip SQL, CRM discovery, Markov with a prior, conformance, soundness (recommended), or the first order (conformance first).
-5. Arc rule: Wilson low bound (recommended) or the raw share.
 
 ## Decision log
 
@@ -134,3 +143,5 @@ Open decision 4 holds this order.
 - 2026-10-23: skips need no runtime change; the map draws them from trails.
 - 2026-10-23: trail algorithms added (process mining, absorbing Markov chains, soundness, minimization), in that build order. William.
 - 2026-10-23: review. Facts added (node_counts, loop chains, data volume). Proposed: case = loop chain, Wilson bound, shape prior, CRM discovery first, split station as the token row's node. Decisions 4 and 5 wait on William.
+- 2026-10-23: decision 4: skip SQL, Markov with the prior, then CRM discovery at the edge; tokens, soundness, conformance and minimization later. Decision 5: the Wilson bound, for the arc and the ring. William.
+- 2026-10-23: built the move view, the chain ADT and the methods behind interfaces (47f15cd9). `skip_flow` became `move_flow`: one view holds every move, so the chain and the skip rows read one source.

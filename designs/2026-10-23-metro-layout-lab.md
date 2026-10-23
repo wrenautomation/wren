@@ -28,6 +28,7 @@ Placers:
 | `current` | today's `layoutMetro`, whole |
 | `elk-bk` | ELK layered, Brandes-Köpf placement (straight lines), zones as partitions |
 | `elk-ns` | ELK layered, network simplex placement |
+| `elk-lp` | ELK's order, then an LP for y (HiGHS, `lab/lp.ts`) |
 | `dagre` | `@dagrejs/dagre` |
 | `dot` | Graphviz dot through `@hpcc-js/wasm-graphviz` |
 
@@ -54,3 +55,23 @@ Storybook story `Metro/Lab` (:61000): pick a case; the hand scene first, then on
 
 - The pick replaces `layoutMetro`. ELK is async: `MetroMap` then lays out in a worker and caches per view shape.
 - If no engine comes close: an octilinear solve (Nöllenburg-Wolff on HiGHS), cached per shape.
+- Prod path (approved 10-23): ELK for the order, the LP for the geometry, the result cached per shape hash and made in a Restate handler, so no page solves an LP.
+
+## The LP placer (built 10-23)
+
+A placer is `Placer = (view) => Promise<Map<id, Point>>` (`engines.ts`); any one gives x and any other y.
+
+`elk-lp`: ELK BK gives the order. `evenX` gives each station an even x slot. In each slot, stations keep ELK's top-to-bottom order with a hard gap: half of each height plus 24 px. The objective is the sum of |Δy| along the tracks (L1, two rows per track), plus 0.001·y to keep the map tight. A track over more than one slot gets a point of no height in each slot it passes, on the straight line between its ends, so it keeps a place between the stations.
+
+HiGHS (`highs` 1.15.3, Wasm, a dev dependency of `@wren/ui`) solves it. In Node it finds its Wasm itself; in the browser the loader takes the URL from Vite (`highs/runtime?url`). The `Metro/Lab` Industry story waits for every engine, so a load failure fails the story test.
+
+Board, 10-23, all cases (likeness, clashes, crossings):
+
+| Mix | Like | Clash | Cross |
+|---|---|---|---|
+| x ELK · y today | 0.867 | 20 | 32 |
+| x ELK · y ELK + LP | 0.837 | 10 | 7 |
+| x ELK · y ELK NS | 0.795 | 12 | 1 |
+| x ELK · y ELK BK | 0.783 | 9 | 0 |
+
+The LP is the best ELK y by likeness, at near the clashes of BK. Its last crossings come from the pass-through points: they sit on a straight line, not on ELK's bend. Next: read ELK's bend points for them. William picks by eye in the lab.

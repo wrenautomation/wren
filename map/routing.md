@@ -70,7 +70,8 @@ The shape, journeys, offer and terms versions, deals, numbers. Designs: `designs
 | an offer's published shapes | [[platform/offer]] | `store.ts` (`syncOffers`) | `wren offers` |
 | a plan's terms by date; the dated lines of a deal | [[platform/terms]] | `store.ts` (`addTerms`), `schedule.ts` | `wren terms`, `wren deals schedule` |
 | a pipeline deal | [[platform/journey]] | `records.ts`, `moves.ts` (`signDeal`) | `wren deals` |
-| counts per node, edge, source and offer | [[platform/journey]] | `views.ts`, `numbers.ts` | `wren numbers` |
+| counts per node, edge, skip, source and offer | [[platform/journey]] | `views.ts`, `numbers.ts` | `wren numbers` |
+| a node's chance to reach the goal and its moves there; the skip and ring rules (swappable) | [[platform/journey]] | `chain.ts`, `chain-methods.ts` | `wren numbers` |
 
 ## The one rule
 
