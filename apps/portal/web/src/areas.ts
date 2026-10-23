@@ -1,7 +1,9 @@
 /**
- * The sidebar is five fixed items: the Map, then Inbox, People, Money and Admin (SIDEBAR). Every
- * other app opens from the Map, Admin > Systems, a pin or the command menu. The areas below group
- * apps by the job they do, for the pages that still list them (Today and the phone's Apps tab).
+ * The sidebar leads with five fixed items: the Map, then Inbox, People, Money and Admin (SIDEBAR).
+ * In a client's workspace that is all; every other app opens from the Map, Admin > Systems, a pin
+ * or the command menu. Wren's team also gets every other app under its area below them
+ * (`sidebarAreasOf`; designs/2026-10-23-focus-view.md, F3). The areas group apps by the job they
+ * do, for the sidebar, Today and the phone's Apps tab.
  * An id a workspace lacks is skipped, an area left empty isn't shown, and an app no area names
  * lands in Tools. A parked app (`Module.parked`) is in no area.
  */
@@ -121,6 +123,19 @@ export function sidebarOf<T extends { id: string; parked?: true | undefined }>(
     const app = apps.find((m) => !m.parked && m.id === id);
     return app ? [{ label, app }] : [];
   });
+}
+
+/**
+ * Wren's team's areas under the fixed items: every area of `areasOf`, less the apps a fixed item
+ * shows already. Marketing stays open; Tools stays shut.
+ */
+export function sidebarAreasOf<T extends { id: string; parked?: true | undefined }>(
+  apps: readonly T[],
+): { area: Area; apps: T[] }[] {
+  const fixed = new Set(sidebarOf(apps).map((i) => i.app.id));
+  return areasOf(apps, true)
+    .map(({ area, apps: shown }) => ({ area, apps: shown.filter((m) => !fixed.has(m.id)) }))
+    .filter((a) => a.apps.length);
 }
 
 /** One of a phone's bottom tabs after the Map: a fixed item's app, or a pin. */

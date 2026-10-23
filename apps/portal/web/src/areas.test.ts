@@ -8,6 +8,7 @@ import {
   pageIcon,
   phoneTabsOf,
   SIDEBAR,
+  sidebarAreasOf,
   sidebarOf,
 } from "./areas.js";
 
@@ -81,6 +82,19 @@ describe("areas", () => {
         wren.map((m) => m.id),
         i.app,
       ).toContain(i.app);
+  });
+
+  it("lists Wren's other apps under their areas, less the fixed items", () => {
+    const apps = ["inbox", "people", "money", "settings", "pipelines", "content", "calendar"].map(
+      (id) => ({ id }),
+    );
+    expect(sidebarAreasOf(apps).map((a) => [a.area.id, a.apps.map((m) => m.id)])).toEqual([
+      ["primary", ["pipelines"]],
+      ["marketing", ["content"]],
+      ["tools", ["calendar"]],
+    ]);
+    // An area left with only fixed items is not shown.
+    expect(sidebarAreasOf([{ id: "people" }, { id: "inbox" }])).toEqual([]);
   });
 
   it("gives Wren's team all four items, in order, and skips an app a workspace lacks", () => {

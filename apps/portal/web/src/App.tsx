@@ -45,7 +45,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
 import { AppsProvider } from "./apps-context.js";
-import { dockOf, phoneTabsOf, sidebarOf } from "./areas.js";
+import { dockOf, phoneTabsOf, sidebarAreasOf, sidebarOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
@@ -505,6 +505,9 @@ export function App() {
       })),
   });
   const fixed = sidebarOf(cards);
+  // Wren's own workspace lists every other app under its area too; a client's keeps the five.
+  const more = wren ? sidebarAreasOf(cards) : [];
+  const listed = new Set([...fixed.map((f) => f.app.id), ...more.flatMap((a) => a.apps.map((m) => m.id))]);
   const areas: NavArea[] | undefined = launcher
     ? [
         {
@@ -512,11 +515,17 @@ export function App() {
           label: "",
           apps: [
             ...fixed.map(({ label, app }) => rowOf(app, label)),
-            ...(open && !open.module.menu && !fixed.some((f) => f.app.id === open.module.id)
+            ...(open && !open.module.menu && !listed.has(open.module.id)
               ? [rowOf(open.module)]
               : []),
           ],
         },
+        ...more.map(({ area, apps: shown }) => ({
+          id: area.id,
+          label: area.label,
+          ...(area.shut ? { shut: true } : {}),
+          apps: shown.map((m) => rowOf(m)),
+        })),
       ]
     : undefined;
 

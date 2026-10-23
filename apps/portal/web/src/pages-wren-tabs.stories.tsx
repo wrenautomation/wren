@@ -168,9 +168,10 @@ const links = (scope: ReturnType<typeof within>, name: string) =>
   scope.queryAllByRole("link", { name: named(name) }).length;
 
 /**
- * The sidebar at home: the Map, then Inbox, People, Money and Admin, and no other app. Parked and
- * unpinned apps keep their routes and their place in ⌘K, not in the sidebar. A phone has no
- * sidebar, so the look at phone width checks the bottom tabs in PhoneDock instead.
+ * The sidebar at home: the Map, then Inbox, People, Money and Admin, then every other app under its
+ * area, Marketing open (designs/2026-10-23-focus-view.md, F3). Parked apps keep their routes and
+ * their place in ⌘K, not in the sidebar. A phone has no sidebar, so the look at phone width checks
+ * the bottom tabs in PhoneDock instead.
  */
 export const SidebarItems = pageAt("/", {
   me: ADMIN,
@@ -180,7 +181,7 @@ export const SidebarItems = pageAt("/", {
     for (const name of ["Inbox", "People", "Money", "Admin"])
       expect(links(nav, name), `${name} is in the sidebar`).toBeGreaterThan(0);
     for (const name of ["Pipelines", "Content", "Engage", "Outbound", "Ads", "Analytics"])
-      expect(links(nav, name), `${name} opens from the Map, not the sidebar`).toBe(0);
+      expect(links(nav, name), `${name} is in the sidebar`).toBeGreaterThan(0);
     for (const name of ["Notes", "Learn", "Voice"])
       expect(links(nav, name), `${name} is parked`).toBe(0);
     await expect(within(page).getAllByRole("link", { name: named("Map") }).length).toBeGreaterThan(
