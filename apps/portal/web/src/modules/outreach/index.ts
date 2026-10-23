@@ -143,6 +143,9 @@ export const engage: Module = {
       about: "LinkedIn invites: to approve, sent, and accepted ones to message.",
       template: "list",
       record: "marketing.invite",
+      // Who and why first; the campaign, size, what it waits on and each date are a Display pick
+      // away (status and days say both). All fifteen ran past the page (William, 10-23).
+      columns: ["who", "headline", "company", "status", "why", "days"],
       empty: {
         proposed: "No invite waits on you. The sweep proposes the day's every 6 hours.",
         queued: "Nothing to send. Invites queue once you approve them.",

@@ -2,7 +2,7 @@ import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
 import type { Action } from "./action.js";
 import { totalSays, widthOf } from "./fields.js";
-import { actionKeys, fitOf, fitRoom, shownColumns, widthsOf } from "./records.js";
+import { actionKeys, fitColumns, fitOf, shownColumns, titleLeast, widthsOf } from "./records.js";
 
 const field = (key: string, kind: FieldMeta["kind"] = "text"): FieldMeta => ({
   key,
@@ -202,78 +202,99 @@ describe("widthsOf", () => {
     // A state's column fits the widest label it may show, so no state is ever cut.
     expect(w.status).toBeLessThanOrEqual(widthOf(status));
   });
-  it("lets a firm's long name share the spare room with a long reason", () => {
+  it("before the room is known: each column its words on one line, up to its max", () => {
     const firm = field("company", "company");
     const rows = [
       { id: 1, name: "Al", company: { name: "z".repeat(60), domain: null }, note: "x".repeat(80) },
     ];
     const w = widthsOf(meta, [name, firm, note], rows);
-    expect(w.name).toBeGreaterThan(0);
-    expect(w.company).toBeUndefined();
-    expect(w.note).toBeUndefined();
+    expect(w.name).toBeUndefined();
+    expect(w.company).toBe(280);
+    expect(w.note).toBe(280);
   });
-  it("lets the title take the room, unless it is short and a text column is cut", () => {
-    const long = [{ id: 1, name: "Alpha", note: "x".repeat(80), city: "Springfield" }];
-    const short = widthsOf(meta, [name, note, city], long);
-    expect(short.name).toBeGreaterThan(0);
-    expect(short.note).toBeUndefined();
-    const wide = [{ id: 1, name: "y".repeat(120), note: "x".repeat(80), city: "Springfield" }];
-    const titled = widthsOf(meta, [name, note, city], wide);
-    expect(titled.name).toBeUndefined();
-    expect(titled.note).toBe(280);
+  it("narrows a figure to its two-line head and its values", () => {
+    const days = {
+      ...field("days", "number"),
+      label: "Days pending",
+      column: { align: "end", width: "s", max: 160 },
+    } as FieldMeta;
+    const size = { ...field("size"), label: "People" };
+    const rows = [{ id: 1, name: "Al", days: 12, size: "1001" }];
+    const w = widthsOf(meta, [name, days, size], rows);
+    // "pending" at the head's 12.5px, its icon, and the padding: well under the 108px preset.
+    expect(w.days).toBeLessThan(100);
+    expect(w.size).toBeLessThan(100);
   });
 });
 
-describe("fitRoom", () => {
+describe("widthsOf in a room", () => {
+  const words = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(" ");
   const long = Array.from({ length: 3 }, (_, i) => ({
     id: i,
     name: "Status update for the campaign that went out on the first",
     state: "open",
-    note: "x".repeat(60),
-    city: "y".repeat(60),
+    note: words(12),
+    city: words(10),
   }));
-  it("leaves widths alone when they fit", () => {
-    const widths = widthsOf(meta, cols, long);
-    expect(fitRoom(meta, cols, widths, 4000)).toEqual(widths);
+  const used = (w: Record<string, number | undefined>, title: number) =>
+    cols.reduce((n, f) => n + (w[f.key] ?? title), 72);
+  it("gives a wide room to every column's words on one line, and the rest to the title", () => {
+    const fit = widthsOf(meta, cols, long, 4000);
+    expect(fit.name).toBeUndefined();
+    expect(fit.note).toBeGreaterThan(280);
+    expect(used(fit, titleLeast(meta, long))).toBeLessThanOrEqual(4000);
   });
-  it("cuts word columns, never a state, so the last column stays on screen", () => {
-    const widths = widthsOf(meta, cols, long);
-    const fit = widthsOf(meta, cols, long, 900);
-    expect(fit.state).toBe(widths.state);
-    expect(fit.note).toBeLessThan(widths.note ?? 0);
-    expect(fit.city).toBeLessThan(widths.city ?? 0);
-    const used = cols.reduce((n, f) => n + (fit[f.key] ?? 220), 72);
-    expect(used).toBeLessThanOrEqual(900);
+  it("wraps word columns to fit, never a state, so the last column stays on screen", () => {
+    const fit = widthsOf(meta, cols, long, 700);
+    expect(fit.state).toBe(widthsOf(meta, cols, long).state);
+    expect(fit.note).toBeLessThan(280);
+    expect(fit.city).toBeLessThan(280);
+    expect(used(fit, titleLeast(meta, long))).toBeLessThanOrEqual(700);
   });
-  it("keeps a column of short values whole while a long one can give", () => {
+  it("fills a column of short words before a long one grows", () => {
     const table = field("table");
     const rows = long.map((r) => ({ ...r, table: "Company event checks" }));
     const all = [name, table, note, city];
-    const widths = widthsOf(meta, all, rows);
-    const fit = widthsOf(meta, all, rows, 900);
-    expect(fit.table).toBe(widths.table);
-    expect(fit.note).toBeLessThan(widths.note ?? 0);
+    const whole = widthsOf(meta, all, rows).table;
+    expect(widthsOf(meta, all, rows, 800).table).toBe(whole);
   });
-  it("gives the title's slack before a column of short values cuts", () => {
-    const table = field("table");
-    const rows = long.map((r) => ({ ...r, table: "Company event checks" }));
-    const all = [name, table, note, city];
-    const widths = widthsOf(meta, all, rows);
-    // Long ones at their head (96 each) and the title at its least still leave the table whole.
-    const room = 72 + 96 * 2 + (widths.table ?? 0) + 160;
-    expect(widthsOf(meta, all, rows, room).table).toBe(widths.table);
-    expect(widthsOf(meta, all, rows, room - 40).table).toBeLessThan(widths.table ?? 0);
-  });
-  it("grows a cut word column into spare room before the title takes it", () => {
-    const short = long.map((r) => ({ ...r, note: "z".repeat(50), city: "Springfield" }));
-    const widths = widthsOf(meta, cols, short);
-    const fit = widthsOf(meta, cols, short, 4000);
-    expect(widths.note).toBe(280);
-    expect(fit.note).toBeGreaterThanOrEqual(50 * 7.2 + 24);
-    expect(fit.city).toBe(widths.city);
-  });
-  it("stops at each column's head", () => {
+  it("never breaks a word: at the least, the list is wider than the room", () => {
     const fit = widthsOf(meta, cols, long, 200);
-    expect(fit.note).toBe(96);
+    expect(fit.note).toBe(fitOf(note, [{ id: 1, note: "word10" }]));
+    expect(used(fit, titleLeast(meta, long))).toBeGreaterThan(200);
+  });
+  it("keeps a name's longest word whole", () => {
+    const who = { ...field("who", "name"), label: "Who" };
+    const people = { ...meta, title: "who", fields: [who, note] };
+    const rows = [{ id: 1, who: "Maximiliana Featherstonehaugh-Montgomery", note: "x" }];
+    // "Featherstonehaugh-" at the title's 7.6px, the avatar and the padding.
+    expect(titleLeast(people, rows)).toBeGreaterThanOrEqual(Math.ceil(18 * 7.6) + 24 + 30);
+    expect(titleLeast(people, [{ id: 1, who: "Bo Fenwick", note: "x" }])).toBe(160);
+  });
+});
+
+describe("fitColumns", () => {
+  const rows = [{ id: 1, name: "Ada North", state: "open", note: "a few words", city: "Lisbon" }];
+  const at = (room?: number) => fitColumns(meta, cols, rows, room).map((f) => f.key);
+  it("shows every column before the room is known, or when they fit", () => {
+    expect(at()).toEqual(["name", "state", "note", "city"]);
+    expect(at(4000)).toEqual(["name", "state", "note", "city"]);
+  });
+  it("leaves out what the room can't hold whole, in order, never the title", () => {
+    const shown = at(330);
+    expect(shown[0]).toBe("name");
+    expect(shown.length).toBeLessThan(4);
+    const w = widthsOf(
+      meta,
+      cols.filter((f) => shown.includes(f.key)),
+      rows,
+      330,
+    );
+    const sum = Object.values(w).reduce<number>(
+      (n, x) => n + (x ?? 0),
+      72 + titleLeast(meta, rows),
+    );
+    expect(sum).toBeLessThanOrEqual(330);
+    expect(at(10)).toEqual(["name"]);
   });
 });

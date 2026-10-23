@@ -1021,36 +1021,121 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
   return f.column?.align === "end" ? String(c).length + 3 : lenOf(String(c));
 }
 
-/** A cell's width in px: about 7.2 a character at 13px, and the cell's padding. */
+/** A cell's width in px: about 7.2 a character at 14px, and the cell's padding. */
 const pxOf = (chars: number) => Math.ceil(chars * 7.2) + 24;
 
-/** The most a column grows to fit its cells: its kind's max (set in core), never below its preset. */
+/** The most a column grows before the others have their words: its kind's max (set in core), never below its preset. */
 const maxOf = (f: FieldMeta) => Math.max(f.column?.max ?? 0, widthOf(f));
 
+/** The checkbox gutter and the actions column, as `Rows` draws them. */
+const FIXED = 28 + 44;
+/** A head reads at 12.5px; the measure counts in the cells' 14px. */
+const HEAD = 12.5 / 14;
+/** A head's kind icon and its gap (21px); the sorted one also its arrow (16px). */
+const headExtra = (sorted: boolean) => 3 + (sorted ? 2.3 : 0);
+/** A title's words read heavier: 7.6px a character. */
+const titlePx = (chars: number, mark: number) => Math.ceil(chars * 7.6) + 24 + mark;
+/** The least a list's title keeps, so what the row is stays readable. */
+const TITLE_LEAST = 160;
+/** A column this wide or less holds short words: it fills before a long one grows. */
+const SHORT = 168;
+/** The title's words on one line count to here before the other columns grow past their max. */
+const TITLE_WANT = 360;
+
+/** The kinds whose words wrap in their cell: free text and names, never a state, number or date. */
+const YIELDS: ReadonlySet<FieldMeta["kind"]> = new Set([
+  "text",
+  "name",
+  "company",
+  "actor",
+  "link",
+  "tags",
+]);
+
+/** A cell's words, when they may wrap; null for one that keeps its line (a state, a figure, a date). */
+function cellWords(f: FieldMeta, c: Cell | undefined): string | null {
+  if (blank(c) || !YIELDS.has(f.kind) || f.words) return null;
+  if (f.kind === "link") return linkLabel(String(c), f.label);
+  if (f.kind === "actor") return actorParts(String(c))?.join(" · ") ?? String(c);
+  if (Array.isArray(c)) return c.join(", ");
+  if (c && typeof c === "object") return "name" in c ? c.name : null;
+  return String(c);
+}
+
+/** The widest word of `s` in characters: a line breaks at a space or after a hyphen. */
+const longestWord = (s: string) => Math.max(0, ...s.split(/\s+|(?<=-)/).map(lenOf));
+
 /**
- * A column's width for the rows shown: what its head and its widest cell need, within its
- * kind's bounds. A column of "Post" stays narrow, so the title has the room; a firm's name or a
- * short state shows whole. A figure's column also fits its head on one line and its sum.
+ * A column's three widths in px. `least`: no word breaks (its longest word, its head's longest
+ * word, a state or a date whole). `want`: its widest cell on one line, up to its kind's max.
+ * `need`: every cell on one line.
  */
-export function fitOf(f: FieldMeta, rows: Row[], total?: Total): number {
-  if (!rows.length) return widthOf(f);
-  // A word head may take two lines: its longest word, or half of it, and room for the sort arrow.
-  // A figure's head keeps one line beside its kind's icon.
-  const words = f.label.split(/\s+/);
-  const head =
-    f.column?.align === "end"
-      ? lenOf(f.label) + 6
-      : Math.max(...words.map(lenOf), Math.ceil(lenOf(f.label) / 2)) + 3;
-  const sum = total && "sum" in total ? lenOf(money(total.sum, total.currency)) + 1 : 0;
-  const chars = Math.max(head, sum, ...rows.map((r) => charsOf(f, r[f.key])));
-  return Math.min(maxOf(f), Math.max(64, pxOf(chars)));
+type Span = { least: number; want: number; need: number };
+
+function headSpan(label: string, sorted: boolean): Span {
+  const words = label.split(/\s+/).map(lenOf);
+  const extra = headExtra(sorted);
+  const least = pxOf(Math.max(...words) * HEAD + extra);
+  // A head may take two lines: its longest word, or half of it.
+  const want = pxOf(Math.max(...words, lenOf(label) / 2) * HEAD + extra);
+  return { least, want, need: want };
+}
+
+function spanOf(f: FieldMeta, rows: Row[], total: Total | undefined, sorted: boolean): Span {
+  const head = headSpan(f.label, sorted);
+  const sum = total && "sum" in total ? pxOf(lenOf(money(total.sum, total.currency)) + 1) : 0;
+  let least = Math.max(48, head.least, sum);
+  let need = Math.max(48, head.want, sum);
+  for (const r of rows) {
+    const whole = pxOf(charsOf(f, r[f.key]));
+    const words = cellWords(f, r[f.key]);
+    need = Math.max(need, whole);
+    least = Math.max(least, words === null ? whole : pxOf(longestWord(words)));
+  }
+  // One word longer than the kind's max (a link) breaks inside it.
+  least = Math.min(least, Math.max(maxOf(f), head.least));
+  return { least, want: Math.max(least, Math.min(need, maxOf(f))), need: Math.max(least, need) };
+}
+
+function titleSpan(meta: RecordMeta, f: FieldMeta, rows: Row[], sorted: boolean): Span {
+  const head = headSpan(f.label, sorted);
+  // A person's initials sit in an avatar before the name (22px and its gap).
+  const mark = f.kind === "name" ? 30 : 0;
+  let least = Math.max(TITLE_LEAST, head.least);
+  let need = least;
+  for (const r of rows) {
+    const t = titleOf(meta, r);
+    need = Math.max(need, titlePx(lenOf(t), mark));
+    least = Math.max(least, titlePx(longestWord(t), mark));
+  }
+  least = Math.min(least, TITLE_WANT);
+  // A title with a message under it (a DM, a comment) wants the room: the message is what the row is.
+  const previews = meta.fields.some((m) => m.key === meta.subtitle && m.kind === "prose");
+  const want = previews ? Math.max(need, TITLE_WANT) : Math.min(need, TITLE_WANT);
+  return { least, want: Math.max(least, want), need: Math.max(least, need, want) };
 }
 
 /**
- * Each column's width; none takes what the rest leave. That is the title, unless its words are
- * short and a column is cut even at its max: then the title fits its words and the cut columns
- * share the room, so "Redis or Valkey" doesn't sit in half the table while its reason reads
- * "Costliest...".
+ * A column's width for the rows shown, before the room is known: what its head and its widest
+ * cell need on one line, within its kind's max. A figure's head takes two lines as a word's does.
+ */
+export function fitOf(f: FieldMeta, rows: Row[], total?: Total, sorted = false): number {
+  return rows.length ? spanOf(f, rows, total, sorted).want : widthOf(f);
+}
+
+/** The title's least width: no word of any title shown breaks. `Rows` keeps it as the name's min. */
+export function titleLeast(meta: RecordMeta, rows: Row[], sort?: string | undefined): number {
+  const f = meta.fields.find((m) => m.key === meta.title);
+  if (!f) return TITLE_LEAST;
+  return titleSpan(meta, f, rows, sort?.replace(/^-/, "") === f.key).least;
+}
+
+/**
+ * Each column's width; the title has none and takes what the rest leave. With the room known,
+ * every column starts at its least (no word breaks), then the spare room goes, by how short each
+ * is: first to a column of short words, then to each one's words on one line within its max, then
+ * past it. Only when the leasts alone are wider than the room does the list scroll sideways; its
+ * actions stay at the right edge.
  */
 export function widthsOf(
   meta: RecordMeta,
@@ -1058,46 +1143,110 @@ export function widthsOf(
   rows: Row[],
   room?: number,
   totals?: Record<string, Total>,
-) {
-  const widths = sharedOf(meta, cols, rows, totals);
-  return room ? growRoom(meta, cols, rows, fitRoom(meta, cols, widths, room), room) : widths;
+  sort?: string | undefined,
+): Record<string, number | undefined> {
+  const span = spansOf(meta, cols, rows, totals, sort);
+  const out: Record<string, number | undefined> = {};
+  if (!room || !rows.length) {
+    for (const f of cols) out[f.key] = f.key === meta.title ? undefined : span(f).want;
+    return out;
+  }
+  const w = new Map(cols.map((f) => [f.key, span(f).least]));
+  let spare = room - FIXED - cols.reduce((n, f) => n + span(f).least, 0);
+  // A column of short words ("Company event checks") fills first: whole, it costs little.
+  const passes = [
+    (f: FieldMeta) => (span(f).want <= SHORT ? span(f).want : 0),
+    (f: FieldMeta) => span(f).want,
+    (f: FieldMeta) => span(f).need,
+  ];
+  for (const goal of passes) {
+    if (spare <= 0) break;
+    const short = cols
+      .map((f) => [f, goal(f) - (w.get(f.key) ?? 0)] as const)
+      .filter(([, d]) => d > 0);
+    const all = short.reduce((n, [, d]) => n + d, 0);
+    if (!all) continue;
+    const share = Math.min(1, spare / all);
+    for (const [f, d] of short) {
+      const add = Math.floor(d * share);
+      w.set(f.key, (w.get(f.key) ?? 0) + add);
+      spare -= add;
+    }
+  }
+  for (const f of cols) out[f.key] = f.key === meta.title ? undefined : w.get(f.key);
+  return out;
 }
 
-/** What a column needs to show every cell whole, past its max. */
-const needOf = (f: FieldMeta, rows: Row[]) =>
-  Math.max(0, ...rows.map((r) => pxOf(charsOf(f, r[f.key]))));
-
-/** What the title needs to show every row's whole: it reads in a heavier weight. */
-const titleNeed = (meta: RecordMeta, rows: Row[]) =>
-  Math.ceil(Math.max(0, ...rows.map((r) => lenOf(titleOf(meta, r)))) * 7.6) + 24;
-
-/**
- * Widths that use spare room: a word column cut short grows toward what its cells need before
- * the title takes the rest, sharing with the title by how much each is short.
- */
-export function growRoom(
+/** Each column's span for the rows shown: the title's from its words, a field's from its cells. */
+function spansOf(
   meta: RecordMeta,
   cols: FieldMeta[],
   rows: Row[],
-  widths: Record<string, number | undefined>,
-  room: number,
-) {
-  const fixed = cols.reduce((n, f) => n + (widths[f.key] ?? 0), 72);
-  const free = cols.filter((f) => widths[f.key] === undefined);
-  const want = free.reduce((n, f) => n + (f.key === meta.title ? TITLE_MIN : widthOf(f)), 0);
-  const spare = room - fixed - want;
-  if (spare <= 0 || !rows.length) return widths;
-  const short = cols
-    .filter((f) => widths[f.key] !== undefined && YIELDS.has(f.kind))
-    .map((f) => [f, needOf(f, rows) - (widths[f.key] ?? 0)] as const)
-    .filter(([, d]) => d > 0);
-  if (!short.length) return widths;
-  const title = free.some((f) => f.key === meta.title);
-  const titleShort = title ? Math.max(0, titleNeed(meta, rows) - TITLE_MIN) : 0;
-  const share = Math.min(1, spare / short.reduce((n, [, d]) => n + d, titleShort));
-  const out = { ...widths };
-  for (const [f, d] of short) out[f.key] = (widths[f.key] ?? 0) + Math.floor(d * share);
-  return out;
+  totals?: Record<string, Total>,
+  sort?: string | undefined,
+): (f: FieldMeta) => Span {
+  const by = sort?.replace(/^-/, "");
+  const spans = new Map(
+    cols.map((f) => [
+      f.key,
+      f.key === meta.title
+        ? titleSpan(meta, f, rows, f.key === by)
+        : rows.length
+          ? spanOf(f, rows, totals?.[f.key], f.key === by)
+          : { least: widthOf(f), want: widthOf(f), need: widthOf(f) },
+    ]),
+  );
+  return (f) => spans.get(f.key) as Span;
+}
+
+/**
+ * The columns a list shows in its room (F1 `.nt`: it never scrolls sideways): the title, then each
+ * column in order while it fits on one line, or wrapped at SHORT when longer. One that doesn't is left out of view; it stays
+ * a Display pick away and on the record. Columns picked by hand all show, and scroll if they must.
+ */
+export function fitColumns(
+  meta: RecordMeta,
+  cols: FieldMeta[],
+  rows: Row[],
+  room: number | undefined,
+  totals?: Record<string, Total>,
+  sort?: string | undefined,
+): FieldMeta[] {
+  if (!room || !rows.length) return cols;
+  const span = spansOf(meta, cols, rows, totals, sort);
+  // A column costs its one line up to SHORT, a longer one wraps there: shown, it reads at a glance.
+  const cost = (f: FieldMeta) => Math.max(span(f).least, Math.min(span(f).want, SHORT));
+  let used = FIXED + cols.reduce((n, f) => n + (f.key === meta.title ? span(f).least : 0), 0);
+  return cols.filter((f) => {
+    if (f.key === meta.title) return true;
+    if (used + cost(f) > room) return false;
+    used += cost(f);
+    return true;
+  });
+}
+
+/**
+ * A list's columns beside a docked record (`.nt-pk .nt`): the title, the first column, and the
+ * time it waits, else its first date, each while the half holds its words.
+ */
+export function dockedOf(
+  meta: RecordMeta,
+  cols: FieldMeta[],
+  rows: Row[],
+  room: number | undefined,
+  wait: string | undefined,
+  totals?: Record<string, Total>,
+  sort?: string | undefined,
+): FieldMeta[] {
+  const title = cols.filter((f) => f.key === meta.title);
+  const rest = cols.filter((f) => f.key !== meta.title);
+  const when = rest.find((f) => f.key === wait) ?? rest.find((f, i) => i > 0 && f.kind === "date");
+  // The time comes first when the half holds one of the two.
+  const pair = [when, rest[0]].filter((f, i, a): f is FieldMeta => !!f && a.indexOf(f) === i);
+  const kept = new Set(fitColumns(meta, [...title, ...pair], rows, room, totals, sort));
+  return [...title, ...[rest[0], when].filter((f): f is FieldMeta => !!f && kept.has(f))].filter(
+    (f, i, a) => a.indexOf(f) === i,
+  );
 }
 
 /** An element's width as it changes: a list fits its columns to it. */
@@ -1111,92 +1260,6 @@ function useRoom(): [(el: HTMLDivElement | null) => void, number | undefined] {
     watch.current.observe(el);
   }, []);
   return [ref, room];
-}
-
-/** The kinds whose words may cut to fit the room: free text, never a state, number or date. */
-const YIELDS: ReadonlySet<FieldMeta["kind"]> = new Set([
-  "text",
-  "name",
-  "company",
-  "actor",
-  "link",
-  "tags",
-  "choice",
-]);
-/** The least a list's title keeps, so what the row is stays readable. */
-const TITLE_MIN = 220;
-/** The least a title gives up to before a column of short values cuts. */
-const TITLE_LEAST = 160;
-/** A column this wide or less holds short values; it keeps them whole while a longer one can give. */
-const SHORT = 168;
-
-/**
- * Widths that fit `room` px: when the columns past the title leave it less than its least, the
- * word columns give up room in proportion, so no column is pushed past the right edge. Long ones
- * (past SHORT) give first, then the title down to TITLE_LEAST; a column of short values cuts,
- * down to its head, only when they can't.
- * Only when every one is at its least does the list scroll sideways.
- */
-export function fitRoom(
-  meta: RecordMeta,
-  cols: FieldMeta[],
-  widths: Record<string, number | undefined>,
-  room: number,
-) {
-  // The checkbox and open columns, 36 each.
-  const fixed = cols.reduce((n, f) => n + (widths[f.key] ?? 0), 72);
-  const free = cols.filter((f) => widths[f.key] === undefined);
-  const want = free.reduce((n, f) => n + (f.key === meta.title ? TITLE_MIN : widthOf(f)), 0);
-  let over = fixed + want - room;
-  if (over <= 0) return widths;
-  const yields = cols.filter((f) => widths[f.key] !== undefined && YIELDS.has(f.kind));
-  const head = (f: FieldMeta) => Math.max(96, pxOf(f.label.length));
-  const out = { ...widths };
-  const title = free.some((f) => f.key === meta.title);
-  // Long words give first, down to their head; then the title, down to TITLE_LEAST; a short value
-  // ("Companies") cuts only when none of them can.
-  for (const least of [
-    (f: FieldMeta) => ((widths[f.key] ?? 0) > SHORT ? head(f) : Infinity),
-    head,
-  ]) {
-    const floor = (f: FieldMeta) => Math.min(out[f.key] ?? 0, least(f));
-    const spare = yields.reduce((n, f) => n + (out[f.key] ?? 0) - floor(f), 0);
-    if (least === head && title && over > 0) over -= Math.min(over, TITLE_MIN - TITLE_LEAST);
-    if (over <= 0 || spare <= 0) continue;
-    const share = Math.min(1, over / spare);
-    for (const f of yields) {
-      const w = out[f.key] ?? 0;
-      const cut = Math.floor((w - floor(f)) * share);
-      out[f.key] = w - cut;
-      over -= cut;
-    }
-  }
-  return out;
-}
-
-/** Each column's width for the rows alone, before the room is known. */
-function sharedOf(
-  meta: RecordMeta,
-  cols: FieldMeta[],
-  rows: Row[],
-  totals?: Record<string, Total>,
-) {
-  const widths: Record<string, number | undefined> = {};
-  for (const f of cols)
-    widths[f.key] = f.key === meta.title ? undefined : fitOf(f, rows, totals?.[f.key]);
-  const title = cols.find((f) => f.key === meta.title);
-  // A title with a message under it keeps the room: the message is what the row is.
-  const previews = meta.fields.some((f) => f.key === meta.subtitle && f.kind === "prose");
-  if (!title || !rows.length || previews) return widths;
-  const cut = cols.filter(
-    (f) => f !== title && rows.some((r) => pxOf(charsOf(f, r[f.key])) > maxOf(f)),
-  );
-  const words = Math.max(title.label.length, ...rows.map((r) => lenOf(titleOf(meta, r))));
-  const needs = Math.ceil(words * 7.6) + 24;
-  if (!cut.length || needs > 360) return widths;
-  widths[title.key] = Math.max(needs, widthOf(title));
-  for (const f of cut) widths[f.key] = undefined;
-  return widths;
 }
 
 /**
@@ -1383,11 +1446,13 @@ function List({
   const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
   // The rows on TanStack Table: it groups them (a group's band, or "Needs you" and "For info"),
   // orders the columns as the address says, and keeps which rows are picked.
+  // Columns picked in Display all show; the page's own fit the room.
+  const byHand = params.has("cols");
   const table = useListTable({
     meta,
     rows: tiered,
     cols: shownColumns(meta, columnsOf(meta, params, columns), tiered, {
-      byHand: params.has("cols"),
+      byHand,
       narrow,
       wait: late?.promise ? late.field : undefined,
     }),
@@ -1429,12 +1494,16 @@ function List({
     if (page.data && at > pages)
       place.go(place.link({ pg: pages > 1 ? String(pages) : null }), true);
   }, [page.data, at, pages]);
-  const widths = widthsOf(meta, cols, rows, narrow ? undefined : room, totals);
+  const openId = params.get(meta.name.one);
+  // A record opened on a wide screen docks beside the list, peek or whole; never over the rows.
+  const docked = !!openId && !narrow;
+  const fitted = byHand || narrow ? cols : fitColumns(meta, cols, rows, room, totals, sort);
+  const drawnCols = docked ? dockedOf(meta, cols, rows, room, late?.field, totals, sort) : fitted;
+  const widths = widthsOf(meta, drawnCols, rows, narrow ? undefined : room, totals, sort);
   const saved = useSavedViews(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
   const narrowed = !!ask.q || !!ask.where;
-  const openId = params.get(meta.name.one);
   const [cursor, setCursor] = useState(-1);
   const [busy, setBusy] = useState<string | null>(null);
   /** The row a box is open under: an action's words (a reason, a reply), or the page's reply. */
@@ -1672,7 +1741,8 @@ function List({
         <SortHead field={titleField} place={place} sort={sort} dir={table.sorted(titleField.key)} />
       ) : undefined,
     width: widths[meta.title],
-    min: titleField ? widthOf(titleField, true) : undefined,
+    // Its least: no word of a title shown breaks; past it, the list scrolls sideways.
+    min: titleLeast(meta, rows, sort),
     title: (r) => titleOf(meta, r),
     href: (r) => place.link({ [meta.name.one]: String(r.id), tab: null }),
     weight: (r) => TITLE_WEIGHT[String(waits(r))] ?? "",
@@ -1790,15 +1860,8 @@ function List({
   // Its rows' keys sit in the sheet on ?, not under the list.
   const keyLines = actionKeys(actions, rows);
   usePageKeys(keyLines.length ? { title: `On ${many}`, keys: keyLines } : null);
-  // A peek on a wide screen docks in the list's panel; the whole record, or a phone's, floats.
-  const docked = !!openId && !!peeked && !narrow;
-  // The time it waits, else the first date: the artifact's 76px column at the right.
-  const when =
-    columnsFor.find((c) => c.key === late?.field) ??
-    columnsFor.find((c, i) => i > 0 && cols.find((f) => f.key === c.key)?.kind === "date");
-  const dockedColumns = [columnsFor[0], when].filter(
-    (c, i, all): c is RowsColumn<Row> => !!c && all.indexOf(c) === i,
-  );
+  // The columns the room holds; beside a docked record, the name, one column and its time.
+  const drawnColumns = columnsFor.filter((c) => drawnCols.some((f) => f.key === c.key));
   const panel = openId ? (
     <Panel
       meta={meta}
@@ -1914,8 +1977,8 @@ function List({
                 <Rows
                   label={many}
                   noun={meta.name.one}
-                  // A docked peek leaves the list its name, one column and its time (`.nt-pk .nt`).
-                  columns={docked ? dockedColumns : columnsFor}
+                  // What the room holds; docked, its name, one column and its time (`.nt-pk .nt`).
+                  columns={drawnColumns}
                   name={nameCol}
                   lines={rowLines}
                   loading={!page.data}
@@ -2276,7 +2339,8 @@ export function Panel({
       docked
     />
   );
-  if (phone)
+  // At exactly 900px the shell says phone and the list docks: the list wins, so its half isn't empty.
+  if (phone && !docked)
     // A phone: a sheet over the list, open full height; drag it to half to see the list, or
     // down to shut it.
     return (

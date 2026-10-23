@@ -20,6 +20,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import { Tag } from "./controls.js";
 import { initials, waited } from "./format.js";
@@ -292,8 +293,8 @@ function groundOf(open: boolean, picked: boolean, cursor: boolean) {
   if (open || picked)
     return "[&>td]:bg-(--ui-accent-tint) [--row-ground:color-mix(in_srgb,var(--ui-active)_10%,var(--ui-paper))]";
   if (cursor)
-    return "[&>td]:bg-(--ui-accent-wash) [--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
-  return "[--row-ground:var(--ui-paper)] hover:[&>td]:bg-(--ui-accent-wash) hover:[--row-ground:color-mix(in_srgb,var(--ui-active)_7%,var(--ui-paper))]";
+    return "[&>td]:bg-(--ui-accent-wash) [--row-ground:color-mix(in_srgb,var(--ui-active)_6%,var(--ui-paper))]";
+  return "[--row-ground:var(--ui-paper)] hover:[&>td]:bg-(--ui-accent-wash) hover:[--row-ground:color-mix(in_srgb,var(--ui-active)_6%,var(--ui-paper))]";
 }
 
 /**
@@ -302,6 +303,29 @@ function groundOf(open: boolean, picked: boolean, cursor: boolean) {
  */
 const BAND =
   "[&>td]:transition-[background-color] [&>td]:duration-150 motion-reduce:[&>td]:transition-none [tr[data-row]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)] [tr[data-group]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)]";
+
+/**
+ * The actions column stays at the list's right edge (the artifact's 44px last column, `.nt`): a
+ * list wider than its page scrolls under it. Then a hairline parts it from what passes beneath.
+ */
+const END_SEAM =
+  "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:hidden before:w-px before:bg-(--ui-hair) group-data-wide/rows:before:block";
+
+/** Whether a table is wider than its box: a list at its least scrolls sideways. */
+function useWide(): [(el: HTMLTableElement | null) => void, boolean] {
+  const [wide, setWide] = useState(false);
+  const watch = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: HTMLTableElement | null) => {
+    watch.current?.disconnect();
+    const box = el?.parentElement;
+    if (!el || !box || typeof ResizeObserver === "undefined") return;
+    const check = () => setWide(el.offsetWidth > box.clientWidth + 1);
+    watch.current = new ResizeObserver(check);
+    watch.current.observe(el);
+    watch.current.observe(box);
+  }, []);
+  return [ref, wide];
+}
 
 type Drawn<T> = RowsLine<T> & { stats?: WaitStats };
 
@@ -490,6 +514,7 @@ export function Rows<T>(p: RowsProps<T>) {
   }, [cursor]);
 
   const span = columns.length + 3;
+  const [wideRef, wide] = useWide();
   const anyPicked = (pick?.count ?? 0) > 0;
   const phoneCol = columns.find((c) => c.phone);
   // Column lines draw in the table; a grouped table (the folds) reads by its rows only.
@@ -646,10 +671,12 @@ export function Rows<T>(p: RowsProps<T>) {
 
   return (
     <table
+      ref={wideRef}
       aria-label={p.label}
+      data-wide={wide || undefined}
       // An empty view shows what fills it, not a row of column heads over nothing.
       className={cn(
-        "w-full table-fixed border-separate border-spacing-0 text-[14px]",
+        "group/rows w-full table-fixed border-separate border-spacing-0 text-[14px]",
         p.empty && "hidden",
         p.className,
       )}
@@ -719,7 +746,7 @@ export function Rows<T>(p: RowsProps<T>) {
               </span>
             </th>
           ))}
-          <th className={cn("sticky top-0 z-10 bg-(--ui-paper)", HEAD_RULE)}>
+          <th className={cn("sticky top-0 right-0 z-20 bg-(--ui-paper)", HEAD_RULE, END_SEAM)}>
             <span className="sr-only">Actions</span>
           </th>
         </tr>
@@ -876,7 +903,12 @@ export function Rows<T>(p: RowsProps<T>) {
                       {c.cell(l.row, l.index)}
                     </td>
                   ))}
-                  <td className="relative pr-2 text-right">
+                  <td
+                    className={cn(
+                      "sticky right-0 z-1 bg-(--row-ground)! pr-2 text-right",
+                      END_SEAM,
+                    )}
+                  >
                     {r.going ? (
                       <span className="absolute inset-y-0 right-2 z-1 flex items-center">
                         <Tag tone="accent" busy>
@@ -925,7 +957,7 @@ export function Rows<T>(p: RowsProps<T>) {
                 {c.total}
               </td>
             ))}
-            <td className={TOTAL} />
+            <td className={cn(TOTAL, "sticky right-0 z-1 bg-(--ui-paper)", END_SEAM)} />
           </tr>
         </tfoot>
       ) : null}
