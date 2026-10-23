@@ -133,7 +133,7 @@ describe("layoutMetro", () => {
     const s = layoutMetro(PLANNED_VIEW);
     const x = s.tr.find((t) => t.k === "xfer");
     expect(x?.l).toBe("be");
-    expect(x?.lab).toBe("transfer");
+    expect(x?.lab).toBeUndefined();
     expect(s.colours?.be).toBe(4);
     expect(at(s, "be").t).toBe("plan");
     const d = layoutMetro(DOWNSELL_VIEW);

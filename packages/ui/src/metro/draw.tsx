@@ -206,18 +206,20 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         />,
         hit(d, l),
       );
-      labels.push(
-        <XferLabel
-          key={`xp-${k}`}
-          m={m}
-          lab={r.lab ?? ""}
-          colour={lineColour(colours, l)}
-          l={l}
-          on={on(l)}
-          id={tid}
-          mark={r.mark}
-        />,
-      );
+      // A transfer with no name draws as a plain line: a pill only carries a label ("upsell").
+      if (r.lab)
+        labels.push(
+          <XferLabel
+            key={`xp-${k}`}
+            m={m}
+            lab={r.lab}
+            colour={lineColour(colours, l)}
+            l={l}
+            on={on(l)}
+            id={tid}
+            mark={r.mark}
+          />,
+        );
       if (r.mark)
         labels.push(
           <MarkTag

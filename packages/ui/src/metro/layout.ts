@@ -579,7 +579,14 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
       });
     } else if (la && lb && la.id !== lb.id) {
       // The person moves to another line: a transfer in the colour of the line they join.
-      tr.push({ ...common, a: a.id, b: b.id, k: "xfer", l: keyOf(lb), lab: t.label ?? "transfer" });
+      tr.push({
+        ...common,
+        a: a.id,
+        b: b.id,
+        k: "xfer",
+        l: keyOf(lb),
+        ...(t.label ? { lab: t.label } : {}),
+      });
     } else {
       const l = la ?? lb;
       tr.push({
@@ -730,7 +737,7 @@ function dress(sc: MetroScene, fold: boolean): [number, number][] {
   for (const { r, pts } of routes) {
     if (r.k !== "xfer") continue;
     const [a, c] = [pts[0] as Point, pts[pts.length - 1] as Point];
-    xfers.push(xferBox(xferGeometry(a, c, r.f).m, r.lab ?? ""));
+    if (r.lab) xfers.push(xferBox(xferGeometry(a, c, r.f).m, r.lab));
   }
 
   const bad: [number, number][] = [];

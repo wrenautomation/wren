@@ -80,8 +80,9 @@
   stroke: var(--ui-paper);
   stroke-width: 2.8;
 }
+/* Green is money, everywhere. */
 .mm .m-cash .b {
-  fill: var(--ui-ink);
+  fill: var(--ui-good);
 }
 .mm .m-cash .ic {
   stroke: var(--ui-paper);
@@ -343,7 +344,7 @@
 }
 .mm .m-cash .stk {
   fill: var(--ui-paper);
-  stroke: var(--ui-ink);
+  stroke: var(--ui-good);
   stroke-width: 2;
 }
 /* A mover on a thin outreach line is wider than the line: it takes the line's colour, not paper. */
