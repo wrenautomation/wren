@@ -7,9 +7,11 @@
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ANSWERS } from "./mocks/data/index.js";
+import { LONG_INVITES } from "./mocks/data/long.js";
 import { ADMIN } from "./mocks/data/me.js";
+import { ownRows } from "./mocks/data/records.js";
 import { studioAnswers } from "./mocks/data/studio.js";
-import { pageAt } from "./mocks/page.js";
+import { pageAt, rowsFit } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Wren apps" };
 export default meta;
@@ -89,6 +91,19 @@ export const ContentFacts = pageAt("/content/facts", { me: ADMIN });
 export const EngageEngage = pageAt("/engage/engage", { me: ADMIN });
 export const EngageDms = pageAt("/engage/dms", { me: ADMIN });
 export const EngageInvites = pageAt("/engage/invites", { me: ADMIN });
+/** Long names, roles and firms beside short figures: every word shows whole, no sideways scroll. */
+const LONG = ownRows("marketing.invite", LONG_INVITES, ANSWERS);
+export const EngageInvitesLong = pageAt("/engage/invites?view=all", {
+  me: ADMIN,
+  answers: LONG,
+  check: rowsFit,
+});
+/** A row opened: the record beside the list, never over it. */
+export const EngageInvitesLongOpen = pageAt("/engage/invites?view=all&invite=1", {
+  me: ADMIN,
+  answers: LONG,
+  check: rowsFit,
+});
 export const EngagePeople = pageAt("/engage/people", { me: ADMIN });
 export const EngageInbox = pageAt("/engage/inbox", { me: ADMIN });
 /**
@@ -116,6 +131,19 @@ export const EngageInboxByType = pageAt("/engage/inbox?view=all", {
 });
 export const EngageApprove = pageAt("/engage/approve", { me: ADMIN });
 export const EngageComments = pageAt("/engage/comments", { me: ADMIN });
+/** A comment opened: the whole comment docks beside the list (`peek: false`), never over it. */
+export const EngageCommentsOpen = pageAt("/engage/comments?comment=1", {
+  me: ADMIN,
+  check: async (page) => {
+    await rowsFit(page);
+    // Docked, not a sheet over the rows: the record's panel starts right of the list.
+    // A phone opens it in a sheet.
+    if (window.innerWidth < 900) return;
+    const list = page.querySelector("table[aria-label]")?.getBoundingClientRect();
+    const open = await within(page).findByRole("complementary", { name: "Comment" });
+    expect(open.getBoundingClientRect().left).toBeGreaterThanOrEqual(list?.right ?? 0);
+  },
+});
 export const EngageReviews = pageAt("/engage/reviews", { me: ADMIN });
 export const EngageConversation = pageAt("/engage/conversation", { me: ADMIN });
 export const EngageFollowers = pageAt("/engage/followers", { me: ADMIN });

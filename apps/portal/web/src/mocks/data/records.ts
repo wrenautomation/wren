@@ -175,3 +175,31 @@ export function recordsAnswers(
   }
   return out;
 }
+
+/**
+ * One record's rows by hand, for one story: its list and get answer `rows`, whichever product
+ * serves it; every other record falls through to `base`. Synthetic data only.
+ */
+export function ownRows(record: string, rows: Row[], base: Answers): Answers {
+  const meta = METAS.get(record);
+  if (!meta) throw new Error(`no record type ${record}`);
+  type Reply = (b: Record<string, unknown>) => unknown;
+  const out: Answers = {};
+  for (const [key, answer] of Object.entries(base)) {
+    if (typeof answer !== "function") continue;
+    const was = answer as Reply;
+    if (key.endsWith("/recordsList"))
+      out[key] = (b) => {
+        const ask = b as unknown as ListAsk;
+        return ask.record === record ? pageOf(rows, ask, meta) : was(b);
+      };
+    if (key.endsWith("/recordsGet"))
+      out[key] = (b) => {
+        const ask = b as unknown as GetAsk;
+        if (ask.record !== record) return was(b);
+        const row = rows.find((r) => String(r.id) === String(ask.id)) ?? (rows[0] as Row);
+        return { record, row, related: [], activity: LOG, detail: null } satisfies RecordAnswer;
+      };
+  }
+  return out;
+}

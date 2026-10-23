@@ -73,3 +73,32 @@ export async function todayOf(page: HTMLElement): Promise<HTMLElement> {
   await userEvent.click(open);
   return within(document.body).findByRole("dialog", { name: "Today" });
 }
+
+/**
+ * The check that a list's words stay in their boxes and each row's actions stay in view: no
+ * cell's text runs past its box, and each row's last part ends inside the window. A table off a
+ * phone, a list of lines on one.
+ */
+export const rowsFit = async (page: HTMLElement) => {
+  const list = await waitFor(() => {
+    const l = page.querySelector<HTMLElement>("table[aria-label], ul[aria-label]");
+    expect(l?.querySelector("tbody td, li > *")).toBeTruthy();
+    return l as HTMLElement;
+  });
+  // Each cell, and each box that holds words itself: not a screen reader's, not a swipe's.
+  const words = (el: HTMLElement) =>
+    !el.closest(".sr-only") &&
+    [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim());
+  const boxes = [
+    ...list.querySelectorAll<HTMLElement>("tbody td, thead th, li [data-face] *"),
+  ].filter((el) => el.matches("td, th:not(.sr-only)") || words(el));
+  for (const box of boxes) {
+    if (getComputedStyle(box).display === "inline") continue;
+    expect(box.scrollWidth, box.textContent ?? "").toBeLessThanOrEqual(box.clientWidth + 1);
+  }
+  const right = document.documentElement.clientWidth;
+  for (const row of list.querySelectorAll<HTMLElement>(":scope > tbody > tr, :scope > li")) {
+    const end = row.lastElementChild?.getBoundingClientRect();
+    if (end && end.width > 0) expect(end.right).toBeLessThanOrEqual(right + 1);
+  }
+};

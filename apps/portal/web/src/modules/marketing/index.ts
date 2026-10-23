@@ -1539,6 +1539,8 @@ export const SITE_PAGES: ListPage[] = [
     group: "Visitors",
     template: "list",
     record: "marketing.survey",
+    // The key is each question's second line; the rule and the dates are a Display pick away.
+    columns: ["question", "kind", "surface", "state", "answers", "startedAt"],
     empty: {
       all: "No surveys yet. New survey asks site visitors or client logins one question.",
       live: "Nothing live.",
