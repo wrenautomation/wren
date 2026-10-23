@@ -4,6 +4,7 @@
 #   await <name...>        wait for each (10 min cap), print its log, fail if any failed or ran out
 #   ssm_run <comment> <file.json>   run a command doc on the box, print its output, fail unless Success
 #   box_script <name> <script> [args...]   install deploy/scripts/<script> on the box as wren-box-<name> and run it
+#   await_gates            wait for this run's lint, unit and schema jobs; fail unless all three pass
 D="$RUNNER_TEMP/bg"
 mkdir -p "$D"
 
@@ -39,6 +40,23 @@ ssm_run() {
   done
   printf '%s\n' "$out"
   case "$out" in Success*) ;; *) return 1 ;; esac
+}
+
+# A newer push cancels this run's gates: cancelled fails here, and the newer run deploys.
+await_gates() {
+  local out
+  while :; do
+    out="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest" --jq '
+      [.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema")]
+      | if length < 3 or any(.status != "completed") then "wait"
+        elif all(.conclusion == "success") then "pass"
+        else "fail " + ([.[] | select(.conclusion != "success") | .name + "=" + .conclusion] | join(" ")) end')" || out=wait
+    case "$out" in
+      pass) return 0 ;;
+      fail*) echo "::error::gates: ${out#fail }"; return 1 ;;
+    esac
+    sleep 2
+  done
 }
 
 box_script() {

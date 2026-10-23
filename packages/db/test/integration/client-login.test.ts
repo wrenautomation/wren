@@ -15,6 +15,7 @@ import {
   createDb,
   type DbHandle,
   migrateClient,
+  migrateClients,
   sealAudit,
   verifyAudit,
 } from "../../src/index.js";
@@ -59,10 +60,9 @@ function acmeAt(database: string): string {
 
 beforeAll(async () => {
   pg = await startTestPostgres({ own: true });
-  for (const database of [ACME, BETA]) {
-    await createDatabase(pg.db, database);
-    await migrateClient(pg.url, database);
-  }
+  // Side by side, as a deploy migrates them.
+  for (const database of [ACME, BETA]) await createDatabase(pg.db, database);
+  await migrateClients(pg.url, [ACME, BETA]);
   acme = createDb(clientDatabaseUrl(pg.url, ACME), { max: 1, app: "login-test" });
 }, 180_000);
 afterAll(async () => {
@@ -122,6 +122,14 @@ describe("the login", () => {
     await migrateClient(pg.url, ACME);
     expect(await tryLogin(clientDatabaseUrl(pg.url, ACME))).toBe("ok");
     expect(await tryLogin(clientAdminUrl(pg.url, ACME))).toBe("ok");
+  });
+
+  it("keeps working after a migrate of many at once", async () => {
+    const done: string[] = [];
+    await migrateClients(pg.url, [ACME, BETA], (database) => done.push(database));
+    expect(done.sort()).toEqual([ACME, BETA].sort());
+    for (const database of [ACME, BETA])
+      expect(await tryLogin(clientDatabaseUrl(pg.url, database))).toBe("ok");
   });
 
   it("refuses a database name that is not a client's", () => {

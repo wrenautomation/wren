@@ -21,8 +21,8 @@ Never ask before deploying; CI is the only path to prod. Migrations run first so
 ## Steps
 
 1. Gates (`.github/workflows/ci.yml:14`–`16`; `scripts/gates.sh`).
-2. Trigger: `ci.yml` job `deploy` calls `deploy.yml` (`workflow_call`) after the gates.
-3. Migrate (`deploy.yml:29`), bundle (`:32`), publish (`:38`), register (`:47`), phone (`:65`).
+2. Trigger: `ci.yml` job `deploy` calls `deploy.yml` (`workflow_call`) beside the gates.
+3. `deploy/scripts/deploy.sh`: bundle and upload not-live Workers, `await_gates` (`ci-steps.sh`), migrate (clients side by side), publish, register, Workers live.
 4. Secrets: `deploy/scripts/push-secrets.sh` writes SSM `/wren/prod/env` and `/wren/prod/senders_config` by hand, never from CI.
 5. Infra: `deploy/terraform/` (Lambda, SSM, IAM, media bucket); the Postgres host is EC2 Docker per `walkthrough/04-production.md`.
 

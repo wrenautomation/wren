@@ -13,7 +13,8 @@ stale() {
 }
 
 # A pull that adds a workspace dependency leaves node_modules behind the lockfile.
-if [ "$ROOT/pnpm-lock.yaml" -nt "$ROOT/node_modules/.modules.yaml" ]; then
+# Not in CI: its node_modules come keyed on the lockfile, and a checkout makes every file new.
+if [ -z "${CI:-}" ] && [ "$ROOT/pnpm-lock.yaml" -nt "$ROOT/node_modules/.modules.yaml" ]; then
   echo "wren: lockfile changed, installing" >&2
   (cd "$ROOT" && pnpm install --frozen-lockfile --silent) >&2
 fi

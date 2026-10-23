@@ -183,17 +183,40 @@ export async function grantClientAccess(admin: Db, mainUrl: string, database: st
  * prove the login opens it: a deploy that cannot reach a client fails here.
  */
 export async function migrateClient(mainUrl: string, database: string): Promise<void> {
-  const admin = createDb(clientAdminUrl(mainUrl, database), { max: 1, app: "wren-migrate" });
-  try {
-    await migrate(admin.db);
-    await grantClientAccess(admin.db, mainUrl, database);
-  } finally {
-    await admin.close();
-  }
-  const own = createDb(clientDatabaseUrl(mainUrl, database), { max: 1, app: "wren-migrate" });
-  try {
-    await own.db.execute(sql`select 1`);
-  } finally {
-    await own.close();
-  }
+  await migrateClients(mainUrl, [database]);
+}
+
+/**
+ * migrateClient for many. The migrations run side by side (~5 s each, mostly round trips);
+ * the grants run one at a time: two sessions that GRANT or REVOKE on one database row at
+ * once fail with "tuple concurrently updated". `done` hears each database as it finishes.
+ */
+export async function migrateClients(
+  mainUrl: string,
+  databases: string[],
+  done?: (database: string) => void,
+): Promise<void> {
+  let grants: Promise<unknown> = Promise.resolve();
+  const results = await Promise.allSettled(
+    databases.map(async (database) => {
+      const admin = createDb(clientAdminUrl(mainUrl, database), { max: 1, app: "wren-migrate" });
+      try {
+        await migrate(admin.db);
+        const turn = grants.then(() => grantClientAccess(admin.db, mainUrl, database));
+        grants = turn.catch(() => undefined);
+        await turn;
+      } finally {
+        await admin.close();
+      }
+      const own = createDb(clientDatabaseUrl(mainUrl, database), { max: 1, app: "wren-migrate" });
+      try {
+        await own.db.execute(sql`select 1`);
+      } finally {
+        await own.close();
+      }
+      done?.(database);
+    }),
+  );
+  const failed = results.find((r) => r.status === "rejected");
+  if (failed) throw failed.reason;
 }

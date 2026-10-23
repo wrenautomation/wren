@@ -4,9 +4,10 @@ on:
   pull_request:
 # Many sessions push to main: a newer push cancels the older run's checks, and deploy
 # follows the newest green one. The gates run side by side on turbo's remote cache, so a
-# package nobody touched is not retested. Deploy waits only for the gates (2026-10-22: push
-# to live in minutes). Story tests and integration (integration.yml) report on their own and
-# never hold a deploy. The deploy job is never cancelled: a newer run waits for it.
+# package nobody touched is not retested. Deploy starts beside the gates: it builds while they
+# run and changes nothing live until all three pass (deploy.sh await_gates). Story tests and
+# integration (integration.yml) report on their own and never hold a deploy. The deploy job is
+# never cancelled: a newer run waits for it.
 jobs:
   gates:
     strategy:
@@ -49,8 +50,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --filter wren --filter "@wren/portal..."
       - run: ./scripts/gates.sh visual
   deploy:
-    needs: gates
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    permissions: { id-token: write, contents: read }
+    permissions: { id-token: write, contents: read, actions: read }
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
