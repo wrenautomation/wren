@@ -7,9 +7,15 @@
  * sit close, so the hub stays short. An exit sits under its source. A track between two lines becomes a 45
  * degree transfer. Rows are ordered to cut crossings.
  *
+ * Outreach sits left of the hub and offers right of it, so an outreach line and an offer line share
+ * a row: one of each gives a round hub inline. In a column a station takes the slot after every
+ * station that leads into it there, so a transfer always runs forward. A column with no station
+ * keeps one step, so the zones stay steady from map to map.
+ *
  * The layout owns every place. A name goes above or below its station, whichever is free. A task
- * chip sits in the middle of the free part of its track, or folds to a count dot. When something
- * does not fit, the whole map takes a wider step, and then a taller row. Drawing only follows.
+ * chip sits in the middle of the free part of its track, or folds to a count dot. A name that does
+ * not fit widens its own column; a chip, the columns under its track. Then the rows grow. A track
+ * back along its row runs on a rail, deep enough for its label. Drawing only follows.
  *
  * It draws any list of stations and tracks it gets: an unknown column or line makes a new one, and
  * a track to nothing is dropped.
@@ -18,6 +24,7 @@
 import {
   along,
   type Box,
+  CHIP_H,
   CHIP_ROOM,
   chipBox,
   crossingsOf,
@@ -30,7 +37,6 @@ import {
   routeHits,
   routeOf,
   sceneBoxes,
-  textWidth,
   trackEnds,
   xferBox,
   xferGeometry,
@@ -57,7 +63,7 @@ import {
 
 /** Space the layout starts with, in px. It widens these when a name or a chip needs room. */
 export const SPACE = {
-  /** Between stations in a column. The same for the whole map. */
+  /** Between stations in a column, and the width of a column with no station. */
   step: 120,
   /** A row without exits; one with exits adds `exit`. */
   row: 96,
@@ -71,16 +77,11 @@ export const SPACE = {
 };
 
 /**
- * How much wider a retry makes the step and the row, and how many times it may. The layout widens
- * the step first (a chip needs width); a row grows only when names above and below meet.
+ * How much wider a retry makes a column's step and the row, and how many times it may. The layout
+ * widens the columns under what clashed first (a chip needs width); the rows grow when no such
+ * column may widen more. The try after the last folds chips to dots.
  */
 const GROW = { step: 12, row: 10, maxStep: 5, maxRow: 2 };
-
-/** The widenings to try, in order: none first, then the cheapest. The last one folds chips to dots. */
-const TRIES: [number, number][] = [];
-for (let t = 0; t <= GROW.maxStep + GROW.maxRow; t++)
-  for (let ky = 0; ky <= Math.min(t, GROW.maxRow); ky++)
-    if (t - ky <= GROW.maxStep) TRIES.push([t - ky, ky]);
 /** Air between two names, or a name and a mark. */
 const CLEAR = 6;
 /** Air between a chip and a name, a transfer's label or another chip. Marks get `CHIP_ROOM`. */
@@ -134,6 +135,14 @@ interface Prep {
   base: ViewLine[];
   /** Each line's class: the first half of the joined outreach, the joined offers, the second half, then the rest. */
   rank: Map<string, number>;
+  /** The side of the hub a joined line sits on, when all its stations do: it shares a row. */
+  side: Map<string, "left" | "right">;
+  hubCol: number;
+  /** Each station's slot in its column (in the hub's column, on its side of the hub). */
+  slot: Map<string, number>;
+  /** The slots each column takes left of the hub (all of them, away from the hub) and right of it. */
+  left: number[];
+  right: number[];
 }
 
 const rankOf = (p: Pick<Prep, "rank">, l: ViewLine) => p.rank.get(l.id) ?? 5;
@@ -188,10 +197,74 @@ function prepare(view: MetroView): Prep {
   }
   const p = { rank };
   const base = [...lines].sort((a, b) => rankOf(p, a) - rankOf(p, b));
+  const line = new Map(lines.map((l) => [l.id, l]));
+
+  // Sides. Outreach ends at the hub and offers leave it, so a joined line whose stations all sit on
+  // its own side of the hub shares a row with one from the other side.
+  const hubCol = hub ? columns.indexOf(hub.column) : -1;
+  const colOf = (s: ViewStation) => columns.indexOf(s.column);
+  const side = new Map<string, "left" | "right">();
+  for (const l of lines) {
+    if (!joined.has(l.id)) continue;
+    const on = view.stations.filter((s) => s.kind !== "hub" && s.line === l.id);
+    if (l.tier === "out" && on.every((s) => colOf(s) <= hubCol)) side.set(l.id, "left");
+    if (l.tier !== "out" && on.every((s) => colOf(s) >= hubCol)) side.set(l.id, "right");
+  }
+
+  // Slots. In a column, a station sits after the one before it on its line and after the source of
+  // a track into it. A track back (a loop) does not count: the view's order wins.
+  const rightOf = (s: ViewStation) => colOf(s) === hubCol && line.get(s.line)?.tier !== "out";
+  const placed = view.stations.filter(
+    (s) => s.kind !== "hub" && !(s.kind === "exit" && exitOf.has(s.id)),
+  );
+  const group = (s: ViewStation) => `${s.column}|${rightOf(s) ? "+" : ""}`;
+  const next = new Map<string, string[]>(placed.map((s) => [s.id, []]));
+  const edge = (a: ViewStation, b: ViewStation) => {
+    if (a.id !== b.id && group(a) === group(b)) next.get(a.id)?.push(b.id);
+  };
+  const lastOn = new Map<string, ViewStation>();
+  for (const s of placed) {
+    const k = `${group(s)}|${s.line}`;
+    const prev = lastOn.get(k);
+    if (prev) edge(prev, s);
+    lastOn.set(k, s);
+  }
+  for (const t of view.tracks) {
+    const [a, b] = [byId.get(t.from), byId.get(t.to)];
+    if (a && b && next.has(a.id) && next.has(b.id)) edge(a, b);
+  }
+  const seen = new Map<string, "open" | "done">();
+  const post: string[] = [];
+  const kept = new Map<string, string[]>();
+  const visit = (id: string) => {
+    seen.set(id, "open");
+    const own: string[] = [];
+    for (const n of next.get(id) ?? []) {
+      if (seen.get(n) === "open") continue;
+      own.push(n);
+      if (!seen.has(n)) visit(n);
+    }
+    kept.set(id, own);
+    seen.set(id, "done");
+    post.push(id);
+  };
+  for (const s of placed) if (!seen.has(s.id)) visit(s.id);
+  const slot = new Map<string, number>(placed.map((s) => [s.id, 0]));
+  for (const id of post.reverse())
+    for (const n of kept.get(id) ?? [])
+      slot.set(n, Math.max(slot.get(n) ?? 0, (slot.get(id) ?? 0) + 1));
+  const left = columns.map(() => 0);
+  const right = columns.map(() => 0);
+  for (const s of placed) {
+    const ends = rightOf(s) ? right : left;
+    const ci = colOf(s);
+    ends[ci] = Math.max(ends[ci] ?? 0, (slot.get(s.id) ?? 0) + 1);
+  }
+
   return {
     view,
     columns,
-    line: new Map(lines.map((l) => [l.id, l])),
+    line,
     byId,
     hub,
     exitOf,
@@ -199,6 +272,11 @@ function prepare(view: MetroView): Prep {
     joined,
     base,
     rank,
+    side,
+    hubCol,
+    slot,
+    left,
+    right,
   };
 }
 
@@ -218,7 +296,8 @@ const swapAt = <T>(a: readonly T[], i: number): T[] => {
  * Ties keep the view's order, so the same view always gives the same map.
  */
 function orderRows(p: Prep): ViewLine[] {
-  const score = (o: readonly ViewLine[]) => crossingsOf(build(p, o, 0, 0).scene);
+  const flat = p.columns.map(() => 0);
+  const score = (o: readonly ViewLine[]) => crossingsOf(build(p, o, flat, 0).scene);
   const start = score(p.base);
   if (start === 0) return p.base;
 
@@ -274,30 +353,44 @@ function orderRows(p: Prep): ViewLine[] {
 // ---------------------------------------------------------------------------------------------
 // The frame: stations and tracks at their places, with no names or chips yet.
 
-/** The width of a column with no station: its name, set at 9.5px with wide letter spacing. */
-const emptyWidth = (name: string) =>
-  Math.max(48, Math.ceil(textWidth(name, 9.5, true) + name.length * 0.95 + 16));
-
+/**
+ * `kx` is how many times each column's step has grown, `ky` the rows'.
+ */
 function build(
   p: Prep,
   order: readonly ViewLine[],
-  kx: number,
+  kx: readonly number[],
   ky: number,
 ): { scene: MetroScene; bottom: number } {
-  const { view, columns, line, byId, hub, exitOf } = p;
-  const step = SPACE.step + kx * GROW.step;
+  const { view, columns, line, byId, exitOf, hubCol } = p;
+  const steps = columns.map((_, ci) => SPACE.step + (kx[ci] ?? 0) * GROW.step);
   const rowH = SPACE.row + ky * GROW.row;
   const outH = SPACE.out + ky * GROW.row;
-  const inset = step / 2;
 
-  // Rows. Two outreach rows in a row sit close; any other pair takes a full row.
+  // Rows. The hub's two sides pair up: outreach from the top row, offers in the middle of the
+  // outreach. The other lines follow, one row each.
+  const rows: ViewLine[][] = [];
+  const lefts = order.filter((l) => p.side.get(l.id) === "left");
+  const rights = order.filter((l) => p.side.get(l.id) === "right");
+  const n = Math.max(lefts.length, rights.length);
+  for (let i = 0; i < n; i++) rows.push([]);
+  lefts.forEach((l, i) => {
+    rows[i]?.push(l);
+  });
+  const from = Math.floor((n - rights.length) / 2);
+  rights.forEach((l, i) => {
+    rows[from + i]?.push(l);
+  });
+  for (const l of order) if (!p.side.has(l.id)) rows.push([l]);
+  // Two outreach rows in a row sit close; any other pair takes a full row.
+  const outOnly = (r?: ViewLine[]) => !!r?.length && r.every((l) => l.tier === "out");
   const rowY = new Map<string, number>();
   let y = SPACE.top;
-  order.forEach((l, i) => {
-    rowY.set(l.id, y);
-    const next = order[i + 1];
-    const close = l.tier === "out" && next?.tier === "out" && !p.exitsOn.has(l.id);
-    y += (close ? outH : rowH) + (p.exitsOn.has(l.id) ? SPACE.exit : 0);
+  rows.forEach((r, i) => {
+    for (const l of r) rowY.set(l.id, y);
+    const exits = r.some((l) => p.exitsOn.has(l.id));
+    const close = outOnly(r) && outOnly(rows[i + 1]) && !exits;
+    y += (close ? outH : rowH) + (exits ? SPACE.exit : 0);
   });
   const firstY = SPACE.top;
   const bottom = Math.max(y - rowH + 56, firstY + 56);
@@ -307,44 +400,23 @@ function build(
     ? [Math.min(...joinedY), Math.max(...joinedY)]
     : [firstY, firstY];
 
-  // Columns. One step for the whole map: a column is as wide as the most stations one line holds
-  // in it. In the hub's column the outreach stations come first, then the hub, then the offers.
-  const offerSide = (s: ViewStation) => line.get(s.line)?.tier !== "out";
-  const hubCol = hub ? columns.indexOf(hub.column) : -1;
-  const most = columns.map((c, ci) => {
-    const per = new Map<string, number>();
-    for (const s of view.stations) {
-      if (s.column !== c || s.kind === "exit" || s.kind === "hub") continue;
-      const key = ci === hubCol && offerSide(s) ? `+${s.line}` : s.line;
-      per.set(key, (per.get(key) ?? 0) + 1);
-    }
-    let left = 0;
-    let right = 0;
-    for (const [key, n] of per) {
-      if (key.startsWith("+")) right = Math.max(right, n);
-      else left = Math.max(left, n);
-    }
-    return { left, right };
-  });
-  const slots = columns.map((_, ci) => {
-    const m = most[ci] ?? { left: 0, right: 0 };
-    return ci === hubCol ? m.left + 1 + m.right : m.left;
-  });
-  const widths = columns.map((c, ci) =>
-    (slots[ci] ?? 0) ? (slots[ci] ?? 0) * step : emptyWidth(c),
+  // Columns. A column is as many steps wide as it has slots, and never less than one. In the hub's
+  // column the outreach comes first, then the hub, then the offers.
+  const slots = columns.map((_, ci) =>
+    ci === hubCol ? (p.left[ci] ?? 0) + 1 + (p.right[ci] ?? 0) : (p.left[ci] ?? 0),
   );
+  const widths = columns.map((_, ci) => Math.max(1, slots[ci] ?? 0) * (steps[ci] ?? SPACE.step));
   const x0 = columns.map((_, i) => widths.slice(0, i).reduce((a, b) => a + b, 0));
   const zones = columns.map((c, i): Zone => [x0[i] ?? 0, (x0[i] ?? 0) + (widths[i] ?? 0), c]);
-  const taken = new Map<string, number>();
   const xOf = (s: ViewStation) => {
     const ci = columns.indexOf(s.column);
-    const m = most[ci] ?? { left: 0, right: 0 };
-    if (s.kind === "hub") return (x0[ci] ?? 0) + inset + m.left * step;
-    const right = ci === hubCol && offerSide(s);
-    const key = `${ci}:${right ? "+" : ""}${s.line}`;
-    const n = taken.get(key) ?? 0;
-    taken.set(key, n + 1);
-    return (x0[ci] ?? 0) + inset + (right ? m.left + 1 + n : n) * step;
+    const step = steps[ci] ?? SPACE.step;
+    const at = (n: number) => (x0[ci] ?? 0) + step / 2 + n * step;
+    const before = p.left[ci] ?? 0;
+    if (s.kind === "hub") return at(before);
+    const right = ci === hubCol && line.get(s.line)?.tier !== "out";
+    const n = p.slot.get(s.id) ?? 0;
+    return at(right ? before + 1 + n : n);
   };
 
   // Stations.
@@ -507,7 +579,11 @@ function freeSpot(
   return best ? along(pts, (best[0] + (best[1] - 1) / 2) / n) : null;
 }
 
-/** How far under its row the first rail runs, and the step to the next one. */
+/**
+ * How far under its row the first rail runs, and the step to the next one. A rail that shows a
+ * branch label runs deep enough for the label to keep `CHIP_ROOM` from every mark on the row, so
+ * the label fits under any station and no column widens for it.
+ */
 const RAIL = { first: 30, step: 14 };
 
 /**
@@ -528,15 +604,22 @@ function rails(sc: MetroScene) {
     rows.set(a.y, row);
   }
   const startX = (r: MetroTrack) => byId.get(r.a ?? "")?.x ?? 0;
-  for (const row of rows.values()) {
+  for (const [y, row] of rows) {
+    const under = Math.max(
+      0,
+      ...[...byId.values()].filter((s) => s.y === y).map((s) => (markBoxes(s)[0]?.y1 ?? y) - y),
+    );
+    const labelled = Math.ceil(under + CHIP_ROOM + CHIP_H / 2);
+    let depth = 0;
     // The shortest rail runs nearest the row, so no rail crosses another's riser.
     const groups = [...row.values()].sort(
       (p, q) => Math.max(...p.map(startX)) - Math.max(...q.map(startX)),
     );
     groups.forEach((g, i) => {
       g.sort((p, q) => startX(q) - startX(p));
+      depth = Math.max(i ? depth + RAIL.step : RAIL.first, g[0]?.cond ? labelled : 0);
       g.forEach((r, j) => {
-        r.back = RAIL.first + RAIL.step * i;
+        r.back = depth;
         if (j && r.cond) r.condShared = true;
       });
     });
@@ -547,8 +630,9 @@ function rails(sc: MetroScene) {
  * Choose a side for every name and a place for every chip. Names go above, else below, else beside
  * their station. A chip goes in the middle of the free part of its track; when none is free the
  * chip folds to a dot if `fold` allows it, else the try fails and the map widens.
+ * Returns the x span of each name and chip that did not fit; none when all fit.
  */
-function dress(sc: MetroScene, fold: boolean): boolean {
+function dress(sc: MetroScene, fold: boolean): [number, number][] {
   const marks = sc.st.filter(isMark);
   const ends = trackEnds(sc);
   const routes: { r: MetroTrack; pts: Point[] }[] = [];
@@ -564,7 +648,11 @@ function dress(sc: MetroScene, fold: boolean): boolean {
     xfers.push(xferBox(xferGeometry(a, c, r.f).m, r.lab ?? ""));
   }
 
-  let ok = true;
+  const bad: [number, number][] = [];
+  const routeSpan = (pts: readonly Point[]): [number, number] => [
+    Math.min(...pts.map((q) => q[0])),
+    Math.max(...pts.map((q) => q[0])),
+  ];
   const names: Box[] = [];
   for (const s of marks) {
     if (!s.n) continue;
@@ -586,7 +674,9 @@ function dress(sc: MetroScene, fold: boolean): boolean {
         best = { p, boxes, hard, soft };
     }
     if (!best) continue;
-    if (best.hard) ok = false;
+    // A name that meets something, or sits off its first side across a track, widens its own
+    // column: room there puts it back.
+    if (best.hard || (best.soft && best.p !== sides[0])) bad.push([s.x, s.x]);
     if (best.p !== "up") s.p = best.p;
     names.push(...best.boxes);
   }
@@ -607,7 +697,7 @@ function dress(sc: MetroScene, fold: boolean): boolean {
       if (at) {
         r.cat = at;
         taken.push(chipBox(at[0], at[1], r.cond, glyph));
-      } else ok = false;
+      } else bad.push(routeSpan(pts));
     }
     if (!r.who || r.who === "auto" || r.k === "exit" || r.k === "xfer") continue;
     const who = r.who;
@@ -618,7 +708,7 @@ function dress(sc: MetroScene, fold: boolean): boolean {
       continue;
     }
     if (!fold) {
-      ok = false;
+      bad.push(routeSpan(pts));
       continue;
     }
     // No room for the pill: a dot, in the middle of the longest free run, else at the middle.
@@ -627,7 +717,7 @@ function dress(sc: MetroScene, fold: boolean): boolean {
     r.dot = 1;
     taken.push(dotBox(dot));
   }
-  return ok;
+  return bad;
 }
 
 /** Move the scene right and down by `dx` and `dy`. */
@@ -682,15 +772,24 @@ function sizeTo(sc: MetroScene, bottom: number): MetroScene {
 export function layoutMetro(view: MetroView): MetroScene {
   const p = prepare(view);
   const order = orderRows(p);
-  let out: MetroScene | undefined;
-  for (const [i, [kx, ky]] of TRIES.entries()) {
+  const kx = p.columns.map(() => 0);
+  let ky = 0;
+  let fold = false;
+  for (;;) {
     const { scene, bottom } = build(p, order, kx, ky);
     rails(scene);
-    const ok = dress(scene, i === TRIES.length - 1);
-    out = sizeTo(scene, bottom);
-    if (ok) break;
+    const bad = dress(scene, fold);
+    const zones = [...(scene.zones ?? [])];
+    const out = sizeTo(scene, bottom);
+    if (!bad.length || fold) return out;
+    // Widen the columns under what did not fit; when none may, the rows; then fold.
+    const wide = zones.flatMap(([z0, z1], i) =>
+      (kx[i] ?? 0) < GROW.maxStep && bad.some(([a, b]) => a < z1 && b > z0) ? [i] : [],
+    );
+    if (wide.length) for (const i of wide) kx[i] = (kx[i] ?? 0) + 1;
+    else if (ky < GROW.maxRow) ky++;
+    else fold = true;
   }
-  return out as MetroScene;
 }
 
 /** "WJ · 4h": the owner and the promise. */

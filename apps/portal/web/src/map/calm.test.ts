@@ -35,7 +35,7 @@ describe("a calm map on the page's shapes", () => {
   it("draws the big shape wider than a phone, so the page pans it", () => {
     const scene = sceneOf(SHAPE_BIG);
     expect(scene.w).toBeGreaterThan(1200);
-    expect(scene.h).toBeGreaterThan(900);
+    expect(scene.h).toBeGreaterThan(700);
   });
 
   it("is the same scene each time", () => {

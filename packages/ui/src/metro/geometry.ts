@@ -209,8 +209,10 @@ export const joinBoxes = (boxes: readonly Box[]): Box => ({
 /** A free chip (retry, hold, branch label): a pill 21 high, with or without a glyph. */
 export const chipWidth = (t: string, icon?: IconName | null): number =>
   textWidth(t, 11, true) + (icon === null ? 18 : 30);
+/** A branch chip's height. */
+export const CHIP_H = 21;
 export const chipBox = (x: number, y: number, t: string, icon?: IconName | null): Box =>
-  boxAt(x, y, chipWidth(t, icon), 21);
+  boxAt(x, y, chipWidth(t, icon), CHIP_H);
 
 /** The tag of a split or join gate. */
 export const ruleWidth = (t: string): number => textWidth(t) + 14;
@@ -478,7 +480,8 @@ export function sceneBoxes(scene: Pick<MetroScene, "st" | "tr">): SceneBoxes {
       out.tracks.push({ id, box: xferBox(xferGeometry(e[0], e[1], r.f).m, r.lab ?? "") });
       return;
     }
-    if (r.cond)
+    // A shared condition draws one chip, on the track that leads the group.
+    if (r.cond && !r.condShared)
       out.tracks.push({
         id,
         box: chipBox(...(r.cat ?? mid(e[0], e[1])), r.cond, r.condGlyph ?? null),
@@ -555,15 +558,15 @@ export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): st
         out.push(`hub ${h.id} spans row ${y} it does not join`);
   }
 
-  // One step for the whole map: every gap between neighbours in a column is the same.
-  const steps = new Set<number>();
-  for (const [x0, x1] of scene.zones ?? []) {
+  // One step in a column: every gap between neighbours there is the same.
+  for (const [x0, x1, name] of scene.zones ?? []) {
     const xs = [
       ...new Set(marks.filter((s) => s.t !== "exit" && s.x >= x0 && s.x < x1).map((s) => s.x)),
     ].sort((p, q) => p - q);
+    const steps = new Set<number>();
     for (let i = 1; i < xs.length; i++)
       steps.add(Math.round(((xs[i] as number) - (xs[i - 1] as number)) * 100) / 100);
+    if (steps.size > 1) out.push(`gaps in ${name} differ: ${[...steps].join(", ")}`);
   }
-  if (steps.size > 1) out.push(`gaps in columns differ: ${[...steps].join(", ")}`);
   return out;
 }

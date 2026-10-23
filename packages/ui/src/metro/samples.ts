@@ -1047,7 +1047,7 @@ export const WEBINAR_VIEW: MetroView = {
       id: "att",
       kind: "time",
       line: "web",
-      column: "Delivery",
+      column: "Sales",
       flow: "Webinar funnel",
       label: "Attended",
       sub: "31",

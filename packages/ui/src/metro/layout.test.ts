@@ -6,7 +6,6 @@ import {
   routeOf,
   sceneBoxes,
   sceneClashes,
-  textWidth,
   trackEnds,
 } from "./geometry.js";
 import { layoutMetro, lineKeyOf, SPACE } from "./layout.js";
@@ -60,19 +59,31 @@ describe("layoutMetro", () => {
     }
   });
 
-  it("sits the hub after the stations that lead into it and spans every row", () => {
+  it("sits the hub after the stations that lead into it, round and inline with one line each side", () => {
     const s = layoutMetro(COLD_OUTBOUND_VIEW);
     const hub = at(s, "hub");
     expect(hub.t).toBe("hub");
     expect(hub.x).toBeGreaterThan(at(s, "c1").x ?? 0);
-    expect(hub.span?.[0]).toBe(SPACE.top);
-    expect(hub.span?.[1]).toBeGreaterThan(SPACE.top);
-    // Outreach ends at the hub on its own row; a line starts at the hub and drops to its row.
+    expect(hub.span).toEqual([SPACE.top, SPACE.top]);
+    expect(at(s, "c1").y).toBe(hub.y);
     const into = s.tr.find((t) => t.b === "hub");
-    const out = s.tr.find((t) => t.a === "hub");
     expect(into?.l).toBe("out");
     expect(into?.w).toBe("out");
-    expect(out?.oa).toBeGreaterThan(0);
+    expect(into?.ob).toBe(0);
+  });
+
+  it("spans the hub over the longer side: outreach from the top row, offers in the middle", () => {
+    const s = layoutMetro(LADDER_VIEW);
+    const hub = at(s, "hub");
+    const offers = s.tr.filter((t) => t.a === "hub").map((t) => at(s, t.b ?? "").y);
+    expect(hub.span).toEqual([Math.min(...offers), Math.max(...offers)]);
+    const into = s.tr.find((t) => t.b === "hub");
+    expect(at(s, into?.a ?? "").y).toBe(hub.span?.[0]);
+  });
+
+  it("puts a station after the station that leads into it in its column, so a transfer runs forward", () => {
+    const s = layoutMetro(WEBINAR_VIEW);
+    expect(at(s, "bk").x).toBeGreaterThan(at(s, "att").x);
   });
 
   it("gives each line a weight from its tier", () => {
@@ -289,7 +300,7 @@ const KIND = {
   names: /^name of /,
   chips: /^chip /,
   hub: /^track .* (passes under hub|enters hub|leaves hub)|^hub .* spans row/,
-  gaps: /^gaps in columns/,
+  gaps: /^gaps in /,
 } as const;
 const clashesOf = (scene: MetroScene, kind: keyof typeof KIND) =>
   sceneClashes(scene).filter((c) => KIND[kind].test(c));
@@ -311,7 +322,7 @@ describe("a calm map", () => {
     expect(clashesOf(layoutMetro(v), "chips")).toEqual([]);
   });
 
-  it.each(DRAWN)("%s: gaps in each column are equal, one step for the whole map", (_t, v) => {
+  it.each(DRAWN)("%s: gaps in each column are equal", (_t, v) => {
     expect(clashesOf(layoutMetro(v), "gaps")).toEqual([]);
   });
 
@@ -344,16 +355,13 @@ describe("a calm map", () => {
     expect(at(s, "lan").x).toBeGreaterThan(hub.x);
   });
 
-  it("gives a column with no station a narrow width that still fits its name", () => {
-    const s = layoutMetro(COLD_OUTBOUND_VIEW);
+  it("gives a column with no station one step, so zones stay steady from map to map", () => {
+    const s = layoutMetro(LATE_VIEW);
     const empty = (s.zones ?? []).filter(([a, b]) => {
       return !s.st.some((m) => isMark(m) && m.x > a && m.x < b);
     });
     expect(empty.length).toBeGreaterThan(0);
-    for (const [a, b, name] of empty) {
-      expect(b - a, name).toBeLessThan(SPACE.step);
-      expect(b - a, name).toBeGreaterThanOrEqual(textWidth(name, 9.5, true));
-    }
+    for (const [a, b, name] of empty) expect(b - a, name).toBeGreaterThanOrEqual(SPACE.step);
   });
 
   it.each(DRAWN)("%s: a task chip keeps 12 px from every mark, on both sides", (_t, v) => {
@@ -377,6 +385,24 @@ describe("a calm map", () => {
     expect(track?.dot).toBeUndefined();
     expect(at(s, "bk").x - at(s, "rep").x).toBeGreaterThan(SPACE.step);
     expect(sceneClashes(s)).toEqual([]);
+    // Only the columns under the chip widen.
+    const widths = (s.zones ?? []).map(([a, b]) => b - a);
+    expect(widths.filter((w) => w % SPACE.step === 0).length).toBeGreaterThan(0);
+  });
+
+  it("runs a labelled rail deep enough that its label fits under any station, so no column widens", () => {
+    const back = (from: string) =>
+      ({ from, to: "rep", by: "system", label: "after 90 days" }) as const;
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      tracks: [...COLD_OUTBOUND_VIEW.tracks, back("bk"), back("held"), back("pay")],
+    };
+    const s = layoutMetro(v);
+    const rail = s.tr.filter((t) => t.b === "rep" && t.back);
+    expect(rail).toHaveLength(3);
+    expect(rail.filter((t) => !t.condShared)).toHaveLength(1);
+    expect(sceneClashes(s)).toEqual([]);
+    expect(s.w).toBe(layoutMetro(COLD_OUTBOUND_VIEW).w);
   });
 
   it("folds a chip to a count dot when its track has no room", () => {
