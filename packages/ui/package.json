@@ -32,7 +32,8 @@
     "storybook": "node .storybook/serve.mjs",
     "stories:build": "storybook build --quiet",
     "stories:shot": "node .storybook/shot.mjs",
-    "test:stories": "node .storybook/run.mjs"
+    "test:stories": "node .storybook/run.mjs",
+    "engine": "vite build -c .engine/vite.config.ts --outDir"
   },
   "peerDependencies": {
     "react": "19.3.0"
