@@ -270,11 +270,10 @@ export const settingsSchema = z.object({
         ),
     ),
   /**
-   * How Wren's own TikTok posts go out: `web` = TikTok Studio in the box's browser (public now),
-   * `api` = the Content Posting API (public only once TikTok audits the app; until then SELF_ONLY).
-   * A client's connected account always posts by the API.
+   * How Wren's own TikTok posts go out: `api` = the Content Posting API (audited 2026-10-23, posts
+   * public), `web` = TikTok Studio in the box's browser, a fallback. Clients always post by the API.
    */
-  tiktokPostVia: z.enum(["web", "api"]).default("web"),
+  tiktokPostVia: z.enum(["web", "api"]).default("api"),
   /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
   contentVoicePath: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */

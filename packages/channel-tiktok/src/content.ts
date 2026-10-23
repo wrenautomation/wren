@@ -4,11 +4,10 @@
  * page (`/web/videos/{id}/comments`, browser, 24 a day). Audience = `user/info` followers (scope
  * user.info.stats).
  *
- * Publish over a client's connected account (`direct`) follows TikTok's Direct Post rules
- * (`@wren/core/content/tiktok`): creator_info right before, refuse what the creator can't post,
- * send the file by FILE_UPLOAD, then wait on its status. Over autobrowse (Wren's own) it posts
- * from a public URL (PULL_FROM_URL), or with `postVia: "web"` through TikTok Studio in the box's
- * browser (`/web/posts`): an unaudited app's API posts only SELF_ONLY, the browser posts public.
+ * Publish follows TikTok's Direct Post rules (`@wren/core/content/tiktok`): creator_info right
+ * before, refuse what the creator can't post, send the file by FILE_UPLOAD, then wait on its
+ * status. A client's connected account (`direct`) takes a hosted URL; autobrowse (Wren's own)
+ * reads the file itself. `postVia: "web"` falls back to TikTok Studio in the box's browser.
  */
 import {
   type Audience,
@@ -47,7 +46,7 @@ export interface TikTokContentOptions {
   direct?: boolean;
   /**
    * How Wren's own posts go out (not `direct`): `api` (default) = the Content Posting API;
-   * `web` = TikTok Studio in the box's browser, public while the app is unaudited.
+   * `web` = TikTok Studio in the box's browser, a fallback.
    */
   postVia?: "api" | "web";
 }
@@ -195,40 +194,34 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
       const f = fieldsOf("tiktok", post.extra);
       if (!f.privacy) throw new ShapeError("tiktok: pick who can see it first");
       if (!o.direct && o.postVia === "web") return publishWeb(post, post.media.source, f);
-      const creator = o.direct ? await tiktokCreator(sites) : null;
-      if (creator) {
-        const hold = tiktokHold(f, creator);
-        if (hold) throw new ShapeError(`tiktok: ${hold}`);
-      }
-      const url = await publicUrlOf(post.media.source, o.host, "tiktok");
+      const creator = await tiktokCreator(sites);
+      const hold = tiktokHold(f, creator);
+      if (hold) throw new ShapeError(`tiktok: ${hold}`);
+      // A client's call fetches a hosted URL; the box reads a path or URL itself.
+      const file = o.direct
+        ? await publicUrlOf(post.media.source, o.host, "tiktok")
+        : await mediaFileOf(post.media.source, o.host, "tiktok");
       const post_info = {
         title: post.text.slice(0, 2200),
         privacy_level: f.privacy,
         // Off where the creator turned it off, whatever was picked.
-        disable_comment: !f.allowComment || !!creator?.commentOff,
-        disable_duet: !f.allowDuet || !!creator?.duetOff,
-        disable_stitch: !f.allowStitch || !!creator?.stitchOff,
+        disable_comment: !f.allowComment || creator.commentOff,
+        disable_duet: !f.allowDuet || creator.duetOff,
+        disable_stitch: !f.allowStitch || creator.stitchOff,
         brand_organic_toggle: !!(f.disclose && f.yourBrand),
         brand_content_toggle: !!(f.disclose && f.brandedContent),
         ...(f.coverMs !== undefined ? { video_cover_timestamp_ms: f.coverMs } : {}),
         ...(f.aiGenerated !== undefined ? { is_aigc: f.aiGenerated } : {}),
       };
-      const r = await sites.call<{ data?: { publish_id?: string } }>(
-        "tiktok",
-        "POST",
-        INIT,
-        creator
-          ? {
-              post_info,
-              file: url,
-              ...(creator.maxVideoSec ? { maxSeconds: creator.maxVideoSec } : {}),
-            }
-          : { post_info, source_info: { source: "PULL_FROM_URL", video_url: url } },
-      );
+      const r = await sites.call<{ data?: { publish_id?: string } }>("tiktok", "POST", INIT, {
+        post_info,
+        file,
+        ...(o.direct && creator.maxVideoSec ? { maxSeconds: creator.maxVideoSec } : {}),
+      });
       const id = r.data?.publish_id;
       if (!id) throw new Error("tiktok: the publish answered no id");
       const fetchedWith = await via("POST", INIT);
-      const profile = creator?.username
+      const profile = creator.username
         ? `https://www.tiktok.com/@${creator.username}`
         : "https://www.tiktok.com/";
       // Wren's own posts ask too: autobrowse waits the same way a client's call does.
@@ -243,7 +236,7 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
       return postId !== undefined
         ? {
             id: String(postId),
-            url: creator?.username
+            url: creator.username
               ? `${profile}/video/${postId}`
               : `https://m.tiktok.com/v/${postId}.html`,
             publishedAt: now().toISOString(),

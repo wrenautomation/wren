@@ -123,8 +123,6 @@ export interface ContentDeskDeps {
   voice?: string;
   brand?: Brand;
   tracer?: Tracer | null;
-  /** How Wren's TikTok posts go out (`WREN_TIKTOK_POST_VIA`): `web` drafts a clip public with interactions on. */
-  tiktokVia?: "web" | "api";
   /** The media store a field's file goes to (thumbnail, cover); none: `attach` refuses. */
   media?: MediaStoreOptions;
   /** Draws a carousel's slides (a chromium); none: slides save but don't draw here. */
@@ -928,7 +926,6 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             verdict(async () => [
               await approveVideo(db, req.id, {
                 source: "api",
-                ...(deps.tiktokVia ? { tiktokVia: deps.tiktokVia } : {}),
                 ...(at ? { publishAt: at } : {}),
                 ...(req.short ? { short: req.short } : {}),
                 ...(req.vertical ? { vertical: true } : {}),

@@ -279,7 +279,8 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["tiktok"],
     where: "https://developers.tiktok.com/apps/",
     after: [],
-    filed: "2026-10-16: production review submitted (Login Kit, Content Posting API Direct Post)",
+    filed:
+      "2026-10-16: production review submitted (Login Kit, Content Posting API Direct Post); passed 2026-10-23",
     needs: [
       ...keys("TIKTOK"),
       cb("tiktok"),
@@ -325,7 +326,7 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["tiktok"],
     where: "https://developers.tiktok.com/application/content-posting-api",
     after: ["tiktok-app"],
-    filed: null,
+    filed: "Passed with the app review 2026-10-23: creator_info lists PUBLIC_TO_EVERYONE",
     needs: [],
     fields: [
       ["Expected daily posts", "Under 50 across all businesses at launch"],
@@ -336,7 +337,7 @@ export const REVIEWS: readonly Review[] = [
     ],
     scopes: [],
     video: ["The tiktok-app screencast's post page shots; the audit asks for the same flow."],
-    open: ["Until it passes, every post is private (SELF_ONLY)."],
+    open: [],
   },
   {
     id: "linkedin-pages",

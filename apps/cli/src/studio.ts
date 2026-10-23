@@ -468,7 +468,6 @@ export function registerStudio(
           const d = await approveVideo(db, id(v), {
             source: "cli",
             privacy,
-            tiktokVia: settings.tiktokPostVia,
             ...(o.replace ? { replace: true } : {}),
             ...(at ? { at } : {}),
             ...(o.short ? { short: o.short } : {}),

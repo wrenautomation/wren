@@ -41,6 +41,7 @@ function fake(answers: Record<string, (input: Record<string, unknown>) => unknow
 describe("tiktok post fields", () => {
   it("sends the toggles, the cover frame and the labels its shape holds", async () => {
     const { sites, calls } = fake({
+      [CREATOR]: () => creator({ duet_disabled: false }),
       [INIT]: () => ({ data: { publish_id: "p1" } }),
       [STATUS]: () => ({ data: { status: "PROCESSING_DOWNLOAD" } }),
     });
@@ -57,7 +58,7 @@ describe("tiktok post fields", () => {
         yourBrand: true,
       },
     });
-    expect(calls[0]?.[1].post_info).toEqual({
+    expect(calls[1]?.[1].post_info).toEqual({
       title: "a short",
       privacy_level: "FOLLOWER_OF_CREATOR",
       disable_comment: false,

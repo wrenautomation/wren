@@ -188,8 +188,6 @@ export interface ApproveVideo {
   at?: Date;
   /** The long video, already uploaded: upload the current render as a new video. The old draft keeps its URL. */
   replace?: boolean;
-  /** How Wren's TikTok posts go out (`tiktokPostVia`): `web` drafts public with every interaction on. Default `api`. */
-  tiktokVia?: "web" | "api";
   source: IdeaSource;
   now?: Date;
 }
@@ -373,7 +371,6 @@ export async function approveVideo(
       video: id,
       short: reels,
       funnel,
-      tiktokVia: o.tiktokVia ?? "api",
     });
     if (reel) return { ...out, reel: { id: reel.id, again: true }, also };
     const caption = withFooter([title, about], fillFooter(footers.reel, e), IG_CAPTION);
@@ -456,24 +453,20 @@ export function alsoText(platform: AlsoPlatform, title: string, description: str
   return [title, leadOf(description)].filter(Boolean).join("\n\n");
 }
 
-/**
- * TikTok's fields for a clip. Studio (`web`) posts public with comments, duet and stitch on, the
- * way a post goes out by default; the unaudited API posts only to him, so `api` drafts private
- * with them off.
- */
-export function tiktokFields(via: "web" | "api") {
-  return fieldsOf(
-    "tiktok",
-    via === "web"
-      ? { privacy: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: true, allowStitch: true }
-      : { privacy: "SELF_ONLY" },
-  );
+/** TikTok's fields for a clip: public with comments, duet and stitch on, the way a post goes out by default. */
+export function tiktokFields() {
+  return fieldsOf("tiktok", {
+    privacy: "PUBLIC_TO_EVERYONE",
+    allowComment: true,
+    allowDuet: true,
+    allowStitch: true,
+  });
 }
 
 /** The fields each takes; `coverMs` the cover frame, TikTok's only. */
-const alsoFields = (platform: AlsoPlatform, tiktokVia: "web" | "api", cover?: number) =>
+const alsoFields = (platform: AlsoPlatform, cover?: number) =>
   platform === "tiktok"
-    ? { ...tiktokFields(tiktokVia), ...(cover !== undefined ? { coverMs: cover } : {}) }
+    ? { ...tiktokFields(), ...(cover !== undefined ? { coverMs: cover } : {}) }
     : platform === "x"
       ? fieldsOf("x", {})
       : platform === "facebook"
@@ -495,7 +488,6 @@ async function alsoDrafts(
     video: number;
     short: number | "vertical";
     funnel: { stage: "reach" | "trust"; pointsTo: "video" | "site"; videoDraft?: string | null };
-    tiktokVia: "web" | "api";
     /** The whole cut's renders by format, uploaded (`framedStored`): each platform takes its shape. */
     framed?: Partial<Record<CroppedFormat, string>>;
     coverMs?: number;
@@ -515,7 +507,7 @@ async function alsoDrafts(
         text,
         title: o.title,
         media: { kind: "video", source, title: o.title },
-        extra: alsoFields(platform, o.tiktokVia, o.coverMs),
+        extra: alsoFields(platform, o.coverMs),
         status: "draft",
         promptVersion: "video",
         ...o.funnel,

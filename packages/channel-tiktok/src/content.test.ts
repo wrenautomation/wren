@@ -21,8 +21,16 @@ function fakeSites(answers: Record<string, (input?: Record<string, unknown>) => 
 const host: MediaHost = { host: async () => "https://cdn.test/short.mp4" };
 
 describe("tiktok content channel", () => {
-  it("publishes a hosted video by URL over autobrowse, lists, reads counts", async () => {
+  it("publishes over autobrowse by file upload after creator_info, lists, reads counts", async () => {
     const { sites, calls } = fakeSites({
+      "POST /v2/post/publish/creator_info/query/": () => ({
+        data: {
+          creator_nickname: "Wren",
+          privacy_level_options: ["PUBLIC_TO_EVERYONE", "SELF_ONLY"],
+          max_video_post_duration_sec: 600,
+        },
+        error: { code: "ok" },
+      }),
       "POST /v2/post/publish/video/init/": (i) => {
         expect(i).toEqual({
           post_info: {
@@ -34,7 +42,7 @@ describe("tiktok content channel", () => {
             brand_organic_toggle: false,
             brand_content_toggle: false,
           },
-          source_info: { source: "PULL_FROM_URL", video_url: "https://cdn.test/short.mp4" },
+          file: "https://cdn.test/short.mp4",
         });
         return { data: { publish_id: "pub1" } };
       },
@@ -75,7 +83,7 @@ describe("tiktok content channel", () => {
       comments: 1,
       shares: 2,
     });
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(5);
   });
 
   it("reads a video's comments off its page: ours marked, replies keep their parent", async () => {

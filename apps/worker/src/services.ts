@@ -1470,7 +1470,6 @@ export async function buildServices(
       platforms: settings.contentChannels,
       zone: settings.sendTimezone,
       tracer,
-      tiktokVia: settings.tiktokPostVia,
       // A client's drafts: its database, the watch's model metered on its own gate, or its own
       // model key from the store.
       clients: { clientDb, llm: watchLlm, keys },
@@ -2861,7 +2860,7 @@ function contentFor(settings: Settings, log: Logger, db: Db): ChannelsFor | null
       ...(on.includes("threads")
         ? { threads: threadsContent(as("threads", base), host ? { host } : {}) }
         : {}),
-      // Studio in the box's browser posts public; the API waits on TikTok's audit (WREN_TIKTOK_POST_VIA).
+      // The Content Posting API (audited 2026-10-23); WREN_TIKTOK_POST_VIA=web falls back to Studio in the box's browser.
       ...(on.includes("tiktok")
         ? {
             tiktok: tiktokContent(as("tiktok", base), {

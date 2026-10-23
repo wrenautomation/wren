@@ -177,7 +177,7 @@ describe("marketing.video", () => {
     expect(detail.video.thumbnails.map((t) => t.picked)).toEqual([false, true]);
   });
 
-  it("drafts TikTok private with interactions off by the API, public with them on through Studio", async () => {
+  it("drafts TikTok public with comment, duet and stitch on", async () => {
     const make = async (title: string) => {
       const [v] = await pg.db
         .insert(videoEdits)
@@ -199,16 +199,8 @@ describe("marketing.video", () => {
       const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
       return d?.extra;
     };
-    const api = await approveVideo(pg.db, await make("By the API"), { source: "cli", short: 1 });
-    expect(await tiktok(api.also?.find((x) => x.platform === "tiktok")?.id)).toEqual({
-      privacy: "SELF_ONLY",
-    });
-    const web = await approveVideo(pg.db, await make("Through Studio"), {
-      source: "cli",
-      short: 1,
-      tiktokVia: "web",
-    });
-    expect(await tiktok(web.also?.find((x) => x.platform === "tiktok")?.id)).toMatchObject({
+    const d = await approveVideo(pg.db, await make("A Short"), { source: "cli", short: 1 });
+    expect(await tiktok(d.also?.find((x) => x.platform === "tiktok")?.id)).toMatchObject({
       privacy: "PUBLIC_TO_EVERYONE",
       allowComment: true,
       allowDuet: true,
