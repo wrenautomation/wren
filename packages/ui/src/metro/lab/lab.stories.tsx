@@ -4,6 +4,7 @@
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
+import { expect, within } from "storybook/test";
 import { FactsTable } from "../../table.js";
 import { MetroSvg } from "../draw.js";
 import "../metro.css";
@@ -178,7 +179,15 @@ function Lab({ start }: { start: string }) {
 type Story = StoryObj;
 
 /** A hand-placed industry map: the target is the artifact's drawing. */
-export const Industry: Story = { render: () => <Lab start="industry-dental" /> };
+export const Industry: Story = {
+  render: () => <Lab start="industry-dental" />,
+  // Every engine runs in the page: the LP placer's Wasm loads here, not only in Node.
+  play: async ({ canvasElement }) => {
+    const first = await within(canvasElement).findByText(/^1\. /, {}, { timeout: 30_000 });
+    await expect(first).toBeVisible();
+    await expect(within(canvasElement).getAllByText(/y ELK \+ LP$/).length).toBeGreaterThan(0);
+  },
+};
 
 /** A big generated funnel: no hand map; overlaps and crossings decide. */
 export const Big: Story = { render: () => <Lab start="generated-40" /> };

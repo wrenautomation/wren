@@ -9,6 +9,7 @@ import { RADIUS, textWidth } from "../geometry.js";
 import { finishMetro, layoutMetro, type Placement } from "../layout.js";
 import { isMark, type MetroScene, type Point, type Zone } from "../types.js";
 import { DEFAULT_COLUMNS, type MetroView, type ViewStation } from "../view.js";
+import { lpY } from "./lp.js";
 
 export type Finish = "none" | "snap";
 
@@ -170,12 +171,27 @@ function evenX(view: MetroView, pos: Map<string, Point>, step = 120, merge = 24)
   }
 }
 
-export type Source = "current" | "elk-bk" | "elk-ns";
-export const SOURCES: Source[] = ["current", "elk-bk", "elk-ns"];
-const placeBy: Record<Source, (v: MetroView) => Promise<Map<string, Point>>> = {
+/** ELK's order, then the LP's y: each even x slot keeps ELK's top-to-bottom order. */
+async function elkLpPlace(view: MetroView): Promise<Map<string, Point>> {
+  const elk = await elkPlace(view, "BRANDES_KOEPF");
+  const even = new Map(elk);
+  evenX(view, even);
+  const xs = [...new Set([...even.values()].map(([x]) => x))].sort((a, b) => a - b);
+  const slot = new Map([...even].map(([k, [x]]) => [k, xs.indexOf(x)]));
+  const size = new Map(view.stations.map((s) => [s.id, sizeOf(s).height]));
+  return lpY(view, elk, slot, (k) => size.get(k) ?? 0);
+}
+
+/** A placer: a point for each station of a view. Any one can give x and any other y. */
+export type Placer = (v: MetroView) => Promise<Map<string, Point>>;
+
+export type Source = "current" | "elk-bk" | "elk-ns" | "elk-lp";
+export const SOURCES: Source[] = ["current", "elk-bk", "elk-ns", "elk-lp"];
+const placeBy: Record<Source, Placer> = {
   current: currentPlace,
   "elk-bk": (v) => elkPlace(v, "BRANDES_KOEPF"),
   "elk-ns": (v) => elkPlace(v, "NETWORK_SIMPLEX"),
+  "elk-lp": elkLpPlace,
 };
 
 export interface Mix {
@@ -196,6 +212,7 @@ const SOURCE_NAME: Record<Source, string> = {
   current: "today",
   "elk-bk": "ELK BK",
   "elk-ns": "ELK NS",
+  "elk-lp": "ELK + LP",
 };
 
 /** "x ELK BK, even · y today": what each axis came from. */
@@ -212,7 +229,7 @@ export async function runMix(view: MetroView, m: Mix): Promise<MetroScene> {
   return finishMetro(view, normalise(view, pos));
 }
 
-/** Both ELK modes give the same x (the layers); they differ in y. Snap leaves today's rows as they are. */
+/** The ELK placers give the same x (the layers); they differ in y. Snap leaves today's rows as they are. */
 export const MIXES: Mix[] = (["current", "elk-bk"] as const).flatMap((x) =>
   SOURCES.flatMap((y) =>
     (x === "current" ? [false] : [false, true]).flatMap((even) =>
