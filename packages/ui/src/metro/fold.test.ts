@@ -7,9 +7,17 @@ import {
   normalise,
   stepLevel,
   toggleGroup,
+  viewScene,
 } from "./fold.js";
 import { layoutMetro } from "./layout.js";
-import { DIFF_VIEW, loopZoom, protocolZoom, ZOOM_SCENE, zoomScenario } from "./samples.js";
+import {
+  DIFF_VIEW,
+  loopZoom,
+  protocolZoom,
+  ZOOM_SCENE,
+  ZOOM_VIEW,
+  zoomScenario,
+} from "./samples.js";
 import { isCapsule, isMark } from "./types.js";
 
 describe("flagsAt and normalise", () => {
@@ -163,5 +171,37 @@ describe("a fold keeps the diff marks", () => {
   it("keeps the mark of a track that reattaches to a capsule", () => {
     const scene = foldScene(layoutMetro(DIFF_VIEW), 0);
     expect(scene.tr.find((t) => t.id === "t-hub-lan")?.mark).toBe("added");
+  });
+});
+
+describe("viewScene", () => {
+  const full = layoutMetro(ZOOM_VIEW);
+  const ids = (sc: { st: readonly { id: string }[] }) => new Set(sc.st.map((s) => s.id));
+  it("folds before layout: a fold is a circle in one slot, and the map is narrower", () => {
+    for (const lv of [0, 1]) {
+      const sc = viewScene(ZOOM_VIEW, lv, {});
+      const caps = sc.st.filter(isCapsule);
+      expect(caps.length).toBeGreaterThan(0);
+      for (const c of caps) expect(c.cap[0]).toBe(c.cap[1]);
+      expect(sc.st.length).toBeLessThan(full.st.length);
+      expect(sc.w ?? 0).toBeLessThan(full.w ?? 0);
+    }
+  });
+  it("ends every track on a drawn station", () => {
+    for (const lv of [0, 1]) {
+      const sc = viewScene(ZOOM_VIEW, lv, {});
+      const have = ids(sc);
+      for (const t of sc.tr) {
+        if (t.a) expect(have.has(t.a)).toBe(true);
+        if (t.b) expect(have.has(t.b)).toBe(true);
+      }
+    }
+  });
+  it("opens a group by hand with room above for its fold tab", () => {
+    const sc = viewScene(ZOOM_VIEW, 1, { rd: true });
+    const o = sc.opened?.find((x) => x.grp === "rd");
+    expect(o?.top).toBeDefined();
+    expect((o?.top ?? 0) - 38).toBeGreaterThanOrEqual(8);
+    expect(sc.st.some((s) => s.id === "rd")).toBe(false);
   });
 });

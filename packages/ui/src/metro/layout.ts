@@ -87,7 +87,7 @@ const CLEAR = 6;
 /** Air between a chip and a name, a transfer's label or another chip. Marks get `CHIP_ROOM`. */
 const CHIP_CLEAR = 3;
 /** The least room between the drawing and the scene's edge. */
-const EDGE = 8;
+export const EDGE = 8;
 
 const KIND: Record<ViewKind, StationKind> = {
   att: "att",
@@ -721,7 +721,7 @@ function dress(sc: MetroScene, fold: boolean): [number, number][] {
 }
 
 /** Move the scene right and down by `dx` and `dy`. */
-function shift(sc: MetroScene, dx: number, dy: number) {
+export function shift(sc: MetroScene, dx: number, dy: number) {
   if (!dx && !dy) return;
   for (const s of sc.st) {
     if (isMark(s)) {

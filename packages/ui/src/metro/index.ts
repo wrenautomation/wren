@@ -23,6 +23,8 @@ export {
   type OpenMap,
   stepLevel,
   toggleGroup,
+  viewScene,
+  viewZoom,
 } from "./fold.js";
 export {
   type Box,

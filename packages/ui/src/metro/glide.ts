@@ -55,21 +55,45 @@ export function centreOf(n: Element | null): Point | null {
 
 /**
  * Glide from `old` (a copy of the last frame, laid over the map) to `next` (the live svg).
- * Returns at once. The caller removes `old` after `GLIDE_MS.fade`.
+ * Marks that appear grow out of the anchor; marks that go shrink back into it. The anchor is a
+ * mark of the new frame (`anchorKey`: the circle a group folded into), else a point.
+ * Returns how long the old frame must stay, in ms.
  */
 export function glide(o: {
   old: SVGSVGElement;
   next: SVGSVGElement;
   anchor?: Point | null | undefined;
-}): void {
+  anchorKey?: string | null | undefined;
+}): number {
   const before = snapshot(o.old);
   const after = snapshot(o.next);
+  const to = o.anchorKey ? after.get(o.anchorKey) : undefined;
+  const anchor: Point | null = to ? [to.x, to.y] : (o.anchor ?? null);
+  const gone = [...before].filter(([k]) => !after.has(k)).map(([, b]) => b);
   for (const [k, b] of before) if (after.has(k)) b.n.style.opacity = "0";
-  o.old.animate?.([{ opacity: 1 }, { opacity: 0 }], {
-    duration: GLIDE_MS.fade,
-    easing: "ease-out",
-  });
-  for (const n of o.next.querySelectorAll<SVGElement>(".case,.trk,.spur,.xfer,.hit")) {
+  // The old frame fades, except the marks that go: they shrink into the anchor first.
+  const goneSet = new Set<Element>(gone.map((b) => b.n));
+  for (const c of o.old.children) {
+    if (goneSet.has(c) || gone.some((b) => c.contains(b.n))) continue;
+    c.animate?.([{ opacity: 1 }, { opacity: 0 }], {
+      duration: GLIDE_MS.fade,
+      easing: "ease-out",
+      fill: "forwards",
+    });
+  }
+  for (const b of gone) {
+    const [ax, ay] = anchor ?? [b.x, b.y];
+    b.n.style.transformBox = "fill-box";
+    b.n.style.transformOrigin = "center";
+    b.n.animate(
+      [
+        { opacity: 1, transform: "none" },
+        { opacity: 0, transform: `translate(${ax - b.x}px,${ay - b.y}px) scale(.4)` },
+      ],
+      { duration: GLIDE_MS.shrink, easing: EASE, fill: "forwards" },
+    );
+  }
+  for (const n of o.next.querySelectorAll<SVGElement>(".case,.trk,.spur,.xfer,.hit,.opn")) {
     n.animate?.([{ opacity: 0 }, { opacity: 1 }], {
       duration: 320,
       delay: 80,
@@ -96,20 +120,28 @@ export function glide(o: {
           { duration: GLIDE_MS.move, easing: EASE },
         );
       }
-    } else {
-      const [ax, ay] = o.anchor ?? [a.x, a.y];
+    } else if (a !== to) {
+      // It grows out of the anchor, the way a closing mark goes back in.
+      const [ax, ay] = anchor ?? [a.x, a.y];
       a.n.animate(
         [
-          {
-            opacity: 0,
-            transform: `translate(${(ax - a.x) * 0.7}px,${(ay - a.y) * 0.7}px) scale(.55)`,
-          },
+          { opacity: 0, transform: `translate(${ax - a.x}px,${ay - a.y}px) scale(.4)` },
           { opacity: 1, transform: "none" },
         ],
         { duration: GLIDE_MS.move, delay: 40, easing: EASE, fill: "backwards" },
       );
+    } else {
+      // The circle a group folds into fills in as the stations reach it.
+      a.n.animate(
+        [
+          { opacity: 0, transform: "scale(.6)" },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: GLIDE_MS.move, delay: GLIDE_MS.shrink * 0.4, easing: EASE, fill: "backwards" },
+      );
     }
   }
+  return gone.length ? GLIDE_MS.shrink : GLIDE_MS.fade;
 }
 
 /** Fade the new frame in when there is nothing to glide from (reduced motion). */
@@ -126,4 +158,4 @@ export function glideHeight(host: HTMLElement, from: number, to: number): void {
   });
 }
 
-export const GLIDE_MS = { move: 460, fade: 180 } as const;
+export const GLIDE_MS = { move: 460, fade: 180, shrink: 380 } as const;

@@ -15,6 +15,7 @@ import {
   markerBox,
   pillWidth,
   ruleWidth,
+  TAB_ROOM,
   textWidth,
   xferWidth,
 } from "./geometry.js";
@@ -419,10 +420,22 @@ export function Capsule({
   on?: boolean | undefined;
 }) {
   const [x0, x1] = c.cap;
-  const h = 30;
-  const X = x0 - 16;
-  const w = x1 - x0 + 32;
+  // A run folded before layout has no span: it draws as a circle, wide enough for its count.
+  const round = x1 - x0 < 1;
+  const h = round ? 32 : 30;
+  const w = round ? Math.max(h, textWidth(String(c.now), 13, true) + 14) : x1 - x0 + 32;
   const m = (x0 + x1) / 2;
+  const X = m - w / 2;
+  // Its name sits on the side the layout chose: above by default.
+  const nw = textWidth(c.n);
+  const lab =
+    c.p === "down"
+      ? { x: m, y: c.y + h / 2 + 19, anchor: "middle" as const }
+      : c.p === "right"
+        ? { x: X + w + 10, y: c.y + 5, anchor: "start" as const }
+        : c.p === "left"
+          ? { x: X - 10, y: c.y + 5, anchor: "end" as const }
+          : { x: m, y: c.y - h / 2 - 10, anchor: "middle" as const };
   return (
     <g
       className={cx("cap", c.late && "late", selected && "sel", on && "on")}
@@ -452,11 +465,19 @@ export function Capsule({
       <text className="cn" x={m} y={c.y + 4.5} textAnchor="middle">
         {c.now}
       </text>
-      <text className="lab" x={m} y={c.y - h / 2 - 10} textAnchor="middle">
+      <text className="lab" x={lab.x} y={lab.y} textAnchor={lab.anchor}>
         {c.n}
       </text>
       {c.mark ? (
-        <MarkTag mark={c.mark} x={m + textWidth(c.n) / 2 + 12} y={c.y - h / 2 - 14} />
+        <MarkTag
+          mark={c.mark}
+          x={
+            lab.anchor === "end"
+              ? lab.x - nw - 12
+              : lab.x + (lab.anchor === "start" ? nw : nw / 2) + 12
+          }
+          y={lab.y - 4}
+        />
       ) : null}
     </g>
   );
@@ -570,24 +591,19 @@ export function Leaf({
   return <path className={className} d={leafPath(x, y, w, h, a, b)} />;
 }
 
-/** How far left of its first station an open group's outline starts: the knob sits there. */
-const KNOB = 34;
-
 /**
- * A group opened by hand keeps its capsule's place: a faint outline round its stations on the
- * track, and a fold knob on the outline's left end. Same height as the capsule, so it never
- * reaches the next row's labels.
+ * A group opened by hand keeps a faint outline round its stations on the track. Same height as the
+ * capsule, so it never reaches the next row's labels.
  */
 export function OpenedOutline({ o, colours }: { o: OpenedSpec; colours: Colours }) {
   const [x0, x1] = o.cap;
   const h = 30;
-  const X = x0 - KNOB;
   return (
     <rect
       className="opn"
-      x={X}
+      x={x0 - 16}
       y={o.y - h / 2}
-      width={x1 - X + 16}
+      width={x1 - x0 + 32}
       height={h}
       rx={h / 2}
       style={{ stroke: lineColour(colours, o.l) }}
@@ -595,21 +611,20 @@ export function OpenedOutline({ o, colours }: { o: OpenedSpec; colours: Colours 
   );
 }
 
-/** The fold knob: the artifact's fold leaf with its glyph only; the name is its label. */
-export function OpenedKnob({ o }: { o: OpenedSpec }) {
-  const x = o.cap[0] - KNOB;
-  return (
-    <g className="fold knob" data-fold={o.grp} {...asButton(`Fold ${o.t}`)}>
-      <title>{`Fold ${o.t}`}</title>
-      <Leaf x={x - 15} y={o.y - 15} w={30} h={30} a={4} b={14} className="lf" />
-      <SvgGlyph name="shrink" x={x} y={o.y} size={15} />
-    </g>
-  );
+/** The fold tab of a group opened by hand: above the group, at its right end, as in the artifact. */
+export function OpenedTab({ o }: { o: OpenedSpec }) {
+  const w = tabWidth(o.t);
+  // Right end on the outline's right end; never past the map's left edge.
+  const x = Math.max(o.cap[1] + 16 - w / 2, w / 2 + 8);
+  const y = (o.top ?? o.y - 40) - TAB_ROOM / 2 - 2;
+  return <FoldTab x={x} y={y} t={o.t} grp={o.grp} />;
 }
+
+const tabWidth = (t: string) => t.length * 6.9 + 46;
 
 /** A fold tab on an open group: click it to fold the group back. */
 export function FoldTab({ x, y, t, grp }: FoldSpec): ReactNode {
-  const w = t.length * 6.9 + 46;
+  const w = tabWidth(t);
   return (
     <g className="fold" data-fold={grp} {...asButton(`Fold ${t}`)}>
       <Leaf x={x - w / 2} y={y - 15} w={w} h={30} a={4} b={14} className="lf" />

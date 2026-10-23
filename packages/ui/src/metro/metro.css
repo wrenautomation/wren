@@ -428,8 +428,8 @@
   stroke: var(--ui-focus);
   stroke-width: 2;
 }
-/* A group opened by hand: its capsule's outline stays on the track, faint, with a fold knob at
-   its left end. Click the knob to fold the group back where it was. */
+/* A group opened by hand: a faint outline stays on the track, with a fold tab above its right
+   end. Click the tab to fold the group back into its circle. */
 .mm .opn {
   fill: none;
   stroke-width: 1.5;

@@ -6,6 +6,8 @@
  * Zoom hides stations, never lines. A run of stations folds into one capsule. The hub and the
  * exits never fold. Tracks reattach to the capsule edge. A late track inside rings it amber.
  */
+import { labelBoxes, markBoxes, TAB_ROOM } from "./geometry.js";
+import { EDGE, layoutMetro, shift } from "./layout.js";
 import {
   type CapsuleStation,
   isMark,
@@ -17,6 +19,7 @@ import {
   type Point,
   type SceneStation,
 } from "./types.js";
+import { DEFAULT_COLUMNS, type MetroView, type ViewStation, type ViewTrack } from "./view.js";
 
 /** Groups the viewer opened (true) or folded (false) beyond what the level shows. */
 export type OpenMap = Readonly<Record<string, boolean>>;
@@ -181,6 +184,7 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
         cap: [Math.min(...xs), Math.max(...xs)],
         y: first.y,
         l,
+        top: topOf(m),
       };
     });
   const into = new Map<string, string>();
@@ -244,4 +248,163 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
   }
   const st: SceneStation[] = scene.st.filter((s) => !into.has(s.id)).concat(caps);
   return { ...scene, st, tr, ...(shut.length ? { opened: shut } : {}) };
+}
+
+/** The top of a run's marks and names: where its fold tab sits above. */
+function topOf(m: readonly MarkStation[]): number {
+  return Math.min(...m.flatMap((s) => [...markBoxes(s), ...labelBoxes(s)].map((b) => b.y0)));
+}
+
+/** Zoom for a view: each level folds the view first, then lays it out, so a fold takes one place. */
+export function viewZoom(view: MetroView, names: readonly string[] = LEVEL_NAMES): MetroZoom {
+  const last = names.length - 1;
+  const full = layoutMetro(view);
+  return {
+    names,
+    preset: (level) => (level >= last ? { "*": true } : {}),
+    scene: (level, open) => (level >= last ? full : viewScene(view, level, open)),
+    total: view.stations.length,
+  };
+}
+
+/**
+ * The scene of a view at a level. Level 1 folds the named groups (`station.group`), level 0 one run
+ * per line per column. A folded run is one station when the layout places it, so it takes one
+ * step, not the room of its stations. It draws as a round capsule. The hub and exits never fold.
+ */
+export function viewScene(view: MetroView, level: number, open: OpenMap = {}): MetroScene {
+  if (level >= 2) return layoutMetro(view);
+  const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
+  for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
+  const key = (s: ViewStation): string | null =>
+    s.kind === "hub" || s.kind === "exit"
+      ? null
+      : level === 1
+        ? (s.group ?? null)
+        : `${s.line}@${s.column}`;
+  const runs = new Map<string, ViewStation[]>();
+  for (const s of view.stations) {
+    const k = key(s);
+    if (k) runs.set(k, [...(runs.get(k) ?? []), s]);
+  }
+  const nameOf = (k: string, first: ViewStation) => {
+    const line = view.lines.find((l) => l.id === first.line);
+    const n = line?.label ?? first.line;
+    return level === 1
+      ? (view.groups?.find((g) => g.id === k)?.label ?? k)
+      : line?.tier === "out"
+        ? n
+        : `${n} · ${first.column}`;
+  };
+  const into = new Map<string, string>();
+  const shown = new Map<string, string[]>();
+  const folds: ViewStation[] = [];
+  const meta = new Map<string, { late: boolean; mark?: Mark }>();
+  for (const [k, m] of runs) {
+    if (m.length < 2) continue;
+    if (open[k]) {
+      shown.set(
+        k,
+        m.map((s) => s.id),
+      );
+      continue;
+    }
+    // The fold sits in the run's first column.
+    const first = [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column))[0];
+    if (!first) continue;
+    const ids = new Set(m.map((s) => s.id));
+    const inside = view.tracks.filter((t) => ids.has(t.from) && ids.has(t.to));
+    const line = view.lines.find((l) => l.id === first.line);
+    const mark = capsuleMark(
+      m.map((s) => ({ mark: s.mark ?? line?.mark })),
+      inside,
+    );
+    meta.set(k, { late: inside.some((t) => t.late), ...(mark ? { mark } : {}) });
+    folds.push({
+      id: k,
+      kind: "att",
+      line: first.line,
+      column: first.column,
+      label: nameOf(k, first),
+      now: m.reduce((a, s) => a + (s.now ?? 0), 0),
+    });
+    for (const s of m) into.set(s.id, k);
+  }
+  const at = (id: string) => into.get(id) ?? id;
+  // Tracks reattach to the fold. One inside it goes; two that now join the same ends are one.
+  const seen = new Set<string>();
+  const tracks = view.tracks.flatMap((t): ViewTrack[] => {
+    const from = at(t.from);
+    const to = at(t.to);
+    if (from === to && from !== t.from) return [];
+    if (from === t.from && to === t.to) return [t];
+    const pair = `${from}>${to}`;
+    if (seen.has(pair)) return [];
+    seen.add(pair);
+    return [{ ...t, id: t.id ?? `${t.from}-${t.to}`, from, to }];
+  });
+  // The fold takes the place of the run's first station, so the stations keep their order.
+  const stations = view.stations.flatMap((s) => {
+    const k = into.get(s.id);
+    if (!k) return [s];
+    const f = folds.find((x) => x.id === k);
+    return f && runs.get(k)?.[0]?.id === s.id ? [f] : [];
+  });
+  const scene = layoutMetro({ ...view, stations, tracks });
+  const opened = openedOf(scene, shown, (k) => nameOf(k, runs.get(k)?.[0] as ViewStation));
+  // A fold tab above the top row needs room: the map moves down for it.
+  const dy = EDGE - Math.min(EDGE, ...opened.map((o) => (o.top ?? o.y) - TAB_ROOM));
+  if (dy > 0) {
+    shift(scene, 0, dy);
+    scene.h += dy;
+    for (const o of opened) {
+      o.y += dy;
+      if (o.top !== undefined) o.top += dy;
+    }
+  }
+  const lineKey = (ln: string | undefined) => scene.lines?.[ln ?? ""]?.l ?? ln ?? "";
+  const st = scene.st.map((s): SceneStation => {
+    const m = meta.get(s.id);
+    if (!m || !isMark(s)) return s;
+    return {
+      id: s.id,
+      grp: s.id,
+      cap: [s.x, s.x],
+      x: s.x,
+      y: s.y,
+      l: lineKey(s.ln),
+      late: m.late,
+      ...(m.mark ? { mark: m.mark } : {}),
+      now: s.now ?? 0,
+      n: s.n ?? s.id,
+      ...(s.p ? { p: s.p } : {}),
+    };
+  });
+  return { ...scene, st, ...(opened.length ? { opened } : {}) };
+}
+
+/** The groups opened by hand, from where the layout put their stations. */
+function openedOf(
+  scene: MetroScene,
+  shown: ReadonlyMap<string, readonly string[]>,
+  name: (k: string) => string,
+): OpenedSpec[] {
+  const byId = new Map(scene.st.map((s) => [s.id, s]));
+  return [...shown].flatMap(([k, ids]): OpenedSpec[] => {
+    const m = ids.map((id) => byId.get(id)).filter((s): s is MarkStation => !!s && isMark(s));
+    const first = m[0];
+    if (!first) return [];
+    // The outline runs along the first station's row.
+    const xs = m.filter((s) => s.y === first.y).map((s) => s.x);
+    return [
+      {
+        grp: k,
+        t: name(k),
+        cap: [Math.min(...xs), Math.max(...xs)],
+        y: first.y,
+        l: scene.lines?.[first.ln ?? ""]?.l ?? first.ln ?? k,
+        top: topOf(m),
+      },
+    ];
+  });
 }

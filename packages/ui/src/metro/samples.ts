@@ -4,7 +4,7 @@
  * sales protocol). Synthetic: no real prices or people.
  */
 import { INDUSTRIES, LOOP_SCENE, OFFERS_SCENE, SCENARIOS, ZOOM_SCENE } from "./data.js";
-import { autoZoom, type Flags, flagZoom, type MetroZoom } from "./fold.js";
+import { type Flags, flagZoom, type MetroZoom, viewZoom } from "./fold.js";
 import {
   type ChipSpec,
   type FoldSpec,
@@ -354,8 +354,174 @@ export const LOGIC_GLYPHS: GlyphRow[] = [
 // ---------------------------------------------------------------------------------------------
 // Section 05: the zoom scenario.
 
-/** Parts, Groups, Stations: a scene that names its lines and groups folds by rule. */
-export const zoomScenario = (): MetroZoom => autoZoom(ZOOM_SCENE);
+/** The zoom scenario as a view: Reddit and YouTube into a booked call, an audit upsell, onboarding. */
+export const ZOOM_VIEW: MetroView = {
+  title: "Reddit to a booked call, at three zoom levels",
+  lines: [
+    { id: "rd", label: "Reddit", tier: "out" },
+    { id: "yt", label: "YouTube", tier: "out" },
+    { id: "gp", label: "Growth Partner", offer: "Growth Partner", tier: "core", colour: 2 },
+    { id: "au", label: "Audit", offer: "Audit", tier: "front", colour: 1 },
+  ],
+  groups: [
+    { id: "rd", label: "Reddit" },
+    { id: "yt", label: "YouTube" },
+    { id: "on", label: "Onboarding" },
+  ],
+  stations: [
+    {
+      id: "r1",
+      kind: "att",
+      line: "rd",
+      column: "Marketing",
+      group: "rd",
+      label: "Thread",
+      sub: "12",
+      now: 12,
+    },
+    {
+      id: "r2",
+      kind: "att",
+      line: "rd",
+      column: "Marketing",
+      group: "rd",
+      label: "Comment",
+      sub: "9",
+      now: 9,
+    },
+    {
+      id: "r3",
+      kind: "att",
+      line: "rd",
+      column: "Marketing",
+      group: "rd",
+      label: "DM sent",
+      sub: "6",
+      now: 6,
+    },
+    {
+      id: "y1",
+      kind: "att",
+      line: "yt",
+      column: "Marketing",
+      group: "yt",
+      label: "View",
+      sub: "40",
+      now: 40,
+    },
+    {
+      id: "y2",
+      kind: "att",
+      line: "yt",
+      column: "Marketing",
+      group: "yt",
+      label: "Comment",
+      sub: "7",
+      now: 7,
+    },
+    {
+      id: "hub",
+      kind: "hub",
+      line: "rd",
+      column: "Marketing",
+      label: "First touch",
+      sub: "81 / wk",
+    },
+    { id: "rep", kind: "att", line: "gp", column: "Sales", label: "Replied", sub: "4", now: 4 },
+    { id: "bk", kind: "time", line: "gp", column: "Sales", label: "Call booked", sub: "3", now: 3 },
+    { id: "held", kind: "time", line: "gp", column: "Sales", label: "Call held", sub: "2", now: 2 },
+    { id: "prop", kind: "att", line: "gp", column: "Sales", label: "Proposal", sub: "2", now: 2 },
+    { id: "lost", kind: "exit", line: "gp", column: "Sales", label: "Lost", sub: "5", bad: true },
+    { id: "a1", kind: "att", line: "au", column: "Sales", label: "Free audit", sub: "5", now: 5 },
+    { id: "a2", kind: "time", line: "au", column: "Sales", label: "Audit call", sub: "2", now: 2 },
+    {
+      id: "k",
+      kind: "time",
+      line: "gp",
+      column: "Delivery",
+      group: "on",
+      label: "Kickoff",
+      sub: "2",
+      now: 2,
+    },
+    {
+      id: "m3",
+      kind: "time",
+      line: "gp",
+      column: "Delivery",
+      group: "on",
+      label: "Month 3",
+      sub: "3",
+      now: 3,
+    },
+    {
+      id: "pay",
+      kind: "cash",
+      line: "gp",
+      column: "Money",
+      label: "Retainer",
+      sub: "$12k / mo",
+      repeat: "monthly",
+    },
+  ],
+  tracks: [
+    {
+      from: "r1",
+      to: "r2",
+      by: "person",
+      owner: "WJ",
+      promise: "4h",
+      late: true,
+      task: "Comment on new Reddit threads",
+    },
+    {
+      from: "r2",
+      to: "r3",
+      by: "person",
+      owner: "WJ",
+      promise: "1d",
+      task: "DM people who answered your comments",
+    },
+    { from: "r3", to: "hub", by: "system" },
+    { from: "y1", to: "y2", by: "system" },
+    { from: "y2", to: "hub", by: "system" },
+    { from: "hub", to: "rep", by: "system" },
+    {
+      from: "rep",
+      to: "bk",
+      by: "person",
+      owner: "WJ",
+      promise: "1h",
+      task: "Book calls with people who replied",
+    },
+    { from: "bk", to: "held", by: "system" },
+    {
+      from: "held",
+      to: "prop",
+      by: "person",
+      owner: "WJ",
+      promise: "1d",
+      task: "Send proposals after calls",
+    },
+    { from: "prop", to: "lost", by: "system" },
+    {
+      from: "prop",
+      to: "k",
+      by: "person",
+      owner: "WJ",
+      promise: "2d",
+      task: "Send the contract and book kickoff",
+    },
+    { from: "k", to: "m3", by: "system" },
+    { from: "m3", to: "pay", by: "system" },
+    { from: "hub", to: "a1", by: "system" },
+    { from: "a1", to: "a2", by: "system" },
+    { from: "a2", to: "prop", by: "system", label: "upsell" },
+  ],
+};
+
+/** Parts, Groups, Stations: the view folds before layout, so a folded group takes one place. */
+export const zoomScenario = (): MetroZoom => viewZoom(ZOOM_VIEW);
 
 // ---------------------------------------------------------------------------------------------
 // Section 08: the retainer loop, folded by groups.

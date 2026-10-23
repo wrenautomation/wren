@@ -25,8 +25,8 @@ import {
   MARK_WORD,
   Marker,
   MarkTag,
-  OpenedKnob,
   OpenedOutline,
+  OpenedTab,
   Pill,
   Ring,
   XferLabel,
@@ -411,7 +411,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       {stations}
       {labels}
       {(scene.opened ?? []).map((o) => (
-        <OpenedKnob key={`ok${o.grp}`} o={o} />
+        <OpenedTab key={`ok${o.grp}`} o={o} />
       ))}
     </svg>
   );

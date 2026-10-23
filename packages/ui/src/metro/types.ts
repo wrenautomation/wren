@@ -79,6 +79,8 @@ export interface CapsuleStation {
   grp?: string;
   /** A diff mark: any mark inside shows on the capsule. */
   mark?: Mark;
+  /** The side its name sits on. Default: up. */
+  p?: Side;
 }
 
 /** A loop folded: one ring in the line colour. */
@@ -205,6 +207,8 @@ export interface OpenedSpec {
   cap: [number, number];
   y: number;
   l: LineKey;
+  /** The top of its stations and their names: the fold tab sits above it. */
+  top?: number;
 }
 
 /** The tab of an open group. Click it to fold the group back. */

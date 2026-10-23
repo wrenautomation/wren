@@ -16,9 +16,15 @@ import { Seg } from "../controls.js";
 import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
-import { autoZoom, type MetroZoom, type OpenMap, stepLevel, toggleGroup } from "./fold.js";
-import { centreOf, fadeIn, GLIDE_MS, glide, glideHeight } from "./glide.js";
-import { layoutMetro } from "./layout.js";
+import {
+  autoZoom,
+  type MetroZoom,
+  type OpenMap,
+  stepLevel,
+  toggleGroup,
+  viewZoom,
+} from "./fold.js";
+import { centreOf, fadeIn, glide, glideHeight } from "./glide.js";
 import { MARK_GLYPH, MARK_WORD } from "./marks.js";
 import type { Mark, MetroPart, MetroScene, Point } from "./types.js";
 import type { MetroView } from "./view.js";
@@ -96,7 +102,9 @@ const INTRO_MS = 4200;
 export function MetroMap(props: MetroMapProps) {
   const { onPick, controls = true, still, className } = props;
   const zoom = useMemo<MetroZoom>(
-    () => props.zoom ?? autoZoom(props.scene ?? (props.view ? layoutMetro(props.view) : EMPTY)),
+    () =>
+      props.zoom ??
+      (props.scene ? autoZoom(props.scene) : props.view ? viewZoom(props.view) : autoZoom(EMPTY)),
     [props.zoom, props.scene, props.view],
   );
   const [level, setLevel] = useControlled(props.level, props.defaultLevel ?? 0);
@@ -132,12 +140,15 @@ export function MetroMap(props: MetroMapProps) {
   const live = useRef({ level, open, zoom, onPick, onStub: props.onStub, focused: !!focus });
   live.current = { level, open, zoom, onPick, onStub: props.onStub, focused: !!focus };
   const anchor = useRef<Point | null>(null);
+  const anchorKey = useRef<string | null>(null);
   const set = (
     next: { level: number; open: OpenMap },
     from?: Element | null,
     at?: Point | null,
+    into?: string,
   ) => {
     anchor.current = at ?? centreOf(from ?? null);
+    anchorKey.current = into ?? null;
     setIntro(false);
     setLevel(next.level);
     setOpen(next.open);
@@ -178,8 +189,10 @@ export function MetroMap(props: MetroMapProps) {
       const fold = target.closest<SVGElement>("[data-fold]");
       if (fold?.dataset.fold) {
         const k = fold.dataset.fold;
-        setRef.current(toggleGroup(z, { level: lv, open: op }, k, false), fold);
-        pickRef.current({ kind: "group", id: z.foldId?.[k] ?? k, group: k });
+        // The stations go back into the circle the group folds into.
+        const id = z.foldId?.[k] ?? k;
+        setRef.current(toggleGroup(z, { level: lv, open: op }, k, false), fold, null, `i:${id}`);
+        pickRef.current({ kind: "group", id, group: k });
         return;
       }
       const node = target.closest<SVGElement>("[data-id],[data-tr]");
@@ -322,10 +335,16 @@ export function MetroMap(props: MetroMapProps) {
     prev.frame.classList.remove("ld");
     for (const n of prev.frame.querySelectorAll<SVGElement>(".num")) n.style.animation = "none";
     layer.replaceChildren(prev.frame);
-    glide({ old: prev.frame, next: s, anchor: anchor.current });
+    const stay = glide({
+      old: prev.frame,
+      next: s,
+      anchor: anchor.current,
+      anchorKey: anchorKey.current,
+    });
     if (prev.h !== h.offsetHeight) glideHeight(h, prev.h, h.offsetHeight);
     anchor.current = null;
-    const t = setTimeout(() => layer.replaceChildren(), GLIDE_MS.fade + 20);
+    anchorKey.current = null;
+    const t = setTimeout(() => layer.replaceChildren(), stay + 20);
     return () => clearTimeout(t);
   }, [scene]);
 

@@ -29,6 +29,9 @@ export const RADIUS: Record<StationKind, number> = {
   link: 15,
 };
 
+/** The room a fold tab takes above an open group's top: the tab and a gap. */
+export const TAB_ROOM = 38;
+
 /** The glyph size a marker holds. */
 export const GLYPH_SIZE: Partial<Record<StationKind, number>> = { hub: 22, exit: 15 };
 
