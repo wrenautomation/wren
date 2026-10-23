@@ -24,7 +24,7 @@ export interface LayoutEdge {
 }
 
 let elk: Promise<ELK> | null = null;
-const elkOf = () => {
+export const elkOf = () => {
   elk ??= import("elkjs/lib/elk.bundled.js").then((m) => {
     const Elk = (m as unknown as { default: new () => ELK }).default;
     return new Elk();

@@ -513,7 +513,7 @@ export function sceneBoxes(scene: Pick<MetroScene, "st" | "tr">): SceneBoxes {
 
 /**
  * What a calm map must not do, as one line each. Empty when the map is calm: no name on a name or a
- * mark, no chip on a mark, a name or the hub, no track under the hub, one step between the
+ * mark, no mark on a mark, no chip on a mark, a name or the hub, no track under the hub, one step between the
  * stations of a column, and the hub's inputs on its left and its offers on its right. The tests, the stories and the layout's own checks read this one copy.
  */
 export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): string[] {
@@ -525,6 +525,10 @@ export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): st
       if (overlaps(l.box, m.box)) out.push(`name of ${l.id} meets name of ${m.id}`);
     for (const m of solid)
       if (overlaps(l.box, m.box)) out.push(`name of ${l.id} meets mark ${m.id}`);
+  });
+  solid.forEach((m, i) => {
+    for (const n of solid.slice(i + 1))
+      if (m.id !== n.id && overlaps(m.box, n.box)) out.push(`mark ${m.id} meets mark ${n.id}`);
   });
   for (const c of [...b.chips, ...b.tracks]) {
     for (const m of solid) {

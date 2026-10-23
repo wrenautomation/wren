@@ -305,7 +305,7 @@ const swapAt = <T>(a: readonly T[], i: number): T[] => {
  */
 function orderRows(p: Prep): ViewLine[] {
   const flat = p.columns.map(() => 0);
-  const score = (o: readonly ViewLine[]) => crossingsOf(build(p, o, flat, 0).scene);
+  const score = (o: readonly ViewLine[]) => crossingsOf(connect(p, o, placeRows(p, o, flat, 0)));
   const start = score(p.base);
   if (start === 0) return p.base;
 
@@ -364,13 +364,27 @@ function orderRows(p: Prep): ViewLine[] {
 /**
  * `kx` is how many times each column's step has grown, `ky` the rows'.
  */
-function build(
+/**
+ * Where a placer puts the map: a point for each station, the zones, the foot of the last row. An
+ * exit with no point hangs under its source. The hub's size and where each row meets it are the
+ * row placer's; another placer leaves them out.
+ */
+export interface Placement {
+  pos: ReadonlyMap<string, Point>;
+  zones: Zone[];
+  bottom: number;
+  hubR?: number;
+  meet?: ReadonlyMap<string, number>;
+}
+
+/** Today's placer: each line a row, columns of slots. */
+function placeRows(
   p: Prep,
   order: readonly ViewLine[],
   kx: readonly number[],
   ky: number,
-): { scene: MetroScene; bottom: number } {
-  const { view, columns, line, byId, exitOf, hubCol } = p;
+): Placement {
+  const { view, columns, line, exitOf, hubCol } = p;
   const steps = columns.map((_, ci) => SPACE.step + (kx[ci] ?? 0) * GROW.step);
   const rowH = SPACE.row + ky * GROW.row;
   const outH = SPACE.out + ky * GROW.row;
@@ -455,22 +469,44 @@ function build(
     return right ? at(before + 1 + n) + 2 * pad : at(n);
   };
 
+  const pos = new Map<string, Point>();
+  for (const s of view.stations) {
+    if (s.kind === "exit" && exitOf.has(s.id)) continue;
+    pos.set(s.id, [xOf(s), s.kind === "hub" ? hubY : (rowY.get(s.line) ?? firstY)]);
+  }
+  return { pos, zones, bottom, hubR, meet };
+}
+
+/** The scene from a placement: marks, exits under their source, and the tracks. */
+function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene {
+  const { view, line, byId, exitOf } = p;
+  const { zones, meet = new Map<string, number>() } = at;
+  const hubR = at.hubR ?? RADIUS.hub;
+
   // Stations.
   const pos = new Map<string, Point>();
   const st: MarkStation[] = [];
   for (const s of view.stations) {
-    if (s.kind === "exit" && exitOf.has(s.id)) continue;
+    if (s.kind === "exit" && exitOf.has(s.id) && !at.pos.has(s.id)) continue;
+    const q = at.pos.get(s.id);
+    if (!q) continue;
     const isHub = s.kind === "hub";
-    const x = xOf(s);
-    const sy = isHub ? hubY : (rowY.get(s.line) ?? firstY);
-    pos.set(s.id, [x, sy]);
-    st.push(mark(s, x, sy, isHub && hubR > RADIUS.hub ? { r: hubR } : {}, line));
+    pos.set(s.id, q);
+    st.push(
+      mark(
+        s,
+        q[0],
+        q[1],
+        isHub && hubR > RADIUS.hub ? { r: hubR } : s.kind === "exit" ? { p: "right" } : {},
+        line,
+      ),
+    );
   }
   // Exits: under the source, one step to the right for each further exit of the same source.
   const exits = new Map<string, number>();
   for (const s of view.stations) {
     const src = exitOf.get(s.id);
-    if (s.kind !== "exit" || !src) continue;
+    if (s.kind !== "exit" || !src || pos.has(s.id)) continue;
     const from = pos.get(src);
     if (!from) continue;
     const n = exits.get(src) ?? 0;
@@ -573,22 +609,17 @@ function build(
   );
   const last = zones[zones.length - 1];
   return {
-    bottom,
-    scene: {
-      ...(view.title ? { title: view.title } : {}),
-      w: last?.[1] ?? 0,
-      h: bottom + SPACE.foot,
-      zones,
-      st,
-      tr,
-      colours,
-      // A map from a view is for people: its stations and tracks take focus and clicks.
-      click: true,
-      lines: lineMap,
-      ...(view.groups
-        ? { groups: Object.fromEntries(view.groups.map((g) => [g.id, g.label])) }
-        : {}),
-    },
+    ...(view.title ? { title: view.title } : {}),
+    w: last?.[1] ?? 0,
+    h: at.bottom + SPACE.foot,
+    zones,
+    st,
+    tr,
+    colours,
+    // A map from a view is for people: its stations and tracks take focus and clicks.
+    click: true,
+    lines: lineMap,
+    ...(view.groups ? { groups: Object.fromEntries(view.groups.map((g) => [g.id, g.label])) } : {}),
   };
 }
 
@@ -838,7 +869,9 @@ export function layoutMetro(view: MetroView): MetroScene {
   let ky = 0;
   let fold = false;
   for (;;) {
-    const { scene, bottom } = build(p, order, kx, ky);
+    const at = placeRows(p, order, kx, ky);
+    const bottom = at.bottom;
+    const scene = connect(p, order, at);
     rails(scene);
     const bad = dress(scene, fold);
     const zones = [...(scene.zones ?? [])];
@@ -852,6 +885,23 @@ export function layoutMetro(view: MetroView): MetroScene {
     else if (ky < GROW.maxRow) ky++;
     else fold = true;
   }
+}
+
+/**
+ * Any placer's points made into a scene: tracks, names and chips, rails, size. Chips that find no
+ * room fold to dots.
+ */
+export function finishMetro(view: MetroView, at: Placement): MetroScene {
+  const p = prepare(view);
+  const scene = connect(p, p.base, at);
+  rails(scene);
+  if (dress(scene, false).length) {
+    const again = connect(p, p.base, at);
+    rails(again);
+    dress(again, true);
+    return sizeTo(again, at.bottom);
+  }
+  return sizeTo(scene, at.bottom);
 }
 
 /** "WJ · 4h": the owner and the promise. */
