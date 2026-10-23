@@ -93,6 +93,8 @@ export function touchFired(client: string | null, t: TouchRow): Fired {
     url: t.url,
     text: t.text ? t.text.slice(0, 5000) : null,
     at: t.at,
+    // The writer: a journey can skip `following` (a follow list read back, made long ago).
+    source: t.source,
     // The key `journey.move` finds the person by, and the profile itself when the key has one.
     [`handle:${t.platform}`]: t.handle,
     ...(t.profile === null ? {} : { profile: t.profile }),
@@ -114,6 +116,7 @@ export interface TouchRow {
   url: string | null;
   text: string | null;
   at: string;
+  source: string;
   profile: number | null;
 }
 
@@ -122,7 +125,7 @@ export async function touchRows(db: Queryable, ids: readonly number[]): Promise<
   if (!ids.length) return [];
   const got = await rows(
     db,
-    sql`select t.id, t.kind, t.direction, t.account, t.url, t.text, t.at, h.platform, h.handle,
+    sql`select t.id, t.kind, t.direction, t.account, t.url, t.text, t.at, t.source, h.platform, h.handle,
         (select k.profile_id from profile_keys k
           where k.kind = 'handle:' || h.platform and k.value = h.handle limit 1) profile
       from touches t join social_handles h on h.id = t.handle_id
@@ -141,6 +144,7 @@ export async function touchRows(db: Queryable, ids: readonly number[]): Promise<
     url: (r.url as string | null) ?? null,
     text: (r.text as string | null) ?? null,
     at: new Date(r.at as string | Date).toISOString(),
+    source: String(r.source),
     profile: r.profile === null || r.profile === undefined ? null : Number(r.profile),
   }));
 }

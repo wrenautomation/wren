@@ -44,6 +44,7 @@ import type {
   Audience,
   CommentRow,
   ContentChannel,
+  FollowingRow,
   Insights,
   ListQuery,
   MediaHost,
@@ -895,6 +896,22 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
         ): Promise<ActivityRow[] | null> => {
           const ch = await pick(ctx, req.platform, req.client, "content.social");
           return ch.activity ? refusalsFinal(ch.activity(req.q ?? {})) : null;
+        },
+      ),
+      /** Null when the channel lists no follows. Any failure is final: the caller asks again later. */
+      following: serviceHandler(
+        { input: z.looseObject({ platform: PLATFORM, client: CLIENT }) },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform } & ForClient,
+        ): Promise<FollowingRow[] | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          if (!ch.following) return null;
+          try {
+            return await ch.following();
+          } catch (err) {
+            throw new restate.TerminalError(err instanceof Error ? err.message : String(err));
+          }
         },
       ),
       /** Null when the channel reads no follower count. Any failure is final: the caller asks again later. */

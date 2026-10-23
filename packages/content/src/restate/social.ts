@@ -29,6 +29,7 @@ import {
   type CapHolds,
   type CommentRow,
   capHeld,
+  type FollowingRow,
   holdCap,
   type ListQuery,
   liveHolds,
@@ -80,6 +81,7 @@ import {
   postOfComment,
   recentPosts,
 } from "../social/store.js";
+import { keepFollowing } from "../touches.js";
 import { autoReplyReviews } from "./auto-reply.js";
 import { catchKeywordDms } from "./keyword-dm.js";
 import { nextRunAt } from "./planner.js";
@@ -109,6 +111,11 @@ export const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
   linkedin: 2 * 60 * 60 * 1000,
 };
 
+/** Object state: each platform's last follow-list read, ms. */
+const FOLLOWING_READS = "followingReads";
+/** Our follow lists are read once a day: a hand-made follow is kept by the next day. */
+export const FOLLOWING_EVERY_MS = 24 * 60 * 60 * 1000;
+
 /** Follower counts read only on his click (`SocialDesk.readAudience`): LinkedIn's is a desk read. */
 export const AUDIENCE_ON_DEMAND: readonly Platform[] = ["linkedin"];
 
@@ -127,6 +134,10 @@ type ContentReads = {
     ctx: restate.Context,
     req: { platform: Platform } & ForClient,
   ) => Promise<Audience | null>;
+  following: (
+    ctx: restate.Context,
+    req: { platform: Platform } & ForClient,
+  ) => Promise<FollowingRow[] | null>;
   reviews: (
     ctx: restate.Context,
     req: { platform: Platform; q?: ActivityQuery } & ForClient,
@@ -197,6 +208,10 @@ export interface SocialStats {
   reviews: number;
   asked: number;
   activity: number;
+  /** Follows our follow lists had that wren did not: made by hand on the site. */
+  following: number;
+  /** Per platform, handles a follow list had before and has no more (unfollowed on the site). */
+  unfollowed: string[];
   /** New DMs a client's connected accounts brought in. */
   dms: number;
   /** Comments that said a keyword, each sent its DM. */
@@ -285,6 +300,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       reviews: 0,
       asked: 0,
       activity: 0,
+      following: 0,
+      unfollowed: [],
       dms: 0,
       keywordDms: 0,
       audience: [],
@@ -516,6 +533,30 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       }
     }
     ctx.set(ACTIVITY_READS, lastActivity);
+
+    // Our follow lists, so a follow made by hand on the site is a touch too. Nothing is deleted.
+    const lastFollowing = (await ctx.get<Record<string, number>>(FOLLOWING_READS)) ?? {};
+    for (const platform of platforms) {
+      if (now.getTime() - (lastFollowing[platform] ?? 0) < FOLLOWING_EVERY_MS) continue;
+      if (!go(`following ${platform}`, platform)) continue;
+      lastFollowing[platform] = now.getTime();
+      try {
+        const rows = await limits.within(
+          `following ${platform}`,
+          content.following({ platform, ...mine }),
+          { ms: L.batch, call: "Content/following", group: platform },
+        );
+        if (!rows) continue;
+        const k = await ctx.run(`keep following ${platform}`, () =>
+          keepFollowing(db, platform, rows, now),
+        );
+        stats.following += k.added;
+        if (k.gone) stats.unfollowed.push(`${platform}: ${k.gone}`);
+      } catch (err) {
+        stats.errors.push(`${platform} following: ${errorText(err)}`);
+      }
+    }
+    ctx.set(FOLLOWING_READS, lastFollowing);
 
     // A client's DMs on its connected Page, Instagram and X, into its Inbox.
     if (client && dms)

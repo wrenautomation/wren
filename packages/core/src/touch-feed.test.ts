@@ -12,6 +12,7 @@ const row: TouchRow = {
   url: "https://x.example/dm/1",
   text: "hello",
   at: "2026-10-19T10:00:00.000Z",
+  source: "reach_messages",
   profile: null,
 };
 
@@ -43,7 +44,12 @@ describe("touchFired", () => {
     });
     expect(f.event.subject).toBe("touch:41");
     expect(f.event.kind).toBe("person");
-    expect(f.event.data).toMatchObject({ touch: 41, kind: "dm", "handle:x": "sam_synth" });
+    expect(f.event.data).toMatchObject({
+      touch: 41,
+      kind: "dm",
+      source: "reach_messages",
+      "handle:x": "sam_synth",
+    });
     expect(f.event.data).not.toHaveProperty("profile");
   });
   it("names the profile when the handle maps to one", () => {

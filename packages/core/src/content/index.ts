@@ -174,6 +174,16 @@ export interface ActivityQuery {
   limit?: number;
 }
 
+/** One account ours follows, as the platform lists it (designs/2026-10-22-drift-reconcile.md). */
+export interface FollowingRow {
+  /** As the platform has it: a handle, a profile URL, a channel id; normalized when kept. */
+  handle: string;
+  name: string | null;
+  url: string | null;
+  /** When we followed; null = the platform doesn't say (the read time is kept). */
+  at: string | null;
+}
+
 /** Our account's size now: followers, or subscribers on YouTube. */
 export interface Audience {
   followers: number;
@@ -229,6 +239,11 @@ export interface ContentChannel {
   activity?(q?: ActivityQuery): Promise<ActivityRow[]>;
   /** Our follower count now. Absent = not read. */
   audience?(): Promise<Audience>;
+  /**
+   * Every account ours follows, so a follow made by hand on the site is kept too. Absent = the
+   * platform gives no list.
+   */
+  following?(): Promise<FollowingRow[]>;
   /** A post's deeper numbers and the ones its token can't read. Absent = the counts are all. */
   insights?(q: InsightsQuery): Promise<Insights>;
   /** The account's numbers per day. Absent = followers (`audience`) are all. */
@@ -302,6 +317,8 @@ export function fakeContentChannel(
   receive(c: Omit<CommentRow, "repliedWith">): void;
   happen(a: ActivityRow): void;
   follow(followers: number): void;
+  /** An account ours follows, as `following` lists it. */
+  followOut(f: FollowingRow): void;
   /** Set a post's deeper numbers (`insights`) and the account's days (`accountInsights`). */
   measure(id: string, i: Omit<Insights, "asOf">): void;
   measureAccount(a: Omit<AccountInsights, "asOf">): void;
@@ -314,6 +331,7 @@ export function fakeContentChannel(
   const metrics = new Map<string, Metrics>();
   const comments: CommentRow[] = [];
   const activity: ActivityRow[] = [];
+  const followed: FollowingRow[] = [];
   let followers = 0;
   let n = 0;
   const insights = new Map<string, Omit<Insights, "asOf">>();
@@ -352,6 +370,12 @@ export function fakeContentChannel(
     },
     follow(count) {
       followers = count;
+    },
+    followOut(f) {
+      followed.push({ ...f });
+    },
+    async following() {
+      return followed.map((f) => ({ ...f }));
     },
     async activity(q = {}) {
       const { since } = q;

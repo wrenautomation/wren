@@ -14,6 +14,7 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type FollowingRow,
   type InsightGap,
   type Insights,
   type InsightsQuery,
@@ -279,6 +280,27 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
             at: t.created_at ?? now().toISOString(),
           })),
         q,
+      );
+    },
+    // The signed-in page's Following list (X's free API has no follows): no follow times.
+    async following(): Promise<FollowingRow[]> {
+      const r = await sites.call<{ data?: Array<{ username?: string; name?: string }> }>(
+        "x",
+        "GET",
+        "/2/users/me/following",
+        {},
+      );
+      return (r.data ?? []).flatMap((u) =>
+        u.username
+          ? [
+              {
+                handle: u.username,
+                name: u.name ?? null,
+                url: `https://x.com/${u.username}`,
+                at: null,
+              },
+            ]
+          : [],
       );
     },
     async audience(): Promise<Audience> {

@@ -14,6 +14,7 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type FollowingRow,
   type InsightGap,
   type Insights,
   type InsightsQuery,
@@ -62,8 +63,16 @@ export interface Thing {
 }
 export interface Listing {
   kind?: string;
-  data?: { children?: Array<{ kind: string; data: Thing }> };
+  data?: { children?: Array<{ kind: string; data: Thing }>; after?: string | null };
 }
+/** A `t5` card: a user's profile is the subreddit `u_<name>` of type `user`. */
+interface Subreddit {
+  display_name?: string;
+  subreddit_type?: string;
+  title?: string;
+}
+/** Pages of 100 our follow list reads at most. */
+const FOLLOWING_PAGES = 10;
 /** An inbox item: a `t1` mention carries `type` and the comment's `context` link. */
 interface InboxThing extends Thing {
   type?: string;
@@ -285,6 +294,30 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
         .filter((a) => !since || a.at === null || a.at >= since)
         .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))
         .slice(0, q.limit ?? 25);
+    },
+    // Following a user is joining their profile's subreddit; the rest are communities.
+    async following(): Promise<FollowingRow[]> {
+      const out: FollowingRow[] = [];
+      let after: string | null | undefined;
+      for (let i = 0; i < FOLLOWING_PAGES; i++) {
+        const r = await call<Listing>("GET", "/subreddits/mine/subscriber", {
+          limit: 100,
+          ...(after ? { after } : {}),
+        });
+        for (const sr of children(r) as Subreddit[]) {
+          const name = sr.display_name?.replace(/^u_/, "");
+          if (sr.subreddit_type === "user" && name)
+            out.push({
+              handle: name,
+              name: sr.title || null,
+              url: `https://www.reddit.com/user/${name}/`,
+              at: null,
+            });
+        }
+        after = r.data?.after;
+        if (!after) break;
+      }
+      return out;
     },
     async audience(): Promise<Audience> {
       const name = await whoami();

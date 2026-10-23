@@ -152,6 +152,8 @@ beforeEach(async () => {
     "reddit_threads",
     "reddit_places",
     "send_attempts",
+    "touches",
+    "social_handles",
   ]);
   emitted.length = 0;
   pings.length = 0;
@@ -236,6 +238,8 @@ describe("SocialWatch", () => {
     li.happen(follow("f1", 10_000));
     li.happen(follow("f2", null));
     li.follow(120);
+    // A channel followed by hand on YouTube: our follow list keeps it as ours.
+    yt.followOut({ handle: "@maker_synth", name: "Maker", url: null, at: iso(DAY) });
     // A count that throws is no reading this pass, not a failed pass.
     const yc = channels.youtube as ContentChannel;
     yc.audience = async () => {
@@ -243,7 +247,14 @@ describe("SocialWatch", () => {
     };
 
     const first = await sync();
-    expect(first.stats).toMatchObject({ posts: 2, comments: 2, asked: 1, activity: 2 });
+    expect(first.stats).toMatchObject({
+      posts: 2,
+      comments: 2,
+      asked: 1,
+      activity: 2,
+      following: 1,
+      unfollowed: [],
+    });
     // LinkedIn's count is never the loop's: it waits for Read now.
     expect(first.stats?.audience).toEqual([]);
     expect(first.stats?.missed).toEqual(["youtube audience: no profile"]);
@@ -287,8 +298,11 @@ describe("SocialWatch", () => {
     // Follows alone ping Discord, never a text. LinkedIn's activity waits 2 hours (its daily cap).
     li.happen(follow("f4", 0));
     yt.happen(follow("f3", null));
+    // Our follow lists wait a day.
+    yt.followOut({ handle: "@other_synth", name: null, url: null, at: null });
     const third = await sync();
     expect(third.stats?.activity).toBe(1);
+    expect(third.stats?.following).toBe(0);
     expect(pings.at(-1)).toBe("social: 1 follow");
     expect(texts).toHaveLength(1);
     // An undated row comes back every read, whatever the since; it is kept once.

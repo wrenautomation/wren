@@ -26,12 +26,22 @@ A partial list (as many rows back as asked) holds only the newest. Absence in it
 | Kind | Platforms with a lister | Wren side | State |
 |---|---|---|---|
 | connections | LinkedIn `/connections` (200) | `reach_contacts` (platform, handle) | **built** (this doc) |
-| follows | X `/2/users/me/following`; Reddit `/subreddits/mine/subscriber` (users as `u_<name>`); YouTube `subscriptions?mine=true`; Instagram, TikTok, Threads: none yet | touches `follow` ours | next: X, then Reddit and YouTube (routes exist), then a desk-browser flow each for Instagram, TikTok, Threads |
+| follows | X `GET /2/users/me/following` (autobrowse da396a7: the signed-in Following page; the free API has no follows); Reddit `/subreddits/mine/subscriber` (users as `u_<name>`); YouTube `subscriptions?mine=true`; Instagram, TikTok, Threads: none yet | touches `follow` ours, source `following` | X, Reddit, YouTube **built** (section below); next: a desk-browser flow each for Instagram, TikTok, Threads |
 | own posts | LinkedIn `/rest/posts`, X user tweets, IG media, Page posts, TikTok video/list, YouTube uploads, Threads, Reddit submitted | `platform_objects` via `resolveObject`, `content_drafts` | next: first find where the analytics readers land; a flag on that reader, never a second reader |
 | own comments | Reddit `/comments`, X replies | `comments` | later |
 | DMs | LinkedIn `/messaging`, Meta conversations | `reach_messages` | the reply watch reads these already |
 
 Every site shows its own following list. Instagram, TikTok and Threads keep it out of their official APIs, so each needs a desk-browser flow that reads the page, the way LinkedIn `/connections` does. One read a day each, under the account's caps.
+
+## Follows (X, Reddit, YouTube built)
+
+`ContentChannel.following()` lists every account ours follows. `SocialWatch` reads it once a day per platform (`FOLLOWING_EVERY_MS`), in the same pass as activity.
+
+1. `keepFollowing` normalizes each handle.
+2. A handle with an ours follow from any writer stays as it is.
+3. Each other handle becomes an ours follow touch: account `wren`, source `following`, ref `fo:<platform>:<handle>`. Its time is the platform's (YouTube gives one) or the read time.
+4. `gone` counts handles an earlier list had and this one has not (unfollowed on the site). Nothing is deleted. The pass shows it in `unfollowed`. `gone` assumes the list fit under the reader's cap (X 1000, YouTube 1000, Reddit 1000); a follow wren made and the site lost is not counted yet.
+5. The touch feed tells the spine each new touch with its `source`, so a journey can skip `following` (old follows read back).
 
 ## LinkedIn connections (built)
 

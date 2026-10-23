@@ -3,6 +3,7 @@
  * A follow, subscribe, reaction or mention someone gave us is theirs; a notice is no one's.
  * `wren touches backfill` folds every source table in under the refs the live writers use.
  */
+import type { FollowingRow } from "@wren/core/content";
 import { usableUrl } from "@wren/core/touch-link";
 import {
   mergeHandle,
@@ -15,6 +16,9 @@ import type { Queryable } from "@wren/db";
 import { backfillOutreachTouches, type TouchBackfill } from "@wren/outreach/touches";
 import { eq, ne, sql } from "drizzle-orm";
 import { socialActivity } from "./schema.js";
+
+/** The touches source of follows read off our account's follow list. */
+export const FOLLOWING_SOURCE = "following";
 
 const ACTIVITY_TOUCH: Record<string, TouchKind | undefined> = {
   follow: "follow",
@@ -43,6 +47,56 @@ export async function touchFromActivity(db: Queryable, id: number) {
     source: "social_activity",
     ref: `sa:${a.id}`,
   });
+}
+
+export interface FollowingKept {
+  /** Follows the list had that wren did not: made by hand on the site. */
+  added: number;
+  /** Handles the list had before and has no more: unfollowed on the site. Nothing is deleted. */
+  gone: number;
+}
+
+/**
+ * Our account's follow list as ours follow touches (designs/2026-10-22-drift-reconcile.md), so a
+ * follow made by hand on the site counts like one wren made. A handle with an ours follow from any
+ * writer is left alone. A follow with no time from the platform takes `now`.
+ */
+export async function keepFollowing(
+  db: Queryable,
+  platform: string,
+  rows: readonly FollowingRow[],
+  now: Date,
+): Promise<FollowingKept> {
+  const listed = new Map<string, FollowingRow>();
+  for (const r of rows) {
+    const h = normalizeHandle(platform, r.handle);
+    if (h && !listed.has(h.handle)) listed.set(h.handle, r);
+  }
+  const ours = (await db.execute(sql`
+    SELECT h.handle, bool_or(t.source = ${FOLLOWING_SOURCE}) listed
+    FROM touches t JOIN social_handles h ON h.id = t.handle_id
+    WHERE h.platform = ${platform} AND t.kind = 'follow' AND t.direction = 'ours'
+    GROUP BY 1`)) as unknown as Array<{ handle: string; listed: boolean }>;
+  const known = new Set(ours.map((r) => r.handle));
+  let added = 0;
+  for (const [handle, r] of listed) {
+    if (known.has(handle)) continue;
+    const t = await recordTouch(db, {
+      platform,
+      handle,
+      name: r.name,
+      kind: "follow",
+      direction: "ours",
+      account: "wren",
+      url: r.url,
+      at: r.at ? new Date(r.at) : now,
+      source: FOLLOWING_SOURCE,
+      ref: `fo:${platform}:${handle}`,
+    });
+    if (t?.created) added++;
+  }
+  const gone = ours.filter((r) => r.listed && !listed.has(r.handle)).length;
+  return { added, gone };
 }
 
 /** How far a notification's time may sit from the comment it names. */

@@ -18,6 +18,7 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type FollowingRow,
   type InsightGap,
   type Insights,
   type InsightsQuery,
@@ -100,7 +101,12 @@ interface CommentThread {
 interface Subscription {
   id?: string;
   subscriberSnippet?: { title?: string; channelId?: string; description?: string };
+  /** Ours, read with `mine`: the channel we subscribe to, and when. */
+  snippet?: { title?: string; publishedAt?: string; resourceId?: { channelId?: string } };
 }
+
+/** Pages of 50 our subscriptions list reads at most: 1000 channels. */
+const FOLLOWING_PAGES = 20;
 
 /** YouTube Analytics' answer: named columns, then rows. */
 interface Report {
@@ -494,6 +500,32 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
           },
         ];
       });
+    },
+    // Every channel ours subscribes to, with the time we did.
+    async following(): Promise<FollowingRow[]> {
+      const out: FollowingRow[] = [];
+      let pageToken: string | undefined;
+      for (let i = 0; i < FOLLOWING_PAGES; i++) {
+        const r = await read<{ items?: Subscription[]; nextPageToken?: string }>("subscriptions", {
+          part: "snippet",
+          mine: true,
+          maxResults: 50,
+          ...(pageToken ? { pageToken } : {}),
+        });
+        for (const s of r.items ?? []) {
+          const ch = s.snippet?.resourceId?.channelId;
+          if (ch)
+            out.push({
+              handle: ch,
+              name: s.snippet?.title ?? null,
+              url: `https://www.youtube.com/channel/${ch}`,
+              at: s.snippet?.publishedAt ?? null,
+            });
+        }
+        pageToken = r.nextPageToken;
+        if (!pageToken) break;
+      }
+      return out;
     },
     async audience(): Promise<Audience> {
       const r = await read<{ items?: Array<{ statistics?: { subscriberCount?: string } }> }>(
