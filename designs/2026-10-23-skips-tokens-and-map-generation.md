@@ -74,12 +74,12 @@ What is missing:
 
 ## Algorithms on the trails
 
-The trails are an event log: one case per journey, one event per crossing. Known methods then apply.
+The trails are an event log: one case per journey, one event per crossing. Known methods then apply. The data draws the shape, or the data checks it.
 
-1. **Process mining** (van der Aalst).
-   - Conformance: replay each trail on the shape. A move off the drawn path is a skip or a gap. This feeds the skip arcs above.
-   - Discovery (Inductive Miner): build a shape from logs only. Use it to start a client's map from their CRM export.
-   - Framework: PM4Py (open source, Python). Wren is TypeScript, so it runs as an edge job, or we port the one method we need.
+1. **Process mining** (van der Aalst). The most useful one.
+   - Discovery (Inductive Miner, Heuristic Miner): build the real shape from what people did. The Inductive Miner always gives a sound shape. Point it at a client's CRM export to get a draft of their map.
+   - Conformance (token replay, alignments): compare the real trails to the drawn shape. It shows each skip, extra step and dead step. The skip arcs above are a simple form of this.
+   - Framework: PM4Py (open source, Python; license AGPL, to confirm). Wren is TypeScript, so it runs at the edge as a job, not in core. Or we port the one method we need.
 2. **Absorbing Markov chains.**
    - Each edge's chance comes from the trails. Money and dropped are end states.
    - The fundamental matrix N = (I − Q)⁻¹ gives each station its chance of reaching money and the expected steps to get there. Weight steps by dwell time to get days.
