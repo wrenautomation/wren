@@ -4,6 +4,7 @@
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
+import { FactsTable } from "../../table.js";
 import { MetroSvg } from "../draw.js";
 import "../metro.css";
 import type { MetroScene } from "../types.js";
@@ -115,29 +116,17 @@ function Board() {
       </button>
     );
   return (
-    <table className="text-[13px] tabular-nums">
-      <thead>
-        <tr className="text-left text-[var(--ui-ink-3)]">
-          {["Engine", "Overlaps", "Likeness", "Uneven", "Crossings", "Wins"].map((h) => (
-            <th key={h} className="pr-6 font-normal">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id}>
-            <td className="pr-6">{r.name}</td>
-            <td className="pr-6">{r.clashes}</td>
-            <td className="pr-6">{r.like.toFixed(3)}</td>
-            <td className="pr-6">{r.uneven}</td>
-            <td className="pr-6">{r.crossings}</td>
-            <td className="pr-6">{r.wins}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <FactsTable
+      head={[
+        "Engine",
+        ["Overlaps", "r"],
+        ["Likeness", "r"],
+        ["Uneven", "r"],
+        ["Crossings", "r"],
+        ["Wins", "r"],
+      ]}
+      rows={rows.map((r) => [r.name, r.clashes, r.like.toFixed(3), r.uneven, r.crossings, r.wins])}
+    />
   );
 }
 
@@ -145,6 +134,7 @@ function Lab({ start }: { start: string }) {
   const [id, setId] = useState(start);
   const [runs, setRuns] = useState<Run[] | null>(null);
   const c = LAB_CASES.find((x) => x.id === id) ?? (LAB_CASES[0] as LabCase);
+  // read-ok: the layouts run here in the page (ELK is async); nothing is fetched.
   useEffect(() => {
     let live = true;
     setRuns(null);
