@@ -2860,12 +2860,10 @@ function contentFor(settings: Settings, log: Logger, db: Db): ChannelsFor | null
       ...(on.includes("threads")
         ? { threads: threadsContent(as("threads", base), host ? { host } : {}) }
         : {}),
-      // The Content Posting API (audited 2026-10-23); WREN_TIKTOK_POST_VIA=web falls back to Studio in the box's browser.
       ...(on.includes("tiktok")
         ? {
             tiktok: tiktokContent(as("tiktok", base), {
               ...(host ? { host } : {}),
-              postVia: settings.tiktokPostVia,
             }),
           }
         : {}),

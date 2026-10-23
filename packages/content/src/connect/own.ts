@@ -23,8 +23,6 @@ import { contentDrafts, socialDays } from "../schema.js";
 export interface OwnSwitches {
   /** `WREN_CONTENT_CHANNELS`, in its order. */
   channels: readonly Platform[];
-  /** `WREN_TIKTOK_POST_VIA`. */
-  tiktokPostVia: "web" | "api";
   /** `WREN_MEDIA_BUCKET` and `WREN_META_PAGE_ID` both set: Instagram posts by the Graph API. */
   instagramGraph: boolean;
   /** Every `WREN_REDDIT_*` set: Reddit posts by its API with Wren's own token. */
@@ -36,7 +34,6 @@ export interface OwnSwitches {
 /** The settings `contentFor` reads, by their `Settings` names; only whether each is set leaves. */
 export interface OwnSettings {
   contentChannels: readonly Platform[];
-  tiktokPostVia: "web" | "api";
   mediaBucket?: string | undefined;
   metaPageId?: string | undefined;
   redditClientId?: string | undefined;
@@ -50,7 +47,6 @@ export interface OwnSettings {
 export function ownSwitchesOf(s: OwnSettings): OwnSwitches {
   return {
     channels: [...s.contentChannels],
-    tiktokPostVia: s.tiktokPostVia,
     instagramGraph: Boolean(s.mediaBucket && s.metaPageId),
     redditApi: Boolean(
       s.redditClientId && s.redditClientSecret && s.redditRefreshToken && s.redditUsername,
@@ -145,17 +141,10 @@ export function ownChannels(s: OwnSwitches): OwnChannel[] {
           switches: ["WREN_META_PAGE_ID"],
         });
       case "tiktok":
-        return s.tiktokPostVia === "web"
-          ? sites("tiktok", {
-              via: "browser",
-              how: `TikTok Studio in the browser ${WHERE[host]}; reads use the API`,
-              switches: ["WREN_TIKTOK_POST_VIA"],
-            })
-          : sites("tiktok", {
-              via: "api",
-              how: `TikTok's posting API, through autobrowse ${WHERE[host]}`,
-              switches: ["WREN_TIKTOK_POST_VIA"],
-            });
+        return sites("tiktok", {
+          via: "api",
+          how: `TikTok's posting API, through autobrowse ${WHERE[host]}`,
+        });
       default:
         return sites(platform);
     }

@@ -7,7 +7,7 @@
  * Publish follows TikTok's Direct Post rules (`@wren/core/content/tiktok`): creator_info right
  * before, refuse what the creator can't post, send the file by FILE_UPLOAD, then wait on its
  * status. A client's connected account (`direct`) takes a hosted URL; autobrowse (Wren's own)
- * reads the file itself. `postVia: "web"` falls back to TikTok Studio in the box's browser.
+ * reads the file itself.
  */
 import {
   type Audience,
@@ -29,13 +29,8 @@ import {
   publicUrlOf,
   type SiteClient,
 } from "@wren/core/content";
-import { type FieldsOf, fieldsOf, ShapeError } from "@wren/core/content/shapes";
-import {
-  creatorFrom,
-  type TikTokCreator,
-  type TikTokPrivacy,
-  tiktokHold,
-} from "@wren/core/content/tiktok";
+import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
+import { creatorFrom, type TikTokCreator, tiktokHold } from "@wren/core/content/tiktok";
 import { tiktokInsights } from "./insights.js";
 
 export interface TikTokContentOptions {
@@ -43,28 +38,6 @@ export interface TikTokContentOptions {
   host?: MediaHost;
   /** A client's connected account on TikTok's API: the Direct Post path. */
   direct?: boolean;
-  /**
-   * How Wren's own posts go out (not `direct`): `api` (default) = the Content Posting API;
-   * `web` = TikTok Studio in the box's browser, a fallback.
-   */
-  postVia?: "api" | "web";
-}
-
-const WEB_POST = "/web/posts";
-
-/** Studio's "Who can see this post", by TikTok's API names; Followers has no web option. */
-const WEB_AUDIENCE: Partial<Record<TikTokPrivacy, "everyone" | "friends" | "only-me">> = {
-  PUBLIC_TO_EVERYONE: "everyone",
-  MUTUAL_FOLLOW_FRIENDS: "friends",
-  SELF_ONLY: "only-me",
-};
-
-/** What the box's Studio flow answers. */
-interface WebPosted {
-  id?: string | null;
-  url?: string | null;
-  profile?: string;
-  note?: string;
 }
 
 const CREATOR = "/v2/post/publish/creator_info/query/";
@@ -143,46 +116,6 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
     asOf: now().toISOString(),
     fetchedWith,
   });
-  // Studio sets what the form shows: a field it can't set fails, never drops.
-  async function publishWeb(post: Post, source: string, f: FieldsOf<"tiktok">): Promise<Published> {
-    const privacy = f.privacy ? WEB_AUDIENCE[f.privacy] : undefined;
-    if (!privacy)
-      throw new ShapeError(
-        `tiktok: posting through the web can't set who can see it to ${f.privacy}`,
-      );
-    const unsent = [
-      f.disclose && "Disclose post content",
-      f.coverMs !== undefined && "Cover frame",
-      !!f.allowDuet !== !!f.allowStitch && "Duet apart from stitch (Studio sets them together)",
-    ].filter(Boolean);
-    if (unsent.length)
-      throw new ShapeError(`tiktok: posting through the web can't set ${unsent.join(", ")}`);
-    const r = await sites.call<WebPosted>("tiktok", "POST", WEB_POST, {
-      file: await mediaFileOf(source, o.host, "tiktok"),
-      caption: post.text.slice(0, 2200),
-      privacy,
-      comments: !!f.allowComment,
-      reuse: !!f.allowDuet && !!f.allowStitch,
-      aiGenerated: !!f.aiGenerated,
-    });
-    const profile = r.profile ?? "https://www.tiktok.com/";
-    // Posted but not on the grid yet: still published (a retry would post twice), kept with a note.
-    if (!r.id)
-      return {
-        id: profile,
-        url: profile,
-        publishedAt: now().toISOString(),
-        fetchedWith: "browser",
-        notes: [r.note ?? "posted; TikTok had not listed it yet"],
-      };
-    return {
-      id: r.id,
-      url: r.url ?? `${profile}/video/${r.id}`,
-      publishedAt: now().toISOString(),
-      fetchedWith: "browser",
-      ...(r.note ? { notes: [r.note] } : {}),
-    };
-  }
   return {
     platform: "tiktok",
     // The signed-in profile's Following dialog (no TikTok API lists follows).
@@ -192,7 +125,6 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
       if (post.media?.kind !== "video") throw new Error("tiktok: a post is a video");
       const f = fieldsOf("tiktok", post.extra);
       if (!f.privacy) throw new ShapeError("tiktok: pick who can see it first");
-      if (!o.direct && o.postVia === "web") return publishWeb(post, post.media.source, f);
       const creator = await tiktokCreator(sites);
       const hold = tiktokHold(f, creator);
       if (hold) throw new ShapeError(`tiktok: ${hold}`);
