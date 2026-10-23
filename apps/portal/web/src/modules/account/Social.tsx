@@ -14,12 +14,14 @@ import {
   PlatformMark,
   Section,
   Tag,
+  useNarrow,
 } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
+import { ERROR, QUIET } from "../work/bits.js";
 import { OwnSocial } from "./OwnSocial.js";
 import { socialTag } from "./setups.js";
 import { AccountFace, TikTokNumbersView } from "./social-bits.js";
@@ -63,52 +65,113 @@ const day = (iso: string) =>
 const reads = (p: Platform) =>
   p.dms && p.comments ? "Comments and DMs" : p.comments ? "Comments" : p.dms ? "DMs" : null;
 
-function AccountLine({ c, mayAct, act }: { c: Connection; mayAct: boolean; act: Act }) {
-  const who = c.handle ? `@${c.handle}` : (c.name ?? "Account");
+/** A platform's connected accounts, a row each: picture, state, dates; notices and numbers under it. */
+function Accounts({
+  connections,
+  mayAct,
+  act,
+}: {
+  connections: Connection[];
+  mayAct: boolean;
+  act: Act;
+}) {
+  const narrow = useNarrow();
+  const going = useGoing();
+  const whoOf = (c: Connection) => (c.handle ? `@${c.handle}` : (c.name ?? "Account"));
   return (
-    <div className="grid gap-1">
-      <div className="flex items-center gap-3">
-        <AccountFace url={c.avatarUrl} name={c.name ?? who} />
-        <p className="flex min-w-0 flex-wrap items-center gap-2">
-          <b className="font-medium break-all">{who}</b>
-          {c.handle && c.name && c.name !== c.handle ? (
-            <span className={QUIET}>{c.name}</span>
-          ) : null}
-        </p>
-      </div>
-      {c.state === "broken" && c.why ? <p>{c.why}</p> : null}
-      {c.expiring && c.expiresAt ? (
-        <p>Its sign-in ends {day(c.expiresAt)}. Connect again before then.</p>
-      ) : null}
-      {c.numbers ? <TikTokNumbersView n={c.numbers} /> : null}
-      <p className={QUIET}>
-        Connected {day(c.connectedAt)}
-        {c.checkedAt ? `, checked ${day(c.checkedAt)}` : ""}
-      </p>
-      {mayAct ? (
-        <div className={TOOLS}>
-          <Button
-            size="sm"
-            tone="quiet"
-            disabled={act.busy}
-            onClick={() => void act.run("check", { id: c.id })}
-          >
-            Check
-          </Button>
-          <Button
-            size="sm"
-            tone="quiet"
-            disabled={act.busy}
-            onClick={() => {
-              if (window.confirm(`Turn off ${who}? Nothing posts or reads as it after this.`))
-                void act.run("disconnect", { id: c.id });
-            }}
-          >
-            Turn off
-          </Button>
-        </div>
-      ) : null}
-    </div>
+    <PageRows<Connection>
+      label="Connected accounts"
+      noun="account"
+      lines={rowLines(
+        connections,
+        (c) => String(c.id),
+        (c) =>
+          (c.state === "broken" && c.why) || (c.expiring && c.expiresAt) || c.numbers ? (
+            <div className="grid gap-3">
+              {c.state === "broken" && c.why ? <p className="m-0">{c.why}</p> : null}
+              {c.expiring && c.expiresAt ? (
+                <p className="m-0">
+                  Its sign-in ends {day(c.expiresAt)}. Connect again before then.
+                </p>
+              ) : null}
+              {c.numbers ? <TikTokNumbersView n={c.numbers} /> : null}
+            </div>
+          ) : null,
+      )}
+      rowState={(c) => going.stateOf(String(c.id))}
+      name={{
+        label: "Account",
+        icon: "people",
+        min: 220,
+        title: whoOf,
+        mark: (c) => <AccountFace url={c.avatarUrl} name={c.name ?? whoOf(c)} />,
+        sub: (c) =>
+          c.handle && c.name && c.name !== c.handle ? (
+            <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+              {c.name}
+            </span>
+          ) : null,
+      }}
+      columns={[
+        {
+          key: "state",
+          label: "State",
+          icon: "pulse",
+          width: 130,
+          phone: true,
+          cell: (c) => {
+            const tag = socialTag(c.state);
+            return <Tag tone={tag.tone}>{tag.label}</Tag>;
+          },
+        },
+        {
+          key: "connected",
+          label: "Connected",
+          icon: "calendar",
+          width: 130,
+          quiet: true,
+          className: "max-[900px]:hidden",
+          cell: (c) => day(c.connectedAt),
+        },
+        {
+          key: "checked",
+          label: "Checked",
+          icon: "clock",
+          width: 130,
+          quiet: true,
+          className: "max-[900px]:hidden",
+          cell: (c) => (c.checkedAt ? day(c.checkedAt) : "Not yet"),
+        },
+      ]}
+      end={
+        mayAct
+          ? (c) => (
+              <RowDoes
+                title={whoOf(c)}
+                lone={narrow}
+                busy={act.busy}
+                does={[
+                  {
+                    id: "check",
+                    label: "Check",
+                    run: () =>
+                      going.go(String(c.id), "Checking", () => act.run("check", { id: c.id })),
+                  },
+                  {
+                    id: "off",
+                    label: "Turn off",
+                    confirm: `Turn off ${whoOf(c)}? Nothing posts or reads as it after this.`,
+                    run: () =>
+                      going.go(String(c.id), "Turning off", () =>
+                        act.run("disconnect", { id: c.id }),
+                      ),
+                  },
+                ]}
+              />
+            )
+          : undefined
+      }
+    />
   );
 }
 
@@ -144,16 +207,7 @@ function PlatformRow({ p, mayAct, act }: { p: Platform; mayAct: boolean; act: Ac
         {p.blocking && p.state !== "broken" ? <p>{p.blocking}</p> : null}
         {p.today ? <p className={QUIET}>Until then: {p.today}</p> : null}
         {p.connections.length ? (
-          <ul className="m-0 grid list-none gap-3 p-0">
-            {p.connections.map((c) => (
-              <li
-                key={c.id}
-                className="border-(--ui-hair) border-t pt-3 first:border-t-0 first:pt-0"
-              >
-                <AccountLine c={c} mayAct={mayAct} act={act} />
-              </li>
-            ))}
-          </ul>
+          <Accounts connections={p.connections} mayAct={mayAct} act={act} />
         ) : null}
         {!connected ? (
           <p className={QUIET}>

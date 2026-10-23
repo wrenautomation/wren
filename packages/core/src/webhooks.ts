@@ -213,7 +213,7 @@ function errorWords(err: NodeJS.ErrnoException): string {
   if (err.code === "ECONNREFUSED") return "the connection was refused";
   if (err.code === "ECONNRESET") return "the connection was cut";
   if (/certificate|CERT/i.test(`${err.code} ${err.message}`)) return "the TLS certificate failed";
-  return err.message.slice(0, 200) || "no answer";
+  return err.message.slice(0, 2000) || "no answer";
 }
 
 /** Worth trying again: no answer, 408, 425, 429 or 5xx. Any other 4xx won't change. */
@@ -662,7 +662,7 @@ async function tally(
     .where(eq(webhookSubscriptions.id, sub))
     .returning({ since: webhookSubscriptions.failingSince, active: webhookSubscriptions.active });
   if (!s?.active || !s.since || now.getTime() - s.since.getTime() < DISABLE_AFTER_MS) return null;
-  const why = `Nothing landed in ${DISABLE_AFTER_DAYS} days. Last try: ${error}`.slice(0, 500);
+  const why = `Nothing landed in ${DISABLE_AFTER_DAYS} days. Last try: ${error}`.slice(0, 5000);
   const turned = await db
     .update(webhookSubscriptions)
     .set({ active: false, disabledAt: now, disabledWhy: why })

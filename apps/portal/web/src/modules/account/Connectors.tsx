@@ -14,12 +14,14 @@ import {
   Section,
   Tag,
   type TagTone,
+  useNarrow,
 } from "@wren/ui";
 import { useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
+import { ERROR, QUIET } from "../work/bits.js";
 
 type View = Extract<ConnectorsPageView, { wren: false }>;
 type App = View["apps"][number];
@@ -69,49 +71,95 @@ const when = (iso: string) =>
     minute: "2-digit",
   });
 
-function LinkLine({ l, mayAct, act }: { l: Link; mayAct: boolean; act: Act }) {
-  const who = l.name ?? `Account ${l.externalId}`;
+/** An app's connected accounts, a row each: state, what it brought in, when it was last read. */
+function Links({ links, mayAct, act }: { links: Link[]; mayAct: boolean; act: Act }) {
+  const narrow = useNarrow();
+  const going = useGoing();
+  const whoOf = (l: Link) => l.name ?? `Account ${l.externalId}`;
   return (
-    <div className="grid gap-1">
-      <b className="font-medium break-all">{who}</b>
-      {l.why ? <p className={l.state === "broken" ? ERROR : undefined}>{l.why}</p> : null}
-      <p className={QUIET}>
-        {l.syncedAt ? `Read ${when(l.syncedAt)}` : "First read on its way"}. {l.people} people in,{" "}
-        {l.fired} told to workflows. Connected by {l.by}.
-      </p>
-      {mayAct ? (
-        <div className={TOOLS}>
-          {l.state === "connected" ? (
-            <Button
-              size="sm"
-              tone="quiet"
-              disabled={act.busy}
-              onClick={async () => {
-                if (await act.run("syncNow", { id: l.id }))
-                  act.setSaid("Reading now. New people show up in a minute or two.");
-              }}
-            >
-              Read now
-            </Button>
-          ) : null}
-          <Button
-            size="sm"
-            tone="quiet"
-            disabled={act.busy}
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Disconnect ${who}? Wren stops reading it. The people it brought in stay.`,
-                )
-              )
-                void act.run("disconnect", { id: l.id });
-            }}
-          >
-            Disconnect
-          </Button>
-        </div>
-      ) : null}
-    </div>
+    <PageRows<Link>
+      label="Connected accounts"
+      noun="account"
+      lines={rowLines(
+        links,
+        (l) => String(l.id),
+        (l) => (l.why ? <p className={l.state === "broken" ? ERROR : QUIET}>{l.why}</p> : null),
+      )}
+      rowState={(l) => going.stateOf(String(l.id))}
+      name={{
+        label: "Account",
+        icon: "link",
+        min: 220,
+        title: whoOf,
+        sub: (l) => (
+          <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+            Connected by {l.by}
+          </span>
+        ),
+      }}
+      columns={[
+        {
+          key: "state",
+          label: "State",
+          icon: "pulse",
+          width: 130,
+          phone: true,
+          cell: (l) => <Tag tone={TAGS[l.state].tone}>{TAGS[l.state].label}</Tag>,
+        },
+        {
+          key: "brought",
+          label: "Brought in",
+          icon: "people",
+          min: 190,
+          className: "max-[1000px]:hidden",
+          cell: (l) => `${l.people} people, ${l.fired} told to workflows`,
+        },
+        {
+          key: "read",
+          label: "Last read",
+          icon: "clock",
+          width: 150,
+          quiet: true,
+          className: "max-[900px]:hidden",
+          cell: (l) => (l.syncedAt ? when(l.syncedAt) : "On its way"),
+        },
+      ]}
+      end={
+        mayAct
+          ? (l) => (
+              <RowDoes
+                title={whoOf(l)}
+                lone={narrow}
+                busy={act.busy}
+                does={[
+                  ...(l.state === "connected"
+                    ? [
+                        {
+                          id: "sync",
+                          label: "Read now",
+                          run: () =>
+                            going.go(String(l.id), "Reading", async () => {
+                              if (await act.run("syncNow", { id: l.id }))
+                                act.setSaid("Reading now. New people show up in a minute or two.");
+                            }),
+                        },
+                      ]
+                    : []),
+                  {
+                    id: "disconnect",
+                    label: "Disconnect",
+                    confirm: `Disconnect ${whoOf(l)}? Wren stops reading it. The people it brought in stay.`,
+                    run: () =>
+                      going.go(String(l.id), "Disconnecting", () =>
+                        act.run("disconnect", { id: l.id }),
+                      ),
+                  },
+                ]}
+              />
+            )
+          : undefined
+      }
+    />
   );
 }
 
@@ -151,18 +199,7 @@ function AppRow({ a, mayAct, act }: { a: App; mayAct: boolean; act: Act }) {
             Wren's {a.label} app is being set up. It opens here when it's ready.
           </p>
         ) : null}
-        {a.links.length ? (
-          <ul className="m-0 grid list-none gap-3 p-0">
-            {a.links.map((l) => (
-              <li
-                key={l.id}
-                className="border-(--ui-hair) border-t pt-3 first:border-t-0 first:pt-0"
-              >
-                <LinkLine l={l} mayAct={mayAct} act={act} />
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        {a.links.length ? <Links links={a.links} mayAct={mayAct} act={act} /> : null}
       </div>
     </Section>
   );

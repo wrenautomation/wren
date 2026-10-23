@@ -255,17 +255,17 @@ export const AUDIT_FUNCTION_STATEMENTS = [
         -- only that it changed.
         SELECT string_agg(replace(n.k, '_', ' ') || CASE
             WHEN n.v ~ '^[[{]' THEN ' updated'
-            ELSE ': ' || left(coalesce(regexp_replace(e.old_values ->> n.k,
-                '^(\\d{4}-\\d\\d-\\d\\d)T(\\d\\d:\\d\\d).*$', '\\1 \\2 UTC'), 'empty'), 40)
-              || ' → ' || left(coalesce(regexp_replace(n.v,
-                '^(\\d{4}-\\d\\d-\\d\\d)T(\\d\\d:\\d\\d).*$', '\\1 \\2 UTC'), 'empty'), 40) END,
+            ELSE ': ' || coalesce(regexp_replace(e.old_values ->> n.k,
+                '^(\\d{4}-\\d\\d-\\d\\d)T(\\d\\d:\\d\\d).*$', '\\1 \\2 UTC'), 'empty')
+              || ' → ' || coalesce(regexp_replace(n.v,
+                '^(\\d{4}-\\d\\d-\\d\\d)T(\\d\\d:\\d\\d).*$', '\\1 \\2 UTC'), 'empty') END,
           '; ' ORDER BY n.k)
         FROM jsonb_each_text(e.new_values) n(k, v))
       -- Added or removed says only What again: the row's name when it has one, else nothing.
-      WHEN 'insert' THEN (SELECT k || ': ' || left(e.new_values ->> k, 60)
+      WHEN 'insert' THEN (SELECT k || ': ' || (e.new_values ->> k)
         FROM unnest(array['name', 'title', 'subject', 'label', 'email']) WITH ORDINALITY u(k, n)
         WHERE nullif(e.new_values ->> k, '') IS NOT NULL ORDER BY n LIMIT 1)
-      WHEN 'delete' THEN (SELECT k || ': ' || left(e.old_values ->> k, 60)
+      WHEN 'delete' THEN (SELECT k || ': ' || (e.old_values ->> k)
         FROM unnest(array['name', 'title', 'subject', 'label', 'email']) WITH ORDINALITY u(k, n)
         WHERE nullif(e.old_values ->> k, '') IS NOT NULL ORDER BY n LIMIT 1)
       END change,

@@ -48,7 +48,7 @@ export function agentsOf(lines: readonly AgentLine[], loops: readonly LoopRow[] 
       (at, r) => (r.lastAt && (!at || r.lastAt > at) ? r.lastAt : at),
       null,
     );
-    const error = failing?.error?.split("\n")[0]?.slice(0, 160) ?? null;
+    const error = failing?.error?.split("\n")[0] ?? null;
     return { ...l, state, lastAt, error };
   });
 }

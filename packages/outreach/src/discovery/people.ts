@@ -127,7 +127,7 @@ export async function readWords(
       location: keep(r.location),
       website: site,
       struggles: r.struggles.flatMap((f) => (keep(f) ? [f as Quoted] : [])),
-      why: r.why.replace(/\s+/g, " ").trim().slice(0, 300),
+      why: r.why.replace(/\s+/g, " ").trim().slice(0, 3000),
     },
     fit: Math.round(r.fit),
     // A site is theirs only when the host is in their words too.

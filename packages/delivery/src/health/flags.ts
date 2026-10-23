@@ -113,7 +113,7 @@ export interface FailedRun {
 
 const runsWords = (r: FailedRun, name: string) =>
   `${r.runs} ${r.runs === 1 ? "run" : "runs"} failed in ${name}`;
-const topWords = (r: FailedRun) => `Top error: ${r.top.replace(/\s+/g, " ").slice(0, 200)}`;
+const topWords = (r: FailedRun) => `Top error: ${r.top.replace(/\s+/g, " ").slice(0, 2000)}`;
 
 /**
  * A client's failed runs as flags, one per workflow: told in the digest, again each day while

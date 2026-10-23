@@ -2,49 +2,29 @@
  * How to get around the portal, drawn from the live app list: every app by area with what it's
  * for and its pages, then the keys. A new app or page shows here with no edit.
  */
-import { FRAME_KEYS, Icon, Key, KeyList, LIST_KEYS, PageHeader, Section } from "@wren/ui";
+import { FRAME_KEYS, Key, KeyList, LIST_KEYS, PageHeader, Section } from "@wren/ui";
 import { areasOf } from "../../areas.js";
 import type { Module } from "../../module.js";
 import { appsIn, MODULES } from "../index.js";
-
-export const LINK =
-  "text-(--ui-ink) underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:decoration-(--ui-ink)";
+import { type AppLine, AppRows } from "./app-rows.js";
 
 const pagesOf = (m: Module) => m.pages.filter((p) => !p.hidden);
 
-function App({ m }: { m: Module }) {
+/** An app as a row: its first page, and every page it has when it has more than one. */
+function lineOf(m: Module): AppLine {
   const pages = pagesOf(m);
   const first = pages[0] ?? m.pages[0];
-  return (
-    <li className="grid grid-cols-[30px_minmax(0,1fr)] gap-x-3 gap-y-1 border-b border-(--ui-hair) py-3.5 last:border-b-0">
-      <span
-        className="row-span-2 grid size-[30px] place-items-center bg-(--ui-fill) text-(--ui-ink)"
-        aria-hidden="true"
-      >
-        <Icon name={m.icon} />
-      </span>
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
-        <a
-          className={`${LINK} text-[15px] font-semibold`}
-          href={first ? `/${m.id}/${first.id}` : "/"}
-        >
-          {m.name}
-        </a>
-        <span className="text-[13.5px] text-(--ui-ink-2)">{m.blurb}</span>
-      </div>
-      {pages.length > 1 ? (
-        <ul className="flex list-none flex-wrap gap-x-3 gap-y-1 text-[13px]">
-          {pages.map((p) => (
-            <li key={p.id}>
-              <a className={`${LINK} text-(--ui-ink-2)`} href={`/${m.id}/${p.id}`}>
-                {p.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  );
+  return {
+    id: m.id,
+    name: m.name,
+    icon: m.icon,
+    blurb: m.blurb,
+    href: first ? `/${m.id}/${first.id}` : "/",
+    links:
+      pages.length > 1
+        ? pages.map((p) => ({ id: p.id, label: p.label, href: `/${m.id}/${p.id}` }))
+        : [],
+  };
 }
 
 export function Guide() {
@@ -82,11 +62,7 @@ export function Guide() {
       </Section>
       {areas.map(({ area, apps }) => (
         <Section key={area.id} title={area.label}>
-          <ul className="list-none">
-            {apps.map((m) => (
-              <App key={m.id} m={m} />
-            ))}
-          </ul>
+          <AppRows apps={apps.map(lineOf)} label={`${area.label} apps`} linksHead="Pages" />
         </Section>
       ))}
     </>

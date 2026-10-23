@@ -353,7 +353,7 @@ export async function scoreFit(
   try {
     return fitOf([...checks, ...(await modelChecks(icp, facts, model, ms))], []);
   } catch (err) {
-    const why = err instanceof Error ? err.message.slice(0, 80) : "an error";
+    const why = err instanceof Error ? err.message.slice(0, 800) : "an error";
     return fitOf(
       [...checks, ...unsettled(icp)],
       [`The model check failed (${why}); the score uses the fields checked in code.`],

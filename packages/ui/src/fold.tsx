@@ -39,7 +39,7 @@ export function foldOf(meta: Pick<RecordMeta, "fold">, row: Row): FoldMessage[] 
   return out.length > 1 ? out : null;
 }
 
-const oneLine = (t: string) => stripMarks(t).replace(/\s+/g, " ").trim().slice(0, 200);
+const oneLine = (t: string) => stripMarks(t).replace(/\s+/g, " ").trim();
 
 /** Waiting: a filled dot. Answered: a hollow one. Said in words for a screen reader. */
 function Mark({ open }: { open: boolean }) {
@@ -79,7 +79,7 @@ export function FoldPreview({
           <Mark open={m.open} />
           <span
             className={cn(
-              "min-w-0 truncate",
+              "min-w-0 wrap-anywhere whitespace-normal",
               quiet || !m.open ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
             )}
           >

@@ -501,7 +501,7 @@ function FileField({ f, act, link }: FieldProps & { link: string | null }) {
         />
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-0 truncate text-[14px]">
+        <span className="min-w-0 wrap-anywhere whitespace-normal text-[14px]">
           {set ? nameOf(String(f.value)) : "None"}
         </span>
         <input
@@ -570,7 +570,7 @@ function FilesField({ f, act, links }: FieldProps & { links: Record<string, stri
                   className="aspect-square w-28 rounded-(--ui-radius) object-cover shadow-[0_0_0_1px_var(--ui-hair)]"
                 />
               ) : (
-                <span className="truncate text-[13px]">{nameOf(v)}</span>
+                <span className="wrap-anywhere whitespace-normal text-[13px]">{nameOf(v)}</span>
               )}
               <Button
                 size="dense"
@@ -833,7 +833,9 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
             {shape.media ? (
               <div className="grid min-w-0 gap-1 @min-[440px]/fields:col-span-2">
                 <span className={LABEL}>{shape.media.kind === "video" ? "Video" : "Image"}</span>
-                <span className="truncate text-[14px]">{shape.media.name}</span>
+                <span className="wrap-anywhere whitespace-normal text-[14px]">
+                  {shape.media.name}
+                </span>
               </div>
             ) : null}
             {cells(media)}

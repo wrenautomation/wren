@@ -195,7 +195,7 @@ export function plainFailure(text: string | null | undefined): string {
     .replace(/^\S+ (GET|POST|PUT|PATCH|DELETE) \S+: /, "")
     .trim();
   const m = /^(\d{3})\b[:\s-]*(.*)$/.exec(body);
-  const short = (s: string) => (s.length > 160 ? `${s.slice(0, 159).trimEnd()}…` : s);
+  const short = (s: string) => (s.length > 1600 ? `${s.slice(0, 1599).trimEnd()}…` : s);
   if (m) {
     const [, code = "", rest = ""] = m;
     const lead = CODE_WORDS.find(([re]) => re.test(code))?.[1];

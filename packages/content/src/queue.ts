@@ -62,7 +62,7 @@ export async function markPublished(
     url: published.url,
     notes: published.notes ?? [],
     // What the platform refused after the post went up, where he sees it.
-    error: published.notes?.length ? published.notes.join("; ").slice(0, 1000) : null,
+    error: published.notes?.length ? published.notes.join("; ").slice(0, 10_000) : null,
     link: link ?? null,
     via: by === "scheduler" ? "wren" : "person",
     by,
@@ -125,7 +125,7 @@ async function stamp(
     const unread = `The platform's id "${(p.publishedId ?? "").slice(0, 80)}" is not one we read, so its numbers are not read.`;
     const error =
       p.publishedId && !publishedId
-        ? [p.error, unread].filter(Boolean).join("; ").slice(0, 1000)
+        ? [p.error, unread].filter(Boolean).join("; ").slice(0, 10_000)
         : p.error;
     const [d] = await tx
       .update(contentDrafts)
@@ -169,7 +169,7 @@ export async function noteOnDraft(db: Queryable, id: string, note: string): Prom
   await db
     .update(contentDrafts)
     .set({
-      error: sql`left(concat_ws('; ', ${contentDrafts.error}, ${note.slice(0, 500)}::text), 1000)`,
+      error: sql`left(concat_ws('; ', ${contentDrafts.error}, ${note.slice(0, 5000)}::text), 10000)`,
     })
     .where(eq(contentDrafts.id, id));
 }
@@ -184,7 +184,7 @@ export const WAITING_FOR_BROWSER = "Waiting for the browser";
 export async function markWaiting(db: Queryable, id: string, why: string): Promise<void> {
   await db
     .update(contentDrafts)
-    .set({ status: "approved", error: `${WAITING_FOR_BROWSER}: ${why}`.slice(0, 1000) })
+    .set({ status: "approved", error: `${WAITING_FOR_BROWSER}: ${why}`.slice(0, 10_000) })
     .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")));
 }
 
@@ -203,7 +203,7 @@ export async function markCapped(
     .set({
       status: "approved",
       scheduledFor: until,
-      error: `Waiting out the daily cap until ${until.toISOString()}: ${why}`.slice(0, 1000),
+      error: `Waiting out the daily cap until ${until.toISOString()}: ${why}`.slice(0, 10_000),
     })
     .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")));
 }
@@ -215,7 +215,7 @@ export const waitingForBrowser = (d: { status: string; error: string | null }): 
 export async function markFailed(db: Queryable, id: string, error: string): Promise<void> {
   const [d] = await db
     .update(contentDrafts)
-    .set({ status: "failed", error: error.slice(0, 1000) })
+    .set({ status: "failed", error: error.slice(0, 10_000) })
     .where(eq(contentDrafts.id, id))
     .returning({ platform: contentDrafts.platform });
   if (d)
@@ -225,7 +225,7 @@ export async function markFailed(db: Queryable, id: string, error: string): Prom
       event: "failed",
       via: "wren",
       by: "scheduler",
-      note: error.slice(0, 1000),
+      note: error.slice(0, 10_000),
     });
 }
 
@@ -236,7 +236,7 @@ export async function markFailed(db: Queryable, id: string, error: string): Prom
 export async function markUnsure(db: Queryable, id: string, why: string): Promise<void> {
   await db
     .update(contentDrafts)
-    .set({ error: `${MAY_HAVE_GONE_OUT}: ${why}. It waits in To approve.`.slice(0, 1000) })
+    .set({ error: `${MAY_HAVE_GONE_OUT}: ${why}. It waits in To approve.`.slice(0, 10_000) })
     .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "publishing")));
 }
 

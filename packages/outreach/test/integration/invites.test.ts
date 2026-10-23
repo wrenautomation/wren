@@ -13,8 +13,10 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount, setAccountState } from "../../src/accounts.js";
 import { contactById } from "../../src/contacts.js";
+import { dmContext } from "../../src/drafts.js";
 import {
   approveInvites,
+  connectionsDrift,
   INVITE_SEQUENCE,
   type InviteSettings,
   inviteSettings,
@@ -389,10 +391,69 @@ describe("linkedin invites", () => {
     // Neither is proposed again, and a skip spends none of the day's invites.
     await top(SETTINGS, at(1));
     expect(await proposedIds()).toEqual([]);
-    // Bob accepts the invite that was already out: the sweep still finds it.
+    // Bob accepts the invite sent by hand before ours: the sweep still finds it, as by hand.
     fake.relationships.set("bob-d", "connected");
     const swept = await sweepInvites(db(), fake, acct, SETTINGS, at(1));
-    expect(swept.accepted).toEqual([(await contactOf("bob-d")).id]);
+    expect(swept).toMatchObject({ accepted: [], byHand: 1 });
+    expect((await contactOf("bob-d")).state).toBe("connected");
+  });
+
+  it("reconciles with the site: backfills hand-made connections, dates accepts, settles lost sends", async () => {
+    await person("alice-a", { title: "Founder" });
+    await person("bob-d", { title: "Director" });
+    await top();
+    await approveInvites(db(), await proposedIds(), OPEN);
+    await tickAt(OPEN);
+    await tickAt(OPEN);
+    const alice = await contactOf("alice-a");
+    const bob = await contactOf("bob-d");
+    // Bob's send was lost on the way: `unknown`, never resent.
+    await db()
+      .update(reachMessages)
+      .set({ state: "unknown" })
+      .where(eq(reachMessages.contactId, bob.id));
+    const on = new Date("2026-10-03T00:00:00Z");
+    const rows = [
+      { handle: "alice-a", name: "Alice Test", url: null, headline: null, connectedOn: on },
+      { handle: "zed-hand", name: "Zed Hand", url: null, headline: "Owner", connectedOn: on },
+    ];
+    const channel = {
+      ...fake,
+      connections: async (max: number) => rows.slice(0, max),
+      relationship: async (h: string) => (h === "bob-d" ? ("pending" as const) : ("none" as const)),
+    };
+    const swept = await sweepInvites(db(), channel, acct, SETTINGS, at(3));
+    expect(swept).toMatchObject({
+      accepted: [alice.id],
+      backfilled: 1,
+      byHand: 1,
+      settled: 1,
+      errors: [],
+    });
+    expect(swept.drift).toEqual({ site: 2, wren: 2, gone: [] });
+    // The site's day, not the sweep's.
+    expect((await contactById(db(), alice.id)).connectedAt).toEqual(on);
+    const zed = await contactOf("zed-hand");
+    expect(zed).toMatchObject({
+      state: "connected",
+      accountId: acct.id,
+      foundIn: "linkedin connections",
+    });
+    expect(zed.connectedAt).toEqual(on);
+    // The site shows Bob's invite: it went out after all.
+    expect(await statuses()).toMatchObject({ "bob-d": "pending" });
+    // Zed never got our invite: no "just accepted" first message, no invite record.
+    const invites = (await inviteRecord.rows?.(db())) ?? [];
+    expect(invites.map((r) => r.who)).not.toContain("Zed Hand");
+    expect((await dmContext(db(), zed.id)).record).toBe("dm");
+    expect((await dmContext(db(), alice.id)).record).toBe("invite");
+    // A second read finds nothing new; a whole list that lost Alice says so.
+    rows.shift();
+    const again = await sweepInvites(db(), channel, acct, SETTINGS, at(4));
+    expect(again).toMatchObject({ accepted: [], backfilled: 0, settled: 0, errors: [] });
+    expect(again.drift).toEqual({ site: 1, wren: 2, gone: ["alice-a"] });
+    // A partial read (as many rows as asked) says nothing of who left.
+    expect(await connectionsDrift(db(), acct.id, rows, rows.length)).toBeNull();
   });
 
   it("an invite goes bare once the month's notes are spent", async () => {

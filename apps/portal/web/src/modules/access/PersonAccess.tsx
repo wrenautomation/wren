@@ -5,13 +5,26 @@
  */
 import { ACCESS_CHANNELS, APPS, CHANNEL_NAMES, type Permission } from "@wren/core/access";
 import type { RecordsPage } from "@wren/core/records/serve";
-import { Alert, Button, ChecksField, Loading, SelectField, TextField, useEditForm } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  ChecksField,
+  Loading,
+  SelectField,
+  Tag,
+  TextField,
+  useEditForm,
+  useNarrow,
+} from "@wren/ui";
 import { useState } from "react";
 import { call, type Me, viewing, viewingAs } from "../../api.js";
 import { useCall } from "../../load.js";
 import { WREN } from "../../module.js";
+import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { openViewAs } from "../../view-as.js";
-import { ERROR, FORM, Kept, LIST, NARROW, QUIET, SPLIT } from "../work/bits.js";
+import { ERROR, FORM, Kept, NARROW, QUIET, SPLIT } from "../work/bits.js";
+
+type Grant = RecordsPage["rows"][number];
 
 /** A console call in this workspace: Wren's own, or the client's. */
 export const consoleIn = <T,>(client: string, handler: string, body: Record<string, unknown>) =>
@@ -149,6 +162,8 @@ export function PersonAccess({
   const [adding, setAdding] = useState(false);
   const [history, setHistory] = useState(false);
   const [busy, setBusy] = useState(false);
+  const narrow = useNarrow();
+  const going = useGoing();
   const [error, setError] = useState<string | null>(null);
   // One key per read: a change re-reads the grants under it (roles never change here).
   const roles = useCall(`access-roles:${client}`, () =>
@@ -199,9 +214,9 @@ export function PersonAccess({
     <div className="grid gap-4 text-[14px]">
       <section className="grid gap-1">
         <div className={SPLIT}>
-          <h4 className="text-[13px] font-medium text-(--ui-ink-2)">
+          <h2 className="m-0 text-[13px] font-medium text-(--ui-ink-2)">
             Role: {String(theirs?.name ?? role)}
-          </h4>
+          </h2>
           {/* View as is Wren's team's: the picker opens on this person. */}
           {me.data?.operator && !viewing ? (
             <Button
@@ -220,32 +235,47 @@ export function PersonAccess({
         )}
       </section>
       <section className="grid gap-2">
-        <h4 className="text-[13px] font-medium text-(--ui-ink-2)">Extra grants</h4>
+        <h2 className="m-0 text-[13px] font-medium text-(--ui-ink-2)">Extra grants</h2>
         {live.length ? (
-          <ul className={LIST}>
-            {live.map((g) => (
-              <li key={String(g.id)} className={SPLIT}>
-                <span>
-                  {String(g.what)}
-                  {g.reason ? (
-                    <span className={`${QUIET} block text-[13px]`}>{String(g.reason)}</span>
-                  ) : null}
-                </span>
-                {viewingAs ? null : (
-                  <Button
-                    size="sm"
-                    tone="quiet"
-                    disabled={busy}
-                    onClick={() => {
-                      if (confirm("End this grant now?")) void run("grantEnd", { id: g.id });
-                    }}
-                  >
-                    End now
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
+          <PageRows<Grant>
+            label="Extra grants"
+            noun="grant"
+            lines={rowLines(live, (g) => String(g.id))}
+            rowState={(g) => going.stateOf(String(g.id))}
+            name={{
+              label: "Grant",
+              icon: "key",
+              min: 240,
+              title: (g) => String(g.what),
+              sub: (g) =>
+                g.reason ? (
+                  <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+                    {String(g.reason)}
+                  </span>
+                ) : null,
+            }}
+            columns={[]}
+            end={
+              viewingAs
+                ? undefined
+                : (g) => (
+                    <RowDoes
+                      title={String(g.what)}
+                      lone={narrow}
+                      busy={busy}
+                      does={[
+                        {
+                          id: "end",
+                          label: "End now",
+                          confirm: "End this grant now?",
+                          run: () =>
+                            going.go(String(g.id), "Ending", () => run("grantEnd", { id: g.id })),
+                        },
+                      ]}
+                    />
+                  )
+            }
+          />
         ) : (
           <p className={QUIET}>None.</p>
         )}
@@ -277,14 +307,36 @@ export function PersonAccess({
             History ({ended.length})
           </button>
           {history ? (
-            <ul className={LIST}>
-              {ended.map((g) => (
-                <li key={String(g.id)} className={QUIET}>
-                  {String(g.what)} {g.state === "used" ? "Used up." : "Ended."} Given by{" "}
-                  {String(g.by)}.
-                </li>
-              ))}
-            </ul>
+            <PageRows<Grant>
+              label="Ended grants"
+              noun="ended grant"
+              lines={rowLines(ended, (g) => String(g.id))}
+              name={{
+                label: "Grant",
+                icon: "key",
+                min: 240,
+                title: (g) => String(g.what),
+              }}
+              columns={[
+                {
+                  key: "state",
+                  label: "State",
+                  icon: "pulse",
+                  width: 110,
+                  phone: true,
+                  cell: (g) => <Tag tone="neutral">{g.state === "used" ? "Used up" : "Ended"}</Tag>,
+                },
+                {
+                  key: "by",
+                  label: "Given by",
+                  icon: "user",
+                  min: 180,
+                  quiet: true,
+                  className: "max-[900px]:hidden",
+                  cell: (g) => String(g.by),
+                },
+              ]}
+            />
           ) : null}
         </section>
       ) : null}

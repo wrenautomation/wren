@@ -151,7 +151,7 @@ export function mailChecks(o: {
           return { ok: true, why: `A read works on ${c.address}`, seen: { mailbox: c.address } };
         } catch (err) {
           tried.push(
-            `${c.address}: ${err instanceof Error ? err.message.slice(0, 120) : "failed"}`,
+            `${c.address}: ${err instanceof Error ? err.message.slice(0, 1200) : "failed"}`,
           );
         }
       }
@@ -181,7 +181,7 @@ export function mailChecks(o: {
       } catch (err) {
         return {
           ok: false,
-          why: err instanceof Error ? err.message.slice(0, 200) : "Its sign-in stopped working",
+          why: err instanceof Error ? err.message.slice(0, 2000) : "Its sign-in stopped working",
         };
       }
       const want = wantOf(account);

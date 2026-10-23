@@ -93,11 +93,11 @@ function Item({
         </span>
         <span className="grid min-w-0 flex-1 gap-0.5">
           <span className="flex items-center gap-2 text-[13px] font-semibold text-(--ui-ink)">
-            <span className="truncate">{name}</span>
+            <span className="wrap-anywhere whitespace-normal">{name}</span>
             {!ready ? <Tag>In development</Tag> : null}
             {effects.length ? <Tag tone="accent">{effects.join(", ")}</Tag> : null}
           </span>
-          <span className="line-clamp-2 text-[12px] leading-[1.4] text-(--ui-ink-2)">{blurb}</span>
+          <span className="text-[12px] leading-[1.4] text-(--ui-ink-2)">{blurb}</span>
         </span>
       </button>
     </li>

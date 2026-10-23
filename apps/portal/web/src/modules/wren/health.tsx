@@ -5,11 +5,12 @@
  */
 import type { State } from "@wren/core/records";
 import type { RecordsPage, Row } from "@wren/core/records/serve";
-import { type Action, dateOf, relative, Section, StateMark } from "@wren/ui";
+import { type Action, dateOf, FactsTable, relative, Section, StateMark } from "@wren/ui";
 import type { ReactNode } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
-import { LIST, QUIET, SPLIT } from "../work/bits.js";
+import { QUIET } from "../work/bits.js";
+import { RowsPanel } from "../work/rows-panel.js";
 
 const said = (line: string) => () => line;
 const SIDES = ["risk", "opportunity"] as const;
@@ -217,23 +218,35 @@ const staleOf = (row: Row) =>
       .filter(Boolean),
   );
 
-/** One part: its score and bar, its weight, why, stale or not, and a link to its rows. */
-function PartLine({ row, part }: { row: Row; part: (typeof PARTS)[number] }) {
+/** One part's score: its bar and number, its weight, and stale when it is. */
+function PartScore({ row, part }: { row: Row; part: (typeof PARTS)[number] }) {
   const v = numOf(row[part]);
   const w = weightsOf(str(row.weights))[part];
   return (
-    <span className="grid gap-1.5">
-      <span className="flex items-center gap-3 text-[13.5px]">
-        <span className="w-24">
-          <Bar value={v} />
-        </span>
-        <span className="min-w-[3ch] font-medium tabular-nums">{v ?? "–"}</span>
-        <span className={QUIET}>{w ? `counts ${w}%` : "not counted"}</span>
-        {staleOf(row).has(part) ? <StateMark state={{ label: "Stale", tone: "warn" }} /> : null}
+    <span className="flex items-center gap-3 text-[13.5px]">
+      <span className="w-24">
+        <Bar value={v} />
       </span>
-      <a href={`/clients/inputs?view=all&client=${enc(str(row.id))}&part=${part}`}>
-        {str(row[`${part}Why`]) || "No input yet."}
-      </a>
+      <span className="min-w-[3ch] font-medium tabular-nums">{v ?? "–"}</span>
+      <span className={QUIET}>{w ? `counts ${w}%` : "not counted"}</span>
+      {staleOf(row).has(part) ? <StateMark state={{ label: "Stale", tone: "warn" }} /> : null}
+    </span>
+  );
+}
+
+/** One part's why, a link to the rows behind it. */
+const PartWhy = ({ row, part }: { row: Row; part: (typeof PARTS)[number] }) => (
+  <a href={`/clients/inputs?view=all&client=${enc(str(row.id))}&part=${part}`}>
+    {str(row[`${part}Why`]) || "No input yet."}
+  </a>
+);
+
+/** One part: its score and bar, its weight, why, stale or not, and a link to its rows. */
+function PartLine({ row, part }: { row: Row; part: (typeof PARTS)[number] }) {
+  return (
+    <span className="grid gap-1.5">
+      <PartScore row={row} part={part} />
+      <PartWhy row={row} part={part} />
     </span>
   );
 }
@@ -279,14 +292,18 @@ export function HealthCard({ row }: { row: Row }) {
         </div>
         <Summary row={row} />
       </div>
-      <ul className={LIST} aria-label="Parts">
-        {PARTS.map((p) => (
-          <li key={p} className="grid gap-1">
-            <span className="font-medium">{PART_LABEL[p]}</span>
-            <PartLine row={row} part={p} />
-          </li>
-        ))}
-      </ul>
+      {/* Four fixed parts with their numbers: facts, so a table, not rows. */}
+      <FactsTable
+        head={["Part", "Score", "Why"]}
+        rows={PARTS.map((p) => [
+          <span key={p} className="font-medium">
+            {PART_LABEL[p]}
+          </span>,
+          <PartScore key="score" row={row} part={p} />,
+          <PartWhy key="why" row={row} part={p} />,
+        ])}
+        stack
+      />
     </div>
   );
 }
@@ -302,6 +319,49 @@ export const healthExtras = (_: unknown, { row }: { row: Row }) => ({
     <PartLine key={p} row={row} part={p} />,
   ]),
 });
+
+/** A client at risk or an urgent flag, as one row of Wren's home. */
+interface NowLine {
+  id: string;
+  name: string;
+  href: string;
+  state: State;
+  /** A client's score; none on a flag. */
+  score: string;
+  detail: string;
+}
+
+function HealthRows({ rows }: { rows: NowLine[] }) {
+  return (
+    <RowsPanel<NowLine>
+      rows={rows}
+      rowKey={(r) => r.id}
+      label="Client health"
+      noun="row"
+      // Home lists it in Today's 440px sheet: the phone's shape, name over why, at any screen.
+      narrow
+      name={{
+        label: "Client or flag",
+        icon: "text",
+        title: (r) => r.name,
+        href: (r) => r.href,
+        sub: (r) => {
+          const why = [r.score ? `Score ${r.score}` : null, r.detail].filter(Boolean).join(" · ");
+          return why ? <span className="text-[12.5px] text-(--ui-ink-3)">{why}</span> : null;
+        },
+      }}
+      columns={[
+        {
+          key: "state",
+          label: "State",
+          icon: "selected",
+          phone: true,
+          cell: (r) => <StateMark state={r.state} />,
+        },
+      ]}
+    />
+  );
+}
 
 /**
  * Wren's home: clients at risk and urgent open risks, each a link to its page. A failed read or
@@ -325,6 +385,35 @@ export function HealthNow() {
   );
   const [risk, flags] = got.data ?? [];
   if (!risk?.rows.length && !flags?.rows.length) return null;
+  const lines: NowLine[] = [
+    ...(risk?.rows ?? []).map(
+      (r): NowLine => ({
+        id: `h${str(r.id)}`,
+        name: str(r.name),
+        href: `/clients/health/${enc(str(r.id))}`,
+        state: BAND.risk as State,
+        score: str(r.score),
+        detail: [
+          str(r.weakest),
+          r.hand === "yes" ? "Set by hand" : null,
+          Number(r.risks) ? `${str(r.risks)} open risk${Number(r.risks) === 1 ? "" : "s"}` : null,
+          Number(r.stale) ? `Stale: ${str(r.staleParts)}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      }),
+    ),
+    ...(flags?.rows ?? []).map(
+      (f): NowLine => ({
+        id: `f${str(f.id)}`,
+        name: str(f.what),
+        href: `/clients/flags/${enc(str(f.id))}`,
+        state: { label: "Urgent", tone: "bad" },
+        score: "",
+        detail: [str(f.name), str(f.owner), when(f.raised)].filter(Boolean).join(" · "),
+      }),
+    ),
+  ];
   return (
     <Section
       title="Client health"
@@ -335,46 +424,7 @@ export function HealthNow() {
         </a>
       }
     >
-      <ul className={LIST} aria-label="Client health">
-        {(risk?.rows ?? []).map((r) => (
-          <li key={`h${str(r.id)}`} className="grid gap-1">
-            <span className={SPLIT}>
-              <a href={`/clients/health/${enc(str(r.id))}`} className="min-w-0 font-medium">
-                {str(r.name)}
-              </a>
-              <span className="flex items-center gap-3">
-                <span className="font-medium tabular-nums">{str(r.score)}</span>
-                <StateMark state={BAND.risk as State} />
-              </span>
-            </span>
-            <span className={QUIET}>
-              {[
-                str(r.weakest),
-                r.hand === "yes" ? "Set by hand" : null,
-                Number(r.risks)
-                  ? `${str(r.risks)} open risk${Number(r.risks) === 1 ? "" : "s"}`
-                  : null,
-                Number(r.stale) ? `Stale: ${str(r.staleParts)}` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-          </li>
-        ))}
-        {(flags?.rows ?? []).map((f) => (
-          <li key={`f${str(f.id)}`} className="grid gap-1">
-            <span className={SPLIT}>
-              <a href={`/clients/flags/${enc(str(f.id))}`} className="min-w-0 font-medium">
-                {str(f.what)}
-              </a>
-              <StateMark state={{ label: "Urgent", tone: "bad" }} />
-            </span>
-            <span className={QUIET}>
-              {[str(f.name), str(f.owner), when(f.raised)].filter(Boolean).join(" · ")}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <HealthRows rows={lines} />
     </Section>
   );
 }

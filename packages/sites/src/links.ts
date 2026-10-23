@@ -82,7 +82,7 @@ export async function createLink(db: Db, l: NewLink): Promise<MadeLink> {
   const campaign = linkWord(l.campaign) || page.slug.slice(0, 80);
   const content = linkWord(l.content) || null;
   const utm = linkUtm(link, l.client === null);
-  const name = l.name?.trim().slice(0, 200) || null;
+  const name = l.name?.trim().slice(0, 2000) || null;
   await db
     .insert(siteLinks)
     .values({

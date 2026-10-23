@@ -57,7 +57,7 @@ InboxScheduler, Disposition (+ PostmasterScheduler / OpensScheduler when configu
 
 ## CI (GitHub → Lambda)
 
-`.github/workflows/deploy.yml` runs after `ci` is green on `main`: migrate, bundle, publish a
+`.github/workflows/deploy.yml` runs as `ci`'s last job on `main`, once lint, unit and schema pass: migrate, bundle, publish a
 Lambda version, register it. Repo secrets, from `tofu output` and the Restate UI:
 
 | secret | value |

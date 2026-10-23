@@ -518,7 +518,7 @@ function Month({ client }: { client: string }) {
                   className="flex min-w-0 items-center gap-1 text-(--ui-ink) no-underline"
                 >
                   <span className={`size-2 shrink-0 ${STATE_DOT[b.state] ?? "bg-(--ui-ink-3)"}`} />
-                  <span className="truncate max-sm:hidden">{b.name}</span>
+                  <span className="wrap-anywhere whitespace-normal max-sm:hidden">{b.name}</span>
                 </a>
               ))}
             </div>

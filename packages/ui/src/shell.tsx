@@ -31,7 +31,7 @@ import {
   typingAt,
   useShowKeys,
 } from "./frame.js";
-import { clipProps, tipProps } from "./hint.js";
+import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import { NAV_LABEL, NAV_ON, NAV_ROW } from "./layout.js";
 import { headed, runs, total } from "./phone-nav.js";
@@ -581,9 +581,9 @@ function useFrameKeys(
 
 const EASE = "transition-colors duration-150 ease-(--ui-ease)";
 const HOVER = `${EASE} hover:bg-(--ui-hover)`;
-/** The workspace's chip ("Account"): it gives way to the name and ends in "…" when long. */
+/** The workspace's chip ("Account"): it gives way to the name and wraps when long. */
 const CHIP =
-  "min-w-0 max-w-40 truncate bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium text-(--ui-ink-2) no-underline";
+  "min-w-0 max-w-40 wrap-anywhere whitespace-normal bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium text-(--ui-ink-2) no-underline";
 const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
 /** Where the page sits (the artifact's `.crumb`): 13 px ink-3, the page in ink. */
 const CRUMB = "text-[13px] leading-[1.55] text-(--ui-ink-3)";
@@ -735,9 +735,8 @@ function AppCrumb({
       <nav aria-label="Breadcrumb" className={cx(CRUMB, "flex min-w-0 items-center gap-1")}>
         {paged || !page ? (
           <a
-            className="min-w-0 truncate text-inherit no-underline hover:text-(--ui-ink)"
+            className="min-w-0 wrap-anywhere whitespace-normal text-inherit no-underline hover:text-(--ui-ink)"
             href={app.href}
-            {...clipProps()}
           >
             {app.name}
           </a>
@@ -750,7 +749,7 @@ function AppCrumb({
         {hidden ? (
           <Popover>
             <PopoverTrigger className="inline-flex min-w-0 items-center gap-1 border-0 bg-transparent p-0 font-semibold text-(--ui-ink) hover:text-(--ui-link) data-[popup-open]:text-(--ui-link)">
-              <span className="min-w-0 truncate" {...clipProps()}>
+              <span className="min-w-0 wrap-anywhere whitespace-normal">
                 {page?.label ?? app.name}
               </span>
               <Icon name="down" size={14} className="flex-none" />
@@ -760,7 +759,10 @@ function AppCrumb({
             </PopoverContent>
           </Popover>
         ) : page || !paged ? (
-          <b className="min-w-0 truncate text-(--ui-ink)" aria-current="page" {...clipProps()}>
+          <b
+            className="min-w-0 wrap-anywhere whitespace-normal text-(--ui-ink)"
+            aria-current="page"
+          >
             {paged ? page?.label : app.name}
           </b>
         ) : null}
@@ -958,7 +960,7 @@ function SideNav({
           {...(folded ? tipProps(home.label, { side: "right", as: "none" }) : {})}
         >
           <Icon name={home.icon ?? "home"} />
-          <span className={folded ? "sr-only" : "min-w-0 truncate"} {...clipProps()}>
+          <span className={folded ? "sr-only" : "min-w-0 wrap-anywhere whitespace-normal"}>
             {home.label}
           </span>
           {home.count ? (
@@ -1032,7 +1034,9 @@ function SideNav({
                       : {})}
                   >
                     <Icon name={a.icon} />
-                    <span className={folded ? "sr-only" : "min-w-0 truncate"} {...clipProps()}>
+                    <span
+                      className={folded ? "sr-only" : "min-w-0 wrap-anywhere whitespace-normal"}
+                    >
                       {a.name}
                     </span>
                     {a.count ? (
@@ -1247,10 +1251,9 @@ function WorkspaceName({
   const face = (
     <span
       className={cx(
-        "truncate text-[14px] font-semibold",
+        "wrap-anywhere whitespace-normal text-[14px] font-semibold",
         brand && "min-[901px]:text-[16px] min-[901px]:leading-[1.55] min-[901px]:font-semibold",
       )}
-      {...clipProps()}
     >
       {current.name}
     </span>

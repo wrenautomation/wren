@@ -286,7 +286,7 @@ function Facet({
             onChange={() => go(flip(id))}
             className="size-3.5 shrink-0 accent-(--ui-ink)"
           />
-          <span className="min-w-0 flex-1 truncate">{st.label}</span>
+          <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{st.label}</span>
           <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
             {counts ? num(counts[id] ?? 0) : ""}
           </span>
@@ -350,7 +350,7 @@ function Card({
           </span>
         ))}
         {meta.subtitle ? (
-          <span className="line-clamp-3 text-[13px]/[1.45] text-pretty text-(--ui-ink-2)">
+          <span className="text-[13px]/[1.45] text-pretty text-(--ui-ink-2)">
             {textOf(row[meta.subtitle])}
           </span>
         ) : null}

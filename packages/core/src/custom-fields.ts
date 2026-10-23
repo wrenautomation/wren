@@ -42,7 +42,10 @@ const KEY = /^[a-z][a-z0-9_]{0,39}$/;
 const GROUP = "Custom fields";
 
 /** The record type a spine subject's prefix names: `journey:<id>` is a journey. */
-export const CUSTOM_SUBJECTS: Readonly<Record<string, string>> = { journey: "pipeline.journey" };
+export const CUSTOM_SUBJECTS: Readonly<Record<string, string>> = {
+  journey: "pipeline.journey",
+  deal: "pipeline.deal",
+};
 
 const ownerIs = (col: typeof customFields.owner | typeof customValues.owner, o: string | null) =>
   o === null ? isNull(col) : eq(col, o);
@@ -483,13 +486,15 @@ function said(f: CustomField, v: unknown): string | null {
 }
 
 /**
- * The facts copy may quote for an owner: `biz.<key>` for each business fact, and with a
- * subject (`journey:<id>`), `field.<key>` for each custom field set on that record.
+ * The facts copy may quote for an owner: `biz.<key>` for each business fact (main), and with a
+ * subject (`journey:<id>`), `field.<key>` for each custom field set on that record, read from
+ * `rows`, the database the record sits in (the owner's own, where fields keep owner null).
  */
 export async function customFacts(
   main: Queryable,
   owner: string | null,
   subject?: string | null,
+  rows: Queryable = main,
 ): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   for (const b of await businessFacts(main, owner)) out[`biz.${b.key}`] = b.value;
@@ -498,8 +503,8 @@ export async function customFacts(
     : [];
   const record = prefix ? CUSTOM_SUBJECTS[prefix] : undefined;
   if (record && id) {
-    const live = await customFieldsOf(main, owner, record);
-    const values = await customValuesOf(main, live, id);
+    const live = await customFieldsOf(rows, rows === main ? owner : null, record);
+    const values = await customValuesOf(rows, live, id);
     for (const f of live) {
       const s = said(f, values[f.key]);
       if (s !== null) out[`field.${f.key}`] = s;
@@ -511,21 +516,24 @@ export async function customFacts(
 /**
  * The Set field node's step: one custom field on the event's subject record, its value filled
  * from the event. A subject that takes no fields leaves by `skip`; a field gone or a value that
- * doesn't fit fails the step.
+ * doesn't fit fails the step. Fields and values sit beside the record: a client's workflow
+ * writes its own database (`open`), Wren's writes main.
  */
-export function setFieldStep(main: Queryable): Step {
+export function setFieldStep(main: Queryable, open: (client: string) => Queryable): Step {
   return async (_port, e, at) => {
+    const db = at.client ? open(at.client) : main;
     const cut = e.subject.indexOf(":");
     const record = cut > 0 ? CUSTOM_SUBJECTS[e.subject.slice(0, cut)] : undefined;
     if (!record) return [{ port: "skip", event: e }];
     const key = String(at.with.field ?? "");
-    const f = (await customFieldsOf(main, at.client, record)).find((x) => x.key === key);
+    // In the owner's own database, its fields keep owner null.
+    const f = (await customFieldsOf(db, null, record)).find((x) => x.key === key);
     if (!f) throw new restate.TerminalError(`Set field: no field ${key} on ${record}`);
     const raw = fillText(String(at.with.value ?? ""), e).trim();
     const value = raw === "" ? null : f.kind === "number" || f.kind === "money" ? Number(raw) : raw;
     try {
       await setCustomValues(
-        main,
+        db,
         [f],
         e.subject.slice(cut + 1),
         { [key]: value },

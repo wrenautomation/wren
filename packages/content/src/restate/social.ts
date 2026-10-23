@@ -546,7 +546,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
 
     const outcome: PassOutcome<SocialStats> = {
       stats,
-      error: stats.errors.length ? stats.errors.join("; ").slice(0, 2000) : null,
+      error: stats.errors.length ? stats.errors.join("; ").slice(0, 20_000) : null,
       failures: 0,
       delayMs: nextPassAt(now, deps.zone).getTime() - now.getTime(),
       now: now.toISOString(),

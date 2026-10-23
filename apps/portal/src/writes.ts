@@ -83,13 +83,13 @@ async function query(env: Env, sql: string): Promise<InvocationRow[]> {
   return Array.isArray(rows) ? (rows as InvocationRow[]) : [];
 }
 
-/** A failure as the person may read it: its first line, no tokens, at most 200 characters. */
+/** A failure as the person may read it: its first line, no tokens. */
 export function reasonOf(failure: string): string {
   const line = (failure.split(/\r?\n/).find((l) => l.trim()) ?? "").trim();
   const clean = line
     .replace(/\b(bearer|token|key|secret|password)([=: ]+)\S+/gi, "$1$2[hidden]")
     .replace(/\b[A-Za-z0-9_-]{40,}\b/g, "[hidden]");
-  return clean.length > 200 ? `${clean.slice(0, 199)}…` : clean;
+  return clean;
 }
 
 const COLS = "id, retry_count, last_failure, modified_at";

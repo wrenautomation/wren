@@ -180,7 +180,7 @@ export async function settleHit(
     .set(
       out.sent
         ? { state: "sent", ref: out.ref, sentAt: out.now, why: null }
-        : { state: "failed", why: out.why.slice(0, 500) },
+        : { state: "failed", why: out.why.slice(0, 5000) },
     )
     .where(eq(keywordHits.id, id));
 }

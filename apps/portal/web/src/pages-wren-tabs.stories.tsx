@@ -93,7 +93,7 @@ export const EngagePeople = pageAt("/engage/people", { me: ADMIN });
 export const EngageInbox = pageAt("/engage/inbox", { me: ADMIN });
 /**
  * Engage's Inbox as a queue table (rows-everywhere F1, F2): its wait column reads late past 24h,
- * the foot counts them, and "By type" folds the rows by kind, each fold with its count and oldest
+ * and "By type" folds the rows by kind, each fold with its count and oldest
  * wait. A fold shuts on a press.
  */
 export const EngageInboxByType = pageAt("/engage/inbox?view=all", {
@@ -102,13 +102,9 @@ export const EngageInboxByType = pageAt("/engage/inbox?view=all", {
     const view = within(page);
     // A row that waited past its promise says so in its wait, as text.
     await waitFor(() => expect(page.querySelectorAll("[data-late]").length).toBeGreaterThan(0));
-    // The foot counts them (Late and Oldest hide on a phone).
-    await expect(await view.findByText("Count")).toBeVisible();
-    // Only open threads read late: a thread already answered shows its age and is not counted.
-    const foot = (await view.findByText("Count")).parentElement?.parentElement;
-    const nums = Array.from(foot?.querySelectorAll("b") ?? []).map((b) => Number(b.textContent));
-    await expect(nums[0]).toBeGreaterThan(0);
-    await expect(nums[1] ?? 0).toBeLessThan(nums[0] ?? 0);
+    // Only open threads read late: a thread already answered shows its age.
+    const rows = page.querySelectorAll("tbody tr[data-index], li[data-index]").length;
+    await expect(page.querySelectorAll("[data-late]").length).toBeLessThan(rows);
     await userEvent.click(await view.findByRole("link", { name: "By type" }));
     const fold = await view.findByRole("button", { name: /DM/ });
     await expect(fold).toHaveAttribute("aria-expanded", "true");

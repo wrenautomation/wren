@@ -8,6 +8,12 @@
  */
 import { type MediaHost, publicUrlOf, type SiteClient } from "@wren/core/content";
 
+/**
+ * Every creative's link tags. The campaign is Meta's numeric id, so a journey from the ad names
+ * the same id `ad_days.campaign_id` holds and its spend joins (wa-2m6).
+ */
+export const URL_TAGS = "utm_source=meta&utm_medium=paid&utm_campaign={{campaign.id}}";
+
 export const META_OBJECTIVES = [
   "OUTCOME_AWARENESS",
   "OUTCOME_TRAFFIC",
@@ -373,6 +379,7 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
       const creative = await call<Made>("POST", `/act_${acct}/adcreatives`, {
         name: `${spec.name} · creative`,
         object_story_spec: story,
+        url_tags: URL_TAGS,
       });
       const ad = await call<Made>("POST", `/act_${acct}/ads`, {
         name: spec.name,

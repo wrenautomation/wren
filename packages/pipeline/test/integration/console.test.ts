@@ -4,11 +4,12 @@
  * Synthetic data only.
  */
 import { readFileSync } from "node:fs";
-import { addClient, addMember, addOperator } from "@wren/core/clients";
+import { addClient, addMember, addOperator, clientUrl } from "@wren/core/clients";
 import { saveCustomField, setFieldStep } from "@wren/core/custom-fields";
 import type { Viewer } from "@wren/core/portal";
 import { resolveProfile } from "@wren/core/profiles";
 import { events } from "@wren/core/schema";
+import { clientDatabaseName, createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -502,7 +503,7 @@ describe("custom fields on a journey", () => {
       { record: "pipeline.journey", label: "Roof age", kind: "number" },
       "t",
     );
-    const out = await setFieldStep(pg.db)(
+    const out = await setFieldStep(pg.db, () => pg.db)(
       "in",
       { subject: `journey:${id}`, kind: "journey", data: { age: 20 } } as never,
       {
@@ -529,19 +530,30 @@ describe("custom fields on a journey", () => {
     });
     expect(page.rows.find((r) => r.id === id)?.x_roof_age).toBe(20);
     expect(page.rows[0]?.id).toBe(id);
-    // Another owner's fields do not show in Wren's workspace.
-    await saveCustomField(
-      pg.db,
-      "acme",
-      { record: "pipeline.journey", label: "Pipe size", kind: "text" },
-      "t",
-    );
-    const again = (await api().recordsTypes(op())).find((t) => t.id === "pipeline.journey");
-    expect(again?.fields.map((f) => f.key)).not.toContain("x_pipe_size");
-    const theirs = (await api().recordsTypes(as(VAL, "acme"))).find(
-      (t) => t.id === "pipeline.journey",
-    );
-    expect(theirs?.fields.map((f) => f.key)).toContain("x_pipe_size");
-    expect(theirs?.fields.map((f) => f.key)).not.toContain("x_roof_age");
+  });
+
+  it("a client's fields sit in its own database: its workspace shows them, Wren's does not", async () => {
+    // The client's real database this time, not the test database.
+    const handle = createDb(clientUrl(pg.url, { database: clientDatabaseName("acme") }), {
+      max: 1,
+    });
+    try {
+      const split = pipelineConsoleApi({ db: pg.db, open: () => handle.db });
+      await saveCustomField(
+        handle.db,
+        null,
+        { record: "pipeline.journey", label: "Pipe size", kind: "text" },
+        "t",
+      );
+      const wren = (await split.recordsTypes(op())).find((t) => t.id === "pipeline.journey");
+      expect(wren?.fields.map((f) => f.key)).not.toContain("x_pipe_size");
+      const theirs = (await split.recordsTypes(as(VAL, "acme"))).find(
+        (t) => t.id === "pipeline.journey",
+      );
+      expect(theirs?.fields.map((f) => f.key)).toContain("x_pipe_size");
+      expect(theirs?.fields.map((f) => f.key)).not.toContain("x_roof_age");
+    } finally {
+      await handle.close();
+    }
   });
 });

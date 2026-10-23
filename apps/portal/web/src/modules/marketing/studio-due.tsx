@@ -78,7 +78,9 @@ export function DueCards({
             >
               <span className="flex min-w-0 items-center gap-2 text-[12px] font-medium text-(--ui-ink-3) max-sm:gap-1.5 max-sm:font-normal">
                 <LineMark line={line} small />
-                <span className="min-w-0 truncate">{line?.label ?? "No line"}</span>
+                <span className="min-w-0 wrap-anywhere whitespace-normal">
+                  {line?.label ?? "No line"}
+                </span>
                 <span
                   className={cx(
                     "ml-auto flex-none font-semibold max-sm:hidden",

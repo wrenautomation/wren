@@ -72,7 +72,7 @@ const look = ({ tone = "secondary", size = "md", className }: ButtonLook) =>
     BUTTON_TONE[tone],
     (size === "dense" || size === "next") && DENSE_TONE[tone],
     size === "next" && NEXT,
-    // A finger needs 44px. A long label never pushes past its box: it ends in "…".
+    // A finger needs 44px. A long label never pushes past its box: it wraps.
     "pointer-coarse:min-h-11 max-w-full min-w-0",
     className,
   );
@@ -80,7 +80,7 @@ const look = ({ tone = "secondary", size = "md", className }: ButtonLook) =>
 const inside = ({ icon, arrow, children }: ButtonLook) => (
   <>
     {icon ? <Icon name={icon} /> : null}
-    <span className="min-w-0 truncate">{children}</span>
+    <span className="min-w-0 wrap-anywhere whitespace-normal">{children}</span>
     {arrow ? (
       <Icon
         name="arrow"
@@ -218,7 +218,7 @@ export function Tag({
       {...(style ? { style } : {})}
       {...tipProps(title)}
     >
-      <span className="min-w-0 truncate">{children}</span>
+      <span className="min-w-0 wrap-anywhere whitespace-normal">{children}</span>
       <RingSlot on={!!busy} />
     </Badge>
   );

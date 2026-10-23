@@ -59,14 +59,6 @@ export function tipProps(text: string | undefined | null, o: TipOptions = {}): T
 }
 
 /**
- * Hover text for text that may be cut short: the element's own text, shown only while it is cut.
- * `text` is for when the element shows less than it holds (a name over a longer address).
- */
-export function clipProps(text?: string | null): TipProps {
-  return { "data-tip": text ?? "", "data-tip-clip": "" };
-}
-
-/**
  * "⌥ ↓" or "⌘⌥M" as `aria-keyshortcuts` reads it ("Alt+ArrowDown", "Meta+Alt+M"); a plain key
  * stays as it is.
  */

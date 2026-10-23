@@ -64,7 +64,7 @@ export const sitePages = pgTable(
     client: varchar("client", { length: 40 }),
     slug: varchar("slug", { length: 80 }).notNull(),
     /** Its name in the list: "Audit, cost angle". */
-    title: varchar("title", { length: 200 }).notNull(),
+    title: varchar("title", { length: 2000 }).notNull(),
     kind: varchar("kind", { length: 12 }).notNull(),
     source: varchar("source", { length: 8 }).notNull(),
     /** A code page's address. A data page's comes from its owner's host and slug. */
@@ -74,7 +74,7 @@ export const sitePages = pgTable(
     /** A data page's template. */
     template: varchar("template", { length: 16 }),
     offer: varchar("offer", { length: 64 }),
-    angle: varchar("angle", { length: 120 }),
+    angle: varchar("angle", { length: 1200 }),
     audience: varchar("audience", { length: 120 }),
     /** The page it was copied from, as a variant. */
     variantOf: uuid("variant_of"),
@@ -233,7 +233,7 @@ export const siteFormDefs = pgTable(
     client: varchar("client", { length: 40 }),
     slug: varchar("slug", { length: 80 }).notNull(),
     /** Its name in the list: "Quote request". */
-    name: varchar("name", { length: 200 }).notNull(),
+    name: varchar("name", { length: 2000 }).notNull(),
     status: varchar("status", { length: 8 }).notNull().default("draft"),
     spec: jsonb("spec").$type<FormSpec>().notNull(),
     /** The door its submits enter; null takes the owner's site door. */
@@ -523,7 +523,7 @@ export const siteLinks = pgTable(
     campaign: varchar("campaign", { length: 80 }).notNull(),
     content: varchar("content", { length: 80 }),
     /** What the team calls it: "Spring ad, roof photo". */
-    name: varchar("name", { length: 200 }),
+    name: varchar("name", { length: 2000 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: text("created_by").notNull(),
   },

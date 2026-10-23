@@ -84,13 +84,12 @@ interface Source {
 
 const str = (v: unknown) => String(v ?? "").trim();
 const lower = (v: unknown) => str(v).toLowerCase();
-const clip = (s: string) => (s.length > 42 ? `${s.slice(0, 41).trimEnd()}…` : s);
 
 /** A name for a line: the first word of a person's, the whole of anything else. */
 export const nameOf = (v: unknown, person = false) => {
   const t = str(v);
   if (!t) return "";
-  return clip(person ? (t.split(/\s+/)[0] ?? t) : t);
+  return person ? (t.split(/\s+/)[0] ?? t) : t;
 };
 
 /** "Sam, Priya, Ana and 9 more". */

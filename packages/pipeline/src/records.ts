@@ -643,8 +643,8 @@ export const journeyRecord = (): RecordType =>
     ],
     quick: ["node", "entry", "status"],
     related: [{ record: DEAL_RECORD, by: "journey" }],
-    // Its workspace's own fields (designs/2026-10-09-custom-fields.md). The console names the owner
-    // per request: null in Wren's workspace, the client's id in a client's.
+    // Its workspace's own fields (designs/2026-10-09-custom-fields.md), beside its rows: main for
+    // Wren, a client's own database for it, owner null in each.
     custom: {
       owner: null,
       exists: async (db, id) =>
@@ -767,6 +767,19 @@ export const dealRecord = (): RecordType =>
       { id: "lost", label: "Lost", where: { status: "lost" }, sort: "-signedAt", at: "signedAt" },
       { id: "all", label: "All", sort: "-signedAt", at: "signedAt" },
     ],
+    // Its workspace's own fields, as a journey's.
+    custom: {
+      owner: null,
+      exists: async (db, id) =>
+        isRowId(id) &&
+        (
+          await db
+            .select({ id: pipelineDeals.id })
+            .from(pipelineDeals)
+            .where(eq(pipelineDeals.id, id))
+            .limit(1)
+        ).length > 0,
+    },
     /** The dated lines its signed terms imply. None until `deals sign` sets terms. */
     load: async (db, id) => {
       const [row] = await db

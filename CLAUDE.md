@@ -12,8 +12,8 @@ Prod from here: `node scripts/prod-sql.mjs "<sql>"` (read only), `node scripts/i
 Secrets: `node scripts/secrets.mjs keys <file|/ssm/name>` (names only) or `run <source> -- <cmd>` (output masked).
 
 Shipping: `./scripts/gates.sh changed` while building, commit with `git commit -- <paths>` (other sessions stage files
-here), then `scripts/push.sh <commit>`: checks in `~/worktrees/wren-push`, pushes, waits for CI and the deploy.
-CI deploys `main`. An env change: `deploy/scripts/push-secrets.sh` (diff SSM first, it overwrites the whole parameter),
+here), then `scripts/push.sh <commit>`: pushes, waits for CI's gates and the deploy (no local rerun: CI is the judge).
+CI deploys `main` once lint, unit and schema pass; story tests and integration report on their own. An env change: `deploy/scripts/push-secrets.sh` (diff SSM first, it overwrites the whole parameter),
 then `gh workflow run deploy.yml --ref main`.
 
 Hard rules: repo is public (no lead data, amounts, client names, secrets; tests use synthetic data).

@@ -47,7 +47,9 @@ export function PeekTitle({
   return (
     <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
       {avatar ? <Avatar initials={avatar} lg /> : null}
-      <h2 className="m-0 min-w-0 flex-1 truncate text-[17px] font-semibold">{title}</h2>
+      <h2 className="m-0 min-w-0 flex-1 wrap-anywhere whitespace-normal text-[17px] font-semibold">
+        {title}
+      </h2>
     </div>
   );
 }
@@ -66,7 +68,7 @@ export function PeekView({
 }: {
   /** The properties, label and drawn value, in order. */
   props: { label: string; node: ReactNode }[];
-  /** The newest items, up to three; null when the record keeps none. */
+  /** The record's recent items, as many as it holds; null when it keeps none. */
   recent: PeekLine[] | null;
   /** The record is still being read: its activity shows as a skeleton in its place. */
   waiting?: boolean;

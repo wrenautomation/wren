@@ -8,6 +8,7 @@ import type { VendorsView } from "@wren/core/accounts/console";
 import {
   Button,
   Callout,
+  Facts,
   LoadFailed,
   Loading,
   PageHeader,
@@ -30,13 +31,11 @@ type Act = ReturnType<typeof useAccountsAct>;
 const UNSET = "Not set, so nothing runs";
 type Mode = "managed" | "own" | "none";
 
-const DL = "grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[14px]";
-
 /** A month's use: "1,233 searches, about $8.63". */
 const used = (m: { units: number; micros: number }, units: string) =>
   `${unitsText(m.units, units)}${m.micros ? `, about ${dollars(m.micros)}` : ""}`;
 
-function Facts({ v, wren }: { v: VendorRow; wren: boolean }) {
+function VendorFacts({ v, wren }: { v: VendorRow; wren: boolean }) {
   const { managed, own } = v.month;
   const rows: [string, string][] = [
     ["Price", `${v.price.charAt(0).toUpperCase()}${v.price.slice(1)}, as of ${dayLabel(v.asOf)}`],
@@ -73,16 +72,7 @@ function Facts({ v, wren }: { v: VendorRow; wren: boolean }) {
       "Key",
       v.keySet ? (v.keyLast4 ? `Saved, ending ${v.keyLast4}` : "Saved") : "Not saved",
     ]);
-  return (
-    <dl className={DL}>
-      {rows.map(([k, val]) => (
-        <div key={k} className="contents">
-          <dt className="text-(--ui-ink-2)">{k}</dt>
-          <dd className="min-w-0 break-words">{val}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+  return <Facts items={rows} />;
 }
 
 function SetMode({
@@ -250,7 +240,7 @@ function Vendor({ v, d, act }: { v: VendorRow; d: VendorsView; act: Act }) {
       }
       actions={<Tag tone={tag.tone}>{tag.label}</Tag>}
     >
-      <Facts v={v} wren={wren} />
+      <VendorFacts v={v} wren={wren} />
       {!wren && v.mode === "managed" && !v.offered ? (
         <p className={`${QUIET} mt-3`}>Not offered on Wren's key to clients any more.</p>
       ) : null}

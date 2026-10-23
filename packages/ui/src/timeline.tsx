@@ -16,10 +16,10 @@ import { listChanged } from "./data/delta.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
-import { clipProps, tipProps } from "./hint.js";
+import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 import { NoLink, SourceLink } from "./item-link.js";
-import { FRAME, PageTitle } from "./layout.js";
+import { PageTitle } from "./layout.js";
 import { ListBar, useLastUsed, useNarrow, useSavedViews, ViewTabs } from "./list-bar.js";
 import { tintColor } from "./marks.js";
 import {
@@ -417,7 +417,7 @@ function Strip({
         }));
   const max = Math.max(0, ...bars.map((b) => b.n));
   return (
-    <nav aria-label="Lines by day" className={cn(FRAME, "px-3 pt-3 pb-2")}>
+    <nav aria-label="Lines by day" className="pt-1 pb-2">
       <div className={cn("flex h-14 items-end", zoom === "day" ? "gap-1.5" : "gap-px sm:gap-0.5")}>
         {counts
           ? bars.map((b) => (
@@ -612,12 +612,12 @@ function DaySection({
       ref={ref}
       id={`tl-${count.day}`}
       aria-label={said(count.day, LONG)}
-      className={cn(FRAME, "scroll-mt-[calc(var(--phone-bar,0px)+8px)]")}
+      className="-mx-4 scroll-mt-[calc(var(--phone-bar,0px)+8px)]"
     >
       <header
         key={wash}
         className={cn(
-          "sticky top-(--phone-bar,0px) z-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-t-[inherit] border-b border-(--ui-hair) px-4 py-2.5 [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)]",
+          "sticky top-(--phone-bar,0px) z-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-(--ui-hair) bg-(--ui-canvas) px-4 py-2.5",
           wash > 0 && "animate-ui-changed",
         )}
       >
@@ -844,12 +844,14 @@ function Line({
             whoHref ? (
               <a
                 href={whoHref}
-                className="relative z-1 min-w-0 truncate font-medium text-(--ui-ink) no-underline hover:underline"
+                className="relative z-1 min-w-0 wrap-anywhere whitespace-normal font-medium text-(--ui-ink) no-underline hover:underline"
               >
                 {who}
               </a>
             ) : (
-              <span className="min-w-0 truncate font-medium text-(--ui-ink)">{who}</span>
+              <span className="min-w-0 wrap-anywhere whitespace-normal font-medium text-(--ui-ink)">
+                {who}
+              </span>
             )
           ) : null}
           {narrow ? (
@@ -862,8 +864,7 @@ function Line({
           {/* The whole card opens the line; the person and the source stay their own links. */}
           <a
             href={place.page(row.id)}
-            className="min-w-0 flex-1 truncate text-[13.5px] text-(--ui-ink) no-underline after:absolute after:inset-0 after:content-['']"
-            {...clipProps()}
+            className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-[13.5px] text-(--ui-ink) no-underline after:absolute after:inset-0 after:content-['']"
           >
             {summary || "-"}
           </a>
@@ -949,8 +950,8 @@ function WeekRows({
   return (
     <div className="grid gap-3">
       {weeks.map((w) => (
-        <section key={w.week} aria-label={`Week of ${said(w.week, SHORT)}`} className={FRAME}>
-          <header className="sticky top-(--phone-bar,0px) z-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-t-[inherit] border-b border-(--ui-hair) px-4 py-2.5 [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)]">
+        <section key={w.week} aria-label={`Week of ${said(w.week, SHORT)}`} className="-mx-4">
+          <header className="sticky top-(--phone-bar,0px) z-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-(--ui-hair) bg-(--ui-canvas) px-4 py-2.5">
             <h2 className="m-0 text-[15px] leading-[22px] font-semibold">
               {said(w.week, SHORT)} to {said(w.last, SHORT)}
             </h2>
@@ -1002,8 +1003,8 @@ function MonthRows({
       {months.map((m) => {
         const n = m.weeks.reduce((s, w) => s + w.n, 0);
         return (
-          <section key={m.month} aria-label={m.month} className={FRAME}>
-            <header className="sticky top-(--phone-bar,0px) z-2 flex items-center gap-3 rounded-t-[inherit] border-b border-(--ui-hair) px-4 py-2.5 [background:linear-gradient(var(--ui-band),var(--ui-band)),var(--ui-paper)]">
+          <section key={m.month} aria-label={m.month} className="-mx-4">
+            <header className="sticky top-(--phone-bar,0px) z-2 flex items-center gap-3 border-b border-(--ui-hair) bg-(--ui-canvas) px-4 py-2.5">
               <h2 className="m-0 text-[15px] leading-[22px] font-semibold">
                 {said(`${m.month}-01`, { month: "long", year: "numeric" })}
               </h2>
@@ -1096,11 +1097,11 @@ export function TimelineMini({
                     {at?.toLocaleString("en-US", { ...SHORT, ...TIME }) ?? ""}
                   </time>
                 </div>
-                <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 items-start gap-2">
+                  {/* Whole: only a huge post's paragraph is cut, at eight lines. */}
                   <a
                     href={l.href}
-                    className="min-w-0 flex-1 truncate text-[13.5px] text-(--ui-ink) no-underline hover:underline"
-                    {...clipProps()}
+                    className="min-w-0 flex-1 text-[13.5px] wrap-anywhere whitespace-normal text-(--ui-ink) no-underline hover:underline"
                   >
                     {l.summary || "-"}
                   </a>

@@ -22,7 +22,7 @@ import type { PickerPreset } from "./view-as.js";
 /** The team's own place in the list: Wren, for an admin. */
 const TEAM = "wren";
 
-const HINT = "ml-auto truncate pl-3 text-xs text-muted-foreground";
+const HINT = "ml-auto wrap-anywhere whitespace-normal pl-3 text-xs text-muted-foreground";
 
 export function Picker({ preset, onClose }: { preset: PickerPreset | null; onClose: () => void }) {
   // Read as the operator, not the person viewed as: held for this tab only, never kept.
@@ -99,7 +99,7 @@ export function Picker({ preset, onClose }: { preset: PickerPreset | null; onClo
                       value={`${c.name} ${c.id}`}
                       onSelect={() => setAt(c.id)}
                     >
-                      <span className="truncate">{c.name}</span>
+                      <span className="wrap-anywhere whitespace-normal">{c.name}</span>
                       <span className={HINT}>
                         {c.kind === "demo" ? "Demo" : `${c.people.length} on the team`}
                       </span>
@@ -112,7 +112,7 @@ export function Picker({ preset, onClose }: { preset: PickerPreset | null; onClo
                     value="new client sandbox blank"
                     onSelect={() => (choices.sandbox ? setAt("sandbox") : sandbox("sandboxMake"))}
                   >
-                    <span className="truncate">A new client</span>
+                    <span className="wrap-anywhere whitespace-normal">A new client</span>
                     <span className={HINT}>Blank, as on day one. Never sends.</span>
                   </CommandItem>
                 </CommandGroup>
@@ -120,7 +120,7 @@ export function Picker({ preset, onClose }: { preset: PickerPreset | null; onClo
               {choices.team ? (
                 <CommandGroup heading="Wren">
                   <CommandItem value="teammate our team" onSelect={() => setAt(TEAM)}>
-                    <span className="truncate">A teammate</span>
+                    <span className="wrap-anywhere whitespace-normal">A teammate</span>
                     <span className={HINT}>{choices.team.people.length} on the team</span>
                   </CommandItem>
                 </CommandGroup>
@@ -159,14 +159,16 @@ function Place({
       <CommandEmpty>Nobody by that name.</CommandEmpty>
       <CommandGroup heading={place.name}>
         <CommandItem value="back all clients" onSelect={onBack}>
-          <span className="truncate text-muted-foreground">Back to all clients</span>
+          <span className="wrap-anywhere whitespace-normal text-muted-foreground">
+            Back to all clients
+          </span>
         </CommandItem>
       </CommandGroup>
       {people.length ? (
         <CommandGroup heading="People">
           {people.map((p) => (
             <CommandItem key={p.email} value={`${p.email} ${p.role}`} onSelect={() => onPerson(p)}>
-              <span className="truncate">{p.email}</span>
+              <span className="wrap-anywhere whitespace-normal">{p.email}</span>
               <span className={HINT}>{roleName(p.role)}</span>
             </CommandItem>
           ))}
@@ -175,14 +177,14 @@ function Place({
       <CommandGroup heading="Someone new">
         {place.roles.map((r) => (
           <CommandItem key={r.id} value={`new ${r.name} ${r.id}`} onSelect={() => onRole(r)}>
-            <span className="truncate">Someone new as {r.name}</span>
+            <span className="wrap-anywhere whitespace-normal">Someone new as {r.name}</span>
           </CommandItem>
         ))}
       </CommandGroup>
       {place.kind === "sandbox" && admin ? (
         <CommandGroup heading="This sandbox">
           <CommandItem value="start over wipe reset" onSelect={onReset}>
-            <span className="truncate">Start over</span>
+            <span className="wrap-anywhere whitespace-normal">Start over</span>
             <span className={HINT}>Wipes it back to blank.</span>
           </CommandItem>
         </CommandGroup>

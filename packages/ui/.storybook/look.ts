@@ -18,10 +18,9 @@ export function lookProblems(root: Element = document.body): string[] {
     const words = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 32);
     return [id && `[${id}]`, label && `«${label}»`, `${tag} "${words}"`].filter(Boolean).join(" ");
   };
-  const shown = (el: Element) => {
-    const s = getComputedStyle(el);
-    return s.visibility !== "hidden" && s.display !== "none" && Number(s.opacity) > 0;
-  };
+  // checkVisibility also skips a closed <details>' body: Chrome keeps its boxes, undrawn.
+  const shown = (el: Element) =>
+    el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
   // The box a text's drawing is cut to: its own part and each ancestor that clips or scrolls.
   const clipOf = (el: Element) => {
     let r = { left: -1e9, top: -1e9, right: 1e9, bottom: 1e9 };
@@ -137,7 +136,9 @@ export function lookProblems(root: Element = document.body): string[] {
     else if (
       (s.overflowX === "auto" || s.overflowX === "scroll") &&
       el.scrollHeight > el.clientHeight + 1 &&
-      !el.closest("[data-look-scroll]")
+      !el.closest("[data-look-scroll]") &&
+      // A list at its least may scroll sideways (fitRoom in records.tsx): its table says how wide.
+      ![...el.querySelectorAll("table")].some((t) => parseFloat(t.style.minWidth) > el.clientWidth)
     )
       out.push(`scrolls sideways: ${name(el)} is ${spill}px wider than its ${el.clientWidth}px`);
   }

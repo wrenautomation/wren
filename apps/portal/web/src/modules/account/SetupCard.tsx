@@ -4,7 +4,7 @@
  * every setup is done, and never shows when there are none.
  */
 import type { AccountsView } from "@wren/core/accounts/console";
-import { ButtonLink, cx, FRAME, FRAME_HEAD, num, SECTION_TITLE } from "@wren/ui";
+import { ButtonLink, cx, FLAT_HEAD, num, SECTION_TITLE } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { ownerOf } from "./Accounts.js";
@@ -27,8 +27,8 @@ export function SetupCard({
   const p = got.data ? setupProgress(got.data, team) : null;
   if (!p) return null;
   return (
-    <section className={cx(FRAME, "mb-8")} aria-label="Get set up">
-      <div className={FRAME_HEAD}>
+    <section className="mb-8" aria-label="Get set up">
+      <div className={FLAT_HEAD}>
         <h2 className={SECTION_TITLE}>
           Get set up
           <span className="font-normal text-(--ui-ink-2)">
@@ -37,7 +37,7 @@ export function SetupCard({
           </span>
         </h2>
       </div>
-      <div className="grid gap-4 p-4">
+      <div className="grid gap-4 pt-3">
         <div className="flex gap-1" aria-hidden="true">
           {p.bar.map((on, i) => (
             <span

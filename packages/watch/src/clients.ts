@@ -45,7 +45,7 @@ export async function readClients(d: MailReaderDeps, now: Date): Promise<ClientR
       if (s.kept.length) out.kept[client] = s.kept;
       for (const f of s.failed) out.failed.push({ client, ...f });
     } catch (err) {
-      out.failed.push({ client, mailbox: "*", error: String(err).slice(0, 300) });
+      out.failed.push({ client, mailbox: "*", error: String(err).slice(0, 3000) });
     }
   }
   return out;

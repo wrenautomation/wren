@@ -55,7 +55,7 @@ export const GONE = "not connected to read: its late bounces can't be read";
 export async function readAllBounces(d: BounceSchedulerDeps, now: Date): Promise<BouncePassStats> {
   const out: BouncePassStats = { read: {}, earlier: [], skipped: [], failed: [] };
   const fail = (client: string, mailbox: string, err: unknown) =>
-    out.failed.push({ client, mailbox, error: String(err).slice(0, 300) });
+    out.failed.push({ client, mailbox, error: String(err).slice(0, 3000) });
   if (d.wren) {
     try {
       out.read.wren = await readBounces(d.db, d.wren, now);

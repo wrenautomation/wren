@@ -33,7 +33,7 @@ export {
   folderTree,
 } from "./browser.js";
 export { Busy, BusyBox, type BusySize, Ring } from "./busy.js";
-export { BarsChart, type BarsRow, Sparkline, TrendChart } from "./charts/index.js";
+export { BarsChart, type BarsRow, ColumnsChart, Sparkline, TrendChart } from "./charts/index.js";
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
 export {
@@ -236,7 +236,7 @@ export {
   PanelBlock,
 } from "./graph/palette.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";
-export { clipProps, type TipOptions, type TipProps, tipProps, whenTip } from "./hint.js";
+export { type TipOptions, type TipProps, tipProps, whenTip } from "./hint.js";
 export { HintLayer, Why } from "./hint-layer.js";
 export {
   HOVER_CLOSE_MS,
@@ -254,6 +254,7 @@ export {
   ABOUT,
   AboutProvider,
   Fieldset,
+  FLAT_HEAD,
   FRAME,
   FRAME_BODY,
   FRAME_HEAD,
@@ -302,6 +303,7 @@ export {
   type OverviewTile,
   type OverviewTop,
   RecordOverview,
+  TopRecords,
 } from "./overview.js";
 export type { PaletteItem } from "./palette.js";
 export {
@@ -376,6 +378,7 @@ export {
   waitsOn,
 } from "./records.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
+export { RowActions, rowActsOf } from "./row-acts.js";
 export {
   Age,
   avatarOf,
@@ -385,7 +388,6 @@ export {
   Rows,
   type RowsAct,
   type RowsColumn,
-  RowsFoot,
   type RowsLine,
   type RowsName,
   type RowsPick,
@@ -502,6 +504,7 @@ export {
   type TrailStep,
   useSourcePick,
 } from "./sources.js";
+export { SplitGhost, SplitPanel, type SplitRow } from "./split.js";
 export { HOLD, type JobStep, type StepCard, type StepState, Steps } from "./steps.js";
 export { Sweep } from "./sweep.js";
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";

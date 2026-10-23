@@ -115,7 +115,7 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
                     </span>
                   </span>
                   <span className="grid gap-2 px-4 py-3.5">
-                    <span className="line-clamp-2 min-h-[2.6em] text-[14px] leading-[1.3] font-semibold">
+                    <span className="min-h-[2.6em] text-[14px] leading-[1.3] font-semibold">
                       {r.title}
                     </span>
                     <span className="flex min-h-5 flex-wrap items-center gap-2">

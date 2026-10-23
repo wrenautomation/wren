@@ -10,6 +10,10 @@ import { PLATFORM_SPECS, unfitReason, wordsUnfit } from "./platforms.js";
 /** The prompt version on a draft no model wrote. */
 export const OWN_WORDS = "own";
 
+/** How a post argues: his pick in Studio, kept on the idea. */
+export const IDEA_ANGLES = ["Proof", "Contrarian", "How I do it", "Story"] as const;
+export type IdeaAngle = (typeof IDEA_ANGLES)[number];
+
 /** A batch's posts: split on a line of `---`, empty ones dropped. */
 export function splitPosts(text: string): string[] {
   return text

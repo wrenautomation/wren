@@ -334,11 +334,11 @@ const OURS = /_sent$|^(voice_call|call|touch|workflow)$/;
 /** A line nobody did: the profile changed. */
 const SYSTEM_KINDS = new Set(["trait", "merge"]);
 
-/** The peek's newest items: their newest timeline lines, who did it, where, when. */
+/** The peek's items: every line the detail holds, who did it, what kind, where, when. */
 function recentOf(detail: Detail, name: string): PeekLine[] {
-  return (detail.lines ?? []).slice(0, 3).map((l) => ({
+  return (detail.lines ?? []).map((l) => ({
     who: SYSTEM_KINDS.has(l.kind) ? undefined : OURS.test(l.kind) ? "You" : name,
-    channel: l.channelState?.label,
+    channel: [l.kindState?.label, l.channelState?.label].filter(Boolean).join(" · ") || undefined,
     at: l.at,
     text: l.summary ?? l.kindState?.label ?? cap(l.kind.replaceAll("_", " ")),
   }));

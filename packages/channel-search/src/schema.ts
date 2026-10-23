@@ -496,7 +496,7 @@ export const marketingLinkDayRecords = pgView("marketing_link_day_records", {
       when l.day > current_date - 30 then 'month' else 'earlier' end age
   from link_days l
   left join lateral (select concat_ws('/', d.idea_id, d.platform, d.id) id,
-      coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title
+      coalesce(d.title, left(split_part(d.text, chr(10), 1), 1200))::text title
     from content_drafts d join content_ideas idea on idea.id = d.idea_id
     where (l.content <> '' and left(d.id::text, 8) = l.content)
       or (l.content = '' and l.source = 'youtube' and d.platform = 'youtube'

@@ -488,7 +488,7 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
           });
           if (!asked) return;
           const fail = (error: string) =>
-            ctx.run("save", () => finishRun(db, req.run, { error: error.slice(0, 500) }));
+            ctx.run("save", () => finishRun(db, req.run, { error: error.slice(0, 5000) }));
           if (!asked.prompt) return void (await fail("the video is gone"));
           let out: Awaited<ReturnType<ClaudeService["ask"]>>;
           try {
@@ -541,7 +541,7 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
           });
           if (!asked) return;
           const fail = (error: string) =>
-            ctx.run("save", () => finishRun(db, req.run, { error: error.slice(0, 500) }));
+            ctx.run("save", () => finishRun(db, req.run, { error: error.slice(0, 5000) }));
           if (!asked.prompt) return void (await fail("the video is gone"));
           let out: Awaited<ReturnType<ClaudeService["ask"]>>;
           try {

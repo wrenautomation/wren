@@ -473,7 +473,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
         content: g.result,
         origin: "ai",
         by: name,
-        why: ask.slice(0, 500),
+        why: ask.slice(0, 5000),
         expect: page.draftVersion,
       });
       return { saved: out.draftVersion, outcome: g.outcome, flags };
@@ -800,12 +800,12 @@ export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string
         req.stage && (PAGE_STAGES as readonly string[]).includes(req.stage)
           ? (req.stage as PageStage)
           : undefined;
-      const opened = typeof req.expect === "string" ? req.expect.trim().slice(0, 4000) : null;
+      const opened = typeof req.expect === "string" ? req.expect.trim().slice(0, 40_000) : null;
       const done = await db
         .update(sitePages)
         .set({
-          ...(req.notes !== undefined ? { notes: req.notes?.trim().slice(0, 4000) || null } : {}),
-          ...(req.angle !== undefined ? { angle: req.angle?.trim().slice(0, 120) || null } : {}),
+          ...(req.notes !== undefined ? { notes: req.notes?.trim().slice(0, 40_000) || null } : {}),
+          ...(req.angle !== undefined ? { angle: req.angle?.trim().slice(0, 1200) || null } : {}),
           ...(stage ? { stage } : {}),
           updatedAt: sql`now()`,
           updatedBy: name,
@@ -869,9 +869,9 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
             ...P,
             offer: z.string().max(64).describe("The offer's id"),
             template: z.enum(TEMPLATE_IDS as [string, ...string[]]).nullish(),
-            title: z.string().max(200).nullish(),
+            title: z.string().max(2000).nullish(),
             slug: z.string().max(80).nullish(),
-            angle: z.string().max(120).nullish(),
+            angle: z.string().max(1200).nullish(),
             audience: z.string().max(120).nullish(),
             owner: OWNER,
             ai: z.boolean().nullish().describe("Claude writes the first draft"),
@@ -892,7 +892,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
         write("save", api.save),
       ),
       draft: serviceHandler(
-        { input: z.looseObject({ ...P, id: ID, angle: z.string().max(120).nullish() }) },
+        { input: z.looseObject({ ...P, id: ID, angle: z.string().max(1200).nullish() }) },
         write("draft", api.draft),
       ),
       rewrite: serviceHandler(
@@ -946,7 +946,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
               .nullish()
               .describe("The campaign; the page's slug if empty"),
             content: z.string().max(80).nullish().describe("The post or ad id"),
-            name: z.string().max(200).nullish(),
+            name: z.string().max(2000).nullish(),
             owner: OWNER,
           }),
         },
@@ -957,9 +957,9 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
           input: z.looseObject({
             ...P,
             ids: IDS,
-            angle: z.string().max(120).nullish(),
+            angle: z.string().max(1200).nullish(),
             audience: z.string().max(120).nullish(),
-            title: z.string().max(200).nullish(),
+            title: z.string().max(2000).nullish(),
           }),
         },
         write("duplicate", api.duplicate),
@@ -970,7 +970,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
             ...P,
             url: z.string().max(500),
             repoPath: z.string().max(300).nullish(),
-            title: z.string().max(200).nullish(),
+            title: z.string().max(2000).nullish(),
             offer: z.string().max(64).nullish(),
             kind: z.string().max(12).nullish(),
             owner: OWNER,
@@ -982,7 +982,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
         {
           input: z.looseObject({
             ...P,
-            name: z.string().max(200),
+            name: z.string().max(2000),
             slug: z.string().max(80).nullish(),
             spec: z
               .record(z.string(), z.unknown())
@@ -1003,7 +1003,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
             ...P,
             id: FORM_ID,
             spec: z.record(z.string(), z.unknown()),
-            name: z.string().max(200).nullish(),
+            name: z.string().max(2000).nullish(),
             expect: z.string().max(40).nullish().describe("the version it opened on"),
           }),
         },
@@ -1088,7 +1088,7 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null; shareKey?
             id: ID,
             notes: z.string().max(4000).nullish(),
             stage: z.string().max(8).nullish(),
-            angle: z.string().max(120).nullish(),
+            angle: z.string().max(1200).nullish(),
             expect: z.string().max(4000).nullish().describe("The notes the editor opened on"),
           }),
         },

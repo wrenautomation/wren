@@ -246,14 +246,14 @@ export async function readQueued(
       try {
         verdict = await scoreItem(db, o.judge, id);
       } catch (err) {
-        why = `score: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300);
+        why = `score: ${err instanceof Error ? err.message : String(err)}`.slice(0, 3000);
       }
     } else if (read === "failed") {
       const [row] = await db
         .select({ failure: items.readFailure })
         .from(items)
         .where(eq(items.id, id));
-      why = row?.failure?.slice(0, 300) ?? null;
+      why = row?.failure?.slice(0, 3000) ?? null;
     }
     const done: CatalogRead = {
       id,

@@ -309,7 +309,7 @@ export async function proposeChange(
       model: used,
     };
   } catch (err) {
-    await finishRun(db, run, { error: String((err as Error)?.message ?? err).slice(0, 500) });
+    await finishRun(db, run, { error: String((err as Error)?.message ?? err).slice(0, 5000) });
     throw err;
   }
 }

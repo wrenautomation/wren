@@ -1,5 +1,5 @@
 import { oneOf } from "@wren/db/columns";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -518,7 +518,7 @@ export const workflowTemplates = pgTable(
   {
     /** The template's id, `saved_<name>`: what installs and To approve name it by. */
     id: varchar("id", { length: 64 }).notNull(),
-    name: varchar("name", { length: 120 }).notNull(),
+    name: varchar("name", { length: 1200 }).notNull(),
     blurb: text("blurb").default("").notNull(),
     /** The code's workflow it rewires. */
     workflow: varchar("workflow", { length: 64 }).notNull(),
@@ -903,7 +903,7 @@ export const snippets = pgTable(
   {
     id: serial("id").notNull(),
     workspace: varchar("workspace", { length: 64 }).notNull(),
-    title: varchar("title", { length: 120 }).notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
     body: text("body").notNull(),
     /** Free text, shared by the team. */
     tags: text("tags").array().default(sql`'{}'::text[]`).notNull(),
@@ -1161,6 +1161,14 @@ export const companies = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     importId: integer("import_id"),
     raw: jsonb("raw"),
+    /**
+     * The headcount's digits from `raw` (Form ADV `5A`, Clutch "Company Size", `agency.team_size`;
+     * a range's low end). Stored, so the people map never unpacks `raw` per person.
+     */
+    headcount: text("headcount").generatedAlwaysAs(
+      (): SQL =>
+        sql`case when jsonb_typeof(raw) = 'object' then nullif(regexp_replace(split_part(coalesce(nullif(raw ->> '5A', ''), nullif(raw ->> 'Company Size', ''), nullif(raw ->> 'agency.team_size', '')), '-', 1), '[^0-9]', '', 'g'), '') end`,
+    ),
     sourceKey: varchar("source_key", { length: 64 }),
     socialUrl: varchar("social_url", { length: 512 }),
     /** The firm's LinkedIn page (`https://www.linkedin.com/company/<handle>/`), trusted only when its website is `domain`. */
@@ -1523,7 +1531,7 @@ export const messageSettings = pgTable(
     /** A client's mailbox its email marketing sends from: one connected in Account → Mailboxes. */
     sender: varchar("sender", { length: 320 }),
     /** The postal address every marketing email carries (CAN-SPAM). */
-    postal: varchar("postal", { length: 300 }),
+    postal: varchar("postal", { length: 1000 }),
     updatedBy: varchar("updated_by", { length: 200 }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

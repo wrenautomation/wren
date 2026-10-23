@@ -151,7 +151,7 @@ export async function applyPass(
 /** A video as a person knows it, for what a refusal says: its title, never its id. */
 export function videoName(e: Pick<VideoEdit, "title">): string {
   const t = e.title.replace(/\s+/g, " ").trim();
-  return t ? `"${t.length > 60 ? `${t.slice(0, 57)}…` : t}"` : "This video";
+  return t ? `"${t}"` : "This video";
 }
 
 /** A video's state as words: "approved", "posted on YouTube". */
@@ -224,7 +224,7 @@ export function stepWhat(
     case "video set":
       return list ? `Changed ${list}` : "Saved";
     case "video line":
-      return `Fixed a caption: "${String(argv.text ?? "").slice(0, 60)}"`;
+      return `Fixed a caption: "${String(argv.text ?? "")}"`;
     case "video cut":
       return `Cut the files${argv.segments ? ` (${argv.segments} pieces)` : ""}`;
     case "video render":

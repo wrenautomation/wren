@@ -2,8 +2,10 @@
  * Each client app's first page, as the client's owner sees it, on the fake server
  * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
  */
-import type { Meta } from "@storybook/react-vite";
-import { expect, waitFor, within } from "storybook/test";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { freshStory } from "./mocks/api.js";
+import { starring } from "./mocks/data/apps.js";
 import { failedIn, pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Client" };
@@ -25,6 +27,72 @@ export const Sites = pageAt("/sites");
 export const Learn = pageAt("/learn");
 export const Notes = pageAt("/notes");
 export const Calendar = pageAt("/calendar");
+
+/** The agenda as `Rows`: a band per day, a call a row, and a press opens it beside the list. */
+export const CalendarAgenda = pageAt("/calendar/schedule?v=list&d=2026-10-12", {
+  check: async (page) => {
+    await expect(await within(page).findByText("Tuesday, October 13")).toBeVisible();
+    await expect(within(page).getByText("Thursday, October 15")).toBeVisible();
+    const ada = await within(page).findByRole("button", { name: "Ada North" });
+    // The Offer column is wide only; a phone keeps the name and the time.
+    if (window.innerWidth > 640) await expect(within(page).getByText("Reactivation")).toBeVisible();
+    // A press on a call puts it in the address, which opens its panel.
+    await userEvent.click(ada);
+    await waitFor(() => expect(ada.closest("tr, li")).toHaveAttribute("data-row"));
+  },
+});
+
+/** Notes as `Rows`: a star writes, the list reads again, and two fast presses both land. */
+const stars = starring();
+export const NotesRows: StoryObj = {
+  ...pageAt("/notes", {
+    answers: stars.answers,
+    check: async (page) => {
+      const row = (name: string) => within(page).findByRole("link", { name });
+      await expect(await row("Spring promo plan")).toBeVisible();
+      // Rows, not a hand list: a table on a wide screen, a list on a phone.
+      await expect(
+        within(page).queryByRole("table", { name: "notes" }) ??
+          within(page).getByRole("list", { name: "notes" }),
+      ).toBeInTheDocument();
+      // Spring promo plan starts starred. Press it: it reads again and shows unstarred.
+      await userEvent.click(
+        await within(page).findByRole("button", { name: "Unstar Spring promo plan" }),
+      );
+      await within(page).findByRole("button", { name: "Star Spring promo plan" });
+      // Two rows pressed fast: both stars land, neither press is lost.
+      await userEvent.click(
+        within(page).getByRole("button", { name: "Star Call back the Brandt job" }),
+      );
+      await userEvent.click(
+        within(page).getByRole("button", { name: "Star Crew schedule for November" }),
+      );
+      await waitFor(() => {
+        expect(
+          within(page).getByRole("button", { name: "Unstar Call back the Brandt job" }),
+        ).toBeVisible();
+        expect(
+          within(page).getByRole("button", { name: "Unstar Crew schedule for November" }),
+        ).toBeVisible();
+      });
+    },
+  }),
+  // The server's stars start over with each story.
+  beforeEach: () => {
+    stars.reset();
+    freshStory();
+  },
+};
+
+/** Mentions as `Rows`: a new tag reads heavier with a dot, and a row opens its note. */
+export const NoteMentions = pageAt("/notes/mentions", {
+  check: async (page) => {
+    const link = await within(page).findByRole("link", { name: "Spring promo plan" });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", "/notes/doc/n1");
+    await expect(within(page).getByRole("img", { name: "New" })).toBeVisible();
+  },
+});
 export const Voice = pageAt("/voice");
 export const Settings = pageAt("/settings");
 export const Library = pageAt("/library");

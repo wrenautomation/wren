@@ -156,7 +156,7 @@ function LinkLine({
             href={shown}
             target="_blank"
             rel="noreferrer"
-            className={`min-w-0 max-w-full truncate text-[14px] underline-offset-2 hover:underline ${goes ? "" : "text-(--ui-ink-3) line-through"}`}
+            className={`min-w-0 max-w-full wrap-anywhere whitespace-normal text-[14px] underline-offset-2 hover:underline ${goes ? "" : "text-(--ui-ink-3) line-through"}`}
           >
             {shown.replace(/^https:\/\//, "")}
           </a>

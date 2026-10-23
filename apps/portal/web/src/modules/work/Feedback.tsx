@@ -4,15 +4,25 @@
  * land here too. A client's own, so never on the demo.
  */
 import { GOOGLE_REVIEW_URL, PULSE_WORDS, REVIEW_WORDS } from "@wren/delivery/routes";
-import { Button, Callout, Section, SelectField, Tag, TextAreaField, useEditForm } from "@wren/ui";
+import {
+  avatarOf,
+  Button,
+  Callout,
+  Section,
+  SelectField,
+  Tag,
+  TextAreaField,
+  useEditForm,
+  useNarrow,
+} from "@wren/ui";
 import { Fragment, useEffect, useState } from "react";
 import type { EngagementView, MomentView } from "../../api.js";
 import type { PageProps } from "../../module.js";
+import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { href, navigate } from "../../route.js";
 import {
   dayLabel,
   Form,
-  LIST,
   NARROW,
   ofThisApp,
   QUIET,
@@ -284,33 +294,80 @@ function SayMore({
   );
 }
 
+type ReviewRow = { key: string; moment: MomentView; review: MomentView["reviews"][number] };
+
 /** Wren's team: every review so far, newest moment first. */
 function Reviews({ moments }: { moments: MomentView[] }) {
-  const said = moments.filter((m) => m.reviews.some((r) => r.score !== null));
-  if (said.length === 0) return null;
+  const rows: ReviewRow[] = moments.flatMap((m) =>
+    m.reviews
+      .filter((r) => r.score !== null)
+      .map((r) => ({ key: `${m.moment} ${r.email}`, moment: m, review: r })),
+  );
+  if (rows.length === 0) return null;
   const quote = Object.fromEntries(QUOTE_CHOICES);
   return (
     <Section title="Reviews">
-      <ul className={LIST}>
-        {said.flatMap((m) =>
-          m.reviews
-            .filter((r) => r.score !== null)
-            .map((r) => (
-              <li key={`${m.moment} ${r.email}`}>
-                <span className={QUIET}>
-                  {m.label}, {dayLabel(m.reachedOn)}
-                </span>{" "}
-                <b>{REVIEW_WORDS[r.score ?? 0]}</b> from {r.email}
-                {r.words ? `: "${r.words}"` : ""} <Tag>{quote[r.mayQuote]}</Tag>
-              </li>
-            )),
-        )}
-      </ul>
+      <PageRows<ReviewRow>
+        label="Reviews"
+        noun="review"
+        lines={rowLines(rows, (r) => r.key)}
+        name={{
+          label: "From",
+          icon: "user",
+          min: 240,
+          title: (r) => r.review.email,
+          avatar: (r) => avatarOf(r.review.email),
+          sub: (r) =>
+            r.review.words ? (
+              <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
+                "{r.review.words}"
+              </span>
+            ) : null,
+        }}
+        columns={[
+          {
+            key: "score",
+            label: "Said",
+            icon: "star",
+            width: 150,
+            phone: true,
+            cell: (r) => <b className="font-medium">{REVIEW_WORDS[r.review.score ?? 0]}</b>,
+          },
+          {
+            key: "moment",
+            label: "Moment",
+            icon: "flag",
+            min: 180,
+            className: "max-[900px]:hidden",
+            cell: (r) => r.moment.label,
+          },
+          {
+            key: "quote",
+            label: "May quote",
+            icon: "quote",
+            width: 160,
+            className: "max-[1000px]:hidden",
+            cell: (r) => <Tag>{quote[r.review.mayQuote]}</Tag>,
+          },
+          {
+            key: "on",
+            label: "Reached",
+            icon: "calendar",
+            width: 120,
+            quiet: true,
+            className: "max-[900px]:hidden",
+            cell: (r) => dayLabel(r.moment.reachedOn),
+          },
+        ]}
+      />
     </Section>
   );
 }
 
-/** From halfway (D13): what they can do next with us, one tap to hear more. */
+/**
+ * From halfway (D13): what they can do next with us, one tap to hear more. Rows (B4): the offer,
+ * its pitch under it, and "I'm interested" as the row's action.
+ */
 function Next({
   e,
   props,
@@ -320,28 +377,59 @@ function Next({
   props: PageProps;
   act: ReturnType<typeof useAct>;
 }) {
+  const narrow = useNarrow();
+  const going = useGoing();
   if (e.next.length === 0) return null;
+  type Offer = (typeof e.next)[number];
   return (
     <Section title="When you're ready for more">
-      <ul className={LIST}>
-        {e.next.map((o) => (
-          <li key={o.id}>
-            <b>{o.name}.</b> {o.pitch}{" "}
-            {props.team ? null : o.interested ? (
-              <Tag>We'll be in touch</Tag>
-            ) : (
-              <Button
-                size="dense"
-                tone="secondary"
-                disabled={act.busy}
-                onClick={() => void act.run("interest", { engagementId: e.id, offerId: o.id })}
-              >
-                I'm interested
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
+      <PageRows<Offer>
+        label="What you can do next"
+        noun="offer"
+        lines={rowLines(
+          e.next,
+          (o) => String(o.id),
+          (o) => <p className="m-0 text-[14px]">{o.pitch}</p>,
+        )}
+        rowState={(o) => going.stateOf(String(o.id))}
+        name={{ label: "Offer", icon: "briefcase", min: 240, title: (o) => o.name }}
+        columns={
+          props.team
+            ? []
+            : [
+                {
+                  key: "state",
+                  label: "State",
+                  icon: "pulse",
+                  width: 170,
+                  phone: true,
+                  cell: (o) => (o.interested ? <Tag>We'll be in touch</Tag> : null),
+                },
+              ]
+        }
+        end={
+          props.team
+            ? undefined
+            : (o) =>
+                o.interested ? null : (
+                  <RowDoes
+                    title={o.name}
+                    lone={narrow}
+                    busy={act.busy}
+                    does={[
+                      {
+                        id: "interest",
+                        label: "I'm interested",
+                        run: () =>
+                          going.go(String(o.id), "Sending", () =>
+                            act.run("interest", { engagementId: e.id, offerId: o.id }),
+                          ),
+                      },
+                    ]}
+                  />
+                )
+        }
+      />
     </Section>
   );
 }

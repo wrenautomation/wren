@@ -231,7 +231,7 @@ export function registerEmail(
         const words = (r.text ?? "?").replace(/\s+/g, " ");
         console.log(
           `    ${r.option}: ${r.sent} · ${r.opened}/${r.tracked} (${pct(r.opened, r.tracked)}) · ` +
-            `${r.replies} (${pct(r.replies, r.sent)}) · ${r.interested}  "${words.length > 70 ? `${words.slice(0, 69)}…` : words}"`,
+            `${r.replies} (${pct(r.replies, r.sent)}) · ${r.interested}  "${words}"`,
         );
       }
     });

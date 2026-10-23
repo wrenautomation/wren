@@ -92,7 +92,7 @@ export async function createForm(
     by: string;
   },
 ): Promise<SiteFormDef> {
-  const name = f.name.trim().slice(0, 200);
+  const name = f.name.trim().slice(0, 2000);
   if (!name) throw new SitesRefusal("name the form", 400);
   let spec: FormSpec;
   try {
@@ -122,7 +122,7 @@ export async function saveForm(
   } catch (err) {
     return problem(err);
   }
-  const name = f.name?.trim().slice(0, 200);
+  const name = f.name?.trim().slice(0, 2000);
   const [row] = await db
     .update(siteFormDefs)
     .set({

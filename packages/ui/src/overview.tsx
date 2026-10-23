@@ -14,8 +14,8 @@ import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js
 import { Empty, LoadFailed, Loading } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { duration, money, month, num } from "./format.js";
-import { clipProps, tipProps } from "./hint.js";
-import { FRAME, FRAME_BODY, FRAME_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
+import { tipProps } from "./hint.js";
+import { FLAT_HEAD, PageTitle, SECTION_TITLE } from "./layout.js";
 import { useNarrow } from "./list-bar.js";
 import { type OverviewQueue, QueuePanel } from "./overview-queues.js";
 import {
@@ -28,7 +28,6 @@ import {
   useLoad,
   useTypes,
 } from "./records.js";
-import { Sweep } from "./sweep.js";
 
 export type { OverviewQueue } from "./overview-queues.js";
 
@@ -257,7 +256,7 @@ export function RecordOverview({
         >
           {top.map((t) => {
             const meta = metaOf(t.record);
-            return meta ? <Top key={t.label} top={t} meta={meta} api={api} /> : null;
+            return meta ? <TopRecords key={t.label} top={t} meta={meta} api={api} /> : null;
           })}
         </div>
       ) : null}
@@ -265,9 +264,8 @@ export function RecordOverview({
   );
 }
 
-// A tile is the artifact's trend card (`.ix .tr`): a raised leaf, no hairline.
-const TILE =
-  "grid content-start gap-1 bg-(--ui-paper) px-3.5 py-3 shadow-(--ui-raise) [border-radius:6px_18px]";
+// A tile is the artifact's trend card (`.ix .tr`), flat on the page (10-21): no panel, no hairline.
+const TILE = "grid content-start gap-1 px-3.5 py-3 [border-radius:6px_18px]";
 
 function TileGhost() {
   return (
@@ -372,7 +370,7 @@ function TrendCard({
   return (
     <a
       href={tileHref(tile, meta)}
-      className="grid content-start gap-1 bg-(--ui-paper) px-3.5 py-3 text-(--ui-ink) no-underline shadow-(--ui-raise) outline-none transition-[background-color] duration-200 [border-radius:6px_18px] hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash) motion-reduce:transition-none"
+      className="grid content-start gap-1 px-3.5 py-3 text-(--ui-ink) no-underline outline-none transition-[background-color] duration-200 [border-radius:6px_18px] hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash) motion-reduce:transition-none"
     >
       <span className="text-[12.5px] text-(--ui-ink-3)">
         {tile.label}
@@ -518,9 +516,8 @@ function Trends({
   const got = on ? stats[on.label] : undefined;
   if (!on || !got) return null;
   return (
-    <section className={cn("grid grid-cols-[minmax(0,1fr)]", FRAME)} aria-label="By day">
-      <Sweep />
-      <div className={FRAME_HEAD}>
+    <section className="grid grid-cols-[minmax(0,1fr)]" aria-label="By day">
+      <div className={FLAT_HEAD}>
         <h2 className={SECTION_TITLE}>By day</h2>
         <div role="tablist" aria-label="Which number" className="flex flex-wrap gap-1">
           {shown.map((t) => (
@@ -542,7 +539,7 @@ function Trends({
           ))}
         </div>
       </div>
-      <div className={FRAME_BODY}>
+      <div className="pt-3">
         <TrendChart series={got.stat.series} label={on.label} format={got.format} />
       </div>
     </section>
@@ -582,7 +579,16 @@ export function Spark({ series, slots }: { series: RecordsStat["series"]; slots:
   );
 }
 
-function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: RecordsApi }) {
+/** A top list: the first rows of a view, each a link to its record. Flat: a heading, then rows. */
+export function TopRecords({
+  top,
+  meta,
+  api,
+}: {
+  top: OverviewTop;
+  meta: RecordMeta;
+  api: RecordsApi;
+}) {
   const ask = askFor(meta, top.href);
   const sort = split(top.href).params.get("sort");
   const page = useLoad(
@@ -599,9 +605,8 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
     return `${path}?${params}`;
   };
   return (
-    <section className={cn("grid grid-cols-[minmax(0,1fr)] content-start", FRAME)}>
-      <Sweep />
-      <div className={FRAME_HEAD}>
+    <section className="grid grid-cols-[minmax(0,1fr)] content-start">
+      <div className={FLAT_HEAD}>
         <h2 className={SECTION_TITLE}>{top.label}</h2>
         <a href={top.href} className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
           All {meta.name.many}
@@ -609,34 +614,29 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
         </a>
       </div>
       {page.error && !page.data ? (
-        <LoadFailed className="mx-5 mt-3 mb-5" error={page.error} onRetry={page.retry} />
+        <LoadFailed className="mt-3" error={page.error} onRetry={page.retry} />
       ) : !page.data ? (
-        <Loading
-          shape="rows"
-          lines={3}
-          label={`Loading ${top.label}`}
-          className="px-5 pt-0.5 pb-2"
-        />
+        <Loading shape="rows" lines={3} label={`Loading ${top.label}`} className="px-0 pt-2 pb-0" />
       ) : !rows.length ? (
-        <p className="px-5 pt-3 pb-4 text-[13px] text-(--ui-ink-2)">{top.empty}</p>
+        <p className="m-0 pt-3 text-[13px] text-(--ui-ink-2)">{top.empty}</p>
       ) : (
-        <ul className="m-0 mt-3 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
+        <ul className="-mx-3 m-0 mt-2 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
           {rows.map((r) => (
             <li key={String(r.id)}>
               <a
                 href={open(r)}
                 // Counts that don't fit beside the title go under it, as on a phone.
                 className={cn(
-                  "mx-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 px-3 text-(--ui-ink) no-underline outline-none transition-[background-color] duration-150 [border-radius:4px_10px_4px_10px] hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash)",
+                  "flex flex-wrap items-center gap-x-4 gap-y-0.5 px-3 text-(--ui-ink) no-underline outline-none transition-[background-color] duration-150 [border-radius:4px_10px_4px_10px] hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash)",
                   line ? "py-2.5" : "min-h-10 py-1.5",
                 )}
               >
                 <span className="grid min-w-0 flex-1 basis-40 gap-0.5">
-                  <span className="truncate font-medium" {...clipProps()}>
+                  <span className="wrap-anywhere whitespace-normal font-medium">
                     {cap(titleOf(meta, r) || textOf(r.id))}
                   </span>
                   {line && r[line.key] ? (
-                    <span className="line-clamp-2 text-pretty text-(--ui-ink-2)" {...clipProps()}>
+                    <span className="text-pretty text-(--ui-ink-2)">
                       <FieldCell field={line} cell={r[line.key]} />
                     </span>
                   ) : null}
@@ -654,7 +654,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                   .map((f) => (
                     <span
                       key={f.key}
-                      className="max-w-full shrink-0 truncate text-(--ui-ink-2)"
+                      className="max-w-full shrink-0 wrap-anywhere whitespace-normal text-(--ui-ink-2)"
                       {...tipProps(f.label)}
                     >
                       {/* A bare amount says nothing: it reads "Per reply: CA$12", or "none". */}

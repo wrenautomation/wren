@@ -144,7 +144,7 @@ export function PlayerHost() {
     >
       {mini ? (
         <div key="bar" className="flex items-center gap-0.5 py-1 pr-1 pl-3">
-          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-(--ui-ink)">
+          <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-[13px] font-medium text-(--ui-ink)">
             {item.title}
           </span>
           <button

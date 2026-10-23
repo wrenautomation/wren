@@ -144,7 +144,7 @@ function YouTubeVideo({ s, text, title, device }: Post) {
             </p>
             <div className="flex items-center gap-2.5">
               <Avatar size={28} />
-              <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">
+              <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-[14px] font-semibold">
                 Wren Automation
               </span>
               <span className="rounded-full bg-black px-3 py-1.5 text-[13px] font-semibold text-white">
@@ -189,7 +189,7 @@ function YouTubeVideo({ s, text, title, device }: Post) {
           <p className="line-clamp-2 text-[20px] leading-7 font-semibold">{name}</p>
           <div className="flex items-center gap-3">
             <Avatar size={40} />
-            <span className="min-w-0 flex-1 truncate text-[16px] font-semibold">
+            <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-[16px] font-semibold">
               Wren Automation
             </span>
             <span className="rounded-full bg-black px-4 py-2 text-[14px] font-semibold text-white">
@@ -298,7 +298,7 @@ function Reel({ s, text, fields }: Post) {
               </span>
             </p>
             <p className="line-clamp-2 text-[13px] leading-[18px]">{text.trim() || "No caption"}</p>
-            <p className="truncate text-[12px] opacity-90">
+            <p className="wrap-anywhere whitespace-normal text-[12px] opacity-90">
               ♫ {audio ?? "wrenautomation · Original audio"}
             </p>
           </Wash>
@@ -383,7 +383,7 @@ function Reddit({ text, title, fields, device }: Post) {
         ) : null}
         {link ? (
           <p className="flex items-center justify-between gap-3 rounded-xl border border-[#d9d9de] px-3 py-2.5 text-[13px]">
-            <span className="min-w-0 truncate">{host}</span>
+            <span className="min-w-0 wrap-anywhere whitespace-normal">{host}</span>
             <span className={GRAY}>↗</span>
           </p>
         ) : text.trim() ? (
@@ -508,7 +508,7 @@ function X({ s, text, fields }: Post) {
       <div className="flex gap-3 p-4 text-[15px] leading-5">
         <Avatar size={40} />
         <div className="grid min-w-0 flex-1 gap-1.5">
-          <p className="truncate">
+          <p className="wrap-anywhere whitespace-normal">
             <span className="font-semibold">Wren Automation</span>{" "}
             <span className={GRAY}>@wrenautomation · now</span>
           </p>

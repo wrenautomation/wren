@@ -33,6 +33,10 @@ Two parts.
 Fields and values sit in the database that holds the record: deals in main, a client's people in
 its own. The migrations run on every database, so the tables are everywhere.
 
+2026-10-22 (wa-253): Settings → Fields and Set field wrote a client's fields to main, while the
+client's lists read its own database. Now both write the client's own database, with owner null
+there (the database is theirs; main's `clients` row is not in it). Business facts stay in main.
+
 Archive, never delete: an archived field hides, its values stay (store all data). A field's kind
 is fixed once it has values; archive it and add another.
 

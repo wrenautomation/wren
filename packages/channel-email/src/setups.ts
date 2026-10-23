@@ -137,7 +137,7 @@ export function emailChecks(o: {
         const e = err as Error & { authenticationFailed?: boolean };
         return e.authenticationFailed || REFUSED.test(e.message)
           ? { ok: false, why: "It won't sign in" }
-          : { ok: false, why: `Couldn't reach the inbox: ${e.message.slice(0, 200)}` };
+          : { ok: false, why: `Couldn't reach the inbox: ${e.message.slice(0, 2000)}` };
       }
       if (!via) return { ok: false, why: "Not on Wren's sending roster yet" };
       return {

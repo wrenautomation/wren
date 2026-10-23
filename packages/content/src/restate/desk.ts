@@ -90,6 +90,7 @@ import { slotsOf } from "../slots.js";
 import { STORY_PLATFORMS, type StoryPlatform, storyClips, writeStory } from "../story.js";
 import { approveVideo, pickThumbnail, VIDEO_PRIVACY, type VideoPrivacy } from "../video.js";
 import { type Brand, DEFAULT_BRAND } from "../voice.js";
+import { IDEA_ANGLES, type IdeaAngle } from "../write.js";
 import { afterPublish, type ReplyService } from "./after-publish.js";
 import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
 
@@ -213,6 +214,8 @@ const WRITE = z.looseObject({
     .regex(FROM)
     .nullish()
     .describe("What it's about, video:<id>: the post hangs under that video in Pieces"),
+  line: z.string().max(64).nullish().describe("The offer line it serves: a line id in the shape"),
+  angle: z.enum(IDEA_ANGLES).nullish().describe("How it argues"),
   media: z
     .object({
       kind: z.enum(["image", "video"]),
@@ -635,11 +638,14 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             go?: WriteGo | null;
             from?: string | null;
             media?: Media | null;
+            line?: string | null;
+            angle?: IdeaAngle | null;
             viewer?: unknown;
           },
         ) => {
           const s = await scopeOf(ctx);
           const by = byOf(req);
+          const mark = { line: req.line ?? null, angle: req.angle ?? null };
           // A thread is one post whose parts the `---` lines split.
           const posts = req.thread ? [req.text.trim()].filter(Boolean) : splitPosts(req.text);
           if (posts.length === 0)
@@ -654,7 +660,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               req.adapt && !req.thread
                 ? await (async () => {
                     const idea = await ctx.run(`idea ${n}`, () =>
-                      addIdea(s.db, text, "cli", null, refFrom(req.from)),
+                      addIdea(s.db, text, "cli", null, refFrom(req.from), mark),
                     );
                     const r = await draft(ctx, { ideaId: idea.id, platforms: req.platforms });
                     return { ideaId: idea.id, results: r.results };
@@ -667,6 +673,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
                       by,
                       from: req.from ?? null,
                       media: req.media ?? null,
+                      mark,
                       ...(req.thread ? { thread: true } : {}),
                     });
                     return { ideaId: r.idea.id, results: r.results };

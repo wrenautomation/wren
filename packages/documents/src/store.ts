@@ -396,7 +396,7 @@ async function addEvent(
     at: e.at,
     ip: e.ip?.slice(0, 64) ?? null,
     agent: e.agent?.slice(0, 500) ?? null,
-    note: e.note?.slice(0, 1000) ?? null,
+    note: e.note?.slice(0, 10_000) ?? null,
   });
 }
 
@@ -492,7 +492,7 @@ export async function makeDoc(main: Db, n: NewDoc): Promise<Doc> {
         client: n.client,
         template: t?.id ?? null,
         kind,
-        title: fillSlots(title, facts).slice(0, 200),
+        title: fillSlots(title, facts).slice(0, 2000),
         body: fillSlots(body, facts),
         lines: filled,
         contact: n.contact ?? null,
@@ -581,7 +581,7 @@ export async function editDoc(
   const [row] = await main
     .update(docs)
     .set({
-      title: title.slice(0, 200),
+      title: title.slice(0, 2000),
       body: p.body !== undefined || !d ? bodyOf(p.body) : d.body,
       lines,
       ...totals,
@@ -850,7 +850,7 @@ export async function markSent(
 export async function markFailed(main: Db, id: string, why: string, now: Date): Promise<void> {
   await main
     .update(docs)
-    .set({ status: "failed", why: why.slice(0, 500), updatedAt: now })
+    .set({ status: "failed", why: why.slice(0, 5000), updatedAt: now })
     .where(and(eq(docs.id, id), inArray(docs.status, ["sending", "waiting"])));
 }
 
@@ -1059,7 +1059,7 @@ export async function sealedRejected(
   s: { why: string | null; now: Date },
 ): Promise<Doc | null> {
   return atomic(main, async (tx) => {
-    const why = s.why?.trim().slice(0, 1000) || null;
+    const why = s.why?.trim().slice(0, 10_000) || null;
     const [row] = await tx
       .update(docs)
       .set({ status: "declined", declinedAt: s.now, declinedWhy: why, updatedAt: s.now })

@@ -155,7 +155,7 @@ export async function createDataPage(db: Db, p: NewDataPage): Promise<SitePage> 
       .values({
         client: p.client,
         slug,
-        title: title.slice(0, 200),
+        title: title.slice(0, 2000),
         kind: p.kind ?? (t.id === "listicle" ? "listicle" : "lander"),
         source: "data",
         template: t.id,
@@ -506,7 +506,7 @@ export async function registerCodePage(
     ...(p.angle !== undefined ? { angle: p.angle?.trim() || null } : {}),
     ...(p.kind ? { kind: p.kind } : {}),
     ...(p.stage ? { stage: p.stage } : {}),
-    ...(p.title?.trim() ? { title: p.title.trim().slice(0, 200) } : {}),
+    ...(p.title?.trim() ? { title: p.title.trim().slice(0, 2000) } : {}),
   };
   if (had) {
     const [page] = await db
@@ -528,7 +528,7 @@ export async function registerCodePage(
     .values({
       client: p.client,
       slug,
-      title: title.slice(0, 200),
+      title: title.slice(0, 2000),
       kind: p.kind ?? "lander",
       source: "code",
       url,

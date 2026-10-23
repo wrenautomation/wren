@@ -122,7 +122,7 @@ export async function decidePass(
         }
         s.failed++;
         if (s.failed >= DECIDE_MAX_FAILURES) {
-          s.stopped = `${s.failed} failures: ${String(err).slice(0, 200)}`;
+          s.stopped = `${s.failed} failures: ${String(err).slice(0, 2000)}`;
           break outer;
         }
       }
@@ -177,7 +177,7 @@ export async function decideOne(
     });
     return { asked: !!row, label: row?.label ?? null, why: row?.error ?? null };
   } catch (err) {
-    return no(err instanceof DecideStop ? err.message : String(err).slice(0, 200));
+    return no(err instanceof DecideStop ? err.message : String(err).slice(0, 2000));
   }
 }
 

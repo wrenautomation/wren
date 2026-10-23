@@ -6,7 +6,8 @@ import type { AccountsView, UsageView } from "@wren/core/accounts/console";
 import { ButtonLink, Empty, LoadFailed, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
-import { dayLabel, LIST, QUIET, SPLIT, TOOLS } from "../work/bits.js";
+import { PageRows, rowLines } from "../../page-rows.js";
+import { dayLabel, QUIET, TOOLS } from "../work/bits.js";
 import { dollars, runTag, unitsText } from "./setups.js";
 
 /** A client's accounts, a line each with where its setups stand, and links to both pages. */
@@ -20,12 +21,27 @@ export function ClientAccounts({ client }: { client: string }) {
   return (
     <div className="grid gap-3">
       {got.data.accounts.length ? (
-        <ul className={LIST}>
-          {got.data.accounts.map((a) => (
-            <li key={a.id} className="grid gap-1">
-              <span className={SPLIT}>
-                <b className="font-medium">{a.siteLabel}</b>
-                <span className="flex flex-wrap justify-end gap-1.5">
+        <PageRows<AccountsView["accounts"][number]>
+          label="Accounts"
+          noun="account"
+          lines={rowLines(got.data.accounts, (a) => String(a.id))}
+          name={{
+            label: "Account",
+            icon: "key",
+            min: 220,
+            title: (a) => a.siteLabel,
+            weight: () => "font-medium text-(--ui-ink)",
+            sub: (a) => <span className={`${QUIET} wrap-anywhere whitespace-normal`}>{a.ref}</span>,
+          }}
+          columns={[
+            {
+              key: "runs",
+              label: "Setups",
+              icon: "workflow",
+              min: 160,
+              phone: true,
+              cell: (a) => (
+                <span className="flex flex-wrap gap-1.5">
                   {a.runs.map((r) => {
                     const t = runTag(r.state, true);
                     return (
@@ -36,11 +52,10 @@ export function ClientAccounts({ client }: { client: string }) {
                   })}
                   {!a.runs.length && a.setups.length ? <Tag>Not started</Tag> : null}
                 </span>
-              </span>
-              <span className={`${QUIET} break-all`}>{a.ref}</span>
-            </li>
-          ))}
-        </ul>
+              ),
+            },
+          ]}
+        />
       ) : (
         <Empty>No accounts yet.</Empty>
       )}
@@ -113,27 +128,43 @@ export function VendorUsage() {
                 )
               }
             >
-              <ul className={LIST}>
-                {ordered.map((r) => {
-                  const own = r.mode === "own";
-                  return (
-                    <li key={`${r.vendor}:${r.mode}`} className="grid gap-1">
-                      <span className={SPLIT}>
-                        <b className="font-medium">{r.vendorName}</b>
-                        <span className={own ? QUIET : undefined}>{dollars(r.micros)}</span>
+              <PageRows<UsageView["rows"][number]>
+                label={`${o.name} usage`}
+                noun="vendor"
+                lines={rowLines(ordered, (r) => `${r.vendor}:${r.mode}`)}
+                name={{
+                  label: "Vendor",
+                  icon: "building",
+                  min: 200,
+                  title: (r) => r.vendorName,
+                  weight: () => "font-medium text-(--ui-ink)",
+                  sub: (r) => (
+                    <span className={`${QUIET} wrap-anywhere whitespace-normal`}>
+                      {unitsText(r.units, r.unit)}
+                      {r.mode === "own"
+                        ? `, on their own key. ${r.vendorName} bills them.`
+                        : o.client === null
+                          ? ""
+                          : ", on Wren's key"}
+                    </span>
+                  ),
+                }}
+                columns={[
+                  {
+                    key: "cost",
+                    label: "Cost",
+                    icon: "dollar",
+                    align: "end",
+                    width: 120,
+                    phone: true,
+                    cell: (r) => (
+                      <span className={r.mode === "own" ? QUIET : undefined}>
+                        {dollars(r.micros)}
                       </span>
-                      <span className={QUIET}>
-                        {unitsText(r.units, r.unit)}
-                        {own
-                          ? `, on their own key. ${r.vendorName} bills them.`
-                          : o.client === null
-                            ? ""
-                            : ", on Wren's key"}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+                    ),
+                  },
+                ]}
+              />
             </Section>
           );
         })

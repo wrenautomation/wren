@@ -7,7 +7,7 @@ import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "./mocks/api.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
-import { failedIn, pageAt } from "./mocks/page.js";
+import { failedIn, pageAt, todayOf } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Wren" };
 export default meta;
@@ -244,6 +244,19 @@ export const SettingsSystems = pageAt("/settings/systems", {
     const view = within(page);
     await expect(await view.findByRole("heading", { name: /^On your shape/ })).toBeVisible();
     await expect(await view.findByRole("heading", { name: /^Not on the shape/ })).toBeVisible();
+    // Each group draws its apps as `Rows`: a table, or on a phone a list.
+    await expect(await view.findByLabelText("Apps on your shape")).toBeVisible();
+    await expect(await view.findByLabelText("Apps not on your shape")).toBeVisible();
+  },
+});
+
+// Admin > Guide: every app by area as `Rows`, with its pages linked.
+export const SettingsGuide = pageAt("/settings/guide", {
+  me: ADMIN,
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByRole("heading", { name: "Getting around" })).toBeVisible();
+    await expect((await view.findAllByLabelText(/ apps$/)).length).toBeGreaterThan(0);
   },
 });
 // While the shape is slow, Systems shows its header and a skeleton, not a blank page.

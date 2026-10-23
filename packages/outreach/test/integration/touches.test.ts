@@ -16,13 +16,31 @@ import { keepComments, markAnswered } from "../../src/comments.js";
 import { dmContext } from "../../src/drafts.js";
 import { personContact } from "../../src/from-people.js";
 import { markAccepted } from "../../src/invites.js";
+
+const conn = (handle: string) => ({
+  handle,
+  name: null,
+  url: null,
+  headline: null,
+  connectedOn: null,
+});
+
 import { markPostCommented } from "../../src/reach-posts.js";
 import { personRecord } from "../../src/records.js";
-import { type ReachAccount, reachContacts, reachMessages, reachPosts } from "../../src/schema.js";
-import { backfillOutreachTouches, touchFromMessage } from "../../src/touches.js";
+import {
+  type ReachAccount,
+  reachContacts,
+  reachMessages,
+  reachPosts,
+  redditPlaces,
+  redditThreads,
+} from "../../src/schema.js";
+import { backfillOutreachTouches, touchFromMessage, touchFromThread } from "../../src/touches.js";
 
 const TABLES = [
   "touches",
+  "reddit_threads",
+  "reddit_places",
   "social_handles",
   "comments",
   "reach_posts",
@@ -279,7 +297,9 @@ describe("touches", () => {
       })
       .returning();
     await touchFromMessage(db(), (invite as { id: number }).id);
-    expect(await markAccepted(db(), linkedin.id, ["sam-test"], ago(1))).toEqual([c.id]);
+    expect((await markAccepted(db(), linkedin.id, [conn("sam-test")], ago(1))).accepted).toEqual([
+      c.id,
+    ]);
 
     const all = await touchesFor(db(), { personId });
     expect(all.map((t) => [t.kind, t.response])).toEqual([
@@ -314,5 +334,41 @@ describe("touches", () => {
     expect((await backfillOutreachTouches(db(), { now: NOW })).posts).toBe(1);
     expect((await backfillOutreachTouches(db(), { now: NOW })).posts).toBe(0);
     expect(await touchesFor(db(), { personId })).toHaveLength(1);
+  });
+
+  it("writes no touch for a karma place's comment: warmup is not sales", async () => {
+    const thread = (id: string, subreddit: string) => ({
+      id,
+      subreddit,
+      title: "A question",
+      body: "",
+      author: "someone",
+      url: `https://reddit.com/r/${subreddit}/comments/${id}`,
+      postedAt: ago(2),
+      comments: 0,
+      raw: {},
+      state: "commented" as const,
+      accountId: reddit.id,
+      answer: "A plain answer.",
+      answerRef: `t1_c${id.slice(3)}`,
+      answeredAt: ago(1),
+    });
+    await db()
+      .insert(redditPlaces)
+      .values([
+        { subreddit: "askreddit", name: "AskReddit", foundBy: "named", purpose: "karma" },
+        { subreddit: "smallbusiness", name: "smallbusiness", foundBy: "named", purpose: "reach" },
+      ]);
+    await resolveObjects(db(), [
+      { platform: "reddit", kind: "post", raw: "t3_k1" },
+      { platform: "reddit", kind: "post", raw: "t3_r1" },
+      { platform: "reddit", kind: "comment", raw: "t1_ck1" },
+      { platform: "reddit", kind: "comment", raw: "t1_cr1" },
+    ]);
+    await db()
+      .insert(redditThreads)
+      .values([thread("t3_k1", "askreddit"), thread("t3_r1", "smallbusiness")]);
+    expect(await touchFromThread(db(), "t3_k1")).toBeNull();
+    expect(await touchFromThread(db(), "t3_r1")).not.toBeNull();
   });
 });

@@ -56,6 +56,7 @@ import {
   changeRecord,
   clients,
   clientUrl,
+  findClient,
   isOwner,
   LastAdmin,
   normalEmail,
@@ -2560,7 +2561,7 @@ export function consoleApi({
         }
       }
     } catch (err) {
-      await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+      await finishRun(main, run.id, { error: String(err).slice(0, 5000) });
       throw err;
     }
     await finishRun(main, run.id, { ok: true });
@@ -2606,7 +2607,7 @@ export function consoleApi({
         await setWrenSettings(tx, c.id, block, by);
       });
     } catch (err) {
-      await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+      await finishRun(main, run.id, { error: String(err).slice(0, 5000) });
       throw err;
     }
     await finishRun(main, run.id, { ok: true });
@@ -2620,7 +2621,17 @@ export function consoleApi({
   };
   return {
     ...accessApi({ main, typesFor, rowAt }),
-    ...customApi(main),
+    ...customApi(main, async (id, fn) => {
+      const client = await findClient(main, id);
+      if (!client) throw new PortalRefusal("no such client", 404);
+      if (!mainUrl) throw new PortalRefusal("this worker can't reach the client's database", 503);
+      const handle = createDb(clientUrl(mainUrl, client), { max: 1, app: "wren-console" });
+      try {
+        return await fn(handle.db);
+      } finally {
+        await handle.close();
+      }
+    }),
     adminFor,
     async view(req: ViewRequest): Promise<ViewAnswer> {
       team(req);
@@ -3064,7 +3075,7 @@ export function consoleApi({
         await finishRun(main, run.id, { ok: true });
         return out;
       } catch (err) {
-        await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+        await finishRun(main, run.id, { error: String(err).slice(0, 5000) });
         throw err;
       }
     },
@@ -3188,7 +3199,7 @@ export function consoleApi({
           await updateClient(tx, client.id, { accounts: { [site]: account } }, by);
         });
       } catch (err) {
-        await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+        await finishRun(main, run.id, { error: String(err).slice(0, 5000) });
         throw err;
       }
       await finishRun(main, run.id, { ok: true });
@@ -3689,7 +3700,7 @@ export function consoleApi({
         },
       }).then((r) => r.id),
     closeCall: (runId: string, error: string | null) =>
-      finishRun(main, runId, error === null ? { ok: true } : { error: error.slice(0, 500) }),
+      finishRun(main, runId, error === null ? { ok: true } : { error: error.slice(0, 5000) }),
 
     pick(req: SetLoopRequest, loops: readonly LoopRow[]): LoopRow {
       if (typeof req.run !== "boolean") throw new PortalRefusal("say run: true or false", 400);

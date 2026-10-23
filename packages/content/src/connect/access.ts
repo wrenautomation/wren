@@ -205,7 +205,7 @@ export function socialAccess(deps: SocialDeps) {
     cache.delete(id);
     await main
       .update(socialConnections)
-      .set({ state: "broken", why: why.slice(0, 300), checkedAt: now() })
+      .set({ state: "broken", why: why.slice(0, 3000), checkedAt: now() })
       .where(eq(socialConnections.id, id));
   };
 
@@ -379,7 +379,7 @@ export function socialAccess(deps: SocialDeps) {
           ok: false,
           said: /denied|cancel/i.test(q.error)
             ? "Nothing was granted. You can try again from Account → Social."
-            : `${label} said no (${String(q.error).slice(0, 60)}).`,
+            : `${label} said no (${String(q.error).slice(0, 600)}).`,
           client,
           check: [],
         };
@@ -436,7 +436,7 @@ export function socialAccess(deps: SocialDeps) {
           await broke(c.id, "Access was taken back. Connect it again.");
         return {
           ok: false,
-          why: err instanceof Error ? err.message.slice(0, 200) : "Its sign-in stopped working",
+          why: err instanceof Error ? err.message.slice(0, 2000) : "Its sign-in stopped working",
         };
       }
       const left = c.expiresAt ? c.expiresAt.getTime() - now().getTime() : null;

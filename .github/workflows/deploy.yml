@@ -1,8 +1,5 @@
-# Deploy main to production: migrate the database, restart the pool chain's worker on
-# the Postgres box (it registers itself), ship the worker and the sign-in to Lambda,
-# register the worker's new version with Restate (Cloud or the box), ship
-# the phone, sign-in, portal and LLM gateway Workers to Cloudflare. Runs after `ci` is green
-# (lint, unit, schema, test:stories; integration.yml reports on its own and never holds a deploy).
+# Deploy main to production: deploy/scripts/deploy.sh, one step, independent work at once.
+# ci.yml calls it once lint, unit and schema are green; by hand: `gh workflow run deploy.yml --ref main`.
 # Secrets (production environment): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN,
 # LAMBDA_NAME, WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN,
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, AUTH_LAMBDA_URL, AUTH_EDGE_SECRET,
@@ -10,233 +7,37 @@
 # See deploy/README.md, deploy/phone.md, deploy/portal.md, designs/2026-10-06-llm-gateway.md.
 name: deploy
 on:
-  workflow_run:
-    workflows: [ci]
-    branches: [main]
-    types: [completed]
+  workflow_call:
   workflow_dispatch:
-concurrency: { group: deploy, cancel-in-progress: false }
 permissions:
   id-token: write
   contents: read
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # One deploy at a time, never cancelled midway; the newest waiting one replaces older ones.
+    concurrency: { group: deploy, cancel-in-progress: false }
     environment: production
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with: { node-version-file: .node-version, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - name: migrate
-        run: pnpm db:migrate
-        env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
-      - name: template defaults
-        # Each changed file in packages/templates/defaults as a default version, in every database.
-        run: pnpm -s wren templates sync
-        env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
-      - name: offer versions
-        # Each registry offer whose shape changed, as the next offer version in main. A miss logs, never blocks the deploy.
-        continue-on-error: true
-        run: pnpm -s wren offers sync
-        env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
-      - name: bundle
-        run: |
-          pnpm --filter @wren/worker build:lambda
-          pnpm --filter @wren/auth-app build:lambda
+      - uses: ./.github/actions/install
       - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
-      - name: pgbouncer on the database box
-        # Before the box worker and the Lambda, which may connect through it (WREN_DATABASE_POOL_PORT).
-        run: |
-          script="$(base64 -w0 deploy/scripts/box-pgbouncer.sh)"
-          jq -n --arg s "$script" '{commands: [
-            "echo \($s) | base64 -d > /usr/local/bin/wren-box-pgbouncer",
-            "chmod +x /usr/local/bin/wren-box-pgbouncer",
-            "/usr/local/bin/wren-box-pgbouncer"]}' > "$RUNNER_TEMP/pgb.json"
-          id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
-            --comment "pgbouncer $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/pgb.json" \
-            --query Command.CommandId --output text)"
-          aws ssm wait command-executed --command-id "$id" --instance-id "$BOX_INSTANCE_ID" || true
-          aws ssm get-command-invocation --command-id "$id" --instance-id "$BOX_INSTANCE_ID" \
-            --query '[Status,StandardOutputContent]' --output text | tee "$RUNNER_TEMP/pgb.out"
-          head -1 "$RUNNER_TEMP/pgb.out" | grep -q '^Success'
+      - name: deploy
+        run: bash deploy/scripts/deploy.sh
         env:
-          BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
-      - name: valkey cache on the database box
-        # Before the Lambda, which reads through it (WREN_CACHE_URL). Unchanged: left running.
-        run: |
-          script="$(base64 -w0 deploy/scripts/box-valkey.sh)"
-          jq -n --arg s "$script" '{commands: [
-            "echo \($s) | base64 -d > /usr/local/bin/wren-box-valkey",
-            "chmod +x /usr/local/bin/wren-box-valkey",
-            "/usr/local/bin/wren-box-valkey us-east-1"]}' > "$RUNNER_TEMP/vk.json"
-          id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
-            --comment "valkey $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/vk.json" \
-            --query Command.CommandId --output text)"
-          aws ssm wait command-executed --command-id "$id" --instance-id "$BOX_INSTANCE_ID" || true
-          aws ssm get-command-invocation --command-id "$id" --instance-id "$BOX_INSTANCE_ID" \
-            --query '[Status,StandardOutputContent]' --output text | tee "$RUNNER_TEMP/vk.out"
-          head -1 "$RUNNER_TEMP/vk.out" | grep -q '^Success'
-        env:
-          BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
-      - name: listmonk on the database box
-        # The newsletter's lists and campaigns (designs/2026-10-21-esign-and-newsletter.md). No SSM
-        # param /wren/prod/listmonk yet: the script says so and skips. Unchanged: left running.
-        run: |
-          script="$(base64 -w0 deploy/scripts/box-listmonk.sh)"
-          jq -n --arg s "$script" '{commands: [
-            "echo \($s) | base64 -d > /usr/local/bin/wren-box-listmonk",
-            "chmod +x /usr/local/bin/wren-box-listmonk",
-            "/usr/local/bin/wren-box-listmonk us-east-1"]}' > "$RUNNER_TEMP/lm.json"
-          id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
-            --comment "listmonk $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/lm.json" \
-            --query Command.CommandId --output text)"
-          aws ssm wait command-executed --command-id "$id" --instance-id "$BOX_INSTANCE_ID" || true
-          aws ssm get-command-invocation --command-id "$id" --instance-id "$BOX_INSTANCE_ID" \
-            --query '[Status,StandardOutputContent]' --output text | tee "$RUNNER_TEMP/lm.out"
-          head -1 "$RUNNER_TEMP/lm.out" | grep -q '^Success'
-        env:
-          BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
-      - name: restart the pool chain on the database box
-        # Before the Lambda registers: Restate keeps a service on the deployment that last
-        # offered it, and this Lambda build leaves the chain out (WREN_POOL_CHAIN_HOST=box).
-        run: |
-          key="worker/$GITHUB_SHA.zip"
-          aws s3 cp --only-show-errors apps/worker/dist/lambda.zip "s3://$BOX_BUCKET/$key"
-          script="$(base64 -w0 deploy/scripts/box-worker.sh)"
-          jq -n --arg s "$script" --arg b "$BOX_BUCKET" --arg k "$key" '{commands: [
-            "echo \($s) | base64 -d > /usr/local/bin/wren-box-worker",
-            "chmod +x /usr/local/bin/wren-box-worker",
-            "/usr/local/bin/wren-box-worker \($b) \($k)"]}' > "$RUNNER_TEMP/box.json"
-          id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
-            --comment "box worker $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/box.json" \
-            --query Command.CommandId --output text)"
-          aws ssm wait command-executed --command-id "$id" --instance-id "$BOX_INSTANCE_ID" || true
-          aws ssm get-command-invocation --command-id "$id" --instance-id "$BOX_INSTANCE_ID" \
-            --query '[Status,StandardOutputContent]' --output text | tee "$RUNNER_TEMP/box.out"
-          head -1 "$RUNNER_TEMP/box.out" | grep -q '^Success'
-        env:
-          BOX_BUCKET: ${{ secrets.BOX_BUCKET }}
-          BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
-      - name: publish lambda version
-        id: publish
-        run: |
-          aws lambda update-function-code --function-name "$LAMBDA_NAME" \
-            --zip-file fileb://apps/worker/dist/lambda.zip --publish --output json > out.json
-          # A versioned ARN, whichever form the response's FunctionArn takes.
-          base="$(jq -r .FunctionArn out.json | sed -E 's/:[0-9]+$//')"
-          echo "arn=$base:$(jq -r .Version out.json)" >> "$GITHUB_OUTPUT"
-        env: { LAMBDA_NAME: "${{ secrets.LAMBDA_NAME }}" }
-      - name: where restate is
-        # RESTATE_HOST names Restate Cloud (ingress on :8080, admin API public) or the box
-        # (restate.wrenautomation.com: ingress through Caddy on 443, admin on its loopback).
-        run: |
-          case "$RESTATE_HOST" in
-            *.restate.cloud) echo "RESTATE_INGRESS=https://$RESTATE_HOST:8080" >> "$GITHUB_ENV" ;;
-            *) echo "RESTATE_INGRESS=https://$RESTATE_HOST" >> "$GITHUB_ENV" ;;
-          esac
-        env:
-          RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
-      - name: register with restate
-        run: |
-          case "$RESTATE_HOST" in
-            *.restate.cloud)
-              npx -y @restatedev/restate deployments register -y "$ARN" --assume-role-arn "$INVOKE_ROLE" ;;
-            *)
-              # The box's own role invokes the Lambda; its admin API answers on loopback only.
-              # Discovery invokes the new version, which may still be pending: retry while it warms.
-              # (No `aws lambda wait`: the CI role has no GetFunctionConfiguration.)
-              # First, drop deployments nothing uses: Restate caps them all at 30.4 MiB.
-              body="$(jq -nc --arg arn "$ARN" '{arn: $arn}')"
-              # The watch pings Discord when Restate itself is down, which nothing inside it can.
-              prune="$(base64 -w0 deploy/scripts/restate-prune.py)"
-              watch="$(base64 -w0 deploy/scripts/restate-watch.py)"
-              jq -n --arg b "$body" --arg p "$prune" --arg w "$watch" '{commands: [
-                "echo \($p) | base64 -d > /usr/local/bin/wren-restate-prune",
-                "echo \($w) | base64 -d > /usr/local/bin/wren-restate-watch",
-                "chmod 755 /usr/local/bin/wren-restate-prune /usr/local/bin/wren-restate-watch",
-                "echo \"17 * * * * root /usr/local/bin/wren-restate-prune >> /var/log/wren-restate-prune.log 2>&1\" > /etc/cron.d/wren-restate-prune",
-                "echo \"*/5 * * * * root /usr/local/bin/wren-restate-watch >> /var/log/wren-restate-watch.log 2>&1\" > /etc/cron.d/wren-restate-watch",
-                "/usr/local/bin/wren-restate-prune || true",
-                "for i in 1 2 3 4 5 6 7 8 9 10; do curl -sS --fail-with-body -X POST http://127.0.0.1:9070/deployments -H content-type:application/json -d \($b | @sh) -o /tmp/register.out && exit 0; head -c 400 /tmp/register.out; sleep 10; done; exit 1"]}' \
-                > "$RUNNER_TEMP/register.json"
-              id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
-                --comment "register $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/register.json" \
-                --query Command.CommandId --output text)"
-              aws ssm wait command-executed --command-id "$id" --instance-id "$BOX_INSTANCE_ID" || true
-              aws ssm get-command-invocation --command-id "$id" --instance-id "$BOX_INSTANCE_ID" \
-                --query Status --output text | grep -q '^Success' ;;
-          esac
-        env:
-          ARN: ${{ steps.publish.outputs.arn }}
+          WREN_DATABASE_URL: ${{ secrets.WREN_DATABASE_URL }}
+          LAMBDA_NAME: ${{ secrets.LAMBDA_NAME }}
           INVOKE_ROLE: ${{ secrets.AWS_INVOKE_ROLE_ARN }}
+          BOX_BUCKET: ${{ secrets.BOX_BUCKET }}
           BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
           RESTATE_HOST_SCHEME: https
           RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
           RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
-      - name: refresh the queued mail
-        # Queued email was saved at compose; this re-renders it from the templates just shipped.
-        # Fire and forget: the run lands in the runs ledger (`outreach refresh`).
-        run: |
-          curl -fsS -X POST "$RESTATE_INGRESS/QueueRefresh/all/send" \
-            -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" -H "content-type: application/json" -d 'null' > /dev/null
-        env:
-          RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
-      - name: ship the sign-in lambda
-        # Its function URL serves $LATEST; no version to publish.
-        run: |
-          aws lambda update-function-code --function-name wren-prod-auth \
-            --zip-file fileb://apps/auth/dist/lambda.zip > /dev/null
-          aws lambda wait function-updated --function-name wren-prod-auth
-      # The ingress follows RESTATE_HOST like the portal's; its other secrets (Telnyx, cal.com,
-      # Gmail push, credential links) are set by hand and kept: --secrets-file is additive.
-      - name: deploy the phone worker
-        working-directory: apps/phone
-        run: |
-          jq -n --arg url "$RESTATE_INGRESS/" --arg token "$RESTATE_AUTH_TOKEN" \
-            '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token}' > "$RUNNER_TEMP/phone-secrets.json"
-          npx wrangler deploy --secrets-file "$RUNNER_TEMP/phone-secrets.json"
-        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
-      # Its keys are Worker secrets, set by scripts/llm-gateway-keys.mjs; a deploy keeps them.
-      - name: deploy the llm gateway worker
-        working-directory: apps/llm-gateway
-        run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: deploy the sign-in worker
-        working-directory: apps/auth
-        run: |
-          pnpm run build
-          jq -n --arg url "$LAMBDA_URL" --arg edge "$EDGE_SECRET" '{LAMBDA_URL: $url, EDGE_SECRET: $edge}' \
-            > "$RUNNER_TEMP/auth-secrets.json"
-          npx wrangler deploy --secrets-file "$RUNNER_TEMP/auth-secrets.json"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          LAMBDA_URL: ${{ secrets.AUTH_LAMBDA_URL }}
-          EDGE_SECRET: ${{ secrets.AUTH_EDGE_SECRET }}
-      - name: deploy the portal worker
-        working-directory: apps/portal
-        run: |
-          pnpm run build
-          # LAMBDA_URL, EDGE_SECRET: a client's own host redeems sign-ins at the auth Lambda.
-          jq -n --arg url "$RESTATE_INGRESS/" --arg token "$RESTATE_AUTH_TOKEN" \
-            --arg lambda "$LAMBDA_URL" --arg edge "$EDGE_SECRET" \
-            '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token, LAMBDA_URL: $lambda, EDGE_SECRET: $edge}' \
-            > "$RUNNER_TEMP/portal-secrets.json"
-          npx wrangler deploy --secrets-file "$RUNNER_TEMP/portal-secrets.json"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
           LAMBDA_URL: ${{ secrets.AUTH_LAMBDA_URL }}
           EDGE_SECRET: ${{ secrets.AUTH_EDGE_SECRET }}

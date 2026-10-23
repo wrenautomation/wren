@@ -283,7 +283,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'sms_message:' || s.id, k.profile_id, coalesce(s.received_at, s.sent_at, s.created_at),
     case when s.direction = 'in' then 'text_received' else 'text_sent' end, 'sms',
-    left(s.body, 160), s.body, '/marketing/texts/' || c.id, 'sms_messages', null
+    s.body, s.body, '/marketing/texts/' || c.id, 'sms_messages', null
   from profile_keys k
   join sms_contacts c on c.e164 = k.value
   join sms_messages s on s.contact_id = c.id
@@ -310,7 +310,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'touch:' || t.id, k.profile_id, t.at, 'touch', h.platform,
     case t.direction when 'ours' then 'We ' else 'They ' end || t.kind
-      || coalesce(': ' || left(t.text, 140), ''),
+      || coalesce(': ' || t.text, ''),
     t.text, t.link, 'touches', nullif(case when t.url ~ '${sql.raw(BROKEN_IG_URL)}' then null else t.url end, '')
   from profile_keys k
   join social_handles h on k.kind = 'handle:' || h.platform and h.handle = k.value
@@ -354,7 +354,7 @@ export const profileTimeline = pgView("profile_timeline", {
   where coalesce(f.client, p.client) is null
   union all
   select 'chat_message:' || m.id, k.profile_id, m.at, 'chat', 'site',
-    case when m.direction = 'in' then 'They wrote: ' else 'We wrote: ' end || left(m.body, 140),
+    case when m.direction = 'in' then 'They wrote: ' else 'We wrote: ' end || m.body,
     m.body, null, 'chat_messages', null
   from (
     select t.id, k.profile_id from profile_keys k
@@ -428,9 +428,67 @@ export const profileTraitActivity = pgView("profile_trait_activity", {
   from profile_trait_events e`);
 
 /**
+ * The People list, one row per live profile: everything `profile_records` shows, kept exact by
+ * statement triggers (`profile_list_refresh`, migration 0325) on `profiles`, `profile_rollups`,
+ * `profile_keys`, `profile_traits`, `profile_merges`, `consents` and `sms_contacts`. The list
+ * reads one table: counting 158k rows through per-row subqueries took 8.6 s. Never write it.
+ */
+export const profileList = pgTable(
+  "profile_list",
+  {
+    profileId: integer("profile_id").notNull(),
+    name: text("name").notNull(),
+    emails: text("emails"),
+    phones: text("phones"),
+    handles: text("handles"),
+    channels: text("channels"),
+    consent: text("consent"),
+    firstSeen: timestamp("first_seen", { withTimezone: true }).notNull(),
+    lastSeen: timestamp("last_seen", { withTimezone: true }).notNull(),
+    keys: integer("keys").notNull(),
+    traits: integer("traits").notNull(),
+    merged: integer("merged").notNull(),
+    stage: text("stage").notNull(),
+    warmth: text("warmth").notNull(),
+    why: text("why"),
+    warmthLine: text("warmth_line"),
+    warmSince: timestamp("warm_since", { withTimezone: true }),
+    persona: text("persona").notNull(),
+    personaRole: text("persona_role").notNull(),
+    personaNiche: text("persona_niche").notNull(),
+    personaSize: text("persona_size").notNull(),
+    subscriptions: text("subscriptions"),
+    replies: integer("replies").notNull(),
+    repliedLast: timestamp("replied_last", { withTimezone: true }),
+    repliedChannel: text("replied_channel"),
+    firstChannel: text("first_channel"),
+    lastTouchAt: timestamp("last_touch_at", { withTimezone: true }),
+    lastChannel: text("last_channel"),
+    cameFrom: text("came_from"),
+    lead: text("lead"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.profileId], name: "pk_profile_list" }),
+    // The records list finds a row and breaks sort ties by id as text, and opens newest seen first.
+    index("ix_profile_list_profile_text").on(sql`(${t.profileId}::text)`),
+    index("ix_profile_list_last_seen").on(
+      sql`(${t.lastSeen} is null)`,
+      sql`${t.lastSeen} desc`,
+      sql`(${t.profileId}::text) collate "C"`,
+    ),
+    foreignKey({
+      columns: [t.profileId],
+      foreignColumns: [profiles.id],
+      name: "fk_profile_list_profile_id_profiles",
+    }).onDelete("cascade"),
+  ],
+);
+
+/**
  * Live profiles as the People list reads them: addresses, channels and consent on the row, and
  * the people map's stage, warmth and persona (`profile_rollups`; defaults before its first pass),
  * and William's lead call (`lead` trait: `lead` or `not_lead`; null before he calls it).
+ * Read from `profile_list`.
  */
 export const profileRecords = pgView("profile_records", {
   id: integer("id"),
@@ -464,42 +522,12 @@ export const profileRecords = pgView("profile_records", {
   cameFrom: text("came_from"),
   lead: text("lead"),
 }).as(sql`
-  select p.id, coalesce(p.name, (select k.value from profile_keys k where k.profile_id = p.id
-      order by k.kind <> 'email', k.kind <> 'phone', k.id limit 1), '#' || p.id) "name",
-    (select string_agg(k.value, ', ' order by k.id) from profile_keys k
-      where k.profile_id = p.id and k.kind = 'email') emails,
-    (select string_agg(k.value, ', ' order by k.id) from profile_keys k
-      where k.profile_id = p.id and k.kind = 'phone') phones,
-    (select string_agg(substr(k.kind, 8) || ' ' || k.value, ', ' order by k.id) from profile_keys k
-      where k.profile_id = p.id and k.kind like 'handle:%') handles,
-    (select string_agg(distinct case when k.kind = 'phone' then 'sms'
-        when k.kind like 'handle:%' then substr(k.kind, 8) else k.kind end, ', ')
-      from profile_keys k where k.profile_id = p.id and (k.kind in ('email', 'phone')
-        or k.kind like 'handle:%')) channels,
-    (select string_agg(distinct x.said, ', ') from (
-      select c.channel || ' ' || c.state said from profile_keys k
-        join consents c on c.address = k.value
-          and c.channel = case k.kind when 'email' then 'email' when 'phone' then 'sms' end
-        where k.profile_id = p.id and k.kind in ('email', 'phone')
-      union all
-      select 'sms opted out' from profile_keys k join sms_contacts s on s.e164 = k.value
-        where k.profile_id = p.id and k.kind = 'phone' and s.state = 'opted_out') x) consent,
-    p.first_seen, p.last_seen,
-    (select count(*)::int from profile_keys k where k.profile_id = p.id) keys,
-    (select count(*)::int from profile_traits t where t.profile_id = p.id) traits,
-    (select count(*)::int from profile_merges m where m.into_id = p.id) merged,
-    coalesce(r.stage, 'stranger') stage, coalesce(r.warmth, 'cold') warmth, r.why, r.warmth_line,
-    r.warm_since, coalesce(r.persona, 'unknown') persona,
-    coalesce(r.persona_role, 'unknown') persona_role,
-    coalesce(r.persona_niche, 'unknown') persona_niche,
-    coalesce(r.persona_size, 'unknown') persona_size, r.subscriptions,
-    coalesce(r.replied_n, 0) replies, r.replied_last, r.replied_last_channel replied_channel,
-    r.first_channel, r.last_touch_at, r.last_channel, r.came_from,
-    (select t.value #>> '{}' from profile_traits t
-      where t.profile_id = p.id and t.key = 'lead') lead
-  from profiles p
-  left join profile_rollups r on r.profile_id = p.id
-  where p.merged_into is null`);
+  select l.profile_id id, l.name, l.emails, l.phones, l.handles, l.channels, l.consent,
+    l.first_seen, l.last_seen, l.keys, l.traits, l.merged, l.stage, l.warmth, l.why,
+    l.warmth_line, l.warm_since, l.persona, l.persona_role, l.persona_niche, l.persona_size,
+    l.subscriptions, l.replies, l.replied_last, l.replied_channel, l.first_channel,
+    l.last_touch_at, l.last_channel, l.came_from, l.lead
+  from profile_list l`);
 
 /** Each trait as a row: its value as text for the list, the whole JSON for the page. */
 export const profileTraitRecords = pgView("profile_trait_records", {

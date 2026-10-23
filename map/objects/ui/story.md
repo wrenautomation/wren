@@ -24,7 +24,7 @@ A part tuned in its story needs no portal, backend or login, and the same fixtur
 - Plays (`storybook/test`): `records--bulk`, `records--sorted`, `list-bar--filtering`, `action--empty`, `action--failed`, `action--form-dialog`, `edit-form--empty`, `edit-form--saved`, `draft--typed`
 - Fixtures: `packages/ui/src/fixtures/`: `load.ts` (`answer`, `pending`, `fails`: a read's states), `worst.ts` (`WORST`), `place.ts` (`fakePlace`, `usePlace`), `records.ts` (`fakeRecords`, `useRecordsDemo`), one file per domain. Synthetic only
 - Each set: `Default`, `Empty`, `Loading`, `Failed`, `WorstCase`
-- Checks: `stories:build` (turbo, outputs `storybook-static/**`) in `scripts/gates.sh` lint; `test:stories` in `gates.sh visual` (in `ui` and `all`) and the CI job `test:stories`
+- Checks: `stories:build` (turbo, outputs `storybook-static/**`) in `scripts/gates.sh stories` (not in lint since 10-22); `test:stories` in `gates.sh visual` (in `ui` and `all`) and the CI job `test:stories`
 
 ## Connected to
 

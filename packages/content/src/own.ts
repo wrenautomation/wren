@@ -7,7 +7,7 @@ import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { desc, eq, inArray } from "drizzle-orm";
 import type { DraftResult } from "./draft.js";
-import { addIdea } from "./ideas.js";
+import { addIdea, type IdeaMark } from "./ideas.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { type ContentIdea, contentDrafts, contentIdeas, type IdeaSource } from "./schema.js";
 import { withSubreddit } from "./subreddit.js";
@@ -45,9 +45,18 @@ export async function writeOwn(
     at?: Date | null;
     /** The words are one X thread, its posts split by `---`: only X takes it. */
     thread?: boolean;
+    /** His line and angle from Studio, kept on the idea. */
+    mark?: IdeaMark;
   },
 ): Promise<{ idea: ContentIdea; results: DraftResult[] }> {
-  const idea = await addIdea(db, o.text, o.source ?? "cli", o.media ?? null, refFrom(o.from));
+  const idea = await addIdea(
+    db,
+    o.text,
+    o.source ?? "cli",
+    o.media ?? null,
+    refFrom(o.from),
+    o.mark,
+  );
   const results: DraftResult[] = [];
   for (const platform of o.platforms) {
     const v = o.thread
@@ -96,6 +105,10 @@ export async function writeOwn(
 export interface WaitingIdea {
   ideaId: string;
   idea: string;
+  /** The offer line it serves (a line id in the shape), or null. */
+  line: string | null;
+  /** How it argues (`IDEA_ANGLES`), or null. */
+  angle: string | null;
   drafts: {
     id: string;
     platform: Platform;
@@ -123,15 +136,20 @@ export interface WaitingIdea {
 /** The drafts that wait on a yes, newest idea first, grouped by idea. */
 export async function waitingIdeas(db: Queryable, limit = 120): Promise<WaitingIdea[]> {
   const rows = await db
-    .select({ d: contentDrafts, idea: contentIdeas.text })
+    .select({
+      d: contentDrafts,
+      idea: contentIdeas.text,
+      line: contentIdeas.line,
+      angle: contentIdeas.angle,
+    })
     .from(contentDrafts)
     .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
     .where(inArray(contentDrafts.status, ["draft", "failed"]))
     .orderBy(desc(contentDrafts.createdAt))
     .limit(limit);
   const out = new Map<string, WaitingIdea>();
-  for (const { d, idea } of rows) {
-    const at = out.get(d.ideaId) ?? { ideaId: d.ideaId, idea, drafts: [] };
+  for (const { d, idea, line, angle } of rows) {
+    const at = out.get(d.ideaId) ?? { ideaId: d.ideaId, idea, line, angle, drafts: [] };
     at.drafts.push({
       id: d.id,
       platform: d.platform,

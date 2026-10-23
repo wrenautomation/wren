@@ -181,7 +181,7 @@ export function makeDraftAsk(db: Db) {
           });
           if (!asked) return;
           const fail = (error: string) =>
-            ctx.run("save", () => finishRun(db, req.id, { error: error.slice(0, 500) }));
+            ctx.run("save", () => finishRun(db, req.id, { error: error.slice(0, 5000) }));
           if ("error" in asked.prompt) return void (await fail(asked.prompt.error));
           const given = asked.prompt;
           let out: Awaited<ReturnType<ClaudeService["ask"]>>;

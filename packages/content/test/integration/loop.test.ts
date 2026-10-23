@@ -84,6 +84,8 @@ type Fate = "sent" | "unknown" | "busy" | "absent" | "found" | "stop" | "capped"
 const fates = new Map<Platform, Fate[]>();
 /** What autobrowse's verify read finds for a key it holds as `unknown`. */
 let verify: "unknown" | "found" | "absent" = "unknown";
+/** What `pausedUnder` answers: a paused call under the publish, or null. */
+let pausedCall: string | null = null;
 /** autobrowse's journal: the verdict kept per send key. */
 const journal = new Map<string, Delivery<Published>>();
 /** Every publish asked, and how: the key it carried, a recheck, a verify-only ask (it never writes). */
@@ -386,6 +388,8 @@ beforeAll(async () => {
         db: pg.db,
         idleMs: 60_000,
         publishWaitMs: 3_000,
+        pausedUnder: async () => pausedCall,
+        parkAfterMs: 0,
         notifier: postingNotifier,
         posted: (_ctx, platform, client) => {
           hooks.add(`${platform}:${client ?? ""}`);
@@ -420,6 +424,7 @@ beforeEach(async () => {
   ]);
   fates.clear();
   verify = "unknown";
+  pausedCall = null;
   journal.clear();
   asked.length = 0;
   writes.length = 0;
@@ -669,6 +674,64 @@ describe("content loop", () => {
       { platform: "x", error: expect.stringContaining("the platform said no") },
     ]);
     expect((await getDraft(pg.db, x.id))?.status).toBe("failed");
+  });
+
+  it("10-19: a publish held by a paused desk call waits in To approve; the retry's answer settles it", async () => {
+    const out = await desk().add({ text: "a story stuck on the desk", platforms: ["x"] });
+    const [x] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!x) throw new Error("no x draft");
+    hang.add("x");
+    await approveDrafts(pg.db, [x.id], { now: new Date() });
+    // Still running, nothing paused under it: it only waits.
+    expect((await sync()).stats?.unsure).toBeUndefined();
+    pausedCall = "desk/call: [500] connection reset";
+    const parked = await sync();
+    expect(parked.stats?.unsure).toMatchObject([
+      { platform: "x", why: expect.stringContaining("paused in the dead-letter queue") },
+    ]);
+    expect(parked.stats?.posting).toHaveLength(1);
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({ state: "unsure" });
+    expect(await getDraft(pg.db, x.id)).toMatchObject({
+      status: "publishing",
+      error: expect.stringMatching(/^May have gone out: /),
+    });
+    // Parked once: the next pass does not park it again.
+    expect((await sync()).stats?.unsure).toBeUndefined();
+    // The retry in the dead-letter queue lets the call answer: published, the ledger sent.
+    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    await ingress.resolveAwakeable(hung[0] as string, "late");
+    const settled = await sync();
+    expect(settled.stats?.published).toMatchObject([{ platform: "x" }]);
+    expect(settled.stats?.posting).toBeUndefined();
+    expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "published" });
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({ state: "sent" });
+  });
+
+  it("a parked publish that ends refused fails and leaves nothing in To approve; a person's word ends the look", async () => {
+    const out = await desk().add({ text: "two stuck posts", platforms: ["x", "linkedin"] });
+    const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
+    const x = drafts.find((d) => d.platform === "x");
+    const li = drafts.find((d) => d.platform === "linkedin");
+    if (!x || !li) throw new Error("no drafts");
+    hang.add("x");
+    hang.add("linkedin");
+    pausedCall = "desk/call: [500] connection reset";
+    await approveDrafts(pg.db, [x.id, li.id], { now: new Date() });
+    await sync();
+    expect((await sync()).stats?.unsure).toHaveLength(2);
+    // He drops LinkedIn in To approve: the pass stops looking at it.
+    expect(await settle(li.id, "dropped")).toMatchObject({ outcome: "dropped" });
+    // The next pass stops looking at LinkedIn and cancels its call; X is still looked at.
+    expect((await sync()).stats?.posting?.map((w) => w.platform)).toEqual(["x"]);
+    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    for (const id of hung) await ingress.resolveAwakeable(id, "refused").catch(() => undefined);
+    const after = await sync();
+    expect(after.stats?.failed).toMatchObject([{ platform: "x" }]);
+    expect(after.stats?.posting).toBeUndefined();
+    expect((await getDraft(pg.db, x.id))?.status).toBe("failed");
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
+    expect((await getDraft(pg.db, li.id))?.status).toBe("rejected");
+    expect(await sendAttempt(pg.db, `draft:${li.id}`)).toBeNull();
   });
 
   it("a publish autobrowse found by reading the site is published with its id and first comment, never sent again", async () => {

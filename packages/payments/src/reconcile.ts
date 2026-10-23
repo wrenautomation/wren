@@ -243,7 +243,7 @@ export async function reconcileAll(
       }
     } catch (err) {
       if (!(err instanceof PayRefusal || err instanceof StripeError)) throw err;
-      stats.skipped.push({ client: acct.client, why: err.message.slice(0, 200) });
+      stats.skipped.push({ client: acct.client, why: err.message.slice(0, 2000) });
     }
   }
   return stats;

@@ -3,7 +3,7 @@
  * Code runs on William's Mac, read only: code, designs and prod through read-only SQL. ⌘K asks
  * from any page and lands here; while one is thinking the list checks again every few seconds.
  */
-import type { RecordsPage } from "@wren/core/records/serve";
+import type { RecordsPage, Row } from "@wren/core/records/serve";
 import {
   Button,
   DictateField,
@@ -13,8 +13,8 @@ import {
   LoadFailed,
   Loading,
   PageHeader,
+  Pill,
   relative,
-  Tag,
   Textarea,
   UnsavedMark,
   useEdit,
@@ -23,13 +23,14 @@ import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "rea
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
+import { RowsPanel } from "../work/rows-panel.js";
 import { sourceOf } from "./cite.js";
 
 const POLL_MS = 4000;
 const STATES = {
-  thinking: { label: "Thinking", tone: "neutral" },
-  answered: { label: "Answered", tone: "green" },
-  failed: { label: "Failed", tone: "accent" },
+  thinking: { label: "Thinking", color: "var(--ui-ink-3)" },
+  answered: { label: "Answered", color: "var(--ui-good)" },
+  failed: { label: "Failed", color: "var(--ui-bad)" },
 } as const;
 
 /** The answer as plain text: `code` in mono, a cited file linked, ** dropped. */
@@ -137,42 +138,72 @@ export function Ask() {
       {list.error && !list.data ? (
         <LoadFailed error={list.error} onRetry={list.retry} />
       ) : !list.data ? (
-        <Loading lines={4} />
+        <Loading shape="rows" lines={4} />
       ) : !list.data.rows.length ? (
         <Empty>Your questions and their answers show here.</Empty>
       ) : (
-        <ol className="flex list-none flex-col gap-4 p-0">
-          {list.data.rows.map((r) => {
-            const s = STATES[r.state as keyof typeof STATES] ?? STATES.failed;
-            return (
-              <li key={r.id} className="border-(--ui-hair) border-t pt-4">
-                <p className="font-medium text-(--ui-ink)">{String(r.question)}</p>
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-(--ui-ink-3)">
-                  <Tag tone={s.tone} dot>
-                    {s.label}
-                  </Tag>
-                  <span>{String(r.by)}</span>
-                  {r.page && placeOf(String(r.page)) ? (
-                    <a href={String(r.page)} className="hover:text-(--ui-ink)">
-                      from {placeOf(String(r.page))}
-                    </a>
-                  ) : null}
-                  {typeof r.asked === "string" ? (
-                    <time dateTime={r.asked} {...dateTip(new Date(r.asked))}>
-                      {relative(new Date(r.asked))}
-                    </time>
-                  ) : null}
-                  {r.took !== null ? <span>{String(r.took)}s</span> : null}
-                </p>
-                {r.answer ? (
-                  <p className="mt-2 whitespace-pre-wrap text-[14px] text-(--ui-ink-2) wrap-anywhere">
-                    <Answer text={String(r.answer)} />
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
+        <RowsPanel<Row>
+          rows={list.data.rows}
+          rowKey={(r) => String(r.id)}
+          label="questions"
+          noun="question"
+          // The answer is prose: a box under its question, as a thread's reply sits under a row.
+          box={(r) =>
+            r.answer ? (
+              <p className="m-0 whitespace-pre-wrap text-[14px] text-(--ui-ink-2) wrap-anywhere">
+                <Answer text={String(r.answer)} />
+              </p>
+            ) : null
+          }
+          name={{ label: "Question", icon: "text", min: 260, title: (r) => String(r.question) }}
+          columns={[
+            {
+              key: "state",
+              label: "State",
+              icon: "selected",
+              width: 120,
+              phone: true,
+              cell: (r) => {
+                const s = STATES[r.state as keyof typeof STATES] ?? STATES.failed;
+                return <Pill color={s.color}>{s.label}</Pill>;
+              },
+            },
+            { key: "by", label: "By", icon: "user", width: 130, cell: (r) => String(r.by) },
+            {
+              key: "from",
+              label: "From",
+              icon: "link",
+              width: 170,
+              cell: (r) =>
+                r.page && placeOf(String(r.page)) ? (
+                  <a href={String(r.page)} className="wrap-anywhere whitespace-normal">
+                    {placeOf(String(r.page))}
+                  </a>
+                ) : null,
+            },
+            {
+              key: "asked",
+              label: "Asked",
+              icon: "clock",
+              width: 130,
+              quiet: true,
+              cell: (r) =>
+                typeof r.asked === "string" ? (
+                  <time dateTime={r.asked} {...dateTip(new Date(r.asked))}>
+                    {relative(new Date(r.asked))}
+                  </time>
+                ) : null,
+            },
+            {
+              key: "took",
+              label: "Took",
+              icon: "hash",
+              width: 80,
+              quiet: true,
+              cell: (r) => (r.took !== null ? `${String(r.took)}s` : ""),
+            },
+          ]}
+        />
       )}
     </>
   );

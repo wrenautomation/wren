@@ -5,6 +5,7 @@ import {
   letterLine,
   pausedFailureOf,
   pausedOf,
+  pausedUnder,
 } from "./dead-letters.js";
 
 describe("dead letters", () => {
@@ -40,9 +41,9 @@ describe("dead letters", () => {
   });
 
   it("one line per letter, the error cut short", () => {
-    const line = letterLine({ id: 3, target: "A/b", key: "k", error: `x\n${"y".repeat(300)}` });
+    const line = letterLine({ id: 3, target: "A/b", key: "k", error: `x\n${"y".repeat(3000)}` });
     expect(line.startsWith("#3 A/b (k): x y")).toBe(true);
-    expect(line.length).toBeLessThan(150);
+    expect(line.length).toBeLessThan(1250);
   });
 
   it("reads the failure off a Paused event", () => {
@@ -74,5 +75,40 @@ describe("dead letters", () => {
       deskUnreachable({ target: "desk/call", error: "[500] gmail: connection reset by peer" }),
     ).toBe(false);
     expect(deskUnreachable({ target: "desk/call", error: null })).toBe(false);
+  });
+
+  it("finds a paused call under an invocation, through the calls it made", async () => {
+    const asked: string[] = [];
+    const tree: Record<string, { id: string; target: string; status: string; parent: string }[]> = {
+      inv_root: [{ id: "inv_sites", target: "sites/publish", status: "suspended", parent: "" }],
+      inv_sites: [
+        {
+          id: "inv_desk",
+          target: "desk/call",
+          status: "paused",
+          parent: "inv_root",
+        },
+      ],
+    };
+    const admin = async (q: string) => {
+      asked.push(q);
+      if (q.includes("WHERE id IN"))
+        return [{ id: "inv_root", target: "Content/publish", status: "suspended" }];
+      const parent = /invoked_by_id IN \('(\w+)'\)/.exec(q)?.[1] ?? "";
+      const rows = tree[parent] ?? [];
+      if (q.startsWith("SELECT entry_json")) return [];
+      return rows.map((r) => ({
+        ...r,
+        last_failure: r.status === "paused" ? "connection reset" : null,
+      }));
+    };
+    expect(await pausedUnder(admin)("inv_root")).toBe("desk/call: connection reset");
+    // Nothing paused under it: null, and it stops when the calls run out.
+    tree.inv_sites = [];
+    expect(await pausedUnder(admin)("inv_root")).toBeNull();
+    // An id is quoted as word characters only.
+    const from = asked.length;
+    await pausedUnder(admin)("inv_x'; DROP");
+    expect(asked[from]).toContain("WHERE id IN ('inv_xDROP')");
   });
 });

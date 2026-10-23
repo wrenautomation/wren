@@ -1297,7 +1297,7 @@ export async function describeSegment(
   const raw = jsonIn(answer.text) as { rule?: unknown; name?: unknown; error?: unknown } | null;
   if (!raw || typeof raw !== "object")
     return { error: "the model's answer didn't read; try other words" };
-  if (typeof raw.error === "string" && !raw.rule) return { error: raw.error.slice(0, 300) };
+  if (typeof raw.error === "string" && !raw.rule) return { error: raw.error.slice(0, 3000) };
   const got = readRule(raw.rule);
   if ("problems" in got)
     return { error: `the model's rule didn't check: ${got.problems.join("; ")}` };

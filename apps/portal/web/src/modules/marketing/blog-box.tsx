@@ -221,7 +221,7 @@ export function BlogBox(props: { demo?: boolean; from?: string | null; fromTitle
                 onClick={() => load(p)}
               >
                 <span className="inline-flex items-center gap-1.5">
-                  {p.title.length > 40 ? `${p.title.slice(0, 40)}…` : p.title}
+                  {p.title}
                   <Tag tone={p.draft ? "neutral" : p.emailedAt ? "green" : "accent"}>
                     {p.draft ? "Draft" : p.emailedAt ? "Emailed" : "Live"}
                   </Tag>

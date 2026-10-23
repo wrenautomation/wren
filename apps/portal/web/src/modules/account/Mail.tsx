@@ -18,11 +18,13 @@ import {
   Tag,
   TextField,
   useEditForm,
+  useNarrow,
 } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { PageRows, type RowDo, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { ERROR, Form, NARROW, QUIET, TOOLS, trimmed } from "../work/bits.js";
 import { mailTag } from "./setups.js";
 
@@ -60,56 +62,93 @@ async function connect(act: Act, account: number, want: "send" | "read") {
 
 const PROVIDER = { google: "Google", microsoft: "Microsoft 365" } as const;
 
-function MailboxRow({ m, mayAct, act }: { m: Mailbox; mayAct: boolean; act: Act }) {
-  const tag = mailTag(m.state);
-  const connected = m.state === "send_only" || m.state === "read_send";
+/** The mailboxes, a row each: state and who hosts it; what blocks one and its next step under it. */
+function Mailboxes({
+  mailboxes,
+  mayAct,
+  act,
+}: {
+  mailboxes: Mailbox[];
+  mayAct: boolean;
+  act: Act;
+}) {
+  const narrow = useNarrow();
+  const going = useGoing();
+  const does = (m: Mailbox): RowDo[] => {
+    const connected = m.state === "send_only" || m.state === "read_send";
+    const out: RowDo[] = [];
+    if (m.may.connectRead && m.state !== "read_send")
+      out.push({
+        id: "read",
+        label: connected ? "Connect to read" : "Connect to read and send",
+        run: () => going.go(String(m.id), "Connecting", () => connect(act, m.id, "read")),
+      });
+    if (m.may.connectSend && !connected)
+      out.push({
+        id: "send",
+        label: m.state === "broken" ? "Connect again" : "Connect to send",
+        run: () => going.go(String(m.id), "Connecting", () => connect(act, m.id, "send")),
+      });
+    if (connected || m.state === "broken")
+      out.push({
+        id: "check",
+        label: "Check",
+        run: () => going.go(String(m.id), "Checking", () => act.run("check", { account: m.id })),
+      });
+    return out;
+  };
   return (
-    <div className="grid gap-1.5 border-(--ui-hair) border-t pt-3 first:border-t-0 first:pt-0">
-      <p className="flex flex-wrap items-center gap-2">
-        <b className="font-medium break-all">{m.address}</b>
-        <Tag tone={tag.tone}>{tag.label}</Tag>
-        <span className={QUIET}>
-          {m.personal ? "Personal Gmail" : PROVIDER[m.provider]}
-          {m.want === "read" ? ", to read and send" : ", to send"}
-        </span>
-      </p>
-      {m.blocking ? <p>{m.blocking}</p> : null}
-      {m.next ? <p className={QUIET}>Next: {m.next}</p> : null}
-      {mayAct ? (
-        <div className={TOOLS}>
-          {m.may.connectRead && m.state !== "read_send" ? (
-            <Button
-              tone="primary"
-              size="sm"
-              disabled={act.busy}
-              onClick={() => void connect(act, m.id, "read")}
-            >
-              {connected ? "Connect to read" : "Connect to read and send"}
-            </Button>
-          ) : null}
-          {m.may.connectSend && !connected ? (
-            <Button
-              size="sm"
-              tone={m.may.connectRead ? "quiet" : undefined}
-              disabled={act.busy}
-              onClick={() => void connect(act, m.id, "send")}
-            >
-              {m.state === "broken" ? "Connect again" : "Connect to send"}
-            </Button>
-          ) : null}
-          {connected || m.state === "broken" ? (
-            <Button
-              size="sm"
-              tone="quiet"
-              disabled={act.busy}
-              onClick={() => void act.run("check", { account: m.id })}
-            >
-              Check
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
+    <PageRows<Mailbox>
+      label="Mailboxes"
+      noun="mailbox"
+      lines={rowLines(
+        mailboxes,
+        (m) => String(m.id),
+        (m) =>
+          m.blocking || m.next ? (
+            <div className="grid gap-1 text-[13.5px]">
+              {m.blocking ? <p className="m-0">{m.blocking}</p> : null}
+              {m.next ? <p className={`m-0 ${QUIET}`}>Next: {m.next}</p> : null}
+            </div>
+          ) : null,
+      )}
+      rowState={(m) => going.stateOf(String(m.id))}
+      name={{
+        label: "Mailbox",
+        icon: "mail",
+        min: 240,
+        title: (m) => m.address,
+      }}
+      columns={[
+        {
+          key: "state",
+          label: "State",
+          icon: "pulse",
+          width: 150,
+          phone: true,
+          cell: (m) => {
+            const tag = mailTag(m.state);
+            return <Tag tone={tag.tone}>{tag.label}</Tag>;
+          },
+        },
+        {
+          key: "via",
+          label: "Hosted by",
+          icon: "globe",
+          min: 200,
+          className: "max-[1000px]:hidden",
+          cell: (m) =>
+            `${m.personal ? "Personal Gmail" : PROVIDER[m.provider]}${
+              m.want === "read" ? ", to read and send" : ", to send"
+            }`,
+        },
+      ]}
+      end={
+        mayAct
+          ? (m) => <RowDoes title={m.address} lone={narrow} busy={act.busy} does={does(m)} />
+          : undefined
+      }
+    />
   );
 }
 
@@ -348,11 +387,7 @@ export function Mail(props: PageProps) {
             {view.mailboxes.length === 0 ? (
               <Empty>No mailboxes yet. Add the ones Wren should send from or read.</Empty>
             ) : (
-              <div className="grid gap-3">
-                {view.mailboxes.map((m) => (
-                  <MailboxRow key={m.id} m={m} mayAct={view.mayAct} act={act} />
-                ))}
-              </div>
+              <Mailboxes mailboxes={view.mailboxes} mayAct={view.mayAct} act={act} />
             )}
             {act.error ? <p className={ERROR}>{act.error}</p> : null}
           </Section>

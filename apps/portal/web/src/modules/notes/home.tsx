@@ -7,7 +7,6 @@ import { ownerName } from "@wren/notes/types";
 import {
   Alert,
   Button,
-  clipProps,
   Empty,
   FormKept,
   Icon,
@@ -15,6 +14,8 @@ import {
   LoadFailed,
   Loading,
   PageHeader,
+  Rows,
+  type RowsLine,
   relative,
   Section,
   say,
@@ -22,6 +23,7 @@ import {
   TextField,
   tipProps,
   useEditForm,
+  useNarrow,
 } from "@wren/ui";
 import {
   Dialog,
@@ -30,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { go, href, navigate } from "../../route.js";
@@ -70,58 +72,42 @@ function Excerpt({ text }: { text: string }) {
   );
 }
 
-function Row({ n, me, onStar }: { n: NoteRow; me: string; onStar: (() => void) | null }) {
-  const owner = n.mine ? "You" : ownerName(n.owner);
+/** A note's star: the row's one quiet action, the same press as before. */
+function StarButton({ n, onStar }: { n: NoteRow; onStar: () => void }) {
   return (
-    <li className="flex items-start gap-3 border-b border-(--ui-hair) px-3 py-3 hover:bg-(--ui-wash)">
-      <Icon name="note" className="mt-0.5 flex-none text-(--ui-ink-2)" />
-      <a href={docPath(n.id)} className="min-w-0 flex-1 text-(--ui-ink) no-underline">
-        <span className="flex flex-wrap items-baseline gap-x-2">
-          <span className="truncate text-[14.5px] font-medium" {...clipProps()}>
-            {n.name}
-          </span>
-          {n.kind === "dump" ? <Tag>Dump</Tag> : null}
-          {n.home !== "wren" || !n.mine ? null : n.general === "workspace" ? (
-            <Tag>Everyone here</Tag>
-          ) : null}
-          {n.home === "wren" && me && !n.mine && n.via === "agent" ? (
-            <Tag tone="accent">Claude</Tag>
-          ) : null}
-        </span>
-        {n.excerpt ? (
-          <span
-            className="mt-0.5 line-clamp-2 block text-[13px] text-(--ui-ink-2)"
-            {...clipProps()}
-          >
-            <Excerpt text={n.excerpt} />
-          </span>
-        ) : null}
-        <span className="mt-1 block text-[12px] text-(--ui-ink-2)">
-          {owner}, edited {relative(new Date(n.updatedAt))}
-          {n.editedBy && n.editedBy !== n.owner ? ` by ${n.editedBy}` : ""}
-        </span>
-      </a>
-      {onStar ? (
-        <button
-          type="button"
-          aria-pressed={n.starred}
-          aria-label={n.starred ? `Unstar ${n.name}` : `Star ${n.name}`}
-          {...tipProps(n.starred ? "Unstar" : "Star", { as: "none" })}
-          onClick={onStar}
-          className="inline-flex size-8 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
-        >
-          <svg viewBox="0 0 16 16" width={15} height={15} aria-hidden="true">
-            <path
-              d="M8 2.25l1.75 3.6 3.95.55-2.85 2.75.7 3.9L8 11.2l-3.55 1.85.7-3.9L2.3 6.4l3.95-.55z"
-              fill={n.starred ? "currentColor" : "none"}
-              stroke="currentColor"
-              strokeWidth={1.3}
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+    <button
+      type="button"
+      aria-pressed={n.starred}
+      aria-label={n.starred ? `Unstar ${n.name}` : `Star ${n.name}`}
+      {...tipProps(n.starred ? "Unstar" : "Star", { as: "none" })}
+      onClick={onStar}
+      className="inline-flex size-8 flex-none items-center justify-center border-0 bg-transparent text-(--ui-ink-3) hover:text-(--ui-ink) aria-pressed:text-(--ui-active)"
+    >
+      <svg viewBox="0 0 16 16" width={15} height={15} aria-hidden="true">
+        <path
+          d="M8 2.25l1.75 3.6 3.95.55-2.85 2.75.7 3.9L8 11.2l-3.55 1.85.7-3.9L2.3 6.4l3.95-.55z"
+          fill={n.starred ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth={1.3}
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+}
+
+/** The small marks after a note's name: a dump, everyone here, Claude's. */
+function Marks({ n, me }: { n: NoteRow; me: string }) {
+  return (
+    <>
+      {n.kind === "dump" ? <Tag>Dump</Tag> : null}
+      {n.home !== "wren" || !n.mine ? null : n.general === "workspace" ? (
+        <Tag>Everyone here</Tag>
       ) : null}
-    </li>
+      {n.home === "wren" && me && !n.mine && n.via === "agent" ? (
+        <Tag tone="accent">Claude</Tag>
+      ) : null}
+    </>
   );
 }
 
@@ -144,6 +130,17 @@ export function NotesHome({ client, params, demo }: PageProps) {
     notes(client, "home", { view: q ? "all" : view, q: q || undefined }),
   );
   const data = list.data;
+  const narrow = useNarrow();
+  const lines = useMemo<RowsLine<NoteRow>[]>(
+    () =>
+      (data?.notes ?? []).map((n, index) => ({
+        kind: "row",
+        key: `${n.home}:${n.id}`,
+        index,
+        row: n,
+      })),
+    [data],
+  );
   const writes = !demo && !!data?.canWrite;
 
   const create = () => {
@@ -208,8 +205,10 @@ export function NotesHome({ client, params, demo }: PageProps) {
           </>
         ) : null}
       </div>
-      <div className="flex flex-col gap-3 border border-(--ui-hair) bg-(--ui-paper)">
-        <div className="flex flex-wrap items-center gap-x-1 gap-y-2 border-b border-(--ui-hair) bg-(--ui-band) px-2 pt-2">
+      <div className="flex flex-col border border-(--ui-hair) bg-(--ui-paper)">
+        <div
+          className={`flex flex-wrap items-center gap-x-1 gap-y-2 bg-(--ui-band) px-2 pt-2${data?.notes.length ? "" : " border-b border-(--ui-hair)"}`}
+        >
           <nav aria-label="Views" className="flex min-w-0 flex-wrap gap-0.5">
             {VIEWS.map(([v, label]) => (
               <a
@@ -237,22 +236,57 @@ export function NotesHome({ client, params, demo }: PageProps) {
             <LoadFailed error={list.error} onRetry={list.retry} />
           </div>
         ) : !data ? (
-          <Loading lines={6} />
+          <Loading shape="rows" lines={6} />
         ) : !data.notes.length ? (
           <Empty className="border-0 bg-transparent">
             {q ? `No note has “${q}”.` : EMPTY[view]}
           </Empty>
         ) : (
-          <ul className="m-0 -mt-3 list-none p-0">
-            {data.notes.map((n) => (
-              <Row
-                key={`${n.home}:${n.id}`}
-                n={n}
-                me={data.me}
-                onStar={demo ? null : () => void star(n)}
-              />
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <Rows<NoteRow>
+              label="notes"
+              noun="note"
+              narrow={narrow}
+              scroller="window"
+              lines={lines}
+              open={{ id: null, onOpen: (n) => navigate(docPath(n.id)) }}
+              name={{
+                label: "Note",
+                icon: "note",
+                min: 260,
+                title: (n) => n.name,
+                href: (n) => docPath(n.id),
+                mark: () => <Icon name="note" size={15} className="flex-none text-(--ui-ink-2)" />,
+                sub: (n) =>
+                  n.excerpt ? (
+                    <span className="wrap-anywhere whitespace-normal text-[12.5px] font-normal text-(--ui-ink-2)">
+                      <Excerpt text={n.excerpt} />
+                    </span>
+                  ) : null,
+                tail: (n) => <Marks n={n} me={data.me} />,
+              }}
+              columns={[
+                {
+                  key: "owner",
+                  label: "Owner",
+                  icon: "user",
+                  width: 150,
+                  cell: (n) => (n.mine ? "You" : ownerName(n.owner)),
+                },
+                {
+                  key: "edited",
+                  label: "Edited",
+                  icon: "clock",
+                  width: 190,
+                  quiet: true,
+                  phone: true,
+                  cell: (n) =>
+                    `${relative(new Date(n.updatedAt))}${n.editedBy && n.editedBy !== n.owner ? ` by ${n.editedBy}` : ""}`,
+                },
+              ]}
+              end={demo ? undefined : (n) => <StarButton n={n} onStar={() => void star(n)} />}
+            />
+          </div>
         )}
       </div>
       {data?.canManage ? (

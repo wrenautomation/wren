@@ -23,9 +23,10 @@ import { useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { useCall, useSettled } from "../../load.js";
 import type { ListPage } from "../../module.js";
-import { href, navigate } from "../../route.js";
+import { href, navigate, useRoute } from "../../route.js";
 import type { Drawn } from "../marketplace/boxes.js";
 import { QUIET } from "../work/bits.js";
+import { RowsPanel } from "../work/rows-panel.js";
 import { graphOf, type Where } from "./canvas.js";
 import {
   age,
@@ -91,7 +92,8 @@ export function Executions({
   const view = params.get("runs") ?? "all";
   const picked = params.get("run");
   const [q, setQ] = useState(params.get("q") ?? "");
-  const here = location.pathname;
+  // The router's address, so a row opens in a story as it does in the app.
+  const here = `/${useRoute().path.join("/")}`;
   // A read per pause in the search box, not per key.
   const asked = useSettled(q.trim());
   // One key per list: a replay re-reads it (`retry`), so an older answer never repaints it.
@@ -145,48 +147,57 @@ export function Executions({
         {list.error && !list.data ? (
           <LoadFailed error={list.error} onRetry={list.retry} />
         ) : !list.data ? (
-          <Loading lines={5} />
+          <Loading shape="rows" lines={5} />
         ) : rows.length ? (
-          <ul className="m-0 grid list-none border-t border-(--ui-hair) p-0">
-            {rows.map((r) => (
-              <li key={r.id} className="border-b border-(--ui-hair)">
-                <a
-                  href={href(here, { run: r.id }, params)}
-                  aria-current={open === r.id ? "true" : undefined}
-                  className={cx(
-                    "grid gap-0.5 px-2 py-2 text-[13.5px] text-(--ui-ink) no-underline hover:bg-(--ui-hover)",
-                    open === r.id && "bg-(--ui-tile) shadow-[inset_2px_0_0_var(--ui-active)]",
-                  )}
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium" {...tipProps(r.subject, { as: "none" })}>
-                      {r.title}
-                    </span>
-                    <span className="text-[12px]">
-                      <StateMark state={STATE[r.state]} />
-                    </span>
+          <RowsPanel<ExecutionRow>
+            rows={rows}
+            rowKey={(r) => r.id}
+            // The pane is 260 to 320px wide: the phone's shape, name and state, at any screen.
+            narrow
+            label="executions"
+            noun="execution"
+            open={{
+              id: open,
+              onOpen: (r) => navigate(href(here, { run: r.id }, params)),
+            }}
+            name={{
+              label: "Execution",
+              icon: "text",
+              title: (r) => r.title,
+              href: (r) => href(here, { run: r.id }, params),
+              sub: (r) => (
+                <span className={cx("grid gap-0.5 text-[12px]", QUIET)}>
+                  <span
+                    className="wrap-anywhere whitespace-normal"
+                    {...tipProps(r.subject, { as: "none" })}
+                  >
+                    {r.state === "waiting" && r.due
+                      ? `At ${nameAt(w, r.node)}${r.until ? "," : ""}${forText(r.until)} until ${when(r.due)}`
+                      : r.state === "failed"
+                        ? `Failed at ${nameAt(w, r.node)}`
+                        : `Last at ${nameAt(w, r.node)}`}
                   </span>
-                  <span className={cx("flex justify-between gap-2 text-[12px]", QUIET)}>
-                    <span className="truncate">
-                      {r.state === "waiting" && r.due
-                        ? `At ${nameAt(w, r.node)}${r.until ? "," : ""}${forText(r.until)} until ${when(r.due)}`
-                        : r.state === "failed"
-                          ? `Failed at ${nameAt(w, r.node)}`
-                          : `Last at ${nameAt(w, r.node)}`}
-                    </span>
-                    <span
-                      className="shrink-0 tabular-nums"
-                      {...tipProps(
-                        `Entered ${whenTip(new Date(r.entered), relative(new Date(r.entered)))}`,
-                      )}
-                    >
-                      {age(r.entered)}
-                    </span>
+                  <span
+                    className="tabular-nums"
+                    {...tipProps(
+                      `Entered ${whenTip(new Date(r.entered), relative(new Date(r.entered)))}`,
+                    )}
+                  >
+                    {age(r.entered)}
                   </span>
-                </a>
-              </li>
-            ))}
-          </ul>
+                </span>
+              ),
+            }}
+            columns={[
+              {
+                key: "state",
+                label: "State",
+                icon: "selected",
+                phone: true,
+                cell: (r) => <StateMark state={STATE[r.state]} />,
+              },
+            ]}
+          />
         ) : (
           <Empty>
             {q ? "Nothing matches that." : "Nothing has run through this workflow on the spine."}

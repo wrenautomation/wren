@@ -139,7 +139,7 @@ function MenuList({ menu, label }: { menu: Menu | null; label: string }) {
           }}
           className="flex w-full items-baseline justify-between gap-3 border-0 bg-transparent px-3 py-1.5 text-left text-[13.5px] text-(--ui-ink) aria-selected:bg-(--ui-accent-tint) hover:bg-(--ui-hover)"
         >
-          <span className="min-w-0 truncate">{i.label}</span>
+          <span className="min-w-0 wrap-anywhere whitespace-normal">{i.label}</span>
           {i.hint ? (
             <span className="flex-none text-[12px] text-(--ui-ink-2)">{i.hint}</span>
           ) : null}

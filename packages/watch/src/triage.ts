@@ -4,7 +4,7 @@
  * rest with every rule in its prompt. Anything it can't settle shows: a missed email costs more
  * than a glance.
  */
-import { senderMatches } from "@wren/core/mailbox";
+import { isWarmupMail, senderMatches } from "@wren/core/mailbox";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
@@ -90,7 +90,9 @@ export async function triage(
   const all = await db.select().from(rules).orderBy(asc(rules.id));
   const rule = settle(all, m);
   let got: { verdict: Verdict; why: string; summary: string | null; ruleId: number | null };
-  if (rule?.verdict)
+  if (isWarmupMail(m.subject))
+    got = { verdict: "drop", why: "Instantly warmup mail.", summary: null, ruleId: null };
+  else if (rule?.verdict)
     got = { verdict: rule.verdict, why: line(rule.words), summary: null, ruleId: rule.id };
   else if (!llm)
     got = { verdict: "show", why: "No model is set, so it shows.", summary: null, ruleId: null };

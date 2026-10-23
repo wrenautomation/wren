@@ -28,6 +28,15 @@ export interface BarsRow {
   /** A token: "chart-2", "ui-good". */
   tone?: string | undefined;
 }
+export interface ColumnsProps {
+  /** Oldest first: "Aug", "Sep", "Oct". With `parts`, `parts` holds each part's share of `value`. */
+  rows: readonly { label: string; value: number; parts?: readonly number[] | undefined }[];
+  label: string;
+  /** Stacks each column from these, bottom first, with a key under the chart. */
+  parts?: readonly { label: string; color: string }[] | undefined;
+  format?: ((n: number) => string) | undefined;
+  height?: number | undefined;
+}
 export interface BarsProps {
   rows: readonly BarsRow[];
   label: string;
@@ -38,6 +47,7 @@ const Draw = {
   Spark: lazy(() => import("./draw.js").then((m) => ({ default: m.Spark }))),
   Trend: lazy(() => import("./draw.js").then((m) => ({ default: m.Trend }))),
   Bars: lazy(() => import("./draw.js").then((m) => ({ default: m.Bars }))),
+  Columns: lazy(() => import("./draw.js").then((m) => ({ default: m.Columns }))),
 };
 
 export function Sparkline({ fallback, ...props }: SparkProps & { fallback: ReactNode }) {
@@ -60,6 +70,14 @@ export function BarsChart(props: BarsProps) {
   return (
     <Suspense fallback={<div style={{ height: props.rows.length * 36 + 8 }} aria-busy="true" />}>
       <Draw.Bars {...props} />
+    </Suspense>
+  );
+}
+
+export function ColumnsChart(props: ColumnsProps) {
+  return (
+    <Suspense fallback={<div style={{ height: props.height ?? 180 }} aria-busy="true" />}>
+      <Draw.Columns {...props} />
     </Suspense>
   );
 }

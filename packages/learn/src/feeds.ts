@@ -446,7 +446,7 @@ export async function pullFeeds(db: Db, fetchFn: FetchFn, now: Date): Promise<Pu
         .set({ fetchedAt: now, failure: null, ...(s.avatarUrl ? {} : { avatarUrl: feed.image }) })
         .where(eq(sources.id, s.id));
     } catch (err) {
-      const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+      const error = (err instanceof Error ? err.message : String(err)).slice(0, 5000);
       stats.failed.push({ source: s.name, error });
       await db.update(sources).set({ failure: error }).where(eq(sources.id, s.id));
     }

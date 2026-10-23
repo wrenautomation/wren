@@ -22,6 +22,7 @@ import {
   reachContacts,
   reachMessages,
   reachPosts,
+  redditPlaces,
   redditThreads,
 } from "./schema.js";
 
@@ -160,6 +161,17 @@ const nameOf = (raw: unknown): string | null => {
   return typeof name === "string" && name.trim() ? name : null;
 };
 
+/** Our Reddit answer `ref` went to a karma place: warmup, so a reply to it is warmup too. */
+async function karmaAnswer(db: Queryable, ref: string) {
+  const [hit] = await db
+    .select({ id: redditThreads.id })
+    .from(redditThreads)
+    .innerJoin(redditPlaces, eq(redditPlaces.subreddit, redditThreads.subreddit))
+    .where(and(eq(redditThreads.answerRef, ref), eq(redditPlaces.purpose, "karma")))
+    .limit(1);
+  return !!hit;
+}
+
 /**
  * Their comment on our post, reply under ours, or mention: theirs. A reply whose parent is a
  * touch of ours answers it. Ours (`sort = ours`) are skipped: our answers are `ca:` touches.
@@ -167,6 +179,7 @@ const nameOf = (raw: unknown): string | null => {
 export async function touchFromComment(db: Queryable, id: number) {
   const [c] = await db.select().from(comments).where(eq(comments.id, id));
   if (!c || c.sort === "ours") return null;
+  if (c.platform === "reddit" && c.parent && (await karmaAnswer(db, c.parent))) return null;
   let kind: TouchKind = c.kind === "username_mention" ? "mention" : "comment";
   if (c.kind === "comment_reply") {
     // The reach inbox lists replies to us; on our own posts a reply may be to anyone.
@@ -222,10 +235,18 @@ export async function touchFromAnswer(db: Queryable, id: number) {
 /** `u/<author>: …`, as `target_text` names the comment a thread answer replies to. */
 const targetAuthor = (text: string | null) => /^u\/([A-Za-z0-9_-]{3,20}):/.exec(text ?? "")?.[1];
 
-/** Our comment in a Reddit thread: on the OP's post, or a reply to the comment that asked. */
+/**
+ * Our comment in a Reddit thread: on the OP's post, or a reply to the comment that asked. A
+ * comment in a karma place is warmup, not sales: the thread keeps it, no touch is written.
+ */
 export async function touchFromThread(db: Queryable, id: string) {
   const [t] = await db.select().from(redditThreads).where(eq(redditThreads.id, id));
   if (t?.state !== "commented" || !t.answer || !t.answeredAt) return null;
+  const [place] = await db
+    .select({ purpose: redditPlaces.purpose })
+    .from(redditPlaces)
+    .where(eq(redditPlaces.subreddit, t.subreddit));
+  if (place?.purpose === "karma") return null;
   const reply = !!t.target?.startsWith("t1_");
   const author = reply ? targetAuthor(t.targetText) : t.author;
   if (!author) return null;

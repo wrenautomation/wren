@@ -391,7 +391,7 @@ export function makeSearchWeek(deps: SearchWeekDeps) {
               `keywords: ${grow.discovered} found in Search Console, ${grow.fanout.added} fan-out questions, ${questions} from Google's "People also ask"`,
               ...Object.entries(asked).map(
                 ([e, a]) =>
-                  `${e}: cited on ${a.cited} of ${a.asked} asked${a.failed ? ` (stopped: ${a.failed.slice(0, 120)})` : ""}`,
+                  `${e}: cited on ${a.cited} of ${a.asked} asked${a.failed ? ` (stopped: ${a.failed.slice(0, 1200)})` : ""}`,
               ),
               "brief ready, run `/search-week`",
             ];

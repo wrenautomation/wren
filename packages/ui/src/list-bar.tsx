@@ -393,7 +393,7 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
                 phone && "h-11 text-[15px]",
               )}
             >
-              <span className="min-w-0 truncate">{v.label}</span>
+              <span className="min-w-0 wrap-anywhere whitespace-normal">{v.label}</span>
               {v.count !== undefined ? (
                 <span className="text-(--ui-ink-2) tabular-nums">{num(v.count)}</span>
               ) : null}
@@ -491,7 +491,7 @@ export function ViewTabs({
               href={v.href}
               aria-current={v.on ? "page" : undefined}
               {...tipProps(v.tip)}
-              className="max-w-48 truncate text-inherit no-underline"
+              className="max-w-48 wrap-anywhere whitespace-normal text-inherit no-underline"
             >
               {v.label}
             </a>
@@ -510,7 +510,7 @@ export function ViewTabs({
             {...tipProps(v.tip)}
             className={cn(TAB, "[--ui-gap:6px]", tabTone(v.on))}
           >
-            <span className="max-w-48 truncate">{v.label}</span>
+            <span className="max-w-48 wrap-anywhere whitespace-normal">{v.label}</span>
             <span className="text-(--ui-ink-2)">{v.count !== undefined ? short(v.count) : ""}</span>
             <RingSlot on={!!v.busy} />
             {v.on ? <TabBar row={`views:${meta.id}`} /> : null}
@@ -854,7 +854,9 @@ function FieldEditor({
           <span className="w-1.5" />
         )}
         <KindIcon field={field} />
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{field.label}</span>
+        <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-[13px] font-medium">
+          {field.label}
+        </span>
         {value ? (
           <button
             type="button"
@@ -980,9 +982,11 @@ function FilterPanel({
                 const face = (
                   <>
                     <KindIcon field={f} />
-                    <span className="min-w-0 flex-1 truncate">{f.label}</span>
+                    <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
+                      {f.label}
+                    </span>
                     {v ? (
-                      <span className="max-w-[45%] truncate text-[12px] text-(--ui-ink-3)">
+                      <span className="max-w-[45%] wrap-anywhere whitespace-normal text-[12px] text-(--ui-ink-3)">
                         {filterParts(f, v).value}
                       </span>
                     ) : null}
@@ -1057,7 +1061,7 @@ function FilterPanel({
             )}
           >
             <Search aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
-            <span className="truncate text-(--ui-ink-2)">
+            <span className="wrap-anywhere whitespace-normal text-(--ui-ink-2)">
               Search {many} for “{text.trim()}”
             </span>
           </div>
@@ -1099,7 +1103,9 @@ function FilterPill({
           ))}
         </span>
       ) : null}
-      <span className="min-w-0 max-w-[180px] truncate text-(--ui-ink)">{value}</span>
+      <span className="min-w-0 max-w-[180px] wrap-anywhere whitespace-normal text-(--ui-ink)">
+        {value}
+      </span>
     </>
   );
   const faceClass =

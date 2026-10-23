@@ -253,7 +253,7 @@ export function headersOf(
     const at = s.indexOf(":");
     const name = s.slice(0, Math.max(0, at)).trim();
     if (at < 1 || !HEADER_NAME.test(name)) {
-      problems.push(`a header reads "Name: value" (${s.slice(0, 30)})`);
+      problems.push(`a header reads "Name: value" (${s.slice(0, 300)})`);
       continue;
     }
     if (OWN_HEADERS.has(name.toLowerCase())) {
@@ -274,7 +274,7 @@ export function keepOf(text: unknown): { keep: Record<string, string>; problems:
     if (!s) continue;
     const m = /^([A-Za-z_][A-Za-z0-9_]{0,39})\s*=\s*((status|ms|body)(\.[A-Za-z0-9_-]+)*)$/.exec(s);
     if (!m?.[1] || !m[2]) {
-      problems.push(`keep reads like id=body.id (${s.slice(0, 30)})`);
+      problems.push(`keep reads like id=body.id (${s.slice(0, 300)})`);
       continue;
     }
     keep[m[1]] = m[2];

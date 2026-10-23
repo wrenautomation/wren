@@ -22,7 +22,7 @@ import { mail, rules, VERDICTS, type Verdict } from "./schema.js";
 import { sortAgain } from "./triage.js";
 
 export interface IdsRequest extends PortalRequest {
-  ids: string[];
+  ids: (string | number)[];
 }
 export interface LikeRequest extends IdsRequest {
   /** Words the subject must hold too; blank is any subject. */
@@ -162,7 +162,8 @@ export function watchConsoleApi(db: Db, llm: LlmClient | null = null) {
   };
 }
 
-const IDS = { ...PORTAL_FIELDS, ids: z.array(z.string()) };
+// The portal sends a mail row's id as the number it is; idsOf reads either.
+export const IDS = { ...PORTAL_FIELDS, ids: z.array(z.union([z.string(), z.number()])) };
 const SUBJECT = z.string().nullish().describe("Words the subject must hold too; blank is any");
 
 export function makeWatchConsole(db: Db, llm: LlmClient | null) {

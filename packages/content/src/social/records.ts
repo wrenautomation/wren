@@ -34,7 +34,13 @@ import { creditsList } from "@wren/delivery/billing";
 import { creditApprovalId } from "@wren/delivery/billing/console";
 import { KIND_NAME } from "@wren/documents/lines";
 import { docApprovalId, waitingDocs } from "@wren/documents/store";
-import { accountPickFor, type SendAttempt, threadContextOf, unsureSends } from "@wren/outreach";
+import {
+  accountPickFor,
+  invitedSql,
+  type SendAttempt,
+  threadContextOf,
+  unsureSends,
+} from "@wren/outreach";
 import {
   COMMENT_FOLD,
   commentRecord,
@@ -152,7 +158,10 @@ const emailRows = (db: Queryable) =>
       order by at desc limit ${ACTIVITY_ROWS}`,
   );
 
-/** Text threads they wrote in: their last word, and whether ours came after or it's unread. */
+/**
+ * Text threads they wrote in: their last word, and whether ours came after or it's unread. Read
+ * from their texts (`ix_sms_messages_in`), never per contact: most contacts never wrote.
+ */
 const textRows = (db: Queryable) =>
   rowsOf(
     db,
@@ -160,10 +169,9 @@ const textRows = (db: Queryable) =>
         exists (select 1 from sms_messages o where o.contact_id = c.id and o.direction = 'out'
           and o.state <> 'skipped' and o.created_at > i.at) answered,
         (c.read_at is null or c.read_at < i.at) unread
-      from sms_contacts c
-      join lateral (select body, received_at at from sms_messages
-        where contact_id = c.id and direction = 'in'
-        order by received_at desc limit 1) i on true
+      from (select distinct on (contact_id) contact_id, body, received_at at from sms_messages
+        where direction = 'in' order by contact_id, received_at desc nulls last) i
+      join sms_contacts c on c.id = i.contact_id
       order by i.at desc limit ${ACTIVITY_ROWS}`,
   );
 
@@ -240,7 +248,8 @@ const videoRows = (db: Queryable) =>
       where state = 'rendered' order by updated_at desc limit ${ACTIVITY_ROWS}`,
   );
 
-/** Accepted invites nobody wrote to yet: no message either way past the invite. */
+/** Accepted invites nobody wrote to yet: no message either way past the invite. A connection
+ * made on the site (no invite of ours) is no invite record. */
 const acceptedRows = (db: Queryable) =>
   rowsOf(
     db,
@@ -250,6 +259,7 @@ const acceptedRows = (db: Queryable) =>
       from reach_contacts c left join reach_accounts a on a.id = c.account_id
       left join draft_accounts da on da.item = 'invite:' || c.id
       where c.connected_at is not null and c.state not in ('opted_out', 'blocked')
+        and ${invitedSql(sql`c.id`)}
         and not exists (select 1 from reach_messages m where m.contact_id = c.id
           and (m.direction = 'in' or m.kind <> 'connect'))
       order by c.connected_at desc limit ${ACTIVITY_ROWS}`,

@@ -141,11 +141,11 @@ describe("totalSays", () => {
     expect(totalSays(state, { most: "open", n: 5, of: 5 })).toBe(false);
     expect(totalSays(state, { most: "open", n: 3, of: 5 })).toBe(false);
     expect(totalSays(field("at", "date"), { newest: "2026-01-01T00:00:00Z" })).toBe(false);
+    expect(totalSays(note, { n: 3, of: 5 })).toBe(false);
   });
-  it("keeps sums, rates and partly empty text", () => {
+  it("keeps sums and rates", () => {
     expect(totalSays(field("cost", "money"), { sum: 10, currency: "USD" })).toBe(true);
     expect(totalSays(field("reply", "rate"), { n: 1, of: 9 })).toBe(true);
-    expect(totalSays(note, { n: 3, of: 5 })).toBe(true);
   });
 });
 

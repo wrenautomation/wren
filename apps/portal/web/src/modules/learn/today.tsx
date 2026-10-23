@@ -7,16 +7,17 @@
 import {
   Button,
   ButtonLink,
-  clipProps,
   cx,
   Empty,
   LoadFailed,
   Loading,
   PageHeader,
+  Rows,
   relative,
   Section,
   Tag,
   tipProps,
+  useNarrow,
 } from "@wren/ui";
 import {
   Dialog,
@@ -28,6 +29,7 @@ import {
 import { useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { navigate } from "../../route.js";
 import {
   type AlertPick,
   type AlertSettings,
@@ -126,7 +128,7 @@ function TodayBody() {
       {today.error && !t ? (
         <LoadFailed error={today.error} onRetry={today.retry} />
       ) : !t ? (
-        <Loading lines={6} />
+        <Loading shape="rows" lines={6} />
       ) : !t.items.length ? (
         <Empty>New posts from your sources and links you save land here as they're scored.</Empty>
       ) : (
@@ -138,11 +140,7 @@ function TodayBody() {
               : undefined
           }
         >
-          <ul className="m-0 list-none border-(--ui-hair) border-t p-0">
-            {t.items.map((i) => (
-              <Line key={i.id} i={i} />
-            ))}
-          </ul>
+          <TodayRows items={t.items} />
           {t.total > t.items.length ? (
             <p className="m-0 pt-3 text-[13px] text-(--ui-ink-2)">
               And {t.total - t.items.length} more in{" "}
@@ -171,47 +169,76 @@ const TOLD: Record<
   digest: { label: "Held", tone: "neutral" },
 };
 
-function Line({ i }: { i: TodayLine }) {
-  const told = i.told ? TOLD[i.told] : null;
+/** What came in, best first: a row each, the score before the title, whether the bell rang after. */
+function TodayRows({ items }: { items: TodayLine[] }) {
+  const narrow = useNarrow();
   return (
-    <li className="flex gap-3 border-(--ui-hair) border-b py-3">
-      <span className="flex w-6 shrink-0 justify-center pt-0.5">
-        {i.score !== null ? (
-          <ScoreBadge score={i.score} />
-        ) : (
-          <span className="text-[12px] text-(--ui-ink-2)" {...tipProps("Not scored yet")}>
-            -
-          </span>
-        )}
-      </span>
-      <div className="min-w-0 flex-1">
-        <a
-          href={`/learn/items/${i.id}`}
-          className={cx(
-            "line-clamp-2 text-[14.5px] text-(--ui-ink) leading-5 no-underline hover:underline",
-            i.read ? "font-normal" : "font-semibold",
-          )}
-          {...clipProps()}
-        >
-          {i.title}
-        </a>
-        {i.line ? (
-          <p className="m-0 mt-0.5 text-[13.5px] text-(--ui-ink-2) text-pretty">{i.line}</p>
-        ) : null}
-        <p className="m-0 mt-1 flex min-w-0 items-center gap-1.5 text-[12.5px] text-(--ui-ink-2)">
-          <TypeMark type={i.type} size={13} />
-          <span className="truncate">{i.source}</span>
-          <span aria-hidden="true">·</span>
-          <span className="shrink-0">{relative(new Date(i.at))}</span>
-          <PickBadge pick={i.pick} className="ml-1 shrink-0" />
-        </p>
-      </div>
-      {told ? (
-        <Tag tone={told.tone} className="shrink-0 self-start">
-          {told.label}
-        </Tag>
-      ) : null}
-    </li>
+    <Rows<TodayLine>
+      label="new items"
+      noun="item"
+      narrow={narrow}
+      scroller="window"
+      lines={items.map((row, index) => ({ kind: "row", key: String(row.id), index, row }))}
+      name={{
+        label: "Item",
+        icon: "text",
+        min: 260,
+        title: (i) => i.title,
+        href: (i) => `/learn/items/${i.id}`,
+        weight: (i) => (i.read ? "font-normal text-(--ui-ink)" : "font-[650] text-(--ui-ink)"),
+        mark: (i) =>
+          i.score !== null ? (
+            <ScoreBadge score={i.score} />
+          ) : (
+            <span className="text-[12px] text-(--ui-ink-2)" {...tipProps("Not scored yet")}>
+              -
+            </span>
+          ),
+        // A phone's name has no room for the badge beside it: it leads the line under it.
+        sub: (i) =>
+          i.line || (narrow && i.pick) ? (
+            <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-(--ui-ink-3)">
+              {narrow ? <PickBadge pick={i.pick} className="shrink-0" /> : null}
+              <span className="wrap-anywhere whitespace-normal">{i.line}</span>
+            </span>
+          ) : null,
+        tail: (i) => (narrow ? null : <PickBadge pick={i.pick} className="shrink-0" />),
+      }}
+      columns={[
+        {
+          key: "source",
+          label: "Source",
+          icon: "link",
+          width: 180,
+          cell: (i) => (
+            <span className="inline-flex max-w-full items-center gap-1.5">
+              <TypeMark type={i.type} size={13} />
+              <span className="wrap-anywhere whitespace-normal">{i.source}</span>
+            </span>
+          ),
+        },
+        {
+          key: "told",
+          label: "Bell",
+          icon: "selected",
+          width: 100,
+          phone: true,
+          cell: (i) => {
+            const told = i.told ? TOLD[i.told] : null;
+            return told ? <Tag tone={told.tone}>{told.label}</Tag> : null;
+          },
+        },
+        {
+          key: "at",
+          label: "In",
+          icon: "clock",
+          width: 130,
+          quiet: true,
+          cell: (i) => relative(new Date(i.at)),
+        },
+      ]}
+      open={{ id: null, onOpen: (i) => navigate(`/learn/items/${i.id}`) }}
+    />
   );
 }
 

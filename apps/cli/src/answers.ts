@@ -52,9 +52,7 @@ export function registerAnswers(email: Command, withDb: WithDb, settings: Settin
             ? ` · ${r.start.toLocaleString("en-US", { timeZone: r.timeZone ?? "America/Toronto" })}`
             : "";
           console.log(`#${r.id} ${r.state} · ${r.email}${when}${r.detail ? ` · ${r.detail}` : ""}`);
-          console.log(
-            `  they wrote:\n${indent((r.words || r.snippet || "(no text)").slice(0, 600))}`,
-          );
+          console.log(`  they wrote:\n${indent(r.words || r.snippet || "(no text)")}`);
           if (r.draft) console.log(`  draft:\n${indent(r.draft)}`);
           console.log("");
         }

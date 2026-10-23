@@ -1,6 +1,6 @@
 /** Booking clicks by first touch, a bar a week for 8 weeks: the Overview's one chart. */
 import type { RecordsStat } from "@wren/core/records/serve";
-import { num, Section, tipProps } from "@wren/ui";
+import { ColumnsChart, num, Section } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 
@@ -19,6 +19,13 @@ const CHANNELS = {
 } as const;
 type Channel = keyof typeof CHANNELS;
 const COLORS = [1, 2, 3, 4, 5].map((i) => `var(--ui-chart-${i})`);
+
+/** Week `w` of the last 8 by its first day: "Oct 15"; the last week ends today. */
+function weekLabel(w: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - (WEEKS - 1 - w) * 7 - 6);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 /** A channel's daily series as weeks, the last ending today. */
 export function weeksOf(series: RecordsStat["series"], weeks = WEEKS): number[] {
@@ -63,10 +70,10 @@ export function WeeklyBookings() {
         rest.reduce((a, c) => a + (c.weeks[w] ?? 0), 0),
       ),
     });
-  const totals = Array.from({ length: WEEKS }, (_, w) =>
-    shown.reduce((a, c) => a + (c.weeks[w] ?? 0), 0),
-  );
-  const top = Math.max(1, ...totals);
+  const columns = Array.from({ length: WEEKS }, (_, w) => {
+    const of = shown.map((c) => c.weeks[w] ?? 0);
+    return { label: weekLabel(w), value: of.reduce((x, y) => x + y, 0), parts: of };
+  });
   return (
     <Section
       title="Booking clicks by first touch"
@@ -76,47 +83,13 @@ export function WeeklyBookings() {
       {ranked.length === 0 ? (
         <p className="text-[13px] text-(--ui-ink-2)">No booking clicks in the last 8 weeks.</p>
       ) : (
-        <div className="grid gap-4">
-          <div className="flex h-40 items-end gap-2">
-            {totals.map((t, w) => (
-              <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: a week's slot is its place.
-                key={w}
-                className="flex h-full flex-1 flex-col justify-end"
-                {...tipProps(
-                  `${t} in the week ${WEEKS - w === 1 ? "to today" : `${WEEKS - w} weeks back`}`,
-                )}
-              >
-                <span className="mb-1 text-center text-[12px] text-(--ui-ink-2)">
-                  {t ? num(t) : ""}
-                </span>
-                <div className="flex flex-col-reverse" style={{ height: `${(t / top) * 100}%` }}>
-                  {shown.map((c, i) => (
-                    <div
-                      key={c.label}
-                      style={{
-                        height: t ? `${((c.weeks[w] ?? 0) / t) * 100}%` : 0,
-                        background: COLORS[i],
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-[12px] text-(--ui-ink-2)">
-            <span>8 weeks ago</span>
-            <span>This week</span>
-          </div>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
-            {shown.map((c, i) => (
-              <li key={c.label} className="flex items-center gap-1.5">
-                <span className="size-2.5" style={{ background: COLORS[i] }} />
-                {c.label}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ColumnsChart
+          rows={columns}
+          label="Booking clicks"
+          parts={shown.map((c, i) => ({ label: c.label, color: COLORS[i] ?? "var(--ui-chart-5)" }))}
+          format={num}
+          height={200}
+        />
       )}
     </Section>
   );

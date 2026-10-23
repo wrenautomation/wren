@@ -220,6 +220,15 @@ export interface Lines {
   reveal: (i: number) => void;
 }
 
+/** The element that scrolls `el` up and down: its nearest scrolling parent, else the window. */
+export function scrollerOf(el: HTMLElement): HTMLElement | "window" {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const y = getComputedStyle(p).overflowY;
+    if (y === "auto" || y === "scroll") return p;
+  }
+  return "window";
+}
+
 /**
  * Which of `count` lines to draw. Past `VIRTUAL_FROM` only those in view of `scroller` (a
  * panel that scrolls) or of the window (`scroller` "window": a phone's page) draw; under it,
@@ -241,20 +250,25 @@ export function useLines({
   const on = count > VIRTUAL_FROM;
   const inPanel = on && scroller !== "window";
   const inWindow = on && scroller === "window";
-  // Where the list starts on the page: the window scrolls past the page's head first.
+  // Where the list starts in what scrolls it: the page's head scrolls past first.
   const [margin, setMargin] = useState(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the head above can grow as rows land.
   useLayoutEffect(() => {
-    if (!inWindow) return;
     const el = root();
-    if (el) setMargin(el.getBoundingClientRect().top + scrollY);
-  }, [inWindow, root, count]);
+    if (!on || !el) return;
+    if (scroller === "window") setMargin(el.getBoundingClientRect().top + scrollY);
+    else if (scroller)
+      setMargin(
+        el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop,
+      );
+  }, [on, scroller, root, count]);
   const panel = useVirtualizer<HTMLElement, Element>({
     count,
     getScrollElement: () => (scroller === "window" ? null : scroller),
     estimateSize: () => estimate,
     overscan: 12,
     enabled: inPanel,
+    scrollMargin: margin,
   });
   const page = useWindowVirtualizer<Element>({
     count,
@@ -265,7 +279,7 @@ export function useLines({
   });
   const v = inPanel ? panel : page;
   const items = on ? v.getVirtualItems() : [];
-  const offset = inWindow ? margin : 0;
+  const offset = on ? margin : 0;
   const before = items.length ? (items[0]?.start ?? 0) - offset : 0;
   const after = items.length ? v.getTotalSize() - ((items.at(-1)?.end ?? 0) - offset) : 0;
   const reveal = useCallback(

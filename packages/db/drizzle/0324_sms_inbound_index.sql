@@ -1,0 +1,1 @@
+CREATE INDEX "ix_sms_messages_in" ON "sms_messages" USING btree ("contact_id","received_at" DESC NULLS LAST) WHERE (direction)::text = 'in'::text;

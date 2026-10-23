@@ -218,7 +218,7 @@ async function followTouch(texts: TouchTexts, e: SpineEvent, at: StepAt): Promis
     bookingLink: texts.bookingLink ?? null,
     would: start.would,
     now: new Date(),
-    facts: await customFacts(texts.main, at.client, e.subject),
+    facts: await customFacts(texts.main, at.client, e.subject, texts.db),
   });
   return passed(e, { ...start.note, ...got });
 }

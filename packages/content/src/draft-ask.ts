@@ -30,6 +30,7 @@ import {
   DRAFT_MAX,
   dmContext,
   examplesFor,
+  invitedSql,
   COMMENT_MAX as POST_COMMENT_MAX,
   reachContacts,
   reachPosts,
@@ -333,8 +334,9 @@ const onpost: DraftKind = {
 /** A contact who asked us to stop gets no draft. */
 const STOPPED: ("opted_out" | "blocked")[] = ["opted_out", "blocked"];
 /** An accepted invite nobody wrote to yet: no message either way past the invite. */
-const FIRST = sql`${reachContacts.connectedAt} is not null and not exists (select 1 from
-  reach_messages m where m.contact_id = ${reachContacts.id} and (m.direction = 'in' or m.kind <> 'connect'))`;
+const FIRST = sql`${reachContacts.connectedAt} is not null and ${invitedSql(sql`${reachContacts.id}`)}
+  and not exists (select 1 from reach_messages m where m.contact_id = ${reachContacts.id}
+    and (m.direction = 'in' or m.kind <> 'connect'))`;
 
 /**
  * Our next DM to a reach contact (`reach_contacts.draft`): a reply on a thread (`dm`) or a first

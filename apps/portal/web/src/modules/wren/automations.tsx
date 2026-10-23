@@ -9,6 +9,7 @@ import {
   ButtonLink,
   cx,
   Empty,
+  Icon,
   Input,
   LoadFailed,
   Loading,
@@ -18,6 +19,7 @@ import {
   Tag,
   type TagTone,
   tipProps,
+  useNarrow,
   whenTip,
 } from "@wren/ui";
 import { type ReactNode, useRef, useState } from "react";
@@ -26,6 +28,7 @@ import { patchCalls, useCall, useSettled } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href } from "../../route.js";
 import { QUIET } from "../work/bits.js";
+import { RowsPanel } from "../work/rows-panel.js";
 import { MadeHere } from "./made.js";
 
 const DAYS = 30;
@@ -223,101 +226,154 @@ function StateCell({
   );
 }
 
-/** The Marketplace's grid: a card per automation, as wide as the page allows. */
-const GRID =
-  "m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3 p-0";
+/** The numbers a row opens, as one cell each: what its kind counts, failed, waiting, last, next. */
+const RUNS_WORD = (r: AutomationRow) =>
+  r.kind === "loop" ? "running" : r.kind === "keyword" ? "caught" : `runs, ${DAYS}d`;
 
-/** One automation as a card, the Marketplace's look: name and state, what starts it, its numbers. */
-function Card({
-  r,
+const RUNS_TIP = (r: AutomationRow) =>
+  r.kind === "loop"
+    ? "Keys running: open them"
+    : r.kind === "keyword"
+      ? "Comments caught: open the DMs"
+      : `Runs in the last ${DAYS} days: open them`;
+
+/** The Test run icon at a row's end: walks the workflow dry, nothing sends. */
+function TestRun({ to }: { to: string }) {
+  return (
+    <a
+      href={to}
+      aria-label="Test run"
+      className="inline-grid size-7 place-items-center text-(--ui-ink-3) no-underline [border-radius:var(--ui-leaf-button)] hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:outline-2 focus-visible:outline-(--ui-focus) pointer-coarse:size-11"
+      {...tipProps("Test run: walk it dry with a made-up event. Nothing sends.")}
+    >
+      <Icon name="play" size={16} />
+    </a>
+  );
+}
+
+/** Automations as rows, a fold per kind: name, what starts it, its switch, its numbers. */
+function AutomationRows({
+  rows,
   busy,
-  error,
+  errors,
   onFlip,
 }: {
-  r: AutomationRow;
-  busy: boolean;
-  error: string | null;
-  onFlip: (on: boolean) => void;
+  rows: AutomationRow[];
+  busy: ReadonlySet<string>;
+  errors: Record<string, string>;
+  onFlip: (r: AutomationRow, on: boolean) => void;
 }) {
-  const to = linksOf(r);
-  const failing = r.health === "failing";
+  const narrow = useNarrow();
+  const groups = GROUPS.flatMap((g) => {
+    const these = rows.filter((r) => g.kinds.includes(r.kind));
+    return these.length
+      ? [{ key: g.label, label: <span {...tipProps(g.about)}>{g.label}</span>, rows: these }]
+      : [];
+  });
   return (
-    <li
-      className={cx(
-        "flex h-full flex-col gap-2 rounded-(--ui-radius-panel) bg-(--ui-paper) p-4 shadow-(--ui-raise) transition-[background-color,translate] duration-200 ease-(--ui-ease) hover:-translate-y-px hover:bg-(--ui-wash) motion-reduce:hover:translate-y-0",
-        failing && "ring-1 ring-(--ui-bad)/40",
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <a
-          href={to.open}
-          className="min-w-0 text-[15px] leading-5 font-semibold text-(--ui-ink) no-underline hover:underline"
-        >
-          {r.name}
-        </a>
-        <StateCell r={r} busy={busy} onFlip={onFlip} />
-      </div>
-      <span
-        className="line-clamp-2 text-[13px]/[1.45] text-pretty text-(--ui-ink-2)"
-        {...tipProps(r.trigger)}
-      >
-        {r.trigger}
-      </span>
-      {failing && r.error ? (
-        <a
-          href={to.failed ?? to.open}
-          className="line-clamp-2 text-[13px] text-(--ui-bad) no-underline hover:underline"
-        >
-          {r.error}
-        </a>
-      ) : null}
-      {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
-      <span className="mt-auto flex flex-wrap items-baseline gap-x-3 gap-y-1 pt-1 text-[12.5px] text-(--ui-ink-2)">
-        {r.runs !== null ? (
-          <span>
-            <Count
-              n={r.runs}
-              to={to.runs}
-              label={
-                r.kind === "loop"
-                  ? "Keys running: open them"
-                  : r.kind === "keyword"
-                    ? "Comments caught: open the DMs"
-                    : `Runs in the last ${DAYS} days: open them`
-              }
-            />{" "}
-            {r.kind === "loop" ? "running" : r.kind === "keyword" ? "caught" : `runs, ${DAYS}d`}
-          </span>
-        ) : null}
-        {r.failed ? (
-          <span>
-            <Count n={r.failed} to={to.failed} bad label="Open what failed" /> failed
-          </span>
-        ) : null}
-        {r.waiting ? (
-          <span>
-            <Count n={r.waiting} to={to.waiting} label="Open what waits" /> waiting
-          </span>
-        ) : null}
-        <span>
-          Last <When at={r.lastAt} empty={r.runs === null ? "–" : "never"} />
-        </span>
-        {r.nextAt ? (
-          <span>
-            Next <When at={r.nextAt} empty="" />
-          </span>
-        ) : null}
-        {to.test ? (
-          <a
-            href={to.test}
-            className="ml-auto text-(--ui-link) no-underline hover:underline"
-            {...tipProps("Walk it dry with a made-up event: nothing sends")}
-          >
-            Test run
-          </a>
-        ) : null}
-      </span>
-    </li>
+    <RowsPanel<AutomationRow>
+      groups={groups}
+      rowKey={(r) => r.id}
+      label="automations"
+      noun="automation"
+      end={(r) => {
+        const to = linksOf(r).test;
+        return to ? <TestRun to={to} /> : null;
+      }}
+      name={{
+        label: "Automation",
+        icon: "text",
+        width: 200,
+        title: (r) => r.name,
+        href: (r) => linksOf(r).open,
+        // A phone's row has no columns: what starts it goes under the name. A failure shows on both.
+        sub: (r) => {
+          const failing = r.health === "failing" && r.error;
+          const bad = errors[r.id];
+          return narrow || failing || bad ? (
+            <span className="grid gap-0.5 text-[12.5px]">
+              {narrow ? <span className="text-(--ui-ink-2)">{r.trigger}</span> : null}
+              {failing ? (
+                <a
+                  href={linksOf(r).failed ?? linksOf(r).open}
+                  className="text-(--ui-bad) no-underline hover:underline"
+                >
+                  {r.error}
+                </a>
+              ) : null}
+              {bad ? <span className="text-(--ui-bad)">{bad}</span> : null}
+            </span>
+          ) : null;
+        },
+      }}
+      columns={[
+        {
+          key: "trigger",
+          label: "Starts with",
+          icon: "lines",
+          min: 150,
+          cell: (r) => (
+            <span
+              className="block wrap-anywhere whitespace-normal text-(--ui-ink-2)"
+              {...tipProps(r.trigger)}
+            >
+              {r.trigger}
+            </span>
+          ),
+        },
+        {
+          key: "state",
+          label: "State",
+          icon: "selected",
+          width: 128,
+          phone: true,
+          cell: (r) => <StateCell r={r} busy={busy.has(r.id)} onFlip={(next) => onFlip(r, next)} />,
+        },
+        {
+          key: "runs",
+          label: "Runs, failed, waiting",
+          icon: "hash",
+          width: 210,
+          cell: (r) =>
+            r.runs !== null ? (
+              <span>
+                <Count n={r.runs} to={linksOf(r).runs} label={RUNS_TIP(r)} /> {RUNS_WORD(r)}
+                {r.failed ? (
+                  <>
+                    {" · "}
+                    <Count n={r.failed} to={linksOf(r).failed} bad label="Open what failed" />
+                    <span className="text-(--ui-bad)"> failed</span>
+                  </>
+                ) : null}
+                {r.waiting ? (
+                  <>
+                    {" · "}
+                    <Count n={r.waiting} to={linksOf(r).waiting} label="Open what waits" /> waiting
+                  </>
+                ) : null}
+              </span>
+            ) : (
+              <span className={QUIET}>–</span>
+            ),
+        },
+        {
+          key: "last",
+          label: "Last",
+          icon: "clock",
+          width: 104,
+          quiet: true,
+          cell: (r) => <When at={r.lastAt} empty={r.runs === null ? "–" : "never"} />,
+        },
+        {
+          key: "next",
+          label: "Next",
+          icon: "clock",
+          width: 104,
+          quiet: true,
+          cell: (r) => (r.nextAt ? <When at={r.nextAt} empty="" /> : null),
+        },
+      ]}
+    />
   );
 }
 
@@ -450,7 +506,7 @@ export function Automations({ params }: PageProps) {
       {list.error && !list.data ? (
         <LoadFailed error={list.error} onRetry={list.retry} />
       ) : !list.data ? (
-        <Loading lines={8} />
+        <Loading shape="rows" lines={8} />
       ) : !rows.length ? (
         <Empty>
           {q
@@ -462,30 +518,12 @@ export function Automations({ params }: PageProps) {
                 : "Nothing runs on its own yet."}
         </Empty>
       ) : (
-        GROUPS.map((g) => {
-          const these = rows.filter((r) => g.kinds.includes(r.kind));
-          if (!these.length) return null;
-          return (
-            <section key={g.label} className="mb-9">
-              <h2 className="mb-0.5 text-[15px] font-semibold">
-                {g.label}{" "}
-                <span className={cx("font-normal tabular-nums", QUIET)}>{these.length}</span>
-              </h2>
-              <p className={cx("mb-3 text-[13px]", QUIET)}>{g.about}</p>
-              <ul className={GRID}>
-                {these.map((r) => (
-                  <Card
-                    key={r.id}
-                    r={r}
-                    busy={busy.has(r.id)}
-                    error={errors[r.id] ?? null}
-                    onFlip={(next) => void flip(r, next)}
-                  />
-                ))}
-              </ul>
-            </section>
-          );
-        })
+        <AutomationRows
+          rows={rows}
+          busy={busy}
+          errors={errors}
+          onFlip={(r, on) => void flip(r, on)}
+        />
       )}
     </>
   );

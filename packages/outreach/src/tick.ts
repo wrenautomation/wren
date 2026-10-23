@@ -558,7 +558,7 @@ export async function recordUnsure(
 ): Promise<void> {
   await db
     .update(reachMessages)
-    .set({ state: "unknown", stateReason: why.slice(0, 500) })
+    .set({ state: "unknown", stateReason: why.slice(0, 5000) })
     .where(eq(reachMessages.id, c.row.id));
   await parkUnsure(db, {
     item: `dm:${c.row.id}`,
@@ -591,7 +591,7 @@ export async function recordNotSent(
     .set({
       state: "queued",
       dueAt: new Date(now.getTime() + NOT_SENT_HOLD_MS),
-      stateReason: reason.slice(0, 500),
+      stateReason: reason.slice(0, 5000),
     })
     .where(eq(reachMessages.id, c.row.id));
   hold(stats, "not-sent");
@@ -605,7 +605,7 @@ export async function recordFailure(
   now: Date,
   stats: TickStats,
 ): Promise<void> {
-  const text = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+  const text = (err instanceof Error ? err.message : String(err)).slice(0, 5000);
   const wait = capWaitMs(err);
   if (wait !== null) {
     // A used daily cap: this row and the account's other rows on the same cap (invites, or

@@ -13,7 +13,6 @@ import { Button, ButtonLink } from "./controls.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
-import { clipProps } from "./hint.js";
 import { GROUP_LABEL, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
@@ -299,19 +298,15 @@ function Day({
           {key === today ? "today" : "this day"}.
         </Empty>
       ) : (
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-x-10 gap-y-8 lg:grid-cols-2 2xl:grid-cols-3">
           {busy.map((g) => {
             const its = groups.get(g) ?? [];
             const s = label(g);
             return (
-              <section
-                key={g}
-                aria-label={s.label}
-                className="min-w-0 rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise)"
-              >
+              <section key={g} aria-label={s.label} className="min-w-0">
                 <h2
                   className={cn(
-                    "flex items-center gap-2 border-b border-(--ui-hair) bg-(--ui-band) px-4 py-3",
+                    "flex items-center gap-2 border-b border-(--ui-hair) pb-2.5",
                     SECTION_TITLE,
                   )}
                 >
@@ -329,7 +324,7 @@ function Day({
                   return (
                     <div
                       key={src.record + src.label}
-                      className="px-4 py-3 [&+&]:border-t [&+&]:border-(--ui-hair)"
+                      className="py-3 [&+&]:border-t [&+&]:border-(--ui-hair)"
                     >
                       <h3 className={cn("mb-1.5", GROUP_LABEL)}>{src.label}</h3>
                       <ul className="grid grid-cols-1">
@@ -355,11 +350,11 @@ function Day({
                                 <span className="block text-[12px] text-(--ui-ink-3) sm:hidden">
                                   {when}
                                 </span>
-                                <span className="block truncate" {...clipProps()}>
+                                <span className="block wrap-anywhere whitespace-normal">
                                   {titleOf(meta, it.row)}
                                 </span>
                                 {sub ? (
-                                  <span className="block truncate text-[13px] text-(--ui-ink-2)">
+                                  <span className="block wrap-anywhere whitespace-normal text-[13px] text-(--ui-ink-2)">
                                     {sub}
                                   </span>
                                 ) : null}

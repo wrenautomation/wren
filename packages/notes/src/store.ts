@@ -388,7 +388,7 @@ export async function restoreVersion(db: Db, id: string, number: number, by: str
 export async function nameVersion(db: Db, id: string, number: number, name: string | null) {
   const [v] = await db
     .update(noteVersions)
-    .set({ name: name?.trim().slice(0, 200) || null })
+    .set({ name: name?.trim().slice(0, 2000) || null })
     .where(and(eq(noteVersions.noteId, id), eq(noteVersions.number, number)))
     .returning();
   if (!v) throw new NoteMissing(`${id} v${number}`);
@@ -830,7 +830,7 @@ export async function addComment(db: Db, c: NewComment): Promise<NoteComment> {
           noteId: c.noteId,
           parentId: c.parentId ?? null,
           anchor: c.parentId ? null : (c.anchor ?? null),
-          quote: (c.quote ?? "").slice(0, 500),
+          quote: (c.quote ?? "").slice(0, 5000),
           body: c.body,
           mentions,
           by,

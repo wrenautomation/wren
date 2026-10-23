@@ -35,6 +35,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { IDEA_ANGLES } from "./write.js";
 
 export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
@@ -80,6 +81,10 @@ export const contentIdeas = pgTable(
     status: varchar("status", { length: 16, enum: IDEA_STATUSES }).notNull().default("open"),
     /** What the planner made it from (`build_log:<day>`, `comment:<id>`), so it is made once; null for a person's. */
     ref: varchar("ref", { length: 200 }),
+    /** The offer line it serves: a line id in the workspace's shape. Null = none named. */
+    line: varchar("line", { length: 64 }),
+    /** How it argues (`IDEA_ANGLES`). Null = none named. */
+    angle: varchar("angle", { length: 16, enum: IDEA_ANGLES }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_content_ideas" }),
@@ -87,6 +92,7 @@ export const contentIdeas = pgTable(
     unique("uq_content_ideas_ref").on(t.ref),
     oneOf("ck_content_ideas_source", t.source, IDEA_SOURCES),
     oneOf("ck_content_ideas_status", t.status, IDEA_STATUSES),
+    oneOf("ck_content_ideas_angle", t.angle, IDEA_ANGLES),
   ],
 );
 
@@ -121,7 +127,7 @@ export const contentDrafts = pgTable(
     /** The body: a post, a caption, a video description. */
     text: text("text").notNull(),
     /** YouTube's title, TikTok's; null where the platform has none. */
-    title: varchar("title", { length: 200 }),
+    title: varchar("title", { length: 2000 }),
     media: jsonb("media").$type<Media>(),
     /** The platform's post shape past text and file (`@wren/core/content/shapes`): checked on save and publish. */
     extra: jsonb("extra").$type<Record<string, unknown>>().notNull().default({}),
@@ -498,7 +504,7 @@ export const marketingPostRecords = pgView("marketing_post_records", {
   account: text("account"),
 }).as(sql`
   select concat_ws('/', d.idea_id, d.platform, d.id) id, d.platform::text platform,
-    coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title,
+    coalesce(d.title, left(split_part(d.text, chr(10), 1), 1200))::text title,
     d.published_at published, d.stage::text stage, ${sql.raw(formatSql)} format,
     m.views, m.reactions, m.comments, m.shares,
     m.reactions + m.comments + m.shares engaged,
@@ -554,6 +560,7 @@ export const marketingPostRecords = pgView("marketing_post_records", {
  * the contact or its linked handle, booked after our first DM). A commenter counts as DMed when
  * the DM came from the comment, or a DM we sent later went to the same handle or platform id
  * (a client's X DMs, our `dm` touches). Comments we dropped are out of the base.
+ * `booked` joins bookings to leads once; inlined, it scanned `leads` per thread (17 s).
  */
 export const marketingConversation = pgView("marketing_conversation", {
   id: text("id"),
@@ -589,16 +596,19 @@ export const marketingConversation = pgView("marketing_conversation", {
       min(m.sent_at) first_out from reach_contacts r
     join reach_messages m on m.contact_id = r.id and m.direction = 'out' and m.state = 'sent'
     group by r.id),
+  booked as materialized (
+    select b.booked_at, ld.id lead_id, ld.person_id
+    from call_bookings b join leads ld on lower(ld.email) = lower(b.email)),
   threads as (
     select f.platform, f.first_out,
       exists (select 1 from reach_messages i where i.contact_id = f.contact and i.direction = 'in'
         and i.created_at > f.first_out) answered,
-      exists (select 1 from leads ld join call_bookings b on lower(b.email) = lower(ld.email)
+      exists (select 1 from booked b
         where b.booked_at > f.first_out
-          and (ld.person_id = f.person_id
+          and (b.person_id = f.person_id
             or exists (select 1 from social_handles h
               where h.platform = f.platform and lower(h.handle) = lower(f.handle)
-                and (h.lead_id = ld.id or h.person_id = ld.person_id)))) booked
+                and (h.lead_id = b.lead_id or h.person_id = b.person_id)))) booked
     from firsts f),
   cs as (
     select s.span, case when grouping(t.platform) = 1 then 'all' else t.platform end platform,
@@ -650,7 +660,7 @@ export const draftActivity = pgView("draft_activity", {
         when 'generated' then case e.via when 'model' then 'Drafted by ' || coalesce(e.by, 'the model')
           else 'Written by ' || coalesce(e.by, 'Wren') end
         when 'edited' then case e.via when 'claude' then 'Claude rewrote it, asked by ' || coalesce(e.by, 'you')
-          || coalesce(': ' || left(e.ask, 200), '')
+          || coalesce(': ' || left(e.ask, 2000), '')
           else 'Edited by ' || coalesce(e.by, 'a person') end
           || case when e.meta ? 'undo' then ' (undo)' when e.meta ? 'at_send' then ' at send' else '' end
         when 'approved' then 'Approved' || coalesce(' by ' || e.by, '')
@@ -662,7 +672,7 @@ export const draftActivity = pgView("draft_activity", {
             when 'timing' then 'Bad timing' when 'repeat' then 'Said before' end, '')
           || coalesce(' · ' || e.note, '')
         when 'sent' then 'Sent' || coalesce(' · ' || e.url, '')
-        else 'Failed' || coalesce(': ' || left(e.note, 200), '') end what
+        else 'Failed' || coalesce(': ' || left(e.note, 2000), '') end what
     from draft_events e
     union all
     select 'draft:' || d.id, m.as_of, null, 'metrics',
@@ -671,10 +681,10 @@ export const draftActivity = pgView("draft_activity", {
     from content_metrics m join content_drafts d on d.id = m.draft_id
     union all
     select 'draft:' || v.draft_id, v.started_at, null, 'variant',
-      initcap(v.field) || ' swapped to: ' || left(v.value, 200)
+      initcap(v.field) || ' swapped to: ' || left(v.value, 2000)
     from post_variants v where v.source = 'swap' and v.started_at is not null
     union all
-    select 'draft:' || d.id, c.at, null, 'reply', 'Reply from ' || c.author || ': ' || left(c.body, 200)
+    select 'draft:' || d.id, c.at, null, 'reply', 'Reply from ' || c.author || ': ' || left(c.body, 2000)
     from comments c join content_drafts d on d.published_id = c.post and d.platform::text = c.platform::text
     where c.sort is distinct from 'ours'
   )
@@ -714,7 +724,7 @@ export const doneRecords = pgView("done_records", {
   day: text("day"),
 }).as(sql`
   select e.id, e.item, e.kind, e.platform, e.event, e.via, e.by,
-    coalesce(nullif(e.title, ''), left(regexp_replace(e.text, '[[:space:]]+', ' ', 'g'), 140), e.item) what,
+    coalesce(nullif(e.title, ''), left(regexp_replace(e.text, '[[:space:]]+', ' ', 'g'), 1400), e.item) what,
     e.text words, e.note, e.url,
     case split_part(e.item, ':', 1)
       when 'draft' then '/marketing/drafts/' when 'comment' then '/marketing/comments/'
@@ -822,7 +832,7 @@ export const marketingDraftRecords = pgView("marketing_draft_records", {
   account: text("account"),
 }).as(sql`
   select d.id::text id, d.platform::text platform,
-    coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title, d.text,
+    coalesce(d.title, left(split_part(d.text, chr(10), 1), 1200))::text title, d.text,
     d.status::text state, length(d.text) chars,
     case when d.edited then 'edited' else 'model' end written, d.note, d.error,
     d.stage::text stage, d.points_to::text "to",
@@ -922,7 +932,7 @@ export const chatThreads = pgTable(
   {
     id: serial("id").notNull(),
     keyHash: varchar("key_hash", { length: 64 }).notNull(),
-    name: varchar("name", { length: 120 }),
+    name: varchar("name", { length: 1200 }),
     email: varchar("email", { length: 200 }),
     phone: varchar("phone", { length: 32 }),
     /** The page it started on. */

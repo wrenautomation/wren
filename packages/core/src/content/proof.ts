@@ -193,7 +193,7 @@ export function linkedinVerdict(
   return { state: "live", note: `its author's read finds it; ${why}` };
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 160);
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 1600);
 
 interface Shot {
   found?: boolean;

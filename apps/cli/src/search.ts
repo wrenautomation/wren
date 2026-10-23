@@ -206,7 +206,7 @@ export function registerSearch(
               );
             } catch (err) {
               console.log(
-                `${engine}\tfailed\t${k.phrase}\t${err instanceof Error ? err.message.slice(0, 160) : err}`,
+                `${engine}\tfailed\t${k.phrase}\t${err instanceof Error ? err.message : err}`,
               );
             }
           }
@@ -269,7 +269,7 @@ export function registerSearch(
         `${stats.made} ${o.dry ? "pass" : "stored"}, ${stats.refused.length} refused${stats.staled ? `, ${stats.staled} older dropped` : ""}`,
       );
       for (const r of stats.refused)
-        console.log(`  refused ${r.kind} on ${r.page} ("${r.current.slice(0, 60)}"): ${r.reason}`);
+        console.log(`  refused ${r.kind} on ${r.page} ("${r.current}"): ${r.reason}`);
     });
 
   search

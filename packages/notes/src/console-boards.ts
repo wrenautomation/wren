@@ -672,7 +672,7 @@ export function boardsApi(h: Hooks) {
       const rowCard: (string | null)[] = [];
       for (const [i, r] of rows.entries()) {
         const n = i + 1;
-        const title = text(r, "title").slice(0, 300);
+        const title = text(r, "title").slice(0, 3000);
         const link = cardIdIn(text(r, "link"));
         const column = text(r, "column");
         const col = column ? columnOf(board, column) : null;

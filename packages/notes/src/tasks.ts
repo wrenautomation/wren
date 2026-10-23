@@ -355,7 +355,7 @@ export interface NewTask {
 }
 
 const whyOf = (why: unknown) => {
-  const s = typeof why === "string" ? why.trim().slice(0, 300) : "";
+  const s = typeof why === "string" ? why.trim().slice(0, 3000) : "";
   return s || null;
 };
 

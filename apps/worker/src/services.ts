@@ -270,7 +270,7 @@ import {
   restateSites,
 } from "@wren/core/content/restate";
 import { setFieldStep } from "@wren/core/custom-fields";
-import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
+import { makeDeadLetters, pausedUnder, restateAdminPatch } from "@wren/core/dead-letters";
 import { backendsFromEnv, leadFitSource, makeDecide } from "@wren/core/decide";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
@@ -1508,6 +1508,10 @@ export async function buildServices(
       db,
       posted: postedWarm,
       clientDb,
+      // A publish held by a paused desk call waits in To approve, not on the queue.
+      pausedUnder: settings.restateAdminUrl
+        ? pausedUnder(restateAdmin(settings.restateAdminUrl, settings.restateAuthToken))
+        : null,
       ...contentNotify,
     }),
     makeContentMetrics({ db, clientDb, ...contentNotify }),
@@ -2393,7 +2397,7 @@ export async function buildServices(
         // Send webhook: any https URL past the SSRF guard (designs/2026-10-07-webhooks-out.md).
         "logic.webhook": webhookStep(),
         // Set field: one custom field on the subject's record (designs/2026-10-09-custom-fields.md).
-        "logic.set_field": setFieldStep(db),
+        "logic.set_field": setFieldStep(db, clientDb),
         // In segment: yes or no by a People segment now (designs/2026-10-15-channel-stats.md).
         "logic.segment": segmentStep(db, clientDb),
         // Send message and Notify me (designs/2026-10-14-automations.md): one person's broadcast,

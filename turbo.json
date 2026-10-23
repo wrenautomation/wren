@@ -28,6 +28,12 @@
       "outputs": [],
       "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*", "WREN_TEST_PG_IMAGE"]
     },
+    "test:schema": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!src/**/*.test.ts", "!src/**/*.test.tsx", "!**/README.md"],
+      "outputs": [],
+      "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*", "WREN_TEST_PG_IMAGE"]
+    },
     "test": { "dependsOn": ["test:unit", "test:integration"] }
   }
 }

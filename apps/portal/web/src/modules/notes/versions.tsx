@@ -48,7 +48,7 @@ export function Authors({ list }: { list: readonly string[] }) {
       {list.map((a) => (
         <span key={a} className="flex min-w-0 items-center gap-1">
           <Dot email={a} />
-          <span className="truncate">{ownerName(a)}</span>
+          <span className="wrap-anywhere whitespace-normal">{ownerName(a)}</span>
         </span>
       ))}
     </span>

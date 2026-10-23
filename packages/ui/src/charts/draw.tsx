@@ -20,7 +20,7 @@ import {
   ChartTooltipContent,
 } from "../components/ui/chart.js";
 import { ellipsize } from "../format.js";
-import type { BarsProps, SparkProps, TrendProps } from "./index.js";
+import type { BarsProps, ColumnsProps, SparkProps, TrendProps } from "./index.js";
 
 const day = (at: unknown) =>
   typeof at === "string" && at
@@ -186,5 +186,135 @@ export function Bars({ rows, label, format = plain }: BarsProps) {
         </Bar>
       </BarChart>
     </ChartContainer>
+  );
+}
+
+/**
+ * A figure per period, oldest first, as columns: whether it grows. Each column says its value on
+ * top, so no axis is needed; a bill that lands once a month reads as one column, not a spike.
+ */
+export function Columns({ rows, label, parts, format = plain, height = 180 }: ColumnsProps) {
+  if (parts)
+    return <Stacked rows={rows} label={label} parts={parts} format={format} height={height} />;
+  const config = { value: { label, color: "var(--chart-1)" } } satisfies ChartConfig;
+  const data = rows.map((r) => ({ name: r.label, value: r.value, text: format(r.value) }));
+  return (
+    <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
+      <BarChart data={data} margin={{ top: 22, right: 0, bottom: 0, left: 0 }}>
+        <XAxis
+          dataKey="name"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tick={{ fill: "var(--ui-ink-2)", fontSize: 12 }}
+        />
+        <ChartTooltip
+          cursor={false}
+          isAnimationActive={false}
+          content={(p) => (
+            <ChartTooltipContent
+              active={p.active}
+              payload={p.payload as never}
+              label={p.label}
+              config={config}
+              format={format}
+            />
+          )}
+        />
+        <Bar
+          dataKey="value"
+          fill="var(--color-value)"
+          maxBarSize={56}
+          minPointSize={2}
+          radius={[2, 6, 2, 6]}
+          isAnimationActive={false}
+        >
+          <LabelList
+            dataKey="text"
+            position="top"
+            className="fill-(--ui-ink-2) text-[12px] tabular-nums"
+          />
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+/** Columns cut into parts (bookings by channel), the total over each and a key below. */
+function Stacked({
+  rows,
+  parts,
+  format,
+  height,
+}: Pick<ColumnsProps, "rows" | "label"> & {
+  parts: NonNullable<ColumnsProps["parts"]>;
+  format: (n: number) => string;
+  height: number;
+}) {
+  const config = Object.fromEntries(
+    parts.map((p, i) => [`p${i}`, { label: p.label, color: p.color }]),
+  ) satisfies ChartConfig;
+  // The total rides on each column's topmost part with a value, so an empty top part hides none.
+  const data = rows.map((r) => {
+    const top = parts.findLastIndex((_, i) => (r.parts?.[i] ?? 0) > 0);
+    return {
+      name: r.label,
+      ...Object.fromEntries(parts.map((_, i) => [`p${i}`, r.parts?.[i] ?? 0])),
+      ...Object.fromEntries(parts.map((_, i) => [`t${i}`, i === top ? format(r.value) : ""])),
+    };
+  });
+  const last = parts.length - 1;
+  return (
+    <div className="grid gap-3">
+      <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
+        <BarChart data={data} margin={{ top: 22, right: 0, bottom: 0, left: 0 }}>
+          <XAxis
+            dataKey="name"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            tick={{ fill: "var(--ui-ink-2)", fontSize: 12 }}
+          />
+          <ChartTooltip
+            cursor={false}
+            isAnimationActive={false}
+            content={(p) => (
+              <ChartTooltipContent
+                active={p.active}
+                payload={p.payload as never}
+                label={p.label}
+                config={config}
+                format={format}
+              />
+            )}
+          />
+          {parts.map((p, i) => (
+            <Bar
+              key={p.label}
+              dataKey={`p${i}`}
+              stackId="all"
+              fill={`var(--color-p${i})`}
+              maxBarSize={56}
+              radius={i === last ? [2, 6, 0, 0] : 0}
+              isAnimationActive={false}
+            >
+              <LabelList
+                dataKey={`t${i}`}
+                position="top"
+                className="fill-(--ui-ink-2) text-[12px] tabular-nums"
+              />
+            </Bar>
+          ))}
+        </BarChart>
+      </ChartContainer>
+      <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px]">
+        {parts.map((p) => (
+          <li key={p.label} className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-[1px_3px]" style={{ background: p.color }} />
+            {p.label}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

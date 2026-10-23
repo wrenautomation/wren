@@ -4,9 +4,10 @@
  * a LinkedIn page or person joins the comments' follows instead (`ReachDesk.paste`), read first
  * each day. Wren's own workspace only: the search reads as Wren's accounts.
  */
-import { Button, clipProps, cx, say, TextField, useEditForm } from "@wren/ui";
+import { Button, Rows, type RowsLine, say, TextField, useEditForm, useNarrow } from "@wren/ui";
 import { useRef, useState } from "react";
 import { call } from "../../api.js";
+import { useFolds } from "../../use-folds.js";
 import { changed, learn } from "./api.js";
 import { Avatar } from "./kinds.js";
 
@@ -40,6 +41,19 @@ const reach = <T,>(handler: string, input: Record<string, unknown>) =>
   call<T>("console/call", { service: "ReachDesk", handler, input });
 const count = new Intl.NumberFormat(undefined, { notation: "compact" });
 
+/** The hits by site: a fold for each site that answered, its people under it. */
+function linesOf(hits: Hit[]): RowsLine<Hit>[] {
+  const out: RowsLine<Hit>[] = [];
+  for (const [s, label] of SITES) {
+    const here = hits.filter((h) => h.site === s);
+    if (!here.length) continue;
+    out.push({ kind: "group", key: s, label });
+    for (const h of here)
+      out.push({ kind: "row", key: `${h.site}:${h.handle}`, index: out.length, row: h });
+  }
+  return out;
+}
+
 export function FindCreators() {
   const form = useEditForm({ key: null, defaults: { q: "", only: [] as Site[] } });
   const only = form.watch("only");
@@ -51,6 +65,8 @@ export function FindCreators() {
   const [following, setFollowing] = useState<Record<string, "busy" | "done">>({});
   const pressed = useRef(new Set<string>());
   const searching = useRef(false);
+  const narrow = useNarrow();
+  const folds = useFolds();
 
   const search = form.onSend(async (v) => {
     if (!v.q.trim() || searching.current) return false;
@@ -137,29 +153,79 @@ export function FindCreators() {
         <div className="flex flex-col gap-5">
           {!found.hits.length ? (
             <p className="m-0 text-[14px] text-(--ui-ink-2)">Nothing found. Try other words.</p>
-          ) : null}
-          {SITES.map(([s]) => {
-            const hits = found.hits.filter((h) => h.site === s);
-            if (!hits.length) return null;
-            return (
-              <section key={s} className="flex flex-col gap-2">
-                <h3 className="m-0 font-medium text-[14px]">
-                  {NAME[s]}{" "}
-                  <span className="font-normal text-(--ui-ink-2) tabular-nums">{hits.length}</span>
-                </h3>
-                <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-2 p-0">
-                  {hits.map((h) => (
-                    <HitCard
-                      key={`${h.site}:${h.handle}`}
-                      h={h}
-                      state={h.followed ? "done" : following[h.follow]}
-                      onFollow={() => void follow(h)}
-                    />
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
+          ) : (
+            <Rows<Hit>
+              label="people to follow"
+              noun="person"
+              narrow={narrow}
+              scroller="window"
+              lines={linesOf(found.hits)}
+              group={folds}
+              name={{
+                label: "Name",
+                icon: "user",
+                title: (h) => h.name,
+                mark: (h) => <Avatar url={h.avatar} name={h.name.replace(/^r\//, "")} size={24} />,
+                // A phone has no About column: the handle goes under the name.
+                sub: narrow
+                  ? (h) => (
+                      <span className="wrap-anywhere whitespace-normal text-[12.5px] text-(--ui-ink-3)">
+                        {h.handle}
+                      </span>
+                    )
+                  : undefined,
+              }}
+              columns={[
+                {
+                  key: "handle",
+                  label: "Profile",
+                  icon: "link",
+                  cell: (h) => (
+                    <a href={h.url} target="_blank" rel="noreferrer">
+                      {h.handle}
+                    </a>
+                  ),
+                },
+                {
+                  key: "followers",
+                  label: "Followers",
+                  icon: "hash",
+                  align: "end",
+                  width: 110,
+                  cell: (h) => (h.followers !== null ? count.format(h.followers) : null),
+                },
+                {
+                  key: "about",
+                  label: "About",
+                  icon: "text",
+                  min: 220,
+                  cell: (h) => h.about,
+                },
+                {
+                  key: "follow",
+                  label: "Follow",
+                  icon: "selected",
+                  width: 130,
+                  phone: true,
+                  cell: (h) => {
+                    const state = h.followed ? "done" : following[h.follow];
+                    return (
+                      <Button
+                        size="dense"
+                        tone={state === "done" ? "secondary" : "primary"}
+                        busy={state === "busy"}
+                        disabled={!!state}
+                        aria-label={`${state === "done" ? "Following" : "Follow"} ${h.name}`}
+                        onClick={() => void follow(h)}
+                      >
+                        {state === "done" ? "Following" : "Follow"}
+                      </Button>
+                    );
+                  },
+                },
+              ]}
+            />
+          )}
           {found.failed.length ? (
             <ul className="m-0 list-none p-0 text-[12.5px] text-(--ui-ink-2)">
               {found.failed.map((f) => (
@@ -172,43 +238,5 @@ export function FindCreators() {
         </div>
       ) : null}
     </div>
-  );
-}
-
-function HitCard(props: { h: Hit; state: "busy" | "done" | undefined; onFollow: () => void }) {
-  const { h } = props;
-  return (
-    <li className="flex gap-3 border border-(--ui-hair) bg-(--ui-paper) p-3">
-      <Avatar url={h.avatar} name={h.name.replace(/^r\//, "")} size={40} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <a
-            href={h.url}
-            target="_blank"
-            rel="noreferrer"
-            className="min-w-0 truncate font-medium text-[14px]"
-            {...clipProps()}
-          >
-            {h.name}
-          </a>
-          <Button
-            size="dense"
-            tone={props.state === "done" ? "secondary" : "primary"}
-            busy={props.state === "busy"}
-            disabled={!!props.state}
-            onClick={props.onFollow}
-          >
-            {props.state === "done" ? "Following" : "Follow"}
-          </Button>
-        </div>
-        <span className={cx("truncate text-[12.5px] text-(--ui-ink-2)")}>
-          {h.handle}
-          {h.followers !== null ? ` · ${count.format(h.followers)} followers` : ""}
-        </span>
-        {h.about ? (
-          <p className="m-0 line-clamp-2 text-[13px] text-(--ui-ink-2)">{h.about}</p>
-        ) : null}
-      </div>
-    </li>
   );
 }

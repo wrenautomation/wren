@@ -91,7 +91,7 @@ export function touchFired(client: string | null, t: TouchRow): Fired {
     handle: t.handle,
     account: t.account,
     url: t.url,
-    text: t.text ? t.text.slice(0, 500) : null,
+    text: t.text ? t.text.slice(0, 5000) : null,
     at: t.at,
     // The key `journey.move` finds the person by, and the profile itself when the key has one.
     [`handle:${t.platform}`]: t.handle,
@@ -192,7 +192,7 @@ export function makeTouchFeed(d: TouchFeedDeps) {
           } catch (err) {
             // Wren's own workspace failing fails the pass; a client's is said and skipped.
             if (!w.client) throw err;
-            errors.push(`${w.client}: ${String(err).slice(0, 200)}`);
+            errors.push(`${w.client}: ${String(err).slice(0, 2000)}`);
           }
         }
         return {

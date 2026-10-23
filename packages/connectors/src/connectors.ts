@@ -155,7 +155,7 @@ export function connectorAccess(deps: ConnectorDeps) {
     cache.delete(id);
     await main
       .update(connectorLinks)
-      .set({ state: "broken", why: why.slice(0, 300) })
+      .set({ state: "broken", why: why.slice(0, 3000) })
       .where(eq(connectorLinks.id, id));
   };
 
@@ -306,7 +306,7 @@ export function connectorAccess(deps: ConnectorDeps) {
           ok: false,
           said: /denied|cancel/i.test(q.error)
             ? "Nothing was granted. You can try again from Account → Connectors."
-            : `${label} said no (${String(q.error).slice(0, 60)}).`,
+            : `${label} said no (${String(q.error).slice(0, 600)}).`,
           link: null,
         };
       if (!q.code || !deps.origin)

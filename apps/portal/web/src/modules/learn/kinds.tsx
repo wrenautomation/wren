@@ -401,7 +401,7 @@ export function Thumb({
         fallback={
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-(--ui-tile)">
             <TypeMark type={card.type} size={28} />
-            <span className="max-w-[80%] truncate text-[11.5px] text-(--ui-ink-2)">
+            <span className="max-w-[80%] wrap-anywhere whitespace-normal text-[11.5px] text-(--ui-ink-2)">
               {TYPES[card.type]?.label}
             </span>
           </div>

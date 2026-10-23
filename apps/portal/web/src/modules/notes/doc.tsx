@@ -587,7 +587,7 @@ function Doc({
                         behavior: "smooth",
                       });
                     }}
-                    className="w-full truncate border-0 bg-transparent px-1 py-0.5 text-left text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+                    className="w-full wrap-anywhere whitespace-normal border-0 bg-transparent px-1 py-0.5 text-left text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
                   >
                     {h.text || "Untitled heading"}
                   </button>

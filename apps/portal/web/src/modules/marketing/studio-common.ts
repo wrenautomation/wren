@@ -126,6 +126,8 @@ export interface Waiting {
   idea: string;
   /** The offer line it serves (a line id in the shape), when the plan says. */
   line?: string | null;
+  /** How it argues (`IDEA_ANGLES`), when he picked one. */
+  angle?: string | null;
   drafts: {
     id: string;
     platform: Platform;

@@ -38,7 +38,7 @@ import {
   useState,
 } from "react";
 import { Input } from "../components/ui/input.js";
-import { clipProps, tipProps } from "../hint.js";
+import { tipProps } from "../hint.js";
 import { GraphFrame } from "./frame.js";
 import { lanes } from "./lanes.js";
 import { type Direction, layout } from "./layout.js";
@@ -336,15 +336,12 @@ function KitNode({ id }: NodeProps) {
             {g.edit?.renaming === id ? (
               <NameBox name={n.label} onDone={(v) => g.edit?.rename?.(id, v)} />
             ) : (
-              <span
-                className="kit-name truncate text-[13px] leading-4 font-semibold"
-                {...clipProps()}
-              >
+              <span className="kit-name wrap-anywhere whitespace-normal text-[13px] leading-4 font-semibold">
                 {n.label}
               </span>
             )}
             {n.note ? (
-              <span className="truncate text-[11.5px] leading-4 text-(--ui-ink-2)" {...clipProps()}>
+              <span className="wrap-anywhere whitespace-normal text-[11.5px] leading-4 text-(--ui-ink-2)">
                 {n.note}
               </span>
             ) : null}
@@ -386,7 +383,7 @@ function KitNode({ id }: NodeProps) {
         {n.lines?.length ? (
           <ul className="m-0 grid min-w-0 list-none p-0 text-[11.5px] leading-[18px]">
             {n.lines.slice(0, LOOK.lines).map((l) => (
-              <li key={`${l.sign}${l.text}`} className="truncate" {...clipProps()}>
+              <li key={`${l.sign}${l.text}`} className="wrap-anywhere whitespace-normal">
                 {l.sign ? (
                   <span className={l.sign === "+" ? "text-(--ui-good)" : "text-(--ui-ink-3)"}>
                     {l.sign}{" "}
@@ -408,8 +405,10 @@ function KitNode({ id }: NodeProps) {
               const b = (n.outs?.length ?? 0) > 1 ? n.outs?.[i] : undefined;
               return (
                 <span key={`${a?.id ?? ""}:${b?.id ?? ""}`} className="flex justify-between gap-2">
-                  <span className="truncate">{a?.label ?? ""}</span>
-                  <span className="truncate text-right">{b?.label ?? ""}</span>
+                  <span className="wrap-anywhere whitespace-normal">{a?.label ?? ""}</span>
+                  <span className="wrap-anywhere whitespace-normal text-right">
+                    {b?.label ?? ""}
+                  </span>
                 </span>
               );
             })}
@@ -499,7 +498,7 @@ function Num({
     </>
   );
   const cls = cn(
-    "truncate text-[11.5px] text-(--ui-ink-2)",
+    "wrap-anywhere whitespace-normal text-[11.5px] text-(--ui-ink-2)",
     big ? "mt-1 leading-[22px]" : "leading-4",
   );
   return n.href && !inLink ? (
@@ -597,7 +596,7 @@ function KitEdge({ id, source, target, data }: EdgeProps<Edge<WireData>>) {
         {data.pill ? (
           <span
             className={cn(
-              "pointer-events-none absolute top-0 left-0 h-5 truncate rounded-full bg-(--ui-paper) px-2 text-center text-[11px] leading-5 text-(--ui-ink-2) tabular-nums shadow-[inset_0_0_0_1px_var(--ui-hair)]",
+              "pointer-events-none absolute top-0 left-0 h-5 wrap-anywhere whitespace-normal rounded-full bg-(--ui-paper) px-2 text-center text-[11px] leading-5 text-(--ui-ink-2) tabular-nums shadow-[inset_0_0_0_1px_var(--ui-hair)]",
               on && "text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink-3)]",
               faded && "opacity-20",
             )}

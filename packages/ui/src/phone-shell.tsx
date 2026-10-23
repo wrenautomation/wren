@@ -349,7 +349,7 @@ export function PhoneTop({
       ref={bar}
       className="sticky top-0 z-20 hidden border-b border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-canvas)_86%,transparent)] backdrop-blur-[14px] backdrop-saturate-[1.6] pt-[env(safe-area-inset-top)] max-[900px]:block"
     >
-      <div className="grid h-12 grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)] items-center gap-2 px-2">
+      <div className="grid min-h-12 grid-cols-[minmax(min-content,1fr)_minmax(0,auto)_minmax(max-content,1fr)] items-center gap-2 px-2">
         <div className="flex min-w-0 items-center">
           {back ? (
             <a
@@ -366,7 +366,7 @@ export function PhoneTop({
               }}
             >
               <Icon name="left" size={24} className="flex-none" />
-              <span className="truncate">{back.title || "Back"}</span>
+              <span className="break-words whitespace-normal">{back.title || "Back"}</span>
             </a>
           ) : (
             <a
@@ -375,12 +375,12 @@ export function PhoneTop({
               onClick={() => moving("tab")}
             >
               <Icon name={app.icon} size={16} className="flex-none" />
-              <span className="truncate">{app.name}</span>
+              <span className="break-words whitespace-normal">{app.name}</span>
             </a>
           )}
         </div>
         <span
-          className="max-w-[44vw] truncate text-center text-[16px] font-semibold transition-opacity duration-200 ease-(--ui-ease)"
+          className="max-w-[44vw] wrap-anywhere whitespace-normal text-center text-[16px] font-semibold transition-opacity duration-200 ease-(--ui-ease)"
           style={{ opacity: under && title ? 1 : 0 }}
           aria-hidden={!under}
         >
@@ -475,7 +475,7 @@ function TabFace({
         <Icon name={icon} size={22} />
         {count ? <span className={BADGE}>{count > 99 ? "99+" : num(count)}</span> : null}
       </span>
-      <span className="max-w-full truncate px-1">{label}</span>
+      <span className="max-w-full wrap-anywhere whitespace-normal px-1">{label}</span>
     </>
   );
 }
@@ -636,7 +636,7 @@ export function AppsSheet({
                   className={SHEET_ROW}
                   current={p.id === app.current}
                 >
-                  <span className="min-w-0 flex-1 truncate">
+                  <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
                     {r.group && headed(r) ? (
                       <span className="text-(--ui-ink-2)">{r.group} · </span>
                     ) : null}
@@ -666,7 +666,7 @@ export function AppsSheet({
               current={p.href === pins.current}
             >
               <Icon name={p.icon} className="flex-none text-(--ui-ink-2)" />
-              <span className="min-w-0 flex-1 truncate">{p.label}</span>
+              <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{p.label}</span>
             </SheetLink>
           ))}
         </section>
@@ -689,7 +689,7 @@ export function AppsSheet({
                       <span className={TILE_BADGE}>{a.count > 99 ? "99+" : num(a.count)}</span>
                     ) : null}
                   </span>
-                  <span className="line-clamp-2 w-full break-words">{a.name}</span>
+                  <span className="w-full break-words">{a.name}</span>
                 </SheetLink>
               </li>
             ))}

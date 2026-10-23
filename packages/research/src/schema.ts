@@ -318,7 +318,7 @@ export const researchSignals = pgView("research_signals", {
     coalesce(f.value ->> 'topic', f.value ->> 'event', f.value ->> 'site', replace(f.kind, '_', ' ')) topic,
     coalesce(f.company_id, p.company_id) company_id, f.person_id,
     coalesce(p.full_name, co.name, co.domain) subject,
-    coalesce(f.value ->> 'title', left(coalesce(f.value ->> 'caption', f.value ->> 'text'), 200),
+    coalesce(f.value ->> 'title', left(coalesce(f.value ->> 'caption', f.value ->> 'text'), 2000),
       case f.kind when 'hiring' then (f.value ->> 'count') || ' open roles'
         when 'job_change' then concat_ws(' at ', f.value ->> 'title', f.value ->> 'to') end) title,
     f.source_url url, f.signal_at "at", f.signal_dated dated, f.via, f.confidence, f.document_id,

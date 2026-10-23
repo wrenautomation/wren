@@ -814,7 +814,7 @@ export function notesApi(deps: NotesDeps) {
       if (reader.cap !== "edit") throw new PortalRefusal("your role can't do that", 403);
       if (req.parentId !== undefined && req.parentId !== null)
         await locate(req, req.parentId, "edit");
-      const title = typeof req.title === "string" ? req.title.slice(0, 300) : "";
+      const title = typeof req.title === "string" ? req.title.slice(0, 3000) : "";
       const md = typeof req.markdown === "string" ? req.markdown.slice(0, 500_000) : "";
       const note = await createNote(place.db, {
         owner: by,
@@ -1173,7 +1173,7 @@ const INPUTS = {
       .nullable()
       .optional()
       .describe("A new thread's range: Yjs relative positions"),
-    quote: z.string().max(2000).optional().describe("The words it's on"),
+    quote: z.string().max(5000).optional().describe("The words it's on"),
   },
   commentEdit: { id: ID, commentId: z.string().max(64), body: z.string().max(10_000) },
   commentDelete: { id: ID, commentId: z.string().max(64) },
@@ -1186,7 +1186,7 @@ const INPUTS = {
   drive: { link: z.string().max(2000).describe("A Google Docs or Drive link") },
   driveTitle: { link: z.string().max(2000).describe("A Google Docs, Sheets or Drive link") },
   create: {
-    title: z.string().max(300).optional(),
+    title: z.string().max(3000).optional(),
     markdown: z.string().optional().describe("The body, as Markdown"),
     parentId: ID.optional(),
   },
@@ -1194,9 +1194,9 @@ const INPUTS = {
     words: z.string().max(20_000),
     open: z.boolean().optional().describe("As a note of its own"),
   },
-  rename: { id: ID, title: z.string().max(300) },
+  rename: { id: ID, title: z.string().max(3000) },
   restore: { id: ID, number: NUM },
-  nameVersion: { id: ID, number: NUM, name: z.string().max(200).nullable() },
+  nameVersion: { id: ID, number: NUM, name: z.string().max(2000).nullable() },
   share: { id: ID, who: z.string().max(320), role: ROLE.nullable().describe("None removes them") },
   general: { id: ID, general: z.enum(["private", "workspace"]), role: ROLE },
   transfer: { id: ID, to: z.string().max(320) },
@@ -1233,7 +1233,7 @@ const INPUTS = {
   recordsExport: {},
   recordsStats: {},
   boardCreate: {
-    name: z.string().max(120),
+    name: z.string().max(1200),
     columns: z
       .array(
         z.object({
@@ -1254,7 +1254,7 @@ const INPUTS = {
       .positive()
       .optional()
       .describe("The board's version the change started from; refused if it moved"),
-    name: z.string().max(120).optional(),
+    name: z.string().max(1200).optional(),
     columns: z
       .array(
         z.object({
@@ -1278,7 +1278,7 @@ const INPUTS = {
   },
   boardArchive: { id: ID.describe("The board's id"), on: ON },
   taskAdd: {
-    title: z.string().max(300),
+    title: z.string().max(3000),
     board: ID.optional().describe("A board id; the Work board when left out"),
     column: z
       .string()
@@ -1300,7 +1300,7 @@ const INPUTS = {
       .describe("A column's id or name; the card's own to reorder"),
     before: ID.nullable().optional().describe("Just above this card"),
     after: ID.nullable().optional().describe("Just below this card"),
-    why: z.string().max(300).optional(),
+    why: z.string().max(3000).optional(),
   },
   taskEdit: {
     id: ID.describe("The card's id"),
@@ -1318,7 +1318,7 @@ const INPUTS = {
   taskClose: {
     id: ID.describe("The card's id"),
     on: z.boolean().optional().describe("False reopens it"),
-    why: z.string().max(300).optional(),
+    why: z.string().max(3000).optional(),
   },
   taskBlock: {
     id: ID.describe("The card's id"),
@@ -1337,9 +1337,9 @@ const INPUTS = {
     lines: z
       .array(
         z.union([
-          z.string().max(500),
+          z.string().max(3000),
           z.object({
-            title: z.string().max(500),
+            title: z.string().max(3000),
             owner: z.string().max(320).nullable().optional(),
             due: z.string().max(10).nullable().optional(),
           }),

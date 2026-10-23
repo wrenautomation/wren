@@ -2,12 +2,11 @@ name: ci
 on:
   push: { branches: [main] }
   pull_request:
-# Many sessions push to main: a newer push cancels the older run, and deploy
-# follows the newest green one. The gates run side by side, and turbo's cache
-# carries over between runs, so a package nobody touched is not retested.
-# Integration suites run in integration.yml and never hold a deploy (2026-10-09:
-# most red runs were stale fakes and date-bound tests, not prod bugs).
-concurrency: { group: "ci-${{ github.ref }}", cancel-in-progress: true }
+# Many sessions push to main: a newer push cancels the older run's checks, and deploy
+# follows the newest green one. The gates run side by side on turbo's remote cache, so a
+# package nobody touched is not retested. Deploy waits only for the gates (2026-10-22: push
+# to live in minutes). Story tests and integration (integration.yml) report on their own and
+# never hold a deploy. The deploy job is never cancelled: a newer run waits for it.
 jobs:
   gates:
     strategy:
@@ -15,6 +14,7 @@ jobs:
       matrix: { gate: [lint, unit, schema] }
     name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
+    concurrency: { group: "ci-${{ github.ref }}-${{ matrix.gate }}", cancel-in-progress: true }
     # The shared remote cache (deploy/terraform/turbo-cache.tf); without secrets, local only.
     env:
       TURBO_API: ${{ secrets.TURBO_API }}
@@ -22,15 +22,7 @@ jobs:
       TURBO_TEAM: wren
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with: { node-version-file: .node-version, cache: pnpm }
-      - uses: actions/cache@v4
-        with:
-          path: .turbo/cache
-          key: turbo-${{ matrix.gate }}-${{ github.sha }}
-          restore-keys: turbo-${{ matrix.gate }}-
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/install
       - run: ./scripts/gates.sh ${{ matrix.gate }}
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
@@ -40,6 +32,7 @@ jobs:
   stories:
     name: test:stories
     runs-on: ubuntu-24.04-arm
+    concurrency: { group: "ci-${{ github.ref }}-stories", cancel-in-progress: true }
     container: mcr.microsoft.com/playwright:v1.63.0-noble
     env:
       TURBO_API: ${{ secrets.TURBO_API }}
@@ -52,11 +45,12 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with: { node-version-file: .node-version, cache: pnpm }
-      - uses: actions/cache@v4
-        with:
-          path: .turbo/cache
-          key: turbo-stories-${{ github.sha }}
-          restore-keys: turbo-stories-
       # The portal's page stories need the portal and all it imports; that holds @wren/ui.
       - run: pnpm install --frozen-lockfile --filter wren --filter "@wren/portal..."
       - run: ./scripts/gates.sh visual
+  deploy:
+    needs: gates
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    permissions: { id-token: write, contents: read }
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

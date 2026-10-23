@@ -256,7 +256,7 @@ function StepNode({ id }: NodeProps) {
         <span
           key={g.chip.id}
           className={cx(
-            "absolute bottom-0 left-2.5 z-1 w-fit max-w-[calc(100%-20px)] translate-y-1/2 animate-in overflow-hidden rounded-(--ui-radius) px-[9px] py-0.5 text-[12px] font-medium text-ellipsis whitespace-nowrap duration-350 ease-(--ui-ease) fade-in slide-in-from-left-[14px] motion-reduce:animate-none",
+            "absolute bottom-0 left-2.5 z-1 w-fit max-w-[calc(100%-20px)] translate-y-1/2 animate-in rounded-(--ui-radius) px-[9px] py-0.5 text-[12px] font-medium wrap-anywhere whitespace-normal duration-350 ease-(--ui-ease) fade-in slide-in-from-left-[14px] motion-reduce:animate-none",
             CHIP[g.chip.kind] ?? "bg-(--ui-ink) text-(--ui-on-ink)",
           )}
           data-kind={g.chip.kind}

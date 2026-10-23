@@ -139,3 +139,12 @@ export function senderMatches(address: string, sender: string): boolean {
   const domain = a.split("@")[1] ?? "";
   return domain === s || domain.endsWith(`.${s}`);
 }
+
+/**
+ * Instantly's warmup mail: the subject ends "| <word> <CODE>", CODE seven capitals and digits
+ * (one code is fixed per Instantly account). Warmup is not sales: it never shows or counts.
+ */
+export function isWarmupMail(subject: string): boolean {
+  const tag = /\|\s*(\S+(?:\s+\S+)?)\s*$/.exec(subject)?.[1];
+  return !!tag && tag.split(/\s+/).some((w) => /^(?=.*\d)(?=.*[A-Z])[A-Z0-9]{7}$/.test(w));
+}

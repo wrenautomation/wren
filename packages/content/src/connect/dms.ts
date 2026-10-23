@@ -405,7 +405,7 @@ export async function sentDm(
 export async function unknownDm(db: Queryable, messageId: number, why: string): Promise<void> {
   await db
     .update(reachMessages)
-    .set({ state: "unknown", stateReason: why.slice(0, 300) })
+    .set({ state: "unknown", stateReason: why.slice(0, 3000) })
     .where(eq(reachMessages.id, messageId));
 }
 
@@ -413,7 +413,7 @@ export async function unknownDm(db: Queryable, messageId: number, why: string): 
 export async function dropDm(db: Queryable, messageId: number, why: string): Promise<void> {
   const [m] = await db
     .update(reachMessages)
-    .set({ state: "skipped", stateReason: why.slice(0, 300) })
+    .set({ state: "skipped", stateReason: why.slice(0, 3000) })
     .where(and(eq(reachMessages.id, messageId), eq(reachMessages.state, "unknown")))
     .returning({ id: reachMessages.id });
   if (!m) throw new ReachRefusal("that answer is no longer waiting");
@@ -447,6 +447,6 @@ export async function dmPlanOf(db: Queryable, messageId: number): Promise<DmPlan
 export async function failedDm(db: Queryable, messageId: number, why: string): Promise<void> {
   await db
     .update(reachMessages)
-    .set({ state: "failed", stateReason: why.slice(0, 300) })
+    .set({ state: "failed", stateReason: why.slice(0, 3000) })
     .where(eq(reachMessages.id, messageId));
 }

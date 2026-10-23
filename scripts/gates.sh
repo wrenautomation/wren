@@ -19,7 +19,7 @@ if [ -z "${CI:-}" ]; then
   fi
 fi
 WIDE=${CI:+--concurrency=100%}
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && stories && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
+lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
 map() { echo "==> map" && map/_meta/build.sh --check && scorecard; }
 # Scorecards (map/_meta/scorecard.mjs): each package and Restate service graded on map card, tests,
 # health and owner card; the worst rows print. Informational: it fails only with WREN_SCORECARD_MIN
@@ -30,7 +30,8 @@ scorecard() {
       [ -z "${WREN_SCORECARD_MIN:-}" ]; }
 }
 # Each Storybook's build, `@wren/ui`'s and the portal's pages (designs/2026-10-17-storybook-visual-tests.md,
-# 2026-10-18-portal-page-stories.md): a story that breaks fails here; an unchanged one is a turbo cache hit.
+# 2026-10-18-portal-page-stories.md). Not in lint (10-22): the story tests compile every story, and the
+# portal's build (44 MB) is over the remote cache's 6 MB body cap, so lint rebuilt it every run.
 stories() { echo "==> stories build" && pnpm turbo run stories:build --concurrency=1 --output-logs=errors-only; }
 # Every story as a test: it renders, its play runs, axe checks it (light at 390, dark at 1280).
 # One package at a time: each starts a Chromium, and the Mac holds one.
@@ -41,6 +42,12 @@ look() {
   echo "==> page layout, messy data" &&
     pnpm turbo run stories:build --filter=@wren/portal --output-logs=errors-only &&
     (cd apps/portal && pnpm -s exec wren-look --all --static storybook-static --messy)
+}
+# Parts against the artifacts, as computed styles (designs/2026-10-21-artifact-match.md). Part of ui.
+match() {
+  echo "==> artifact match" &&
+    pnpm turbo run stories:build --filter=@wren/ui --output-logs=errors-only &&
+    (cd packages/ui && node .storybook/match.mjs --static storybook-static)
 }
 # Every transaction names its level through @wren/db's atomic/snapshot/serializable
 # (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
@@ -108,10 +115,10 @@ integration() {
     case "${WREN_SHARD:-1/1}" in 1/*) spam ;; esac
 }
 # The deploy gate's database checks: drizzle's schema matches the migrations, and the legacy email tables still read.
+# A turbo task: when neither package nor anything it imports changed, a cache hit.
 schema() {
   echo "==> schema (needs Docker)" &&
-    (cd packages/db && pnpm -s vitest run test/integration/schema.test.ts) &&
-    (cd packages/channel-email && pnpm -s vitest run test/integration/legacy-parity.test.ts)
+    pnpm turbo run test:schema --output-logs=errors-only
 }
 # Every template option through SpamAssassin (designs/2026-10-05-deliverability-tests.md); one over 2.0 fails.
 # The CLI wants a database URL at start; spamcheck reads none without --drafts, and CI has none.
@@ -137,7 +144,7 @@ ui() {
     pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
     writes && edits && reads && libs &&
     echo "==> unit tests related to the changed files" &&
-    related packages/ui "$files" && related apps/portal "$files" && visual && look
+    related packages/ui "$files" && related apps/portal "$files" && visual && look && match
 }
 # `vitest related` in one package, on its changed .ts/.tsx files; none changed, nothing runs.
 related() {
@@ -150,8 +157,10 @@ case "${1:-all}" in
   changed) changed ;;
   ui) ui ;;
   unit) unit ;;
+  stories) stories ;;
   visual) visual ;;
   look) look ;;
+  match) match ;;
   integration) integration ;;
   schema) schema ;;
   drift) drift ;;
@@ -159,5 +168,5 @@ case "${1:-all}" in
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
   checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|changed|ui|checks|unit|visual|look|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
+  *) echo "usage: $0 [lint|changed|ui|checks|unit|stories|visual|look|match|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac

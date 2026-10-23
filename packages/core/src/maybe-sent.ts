@@ -64,7 +64,7 @@ export async function sendOnce<S>(o: SendOnce<S>): Promise<SendOutcome<S>> {
     }
     if (err instanceof SendUnknown) return { kind: "unsure", why: err.reason };
     if (trace.wrote)
-      return { kind: "unsure", why: `a write answered, then: ${said(err).slice(0, 200)}` };
+      return { kind: "unsure", why: `a write answered, then: ${said(err).slice(0, 2000)}` };
     throw err;
   }
 }

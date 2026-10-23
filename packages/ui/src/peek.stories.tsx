@@ -205,9 +205,10 @@ export const PanelOrSheet: Story = {
     const peek = await peekOf();
     await within(peek).findByRole("heading", { name: "Ada North" });
     if (isWide(canvasElement)) {
-      // Docked in the list's panel (artifact `.nt-pk`): its right half, not over the page.
+      // Docked beside the list (artifact `.nt-pk`): its right half, not over the page. The page
+      // scrolls, so the peek sticks in view while the rows move under it.
       expect(peek.tagName).toBe("ASIDE");
-      expect(getComputedStyle(peek).position).toBe("static");
+      expect(getComputedStyle(peek).position).toBe("sticky");
       // A grid cell, so a short list never cuts the record off.
       expect(peek.scrollHeight).toBeLessThanOrEqual(peek.clientHeight + 1);
       const list = canvasElement.querySelector("table")?.closest("[class*='grid-cols-2']");
