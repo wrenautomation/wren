@@ -72,6 +72,38 @@ What is missing:
 - Default groups. A run of stations on one line in one column folds into one capsule when the draft names no group. Today a group must be named. This makes a vague map (William's "keep it vague") the default zoom.
 - Sketch to draft. Today an agent reads the canvas by hand, as on 10-23. A `wren shape from-sketch <png>` only wraps that. Not worth code yet.
 
+## Algorithms on the trails
+
+The trails are an event log: one case per journey, one event per crossing. Known methods then apply.
+
+1. **Process mining** (van der Aalst).
+   - Conformance: replay each trail on the shape. A move off the drawn path is a skip or a gap. This feeds the skip arcs above.
+   - Discovery (Inductive Miner): build a shape from logs only. Use it to start a client's map from their CRM export.
+   - Framework: PM4Py (open source, Python). Wren is TypeScript, so it runs as an edge job, or we port the one method we need.
+2. **Absorbing Markov chains.**
+   - Each edge's chance comes from the trails. Money and dropped are end states.
+   - The fundamental matrix N = (I − Q)⁻¹ gives each station its chance of reaching money and the expected steps to get there. Weight steps by dwell time to get days.
+   - One formula gives lead scores, a value per node, and the step where a fix pays most.
+3. **Workflow-net soundness** (van der Aalst).
+   - When tokens come, this check runs before a draft is applied. It proves no person can deadlock at a join, and every token can reach an end.
+   - It is the check for split and join stations.
+4. **Minimization (Hopcroft) and bisimulation.**
+   - Two stations that act the same can merge. Same means the same moves out, to the same places.
+   - This can drive the default groups: the map folds stations that act as one. The vague map then follows the data, not taste.
+
+Less useful here:
+
+- Subset construction (NFA to DFA): the runtime already holds one state.
+- Automata learning (L*, RPNI): process mining does the same job better on noisy logs.
+- Sequence mining (PrefixSpan): useful only to list the top paths.
+
+Order:
+
+1. Conformance on trails. It feeds the skip arcs.
+2. Markov values for each node.
+3. Discovery for client onboarding.
+4. Soundness, only when tokens are built.
+
 ## Open decisions
 
 1. Tokens: wait for the first split a client needs (recommended), or build now.
@@ -82,3 +114,4 @@ What is missing:
 
 - 2026-10-23: the NFA stays in the backend; the map stays a metro map. William.
 - 2026-10-23: skips need no runtime change; the map draws them from trails.
+- 2026-10-23: trail algorithms added (process mining, absorbing Markov chains, soundness, minimization), in that build order. William.
