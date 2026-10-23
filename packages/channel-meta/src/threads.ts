@@ -15,6 +15,7 @@ import {
   type Post,
   type Published,
   type PublishedRow,
+  pageFollowing,
   pageOf,
   previewOf,
   publicUrlOf,
@@ -87,6 +88,14 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
 
   return {
     platform: "threads",
+    // The Threads profile's Following tab, through Instagram's sign-in (the API lists no follows).
+    following: () =>
+      pageFollowing(
+        sites,
+        "instagram",
+        "/web/threads/following",
+        (h) => `https://www.threads.com/@${h}`,
+      ),
     async publish(p: Post): Promise<Published> {
       const f = fieldsOf("threads", p.extra);
       const media = p.media;

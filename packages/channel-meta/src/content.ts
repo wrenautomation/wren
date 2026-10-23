@@ -29,6 +29,7 @@ import {
   type Post,
   type Published,
   type PublishedRow,
+  pageFollowing,
   pageOf,
   previewOf,
   publicUrlOf,
@@ -313,6 +314,9 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
   }
   return {
     platform: "instagram",
+    // The signed-in page's Following list (the Graph API lists no follows).
+    following: () =>
+      pageFollowing(sites, "instagram", "/web/following", (h) => `https://www.instagram.com/${h}/`),
     async publish(post: Post): Promise<Published> {
       const f = fieldsOf("instagram", post.extra);
       const ig = await igUser();

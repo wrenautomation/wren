@@ -24,6 +24,7 @@ import {
   type Post,
   type Published,
   type PublishedRow,
+  pageFollowing,
   pageOf,
   previewOf,
   type SiteClient,
@@ -41,6 +42,9 @@ export function instagramWebContent(
   const now = o.now ?? (() => new Date());
   return {
     platform: "instagram",
+    // The signed-in page's Following list (the Graph API lists no follows).
+    following: () =>
+      pageFollowing(sites, "instagram", "/web/following", (h) => `https://www.instagram.com/${h}/`),
     async publish(post: Post): Promise<Published> {
       if (isCarousel({ platform: "instagram", extra: post.extra ?? null }))
         throw new ShapeError("instagram: a carousel posts through the API, not the web composer");

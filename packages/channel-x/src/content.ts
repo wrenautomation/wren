@@ -14,7 +14,6 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
-  type FollowingRow,
   type InsightGap,
   type Insights,
   type InsightsQuery,
@@ -29,6 +28,7 @@ import {
   type Post,
   type Published,
   type PublishedRow,
+  pageFollowing,
   pageOf,
   previewOf,
   readGroup,
@@ -282,27 +282,9 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         q,
       );
     },
-    // The signed-in page's Following list (X's free API has no follows): no follow times.
-    async following(): Promise<FollowingRow[]> {
-      const r = await sites.call<{ data?: Array<{ username?: string; name?: string }> }>(
-        "x",
-        "GET",
-        "/2/users/me/following",
-        {},
-      );
-      return (r.data ?? []).flatMap((u) =>
-        u.username
-          ? [
-              {
-                handle: u.username,
-                name: u.name ?? null,
-                url: `https://x.com/${u.username}`,
-                at: null,
-              },
-            ]
-          : [],
-      );
-    },
+    // The signed-in page's Following list (X's free API has no follows).
+    following: () =>
+      pageFollowing(sites, "x", "/2/users/me/following", (h) => `https://x.com/${h}`),
     async audience(): Promise<Audience> {
       const r = await sites.call<Me>("x", "GET", "/2/users/me", {
         "user.fields": "id,username,public_metrics",

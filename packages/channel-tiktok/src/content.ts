@@ -26,6 +26,7 @@ import {
   type Post,
   type Published,
   type PublishedRow,
+  pageFollowing,
   pageOf,
   previewOf,
   publicUrlOf,
@@ -186,6 +187,9 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
   }
   return {
     platform: "tiktok",
+    // The signed-in profile's Following dialog (no TikTok API lists follows).
+    following: () =>
+      pageFollowing(sites, "tiktok", "/web/following", (h) => `https://www.tiktok.com/@${h}`),
     async publish(post: Post): Promise<Published> {
       if (post.media?.kind !== "video") throw new Error("tiktok: a post is a video");
       const f = fieldsOf("tiktok", post.extra);

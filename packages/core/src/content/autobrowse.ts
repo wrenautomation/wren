@@ -7,7 +7,7 @@
  * `./restate.js`, which reaches the box through Restate without a port.
  */
 import type { FetchLike } from "../doh.js";
-import type { FetchedWith } from "./index.js";
+import type { FetchedWith, FollowingRow } from "./index.js";
 
 export type SiteMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -22,6 +22,29 @@ export interface SiteClient {
   ): Promise<T>;
   /** How the worker answers a route now; `api` or `browser` (`none` when it cannot yet). */
   via(site: string, method: SiteMethod, path: string): Promise<FetchedWith | "none">;
+}
+
+/**
+ * Our follow list read off a signed-in page (`{ data: [{ username, name }] }`, as autobrowse
+ * answers X, Instagram, Threads and TikTok): no follow times, so the read time is kept.
+ */
+export async function pageFollowing(
+  sites: SiteClient,
+  site: string,
+  path: string,
+  profile: (handle: string) => string,
+): Promise<FollowingRow[]> {
+  const r = await sites.call<{ data?: Array<{ username?: string; name?: string | null }> }>(
+    site,
+    "GET",
+    path,
+    {},
+  );
+  return (r.data ?? []).flatMap((u) =>
+    u.username
+      ? [{ handle: u.username, name: u.name ?? null, url: profile(u.username), at: null }]
+      : [],
+  );
 }
 
 export class SiteCallError extends Error {
