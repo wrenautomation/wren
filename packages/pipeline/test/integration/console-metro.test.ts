@@ -182,4 +182,28 @@ describe("a metro newest", () => {
     await expect(api().shapePreview({ ...op(), text })).rejects.toMatchObject(refusal);
     await expect(api().shapeImport({ ...op(), text, note: "x" })).rejects.toMatchObject(refusal);
   });
+
+  it("attaches and detaches on a station as new versions, with notes, and refuses a repeat", async () => {
+    const before = metroView((await newestShape(pg.db))?.body as StoredBody);
+    const station = before.stations.find((x) => x.id === "booked");
+    const add = { kind: "link" as const, ref: "https://example.test/sop", label: "Booking SOP" };
+    const v = await api().shapeAttach({ ...op(), on: "station", id: "booked", add });
+    expect(v.version).toBe(7);
+    const after = metroView((await newestShape(pg.db))?.body as StoredBody);
+    expect(after.stations.find((x) => x.id === "booked")?.attach).toEqual([add]);
+    const notes = (await shapeVersionsOf(pg.db)).map((r) => r.note);
+    expect(notes.at(-1)).toBe(`Attach link "Booking SOP" to ${station?.label}.`);
+    await expect(api().shapeAttach({ ...op(), on: "station", id: "booked", add })).rejects.toThrow(
+      /already has attach/,
+    );
+    await expect(api().shapeAttach({ ...op(), on: "station", id: "booked" })).rejects.toThrow(
+      /exactly one/,
+    );
+    expect(
+      await api().shapeAttach({ ...op(), on: "station", id: "booked", remove: add.ref }),
+    ).toEqual({ version: 8 });
+    expect((await shapeVersionsOf(pg.db)).at(-1)?.note).toBe(
+      `Detach link "Booking SOP" from ${station?.label}.`,
+    );
+  });
 });

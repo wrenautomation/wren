@@ -5,7 +5,26 @@
 import type { VersionLine } from "@wren/pipeline/history";
 import type { MetroBody } from "@wren/pipeline/metro";
 import type { ShapeBody } from "@wren/pipeline/model";
-import { money, num } from "@wren/ui";
+import { canAt, money, num } from "@wren/ui";
+import type { PageProps } from "../module.js";
+
+/** The same check the server's guard makes for a shape write: it works the Journeys app. */
+export function mayEditShape(p: Pick<PageProps, "team" | "demo" | "can" | "who" | "client">) {
+  return (
+    !!p.team &&
+    !p.demo &&
+    canAt(
+      {
+        team: p.team,
+        demo: p.demo,
+        ...(p.can ? { can: p.can } : {}),
+        ...(p.who ? { who: p.who } : {}),
+      },
+      "act",
+      { client: p.client, app: "deals" },
+    )
+  );
+}
 
 export const WINDOWS = [
   { id: "7", label: "7 days" },

@@ -10,7 +10,7 @@
  */
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
-import { Button, canAt, Icon, LoadFailed, SELECT_CLASS, Segmented } from "@wren/ui";
+import { Button, Icon, LoadFailed, SELECT_CLASS, Segmented } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   LEVEL_NAMES,
@@ -41,7 +41,7 @@ import { fileNameOf, saveText } from "./file.js";
 import { History } from "./History.js";
 import { ImportPanel, useImportPreview } from "./Import.js";
 import { type Kept, keepView, recallView } from "./kept.js";
-import { type MapData, WINDOWS, type Window, windowOf } from "./model.js";
+import { type MapData, mayEditShape, WINDOWS, type Window, windowOf } from "./model.js";
 import { holds, NodePanel } from "./NodePanel.js";
 import { messageOf, Refused } from "./Refused.js";
 import { useDiffOf, useDraftDetail, useMap } from "./read.js";
@@ -153,20 +153,7 @@ export function MapPage({
   const at = atOf(props.client);
   const read = useMap(props.client, window);
   const data: MapData | null = read.data?.map ?? null;
-  // The same check the server's guard makes for a shape write: it works the Journeys app.
-  const mayEdit =
-    !!props.team &&
-    !props.demo &&
-    canAt(
-      {
-        team: props.team,
-        demo: props.demo,
-        ...(props.can ? { can: props.can } : {}),
-        ...(props.who ? { who: props.who } : {}),
-      },
-      "act",
-      { client: props.client, app: "deals" },
-    );
+  const mayEdit = mayEditShape(props);
   const newest = newestOf(data?.versions ?? []);
 
   // The panel is in the address: `?node=`, `?track=` or `?line=`.

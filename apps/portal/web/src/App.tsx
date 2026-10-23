@@ -41,6 +41,7 @@ import {
   usePref,
   type Viewer,
 } from "@wren/ui";
+import type { MetroPart } from "@wren/ui/metro";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
@@ -52,6 +53,8 @@ import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
 import { keep, recall } from "./local.js";
 import { LookProvider } from "./look-pref.js";
+import { FocusPage } from "./map/FocusPage.js";
+import { partOfPath } from "./map/focus.js";
 import { MapHome } from "./map/Home.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
@@ -206,14 +209,18 @@ export function pinLines(pins: readonly string[], apps: Module[], atWren = true)
   });
 }
 
-/** Where an address goes: an app's page, Today (`launcher`), or elsewhere (`to`) once the viewer is known. */
+/**
+ * Where an address goes: an app's page, Today (`launcher`), a part of the Map (`focus`, Wren's team
+ * only), or elsewhere (`to`) once the viewer is known.
+ */
 type Place =
   | { kind: "page"; module: Module; page: ModulePage }
   | { kind: "launcher" }
+  | { kind: "focus"; part: MetroPart }
   | { kind: "go"; to: string }
   | { kind: "wait" };
 
-function place(path: string[], apps: Module[], known: boolean): Place {
+function place(path: string[], apps: Module[], known: boolean, team = false): Place {
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
   const home = cards.length === 1 && only ? firstOf(only) : "/";
@@ -221,6 +228,8 @@ function place(path: string[], apps: Module[], known: boolean): Place {
     if (!known) return { kind: "wait" };
     return home === "/" ? { kind: "launcher" } : { kind: "go", to: home };
   }
+  const part = team ? partOfPath(path) : null;
+  if (part) return { kind: "focus", part };
   const module = apps.find((m) => m.id === path[0]);
   const page = module?.pages.find((p) => p.id === path[1]);
   if (module && page) return { kind: "page", module, page };
@@ -316,7 +325,7 @@ export function App() {
   const home = launcher ?? (only ? firstOf(only) : "/");
   const account = apps.find((m) => m.menu);
 
-  const at = place(route.path, apps, me.data !== null);
+  const at = place(route.path, apps, me.data !== null, team);
   // What he keeps here (pins, tiles): Wren's apps, or this client; never on a demo.
   const sample = onDemo !== false || !!clients.find((c) => c.id === current?.id)?.demo;
   const keeper =
@@ -444,7 +453,7 @@ export function App() {
         ) : null}
       </Gate>
     );
-  if (at.kind !== "page" && at.kind !== "launcher") return null;
+  if (at.kind === "go" || at.kind === "wait") return null;
 
   const demo = onDemo ?? false;
   // A client's person in more than one opens another from ⌘K.
@@ -507,7 +516,10 @@ export function App() {
   const fixed = sidebarOf(cards);
   // Wren's own workspace lists every other app under its area too; a client's keeps the five.
   const more = wren ? sidebarAreasOf(cards) : [];
-  const listed = new Set([...fixed.map((f) => f.app.id), ...more.flatMap((a) => a.apps.map((m) => m.id))]);
+  const listed = new Set([
+    ...fixed.map((f) => f.app.id),
+    ...more.flatMap((a) => a.apps.map((m) => m.id)),
+  ]);
   const areas: NavArea[] | undefined = launcher
     ? [
         {
@@ -710,6 +722,12 @@ export function App() {
                   </AboutProvider>
                 </LookProvider>
               </Contained>
+            ) : at.kind === "focus" ? (
+              <FocusPage
+                key={`${current.id}:${at.part.kind}:${at.part.id}`}
+                props={props(current.id)}
+                part={at.part}
+              />
             ) : team ? (
               <MapHome
                 key={current.id}

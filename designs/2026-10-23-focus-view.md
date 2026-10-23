@@ -60,9 +60,9 @@ Why a version and not a side table: an attach is part of the business design. It
 
 **Look.** Header `.atop`: the crumb (`.crumb`, 13px ink-3, the last crumb bold ink), the part name (22px, -0.02em), one line of numbers (13.5px ink-2). Grid `minmax(0,1fr) 250px`. Under 760px the panel drops under the map. NodePanel's `Card`, `Numbers` and `PeopleHere` are reused, not copied.
 
-**Open from the Map.** The Map's panel for a station or line gets "Focus" (a link to its URL). A group fold gets one too. ⌘K station results open the focus URL.
+**Open from the Map.** The Map's panel for a station or line gets "Focus" (a link to its URL). ⌘K station results open the focus URL. A group fold gets no Focus link yet: a fold toggles inside the map (`@wren/ui` metro), so a link there is a part change. A station's breadcrumb reaches its group.
 
-**Story.** `pages-wren` story for `/map/line/<id>` and `/map/station/<id>` on MSW: render, play (stub click, Esc), axe.
+**Story.** `pages-map` stories `FocusStation`, `FocusLine`, `FocusMissing`, `FocusFromPanel` on MSW: render, play (stub click, Esc, attach, remove), axe.
 
 ## F2. Saved views
 
@@ -95,4 +95,5 @@ The open questions: does Inbox narrow to the view's people, or to its apps? Does
 ## Decision log
 
 - 2026-10-23 William: read and attach only; the whole portal follows the focus later; all apps back in Wren's sidebar, Marketing first.
+- 2026-10-23 F1 built: the attach panel is a `section` (an `aside` inside `main` fails axe); `PeopleHere` takes a heading level.
 - 2026-10-23: attach writes a shape version (merge, diff, blame and undo come free). Saved views reuse `saved_views`.

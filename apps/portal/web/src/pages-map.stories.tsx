@@ -16,6 +16,7 @@ import { SHAPE_GRAPH, SHAPE_METRO } from "./mocks/data/journeys.js";
 import {
   bigAnswers,
   FILE_TEXT,
+  focusAnswers,
   forgetMapCalls,
   liveShape,
   MAP_CALLS,
@@ -1095,3 +1096,107 @@ export const NoTasks: StoryObj<typeof TodayTasks> = {
     await expect(await within(canvasElement).findByText("No tasks waiting.")).toBeVisible();
   },
 };
+
+/** The focus page's heading: the part's name, once its read is in. */
+const focusHead = (page: HTMLElement, name: string) =>
+  within(page).findByRole("heading", { level: 1, name }, LATE);
+
+/**
+ * A station's focus page (designs/2026-10-23-focus-view.md, F1): the crumbs up through its line
+ * and group, its SOP and apps in Attached, a stub to the next station, Esc up one crumb.
+ */
+export const FocusStation = mapAt("/map/station/book", {
+  answers: focusAnswers(SHARED),
+  check: async (page) => {
+    await focusHead(page, "Book");
+    const crumbs = within(page).getByRole("navigation", { name: "Breadcrumb" });
+    await expect(
+      within(crumbs)
+        .getAllByRole("link")
+        .map((a) => a.textContent),
+    ).toEqual(["Map", "Growth", "Sales talk"]);
+    const attached = within(page).getByRole("region", { name: "Attached" });
+    await expect(within(attached).getByRole("link", { name: "Booking SOP" })).toHaveAttribute(
+      "href",
+      "/library/sops/booking",
+    );
+    await expect(within(attached).getByRole("heading", { name: "Apps" })).toBeVisible();
+    // A stub focuses the part on its far side.
+    await userEvent.click(
+      await (await mapOf(page)).findByRole("button", { name: "to Held" }, LATE),
+    );
+    await focusHead(page, "Held");
+    // Esc goes up one crumb: the group, then the line.
+    await userEvent.keyboard("{Escape}");
+    await focusHead(page, "Sales talk");
+    await expect(within(page).getByText(/^Group · Now:/)).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await focusHead(page, "Growth");
+  },
+});
+
+/** A line's focus page: its own link, each station's attachments under the station, and + Attach. */
+export const FocusLine = mapAt("/map/line/growth", {
+  answers: focusAnswers(SHARED),
+  check: async (page) => {
+    await focusHead(page, "Growth");
+    const attached = within(page).getByRole("region", { name: "Attached" });
+    await expect(within(attached).getByRole("link", { name: "Deck" })).toHaveAttribute(
+      "href",
+      "https://example.test/growth-deck",
+    );
+    await expect(within(attached).getByRole("link", { name: "Book" })).toBeVisible();
+    await expect(within(attached).getByRole("link", { name: "Booking SOP" })).toBeVisible();
+    await expect(within(page).getByRole("region", { name: "People here" })).toBeVisible();
+    // Attach a link: one call, on the line.
+    await userEvent.click(within(attached).getByRole("button", { name: "+ Attach" }));
+    const form = within(attached).getByRole("form", { name: "Attach to Growth" });
+    await userEvent.type(
+      within(form).getByRole("textbox", { name: "Ref" }),
+      "https://example.test/script",
+    );
+    await userEvent.type(within(form).getByRole("textbox", { name: "Label" }), "Call script");
+    await userEvent.click(within(form).getByRole("button", { name: "Attach" }));
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeAttach"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({
+      on: "line",
+      id: "growth",
+      add: { kind: "link", ref: "https://example.test/script", label: "Call script" },
+    });
+    // Remove sits on the line's own row only.
+    await userEvent.click(within(attached).getByRole("button", { name: "Remove Deck" }));
+    await waitFor(() => expect(MAP_CALLS).toHaveLength(2));
+    await expect(MAP_CALLS[1]?.body).toMatchObject({
+      on: "line",
+      id: "growth",
+      remove: "https://example.test/growth-deck",
+    });
+    await expect(within(attached).queryByRole("button", { name: "Remove Booking SOP" })).toBeNull();
+  },
+});
+
+/** A part the newest version does not hold: one line that says so, and the way back. */
+export const FocusMissing = mapAt("/map/group/gone", {
+  answers: focusAnswers(SHARED),
+  check: async (page) => {
+    await expect(
+      await within(page).findByText(/has no group called "gone"/, {}, LATE),
+    ).toBeVisible();
+    await expect(within(page).getByRole("link", { name: "Back to the Map" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+  },
+});
+
+/** The Map's station panel links to the station's focus page. */
+export const FocusFromPanel = mapAt("/", {
+  check: async (page) => {
+    await userEvent.click(await station(page, "Engaged"));
+    const panel = await within(page).findByRole("region", { name: "Engaged, details" });
+    await expect(within(panel).getByRole("link", { name: "Focus" })).toHaveAttribute(
+      "href",
+      "/map/station/engaged",
+    );
+  },
+});

@@ -2,16 +2,19 @@
  * The Map's details for one part (a pick), a card over the canvas. A station: its numbers, the
  * people on it newest first with a link to each journey, the tracks in and out, and the way into
  * the app that manages it. A track: who moves it, its promise, who waits and the crossings. A line:
- * its numbers and its stations. The hub: its leads and a link to People. Read only; the shape is
- * changed by an edit, never here.
+ * its numbers and its stations. The hub: its leads and a link to People. A station and a line
+ * link to their focus page. Read only; the shape is changed by an edit, never here.
  */
 import type { BlameLine } from "@wren/pipeline/history";
 import type { MetroStation, MetroTrack } from "@wren/pipeline/metro";
 import { Button, ButtonLink, Icon, num } from "@wren/ui";
+import type { MetroPart } from "@wren/ui/metro";
 import type { ReactNode } from "react";
 import { href } from "../route.js";
 import { BlameList } from "./BlameList.js";
+import { focusHref } from "./focus.js";
 import {
+  DEFAULT_WINDOW,
   lineSays,
   type MapData,
   type Person,
@@ -77,7 +80,7 @@ function Card({
 }
 
 /** A list of lines of text under a heading, with the window said once under it. */
-function Numbers({ lines, window }: { lines: readonly string[]; window: Window }) {
+export function Numbers({ lines, window }: { lines: readonly string[]; window: Window }) {
   return (
     <section aria-label="Numbers">
       <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
@@ -91,17 +94,21 @@ function Numbers({ lines, window }: { lines: readonly string[]; window: Window }
 }
 
 /** The people at a station, newest first, each a link to the journey. */
-function PeopleHere({
+export function PeopleHere({
   people,
   at,
+  level = 3,
 }: {
   people: readonly Person[];
   /** The workspace as a link's params. */
   at: Record<string, string>;
+  /** The heading's level: 3 under a panel's name, 2 under a page's. */
+  level?: 2 | 3;
 }) {
+  const H = level === 2 ? "h2" : "h3";
   return (
     <section aria-label="People here">
-      <h3 className={h3}>People here</h3>
+      <H className={h3}>People here</H>
       {people.length ? (
         <ul className="list-none">
           {people.slice(0, SHOWN).map((p) => (
@@ -274,17 +281,20 @@ function StationPanel(p: PartProps & { id: string }) {
       {station ? (
         <BlameList at={at} ask={{ station: id }} label="Station history" onOpen={p.onHistory} />
       ) : null}
-      {main ? (
+      {main || station ? (
         <footer className="flex flex-wrap items-center gap-2">
-          <ButtonLink href={main.href} tone="primary" size="dense">
-            Open
-          </ButtonLink>
+          {main ? (
+            <ButtonLink href={main.href} tone="primary" size="dense">
+              Open
+            </ButtonLink>
+          ) : null}
           {more.map((o) => (
             <ButtonLink key={o.href} href={o.href} tone="quiet" size="dense">
               {o.label}
             </ButtonLink>
           ))}
-          <span className="text-[12.5px] text-(--ui-ink-3)">in {main.label}</span>
+          {station ? <FocusLink part={{ kind: "station", id }} at={at} window={window} /> : null}
+          {main ? <span className="text-[12.5px] text-(--ui-ink-3)">in {main.label}</span> : null}
         </footer>
       ) : null}
     </Card>
@@ -356,7 +366,28 @@ function LinePanel(p: PartProps & { id: string }) {
         )}
       </section>
       <BlameList at={at} ask={{ line: id }} label="Line history" onOpen={p.onHistory} />
+      <footer>
+        <FocusLink part={{ kind: "line", id }} at={at} window={window} />
+      </footer>
     </Card>
+  );
+}
+
+/** "Focus": the part's own page (`/map/<kind>/<id>`), in the same workspace and window. */
+function FocusLink({
+  part,
+  at,
+  window,
+}: {
+  part: MetroPart;
+  at: Record<string, string>;
+  window: Window;
+}) {
+  const keep = new URLSearchParams({ ...at, ...(window === DEFAULT_WINDOW ? {} : { window }) });
+  return (
+    <ButtonLink href={focusHref(part, keep)} tone="quiet" size="dense">
+      Focus
+    </ButtonLink>
   );
 }
 

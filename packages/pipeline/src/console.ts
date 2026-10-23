@@ -9,7 +9,7 @@
  *   a shape file (YAML) into the next version.
  * - `shapeStart`, `shapeExport`, `shapePreview`: the Map's own: start an empty workspace from the
  *   starter, write a body as a file, and compare a file with the newest version before it saves.
- * - `shapeDraftNew|Update|Edit|Propose|Apply|Drop`, `shapeDraftPlan`, `shapeBlame`, `shapeUndoPreview`, `shapeUndo`,
+ * - `shapeDraftNew|Update|Edit|Propose|Apply|Drop`, `shapeDraftPlan`, `shapeBlame`, `shapeUndoPreview`, `shapeUndo`, `shapeAttach`,
  *   `shapeTag`: the shape's history like git (`history.ts` has what each takes and answers). A
  *   save of the shape is followed by the mirror step: the version lands as a commit in the
  *   private repo, and a failed mirror never fails the save.
@@ -53,6 +53,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
 import { z } from "zod";
+import { attachShape } from "./attach.js";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "./console-routes.js";
 import {
   applyDraft,
@@ -66,6 +67,8 @@ import {
   updateDraft,
 } from "./drafts.js";
 import type {
+  AttachAnswer,
+  AttachAsk,
   BlameAnswer,
   BlameAsk,
   DiffAnswer,
@@ -89,7 +92,7 @@ import type {
   UndoAsk,
   UndoPreviewAnswer,
 } from "./history.js";
-import { isMetro } from "./metro.js";
+import { ATTACH_KINDS, isMetro } from "./metro.js";
 import { MetroOpSchema } from "./metro-ops.js";
 import { type MirrorResult, mirrorShapes, WREN_WORKSPACE } from "./mirror.js";
 import type { ShapeBody } from "./model.js";
@@ -140,6 +143,7 @@ export type DraftDropRequest = PortalRequest & DraftDropAsk;
 export type BlameRequest = PortalRequest & BlameAsk;
 export type UndoRequest = PortalRequest & UndoAsk;
 export type TagRequest = PortalRequest & TagAsk;
+export type AttachRequest = PortalRequest & AttachAsk;
 export interface ShapeImportRequest extends PortalRequest {
   /** The shape file's YAML text. */
   text: string;
@@ -494,6 +498,20 @@ export function pipelineConsoleApi({
       );
       return { version: row.number };
     },
+    shapeAttach: async (req: AttachRequest): Promise<AttachAnswer> => {
+      const w = await workspace(req, "act");
+      const row = await refused(() =>
+        attachShape(w.db, {
+          on: req.on,
+          id: String(req.id ?? ""),
+          add: req.add ?? undefined,
+          remove: req.remove ?? undefined,
+          by: by(req),
+          triggers: TRIGGER_IDS,
+        }),
+      );
+      return { version: row.number };
+    },
     shapeTag: async (req: TagRequest): Promise<TagAnswer> => {
       const w = await workspace(req, "act");
       const row = await refused(() =>
@@ -779,6 +797,28 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
         { input: z.looseObject({ ...PORTAL_FIELDS, ...undoFields }) },
         (ctx: restate.Context, req: UndoRequest) =>
           saveThenMirror(ctx, api, "shape undo", req, api.shapeUndo),
+      ),
+      shapeAttach: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            on: z
+              .enum(["line", "station", "group"])
+              .describe("The part that holds the attach list"),
+            id: z.string().describe("The line, station or group id"),
+            add: z
+              .object({
+                kind: z.enum(ATTACH_KINDS),
+                ref: z.string().describe("An id or an https URL"),
+                label: z.string().nullish(),
+              })
+              .nullish()
+              .describe("The attach to add. Give this or remove"),
+            remove: z.string().nullish().describe("The ref to remove. Give this or add"),
+          }),
+        },
+        (ctx: restate.Context, req: AttachRequest) =>
+          saveThenMirror(ctx, api, "shape attach", req, api.shapeAttach),
       ),
       shapeTag: serviceHandler(
         {

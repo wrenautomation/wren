@@ -5,7 +5,7 @@
  * Times are ISO text: the shape every answer has on the wire.
  */
 import type { Moves } from "./carry.js";
-import type { MetroBody } from "./metro.js";
+import type { Attach, MetroBody } from "./metro.js";
 import type { MetroDiff } from "./metro-diff.js";
 import type { ShapeBody } from "./model.js";
 import type { StoredBody, StoredDiff } from "./stored.js";
@@ -225,6 +225,17 @@ export interface UndoPreviewAnswer {
   marks: MetroDiff | null;
 }
 export interface UndoAnswer {
+  version: number;
+}
+/** Add or remove one attach on a line, station or group (`shapeAttach`). */
+export interface AttachAsk {
+  on: "line" | "station" | "group";
+  id: string;
+  /** Exactly one of `add` and `remove` (the ref to remove). */
+  add?: Attach;
+  remove?: string;
+}
+export interface AttachAnswer {
   version: number;
 }
 export interface TagAsk {

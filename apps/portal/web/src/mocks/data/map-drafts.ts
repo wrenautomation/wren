@@ -244,12 +244,13 @@ const logged =
 
 const rowOf = (id: unknown) => DRAFTS.find((r) => r.id === id) ?? PROPOSED;
 
-/** The routes of drafts, tags, blame and undo. */
+/** The routes of drafts, tags, attachments, blame and undo. */
 export const DRAFT_ANSWERS: Answers = {
   "pipeline/shapeDiff": shapeDiff,
   "pipeline/shapeBlame": blame,
   "pipeline/shapeUndoPreview": undoPreview,
   "pipeline/shapeUndo": logged("shapeUndo", () => ({ version: 3 })),
+  "pipeline/shapeAttach": logged("shapeAttach", () => ({ version: 3 })),
   "pipeline/shapeTag": logged("shapeTag", (b) => ({
     name: String(b.name),
     version: Number(b.version),

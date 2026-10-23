@@ -231,6 +231,29 @@ export const SHAPE_BIG: MetroBody = {
   frames: [],
 };
 
+/**
+ * The big shape with a group on Growth's talk and things attached: a link on the line, an SOP on
+ * Book. The focus page's stories read it (designs/2026-10-23-focus-view.md, F1).
+ */
+export const SHAPE_FOCUS: MetroBody = {
+  ...SHAPE_BIG,
+  lines: SHAPE_BIG.lines.map((l) =>
+    l.id === "growth"
+      ? { ...l, attach: [{ kind: "link", ref: "https://example.test/growth-deck", label: "Deck" }] }
+      : l,
+  ),
+  stations: SHAPE_BIG.stations.map((s) =>
+    s.id === "book" ? { ...s, attach: [{ kind: "sop", ref: "booking", label: "Booking SOP" }] } : s,
+  ),
+  groups: [
+    { id: "talk", label: "Sales talk", line: "growth", stations: ["book", "held", "proposal"] },
+  ],
+};
+
+/** `focusAnswers`: the focus shape on the page. */
+export const focusAnswers = (fallback: { get: Pipeline; list: Pipeline }): Answers =>
+  shapeAnswers(fallback, SHAPE_FOCUS);
+
 /** `bigAnswers`: the big shape on the page. */
 export const bigAnswers = (fallback: { get: Pipeline; list: Pipeline }): Answers =>
   shapeAnswers(fallback, SHAPE_BIG);

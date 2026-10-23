@@ -11,7 +11,7 @@ import { call } from "../api.js";
 import { readCall, useCall } from "../load.js";
 import { WREN } from "../module.js";
 import { atOf } from "../modules/deals/board.js";
-import { mapNodeHref } from "./routes.js";
+import { focusHref } from "./focus.js";
 
 const key = (client: string) => `shape-nodes:${client}`;
 
@@ -44,7 +44,7 @@ export const useShapeNodes = (client: string) => useCall(key(client), () => read
 export const offerLinesOf = (lines: readonly MetroLine[] | undefined): MetroLine[] =>
   (lines ?? []).filter((l) => l.tier === "core");
 
-/** ⌘K's stations: the metro stations whose label or id has the typed words, each opening on the Map. */
+/** ⌘K's stations: the metro stations whose label or id has the typed words, each opening its focus page. */
 export async function stationItems(client: string, words: string): Promise<PaletteItem[]> {
   const q = words.trim().toLowerCase();
   if (!q) return [];
@@ -54,7 +54,10 @@ export async function stationItems(client: string, words: string): Promise<Palet
     .map((s) => ({
       label: s.label,
       group: "Stations",
-      href: mapNodeHref(s.id, client === WREN.id ? null : client),
+      href: focusHref(
+        { kind: "station", id: s.id },
+        new URLSearchParams(client === WREN.id ? {} : { client }),
+      ),
       icon: "workflow" as const,
       hint: s.kind,
     }));
