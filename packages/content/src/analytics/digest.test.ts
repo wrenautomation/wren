@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withCounts } from "../restate/metrics.js";
+import { lookOf, withCounts } from "../restate/metrics.js";
 import { CADENCE_GOALS } from "./catalog.js";
 import { buildDigest, type DigestPost } from "./digest.js";
 
@@ -104,5 +104,31 @@ describe("withCounts", () => {
       "comments",
       "shares",
     ]);
+  });
+});
+
+describe("lookOf", () => {
+  it("a look from insights that read the counts; impressions stand in for views", () => {
+    const i = {
+      values: [
+        { metric: "impressions", value: 72 },
+        { metric: "comments", value: 1 },
+        { metric: "viewer_country", key: "CA", value: 50 },
+      ],
+      gaps: [],
+      asOf: "2026-10-12T00:00:00Z",
+    };
+    expect(lookOf("p1", { ...i, fetchedWith: "browser" })).toEqual({
+      id: "p1",
+      views: 72,
+      reactions: 0,
+      comments: 1,
+      shares: 0,
+      asOf: "2026-10-12T00:00:00Z",
+      fetchedWith: "browser",
+    });
+    // Insights that did not read the post's own counts give no look; nor do none at all.
+    expect(lookOf("p1", i)).toBeNull();
+    expect(lookOf("p1", { values: [], gaps: [], asOf: i.asOf, fetchedWith: "browser" })).toBeNull();
   });
 });

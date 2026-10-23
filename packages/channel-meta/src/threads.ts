@@ -6,22 +6,32 @@
  * with `reply_to_id`. Links ride as a card (`link_attachment`) on a text post.
  */
 import {
+  type AccountInsights,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type InsightGap,
+  type Insights,
+  type InsightsQuery,
+  type InsightValue,
+  knownGaps,
   type ListQuery,
+  METRICS as M,
   type MediaHost,
   type Metrics,
   type Post,
+  numberOf,
   type Published,
   type PublishedRow,
   pageFollowing,
   pageOf,
   previewOf,
   publicUrlOf,
+  readGroup,
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf } from "@wren/core/content/shapes";
+import { igFollowersOf } from "./content.js";
 import { VIDEO_WAITS_MS } from "./poll.js";
 
 /** Status reads of a words or image container before its publish: 1 minute in all. */
@@ -42,8 +52,41 @@ interface Edge<T> {
 interface Insight {
   name: string;
   values?: Array<{ value?: number }>;
-  total_value?: { value?: number };
+  total_value?: {
+    value?: number;
+    breakdowns?: Array<{ results?: Array<{ dimension_values?: string[]; value?: number }> }>;
+  };
+  /** `clicks` comes as one count per link (seen live 2026-10-23). */
+  link_total_values?: Array<{ value?: number; link_url?: string }>;
 }
+/**
+ * One number per metric. A day series gives its last day: Threads cuts days at Pacific midnight,
+ * so a UTC day's range returns two, and the last is the whole day before today. Clicks sum
+ * their links.
+ */
+const val = (r: Edge<Insight>, name: string) => {
+  const m = r.data?.find((x) => x.name === name);
+  if (m?.link_total_values) return m.link_total_values.reduce((a, v) => a + (v.value ?? 0), 0);
+  return m?.total_value?.value ?? m?.values?.at(-1)?.value;
+};
+/** Threads gives follower demographics from 100 followers; under that it answers 400. */
+const DEMOGRAPHICS_FROM = 100;
+/** A post's numbers: Threads has no watch time or reach for a post, video or not. */
+const POST = "views,likes,replies,reposts,quotes,shares,clicks";
+/** The profile's day: `views` comes as days, the rest as totals over the range. */
+const PROFILE: Record<string, string> = {
+  views: M.views,
+  likes: M.likes,
+  replies: M.comments,
+  clicks: M.linkClicks,
+  followers_count: M.followers,
+};
+const FOLLOWERS: ReadonlyArray<["country" | "city" | "age" | "gender", string]> = [
+  ["country", M.viewerCountry],
+  ["age", M.viewerAge],
+  ["gender", M.viewerGender],
+];
+const FEW = "Threads shows the followers' make-up once the profile has 100 followers";
 
 export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
@@ -148,18 +191,88 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
       const r = await sites.call<Edge<Insight>>(SITE, "GET", `/${id}/insights`, {
         metric: "views,likes,replies,reposts,quotes,shares",
       });
-      const val = (name: string) => {
-        const m = r.data?.find((x) => x.name === name);
-        return m?.total_value?.value ?? m?.values?.[0]?.value ?? 0;
-      };
+      const n = (name: string) => val(r, name) ?? 0;
       return {
         id,
-        views: val("views"),
-        reactions: val("likes"),
-        comments: val("replies"),
-        shares: val("reposts") + val("quotes") + val("shares"),
+        views: n("views"),
+        reactions: n("likes"),
+        comments: n("replies"),
+        shares: n("reposts") + n("quotes") + n("shares"),
         asOf: now().toISOString(),
         fetchedWith: await via("GET", "/{mediaId}/insights"),
+      };
+    },
+    async insights(q: InsightsQuery): Promise<Insights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      await readGroup(
+        [M.views, M.likes, M.comments, M.shares, M.linkClicks],
+        async () => {
+          const r = await sites.call<Edge<Insight>>(SITE, "GET", `/${q.id}/insights`, {
+            metric: POST,
+          });
+          const n = (name: string) => val(r, name);
+          const shared = [n("reposts"), n("quotes"), n("shares")];
+          return [
+            ...numberOf(M.views, n("views")),
+            ...numberOf(M.likes, n("likes")),
+            ...numberOf(M.comments, n("replies")),
+            ...(shared.some((x) => x !== undefined)
+              ? numberOf(M.shares, shared.reduce<number>((a, x) => a + (x ?? 0), 0))
+              : []),
+            ...numberOf(M.linkClicks, n("clicks")),
+          ];
+        },
+        out,
+      );
+      return { ...out, asOf: now().toISOString() };
+    },
+    async accountInsights(): Promise<AccountInsights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      // Yesterday, whole: today's numbers are still moving.
+      const until = new Date(`${now().toISOString().slice(0, 10)}T00:00:00Z`);
+      const since = new Date(until.getTime() - 86_400_000);
+      const sec = (d: Date) => Math.floor(d.getTime() / 1000);
+      let followers: number | null = null;
+      await readGroup(
+        Object.values(PROFILE),
+        async () => {
+          const r = await sites.call<Edge<Insight>>(SITE, "GET", "/me/threads_insights", {
+            metric: Object.keys(PROFILE).join(","),
+            since: sec(since),
+            until: sec(until),
+          });
+          followers = val(r, "followers_count") ?? null;
+          return Object.entries(PROFILE).flatMap(([theirs, ours]) => numberOf(ours, val(r, theirs)));
+        },
+        out,
+      );
+      const few: string[] = [];
+      for (const [breakdown, metric] of FOLLOWERS)
+        if (followers !== null && followers < DEMOGRAPHICS_FROM) few.push(metric);
+        else
+          await readGroup(
+          [metric],
+          async () => {
+            const r = await sites.call<Edge<Insight>>(SITE, "GET", "/me/threads_insights", {
+              metric: "follower_demographics",
+              breakdown,
+            });
+            const got = igFollowersOf(
+              metric,
+              r.data?.find((d) => d.name === "follower_demographics"),
+            );
+            if (!got.length) few.push(metric);
+            return got;
+          },
+          out,
+        );
+      out.gaps.push(...knownGaps("waiting", FEW, few));
+      return {
+        days: out.values.length
+          ? [{ day: since.toISOString().slice(0, 10), values: out.values }]
+          : [],
+        gaps: out.gaps,
+        asOf: now().toISOString(),
       };
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {

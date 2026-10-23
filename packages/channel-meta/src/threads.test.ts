@@ -109,3 +109,67 @@ describe("threads content channel", () => {
     expect(calls.at(-3)?.[2]).toEqual({ media_type: "TEXT", text: "thanks", reply_to_id: "r1" });
   });
 });
+
+describe("threads insights", () => {
+  it("a post: views, likes, replies, the shares summed, link clicks", async () => {
+    const { sites } = fakeSites({
+      "GET /t1/insights": () => ({
+        data: [
+          { name: "views", values: [{ value: 9 }] },
+          { name: "likes", values: [{ value: 2 }] },
+          { name: "replies", values: [{ value: 1 }] },
+          { name: "reposts", values: [{ value: 1 }] },
+          { name: "quotes", values: [{ value: 1 }] },
+          { name: "shares", values: [{ value: 0 }] },
+          { name: "clicks", values: [{ value: 3 }] },
+        ],
+      }),
+    });
+    const i = await threadsContent(sites, { now }).insights?.({ id: "t1", media: null });
+    expect(i?.gaps).toEqual([]);
+    expect(i?.values).toEqual([
+      { metric: "views", value: 9 },
+      { metric: "likes", value: 2 },
+      { metric: "comments", value: 1 },
+      { metric: "shares", value: 2 },
+      { metric: "link_clicks", value: 3 },
+    ]);
+  });
+
+  it("the profile's day: yesterday, the last day's views, clicks over links; under 100 followers waits unasked", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /me/threads_insights": (input) =>
+        input?.breakdown
+          ? { data: [{ name: "follower_demographics", total_value: { breakdowns: [{ results: [] }] } }] }
+          : {
+              data: [
+                { name: "views", values: [{ value: 4 }, { value: 6 }] },
+                { name: "likes", total_value: { value: 3 } },
+                { name: "replies", total_value: { value: 1 } },
+                { name: "clicks", link_total_values: [{ value: 1, link_url: "a" }, { value: 1 }] },
+                { name: "followers_count", total_value: { value: 40 } },
+              ],
+            },
+    });
+    const a = await threadsContent(sites, { now }).accountInsights?.();
+    expect(calls[0]?.[2]).toMatchObject({ since: 1791763200, until: 1791849600 });
+    expect(a?.days).toEqual([
+      {
+        day: "2026-10-12",
+        values: [
+          { metric: "views", value: 6 },
+          { metric: "likes", value: 3 },
+          { metric: "comments", value: 1 },
+          { metric: "link_clicks", value: 2 },
+          { metric: "followers", value: 40 },
+        ],
+      },
+    ]);
+    expect(a?.gaps.map((g) => [g.metric, g.state])).toEqual([
+      ["viewer_country", "waiting"],
+      ["viewer_age", "waiting"],
+      ["viewer_gender", "waiting"],
+    ]);
+    expect(calls.filter((c) => c[2]?.breakdown)).toEqual([]);
+  });
+});

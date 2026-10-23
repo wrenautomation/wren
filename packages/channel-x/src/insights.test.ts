@@ -84,6 +84,17 @@ describe("x insights", () => {
         ["100", 5],
       ],
     );
+    // The quartiles over the plays started: the curve and the finish rate.
+    expect(
+      got?.values.filter((v) => v.metric === "retention").map((v) => [v.key, v.value]),
+    ).toEqual([
+      ["0.00", 1],
+      ["0.25", 0.75],
+      ["0.50", 0.5],
+      ["0.75", 0.25],
+      ["1.00", 0.125],
+    ]);
+    expect(got?.values.find((v) => v.metric === "finish_rate")?.value).toBe(12.5);
     expect(got?.gaps.map((g) => g.metric)).toEqual(["link_clicks", "profile_clicks"]);
   });
 
@@ -105,6 +116,7 @@ describe("x insights", () => {
       expect.objectContaining({ metric: "video_views", state: "no_api" }),
       expect.objectContaining({ metric: "playback", state: "no_api" }),
     ]);
+    expect(video?.gaps.map((g) => g.metric)).toContain("retention");
     await xContent(sites).insights?.({ id: "t1", media: "image" });
     expect(asked[1]).toEqual({});
   });

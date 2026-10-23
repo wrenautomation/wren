@@ -71,6 +71,10 @@ export interface PostAnalytics {
   sends: number | null;
   profileViewers: number | null;
   followersGained: number | null;
+  /** A video post's block; absent or null on any other post. Watch times in seconds. */
+  videoViews?: number | null;
+  watchSecs?: number | null;
+  avgWatchSecs?: number | null;
 }
 
 /** The names the analytics page answers in. */
@@ -96,6 +100,9 @@ export const analyticsValues = (a: PostAnalytics): InsightValue[] => [
   ...numberOf(M.sends, a.sends),
   ...numberOf(M.profileVisits, a.profileViewers),
   ...numberOf(M.follows, a.followersGained),
+  ...numberOf(M.videoViews, a.videoViews),
+  ...numberOf(M.watchMinutes, a.watchSecs == null ? null : Math.round((a.watchSecs / 60) * 100) / 100),
+  ...numberOf(M.avgViewSecs, a.avgWatchSecs),
 ];
 
 export interface LinkedInContentOptions {
@@ -419,7 +426,7 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
       const why = (err instanceof Error ? err.message : String(err)).slice(0, 3000);
       into.gaps.push(...knownGaps(gapStateOf(err) ?? "error", why, ANALYTICS_METRICS));
     }
-    return { ...into, asOf };
+    return { ...into, asOf, ...(into.values.length ? { fetchedWith: "browser" as const } : {}) };
   }
 
   /**

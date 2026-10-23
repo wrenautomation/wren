@@ -334,6 +334,9 @@ describe("linkedin content channel", () => {
       sends: 2,
       profileViewers: 9,
       followersGained: 1,
+      videoViews: 32,
+      watchSecs: 861,
+      avgWatchSecs: 26,
     };
     const calls: Array<[string, string | undefined]> = [];
     const sites: SiteClient = {
@@ -364,6 +367,7 @@ describe("linkedin content channel", () => {
     ]);
     expect(of("profile_visits")).toBe(9);
     expect(of("saves")).toBeUndefined();
+    expect([of("video_views"), of("watch_minutes"), of("avg_view_secs")]).toEqual([32, 14.35, 26]);
     expect(got?.gaps).toEqual([]);
   });
 

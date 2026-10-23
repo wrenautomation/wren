@@ -16,6 +16,7 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  holdAt,
   type InsightGap,
   type Insights,
   type InsightsQuery,
@@ -614,6 +615,42 @@ const keptId = (m: FbPost & { id: string }): string => {
   return a?.media_type === "video" && a.target?.id ? a.target.id : m.id;
 };
 
+/** A Reel's `video_insights`, Graph's names to ours with a scale (time comes in milliseconds). */
+const FB_REEL: Record<string, [string, number]> = {
+  post_video_avg_time_watched: [M.avgViewSecs, 1 / 1000],
+  post_video_view_time: [M.watchMinutes, 1 / 60_000],
+  post_video_followers: [M.follows, 1],
+};
+const FB_RETENTION = "post_video_retention_graph";
+/** A post's viewers, once each: Meta retired `post_impressions_unique` (v26). */
+const FB_REACH = "post_total_media_view_unique";
+/** The Page's day numbers, as a field expansion on the Page (no route beyond `/{objectId}`). */
+const FB_PAGE: Record<string, string> = {
+  page_media_view: M.views,
+  page_total_media_view_unique: M.reach,
+  page_daily_follows_unique: M.follows,
+};
+
+/**
+ * A retention graph as a curve over the video (0..1). Meta keys it by point, in order, and does
+ * not say if a point is a second or a share of the video, nor if a value is a share or a percent:
+ * the last point is the end, and any value over 1 makes them percents.
+ */
+export function fbCurveOf(graph: unknown): Array<{ ratio: number; watch: number }> {
+  if (!graph || typeof graph !== "object") return [];
+  const pts = Object.entries(graph)
+    .flatMap(([k, v]) => {
+      const at = Number(k);
+      const n = Number(v);
+      return Number.isFinite(at) && Number.isFinite(n) ? [{ at, n }] : [];
+    })
+    .sort((a, b) => a.at - b.at);
+  const end = pts.at(-1)?.at ?? 0;
+  if (end <= 0) return [];
+  const pct = pts.some((p) => p.n > 1);
+  return pts.map((p) => ({ ratio: p.at / end, watch: pct ? p.n / 100 : p.n }));
+}
+
 export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
   const { page } = pageOf_(sites, o);
@@ -788,6 +825,98 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       await sites.call("meta", "POST", `/${commentId}/comments`, { pageId, message: text });
     },
     privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
+    /**
+     * A Reel: its watch time, follows and retention curve, then its post's reach. A post: its
+     * reach. A story reads nothing: its id is gone after 24 hours.
+     */
+    async insights(q: InsightsQuery): Promise<Insights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      if (q.kind === "story") return { ...out, asOf: now().toISOString() };
+      const pageId = (await page()).id;
+      const reach = async (post: string) => {
+        const r = await sites.call<{ insights?: Edge<Insight> }>("meta", "GET", `/${post}`, {
+          fields: `insights.metric(${FB_REACH})`,
+          pageId,
+        });
+        return numberOf(M.reach, insightValue(r.insights?.data?.find((d) => d.name === FB_REACH)));
+      };
+      if (q.id.includes("_")) {
+        await readGroup([M.reach], () => reach(q.id), out);
+        return { ...out, asOf: now().toISOString() };
+      }
+      let post: string | undefined;
+      await readGroup(
+        [
+          ...Object.values(FB_REEL).map(([ours]) => ours),
+          M.durationSecs,
+          M.avgViewPct,
+          M.retention,
+          M.hold3,
+          M.hold30,
+        ],
+        async () => {
+          const r = await sites.call<{
+            length?: number;
+            post_id?: string;
+            video_insights?: Edge<Insight>;
+          }>("meta", "GET", `/${q.id}`, {
+            fields: `length,post_id,video_insights.metric(${[...Object.keys(FB_REEL), FB_RETENTION].join(",")})`,
+            pageId,
+          });
+          if (r.post_id) post = `${pageId}_${r.post_id}`;
+          const of = (n: string) => insightValue(r.video_insights?.data?.find((d) => d.name === n));
+          const len = Number(r.length);
+          const avg = Number(of("post_video_avg_time_watched")) / 1000;
+          const curve = fbCurveOf(of(FB_RETENTION));
+          const at = (secs: number) => (len > 0 ? secs / len : -1);
+          return [
+            ...Object.entries(FB_REEL).flatMap(([n, [ours, scale]]) => {
+              const v = Number(of(n));
+              return Number.isFinite(v) ? numberOf(ours, v * scale) : [];
+            }),
+            ...(len > 0 ? numberOf(M.durationSecs, len) : []),
+            ...(len > 0 && avg > 0 ? numberOf(M.avgViewPct, Math.round((avg / len) * 10_000) / 100) : []),
+            ...curve.flatMap((p) => numberOf(M.retention, p.watch, p.ratio.toFixed(2))),
+            ...(curve.length ? numberOf(M.hold3, holdAt(curve, at(3))) : []),
+            ...(curve.length ? numberOf(M.hold30, holdAt(curve, at(30))) : []),
+          ];
+        },
+        out,
+      );
+      if (post) {
+        const reel = post;
+        await readGroup([M.reach], () => reach(reel), out);
+      }
+      return { ...out, asOf: now().toISOString() };
+    },
+    async accountInsights(): Promise<AccountInsights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      // Yesterday, whole: today's numbers are still moving.
+      const until = new Date(`${now().toISOString().slice(0, 10)}T00:00:00Z`);
+      const since = new Date(until.getTime() - 86_400_000);
+      const sec = (d: Date) => Math.floor(d.getTime() / 1000);
+      const p = await page();
+      await readGroup(
+        Object.values(FB_PAGE),
+        async () => {
+          const r = await sites.call<{ insights?: Edge<Insight> }>("meta", "GET", `/${p.id}`, {
+            fields: `insights.metric(${Object.keys(FB_PAGE).join(",")}).period(day).since(${sec(since)}).until(${sec(until)})`,
+            pageId: p.id,
+          });
+          return Object.entries(FB_PAGE).flatMap(([theirs, ours]) =>
+            numberOf(ours, r.insights?.data?.find((d) => d.name === theirs)?.values?.at(-1)?.value),
+          );
+        },
+        out,
+      );
+      return {
+        days: out.values.length
+          ? [{ day: since.toISOString().slice(0, 10), values: out.values }]
+          : [],
+        gaps: out.gaps,
+        asOf: now().toISOString(),
+      };
+    },
   };
 }
 

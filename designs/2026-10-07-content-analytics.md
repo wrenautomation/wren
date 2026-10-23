@@ -144,8 +144,10 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 
 | Metric | What | Today | API and scope | Status | Stage |
 |---|---|---|---|---|---|
-| Reactions, comments | | `content_metrics` | `socialActions`, w_member_social | Live | Trust |
+| Reactions, comments | | `post_metric_days`; the look is built from the analytics page (2026-10-23: `socialActions` has no leg without r_organization_social, and a post page read found no counts in 2 live tries) | the post's analytics page, days 1, 3, 7, 14 and 28 | Waiting | Trust |
 | Impressions, members reached, reposts, saves, sends, profile views, follows from the post | | `post_metric_days` | the post's analytics page in the browser as `linkedin@wren` (autobrowse `GET /analytics/post-summary/{urn}`, capped 10 a day), read on days 1, 3, 7, 14 and 28 after it posts. The Community Management API (r_member_postAnalytics) would replace it | Waiting | Reach |
+| Video views, watch time, average watch time | video posts only | `post_metric_days` (`video_views`, `watch_minutes`, `avg_view_secs`) | the same analytics page, its "Video performance" block (seen live 2026-10-23) | Waiting | Trust |
+| Viewer demographics | | none | the analytics page said "Demographics not available yet" on 2026-10-23; format unmapped | Not built | Reach |
 | Comment reply rate, time to reply | | built here | none | Live | Trust |
 | Comment → DM, DMs answered, DM → booking | reach DMs | built here | none | Live | Convert |
 | Account: followers | | `social_days` (browser `/audience`) | none | Live | Reach |
@@ -159,6 +161,7 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Bookmarks (saves) | | collector built | `public_metrics.bookmark_count` | Live | Trust |
 | Link clicks, profile clicks | | collector built | `non_public_metrics` on the API leg (the box's default asks for them) | Live on the API leg; the browser leg leaves them out | Convert, Reach |
 | Video views, playback quartiles (0, 25, 50, 75, 100%) | | `post_metric_days` (`video_views`, `playback` keyed by percent) | media `organic_metrics` (`view_count`, `playback_*_count`) on video posts, API leg; X keeps them 30 days | Waiting | Trust |
+| Retention curve, finish rate | from the quartiles: share of starts still watching at 0, 25, 50, 75, 100% | `post_metric_days` (`retention` keyed 0.00..1.00, `finish_rate`) | derived from the playback counts | Waiting | Trust |
 | Comment reply rate, time to reply | replies need search (a paid tier) | built here over what we hold | `tweets/search/recent` | Live over held rows | Trust |
 | Comment → DM, DM → booking | a client's X DMs (`dm.read`, `dm.write`) | built here: a commenter whose X id or handle we DMed after | none | Waiting (live once an X DM is sent) | Convert |
 | Account: followers per day | | `social_days` (SocialWatch, daily) | `users/me` `public_metrics` | Waiting | Reach |
@@ -174,6 +177,28 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Comment reply rate, DM → booking | | built here | none | Live | Trust, Convert |
 | Account: followers | | `social_days` | profile `about` | Live | Reach |
 
+### Facebook (Wren's Page)
+
+Every Facebook number on prod is 0 so far: the Page gets no reach yet.
+
+| Metric | What | Today | API and scope | Status | Stage |
+|---|---|---|---|---|---|
+| Views, reactions, comments, shares | | `content_metrics` | Graph API post fields, pages_read_engagement | Live | Reach, Trust |
+| Reach | viewers once each | `post_metric_days` (`reach`) | post insights `post_total_media_view_unique` (Meta retired `post_impressions_unique`), read_insights | Waiting | Reach |
+| Reels watch time, average watch time, follows | | `post_metric_days` | Reel `video_insights` (`post_video_view_time`, `post_video_avg_time_watched`, `post_video_followers`) | Waiting | Trust |
+| Reels retention curve, 3 s and 30 s hold, average view percent | | `post_metric_days` (`retention` keyed 0..1, `hold_3s`, `hold_30s`, `avg_view_pct`) | `post_video_retention_graph`; Meta does not say if its keys are seconds or shares, so the last key is the end (unproven live) | Waiting | Trust |
+| Account: Page views, reach, follows by day | yesterday | `account_metric_days` | Page insights `page_media_view`, `page_total_media_view_unique`, `page_daily_follows_unique`, period day | Waiting | Reach |
+
+### Threads
+
+| Metric | What | Today | API and scope | Status | Stage |
+|---|---|---|---|---|---|
+| Views, likes, replies, reposts and quotes | reposts, quotes and shares sum to shares | `content_metrics` | post insights, threads_manage_insights | Live | Reach, Trust |
+| Link clicks | | `post_metric_days` (`link_clicks`) | post insights `clicks` | Waiting | Convert |
+| Video watch time, retention | | none | Threads gives no watch numbers for a post | No API | Trust |
+| Follower country, age, gender | | `account_metric_days` | `follower_demographics` by breakdown; Threads answers 400 under 100 followers, so the read waits till then | Waiting | Reach |
+| Account: profile views, likes, replies, link clicks, followers by day | yesterday; views are the last day of the series (days cut at Pacific midnight), clicks sum per link | `account_metric_days` | `/me/threads_insights` with since and until | Waiting | Reach |
+
 ### Counts
 
 | Platform | Live | Waiting | Needs scope | Needs William | Not built | No API |
@@ -182,9 +207,11 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | YouTube Shorts (past long-form) | 0 | 1 | 2 | 0 | 0 | 1 |
 | Instagram | 9 | 1 | 1 | 0 | 0 | 2 |
 | TikTok | 1 | 6 | 0 | 2 | 0 | 0 |
-| LinkedIn | 4 | 2 | 0 | 0 | 0 | 0 |
-| X | 4 | 3 | 0 | 0 | 0 | 0 |
+| LinkedIn | 3 | 4 | 0 | 0 | 1 | 0 |
+| X | 4 | 4 | 0 | 0 | 0 | 0 |
 | Reddit | 5 | 0 | 0 | 0 | 0 | 1 |
+| Facebook | 1 | 4 | 0 | 0 | 0 | 0 |
+| Threads | 1 | 3 | 0 | 0 | 0 | 1 |
 
 The same counts live in code (`ANALYTICS_CATALOG`, `packages/content/src/analytics/catalog.ts`);
 a test keeps this table and the catalog in step.

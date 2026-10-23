@@ -104,6 +104,24 @@ type ContentService = {
   ) => Promise<ReportDays | null>;
 };
 
+/**
+ * A look from insights that read the post's own counts (`fetchedWith` set), for a post whose
+ * counts read has no leg. Views are impressions where a platform has no views. Null: no counts.
+ */
+export function lookOf(id: string, i: Insights): Metrics | null {
+  if (!i.fetchedWith) return null;
+  const of = (metric: string) => i.values.find((v) => v.metric === metric && v.key == null)?.value;
+  const counts = [of("views") ?? of("impressions"), of("likes"), of("comments"), of("shares")];
+  if (counts.every((c) => c === undefined)) return null;
+  const [views, reactions, comments, shares] = counts.map((c) => c ?? 0) as [
+    number,
+    number,
+    number,
+    number,
+  ];
+  return { id, views, reactions, comments, shares, asOf: i.asOf, fetchedWith: i.fetchedWith };
+}
+
 /** The counts every look reads, under the names insights use; insights' own win a tie. */
 export function withCounts(m: Metrics, i: Insights | null): Insights {
   const got = new Set((i?.values ?? []).map((v) => `${v.metric}|${v.key ?? ""}`));
@@ -210,14 +228,24 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       const read = batched.get(post);
       if (!read && !go(`metrics ${post}`, draft.platform)) continue;
       try {
-        const m =
-          read ??
-          (await limits.within(
+        let m: Metrics | null = read ?? null;
+        // A counts read with no leg yet (501) still leaves the deeper read, which may hold the
+        // counts too (LinkedIn's analytics page): the look is then built from it.
+        let unbuilt: restate.TerminalError | null = null;
+        try {
+          m ??= await limits.within(
             `metrics ${post}`,
             content.metrics({ platform: draft.platform, id, ...(client ? { client } : {}) }),
             { ms: L.read, call: "Content/metrics", group: draft.platform },
-          ));
-        await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, m));
+          );
+        } catch (err) {
+          if (!(err instanceof restate.TerminalError) || err.code !== 501) throw err;
+          unbuilt = err;
+        }
+        if (m) {
+          const look = m;
+          await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, look));
+        }
         // Insights after the counts: a refusal here costs the deeper numbers, never the look.
         let i: Insights | null = null;
         try {
@@ -232,13 +260,19 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
                 kind: typeof draft.extra?.kind === "string" ? draft.extra.kind : null,
                 media: draft.media?.kind ?? null,
                 // What the counts read answered: a channel reuses it rather than read the post again.
-                read: m.read,
+                read: m?.read,
                 ...(client ? { client } : {}),
               }),
               { ms: L.read, call: "Content/insights", group: draft.platform },
             );
         } catch (err) {
           if (!(err instanceof restate.TerminalError)) throw err;
+        }
+        if (!m) {
+          const look = i ? lookOf(id, i) : null;
+          if (!look) throw unbuilt;
+          await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, look));
+          m = look;
         }
         const all = withCounts(m, i);
         const rows = await ctx.run(`insights ${draft.id}`, () =>

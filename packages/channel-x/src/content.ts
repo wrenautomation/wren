@@ -97,15 +97,35 @@ const VIDEO_QUERY = {
   "media.fields": "type,duration_ms,public_metrics,non_public_metrics,organic_metrics",
 };
 
-/** A video's plays and how far they got, from the first video on the post. */
+/**
+ * A video's plays and how far they got, from the first video on the post. The quartiles over
+ * the plays started make the retention curve (5 points) and the finish rate.
+ */
 export function videoWatch(media: readonly XMedia[] | undefined): InsightValue[] | null {
   const v = media?.find((m) => m.type === "video" || m.type === "animated_gif");
   if (!v) return null;
   const own = v.organic_metrics ?? v.non_public_metrics;
   const views = v.organic_metrics?.view_count ?? v.public_metrics?.view_count;
+  const started = own?.playback_0_count ?? 0;
   const out = [
     ...numberOf(M.videoViews, views),
     ...QUARTILES.flatMap((q) => numberOf(M.playback, own?.[`playback_${q}_count`], q)),
+    ...(started > 0
+      ? [
+          ...QUARTILES.flatMap((q) => {
+            const n = own?.[`playback_${q}_count`];
+            return typeof n === "number"
+              ? numberOf(M.retention, Math.round((n / started) * 10_000) / 10_000, (Number(q) / 100).toFixed(2))
+              : [];
+          }),
+          ...numberOf(
+            M.finishRate,
+            typeof own?.playback_100_count === "number"
+              ? Math.round((own.playback_100_count / started) * 10_000) / 100
+              : undefined,
+          ),
+        ]
+      : []),
   ];
   return out.length ? out : null;
 }
@@ -345,7 +365,7 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
           M.saves,
           M.linkClicks,
           M.profileClicks,
-          ...(video ? [M.videoViews, M.playback] : []),
+          ...(video ? [M.videoViews, M.playback, M.retention, M.finishRate] : []),
         ],
         async () => {
           type Answer = { data?: Tweet; includes?: { media?: XMedia[] } };
@@ -365,7 +385,7 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
               ...knownGaps(
                 "no_api",
                 "X gives a video's plays to the API leg only, for 30 days after it posts",
-                [M.videoViews, M.playback],
+                [M.videoViews, M.playback, M.retention, M.finishRate],
               ),
             );
           if (!own)

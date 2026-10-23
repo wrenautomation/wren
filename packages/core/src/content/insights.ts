@@ -5,6 +5,7 @@
  * scope never costs the numbers that came back.
  */
 import { SiteCallError } from "./autobrowse.js";
+import type { FetchedWith } from "./index.js";
 
 /**
  * Why a number is missing: a consent away, an application only William can make, not built,
@@ -43,6 +44,11 @@ export interface Insights {
   values: InsightValue[];
   gaps: InsightGap[];
   asOf: string;
+  /**
+   * Set when one leg read the post's own counts too (LinkedIn's analytics page): a post whose
+   * counts read failed takes its look from these.
+   */
+  fetchedWith?: FetchedWith;
 }
 
 export interface InsightsQuery {
