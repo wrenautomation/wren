@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { octPath, octPts, rounded } from "./geometry.js";
+import { foldIo, foldSteps, octPath, octPts, rounded } from "./geometry.js";
 
 describe("octPts", () => {
   it("keeps a straight run straight", () => {
@@ -64,5 +64,14 @@ describe("octPath", () => {
     const d = octPath([10, 20], [200, 90]);
     expect(d.startsWith("M10 20")).toBe(true);
     expect(d.endsWith("L200 90")).toBe(true);
+  });
+});
+
+describe("fold chip words", () => {
+  it("says the steps at rest and in, out and the share under a pointer", () => {
+    expect(foldSteps({ steps: 3 })).toBe("3 steps");
+    expect(foldIo({ steps: 3, io: [12, 6] })).toBe("12 \u2192 6 \u00b7 50%");
+    expect(foldIo({ steps: 3, io: [0, 0] })).toBe("0 \u2192 0");
+    expect(foldIo({ steps: 3 })).toBe("3 steps");
   });
 });

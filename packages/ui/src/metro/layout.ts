@@ -885,6 +885,7 @@ function mark(
     ...(s.group ? { g: s.group } : {}),
     ...(s.flow ? { flow: s.flow } : {}),
     ...(s.now !== undefined ? { now: s.now } : {}),
+    ...(s.arrived !== undefined ? { arrived: s.arrived } : {}),
     ...(m ? { mark: m } : {}),
     ...extra,
   };

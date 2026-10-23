@@ -212,6 +212,16 @@ export const joinBoxes = (boxes: readonly Box[]): Box => ({
 });
 
 /** A free chip (retry, hold, branch label): a pill 21 high, with or without a glyph. */
+/** A fold's chip at rest: how many stations it holds. */
+export const foldSteps = (c: { steps: number }): string => `${c.steps} steps`;
+
+/** A fold's chip under a pointer: people in at its first station, out at its last, and the share. */
+export const foldIo = (c: { steps: number; io?: [number, number] | undefined }): string => {
+  if (!c.io) return foldSteps(c);
+  const [a, b] = c.io;
+  return a ? `${a} \u2192 ${b} \u00b7 ${Math.round((b / a) * 100)}%` : `${a} \u2192 ${b}`;
+};
+
 export const chipWidth = (t: string, icon?: IconName | null): number =>
   textWidth(t, 11, true) + (icon === null ? 18 : 30);
 /** A branch chip's height. */

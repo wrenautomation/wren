@@ -61,6 +61,8 @@ export interface MarkStation {
   /** The flow it belongs to (a workflow). Focus on a flow reads this. */
   flow?: string;
   now?: number;
+  /** People who reached it over the window. */
+  arrived?: number;
   /** A diff mark: ring and tag. */
   mark?: Mark;
 }
@@ -73,7 +75,12 @@ export interface CapsuleStation {
   x?: number;
   l: LineKey;
   n: string;
-  now: number;
+  /** Its last station's kind: a fold wears that station's look. Default: att. */
+  t?: StationKind;
+  /** The stations inside. */
+  steps: number;
+  /** People at its first and its last station: what goes in and what comes out. */
+  io?: [number, number];
   /** A late person track inside rings it amber. */
   late?: boolean;
   grp?: string;

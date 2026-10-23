@@ -6,7 +6,7 @@
  * Zoom hides stations, never lines. A run of stations folds into one capsule. The hub and the
  * exits never fold. Tracks reattach to the capsule edge. A late track inside rings it amber.
  */
-import { labelBoxes, markBoxes, TAB_ROOM } from "./geometry.js";
+import { foldIo, foldSteps, labelBoxes, markBoxes, TAB_ROOM } from "./geometry.js";
 import { EDGE, layoutMetro, shift } from "./layout.js";
 import {
   type CapsuleStation,
@@ -200,6 +200,8 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
     const lo = Math.min(...xs);
     const hi = Math.max(...xs);
     const name = nameOf(k, first);
+    const run = [...m].sort((a, b) => a.x - b.x);
+    const last = run[run.length - 1] as MarkStation;
     caps.push({
       id: k,
       grp: k,
@@ -209,7 +211,9 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
       l: line.l,
       late: inside.some((r) => r.late),
       ...(mark ? { mark } : {}),
-      now: m.reduce((a, s) => a + (s.now ?? 0), 0),
+      t: last.t,
+      steps: m.length,
+      ...ioOf(run),
       n: name,
     });
     for (const s of m) into.set(s.id, k);
@@ -246,6 +250,16 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
   }
   const st: SceneStation[] = scene.st.filter((s) => !into.has(s.id)).concat(caps);
   return { ...scene, st, tr, ...(shut.length ? { opened: shut } : {}) };
+}
+
+/** People who reached a run's first and last station (else who sit there now), when both say. */
+function ioOf(
+  run: readonly { now?: number | undefined; arrived?: number | undefined }[],
+): { io?: [number, number] } {
+  const at = (s: (typeof run)[number] | undefined) => s?.arrived ?? s?.now;
+  const a = at(run[0]);
+  const b = at(run[run.length - 1]);
+  return a !== undefined && b !== undefined ? { io: [a, b] } : {};
 }
 
 /** The top of a run's marks and names: where its fold tab sits above. */
@@ -297,7 +311,10 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
   const into = new Map<string, string>();
   const shown = new Map<string, string[]>();
   const folds: ViewStation[] = [];
-  const meta = new Map<string, { late: boolean; mark?: Mark }>();
+  const meta = new Map<
+    string,
+    { late: boolean; mark?: Mark; steps: number; io?: [number, number] }
+  >();
   for (const [k, m] of runs) {
     if (m.length < 2) continue;
     if (open[k]) {
@@ -307,9 +324,11 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
       );
       continue;
     }
-    // The fold sits in the run's first column.
-    const first = [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column))[0];
-    if (!first) continue;
+    // The fold sits in the run's first column and wears its last station's kind.
+    const run = [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column));
+    const first = run[0];
+    const last = run[run.length - 1];
+    if (!first || !last) continue;
     const ids = new Set(m.map((s) => s.id));
     const inside = view.tracks.filter((t) => ids.has(t.from) && ids.has(t.to));
     const line = view.lines.find((l) => l.id === first.line);
@@ -317,14 +336,17 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
       m.map((s) => ({ mark: s.mark ?? line?.mark })),
       inside,
     );
-    meta.set(k, { late: inside.some((t) => t.late), ...(mark ? { mark } : {}) });
+    const fold = { steps: m.length, ...ioOf(run) };
+    meta.set(k, { late: inside.some((t) => t.late), ...(mark ? { mark } : {}), ...fold });
+    // The chip takes the room of its longer words, so the hover never runs into a neighbour.
+    const chip = [foldSteps(fold), foldIo(fold)].sort((a, b) => b.length - a.length)[0];
     folds.push({
       id: k,
-      kind: "att",
+      kind: last.kind,
       line: first.line,
       column: first.column,
       label: nameOf(k, first),
-      now: m.reduce((a, s) => a + (s.now ?? 0), 0),
+      ...(chip ? { repeat: chip, repeatIcon: "expand" as const } : {}),
     });
     for (const s of m) into.set(s.id, k);
   }
@@ -373,7 +395,9 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
       l: lineKey(s.ln),
       late: m.late,
       ...(m.mark ? { mark: m.mark } : {}),
-      now: s.now ?? 0,
+      t: s.t,
+      steps: m.steps,
+      ...(m.io ? { io: m.io } : {}),
       n: s.n ?? s.id,
       ...(s.p ? { p: s.p } : {}),
     };

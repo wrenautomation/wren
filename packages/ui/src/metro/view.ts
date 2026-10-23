@@ -56,6 +56,8 @@ export interface ViewStation {
   sub?: string;
   /** People in it now: zoom adds them up for a capsule. */
   now?: number;
+  /** People who reached it over the window: a fold's in and out. */
+  arrived?: number;
   /** A failure exit is red. */
   bad?: boolean;
   /** Split and join: "all", "any", "2 of 3". */

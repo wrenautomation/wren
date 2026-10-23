@@ -187,6 +187,20 @@ describe("viewScene", () => {
       expect(sc.w ?? 0).toBeLessThan(full.w ?? 0);
     }
   });
+  it("gives a fold its last station's kind and who reached its first and last station", () => {
+    const view = {
+      ...ZOOM_VIEW,
+      stations: ZOOM_VIEW.stations.map((s, i) => ({ ...s, arrived: 100 - i })),
+    };
+    const caps = viewScene(view, 0, {}).st.filter(isCapsule);
+    expect(caps.length).toBeGreaterThan(0);
+    for (const c of caps) {
+      expect(c.steps).toBeGreaterThan(1);
+      expect(c.t).toBeDefined();
+      const [a, b] = c.io ?? [0, 0];
+      expect(a).toBeGreaterThan(b);
+    }
+  });
   it("ends every track on a drawn station", () => {
     for (const lv of [0, 1]) {
       const sc = viewScene(ZOOM_VIEW, lv, {});

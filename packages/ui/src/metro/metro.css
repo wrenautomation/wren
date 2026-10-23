@@ -137,18 +137,6 @@
 .mm .mk[data-mark="removed"] > * {
   opacity: 0.45;
 }
-.mm .cap[data-mark="added"] .cr {
-  stroke: var(--ui-good);
-  stroke-width: 2.5;
-}
-.mm .cap[data-mark="changed"] .cr {
-  stroke: var(--ui-warn);
-  stroke-width: 2.5;
-}
-.mm .cap[data-mark="removed"] .cb,
-.mm .cap[data-mark="removed"] .cn {
-  opacity: 0.45;
-}
 .mm .trk[data-mark="added"],
 .mm .xfer[data-mark="added"],
 .mm .spur[data-mark="added"] {
@@ -246,6 +234,10 @@
 .mm .chip rect {
   fill: var(--ui-wash);
 }
+/* Paper under the wash, so a spur under the chip stops at its edge. */
+.mm .chip rect.bk {
+  fill: var(--ui-paper);
+}
 .mm .chip text {
   font: 700 11px var(--ui-font);
   fill: var(--ui-ink-2);
@@ -284,52 +276,40 @@
     transition: none;
   }
 }
+/*
+ * A fold draws as its last station. Its chip, as a repeat chip, says it opens. Under a pointer
+ * the chip says who reached the first station and the last, and the share.
+ */
 .mm .cap {
   cursor: pointer;
-  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--ui-ink) 18%, transparent))
-    drop-shadow(0 4px 10px color-mix(in srgb, var(--ui-ink) 10%, transparent));
-  animation: mm-capin 0.45s var(--ui-ease) both;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.mm .cap .cb {
-  fill: var(--ui-paper);
-  stroke-width: 3.5;
-}
-.mm .cap .cr {
-  fill: none;
-  stroke: none;
-}
-.mm .cap.late .cr {
-  stroke: var(--ui-warn);
-  stroke-width: 2.5;
-}
-.mm .cap .cn {
-  font: 800 13px var(--ui-font);
-  fill: var(--ui-ink);
-  font-variant-numeric: tabular-nums;
-}
-.mm .cap:hover .cb,
-.mm .cap:focus-visible .cb {
-  fill: color-mix(in srgb, var(--ui-active) 7%, var(--ui-paper));
 }
 .mm .cap:focus-visible {
   outline: none;
 }
-.mm .cap:focus-visible .cr {
+.mm .cap.late .mk .ring {
+  stroke: var(--ui-warn);
+  stroke-width: 3;
+}
+.mm .cap.sel .mk .ring,
+.mm .cap:focus-visible .mk .ring {
   stroke: var(--ui-focus);
-  stroke-width: 2;
+  stroke-width: 3;
 }
-@keyframes mm-capin {
-  from {
-    opacity: 0;
-    transform: scaleX(0.6);
-  }
+.mm .fc > g {
+  transition: opacity 0.15s var(--ui-ease);
 }
-@media (prefers-reduced-motion: reduce) {
-  .mm .cap {
-    animation: none;
-  }
+.mm .fc .io,
+.mm .cap:hover .fc .rest,
+.mm .cap:focus-visible .fc .rest {
+  opacity: 0;
+}
+.mm .cap:hover .fc .io,
+.mm .cap:focus-visible .fc .io {
+  opacity: 1;
+}
+.mm .cap:hover .fc rect:not(.bk),
+.mm .cap:focus-visible .fc rect:not(.bk) {
+  fill: color-mix(in srgb, var(--ui-active) 12%, transparent);
 }
 .mm .hit {
   fill: none;
@@ -370,18 +350,8 @@
 .mm .mv[data-l="out"] {
   fill: var(--ui-line-out);
 }
-.mm .cap .ic {
-  fill: none;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
 .mm .ring .ic {
   stroke: var(--ui-ink);
-}
-.mm .cap .sub {
-  font: 600 11.5px var(--ui-font);
-  fill: var(--ui-ink-3);
 }
 .mm .bdg .bi .ic {
   stroke: var(--ui-paper);
@@ -394,11 +364,6 @@
   font: 600 12px var(--ui-font);
   fill: var(--ui-ink-3);
   font-variant-numeric: tabular-nums;
-}
-.mm .cap.sel .cr,
-.mm .cap[data-id]:focus-visible .cr {
-  stroke: var(--ui-focus);
-  stroke-width: 2.5;
 }
 .mm .fold {
   cursor: pointer;
@@ -480,9 +445,6 @@
      a small map never floats in the middle of an empty frame. A big one starts at the edge. */
   align-self: flex-start;
   margin: 0 auto;
-}
-.metro-host .cap {
-  animation: none;
 }
 /* A mouse click focuses a mark or the frame: no browser ring then (Safari draws a blue box).
    The keyboard keeps the rings set under :focus-visible. */

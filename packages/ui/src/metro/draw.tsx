@@ -347,7 +347,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   const stations = scene.st.map((s) => {
     const sel = selected === s.id;
     if (isCapsule(s))
-      return <Capsule key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
+      return <Capsule key={s.id} c={s} selected={sel} on={on(s.l)} />;
     if (isRing(s)) return <Ring key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
     if (isBadge(s)) return <Badge key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
     const l = s.ln ? (scene.lines?.[s.ln]?.l ?? s.ln) : undefined;

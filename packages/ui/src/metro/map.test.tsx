@@ -124,8 +124,15 @@ describe("diff marks", () => {
 
   it("shows a mark on a folded capsule", () => {
     const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={0} intro={false} />);
-    expect(folded).toMatch(/class="cap[^"]*"[^>]*data-mark="added"/);
+    expect(folded).toMatch(/class="cap[^"]*"[^>]*><g class="mk[^"]*" data-mark="added"/);
     expect(folded).toContain("metro-legend");
+  });
+
+  it("draws a fold as a station with an expand chip, never a sum", () => {
+    const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={0} intro={false} />);
+    expect(folded).toMatch(/class="cap"[^>]*><g class="mk m-cash"/);
+    expect(folded).toContain('class="fc"');
+    expect(folded).toContain(">2 steps</text>");
   });
 });
 

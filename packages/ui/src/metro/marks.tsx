@@ -9,6 +9,8 @@ import { type IconName, SvgGlyph } from "../icons.js";
 import {
   chipWidth,
   DOT,
+  foldIo,
+  foldSteps,
   GLYPH_SIZE,
   labelOf,
   leafPath,
@@ -131,14 +133,15 @@ export function Num({ text, on }: { text: string; on?: boolean | undefined }) {
   );
 }
 
-/** A free chip (a rounded wash with an optional glyph): retry, hold, version, branch label. */
+/** A free chip (a rounded wash on paper, with an optional glyph): retry, hold, version, branch label. */
 export function Chip({ x, y, t, icon }: ChipSpec) {
   const g = icon === undefined ? "repeat" : icon;
   const w = chipWidth(t, g);
   if (!g) {
     return (
       <g className="chip">
-        <rect x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
+        <rect className="bk" x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
+      <rect x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
         <text x={x} y={y + 4} textAnchor="middle">
           {t}
         </text>
@@ -147,11 +150,33 @@ export function Chip({ x, y, t, icon }: ChipSpec) {
   }
   return (
     <g className="chip">
+      <rect className="bk" x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
       <rect x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
       <SvgGlyph name={g} x={x - w / 2 + 13} y={y} size={11} />
       <text x={x - w / 2 + 22} y={y + 4}>
         {t}
       </text>
+    </g>
+  );
+}
+
+/**
+ * A fold's chip, as a repeat chip: the expand glyph and its steps. Under a pointer a second chip
+ * takes its place and says who reached the first station and the last.
+ */
+function FoldChip({ x, y, f }: { x: number; y: number; f: Pick<CapsuleStation, "steps" | "io"> }) {
+  const rest = foldSteps(f);
+  const io = foldIo(f);
+  return (
+    <g className="fc">
+      <g className="rest">
+        <Chip x={x} y={y} t={rest} icon="expand" />
+      </g>
+      {io === rest ? null : (
+        <g className="io">
+          <Chip x={x} y={y} t={io} icon="expand" />
+        </g>
+      )}
     </g>
   );
 }
@@ -314,6 +339,7 @@ export function Marker({
   l,
   on,
   at,
+  fold,
 }: {
   s: MarkStation;
   click?: boolean | undefined;
@@ -323,6 +349,8 @@ export function Marker({
   on?: boolean | undefined;
   /** First load: seconds until this station lands. */
   at?: number | undefined;
+  /** A folded run: its chip shows the steps, and in and out under a pointer. */
+  fold?: Pick<CapsuleStation, "steps" | "io"> | undefined;
 }) {
   const { x, t } = s;
   const { r, cy, top, h, w, rx, d } = markerBox(s);
@@ -364,7 +392,9 @@ export function Marker({
         )}
         {s.rule ? <RuleTag x={x} y={top - 14} t={s.rule} /> : null}
       </g>
-      {rep ? (
+      {fold ? (
+        <FoldChip x={x} y={s.y + r + 17} f={fold} />
+      ) : rep ? (
         <Chip
           x={x}
           y={s.y + r + 17}
@@ -406,77 +436,40 @@ export function Marker({
 const foldedAttrs = (c: { id: string; grp?: string | undefined }) =>
   c.grp ? { "data-id": c.id, "data-grp": c.grp } : {};
 
-/** A run of stations folded into one capsule: first to last station, with the people inside now. */
+/**
+ * A run of stations folded into one: it draws as its last station, with a chip under it that says
+ * it opens. Any station may fold, so the chip is the cue, not a shape of its own.
+ */
 export function Capsule({
   c,
-  colours,
   selected,
   on,
 }: {
   c: CapsuleStation;
-  colours: Colours;
   selected?: boolean | undefined;
   on?: boolean | undefined;
 }) {
-  const [x0, x1] = c.cap;
-  // A fold is a circle in the middle of its run, wide enough for its count.
-  const h = 32;
-  const w = Math.max(h, textWidth(String(c.now), 13, true) + 14);
-  const m = (x0 + x1) / 2;
-  const X = m - w / 2;
-  // Its name sits on the side the layout chose: above by default.
-  const nw = textWidth(c.n);
-  const lab =
-    c.p === "down"
-      ? { x: m, y: c.y + h / 2 + 19, anchor: "middle" as const }
-      : c.p === "right"
-        ? { x: X + w + 10, y: c.y + 5, anchor: "start" as const }
-        : c.p === "left"
-          ? { x: X - 10, y: c.y + 5, anchor: "end" as const }
-          : { x: m, y: c.y - h / 2 - 10, anchor: "middle" as const };
+  const s: MarkStation = {
+    id: c.id,
+    t: c.t ?? "att",
+    x: c.x ?? (c.cap[0] + c.cap[1]) / 2,
+    y: c.y,
+    n: c.n,
+    // The name keeps clear of the chip, as a repeat chip's station does.
+    rep: foldIo(c).length > foldSteps(c).length ? foldIo(c) : foldSteps(c),
+    repGlyph: "expand",
+    ...(c.p ? { p: c.p } : {}),
+    ...(c.mark ? { mark: c.mark } : {}),
+  };
   return (
     <g
       className={cx("cap", c.late && "late", selected && "sel", on && "on")}
       data-l={c.l}
       data-g={c.id}
-      {...(c.mark ? { "data-mark": c.mark } : {})}
       {...foldedAttrs(c)}
-      {...asButton(marked(`${c.n}: ${c.now} people. Open`, c.mark))}
+      {...asButton(marked(`${c.n}: ${foldIo(c)}. Open`, c.mark))}
     >
-      <rect
-        className="cr"
-        x={X - 4}
-        y={c.y - h / 2 - 4}
-        width={w + 8}
-        height={h + 8}
-        rx={h / 2 + 4}
-      />
-      <rect
-        className="cb"
-        x={X}
-        y={c.y - h / 2}
-        width={w}
-        height={h}
-        rx={h / 2}
-        style={{ stroke: lineColour(colours, c.l) }}
-      />
-      <text className="cn" x={m} y={c.y + 4.5} textAnchor="middle">
-        {c.now}
-      </text>
-      <text className="lab" x={lab.x} y={lab.y} textAnchor={lab.anchor}>
-        {c.n}
-      </text>
-      {c.mark ? (
-        <MarkTag
-          mark={c.mark}
-          x={
-            lab.anchor === "end"
-              ? lab.x - nw - 12
-              : lab.x + (lab.anchor === "start" ? nw : nw / 2) + 12
-          }
-          y={lab.y - 4}
-        />
-      ) : null}
+      <Marker s={s} l={c.l} selected={selected} on={on} fold={c} />
     </g>
   );
 }

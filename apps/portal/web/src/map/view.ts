@@ -82,6 +82,7 @@ function stationOf(
     label: s.label,
     ...(sub ? { sub } : {}),
     ...(x?.now != null && s.kind !== "hub" ? { now: x.now } : {}),
+    ...(x?.arrived != null && s.kind !== "hub" ? { arrived: x.arrived } : {}),
     ...(s.failure ? { bad: true } : {}),
     ...(s.rule ? { rule: s.rule } : {}),
     ...(s.retries ? { repeat: `retry · up to ${s.retries}` } : {}),

@@ -128,13 +128,16 @@ export const STATION_GLYPHS: GlyphRow[] = [
     scene: cell({ st: [mid("plan")] }),
   },
   {
-    name: "Capsule",
+    name: "Fold",
     what: "A run of stations, folded by zoom.",
-    how: "First to last station, line colour, people inside now. Amber ring when a person track inside is late.",
-    example: "Sales, 11 people",
+    how: "Drawn as its last station, with an expand chip. Under a pointer the chip says who reached the first station and the last, and the share. Amber ring when a person track inside is late.",
+    example: "Sales, 3 steps: 12 → 6 · 50%",
     scene: cell({
-      tr: [run("gp", "core", { pa: [0, 22], pc: [88, 22] })],
-      st: [{ id: "g", cap: [24, 64], y: 22, l: "gp", now: 11, n: "" }],
+      h: 66,
+      tr: [run("gp", "core", { pa: [0, 16], pc: [88, 16] })],
+      st: [
+        { id: "g", cap: [44, 44], x: 44, y: 16, l: "gp", t: "att", steps: 3, io: [12, 6], n: "" },
+      ],
     }),
   },
 ];
@@ -601,7 +604,8 @@ export function composeLoop(g: Flags): MetroScene {
         y: 120,
         l: "gp",
         n: "Onboarding · 10 days",
-        now: 2,
+        steps: 3,
+        io: [4, 2],
       });
       tr.push({ id: "t-ko", l: "gp", w: "core", pa: [250, 120], pc: [350, 120] });
     }
@@ -682,7 +686,8 @@ export function composeLoop(g: Flags): MetroScene {
       y: Y,
       l: "out",
       n: "Rewarm · 3 touches",
-      now: 7,
+      steps: 3,
+      io: [11, 4],
     });
   }
   tr.push({ ...track("rw"), pts: rwp });
@@ -851,7 +856,8 @@ export function composeProtocol(g: Flags): MetroScene {
         y: E,
         l: "out",
         n: "Subject A/B",
-        now: 9,
+        steps: 2,
+        io: [18, 9],
       });
     }
     st.push(
@@ -890,7 +896,8 @@ export function composeProtocol(g: Flags): MetroScene {
       y: M,
       l: "out",
       n: "Send · 2 lanes",
-      now: 14,
+      steps: 3,
+      io: [20, 14],
     });
     seg("t-sp", [x + 35, M]);
     exit("ns", "Not sent", "after 2 tries", [x + 35, M], [x + 35, M + 70], true);
@@ -944,7 +951,8 @@ export function composeProtocol(g: Flags): MetroScene {
       y: M,
       l: "out",
       n: "Wait · race",
-      now: 21,
+      steps: 2,
+      io: [30, 21],
     });
     seg("t-wt", [x + 35, M]);
     exit("na", "No answer", "after 2 follow-ups", [x + 35, M], [x + 35, M + 70], true);
@@ -1036,7 +1044,8 @@ export function composeProtocol(g: Flags): MetroScene {
       y: M,
       l: "out",
       n: "Sort reply",
-      now: 5,
+      steps: 3,
+      io: [12, 5],
     });
     if (prev[0] < x + 35) seg("t-so", [x + 35, M]);
     exit("no", "Said no", "6", [x + 35, M], [x + 35, M - 75], true);
