@@ -74,8 +74,12 @@ const batches: { platform: Platform; ids: string[] }[] = [];
 const singles: string[] = [];
 /** Posts whose counts read never answers. */
 const hangMetrics = new Set<string>();
-/** Platforms whose counts read has no leg (501), and those whose insights read the counts too. */
+/**
+ * Platforms whose counts read has no leg (501) or misses (502, a LinkedIn share's page), and those
+ * whose insights read the counts too.
+ */
 const unbuilt = new Set<Platform>();
+const missed = new Set<Platform>();
 const deep = new Set<Platform>();
 /**
  * What the next keyed publishes on a platform answer, one each (a default `sent` after that):
@@ -287,6 +291,8 @@ const fakeContent = restate.service({
       if (hangMetrics.has(req.id)) await ctx.awakeable<void>().promise;
       if (unbuilt.has(req.platform))
         throw new restate.TerminalError("workflow not recorded", { errorCode: 501 });
+      if (missed.has(req.platform))
+        throw new restate.TerminalError("no counts on the page", { errorCode: 502 });
       if (refuse.has(req.platform))
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
           errorCode: 404,
@@ -454,6 +460,7 @@ beforeEach(async () => {
   views.clear();
   refuse.clear();
   unbuilt.clear();
+  missed.clear();
   deep.clear();
   hang.clear();
   hung.length = 0;
@@ -1097,7 +1104,7 @@ describe("content loop", () => {
     expect(second.stats?.reported).toBe(false);
   });
 
-  it("a counts read with no leg takes its look from insights that read the counts, else fails", async () => {
+  it("a counts read with no leg or a miss takes its look from insights that read the counts, else fails", async () => {
     const a = await desk().add({ text: "a deep post", platforms: ["linkedin"] });
     const b = await desk().add({ text: "a shallow post", platforms: ["x"] });
     const drafts = [
@@ -1111,7 +1118,7 @@ describe("content loop", () => {
     );
     await sync();
     views.set(postId("linkedin", 1), 72);
-    unbuilt.add("linkedin");
+    missed.add("linkedin");
     unbuilt.add("x");
     deep.add("linkedin");
     const pass = await look();

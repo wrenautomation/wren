@@ -144,7 +144,7 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 
 | Metric | What | Today | API and scope | Status | Stage |
 |---|---|---|---|---|---|
-| Reactions, comments | | `post_metric_days`; the look is built from the analytics page (2026-10-23: `socialActions` has no leg without r_organization_social, and a post page read found no counts in 2 live tries) | the post's analytics page, days 1, 3, 7, 14 and 28 | Waiting | Trust |
+| Reactions, comments | | `content_metrics`; a ugcPost from its post page (autobrowse `linkedin/post-stats`, 2026-10-23), a share's look from the analytics page (its post page holds no counts) | the post page as `linkedin@wren`, else the post's analytics page, days 1, 3, 7, 14 and 28; `socialActions` needs r_organization_social | Live | Trust |
 | Impressions, members reached, reposts, saves, sends, profile views, follows from the post | | `post_metric_days` | the post's analytics page in the browser as `linkedin@wren` (autobrowse `GET /analytics/post-summary/{urn}`, capped 10 a day), read on days 1, 3, 7, 14 and 28 after it posts. The Community Management API (r_member_postAnalytics) would replace it | Waiting | Reach |
 | Video views, watch time, average watch time | video posts only | `post_metric_days` (`video_views`, `watch_minutes`, `avg_view_secs`) | the same analytics page, its "Video performance" block (seen live 2026-10-23) | Waiting | Trust |
 | Viewer demographics | | none | the analytics page said "Demographics not available yet" on 2026-10-23; format unmapped | Not built | Reach |
@@ -207,7 +207,7 @@ Every Facebook number on prod is 0 so far: the Page gets no reach yet.
 | YouTube Shorts (past long-form) | 0 | 1 | 2 | 0 | 0 | 1 |
 | Instagram | 9 | 1 | 1 | 0 | 0 | 2 |
 | TikTok | 1 | 6 | 0 | 2 | 0 | 0 |
-| LinkedIn | 3 | 4 | 0 | 0 | 1 | 0 |
+| LinkedIn | 4 | 3 | 0 | 0 | 1 | 0 |
 | X | 4 | 4 | 0 | 0 | 0 | 0 |
 | Reddit | 5 | 0 | 0 | 0 | 0 | 1 |
 | Facebook | 1 | 4 | 0 | 0 | 0 | 0 |

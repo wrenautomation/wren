@@ -572,8 +572,8 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       [M.likes, M.comments],
       "engagement",
       "trust",
-      "waiting",
-      `the post's analytics page, as Wren, ${BROWSER_DAYS}; socialActions needs r_organization_social and the post page read is not mapped`,
+      "live",
+      `the post page as Wren (a ugcPost), else the post's analytics page (a share), ${BROWSER_DAYS}; socialActions needs r_organization_social`,
     ],
     [
       "linkedin",

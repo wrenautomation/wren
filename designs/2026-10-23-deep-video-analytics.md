@@ -54,7 +54,8 @@ Checked live on 2026-10-23:
 
 - LinkedIn posts had no look: `socialActions` answers 501 (no leg without r_organization_social), and that failure skipped the analytics page read. Now a 501 still runs the analytics page, and the look is built from its numbers (`lookOf`). The post's tier timing then applies, so the page read does not repeat every hour against the 10 a day cap.
 - LinkedIn analytics page: proved on a live post (72 impressions, 16 reached). The video block reads "Video views", "Watch time" and "Average watch time".
-- LinkedIn post page counts: a browser read found no counts bar in 2 live tries. Reverted (autobrowse 0742623). It needs an explore session on `linkedin@wren`.
+- LinkedIn post page counts: a browser read found no counts bar in 2 live tries. Reverted (autobrowse 0742623).
+- LinkedIn post page counts, second build (autobrowse 0186572, 29433eb): `linkedin/post-stats` listens to the page's own calls, then reads the HTML, then the bar. Live on a ugcPost: 0 reactions, 1 comment, 0 reposts, which matches the stored comment. A share post's page holds no counts for its own ids in 2 tries, so it answers 502. The loop then takes the look from the analytics page, the same as for a 501. The comments read fills the counts cache, so a counts read after it in the hour spends nothing.
 - Facebook: every number on the Page is 0 so far. The retention graph's keys are unproven: the code takes the last key as the end.
 - Threads: profile `views` come as a day series cut at Pacific midnight, so the read takes the last day. `clicks` come per link and are summed. Demographics answer 400 under 100 followers, so the read waits.
 - Reddit: views go to the author only. No API. Parked with the platform.

@@ -229,8 +229,9 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       if (!read && !go(`metrics ${post}`, draft.platform)) continue;
       try {
         let m: Metrics | null = read ?? null;
-        // A counts read with no leg yet (501) still leaves the deeper read, which may hold the
-        // counts too (LinkedIn's analytics page): the look is then built from it.
+        // A counts read with no leg yet (501) or one that missed (a LinkedIn share's page) still
+        // leaves the deeper read, which may hold the counts too (LinkedIn's analytics page): the
+        // look is then built from it.
         let unbuilt: restate.TerminalError | null = null;
         try {
           m ??= await limits.within(
@@ -239,7 +240,8 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
             { ms: L.read, call: "Content/metrics", group: draft.platform },
           );
         } catch (err) {
-          if (!(err instanceof restate.TerminalError) || err.code !== 501) throw err;
+          if (!(err instanceof restate.TerminalError) || (err.code !== 501 && err.code !== 502))
+            throw err;
           unbuilt = err;
         }
         if (m) {
