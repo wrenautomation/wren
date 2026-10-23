@@ -6,7 +6,7 @@
  * Synthetic rows only.
  */
 import { serveRecords } from "@wren/core/records/serve";
-import { clearTemplate, reset, saveLive } from "@wren/core/templates";
+import { clearTemplate, saveLive } from "@wren/core/templates";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { setWords } from "@wren/studio/edit";
 import { videoEdits } from "@wren/studio/schema";
@@ -37,6 +37,14 @@ const track = { path: "/rec/main.mp4", durationS: 480, width: 1920, height: 1080
 
 describe("marketing.video", () => {
   it("queues a rendered video, approves it once, privately, and its Short and thumbnail", async () => {
+    // Wren ships no footer words: this test sets its own, then clears them.
+    const footers = {
+      long: "Website: https://wrenautomation.com/go/yt/{video}\n\nSubscribe.\n",
+      short: `wrenautomation.com\n\n${BIO}\n`,
+      reel: `wrenautomation.com, link in bio\n\n${BIO}\n`,
+    } as const;
+    for (const [k, words] of Object.entries(footers))
+      await saveLive(pg.db, VIDEO_FOOTERS[k as keyof typeof footers], words, { by: "t" });
     const [v] = await pg.db
       .insert(videoEdits)
       .values({
@@ -175,6 +183,7 @@ describe("marketing.video", () => {
     expect(detail.video.preview).toBe("https://signed/s3://media/studio/1/long.mp4");
     expect(detail.video.words.map((w) => w.cut)).toEqual([null, "cut"]);
     expect(detail.video.thumbnails.map((t) => t.picked)).toEqual([false, true]);
+    for (const ref of Object.values(VIDEO_FOOTERS)) await clearTemplate(pg.db, ref, "t");
   });
 
   it("drafts TikTok public with comment, duet and stitch on", async () => {
@@ -419,7 +428,6 @@ describe("marketing.video", () => {
     const long = withFooter(["x".repeat(6000)], "Footer.", 5000);
     expect(long).toHaveLength(5000);
     expect(long.endsWith("\n\nFooter.")).toBe(true);
-    await reset(pg.db, VIDEO_FOOTERS.long, { by: "t", why: "back to the default" });
   });
 
   it("refuses a video not rendered yet", async () => {
