@@ -57,8 +57,9 @@ InboxScheduler, Disposition (+ PostmasterScheduler / OpensScheduler when configu
 
 ## CI (GitHub → Lambda)
 
-`.github/workflows/deploy.yml` runs as `ci`'s last job on `main`, once lint, unit and schema pass: migrate, bundle, publish a
-Lambda version, register it. Repo secrets, from `tofu output` and the Restate UI:
+`.github/workflows/deploy.yml` runs as a `ci` job on `main`, beside lint, unit and schema. It bundles and uploads
+not-live Worker versions while they run, then waits for all three (`await_gates`) before it migrates, publishes a
+Lambda version and registers it. Repo secrets, from `tofu output` and the Restate UI:
 
 | secret | value |
 |---|---|

@@ -2,7 +2,10 @@
 # The deploy, run by .github/workflows/deploy.yml in one step: background work (`bg`) dies
 # with the step that starts it, so every phase shares this shell. Helpers: ci-steps.sh.
 # The order that matters:
-#   migrate → publish the Lambda → register it with Restate (Cloud or the box) → Cloudflare goes live.
+#   build and upload (not live) → the gates pass → migrate → publish the Lambda
+#   → register it with Restate (Cloud or the box) → Cloudflare goes live.
+# ci.yml starts this job beside lint, unit and schema: the builds and not-live uploads run while
+# they check. Nothing touches the box, the database or live traffic before all three pass.
 #   pgbouncer → the box's pool-chain worker → register;  pgbouncer + valkey → publish the Lambda.
 # The phone, sign-in, portal and LLM gateway Workers upload a version early and take traffic
 # only after Restate registers, all four within seconds.
@@ -17,8 +20,9 @@ case "$RESTATE_HOST" in
   *) RESTATE_INGRESS="https://$RESTATE_HOST" ;;
 esac
 
-# Everything that needs no new schema starts now: the two Lambda bundles, the box's
-# pgbouncer, valkey and listmonk, and a not-yet-live version of each Cloudflare Worker.
+# Everything that changes nothing live starts now: the two Lambda bundles, the CLI bundle
+# (templates and offers sync run it), and a not-yet-live version of each Cloudflare Worker.
+# After the gates: the box's pgbouncer, valkey and listmonk, beside the migrations.
 # Phone: the ingress follows RESTATE_HOST like the portal's; its other secrets (Telnyx, cal.com,
 # Gmail push, credential links) are set by hand and kept: --secrets-file is additive.
 # LLM gateway: its keys are Worker secrets, set by scripts/llm-gateway-keys.mjs; a deploy keeps them.
@@ -38,16 +42,25 @@ jq -n --arg url "$RESTATE_INGRESS/" --arg token "$RESTATE_AUTH_TOKEN" \
   > "$RUNNER_TEMP/portal-secrets.json"
 bg worker-zip pnpm --filter @wren/worker build:lambda
 bg auth-zip pnpm --filter @wren/auth-app build:lambda
-bg pgbouncer box_script pgbouncer box-pgbouncer.sh
-bg valkey box_script valkey box-valkey.sh us-east-1
-bg listmonk box_script listmonk box-listmonk.sh us-east-1
+bg cli node apps/cli/scripts/build.mjs
 bg up-phone cf_upload phone "$RUNNER_TEMP/phone-secrets.json"
 bg up-gateway cf_upload llm-gateway
 bg up-auth cf_upload auth "$RUNNER_TEMP/auth-secrets.json"
 bg up-portal cf_upload portal "$RUNNER_TEMP/portal-secrets.json"
 
+# A run by hand (workflow_dispatch) has no gates of its own. Any other run waits: an
+# unexpected event name finds no gates and runs out (20 min) with nothing live changed.
+if [ "${GITHUB_EVENT_NAME:-}" != workflow_dispatch ]; then
+  phase gates
+  await_gates
+fi
+
 phase migrate
+bg pgbouncer box_script pgbouncer box-pgbouncer.sh
+bg valkey box_script valkey box-valkey.sh us-east-1
+bg listmonk box_script listmonk box-listmonk.sh us-east-1
 pnpm db:migrate
+await cli
 # templates: each changed file in packages/templates/defaults as a default version, in every database.
 # offers: each registry offer whose shape changed, as the next offer version in main.
 bg templates pnpm -s wren templates sync

@@ -8,6 +8,7 @@ set -eu
 W=${WREN_PUSH_DIR:-$HOME/worktrees/wren-push}
 
 sha=$(git rev-parse --verify "${1:?usage: scripts/push.sh <commit>}^{commit}")
+C=$(git rev-parse --show-toplevel)
 [ -d "$W" ] || git worktree add -q --detach "$W" origin/main
 cd "$W"
 git fetch -q origin
@@ -42,7 +43,8 @@ done
 echo "ci run $run"
 
 # The gates' joint conclusion and the deploy job's, once both are known; API errors retry.
-# A red gate skips the deploy; a newer push cancels this run's gates (ci=cancelled).
+# A red gate stops the deploy before it changes anything (deploy=failure, "gates: ..." in its log);
+# a newer push cancels this run's gates (ci=cancelled, deploy=failure).
 while :; do
   st=$(gh run view "$run" --json jobs -q '[.jobs[] | {n: .name, s: .status, c: .conclusion}]' 2>/dev/null) || { sleep 10; continue; }
   out=$(printf '%s' "$st" | python3 -c "import json,sys
@@ -56,5 +58,13 @@ print(ci, dep or 'pending')")
   [ "$1" = pending ] || [ "$2" = pending ] || break
   sleep 5
 done
+# The folder copy this ran from follows main (10-22: it fell 44 commits behind and ran an old
+# push.sh). Its own commits stay (a merge); a conflict or a local edit in the way leaves it as is.
+if [ "$(git -C "$C" symbolic-ref -q --short HEAD)" = main ]; then
+  git -C "$C" fetch -q origin
+  git -C "$C" merge -q --ff-only origin/main 2>/dev/null ||
+    git -C "$C" merge -q --no-edit origin/main 2>/dev/null ||
+    { git -C "$C" merge --abort 2>/dev/null; echo "$C: not synced with origin/main, merge it by hand" >&2; }
+fi
 echo "RESULT $sha ci=$1 deploy=$2"
 [ "$2" = success ]

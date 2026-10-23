@@ -9,30 +9,28 @@ on:
 concurrency: { group: "contrast-${{ github.ref }}", cancel-in-progress: true }
 jobs:
   contrast:
-    runs-on: ubuntu-latest
+    # The Playwright image brings Chromium and its libraries (10-22: installing them took 8 min).
+    runs-on: ubuntu-24.04-arm
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     services:
       postgres:
         image: mirror.gcr.io/library/postgres:17
         env: { POSTGRES_USER: wren, POSTGRES_PASSWORD: wren, POSTGRES_DB: wren }
-        ports: ["5432:5432"]
         options: --health-cmd pg_isready --health-interval 5s --health-retries 10
     env:
-      WREN_DATABASE_URL: postgres://wren:wren@localhost:5432/wren
+      WREN_DATABASE_URL: postgres://wren:wren@postgres:5432/wren
       PORT: "8788"
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with: { node-version-file: .node-version, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+      # The container's user is not the checkout's owner: git wants it trusted.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: ./.github/actions/install
       - run: pnpm db:migrate
-      - run: npx playwright-core install --with-deps chromium
-        working-directory: apps/portal
       - name: Start the preview
         working-directory: apps/portal
         run: |
           nohup pnpm -s preview > preview.log 2>&1 &
-          for _ in $(seq 120); do curl -sf "http://localhost:$PORT/" > /dev/null && exit 0; sleep 2; done
+          for _ in $(seq 120); do node -e 'fetch(`http://localhost:${process.env.PORT}/`).then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))' && exit 0; sleep 2; done
           cat preview.log; exit 1
       - run: npx tsx scripts/contrast.ts --out contrast.json
         working-directory: apps/portal
