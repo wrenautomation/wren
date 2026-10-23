@@ -67,12 +67,7 @@ function AttachRow({ a, onRemove }: { a: Attach; onRemove?: (() => void) | undef
         ) : null}
       </span>
       {onRemove ? (
-        <Button
-          tone="quiet"
-          size="dense"
-          aria-label={`Remove ${name}`}
-          onClick={onRemove}
-        >
+        <Button tone="quiet" size="dense" aria-label={`Remove ${name}`} onClick={onRemove}>
           Remove
         </Button>
       ) : null}
@@ -389,7 +384,9 @@ export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }
           className="metro-fit"
         />
         <div className="grid gap-4 text-[14px] sm:grid-cols-2">
-          {part.kind === "flow" ? null : <PeopleHere people={people} at={atOf(props.client)} level={2} />}
+          {part.kind === "flow" ? null : (
+            <PeopleHere people={people} at={atOf(props.client)} level={2} />
+          )}
           <Numbers lines={numbers} window={window} />
         </div>
       </div>
