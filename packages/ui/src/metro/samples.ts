@@ -662,10 +662,8 @@ export function composeLoop(g: Flags): MetroScene {
   }
   // Rewarm runs from the churn exit back to the hub; open, its three steps spread along it.
   const Y = ch[1] + 64;
-  const rwp: Point[] = [ch, [ch[0], Y], [60, Y]];
+  const rwp: Point[] = [ch, [ch[0], Y], [60, Y], [60, 120]];
   const L = ch[0] - 60;
-  const hub = st[0];
-  if (hub && isMark(hub)) hub.span = [120, Y];
   if (g.offer && g.rw) {
     ["rs", "wb", "ci"].forEach((k, i) => {
       st.push({ ...mark(k), x: Math.round(ch[0] - (L * (i + 1)) / 4), y: Y });
@@ -756,7 +754,6 @@ export function composeProtocol(g: Flags): MetroScene {
       t: "hub",
       x: 70,
       y: M,
-      span: [M, M],
       n: "New lead",
       s: "40 / wk",
       rep: "v3 · 12 on v2",

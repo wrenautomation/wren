@@ -325,7 +325,6 @@ export function Marker({
   at?: number | undefined;
 }) {
   const { x, t } = s;
-  const sp = s.span ?? [s.y, s.y];
   const { r, cy, top, h, w, rx, d } = markerBox(s);
   const diamond = t === "dec" || t === "race";
   // Logic marks: a diamond decides (hollow: a condition; filled: the first event wins); a bar
@@ -368,12 +367,12 @@ export function Marker({
       {rep ? (
         <Chip
           x={x}
-          y={sp[1] + r + 17}
+          y={s.y + r + 17}
           t={rep}
           icon={s.repGlyph === undefined ? "repeat" : s.repGlyph}
         />
       ) : null}
-      {plans ? <Chip x={x} y={sp[1] + r + 17 + (rep ? 26 : 0)} t={plans} icon="card" /> : null}
+      {plans ? <Chip x={x} y={s.y + r + 17 + (rep ? 26 : 0)} t={plans} icon="card" /> : null}
       {s.n ? (
         <>
           <text
@@ -420,10 +419,9 @@ export function Capsule({
   on?: boolean | undefined;
 }) {
   const [x0, x1] = c.cap;
-  // A run folded before layout has no span: it draws as a circle, wide enough for its count.
-  const round = x1 - x0 < 1;
-  const h = round ? 32 : 30;
-  const w = round ? Math.max(h, textWidth(String(c.now), 13, true) + 14) : x1 - x0 + 32;
+  // A fold is a circle in the middle of its run, wide enough for its count.
+  const h = 32;
+  const w = Math.max(h, textWidth(String(c.now), 13, true) + 14);
   const m = (x0 + x1) / 2;
   const X = m - w / 2;
   // Its name sits on the side the layout chose: above by default.

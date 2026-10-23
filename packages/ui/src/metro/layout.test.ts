@@ -64,7 +64,8 @@ describe("layoutMetro", () => {
     const hub = at(s, "hub");
     expect(hub.t).toBe("hub");
     expect(hub.x).toBeGreaterThan(at(s, "c1").x ?? 0);
-    expect(hub.span).toEqual([SPACE.top, SPACE.top]);
+    expect(hub.r).toBeUndefined();
+    expect(hub.y).toBe(SPACE.top);
     expect(at(s, "c1").y).toBe(hub.y);
     const into = s.tr.find((t) => t.b === "hub");
     expect(into?.l).toBe("out");
@@ -72,13 +73,30 @@ describe("layoutMetro", () => {
     expect(into?.ob).toBe(0);
   });
 
-  it("spans the hub over the longer side: outreach from the top row, offers in the middle", () => {
+  it("puts the hub on the middle row it joins; the other rows bend into it at 45 degrees", () => {
     const s = layoutMetro(LADDER_VIEW);
     const hub = at(s, "hub");
-    const offers = s.tr.filter((t) => t.a === "hub").map((t) => at(s, t.b ?? "").y);
-    expect(hub.span).toEqual([Math.min(...offers), Math.max(...offers)]);
-    const into = s.tr.find((t) => t.b === "hub");
-    expect(at(s, into?.a ?? "").y).toBe(hub.span?.[0]);
+    const touching = s.tr.filter((t) => t.a === "hub" || t.b === "hub");
+    const rows = [
+      ...new Set(touching.map((t) => at(s, t.a === "hub" ? (t.b ?? "") : (t.a ?? "")).y)),
+    ];
+    rows.sort((a, b) => a - b);
+    expect(hub.y).toBe(rows[Math.floor((rows.length - 1) / 2)]);
+    const ends = trackEnds(s);
+    for (const t of touching) {
+      const e = ends(t);
+      if (!e) throw new Error(`no ends for ${t.id}`);
+      const pts = routeOf(t, e[0], e[1]);
+      for (let i = 1; i < pts.length; i++) {
+        const [p, q] = [pts[i - 1] as [number, number], pts[i] as [number, number]];
+        const [dx, dy] = [Math.abs(q[0] - p[0]), Math.abs(q[1] - p[1])];
+        expect(!dx || !dy || Math.abs(dx - dy) < 0.01).toBe(true);
+      }
+    }
+    // Two rows on one side meet the hub at two heights, so their diagonals run apart.
+    const out = touching.filter((t) => t.a === "hub").map((t) => t.oa ?? 0);
+    const below = out.filter((o) => o > 0);
+    expect(new Set(below).size).toBe(below.length);
   });
 
   it("puts a station after the station that leads into it in its column, so a transfer runs forward", () => {

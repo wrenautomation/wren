@@ -36,15 +36,18 @@ export const TAB_ROOM = 38;
 export const GLYPH_SIZE: Partial<Record<StationKind, number>> = { hub: 22, exit: 15 };
 
 /** Points of an octilinear route a to b: straight, then 45 degrees, then straight. */
-export function octPts(a: Point, b: Point): Point[] {
+export function octPts(a: Point, b: Point, bend?: "a" | "b"): Point[] {
   const [x1, y1] = a;
   const [x2, y2] = b;
   const dx = x2 - x1;
   const dy = y2 - y1;
   if (!dy || !dx) return [a, b];
   const d = Math.min(Math.abs(dy), Math.abs(dx));
-  const f = (Math.abs(dx) - d) / 2;
   const s = Math.sign(dx);
+  // The 45 degree part at one end: lines leave a hub at once, each on its own diagonal.
+  if (bend === "a" && d === Math.abs(dy)) return [a, [x1 + s * d, y2], b];
+  if (bend === "b" && d === Math.abs(dy)) return [a, [x2 - s * d, y1], b];
+  const f = (Math.abs(dx) - d) / 2;
   return [a, [x1 + s * f, y1], [x1 + s * (f + d), y2], b];
 }
 
@@ -76,16 +79,15 @@ export function rounded(points: Point[], r = 18): string {
 export const octPath = (a: Point, b: Point, r?: number): string => rounded(octPts(a, b), r);
 
 /** A marker's box: radius, centre y, top, height, width, corner. */
-export function markerBox(s: Pick<MarkStation, "t" | "x" | "y" | "span">) {
-  const sp = s.span ?? [s.y, s.y];
-  const r = RADIUS[s.t];
-  const cy = (sp[0] + sp[1]) / 2;
+export function markerBox(s: Pick<MarkStation, "t" | "x" | "y" | "r">) {
+  const r = s.r ?? RADIUS[s.t];
+  const cy = s.y;
   const par = s.t === "par";
   return {
     r,
     cy,
-    top: par ? cy - 17 : sp[0] - r,
-    h: par ? 34 : sp[1] - sp[0] + 2 * r,
+    top: par ? cy - 17 : cy - r,
+    h: par ? 34 : 2 * r,
     w: s.t === "exit" ? 36 : par ? 10 : 2 * r,
     rx: s.t === "cash" || s.t === "ok" ? 8 : r,
     /** A diamond's half diagonal. */
@@ -246,7 +248,7 @@ type LabelStation = Pick<
   | "t"
   | "x"
   | "y"
-  | "span"
+  | "r"
   | "n"
   | "s"
   | "p"
@@ -306,7 +308,6 @@ export function labelBoxes(s: LabelStation): Box[] {
 /** The boxes a station's mark fills: the marker, a stack behind it, its chips and its rule tag. */
 export function markBoxes(s: LabelStation): Box[] {
   const { r, cy, top, h, w, d } = markerBox(s);
-  const sp = s.span ?? [s.y, s.y];
   const diamond = s.t === "dec" || s.t === "race";
   // The ring and the shadow add about 2 px.
   const pad = 2;
@@ -317,8 +318,8 @@ export function markBoxes(s: LabelStation): Box[] {
   if (s.bundle || s.t === "link")
     out.push({ x0: body.x0 + 5, y0: body.y0 - 5, x1: body.x1 + 5, y1: body.y1 - 5 });
   if (s.rep)
-    out.push(chipBox(s.x, sp[1] + r + 17, s.rep, s.repGlyph === undefined ? "repeat" : s.repGlyph));
-  if (s.plans) out.push(chipBox(s.x, sp[1] + r + 17 + (s.rep ? 26 : 0), s.plans, "card"));
+    out.push(chipBox(s.x, s.y + r + 17, s.rep, s.repGlyph === undefined ? "repeat" : s.repGlyph));
+  if (s.plans) out.push(chipBox(s.x, s.y + r + 17 + (s.rep ? 26 : 0), s.plans, "card"));
   if (s.rule) out.push(boxAt(s.x, top - 14, ruleWidth(s.rule), 18));
   return out;
 }
@@ -344,7 +345,7 @@ export function trackEnds(scene: Pick<MetroScene, "st">): (r: MetroTrack) => [Po
 export const routeOf = (r: MetroTrack, a: Point, c: Point): Point[] =>
   r.k === "xfer"
     ? xferGeometry(a, c, r.f).pts
-    : (r.pts ?? (r.back ? railPts(a, c, r.back) : octPts(a, c)));
+    : (r.pts ?? (r.back ? railPts(a, c, r.back) : octPts(a, c, r.bend)));
 
 /** A track back along its own row: down from its start, along under the row, up into its end. */
 export const railPts = (a: Point, c: Point, d: number): Point[] => [
@@ -503,8 +504,7 @@ export function sceneBoxes(scene: Pick<MetroScene, "st" | "tr">): SceneBoxes {
 /**
  * What a calm map must not do, as one line each. Empty when the map is calm: no name on a name or a
  * mark, no chip on a mark, a name or the hub, no track under the hub, one step between the
- * stations of a column, and the hub joins the rows it spans, with its inputs on the left and its
- * offers on the right. The tests, the stories and the layout's own checks read this one copy.
+ * stations of a column, and the hub's inputs on its left and its offers on its right. The tests, the stories and the layout's own checks read this one copy.
  */
 export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): string[] {
   const out: string[] = [];
@@ -527,9 +527,8 @@ export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): st
   }
 
   const marks = scene.st.filter(isMark);
-  const hubs = marks.filter((s) => s.t === "hub");
   const ends = trackEnds(scene);
-  const hubIds = new Set(hubs.map((h) => h.id));
+  const hubIds = new Set(marks.filter((s) => s.t === "hub").map((h) => h.id));
   const at = new Map(marks.map((s) => [s.id, s]));
   for (const r of scene.tr) {
     const e = r.stub ? null : ends(r);
@@ -546,19 +545,6 @@ export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): st
       out.push(`track ${r.id} enters hub ${into.id} from the right`);
     if (from?.t === "hub" && into && into.t !== "hub" && into.x <= from.x)
       out.push(`track ${r.id} leaves hub ${from.id} to the left`);
-  }
-  for (const h of hubs) {
-    const [top, bottom] = h.span ?? [h.y, h.y];
-    const joined = new Set<number>();
-    for (const r of scene.tr) {
-      const other = r.a === h.id ? r.b : r.b === h.id ? r.a : undefined;
-      const o = other ? at.get(other) : undefined;
-      if (o) joined.add(o.y);
-    }
-    const rows = new Set(marks.filter((s) => s.t !== "hub" && s.t !== "exit").map((s) => s.y));
-    for (const y of rows)
-      if (y >= top && y <= bottom && !joined.has(y))
-        out.push(`hub ${h.id} spans row ${y} it does not join`);
   }
 
   // One step in a column: every gap between neighbours there is the same.

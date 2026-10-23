@@ -38,8 +38,8 @@ export interface MarkStation {
   t: StationKind;
   x: number;
   y: number;
-  /** The hub is one tall marker across the rows it joins. */
-  span?: [number, number];
+  /** Its radius, when bigger than its kind's: a hub that many rows join. */
+  r?: number;
   /** Name, and the line under it. */
   n?: string;
   s?: string;
@@ -135,6 +135,8 @@ export interface MetroTrack {
   o?: number;
   oa?: number;
   ob?: number;
+  /** Where its 45 degree part sits: at the start or the end. Default: the middle. */
+  bend?: "a" | "b";
   /** A person track: "WJ · 4h" is owner and promise. */
   who?: string;
   late?: boolean;

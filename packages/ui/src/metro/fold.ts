@@ -216,16 +216,14 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
   }
   const byId = new Map(scene.st.map((s) => [s.id, s]));
   const cap = new Map(caps.map((c) => [c.id, c]));
-  /** The end of a track: the station, or the capsule's edge nearest the far end. */
-  const end = (id: string | undefined, o: number, other: string | undefined): Point | undefined => {
+  /** The end of a track: the station, or the centre of the circle its run folds into. */
+  const end = (id: string | undefined, o: number): Point | undefined => {
     if (!id) return undefined;
     const k = into.get(id);
     const s = byId.get(id);
     if (!k) return s ? [s.x ?? 0, s.y + o] : undefined;
     const c = cap.get(k);
-    if (!c) return undefined;
-    const ox = other ? (byId.get(other)?.x ?? c.x ?? c.cap[0]) : (c.x ?? c.cap[0]);
-    return [Math.min(Math.max(ox, c.cap[0]), c.cap[1]), c.y];
+    return c ? [(c.cap[0] + c.cap[1]) / 2, c.y] : undefined;
   };
   const tr = scene.tr.flatMap((r): MetroTrack[] => {
     const ka = r.a ? into.get(r.a) : undefined;
@@ -233,8 +231,8 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
     if (ka && ka === kb) return [];
     if (!ka && !kb) return [r];
     const { pts: _pts, at: _at, dot: _dot, cat: _cat, ...rest } = r;
-    const pa = end(r.a, r.oa ?? r.o ?? 0, r.b) ?? r.pts?.[0];
-    const pc = end(r.b, r.ob ?? r.o ?? 0, r.a) ?? r.pts?.[r.pts.length - 1];
+    const pa = end(r.a, r.oa ?? r.o ?? 0) ?? r.pts?.[0];
+    const pc = end(r.b, r.ob ?? r.o ?? 0) ?? r.pts?.[r.pts.length - 1];
     return [{ ...rest, ...(pa ? { pa } : {}), ...(pc ? { pc } : {}) }];
   });
   // A rail's label shows once: on the first track left on it.

@@ -1,14 +1,15 @@
 /**
  * `layoutMetro(view)`: places a `MetroView` as a `MetroScene`. Pure and sync.
  *
- * Columns are zones, left to right. Each line is a row. The hub is one marker across the rows it
- * joins; the stations that lead into it sit left of it and the offer lines start right of it, so no
- * track passes under it. The offer lines sit in the middle of the outreach rows, and outreach rows
- * sit close, so the hub stays short. An exit sits under its source. A track between two lines becomes a 45
+ * Columns are zones, left to right. Each line is a row. The hub is a circle on the middle row it
+ * joins, and the other joined rows bend into it at 45 degrees; the stations that lead into it sit
+ * left of it and the offer lines start right of it, so no track passes under it. The offer lines
+ * sit in the middle of the outreach rows, and outreach rows sit close, so the bends stay short. An
+ * exit sits under its source. A track between two lines becomes a 45
  * degree transfer. Rows are ordered to cut crossings.
  *
  * Outreach sits left of the hub and offers right of it, so an outreach line and an offer line share
- * a row: one of each gives a round hub inline. In a column a station takes the slot after every
+ * a row: one of each runs straight through the hub. In a column a station takes the slot after every
  * station that leads into it there, so a transfer always runs forward. A column with no station
  * keeps one step, so the zones stay steady from map to map.
  *
@@ -34,6 +35,7 @@ import {
   markBoxes,
   overlaps,
   pillBox,
+  RADIUS,
   routeHits,
   routeOf,
   sceneBoxes,
@@ -82,6 +84,12 @@ export const SPACE = {
  * column may widen more. The try after the last folds chips to dots.
  */
 const GROW = { step: 12, row: 10, maxStep: 5, maxRow: 2 };
+/** The flat run between a bend out of the hub and the next station. */
+const BEND_RUN = 24;
+/** How far apart the rows meet the hub, in px. */
+const MEET = 9;
+/** The biggest a hub grows for the rows that meet it. */
+const HUB_MAX = 30;
 /** Air between two names, or a name and a mark. */
 const CLEAR = 6;
 /** Air between a chip and a name, a transfer's label or another chip. Marks get `CHIP_ROOM`. */
@@ -394,18 +402,46 @@ function build(
   });
   const firstY = SPACE.top;
   const bottom = Math.max(y - rowH + 56, firstY + 56);
-  // The hub spans the rows it joins; with no track it is a plain marker on the first row.
-  const joinedY = order.filter((l) => p.joined.has(l.id)).map((l) => rowY.get(l.id) ?? firstY);
-  const hubSpan: [number, number] = joinedY.length
-    ? [Math.min(...joinedY), Math.max(...joinedY)]
-    : [firstY, firstY];
+  // The hub is a circle on the middle row it joins; with no track it sits on the first row. The
+  // other joined rows bend into it at 45 degrees.
+  const joinedY = [
+    ...new Set(order.filter((l) => p.joined.has(l.id)).map((l) => rowY.get(l.id) ?? firstY)),
+  ].sort((a, b) => a - b);
+  const hubY = joinedY[Math.floor((joinedY.length - 1) / 2)] ?? firstY;
+  // Each joined row meets the hub at its own height, the nearest rows nearest its middle, so the
+  // diagonals out of one side run apart. The hub grows to hold them, up to HUB_MAX; past that the
+  // rows meet closer together.
+  const rank = new Map<string, number>();
+  let most = 0;
+  for (const out of [true, false]) {
+    const side = order.filter((l) => p.joined.has(l.id) && (l.tier === "out") === out);
+    const yOf = (l: ViewLine) => rowY.get(l.id) ?? firstY;
+    for (const dir of [-1, 1]) {
+      const ys = [...new Set(side.map(yOf).filter((y) => Math.sign(y - hubY) === dir))].sort(
+        (a, b) => dir * (a - b),
+      );
+      ys.forEach((y, k) => {
+        for (const l of side) if (yOf(l) === y) rank.set(l.id, dir * (k + 1));
+      });
+      most = Math.max(most, ys.length);
+    }
+  }
+  const hubR = Math.min(HUB_MAX, Math.max(RADIUS.hub, most * MEET + 8));
+  const gap = most ? Math.min(MEET, (hubR - 8) / most) : MEET;
+  const meet = new Map([...rank].map(([id, k]) => [id, Math.round(k * gap)]));
+  // A bend is as wide as it drops, with a flat run at its far end: the hub's column widens for it.
+  const drop = Math.max(0, ...joinedY.map((y) => Math.abs(y - hubY)));
+  const pad = Math.max(0, Math.ceil(drop + BEND_RUN - (steps[hubCol] ?? SPACE.step)));
 
   // Columns. A column is as many steps wide as it has slots, and never less than one. In the hub's
   // column the outreach comes first, then the hub, then the offers.
   const slots = columns.map((_, ci) =>
     ci === hubCol ? (p.left[ci] ?? 0) + 1 + (p.right[ci] ?? 0) : (p.left[ci] ?? 0),
   );
-  const widths = columns.map((_, ci) => Math.max(1, slots[ci] ?? 0) * (steps[ci] ?? SPACE.step));
+  const widths = columns.map(
+    (_, ci) =>
+      Math.max(1, slots[ci] ?? 0) * (steps[ci] ?? SPACE.step) + (ci === hubCol ? 2 * pad : 0),
+  );
   const x0 = columns.map((_, i) => widths.slice(0, i).reduce((a, b) => a + b, 0));
   const zones = columns.map((c, i): Zone => [x0[i] ?? 0, (x0[i] ?? 0) + (widths[i] ?? 0), c]);
   const xOf = (s: ViewStation) => {
@@ -413,10 +449,10 @@ function build(
     const step = steps[ci] ?? SPACE.step;
     const at = (n: number) => (x0[ci] ?? 0) + step / 2 + n * step;
     const before = p.left[ci] ?? 0;
-    if (s.kind === "hub") return at(before);
+    if (s.kind === "hub") return at(before) + pad;
     const right = ci === hubCol && line.get(s.line)?.tier !== "out";
     const n = p.slot.get(s.id) ?? 0;
-    return at(right ? before + 1 + n : n);
+    return right ? at(before + 1 + n) + 2 * pad : at(n);
   };
 
   // Stations.
@@ -426,9 +462,9 @@ function build(
     if (s.kind === "exit" && exitOf.has(s.id)) continue;
     const isHub = s.kind === "hub";
     const x = xOf(s);
-    const sy = isHub ? hubSpan[0] : (rowY.get(s.line) ?? firstY);
+    const sy = isHub ? hubY : (rowY.get(s.line) ?? firstY);
     pos.set(s.id, [x, sy]);
-    st.push(mark(s, x, sy, isHub ? { span: hubSpan } : {}, line));
+    st.push(mark(s, x, sy, isHub && hubR > RADIUS.hub ? { r: hubR } : {}, line));
   }
   // Exits: under the source, one step to the right for each further exit of the same source.
   const exits = new Map<string, number>();
@@ -481,7 +517,7 @@ function build(
       ...(t.moving ? { mv: true } : {}),
     };
     if (a.kind === "hub") {
-      // A line starts at the hub, on its own row.
+      // A line starts at the hub and bends to its own row.
       const l = lb ?? la;
       tr.push({
         ...common,
@@ -489,13 +525,22 @@ function build(
         b: b.id,
         l: l ? keyOf(l) : "out",
         w: l ? WEIGHT_OF[l.tier] : "front",
-        oa: pb[1] - pa[1],
+        oa: meet.get(b.line) ?? 0,
+        bend: "a",
         ...(l?.plan || t.plan ? { k: "plan" as const } : {}),
         ...(t.label ? { cond: t.label } : {}),
       });
     } else if (b.kind === "hub") {
-      // Outreach ends at the hub, on the row it came from.
-      tr.push({ ...common, a: a.id, b: b.id, l: "out", w: "out", ob: pa[1] - pb[1] });
+      // Outreach bends from its row into the hub.
+      tr.push({
+        ...common,
+        a: a.id,
+        b: b.id,
+        l: "out",
+        w: "out",
+        ob: meet.get(a.line) ?? 0,
+        bend: "b",
+      });
     } else if (la && lb && la.id !== lb.id) {
       // The person moves to another line: a transfer in the colour of the line they join.
       tr.push({ ...common, a: a.id, b: b.id, k: "xfer", l: keyOf(lb), lab: t.label ?? "transfer" });
@@ -626,6 +671,15 @@ function rails(sc: MetroScene) {
   }
 }
 
+/** Whether a flat part of the route runs through `b` for half its width or more. */
+const runsAlong = (pts: readonly Point[], b: Box) =>
+  pts.some((q, i) => {
+    const o = pts[i - 1];
+    if (!o || o[1] !== q[1] || q[1] <= b.y0 || q[1] >= b.y1) return false;
+    const run = Math.min(Math.max(o[0], q[0]), b.x1) - Math.max(Math.min(o[0], q[0]), b.x0);
+    return run >= (b.x1 - b.x0) / 2;
+  });
+
 /**
  * Choose a side for every name and a place for every chip. Names go above, else below, else beside
  * their station. A chip goes in the middle of the free part of its track; when none is free the
@@ -654,21 +708,30 @@ function dress(sc: MetroScene, fold: boolean): [number, number][] {
     Math.max(...pts.map((q) => q[0])),
   ];
   const names: Box[] = [];
+  // A line's first station is its terminus: its name sits before it, as on a transit map.
+  const entered = new Set(sc.tr.map((r) => r.b));
   for (const s of marks) {
     if (!s.n) continue;
     const sides: Side[] =
-      s.t === "exit" ? ["right", "down", "up", "left"] : ["up", "down", "right", "left"];
+      s.t === "exit"
+        ? ["right", "down", "up", "left"]
+        : entered.has(s.id) || s.t === "hub"
+          ? ["up", "down", "right", "left"]
+          : ["left", "up", "down", "right"];
     let best: { p: Side; boxes: Box[]; hard: number; soft: number } | undefined;
     for (const p of sides) {
       const boxes = labelBoxes({ ...s, p });
-      // A hard clash: a name on another name, a mark or a transfer's label. A soft one: a track.
+      // A hard clash: a name on another name, a mark, a transfer's label, or along a track, which
+      // hides the line. A soft one: across a track.
       let hard = 0;
       let soft = 0;
       for (const b of boxes) {
         for (const [id, mine] of own)
           for (const o of mine) if (overlaps(b, o, id === s.id ? 0 : CLEAR)) hard++;
         for (const o of [...xfers, ...names]) if (overlaps(b, o, CLEAR)) hard++;
-        for (const { pts } of routes) if (routeHits(pts, b)) soft++;
+        for (const { pts } of routes)
+          if (runsAlong(pts, b)) hard++;
+          else if (routeHits(pts, b)) soft++;
       }
       if (!best || hard < best.hard || (hard === best.hard && soft < best.soft))
         best = { p, boxes, hard, soft };
@@ -727,7 +790,6 @@ export function shift(sc: MetroScene, dx: number, dy: number) {
     if (isMark(s)) {
       s.x += dx;
       s.y += dy;
-      if (s.span) s.span = [s.span[0] + dy, s.span[1] + dy];
     }
   }
   for (const r of sc.tr) {
