@@ -173,13 +173,15 @@ const IG_METRICS: Record<string, [string, number]> = {
   profile_visits: [M.profileVisits, 1],
   ig_reels_avg_watch_time: [M.avgViewSecs, 1 / 1000],
   ig_reels_video_view_total_time: [M.watchMinutes, 1 / 60_000],
+  // A percent: the plays swiped away in the first 3 seconds.
+  reels_skip_rate: [M.skipRate, 1],
 };
 const COMMON = ["reach", "views", "saved", "likes", "comments", "shares", "total_interactions"];
-/** A Reel answers watch time and refuses follows; a feed post the other way round. */
+/** A Reel answers watch time and skip rate and refuses follows; a feed post the other way round. */
 export const igMetricsFor = (kind: string | null | undefined): string[] =>
   kind === "carousel" || kind === "image"
     ? [...COMMON, "follows", "profile_visits"]
-    : [...COMMON, "ig_reels_avg_watch_time", "ig_reels_video_view_total_time"];
+    : [...COMMON, "ig_reels_avg_watch_time", "ig_reels_video_view_total_time", "reels_skip_rate"];
 const IG_APP_ONLY = "Instagram shows this in the app only";
 /** The account's day numbers, as a field expansion on the IG user (no route beyond `/{objectId}`). */
 const IG_ACCOUNT: Record<string, string> = {
@@ -500,9 +502,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
         for (const n of names)
           await readGroup([(IG_METRICS[n] as [string, number])[0]], () => ask([n]), out);
       }
-      out.gaps.push(
-        ...knownGaps("no_api", IG_APP_ONLY, [M.retention, M.trafficSource, M.skipRate]),
-      );
+      out.gaps.push(...knownGaps("no_api", IG_APP_ONLY, [M.retention, M.trafficSource]));
       return { ...out, asOf: now().toISOString() };
     },
     async accountInsights(): Promise<AccountInsights> {

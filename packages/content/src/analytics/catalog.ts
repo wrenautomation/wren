@@ -22,6 +22,7 @@ export type MetricGroup =
   | "conversation"
   | "funnel"
   | "iteration"
+  | "audience"
   | "account";
 
 export interface CatalogEntry {
@@ -214,6 +215,28 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
     [
       "youtube",
       "long",
+      "Hook: still watching at 3 s",
+      [M.hold3],
+      "retention",
+      "reach",
+      "needs_scope",
+      YTA,
+      YA,
+    ],
+    [
+      "youtube",
+      "long",
+      "Audience: age, gender, country, subscribers vs others",
+      [M.viewerAge, M.viewerGender, M.viewerCountry, M.viewerFollower],
+      "audience",
+      "reach",
+      "needs_scope",
+      YTA,
+      YA,
+    ],
+    [
+      "youtube",
+      "long",
       "Watch time",
       [M.watchMinutes],
       "retention",
@@ -363,7 +386,16 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       "live",
       GRAPH,
     ],
-    ["instagram", null, "Skip rate", [M.skipRate], "retention", "trust", "no_api", "the app only"],
+    [
+      "instagram",
+      null,
+      "Skip rate (Reels)",
+      [M.skipRate],
+      "retention",
+      "trust",
+      "live",
+      "Graph API media insights reels_skip_rate, instagram_manage_insights",
+    ],
     [
       "instagram",
       null,

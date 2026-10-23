@@ -219,6 +219,29 @@ export function holdAt(
   return best.watch;
 }
 
+/**
+ * Each bucket's percent of the whole, summed over rows (YouTube's age and gender rows each
+ * carry both). Rows with no bucket drop out.
+ */
+export function sharesOf(
+  metric: string,
+  rows: ReadonlyArray<Record<string, unknown>>,
+  keyOf: (r: Record<string, unknown>) => string | null,
+  col: string,
+): InsightValue[] {
+  const by = new Map<string, number>();
+  for (const r of rows) {
+    const k = keyOf(r);
+    const v = Number(r[col]);
+    if (k && Number.isFinite(v)) by.set(k, (by.get(k) ?? 0) + v);
+  }
+  const total = [...by.values()].reduce((a, b) => a + b, 0);
+  if (!total) return [];
+  return [...by].flatMap(([k, v]) => numberOf(metric, Math.round((v / total) * 10_000) / 100, k));
+}
+const AUDIENCE = [M.viewerAge, M.viewerGender, M.viewerCountry, M.viewerFollower];
+const FOLLOWER: Record<string, string> = { SUBSCRIBED: "follower", UNSUBSCRIBED: "other" };
+
 /** `videos.list` takes up to 50 ids in one call. */
 const VIDEOS_PER_READ = 50;
 
@@ -582,13 +605,21 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         out,
       );
       // No route or no scope: every report below answers the same, so ask once.
-      const later = [M.retention, M.relativeRetention, M.hold30, M.trafficSource, M.searchTerm];
+      const later = [
+        M.retention,
+        M.relativeRetention,
+        M.hold3,
+        M.hold30,
+        M.trafficSource,
+        M.searchTerm,
+        ...AUDIENCE,
+      ];
       if (!live) {
         const first = out.gaps.find((g) => g.metric === totals[0]);
         if (first) out.gaps.push(...knownGaps(first.state, first.why, later));
       } else {
         await readGroup(
-          [M.retention, M.relativeRetention, M.hold30],
+          [M.retention, M.relativeRetention, M.hold3, M.hold30],
           async () => {
             const rows = reportRows(
               await report({
@@ -601,13 +632,14 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
               watch: Number(r.audienceWatchRatio),
               relative: Number(r.relativeRetentionPerformance),
             }));
-            const at = duration ? 30 / duration : -1;
+            const at = (secs: number) => (duration ? secs / duration : -1);
             return [
               ...curve.flatMap((p) => numberOf(M.retention, p.watch, p.ratio.toFixed(2))),
               ...curve.flatMap((p) =>
                 numberOf(M.relativeRetention, p.relative, p.ratio.toFixed(2)),
               ),
-              ...numberOf(M.hold30, holdAt(curve, at)),
+              ...numberOf(M.hold3, holdAt(curve, at(3))),
+              ...numberOf(M.hold30, holdAt(curve, at(30))),
             ];
           },
           out,
@@ -639,6 +671,52 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
               }),
             ).flatMap((r) =>
               numberOf(M.searchTerm, r.views, String(r.insightTrafficSourceDetail).slice(0, 200)),
+            ),
+          out,
+        );
+        // Who watched it: each a percent of its views.
+        await readGroup(
+          [M.viewerAge, M.viewerGender],
+          async () => {
+            const rows = reportRows(
+              await report({ dimensions: "ageGroup,gender", metrics: "viewerPercentage" }),
+            );
+            return [
+              ...sharesOf(
+                M.viewerAge,
+                rows,
+                (r) => String(r.ageGroup ?? "").replace(/^age/, "") || null,
+                "viewerPercentage",
+              ),
+              ...sharesOf(
+                M.viewerGender,
+                rows,
+                (r) => String(r.gender ?? "") || null,
+                "viewerPercentage",
+              ),
+            ];
+          },
+          out,
+        );
+        await readGroup(
+          [M.viewerCountry],
+          async () =>
+            sharesOf(
+              M.viewerCountry,
+              reportRows(await report({ dimensions: "country", metrics: "views", sort: "-views" })),
+              (r) => String(r.country ?? "") || null,
+              "views",
+            ),
+          out,
+        );
+        await readGroup(
+          [M.viewerFollower],
+          async () =>
+            sharesOf(
+              M.viewerFollower,
+              reportRows(await report({ dimensions: "subscribedStatus", metrics: "views" })),
+              (r) => FOLLOWER[String(r.subscribedStatus)] ?? null,
+              "views",
             ),
           out,
         );

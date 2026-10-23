@@ -80,6 +80,8 @@ digest. Each platform table names only what differs.
 | Average view duration, % viewed | | collector built | Analytics `averageViewDuration`, `averageViewPercentage` | Needs scope | Trust |
 | Retention curve | watch ratio by elapsed tenth | collector built | Analytics `elapsedVideoTimeRatio` x `audienceWatchRatio`, `relativeRetentionPerformance` | Needs scope | Trust |
 | Rewatches | points of the curve above 1 | derived from the curve | as above | Needs scope | Trust |
+| Hook: still watching at 3 s | the curve at 3 s; Shorts also get a skip rate | built 2026-10-23 | from the curve | Needs scope | Reach |
+| Audience: age, gender, country, subscribers vs others | percent of the video's views per bucket | built 2026-10-23 | `ageGroup,gender` viewerPercentage, `country` and `subscribedStatus` views | Needs scope | Reach |
 | Watch time | minutes watched | collector built | Analytics `estimatedMinutesWatched` | Needs scope | Trust |
 | Likes, comments | | `content_metrics` | Data API | Live | Trust |
 | Shares, saves | saves = added to playlists | collector built | Analytics `shares`, `videosAddedToPlaylists` | Needs scope | Trust |
@@ -113,7 +115,7 @@ the first post proves it.
 | Likes, comments, shares, saves, total interactions | | likes to shares in `content_metrics`; saves new | `saved`, `total_interactions` | Live | Trust |
 | Follows, profile visits from the post | posts only; a Reel refuses them | `follows` | `follows`, `profile_visits` | Live | Reach |
 | Average watch time, total watch time | Reels | collector built | `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time` | Live | Trust |
-| Skip rate (the 3-second hold) | | none | not in the Graph API version we call | No API | Trust |
+| Skip rate (Reels) | percent of plays swiped away in the first 3 s | collector built (2026-10-23) | `reels_skip_rate` | Live | Trust |
 | Retention curve, rewatches | | | app only | No API | Trust |
 | Traffic sources (feed, Reels tab, explore) | | | app only | No API | Reach |
 | Comment reply rate, time to reply | | built here | none | Live | Trust |
@@ -172,9 +174,9 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 
 | Platform | Live | Waiting | Needs scope | Needs William | Not built | No API |
 |---|---|---|---|---|---|---|
-| YouTube long-form | 4 | 1 | 10 | 0 | 0 | 1 |
+| YouTube long-form | 4 | 1 | 12 | 0 | 0 | 1 |
 | YouTube Shorts (past long-form) | 0 | 0 | 2 | 0 | 0 | 2 |
-| Instagram | 8 | 0 | 1 | 0 | 0 | 3 |
+| Instagram | 9 | 0 | 1 | 0 | 0 | 2 |
 | TikTok | 1 | 2 | 0 | 3 | 0 | 0 |
 | LinkedIn | 4 | 2 | 0 | 0 | 0 | 0 |
 | X | 4 | 3 | 0 | 0 | 0 | 0 |

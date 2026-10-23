@@ -21,8 +21,10 @@ export const GAP_STATES = [
 export type GapState = (typeof GAP_STATES)[number];
 
 /**
- * One number. `key` splits a metric: the tenth of the video for `retention`, the source for
- * `traffic_source`, the words for `search_term`. Absent for a plain number.
+ * One number. `key` splits a metric: the share of the video for `retention` ("0.00"–"1.00"), the
+ * source for `traffic_source`, the words for `search_term`, the bucket for a `viewer_*` share
+ * (`viewer_age` "25-34", `viewer_gender` "female", `viewer_country` "CA", `viewer_follower`
+ * "follower" | "other"). Absent for a plain number.
  */
 export interface InsightValue {
   metric: string;
@@ -99,13 +101,21 @@ export const METRICS = {
   watchMinutes: "watch_minutes",
   engagedViews: "engaged_views",
   durationSecs: "duration_secs",
+  /** Share still watching 3 s in (0..1): the hook where no skip rate comes. */
+  hold3: "hold_3s",
   hold30: "hold_30s",
   retention: "retention",
   relativeRetention: "relative_retention",
   trafficSource: "traffic_source",
   searchTerm: "search_term",
   upvoteRatio: "upvote_ratio",
+  /** Percent of plays swiped away in the first seconds. */
   skipRate: "skip_rate",
+  /** Percent of views per bucket; `key` is the bucket. */
+  viewerAge: "viewer_age",
+  viewerGender: "viewer_gender",
+  viewerCountry: "viewer_country",
+  viewerFollower: "viewer_follower",
   followers: "followers",
   accountsEngaged: "accounts_engaged",
   /** Shares sent in a private message (LinkedIn's "Sends on LinkedIn"). */

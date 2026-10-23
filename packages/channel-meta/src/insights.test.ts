@@ -41,7 +41,7 @@ function graph(have: Record<string, number>) {
 }
 
 describe("instagram insights", () => {
-  it("a Reel: watch time in seconds and minutes, saves, interactions; app-only numbers are gaps", async () => {
+  it("a Reel: watch time in seconds and minutes, skip rate, saves, interactions; app-only numbers are gaps", async () => {
     const { sites, asked } = graph({
       reach: 200,
       views: 450,
@@ -52,6 +52,7 @@ describe("instagram insights", () => {
       total_interactions: 49,
       ig_reels_avg_watch_time: 6500,
       ig_reels_video_view_total_time: 1_800_000,
+      reels_skip_rate: 62.6,
     });
     const got = await instagramContent(sites, { now: () => NOW }).insights?.({ id: "m1" });
     const of = (m: string) => got?.values.find((v) => v.metric === m)?.value;
@@ -60,10 +61,10 @@ describe("instagram insights", () => {
     expect(of("saves")).toBe(9);
     expect(of("avg_view_secs")).toBe(6.5);
     expect(of("watch_minutes")).toBe(30);
+    expect(of("skip_rate")).toBe(62.6);
     expect(got?.gaps.map((g) => `${g.metric}:${g.state}`)).toEqual([
       "retention:no_api",
       "traffic_source:no_api",
-      "skip_rate:no_api",
     ]);
   });
 

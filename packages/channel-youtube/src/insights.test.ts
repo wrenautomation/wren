@@ -91,6 +91,31 @@ describe("youtube insights", () => {
           );
         if (i.dimensions === "insightTrafficSourceDetail")
           return table(["insightTrafficSourceDetail", "views"], [["crm automation", 12]]);
+        if (i.dimensions === "ageGroup,gender")
+          return table(
+            ["ageGroup", "gender", "viewerPercentage"],
+            [
+              ["age25-34", "male", 60],
+              ["age25-34", "female", 15],
+              ["age35-44", "male", 25],
+            ],
+          );
+        if (i.dimensions === "country")
+          return table(
+            ["country", "views"],
+            [
+              ["CA", 30],
+              ["US", 10],
+            ],
+          );
+        if (i.dimensions === "subscribedStatus")
+          return table(
+            ["subscribedStatus", "views"],
+            [
+              ["SUBSCRIBED", 1],
+              ["UNSUBSCRIBED", 3],
+            ],
+          );
         return table(String(i.metrics).split(","), [[75, 42, 35.5, 3, 1, 1, 0]]);
       },
     });
@@ -113,9 +138,19 @@ describe("youtube insights", () => {
     expect(of("retention", "0.25")).toBe(0.6);
     // 30 s of a 2 min video is 0.25 of it.
     expect(of("hold_30s")).toBe(0.6);
+    // 3 s is 0.025 of it: the nearest point is 0.01.
+    expect(of("hold_3s")).toBe(1);
+    expect(of("viewer_age", "25-34")).toBe(75);
+    expect(of("viewer_age", "35-44")).toBe(25);
+    expect(of("viewer_gender", "male")).toBe(85);
+    expect(of("viewer_country", "CA")).toBe(75);
+    expect(of("viewer_follower", "follower")).toBe(25);
+    expect(of("viewer_follower", "other")).toBe(75);
     expect(of("traffic_source", "YT_SEARCH")).toBe(40);
     expect(of("search_term", "crm automation")).toBe(12);
-    expect(asked.at(-1)?.filters).toBe("video==v1;insightTrafficSourceType==YT_SEARCH");
+    expect(asked.find((a) => a.dimensions === "insightTrafficSourceDetail")?.filters).toBe(
+      "video==v1;insightTrafficSourceType==YT_SEARCH",
+    );
     // Impressions and CTR come from the reach report, not here.
     expect(got?.gaps).toEqual([]);
   });
@@ -146,6 +181,7 @@ describe("youtube insights", () => {
     expect(states.has("views")).toBe(false);
     expect(states.get("retention")).toBe("needs_scope");
     expect(states.get("search_term")).toBe("needs_scope");
+    expect(states.get("viewer_age")).toBe("needs_scope");
     expect(states.get("skip_rate")).toBe("no_api");
     expect(got?.gaps.find((g) => g.metric === "retention")?.why).toContain("insufficient scope");
   });

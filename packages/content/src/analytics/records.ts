@@ -450,6 +450,7 @@ export const metricRecord = defineRecord({
         conversation: neutral("Conversation"),
         funnel: neutral("Funnel"),
         iteration: neutral("Iteration"),
+        audience: neutral("Audience"),
         account: neutral("Account"),
       }),
       "About",
