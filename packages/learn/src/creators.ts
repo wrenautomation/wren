@@ -219,7 +219,7 @@ export async function xPosts(sites: SiteClient, handle: string): Promise<Creator
     "x",
     "GET",
     `/2/users/${handle}/tweets`,
-    { max_results: NEWEST, exclude: "retweets" },
+    { max_results: NEWEST, exclude: "replies,retweets" },
   );
   if (a.errors?.length && !a.data) throw new Error(`x @${handle}: ${a.errors[0]?.detail}`);
   return (a.data ?? [])

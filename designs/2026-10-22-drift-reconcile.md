@@ -27,8 +27,8 @@ A partial list (as many rows back as asked) holds only the newest. Absence in it
 |---|---|---|---|
 | connections | LinkedIn `/connections` (200) | `reach_contacts` (platform, handle) | **built** (this doc) |
 | follows | X `GET /2/users/me/following` (autobrowse da396a7: the signed-in Following page; the free API has no follows); Reddit `/subreddits/mine/subscriber` (users as `u_<name>`); YouTube `subscriptions?mine=true`; Instagram `/web/following`, TikTok `/web/following`, Threads `instagram /web/threads/following` (autobrowse a241122: desk-browser reads) | touches `follow` ours, source `following` | all six **built** (section below) |
-| own posts | `Content/list`, 100 newest: X user tweets, IG media, TikTok video/list, YouTube uploads, Threads, Reddit submitted; Facebook Page posts (a video post lists as its video's id, the id publish keeps). LinkedIn `/rest/posts` refuses today (501: no desk workflow yet) | `content_drafts.published_id` (`canonRef`) | **built** (section below) |
-| own comments | Reddit `/user/<me>/comments` (+ `/api/info` for a reply's author); X replies not yet (the page leg reads no replies) | touches `comment`/`reply` ours, source `own_comments`; never the `comments` table (an inbox) | Reddit **built** |
+| own posts | `Content/list`, 100 newest: X user tweets, IG media, TikTok video/list, YouTube uploads, Threads, Reddit submitted; Facebook Page posts (a video post lists as its video's id, the id publish keeps); LinkedIn `/rest/posts` (autobrowse d20663f: the profile's or Page's recent activity, 12/day) | `content_drafts.published_id` (`canonRef`) | **built** (section below) |
+| own comments | Reddit `/user/<me>/comments` (+ `/api/info` for a reply's author); X `/2/users/{id}/tweets` without `exclude=replies` (autobrowse 0ea8505: the Replies tab) | touches `comment`/`reply` ours, source `own_comments`; never the `comments` table (an inbox) | Reddit, X **built** |
 | DMs | LinkedIn `/messaging`, Meta conversations | `reach_messages` | the reply watch reads these already |
 
 Every site shows its own following list. Instagram, TikTok and Threads keep it out of their official APIs, so a desk-browser flow reads each page. Instagram calls the page's own friendships JSON. TikTok and Threads scroll the profile's Following dialog through one shared reader. Threads runs on the instagram site, because Threads signs in through Instagram. One read a day each, under the account's caps.
@@ -49,6 +49,10 @@ Comments (`keepOwnComments`):
 
 1. A comment id an ours touch, a thread's answer (`reddit_threads.answer_ref`: a karma-place answer stays touch-free) or an inbox answer (`comments.answer_ref`) has stays as it is.
 2. Each other comment becomes an ours `comment` (`reply` on a comment) touch toward the post's or the comment's author: account `wren`, ref `oc:<platform>:<id>`. A deleted author or our own is skipped.
+
+X: a reply to the thread's first post is a `comment`, one deeper a `reply`. A reply down our own thread is skipped. A tab post with no parent is a post, not a comment.
+
+An X read that wants posts only must send `exclude: "replies,retweets"`: without `replies` the desk reads the Replies tab.
 
 ### Facebook (fixed 10-22)
 

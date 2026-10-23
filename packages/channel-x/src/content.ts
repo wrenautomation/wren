@@ -25,6 +25,7 @@ import {
   type Metrics,
   mediaFileOf,
   numberOf,
+  type OwnCommentRow,
   type Post,
   type Published,
   type PublishedRow,
@@ -51,6 +52,12 @@ interface Tweet {
   author_id?: string;
   /** The page leg's author. */
   author_username?: string;
+  /** The thread's first post: a reply to it comments on that post. */
+  conversation_id?: string;
+  /** The post it answers. Absent = not a reply. */
+  in_reply_to_status_id?: string;
+  /** Whom it answers (the page leg: display name, else the handle). */
+  in_reply_to?: { username: string; name?: string };
   public_metrics?: {
     impression_count?: number;
     like_count?: number;
@@ -227,6 +234,31 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         })),
         q,
       );
+    },
+    /** Our newest replies (the profile's Replies tab), less those down our own threads. */
+    async ownComments(): Promise<OwnCommentRow[]> {
+      const { id, username } = await whoami();
+      const r = await sites.call<{ data?: Tweet[] }>("x", "GET", `/2/users/${id}/tweets`, {
+        max_results: 100,
+        exclude: "retweets",
+      });
+      const self = username.toLowerCase();
+      return (r.data ?? []).flatMap((t) => {
+        const to = t.in_reply_to;
+        if (!t.in_reply_to_status_id || !to || to.username.toLowerCase() === self) return [];
+        const post = t.conversation_id ?? t.in_reply_to_status_id;
+        return [
+          {
+            id: t.id,
+            url: urlOf(username, t.id),
+            at: t.created_at ?? now().toISOString(),
+            text: t.text ?? "",
+            postId: post,
+            reply: t.in_reply_to_status_id !== post,
+            to: { handle: to.username, name: to.name && to.name !== to.username ? to.name : null },
+          },
+        ];
+      });
     },
     async metrics(id: string): Promise<Metrics> {
       const r = await sites.call<{ data?: Tweet }>("x", "GET", `/2/tweets/${id}`, {});

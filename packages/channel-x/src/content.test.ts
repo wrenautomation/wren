@@ -156,6 +156,63 @@ describe("x content channel", () => {
     };
     expect(await xContent(sites).comments("t1")).toEqual([]);
   });
+  it("lists our replies, as comment or reply, and skips our own threads and plain posts", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /2/users/me": () => ({ data: { id: "u1", username: "wren" } }),
+      "GET /2/users/u1/tweets": () => ({
+        data: [
+          { id: "p1", text: "a post", created_at: "2026-09-21T09:00:00Z", conversation_id: "p1" },
+          {
+            id: "r1",
+            text: "@ann nice",
+            created_at: "2026-09-21T08:00:00Z",
+            conversation_id: "a1",
+            in_reply_to_status_id: "a1",
+            in_reply_to: { username: "ann", name: "Ann Lee" },
+          },
+          {
+            id: "r2",
+            text: "@bob yes",
+            created_at: "2026-09-21T07:00:00Z",
+            conversation_id: "a1",
+            in_reply_to_status_id: "b1",
+            in_reply_to: { username: "bob", name: "bob" },
+          },
+          {
+            id: "r3",
+            text: "2/ more",
+            conversation_id: "p1",
+            in_reply_to_status_id: "p1",
+            in_reply_to: { username: "Wren", name: "Wren" },
+          },
+        ],
+      }),
+    });
+    expect(await xContent(sites, { now }).ownComments?.()).toEqual([
+      {
+        id: "r1",
+        url: "https://x.com/wren/status/r1",
+        at: "2026-09-21T08:00:00Z",
+        text: "@ann nice",
+        postId: "a1",
+        reply: false,
+        to: { handle: "ann", name: "Ann Lee" },
+      },
+      {
+        id: "r2",
+        url: "https://x.com/wren/status/r2",
+        at: "2026-09-21T07:00:00Z",
+        text: "@bob yes",
+        postId: "a1",
+        reply: true,
+        to: { handle: "bob", name: null },
+      },
+    ]);
+    expect(calls.find(([, p]) => p === "/2/users/u1/tweets")?.[2]).toEqual({
+      max_results: 100,
+      exclude: "retweets",
+    });
+  });
   describe("batch reads", () => {
     const page = {
       data: [
