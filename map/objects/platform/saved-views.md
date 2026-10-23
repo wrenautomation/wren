@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-06 @ 60d4dea
+verified: 2026-10-23 @ 135454e3
 entity: packages/core/src/saved-views.ts:40
 ---
 

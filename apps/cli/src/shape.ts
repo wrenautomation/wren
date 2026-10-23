@@ -21,6 +21,7 @@
  * and the conflicts. The store refuses every graph body (C1 part 4).
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { normalEmail } from "@wren/core/clients";
 import { TRIGGER_IDS } from "@wren/core/logic";
 import { type SavedViewLine, savedViewsOf } from "@wren/core/saved-views";
 import type { Db } from "@wren/db";
@@ -945,11 +946,7 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
   /** The views a viewer sees: the shared ones, and their own when --viewer names them. */
   const viewsFor = (viewer?: string) =>
     deps.withViews((main, workspace) =>
-      savedViewsOf(
-        main,
-        { workspace, viewer: viewer?.trim().toLowerCase() ?? "" },
-        MAP_VIEW_RECORD,
-      ),
+      savedViewsOf(main, { workspace, viewer: viewer ? normalEmail(viewer) : "" }, MAP_VIEW_RECORD),
     );
   const viewerOpt = "--viewer <email>";
   const viewerHelp = "add this person's own views to the shared ones";
@@ -967,12 +964,12 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
     );
 
   view
-    .command("show <id>")
+    .command("show")
     .description("A view's parts on the newest version: each part's stations and their attachments")
+    .argument("<id>", "the view's id, from view list", numberArg)
     .option(viewerOpt, viewerHelp)
-    .action((id: string, o: { viewer?: string }) =>
+    .action((n: number, o: { viewer?: string }) =>
       plain(async () => {
-        const n = numberArg(id);
         const v = (await viewsFor(o.viewer)).find((x) => x.id === n);
         if (!v)
           throw new Refused([
