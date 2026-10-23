@@ -17,6 +17,9 @@ Living doc. Started 2026-10-23. Three questions from William: can the runtime ho
 | Back moves | built as `loop` edges: close the journey, open a new one. |
 | Logic stations (condition, race, split, join, ab, approval, link), exits, frames | drawn only. `lowerable` refuses them: "The runtime does not run it yet." |
 | Two branches at once | not built. A person sits on one node. |
+| Skip counts | built. `pipeline.node_counts` counts per node and day the journeys that skipped it. |
+| A loop's trail | split. A loop opens a new journey; `entry_ref.loop` names the old one. |
+| Data | a handful of journeys on prod, no skips and no loops yet (10-23). |
 
 So the runtime is a DFA plus free forward jumps. That is an NFA with epsilon moves, already reduced: one state at a time. It is enough for skips. It is not enough for parallel work.
 
@@ -34,7 +37,7 @@ Recommendation: do not build tokens now. Build them with the first split station
 
 ### Tokens, when built
 
-- `journey_tokens`: `journey`, `node`, `status`, `trail`. The journey row keeps `node` as the furthest token, so readers that read one node keep working.
+- `journey_tokens`: `journey`, `node`, `status`, `trail`. "The furthest token" has no meaning after a split: the branches run side by side. So the journey row keeps the split station as its `node` until the join fires. Readers that read one node see "in onboarding" and keep working.
 - A split makes one token per out track. A join waits for its `rule` (all, any, 2 of 3), then makes one token.
 - The arrival key becomes `journey:<id>/<token>`. `uq_events_entry` keeps once per node per token.
 - Framework check first: XState was vetted and refused in `2026-10-18-journeys.md`. Restate plus the spine already run the steps. Tokens are rows, not a new engine.
@@ -43,7 +46,8 @@ Recommendation: do not build tokens now. Build them with the first split station
 
 The runtime allows every forward skip. So the map does not ask the designer to draw them. It shows the skips people made.
 
-- Data: each `moved` event with a non-empty `skipped` is one skip from `from` to `to`. A new view `pipeline.skip_flow`: per version, `from`, `to`, window: count and share of the people who left `from`.
+- Data: each `moved` event with a non-empty `skipped` is one skip from `from` to `to`. A new view `pipeline.skip_flow`: per version, `from`, `to`, window: count and share of the people who left `from`. It reads the same arrivals as `node_counts`; put it beside that view in `views.ts`.
+- The dashed ring needs no new view: `node_counts` has `skipped` and `arrived`. Its share is skipped / (arrived + skipped), so people who dropped before the station do not count.
 - Draw rule:
   - Share 5% or more and 3 people or more: an **express arc**. A thin arc over the stations it passes, in the line colour, with the count. This is the arc in William's sketch.
   - Less: a **count on the landing station**: "+2 skipped in". Hover lists from where.
@@ -51,7 +55,7 @@ The runtime allows every forward skip. So the map does not ask the designer to d
 - A designer can still draw an arc on purpose, as a planned express (dotted, like a planned track). It lowers to nothing: the runtime already allows the move.
 - Engine: a new `ViewTrack` kind `express` `{ from, to, count }`. Layout keeps room above the line for arcs. The lab score counts an arc that cuts a name as an overlap.
 
-Thresholds are open decision 2.
+Thresholds are open decision 2. With few people a share swings: 1 of 2 is 50%. So the arc rule tests the share's low bound (Wilson, 90%), not the raw share. Below that, the count on the station is the only mark. At today's volume no arc shows for a while.
 
 ## Map placement
 
@@ -74,22 +78,31 @@ What is missing:
 
 ## Algorithms on the trails
 
-The trails are an event log: one case per journey, one event per crossing. Known methods then apply. The data draws the shape, or the data checks it.
+The trails are an event log: one event per crossing. Known methods then apply. The data draws the shape, or the data checks it.
+
+The case is the person's chain of journeys, joined by `entry_ref.loop`, not one journey. Else every loop reads as a drop and a new entry.
+
+Every method below needs volume. Today there is almost none. So each method states what it does with little data.
 
 1. **Process mining** (van der Aalst). The most useful one.
    - Discovery (Inductive Miner, Heuristic Miner): build the real shape from what people did. The Inductive Miner always gives a sound shape. Point it at a client's CRM export to get a draft of their map.
    - Conformance (token replay, alignments): compare the real trails to the drawn shape. It shows each skip, extra step and dead step. The skip arcs above are a simple form of this.
-   - Framework: PM4Py (open source, Python; license AGPL, to confirm). Wren is TypeScript, so it runs at the edge as a job, not in core. Or we port the one method we need.
+   - Framework: PM4Py (open source, Python; license to confirm). Wren is TypeScript, so it runs at the edge as a job, not in core. Or we port the one method we need.
+   - Little data: discovery on Wren trails waits. A client's CRM export with stage history has data on day one. That is the first use. The HubSpot connector does not read stage history yet (`propertiesWithHistory=dealstage` adds it).
+   - The skip arcs are plain SQL. They do not need conformance. Alignments earn their place only when a shape has branches.
 2. **Absorbing Markov chains.**
    - Each edge's chance comes from the trails. Money and dropped are end states.
    - The fundamental matrix N = (I − Q)⁻¹ gives each station its chance of reaching money and the expected steps to get there. Weight steps by dwell time to get days.
    - One formula gives lead scores, a value per node, and the step where a fix pays most.
+   - Little data: start each edge's chance from the drawn shape (a prior, as add-k counts) and let trails move it. A value per node then exists from day one.
+   - Limit: the chain forgets history. Two people on one node get one value. That is fine for a node value; lead scores add the person's own signals.
 3. **Workflow-net soundness** (van der Aalst).
    - When tokens come, this check runs before a draft is applied. It proves no person can deadlock at a join, and every token can reach an end.
    - It is the check for split and join stations.
 4. **Minimization (Hopcroft) and bisimulation.**
    - Two stations that act the same can merge. Same means the same moves out, to the same places.
    - This can drive the default groups: the map folds stations that act as one. The vague map then follows the data, not taste.
+   - Limit: on noisy trails two stations almost never act exactly the same. The usable form is lumpability (merge when the chances out are close). Default groups from the draft (one line, one column) come first; this only checks them.
 
 Less useful here:
 
@@ -99,19 +112,25 @@ Less useful here:
 
 Order:
 
-1. Conformance on trails. It feeds the skip arcs.
-2. Markov values for each node.
-3. Discovery for client onboarding.
-4. Soundness, only when tokens are built.
+1. Skip arcs and rings in SQL (no algorithm).
+2. Discovery on a client's CRM export, for onboarding. It has data now.
+3. Markov values for each node, with the shape as the prior.
+4. Conformance, when shapes have branches.
+5. Soundness, only when tokens are built.
+
+Open decision 4 holds this order.
 
 ## Open decisions
 
 1. Tokens: wait for the first split a client needs (recommended), or build now.
 2. Skip thresholds: arc at 5% and 3 people, dashed ring at 30%.
 3. Planned express arcs: allow (recommended, they lower to nothing) or leave them out.
+4. Build order of the trail methods: skip SQL, CRM discovery, Markov with a prior, conformance, soundness (recommended), or the first order (conformance first).
+5. Arc rule: Wilson low bound (recommended) or the raw share.
 
 ## Decision log
 
 - 2026-10-23: the NFA stays in the backend; the map stays a metro map. William.
 - 2026-10-23: skips need no runtime change; the map draws them from trails.
 - 2026-10-23: trail algorithms added (process mining, absorbing Markov chains, soundness, minimization), in that build order. William.
+- 2026-10-23: review. Facts added (node_counts, loop chains, data volume). Proposed: case = loop chain, Wilson bound, shape prior, CRM discovery first, split station as the token row's node. Decisions 4 and 5 wait on William.
