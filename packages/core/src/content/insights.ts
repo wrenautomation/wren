@@ -111,11 +111,15 @@ export const METRICS = {
   upvoteRatio: "upvote_ratio",
   /** Percent of plays swiped away in the first seconds. */
   skipRate: "skip_rate",
+  /** Percent of views watched to the end. */
+  finishRate: "finish_rate",
   /** Percent of views per bucket; `key` is the bucket. */
   viewerAge: "viewer_age",
   viewerGender: "viewer_gender",
   viewerCountry: "viewer_country",
   viewerFollower: "viewer_follower",
+  /** Percent of views from viewers new to the account ("new") or back again ("returning"). */
+  viewerReturn: "viewer_return",
   followers: "followers",
   accountsEngaged: "accounts_engaged",
   /** Shares sent in a private message (LinkedIn's "Sends on LinkedIn"). */
@@ -162,6 +166,55 @@ export async function readGroup(
     for (const metric of metrics) into.gaps.push({ metric, state, why });
     return false;
   }
+}
+
+/** Days after a post went up when a browser read runs: 5 reads a post, light on the account. */
+export const BROWSER_READ_DAYS: readonly number[] = [1, 3, 7, 14, 28];
+const DAY_MS = 86_400_000;
+
+/** Whether today is one of a post's browser-read days (whole days since it went up). */
+export function browserReadDue(published: string | null | undefined, now: Date): boolean {
+  if (!published) return false;
+  const at = Date.parse(published);
+  if (Number.isNaN(at)) return false;
+  return BROWSER_READ_DAYS.includes(Math.floor((now.getTime() - at) / DAY_MS));
+}
+
+/**
+ * Read a group of numbers off a page in the box's browser. Light: only on `BROWSER_READ_DAYS`.
+ * A day over the box's cap (429) reads nothing; any other failure is a gap, never a retry, so
+ * a broken page costs one read, not a storm. A day with no read writes nothing: the last read's
+ * numbers and states stand.
+ */
+export async function browserRead(
+  metrics: readonly string[],
+  q: Pick<InsightsQuery, "published">,
+  now: Date,
+  work: () => Promise<InsightValue[]>,
+  into: { values: InsightValue[]; gaps: InsightGap[] },
+): Promise<boolean> {
+  if (!browserReadDue(q.published, now)) return false;
+  try {
+    into.values.push(...(await work()));
+    return true;
+  } catch (err) {
+    if (err instanceof SiteCallError && err.status === 429) return false;
+    const why = (err instanceof Error ? err.message : String(err)).slice(0, WHY_MAX);
+    for (const metric of metrics)
+      into.gaps.push({ metric, state: gapStateOf(err) ?? "error", why });
+    return false;
+  }
+}
+
+/** Share still watching at `at` (a ratio of the video): the curve's nearest point. */
+export function holdAt(
+  curve: ReadonlyArray<{ ratio: number; watch: number }>,
+  at: number,
+): number | null {
+  if (!curve.length || at < 0 || at > 1) return null;
+  let best = curve[0] as { ratio: number; watch: number };
+  for (const p of curve) if (Math.abs(p.ratio - at) < Math.abs(best.ratio - at)) best = p;
+  return best.watch;
 }
 
 /** Gaps we know before asking: the platform keeps these in its own app. */

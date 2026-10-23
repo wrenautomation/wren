@@ -294,6 +294,10 @@ export const postRecordOf = (signer?: VideoSigner) =>
       avgViewPct: percent("Average % viewed", { listed: false, group: "How it did" }),
       avgViewSecs: duration("Average view", { listed: false, group: "How it did" }),
       hold: percent("Still watching at 30s", { listed: false, group: "How it did" }),
+      hook: percent("Hook: still there after the first seconds", {
+        listed: false,
+        group: "How it did",
+      }),
       watchMinutes: number("Watch minutes", { listed: false, group: "How it did" }),
       saves: number("Saves", { listed: false, group: "How it did" }),
       follows: number("Follows from it", { listed: false, group: "How it did" }),

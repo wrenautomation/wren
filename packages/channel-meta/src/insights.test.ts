@@ -1,6 +1,6 @@
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
-import { igMetricsFor, instagramContent } from "./content.js";
+import { igFollowersOf, igMetricsFor, instagramContent } from "./content.js";
 
 const NOW = new Date("2026-10-07T12:00:00Z");
 
@@ -104,5 +104,36 @@ describe("instagram insights", () => {
         ],
       },
     ]);
+    // 12 followers: Meta answers no make-up, so it waits.
+    expect(got?.gaps.filter((g) => g.state === "waiting").map((g) => g.metric)).toEqual([
+      "viewer_age",
+      "viewer_gender",
+      "viewer_country",
+    ]);
+  });
+
+  it("the followers' make-up as percents, keyed by bucket", () => {
+    const d = (rows: [string, number][]) => ({
+      total_value: {
+        breakdowns: [{ results: rows.map(([k, value]) => ({ dimension_values: [k], value })) }],
+      },
+    });
+    expect(
+      igFollowersOf(
+        "viewer_gender",
+        d([
+          ["F", 30],
+          ["M", 90],
+          ["U", 0],
+        ]),
+      ),
+    ).toEqual([
+      { metric: "viewer_gender", key: "female", value: 25 },
+      { metric: "viewer_gender", key: "male", value: 75 },
+    ]);
+    expect(igFollowersOf("viewer_country", d([["CA", 7]]))).toEqual([
+      { metric: "viewer_country", key: "CA", value: 100 },
+    ]);
+    expect(igFollowersOf("viewer_age", undefined)).toEqual([]);
   });
 });

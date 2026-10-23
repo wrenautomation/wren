@@ -15,10 +15,12 @@ import {
   type ActivityQuery,
   type ActivityRow,
   type Audience,
+  browserRead,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
   type FollowingRow,
+  holdAt,
   type InsightGap,
   type Insights,
   type InsightsQuery,
@@ -203,21 +205,15 @@ export function reachRows(
   }
   return [...by.values()];
 }
-const STUDIO_ONLY = "YouTube shows viewed vs swiped away in Studio only";
-const day = (iso: string) => iso.slice(0, 10);
-
-/** Share still watching `secs` in: the curve's point at that ratio of the video. */
-export function holdAt(
-  curve: ReadonlyArray<{ ratio: number; watch: number }>,
-  at: number,
-): number | null {
-  if (!curve.length || at < 0) return null;
-  const sorted = [...curve].sort((a, b) => a.ratio - b.ratio);
-  if (at > 1) return null;
-  let best = sorted[0] as { ratio: number; watch: number };
-  for (const p of sorted) if (Math.abs(p.ratio - at) < Math.abs(best.ratio - at)) best = p;
-  return best.watch;
+/** autobrowse `GET /studio/videos/{id}/analytics`: Studio's own totals for one video. */
+export interface StudioTotals {
+  /** Percent of feed plays that stayed to watch (Shorts only). */
+  viewedPct: number | null;
+  avgViewSecs: number | null;
+  avgViewPct: number | null;
+  views: number | null;
 }
+const day = (iso: string) => iso.slice(0, 10);
 
 /**
  * Each bucket's percent of the whole, summed over rows (YouTube's age and gender rows each
@@ -730,7 +726,25 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
             out,
           );
       }
-      if (q.kind === "short") out.gaps.push(...knownGaps("no_api", STUDIO_ONLY, [M.skipRate]));
+      // Viewed vs swiped away: Studio's page only, in the box's browser.
+      if (q.kind === "short")
+        await browserRead(
+          [M.skipRate],
+          q,
+          now(),
+          async () => {
+            const s = await sites.call<StudioTotals>(
+              "youtube",
+              "GET",
+              `/studio/videos/${encodeURIComponent(q.id)}/analytics`,
+              {},
+            );
+            return typeof s.viewedPct === "number"
+              ? numberOf(M.skipRate, Math.round((100 - s.viewedPct) * 100) / 100)
+              : [];
+          },
+          out,
+        );
       return { ...out, asOf: now().toISOString() };
     },
     async reportDays(q: { after?: string | null }): Promise<ReportDays> {

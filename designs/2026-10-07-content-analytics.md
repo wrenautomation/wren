@@ -98,7 +98,7 @@ As long-form, plus:
 | Metric | What | Today | API and scope | Status | Stage |
 |---|---|---|---|---|---|
 | Engaged views | views past the first seconds (the old Shorts count) | collector built | Analytics `engagedViews` | Needs scope | Reach |
-| Viewed vs swiped away | Studio's Shorts feed split | none | Studio only | No API | Reach |
+| Viewed vs swiped away | Studio's Shorts feed split, stored as `skip_rate` (100 − viewed) | collector built (2026-10-23) | the box's `GET /studio/videos/{id}/analytics` as google@wren (browser, days 1, 3, 7, 14, 28) | Waiting | Reach |
 | 30-second hold | share still watching at 30 s | from the curve | Analytics retention | Needs scope | Trust |
 | Post → site | a Short's links can't be clicked | | | No API | Convert |
 
@@ -122,6 +122,7 @@ the first post proves it.
 | Comment → DM, DMs answered, DM → booking | | none: we send no Instagram DMs yet | `instagram_manage_messages`, after Meta app review | Needs scope | Convert |
 | Account: reach, profile visits, link-in-bio clicks, accounts engaged per day | | collector built | IG user insights `total_value`, instagram_manage_insights | Live | Reach |
 | Account: followers | | `social_days` | IG user `followers_count` | Live | Reach |
+| Account: followers' age, gender, country | percent of followers per bucket | collector built (2026-10-23) | IG user insights `follower_demographics` per breakdown; Meta answers none under 100 followers | Waiting | Reach |
 
 ### TikTok
 
@@ -130,7 +131,10 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Metric | What | Today | API and scope | Status | Stage |
 |---|---|---|---|---|---|
 | Views, likes, comments, shares | | `content_metrics` | `video/query`, video.list | Live | Reach, Trust |
-| Reach, average watch time, full-watch rate, retention, traffic sources | | none | Business API (TikTok for Business account and its review) | Needs William | Reach, Trust |
+| Reach, watch time, average view, full-watch rate, follows | unique viewers = reach | collector built (2026-10-23) | TikTok Studio's analytics page: the box's `GET /web/videos/{id}/analytics` (browser, days 1, 3, 7, 14, 28) | Waiting | Trust |
+| Retention curve, 3- and 30-second hold | curve keyed by share of the video, like YouTube's | collector built (2026-10-23) | same page | Waiting | Reach |
+| Traffic sources, search terms | TikTok's shares times views, stored as views | collector built (2026-10-23) | same page | Waiting | Reach |
+| Audience: age, gender, country, followers vs others, new vs returning | percent of views per bucket | collector built (2026-10-23) | same page (Viewers tab); TikTok holds most until 100 views | Waiting | Reach |
 | Saves | | none | Business API | Needs William | Trust |
 | Comment reply rate, time to reply | our replies made by hand count as answers | `comments` (SocialWatch) | the box's `GET /web/videos/{id}/comments` as wren@tiktok, capped 24 a day | Waiting | Trust |
 | Account: followers per day | | `social_days` (SocialWatch, daily) | `user/info` `follower_count`, user.info.stats | Waiting | Reach |
@@ -175,9 +179,9 @@ Display API through a sandbox app (posts private until TikTok reviews it).
 | Platform | Live | Waiting | Needs scope | Needs William | Not built | No API |
 |---|---|---|---|---|---|---|
 | YouTube long-form | 4 | 1 | 12 | 0 | 0 | 1 |
-| YouTube Shorts (past long-form) | 0 | 0 | 2 | 0 | 0 | 2 |
-| Instagram | 9 | 0 | 1 | 0 | 0 | 2 |
-| TikTok | 1 | 2 | 0 | 3 | 0 | 0 |
+| YouTube Shorts (past long-form) | 0 | 1 | 2 | 0 | 0 | 1 |
+| Instagram | 9 | 1 | 1 | 0 | 0 | 2 |
+| TikTok | 1 | 6 | 0 | 2 | 0 | 0 |
 | LinkedIn | 4 | 2 | 0 | 0 | 0 | 0 |
 | X | 4 | 3 | 0 | 0 | 0 | 0 |
 | Reddit | 5 | 0 | 0 | 0 | 0 | 1 |
@@ -274,8 +278,8 @@ setting when he asks to change them.
    Request access) would replace the browser read; on approval add `r_member_postAnalytics`.
    The browser route ships when autobrowse branch `analytics-reads` merges (the desk deploys
    main); until then the LinkedIn row says "In development".
-4. **TikTok.** Apply for TikTok for Business API access on the Wren account (and the sandbox
-   app's review for public posts). Say when.
+4. **TikTok.** Saves and profile visits still need TikTok for Business API access on the Wren
+   account. The rest reads off TikTok Studio in the browser since 2026-10-23. Say when.
 5. **Instagram DMs.** Reading the IG inbox adds `instagram_manage_messages`, which needs Meta app
    review. Not needed for the counts above.
 

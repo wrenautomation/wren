@@ -17,6 +17,7 @@ import {
   type ActivityQuery,
   type ActivityRow,
   type Audience,
+  browserReadDue,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -55,18 +56,6 @@ interface Dashboard {
   /** The page's window per count: profile viewers 90 days, search appearances the week before. */
   windows: Record<string, string | null>;
   url: string;
-}
-
-/** Days after a post went up when its analytics page is read: 5 reads a post, light on the account. */
-export const ANALYTICS_DAYS: readonly number[] = [1, 3, 7, 14, 28];
-const DAY_MS = 86_400_000;
-
-/** Whether today is one of a post's analytics days (whole days since it went up). */
-export function analyticsDue(published: string | null | undefined, now: Date): boolean {
-  if (!published) return false;
-  const at = Date.parse(published);
-  if (Number.isNaN(at)) return false;
-  return ANALYTICS_DAYS.includes(Math.floor((now.getTime() - at) / DAY_MS));
 }
 
 /** autobrowse `GET /analytics/post-summary/{urn}`: the page's counts, null where it showed none. */
@@ -403,12 +392,12 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
   /**
    * The post's analytics page in the browser, as Wren's account, while the Community Management
    * API (`r_member_postAnalytics`) waits on review. Light: only on the days in
-   * `ANALYTICS_DAYS` after it went up, and a day over the box's cap reads nothing. A day with
+   * `BROWSER_READ_DAYS` after it went up, and a day over the box's cap reads nothing. A day with
    * no read writes nothing, so the last read's numbers and state stand.
    */
   async function analyticsPage(q: InsightsQuery): Promise<Insights> {
     const asOf = now().toISOString();
-    if (!analyticsDue(q.published, now())) return { values: [], gaps: [], asOf };
+    if (!browserReadDue(q.published, now())) return { values: [], gaps: [], asOf };
     const into: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
     try {
       const a = await sites.call<PostAnalytics>(

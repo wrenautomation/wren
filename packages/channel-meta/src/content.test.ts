@@ -515,7 +515,8 @@ describe("a configured Page: /me/accounts is not read", () => {
     const { sites, calls } = fakeSites(answers);
     await passOver(instagramContent(sites, { now, pageId: "111", igId: "ig9" }));
     expect(accounts(calls)).toBe(0);
-    expect(calls.filter((c) => c[1] === "/ig9")).toHaveLength(3);
+    // Audience, the day's numbers, and one call per followers' breakdown (age, gender, country).
+    expect(calls.filter((c) => c[1] === "/ig9")).toHaveLength(6);
   });
 
   it("Instagram with the Page id alone lists once, then reuses it", async () => {

@@ -487,6 +487,7 @@ export const marketingPostRecords = pgView("marketing_post_records", {
   avgViewPct: doublePrecision("avg_view_pct"),
   avgViewSecs: doublePrecision("avg_view_secs"),
   hold: doublePrecision("hold"),
+  hook: doublePrecision("hook"),
   watchMinutes: doublePrecision("watch_minutes"),
   saves: doublePrecision("saves"),
   follows: doublePrecision("follows"),
@@ -513,7 +514,7 @@ export const marketingPostRecords = pgView("marketing_post_records", {
     case when m.views > 0
       then round((m.reactions + m.comments + m.shares) * 100.0 / m.views, 2)::float8 end score,
     i.impressions, i.reach, i.ctr / 100 ctr, i.avg_view_pct / 100 avg_view_pct, i.avg_view_secs,
-    i.hold, i.watch_minutes, i.saves, i.follows, i.link_clicks,
+    i.hold, i.hook, i.watch_minutes, i.saves, i.follows, i.link_clicks,
     coalesce(l.clicks, 0) clicks, coalesce(l.forms, 0) forms, coalesce(l.calls, 0) calls,
     coalesce(l.won, 0) won, coalesce(l.revenue_first, 0) / 100.0 revenue_first,
     coalesce(l.revenue_last, 0) / 100.0 revenue_last, 'USD'::text currency,
@@ -533,6 +534,9 @@ export const marketingPostRecords = pgView("marketing_post_records", {
       max(v.value) filter (where v.metric = 'avg_view_pct') avg_view_pct,
       max(v.value) filter (where v.metric = 'avg_view_secs') avg_view_secs,
       max(v.value) filter (where v.metric = 'hold_30s') hold,
+      -- The hook: still there after the first seconds (1 − the skip rate, else the 3 s hold).
+      coalesce(1 - max(v.value) filter (where v.metric = 'skip_rate') / 100,
+        max(v.value) filter (where v.metric = 'hold_3s')) hook,
       max(v.value) filter (where v.metric = 'watch_minutes') watch_minutes,
       max(v.value) filter (where v.metric = 'saves') saves,
       max(v.value) filter (where v.metric = 'follows') follows,

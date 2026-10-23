@@ -68,6 +68,8 @@ const DATA = "Data API v3, youtube.readonly";
 const YTA = "YouTube Analytics reports, yt-analytics.readonly";
 const GRAPH = "Graph API media insights, instagram_manage_insights";
 const OURS = "our own rows";
+const BROWSER_DAYS = "in the box's browser, days 1, 3, 7, 14 and 28";
+const TT_STUDIO = `TikTok Studio's analytics page ${BROWSER_DAYS}`;
 
 type Row = [
   platform: CatalogEntry["platform"],
@@ -328,8 +330,8 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       [M.skipRate],
       "retention",
       "reach",
-      "no_api",
-      "Studio only",
+      "waiting",
+      `YouTube Studio's analytics page ${BROWSER_DAYS}`,
     ],
     [
       "youtube",
@@ -457,6 +459,16 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       "live",
       "Graph API user followers_count",
     ],
+    [
+      "instagram",
+      null,
+      "Followers: age, gender, country",
+      [M.viewerAge, M.viewerGender, M.viewerCountry],
+      "account",
+      "reach",
+      "waiting",
+      "Graph API user insights follower_demographics; Meta shows it at 100 followers",
+    ],
 
     // ---- TikTok ----
     [
@@ -472,13 +484,42 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
     [
       "tiktok",
       null,
-      "Reach, watch time, full watches, retention, sources",
-      [M.reach, M.avgViewSecs, M.retention, M.trafficSource],
+      "Reach, watch time, average view, full watches, follows",
+      [M.reach, M.watchMinutes, M.avgViewSecs, M.avgViewPct, M.finishRate, M.follows],
       "retention",
       "trust",
-      "needs_william",
-      "Business API",
-      TT,
+      "waiting",
+      TT_STUDIO,
+    ],
+    [
+      "tiktok",
+      null,
+      "Retention curve, 3- and 30-second hold",
+      [M.retention, M.hold3, M.hold30],
+      "retention",
+      "reach",
+      "waiting",
+      TT_STUDIO,
+    ],
+    [
+      "tiktok",
+      null,
+      "Traffic sources and search terms",
+      [M.trafficSource, M.searchTerm],
+      "reach",
+      "reach",
+      "waiting",
+      TT_STUDIO,
+    ],
+    [
+      "tiktok",
+      null,
+      "Audience: age, gender, country, followers vs others, new vs returning",
+      [M.viewerAge, M.viewerGender, M.viewerCountry, M.viewerFollower, M.viewerReturn],
+      "audience",
+      "reach",
+      "waiting",
+      TT_STUDIO,
     ],
     [
       "tiktok",
@@ -542,7 +583,7 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       "reach",
       "reach",
       "waiting",
-      "the post's analytics page in the box's browser, as Wren, days 1, 3, 7, 14 and 28",
+      `the post's analytics page, as Wren, ${BROWSER_DAYS}`,
     ],
     [
       "linkedin",

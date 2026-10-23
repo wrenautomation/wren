@@ -7,7 +7,7 @@
  */
 
 import { setWrenSettings } from "@wren/core/clients";
-import { PLATFORMS, type Platform } from "@wren/core/content";
+import { METRICS as M, PLATFORMS, type Platform } from "@wren/core/content";
 import {
   cued,
   date,
@@ -495,6 +495,10 @@ export interface PostAnalytics {
   relative: { at: number; value: number }[];
   sources: { key: string; value: number }[];
   terms: { key: string; value: number }[];
+  /** Who watched, latest day: each audience metric's buckets, percent of views. */
+  audience: { metric: string; rows: { key: string; value: number }[] }[];
+  /** Percent still there after the first seconds: 100 − the skip rate, else the 3-second hold. */
+  hook: number | null;
   cells: MetricCell[];
   site: {
     clicks: number;
@@ -606,6 +610,24 @@ export async function postAnalytics(
       .map((p) => ({ at: Number(p.key), value: p.value }))
       .filter((p) => Number.isFinite(p.at))
       .sort((a, b) => a.at - b.at);
+  const audience = [
+    M.viewerAge,
+    M.viewerGender,
+    M.viewerCountry,
+    M.viewerFollower,
+    M.viewerReturn,
+  ].flatMap((metric) => {
+    const rows = keyed(metric).sort((a, b) => b.value - a.value);
+    return rows.length ? [{ metric, rows }] : [];
+  });
+  const skip = latest[M.skipRate];
+  const hold3 = latest[M.hold3];
+  const hook =
+    skip !== undefined
+      ? Math.round((100 - skip) * 100) / 100
+      : hold3 !== undefined
+        ? Math.round(hold3 * 10_000) / 100
+        : null;
   const sources = await readSources(db);
   const cells: MetricCell[] = entriesFor(d.platform, surface).map((e) => {
     const s = stateOf(e, sources);
@@ -683,6 +705,8 @@ export async function postAnalytics(
     relative: curveOf("relative_retention"),
     sources: keyed("traffic_source").sort((a, b) => b.value - a.value),
     terms: keyed("search_term").sort((a, b) => b.value - a.value),
+    audience,
+    hook,
     cells,
     site: {
       clicks: sum("clicks"),

@@ -190,6 +190,36 @@ const IG_ACCOUNT: Record<string, string> = {
   website_clicks: M.linkClicks,
   accounts_engaged: M.accountsEngaged,
 };
+/** The followers' make-up, one breakdown a call; Meta answers none under 100 followers. */
+const IG_FOLLOWERS: ReadonlyArray<[string, string]> = [
+  ["age", M.viewerAge],
+  ["gender", M.viewerGender],
+  ["country", M.viewerCountry],
+];
+const IG_GENDERS: Record<string, string> = { F: "female", M: "male", U: "other" };
+const IG_FEW = "Meta shows the followers' make-up once the account has 100 followers";
+
+interface Demographics {
+  total_value?: {
+    breakdowns?: Array<{ results?: Array<{ dimension_values?: string[]; value?: number }> }>;
+  };
+}
+
+/** A breakdown's counts as percents of the followers, keyed by bucket. */
+export function igFollowersOf(metric: string, d: Demographics | undefined): InsightValue[] {
+  const rows = (d?.total_value?.breakdowns?.[0]?.results ?? []).flatMap((r) => {
+    const key = r.dimension_values?.[0];
+    return key && typeof r.value === "number" && r.value > 0 ? [{ key, n: r.value }] : [];
+  });
+  const total = rows.reduce((a, r) => a + r.n, 0);
+  return rows.flatMap((r) =>
+    numberOf(
+      metric,
+      Math.round((r.n / total) * 10_000) / 100,
+      metric === M.viewerGender ? (IG_GENDERS[r.key] ?? r.key.toLowerCase()) : r.key,
+    ),
+  );
+}
 
 export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
@@ -524,6 +554,30 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
         },
         out,
       );
+      // A lifetime count, filed under yesterday with the rest.
+      const few: string[] = [];
+      for (const [breakdown, metric] of IG_FOLLOWERS)
+        await readGroup(
+          [metric],
+          async () => {
+            const r = await sites.call<{ insights?: Edge<Demographics & { name?: string }> }>(
+              "meta",
+              "GET",
+              `/${ig}`,
+              {
+                fields: `insights.metric(follower_demographics).period(lifetime).metric_type(total_value).breakdown(${breakdown})`,
+              },
+            );
+            const got = igFollowersOf(
+              metric,
+              r.insights?.data?.find((d) => d.name === "follower_demographics"),
+            );
+            if (!got.length) few.push(metric);
+            return got;
+          },
+          out,
+        );
+      out.gaps.push(...knownGaps("waiting", IG_FEW, few));
       return {
         days: out.values.length
           ? [{ day: since.toISOString().slice(0, 10), values: out.values }]

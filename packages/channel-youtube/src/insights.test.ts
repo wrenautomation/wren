@@ -1,8 +1,7 @@
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { holdAt, SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import {
   ANALYTICS_PATH,
-  holdAt,
   isoSeconds,
   REACH_REPORT,
   reachRows,
@@ -16,14 +15,19 @@ const NOW = new Date("2026-10-07T12:00:00Z");
 function sitesWith(o: {
   analytics?: (input: Record<string, unknown>) => unknown;
   refuse?: number;
+  /** The box's Studio read: its totals, or a status it refuses with. */
+  studio?: Record<string, unknown> | number;
 }): {
+  studioReads: string[];
   sites: SiteClient;
   asked: Array<Record<string, unknown>>;
   videoReads: Array<Record<string, unknown>>;
 } {
   const asked: Array<Record<string, unknown>> = [];
   const videoReads: Array<Record<string, unknown>> = [];
+  const studioReads: string[] = [];
   return {
+    studioReads,
     asked,
     videoReads,
     sites: {
@@ -38,6 +42,12 @@ function sitesWith(o: {
               },
             ],
           } as never;
+        }
+        if (path.startsWith("/studio/videos/")) {
+          studioReads.push(path);
+          if (typeof o.studio === "number")
+            throw new SiteCallError("youtube", method, path, o.studio, "studio refused");
+          return (o.studio ?? {}) as never;
         }
         if (method === "GET" && path === ANALYTICS_PATH) {
           asked.push(input);
@@ -182,8 +192,45 @@ describe("youtube insights", () => {
     expect(states.get("retention")).toBe("needs_scope");
     expect(states.get("search_term")).toBe("needs_scope");
     expect(states.get("viewer_age")).toBe("needs_scope");
-    expect(states.get("skip_rate")).toBe("no_api");
+    // Not a Studio day (no publish time): no read, no gap; the last read's state stands.
+    expect(states.has("skip_rate")).toBe(false);
     expect(got?.gaps.find((g) => g.metric === "retention")?.why).toContain("insufficient scope");
+  });
+
+  it("a Short's skip rate is Studio's swiped-away share, read on its browser days only", async () => {
+    const day = (n: number) => new Date(Date.parse("2026-10-01T09:00:00Z") + n * 86_400_000);
+    const { sites, studioReads } = sitesWith({
+      analytics: (i) => table(String(i.metrics ?? "x").split(","), [[1, 1, 1, 1, 1, 1, 1]]),
+      studio: { viewedPct: 29.13, avgViewSecs: 11.9, avgViewPct: 44.15, views: 1095 },
+    });
+    const q = { id: "abcdefgh", published: "2026-10-01T09:00:00Z", kind: "short" };
+    const on3 = await youtubeContent(sites, { now: () => day(3) }).insights?.(q);
+    expect(on3?.values.find((v) => v.metric === "skip_rate")?.value).toBe(70.87);
+    expect(studioReads).toEqual(["/studio/videos/abcdefgh/analytics"]);
+    const on4 = await youtubeContent(sites, { now: () => day(4) }).insights?.(q);
+    expect(on4?.values.some((v) => v.metric === "skip_rate")).toBe(false);
+    expect(on4?.gaps.some((g) => g.metric === "skip_rate")).toBe(false);
+    expect(studioReads).toHaveLength(1);
+    // A long video never opens Studio.
+    await youtubeContent(sites, { now: () => day(3) }).insights?.({ ...q, kind: "video" });
+    expect(studioReads).toHaveLength(1);
+  });
+
+  it("Studio over the box's cap reads nothing; a broken page is a gap, not a retry", async () => {
+    const q = { id: "abcdefgh", published: "2026-10-01T09:00:00Z", kind: "short" };
+    const at = () => new Date("2026-10-02T12:00:00Z");
+    const capped = sitesWith({
+      analytics: (i) => table(String(i.metrics ?? "x").split(","), [[1, 1, 1, 1, 1, 1, 1]]),
+      studio: 429,
+    });
+    const c = await youtubeContent(capped.sites, { now: at }).insights?.(q);
+    expect(c?.gaps.some((g) => g.metric === "skip_rate")).toBe(false);
+    const broken = sitesWith({
+      analytics: (i) => table(String(i.metrics ?? "x").split(","), [[1, 1, 1, 1, 1, 1, 1]]),
+      studio: 460,
+    });
+    const b = await youtubeContent(broken.sites, { now: at }).insights?.(q);
+    expect(b?.gaps.find((g) => g.metric === "skip_rate")?.state).toBe("error");
   });
 
   it("no route on the box: not built, not a throw", async () => {

@@ -28,6 +28,8 @@ interface Analytics {
   relative: { at: number; value: number }[];
   sources: { key: string; value: number }[];
   terms: { key: string; value: number }[];
+  audience: { metric: string; rows: { key: string; value: number }[] }[];
+  hook: number | null;
   cells: Cell[];
   site: {
     clicks: number;
@@ -82,7 +84,10 @@ const NAMES: Record<string, string> = {
   avg_view_pct: "Viewed",
   watch_minutes: "Watch minutes",
   engaged_views: "Engaged views",
+  hold_3s: "Held 3s",
   hold_30s: "Held 30s",
+  skip_rate: "Swiped away",
+  finish_rate: "Watched to end",
   upvote_ratio: "Upvoted",
   engagement: "Per 100 views",
   per_follower: "Per 100 followers",
@@ -96,10 +101,15 @@ export function secs(s: number): string {
   return `${Math.floor(t / 86_400)}d ${Math.floor((t % 86_400) / 3600)}h`;
 }
 
+const PERCENTS = new Set(["avg_view_pct", "ctr", "skip_rate", "finish_rate"]);
+/** Shares (0..1) shown as percents. */
+const SHARES = new Set(["hold_3s", "hold_30s"]);
+const pctOf = (n: number) => `${(Math.round(n * 10) / 10).toFixed(1)}%`;
+
 /** A metric's value as people read it: a share as a percent, seconds as a time. */
 export function said(metric: string, n: number): string {
-  if (metric === "avg_view_pct" || metric === "ctr" || metric === "hold_30s")
-    return `${(Math.round(n * 10) / 10).toFixed(1)}%`;
+  if (PERCENTS.has(metric)) return pctOf(n);
+  if (SHARES.has(metric)) return pctOf(n * 100);
   if (metric === "upvote_ratio") return `${Math.round(n * 100)}%`;
   if (metric === "engagement" || metric === "per_follower")
     return (Math.round(n * 10) / 10).toFixed(1);
@@ -124,6 +134,9 @@ function Cells({ a, activity, team }: { a: Analytics; activity: string; team: bo
     ...(a.curve.length > 1 ? ["retention", "relative_retention"] : []),
     ...(a.sources.length ? ["traffic_source"] : []),
     ...(a.terms.length ? ["search_term"] : []),
+    ...(a.audience ?? []).map((g) => g.metric),
+    // The hook cell says the 3-second hold where no skip rate came.
+    ...(a.hook == null ? [] : ["hold_3s"]),
   ]);
   const shown = a.cells.filter(
     (c) =>
@@ -132,6 +145,14 @@ function Cells({ a, activity, team }: { a: Analytics; activity: string; team: bo
   );
   return (
     <ul className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] border-t border-l border-(--ui-hair)">
+      {a.hook == null ? null : (
+        <li className="grid min-h-24 content-start gap-1 border-r border-b border-(--ui-hair) p-3">
+          <span className={`text-[12.5px] ${QUIET}`}>
+            Hook: still there after the first seconds
+          </span>
+          <span className="text-[17px] tabular-nums">{pctOf(a.hook)}</span>
+        </li>
+      )}
       {shown.map((c) => {
         const values = c.metrics.filter((m) => c.latest[m] !== undefined);
         const first = values[0];
@@ -258,13 +279,44 @@ export function RetentionCurve({ a }: { a: Pick<Analytics, "curve" | "relative">
   );
 }
 
+/** Each audience metric's heading. */
+const AUDIENCE_NAMES: Record<string, string> = {
+  viewer_age: "Age",
+  viewer_gender: "Gender",
+  viewer_country: "Country",
+  viewer_follower: "Followers or not",
+  viewer_return: "New or returning",
+};
+
+/** Who watched: each audience metric's buckets as a percent of views. */
+function Audience({ a }: { a: Analytics }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {a.audience.map((g) => (
+        <div key={g.metric} className="grid gap-2">
+          <h4 className="text-[13px] text-(--ui-ink-2)">{AUDIENCE_NAMES[g.metric] ?? g.metric}</h4>
+          <BarsChart
+            rows={bars(g.rows)}
+            label={`Views by ${(AUDIENCE_NAMES[g.metric] ?? g.metric).toLowerCase()}`}
+            format={pctOf}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A bucket's key as people read it: "age18-24" as "18-24"; a country code stays as it is. */
+const bucket = (key: string) =>
+  /^[A-Z]{2}$/.test(key) ? key : key.replace(/^age/, "").replaceAll("_", " ").toLowerCase();
+
 const bars = (rows: { key: string; value: number }[]): BarsRow[] =>
   rows
     .slice()
     .sort((x, y) => y.value - x.value)
     .slice(0, 8)
     .map((r, i) => ({
-      label: r.key.replaceAll("_", " ").toLowerCase(),
+      label: bucket(r.key),
       value: r.value,
       tone: `chart-${(i % 5) + 1}`,
     }));
@@ -438,6 +490,7 @@ export function analyticsSections(detail: unknown, row: Row, team = true): [stri
       "What they searched",
       <BarsChart key="terms" rows={bars(a.terms)} label="Views by search term" format={num} />,
     ]);
+  if (a.audience?.length) out.push(["Who watched", <Audience key="audience" a={a} />]);
   if (a.platform === "youtube" && a.variants)
     out.push(["Title, thumbnail and hook", <Variants key="variants" a={a} />]);
   out.push(["What it brought", <Brought key="brought" a={a} links={links} />]);

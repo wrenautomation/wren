@@ -111,6 +111,9 @@ describe("insights store", () => {
           { metric: "retention", key: "0.5", value: 0.4 },
           { metric: "retention", key: "0.1", value: 0.9 },
           { metric: "traffic_source", key: "YT_SEARCH", value: 120 },
+          { metric: "hold_3s", value: 0.62 },
+          { metric: "viewer_age", key: "age25-34", value: 70 },
+          { metric: "viewer_age", key: "age18-24", value: 30 },
         ],
         gaps: [],
         asOf: iso(daysAgo(1)),
@@ -142,6 +145,17 @@ describe("insights store", () => {
       { at: 0.5, value: 0.4 },
     ]);
     expect(a?.sources).toEqual([{ key: "YT_SEARCH", value: 120 }]);
+    // No skip rate came: the hook is the 3-second hold, as a percent.
+    expect(a?.hook).toBe(62);
+    expect(a?.audience).toEqual([
+      {
+        metric: "viewer_age",
+        rows: [
+          { key: "age25-34", value: 70 },
+          { key: "age18-24", value: 30 },
+        ],
+      },
+    ]);
     expect(a?.site).toMatchObject({ clicks: 2, formsFirst: 1, wonFirst: 1, revenueFirst: 1500 });
     const cell = (label: string) => a?.cells.find((c) => c.label === label);
     expect(cell("Average view duration and % viewed")).toMatchObject({
@@ -156,6 +170,7 @@ describe("insights store", () => {
     expect(top.rows[0]).toMatchObject({
       format: "long",
       views: 400,
+      hook: 0.62,
       clicks: 2,
       revenueFirst: { amount: 1500, currency: "USD" },
     });
