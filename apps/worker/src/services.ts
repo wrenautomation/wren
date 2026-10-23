@@ -2854,7 +2854,10 @@ function contentFor(settings: Settings, log: Logger, db: Db): ChannelsFor | null
                 : instagramWebContent(as("instagram", base), host ? { host } : {}),
           }
         : {}),
-      ...(on.includes("facebook") ? { facebook: facebookContent(as("facebook", base), meta) } : {}),
+      // Wren's Page token holds `pages_read_user_content` (consent 10-22): its comments read too.
+      ...(on.includes("facebook")
+        ? { facebook: facebookContent(as("facebook", base), { ...meta, pageComments: true }) }
+        : {}),
       ...(on.includes("threads")
         ? { threads: threadsContent(as("threads", base), host ? { host } : {}) }
         : {}),

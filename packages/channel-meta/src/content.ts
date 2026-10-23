@@ -540,10 +540,25 @@ interface FbPost {
   likes?: { summary?: { total_count?: number } };
   comments?: { summary?: { total_count?: number } };
   insights?: Edge<{ name: string; values?: Array<{ value?: number }> }>;
+  /** A video's own plays (a video reads no post insights). */
+  views?: number;
+  /** A video post's video: its id is the one publish keeps. */
+  attachments?: Edge<{ media_type?: string; target?: { id?: string } }>;
 }
-/** What a look reads of a Page post; the Page's listing takes the same fields. */
+/**
+ * What a look reads of a Page post; the Page's listing takes the same fields. Meta retired
+ * `post_impressions` (2025): `post_media_view` counts each time the post was on a screen.
+ */
 const FB_STATS =
-  "shares,likes.summary(true),comments.summary(true),insights.metric(post_impressions)";
+  "shares,likes.summary(true),comments.summary(true),insights.metric(post_media_view)";
+/** A video's own fields: it has no shares or post insights. */
+const FB_VIDEO_STATS = "likes.summary(true),comments.summary(true),views";
+const FB_ATTACHED = "attachments{media_type,target{id}}";
+/** The id publish kept for a listed post: a video post's video, else the post. */
+const keptId = (m: FbPost & { id: string }): string => {
+  const a = m.attachments?.data?.[0];
+  return a?.media_type === "video" && a.target?.id ? a.target.id : m.id;
+};
 
 export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
@@ -553,7 +568,10 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
   const urlOf = (postId: string) => `https://www.facebook.com/${postId}`;
   const fbMetrics = (id: string, r: FbPost, fetchedWith: FetchedWith): Metrics => ({
     id,
-    views: r.insights?.data?.find((m) => m.name === "post_impressions")?.values?.[0]?.value ?? 0,
+    views:
+      r.insights?.data?.find((m) => m.name === "post_media_view")?.values?.[0]?.value ??
+      r.views ??
+      0,
     reactions: r.likes?.summary?.total_count ?? 0,
     comments: r.comments?.summary?.total_count ?? 0,
     shares: r.shares?.count ?? 0,
@@ -566,7 +584,7 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       "meta",
       "GET",
       `/${(await page()).id}/posts`,
-      { fields: `id,${FB_STATS}`, limit: 100 },
+      { fields: `id,${FB_ATTACHED},${FB_STATS}`, limit: 100 },
     );
     return r.data ?? [];
   };
@@ -623,12 +641,17 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
     async list(q: ListQuery = {}): Promise<PublishedRow[]> {
       const p = await page();
       const r = await sites.call<
-        Edge<{ id: string; message?: string; created_time?: string; permalink_url?: string }>
-      >("meta", "GET", `/${p.id}/posts`, { limit: Math.min(q.limit ?? 100, 100) });
+        Edge<
+          FbPost & { id: string; message?: string; created_time?: string; permalink_url?: string }
+        >
+      >("meta", "GET", `/${p.id}/posts`, {
+        fields: `id,message,created_time,permalink_url,${FB_ATTACHED}`,
+        limit: Math.min(q.limit ?? 100, 100),
+      });
       const fetchedWith = await via("GET", "/{pageId}/posts");
       return pageOf(
         (r.data ?? []).map((m) => ({
-          id: m.id,
+          id: keptId(m),
           url: m.permalink_url ?? urlOf(m.id),
           publishedAt: m.created_time ?? now().toISOString(),
           fetchedWith,
@@ -638,20 +661,25 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
         q,
       );
     },
+    /** A post (`<pageId>_<n>`) or a video (a bare id) the Page owns: read with its token. */
     async metrics(id: string): Promise<Metrics> {
-      const r = await sites.call<FbPost>("meta", "GET", `/${id}`, { fields: FB_STATS });
+      const r = await sites.call<FbPost>("meta", "GET", `/${id}`, {
+        fields: id.includes("_") ? FB_STATS : FB_VIDEO_STATS,
+        pageId: (await page()).id,
+      });
       return fbMetrics(id, r, await via("GET", "/{objectId}"));
     },
     /**
      * The Page's newest 100 posts with the same numbers `metrics` asks for, in one listing. A
-     * post the page doesn't hold (a video's id is not its post's) is left out for `metrics`.
+     * video post answers for its video's id too. One the listing lacks is left out for `metrics`.
      */
     async metricsMany(posts: { id: string }[]): Promise<Metrics[]> {
       const want = new Set(posts.map((p) => p.id));
       const fetchedWith = await via("GET", "/{pageId}/posts");
-      return (await recent())
-        .filter((m) => want.has(m.id))
-        .map((m) => fbMetrics(m.id, m, fetchedWith));
+      return (await recent()).flatMap((m) => {
+        const id = want.has(m.id) ? m.id : keptId(m);
+        return want.has(id) ? [fbMetrics(id, m, fetchedWith)] : [];
+      });
     },
     /**
      * Counts from the same listing, but only where `comments` reads anything: a Page whose token
@@ -661,9 +689,11 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       if (!o.pageComments) return Object.fromEntries(ids.map((id) => [id, 0]));
       const want = new Set(ids);
       const out: Record<string, number> = {};
-      for (const m of await recent())
-        if (want.has(m.id) && typeof m.comments?.summary?.total_count === "number")
-          out[m.id] = m.comments.summary.total_count;
+      for (const m of await recent()) {
+        const id = want.has(m.id) ? m.id : keptId(m);
+        if (want.has(id) && typeof m.comments?.summary?.total_count === "number")
+          out[id] = m.comments.summary.total_count;
+      }
       return out;
     },
     async comments(id: string, q: ListQuery = {}): Promise<CommentRow[]> {

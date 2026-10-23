@@ -27,7 +27,7 @@ A partial list (as many rows back as asked) holds only the newest. Absence in it
 |---|---|---|---|
 | connections | LinkedIn `/connections` (200) | `reach_contacts` (platform, handle) | **built** (this doc) |
 | follows | X `GET /2/users/me/following` (autobrowse da396a7: the signed-in Following page; the free API has no follows); Reddit `/subreddits/mine/subscriber` (users as `u_<name>`); YouTube `subscriptions?mine=true`; Instagram `/web/following`, TikTok `/web/following`, Threads `instagram /web/threads/following` (autobrowse a241122: desk-browser reads) | touches `follow` ours, source `following` | all six **built** (section below) |
-| own posts | `Content/list`, 100 newest: X user tweets, IG media, TikTok video/list, YouTube uploads, Threads, Reddit submitted; LinkedIn `/rest/posts` (501: no desk workflow yet) and Page posts (Page token expired 10-22) refuse today | `content_drafts.published_id` (`canonRef`) | **built** (section below) |
+| own posts | `Content/list`, 100 newest: X user tweets, IG media, TikTok video/list, YouTube uploads, Threads, Reddit submitted; Facebook Page posts (a video post lists as its video's id, the id publish keeps). LinkedIn `/rest/posts` refuses today (501: no desk workflow yet) | `content_drafts.published_id` (`canonRef`) | **built** (section below) |
 | own comments | Reddit `/user/<me>/comments` (+ `/api/info` for a reply's author); X replies not yet (the page leg reads no replies) | touches `comment`/`reply` ours, source `own_comments`; never the `comments` table (an inbox) | Reddit **built** |
 | DMs | LinkedIn `/messaging`, Meta conversations | `reach_messages` | the reply watch reads these already |
 
@@ -49,6 +49,14 @@ Comments (`keepOwnComments`):
 
 1. A comment id an ours touch, a thread's answer (`reddit_threads.answer_ref`: a karma-place answer stays touch-free) or an inbox answer (`comments.answer_ref`) has stays as it is.
 2. Each other comment becomes an ours `comment` (`reply` on a comment) touch toward the post's or the comment's author: account `wren`, ref `oc:<platform>:<id>`. A deleted author or our own is skipped.
+
+### Facebook (fixed 10-22)
+
+The Page read was not an expired token. Three faults:
+
+1. Page posts, videos and photos read with the user token (Graph 190). autobrowse now reads them with the Page token: `/{pageId}/posts`, a `<pageId>_<n>` object, or any object given `pageId`.
+2. A post's likes, comments and reactions need `pages_read_user_content`. The Meta consent now asks for it (re-run 10-22). Wren's own Page reads its comments too.
+3. Meta retired `post_impressions`. Views read `post_media_view`. A video has no post insights: it reads `views`.
 
 ## Follows (all six built)
 

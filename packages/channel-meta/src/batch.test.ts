@@ -128,7 +128,13 @@ describe("facebook batch reads", () => {
         shares: { count: 2 },
         likes: { summary: { total_count: 8 } },
         comments: { summary: { total_count: 3 } },
-        insights: { data: [{ name: "post_impressions", values: [{ value: 500 }] }] },
+        insights: { data: [{ name: "post_media_view", values: [{ value: 500 }] }] },
+      },
+      {
+        id: "p1_4",
+        attachments: { data: [{ media_type: "video", target: { id: "v9" } }] },
+        likes: { summary: { total_count: 4 } },
+        insights: { data: [{ name: "post_media_view", values: [{ value: 90 }] }] },
       },
       {
         id: "p1_2",
@@ -144,17 +150,19 @@ describe("facebook batch reads", () => {
     const got = await facebookContent(sites, { now, pageId: "p1" }).metricsMany?.([
       { id: "p1_1" },
       { id: "p1_2" },
+      { id: "v9" },
       { id: "video-id" },
     ]);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.[1]).toEqual({
       fields:
-        "id,shares,likes.summary(true),comments.summary(true),insights.metric(post_impressions)",
+        "id,attachments{media_type,target{id}},shares,likes.summary(true),comments.summary(true),insights.metric(post_media_view)",
       limit: 100,
     });
-    // The video's own id isn't in the listing: left out for the single read.
+    // A video post answers for its video's id; one the listing lacks is left for the single read.
     expect(got?.map((m) => [m.id, m.views, m.reactions, m.comments, m.shares])).toEqual([
       ["p1_1", 500, 8, 3, 2],
+      ["v9", 90, 4, 0, 0],
       ["p1_2", 0, 1, 0, 0],
     ]);
   });

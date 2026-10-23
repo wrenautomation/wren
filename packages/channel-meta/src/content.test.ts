@@ -347,13 +347,21 @@ describe("facebook content channel", () => {
       "POST /111/photos": () => ({ id: "ph", post_id: "111_2" }),
       "POST /111/videos": () => ({ id: "111_3" }),
       "GET /111/posts": () => ({
-        data: [{ id: "111_1", message: "hello", created_time: "2026-09-22T10:00:00+0000" }],
+        data: [
+          { id: "111_1", message: "hello", created_time: "2026-09-22T10:00:00+0000" },
+          {
+            id: "111_5",
+            message: "a clip",
+            attachments: { data: [{ media_type: "video", target: { id: "v5" } }] },
+          },
+        ],
       }),
+      "GET /v5": () => ({ likes: { summary: { total_count: 3 } }, views: 40 }),
       "GET /111_1": () => ({
         shares: { count: 2 },
         likes: { summary: { total_count: 7 } },
         comments: { summary: { total_count: 1 } },
-        insights: { data: [{ name: "post_impressions", values: [{ value: 300 }] }] },
+        insights: { data: [{ name: "post_media_view", values: [{ value: 300 }] }] },
       }),
     });
     const ch = facebookContent(sites, { now, host, pageId: "111" });
@@ -391,12 +399,22 @@ describe("facebook content channel", () => {
       "/111/videos",
       { file_url: "https://v.test/c.mp4", description: "clip", title: "T" },
     ]);
-    expect((await ch.list()).map((r) => r.preview)).toEqual(["hello"]);
+    // A video post lists as its video's id: the one publish kept.
+    expect((await ch.list()).map((r) => [r.id, r.text])).toEqual([
+      ["111_1", "hello"],
+      ["v5", "a clip"],
+    ]);
     expect(await ch.metrics("111_1")).toMatchObject({
       views: 300,
       reactions: 7,
       comments: 1,
       shares: 2,
+    });
+    expect(calls.at(-1)?.[2]).toMatchObject({ pageId: "111" });
+    expect(await ch.metrics("v5")).toMatchObject({ views: 40, reactions: 3, shares: 0 });
+    expect(calls.at(-1)?.[2]).toEqual({
+      fields: "likes.summary(true),comments.summary(true),views",
+      pageId: "111",
     });
   });
 });
