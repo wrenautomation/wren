@@ -14,7 +14,7 @@ import { tick } from "../../src/deliver.js";
 import { type TouchTexts, touchStep } from "../../src/follow.js";
 import { FakeProvider } from "../../src/provider.js";
 import { smsContacts, smsMessages, smsNumbers } from "../../src/schema.js";
-import { company, numbers, OPEN, POLICY, SEQUENCES, TABLES } from "./fixtures.js";
+import { company, fillCopy, numbers, OPEN, POLICY, SEQUENCES, TABLES } from "./fixtures.js";
 
 let pg: TestPostgres;
 const provider = new FakeProvider();
@@ -74,12 +74,13 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, [...TABLES, "reach_messages", "reach_contacts", "clients"]);
+  await fillCopy(pg.db);
   await numbers(pg.db, provider, ["+15550000000"]);
   off = null;
 });
 
 describe("a follow-up text", () => {
-  it("queues the node's default copy once, kind follow_up, and passes the lead on", async () => {
+  it("queues the node's live copy once, kind follow_up, and passes the lead on", async () => {
     const id = await contact();
     const out = await step("lead", lead(id), at());
     expect(out).toEqual([
@@ -107,6 +108,20 @@ describe("a follow-up text", () => {
       template: "follow-up#1",
     });
     expect(rows[0]?.body).toMatch(/^Hi Dana, Test Co here\./);
+  });
+
+  it("skips with the reason, and queues nothing, when the node has no live copy", async () => {
+    await truncate(pg.db, ["templates", "template_versions"]);
+    const id = await contact();
+    const [out] = await step("lead", lead(id), at());
+    expect(out?.event.data.follow).toEqual({
+      part: "follow_up",
+      node: "follow.text1",
+      channel: "text",
+      did: "skipped",
+      why: "sms:texts/follow-up#1 has no live words",
+    });
+    expect(await queued()).toEqual([]);
   });
 
   it("records would send, and queues nothing, with the global gate or the client's flag off", async () => {

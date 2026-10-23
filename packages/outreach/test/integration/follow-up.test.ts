@@ -5,6 +5,7 @@
  * follow-up DMs on that part's flag. Synthetic contacts; nothing leaves.
  */
 import type { SpineEvent, StepAt } from "@wren/core/spine";
+import { saveLive } from "@wren/core/templates";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -30,6 +31,14 @@ const at = (o: Partial<StepAt> = {}): StepAt => ({
   part: "nurture",
   ...o,
 });
+/** Wren ships no DM copy: the words the node asks for are live rows, as an operator sets them. */
+const copy = () =>
+  saveLive(
+    pg.db,
+    { kind: "dm", system: "reach", name: "nurture#1" },
+    "Hi {first_name|there}, checking in. Still on your list for later this year?",
+    { by: "test" },
+  );
 const lead = (id: number): SpineEvent => ({
   subject: `lead:reach:${id}`,
   kind: "lead",
@@ -86,7 +95,8 @@ beforeEach(async () => {
 });
 
 describe("a follow-up DM", () => {
-  it("queues the node's default copy once on a thread we wrote on", async () => {
+  it("queues the node's live copy once on a thread we wrote on", async () => {
+    await copy();
     const id = await contact("finished", true);
     const [out] = await step()("lead", lead(id), at());
     expect(out?.port).toBe("sent");
@@ -105,7 +115,21 @@ describe("a follow-up DM", () => {
     expect(rows[0]?.provenance).toMatchObject({ follow: "keep_warm/nurture.dm2" });
   });
 
+  it("skips with the reason when the node has no live copy, and queues nothing", async () => {
+    const id = await contact("finished", true);
+    const [out] = await step()("lead", lead(id), at());
+    expect(out?.event.data.follow).toEqual({
+      part: "nurture",
+      node: "nurture.dm2",
+      channel: "dm",
+      did: "skipped",
+      why: "dm:reach/nurture#1 has no live words",
+    });
+    expect(await followUps()).toEqual([]);
+  });
+
   it("would send with the gate off; never writes first, or to someone who stopped us", async () => {
+    await copy();
     off = "WREN_REACH_LIVE is off";
     const [o1] = await step()("lead", lead(await contact("finished", true)), at());
     expect(o1?.event.data.follow).toMatchObject({ did: "would_send" });

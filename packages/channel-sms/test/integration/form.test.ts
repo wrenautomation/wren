@@ -33,7 +33,17 @@ import { FakeProvider } from "../../src/provider.js";
 import { smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
 import { smsStats } from "../../src/stats.js";
 import { checkBody, sequenceSlots } from "../../src/templates.js";
-import { fillTemplates, notes, numbers, OPEN, POLICY, SEQ, TABLES } from "./fixtures.js";
+import {
+  emptyTemplates,
+  fillCopy,
+  fillTemplates,
+  notes,
+  numbers,
+  OPEN,
+  POLICY,
+  SEQ,
+  TABLES,
+} from "./fixtures.js";
 
 let pg: TestPostgres;
 let provider: FakeProvider;
@@ -58,6 +68,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, [...TABLES, "speed_runs"]);
+  await fillCopy(pg.db);
   await fillTemplates(pg.db, WORDS);
   provider = new FakeProvider();
   await numbers(db(), provider, ["+13125550001"]);
@@ -419,6 +430,7 @@ describe("an applicant abroad", () => {
 
 describe("the reasons a notice names", () => {
   it("landline, an empty template, out of the window", async () => {
+    await emptyTemplates(db(), ["form-not-fit#1"]);
     const s = site([application(1, { ts: at(OPEN, -60).toISOString() })]);
     await seeded(s);
     provider.landlines.add("+12125550102");
