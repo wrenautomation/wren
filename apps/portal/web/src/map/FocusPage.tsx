@@ -1,25 +1,57 @@
 /**
- * A focus page (designs/2026-10-23-focus-view.md, F1; artifact section 13, `.app.focus`): one part
- * of the Map at `/map/<kind>/<id>`. The crumbs lead back up and Esc goes up one. The map draws the
+ * A focus page (designs/2026-10-23-focus-view.md, F1 and F2; artifact section 13, `.app.focus`):
+ * one part of the Map at `/map/<kind>/<id>`, a set at `/map/parts/<parts>`, a saved view at
+ * `/map/view/<id>`. The crumbs lead back up and Esc goes up one. The map draws the
  * part only, with stubs to where people come from and go to; a stub or a station focuses that part.
  * Beside it, the Attached panel: the part's own attachments, its stations', and the apps it opens.
  * Under it, the people on the part now and its numbers. Attach and remove save a shape version.
  */
-import { ATTACH_KINDS, ATTACH_LABEL_MAX, ATTACH_REF_MAX, type Attach } from "@wren/pipeline/metro";
-import { Alert, Button, FormKept, LoadFailed, SelectField, TextField, useEditForm } from "@wren/ui";
+import {
+  ATTACH_KINDS,
+  ATTACH_LABEL_MAX,
+  ATTACH_REF_MAX,
+  type Attach,
+  type MetroBody,
+} from "@wren/pipeline/metro";
+import { MAP_VIEW_RECORD, partsParam, readPart } from "@wren/pipeline/metro-parts";
+import {
+  Alert,
+  Button,
+  CHIP,
+  CHIP_ON,
+  FormKept,
+  Icon,
+  LoadFailed,
+  SaveViewPop,
+  SELECT_CLASS,
+  SelectField,
+  TextField,
+  useEditForm,
+  usePref,
+} from "@wren/ui";
 import { MetroMap, type MetroPart, type MetroPick, MetroSkeleton } from "@wren/ui/metro";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { call } from "../api.js";
 import { type PageProps, WREN } from "../module.js";
 import { atOf } from "../modules/deals/board.js";
 import { go, navigate } from "../route.js";
-import { attachHref, type Focus, focusHref, focusNumbers, focusOf, focusPeople } from "./focus.js";
+import {
+  attachHref,
+  type Crumb,
+  type Focus,
+  type FocusAt,
+  focusHref,
+  focusNumbers,
+  focusOf,
+  focusPeople,
+} from "./focus.js";
 import { type MapData, mayEditShape, windowOf } from "./model.js";
 import { Numbers, PeopleHere } from "./NodePanel.js";
 import { messageOf, Refused } from "./Refused.js";
 import { useMap } from "./read.js";
 import { opensOf, panelParams } from "./routes.js";
 import { viewOf } from "./view.js";
+import { MAP_HOME, mapKeepOf, useMapViews, viewParamsOf, viewPartsOf } from "./views.js";
 
 const PAD = "px-[clamp(12px,2.5vw,24px)]";
 const KIND_WORD: Record<Attach["kind"], string> = {
@@ -78,18 +110,19 @@ function AttachRow({ a, onRemove }: { a: Attach; onRemove?: (() => void) | undef
 /** The `+ Attach` form: kind, ref, label. Saved as one shape version. */
 function AttachForm({
   focus,
+  part,
   at,
   client,
   onSaved,
   onCancel,
 }: {
   focus: Focus;
+  part: MetroPart;
   at: Record<string, string>;
   client: string;
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const { part } = focus;
   const form = useEditForm({
     key: `map:attach:${client}:${part.kind}:${part.id}`,
     defaults: { kind: "link", ref: "", label: "" },
@@ -185,13 +218,15 @@ function Attached({
     }
     return [...seen];
   }, [focus, data, wren, props.client]);
+  const { part } = focus;
   const remove = async (ref: string) => {
+    if (!part) return;
     setRefused(null);
     try {
       await call("pipeline/shapeAttach", {
         ...at,
-        on: focus.part.kind,
-        id: focus.part.id,
+        on: part.kind,
+        id: part.id,
         remove: ref,
       });
       onSaved();
@@ -219,14 +254,13 @@ function Attached({
         </ul>
       ) : own ? (
         <p className="text-[13px] text-(--ui-ink-3)">Nothing on {focus.name} itself.</p>
-      ) : null}
+      ) : count ? null : (
+        <p className="text-[13px] text-(--ui-ink-3)">Nothing attached here.</p>
+      )}
       {focus.inside.map((s) => (
-        <Fragment key={s.id}>
+        <Fragment key={`${s.part.kind}:${s.part.id}`}>
           <h3 className="mt-1 text-[12.5px] font-semibold text-(--ui-ink-2)">
-            <a
-              href={focusHref({ kind: "station", id: s.id }, props.params)}
-              className="text-inherit"
-            >
+            <a href={focusHref(s.part, props.params)} className="text-inherit">
               {s.label}
             </a>
           </h3>
@@ -255,10 +289,11 @@ function Attached({
         </>
       ) : null}
       {refused ? <Refused text={refused} /> : null}
-      {mayEdit && own ? (
+      {mayEdit && own && part ? (
         adding ? (
           <AttachForm
             focus={focus}
+            part={part}
             at={at}
             client={props.client}
             onSaved={() => {
@@ -281,12 +316,121 @@ function Attached({
   );
 }
 
-export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }) {
+/** The parts row of a set: a chip per part, × to drop it, and Add part (a line or a group). */
+function PartsBar({
+  metro,
+  focus,
+  params,
+  onParts,
+}: {
+  metro: MetroBody;
+  focus: Focus;
+  params: URLSearchParams;
+  onParts: (next: MetroPart[]) => void;
+}) {
+  const has = (p: MetroPart) => focus.parts.some((x) => x.kind === p.kind && x.id === p.id);
+  const lines = metro.lines.filter((l) => !has({ kind: "line", id: l.id }));
+  const groups = metro.groups.filter((g) => !has({ kind: "group", id: g.id }));
+  const set = focus.parts.length > 1 || focus.word === "View";
+  return (
+    <ul aria-label="Parts" className="flex list-none flex-wrap items-center gap-1.5">
+      {set
+        ? focus.parts.map((p) => {
+            const name = readPart(metro, p)?.label ?? p.id;
+            return (
+              <li
+                key={`${p.kind}:${p.id}`}
+                className="inline-flex items-center gap-1 rounded-(--ui-leaf-chip) bg-(--ui-wash) py-0.5 pr-0.5 pl-2 text-[12.5px] font-semibold"
+              >
+                <a href={focusHref(p, params)} className="text-(--ui-ink) no-underline">
+                  {name}
+                </a>
+                {focus.parts.length > 1 ? (
+                  <button
+                    type="button"
+                    aria-label={`Drop ${name}`}
+                    onClick={() => onParts(focus.parts.filter((x) => x !== p))}
+                    className="inline-flex size-6 cursor-pointer items-center justify-center rounded-(--ui-leaf-chip) border-0 bg-transparent text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+                  >
+                    <Icon name="close" size={13} />
+                  </button>
+                ) : null}
+              </li>
+            );
+          })
+        : null}
+      {lines.length || groups.length ? (
+        <li>
+          <select
+            aria-label="Add part"
+            className={`${SELECT_CLASS} h-8 w-auto`}
+            value=""
+            onChange={(e) => {
+              const [kind, id] = e.target.value.split("\u0000");
+              if ((kind === "line" || kind === "group") && id)
+                onParts([...focus.parts, { kind, id }]);
+            }}
+          >
+            <option value="">+ Add part</option>
+            {lines.length ? (
+              <optgroup label="Lines">
+                {lines.map((l) => (
+                  <option key={l.id} value={`line\u0000${l.id}`}>
+                    {l.label}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+            {groups.length ? (
+              <optgroup label="Groups">
+                {groups.map((g) => (
+                  <option key={g.id} value={`group\u0000${g.id}`}>
+                    {g.label}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+          </select>
+        </li>
+      ) : null}
+    </ul>
+  );
+}
+
+/**
+ * A focus: one part, a set of parts, or a saved view. On "/" (`home`) it is his home view: the Map
+ * crumb and Whole map lead to the whole Map, and Esc stays.
+ */
+export function FocusPage({
+  props,
+  at: given,
+  home = false,
+}: {
+  props: PageProps;
+  at: FocusAt;
+  home?: boolean;
+}) {
+  // The address is read once: a new one mounts a new page (App keys it).
+  const [at] = useState(given);
   const window = windowOf(props.params.get("window"));
   const read = useMap(props.client, window);
   const data: MapData | null = read.data?.map ?? null;
   const metro = data?.metro ?? null;
-  const focus = useMemo(() => (metro ? focusOf(metro, part) : null), [metro, part]);
+  const keep = mapKeepOf(props);
+  const views = useMapViews(keep);
+  const homePref = usePref<number>(keep, MAP_HOME);
+  const atView = "view" in at;
+  // The saved view on screen, or the one these parts came from (`sv`).
+  const svId = atView ? at.view : Number(props.params.get("sv")) || null;
+  const saved = svId === null ? null : (views.lines.find((v) => v.id === svId) ?? null);
+  const asked = useMemo(
+    () => (atView ? (saved ? viewPartsOf(saved) : null) : at.parts),
+    [at, atView, saved],
+  );
+  const focus = useMemo(
+    () => (metro && asked ? focusOf(metro, asked, atView ? saved?.name : undefined) : null),
+    [metro, asked, atView, saved],
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: `data` is the read this moment belongs to
   const now = useMemo(() => new Date(), [data]);
   const view = useMemo(
@@ -294,18 +438,23 @@ export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }
     [data, metro, now],
   );
   const mayEdit = mayEditShape(props);
+  const mapAt = focusHref(null, props.params, home ? { whole: "1" } : {});
+  const crumbAt = (c: Crumb) => (c.part ? focusHref(c.part, props.params) : mapAt);
   const to = (p: MetroPart | null) => navigate(focusHref(p, props.params));
-  const upPart = focus?.up.part ?? null;
+  const toParts = (next: MetroPart[]) =>
+    navigate(focusHref(next, props.params, { sv: svId === null ? null : String(svId) }));
+  const up = focus ? crumbAt(focus.up) : mapAt;
 
-  // Esc goes up one crumb, unless a field or a dialog has it.
+  // Esc goes up one crumb, unless a field or a dialog has it. Home stays home.
   useEffect(() => {
+    if (home) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented || typing(e)) return;
-      navigate(focusHref(upPart, props.params));
+      navigate(up);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [upPart, props.params]);
+  }, [up, home]);
 
   const onPick = (p: MetroPick) => {
     if (p.kind === "station") to({ kind: "station", id: p.id });
@@ -315,8 +464,8 @@ export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }
 
   const label = focus ? `${focus.word} · ${focus.name}` : "Focus";
   useEffect(() => {
-    document.title = `${label} · Wren Client Portal`;
-  }, [label]);
+    if (!home) document.title = `${label} · Wren Client Portal`;
+  }, [label, home]);
 
   if (read.error && !read.data)
     return (
@@ -324,21 +473,31 @@ export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }
         <LoadFailed error={read.error} onRetry={read.retry} what="map" />
       </div>
     );
-  if (!read.data) return <MetroSkeleton />;
-  if (!data || !metro || !focus || !view)
+  if (!read.data || (atView && !views.ready)) return <MetroSkeleton />;
+  if (!data || !metro || !focus || !view || !asked) {
+    const [one] = "parts" in at ? at.parts : [];
     return (
       <div className={`${PAD} grid gap-2 py-6 text-[14.5px] text-(--ui-ink-2)`}>
         <p>
-          The newest version of the shape has no {part.kind} called "{part.id}".
+          {atView && !saved
+            ? `There is no saved view ${at.view} here.`
+            : atView || !one || ("parts" in at && at.parts.length > 1)
+              ? "The newest version of the shape holds none of these parts."
+              : `The newest version of the shape has no ${one.kind} called "${one.id}".`}
         </p>
         <p>
-          <a href={focusHref(null, props.params)}>Back to the Map</a>
+          <a href={mapAt}>Back to the Map</a>
         </p>
       </div>
     );
+  }
 
   const numbers = focusNumbers(data, focus);
   const people = focusPeople(data, focus);
+  const gone = asked.length - focus.parts.length;
+  // Save view once the parts differ from the open view; Home once they are the open view.
+  const same = !!saved && partsParam(viewPartsOf(saved)) === partsParam(asked);
+  const isHome = !!saved && homePref.value === saved.id;
   return (
     <section
       aria-label={`${focus.word} ${focus.name}`}
@@ -352,14 +511,15 @@ export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }
                 {focus.crumbs.map((c, i) => {
                   const last = i === focus.crumbs.length - 1;
                   return (
-                    <li key={c.part ? `${c.part.kind}:${c.part.id}` : "map"} className="flex gap-1">
+                    // biome-ignore lint/suspicious/noArrayIndexKey: crumbs keep their order; a set's has no part
+                    <li key={i} className="flex gap-1">
                       {i ? <span aria-hidden="true">›</span> : null}
                       {last ? (
                         <b aria-current="page" className="text-(--ui-ink)">
                           {c.label}
                         </b>
                       ) : (
-                        <a href={focusHref(c.part, props.params)} className="text-inherit">
+                        <a href={crumbAt(c)} className="text-inherit">
                           {c.label}
                         </a>
                       )}
@@ -372,11 +532,46 @@ export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }
             <p className="text-[13.5px] text-(--ui-ink-2)">
               {focus.word} · {numbers.join(" · ")}
             </p>
+            {gone ? (
+              <p className="text-[13px] text-(--ui-ink-3)">
+                {gone === 1 ? "One part" : `${gone} parts`} of this view left the shape.
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {home ? (
+              <a href={mapAt} className={CHIP}>
+                Whole map
+              </a>
+            ) : null}
+            {keep && saved && same ? (
+              <button
+                type="button"
+                aria-pressed={isHome}
+                onClick={() => homePref.set(isHome ? null : saved.id)}
+                className={`${CHIP} ${isHome ? CHIP_ON : ""}`}
+              >
+                <Icon name="home" size={15} /> Home view
+              </button>
+            ) : null}
+            {keep && views.ready && !same ? (
+              <SaveViewPop
+                record={MAP_VIEW_RECORD}
+                params={viewParamsOf(asked)}
+                keep={keep}
+                open={saved ?? undefined}
+                onSaved={(v) => {
+                  views.reload();
+                  navigate(focusHref({ view: v.id }, props.params));
+                }}
+              />
+            ) : null}
           </div>
         </header>
+        <PartsBar metro={metro} focus={focus} params={props.params} onParts={toParts} />
         <MetroMap
           view={view}
-          focus={part}
+          focus={focus.parts}
           onStub={to}
           onPick={onPick}
           controls={false}
@@ -384,7 +579,7 @@ export function FocusPage({ props, part }: { props: PageProps; part: MetroPart }
           className="metro-fit"
         />
         <div className="grid gap-4 text-[14px] sm:grid-cols-2">
-          {part.kind === "flow" ? null : (
+          {focus.part?.kind === "flow" ? null : (
             <PeopleHere people={people} at={atOf(props.client)} level={2} />
           )}
           <Numbers lines={numbers} window={window} />

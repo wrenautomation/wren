@@ -6,7 +6,9 @@ export {
   inPart,
   nameOf,
   partOf,
+  partsOfSpec,
   STUB,
+  specKey,
   stubsOf,
 } from "./focus.js";
 export {

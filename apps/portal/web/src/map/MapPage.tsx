@@ -10,7 +10,7 @@
  */
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
-import { Button, Icon, LoadFailed, SELECT_CLASS, Segmented } from "@wren/ui";
+import { Button, Icon, LoadFailed, SELECT_CLASS, Segmented, usePref } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   LEVEL_NAMES,
@@ -47,6 +47,7 @@ import { messageOf, Refused } from "./Refused.js";
 import { useDiffOf, useDraftDetail, useMap } from "./read.js";
 import { type PanelRef, panelOfParams, panelParams } from "./routes.js";
 import { viewOf } from "./view.js";
+import { MAP_HOME, MapViews, mapKeepOf, useMapViews } from "./views.js";
 
 /** A workspace with no shape: what a shape is, and the start from Wren's own. */
 function NoShape({
@@ -154,6 +155,9 @@ export function MapPage({
   const read = useMap(props.client, window);
   const data: MapData | null = read.data?.map ?? null;
   const mayEdit = mayEditShape(props);
+  const keep = mapKeepOf(props);
+  const views = useMapViews(keep);
+  const homeView = usePref<number>(keep, MAP_HOME);
   const newest = newestOf(data?.versions ?? []);
 
   // The panel is in the address: `?node=`, `?track=` or `?line=`.
@@ -414,6 +418,9 @@ export function MapPage({
                 >
                   <Icon name="upload" size={15} /> Import
                 </Button>
+              ) : null}
+              {keep && views.ready ? (
+                <MapViews views={views.lines} home={homeView.value} params={props.params} />
               ) : null}
             </PopoverContent>
           </Popover>

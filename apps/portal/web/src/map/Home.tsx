@@ -1,16 +1,21 @@
 /**
  * "/" for Wren's team: the Map of the workspace's shape, and Today under it (artifact section 07).
- * Hover a task to light its line on the Map; a click opens its track.
+ * Hover a task to light its line on the Map; a click opens its track. With a home view (the
+ * `map.home` pref) "/" draws that view instead, until `?whole=1` asks for the whole Map.
  */
-import { lineKeyOf } from "@wren/ui/metro";
+import { usePref } from "@wren/ui";
+import { lineKeyOf, MetroSkeleton } from "@wren/ui/metro";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import type { PageProps } from "../module.js";
 import { go } from "../route.js";
+import { FocusPage } from "./FocusPage.js";
+import { focusOf } from "./focus.js";
 import { MapPage } from "./MapPage.js";
 import { windowOf } from "./model.js";
 import { useMap } from "./read.js";
 import { TodayTasks } from "./TodayTasks.js";
 import { tasksOf } from "./tasks.js";
+import { MAP_HOME, mapKeepOf, useMapViews, viewPartsOf } from "./views.js";
 
 export function MapHome({
   props,
@@ -48,9 +53,43 @@ export function MapHome({
     [props.params],
   );
   const list = tasks ? <TodayTasks tasks={tasks} onLight={light} onOpen={openTask} /> : null;
+  // His home view, unless the address asks for the whole Map. A view the shape lost all of, or
+  // one deleted, falls back to the whole Map with one line that says so.
+  const keep = mapKeepOf(props);
+  const homeId = usePref<number>(keep, MAP_HOME);
+  const views = useMapViews(keep);
+  const wanted = keep && props.params.get("whole") !== "1" ? homeId.value : undefined;
+  const homeView = wanted ? (views.lines.find((v) => v.id === wanted) ?? null) : null;
+  const drawn =
+    homeView && data?.metro ? !!focusOf(data.metro, viewPartsOf(homeView), homeView.name) : false;
+  const waiting =
+    !!keep &&
+    props.params.get("whole") !== "1" &&
+    (!homeId.ready || (!!wanted && (!views.ready || (!!homeView && !data))));
+  // Until the map is in, the Map page draws its own loading frame under its title.
+  const map =
+    waiting && data ? (
+      <MetroSkeleton />
+    ) : !waiting && homeView && drawn ? (
+      <FocusPage key={homeView.id} props={props} at={{ view: homeView.id }} home />
+    ) : (
+      <>
+        {wanted && !waiting ? (
+          <p
+            role="status"
+            className="px-[clamp(12px,2.5vw,24px)] pt-3 text-[13px] text-(--ui-ink-3)"
+          >
+            {homeView
+              ? `Your home view "${homeView.name}" holds no part of the shape now. The whole Map shows instead.`
+              : "Your home view is gone. The whole Map shows instead."}
+          </p>
+        ) : null}
+        <MapPage props={props} clients={clients} lit={lit} />
+      </>
+    );
   return (
     <div className="flex min-w-0 flex-col">
-      <MapPage props={props} clients={clients} lit={lit} />
+      {map}
       {/* The artifact's Today sheet under the map: a hair on top, the same side pad as the map. */}
       <div className="grid min-w-0 content-start gap-3 border-t border-(--ui-hair) px-[clamp(12px,2.5vw,24px)] pt-4 pb-5">
         {list}

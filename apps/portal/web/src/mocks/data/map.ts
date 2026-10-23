@@ -254,6 +254,48 @@ export const SHAPE_FOCUS: MetroBody = {
 export const focusAnswers = (fallback: { get: Pipeline; list: Pipeline }): Answers =>
   shapeAnswers(fallback, SHAPE_FOCUS);
 
+/** A saved view of the Map: Growth and Sales talk, his own. */
+export const MAP_VIEW = {
+  id: 41,
+  name: "Sales desk",
+  params: "parts=line%3Agrowth%2Cgroup%3Atalk",
+  shared: false,
+  mine: true,
+};
+
+/**
+ * `viewsAnswers`: his saved views of the Map and his prefs, kept for the story. Each save and pref
+ * write lands in MAP_CALLS (designs/2026-10-23-focus-view.md, F2).
+ */
+export function viewsAnswers(
+  views: (typeof MAP_VIEW)[] = [MAP_VIEW],
+  prefs: Record<string, unknown> = {},
+): Answers {
+  let kept = [...views];
+  const mine = { ...prefs };
+  return {
+    "console/savedViews": (b) => (b.record === "map" ? kept : []),
+    "console/saveView": (b) => {
+      MAP_CALLS.push({ path: "saveView", body: b });
+      const v = {
+        id: Number(b.id ?? 50 + kept.length),
+        name: String(b.name ?? kept.find((x) => x.id === b.id)?.name ?? ""),
+        params: String(b.params ?? ""),
+        shared: !!b.shared,
+        mine: true,
+      };
+      kept = [...kept.filter((x) => x.id !== v.id), v];
+      return v;
+    },
+    "console/prefs": () => mine,
+    "console/setPref": (b) => {
+      MAP_CALLS.push({ path: "setPref", body: b });
+      mine[String(b.key)] = b.value;
+      return { ok: true };
+    },
+  };
+}
+
 /** `bigAnswers`: the big shape on the page. */
 export const bigAnswers = (fallback: { get: Pipeline; list: Pipeline }): Answers =>
   shapeAnswers(fallback, SHAPE_BIG);

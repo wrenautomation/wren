@@ -22,6 +22,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { TRIGGER_IDS } from "@wren/core/logic";
+import { type SavedViewLine, savedViewsOf } from "@wren/core/saved-views";
 import type { Db } from "@wren/db";
 import {
   type ConvertPlan,
@@ -50,7 +51,8 @@ import {
   withoutNode,
 } from "@wren/pipeline/edit";
 import { DRAFT_STATES, type DraftState, OPEN_DRAFT_STATES } from "@wren/pipeline/history";
-import { isMetro, type MetroBody, placesOf } from "@wren/pipeline/metro";
+import { type Attach, isMetro, type MetroBody, placesOf } from "@wren/pipeline/metro";
+import { MAP_VIEW_RECORD, partsOf, readPart } from "@wren/pipeline/metro-parts";
 import { type MirrorResult, mirrorsOf } from "@wren/pipeline/mirror";
 import {
   ACTIONS,
@@ -96,6 +98,8 @@ export interface ShapeDeps {
   mirror: (db: Db) => Promise<MirrorResult>;
   /** The same for Wren and every client, one result a workspace (`mirror --all`). */
   mirrorAll: () => Promise<Array<{ workspace: string; result: MirrorResult }>>;
+  /** The main database and this workspace's id, where the saved views of its Map live. */
+  withViews: <T>(fn: (main: Db, workspace: string) => Promise<T>) => Promise<T>;
 }
 
 // --- pure helpers ---------------------------------------------------------------------------
@@ -218,6 +222,36 @@ export function metroLines(
     lines.push("", "flows");
     for (const f of flows)
       lines.push(`  ${f.id}  ${f.label}  stations ${f.stations.length}  tracks ${f.tracks.length}`);
+  }
+  return lines;
+}
+
+const attachText = (a: Attach) => `${a.kind}  ${a.ref}${a.label ? `  "${a.label}"` : ""}`;
+
+/** A saved view of the Map as one line: `41  Sales desk  shared  line:growth,group:talk`. */
+export const viewLine = (v: SavedViewLine): string =>
+  [
+    v.id,
+    v.name,
+    v.shared ? "shared" : "own",
+    new URLSearchParams(v.params).get("parts") ?? "",
+  ].join("  ");
+
+/**
+ * A saved view read against a body (designs/2026-10-23-focus-view.md, F2): each part, its
+ * attachments, its stations and theirs. A part the body lost says so.
+ */
+export function viewLines(v: SavedViewLine, body: { number: number; body: MetroBody }): string[] {
+  const lines = [`${v.name}  ${v.shared ? "shared" : "own"}  read on v${body.number}`];
+  for (const part of partsOf(new URLSearchParams(v.params).get("parts"))) {
+    const read = readPart(body.body, part);
+    lines.push("", `${part.kind} ${part.id}  ${read ? read.label : "not in this version"}`);
+    if (!read) continue;
+    for (const a of read.attach ?? []) lines.push(`  attach  ${attachText(a)}`);
+    for (const s of read.stations) {
+      lines.push(`  ${s.id}  ${s.label}`);
+      for (const a of s.attach ?? []) lines.push(`    attach  ${attachText(a)}`);
+    }
   }
   return lines;
 }
@@ -900,6 +934,54 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
           for (const line of lines.length ? lines : ["up to date"])
             console.log(o.all ? `${workspace}: ${line}` : line);
         }
+      }),
+    );
+
+  const view = shape
+    .command("view")
+    .description(
+      "Saved views of the Map: named sets of lines, groups, stations and flows (a team's slice)",
+    );
+  /** The views a viewer sees: the shared ones, and their own when --viewer names them. */
+  const viewsFor = (viewer?: string) =>
+    deps.withViews((main, workspace) =>
+      savedViewsOf(
+        main,
+        { workspace, viewer: viewer?.trim().toLowerCase() ?? "" },
+        MAP_VIEW_RECORD,
+      ),
+    );
+  const viewerOpt = "--viewer <email>";
+  const viewerHelp = "add this person's own views to the shared ones";
+
+  view
+    .command("list")
+    .description("The shared views of the Map: id  name  shared|own  parts")
+    .option(viewerOpt, viewerHelp)
+    .action((o: { viewer?: string }) =>
+      plain(async () => {
+        const all = await viewsFor(o.viewer);
+        for (const v of all) console.log(viewLine(v));
+        if (!all.length) console.log("no saved views");
+      }),
+    );
+
+  view
+    .command("show <id>")
+    .description("A view's parts on the newest version: each part's stations and their attachments")
+    .option(viewerOpt, viewerHelp)
+    .action((id: string, o: { viewer?: string }) =>
+      plain(async () => {
+        const n = numberArg(id);
+        const v = (await viewsFor(o.viewer)).find((x) => x.id === n);
+        if (!v)
+          throw new Refused([
+            `There is no saved view ${n} here. A view its owner did not share needs --viewer.`,
+          ]);
+        const newest = await withDb(newestShape);
+        if (!newest || !isMetro(newest.body))
+          throw new Refused(["The newest version is not on the metro model."]);
+        for (const line of viewLines(v, { ...newest, body: newest.body })) console.log(line);
       }),
     );
 

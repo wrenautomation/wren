@@ -662,8 +662,44 @@ function SaveView({
   keep: KeepApi;
   saved: Saved;
 }) {
+  const kept = keptOf(meta, place.params);
+  const sv = saved.lines.find((v) => String(v.id) === place.params.get("sv"));
+  const differs = sv ? !sameKept(kept, sv.params) : kept !== "";
+  if (!differs || !saved.ready) return null;
+  return (
+    <SaveViewPop
+      record={meta.id}
+      params={kept}
+      keep={keep}
+      open={sv}
+      onSaved={(v) => {
+        saved.reload();
+        place.go(place.link({ sv: String(v.id) }), true);
+      }}
+    />
+  );
+}
+
+/**
+ * The Save view chip and its popover: Update the open view, or save `params` under a new name,
+ * the viewer's own or shared. A list's bar and the Map's views (`record` "map") use it.
+ */
+export function SaveViewPop({
+  record,
+  params,
+  keep,
+  open: sv,
+  onSaved,
+}: {
+  record: string;
+  params: string;
+  keep: KeepApi;
+  /** The saved view on screen, which Update overwrites. */
+  open?: SavedViewLine | undefined;
+  onSaved: (v: SavedViewLine) => void;
+}) {
   const form = useEditForm({
-    key: `view:new:${meta.id}`,
+    key: `view:new:${record}`,
     defaults: { name: "", shared: false },
   });
   const [said, setSaid] = useState<string | null>(null);
@@ -676,18 +712,13 @@ function SaveView({
   const setOpen = pop.setOpen;
   const name = form.watch("name");
   const [busy, setBusy] = useState(false);
-  const kept = keptOf(meta, place.params);
-  const sv = saved.lines.find((v) => String(v.id) === place.params.get("sv"));
-  const differs = sv ? !sameKept(kept, sv.params) : kept !== "";
-  if (!differs || !saved.ready) return null;
   const go = async (fn: () => Promise<SavedViewLine>) => {
     setBusy(true);
     setSaid(null);
     try {
       const v = await fn();
-      saved.reload();
       setOpen(false);
-      place.go(place.link({ sv: String(v.id) }), true);
+      onSaved(v);
       return true;
     } catch (err) {
       setSaid(sayOf(err));
@@ -699,9 +730,7 @@ function SaveView({
   const submit = form.onSend(
     (v) =>
       v.name.trim()
-        ? go(() =>
-            keep.save({ record: meta.id, name: v.name.trim(), params: kept, shared: v.shared }),
-          )
+        ? go(() => keep.save({ record, name: v.name.trim(), params, shared: v.shared }))
         : false,
     { clear: true },
   );
@@ -717,7 +746,7 @@ function SaveView({
             type="button"
             disabled={busy}
             className={cn(ITEM, "mb-1.5 border-b border-(--ui-hair) pb-1.5")}
-            onClick={() => void go(() => keep.save({ id: sv.id, record: meta.id, params: kept }))}
+            onClick={() => void go(() => keep.save({ id: sv.id, record, params }))}
           >
             Update “{sv.name}”
           </button>

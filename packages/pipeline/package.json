@@ -25,6 +25,7 @@
     "./metro-file": "./src/metro-file.ts",
     "./metro-merge": "./src/metro-merge.ts",
     "./metro-ops": "./src/metro-ops.ts",
+    "./metro-parts": "./src/metro-parts.ts",
     "./mirror": "./src/mirror.ts",
     "./model": "./src/model.ts",
     "./moves": "./src/moves.ts",

@@ -268,11 +268,15 @@ export {
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export {
+  CHIP,
+  CHIP_ON,
   type KeepApi,
   type SavedViewLine,
+  SaveViewPop,
   TAB,
   tabTone,
   useNarrow,
+  useSavedViews,
 } from "./list-bar.js";
 export {
   LIST_FORMS,

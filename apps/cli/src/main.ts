@@ -324,6 +324,11 @@ const shapeMirror = (db: Db, workspace: string) =>
   });
 registerShape(program, {
   withDb,
+  withViews: (fn) =>
+    withMainDb(async (main) => {
+      const id = program.opts<{ client?: string }>().client;
+      return fn(main, id ? (await getClient(main, id)).id : WREN);
+    }),
   writes: journeyWrites,
   mirror: (db) => {
     const id = program.opts<{ client?: string }>().client;

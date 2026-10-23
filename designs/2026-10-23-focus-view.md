@@ -68,15 +68,15 @@ Why a version and not a side table: an attach is part of the business design. It
 
 **Store.** The existing `saved_views` table (`packages/core/src/saved-views.ts`), record `map`. `params` holds the parts: `parts=line:gp,group:loop`. Personal by default; shared needs `manage`, as for any list's views. No new table.
 
-**URL.** `/map?view=<id>` draws the saved view. `/map?parts=…` draws an unsaved set.
+**URL.** `/map/view/<id>` draws the saved view. `/map/parts/<parts>` draws an unsaved set; `<parts>` is `partsParam` (`packages/pipeline/src/metro-parts.ts`), encoded once more as one path segment.
 
 **Draw.** `focusScene` takes several parts: a station is inside when it is in any part. Stubs sit on the edge of the union.
 
-**Make.** On a focus page: "Save view" (name, shared). On a view page: "Add part" (lines and groups of the body) and a remove on each part chip.
+**Make.** On a focus page: "Save view" (name, shared; the list bar's `SaveViewPop`). On a set or a view: a "Parts" row with a chip for each part, × to drop one, and "Add part" (lines and groups of the body). A changed view keeps `?sv=`, so Save view offers to update it.
 
 **Home.** A viewer pref `map.home` holds a view id. When set, "/" draws that view above Today, with "Whole map" to leave it. A view whose parts are all gone falls back to the whole map with one line that says so.
 
-**Agents.** `wren shape view list` (mine and shared, by `--viewer`, default the operator) and `wren shape view show <id>`: the parts, each part's stations, and their attachments.
+**Agents.** `wren shape view list` and `wren shape view show <id>` (`apps/cli/src/shape.ts`): the parts on the newest version, each part's stations, and their attachments. Without `--viewer` they see the shared views; `--viewer <email>` adds that person's own. Config holds no operator email, so there is no default viewer.
 
 ## F3. Sidebar: all apps for Wren's team
 
@@ -97,3 +97,4 @@ The open questions: does Inbox narrow to the view's people, or to its apps? Does
 - 2026-10-23 William: read and attach only; the whole portal follows the focus later; all apps back in Wren's sidebar, Marketing first.
 - 2026-10-23 F1 built: the attach panel is a `section` (an `aside` inside `main` fails axe); `PeopleHere` takes a heading level.
 - 2026-10-23: attach writes a shape version (merge, diff, blame and undo come free). Saved views reuse `saved_views`.
+- 2026-10-23 F2 built: path URLs (`/map/view/<id>`, `/map/parts/<…>`), not query params: the router keys pages on the path. A stub takes the grain of its near station's part. A view of one part draws as a "View", with no attach form (attach lives on the part's own page). The home view turns Esc off, and its Map crumb goes to `/?whole=1`. The CLI default viewer is none (shared only), as config holds no operator email.

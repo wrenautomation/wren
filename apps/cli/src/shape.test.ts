@@ -20,6 +20,8 @@ import {
   type ShapeDeps,
   shapeLines,
   storedDiffLines,
+  viewLine,
+  viewLines,
 } from "./shape.js";
 
 const none = (async () => {
@@ -31,6 +33,7 @@ const deps = (over: Partial<ShapeDeps> = {}): ShapeDeps => ({
   writes: undefined,
   mirror: async () => ({ off: true }),
   mirrorAll: async () => [],
+  withViews: none as never,
   ...over,
 });
 
@@ -238,10 +241,13 @@ describe("commands", () => {
       "tag",
       "tags",
       "mirror",
+      "view",
       "move",
     ]);
     const draft = shapeCmd(program()).commands.find((c) => c.name() === "draft") as Command;
     expect(names(draft)).toEqual(["new", "list", "show", "propose", "apply", "drop"]);
+    const view = shapeCmd(program()).commands.find((c) => c.name() === "view") as Command;
+    expect(names(view)).toEqual(["list", "show"]);
   });
 
   it("reads the op of edit from text or from a file, and refuses both or neither", () => {
@@ -583,5 +589,56 @@ describe("the metro model", () => {
     expect(process.exitCode).toBe(1);
     process.exitCode = undefined;
     err.mockRestore();
+  });
+});
+
+describe("saved views", () => {
+  const body = {
+    name: "Test",
+    lines: [
+      {
+        id: "growth",
+        label: "Growth",
+        tier: "core",
+        attach: [{ kind: "link", ref: "https://example.test/deck", label: "Deck" }],
+      },
+    ],
+    stations: [
+      { id: "book", label: "Book", kind: "step", line: "growth" },
+      {
+        id: "held",
+        label: "Held",
+        kind: "step",
+        line: "growth",
+        attach: [{ kind: "sop", ref: "held" }],
+      },
+    ],
+    tracks: [],
+    groups: [],
+  } as never;
+  const v = {
+    id: 41,
+    name: "Sales desk",
+    params: "parts=line%3Agrowth%2Cgroup%3Agone",
+    shared: true,
+    mine: false,
+  };
+
+  it("lists a view as one line", () => {
+    expect(viewLine(v)).toBe("41  Sales desk  shared  line:growth,group:gone");
+  });
+
+  it("reads each part, its stations and their attachments, and names a lost part", () => {
+    expect(viewLines(v, { number: 7, body })).toEqual([
+      "Sales desk  shared  read on v7",
+      "",
+      "line growth  Growth",
+      '  attach  link  https://example.test/deck  "Deck"',
+      "  book  Book",
+      "  held  Held",
+      "    attach  sop  held",
+      "",
+      "group gone  not in this version",
+    ]);
   });
 });

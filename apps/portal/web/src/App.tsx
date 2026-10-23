@@ -41,7 +41,6 @@ import {
   usePref,
   type Viewer,
 } from "@wren/ui";
-import type { MetroPart } from "@wren/ui/metro";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
@@ -54,7 +53,7 @@ import { useCall } from "./load.js";
 import { keep, recall } from "./local.js";
 import { LookProvider } from "./look-pref.js";
 import { FocusPage } from "./map/FocusPage.js";
-import { partOfPath } from "./map/focus.js";
+import { type FocusAt, focusAtOf, focusKey } from "./map/focus.js";
 import { MapHome } from "./map/Home.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
@@ -216,7 +215,7 @@ export function pinLines(pins: readonly string[], apps: Module[], atWren = true)
 type Place =
   | { kind: "page"; module: Module; page: ModulePage }
   | { kind: "launcher" }
-  | { kind: "focus"; part: MetroPart }
+  | { kind: "focus"; focus: FocusAt }
   | { kind: "go"; to: string }
   | { kind: "wait" };
 
@@ -228,8 +227,8 @@ function place(path: string[], apps: Module[], known: boolean, team = false): Pl
     if (!known) return { kind: "wait" };
     return home === "/" ? { kind: "launcher" } : { kind: "go", to: home };
   }
-  const part = team ? partOfPath(path) : null;
-  if (part) return { kind: "focus", part };
+  const focus = team ? focusAtOf(path) : null;
+  if (focus) return { kind: "focus", focus };
   const module = apps.find((m) => m.id === path[0]);
   const page = module?.pages.find((p) => p.id === path[1]);
   if (module && page) return { kind: "page", module, page };
@@ -724,9 +723,9 @@ export function App() {
               </Contained>
             ) : at.kind === "focus" ? (
               <FocusPage
-                key={`${current.id}:${at.part.kind}:${at.part.id}`}
+                key={`${current.id}:${focusKey(at.focus)}:${route.params.get("sv") ?? ""}`}
                 props={props(current.id)}
-                part={at.part}
+                at={at.focus}
               />
             ) : team ? (
               <MapHome

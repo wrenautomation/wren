@@ -62,7 +62,7 @@ William: "a system to isolate and open just a monthly retainer of the whole syst
 
 Why no in-app tabs: the browser already has tabs, windows, history and restore. A URL per part gives all of them free, and links work in Slack, notes and SOPs. A custom tab bar duplicates that and breaks on a phone.
 
-Open for William: should a focus page allow edits (a draft scoped to that part), or read and attach only at first.
+William (2026-10-23): read and attach only at first. Built: designs/2026-10-23-focus-view.md (F1 focus page, F2 saved views as named sets of parts, F3 all apps in Wren's sidebar; F4 the portal follows the focus, deferred).
 
 ## Proposal G: editing the shape (William, 2026-10-21)
 

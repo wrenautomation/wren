@@ -15,7 +15,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState }
 import { Seg } from "../controls.js";
 import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
-import { type FocusSpec, focusScene, nameOf } from "./focus.js";
+import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
 import { autoZoom, type MetroZoom, type OpenMap, stepLevel, toggleGroup } from "./fold.js";
 import { centreOf, fadeIn, GLIDE_MS, glide, glideHeight } from "./glide.js";
 import { layoutMetro } from "./layout.js";
@@ -58,8 +58,8 @@ export interface MetroMapProps {
   /** The level buttons in the bar. Off when the page puts `MetroLevels` in its own header. Default: on. */
   levels?: boolean | undefined;
   /**
-   * Draw one part only (a line, group, station or flow) and a faded stub for each track that
-   * crosses its edge. Shows every station of that part, whatever the level.
+   * Draw one part only (a line, group, station or flow), or a set of parts, and a faded stub for
+   * each track that crosses the edge. Shows every station inside, whatever the level.
    */
   focus?: FocusSpec | null | undefined;
   /** A click, Enter or Space on a stub: the part on its far side. */
@@ -354,7 +354,7 @@ export function MetroMap(props: MetroMapProps) {
     <div
       className={cx("metro", className)}
       data-level={level}
-      {...(focus ? { "data-focus": `${focus.kind}:${focus.id}` } : {})}
+      {...(focus ? { "data-focus": specKey(focus) } : {})}
     >
       {controls ? (
         <div className="metro-bar">
@@ -368,7 +368,11 @@ export function MetroMap(props: MetroMapProps) {
           <p className="metro-count" aria-live="polite">
             {focus ? (
               <>
-                Focus on {nameOf(scene, focus)}: <b>{marks}</b> marks, <b>{stubs}</b> stubs.
+                Focus on{" "}
+                {partsOfSpec(focus)
+                  .map((p) => nameOf(scene, p))
+                  .join(" + ")}
+                : <b>{marks}</b> marks, <b>{stubs}</b> stubs.
               </>
             ) : (
               <>

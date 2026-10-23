@@ -20,11 +20,13 @@ import {
   forgetMapCalls,
   liveShape,
   MAP_CALLS,
+  MAP_VIEW,
   planAnswers,
   SHAPE_BIG,
   SHAPE_HUB_CLASH,
   SHAPE_PLAN,
   shapeAnswers,
+  viewsAnswers,
 } from "./mocks/data/map.js";
 import { REFUSED_UNDO } from "./mocks/data/map-drafts.js";
 import { ADMIN } from "./mocks/data/me.js";
@@ -1198,5 +1200,90 @@ export const FocusFromPanel = mapAt("/", {
       "href",
       "/map/station/engaged",
     );
+  },
+});
+
+/**
+ * A set of parts (F2): the line and the group drawn as one, a chip for each, Add part, and Save
+ * view, which keeps the set under record "map" and opens the saved view.
+ */
+export const FocusSet = mapAt(`/map/parts/${encodeURIComponent("line:webinar,group:talk")}`, {
+  answers: { ...focusAnswers(SHARED), ...viewsAnswers([]) },
+  check: async (page) => {
+    await focusHead(page, "Webinar + Sales talk");
+    await expect(within(page).getByText(/^View · Now:/)).toBeVisible();
+    const parts = within(page).getByRole("list", { name: "Parts" });
+    await expect(within(parts).getByRole("link", { name: "Webinar" })).toHaveAttribute(
+      "href",
+      "/map/line/webinar",
+    );
+    const map = await mapOf(page);
+    await expect(map.getByRole("button", { name: /^Book\b/ })).toBeVisible();
+    // Add part: the set grows by a line.
+    await userEvent.selectOptions(
+      within(parts).getByRole("combobox", { name: "Add part" }),
+      "Audit",
+    );
+    await focusHead(page, "Webinar + Sales talk + Audit");
+    // Drop a part: back to two.
+    await userEvent.click(within(page).getByRole("button", { name: "Drop Audit" }));
+    await focusHead(page, "Webinar + Sales talk");
+    await userEvent.click(within(page).getByRole("button", { name: "Save view" }));
+    const pop = await within(document.body).findByRole("dialog", { name: "Save view" });
+    await userEvent.type(within(pop).getByRole("textbox", { name: "View name" }), "Demo desk");
+    await userEvent.click(within(pop).getByRole("button", { name: "Save view" }));
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["saveView"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({
+      record: "map",
+      name: "Demo desk",
+      params: "parts=line%3Awebinar%2Cgroup%3Atalk",
+      shared: false,
+    });
+    await focusHead(page, "Demo desk");
+  },
+});
+
+/** A saved view (F2): its name, the Map crumb back, and Home view sets the `map.home` pref. */
+export const FocusView = mapAt("/map/view/41", {
+  answers: { ...focusAnswers(SHARED), ...viewsAnswers() },
+  check: async (page) => {
+    await focusHead(page, "Sales desk");
+    const crumbs = within(page).getByRole("navigation", { name: "Breadcrumb" });
+    await expect(within(crumbs).getByRole("link", { name: "Map" })).toHaveAttribute("href", "/");
+    await expect(within(page).queryByRole("button", { name: "Save view" })).toBeNull();
+    const home = within(page).getByRole("button", { name: "Home view" });
+    await expect(home).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(home);
+    await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["setPref"]));
+    await expect(MAP_CALLS[0]?.body).toMatchObject({ key: "map.home", value: 41 });
+    await expect(home).toHaveAttribute("aria-pressed", "true");
+  },
+});
+
+/** "/" with a home view: the view above Today, and Whole map to leave it. */
+export const HomeView = mapAt("/", {
+  answers: { ...focusAnswers(SHARED), ...viewsAnswers([MAP_VIEW], { "map.home": 41 }) },
+  check: async (page) => {
+    await focusHead(page, "Sales desk");
+    await expect(within(page).getByRole("link", { name: "Whole map" })).toHaveAttribute(
+      "href",
+      "/?whole=1",
+    );
+  },
+});
+
+/** A home view the shape lost all of: the whole Map, and one line that says so. */
+export const HomeViewGone = mapAt("/", {
+  answers: {
+    ...focusAnswers(SHARED),
+    ...viewsAnswers([{ ...MAP_VIEW, params: "parts=line%3Agone" }], { "map.home": 41 }),
+  },
+  check: async (page) => {
+    await expect(
+      await within(page).findByText(/holds no part of the shape now/, {}, LATE),
+    ).toBeVisible();
+    await expect(
+      within(page).getByRole("heading", { level: 1, name: "Your business" }),
+    ).toBeVisible();
   },
 });

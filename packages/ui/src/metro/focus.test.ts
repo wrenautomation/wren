@@ -83,6 +83,30 @@ describe("focusScene: a group", () => {
   });
 });
 
+describe("focusScene: a set of parts", () => {
+  const scene = focusScene(ZOOM_SCENE, [
+    { kind: "group", id: "rd" },
+    { kind: "station", id: "hub" },
+  ]);
+  it("keeps the stations of every part", () => {
+    expect(ids(scene)).toEqual(["hub", "r1", "r2", "r3"]);
+  });
+
+  it("joins two parts by their track, with no stub between them", () => {
+    expect(stubsOf(scene).some((s) => s.label === "to First touch")).toBe(false);
+    expect(scene.tr.some((r) => !r.stub && r.b === "hub")).toBe(true);
+  });
+
+  it("names the set by its parts", () => {
+    expect(scene.title).toBe("Focus: Reddit + First touch");
+  });
+
+  it("is the same scene as one part when the set holds one", () => {
+    const one = { kind: "group", id: "rd" } as const;
+    expect(focusScene(ZOOM_SCENE, [one])).toEqual(focusScene(ZOOM_SCENE, one));
+  });
+});
+
 describe("focusScene: a station", () => {
   const scene = focusScene(ZOOM_SCENE, { kind: "station", id: "bk" });
   it("keeps one station and a stub for each track", () => {

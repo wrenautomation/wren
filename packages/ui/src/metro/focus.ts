@@ -1,5 +1,6 @@
 /**
- * Focus: draw one part of the map and nothing else. A part is a line, a group, a station or a flow.
+ * Focus: draw one part of the map, or a set of parts (a saved view), and nothing else. A part is a
+ * line, a group, a station or a flow.
  * Tracks that cross its edge stay as faded stubs, each labelled with where it comes from or goes
  * to. A click on a stub names the part on the far side (`MetroPart`), so the caller can focus it.
  *
@@ -20,9 +21,19 @@ import {
   type SceneStation,
 } from "./types.js";
 
-/** What to focus: the same shape as a part. */
-export type FocusSpec = MetroPart;
+/** What to focus: one part, or a set of parts drawn as one. */
+export type FocusSpec = MetroPart | readonly MetroPart[];
 export type { MetroPart };
+
+/** The parts of a spec, as a list. */
+export const partsOfSpec = (spec: FocusSpec): readonly MetroPart[] =>
+  "kind" in spec ? [spec] : spec;
+
+/** A spec as one string: `line:gp` or `line:gp,group:loop`. */
+export const specKey = (spec: FocusSpec): string =>
+  partsOfSpec(spec)
+    .map((p) => `${p.kind}:${p.id}`)
+    .join(",");
 
 /** How far a stub reaches from the edge of its part, and the gap between stubs on one station. */
 export const STUB = { reach: 90, gap: 26, pad: 24 } as const;
@@ -32,7 +43,7 @@ const groupOf = (s: SceneStation): string | undefined => (isMark(s) ? s.g : s.gr
 const flowOf = (s: SceneStation): string | undefined => (isMark(s) ? s.flow : undefined);
 
 /** The station is in the part. */
-export function inPart(s: SceneStation, spec: FocusSpec): boolean {
+export function inPart(s: SceneStation, spec: MetroPart): boolean {
   switch (spec.kind) {
     case "line":
       return lineOf(s) === spec.id;
@@ -49,7 +60,7 @@ export function inPart(s: SceneStation, spec: FocusSpec): boolean {
  * The part a station stands for from outside, at the grain of `kind`: a station in a group is
  * "that group" when you focus a group. A station with no such part stands for itself.
  */
-export function partOf(s: SceneStation, kind: FocusSpec["kind"]): MetroPart {
+export function partOf(s: SceneStation, kind: MetroPart["kind"]): MetroPart {
   const id = kind === "line" ? lineOf(s) : kind === "group" ? groupOf(s) : flowOf(s);
   return id && kind !== "station" ? { kind, id } : { kind: "station", id: s.id };
 }
@@ -71,10 +82,16 @@ const centre = (s: SceneStation): Point => [
 /** Width of a stub label in px (11px, semibold) with its padding: the room the crop leaves for it. */
 const labelWidth = (t: string) => textWidth(t, 11, true) + 16;
 
-/** The scene with only `spec` drawn, and a stub for each track that crosses its edge. */
+/**
+ * The scene with only `spec` drawn, and a stub for each track that crosses its edge. In a set, a
+ * stub names its far end at the grain of the part its near end is in.
+ */
 export function focusScene(scene: MetroScene, spec: FocusSpec): MetroScene {
+  const parts = partsOfSpec(spec);
   const inside = new Set<string>();
-  for (const s of scene.st) if (inPart(s, spec)) inside.add(s.id);
+  for (const s of scene.st) if (parts.some((p) => inPart(s, p))) inside.add(s.id);
+  const grain = (s: SceneStation) =>
+    (parts.find((p) => inPart(s, p)) ?? parts[0])?.kind ?? "station";
 
   // An exit follows its source: it joins the part when every track into it starts inside.
   const ends = (r: MetroTrack) => [r.a, r.b].filter((x): x is string => !!x);
@@ -107,7 +124,7 @@ export function focusScene(scene: MetroScene, spec: FocusSpec): MetroScene {
     const b = r.b && inside.has(r.b);
     if (!r.a && !r.b) {
       // A track on points joins no station: it stays when it is on the focused line.
-      if (spec.kind === "line" && r.l === spec.id) kept.push(r);
+      if (parts.some((p) => p.kind === "line" && r.l === p.id)) kept.push(r);
       continue;
     }
     if ((a || !r.a) && (b || !r.b) && (a || b)) {
@@ -125,7 +142,7 @@ export function focusScene(scene: MetroScene, spec: FocusSpec): MetroScene {
     const slot = `${near.id}:${side}`;
     const n = used.get(slot) ?? 0;
     used.set(slot, n + 1);
-    const part = partOf(far, spec.kind);
+    const part = partOf(far, grain(near));
     const label = `${side === "in" ? "from" : "to"} ${nameOf(scene, part)}`;
     const off = (a ? (r.oa ?? r.o) : (r.ob ?? r.o)) ?? 0;
     const edge =
@@ -180,7 +197,7 @@ export function focusScene(scene: MetroScene, spec: FocusSpec): MetroScene {
   const x0 = Math.max(0, Math.floor(left - STUB.pad));
   const out: MetroScene = {
     ...scene,
-    title: `Focus: ${nameOf(scene, spec)}`,
+    title: `Focus: ${parts.map((p) => nameOf(scene, p)).join(" + ")}`,
     x0,
     w: Math.ceil(right + STUB.pad) - x0,
     st,
