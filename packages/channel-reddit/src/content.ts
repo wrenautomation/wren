@@ -24,6 +24,7 @@ import {
   METRICS as M,
   type Metrics,
   numberOf,
+  type OwnCommentRow,
   type Post,
   type Published,
   type PublishedRow,
@@ -60,6 +61,10 @@ export interface Thing {
   num_crossposts?: number;
   view_count?: number | null;
   upvote_ratio?: number;
+  /** A comment's post (`t3_`), the post's author, and what it answers (`t3_` or `t1_`). */
+  link_id?: string;
+  link_author?: string;
+  parent_id?: string;
 }
 export interface Listing {
   kind?: string;
@@ -205,6 +210,8 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
           publishedAt: at(t.created_utc, now),
           fetchedWith,
           preview: previewOf(t.title ?? t.selftext ?? ""),
+          ...(t.title ? { title: t.title } : {}),
+          text: t.selftext ?? "",
         })),
         q,
       );
@@ -318,6 +325,44 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
         if (!after) break;
       }
       return out;
+    },
+    async ownComments(): Promise<OwnCommentRow[]> {
+      const name = await whoami();
+      const mine = children(
+        await call<Listing>("GET", `/user/${name}/comments`, {
+          limit: 100,
+          sort: "new",
+          raw_json: 1,
+        }),
+      );
+      // A reply's listing names the post's author, not the comment's: one read for those.
+      const asked = [
+        ...new Set(mine.flatMap((c) => (c.parent_id?.startsWith("t1_") ? [c.parent_id] : []))),
+      ];
+      const authors = new Map<string, string>();
+      if (asked.length)
+        for (const t of children(await call<Listing>("GET", "/api/info", { id: asked.join(",") })))
+          if (t.author) authors.set(t.name, t.author);
+      // Nobody to touch: a deleted author, or ours (a reply down our own thread).
+      const person = (h: string | undefined) =>
+        h && h !== "[deleted]" && h.toLowerCase() !== name.toLowerCase()
+          ? { handle: h, name: null }
+          : null;
+      return mine.flatMap((c) => {
+        if (!c.link_id) return [];
+        const reply = !!c.parent_id?.startsWith("t1_");
+        return [
+          {
+            id: c.name,
+            url: redditUrl(c.permalink ?? `/comments/${c.link_id.slice(3)}`),
+            at: at(c.created_utc, now),
+            text: c.body ?? "",
+            postId: c.link_id,
+            reply,
+            to: person(reply ? authors.get(c.parent_id as string) : c.link_author),
+          },
+        ];
+      });
     },
     async audience(): Promise<Audience> {
       const name = await whoami();

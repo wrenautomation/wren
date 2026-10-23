@@ -376,6 +376,8 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
                 publishedAt: it.snippet?.publishedAt ?? now().toISOString(),
                 fetchedWith,
                 preview: previewOf(it.snippet?.title ?? ""),
+                ...(it.snippet?.title ? { title: it.snippet.title } : {}),
+                text: it.snippet?.description ?? "",
               },
             ]
           : [];

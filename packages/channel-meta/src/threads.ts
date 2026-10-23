@@ -139,6 +139,7 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
           publishedAt: m.timestamp ?? now().toISOString(),
           fetchedWith,
           preview: previewOf(m.text ?? ""),
+          ...(m.text ? { text: m.text } : {}),
         })),
         q,
       );

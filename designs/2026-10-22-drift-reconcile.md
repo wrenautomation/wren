@@ -27,15 +27,32 @@ A partial list (as many rows back as asked) holds only the newest. Absence in it
 |---|---|---|---|
 | connections | LinkedIn `/connections` (200) | `reach_contacts` (platform, handle) | **built** (this doc) |
 | follows | X `GET /2/users/me/following` (autobrowse da396a7: the signed-in Following page; the free API has no follows); Reddit `/subreddits/mine/subscriber` (users as `u_<name>`); YouTube `subscriptions?mine=true`; Instagram `/web/following`, TikTok `/web/following`, Threads `instagram /web/threads/following` (autobrowse a241122: desk-browser reads) | touches `follow` ours, source `following` | all six **built** (section below) |
-| own posts | LinkedIn `/rest/posts`, X user tweets, IG media, Page posts, TikTok video/list, YouTube uploads, Threads, Reddit submitted | `platform_objects` via `resolveObject`, `content_drafts` | next: first find where the analytics readers land; a flag on that reader, never a second reader |
-| own comments | Reddit `/comments`, X replies | `comments` | later |
+| own posts | `Content/list`, 100 newest: X user tweets, IG media, TikTok video/list, YouTube uploads, Threads, Reddit submitted; LinkedIn `/rest/posts` (501: no desk workflow yet) and Page posts (Page token expired 10-22) refuse today | `content_drafts.published_id` (`canonRef`) | **built** (section below) |
+| own comments | Reddit `/user/<me>/comments` (+ `/api/info` for a reply's author); X replies not yet (the page leg reads no replies) | touches `comment`/`reply` ours, source `own_comments`; never the `comments` table (an inbox) | Reddit **built** |
 | DMs | LinkedIn `/messaging`, Meta conversations | `reach_messages` | the reply watch reads these already |
 
 Every site shows its own following list. Instagram, TikTok and Threads keep it out of their official APIs, so a desk-browser flow reads each page. Instagram calls the page's own friendships JSON. TikTok and Threads scroll the profile's Following dialog through one shared reader. Threads runs on the instagram site, because Threads signs in through Instagram. One read a day each, under the account's caps.
 
+## Posts and comments (built)
+
+`SocialWatch` runs three site reads once a day per platform (`SITE_EVERY_MS`, one `daily` helper): follows, posts, comments. A read that fails goes in `missed`, never `errors`: it asks again the next day.
+
+Posts (`keepSitePosts`):
+
+1. Each listed id becomes its `canonRef`. A ref a draft has, or a `site:<platform>:<ref>` idea has, stays as it is.
+2. A lost send (`publishing`, `failed`, or published with no id, last 60 days) whose opening 60 characters match the listed post is that post: `markPublished` stamps it (`settled`).
+3. Each other post becomes a `site` idea and a draft (`promptVersion` `site`, `edited`), stamped by `markPublished` (by `site`): the one publish write path, so the object row, first variants and draft record come with it.
+4. `ContentMetrics` then reads it like any post (`metricsDue`: published, with an id, in the watch window). No second reader.
+5. `PublishedRow` now carries `text` and `title` where the list read has them, so the draft holds the whole words. TikTok's list gives its caption as `title` only.
+
+Comments (`keepOwnComments`):
+
+1. A comment id an ours touch, a thread's answer (`reddit_threads.answer_ref`: a karma-place answer stays touch-free) or an inbox answer (`comments.answer_ref`) has stays as it is.
+2. Each other comment becomes an ours `comment` (`reply` on a comment) touch toward the post's or the comment's author: account `wren`, ref `oc:<platform>:<id>`. A deleted author or our own is skipped.
+
 ## Follows (all six built)
 
-`ContentChannel.following()` lists every account ours follows. `SocialWatch` reads it once a day per platform (`FOLLOWING_EVERY_MS`), in the same pass as activity.
+`ContentChannel.following()` lists every account ours follows. `SocialWatch` reads it once a day per platform (`SITE_EVERY_MS`), in the same pass as activity.
 
 1. `keepFollowing` normalizes each handle.
 2. A handle with an ours follow from any writer stays as it is.

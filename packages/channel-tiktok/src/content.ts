@@ -266,6 +266,7 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
           publishedAt: at(v),
           fetchedWith,
           preview: previewOf(v.title ?? ""),
+          ...(v.title ? { text: v.title } : {}),
         })),
         q,
       );

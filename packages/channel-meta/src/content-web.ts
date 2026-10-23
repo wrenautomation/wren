@@ -93,6 +93,7 @@ export function instagramWebContent(
             : now().toISOString(),
           fetchedWith: "api" as const,
           preview: previewOf(m.caption ?? ""),
+          ...(m.caption ? { text: m.caption } : {}),
         })),
         q,
       );

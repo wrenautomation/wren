@@ -365,6 +365,7 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
           publishedAt: m.timestamp ?? now().toISOString(),
           fetchedWith,
           preview: previewOf(m.caption ?? ""),
+          ...(m.caption ? { text: m.caption } : {}),
         })),
         q,
       );
@@ -632,6 +633,7 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
           publishedAt: m.created_time ?? now().toISOString(),
           fetchedWith,
           preview: previewOf(m.message ?? ""),
+          ...(m.message ? { text: m.message } : {}),
         })),
         q,
       );

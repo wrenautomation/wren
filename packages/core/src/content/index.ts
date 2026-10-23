@@ -97,10 +97,14 @@ export interface Published {
   notes?: string[];
 }
 
-/** A list row: no bodies; the detail lives on the platform (`url`) or in `metrics`. */
+/** A list row; the detail lives on the platform (`url`) or in `metrics`. */
 export interface PublishedRow extends Published {
   /** First ~120 chars of the text, for a listing. */
   preview: string;
+  /** The whole body, where the list read carries it: a post made on the site is kept with it. */
+  text?: string;
+  /** YouTube's, TikTok's or Reddit's title, where the platform has one. */
+  title?: string;
 }
 
 export interface Metrics {
@@ -184,6 +188,21 @@ export interface FollowingRow {
   at: string | null;
 }
 
+/** A comment our account made, as the platform lists it (designs/2026-10-22-drift-reconcile.md). */
+export interface OwnCommentRow {
+  /** The comment's id, as the platform spells it. */
+  id: string;
+  url: string;
+  at: string;
+  text: string;
+  /** The post it sits under. */
+  postId: string;
+  /** It answers a comment, not the post. */
+  reply: boolean;
+  /** Whom it answers: the comment's author on a reply, else the post's. Null = gone or unknown. */
+  to: { handle: string; name: string | null } | null;
+}
+
 /** Our account's size now: followers, or subscribers on YouTube. */
 export interface Audience {
   followers: number;
@@ -244,6 +263,11 @@ export interface ContentChannel {
    * platform gives no list.
    */
   following?(): Promise<FollowingRow[]>;
+  /**
+   * Our newest comments on other people's posts, so one made by hand on the site is a touch too.
+   * Absent = the platform gives no list.
+   */
+  ownComments?(): Promise<OwnCommentRow[]>;
   /** A post's deeper numbers and the ones its token can't read. Absent = the counts are all. */
   insights?(q: InsightsQuery): Promise<Insights>;
   /** The account's numbers per day. Absent = followers (`audience`) are all. */
@@ -319,6 +343,8 @@ export function fakeContentChannel(
   follow(followers: number): void;
   /** An account ours follows, as `following` lists it. */
   followOut(f: FollowingRow): void;
+  /** A comment ours made, as `ownComments` lists it. */
+  commentOut(c: OwnCommentRow): void;
   /** Set a post's deeper numbers (`insights`) and the account's days (`accountInsights`). */
   measure(id: string, i: Omit<Insights, "asOf">): void;
   measureAccount(a: Omit<AccountInsights, "asOf">): void;
@@ -332,6 +358,7 @@ export function fakeContentChannel(
   const comments: CommentRow[] = [];
   const activity: ActivityRow[] = [];
   const followed: FollowingRow[] = [];
+  const commented: OwnCommentRow[] = [];
   let followers = 0;
   let n = 0;
   const insights = new Map<string, Omit<Insights, "asOf">>();
@@ -377,6 +404,12 @@ export function fakeContentChannel(
     async following() {
       return followed.map((f) => ({ ...f }));
     },
+    commentOut(c) {
+      commented.push({ ...c });
+    },
+    async ownComments() {
+      return commented.map((c) => ({ ...c }));
+    },
     async activity(q = {}) {
       const { since } = q;
       const rows = since ? activity.filter((a) => (a.at ?? "") >= since) : activity;
@@ -416,7 +449,11 @@ export function fakeContentChannel(
     },
     async list(q) {
       return pageOf(
-        posts.map(({ post, ...p }) => ({ ...p, preview: previewOf(post.text) })),
+        posts.map(({ post, ...p }) => ({
+          ...p,
+          preview: previewOf(post.text),
+          text: post.text,
+        })),
         q,
       );
     },

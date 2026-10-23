@@ -49,6 +49,7 @@ import type {
   ListQuery,
   MediaHost,
   Metrics,
+  OwnCommentRow,
   Platform,
   Post,
   PostPatch,
@@ -909,6 +910,22 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
           if (!ch.following) return null;
           try {
             return await ch.following();
+          } catch (err) {
+            throw new restate.TerminalError(err instanceof Error ? err.message : String(err));
+          }
+        },
+      ),
+      /** Null when the channel lists none of our comments. Any failure is final: the caller asks again later. */
+      ownComments: serviceHandler(
+        { input: z.looseObject({ platform: PLATFORM, client: CLIENT }) },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform } & ForClient,
+        ): Promise<OwnCommentRow[] | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          if (!ch.ownComments) return null;
+          try {
+            return await ch.ownComments();
           } catch (err) {
             throw new restate.TerminalError(err instanceof Error ? err.message : String(err));
           }

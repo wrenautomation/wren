@@ -41,7 +41,8 @@ export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 /**
  * Who wrote it: a person, the API, `AdsWatch`, the planner (a day's commits, a reader's question),
- * or a video's promo (`promo:<youtube draft>`).
+ * a video's promo (`promo:<youtube draft>`), or the site: a post made there by hand, read back
+ * (`site:<platform>:<post ref>`).
  */
 export const IDEA_SOURCES = [
   "cli",
@@ -51,6 +52,7 @@ export const IDEA_SOURCES = [
   "question",
   "promo",
   "note",
+  "site",
 ] as const;
 export type IdeaSource = (typeof IDEA_SOURCES)[number];
 

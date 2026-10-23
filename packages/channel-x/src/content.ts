@@ -223,6 +223,7 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
           publishedAt: t.created_at ?? now().toISOString(),
           fetchedWith,
           preview: previewOf(t.text ?? ""),
+          ...(t.text ? { text: t.text } : {}),
         })),
         q,
       );

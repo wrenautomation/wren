@@ -3,7 +3,7 @@
  * A follow, subscribe, reaction or mention someone gave us is theirs; a notice is no one's.
  * `wren touches backfill` folds every source table in under the refs the live writers use.
  */
-import type { FollowingRow } from "@wren/core/content";
+import type { FollowingRow, OwnCommentRow } from "@wren/core/content";
 import { usableUrl } from "@wren/core/touch-link";
 import {
   mergeHandle,
@@ -97,6 +97,54 @@ export async function keepFollowing(
   }
   const gone = ours.filter((r) => r.listed && !listed.has(r.handle)).length;
   return { added, gone };
+}
+
+/** Where `keepOwnComments` touches come from: our comment lists, read back. */
+export const OWN_COMMENTS_SOURCE = "own_comments";
+
+/**
+ * Our comments as the site lists them (designs/2026-10-22-drift-reconcile.md). One made by hand
+ * becomes an ours `comment` (a `reply` when it answers a comment) toward whom it answers. One a
+ * writer already kept stays as it is, and so does a thread's answer in a karma place (warmup, never
+ * a touch) or an answer on our own post: each is matched by the comment's id.
+ */
+export async function keepOwnComments(
+  db: Queryable,
+  platform: string,
+  rows: readonly OwnCommentRow[],
+): Promise<number> {
+  if (!rows.length) return 0;
+  const ids = sql.join(
+    rows.map((r) => sql`${r.id}`),
+    sql`, `,
+  );
+  const kept = (await db.execute(sql`
+    SELECT external_id id FROM touches WHERE direction = 'ours' AND external_id IN (${ids})
+    UNION SELECT answer_ref FROM reddit_threads WHERE ${platform} = 'reddit' AND answer_ref IN (${ids})
+    UNION SELECT answer_ref FROM comments WHERE platform = ${platform} AND answer_ref IN (${ids})`)) as unknown as Array<{
+    id: string;
+  }>;
+  const known = new Set(kept.map((r) => r.id));
+  let added = 0;
+  for (const r of rows) {
+    if (known.has(r.id) || !r.to) continue;
+    const t = await recordTouch(db, {
+      platform,
+      handle: r.to.handle,
+      name: r.to.name,
+      kind: r.reply ? "reply" : "comment",
+      direction: "ours",
+      account: "wren",
+      url: r.url,
+      text: r.text,
+      at: new Date(r.at),
+      externalId: r.id,
+      source: OWN_COMMENTS_SOURCE,
+      ref: `oc:${platform}:${r.id}`,
+    });
+    if (t?.created) added++;
+  }
+  return added;
 }
 
 /** How far a notification's time may sit from the comment it names. */

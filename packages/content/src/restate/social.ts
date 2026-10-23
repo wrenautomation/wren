@@ -33,8 +33,10 @@ import {
   holdCap,
   type ListQuery,
   liveHolds,
+  type OwnCommentRow,
   PLATFORMS,
   type Platform,
+  type PublishedRow,
   type SiteClient,
 } from "@wren/core/content";
 import { DESK, MANY_POSTS } from "@wren/core/content/restate";
@@ -64,6 +66,7 @@ import {
 } from "@wren/outreach";
 import { z } from "zod";
 import { clientContent } from "../clients.js";
+import { keepSitePosts } from "../site-posts.js";
 import { MAPS_EVERY_MS, readMapsReviews } from "../social/maps-reviews.js";
 import { ringLowReviews } from "../social/review-ring.js";
 import {
@@ -81,7 +84,7 @@ import {
   postOfComment,
   recentPosts,
 } from "../social/store.js";
-import { keepFollowing } from "../touches.js";
+import { keepFollowing, keepOwnComments } from "../touches.js";
 import { autoReplyReviews } from "./auto-reply.js";
 import { catchKeywordDms } from "./keyword-dm.js";
 import { nextRunAt } from "./planner.js";
@@ -111,10 +114,16 @@ export const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
   linkedin: 2 * 60 * 60 * 1000,
 };
 
-/** Object state: each platform's last follow-list read, ms. */
+/** Object state: each daily site read's last run, ms, by `<kind> <platform>`; and the old follow reads. */
+const SITE_READS = "siteReads";
 const FOLLOWING_READS = "followingReads";
-/** Our follow lists are read once a day: a hand-made follow is kept by the next day. */
-export const FOLLOWING_EVERY_MS = 24 * 60 * 60 * 1000;
+/**
+ * What was made by hand on the site (follows, posts, comments) is read back once a day, so it is
+ * kept by the next day (designs/2026-10-22-drift-reconcile.md).
+ */
+export const SITE_EVERY_MS = 24 * 60 * 60 * 1000;
+/** Our newest posts read back: the list reads' most. */
+const SITE_POSTS = 100;
 
 /** Follower counts read only on his click (`SocialDesk.readAudience`): LinkedIn's is a desk read. */
 export const AUDIENCE_ON_DEMAND: readonly Platform[] = ["linkedin"];
@@ -138,6 +147,14 @@ type ContentReads = {
     ctx: restate.Context,
     req: { platform: Platform } & ForClient,
   ) => Promise<FollowingRow[] | null>;
+  ownComments: (
+    ctx: restate.Context,
+    req: { platform: Platform } & ForClient,
+  ) => Promise<OwnCommentRow[] | null>;
+  list: (
+    ctx: restate.Context,
+    req: { platform: Platform; q?: ListQuery } & ForClient,
+  ) => Promise<PublishedRow[]>;
   reviews: (
     ctx: restate.Context,
     req: { platform: Platform; q?: ActivityQuery } & ForClient,
@@ -210,6 +227,10 @@ export interface SocialStats {
   activity: number;
   /** Follows our follow lists had that wren did not: made by hand on the site. */
   following: number;
+  /** Posts made by hand on the site, new as drafts or a lost send's draft found there. */
+  sitePosts: number;
+  /** Our comments made by hand on the site, new as touches. */
+  ownComments: number;
   /** Per platform, handles a follow list had before and has no more (unfollowed on the site). */
   unfollowed: string[];
   /** New DMs a client's connected accounts brought in. */
@@ -301,6 +322,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       asked: 0,
       activity: 0,
       following: 0,
+      sitePosts: 0,
+      ownComments: 0,
       unfollowed: [],
       dms: 0,
       keywordDms: 0,
@@ -534,29 +557,59 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     }
     ctx.set(ACTIVITY_READS, lastActivity);
 
-    // Our follow lists, so a follow made by hand on the site is a touch too. Nothing is deleted.
-    const lastFollowing = (await ctx.get<Record<string, number>>(FOLLOWING_READS)) ?? {};
-    for (const platform of platforms) {
-      if (now.getTime() - (lastFollowing[platform] ?? 0) < FOLLOWING_EVERY_MS) continue;
-      if (!go(`following ${platform}`, platform)) continue;
-      lastFollowing[platform] = now.getTime();
+    // What was made by hand on the site, read back once a day: our follows and comments as
+    // touches, our posts as published drafts so their numbers are read. Nothing is deleted.
+    const lastSite = (await ctx.get<Record<string, number>>(SITE_READS)) ?? {};
+    const daily = async (kind: string, platform: Platform, read: () => Promise<void>) => {
+      const unit = `${kind} ${platform}`;
+      if (now.getTime() - (lastSite[unit] ?? 0) < SITE_EVERY_MS) return;
+      if (!go(unit, platform)) return;
+      lastSite[unit] = now.getTime();
       try {
+        await read();
+      } catch (err) {
+        stats.missed.push(`${platform} ${kind}: ${errorText(err)}`);
+      }
+    };
+    for (const platform of platforms) {
+      await daily("following", platform, async () => {
         const rows = await limits.within(
           `following ${platform}`,
           content.following({ platform, ...mine }),
           { ms: L.batch, call: "Content/following", group: platform },
         );
-        if (!rows) continue;
+        if (!rows) return;
         const k = await ctx.run(`keep following ${platform}`, () =>
           keepFollowing(db, platform, rows, now),
         );
         stats.following += k.added;
         if (k.gone) stats.unfollowed.push(`${platform}: ${k.gone}`);
-      } catch (err) {
-        stats.errors.push(`${platform} following: ${errorText(err)}`);
-      }
+      });
+      await daily("posts", platform, async () => {
+        const rows = await limits.within(
+          `posts ${platform}`,
+          content.list({ platform, q: { limit: SITE_POSTS }, ...mine }),
+          { ms: L.batch, call: "Content/list", group: platform },
+        );
+        const k = await ctx.run(`keep posts ${platform}`, () =>
+          keepSitePosts(db, platform, rows, now),
+        );
+        stats.sitePosts += k.added + k.settled;
+      });
+      await daily("comments", platform, async () => {
+        const rows = await limits.within(
+          `own comments ${platform}`,
+          content.ownComments({ platform, ...mine }),
+          { ms: L.batch, call: "Content/ownComments", group: platform },
+        );
+        if (!rows) return;
+        stats.ownComments += await ctx.run(`keep own comments ${platform}`, () =>
+          keepOwnComments(db, platform, rows),
+        );
+      });
     }
-    ctx.set(FOLLOWING_READS, lastFollowing);
+    ctx.set(SITE_READS, lastSite);
+    ctx.clear(FOLLOWING_READS);
 
     // A client's DMs on its connected Page, Instagram and X, into its Inbox.
     if (client && dms)

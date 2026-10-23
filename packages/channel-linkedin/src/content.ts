@@ -301,6 +301,7 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         publishedAt: iso(p.publishedAt ?? p.createdAt),
         fetchedWith,
         preview: previewOf(p.commentary ?? ""),
+        ...(p.commentary ? { text: p.commentary } : {}),
       }));
       return pageOf(rows, q);
     },
