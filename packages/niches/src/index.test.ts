@@ -1,18 +1,10 @@
 /**
- * Golden parity with the Python port: every real template's content-hash `version`,
- * round-trip source, placeholder render and full variant enumeration must match what
- * emails_gen produced, so stored `messages.template_version` rows stay valid.
+ * The registry, and golden parity with the Python port for each niche's sequences (name, arm,
+ * steps and days). A niche carries no copy: the template store holds every word.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import {
-  enumerateRenders,
-  placeholderFacts,
-  render,
-  toSource,
-  twoEmailSequence,
-  variantCounts,
-} from "@wren/channel-email";
+import { twoEmailSequence } from "@wren/channel-email";
 import { OFFER_IDS } from "@wren/offers";
 import { describe, expect, it } from "vitest";
 import {
@@ -23,25 +15,13 @@ import {
   exaSearchFor,
   FACTS_VIEWS,
   NICHES,
-  nicheFor,
   recruiting,
   requireNiche,
   SEQUENCES_BY_NICHE,
   SMS_SEQUENCES,
   secRia,
-  TEMPLATES_BY_NICHE,
-  templatesDir,
 } from "./index.js";
 
-interface GoldenTemplate {
-  niche: string;
-  name: string;
-  version: string;
-  source: string;
-  variant_counts: Record<string, number>;
-  placeholder: { subject: string | null; body: string; provenance: Record<string, unknown> };
-  enumerated: [Record<string, number>, { subject: string | null; body: string }][];
-}
 interface GoldenSequence {
   niche: string;
   name: string;
@@ -50,43 +30,11 @@ interface GoldenSequence {
 }
 const golden = JSON.parse(
   readFileSync(fileURLToPath(new URL("../test/golden.json", import.meta.url)), "utf8"),
-) as { templates: GoldenTemplate[]; sequences: GoldenSequence[] };
+) as { sequences: GoldenSequence[] };
 
 describe("golden parity with emails_gen", () => {
   // Niches born in TS (recruiting) have no Python golden: nothing stored predates them.
-  const ported = new Set(golden.templates.map((g) => g.niche));
-  it("covers every registered template of a ported niche and nothing else", () => {
-    const ours = NICHES.filter((n) => ported.has(n.name))
-      .flatMap((n) => [...n.templates.keys()].map((t) => `${n.name}:${t}`))
-      .sort();
-    const theirs = golden.templates.map((g) => `${g.niche}:${g.name}`).sort();
-    expect(ours).toEqual(theirs);
-  });
-  for (const g of golden.templates) {
-    describe(`${g.niche}/${g.name}`, () => {
-      const tpl = () => {
-        const t = nicheFor(g.niche).templates.get(g.name);
-        if (t === undefined) throw new Error(`missing ${g.name}`);
-        return t;
-      };
-      it("version hash matches Python", () => expect(tpl().version).toBe(g.version));
-      it("to_source matches", () => expect(toSource(tpl())).toBe(g.source));
-      it("variant counts match", () => expect(variantCounts(tpl())).toEqual(g.variant_counts));
-      it("placeholder render matches (subject, body, provenance)", () => {
-        const r = render(tpl(), placeholderFacts(tpl()), "person:7");
-        expect(r.subject).toBe(g.placeholder.subject);
-        expect(r.body).toBe(g.placeholder.body);
-        expect(r.provenance).toEqual(g.placeholder.provenance);
-      });
-      it("every variant combination renders identically", () => {
-        const ours = [...enumerateRenders(tpl(), placeholderFacts(tpl()))].map(([c, r]) => [
-          c,
-          { subject: r.subject, body: r.body },
-        ]);
-        expect(ours).toEqual(g.enumerated);
-      });
-    });
-  }
+  const ported = new Set(golden.sequences.map((g) => g.niche));
   it("sequences match", () => {
     const ours = NICHES.filter((n) => ported.has(n.name)).flatMap((n) =>
       [...n.sequences.values()].map((s) => ({
@@ -114,7 +62,7 @@ describe("registry", () => {
     expect(secRia.lander).toBe("/");
     expect(agencies.lander).toBe("/agencies");
     expect(recruiting.lander).toBe("/recruiting/lead-reactivation");
-    expect(TEMPLATES_BY_NICHE.get("agencies")?.size).toBe(4);
+    expect(SEQUENCES_BY_NICHE.get("agencies")?.size).toBe(2);
     expect(SEQUENCES_BY_NICHE.get("sec_ria")?.size).toBe(1);
   });
   it("requireNiche refuses a typo and passes null", () => {
@@ -138,15 +86,6 @@ describe("registry", () => {
     expect(agencies.companyLocation({ raw: { Location: "  " } } as never)).toBeNull();
     expect(agencies.companyLocation({ raw: null } as never)).toBeNull();
   });
-  // A follow-up may ride the thread (no subject) or start a fresh one (its own subject).
-  it("every opener has a subject", () => {
-    for (const n of NICHES) {
-      for (const s of n.sequences.values()) {
-        const [opener] = s.steps;
-        expect(n.templates.get(opener?.template ?? "")?.subject).not.toBeNull();
-      }
-    }
-  });
 });
 
 describe("offers", () => {
@@ -157,7 +96,6 @@ describe("offers", () => {
     lander: "/agencies",
     crawlHints: [],
     discoveryGenericWords: [],
-    templatesDir: templatesDir("agencies"),
     sequences: [twoEmailSequence("build/opener", "build/followup")],
     plan: [{ sequence: "build-days-0-5" }],
     mailsRoleInboxes: true,
@@ -197,17 +135,13 @@ describe("offers", () => {
       "offer.page": "/recruiting/lead-reactivation",
     });
   });
-  it("refuses a template quoting an offer.* key its offer does not set", () => {
-    expect(() =>
-      defineNiche({
-        ...spec,
-        templatesDir: templatesDir("recruiting"),
-        sequences: [twoEmailSequence("book-first/opener", "book-first/followup")],
-        plan: [{ sequence: "book-first-days-0-5" }],
-        mailsRoleInboxes: true,
-        offers: { "book-first": "ops-audit" },
-      }),
-    ).toThrow(/quotes offer\.days, offer\.goal, which offer 'ops-audit' does not set/);
+  it("loads with no copy anywhere: a niche is shape, the words live in the store", () => {
+    const n = defineNiche({ ...spec, offers: { build: "ops-audit" } });
+    expect([...n.sequences.keys()]).toEqual(["build-days-0-5"]);
+    expect(n.plan).toEqual([{ sequence: "build-days-0-5" }]);
+    expect("templates" in n).toBe(false);
+    // Every registered niche loads the same way: no file read at import.
+    expect(NICHES.every((x) => x.sequences.size > 0)).toBe(true);
   });
 });
 

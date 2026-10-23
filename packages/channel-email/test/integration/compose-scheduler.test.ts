@@ -186,6 +186,66 @@ describe("topUp", () => {
     expect(atDesk.map((e) => e.personId)).toEqual([null]);
   });
 
+  it("with no live copy it skips every sequence with the reason and enrolls nobody", async () => {
+    await seedAgencies();
+    await truncate(db(), ["templates", "template_versions"]);
+    const stats = await topUp(db(), CAMPAIGN, opts(3));
+    expect(stats).toMatchObject({ enrolled: 0, messages_drafted: 0, passes: [], exhausted: false });
+    expect(stats.skipped).toEqual([
+      { sequence: "marketing-days-0-5", why: "no copy: followup, marketing/opener not live" },
+      { sequence: "build-days-0-5", why: "no copy: build/opener, followup not live" },
+    ]);
+    expect(await allEnrollments(db())).toEqual([]);
+    expect(await db().select().from(messages)).toEqual([]);
+  });
+
+  it("skips only the sequence whose copy is gone and still sends the other", async () => {
+    const { build } = await seedAgencies();
+    await truncate(db(), ["templates", "template_versions"]);
+    await liveCopy(
+      db(),
+      "agencies",
+      new Map([
+        ["build/opener", BUILD],
+        ["followup", FOLLOWUP],
+      ]),
+    );
+    const stats = await topUp(db(), CAMPAIGN, opts(3));
+    expect(stats.skipped.map((k) => k.sequence)).toEqual(["marketing-days-0-5"]);
+    expect(stats.enrolled).toBe(1);
+    expect((await allEnrollments(db())).map((e) => [e.companyId, e.sequenceName])).toEqual([
+      [build.id, "build-days-0-5"],
+    ]);
+  });
+
+  it("holds a sequence whose opener has no subject or quotes an unset offer term", async () => {
+    await seedAgencies();
+    const riding = template("marketing/opener", null, [text("Hi "), field("first_name")]);
+    const quoting = template(
+      "build/opener",
+      [text("invoices")],
+      [text("Fee "), field("offer.fee")],
+    );
+    await liveCopy(
+      db(),
+      "agencies",
+      new Map([
+        ["marketing/opener", riding],
+        ["build/opener", quoting],
+      ]),
+    );
+    const stats = await topUp(db(), CAMPAIGN, opts(3));
+    expect(stats.enrolled).toBe(0);
+    expect(stats.skipped).toEqual([
+      { sequence: "marketing-days-0-5", why: "no copy: opener marketing/opener has no subject" },
+      {
+        sequence: "build-days-0-5",
+        why: "no copy: build/opener quotes offer.fee, which the offer does not set",
+      },
+    ]);
+    expect(await allEnrollments(db())).toEqual([]);
+  });
+
   it("stops at the target and does nothing once the queue is full", async () => {
     await seedAgencies();
     const first = await topUp(db(), CAMPAIGN, opts(1));

@@ -43,13 +43,13 @@ from a real provider's webhooks.
 An application on the site with the texts box ticked gets a text about 2 minutes
 later, in texting hours on their clock, unless they booked by then. The lander pushes
 each one through the phone Worker (`/webhooks/site`); the 30-minute pass catches any
-push that didn't land. Fits get `form-fit#1`, the rest `form-not-fit#1` (defaults in
-`packages/templates/defaults/sms/texts`). Five minutes after the text, an email with the
-booking link goes from `WREN_FORM_MAIL_FROM` (`email/forms/form-booking`). Then
+push that didn't land. Fits get `form-fit#1`, the rest `form-not-fit#1` (live in the store as
+`sms:texts/form-fit#1`; Wren ships no text copy, so an empty slot sends nothing). Five minutes after the text, an email with the
+booking link goes from `WREN_FORM_MAIL_FROM` (`email:forms/form-booking`, from the store). Then
 `follow-up#1` on day 1 and `follow-up#2` on day 3, until they reply or book. No text 10
 minutes after it was due: one notice saying why. Phones may be in any country in
 `WREN_SMS_FORM_COUNTRIES` (US,CA). Anyone else (another country, box unticked, a landline)
-gets the email alone (`email/forms/form-booking-no-text`) 2 minutes after applying, no
+gets the email alone (`email:forms/form-booking-no-text`) 2 minutes after applying, no
 notice for the country rule; a booking stops it. Needs `WREN_SITE_EXPORT_TOKEN`, the same value as
 the Worker's `SITE_EXPORT_TOKEN`. `wren sms forms` runs a pass now; `wren sms stats`
 shows minutes to the text and the email.

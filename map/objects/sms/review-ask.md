@@ -3,7 +3,7 @@ type: object
 cluster: sms
 universe: live
 status: verified
-verified: 2026-10-09 @ 0ad591c4
+verified: 2026-10-23 @ 39edf1d2
 entity: packages/channel-sms/src/schema.ts:624
 ---
 
@@ -20,7 +20,7 @@ One row per subject (`uq_review_asks_subject`), made before anything is sent, so
 - `subject`, `source` (won, done, paid, hand, door), `name`, `phone`, `e164`, `email` (trimmed, lowercased), `via` (text, email), `sent_at` (an email ask's send; a queued one without it resends), `token`, `place_id`, `contact_id` ([[sms/sms-contact]], set null), `ask` / `reminder` (queued, would_send, skipped, refused) with `_at` and `_detail`, `clicks`, `clicked_at`, `feedback`, `feedback_at` (`schema.ts:624`); migrations 0178, 0201
 - the walk (`reviews.steps`): `in.customers` → `reviews.ask` → wait 3 days → `reviews.ask` `round: 2` (`remindReview`, `reviews.ts:327`, only if unopened). Door `{input: customers, subject: phone}`, so a door customer with only an email is refused at the door
 - entry: call outcomes won (`won`) and not yet / not fit (`done`) with `onlyLive` (`packages/channel-email/src/calls/outcome.ts`); paid and anything else by the door; by hand `SmsConsole.askReview` (`restate/console.ts:211`, a phone or an email, 409 unless live)
-- channel: the part's `via` (text by default); a customer with only the other channel is asked on that one. Email goes from portal@ under the client's name (`bookerMailer`, the worker's `mail.send`), template `email:reviews/<key>` (defaults in `packages/templates/defaults/email/reviews/`), which must carry `{review_link}`; `mailTo` (`reviews.ts:405`) adds the feedback line when on and a stop line, plus `List-Unsubscribe` one-click headers. No mailer (`WREN_PORTAL_FROM`/`WREN_PORTAL_MAILBOX` unset) or the client's sends off: `would_send`
+- channel: the part's `via` (text by default); a customer with only the other channel is asked on that one. Email goes from portal@ under the client's name (`bookerMailer`, the worker's `mail.send`), template `email:reviews/<key>` (live in the store; Wren ships no default), which must carry `{review_link}`; `mailTo` (`reviews.ts:405`) adds the feedback line when on and a stop line, plus `List-Unsubscribe` one-click headers. No mailer (`WREN_PORTAL_FROM`/`WREN_PORTAL_MAILBOX` unset) or the client's sends off: `would_send`
 - rules: no Place ID refused, no phone and no email skipped (an email finds its thread's phone), opt-outs and ended threads refused, email suppressions refused, once per person (phone or email) per `daysBetween` (90)
 - link `phone.wrenautomation.com/r/<client>/<token>` → `Reviews/click` (`clickReview`, `reviews.ts:325`) → 302 to Google's write-review form; `/feedback` → `Reviews/feedback` (`saveFeedback`, `reviews.ts:467`); `/stop` (an email's stop link, GET confirms, POST or one-click stops) → `Reviews/stop` (`stopReview`, `reviews.ts:480`), an `opt_out` email suppression in the client's database. `makeReviews` (`restate/answers.ts:88`)
 - record `sms.review` (`reviewRecord`, `records.ts:393`, with By and Email): views Asked, Opened, Feedback, All

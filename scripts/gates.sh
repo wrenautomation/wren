@@ -104,15 +104,14 @@ unit() { echo "==> unit tests" && pnpm turbo run test:unit $WIDE; }
 # CI has 4 cores and 16 GB. One job at 2 x 3 took 10 min cold, so CI splits the files into 8 shards
 # (integration.yml): WREN_SHARD=i/n runs every package's i-th part, `vitest --shard`. With 8 shards,
 # 3 x 3 took 4.7 min cold (2 x 3: 5.4; 12 shards at 2 x 3: 4.8). The shard is a turbo argument, so
-# each shard caches on its own. The spam score runs in the first shard only.
+# each shard caches on its own.
 # WREN_IT_PACKAGES and WREN_IT_FILES override both knobs, to tune.
 # A failed test retries once: a flake costs a rerun, not a red run. In CI a red package does not stop
 # the rest (--continue): every package that passes goes into the cache, so the next run skips it.
 integration() {
   echo "==> integration tests (needs Docker)" &&
     pnpm turbo run test:integration --concurrency="${WREN_IT_PACKAGES:-3}" ${CI:+--continue} \
-      -- --maxWorkers="${WREN_IT_FILES:-3}" --retry=1 ${WREN_SHARD:+--shard="$WREN_SHARD" --passWithNoTests} &&
-    case "${WREN_SHARD:-1/1}" in 1/*) spam ;; esac
+      -- --maxWorkers="${WREN_IT_FILES:-3}" --retry=1 ${WREN_SHARD:+--shard="$WREN_SHARD" --passWithNoTests}
 }
 # The deploy gate's database checks: drizzle's schema matches the migrations, and the legacy email tables still read.
 # A turbo task: when neither package nor anything it imports changed, a cache hit.
@@ -120,9 +119,8 @@ schema() {
   echo "==> schema (needs Docker)" &&
     pnpm turbo run test:schema --output-logs=errors-only
 }
-# Every template option through SpamAssassin (designs/2026-10-05-deliverability-tests.md); one over 2.0 fails.
-# The CLI wants a database URL at start; spamcheck reads none without --drafts, and CI has none.
-spam() { echo "==> spam score (needs Docker)" && WREN_DATABASE_URL="${WREN_DATABASE_URL:-postgres://unused@127.0.0.1:1/unused}" ./bin/wren email spamcheck; }
+# The spam score is no gate: Wren ships no email copy (10-23), so the repo has no template to score.
+# `wren email spamcheck` scores the live copy against the database (designs/2026-10-05-deliverability-tests.md).
 # A builder's loop: Biome on the files changed since origin/main, then typecheck and unit tests
 # for the packages changed and what depends on them. The full gate runs once, at hand-off;
 # unchanged packages are cache hits there.

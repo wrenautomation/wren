@@ -48,7 +48,7 @@ Video footers are templates: `post:youtube/footer` under a long video's descript
 `post:youtube/shorts-footer` under a Short's, `post:instagram/reel-footer` under a Reel's caption.
 Edit with `wren templates get post:youtube/footer > f.post`, then `wren templates set
 post:youtube/footer f.post --why "..." --expect <n> --publish`, or in Library, Templates. A new
-version waits in To approve. Defaults: `packages/templates/defaults/post/`.
+version waits in To approve. Wren ships no footer words: with none live, a video goes out with no footer.
 
 ## Meta ads
 
@@ -203,7 +203,7 @@ and `in <group> <id|email>` (exits 1 when not). A rule can be inline, `@file` or
 
 ## Offers, terms, shape
 
-`wren offers sync` adds a version for each registry offer whose shape changed (main only; deploy runs it). `offers list` and `offers versions <offer>` read them.
+`wren offers sync` adds a version for each registry offer whose shape changed (main only; run by hand, the deploy no longer does). `offers list` and `offers versions <offer>` read them.
 `wren terms add <offer> --plan <p> --from <date> --file <json> [--why]` adds the next version of a plan. `terms show <offer> [--plan] [--at <date>]` reads them. Amounts come from the file, never from code.
 `wren shape` is the business map: sources, steps, offers and plans, joined by flow and loop edges. One shape per database; each change is a new version with a reason.
 `shape show [--version n]` prints the outline with the journeys open on each node. `versions` lists them. `diff <a> <b>` says what changed. `export [--version n] [--out file]` writes a shape file. `import <file> [--note]` saves a file as the next version, with the terms it lists.

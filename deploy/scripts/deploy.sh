@@ -21,7 +21,7 @@ case "$RESTATE_HOST" in
 esac
 
 # Everything that changes nothing live starts now: the two Lambda bundles, the CLI bundle
-# (templates and offers sync run it), and a not-yet-live version of each Cloudflare Worker.
+# (templates sync runs it), and a not-yet-live version of each Cloudflare Worker.
 # After the gates: the box's pgbouncer, valkey and listmonk, beside the migrations.
 # Phone: the ingress follows RESTATE_HOST like the portal's; its other secrets (Telnyx, cal.com,
 # Gmail push, credential links) are set by hand and kept: --secrets-file is additive.
@@ -62,9 +62,7 @@ bg listmonk box_script listmonk box-listmonk.sh us-east-1
 pnpm db:migrate
 await cli
 # templates: each changed file in packages/templates/defaults as a default version, in every database.
-# offers: each registry offer whose shape changed, as the next offer version in main.
 bg templates pnpm -s wren templates sync
-bg offers pnpm -s wren offers sync
 
 # Restate keeps a service on the deployment that last offered it, and this Lambda build
 # leaves the pool chain out (WREN_POOL_CHAIN_HOST=box): the box worker restarts before registering.
@@ -123,7 +121,5 @@ await templates
 curl -fsS -X POST "$RESTATE_INGRESS/QueueRefresh/all/send" \
   -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" -H "content-type: application/json" -d 'null' > /dev/null
 
-# An offer sync miss logs, never fails the deploy.
 await auth-lambda listmonk
-await offers || echo "::warning::offer sync failed; the deploy stands"
 phase done

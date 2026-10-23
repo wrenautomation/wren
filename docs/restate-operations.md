@@ -401,7 +401,7 @@ wren email senders list                 # roster + pauses
 wren email senders check [--niche x]    # mints each inbox's delegation token; exit 1 on any failure
 wren email senders check --send         # plus one test mail per inbox to the next inbox in the fleet (nothing leaves the fleet)
 wren email deliverability               # per domain: DNS + lists, seed auth (SPF/DKIM/DMARC), plain and real placement, verdict, pause
-wren email spamcheck [--drafts N]       # SpamAssassin (Docker) on every template option and the newest openers; fails at 2.0
+wren email spamcheck [--drafts N]       # SpamAssassin (Docker) on every live template option and the newest openers; fails at 2.0
 ```
 
 ## Reviewing by hand

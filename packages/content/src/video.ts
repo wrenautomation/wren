@@ -54,8 +54,8 @@ const YT_DESCRIPTION = 5000;
 const VIDEO_GONE = "That video isn't here any more. Reload the page to see what's left.";
 
 /**
- * The footer under each upload's words: `post` templates (packages/templates/defaults/post),
- * edited through the template store like any copy. `long` under a YouTube video's description,
+ * The footer under each upload's words: `post` templates, live in the template store (Wren
+ * ships no footer words: with none live a video has no footer), edited like any copy. `long` under a YouTube video's description,
  * `short` under a Short's (links there can't be clicked), `reel` under a Reel's caption.
  */
 export const VIDEO_FOOTERS = {

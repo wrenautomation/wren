@@ -76,13 +76,15 @@ describe("loadDefaults", () => {
     expect(() => loadDefaults(dir)).toThrow();
   });
 
-  it("reads the repo's own tree", () => {
+  it("reads the repo's own tree: prompts only, no copy", () => {
     delete process.env.WREN_TEMPLATE_DEFAULTS;
     const refs = loadDefaults().map((f) => `${f.ref.kind}:${f.ref.system}/${f.ref.name}`);
     expect(refs).toContain("prompt:reactivation/compose");
     expect(refs).toContain("prompt:content/draft-ask");
     expect(refs).toContain("prompt:content/video-ask");
-    expect(refs.filter((r) => r.startsWith("email:")).length).toBeGreaterThan(0);
+    expect(refs).toContain("prompt:content/video-edit");
+    // Wren ships no email, text, DM or post copy: the store holds it, and a tree with none loads.
+    expect(refs.filter((r) => !r.startsWith("prompt:"))).toEqual([]);
   });
 });
 
@@ -144,6 +146,18 @@ describe("installDefaults", () => {
     expect(out.live).toBe(3);
     expect((await templateState(pg.db, OPENER))?.followsDefault).toBe(true);
     expect(await resolveTemplate(pg.db, emailRef("other", "opener"))).toBeNull();
+  });
+
+  it("is a no-op when no default matches what a part names", async () => {
+    put("prompt/demo/ask.prompt", "Ask {who}.");
+    const out = await installDefaults(pg.db, ["sms:texts/", "email:demo/arm/opener"], { by: "op" });
+    expect(out).toEqual({ files: 0, written: 0, live: 0, templates: [] });
+    expect(await resolveTemplate(pg.db, OPENER)).toBeNull();
+    expect(await syncDefaults(pg.db, { only: "all", files: [], by: "op" })).toEqual({
+      files: 0,
+      written: 0,
+      live: 0,
+    });
   });
 });
 

@@ -1,7 +1,0 @@
-subject: Your form on wrenautomation.com
-
-Hi {first_name|there},
-
-Thanks for filling out the form. I just texted you too. Here's my calendar, pick any time that works: {booking_link}
-
-William
