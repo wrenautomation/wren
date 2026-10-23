@@ -875,7 +875,9 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
               return Number.isFinite(v) ? numberOf(ours, v * scale) : [];
             }),
             ...(len > 0 ? numberOf(M.durationSecs, len) : []),
-            ...(len > 0 && avg > 0 ? numberOf(M.avgViewPct, Math.round((avg / len) * 10_000) / 100) : []),
+            ...(len > 0 && avg > 0
+              ? numberOf(M.avgViewPct, Math.round((avg / len) * 10_000) / 100)
+              : []),
             ...curve.flatMap((p) => numberOf(M.retention, p.watch, p.ratio.toFixed(2))),
             ...(curve.length ? numberOf(M.hold3, holdAt(curve, at(3))) : []),
             ...(curve.length ? numberOf(M.hold30, holdAt(curve, at(30))) : []),

@@ -101,7 +101,10 @@ export const analyticsValues = (a: PostAnalytics): InsightValue[] => [
   ...numberOf(M.profileVisits, a.profileViewers),
   ...numberOf(M.follows, a.followersGained),
   ...numberOf(M.videoViews, a.videoViews),
-  ...numberOf(M.watchMinutes, a.watchSecs == null ? null : Math.round((a.watchSecs / 60) * 100) / 100),
+  ...numberOf(
+    M.watchMinutes,
+    a.watchSecs == null ? null : Math.round((a.watchSecs / 60) * 100) / 100,
+  ),
   ...numberOf(M.avgViewSecs, a.avgWatchSecs),
 ];
 

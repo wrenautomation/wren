@@ -19,8 +19,8 @@ import {
   METRICS as M,
   type MediaHost,
   type Metrics,
-  type Post,
   numberOf,
+  type Post,
   type Published,
   type PublishedRow,
   pageFollowing,
@@ -217,7 +217,10 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
             ...numberOf(M.likes, n("likes")),
             ...numberOf(M.comments, n("replies")),
             ...(shared.some((x) => x !== undefined)
-              ? numberOf(M.shares, shared.reduce<number>((a, x) => a + (x ?? 0), 0))
+              ? numberOf(
+                  M.shares,
+                  shared.reduce<number>((a, x) => a + (x ?? 0), 0),
+                )
               : []),
             ...numberOf(M.linkClicks, n("clicks")),
           ];
@@ -242,7 +245,9 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
             until: sec(until),
           });
           followers = val(r, "followers_count") ?? null;
-          return Object.entries(PROFILE).flatMap(([theirs, ours]) => numberOf(ours, val(r, theirs)));
+          return Object.entries(PROFILE).flatMap(([theirs, ours]) =>
+            numberOf(ours, val(r, theirs)),
+          );
         },
         out,
       );
@@ -251,21 +256,21 @@ export function threadsContent(sites: SiteClient, o: ThreadsContentOptions = {})
         if (followers !== null && followers < DEMOGRAPHICS_FROM) few.push(metric);
         else
           await readGroup(
-          [metric],
-          async () => {
-            const r = await sites.call<Edge<Insight>>(SITE, "GET", "/me/threads_insights", {
-              metric: "follower_demographics",
-              breakdown,
-            });
-            const got = igFollowersOf(
-              metric,
-              r.data?.find((d) => d.name === "follower_demographics"),
-            );
-            if (!got.length) few.push(metric);
-            return got;
-          },
-          out,
-        );
+            [metric],
+            async () => {
+              const r = await sites.call<Edge<Insight>>(SITE, "GET", "/me/threads_insights", {
+                metric: "follower_demographics",
+                breakdown,
+              });
+              const got = igFollowersOf(
+                metric,
+                r.data?.find((d) => d.name === "follower_demographics"),
+              );
+              if (!got.length) few.push(metric);
+              return got;
+            },
+            out,
+          );
       out.gaps.push(...knownGaps("waiting", FEW, few));
       return {
         days: out.values.length

@@ -140,7 +140,11 @@ describe("threads insights", () => {
     const { sites, calls } = fakeSites({
       "GET /me/threads_insights": (input) =>
         input?.breakdown
-          ? { data: [{ name: "follower_demographics", total_value: { breakdowns: [{ results: [] }] } }] }
+          ? {
+              data: [
+                { name: "follower_demographics", total_value: { breakdowns: [{ results: [] }] } },
+              ],
+            }
           : {
               data: [
                 { name: "views", values: [{ value: 4 }, { value: 6 }] },

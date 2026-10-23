@@ -817,7 +817,16 @@ export const ANALYTICS_CATALOG: readonly CatalogEntry[] = (
       "live",
       "post insights, threads_manage_insights",
     ],
-    ["threads", null, "Link clicks", [M.linkClicks], "funnel", "convert", "waiting", "post insights clicks"],
+    [
+      "threads",
+      null,
+      "Link clicks",
+      [M.linkClicks],
+      "funnel",
+      "convert",
+      "waiting",
+      "post insights clicks",
+    ],
     [
       "threads",
       null,

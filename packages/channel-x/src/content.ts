@@ -115,7 +115,11 @@ export function videoWatch(media: readonly XMedia[] | undefined): InsightValue[]
           ...QUARTILES.flatMap((q) => {
             const n = own?.[`playback_${q}_count`];
             return typeof n === "number"
-              ? numberOf(M.retention, Math.round((n / started) * 10_000) / 10_000, (Number(q) / 100).toFixed(2))
+              ? numberOf(
+                  M.retention,
+                  Math.round((n / started) * 10_000) / 10_000,
+                  (Number(q) / 100).toFixed(2),
+                )
               : [];
           }),
           ...numberOf(

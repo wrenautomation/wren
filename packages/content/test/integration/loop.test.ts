@@ -74,6 +74,9 @@ const batches: { platform: Platform; ids: string[] }[] = [];
 const singles: string[] = [];
 /** Posts whose counts read never answers. */
 const hangMetrics = new Set<string>();
+/** Platforms whose counts read has no leg (501), and those whose insights read the counts too. */
+const unbuilt = new Set<Platform>();
+const deep = new Set<Platform>();
 /**
  * What the next keyed publishes on a platform answer, one each (a default `sent` after that):
  * `unknown` the page did not confirm, `busy` the desk's browser stayed busy (nothing was sent),
@@ -282,6 +285,8 @@ const fakeContent = restate.service({
     metrics: async (ctx: restate.Context, req: { platform: Platform; id: string }) => {
       singles.push(req.id);
       if (hangMetrics.has(req.id)) await ctx.awakeable<void>().promise;
+      if (unbuilt.has(req.platform))
+        throw new restate.TerminalError("workflow not recorded", { errorCode: 501 });
       if (refuse.has(req.platform))
         throw new restate.TerminalError(`no ${req.platform} channel configured`, {
           errorCode: 404,
@@ -304,6 +309,16 @@ const fakeContent = restate.service({
       req: { platform: Platform; id: string; read?: unknown },
     ) => {
       insightReads.push(req.read);
+      if (deep.has(req.platform))
+        return {
+          values: [
+            { metric: "impressions", value: views.get(req.id) ?? 0 },
+            { metric: "comments", value: 2 },
+          ],
+          gaps: [],
+          asOf: new Date().toISOString(),
+          fetchedWith: "browser" as const,
+        };
       return {
         values: [{ metric: "saves", value: (views.get(req.id) ?? 0) / 50 }],
         gaps: [{ metric: "retention", state: "needs_scope", why: "a synthetic refusal" }],
@@ -438,6 +453,8 @@ beforeEach(async () => {
   prompts.length = 0;
   views.clear();
   refuse.clear();
+  unbuilt.clear();
+  deep.clear();
   hang.clear();
   hung.length = 0;
   batching = false;
@@ -1078,6 +1095,34 @@ describe("content loop", () => {
     expect(notes).toHaveLength(monday ? 1 : 0);
     expect(first.stats?.reported).toBe(monday);
     expect(second.stats?.reported).toBe(false);
+  });
+
+  it("a counts read with no leg takes its look from insights that read the counts, else fails", async () => {
+    const a = await desk().add({ text: "a deep post", platforms: ["linkedin"] });
+    const b = await desk().add({ text: "a shallow post", platforms: ["x"] });
+    const drafts = [
+      ...(await listDrafts(pg.db, { ideaId: a.idea.id })),
+      ...(await listDrafts(pg.db, { ideaId: b.idea.id })),
+    ];
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    views.set(postId("linkedin", 1), 72);
+    unbuilt.add("linkedin");
+    unbuilt.add("x");
+    deep.add("linkedin");
+    const pass = await look();
+    expect(pass.stats?.looked.map((l) => l.platform)).toEqual(["linkedin"]);
+    expect(pass.stats?.failed).toMatchObject([{ platform: "x" }]);
+    expect(String(pass.stats?.failed[0]?.error)).toContain("workflow not recorded");
+    const rows = await pg.db.select().from(contentMetrics);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ views: 72, comments: 2, fetchedWith: "browser" });
+    // The look counts: the post waits for its next tier, not the next hour.
+    expect((await look()).stats?.looked).toEqual([]);
   });
 
   it("reads a platform's due posts in one batch, and a post the batch left out alone", async () => {
