@@ -18,7 +18,6 @@ import {
   pillWidth,
   ruleWidth,
   TAB_ROOM,
-  textWidth,
   xferWidth,
 } from "./geometry.js";
 import {
@@ -141,7 +140,7 @@ export function Chip({ x, y, t, icon }: ChipSpec) {
     return (
       <g className="chip">
         <rect className="bk" x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
-      <rect x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
+        <rect x={x - w / 2} y={y - 10.5} width={w} height={21} rx={10.5} />
         <text x={x} y={y + 4} textAnchor="middle">
           {t}
         </text>

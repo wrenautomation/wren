@@ -253,9 +253,9 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
 }
 
 /** People who reached a run's first and last station (else who sit there now), when both say. */
-function ioOf(
-  run: readonly { now?: number | undefined; arrived?: number | undefined }[],
-): { io?: [number, number] } {
+function ioOf(run: readonly { now?: number | undefined; arrived?: number | undefined }[]): {
+  io?: [number, number];
+} {
   const at = (s: (typeof run)[number] | undefined) => s?.arrived ?? s?.now;
   const a = at(run[0]);
   const b = at(run[run.length - 1]);
