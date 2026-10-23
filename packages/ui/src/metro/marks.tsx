@@ -11,13 +11,13 @@ import {
   DOT,
   foldIo,
   foldSteps,
+  foldWidth,
   GLYPH_SIZE,
   labelOf,
   leafPath,
   markerBox,
   pillWidth,
   ruleWidth,
-  TAB_ROOM,
   xferWidth,
 } from "./geometry.js";
 import {
@@ -160,8 +160,35 @@ export function Chip({ x, y, t, icon }: ChipSpec) {
 }
 
 /**
- * A fold's chip, as a repeat chip: the expand glyph and its steps. Under a pointer a second chip
- * takes its place and says who reached the first station and the last.
+ * The fold leaf: the motif leaf, a glyph and words, centred on (x, y). Expand opens a group; shrink
+ * folds it back. Both sit in one place, right under the circle.
+ */
+export function FoldLeaf({
+  x,
+  y,
+  t,
+  icon,
+}: {
+  x: number;
+  y: number;
+  t: string;
+  icon: "expand" | "shrink";
+}) {
+  const w = foldWidth(t);
+  return (
+    <g className="fl">
+      <Leaf x={x - w / 2} y={y - 11} w={w} h={22} a={3} b={11} className="lf" />
+      <SvgGlyph name={icon} x={x - w / 2 + 14} y={y} size={12} />
+      <text x={x - w / 2 + 25} y={y + 4.2}>
+        {t}
+      </text>
+    </g>
+  );
+}
+
+/**
+ * A fold's expand leaf: its steps. Under a pointer a second leaf takes its place and says who
+ * reached the first station and the last.
  */
 function FoldChip({ x, y, f }: { x: number; y: number; f: Pick<CapsuleStation, "steps" | "io"> }) {
   const rest = foldSteps(f);
@@ -169,11 +196,11 @@ function FoldChip({ x, y, f }: { x: number; y: number; f: Pick<CapsuleStation, "
   return (
     <g className="fc">
       <g className="rest">
-        <Chip x={x} y={y} t={rest} icon="expand" />
+        <FoldLeaf x={x} y={y} t={rest} icon="expand" />
       </g>
       {io === rest ? null : (
         <g className="io">
-          <Chip x={x} y={y} t={io} icon="expand" />
+          <FoldLeaf x={x} y={y} t={io} icon="expand" />
         </g>
       )}
     </g>
@@ -466,7 +493,8 @@ export function Capsule({
       data-l={c.l}
       data-g={c.id}
       {...foldedAttrs(c)}
-      {...asButton(marked(`${c.n}: ${foldIo(c)}. Open`, c.mark))}
+      // A capsule with no group opens nothing (a legend sample): no button.
+      {...(c.grp ? asButton(marked(`${c.n}: ${foldIo(c)}. Open`, c.mark)) : {})}
     >
       <Marker s={s} l={c.l} selected={selected} on={on} fold={c} />
     </g>
@@ -601,27 +629,16 @@ export function OpenedOutline({ o, colours }: { o: OpenedSpec; colours: Colours 
   );
 }
 
-/** The fold tab of a group opened by hand: above the group, at its right end, as in the artifact. */
+/** The fold leaf of a group opened by hand: under the circle, where its expand leaf was. */
 export function OpenedTab({ o }: { o: OpenedSpec }) {
-  const w = tabWidth(o.t);
-  // Right end on the outline's right end; never past the map's left edge.
-  const x = Math.max(o.cap[1] + 16 - w / 2, w / 2 + 8);
-  const y = (o.top ?? o.y - 40) - TAB_ROOM / 2 - 2;
-  return <FoldTab x={x} y={y} t={o.t} grp={o.grp} />;
+  return <FoldTab x={o.at[0]} y={o.at[1]} t={o.t} grp={o.grp} />;
 }
 
-const tabWidth = (t: string) => t.length * 6.9 + 46;
-
-/** A fold tab on an open group: click it to fold the group back. */
+/** A fold leaf on an open group: click it to fold the group back. */
 export function FoldTab({ x, y, t, grp }: FoldSpec): ReactNode {
-  const w = tabWidth(t);
   return (
     <g className="fold" data-fold={grp} {...asButton(`Fold ${t}`)}>
-      <Leaf x={x - w / 2} y={y - 15} w={w} h={30} a={4} b={14} className="lf" />
-      <SvgGlyph name="shrink" x={x - w / 2 + 18} y={y} size={15} />
-      <text x={x - w / 2 + 32} y={y + 4.5}>
-        {t}
-      </text>
+      <FoldLeaf x={x} y={y} t={t} icon="shrink" />
     </g>
   );
 }

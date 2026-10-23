@@ -216,8 +216,8 @@ export interface OpenedSpec {
   cap: [number, number];
   y: number;
   l: LineKey;
-  /** The top of its stations and their names: the fold tab sits above it. */
-  top?: number;
+  /** The fold leaf's centre: under the circle where the group's expand leaf was. */
+  at: Point;
 }
 
 /** The tab of an open group. Click it to fold the group back. */

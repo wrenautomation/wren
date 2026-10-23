@@ -29,9 +29,6 @@ export const RADIUS: Record<StationKind, number> = {
   link: 15,
 };
 
-/** The room a fold tab takes above an open group's top: the tab and a gap. */
-export const TAB_ROOM = 38;
-
 /** The glyph size a marker holds. */
 export const GLYPH_SIZE: Partial<Record<StationKind, number>> = { hub: 22, exit: 15 };
 
@@ -222,8 +219,12 @@ export const foldIo = (c: { steps: number; io?: [number, number] | undefined }):
   return a ? `${a} \u2192 ${b} \u00b7 ${Math.round((b / a) * 100)}%` : `${a} \u2192 ${b}`;
 };
 
+/** A fold leaf's width: the expand or shrink glyph and its words, a little larger than a chip. */
+export const foldWidth = (t: string): number => textWidth(t, 12, true) + 36;
+/** The glyphs of a fold leaf: open a group (expand) or fold it back (shrink). */
+export const isFoldGlyph = (icon?: IconName | null) => icon === "expand" || icon === "shrink";
 export const chipWidth = (t: string, icon?: IconName | null): number =>
-  textWidth(t, 11, true) + (icon === null ? 18 : 30);
+  isFoldGlyph(icon) ? foldWidth(t) : textWidth(t, 11, true) + (icon === null ? 18 : 30);
 /** A branch chip's height. */
 export const CHIP_H = 21;
 export const chipBox = (x: number, y: number, t: string, icon?: IconName | null): Box =>
@@ -313,6 +314,12 @@ export function labelBoxes(s: LabelStation): Box[] {
   }
   if (s.mark) out.push(tagBox(l.tag));
   return out;
+}
+
+/** Where a fold leaf sits: right under the station's circle, below its own chips. */
+export function foldAt(s: MarkStation): Point {
+  const { r } = markerBox(s);
+  return [s.x, s.y + r + 17 + (s.rep ? 26 : 0) + (s.plans ? 26 : 0)];
 }
 
 /** The boxes a station's mark fills: the marker, a stack behind it, its chips and its rule tag. */

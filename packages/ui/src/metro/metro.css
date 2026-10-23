@@ -307,9 +307,9 @@
 .mm .cap:focus-visible .fc .io {
   opacity: 1;
 }
-.mm .cap:hover .fc rect:not(.bk),
-.mm .cap:focus-visible .fc rect:not(.bk) {
-  fill: color-mix(in srgb, var(--ui-active) 12%, transparent);
+.mm .cap:hover .fl .lf,
+.mm .cap:focus-visible .fl .lf {
+  fill: color-mix(in srgb, var(--ui-active) 18%, var(--ui-paper));
 }
 .mm .hit {
   fill: none;
@@ -377,16 +377,17 @@
 .mm .tab:focus-within {
   opacity: 1;
 }
-.mm .fold .lf {
+/* The fold leaf: one look for expand (under a capsule) and fold back (under an open group). */
+.mm .fl .lf {
   fill: color-mix(in srgb, var(--ui-active) 9%, var(--ui-paper));
   stroke: color-mix(in srgb, var(--ui-active) 22%, var(--ui-paper));
   stroke-width: 1;
 }
-.mm .fold text {
-  font: 700 12.5px var(--ui-font);
+.mm .fl text {
+  font: 700 12px var(--ui-font);
   fill: var(--ui-ink-2);
 }
-.mm .fold .ic {
+.mm .fl .ic {
   fill: none;
   stroke: var(--ui-ink-2);
   stroke-width: 2.4;
@@ -403,8 +404,8 @@
   stroke: var(--ui-focus);
   stroke-width: 2;
 }
-/* A group opened by hand: a faint outline stays on the track, with a fold tab above its right
-   end. Click the tab to fold the group back into its circle. */
+/* A group opened by hand: a faint outline stays on the track, with a fold leaf under the circle
+   where the expand leaf was. Click the leaf to fold the group back into its circle. */
 .mm .opn {
   fill: none;
   stroke-width: 1.5;

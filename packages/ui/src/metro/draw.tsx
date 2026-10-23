@@ -399,11 +399,6 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
           <FoldTab {...f} />
         </g>
       ))}
-      {(scene.opened ?? []).map((o) => (
-        <g key={`ok${o.grp}`} className="tab">
-          <OpenedTab o={o} />
-        </g>
-      ))}
       {cases}
       {tracks}
       {dots}
@@ -416,6 +411,10 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         <Chip key={`ch${c.x}-${c.y}`} {...c} />
       ))}
       {stations}
+      {/* An open group's fold leaf sits under its circle, as the expand leaf did: in front. */}
+      {(scene.opened ?? []).map((o) => (
+        <OpenedTab key={`ok${o.grp}`} o={o} />
+      ))}
       {labels}
     </svg>
   );

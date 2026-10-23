@@ -9,6 +9,7 @@ import {
   toggleGroup,
   viewScene,
 } from "./fold.js";
+import { boxAt, CHIP_H, foldWidth, labelBoxes, markBoxes, overlaps } from "./geometry.js";
 import { layoutMetro } from "./layout.js";
 import {
   DIFF_VIEW,
@@ -211,11 +212,16 @@ describe("viewScene", () => {
       }
     }
   });
-  it("opens a group by hand with room above for its fold tab", () => {
+  it("opens a group by hand with its fold leaf under the first circle, clear of the rest", () => {
     const sc = viewScene(ZOOM_VIEW, 1, { rd: true });
     const o = sc.opened?.find((x) => x.grp === "rd");
-    expect(o?.top).toBeDefined();
-    expect((o?.top ?? 0) - 38).toBeGreaterThanOrEqual(8);
     expect(sc.st.some((s) => s.id === "rd")).toBe(false);
+    const head = sc.st.filter(isMark).find((s) => s.x === o?.at[0] && s.y < (o?.at[1] ?? 0));
+    expect(head).toBeDefined();
+    // The stand-in chip that kept the leaf's room is gone.
+    expect(head?.rep).toBeUndefined();
+    const leaf = boxAt(o?.at[0] ?? 0, o?.at[1] ?? 0, foldWidth(o?.t ?? ""), CHIP_H);
+    for (const s of sc.st.filter(isMark))
+      for (const b of [...markBoxes(s), ...labelBoxes(s)]) expect(overlaps(leaf, b)).toBe(false);
   });
 });

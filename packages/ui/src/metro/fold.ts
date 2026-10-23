@@ -6,8 +6,8 @@
  * Zoom hides stations, never lines. A run of stations folds into one capsule. The hub and the
  * exits never fold. Tracks reattach to the capsule edge. A late track inside rings it amber.
  */
-import { foldIo, foldSteps, labelBoxes, markBoxes, TAB_ROOM } from "./geometry.js";
-import { EDGE, layoutMetro, shift } from "./layout.js";
+import { foldAt, foldIo, foldSteps } from "./geometry.js";
+import { layoutMetro } from "./layout.js";
 import {
   type CapsuleStation,
   isMark,
@@ -178,13 +178,18 @@ export function foldScene(scene: MetroScene, level: number, open: OpenMap = {}):
       const first = m[0] as MarkStation;
       const xs = m.map((s) => s.x);
       const l = scene.lines?.[first.ln ?? ""]?.l ?? first.ln ?? k;
+      // The leaf goes where the capsule's was: under the circle nearest its centre whose name is
+      // not below it.
+      const mid = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const near = [...m].sort((a, b) => Math.abs(a.x - mid) - Math.abs(b.x - mid));
+      const under = near.find((s) => s.p !== "down") ?? first;
       return {
         grp: k,
         t: nameOf(k, first),
         cap: [Math.min(...xs), Math.max(...xs)],
         y: first.y,
         l,
-        top: topOf(m),
+        at: foldAt(under),
       };
     });
   const into = new Map<string, string>();
@@ -262,11 +267,6 @@ function ioOf(run: readonly { now?: number | undefined; arrived?: number | undef
   return a !== undefined && b !== undefined ? { io: [a, b] } : {};
 }
 
-/** The top of a run's marks and names: where its fold tab sits above. */
-function topOf(m: readonly MarkStation[]): number {
-  return Math.min(...m.flatMap((s) => [...markBoxes(s), ...labelBoxes(s)].map((b) => b.y0)));
-}
-
 /** Zoom for a view: each level folds the view first, then lays it out, so a fold takes one place. */
 export function viewZoom(view: MetroView, names: readonly string[] = LEVEL_NAMES): MetroZoom {
   const last = names.length - 1;
@@ -310,6 +310,8 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
   };
   const into = new Map<string, string>();
   const shown = new Map<string, string[]>();
+  /** The station of an open run whose circle holds its fold leaf: the run's first. */
+  const leafOn = new Map<string, string>();
   const folds: ViewStation[] = [];
   const meta = new Map<
     string,
@@ -322,6 +324,8 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
         k,
         m.map((s) => s.id),
       );
+      const head = [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column))[0];
+      if (head) leafOn.set(head.id, k);
       continue;
     }
     // The fold sits in the run's first column and wears its last station's kind.
@@ -364,24 +368,24 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
     return [{ ...t, id: t.id ?? `${t.from}-${t.to}`, from, to }];
   });
   // The fold takes the place of the run's first station, so the stations keep their order.
-  const stations = view.stations.flatMap((s) => {
+  const stations = view.stations.flatMap((s): ViewStation[] => {
+    const open = leafOn.get(s.id);
+    // The layout keeps the leaf's room under the circle, as a repeat chip's.
+    if (open && !s.repeat)
+      return [{ ...s, repeat: nameOf(open, s), repeatIcon: "shrink" as const }];
     const k = into.get(s.id);
     if (!k) return [s];
     const f = folds.find((x) => x.id === k);
     return f && runs.get(k)?.[0]?.id === s.id ? [f] : [];
   });
   const scene = layoutMetro({ ...view, stations, tracks });
-  const opened = openedOf(scene, shown, (k) => nameOf(k, runs.get(k)?.[0] as ViewStation));
-  // A fold tab above the top row needs room: the map moves down for it.
-  const dy = EDGE - Math.min(EDGE, ...opened.map((o) => (o.top ?? o.y) - TAB_ROOM));
-  if (dy > 0) {
-    shift(scene, 0, dy);
-    scene.h += dy;
-    for (const o of opened) {
-      o.y += dy;
-      if (o.top !== undefined) o.top += dy;
-    }
-  }
+  // The leaf draws on its own: the station drops the stand-in chip that kept its room.
+  scene.st = scene.st.map((s) => {
+    if (!isMark(s) || !leafOn.has(s.id) || s.repGlyph !== "shrink") return s;
+    const { rep: _rep, repGlyph: _glyph, ...rest } = s;
+    return rest;
+  });
+  const opened = openedOf(scene, shown, leafOn, (k) => nameOf(k, runs.get(k)?.[0] as ViewStation));
   const lineKey = (ln: string | undefined) => scene.lines?.[ln ?? ""]?.l ?? ln ?? "";
   const st = scene.st.map((s): SceneStation => {
     const m = meta.get(s.id);
@@ -409,6 +413,7 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
 function openedOf(
   scene: MetroScene,
   shown: ReadonlyMap<string, readonly string[]>,
+  leafOn: ReadonlyMap<string, string>,
   name: (k: string) => string,
 ): OpenedSpec[] {
   const byId = new Map(scene.st.map((s) => [s.id, s]));
@@ -425,7 +430,7 @@ function openedOf(
         cap: [Math.min(...xs), Math.max(...xs)],
         y: first.y,
         l: scene.lines?.[first.ln ?? ""]?.l ?? first.ln ?? k,
-        top: topOf(m),
+        at: foldAt(m.find((s) => leafOn.get(s.id) === k) ?? first),
       },
     ];
   });

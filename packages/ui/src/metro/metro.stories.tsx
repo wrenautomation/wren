@@ -153,19 +153,19 @@ export const OpenWithEnter: Story = {
     expect(caps.length).toBeGreaterThan(0);
     const before = marksIn(canvasElement);
     const first = caps[0] as SVGElement;
-    // SVG units: the map may scale when it grows. The rect leaves out the capsule's name.
-    const was = (first.querySelector("rect.cb") as SVGGraphicsElement).getBBox();
+    // SVG units: the map may scale when it grows. The expand leaf sits under the circle.
+    const was = (first.querySelector(".fc .rest .lf") as SVGGraphicsElement).getBBox();
     first.focus();
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(marksIn(canvasElement)).toBeGreaterThan(before));
     await expect(canvas.getByText(/^Picked group/)).toBeVisible();
     // The level buttons show a mix: none is pressed.
     expect(canvasElement.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);
-    // The fold leaf sits where the capsule was: at its left end, on its line.
+    // The fold leaf takes the expand leaf's place: under the same circle, at the same height.
     const knob = await canvas.findByRole("button", { name: /^Fold / });
-    const k = (knob as unknown as SVGGraphicsElement).getBBox();
+    const k = (knob.querySelector(".lf") as SVGGraphicsElement).getBBox();
     expect(Math.abs(k.y + k.height / 2 - (was.y + was.height / 2))).toBeLessThan(2);
-    expect(Math.abs(k.x + k.width / 2 - was.x)).toBeLessThanOrEqual(k.width);
+    expect(Math.abs(k.x + k.width / 2 - (was.x + was.width / 2))).toBeLessThan(k.width / 2);
     await userEvent.click(knob);
     await waitFor(() => expect(marksIn(canvasElement)).toBe(before));
     expect(canvas.queryByRole("button", { name: /^Fold / })).toBeNull();

@@ -57,7 +57,8 @@ function Card({ title, scene, score }: { title: string; scene: MetroScene; score
       {score?.why.length ? (
         <p className="text-[12px] text-[var(--ui-ink-3)]">{score.why.join("; ")}</p>
       ) : null}
-      <div className="overflow-x-auto">
+      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a box that scrolls needs focus to scroll by keyboard. */}
+      <div tabIndex={0} className="overflow-x-auto">
         <MetroSvg scene={scene} still />
       </div>
     </section>
