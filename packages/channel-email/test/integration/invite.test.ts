@@ -11,6 +11,7 @@ import { personKeyOf } from "@wren/core/message-settings";
 import type { Notifier } from "@wren/core/notify";
 import { parseTemplate } from "@wren/core/slots";
 import type { StepAt } from "@wren/core/spine";
+import { emailRef, saveLive } from "@wren/core/templates";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -428,8 +429,30 @@ describe("a follow-up email to a quiet thread", () => {
     data: { enrollmentId: id },
   });
 
+  // Wren ships no follow-up words: the node asks for a live row, as an operator writes it.
+  const words = () =>
+    saveLive(
+      db(),
+      emailRef("follow", "follow-up"),
+      "Hi {first_name|there},\n\nFollowing up on my last note. Still worth a short call?",
+      { by: "test" },
+    );
+
+  it("skips with the reason, and asks for nothing, when the node has no live words", async () => {
+    asked.length = 0;
+    const e = await quietLead();
+    const [out] = await emailTouchStep(() => db(), ask)("lead", lead(e.id), at);
+    expect(out?.event.data.follow).toMatchObject({
+      channel: "email",
+      did: "skipped",
+      why: "email:follow/follow-up has no live words",
+    });
+    expect(asked).toEqual([]);
+  });
+
   it("drafts the node's copy into To approve once; sends nothing itself", async () => {
     asked.length = 0;
+    await words();
     const e = await quietLead();
     const [out] = await emailTouchStep(() => db(), ask)("lead", lead(e.id), at);
     expect(out?.port).toBe("sent");
