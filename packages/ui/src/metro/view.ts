@@ -6,7 +6,7 @@
 import type { IconName } from "../icons.js";
 import type { Mark } from "./types.js";
 
-/** What a line is for: outreach (grey, thin), a front end (medium), the core (thick). */
+/** What a line is for: outreach (thin, `--ui-line-out`), a front end (medium), the core (thick). */
 export type LineTier = "out" | "front" | "core";
 
 export interface ViewLine {
@@ -16,7 +16,7 @@ export interface ViewLine {
   /** The offer this line sells. An outreach line has none. */
   offer?: string;
   tier: LineTier;
-  /** The line token index: `--ui-line-N`. Outreach lines take no colour. */
+  /** The line token index: `--ui-line-N`. Outreach lines all take `--ui-line-out`. */
   colour?: number;
   /** An offer not live yet: it draws dotted. */
   plan?: boolean;

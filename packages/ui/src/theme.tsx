@@ -55,6 +55,7 @@ export const TOKENS = [
   "line-5",
   "line-6",
   "line-7",
+  "line-out",
   // Showcase only: image layers behind the window (gradients, never a fetch) and film grain.
   "backdrop",
   "grain",
@@ -164,13 +165,14 @@ export const BASE: Theme = {
   ease: "cubic-bezier(0.16, 1, 0.3, 1)",
   spring: "cubic-bezier(0.2, 0.9, 0.25, 1.12)",
   "line-0": "#6a5a93",
-  "line-1": "#2f8a80",
-  "line-2": "#c0567f",
-  "line-3": "#3d78b8",
-  "line-4": "#a04c9c",
+  "line-1": "#2e8545",
+  "line-2": "#2d6fc0",
+  "line-3": "#1f8a8a",
+  "line-4": "#5a66c4",
   "line-5": "#2b84a3",
   "line-6": "#6f8a2a",
-  "line-7": "#5a66c4",
+  "line-7": "#4a6a8a",
+  "line-out": "#34507a",
   backdrop: "none",
   grain: "0",
   lift: "0 0 #0000",
@@ -179,13 +181,14 @@ export const BASE: Theme = {
 /** The line colours at night: lighter, each 3:1 or more on the night paper. */
 export const NIGHT_LINES = {
   "line-0": "#a596d6",
-  "line-1": "#5cc3b6",
-  "line-2": "#e588ac",
-  "line-3": "#7fb0e6",
-  "line-4": "#d493d0",
+  "line-1": "#5fc27c",
+  "line-2": "#79aef0",
+  "line-3": "#4fc4c4",
+  "line-4": "#97a1ec",
   "line-5": "#6bc0de",
   "line-6": "#a9c25f",
-  "line-7": "#97a1ec",
+  "line-7": "#93acc6",
+  "line-out": "#8ea7d4",
 } satisfies Theme;
 
 /**

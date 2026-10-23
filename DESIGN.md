@@ -16,13 +16,14 @@ colors:
   warn-ink: "#895911"
   bad: "#c31c15"
   line-0: "#6a5a93"
-  line-1: "#2f8a80"
-  line-2: "#c0567f"
-  line-3: "#3d78b8"
-  line-4: "#a04c9c"
+  line-1: "#2e8545"
+  line-2: "#2d6fc0"
+  line-3: "#1f8a8a"
+  line-4: "#5a66c4"
   line-5: "#2b84a3"
   line-6: "#6f8a2a"
-  line-7: "#5a66c4"
+  line-7: "#4a6a8a"
+  line-out: "#34507a"
 typography:
   page-title:
     fontFamily: "Figtree Variable, system-ui, sans-serif"
@@ -178,7 +179,7 @@ Source: `packages/ui/src/tailwind.css` (`:root`, light "Wren" preset). Values in
 `--ui-cue-1` to `--ui-cue-8`: `#6b84b8 #4f9a8f #9a8fc4 #b77a62 #a86f9e #5f97b8 #8f9a5c #b8738a`. They tell kinds of things apart (`TintSwatch`, `tintWash` in `marks.tsx`). They never mean status.
 
 ### Lines
-`--ui-line-0` to `--ui-line-7`: `#6a5a93 #2f8a80 #c0567f #3d78b8 #a04c9c #2b84a3 #6f8a2a #5a66c4`. Night: `#a596d6 #5cc3b6 #e588ac #7fb0e6 #d493d0 #6bc0de #a9c25f #97a1ec`. They draw lines (chart series, map ribbons, rules that name a thing). Each reads at 3:1 on paper, day and night (`contrast.test.ts`). Lines 4 to 7 keep clear of amber and red, so they never read as status. They never mean status.
+`--ui-line-0` to `--ui-line-7`: `#6a5a93 #2e8545 #2d6fc0 #1f8a8a #5a66c4 #2b84a3 #6f8a2a #4a6a8a`. Night: `#a596d6 #5fc27c #79aef0 #4fc4c4 #97a1ec #6bc0de #a9c25f #93acc6`. `--ui-line-out` (`#34507a`, night `#8ea7d4`) is outreach: the thin lines from the channels. A map never draws a route grey. They draw lines (chart series, map ribbons, rules that name a thing). Each reads at 3:1 on paper, day and night (`contrast.test.ts`). The set is cool: no pink, red or amber, so a line never reads as status. They never mean status.
 
 ### Chart
 `--chart-1` accent, `--chart-2` ink-2, `--chart-3` good, `--chart-4` accent 45% over paper, `--chart-5` ink-3.

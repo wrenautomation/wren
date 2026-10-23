@@ -62,6 +62,7 @@ describe("line tokens", () => {
     "line-5",
     "line-6",
     "line-7",
+    "line-out",
   ] as const;
 
   it.each([
@@ -81,7 +82,7 @@ describe("line tokens", () => {
     expect(PRESETS.night["line-5"]).toBe(NIGHT_LINES["line-5"]);
   });
 
-  it("keeps the eight lines apart from each other", () => {
+  it("keeps the lines apart from each other", () => {
     const c = lookColors({});
     const hex = LINES.map((l) => c(l).slice(0, 3).join(","));
     expect(new Set(hex).size).toBe(LINES.length);

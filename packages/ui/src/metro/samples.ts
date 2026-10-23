@@ -471,7 +471,6 @@ export const ZOOM_VIEW: MetroView = {
       by: "person",
       owner: "WJ",
       promise: "4h",
-      late: true,
       task: "Comment on new Reddit threads",
     },
     {

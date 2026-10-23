@@ -79,7 +79,6 @@ export const ZOOM_SCENE: MetroScene = {
       l: "out",
       w: "out",
       who: "WJ · 4h",
-      late: true,
       task: "Comment on new Reddit threads",
       med: "median 1 d",
     },
@@ -143,7 +142,7 @@ export const SCENARIOS: Scenario[] = [
     title: "Cold outbound to a retainer",
     biz: "One core offer, sold by cold email and DMs. William does the replies and the calls. The client pays every month.",
     why: [
-      "Cold email is a grey outreach line into the hub.",
+      "Cold email is a thin navy outreach line into the hub.",
       "Replied is attention; Call booked and Call held are time.",
       "WJ · 24h: William answers a reply within a day. It shows on Today.",
       "Retainer is money with a monthly repeat chip.",
@@ -313,9 +312,9 @@ export const SCENARIOS: Scenario[] = [
     title: "Client becomes a channel",
     biz: "After three months, a Growth Partner client is asked for a referral. The referral comes back into the hub as outreach.",
     why: [
-      "The referral is grey: it is outreach again until the new person picks an offer.",
+      "The referral is navy: it is outreach again until the new person picks an offer.",
       "The ask is a planned station on a planned track: dotted.",
-      "The grey line closes the loop into the hub.",
+      "The navy line closes the loop into the hub.",
     ],
     scene: {
       title: "Client becomes a channel",

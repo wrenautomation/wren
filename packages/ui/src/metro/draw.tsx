@@ -394,6 +394,17 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       {(scene.opened ?? []).map((o) => (
         <OpenedOutline key={`on${o.grp}`} o={o} colours={colours} />
       ))}
+      {/* Fold tabs sit behind the tracks, faded, until a pointer is on one. */}
+      {(scene.folds ?? []).map((f) => (
+        <g key={`f${f.grp}`} className="tab">
+          <FoldTab {...f} />
+        </g>
+      ))}
+      {(scene.opened ?? []).map((o) => (
+        <g key={`ok${o.grp}`} className="tab">
+          <OpenedTab o={o} />
+        </g>
+      ))}
       {cases}
       {tracks}
       {dots}
@@ -405,14 +416,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       {(scene.chips ?? []).map((c) => (
         <Chip key={`ch${c.x}-${c.y}`} {...c} />
       ))}
-      {(scene.folds ?? []).map((f) => (
-        <FoldTab key={`f${f.grp}`} {...f} />
-      ))}
       {stations}
       {labels}
-      {(scene.opened ?? []).map((o) => (
-        <OpenedTab key={`ok${o.grp}`} o={o} />
-      ))}
     </svg>
   );
 }

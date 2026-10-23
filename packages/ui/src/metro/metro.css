@@ -366,8 +366,9 @@
   stroke: var(--ui-ink);
   stroke-width: 2;
 }
+/* A mover on a thin outreach line is wider than the line: it takes the line's colour, not paper. */
 .mm .mv[data-l="out"] {
-  fill: var(--ui-ink-2);
+  fill: var(--ui-line-out);
 }
 .mm .cap .ic {
   fill: none;
@@ -401,6 +402,15 @@
 }
 .mm .fold {
   cursor: pointer;
+}
+/* A fold tab waits in the back, faded but readable. A pointer or the keyboard on it brings it up. */
+.mm .tab {
+  opacity: 0.45;
+  transition: opacity 0.2s var(--ui-ease);
+}
+.mm .tab:hover,
+.mm .tab:focus-within {
+  opacity: 1;
 }
 .mm .fold .lf {
   fill: color-mix(in srgb, var(--ui-active) 9%, var(--ui-paper));

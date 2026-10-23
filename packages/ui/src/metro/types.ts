@@ -7,7 +7,7 @@ import type { IconName } from "../icons.js";
 
 export type Point = [number, number];
 
-/** A line key: "out" is outreach (grey, no offer); any other key is an offer's line. */
+/** A line key: "out" is outreach (`--ui-line-out`, no offer); any other key is an offer's line. */
 export type LineKey = string;
 
 /** The job of a line sets its weight: out 3, front 7, core 12. */
@@ -233,7 +233,7 @@ export interface MetroScene {
   /** Zoom reads these: the lines by key, the named groups. */
   lines?: Record<string, { n: string; l: LineKey }>;
   groups?: Record<string, string>;
-  /** Line key to colour index (`--ui-line-N`). -1 is outreach grey. The artifact's keys web, ob, gp, lm are 0 to 3. */
+  /** Line key to colour index (`--ui-line-N`). -1 is the outreach colour. The artifact's keys web, ob, gp, lm are 0 to 3. */
   colours?: Record<string, number>;
   /** Stations and tracks take focus and clicks. */
   click?: boolean;
@@ -252,9 +252,9 @@ export const DEFAULT_COLOURS: Record<string, number> = { web: 0, ob: 1, gp: 2, l
 
 /** The CSS colour of a line: outreach is ink 3, an offer is its line token. */
 export function lineColour(scene: Pick<MetroScene, "colours">, l: LineKey): string {
-  if (l === "out") return "var(--ui-ink-3)";
+  if (l === "out") return "var(--ui-line-out)";
   const i = scene.colours?.[l] ?? DEFAULT_COLOURS[l] ?? 0;
-  return i < 0 ? "var(--ui-ink-3)" : `var(--ui-line-${i})`;
+  return i < 0 ? "var(--ui-line-out)" : `var(--ui-line-${i})`;
 }
 
 /** Line weight in px. */
