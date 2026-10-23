@@ -48,8 +48,9 @@ bg up-gateway cf_upload llm-gateway
 bg up-auth cf_upload auth "$RUNNER_TEMP/auth-secrets.json"
 bg up-portal cf_upload portal "$RUNNER_TEMP/portal-secrets.json"
 
-# A run by hand (workflow_dispatch) has no gates of its own.
-if [ "${GITHUB_EVENT_NAME:-}" = push ]; then
+# A run by hand (workflow_dispatch) has no gates of its own. Any other run waits: an
+# unexpected event name finds no gates and runs out (20 min) with nothing live changed.
+if [ "${GITHUB_EVENT_NAME:-}" != workflow_dispatch ]; then
   phase gates
   await_gates
 fi

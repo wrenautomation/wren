@@ -43,7 +43,8 @@ done
 echo "ci run $run"
 
 # The gates' joint conclusion and the deploy job's, once both are known; API errors retry.
-# A red gate skips the deploy; a newer push cancels this run's gates (ci=cancelled).
+# A red gate stops the deploy before it changes anything (deploy=failure, "gates: ..." in its log);
+# a newer push cancels this run's gates (ci=cancelled, deploy=failure).
 while :; do
   st=$(gh run view "$run" --json jobs -q '[.jobs[] | {n: .name, s: .status, c: .conclusion}]' 2>/dev/null) || { sleep 10; continue; }
   out=$(printf '%s' "$st" | python3 -c "import json,sys
@@ -60,6 +61,7 @@ done
 # The folder copy this ran from follows main (10-22: it fell 44 commits behind and ran an old
 # push.sh). Its own commits stay (a merge); a conflict or a local edit in the way leaves it as is.
 if [ "$(git -C "$C" symbolic-ref -q --short HEAD)" = main ]; then
+  git -C "$C" fetch -q origin
   git -C "$C" merge -q --ff-only origin/main 2>/dev/null ||
     git -C "$C" merge -q --no-edit origin/main 2>/dev/null ||
     { git -C "$C" merge --abort 2>/dev/null; echo "$C: not synced with origin/main, merge it by hand" >&2; }
