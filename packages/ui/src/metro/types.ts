@@ -233,7 +233,7 @@ export interface MetroScene {
   /** Zoom reads these: the lines by key, the named groups. */
   lines?: Record<string, { n: string; l: LineKey }>;
   groups?: Record<string, string>;
-  /** Line key to colour index (`--ui-line-N`). -1 is the outreach colour. The artifact's keys web, ob, gp, lm are 0 to 3. */
+  /** Line key to colour index (`--ui-line-N`). -1 is the outreach colour. The artifact's keys gp, ob, web, lm are 0 to 3: the core line takes the first colour. */
   colours?: Record<string, number>;
   /** Stations and tracks take focus and clicks. */
   click?: boolean;
@@ -248,7 +248,7 @@ export interface MetroScene {
 }
 
 /** The artifact's four line keys, so its scenes draw unchanged. */
-export const DEFAULT_COLOURS: Record<string, number> = { web: 0, ob: 1, gp: 2, lm: 3 };
+export const DEFAULT_COLOURS: Record<string, number> = { gp: 0, ob: 1, web: 2, lm: 3 };
 
 /** The CSS colour of a line: outreach is ink 3, an offer is its line token. */
 export function lineColour(scene: Pick<MetroScene, "colours">, l: LineKey): string {

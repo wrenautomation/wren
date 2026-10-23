@@ -57,14 +57,14 @@
   --ui-sweep: 1; /* the lavender sweep on panel and band tips: 1 on, 0 off */
   /* Map line colours, one per offer. Each reads at 3:1 on paper, light and night. */
   --ui-line-0: #6a5a93;
-  --ui-line-1: #2e8545;
-  --ui-line-2: #2d6fc0;
-  --ui-line-3: #1f8a8a;
-  --ui-line-4: #5a66c4;
-  --ui-line-5: #2b84a3;
+  --ui-line-1: #4f62c8;
+  --ui-line-2: #c0567f;
+  --ui-line-3: #2e8545;
+  --ui-line-4: #1f8a8a;
+  --ui-line-5: #2d6fc0;
   --ui-line-6: #6f8a2a;
-  --ui-line-7: #4a6a8a;
-  --ui-line-out: #34507a; /* outreach: thin lines from the channels */
+  --ui-line-7: #87508a;
+  --ui-line-out: #3d4785; /* outreach: thin lines from the channels */
   --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
   --ui-main-width: 1240px;
   /* The frame as the viewer sets it (display.ts): panel widths, text size, row heights. */

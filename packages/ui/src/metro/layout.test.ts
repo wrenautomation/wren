@@ -148,7 +148,7 @@ describe("layoutMetro", () => {
   it("names lines and colours only the offers", () => {
     const s = layoutMetro(WEBINAR_VIEW);
     expect(s.lines?.web).toEqual({ n: "Webinar", l: "web" });
-    expect(s.colours).toEqual({ web: 0, gp: 2 });
+    expect(s.colours).toEqual({ web: 2, gp: 0 });
     expect(Object.keys(s.colours ?? {})).not.toContain("yt");
   });
 

@@ -360,7 +360,7 @@ export const ZOOM_VIEW: MetroView = {
   lines: [
     { id: "rd", label: "Reddit", tier: "out" },
     { id: "yt", label: "YouTube", tier: "out" },
-    { id: "gp", label: "Growth Partner", offer: "Growth Partner", tier: "core", colour: 2 },
+    { id: "gp", label: "Growth Partner", offer: "Growth Partner", tier: "core", colour: 0 },
     { id: "au", label: "Audit", offer: "Audit", tier: "front", colour: 1 },
   ],
   groups: [
@@ -1106,7 +1106,7 @@ export const COLD_OUTBOUND_VIEW: MetroView = {
   title: "Cold outbound to a retainer",
   lines: [
     { id: "cold", tier: "out" },
-    { id: "gp", offer: "Retainer", tier: "core", colour: 2 },
+    { id: "gp", offer: "Retainer", tier: "core", colour: 0 },
   ],
   stations: [
     { id: "c1", kind: "att", line: "cold", column: "Marketing", label: "Cold email", sub: "60" },
@@ -1174,8 +1174,8 @@ export const WEBINAR_VIEW: MetroView = {
   title: "Paid webinar funds the core",
   lines: [
     { id: "yt", tier: "out" },
-    { id: "web", offer: "Webinar", tier: "front", colour: 0 },
-    { id: "gp", offer: "Growth Partner", tier: "core", colour: 2 },
+    { id: "web", offer: "Webinar", tier: "front", colour: 2 },
+    { id: "gp", offer: "Growth Partner", tier: "core", colour: 0 },
   ],
   stations: [
     { id: "yt", kind: "att", line: "yt", column: "Marketing", label: "YouTube" },
@@ -1244,8 +1244,8 @@ export const DIFF_VIEW: MetroView = {
   lines: [
     { id: "yt", tier: "out" },
     // A whole new line: its stations and tracks take the mark.
-    { id: "web", offer: "Webinar", tier: "front", colour: 0, mark: "added" },
-    { id: "gp", offer: "Growth Partner", tier: "core", colour: 2 },
+    { id: "web", offer: "Webinar", tier: "front", colour: 2, mark: "added" },
+    { id: "gp", offer: "Growth Partner", tier: "core", colour: 0 },
   ],
   stations: [
     { id: "yt", kind: "att", line: "yt", column: "Marketing", label: "YouTube", sub: "420" },
@@ -1314,7 +1314,7 @@ export const LADDER_VIEW: MetroView = {
     { id: "li", tier: "out" },
     { id: "lm", offer: "Guide and audit", tier: "front", colour: 3 },
     { id: "ob", offer: "Offer Builder", tier: "front", colour: 1 },
-    { id: "gp", offer: "Growth Partner", tier: "core", colour: 2 },
+    { id: "gp", offer: "Growth Partner", tier: "core", colour: 0 },
   ],
   stations: [
     { id: "li", kind: "att", line: "li", column: "Marketing", label: "LinkedIn" },
@@ -1362,7 +1362,7 @@ export const DOWNSELL_VIEW: MetroView = {
   title: "Downsell after a call",
   lines: [
     { id: "dm", tier: "out" },
-    { id: "gp", offer: "Growth Partner", tier: "core", colour: 2 },
+    { id: "gp", offer: "Growth Partner", tier: "core", colour: 0 },
     { id: "ob", offer: "Offer Builder", tier: "front", colour: 1 },
   ],
   stations: [
@@ -1399,7 +1399,7 @@ export const DOWNSELL_VIEW: MetroView = {
 /** Client becomes a channel: a planned referral ask. */
 export const REFERRAL_VIEW: MetroView = {
   title: "Client becomes a channel",
-  lines: [{ id: "gp", offer: "Growth Partner", tier: "core", colour: 2 }],
+  lines: [{ id: "gp", offer: "Growth Partner", tier: "core", colour: 0 }],
   stations: [
     { id: "hub", kind: "hub", line: "gp", column: "Marketing", label: "First touch" },
     { id: "bk", kind: "time", line: "gp", column: "Sales", label: "Call booked" },
@@ -1463,7 +1463,7 @@ export const LATE_VIEW: MetroView = {
 export const PLANNED_VIEW: MetroView = {
   title: "A planned offer",
   lines: [
-    { id: "gp", offer: "Retainer", tier: "core", colour: 2 },
+    { id: "gp", offer: "Retainer", tier: "core", colour: 0 },
     { id: "be", offer: "Backend", tier: "front", colour: 4, plan: true },
   ],
   stations: [

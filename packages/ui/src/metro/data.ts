@@ -142,7 +142,7 @@ export const SCENARIOS: Scenario[] = [
     title: "Cold outbound to a retainer",
     biz: "One core offer, sold by cold email and DMs. William does the replies and the calls. The client pays every month.",
     why: [
-      "Cold email is a thin navy outreach line into the hub.",
+      "Cold email is a thin dark indigo outreach line into the hub.",
       "Replied is attention; Call booked and Call held are time.",
       "WJ · 24h: William answers a reply within a day. It shows on Today.",
       "Retainer is money with a monthly repeat chip.",
@@ -271,7 +271,7 @@ export const SCENARIOS: Scenario[] = [
     biz: "Some people on a Growth Partner call cannot afford it. They get the Offer Builder instead.",
     why: [
       "A downsell is a transfer with a label. It needs no new type.",
-      "The connector is teal because the person joins the Offer Builder line.",
+      "The connector is purple-blue because the person joins the Offer Builder line.",
       "The Offer Builder station sits off the core's path, without its own line here, because no one starts on it.",
     ],
     scene: {
@@ -312,9 +312,9 @@ export const SCENARIOS: Scenario[] = [
     title: "Client becomes a channel",
     biz: "After three months, a Growth Partner client is asked for a referral. The referral comes back into the hub as outreach.",
     why: [
-      "The referral is navy: it is outreach again until the new person picks an offer.",
+      "The referral is dark indigo: it is outreach again until the new person picks an offer.",
       "The ask is a planned station on a planned track: dotted.",
-      "The navy line closes the loop into the hub.",
+      "The dark indigo line closes the loop into the hub.",
     ],
     scene: {
       title: "Client becomes a channel",
