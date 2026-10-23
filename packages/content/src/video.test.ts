@@ -1,5 +1,4 @@
 import { parseKind } from "@wren/core/slots";
-import { defaultFile } from "@wren/core/templates/defaults";
 import { describe, expect, it } from "vitest";
 import {
   alsoText,
@@ -23,12 +22,9 @@ import {
   withFooter,
 } from "./video.js";
 
-/** A footer's shipped default, parsed. */
-const shipped = (which: VideoFooter) => {
-  const f = defaultFile(VIDEO_FOOTERS[which]);
-  if (!f) throw new Error(`no default for ${which}`);
-  return parseKind("post", VIDEO_FOOTERS[which].name, f.source);
-};
+/** A footer as the store would hold it: made-up words, parsed as a post. Wren ships none. */
+const footer = (which: VideoFooter, words: string) =>
+  parseKind("post", VIDEO_FOOTERS[which].name, words);
 
 describe("videos", () => {
   it("reads numbered outputs in order, from 0 or 1, whatever the separator", () => {
@@ -101,31 +97,33 @@ describe("videos", () => {
     expect(long).toMatch(/^[a-z0-9][a-z0-9._-]{0,79}$/);
   });
 
-  it("fills the long footer: site, then booking, then socials, then the bio", () => {
-    const text = fillFooter(shipped("long"), { id: 12, title: "Cold email" });
-    const lines = text.split("\n").filter(Boolean);
-    expect(lines.slice(0, 2)).toEqual([
-      "Website: https://wrenautomation.com/go/yt/12-cold-email",
-      "Book a call: https://wrenautomation.com/go/yt/12-cold-email/book?to=/book/reactivation",
+  it("fills the long footer's video slot in every link, line by line", () => {
+    const tpl = footer(
+      "long",
+      [
+        "Website: https://site.example/go/yt/{video}",
+        "Book a call: https://site.example/go/yt/{video}/book?to=/book/demo",
+        "",
+        "About the channel, in my words.",
+      ].join("\n"),
+    );
+    const text = fillFooter(tpl, { id: 12, title: "Cold email" });
+    expect(text.split("\n")).toEqual([
+      "Website: https://site.example/go/yt/12-cold-email",
+      "Book a call: https://site.example/go/yt/12-cold-email/book?to=/book/demo",
+      "",
+      "About the channel, in my words.",
     ]);
-    expect(lines.slice(2, 6).map((l) => l.split(":")[0])).toEqual([
-      "LinkedIn",
-      "Instagram",
-      "X",
-      "TikTok",
-    ]);
-    expect(lines[6]).toMatch(/^I'm Will, a software engineering student at Waterloo/);
-    expect(lines[6]).toMatch(/Subscribe to follow along\.$/);
-    expect(lines).toHaveLength(7);
     expect(text).not.toMatch(/[{}\u2014\u2013]/);
   });
 
-  it("keeps the Short and Reel footers plain: no links to click", () => {
-    const short = fillFooter(shipped("short"), { id: 1, title: "x" });
-    const reel = fillFooter(shipped("reel"), { id: 1, title: "x" });
-    expect(short.split("\n")[0]).toBe("wrenautomation.com");
-    expect(reel.split("\n")[0]).toBe("wrenautomation.com, link in bio");
+  it("keeps a plain footer plain: no links, and no footer at all when none is live", () => {
+    const short = fillFooter(footer("short", "site.example\n\nShort bio."), { id: 1, title: "x" });
+    const reel = fillFooter(footer("reel", "site.example, link in bio"), { id: 1, title: "x" });
+    expect(short.split("\n")[0]).toBe("site.example");
+    expect(reel).toBe("site.example, link in bio");
     for (const t of [short, reel]) expect(t).not.toMatch(/https?:/);
+    // Wren ships no footer words: a database with none live renders no footer, never an error.
     expect(fillFooter(null, { id: 1, title: "x" })).toBe("");
   });
 

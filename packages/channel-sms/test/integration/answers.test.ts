@@ -29,7 +29,7 @@ import {
   stopReview,
 } from "../../src/reviews.js";
 import { reviewAsks, smsCalls, smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
-import { numbers, POLICY, TABLES } from "./fixtures.js";
+import { fillCopy, numbers, POLICY, TABLES } from "./fixtures.js";
 
 let pg: TestPostgres;
 const provider = new FakeProvider();
@@ -56,6 +56,7 @@ beforeEach(async () => {
     "clients",
   ]);
   await pg.db.insert(clients).values({ id: "acme", name: "Acme", database: "wren_client_acme" });
+  await fillCopy(pg.db);
   await numbers(pg.db, provider, [OURS]);
   provider.sent.length = 0;
 });

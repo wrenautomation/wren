@@ -1,6 +1,6 @@
 /** SEC-registered investment advisers: regulator bulk files, one arm. */
 import { twoEmailSequence } from "@wren/channel-email";
-import { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
+import { defineNiche, leadFormat, rawLocation } from "./niche.js";
 import { SEC_DATASETS } from "./sec-ria/datasets.js";
 import { AdvFilingDataSource } from "./sec-ria/filing-data.js";
 import { SecFirmFeedSource } from "./sec-ria/firm-feed.js";
@@ -43,7 +43,6 @@ export const secRia = defineNiche({
     "funds",
     "global",
   ],
-  templatesDir: templatesDir("sec_ria"),
   sequences: [twoEmailSequence("operations/opener", "operations/followup")],
   offers: { operations: "ops-audit" },
   // One arm until the RIA copy is re-read for role inboxes (its openers still assume a name).

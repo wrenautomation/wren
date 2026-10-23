@@ -3,7 +3,7 @@ on:
   push: { branches: [main] }
   pull_request:
   workflow_dispatch:
-# Every package's integration suite and the spam score.
+# Every package's integration suite.
 # Reports only: deploy follows ci.yml, so a red run here is fixed in the next batch.
 concurrency: { group: "integration-${{ github.ref }}", cancel-in-progress: true }
 jobs:

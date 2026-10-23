@@ -19,7 +19,7 @@ import { recruiting } from "./recruiting.js";
 import { secRia } from "./sec-ria.js";
 
 export type { Niche, NicheSpec } from "./niche.js";
-export { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
+export { defineNiche, leadFormat, rawLocation } from "./niche.js";
 export { agencies, recruiting, secRia };
 
 export const NICHES: readonly Niche[] = [secRia, agencies, recruiting];
@@ -103,7 +103,6 @@ export const FACTS_VIEWS: ReadonlyMap<string, string> = new Map(
 export const LANDERS_BY_NICHE: ReadonlyMap<string, string> = new Map(
   NICHES.map((n) => [n.name, n.lander]),
 );
-export const TEMPLATES_BY_NICHE = new Map(NICHES.map((n) => [n.name, n.templates] as const));
 export const SEQUENCES_BY_NICHE = new Map(NICHES.map((n) => [n.name, n.sequences] as const));
 
 /**

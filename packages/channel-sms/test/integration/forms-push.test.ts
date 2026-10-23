@@ -16,7 +16,7 @@ import { DEFAULT_HEALTH } from "../../src/health.js";
 import { FakeProvider } from "../../src/provider.js";
 import { makeSmsForms, type SmsFormsService } from "../../src/restate/forms.js";
 import { smsMessages, speedRuns } from "../../src/schema.js";
-import { fillTemplates, notes, numbers, OPEN, POLICY, TABLES } from "./fixtures.js";
+import { fillCopy, fillTemplates, notes, numbers, OPEN, POLICY, TABLES } from "./fixtures.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -79,6 +79,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, [...TABLES, "speed_runs"]);
+  await fillCopy(pg.db);
   await fillTemplates(pg.db, {
     "form-fit#1": "hi {first_name|there}, {sender} here. STOP to opt out",
     "follow-up#1": "still want a call?",

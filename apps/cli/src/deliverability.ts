@@ -12,6 +12,7 @@ import {
   domainProblems,
   domainStandings,
   fillCallTimes,
+  liveEmails,
   loadMailboxes,
   loadRoster,
   mailDomainTargets,
@@ -67,7 +68,7 @@ export function registerDeliverability(
   email
     .command("spamcheck")
     .description(
-      `SpamAssassin score (Docker, local rules) for every template option, and with --drafts the newest real openers; fails at ${SPAM_LIMIT}`,
+      `SpamAssassin score (Docker, local rules) for every live template option, and with --drafts the newest real openers; fails at ${SPAM_LIMIT}`,
     )
     .option(
       "--drafts <n>",
@@ -82,7 +83,9 @@ export function registerDeliverability(
       const messages: { label: string; raw: Buffer }[] = [];
       for (const niche of niches) {
         const offers = Object.assign({}, ...niche.offerFacts.values());
-        for (const [name, tpl] of niche.templates) {
+        const live = await withDb((db) => liveEmails(db, niche.name));
+        if (live.size === 0) console.log(`${niche.name}: no live email copy to score`);
+        for (const [name, tpl] of live) {
           const rendered = coveringRenders(tpl, { ...SAMPLE, ...offers });
           rendered.forEach((r, i) => {
             const subject = r.subject ?? "following up";
@@ -127,6 +130,10 @@ export function registerDeliverability(
             }),
           });
         });
+      }
+      if (messages.length === 0) {
+        console.log("nothing to score");
+        return;
       }
       const spamd = await startSpamd({
         dockerDir: resolve(rootDir, "deploy/spamassassin"),

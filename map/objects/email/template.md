@@ -3,13 +3,13 @@ type: object
 cluster: email
 universe: live
 status: verified
-verified: 2026-10-06 @ 6d30b4b
+verified: 2026-10-23 @ 39edf1d2
 entity: packages/channel-email/src/outreach/templates.ts:47
 ---
 
 # template
 
-An email's words, live in the [[platform/template-store]] (kind email, system the niche), parsed into a `Template` tree. The `.email` files under `packages/templates/defaults/email/<niche>/` are defaults: `wren templates sync` writes each change in as a `default` version, live where the template follows its default; compose reads `liveEmails` (`packages/channel-email/src/outreach/live.ts:1`).
+An email's words, live in the [[platform/template-store]] (kind email, system the niche), parsed into a `Template` tree. Wren ships no email files: the store holds every word (set with `wren templates set` or in Library, Templates). Compose reads `liveEmails`, and `copyGap` (`packages/channel-email/src/outreach/live.ts`) says why a sequence cannot compose (a step not live, an opener with no subject, an unset `offer.*` term): the queue-keeper skips it and records the reason.
 
 ## Why this shape
 
@@ -28,7 +28,7 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 
 ## Connected to
 
-- **owned-by:** [[platform/niche]] (`templatesDir`, `packages/niches/src/niche.ts:67`)
+- **owned-by:** [[platform/niche]] (sequences name the templates; the store holds them)
 - **owns:** the pinned `template` + `template_version` on [[email/message]]
 - **joins:** [[email/sequence]]; facts from `factsFor` (`outreach/facts.ts:125`)
 - **looks-like-but-is-not:** an SMS step body (`packages/channel-sms/src/templates.ts`)

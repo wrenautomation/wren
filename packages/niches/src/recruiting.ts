@@ -1,6 +1,6 @@
 /** Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD. */
 import { twoEmailSequence } from "@wren/channel-email";
-import { defineNiche, rawLocation, templatesDir, US_METROS } from "./niche.js";
+import { defineNiche, rawLocation, US_METROS } from "./niche.js";
 import {
   recruitingDatasets,
   recruitingLeadFormats,
@@ -62,7 +62,6 @@ export const recruiting = defineNiche({
   ],
   exaCities: US_METROS,
   triggerWords: ["staffing agency", "staffing firm", "recruiting firm", "executive search firm"],
-  templatesDir: templatesDir("recruiting"),
   // One sequence; `book-first/reply` is drafted for William's approval when a warm reply
   // lands and is in no sequence.
   sequences: [twoEmailSequence("book-first/opener", "book-first/followup")],

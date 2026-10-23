@@ -5,7 +5,7 @@ import { ClutchPagesSource } from "./agencies/clutch-pages.js";
 import { AgencyDirectoryCsvSource, DIRECTORY_DOMAINS } from "./agencies/directory.js";
 import { shopifyProfileDataset } from "./agencies/profiles.js";
 import { ShopifyPagesSource } from "./agencies/shopify-pages.js";
-import { defineNiche, leadFormat, rawLocation, templatesDir, US_METROS } from "./niche.js";
+import { defineNiche, leadFormat, rawLocation, US_METROS } from "./niche.js";
 
 const NICHE = "agencies";
 
@@ -54,7 +54,6 @@ export const agencies = defineNiche({
     "group",
     "partners",
   ],
-  templatesDir: templatesDir("agencies"),
   sequences: ARMS.map((arm) => twoEmailSequence(`${arm}/opener`, `${arm}/followup`)),
   offers: { marketing: "ops-audit", build: "ops-audit" },
   // The arm follows the firm's own service mix (`agency_facts.segment`, from the directory

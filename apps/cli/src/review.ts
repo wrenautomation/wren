@@ -16,6 +16,7 @@ import {
   enumerateRenders,
   labelEvent,
   listDrafts,
+  liveEmails,
   messages,
   parseEditable,
   placeholderFacts,
@@ -187,16 +188,18 @@ export function registerReview(email: Command, withDb: WithDb): void {
   email
     .command("preview <template>")
     .description(
-      "Render a niche's template with «placeholder» facts; --variants walks every combination",
+      "Render a niche's live template with «placeholder» facts; --variants walks every combination",
     )
     .requiredOption("--niche <name>", "which niche's copy")
     .option("--variants", "every variant combination, not one seeded pick")
-    .action((name: string, opts: { niche: string; variants?: boolean }) => {
+    .action(async (name: string, opts: { niche: string; variants?: boolean }) => {
       const niche = nicheFor(opts.niche);
-      const tpl = niche.templates.get(name);
+      // Wren ships no email copy: the words are whatever the template store has live.
+      const live = await withDb((db) => liveEmails(db, niche.name));
+      const tpl = live.get(name);
       if (!tpl)
         throw new Error(
-          `no template ${name} in ${niche.name}: ${[...niche.templates.keys()].join(", ")}`,
+          `no live template ${name} in ${niche.name}: ${live.size ? [...live.keys()].join(", ") : "none live"}`,
         );
       const facts = placeholderFacts(tpl);
       const counts = variantCounts(tpl);

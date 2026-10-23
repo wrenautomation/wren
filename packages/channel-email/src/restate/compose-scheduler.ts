@@ -11,6 +11,8 @@
  * Compose commits one company per transaction and the partial unique indexes make a
  * retry safe, so the whole pass is one journaled step. An empty pool is not an error:
  * `exhausted` says so and the next pass looks again (a new import shows up on its own).
+ * Copy is live data (`liveEmails`), and there may be none: a sequence whose templates are not
+ * live is skipped with its reason in `skipped`, never composed and never thrown.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Company } from "@wren/core";
@@ -21,7 +23,7 @@ import { sql } from "drizzle-orm";
 import type { SharedSuppressions } from "../guards.js";
 import { type ComposeStats, compose } from "../outreach/compose.js";
 import type { Filler } from "../outreach/fills.js";
-import { liveEmails } from "../outreach/live.js";
+import { copyGap, liveEmails } from "../outreach/live.js";
 import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
 import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
 import type { Sequence } from "../outreach/sequences.js";
@@ -94,6 +96,8 @@ export interface TopUpStats {
   messages_drafted: number;
   /** One compose run per plan rule that was needed: first contact in plan order, then returning. */
   passes: { sequence: string; audience: Audience; stats: ComposeStats }[];
+  /** Sequences left out of this pass for want of copy (`copyGap`): not live, no subject, or an offer term it quotes is unset. */
+  skipped: { sequence: string; why: string }[];
   /** The plan ran dry before the target was met: nothing left to enroll today. */
   exhausted: boolean;
 }
@@ -188,6 +192,7 @@ export async function topUp(
     enrolled: 0,
     messages_drafted: 0,
     passes: [],
+    skipped: [],
     exhausted: false,
   };
   let remaining = stats.shortfall;
@@ -202,11 +207,19 @@ export async function topUp(
     const offer = campaign.offers.get(rule.sequence);
     if (!offer)
       throw new Error(`campaign ${campaign.niche}: sequence '${rule.sequence}' has no offer`);
+    // No live copy is no work, not a failure: the loop must not throw and retry hourly.
+    const offerFacts = campaign.offerFacts.get(offer) ?? {};
+    const why = copyGap(sequence, templates, offerFacts);
+    if (why !== null) {
+      if (!stats.skipped.some((k) => k.sequence === rule.sequence))
+        stats.skipped.push({ sequence: rule.sequence, why });
+      continue;
+    }
     const pass = await compose(db, {
       niche: campaign.niche,
       sequence,
       offer,
-      offerFacts: campaign.offerFacts.get(offer) ?? {},
+      offerFacts,
       site: campaign.site ?? null,
       templates,
       verificationHorizonDays: opts.verificationHorizonDays,
@@ -230,7 +243,8 @@ export async function topUp(
     stats.messages_drafted += pass.messages_drafted;
     remaining -= pass.enrolled;
   }
-  stats.exhausted = remaining > 0;
+  // Sweeps skipped for copy are not a dry pool: only a sweep that ran and found nobody is.
+  stats.exhausted = remaining > 0 && (stats.skipped.length === 0 || stats.passes.length > 0);
   return stats;
 }
 
@@ -308,6 +322,16 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
           `${ctx.key}: the pool ran dry`,
           `${stats.queued + stats.enrolled} of ${stats.target} openers queued after ` +
             `${plural(stats.enrolled, "new enrollment")}; import more leads or verify more addresses`,
+          "warning",
+        ),
+      );
+    }
+    if (notifier && stats?.skipped?.length) {
+      await ctx.run("notify no copy", () =>
+        notifier.notify(
+          `${ctx.key}: no copy to compose from`,
+          `${plural(stats.skipped.length, "sequence")} skipped: ` +
+            stats.skipped.map((k) => `${k.sequence} (${k.why})`).join("; "),
           "warning",
         ),
       );

@@ -14,7 +14,6 @@ import { HOOK_PRESETS } from "@wren/core/door";
 import { setRecordAccounts } from "@wren/core/record-accounts";
 import { metaOf } from "@wren/core/records";
 import { handlerForm } from "@wren/core/restate";
-import { defaultFile } from "@wren/core/templates/defaults";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
 import { NICHES } from "@wren/niches";
@@ -271,7 +270,7 @@ describe("workflows and hypotheses", () => {
     expect(speed?.spec.door).toEqual({ input: "forms", subject: "phone" });
   });
 
-  it("missed-call text back and review requests install as templates, with their copy", () => {
+  it("missed-call text back and review requests install as templates", () => {
     const sold = templatesOf(WORKFLOWS, COMPONENTS);
     for (const [id, parts, fact] of [
       ["missed_call", ["missed_call", "sms.text_back", "sms.texts"], "number.calls_routed"],
@@ -282,15 +281,6 @@ describe("workflows and hypotheses", () => {
       const top = COMPONENTS.find((x) => x.id === id);
       // Needs setup until its fact holds.
       expect(top?.requires.facts, id).toEqual([fact]);
-      for (const p of t?.parts ?? [])
-        for (const ref of p.part.provides.templates) {
-          const [kind = "", rest = ""] = ref.split(":");
-          const [system = "", ...name] = rest.split("/");
-          expect(
-            defaultFile({ kind: kind as "sms", system, name: name.join("/") }),
-            ref,
-          ).not.toBeNull();
-        }
     }
     expect(sold.find((x) => x.id === "reviews")?.spec.door).toEqual({
       input: "customers",
@@ -305,19 +295,12 @@ describe("workflows and hypotheses", () => {
         expect(planned.has(n.uses ?? ""), `${w.id}.${n.id} uses ${n.uses}`).toBe(false);
   });
 
-  it("follow-up and nurture ship every copy their touches send, as default files", () => {
+  it("follow-up and nurture name every copy their touches send", () => {
+    // Wren ships no copy files: the store holds the words, so the part only names the refs.
     for (const id of ["follow_up", "nurture"]) {
       const c = COMPONENTS.find((x) => x.id === id);
       expect(c?.planned, id).toBe(false);
       expect(c?.provides.templates.length, id).toBeGreaterThan(0);
-      for (const ref of c?.provides.templates ?? []) {
-        const [kind = "", rest = ""] = ref.split(":");
-        const [system = "", ...name] = rest.split("/");
-        expect(
-          defaultFile({ kind: kind as "sms", system, name: name.join("/") }),
-          ref,
-        ).not.toBeNull();
-      }
     }
   });
 

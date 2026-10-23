@@ -3,13 +3,13 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
+verified: 2026-10-23 @ 39edf1d2
 entity: packages/niches/src/niche.ts:26
 ---
 
 # niche
 
-One market with its own facts view, templates, sequences, plan, offers, SMS copy and source formats: `Niche`, built by `defineNiche`. Three registered: `sec_ria`, `agencies`, `recruiting`.
+One market with its own facts view, sequences, plan, offers, SMS copy and source formats: `Niche`, built by `defineNiche`. Three registered: `sec_ria`, `agencies`, `recruiting`.
 
 ## Why this shape
 
@@ -17,8 +17,8 @@ Core is niche-agnostic; everything market-specific is data behind one contract, 
 
 ## Shape
 
-- `Niche` (`niche.ts:26`): `name`, `label` (how people read it, "SEC RIA"; registered with `nameParts` in `packages/core/src/template-labels.ts` so record campaign columns (a `choice` field over the niche key) and the Library name it), `factsView`, `lander`, `crawlHints`, `discoveryGenericWords`, `templates`, `sequences`, `smsSequences`, `offers`, `offerFacts`, `plan`, `companyLocation`, `leadSourceFormats`, `personSourceFormats`, `platformDomains`, `datasets`, `recontact` (rest days per outcome and yearly cap for lead recycling, `:47`; defaults `packages/channel-email/src/recontact.ts:45`)
-- `NicheSpec` (`:67`), `defineNiche` (`:111`); definitions `sec-ria.ts`, `agencies.ts`, `recruiting.ts`; templates `packages/templates/defaults/email/<niche>/` (`templatesDir`)
+- `Niche` (`niche.ts:26`): `name`, `label` (how people read it, "SEC RIA"; registered with `nameParts` in `packages/core/src/template-labels.ts` so record campaign columns (a `choice` field over the niche key) and the Library name it), `factsView`, `lander`, `crawlHints`, `discoveryGenericWords`, `sequences`, `smsSequences`, `offers`, `offerFacts`, `plan`, `companyLocation`, `leadSourceFormats`, `personSourceFormats`, `platformDomains`, `datasets`, `recontact` (rest days per outcome and yearly cap for lead recycling, `:47`; defaults `packages/channel-email/src/recontact.ts:45`)
+- `NicheSpec` (`:67`), `defineNiche` (`:111`); definitions `sec-ria.ts`, `agencies.ts`, `recruiting.ts`; no copy: a niche is shape, its emails are live rows `email:<niche>/<arm>/...` in the [[platform/template-store]]. A sequence whose templates are not live (or whose opener has no subject, or that quotes an offer term unset) is held by `copyGap` (`packages/channel-email/src/outreach/live.ts`) and the queue-keeper skips it with the reason
 - registries: `NICHES`, `FACTS_VIEWS`, `LANDERS_BY_NICHE`, `SMS_SEQUENCES`, `LEAD_SOURCE_FORMATS`, `PERSON_SOURCE_FORMATS` (`index.ts:24`–`104`)
 
 Citations: `packages/niches/src/niche.ts:26`, `packages/niches/src/index.ts:24`

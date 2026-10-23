@@ -1,26 +1,22 @@
 /**
  * The typed niche contract. A niche is data: its facts view, its site page, its crawl and
- * discovery vocabulary, its templates (loaded from *.email files) and its sequences. New
- * niches (insurance, HVAC, oil & gas, ...) add one module and one registry entry; nothing
- * in core, research or channel-email branches on a niche name.
+ * discovery vocabulary and its sequences. It carries no copy: the words live in the
+ * template store (`email:<niche>/...`), and a sequence whose templates are not live there
+ * does not send (`copyGap`). New niches (insurance, HVAC, oil & gas, ...) add one module
+ * and one registry entry; nothing in core, research or channel-email branches on a niche name.
  */
 
-import { join } from "node:path";
 import {
   type EnrollmentRule,
   enrollmentPlan,
-  factKeys,
-  loadTemplates,
   pyReprStr,
   type RecontactOverrides,
   type RecontactPolicy,
   recontactPolicy,
   type Sequence,
-  type Template,
 } from "@wren/channel-email";
 import { checkSequence, type SmsSequence } from "@wren/channel-sms";
 import type { Company, CompanyScreen, PersonSourceFormat, SourceFormat } from "@wren/core";
-import { defaultsDir } from "@wren/core/templates/defaults";
 import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
 import type { Dataset } from "@wren/research/fetch";
 
@@ -36,7 +32,6 @@ export interface Niche {
   readonly crawlHints: ReadonlySet<string>;
   /** Industry vocabulary firms drop when registering short domains. */
   readonly discoveryGenericWords: ReadonlySet<string>;
-  readonly templates: ReadonlyMap<string, Template>;
   readonly sequences: ReadonlyMap<string, Sequence>;
   /** Text sequences, by name. Empty for a niche nobody texts. */
   readonly smsSequences: ReadonlyMap<string, SmsSequence>;
@@ -119,8 +114,6 @@ export interface NicheSpec {
   readonly lander: string;
   readonly crawlHints: readonly string[];
   readonly discoveryGenericWords: readonly string[];
-  /** Directory holding the *.email files (`templatesDir`). */
-  readonly templatesDir: string;
   readonly sequences: readonly Sequence[];
   /** Text sequences (plain data, checked at load: steps in order, STOP in the opener). */
   readonly smsSequences?: readonly SmsSequence[];
@@ -162,12 +155,11 @@ export function leadFormat(
   return { name, help, build, niche, columnMapped: false, directory: opts.directory ?? false };
 }
 
-/** A niche's `.email` defaults: `<defaults>/email/<niche>` (`@wren/core/templates/defaults`). */
-export function templatesDir(niche: string): string {
-  return join(defaultsDir(), "email", niche);
-}
-
-/** Build and validate one niche: every sequence step registered, every opener with a subject. */
+/**
+ * Build and validate one niche: sequences once each, every sequence in an arm that names an
+ * offer, the plan over known sequences. Copy is not checked here: it is live data, and
+ * `copyGap` holds a sequence that has none.
+ */
 export function defineNiche(spec: NicheSpec): Niche {
   if (!OFFER_PAGES.has(spec.lander)) {
     throw new Error(
@@ -175,40 +167,11 @@ export function defineNiche(spec: NicheSpec): Niche {
         ` — the site serves: ${[...OFFER_PAGES].sort().join(", ")}`,
     );
   }
-  const templates = loadTemplates(spec.templatesDir);
-  for (const [key, tpl] of templates) {
-    if (key !== tpl.name) {
-      throw new Error(
-        `niche ${pyReprStr(spec.name)}: template registered as ${pyReprStr(key)}` +
-          ` names itself ${pyReprStr(tpl.name)}`,
-      );
-    }
-  }
   const sequences = new Map<string, Sequence>();
   for (const seq of spec.sequences) {
     if (sequences.has(seq.name)) {
       throw new Error(
         `niche ${pyReprStr(spec.name)}: sequence ${pyReprStr(seq.name)} registered twice`,
-      );
-    }
-    const missing = [...new Set(seq.steps.map((s) => s.template))]
-      .filter((t) => !templates.has(t))
-      .sort();
-    if (missing.length > 0) {
-      throw new Error(
-        `niche ${pyReprStr(spec.name)}: sequence ${pyReprStr(seq.name)} references` +
-          ` unregistered templates: ${missing.join(", ")}`,
-      );
-    }
-    const openerName = (seq.steps[0] as { template: string }).template;
-    const opener = templates.get(openerName) as Template;
-    if (opener.subject === null) {
-      // A subjectless step 0 has no thread to ride yet: it would skip on day one and
-      // finish the enrollment, permanently consuming the company for nothing.
-      throw new Error(
-        `niche ${pyReprStr(spec.name)}: sequence ${pyReprStr(seq.name)} opens with template` +
-          ` ${pyReprStr(opener.name)} — the opening step needs a subject —` +
-          " a thread-rider has no thread yet",
       );
     }
     sequences.set(seq.name, seq);
@@ -229,18 +192,6 @@ export function defineNiche(spec: NicheSpec): Niche {
       );
     }
     const facts = offerFacts(offerFor(offer)); // offerFor throws on an id the registry does not know
-    // Copy quoting a term the offer doesn't set would refuse every draft at compose; say so now.
-    for (const step of seq.steps) {
-      const unset = [...factKeys(templates.get(step.template) as Template)]
-        .filter((k) => k.startsWith("offer.") && !(k in facts))
-        .sort();
-      if (unset.length > 0) {
-        throw new Error(
-          `niche ${pyReprStr(spec.name)}: template ${pyReprStr(step.template)} quotes` +
-            ` ${unset.join(", ")}, which offer ${pyReprStr(offer)} does not set`,
-        );
-      }
-    }
     offers.set(seq.name, offer);
     termsByOffer.set(offer, facts);
   }
@@ -272,7 +223,6 @@ export function defineNiche(spec: NicheSpec): Niche {
     lander: spec.lander,
     crawlHints: new Set(spec.crawlHints),
     discoveryGenericWords: new Set(spec.discoveryGenericWords),
-    templates,
     sequences,
     smsSequences,
     offers,

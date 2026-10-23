@@ -1,6 +1,8 @@
 /**
- * Wren's built-in copy as files (designs/2026-10-07-templates-live-copy.md, defaults tree):
- * `packages/templates/defaults/<kind>/<system>/<folder>/<name>.<ext>`. Git keeps their history;
+ * Wren's built-in defaults as files (designs/2026-10-07-templates-live-copy.md, defaults tree):
+ * `packages/templates/defaults/<kind>/<system>/<folder>/<name>.<ext>`. Only `prompt/` ships
+ * files now; email, text, DM and post copy live in the store alone, and a tree without a kind
+ * loads fine (an install that matches no file is a no-op). Git keeps their history;
  * `sync` writes each changed file into a database as a `default` version, and a template that
  * follows its default goes live with it. A client's database takes only the defaults its parts
  * need (`install`), then keeps them current through `sync`.
