@@ -15,6 +15,7 @@ import {
   defineRecord,
   money,
   number,
+  percent,
   type RecordType,
   status,
   text,
@@ -103,6 +104,12 @@ const NUMBER_KINDS = {
   station: { label: "Station", tone: "neutral" },
   track: { label: "Track", tone: "neutral" },
   line: { label: "Line", tone: "neutral" },
+  skip: { label: "Skip", tone: "neutral" },
+} as const;
+/** A number row's mark from the skip rule (`chain-methods.ts`). */
+const NUMBER_MARKS = {
+  optional: { label: "Optional", tone: "neutral" },
+  express: { label: "Express", tone: "neutral" },
 } as const;
 
 const nameOf = (body: ShapeBody | undefined, id: string) =>
@@ -870,6 +877,9 @@ const numberOf = (n: NumberRow, window: (typeof NUMBER_WINDOWS)[number] = "all")
   left: n.left,
   now: n.now,
   median_days: n.medianDays,
+  reach: n.reach,
+  steps: n.steps,
+  mark: n.mark,
   crossings: n.crossings,
   from: n.from,
   to: n.to,
@@ -914,6 +924,9 @@ export const numberRecord = (): RecordType =>
       left: number("Left"),
       now: number("Open now"),
       medianDays: number("Median days there"),
+      reach: percent("Reach to goal"),
+      steps: number("Moves to goal"),
+      mark: status(NUMBER_MARKS, "Mark"),
       crossings: number("Crossings"),
       from: text("From", { listed: false }),
       to: text("To", { listed: false }),
@@ -936,6 +949,13 @@ export const numberRecord = (): RecordType =>
         id: "edge",
         label: "Per edge",
         where: { kind: "edge", window: "all" },
+        sort: "-crossings",
+        at: "last",
+      },
+      {
+        id: "skip",
+        label: "Skips",
+        where: { kind: "skip", window: "all" },
         sort: "-crossings",
         at: "last",
       },

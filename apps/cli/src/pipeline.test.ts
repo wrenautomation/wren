@@ -159,7 +159,7 @@ describe("commands", () => {
     expect(() => windowArg("14")).toThrow(InvalidArgumentError);
   });
 
-  it("prints a node, an edge and an offer row on one line each", () => {
+  it("prints a node, an edge, a skip and an offer row on one line each", () => {
     const blank = {
       position: 0,
       nodeKind: null,
@@ -168,6 +168,9 @@ describe("commands", () => {
       left: null,
       now: null,
       medianDays: null,
+      reach: null,
+      steps: null,
+      mark: null,
       crossings: null,
       from: null,
       to: null,
@@ -189,14 +192,28 @@ describe("commands", () => {
         nodeKind: "step",
         arrived: 4,
         now: 1,
+        reach: 0.25,
+        steps: 2,
+        mark: "optional",
       },
       { ...blank, id: "e:a_to_b", kind: "edge", label: "a_to_b", name: "a b", crossings: 3 },
+      {
+        ...blank,
+        id: "skip:a_to_c",
+        kind: "skip",
+        label: "a_to_c",
+        name: "A over to C",
+        crossings: 5,
+        mark: "express",
+      },
       { ...blank, id: "o:x", kind: "offer", label: "x", name: "x", deals: 2, currency: "USD" },
     ]);
-    expect(lines).toHaveLength(3);
+    expect(lines).toHaveLength(4);
     expect(lines[0]).toMatch(/^step {2}a {2}0\. A {2}arrived 4/);
+    expect(lines[0]).toMatch(/reach 25% {2}moves 2 {2}optional$/);
     expect(lines[1]).toBe("edge  a_to_b  a b  crossed 3");
-    expect(lines[2]).toMatch(/^offer {2}x {2}deals 2/);
+    expect(lines[2]).toBe("skip  a_to_c  A over to C  made 5  express");
+    expect(lines[3]).toMatch(/^offer {2}x {2}deals 2/);
   });
 
   it("needs --plan, --from and --file on terms add", async () => {
@@ -215,9 +232,9 @@ describe("ownKinds", () => {
   const row = (kind: string) => ({ id: `${kind}:x`, kind }) as unknown as NumberRow;
   const kinds = (rows: NumberRow[]) => rows.map((r) => r.kind);
 
-  it("keeps a graph newest to node, edge and offer rows", () => {
-    const rows = ["node", "station", "edge", "track", "line", "offer"].map(row);
-    expect(kinds(ownKinds(rows))).toEqual(["node", "edge", "offer"]);
+  it("keeps a graph newest to node, edge, skip and offer rows", () => {
+    const rows = ["node", "station", "edge", "track", "line", "skip", "offer"].map(row);
+    expect(kinds(ownKinds(rows))).toEqual(["node", "edge", "skip", "offer"]);
   });
 
   it("keeps every row of a metro newest, which has no node rows", () => {

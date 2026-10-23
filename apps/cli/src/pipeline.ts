@@ -446,7 +446,7 @@ export function registerPipeline(
  */
 export function ownKinds(rows: readonly NumberRow[]): NumberRow[] {
   if (!rows.some((r) => r.kind === "node")) return [...rows];
-  return rows.filter((r) => r.kind === "node" || r.kind === "edge" || r.kind === "offer");
+  return rows.filter((r) => ["node", "edge", "skip", "offer"].includes(r.kind));
 }
 
 /** `7`, `30`, `90` or `all`. */
@@ -460,8 +460,12 @@ export function windowArg(v: string): NumberWindow {
 export function numberLines(rows: readonly NumberRow[]): string[] {
   const pct = (n: number | null) => (n === null ? "-" : String(n));
   const days = (n: number | null) => (n === null ? "-" : `${Math.round(n * 10) / 10}d`);
+  const share = (n: number | null) => (n === null ? "-" : `${Math.round(n * 100)}%`);
+  const moves = (n: number | null) => (n === null ? "-" : String(Math.round(n * 10) / 10));
   return rows.map((r) => {
     if (r.kind === "edge") return `edge  ${r.label}  ${r.name}  crossed ${pct(r.crossings)}`;
+    if (r.kind === "skip")
+      return `skip  ${r.label}  ${r.name}  made ${pct(r.crossings)}${r.mark ? `  ${r.mark}` : ""}`;
     if (r.kind === "offer")
       return `offer  ${r.label}  deals ${pct(r.deals)}  collected ${pct(r.collected)}  scheduled ${pct(r.scheduled)} ${r.currency ?? ""}`.trimEnd();
     if (r.nodeKind === "source")
@@ -470,6 +474,6 @@ export function numberLines(rows: readonly NumberRow[]): string[] {
       r.deals === null
         ? ""
         : `  deals ${pct(r.deals)}  collected ${pct(r.collected)}  scheduled ${pct(r.scheduled)} ${r.currency ?? ""}`.trimEnd();
-    return `${r.nodeKind ?? "node"}  ${r.label}  ${r.position}. ${r.name}  arrived ${pct(r.arrived)}  skipped ${pct(r.skipped)}  left ${pct(r.left)}  now ${pct(r.now)}  median ${days(r.medianDays)}${plan ? `  ${plan.trim()}` : ""}`;
+    return `${r.nodeKind ?? "node"}  ${r.label}  ${r.position}. ${r.name}  arrived ${pct(r.arrived)}  skipped ${pct(r.skipped)}  left ${pct(r.left)}  now ${pct(r.now)}  median ${days(r.medianDays)}  reach ${share(r.reach)}  moves ${moves(r.steps)}${r.mark ? `  ${r.mark}` : ""}${plan ? `  ${plan.trim()}` : ""}`;
   });
 }

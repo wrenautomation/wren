@@ -61,6 +61,46 @@ export const nodeCounts = pipeline
     sum("left")::int "left"
   from counted group by version, node, day`);
 
+/**
+ * Per version, move and day: each arrival as one move from the node the journey left to the node
+ * it reached, a skip or a loop included (an opening has no `from_node`). A drop is a move to
+ * `dropped`. `skips` counts the moves that passed a node, `loops` the ones over a loop edge. Unlike
+ * `edge_flow`, a skip from A to C over B is one move, never two crossings: the trail chain
+ * (`chain.ts`) counts on this.
+ */
+export const moveFlow = pipeline
+  .view("move_flow", {
+    version: integer("version"),
+    fromNode: varchar("from_node", { length: 40 }),
+    toNode: varchar("to_node", { length: 40 }),
+    day: date("day", { mode: "string" }),
+    moves: integer("moves"),
+    skips: integer("skips"),
+    loops: integer("loops"),
+  })
+  .as(sql`
+  with arrivals as (
+    select substring(e.workflow from '^shape\\.v([0-9]+)$')::int version,
+      substr(e.node, 3) node, e.at, e.data
+    from events e
+    where e.workflow ~ '^shape\\.v[0-9]+$' and e.subject like 'journey:%' and left(e.node, 2) = 's_'
+      and coalesce(e.data -> 'cause' ->> 'kind', '') <> 'version'
+  ), moved as (
+    select version, data ->> 'from' from_node, node to_node, (at at time zone 'UTC')::date as day,
+      case when jsonb_typeof(data -> 'skipped') = 'array' and jsonb_array_length(data -> 'skipped') > 0
+        then 1 else 0 end skips,
+      case when data -> 'loop' is not null then 1 else 0 end loops
+    from arrivals
+    union all
+    select coalesce((d.data ->> 'version')::int, substring(d.workflow from '^shape\\.v([0-9]+)$')::int),
+      d.data ->> 'node', 'dropped', (d.at at time zone 'UTC')::date, 0, 0
+    from events d
+    where d.workflow ~ '^shape\\.v[0-9]+$' and d.node = 'dropped' and d.data ->> 'node' is not null
+  )
+  select version, from_node, to_node, day, count(*)::int moves, sum(skips)::int skips,
+    sum(loops)::int loops
+  from moved group by version, from_node, to_node, day`);
+
 /** Per version, edge and day: journeys that crossed the edge (the edge's ends come from the version's body). */
 export const edgeFlow = pipeline
   .view("edge_flow", {

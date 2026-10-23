@@ -26,6 +26,7 @@ import {
 import {
   dealScheduleOf,
   edgeFlowOf,
+  moveFlowOf,
   type NumberRow,
   nodeCountsOf,
   numberRows,
@@ -421,6 +422,19 @@ describe("the numbers views", () => {
       ["arrived", "skipped", "left", "now"].map((k) => grew("station:signed", k as never)),
     ).toEqual([1, 0, 0, 1]);
     expect(after.get("station:engaged")).toMatchObject({ nodeKind: "step", name: "Engaged" });
+    // a's move from booked to signed passed proposal: one skip, one move, never two crossings.
+    expect(grew("skip:booked_to_signed", "crossings")).toBe(1);
+    expect(after.get("skip:booked_to_signed")).toMatchObject({ from: "booked", to: "signed" });
+    const moved = (await moveFlowOf(pg.db)).filter(
+      (m) => m.fromNode === "booked" && m.toNode === "signed",
+    );
+    expect(moved.reduce((n, m) => n + (m.skips ?? 0), 0)).toBeGreaterThanOrEqual(1);
+    // The trail chain: the plan is the goal; a step's reach is a chance, its moves at least one.
+    expect(after.get("station:standard")).toMatchObject({ reach: 1, steps: 0 });
+    const engaged = after.get("station:engaged");
+    expect(engaged?.reach).toBeGreaterThan(0);
+    expect(engaged?.reach).toBeLessThan(1);
+    expect(engaged?.steps).toBeGreaterThanOrEqual(1);
     expect(after.get("station:engaged")?.medianDays).toBeGreaterThanOrEqual(0);
     expect(after.get("station:engaged")?.position).toBeLessThan(
       after.get("station:booked")?.position as number,
@@ -460,6 +474,7 @@ describe("the numbers views", () => {
     expect(await nodeCountsOf(pg.db, { from: "2999-01-01" })).toEqual([]);
     expect(await nodeCountsOf(pg.db, { to: "2000-01-01" })).toEqual([]);
     expect(await edgeFlowOf(pg.db, { from: "2999-01-01" })).toEqual([]);
+    expect(await moveFlowOf(pg.db, { from: "2999-01-01" })).toEqual([]);
     // Today is inside a 7 day window.
     expect((await nodeCountsOf(pg.db, { window: 7 })).length).toBeGreaterThan(0);
     const far = await numberRows(pg.db, { from: "2999-01-01" });

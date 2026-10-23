@@ -18,19 +18,26 @@
  * them, so the Map reads stations and tracks by id whatever the model. The hub has no node: its
  * row counts the leads (`leadsOf`).
  *
+ * Each node also has a value from the trail chain (`chain.ts`): its chance to reach the goal and the
+ * moves it takes, pooled over the versions in the window, by the default valuer. A move that
+ * passed a node is a `skip` row, `from` to `to`; the default skip rule marks it `express`, and a
+ * node that many pass `optional`. A filter can name another valuer or skip rule by id.
+ *
  * Cost is Meta's spend on an `ads` source's campaign, in the ad account's currency; the views do
  * not convert, so a source on two currencies would add them. One currency per workspace holds today.
  */
 import { profiles } from "@wren/core/profiles-schema";
 import type { Queryable } from "@wren/db";
 import { and, eq, gte, isNull, lte, sql } from "drizzle-orm";
+import { chainOf, type Move } from "./chain.js";
+import { type SkipRule, skipRuleOf, valuerOf } from "./chain-methods.js";
 import { isMetro, type MetroBody, placesOf } from "./metro.js";
-import { edgeIdOf, isSource, type ShapeBody } from "./model.js";
+import { DROPPED, edgeIdOf, isSource, type ShapeBody } from "./model.js";
 import { scheduleOf } from "./schedule.js";
 import { journeys, pipelineDeals, termsVersions } from "./schema.js";
 import { newestShape } from "./store.js";
 import { drawnOf, runOf } from "./stored.js";
-import { edgeFlow, nodeCounts, sourceNumbers } from "./views.js";
+import { edgeFlow, moveFlow, nodeCounts, sourceNumbers } from "./views.js";
 
 export type NumberWindow = 7 | 30 | 90 | "all";
 
@@ -46,6 +53,9 @@ export interface NumbersFilter {
   to?: string;
   /** For tests: what "today" is. */
   now?: Date;
+  /** The node valuer and the skip rule by id (`chain-methods.ts`). Left out: the defaults. */
+  valuer?: string;
+  skipRule?: string;
 }
 
 /** The day range a filter asks for. */
@@ -84,6 +94,20 @@ export async function edgeFlowOf(db: Queryable, f: NumbersFilter = {}) {
       ),
     )
     .orderBy(edgeFlow.version, edgeFlow.day, edgeFlow.edge);
+}
+
+export async function moveFlowOf(db: Queryable, f: NumbersFilter = {}) {
+  const r = rangeOf(f);
+  return db
+    .select()
+    .from(moveFlow)
+    .where(
+      and(
+        r.from ? gte(moveFlow.day, r.from) : undefined,
+        r.to ? lte(moveFlow.day, r.to) : undefined,
+      ),
+    )
+    .orderBy(moveFlow.version, moveFlow.day, moveFlow.fromNode, moveFlow.toNode);
 }
 
 export async function sourceNumbersOf(db: Queryable, f: NumbersFilter = {}) {
@@ -291,8 +315,11 @@ export async function planNumbersOf(
   return out;
 }
 
-/** Node, edge and offer rows for a graph; line, station, track and offer rows for a metro body. */
-export type NumberKind = "node" | "edge" | "offer" | "station" | "track" | "line";
+/**
+ * Node, edge and offer rows for a graph; line, station, track and offer rows for a metro body.
+ * Skip rows for both.
+ */
+export type NumberKind = "node" | "edge" | "offer" | "station" | "track" | "line" | "skip";
 /** One row of the `pipeline.number` record. */
 export interface NumberRow {
   id: string;
@@ -311,7 +338,13 @@ export interface NumberRow {
   /** Open journeys at the node now. */
   now: number | null;
   medianDays: number | null;
-  /** Edge and track rows. */
+  /** Node and station rows: the chance to reach the goal from here, 0 to 1 (1 at the goal). */
+  reach: number | null;
+  /** Node and station rows: the moves to the goal of the people who reach it. */
+  steps: number | null;
+  /** `optional` on a node or station many pass; `express` on a skip many make. */
+  mark: "optional" | "express" | null;
+  /** Edge and track rows; a skip row: the people who made the skip. */
   crossings: number | null;
   from: string | null;
   to: string | null;
@@ -336,6 +369,9 @@ const blank = {
   left: null,
   now: null,
   medianDays: null,
+  reach: null,
+  steps: null,
+  mark: null,
   crossings: null,
   from: null,
   to: null,
@@ -454,9 +490,10 @@ export function metroRowsOf(
 /** All the numbers as rows: per node and edge of the newest shape (per line, station and track on the metro model), per offer. */
 export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<NumberRow[]> {
   const newest = await newestShape(db);
-  const [counts, flow, sources, offers, medians, now] = await Promise.all([
+  const [counts, flow, moved, sources, offers, medians, now] = await Promise.all([
     nodeCountsOf(db, f),
     edgeFlowOf(db, f),
+    moveFlowOf(db, f),
     sourceNumbersOf(db, f),
     offerNumbersOf(db, f),
     medianDaysOf(db, f),
@@ -481,6 +518,7 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
       if (c.day && (!t.last || c.day > t.last)) t.last = c.day;
       total.set(k, t);
     }
+    const trail = trailOf(body, moved, f);
     const plans = new Map((await planNumbersOf(db, body, f)).map((p) => [p.node, p] as const));
     const bySource = new Map<
       string,
@@ -522,8 +560,14 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
       if (f.source) continue;
       const t = total.get(n.id);
       const p = plans.get(n.id);
+      const v = trail.values.get(n.id);
       rows.push({
         ...base,
+        reach: v?.reach ?? null,
+        steps: v?.steps ?? null,
+        mark: trail.rule.ring({ skipped: t?.skipped ?? 0, arrived: t?.arrived ?? 0 })
+          ? "optional"
+          : null,
         arrived: t?.arrived ?? 0,
         skipped: t?.skipped ?? 0,
         left: t?.left ?? 0,
@@ -576,6 +620,8 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
       const drawn = drawnOf(newest.body);
       if (drawn.ok) rows.push(...metroRowsOf(drawn.metro, [...rows], offers, f, leads));
     }
+    // Node ids are station ids, so a skip row reads the same on either model.
+    if (!f.source) rows.push(...skipRowsOf(body, trail.skips, total, trail.rule));
   }
   for (const o of offers)
     rows.push({
@@ -591,6 +637,59 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
       currency: o.currency,
     });
   return rows;
+}
+
+/** The trail chain of the moves in the window: each node's value, the skips, the skip rule. */
+function trailOf(
+  body: ShapeBody,
+  moved: readonly (typeof moveFlow.$inferSelect)[],
+  f: NumbersFilter,
+) {
+  const sum = new Map<string, Move & { last: string | null }>();
+  for (const m of moved) {
+    if (!m.toNode) continue;
+    const k = `${m.fromNode ?? ""}>${m.toNode}`;
+    const t = sum.get(k) ?? { from: m.fromNode, to: m.toNode, moves: 0, skips: 0, last: null };
+    t.moves += m.moves ?? 0;
+    t.skips += m.skips ?? 0;
+    if (m.day && (!t.last || m.day > t.last)) t.last = m.day;
+    sum.set(k, t);
+  }
+  const moves = [...sum.values()];
+  return {
+    values: valuerOf(f.valuer).values(chainOf(body, moves)),
+    skips: moves.filter((m) => m.from !== null && m.to !== DROPPED && m.skips > 0),
+    rule: skipRuleOf(f.skipRule),
+  };
+}
+
+/** A row per skip made: from a node over one or more to another, with the people who made it. */
+function skipRowsOf(
+  body: ShapeBody,
+  skips: readonly (Move & { last: string | null })[],
+  total: ReadonlyMap<string, { left: number }>,
+  rule: SkipRule,
+): NumberRow[] {
+  const names = new Map(body.nodes.map((n) => [n.id, n.name] as const));
+  return skips
+    .filter((m) => names.has(m.from ?? "") && names.has(m.to))
+    .map((m) => {
+      const from = m.from ?? "";
+      const left = total.get(from)?.left ?? 0;
+      return {
+        ...blank,
+        id: `skip:${edgeIdOf(from, m.to)}`,
+        kind: "skip" as const,
+        label: edgeIdOf(from, m.to),
+        name: `${names.get(from)} over to ${names.get(m.to)}`,
+        position: 0,
+        mark: rule.arc({ skips: m.skips, left }) ? ("express" as const) : null,
+        crossings: m.skips,
+        from,
+        to: m.to,
+        last: m.last,
+      };
+    });
 }
 
 /** A deal's dated lines from its signed terms. Null: no such deal, or no terms signed yet. */
