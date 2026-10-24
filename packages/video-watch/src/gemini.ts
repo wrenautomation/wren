@@ -1,6 +1,6 @@
 /**
- * Gemini, as the SOP readers ask it: key and model rotation, the on-screen ask, and the 360p copy
- * that fits inline. Own file so `sops/index.ts` and `sops/watch.ts` both import it.
+ * Gemini, as the video readers ask it: key and model rotation, the on-screen ask, and the 360p copy
+ * that fits inline. Own file so `watch.ts` and the SOP reader both import it.
  */
 import { readFile } from "node:fs/promises";
 import { clock, runFor, TOOL_MS } from "./tools.js";

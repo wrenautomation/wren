@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -10,7 +10,6 @@ import {
   onScreenLines,
   readScreen,
   renderWatched,
-  videoSource,
   watch,
 } from "./index.js";
 
@@ -338,31 +337,6 @@ describe.skipIf(!hasFfmpeg)("watch", () => {
     );
     await expect(watch(video, { cohereKeys: [] })).rejects.toThrow(/needs COHERE keys/);
   });
-
-  it("is the SOP reader's source: caption, then Speech, On screen and Cuts, from a fetched reel", async () => {
-    // Stands in for yt-dlp: copies the fixture to the -o file and prints the info JSON.
-    const fake = join(dir, "yt-dlp.mjs");
-    await writeFile(
-      fake,
-      `import { copyFileSync } from "node:fs";
-const a = process.argv.slice(2);
-copyFileSync(${JSON.stringify(video)}, a[a.indexOf("-o") + 1].replace("%(ext)s", "mp4"));
-console.log(JSON.stringify({ id: "abc", title: "Video by x", extractor_key: "Instagram", channel: "x", upload_date: "20261003", description: "Four things\\nmore", webpage_url: "https://www.instagram.com/reel/abc/" }));`,
-    );
-    const { fetchFn } = fakes();
-    const s = await videoSource("https://www.instagram.com/reel/abc/", `node ${fake}`, 9, {
-      cohereKeys: ["k1"],
-      fetchFn,
-      pause: noPause,
-    });
-    expect(s.name).toBe("instagram-abc.md");
-    expect(s.md).toContain('source: "instagram:abc"\ntitle: "Four things"');
-    expect(s.md).toContain('uploaded: "2026-10-03"\npriority: 9');
-    expect(s.md).toContain(
-      "## Caption\n\nFour things\nmore\n\n## Speech\n\nhello from the fixture\n\n## On screen\n\n[0:00] caption 0:00",
-    );
-    expect(s.md).toMatch(/\n## Cuts\n\n\d:\d\d\.\d\n$/);
-  }, 30_000);
 
   it("leaves no work directory behind", async () => {
     const mine = async () => (await readdir(tmpdir())).filter((n) => n.startsWith("watch-"));

@@ -25,6 +25,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/video-watch": "workspace:*",
     "@wren/video": "workspace:*",
     "drizzle-orm": "0.45.2",
     "onnxruntime-node": "1.30.0",

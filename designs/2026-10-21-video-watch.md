@@ -1,4 +1,6 @@
-# Brief: `wren video watch` with no Gemini (2026-10-21)
+# `wren video watch`: ffmpeg + Cohere, Gemini optional (2026-10-21)
+
+Built 26eb3bbe. Moved to its own package `packages/video-watch` (`@wren/video-watch`) 2026-10-24: one core, no database, four callers (`wren video watch`, `sop add`, Learn's Mac reader, `video look --with cohere`).
 
 William asked for it. Gemini keys are dead. Watch a reel or video with ffmpeg as the base. Cohere reads speech and on-screen text. Gemini is optional enrichment.
 
@@ -23,7 +25,7 @@ William asked for it. Gemini keys are dead. Watch a reel or video with ffmpeg as
 
 ## One implementation
 
-One `watch` core, used by three callers. Put it where the dependencies allow, and say where.
+One `watch` core in `@wren/video-watch`, used by the callers below.
 - the CLI;
 - `sop add` for non-YouTube video, in place of the Gemini-only path;
 - `packages/studio/src/look.ts`, as a third provider, `cohere`, next to `gemini` and `twelvelabs`.

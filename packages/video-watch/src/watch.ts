@@ -1,9 +1,10 @@
 /**
- * Watching a video (designs/briefs/2026-10-21-video-watch.md). ffmpeg gives the facts: length,
+ * Watching a video (designs/2026-10-21-video-watch.md). ffmpeg gives the facts: length,
  * scene cuts, one 360p frame every 2 s, the speech as a small mono mp3. Cohere reads them: the
  * speech with Transcribe, the on-screen text with command-a-vision. Gemini adds its own read of
- * the screen only when a key still works. One core, three callers: `wren video watch`, `sop add`
- * (`videoSource`) and `video look --with cohere`. Nothing here touches a database.
+ * the screen only when a key still works. One core, four callers: `wren video watch`, `sop add`
+ * and Learn's Mac reader (`videoSource` in `@wren/research/sops`) and `video look --with cohere`.
+ * Nothing here touches a database.
  *
  * Cohere's vision is weak, so the result keeps what it did not read: a frame with no line is
  * `null`, never filled from its neighbours, and every line carries its ffmpeg frame time.

@@ -1,6 +1,6 @@
 /**
  * What the source readers share: a child tool run with a time limit, and the clock mark.
- * Own file so `sops/index.ts` and `sops/watch.ts` both import it and neither imports the other's body.
+ * Own file so `watch.ts` and the SOP reader (`@wren/research/sops`) both import it.
  */
 import { execFile } from "node:child_process";
 import { basename } from "node:path";

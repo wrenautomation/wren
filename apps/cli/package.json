@@ -36,6 +36,7 @@
     "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/video-watch": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/studio": "workspace:*",
     "@wren/video": "workspace:*",

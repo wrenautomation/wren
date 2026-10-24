@@ -36,6 +36,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/video-watch": "workspace:*",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
     "htmlparser2": "12.0.0",

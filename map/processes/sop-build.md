@@ -21,7 +21,7 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, build again: the
 ## Steps
 
 1. `youtubeSource` (`packages/research/src/sops/index.ts`): `yt-dlp -J`, the English json3 track, `captionsMarkdown`, then `screenText` (Gemini on the URL per clip).
-2. `videoSource`: the `watch` core (`packages/research/src/sops/watch.ts`; `wren video watch` and `video look --with cohere` call the same one): `yt-dlp -j --no-simulate -S res:540` (`download`), ffmpeg scene cuts and a 360p frame every 2 s, Cohere Transcribe for the speech, `command-a-vision` for the on-screen text in batches of 8 frames. Each line carries its frame time; a frame with no line, or one the model refused after one text-only retry, is `(not read)`, never filled. Gemini (`askShown`, `gemini.ts`) adds an `## On screen (Gemini)` section only when a key still works, else it is skipped with no error. Source body: `## Caption`, `## Speech`, `## On screen`, `## Cuts`.
+2. `videoSource`: the `watch` core (`packages/video-watch/src/watch.ts`, package `@wren/video-watch`; `wren video watch` and `video look --with cohere` call the same one): `yt-dlp -j --no-simulate -S res:540` (`download`), ffmpeg scene cuts and a 360p frame every 2 s, Cohere Transcribe for the speech, `command-a-vision` for the on-screen text in batches of 8 frames. Each line carries its frame time; a frame with no line, or one the model refused after one text-only retry, is `(not read)`, never filled. Gemini (`askShown`, `gemini.ts`) adds an `## On screen (Gemini)` section only when a key still works, else it is skipped with no error. Source body: `## Caption`, `## Speech`, `## On screen`, `## Cuts`.
 3. `driveSources`: walk the folder, export each Doc as text (`apps/cli/src/sop.ts` `autobrowseDrive`).
 4. `extractPoints` (optional): one call per source writes `points/<stem>.md`, an exhaustive cited list the owner curates (delete, `!` to force); `readSopDir` hands build the points file in place of the raw source when it exists.
 5. `buildSop`: `readSopDir` (priority order), `sopPrompt`, one `ClaudeCodeLlm.complete`, write `SOP.md`.
@@ -41,4 +41,4 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, build again: the
 
 ## See
 
-- Source: `packages/research/src/sops/index.ts`, `watch.ts` (the video reader), `gemini.ts`, `tools.ts`, `apps/cli/src/sop.ts`, `apps/cli/src/video-watch.ts`
+- Source: `packages/research/src/sops/index.ts`; the video reader is its own package `packages/video-watch/src/` (`watch.ts`, `gemini.ts`, `tools.ts`); `apps/cli/src/sop.ts`, `apps/cli/src/video-watch.ts`

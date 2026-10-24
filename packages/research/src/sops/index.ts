@@ -11,13 +11,23 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
+import {
+  askGemini,
+  askShown,
+  clock,
+  renderWatched,
+  run,
+  runFor,
+  SHOWN,
+  TOOL_MS,
+  type VideoInfo,
+  type VideoMeta,
+  type WatchOptions,
+  watch,
+} from "@wren/video-watch";
 import { expandCites, numberCites } from "./cites.js";
-import { askGemini, askShown, SHOWN } from "./gemini.js";
-import { clock, run, runFor, TOOL_MS } from "./tools.js";
-import { renderWatched, type VideoMeta, type WatchOptions, watch } from "./watch.js";
 
-export * from "./watch.js";
-export { askGemini, clock, expandCites, numberCites };
+export { expandCites, numberCites };
 
 export const DEFAULT_PRIORITY = 5;
 
@@ -31,21 +41,6 @@ const frontMatter = (fields: Record<string, string | number>) =>
   `---\n${Object.entries(fields)
     .map(([k, v]) => `${k}: ${typeof v === "string" ? JSON.stringify(v) : v}`)
     .join("\n")}\n---\n\n`;
-
-/** What `yt-dlp -J` prints; only what we read. */
-export interface VideoInfo {
-  id: string;
-  title: string;
-  channel?: string;
-  upload_date?: string;
-  webpage_url?: string;
-  duration?: number;
-  /** Its thumbnail's address. */
-  thumbnail?: string;
-  chapters?: { start_time: number; end_time: number; title: string }[] | null;
-  subtitles?: Record<string, { ext: string; url: string }[]>;
-  automatic_captions?: Record<string, { ext: string; url: string }[]>;
-}
 
 /** YouTube's json3 caption track; only what we read. */
 export interface Json3 {

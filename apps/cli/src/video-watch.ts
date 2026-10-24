@@ -8,7 +8,7 @@
  */
 import type { Settings } from "@wren/config";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
-import { frameCounts, renderWatched, type WatchOptions, watch } from "@wren/research/sops";
+import { frameCounts, renderWatched, type WatchOptions, watch } from "@wren/video-watch";
 import type { Command } from "commander";
 
 /** Keys from llm.env (never logged) and the ffmpeg path: what every caller of the core passes. */
