@@ -107,9 +107,14 @@ describe("layoutView", () => {
     expect(at(s, "bk").x).toBeGreaterThan(at(s, "att").x);
   });
 
-  it("gives each line a weight from its tier", async () => {
+  it("gives each line a weight from its tier, and a lone offer line the front weight", async () => {
     const s = await layoutView(COLD_OUTBOUND_VIEW);
-    expect(s.tr.find((t) => t.a === "rep" && t.b === "bk")?.w).toBe("core");
+    expect(s.tr.find((t) => t.a === "rep" && t.b === "bk")?.w).toBe("front");
+    const two = await layoutView({
+      ...COLD_OUTBOUND_VIEW,
+      lines: [...COLD_OUTBOUND_VIEW.lines, { id: "au", offer: "Audit", tier: "front", colour: 1 }],
+    });
+    expect(two.tr.find((t) => t.a === "rep" && t.b === "bk")?.w).toBe("core");
     const f = await layoutView(LATE_VIEW);
     expect(f.tr.find((t) => t.a === "form" && t.b === "bk")?.w).toBe("front");
   });

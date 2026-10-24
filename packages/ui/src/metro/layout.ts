@@ -190,6 +190,11 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
 
   // Tracks.
   const lineOf = (s: ViewStation) => (s.kind === "hub" ? undefined : line.get(s.line));
+  // Weight ranks offer lines against each other. One offer line has nothing to stand over, so
+  // core draws as front: a lone 12-unit line reads as a ribbon, not as the main road.
+  const ranked = [...line.values()].filter((l) => l.tier !== "out").length > 1;
+  const weightOf = (l: ViewLine): Weight =>
+    l.tier === "core" && !ranked ? "front" : WEIGHT_OF[l.tier];
   const tr: MetroTrack[] = [];
   view.tracks.forEach((t, i) => {
     const a = byId.get(t.from);
@@ -232,7 +237,7 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
         a: a.id,
         b: b.id,
         l: l ? keyOf(l) : "out",
-        w: l ? WEIGHT_OF[l.tier] : "front",
+        w: l ? weightOf(l) : "front",
         oa: meet.get(b.line) ?? 0,
         bend: "a",
         ...(l?.plan || t.plan ? { k: "plan" as const } : {}),
@@ -266,7 +271,7 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
         a: a.id,
         b: b.id,
         l: l ? keyOf(l) : "out",
-        w: t.back ? "out" : l ? WEIGHT_OF[l.tier] : "front",
+        w: t.back ? "out" : l ? weightOf(l) : "front",
         ...(t.back ? { k: "back" as const } : l?.plan || t.plan ? { k: "plan" as const } : {}),
         ...(t.label ? { cond: t.label } : {}),
       });
