@@ -26,6 +26,8 @@ esac
 # Phone: the ingress follows RESTATE_HOST like the portal's; its other secrets (Telnyx, cal.com,
 # Gmail push, credential links) are set by hand and kept: --secrets-file is additive.
 # LLM gateway: its keys are Worker secrets, set by scripts/llm-gateway-keys.mjs; a deploy keeps them.
+# Share (autobrowse traces ingest): ADMIN_TOKEN is a kept Worker secret. It serves no prod path,
+# so its failure only warns (cf_soft): the first CI run proves the token can bind R2.
 # Portal: LAMBDA_URL, EDGE_SECRET: a client's own host redeems sign-ins at the auth Lambda.
 # pgbouncer: before the box worker and the Lambda, which may connect through it (WREN_DATABASE_POOL_PORT).
 # valkey: before the Lambda, which reads through it (WREN_CACHE_URL). Unchanged: left running.
@@ -45,6 +47,7 @@ bg auth-zip pnpm --filter @wren/auth-app build:lambda
 bg cli node apps/cli/scripts/build.mjs
 bg up-phone cf_upload phone "$RUNNER_TEMP/phone-secrets.json"
 bg up-gateway cf_upload llm-gateway
+bg up-share cf_soft cf_upload share
 bg up-auth cf_upload auth "$RUNNER_TEMP/auth-secrets.json"
 bg up-portal cf_upload portal "$RUNNER_TEMP/portal-secrets.json"
 
@@ -107,12 +110,13 @@ case "$RESTATE_HOST" in
 esac
 
 phase "cloudflare live"
-await up-phone up-gateway up-auth up-portal
+await up-phone up-gateway up-auth up-portal up-share
 bg live-phone cf_flip phone "$RUNNER_TEMP/phone-secrets.json"
 bg live-gateway cf_flip llm-gateway
+bg live-share cf_soft cf_flip share
 bg live-auth cf_flip auth "$RUNNER_TEMP/auth-secrets.json"
 bg live-portal cf_flip portal "$RUNNER_TEMP/portal-secrets.json"
-await live-phone live-gateway live-auth live-portal
+await live-phone live-gateway live-auth live-portal live-share
 
 # Queued email was saved at compose; this re-renders it from the templates just shipped.
 # Fire and forget: the run lands in the runs ledger (`outreach refresh`).

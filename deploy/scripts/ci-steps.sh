@@ -91,6 +91,11 @@ cf_upload() {
   fi
 }
 
+# A Worker no prod path needs: its failure is a warning, never a failed deploy.
+cf_soft() {
+  "$@" || echo "::warning::$*: failed; deploy it by hand (npx wrangler deploy in apps/$2)"
+}
+
 cf_flip() {
   local app=$1 sec=${2:-} vid
   vid=$(cat "$D/$1.vid")

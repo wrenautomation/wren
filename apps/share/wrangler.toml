@@ -1,0 +1,27 @@
+# share.wrenautomation.com: the shared library's ingest (autobrowse designs/2026-10-24-shared-library.md).
+# ADMIN_TOKEN is `wrangler secret put` and kept by a deploy; the account id comes from
+# CLOUDFLARE_ACCOUNT_ID in the environment.
+name = "wren-share"
+main = "src/worker.ts"
+compatibility_date = "2026-09-27"
+
+routes = [{ pattern = "share.wrenautomation.com", custom_domain = true }]
+
+[[r2_buckets]]
+binding = "SHARE"
+bucket_name = "autobrowse-share"
+
+# One cap per install id and one per IP, so a fresh id buys nothing.
+[[ratelimits]]
+name = "INSTALL_LIMIT"
+namespace_id = "2001"
+simple = { limit = 20, period = 60 }
+
+[[ratelimits]]
+name = "IP_LIMIT"
+namespace_id = "2002"
+simple = { limit = 60, period = 60 }
+
+# One line per request (route, status, bytes), never content.
+[observability]
+enabled = true
