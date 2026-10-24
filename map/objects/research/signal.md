@@ -55,7 +55,7 @@ Citations: `packages/research/src/schema.ts:228`, `packages/research/src/signals
 | Surface | Role |
 |---|---|
 | `PoolScheduler/{niche}` stage `signals` | writes, each collector that is `on` |
-| `Enrichment/<niche>/signals {"personIds":[...],"timezone":"..."}` | by hand (`packages/research/src/restate/enrichment.ts:967`) |
+| `Enrichment/<niche>/signals {"personIds":[...],"timezone":"..."}` | by hand (`packages/research/src/restate/enrichment-people.ts:228`) |
 | `wren enrich signals --niche <n> [--collector] [--company] [--person] [--dry]` | from a laptop |
 | Console Outbound, Signals (`research.signal`) | reads |
 | component `research.signals` | each collector's settings and `on` |
