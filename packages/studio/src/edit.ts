@@ -31,6 +31,7 @@ import {
   overlaysSchema,
   rewriteLine,
 } from "./finish.js";
+import { brokenLocks, changedPaths, isLockPath, withLocks } from "./locks.js";
 import { FPS, pcm, probe, silencePass, syncOffset, wav16k } from "./media.js";
 import { CARD, SHORT_COUNT, SHORT_S } from "./props.js";
 import {
@@ -471,6 +472,10 @@ export async function setEdit(
     stats?: object;
     /** The fields' values the editor opened on: any that moved since refuses the save (409). */
     expect?: Record<string, unknown>;
+    /** The agent wrote it: refused where it moves a part a person locked (`locks.ts`). */
+    agent?: boolean;
+    /** A person set it by hand: what it changed is locked against the agent. */
+    lock?: boolean;
   },
 ): Promise<{ run: string; edit: VideoEdit; snapped: Moved[] }> {
   const parsed = editPatchSchema.safeParse(input);
@@ -486,12 +491,24 @@ export async function setEdit(
       throw new Error(`Not saved: ${ready.issues.join("; ")}`);
     const { patch, snapped } = ready;
     const before = Object.fromEntries(Object.keys(patch).map((k) => [k, fieldOf(now, k)]));
+    const locked = now.locked ?? [];
+    if (o.agent) {
+      const broken = brokenLocks(locked, before, patch);
+      if (broken.length)
+        throw new Error(
+          `Not saved: ${broken.join(", ")} ${broken.length > 1 ? "are" : "is"} locked (set by hand); unlock with wren video unlock ${id} <path>`,
+        );
+    }
+    const locks = o.lock
+      ? withLocks(locked, changedPaths(before, patch, Object.keys(patch)))
+      : locked;
     const { camBox, ...columns } = patch;
     const [edit] = await tx
       .update(videoEdits)
       .set({
         ...columns,
         ...(camBox !== undefined ? { tracks: withCamBox(now.tracks, camBox) } : {}),
+        ...(locks !== locked ? { locked: locks } : {}),
         state: now.state === "added" ? "edited" : now.state,
         updatedAt: new Date(),
       })
@@ -694,6 +711,30 @@ export async function setCut(
 }
 
 /** A render's way through: waiting, rendering, failed and why; null when done. */
+/**
+ * Lock parts by hand (`wren video set --lock`, `wren video lock`) or let them go (`unlock`). A path
+ * must name a field the edit has.
+ */
+export async function setLocks(
+  db: Queryable,
+  id: number,
+  o: { lock?: readonly string[]; unlock?: readonly string[] },
+): Promise<string[]> {
+  const now = await getEdit(db, id);
+  for (const p of [...(o.lock ?? []), ...(o.unlock ?? [])]) {
+    const field = p.split(".")[0] as string;
+    if (!isLockPath(p) || !(field in editPatchSchema.shape))
+      throw new Error(`${p}: not a part of the edit (a field like cuts, shorts.2, crops.vertical)`);
+  }
+  const gone = o.unlock ?? [];
+  const locked = withLocks(
+    (now.locked ?? []).filter((l) => !gone.some((g) => l === g || l.startsWith(`${g}.`))),
+    o.lock ?? [],
+  );
+  await db.update(videoEdits).set({ locked }).where(eq(videoEdits.id, id));
+  return locked;
+}
+
 export async function setRender(db: Queryable, id: number, render: RenderState | null) {
   await db.update(videoEdits).set({ render, updatedAt: new Date() }).where(eq(videoEdits.id, id));
 }

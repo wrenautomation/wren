@@ -140,6 +140,8 @@ export const videoEdits = pgTable(
     /** S3 keys of previews and stills (step 2). */
     keys: jsonb("keys").$type<Record<string, string>>().notNull().default({}),
     render: jsonb("render").$type<RenderState>(),
+    /** Parts a person set by hand, which the agent keeps (`locks.ts`): `cuts`, `shorts.2`, `crops.vertical`. */
+    locked: jsonb("locked").$type<string[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

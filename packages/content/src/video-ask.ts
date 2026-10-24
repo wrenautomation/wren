@@ -97,7 +97,7 @@ export function applyAnswer(
 ) {
   const { cuts, ...rest } = patch;
   const full = cuts === undefined ? rest : { ...rest, cuts: withCutChanges(e.cuts, cuts) };
-  return setEdit(db, e.id, full, o);
+  return setEdit(db, e.id, full, { ...o, agent: true });
 }
 
 export interface VideoTurn {
@@ -124,6 +124,24 @@ export const videoTurns = async (db: Queryable, id: number) =>
       sql`, `,
     )}) AND argv->>'id' = ${String(id)}
     ORDER BY started_at, id`)) as unknown as VideoTurn[];
+
+/** Each finished change with what it replaced, newest first: `wren video history` diffs the films. */
+export const videoChanges = async (db: Queryable, id: number) =>
+  (await db.execute(sql`
+    SELECT id::text AS run, command, argv->>'by' AS by, started_at::text AS at,
+      stats->'before' AS before
+    FROM runs WHERE command IN (${sql.join(
+      CHANGES.map((c) => sql`${c}`),
+      sql`, `,
+    )}) AND argv->>'id' = ${String(id)}
+      AND finished_at IS NOT NULL AND stats ? 'before' AND NOT stats ? 'error'
+    ORDER BY started_at DESC, id DESC`)) as unknown as {
+    run: string;
+    command: string;
+    by: string | null;
+    at: string;
+    before: object;
+  }[];
 
 /** Put back what the newest change replaced. Undo twice and the change is back. */
 export async function undoVideo(db: Queryable, id: number, by: string) {

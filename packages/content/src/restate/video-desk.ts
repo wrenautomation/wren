@@ -144,6 +144,8 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
             told(
               setEdit(db, req.id, req.patch, {
                 by: byOf(req),
+                // His hand on the page locks what it moved; an applied proposal was the model's idea.
+                lock: !req.proposal,
                 ...(req.expect ? { expect: req.expect } : {}),
                 ...(req.proposal ? { stats: { proposal: req.proposal } } : {}),
               }).then(({ run, edit }) => answered(run, edit)),

@@ -55,6 +55,7 @@ export {
   setFiles,
   setKeys,
   setLine,
+  setLocks,
   setLook,
   setRender,
   setRendered,
@@ -66,6 +67,15 @@ export {
   twelvelabsMinutes,
   type WordsFix,
 } from "./edit.js";
+export {
+  type Film,
+  type FilmChange,
+  filmAssets,
+  filmHistory,
+  longFilm,
+  shortFilm,
+  wordsVtt,
+} from "./film.js";
 export {
   ASPECT,
   type CaptionLine,
@@ -81,6 +91,7 @@ export {
   type Point,
   type TextOverlay,
 } from "./finish.js";
+export { brokenLocks, changedPaths, isLockPath, valueAt, withLocks } from "./locks.js";
 export {
   cohereLooker,
   cutTranscript,

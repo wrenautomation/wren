@@ -4,7 +4,7 @@
  * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
 import { existsSync } from "node:fs";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -17,6 +17,7 @@ import {
   swapShortMedia,
   uploadMedia,
   VIDEO_PRIVACY,
+  videoChanges,
 } from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
@@ -36,6 +37,8 @@ import {
   editMattes,
   type Format,
   FPS,
+  filmAssets,
+  filmHistory,
   filmstrip,
   findCapProjects,
   findRecordings,
@@ -52,6 +55,7 @@ import {
   keepSegments,
   LOOK_PROVIDERS,
   type Looker,
+  longFilm,
   longProps,
   longSrt,
   type Matte,
@@ -78,12 +82,14 @@ import {
   setEdit,
   setFiles,
   setKeys,
+  setLocks,
   setLook,
   setRender,
   setRendered,
   setStress,
   setStudioWords,
   setWords,
+  shortFilm,
   shortProps,
   sourceProxy,
   stressCandidates,
@@ -265,6 +271,7 @@ export function registerStudio(
 
   type SetOpts = {
     file?: string;
+    lock?: boolean;
     captionsStyle?: string;
     behind?: string;
     captionsLong?: string;
@@ -276,6 +283,7 @@ export function registerStudio(
       "write fields of the edit from JSON (file or stdin): title, description, tags, chapters, cuts, layout, captions, shorts, formats, thumbnail, overlays, crops",
     )
     .option("--file <f>", "read the JSON from this file; else stdin")
+    .option("--lock", "lock what this changes: the agent keeps it (wren video unlock)")
     .option("--captions-style <s>", `no JSON: the caption style, ${CAPTION_STYLES.join(", ")}`)
     .option("--behind <on|off>", "no JSON: stressed words behind the speaker (wren video stress)")
     .option(
@@ -296,7 +304,7 @@ export function registerStudio(
         if (!flags) {
           const text = (await readText(o.file)).trim();
           if (!text) throw new Error("no JSON: pass --file or pipe it in");
-          return setEdit(db, id(v), JSON.parse(text), { by: "cli" });
+          return setEdit(db, id(v), JSON.parse(text), { by: "cli", lock: o.lock === true });
         }
         const { captions } = await getEdit(db, id(v));
         const next = {
@@ -306,12 +314,79 @@ export function registerStudio(
           ...(o.captionsLong !== undefined ? { long: o.captionsLong } : {}),
           ...(o.captionsShort !== undefined ? { short: o.captionsShort } : {}),
         };
-        return setEdit(db, id(v), { captions: next }, { by: "cli" });
+        return setEdit(db, id(v), { captions: next }, { by: "cli", lock: o.lock === true });
       });
       for (const m of r.snapped)
         console.log(`short ${m.n}: snapped to whole sentences (start ${m.from}s, end ${m.to}s)`);
       console.log(`video ${r.edit.id}: set (run ${r.run})`);
     });
+
+  // The edit as an OpenFilm film.html (designs/2026-10-24-video-film-file.md, Decision 1).
+  video
+    .command("film <id>")
+    .description(
+      "write the edit as an OpenFilm folder: film.html, its pages, the words as WebVTT, links to the recordings",
+    )
+    .option("--short <n>", "Short n (from 1), at 1080x1920; else the long video")
+    .option("--out <dir>", "the folder (default: film/ or film-short-N/ beside the recording)")
+    .action((v: string, o: { short?: string; out?: string }) =>
+      withDb(async (db) => {
+        const e = await getEdit(db, id(v));
+        const n = o.short === undefined ? null : Number(o.short);
+        const out = resolve(o.out ?? join(e.dir, n === null ? "film" : `film-short-${n}`));
+        const files = n === null ? longFilm(e) : shortFilm(e, n);
+        for (const [path, text] of Object.entries(files)) {
+          await mkdir(dirname(join(out, path)), { recursive: true });
+          await writeFile(join(out, path), text);
+        }
+        const assets = filmAssets(e);
+        for (const [path, from] of [
+          [assets.main, e.tracks.main.path],
+          [assets.cam, e.tracks.cam?.path],
+        ] as const) {
+          if (!path || !from) continue;
+          await rm(join(out, path), { force: true });
+          await symlink(resolve(from), join(out, path));
+        }
+        console.log(`${out}/film.html (open it: npx -y openfilm@latest open ${out})`);
+      }),
+    );
+
+  video
+    .command("history <id>")
+    .description("each change to the edit, newest first, as a diff of its film.html files")
+    .option("--last <n>", "only the newest n changes", "10")
+    .action((v: string, o: { last: string }) =>
+      withDb(async (db) => {
+        const e = await getEdit(db, id(v));
+        const runs = (await videoChanges(db, e.id)).slice(0, Number(o.last));
+        if (!runs.length) return console.log("no changes yet");
+        for (const c of filmHistory(e, runs)) {
+          console.log(
+            `run ${c.run}  ${c.at}  ${c.command}  by ${c.by ?? "?"}  (${c.fields.join(", ")})`,
+          );
+          console.log(c.diff || "  (no change to any film)\n");
+        }
+      }),
+    );
+
+  for (const [name, what] of [
+    ["lock", "lock parts of the edit so the agent keeps them"],
+    ["unlock", "let the agent change these parts again"],
+  ] as const)
+    video
+      .command(`${name} <id> [paths...]`)
+      .description(
+        `${what}: field paths, list items from 1 (cuts, shorts.2, crops.vertical); none lists them`,
+      )
+      .action((v: string, paths: string[]) =>
+        withDb(async (db) => {
+          const locked = paths.length
+            ? await setLocks(db, id(v), name === "lock" ? { lock: paths } : { unlock: paths })
+            : (await getEdit(db, id(v))).locked;
+          console.log(locked.length ? `locked: ${locked.join(", ")}` : "nothing locked");
+        }),
+      );
 
   // The storyboard and a change in a sentence: the page's Storyboard, from here.
   registerVideoAsk(video, withDb, (o) => {

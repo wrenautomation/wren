@@ -79,9 +79,9 @@ Costs:
 
 ## Order
 
-1. Film file export + history + locks (Sonnet).
-2. Bar + self-check + per-format cut knobs (Sonnet).
-3. Sound kit: research, pick, manifest, Remotion audio, auto-placement (Sonnet; William picks the kit).
-4. Stories overhaul (Opus), after 1 to 3 land their page parts, or with fakes for them.
+1. Film file export + history + locks.
+2. Bar + self-check + per-format cut knobs.
+3. Sound kit: research, pick, manifest, Remotion audio, auto-placement (William picks the kit).
+4. Stories overhaul, after 1 to 3 land their page parts.
 
 Part 2, later: film.html import (a person's OpenFilm Studio edit back to a checked patch).
