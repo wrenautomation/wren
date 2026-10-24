@@ -5,7 +5,7 @@
  * Hover, click and Apply run in `play`. `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { crossingsOf, layoutMetro } from "@wren/ui/metro";
+import { crossingsOf, layoutView } from "@wren/ui/metro";
 import { expect, fn, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { TodayTasks } from "./map/TodayTasks.js";
 import type { Task } from "./map/tasks.js";
@@ -48,13 +48,13 @@ const mapOf = async (page: HTMLElement) => {
 };
 
 /**
- * A station of the map, by the start of its name: "Engaged, 5 now" is found by "Engaged". A phone
- * folds the map by its width, so the zoom goes to Stations first and every station shows.
+ * A station of the map, by the start of its name: "Engaged, 5 now" is found by "Engaged". The map
+ * opens one level at a time first, until every station shows.
  */
 const station = async (page: HTMLElement, name: RegExp | string) => {
-  const zoom = await within(page).findByRole("group", { name: "Zoom level" }, LATE);
-  const stations = within(zoom).getByRole("button", { name: "Stations" });
-  if (stations.getAttribute("aria-pressed") !== "true") await userEvent.click(stations);
+  const depth = await within(page).findByRole("group", { name: "Fold depth" }, LATE);
+  const open = within(depth).getByRole("button", { name: "Open one level" });
+  for (let i = 0; i < 12 && !(open as HTMLButtonElement).disabled; i++) await userEvent.click(open);
   return (await mapOf(page)).findByRole(
     "button",
     { name: new RegExp(`^${typeof name === "string" ? name : name.source}`) },
@@ -129,8 +129,8 @@ const calm = async (page: HTMLElement) => {
 /** Crossings each fake shape draws now. Before the rows were ordered the big shape drew 2; the rest drew the same. */
 const CROSSINGS_PINNED = { default: 0, plan: 0, big: 0 };
 /** The tracks of `metro` that cross in the layout the page draws. */
-const crossingsOfShape = (metro: Parameters<typeof viewOf>[0]) =>
-  crossingsOf(layoutMetro(viewOf(metro, { stations: new Map() }, [], new Date())));
+const crossingsOfShape = async (metro: Parameters<typeof viewOf>[0]) =>
+  crossingsOf(await layoutView(viewOf(metro, { stations: new Map() }, [], new Date())));
 
 type Reply = (b: Record<string, unknown>) => unknown;
 const SHARED = {
@@ -165,12 +165,12 @@ export const Default = mapAt("/", {
       await station(page, name);
     await expect(await within(page).findByRole("heading", { name: "Your business" })).toBeVisible();
     await expect(within(page).getByText(/people on the map now/)).toBeVisible();
-    await expect(within(page).getByRole("group", { name: "Zoom level" })).toBeVisible();
+    await expect(within(page).getByRole("group", { name: "Fold depth" })).toBeVisible();
     // The hub reads its lead count.
     await expect(await station(page, "First touch")).toHaveAccessibleName("First touch, 18 leads");
     // A calm map: real size, centred or panning, nothing on top of anything, no more crossings.
     await calm(page);
-    await expect(crossingsOfShape(SHAPE_METRO)).toBeLessThanOrEqual(CROSSINGS_PINNED.default);
+    await expect(await crossingsOfShape(SHAPE_METRO)).toBeLessThanOrEqual(CROSSINGS_PINNED.default);
     // The ghost holds its one person.
     await expect(within(page).getByRole("button", { name: "Open Joined" })).toBeVisible();
     // Today sits under the Map: its tasks and its lists.
@@ -442,7 +442,7 @@ export const Plan = mapAt("/", {
       /^Standard plan, 3 now/,
     );
     await calm(page);
-    await expect(crossingsOfShape(SHAPE_PLAN)).toBeLessThanOrEqual(CROSSINGS_PINNED.plan);
+    await expect(await crossingsOfShape(SHAPE_PLAN)).toBeLessThanOrEqual(CROSSINGS_PINNED.plan);
   },
 });
 
@@ -458,7 +458,7 @@ export const Big = mapAt("/", {
     await expect(pans).toBe(true);
     // A frame that scrolls takes focus, so the arrow keys pan it.
     await waitFor(() => expect(host).toHaveAttribute("tabindex", "0"));
-    await expect(crossingsOfShape(SHAPE_BIG)).toBeLessThanOrEqual(CROSSINGS_PINNED.big);
+    await expect(await crossingsOfShape(SHAPE_BIG)).toBeLessThanOrEqual(CROSSINGS_PINNED.big);
     // It opens at the left edge: the first station is in view and nothing is scrolled away.
     await expect(host.scrollLeft).toBe(0);
     const first = await station(page, "Social");

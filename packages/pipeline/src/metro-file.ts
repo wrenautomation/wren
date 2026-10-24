@@ -5,7 +5,7 @@
  * `checkMetro`'s job. Pure: it reads no database and no file.
  */
 import { stringify } from "yaml";
-import type { Attach, MetroBody, MetroFlow } from "./metro.js";
+import type { Attach, MetroBody, MetroFlow, MetroGroup } from "./metro.js";
 import { Refused } from "./refused.js";
 
 /** Keys a reader wants first, in this order. Others follow in the order they were set. */
@@ -131,8 +131,9 @@ const TRACK: Schema = {
 const GROUP: Schema = {
   id: "text!",
   label: "text!",
-  line: "text!",
-  stations: "texts!",
+  line: "text",
+  stations: "texts",
+  parent: "text",
   attach: "attaches",
 };
 const FRAME: Schema = {
@@ -287,7 +288,11 @@ export function parseMetroBody(doc: unknown): MetroBody {
   const lines = readList(doc, "lines", "Line", LINE, true, errors);
   const stations = readList(doc, "stations", "Station", STATION, true, errors);
   const tracks = readList(doc, "tracks", "Track", TRACK, false, errors);
-  const groups = readList(doc, "groups", "Group", GROUP, false, errors);
+  // A group that only holds groups lists no stations.
+  const groups = readList(doc, "groups", "Group", GROUP, false, errors).map((g) => ({
+    ...(g as MetroGroup),
+    stations: (g as Partial<MetroGroup>).stations ?? [],
+  }));
   const frames = readList(doc, "frames", "Frame", FRAME, false, errors);
   const flows = readFlows(doc, errors);
   if (errors.length) throw new Refused(errors);

@@ -1,55 +1,61 @@
 /**
- * `MetroMap`: a metro map you can zoom. It draws a `MetroZoom` (or a scene, or a view) at a level
- * and takes the viewer's folds. Props only: it fetches nothing.
+ * `MetroMap`: a metro map you can fold. It draws a `MetroZoom` (or a scene, or a view) at a depth
+ * of its fold tree (tree.ts) and takes the viewer's folds. Props only: it fetches nothing.
  *
- * `level` and `open` are controlled when the parent passes them (with `onLevel`, `onOpen`) and
- * kept here when it does not. The map keeps no state a remount would lose when the parent passes
- * both. Hover or focus on a line lights it; Enter or Space on a mark picks it or opens its fold;
- * a wheel with ctrl or meta, a Safari pinch and a touch pinch step the level.
+ * `depth` and `open` are controlled when the parent passes them (with `onDepth`, `onOpen`) and
+ * kept here when it does not. Hover or focus on a line lights it; Enter or Space on a mark picks it
+ * or opens its node; a wheel with ctrl or meta, a Safari pinch, a touch pinch and the − + buttons
+ * step the depth. A view lays out async: the map keeps the last scene until the next one is ready,
+ * and shows the skeleton on the first load.
  *
  * Scale: one scene px is one css px. The host centres a map smaller than itself across its width,
  * at the top, and scrolls a map wider or taller than itself, so a label reads at its real size on any
  * screen.
  */
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Seg } from "../controls.js";
+import { Button } from "../controls.js";
 import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
-import {
-  ALL_OPEN,
-  autoZoom,
-  type MetroZoom,
-  type OpenMap,
-  stepLevel,
-  toggleGroup,
-  viewZoom,
-} from "./fold.js";
+import { autoZoom, type MetroZoom, viewZoom } from "./fold.js";
 import { centreOf, fadeIn, glide, glideHeight } from "./glide.js";
 import { MARK_GLYPH, MARK_WORD } from "./marks.js";
+import { MetroSkeleton } from "./skeleton.js";
+import {
+  allOpen,
+  type Fold,
+  type FoldNode,
+  fullDepth,
+  type OpenMap,
+  openKey,
+  openSet,
+  pathTo,
+  stepDepth,
+  toggle,
+} from "./tree.js";
 import type { Mark, MetroPart, MetroScene, Point } from "./types.js";
 import type { MetroView } from "./view.js";
 import "./metro.css";
 
-/** What the viewer picked: a station or a folded mark, a track, or a group they closed. */
+/** What the viewer picked: a station or a folded mark, a track, or a node they closed. */
 export interface MetroPick {
   kind: "station" | "track" | "group";
   id: string;
-  /** For a station or folded mark: its fold group, when it has one. */
+  /** For a station or folded mark: its fold node, when it has one. */
   group?: string | undefined;
 }
 
 export interface MetroMapProps {
-  /** What to draw. One of: zoom (levels and folds), scene (placed), view (placed by `layoutMetro`). */
+  /** What to draw. One of: zoom (a fold tree), scene (placed), view (laid out by ELK). */
   zoom?: MetroZoom | undefined;
   scene?: MetroScene | undefined;
   view?: MetroView | undefined;
 
-  /** The zoom level. Controlled with `onLevel`; `defaultLevel` when not. */
-  level?: number | undefined;
-  defaultLevel?: number | undefined;
-  onLevel?: ((level: number) => void) | undefined;
-  /** Groups opened (true) or folded (false) by hand. Controlled with `onOpen`. */
+  /** The depth cut: nodes above it show open. Controlled with `onDepth`; `defaultDepth` when not. */
+  depth?: number | undefined;
+  defaultDepth?: number | undefined;
+  onDepth?: ((depth: number) => void) | undefined;
+  /** Nodes opened (true) or closed (false) by hand, over the cut. Controlled with `onOpen`. */
   open?: OpenMap | undefined;
   onOpen?: ((open: OpenMap) => void) | undefined;
 
@@ -60,23 +66,21 @@ export interface MetroMapProps {
   /** A line to light from outside (a task list). Hover on the map lights lines when it is not passed. */
   lit?: string | null | undefined;
 
-  /** The level buttons and the count line. Default: on. */
+  /** The depth buttons, the path and the count line. Default: on. */
   controls?: boolean | undefined;
-  /** The level buttons in the bar. Off when the page puts `MetroLevels` in its own header. Default: on. */
-  levels?: boolean | undefined;
   /**
    * Draw one part only (a line, group, station or flow), or a set of parts, and a faded stub for
-   * each track that crosses the edge. Shows every station inside, whatever the level.
+   * each track that crosses the edge. Shows every station inside, whatever the depth.
    */
   focus?: FocusSpec | null | undefined;
   /** A click, Enter or Space on a stub: the part on its far side. */
   onStub?: ((part: MetroPart) => void) | undefined;
   /** No dots move. */
   still?: boolean | undefined;
-  /** The first-load draw-in. Default: on. Off for stories and tests. Never on a level change. */
+  /** The first-load draw-in. Default: on. Off for stories and tests. Never on a fold. */
   intro?: boolean | undefined;
   className?: string | undefined;
-  /** More controls beside the levels. */
+  /** More controls beside the depth buttons. */
   children?: ReactNode;
 }
 
@@ -100,6 +104,43 @@ const shapeOf = (s: MetroScene) =>
 /** The first-load draw-in lasts about this long, then the map stops carrying its classes. */
 const INTRO_MS = 4200;
 
+/**
+ * A zoom's scenes, one per open set. A sync scene comes back at once; an async one comes back
+ * `undefined` the first time and calls `ready` when it lands.
+ */
+function useScenes(zoom: MetroZoom) {
+  const [, bump] = useState(0);
+  // A new zoom starts a new cache.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the zoom keys the cache
+  const cache = useMemo(
+    () => ({ done: new Map<string, MetroScene>(), out: new Set<string>() }),
+    [zoom],
+  );
+  return (open: ReadonlySet<string>): MetroScene | undefined => {
+    const k = openKey(open);
+    const hit = cache.done.get(k);
+    if (hit || cache.out.has(k)) return hit;
+    const r = zoom.scene(open);
+    if (!(r instanceof Promise)) {
+      cache.done.set(k, r);
+      return r;
+    }
+    cache.out.add(k);
+    r.then(
+      (s) => {
+        cache.done.set(k, s);
+        cache.out.delete(k);
+        bump((n) => n + 1);
+      },
+      (e: unknown) => {
+        cache.out.delete(k);
+        console.error("metro layout", e);
+      },
+    );
+    return undefined;
+  };
+}
+
 export function MetroMap(props: MetroMapProps) {
   const { onPick, controls = true, still, className } = props;
   const zoom = useMemo<MetroZoom>(
@@ -108,7 +149,7 @@ export function MetroMap(props: MetroMapProps) {
       (props.scene ? autoZoom(props.scene) : props.view ? viewZoom(props.view) : autoZoom(EMPTY)),
     [props.zoom, props.scene, props.view],
   );
-  const [level, setLevel] = useControlled(props.level, props.defaultLevel ?? 0);
+  const [depth, setDepth] = useControlled(props.depth, props.defaultDepth ?? 0);
   const [open, setOpen] = useControlled<OpenMap>(props.open, NONE);
   const [pickedOwn, setPicked] = useState<string | null>(null);
   const picked = props.selected !== undefined ? props.selected : pickedOwn;
@@ -116,21 +157,31 @@ export function MetroMap(props: MetroMapProps) {
   const lit = props.lit !== undefined ? props.lit : hover;
 
   const focus = props.focus ?? null;
-  const base = useMemo(
-    // A focused part shows all its stations: the deepest level, nothing folded.
-    () => (focus ? zoom.scene(zoom.names.length - 1, ALL_OPEN) : zoom.scene(level, open)),
-    [zoom, level, open, focus],
+  // A focused part shows all its stations: every node open.
+  const shown = useMemo(
+    () => (focus ? allOpen(zoom.nodes) : openSet(zoom.nodes, { depth, open })),
+    [zoom, depth, open, focus],
   );
-  const scene = useMemo(() => (focus ? focusScene(base, focus) : base), [base, focus]);
+  const sceneOf = useScenes(zoom);
+  const now = sceneOf(shown);
+  // While the next fold lays out, the last one stays.
+  const held = useRef<MetroScene | null>(null);
+  if (now) held.current = now;
+  const base = now ?? held.current;
+  const scene = useMemo(
+    () => (base && focus ? focusScene(base, focus) : (base ?? EMPTY)),
+    [base, focus],
+  );
+  const full = useMemo(() => fullDepth(zoom.nodes), [zoom]);
   const mixed = Object.keys(open).length > 0;
 
-  // The first load happens once, on mount. A level change or a refresh never brings it back.
+  // The first load happens once, on mount. A fold or a refresh never brings it back.
   const [intro, setIntro] = useState(props.intro !== false);
-  // A new shape inside the window (a focus, a view, a level) ends it before the marks are drawn.
+  // A new shape inside the window (a focus, a view, a fold) ends it before the marks are drawn.
   const first = useRef<string | null>(null);
   const shape = shapeOf(scene);
-  if (first.current === null) first.current = shape;
-  if (intro && shape !== first.current) setIntro(false);
+  if (first.current === null && base) first.current = shape;
+  if (intro && first.current !== null && shape !== first.current) setIntro(false);
   useEffect(() => {
     if (!intro) return;
     const t = setTimeout(() => setIntro(false), INTRO_MS);
@@ -138,22 +189,17 @@ export function MetroMap(props: MetroMapProps) {
   }, [intro]);
 
   // Callbacks and state the native listeners read; they never go stale.
-  const live = useRef({ level, open, zoom, onPick, onStub: props.onStub, focused: !!focus });
-  live.current = { level, open, zoom, onPick, onStub: props.onStub, focused: !!focus };
+  const live = useRef({ depth, open, zoom, onPick, onStub: props.onStub, focused: !!focus });
+  live.current = { depth, open, zoom, onPick, onStub: props.onStub, focused: !!focus };
   const anchor = useRef<Point | null>(null);
   const anchorKey = useRef<string | null>(null);
-  const set = (
-    next: { level: number; open: OpenMap },
-    from?: Element | null,
-    at?: Point | null,
-    into?: string,
-  ) => {
+  const set = (next: Fold, from?: Element | null, at?: Point | null, into?: string) => {
     anchor.current = at ?? centreOf(from ?? null);
     anchorKey.current = into ?? null;
     setIntro(false);
-    setLevel(next.level);
+    setDepth(next.depth);
     setOpen(next.open);
-    if (next.level !== level) props.onLevel?.(next.level);
+    if (next.depth !== depth) props.onDepth?.(next.depth);
     if (!sameOpen(next.open, open)) props.onOpen?.(next.open);
   };
   const setRef = useRef(set);
@@ -174,7 +220,7 @@ export function MetroMap(props: MetroMapProps) {
     const el = host.current;
     if (!el) return;
     const act = (target: Element) => {
-      const { zoom: z, level: lv, open: op } = live.current;
+      const { zoom: z, depth: d, open: op } = live.current;
       const stub = target.closest<SVGElement>("[data-stub]");
       if (stub?.dataset.stub) {
         const kind = stub.dataset.stubKind as MetroPart["kind"];
@@ -192,7 +238,7 @@ export function MetroMap(props: MetroMapProps) {
         const k = fold.dataset.fold;
         // The stations go back into the circle the group folds into.
         const id = z.foldId?.[k] ?? k;
-        setRef.current(toggleGroup(z, { level: lv, open: op }, k, false), fold, null, `i:${id}`);
+        setRef.current(toggle(z.nodes, { depth: d, open: op }, k, false), fold, null, `i:${id}`);
         pickRef.current({ kind: "group", id, group: k });
         return;
       }
@@ -200,7 +246,7 @@ export function MetroMap(props: MetroMapProps) {
       if (!node) return;
       const grp = node.dataset.grp;
       if (grp && node.dataset.id) {
-        setRef.current(toggleGroup(z, { level: lv, open: op }, grp, true), node);
+        setRef.current(toggle(z.nodes, { depth: d, open: op }, grp, true), node);
         pickRef.current({ kind: "group", id: node.dataset.id, group: grp });
       } else if (node.dataset.id) {
         pickRef.current({ kind: "station", id: node.dataset.id });
@@ -222,11 +268,11 @@ export function MetroMap(props: MetroMapProps) {
     const out = () => setHover(null);
 
     // Steps. Trackpad pinch arrives as ctrl + wheel; a plain wheel still scrolls the page.
-    const step = (d: number, at?: Point | null) => {
-      const { zoom: z, level: lv, open: op } = live.current;
+    const step = (by: number, at?: Point | null) => {
+      const { zoom: z, depth: d, open: op } = live.current;
       if (live.current.focused) return;
-      const n = stepLevel(z, lv, d);
-      if (n !== lv || Object.keys(op).length) setRef.current({ level: n, open: NONE }, null, at);
+      const next = stepDepth(z.nodes, d, by);
+      if (next.depth !== d || Object.keys(op).length) setRef.current(next, null, at);
     };
     const svgPoint = (cx: number, cy: number): Point | null => {
       const s = svg.current;
@@ -365,7 +411,7 @@ export function MetroMap(props: MetroMapProps) {
     return () => watch.disconnect();
   }, []);
 
-  // The legend shows while the map has a mark. Marks show at every level (a fold carries them).
+  // The legend shows while the map has a mark. Marks show at every depth (a fold carries them).
   const drawsMarks = hasMarks(scene);
   const marks = scene.st.length;
   const stubs = scene.tr.filter((r) => r.stub).length;
@@ -373,17 +419,13 @@ export function MetroMap(props: MetroMapProps) {
   return (
     <div
       className={cx("metro", className)}
-      data-level={level}
+      data-depth={depth}
       {...(focus ? { "data-focus": specKey(focus) } : {})}
     >
       {controls ? (
         <div className="metro-bar">
-          {focus || props.levels === false ? null : (
-            <MetroLevels
-              names={zoom.names}
-              level={mixed ? null : level}
-              onLevel={(n) => set({ level: n, open: NONE })}
-            />
+          {focus || !full ? null : (
+            <MetroDepth nodes={zoom.nodes} fold={{ depth, open }} onFold={(f) => set(f)} />
           )}
           <p className="metro-count" aria-live="polite">
             {focus ? (
@@ -396,7 +438,8 @@ export function MetroMap(props: MetroMapProps) {
               </>
             ) : (
               <>
-                {mixed ? "Mixed" : zoom.names[level]}: <b>{marks}</b> marks
+                {mixed ? "Mixed" : `Depth ${Math.min(depth, full)} of ${full}`}: <b>{marks}</b>{" "}
+                marks
                 {caps ? (
                   <>
                     , <b>{caps}</b> folded
@@ -424,17 +467,21 @@ export function MetroMap(props: MetroMapProps) {
         {...(pans ? { tabIndex: 0, role: "group", "aria-label": "Scrollable map" } : {})}
       >
         {drawsMarks && !controls ? <MetroLegend over /> : null}
-        <div ref={stage} className="metro-stage">
-          <MetroSvg
-            ref={svg}
-            scene={scene}
-            still={still}
-            intro={intro}
-            selected={picked}
-            lit={lit}
-          />
-          <div ref={old} className="metro-old" aria-hidden="true" />
-        </div>
+        {base ? (
+          <div ref={stage} className="metro-stage">
+            <MetroSvg
+              ref={svg}
+              scene={scene}
+              still={still}
+              intro={intro}
+              selected={picked}
+              lit={lit}
+            />
+            <div ref={old} className="metro-old" aria-hidden="true" />
+          </div>
+        ) : (
+          <MetroSkeleton />
+        )}
       </div>
     </div>
   );
@@ -447,30 +494,77 @@ const hasMarks = (s: MetroScene) =>
 const NONE: OpenMap = Object.freeze({});
 const EMPTY: MetroScene = { h: 80, st: [], tr: [] };
 
-/** The level buttons (the artifact's `.seg`): one per level, the level shown pressed. `null`: a mix, none pressed. */
-export function MetroLevels({
-  names,
-  level,
-  onLevel,
-  label = "Zoom level",
-}: {
-  names: readonly string[];
-  level: number | null;
-  onLevel: (level: number) => void;
-  label?: string;
-}) {
-  return (
-    <Seg
-      label={label}
-      className="metro-levels"
-      value={level === null ? "" : String(level)}
-      items={names.map((n, i) => ({ value: String(i), label: n }))}
-      onChange={(v) => onLevel(Number(v))}
-    />
-  );
+const MARKS: Mark[] = ["added", "changed", "removed"];
+
+/** The node opened by hand last, while it shows: the path shows its way down. */
+function trailOf(nodes: readonly FoldNode[], fold: Fold, shown: ReadonlySet<string>) {
+  const ids = new Set(nodes.map((n) => n.id));
+  const hand = Object.entries(fold.open).filter(([k, on]) => on && ids.has(k) && shown.has(k));
+  return hand.at(-1)?.[0] ?? null;
 }
 
-const MARKS: Mark[] = ["added", "changed", "removed"];
+export interface MetroDepthProps {
+  nodes: readonly FoldNode[];
+  fold: Fold;
+  onFold: (fold: Fold) => void;
+}
+
+/**
+ * The fold controls: − and + step the depth cut, and the path names the node opened last. A crumb
+ * closes what sits under it; Map closes all. `MetroMap` draws it in its bar; a page that hides the
+ * bar draws it where it wants.
+ */
+export function MetroDepth({ nodes, fold, onFold }: MetroDepthProps) {
+  const full = fullDepth(nodes);
+  const mixed = Object.keys(fold.open).length > 0;
+  const shown = openSet(nodes, fold);
+  const trail = trailOf(nodes, fold, shown);
+  const crumbs = trail ? pathTo(nodes, trail) : [];
+  const upTo = (id: string) => {
+    let next = fold;
+    for (const n of nodes)
+      if (n.parent === id && shown.has(n.id)) next = toggle(nodes, next, n.id, false);
+    // The crumb stays the end of the path.
+    const { [id]: _, ...rest } = next.open;
+    onFold({ depth: next.depth, open: { ...rest, [id]: true } });
+  };
+  if (!full) return null;
+  return (
+    <fieldset className="metro-depth" aria-label="Fold depth">
+      <Button
+        size="dense"
+        aria-label="Fold one level"
+        disabled={fold.depth <= 0 && !mixed}
+        onClick={() => onFold(stepDepth(nodes, fold.depth, -1))}
+      >
+        −
+      </Button>
+      <Button
+        size="dense"
+        aria-label="Open one level"
+        disabled={fold.depth >= full && !mixed}
+        onClick={() => onFold(stepDepth(nodes, fold.depth, 1))}
+      >
+        +
+      </Button>
+      <fieldset className="metro-path" aria-label="Fold path">
+        <button type="button" onClick={() => onFold({ depth: 0, open: {} })}>
+          Map
+        </button>
+        {crumbs.map((n) => (
+          <button
+            type="button"
+            key={n.id}
+            onClick={() => upTo(n.id)}
+            aria-current={n.id === trail ? "location" : undefined}
+          >
+            {n.label}
+          </button>
+        ))}
+      </fieldset>
+    </fieldset>
+  );
+}
 
 /**
  * The three diff marks and their words. `MetroMap` draws it when its scene has a mark: in the

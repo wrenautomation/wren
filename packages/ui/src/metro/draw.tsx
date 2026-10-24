@@ -1,7 +1,7 @@
 /**
  * `MetroSvg`: a positioned scene drawn as React SVG. Port of `draw(sc)` in the design language
  * artifact (metro-render.js). Pure: a scene in, elements out. Every mark is keyed by its id, so a
- * level switch can glide the marks that stay (map.tsx). No colour is fixed here: lines read
+ * fold change can glide the marks that stay (map.tsx). No colour is fixed here: lines read
  * `--ui-line-N`, the rest reads the ink and paper tokens, so night comes from the tokens.
  */
 import { type CSSProperties, type ReactNode, type Ref, useId } from "react";
@@ -211,7 +211,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         labels.push(
           <XferLabel
             key={`xp-${k}`}
-            m={m}
+            m={r.lat ?? m}
             lab={r.lab}
             colour={lineColour(colours, l)}
             l={l}

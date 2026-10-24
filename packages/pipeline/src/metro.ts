@@ -193,8 +193,12 @@ export interface MetroTrack {
 export interface MetroGroup {
   id: string;
   label: string;
-  line: string;
+  /** The line its stations sit on. A group that only holds groups may span lines and name none. */
+  line?: string;
+  /** Empty for a group that only holds groups. */
   stations: string[];
+  /** The group it sits in: groups nest to any depth, and the map folds them level by level. */
+  parent?: string;
   attach?: Attach[];
 }
 
@@ -868,14 +872,36 @@ function checkGroups(
   errors: string[],
 ): void {
   const taken = new Map<string, string>();
+  const groupBy = new Map(groups.map((g) => [g.id, g]));
+  const parents = new Set(groups.map((g) => g.parent));
   for (const g of groups) {
     const k = g.id;
     if (typeof g.label !== "string" || g.label.trim() === "")
       errors.push(`Group "${k}" needs a label.`);
-    if (!lineBy.has(g.line))
+    if (g.parent !== undefined) {
+      if (!groupBy.has(g.parent))
+        errors.push(`Group "${k}" sits in group "${g.parent}", which does not exist.`);
+      // Walk up: a group that reaches itself is in a loop.
+      const seen = new Set([k]);
+      for (let up = groupBy.get(g.parent); up; up = groupBy.get(up.parent ?? "")) {
+        if (seen.has(up.id)) {
+          errors.push(`Group "${k}" sits inside itself through "${g.parent}".`);
+          break;
+        }
+        seen.add(up.id);
+      }
+    }
+    const empty = !Array.isArray(g.stations) || g.stations.length === 0;
+    // A group that only holds groups needs no line and no station.
+    if (empty && parents.has(k)) {
+      if (g.line !== undefined && !lineBy.has(g.line))
+        errors.push(`Group "${k}" is on line "${g.line}", which does not exist.`);
+      continue;
+    }
+    if (g.line === undefined || !lineBy.has(g.line))
       errors.push(`Group "${k}" is on line "${g.line}", which does not exist.`);
-    if (!Array.isArray(g.stations) || g.stations.length === 0) {
-      errors.push(`Group "${k}" needs at least one station.`);
+    if (empty) {
+      errors.push(`Group "${k}" needs at least one station or a group inside it.`);
       continue;
     }
     for (const id of g.stations) {

@@ -1,5 +1,5 @@
 /**
- * What one viewer keeps of the Map in this browser: the zoom level, the folds opened by hand and
+ * What one viewer keeps of the Map in this browser: the fold depth, the folds opened by hand and
  * the open panel. They stay when the viewer leaves the Map and comes back. Pure parsing; the
  * browser store is `../local.ts`. A bad or missing value reads as nothing.
  */
@@ -8,7 +8,7 @@ import { keep, recall } from "../local.js";
 import type { PanelRef } from "./routes.js";
 
 export interface Kept {
-  level?: number;
+  depth?: number;
   open?: OpenMap;
   panel?: PanelRef | null;
 }
@@ -29,7 +29,9 @@ export function keptOf(raw: string | null): Kept {
   if (!v || typeof v !== "object") return {};
   const o = v as Record<string, unknown>;
   const out: Kept = {};
-  if (typeof o.level === "number" && Number.isInteger(o.level) && o.level >= 0) out.level = o.level;
+  // A view kept before the depth tree (10-23) named its depth `level`.
+  const depth = o.depth ?? o.level;
+  if (typeof depth === "number" && Number.isInteger(depth) && depth >= 0) out.depth = depth;
   if (o.open && typeof o.open === "object") {
     const open: Record<string, boolean> = {};
     for (const [k, b] of Object.entries(o.open)) if (typeof b === "boolean") open[k] = b;

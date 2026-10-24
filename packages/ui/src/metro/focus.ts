@@ -5,7 +5,7 @@
  * to. A click on a stub names the part on the far side (`MetroPart`), so the caller can focus it.
  *
  * Pure. Works on scenes whose marks name their line (`ln`), group (`g`) or flow, and whose tracks
- * join marks (`a`, `b`): scenes from `layoutMetro`, and the zoom scene. Hand-composed scenes whose
+ * join marks (`a`, `b`): scenes from `placeMetro`, and the zoom scene. Hand-composed scenes whose
  * tracks run on points hold no such link, so focus cannot cut them.
  */
 import { textWidth } from "./geometry.js";

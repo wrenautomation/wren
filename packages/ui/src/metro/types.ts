@@ -1,7 +1,7 @@
 /**
  * The metro map's scene: a drawing with every mark placed. A faithful, typed port of the scene the
  * design language artifact hands its `draw` (designs/2026-10-20-design-language/metro-render.js).
- * `MetroView` (view.ts) is the same map as plain data with no positions; `layoutMetro` makes a scene.
+ * `MetroView` (view.ts) is the same map as plain data with no positions; `placeMetro` makes a scene.
  */
 import type { IconName } from "../icons.js";
 
@@ -96,6 +96,8 @@ export interface CapsuleStation {
   grp?: string;
   /** A diff mark: any mark inside shows on the capsule. */
   mark?: Mark;
+  /** Stations inside where people drop out (exits, bad stations): a red count on the capsule. */
+  bad?: number;
   /** The side its name sits on. Default: up. */
   p?: Side;
 }
@@ -154,10 +156,12 @@ export interface MetroTrack {
   ob?: number;
   /** Where its 45 degree part sits: at the start or the end. Default: the middle. */
   bend?: "a" | "b";
+  /** How far the bent part runs at most: a hub line lands on its row by the next column. */
+  reach?: number;
   /** A person track: "WJ · 4h" is owner and promise. */
   who?: string;
   late?: boolean;
-  /** Where its pill sits, and a nudge down. `layoutMetro` sets the place in the free part of the track. */
+  /** Where its pill sits, and a nudge down. `finishMetro` sets the place in the free part of the track. */
   at?: Point;
   bdy?: number;
   /** The pill folded to a dot at `at` that says this many tasks: the track has no room for it. */
@@ -166,7 +170,7 @@ export interface MetroTrack {
   cond?: string;
   condGlyph?: IconName | null;
   cat?: Point;
-  /** A track back along its own row runs on a rail this far under the row (`layoutMetro` sets it). */
+  /** A track back along its own row runs on a rail this far under the row (`layoutView` sets it). */
   back?: number;
   /** Tracks on one rail with one branch label show it once: this one draws no chip. */
   condShared?: boolean;
@@ -177,6 +181,8 @@ export interface MetroTrack {
   /** A transfer's label, and how far along it sits. */
   lab?: string;
   f?: number;
+  /** Where the label sits when its spot at `f` meets a mark (rows close together). */
+  lat?: Point;
   /** The task a person track makes on Today. */
   task?: string;
   med?: string;
@@ -226,8 +232,10 @@ export interface OpenedSpec {
   cap: [number, number];
   y: number;
   l: LineKey;
-  /** The fold leaf's centre: under the circle where the group's expand leaf was. */
+  /** The fold leaf's centre: under the circle where the group's expand leaf was, or on its frame's top edge. */
   at: Point;
+  /** An open node's frame round all it holds: left, top, right, bottom. None: a pill along its row. */
+  box?: [number, number, number, number];
 }
 
 /** The tab of an open group. Click it to fold the group back. */

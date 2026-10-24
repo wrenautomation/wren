@@ -1,6 +1,6 @@
 /**
- * Metro/Lab: one case through the three layout engines, beside the hand-placed map. Pick a case and
- * a step (the map's width); the hand map comes first, then each engine sorted by its score. "Score
+ * Metro/Lab: one case through the layout engine, beside the hand-placed map. Pick a case and a step
+ * (the map's width); the hand map comes first, then the engine with its score. "Score
  * all cases" adds up the board at that step.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -222,11 +222,10 @@ type Story = StoryObj;
 /** A hand-placed industry map: the target is the artifact's drawing. */
 export const Industry: Story = {
   render: () => <Lab start="industry-dental" />,
-  // Every engine runs in the page: the LP placer's Wasm loads here, not only in Node.
+  // ELK runs in the page, not only in Node.
   play: async ({ canvasElement }) => {
-    const first = await within(canvasElement).findByText(/^1\. /, {}, { timeout: 30_000 });
+    const first = await within(canvasElement).findByText(/^1\. ELK BK$/, {}, { timeout: 30_000 });
     await expect(first).toBeVisible();
-    await expect(within(canvasElement).getAllByText(/^\d+\. ELK \+ LP$/).length).toBeGreaterThan(0);
   },
 };
 
@@ -237,14 +236,15 @@ export const Big: Story = { render: () => <Lab start="generated-40" /> };
 export const Shaped: Story = { render: () => <Lab start="generated-40-shaped" twins /> };
 
 /**
- * The shaped funnel in the live map, at Stations: the platforms fold into one stacked station, the
- * outlier stays out. Click the fold to open it; its tab folds it back.
+ * The shaped funnel in the live map, every group open: the platforms stay folded into one stacked
+ * station (they open by hand only), the outlier stays out. Click the fold to open it; its tab folds
+ * it back.
  */
 export const ShapedMap: Story = {
   render: () => (
     <MetroMap
       view={funnel(40, 40, { loops: true, retainer: true, platforms: 5 })}
-      defaultLevel={2}
+      defaultDepth={9}
       intro={false}
     />
   ),

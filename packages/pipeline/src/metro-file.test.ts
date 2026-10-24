@@ -305,9 +305,10 @@ describe("parseMetroBody", () => {
     expect(refusal({ ...doc, frames: [{ id: "f", stations: ["social"], exit: "x" }] })).toEqual([
       'Frame "f" has no trigger.',
     ]);
-    expect(refusal({ ...doc, groups: [{ id: "g", label: "G", line: "social" }] })).toEqual([
-      'Group "g" has no stations.',
-    ]);
+    // A group that only holds groups lists no stations; the shape check judges it.
+    expect(
+      parseMetroBody({ ...doc, groups: [{ id: "g", label: "G", parent: "top" }] }).groups,
+    ).toEqual([{ id: "g", label: "G", parent: "top", stations: [] }]);
   });
 
   it("finds every reason at once", () => {

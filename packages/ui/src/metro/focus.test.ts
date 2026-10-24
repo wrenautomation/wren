@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { focusScene, inPart, nameOf, partOf, STUB, stubsOf } from "./focus.js";
-import { layoutMetro } from "./layout.js";
+import { layoutView } from "./place.js";
 import { WEBINAR_VIEW, ZOOM_SCENE } from "./samples.js";
 import { isMark, type MetroScene } from "./types.js";
 
@@ -125,10 +125,14 @@ describe("focusScene: a station", () => {
 });
 
 describe("focusScene: a flow", () => {
-  const scene = focusScene(layoutMetro(WEBINAR_VIEW), { kind: "flow", id: "Webinar funnel" });
+  let whole: MetroScene;
+  let scene: MetroScene;
+  beforeAll(async () => {
+    whole = await layoutView(WEBINAR_VIEW);
+    scene = focusScene(whole, { kind: "flow", id: "Webinar funnel" });
+  });
   it("keeps the stations of the flow, in the same places", () => {
     expect(ids(scene)).toEqual(["att", "lan", "tix"]);
-    const whole = layoutMetro(WEBINAR_VIEW);
     for (const m of scene.st) expect(m).toEqual(whole.st.find((w) => w.id === m.id));
   });
 

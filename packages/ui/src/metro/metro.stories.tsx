@@ -5,8 +5,8 @@ import { FactsTable } from "../table.js";
 import { MetroSvg } from "./draw.js";
 import type { FocusSpec } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
-import { layoutMetro } from "./layout.js";
 import { MetroMap, type MetroPick } from "./map.js";
+import { layoutView } from "./place.js";
 import {
   COLD_OUTBOUND_VIEW,
   DIFF_VIEW,
@@ -30,7 +30,8 @@ import {
   WEBINAR_VIEW,
   zoomScenario,
 } from "./samples.js";
-import type { MetroPart } from "./types.js";
+import { fullDepth } from "./tree.js";
+import type { MetroPart, MetroScene } from "./types.js";
 
 export default { title: "Metro", parameters: { layout: "padded" } } satisfies Meta;
 
@@ -38,11 +39,16 @@ type Story = StoryObj;
 
 const stack = "grid gap-8";
 
-/** The number in the count line: "Groups: 12 marks, 3 folded of 27." */
+/** The number in the count line: "Depth 1 of 2: 12 marks, 3 folded of 27." */
 const marksIn = (root: HTMLElement) =>
   Number(/(\d+)\s*marks/.exec(root.querySelector(".metro-count")?.textContent ?? "")?.[1] ?? 0);
+/** A view lays out async: wait until the skeleton gives way to the map. */
+const drawn = (root: HTMLElement) =>
+  waitFor(() => expect(root.querySelector(".metro-skeleton")).toBeNull());
 const head = "m-0 mb-2 text-sm font-semibold";
 const note = "m-0 mb-3 max-w-prose text-sm text-[var(--ui-ink-2)]";
+/** A cut under every node: all open but the side-by-side folds. */
+const OPEN = 9;
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -93,28 +99,32 @@ export const LogicGlyphs: Story = { render: () => <GlyphTable rows={LOGIC_GLYPHS
 // ---------------------------------------------------------------------------------------------
 // Section 05: zoom.
 
-/** Section 05: Parts, Groups, Stations, with the level buttons. */
+/** Section 05: the fold depth buttons and the path. */
 export const Zoom: Story = {
   render: () => <MetroMap zoom={zoomScenario()} intro={false} />,
 };
 
-/** Each level on its own. */
-export const ZoomLevels: Story = {
-  render: () => (
+/** Each depth on its own, from one circle per node to every station. */
+function Depths({ make }: { make: () => MetroZoom }) {
+  const full = fullDepth(make().nodes);
+  return (
     <div className={stack}>
-      {zoomScenario().names.map((n, i) => (
-        <Section key={n} title={n}>
-          <MetroMap zoom={zoomScenario()} level={i} controls={false} intro={false} />
+      {Array.from({ length: full + 1 }, (_, d) => `Depth ${d} of ${full}`).map((title, d) => (
+        <Section key={title} title={title}>
+          <MetroMap zoom={make()} depth={d} controls={false} intro={false} />
         </Section>
       ))}
     </div>
-  ),
-};
+  );
+}
+
+export const ZoomDepths: Story = { render: () => <Depths make={zoomScenario} /> };
 
 /** Hover a station: its line stays lit and the rest fade. Enter on a capsule opens it. */
 export const ZoomPlay: Story = {
-  render: () => <MetroMap zoom={zoomScenario()} defaultLevel={1} intro={false} />,
+  render: () => <MetroMap zoom={zoomScenario()} intro={false} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     const svg = canvasElement.querySelector("svg.mm");
     expect(svg).not.toBeNull();
@@ -125,14 +135,13 @@ export const ZoomPlay: Story = {
     await userEvent.unhover(line);
     await waitFor(() => expect(svg?.classList.contains("focus")).toBe(false));
 
-    // A level switch changes what shows.
+    // One level deeper shows more.
     const before = marksIn(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "Stations" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open one level" }));
     await waitFor(() => expect(marksIn(canvasElement)).toBeGreaterThan(before));
-    await expect(canvas.getByRole("button", { name: "Stations" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(canvas.getByText(/^Depth 1 of/)).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Fold one level" }));
+    await waitFor(() => expect(marksIn(canvasElement)).toBe(before));
   },
 };
 
@@ -141,7 +150,7 @@ export const OpenWithEnter: Story = {
   render: function Render() {
     const [picked, setPicked] = useState<MetroPick | null>(null);
     return (
-      <MetroMap zoom={zoomScenario()} defaultLevel={1} intro={false} onPick={setPicked}>
+      <MetroMap zoom={zoomScenario()} intro={false} onPick={setPicked}>
         <output className="text-sm text-[var(--ui-ink-2)]">
           {picked ? `Picked ${picked.kind} ${picked.id}` : "Nothing picked"}
         </output>
@@ -149,6 +158,7 @@ export const OpenWithEnter: Story = {
     );
   },
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     const caps = canvasElement.querySelectorAll<SVGElement>("[data-grp]");
     expect(caps.length).toBeGreaterThan(0);
@@ -160,16 +170,18 @@ export const OpenWithEnter: Story = {
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(marksIn(canvasElement)).toBeGreaterThan(before));
     await expect(canvas.getByText(/^Picked group/)).toBeVisible();
-    // The level buttons show a mix: none is pressed.
-    expect(canvasElement.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);
-    // The fold leaf takes the expand leaf's place: under the same circle, at the same height.
-    const knob = await canvas.findByRole("button", { name: /^Fold / });
+    // A hand change over the cut reads as a mix, and the path names the node.
+    await expect(canvas.getByText(/^Mixed/)).toBeVisible();
+    expect(canvasElement.querySelector(".metro-path [aria-current]")).not.toBeNull();
+    // A node in one column opens to a box: the fold leaf sits on the box's top edge, over the
+    // column the circle stood in.
+    const knob = await canvas.findByRole("button", { name: /^Fold (?!one level)/ });
     const k = (knob.querySelector(".lf") as SVGGraphicsElement).getBBox();
-    expect(Math.abs(k.y + k.height / 2 - (was.y + was.height / 2))).toBeLessThan(2);
+    expect(k.y + k.height / 2).toBeLessThan(was.y + was.height / 2);
     expect(Math.abs(k.x + k.width / 2 - (was.x + was.width / 2))).toBeLessThan(k.width / 2);
     await userEvent.click(knob);
     await waitFor(() => expect(marksIn(canvasElement)).toBe(before));
-    expect(canvas.queryByRole("button", { name: /^Fold / })).toBeNull();
+    expect(canvas.queryByRole("button", { name: /^Fold (?!one level)/ })).toBeNull();
   },
 };
 
@@ -178,8 +190,9 @@ export const OpenWithEnter: Story = {
  * badly, so it stays out. Click the fold to show each platform; the fold tab folds them back.
  */
 export const SideBySide: Story = {
-  render: () => <MetroMap view={TWINS_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={TWINS_VIEW} depth={OPEN} intro={false} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     expect(canvas.queryByText("Post · LinkedIn")).toBeNull();
     await expect(canvas.getByText("Post · TikTok")).toBeVisible();
@@ -202,7 +215,7 @@ const Scenarios = () => (
     {SCENARIOS.map((s) => (
       <Section key={s.title} title={s.title}>
         <p className={note}>{s.biz}</p>
-        <MetroMap scene={s.scene} level={2} controls={false} intro={false} />
+        <MetroMap scene={s.scene} depth={OPEN} controls={false} intro={false} />
       </Section>
     ))}
   </div>
@@ -211,13 +224,13 @@ const Scenarios = () => (
 /** Section 06: the seven scenarios, drawn from hand-built scenes. */
 export const Scenarios06: Story = { name: "Seven scenarios", render: () => <Scenarios /> };
 
-/** Section 06 again, from plain `MetroView` data through `layoutMetro`. No coordinates. */
+/** Section 06 again, from plain `MetroView` data through `layoutView`. No coordinates. */
 export const ScenariosFromViews: Story = {
   render: () => (
     <div className={stack}>
       {SAMPLE_VIEWS.map((v) => (
         <Section key={v.title ?? ""} title={v.title ?? ""}>
-          <MetroMap view={v} level={2} controls={false} intro={false} />
+          <MetroMap view={v} depth={OPEN} controls={false} intro={false} />
         </Section>
       ))}
     </div>
@@ -226,31 +239,32 @@ export const ScenariosFromViews: Story = {
 
 /** The views one by one, as the layout places them. */
 export const ColdOutbound: Story = {
-  render: () => <MetroMap view={COLD_OUTBOUND_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={COLD_OUTBOUND_VIEW} depth={OPEN} intro={false} />,
 };
 export const PaidWebinar: Story = {
-  render: () => <MetroMap view={WEBINAR_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={WEBINAR_VIEW} depth={OPEN} intro={false} />,
 };
 export const ValueLadder: Story = {
-  render: () => <MetroMap view={LADDER_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={LADDER_VIEW} depth={OPEN} intro={false} />,
 };
 export const Downsell: Story = {
-  render: () => <MetroMap view={DOWNSELL_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={DOWNSELL_VIEW} depth={OPEN} intro={false} />,
 };
 export const Referral: Story = {
-  render: () => <MetroMap view={REFERRAL_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={REFERRAL_VIEW} depth={OPEN} intro={false} />,
 };
 /** A person track past its promise rings amber. */
 export const LateTrack: Story = {
-  render: () => <MetroMap view={LATE_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={LATE_VIEW} depth={OPEN} intro={false} />,
 };
 export const PlannedOffer: Story = {
-  render: () => <MetroMap view={PLANNED_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={PLANNED_VIEW} depth={OPEN} intro={false} />,
 };
 
 /** The layout is pure data in, a scene out: this draws it with no map around it. */
 export const LayoutOnly: Story = {
-  render: () => <MetroSvg scene={layoutMetro(COLD_OUTBOUND_VIEW)} still />,
+  loaders: [async () => ({ scene: await layoutView(COLD_OUTBOUND_VIEW) })],
+  render: (_, { loaded }) => <MetroSvg scene={loaded.scene as MetroScene} still />,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -261,64 +275,45 @@ export const Offers: Story = {
   render: () => <MetroMap scene={OFFERS_SCENE} intro={false} />,
 };
 
-function LoopAt({ zoom, level }: { zoom: MetroZoom; level: number }) {
-  return <MetroMap zoom={zoom} level={level} controls={false} intro={false} />;
-}
+/** Section 08: the retainer loop ring at each depth: the offer as one circle, its parts, every station. */
+export const LoopRing: Story = { render: () => <Depths make={loopZoom} /> };
 
-/** Section 08: the retainer loop ring at each level: Offer, Groups, Stations. */
-export const LoopRing: Story = {
-  render: () => (
-    <div className={stack}>
-      {loopZoom().names.map((n, i) => (
-        <Section key={n} title={n}>
-          <LoopAt zoom={loopZoom()} level={i} />
-        </Section>
-      ))}
-    </div>
-  ),
-};
-
-/** The loop with its level buttons. Opening the offer jumps to Groups. */
+/** The loop with its depth buttons: open the offer, then its parts, then fold it back to one circle. */
 export const LoopRingZoom: Story = {
   render: () => <MetroMap zoom={loopZoom()} intro={false} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "Groups" }));
-    await expect(canvas.getByRole("button", { name: "Groups" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const shut = marksIn(canvasElement);
+    const open = canvas.getByRole("button", { name: "Open one level" });
+    await userEvent.click(open);
+    await waitFor(() => expect(marksIn(canvasElement)).toBeGreaterThan(shut));
+    await userEvent.click(open);
+    await waitFor(() => expect(canvas.getByText(/^Depth 2 of 2/)).toBeVisible());
+    await userEvent.click(canvas.getByRole("button", { name: "Map" }));
+    await waitFor(() => expect(marksIn(canvasElement)).toBe(shut));
   },
 };
 
 // ---------------------------------------------------------------------------------------------
 // Section 09: logic marks.
 
-/** Section 09 hero: one sales protocol. Folded, Groups, All. */
+/** Section 09 hero: one sales protocol, every node open. */
 export const Protocol: Story = {
-  render: () => <MetroMap zoom={protocolZoom()} defaultLevel={2} intro={false} />,
+  render: () => <MetroMap zoom={protocolZoom()} defaultDepth={OPEN} intro={false} />,
 };
 
-/** The protocol at each level. */
-export const ProtocolLevels: Story = {
-  render: () => (
-    <div className={stack}>
-      {protocolZoom().names.map((n, i) => (
-        <Section key={n} title={n}>
-          <MetroMap zoom={protocolZoom()} level={i} controls={false} intro={false} />
-        </Section>
-      ))}
-    </div>
-  ),
-};
+/** The protocol at each depth. */
+export const ProtocolDepths: Story = { render: () => <Depths make={protocolZoom} /> };
 
-/** Opening the A/B ring opens the group it sits in. */
+/** One level deeper opens the protocol's nodes. */
 export const ProtocolOpen: Story = {
   render: () => <MetroMap zoom={protocolZoom()} intro={false} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     const before = marksIn(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "All" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open one level" }));
     await waitFor(() => expect(marksIn(canvasElement)).toBeGreaterThan(before));
   },
 };
@@ -332,7 +327,7 @@ export const Industries: Story = {
           <p className={note}>
             {s.biz} Uses: {s.uses.join(", ")}.
           </p>
-          <MetroMap scene={s.scene} level={2} controls={false} intro={false} />
+          <MetroMap scene={s.scene} depth={OPEN} controls={false} intro={false} />
         </Section>
       ))}
     </div>
@@ -347,8 +342,8 @@ export const Night: Story = {
   globals: { theme: "dark" },
   render: () => (
     <div className={stack}>
-      <MetroMap zoom={protocolZoom()} defaultLevel={2} intro={false} />
-      <MetroMap view={LATE_VIEW} level={2} intro={false} />
+      <MetroMap zoom={protocolZoom()} defaultDepth={OPEN} intro={false} />
+      <MetroMap view={LATE_VIEW} depth={OPEN} intro={false} />
       <MetroMap scene={OFFERS_SCENE} intro={false} />
     </div>
   ),
@@ -367,8 +362,9 @@ export const NightGlyphs: Story = {
 
 /** The first load: lines draw, stations land, labels fade, numbers fade in last. Once, on mount. */
 export const FirstLoad: Story = {
-  render: () => <MetroMap view={COLD_OUTBOUND_VIEW} level={2} />,
+  render: () => <MetroMap view={COLD_OUTBOUND_VIEW} depth={OPEN} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     // Tests run with reduced motion; the class is still on for the first moments.
     expect(canvasElement.querySelector(".metro-host")).not.toBeNull();
     expect(canvasElement.querySelectorAll("[data-id]").length).toBeGreaterThan(0);
@@ -424,6 +420,7 @@ export const FocusFlow: Story = {
 export const FocusStubPlay: Story = {
   render: () => <Focused focus={{ kind: "line", id: "gp" }} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     const stub = canvas.getByRole("button", { name: "from First touch" });
     await userEvent.click(stub);
@@ -442,8 +439,9 @@ export const FocusStubPlay: Story = {
 /** One of each mark on stations, tracks and a whole line, with the legend in the controls corner. */
 export const DiffMarks: Story = {
   name: "Diff marks",
-  render: () => <MetroMap view={DIFF_VIEW} level={2} intro={false} />,
+  render: () => <MetroMap view={DIFF_VIEW} depth={OPEN} intro={false} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     // Stations: the mark is in the name.
     await expect(canvas.getByRole("button", { name: /^Replied.*, added$/ })).toBeVisible();
@@ -476,8 +474,9 @@ export const DiffMarks: Story = {
 /** The hub draws its count under its label. */
 export const HubCount: Story = {
   name: "Hub count",
-  render: () => <MetroMap view={DIFF_VIEW} level={2} intro={false} controls={false} />,
+  render: () => <MetroMap view={DIFF_VIEW} depth={OPEN} intro={false} controls={false} />,
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("button", { name: "First touch, 18 leads" })).toBeVisible();
     await expect(canvas.getByText("18 leads")).toBeVisible();
@@ -492,7 +491,7 @@ export const PickedTrackId: Story = {
   render: function Render() {
     const [picked, setPicked] = useState<MetroPick | null>(null);
     return (
-      <MetroMap view={DIFF_VIEW} level={2} intro={false} onPick={setPicked}>
+      <MetroMap view={DIFF_VIEW} depth={OPEN} intro={false} onPick={setPicked}>
         <output className="text-sm text-[var(--ui-ink-2)]">
           {picked ? `Picked ${picked.kind} ${picked.id}` : "Nothing picked"}
         </output>
@@ -500,6 +499,7 @@ export const PickedTrackId: Story = {
     );
   },
   play: async ({ canvasElement }) => {
+    await drawn(canvasElement);
     const canvas = within(canvasElement);
     const hit = canvasElement.querySelector<SVGElement>('[data-tr="t-chk-bk"]');
     if (!hit) throw new Error("no track t-chk-bk");

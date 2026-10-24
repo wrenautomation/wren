@@ -8,22 +8,26 @@ describe("kept view", () => {
     expect(keptOf("7")).toEqual({});
   });
 
-  it("reads the level, the folds and the panel", () => {
+  it("reads the depth, the folds and the panel", () => {
     const raw = JSON.stringify({
-      level: 2,
+      depth: 2,
       open: { sales: true, money: false },
       panel: { kind: "track", id: "a_to_b" },
     });
     expect(keptOf(raw)).toEqual({
-      level: 2,
+      depth: 2,
       open: { sales: true, money: false },
       panel: { kind: "track", id: "a_to_b" },
     });
   });
 
+  it("reads a level kept before the depth tree as the depth", () => {
+    expect(keptOf(JSON.stringify({ level: 1 }))).toEqual({ depth: 1 });
+  });
+
   it("drops what it does not know", () => {
     const raw = JSON.stringify({
-      level: -1,
+      depth: -1,
       open: { sales: "yes", money: true },
       panel: { kind: "group", id: "x" },
     });

@@ -1,5 +1,5 @@
 /**
- * `MetroView`: the map as the store holds it. Plain data, no positions. `layoutMetro` (layout.ts)
+ * `MetroView`: the map as the store holds it. Plain data, no positions. `placeMetro` (place.ts)
  * turns it into a `MetroScene`, which `MetroSvg` draws. A map of any size is a view: the layout
  * never asks for a hand-placed coordinate.
  */
@@ -105,6 +105,8 @@ export interface ViewTrack {
 export interface ViewGroup {
   id: string;
   label: string;
+  /** The group it sits in, for a fold tree of any depth. */
+  parent?: string | undefined;
 }
 
 export interface MetroView {

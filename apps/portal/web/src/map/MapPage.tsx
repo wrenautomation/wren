@@ -5,7 +5,7 @@
  * into what the renderer draws). A pick on a station or track opens its panel, kept in the address
  * (`?node=`, `?track=`, `?line=`). History, a draft (`?draft=<id>`) and an import preview draw the
  * difference on the same map with marks. The page changes nothing about the shape itself; saves go
- * through History (Restore, Undo), the draft banner (Apply, Drop) and Import. The zoom level, the
+ * through History (Restore, Undo), the draft banner (Apply, Drop) and Import. The fold depth, the
  * folds and the open panel stay in this browser for each workspace (`kept.ts`).
  */
 
@@ -13,13 +13,13 @@ import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
 import { Button, Icon, LoadFailed, SELECT_CLASS, Segmented, usePref } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
-  LEVEL_NAMES,
-  MetroLevels,
+  type Fold,
+  MetroDepth,
   MetroMap,
   type MetroPick,
   MetroSkeleton,
   type MetroView,
-  type OpenMap,
+  viewTree,
 } from "@wren/ui/metro";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
@@ -321,8 +321,8 @@ export function MapPage({
   };
   const picker = useRef<HTMLInputElement>(null);
 
-  const setLevel = (level: number) => keepNow({ level });
-  const setOpen = (o: OpenMap) => keepNow({ open: o });
+  const nodes = useMemo(() => (shown?.view ? viewTree(shown.view).nodes : []), [shown?.view]);
+  const fold: Fold = { depth: kept.depth ?? 1, open: kept.open ?? {} };
   const waiting = !!draftId && !row && !opened.error;
 
   return (
@@ -437,13 +437,7 @@ export function MapPage({
               }}
             />
           ) : null}
-          {shown?.view ? (
-            <MetroLevels
-              names={LEVEL_NAMES}
-              level={Object.keys(kept.open ?? {}).length ? null : (kept.level ?? 1)}
-              onLevel={(n) => keepNow({ level: n, open: {} })}
-            />
-          ) : null}
+          {shown?.view ? <MetroDepth nodes={nodes} fold={fold} onFold={(f) => keepNow(f)} /> : null}
         </div>
       </header>
       {notice ? (
@@ -490,10 +484,10 @@ export function MapPage({
                 <MetroMap
                   view={shown.view}
                   lit={lit ?? null}
-                  level={kept.level ?? 1}
-                  onLevel={setLevel}
-                  open={kept.open}
-                  onOpen={setOpen}
+                  depth={fold.depth}
+                  onDepth={(depth) => keepNow({ depth })}
+                  open={fold.open}
+                  onOpen={(open) => keepNow({ open })}
                   controls={false}
                   onPick={onPick}
                   selected={panel && panel.kind !== "line" ? panel.id : null}

@@ -709,7 +709,7 @@ describe("checkMetro: groups", () => {
   it("wants a label, a line that exists and at least one station", () => {
     expect(says((b) => (closing(b).label = ""))).toEqual(['Group "closing" needs a label.']);
     expect(says((b) => (closing(b).stations = []))).toEqual([
-      'Group "closing" needs at least one station.',
+      'Group "closing" needs at least one station or a group inside it.',
     ]);
     const e = says((b) => (closing(b).line = "ghost"));
     expect(e).toContain('Group "closing" is on line "ghost", which does not exist.');
@@ -722,6 +722,28 @@ describe("checkMetro: groups", () => {
     expect(says((b) => (closing(b).stations = ["proposal", "retain_start"]))).toEqual([
       'Group "closing" holds station "retain_start", which is not on line "growth".',
     ]);
+  });
+
+  it("nests groups to any depth: a group of groups needs no line and no station", () => {
+    expect(
+      says((b) => {
+        closing(b).parent = "sales";
+        b.groups.push({ id: "sales", label: "Sales", stations: [], parent: "business" });
+        b.groups.push({ id: "business", label: "Business", stations: [] });
+      }),
+    ).toEqual([]);
+  });
+
+  it("wants a parent that exists, and no group inside itself", () => {
+    expect(says((b) => (closing(b).parent = "ghost"))).toEqual([
+      'Group "closing" sits in group "ghost", which does not exist.',
+    ]);
+    const e = says((b) => {
+      closing(b).parent = "sales";
+      b.groups.push({ id: "sales", label: "Sales", stations: [], parent: "closing" });
+    });
+    expect(e).toContain('Group "closing" sits inside itself through "sales".');
+    expect(e).toContain('Group "sales" sits inside itself through "closing".');
   });
 
   it("never holds the hub or an exit", () => {

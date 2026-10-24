@@ -405,14 +405,27 @@
   stroke: var(--ui-focus);
   stroke-width: 2;
 }
-/* A group opened by hand: a faint outline stays on the track, with a fold leaf under the circle
-   where the expand leaf was. Click the leaf to fold the group back into its circle. */
+/* An open node: a faint outline round what it holds, with a fold leaf. Click the leaf to fold the
+   node back into its circle. */
 .mm .opn {
   fill: none;
   stroke-width: 1.5;
   stroke-dasharray: 5 4;
   opacity: 0.7;
   pointer-events: none;
+}
+.mm .opn.box {
+  stroke-width: 1;
+  opacity: 0.45;
+}
+/* Bad stations inside a closed node: a red count. */
+.mm .cap .bd circle {
+  fill: var(--ui-bad);
+}
+.mm .cap .bd text {
+  fill: var(--ui-on-accent);
+  font-size: 10px;
+  font-weight: 600;
 }
 /* Fit: the map scales to the page width, as in the design language's "Map in the app". It never
    shrinks below 760px or 85% of its real size (--w, set by the svg): past that it pans across. */
@@ -581,6 +594,44 @@
   justify-content: space-between;
   gap: 10px 16px;
   margin-bottom: 10px;
+}
+/* The depth buttons and the path of the node opened last: Map › Content › Posts. */
+.metro-depth {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.metro-path {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 0 6px;
+  font: 500 13px var(--ui-font);
+}
+.metro-path button {
+  border: 0;
+  padding: 4px 2px;
+  background: none;
+  font: inherit;
+  color: var(--ui-ink-2);
+  cursor: pointer;
+}
+.metro-path button:hover,
+.metro-path button[aria-current] {
+  color: var(--ui-ink);
+}
+.metro-path button + button::before {
+  content: "›";
+  margin-right: 6px;
+  color: var(--ui-ink-3);
 }
 .metro-count {
   margin: 0;

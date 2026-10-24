@@ -1,5 +1,5 @@
 /**
- * The glide between two states of a map (a level switch, a group opened or folded). Port of
+ * The glide between two states of a map (a depth step, a node opened or folded). Port of
  * `render` in the artifact's `mountZoom`: marks that stay slide and scale to their new place, marks
  * that appear grow out of the group that opened, the new lines fade in under them, and the old
  * frame fades out on top. Imperative on purpose: it measures the DOM after React has committed,

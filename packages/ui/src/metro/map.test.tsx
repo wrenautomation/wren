@@ -2,10 +2,11 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { landTimes, MetroSvg } from "./draw.js";
-import { layoutMetro } from "./layout.js";
+import { viewZoom } from "./fold.js";
 import { MetroMap } from "./map.js";
+import { layoutView } from "./place.js";
 import {
   COLD_OUTBOUND_VIEW,
   DIFF_VIEW,
@@ -20,19 +21,27 @@ import {
   ZOOM_SCENE,
   zoomScenario,
 } from "./samples.js";
+import { openSet } from "./tree.js";
+import type { MetroView } from "./view.js";
+
+/** Lay a view out at this depth ahead, so a render draws it at once (ELK is async). */
+async function warm(view: MetroView, depth = 9) {
+  const z = viewZoom(view);
+  await z.scene(openSet(z.nodes, { depth, open: {} }));
+}
 
 const names = (html: string) =>
   [...html.matchAll(/data-id="([^"]+)"[^>]*aria-label="([^"]*)"/g)].map((m) => [m[1], m[2]]);
 
 describe("MetroSvg", () => {
-  it("draws every scene in the artifact", () => {
+  it("draws every scene in the artifact", async () => {
     const scenes = [
       ZOOM_SCENE,
       OFFERS_SCENE,
       LOOP_SCENE,
       ...SCENARIOS.map((s) => s.scene),
       ...INDUSTRIES.map((s) => s.scene),
-      ...SAMPLE_VIEWS.map(layoutMetro),
+      ...(await Promise.all(SAMPLE_VIEWS.map((v) => layoutView(v)))),
     ];
     for (const scene of scenes) {
       const html = renderToStaticMarkup(<MetroSvg scene={scene} />);
@@ -41,22 +50,22 @@ describe("MetroSvg", () => {
     }
   });
 
-  it("gives the SVG a name a screen reader can use", () => {
-    const html = renderToStaticMarkup(<MetroSvg scene={layoutMetro(COLD_OUTBOUND_VIEW)} />);
+  it("gives the SVG a name a screen reader can use", async () => {
+    const html = renderToStaticMarkup(<MetroSvg scene={await layoutView(COLD_OUTBOUND_VIEW)} />);
     expect(html).toMatch(/<svg[^>]*(aria-label|role)=/);
   });
 
-  it("uses tokens, never a fixed colour, in the markup", () => {
+  it("uses tokens, never a fixed colour, in the markup", async () => {
     for (const v of SAMPLE_VIEWS) {
-      const html = renderToStaticMarkup(<MetroSvg scene={layoutMetro(v)} />);
+      const html = renderToStaticMarkup(<MetroSvg scene={await layoutView(v)} />);
       expect(html).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
       expect(html).not.toMatch(/rgba?\(/);
     }
   });
 
-  it("marks a line on each part that belongs to it, so hover can light it", () => {
+  it("marks a line on each part that belongs to it, so hover can light it", async () => {
     const html = renderToStaticMarkup(
-      <MetroSvg scene={layoutMetro(COLD_OUTBOUND_VIEW)} lit="gp" />,
+      <MetroSvg scene={await layoutView(COLD_OUTBOUND_VIEW)} lit="gp" />,
     );
     expect(html).toContain('data-l="gp"');
     expect(html).toMatch(
@@ -64,15 +73,21 @@ describe("MetroSvg", () => {
     );
   });
 
-  it("delays each station by its place in the first load, and not otherwise", () => {
-    const scene = layoutMetro(COLD_OUTBOUND_VIEW);
+  it("delays each station by its place in the first load, and not otherwise", async () => {
+    const scene = await layoutView(COLD_OUTBOUND_VIEW);
     expect(renderToStaticMarkup(<MetroSvg scene={scene} />)).not.toContain("animation-delay");
     expect(renderToStaticMarkup(<MetroSvg scene={scene} intro />)).toContain("animation-delay");
   });
 });
 
 describe("diff marks", () => {
-  const html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={2} intro={false} />);
+  let html = "";
+  beforeAll(async () => {
+    await warm(DIFF_VIEW);
+    await warm(DIFF_VIEW, 0);
+    await warm(COLD_OUTBOUND_VIEW);
+    html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={9} intro={false} />);
+  });
 
   it("says each mark in the name of the station", () => {
     const found = Object.fromEntries(names(html).map(([id, label]) => [id, label]));
@@ -94,10 +109,10 @@ describe("diff marks", () => {
     expect(html).toMatch(/<path class="trk"[^>]*data-mark="removed"[^>]*style="stroke:var\(--ui-/);
   });
 
-  it("stops the dots on a removed track", () => {
-    const moving = renderToStaticMarkup(<MetroSvg scene={layoutMetro(DIFF_VIEW)} />);
+  it("stops the dots on a removed track", async () => {
+    const scene = await layoutView(DIFF_VIEW);
+    const moving = renderToStaticMarkup(<MetroSvg scene={scene} />);
     const paths = [...moving.matchAll(/<animateMotion[^>]*path="([^"]*)"/g)].map((m) => m[1]);
-    const scene = layoutMetro(DIFF_VIEW);
     // The removed person track runs from Call booked to Growth Partner: its path has no dots.
     const bk = scene.st.find((m) => m.id === "bk");
     expect(paths.length).toBeGreaterThan(0);
@@ -108,7 +123,7 @@ describe("diff marks", () => {
     expect(html).toContain("metro-legend");
     for (const w of ["Added", "Changed", "Removed"]) expect(html).toContain(w);
     const plain = renderToStaticMarkup(
-      <MetroMap view={COLD_OUTBOUND_VIEW} level={2} intro={false} />,
+      <MetroMap view={COLD_OUTBOUND_VIEW} depth={9} intro={false} />,
     );
     expect(plain).not.toContain("metro-legend");
   });
@@ -116,20 +131,20 @@ describe("diff marks", () => {
   it("puts the legend in the bar, or over the corner when the bar is off", () => {
     expect(html).toMatch(/metro-bar[\s\S]*metro-legend/);
     const bare = renderToStaticMarkup(
-      <MetroMap view={DIFF_VIEW} level={2} intro={false} controls={false} />,
+      <MetroMap view={DIFF_VIEW} depth={9} intro={false} controls={false} />,
     );
     expect(bare).toContain("metro-legend over");
     expect(bare).not.toContain("metro-bar");
   });
 
   it("shows a mark on a folded capsule", () => {
-    const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={0} intro={false} />);
+    const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={0} intro={false} />);
     expect(folded).toMatch(/class="cap[^"]*"[^>]*><g class="mk[^"]*" data-mark="added"/);
     expect(folded).toContain("metro-legend");
   });
 
   it("draws a fold as a station with an expand chip, never a sum", () => {
-    const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={0} intro={false} />);
+    const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={0} intro={false} />);
     expect(folded).toMatch(/class="cap"[^>]*><g class="mk m-cash"/);
     expect(folded).toContain('class="fc"');
     expect(folded).toContain(">2 steps</text>");
@@ -137,8 +152,9 @@ describe("diff marks", () => {
 });
 
 describe("the hub", () => {
-  it("draws its count under its label", () => {
-    const html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} level={2} intro={false} />);
+  it("draws its count under its label", async () => {
+    await warm(DIFF_VIEW);
+    const html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={9} intro={false} />);
     expect(html).toMatch(/class="lab"[^>]*>First touch<\/text><text class="sub"[^>]*>.*18 leads/);
   });
 });
@@ -172,17 +188,23 @@ describe("landTimes", () => {
 });
 
 describe("MetroMap", () => {
-  it("opens at Parts and folds what the level folds", () => {
+  beforeAll(async () => {
+    for (const v of SAMPLE_VIEWS) await warm(v);
+    await warm(WEBINAR_VIEW);
+  });
+
+  it("opens folded, at depth 0", async () => {
+    const z = zoomScenario();
+    await z.scene(openSet(z.nodes, { depth: 0, open: {} }));
     const html = renderToStaticMarkup(<MetroMap zoom={zoomScenario()} intro={false} />);
-    expect(html).toContain('data-level="0"');
-    expect(html).toContain("Parts:");
+    expect(html).toContain('data-depth="0"');
     expect(html).toContain("folded");
   });
 
-  it("takes the level as a prop", () => {
-    const html = renderToStaticMarkup(<MetroMap zoom={zoomScenario()} level={2} intro={false} />);
-    expect(html).toContain('data-level="2"');
-    expect(html).toContain("Stations:");
+  it("takes the depth as a prop", () => {
+    const html = renderToStaticMarkup(<MetroMap zoom={protocolZoom()} depth={2} intro={false} />);
+    expect(html).toContain('data-depth="2"');
+    expect(html).toContain("Depth 2 of 2");
     expect(html).not.toContain("folded");
   });
 
@@ -193,10 +215,18 @@ describe("MetroMap", () => {
     expect(off).not.toMatch(/\bld\b/);
   });
 
-  it("shows a button per level, the current one pressed", () => {
-    const html = renderToStaticMarkup(<MetroMap zoom={protocolZoom()} level={1} intro={false} />);
-    for (const n of ["Folded", "Groups", "All"]) expect(html).toContain(n);
-    expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
+  it("steps the depth with two buttons, and names the path", () => {
+    const html = renderToStaticMarkup(<MetroMap zoom={protocolZoom()} depth={1} intro={false} />);
+    expect(html).toContain('aria-label="Fold one level"');
+    expect(html).toContain('aria-label="Open one level"');
+    expect(html).toContain('aria-label="Fold path"');
+    expect(html).toContain("Depth 1 of 2");
+  });
+
+  it("draws the skeleton until the first layout is ready", () => {
+    const fresh: MetroView = { ...COLD_OUTBOUND_VIEW, title: "Not laid out yet" };
+    const html = renderToStaticMarkup(<MetroMap view={fresh} intro={false} />);
+    expect(html).not.toContain('<svg class="mm');
   });
 
   it("hides the bar when controls are off", () => {
@@ -208,19 +238,19 @@ describe("MetroMap", () => {
 
   it("lays out a view and gives every station an accessible name", () => {
     for (const view of SAMPLE_VIEWS) {
-      const html = renderToStaticMarkup(<MetroMap view={view} level={2} intro={false} />);
+      const html = renderToStaticMarkup(<MetroMap view={view} depth={9} intro={false} />);
       const found = names(html);
       expect(found.length, view.title).toBeGreaterThan(0);
       for (const [id, label] of found) expect(label, `${view.title}: ${id}`).toBeTruthy();
     }
   });
 
-  it("draws a focused part: its stations, stub buttons with a name, and no level buttons", () => {
+  it("draws a focused part: its stations, stub buttons with a name, and no depth buttons", () => {
     const html = renderToStaticMarkup(
       <MetroMap view={WEBINAR_VIEW} focus={{ kind: "flow", id: "Webinar funnel" }} intro={false} />,
     );
     expect(html).toContain('data-focus="flow:Webinar funnel"');
-    expect(html).not.toContain("metro-levels");
+    expect(html).not.toContain("metro-depth");
     expect(html).toContain("from First touch");
     expect(html).toMatch(/data-stub="hub"[^>]*aria-label="from First touch"/);
     expect(html).toContain("Focus: Webinar funnel");
@@ -239,7 +269,8 @@ describe("MetroMap first load", () => {
   };
 
   it("plays on mount", async () => {
-    const { host, root } = await mount(<MetroMap view={WEBINAR_VIEW} level={2} />);
+    await warm(WEBINAR_VIEW);
+    const { host, root } = await mount(<MetroMap view={WEBINAR_VIEW} depth={9} />);
     expect(host.querySelector(".metro-host.ld")).not.toBeNull();
     expect(host.innerHTML).toContain("animation-delay");
     await act(async () => root.unmount());
@@ -247,11 +278,11 @@ describe("MetroMap first load", () => {
   });
 
   it("never plays again when the shape changes inside its window", async () => {
-    const { host, root } = await mount(<MetroMap view={WEBINAR_VIEW} level={2} />);
+    const { host, root } = await mount(<MetroMap view={WEBINAR_VIEW} depth={9} />);
     expect(host.querySelector(".ld")).not.toBeNull();
     await act(async () =>
       root.render(
-        <MetroMap view={WEBINAR_VIEW} level={2} focus={{ kind: "flow", id: "Webinar funnel" }} />,
+        <MetroMap view={WEBINAR_VIEW} depth={9} focus={{ kind: "flow", id: "Webinar funnel" }} />,
       ),
     );
     expect(host.querySelector(".ld")).toBeNull();
@@ -271,18 +302,20 @@ describe("MetroMap scale and memo", () => {
     return { host, root };
   };
 
-  it("draws one scene px as one css px: the svg is as wide and as high as the scene", () => {
-    const s = layoutMetro(COLD_OUTBOUND_VIEW);
+  it("draws one scene px as one css px: the svg is as wide and as high as the scene", async () => {
+    const s = await viewZoom(COLD_OUTBOUND_VIEW).scene(
+      openSet(viewZoom(COLD_OUTBOUND_VIEW).nodes, { depth: 9, open: {} }),
+    );
     const html = renderToStaticMarkup(
-      <MetroMap view={COLD_OUTBOUND_VIEW} level={2} intro={false} />,
+      <MetroMap view={COLD_OUTBOUND_VIEW} depth={9} intro={false} />,
     );
     const svg = html.match(/<svg[^>]*>/)?.[0] ?? "";
     expect(svg).toContain(`width="${s.w}"`);
     expect(svg).toContain(`height="${s.h}"`);
   });
 
-  it("keeps a glyph table at the width it asks for", () => {
-    const s = layoutMetro(COLD_OUTBOUND_VIEW);
+  it("keeps a glyph table at the width it asks for", async () => {
+    const s = await layoutView(COLD_OUTBOUND_VIEW);
     const html = renderToStaticMarkup(<MetroSvg scene={s} width={300} />);
     expect(html.match(/<svg[^>]*>/)?.[0]).toContain('width="300"');
   });
@@ -296,12 +329,13 @@ describe("MetroMap scale and memo", () => {
         return COLD_OUTBOUND_VIEW.stations;
       },
     };
-    const { host, root } = await mount(<MetroMap view={counted} level={2} intro={false} />);
+    await warm(counted);
+    const { host, root } = await mount(<MetroMap view={counted} depth={9} intro={false} />);
     const first = reads;
     expect(first).toBeGreaterThan(0);
     for (const lit of ["cold", "gp", null])
       await act(async () =>
-        root.render(<MetroMap view={counted} level={2} intro={false} lit={lit} selected="rep" />),
+        root.render(<MetroMap view={counted} depth={9} intro={false} lit={lit} selected="rep" />),
       );
     expect(reads).toBe(first);
     await act(async () => root.unmount());

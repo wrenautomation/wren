@@ -33,7 +33,7 @@ export const RADIUS: Record<StationKind, number> = {
 export const GLYPH_SIZE: Partial<Record<StationKind, number>> = { hub: 22, exit: 15 };
 
 /** Points of an octilinear route a to b: straight, then 45 degrees, then straight. */
-export function octPts(a: Point, b: Point, bend?: "a" | "b"): Point[] {
+export function octPts(a: Point, b: Point, bend?: "a" | "b", reach = Infinity): Point[] {
   const [x1, y1] = a;
   const [x2, y2] = b;
   const dx = x2 - x1;
@@ -41,9 +41,11 @@ export function octPts(a: Point, b: Point, bend?: "a" | "b"): Point[] {
   if (!dy || !dx) return [a, b];
   const d = Math.min(Math.abs(dy), Math.abs(dx));
   const s = Math.sign(dx);
-  // The 45 degree part at one end: lines leave a hub at once, each on its own diagonal.
-  if (bend === "a" && d === Math.abs(dy)) return [a, [x1 + s * d, y2], b];
-  if (bend === "b" && d === Math.abs(dy)) return [a, [x2 - s * d, y1], b];
+  // The bent part at one end: lines leave a hub at once, each on its own diagonal. It runs 45
+  // degrees, steeper when the row is further down than `reach`, so it crosses no row between.
+  const run = Math.min(d, reach);
+  if (bend === "a" && d === Math.abs(dy)) return [a, [x1 + s * run, y2], b];
+  if (bend === "b" && d === Math.abs(dy)) return [a, [x2 - s * run, y1], b];
   const f = (Math.abs(dx) - d) / 2;
   return [a, [x1 + s * f, y1], [x1 + s * (f + d), y2], b];
 }
@@ -371,7 +373,7 @@ export function trackEnds(scene: Pick<MetroScene, "st">): (r: MetroTrack) => [Po
 export const routeOf = (r: MetroTrack, a: Point, c: Point): Point[] =>
   r.k === "xfer"
     ? xferGeometry(a, c, r.f).pts
-    : (r.pts ?? (r.back ? railPts(a, c, r.back) : octPts(a, c, r.bend)));
+    : (r.pts ?? (r.back ? railPts(a, c, r.back) : octPts(a, c, r.bend, r.reach)));
 
 /** A track back along its own row: down from its start, along under the row, up into its end. */
 export const railPts = (a: Point, c: Point, d: number): Point[] => [
@@ -507,7 +509,9 @@ export function sceneBoxes(scene: Pick<MetroScene, "st" | "tr">): SceneBoxes {
     if (!e) return;
     const id = r.id ?? `t${i}`;
     if (r.k === "xfer") {
-      out.tracks.push({ id, box: xferBox(xferGeometry(e[0], e[1], r.f).m, r.lab ?? "") });
+      // A transfer with no name draws no pill.
+      if (r.lab)
+        out.tracks.push({ id, box: xferBox(r.lat ?? xferGeometry(e[0], e[1], r.f).m, r.lab) });
       return;
     }
     // A shared condition draws one chip, on the track that leads the group.

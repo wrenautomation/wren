@@ -508,6 +508,15 @@ export function Capsule({
       {...(c.grp ? asButton(marked(`${c.n}: ${foldIo(c)}. Open`, c.mark)) : {})}
     >
       <Marker s={s} l={c.l} selected={selected} on={on} fold={c} />
+      {/* Bad stations inside (people drop out there): a red count on the circle's shoulder. */}
+      {c.bad ? (
+        <g className="bd" aria-label={`${c.bad} bad`}>
+          <circle cx={s.x + 12} cy={s.y - 12} r={8} />
+          <text x={s.x + 12} y={s.y - 8.5} textAnchor="middle">
+            {c.bad}
+          </text>
+        </g>
+      ) : null}
     </g>
   );
 }
@@ -621,10 +630,24 @@ export function Leaf({
 }
 
 /**
- * A group opened by hand keeps a faint outline round its stations on the track. Same height as the
- * capsule, so it never reaches the next row's labels.
+ * An open node keeps a faint outline: a frame round all it holds, or, across columns, a pill along
+ * its first row. The pill is as high as the capsule, so it never reaches the next row's labels.
  */
 export function OpenedOutline({ o, colours }: { o: OpenedSpec; colours: Colours }) {
+  if (o.box) {
+    const [x0, y0, x1, y1] = o.box;
+    return (
+      <rect
+        className="opn box"
+        x={x0}
+        y={y0}
+        width={x1 - x0}
+        height={y1 - y0}
+        rx={14}
+        style={{ stroke: lineColour(colours, o.l) }}
+      />
+    );
+  }
   const [x0, x1] = o.cap;
   const h = 30;
   return (
@@ -640,7 +663,7 @@ export function OpenedOutline({ o, colours }: { o: OpenedSpec; colours: Colours 
   );
 }
 
-/** The fold leaf of a group opened by hand: under the circle, where its expand leaf was. */
+/** The fold leaf of an open node: on its frame's top edge, or under the circle where its expand leaf was. */
 export function OpenedTab({ o }: { o: OpenedSpec }) {
   return <FoldTab x={o.at[0]} y={o.at[1]} t={o.t} grp={o.grp} />;
 }

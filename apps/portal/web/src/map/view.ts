@@ -174,6 +174,10 @@ export function viewOf(
     lines,
     stations,
     tracks,
-    groups: metro.groups.map((g) => ({ id: g.id, label: g.label })),
+    groups: metro.groups.map((g) => ({
+      id: g.id,
+      label: g.label,
+      ...(g.parent ? { parent: g.parent } : {}),
+    })),
   };
 }

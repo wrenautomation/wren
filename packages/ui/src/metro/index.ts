@@ -12,22 +12,16 @@ export {
   stubsOf,
 } from "./focus.js";
 export {
-  ALL_OPEN,
   autoZoom,
   type Flags,
-  flagsAt,
   flagZoom,
   foldScene,
   foldTwins,
-  LEVEL_NAMES,
   type MetroZoom,
-  normalise,
-  type OpenMap,
-  stepLevel,
   TWIN_OUTLIER,
-  toggleGroup,
   twinRuns,
   viewScene,
+  viewTree,
   viewZoom,
 } from "./fold.js";
 export {
@@ -50,8 +44,15 @@ export {
   textWidth,
   xferGeometry,
 } from "./geometry.js";
-export { layoutMetro, lineKeyOf, SPACE } from "./layout.js";
-export { MetroLegend, MetroLevels, MetroMap, type MetroMapProps, type MetroPick } from "./map.js";
+export { lineKeyOf, SPACE } from "./layout.js";
+export {
+  MetroDepth,
+  type MetroDepthProps,
+  MetroLegend,
+  MetroMap,
+  type MetroMapProps,
+  type MetroPick,
+} from "./map.js";
 export {
   Badge,
   Capsule,
@@ -69,7 +70,21 @@ export {
   STATION_GLYPH,
   XferLabel,
 } from "./marks.js";
+export { type Frame, layoutView, type PlaceBox, type Placed, placeMetro, STEP } from "./place.js";
 export { MetroSkeleton } from "./skeleton.js";
+export {
+  allOpen,
+  type Fold,
+  type FoldNode,
+  fullDepth,
+  type OpenMap,
+  openKey,
+  openSet,
+  pathTo,
+  reveal,
+  stepDepth,
+  toggle,
+} from "./tree.js";
 export {
   type BadgeStation,
   type CapsuleStation,

@@ -522,7 +522,7 @@ export const ZOOM_VIEW: MetroView = {
   ],
 };
 
-/** Parts, Groups, Stations: the view folds before layout, so a folded group takes one place. */
+/** The view folds before layout, so a folded node takes one place. */
 export const zoomScenario = (): MetroZoom => viewZoom(ZOOM_VIEW);
 
 // ---------------------------------------------------------------------------------------------
@@ -702,22 +702,18 @@ export function composeLoop(g: Flags): MetroScene {
   };
 }
 
-/** Offer, Groups, Stations. Opening the offer jumps to Groups. */
+/** The offer holds onboarding, the monthly lap and the rewarm. */
 export const loopZoom = (): MetroZoom =>
   flagZoom({
-    names: ["Offer", "Groups", "Stations"],
-    presets: [
-      { offer: false },
-      { offer: true, on: false, loop: false, rw: false },
-      { offer: true, on: true, loop: true, rw: true },
+    nodes: [
+      { id: "offer", label: "Growth Retainer" },
+      { id: "on", parent: "offer", label: "Onboarding" },
+      { id: "loop", parent: "offer", label: "Monthly lap" },
+      { id: "rw", parent: "offer", label: "Rewarm" },
     ],
     compose: composeLoop,
     total: LOOP_SCENE.st.length,
-    opens: { offer: { level: 1 } },
     foldId: { rw: "rwc" },
-    // A folded offer hides everything inside it.
-    same: (p, g) =>
-      Object.keys({ ...p, ...g }).every((k) => !!p[k] === !!g[k] || (!g.offer && k !== "offer")),
   });
 
 // ---------------------------------------------------------------------------------------------
@@ -1092,23 +1088,22 @@ export function composeProtocol(g: Flags): MetroScene {
   };
 }
 
-/** Folded, Groups, All. Opening the A/B test opens Send with it. */
+/** Send, wait and sort; the A/B test sits in Send. */
 export const protocolZoom = (): MetroZoom =>
   flagZoom({
-    names: ["Folded", "Groups", "All"],
-    presets: [
-      {},
-      { send: true, wait: true, sort: true },
-      { send: true, ab: true, wait: true, sort: true },
+    nodes: [
+      { id: "send", label: "Send" },
+      { id: "ab", parent: "send", label: "Subject test" },
+      { id: "wait", label: "Wait" },
+      { id: "sort", label: "Sort reply" },
     ],
     compose: composeProtocol,
     total: composeProtocol({ send: true, ab: true, wait: true, sort: true }).st.length,
-    opens: { ab: { also: ["send"] } },
     foldId: { send: "sendc", wait: "waitc", sort: "sortc", ab: "abc" },
   });
 
 // ---------------------------------------------------------------------------------------------
-// Section 06 again, as plain data: a `MetroView` that `layoutMetro` places.
+// Section 06 again, as plain data: a `MetroView` that `placeMetro` places.
 
 /** Cold outbound to a retainer, with no positions. */
 export const COLD_OUTBOUND_VIEW: MetroView = {
