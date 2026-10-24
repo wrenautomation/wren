@@ -1,10 +1,18 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { autoZoom, capsuleMark, foldScene, twinRuns, viewScene, viewZoom } from "./fold.js";
-import { boxAt, CHIP_H, foldWidth, labelBoxes, markBoxes, overlaps } from "./geometry.js";
+import {
+  boxAt,
+  CHIP_H,
+  foldWidth,
+  labelBoxes,
+  markBoxes,
+  overlaps,
+  sceneClashes,
+} from "./geometry.js";
 import { layoutView } from "./place.js";
 import { DIFF_VIEW, loopZoom, protocolZoom, TWINS_VIEW, ZOOM_SCENE, ZOOM_VIEW } from "./samples.js";
 import { allOpen, fullDepth, openSet } from "./tree.js";
-import { isCapsule, isMark, type MetroScene } from "./types.js";
+import { isCapsule, isMark, type MetroScene, type MetroView } from "./types.js";
 
 const NONE = new Set<string>();
 const at = (nodes: Parameters<typeof openSet>[0], depth: number, open = {}) =>
@@ -240,5 +248,50 @@ describe("side-by-side stations", () => {
     const top = await z.scene(NONE);
     expect(top.st.some((s) => s.id === key)).toBe(false);
     expect(top.st.some((s) => s.id === "so@Marketing")).toBe(true);
+  });
+});
+
+describe("a group of groups across lines", () => {
+  const view: MetroView = {
+    title: "Content marketing",
+    lines: [
+      { id: "post", tier: "out" },
+      { id: "ads", tier: "out" },
+      { id: "gp", offer: "Retainer", tier: "core", colour: 0 },
+    ],
+    stations: [
+      { id: "p1", kind: "att", line: "post", column: "Marketing", label: "Draft", group: "posts" },
+      { id: "p2", kind: "att", line: "post", column: "Marketing", label: "Posted", group: "posts" },
+      { id: "a1", kind: "att", line: "ads", column: "Marketing", label: "Ad made", group: "paid" },
+      { id: "a2", kind: "att", line: "ads", column: "Marketing", label: "Ad live", group: "paid" },
+      { id: "hub", kind: "hub", line: "gp", column: "Sales", label: "First touch" },
+      { id: "pay", kind: "cash", line: "gp", column: "Money", label: "Paid" },
+    ],
+    tracks: [
+      { from: "p1", to: "p2", by: "system" },
+      { from: "a1", to: "a2", by: "system" },
+      { from: "p2", to: "hub", by: "system" },
+      { from: "a2", to: "hub", by: "system" },
+      { from: "hub", to: "pay", by: "person" },
+    ],
+    groups: [
+      { id: "content", label: "Content marketing", stations: [] },
+      { id: "posts", label: "Posts", line: "post", stations: ["p1", "p2"], parent: "content" },
+      { id: "paid", label: "Ads", line: "ads", stations: ["a1", "a2"], parent: "content" },
+    ],
+  };
+  const z = viewZoom(view);
+  const shown = async (d: number) => (await z.scene(at(z.nodes, d))).st.map((s) => s.id);
+
+  it("folds to one circle, then its groups, then their stations, with nothing on top", async () => {
+    expect(fullDepth(z.nodes)).toBe(2);
+    const top = await shown(0);
+    expect(top).toContain("content");
+    for (const id of ["posts", "paid", "p1", "a1"]) expect(top).not.toContain(id);
+    const mid = await shown(1);
+    expect(mid).toEqual(expect.arrayContaining(["posts", "paid"]));
+    expect(mid).not.toContain("content");
+    expect(await shown(2)).toEqual(expect.arrayContaining(["p1", "p2", "a1", "a2"]));
+    for (let d = 0; d <= 2; d++) expect(sceneClashes(await z.scene(at(z.nodes, d)))).toEqual([]);
   });
 });
