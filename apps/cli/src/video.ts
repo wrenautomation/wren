@@ -52,7 +52,7 @@ export function registerVideo(
         );
         const out = resolve(rootDir, opts.out);
         await copyFile(encoded.mp4, out);
-        await copyFile(encoded.poster, out.replace(/\.mp4$/i, "") + ".jpg");
+        await copyFile(encoded.poster, `${out.replace(/\.mp4$/i, "")}.jpg`);
         console.log(`${out} (${encoded.seconds.toFixed(1)}s, "${name}")`);
       } finally {
         await rm(dir, { recursive: true, force: true });

@@ -19,7 +19,6 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { toast } from "sonner";
 import { AccountPicker } from "./accounts.js";
 import { type Action, type Call, callOnce, useLastWrite } from "./action.js";
 import { Input } from "./components/ui/input.js";
@@ -33,6 +32,7 @@ import { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 import { readEntry, writeEntry } from "./save/journal.js";
 import { SaveConflict, SaveStatus, useSaved } from "./save/react.js";
 import { InsertSnippet } from "./snippets.js";
+import { toast } from "./toast.js";
 
 /** One turn on a draft, oldest first (`@wren/core/ask` DraftTurn). */
 export interface DraftTurnLine {

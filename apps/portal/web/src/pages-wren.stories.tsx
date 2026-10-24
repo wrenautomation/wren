@@ -7,7 +7,7 @@ import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "./mocks/api.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
-import { failedIn, pageAt, todayOf } from "./mocks/page.js";
+import { failedIn, pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Pages/Wren" };
 export default meta;

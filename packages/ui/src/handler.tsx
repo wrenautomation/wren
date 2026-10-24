@@ -3,7 +3,6 @@
  * box), its effect named and its name typed in before it runs, and the last answer under it.
  */
 import { type ReactNode, useId, useState } from "react";
-import { toast } from "sonner";
 import { FormBox, type FormField, typedOf, valuesOf } from "./action.js";
 import {
   Dialog,
@@ -18,6 +17,7 @@ import { Facts } from "./data.js";
 import { TextField, useEditForm } from "./edit-form.js";
 import { Alert } from "./feedback.js";
 import { GROUP_LABEL } from "./layout.js";
+import { toast } from "./toast.js";
 
 /** What a press does outside Wren, said before it runs. */
 const EFFECTS: Record<string, string> = {

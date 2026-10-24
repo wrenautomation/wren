@@ -153,7 +153,7 @@ describe("tiktok content channel", () => {
   });
   describe("batch reads", () => {
     const idsOf = (i?: Record<string, unknown>) =>
-      ((i ?? {}).filters as { video_ids: string[] }).video_ids;
+      (i?.filters as { video_ids: string[] } | undefined)?.video_ids ?? [];
     const videos = (i?: Record<string, unknown>) => ({
       data: {
         videos: idsOf(i)

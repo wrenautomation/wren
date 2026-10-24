@@ -3,7 +3,6 @@
  * how it went in a toast, and offers undo.
  */
 import { type ReactNode, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { toast } from "sonner";
 import type { Access } from "./access.js";
 import {
   Dialog,
@@ -21,6 +20,7 @@ import { refreshAll, useLoad } from "./data/query.js";
 import { EditConflict } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
 import { forgetKept, useEditForm } from "./edit-form.js";
+import type { IconName } from "./icons.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
 import {
   type PressOptions,
@@ -31,6 +31,7 @@ import {
   type Writes,
 } from "./save/writes.js";
 import { InsertSnippet } from "./snippets.js";
+import { toast } from "./toast.js";
 
 /** A box a form action asks for, required unless `optional`. */
 export interface FormField {
@@ -75,6 +76,8 @@ export interface FormField {
 export interface Action {
   id: string;
   label: string;
+  /** Its icon where a row shows it (row-acts.tsx). None: it waits behind ⋯. */
+  icon?: IconName;
   /** The portal handler it calls: "delivery/approve". */
   handler: string;
   /** The handler's zod schema, for a generated form. */

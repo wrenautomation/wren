@@ -524,7 +524,7 @@ export function calendarFlows(deps: CalendarDeps) {
     const now = new Date(await ctx.date.now());
     const due = await ctx.run("due", async () => {
       const b = await bookingById(db, req.id);
-      if (!b || b.state !== "booked" || b.start.toISOString() !== req.start) return false;
+      if (b?.state !== "booked" || b.start.toISOString() !== req.start) return false;
       if (b.start <= now) return false;
       return (req.kind === "day" ? b.remindedDayAt : b.remindedHourAt) === null;
     });

@@ -8,7 +8,7 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
     "build": "turbo run build",
-    "lint": "biome check .",
+    "lint": "biome check --error-on-warnings .",
     "lint:fix": "biome check --write .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

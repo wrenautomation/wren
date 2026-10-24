@@ -196,7 +196,7 @@ export async function moveBooking(
   try {
     return await serializable(db, async (tx) => {
       const before = await bookingById(tx, o.id);
-      if (!before || before.state !== "booked") throw new Unchangeable("that call was cancelled");
+      if (before?.state !== "booked") throw new Unchangeable("that call was cancelled");
       if (before.start <= o.now) throw new Unchangeable("that call has already started");
       if (before.start.getTime() === t) return { before, after: before };
       const calls = await bookedCalls(

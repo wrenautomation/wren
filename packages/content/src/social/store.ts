@@ -145,7 +145,7 @@ export async function postOfComment(db: Queryable, id: number): Promise<RecentPo
     })
     .from(comments)
     .where(eq(comments.id, id));
-  if (!c || c.channel !== "content") return null;
+  if (c?.channel !== "content") return null;
   return { platform: c.platform, id: c.post, url: null, title: c.title ?? "", publishedAt: "" };
 }
 

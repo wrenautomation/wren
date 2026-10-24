@@ -5,7 +5,6 @@
  * `@wren/ui/palette` and load it on the first ⌘K: cmdk and the dialog stay out of the first load.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   Command,
   CommandDialog,
@@ -19,6 +18,7 @@ import {
 import { DictateField } from "./dictate.js";
 import { Icon, type IconName } from "./icons.js";
 import { type ScopeItem, useOpened, useScoped } from "./palette-scope.js";
+import { toast } from "./toast.js";
 
 export interface PaletteItem {
   label: string;

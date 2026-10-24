@@ -5,8 +5,8 @@
  */
 import { cn } from "cn";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Button, type ButtonTone } from "./controls.js";
+import { toast } from "./toast.js";
 
 /** How long "Copied" shows. */
 export const COPIED_MS = 1500;

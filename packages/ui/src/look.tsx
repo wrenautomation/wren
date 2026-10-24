@@ -4,7 +4,6 @@
  * what `readTheme` reads and hands it to `onSave`; who may save is the caller's business.
  */
 import { useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Input } from "./components/ui/input.js";
 import { Button, Tag } from "./controls.js";
 import { EditConflict, useEdit } from "./data/use-edit.js";
@@ -31,6 +30,7 @@ import {
   themeVars,
   wholeVars,
 } from "./theme.js";
+import { toast } from "./toast.js";
 
 /** What `readTheme` reads: a preset's name, an object of tokens, or null for Wren's. */
 export type Look = string | Record<string, unknown> | null;

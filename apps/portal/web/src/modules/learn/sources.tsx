@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
-import { toast } from "@wren/ui/lib/toast";
+import { toast } from "@wren/ui/toast";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
