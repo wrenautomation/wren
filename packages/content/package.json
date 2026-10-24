@@ -11,6 +11,8 @@
     "./connect/routes": "./src/connect/console-routes.ts",
     "./connect/platforms": "./src/connect/platforms.ts",
     "./connect/app-reviews": "./src/connect/app-reviews.ts",
+    "./connect/review-log": "./src/connect/review-log.ts",
+    "./connect/reviews-schema": "./src/connect/reviews-schema.ts",
     "./inbox": "./src/inbox/index.ts",
     "./our-posts": "./src/our-posts.ts",
     "./pieces": "./src/pieces.ts",

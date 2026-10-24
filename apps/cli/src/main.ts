@@ -289,7 +289,7 @@ registerLearn(
 );
 registerCalendar(program, withMainDb);
 registerCalls(program, withMainDb, settings, rootDir);
-registerAppReviews(program, rootDir);
+registerAppReviews(program, withMainDb, rootDir);
 registerSocial(program, settings);
 registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);

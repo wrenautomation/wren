@@ -30,15 +30,13 @@ export type Need =
 export interface Review {
   id: string;
   name: string;
-  app: SocialApp | "meta-business" | "whatsapp" | "mail-google" | "mail-microsoft";
+  app: SocialApp | "meta-business" | "whatsapp" | "mail-google" | "mail-microsoft" | "reddit";
   /** The platforms it lets every client connect (`WREN_SOCIAL_LIVE` once it passes). */
   unlocks: readonly SocialPlatform[];
   /** Where it's filed. */
   where: string;
   /** Reviews this one waits on. */
   after: readonly string[];
-  /** Filed already: when and what. Null until then. */
-  filed: string | null;
   needs: readonly Need[];
   /** Form fields, as the console labels them. */
   fields: readonly (readonly [string, string])[];
@@ -134,7 +132,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: [],
     where: "https://business.facebook.com/settings/security",
     after: [],
-    filed: null,
     needs: [page(SITE, ["Wren Automation"], "the website Meta matches the business name against")],
     fields: [
       ["Legal business name", "Wren Automation (sole proprietorship of William Jin)"],
@@ -154,7 +151,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["facebook", "instagram"],
     where: "https://developers.facebook.com/apps/",
     after: ["meta-business"],
-    filed: null,
     needs: [
       ...keys("META"),
       cb("facebook"),
@@ -200,7 +196,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["youtube", "google_business"],
     where: "https://console.cloud.google.com/auth/verification?project=wren-social",
     after: [],
-    filed: null,
     needs: [
       ...keys("GOOGLE"),
       cb("youtube"),
@@ -235,7 +230,7 @@ export const REVIEWS: readonly Review[] = [
     ],
     open: [
       "Upload the video unlisted on YouTube; the form takes its link.",
-      "Limited Use: a client's Google data (YouTube comments, Business Profile reviews, Gmail) reaches only WREN_GOOGLE_LLM, and nothing while it's unset. Set it to a model whose provider doesn't train on input (a paid key: William's call) before filing, and before the lander's Limited Use line goes live.",
+      "Limited Use: a client's Google data (YouTube comments, Business Profile reviews, Gmail) reaches only WREN_GOOGLE_LLM, and nothing while it's unset. Prod sets it to an Anthropic model (2026-10-23): Anthropic's API doesn't train on input.",
     ],
   },
   {
@@ -245,7 +240,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["youtube"],
     where: "https://support.google.com/youtube/contact/yt_api_form",
     after: ["google-oauth"],
-    filed: null,
     needs: [
       page(TERMS, ["YouTube Terms of Service"], "terms that bind users to YouTube's terms"),
       privacy(
@@ -279,8 +273,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["tiktok"],
     where: "https://developers.tiktok.com/apps/",
     after: [],
-    filed:
-      "2026-10-16: production review submitted (Login Kit, Content Posting API Direct Post); passed 2026-10-23",
     needs: [
       ...keys("TIKTOK"),
       cb("tiktok"),
@@ -326,7 +318,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["tiktok"],
     where: "https://developers.tiktok.com/application/content-posting-api",
     after: ["tiktok-app"],
-    filed: null,
     needs: [],
     fields: [
       ["Expected daily posts", "Under 50 across all businesses at launch"],
@@ -348,7 +339,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["linkedin_page"],
     where: "https://www.linkedin.com/developers/apps/264113599/products",
     after: [],
-    filed: "2026-10-09: Development tier access form (Microsoft vetting email next)",
     needs: [...keys("LINKEDIN_PAGES"), cb("linkedin_page")],
     fields: [
       ["App", "Wren Pages (264113599)"],
@@ -367,7 +357,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: ["google_business"],
     where: "https://support.google.com/business/contact/api_default",
     after: [],
-    filed: null,
     needs: [page(SITE, ["Wren"], "the website on the request")],
     fields: [
       ["Project number", "wren-social's (Cloud console, project settings)"],
@@ -391,7 +380,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: [],
     where: "https://console.cloud.google.com/auth/verification",
     after: [],
-    filed: null,
     needs: [
       { kind: "key", name: "WREN_MAIL_GOOGLE_CLIENT_ID" },
       { kind: "key", name: "WREN_MAIL_GOOGLE_CLIENT_SECRET" },
@@ -434,7 +422,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: [],
     where: "https://entra.microsoft.com (App registrations, Wren mail, Branding & properties)",
     after: [],
-    filed: null,
     needs: [
       { kind: "key", name: "WREN_MAIL_MICROSOFT_CLIENT_ID" },
       { kind: "key", name: "WREN_MAIL_MICROSOFT_CLIENT_SECRET" },
@@ -463,7 +450,6 @@ export const REVIEWS: readonly Review[] = [
     unlocks: [],
     where: "https://developers.facebook.com/apps/",
     after: ["meta-business"],
-    filed: null,
     needs: [],
     fields: [],
     scopes: [],
@@ -472,6 +458,58 @@ export const REVIEWS: readonly Review[] = [
       "Creating a message template in the app.",
     ],
     open: ["The WhatsApp channel isn't built. File once it is (designs/2026-10-09-site-chat.md)."],
+  },
+  {
+    id: "reddit-registration",
+    name: "Reddit app registration (App label)",
+    app: "reddit",
+    unlocks: [],
+    where: "https://developers.reddit.com/app-registration",
+    after: [],
+    needs: [],
+    fields: [
+      ["Account", "u/WrenAutomation, used by the app only"],
+      [
+        "Use",
+        "Posts Wren's own build notes to its profile and replies to comments on them. A person approves each one.",
+      ],
+    ],
+    scopes: [],
+    video: [],
+    open: [
+      "Reddit (2026-08): every API app must register to stay in good standing; unregistered automated accounts get human checks.",
+    ],
+  },
+  {
+    id: "reddit-data-api",
+    name: "Reddit Data API, commercial use",
+    app: "reddit",
+    unlocks: [],
+    where:
+      "https://support.reddithelp.com/hc/en-us/requests/new?ticket_form_id=14868593862164 (category: commercial use)",
+    after: ["reddit-registration"],
+    needs: [],
+    fields: [
+      [
+        "Subject",
+        "Reconsideration of our 2026-09-27 Data API request (u/WrenAutomation), now under commercial use",
+      ],
+      ["Volume", "At most 3 posts a day and about 20 replies a day; under 200 calls a day"],
+      ["Why not Devvit", "Posts start from Wren's own server after a person approves them in Wren"],
+    ],
+    scopes: [
+      ["identity", "Confirms the token is u/WrenAutomation."],
+      ["submit", "Posts the approved posts to our own profile, and the approved replies."],
+      ["read", "Reads the comment threads on our own posts."],
+      ["history", "Lists our own posts and their scores."],
+      ["edit", "Fixes a typo in our own post."],
+      ["privatemessages", "Reads our own inbox only. Sends nothing."],
+    ],
+    video: [],
+    open: [
+      "Refused 2026-09-29 (policy fit or detail). One request per use case: this one is a reconsideration, same use case.",
+      "Reddit will slowly close new Data API requests and move apps to Devvit (r/redditdev 2026-08). Its external endpoints beta is the next path if this is refused.",
+    ],
   },
 ];
 
@@ -556,12 +594,13 @@ export async function checkReview(r: Review, deps: CheckDeps): Promise<Check[]> 
 }
 
 /** The packet as Markdown: fields to paste, scope text, the screencast, open items, checks. */
-export function packetOf(r: Review, checks: readonly Check[] | null): string {
-  const lines = [
-    `# ${r.name}`,
-    "",
-    `Filed: ${r.filed ?? "not yet. Filing is held for William's yes."}`,
-  ];
+export function packetOf(
+  r: Review,
+  checks: readonly Check[] | null,
+  /** Its state from the review log (`review-log.ts`); null when not logged yet. */
+  state: string | null = null,
+): string {
+  const lines = [`# ${r.name}`, "", `State: ${state ?? "not filed"}`];
   lines.push(`Where: ${r.where}`);
   if (r.after.length) lines.push(`After: ${r.after.join(", ")}`);
   if (r.unlocks.length) lines.push(`Unlocks: ${r.unlocks.map((p) => SOCIAL[p].label).join(", ")}`);

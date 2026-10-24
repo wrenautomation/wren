@@ -92,7 +92,7 @@ describe("app reviews", () => {
     const meta = reviewOf("meta-app");
     if (!meta) throw new Error("no meta-app");
     const text = packetOf(meta, [{ need: "key X", ok: false, detail: "missing" }]);
-    expect(text).toContain("Filed: not yet. Filing is held for William's yes.");
+    expect(text).toContain("State: not filed");
     expect(text).toContain(`- Privacy policy URL: ${PRIVACY}`);
     expect(text).toContain("- `pages_manage_posts`: Publishes the posts");
     expect(text).toMatch(/## Screencast\n\n1\. /);
@@ -103,7 +103,6 @@ describe("app reviews", () => {
   it("TikTok's screencast runs on the redirect's domain and shows each scope used", () => {
     const t = reviewOf("tiktok-app");
     if (!t) throw new Error("no tiktok-app");
-    expect(t.filed).toMatch(/^2026-10-16: production review submitted/);
     expect(t.video[0]).toContain(`Sign in at ${PORTAL} `);
     expect(callbackOf("tiktok").startsWith(PORTAL)).toBe(true);
     const shots = t.video.join(" ");
