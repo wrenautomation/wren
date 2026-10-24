@@ -481,7 +481,7 @@ export function MapPage({
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
           </div>
         ) : !read.data || waiting ? (
-          <MetroSkeleton />
+          <MetroSkeleton label="Reading your map" />
         ) : !data ? (
           <NoShape mayStart={mayEdit} at={at} onStarted={read.retry} />
         ) : (

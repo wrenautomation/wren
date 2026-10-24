@@ -1,9 +1,9 @@
 /**
- * `MetroSkeleton`: what the map shows while its first read is out (William, 10-21: no loading box,
- * no words). The map's faint dot grid with a few ghost lines and stations in muted ink, top and
- * middle of its frame, as a loaded map sits. It fills the frame it is put in, so nothing shifts
- * when the map arrives. It shows nothing for the first 150 ms (CSS delay, `.metro-skeleton`), so a
- * quick read never flashes it. A screen reader hears one word: Loading.
+ * `MetroSkeleton`: what the map shows while it loads. The map's faint dot grid with a few ghost
+ * lines and stations, top and middle of its frame, as a loaded map sits, and over them one card
+ * that says what is out (William, 10-24: a dedicated loading screen; 10-21 had no words). It fills
+ * the frame it is put in, so nothing shifts when the map arrives. It shows nothing for the first
+ * 150 ms (CSS delay, `.metro-skeleton`), so a quick read never flashes it.
  */
 import { cx } from "../format.js";
 import "./metro.css";
@@ -44,9 +44,16 @@ const ZONES = [
   { x: 640, w: 30 },
 ];
 
-export function MetroSkeleton({ className }: { className?: string | undefined }) {
+export function MetroSkeleton({
+  className,
+  label = "Loading your map",
+}: {
+  className?: string | undefined;
+  /** What is out: "Reading your map" (the data), "Drawing your map" (the layout). */
+  label?: string;
+}) {
   return (
-    <div role="status" aria-label="Loading" className={cx("metro-skeleton", className)}>
+    <div role="status" aria-label={label} className={cx("metro-skeleton", className)}>
       <svg
         width={W}
         height={H}
@@ -80,6 +87,10 @@ export function MetroSkeleton({ className }: { className?: string | undefined })
           <rect key={z.x} x={z.x} y={H - 14} width={z.w} height={6} rx={3} className="sk-bar" />
         ))}
       </svg>
+      <div className="metro-skeleton-card">
+        <span className="metro-skeleton-spin" aria-hidden="true" />
+        {label}
+      </div>
     </div>
   );
 }

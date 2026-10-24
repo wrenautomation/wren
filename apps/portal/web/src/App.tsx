@@ -41,6 +41,7 @@ import {
   usePref,
   type Viewer,
 } from "@wren/ui";
+import { preloadMetro } from "@wren/ui/metro";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
@@ -55,6 +56,7 @@ import { LookProvider } from "./look-pref.js";
 import { FocusPage } from "./map/FocusPage.js";
 import { type FocusAt, focusAtOf, focusKey } from "./map/focus.js";
 import { MapHome } from "./map/Home.js";
+import { prefetchMap } from "./map/read.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { appsIn, MODULES } from "./modules/index.js";
@@ -289,6 +291,13 @@ export function App() {
     ? WREN
     : (clients.find((c) => c.id === (operator ? named : client)) ?? clients[0] ?? null);
   const installed = new Set(current && "installed" in current ? current.installed : []);
+  // The Map is home: read it and fetch its layout engine as the portal opens, on any page.
+  const currentId = current?.id;
+  useEffect(() => {
+    if (!currentId || onDemo === null) return;
+    void prefetchMap(currentId);
+    void preloadMetro();
+  }, [currentId, onDemo]);
   // What this login holds here: in Wren's apps its team role's, in a client's that client's.
   const canAt = (id: string | undefined) =>
     onDemo !== false

@@ -504,7 +504,7 @@ export function MetroMap(props: MetroMapProps) {
             <div ref={old} className="metro-old" aria-hidden="true" />
           </div>
         ) : (
-          <MetroSkeleton />
+          <MetroSkeleton label="Drawing your map" />
         )}
       </div>
     </div>

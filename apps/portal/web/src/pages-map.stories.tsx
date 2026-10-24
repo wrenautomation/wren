@@ -226,13 +226,11 @@ export const Loading = {
   ...mapAt("/", { mode: "pending" }),
   play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
     const page = canvasElement;
-    const skeleton = await within(page).findByRole("status", { name: "Loading" }, LATE);
+    const skeleton = await within(page).findByRole("status", { name: "Reading your map" }, LATE);
     await expect(skeleton).toBeVisible();
-    // No words on the map's frame, no ring beside any title, no box. (Today under the map draws
-    // its own ghost lines; they are not the map's.)
+    // One card says what is out (William 10-24: a dedicated loading screen); no ring beside a title.
     const frame = skeleton.parentElement as HTMLElement;
-    await expect(skeleton.textContent).toBe("");
-    await expect(within(frame).queryAllByText(/^Loading/)).toHaveLength(0);
+    await expect(skeleton.textContent).toBe("Reading your map");
     const title = within(page).getByRole("heading", { name: "Your business", level: 1 });
     await expect(title.parentElement?.querySelectorAll("[data-busy]").length).toBe(0);
     // It fills the frame the map fills.

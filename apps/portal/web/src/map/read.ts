@@ -18,9 +18,17 @@ import type {
 import type { MapAnswer } from "@wren/pipeline/map-read";
 import type { NumberRow } from "@wren/pipeline/numbers";
 import { call } from "../api.js";
-import { useCall } from "../load.js";
+import { readCall, useCall } from "../load.js";
 import { atOf } from "../modules/deals/board.js";
-import type { Ghost, MapData, NodeNumbers, Sum, Version, Window } from "./model.js";
+import {
+  DEFAULT_WINDOW,
+  type Ghost,
+  type MapData,
+  type NodeNumbers,
+  type Sum,
+  type Version,
+  type Window,
+} from "./model.js";
 
 const DRAFT = "pipeline.shape_draft";
 /** Rows one read takes (the server's cap), and how many reads one list makes at most. */
@@ -117,10 +125,19 @@ export async function readMap(client: string, window: Window): Promise<MapRead> 
   };
 }
 
+const mapKey = (client: string, window: Window) => `map:${client}:${window}`;
+
 /** The Map's read: one per workspace and window. */
 export function useMap(client: string, window: Window) {
-  return useCall(`map:${client}:${window}`, () => readMap(client, window));
+  return useCall(mapKey(client, window), () => readMap(client, window));
 }
+
+/**
+ * Read the Map in the background when the portal opens, under the key the Map page reads by:
+ * the page then finds it ready, and a cold Lambda starts while the viewer is on another page.
+ */
+export const prefetchMap = (client: string, window: Window = DEFAULT_WINDOW): Promise<unknown> =>
+  readCall(mapKey(client, window), () => readMap(client, window)).catch(() => undefined);
 
 // --- drafts, blame, differences: one hook per job, every card shares them -----------------------
 
