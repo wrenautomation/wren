@@ -269,6 +269,12 @@ export const settingsSchema = z.object({
           (CONTENT_CHANNELS as readonly string[]).includes(x),
         ),
     ),
+  /**
+   * How Wren's own TikTok posts go out: `web` = TikTok Studio in the box's browser, `api` = the
+   * Content Posting API. The API posts public only after TikTok's Direct Post audit; until then it
+   * refuses (unaudited_client_can_only_post_to_private_accounts, 2026-10-24). Clients always post by the API.
+   */
+  tiktokPostVia: z.enum(["web", "api"]).default("web"),
   /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
   contentVoicePath: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
@@ -685,6 +691,7 @@ export const ENV_KEYS = {
   daemonTickSeconds: "WREN_DAEMON_TICK_SECONDS",
   daemonSyncSeconds: "WREN_DAEMON_SYNC_SECONDS",
   contentChannels: "WREN_CONTENT_CHANNELS",
+  tiktokPostVia: "WREN_TIKTOK_POST_VIA",
   contentVoicePath: "WREN_CONTENT_VOICE",
   mediaBucket: "WREN_MEDIA_BUCKET",
   filesBucket: "WREN_FILES_BUCKET",

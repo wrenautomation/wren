@@ -24,6 +24,7 @@ import {
 
 const ALL: OwnSwitches = {
   channels: ["linkedin", "x", "youtube", "instagram", "facebook", "threads", "tiktok", "reddit"],
+  tiktokPostVia: "web",
   instagramGraph: false,
   redditApi: false,
   box: true,
@@ -68,20 +69,22 @@ describe("own channels from config", () => {
     expect(c.map((x) => x.platform)).toEqual(ALL.channels);
     const by = Object.fromEntries(c.map((x) => [x.platform, x]));
     expect(by.linkedin).toMatchObject({ site: "linkedin", account: "linkedin@wren", where: "box" });
-    expect(by.tiktok).toMatchObject({ site: "tiktok", via: "api" });
+    expect(by.tiktok).toMatchObject({ via: "browser", switches: ["WREN_TIKTOK_POST_VIA"] });
     expect(by.instagram).toMatchObject({ site: "instagram", via: "browser", tokenless: true });
     expect(by.reddit).toMatchObject({ site: "reddit", where: "desk", tokenless: true });
     expect(by.facebook).toMatchObject({ site: "meta", via: "api" });
   });
 
-  it("follows the switches: Instagram's Graph, Reddit's own token, the Mac", () => {
+  it("follows the switches: TikTok's API, Instagram's Graph, Reddit's own token, the Mac", () => {
     const c = ownChannels({
       ...ALL,
+      tiktokPostVia: "api",
       instagramGraph: true,
       redditApi: true,
       box: false,
     });
     const by = Object.fromEntries(c.map((x) => [x.platform, x]));
+    expect(by.tiktok?.via).toBe("api");
     expect(by.instagram).toMatchObject({ site: "meta", via: "api", tokenless: false });
     expect(by.reddit).toMatchObject({ site: null, where: "wren", via: "api" });
     expect(by.x?.where).toBe("desk");
@@ -90,6 +93,7 @@ describe("own channels from config", () => {
   it("reads settings into switches without carrying a value", () => {
     const s = ownSwitchesOf({
       contentChannels: ["x"],
+      tiktokPostVia: "web",
       mediaBucket: "bucket",
       metaPageId: "123",
       redditClientId: "id",
@@ -99,6 +103,7 @@ describe("own channels from config", () => {
     });
     expect(s).toEqual({
       channels: ["x"],
+      tiktokPostVia: "web",
       instagramGraph: true,
       // No username: not every Reddit setting is there, so the desk posts.
       redditApi: false,
