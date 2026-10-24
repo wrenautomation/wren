@@ -178,14 +178,17 @@ export function mailDomainTargets(
   mailboxes: Mailboxes,
   siteBaseUrl: string,
 ): DomainTarget[] {
-  const sending = [...new Set(roster.map((s) => senderDomain(s)))];
+  // A retired domain (every sender suspended, none warming) sends nothing: its standing asks
+  // for no act, so it stays out of the digest.
+  const live = roster.filter((s) => !s.suspended || s.ramp !== null);
+  const sending = [...new Set(live.map((s) => senderDomain(s)))];
   const sites = new Set([
     new URL(siteBaseUrl).hostname,
-    ...roster.flatMap((s) => namedDomains(s.signature?.text ?? "")),
+    ...live.flatMap((s) => namedDomains(s.signature?.text ?? "")),
   ]);
   return [
     ...sending.map((domain) => {
-      const on = roster.filter((s) => senderDomain(s) === domain);
+      const on = live.filter((s) => senderDomain(s) === domain);
       const smtp = on.find((s) => s.transport === "smtp");
       return {
         domain,

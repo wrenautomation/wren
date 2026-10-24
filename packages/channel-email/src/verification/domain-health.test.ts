@@ -1,10 +1,12 @@
 /** Domain standing: each list's listed / clear / refused answers (refused is never clear), each DNS check failing, the line and problems. */
 import { describe, expect, it } from "vitest";
+import { parseRoster } from "../send/roster.js";
 import {
   type DomainResolver,
   type DomainTarget,
   domainProblems,
   domainStanding,
+  mailDomainTargets,
   namedDomains,
   readListAnswer,
 } from "./domain-health.js";
@@ -159,4 +161,25 @@ describe("namedDomains", () => {
         "--\nJ.R. Doe, Example Inc.\nExample.com{page}\nj@mail.example.org, example.com",
       ),
     ).toEqual(["example.com", "mail.example.org"]));
+});
+
+describe("mailDomainTargets", () => {
+  it("leaves out a retired domain: every sender suspended and none warming", () => {
+    const roster = parseRoster(
+      `[[senders]]
+address = "a@live.test"
+display_name = "A"
+niches = "all"
+
+[[senders]]
+address = "b@retired.test"
+suspended = true
+display_name = "B"
+niches = "all"
+`,
+      "test",
+    );
+    const domains = mailDomainTargets(roster, new Map(), "https://site.test").map((t) => t.domain);
+    expect(domains).toEqual(["live.test", "site.test"]);
+  });
 });
