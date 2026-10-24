@@ -404,7 +404,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       // One scene px is one css px, so a label reads at its real size. A glyph table sets its own.
       {...(width ? { width, height: (H / Wd) * width } : { width: Wd, height: H })}
       // The real size, for a frame that fits the map to its page (`.metro-fit`, `.metro-fill`).
-      style={{ "--w": `${Wd}px`, "--h": `${H}px` } as CSSProperties}
+      style={{ "--w": `${Wd}px`, "--h": `${H}px`, "--r": Wd / H } as CSSProperties}
       role={acts ? "group" : "img"}
       aria-label={scene.title ?? "Map"}
     >

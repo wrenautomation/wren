@@ -232,11 +232,12 @@ describe("MetroMap", () => {
     expect(off).not.toMatch(/\bld\b/);
   });
 
-  it("steps the depth with two buttons, and names the path", () => {
+  it("steps the depth with two buttons, and shows no path that names only the map", () => {
     const html = renderToStaticMarkup(<MetroMap zoom={protocolZoom()} depth={1} intro={false} />);
     expect(html).toContain('aria-label="Fold one level"');
     expect(html).toContain('aria-label="Open one level"');
-    expect(html).toContain('aria-label="Fold path"');
+    // A node opened by hand puts the path back (the OpenWithEnter story checks it in the browser).
+    expect(html).not.toContain('aria-label="Fold path"');
     expect(html).toContain("Depth 1 of 2");
   });
 

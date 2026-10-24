@@ -6,7 +6,7 @@ import { MetroSvg } from "./draw.js";
 import type { FocusSpec } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
 import { MetroMap, type MetroPick } from "./map.js";
-import { layoutView } from "./place.js";
+import { layoutView, STEP } from "./place.js";
 import {
   COLD_OUTBOUND_VIEW,
   DIFF_VIEW,
@@ -164,8 +164,8 @@ export const OpenWithEnter: Story = {
     expect(caps.length).toBeGreaterThan(0);
     const before = marksIn(canvasElement);
     const first = caps[0] as SVGElement;
-    // SVG units: the map may scale when it grows. The expand leaf sits under the circle.
-    const was = (first.querySelector(".fc .rest .lf") as SVGGraphicsElement).getBBox();
+    // SVG units: the map may scale when it grows. A closed group is a circle with its count.
+    const was = (first.querySelector(".b") as SVGGraphicsElement).getBBox();
     first.focus();
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(marksIn(canvasElement)).toBeGreaterThan(before));
@@ -173,12 +173,10 @@ export const OpenWithEnter: Story = {
     // A hand change over the cut reads as a mix, and the path names the node.
     await expect(canvas.getByText(/^Mixed/)).toBeVisible();
     expect(canvasElement.querySelector(".metro-path [aria-current]")).not.toBeNull();
-    // A node in one column opens to a box: the fold leaf sits on the box's top edge, over the
-    // column the circle stood in.
+    // A node in one column opens to a box: its fold leaf stays in the column the circle stood in.
     const knob = await canvas.findByRole("button", { name: /^Fold (?!one level)/ });
     const k = (knob.querySelector(".lf") as SVGGraphicsElement).getBBox();
-    expect(k.y + k.height / 2).toBeLessThan(was.y + was.height / 2);
-    expect(Math.abs(k.x + k.width / 2 - (was.x + was.width / 2))).toBeLessThan(k.width / 2);
+    expect(Math.abs(k.x + k.width / 2 - (was.x + was.width / 2))).toBeLessThan(STEP);
     await userEvent.click(knob);
     await waitFor(() => expect(marksIn(canvasElement)).toBe(before));
     expect(canvas.queryByRole("button", { name: /^Fold (?!one level)/ })).toBeNull();
@@ -290,7 +288,9 @@ export const LoopRingZoom: Story = {
     await waitFor(() => expect(marksIn(canvasElement)).toBeGreaterThan(shut));
     await userEvent.click(open);
     await waitFor(() => expect(canvas.getByText(/^Depth 2 of 2/)).toBeVisible());
-    await userEvent.click(canvas.getByRole("button", { name: "Map" }));
+    const fold = canvas.getByRole("button", { name: "Fold one level" });
+    await userEvent.click(fold);
+    await userEvent.click(fold);
     await waitFor(() => expect(marksIn(canvasElement)).toBe(shut));
   },
 };

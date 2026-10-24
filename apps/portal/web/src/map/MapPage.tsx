@@ -326,19 +326,48 @@ export function MapPage({
   const waiting = !!draftId && !row && !opened.error;
 
   return (
-    <section aria-label="Map" className="flex min-w-0 flex-none flex-col text-(--ui-ink)">
+    // The map fills the first screen; Today scrolls under it.
+    <section
+      aria-label="Map"
+      className="flex h-[calc(100dvh-20px)] min-h-[520px] min-w-0 flex-none flex-col text-(--ui-ink)"
+    >
       {/* The artifact's `.atop`: the title and how many people are on the map, the tools at the right. */}
       <header className="flex flex-wrap items-end justify-between gap-2.5 px-[clamp(12px,2.5vw,24px)] pt-[18px] pb-3.5">
         <div className="mr-auto min-w-0">
           <h1 className="text-[22px]/7 font-semibold tracking-[-0.02em]">Your business</h1>
           <p className="text-[13.5px] text-(--ui-ink-2)">
             {data
-              ? `${data.people.length} ${data.people.length === 1 ? "person" : "people"} on the map now. Pinch or switch to zoom.`
+              ? `${data.people.length} ${data.people.length === 1 ? "person" : "people"} on the map now.`
               : "The map of your business."}
           </p>
         </div>
-        {/* The artifact's bar holds the zoom switch only; the other tools sit behind ⋯. */}
-        <div className="flex items-center gap-2">
+        {/* The bar: the window, History and the depth. The rarer tools sit behind ⋯. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            label="Window"
+            items={WINDOWS.map((w) => ({
+              id: w.id,
+              label: w.label,
+              href: href("/", { window: w.id === "30" ? null : w.id }, props.params),
+              on: w.id === window,
+            }))}
+          />
+          {data ? (
+            <Button
+              tone="quiet"
+              size="dense"
+              icon="clock"
+              className="shrink-0"
+              aria-pressed={history}
+              onClick={() => {
+                if (history) closeHistory();
+                else setHistory(true);
+                setPicked([]);
+              }}
+            >
+              History
+            </Button>
+          ) : null}
           <Popover open={tools} onOpenChange={setTools}>
             <PopoverTrigger
               aria-label="Map tools"
@@ -351,16 +380,6 @@ export function MapPage({
               aria-label="Map tools"
               className="w-64 gap-2 bg-(--ui-paper) p-2 text-(--ui-ink)"
             >
-              <Segmented
-                label="Window"
-                className="max-w-full"
-                items={WINDOWS.map((w) => ({
-                  id: w.id,
-                  label: w.label,
-                  href: href("/", { window: w.id === "30" ? null : w.id }, props.params),
-                  on: w.id === window,
-                }))}
-              />
               <select
                 aria-label="Client"
                 className={SELECT_CLASS}
@@ -380,21 +399,6 @@ export function MapPage({
                   </option>
                 ))}
               </select>
-              {data ? (
-                <Button
-                  tone="quiet"
-                  size="dense"
-                  aria-pressed={history}
-                  onClick={() => {
-                    setTools(false);
-                    if (history) closeHistory();
-                    else setHistory(true);
-                    setPicked([]);
-                  }}
-                >
-                  <Icon name="clock" size={15} /> History
-                </Button>
-              ) : null}
               {data ? (
                 <Button
                   tone="quiet"
@@ -468,7 +472,7 @@ export function MapPage({
           <LoadFailed error={opened.error} onRetry={opened.retry} what="draft" />
         </div>
       ) : null}
-      <div className="relative min-h-[420px] flex-none max-[900px]:min-h-[380px]">
+      <div className="relative min-h-0 flex-1">
         {read.error && !read.data ? (
           <div className="p-5">
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
@@ -480,7 +484,7 @@ export function MapPage({
         ) : (
           <>
             {shown?.view ? (
-              <div className="flex flex-col">
+              <div className="flex h-full flex-col">
                 <MetroMap
                   view={shown.view}
                   lit={lit ?? null}
@@ -492,7 +496,8 @@ export function MapPage({
                   onPick={onPick}
                   selected={panel && panel.kind !== "line" ? panel.id : null}
                   intro={false}
-                  className="metro-fit"
+                  bare
+                  className="metro-fill"
                 />
               </div>
             ) : shown ? (

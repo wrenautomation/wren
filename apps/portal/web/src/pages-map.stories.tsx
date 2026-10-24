@@ -112,10 +112,10 @@ const calm = async (page: HTMLElement) => {
   }, LATE)) as SVGSVGElement;
   const host = svg.closest<HTMLElement>(".metro-host") as HTMLElement;
   const at = svg.getBoundingClientRect();
-  // Fit to width (design language §07): the frame's width, never under 760px or 85% of the real size.
-  const real = Number(svg.getAttribute("width"));
-  const fit = Math.max(host.clientWidth, 760, real * 0.85);
-  await expect(Math.abs(at.width - fit)).toBeLessThan(2);
+  // Fill: the whole map in its frame both ways, never above its real size or under 60% of it.
+  const [w, h] = [Number(svg.getAttribute("width")), Number(svg.getAttribute("height"))];
+  const fill = Math.max(Math.min(host.clientWidth, host.clientHeight * (w / h), w), w * 0.6);
+  await expect(Math.abs(at.width - fill)).toBeLessThan(2);
   await expect(onTop(svg)).toEqual([]);
   const room = host.getBoundingClientRect();
   const pans = host.scrollWidth > host.clientWidth + 1 || host.scrollHeight > host.clientHeight + 1;
@@ -455,32 +455,26 @@ export const Big = mapAt("/", {
   check: async (page) => {
     await station(page, "Retainer");
     const { host, pans } = await calm(page);
-    await expect(pans).toBe(true);
-    // A frame that scrolls takes focus, so the arrow keys pan it.
-    await waitFor(() => expect(host).toHaveAttribute("tabindex", "0"));
     await expect(await crossingsOfShape(SHAPE_BIG)).toBeLessThanOrEqual(CROSSINGS_PINNED.big);
+    const inView = (name: string) =>
+      waitFor(async () => {
+        const [a, b] = [
+          (await station(page, name)).getBoundingClientRect(),
+          host.getBoundingClientRect(),
+        ];
+        if (a.right > b.right || a.bottom > b.bottom || a.left < b.left || a.top < b.top)
+          throw new Error(`${name} is not in view.`);
+      });
     // It opens at the left edge: the first station is in view and nothing is scrolled away.
     await expect(host.scrollLeft).toBe(0);
-    const first = await station(page, "Social");
-    const [a, b] = [first.getBoundingClientRect(), host.getBoundingClientRect()];
-    await expect(a.left).toBeGreaterThanOrEqual(b.left);
-    await expect(a.right).toBeLessThanOrEqual(b.right);
-  },
-});
-
-/** A map bigger than its frame pans: scrolled to the far corner, the last station is in view. */
-export const BigPan = mapAt("/", {
-  answers: bigAnswers(SHARED),
-  check: async (page) => {
-    await station(page, "Retainer");
-    const { host } = await calm(page);
-    host.scrollTo({ left: host.scrollWidth, top: host.scrollHeight });
-    const last = await station(page, "Retainer");
-    await waitFor(() => {
-      const [a, b] = [last.getBoundingClientRect(), host.getBoundingClientRect()];
-      if (a.right > b.right || a.bottom > b.bottom || a.left < b.left || a.top < b.top)
-        throw new Error("The last station is not in view yet.");
-    });
+    await inView("Social");
+    // Too wide for its 60% floor, it pans: a frame that scrolls takes focus for the arrow keys.
+    // Scrolled to the far corner, the last station is in view.
+    if (pans) {
+      await waitFor(() => expect(host).toHaveAttribute("tabindex", "0"));
+      host.scrollTo({ left: host.scrollWidth, top: host.scrollHeight });
+    }
+    await inView("Retainer");
   },
 });
 

@@ -360,9 +360,7 @@ export function MetroMap(props: MetroMapProps) {
   }, []);
 
   // The glide: when the shape changes, slide what stays and grow what appears.
-  const last = useRef<{ shape: string; frame: SVGSVGElement; h: number; at: DOMRect } | null>(
-    null,
-  );
+  const last = useRef<{ shape: string; frame: SVGSVGElement; h: number; at: DOMRect } | null>(null);
   useLayoutEffect(() => {
     const s = svg.current;
     const h = host.current;
@@ -419,6 +417,8 @@ export function MetroMap(props: MetroMapProps) {
   // A map bigger than its frame pans inside it: the frame takes focus so the arrow keys scroll it.
   const stage = useRef<HTMLDivElement>(null);
   const [pans, setPans] = useState(false);
+  const drawn = !!base;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the layout is async; `drawn` brings the stage and the map.
   useLayoutEffect(() => {
     const h = host.current;
     if (!h) return;
@@ -429,8 +429,10 @@ export function MetroMap(props: MetroMapProps) {
     const watch = new ResizeObserver(read);
     watch.observe(h);
     if (stage.current) watch.observe(stage.current);
+    // In a fill frame the stage keeps the frame's size: the map itself grows past it.
+    if (svg.current) watch.observe(svg.current);
     return () => watch.disconnect();
-  }, []);
+  }, [drawn]);
 
   // The legend shows while the map has a mark. Marks show at every depth (a fold carries them).
   const drawsMarks = hasMarks(scene);
@@ -569,21 +571,24 @@ export function MetroDepth({ nodes, fold, onFold }: MetroDepthProps) {
       >
         +
       </Button>
-      <fieldset className="metro-path" aria-label="Fold path">
-        <button type="button" onClick={() => onFold({ depth: 0, open: {} })}>
-          Map
-        </button>
-        {crumbs.map((n) => (
-          <button
-            type="button"
-            key={n.id}
-            onClick={() => upTo(n.id)}
-            aria-current={n.id === trail ? "location" : undefined}
-          >
-            {n.label}
+      {/* The path shows once it names a node: alone, "Map" says nothing. */}
+      {crumbs.length > 0 ? (
+        <fieldset className="metro-path" aria-label="Fold path">
+          <button type="button" onClick={() => onFold({ depth: 0, open: {} })}>
+            Map
           </button>
-        ))}
-      </fieldset>
+          {crumbs.map((n) => (
+            <button
+              type="button"
+              key={n.id}
+              onClick={() => upTo(n.id)}
+              aria-current={n.id === trail ? "location" : undefined}
+            >
+              {n.label}
+            </button>
+          ))}
+        </fieldset>
+      ) : null}
     </fieldset>
   );
 }

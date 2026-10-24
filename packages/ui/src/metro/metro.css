@@ -456,26 +456,28 @@
   min-width: max(760px, calc(var(--w, 0px) * 0.85));
   height: auto;
 }
-/* Fill: the whole map shows in its frame, both ways, never above its real size. A full-page map. */
+/* Fill: the whole map shows in its frame, both ways, never above its real size. A full-page map.
+   It sits at the top, centred across. It never shrinks below 60% of its real size: a wide map on a
+   phone pans across in place. The stage is a size container, so the width can follow its height. */
 .metro.metro-fill {
   height: 100%;
 }
 .metro-fill .metro-host {
-  overflow: hidden;
+  overflow: auto;
 }
 .metro-fill .metro-stage {
   align-self: stretch;
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: safe center;
+  container-type: size;
 }
 .metro-fill .mm {
-  width: 100%;
-  height: 100%;
-  max-width: var(--w, none);
-  max-height: var(--h, none);
+  flex: none;
+  width: max(min(100cqw, 100cqh * var(--r, 1), var(--w, 100cqw)), var(--w, 0px) * 0.6);
+  height: auto;
 }
 /* The frame fills the room it is given, so the host can centre the map in it. */
 .metro {

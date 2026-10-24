@@ -576,6 +576,7 @@ export function FocusPage({
           onPick={onPick}
           controls={false}
           intro={false}
+          bare
           className="metro-fit"
         />
         <div className="grid gap-4 text-[14px] sm:grid-cols-2">
