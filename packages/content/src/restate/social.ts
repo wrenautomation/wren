@@ -107,15 +107,6 @@ const ACTIVITY_READS = "activityReads";
  * `<platform> counts`: no pass asks them before then (X's search cap is 50 a day).
  */
 const CAP_HOLDS = "capHolds";
-/**
- * Daily site reads held off, by `<kind> <platform>`. 2026-10-24: Instagram suspended the account a
- * day after its Following-list scrape went live; Threads signs in through it. The code stays.
- */
-export const PAUSED_SITE_READS: ReadonlySet<string> = new Set([
-  "following instagram",
-  "following threads",
-]);
-
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
@@ -131,6 +122,25 @@ const FOLLOWING_READS = "followingReads";
  * kept by the next day (designs/2026-10-22-drift-reconcile.md).
  */
 export const SITE_EVERY_MS = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
+/**
+ * Site reads on their own pace, by `<kind> <platform>`. 2026-10-24: Instagram suspended the account
+ * a day after its Following-list scrape went live, then gave it back; William: twice a day, far apart.
+ */
+export const SITE_EVERY_MS_OF: Readonly<Record<string, number>> = {
+  "following instagram": 12 * HOUR,
+  "following threads": 12 * HOUR,
+};
+/** Reads through one Instagram login (Threads signs in through it): never closer than `LOGIN_GAP_MS`. */
+const ONE_LOGIN: readonly string[] = ["following instagram", "following threads"];
+export const LOGIN_GAP_MS = 6 * HOUR;
+
+/** Is the daily site read `unit` due at `now`, by each unit's last run (ms)? */
+export function siteReadDue(unit: string, last: Readonly<Record<string, number>>, now: number) {
+  if (now - (last[unit] ?? 0) < (SITE_EVERY_MS_OF[unit] ?? SITE_EVERY_MS)) return false;
+  if (!ONE_LOGIN.includes(unit)) return true;
+  return ONE_LOGIN.every((u) => u === unit || now - (last[u] ?? 0) >= LOGIN_GAP_MS);
+}
 /** Our newest posts read back: the list reads' most. */
 const SITE_POSTS = 100;
 
@@ -566,13 +576,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     }
     ctx.set(ACTIVITY_READS, lastActivity);
 
-    // What was made by hand on the site, read back once a day: our follows and comments as
+    // What was made by hand on the site, read back once a day (some twice, `SITE_EVERY_MS_OF`): our follows and comments as
     // touches, our posts as published drafts so their numbers are read. Nothing is deleted.
     const lastSite = (await ctx.get<Record<string, number>>(SITE_READS)) ?? {};
     const daily = async (kind: string, platform: Platform, read: () => Promise<void>) => {
       const unit = `${kind} ${platform}`;
-      if (PAUSED_SITE_READS.has(unit)) return;
-      if (now.getTime() - (lastSite[unit] ?? 0) < SITE_EVERY_MS) return;
+      if (!siteReadDue(unit, lastSite, now.getTime())) return;
       if (!go(unit, platform)) return;
       lastSite[unit] = now.getTime();
       try {
