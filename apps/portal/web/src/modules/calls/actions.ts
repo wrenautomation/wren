@@ -22,6 +22,7 @@ export function outcomeActions(
     {
       id: `${ids.prefix}${service === "email" ? "callWon" : "won"}`,
       label: "Won",
+      icon: "won",
       handler: h("callWon", "won"),
       undo,
       bulk: true,
@@ -32,6 +33,7 @@ export function outcomeActions(
     {
       id: `${ids.prefix}${service === "email" ? "callNotYet" : "notYet"}`,
       label: "Not yet",
+      icon: "clock",
       handler: h("callNotYet", "notYet"),
       undo,
       key: "y",
@@ -46,6 +48,7 @@ export function outcomeActions(
     {
       id: `${ids.prefix}${service === "email" ? "callNoShow" : "noShow"}`,
       label: "No-show",
+      icon: "close",
       handler: h("callNoShow", "noShow"),
       undo,
       bulk: true,
@@ -56,6 +59,7 @@ export function outcomeActions(
     {
       id: `${ids.prefix}${service === "email" ? "callNotFit" : "notFit"}`,
       label: "Not a fit",
+      icon: "lost",
       handler: h("callNotFit", "notFit"),
       undo,
       bulk: true,

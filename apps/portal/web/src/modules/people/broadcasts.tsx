@@ -734,6 +734,7 @@ export const BROADCAST_DECIDE_ACTIONS: Action[] = [
   {
     id: "people.broadcastApprove",
     label: "Approve",
+    icon: "check",
     handler: "people/broadcastApprove",
     confirm: "Approve it? It sends to everyone in its group who said yes, on its time.",
     key: "a",
@@ -746,6 +747,7 @@ export const BROADCAST_DECIDE_ACTIONS: Action[] = [
   {
     id: "people.broadcastDecline",
     label: "Decline",
+    icon: "close",
     handler: "people/broadcastDecline",
     key: "x",
     when: { state: ["waiting"] },
@@ -773,12 +775,14 @@ export const broadcastsPage: ListPage = {
     {
       id: "people.broadcastTest",
       label: "Send test",
+      icon: "send",
       handler: "people/broadcastTest",
       inline: true,
     },
     {
       id: "people.broadcastAsk",
       label: "Ask to send",
+      icon: "send",
       handler: "people/broadcastAsk",
       when: { state: ["draft", "declined"] },
       sets: { state: "waiting" },
@@ -799,6 +803,7 @@ export const broadcastsPage: ListPage = {
     {
       id: "people.broadcastRestore",
       label: "Restore",
+      icon: "restore",
       handler: "people/broadcastRestore",
       when: { state: ["canceled"] },
       confirm: "Restore it? It goes back to where it was, and sends to whoever hasn't had it.",

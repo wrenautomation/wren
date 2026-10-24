@@ -112,6 +112,7 @@ export const DOC_ACTIONS: Action[] = [
   {
     id: "documents.send",
     label: "Send",
+    icon: "send",
     handler: "documents/send",
     confirm: "Send it to be signed? If you can't approve, it waits in To approve.",
     when: { status: ["draft", "failed"] },
@@ -121,6 +122,7 @@ export const DOC_ACTIONS: Action[] = [
   {
     id: "documents.approve",
     label: "Approve",
+    icon: "check",
     handler: "documents/approve",
     confirm: "Send this document to be signed?",
     when: { status: ["waiting"] },
@@ -132,6 +134,7 @@ export const DOC_ACTIONS: Action[] = [
   {
     id: "documents.decline",
     label: "Decline",
+    icon: "close",
     handler: "documents/decline",
     when: { status: ["waiting"] },
     sets: { status: "draft" },
@@ -142,6 +145,7 @@ export const DOC_ACTIONS: Action[] = [
   {
     id: "documents.remind",
     label: "Remind",
+    icon: "bell",
     handler: "documents/remind",
     when: { status: OPEN },
     key: "r",
@@ -150,12 +154,14 @@ export const DOC_ACTIONS: Action[] = [
   {
     id: "documents.duplicate",
     label: "Duplicate",
+    icon: "copy",
     handler: "documents/duplicate",
     done: said("Copied as a new draft."),
   },
   {
     id: "documents.void",
     label: "Void",
+    icon: "trash",
     handler: "documents/void",
     confirm: "Void it? Its link stops working. It stays here, marked void.",
     when: { status: ["draft", "waiting", "failed", ...OPEN] },
@@ -171,6 +177,7 @@ export const TEMPLATE_ACTIONS: Action[] = [
   {
     id: "documents.templateArchive",
     label: "Archive",
+    icon: "archive",
     handler: "documents/templateArchive",
     confirm: "Archive it? New documents can't start from it. Sent ones keep their words.",
     bulk: true,
@@ -183,6 +190,7 @@ export const TEMPLATE_ACTIONS: Action[] = [
 export const THREAD_ESTIMATE: Action = {
   id: "documents.fromThread",
   label: "Send estimate",
+  icon: "send",
   handler: "documents/fromThread",
   each: true,
   form: [{ field: "title", label: "What it's for", hint: "Like: Kitchen repaint" }],

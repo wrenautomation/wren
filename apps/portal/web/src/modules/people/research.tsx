@@ -42,6 +42,7 @@ export const keepFinding: Action = {
 export const dropFinding: Action = {
   id: "people.findingDrop",
   label: "Drop",
+  icon: "close",
   handler: "people/findingDrop",
   bulk: true,
   when: { state: ["found", "kept"] },

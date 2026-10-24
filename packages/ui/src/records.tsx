@@ -2119,7 +2119,7 @@ export function swipesOf(
 /** A phone row's swipes with the page's Reply added on the left, when the page has one. */
 export function withReply(swipes: Swipes | null, reply: (() => void) | null): Swipes | null {
   if (!reply) return swipes;
-  const act = { id: "reply", label: "Reply", tone: "ink" as const, run: reply };
+  const act = { id: "reply", label: "Reply", icon: "reply", tone: "ink" as const, run: reply };
   return { lead: swipes?.lead, trail: [...(swipes?.trail ?? []).slice(0, 1), act] };
 }
 

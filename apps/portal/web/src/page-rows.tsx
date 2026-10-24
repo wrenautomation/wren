@@ -6,6 +6,7 @@
  */
 import {
   type Action,
+  type IconName,
   RowActions,
   Rows,
   type RowsLine,
@@ -35,9 +36,11 @@ export function rowLines<T>(
 export interface RowDo {
   id: string;
   label: string;
+  /** Shown as the row's icon; none: behind ⋯. */
+  icon?: IconName;
   /** Asked before it runs; the press stops on No. */
   confirm?: string;
-  run: () => void | Promise<unknown>;
+  run: () => unknown;
 }
 
 /** A row's end cell: its actions as icons (a phone shows the first alone, the rest behind ⋯). */
@@ -53,7 +56,7 @@ export function RowDoes({
   lone: boolean;
 }) {
   if (does.length === 0) return null;
-  const actions: Action[] = does.map((d) => ({ id: d.id, label: d.label, handler: "" }));
+  const actions: Action[] = does.map((d) => ({ ...d, handler: "" }));
   const { main, more } = rowActsOf(actions, {});
   return (
     <RowActions

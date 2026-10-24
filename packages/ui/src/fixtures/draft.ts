@@ -11,7 +11,7 @@ export const DRAFT_ACTIONS: Action[] = [
   { id: "save", label: "Save", handler: "draft/save" },
   { id: "ask", label: "Ask Claude", handler: "draft/ask" },
   { id: "undo", label: "Undo", handler: "draft/undo" },
-  { id: "send", label: "Send", handler: "draft/send" },
+  { id: "send", label: "Send", icon: "send", handler: "draft/send" },
 ];
 
 export const DRAFT_TURNS: DraftTurnLine[] = [

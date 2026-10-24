@@ -33,6 +33,7 @@ export const EMAIL_ACTIONS: Action[] = [
   {
     id: "reactivation.approve",
     label: "Approve",
+    icon: "check",
     handler: "reactivation/approve",
     undo: "reactivation/unapprove",
     key: "a",
@@ -44,6 +45,7 @@ export const EMAIL_ACTIONS: Action[] = [
   {
     id: "reactivation.skip",
     label: "Don't send",
+    icon: "close",
     handler: "reactivation/skip",
     confirm: "Don't send this email? We won't write to them again.",
     key: "s",

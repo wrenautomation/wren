@@ -32,6 +32,7 @@ export const FLAG_ACTIONS: Action[] = [
   {
     id: "loops.flagRemove",
     label: "Delete",
+    icon: "trash",
     handler: "console/flagRemove",
     confirm: "Delete this flag? Code that asks for it gets off.",
     bulk: true,

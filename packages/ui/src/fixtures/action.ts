@@ -10,6 +10,7 @@ import { WORST } from "./worst.js";
 export const PAUSE: Action = {
   id: "pause",
   label: "Pause",
+  icon: "pause",
   handler: "email/pause",
   ask: { field: "reason", label: "Why?" },
 };
@@ -18,6 +19,7 @@ export const PAUSE: Action = {
 export const APPROVE: Action = {
   id: "approve",
   label: "Approve",
+  icon: "check",
   handler: "demo/approve",
   undo: "demo/unapprove",
   done: () => "Approved.",
@@ -27,6 +29,7 @@ export const APPROVE: Action = {
 export const CLOSE: Action = {
   id: "close",
   label: "Close",
+  icon: "selected",
   handler: "demo/close",
   confirm: "Close these leads?",
   done: () => "Closed.",

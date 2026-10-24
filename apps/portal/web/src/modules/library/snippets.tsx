@@ -31,6 +31,7 @@ export const SNIPPET_ACTIONS: Action[] = [
   {
     id: "library.snippetRemove",
     label: "Delete",
+    icon: "trash",
     handler: "console/snippetRemove",
     confirm: "Delete this snippet? Drafts that used it keep their words.",
     bulk: true,

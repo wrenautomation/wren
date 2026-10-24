@@ -1163,6 +1163,7 @@ export const groupsPage: ListPage = {
     {
       id: "people.segmentRetake",
       label: "Count again",
+      icon: "retry",
       handler: "people/segmentRetake",
       when: { kind: ["snapshot"], state: ["active"] },
       confirm: "Count who matches now and keep that?",
@@ -1171,6 +1172,7 @@ export const groupsPage: ListPage = {
     {
       id: "people.segmentArchive",
       label: "Archive",
+      icon: "archive",
       handler: "people/segmentArchive",
       when: { state: ["active"] },
       bulk: true,
@@ -1181,6 +1183,7 @@ export const groupsPage: ListPage = {
     {
       id: "people.segmentRestore",
       label: "Restore",
+      icon: "restore",
       handler: "people/segmentRestore",
       when: { state: ["archived"] },
       bulk: true,
@@ -1217,6 +1220,7 @@ export const membersPage: ListPage = {
     {
       id: "people.memberRemove",
       label: "Take out",
+      icon: "trash",
       handler: "people/memberRemove",
       when: { segmentKind: ["manual"] },
       bulk: true,
@@ -1230,6 +1234,7 @@ export const membersPage: ListPage = {
 export const addToGroup: Action = {
   id: "people.memberAdd",
   label: "Add to group",
+  icon: "addTo",
   handler: "people/memberAdd",
   bulk: true,
   each: true,

@@ -115,6 +115,7 @@ export function People(props: PageProps & { bare?: boolean }) {
                         {
                           id: "remove",
                           label: "Remove",
+                          icon: "trash",
                           confirm: `Remove ${m.email}? They lose access right away.`,
                           run: () =>
                             go(m.email, "Removing", () => act.run("remove", { email: m.email })),

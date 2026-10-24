@@ -91,6 +91,7 @@ const SWAP_ACTIONS: Action[] = [
   {
     id: "marketing.swapApprove",
     label: "Change it",
+    icon: "edit",
     handler: "marketing/swapApprove",
     confirm: "Change it on the live post now?",
     key: "a",
@@ -99,6 +100,7 @@ const SWAP_ACTIONS: Action[] = [
   {
     id: "marketing.swapSkip",
     label: "Skip",
+    icon: "close",
     handler: "marketing/swapSkip",
     bulk: true,
     key: "e",
@@ -119,6 +121,7 @@ const UNSURE_ACTIONS: Action[] = [
   {
     id: "marketing.sendAgain",
     label: "Send again",
+    icon: "retry",
     handler: "marketing/sendAgain",
     confirm:
       "Send it again? We ask the site first, but if it went out and the site can't tell, it posts twice.",
@@ -127,6 +130,7 @@ const UNSURE_ACTIONS: Action[] = [
   {
     id: "marketing.sendDrop",
     label: "Not sent, drop",
+    icon: "close",
     handler: "marketing/sendDrop",
     confirm: "Did it not go out? We'll close it as not sent and never send it.",
     done: said("Dropped. It was not sent."),
@@ -137,6 +141,7 @@ const POST_ACTIONS: Action[] = [
   {
     id: "marketing.draftAgain",
     label: "Draft again",
+    icon: "edit",
     handler: "marketing/draftAgain",
     confirm: "Draft this idea again for this platform?",
     done: said("Drafting. It shows in the content desk."),
@@ -144,6 +149,7 @@ const POST_ACTIONS: Action[] = [
   {
     id: "marketing.postPromote",
     label: "Promote",
+    icon: "megaphone",
     handler: "marketing/postPromote",
     confirm: PROMOTE_CONFIRM,
     each: true,
@@ -154,6 +160,7 @@ const POST_ACTIONS: Action[] = [
   {
     id: "marketing.swapAsk",
     label: "Try a new title",
+    icon: "edit",
     handler: "marketing/swapAsk",
     each: true,
     form: SWAP_FORM,
@@ -191,6 +198,7 @@ const REJECT_FORM: readonly FormField[] = [
 const PASS_ACTION: Action = {
   id: "marketing.pass",
   label: "Pass on them",
+  icon: "passOn",
   handler: "marketing/pass",
   form: [
     { field: "reason", label: "Why", type: "select", options: PASS_REASONS, labels: PASS_LABELS },
@@ -207,6 +215,7 @@ const DRAFT_ACTIONS: Action[] = [
   {
     id: "marketing.approveDraft",
     label: "Approve",
+    icon: "check",
     handler: "marketing/approveDraft",
     confirm: "Post this at its platform's next slot?",
     key: "a",
@@ -223,6 +232,7 @@ const DRAFT_ACTIONS: Action[] = [
   {
     id: "marketing.scheduleDraft",
     label: "Schedule",
+    icon: "reschedule",
     handler: "marketing/scheduleDraft",
     form: [
       { field: "day", label: "Day", type: "date" },
@@ -251,6 +261,7 @@ const DRAFT_ACTIONS: Action[] = [
   {
     id: "marketing.redraft",
     label: "Redraft",
+    icon: "chat",
     handler: "marketing/redraft",
     ask: { field: "note", label: "What to change" },
     when: OPEN,
@@ -259,6 +270,7 @@ const DRAFT_ACTIONS: Action[] = [
   {
     id: "marketing.rejectDraft",
     label: "Reject",
+    icon: "close",
     handler: "marketing/rejectDraft",
     confirm: "Turn this draft down?",
     // Why is optional: it teaches later drafts.
@@ -277,6 +289,7 @@ const AD_ACTIONS: Action[] = [
   {
     id: "marketing.pause",
     label: "Pause",
+    icon: "pause",
     handler: "marketing/pause",
     ask: { field: "reason", label: "Why?" },
     when: { state: ["active"] },
@@ -286,6 +299,7 @@ const AD_ACTIONS: Action[] = [
     // It spends again: asked every time, never an undo.
     id: "marketing.resume",
     label: "Resume",
+    icon: "play",
     handler: "marketing/resume",
     confirm: "Start spending on it again at its budget?",
     when: { state: ["paused", "stopped"] },
@@ -297,6 +311,7 @@ const TEXT_ACTIONS: Action[] = [
   {
     id: "marketing.markRead",
     label: "Mark read",
+    icon: "read",
     handler: "marketing/markRead",
     bulk: true,
     key: "e",
@@ -309,6 +324,7 @@ export const DM_ACTIONS: Action[] = [
   {
     id: "marketing.dmReply",
     label: "Reply",
+    icon: "reply",
     handler: "marketing/dmReply",
     // The draft box holds the words; this sends what it saved.
     confirm: "Send this reply?",
@@ -318,6 +334,7 @@ export const DM_ACTIONS: Action[] = [
   {
     id: "marketing.dmRead",
     label: "Mark read",
+    icon: "read",
     handler: "marketing/dmRead",
     bulk: true,
     key: "e",
@@ -344,7 +361,13 @@ export const DM_CANCEL: Action = {
  * on the site again. Run from inside the view only.
  */
 const THREAD_VIEW_ACTIONS: Action[] = [
-  { id: THREAD_REPLY, label: "Reply from Wren", handler: "marketing/threadReply", inline: true },
+  {
+    id: THREAD_REPLY,
+    label: "Reply from Wren",
+    icon: "reply",
+    handler: "marketing/threadReply",
+    inline: true,
+  },
   { id: THREAD_READ, label: "Refresh", handler: "marketing/threadRead", inline: true },
 ];
 
@@ -352,6 +375,7 @@ const COMMENT_ACTIONS: Action[] = [
   {
     id: "marketing.commentAnswer",
     label: "Answer",
+    icon: "reply",
     handler: "marketing/commentAnswer",
     confirm: "Post this answer under their comment?",
     key: "r",
@@ -361,6 +385,7 @@ const COMMENT_ACTIONS: Action[] = [
   {
     id: "marketing.commentDm",
     label: "DM them",
+    icon: "dm",
     handler: "marketing/commentDm",
     ask: { field: "body", label: "Your DM" },
     key: "m",
@@ -370,6 +395,7 @@ const COMMENT_ACTIONS: Action[] = [
   {
     id: "marketing.commentDrop",
     label: "Skip",
+    icon: "close",
     handler: "marketing/commentDrop",
     bulk: true,
     key: "e",
@@ -384,6 +410,7 @@ const ACTIVITY_ACTIONS: Action[] = [
   {
     id: "marketing.activitySeen",
     label: "Mark seen",
+    icon: "read",
     handler: "marketing/activitySeen",
     bulk: true,
     key: "e",
@@ -413,6 +440,7 @@ const PRIVACY = {
 const VIDEO_APPROVE: Action = {
   id: "marketing.videoApprove",
   label: "Approve",
+  icon: "check",
   handler: "marketing/videoApprove",
   confirm: "Upload the long video to YouTube?",
   key: "a",
@@ -434,6 +462,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoApproveShort",
     label: "Approve a Short",
+    icon: "check",
     handler: "marketing/videoApproveShort",
     each: true,
     form: [
@@ -446,6 +475,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoApproveVertical",
     label: "Approve vertical",
+    icon: "check",
     handler: "marketing/videoApproveVertical",
     confirm: "Upload the vertical video to YouTube, and draft its Reel for To approve?",
     form: [PRIVACY],
@@ -455,6 +485,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoThumbnail",
     label: "Pick thumbnail",
+    icon: "image",
     handler: "marketing/videoThumbnail",
     each: true,
     form: [{ field: "n", label: "Thumbnail", type: "select", options: ["1", "2", "3"] }],
@@ -464,6 +495,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoPromote",
     label: "Promote",
+    icon: "megaphone",
     handler: "marketing/videoPromote",
     confirm: PROMOTE_CONFIRM,
     each: true,
@@ -474,6 +506,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoSchedule",
     label: "Schedule",
+    icon: "reschedule",
     handler: "marketing/videoSchedule",
     confirm: "Upload it now, private, and make it public then?",
     form: [
@@ -486,6 +519,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoReject",
     label: "Reject",
+    icon: "close",
     handler: "marketing/videoReject",
     form: [{ field: "note", label: "Why", type: "long", optional: true }],
     when: { state: ["added", "edited", "rendered"] },
@@ -494,6 +528,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoRestore",
     label: "Bring back",
+    icon: "undo",
     handler: "marketing/videoRestore",
     form: [],
     when: { state: ["rejected"] },
@@ -502,6 +537,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoRender",
     label: "Render",
+    icon: "retry",
     handler: "marketing/videoRender",
     key: "r",
     confirm:
@@ -512,6 +548,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoRenderAgain",
     label: "Render again",
+    icon: "retry",
     handler: "marketing/videoRenderAgain",
     confirm:
       "Render every part again, even the ones that haven't changed? It takes longer than Render.",
@@ -521,6 +558,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoRenderPart",
     label: "Render one part",
+    icon: "retry",
     handler: "marketing/videoRenderPart",
     confirm: "Render just this part on the Mac? It waits while the Mac is off.",
     form: [
@@ -545,6 +583,7 @@ const VIDEO_ACTIONS: Action[] = [
   {
     id: "marketing.videoSwap",
     label: "Use new render",
+    icon: "retry",
     handler: "marketing/videoSwap",
     confirm: "Point the approved Shorts that aren't out yet at the new render?",
     form: [
@@ -632,6 +671,7 @@ const KEYWORD_ACTIONS: Action[] = [
   {
     id: "marketing.keywordRemove",
     label: "Delete",
+    icon: "trash",
     handler: "marketing/keywordRemove",
     confirm: "Delete this keyword? Its DM log goes with it.",
     bulk: true,
@@ -649,6 +689,7 @@ export const PLACE_ACTIONS: Action[] = [
   {
     id: "marketing.placeWatch",
     label: "Watch",
+    icon: "eye",
     handler: "marketing/placeWatch",
     bulk: true,
     key: "w",
@@ -658,6 +699,7 @@ export const PLACE_ACTIONS: Action[] = [
   {
     id: "marketing.placeSkip",
     label: "Skip",
+    icon: "close",
     handler: "marketing/placeSkip",
     bulk: true,
     key: "e",
@@ -667,6 +709,7 @@ export const PLACE_ACTIONS: Action[] = [
   {
     id: "marketing.placeMove",
     label: "Move account",
+    icon: "reschedule",
     handler: "marketing/placeMove",
     each: true,
     form: [
@@ -727,6 +770,7 @@ export const INVITE_ACTIONS: Action[] = [
   {
     id: "marketing.inviteMessage",
     label: "Message",
+    icon: "dm",
     handler: "marketing/dmReply",
     confirm: "Send this message?",
     key: "r",
@@ -736,6 +780,7 @@ export const INVITE_ACTIONS: Action[] = [
   {
     id: "marketing.inviteRead",
     label: "Mark read",
+    icon: "read",
     handler: "marketing/dmRead",
     bulk: true,
     key: "e",
@@ -745,6 +790,7 @@ export const INVITE_ACTIONS: Action[] = [
   {
     id: "marketing.inviteWithdraw",
     label: "Withdraw",
+    icon: "close",
     handler: "marketing/inviteWithdraw",
     key: "w",
     when: { status: ["pending"] },
@@ -757,6 +803,7 @@ export const CONNECT_ACTIONS: Action[] = [
   {
     id: "marketing.connectApprove",
     label: "Send invite",
+    icon: "check",
     handler: "marketing/connectApprove",
     confirm: "Send these invites? They go out under the day's cap.",
     bulk: true,
@@ -767,6 +814,7 @@ export const CONNECT_ACTIONS: Action[] = [
   {
     id: "marketing.connectSkip",
     label: "Skip",
+    icon: "close",
     handler: "marketing/connectSkip",
     bulk: true,
     key: "e",
@@ -780,6 +828,7 @@ const ONPOST_ACTIONS: Action[] = [
   {
     id: "marketing.onpostComment",
     label: "Comment",
+    icon: "reply",
     handler: "marketing/onpostComment",
     confirm: "Post this comment on their post?",
     key: "r",
@@ -788,6 +837,7 @@ const ONPOST_ACTIONS: Action[] = [
   {
     id: "marketing.onpostLike",
     label: "Like only",
+    icon: "heart",
     handler: "marketing/onpostLike",
     confirm: "Like their post without commenting?",
     done: said("Liked"),
@@ -795,6 +845,7 @@ const ONPOST_ACTIONS: Action[] = [
   {
     id: "marketing.onpostFollow",
     label: "Follow only",
+    icon: "addPerson",
     handler: "marketing/onpostFollow",
     confirm: "Follow them without commenting?",
     done: said("Following"),
@@ -802,6 +853,7 @@ const ONPOST_ACTIONS: Action[] = [
   {
     id: "marketing.onpostSkip",
     label: "Skip",
+    icon: "close",
     handler: "marketing/onpostSkip",
     form: REJECT_FORM,
     each: true,
@@ -815,6 +867,7 @@ export const THREAD_ACTIONS: Action[] = [
   {
     id: "marketing.threadComment",
     label: "Comment",
+    icon: "reply",
     handler: "marketing/threadComment",
     confirm: "Post this comment in the thread?",
     key: "r",
@@ -824,6 +877,7 @@ export const THREAD_ACTIONS: Action[] = [
   {
     id: "marketing.threadSkip",
     label: "Skip",
+    icon: "close",
     handler: "marketing/threadSkip",
     bulk: true,
     key: "e",
@@ -861,6 +915,7 @@ const INBOX_THREAD_ACTIONS: Action[] = [
   {
     id: "inbox.take",
     label: "Take it",
+    icon: "addPerson",
     handler: "inbox/take",
     bulk: true,
     key: "t",
@@ -869,6 +924,7 @@ const INBOX_THREAD_ACTIONS: Action[] = [
   {
     id: "inbox.assign",
     label: "Assign",
+    icon: "addPerson",
     handler: "inbox/assign",
     form: [
       {
@@ -886,6 +942,7 @@ const INBOX_THREAD_ACTIONS: Action[] = [
   {
     id: "inbox.close",
     label: "Close",
+    icon: "selected",
     handler: "inbox/close",
     bulk: true,
     key: "e",
@@ -896,6 +953,7 @@ const INBOX_THREAD_ACTIONS: Action[] = [
   {
     id: "inbox.open",
     label: "Open again",
+    icon: "undo",
     handler: "inbox/open",
     bulk: true,
     when: { status: ["closed", "waiting"] },
@@ -905,6 +963,7 @@ const INBOX_THREAD_ACTIONS: Action[] = [
   {
     id: "inbox.snooze",
     label: "Snooze",
+    icon: "clock",
     handler: "inbox/snooze",
     form: [
       {
@@ -929,14 +988,15 @@ const INBOX_THREAD_ACTIONS: Action[] = [
   {
     id: "inbox.wake",
     label: "Wake",
+    icon: "undo",
     handler: "inbox/wake",
     bulk: true,
     when: { status: ["snoozed"] },
     done: said("Back in the Inbox"),
   },
   // The conversation's boxes: never a button or a key.
-  { id: "inbox.reply", label: "Send", handler: "inbox/reply", inline: true },
-  { id: "inbox.ask", label: "Ask to send", handler: "inbox/ask", inline: true },
+  { id: "inbox.reply", label: "Send", icon: "send", handler: "inbox/reply", inline: true },
+  { id: "inbox.ask", label: "Ask to send", icon: "send", handler: "inbox/ask", inline: true },
   { id: "inbox.suggest", label: "Suggest", handler: "inbox/suggest", inline: true },
   { id: "inbox.note", label: "Add note", handler: "inbox/note", inline: true },
 ];
@@ -962,7 +1022,14 @@ const INBOX_ACTIONS: Action[] = [
     // Outlook, then Done here.
     only(
       "mail",
-      { id: "mail.done", label: "Done", handler: "mail/done", bulk: true, done: said("Done") },
+      {
+        id: "mail.done",
+        label: "Done",
+        icon: "selected",
+        handler: "mail/done",
+        bulk: true,
+        done: said("Done"),
+      },
       WAITS,
     ),
   ]
@@ -974,6 +1041,7 @@ const TEMPLATE_ACTIONS: Action[] = [
   {
     id: "templates.approve",
     label: "Approve",
+    icon: "check",
     handler: "templates/approve",
     confirm: "Make this version live? The next message composed uses it.",
     key: "a",
@@ -982,6 +1050,7 @@ const TEMPLATE_ACTIONS: Action[] = [
   {
     id: "templates.decline",
     label: "Decline",
+    icon: "close",
     handler: "templates/decline",
     key: "x",
     done: said("Declined. The version stays in its history."),
@@ -992,6 +1061,7 @@ const WORKFLOW_ACTIONS: Action[] = [
   {
     id: "workflows.approve",
     label: "Approve",
+    icon: "check",
     handler: "console/templateApprove",
     confirm: "Make it live? Its door opens and its parts start.",
     key: "a",
@@ -1000,6 +1070,7 @@ const WORKFLOW_ACTIONS: Action[] = [
   {
     id: "workflows.decline",
     label: "Decline",
+    icon: "close",
     handler: "console/templateDecline",
     key: "x",
     done: said("Declined. It stays installed as a draft."),
@@ -1010,6 +1081,7 @@ const PAGE_ACTIONS: Action[] = [
   {
     id: "sites.approve",
     label: "Approve",
+    icon: "check",
     handler: "sites/approve",
     confirm: "Make this version live? Its URL shows it within a minute.",
     key: "a",
@@ -1018,6 +1090,7 @@ const PAGE_ACTIONS: Action[] = [
   {
     id: "sites.decline",
     label: "Decline",
+    icon: "close",
     handler: "sites/decline",
     key: "x",
     done: said("Declined. The version stays in its history."),
@@ -1028,6 +1101,7 @@ const RETIRE_ACTIONS: Action[] = [
   {
     id: "sites.retireApprove",
     label: "Approve",
+    icon: "check",
     handler: "sites/approve",
     confirm: "Take this page down? Its URL answers gone. Its numbers stay.",
     key: "a",
@@ -1036,6 +1110,7 @@ const RETIRE_ACTIONS: Action[] = [
   {
     id: "sites.retireDecline",
     label: "Decline",
+    icon: "close",
     handler: "sites/decline",
     key: "x",
     done: said("Declined. The page stays up."),
@@ -1049,6 +1124,7 @@ const ASKED_REPLY_ACTIONS: Action[] = [
   {
     id: "inbox.replyApprove",
     label: "Approve",
+    icon: "check",
     handler: "inbox/replyApprove",
     confirm: "Send this reply on its channel now?",
     key: "a",
@@ -1064,6 +1140,7 @@ const ASKED_REPLY_ACTIONS: Action[] = [
   {
     id: "inbox.replyDrop",
     label: "Skip",
+    icon: "close",
     handler: "inbox/replyDrop",
     key: "x",
     when: { state: ["waiting", "queued"] },
@@ -1166,6 +1243,7 @@ export const ENGAGE_DRAFT: Record<string, DraftOf> = {
 const DM_FROM_ACTION: Action = {
   id: "marketing.messageFrom",
   label: "DM them",
+  icon: "dm",
   handler: "marketing/messageFrom",
   ask: { field: "body", label: "Your DM" },
   key: "m",
@@ -1188,6 +1266,7 @@ const EXPLORE_ACTIONS: Action[] = [
   {
     id: "marketing.exploreReply",
     label: "Reply",
+    icon: "reply",
     handler: "marketing/exploreReply",
     key: "r",
     done: said("It waits in Engage"),
@@ -1195,6 +1274,7 @@ const EXPLORE_ACTIONS: Action[] = [
   {
     id: "marketing.exploreFollow",
     label: "Follow",
+    icon: "addPerson",
     handler: "marketing/exploreFollow",
     done: said("Following"),
   },
@@ -1203,6 +1283,7 @@ const EXPLORE_ACTIONS: Action[] = [
     {
       id: "marketing.onpostSkip",
       label: "Skip",
+      icon: "close",
       handler: "marketing/onpostSkip",
       form: REJECT_FORM,
       each: true,
@@ -1217,6 +1298,7 @@ const EXPLORE_ACTIONS: Action[] = [
     {
       id: "marketing.threadSkip",
       label: "Skip",
+      icon: "close",
       handler: "marketing/threadSkip",
       bulk: true,
       key: "e",
@@ -1350,6 +1432,7 @@ const TEXT_COPY_ACTIONS: Action[] = [
   {
     id: "marketing.textCopy",
     label: "Edit",
+    icon: "edit",
     when: { id: KEYWORDS.map((k) => `keyword.${k}`) },
     handler: "marketing/textCopy",
     ask: { field: "body", label: "Your words", from: "body", preview: textCopyPreview },
