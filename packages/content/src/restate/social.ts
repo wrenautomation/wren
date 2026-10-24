@@ -107,6 +107,15 @@ const ACTIVITY_READS = "activityReads";
  * `<platform> counts`: no pass asks them before then (X's search cap is 50 a day).
  */
 const CAP_HOLDS = "capHolds";
+/**
+ * Daily site reads held off, by `<kind> <platform>`. 2026-10-24: Instagram suspended the account a
+ * day after its Following-list scrape went live; Threads signs in through it. The code stays.
+ */
+export const PAUSED_SITE_READS: ReadonlySet<string> = new Set([
+  "following instagram",
+  "following threads",
+]);
+
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
@@ -562,6 +571,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const lastSite = (await ctx.get<Record<string, number>>(SITE_READS)) ?? {};
     const daily = async (kind: string, platform: Platform, read: () => Promise<void>) => {
       const unit = `${kind} ${platform}`;
+      if (PAUSED_SITE_READS.has(unit)) return;
       if (now.getTime() - (lastSite[unit] ?? 0) < SITE_EVERY_MS) return;
       if (!go(unit, platform)) return;
       lastSite[unit] = now.getTime();
