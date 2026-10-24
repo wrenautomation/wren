@@ -17,8 +17,8 @@ Every story set has `default`, `empty`, `loading`, `failed`, `worst-case`; extra
 
 | Screen piece | Part (`packages/ui/src/`) | Stories (`<stem>--…`) | DESIGN.md |
 |---|---|---|---|
-| a list page (`list`), its rows, needs tiers, bulk bar | `RecordList` `records.tsx:953` | `records`, + `rows-loading`, `rows-failed`, `bulk` | Lists and records |
-| an open record (panel or full page) | `Panel` `records.tsx:2513`, `RecordPage` `:2684` | `records--panel-*` (`open`, `default`, `empty`, `loading`, `failed`, `worst-case`) | Lists and records |
+| a list page (`list`), its rows, needs tiers, bulk bar | `RecordList` `records-list.tsx:299` | `records`, + `rows-loading`, `rows-failed`, `bulk` | Lists and records |
+| an open record (panel or full page) | `Panel` `records-panel.tsx:74`, `RecordPage` `records-page.tsx:87` | `records--panel-*` (`open`, `default`, `empty`, `loading`, `failed`, `worst-case`) | Lists and records |
 | a list's views, search, filters, sort | `ListBar` `list-bar.tsx:1070`, `SearchBox` `:1270` | `list-bar`, + `search-default` | Lists and records |
 | the frame: sidebar, app bar, pages column, Today | `AppShell` `shell.tsx:166` | `shell`, + `home` | Navigation and shell, Phone |
 | an action's form, its run, undo, blocked reason | `FormBox` `action.tsx:357`, `useRun` `:915` | `action`, + `form-dialog`, `form-box-*` | Buttons |
