@@ -1,7 +1,7 @@
 /**
  * The peek (designs/2026-10-21-crm-rows-everywhere.md, F3): what a row click opens beside its
  * list. Not the whole record: its properties and links, the newest of what happened, and its
- * actions in its head, with the full record one click on. `Panel` (records.tsx) is the shell (a floating
+ * actions in its head, with the full record one click on. `Panel` (records-panel.tsx) is the shell (a floating
  * panel, a sheet on a phone); this is the body it draws, from what `PeekBody` reads. Look:
  * design-language.html, Inbox F3 (`.pk`).
  */

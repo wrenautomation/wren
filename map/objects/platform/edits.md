@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-06 @ 5714dc3
+verified: 2026-10-24 @ 1b7dab9
 entity: packages/core/src/edits.ts:120
 ---
 
@@ -22,7 +22,7 @@ One edit path, so no page builds its own save, history or undo. Every write is c
 - `changes` (`packages/core/src/schema.ts:336`, migration 0129): record, record_id, before, after, version, by, via `person|claude`, run_id, undoes
 - Ask Claude: `ConsolePortal.recordsAsk` opens a runs row (command `record-ask`, argv holds the prompt from `askPrompt`, `:355`), then `Ask.edit` (`packages/core/src/ask.ts:114`) asks the desk's `claude` and finishes the run with `{reply, patch}`; `askTurns` (`:277`) reads them back with each patch checked as a diff (`proposalOf`, `:242`)
 - served by `ConsolePortal{recordsEdit,recordsUndo,recordsAsk}` (`packages/core/src/console.ts:1320`), need `wren:run`; `recordsGet` adds `edit: {values, version, history, asks}` (`editState`, `:412`)
-- drawn by `EditFields`, `History`, `AskClaude` (`packages/ui/src/edits.tsx:207`, `:386`, `:447`) inside `RecordBody`; ⌘K reads the open record through `useOpenRecord` (`packages/ui/src/records.tsx:1588`)
+- drawn by `EditFields`, `History`, `AskClaude` (`packages/ui/src/edits.tsx:207`, `:386`, `:447`) inside `RecordBody`; ⌘K reads the open record through `useOpenRecord` (`packages/ui/src/records-page.tsx:292`)
 - declared on: `console.setting` (Wren's settings, `needs: "manage"`, [[platform/settings]]), `marketing.text_copy` and `marketing.dm_copy` (`apps/worker/src/record-edits.ts`, `copyRecords`); a keyword reply refuses here and keeps the Edit action, since it also sets the provider's answer
 
 ## Connected to

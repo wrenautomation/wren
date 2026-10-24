@@ -3,7 +3,7 @@ type: object
 cluster: ui
 universe: live
 status: verified
-verified: 2026-10-24 @ 12bfab4
+verified: 2026-10-24 @ 1b7dab9
 entity: packages/ui/src/index.ts:1
 ---
 
@@ -22,7 +22,7 @@ One component per job, so a page never grows its own list or button and a client
 - shadcn parts, owned copies, formatted and linted like the rest: `packages/ui/src/components/ui/`; their marks come from `Icon` (`packages/ui/src/icons.tsx`)
 - The one door: biome's `noRestrictedImports` (`biome.json`) fails an import of lucide outside `icons.tsx`, of sonner outside `toast.ts`, and of Base UI or cmdk outside the kit; `packages/ui/src/kit-door.test.ts` checks that every icon named as data is one the kit draws
 - `Button` (`packages/ui/src/controls.tsx:75`): `busy` turns it off and draws one short bar passing under the label (`ui-busy` in `tailwind.css`: one pass per cycle, off the button at both ends, faded in after 0.3 s; a still line under reduced motion). A button acts on rows, so pass `busy` from `runningOn(running, action, ids)` (`packages/ui/src/action.tsx:1129`), never from the action id alone
-- Record templates take a `RecordsApi` and a `Place` (`packages/ui/src/records.tsx`), so they render from any server, or from fixtures
+- Record templates take a `RecordsApi` and a `Place` (`packages/ui/src/records-types.ts`; `records.tsx` is the barrel its parts export through), so they render from any server, or from fixtures
 
 ## Connected to
 
