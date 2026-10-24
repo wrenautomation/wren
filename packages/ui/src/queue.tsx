@@ -7,7 +7,6 @@
 import type { RecordMeta } from "@wren/core/records";
 import type { RecordsPage } from "@wren/core/records/serve";
 import { cn } from "cn";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   type Action,
@@ -26,6 +25,7 @@ import { num } from "./format.js";
 import { usePageKeys } from "./frame.js";
 import { tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
+import { Icon } from "./icons.js";
 import { PageTitle } from "./layout.js";
 import { ListBar, useLastUsed, useSavedViews, ViewTabs } from "./list-bar.js";
 import {
@@ -316,7 +316,7 @@ function Queue({
                 disabled={at === 0}
                 onClick={() => open(at - 1)}
               >
-                <ChevronLeft className="size-4" />
+                <Icon name="left" className="size-4" />
               </button>
               <button
                 type="button"
@@ -326,7 +326,7 @@ function Queue({
                 disabled={at >= rows.length - 1}
                 onClick={() => open(at + 1)}
               >
-                <ChevronRight className="size-4" />
+                <Icon name="right" className="size-4" />
               </button>
               <span className="ml-auto flex flex-wrap items-center gap-2">
                 {here.map((a, i) => (

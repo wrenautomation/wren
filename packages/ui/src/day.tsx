@@ -7,12 +7,12 @@
 import type { RecordMeta, State } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
 import { cn } from "cn";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type Action, runningOn, runs, useRun } from "./action.js";
 import { Button, ButtonLink } from "./controls.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, dateOf } from "./fields.js";
 import { num } from "./format.js";
+import { Icon } from "./icons.js";
 import { GROUP_LABEL, PageTitle, SECTION_TITLE } from "./layout.js";
 import {
   actsOf,
@@ -222,7 +222,7 @@ function Day({
             size="dense"
             aria-label="Day before"
           >
-            <ChevronLeft className="size-4" />
+            <Icon name="left" className="size-4" />
           </ButtonLink>
           <ButtonLink
             href={link(today)}
@@ -238,7 +238,7 @@ function Day({
             size="dense"
             aria-label="Day after"
           >
-            <ChevronRight className="size-4" />
+            <Icon name="right" className="size-4" />
           </ButtonLink>
           <input
             type="date"

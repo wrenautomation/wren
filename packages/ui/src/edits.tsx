@@ -8,7 +8,6 @@
 import type { AskTurn, ChangeLine, EditState, Values } from "@wren/core/edits";
 import type { FieldMeta, RecordMeta, State } from "@wren/core/records";
 import { cn } from "cn";
-import { Pencil } from "lucide-react";
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { UNDO_MS } from "./action.js";
@@ -17,6 +16,7 @@ import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
 import { useEdit } from "./data/use-edit.js";
 import { DictateField } from "./dictate.js";
+import { Icon } from "./icons.js";
 import { GROUP_LABEL } from "./layout.js";
 import type { SaverOptions } from "./save/engine.js";
 import { SaveConflict, SaveStatus, useSaved } from "./save/react.js";
@@ -199,8 +199,8 @@ export function EditField({
           {children ??
             (valueText(value, field) || <span className="text-(--ui-ink-3)">Empty</span>)}
         </span>
-        <Pencil
-          aria-hidden
+        <Icon
+          name="edit"
           className="mt-1 size-3.5 shrink-0 text-(--ui-ink-3) opacity-0 group-hover/edit:opacity-100 group-focus-visible/edit:opacity-100 max-sm:opacity-100"
         />
       </button>

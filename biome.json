@@ -50,7 +50,8 @@
               "level": "error",
               "options": {
                 "paths": {
-                  "@wren/reactivation": "A foundation never imports a product: move the shared part down into the foundation (designs/2026-09-29-client-reactivation.md, Layers)."
+                  "@wren/reactivation": "A foundation never imports a product: move the shared part down into the foundation (designs/2026-09-29-client-reactivation.md, Layers).",
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=…/>: one registry, so an icon changes in one place."
                 },
                 "patterns": [
                   {
@@ -63,6 +64,27 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/**", "packages/reactivation/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=…/>: one registry, so an icon changes in one place."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ui/src/icons.tsx"],
+      "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
     }
   ],
   "css": {

@@ -2,9 +2,8 @@
  * The portal's bell, in the top bar of every workspace with Learn: what rang for you lately, new
  * ones counted on it. Opening it marks them seen. What the hour's limit held back waits in Today.
  */
-import { cx, FRAME_HEAD, GROUP_LABEL, relative, tipProps } from "@wren/ui";
+import { cx, FRAME_HEAD, GROUP_LABEL, Icon, relative, tipProps } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
-import { Bell } from "@wren/ui/lib/lucide";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { WREN } from "../../module.js";
 import { onPulse } from "../../pulse.js";
@@ -95,7 +94,7 @@ export function LearnBell({ client }: { client: string }) {
         {...tipProps(unseen ? `Alerts, ${unseen} new` : "Alerts", { as: "none" })}
         className="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
       >
-        <Bell size={17} aria-hidden="true" />
+        <Icon name="bell" size={17} />
         {unseen ? (
           <span className="-top-0.5 -right-0.5 absolute inline-flex h-4 min-w-4 items-center justify-center bg-(--ui-live) px-1 font-semibold text-(--ui-on-accent) text-[10.5px] tabular-nums leading-none">
             {unseen > 99 ? "99+" : unseen}

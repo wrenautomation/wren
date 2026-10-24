@@ -5,6 +5,8 @@
 import {
   ButtonLink,
   cx,
+  Icon,
+  type IconName,
   LoadFailed,
   Loading,
   PAGE_TITLE,
@@ -16,7 +18,6 @@ import {
   tipProps,
   useNarrow,
 } from "@wren/ui";
-import { ChevronLeft, ChevronRight, Link, Rss, Smartphone } from "@wren/ui/lib/lucide";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -231,7 +232,7 @@ function Shelf({
             onClick={() => by(-1)}
             className="hidden size-8 items-center justify-center border border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-2) hover:text-(--ui-ink) sm:inline-flex"
           >
-            <ChevronLeft size={16} />
+            <Icon name="left" size={16} />
           </button>
           <button
             type="button"
@@ -240,7 +241,7 @@ function Shelf({
             onClick={() => by(1)}
             className="hidden size-8 items-center justify-center border border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-2) hover:text-(--ui-ink) sm:inline-flex"
           >
-            <ChevronRight size={16} />
+            <Icon name="right" size={16} />
           </button>
         </div>
       </div>
@@ -299,23 +300,23 @@ function ShelfCard({ c, tall }: { c: Card; tall: boolean }) {
 
 /** Nothing in Learn at all: the three ways in. */
 function Welcome() {
-  const steps: { Icon: typeof Rss; title: string; body: string; href: string; cta: string }[] = [
+  const steps: { icon: IconName; title: string; body: string; href: string; cta: string }[] = [
     {
-      Icon: Rss,
+      icon: "rss",
       title: "Follow a source",
       body: "A YouTube channel, podcast, newsletter or blog. Each new post is read, summed up and scored against your SOPs.",
       href: "/learn/sources",
       cta: "Follow one",
     },
     {
-      Icon: Smartphone,
+      icon: "mobile",
       title: "Save from your phone",
       body: "Share any reel, video or article to the Learn shortcut. It lands in Saved by you and gets read the same way.",
       href: "/learn/add",
       cta: "Save a link",
     },
     {
-      Icon: Link,
+      icon: "link",
       title: "Organize like a drive",
       body: "Star, queue for later, and drag items into collections that nest like folders. Press ? on any list for the keys.",
       href: "/learn/items?in=all",
@@ -329,7 +330,7 @@ function Welcome() {
           key={s.title}
           className="flex flex-col gap-3 border border-(--ui-hair) bg-(--ui-paper) p-5"
         >
-          <s.Icon size={20} className="text-(--ui-ink-2)" />
+          <Icon name={s.icon} size={20} className="text-(--ui-ink-2)" />
           <h2 className="m-0 font-semibold text-[15px]">{s.title}</h2>
           <p className="m-0 flex-1 text-[13.5px] text-(--ui-ink-2) leading-relaxed">{s.body}</p>
           <div>

@@ -5,8 +5,8 @@
  * a window of one page and arrows alone, so it fits 393px without scrolling sideways.
  */
 import { cn } from "cn";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { num } from "./format.js";
+import { Icon } from "./icons.js";
 import { type Slot, slotsOf, spanOf } from "./pager.js";
 import type { Place } from "./records.js";
 
@@ -41,13 +41,12 @@ export function PageBar({
   const arrow = (dir: -1 | 1) => {
     const n = page + dir;
     const on = n >= 1 && n <= pages;
-    const Icon = dir < 0 ? ChevronLeft : ChevronRight;
     const label = dir < 0 ? "Previous page" : "Next page";
     const inner = (
       <>
-        {dir < 0 ? <Icon className="size-3.5" aria-hidden /> : null}
+        {dir < 0 ? <Icon name="left" className="size-3.5" /> : null}
         {narrow ? null : dir < 0 ? "Prev" : "Next"}
-        {dir > 0 ? <Icon className="size-3.5" aria-hidden /> : null}
+        {dir > 0 ? <Icon name="right" className="size-3.5" /> : null}
       </>
     );
     const wide = narrow ? "" : "gap-0.5";

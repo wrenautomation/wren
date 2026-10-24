@@ -17,11 +17,11 @@ import {
 import type { Total } from "@wren/core/records/serve";
 import { codeLabel } from "@wren/core/templates/labels";
 import { cn } from "cn";
-import { Check } from "lucide-react";
 import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { AccountBadge } from "./accounts.js";
 import { duration, linkLabel, money, num } from "./format.js";
 import { tipProps, whenTip } from "./hint.js";
+import { Icon } from "./icons.js";
 import { PlatformMark, StageSquare, TintSwatch } from "./marks.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
@@ -649,7 +649,7 @@ function Tick({ on }: { on: boolean }) {
           : "border-(--ui-ink-3) bg-(--ui-paper)",
       )}
     >
-      {on ? <Check className="size-2.5" strokeWidth={3} /> : null}
+      {on ? <Icon name="check" className="size-2.5" strokeWidth={3} /> : null}
     </span>
   );
 }
@@ -890,7 +890,7 @@ function DateFilter({
             className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
           >
             <span className="flex-1">{label}</span>
-            {picked === id ? <Check className="size-3.5 text-(--ui-ink)" /> : null}
+            {picked === id ? <Icon name="check" className="size-3.5 text-(--ui-ink)" /> : null}
           </div>
         ))}
       </div>

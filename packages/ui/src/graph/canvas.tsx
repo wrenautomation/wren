@@ -16,17 +16,6 @@ import {
 } from "@xyflow/react";
 import { cn } from "cn";
 import {
-  ArrowUpRight,
-  Boxes,
-  CircleDot,
-  Download,
-  FileText,
-  KeyRound,
-  type LucideIcon,
-  Server,
-  Workflow,
-} from "lucide-react";
-import {
   createContext,
   type KeyboardEvent,
   type MouseEvent,
@@ -39,6 +28,7 @@ import {
 } from "react";
 import { Input } from "../components/ui/input.js";
 import { tipProps } from "../hint.js";
+import { Icon, type IconName } from "../icons.js";
 import { GraphFrame } from "./frame.js";
 import { lanes } from "./lanes.js";
 import { type Direction, layout } from "./layout.js";
@@ -165,13 +155,13 @@ const TOOLS_ROOM = 40;
 /** Room under the drawing for the minimap, shown only when the drawing doesn't fit. */
 const MAP_ROOM = 120;
 
-const ICON: Record<GraphKind, LucideIcon> = {
-  part: Boxes,
-  workflow: Workflow,
-  account: KeyRound,
-  step: CircleDot,
-  record: FileText,
-  host: Server,
+const ICON: Record<GraphKind, IconName> = {
+  part: "boxes",
+  workflow: "workflow",
+  account: "key",
+  step: "dot",
+  record: "doc",
+  host: "server",
 };
 const TONE: Record<GraphTone, string> = {
   good: "text-(--ui-good-ink) before:bg-(--ui-good)",
@@ -257,7 +247,6 @@ function KitNode({ id }: NodeProps) {
   const g = useShared();
   const n = g.byId.get(id);
   if (!n) return null;
-  const Mark = ICON[n.kind];
   const across = g.dir === "RIGHT";
   const ends = g.edit?.ends(id);
   const faded = g.lit && !g.lit.has(id);
@@ -330,7 +319,7 @@ function KitNode({ id }: NodeProps) {
               background: `color-mix(in oklch, ${hue} 16%, var(--ui-paper))`,
             }}
           >
-            <Mark className="size-4" aria-hidden="true" />
+            <Icon name={ICON[n.kind]} className="size-4" />
           </span>
           <span className="grid min-w-0 flex-1">
             {g.edit?.renaming === id ? (
@@ -347,7 +336,7 @@ function KitNode({ id }: NodeProps) {
             ) : null}
           </span>
           {n.stacked ? (
-            <ArrowUpRight className="size-3.5 shrink-0 text-(--ui-ink-3)" aria-label="Opens" />
+            <Icon name="open" className="size-3.5 shrink-0 text-(--ui-ink-3)" aria-label="Opens" />
           ) : null}
           {mark ? (
             <span
@@ -988,11 +977,11 @@ export default function GraphCanvas({
           ) : null}
           <span className="ml-auto flex gap-1">
             <button type="button" className={TOOL} onClick={() => void download("png")}>
-              <Download className="size-3.5" aria-hidden="true" />
+              <Icon name="download" className="size-3.5" />
               PNG
             </button>
             <button type="button" className={TOOL} onClick={() => void download("svg")}>
-              <Download className="size-3.5" aria-hidden="true" />
+              <Icon name="download" className="size-3.5" />
               SVG
             </button>
           </span>

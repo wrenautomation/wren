@@ -10,22 +10,6 @@ import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { SavedViewLine } from "@wren/core/saved-views";
 import { cn } from "cn";
 import {
-  Bookmark,
-  Building2,
-  Calendar,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CircleDot,
-  Hash,
-  MoreHorizontal,
-  Search,
-  ToggleLeft,
-  Type,
-  User,
-  X,
-} from "lucide-react";
-import {
   type ReactNode,
   useEffect,
   useId,
@@ -51,6 +35,7 @@ import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving }
 import { num, short } from "./format.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop, useSubmenus } from "./hover-pop.js";
+import { Icon, type IconName } from "./icons.js";
 import { LIST_FORMS } from "./list-search.js";
 import { RingSlot } from "./motion.js";
 import { Segmented } from "./phone.js";
@@ -376,7 +361,7 @@ function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
         {on && on.count !== undefined ? (
           <span className="text-(--ui-ink-2)">{num(on.count)}</span>
         ) : null}
-        <ChevronDown className="size-3.5" />
+        <Icon name="down" className="size-3.5" />
       </PopoverTrigger>
       <PopoverContent aria-label="More views" align="start" className={cn(POP, "w-60 p-1")}>
         <nav aria-label="More views" className="grid">
@@ -582,7 +567,7 @@ function SavedMenu({
         {...tipProps("Options", { as: "none" })}
         className="inline-flex size-6 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
       >
-        <MoreHorizontal className="size-3.5" />
+        <Icon name="more" className="size-3.5" />
       </PopoverTrigger>
       <PopoverContent
         aria-label={`${view.name}: options`}
@@ -737,7 +722,7 @@ export function SaveViewPop({
   return (
     <Popover {...pop.root}>
       <PopoverTrigger {...pop.trigger} className={CHIP}>
-        <Bookmark className="size-[15px] [stroke-width:1.8]" />
+        <Icon name="bookmark" className="size-[15px] [stroke-width:1.8]" />
         <span data-hp>Save view</span>
       </PopoverTrigger>
       <PopoverContent aria-label="Save view" align="start" className="w-64 gap-0 p-2">
@@ -818,21 +803,21 @@ const NUMBERS = new Set(["number", "money", "percent", "rate", "duration", "scor
 /** A field's kind as a small icon: a date, a figure, a choice, a person, a company, set or not, words. */
 function KindIcon({ field: f }: { field: FieldMeta }) {
   const shape = filterShape(f);
-  const Icon =
+  const name: IconName =
     f.kind === "date"
-      ? Calendar
+      ? "calendar"
       : NUMBERS.has(f.kind)
-        ? Hash
+        ? "hash"
         : shape === "states"
-          ? CircleDot
+          ? "dot"
           : f.kind === "actor" || f.kind === "name"
-            ? User
+            ? "user"
             : f.kind === "company"
-              ? Building2
+              ? "building"
               : shape === "set"
-                ? ToggleLeft
-                : Type;
-  return <Icon aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />;
+                ? "toggle"
+                : "text";
+  return <Icon name={name} className="size-3.5 shrink-0 text-(--ui-ink-3)" />;
 }
 
 /**
@@ -877,7 +862,7 @@ function FieldEditor({
             onClick={back}
             className="inline-flex size-7 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
           >
-            <ChevronLeft className="size-4" />
+            <Icon name="left" className="size-4" />
           </button>
         ) : (
           <span className="w-1.5" />
@@ -975,7 +960,7 @@ function FilterPanel({
   return (
     <div className="grid">
       <label className="flex h-10 items-center gap-2 border-b border-(--ui-hair) px-3">
-        <Search aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
+        <Icon name="search" className="size-3.5 shrink-0 text-(--ui-ink-3)" />
         <input
           // edit-ok: search box
           // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
@@ -1020,7 +1005,7 @@ function FilterPanel({
                       </span>
                     ) : null}
                     {phone ? null : (
-                      <ChevronRight aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
+                      <Icon name="right" className="size-3.5 shrink-0 text-(--ui-ink-3)" />
                     )}
                   </>
                 );
@@ -1089,7 +1074,7 @@ function FilterPanel({
               nav.at === order.length && "bg-(--ui-hover)",
             )}
           >
-            <Search aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
+            <Icon name="search" className="size-3.5 shrink-0 text-(--ui-ink-3)" />
             <span className="wrap-anywhere whitespace-normal text-(--ui-ink-2)">
               Search {many} for “{text.trim()}”
             </span>
@@ -1164,7 +1149,7 @@ function FilterPill({
         onClick={() => place.go(place.link({ [field.key]: null, pg: null }), true)}
         className="mr-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit [border-radius:3px_8px_3px_8px] hover:bg-(--ui-accent-wash)"
       >
-        <X className="size-3.5" />
+        <Icon name="close" className="size-3.5" />
       </button>
     </span>
   );
@@ -1478,7 +1463,10 @@ export function SearchBox({
         asked && CHIP_ON,
       )}
     >
-      <Search className="pointer-events-none size-[15px] flex-none [stroke-width:1.8]" />
+      <Icon
+        name="search"
+        className="pointer-events-none size-[15px] flex-none [stroke-width:1.8]"
+      />
       <input
         // edit-ok: search box
         type="search"

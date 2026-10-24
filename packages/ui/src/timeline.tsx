@@ -9,7 +9,6 @@
 import type { FieldMeta, RecordMeta, State } from "@wren/core/records";
 import type { ListAsk, RecordsPage, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
-import { ChevronLeft, ChevronRight, GitCommitVertical, Rows3 } from "lucide-react";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Button, ButtonLink } from "./controls.js";
 import { listChanged } from "./data/delta.js";
@@ -118,7 +117,7 @@ export function TimelineSwitch({ on, place }: { on: "timeline" | "list"; place: 
         {...tipProps("Timeline")}
         className={one}
       >
-        <GitCommitVertical className="size-3.5" />
+        <Icon name="commit" className="size-3.5" />
       </a>
       <a
         href={place.link({ as: "rows", zoom: null, day: null })}
@@ -127,7 +126,7 @@ export function TimelineSwitch({ on, place }: { on: "timeline" | "list"; place: 
         {...tipProps("List")}
         className={cn(one, "border-l border-(--ui-hair)")}
       >
-        <Rows3 className="size-3.5" />
+        <Icon name="rows" className="size-3.5" />
       </a>
     </nav>
   );
@@ -231,7 +230,7 @@ function Timeline({
             aria-label={`${stepWord} before`}
             {...tipProps(`${stepWord} before`)}
           >
-            <ChevronLeft className="size-4" />
+            <Icon name="left" className="size-4" />
           </ButtonLink>
           <ButtonLink
             href={go(today) ?? undefined}
@@ -250,7 +249,7 @@ function Timeline({
             className={after ? undefined : "pointer-events-none opacity-40"}
             {...tipProps(`${stepWord} after`)}
           >
-            <ChevronRight className="size-4" />
+            <Icon name="right" className="size-4" />
           </ButtonLink>
           <input
             type="date"

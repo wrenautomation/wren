@@ -1,16 +1,22 @@
 /**
  * The kit's named icons: Lucide's (ISC), the one icon vendor (designs/2026-10-11-design-kits.md).
- * Apps name an icon here, or import one from `@wren/ui/lib/lucide`; never lucide itself.
+ * Every icon is named here, and only this file imports lucide (biome.json: noRestrictedImports).
  */
 import {
   Activity,
   AlignLeft,
   Archive,
   ArchiveRestore,
+  ArrowDown,
+  ArrowDownUp,
+  ArrowLeft,
   ArrowRight,
+  ArrowUp,
+  ArrowUpRight,
   AtSign,
   Banknote,
   Bell,
+  Bookmark,
   BookOpen,
   Bot,
   Boxes,
@@ -24,6 +30,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleAlert,
   CircleCheck,
   CircleDot,
@@ -41,8 +48,12 @@ import {
   EyeOff,
   FileText,
   Flag,
+  Folder,
+  FolderInput,
+  FolderPlus,
   Gauge,
   GitBranch,
+  GitCommitVertical,
   Globe,
   Hash,
   Heart,
@@ -62,6 +73,7 @@ import {
   LogOut,
   type LucideIcon,
   Mail,
+  Maximize,
   Maximize2,
   Megaphone,
   Menu,
@@ -70,7 +82,9 @@ import {
   MessageSquareText,
   Mic,
   Minimize2,
+  Minus,
   MousePointerClick,
+  Newspaper,
   OctagonX,
   PanelLeft,
   Pause,
@@ -78,9 +92,11 @@ import {
   PenLine,
   Percent,
   Phone,
+  PictureInPicture2,
   Pin,
   Play,
   Plus,
+  Podcast,
   Presentation,
   Quote,
   RefreshCw,
@@ -89,11 +105,15 @@ import {
   Rocket,
   RotateCcw,
   RotateCw,
+  Rows3,
+  Rss,
   Search,
   Send,
+  Server,
   Shapes,
   ShieldCheck,
   SlidersHorizontal,
+  Smartphone,
   Sparkles,
   Split,
   SquareArrowOutUpRight,
@@ -103,7 +123,9 @@ import {
   Tag,
   Target,
   ThumbsDown,
+  ToggleLeft,
   Trash2,
+  TriangleAlert,
   Trophy,
   Type,
   Upload,
@@ -117,6 +139,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import type { CSSProperties } from "react";
 import { cx } from "./format.js";
 
 const ICONS = {
@@ -242,6 +265,29 @@ const ICONS = {
   won: Trophy,
   addPerson: UserPlus,
   passOn: UserX,
+  // The kit's own parts and Learn's pages: moved here from direct imports (2026-10-24).
+  arrowDown: ArrowDown,
+  arrowUp: ArrowUp,
+  up: ChevronUp,
+  bookmark: Bookmark,
+  toggle: ToggleLeft,
+  commit: GitCommitVertical,
+  rows: Rows3,
+  warn: TriangleAlert,
+  open: ArrowUpRight,
+  server: Server,
+  fit: Maximize,
+  minus: Minus,
+  rss: Rss,
+  mobile: Smartphone,
+  news: Newspaper,
+  podcast: Podcast,
+  back: ArrowLeft,
+  folder: Folder,
+  moveTo: FolderInput,
+  newFolder: FolderPlus,
+  sort: ArrowDownUp,
+  pip: PictureInPicture2,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;
@@ -255,19 +301,32 @@ const UNKNOWN = Shapes;
 export function Icon({
   name,
   size = 16,
+  strokeWidth = 1.75,
   className,
+  style,
+  fill,
+  label,
 }: {
   name: IconName;
   size?: number;
+  /** Its words for a screen reader, when nothing beside it says them; else it is hidden. */
+  label?: string;
+  /** Heavier only for a tiny mark (a checkbox's tick), so it still reads. */
+  strokeWidth?: number;
   className?: string;
+  style?: CSSProperties;
+  /** A shape filled in, for an on state (a starred item). */
+  fill?: string;
 }) {
   const Drawn = isIconName(name) ? ICONS[name] : UNKNOWN;
   return (
     <Drawn
       className={cx("flex-none", className)}
       size={size}
-      strokeWidth={1.75}
-      aria-hidden="true"
+      strokeWidth={strokeWidth}
+      style={style}
+      {...(fill ? { fill } : {})}
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     />
   );
 }

@@ -24,7 +24,6 @@ import {
 import { tipProps } from "../hint.js";
 import "@xyflow/react/dist/base.css";
 import { cn } from "cn";
-import { Maximize, Minus, Plus } from "lucide-react";
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -33,6 +32,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Icon } from "../icons.js";
 
 const PAN_STEP = 80;
 const ZOOM = { min: 0.15, max: 2 };
@@ -94,7 +94,7 @@ function Controls({
           void rf.zoomIn(EASE);
         }}
       >
-        <Plus className="size-3.5" />
+        <Icon name="plus" className="size-3.5" />
       </button>
       <button
         type="button"
@@ -106,7 +106,7 @@ function Controls({
           void rf.zoomOut(EASE);
         }}
       >
-        <Minus className="size-3.5" />
+        <Icon name="minus" className="size-3.5" />
       </button>
       <button
         type="button"
@@ -119,7 +119,7 @@ function Controls({
         }}
         onDoubleClick={() => void rf.setViewport(rest, EASE)}
       >
-        <Maximize className="size-3.5" />
+        <Icon name="fit" className="size-3.5" />
         {fits ? null : "Fit all"}
       </button>
     </Panel>

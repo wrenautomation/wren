@@ -12,6 +12,7 @@ import {
   Button,
   cx,
   GROUP_LABEL,
+  Icon,
   LATEST,
   LoadFailed,
   Loading,
@@ -20,22 +21,6 @@ import {
   StateMark,
   usePageKeys,
 } from "@wren/ui";
-import {
-  Archive,
-  ArchiveRestore,
-  ArrowLeft,
-  Clock,
-  ExternalLink,
-  Folder,
-  FolderInput,
-  Hash,
-  Pin,
-  Play,
-  RotateCw,
-  Sparkles,
-  Star,
-  Tag,
-} from "@wren/ui/lib/lucide";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import { PlayerSlot, usePlayer, usePlayerStore } from "../../player/index.js";
@@ -271,7 +256,7 @@ function Embed({ item, self }: { item: ItemPage; self: string }) {
           }
         />
         <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 bg-(--ui-paper) px-3 py-2 text-[13px] text-(--ui-ink) shadow">
-          Open on {site} <ExternalLink size={13} />
+          Open on {site} <Icon name="external" size={13} />
         </span>
       </a>
     );
@@ -295,7 +280,7 @@ function Embed({ item, self }: { item: ItemPage; self: string }) {
         rel="noreferrer"
         className="inline-flex items-center gap-1 text-[13px]"
       >
-        Open on {site} <ExternalLink size={12} />
+        Open on {site} <Icon name="external" size={12} />
       </a>
     </div>
   );
@@ -691,7 +676,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
         href={back}
         className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
       >
-        <ArrowLeft size={14} /> {backLabel}
+        <Icon name="back" size={14} /> {backLabel}
       </a>
       <header className="mb-5 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-(--ui-ink-2)">
@@ -719,7 +704,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
               className="inline-flex items-center gap-1 text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
             >
               <span aria-hidden>·</span>
-              <Folder size={13} /> {item.collection.name}
+              <Icon name="folder" size={13} /> {item.collection.name}
             </a>
           ) : null}
         </div>
@@ -743,30 +728,30 @@ export function ItemView({ id, back }: { id: string; back: string }) {
             on={item.starred}
             onClick={() => void markItems([item.id], item.starred ? "unstar" : "star")}
           >
-            <Star size={14} fill={item.starred ? "currentColor" : "none"} />
+            <Icon name="star" size={14} fill={item.starred ? "currentColor" : "none"} />
           </Act>
           <Act
             label="Watch later"
             on={item.later}
             onClick={() => void markItems([item.id], item.later ? "unlater" : "later")}
           >
-            <Clock size={14} />
+            <Icon name="clock" size={14} />
           </Act>
           <Act
             label={item.pinned ? "Pinned" : "Pin"}
             on={item.pinned}
             onClick={() => void markItems([item.id], item.pinned ? "unpin" : "pin")}
           >
-            <Pin size={14} />
+            <Icon name="pin" size={14} />
           </Act>
           <Act label="Move to" onClick={() => setDialog("move")}>
-            <FolderInput size={14} />
+            <Icon name="moveTo" size={14} />
           </Act>
           <Act label="Tag" onClick={() => setDialog("tag")}>
-            <Tag size={14} />
+            <Icon name="tag" size={14} />
           </Act>
           <Act label="Add to SOP" onClick={() => setDialog("sop")}>
-            <Sparkles size={14} />
+            <Icon name="sparkle" size={14} />
           </Act>
           <Act
             label={item.status === "archived" ? "Unarchive" : "Archive"}
@@ -775,7 +760,11 @@ export function ItemView({ id, back }: { id: string; back: string }) {
               if (item.status !== "archived") navigate(back);
             }}
           >
-            {item.status === "archived" ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+            {item.status === "archived" ? (
+              <Icon name="restore" size={14} />
+            ) : (
+              <Icon name="archive" size={14} />
+            )}
           </Act>
           <a
             href={item.url}
@@ -783,7 +772,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
             rel="noreferrer"
             className="ml-auto inline-flex h-8 items-center gap-1.5 px-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
           >
-            Open on {t.site} <ExternalLink size={13} />
+            Open on {t.site} <Icon name="external" size={13} />
           </a>
         </div>
         {item.tags.length ? (
@@ -794,7 +783,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
                 href={`/learn/items?in=all&tag=${encodeURIComponent(tag)}`}
                 className="inline-flex h-6 items-center gap-0.5 bg-(--ui-tile) px-1.5 text-[12px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
               >
-                <Hash size={11} />
+                <Icon name="hash" size={11} />
                 {tag}
               </a>
             ))}
@@ -812,7 +801,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
                 tone="secondary"
                 onClick={() => void act(learn.readAgain([item.id]), "Reading again")}
               >
-                <RotateCw size={14} /> Read again
+                <Icon name="retry" size={14} /> Read again
               </Button>
             </span>
           </Alert>
@@ -835,7 +824,7 @@ export function ItemView({ id, back }: { id: string; back: string }) {
             {media}
             {progress > 0 && !ready ? (
               <p className="m-0 inline-flex items-center gap-2 text-[13px] text-(--ui-ink-2)">
-                <Play size={13} /> Picks up at {clock(item.position ?? 0)}
+                <Icon name="play" size={13} /> Picks up at {clock(item.position ?? 0)}
                 <span className="h-1 w-24 bg-(--ui-tile)">
                   <Progress value={progress} />
                 </span>

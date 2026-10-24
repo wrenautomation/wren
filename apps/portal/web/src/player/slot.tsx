@@ -7,8 +7,7 @@
  *   replace  With `eager`: plays even when something else is playing (a page made for this item).
  *   Neither  A Play button, for a page with many (the Shorts under a video).
  */
-import { cx } from "@wren/ui";
-import { Play } from "@wren/ui/lib/lucide";
+import { cx, Icon } from "@wren/ui";
 import { useLayoutEffect, useRef } from "react";
 import type { PlayerItem } from "./store.js";
 import { usePlayer, usePlayerStore } from "./use.js";
@@ -78,7 +77,7 @@ export function PlayerSlot({
             aria-label={`Play ${item.title}`}
             onClick={() => store.play(plain(), { anchor: box.current })}
           >
-            <Play size={28} aria-hidden="true" />
+            <Icon name="play" size={28} />
           </button>
         ) : away ? (
           <div className="absolute inset-0 grid place-items-center content-center gap-2 bg-(--ui-tile) p-3 text-center text-[13px] text-(--ui-ink-2)">

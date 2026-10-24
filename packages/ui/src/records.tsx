@@ -21,18 +21,6 @@ import type {
   Total,
 } from "@wren/core/records/serve";
 import { cn } from "cn";
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  ChevronDown,
-  ChevronLeft,
-  ChevronUp,
-  Ellipsis,
-  Maximize2,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
 import {
@@ -87,6 +75,7 @@ import { Segmented as Choice, type KeyLine, showKeys, useFrame, usePageKeys } fr
 import { tipProps } from "./hint.js";
 import { Why } from "./hint-layer.js";
 import { useHoverPop } from "./hover-pop.js";
+import { Icon } from "./icons.js";
 import { away, NoLink } from "./item-link.js";
 import { GROUP_LABEL, PAGE_TITLE, PageTitle } from "./layout.js";
 import {
@@ -727,7 +716,7 @@ function ListDisplay({
         {...pop.trigger}
         className={cn(CHIP, (grouping || place.params.has("cols")) && CHIP_ON)}
       >
-        <SlidersHorizontal className="size-[15px] [stroke-width:1.8]" />
+        <Icon name="sliders" className="size-[15px] [stroke-width:1.8]" />
         <span data-hp>Display</span>
       </PopoverTrigger>
       <PopoverContent align="end" className="max-h-[70dvh] w-60 gap-3 overflow-y-auto p-3">
@@ -788,7 +777,7 @@ function ListDisplay({
                     onClick={() => raise(f.key)}
                     className="grid size-7 pointer-coarse:size-11 place-items-center text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
                   >
-                    <ArrowUp className="size-3.5" aria-hidden />
+                    <Icon name="arrowUp" className="size-3.5" />
                   </button>
                 ) : null}
               </div>
@@ -907,7 +896,6 @@ function SortHead({
   // Numbers and dates start high; words and states start at the top of their order.
   const first = end ? `-${field.key}` : field.key;
   const next = on ? (desc ? field.key : `-${field.key}`) : first;
-  const Arrow = desc ? ArrowDown : ArrowUp;
   return (
     <a
       href={place.link({ sort: next, pg: null })}
@@ -919,7 +907,7 @@ function SortHead({
       )}
     >
       <span className="whitespace-normal">{field.label}</span>
-      {on ? <Arrow className="size-3 shrink-0" /> : null}
+      {on ? <Icon name={desc ? "arrowDown" : "arrowUp"} className="size-3 shrink-0" /> : null}
     </a>
   );
 }
@@ -2064,7 +2052,7 @@ function HeadMenu({ items }: { items: { label: string; run: () => void }[] }) {
         {...tipProps("More actions", { as: "none" })}
         className="inline-grid size-8 place-items-center border border-(--ui-hair) bg-transparent pointer-coarse:size-11 max-[900px]:size-11 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-hover)"
       >
-        <Ellipsis className="size-4" />
+        <Icon name="more" className="size-4" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-56 gap-0 p-1">
         {items.map((it) => (
@@ -2216,7 +2204,7 @@ function ElseWhere({
       className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
     >
       {v.label} <span className="text-(--ui-ink-2)">{num(counts[v.id] ?? 0)}</span>
-      <ArrowRight className="size-3.5" aria-hidden />
+      <Icon name="arrow" className="size-3.5" />
     </a>
   );
 }
@@ -2373,7 +2361,7 @@ export function Panel({
                   disabled={index <= 0}
                   onClick={() => step(-1)}
                 >
-                  <ChevronUp className="size-4" />
+                  <Icon name="up" className="size-4" />
                 </button>
                 <button
                   type="button"
@@ -2382,12 +2370,12 @@ export function Panel({
                   disabled={index < 0 || index >= count - 1}
                   onClick={() => step(1)}
                 >
-                  <ChevronDown className="size-4" />
+                  <Icon name="down" className="size-4" />
                 </button>
               </>
             )}
             <a href={place.page(id)} className={ICON} aria-label="Open as a page">
-              <Maximize2 className="size-3.5" />
+              <Icon name="expand" className="size-3.5" />
             </a>
           </div>
         }
@@ -2437,7 +2425,7 @@ export function Panel({
             aria-label="Open"
             {...tipProps("Open the full record", { as: "none" })}
           >
-            <Maximize2 />
+            <Icon name="expand" />
           </a>
           <a
             href={shut}
@@ -2445,7 +2433,7 @@ export function Panel({
             aria-label="Close"
             {...tipProps("Close", { keys: "Esc", as: "none" })}
           >
-            <X />
+            <Icon name="close" />
           </a>
         </div>
       ) : (
@@ -2455,7 +2443,7 @@ export function Panel({
             href={shut}
             className="inline-flex h-11 items-center gap-1 pr-3 pl-1 text-[15px] font-medium text-(--ui-ink) no-underline sm:hidden"
           >
-            <ChevronLeft className="size-5" />
+            <Icon name="left" className="size-5" />
             {cap(meta.name.many)}
           </a>
           <button
@@ -2466,7 +2454,7 @@ export function Panel({
             disabled={index <= 0}
             onClick={() => step(-1)}
           >
-            <ChevronUp className="size-4" />
+            <Icon name="up" className="size-4" />
           </button>
           <button
             type="button"
@@ -2476,7 +2464,7 @@ export function Panel({
             disabled={index < 0 || index >= count - 1}
             onClick={() => step(1)}
           >
-            <ChevronDown className="size-4" />
+            <Icon name="down" className="size-4" />
           </button>
           <span className="ml-1 text-[12px] text-(--ui-ink-3) max-sm:hidden">
             {index >= 0 ? `${num(index + 1)} of ${num(count)}` : ""}
@@ -2487,7 +2475,7 @@ export function Panel({
             aria-label="Open as a page"
             {...tipProps("Open as a page", { as: "none" })}
           >
-            <Maximize2 className="size-3.5" />
+            <Icon name="expand" className="size-3.5" />
           </a>
           <a
             href={shut}
@@ -2495,7 +2483,7 @@ export function Panel({
             aria-label="Close"
             {...tipProps("Close", { keys: "Esc", as: "none" })}
           >
-            <X className="size-4" />
+            <Icon name="close" className="size-4" />
           </a>
         </div>
       )}

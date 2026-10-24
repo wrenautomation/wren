@@ -7,11 +7,11 @@
 import type { AccountOption, AccountPick } from "@wren/core/record-accounts";
 import type { FieldMeta, RecordMeta, State } from "@wren/core/records";
 import { cn } from "cn";
-import { Check, ChevronDown, TriangleAlert, User } from "lucide-react";
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop } from "./hover-pop.js";
+import { Icon } from "./icons.js";
 import { PlatformMark, TintSwatch } from "./marks.js";
 import type { Place } from "./records.js";
 
@@ -32,7 +32,7 @@ const ROW =
 function Face({ state, size = 14 }: { state: State; size?: number }) {
   if (state.mark) return <PlatformMark mark={state.mark} size={size} />;
   if (state.tint !== undefined) return <TintSwatch tint={state.tint} />;
-  return <User aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />;
+  return <Icon name="user" className="size-3.5 shrink-0 text-(--ui-ink-3)" />;
 }
 
 /** One account as a row shows it: its platform's mark and its name ("u/handle"). */
@@ -56,7 +56,7 @@ export function AccountBadge({
       <Face state={state} />
       <span className="min-w-0 wrap-anywhere whitespace-normal">{state.label}</span>
       {warn ? (
-        <TriangleAlert aria-label="Warning" className="size-3.5 shrink-0 text-(--ui-warn-ink)" />
+        <Icon name="warn" aria-label="Warning" className="size-3.5 shrink-0 text-(--ui-warn-ink)" />
       ) : null}
     </span>
   );
@@ -90,7 +90,11 @@ export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place 
         className={cn(CHIP, picked.length && "text-(--ui-ink)")}
         data-account-filter=""
       >
-        {one ? <Face state={accountState(field, one)} /> : <User className="size-3.5" />}
+        {one ? (
+          <Face state={accountState(field, one)} />
+        ) : (
+          <Icon name="user" className="size-3.5" />
+        )}
         <span className="max-w-[160px] wrap-anywhere whitespace-normal">
           {one
             ? accountState(field, one).label
@@ -98,7 +102,7 @@ export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place 
               ? `${picked.length} accounts`
               : "All accounts"}
         </span>
-        <ChevronDown className="size-3.5 text-(--ui-ink-3)" />
+        <Icon name="down" className="size-3.5 text-(--ui-ink-3)" />
       </PopoverTrigger>
       <PopoverContent align="start" className={POP}>
         <div className="grid py-1" role="listbox" aria-label={field.label}>
@@ -109,9 +113,9 @@ export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place 
             className={ROW}
             onClick={() => pick(null)}
           >
-            <User aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
+            <Icon name="user" className="size-3.5 shrink-0 text-(--ui-ink-3)" />
             <span className="flex-1">All accounts</span>
-            {!picked.length ? <Check className="size-3.5" /> : null}
+            {!picked.length ? <Icon name="check" className="size-3.5" /> : null}
           </button>
           {ordered.map(([key, state]) => (
             <button
@@ -124,7 +128,7 @@ export function AccountFilter({ meta, place }: { meta: RecordMeta; place: Place 
             >
               <Face state={state} />
               <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{state.label}</span>
-              {picked.includes(key) ? <Check className="size-3.5" /> : null}
+              {picked.includes(key) ? <Icon name="check" className="size-3.5" /> : null}
             </button>
           ))}
         </div>
@@ -176,10 +180,8 @@ export function AccountPicker({
           >
             <PlatformMark mark={pick.platform} />
             <span className="max-w-[200px] wrap-anywhere whitespace-normal">{label}</span>
-            {current?.warn ? (
-              <TriangleAlert aria-hidden className="size-3.5 text-(--ui-warn-ink)" />
-            ) : null}
-            <ChevronDown className="size-3.5 text-(--ui-ink-3)" />
+            {current?.warn ? <Icon name="warn" className="size-3.5 text-(--ui-warn-ink)" /> : null}
+            <Icon name="down" className="size-3.5 text-(--ui-ink-3)" />
           </PopoverTrigger>
           <PopoverContent align="start" className={POP}>
             <div className="grid py-1" role="listbox" aria-label="Send as">
@@ -209,7 +211,9 @@ export function AccountPicker({
                       <span className="text-[12px] text-(--ui-warn-ink)">{o.warn}</span>
                     ) : null}
                   </span>
-                  {o.key === pick.current ? <Check className="mt-0.5 size-3.5" /> : null}
+                  {o.key === pick.current ? (
+                    <Icon name="check" className="mt-0.5 size-3.5" />
+                  ) : null}
                 </button>
               ))}
               {pick.picked ? (
@@ -232,7 +236,7 @@ export function AccountPicker({
       </div>
       {current?.warn ? (
         <p className="m-0 flex items-start gap-1.5 text-[12.5px] text-(--ui-warn-ink)">
-          <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+          <Icon name="warn" className="mt-0.5 size-3.5 shrink-0" />
           <span>{current.warn}</span>
         </p>
       ) : null}

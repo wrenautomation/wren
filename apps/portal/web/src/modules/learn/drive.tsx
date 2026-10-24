@@ -9,6 +9,8 @@ import {
   Button,
   cx,
   Empty,
+  Icon,
+  type IconName,
   Input,
   LoadFailed,
   Loading,
@@ -23,28 +25,6 @@ import {
   usePref,
 } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
-import {
-  Archive,
-  ArchiveRestore,
-  ArrowDownUp,
-  Check,
-  Clock,
-  Ellipsis,
-  ExternalLink,
-  FolderInput,
-  FolderPlus,
-  Hash,
-  Keyboard,
-  LayoutGrid,
-  List,
-  Pin,
-  RotateCw,
-  Search,
-  Sparkles,
-  Star,
-  Tag,
-  X,
-} from "@wren/ui/lib/lucide";
 import {
   type DragEvent,
   type ReactNode,
@@ -97,9 +77,9 @@ import {
 } from "./menus.js";
 
 type View = "cards" | "list";
-const VIEWS: { id: View; label: string; Icon: typeof List }[] = [
-  { id: "cards", label: "Cards", Icon: LayoutGrid },
-  { id: "list", label: "List", Icon: List },
+const VIEWS: { id: View; label: string; icon: IconName }[] = [
+  { id: "cards", label: "Cards", icon: "apps" },
+  { id: "list", label: "List", icon: "list" },
 ];
 const SORTS = [
   ["newest", "Newest"],
@@ -369,7 +349,7 @@ function Browse({ params }: { params: URLSearchParams }) {
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <SearchBox inputRef={searchRef} q={q} onAsk={(v) => set({ q: v || null }, true)} />
           <label className="relative inline-flex h-8 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px] text-(--ui-ink-2)">
-            <ArrowDownUp size={14} className="pointer-events-none absolute left-2.5" />
+            <Icon name="sort" size={14} className="pointer-events-none absolute left-2.5" />
             <span className="sr-only">Sort by</span>
             <select
               value={sort}
@@ -390,7 +370,7 @@ function Browse({ params }: { params: URLSearchParams }) {
             className="inline-flex size-8 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
             {...tipProps("New collection", { as: "none" })}
           >
-            <FolderPlus size={16} />
+            <Icon name="newFolder" size={16} />
             <span className="sr-only">New collection</span>
           </button>
           <button
@@ -399,7 +379,7 @@ function Browse({ params }: { params: URLSearchParams }) {
             className="hidden h-8 items-center gap-1.5 border-0 bg-transparent px-2 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) min-[901px]:inline-flex"
             {...tipProps("Keyboard shortcuts", { keys: "?", as: "none" })}
           >
-            <Keyboard size={15} />
+            <Icon name="keys" size={15} />
             <span className="sr-only">Keys</span>
           </button>
         </div>
@@ -562,7 +542,8 @@ function SearchBox({
   }, [v, q, onAsk]);
   return (
     <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
-      <Search
+      <Icon
+        name="search"
         size={14}
         className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-(--ui-ink-2)"
       />
@@ -604,7 +585,7 @@ function ViewToggle({ view, onPick }: { view: View; onPick: (v: View) => void })
               : "bg-transparent text-(--ui-ink-2) hover:text-(--ui-ink)",
           )}
         >
-          <v.Icon size={15} />
+          <Icon name={v.icon} size={15} />
           <span className="sr-only">{v.label}</span>
         </button>
       ))}
@@ -709,7 +690,7 @@ function Chips({
                       <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
                         {s.name}
                       </span>
-                      {on ? <Check size={14} className="text-(--ui-active)" /> : null}
+                      {on ? <Icon name="check" size={14} className="text-(--ui-active)" /> : null}
                       <span className="text-[12px] text-(--ui-ink-2) tabular-nums">{s.n}</span>
                     </button>
                   );
@@ -722,9 +703,9 @@ function Chips({
       {tag && place !== "all" ? (
         <div>
           <button type="button" className={cx(CHIP, CHIP_ON)} onClick={() => set({ tag: null })}>
-            <Hash size={13} />
+            <Icon name="hash" size={13} />
             {tag}
-            <X size={13} aria-label="Clear the tag" />
+            <Icon name="close" size={13} aria-label="Clear the tag" />
           </button>
         </div>
       ) : null}
@@ -799,7 +780,7 @@ function Box({
           onPick(e.shiftKey);
         }}
       />
-      <Check size={13} strokeWidth={3} aria-hidden />
+      <Icon name="check" size={13} strokeWidth={3} />
     </label>
   );
 }
@@ -869,14 +850,14 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
             on={c.later}
             onClick={() => void markItems([c.id], c.later ? "unlater" : "later")}
           >
-            <Clock size={15} />
+            <Icon name="clock" size={15} />
           </Quick>
           <Quick
             label={c.starred ? "Unstar" : "Star"}
             on={c.starred}
             onClick={() => void markItems([c.id], c.starred ? "unstar" : "star")}
           >
-            <Star size={15} />
+            <Icon name="star" size={15} />
           </Quick>
           <Quick
             label={c.status === "archived" ? "Unarchive" : "Archive"}
@@ -884,7 +865,11 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
               void markItems([c.id], c.status === "archived" ? "unarchive" : "archive")
             }
           >
-            {c.status === "archived" ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+            {c.status === "archived" ? (
+              <Icon name="restore" size={15} />
+            ) : (
+              <Icon name="archive" size={15} />
+            )}
           </Quick>
         </div>
         <div className="pointer-events-none absolute bottom-1.5 left-1.5 flex items-center gap-1">
@@ -895,7 +880,7 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
               className="inline-flex size-5 items-center justify-center bg-(--ui-paper) text-(--ui-ink)"
               title="Pinned"
             >
-              <Pin size={12} />
+              <Icon name="pin" size={12} />
             </span>
           ) : null}
           {c.starred ? (
@@ -903,7 +888,7 @@ function CardTile({ c, ...r }: RowProps & { c: Card }) {
               className="inline-flex size-5 items-center justify-center bg-(--ui-paper) text-(--ui-warn)"
               title="Starred"
             >
-              <Star size={12} fill="currentColor" />
+              <Icon name="star" size={12} fill="currentColor" />
             </span>
           ) : null}
         </div>
@@ -1005,7 +990,7 @@ export function ItemMenu({
           className,
         )}
       >
-        <Ellipsis size={16} />
+        <Icon name="more" size={16} />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-56 gap-0 bg-(--ui-paper) p-1 text-(--ui-ink)">
         <a
@@ -1015,17 +1000,17 @@ export function ItemMenu({
           className={item}
           onClick={() => setOpen(false)}
         >
-          <ExternalLink size={14} /> Open on {TYPES[c.type]?.site ?? "the page"}
+          <Icon name="external" size={14} /> Open on {TYPES[c.type]?.site ?? "the page"}
         </a>
         <hr className="my-1 border-(--ui-hair)" />
         <button type="button" className={item} onClick={mark(c.later ? "unlater" : "later")}>
-          <Clock size={14} /> {c.later ? "Off Watch later" : "Watch later"}
+          <Icon name="clock" size={14} /> {c.later ? "Off Watch later" : "Watch later"}
         </button>
         <button type="button" className={item} onClick={mark(c.starred ? "unstar" : "star")}>
-          <Star size={14} /> {c.starred ? "Unstar" : "Star"}
+          <Icon name="star" size={14} /> {c.starred ? "Unstar" : "Star"}
         </button>
         <button type="button" className={item} onClick={mark(c.pinned ? "unpin" : "pin")}>
-          <Pin size={14} /> {c.pinned ? "Unpin" : "Pin to the top"}
+          <Icon name="pin" size={14} /> {c.pinned ? "Unpin" : "Pin to the top"}
         </button>
         <button
           type="button"
@@ -1044,13 +1029,13 @@ export function ItemMenu({
         </button>
         <hr className="my-1 border-(--ui-hair)" />
         <button type="button" className={item} onClick={run(() => dialog("move", [c.id]))}>
-          <FolderInput size={14} /> Move to
+          <Icon name="moveTo" size={14} /> Move to
         </button>
         <button type="button" className={item} onClick={run(() => dialog("tag", [c.id]))}>
-          <Tag size={14} /> Tag
+          <Icon name="tag" size={14} /> Tag
         </button>
         <button type="button" className={item} onClick={run(() => dialog("sop", [c.id]))}>
-          <Sparkles size={14} /> Add to SOP
+          <Icon name="sparkle" size={14} /> Add to SOP
         </button>
         {c.state === "failed" ? (
           <button
@@ -1058,7 +1043,7 @@ export function ItemMenu({
             className={item}
             onClick={run(() => void act(learn.readAgain([c.id]), "Reading again"))}
           >
-            <RotateCw size={14} /> Read again
+            <Icon name="retry" size={14} /> Read again
           </button>
         ) : null}
         <hr className="my-1 border-(--ui-hair)" />
@@ -1067,7 +1052,11 @@ export function ItemMenu({
           className={item}
           onClick={mark(c.status === "archived" || place === "archived" ? "unarchive" : "archive")}
         >
-          {c.status === "archived" ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+          {c.status === "archived" ? (
+            <Icon name="restore" size={14} />
+          ) : (
+            <Icon name="archive" size={14} />
+          )}
           {c.status === "archived" ? "Unarchive" : "Archive"}
         </button>
       </PopoverContent>
@@ -1128,9 +1117,16 @@ function ListTable({
           ),
           tail: (c) => (
             <>
-              {c.pinned ? <Pin size={12} className="shrink-0 text-(--ui-ink-2)" /> : null}
+              {c.pinned ? (
+                <Icon name="pin" size={12} className="shrink-0 text-(--ui-ink-2)" />
+              ) : null}
               {c.starred ? (
-                <Star size={12} fill="currentColor" className="shrink-0 text-(--ui-warn)" />
+                <Icon
+                  name="star"
+                  size={12}
+                  fill="currentColor"
+                  className="shrink-0 text-(--ui-warn)"
+                />
               ) : null}
               {c.tags.slice(0, 2).map((t) => (
                 <span
@@ -1228,17 +1224,17 @@ function BulkBar({
           {ids.length} selected
         </span>
         <button type="button" className={btn} onClick={() => dialog("move")}>
-          <FolderInput size={15} /> <span className="sr-only sm:not-sr-only">Move to</span>
+          <Icon name="moveTo" size={15} /> <span className="sr-only sm:not-sr-only">Move to</span>
         </button>
         <button type="button" className={btn} onClick={() => dialog("tag")}>
-          <Tag size={15} /> <span className="sr-only sm:not-sr-only">Tag</span>
+          <Icon name="tag" size={15} /> <span className="sr-only sm:not-sr-only">Tag</span>
         </button>
         <button
           type="button"
           className={btn}
           onClick={() => void markItems(ids, allLater ? "unlater" : "later")}
         >
-          <Clock size={15} />{" "}
+          <Icon name="clock" size={15} />{" "}
           <span className="sr-only sm:not-sr-only">{allLater ? "Off later" : "Later"}</span>
         </button>
         <button
@@ -1246,7 +1242,7 @@ function BulkBar({
           className={btn}
           onClick={() => void markItems(ids, allStar ? "unstar" : "star")}
         >
-          <Star size={15} />{" "}
+          <Icon name="star" size={15} />{" "}
           <span className="sr-only sm:not-sr-only">{allStar ? "Unstar" : "Star"}</span>
         </button>
         <button
@@ -1254,13 +1250,18 @@ function BulkBar({
           className={btn}
           onClick={() => void markItems(ids, place === "archived" ? "unarchive" : "archive")}
         >
-          {place === "archived" ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+          {place === "archived" ? (
+            <Icon name="restore" size={15} />
+          ) : (
+            <Icon name="archive" size={15} />
+          )}
           <span className="sr-only sm:not-sr-only">
             {place === "archived" ? "Unarchive" : "Archive"}
           </span>
         </button>
         <button type="button" className={btn} onClick={() => dialog("sop")}>
-          <Sparkles size={15} /> <span className="sr-only sm:not-sr-only">Add to SOP</span>
+          <Icon name="sparkle" size={15} />{" "}
+          <span className="sr-only sm:not-sr-only">Add to SOP</span>
         </button>
         <button
           type="button"
@@ -1269,7 +1270,7 @@ function BulkBar({
           aria-label="Clear the selection"
           {...tipProps("Clear the selection", { as: "none" })}
         >
-          <X size={15} />
+          <Icon name="close" size={15} />
         </button>
       </section>
     </div>

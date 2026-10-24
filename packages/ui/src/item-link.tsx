@@ -1,7 +1,7 @@
 /** A touch's item link and the words for a touch with none: shared by every place a touch shows. */
 import { cn } from "cn";
-import { ExternalLink } from "lucide-react";
 import { tipProps } from "./hint.js";
+import { Icon } from "./icons.js";
 
 /** True for a link out of the app: it opens in a new tab; a page of this app opens in place. */
 export const away = (href: string) => !href.startsWith("/");
@@ -19,7 +19,7 @@ export function SourceLink({ href, className }: { href: string; className?: stri
         className,
       )}
     >
-      <ExternalLink className="size-3.5" />
+      <Icon name="external" className="size-3.5" />
     </a>
   );
 }

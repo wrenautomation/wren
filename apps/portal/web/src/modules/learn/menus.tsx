@@ -6,6 +6,7 @@ import {
   Button,
   cx,
   FormKept,
+  Icon,
   Input,
   type KeySection,
   say,
@@ -22,16 +23,6 @@ import {
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
-import {
-  Check,
-  Ellipsis,
-  Folder,
-  FolderInput,
-  FolderPlus,
-  Hash,
-  Pencil,
-  Trash2,
-} from "@wren/ui/lib/lucide";
 import { toast } from "@wren/ui/lib/toast";
 import { type FormEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { navigate } from "../../route.js";
@@ -230,7 +221,7 @@ export function MoveDialog({
         <div className="-mx-2 max-h-72 overflow-y-auto">
           {q.trim() && !exact ? (
             <button type="button" className={ROW} disabled={busy} onClick={() => void create()}>
-              <FolderPlus size={15} className="text-(--ui-link)" />
+              <Icon name="newFolder" size={15} className="text-(--ui-link)" />
               <span>
                 New collection <b className="font-semibold">{q.trim()}</b>
               </span>
@@ -238,7 +229,7 @@ export function MoveDialog({
           ) : null}
           {!q.trim() && current ? (
             <button type="button" className={ROW} disabled={busy} onClick={() => move(null, "")}>
-              <FolderInput size={15} className="text-(--ui-ink-2)" />
+              <Icon name="moveTo" size={15} className="text-(--ui-ink-2)" />
               <span>Out of its collection</span>
             </button>
           ) : null}
@@ -251,11 +242,13 @@ export function MoveDialog({
               onClick={() => move(c.id, c.name)}
             >
               <span className={cx("shrink-0", INDENT[Math.min(c.depth, 4)])} />
-              <Folder size={15} className="shrink-0 text-(--ui-ink-2)" />
+              <Icon name="folder" size={15} className="shrink-0 text-(--ui-ink-2)" />
               <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
                 {q.trim() ? c.path : c.name}
               </span>
-              {c.id === current ? <Check size={15} className="text-(--ui-active)" /> : null}
+              {c.id === current ? (
+                <Icon name="check" size={15} className="text-(--ui-active)" />
+              ) : null}
               <span className="text-[12px] text-(--ui-ink-2) tabular-nums">{c.n || ""}</span>
             </button>
           ))}
@@ -346,7 +339,7 @@ export function TagDialog({
                     aria-pressed={!gone}
                     {...tipProps(gone ? "Keep this tag" : "Take this tag off")}
                   >
-                    <Hash size={12} />
+                    <Icon name="hash" size={12} />
                     {t}
                   </button>
                 );
@@ -365,7 +358,7 @@ export function TagDialog({
                   }
                   className="inline-flex h-7 items-center gap-1 border-0 bg-(--ui-tile) px-2 text-[12.5px] text-(--ui-ink-2) hover:text-(--ui-ink)"
                 >
-                  <Hash size={12} />
+                  <Icon name="hash" size={12} />
                   {t}
                 </button>
               ))}
@@ -601,14 +594,14 @@ export function CollectionMenu({
             className,
           )}
         >
-          {trigger ?? <Ellipsis size={15} />}
+          {trigger ?? <Icon name="more" size={15} />}
         </PopoverTrigger>
         <PopoverContent align="start" className="w-52 gap-0 bg-(--ui-paper) p-1 text-(--ui-ink)">
           <button type="button" className={item} onClick={() => pick("new")}>
-            <FolderPlus size={14} /> New collection inside
+            <Icon name="newFolder" size={14} /> New collection inside
           </button>
           <button type="button" className={item} onClick={() => pick("rename")}>
-            <Pencil size={14} /> Rename
+            <Icon name="edit" size={14} /> Rename
           </button>
           {c.parentId !== null ? (
             <button
@@ -622,7 +615,7 @@ export function CollectionMenu({
                 );
               }}
             >
-              <FolderInput size={14} /> Move to the top
+              <Icon name="moveTo" size={14} /> Move to the top
             </button>
           ) : null}
           <button
@@ -630,7 +623,7 @@ export function CollectionMenu({
             className={cx(item, "text-(--ui-bad)")}
             onClick={() => pick("drop")}
           >
-            <Trash2 size={14} /> Delete
+            <Icon name="trash" size={14} /> Delete
           </button>
         </PopoverContent>
       </Popover>

@@ -4,8 +4,7 @@
  * Wren's team holds one grant for the day; a client's workspace gets one per address, for its
  * own items only, asked as its items load.
  */
-import { cx, PlatformMark, tipProps } from "@wren/ui";
-import { FileText, Link, type LucideIcon, Newspaper, Podcast, Rocket } from "@wren/ui/lib/lucide";
+import { cx, Icon, type IconName, PlatformMark, tipProps } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { call } from "../../api.js";
 import { type Card, clientOf, type ItemType, onItems, type SourceKind } from "./api.js";
@@ -16,7 +15,7 @@ interface TypeLook {
   many: string;
   /** A brand mark from the kit, or a line icon with its tint. */
   brand?: string;
-  Icon?: LucideIcon;
+  icon?: IconName;
   tint?: string;
   /** Watched or heard: its length is minutes, not a read. */
   plays?: boolean;
@@ -30,7 +29,7 @@ export const TYPES: Record<ItemType, TypeLook> = {
   podcast: {
     label: "Podcast",
     many: "Podcasts",
-    Icon: Podcast,
+    icon: "podcast",
     tint: "text-(--ui-cue-3)",
     plays: true,
     site: "the show's page",
@@ -38,14 +37,14 @@ export const TYPES: Record<ItemType, TypeLook> = {
   newsletter: {
     label: "Newsletter",
     many: "Newsletters",
-    Icon: Newspaper,
+    icon: "news",
     tint: "text-(--ui-cue-4)",
     site: "the newsletter",
   },
   blog: {
     label: "Blog",
     many: "Blogs",
-    Icon: FileText,
+    icon: "doc",
     tint: "text-(--ui-cue-1)",
     site: "the blog",
   },
@@ -62,14 +61,14 @@ export const TYPES: Record<ItemType, TypeLook> = {
   releases: {
     label: "Release",
     many: "Releases",
-    Icon: Rocket,
+    icon: "ship",
     tint: "text-(--ui-cue-2)",
     site: "the release notes",
   },
   link: {
     label: "Link",
     many: "Saved links",
-    Icon: Link,
+    icon: "link",
     tint: "text-(--ui-cue-6)",
     site: "the page",
   },
@@ -150,13 +149,12 @@ export function TypeMark({
         {...(className ? { className } : {})}
       />
     );
-  const Icon = t.Icon ?? Link;
   return (
     <Icon
+      name={t.icon ?? "link"}
       size={size}
       strokeWidth={2}
-      aria-label={label}
-      aria-hidden={label ? undefined : true}
+      {...(label ? { label } : {})}
       className={cx("inline-block shrink-0 align-[-0.125em]", !mono && t.tint, className)}
     />
   );

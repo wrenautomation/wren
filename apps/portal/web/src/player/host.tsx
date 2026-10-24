@@ -6,8 +6,7 @@
  * reloads. Only Picture-in-Picture moves it, by hand, and a YouTube iframe there reopens at the
  * current time (see `YouTube` in `./media.tsx`).
  */
-import { cx } from "@wren/ui";
-import { Maximize2, PictureInPicture2, X } from "@wren/ui/lib/lucide";
+import { cx, Icon } from "@wren/ui";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { clipPath, clippersOf, clipTo } from "./geometry.js";
@@ -154,7 +153,7 @@ export function PlayerHost() {
             title="Expand"
             onClick={() => store.expand()}
           >
-            <Maximize2 size={15} aria-hidden="true" />
+            <Icon name="expand" size={15} />
           </button>
           {pipApi() && ratio !== null && mode === "mini" ? (
             <button
@@ -164,7 +163,7 @@ export function PlayerHost() {
               title="Picture in picture"
               onClick={() => void toPip()}
             >
-              <PictureInPicture2 size={15} aria-hidden="true" />
+              <Icon name="pip" size={15} />
             </button>
           ) : null}
           <button
@@ -174,7 +173,7 @@ export function PlayerHost() {
             title="Close"
             onClick={() => store.close()}
           >
-            <X size={15} aria-hidden="true" />
+            <Icon name="close" size={15} />
           </button>
         </div>
       ) : null}
