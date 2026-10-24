@@ -125,9 +125,13 @@ export const NavigationSurvives = story(async (canvasElement) => {
   await page.findByRole("button", { name: "Keep playing in the corner" });
   await waitFor(() => expect(audio(canvasElement)).not.toBeNull());
   const el = audio(canvasElement);
-  // Learn's own page. A wide screen links it twice: the sidebar's row and the top bar.
-  const [learn] = await page.findAllByRole("link", { name: "Learn" });
-  if (learn) await userEvent.click(learn);
+  // Out to Learn's list by the page's own way back: on a wide screen the sidebar's Learn row would
+  // do too, but a phone's bar names the app only until it knows the record, then the way back.
+  const out = page
+    .getAllByRole("link")
+    .find((a) => /^\/learn(?!\/items\/)/.test(a.getAttribute("href") ?? ""));
+  if (!out) throw new Error("no link out of the item's page");
+  await userEvent.click(out);
   const dock = await within(canvasElement.ownerDocument.body).findByRole("region", {
     name: "Mini player",
   });
