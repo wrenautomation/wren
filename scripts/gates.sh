@@ -177,7 +177,7 @@ case "${1:-all}" in
   drift) drift ;;
   scorecard) scorecard ;;
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
-  checks) cli && offers && map && isolation && writes && edits && reads && libs && drift ;;
+  checks) cli && offers && map && layers && isolation && writes && edits && reads && libs && drift ;;
   all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
   *) echo "usage: $0 [lint|changed|ui|checks|unit|stories|visual|look|match|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac
