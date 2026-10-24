@@ -11,7 +11,9 @@ describe("siteReadDue", () => {
   });
 
   it("reads Instagram's Following list twice a day", () => {
-    expect(siteReadDue("following instagram", { "following instagram": T }, T + 11 * H)).toBe(false);
+    expect(siteReadDue("following instagram", { "following instagram": T }, T + 11 * H)).toBe(
+      false,
+    );
     expect(siteReadDue("following instagram", { "following instagram": T }, T + 12 * H)).toBe(true);
   });
 
