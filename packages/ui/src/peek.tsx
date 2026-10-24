@@ -1,13 +1,12 @@
 /**
  * The peek (designs/2026-10-21-crm-rows-everywhere.md, F3): what a row click opens beside its
- * list. Not the whole record: its properties, the newest of what happened, and the one thing to
- * do now, with the full record one click on. `Panel` (records.tsx) is the shell (a floating
+ * list. Not the whole record: its properties and links, the newest of what happened, and its
+ * actions in its head, with the full record one click on. `Panel` (records.tsx) is the shell (a floating
  * panel, a sheet on a phone); this is the body it draws, from what `PeekBody` reads. Look:
  * design-language.html, Inbox F3 (`.pk`).
  */
 import { cn } from "cn";
 import type { ReactNode } from "react";
-import { Button } from "./controls.js";
 import { Loading } from "./feedback.js";
 import { dateOf, dateTip, relative } from "./fields.js";
 import { Avatar } from "./rows.js";
@@ -25,13 +24,6 @@ export interface PeekLine {
   channel?: string | undefined;
   at: string;
   text: string;
-}
-
-/** The one thing to do now, when the page has no reply box. */
-export interface PeekAction {
-  label: string;
-  run: () => void;
-  busy: boolean;
 }
 
 /** The record's avatar and title: the head of the panel, the top of a sheet. */
@@ -57,13 +49,12 @@ export function PeekTitle({
 /** A field with nothing in it. */
 const NONE = <span className="text-(--ui-ink-3)">-</span>;
 
-/** The peek's body: properties, last activity, the reply box or main action, the way on. */
+/** The peek's body: properties, last activity, the reply box, the way on. Its actions sit in its head. */
 export function PeekView({
   props,
   recent,
   waiting = false,
   reply,
-  action,
   openHref,
 }: {
   /** The properties, label and drawn value, in order. */
@@ -74,7 +65,6 @@ export function PeekView({
   waiting?: boolean;
   /** The page's own reply box. */
   reply: ReactNode;
-  action: PeekAction | null;
   openHref: string;
 }) {
   return (
@@ -100,13 +90,6 @@ export function PeekView({
         </section>
       ) : null}
       {reply ? <div className="grid gap-2">{reply}</div> : null}
-      {!reply && action ? (
-        <div>
-          <Button tone="primary" size="dense" busy={action.busy} onClick={action.run}>
-            {action.label}
-          </Button>
-        </div>
-      ) : null}
       <a
         href={openHref}
         className="w-fit text-[13px] text-(--ui-ink-2) underline decoration-(--ui-hair) underline-offset-2 hover:text-(--ui-ink) hover:decoration-current"

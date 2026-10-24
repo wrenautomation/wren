@@ -172,7 +172,7 @@ export const OpenIt: Story = {
   },
 };
 
-/** The main action runs from the peek, the Undo toast shows, and a tab away and back keeps the row. */
+/** An action runs from the peek's head, the Undo toast shows, and a tab away and back keeps the row. */
 export const MainAction: Story = {
   render: () => <Host />,
   play: async ({ canvasElement }) => {
@@ -205,14 +205,17 @@ export const PanelOrSheet: Story = {
     const peek = await peekOf();
     await within(peek).findByRole("heading", { name: "Ada North" });
     if (isWide(canvasElement)) {
-      // Docked beside the list (artifact `.nt-pk`): its right half, not over the page. The page
-      // scrolls, so the peek sticks in view while the rows move under it.
+      // Docked beside the list (artifact `.nt-pk`), at most 420px (William, 10-24), not over the
+      // page. The page scrolls, so the peek sticks in view while the rows move under it.
       expect(peek.tagName).toBe("ASIDE");
       expect(getComputedStyle(peek).position).toBe("sticky");
       // A grid cell, so a short list never cuts the record off.
       expect(peek.scrollHeight).toBeLessThanOrEqual(peek.clientHeight + 1);
-      const list = canvasElement.querySelector("table")?.closest("[class*='grid-cols-2']");
+      const list = canvasElement
+        .querySelector("table")
+        ?.closest("[class*='grid-cols-[minmax(0,1fr)_minmax(0,420px)]']");
       expect(list?.contains(peek)).toBe(true);
+      expect(peek.getBoundingClientRect().width).toBeLessThanOrEqual(421);
     } else {
       expect(peek.getAttribute("role")).toBe("dialog");
       expect(peek.hasAttribute("data-sheet")).toBe(true);
@@ -248,8 +251,9 @@ export const TypedReply: Story = {
     await expect(box).toHaveValue("jk");
     await expect(here.getByRole("heading", { name: "Ada North" })).toBeVisible();
     expect(param()).toBe(start);
-    // A page with a reply box has no main-action button beside it.
-    expect(here.queryByRole("button", { name: "Approve" })).toBeNull();
+    // The row's actions sit in the head over the box, in place of the walk's arrows.
+    await expect(here.getByRole("button", { name: "Approve" })).toBeVisible();
+    expect(here.queryByRole("button", { name: "Next" })).toBeNull();
   },
 };
 
