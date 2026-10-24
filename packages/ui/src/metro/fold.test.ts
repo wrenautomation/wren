@@ -69,7 +69,7 @@ describe("autoZoom and foldScene", () => {
     expect(top.st.length).toBeLessThan(ZOOM_SCENE.st.length);
   });
 
-  it("never folds the hub or an exit", () => {
+  it("never folds a hub in no group, or an exit", () => {
     const keep = ZOOM_SCENE.st
       .filter((s) => isMark(s) && (s.t === "hub" || s.t === "exit"))
       .map((s) => s.id);

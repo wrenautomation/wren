@@ -9,7 +9,7 @@
    - **line · column**: the stations of one line in one column (today's Parts). Made only when it holds 2 or more stations and more than one child.
    - **groups**: the shape's groups. A group may name a `parent` group, to any depth. A group with stations sits on one line. A group that only holds groups lists no stations and may span lines (content marketing as one circle). The pipeline checks that a parent exists and no group sits inside itself.
    - **twins**: one template on one line in one column, a station per platform. A twin that departs from the rest (`TWIN_OUTLIER`) or carries a diff stays out.
-   - **exits** fold with the node of their source. The hub never folds.
+   - **exits** fold with the node of their source. The hub folds like any station when a group holds it (2026-10-24); in no group, it stays on the map.
    Flows become nodes in a later commit (they are their own id scope today).
 3. **Controls.** `MetroDepth` (map.tsx) draws − and + and the path. `MetroMap` draws it in its bar; the portal Map page draws it in its header.
 4. **State.** A depth cut (node open when its depth is under the cut) and hand changes on top (`open: {id: bool}`). The wheel or a pinch steps the cut and clears the hand changes. A click on a circle opens it. The tab on its frame closes it. `reveal` (a station) opens its path and closes the rest. A breadcrumb shows the path of the last node opened; a crumb closes what is under it.

@@ -892,8 +892,18 @@ function checkGroups(
       }
     }
     const empty = !Array.isArray(g.stations) || g.stations.length === 0;
-    // A group that only holds groups needs no line and no station.
-    if (empty && parents.has(k)) {
+    // The hub joins every line, so it puts no line on its group.
+    const lined = !empty && g.stations.some((id) => stationBy.get(id)?.kind !== "hub");
+    // A group that only holds groups, or the hub, needs no line.
+    if (!lined && (parents.has(k) || !empty)) {
+      for (const id of g.stations) {
+        if (!stationBy.has(id))
+          errors.push(`Group "${k}" names station "${id}", which is not in the shape.`);
+        const other = taken.get(id);
+        if (other !== undefined && other !== k)
+          errors.push(`Station "${id}" is in two groups: "${other}" and "${k}".`);
+        else taken.set(id, k);
+      }
       if (g.line !== undefined && !lineBy.has(g.line))
         errors.push(`Group "${k}" is on line "${g.line}", which does not exist.`);
       continue;
@@ -907,11 +917,9 @@ function checkGroups(
     for (const id of g.stations) {
       const s = stationBy.get(id);
       if (!s) errors.push(`Group "${k}" names station "${id}", which is not in the shape.`);
-      else if (s.kind === "hub" || s.kind === "exit") {
-        errors.push(
-          `Group "${k}" holds ${s.kind} "${id}". A group never holds the hub or an exit.`,
-        );
-      } else if (s.line !== g.line) {
+      else if (s.kind === "exit") {
+        errors.push(`Group "${k}" holds exit "${id}". An exit folds with its source.`);
+      } else if (s.kind !== "hub" && s.line !== g.line) {
         errors.push(`Group "${k}" holds station "${id}", which is not on line "${g.line}".`);
       }
       const other = taken.get(id);

@@ -746,13 +746,14 @@ describe("checkMetro: groups", () => {
     expect(e).toContain('Group "sales" sits inside itself through "closing".');
   });
 
-  it("never holds the hub or an exit", () => {
+  it("never holds an exit, and holds the hub like any station", () => {
     expect(says((b) => closing(b).stations.push("gone"))).toEqual([
-      'Group "closing" holds exit "gone". A group never holds the hub or an exit.',
+      'Group "closing" holds exit "gone". An exit folds with its source.',
     ]);
-    expect(says((b) => closing(b).stations.push("hub"))).toEqual([
-      'Group "closing" holds hub "hub". A group never holds the hub or an exit.',
-    ]);
+    expect(says((b) => closing(b).stations.push("hub"))).toEqual([]);
+    expect(says((b) => b.groups.push({ id: "front", label: "Front", stations: ["hub"] }))).toEqual(
+      [],
+    );
   });
 
   it("puts no station in two groups", () => {
