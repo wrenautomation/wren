@@ -29,7 +29,7 @@ Citations: `packages/research/src/schema.ts:408`, `packages/research/src/people/
 
 ## If you change this
 
-- **Hits:** `team.ts`, `Enrichment.team` (`packages/research/src/restate/enrichment.ts:707`), the pool's `team` stage and its order (`nextTeamFirms`, `packages/channel-email/src/restate/pool-scheduler.ts:161`)
+- **Hits:** `team.ts`, `Enrichment.team` (`packages/research/src/restate/enrichment-crawl.ts:193`), the pool's `team` stage and its order (`nextTeamFirms`, `packages/channel-email/src/restate/pool-scheduler.ts:161`)
 - **Does not hit:** compose, Resolution (new people wait for `build` and `queue`)
 
 ## Surfaces

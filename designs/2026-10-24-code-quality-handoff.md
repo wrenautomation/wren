@@ -10,6 +10,10 @@ A fresh session (cloud, Fable) reads this first. Goal: less duplication, clean l
 
 > a handoff doc with my prompts and info about reducing duplication, DRY, SOLID principles, shared interfaces from high level to low level (dependency SOLID principle) and supporting extensibility, organizing packages well so things are easy to find and theres not insane levels of nesting on a package level but on a code level abstractions are clean
 
+> can we reason over these 23 files see hwat needs restructuring?
+
+> if the interfaces / code quality is fine they are just long becuase funcitonaltiy is complex and wide then its fine
+
 ## What started it
 
 Row actions and 20 files drew Lucide icons direct, past the registry. A change to one icon needed many edits. Fixed in ea1bd2c4:
@@ -52,6 +56,20 @@ Each a pure move in its own commit, no behaviour change, typecheck and unit gree
 
 **A file-size gate.** `gates.sh size` (in `lint` and `checks`): no source file over 1200 lines, read off `git ls-files | xargs wc -l` (tests, stories and drizzle apart). The files still over it on the day the gate went in are listed in `scripts/big-files.txt`, and the list only shrinks: a new file over the line fails, and a listed file split below it leaves the list (the gate diffs the two, so a stale entry fails too). The number is a tripwire, not a target: a file a third of that is still worth reading twice.
 
+### The twenty-three still over the line (triaged 10-24)
+
+After the restructures the list held twenty-three files. Sorted by shape, one shape is the defect the restructures fixed:
+
+| Shape | Files | Call |
+|---|---|---|
+| One function holding a service | content `restate/desk.ts` (`makeContentDesk`, 818 of 1343), notes `console.ts` (`notesApi`, 871 of 1464), research `restate/enrichment.ts` (`makeEnrichment`, 1147 of 1686) | restructured, as `console-api.ts` and `desk.ts` were: a context built once (`desk-context.ts`, `console-context.ts`, `enrichment-context.ts`) and one file per handler group (content: drafting, formats, approvals, swaps, edits; notes: records, pages, comments, writes, sharing, training; enrichment: crawl, picks, people, social, search). A module-level declaration went to the one file that uses it, or the context file when shared, so imports run face to group to context only. Handler names proved equal by AST walk (22, 43, 21), every handler body equal modulo whitespace (one ternary gained the parentheses biome prints), every other statement carried verbatim |
+| A CLI command list | `apps/cli/src/studio.ts` (`registerStudio`) | stays: each command is one statement found by its name, read top-down like the help it prints |
+| Data | `analytics/catalog.ts`, `core/src/logic.ts`, `metro/data.ts` | stays: the length is rows |
+| Drizzle schema | core and content `schema.ts` | stays: a flat list of tables and views |
+| Many named pieces | the other fourteen (portal modules, `segments.ts`, `spine.ts`, `delivery/src/watch.ts`, `reach-posts.ts`, `social/records.ts`, `list-bar.tsx`, `shell.tsx`, `metro/samples.ts`, remotion `index.tsx`) | stays: each piece is found by its name |
+
+One candidate is left for a design pass, not a move: `Canvas` in `apps/portal/web/src/modules/wren/workflows.tsx`, one component of 671 lines with some twenty pieces of state. Its cut is a hook for the draft and its edits and smaller parts for the panels, which changes how state flows and wants a story check, so it is not a mechanical split.
+
 ### Decisions (2026-10-24)
 
 - Explicit over inferred: an action's icon is a field, not a reading of its label, even at +1 line per action (177 of them). A rename cannot move an icon, and there is no first-match ordering to keep straight.
@@ -60,6 +78,8 @@ Each a pure move in its own commit, no behaviour change, typecheck and unit gree
 - `settled()` means no call out and no query fetching. A retry's back-off is still fetching.
 - `push.sh` and `deploy.sh` read the gates alike (the latest attempt's jobs, failure over cancelled); the python went, one jq program stays.
 - Package layout: `packages/` is one level deep and stays so; inside `ui/src` the deepest folder is now two (`metro/lab`, `components/ui`); `lib/` (one file) is gone.
+- Splits are moves, not redesigns: a file over the line is cut along the seams it already has (sections, objects, domains), each statement verbatim, the face re-exporting the same names. Two files stayed over the line after the six splits (`console-api.ts`, `desk.ts`) because their next cut was a restructure of one function's closures; both took it 10-24: a context object built once (`console/api/context.ts`, `restate/desk-context.ts`) and one file per handler group that takes it, the handler text verbatim and the handler name set proved equal before and after by an AST walk (80 and 53 names; Restate journals and the portal's calls are keyed by those names, so none is renamed).
+- Length alone is not a defect. A file over the line is cut when its interface hides its structure: one function holding a whole service, so touching one handler means reading every closure. A file long because its subject is wide (many named pieces, a table of rows, a schema) stays, and the ratchet keeps it from growing.
 
 ## Principles to apply
 
@@ -98,4 +118,3 @@ Target: **flat at the package level, clean at the code level.**
 ## Out of scope
 
 Security review (separate audits). New features. UI look (the Design Language artifact owns it).
-- Splits are moves, not redesigns: a file over the line is cut along the seams it already has (sections, objects, domains), each statement verbatim, the face re-exporting the same names. Two files stayed over the line after the six splits (`console-api.ts`, `desk.ts`) because their next cut was a restructure of one function's closures; both took it 10-24: a context object built once (`console/api/context.ts`, `restate/desk-context.ts`) and one file per handler group that takes it, the handler text verbatim and the handler name set proved equal before and after by an AST walk (80 and 53 names; Restate journals and the portal's calls are keyed by those names, so none is renamed).

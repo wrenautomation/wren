@@ -13,7 +13,6 @@ packages/core/src/segments.ts
 packages/core/src/spine.ts
 packages/delivery/src/watch.ts
 packages/outreach/src/reach-posts.ts
-packages/research/src/restate/enrichment.ts
 packages/studio/remotion/index.tsx
 packages/ui/src/list-bar.tsx
 packages/ui/src/metro/data.ts
