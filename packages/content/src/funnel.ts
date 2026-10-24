@@ -36,6 +36,8 @@ export const TARGET_LABELS: Record<FunnelTarget, string> = {
 export const WREN_SITE = "https://wrenautomation.com";
 /** The one offer with a booking page. */
 export const BOOKING_PATH = "/book/reactivation";
+/** The public repo a developer post (`repo`) points to: github.com/wrenautomation/<this>. */
+export const DEV_REPO = "autobrowse";
 
 type FunnelRow = Pick<
   ContentDraft,
@@ -125,7 +127,7 @@ const goLink = (d: Pick<FunnelRow, "id" | "platform" | "stage">) =>
 /**
  * The target's link. Wren's posts go through the lander's `/go/<channel>/<stage>/<post>`, which
  * counts the click: to the video with `?v=<YouTube id>` (none until it's up), to booking or a
- * Sites page with `?to=`. A client's post links only its own video, straight: Wren's lander never
+ * Sites page with `?to=`, to our GitHub repo with `?repo=`. A client's post links only its own video, straight: Wren's lander never
  * carries a client's traffic.
  */
 export function targetLink(
@@ -141,6 +143,7 @@ export function targetLink(
   }
   if (client) return null;
   if (d.pointsTo === "page") return page ? `${goLink(d)}?to=/o/${page.slug}` : null;
+  if (d.pointsTo === "repo") return `${goLink(d)}?repo=${DEV_REPO}`;
   return d.pointsTo === "booking" ? `${goLink(d)}?to=${BOOKING_PATH}` : goLink(d);
 }
 

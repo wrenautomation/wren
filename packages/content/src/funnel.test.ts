@@ -51,6 +51,14 @@ describe("funnel links", () => {
     expect(targetLink({ ...base, pointsTo: "video" }, { ...video, url: null })).toBeNull();
   });
 
+  it("a developer post goes through the lander to the GitHub repo; a client's never", () => {
+    const repo = { ...base, pointsTo: "repo" as const };
+    expect(targetLink(repo, null)).toBe(
+      "https://wrenautomation.com/go/li/reach/3f2a9c1e?repo=autobrowse",
+    );
+    expect(targetLink(repo, null, true)).toBeNull();
+  });
+
   it("a page goes through the lander to /o/<slug>; a page not live says so", () => {
     const page = { id: "p", title: "Speed lander", slug: "speed", live: true };
     const toPage = { ...base, pointsTo: "page" as const, sitePage: "p" };

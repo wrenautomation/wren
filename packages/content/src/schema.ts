@@ -69,7 +69,7 @@ export type DraftStatus = (typeof DRAFT_STATUSES)[number];
 /** The funnel (designs/2026-10-07-content-funnel.md): which stage a post serves, where it points. */
 export const FUNNEL_STAGES = ["reach", "trust", "convert"] as const;
 export type FunnelStage = (typeof FUNNEL_STAGES)[number];
-export const FUNNEL_TARGETS = ["video", "site", "booking", "page"] as const;
+export const FUNNEL_TARGETS = ["video", "site", "booking", "page", "repo"] as const;
 export type FunnelTarget = (typeof FUNNEL_TARGETS)[number];
 
 export const contentIdeas = pgTable(

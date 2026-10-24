@@ -1,0 +1,2 @@
+ALTER TABLE "content_drafts" DROP CONSTRAINT "ck_content_drafts_points_to";--> statement-breakpoint
+ALTER TABLE "content_drafts" ADD CONSTRAINT "ck_content_drafts_points_to" CHECK (("points_to")::text = ANY ((ARRAY['video'::character varying, 'site'::character varying, 'booking'::character varying, 'page'::character varying, 'repo'::character varying])::text[]));

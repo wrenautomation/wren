@@ -16,7 +16,7 @@ export type FunnelPage = { id: string; title: string; slug: string; live: boolea
 /** `@wren/content`'s `FunnelView` with the videos it may point at. */
 export type Funnel = {
   stage: "reach" | "trust" | "convert";
-  to: "video" | "site" | "booking" | "page";
+  to: "video" | "site" | "booking" | "page" | "repo";
   video: FunnelVideo | null;
   page: FunnelPage | null;
   linked: boolean;
@@ -41,6 +41,7 @@ const TARGETS = [
   { value: "site", label: "The site" },
   { value: "booking", label: "Booking" },
   { value: "page", label: "A page" },
+  { value: "repo", label: "The GitHub repo" },
 ] as const;
 
 const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
