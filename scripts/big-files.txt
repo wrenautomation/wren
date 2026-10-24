@@ -8,7 +8,6 @@ packages/content/src/analytics/catalog.ts
 packages/content/src/restate/desk.ts
 packages/content/src/schema.ts
 packages/content/src/social/records.ts
-packages/core/src/console/console-api.ts
 packages/core/src/logic.ts
 packages/core/src/schema.ts
 packages/core/src/segments.ts
