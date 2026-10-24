@@ -48,7 +48,7 @@ Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/work.ts:
 
 ## If you change this
 
-- **Hits:** the portal's Home and its Worker route list (`packages/delivery/src/routes.ts`), the worker's service list (`apps/worker/src/services.ts:414`), [[processes/migrate]], the `books.econ_*` views (they read `engagements`, `invoices` and `agreements` by name; a renamed column fails `packages/books/test/integration/economics.test.ts`)
+- **Hits:** the portal's Home and its Worker route list (`packages/delivery/src/routes.ts`), the worker's service list (`apps/worker/src/services.ts:61`), [[processes/migrate]], the `books.econ_*` views (they read `engagements`, `invoices` and `agreements` by name; a renamed column fails `packages/books/test/integration/economics.test.ts`)
 - **Does not hit:** client databases. Products import delivery; delivery imports no product.
 
 ## Surfaces

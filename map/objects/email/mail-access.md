@@ -28,7 +28,7 @@ Per-mailbox 3-legged OAuth on a trusted app, never domain-wide delegation: Wren 
 - Setups (`setups.ts`): `setup.google_mail` (app, trust), `setup.microsoft_mail` (app, consent), `setup.mailbox` (connected); checks `mailChecks` (`:110`): `mail.google_app`, `mail.microsoft_app`, `google.mail_trust` (a real read), `microsoft.admin_consent`, `mailbox.token`
 - Services: `MailAccess` (`console.ts:234`; routes `console-routes.ts:8`) and `MailCallback/land` (`console.ts:310`, private; the portal Worker's `/oauth/mail/<provider>` forwards to it, `apps/portal/src/oauth-landing.ts`)
 
-Citations: `packages/channel-email/src/access/schema.ts:37`, `:71`, `:111`; `packages/channel-email/src/access/access.ts:86`, `:143`, `:265`; `apps/worker/src/services.ts:1337`
+Citations: `packages/channel-email/src/access/schema.ts:37`, `:71`, `:111`; `packages/channel-email/src/access/access.ts:86`, `:143`, `:265`; `apps/worker/src/services/deps.ts:804`
 
 ## Connected to
 

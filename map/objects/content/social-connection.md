@@ -32,7 +32,7 @@ GHL's Social Planner, on official APIs only. One app per platform, one sign-in p
 - Setup: `setup.social`, check `social.token` hourly (`setups.ts`)
 - App reviews (`app-reviews.ts`, designs/2026-10-09-app-reviews.md): `REVIEWS` (each platform review: fields, permission text from `SOCIAL`'s scopes, screencast, open items, what it unlocks), `checkReview` (public pages for their words, callbacks served, prod keys, the 1024 icon at `deploy/reviews/`), `packetOf`. The mail apps' Google verification and Microsoft publisher verification sit in the same table. Filing is a person's act; a pass goes into `WREN_SOCIAL_LIVE`. Every callback is on `PORTAL` (app.wrenautomation.com), so TikTok's screencast is recorded there; its post step uses a client's Post now on Marketing → Drafts, shown only where the `post_now` portal flag is on (`MarketingConsole/approveDraft` with `now` checks it too; migration 0268 seeds it on for `wren_test`)
 
-Citations: `packages/content/src/connect/schema.ts:30`, `:73`; `packages/content/src/connect/access.ts:123`, `:179`; `packages/content/src/connect/console.ts:94`; `apps/worker/src/services.ts:549`
+Citations: `packages/content/src/connect/schema.ts:30`, `:73`; `packages/content/src/connect/access.ts:123`, `:179`; `packages/content/src/connect/console.ts:94`; `apps/worker/src/services/deps.ts:283`
 
 ## Connected to
 

@@ -21,7 +21,7 @@ A loop ends without a word two ways: its next call is lost (dead), or its pass w
 - `healthOf` (`loop-watch.ts:88`): `stopped`, `alive` (a call queued or moving, or between passes within `delayMs` + 10 min), `dead` (running, nothing queued, overdue), `stuck` (the holder or its child `paused`, or nothing moved for 45 min; `LOOP_EXPECT` `:34`: ReachWatch 90)
 - `planWatch` (`loop-watch.ts:183`): incidents in object state (`incidents`); a dead loop is woken (`wake`: new generation, fresh `loop` call) at most every 15 min, 6 times, then one give-up notice; healthy an hour or stopped closes it. No table, no migration
 - each loop's `last.timeouts` (calls its last pass gave up on, `held` when the unit went to [[platform/checks]]) rides on its row; a check counts them per loop (`timedOut`)
-- `makeLoopWatch` (`loop-watch.ts:405`): a `runPass` per check (ledger `loops watch`), wired beside `DeadLetters` when `WREN_RESTATE_ADMIN_URL` is set (`apps/worker/src/services.ts:2330`)
+- `makeLoopWatch` (`loop-watch.ts:405`): a `runPass` per check (ledger `loops watch`), wired beside `DeadLetters` when `WREN_RESTATE_ADMIN_URL` is set (`apps/worker/src/services/platform.ts:94`)
 
 Citations: `packages/core/src/loop-watch.ts:405`
 

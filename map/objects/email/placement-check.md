@@ -38,7 +38,7 @@ Citations: `packages/channel-email/src/schema.ts:918`, `packages/channel-email/s
 
 | Surface | Role |
 |---|---|
-| `PlacementScheduler` (`apps/worker/src/services.ts:633`) | writes; pauses and lifts |
+| `PlacementScheduler` (`apps/worker/src/services/email.ts:288`) | writes; pauses and lifts |
 | `wren email deliverability` | read |
 | `DigestScheduler` (when seeds set) | read |
 | autobrowse `sites` (`gmail`, account = seed) | read by the loop |

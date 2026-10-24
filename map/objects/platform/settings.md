@@ -20,7 +20,7 @@ One zod schema with one field→env map (`ENV_KEYS`, `index.ts:605`) means a mis
 - `settingsSchema` (`index.ts:42`), `Settings` (`:568`), `ENV_KEYS` (`:605`, one env name per field; count them there), `loadSettings` (`:797`)
 - families: `WREN_DATABASE_URL` + `WREN_DATABASE_POOL_PORT`, `WREN_RESTATE_INGRESS_URL` + `RESTATE_AUTH_TOKEN`, `WREN_LLM` + `WREN_LLM_MODEL`, `WREN_VERIFIER` + `WREN_SMTP_PROBE_*`, `WREN_SEND_*` + `WREN_COLD_SENDS_*` + `WREN_NEW_OPENERS_PER_DAY`, `WREN_SEND_TRANSPORT` + `WREN_GOOGLE_SERVICE_ACCOUNT`, `WREN_NOTIFY` + `WREN_DISCORD_WEBHOOK_URL`, `WREN_COMPOSE_DAYS_AHEAD`, `WREN_POOL_MODEL_STAGES`, `WREN_BOUNCE_*` + `WREN_HEALTH_WINDOW_DAYS`, `WREN_PLACEMENT_SEEDS`, `WREN_OPEN_TRACKING` + `WREN_PIXEL_*`, `WREN_POSTMASTER_USER`, `WREN_REPORT_TO/FROM`, `WREN_CONTENT_CHANNELS` + `WREN_CONTENT_VOICE` + `WREN_TIKTOK_POST_VIA`, `WREN_MEDIA_BUCKET`, `WREN_META_*` + `WREN_ADS_PAUSE_AFTER_USD`, `WREN_SMS_*` + `WREN_TELNYX_*`, `WREN_AUTOBROWSE_INSTANCE_ID`, `WREN_REDDIT_*`, `WREN_BOOKS_*` (`ENV_KEYS`)
 - prod values: `deploy/prod.env` → `deploy/scripts/push-secrets.sh:34` → SSM `/wren/prod/env` (never push a stale file: it disables live channels)
-- `WREN_SHAPES_GITHUB_TOKEN` (optional; without it the shape's git mirror is off) and `WREN_SHAPES_GITHUB_REPO` (default `wrenautomation/sops`) are `shapesGithubToken` and `shapesGithubRepo` (`index.ts:222`, `:224`; env `:676`); read by the worker (`apps/worker/src/services.ts:1213`) and the CLI (`apps/cli/src/main.ts`) ([[platform/shape]])
+- `WREN_SHAPES_GITHUB_TOKEN` (optional; without it the shape's git mirror is off) and `WREN_SHAPES_GITHUB_REPO` (default `wrenautomation/sops`) are `shapesGithubToken` and `shapesGithubRepo` (`index.ts:222`, `:224`; env `:676`); read by the worker (`apps/worker/src/services/apps.ts:86`) and the CLI (`apps/cli/src/main.ts`) ([[platform/shape]])
 - Wren-run parts keep their own settings in table `wren_settings` (not env): `settingsFor` / `setWrenSettings` in `packages/core/src/clients/index.ts`; the console `configure` with no client (or WREN) writes them, guarded `manage` at WREN. A part's `wrenSettings` (always for `for: "wren"`; set on client parts that run only for Wren: `ads.meta`, `research.signals`) makes the Shop's Save, in any client's workspace, send no client, so it lands here (`packages/core/src/console/console-api.ts` `configure`); `studio` (Video editor) holds the cut knobs
 - Each of Wren's settings is also a `console.setting` row (`settingRecord`, `packages/core/src/console/settings.ts:159`): one per form field of each `wrenSettings` part, edited in place on Loops > Settings with History, Undo and Ask Claude ([[platform/edits]], `needs: "manage"`). A save keeps the rest of the block, prices too; blank puts the default back. The list reads a block as words (`settingShown`); the edit starts from its text form. The Shop shows Wren's values and links there
 
@@ -28,7 +28,7 @@ Citations: `packages/config/src/index.ts:42`, `:605`, `:797`
 
 ## Connected to
 
-- **owns:** [[email/send-policy]]; which services bind in `apps/worker/src/services.ts:110`
+- **owns:** [[email/send-policy]]; which services bind in `apps/worker/src/services.ts:80`
 - **joins:** [[platform/worker]], [[platform/cli]] (both call `loadSettings`)
 
 ## If you change this
