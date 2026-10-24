@@ -3,7 +3,7 @@
  * bottom-right when the page goes. An episode of a podcast stands in for every kind; the
  * element is the same one whatever the item. No pixel compare: render, play, axe.
  */
-import type { Meta } from "@storybook/react-vite";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { freshStory } from "./mocks/api.js";
@@ -74,30 +74,33 @@ const silence = () => {
   return new Blob([head, data], { type: "audio/wav" });
 };
 
-const base = pageAt("/learn/items/7", {
-  me: ADMIN,
-  answers: { "learn/item": EPISODE, "learn/open": {}, "learn/seen": {} },
-});
-const story = (play: NonNullable<typeof base.play>): typeof base => ({
-  ...base,
-  beforeEach: () => {
-    // The shell's player outlives a story: put it away first.
-    player.close();
-    freshStory();
-  },
-  play,
-  parameters: {
-    ...base.parameters,
-    msw: [http.get("/media", () => new HttpResponse(silence())), ...(base.parameters?.msw ?? [])],
-  },
-});
+/** The item's page once its reads are in (`pageAt` waits for them), then `check`. */
+const story = (check: (page: HTMLElement) => Promise<void>): StoryObj => {
+  const base = pageAt("/learn/items/7", {
+    me: ADMIN,
+    answers: { "learn/item": EPISODE, "learn/open": {}, "learn/seen": {} },
+    check,
+  });
+  return {
+    ...base,
+    beforeEach: () => {
+      // The shell's player outlives a story: put it away first.
+      player.close();
+      freshStory();
+    },
+    parameters: {
+      ...base.parameters,
+      msw: [http.get("/media", () => new HttpResponse(silence())), ...(base.parameters?.msw ?? [])],
+    },
+  };
+};
 
 const audio = (root: HTMLElement) => root.ownerDocument.querySelector("audio");
 const mini = (root: HTMLElement) =>
   within(root.ownerDocument.body).queryByRole("region", { name: "Mini player" });
 
 /** On the item's page the player plays over the slot: no corner dock. */
-export const Expanded = story(async ({ canvasElement }) => {
+export const Expanded = story(async (canvasElement) => {
   const page = within(canvasElement);
   await page.findByRole("button", { name: "Keep playing in the corner" });
   await waitFor(() => expect(audio(canvasElement)).not.toBeNull());
@@ -105,7 +108,7 @@ export const Expanded = story(async ({ canvasElement }) => {
 });
 
 /** Keep playing in the corner: the same player, docked bottom-right, with Expand and Close. */
-export const MiniDocked = story(async ({ canvasElement }) => {
+export const MiniDocked = story(async (canvasElement) => {
   const page = within(canvasElement);
   await userEvent.click(await page.findByRole("button", { name: "Keep playing in the corner" }));
   const dock = await within(canvasElement.ownerDocument.body).findByRole("region", {
@@ -117,7 +120,7 @@ export const MiniDocked = story(async ({ canvasElement }) => {
 });
 
 /** Leave the page: the same element goes on in the dock, and Expand brings the item's page back. */
-export const NavigationSurvives = story(async ({ canvasElement }) => {
+export const NavigationSurvives = story(async (canvasElement) => {
   const page = within(canvasElement);
   await page.findByRole("button", { name: "Keep playing in the corner" });
   await waitFor(() => expect(audio(canvasElement)).not.toBeNull());
