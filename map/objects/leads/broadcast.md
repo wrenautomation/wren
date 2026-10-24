@@ -42,7 +42,7 @@ Citations: `packages/core/src/broadcasts-schema.ts:60`, `packages/core/src/broad
 
 ## If you change this
 
-- **Hits:** `packages/db/drizzle.config.ts` (lists `broadcasts-schema.ts`), a migration; `sent-views.ts` (the broadcast rows); `apps/portal/web/src/modules/people/broadcasts.tsx`; To approve (`packages/content/src/social/records.ts`, `apps/portal/web/src/modules/marketing/index.ts`); `apps/worker/src/services.ts` (`mailOf`: each workspace's mail)
+- **Hits:** `packages/db/drizzle.config.ts` (lists `broadcasts-schema.ts`), a migration; `sent-views.ts` (the broadcast rows); `apps/portal/web/src/modules/people/broadcasts.tsx`; To approve (`packages/content/src/social/records.ts`, `apps/portal/web/src/modules/marketing/approval.ts`, `apps/portal/web/src/modules/marketing/modules.ts`); `apps/worker/src/services.ts` (`mailOf`: each workspace's mail)
 - **Does not hit:** the segment's rule; consent rows
 
 ## Surfaces
