@@ -45,7 +45,9 @@ Now the row tells. Migration 0235: `wren_wake()` runs `pg_notify('wren_wake', '<
 after a row is queued outbound (`sms_messages`, `reach_messages`). The box worker LISTENs on
 Wren's database and every client's (`apps/worker/src/wake.ts`, its own connection straight to
 Postgres; LISTEN does not survive PgBouncer) and calls that loop's `wake` through the ingress,
-keyed to the database's owner. Notices for one loop within a second are one wake.
+keyed to the database's owner. Notices for one loop within a second are one wake, and one loop
+is woken at most every 15 seconds (`pacedWakes`): the first notice goes after the settle, the
+rest fold into one.
 
 After a pass, each sender sleeps until the next queued row is due, at most 15 minutes (the net).
 Due rows held back (quiet hours, caps, a number's gap) are asked again in 5 minutes, as before.
@@ -87,3 +89,7 @@ Scaling rules every loop already follows (`packages/core/src/restate/loop.ts`):
 - The listener on the box, not Lambda: it needs a connection that stays open, and the box
   already reaches Postgres on loopback.
 - 15-minute net for the senders: a wake lost while the box restarts costs at most that.
+- 10-24: wakes paced to one per loop per 15 s. The Segments triggers fire per statement on
+  `profile_events`, `profile_traits` and `pipeline.journeys`, so a pipeline run woke `Segments`
+  every second; each wake is a Lambda request the loop's own 30 s gap then only answers "soon".
+  A storm is now four wakes a minute; the first still goes after one second.

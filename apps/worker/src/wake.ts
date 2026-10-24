@@ -2,8 +2,10 @@
  * Wake on row (designs/2026-10-11-push-not-poll.md): a row a loop must act on fires
  * `pg_notify('wren_wake', '<Service>/<unit>')` at commit (migration 0235). The box LISTENs on
  * Wren's database and each client's and calls that loop's `wake` through the ingress, keyed to
- * the database's owner: `fleet` in Wren's, `<client>/fleet` in a client's. A burst is one wake.
- * A wake lost here (the box restarting) is covered by the loop's net, so nothing waits on this.
+ * the database's owner: `fleet` in Wren's, `<client>/fleet` in a client's. A burst is one wake,
+ * and a stream of them (a pipeline writing a row a second) wakes a loop at most every `SPACE_MS`:
+ * each wake is a Lambda request, and a loop woken inside its own gap only says "soon". A wake
+ * lost here (the box restarting) is covered by the loop's net, so nothing waits on this.
  */
 
 import { clientUrl, listClients } from "@wren/core/clients";
@@ -14,6 +16,8 @@ import type { Logger } from "pino";
 export const WAKE_CHANNEL = "wren_wake";
 /** Notices for one loop inside this window are one wake. */
 const SETTLE_MS = 1000;
+/** The least time between two wakes of one loop: a storm of rows is four wakes a minute. */
+const SPACE_MS = 15_000;
 /** New clients' databases are picked up this often. */
 const CLIENTS_EVERY_MS = 10 * 60_000;
 
@@ -36,25 +40,48 @@ export interface WakeOptions {
   fetch?: typeof fetch;
 }
 
+/**
+ * Wakes paced per loop: the first a settle after its notice, the next no sooner than `spaceMs`
+ * after the last, and notices in between fold into one. `close` drops what has not gone.
+ */
+export function pacedWakes(
+  send: (service: string, key: string) => void,
+  { settleMs = SETTLE_MS, spaceMs = SPACE_MS, now = Date.now } = {},
+): { wake(service: string, key: string): void; close(): void } {
+  const due = new Map<string, ReturnType<typeof setTimeout>>();
+  const last = new Map<string, number>();
+  return {
+    wake(service, key) {
+      const id = `${service}/${key}`;
+      if (due.has(id)) return;
+      const wait = Math.max(settleMs, (last.get(id) ?? 0) + spaceMs - now());
+      due.set(
+        id,
+        setTimeout(() => {
+          due.delete(id);
+          last.set(id, now());
+          send(service, key);
+        }, wait),
+      );
+    },
+    close() {
+      for (const t of due.values()) clearTimeout(t);
+      due.clear();
+    },
+  };
+}
+
 export async function startWakes(o: WakeOptions): Promise<{ close(): Promise<void> }> {
   const send = o.fetch ?? fetch;
-  const due = new Map<string, ReturnType<typeof setTimeout>>();
-  const wake = (service: string, key: string) => {
-    const id = `${service}/${key}`;
-    if (due.has(id)) return;
-    due.set(
-      id,
-      setTimeout(() => {
-        due.delete(id);
-        const url = `${o.ingress.url.replace(/\/$/, "")}/${service}/${encodeURIComponent(key)}/wake/send`;
-        send(url, { method: "POST", headers: o.ingress.headers ?? {} })
-          .then((r) => {
-            if (!r.ok) o.log.warn({ service, key, status: r.status }, "wake refused");
-          })
-          .catch((e: unknown) => o.log.warn({ service, key, err: String(e) }, "wake failed"));
-      }, SETTLE_MS),
-    );
-  };
+  const paced = pacedWakes((service, key) => {
+    const url = `${o.ingress.url.replace(/\/$/, "")}/${service}/${encodeURIComponent(key)}/wake/send`;
+    send(url, { method: "POST", headers: o.ingress.headers ?? {} })
+      .then((r) => {
+        if (!r.ok) o.log.warn({ service, key, status: r.status }, "wake refused");
+      })
+      .catch((e: unknown) => o.log.warn({ service, key, err: String(e) }, "wake failed"));
+  });
+  const wake = paced.wake;
   const open = new Map<string, Listening>();
   const on = async (owner: string | null, url: string) => {
     const name = owner ?? "";
@@ -93,7 +120,7 @@ export async function startWakes(o: WakeOptions): Promise<{ close(): Promise<voi
   return {
     async close() {
       clearInterval(timer);
-      for (const t of due.values()) clearTimeout(t);
+      paced.close();
       await Promise.all([...[...open.values()].map((l) => l.close()), main.close()]);
     },
   };
