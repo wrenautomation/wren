@@ -33,7 +33,7 @@ Citations: `packages/core/src/cache.ts:13`
 
 ## If you change this
 
-- **Hits:** `restateAdminGet` (`console.ts`, first user, `services.ts:2169`); the box's Valkey config; a change in what a key holds bumps `PREFIX`
+- **Hits:** `restateAdminGet` (`console/restate-admin.ts`, first user, `services.ts:2169`); the box's Valkey config; a change in what a key holds bumps `PREFIX`
 - **Does not hit:** any truth: everything here can be thrown away
 
 ## Surfaces
