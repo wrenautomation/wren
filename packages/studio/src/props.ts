@@ -21,6 +21,7 @@ import type { MatteWindow } from "./matte.js";
 import { cutSize, FPS, portrait } from "./media.js";
 import { fitRect, placeWord, type Rect, verticalRect, type Zone } from "./safe-zones.js";
 import type { LayoutRange, Short, VideoEdit, Word } from "./schema.js";
+import { type AudioProps, audioOn } from "./sounds.js";
 import { STRESS } from "./stress.js";
 
 export type LongProps = {
@@ -39,6 +40,8 @@ export type LongProps = {
   behind: BehindWord[];
   /** Text on the video (finish.ts), cut-timeline seconds. */
   overlays: TextOverlay[];
+  /** Kit sounds and the bed on this output's clock (`sounds.ts`). */
+  audio: AudioProps;
   look: Look;
 };
 
@@ -192,6 +195,13 @@ function longBase(
     })),
     captions: edit.captions,
     overlays: overlaysOnCut(edit.overlays ?? [], keep),
+    audio: audioOn(edit.sounds ?? [], edit.music, {
+      which: "long",
+      clock: (t) => toCutTime(t, keep),
+      words: kept.map(({ w }) => w),
+      fps: FPS,
+      durationS: total,
+    }),
     look: DEFAULT_LOOK,
   };
 }
@@ -407,10 +417,20 @@ export function shortProps(
     return a !== null && toCutTime(e, segs) !== null && Math.abs(at(e) - a - (e - s)) < 1e-6;
   };
   const layout = long.layout.filter(touches).map(span);
+  const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
   const segments = segs.map((g) => ({
     from: Math.round(g.s * FPS),
     frames: Math.round((g.e - g.s) * FPS),
   }));
+  const words = inside.map((j, k) => {
+    const w = long.words[j] as Word;
+    return {
+      ...w,
+      w: k === last ? closed(k === 0 ? opened(w.w) : w.w) : k === 0 ? opened(w.w) : w.w,
+      s: r(at(Math.max(w.s, start))),
+      e: r(at(Math.min(w.e, end))),
+    };
+  });
   return {
     ...long,
     face,
@@ -421,15 +441,7 @@ export function shortProps(
       1,
       segments.reduce((n, g) => n + g.frames, 0),
     ),
-    words: inside.map((j, k) => {
-      const w = long.words[j] as Word;
-      return {
-        ...w,
-        w: k === last ? closed(k === 0 ? opened(w.w) : w.w) : k === 0 ? opened(w.w) : w.w,
-        s: r(at(Math.max(w.s, start))),
-        e: r(at(Math.min(w.e, end))),
-      };
-    }),
+    words,
     stress: inside.flatMap((j, k) => (long.stress.includes(j) ? [k] : [])),
     behind: shortBehind(
       raw
@@ -452,6 +464,16 @@ export function shortProps(
     overlays: long.overlays.filter((x) => x.to > start && x.from < end).map(span),
     title: short.title,
     card: cardOf(short, length),
+    audio: audioOn(edit.sounds ?? [], edit.music, {
+      which: "short",
+      clock: (t) => {
+        const c = toCutTime(t, keep);
+        return c === null ? null : toCutTime(c, segs);
+      },
+      words,
+      fps: FPS,
+      durationS: length,
+    }),
   };
 }
 

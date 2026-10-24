@@ -7,6 +7,7 @@ import { oneOf } from "@wren/db/columns";
 import { jsonb, pgTable, primaryKey, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import type { Captions } from "./caption-styles.js";
 import type { Crops, TextOverlay } from "./finish.js";
+import type { Music, Sound } from "./sounds.js";
 
 /** `rejected`: he said no on the page (designs/2026-10-13-video-review.md); its files stay. */
 export const EDIT_STATES = [
@@ -136,6 +137,10 @@ export const videoEdits = pgTable(
     thumbnail: jsonb("thumbnail").$type<{ at: number; text: string }>(),
     /** Text on the video (finish.ts), raw seconds. */
     overlays: jsonb("overlays").$type<TextOverlay[]>().notNull().default([]),
+    /** Kit sounds at raw moments (`sounds.ts`): `wren video sounds` places them, he may change them. */
+    sounds: jsonb("sounds").$type<Sound[]>().notNull().default([]),
+    /** The music bed under every output, ducked under speech; null: none. */
+    music: jsonb("music").$type<Music>(),
     /** Each cropped format's middle on the picture; unset: on his face. */
     crops: jsonb("crops").$type<Crops>().notNull().default({}),
     /** Keyed by provider: gemini, twelvelabs. */

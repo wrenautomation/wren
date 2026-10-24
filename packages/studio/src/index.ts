@@ -5,7 +5,16 @@
  */
 
 export { BAR, BAR_IDS, type BarFormat, type BarRule, barLines, VIDEO_CHECK } from "./bar.js";
-export { CAP_RECORDINGS, capNotReady, capTracks, findCapProjects, isCap } from "./cap.js";
+export {
+  CAP_RECORDINGS,
+  capEvents,
+  capNotReady,
+  capProjectOf,
+  capTracks,
+  findCapProjects,
+  isCap,
+  parseKeyboard,
+} from "./cap.js";
 export {
   bigWordState,
   CAPTION_SHOWS,
@@ -78,6 +87,7 @@ export {
 export {
   type Film,
   type FilmChange,
+  type FilmOptions,
   filmAssets,
   filmHistory,
   longFilm,
@@ -99,6 +109,16 @@ export {
   type Point,
   type TextOverlay,
 } from "./finish.js";
+export {
+  audioIds,
+  KIT_CACHE,
+  KIT_DIR,
+  type KitEntry,
+  kitPath,
+  loadKit,
+  stageSounds,
+  unknownSounds,
+} from "./kit.js";
 export { brokenLocks, changedPaths, isLockPath, valueAt, withLocks } from "./locks.js";
 export {
   cohereLooker,
@@ -234,6 +254,24 @@ export {
   shortIssues,
   snapShorts,
 } from "./sentences.js";
+export {
+  type AudioProps,
+  autoSounds,
+  bedVolume,
+  DUCK,
+  duckAt,
+  GAIN_DB,
+  type Music,
+  musicSchema,
+  type RecordingEvents,
+  SOUND_KINDS,
+  SOUND_RULES,
+  type Sound,
+  type SoundKind,
+  soundFile,
+  soundsSchema,
+  speech,
+} from "./sounds.js";
 export {
   checkStress,
   OUT_OF_FREE,

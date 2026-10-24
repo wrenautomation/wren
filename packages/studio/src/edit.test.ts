@@ -154,6 +154,37 @@ describe("shortProps", () => {
     expect(() => shortProps(edit, 2)).toThrow(/no 2/);
   });
 
+  it("plays each sound on its own output's clock, and the Short's alone in the Short", () => {
+    const edit = {
+      id: 1,
+      title: "v",
+      tracks: { main: { path: "/m.mp4", durationS: 100, width: 1920, height: 1080, fps: 30 } },
+      cuts: [{ from: 10, to: 20, why: "silence", state: "cut" }],
+      words: [{ w: "in", s: 31, e: 32 }],
+      layout: [],
+      captions: { style: "word" },
+      shorts: [short(30, 60)],
+      sounds: [
+        { at: 5, id: "click-1" },
+        { at: 15, id: "pop-1" },
+        { at: 30, id: "boom-1", only: "short" },
+        { at: 40, id: "ding-1", only: "long" },
+      ],
+      music: { id: "bed-calm" },
+      files: { cutMain: "/d/cut-main.mp4" },
+    } as unknown as VideoEdit;
+    const long = longProps(edit, []).audio;
+    // 5 s stays at 5; 15 is in the cut; 40 raw is 30 on the cut.
+    expect(long.sounds.map((x) => [x.file, x.from])).toEqual([
+      ["sfx/click-1.wav", 150],
+      ["sfx/ding-1.wav", 900],
+    ]);
+    expect(long.music?.duck).toEqual([[21, 22]]);
+    const s = shortProps(edit, 1).audio;
+    expect(s.sounds.map((x) => [x.file, x.from])).toEqual([["sfx/boom-1.wav", 0]]);
+    expect(s.music?.duck).toEqual([[1, 2]]);
+  });
+
   it("takes out the pauses only the Short knobs cut, words and length with them", () => {
     const edit = {
       id: 1,

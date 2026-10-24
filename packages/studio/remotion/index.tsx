@@ -68,6 +68,7 @@ import type {
   ThumbnailProps,
 } from "../src/props.js";
 import { verticalRect } from "../src/safe-zones.ts";
+import { type AudioProps, bedVolume } from "../src/sounds.ts";
 
 type Word = LongProps["words"][number];
 type Look = LongProps["look"];
@@ -293,6 +294,29 @@ const Overlays: FC<{ items: TextOverlay[]; t: number; look: Look }> = ({ items, 
   );
 };
 
+/**
+ * The kit sounds, each from its frame, and the bed looped under the whole output, ducked under
+ * speech (`sounds.ts`). Old props with no audio play none.
+ */
+const Sounds: FC<{ audio: AudioProps | undefined }> = ({ audio }) => {
+  const { fps } = useVideoConfig();
+  if (!audio) return null;
+  const { music } = audio;
+  return (
+    <>
+      {audio.sounds.map((s, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: two sounds may share a frame and file
+        <Sequence key={i} from={s.from} layout="none">
+          <Audio src={staticFile(s.file)} volume={s.volume} />
+        </Sequence>
+      ))}
+      {music ? (
+        <Audio loop src={staticFile(music.file)} volume={(f) => bedVolume(music, f / fps)} />
+      ) : null}
+    </>
+  );
+};
+
 export const Long: FC<LongProps> = ({
   main,
   cam,
@@ -302,6 +326,7 @@ export const Long: FC<LongProps> = ({
   stress,
   behind,
   overlays,
+  audio,
   look,
 }) => {
   const frame = useCurrentFrame();
@@ -345,6 +370,7 @@ export const Long: FC<LongProps> = ({
         />
       ) : null}
       <Overlays items={overlays ?? []} t={t} look={look} />
+      <Sounds audio={audio} />
     </AbsoluteFill>
   );
 };
@@ -443,6 +469,7 @@ export const Short: FC<ShortProps> = ({
   stress,
   behind,
   overlays,
+  audio,
   look,
   card,
 }) => {
@@ -534,6 +561,7 @@ export const Short: FC<ShortProps> = ({
         />
       ) : null}
       <Overlays items={overlays ?? []} t={t} look={look} />
+      <Sounds audio={audio} />
       {card ? <TitleCard card={card} t={t} look={look} /> : null}
     </AbsoluteFill>
   );
@@ -553,6 +581,7 @@ export const Framed: FC<FramedProps> = ({
   stress,
   behind,
   overlays,
+  audio,
   look,
 }) => {
   const frame = useCurrentFrame();
@@ -584,6 +613,7 @@ export const Framed: FC<FramedProps> = ({
         />
       ) : null}
       <Overlays items={overlays ?? []} t={t} look={look} />
+      <Sounds audio={audio} />
     </AbsoluteFill>
   );
 };
@@ -1139,6 +1169,7 @@ const PLACEHOLDER: LongProps = {
   stress: [],
   behind: [],
   overlays: [],
+  audio: { sounds: [], music: null },
   look: DEFAULT_LOOK,
 };
 

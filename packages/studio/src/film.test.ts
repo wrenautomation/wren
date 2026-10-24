@@ -130,14 +130,52 @@ describe("film", () => {
     expect(shortFilm(e, 1)["film.html"]).toMatch(/<section title="text">/);
   });
 
+  it("plays the sounds on the cut clock in a sound track, the bed under it all", () => {
+    const e = {
+      ...base(),
+      sounds: [
+        { at: 5, id: "pop-1" },
+        { at: 11, id: "click-1" },
+        { at: 14, id: "click-1", only: "short" },
+      ],
+      music: { id: "bed-calm" },
+    } as VideoEdit;
+    const html = longFilm(e)["film.html"] as string;
+    const audio = [...html.matchAll(/<audio\b[^>]*>/g)].map((m) => m[0]);
+    // The click at 11 s is inside the 10-12 cut; the one at 14 is for Shorts only.
+    expect(audio).toHaveLength(2);
+    expect(audio[0]).toContain('src="sfx/pop-1.wav" at="5"');
+    expect(audio[1]).toContain('id="music-1" src="sfx/bed-calm.wav#t=0,98" at="0"');
+    // A 40 s bed under a 98 s film: three passes.
+    const passes = (longFilm(e, { bedS: 40 })["film.html"] as string).match(/id="music-\d"[^>]*/g);
+    expect(passes).toEqual([
+      'id="music-1" src="sfx/bed-calm.wav#t=0,40" at="0" volume="0.158"',
+      'id="music-2" src="sfx/bed-calm.wav#t=0,40" at="40" volume="0.158"',
+      'id="music-3" src="sfx/bed-calm.wav#t=0,18" at="80" volume="0.158"',
+    ]);
+    expect(filmAssets(e).sounds).toEqual(["pop-1", "click-1", "bed-calm"]);
+    const short = shortFilm(e, 1)["film.html"] as string;
+    // Short 1 starts at 20 raw, 18 on the cut: nothing before it plays.
+    expect(short).not.toContain("pop-1");
+  });
+
   it("is a pure function of the row", () => {
     expect(longFilm(base())).toEqual(longFilm(JSON.parse(JSON.stringify(base()))));
-    expect(filmAssets(base())).toEqual({ main: "assets/main.mkv", cam: "assets/cam.mp4" });
+    expect(filmAssets(base())).toEqual({
+      sounds: [],
+      main: "assets/main.mkv",
+      cam: "assets/cam.mp4",
+    });
   });
 
   it.skipIf(!reader)("reads in OpenFilm's own reader with no problem", async () => {
     const { readFilmFile } = await import(pathToFileURL(reader as string).href);
-    const e = { ...base(), locked: ["cuts"] };
+    const e = {
+      ...base(),
+      locked: ["cuts"],
+      sounds: [{ at: 21, id: "pop-1" }],
+      music: { id: "bed-calm" },
+    } as VideoEdit;
     for (const f of [longFilm(e), shortFilm(e, 1), shortFilm(e, 2)]) {
       const got = readFilmFile(f["film.html"]);
       expect(got.problems).toEqual([]);

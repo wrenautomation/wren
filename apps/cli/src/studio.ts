@@ -4,15 +4,17 @@
  * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import {
   AWS_LOGIN_HINT,
   approveVideo,
   checkMediaStore,
+  getKey,
+  putKey,
   reelKey,
   swapShortMedia,
   uploadMedia,
@@ -24,10 +26,13 @@ import type { Db } from "@wren/db";
 import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   addVideo,
+  autoSounds,
   CAPTION_STYLES,
   CROPPED,
   type CroppedFormat,
   CUT_HASH,
+  capEvents,
+  capProjectOf,
   checkRender,
   cohereLooker,
   coverHash,
@@ -52,10 +57,13 @@ import {
   hashKey,
   isCap,
   isOpen,
+  KIT_CACHE,
   keepCut,
   keepSegments,
+  kitPath,
   LOOK_PROVIDERS,
   type Looker,
+  loadKit,
   longFilm,
   longProps,
   longSrt,
@@ -79,6 +87,7 @@ import {
   renderStill,
   renderStills,
   reviewCuts,
+  SOUND_RULES,
   setCutKnobs,
   setEdit,
   setFiles,
@@ -93,6 +102,7 @@ import {
   shortFilm,
   shortProps,
   sourceProxy,
+  stageSounds,
   stressCandidates,
   studioWords,
   thumbnailProps,
@@ -100,6 +110,7 @@ import {
   twelvelabsFind,
   twelvelabsLooker,
   twelvelabsMinutes,
+  unknownSounds,
   unpunctuated,
   VIDEO_CHECK,
   type VideoEdit,
@@ -389,7 +400,9 @@ export function registerStudio(
         const e = await getEdit(db, id(v));
         const n = o.short === undefined ? null : Number(o.short);
         const out = resolve(o.out ?? join(e.dir, n === null ? "film" : `film-short-${n}`));
-        const files = n === null ? longFilm(e) : shortFilm(e, n);
+        const bed = e.music ? (await loadKit()).find((k) => k.id === e.music?.id) : undefined;
+        const fo = { bedS: bed?.durationS };
+        const files = n === null ? longFilm(e, fo) : shortFilm(e, n, fo);
         for (const [path, text] of Object.entries(files)) {
           await mkdir(dirname(join(out, path)), { recursive: true });
           await writeFile(join(out, path), text);
@@ -403,6 +416,7 @@ export function registerStudio(
           await rm(join(out, path), { force: true });
           await symlink(resolve(from), join(out, path));
         }
+        await stageSounds(out, assets.sounds);
         console.log(`${out}/film.html (open it: npx -y openfilm@latest open ${out})`);
       }),
     );
@@ -669,6 +683,98 @@ export function registerStudio(
         console.log(`video ${v}: cut ${n} kept; wren video cut ${v} to apply`);
       }),
     );
+
+  video
+    .command("sounds <id>")
+    .description(
+      `the automatic sounds (Decision 4), in place of the edit's sounds: ${SOUND_RULES.map((r) => r.says).join("; ")}. Refused where a person locked sounds`,
+    )
+    .option("--dry", "print them, save nothing")
+    .action((v: string, o: { dry?: boolean }) =>
+      withDb(async (db) => {
+        const e = await getEdit(db, id(v));
+        const project = capProjectOf(e.tracks.main.path);
+        const events = project
+          ? await capEvents(project, settings.ffmpeg)
+          : { clicks: [], keys: [] };
+        const sounds = autoSounds(e, events);
+        const count = (sid: string) => sounds.filter((s) => s.id === sid).length;
+        const line = SOUND_RULES.map((r) => `${r.on} ${count(r.id)}`).join(", ");
+        if (o.dry) {
+          console.log(JSON.stringify(sounds));
+          return;
+        }
+        const r = await setEdit(db, e.id, { sounds }, { by: "cli", agent: true });
+        console.log(
+          `video ${v}: ${sounds.length} sounds (${line})${project ? "" : "; not a Cap recording: no clicks or keys"} (run ${r.run})`,
+        );
+      }),
+    );
+
+  video
+    .command("music <id> <sound>")
+    .description("the music bed: a kit id (wren video sfx list, kind bed), or none")
+    .option("--gain <db>", "the bed's level in dB (default -16)", Number)
+    .option("--no-duck", "keep the bed level under speech")
+    .action((v: string, sound: string, o: { gain?: number; duck: boolean }) =>
+      withDb(async (db) => {
+        let music = null;
+        if (sound !== "none") {
+          const missing = unknownSounds(await loadKit(), [sound]);
+          if (missing.length) throw new Error(`${sound} is not in the sound kit`);
+          music = {
+            id: sound,
+            ...(o.gain !== undefined ? { gainDb: o.gain } : {}),
+            ...(o.duck ? {} : { duck: false }),
+          };
+        }
+        const r = await setEdit(db, id(v), { music }, { by: "cli" });
+        console.log(`video ${v}: music ${sound} (run ${r.run})`);
+      }),
+    );
+
+  const sfx = video
+    .command("sfx")
+    .description(
+      "the sound kit: CC0 files in packages/studio/sfx, other licences in the media bucket",
+    );
+  const bucketOf = () => {
+    if (!settings.mediaBucket) throw new Error("no media bucket set (WREN_MEDIA_BUCKET)");
+    return { bucket: settings.mediaBucket };
+  };
+  sfx
+    .command("list")
+    .description("every kit sound: id, kind, length, licence, and whether it is on this Mac")
+    .action(async () => {
+      for (const e of await loadKit()) {
+        const here = existsSync(kitPath(e)) ? "" : "  (not pulled)";
+        console.log(
+          `${e.id}\t${e.kind}\t${e.durationS}s\t${e.licence}\t${e.tags.join(",")}${here}`,
+        );
+      }
+    });
+  sfx
+    .command("pull")
+    .description(`the kit's bucket sounds into ${KIT_CACHE}`)
+    .action(async () => {
+      await mkdir(KIT_CACHE, { recursive: true });
+      const want = (await loadKit()).filter((e) => e.where === "bucket" && !existsSync(kitPath(e)));
+      for (const e of want) await getKey(`sfx/${e.file}`, kitPath(e), bucketOf());
+      console.log(`sfx: ${want.length} pulled`);
+    });
+  sfx
+    .command("add <file>")
+    .description(
+      "put a non-CC0 sound (a music bed, a licensed pack) in the bucket: a mono 48 kHz wav named <id>.wav; then add its entry to sfx/kit.json with where: bucket",
+    )
+    .action(async (file: string) => {
+      const name = basename(file);
+      if (!/^[a-z]+-[a-z0-9-]+\.wav$/.test(name)) throw new Error("name it <kind>-<name>.wav");
+      const at = await putKey(file, `sfx/${name}`, bucketOf());
+      await mkdir(KIT_CACHE, { recursive: true });
+      await copyFile(file, join(KIT_CACHE, name));
+      console.log(`${at}: add {"id":"${name.slice(0, -4)}","where":"bucket",...} to sfx/kit.json`);
+    });
 
   video
     .command("knobs [format]")

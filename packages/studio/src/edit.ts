@@ -51,6 +51,7 @@ import {
   type Word,
 } from "./schema.js";
 import { type Moved, shortIssues, snapShorts } from "./sentences.js";
+import { musicSchema, soundsSchema } from "./sounds.js";
 import { checkStress, remapStress } from "./stress.js";
 import { transcribe } from "./whisper.js";
 import { fixWordAt, fixWords } from "./words.js";
@@ -311,6 +312,9 @@ export const editPatchSchema = z
     overlays: overlaysSchema,
     /** Each cropped format's middle on the picture. */
     crops: cropsSchema,
+    /** Kit sounds at raw moments, and the music bed (`sounds.ts`). */
+    sounds: soundsSchema,
+    music: musicSchema,
     /** Where his face sits in the main track, [x, y, w, h] in its pixels; null clears it. A one-file recording of him alone: a 9:16 window on him, with `layout` `cam`, fills a Short. */
     camBox: z
       .tuple([
@@ -352,6 +356,7 @@ export function checkPatch(
   for (const [name, at] of [
     ...(patch.chapters ?? []).map((c, i) => [`chapters[${i}]`, c.at] as const),
     ...(patch.thumbnail ? [["thumbnail", patch.thumbnail.at] as const] : []),
+    ...(patch.sounds ?? []).map((x, i) => [`sounds[${i}]`, x.at] as const),
   ])
     if (at > durationS) bad.push(`${name}: past the end (${durationS}s)`);
   const shorts = patch.shorts ?? [];

@@ -9,6 +9,7 @@ import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CroppedFormat } from "./finish.js";
+import { audioIds, stageSounds } from "./kit.js";
 import { normalizeLoudness } from "./loudness.js";
 import type { PromoProps } from "./promo.js";
 import type { FramedProps, LongProps, ShortProps, ThumbnailProps } from "./props.js";
@@ -53,8 +54,22 @@ async function withBundle<T>(
   }
 }
 
+/** Copy the kit sounds every output of `props` plays into the public dir. */
+const stageAll = (dir: string, props: Iterable<{ audio?: LongProps["audio"] }>) =>
+  stageSounds(
+    dir,
+    [...props].flatMap((p) => audioIds(p.audio)),
+  );
+
+const jobProps = (job: Omit<RenderJob, "thumbnails">) => [
+  ...(job.long ? [job.long] : []),
+  ...framedOf(job).map(([, p]) => p),
+  ...(job.shorts?.values() ?? []),
+];
+
 /** Remotion Studio on localhost, live on this edit; runs until Ctrl-C. */
 export async function openStudio(pkgDir: string, dir: string, props: LongProps): Promise<void> {
+  await stageAll(dir, [props]);
   const file = await propsFile(dir, "long", props);
   await remotion(pkgDir, ["studio", ENTRY, "--public-dir", dir, "--props", file]);
 }
@@ -144,6 +159,8 @@ export async function renderAll(
 ): Promise<{ files: Record<string, string>; seconds: Record<string, number> }> {
   const out = join(dir, "out");
   await mkdir(out, { recursive: true });
+  const staged = await stageAll(dir, jobProps(job));
+  if (staged) log(`sounds: ${staged} from the kit`);
   const files: Record<string, string> = {};
   const seconds: Record<string, number> = {};
   const timed = async (name: string, fn: () => Promise<void>) => {

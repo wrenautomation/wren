@@ -9,12 +9,13 @@
  */
 import { extname } from "node:path";
 import { createTwoFilesPatch } from "diff";
-import { keepSegments, onCut, type Span, shortCutsOver } from "./cuts.js";
+import { keepSegments, onCut, type Span, shortCutsOver, toCutTime } from "./cuts.js";
 import { captionLines, shortCrop, type TextOverlay } from "./finish.js";
 import { CORNER_CAM, coverRect, OVERLAY } from "./finish-look.js";
 import { cutSize, FPS } from "./media.js";
 import { cardOf } from "./props.js";
 import type { LAYOUTS, VideoEdit, Word } from "./schema.js";
+import { audioOn } from "./sounds.js";
 
 type Show = (typeof LAYOUTS)[number];
 /** A kept stretch of the recording under one layout: raw seconds, and where it starts on the cut. */
@@ -33,9 +34,13 @@ const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** The raw files' names in the film's folder. */
-export const filmAssets = (e: Pick<VideoEdit, "tracks">) => ({
+export const filmAssets = (
+  e: Pick<VideoEdit, "tracks"> & Partial<Pick<VideoEdit, "sounds" | "music">>,
+) => ({
   main: `assets/main${extname(e.tracks.main.path) || ".mp4"}`,
   cam: e.tracks.cam ? `assets/cam${extname(e.tracks.cam.path) || ".mp4"}` : null,
+  /** The kit sounds it plays, each at `sfx/<id>.wav` (`stageSounds` copies them in). */
+  sounds: [...new Set([...(e.sounds ?? []).map((x) => x.id), ...(e.music ? [e.music.id] : [])])],
 });
 
 /** The kept spans, split where the layout changes. */
@@ -147,6 +152,36 @@ function overlayClips(
   return { clips, pages };
 }
 
+/** What the film cannot read off the row: the bed file's length, from the kit. */
+export interface FilmOptions {
+  bedS?: number | undefined;
+}
+
+/**
+ * The edit's sounds and bed on one output's clock: an audio clip each (`sounds.ts`). A film has no
+ * loop, so the bed is a clip per pass of its file (`bedS`; unknown: one clip). The duck under
+ * speech is the render's alone.
+ */
+function soundClips(
+  e: VideoEdit,
+  which: "long" | "short",
+  clock: (raw: number) => number | null,
+  durationS: number,
+  bedS?: number,
+): string[] {
+  const a = audioOn(e.sounds ?? [], e.music, { which, clock, words: [], fps: FPS, durationS });
+  const clips = a.sounds.map(
+    (x, i) =>
+      `  <audio ${attrs({ id: `sound-${i + 1}`, src: x.file, at: t3(x.from / FPS), volume: t3(x.volume) })}></audio>`,
+  );
+  const pass = bedS && bedS > 0.5 ? bedS : durationS;
+  for (let at = 0, k = 1; a.music && at < durationS - 0.01; at += pass, k++)
+    clips.push(
+      `  <audio ${attrs({ id: `music-${k}`, src: `${a.music.file}#t=0,${t3(Math.min(pass, durationS - at))}`, at: t3(at), volume: t3(a.music.volume) })}></audio>`,
+    );
+  return clips;
+}
+
 const isLocked = (locked: readonly string[], ...paths: string[]) =>
   locked.some((l) => paths.some((p) => l === p || l.startsWith(`${p}.`) || p.startsWith(`${l}.`)));
 
@@ -166,7 +201,7 @@ export function wordsVtt(e: Pick<VideoEdit, "words" | "cuts" | "tracks">): strin
 }
 
 /** The long video: the recording, his camera (corner, full, or none), the overlays, the words. */
-export function longFilm(e: VideoEdit): Film {
+export function longFilm(e: VideoEdit, o: FilmOptions = {}): Film {
   const [w, h] = [1920, 1080];
   const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
   const files = filmAssets(e);
@@ -203,6 +238,10 @@ export function longFilm(e: VideoEdit): Film {
       track(text.clips, { title: "text", locked: isLocked(locked, "overlays") }),
       track(camClips, { title: "camera", locked: isLocked(locked, "layout") }),
       track(screen, { title: "recording", locked: isLocked(locked, "cuts") }),
+      track(
+        soundClips(e, "long", (t) => toCutTime(t, keep), total, o.bedS),
+        { title: "sound", locked: isLocked(locked, "sounds", "music") },
+      ),
     ]),
     ...text.pages,
     [files.main.replace(/\.[^.]+$/, ".vtt")]: wordsVtt(e),
@@ -210,7 +249,7 @@ export function longFilm(e: VideoEdit): Film {
 }
 
 /** Short `n` (from 1), 1080 x 1920: face on top and screen below (corner), face alone, or screen. */
-export function shortFilm(e: VideoEdit, n: number): Film {
+export function shortFilm(e: VideoEdit, n: number, o: FilmOptions = {}): Film {
   const short = e.shorts[n - 1];
   if (!short) throw new Error(`video ${e.id} has ${e.shorts.length} shorts; no ${n}`);
   const [w, h] = [1080, 1920];
@@ -288,6 +327,19 @@ export function shortFilm(e: VideoEdit, n: number): Film {
       }),
       track(face, { title: "face", locked: mine || isLocked(locked, "crops") }),
       track(screen, { title: "recording", locked: mine || isLocked(locked, "cuts") }),
+      track(
+        soundClips(
+          e,
+          "short",
+          (t) => {
+            const c = toCutTime(t, keep);
+            return c === null || c < from ? null : c - from;
+          },
+          to - from,
+          o.bedS,
+        ),
+        { title: "sound", locked: mine || isLocked(locked, "sounds", "music") },
+      ),
     ]),
     ...pages,
     [files.main.replace(/\.[^.]+$/, ".vtt")]: wordsVtt(e),

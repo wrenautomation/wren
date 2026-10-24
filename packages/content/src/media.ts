@@ -8,7 +8,7 @@
  */
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { extname } from "node:path";
 import {
   GetObjectCommand,
@@ -31,6 +31,7 @@ const TYPES: Record<string, string> = {
   ".srt": "application/x-subrip",
   ".vtt": "text/vtt",
   ".pdf": "application/pdf",
+  ".wav": "audio/wav",
 };
 
 export interface MediaStoreOptions {
@@ -93,6 +94,29 @@ export async function putMedia(
     }),
   );
   return `s3://${o.bucket}/${key}`;
+}
+
+/**
+ * A file at a fixed key, not its hash: the sound kit's bucket files (`sfx/<id>.wav`), whose
+ * licence keeps them out of the public repo.
+ */
+export async function putKey(path: string, key: string, o: MediaStoreOptions): Promise<string> {
+  await clientOf(o).send(
+    new PutObjectCommand({
+      Bucket: o.bucket,
+      Key: key,
+      Body: await readFile(path),
+      ContentType: TYPES[extname(path).toLowerCase()] ?? "application/octet-stream",
+    }),
+  );
+  return `s3://${o.bucket}/${key}`;
+}
+
+/** The object at `key` into the file `path`. */
+export async function getKey(key: string, path: string, o: MediaStoreOptions): Promise<void> {
+  const r = await clientOf(o).send(new GetObjectCommand({ Bucket: o.bucket, Key: key }));
+  if (!r.Body) throw new Error(`s3://${o.bucket}/${key}: empty`);
+  await writeFile(path, await r.Body.transformToByteArray());
 }
 
 export function s3MediaHost(o: MediaStoreOptions & { expiresSeconds?: number }): MediaHost {

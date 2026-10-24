@@ -8,8 +8,10 @@
 import { execFile } from "node:child_process";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { probe } from "./media.js";
+import type { RecordingEvents } from "./sounds.js";
 
 const run = promisify(execFile);
 
@@ -28,6 +30,10 @@ interface CapSegment {
   camera?: CapTrack;
   mic?: CapTrack;
   audio?: CapTrack;
+  /** Mouse events (`cursor.rs`): JSON. */
+  cursor?: string;
+  /** Key presses (`keyboard.rs`); unset: `keyboard.bin` or `keyboard.json` beside the display. */
+  keyboard?: string;
 }
 /** The parts of recording-meta.json read here: studio (segments) or instant (one output.mp4). */
 interface CapMeta {
@@ -36,6 +42,7 @@ interface CapMeta {
   display?: CapTrack;
   camera?: CapTrack;
   audio?: CapTrack;
+  cursor?: string;
   status?: { status: string; error?: string };
   fps?: number;
   recording?: boolean;
@@ -73,6 +80,7 @@ function segmentsOf(m: CapMeta): CapSegment[] {
         display: m.display,
         ...(m.camera ? { camera: m.camera } : {}),
         ...(m.audio ? { mic: m.audio } : {}),
+        ...(m.cursor ? { cursor: m.cursor } : {}),
       },
     ];
   // Instant: one file, sound in it.
@@ -160,4 +168,111 @@ export async function findCapProjects(dir = CAP_RECORDINGS): Promise<string[]> {
     found.push({ path, at: (await stat(path)).mtimeMs });
   }
   return found.sort((a, b) => a.at - b.at).map((f) => f.path);
+}
+
+/** The Cap project a track was taken from (`<name>.cap/...`), or null for any other recording. */
+export function capProjectOf(path: string): string | null {
+  for (let at = path; at !== dirname(at); at = dirname(at)) if (isCap(at)) return at;
+  return null;
+}
+
+/** Cap's mouse file at cap-v0.6.0 (`crates/project/src/cursor.rs`), the part read here. */
+interface CapCursor {
+  clicks?: { time_ms: number; down: boolean }[];
+}
+
+/** Key presses as Cap writes them: `CPKB01` then bincode (standard config), or older JSON. */
+export function parseKeyboard(bytes: Uint8Array): { key: string; timeMs: number; down: boolean }[] {
+  const magic = "CPKB01";
+  const head = new TextDecoder().decode(bytes.subarray(0, magic.length));
+  if (head !== magic) {
+    const j = JSON.parse(new TextDecoder().decode(bytes)) as {
+      presses: { key: string; timeMs: number; down: boolean }[];
+    };
+    return j.presses;
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let at = magic.length;
+  // bincode's varint: one byte under 251, else a marker and a u16, u32 or u64 after it.
+  const varint = (): number => {
+    const b = view.getUint8(at);
+    at += 1;
+    if (b < 251) return b;
+    const size = b === 251 ? 2 : b === 252 ? 4 : b === 253 ? 8 : 0;
+    if (!size) throw new Error("keyboard events: a length too long");
+    const v =
+      size === 2
+        ? view.getUint16(at, true)
+        : size === 4
+          ? view.getUint32(at, true)
+          : Number(view.getBigUint64(at, true));
+    at += size;
+    return v;
+  };
+
+  const str = () => {
+    const n = varint();
+    const s = new TextDecoder().decode(bytes.subarray(at, at + n));
+    at += n;
+    return s;
+  };
+  const n = varint();
+  const out: { key: string; timeMs: number; down: boolean }[] = [];
+  for (let i = 0; i < n; i++) {
+    const key = str();
+    str(); // key_code
+    const timeMs = view.getFloat64(at, true);
+    at += 8;
+    const down = view.getUint8(at++) === 1;
+    out.push({ key, timeMs, down });
+  }
+  return out;
+}
+
+/** Keys that are only held with another: no tap for them. */
+const MODIFIERS = new Set([
+  "LShift",
+  "RShift",
+  "LControl",
+  "RControl",
+  "LAlt",
+  "RAlt",
+  "LMeta",
+  "RMeta",
+  "Meta",
+  "Command",
+]);
+
+/**
+ * The mouse clicks and key presses of a Cap project, in seconds on the joined screen file
+ * (`capTracks`): each segment's times moved by the lengths of the segments before it. A
+ * recording with neither file answers none.
+ */
+export async function capEvents(project: string, ffmpeg: string): Promise<RecordingEvents> {
+  const m = await capMeta(project);
+  if (!m) return { clicks: [], keys: [] };
+  const out: RecordingEvents = { clicks: [], keys: [] };
+  let offset = 0;
+  const segs = segmentsOf(m);
+  for (const [i, s] of segs.entries()) {
+    const cursor = s.cursor
+      ? await readFile(join(project, s.cursor), "utf8").catch(() => null)
+      : null;
+    if (cursor)
+      for (const c of (JSON.parse(cursor) as CapCursor).clicks ?? [])
+        if (c.down) out.clicks.push(offset + c.time_ms / 1000);
+    const near = dirname(s.display.path);
+    for (const f of s.keyboard
+      ? [s.keyboard]
+      : [join(near, "keyboard.bin"), join(near, "keyboard.json")]) {
+      const bytes = await readFile(join(project, f)).catch(() => null);
+      if (!bytes) continue;
+      for (const k of parseKeyboard(bytes))
+        if (k.down && !MODIFIERS.has(k.key)) out.keys.push(offset + k.timeMs / 1000);
+      break;
+    }
+    if (i < segs.length - 1)
+      offset += (await probe(join(project, s.display.path), ffmpeg)).durationS;
+  }
+  return out;
 }

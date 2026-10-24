@@ -68,6 +68,18 @@ Use in renders:
 - Auto-placement, deterministic, per format: a click on each Cap click event, a swish on each crop or layout change, a pop on each overlay in, a key bed under terminal typing (Cap key events), a low hit on the title card. The edit pass may add or remove; a person's choice locks.
 - Long videos get fewer: no swish on plain cuts.
 
+Built (2026-10-24, wa-qtyo.3). What changed from the plan, and why:
+- Kit: 21 CC0 files in `packages/studio/sfx/`. 16 from Kenney (Interface Sounds, UI Audio, Impact Sounds): clicks, keys, pops, dings, an error, a glitch, two hits. 5 made by `sfx/build.sh` with ffmpeg from seeded noise and sines: a swish, two whooshes, a riser, a boom. `build.sh` rebuilds every file from the packs.
+- Wav only, no mp3. Remotion and OpenFilm play wav, and one copy keeps the manifest simple.
+- Peak at -6 dBFS, not `loudnorm`. Loudness is wrong for 50 ms clicks. The mix level is the sound's `gainDb` (`GAIN_DB` per kind in `sounds.ts`), and the whole render is levelled to -14 LUFS after.
+- No paper, camera or typing-bed sounds and no music beds yet. Each needs a source William picks: `sfx/PICK.md`.
+- Beds and every non-CC0 file go to the media bucket at `sfx/<id>.wav`, an entry with `where: "bucket"` in `kit.json`. `wren video sfx add` puts one there, `sfx pull` brings them to the Mac cache. `kit.json` refuses a non-CC0 entry in the repo.
+- Key taps are one per key press (at most one per 70 ms), not a typing bed. A bed would play over pauses in his typing.
+- Shorts get no swish on plain cuts either. A swish plays on layout changes alone.
+- Commands: `wren video sounds <id>` writes the rules' sounds (refused where he locked `sounds`), `wren video music <id> <kit id|none>`, `wren video sfx list|pull|add`. `wren video set` sets and locks `sounds` and `music` like any part.
+- The film file lays each sound as an `<audio>` clip on a "sound" track. OpenFilm has no loop, so the bed is one clip per pass of its file. The duck is in the render only.
+- Cap events: `capEvents` reads each segment's `cursor.json` clicks and `keyboard.bin` (bincode) or `keyboard.json` presses, moved onto the joined file. Modifier keys make no sound.
+
 ## Decision 5: Studio and content stories
 
 "Overhaul" = every screen of Studio and content marketing has a page story, in each key state, at 1280 and 390 width, light and dark, and matches the Studio and Marketing artifact (`designs/2026-10-21-studio-marketing/`, boards Main, Compose, Inbound, Outbound, Offer, Phone). Where a screen differs from the artifact, the builder ports the artifact's CSS values. The match check (`designs/2026-10-21-artifact-match.md`) judges.
