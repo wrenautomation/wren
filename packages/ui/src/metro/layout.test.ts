@@ -429,6 +429,23 @@ describe("a calm map", () => {
     expect(s.w).toBe((await layoutView(COLD_OUTBOUND_VIEW)).w);
   });
 
+  it("draws a loop back thin and dashed, on a rail under the lower row", async () => {
+    const back = (from: string) =>
+      ({ from, to: "rep", by: "system", label: "after 90 days", back: true }) as const;
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      tracks: [...COLD_OUTBOUND_VIEW.tracks, back("bk"), back("held"), back("pay")],
+    };
+    const s = await layoutView(v);
+    const loops = s.tr.filter((t) => t.b === "rep" && t.k === "back");
+    expect(loops).toHaveLength(3);
+    for (const t of loops) {
+      expect(t.w).toBe("out");
+      expect(t.back).toBeGreaterThan(0);
+    }
+    expect(loops.filter((t) => !t.condShared)).toHaveLength(1);
+  });
+
   it("folds a chip to a count dot when its track has no room", async () => {
     const v: MetroView = {
       ...COLD_OUTBOUND_VIEW,

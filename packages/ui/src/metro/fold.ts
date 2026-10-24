@@ -6,7 +6,7 @@
  * A fold hides stations, never lines. The hub never folds; an exit folds with its source. Tracks
  * reattach to the capsule. A late track inside rings it amber; a bad station inside shows as a count.
  */
-import { foldAt, foldIo, foldSteps, foldWidth } from "./geometry.js";
+import { foldAt, foldWidth } from "./geometry.js";
 import { type Frame, type PlaceBox, placeMetro } from "./place.js";
 import { type FoldNode, openKey } from "./tree.js";
 import {
@@ -320,8 +320,10 @@ function foldRuns(
       ...(each ? { s: each.s } : {}),
       ...(bad ? { bad } : {}),
     });
-    // The chip takes the room of its longer words, so the hover never runs into a neighbour.
-    const chip = [foldSteps(fold), foldIo(fold)].sort((a, b) => b.length - a.length)[0];
+    // Under its name, as a station's: the people inside now.
+    const now = m.some((s) => s.now !== undefined)
+      ? m.reduce((t, s) => t + (s.now ?? 0), 0)
+      : undefined;
     folds.set(k, {
       id: k,
       kind: last.kind,
@@ -337,8 +339,9 @@ function foldRuns(
             ...(each.now !== undefined ? { now: each.now } : {}),
             ...(each.arrived !== undefined ? { arrived: each.arrived } : {}),
           }
-        : {}),
-      ...(chip ? { repeat: chip, repeatIcon: "expand" as const } : {}),
+        : now !== undefined
+          ? { sub: `${now.toLocaleString("en-US")} now`, now }
+          : {}),
     });
     for (const s of m) into.set(s.id, k);
   }
@@ -664,7 +667,7 @@ export async function viewScene(
       steps: m.steps,
       ...(m.io ? { io: m.io } : {}),
       ...(m.each ? { each: m.each } : {}),
-      ...(m.s ? { s: m.s } : {}),
+      ...(m.s || s.s ? { s: m.s ?? s.s } : {}),
       ...(m.bad ? { bad: m.bad } : {}),
       n: s.n ?? s.id,
       ...(s.p ? { p: s.p } : {}),

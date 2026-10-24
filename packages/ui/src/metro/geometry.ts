@@ -375,13 +375,11 @@ export const routeOf = (r: MetroTrack, a: Point, c: Point): Point[] =>
     ? xferGeometry(a, c, r.f).pts
     : (r.pts ?? (r.back ? railPts(a, c, r.back) : octPts(a, c, r.bend, r.reach)));
 
-/** A track back along its own row: down from its start, along under the row, up into its end. */
-export const railPts = (a: Point, c: Point, d: number): Point[] => [
-  a,
-  [a[0], a[1] + d],
-  [c[0], c[1] + d],
-  c,
-];
+/** A track back: down from its start, along under the lower of its two rows, up into its end. */
+export const railPts = (a: Point, c: Point, d: number): Point[] => {
+  const y = Math.max(a[1], c[1]) + d;
+  return [a, [a[0], y], [c[0], y], c];
+};
 
 const side = (p: Point, q: Point, o: Point) =>
   (q[0] - p[0]) * (o[1] - p[1]) - (q[1] - p[1]) * (o[0] - p[0]);

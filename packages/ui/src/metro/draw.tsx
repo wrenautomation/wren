@@ -94,9 +94,21 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   const X0 = scene.x0 ?? 0;
 
   const zones: ReactNode[] = [];
+  const todo: ReactNode[] = [];
+  const at = scene.st.map((s) => [s.x ?? 0, s.y] as const);
   (scene.zones ?? []).forEach(([x0, x1, n], i) => {
     // A cropped scene (focus) draws only the zones in view, and keeps a name on screen.
     if (x1 <= X0 || x0 >= X0 + Wd) return;
+    // A column with no station yet shows a planned one, on the row that runs through it.
+    if (!at.some(([x]) => x >= x0 && x < x1)) {
+      const before = at.filter(([x]) => x < x0).sort((p, q) => q[0] - p[0])[0];
+      todo.push(
+        <Marker
+          key={`zo${x0}`}
+          s={{ id: `todo-${n}`, t: "plan", x: (x0 + x1) / 2, y: before?.[1] ?? H / 2, n: "To map" }}
+        />,
+      );
+    }
     if (i && x0 > X0)
       zones.push(<line key={`zl${x0}`} className="zl" x1={x0} y1={6} x2={x0} y2={H - 22} />);
     zones.push(
@@ -276,7 +288,13 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     tracks.push(
       <path
         key={`t-${k}`}
-        className={cx("trk", r.k === "plan" && "plan", r.k === "ab" && "ab", on(l) && "on")}
+        className={cx(
+          "trk",
+          r.k === "plan" && "plan",
+          r.k === "ab" && "ab",
+          r.k === "back" && "back",
+          on(l) && "on",
+        )}
         data-l={l}
         {...(r.mark ? { "data-mark": r.mark } : {})}
         d={d}
@@ -286,7 +304,13 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       hit(d, l),
     );
     if (r.mark) labels.push(tag(k, r, route, l));
-    if (r.mark !== "removed" && r.k !== "plan" && (l !== "out" || r.mv) && !(isStill && !r.mv)) {
+    if (
+      r.mark !== "removed" &&
+      r.k !== "plan" &&
+      r.k !== "back" &&
+      (l !== "out" || r.mv) &&
+      !(isStill && !r.mv)
+    ) {
       const n = r.dots ?? 1;
       const du = r.dur ?? 4 + (i % 3);
       for (let j = 0; j < n; j++) {
@@ -309,7 +333,11 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     }
     if (r.cond && !r.condShared) {
       // A rail's chip sits on the rail, under the row.
-      const m = r.cat ?? [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2 + (r.back ?? 0)];
+      const m =
+        r.cat ??
+        (r.back
+          ? [(a[0] + c[0]) / 2, Math.max(a[1], c[1]) + r.back]
+          : [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2]);
       labels.push(
         <g key={`cd-${k}`} className={cx("cond", r.cond === "else" && "else")}>
           <Chip x={m[0]} y={m[1]} t={r.cond} icon={r.condGlyph ?? null} />
@@ -375,8 +403,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       viewBox={`${X0} 0 ${Wd} ${H}`}
       // One scene px is one css px, so a label reads at its real size. A glyph table sets its own.
       {...(width ? { width, height: (H / Wd) * width } : { width: Wd, height: H })}
-      // The real width, for a frame that fits the map to its page (`.metro-fit`).
-      style={{ "--w": `${Wd}px` } as CSSProperties}
+      // The real size, for a frame that fits the map to its page (`.metro-fit`, `.metro-fill`).
+      style={{ "--w": `${Wd}px`, "--h": `${H}px` } as CSSProperties}
       role={acts ? "group" : "img"}
       aria-label={scene.title ?? "Map"}
     >
@@ -413,6 +441,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         <Chip key={`ch${c.x}-${c.y}`} {...c} />
       ))}
       {stations}
+      {todo}
       {/* An open group's fold leaf sits under its circle, as the expand leaf did: in front. */}
       {(scene.opened ?? []).map((o) => (
         <OpenedTab key={`ok${o.grp}`} o={o} />

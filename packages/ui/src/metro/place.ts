@@ -104,22 +104,27 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
     "elk.partitioning.partition": String(Math.max(0, columns.indexOf(column))),
   });
   // An exit hangs under its source (finishMetro puts it there), so ELK leaves it out and keeps
-  // room under the source.
+  // room under the source. ELK drops a node's own margins, so the source is taller instead: as
+  // much above as below, so its circle stays at the centre and its rows stay straight.
   const exitOf = new Map<string, string>();
   for (const t of view.tracks)
     if (byId.get(t.to)?.kind === "exit" && byId.has(t.from) && !exitOf.has(t.to))
       exitOf.set(t.to, t.from);
   const sources = new Set(exitOf.values());
-  const leaf = (s: ViewStation, top: boolean): ElkNode => ({
-    id: s.id,
-    ...sizeOf(s),
-    layoutOptions: {
-      ...(top ? partition(s.column) : {}),
-      ...(sources.has(s.id)
-        ? { "elk.margins": `[top=0,left=0,bottom=${SPACE.exit},right=0]` }
-        : {}),
-    },
-  });
+  const leaf = (s: ViewStation, top: boolean): ElkNode => {
+    const { width, height } = sizeOf(s);
+    const room = sources.has(s.id) ? Math.max(0, SPACE.exit + 2 * RADIUS.exit - height / 2) : 0;
+    return {
+      id: s.id,
+      width,
+      height: height + 2 * room,
+      layoutOptions: {
+        // A layer lines up its circles, whatever each label's width (ELK aligns an edge otherwise).
+        "elk.alignment": "CENTER",
+        ...(top ? partition(s.column) : {}),
+      },
+    };
+  };
   // A box holds its stations and the boxes inside it. Only the outermost take a column.
   const inBox = new Set(boxes.flatMap((b) => b.stations));
   const kids = (parent: string | undefined) => boxes.filter((b) => b.parent === parent);
@@ -179,7 +184,12 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
         (t) => (order.get(t.back ? t.from : t.to) ?? 0) > (order.get(t.back ? t.to : t.from) ?? 0),
       )
       .map((t, i) => {
-        const words = t.by === "person" ? `${t.owner ?? ""} · ${t.promise ?? ""}` : t.label;
+        const words =
+          t.by === "person"
+            ? t.owner || t.promise
+              ? `${t.owner ?? "?"} · ${t.promise ?? "?"}`
+              : undefined
+            : t.label;
         return {
           id: `e${i}`,
           sources: [t.back ? t.to : t.from],

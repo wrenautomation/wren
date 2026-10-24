@@ -266,8 +266,8 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
         a: a.id,
         b: b.id,
         l: l ? keyOf(l) : "out",
-        w: l ? WEIGHT_OF[l.tier] : "front",
-        ...(l?.plan || t.plan ? { k: "plan" as const } : {}),
+        w: t.back ? "out" : l ? WEIGHT_OF[l.tier] : "front",
+        ...(t.back ? { k: "back" as const } : l?.plan || t.plan ? { k: "plan" as const } : {}),
         ...(t.label ? { cond: t.label } : {}),
       });
     }
@@ -359,20 +359,29 @@ function reach(sc: MetroScene) {
 
 /**
  * A track back to an earlier station on its own row would draw under the line itself, and its
- * chip would sit on the stations between. It runs on a rail under the row instead. Tracks back to
- * one station with one branch label share a rail and show the label once.
+ * chip would sit on the stations between. It runs on a rail under the row instead; a loop between
+ * two rows runs under the lower one. Tracks back to one station with one branch label share a rail
+ * and show the label once.
  */
 function rails(sc: MetroScene) {
   const byId = new Map(sc.st.filter(isMark).map((s) => [s.id, s]));
   const rows = new Map<number, Map<string, MetroTrack[]>>();
-  for (const r of sc.tr) {
-    if (r.k || r.pts || !r.a || !r.b) continue;
+  const railed = sc.tr.flatMap((r) => {
+    if ((r.k && r.k !== "back") || r.pts || !r.a || !r.b) return [];
     const [a, b] = [byId.get(r.a), byId.get(r.b)];
-    if (!a || !b || a.y !== b.y || b.x >= a.x) continue;
-    const row = rows.get(a.y) ?? new Map<string, MetroTrack[]>();
-    const key = `${r.b}|${r.cond ?? ""}`;
+    if (!a || !b || b.x >= a.x || (a.y !== b.y && r.k !== "back")) return [];
+    return [{ r, key: `${r.b}|${r.cond ?? ""}`, y: Math.max(a.y, b.y) }];
+  });
+  // Loops between rows share a rail under the lowest row any of them leaves.
+  const low = new Map<string, number>();
+  for (const { key, y } of railed) low.set(key, Math.max(low.get(key) ?? y, y));
+  // `back` is measured from the track's own lower end, so a shared rail stays one line.
+  const own = new Map(railed.map(({ r, y }) => [r, y]));
+  for (const { r, key } of railed) {
+    const y = low.get(key) ?? 0;
+    const row = rows.get(y) ?? new Map<string, MetroTrack[]>();
     row.set(key, [...(row.get(key) ?? []), r]);
-    rows.set(a.y, row);
+    rows.set(y, row);
   }
   const startX = (r: MetroTrack) => byId.get(r.a ?? "")?.x ?? 0;
   for (const [y, row] of rows) {
@@ -390,7 +399,7 @@ function rails(sc: MetroScene) {
       g.sort((p, q) => startX(q) - startX(p));
       depth = Math.max(i ? depth + RAIL.step : RAIL.first, g[0]?.cond ? labelled : 0);
       g.forEach((r, j) => {
-        r.back = depth;
+        r.back = depth + y - (own.get(r) ?? y);
         if (j && r.cond) r.condShared = true;
       });
     });
@@ -610,8 +619,9 @@ export function tryMetro(
   return { scene: sizeTo(scene, at.bottom), bad };
 }
 
-/** "WJ · 4h": the owner and the promise. */
-function who(t: ViewTrack): string {
+/** "WJ · 4h": the owner and the promise. A track with neither has no pill. */
+function who(t: ViewTrack): string | undefined {
+  if (!t.owner && !t.promise) return undefined;
   return `${t.owner ?? "?"} · ${t.promise ?? "?"}`;
 }
 

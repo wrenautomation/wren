@@ -143,11 +143,28 @@ describe("diff marks", () => {
     expect(folded).toContain("metro-legend");
   });
 
-  it("draws a fold as a station with an expand chip, never a sum", () => {
+  it("draws a fold as a circle with its count of steps in it, never a sum", () => {
     const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={0} intro={false} />);
     expect(folded).toMatch(/class="cap"[^>]*><g class="mk m-cash"/);
-    expect(folded).toContain('class="fc"');
-    expect(folded).toContain(">2 steps</text>");
+    expect(folded).toContain('class="cnt"');
+    expect(folded).toMatch(/class="cnt"[^>]*>2<\/text>/);
+    expect(folded).not.toContain('class="fc"');
+  });
+});
+
+describe("an empty column", () => {
+  it("shows a planned stop to map, on the row through it", async () => {
+    // This view names Delivery, and none of its stations is in it.
+    expect(DIFF_VIEW.stations.some((s) => s.column === "Delivery")).toBe(false);
+    await warm(DIFF_VIEW);
+    const html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={9} intro={false} />);
+    expect(html.match(/>To map<\/text>/g)).toHaveLength(1);
+    // Without that column, nothing is left to map.
+    const full = { ...DIFF_VIEW, columns: ["Marketing", "Sales", "Money"] };
+    await warm(full);
+    expect(renderToStaticMarkup(<MetroMap view={full} depth={9} intro={false} />)).not.toContain(
+      ">To map</text>",
+    );
   });
 });
 

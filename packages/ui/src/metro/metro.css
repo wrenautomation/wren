@@ -26,6 +26,10 @@
   /* biome-ignore lint/complexity/noImportantStyles: a planned line is thin, whatever its job; the weight is an inline style. */
   stroke-width: 7px !important;
 }
+/* A loop back: thin and dashed in its line's colour, under the line it returns along. */
+.mm .trk.back {
+  stroke-dasharray: 6 7;
+}
 .mm .xfer {
   fill: none;
   stroke-width: 4;
@@ -296,17 +300,15 @@
   stroke: var(--ui-focus);
   stroke-width: 3;
 }
-.mm .fc > g {
-  transition: opacity 0.15s var(--ui-ease);
+/* A fold's count of steps, in its circle where a station's glyph sits. */
+.mm .mk .cnt {
+  fill: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
-.mm .fc .io,
-.mm .cap:hover .fc .rest,
-.mm .cap:focus-visible .fc .rest {
-  opacity: 0;
-}
-.mm .cap:hover .fc .io,
-.mm .cap:focus-visible .fc .io {
-  opacity: 1;
+.mm .m-cash .cnt {
+  fill: var(--ui-on-accent);
 }
 .mm .cap:hover .fl .lf,
 .mm .cap:focus-visible .fl .lf {
@@ -454,6 +456,27 @@
   min-width: max(760px, calc(var(--w, 0px) * 0.85));
   height: auto;
 }
+/* Fill: the whole map shows in its frame, both ways, never above its real size. A full-page map. */
+.metro.metro-fill {
+  height: 100%;
+}
+.metro-fill .metro-host {
+  overflow: hidden;
+}
+.metro-fill .metro-stage {
+  align-self: stretch;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.metro-fill .mm {
+  width: 100%;
+  height: 100%;
+  max-width: var(--w, none);
+  max-height: var(--h, none);
+}
 /* The frame fills the room it is given, so the host can centre the map in it. */
 .metro {
   display: flex;
@@ -492,7 +515,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  overflow: hidden;
+  /* The old frame may be bigger than the new map; the host clips it. */
+  overflow: visible;
 }
 .metro-old svg {
   display: block;

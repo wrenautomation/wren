@@ -143,8 +143,11 @@ export interface MetroTrack {
   b?: string;
   l?: LineKey;
   w?: Weight;
-  /** plan: dotted. ab: an A/B arm. exit: a dotted spur out. xfer: a 45 degree transfer to another line. */
-  k?: "plan" | "ab" | "exit" | "xfer";
+  /**
+   * plan: dotted. ab: an A/B arm. exit: a dotted spur out. xfer: a 45 degree transfer to another
+   * line. back: a loop to an earlier station, thin and dashed, so it never reads as a second line.
+   */
+  k?: "plan" | "ab" | "exit" | "xfer" | "back";
   pts?: Point[];
   /** Corner radius. */
   r?: number;

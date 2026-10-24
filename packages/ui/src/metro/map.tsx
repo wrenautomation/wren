@@ -77,6 +77,8 @@ export interface MetroMapProps {
   onStub?: ((part: MetroPart) => void) | undefined;
   /** No dots move. */
   still?: boolean | undefined;
+  /** No dot grid under the map. */
+  bare?: boolean | undefined;
   /** The first-load draw-in. Default: on. Off for stories and tests. Never on a fold. */
   intro?: boolean | undefined;
   className?: string | undefined;
@@ -142,7 +144,7 @@ function useScenes(zoom: MetroZoom) {
 }
 
 export function MetroMap(props: MetroMapProps) {
-  const { onPick, controls = true, still, className } = props;
+  const { onPick, controls = true, still, bare, className } = props;
   const zoom = useMemo<MetroZoom>(
     () =>
       props.zoom ??
@@ -193,8 +195,11 @@ export function MetroMap(props: MetroMapProps) {
   live.current = { depth, open, zoom, onPick, onStub: props.onStub, focused: !!focus };
   const anchor = useRef<Point | null>(null);
   const anchorKey = useRef<string | null>(null);
+  /** Where the map stood on the screen when a fold began: the old frame lies there while it glides. */
+  const was = useRef<DOMRect | null>(null);
   const set = (next: Fold, from?: Element | null, at?: Point | null, into?: string) => {
     anchor.current = at ?? centreOf(from ?? null);
+    was.current = svg.current?.getBoundingClientRect() ?? null;
     anchorKey.current = into ?? null;
     setIntro(false);
     setDepth(next.depth);
@@ -274,13 +279,6 @@ export function MetroMap(props: MetroMapProps) {
       const next = stepDepth(z.nodes, d, by);
       if (next.depth !== d || Object.keys(op).length) setRef.current(next, null, at);
     };
-    const svgPoint = (cx: number, cy: number): Point | null => {
-      const s = svg.current;
-      if (!s) return null;
-      const r = s.getBoundingClientRect();
-      const w = s.viewBox.baseVal.width;
-      return r.width ? [((cx - r.left) * w) / r.width, ((cy - r.top) * w) / r.width] : null;
-    };
     let acc = 0;
     let lock = 0;
     const wheel = (e: WheelEvent) => {
@@ -289,7 +287,7 @@ export function MetroMap(props: MetroMapProps) {
       if (Date.now() < lock) return;
       acc += e.deltaY;
       if (Math.abs(acc) < 30) return;
-      step(acc < 0 ? 1 : -1, svgPoint(e.clientX, e.clientY));
+      step(acc < 0 ? 1 : -1, [e.clientX, e.clientY]);
       acc = 0;
       lock = Date.now() + 450;
     };
@@ -304,10 +302,10 @@ export function MetroMap(props: MetroMapProps) {
       const g = e as Event & { scale: number; clientX: number; clientY: number };
       if (g.scale / gs > 1.25) {
         gs = g.scale;
-        step(1, svgPoint(g.clientX, g.clientY));
+        step(1, [g.clientX, g.clientY]);
       } else if (gs / g.scale > 1.25) {
         gs = g.scale;
-        step(-1, svgPoint(g.clientX, g.clientY));
+        step(-1, [g.clientX, g.clientY]);
       }
     };
     // Touch pinch: two pointers.
@@ -329,7 +327,7 @@ export function MetroMap(props: MetroMapProps) {
       const r = dist() / d0;
       if (r > 1.3 || r < 0.77) {
         const [a, b] = [...tp.values()] as [Point, Point];
-        step(r > 1 ? 1 : -1, svgPoint((a[0] + b[0]) / 2, (a[1] + b[1]) / 2));
+        step(r > 1 ? 1 : -1, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]);
         d0 = dist();
       }
     };
@@ -362,14 +360,23 @@ export function MetroMap(props: MetroMapProps) {
   }, []);
 
   // The glide: when the shape changes, slide what stays and grow what appears.
-  const last = useRef<{ shape: string; frame: SVGSVGElement; h: number } | null>(null);
+  const last = useRef<{ shape: string; frame: SVGSVGElement; h: number; at: DOMRect } | null>(
+    null,
+  );
   useLayoutEffect(() => {
     const s = svg.current;
     const h = host.current;
     if (!s || !h) return;
     const shape = shapeOf(scene);
     const prev = last.current;
-    last.current = { shape, frame: s.cloneNode(true) as SVGSVGElement, h: h.offsetHeight };
+    last.current = {
+      shape,
+      frame: s.cloneNode(true) as SVGSVGElement,
+      h: h.offsetHeight,
+      at: s.getBoundingClientRect(),
+    };
+    const at = was.current ?? prev?.at;
+    was.current = null;
     if (!prev || prev.shape === shape) return;
     const layer = old.current;
     if (reduced() || !layer || typeof s.getBBox !== "function") {
@@ -382,6 +389,20 @@ export function MetroMap(props: MetroMapProps) {
     prev.frame.classList.remove("ld");
     for (const n of prev.frame.querySelectorAll<SVGElement>(".num")) n.style.animation = "none";
     layer.replaceChildren(prev.frame);
+    // It lies where the map stood, whatever the new map's size and place: no jump on the swap.
+    if (at) {
+      const box = layer.getBoundingClientRect();
+      Object.assign(prev.frame.style, {
+        position: "absolute",
+        left: `${at.left - box.left}px`,
+        top: `${at.top - box.top}px`,
+        width: `${at.width}px`,
+        height: `${at.height}px`,
+        maxWidth: "none",
+        maxHeight: "none",
+        minWidth: "0",
+      });
+    }
     const stay = glide({
       old: prev.frame,
       next: s,
@@ -473,6 +494,7 @@ export function MetroMap(props: MetroMapProps) {
               ref={svg}
               scene={scene}
               still={still}
+              bare={bare}
               intro={intro}
               selected={picked}
               lit={lit}

@@ -27,10 +27,13 @@ export function glideKey(n: Element): string | null {
 }
 
 /** Whether this environment can measure and animate. happy-dom cannot. */
-const canGlide = (n: SVGGraphicsElement) =>
-  typeof n.getBBox === "function" && typeof n.animate === "function";
+const canGlide = (n: Element) =>
+  typeof n.getBoundingClientRect === "function" && typeof n.animate === "function";
 
-/** Every glide-able mark of a map, with its centre and size. */
+/**
+ * Every glide-able mark of a map, with its centre and size on the screen. Screen px, not map units:
+ * the old and the new frame may sit at other places and scales (a fitted map rescales on a fold).
+ */
 export function snapshot(svg: Element | null | undefined): Map<string, Box> {
   const out = new Map<string, Box>();
   if (!svg) return out;
@@ -39,24 +42,29 @@ export function snapshot(svg: Element | null | undefined): Map<string, Box> {
   )) {
     const k = glideKey(n);
     if (!k || !canGlide(n)) continue;
-    const b = n.getBBox();
-    out.set(k, { n, x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width, h: b.height });
+    const b = n.getBoundingClientRect();
+    out.set(k, { n, x: b.left + b.width / 2, y: b.top + b.height / 2, w: b.width, h: b.height });
   }
   return out;
 }
 
-/** The centre of an element, in its map's units: where a group grows from. */
+/** The centre of an element on the screen: where a group grows from. */
 export function centreOf(n: Element | null): Point | null {
-  const g = n as SVGGraphicsElement | null;
-  if (!g || typeof g.getBBox !== "function") return null;
-  const b = g.getBBox();
-  return [b.x + b.width / 2, b.y + b.height / 2];
+  if (!n || typeof n.getBoundingClientRect !== "function") return null;
+  const b = n.getBoundingClientRect();
+  return [b.left + b.width / 2, b.top + b.height / 2];
+}
+
+/** Map units in one screen px: a transform on a mark is in its map's units. */
+function unitsOf(svg: SVGSVGElement): number {
+  const a = typeof svg.getScreenCTM === "function" ? svg.getScreenCTM()?.a : undefined;
+  return a ? 1 / a : 1;
 }
 
 /**
  * Glide from `old` (a copy of the last frame, laid over the map) to `next` (the live svg).
  * Marks that appear grow out of the anchor; marks that go shrink back into it. The anchor is a
- * mark of the new frame (`anchorKey`: the circle a group folded into), else a point.
+ * mark of the new frame (`anchorKey`: the circle a group folded into), else a point on the screen.
  * Returns how long the old frame must stay, in ms.
  */
 export function glide(o: {
@@ -67,6 +75,8 @@ export function glide(o: {
 }): number {
   const before = snapshot(o.old);
   const after = snapshot(o.next);
+  const kOld = unitsOf(o.old);
+  const kNext = unitsOf(o.next);
   const to = o.anchorKey ? after.get(o.anchorKey) : undefined;
   const anchor: Point | null = to ? [to.x, to.y] : (o.anchor ?? null);
   const gone = [...before].filter(([k]) => !after.has(k)).map(([, b]) => b);
@@ -88,7 +98,10 @@ export function glide(o: {
     b.n.animate(
       [
         { opacity: 1, transform: "none" },
-        { opacity: 0, transform: `translate(${ax - b.x}px,${ay - b.y}px) scale(.4)` },
+        {
+          opacity: 0,
+          transform: `translate(${(ax - b.x) * kOld}px,${(ay - b.y) * kOld}px) scale(.4)`,
+        },
       ],
       { duration: GLIDE_MS.shrink, easing: EASE, fill: "forwards" },
     );
@@ -109,11 +122,11 @@ export function glide(o: {
       // The hub keeps its width; every other mark scales to its new size.
       const sx = k === "i:hub" ? 1 : prev.w / a.w;
       const sy = prev.h / a.h;
-      if (prev.x !== a.x || prev.y !== a.y || Math.abs(sy - 1) > 0.02) {
+      if (Math.abs(prev.x - a.x) > 0.5 || Math.abs(prev.y - a.y) > 0.5 || Math.abs(sy - 1) > 0.02) {
         a.n.animate(
           [
             {
-              transform: `translate(${prev.x - a.x}px,${prev.y - a.y}px) scale(${Math.abs(sx - 1) > 0.02 ? sx : 1},${Math.abs(sy - 1) > 0.02 ? sy : 1})`,
+              transform: `translate(${(prev.x - a.x) * kNext}px,${(prev.y - a.y) * kNext}px) scale(${Math.abs(sx - 1) > 0.02 ? sx : 1},${Math.abs(sy - 1) > 0.02 ? sy : 1})`,
             },
             { transform: "none" },
           ],
@@ -125,7 +138,10 @@ export function glide(o: {
       const [ax, ay] = anchor ?? [a.x, a.y];
       a.n.animate(
         [
-          { opacity: 0, transform: `translate(${ax - a.x}px,${ay - a.y}px) scale(.4)` },
+          {
+            opacity: 0,
+            transform: `translate(${(ax - a.x) * kNext}px,${(ay - a.y) * kNext}px) scale(.4)`,
+          },
           { opacity: 1, transform: "none" },
         ],
         { duration: GLIDE_MS.move, delay: 40, easing: EASE, fill: "backwards" },

@@ -10,7 +10,6 @@ import {
   chipWidth,
   DOT,
   foldIo,
-  foldSteps,
   foldWidth,
   GLYPH_SIZE,
   labelOf,
@@ -186,35 +185,6 @@ export function FoldLeaf({
   );
 }
 
-/**
- * A fold's expand leaf: its steps. Under a pointer a second leaf takes its place and says who
- * reached the first station and the last.
- */
-function FoldChip({
-  x,
-  y,
-  f,
-}: {
-  x: number;
-  y: number;
-  f: Pick<CapsuleStation, "steps" | "io" | "each">;
-}) {
-  const rest = foldSteps(f);
-  const io = foldIo(f);
-  return (
-    <g className="fc">
-      <g className="rest">
-        <FoldLeaf x={x} y={y} t={rest} icon="expand" />
-      </g>
-      {io === rest ? null : (
-        <g className="io">
-          <FoldLeaf x={x} y={y} t={io} icon="expand" />
-        </g>
-      )}
-    </g>
-  );
-}
-
 /** The rule of a split or join: all, any or N of M, in small caps on an ink tag. */
 export function RuleTag({ x, y, t }: { x: number; y: number; t: string }) {
   const w = ruleWidth(t);
@@ -383,11 +353,13 @@ export function Marker({
   on?: boolean | undefined;
   /** First load: seconds until this station lands. */
   at?: number | undefined;
-  /** A folded run: its chip shows the steps, and in and out under a pointer. */
-  fold?: Pick<CapsuleStation, "steps" | "io" | "each"> | undefined;
+  /** A folded run: a circle with its count of steps in it, in place of the glyph. */
+  fold?: Pick<CapsuleStation, "steps"> | undefined;
 }) {
   const { x, t } = s;
-  const { r, cy, top, h, w, rx, d } = markerBox(s);
+  const { r, cy, top, h, w, d } = markerBox(s);
+  // A fold is a circle whatever its kind: it holds stations, it is none of them.
+  const rx = fold ? r : markerBox(s).rx;
   const diamond = t === "dec" || t === "race";
   // Logic marks: a diamond decides (hollow: a condition; filled: the first event wins); a bar
   // splits or joins lanes.
@@ -421,14 +393,16 @@ export function Marker({
         ) : null}
         {shape("ring")}
         {shape("b")}
-        {t === "par" ? null : (
+        {fold ? (
+          <text className="cnt" x={x} y={cy + 4.5} textAnchor="middle">
+            {fold.steps}
+          </text>
+        ) : t === "par" ? null : (
           <SvgGlyph name={STATION_GLYPH[t]} x={x} y={cy} size={GLYPH_SIZE[t] ?? 16} />
         )}
         {s.rule ? <RuleTag x={x} y={top - 14} t={s.rule} /> : null}
       </g>
-      {fold ? (
-        <FoldChip x={x} y={s.y + r + 17} f={fold} />
-      ) : rep ? (
+      {rep ? (
         <Chip
           x={x}
           y={s.y + r + 17}
@@ -485,16 +459,14 @@ export function Capsule({
 }) {
   const s: MarkStation = {
     id: c.id,
-    t: c.t ?? "att",
+    // Money keeps its colour; any other fold is a plain circle.
+    t: c.t === "cash" ? "cash" : "att",
     x: c.x ?? (c.cap[0] + c.cap[1]) / 2,
     y: c.y,
     n: c.n,
     ...(c.s ? { s: c.s } : {}),
     // Side by side, it stacks like a bundle: one mark that stands for several.
     ...(c.each ? { bundle: true } : {}),
-    // The name keeps clear of the chip, as a repeat chip's station does.
-    rep: foldIo(c).length > foldSteps(c).length ? foldIo(c) : foldSteps(c),
-    repGlyph: "expand",
     ...(c.p ? { p: c.p } : {}),
     ...(c.mark ? { mark: c.mark } : {}),
   };
