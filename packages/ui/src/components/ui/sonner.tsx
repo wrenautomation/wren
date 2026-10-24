@@ -1,5 +1,5 @@
-import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { Ring } from "../../busy.js"
+import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { Ring } from "../../busy.js";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
@@ -26,7 +26,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       {...props}
     />
-  )
-}
+  );
+};
 
-export { Toaster }
+export { Toaster };

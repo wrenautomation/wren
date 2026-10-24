@@ -12,8 +12,6 @@
       "!**/drizzle/meta",
       "!designs",
       "!.claude/worktrees",
-      "!packages/ui/src/components/ui",
-      "!packages/ui/src/hooks",
       "!**/mockServiceWorker.js"
     ]
   },
@@ -25,11 +23,13 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": {
         "noLabelWithoutControl": {
           "level": "error",
-          "options": { "inputComponents": ["Input", "Textarea"] }
+          "options": {
+            "inputComponents": ["Input", "Textarea"]
+          }
         }
       }
     }
@@ -42,7 +42,7 @@
   },
   "overrides": [
     {
-      "includes": ["packages/**", "!packages/reactivation/**"],
+      "includes": ["packages/**", "!packages/reactivation/**", "!packages/ui/**"],
       "linter": {
         "rules": {
           "style": {
@@ -51,12 +51,15 @@
               "options": {
                 "paths": {
                   "@wren/reactivation": "A foundation never imports a product: move the shared part down into the foundation (designs/2026-09-29-client-reactivation.md, Layers).",
-                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=…/>: one registry, so an icon changes in one place."
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=\u2026/>: one registry, so an icon changes in one place.",
+                  "sonner": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
+                  "@base-ui/react": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
+                  "cmdk": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
                 },
                 "patterns": [
                   {
-                    "group": ["@wren/reactivation/*"],
-                    "message": "A foundation never imports a product (designs/2026-09-29-client-reactivation.md, Layers)."
+                    "group": ["@wren/reactivation/*", "@base-ui/react/*"],
+                    "message": "A foundation never imports a product: move the shared part down into the foundation (designs/2026-09-29-client-reactivation.md, Layers). The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
                   }
                 ]
               }
@@ -74,7 +77,34 @@
               "level": "error",
               "options": {
                 "paths": {
-                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=…/>: one registry, so an icon changes in one place."
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=\u2026/>: one registry, so an icon changes in one place.",
+                  "sonner": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
+                  "@base-ui/react": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
+                  "cmdk": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
+                },
+                "patterns": [
+                  {
+                    "group": ["@base-ui/react/*"],
+                    "message": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ui/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=\u2026/>: one registry, so an icon changes in one place.",
+                  "sonner": "Import toast from ./toast.js (or say from ./action.js): one door, so every toast obeys the tab's showing rule."
                 }
               }
             }
@@ -83,8 +113,38 @@
       }
     },
     {
-      "includes": ["packages/ui/src/icons.tsx"],
-      "linter": { "rules": { "style": { "noRestrictedImports": "off" } } }
+      "includes": [
+        "packages/ui/src/icons.tsx",
+        "packages/ui/src/toast.ts",
+        "packages/ui/src/components/ui/sonner.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUndeclaredEnvVars": "off"
+          }
+        }
+      }
     }
   ],
   "css": {

@@ -44,7 +44,7 @@ describe("linkedinLinks", () => {
   });
 
   it("a card with no link never borrows its neighbour's", () => {
-    const page = card("Jane Doe", "jane-doe") + `<div class="card"><h3>Bob Roe</h3></div>`;
+    const page = `${card("Jane Doe", "jane-doe")}<div class="card"><h3>Bob Roe</h3></div>`;
     expect(linkedinLinks(page, { first: "Bob", last: "Roe" }).people).toEqual([]);
   });
 

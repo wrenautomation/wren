@@ -31,7 +31,7 @@ export interface Card {
   sub?: string;
 }
 
-export const OVERLAY_SCRIPT = String.raw`
+export const OVERLAY_SCRIPT = `
 ((look) => {
   if (window.__wrenOverlay) return;
   const host = document.createElement("wren-overlay");

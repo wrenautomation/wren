@@ -1,6 +1,6 @@
 /**
- * The kit is the one door to its vendors: no app imports shadcn's parts' libraries directly, and
- * every icon a part or a step names as data is one the kit draws.
+ * Every icon a part or a step names as data is one the kit draws. (That no app imports the kit's
+ * vendors is biome's `noRestrictedImports`, biome.json.)
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -9,7 +9,6 @@ import { describe, expect, it } from "vitest";
 import { isIconName } from "./icons.js";
 
 const ROOT = join(import.meta.dirname, "..", "..", "..");
-const VENDORS = /from "(@base-ui\/react|lucide-react|cmdk|sonner)[/"]/;
 
 /**
  * Sources under apps/ and packages/ (tracked or new, never ignored) that hold one of `words`.
@@ -30,15 +29,6 @@ function holding(...words: string[]): string[] {
   }
 }
 const read = (f: string) => readFileSync(join(ROOT, f), "utf8");
-
-describe("kit door", () => {
-  it("leaves Base UI, Lucide, cmdk and sonner to @wren/ui", () => {
-    const outside = holding("@base-ui/react", "lucide-react", "cmdk", "sonner")
-      .filter((f) => !f.startsWith("packages/ui/"))
-      .filter((f) => VENDORS.test(read(f)));
-    expect(outside).toEqual([]);
-  });
-});
 
 describe("icon names", () => {
   it("draws every icon named as data", () => {

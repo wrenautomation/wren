@@ -198,7 +198,8 @@ export async function saveRecording(db: Queryable, r: NewRecording): Promise<num
       by: r.by,
     })
     .returning({ id: callRecordings.id });
-  const id = row!.id;
+  if (!row) throw new Error("the recording was not written");
+  const id = row.id;
   if (r.callBookingId !== null) {
     const [b] = await rows<{ email: string | null; name: string | null; person: number | null }>(
       db,

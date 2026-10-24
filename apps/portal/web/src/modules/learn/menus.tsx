@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@wren/ui/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
-import { toast } from "@wren/ui/lib/toast";
+import { toast } from "@wren/ui/toast";
 import { type FormEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { navigate } from "../../route.js";
 import { type Collection, clientOf, learn, type Mark } from "./api.js";

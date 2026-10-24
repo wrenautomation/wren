@@ -160,7 +160,12 @@ describe("marketing.video", () => {
     const signed: string[] = [];
     const rec = videoRecord({
       bucket: "media",
-      host: { host: async (k) => (signed.push(k), `https://signed/${k}`) },
+      host: {
+        host: async (k) => {
+          signed.push(k);
+          return `https://signed/${k}`;
+        },
+      },
     });
     const api = serveRecords([rec], pg.db);
     const all = await api.list({ record: rec.id, view: "all", limit: 9 });

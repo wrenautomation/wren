@@ -9,7 +9,6 @@ import type { AskTurn, ChangeLine, EditState, Values } from "@wren/core/edits";
 import type { FieldMeta, RecordMeta, State } from "@wren/core/records";
 import { cn } from "cn";
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { toast } from "sonner";
 import { UNDO_MS } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
@@ -21,6 +20,7 @@ import { GROUP_LABEL } from "./layout.js";
 import type { SaverOptions } from "./save/engine.js";
 import { SaveConflict, SaveStatus, useSaved } from "./save/react.js";
 import { InsertSnippet } from "./snippets.js";
+import { toast } from "./toast.js";
 
 /** What a record's page does with its edits; each throws what the server refused. */
 export interface Editing {

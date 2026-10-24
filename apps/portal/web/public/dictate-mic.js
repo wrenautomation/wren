@@ -8,7 +8,7 @@ class DictateMic extends AudioWorkletProcessor {
     this.at = 0;
   }
   process(inputs) {
-    const ch = inputs[0] && inputs[0][0];
+    const ch = inputs[0]?.[0];
     if (!ch) return true;
     let i = 0;
     while (i < ch.length) {

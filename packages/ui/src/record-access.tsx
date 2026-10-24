@@ -8,12 +8,12 @@ import { type AccessChannel, CHANNEL_NAMES, type Permission, type Target } from 
 import type { Cell, RecordMeta } from "@wren/core/records";
 import { cn } from "cn";
 import { useId, useState } from "react";
-import { toast } from "sonner";
 import { canAt, type Viewer } from "./access.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
 import { useEdit } from "./data/use-edit.js";
 import { GROUP_LABEL } from "./layout.js";
+import { toast } from "./toast.js";
 
 export interface IssueLine {
   id: number;

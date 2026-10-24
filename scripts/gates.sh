@@ -26,7 +26,13 @@ if [ -z "${CI:-}" ] && [ -z "${CHECKS_TMP:-}" ]; then
   rm -rf "$TMPDIR" && mkdir -p "$TMPDIR"
 fi
 WIDE=${CI:+--concurrency=100%}
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
+lint() {
+  echo "==> biome check" && pnpm biome check --error-on-warnings . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE &&
+    cli && offers && map && layers && isolation && writes && edits && reads && libs && drift
+}
+# Package layers (designs/2026-10-24-code-quality-handoff.md): a package imports its own layer or a
+# lower one, never a cycle. Biome's noRestrictedImports checks single imports; this checks the graph.
+layers() { echo "==> package layers" && node scripts/layers-guard.mjs; }
 map() { echo "==> map" && map/_meta/build.sh --check && scorecard; }
 # Scorecards (map/_meta/scorecard.mjs): each package and Restate service graded on map card, tests,
 # health and owner card; the worst rows print. Informational: it fails only with WREN_SCORECARD_MIN
@@ -133,7 +139,7 @@ schema() {
 # unchanged packages are cache hits there.
 changed() {
   echo "==> biome, changed since origin/main" &&
-    pnpm -s biome check --changed --since=origin/main --no-errors-on-unmatched &&
+    pnpm -s biome check --error-on-warnings --changed --since=origin/main --no-errors-on-unmatched &&
     echo "==> typecheck + unit, changed since origin/main" &&
     pnpm turbo run typecheck test:unit --filter="...[origin/main]" --output-logs=errors-only
 }

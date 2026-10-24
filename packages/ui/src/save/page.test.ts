@@ -5,8 +5,12 @@ describe("SavePage", () => {
   it("flushes every box and answers true only when all saved", async () => {
     const page = new SavePage();
     const got: string[] = [];
-    page.add({ flush: async () => (got.push("a"), true) });
-    const off = page.add({ flush: async () => (got.push("b"), false) });
+    const saves = (name: string, ok: boolean) => async () => {
+      got.push(name);
+      return ok;
+    };
+    page.add({ flush: saves("a", true) });
+    const off = page.add({ flush: saves("b", false) });
     expect(await page.flush()).toBe(false);
     expect(got).toEqual(["a", "b"]);
     off();

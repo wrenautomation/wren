@@ -191,7 +191,10 @@ export function makeWatchConsole(db: Db, llm: LlmClient | null) {
       ),
       sort: serviceHandler({ input: z.looseObject(IDS) }, (ctx: restate.Context, req: IdsRequest) =>
         // The refusal for an empty pick comes before the run, which would retry it forever.
-        answer(async () => (idsOf(req), ctx.run("sort", () => api.sort(req)))),
+        answer(async () => {
+          idsOf(req);
+          return ctx.run("sort", () => api.sort(req));
+        }),
       ),
       addRule: serviceHandler(
         {
