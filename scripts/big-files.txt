@@ -5,7 +5,6 @@ apps/portal/web/src/modules/marketing/videos.tsx
 apps/portal/web/src/modules/people/segments.tsx
 apps/portal/web/src/modules/wren/workflows.tsx
 packages/content/src/analytics/catalog.ts
-packages/content/src/restate/desk.ts
 packages/content/src/schema.ts
 packages/content/src/social/records.ts
 packages/core/src/logic.ts
