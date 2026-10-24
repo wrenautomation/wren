@@ -27,13 +27,13 @@ Locks (OpenFilm's `overrides` and `locked`): new column `video_edits.locked json
 
 ## Decision 2: self-check before Approve
 
-`wren video check <id> [--format short-N]` (`packages/content/src/video-check.ts`):
-- Facts from `watch()` in `@wren/video-watch` on the rendered file: cuts, frames, on-screen text. No second extractor.
-- A contact sheet: ffmpeg `tile` of one frame per 2 s, plus 3 full frames (start, middle, end).
-- One vision ask over the sheet and facts, against the rubric below. Model: Anthropic (Haiku 5.5 through the existing seam) or Gemini. Never Cohere vision: it refuses frames with people.
-- Answer: a list of `{ at, rule, says }` and a pass or fail. Stored as a `runs` row (`video check`).
+`wren video check <id> [--only output]` (`packages/studio/src/video-check.ts`, built 2026-10-24):
+- Facts from ffmpeg on the rendered file: scene cuts (`sceneCuts`, exported from `@wren/video-watch`) and the output's own words. Not `watch()`: it sends every frame to Cohere vision, which refuses faces.
+- A contact sheet: ffmpeg `tile` of one frame per 2 s or more (at most 48), plus 3 full frames (start, middle, end). This ffmpeg has no `drawtext`, so the prompt gives each tile's time by its place.
+- One Gemini ask (`askGemini`) over the sheet and facts, against the bar. Gemini, because the LLM seam (`makeLlm`) takes no images. Never Cohere vision: it refuses frames with people.
+- Answer: a list of `{ at, rule, says }` and a pass or fail. Stored as a `runs` row (`video check`) with the output's render hash, so a new render reads as not checked.
 - `videoChecks` (the list he reads before Approve) shows the failures. Approve is not blocked; a fail shows red.
-- The desk runs it after each render.
+- `wren video render` (the desk's render) checks each output it made new. `--no-check` skips. A check error never fails the render.
 
 ## Decision 3: one edit bar
 
@@ -50,6 +50,7 @@ The rubric lives in one file, `packages/studio/src/bar.ts`, and is used by the e
 - It holds up next to the best clips on the platform. A clip you would scroll past is not done.
 
 Cut knobs per format: `studio.cuts` becomes `{ long: {...}, short: {...} }`. Short default `minGapS` 0.35, `airS` 0.12 (schema min for both drops to 0.1). Long keeps 0.7 and 0.2. A 0.1 s floor on a long talk fights the air and quiet-snap rules, so long stays as it is.
+Built 2026-10-24: ingest and `wren video cuts` run the silence pass twice. The Short pass goes to its own column, `video_edits.short_cuts` (not in a patch). A Short plays `shortCutsOver(cuts, shortCuts)`: a Short cut inside a stretch he kept is dropped. `shortProps` gives the composition `segments` of the cut file; the Short plays one `<Sequence>` per segment. The vertical, square and portrait formats stay on the long cuts. `wren video knobs short --min-gap 0.4` sets the Short knobs; an old flat block reads as `long`.
 
 ## Decision 4: sound kit
 

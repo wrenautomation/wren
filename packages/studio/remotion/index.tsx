@@ -435,6 +435,8 @@ export const Short: FC<ShortProps> = ({
   face,
   crop,
   startFrame,
+  segments,
+  durationInFrames,
   words,
   layout,
   captions,
@@ -451,25 +453,43 @@ export const Short: FC<ShortProps> = ({
   const want = layout.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
   const show = face.file || face.box ? want : "screen";
   const half = show === "corner";
+  // Each stretch of the cut file it plays, one after another (`shortSegments`).
+  const parts = segments?.length ? segments : [{ from: startFrame, frames: durationInFrames }];
+  const played = (draw: (from: number) => ReactNode) => {
+    let at = 0;
+    return parts.map((g) => {
+      const at0 = at;
+      at += g.frames;
+      return (
+        <Sequence key={g.from} from={at0} durationInFrames={g.frames} layout="none">
+          {draw(g.from)}
+        </Sequence>
+      );
+    });
+  };
   return (
     <AbsoluteFill style={{ background: look.foreground }}>
       <div style={{ position: "absolute", left: 0, right: 0, top: half ? 960 : 0, bottom: 0 }}>
-        <OffthreadVideo
-          src={staticFile(main)}
-          trimBefore={startFrame}
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
-        />
+        {played((from) => (
+          <OffthreadVideo
+            src={staticFile(main)}
+            trimBefore={from}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        ))}
       </div>
       {show !== "screen" ? (
         <div style={{ position: "absolute", left: 0, top: 0 }}>
-          <FaceBox
-            face={face}
-            main={main}
-            w={1080}
-            h={half ? 960 : 1920}
-            from={startFrame}
-            crop={crop}
-          />
+          {played((from) => (
+            <FaceBox
+              face={face}
+              main={main}
+              w={1080}
+              h={half ? 960 : 1920}
+              from={from}
+              crop={crop}
+            />
+          ))}
         </div>
       ) : null}
       {/* A matte lines up with his face full frame, or the whole recording when there's no face. */}
@@ -1151,6 +1171,7 @@ const Root: FC = () => (
         face: NO_FACE,
         crop: null,
         startFrame: 0,
+        segments: [],
         title: "",
         card: null,
       }}

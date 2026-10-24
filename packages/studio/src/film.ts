@@ -9,7 +9,7 @@
  */
 import { extname } from "node:path";
 import { createTwoFilesPatch } from "diff";
-import { keepSegments, onCut, type Span } from "./cuts.js";
+import { keepSegments, onCut, type Span, shortCutsOver } from "./cuts.js";
 import { captionLines, shortCrop, type TextOverlay } from "./finish.js";
 import { CORNER_CAM, coverRect, OVERLAY } from "./finish-look.js";
 import { cutSize, FPS } from "./media.js";
@@ -214,7 +214,8 @@ export function shortFilm(e: VideoEdit, n: number): Film {
   const short = e.shorts[n - 1];
   if (!short) throw new Error(`video ${e.id} has ${e.shorts.length} shorts; no ${n}`);
   const [w, h] = [1080, 1920];
-  const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
+  // A Short plays the tighter cuts too (`shortCutsOver`), so its pieces split on both.
+  const keep = keepSegments(shortCutsOver(e.cuts, e.shortCuts ?? []), e.tracks.main.durationS, FPS);
   const files = filmAssets(e);
   const locked = e.locked ?? [];
   const from = onCut(short.from, keep);

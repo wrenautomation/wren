@@ -9,7 +9,7 @@ import type { Cut, Word } from "./schema.js";
 
 export const cutKnobsSchema = z.object({
   /** Shortest silence (both signals) that is cut. */
-  minGapS: z.number().min(0.3).max(10).default(0.7),
+  minGapS: z.number().min(0.1).max(10).default(0.7),
   /** Kept on each side of a word. */
   airS: z.number().min(0.05).max(2).default(0.2),
   /** silencedetect's threshold: this many dB over the track's measured noise floor. */
@@ -19,6 +19,24 @@ export const cutKnobsSchema = z.object({
 });
 export type CutKnobs = z.infer<typeof cutKnobsSchema>;
 export const CUT_DEFAULTS: CutKnobs = cutKnobsSchema.parse({});
+/** Each format's knobs: a Short takes shorter pauses out, with less air (`shortCuts`). */
+export const CUT_FORMATS = ["long", "short"] as const;
+export type CutFormat = (typeof CUT_FORMATS)[number];
+export const SHORT_CUT_DEFAULTS: CutKnobs = cutKnobsSchema.parse({ minGapS: 0.35, airS: 0.12 });
+export const cutKnobsByFormat = z.object({
+  long: cutKnobsSchema.default(CUT_DEFAULTS),
+  short: cutKnobsSchema.default(SHORT_CUT_DEFAULTS),
+});
+export type CutKnobsByFormat = z.infer<typeof cutKnobsByFormat>;
+/** `studio.cuts` as stored: by format, or (before 2026-10-24) one flat block, read as `long`. */
+export function readCutKnobs(raw: unknown): CutKnobsByFormat {
+  const flat = cutKnobsSchema.safeParse(raw ?? {});
+  const by = cutKnobsByFormat.safeParse(raw ?? {});
+  const isFlat =
+    !!raw && typeof raw === "object" && !("long" in raw) && !("short" in raw) && flat.success;
+  if (isFlat) return { long: flat.data, short: SHORT_CUT_DEFAULTS };
+  return by.success ? by.data : { long: CUT_DEFAULTS, short: SHORT_CUT_DEFAULTS };
+}
 
 const FRAME_S = 0.02;
 /** A cut longer than this gets a look in `wren video cuts`. */
@@ -159,6 +177,15 @@ export function withSilence(existing: readonly Cut[], silence: readonly Cut[]): 
   return [...existing.filter((c) => c.why !== "silence"), ...silence].sort(
     (a, b) => a.from - b.from || a.to - b.to,
   );
+}
+
+/**
+ * The cuts a Short plays: the edit's, and the Short pass's tighter silences, except where he
+ * kept a stretch on purpose (a cut not applied).
+ */
+export function shortCutsOver(cuts: readonly Cut[], shortCuts: readonly Cut[]): Cut[] {
+  const kept = cuts.filter((c) => c.state !== "cut");
+  return [...cuts, ...shortCuts.filter((c) => !kept.some((k) => k.from < c.to && k.to > c.from))];
 }
 
 /**

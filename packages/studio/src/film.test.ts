@@ -108,6 +108,20 @@ describe("film", () => {
     expect(() => shortFilm(base(), 3)).toThrow(/no 3/);
   });
 
+  it("splits a Short where only the Short knobs cut a pause", () => {
+    const e: VideoEdit = {
+      ...base(),
+      shortCuts: [{ from: 25, to: 25.5, why: "silence", state: "cut" }],
+    };
+    const screen = clips(shortFilm(e, 1)["film.html"] as string).filter((c) =>
+      c.includes('id="screen-'),
+    );
+    expect(screen[0]).toContain('#t=20,25" at="0"');
+    expect(screen[1]).toContain('#t=25.5,40" at="5"');
+    // The long video keeps that pause.
+    expect(longFilm(e)["film.html"]).not.toContain("#t=25.5");
+  });
+
   it("marks the tracks a person locked", () => {
     const e = { ...base(), locked: ["cuts", "shorts.2"] };
     expect(longFilm(e)["film.html"]).toMatch(/<section title="recording" locked>/);

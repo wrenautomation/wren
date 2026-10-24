@@ -2,7 +2,7 @@
 import { defineComponent } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
-import { cutKnobsSchema } from "@wren/studio/cuts";
+import { cutKnobsByFormat, cutKnobsSchema } from "@wren/studio/cuts";
 import { z } from "zod";
 
 /**
@@ -254,7 +254,12 @@ export const CONTENT_COMPONENTS = [
     for: "wren",
     ready: false,
     missing: ["Edits William's own recordings on his Mac; never a client's"],
-    settings: z.object({ cuts: cutKnobsSchema.default(cutKnobsSchema.parse({})) }),
+    // By format; a flat block from before 2026-10-24 still reads (`readCutKnobs`).
+    settings: z.object({
+      cuts: z
+        .union([cutKnobsByFormat.strict(), cutKnobsSchema])
+        .default(cutKnobsByFormat.parse({})),
+    }),
     requires: { components: ["content.posting"] },
     provides: {
       services: ["VideoDesk"],

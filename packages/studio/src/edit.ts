@@ -15,12 +15,13 @@ import { z } from "zod";
 import { capMeta, capTracks, isCap } from "./cap.js";
 import { CAPTION_SHOWS, CAPTION_STYLES } from "./caption-styles.js";
 import {
-  CUT_DEFAULTS,
+  type CutFormat,
   type CutKnobs,
   cutKnobsSchema,
   fillerProposals,
   keepSegments,
   onCut,
+  readCutKnobs,
   toCutTime,
   withSilence,
 } from "./cuts.js";
@@ -56,26 +57,27 @@ import { fixWordAt, fixWords } from "./words.js";
 
 export const STUDIO_COMPONENT = "studio";
 
-/** The cut knobs; a bad block reads as the defaults. */
-export async function cutKnobs(db: Queryable): Promise<CutKnobs> {
+/** The cut knobs for one format; a bad block reads as the defaults. */
+export async function cutKnobs(db: Queryable, format: CutFormat = "long"): Promise<CutKnobs> {
   const block = (await settingsFor(db, null))[STUDIO_COMPONENT] as { cuts?: unknown } | undefined;
-  const p = cutKnobsSchema.safeParse(block?.cuts ?? {});
-  return p.success ? p.data : CUT_DEFAULTS;
+  return readCutKnobs(block?.cuts)[format];
 }
 
 export async function setCutKnobs(
   db: Queryable,
   patch: Partial<CutKnobs>,
   by: string,
+  format: CutFormat = "long",
 ): Promise<CutKnobs> {
   return atomic(db, async (tx) => {
     const block = ((await settingsFor(tx, null))[STUDIO_COMPONENT] ?? {}) as Record<
       string,
       unknown
     >;
-    const cuts = cutKnobsSchema.parse({ ...(await cutKnobs(tx)), ...patch });
+    const all = readCutKnobs(block.cuts);
+    const cuts = { ...all, [format]: cutKnobsSchema.parse({ ...all[format], ...patch }) };
     await setWrenSettings(tx, STUDIO_COMPONENT, { ...block, cuts }, by);
-    return cuts;
+    return cuts[format];
   });
 }
 
@@ -178,6 +180,7 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
   if (o.camBox) tracks.camBox = o.camBox;
 
   const knobs = await cutKnobs(db);
+  const shortKnobs = await cutKnobs(db, "short");
   const known = await studioWords(db);
   return (
     await recordedRun(
@@ -203,6 +206,8 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
           o.ffmpeg,
           knobs,
         );
+        // The same words again with the Short knobs; the long pass's fit of the words stays.
+        const short = await silencePass(main.path, words, main.durationS, o.ffmpeg, shortKnobs);
         const [row] = await db
           .insert(videoEdits)
           .values({
@@ -212,6 +217,7 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
             script: o.script ?? null,
             words,
             cuts: withSilence(fillerProposals(words), cuts),
+            shortCuts: short.cuts,
             formats: formatsFor(main),
           })
           .returning();
@@ -739,16 +745,25 @@ export async function setRender(db: Queryable, id: number, render: RenderState |
   await db.update(videoEdits).set({ render, updatedAt: new Date() }).where(eq(videoEdits.id, id));
 }
 
-/** Rerun the silence pass with today's knobs; other cuts stay as they are. */
+/** Rerun the silence pass with today's knobs, long and short; other cuts stay as they are. */
 export async function redoSilence(db: Queryable, id: number, ffmpeg: string, by: string) {
   const e = await getEdit(db, id);
+  const { main } = e.tracks;
   const { cuts: fresh } = await silencePass(
-    e.tracks.main.path,
+    main.path,
     e.words,
-    e.tracks.main.durationS,
+    main.durationS,
     ffmpeg,
     await cutKnobs(db),
   );
+  const short = await silencePass(
+    main.path,
+    e.words,
+    main.durationS,
+    ffmpeg,
+    await cutKnobs(db, "short"),
+  );
+  await db.update(videoEdits).set({ shortCuts: short.cuts }).where(eq(videoEdits.id, id));
   return setEdit(db, id, { cuts: withSilence(e.cuts, fresh) }, { by, command: "video cuts" });
 }
 

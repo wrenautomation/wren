@@ -115,6 +115,11 @@ export const videoEdits = pgTable(
     script: jsonb("script").$type<{ url: string; text: string }>(),
     words: jsonb("words").$type<Word[]>().notNull().default([]),
     cuts: jsonb("cuts").$type<Cut[]>().notNull().default([]),
+    /**
+     * The silence pass again with the Short knobs (`cutKnobs(db, "short")`): the tighter cuts only
+     * Shorts take, over `cuts` (`shortCuts`). Written by ingest and `wren video cuts`, never by a patch.
+     */
+    shortCuts: jsonb("short_cuts").$type<Cut[]>().notNull().default([]),
     /** Ranges that are not the default corner layout. */
     layout: jsonb("layout").$type<LayoutRange[]>().notNull().default([]),
     /** The style, where each format shows them (`onScreen`), `behind`: stressed words behind him. */

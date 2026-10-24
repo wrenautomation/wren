@@ -2311,6 +2311,13 @@
       "when": 1792825273671,
       "tag": "0330_video_locked",
       "breakpoints": true
+    },
+    {
+      "idx": 331,
+      "version": "7",
+      "when": 1792827525755,
+      "tag": "0331_video_short_cuts",
+      "breakpoints": true
     }
   ]
 }

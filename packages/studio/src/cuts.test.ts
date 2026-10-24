@@ -3,7 +3,14 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CUT_DEFAULTS, keepSegments, reviewCuts, toCutTime } from "./cuts.js";
+import {
+  CUT_DEFAULTS,
+  keepSegments,
+  readCutKnobs,
+  reviewCuts,
+  SHORT_CUT_DEFAULTS,
+  toCutTime,
+} from "./cuts.js";
 import { silencePass } from "./media.js";
 import type { Word } from "./schema.js";
 
@@ -99,5 +106,15 @@ describe("cut review", () => {
     );
     expect(rows.map((r) => r.flags)).toEqual([["long"], ["touches a word"]]);
     expect(rows[0]?.before).toBe("two three four five");
+  });
+});
+
+describe("cut knobs by format", () => {
+  it("reads a flat block as long, and fills the Short's own", () => {
+    const flat = readCutKnobs({ minGapS: 1, airS: 0.3, noiseMarginDb: 12, snapS: 0.1 });
+    expect(flat.long.minGapS).toBe(1);
+    expect(flat.short).toEqual(SHORT_CUT_DEFAULTS);
+    expect(readCutKnobs({ short: { minGapS: 0.4 } }).short.minGapS).toBe(0.4);
+    expect(readCutKnobs(undefined).long).toEqual(CUT_DEFAULTS);
   });
 });

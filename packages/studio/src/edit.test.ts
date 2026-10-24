@@ -153,6 +153,43 @@ describe("shortProps", () => {
     expect(said).toEqual(["So,", "we", "ship."]);
     expect(() => shortProps(edit, 2)).toThrow(/no 2/);
   });
+
+  it("takes out the pauses only the Short knobs cut, words and length with them", () => {
+    const edit = {
+      id: 1,
+      title: "v",
+      tracks: { main: { path: "/m.mp4", durationS: 100, width: 1920, height: 1080, fps: 30 } },
+      cuts: [
+        { from: 10, to: 20, why: "silence", state: "cut" },
+        { from: 50, to: 51, why: "silence", state: "kept" },
+      ],
+      // 0.5 s at 40 the long knobs keep; the one at 50 he kept, so the Short keeps it too.
+      shortCuts: [
+        { from: 40, to: 40.5, why: "silence", state: "cut" },
+        { from: 50.2, to: 50.6, why: "silence", state: "cut" },
+      ],
+      words: [
+        { w: "in", s: 31, e: 32 },
+        { w: "after", s: 41, e: 42 },
+      ],
+      layout: [],
+      overlays: [{ from: 39, to: 45, text: "x" }],
+      captions: { style: "word" },
+      shorts: [short(30, 60)],
+      files: { cutMain: "/d/cut-main.mp4" },
+    } as unknown as VideoEdit;
+    const p = shortProps(edit, 1);
+    expect(p.segments).toEqual([
+      { from: 20 * 30, frames: 10 * 30 },
+      { from: 30.5 * 30, frames: 19.5 * 30 },
+    ]);
+    expect(p.durationInFrames).toBe(29.5 * 30);
+    expect(p.words.map((w) => [w.s, w.e])).toEqual([
+      [1, 2],
+      [10.5, 11.5],
+    ]);
+    expect(p.overlays.map((x) => [x.from, x.to])).toEqual([[9, 14.5]]);
+  });
 });
 
 describe("a Short's crop", () => {

@@ -671,8 +671,10 @@ export function registerStudio(
     );
 
   video
-    .command("knobs")
-    .description("the silence pass knobs (wren_settings studio.cuts); flags set them")
+    .command("knobs [format]")
+    .description(
+      "the silence pass knobs (wren_settings studio.cuts): long (default) or short, which cuts shorter pauses in Shorts only; flags set them",
+    )
     .option("--min-gap <s>", "shortest silence cut", Number)
     .option("--air <s>", "kept on each side of a word", Number)
     .option("--noise-margin <db>", "silence threshold over the measured noise floor", Number)
@@ -682,8 +684,13 @@ export function registerStudio(
       "names Whisper should spell right on ingest, comma between (studio.words)",
     )
     .action(
-      (o: { minGap?: number; air?: number; noiseMargin?: number; snap?: number; words?: string }) =>
+      (
+        format: string | undefined,
+        o: { minGap?: number; air?: number; noiseMargin?: number; snap?: number; words?: string },
+      ) =>
         withDb(async (db) => {
+          const f = format ?? "long";
+          if (f !== "long" && f !== "short") throw new Error(`format: long or short, not ${f}`);
           const patch = {
             ...(o.minGap !== undefined ? { minGapS: o.minGap } : {}),
             ...(o.air !== undefined ? { airS: o.air } : {}),
@@ -691,13 +698,13 @@ export function registerStudio(
             ...(o.snap !== undefined ? { snapS: o.snap } : {}),
           };
           const k = Object.keys(patch).length
-            ? await setCutKnobs(db, patch, "cli")
-            : await cutKnobs(db);
+            ? await setCutKnobs(db, patch, "cli", f)
+            : await cutKnobs(db, f);
           const words =
             o.words !== undefined
               ? await setStudioWords(db, o.words.split(","), "cli")
               : await studioWords(db);
-          console.log(JSON.stringify({ cuts: k, words }));
+          console.log(JSON.stringify({ format: f, cuts: k, words }));
         }),
     );
 

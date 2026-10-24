@@ -6,7 +6,7 @@ import { basename } from "node:path";
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import type { Captions } from "./caption-styles.js";
 import { srt } from "./captions.js";
-import { keepSegments, onCut, toCutTime } from "./cuts.js";
+import { keepSegments, onCut, type Span, shortCutsOver, toCutTime } from "./cuts.js";
 import {
   type CroppedFormat,
   cropWindow,
@@ -210,8 +210,13 @@ export type ShortProps = Omit<LongProps, "cam"> & {
   face: Face;
   /** Where the frame centres on his picture (`shortCrop`); null = the face box's middle. */
   crop: Point | null;
-  /** Where the clip starts on the cut file, in frames. */
+  /** Where the clip starts on the cut file, in frames: the first of `segments`. */
   startFrame: number;
+  /**
+   * What it plays of the cut file, in order, in frames: one stretch, or more where the Short
+   * knobs cut pauses the long video keeps (`shortCutsOver`).
+   */
+  segments: { from: number; frames: number }[];
   title: string;
   /** The title on screen at the start (`cardOf`); null when the Short turns it off. */
   card: TitleCard | null;
@@ -349,7 +354,23 @@ function faceOf(edit: VideoEdit): Face {
   return { file: null, box: null, size };
 }
 
-/** Short `n` (1-based): the Long props cut down to its span, times from its start. */
+/**
+ * What Short `short` plays of the cut file (the long cut's timeline), in order: its span, with
+ * the pauses the Short knobs cut (`shortCutsOver`) taken out.
+ */
+export function shortSegments(edit: VideoEdit, short: Short): Span[] {
+  const d = edit.tracks.main.durationS;
+  const keep = keepSegments(edit.cuts, d, FPS);
+  const tight = keepSegments(shortCutsOver(edit.cuts, edit.shortCuts ?? []), d, FPS);
+  return tight.flatMap((k) => {
+    const s = Math.max(k.s, short.from);
+    const e = Math.min(k.e, short.to);
+    const from = toCutTime(s, keep);
+    return e - s < 1 / FPS || from === null ? [] : [{ s: from, e: from + e - s }];
+  });
+}
+
+/** Short `n` (1-based): the Long props cut down to its span (`shortSegments`), times from its start. */
 export function shortProps(
   edit: VideoEdit,
   n: number,
@@ -361,63 +382,76 @@ export function shortProps(
   const { cam: _c, raw, ...long } = longBase(edit, mattes);
   const face = faceOf(edit);
   const crop = shortCrop(edit.crops, n);
-  const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
-  const start = onCut(short.from, keep);
-  const end = onCut(short.to, keep);
+  const segs = shortSegments(edit, short);
+  const start = segs[0]?.s ?? 0;
+  const end = segs.at(-1)?.e ?? start;
+  /** A time on the cut file, on the Short's own clock; in a pause it cut: where it plays on. */
+  const at = (t: number) => onCut(t, segs);
+  const length = segs.reduce((n, g) => n + g.e - g.s, 0);
   const r = (x: number) => Math.round(x * 1000) / 1000;
   // By their middles, like `sentences.ts` snaps them: a word Whisper overlaps into the edge.
-  const inside = long.words.flatMap((w, j) => {
-    const mid = (w.s + w.e) / 2;
-    return mid >= start && mid < end ? [j] : [];
-  });
+  const inside = long.words.flatMap((w, j) =>
+    toCutTime((w.s + w.e) / 2, segs) === null ? [] : [j],
+  );
   const last = inside.length - 1;
+  const span = <T extends { from: number; to: number }>(x: T): T => ({
+    ...x,
+    from: r(at(Math.max(start, x.from))),
+    to: r(at(Math.min(end, x.to))),
+  });
+  const touches = (x: { from: number; to: number }) => x.to > start && x.from < end;
+  // A matte plays its own file from its first frame, so a word behind stays only when no pause
+  // was cut out of it.
+  const whole = (s: number, e: number) => {
+    const a = toCutTime(s, segs);
+    return a !== null && toCutTime(e, segs) !== null && Math.abs(at(e) - a - (e - s)) < 1e-6;
+  };
+  const layout = long.layout.filter(touches).map(span);
+  const segments = segs.map((g) => ({
+    from: Math.round(g.s * FPS),
+    frames: Math.round((g.e - g.s) * FPS),
+  }));
   return {
     ...long,
     face,
     crop,
-    startFrame: Math.round(start * FPS),
-    durationInFrames: Math.max(1, Math.round((end - start) * FPS)),
+    startFrame: segments[0]?.from ?? 0,
+    segments,
+    durationInFrames: Math.max(
+      1,
+      segments.reduce((n, g) => n + g.frames, 0),
+    ),
     words: inside.map((j, k) => {
       const w = long.words[j] as Word;
       return {
         ...w,
         w: k === last ? closed(k === 0 ? opened(w.w) : w.w) : k === 0 ? opened(w.w) : w.w,
-        s: r(Math.max(w.s, start) - start),
-        e: r(Math.min(w.e, end) - start),
+        s: r(at(Math.max(w.s, start))),
+        e: r(at(Math.min(w.e, end))),
       };
     }),
     stress: inside.flatMap((j, k) => (long.stress.includes(j) ? [k] : [])),
     behind: shortBehind(
       raw
-        .filter((b) => b.s >= start && b.to <= end)
+        .filter((b) => b.s >= start && b.to <= end && whole(b.s, b.to))
         .map((b) => ({
           ...b,
-          s: r(b.s - start),
-          e: r(b.e - start),
-          to: r(b.to - start),
-          matte: { ...b.matte, fromFrame: b.matte.fromFrame - Math.round(start * FPS) },
+          s: r(at(b.s)),
+          e: r(at(b.e)),
+          to: r(at(b.to)),
+          matte: { ...b.matte, fromFrame: b.matte.fromFrame + Math.round((at(b.s) - b.s) * FPS) },
         })),
       face,
       crop,
       long.main,
-      long.layout
-        .filter((l) => l.to > start && l.from < end)
-        .map((l) => ({ ...l, from: Math.max(0, l.from - start), to: l.to - start })),
+      layout,
       `short-${n}`,
       o.skip,
     ),
-    layout: long.layout
-      .filter((l) => l.to > start && l.from < end)
-      .map((l) => ({ ...l, from: r(Math.max(0, l.from - start)), to: r(l.to - start) })),
-    overlays: long.overlays
-      .filter((x) => x.to > start && x.from < end)
-      .map((x) => ({
-        ...x,
-        from: r(Math.max(0, x.from - start)),
-        to: r(Math.min(end, x.to) - start),
-      })),
+    layout,
+    overlays: long.overlays.filter((x) => x.to > start && x.from < end).map(span),
     title: short.title,
-    card: cardOf(short, end - start),
+    card: cardOf(short, length),
   };
 }
 
