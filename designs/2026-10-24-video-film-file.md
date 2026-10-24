@@ -69,19 +69,21 @@ Use in renders:
 - Long videos get fewer: no swish on plain cuts.
 
 Built (2026-10-24, wa-qtyo.3). What changed from the plan, and why:
-- Kit: 21 CC0 files in `packages/studio/sfx/`. 16 from Kenney (Interface Sounds, UI Audio, Impact Sounds): clicks, keys, pops, dings, an error, a glitch, two hits. 5 made by `sfx/build.sh` with ffmpeg from seeded noise and sines: a swish, two whooshes, a riser, a boom. `build.sh` rebuilds every file from the packs.
-- Wav only, no mp3. Remotion and OpenFilm play wav, and one copy keeps the manifest simple.
-- Peak at -6 dBFS, not `loudnorm`. Loudness is wrong for 50 ms clicks. The mix level is the sound's `gainDb` (`GAIN_DB` per kind in `sounds.ts`), and the whole render is levelled to -14 LUFS after.
-- No paper, camera or typing-bed sounds and no music beds yet. Each needs a source William picks: `sfx/PICK.md`.
-- Beds and every non-CC0 file go to the media bucket at `sfx/<id>.wav`, an entry with `where: "bucket"` in `kit.json`. `wren video sfx add` puts one there, `sfx pull` brings them to the Mac cache. `kit.json` refuses a non-CC0 entry in the repo.
+- Kit (replaced 10-24, William did not like the first kit): the effects are uisfx (npm `uisfx` 0.4.0, CC0 audio, github.com/romainsimon/uisfx). It is a dependency of `@wren/studio`; no sound file sits in the repo. It has 12 styles with the same 78 cues each. A sound id is `<style>/<cue>` (`studio/press`), its file `sfx/<style>/<cue>.ogg`. Hear them at uisfx.com.
+- The rules and promos play one style, `STYLE` in `sounds.ts` (now `studio`, "editing precision, cinematic restraint"). To change it is one line. Cue picks: press on a click, typing on a key, open on an overlay, swipe on a layout change, start under a Short's card. Promos: swipe, back, forward on cuts, notification on a toast, success on the numbers, complete on the end card. These are picks by name, not by ear: William checks them in a render.
+- No pack checked for this fits video editing (whooshes, risers, impacts). uisfx is a product UI pack; swipe and open stand in for transitions. Better transitions need a source William picks.
+- Ogg, not wav, as uisfx ships it. Remotion and the OpenFilm reader take it.
+- Levels: an effect plays at its cue's uisfx volume (0.065 to 0.26; files peak near -7.5 dBFS), plus its own `gainDb`. The bed is at `BED_DB` (-16). The whole render is levelled to -14 LUFS after.
+- No music beds yet. uisfx has none.
+- Beds go to the media bucket at `sfx/bed-<name>.wav`, each an entry in `sfx/kit.json` `beds` with `where: "bucket"`. `wren video sfx add` puts one there, `sfx pull` brings them to the Mac cache.
 - Key taps are one per key press (at most one per 70 ms), not a typing bed. A bed would play over pauses in his typing.
 - Shorts get no swish on plain cuts either. A swish plays on layout changes alone.
-- Commands: `wren video sounds <id>` writes the rules' sounds (refused where he locked `sounds`), `wren video music <id> <kit id|none>`, `wren video sfx list|pull|add`. `wren video set` sets and locks `sounds` and `music` like any part.
+- Commands: `wren video sounds <id>` writes the rules' sounds (refused where he locked `sounds`), `wren video music <id> <bed id|none>`, `wren video sfx list|pull|add`. `wren video set` sets and locks `sounds` and `music` like any part.
 - The film file lays each sound as an `<audio>` clip on a "sound" track. OpenFilm has no loop, so the bed is one clip per pass of its file. The duck is in the render only.
 - Cap events: `capEvents` reads each segment's `cursor.json` clicks and `keyboard.bin` (bincode) or `keyboard.json` presses, moved onto the joined file. Modifier keys make no sound.
-- The edit pass (`video ask`, the page's Change) knows `sounds` and `music`: the kit ids, the rules, and the edit's sounds now. `KIT_IDS` in `sounds.ts` lists the repo kit for it (a test holds it equal to `kit.json`). Every patch refuses an id whose kind is not a kit kind; an id not in the kit is refused at render.
-- Promos get sound too. A swish or whoosh on each cut by its entrance, a pop on each toast, a ding as the numbers start, a hit on the end card. `music` takes a kit id or his own file; `sounds: false` turns the effects off. The bed sits at -8 dB, higher than under speech.
-- The kit is read from the package folder the CLI names, not beside the bundled code. A real promo render found that bug.
+- The edit pass (`video ask`, the page's Change) knows `sounds` and `music`: the styles, the cues, the rules, and the edit's sounds now. `CUES` and `STYLES` in `sounds.ts` list them for it (a test holds them equal to the uisfx manifest). Every patch refuses an id that is not a style and a cue; a bed not in `kit.json` is refused at render.
+- Promos get sound too. A sound on each cut by its entrance, on each toast, as the numbers start and on the end card. `music` takes a bed id or his own file; `sounds: false` turns the effects off. The bed sits at -8 dB, higher than under speech.
+- The kit is read from the studio package folder the CLI names (uisfx resolves from there), not beside the bundled code. A real promo render found that bug.
 
 ## Decision 5: Studio and content stories
 

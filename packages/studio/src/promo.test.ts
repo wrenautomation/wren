@@ -69,16 +69,16 @@ describe("promo script", () => {
 });
 
 describe("promo sound", () => {
-  it("puts a swish on each cut, a pop on each toast, a ding on the numbers, a hit on the end", () => {
+  it("puts a swipe on each cut, a notification on each toast, a success on the numbers, a complete on the end", () => {
     const p = promoProps(script);
     expect(p.audio.sounds.map((s) => [s.from, s.file])).toEqual([
-      [114, "sfx/swish-1.wav"],
-      [118, "sfx/pop-1.wav"],
-      [134, "sfx/pop-1.wav"],
-      [225, "sfx/swish-1.wav"],
-      [345, "sfx/swish-1.wav"],
-      [353, "sfx/ding-1.wav"],
-      [441, "sfx/hit-1.wav"],
+      [114, "sfx/studio/swipe.ogg"],
+      [118, "sfx/studio/notification.ogg"],
+      [134, "sfx/studio/notification.ogg"],
+      [225, "sfx/studio/swipe.ogg"],
+      [345, "sfx/studio/swipe.ogg"],
+      [353, "sfx/studio/success.ogg"],
+      [441, "sfx/studio/complete.ogg"],
     ]);
     expect(p.audio.music).toBeNull();
   });

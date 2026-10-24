@@ -1,81 +1,93 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { audioIds, KIT_DIR, kitPath, loadKit, stageSounds } from "./kit.js";
-import { GAIN_DB, KIT_IDS, kindOf, SOUND_RULES, soundFile, soundsSchema } from "./sounds.js";
+import { audioIds, loadBeds, stageSounds, uisfxDir, unknownSounds } from "./kit.js";
+import { CUES, musicSchema, SOUND_RULES, STYLES, soundFile, soundsSchema } from "./sounds.js";
+
+const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
+const manifest = JSON.parse(readFileSync(join(uisfxDir(pkgDir), "manifest.json"), "utf8")) as {
+  license: { audio: string };
+  packs: { name: string }[];
+  assets: { pack: string; cue: string; defaultVolume: number }[];
+};
 
 describe("the sound kit", () => {
-  it("has every repo file it names, each a 48 kHz mono wav", async () => {
-    const kit = await loadKit();
-    expect(kit.length).toBeGreaterThan(0);
-    for (const e of kit.filter((k) => k.where !== "bucket")) {
-      expect(existsSync(kitPath(e)), e.id).toBe(true);
-      const b = readFileSync(kitPath(e));
-      expect(b.toString("ascii", 0, 4)).toBe("RIFF");
-      expect(b.readUInt16LE(22), `${e.id} channels`).toBe(1);
-      expect(b.readUInt32LE(24), `${e.id} rate`).toBe(48000);
-      expect(kindOf(e.id)).toBe(e.kind);
-      expect(GAIN_DB[e.kind]).toBeDefined();
-    }
+  it("is uisfx: CC0 audio, the same styles and cues and volumes as its manifest", () => {
+    expect(manifest.license.audio).toBe("CC0-1.0");
+    expect([...STYLES]).toEqual(manifest.packs.map((p) => p.name));
+    for (const a of manifest.assets)
+      expect(CUES[a.cue as keyof typeof CUES], a.cue).toBe(a.defaultVolume);
+    expect(Object.keys(CUES).length * STYLES.length).toBe(manifest.assets.length);
   });
 
-  it("lists the repo kit's ids for the edit pass, the same as kit.json", async () => {
-    const repo = (await loadKit()).filter((e) => e.where !== "bucket").map((e) => e.id);
-    expect([...KIT_IDS].sort()).toEqual(repo.sort());
+  it("has the file each rule plays", () => {
+    for (const r of SOUND_RULES)
+      expect(existsSync(join(uisfxDir(pkgDir), "sounds", `${r.id}.ogg`)), r.id).toBe(true);
   });
 
-  it("refuses an id of no kind, and stages only kit files", () => {
-    expect(soundsSchema.safeParse([{ at: 1, id: "zap-1" }]).success).toBe(false);
-    expect(soundsSchema.safeParse([{ at: 1, id: "click-9" }]).success).toBe(true);
+  it("takes <style>/<cue> effects and bed- beds, and stages only kit files", () => {
+    expect(soundsSchema.safeParse([{ at: 1, id: "studio/press" }]).success).toBe(true);
+    expect(soundsSchema.safeParse([{ at: 1, id: "cinematic/toggle-on" }]).success).toBe(true);
+    for (const id of ["click-1", "studio/zap", "loud/press", "studio/press.ogg"])
+      expect(soundsSchema.safeParse([{ at: 1, id }]).success, id).toBe(false);
+    expect(musicSchema.safeParse({ id: "bed-calm" }).success).toBe(true);
+    expect(musicSchema.safeParse({ id: "studio/press" }).success).toBe(false);
+    expect(soundFile("studio/press")).toBe("sfx/studio/press.ogg");
+    expect(soundFile("bed-calm")).toBe("sfx/bed-calm.wav");
     expect(
       audioIds({
-        sounds: [{ file: "sfx/pop-1.wav", from: 0, volume: 1 }],
+        sounds: [{ file: "sfx/studio/open.ogg", from: 0, volume: 1 }],
         music: { file: "track.mp3", volume: 1, duck: [], duckDb: 0 },
       }),
-    ).toEqual(["pop-1"]);
-  });
-
-  it("has the sound each rule plays", async () => {
-    const ids = new Set((await loadKit()).map((e) => e.id));
-    for (const r of SOUND_RULES) expect(ids.has(r.id), r.id).toBe(true);
+    ).toEqual(["studio/open"]);
+    expect(unknownSounds([], ["studio/press", "bed-calm", "click-1"])).toEqual([
+      "bed-calm",
+      "click-1",
+    ]);
   });
 
   it("copies the sounds an output plays into the public dir, and refuses one it lacks", async () => {
     const dir = mkdtempSync(join(tmpdir(), "kit-"));
     const ids = audioIds({
       sounds: [
-        { file: soundFile("click-1"), from: 0, volume: 1 },
-        { file: soundFile("click-1"), from: 9, volume: 1 },
+        { file: soundFile("studio/press"), from: 0, volume: 1 },
+        { file: soundFile("studio/press"), from: 9, volume: 1 },
       ],
       music: null,
     });
-    expect(await stageSounds(dir, ids)).toBe(1);
-    expect(existsSync(join(dir, "sfx/click-1.wav"))).toBe(true);
-    await expect(stageSounds(dir, ["click-404"])).rejects.toThrow(/not in the sound kit/);
+    expect(await stageSounds(dir, ids, { pkgDir })).toBe(1);
+    expect(existsSync(join(dir, "sfx/studio/press.ogg"))).toBe(true);
+    await expect(stageSounds(dir, ["studio/zap"], { pkgDir })).rejects.toThrow(
+      /not in the sound kit/,
+    );
   });
 
-  it("refuses a bucket sound not pulled, and a non-CC0 file in the repo", async () => {
+  it("refuses a bed not pulled, and a bed out of the bucket", async () => {
     const kitDir = mkdtempSync(join(tmpdir(), "kit-"));
-    const entry = {
+    mkdirSync(join(kitDir, "sfx"));
+    writeFileSync(join(kitDir, "package.json"), "{}");
+    const bed = {
       id: "bed-calm",
       file: "bed-calm.wav",
-      kind: "bed",
       tags: [],
       durationS: 60,
       licence: "Pixabay",
       source: "pixabay:1",
     };
-    writeFileSync(join(kitDir, "kit.json"), JSON.stringify({ sounds: [entry] }));
-    await expect(loadKit(kitDir)).rejects.toThrow(/only CC0/);
+    writeFileSync(join(kitDir, "sfx/kit.json"), JSON.stringify({ beds: [bed] }));
+    await expect(loadBeds(kitDir)).rejects.toThrow();
     writeFileSync(
-      join(kitDir, "kit.json"),
-      JSON.stringify({ sounds: [{ ...entry, where: "bucket" }] }),
+      join(kitDir, "sfx/kit.json"),
+      JSON.stringify({ beds: [{ ...bed, where: "bucket" }] }),
     );
     const cache = join(kitDir, "cache");
     mkdirSync(cache);
     const dir = mkdtempSync(join(tmpdir(), "kit-"));
-    await expect(stageSounds(dir, ["bed-calm"], { kitDir, cache })).rejects.toThrow(/sfx pull/);
-    expect(KIT_DIR).toMatch(/sfx$/);
+    await expect(stageSounds(dir, ["bed-calm"], { pkgDir: kitDir, cache })).rejects.toThrow(
+      /sfx pull/,
+    );
+    expect(await loadBeds(pkgDir)).toEqual([]);
   });
 });

@@ -39,7 +39,7 @@ export const filmAssets = (
 ) => ({
   main: `assets/main${extname(e.tracks.main.path) || ".mp4"}`,
   cam: e.tracks.cam ? `assets/cam${extname(e.tracks.cam.path) || ".mp4"}` : null,
-  /** The kit sounds it plays, each at `sfx/<id>.wav` (`stageSounds` copies them in). */
+  /** The kit sounds it plays, each at `soundFile(id)` (`stageSounds` copies them in). */
   sounds: [...new Set([...(e.sounds ?? []).map((x) => x.id), ...(e.music ? [e.music.id] : [])])],
 });
 

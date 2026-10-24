@@ -69,7 +69,7 @@ Skipped: shape morphs (Reshape). Our scenes are type and screenshots, with no ve
 - **Hand-edited in an editor:** not repeatable per client or per feature.
 - **The demo walk recorder:** it films a live session; a promo is a cut of stills and type, faster
   to change and to render.
-- **Voice or music generation:** music is a kit bed, his file or none; voice is out until he wants one. Kit sounds on the scenes: `designs/2026-10-24-video-film-file.md` Decision 4.
+- **Voice or music generation:** music is a bed from the kit, his file or none; voice is out until he wants one. Kit sounds on the scenes: `designs/2026-10-24-video-film-file.md` Decision 4.
 
 ## Code
 

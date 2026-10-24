@@ -54,13 +54,12 @@ async function withBundle<T>(
   }
 }
 
-/** Copy the kit sounds every output of `props` plays into the public dir. */
-/** The sounds the props play, from the kit in `pkgDir` (a bundled CLI's own dir has none). */
+/** Copy the kit sounds every output of `props` plays into the public dir, from the kit in `pkgDir`. */
 const stageAll = (pkgDir: string, dir: string, props: Iterable<{ audio?: LongProps["audio"] }>) =>
   stageSounds(
     dir,
     [...props].flatMap((p) => audioIds(p.audio)),
-    { kitDir: join(pkgDir, "sfx") },
+    { pkgDir },
   );
 
 const jobProps = (job: Omit<RenderJob, "thumbnails">) => [

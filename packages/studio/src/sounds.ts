@@ -9,56 +9,126 @@
 import { z } from "zod";
 import type { LayoutRange, Short, Word } from "./schema.js";
 
-/** What a kit sound is for; a kit id is `<kind>-<n>`. */
-export const SOUND_KINDS = [
-  "click",
-  "key",
-  "pop",
-  "ding",
-  "error",
-  "glitch",
-  "hit",
-  "swish",
-  "whoosh",
-  "riser",
-  "boom",
-  "bed",
+/**
+ * The effects are uisfx (npm `uisfx`, CC0 audio): 12 styles, each with the same 78 cues. A sound id
+ * is `<style>/<cue>` (`studio/press`), its file `sfx/<style>/<cue>.ogg`. `kit.ts` copies the files
+ * in from the package.
+ */
+export const STYLES = [
+  "minimal",
+  "soft",
+  "glass",
+  "arcade",
+  "mechanical",
+  "organic",
+  "dreamy",
+  "scifi",
+  "rubber",
+  "cinematic",
+  "studio",
+  "zen",
 ] as const;
-export type SoundKind = (typeof SOUND_KINDS)[number];
+export type Style = (typeof STYLES)[number];
+/** The style the rules and promos play. One line to change it for every new edit. */
+export const STYLE: Style = "studio";
 
 /**
- * The ids in the repo's kit (`sfx/kit.json`; `kit.test.ts` holds them equal), for the edit pass
- * prompt, which runs where the files are not. Bucket sounds are checked at render.
+ * Each cue and its volume (0 to 1), from the uisfx manifest: the same cue has the same volume in
+ * every style. `kit.test.ts` holds this equal to the manifest; the edit pass reads it where the
+ * package is not.
  */
-export const KIT_IDS = [
-  "boom-1",
-  "click-1",
-  "click-2",
-  "click-3",
-  "ding-1",
-  "ding-2",
-  "ding-3",
-  "error-1",
-  "glitch-1",
-  "hit-1",
-  "hit-2",
-  "key-1",
-  "key-2",
-  "key-3",
-  "pop-1",
-  "pop-2",
-  "pop-3",
-  "riser-1",
-  "swish-1",
-  "whoosh-1",
-  "whoosh-2",
-] as const;
+export const CUES = {
+  hover: 0.12,
+  press: 0.2,
+  release: 0.18,
+  "double-click": 0.2,
+  focus: 0.12,
+  "long-press": 0.18,
+  select: 0.2,
+  deselect: 0.17,
+  "toggle-on": 0.2,
+  "toggle-off": 0.18,
+  check: 0.17,
+  uncheck: 0.15,
+  delete: 0.22,
+  cancel: 0.17,
+  undo: 0.18,
+  redo: 0.18,
+  copy: 0.15,
+  paste: 0.17,
+  open: 0.18,
+  close: 0.17,
+  back: 0.17,
+  forward: 0.17,
+  expand: 0.16,
+  collapse: 0.15,
+  "drag-start": 0.18,
+  drop: 0.22,
+  snap: 0.2,
+  swipe: 0.14,
+  reorder: 0.18,
+  "invalid-drop": 0.19,
+  send: 0.2,
+  receive: 0.2,
+  notification: 0.2,
+  mention: 0.22,
+  typing: 0.065,
+  reaction: 0.17,
+  success: 0.23,
+  error: 0.22,
+  warning: 0.22,
+  info: 0.16,
+  blocked: 0.2,
+  retry: 0.18,
+  start: 0.19,
+  stop: 0.19,
+  "progress-step": 0.12,
+  complete: 0.24,
+  queued: 0.14,
+  checkpoint: 0.18,
+  loading: 0.1,
+  processing: 0.08,
+  recording: 0.09,
+  connecting: 0.09,
+  scanning: 0.075,
+  streaming: 0.07,
+  play: 0.18,
+  pause: 0.17,
+  seek: 0.13,
+  "volume-change": 0.11,
+  "skip-next": 0.16,
+  "skip-previous": 0.16,
+  connect: 0.2,
+  disconnect: 0.19,
+  lock: 0.2,
+  unlock: 0.2,
+  wake: 0.17,
+  sleep: 0.15,
+  reward: 0.22,
+  "level-up": 0.25,
+  achievement: 0.26,
+  streak: 0.21,
+  badge: 0.22,
+  bonus: 0.24,
+  "add-to-cart": 0.19,
+  "remove-from-cart": 0.17,
+  checkout: 0.2,
+  purchase: 0.22,
+  coupon: 0.18,
+  refund: 0.2,
+} as const;
+export type Cue = keyof typeof CUES;
 
-/** A kit id: a kind, a dash, a number or name (`click-1`, `bed-calm`). */
-export const SOUND_ID = /^[a-z]+-[a-z0-9-]+$/;
-/** Where a kit sound is in the public dir: every kit file is `sfx/<id>.wav`. */
-export const soundFile = (id: string) => `sfx/${id}.wav`;
-export const kindOf = (id: string) => id.split("-")[0] as SoundKind;
+/** An effect id, `<style>/<cue>`; or a music bed, `bed-<name>` (the media bucket, `sfx/kit.json`). */
+export const EFFECT_ID = /^([a-z]+)\/([a-z0-9-]+)$/;
+export const BED_ID = /^bed-[a-z0-9-]+$/;
+const cueOf = (id: string) => EFFECT_ID.exec(id)?.[2] as Cue | undefined;
+export const isEffect = (id: string) => {
+  const m = EFFECT_ID.exec(id);
+  return !!m && (STYLES as readonly string[]).includes(m[1] as string) && (m[2] as string) in CUES;
+};
+/** Where a sound is in the public dir: `sfx/<style>/<cue>.ogg`, or `sfx/<bed>.wav`. */
+export const soundFile = (id: string) => `sfx/${id}.${BED_ID.test(id) ? "wav" : "ogg"}`;
 
 /** One sound at a moment. `only`: in the long video or the Shorts alone; unset: both. */
 export interface Sound {
@@ -75,42 +145,25 @@ export interface Music {
 }
 
 /**
- * Mix levels in dB on files that peak at -6 dBFS (`sfx/build.sh`), with the voice at -14 LUFS:
- * effects near -24 LUFS, the bed near -30 and `DUCK.db` lower under speech. Ear-tuned; a sound's
- * own `gainDb` wins.
+ * Mix levels, with the voice at -14 LUFS: an effect plays at its cue's volume (uisfx files peak
+ * near -7.5 dBFS), plus its own `gainDb`. The bed sits at `BED_DB` and `DUCK.db` lower under speech.
  */
-export const GAIN_DB: Record<SoundKind, number> = {
-  click: -12,
-  key: -18,
-  pop: -14,
-  ding: -14,
-  error: -14,
-  glitch: -16,
-  hit: -12,
-  swish: -16,
-  whoosh: -16,
-  riser: -18,
-  boom: -10,
-  bed: -16,
-};
+export const BED_DB = -16;
+export const effectVolume = (id: string, gainDb = 0) =>
+  (CUES[cueOf(id) as Cue] ?? 0.2) * dbToGain(gainDb);
 /** Speech closer than `joinS` is one stretch; the bed falls over `attackS`, comes back over `releaseS`. */
 export const DUCK = { db: 8, joinS: 0.6, attackS: 0.15, releaseS: 0.5 } as const;
 
 const sec = z.number().min(0);
 const gain = z.number().min(-60).max(12);
-const kitId = (like: string) =>
-  z
-    .string()
-    .regex(SOUND_ID, `a kit id like ${like}`)
-    .refine((id) => (SOUND_KINDS as readonly string[]).includes(kindOf(id)), {
-      message: `a kit id starts with a kind: ${SOUND_KINDS.join(", ")}`,
-    });
 export const soundsSchema = z
   .array(
     z
       .object({
         at: sec,
-        id: kitId("click-1"),
+        id: z.string().refine(isEffect, {
+          message: `a sound id <style>/<cue>, like ${STYLE}/press; style one of ${STYLES.join(", ")}`,
+        }),
         gainDb: gain.optional(),
         only: z.enum(["long", "short"]).optional(),
       })
@@ -119,7 +172,7 @@ export const soundsSchema = z
   .max(2000);
 export const musicSchema = z
   .object({
-    id: kitId("bed-calm"),
+    id: z.string().regex(BED_ID, "a bed id like bed-calm"),
     gainDb: gain.optional(),
     duck: z.boolean().optional(),
   })
@@ -140,11 +193,24 @@ export interface RecordingEvents {
  * remove; his `wren video set` of `sounds` locks them.
  */
 export const SOUND_RULES = [
-  { on: "click", id: "click-1", says: "a click on each mouse click (Cap)" },
-  { on: "key", id: "key-1", says: "a key tap on each key press (Cap), at most one per 70 ms" },
-  { on: "overlay", id: "pop-1", says: "a pop as each text overlay comes in" },
-  { on: "layout", id: "swish-1", says: "a swish on each layout change (corner, cam, screen)" },
-  { on: "card", id: "boom-1", says: "a low boom under each Short's title card", only: "short" },
+  { on: "click", id: `${STYLE}/press`, says: "a press on each mouse click (Cap)" },
+  {
+    on: "key",
+    id: `${STYLE}/typing`,
+    says: "a key tap on each key press (Cap), at most one per 70 ms",
+  },
+  { on: "overlay", id: `${STYLE}/open`, says: "an open as each text overlay comes in" },
+  {
+    on: "layout",
+    id: `${STYLE}/swipe`,
+    says: "a swipe on each layout change (corner, cam, screen)",
+  },
+  {
+    on: "card",
+    id: `${STYLE}/start`,
+    says: "a start under each Short's title card",
+    only: "short",
+  },
 ] as const satisfies readonly { on: string; id: string; says: string; only?: "short" | "long" }[];
 
 /** Key taps closer than this are one: fast typing would be a buzz. */
@@ -221,15 +287,15 @@ export function audioOn(
     if (s.only && s.only !== o.which) return [];
     const t = o.clock(s.at);
     if (t === null || t >= o.durationS) return [];
-    const db = s.gainDb ?? GAIN_DB[kindOf(s.id)] ?? -16;
-    return [{ file: soundFile(s.id), from: Math.round(t * o.fps), volume: r3(dbToGain(db)) }];
+    const volume = r3(effectVolume(s.id, s.gainDb));
+    return [{ file: soundFile(s.id), from: Math.round(t * o.fps), volume }];
   });
   return {
     sounds: placed.sort((a, b) => a.from - b.from),
     music: music
       ? {
           file: soundFile(music.id),
-          volume: r3(dbToGain(music.gainDb ?? GAIN_DB.bed)),
+          volume: r3(dbToGain(music.gainDb ?? BED_DB)),
           duck: music.duck === false ? [] : speech(o.words),
           duckDb: DUCK.db,
         }

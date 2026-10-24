@@ -27,9 +27,11 @@ import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   addVideo,
   autoSounds,
+  bedPath,
   CAPTION_STYLES,
   CROPPED,
   type CroppedFormat,
+  CUES,
   CUT_HASH,
   capEvents,
   capProjectOf,
@@ -60,10 +62,9 @@ import {
   KIT_CACHE,
   keepCut,
   keepSegments,
-  kitPath,
   LOOK_PROVIDERS,
   type Looker,
-  loadKit,
+  loadBeds,
   longFilm,
   longProps,
   longSrt,
@@ -88,6 +89,8 @@ import {
   renderStills,
   reviewCuts,
   SOUND_RULES,
+  STYLE,
+  STYLES,
   setCutKnobs,
   setEdit,
   setFiles,
@@ -110,7 +113,6 @@ import {
   twelvelabsFind,
   twelvelabsLooker,
   twelvelabsMinutes,
-  unknownSounds,
   unpunctuated,
   VIDEO_CHECK,
   type VideoEdit,
@@ -196,7 +198,6 @@ export function registerStudio(
   // The code, not the data: bin/wren sets WREN_ROOT to the checkout it runs from.
   const studioDir = join(process.env.WREN_ROOT ?? rootDir, "packages/studio");
   // The kit beside the package's source: the bundled CLI's own folder has none.
-  const kitDir = join(studioDir, "sfx");
 
   video
     .command("add <input>")
@@ -402,7 +403,9 @@ export function registerStudio(
         const e = await getEdit(db, id(v));
         const n = o.short === undefined ? null : Number(o.short);
         const out = resolve(o.out ?? join(e.dir, n === null ? "film" : `film-short-${n}`));
-        const bed = e.music ? (await loadKit(kitDir)).find((k) => k.id === e.music?.id) : undefined;
+        const bed = e.music
+          ? (await loadBeds(studioDir)).find((k) => k.id === e.music?.id)
+          : undefined;
         const fo = { bedS: bed?.durationS };
         const files = n === null ? longFilm(e, fo) : shortFilm(e, n, fo);
         for (const [path, text] of Object.entries(files)) {
@@ -418,7 +421,7 @@ export function registerStudio(
           await rm(join(out, path), { force: true });
           await symlink(resolve(from), join(out, path));
         }
-        await stageSounds(out, assets.sounds, { kitDir });
+        await stageSounds(out, assets.sounds, { pkgDir: studioDir });
         console.log(`${out}/film.html (open it: npx -y openfilm@latest open ${out})`);
       }),
     );
@@ -715,15 +718,15 @@ export function registerStudio(
 
   video
     .command("music <id> <sound>")
-    .description("the music bed: a kit id (wren video sfx list, kind bed), or none")
+    .description("the music bed: a bed id (wren video sfx list), or none")
     .option("--gain <db>", "the bed's level in dB (default -16)", Number)
     .option("--no-duck", "keep the bed level under speech")
     .action((v: string, sound: string, o: { gain?: number; duck: boolean }) =>
       withDb(async (db) => {
         let music = null;
         if (sound !== "none") {
-          const missing = unknownSounds(await loadKit(kitDir), [sound]);
-          if (missing.length) throw new Error(`${sound} is not in the sound kit`);
+          if (!(await loadBeds(studioDir)).some((b) => b.id === sound))
+            throw new Error(`${sound} is not a bed in the sound kit`);
           music = {
             id: sound,
             ...(o.gain !== undefined ? { gainDb: o.gain } : {}),
@@ -738,7 +741,7 @@ export function registerStudio(
   const sfx = video
     .command("sfx")
     .description(
-      "the sound kit: CC0 files in packages/studio/sfx, other licences in the media bucket",
+      "the sound kit: uisfx effects (CC0, npm), music beds in the media bucket (sfx/kit.json)",
     );
   const bucketOf = () => {
     if (!settings.mediaBucket) throw new Error("no media bucket set (WREN_MEDIA_BUCKET)");
@@ -746,13 +749,14 @@ export function registerStudio(
   };
   sfx
     .command("list")
-    .description("every kit sound: id, kind, length, licence, and whether it is on this Mac")
+    .description("the effect styles and cues (hear them at uisfx.com), and every bed")
     .action(async () => {
-      for (const e of await loadKit(kitDir)) {
-        const here = existsSync(kitPath(e, kitDir)) ? "" : "  (not pulled)";
-        console.log(
-          `${e.id}\t${e.kind}\t${e.durationS}s\t${e.licence}\t${e.tags.join(",")}${here}`,
-        );
+      console.log(`effects: <style>/<cue>, default style ${STYLE}`);
+      console.log(`styles: ${STYLES.join(", ")}`);
+      console.log(`cues: ${Object.keys(CUES).join(", ")}`);
+      for (const e of await loadBeds(studioDir)) {
+        const here = existsSync(bedPath(e)) ? "" : "  (not pulled)";
+        console.log(`${e.id}\t${e.durationS}s\t${e.licence}\t${e.tags.join(",")}${here}`);
       }
     });
   sfx
@@ -760,24 +764,24 @@ export function registerStudio(
     .description(`the kit's bucket sounds into ${KIT_CACHE}`)
     .action(async () => {
       await mkdir(KIT_CACHE, { recursive: true });
-      const want = (await loadKit(kitDir)).filter(
-        (e) => e.where === "bucket" && !existsSync(kitPath(e, kitDir)),
-      );
-      for (const e of want) await getKey(`sfx/${e.file}`, kitPath(e, kitDir), bucketOf());
+      const want = (await loadBeds(studioDir)).filter((e) => !existsSync(bedPath(e)));
+      for (const e of want) await getKey(`sfx/${e.file}`, bedPath(e), bucketOf());
       console.log(`sfx: ${want.length} pulled`);
     });
   sfx
     .command("add <file>")
     .description(
-      "put a non-CC0 sound (a music bed, a licensed pack) in the bucket: a mono 48 kHz wav named <id>.wav; then add its entry to sfx/kit.json with where: bucket",
+      "put a music bed in the bucket: a 48 kHz wav named bed-<name>.wav; then add its entry to sfx/kit.json beds",
     )
     .action(async (file: string) => {
       const name = basename(file);
-      if (!/^[a-z]+-[a-z0-9-]+\.wav$/.test(name)) throw new Error("name it <kind>-<name>.wav");
+      if (!/^bed-[a-z0-9-]+\.wav$/.test(name)) throw new Error("name it bed-<name>.wav");
       const at = await putKey(file, `sfx/${name}`, bucketOf());
       await mkdir(KIT_CACHE, { recursive: true });
       await copyFile(file, join(KIT_CACHE, name));
-      console.log(`${at}: add {"id":"${name.slice(0, -4)}","where":"bucket",...} to sfx/kit.json`);
+      console.log(
+        `${at}: add {"id":"${name.slice(0, -4)}","where":"bucket",...} to sfx/kit.json beds`,
+      );
     });
 
   video

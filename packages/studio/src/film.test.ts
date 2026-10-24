@@ -134,9 +134,9 @@ describe("film", () => {
     const e = {
       ...base(),
       sounds: [
-        { at: 5, id: "pop-1" },
-        { at: 11, id: "click-1" },
-        { at: 14, id: "click-1", only: "short" },
+        { at: 5, id: "studio/open" },
+        { at: 11, id: "studio/press" },
+        { at: 14, id: "studio/press", only: "short" },
       ],
       music: { id: "bed-calm" },
     } as VideoEdit;
@@ -144,7 +144,7 @@ describe("film", () => {
     const audio = [...html.matchAll(/<audio\b[^>]*>/g)].map((m) => m[0]);
     // The click at 11 s is inside the 10-12 cut; the one at 14 is for Shorts only.
     expect(audio).toHaveLength(2);
-    expect(audio[0]).toContain('src="sfx/pop-1.wav" at="5"');
+    expect(audio[0]).toContain('src="sfx/studio/open.ogg" at="5"');
     expect(audio[1]).toContain('id="music-1" src="sfx/bed-calm.wav#t=0,98" at="0"');
     // A 40 s bed under a 98 s film: three passes.
     const passes = (longFilm(e, { bedS: 40 })["film.html"] as string).match(/id="music-\d"[^>]*/g);
@@ -153,10 +153,10 @@ describe("film", () => {
       'id="music-2" src="sfx/bed-calm.wav#t=0,40" at="40" volume="0.158"',
       'id="music-3" src="sfx/bed-calm.wav#t=0,18" at="80" volume="0.158"',
     ]);
-    expect(filmAssets(e).sounds).toEqual(["pop-1", "click-1", "bed-calm"]);
+    expect(filmAssets(e).sounds).toEqual(["studio/open", "studio/press", "bed-calm"]);
     const short = shortFilm(e, 1)["film.html"] as string;
     // Short 1 starts at 20 raw, 18 on the cut: nothing before it plays.
-    expect(short).not.toContain("pop-1");
+    expect(short).not.toContain("studio/open");
   });
 
   it("is a pure function of the row", () => {
@@ -173,7 +173,7 @@ describe("film", () => {
     const e = {
       ...base(),
       locked: ["cuts"],
-      sounds: [{ at: 21, id: "pop-1" }],
+      sounds: [{ at: 21, id: "studio/open" }],
       music: { id: "bed-calm" },
     } as VideoEdit;
     for (const f of [longFilm(e), shortFilm(e, 1), shortFilm(e, 2)]) {

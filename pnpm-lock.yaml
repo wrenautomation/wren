@@ -1777,6 +1777,9 @@ importers:
       remotion:
         specifier: 4.0.533
         version: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      uisfx:
+        specifier: 0.4.0
+        version: 0.4.0
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -9048,6 +9051,9 @@ packages:
   typical@7.3.0:
     resolution: {integrity: sha512-ya4mg/30vm+DOWfBg4YK3j2WD6TWtRkCbasOJr40CseYENzCUby/7rIvXA99JGsQHeNxLbnXdyLLxKSv3tauFw==}
     engines: {node: '>=12.17'}
+
+  uisfx@0.4.0:
+    resolution: {integrity: sha512-W891N75C09cvpaNeChP+7BiP0Yp5VSbrIcRgZvzpFUT3o/2DxZqROmUcX50oxeyMnY4Hqxu4jEfjndVUpmheEQ==}
 
   underscore@1.13.8:
     resolution: {integrity: sha512-DXtD3ZtEQzc7M8m4cXotyHR+FAS18C64asBYY5vqZexfYryNNnDc02W4hKg3rdQuqOYas1jkseX0+nZXjTXnvQ==}
@@ -16492,6 +16498,8 @@ snapshots:
   typical@4.0.0: {}
 
   typical@7.3.0: {}
+
+  uisfx@0.4.0: {}
 
   underscore@1.13.8: {}
 

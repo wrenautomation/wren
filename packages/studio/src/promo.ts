@@ -8,7 +8,7 @@
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import { z } from "zod";
 import { clamp, ENTRANCES, type Entrance, toastAt } from "./promo-clock.js";
-import { type AudioProps, dbToGain, GAIN_DB, kindOf, SOUND_ID, soundFile } from "./sounds.js";
+import { type AudioProps, BED_ID, dbToGain, effectVolume, STYLE, soundFile } from "./sounds.js";
 
 export * from "./promo-clock.js";
 
@@ -178,18 +178,18 @@ export type PromoProps = {
 };
 
 /**
- * A promo's kit sounds, by scene: a sound on each cut to the next scene (`swish` for rise and
- * wipe, `whoosh` for pull-back and flow, a `hit` on the end card), a `pop` on each toast and a
- * `ding` as the numbers start. No voice to duck under.
+ * A promo's kit sounds, by scene: a sound on each cut to the next scene (`swipe` for rise and
+ * wipe, `back` for pull-back, `forward` for flow, `complete` on the end card), a `notification` on
+ * each toast and a `success` as the numbers start. No voice to duck under.
  */
 export const PROMO_SOUNDS = {
-  rise: "swish-1",
-  wipe: "swish-1",
-  "pull-back": "whoosh-1",
-  flow: "whoosh-2",
-  end: "hit-1",
-  toast: "pop-1",
-  stat: "ding-1",
+  rise: `${STYLE}/swipe`,
+  wipe: `${STYLE}/swipe`,
+  "pull-back": `${STYLE}/back`,
+  flow: `${STYLE}/forward`,
+  end: `${STYLE}/complete`,
+  toast: `${STYLE}/notification`,
+  stat: `${STYLE}/success`,
 } as const;
 /** With no voice the bed sits higher than under speech. */
 export const PROMO_BED_DB = -8;
@@ -211,12 +211,12 @@ export function promoSounds(scenes: readonly TimedScene[]): [number, string][] {
 
 /** The promo's sounds and bed as the composition plays them. */
 function promoAudio(music: string | undefined, sounds: [number, string][]): AudioProps {
-  const kit = music !== undefined && SOUND_ID.test(music) && !music.includes(".");
+  const kit = music !== undefined && BED_ID.test(music);
   return {
     sounds: sounds.map(([from, id]) => ({
       file: soundFile(id),
       from,
-      volume: Math.round(dbToGain(GAIN_DB[kindOf(id)]) * 1000) / 1000,
+      volume: Math.round(effectVolume(id) * 1000) / 1000,
     })),
     music:
       music === undefined

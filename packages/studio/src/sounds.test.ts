@@ -18,20 +18,20 @@ describe("automatic sounds", () => {
   it("puts one sound on each rule's moment, in time order", () => {
     const s = autoSounds(edit(), { clicks: [3, 3.01, 7], keys: [8, 8.03, 8.1] });
     expect(s).toEqual([
-      { at: 3, id: "click-1" },
-      { at: 5, id: "pop-1" },
-      { at: 7, id: "click-1" },
-      { at: 8, id: "key-1" },
-      { at: 8.1, id: "key-1" },
-      { at: 10, id: "swish-1" },
-      { at: 20, id: "swish-1" },
-      { at: 30, id: "boom-1", only: "short" },
+      { at: 3, id: "studio/press" },
+      { at: 5, id: "studio/open" },
+      { at: 7, id: "studio/press" },
+      { at: 8, id: "studio/typing" },
+      { at: 8.1, id: "studio/typing" },
+      { at: 10, id: "studio/swipe" },
+      { at: 20, id: "studio/swipe" },
+      { at: 30, id: "studio/start", only: "short" },
     ]);
   });
 
   it("gives a Short with no card no boom", () => {
     const s = autoSounds(edit({ shorts: [{ from: 30, to: 50, title: "A", card: false }] }));
-    expect(s.some((x) => x.id === "boom-1")).toBe(false);
+    expect(s.some((x) => x.id === "studio/start")).toBe(false);
   });
 });
 
@@ -51,17 +51,17 @@ describe("sounds on an output's clock", () => {
   it("moves each sound past the cuts and drops one inside a cut", () => {
     const a = audioOn(
       [
-        { at: 3, id: "click-1" },
-        { at: 5, id: "pop-1" },
-        { at: 10, id: "boom-1", only: "short" },
-        { at: 12, id: "ding-1", gainDb: 0 },
+        { at: 3, id: "studio/press" },
+        { at: 5, id: "studio/open" },
+        { at: 10, id: "studio/start", only: "short" },
+        { at: 12, id: "studio/success", gainDb: 0 },
       ],
       null,
       o("long"),
     );
     expect(a.sounds).toEqual([
-      { file: "sfx/click-1.wav", from: 90, volume: Math.round(dbToGain(-12) * 1000) / 1000 },
-      { file: "sfx/ding-1.wav", from: 300, volume: 1 },
+      { file: "sfx/studio/press.ogg", from: 90, volume: 0.2 },
+      { file: "sfx/studio/success.ogg", from: 300, volume: 0.23 },
     ]);
     expect(a.music).toBeNull();
   });

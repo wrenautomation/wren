@@ -165,10 +165,10 @@ describe("shortProps", () => {
       captions: { style: "word" },
       shorts: [short(30, 60)],
       sounds: [
-        { at: 5, id: "click-1" },
-        { at: 15, id: "pop-1" },
-        { at: 30, id: "boom-1", only: "short" },
-        { at: 40, id: "ding-1", only: "long" },
+        { at: 5, id: "studio/press" },
+        { at: 15, id: "studio/open" },
+        { at: 30, id: "studio/start", only: "short" },
+        { at: 40, id: "studio/success", only: "long" },
       ],
       music: { id: "bed-calm" },
       files: { cutMain: "/d/cut-main.mp4" },
@@ -176,12 +176,12 @@ describe("shortProps", () => {
     const long = longProps(edit, []).audio;
     // 5 s stays at 5; 15 is in the cut; 40 raw is 30 on the cut.
     expect(long.sounds.map((x) => [x.file, x.from])).toEqual([
-      ["sfx/click-1.wav", 150],
-      ["sfx/ding-1.wav", 900],
+      ["sfx/studio/press.ogg", 150],
+      ["sfx/studio/success.ogg", 900],
     ]);
     expect(long.music?.duck).toEqual([[21, 22]]);
     const s = shortProps(edit, 1).audio;
-    expect(s.sounds.map((x) => [x.file, x.from])).toEqual([["sfx/boom-1.wav", 0]]);
+    expect(s.sounds.map((x) => [x.file, x.from])).toEqual([["sfx/studio/start.ogg", 0]]);
     expect(s.music?.duck).toEqual([[1, 2]]);
   });
 
