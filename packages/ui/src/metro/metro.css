@@ -351,6 +351,23 @@
 .mm .mv[data-l="out"] {
   fill: var(--ui-line-out);
 }
+/* A folded loop (ring or card): paper inside the line colour, a clear halo round it. */
+.mm .cap .cb {
+  fill: var(--ui-paper);
+}
+.mm .cap .cr {
+  fill: none;
+  stroke: none;
+}
+.mm .cap:hover .cb,
+.mm .cap:focus-visible .cb {
+  fill: color-mix(in srgb, var(--ui-active) 7%, var(--ui-paper));
+}
+.mm .cap.sel .cr,
+.mm .cap:focus-visible .cr {
+  stroke: var(--ui-focus);
+  stroke-width: 3;
+}
 .mm .ring .ic {
   stroke: var(--ui-ink);
 }
