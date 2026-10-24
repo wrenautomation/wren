@@ -5,89 +5,55 @@
  * a box under the row, not in a dialog. Every list gets them from its record type's actions.
  */
 import { cn } from "cn";
-import {
-  Archive,
-  ArchiveRestore,
-  Bell,
-  CalendarClock,
-  Check,
-  CheckCheck,
-  CircleCheck,
-  Clock,
-  Copy,
-  Ellipsis,
-  Eye,
-  EyeOff,
-  Heart,
-  ImageIcon,
-  ListPlus,
-  type LucideIcon,
-  Maximize2,
-  Megaphone,
-  MessageSquare,
-  Pause,
-  Pencil,
-  Phone,
-  Play,
-  Reply,
-  Rocket,
-  RotateCcw,
-  RotateCw,
-  Send,
-  ThumbsDown,
-  Trash2,
-  Trophy,
-  Upload,
-  UserPlus,
-  UserX,
-  X,
-} from "lucide-react";
 import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { type Action, runs, setsAside } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { TextAreaField, useEditForm } from "./edit-form.js";
 import { tipProps } from "./hint.js";
+import { Icon, type IconName } from "./icons.js";
 
 /** An action's icon by what its label says it does; first match wins. */
-const VERBS: readonly (readonly [RegExp, LucideIcon])[] = [
-  [/^(reply|text back|answer|comment|message|dm\b)/i, Reply],
-  [/ask for changes|redraft/i, MessageSquare],
-  [/not done|open again|bring back|wake|taken it back|back to/i, RotateCcw],
-  [/restore/i, ArchiveRestore],
-  [/approve|send invite/i, Check],
-  [/mark read|mark seen/i, CheckCheck],
-  [/done|^close$|given it|resolve|addressed/i, CircleCheck],
-  [/won/i, Trophy],
-  [/lost|not a fit/i, ThumbsDown],
-  [/archive|retire/i, Archive],
-  [/delete|remove|take out|void/i, Trash2],
-  [/unpublish/i, EyeOff],
+const VERBS: readonly (readonly [RegExp, IconName])[] = [
+  // A DM before a reply: "DM them" and "Message" open a new thread, so they get the DM's plane.
+  [/^(dm|message)\b|\bdm\b/i, "dm"],
+  [/^(reply|text back|answer|comment)/i, "reply"],
+  [/ask for changes|redraft/i, "chat"],
+  [/not done|open again|bring back|wake|taken it back|back to/i, "undo"],
+  [/restore/i, "restore"],
+  [/approve|send invite/i, "check"],
+  [/mark read|mark seen/i, "read"],
+  [/done|^close$|given it|resolve|addressed/i, "selected"],
+  [/won/i, "won"],
+  [/lost|not a fit/i, "lost"],
+  [/archive|retire/i, "archive"],
+  [/delete|remove|take out|void/i, "trash"],
+  [/unpublish/i, "unpublish"],
   // Closes a person for good, apart from skipping one item.
-  [/pass on/i, UserX],
-  [/skip|pass|don't|drop|dismiss|decline|reject|withdraw|hide|no-show|^clear$/i, X],
-  [/snooze|not yet/i, Clock],
-  [/pause/i, Pause],
-  [/resume|start|go live|release/i, Play],
-  [/assign|take it|follow|invite/i, UserPlus],
-  [/edit|draft|change it|new title|^record$/i, Pencil],
-  [/publish|new version/i, Upload],
-  [/thumbnail/i, ImageIcon],
-  [/add to/i, ListPlus],
-  [/^watch$/i, Eye],
-  [/ship/i, Rocket],
-  [/retry|replay|again|render/i, RotateCw],
-  [/like/i, Heart],
-  [/remind/i, Bell],
-  [/duplicate/i, Copy],
-  [/move|schedule/i, CalendarClock],
-  [/promote/i, Megaphone],
-  [/called|booked/i, Phone],
-  [/send/i, Send],
+  [/pass on/i, "passOn"],
+  [/skip|pass|don't|drop|dismiss|decline|reject|withdraw|hide|no-show|^clear$/i, "close"],
+  [/snooze|not yet/i, "clock"],
+  [/pause/i, "pause"],
+  [/resume|start|go live|release/i, "play"],
+  [/assign|take it|follow|invite/i, "addPerson"],
+  [/edit|draft|change it|new title|^record$/i, "edit"],
+  [/publish|new version/i, "upload"],
+  [/thumbnail/i, "image"],
+  [/add to/i, "addTo"],
+  [/^watch$/i, "eye"],
+  [/ship/i, "ship"],
+  [/retry|replay|again|render/i, "retry"],
+  [/like/i, "heart"],
+  [/remind/i, "bell"],
+  [/duplicate/i, "copy"],
+  [/move|schedule/i, "reschedule"],
+  [/promote/i, "megaphone"],
+  [/called|booked/i, "phone"],
+  [/send/i, "send"],
 ];
 
 /** The icon a row shows for `label`, or null: an action with none waits behind ⋯. */
-export function iconOf(label: string): LucideIcon | null {
+export function iconOf(label: string): IconName | null {
   return VERBS.find(([re]) => re.test(label))?.[1] ?? null;
 }
 
@@ -162,7 +128,6 @@ export function RowActions({
 }) {
   const [open, setOpen] = useState(false);
   const act = (a: Action, className: string) => {
-    const Glyph = iconOf(a.label) ?? Check;
     return (
       <button
         key={a.id}
@@ -172,7 +137,7 @@ export function RowActions({
         {...tipProps(a.label, { as: "name", ...(a.key ? { keys: a.key } : {}) })}
         onClick={() => run(a)}
       >
-        <Glyph className="size-4" aria-hidden />
+        <Icon name={iconOf(a.label) ?? "check"} />
       </button>
     );
   };
@@ -184,7 +149,7 @@ export function RowActions({
         {...tipProps("Reply", { as: "name", keys: "r" })}
         onClick={reply}
       >
-        <Reply className="size-4" aria-hidden />
+        <Icon name="reply" />
       </button>
     ) : null;
   const menu = (className: string) => (
@@ -194,7 +159,7 @@ export function RowActions({
         aria-label={`More for ${title}`}
         {...tipProps("More", { as: "none" })}
       >
-        <Ellipsis className="size-4" aria-hidden />
+        <Icon name="more" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-52 gap-0 p-1">
         {more.map((a) => (
@@ -216,7 +181,7 @@ export function RowActions({
             href={page}
             className="flex h-8 w-full items-center gap-2 rounded-(--ui-radius) px-2 text-[13px] text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
           >
-            <Maximize2 className="size-3.5 text-(--ui-ink-2)" aria-hidden />
+            <Icon name="expand" size={14} className="text-(--ui-ink-2)" />
             Open as a page
           </a>
         ) : null}

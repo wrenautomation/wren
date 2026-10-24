@@ -78,4 +78,10 @@ describe("iconOf", () => {
     expect(iconOf("Pass on them")).not.toBe(iconOf("Skip"));
     expect(iconOf("Skip")).toBe(iconOf("Dismiss"));
   });
+
+  it("gives a DM the plane, apart from a reply's arrow", () => {
+    for (const label of ["DM them", "Message", "Send DM"]) expect(iconOf(label), label).toBe("dm");
+    expect(iconOf("Reply")).toBe("reply");
+    expect(iconOf("Comment")).toBe("reply");
+  });
 });

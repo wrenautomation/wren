@@ -57,7 +57,7 @@ export const STATION_GLYPH: Record<Exclude<StationKind, "par">, IconName> = {
 export const ACTION_GLYPH: Readonly<Record<string, IconName>> = {
   comment: "chat",
   reply: "reply",
-  dm: "send",
+  dm: "dm",
   email: "mail",
   text: "sms",
   call: "phone",
