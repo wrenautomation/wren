@@ -21,7 +21,7 @@ It sits in main, beside the registry, so an operator can read across clients and
 - Planned dates never move. A slip moves only `due_on` and needs a reason.
 - How it ends and where it came from (`schema.ts:47`, `:49`): `ended_on` is set the first time `setEngagementStatus` (`wren delivery engagement <state>`) makes it `done` and cleared by any other status (`index.ts:237`); `source_channel` and `source_campaign` say how the client came in (null is unknown), set by `setEngagementSource` (`index.ts:253`) from `wren delivery source`, which suggests one from the lander's first touch on a member's application and a member's campaign replies (`sourceHints`, `touchSource`, `packages/delivery/src/source.ts:61`, `:35`; email's tables read by name). Unit economics reads these for churn and per-channel CAC.
 - A new deliverable version is a new row pointing at the old one (`previous_id`). Home shows only the latest.
-- `startEngagement` turns the offer's `plan` into dated steps and opens its asks (`packages/delivery/src/index.ts:139`, `datedPlan` `:129`)
+- `startEngagement` turns the offer's `plan` into dated steps and opens its asks (`packages/delivery/src/work.ts:63`, `datedPlan` `:53`)
 - Writes: `postUpdate`, `hideUpdate`, `addDeliverable`, `decideDeliverable`, `addAsk`, `answerAsk`, `markDone`, `slipMilestone`, `recordResult` (`:207`–`:383`)
 - Reads: `deliveryHome`, `timeline`, both through `seenBy` (`:465`, `:576`, `:410`)
 - Input checks at the edge: https links only, Loom links on a Loom host, files only under `clients/<id>/` (`:63`, `:76`)
@@ -38,7 +38,7 @@ It sits in main, beside the registry, so an operator can read across clients and
 - Access requests (`access_requests`, `schema.ts:472`): one system each, with scope, why and how to revoke. `requestAccess` (`:804`) for the team; the client answers granted, declined (with a note) or revoked (`answerAccess`, `:825`).
 - Who sees which client: `pickClient` / `pickForWrite` (`packages/core/src/portal.ts:51`, `:63`). These are shared with every product's portal service.
 
-Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts:139`, `packages/delivery/src/service.ts:81`, `packages/core/src/portal.ts:51`
+Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/work.ts:63`, `packages/delivery/src/service.ts:81`, `packages/core/src/portal.ts:51`
 
 ## Connected to
 

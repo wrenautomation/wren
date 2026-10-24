@@ -20,10 +20,10 @@ Payment is part of the offer. A change is a new row with a later `effective_from
 - `Terms` (`terms.ts:6`): setup, monthly, per-unit with cap, `days`, `payDays`, plus `shareBps`, `floorCents`, `installments { count, everyDays }`, `trialDays`. `@wren/delivery` re-exports it (`packages/delivery/src/schema.ts`).
 - `terms_versions` (`schema.ts:65`): `offer`, `plan` (`standard`, `flat`, `partner-<n>`), `number`, `effective_from`, `body`. Unique `(offer, plan, number)`. Append only.
 - Store (`packages/pipeline/src/store.ts`): `addTerms` (next `number` per offer and plan under a lock; a date earlier than the plan's last version is refused), `liveTerms(db, offer, plan, at)` (highest `number` with `effective_from <= at`, or null), `termsHistory`.
-- `termsFor(offer, over, flat, live?)` (`packages/delivery/src/index.ts:1195`) stays pure; `onboard` reads `liveTerms` for plan `flat` or `standard` (`planOf`) and passes the body as `live`. No stored version: terms come from the offer's price as before. `agreements.terms_version` names the version only when the operator changed nothing.
+- `termsFor(offer, over, flat, live?)` (`packages/delivery/src/onboarding.ts:53`) stays pure; `onboard` reads `liveTerms` for plan `flat` or `standard` (`planOf`) and passes the body as `live`. No stored version: terms come from the offer's price as before. `agreements.terms_version` names the version only when the operator changed nothing.
 - `scheduleOf(terms, signedAt, until?)` (`schedule.ts:47`): setup or its parts, monthly lines, a per-unit line with its cap, a share line (no amount, "on reported revenue", floor shown). `trialDays` moves the first bill. With no `days` and no `until`, monthly lines run 12 months.
 
-Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/store.ts:216`, `packages/delivery/src/index.ts:1195`, `packages/pipeline/src/schema.ts:65`, `packages/pipeline/src/schedule.ts:47`
+Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/store.ts:216`, `packages/delivery/src/onboarding.ts:53`, `packages/pipeline/src/schema.ts:65`, `packages/pipeline/src/schedule.ts:47`
 
 ## Connected to
 
@@ -43,7 +43,7 @@ Citations: `packages/offers/src/terms.ts:6`, `packages/pipeline/src/store.ts:216
 |---|---|
 | `wren terms add|show` (`apps/cli/src/pipeline.ts`), honours `--client` | writes, reads |
 | console `termsAdd`, Offers > Terms > Propose version (`apps/portal/web/src/modules/offers`) | writes (same checks as the CLI, caller as `created_by`) |
-| `onboard` (`packages/delivery/src/index.ts:1255`) | reads the live version |
+| `onboard` (`packages/delivery/src/onboarding.ts:113`) | reads the live version |
 | `wren deals sign|schedule`, console `dealsSign` (`signDeal`, `packages/pipeline/src/moves.ts`) | sets `deals.terms_version` once from the plan's live terms; a change needs force and is audited |
 
 ## See

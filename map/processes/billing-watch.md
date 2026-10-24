@@ -20,7 +20,7 @@ Polling, not Wise's `balances#credit` webhook: the read-only token gets 403 crea
 
 ## Steps
 
-1. `billMonth` (`packages/delivery/src/index.ts:994`): one invoice per `billsDue` row for the month, due in the client's pay days.
+1. `billMonth` (`packages/delivery/src/invoices.ts:315`): one invoice per `billsDue` row for the month, due in the client's pay days.
 2. `mailInvoices` (`billing/mail.ts:72`): each open, unmailed invoice to every owner, PDF attached, bank details in the text; `mailed_at` once all sends went. A notice lists what went.
 3. `wiseReader.credits` (`billing/wise.ts:76`): GET balances, then each balance's statement (COMPACT). GET only.
 4. `takeCredits` (`billing/credits.ts:88`): each new credit decided by `matchCredit` (`billing/match.ts:69`) in its own serializable transaction. Matched: `received_cents` up, paid on the credit's day through `markInvoice` once covered (which runs the setup gate, `startIfReady`). The rest are `review` with the likely invoice, or `ignored` (our own moves).
