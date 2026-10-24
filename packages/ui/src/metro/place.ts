@@ -39,7 +39,9 @@ export function sizeOf(s: ViewStation): { width: number; height: number } {
 const columnsOf = (view: MetroView) => {
   const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
   for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
-  return columns;
+  // A column whose stations all sit in a fold from another column has no zone: the fold holds it.
+  const held = new Set(view.stations.flatMap((s) => s.spans ?? []));
+  return columns.filter((c) => !held.has(c) || view.stations.some((s) => s.column === c));
 };
 
 /** Zones from where each column's stations landed, split halfway between neighbours. */

@@ -3,7 +3,7 @@
  * depth (tree.ts): line · column, the shape's groups, stations side by side. A closed node draws as
  * one capsule; an open one as its stations in a frame, with a tab that folds it back.
  *
- * A fold hides stations, never lines. The hub never folds; an exit folds with its source. Tracks
+ * A fold hides stations, never lines. The hub folds like any station; an exit folds with its source. Tracks
  * reattach to the capsule. A late track inside rings it amber; a bad station inside shows as a count.
  */
 import { foldAt, foldWidth } from "./geometry.js";
@@ -299,9 +299,12 @@ function foldRuns(
     // The fold wears its last station's kind; an exit inside counts as bad, not as the kind.
     const last = run.filter((s) => s.kind !== "exit").at(-1) ?? run.at(-1);
     if (!first || !last) continue;
+    // A fold that holds the hub sits on the line that leaves it, not on an entry's.
+    const on = m.some((s) => s.kind === "hub") ? last : first;
     const ids = new Set(m.map((s) => s.id));
+    const spans = [...new Set(m.map((s) => s.column))].filter((c) => c !== first.column);
     const inside = view.tracks.filter((t) => ids.has(t.from) && ids.has(t.to));
-    const line = view.lines.find((l) => l.id === first.line);
+    const line = view.lines.find((l) => l.id === on.line);
     const mark = capsuleMark(
       m.map((s) => ({ mark: s.mark ?? line?.mark })),
       inside,
@@ -327,8 +330,9 @@ function foldRuns(
     folds.set(k, {
       id: k,
       kind: last.kind,
-      line: first.line,
+      line: on.line,
       column: first.column,
+      ...(spans.length ? { spans } : {}),
       ...(first.group ? { group: first.group } : {}),
       ...(first.flow ? { flow: first.flow } : {}),
       label: name,
@@ -431,7 +435,7 @@ export const foldTwins = (view: MetroView): MetroView => foldRuns(view, twinRuns
 
 interface ViewTree {
   nodes: FoldNode[];
-  /** Each station's path, outermost first. The hub has none. */
+  /** Each station's path, outermost first. A hub in no group has none. */
   chain: Map<string, string[]>;
   twins: Map<string, Run>;
   /** A twin's node, for the steps a fold counts (one per twin set). */
@@ -465,12 +469,13 @@ export function viewTree(view: MetroView): ViewTree {
     const n = line?.label ?? s.line;
     return { id: `${s.line}@${s.column}`, label: line?.tier === "out" ? n : `${n} · ${s.column}` };
   };
-  const leaves = view.stations.filter((s) => s.kind !== "hub" && s.kind !== "exit");
+  // The hub joins every line, so it has no line · column: it folds only inside a group.
+  const leaves = view.stations.filter((s) => s.kind !== "exit" && (s.kind !== "hub" || s.group));
   // The line · column each outermost group's stations share, if they share one.
   const shared = new Map<string, FoldNode | null>();
   for (const s of leaves) {
     const top = s.group ? groupPath(s.group)[0] : undefined;
-    if (!top) continue;
+    if (!top || s.kind === "hub") continue;
     const lc = lineCol(s);
     const was = shared.get(top);
     shared.set(top, was === undefined || was?.id === lc.id ? lc : null);

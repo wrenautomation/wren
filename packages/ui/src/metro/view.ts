@@ -47,6 +47,8 @@ export interface ViewStation {
   line: string;
   /** The column it sits in: a name from `columns`. */
   column: string;
+  /** A fold: the other columns its stations sit in. Those columns draw no zone of their own. */
+  spans?: string[];
   /** Zoom folds a run of stations with the same group into one capsule. */
   group?: string;
   /** The flow (workflow) it belongs to. */

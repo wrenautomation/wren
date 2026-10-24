@@ -296,3 +296,61 @@ describe("a group of groups across lines", () => {
     for (let d = 0; d <= 2; d++) expect(sceneClashes(await z.scene(at(z.nodes, d)))).toEqual([]);
   });
 });
+
+describe("the hub in a group", () => {
+  const view: MetroView = {
+    title: "Top level",
+    lines: [
+      { id: "post", tier: "out" },
+      { id: "gp", offer: "Retainer", tier: "core", colour: 0 },
+    ],
+    stations: [
+      {
+        id: "p1",
+        kind: "att",
+        line: "post",
+        column: "Marketing",
+        label: "Posted",
+        group: "content",
+      },
+      {
+        id: "hub",
+        kind: "hub",
+        line: "gp",
+        column: "Marketing",
+        label: "First touch",
+        group: "mkt",
+      },
+      { id: "call", kind: "att", line: "gp", column: "Sales", label: "Call", group: "sales" },
+      { id: "pay", kind: "cash", line: "gp", column: "Money", label: "Paid", group: "money" },
+    ],
+    tracks: [
+      { from: "p1", to: "hub", by: "system" },
+      { from: "hub", to: "call", by: "person" },
+      { from: "call", to: "pay", by: "person" },
+    ],
+    groups: [
+      { id: "mkt", label: "Marketing" },
+      { id: "content", label: "Content", parent: "mkt" },
+      { id: "sales", label: "Sales" },
+      { id: "money", label: "Money", parent: "sales" },
+    ],
+  };
+  const z = viewZoom(view);
+
+  it("folds like any station, onto the line that leaves it", async () => {
+    const top = await z.scene(at(z.nodes, 0));
+    const ids = top.st.map((s) => s.id);
+    expect(ids).toEqual(expect.arrayContaining(["mkt", "sales"]));
+    for (const id of ["hub", "p1", "call", "pay"]) expect(ids).not.toContain(id);
+    expect(top.tr.find((t) => t.a === "mkt")?.l).toBe("gp");
+    expect(sceneClashes(top)).toEqual([]);
+    expect((await z.scene(allOpen(z.nodes))).st.map((s) => s.id)).toContain("hub");
+  });
+
+  it("drops a column whose stations all sit in a fold from another column", async () => {
+    const zones = (await z.scene(at(z.nodes, 0))).zones?.map((q) => q[2]);
+    expect(zones).not.toContain("Money");
+    expect((await z.scene(allOpen(z.nodes))).zones?.map((q) => q[2])).toContain("Money");
+  });
+});
