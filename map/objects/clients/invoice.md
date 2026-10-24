@@ -19,7 +19,7 @@ Wren makes the invoice and the client types its number into the transfer memo, s
 
 - `invoices` (`schema.ts:372`): `number` defaults to `'WREN-' || nextval('delivery.invoice_number')` (`:364`); cents, currency, dates, status (`open`, `paid`, `void`), `received_cents`, `mailed_at`, `setup`, `period`, `units`, `lines` (jsonb), `refunded_cents` and `dispute` (manual records: a bank transfer has no chargeback).
 - `wise_credits` (`schema.ts:443`): `wise_id` (unique), balance, currency, `cents` (landed) and `fee_cents`, payer, memo, `status` (`matched`, `review`, `ignored`, `dismissed`), `invoice_id` (matched: paid toward; review: the likely one), `why`, who decided, `raw`. Audited under money (`packages/db/src/audit/install.ts`).
-- Writes: `addInvoice`, `billMonth`, `setupInvoice`, `markInvoice` (`packages/delivery/src/index.ts:723`, `:994`, `:1020`, `:1040`); `takeCredits`, `matchByHand`, `dismissCredit` (`billing/credits.ts:88`, `:152`, `:193`).
+- Writes: `addInvoice`, `billMonth`, `setupInvoice`, `markInvoice` (`packages/delivery/src/invoices.ts:42`, `:315`, `:341`, `:361`); `takeCredits`, `matchByHand`, `dismissCredit` (`billing/credits.ts:88`, `:152`, `:193`).
 - Matching: `matchCredit` (`billing/match.ts:69`): reference in the memo, else exact amount + currency + payer named like the client; own moves (`OWN_KINDS`, `billing/wise.ts`) ignored.
 - Bank details: `WISE_RECEIVE_DETAILS` in `/wren/prod/env-2`, parsed by `parseReceive` and printed by `payFields` (`billing/receive.ts:27`, `:51`). Never in the repo.
 - PDF: `invoicePdf` (`packages/documents/src/pdf.ts:192`) via `invoiceFile` (`billing/mail.ts:20`); the portal's download is `delivery/invoicePdf` (`service.ts:527`, money permission).
