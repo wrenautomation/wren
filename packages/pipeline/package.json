@@ -18,6 +18,7 @@
     "./entry": "./src/entry.ts",
     "./history": "./src/history.ts",
     "./journeys": "./src/journeys.ts",
+    "./map-read": "./src/map-read.ts",
     "./metro": "./src/metro.ts",
     "./metro-blame": "./src/metro-blame.ts",
     "./metro-diff": "./src/metro-diff.ts",

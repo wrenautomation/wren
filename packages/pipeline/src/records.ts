@@ -378,55 +378,8 @@ export const shapeRecord = (): RecordType =>
       "pipeline.shapeUndo",
       "pipeline.shapeTag",
     ],
-    /**
-     * The newest body with each node's depth, and every version: what changed and why, the draft
-     * it came from, its tags, and the commit it landed as in the private repo. `body` and `depths`
-     * are the graph the runtime runs, whichever model is stored. `metro` and `places` are the map
-     * model and the station places; both are null when the graph cannot be drawn as a metro, and
-     * `drawErrors` says why (empty when it draws).
-     */
-    load: async (db) => {
-      const versions = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number));
-      const top = versions[0];
-      if (!top) return null;
-      const tags = await db.select().from(shapeTags).orderBy(shapeTags.name);
-      const mirrors = new Map(
-        (await db.select().from(shapeMirrors)).map((m) => [m.version, m] as const),
-      );
-      const lines: VersionLine[] = versions.map((v) => {
-        const m = mirrors.get(v.number);
-        const run = runOf(v.body);
-        return {
-          number: v.number,
-          parent: v.parent,
-          note: v.note,
-          at: v.createdAt.toISOString(),
-          by: v.createdBy,
-          nodes: run.nodes.length,
-          edges: run.edges.length,
-          draft: v.draft,
-          tags: tags
-            .filter((t) => t.version === v.number)
-            .map((t) => ({
-              name: t.name,
-              note: t.note,
-              by: t.createdBy,
-              at: t.createdAt.toISOString(),
-            })),
-          mirror: m ? { sha: m.sha, url: `https://github.com/${m.repo}/commit/${m.sha}` } : null,
-        };
-      });
-      const drawn = drawnOf(top.body);
-      const metro = drawn.ok ? drawn.metro : null;
-      return {
-        body: runOf(top.body),
-        depths: top.depths,
-        metro,
-        drawErrors: drawn.ok ? [] : drawn.errors,
-        places: metro ? placesOf(metro) : null,
-        versions: lines,
-      };
-    },
+    /** The newest body, its depths and map, and every version (`shapeDetail`). */
+    load: shapeDetail,
   });
 
 // --- shape drafts ----------------------------------------------------------------------------
@@ -537,6 +490,56 @@ export async function trailOf(db: Queryable, id: string) {
   return rows.filter((r) => r.node.startsWith("s_") || r.node === "dropped");
 }
 
+/**
+ * The newest body with each node's depth, and every version: what changed and why, the draft it
+ * came from, its tags, and the commit it landed as in the private repo. `body` and `depths` are the
+ * graph the runtime runs, whichever model is stored. `metro` and `places` are the map model and the
+ * station places; both are null when the graph cannot be drawn as a metro, and `drawErrors` says
+ * why (empty when it draws). Null with no shape yet.
+ */
+export async function shapeDetail(db: Queryable) {
+  const versions = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number));
+  const top = versions[0];
+  if (!top) return null;
+  const tags = await db.select().from(shapeTags).orderBy(shapeTags.name);
+  const mirrors = new Map(
+    (await db.select().from(shapeMirrors)).map((m) => [m.version, m] as const),
+  );
+  const lines: VersionLine[] = versions.map((v) => {
+    const m = mirrors.get(v.number);
+    const run = runOf(v.body);
+    return {
+      number: v.number,
+      parent: v.parent,
+      note: v.note,
+      at: v.createdAt.toISOString(),
+      by: v.createdBy,
+      nodes: run.nodes.length,
+      edges: run.edges.length,
+      draft: v.draft,
+      tags: tags
+        .filter((t) => t.version === v.number)
+        .map((t) => ({
+          name: t.name,
+          note: t.note,
+          by: t.createdBy,
+          at: t.createdAt.toISOString(),
+        })),
+      mirror: m ? { sha: m.sha, url: `https://github.com/${m.repo}/commit/${m.sha}` } : null,
+    };
+  });
+  const drawn = drawnOf(top.body);
+  const metro = drawn.ok ? drawn.metro : null;
+  return {
+    body: runOf(top.body),
+    depths: top.depths,
+    metro,
+    drawErrors: drawn.ok ? [] : drawn.errors,
+    places: metro ? placesOf(metro) : null,
+    versions: lines,
+  };
+}
+
 /** Journeys as rows, newest move first; one journey when `id` is given. */
 export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } = {}) {
   const rows = await db
@@ -562,8 +565,17 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
     if (k.kind === "email") emails.set(k.profileId, [...(emails.get(k.profileId) ?? []), k.value]);
   const now = (o.now ?? new Date()).getTime();
   const topGraph = top ? runOf(top.body) : undefined;
+  // Many rows share a version: lower each version's body once.
+  const graphs = new Map<number, ReturnType<typeof runOf>>();
+  const graphOf = (version: number, stored: unknown) => {
+    const known = graphs.get(version);
+    if (known) return known;
+    const g = runOf(stored as Parameters<typeof runOf>[0]);
+    graphs.set(version, g);
+    return g;
+  };
   return rows.map(({ j, person, body: stored }) => {
-    const body = stored ? runOf(stored) : null;
+    const body = stored ? graphOf(j.version, stored) : null;
     const days = Math.floor((now - j.movedAt.getTime()) / DAY_MS);
     const node = j.node;
     const at = body?.nodes.find((n) => n.id === node);

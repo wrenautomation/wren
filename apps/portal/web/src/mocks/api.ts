@@ -5,6 +5,7 @@
  * path and the data layer included. Synthetic data only: the repo is public.
  */
 import { delay, HttpResponse, http } from "msw";
+import { mapReadOf } from "./data/map-read.js";
 
 /** A call's answer: its body, or a refusal (`{ status: 403, body: { error } }`). */
 export type Answer = { status: number; body: unknown };
@@ -94,6 +95,14 @@ export function answerOf(
   }
   const key = keyOf(path, body);
   const entry = answers[key];
+  // The Map's one call, built from the story's record answers when it gives none of its own.
+  if (entry === undefined && path === "pipeline/mapRead") {
+    const ask = (p: string, b: Record<string, unknown>) => {
+      const a = answerOf(answers, p, b, mode);
+      return a?.status === 200 ? a.body : null;
+    };
+    return { status: 200, body: mapReadOf(ask, body) };
+  }
   if (entry === undefined) return { status: 404, body: { error: unmocked(key).error } };
   const got = typeof entry === "function" ? (entry as Reply)(body) : entry;
   if (got && typeof got === "object" && REFUSAL in got) {

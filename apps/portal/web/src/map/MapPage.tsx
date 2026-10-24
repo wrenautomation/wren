@@ -19,6 +19,7 @@ import {
   type MetroPick,
   MetroSkeleton,
   type MetroView,
+  preloadMetro,
   viewTree,
 } from "@wren/ui/metro";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -153,6 +154,8 @@ export function MapPage({
   const client = wren ? null : props.client;
   const at = atOf(props.client);
   const read = useMap(props.client, window);
+  // The layout engine is its own chunk: fetch it beside the read, not after it.
+  useEffect(() => void preloadMetro(), []);
   const data: MapData | null = read.data?.map ?? null;
   const mayEdit = mayEditShape(props);
   const keep = mapKeepOf(props);

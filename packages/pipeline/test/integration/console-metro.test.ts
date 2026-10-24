@@ -136,6 +136,13 @@ describe("a metro newest", () => {
     expect(detail.body).toEqual(runOf(drawnRenamed()));
   });
 
+  it("reads the map in one call: the newest shape and one window's map rows", async () => {
+    const got = await api().mapRead({ ...op(), window: "30" });
+    expect(got.shape?.versions.length).toBeGreaterThan(0);
+    expect(new Set(got.numbers.map((n) => n.kind))).toEqual(new Set(["station", "track", "line"]));
+    expect(got.people.every((p) => typeof p.node === "string")).toBe(true);
+  });
+
   it("exports a metro version by ref as the metro file", async () => {
     const v = await save(drawnRenamed(), "Move the shape to the metro model.");
     expect(v.number).toBe(4);

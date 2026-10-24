@@ -5,26 +5,35 @@ const calls: Array<{ path: string; args: Record<string, unknown> }> = [];
 vi.mock("../api.js", () => ({
   call: async (path: string, args: Record<string, unknown>) => {
     calls.push({ path, args });
-    if (path === "pipeline/recordsGet")
-      return { detail: { body: { name: "Sample", nodes: [], edges: [] }, metro: null } };
-    const where = args.where as { kind?: string } | undefined;
-    const row = (node: string, more: Record<string, unknown>) => ({
-      id: `x:${node}`,
-      node,
+    const row = (kind: string, label: string, more: Record<string, unknown>) => ({
+      id: `${kind}:${label}`,
+      kind,
+      label,
+      currency: null,
+      collected: null,
+      scheduled: null,
       ...more,
     });
-    const rows =
-      where?.kind === "station"
-        ? [row("hub", { now: 42 }), row("engaged", { now: 5, medianDays: 4 })]
-        : where?.kind === "track"
-          ? [row("engaged_to_booked", { crossings: 9 })]
-          : where?.kind === "line"
-            ? [
-                row("starter", { deals: 1, collected: { amount: 100, currency: "CAD" } }),
-                row("starter", { deals: 2, collected: { amount: 50, currency: "USD" } }),
-              ]
-            : [];
-    return { rows, next: null, total: rows.length };
+    return {
+      shape: {
+        body: { name: "Sample", nodes: [], edges: [] },
+        depths: {},
+        metro: null,
+        drawErrors: [],
+        versions: [],
+      },
+      numbers: [
+        row("station", "hub", { now: 42 }),
+        row("station", "engaged", { now: 5, medianDays: 4 }),
+        row("track", "engaged_to_booked", { crossings: 9 }),
+        row("line", "starter", { deals: 1, collected: 100, currency: "CAD" }),
+        row("line", "starter", { deals: 2, collected: 50, currency: "USD" }),
+      ],
+      people: [],
+      ghosts: [
+        { id: "j1", name: "Sam", node: "old", nodeName: "Old", movedAt: null, daysAtNode: 3 },
+      ],
+    };
   },
 }));
 
@@ -47,16 +56,16 @@ describe("readMap", () => {
     calls.length = 0;
   });
 
-  it("asks numbers of kind station, track and line, never node or edge", async () => {
+  it("reads the whole map in one call, for the window", async () => {
     const { map } = await readMap("c1", "30");
-    const kinds = calls
-      .filter((c) => (c.args.record as string) === "pipeline.number")
-      .map((c) => (c.args.where as { kind: string }).kind)
-      .sort();
-    expect(kinds).toEqual(["line", "station", "track"]);
+    expect(calls.map((c) => c.path)).toEqual(["pipeline/mapRead"]);
+    expect(calls[0]?.args.window).toBe("30");
     expect(map?.stations.get("hub")?.now).toBe(42);
     expect(map?.stations.get("engaged")?.medianDays).toBe(4);
     expect(map?.tracks.get("engaged_to_booked")).toBe(9);
+    expect(map?.ghosts).toEqual([
+      { id: "old", name: "Old", people: [expect.objectContaining({ name: "Sam" })] },
+    ]);
   });
 
   it("keeps one line row for each currency", async () => {

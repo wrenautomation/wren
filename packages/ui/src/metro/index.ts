@@ -1,4 +1,6 @@
 /** The metro map: marks, drawing, layout and zoom. Import from `@wren/ui/metro`. */
+
+export { elkOf as preloadMetro } from "../graph/layout.js";
 export { landTimes, MetroSvg, type MetroSvgProps } from "./draw.js";
 export {
   type FocusSpec,

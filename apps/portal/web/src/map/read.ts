@@ -15,16 +15,13 @@ import type {
   DraftState,
   ShapeRef,
 } from "@wren/pipeline/history";
-import type { MetroBody } from "@wren/pipeline/metro";
-import type { ShapeBody } from "@wren/pipeline/model";
+import type { MapAnswer } from "@wren/pipeline/map-read";
+import type { NumberRow } from "@wren/pipeline/numbers";
 import { call } from "../api.js";
 import { useCall } from "../load.js";
 import { atOf } from "../modules/deals/board.js";
-import type { Ghost, MapData, NodeNumbers, Person, Sum, Version, Window } from "./model.js";
+import type { Ghost, MapData, NodeNumbers, Sum, Version, Window } from "./model.js";
 
-const SHAPE = "pipeline.shape";
-const NUMBER = "pipeline.number";
-const JOURNEY = "pipeline.journey";
 const DRAFT = "pipeline.shape_draft";
 /** Rows one read takes (the server's cap), and how many reads one list makes at most. */
 const PAGE = 200;
@@ -33,38 +30,27 @@ const PAGES = 5;
 const text = (v: unknown): string | null => (v == null || v === "" ? null : String(v));
 const count = (v: Cell | undefined): number | null =>
   typeof v === "number" ? v : v == null || v === "" ? null : Number(v);
-const sumOf = (v: Cell | undefined): Sum | null => {
-  if (v && typeof v === "object" && "amount" in v)
-    return { amount: Number(v.amount), currency: String(v.currency) };
-  return null;
-};
 
-const personOf = (r: Row): Person => ({
-  id: String(r.id),
-  name: text(r.name) ?? String(r.id),
-  node: text(r.node) ?? "",
-  nodeName: text(r.nodeName) ?? text(r.node) ?? "",
-  movedAt: text(r.movedAt),
-  daysAtNode: Number(r.daysAtNode ?? 0),
-});
+const sum = (cents: number | null, currency: string | null): Sum | null =>
+  cents == null ? null : { amount: cents, currency: currency ?? "USD" };
 
-const numbersOf = (r: Row): NodeNumbers => ({
-  id: String(r.node ?? r.id),
-  now: count(r.now),
-  arrived: count(r.arrived),
-  left: count(r.left),
-  medianDays: count(r.medianDays),
-  opened: count(r.opened),
-  deals: count(r.deals),
-  collected: sumOf(r.collected),
-  scheduled: sumOf(r.scheduled),
+const rowNumbers = (r: NumberRow): NodeNumbers => ({
+  id: r.label,
+  now: r.now,
+  arrived: r.arrived,
+  left: r.left,
+  medianDays: r.medianDays,
+  opened: r.opened,
+  deals: r.deals,
+  collected: sum(r.collected, r.currency),
+  scheduled: sum(r.scheduled, r.currency),
 });
 
 /** The line rows by line id. An offer line has one row for each currency, so a line holds a list. */
-function linesOf(rows: Row[]): Map<string, NodeNumbers[]> {
+function linesOf(rows: NumberRow[]): Map<string, NodeNumbers[]> {
   const by = new Map<string, NodeNumbers[]>();
   for (const r of rows) {
-    const n = numbersOf(r);
+    const n = rowNumbers(r);
     by.set(n.id, [...(by.get(n.id) ?? []), n]);
   }
   return by;
@@ -96,51 +82,36 @@ export interface MapRead {
   map: MapData | null;
 }
 
-/** The shape, its numbers for `window`, who is where, and the ghosts. */
+/**
+ * The shape, its numbers for `window`, who is where, and the ghosts, in one call
+ * (`pipeline/mapRead`). Six calls at once woke up to five cold Lambdas, about 3.7 s each.
+ */
 export async function readMap(client: string, window: Window): Promise<MapRead> {
-  const at = atOf(client);
-  const got = await call<RecordAnswer>("pipeline/recordsGet", {
-    ...at,
-    record: SHAPE,
-    id: "shape",
-  });
-  const detail = got.detail as {
-    body?: ShapeBody;
-    metro?: MetroBody | null;
-    /** From the server once D1 lands; read as empty until then. */
-    drawErrors?: string[];
-    depths?: Record<string, number>;
-    versions?: Version[];
-  } | null;
-  if (!detail?.body) return { map: null };
-  const per = (kind: string) => listAll(at, { record: NUMBER, where: { kind, window } });
-  const [stations, tracks, lines, open, ghosts] = await Promise.all([
-    per("station"),
-    per("track"),
-    per("line"),
-    listAll(at, { record: JOURNEY, where: { status: "open" }, sort: "-movedAt" }),
-    listAll(at, { record: JOURNEY, view: "ghost" }),
-  ]);
-  const people = open.map(personOf);
+  const got = await call<MapAnswer>("pipeline/mapRead", { ...atOf(client), window });
+  if (!got.shape) return { map: null };
+  const of = (kind: NumberRow["kind"]) => got.numbers.filter((n) => n.kind === kind);
   const held = new Map<string, Ghost>();
-  for (const p of ghosts.map(personOf)) {
+  for (const p of got.ghosts) {
     const g = held.get(p.node) ?? { id: p.node, name: p.nodeName, people: [] };
     g.people.push(p);
     held.set(p.node, g);
   }
   return {
     map: {
-      body: detail.body,
-      metro: detail.metro ?? null,
-      drawErrors: detail.drawErrors ?? [],
-      depths: detail.depths ?? {},
-      versions: detail.versions ?? [],
-      // A numbers row's `node` is the shape's own id; its row id carries the window too. The hub
-      // has a station row: its `now` is the leads.
-      stations: new Map(stations.map(numbersOf).map((n) => [n.id, n])),
-      tracks: new Map(tracks.map((r) => [String(r.node), count(r.crossings) ?? 0])),
-      lines: linesOf(lines),
-      people,
+      body: got.shape.body,
+      metro: got.shape.metro,
+      drawErrors: got.shape.drawErrors,
+      depths: got.shape.depths,
+      versions: got.shape.versions as Version[],
+      // A numbers row's `label` is the shape's own id. The hub has a station row: its `now` is the leads.
+      stations: new Map(
+        of("station")
+          .map(rowNumbers)
+          .map((n) => [n.id, n]),
+      ),
+      tracks: new Map(of("track").map((r) => [r.label, r.crossings ?? 0])),
+      lines: linesOf(of("line")),
+      people: got.people,
       ghosts: [...held.values()],
     },
   };

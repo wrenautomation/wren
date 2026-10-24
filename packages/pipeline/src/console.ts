@@ -4,6 +4,7 @@
  * else the client named: each reads and writes its own database.
  *
  * - `records*`: offers, the shape, journeys, deals and numbers.
+ * - `mapRead`: the Map page in one call: the newest shape, one window's numbers, who is where.
  * - `offersSync`: add a version for each registry offer that changed (Wren's workspace only).
  * - `shapeVersion`, `shapeDiff`, `shapeImport`: save the next shape version, compare two, or read
  *   a shape file (YAML) into the next version.
@@ -92,6 +93,7 @@ import type {
   UndoAsk,
   UndoPreviewAnswer,
 } from "./history.js";
+import { MAP_WINDOWS, type MapAnswer, type MapWindow, mapAnswerOf } from "./map-read.js";
 import { ATTACH_KINDS, isMetro } from "./metro.js";
 import { MetroOpSchema } from "./metro-ops.js";
 import { type MirrorResult, mirrorShapes, WREN_WORKSPACE } from "./mirror.js";
@@ -308,6 +310,10 @@ export function pipelineConsoleApi({
     recordsGet: (req: PortalRequest & GetAsk) => read(req, (r) => r.get(req)),
     recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
+    mapRead: async (req: PortalRequest & { window: MapWindow }): Promise<MapAnswer> => {
+      const w = await workspace(req, "read");
+      return snapshot(w.db, (tx) => mapAnswerOf(tx, req.window));
+    },
 
     offersSync: async (req: PortalRequest) => {
       const w = await workspace(req, "act");
@@ -630,6 +636,18 @@ export function makePipelineConsole(deps: PipelineConsoleDeps) {
       ),
       recordsStats: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & StatsAsk) =>
         answer(() => api.recordsStats(req)),
+      ),
+      mapRead: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            window: z
+              .enum(MAP_WINDOWS)
+              .describe("The numbers' window: all, or the last 7, 30 or 90 days"),
+          }),
+        },
+        (_: restate.Context, req: PortalRequest & { window: MapWindow }) =>
+          answer(() => api.mapRead(req)),
       ),
       offersSync: serviceHandler(RECORDS, (ctx: restate.Context, req: PortalRequest) =>
         answer(() => ctx.run("offers sync", () => answer(() => api.offersSync(req)))),

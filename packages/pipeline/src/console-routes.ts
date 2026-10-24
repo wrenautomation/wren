@@ -12,6 +12,7 @@ export const PIPELINE_CONSOLE_ROUTES = {
   recordsGet: "read",
   recordsExport: "read",
   recordsStats: "read",
+  mapRead: "read",
   offersSync: "act",
   shapeVersion: "act",
   shapeDiff: "read",

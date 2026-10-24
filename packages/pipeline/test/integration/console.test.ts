@@ -78,6 +78,7 @@ describe("routes", () => {
       "recordsGet",
       "recordsExport",
       "recordsStats",
+      "mapRead",
       "shapeDiff",
       "shapeExport",
       "shapePreview",
