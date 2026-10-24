@@ -12,7 +12,8 @@ import {
 import { layoutView } from "./place.js";
 import { DIFF_VIEW, loopZoom, protocolZoom, TWINS_VIEW, ZOOM_SCENE, ZOOM_VIEW } from "./samples.js";
 import { allOpen, fullDepth, openSet } from "./tree.js";
-import { isCapsule, isMark, type MetroScene, type MetroView } from "./types.js";
+import { isCapsule, isMark, type MetroScene } from "./types.js";
+import type { MetroView } from "./view.js";
 
 const NONE = new Set<string>();
 const at = (nodes: Parameters<typeof openSet>[0], depth: number, open = {}) =>
@@ -275,9 +276,9 @@ describe("a group of groups across lines", () => {
       { from: "hub", to: "pay", by: "person" },
     ],
     groups: [
-      { id: "content", label: "Content marketing", stations: [] },
-      { id: "posts", label: "Posts", line: "post", stations: ["p1", "p2"], parent: "content" },
-      { id: "paid", label: "Ads", line: "ads", stations: ["a1", "a2"], parent: "content" },
+      { id: "content", label: "Content marketing" },
+      { id: "posts", label: "Posts", parent: "content" },
+      { id: "paid", label: "Ads", parent: "content" },
     ],
   };
   const z = viewZoom(view);
