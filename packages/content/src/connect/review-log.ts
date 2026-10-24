@@ -2,7 +2,7 @@
  * The access review log (designs/2026-10-23-access-reviews.md): each step a person or an agent
  * records moves the review's state and is kept. One write path: `logReview`.
  */
-import type { Db } from "@wren/db";
+import { atomic, type Db } from "@wren/db";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { reviewOf } from "./app-reviews.js";
 import {
@@ -53,7 +53,8 @@ const DECIDED: readonly ReviewState[] = ["passed", "refused", "withdrawn"];
 
 export async function logReview(db: Db, s: ReviewStep): Promise<AccessReviewRow> {
   const at = s.at ?? new Date();
-  return db.transaction(async (tx) => {
+  // The row lock orders two steps on one review: read committed is enough.
+  return atomic(db, async (tx) => {
     await tx
       .insert(accessReviews)
       .values({ client: s.client, kind: s.kind, name: s.name, where: s.where })
