@@ -28,6 +28,7 @@ Region `us-east-1`: Restate Cloud runs there; every journal entry is a round tri
    tfvars; nothing to sign up for). Or Browserbase (an API key and project id; leave
    `browser_token` empty) if the box is too small for a browser.
 4. **Secrets file.** `cp deploy/prod.env.example deploy/prod.env` and fill it (gitignored).
+5. **Provider cache.** The AWS provider is 766 MB. `~/.tofurc` sets `plugin_cache_dir = "~/Library/Caches/wren_automation/tofu-plugins"`, so wren, autobrowse and every worktree share one copy.
 
 ## First deploy
 
