@@ -28,7 +28,17 @@ fi
 WIDE=${CI:+--concurrency=100%}
 lint() {
   echo "==> biome check" && pnpm biome check --error-on-warnings . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE &&
-    cli && offers && map && layers && isolation && writes && edits && reads && libs && drift
+    cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && size
+}
+# File size (designs/2026-10-24-code-quality-handoff.md): no source file over 1200 lines, a tripwire for
+# a file an agent can no longer take in at once. scripts/big-files.txt lists the ones still over it,
+# to split, and only shrinks: a new one fails, and one split below the line leaves the list.
+size() {
+  echo "==> file size" &&
+    git ls-files '*.ts' '*.tsx' '*.mjs' '*.py' '*.sh' | grep -v '/drizzle/\|\.test\.\|\.stories\.' |
+      xargs wc -l | awk '$1 > 1200 && $2 != "total" { print $2 }' | sort |
+      diff <(sort scripts/big-files.txt) - ||
+    { echo "files over 1200 lines differ from scripts/big-files.txt (< listed, > new): split it, or shorten the list" >&2; return 1; }
 }
 # Package layers (designs/2026-10-24-code-quality-handoff.md): a package imports its own layer or a
 # lower one, never a cycle. Biome's noRestrictedImports checks single imports; this checks the graph.
@@ -177,7 +187,7 @@ case "${1:-all}" in
   drift) drift ;;
   scorecard) scorecard ;;
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
-  checks) cli && offers && map && layers && isolation && writes && edits && reads && libs && drift ;;
+  checks) cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && size ;;
   all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
   *) echo "usage: $0 [lint|changed|ui|checks|unit|stories|visual|look|match|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac
