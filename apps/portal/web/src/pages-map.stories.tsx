@@ -782,10 +782,10 @@ export const DraftView = mapAt("/?draft=d1", {
     await expect(within(open).queryByRole("button", { name: "Propose Add a plan" })).toBeNull();
     // Close goes back to the live Map.
     await userEvent.click(within(open).getByRole("button", { name: "Close" }));
-    await waitFor(() =>
-      expect(within(page).queryByRole("status", { name: "Open draft" })).toBeNull(),
-    );
-    await expect(within(page).queryByRole("button", { name: /^Standard plan/ })).toBeNull();
+    await waitFor(() => {
+      expect(within(page).queryByRole("status", { name: "Open draft" })).toBeNull();
+      expect(within(page).queryByRole("button", { name: /^Standard plan/ })).toBeNull();
+    });
   },
 });
 

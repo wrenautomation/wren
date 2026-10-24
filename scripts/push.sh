@@ -42,18 +42,23 @@ done
 [ -n "$run" ] || { echo "RESULT $sha ci=missing deploy=none"; exit 1; }
 echo "ci run $run"
 
-# The gates' joint conclusion and the deploy job's, once both are known; API errors retry.
-# A red gate stops the deploy before it changes anything (deploy=failure, "gates: ..." in its log);
-# a newer push cancels this run's gates (ci=cancelled, deploy=failure).
+# The gates' joint conclusion and the deploy job's, once both are known; API errors retry. The
+# latest attempt's jobs only (a re-run's first attempt stays in the run as cancelled), and a
+# failure outranks the cancels fail-fast makes of the other two gates; neither is final while any
+# gate still runs. A red gate stops the deploy before it changes anything (deploy=failure,
+# "gates: ..." in its log); a newer push cancels this run's gates (ci=cancelled, deploy=failure).
+# deploy/scripts/ci-steps.sh await_gates reads the same jobs the same way.
+STATUS='[.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema")] as $g
+  | ([.jobs[] | select(.name | startswith("deploy"))] | first) as $d
+  | (if ($g | length) < 3 or any($g[]; .status != "completed") then "pending"
+     elif any($g[]; .conclusion == "failure") then "failure"
+     elif all($g[]; .conclusion == "success") then "success"
+     else ($g | map(select(.conclusion != "success")) | first | .conclusion) end) as $ci
+  | "\($ci) \(if $d and $d.status == "completed" then $d.conclusion
+              elif $ci == "pending" or $ci == "success" then "pending" else "none" end)"'
 while :; do
-  st=$(gh run view "$run" --json jobs -q '[.jobs[] | {n: .name, s: .status, c: .conclusion}]' 2>/dev/null) || { sleep 10; continue; }
-  out=$(printf '%s' "$st" | python3 -c "import json,sys
-j=json.load(sys.stdin)
-g=[x for x in j if x['n'] in ('lint','unit','schema')]
-d=[x for x in j if x['n'].startswith('deploy')]
-ci='pending' if len(g)<3 or any(x['s']!='completed' for x in g) else next((x['c'] for x in g if x['c']!='success'),'success')
-dep=d[0]['c'] if d and d[0]['s']=='completed' else ('none' if ci not in ('pending','success') else 'pending')
-print(ci, dep or 'pending')")
+  out=$(gh api "repos/{owner}/{repo}/actions/runs/$run/jobs?filter=latest" --jq "$STATUS" 2>/dev/null) ||
+    { sleep 10; continue; }
   set -- $out
   [ "$1" = pending ] || [ "$2" = pending ] || break
   sleep 5

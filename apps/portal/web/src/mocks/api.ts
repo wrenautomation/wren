@@ -4,6 +4,8 @@
  * MSW handler answers both from a table, so the app runs as it does live: batching, the write
  * path and the data layer included. Synthetic data only: the repo is public.
  */
+
+import { QUERIES } from "@wren/ui";
 import { delay, HttpResponse, http } from "msw";
 import { mapReadOf } from "./data/map-read.js";
 
@@ -65,7 +67,8 @@ export function freshStory() {
 }
 
 /**
- * Waits until no call has been out for `quietMs`, then fails if any call was unmocked: a page
+ * Waits until no call has been out, and no query is still fetching (a refused read retries once,
+ * after a second), for `quietMs`; then fails if any call was unmocked: a page
  * that starts a new read needs its answer in the table (`./data/`), not a 404 in the test.
  */
 export async function settled(quietMs = 200, maxMs = 8000) {
@@ -73,7 +76,7 @@ export async function settled(quietMs = 200, maxMs = 8000) {
   let quietSince = Date.now();
   while (Date.now() < end) {
     await new Promise((r) => setTimeout(r, 25));
-    if (story.out > 0) quietSince = Date.now();
+    if (story.out > 0 || QUERIES.isFetching() > 0) quietSince = Date.now();
     else if (Date.now() - quietSince >= quietMs) break;
   }
   if (story.unmocked.size)
