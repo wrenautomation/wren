@@ -25,7 +25,7 @@ A rep must trust every line, so code gathers every fact and cites its source and
 - settings `calls.brief`: `leadMinutes` (60), `questions` (true), `ping` (true); `{}` is valid (`calls/settings.ts`)
 - read by `briefOf` (`calls/brief.ts:517`): the kept one, else one built live by code, unsaved
 
-Citations: `packages/channel-email/src/calls/brief.ts:402`, `packages/channel-email/src/calls/restate.ts:83`, `apps/worker/src/services.ts:1183`
+Citations: `packages/channel-email/src/calls/brief.ts:402`, `packages/channel-email/src/calls/restate.ts:83`, `apps/worker/src/services/clients.ts:130`
 
 ## Connected to
 
@@ -36,7 +36,7 @@ Citations: `packages/channel-email/src/calls/brief.ts:402`, `packages/channel-em
 
 ## If you change this
 
-- **Hits:** the call page's extras (`apps/portal/web/src/modules/calls/brief.tsx`) on Pipelines > Calls, a client's Calls, Calendar > Calls and the Schedule panel; the worker's `CallBriefs` binding and `calls.brief` step (`apps/worker/src/services.ts:1128`)
+- **Hits:** the call page's extras (`apps/portal/web/src/modules/calls/brief.tsx`) on Pipelines > Calls, a client's Calls, Calendar > Calls and the Schedule panel; the worker's `CallBriefs` binding and `calls.brief` step (`apps/worker/src/services/clients.ts:130`, `apps/worker/src/services/deps.ts:764`)
 - **Does not hit:** anything a lead receives
 
 ## Surfaces

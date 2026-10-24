@@ -13,15 +13,15 @@ entity: apps/worker/src/lambda.ts:16
 
 ## Why this shape
 
-Cold start pulls the secret env and the roster from SSM, builds the services, hands the handler to Restate; every invocation is one journaled step (`lambda.ts:1`). The pool is per instance and small, through PgBouncer when `WREN_DATABASE_POOL_PORT` is set (`services.ts:225`). `@wren/core/content/box` wakes the autobrowse EC2 box before a `sites` call and tags who booted it (`box.ts:41`).
+Cold start pulls the secret env and the roster from SSM, builds the services, hands the handler to Restate; every invocation is one journaled step (`lambda.ts:1`). The pool is per instance and small, through PgBouncer when `WREN_DATABASE_POOL_PORT` is set (`services/deps.ts:167`). `@wren/core/content/box` wakes the autobrowse EC2 box before a `sites` call and tags who booted it (`box.ts:41`).
 
 ## Shape
 
-- `main.ts` (local), `lambda.ts:16`–`18` (SSM env + roster), `ssm-env.ts:35`, `services.ts:105`
+- `main.ts` (local), `lambda.ts:16`–`18` (SSM env + roster), `ssm-env.ts:35`, `services.ts:80`
 - build: `pnpm --filter @wren/worker build:lambda` (esbuild bundle; `createRequire` lesson in `deploy/`). The zip carries `drizzle/` (SQL + journal) beside `app/`, so `app/lambda.mjs` and `app/box.mjs` can migrate a new client; the build fails if the journal and SQL files disagree
 - infra: `deploy/terraform/lambda.tf` (function, SSM params `:4`, `:16`, IAM `:56`)
 
-Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:110`
+Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:80`
 
 ## Connected to
 

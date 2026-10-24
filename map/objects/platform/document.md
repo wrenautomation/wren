@@ -27,7 +27,7 @@ Rows live in main with a `client` column, so the edge serves a signing page with
 - Sealed (`signing: sealed`, designs/2026-10-21-esign-and-newsletter.md): `Documents.send` makes a Documenso envelope from the frozen text (`sealedPdf`, placeholders `{{signature, r1}}` and `{{date, r1}}`, `documenso.ts`), keeps its id (`keepEnvelope`), makes it live and mails Documenso's link under the client's name; no Wren token and no Wren expiry. The phone Worker's `/webhooks/documenso` forwards to `Documents.signed` (`service.ts:590`): opened → viewed, completed → signed, rejected → declined, cancelled → void; on completed the sealed PDF, certificate and audit log go to the files bucket under `clients/<client>/documents/<doc>/` (`sealSigned`, `sealedKeys`) and `consent_version` is `SEALED_CONSENT_VERSION`. A void calls `Documents.cancel`, which cancels the envelope. `own` and `sealed` never mix: `signDoc` and `declineDoc` refuse a sealed one. Config `WREN_DOCUMENSO_URL`/`_TOKEN` (SSM `env-3`); unset, a sealed send stops with a reason.
 - Migrations `0222_documents`, `0316_docs_sealed`. Texts kind `doc` (in `ANSWER_KINDS`).
 
-Citations: `packages/documents/src/schema.ts:128`, `packages/documents/src/service.ts:324`, `packages/documents/src/console.ts:315`, `packages/documents/src/documenso.ts:68`, `apps/portal/src/docs.ts:97`, `apps/worker/src/services.ts:1251`
+Citations: `packages/documents/src/schema.ts:128`, `packages/documents/src/service.ts:324`, `packages/documents/src/console.ts:315`, `packages/documents/src/documenso.ts:68`, `apps/portal/src/docs.ts:97`, `apps/worker/src/services/apps.ts:71`
 
 ## Connected to
 

@@ -28,12 +28,12 @@ Citations: `packages/core/src/cache.ts:13`
 
 ## Connected to
 
-- **owned-by:** [[platform/worker]] (`services.ts:489`)
+- **owned-by:** [[platform/worker]] (`services/platform.ts:50`)
 - **looks-like-but-is-not:** the portal Worker's `caches.default` (Cloudflare edge, per colo); per-process OAuth token maps (secrets, never here)
 
 ## If you change this
 
-- **Hits:** `restateAdminGet` (`console/restate-admin.ts`, first user, `services.ts:2169`); the box's Valkey config; a change in what a key holds bumps `PREFIX`
+- **Hits:** `restateAdminGet` (`console/restate-admin.ts`, first user, `services/platform.ts:145`); the box's Valkey config; a change in what a key holds bumps `PREFIX`
 - **Does not hit:** any truth: everything here can be thrown away
 
 ## Surfaces
