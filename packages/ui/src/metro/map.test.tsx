@@ -143,12 +143,30 @@ describe("diff marks", () => {
     expect(folded).toContain("metro-legend");
   });
 
-  it("draws a fold as a circle with its count of steps in it, never a sum", () => {
+  it("draws a fold stacked, with its kind's glyph and its steps in the sub line", () => {
     const folded = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={0} intro={false} />);
-    expect(folded).toMatch(/class="cap"[^>]*><g class="mk m-cash"/);
-    expect(folded).toContain('class="cnt"');
-    expect(folded).toMatch(/class="cnt"[^>]*>2<\/text>/);
+    expect(folded).toMatch(/class="cap"[^>]*><g class="mk m-cash"[^>]*><rect class="stk"/);
+    expect(folded).not.toContain('class="cnt"');
+    expect(folded).toMatch(/class="sub"[^>]*><tspan class="num">2 steps</);
     expect(folded).not.toContain('class="fc"');
+  });
+
+  it("draws what a step does: its own glyph, and a fold wears its last step's", async () => {
+    const view = {
+      ...DIFF_VIEW,
+      stations: DIFF_VIEW.stations.map((s) => ({ ...s, icon: "mail" as const })),
+    };
+    await warm(view);
+    await warm(view, 0);
+    expect(renderToStaticMarkup(<MetroMap view={view} depth={9} intro={false} />)).toContain(
+      "lucide-mail",
+    );
+    expect(renderToStaticMarkup(<MetroMap view={view} depth={0} intro={false} />)).toContain(
+      "lucide-mail",
+    );
+    expect(
+      renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={0} intro={false} />),
+    ).not.toContain("lucide-mail");
   });
 });
 

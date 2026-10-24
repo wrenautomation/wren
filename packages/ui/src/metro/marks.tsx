@@ -10,6 +10,7 @@ import {
   chipWidth,
   DOT,
   foldIo,
+  foldSteps,
   foldWidth,
   GLYPH_SIZE,
   labelOf,
@@ -47,6 +48,26 @@ export const STATION_GLYPH: Record<Exclude<StationKind, "par">, IconName> = {
   ab: "percent",
   ok: "approve",
   link: "shared",
+};
+
+/**
+ * The glyph of each station action (`@wren/pipeline` ACTIONS): what the step does says more than its
+ * kind. `other` has none, so the kind's glyph shows.
+ */
+export const ACTION_GLYPH: Readonly<Record<string, IconName>> = {
+  comment: "chat",
+  reply: "reply",
+  dm: "send",
+  email: "mail",
+  text: "sms",
+  call: "phone",
+  cta: "click",
+  visit: "globe",
+  form: "form",
+  book: "calendar",
+  held: "video",
+  proposal: "doc",
+  signed: "write",
 };
 
 type Colours = Pick<MetroScene, "colours">;
@@ -353,14 +374,14 @@ export function Marker({
   on?: boolean | undefined;
   /** First load: seconds until this station lands. */
   at?: number | undefined;
-  /** A folded run: a circle with its count of steps in it, in place of the glyph. */
+  /** A folded run: a stacked circle with its kind's glyph. Its count of steps is in the sub line. */
   fold?: Pick<CapsuleStation, "steps"> | undefined;
 }) {
   const { x, t } = s;
   const { r, cy, top, h, w, d } = markerBox(s);
   // A fold is a circle whatever its kind: it holds stations, it is none of them.
   const rx = fold ? r : markerBox(s).rx;
-  const diamond = t === "dec" || t === "race";
+  const diamond = !fold && (t === "dec" || t === "race");
   // Logic marks: a diamond decides (hollow: a condition; filled: the first event wins); a bar
   // splits or joins lanes.
   const shape = (c: string) =>
@@ -369,7 +390,7 @@ export function Marker({
     ) : (
       <rect className={c} x={x - w / 2} y={top} width={w} height={h} rx={Math.min(rx, w / 2)} />
     );
-  const stacked = s.bundle || t === "link";
+  const stacked = fold || s.bundle || t === "link";
   const rep = s.rep;
   const plans = s.plans;
   const lab = labelOf(s);
@@ -393,12 +414,14 @@ export function Marker({
         ) : null}
         {shape("ring")}
         {shape("b")}
-        {fold ? (
-          <text className="cnt" x={x} y={cy + 4.5} textAnchor="middle">
-            {fold.steps}
-          </text>
-        ) : t === "par" ? null : (
-          <SvgGlyph name={STATION_GLYPH[t]} x={x} y={cy} size={GLYPH_SIZE[t] ?? 16} />
+        {t === "par" && !fold ? null : (
+          // What it does, else its kind. A fold of split stations reads as attention.
+          <SvgGlyph
+            name={s.icon ?? STATION_GLYPH[t === "par" ? "att" : t]}
+            x={x}
+            y={cy}
+            size={GLYPH_SIZE[t] ?? 16}
+          />
         )}
         {s.rule ? <RuleTag x={x} y={top - 14} t={s.rule} /> : null}
       </g>
@@ -445,8 +468,8 @@ const foldedAttrs = (c: { id: string; grp?: string | undefined }) =>
   c.grp ? { "data-id": c.id, "data-grp": c.grp } : {};
 
 /**
- * A run of stations folded into one: it draws as its last station, with a chip under it that says
- * it opens. Any station may fold, so the chip is the cue, not a shape of its own.
+ * A run of stations folded into one: a stacked circle in its last station's kind, so its glyph says
+ * what the group is about. The sub line says its steps and the people in it.
  */
 export function Capsule({
   c,
@@ -457,14 +480,17 @@ export function Capsule({
   selected?: boolean | undefined;
   on?: boolean | undefined;
 }) {
+  // Under its name: its steps and the people in it (`fold.ts`); side by side, the platforms.
+  const sub = c.s ?? (c.each ? undefined : foldSteps(c));
   const s: MarkStation = {
     id: c.id,
-    // Money keeps its colour; any other fold is a plain circle.
-    t: c.t === "cash" ? "cash" : "att",
+    // It wears its last station's kind: the glyph says what the group is about.
+    t: c.t ?? "att",
+    ...(c.icon ? { icon: c.icon } : {}),
     x: c.x ?? (c.cap[0] + c.cap[1]) / 2,
     y: c.y,
     n: c.n,
-    ...(c.s ? { s: c.s } : {}),
+    ...(sub ? { s: sub } : {}),
     // Side by side, it stacks like a bundle: one mark that stands for several.
     ...(c.each ? { bundle: true } : {}),
     ...(c.p ? { p: c.p } : {}),

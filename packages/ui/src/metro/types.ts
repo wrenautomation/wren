@@ -43,6 +43,8 @@ export interface MarkStation {
   /** Name, and the line under it. */
   n?: string;
   s?: string;
+  /** The glyph of what it does (an email, a call); else its kind's. */
+  icon?: IconName;
   /** Where the name sits. */
   p?: Side;
   /** A failure exit is red. */
@@ -77,6 +79,8 @@ export interface CapsuleStation {
   n: string;
   /** Its last station's kind: a fold wears that station's look. Default: att. */
   t?: StationKind;
+  /** Its last station's glyph, when it has one of its own. */
+  icon?: IconName;
   /** The stations inside. */
   steps: number;
   /**

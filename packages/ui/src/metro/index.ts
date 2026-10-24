@@ -56,6 +56,7 @@ export {
   type MetroPick,
 } from "./map.js";
 export {
+  ACTION_GLYPH,
   Badge,
   Capsule,
   Chip,

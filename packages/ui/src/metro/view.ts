@@ -54,6 +54,8 @@ export interface ViewStation {
   /** The flow (workflow) it belongs to. */
   flow?: string;
   label?: string;
+  /** The glyph of what it does (an email, a call); else its kind's. `ACTION_GLYPH` maps an action. */
+  icon?: IconName;
   /** The line under the label: a count, a price. */
   sub?: string;
   /** People in it now: zoom adds them up for a capsule. */

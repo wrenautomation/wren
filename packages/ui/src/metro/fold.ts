@@ -6,7 +6,7 @@
  * A fold hides stations, never lines. The hub folds like any station; an exit folds with its source. Tracks
  * reattach to the capsule. A late track inside rings it amber; a bad station inside shows as a count.
  */
-import { foldAt, foldWidth } from "./geometry.js";
+import { foldAt, foldSteps, foldWidth } from "./geometry.js";
 import { type Frame, type PlaceBox, placeMetro } from "./place.js";
 import { type FoldNode, openKey } from "./tree.js";
 import {
@@ -208,6 +208,7 @@ export function foldScene(scene: MetroScene, open: ReadonlySet<string>): MetroSc
       late: inside.some((r) => r.late),
       ...(mark ? { mark } : {}),
       t: last.t,
+      ...(last.icon ? { icon: last.icon } : {}),
       steps: m.length,
       ...ioOf(run),
       ...(bad ? { bad } : {}),
@@ -323,13 +324,14 @@ function foldRuns(
       ...(each ? { s: each.s } : {}),
       ...(bad ? { bad } : {}),
     });
-    // Under its name, as a station's: the people inside now.
+    // Under its name: the people inside now.
     const now = m.some((s) => s.now !== undefined)
       ? m.reduce((t, s) => t + (s.now ?? 0), 0)
       : undefined;
     folds.set(k, {
       id: k,
       kind: last.kind,
+      ...(last.icon ? { icon: last.icon } : {}),
       line: on.line,
       column: first.column,
       ...(spans.length ? { spans } : {}),
@@ -343,9 +345,13 @@ function foldRuns(
             ...(each.now !== undefined ? { now: each.now } : {}),
             ...(each.arrived !== undefined ? { arrived: each.arrived } : {}),
           }
-        : now !== undefined
-          ? { sub: `${now.toLocaleString("en-US")} now`, now }
-          : {}),
+        : {
+            // Its steps, then the people in it now: the layout makes room for both.
+            sub: [foldSteps(fold), now !== undefined ? `${now.toLocaleString("en-US")} now` : null]
+              .filter(Boolean)
+              .join(" \u00b7 "),
+            ...(now !== undefined ? { now } : {}),
+          }),
     });
     for (const s of m) into.set(s.id, k);
   }
@@ -669,6 +675,7 @@ export async function viewScene(
       late: m.late,
       ...(m.mark ? { mark: m.mark } : {}),
       t: s.t,
+      ...(s.icon ? { icon: s.icon } : {}),
       steps: m.steps,
       ...(m.io ? { io: m.io } : {}),
       ...(m.each ? { each: m.each } : {}),

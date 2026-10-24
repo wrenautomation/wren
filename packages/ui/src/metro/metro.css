@@ -300,15 +300,11 @@
   stroke: var(--ui-focus);
   stroke-width: 3;
 }
-/* A fold's count of steps, in its circle where a station's glyph sits. */
-.mm .mk .cnt {
-  fill: var(--ui-ink);
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.mm .m-cash .cnt {
-  fill: var(--ui-on-accent);
+/* A fold draws stacked: one mark that holds several. */
+.mm .cap .stk {
+  fill: var(--ui-paper);
+  stroke: var(--ui-ink-3);
+  stroke-width: 1.5;
 }
 .mm .cap:hover .fl .lf,
 .mm .cap:focus-visible .fl .lf {

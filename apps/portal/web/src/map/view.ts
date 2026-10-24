@@ -13,7 +13,14 @@ import type {
   MetroBody,
 } from "@wren/pipeline/metro";
 import type { MetroDiff } from "@wren/pipeline/metro-diff";
-import type { MetroView, ViewKind, ViewLine, ViewStation, ViewTrack } from "@wren/ui/metro";
+import {
+  ACTION_GLYPH,
+  type MetroView,
+  type ViewKind,
+  type ViewLine,
+  type ViewStation,
+  type ViewTrack,
+} from "@wren/ui/metro";
 import type { NodeNumbers, Person } from "./model.js";
 import { waitsOf } from "./tasks.js";
 
@@ -80,6 +87,7 @@ function stationOf(
     ...(group ? { group } : {}),
     ...(s.flow ? { flow: s.flow } : {}),
     label: s.label,
+    ...(s.action && ACTION_GLYPH[s.action] ? { icon: ACTION_GLYPH[s.action] } : {}),
     ...(sub ? { sub } : {}),
     ...(x?.now != null && s.kind !== "hub" ? { now: x.now } : {}),
     ...(x?.arrived != null && s.kind !== "hub" ? { arrived: x.arrived } : {}),
