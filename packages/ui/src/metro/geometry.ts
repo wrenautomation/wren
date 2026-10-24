@@ -210,12 +210,21 @@ export const joinBoxes = (boxes: readonly Box[]): Box => ({
 
 /** A free chip (retry, hold, branch label): a pill 21 high, with or without a glyph. */
 /** A fold's chip at rest: how many stations it holds. */
-export const foldSteps = (c: { steps: number }): string => `${c.steps} steps`;
+export const foldSteps = (c: { steps: number; each?: string | undefined }): string =>
+  `${c.steps} ${c.each ?? "steps"}`;
 
-/** A fold's chip under a pointer: people in at its first station, out at its last, and the share. */
-export const foldIo = (c: { steps: number; io?: [number, number] | undefined }): string => {
+/**
+ * A fold's chip under a pointer: people in at its first station, out at its last, and the share.
+ * Side by side (`each`): the people who reached its stations and who sit there now, added up.
+ */
+export const foldIo = (c: {
+  steps: number;
+  io?: [number, number] | undefined;
+  each?: string | undefined;
+}): string => {
   if (!c.io) return foldSteps(c);
   const [a, b] = c.io;
+  if (c.each) return `${a} in \u00b7 ${b} now`;
   return a ? `${a} \u2192 ${b} \u00b7 ${Math.round((b / a) * 100)}%` : `${a} \u2192 ${b}`;
 };
 

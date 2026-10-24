@@ -21,8 +21,11 @@ import {
 } from "./types.js";
 import { DEFAULT_COLUMNS, type MetroView, type ViewStation, type ViewTrack } from "./view.js";
 
-/** Groups the viewer opened (true) or folded (false) beyond what the level shows. */
+/** Groups the viewer opened (true) or folded (false) beyond what the level shows. "*": all open. */
 export type OpenMap = Readonly<Record<string, boolean>>;
+
+/** Every group open: what a focus shows. */
+export const ALL_OPEN: OpenMap = { "*": true };
 
 /** The folds a hand-composed scene reads: one flag per group. */
 export type Flags = Readonly<Record<string, boolean | undefined>>;
@@ -267,72 +270,82 @@ function ioOf(run: readonly { now?: number | undefined; arrived?: number | undef
   return a !== undefined && b !== undefined ? { io: [a, b] } : {};
 }
 
-/** Zoom for a view: each level folds the view first, then lays it out, so a fold takes one place. */
+/**
+ * Zoom for a view: each level folds the view first, then lays it out, so a fold takes one place.
+ * Side-by-side stations stay folded at every level, the last one too; a wheel step clears what the
+ * viewer opened, so it folds them again.
+ */
 export function viewZoom(view: MetroView, names: readonly string[] = LEVEL_NAMES): MetroZoom {
   const last = names.length - 1;
-  const full = layoutMetro(view);
   return {
     names,
     preset: (level) => (level >= last ? { "*": true } : {}),
-    scene: (level, open) => (level >= last ? full : viewScene(view, level, open)),
+    scene: (level, open) => viewScene(view, level >= last ? 2 : level, open),
     total: view.stations.length,
   };
 }
 
+/** Its fold's chip and look, kept until the layout has placed it. */
+interface FoldMeta {
+  late: boolean;
+  mark?: Mark;
+  steps: number;
+  io?: [number, number];
+  each?: string;
+  s?: string;
+}
+
+/** A view with runs folded: what the layout needs, and what makes each fold a capsule after it. */
+interface Folded {
+  view: MetroView;
+  meta: Map<string, FoldMeta>;
+  /** The open runs: their stations, and the station whose circle holds the fold leaf. */
+  shown: Map<string, string[]>;
+  leafOn: Map<string, string>;
+  names: Map<string, string>;
+}
+
+/** One run to fold: its name, and for side-by-side stations what the fold adds up. */
+interface Run {
+  m: ViewStation[];
+  name: string;
+  each?: { s: string; io?: [number, number]; now?: number; arrived?: number };
+}
+
 /**
- * The scene of a view at a level. Level 1 folds the named groups (`station.group`), level 0 one run
- * per line per column. A folded run is one station when the layout places it, so it takes one
- * step, not the room of its stations. It draws as a round capsule. The hub and exits never fold.
+ * Fold each run of two or more into one station in place of its first. An open run stays, with a
+ * fold leaf on its first station. Tracks reattach to the fold; one inside it goes; two that now join
+ * the same ends are one.
  */
-export function viewScene(view: MetroView, level: number, open: OpenMap = {}): MetroScene {
-  if (level >= 2) return layoutMetro(view);
+function foldRuns(view: MetroView, runs: ReadonlyMap<string, Run>, open: OpenMap): Folded {
   const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
   for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
-  const key = (s: ViewStation): string | null =>
-    s.kind === "hub" || s.kind === "exit"
-      ? null
-      : level === 1
-        ? (s.group ?? null)
-        : `${s.line}@${s.column}`;
-  const runs = new Map<string, ViewStation[]>();
-  for (const s of view.stations) {
-    const k = key(s);
-    if (k) runs.set(k, [...(runs.get(k) ?? []), s]);
-  }
-  const nameOf = (k: string, first: ViewStation) => {
-    const line = view.lines.find((l) => l.id === first.line);
-    const n = line?.label ?? first.line;
-    return level === 1
-      ? (view.groups?.find((g) => g.id === k)?.label ?? k)
-      : line?.tier === "out"
-        ? n
-        : `${n} · ${first.column}`;
-  };
+  const byColumn = (m: readonly ViewStation[]) =>
+    [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column));
   const into = new Map<string, string>();
   const shown = new Map<string, string[]>();
-  /** The station of an open run whose circle holds its fold leaf: the run's first. */
   const leafOn = new Map<string, string>();
-  const folds: ViewStation[] = [];
-  const meta = new Map<
-    string,
-    { late: boolean; mark?: Mark; steps: number; io?: [number, number] }
-  >();
-  for (const [k, m] of runs) {
+  const names = new Map<string, string>();
+  const folds = new Map<string, ViewStation>();
+  const meta = new Map<string, FoldMeta>();
+  for (const [k, { m, name, each }] of runs) {
     if (m.length < 2) continue;
+    names.set(k, name);
+    const run = byColumn(m);
+    const first = run[0];
+    const last = run[run.length - 1];
+    if (!first || !last) continue;
+    // All open ("*"): the run shows as stations, with no leaf to fold it.
+    if (open[k] === undefined && open["*"]) continue;
     if (open[k]) {
       shown.set(
         k,
         m.map((s) => s.id),
       );
-      const head = [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column))[0];
-      if (head) leafOn.set(head.id, k);
+      leafOn.set(first.id, k);
       continue;
     }
     // The fold sits in the run's first column and wears its last station's kind.
-    const run = [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column));
-    const first = run[0];
-    const last = run[run.length - 1];
-    if (!first || !last) continue;
     const ids = new Set(m.map((s) => s.id));
     const inside = view.tracks.filter((t) => ids.has(t.from) && ids.has(t.to));
     const line = view.lines.find((l) => l.id === first.line);
@@ -340,22 +353,39 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
       m.map((s) => ({ mark: s.mark ?? line?.mark })),
       inside,
     );
-    const fold = { steps: m.length, ...ioOf(run) };
-    meta.set(k, { late: inside.some((t) => t.late), ...(mark ? { mark } : {}), ...fold });
+    const fold = {
+      steps: m.length,
+      ...(each ? { each: "platforms", ...(each.io ? { io: each.io } : {}) } : ioOf(run)),
+    };
+    meta.set(k, {
+      late: inside.some((t) => t.late),
+      ...(mark ? { mark } : {}),
+      ...fold,
+      ...(each ? { s: each.s } : {}),
+    });
     // The chip takes the room of its longer words, so the hover never runs into a neighbour.
     const chip = [foldSteps(fold), foldIo(fold)].sort((a, b) => b.length - a.length)[0];
-    folds.push({
+    folds.set(k, {
       id: k,
       kind: last.kind,
       line: first.line,
       column: first.column,
-      label: nameOf(k, first),
+      ...(first.group ? { group: first.group } : {}),
+      ...(first.flow ? { flow: first.flow } : {}),
+      label: name,
+      ...(each
+        ? {
+            sub: each.s,
+            bundle: true,
+            ...(each.now !== undefined ? { now: each.now } : {}),
+            ...(each.arrived !== undefined ? { arrived: each.arrived } : {}),
+          }
+        : {}),
       ...(chip ? { repeat: chip, repeatIcon: "expand" as const } : {}),
     });
     for (const s of m) into.set(s.id, k);
   }
   const at = (id: string) => into.get(id) ?? id;
-  // Tracks reattach to the fold. One inside it goes; two that now join the same ends are one.
   const seen = new Set<string>();
   const tracks = view.tracks.flatMap((t): ViewTrack[] => {
     const from = at(t.from);
@@ -368,24 +398,105 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
     return [{ ...t, id: t.id ?? `${t.from}-${t.to}`, from, to }];
   });
   // The fold takes the place of the run's first station, so the stations keep their order.
+  const first = new Map([...runs].map(([k, r]) => [k, r.m[0]?.id]));
   const stations = view.stations.flatMap((s): ViewStation[] => {
-    const open = leafOn.get(s.id);
-    // The layout keeps the leaf's room under the circle, as a repeat chip's.
-    if (open && !s.repeat)
-      return [{ ...s, repeat: nameOf(open, s), repeatIcon: "shrink" as const }];
     const k = into.get(s.id);
     if (!k) return [s];
-    const f = folds.find((x) => x.id === k);
-    return f && runs.get(k)?.[0]?.id === s.id ? [f] : [];
+    const f = folds.get(k);
+    return f && first.get(k) === s.id ? [f] : [];
   });
-  const scene = layoutMetro({ ...view, stations, tracks });
+  return { view: { ...view, stations, tracks }, meta, shown, leafOn, names };
+}
+
+/** A twin departs from the rest: stuck share (now over arrived) and how far, with how few people it says nothing. */
+export const TWIN_OUTLIER = { margin: 0.25, people: 5 } as const;
+
+/**
+ * Stations side by side: one template on one line in one column, a station per platform. A twin
+ * with a diff mark (or a track with one) stays out, so a fold never hides a diff; so does a twin
+ * whose stuck share departs from the others' by more than the margin.
+ */
+export function twinRuns(view: MetroView): Map<string, Run> {
+  const marked = new Set(view.tracks.filter((t) => t.mark).flatMap((t) => [t.from, t.to]));
+  const sets = new Map<string, ViewStation[]>();
+  for (const s of view.stations) {
+    if (!s.template || s.kind === "hub" || s.kind === "exit") continue;
+    const k = `tpl:${s.template}@${s.line}@${s.column}`;
+    sets.set(k, [...(sets.get(k) ?? []), s]);
+  }
+  const share = (m: readonly ViewStation[]) => {
+    const a = m.reduce((t, s) => t + (s.arrived ?? 0), 0);
+    return a ? m.reduce((t, s) => t + (s.now ?? 0), 0) / a : undefined;
+  };
+  const runs = new Map<string, Run>();
+  for (const [k, all] of sets) {
+    const m = all.filter((s) => {
+      if (s.mark || marked.has(s.id)) return false;
+      const rest = share(all.filter((o) => o !== s));
+      const own = share([s]);
+      return (
+        (s.arrived ?? 0) < TWIN_OUTLIER.people ||
+        own === undefined ||
+        rest === undefined ||
+        Math.abs(own - rest) <= TWIN_OUTLIER.margin
+      );
+    });
+    if (m.length < 2) continue;
+    const words = m.map((s) => s.label?.split(" \u00b7 ") ?? []);
+    const head = words[0]?.[0];
+    const name =
+      head && words.every((w) => w.length > 1 && w[0] === head) ? head : (m[0]?.template ?? k);
+    const platforms = m.map((s, i) =>
+      (words[i]?.length ?? 0) > 1 ? words[i]?.at(-1) : s.platform,
+    );
+    const sum = (f: (s: ViewStation) => number | undefined) =>
+      m.some((s) => f(s) !== undefined) ? m.reduce((t, s) => t + (f(s) ?? 0), 0) : undefined;
+    const now = sum((s) => s.now);
+    const arrived = sum((s) => s.arrived);
+    runs.set(k, {
+      m,
+      name,
+      each: {
+        s: platforms.filter(Boolean).join(", "),
+        ...(now !== undefined && arrived !== undefined ? { io: [arrived, now] } : {}),
+        ...(now !== undefined ? { now } : {}),
+        ...(arrived !== undefined ? { arrived } : {}),
+      },
+    });
+  }
+  return runs;
+}
+
+/** A view with its side-by-side stations folded, each a stacked station: for a layout of its own. */
+export const foldTwins = (view: MetroView): MetroView => foldRuns(view, twinRuns(view), {}).view;
+
+/**
+ * The scene of a view at a level. Every level first folds side-by-side stations (`twinRuns`). Level
+ * 1 then folds the named groups (`station.group`), level 0 one run per line per column. A folded run
+ * is one station when the layout places it, so it takes one step, not the room of its stations. It
+ * draws as a round capsule; side by side, a stacked one. The hub and exits never fold.
+ */
+export function viewScene(view: MetroView, level: number, open: OpenMap = {}): MetroScene {
+  const twins = foldRuns(view, twinRuns(view), open);
+  const groups = level >= 2 ? undefined : foldRuns(twins.view, groupRuns(twins.view, level), open);
+  const done = groups?.view ?? twins.view;
+  const meta = new Map([...twins.meta, ...(groups?.meta ?? [])]);
+  const shown = new Map([...twins.shown, ...(groups?.shown ?? [])]);
+  const leafOn = new Map([...twins.leafOn, ...(groups?.leafOn ?? [])]);
+  const names = new Map([...twins.names, ...(groups?.names ?? [])]);
+  // The layout keeps the leaf's room under the circle, as a repeat chip's.
+  const stations = done.stations.map((s): ViewStation => {
+    const k = leafOn.get(s.id);
+    return k && !s.repeat ? { ...s, repeat: names.get(k) ?? k, repeatIcon: "shrink" as const } : s;
+  });
+  const scene = layoutMetro({ ...done, stations });
   // The leaf draws on its own: the station drops the stand-in chip that kept its room.
   scene.st = scene.st.map((s) => {
     if (!isMark(s) || !leafOn.has(s.id) || s.repGlyph !== "shrink") return s;
     const { rep: _rep, repGlyph: _glyph, ...rest } = s;
     return rest;
   });
-  const opened = openedOf(scene, shown, leafOn, (k) => nameOf(k, runs.get(k)?.[0] as ViewStation));
+  const opened = openedOf(scene, shown, leafOn, (k) => names.get(k) ?? k);
   const lineKey = (ln: string | undefined) => scene.lines?.[ln ?? ""]?.l ?? ln ?? "";
   const st = scene.st.map((s): SceneStation => {
     const m = meta.get(s.id);
@@ -402,11 +513,41 @@ export function viewScene(view: MetroView, level: number, open: OpenMap = {}): M
       t: s.t,
       steps: m.steps,
       ...(m.io ? { io: m.io } : {}),
+      ...(m.each ? { each: m.each } : {}),
+      ...(m.s ? { s: m.s } : {}),
       n: s.n ?? s.id,
       ...(s.p ? { p: s.p } : {}),
     };
   });
   return { ...scene, st, ...(opened.length ? { opened } : {}) };
+}
+
+/** Level 1: the named groups (`station.group`). Level 0: one run per line per column. */
+function groupRuns(view: MetroView, level: number): Map<string, Run> {
+  const key = (s: ViewStation): string | null =>
+    s.kind === "hub" || s.kind === "exit"
+      ? null
+      : level === 1
+        ? (s.group ?? null)
+        : `${s.line}@${s.column}`;
+  const nameOf = (k: string, first: ViewStation) => {
+    const line = view.lines.find((l) => l.id === first.line);
+    const n = line?.label ?? first.line;
+    return level === 1
+      ? (view.groups?.find((g) => g.id === k)?.label ?? k)
+      : line?.tier === "out"
+        ? n
+        : `${n} · ${first.column}`;
+  };
+  const runs = new Map<string, Run>();
+  for (const s of view.stations) {
+    const k = key(s);
+    if (!k) continue;
+    const r = runs.get(k);
+    if (r) r.m.push(s);
+    else runs.set(k, { m: [s], name: nameOf(k, s) });
+  }
+  return runs;
 }
 
 /** The groups opened by hand, from where the layout put their stations. */

@@ -7,7 +7,9 @@ import {
   normalise,
   stepLevel,
   toggleGroup,
+  twinRuns,
   viewScene,
+  viewZoom,
 } from "./fold.js";
 import { boxAt, CHIP_H, foldWidth, labelBoxes, markBoxes, overlaps } from "./geometry.js";
 import { layoutMetro } from "./layout.js";
@@ -15,6 +17,7 @@ import {
   DIFF_VIEW,
   loopZoom,
   protocolZoom,
+  TWINS_VIEW,
   ZOOM_SCENE,
   ZOOM_VIEW,
   zoomScenario,
@@ -223,5 +226,71 @@ describe("viewScene", () => {
     const leaf = boxAt(o?.at[0] ?? 0, o?.at[1] ?? 0, foldWidth(o?.t ?? ""), CHIP_H);
     for (const s of sc.st.filter(isMark))
       for (const b of [...markBoxes(s), ...labelBoxes(s)]) expect(overlaps(leaf, b)).toBe(false);
+  });
+});
+
+describe("side-by-side stations", () => {
+  const key = "tpl:post@so@Marketing";
+  const twins = (o: Record<string, boolean> = {}) => viewZoom(TWINS_VIEW).scene(2, o);
+
+  it("folds a template's stations into one stacked capsule that adds up their people", () => {
+    const fold = twins().st.find((s) => s.id === key);
+    expect(fold && isCapsule(fold)).toBe(true);
+    expect(fold).toMatchObject({
+      grp: key,
+      each: "platforms",
+      steps: 4,
+      n: "Post",
+      s: "LinkedIn, X, YouTube, Instagram",
+      io: [42 + 35 + 38 + 31, 3 + 2 + 4 + 1],
+    });
+  });
+
+  it("keeps an outlier out: TikTok's stuck share departs from the rest", () => {
+    const ids = twins().st.map((s) => s.id);
+    expect(ids).toContain("ptiktok");
+    expect(ids).not.toContain("plinkedin");
+  });
+
+  it("keeps a twin with a diff mark out of the fold", () => {
+    const view = {
+      ...TWINS_VIEW,
+      stations: TWINS_VIEW.stations.map((s) =>
+        s.id === "px" ? { ...s, mark: "changed" as const } : s,
+      ),
+    };
+    expect(
+      twinRuns(view)
+        .get(key)
+        ?.m.map((s) => s.id),
+    ).not.toContain("px");
+  });
+
+  it("joins tracks once to the fold, and opens by hand to each platform with a leaf", () => {
+    const shut = twins();
+    const ids = new Set(shut.st.map((s) => s.id));
+    for (const r of shut.tr) {
+      if (r.a) expect(ids.has(r.a)).toBe(true);
+      if (r.b) expect(ids.has(r.b)).toBe(true);
+    }
+    expect(shut.tr.filter((r) => r.a === "pw" && r.b === key)).toHaveLength(1);
+    const open = twins({ [key]: true });
+    expect(open.st.map((s) => s.id)).toContain("plinkedin");
+    expect(open.opened?.map((o) => o.grp)).toEqual([key]);
+  });
+
+  it("stays folded at the last level until opened; normalise keeps the hand open", () => {
+    const z = viewZoom(TWINS_VIEW);
+    expect(normalise(z, 2, { [key]: true })).toEqual({ [key]: true });
+    expect(toggleGroup(z, { level: 2, open: {} }, key, true)).toEqual({
+      level: 2,
+      open: { [key]: true },
+    });
+  });
+
+  it("folds twins first, so a group run at level 0 takes the fold in", () => {
+    const parts = viewZoom(TWINS_VIEW).scene(0, {});
+    expect(parts.st.some((s) => s.id === key)).toBe(false);
+    expect(parts.st.some((s) => s.id === "so@Marketing")).toBe(true);
   });
 });

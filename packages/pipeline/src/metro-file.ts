@@ -106,6 +106,8 @@ const STATION: Schema = {
   rule: "text",
   flow: "text",
   retries: "number",
+  template: "text",
+  platform: "text",
   planned: "true",
   attach: "attaches",
 };

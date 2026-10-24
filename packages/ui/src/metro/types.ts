@@ -79,8 +79,18 @@ export interface CapsuleStation {
   t?: StationKind;
   /** The stations inside. */
   steps: number;
-  /** People at its first and its last station: what goes in and what comes out. */
+  /**
+   * People at its first and its last station: what goes in and what comes out. Side by side: the
+   * people who reached its stations and who sit there now, added up.
+   */
   io?: [number, number];
+  /**
+   * Its stations sit side by side, one job on each platform (`template`): what one is ("platforms").
+   * It draws stacked, and its chip counts them.
+   */
+  each?: string;
+  /** The line under its name: side by side, the platforms. */
+  s?: string;
   /** A late person track inside rings it amber. */
   late?: boolean;
   grp?: string;

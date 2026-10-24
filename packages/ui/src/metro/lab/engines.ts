@@ -1,24 +1,25 @@
 /**
- * The layout lab's engines. A placer gives each station a point; `finishMetro` makes the scene
- * (tracks, names, chips, rails). Any placer can give x and any other y. Then `snap` levels stations
- * that are nearly level, and `even` puts one even step inside each column, like the hand maps.
+ * The layout lab's engines (designs/2026-10-23-metro-layout-lab.md). A placer gives each station a
+ * point; `finishMetro` makes the scene (tracks, names, chips, rails). The ELK engines take ELK's
+ * layers as x, one even step apart like the hand maps, so the step sets the width; y comes from ELK
+ * or the LP. A back track (a loop) goes to ELK turned round, so the loop's ends stay near. The LP
+ * keeps it as a track, which pulls the loop's ends level.
  */
 import type { ElkNode } from "elkjs/lib/elk-api.js";
 import { elkOf } from "../../graph/layout.js";
 import { RADIUS, textWidth } from "../geometry.js";
 import { finishMetro, layoutMetro, type Placement } from "../layout.js";
-import { isMark, type MetroScene, type Point, type Zone } from "../types.js";
+import type { MetroScene, Point, Zone } from "../types.js";
 import { DEFAULT_COLUMNS, type MetroView, type ViewStation } from "../view.js";
 import { lpY } from "./lp.js";
-
-export type Finish = "none" | "snap";
 
 export interface Engine {
   id: string;
   name: string;
   /** What it does, in one line. */
   note: string;
-  run: (view: MetroView) => Promise<MetroScene>;
+  /** `step`: the px between two x slots, where the engine uses one. */
+  run: (view: MetroView, step?: number) => Promise<MetroScene>;
 }
 
 /** The room a station takes: its marker, and its name and sub above and below, so the mark is the centre. */
@@ -66,23 +67,6 @@ function normalise(view: MetroView, pos: Map<string, Point>): Placement {
   return { pos: moved, zones, bottom: Math.max(...[...moved.values()].map((p) => p[1])) + 40 };
 }
 
-/** Stations within `gap` px in y take one y: the mean of their run. */
-function snapY(pos: Map<string, Point>, gap = 28) {
-  const ids = [...pos.keys()].sort((a, b) => (pos.get(a) as Point)[1] - (pos.get(b) as Point)[1]);
-  let run: string[] = [];
-  const flush = () => {
-    const y = Math.round(run.reduce((t, k) => t + (pos.get(k) as Point)[1], 0) / run.length);
-    for (const k of run) pos.set(k, [(pos.get(k) as Point)[0], y]);
-    run = [];
-  };
-  for (const k of ids) {
-    const last = run[run.length - 1];
-    if (last && (pos.get(k) as Point)[1] - (pos.get(last) as Point)[1] > gap) flush();
-    run.push(k);
-  }
-  if (run.length) flush();
-}
-
 async function elkPlace(
   view: MetroView,
   placement: "BRANDES_KOEPF" | "NETWORK_SIMPLEX",
@@ -120,8 +104,8 @@ async function elkPlace(
         const words = t.by === "person" ? `${t.owner ?? ""} · ${t.promise ?? ""}` : t.label;
         return {
           id: `e${i}`,
-          sources: [t.from],
-          targets: [t.to],
+          sources: [t.back ? t.to : t.from],
+          targets: [t.back ? t.from : t.to],
           ...(words
             ? {
                 labels: [
@@ -138,14 +122,6 @@ async function elkPlace(
     pos.set(c.id, [(c.x ?? 0) + (c.width ?? 0) / 2, (c.y ?? 0) + (c.height ?? 0) / 2]);
   return pos;
 }
-
-/** Today's layout, read back as points. */
-const currentPlace = async (v: MetroView) =>
-  new Map(
-    layoutMetro(v)
-      .st.filter(isMark)
-      .map((s) => [s.id, [s.x, s.y] as Point]),
-  );
 
 /** One even step inside each column, in the placer's order; columns follow each other. */
 function evenX(view: MetroView, pos: Map<string, Point>, step = 120, merge = 24) {
@@ -172,88 +148,49 @@ function evenX(view: MetroView, pos: Map<string, Point>, step = 120, merge = 24)
 }
 
 /** ELK's order, then the LP's y: each even x slot keeps ELK's top-to-bottom order. */
-async function elkLpPlace(view: MetroView): Promise<Map<string, Point>> {
+async function elkLpPlace(view: MetroView, step: number): Promise<Map<string, Point>> {
   const elk = await elkPlace(view, "BRANDES_KOEPF");
   const even = new Map(elk);
-  evenX(view, even);
+  evenX(view, even, step);
   const xs = [...new Set([...even.values()].map(([x]) => x))].sort((a, b) => a - b);
   const slot = new Map([...even].map(([k, [x]]) => [k, xs.indexOf(x)]));
   const size = new Map(view.stations.map((s) => [s.id, sizeOf(s).height]));
   return lpY(view, elk, slot, (k) => size.get(k) ?? 0);
 }
 
-/** A placer: a point for each station of a view. Any one can give x and any other y. */
+/** A placer: a point for each station of a view. */
 export type Placer = (v: MetroView) => Promise<Map<string, Point>>;
 
-export type Source = "current" | "elk-bk" | "elk-ns" | "elk-lp";
-export const SOURCES: Source[] = ["current", "elk-bk", "elk-ns", "elk-lp"];
-const placeBy: Record<Source, Placer> = {
-  current: currentPlace,
-  "elk-bk": (v) => elkPlace(v, "BRANDES_KOEPF"),
-  "elk-ns": (v) => elkPlace(v, "NETWORK_SIMPLEX"),
-  "elk-lp": elkLpPlace,
-};
+/** The step between two x slots, in px: the map's width. */
+export const STEPS = [90, 105, 120, 150] as const;
+export const DEFAULT_STEP = 120;
 
-export interface Mix {
-  /** Where the left-to-right order and spacing come from. */
-  x: Source;
-  /** Where the up-down places come from. */
-  y: Source;
-  /** One even step in each column, like the hand maps. */
-  even: boolean;
-  /** Level near-level stations. */
-  finish: Finish;
-}
-
-export const mixId = (m: Mix) =>
-  `x:${m.x}${m.even ? "+even" : ""} y:${m.y}${m.finish === "none" ? "" : `+${m.finish}`}`;
-
-const SOURCE_NAME: Record<Source, string> = {
-  current: "today",
-  "elk-bk": "ELK BK",
-  "elk-ns": "ELK NS",
-  "elk-lp": "ELK + LP",
-};
-
-/** "x ELK BK, even · y today": what each axis came from. */
-export const mixName = (m: Mix) =>
-  `x ${m.x === "current" ? "today" : "ELK"}${m.even ? ", even" : ""} · y ${SOURCE_NAME[m.y]}${m.finish === "snap" ? ", snapped" : ""}`;
-
-/** Any mix of a placer for x and one for y, then the finisher. */
-export async function runMix(view: MetroView, m: Mix): Promise<MetroScene> {
-  const [px, py] = await Promise.all([placeBy[m.x](view), m.y === m.x ? null : placeBy[m.y](view)]);
-  const pos = new Map<string, Point>();
-  for (const [k, p] of px) pos.set(k, [p[0], (py ? (py.get(k) ?? p) : p)[1]]);
-  if (m.finish === "snap") snapY(pos);
-  if (m.even) evenX(view, pos);
+/** ELK's layers, one even step apart, then a placer's y. */
+async function elkEven(view: MetroView, y: Placer, step: number): Promise<MetroScene> {
+  const [elk, py] = await Promise.all([elkPlace(view, "BRANDES_KOEPF"), y(view)]);
+  const pos = new Map([...elk].map(([k, p]) => [k, [p[0], (py.get(k) ?? p)[1]] as Point]));
+  evenX(view, pos, step);
   return finishMetro(view, normalise(view, pos));
 }
 
-/** The ELK placers give the same x (the layers); they differ in y. Snap leaves today's rows as they are. */
-export const MIXES: Mix[] = (["current", "elk-bk"] as const).flatMap((x) =>
-  SOURCES.flatMap((y) =>
-    (x === "current" ? [false] : [false, true]).flatMap((even) =>
-      (y === "current" ? (["none"] as const) : (["none", "snap"] as const)).map((finish) => ({
-        x,
-        y,
-        even,
-        finish,
-      })),
-    ),
-  ),
-);
-
+/** Today's layout, ELK with its own y, and ELK with the LP's y. The step sets the width of the two ELK ones. */
 export const ENGINES: Engine[] = [
   {
     id: "current",
-    name: "Today (layoutMetro, whole)",
-    note: "today's layoutMetro, whole",
+    name: "Today",
+    note: "today's layoutMetro; it keeps its own widths",
     run: async (v) => layoutMetro(v),
   },
-  ...MIXES.map((m) => ({
-    id: mixId(m),
-    name: mixName(m),
-    note: "",
-    run: (v: MetroView) => runMix(v, m),
-  })),
+  {
+    id: "elk-bk",
+    name: "ELK BK",
+    note: "ELK's layers, even steps, ELK's Brandes-Köpf y",
+    run: (v, step = DEFAULT_STEP) => elkEven(v, (w) => elkPlace(w, "BRANDES_KOEPF"), step),
+  },
+  {
+    id: "elk-lp",
+    name: "ELK + LP",
+    note: "ELK's layers, even steps, the LP's y",
+    run: (v, step = DEFAULT_STEP) => elkEven(v, (w) => elkLpPlace(w, step), step),
+  },
 ];

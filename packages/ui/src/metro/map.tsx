@@ -17,6 +17,7 @@ import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
 import {
+  ALL_OPEN,
   autoZoom,
   type MetroZoom,
   type OpenMap,
@@ -117,7 +118,7 @@ export function MetroMap(props: MetroMapProps) {
   const focus = props.focus ?? null;
   const base = useMemo(
     // A focused part shows all its stations: the deepest level, nothing folded.
-    () => (focus ? zoom.scene(zoom.names.length - 1, {}) : zoom.scene(level, open)),
+    () => (focus ? zoom.scene(zoom.names.length - 1, ALL_OPEN) : zoom.scene(level, open)),
     [zoom, level, open, focus],
   );
   const scene = useMemo(() => (focus ? focusScene(base, focus) : base), [base, focus]);

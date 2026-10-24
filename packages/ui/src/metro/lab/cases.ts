@@ -51,4 +51,14 @@ export const LAB_CASES: LabCase[] = [
     group: "generated" as const,
     view: funnel(n, n),
   })),
+  // Loops, a retainer lap and one post on each platform: the shapes a business map really has.
+  ...[24, 40, 64].map((n) => {
+    const view = funnel(n, n, { loops: true, retainer: true, platforms: 5 });
+    return {
+      id: `generated-${n}-shaped`,
+      title: view.title ?? `Generated funnel, ${n} stations`,
+      group: "generated" as const,
+      view,
+    };
+  }),
 ];

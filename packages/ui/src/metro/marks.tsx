@@ -190,7 +190,15 @@ export function FoldLeaf({
  * A fold's expand leaf: its steps. Under a pointer a second leaf takes its place and says who
  * reached the first station and the last.
  */
-function FoldChip({ x, y, f }: { x: number; y: number; f: Pick<CapsuleStation, "steps" | "io"> }) {
+function FoldChip({
+  x,
+  y,
+  f,
+}: {
+  x: number;
+  y: number;
+  f: Pick<CapsuleStation, "steps" | "io" | "each">;
+}) {
   const rest = foldSteps(f);
   const io = foldIo(f);
   return (
@@ -376,7 +384,7 @@ export function Marker({
   /** First load: seconds until this station lands. */
   at?: number | undefined;
   /** A folded run: its chip shows the steps, and in and out under a pointer. */
-  fold?: Pick<CapsuleStation, "steps" | "io"> | undefined;
+  fold?: Pick<CapsuleStation, "steps" | "io" | "each"> | undefined;
 }) {
   const { x, t } = s;
   const { r, cy, top, h, w, rx, d } = markerBox(s);
@@ -481,6 +489,9 @@ export function Capsule({
     x: c.x ?? (c.cap[0] + c.cap[1]) / 2,
     y: c.y,
     n: c.n,
+    ...(c.s ? { s: c.s } : {}),
+    // Side by side, it stacks like a bundle: one mark that stands for several.
+    ...(c.each ? { bundle: true } : {}),
     // The name keeps clear of the chip, as a repeat chip's station does.
     rep: foldIo(c).length > foldSteps(c).length ? foldIo(c) : foldSteps(c),
     repGlyph: "expand",

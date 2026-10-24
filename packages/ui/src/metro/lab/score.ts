@@ -15,6 +15,8 @@ export interface Score {
   uneven: number;
   crossings: number;
   bends: number;
+  /** Width in px: the narrow map fits a laptop with the side panel open. */
+  width: number;
   /** Width × height, in thousands of px². */
   area: number;
   /** The share of station pairs whose left/right and up/down agree with the hand scene; 1 is the same. Absent with no hand. */
@@ -61,6 +63,7 @@ export function scoreScene(scene: MetroScene, hand?: MetroScene): Score {
     uneven: all.length - clashes.length,
     crossings: crossingsOf(scene),
     bends: bendsOf(scene),
+    width: Math.round(scene.w ?? 0),
     area: Math.round(((scene.w ?? 0) * scene.h) / 1000),
     ...(hand ? { likeness: Math.round(likeness(scene, hand) * 1000) / 1000 } : {}),
     why: clashes.slice(0, 5),

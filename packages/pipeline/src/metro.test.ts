@@ -410,6 +410,18 @@ describe("checkMetro: stations", () => {
     }
     expect(says((b) => (station(b, "book").retries = 10))).toEqual([]);
   });
+
+  it("wants a template and a platform as slugs, and a platform only with a template", () => {
+    expect(says((b) => (station(b, "book").platform = "x"))).toEqual([
+      'Station "book" has a platform but no template.',
+    ]);
+    expect(says((b) => (station(b, "book").template = "Post X"))).toEqual([
+      'Station "book" has template "Post X". Use a slug: a-z, 0-9 and dashes, up to 40.',
+    ]);
+    expect(
+      says((b) => Object.assign(station(b, "book"), { template: "post", platform: "linkedin" })),
+    ).toEqual([]);
+  });
 });
 
 describe("checkMetro: tracks", () => {

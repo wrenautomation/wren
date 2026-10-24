@@ -150,6 +150,14 @@ export interface MetroStation {
   flow?: string;
   /** The retry chip: the cap, 1 to 10. */
   retries?: number;
+  /**
+   * The job, when stations do one job side by side (the same post on five platforms): a slug. The
+   * map folds the stations of one template that sit in one column into one station, a mark each.
+   * Lowers to nothing.
+   */
+  template?: string;
+  /** The platform of a template station (`x`, `linkedin`): its mark in the fold. Needs a template. */
+  platform?: string;
   planned?: true;
   attach?: Attach[];
 }
@@ -346,6 +354,8 @@ function checkReserved(stations: readonly MetroStation[], errors: string[]): voi
 
 /** An attach ref: no spaces, and an `https://` URL when it has a scheme at all. */
 const REF_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+/** A template or platform name. */
+const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 /**
  * The attach list of one part (`who` names it): each item has a known kind, a ref of 1 to
@@ -590,6 +600,18 @@ function checkStations(
       errors.push(
         `Station "${k}" has retries ${JSON.stringify(s.retries)}. Use a whole number from 1 to ${RETRIES_MAX}.`,
       );
+    }
+    if (s.template !== undefined && !(typeof s.template === "string" && SLUG.test(s.template))) {
+      errors.push(
+        `Station "${k}" has template ${JSON.stringify(s.template)}. Use a slug: a-z, 0-9 and dashes, up to 40.`,
+      );
+    }
+    if (s.platform !== undefined) {
+      if (s.template === undefined) errors.push(`Station "${k}" has a platform but no template.`);
+      else if (!(typeof s.platform === "string" && SLUG.test(s.platform)))
+        errors.push(
+          `Station "${k}" has platform ${JSON.stringify(s.platform)}. Use a slug: a-z, 0-9 and dashes, up to 40.`,
+        );
     }
   }
   for (const [line, ids] of dealsOn) {

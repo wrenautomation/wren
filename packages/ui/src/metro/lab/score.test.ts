@@ -33,7 +33,7 @@ describe("layout lab", () => {
           n: t.n + (s.likeness === undefined ? 0 : 1),
         });
         rows.push(
-          `${c.id.padEnd(44)} ${e.id.padEnd(34)} like ${String(s.likeness ?? "-").padEnd(5)} clash ${String(s.clashes).padStart(3)} uneven ${String(s.uneven).padStart(2)} cross ${String(s.crossings).padStart(3)} bends ${String(s.bends).padStart(3)} area ${s.area}`,
+          `${c.id.padEnd(44)} ${e.id.padEnd(34)} like ${String(s.likeness ?? "-").padEnd(5)} clash ${String(s.clashes).padStart(3)} uneven ${String(s.uneven).padStart(2)} cross ${String(s.crossings).padStart(3)} bends ${String(s.bends).padStart(3)} width ${s.width}`,
         );
       }
     }

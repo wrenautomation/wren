@@ -67,6 +67,10 @@ export interface ViewStation {
   repeatIcon?: IconName | null;
   plans?: string;
   bundle?: boolean;
+  /** The job it shares with stations side by side (one post on each platform): `foldTwins` folds them. */
+  template?: string;
+  /** The platform of a template station: its name in the fold. */
+  platform?: string;
   /** A diff mark. */
   mark?: Mark;
 }
@@ -89,6 +93,11 @@ export interface ViewTrack {
   moving?: boolean;
   /** The track is planned, not live. */
   plan?: boolean;
+  /**
+   * A back track: a loop to an earlier station (the body's `kind: "back"`). The layout orders the
+   * stations without it, so a loop never pulls its start to the right.
+   */
+  back?: boolean;
   /** A diff mark. */
   mark?: Mark;
 }

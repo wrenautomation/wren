@@ -220,7 +220,8 @@ function prepare(view: MetroView): Prep {
   }
 
   // Slots. In a column, a station sits after the one before it on its line and after the source of
-  // a track into it. A track back (a loop) does not count: the view's order wins.
+  // a track into it. A track back (a loop, `back` or found by the walk) does not count: the view's
+  // order wins.
   const rightOf = (s: ViewStation) => colOf(s) === hubCol && line.get(s.line)?.tier !== "out";
   const placed = view.stations.filter(
     (s) => s.kind !== "hub" && !(s.kind === "exit" && exitOf.has(s.id)),
@@ -239,7 +240,7 @@ function prepare(view: MetroView): Prep {
   }
   for (const t of view.tracks) {
     const [a, b] = [byId.get(t.from), byId.get(t.to)];
-    if (a && b && next.has(a.id) && next.has(b.id)) edge(a, b);
+    if (a && b && !t.back && next.has(a.id) && next.has(b.id)) edge(a, b);
   }
   const seen = new Map<string, "open" | "done">();
   const post: string[] = [];

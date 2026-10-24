@@ -12,17 +12,21 @@ export {
   stubsOf,
 } from "./focus.js";
 export {
+  ALL_OPEN,
   autoZoom,
   type Flags,
   flagsAt,
   flagZoom,
   foldScene,
+  foldTwins,
   LEVEL_NAMES,
   type MetroZoom,
   normalise,
   type OpenMap,
   stepLevel,
+  TWIN_OUTLIER,
   toggleGroup,
+  twinRuns,
   viewScene,
   viewZoom,
 } from "./fold.js";

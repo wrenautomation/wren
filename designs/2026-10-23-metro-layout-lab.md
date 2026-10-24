@@ -32,7 +32,7 @@ Placers:
 | `dagre` | `@dagrejs/dagre` |
 | `dot` | Graphviz dot through `@hpcc-js/wasm-graphviz` |
 
-Finisher options: `snap` (y to rows, x to steps, like the hand maps), on or off.
+The x of the ELK engines: ELK's layers, one even step apart (`evenX`), so the step sets the width.
 
 The renderer already draws a track between two points at 45 degrees (`octPts`), so a placer gives points only. No engine routes at 45 degrees; that is the one part of our own code, and it exists.
 
@@ -75,3 +75,24 @@ Board, 10-23, all cases (likeness, clashes, crossings):
 | x ELK · y ELK BK | 0.783 | 9 | 0 |
 
 The LP is the best ELK y by likeness, at near the clashes of BK. Its last crossings come from the pass-through points: they sit on a straight line, not on ELK's bend. Next: read ELK's bend points for them. William picks by eye in the lab.
+
+## Cut to three, width as a setting (10-23)
+
+William: too many options; the narrow maps look best, width can be a setting. The lab keeps three engines: `current` (Today), `elk-bk`, `elk-lp`. The step between x slots is a setting (`STEPS` 90, 105, 120, 150; default 120). The board shows each engine's mean width at that step.
+
+## Loops, retainers, side by side (10-23)
+
+- A **back track** (a loop, body `kind: "back"`) is `ViewTrack.back`. ELK gets it turned round, and `layoutMetro` orders the stations without it, so a loop never pulls its start to the right. The LP keeps it as a track: it pulls the loop's ends level, which the rail wants.
+- A **retainer** is a closed lap in Money ("every 30 days"), a group, so the Groups level folds it.
+- NFA choice stays with the trail chain's chances. A token that splits to all branches comes later.
+- The generator (`funnel(n, seed, shape)`) makes these: `loops`, `retainer`, `platforms`. The cases `generated-{24,40,64}-shaped` use all three.
+
+## Side-by-side fold (10-23)
+
+One job done on several platforms (one post on LinkedIn, X, YouTube) is several stations. The data stays one per platform; the map folds them.
+
+- A station names its job with `template` and its platform with `platform` (slugs; the metro body has both, and they lower to nothing). No guess from names.
+- `twinRuns(view)`: the stations of one template on one line in one column. Two or more fold into one stacked capsule (`each: "platforms"`) with the people added up, the platforms named under it and a chip "4 platforms" (pointer: "146 in · 10 now").
+- A twin stays out when it or a track to it has a diff mark, or when its stuck share (now over arrived) departs from the others' by more than 0.25, with 5 people or more (`TWIN_OUTLIER`). So a platform that does badly shows on its own.
+- The fold runs first at every level, Stations too, so Groups and Parts fold the folded view. It is closed by default; a click opens it, its tab folds it back. A wheel step clears hand changes, so it folds again. A focus opens every fold (`ALL_OPEN`).
+- Stories: `Metro/Side By Side` (the click path), `Metro/Lab/Shaped` (the lab with the toggle on), `Metro/Lab/Shaped Map` (the live map on the generated funnel).

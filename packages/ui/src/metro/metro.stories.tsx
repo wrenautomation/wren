@@ -26,6 +26,7 @@ import {
   SCENARIOS,
   STATION_GLYPHS,
   TRACK_GLYPHS,
+  TWINS_VIEW,
   WEBINAR_VIEW,
   zoomScenario,
 } from "./samples.js";
@@ -169,6 +170,27 @@ export const OpenWithEnter: Story = {
     await userEvent.click(knob);
     await waitFor(() => expect(marksIn(canvasElement)).toBe(before));
     expect(canvas.queryByRole("button", { name: /^Fold / })).toBeNull();
+  },
+};
+
+/**
+ * One post on five platforms folds into one stacked station with the people added up. TikTok does
+ * badly, so it stays out. Click the fold to show each platform; the fold tab folds them back.
+ */
+export const SideBySide: Story = {
+  render: () => <MetroMap view={TWINS_VIEW} level={2} intro={false} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvas.queryByText("Post · LinkedIn")).toBeNull();
+    await expect(canvas.getByText("Post · TikTok")).toBeVisible();
+    const fold = canvasElement.querySelector<SVGElement>('[data-grp="tpl:post@so@Marketing"]');
+    if (!fold) throw new Error("no side-by-side fold");
+    expect(fold.querySelector(".stk")).not.toBeNull();
+    await userEvent.click(fold);
+    // The new stations fade in.
+    await waitFor(() => expect(canvas.getByText("Post · LinkedIn")).toBeVisible());
+    await userEvent.click(canvas.getByRole("button", { name: /^Fold Post/ }));
+    await waitFor(() => expect(canvas.queryByText("Post · LinkedIn")).toBeNull());
   },
 };
 

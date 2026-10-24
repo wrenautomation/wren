@@ -17,7 +17,7 @@ import {
   type Weight,
   type Zone,
 } from "./types.js";
-import type { MetroView } from "./view.js";
+import type { MetroView, ViewStation, ViewTrack } from "./view.js";
 
 export { INDUSTRIES, LOOP_SCENE, OFFERS_SCENE, SCENARIOS, ZOOM_SCENE };
 
@@ -1241,6 +1241,48 @@ export const WEBINAR_VIEW: MetroView = {
     { from: "hub", to: "bk", by: "system" },
     { from: "bk", to: "pay", by: "person", owner: "WJ", promise: "2d" },
     { from: "att", to: "bk", by: "system", label: "upsell" },
+  ],
+};
+
+const post = (key: string, name: string, now: number, arrived: number): ViewStation => ({
+  id: `p${key}`,
+  kind: "att",
+  line: "so",
+  column: "Marketing",
+  label: `Post · ${name}`,
+  sub: `${now} now`,
+  template: "post",
+  platform: key,
+  now,
+  arrived,
+});
+
+/**
+ * One post on five platforms, side by side: they fold into one stacked station. TikTok keeps far
+ * more people stuck than the rest, so it stays out of the fold. Synthetic.
+ */
+export const TWINS_VIEW: MetroView = {
+  title: "One post on five platforms",
+  lines: [
+    { id: "so", label: "Social", tier: "out" },
+    { id: "gp", label: "Growth Partner", offer: "Growth Partner", tier: "core", colour: 0 },
+  ],
+  stations: [
+    { id: "pw", kind: "att", line: "so", column: "Marketing", label: "Write post" },
+    post("linkedin", "LinkedIn", 3, 42),
+    post("x", "X", 2, 35),
+    post("youtube", "YouTube", 4, 38),
+    post("instagram", "Instagram", 1, 31),
+    post("tiktok", "TikTok", 26, 37),
+    { id: "hub", kind: "hub", line: "gp", column: "Sales", label: "Booked call", now: 9 },
+    { id: "won", kind: "ok", line: "gp", column: "Money", label: "Signed", now: 4 },
+  ],
+  tracks: [
+    ...["linkedin", "x", "youtube", "instagram", "tiktok"].flatMap((k): ViewTrack[] => [
+      { from: "pw", to: `p${k}`, by: "system" },
+      { from: `p${k}`, to: "hub", by: "system" },
+    ]),
+    { from: "hub", to: "won", by: "person", owner: "WJ", promise: "2d" },
   ],
 };
 

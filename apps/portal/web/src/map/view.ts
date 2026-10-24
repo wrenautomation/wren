@@ -86,6 +86,8 @@ function stationOf(
     ...(s.failure ? { bad: true } : {}),
     ...(s.rule ? { rule: s.rule } : {}),
     ...(s.retries ? { repeat: `retry · up to ${s.retries}` } : {}),
+    ...(s.template ? { template: s.template } : {}),
+    ...(s.platform ? { platform: s.platform } : {}),
     ...(mark ? { mark } : {}),
   };
 }
@@ -110,6 +112,7 @@ function trackOf(
     ...(label ? { label } : {}),
     ...(t.by === "person" && t.owner && to ? { task: to.label } : {}),
     ...(t.planned ? { plan: true } : {}),
+    ...(t.kind === "back" ? { back: true } : {}),
     ...(mark ? { mark } : {}),
   };
 }
