@@ -26,6 +26,34 @@ export const SOUND_KINDS = [
 ] as const;
 export type SoundKind = (typeof SOUND_KINDS)[number];
 
+/**
+ * The ids in the repo's kit (`sfx/kit.json`; `kit.test.ts` holds them equal), for the edit pass
+ * prompt, which runs where the files are not. Bucket sounds are checked at render.
+ */
+export const KIT_IDS = [
+  "boom-1",
+  "click-1",
+  "click-2",
+  "click-3",
+  "ding-1",
+  "ding-2",
+  "ding-3",
+  "error-1",
+  "glitch-1",
+  "hit-1",
+  "hit-2",
+  "key-1",
+  "key-2",
+  "key-3",
+  "pop-1",
+  "pop-2",
+  "pop-3",
+  "riser-1",
+  "swish-1",
+  "whoosh-1",
+  "whoosh-2",
+] as const;
+
 /** A kit id: a kind, a dash, a number or name (`click-1`, `bed-calm`). */
 export const SOUND_ID = /^[a-z]+-[a-z0-9-]+$/;
 /** Where a kit sound is in the public dir: every kit file is `sfx/<id>.wav`. */
@@ -70,12 +98,19 @@ export const DUCK = { db: 8, joinS: 0.6, attackS: 0.15, releaseS: 0.5 } as const
 
 const sec = z.number().min(0);
 const gain = z.number().min(-60).max(12);
+const kitId = (like: string) =>
+  z
+    .string()
+    .regex(SOUND_ID, `a kit id like ${like}`)
+    .refine((id) => (SOUND_KINDS as readonly string[]).includes(kindOf(id)), {
+      message: `a kit id starts with a kind: ${SOUND_KINDS.join(", ")}`,
+    });
 export const soundsSchema = z
   .array(
     z
       .object({
         at: sec,
-        id: z.string().regex(SOUND_ID, "a kit id like click-1"),
+        id: kitId("click-1"),
         gainDb: gain.optional(),
         only: z.enum(["long", "short"]).optional(),
       })
@@ -84,7 +119,7 @@ export const soundsSchema = z
   .max(2000);
 export const musicSchema = z
   .object({
-    id: z.string().regex(SOUND_ID, "a kit id like bed-calm"),
+    id: kitId("bed-calm"),
     gainDb: gain.optional(),
     duck: z.boolean().optional(),
   })

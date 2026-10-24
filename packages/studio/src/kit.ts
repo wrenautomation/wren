@@ -54,9 +54,10 @@ export function unknownSounds(kit: readonly KitEntry[], ids: Iterable<string>): 
 /** The kit ids an output's audio plays. */
 export const audioIds = (audio: AudioProps | undefined): string[] =>
   audio
-    ? [...audio.sounds.map((s) => s.file), ...(audio.music ? [audio.music.file] : [])].map((f) =>
-        f.replace(/^sfx\/|\.wav$/g, ""),
-      )
+    ? [...audio.sounds.map((s) => s.file), ...(audio.music ? [audio.music.file] : [])]
+        // A file of his own beside the script (a promo's music) is not the kit's.
+        .filter((f) => f.startsWith("sfx/"))
+        .map((f) => f.replace(/^sfx\/|\.wav$/g, ""))
     : [];
 
 /**

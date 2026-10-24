@@ -24,6 +24,7 @@ import { OVERLAY } from "./finish-look.js";
 import { CARD, SHORT_COUNT, SHORT_S } from "./props.js";
 import { type Cut, FORMATS, LAYOUTS, type VideoEdit } from "./schema.js";
 import type { Moved } from "./sentences.js";
+import { KIT_IDS, SOUND_RULES } from "./sounds.js";
 import {
   type Beat,
   type BoardChange,
@@ -84,6 +85,8 @@ export function changeSystem(): string {
     `- captions: {style, long, short, behind, place}. style one of ${CAPTION_STYLES.join(", ")}. long and short: ${CAPTION_SHOWS.join(" or ")} (screen: burned into the picture; track: subtitle file only). place: {long 0.1-0.92, short 0.12-0.8}, the line's height from the top. Send the whole object.`,
     `- overlays: text on the video, [{text, from, to, x, y, size}], text up to ${OVERLAY.maxChars} characters, x and y the text's middle as ${OVERLAY.margin}-${1 - OVERLAY.margin} of the frame, size s, m or l, on screen at least ${OVERLAY.minS}s. Send the whole list. "Make sure this says X" on screen is an overlay.`,
     `- shorts: [{from, to, title, card, cardText}], none or ${SHORT_COUNT.min} to ${SHORT_COUNT.max}, each ${SHORT_S.min}-${SHORT_S.max}s once cut, on whole sentences (Wren moves the ends to the nearest sentence). card false hides the title on screen; cardText (up to ${CARD.maxChars}) replaces it. Send the whole list.`,
+    `- sounds: kit sounds at moments, [{at, id, gainDb, only}], id one of ${KIT_IDS.join(", ")}. gainDb (-60 to 12) only when he asks for louder or softer; only "long" or "short" for one output. Wren places these on its own: ${SOUND_RULES.map((r) => r.says).join("; ")}. Send the whole list; leave the automatic ones in unless he asks.`,
+    "- music: the bed under the whole video, {id, gainDb, duck} or null. duck false keeps it level under speech. A bed is a kit id that starts with bed-; ask him to add one with wren video sfx add when there is none.",
     `- formats: any of ${FORMATS.join(", ")}, each once.`,
     "- thumbnail: {at, text} (text up to 60 characters), the cover frame.",
     "- crops: {vertical, square, portrait: {x, y} 0-1 of the picture}.",
@@ -120,6 +123,8 @@ export function changePrompt(
     layout: e.layout,
     captions: e.captions,
     overlays: e.overlays,
+    sounds: e.sounds,
+    music: e.music,
     formats: e.formats,
     thumbnail: e.thumbnail,
     crops: e.crops,

@@ -159,4 +159,16 @@ describe("the prompt", () => {
     expect(again).toContain("Your last patch was refused: shorts: 1 picked");
     expect(changeSystem()).toContain('"changes"');
   });
+
+  it("shows the sounds and the bed, and names the kit ids and the automatic rules", () => {
+    const p = changePrompt(
+      edit({ sounds: [{ at: 3, id: "click-1" }], music: null }),
+      "louder clicks",
+    );
+    expect(p).toContain('"sounds":[{"at":3,"id":"click-1"}],"music":null');
+    const sys = changeSystem();
+    expect(sys).toContain("- sounds: kit sounds at moments");
+    expect(sys).toContain("whoosh-2");
+    expect(sys).toContain("a pop as each text overlay comes in");
+  });
 });

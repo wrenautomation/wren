@@ -1110,7 +1110,7 @@ const PromoScene: FC<{ s: TimedScene; look: Look }> = ({ s, look }) => {
 };
 
 /** A product promo from a script (`promoProps`): scenes back to back on Wren's canvas. */
-const Promo: FC<PromoProps> = ({ scenes, look, music, finish }) => {
+const Promo: FC<PromoProps> = ({ scenes, look, audio, finish }) => {
   const u = useUnit();
   return (
     <Glow.Provider value={finish.glow}>
@@ -1124,7 +1124,7 @@ const Promo: FC<PromoProps> = ({ scenes, look, music, finish }) => {
           filter: finish.dither ? "url(#promo-dither)" : undefined,
         }}
       >
-        {music ? <Audio src={staticFile(music)} /> : null}
+        <Sounds audio={audio} />
         {scenes.map((s) => (
           <Sequence key={s.from} from={s.from} durationInFrames={s.frames}>
             <Enter kind={s.enter} next={s.next} frames={s.frames} look={look}>
@@ -1143,7 +1143,7 @@ const PROMO_PLACEHOLDER: PromoProps = {
   width: 1920,
   height: 1080,
   look: DEFAULT_LOOK,
-  music: null,
+  audio: { sounds: [], music: null },
   finish: { glow: false, dither: false },
   scenes: [
     {

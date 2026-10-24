@@ -7,7 +7,8 @@
  */
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import { z } from "zod";
-import { clamp, ENTRANCES, type Entrance } from "./promo-clock.js";
+import { clamp, ENTRANCES, type Entrance, toastAt } from "./promo-clock.js";
+import { type AudioProps, dbToGain, GAIN_DB, kindOf, SOUND_ID, soundFile } from "./sounds.js";
 
 export * from "./promo-clock.js";
 
@@ -118,8 +119,10 @@ export const promoScript = z
       })
       .partial()
       .default({}),
-    /** A music file beside the script, his own; none: silent. */
+    /** The bed: a kit id (`bed-calm`) or a music file beside the script, his own; none: silent. */
     music: z.string().optional(),
+    /** Kit sounds on the scenes (`PROMO_SOUNDS`); false: the music alone. */
+    sounds: z.boolean().default(true),
     /**
      * A flow edit's finish. `glow`: accent words and the highlight bloom. `dither`: the whole
      * frame in an ordered dither, a few tones a channel, like an old screen.
@@ -169,10 +172,63 @@ export type PromoProps = {
   width: number;
   height: number;
   look: Look;
-  music: string | null;
+  audio: AudioProps;
   finish: { glow: boolean; dither: boolean };
   scenes: TimedScene[];
 };
+
+/**
+ * A promo's kit sounds, by scene: a sound on each cut to the next scene (`swish` for rise and
+ * wipe, `whoosh` for pull-back and flow, a `hit` on the end card), a `pop` on each toast and a
+ * `ding` as the numbers start. No voice to duck under.
+ */
+export const PROMO_SOUNDS = {
+  rise: "swish-1",
+  wipe: "swish-1",
+  "pull-back": "whoosh-1",
+  flow: "whoosh-2",
+  end: "hit-1",
+  toast: "pop-1",
+  stat: "ding-1",
+} as const;
+/** With no voice the bed sits higher than under speech. */
+export const PROMO_BED_DB = -8;
+
+/** The kit sounds on the promo's scenes: `[frame, id]`, in order. */
+export function promoSounds(scenes: readonly TimedScene[]): [number, string][] {
+  const out: [number, string][] = [];
+  for (const [i, s] of scenes.entries()) {
+    if (i > 0) out.push([s.from, s.kind === "end" ? PROMO_SOUNDS.end : PROMO_SOUNDS[s.enter]]);
+    if (s.kind === "toasts")
+      for (const j of s.items.keys()) {
+        const at = s.from + toastAt(j, !!s.title);
+        if (at < s.from + s.frames) out.push([at, PROMO_SOUNDS.toast]);
+      }
+    if (s.kind === "stat") out.push([s.from + 8, PROMO_SOUNDS.stat]);
+  }
+  return out.sort((a, b) => a[0] - b[0]);
+}
+
+/** The promo's sounds and bed as the composition plays them. */
+function promoAudio(music: string | undefined, sounds: [number, string][]): AudioProps {
+  const kit = music !== undefined && SOUND_ID.test(music) && !music.includes(".");
+  return {
+    sounds: sounds.map(([from, id]) => ({
+      file: soundFile(id),
+      from,
+      volume: Math.round(dbToGain(GAIN_DB[kindOf(id)]) * 1000) / 1000,
+    })),
+    music:
+      music === undefined
+        ? null
+        : {
+            file: kit ? soundFile(music) : music,
+            volume: kit ? Math.round(dbToGain(PROMO_BED_DB) * 1000) / 1000 : 1,
+            duck: [],
+            duckDb: 0,
+          },
+  };
+}
 
 /**
  * The script on the clock. Every screen must have its image by now (`wren video promo` captures
@@ -208,7 +264,7 @@ export function promoProps(
       ...DEFAULT_LOOK,
       ...Object.fromEntries(Object.entries(script.look).filter(([, v]) => v !== undefined)),
     },
-    music: script.music ?? null,
+    audio: promoAudio(script.music, script.sounds ? promoSounds(scenes) : []),
     finish: script.finish,
     scenes,
   };

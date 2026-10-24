@@ -5,6 +5,7 @@ import {
   entranceAt,
   fitBox,
   framing,
+  PROMO_BED_DB,
   PROMO_FPS,
   promoProps,
   promoScript,
@@ -64,6 +65,33 @@ describe("promo script", () => {
     expect([p.width, p.height]).toEqual([1080, 1920]);
     expect(p.look.accent).toBe("#f00");
     expect(p.look.background).toBe("#f3f1ec");
+  });
+});
+
+describe("promo sound", () => {
+  it("puts a swish on each cut, a pop on each toast, a ding on the numbers, a hit on the end", () => {
+    const p = promoProps(script);
+    expect(p.audio.sounds.map((s) => [s.from, s.file])).toEqual([
+      [114, "sfx/swish-1.wav"],
+      [118, "sfx/pop-1.wav"],
+      [134, "sfx/pop-1.wav"],
+      [225, "sfx/swish-1.wav"],
+      [345, "sfx/swish-1.wav"],
+      [353, "sfx/ding-1.wav"],
+      [441, "sfx/hit-1.wav"],
+    ]);
+    expect(p.audio.music).toBeNull();
+  });
+
+  it("plays a kit bed from the kit and his own file as it is; sounds false keeps the bed alone", () => {
+    const kit = promoProps(promoScript.parse({ ...script, music: "bed-calm" }));
+    expect(kit.audio.music).toMatchObject({ file: "sfx/bed-calm.wav", duck: [] });
+    expect(kit.audio.music?.volume).toBeCloseTo(10 ** (PROMO_BED_DB / 20), 3);
+    const own = promoProps(promoScript.parse({ ...script, music: "track.mp3", sounds: false }));
+    expect(own.audio).toEqual({
+      sounds: [],
+      music: { file: "track.mp3", volume: 1, duck: [], duckDb: 0 },
+    });
   });
 });
 

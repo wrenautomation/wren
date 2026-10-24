@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { audioIds, KIT_DIR, kitPath, loadKit, stageSounds } from "./kit.js";
-import { GAIN_DB, kindOf, SOUND_RULES, soundFile } from "./sounds.js";
+import { GAIN_DB, KIT_IDS, kindOf, SOUND_RULES, soundFile, soundsSchema } from "./sounds.js";
 
 describe("the sound kit", () => {
   it("has every repo file it names, each a 48 kHz mono wav", async () => {
@@ -18,6 +18,22 @@ describe("the sound kit", () => {
       expect(kindOf(e.id)).toBe(e.kind);
       expect(GAIN_DB[e.kind]).toBeDefined();
     }
+  });
+
+  it("lists the repo kit's ids for the edit pass, the same as kit.json", async () => {
+    const repo = (await loadKit()).filter((e) => e.where !== "bucket").map((e) => e.id);
+    expect([...KIT_IDS].sort()).toEqual(repo.sort());
+  });
+
+  it("refuses an id of no kind, and stages only kit files", () => {
+    expect(soundsSchema.safeParse([{ at: 1, id: "zap-1" }]).success).toBe(false);
+    expect(soundsSchema.safeParse([{ at: 1, id: "click-9" }]).success).toBe(true);
+    expect(
+      audioIds({
+        sounds: [{ file: "sfx/pop-1.wav", from: 0, volume: 1 }],
+        music: { file: "track.mp3", volume: 1, duck: [], duckDb: 0 },
+      }),
+    ).toEqual(["pop-1"]);
   });
 
   it("has the sound each rule plays", async () => {

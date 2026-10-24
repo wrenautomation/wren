@@ -195,6 +195,8 @@ export function registerStudio(
 ): void {
   // The code, not the data: bin/wren sets WREN_ROOT to the checkout it runs from.
   const studioDir = join(process.env.WREN_ROOT ?? rootDir, "packages/studio");
+  // The kit beside the package's source: the bundled CLI's own folder has none.
+  const kitDir = join(studioDir, "sfx");
 
   video
     .command("add <input>")
@@ -400,7 +402,7 @@ export function registerStudio(
         const e = await getEdit(db, id(v));
         const n = o.short === undefined ? null : Number(o.short);
         const out = resolve(o.out ?? join(e.dir, n === null ? "film" : `film-short-${n}`));
-        const bed = e.music ? (await loadKit()).find((k) => k.id === e.music?.id) : undefined;
+        const bed = e.music ? (await loadKit(kitDir)).find((k) => k.id === e.music?.id) : undefined;
         const fo = { bedS: bed?.durationS };
         const files = n === null ? longFilm(e, fo) : shortFilm(e, n, fo);
         for (const [path, text] of Object.entries(files)) {
@@ -416,7 +418,7 @@ export function registerStudio(
           await rm(join(out, path), { force: true });
           await symlink(resolve(from), join(out, path));
         }
-        await stageSounds(out, assets.sounds);
+        await stageSounds(out, assets.sounds, { kitDir });
         console.log(`${out}/film.html (open it: npx -y openfilm@latest open ${out})`);
       }),
     );
@@ -720,7 +722,7 @@ export function registerStudio(
       withDb(async (db) => {
         let music = null;
         if (sound !== "none") {
-          const missing = unknownSounds(await loadKit(), [sound]);
+          const missing = unknownSounds(await loadKit(kitDir), [sound]);
           if (missing.length) throw new Error(`${sound} is not in the sound kit`);
           music = {
             id: sound,
@@ -746,8 +748,8 @@ export function registerStudio(
     .command("list")
     .description("every kit sound: id, kind, length, licence, and whether it is on this Mac")
     .action(async () => {
-      for (const e of await loadKit()) {
-        const here = existsSync(kitPath(e)) ? "" : "  (not pulled)";
+      for (const e of await loadKit(kitDir)) {
+        const here = existsSync(kitPath(e, kitDir)) ? "" : "  (not pulled)";
         console.log(
           `${e.id}\t${e.kind}\t${e.durationS}s\t${e.licence}\t${e.tags.join(",")}${here}`,
         );
@@ -758,8 +760,10 @@ export function registerStudio(
     .description(`the kit's bucket sounds into ${KIT_CACHE}`)
     .action(async () => {
       await mkdir(KIT_CACHE, { recursive: true });
-      const want = (await loadKit()).filter((e) => e.where === "bucket" && !existsSync(kitPath(e)));
-      for (const e of want) await getKey(`sfx/${e.file}`, kitPath(e), bucketOf());
+      const want = (await loadKit(kitDir)).filter(
+        (e) => e.where === "bucket" && !existsSync(kitPath(e, kitDir)),
+      );
+      for (const e of want) await getKey(`sfx/${e.file}`, kitPath(e, kitDir), bucketOf());
       console.log(`sfx: ${want.length} pulled`);
     });
   sfx

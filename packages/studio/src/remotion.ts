@@ -55,10 +55,12 @@ async function withBundle<T>(
 }
 
 /** Copy the kit sounds every output of `props` plays into the public dir. */
-const stageAll = (dir: string, props: Iterable<{ audio?: LongProps["audio"] }>) =>
+/** The sounds the props play, from the kit in `pkgDir` (a bundled CLI's own dir has none). */
+const stageAll = (pkgDir: string, dir: string, props: Iterable<{ audio?: LongProps["audio"] }>) =>
   stageSounds(
     dir,
     [...props].flatMap((p) => audioIds(p.audio)),
+    { kitDir: join(pkgDir, "sfx") },
   );
 
 const jobProps = (job: Omit<RenderJob, "thumbnails">) => [
@@ -69,7 +71,7 @@ const jobProps = (job: Omit<RenderJob, "thumbnails">) => [
 
 /** Remotion Studio on localhost, live on this edit; runs until Ctrl-C. */
 export async function openStudio(pkgDir: string, dir: string, props: LongProps): Promise<void> {
-  await stageAll(dir, [props]);
+  await stageAll(pkgDir, dir, [props]);
   const file = await propsFile(dir, "long", props);
   await remotion(pkgDir, ["studio", ENTRY, "--public-dir", dir, "--props", file]);
 }
@@ -159,7 +161,7 @@ export async function renderAll(
 ): Promise<{ files: Record<string, string>; seconds: Record<string, number> }> {
   const out = join(dir, "out");
   await mkdir(out, { recursive: true });
-  const staged = await stageAll(dir, jobProps(job));
+  const staged = await stageAll(pkgDir, dir, jobProps(job));
   if (staged) log(`sounds: ${staged} from the kit`);
   const files: Record<string, string> = {};
   const seconds: Record<string, number> = {};
@@ -215,6 +217,7 @@ export async function renderPromo(
 ): Promise<string> {
   const out = join(dir, "out");
   await mkdir(out, { recursive: true });
+  await stageAll(pkgDir, dir, [props]);
   const file = await propsFile(dir, "promo", props);
   return withBundle(pkgDir, dir, async (bundle) => {
     if (stillS !== undefined) {

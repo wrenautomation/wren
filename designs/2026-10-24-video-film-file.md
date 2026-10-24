@@ -79,6 +79,9 @@ Built (2026-10-24, wa-qtyo.3). What changed from the plan, and why:
 - Commands: `wren video sounds <id>` writes the rules' sounds (refused where he locked `sounds`), `wren video music <id> <kit id|none>`, `wren video sfx list|pull|add`. `wren video set` sets and locks `sounds` and `music` like any part.
 - The film file lays each sound as an `<audio>` clip on a "sound" track. OpenFilm has no loop, so the bed is one clip per pass of its file. The duck is in the render only.
 - Cap events: `capEvents` reads each segment's `cursor.json` clicks and `keyboard.bin` (bincode) or `keyboard.json` presses, moved onto the joined file. Modifier keys make no sound.
+- The edit pass (`video ask`, the page's Change) knows `sounds` and `music`: the kit ids, the rules, and the edit's sounds now. `KIT_IDS` in `sounds.ts` lists the repo kit for it (a test holds it equal to `kit.json`). Every patch refuses an id whose kind is not a kit kind; an id not in the kit is refused at render.
+- Promos get sound too. A swish or whoosh on each cut by its entrance, a pop on each toast, a ding as the numbers start, a hit on the end card. `music` takes a kit id or his own file; `sounds: false` turns the effects off. The bed sits at -8 dB, higher than under speech.
+- The kit is read from the package folder the CLI names, not beside the bundled code. A real promo render found that bug.
 
 ## Decision 5: Studio and content stories
 
