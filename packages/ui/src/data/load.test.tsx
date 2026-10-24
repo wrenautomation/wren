@@ -15,14 +15,20 @@ const later = (fn: () => void = () => undefined) =>
     await new Promise((r) => setTimeout(r, 10));
   });
 
-/** A read that answers when told: the loading state, held. */
+/**
+ * A read that answers when told: the loading state, held. An answer returns once the query layer
+ * has taken it in (no read in flight), not after a fixed wait a slow runner can miss.
+ */
 function held() {
   const asks: { key: string; answer: (rows: string[]) => Promise<void> }[] = [];
   const read = (key: string) =>
     new Promise<Rows>((resolve) => {
       asks.push({
         key,
-        answer: (rows) => later(() => resolve({ key, rows })),
+        answer: async (rows) => {
+          await later(() => resolve({ key, rows }));
+          for (let i = 0; QUERIES.isFetching() > 0 && i < 200; i++) await later();
+        },
       });
     });
   return { asks, read };
