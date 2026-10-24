@@ -328,7 +328,7 @@ async function frames(file: string, dir: string, every: number, ffmpeg: string):
 }
 
 /** Shot changes: the frames `select` keeps are logged by `showinfo`, on stderr. */
-async function cuts(file: string, ffmpeg: string): Promise<number[]> {
+export async function sceneCuts(file: string, ffmpeg: string): Promise<number[]> {
   const { stderr } = await runFor(
     ffmpeg,
     [
@@ -486,7 +486,7 @@ export async function watch(input: string, opts: WatchOptions): Promise<Watched>
     const every = Math.max(opts.everyS ?? FRAME_EVERY_S, Math.ceil(durationS / MAX_FRAMES));
     const call = { fetchFn, ...(opts.pause ? { pause: opts.pause } : {}) };
     const [c, f, s, g] = await allSettled<[number[], Frame[], string, string | undefined]>([
-      cuts(file, ffmpeg),
+      sceneCuts(file, ffmpeg),
       frames(file, dir, every, ffmpeg).then((shots) => readScreen(shots, opts.cohereKeys, call)),
       opts.speech === false || !facts.audio
         ? Promise.resolve("")

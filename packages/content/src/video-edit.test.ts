@@ -9,6 +9,7 @@ import {
   RENDER_STALE_MS,
   renderRefusal,
   renderTimes,
+  selfChecks,
   stepWhat,
   type VideoStep,
   videoChecks,
@@ -46,6 +47,7 @@ const step = (over: Partial<VideoStep>): VideoStep => ({
   notes: null,
   note: null,
   changed: false,
+  check: null,
   ...over,
 });
 
@@ -79,6 +81,7 @@ describe("editPrompt", () => {
     expect(p.system).toContain("video show 7");
     expect(p.system).toContain('"flagged":[{"from":0.5,"to":3.5');
     expect(p.commands).toEqual(["Bash(node scripts/prod-wren.mjs video show 7)"]);
+    expect(p.system).toMatch(/The bar every cut[\s\S]*- private: Nothing private/);
     expect(editPrompt(e, { by: "x", note: null }).question).toBe("Do your pass on this video.");
     expect(videoEditDefault().version).toMatch(/^[0-9a-f]{12}$/);
   });
@@ -209,5 +212,55 @@ describe("describeOutputs", () => {
     expect(describeOutputs(["square", "portrait", "short-2"])).toBe("1:1, 4:5 and Short 2");
     expect(describeOutputs(["thumb-1", "thumb-2", "thumb-3"])).toBe("the thumbnails");
     expect(describeOutputs([])).toBe("");
+  });
+});
+
+describe("selfChecks", () => {
+  const verdict = (
+    output: string,
+    hash: string | null,
+    issues: { at: number; rule: string; says: string }[] = [],
+  ) =>
+    step({
+      command: "video check",
+      check: { output, hash, pass: !issues.length, issues },
+    });
+  const files = {
+    long: "/o/long.mp4",
+    "long.hash": "h1",
+    "short-1": "/o/short-1.mp4",
+    "short-1.hash": "s1",
+    "short-2": "/o/short-2.mp4",
+    "short-2.hash": "s2",
+    "thumb-1": "/o/thumb-1.jpg",
+  };
+
+  it("shows the newest verdict on this render, red on a fail, and what is not checked", () => {
+    const steps = [
+      verdict("long", "h0", [{ at: 1, rule: "face", says: "Old render." }]),
+      verdict("long", "h1"),
+      verdict("short-1", "s1", [
+        { at: 2, rule: "face", says: "The head is cut at the top." },
+        { at: 5, rule: "text", says: "The title sits under the like button." },
+        { at: 9, rule: "pace", says: "The picture holds still for 14 s." },
+        { at: 30, rule: "best", says: "It ends before its point." },
+      ]),
+    ];
+    expect(selfChecks(files, steps).map((c) => `${c.tone}: ${c.say}`)).toEqual([
+      "bad: Short 1 failed the self-check: at 2.0 s, The head is cut at the top. at 5.0 s, The title sits under the like button. at 9.0 s, The picture holds still for 14 s. And 1 more.",
+      "good: Long passed the self-check.",
+      "neutral: Not self-checked yet: Short 2.",
+    ]);
+  });
+
+  it("drops a verdict on an older render of the same output", () => {
+    const c = selfChecks(files, [verdict("short-2", "old")]);
+    expect(c.at(-1)?.say).toBe("Not self-checked yet: Long and Shorts 1 and 2.");
+  });
+
+  it("names a check in the steps", () => {
+    expect(stepWhat("video check", { output: "short-2" }, { pass: false, issues: [{}, {}] })).toBe(
+      "Checked Short 2: 2 to fix",
+    );
   });
 });

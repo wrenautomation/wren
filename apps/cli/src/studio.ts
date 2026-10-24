@@ -28,6 +28,7 @@ import {
   CROPPED,
   type CroppedFormat,
   CUT_HASH,
+  checkRender,
   cohereLooker,
   coverHash,
   cutHash,
@@ -100,6 +101,7 @@ import {
   twelvelabsLooker,
   twelvelabsMinutes,
   unpunctuated,
+  VIDEO_CHECK,
   type VideoEdit,
   videoEdits,
   withFallback,
@@ -142,6 +144,7 @@ function editJson(e: VideoEdit): string {
 }
 
 type RenderOpts = {
+  check?: boolean;
   short?: number;
   only?: string;
   cut?: boolean;
@@ -320,6 +323,58 @@ export function registerStudio(
         console.log(`short ${m.n}: snapped to whole sentences (start ${m.from}s, end ${m.to}s)`);
       console.log(`video ${r.edit.id}: set (run ${r.run})`);
     });
+
+  const CHECKED = /^(long|vertical|square|portrait|short-\d+)$/;
+  /** Check each rendered output against the bar, a `video check` run each; how many failed. */
+  async function checkOutputs(db: Db, e: VideoEdit, outputs: readonly string[], by: string) {
+    loadLlmEnv(settings.llmEnvPath, rootDir);
+    let failed = 0;
+    for (const output of outputs) {
+      const short = /^short-(\d+)$/.exec(output);
+      const props = short ? shortProps(e, Number(short[1])) : longProps(e);
+      const { stats } = await recordedRun(
+        db,
+        { command: VIDEO_CHECK, argv: { id: e.id, output, by } },
+        async () => ({
+          output,
+          hash: e.files[hashKey(output)] ?? null,
+          ...(await checkRender(e.files[output] as string, {
+            format: short ? "short" : "long",
+            durationS: props.durationInFrames / FPS,
+            words: props.words,
+            geminiKeys: fleetKeys(process.env, "gemini"),
+            ffmpeg: settings.ffmpeg,
+          })),
+        }),
+      );
+      if (!stats.pass) failed++;
+      console.log(`${output}: ${stats.pass ? "pass" : `${stats.issues.length} to fix`}`);
+      for (const i of stats.issues) console.log(`  ${t(i.at)}  ${i.rule}  ${i.says}`);
+    }
+    return failed;
+  }
+
+  // The self-check before Approve (designs/2026-10-24-video-film-file.md, Decision 2).
+  video
+    .command("check <id>")
+    .description(
+      "check each rendered video against the edit bar (one Gemini look); a run per output",
+    )
+    .option("--only <output>", "one output: long, vertical, square, portrait, short-N")
+    .option("--by <who>", "who asked", "cli")
+    .action((v: string, o: { only?: string; by: string }) =>
+      withDb(async (db) => {
+        const e = await getEdit(db, id(v));
+        const outputs = Object.keys(e.files).filter(
+          (k) => CHECKED.test(k) && (!o.only || k === o.only),
+        );
+        if (!outputs.length)
+          throw new Error(
+            `video ${e.id}: nothing rendered${o.only ? ` as ${o.only}` : ""}; run wren video render ${e.id}`,
+          );
+        if ((await checkOutputs(db, e, outputs, o.by)) > 0) process.exitCode = 1;
+      }),
+    );
 
   // The edit as an OpenFilm film.html (designs/2026-10-24-video-film-file.md, Decision 1).
   video
@@ -715,6 +770,7 @@ export function registerStudio(
     )
     .option("--again", "render every output again, changed or not (default: only what changed)")
     .option("--upload", "no render: upload what out/ already holds and mark it rendered")
+    .option("--no-check", "skip the self-check of each new render (wren video check)")
     .option(
       "--still <s>",
       "no render: one frame per format at this second of the recording, to out/still-<format>-<s>.png",
@@ -726,6 +782,7 @@ export function registerStudio(
         // Its state on the row for the page: rendering, then done (setRendered) or failed and why.
         const at = () => new Date().toISOString();
         await setRender(db, id(v), { state: "rendering", at: at() });
+        const was = (await getEdit(db, id(v))).files;
         try {
           await renderOne(db, v, o);
         } catch (err) {
@@ -733,6 +790,16 @@ export function registerStudio(
           await setRender(db, id(v), { state: "failed", at: at(), why });
           throw err;
         }
+        if (o.check === false || o.upload) return;
+        // Each output this render made new, checked before he Approves; a check error never fails it.
+        const e = await getEdit(db, id(v));
+        const fresh = Object.keys(e.files).filter(
+          (k) => CHECKED.test(k) && (o.again || e.files[hashKey(k)] !== was[hashKey(k)]),
+        );
+        if (fresh.length)
+          await checkOutputs(db, e, fresh, "render").catch((err: Error) =>
+            console.log(`self-check skipped: ${err.message}`),
+          );
       }),
     );
 

@@ -901,7 +901,7 @@ export async function videoView(db: Queryable, e: VideoEdit): Promise<VideoView>
     render: e.render,
     state: e.state,
     steps,
-    checks: videoChecks(e, { chaptersShown, ...renderTimes(steps), stale: staleOf(e) }),
+    checks: videoChecks(e, { chaptersShown, ...renderTimes(steps), stale: staleOf(e), steps }),
     // The line beside the preview: whether it shows the last change.
     fresh: previewCheck(e, { ...renderTimes(steps), stale: staleOf(e) }),
   };

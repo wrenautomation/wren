@@ -4,6 +4,7 @@
  * worker never does (Remotion must stay out of what it bundles).
  */
 
+export { BAR, BAR_IDS, type BarFormat, type BarRule, barLines, VIDEO_CHECK } from "./bar.js";
 export { CAP_RECORDINGS, capNotReady, capTracks, findCapProjects, isCap } from "./cap.js";
 export {
   bigWordState,
@@ -239,5 +240,13 @@ export {
   withFallback,
   wordAt,
 } from "./stress.js";
+export {
+  type CheckIssue,
+  type CheckResult,
+  checkPrompt,
+  checkRender,
+  parseCheck,
+  sheetGrid,
+} from "./video-check.js";
 export { transcribe } from "./whisper.js";
 export { fixWordAt, fixWords } from "./words.js";

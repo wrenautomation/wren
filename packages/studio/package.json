@@ -14,7 +14,8 @@
     "./sentences": "./src/sentences.ts",
     "./hash": "./src/render-hash.ts",
     "./stress": "./src/stress.ts",
-    "./punctuate": "./src/punctuate.ts"
+    "./punctuate": "./src/punctuate.ts",
+    "./bar": "./src/bar.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",

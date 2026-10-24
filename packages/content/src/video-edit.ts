@@ -8,8 +8,10 @@ import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
+import { barLines, VIDEO_CHECK } from "@wren/studio/bar";
 import { reviewCuts } from "@wren/studio/cuts";
 import { getEdit, setWords } from "@wren/studio/edit";
+import { hashKey } from "@wren/studio/hash";
 import { type RenderState, type VideoEdit, videoEdits } from "@wren/studio/schema";
 import { shortIssues } from "@wren/studio/sentences";
 import { eq, sql } from "drizzle-orm";
@@ -61,10 +63,14 @@ export function editPrompt(
       })),
     rawSeconds: e.tracks.main.durationS,
   };
-  const system = renderPrompt(prompt, { id: e.id, now: JSON.stringify(now) });
+  // The bar is code (`@wren/studio/bar`), so a live copy of the prompt never drops it.
+  const bar = `\n\nThe bar every cut, Short and title works to:\n${barLines()}`;
+  const system =
+    renderPrompt(prompt, { id: e.id, now: JSON.stringify(now) }).slice(0, SYSTEM_MAX - bar.length) +
+    bar;
   return {
     question: ask.note ? `${ask.by} asks for changes: ${ask.note}` : "Do your pass on this video.",
-    system: system.slice(0, SYSTEM_MAX),
+    system,
     commands: [`Bash(node scripts/prod-wren.mjs video show ${e.id})`],
   };
 }
@@ -193,6 +199,13 @@ export interface VideoStep {
   note: string | null;
   /** It wrote fields of the edit, so a render before it is out of date. */
   changed: boolean;
+  /** A self-check's verdict on one output's render (`hash`: the render it looked at). */
+  check: {
+    output: string;
+    hash: string | null;
+    pass: boolean;
+    issues: { at: number; rule: string; says: string }[];
+  } | null;
 }
 
 const STEP_MAX = 200;
@@ -229,6 +242,13 @@ export function stepWhat(
       return `Cut the files${argv.segments ? ` (${argv.segments} pieces)` : ""}`;
     case "video render":
       return argv.upload ? "Uploaded the previews" : "Rendered";
+    case VIDEO_CHECK: {
+      const n = Array.isArray(stats?.issues) ? stats.issues.length : 0;
+      const what = describeOutputs([String(argv.output ?? "")]) || "the render";
+      return stats && !stats.error
+        ? `Checked ${what}: ${stats.pass ? "passed" : `${n} to fix`}`
+        : `Checked ${what}`;
+    }
     case "video undo":
       return list ? `Undo: put back ${list}` : "Undo";
     case "video reject":
@@ -274,6 +294,17 @@ export async function videoSteps(db: Queryable, id: number): Promise<VideoStep[]
         !NOT_DRAWN.has(r.command) &&
         Array.isArray(r.stats?.fields) &&
         r.stats.fields.length > 0,
+      check:
+        r.command === VIDEO_CHECK && r.done && !error && r.stats
+          ? {
+              output: String(r.stats.output),
+              hash: typeof r.stats.hash === "string" ? r.stats.hash : null,
+              pass: r.stats.pass === true,
+              issues: Array.isArray(r.stats.issues)
+                ? (r.stats.issues as { at: number; rule: string; says: string }[])
+                : [],
+            }
+          : null,
     };
   });
 }
@@ -285,7 +316,7 @@ export interface VideoCheck {
 }
 
 /** Runs that write files, not the edit. */
-const NOT_DRAWN = new Set(["video render", "video cut", "video add"]);
+const NOT_DRAWN = new Set(["video render", "video cut", "video add", VIDEO_CHECK]);
 
 /** When the last change and the last good render ran (ISO), for `videoChecks`. */
 export function renderTimes(steps: readonly VideoStep[]): {
@@ -314,6 +345,8 @@ export function videoChecks(
     lastRender: string | null;
     now?: number;
     stale?: readonly string[] | null;
+    /** The runs, oldest first: the self-check's verdicts come from them. */
+    steps?: readonly VideoStep[];
   },
 ): VideoCheck[] {
   const out: VideoCheck[] = [];
@@ -370,6 +403,46 @@ export function videoChecks(
           : `${loose} Shorts start or end mid-sentence. Save the Shorts again to snap them to whole sentences.`,
     });
   out.push(...renderCheck(e.render, e.files, e.state, o, now));
+  if (o.steps && !e.render) out.push(...selfChecks(e.files, o.steps));
+  return out;
+}
+
+const RENDERED = /^(long|vertical|square|portrait|short-\d+)$/;
+const ISSUES_SHOWN = 3;
+
+/**
+ * The self-check's word on each rendered output: its newest verdict on this very render (the hash
+ * matches). A fail is red but Approve stays open: he decides. Outputs with no verdict say so.
+ */
+export function selfChecks(
+  files: Record<string, string>,
+  steps: readonly VideoStep[],
+): VideoCheck[] {
+  const outputs = Object.keys(files).filter((k) => RENDERED.test(k));
+  const newest = new Map<string, NonNullable<VideoStep["check"]>>();
+  for (const s of steps) if (s.check) newest.set(s.check.output, s.check);
+  const out: VideoCheck[] = [];
+  const unchecked: string[] = [];
+  const passed: string[] = [];
+  for (const o of outputs) {
+    const c = newest.get(o);
+    if (!c || c.hash !== (files[hashKey(o)] ?? null)) unchecked.push(o);
+    else if (c.pass) passed.push(o);
+    else {
+      const more = c.issues.length - ISSUES_SHOWN;
+      out.push({
+        tone: "bad",
+        say: `${describeOutputs([o])} failed the self-check: ${c.issues
+          .slice(0, ISSUES_SHOWN)
+          .map((i) => `at ${i.at.toFixed(1)} s, ${i.says}`)
+          .join(" ")}${more > 0 ? ` And ${more} more.` : ""}`,
+      });
+    }
+  }
+  if (passed.length)
+    out.push({ tone: "good", say: `${describeOutputs(passed)} passed the self-check.` });
+  if (unchecked.length)
+    out.push({ tone: "neutral", say: `Not self-checked yet: ${describeOutputs(unchecked)}.` });
   return out;
 }
 
