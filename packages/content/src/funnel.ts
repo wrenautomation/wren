@@ -30,6 +30,7 @@ export const TARGET_LABELS: Record<FunnelTarget, string> = {
   site: "The site",
   booking: "Booking",
   page: "A page",
+  repo: "The GitHub repo",
 };
 
 /** Wren's site: the lander the footers already name. */
