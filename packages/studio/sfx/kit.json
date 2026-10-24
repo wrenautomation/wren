@@ -4,10 +4,7 @@
       "id": "boom-1",
       "file": "boom-1.wav",
       "kind": "boom",
-      "tags": [
-        "title",
-        "low"
-      ],
+      "tags": ["title", "low"],
       "durationS": 1.6,
       "licence": "CC0-1.0",
       "source": "made: sfx/build.sh"
@@ -16,10 +13,7 @@
       "id": "click-1",
       "file": "click-1.wav",
       "kind": "click",
-      "tags": [
-        "mouse",
-        "ui"
-      ],
+      "tags": ["mouse", "ui"],
       "durationS": 0.056,
       "licence": "CC0-1.0",
       "source": "kenney:ui-audio/mouseclick1"
@@ -28,10 +22,7 @@
       "id": "click-2",
       "file": "click-2.wav",
       "kind": "click",
-      "tags": [
-        "mouse",
-        "ui"
-      ],
+      "tags": ["mouse", "ui"],
       "durationS": 0.097,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/click_001"
@@ -40,10 +31,7 @@
       "id": "click-3",
       "file": "click-3.wav",
       "kind": "click",
-      "tags": [
-        "mouse",
-        "ui"
-      ],
+      "tags": ["mouse", "ui"],
       "durationS": 0.083,
       "licence": "CC0-1.0",
       "source": "kenney:ui-audio/click3"
@@ -52,10 +40,7 @@
       "id": "ding-1",
       "file": "ding-1.wav",
       "kind": "ding",
-      "tags": [
-        "notification",
-        "ui"
-      ],
+      "tags": ["notification", "ui"],
       "durationS": 0.29,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/confirmation_001"
@@ -64,10 +49,7 @@
       "id": "ding-2",
       "file": "ding-2.wav",
       "kind": "ding",
-      "tags": [
-        "notification",
-        "ui"
-      ],
+      "tags": ["notification", "ui"],
       "durationS": 0.539,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/confirmation_002"
@@ -76,10 +58,7 @@
       "id": "ding-3",
       "file": "ding-3.wav",
       "kind": "ding",
-      "tags": [
-        "notification",
-        "ui"
-      ],
+      "tags": ["notification", "ui"],
       "durationS": 0.12,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/bong_001"
@@ -88,9 +67,7 @@
       "id": "error-1",
       "file": "error-1.wav",
       "kind": "error",
-      "tags": [
-        "ui"
-      ],
+      "tags": ["ui"],
       "durationS": 0.162,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/error_001"
@@ -99,10 +76,7 @@
       "id": "glitch-1",
       "file": "glitch-1.wav",
       "kind": "glitch",
-      "tags": [
-        "tech",
-        "transition"
-      ],
+      "tags": ["tech", "transition"],
       "durationS": 0.017,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/glitch_001"
@@ -111,10 +85,7 @@
       "id": "hit-1",
       "file": "hit-1.wav",
       "kind": "hit",
-      "tags": [
-        "impact",
-        "title"
-      ],
+      "tags": ["impact", "title"],
       "durationS": 0.527,
       "licence": "CC0-1.0",
       "source": "kenney:impact-sounds/impactSoft_heavy_000"
@@ -123,10 +94,7 @@
       "id": "hit-2",
       "file": "hit-2.wav",
       "kind": "hit",
-      "tags": [
-        "impact",
-        "title"
-      ],
+      "tags": ["impact", "title"],
       "durationS": 0.649,
       "licence": "CC0-1.0",
       "source": "kenney:impact-sounds/impactPunch_heavy_000"
@@ -135,11 +103,7 @@
       "id": "key-1",
       "file": "key-1.wav",
       "kind": "key",
-      "tags": [
-        "keyboard",
-        "typing",
-        "ui"
-      ],
+      "tags": ["keyboard", "typing", "ui"],
       "durationS": 0.045,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/tick_001"
@@ -148,11 +112,7 @@
       "id": "key-2",
       "file": "key-2.wav",
       "kind": "key",
-      "tags": [
-        "keyboard",
-        "typing",
-        "ui"
-      ],
+      "tags": ["keyboard", "typing", "ui"],
       "durationS": 0.02,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/tick_002"
@@ -161,11 +121,7 @@
       "id": "key-3",
       "file": "key-3.wav",
       "kind": "key",
-      "tags": [
-        "keyboard",
-        "typing",
-        "ui"
-      ],
+      "tags": ["keyboard", "typing", "ui"],
       "durationS": 0.04,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/select_001"
@@ -174,10 +130,7 @@
       "id": "pop-1",
       "file": "pop-1.wav",
       "kind": "pop",
-      "tags": [
-        "overlay",
-        "ui"
-      ],
+      "tags": ["overlay", "ui"],
       "durationS": 0.1,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/pluck_001"
@@ -186,10 +139,7 @@
       "id": "pop-2",
       "file": "pop-2.wav",
       "kind": "pop",
-      "tags": [
-        "overlay",
-        "ui"
-      ],
+      "tags": ["overlay", "ui"],
       "durationS": 0.132,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/drop_001"
@@ -198,10 +148,7 @@
       "id": "pop-3",
       "file": "pop-3.wav",
       "kind": "pop",
-      "tags": [
-        "overlay",
-        "ui"
-      ],
+      "tags": ["overlay", "ui"],
       "durationS": 0.136,
       "licence": "CC0-1.0",
       "source": "kenney:interface-sounds/toggle_001"
@@ -210,10 +157,7 @@
       "id": "riser-1",
       "file": "riser-1.wav",
       "kind": "riser",
-      "tags": [
-        "build",
-        "transition"
-      ],
+      "tags": ["build", "transition"],
       "durationS": 1.885,
       "licence": "CC0-1.0",
       "source": "made: sfx/build.sh"
@@ -222,10 +166,7 @@
       "id": "swish-1",
       "file": "swish-1.wav",
       "kind": "swish",
-      "tags": [
-        "transition",
-        "fast"
-      ],
+      "tags": ["transition", "fast"],
       "durationS": 0.259,
       "licence": "CC0-1.0",
       "source": "made: sfx/build.sh"
@@ -234,10 +175,7 @@
       "id": "whoosh-1",
       "file": "whoosh-1.wav",
       "kind": "whoosh",
-      "tags": [
-        "transition",
-        "zoom"
-      ],
+      "tags": ["transition", "zoom"],
       "durationS": 0.51,
       "licence": "CC0-1.0",
       "source": "made: sfx/build.sh"
@@ -246,10 +184,7 @@
       "id": "whoosh-2",
       "file": "whoosh-2.wav",
       "kind": "whoosh",
-      "tags": [
-        "transition",
-        "zoom"
-      ],
+      "tags": ["transition", "zoom"],
       "durationS": 0.837,
       "licence": "CC0-1.0",
       "source": "made: sfx/build.sh"
