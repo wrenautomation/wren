@@ -18,6 +18,13 @@ if [ -z "${CI:-}" ]; then
     CHECKS_LOCKED=1 exec lockf -s "$LOCK" "$0" "$@"
   fi
 fi
+# vitest gives each project a temp dir (tmpdir()/<nanoid>) and removes it only on a clean close.
+# Killed and OOM-stopped runs left 6217 of them in /private/tmp, 20.6 GB (10-14 to 10-23).
+# Each run gets a fresh TMPDIR next to the turbo cache, wiped under the lock, so leaks last one run.
+if [ -z "${CI:-}" ] && [ -z "${CHECKS_TMP:-}" ]; then
+  export CHECKS_TMP=1 TMPDIR="$HOME/Library/Caches/wren_automation/tmp/wren"
+  rm -rf "$TMPDIR" && mkdir -p "$TMPDIR"
+fi
 WIDE=${CI:+--concurrency=100%}
 lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE && cli && offers && map && isolation && writes && edits && reads && libs && drift; }
 map() { echo "==> map" && map/_meta/build.sh --check && scorecard; }
