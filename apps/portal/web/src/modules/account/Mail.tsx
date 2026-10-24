@@ -81,12 +81,14 @@ function Mailboxes({
       out.push({
         id: "read",
         label: connected ? "Connect to read" : "Connect to read and send",
+        icon: "link",
         run: () => going.go(String(m.id), "Connecting", () => connect(act, m.id, "read")),
       });
     if (m.may.connectSend && !connected)
       out.push({
         id: "send",
         label: m.state === "broken" ? "Connect again" : "Connect to send",
+        icon: "link",
         run: () => going.go(String(m.id), "Connecting", () => connect(act, m.id, "send")),
       });
     if (connected || m.state === "broken")

@@ -7,6 +7,7 @@ export const REPLY_ACTIONS: Action[] = [
   {
     id: "reactivation.book",
     label: "Mark booked",
+    icon: "phone",
     handler: "reactivation/book",
     undo: "reactivation/unbook",
     key: "b",

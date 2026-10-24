@@ -82,6 +82,7 @@ export const PAGE_ACTIONS: Action[] = [
   {
     id: "sites.duplicate",
     label: "Duplicate as variant",
+    icon: "copy",
     handler: "sites/duplicate",
     each: true,
     bulk: true,
@@ -99,6 +100,7 @@ export const PAGE_ACTIONS: Action[] = [
   {
     id: "sites.retire",
     label: "Retire",
+    icon: "archive",
     handler: "sites/retire",
     bulk: true,
     when: OPEN,
@@ -118,9 +120,22 @@ export const PAGE_ACTIONS: Action[] = [
     inline: true,
     when: DATA,
   },
-  { id: "sites.ask", label: "Ask to publish", handler: "sites/ask", inline: true, when: DATA },
+  {
+    id: "sites.ask",
+    label: "Ask to publish",
+    icon: "upload",
+    handler: "sites/ask",
+    inline: true,
+    when: DATA,
+  },
   { id: "sites.notes", label: "Save notes", handler: "sites/notes", inline: true },
-  { id: "sites.retireAsk", label: "Retire", handler: "sites/retireAsk", inline: true },
+  {
+    id: "sites.retireAsk",
+    label: "Retire",
+    icon: "archive",
+    handler: "sites/retireAsk",
+    inline: true,
+  },
 ];
 
 /**
@@ -128,7 +143,13 @@ export const PAGE_ACTIONS: Action[] = [
  * stop it, or ask to make the winner the page (a yes in To approve, or the client's).
  */
 export const SPLIT_ACTIONS: Action[] = [
-  { id: "sites.splitStart", label: "Start split", handler: "sites/splitStart", inline: true },
+  {
+    id: "sites.splitStart",
+    label: "Start split",
+    icon: "play",
+    handler: "sites/splitStart",
+    inline: true,
+  },
   { id: "sites.splitWeights", label: "Set weights", handler: "sites/splitWeights", inline: true },
   { id: "sites.splitStop", label: "Stop split", handler: "sites/splitStop", inline: true },
   { id: "sites.splitShip", label: "Make it the page", handler: "sites/splitShip", inline: true },
@@ -142,6 +163,7 @@ export const CLIENT_PAGE_ACTIONS: Action[] = [
   {
     id: "sites.approve",
     label: "Approve",
+    icon: "check",
     handler: "sites/approve",
     confirm: "Say yes to what waits? A version goes live, a retired page answers gone.",
     key: "a",
@@ -152,6 +174,7 @@ export const CLIENT_PAGE_ACTIONS: Action[] = [
   {
     id: "sites.decline",
     label: "Decline",
+    icon: "close",
     handler: "sites/decline",
     key: "x",
     bulk: true,
@@ -160,8 +183,21 @@ export const CLIENT_PAGE_ACTIONS: Action[] = [
   },
   // From the page's detail: the copy editor and a stopped split's retire ask.
   { id: "sites.save", label: "Save", handler: "sites/save", inline: true, when: DATA },
-  { id: "sites.ask", label: "Ask to publish", handler: "sites/ask", inline: true, when: DATA },
-  { id: "sites.retireAsk", label: "Retire", handler: "sites/retireAsk", inline: true },
+  {
+    id: "sites.ask",
+    label: "Ask to publish",
+    icon: "upload",
+    handler: "sites/ask",
+    inline: true,
+    when: DATA,
+  },
+  {
+    id: "sites.retireAsk",
+    label: "Retire",
+    icon: "archive",
+    handler: "sites/retireAsk",
+    inline: true,
+  },
   ...SPLIT_ACTIONS,
 ];
 
@@ -186,6 +222,7 @@ export const FORM_ACTIONS: Action[] = [
   {
     id: "sites.formPublish",
     label: "Publish",
+    icon: "upload",
     handler: "sites/formPublish",
     bulk: true,
     when: { status: ["draft"] },
@@ -195,6 +232,7 @@ export const FORM_ACTIONS: Action[] = [
   {
     id: "sites.formUnpublish",
     label: "Unpublish",
+    icon: "unpublish",
     handler: "sites/formUnpublish",
     bulk: true,
     when: { status: ["live"] },
@@ -205,6 +243,7 @@ export const FORM_ACTIONS: Action[] = [
   {
     id: "sites.formRetire",
     label: "Retire",
+    icon: "archive",
     handler: "sites/formRetire",
     bulk: true,
     when: { status: ["draft", "live"] },
@@ -217,6 +256,7 @@ export const FORM_ACTIONS: Action[] = [
   {
     id: "sites.formSplitStart",
     label: "Start a test",
+    icon: "play",
     handler: "sites/formSplitStart",
     inline: true,
   },

@@ -25,6 +25,7 @@ const THREAD_ACTIONS: Action[] = [
   {
     id: "sms.reply",
     label: "Text back",
+    icon: "reply",
     handler: "sms/reply",
     requires: { audience: "team" },
     ask: { field: "body", label: "Your text", preview: { kind: "sms", parts: segments } },
@@ -40,6 +41,7 @@ const SPEED_ACTIONS: Action[] = [
   {
     id: "sms.callDone",
     label: "Done",
+    icon: "selected",
     handler: "sms/callDone",
     each: true,
     bulk: true,

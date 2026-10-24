@@ -301,6 +301,7 @@ export function Webhooks(props: PageProps) {
                         {
                           id: "test",
                           label: "Send test",
+                          icon: "send",
                           run: () => going.go(h.id, "Testing", () => test(h)),
                         },
                         {
@@ -326,6 +327,7 @@ export function Webhooks(props: PageProps) {
                         {
                           id: "remove",
                           label: "Remove",
+                          icon: "trash",
                           confirm: `Remove ${h.name}? Its log goes too.`,
                           run: () =>
                             going.go(h.id, "Removing", () =>

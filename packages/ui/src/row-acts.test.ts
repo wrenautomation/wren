@@ -1,18 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { type Action, held, setsAside } from "./action.js";
-import { iconOf, ROW_MAIN, rowActsOf } from "./row-acts.js";
+import { ROW_MAIN, rowActsOf } from "./row-acts.js";
 
 const act = (id: string, label: string, more: Partial<Action> = {}): Action =>
   ({ id, label, handler: `x/${id}`, ...more }) as Action;
 
-const APPROVE = act("approve", "Approve");
-const ASK = act("changes", "Ask for changes", { ask: { field: "note", label: "What to change" } });
-const SNOOZE = act("snooze", "Snooze");
-const ARCHIVE = act("archive", "Archive");
+const APPROVE = act("approve", "Approve", { icon: "check" });
+const ASK = act("changes", "Ask for changes", {
+  icon: "chat",
+  ask: { field: "note", label: "What to change" },
+});
+const SNOOZE = act("snooze", "Snooze", { icon: "clock" });
+const ARCHIVE = act("archive", "Archive", { icon: "archive" });
 // A form with no `each` belongs to the page head, not a row.
-const RENAME = act("rename", "Rename", { form: [] as never });
+const RENAME = act("rename", "Rename", { icon: "edit", form: [] as never });
+// No icon: it waits behind ⋯.
 const TAG = act("tag", "Tag it");
-const NOTE = act("note", "Note", { inline: true });
+const NOTE = act("note", "Note", { icon: "note", inline: true });
 
 describe("rowActsOf", () => {
   it("leads with the move, the ask and the set-aside, in page order", () => {
@@ -35,25 +39,9 @@ describe("rowActsOf", () => {
   });
 
   it("drops what doesn't apply to the row", () => {
-    const done = act("done", "Mark done", { when: { status: ["open"] } });
+    const done = act("done", "Mark done", { icon: "selected", when: { status: ["open"] } });
     expect(rowActsOf([done], { status: "closed" }).main).toEqual([]);
     expect(rowActsOf([done], { status: "open" }).main).toEqual([done]);
-  });
-});
-
-describe("iconOf", () => {
-  it("knows the common verbs", () => {
-    for (const label of [
-      "Reply",
-      "Approve",
-      "Mark done",
-      "Archive",
-      "Delete",
-      "Snooze",
-      "Don't send",
-    ])
-      expect(iconOf(label), label).not.toBeNull();
-    expect(iconOf("Tag it")).toBeNull();
   });
 });
 
@@ -70,18 +58,5 @@ describe("held: set aside at once, undone from the toast", () => {
     expect(held(act("a", "Reject", { ask: { field: "why", label: "Why" } }))).toBe(false);
     expect(held(act("a", "Archive", { optimistic: "Archived" }))).toBe(false);
     expect(held(APPROVE)).toBe(false);
-  });
-});
-
-describe("iconOf", () => {
-  it("tells passing on a person apart from skipping one item", () => {
-    expect(iconOf("Pass on them")).not.toBe(iconOf("Skip"));
-    expect(iconOf("Skip")).toBe(iconOf("Dismiss"));
-  });
-
-  it("gives a DM the plane, apart from a reply's arrow", () => {
-    for (const label of ["DM them", "Message", "Send DM"]) expect(iconOf(label), label).toBe("dm");
-    expect(iconOf("Reply")).toBe("reply");
-    expect(iconOf("Comment")).toBe("reply");
   });
 });

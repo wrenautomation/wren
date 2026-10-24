@@ -29,6 +29,7 @@ const STEP_ACTIONS: Action[] = [
   {
     id: "delivery.done",
     label: "Mark done",
+    icon: "selected",
     handler: "delivery/done",
     undo: "delivery/undone",
     requires: TEAM,
@@ -40,6 +41,7 @@ const STEP_ACTIONS: Action[] = [
   {
     id: "delivery.undone",
     label: "Not done",
+    icon: "undo",
     handler: "delivery/undone",
     requires: TEAM,
     when: { state: ["done"] },
@@ -48,6 +50,7 @@ const STEP_ACTIONS: Action[] = [
   {
     id: "delivery.slip",
     label: "Move",
+    icon: "reschedule",
     handler: "delivery/slip",
     requires: TEAM,
     each: true,
@@ -80,6 +83,7 @@ const UPDATE_ACTIONS: Action[] = [
   {
     id: "delivery.hide",
     label: "Hide",
+    icon: "close",
     handler: "delivery/hide",
     requires: TEAM,
     confirm: "Hide this update from everyone?",
@@ -103,6 +107,7 @@ const ASK_ACTIONS: Action[] = [
   {
     id: "delivery.answer",
     label: "Answer",
+    icon: "reply",
     handler: "delivery/answer",
     key: "a",
     each: true,
@@ -127,6 +132,7 @@ const DELIVERABLE_ACTIONS: Action[] = [
   {
     id: "delivery.approve",
     label: "Approve",
+    icon: "check",
     handler: "delivery/approve",
     key: "a",
     when: { status: ["waiting"] },
@@ -135,6 +141,7 @@ const DELIVERABLE_ACTIONS: Action[] = [
   {
     id: "delivery.changes",
     label: "Ask for changes",
+    icon: "chat",
     handler: "delivery/changes",
     key: "c",
     ask: { field: "note", label: "What should change?" },
@@ -144,6 +151,7 @@ const DELIVERABLE_ACTIONS: Action[] = [
   {
     id: "delivery.version",
     label: "New version",
+    icon: "upload",
     handler: "delivery/version",
     requires: TEAM,
     each: true,
@@ -156,6 +164,7 @@ const PAPER_ACTIONS: Action[] = [
   {
     id: "delivery.grant",
     label: "I've given it",
+    icon: "selected",
     handler: "delivery/grant",
     // Not G: G then a letter goes to a page (⌘K's go-to).
     key: "i",
@@ -166,6 +175,7 @@ const PAPER_ACTIONS: Action[] = [
   {
     id: "delivery.decline",
     label: "Decline",
+    icon: "close",
     handler: "delivery/decline",
     ask: { field: "note", label: "Why not? We'll find another way." },
     when: { state: ["open"] },
@@ -174,6 +184,7 @@ const PAPER_ACTIONS: Action[] = [
   {
     id: "delivery.revoke",
     label: "I've taken it back",
+    icon: "undo",
     handler: "delivery/revoke",
     confirm: "Mark this access as taken back?",
     when: { state: ["granted"] },
@@ -185,6 +196,7 @@ const RESULT_ACTIONS: Action[] = [
   {
     id: "delivery.result",
     label: "Record",
+    icon: "edit",
     handler: "delivery/result",
     requires: TEAM,
     each: true,

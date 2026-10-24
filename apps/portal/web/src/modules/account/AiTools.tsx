@@ -194,6 +194,7 @@ export function AiTools(props: PageProps) {
                   {
                     id: "remove",
                     label: "Remove",
+                    icon: "trash",
                     confirm: `Remove ${t.name}? Any tool using it stops at once.`,
                     run: () => go(t.id, "Removing", () => run("tokenRevoke", { id: t.id })),
                   },

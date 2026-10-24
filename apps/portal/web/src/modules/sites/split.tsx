@@ -38,7 +38,6 @@ const TONE: Record<string, TagTone> = {
   too_early: "neutral",
   no_goals: "neutral",
 };
-type Arm = SplitResult["arms"][number];
 const day = (at: unknown) => new Date(String(at)).toLocaleDateString("en-CA");
 const pct = (n: number) => `${Math.min(99, Math.floor(n * 100))}%`;
 const goalOf = (s: SplitResult, a: SplitResult["arms"][number]) =>
@@ -340,6 +339,7 @@ function Ended({ s, act }: { s: SplitResult; act: RecordAct }) {
                     {
                       id: "sites.retireAsk",
                       label: `Retire ${a.label}`,
+                      icon: "archive",
                       handler: "sites/retireAsk",
                     },
                   ],

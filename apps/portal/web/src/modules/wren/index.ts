@@ -51,6 +51,7 @@ const CAMPAIGN_ACTIONS: Action[] = [
   {
     id: "email.resumeOpeners",
     label: "Resume openers",
+    icon: "play",
     handler: "email/resumeOpeners",
     undo: "email/stopOpeners",
     bulk: true,
@@ -81,6 +82,7 @@ const INBOX_ACTIONS: Action[] = [
   {
     id: "email.pause",
     label: "Pause",
+    icon: "pause",
     handler: "email/pause",
     ask: { field: "reason", label: "Why?" },
     undo: "email/resume",
@@ -91,6 +93,7 @@ const INBOX_ACTIONS: Action[] = [
   {
     id: "email.resume",
     label: "Resume",
+    icon: "play",
     handler: "email/resume",
     confirm: "Start sending from it again?",
     bulk: true,
@@ -120,6 +123,7 @@ const CLIENT_ACTIONS: Action[] = [
     // An owner, so they can invite the rest of their team from Account.
     id: "delivery.invite",
     label: "Invite",
+    icon: "addPerson",
     handler: "delivery/invite",
     each: true,
     form: [
@@ -147,6 +151,7 @@ const LOOP_ACTIONS: Action[] = [
   {
     id: "console.startLoop",
     label: "Start",
+    icon: "play",
     handler: "console/startLoop",
     undo: "console/stopLoop",
     bulk: true,
@@ -341,6 +346,7 @@ const MAIL_ACTIONS: Action[] = [
   {
     id: "watch.done",
     label: "Done",
+    icon: "selected",
     handler: "watch/done",
     undo: "watch/undone",
     bulk: true,
@@ -351,6 +357,7 @@ const MAIL_ACTIONS: Action[] = [
   {
     id: "watch.hide",
     label: "Hide like this",
+    icon: "close",
     handler: "watch/hide",
     each: true,
     bulk: true,
@@ -368,6 +375,7 @@ const MAIL_ACTIONS: Action[] = [
   {
     id: "watch.show",
     label: "Show like this",
+    icon: "heart",
     handler: "watch/show",
     each: true,
     bulk: true,
@@ -385,6 +393,7 @@ const MAIL_ACTIONS: Action[] = [
   {
     id: "watch.sort",
     label: "Sort again",
+    icon: "retry",
     handler: "watch/sort",
     bulk: true,
     when: { queue: ["needs_you"] },
@@ -422,6 +431,7 @@ const RULE_ACTIONS: Action[] = [
   {
     id: "watch.removeRule",
     label: "Remove",
+    icon: "trash",
     handler: "watch/removeRule",
     bulk: true,
     confirm: "Remove this rule? Mail it settled keeps its verdict.",
@@ -887,6 +897,7 @@ const TEAM_ACTS: Action[] = [
   {
     id: "console.teamInvite",
     label: "Invite",
+    icon: "addPerson",
     handler: "console/teamSet",
     form: [
       { field: "email", label: "Their work email", hint: "They sign in with it." },
@@ -914,6 +925,7 @@ const TEAM_ACTS: Action[] = [
   {
     id: "console.teamRemove",
     label: "Remove",
+    icon: "trash",
     handler: "console/teamRemove",
     confirm: "Remove them from the team? They're signed out at once.",
     done: said("Removed"),
@@ -1010,6 +1022,7 @@ export const review: Module = {
 const REPLAY: Action = {
   id: "console.replay",
   label: "Replay",
+  icon: "retry",
   handler: "console/replay",
   bulk: true,
   when: { state: ["failed"] },
@@ -1025,6 +1038,7 @@ const EVENT_ACTIONS: Action[] = [
   {
     id: "console.retryEvent",
     label: "Retry",
+    icon: "retry",
     handler: "console/retryEvent",
     when: { state: ["failed"] },
     done: (a) => ((a as { failed?: number }).failed ? "Failed again" : "Ran again"),
@@ -1037,6 +1051,7 @@ const HOLD_ACTIONS: Action[] = [
   {
     id: "console.releaseHold",
     label: "Release",
+    icon: "play",
     handler: "console/releaseHold",
     when: { state: ["held", "due", "stuck", "paused"] },
     done: () => "Released. It runs on the next pass",

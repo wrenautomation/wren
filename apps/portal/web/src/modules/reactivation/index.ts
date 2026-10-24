@@ -39,6 +39,7 @@ const PERSON_ACTIONS: Action[] = [
   {
     id: "reactivation.called",
     label: "Mark called",
+    icon: "phone",
     handler: "reactivation/called",
     undo: "reactivation/uncalled",
     key: "c",

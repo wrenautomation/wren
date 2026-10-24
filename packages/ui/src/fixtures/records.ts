@@ -77,6 +77,7 @@ export const LEAD_ACTIONS: readonly Action[] = [
   {
     id: "approve",
     label: "Approve",
+    icon: "check",
     handler: "demo/approve",
     undo: "demo/unapprove",
     key: "a",
@@ -87,6 +88,7 @@ export const LEAD_ACTIONS: readonly Action[] = [
   {
     id: "reject",
     label: "Reject",
+    icon: "close",
     handler: "demo/reject",
     key: "r",
     bulk: true,

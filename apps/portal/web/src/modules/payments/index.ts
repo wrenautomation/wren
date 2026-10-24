@@ -17,6 +17,7 @@ export const PAY_ACTIONS: Action[] = [
   {
     id: "payments.approve",
     label: "Approve",
+    icon: "check",
     handler: "payments/approve",
     confirm:
       "Send this pay link? It goes out by text in the 8:00 to 20:00 window, or by email now.",
@@ -29,6 +30,7 @@ export const PAY_ACTIONS: Action[] = [
   {
     id: "payments.decline",
     label: "Decline",
+    icon: "close",
     handler: "payments/decline",
     when: WAITING,
     sets: { status: "declined" },
@@ -42,6 +44,7 @@ export const PAY_ACTIONS: Action[] = [
 const AGAIN: Action = {
   id: "payments.again",
   label: "Send a new link",
+  icon: "send",
   handler: "payments/again",
   confirm: "Send a new pay link for the same amount? The old one can't be paid again.",
   when: { status: ["unpaid"] },
@@ -88,6 +91,7 @@ const CREATE: Action = {
 export const THREAD_PAY: Action = {
   id: "payments.fromThread",
   label: "Send a pay link",
+  icon: "send",
   handler: "payments/fromThread",
   each: true,
   form: MONEY,

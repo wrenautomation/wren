@@ -28,6 +28,7 @@ export const EXPERIMENT_ACTIONS: Action[] = [
   {
     id: "marketing.experimentStart",
     label: "Start",
+    icon: "play",
     handler: "console/experimentStart",
     confirm: "Start? Visitors to the site begin seeing every variant, in even shares.",
     bulk: true,
@@ -36,6 +37,7 @@ export const EXPERIMENT_ACTIONS: Action[] = [
   {
     id: "marketing.experimentShip",
     label: "Ship the best",
+    icon: "ship",
     handler: "console/experimentShip",
     confirm: "Ship? Every visitor gets the best variant from now on.",
     bulk: true,
@@ -52,6 +54,7 @@ export const EXPERIMENT_ACTIONS: Action[] = [
   {
     id: "marketing.experimentRemove",
     label: "Delete",
+    icon: "trash",
     handler: "console/experimentRemove",
     confirm: "Delete this experiment? The flag and its counts stay.",
     bulk: true,

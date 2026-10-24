@@ -11,58 +11,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover
 import { Button } from "./controls.js";
 import { TextAreaField, useEditForm } from "./edit-form.js";
 import { tipProps } from "./hint.js";
-import { Icon, type IconName } from "./icons.js";
-
-/** An action's icon by what its label says it does; first match wins. */
-const VERBS: readonly (readonly [RegExp, IconName])[] = [
-  // A DM before a reply: "DM them" and "Message" open a new thread, so they get the DM's plane.
-  [/^(dm|message)\b|\bdm\b/i, "dm"],
-  [/^(reply|text back|answer|comment)/i, "reply"],
-  [/ask for changes|redraft/i, "chat"],
-  [/not done|open again|bring back|wake|taken it back|back to/i, "undo"],
-  [/restore/i, "restore"],
-  [/approve|send invite/i, "check"],
-  [/mark read|mark seen/i, "read"],
-  [/done|^close$|given it|resolve|addressed/i, "selected"],
-  [/won/i, "won"],
-  [/lost|not a fit/i, "lost"],
-  [/archive|retire/i, "archive"],
-  [/delete|remove|take out|void/i, "trash"],
-  [/unpublish/i, "unpublish"],
-  // Closes a person for good, apart from skipping one item.
-  [/pass on/i, "passOn"],
-  [/skip|pass|don't|drop|dismiss|decline|reject|withdraw|hide|no-show|^clear$/i, "close"],
-  [/snooze|not yet/i, "clock"],
-  [/pause/i, "pause"],
-  [/resume|start|go live|release/i, "play"],
-  [/assign|take it|follow|invite/i, "addPerson"],
-  [/edit|draft|change it|new title|^record$/i, "edit"],
-  [/publish|new version/i, "upload"],
-  [/thumbnail/i, "image"],
-  [/add to/i, "addTo"],
-  [/^watch$/i, "eye"],
-  [/ship/i, "ship"],
-  [/retry|replay|again|render/i, "retry"],
-  [/like/i, "heart"],
-  [/remind/i, "bell"],
-  [/duplicate/i, "copy"],
-  [/move|schedule/i, "reschedule"],
-  [/promote/i, "megaphone"],
-  [/called|booked/i, "phone"],
-  [/send/i, "send"],
-];
-
-/** The icon a row shows for `label`, or null: an action with none waits behind ⋯. */
-export function iconOf(label: string): IconName | null {
-  return VERBS.find(([re]) => re.test(label))?.[1] ?? null;
-}
+import { Icon } from "./icons.js";
 
 /** At most this many icons beside ⋯. */
 export const ROW_MAIN = 3;
 
 /**
  * A row's actions, main first: the one that moves it on (Approve, Mark done), a reply, the one
- * that sets it aside (Archive, Delete), then the rest that have an icon, up to `ROW_MAIN` in all.
+ * that sets it aside (Archive, Delete), then the rest that name an icon, up to `ROW_MAIN` in all.
  * `reply` takes one of those places: the page draws its own reply box. The rest go behind ⋯.
  */
 export function rowActsOf(
@@ -79,7 +35,7 @@ export function rowActsOf(
   const main: Action[] = [];
   for (const a of [...firsts, ...moves, ...asks, ...aside, ...can]) {
     if (main.length >= room) break;
-    if (a && !main.includes(a) && iconOf(a.label)) main.push(a);
+    if (a?.icon && !main.includes(a)) main.push(a);
   }
   // In the order the page lists them, so a row's icons sit in the same places row to row.
   main.sort((a, b) => can.indexOf(a) - can.indexOf(b));
@@ -137,7 +93,7 @@ export function RowActions({
         {...tipProps(a.label, { as: "name", ...(a.key ? { keys: a.key } : {}) })}
         onClick={() => run(a)}
       >
-        <Icon name={iconOf(a.label) ?? "check"} />
+        <Icon name={a.icon ?? "check"} />
       </button>
     );
   };

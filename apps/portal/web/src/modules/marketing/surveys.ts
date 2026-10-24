@@ -28,6 +28,7 @@ export const SURVEY_ACTIONS: Action[] = [
   {
     id: "marketing.surveyStart",
     label: "Go live",
+    icon: "play",
     handler: "console/surveyStart",
     confirm: "Go live? A site survey starts showing to visitors; a portal one to client logins.",
     bulk: true,
@@ -36,6 +37,7 @@ export const SURVEY_ACTIONS: Action[] = [
   {
     id: "marketing.surveyPause",
     label: "Pause",
+    icon: "pause",
     handler: "console/surveyPause",
     confirm: "Pause? It stops showing. Answers stay.",
     bulk: true,
@@ -44,6 +46,7 @@ export const SURVEY_ACTIONS: Action[] = [
   {
     id: "marketing.surveyRemove",
     label: "Delete",
+    icon: "trash",
     handler: "console/surveyRemove",
     confirm: "Delete this survey and its answers? Pause a live one first.",
     bulk: true,

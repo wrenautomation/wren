@@ -42,6 +42,7 @@ const PERSON_ACTIONS: Action[] = [
   {
     id: "marketing.personDraft",
     label: "Draft",
+    icon: "edit",
     handler: "marketing/personDraft",
     key: "d",
     when: { can: ["message"] },
@@ -50,6 +51,7 @@ const PERSON_ACTIONS: Action[] = [
   {
     id: "marketing.personMessage",
     label: "Message",
+    icon: "dm",
     handler: "marketing/personMessage",
     ask: { field: "body", label: "Your message", from: "draft" },
     key: "r",
@@ -59,6 +61,7 @@ const PERSON_ACTIONS: Action[] = [
   {
     id: "marketing.personInvite",
     label: "Invite",
+    icon: "addPerson",
     handler: "marketing/personInvite",
     confirm: "Send them a LinkedIn invite?",
     key: "i",
@@ -68,6 +71,7 @@ const PERSON_ACTIONS: Action[] = [
   {
     id: "marketing.personFollow",
     label: "Follow",
+    icon: "addPerson",
     handler: "marketing/personFollow",
     confirm: "Follow them from Wren's account?",
     key: "f",

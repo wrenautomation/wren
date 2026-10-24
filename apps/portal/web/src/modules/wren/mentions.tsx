@@ -13,6 +13,7 @@ export const MENTION_ACTIONS: Action[] = [
   {
     id: "notes.mentionRead",
     label: "Mark read",
+    icon: "read",
     handler: "notes/mentionsRead",
     undo: "notes/mentionsUnread",
     bulk: true,

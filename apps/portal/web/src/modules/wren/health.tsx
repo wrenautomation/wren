@@ -49,6 +49,7 @@ export const HEALTH_ACTIONS: Action[] = [
   {
     id: "health.clearOverride",
     label: "Back to the model",
+    icon: "undo",
     handler: "health/clearOverride",
     when: { hand: ["yes"] },
     confirm: "Clear the score set by hand? The model's score shows again.",
@@ -85,6 +86,7 @@ export const CLIENT_FLAG_ACTIONS: Action[] = [
   {
     id: "health.flagTake",
     label: "Take it",
+    icon: "addPerson",
     handler: "health/flagTake",
     bulk: true,
     when: { state: ["open", "addressed"] },
@@ -93,6 +95,7 @@ export const CLIENT_FLAG_ACTIONS: Action[] = [
   {
     id: "health.flagOwn",
     label: "Assign",
+    icon: "addPerson",
     handler: "health/flagOwn",
     each: true,
     when: { state: ["open", "addressed"] },
@@ -104,6 +107,7 @@ export const CLIENT_FLAG_ACTIONS: Action[] = [
   {
     id: "health.flagAddress",
     label: "Addressed",
+    icon: "selected",
     handler: "health/flagAddress",
     each: true,
     when: { state: ["open"] },
@@ -113,6 +117,7 @@ export const CLIENT_FLAG_ACTIONS: Action[] = [
   {
     id: "health.flagClear",
     label: "Clear",
+    icon: "close",
     handler: "health/flagClear",
     bulk: true,
     when: { state: ["open", "addressed"] },

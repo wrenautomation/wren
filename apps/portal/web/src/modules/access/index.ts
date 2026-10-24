@@ -140,6 +140,7 @@ export function roleActions(wren: boolean): Action[] {
     {
       id: "access.roleRemove",
       label: "Remove",
+      icon: "trash",
       handler: "console/roleRemove",
       requires: MANAGE,
       when: { kind: ["custom"] },
@@ -185,6 +186,7 @@ export const ISSUE_ACTIONS: Action[] = [
   {
     id: "access.issueResolve",
     label: "Resolve",
+    icon: "selected",
     handler: "console/issueResolve",
     requires: ANYONE,
     when: { state: ["open"], yours: ["yes"] },
@@ -198,6 +200,7 @@ export const ASK_ACTIONS: Action[] = [
   {
     id: "access.askApprove",
     label: "Approve",
+    icon: "check",
     handler: "console/askApprove",
     requires: ANYONE,
     when: { state: ["open"], yours: ["yes"] },
@@ -207,6 +210,7 @@ export const ASK_ACTIONS: Action[] = [
   {
     id: "access.askDecline",
     label: "Decline",
+    icon: "close",
     handler: "console/askDecline",
     requires: ANYONE,
     when: { state: ["open"], yours: ["yes"] },

@@ -24,6 +24,7 @@ export const REPLY_ACTIONS: Action[] = [
   {
     id: "email.approve",
     label: "Send",
+    icon: "send",
     handler: "email/approve",
     ask: { field: "body", label: "Your reply", from: "draft", preview: replyPreview },
     key: "a",
@@ -33,6 +34,7 @@ export const REPLY_ACTIONS: Action[] = [
   {
     id: "email.drop",
     label: "Don't answer",
+    icon: "close",
     handler: "email/drop",
     confirm: "Leave this reply unanswered?",
     key: "s",
