@@ -14,7 +14,7 @@ const KIND_LABELS: Record<(typeof SIGNAL_KINDS)[number], string> = {
   demand: "Demand",
 };
 
-export const signalRecord = defineRecord({
+const signalRecord = defineRecord({
   id: "research.signal",
   app: "outbound",
   channel: null,

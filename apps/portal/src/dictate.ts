@@ -45,7 +45,7 @@ async function readBytes(req: Request, max: number): Promise<Uint8Array | null> 
 /** The settings this reads: a slice of the Worker's `Env`, so the Node preview can use it too. */
 export type DictateEnv = { DICTATE_URL?: string; DICTATE_MODEL?: string; DICTATE_KEY?: string };
 
-export function serverTranscriber(env: DictateEnv, f?: typeof fetch): Transcriber | null {
+function serverTranscriber(env: DictateEnv, f?: typeof fetch): Transcriber | null {
   if (!env.DICTATE_URL) return null;
   return openAiTranscriber({
     url: env.DICTATE_URL,

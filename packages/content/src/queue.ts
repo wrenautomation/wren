@@ -175,7 +175,7 @@ export async function noteOnDraft(db: Queryable, id: string, note: string): Prom
 }
 
 /** Starts a draft's error while the desk's browser is busy: it stays approved and goes next pass. */
-export const WAITING_FOR_BROWSER = "Waiting for the browser";
+const WAITING_FOR_BROWSER = "Waiting for the browser";
 
 /**
  * publishing → approved: the desk's browser profile was busy and nothing was sent. Its slot

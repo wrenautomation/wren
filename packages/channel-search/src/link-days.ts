@@ -11,7 +11,7 @@ import { sql } from "drizzle-orm";
 import { linkDays } from "./schema.js";
 import type { BookedCall } from "./site-days.js";
 
-export type LinkDayRow = Omit<typeof linkDays.$inferSelect, "syncedAt">;
+type LinkDayRow = Omit<typeof linkDays.$inferSelect, "syncedAt">;
 
 interface Link {
   source: string;
@@ -20,7 +20,7 @@ interface Link {
 }
 
 /** A client whose invoices were paid: its members' emails, the first paid day, the cents (USD). */
-export interface WonClient {
+interface WonClient {
   emails: string[];
   day: string;
   cents: number;

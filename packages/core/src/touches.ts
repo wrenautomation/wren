@@ -26,7 +26,7 @@ export * from "./touches-schema.js";
 
 const DAY = 86_400_000;
 /** An ours touch with no answer after this long reads "no answer". */
-export const NO_ANSWER_DAYS = 14;
+const NO_ANSWER_DAYS = 14;
 
 export const PLATFORM_LABELS: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -43,7 +43,7 @@ const label = (p: string) => PLATFORM_LABELS[p] ?? p;
 // ---- handles ---------------------------------------------------------------------------
 
 /** One person on one platform, normalized, with their profile page when we can say it. */
-export interface HandleRef {
+interface HandleRef {
   platform: string;
   handle: string;
   url: string | null;
@@ -250,7 +250,7 @@ interface Links {
 }
 
 /** Who a handle is in what we hold; nulls when we don't know. */
-export async function findLinks(db: Queryable, ref: HandleRef): Promise<Links> {
+async function findLinks(db: Queryable, ref: HandleRef): Promise<Links> {
   let personId: number | null = null;
   let by: HandleLink | null = null;
   const h = ref.handle;
@@ -433,7 +433,7 @@ export async function relinkHandles(db: Queryable, limit = 500): Promise<number>
 
 // ---- writing ---------------------------------------------------------------------------
 
-export interface TouchIn {
+interface TouchIn {
   platform: string;
   /** As the source has it: a URL, `@name`, a vanity, a URN; normalized here. */
   handle: string;
@@ -798,7 +798,7 @@ export function touchText(t: TouchLine, now: Date): string {
 }
 
 /** One touch as a prompt line: `2026-09-30 LinkedIn: we commented on their post: "…"`. */
-export const touchSentence = (t: TouchLine, now: Date): string =>
+const touchSentence = (t: TouchLine, now: Date): string =>
   `${day(t.at)} ${label(t.platform)}: ${touchText(t, now)}`;
 
 export const platformLabel = label;
@@ -819,7 +819,7 @@ const mutual = (t: TouchLine) =>
 const citable = (t: TouchLine) => mutual(t) || t.kind === "comment" || t.kind === "reply";
 
 /** A touch as the clause an email to them says: "your comment on our LinkedIn post". */
-export function touchClause(t: TouchLine): string {
+function touchClause(t: TouchLine): string {
   const p = label(t.platform);
   if (t.direction === "theirs")
     return {

@@ -11,7 +11,7 @@ import {
   TERMS_RECORD,
 } from "./records.js";
 
-export const PIPELINE_JOURNEYS = "pipeline.journeys";
+const PIPELINE_JOURNEYS = "pipeline.journeys";
 
 export const PIPELINE_COMPONENTS = [
   defineComponent({

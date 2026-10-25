@@ -12,7 +12,7 @@ export const LADDER_TIERS = ["impersonate", "render", "exit"] as const;
 export type LadderTier = (typeof LADDER_TIERS)[number];
 
 /** What a domain needs: a rung, wren's own box browser, or nothing works (`dead`). */
-export const MEMORY_TIERS = ["browser", ...LADDER_TIERS, "dead"] as const;
+const MEMORY_TIERS = ["browser", ...LADDER_TIERS, "dead"] as const;
 export type MemoryTier = (typeof MEMORY_TIERS)[number];
 
 export const isLadderTier = (tier: string | null | undefined): tier is LadderTier =>
@@ -40,7 +40,7 @@ export interface TierMemory {
   learn(domain: string, tier: MemoryTier, block: string | null): Promise<void>;
 }
 
-export interface TierRow {
+interface TierRow {
   tier: string;
   learnedAt: Date;
 }

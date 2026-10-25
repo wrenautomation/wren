@@ -9,7 +9,7 @@ import { optionText, parseTemplate, variantPoints } from "@wren/core/slots";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export interface VariantOutcome {
+interface VariantOutcome {
   readonly niche: string;
   readonly template: string;
   readonly version: string;

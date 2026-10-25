@@ -42,7 +42,7 @@ export const TRAIT_OPS = {
   in_last: "fell in the last (days)",
   one_of: "is one of",
 } as const;
-export type TraitOp = keyof typeof TRAIT_OPS;
+type TraitOp = keyof typeof TRAIT_OPS;
 
 /**
  * A message's state as a condition, and the ladder states that count for it (`SENT_STATES`). A
@@ -87,22 +87,22 @@ const most = z.number().int().min(0).max(100_000).optional();
 /** Days back; null or left out is ever. */
 const days = z.number().int().min(1).max(3650).nullable().default(null);
 /** A channel as the timeline names it: email, sms, linkedin, site, calendar. */
-export const CHANNEL_NAME = /^[a-z][a-z0-9_]{0,23}$/;
+const CHANNEL_NAME = /^[a-z][a-z0-9_]{0,23}$/;
 const channel = z.string().regex(CHANNEL_NAME, "a channel, like email or reddit").optional();
 /** Words a line's summary or link holds: a subject, a post's address, a campaign. */
 const words = z.string().trim().min(1).max(200).optional();
 /** Another timeline line a count is read before or after: the person's first one. */
-export const anchorSchema = z.strictObject({ event: z.enum(TIMELINE_KINDS), channel });
+const anchorSchema = z.strictObject({ event: z.enum(TIMELINE_KINDS), channel });
 export type Anchor = z.infer<typeof anchorSchema>;
 
-export const traitCondition = z.strictObject({
+const traitCondition = z.strictObject({
   kind: z.literal("trait"),
   key: z.string().regex(TRAIT_KEY, "a trait key, like plan or renewal_date"),
   op: z.enum(Object.keys(TRAIT_OPS) as [TraitOp, ...TraitOp[]]),
   value: z.union([z.string().max(200), z.number()]).optional(),
   not,
 });
-export const eventCondition = z.strictObject({
+const eventCondition = z.strictObject({
   kind: z.literal("event"),
   event: z.enum(TIMELINE_KINDS),
   channel,
@@ -114,13 +114,13 @@ export const eventCondition = z.strictObject({
   before: anchorSchema.optional(),
   not,
 });
-export const consentCondition = z.strictObject({
+const consentCondition = z.strictObject({
   kind: z.literal("consent"),
   channel: z.enum(CONSENT_CHANNELS),
   state: z.enum(CONSENT_CONDITION_STATES),
   not,
 });
-export const messageCondition = z.strictObject({
+const messageCondition = z.strictObject({
   kind: z.literal("message"),
   state: z.enum(MESSAGE_STATE_KEYS),
   channel: z.enum(MESSAGE_CHANNELS).default("any"),
@@ -131,7 +131,7 @@ export const messageCondition = z.strictObject({
   not,
 });
 /** A funnel step on a channel, from `profile_steps` (designs/2026-10-15-channel-stats.md). */
-export const stepCondition = z.strictObject({
+const stepCondition = z.strictObject({
   kind: z.literal("step"),
   step: z.enum(FUNNEL_STEPS),
   channel,
@@ -141,7 +141,7 @@ export const stepCondition = z.strictObject({
 });
 /** A journey's states (`pipeline.journeys.status`), and the clock a window counts back on. */
 export const JOURNEY_STATUS_NAMES = ["open", "done", "dropped"] as const;
-export const JOURNEY_CLOCKS = ["moved", "opened"] as const;
+const JOURNEY_CLOCKS = ["moved", "opened"] as const;
 /** A node id or source id, as `@wren/pipeline` names them. */
 export const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
 const journeyKey = z.string().regex(JOURNEY_KEY, "a node or source id, like organic").optional();
@@ -151,7 +151,7 @@ const journeyKey = z.string().regex(JOURNEY_KEY, "a node or source id, like orga
  * days. A rule saved before the shape named a funnel and a `stage`: the stage reads as the node
  * and the funnel is ignored (there is one shape per workspace).
  */
-export const journeyCondition = z.preprocess(
+const journeyCondition = z.preprocess(
   (v) => {
     if (typeof v !== "object" || v === null || Array.isArray(v)) return v;
     const { funnel: _funnel, stage, ...rest } = v as Record<string, unknown>;
@@ -169,18 +169,18 @@ export const journeyCondition = z.preprocess(
     not,
   }),
 );
-export const segmentCondition = z.strictObject({
+const segmentCondition = z.strictObject({
   kind: z.literal("segment"),
   segment: z.number().int().positive(),
   not,
 });
 
-export type TraitCondition = z.infer<typeof traitCondition>;
-export type EventCondition = z.infer<typeof eventCondition>;
-export type ConsentCondition = z.infer<typeof consentCondition>;
-export type MessageCondition = z.infer<typeof messageCondition>;
-export type StepCondition = z.infer<typeof stepCondition>;
-export type SegmentCondition = z.infer<typeof segmentCondition>;
+type TraitCondition = z.infer<typeof traitCondition>;
+type EventCondition = z.infer<typeof eventCondition>;
+type ConsentCondition = z.infer<typeof consentCondition>;
+type MessageCondition = z.infer<typeof messageCondition>;
+type StepCondition = z.infer<typeof stepCondition>;
+type SegmentCondition = z.infer<typeof segmentCondition>;
 export type JourneyCondition = z.infer<typeof journeyCondition>;
 export type Condition =
   | TraitCondition
@@ -200,7 +200,7 @@ export type Node = Condition | Group;
 /** A segment's rule: one group at the top. */
 export type Rule = Group;
 
-export const groupSchema: z.ZodType<Group> = z.lazy(() =>
+const groupSchema: z.ZodType<Group> = z.lazy(() =>
   z.strictObject({
     kind: z.literal("group"),
     match: z.enum(["all", "any"]),
@@ -208,7 +208,7 @@ export const groupSchema: z.ZodType<Group> = z.lazy(() =>
     not,
   }),
 );
-export const nodeSchema: z.ZodType<Node> = z.lazy(() =>
+const nodeSchema: z.ZodType<Node> = z.lazy(() =>
   z.union([
     traitCondition,
     eventCondition,
@@ -220,7 +220,7 @@ export const nodeSchema: z.ZodType<Node> = z.lazy(() =>
     groupSchema,
   ]),
 );
-export const ruleSchema = groupSchema;
+const ruleSchema = groupSchema;
 
 const DAY_MS = 86_400_000;
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -287,7 +287,7 @@ export const segmentsIn = (rule: Rule): number[] => [
 ];
 
 /** Why a parsed rule won't run, as readable lines; empty when sound. */
-export function ruleProblems(rule: Rule): string[] {
+function ruleProblems(rule: Rule): string[] {
   const out: string[] = [];
   let n = 0;
   const depth = walk(rule, (c) => {
@@ -520,7 +520,7 @@ export const matchingSql = (rule: Rule, now: Date): SQL =>
 
 const q = (s: string) => `"${s}"`;
 /** One condition in words: `plan is "pro"`, `opened an email at least twice in 30 days`. */
-export function conditionWords(c: Condition, names: ReadonlyMap<number, string> = new Map()) {
+function conditionWords(c: Condition, names: ReadonlyMap<number, string> = new Map()) {
   const no = c.not ? "not " : "";
   const window = (d: number | null) => (d === null ? "ever" : `in the last ${d} days`);
   const times = (n: number, m?: number) =>
@@ -709,11 +709,7 @@ async function setMembers(
 }
 
 /** A live segment's members made its rule's answer now; a snapshot's taken again. */
-export async function recompute(
-  db: Queryable,
-  id: number,
-  now: Date,
-): Promise<MembershipChange | null> {
+async function recompute(db: Queryable, id: number, now: Date): Promise<MembershipChange | null> {
   const s = await segmentById(db, id);
   if (!s?.rule || s.kind === "manual") return null;
   return atomic(db, (tx) => setMembers(tx, id, matchingSql(s.rule as Rule, now), now));
@@ -839,7 +835,7 @@ async function manualOf(db: Queryable, id: number): Promise<Segment> {
 }
 
 /** One member as a sender reads them: their name and every email and phone they go by. */
-export interface SegmentMember {
+interface SegmentMember {
   profileId: number;
   name: string | null;
   emails: string[];
@@ -1074,7 +1070,7 @@ export async function restoreSegment(
 }
 
 /** Unused this long, a segment is archived. */
-export const ARCHIVE_AFTER_DAYS = 90;
+const ARCHIVE_AFTER_DAYS = 90;
 
 /**
  * Segments nothing used for 90 days, archived: no workflow or active segment uses them, and

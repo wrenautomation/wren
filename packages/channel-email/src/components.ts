@@ -17,7 +17,7 @@ import {
 
 export const INBOX_HEALTH = "email.inbox_health";
 /** A client's Postmaster pull is `PostmasterScheduler/<client>/daily`. */
-export const CLIENT_POSTMASTER_UNIT = "daily";
+const CLIENT_POSTMASTER_UNIT = "daily";
 
 /** One email step of a follow-up cadence on the spine (follow.ts). */
 export const EMAIL_TOUCH = "email.touch";

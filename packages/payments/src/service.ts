@@ -69,7 +69,7 @@ export interface PaymentsDeps {
 }
 
 /** Retries on a dropped connection or Stripe's 5xx, inside Stripe's 24 h idempotency window. */
-export interface StripeRetry {
+interface StripeRetry {
   maxRetryDuration: number;
   initialRetryInterval: number;
   maxRetryInterval: number;
@@ -115,7 +115,7 @@ export const PAYMENTS = { name: "Payments" } as const;
 /** The signing secret's name in the key store, beside the client's `STRIPE_SECRET_KEY`. */
 export const WEBHOOK_SECRET = "STRIPE_WEBHOOK_SECRET";
 /** Who reads a key when Payments does: the event says so. */
-export const PAYMENTS_READER = "wren:payments";
+const PAYMENTS_READER = "wren:payments";
 export const webhookUrl = (portal: string, client: string) =>
   `${portal.replace(/\/+$/, "")}/__pay/stripe/${encodeURIComponent(client)}`;
 
@@ -210,7 +210,7 @@ export function paymentFired(l: PayLink, change: PayChange = "paid"): Fired {
 type Made = { url: string; stripeLink: string } | { error: string };
 
 /** Stripe's answer on a webhook, as the Worker passes it back. */
-export interface HookAnswer {
+interface HookAnswer {
   status: number;
   result: string;
 }
@@ -219,7 +219,7 @@ export interface HookAnswer {
  * A link's line on its client's timeline (People, B7), once sent and again when paid: the link
  * lives here on main, the profile in the client's workspace. Never throws.
  */
-export async function notePayLink(
+async function notePayLink(
   d: Pick<PaymentsDeps, "main" | "open">,
   id: string,
 ): Promise<number | null> {

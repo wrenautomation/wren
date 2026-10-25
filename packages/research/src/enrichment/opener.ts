@@ -141,7 +141,7 @@ const pageWords = (texts: readonly string[]): Set<string> =>
       .filter(Boolean),
   );
 
-export type OpenerRejection =
+type OpenerRejection =
   | "too_long"
   | "style"
   | "no_quote"
@@ -189,7 +189,7 @@ export function groundOpener(
   return { opener: { line, quote, source_url: source.url }, rejected: null };
 }
 
-export interface OpenerSelectOptions {
+interface OpenerSelectOptions {
   limit?: number | undefined;
   niche?: string | null | undefined;
   shard?: Shard | null | undefined;
@@ -242,12 +242,12 @@ export async function selectOpenerTargets(
   return rows.map((r) => r.id);
 }
 
-export interface OpenerUnitOptions {
+interface OpenerUnitOptions {
   runId?: string | null | undefined;
   tracer?: Tracer | null | undefined;
 }
 
-export type OpenerOutcome =
+type OpenerOutcome =
   | "written"
   | "no_line"
   | "rejected"

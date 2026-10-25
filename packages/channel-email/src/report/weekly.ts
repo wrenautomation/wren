@@ -20,13 +20,13 @@ export interface Counts {
   complaints: number;
 }
 
-export interface SliceStats<K> {
+interface SliceStats<K> {
   key: K;
   week: Counts;
   toDate: Counts;
 }
 
-export interface ReportDomain {
+interface ReportDomain {
   domain: string;
   sent: number;
   hardBounces: number;
@@ -43,7 +43,7 @@ export interface Pause {
   pausedAt: string;
 }
 
-export interface ReplyLine {
+interface ReplyLine {
   receivedAt: string;
   company: string | null;
   fromAddress: string | null;
@@ -76,7 +76,7 @@ export interface WeeklyStats {
   pool: Pool;
 }
 
-export interface CollectOptions {
+interface CollectOptions {
   /** The end of the period (exclusive). */
   now: Date;
   /** Period length; the default is the seven days before `now`. */

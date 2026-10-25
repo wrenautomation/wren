@@ -16,7 +16,7 @@ export const COMMENT_KINDS_LEARNED = [
   "thread",
   "post_comment",
 ] as const satisfies readonly DraftRecordKind[];
-export type LearnedKind = (typeof COMMENT_KINDS_LEARNED)[number];
+type LearnedKind = (typeof COMMENT_KINDS_LEARNED)[number];
 
 /** How far back, how many read, how many shown. */
 const DAYS = 90;

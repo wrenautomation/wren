@@ -19,7 +19,7 @@ export interface PictureStore {
 }
 
 /** Pictures one pass copies, newest items first. */
-export const PICTURES_PER_PASS = 60;
+const PICTURES_PER_PASS = 60;
 const MAX_BYTES = 5_000_000;
 const TIMEOUT_MS = 15_000;
 const EXT: Record<string, string> = {
@@ -34,7 +34,7 @@ const EXT: Record<string, string> = {
 export const isStoredPicture = (u: string | null | undefined): u is string =>
   !!u?.startsWith("s3://");
 
-export interface PictureStats {
+interface PictureStats {
   kept: number;
   /** Gone at their host (404, expired): the row drops the address. */
   gone: number;
@@ -119,11 +119,7 @@ export async function keepPictures(
 }
 
 /** A stored picture's GET address, when a Learn row names it; null for anything else. */
-export async function signPicture(
-  db: Db,
-  store: PictureStore,
-  ref: string,
-): Promise<string | null> {
+async function signPicture(db: Db, store: PictureStore, ref: string): Promise<string | null> {
   if (!isStoredPicture(ref)) return null;
   const [named] = await db.execute<{ one: number }>(sql`
     select 1 as one where exists (select 1 from ${items} where ${items.thumbnailUrl} = ${ref})

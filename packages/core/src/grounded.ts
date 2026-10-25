@@ -18,7 +18,7 @@ export interface Grounding {
   own?: readonly string[];
 }
 
-export interface GroundingFlag {
+interface GroundingFlag {
   kind: "claim" | "number";
   /** The words flagged: the claim's sentence, or the number as written. */
   text: string;
@@ -173,13 +173,13 @@ export function groundingFlags(draft: string, g: Grounding): GroundingFlag[] {
 }
 
 /** What the model is told on its one more try. */
-export function fixNote(flags: readonly GroundingFlag[]): string {
+function fixNote(flags: readonly GroundingFlag[]): string {
   return `Your last draft said things that are not in the facts or the source:
 ${flags.map((f) => (f.kind === "claim" ? `- a made-up experience: "${f.text}"` : `- a number from nowhere: ${f.text}`)).join("\n")}
 Write it again without them. Claim only what the facts say, and use only numbers the source or the facts give. With nothing true that fits, add an insight or ask a question.`;
 }
 
-export type GuardOutcome = "clean" | "redrafted" | "dropped";
+type GuardOutcome = "clean" | "redrafted" | "dropped";
 
 export interface Guarded<T> {
   outcome: GuardOutcome;
@@ -220,7 +220,7 @@ export async function guardDraft<T>(
 }
 
 /** A draft in parts: a thread's posts, a carousel's slides and captions. */
-export interface DraftPart {
+interface DraftPart {
   /** How the flag names it: "post 2", "slide 4", "LinkedIn post". */
   label: string;
   text: string;

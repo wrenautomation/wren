@@ -610,7 +610,7 @@ export interface Asked {
   error?: string | null;
 }
 
-export interface RunState {
+interface RunState {
   asked: Asked | null;
   /** The action at work and its ids, for its button. */
   running: { action: string; ids: Ids } | null;
@@ -622,7 +622,7 @@ export interface RunState {
 export const DONE_MS = 2400;
 
 /** What a toast needs: sonner's `toast`, or a fake in tests. */
-export interface ToastFns {
+interface ToastFns {
   success: (line: string | undefined, opts?: Parameters<typeof toast.success>[1]) => unknown;
   error: (line: string) => unknown;
 }

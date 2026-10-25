@@ -27,7 +27,7 @@ export const toolText = (text: string) =>
   text.replace(/\s*\(\d{4}-\d\d-\d\dT[^)]*\)/g, "").replace(/;\s*/g, ", ");
 
 /** A tool line in a transcript: what it did, then what it said back. */
-export function ToolLine({ tool, text }: { tool: string; text: string }) {
+function ToolLine({ tool, text }: { tool: string; text: string }) {
   return (
     <li className="flex min-w-0 items-baseline justify-center gap-2 py-1 text-[12.5px] text-(--ui-ink-2)">
       <span className="inline-flex shrink-0 items-center gap-1.5 font-medium text-(--ui-ink)">
@@ -94,7 +94,7 @@ const ms = (n: number | null) => (n === null ? "none" : `${Math.round(n)} ms`);
  * was over, then our wait until the caller heard us. Ticks mark the first token and first audio.
  * `scale` is the widest turn's ms, so turns line up.
  */
-export function TurnBar({ turn, scale }: { turn: Turn; scale: number }) {
+function TurnBar({ turn, scale }: { turn: Turn; scale: number }) {
   const m = turn.ms;
   const at = (n: number | null) =>
     n === null ? null : `${Math.min(100, (Math.max(0, n) / scale) * 100)}%`;
@@ -130,7 +130,7 @@ export function TurnBar({ turn, scale }: { turn: Turn; scale: number }) {
 }
 
 /** The bars' key. */
-export function TurnKey() {
+function TurnKey() {
   return (
     <p className={`flex flex-wrap gap-x-5 gap-y-1 ${SMALL}`}>
       <span className="inline-flex items-center gap-1.5">

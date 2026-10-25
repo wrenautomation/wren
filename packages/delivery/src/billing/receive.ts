@@ -5,7 +5,7 @@
  */
 
 /** One currency's details as stored: `{ name, account, routing, swift, ... }`. */
-export type ReceiveFields = Readonly<Record<string, string>>;
+type ReceiveFields = Readonly<Record<string, string>>;
 /** Currency → its details. */
 export type ReceiveDetails = Readonly<Record<string, ReceiveFields>>;
 

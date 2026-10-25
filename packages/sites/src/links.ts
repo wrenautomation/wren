@@ -61,7 +61,7 @@ export interface NewLink {
   by: string;
 }
 
-export interface MadeLink extends SiteLink {
+interface MadeLink extends SiteLink {
   url: string | null;
   slug: string;
 }

@@ -15,7 +15,7 @@ import { type Firm, firmNames, mentionsFirm, plain, sameName } from "./names.js"
 /** Search results per query: as in the studies' search. */
 export const HITS_PER_QUERY = 8;
 /** Searches per run at most: one for the firm, then one per handle held. */
-export const ELSEWHERE_SEARCHES = 3;
+const ELSEWHERE_SEARCHES = 3;
 
 export interface ElsewhereHit {
   /** A platform handle we can hold as a key, or a link we only show. */
@@ -42,13 +42,13 @@ export interface ElsewhereSubject {
   handles: { platform: string; handle: string }[];
 }
 
-export interface ElsewhereTried {
+interface ElsewhereTried {
   step: "elsewhere";
   what: string;
   outcome: string;
 }
 
-export interface ElsewhereRun {
+interface ElsewhereRun {
   hits: ElsewhereHit[];
   tried: ElsewhereTried[];
   /** A cap said stop: the rest of the searches were not asked. */

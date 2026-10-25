@@ -49,7 +49,7 @@ export async function touchFromActivity(db: Queryable, id: number) {
   });
 }
 
-export interface FollowingKept {
+interface FollowingKept {
   /** Follows the list had that wren did not: made by hand on the site. */
   added: number;
   /** Handles the list had before and has no more: unfollowed on the site. Nothing is deleted. */
@@ -198,7 +198,7 @@ export async function linkCommentAuthors(db: Queryable): Promise<number> {
   return n;
 }
 
-export interface TouchesBackfill extends TouchBackfill {
+interface TouchesBackfill extends TouchBackfill {
   activity: number;
   /** LinkedIn comment authors moved from a URN to their profile. */
   authors: number;

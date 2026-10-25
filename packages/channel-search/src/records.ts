@@ -112,7 +112,7 @@ export const searchDayRecord = defineRecord({
   views: [{ id: "all", label: "All", sort: "-day", at: "day" }],
 });
 
-export const answerRecord = defineRecord({
+const answerRecord = defineRecord({
   id: "marketing.answer",
   app: "marketing",
   channel: null,
@@ -146,7 +146,7 @@ export const answerRecord = defineRecord({
   ],
 });
 
-export const siteDayRecord = defineRecord({
+const siteDayRecord = defineRecord({
   id: "marketing.site_day",
   app: "marketing",
   channel: null,
@@ -210,7 +210,7 @@ export const funnelRecord = defineRecord({
 });
 
 /** Each `/go/` link's day: who came by it and what they did after, first and last touch. */
-export const linkDayRecord = defineRecord({
+const linkDayRecord = defineRecord({
   id: "marketing.link_day",
   app: "marketing",
   channel: null,
@@ -267,7 +267,7 @@ export const SEARCH_RECORDS = [
 ];
 
 /** Where sessions come from: the lander's export, and a short signed GET per chunk. */
-export interface SessionSource {
+interface SessionSource {
   site: Parameters<typeof siteExport>[1];
   signGet: (key: string) => Promise<string>;
 }

@@ -71,7 +71,7 @@ export function linkedinPersonRow(row: RawRow, sourceRef: string): PersonItem {
   }
 }
 
-export class LinkedInPeopleCsvSource implements PersonSource {
+class LinkedInPeopleCsvSource implements PersonSource {
   readonly sourceType = "linkedin";
   readonly sourceRef: string;
   readonly contentHash: string;

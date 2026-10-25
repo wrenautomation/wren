@@ -7,7 +7,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Slotted } from "../scheduled.js";
 
 /** Who a scheduled send is by, on the draft record and the touch. */
-export const SCHEDULER = "scheduler";
+const SCHEDULER = "scheduler";
 
 type Sent = { id: number | string; at: string; viewer: { email: string } };
 type Desk = {

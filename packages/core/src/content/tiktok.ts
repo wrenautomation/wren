@@ -65,7 +65,7 @@ export function tiktokLabel(f: TikTokChoices): string | null {
 }
 
 /** The choices on a post that TikTok's rules read. */
-export interface TikTokChoices {
+interface TikTokChoices {
   privacy?: string | undefined;
   allowComment?: boolean | undefined;
   allowDuet?: boolean | undefined;

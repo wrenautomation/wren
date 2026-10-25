@@ -21,12 +21,12 @@ export const WRITES_PROTOCOL = "wren-writes";
 export const FIRST_MS = 1000;
 export const MAX_MS = 10_000;
 /** A watch gives up after a day (Restate keeps the answer that long). */
-export const GIVE_UP_MS = 24 * 3600_000;
+const GIVE_UP_MS = 24 * 3600_000;
 /** Restate never heard of it this long after the send: the tab sends again, under a new watch. */
-export const UNKNOWN_MS = 2 * 60_000;
+const UNKNOWN_MS = 2 * 60_000;
 /** A finished write stays this long, so a tab that reconnects still hears how it ended. */
 export const KEEP_DONE_MS = 10 * 60_000;
-export const WATCH_MAX = 200;
+const WATCH_MAX = 200;
 /** A sent write's answer rides along only below this size. */
 const ANSWER_MAX = 32_000;
 
@@ -46,7 +46,7 @@ export interface Watch {
 }
 
 /** What a tab hears: one write's state. */
-export interface WriteNews {
+interface WriteNews {
   type: "write";
   path: string;
   requestId: string;

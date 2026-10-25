@@ -40,7 +40,7 @@ export function readCutKnobs(raw: unknown): CutKnobsByFormat {
 
 const FRAME_S = 0.02;
 /** A cut longer than this gets a look in `wren video cuts`. */
-export const LONG_CUT_S = 2;
+const LONG_CUT_S = 2;
 /** A cut edge this close to a word counts as touching it. */
 const TOUCH_S = 0.05;
 
@@ -80,7 +80,7 @@ export function noiseThresholdDb(pcm: Pcm, marginDb: number): number {
 }
 
 /** The centre of the quietest 20 ms window inside [lo, hi]; ties go to the earliest. */
-export function quietest(pcm: Pcm, sq: Float64Array, lo: number, hi: number): number {
+function quietest(pcm: Pcm, sq: Float64Array, lo: number, hi: number): number {
   const n = Math.round(FRAME_S * pcm.rate);
   const a = Math.max(0, Math.round(lo * pcm.rate));
   const b = Math.min(pcm.samples.length, Math.round(hi * pcm.rate));
@@ -117,7 +117,7 @@ export function fitWords(words: readonly Word[], silences: readonly Span[]): Wor
 }
 
 /** Where no word is: before the first, between each pair, after the last. */
-export function transcriptGaps(words: readonly Word[], durationS: number): Span[] {
+function transcriptGaps(words: readonly Word[], durationS: number): Span[] {
   const sorted = [...words].sort((a, b) => a.s - b.s);
   const gaps: Span[] = [];
   let at = 0;

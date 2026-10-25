@@ -21,14 +21,14 @@ import { type Bucket, bucketRoom } from "../pacing.js";
 import { CHANNEL_PARTS, YouTubeError, type YouTubeGet } from "./youtube.js";
 
 export const YOUTUBE_SEARCH_COMMAND = "enrich youtube-search";
-export const YOUTUBE_SEARCH_SOURCE = "youtube_search";
+const YOUTUBE_SEARCH_SOURCE = "youtube_search";
 /**
  * Searches a day, 101 units each. The project has 10,000 a day: the `youtube` stage keeps at most
  * 6,000 in any 24 hours and talks 2,000 (20 searches), so this takes about half of what is left.
  */
-export const YOUTUBE_SEARCH_BUCKET: Bucket = { perDay: 10, burst: 10 };
+const YOUTUBE_SEARCH_BUCKET: Bucket = { perDay: 10, burst: 10 };
 /** A niche's channels change slowly: a search is read again after this. */
-export const YOUTUBE_SEARCH_EVERY_DAYS = 30;
+const YOUTUBE_SEARCH_EVERY_DAYS = 30;
 /** Channels a search asks for: the most one call returns, at the same 100 units. */
 const RESULTS = 50;
 
@@ -139,9 +139,9 @@ export async function youtubeSearchesDue(
     .map((s) => s.q);
 }
 
-export type YouTubeSearchOutcome = "read" | "quota" | "error";
+type YouTubeSearchOutcome = "read" | "quota" | "error";
 
-export interface YouTubeSearchUnit {
+interface YouTubeSearchUnit {
   q: string;
   outcome: YouTubeSearchOutcome;
   channels: number;

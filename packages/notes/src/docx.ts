@@ -33,7 +33,7 @@ export interface DocxImage {
   height: number;
 }
 
-export interface DocxOptions {
+interface DocxOptions {
   title?: string;
   /** Fetch an image by its `src`; null leaves its alt text in its place. */
   image?: (src: string) => Promise<DocxImage | null>;

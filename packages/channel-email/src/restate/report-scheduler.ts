@@ -13,13 +13,13 @@ import { runWeeklyReport, type WeeklyReportStats } from "../report/send.js";
 import type { SendPolicy } from "../send/policy.js";
 import type { Transport } from "../send/transport.js";
 
-export interface ReportSchedulerDeps {
+interface ReportSchedulerDeps {
   db: Db;
   transport: Transport;
   mail: { to: string; from: string };
   policy: SendPolicy;
 }
-export const REPORT_COMMAND = "report weekly";
+const REPORT_COMMAND = "report weekly";
 
 export function makeReportScheduler(deps: ReportSchedulerDeps) {
   return makeLoopObject("ReportScheduler", async (ctx: restate.ObjectContext) => {

@@ -13,7 +13,7 @@ import { type ChatMessage, type ChatThread, chatMessages, chatThreads } from "..
 /** Messages a thread may send in an hour. */
 export const CHAT_PER_HOUR = 30;
 /** New threads an owner takes in a day. */
-export const CHAT_THREADS_PER_DAY = 200;
+const CHAT_THREADS_PER_DAY = 200;
 /** New threads one visitor (by IP) starts in a day, so one script can't use up the owner's. */
 export const CHAT_THREADS_PER_IP = 5;
 /** The most messages one read returns. */

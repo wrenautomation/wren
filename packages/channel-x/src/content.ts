@@ -39,7 +39,7 @@ import {
 import { fieldsOf, mediaUnfit, ShapeError } from "@wren/core/content/shapes";
 import { threadPosts, threadUnfit } from "@wren/core/content/thread";
 
-export interface XContentOptions {
+interface XContentOptions {
   now?: () => Date;
   /** Makes a laptop file or a stored object reachable from the box; absent = paths are the box's own. */
   host?: MediaHost;
@@ -101,7 +101,7 @@ const VIDEO_QUERY = {
  * A video's plays and how far they got, from the first video on the post. The quartiles over
  * the plays started make the retention curve (5 points) and the finish rate.
  */
-export function videoWatch(media: readonly XMedia[] | undefined): InsightValue[] | null {
+function videoWatch(media: readonly XMedia[] | undefined): InsightValue[] | null {
   const v = media?.find((m) => m.type === "video" || m.type === "animated_gif");
   if (!v) return null;
   const own = v.organic_metrics ?? v.non_public_metrics;

@@ -110,7 +110,7 @@ const centsOf = (v: string): number => {
 const renderInvoice = (i: InvoiceView) =>
   `  ${i.number} ${i.status.toUpperCase()} · ${i.currency} ${(i.cents / 100).toFixed(2)} · ${i.description} · issued ${i.issuedOn}, due ${i.dueOn}${i.paidOn ? `, paid ${i.paidOn}` : ""}${i.refundedCents ? `, refunded ${(i.refundedCents / 100).toFixed(2)}` : ""}${i.dispute ? `, dispute ${i.dispute}` : ""}`;
 
-export function renderEngagement(clientId: string, e: EngagementView): string[] {
+function renderEngagement(clientId: string, e: EngagementView): string[] {
   const out = [`${clientId} · ${e.offer.name} (#${e.id}) · from ${e.startsOn} · ${e.status}`];
   const p = e.paperwork;
   if (p.contract || p.access.length > 0) {

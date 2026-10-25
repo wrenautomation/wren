@@ -15,7 +15,7 @@ import { type ApplyExtractionsStats, applyExtractions, ExtractedPerson } from ".
 import { upsertEnrichment } from "./store.js";
 
 /** Words that sit near a decision maker's name on a team or about page. */
-export const LEADERSHIP_WORDS = [
+const LEADERSHIP_WORDS = [
   "owner",
   "founder",
   "founded",
@@ -59,7 +59,7 @@ export function leadershipExcerpt(text: string, radius = 2, max = 1500): string 
   return out.join("\n").slice(0, max);
 }
 
-export interface ReadingPage {
+interface ReadingPage {
   document_id: number;
   url: string;
   excerpt: string;
@@ -129,7 +129,7 @@ export const ReadingResult = z.object({
 });
 export type ReadingResult = z.infer<typeof ReadingResult>;
 
-export interface LoadReadingsStats extends Record<string, unknown> {
+interface LoadReadingsStats extends Record<string, unknown> {
   firms: number;
   documents_read: number;
   people_claimed: number;

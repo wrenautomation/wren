@@ -30,7 +30,7 @@ export const KIT_PATH = "/o/__kit.js";
 export const TRACK_PATH = "/o/__t";
 export const FORM_PATH = "/o/__form";
 export const PREVIEW_PATH = "/o/__preview/";
-export const FORM_PAGE_PATH = "/o/f/";
+const FORM_PAGE_PATH = "/o/f/";
 
 const TK = "__WREN_TURNSTILE_KEY__";
 

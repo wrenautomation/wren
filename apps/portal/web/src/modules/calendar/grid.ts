@@ -8,7 +8,7 @@ export const VIEWS = ["day", "week", "month", "list"] as const;
 export type View = (typeof VIEWS)[number];
 
 /** How many days the agenda shows from its first. */
-export const LIST_DAYS = 30;
+const LIST_DAYS = 30;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -31,7 +31,7 @@ export const addDays = (d: Date, n: number) =>
 const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
 /** The Monday on or before `d`. */
-export const weekStart = (d: Date) => addDays(midnight(d), -((d.getDay() + 6) % 7));
+const weekStart = (d: Date) => addDays(midnight(d), -((d.getDay() + 6) % 7));
 
 /** The days a view draws around `anchor`, first to last. */
 export function daysOf(view: View, anchor: Date): Date[] {

@@ -70,7 +70,7 @@ import {
   vendorSettings,
 } from "./vendors.js";
 
-export interface AccountsDeps {
+interface AccountsDeps {
   db: Db;
   /** Every setup the worker runs (`SETUPS`). */
   setups: readonly Setup[];

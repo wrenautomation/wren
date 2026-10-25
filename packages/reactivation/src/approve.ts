@@ -16,7 +16,7 @@ export interface ReviewResult {
 }
 
 /** Which drafts: these enrollments, or every one waiting. */
-export type DraftSelector = { enrollmentIds: readonly number[] } | { all: true };
+type DraftSelector = { enrollmentIds: readonly number[] } | { all: true };
 
 const idsOf = (s: DraftSelector): number[] | null =>
   "all" in s ? null : [...new Set(s.enrollmentIds)].filter((n) => Number.isSafeInteger(n));

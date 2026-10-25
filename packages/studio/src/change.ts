@@ -36,7 +36,7 @@ import {
 } from "./storyboard.js";
 import type { StressModel } from "./stress.js";
 
-export const VIDEO_PROPOSE = "video propose";
+const VIDEO_PROPOSE = "video propose";
 
 export const CHANGE = {
   /** Longest sentence he can send. */

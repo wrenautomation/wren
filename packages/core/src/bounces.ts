@@ -27,7 +27,7 @@ import {
 import { addSuppression } from "./suppress.js";
 
 /** How far back a report's address finds its send: mail servers give up within five days. */
-export const BOUNCE_LOOKBACK_MS = 7 * 86_400_000;
+const BOUNCE_LOOKBACK_MS = 7 * 86_400_000;
 
 /**
  * How long a mailbox is read after it last sent. A server retries for up to five days before it
@@ -37,7 +37,7 @@ export const BOUNCE_LOOKBACK_MS = 7 * 86_400_000;
 export const BOUNCE_LATE_MS = 14 * 86_400_000;
 
 /** One delivery report, as read from the mailbox. */
-export interface BounceReport {
+interface BounceReport {
   /** The sending mailbox it came back to. */
   mailbox: string;
   /** Its id in that mailbox. */

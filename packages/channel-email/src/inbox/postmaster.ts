@@ -36,7 +36,7 @@ import { postmasterDays } from "../schema.js";
 
 export const API = "https://gmailpostmastertools.googleapis.com/v2";
 
-export type MetricColumn =
+type MetricColumn =
   | "spam_rate"
   | "spf_success_ratio"
   | "dkim_success_ratio"
@@ -118,7 +118,7 @@ const MAX_RETRY_WAIT_MS = 60_000;
 /** One Postmaster read: a small JSON answer. */
 const POSTMASTER_LIMIT_MS = 30_000;
 
-export type Sleep = (ms: number) => Promise<void>;
+type Sleep = (ms: number) => Promise<void>;
 const realSleep: Sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** How long to wait before retrying — the server's own `Retry-After` when usable, else exponential backoff. */
@@ -339,7 +339,7 @@ export interface PostmasterStats {
   failed: Record<string, string>;
 }
 
-export interface SyncPostmasterOptions {
+interface SyncPostmasterOptions {
   client: PostmasterClient;
   domains: readonly string[];
   /** How far back to pull (default 30 days, inclusive of today). */

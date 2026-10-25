@@ -8,7 +8,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { AD_FORMAT_FAMILIES, AD_FORMAT_STATES, type AdFormatFamily, adFormats } from "../schema.js";
 
-export interface AdFormatSeed {
+interface AdFormatSeed {
   slug: string;
   name: string;
   family: AdFormatFamily;
@@ -324,7 +324,7 @@ export const AD_FORMAT_SEED: readonly AdFormatSeed[] = (
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
-export const FAMILY_LABELS = cued({
+const FAMILY_LABELS = cued({
   offer: neutral("Offer"),
   proof: neutral("Proof"),
   contrast: neutral("Contrast"),

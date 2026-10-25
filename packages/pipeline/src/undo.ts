@@ -20,7 +20,7 @@ import {
   storedChangeLine,
 } from "./stored.js";
 
-export interface UndoPlan {
+interface UndoPlan {
   /** The change as `storedChangeLine` says it. */
   line: string;
   /** The note the undo saves with. */

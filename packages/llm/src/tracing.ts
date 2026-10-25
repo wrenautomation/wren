@@ -29,13 +29,13 @@ export interface Tracer {
   flush(): void | Promise<void>;
 }
 
-export class NullSpan implements Span {
+class NullSpan implements Span {
   end(_outcome: Outcome<unknown>): void {}
   fail(_err: unknown): void {}
 }
-export const NULL_SPAN = new NullSpan();
+const NULL_SPAN = new NullSpan();
 
-export class NullTracer implements Tracer {
+class NullTracer implements Tracer {
   start(_name: string, _opts: SpanStart): Span {
     return NULL_SPAN;
   }
@@ -85,7 +85,7 @@ export function bestEffortSpan(tracer: Tracer, name: string, opts: SpanStart): S
   return new SafeSpan(span);
 }
 
-export class RecordedSpan implements Span {
+class RecordedSpan implements Span {
   outcome: Outcome<unknown> | null = null;
   error: unknown = null;
   constructor(
@@ -123,7 +123,7 @@ export class RecordingTracer implements Tracer {
   }
 }
 
-export const TRACING_BACKENDS = ["none"] as const;
+const TRACING_BACKENDS = ["none"] as const;
 
 /** `WREN_TRACING` -> a Tracer, or a loud error at startup (before any run row opens). */
 export function makeTracer(name: string): Tracer {

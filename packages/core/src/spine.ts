@@ -483,7 +483,7 @@ export function sentOf(outs: ReadonlyArray<{ port: string; event: SpineEvent }>)
 }
 
 /** One workflow's failed runs, for the error digest: how many subjects stopped, and why most. */
-export interface FailedRuns {
+interface FailedRuns {
   workflow: string;
   runs: number;
   /** The error most of its failed steps share. */
@@ -623,7 +623,7 @@ export function pgSpineStore(db: Db): SpineStore {
  * Arrivals held at a Wait that `fired` lets go (`untilsFreedBy`: a reply also frees "a reply or a
  * booking"), about one of `about` (`aboutOf`): their ids.
  */
-export async function waitingFor(
+async function waitingFor(
   db: Queryable,
   fired: Until,
   about: readonly string[],
@@ -645,7 +645,7 @@ export async function waitingFor(
 
 // ---- The door: webhooks into a workflow's input ----
 
-export interface HookAsk {
+interface HookAsk {
   name: string;
   client: string | null;
   workflow: string;
@@ -815,7 +815,7 @@ export async function lockWorkflowSaves(
 }
 
 /** One save's wiring, live or not: what a subject that entered on it still walks. */
-export async function savedVersion(
+async function savedVersion(
   db: Db,
   id: number,
 ): Promise<{ workflow: string; edits: WorkflowEdits | null } | null> {
@@ -922,7 +922,7 @@ interface Target {
  * template and it is live; else nothing enters (Wren's own never does). A template's trigger that
  * isn't a node (a missed call, a won deal) enters this way.
  */
-export type EmitRequest = Target & {
+type EmitRequest = Target & {
   workflow: string;
   from: string;
   events: SpineEvent[];
@@ -1056,7 +1056,7 @@ export const heardAs = (h: { repeat?: true }, event: SpineEvent): SpineEvent =>
     ? { ...event, subject: `${event.subject}@${String(event.data.member)}` }
     : event;
 
-export const SPINE_CLOCK = { name: "SpineClock" } as const;
+const SPINE_CLOCK = { name: "SpineClock" } as const;
 /** One Schedule node's clock: `<client>|<workflow>|<node>`, the client blank for Wren. */
 export const clockKey = (client: string | null, workflow: string, node: string) =>
   `${client ?? ""}|${workflow}|${node}`;
@@ -1083,7 +1083,7 @@ export const slotEvent = (node: string, slot: Date): SpineEvent => ({
 export const spineEmit = (ctx: restate.Context, req: EmitRequest) =>
   ctx.serviceSendClient<SpineService>(SPINE).emit(req);
 
-export interface SpineDeps {
+interface SpineDeps {
   main: Db;
   clientDb(id: string): Db;
   workflows: readonly Workflow[];

@@ -44,27 +44,27 @@ import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "../schema.js";
 import { REVIEWS_FLOW } from "./answers.js";
 import type { SmsDeskService } from "./index.js";
 
-export interface SmsConsoleDeps {
+interface SmsConsoleDeps {
   /** Main: the client registry. */
   db: Db;
   /** A client's database. */
   open: (client: Pick<Client, "id" | "database">) => Db;
 }
 
-export interface ReplyRequest extends PortalRequest {
+interface ReplyRequest extends PortalRequest {
   /** The thread: its contact id, as the record shows it. */
   id: number;
   body: string;
 }
 
-export interface CallDoneRequest extends PortalRequest {
+interface CallDoneRequest extends PortalRequest {
   /** Speed-to-lead runs, as the record shows their ids. */
   ids: (string | number)[];
   /** How it went: a code or its label ("No answer"); left out, just done. */
   outcome?: string | null;
 }
 
-export interface AskReviewRequest extends PortalRequest {
+interface AskReviewRequest extends PortalRequest {
   name?: string | null;
   /** A mobile, an email, or both: at least one. */
   phone?: string | null;

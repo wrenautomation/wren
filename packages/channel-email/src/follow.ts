@@ -27,7 +27,7 @@ import type { Sequence } from "./outreach/sequences.js";
 import { enrollments, messages } from "./schema.js";
 
 /** A niche's sequence as a cadence name: one cadence serves Wren and every client on the niche. */
-export const emailCadenceName = (niche: string, sequence: string) => `email_${niche}_${sequence}`;
+const emailCadenceName = (niche: string, sequence: string) => `email_${niche}_${sequence}`;
 
 /** A sequence as its cadence. No waits on the wires: the tick keeps the days. */
 export function emailCadence(niche: string, seq: Sequence): Workflow {
@@ -45,11 +45,7 @@ export function emailCadence(niche: string, seq: Sequence): Workflow {
 }
 
 /** One thread as a lead on the spine. */
-export const emailLead = (e: {
-  id: number;
-  personId: number | null;
-  companyId: number;
-}): SpineEvent => ({
+const emailLead = (e: { id: number; personId: number | null; companyId: number }): SpineEvent => ({
   subject: `lead:email:${e.id}`,
   kind: "lead",
   data: { enrollmentId: e.id, personId: e.personId, companyId: e.companyId },
@@ -149,7 +145,7 @@ export type AskFollowEmail = (
  * the last one we sent (`Disposition.followUp`). A thread they opted out of, or a fact the copy
  * needs and they lack, skips.
  */
-export async function followEmail(
+async function followEmail(
   db: Db,
   enrollmentId: number,
   e: SpineEvent,

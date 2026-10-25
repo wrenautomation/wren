@@ -14,14 +14,14 @@ import { makeLoopObject, runPass } from "./restate/loop.js";
 import { type Fired, spineFire } from "./spine.js";
 
 /** The most touches told per workspace in one pass; the rest go on the next. */
-export const TOUCH_BATCH = 200;
+const TOUCH_BATCH = 200;
 /** A touch is read this long after it was written. */
 export const SETTLE_MS = 30_000;
 /** The beat between passes. */
-export const TOUCH_FEED_MS = 60_000;
+const TOUCH_FEED_MS = 60_000;
 /** The key of Wren's own workspace in the cursors; a client's is its id. */
-export const WREN_CURSOR = "wren";
-export const TOUCH_FEED = "TouchFeed";
+const WREN_CURSOR = "wren";
+const TOUCH_FEED = "TouchFeed";
 const CURSORS = "cursors";
 
 /** Where each workspace's feed got to: the last touch id told. */
@@ -41,19 +41,19 @@ const rows = async (db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute(q)) as unknown as Row[];
 
 /** Whether the workspace keeps touches at all. */
-export async function hasTouches(db: Queryable): Promise<boolean> {
+async function hasTouches(db: Queryable): Promise<boolean> {
   const [r] = await rows(db, sql`select to_regclass('public.touches') is not null yes`);
   return r?.yes === true;
 }
 
 /** The newest touch id, 0 when none. */
-export async function newestTouch(db: Queryable): Promise<number> {
+async function newestTouch(db: Queryable): Promise<number> {
   const [r] = await rows(db, sql`select coalesce(max(id), 0) id from touches`);
   return Number(r?.id ?? 0);
 }
 
 /** The ids past `after` that have settled (written before `now` less `SETTLE_MS`), oldest first. */
-export async function settledAfter(
+async function settledAfter(
   db: Queryable,
   after: number,
   now: Date,
@@ -148,14 +148,14 @@ export async function touchRows(db: Queryable, ids: readonly number[]): Promise<
   }));
 }
 
-export interface TouchFeedDeps {
+interface TouchFeedDeps {
   main: Db;
   clientDb(id: string): Db;
   /** Every client with a database. */
   clients(): Promise<string[]>;
 }
 
-export interface TouchFeedStats {
+interface TouchFeedStats {
   /** Touches told this pass. */
   told: number;
   /** Where each workspace's cursor goes. */

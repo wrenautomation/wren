@@ -84,7 +84,7 @@ import {
 
 export const WATCH = "DeliveryWatch";
 export const WATCH_KEY = "fleet";
-export const WATCH_COMMAND = "delivery watch";
+const WATCH_COMMAND = "delivery watch";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;

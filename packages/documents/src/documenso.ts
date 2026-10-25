@@ -10,9 +10,9 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
-export type DocumensoFetch = (url: string, init?: RequestInit) => Promise<Response>;
+type DocumensoFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
-export interface DocumensoConfig {
+interface DocumensoConfig {
   /** The public base URL: signers open `<url>/sign/<token>`. No trailing path. */
   url: string;
   token: string;
@@ -57,7 +57,7 @@ const ENVELOPE = z.looseObject({
   envelopeItems: z.array(z.looseObject({ id: z.string() })).default([]),
 });
 
-export interface SealedBytes {
+interface SealedBytes {
   pdf: Uint8Array;
   certificate: Uint8Array;
   audit: Uint8Array;
@@ -234,7 +234,7 @@ const HOOK = z.looseObject({
       .default([]),
   }),
 });
-export interface DocumensoEvent {
+interface DocumensoEvent {
   event: string;
   envelopeId: string;
   externalId: string | null;

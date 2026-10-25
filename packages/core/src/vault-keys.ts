@@ -23,7 +23,7 @@ import { vendorModes, vendorUsage } from "./vendor-schema.js";
 import { DEFAULT_PURPOSE, monthStart, usageByKey, VENDORS, type Vendor } from "./vendors.js";
 
 export const VAULT_KEYS_KEY = "box";
-export const VAULT_KEYS_COMMAND = "vault keys sync";
+const VAULT_KEYS_COMMAND = "vault keys sync";
 const HOUR_MS = 3_600_000;
 
 // ---- autobrowse's shapes (copied by hand) ----
@@ -47,26 +47,26 @@ export interface KeyRow {
   uses: number;
   lastUsedAt: string | null;
 }
-export interface KeysRequest {
+interface KeysRequest {
   vendor?: string;
   all?: boolean;
 }
-export interface KeysAnswer {
+interface KeysAnswer {
   keys: KeyRow[];
 }
-export interface KeyRevokeAnswer {
+interface KeyRevokeAnswer {
   key: KeyRow;
   /** The env names the re-projection put and removed; never values. */
   projected: { put: string[]; removed: string[] };
 }
-export interface KeyRotateAnswer {
+interface KeyRotateAnswer {
   /** `<workflow>/<key>`: `autobrowse status <workflow> <key>` shows it. */
   run: string;
   workflow: string;
 }
 
 /** What `syncVaultKeys` reads: `sites/keys`, or a fake. */
-export interface KeysSource {
+interface KeysSource {
   keys(req: KeysRequest): Promise<{ keys: unknown[] }>;
 }
 
@@ -178,7 +178,7 @@ type SitesKeys = {
   keyRotate: (ctx: restate.Context, req: { address: string }) => Promise<KeyRotateAnswer>;
 };
 
-export interface VaultKeysDeps {
+interface VaultKeysDeps {
   db: Db;
   /** Where `sites/keys`, `keyRevoke` and `keySpend` run (`sitesHost`); the box by default. */
   host?: SitesHost;
@@ -336,7 +336,7 @@ export type VaultKeys = ReturnType<typeof makeVaultKeys>;
 // ---- both kinds as one list ----
 
 /** The key states a row shows. */
-export type KeyState = "live" | "spent" | "revoked";
+type KeyState = "live" | "spent" | "revoked";
 
 /** One API key as an account: the operator's (vault) or a client's own (client). */
 export interface KeyAccount {
@@ -359,7 +359,7 @@ export interface KeyAccount {
 }
 
 /** The vendor a client key's name belongs to: `EXA_API_KEY` is `exa`. Null for a name that isn't a vendor's key. */
-export function vendorOfKeyName(name: string): Vendor | null {
+function vendorOfKeyName(name: string): Vendor | null {
   return VENDORS.find((v) => v.keyName === name) ?? null;
 }
 

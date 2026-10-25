@@ -20,7 +20,7 @@ import { runOf } from "./stored.js";
 import { shapeFlowId } from "./workflow.js";
 
 /** The `by` of the arrivals carry writes. */
-export const CARRY_BY = "carry";
+const CARRY_BY = "carry";
 
 /** `{ oldNode: newNode }`: where journeys on a removed node go. */
 export type Moves = Record<string, string>;

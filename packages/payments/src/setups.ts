@@ -9,7 +9,7 @@ import type { Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { payAccountOf } from "./store.js";
 
-export const STRIPE_SETUP = defineSetup({
+const STRIPE_SETUP = defineSetup({
   id: "setup.stripe",
   name: "Stripe for pay links",
   blurb: "Your own Stripe account takes the payments. Wren never sees a card.",

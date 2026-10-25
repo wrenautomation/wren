@@ -192,7 +192,7 @@ function WireFields({
 }
 
 /** The draft with wire `i`'s rule or wait set, or cleared when empty. */
-export const wireSet = (d: Draft, i: number, k: "when" | "wait", v: string): Draft => ({
+const wireSet = (d: Draft, i: number, k: "when" | "wait", v: string): Draft => ({
   ...d,
   wires: d.wires.map((x, j) => {
     if (j !== i) return x;

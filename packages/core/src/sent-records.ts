@@ -31,7 +31,7 @@ const CHANNELS = cued({
  * What kind of message: a cold or follow-up email, a newsletter issue, a broadcast, a text, a DM,
  * a comment.
  */
-export const SENT_KINDS = {
+const SENT_KINDS = {
   email: { label: "Email", tone: "neutral" },
   newsletter: { label: "Newsletter", tone: "neutral" },
   broadcast: { label: "Broadcast", tone: "neutral" },
@@ -44,7 +44,7 @@ export const SENT_KINDS = {
  * The ladder, in order. A message sits at the furthest step it reached; bounced and failed win
  * over the rest. Email sets "delivered" after 48 hours with no bounce, "clicked" from `email_clicks`.
  */
-export const SENT_STATES = {
+const SENT_STATES = {
   queued: { label: "Queued", tone: "neutral" },
   sent: { label: "Sent", tone: "neutral" },
   delivered: { label: "Delivered", tone: "good" },

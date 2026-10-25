@@ -43,7 +43,7 @@ const frontMatter = (fields: Record<string, string | number>) =>
     .join("\n")}\n---\n\n`;
 
 /** YouTube's json3 caption track; only what we read. */
-export interface Json3 {
+interface Json3 {
   events: { tStartMs: number; segs?: { utf8: string }[] }[];
 }
 
@@ -107,7 +107,7 @@ const CLIP_S = 600;
  * from the YouTube URL in `CLIP_S` clips. One markdown block per clip, timestamps absolute.
  * Empty when `keys` is empty.
  */
-export async function screenText(
+async function screenText(
   url: string,
   durationS: number,
   keys: readonly string[],
@@ -486,7 +486,7 @@ export async function fileSource(file: string, priority = DEFAULT_PRIORITY): Pro
 
 export const STYLE = `Style: short plain sentences a person would say out loud. Lead with the action. Fewer words, more signal. No filler, no hedging, no hype, no jargon, no restating. No "not X but Y" contrasts, no one-line closers that repeat the point, no colon reveals, no dashes, no forced groups of three, no bold labels on list items. Vary sentence length. As short as it can be and still be followed by someone new; most SOPs fit in 400 to 900 words before the examples.`;
 
-export interface SopInput {
+interface SopInput {
   name: string;
   notes: string;
   current: string;
@@ -516,7 +516,7 @@ export function sopPrompt(input: SopInput): string {
   ].join("\n\n");
 }
 
-export interface SopDir {
+interface SopDir {
   dir: string;
   notes: string;
   current: string;
@@ -569,7 +569,7 @@ export async function addSource(dir: string, source: Source): Promise<string> {
 }
 
 /** Prompt that turns one raw source into an exhaustive, cited list of points for the owner to curate. */
-export function pointsPrompt(stem: string, md: string): string {
+function pointsPrompt(stem: string, md: string): string {
   return [
     `Extract every point the source below makes, as a markdown list, for the owner to curate before an SOP is built from it. Be exhaustive: every rule, step, claim, number, heuristic, warning, example and the reasoning behind it. Missing a point is the one failure that matters; a long list is fine.`,
     "One point per line, starting with \"- \", in the source's own order, under the source's section headings. Each line ends with its citation in brackets: the source stem and, for a video, the nearest [m:ss] marker before the words, e.g. [" +
@@ -604,7 +604,7 @@ export async function extractPoints(dir: string, llm: LlmClient, only?: string):
 }
 
 /** The folder as a Claude Code skill. SKILL.md injects SOP.md and the refs listing at load time (`!\`cmd\``), so the model never has to go read them. */
-export function skillMd(name: string, dir: string, sop: string): string {
+function skillMd(name: string, dir: string, sop: string): string {
   const purpose =
     sop
       .split("\n")

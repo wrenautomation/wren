@@ -14,7 +14,7 @@
  */
 
 /** The two loopback ports a box build listens on; a deploy takes the one the live build does not. */
-export const BOX_PORTS = [9080, 9081] as const;
+const BOX_PORTS = [9080, 9081] as const;
 
 /** This build's port, from `WREN_BOX_PORT` (the first slot when unset, as before slots). */
 export function boxPort(env: NodeJS.ProcessEnv = process.env): number {
@@ -57,7 +57,7 @@ export async function pinnedTo(query: AdminQuery, deployment: string): Promise<n
   return Number(rows[0]?.n ?? 0);
 }
 
-export interface SupersededOptions {
+interface SupersededOptions {
   query: AdminQuery;
   /** This build's deployment id. */
   deployment: string;

@@ -42,7 +42,7 @@ const slug = (name: string) =>
  * A board's columns from what was sent: 2 to 12, each named, ids kept or made from the name,
  * with at least one that closes cards and one that doesn't.
  */
-export function parseColumns(raw: unknown): BoardColumn[] {
+function parseColumns(raw: unknown): BoardColumn[] {
   if (!Array.isArray(raw)) throw new TaskRefusal("columns are a list");
   if (raw.length < 2 || raw.length > 12) throw new TaskRefusal("a board has 2 to 12 columns");
   const out: BoardColumn[] = [];
@@ -121,7 +121,7 @@ export async function defaultBoard(db: Db, by: string): Promise<Board> {
   return made;
 }
 
-export interface BoardListOpts {
+interface BoardListOpts {
   /** Only boards shared to these `who`s (a Wren board shared to a client, read from main). */
   sharedTo?: readonly string[];
   /** Every board, whoever's: the CLI without `--as`. */

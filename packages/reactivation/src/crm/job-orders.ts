@@ -22,7 +22,7 @@ import { dayOrder, parseCrmDate } from "./dates.js";
 import { normalizeHeader } from "./formats.js";
 import { emailsIn } from "./source.js";
 
-export const ORDER_FIELDS = [
+const ORDER_FIELDS = [
   "id",
   "title",
   "company",
@@ -35,9 +35,9 @@ export const ORDER_FIELDS = [
   "opened",
   "closed",
 ] as const;
-export type OrderField = (typeof ORDER_FIELDS)[number];
+type OrderField = (typeof ORDER_FIELDS)[number];
 
-export interface OrderFormat {
+interface OrderFormat {
   name: string;
   help: string;
   headers: Partial<Record<OrderField, readonly string[]>>;
@@ -97,7 +97,7 @@ const SHUT =
   /\b(closed?|filled|placed|lost|cancel+ed|cancel+ation|archived?|on hold|hold|dead|inactive|withdrawn|completed?)\b/i;
 const NO = /^(false|no|n|0|closed)$/i;
 
-export interface JobOrder {
+interface JobOrder {
   orderKey: string;
   title: string | null;
   companyName: string | null;
@@ -112,7 +112,7 @@ export interface JobOrder {
 }
 
 /** Header -> field for one file; a header serves one field. Fails, listing headers, without a company. */
-export function mapOrderHeaders(
+function mapOrderHeaders(
   format: OrderFormat,
   headers: readonly string[],
 ): Partial<Record<OrderField, string>> {
@@ -220,7 +220,7 @@ export function readJobOrders(
   return { headers, orders, skipped };
 }
 
-export interface JobOrderStats {
+interface JobOrderStats {
   orders: number;
   open: number;
   /** Placed with an account we hold. */

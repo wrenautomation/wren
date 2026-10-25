@@ -11,7 +11,7 @@
  * either apostrophe, after a URL-encoded space, half of a hyphenated pair.
  */
 
-export interface ListName {
+interface ListName {
   first: string | null;
   last: string | null;
   full: string | null;

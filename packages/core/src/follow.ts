@@ -16,18 +16,18 @@ import { defineWorkflow, type Wire, type WorkflowNode } from "./workflows.js";
 
 export const FOLLOW_UP = "follow_up";
 export const NURTURE = "nurture";
-export type FollowPart = typeof FOLLOW_UP | typeof NURTURE;
-export type FollowChannel = "text" | "dm" | "email";
+type FollowPart = typeof FOLLOW_UP | typeof NURTURE;
+type FollowChannel = "text" | "dm" | "email";
 
 /** Which channels a part may use: off, its touches on that channel pass the lead on. */
-export const followSettingsSchema = z
+const followSettingsSchema = z
   .object({
     texts: z.boolean().default(true).describe("Send texts"),
     dms: z.boolean().default(true).describe("Send DMs"),
     emails: z.boolean().default(true).describe("Draft emails (each waits for a yes)"),
   })
   .strict();
-export type FollowSettings = z.infer<typeof followSettingsSchema>;
+type FollowSettings = z.infer<typeof followSettingsSchema>;
 
 const CHANNEL_SETTING: Partial<Record<FollowChannel, keyof FollowSettings>> = {
   text: "texts",
@@ -68,9 +68,9 @@ export const answered = (e: SpineEvent, note: FollowNote): Outs => [
 ];
 
 /** Why sends are off for this client and part, or null when on. */
-export type GlobalGate = string | null;
+type GlobalGate = string | null;
 
-export interface FollowStart {
+interface FollowStart {
   who: Who;
   /** Their thread on this channel: the contact or enrollment id the touch writes on. */
   thread: number;
@@ -164,9 +164,9 @@ const TOUCH: Record<FollowChannel, string> = {
   email: "email.touch",
 };
 
-export const textCopy = (name: string): TemplateRef => ({ kind: "sms", system: "texts", name });
-export const dmCopy = (name: string): TemplateRef => ({ kind: "dm", system: "reach", name });
-export const emailCopy = (name: string): TemplateRef => ({ kind: "email", system: "follow", name });
+const textCopy = (name: string): TemplateRef => ({ kind: "sms", system: "texts", name });
+const dmCopy = (name: string): TemplateRef => ({ kind: "dm", system: "reach", name });
+const emailCopy = (name: string): TemplateRef => ({ kind: "email", system: "follow", name });
 
 interface Beat {
   channel: FollowChannel;
@@ -222,7 +222,7 @@ function touches(id: string, name: string, blurb: string, beats: Beat[], first?:
 
 const EMAIL_NOTE = "Email. In our thread, drafted into To approve; sends once someone says yes.";
 
-export const FOLLOW_UP_INSIDE = touches(
+const FOLLOW_UP_INSIDE = touches(
   `${FOLLOW_UP}.touches`,
   "Follow-up",
   "A text, a DM, a text, each waiting for an answer, then an email that waits for a yes.",
@@ -234,7 +234,7 @@ export const FOLLOW_UP_INSIDE = touches(
   ],
 );
 
-export const NURTURE_INSIDE = touches(
+const NURTURE_INSIDE = touches(
   `${NURTURE}.touches`,
   "Nurture",
   "One touch a month for four months, then an email that waits for a yes, until they answer.",

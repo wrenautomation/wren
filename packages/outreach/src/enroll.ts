@@ -58,10 +58,7 @@ export interface EnrollStats {
 }
 
 /** The bodies a sequence needs, or a refusal naming the empty slot. */
-export async function sequenceBodies(
-  db: Queryable,
-  seq: ReachSequence,
-): Promise<Map<string, Template>> {
+async function sequenceBodies(db: Queryable, seq: ReachSequence): Promise<Map<string, Template>> {
   const keys = seq.steps.flatMap((s) => [
     stepKey(seq, s.step),
     ...(s.subject ? [subjectKey(seq, s.step)] : []),

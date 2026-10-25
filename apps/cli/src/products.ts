@@ -5,7 +5,7 @@
  */
 import { parseReactivationSettings } from "@wren/reactivation";
 
-export const PRODUCTS: Record<string, (block: unknown) => unknown> = {
+const PRODUCTS: Record<string, (block: unknown) => unknown> = {
   reactivation: parseReactivationSettings,
 };
 

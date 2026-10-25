@@ -13,7 +13,7 @@ import type { Span } from "./slots.js";
 export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 const API = "https://www.googleapis.com/calendar/v3";
 
-export interface NewEvent {
+interface NewEvent {
   /** Base32hex (a to v, 0 to 9), 5 to 1024 long: `eventIdOf`. */
   id: string;
   title: string;

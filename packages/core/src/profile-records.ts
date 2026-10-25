@@ -130,16 +130,16 @@ export interface VisitLine {
  * A Wren profile's site visits by its `visitor` keys (the `wv` cookie), read live from the
  * lander's log each time the page opens and never stored. Newest first; empty when the read fails.
  */
-export type VisitReader = (visitors: readonly string[]) => Promise<VisitLine[]>;
+type VisitReader = (visitors: readonly string[]) => Promise<VisitLine[]>;
 
 /** The visitor keys a profile page reads, newest first. */
-export const VISITORS_MAX = 5;
+const VISITORS_MAX = 5;
 
 /** The newest lines a profile page draws on its short rail. */
-export const PROFILE_LINES = 8;
+const PROFILE_LINES = 8;
 
 /** One of a profile's newest lines, with its kind's and channel's states as the Timeline draws them. */
-export interface ProfileLine {
+interface ProfileLine {
   id: string;
   /** ISO. */
   at: string;
@@ -178,7 +178,7 @@ export interface ProfileDetail {
 }
 
 /** The person page's Warmth section: the map's row for one profile, in words. */
-export interface WarmthDetail {
+interface WarmthDetail {
   stage: string;
   warmth: "warm" | "cold";
   line: string | null;
@@ -219,7 +219,7 @@ async function warmthDetail(db: Queryable, id: number): Promise<WarmthDetail | n
 }
 
 /** The Timeline page's address for one profile's lines, of one kind when given. */
-export const timelineHref = (profile: number | string, kind?: string) =>
+const timelineHref = (profile: number | string, kind?: string) =>
   `/people/timeline?profile=${profile}..${profile}${kind ? `&kind=${kind}` : ""}`;
 
 async function profileDetail(
@@ -409,7 +409,7 @@ const FINDING_KINDS = cued({
   employer: { label: "Role", tone: "neutral", about: "Their job and firm." },
 } as const);
 
-export const FINDING_STATES = cued({
+const FINDING_STATES = cued({
   found: { label: "Found", tone: "neutral", about: "Nobody has looked yet." },
   kept: { label: "Kept", tone: "good", about: "Looked at and kept." },
   dropped: { label: "Dropped", tone: "neutral", about: "Not them. A new run leaves it dropped." },
@@ -486,7 +486,7 @@ export const eventRecord = defineRecord({
   views: [{ id: "all", label: "All", sort: "-at", at: "at" }],
 });
 
-export const keyRecord = defineRecord({
+const keyRecord = defineRecord({
   id: "people.key",
   app: "people",
   channel: null,
@@ -506,7 +506,7 @@ export const keyRecord = defineRecord({
   views: [{ id: "all", label: "All", sort: "-firstSeen", at: "firstSeen" }],
 });
 
-export const traitRecord = defineRecord({
+const traitRecord = defineRecord({
   id: "people.trait",
   app: "people",
   channel: null,
@@ -528,7 +528,7 @@ export const traitRecord = defineRecord({
   activity: { view: "profile_trait_activity", by: "trait", seq: "seq", label: "Changes" },
 });
 
-export const mergeRecord = defineRecord({
+const mergeRecord = defineRecord({
   id: "people.merge",
   app: "people",
   channel: null,

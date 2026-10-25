@@ -31,13 +31,13 @@ import {
 import { flagExperiments, flags, surveys } from "./schema.js";
 import type { SurveyDef } from "./surveys.js";
 
-export const FLAG = "loops.flag";
+const FLAG = "loops.flag";
 
 /** Sends the lander every flag it reads and its live surveys, the whole set each time (lander `POST /api/edge`). */
 export type EdgePush = (flags: readonly FlagDef[], surveys: readonly SurveyDef[]) => Promise<void>;
 
 /** The live site surveys, as the lander gets them. */
-export async function siteSurveys(db: Queryable): Promise<SurveyDef[]> {
+async function siteSurveys(db: Queryable): Promise<SurveyDef[]> {
   const rows = await db
     .select()
     .from(surveys)
@@ -80,7 +80,7 @@ const def = (r: typeof flags.$inferSelect): FlagDef & { surface: Surface } => ({
   surface: r.surface,
 });
 
-export async function flagDefs(db: Queryable): Promise<(FlagDef & { surface: Surface })[]> {
+async function flagDefs(db: Queryable): Promise<(FlagDef & { surface: Surface })[]> {
   return (await db.select().from(flags).orderBy(asc(flags.key))).map(def);
 }
 

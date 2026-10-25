@@ -85,16 +85,16 @@ const DEFAULT_IDLE_MS = 15 * 60 * 1000;
 const BUSY_MS = 60 * 1000;
 const MAX_PER_PASS = 10;
 /** The longest a pass waits on one publish before it moves on. */
-export const PUBLISH_WAIT_MS = LIMITS.publish;
+const PUBLISH_WAIT_MS = LIMITS.publish;
 /** How long a pass looks at a publish it moved on from. */
 const SETTLE_LOOK_MS = 1000;
 /** State key: the publishes a pass moved on from, still to settle. */
 const PUBLISHING = "publishing";
 /** How long an open publish runs before a pass asks if a call under it is paused. */
-export const PARK_AFTER_MS = 2 * 60 * 60 * 1000;
+const PARK_AFTER_MS = 2 * 60 * 60 * 1000;
 
 /** A publish still running after its pass moved on. */
-export interface OpenPublish {
+interface OpenPublish {
   invocationId: string;
   draftId: string;
   platform: Platform;
@@ -146,7 +146,7 @@ type ContentService = {
   ) => Promise<void | Delivery<void>>;
 };
 
-export interface ContentSchedulerDeps {
+interface ContentSchedulerDeps {
   db: Db;
   /** Sleep between passes when nothing is scheduled (default 15 min). */
   idleMs?: number;

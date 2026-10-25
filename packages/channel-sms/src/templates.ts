@@ -20,7 +20,7 @@ import {
   type Template,
 } from "@wren/core/slots";
 
-export interface SmsStep {
+interface SmsStep {
   /** 1-based. Step 1 is the opener. */
   step: number;
   /** Days after the previous step was sent (step 1: 0). */
@@ -234,7 +234,7 @@ export function checkBody(slot: TemplateSlot, body: string): string {
   return checkSource("sms", slot.key, body, slot)?.source ?? "";
 }
 
-export interface RenderedText {
+interface RenderedText {
   body: string;
   /** What `sms_messages.provenance` keeps: the version, the seed and each variant's pick. */
   provenance: RenderProvenance;

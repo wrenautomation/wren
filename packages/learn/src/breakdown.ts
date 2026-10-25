@@ -26,7 +26,7 @@ const PROMPT_TEXT = 6_000;
 const TRIES = 2;
 
 /** The kinds that have a hook and beats to read. */
-export const BROKEN_DOWN = new Set(["reel", "video"]);
+const BROKEN_DOWN = new Set(["reel", "video"]);
 
 /** Each style as the model is told it: what the opening does. */
 export const HOOK_STYLE_ABOUT: Record<HookStyle, string> = {
@@ -57,7 +57,7 @@ export const breakdownSchema = z.object({
   cta_kind: z.enum(CTA_KINDS),
   cta: z.string().max(200).nullish(),
 });
-export type BreakdownAnswer = z.infer<typeof breakdownSchema>;
+type BreakdownAnswer = z.infer<typeof breakdownSchema>;
 
 export function breakdownPrompt(item: { title: string; url: string; text: string }): string {
   const styles = HOOK_STYLES.map((h) => `- ${h}: ${HOOK_STYLE_ABOUT[h]}`).join("\n");

@@ -84,7 +84,7 @@ export const OBJECT_ROLES: readonly ObjectRole[] = [
 ];
 
 /** A table that keys rows by the typed id of a draft item: `comment:4`, `onpost:9`. */
-export interface ItemHome {
+interface ItemHome {
   table: string;
   column: string;
   /** One row per item (a primary key): the kept item's row wins and the dropped one goes. */

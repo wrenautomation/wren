@@ -6,7 +6,7 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export interface PersonTouch {
+interface PersonTouch {
   at: string;
   channel: "Email" | "Meetings" | "Calls" | "Follow-up";
   kind: string;

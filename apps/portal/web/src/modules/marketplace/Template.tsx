@@ -140,7 +140,7 @@ const anAccount = (label: string) => {
  * What a part waits on, one wording everywhere: a client reads "Needs your account"; Wren's team
  * reads which ("Needs a phone number"), a setup's step as it's named.
  */
-export function needsText(accounts: readonly { site: string; label: string }[], team: boolean) {
+function needsText(accounts: readonly { site: string; label: string }[], team: boolean) {
   if (!team) return "Needs your account";
   const each = accounts.map((a) =>
     a.site === "any"

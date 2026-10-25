@@ -193,10 +193,10 @@ let held: { token: string; until: number } | null = (() => {
  * Who last signed in on this device: what the portal shows before the server answers belongs to
  * them. A host without sign-in (the demo, a local run) has one viewer.
  */
-export const deviceOwner = (): string | null => (TOKEN_URL ? stored(OWNER_KEY) : "here");
+const deviceOwner = (): string | null => (TOKEN_URL ? stored(OWNER_KEY) : "here");
 
 /** Sign-out, or a sign-in the server refused: nothing of this login stays on the device. */
-export function forgetDevice() {
+function forgetDevice() {
   held = null;
   store(HELD_KEY, null);
   store(OWNER_KEY, null);
@@ -446,7 +446,7 @@ export const outlives = (json: string) =>
  * the Worker can tell a tab older than the live build to reload before it writes. None in dev.
  */
 let tabBuild: string | null | undefined;
-export const buildOfTab = (): string | null =>
+const buildOfTab = (): string | null =>
   (tabBuild ??=
     (typeof document === "undefined"
       ? null

@@ -14,7 +14,7 @@ import { contentDrafts, type PostVariant, postVariants, type VariantField } from
 const DAY = 86_400_000;
 /** YouTube's title cap; a hook is the description's first line. */
 export const TITLE_MAX = 100;
-export const HOOK_MAX = 300;
+const HOOK_MAX = 300;
 /** Where a swap reaches the live post. Elsewhere a post can't be changed once it's up. */
 export const SWAPS: Partial<Record<Platform, readonly VariantField[]>> = {
   youtube: ["title", "thumbnail", "hook"],
@@ -153,7 +153,7 @@ export async function askSwap(
 }
 
 /** What his yes sends: the swap, its post's platform id and the change. */
-export interface SwapPlan {
+interface SwapPlan {
   variant: PostVariant;
   platform: Platform;
   publishedId: string;

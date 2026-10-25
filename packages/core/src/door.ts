@@ -142,7 +142,7 @@ export function fieldMapProblems(map: FieldMap): string[] {
  * lead or application posts `{id: "site:<table>:<row id>", source: "site", ...}`, so a retry of
  * the same row is the same subject and enters once.
  */
-export interface HookPreset {
+interface HookPreset {
   workflow: string;
   input: string;
   subject: string;

@@ -4,7 +4,7 @@
  * or an MX host. ATS prints are `boards.ts`'s, read by `findBoards`, not listed here.
  */
 
-export const STACK_CATEGORIES = [
+const STACK_CATEGORIES = [
   "crm",
   "ats",
   "booking",

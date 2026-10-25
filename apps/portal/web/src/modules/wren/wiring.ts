@@ -132,7 +132,7 @@ export function draftOf(w: Drawn, saved: Saved | null, broken: boolean): Draft {
 }
 
 /** An added node as the canvas draws it, from what it is. */
-export function drawnStep(s: Step, palette: Palette): Drawn["nodes"][number] {
+function drawnStep(s: Step, palette: Palette): Drawn["nodes"][number] {
   if (s.own)
     return {
       id: s.id,

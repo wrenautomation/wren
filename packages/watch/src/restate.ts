@@ -40,11 +40,11 @@ export * from "./console.js";
 export const WATCH_KEY = "all";
 export const WATCH_EVERY_MS = 15 * 60_000;
 /** While every inbox has a live Gmail watch, a push wakes the pass: the poll is only the net. */
-export const WATCH_NET_MS = 60 * 60_000;
+const WATCH_NET_MS = 60 * 60_000;
 const DAY_MS = 86_400_000;
 /** The workflow, and the node the reader is in it. */
-export const WATCH_FLOW = "watch";
-export const WATCH_FROM = "read.mail";
+const WATCH_FLOW = "watch";
+const WATCH_FROM = "read.mail";
 
 export interface WatchDeps {
   db: Db;

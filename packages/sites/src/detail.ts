@@ -126,7 +126,7 @@ async function adsIn(db: Queryable, page: SitePage): Promise<AdIn[]> {
 }
 
 /** Spend over a count, to the cent; null with no spend or nothing to divide by. */
-export const costPer = (spend: number, n: number): number | null =>
+const costPer = (spend: number, n: number): number | null =>
   spend > 0 && n > 0 ? Math.round((spend / n) * 100) / 100 : null;
 
 /** The page's family: the page it was copied from and every copy of it, this one included. */

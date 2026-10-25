@@ -26,7 +26,7 @@ const iso = (v: unknown): string =>
 const str = (v: unknown): string | null => (v == null ? null : String(v));
 
 /** Who a thread is with, and every row of theirs a timeline reads. */
-export interface Party {
+interface Party {
   thread: string;
   type: string;
   who: string | null;
@@ -46,7 +46,7 @@ export interface Party {
 }
 
 /** A thread in a client's connected mailbox: its mailbox and the provider's thread id. */
-export interface MailThread {
+interface MailThread {
   id: number;
   mailbox: string;
   threadId: string;
@@ -276,7 +276,7 @@ export async function partyOf(db: Queryable, thread: string): Promise<Party | nu
 }
 
 /** Where a timeline line came from. */
-export type EntryChannel = InboxChannel | "booking" | "touch" | "note";
+type EntryChannel = InboxChannel | "booking" | "touch" | "note";
 
 export interface Entry {
   id: string;
@@ -299,7 +299,7 @@ export interface Entry {
 }
 
 /** How many lines a conversation carries: the newest. */
-export const TIMELINE_MAX = 200;
+const TIMELINE_MAX = 200;
 
 /** Everything with this person, oldest first; the newest `TIMELINE_MAX`. */
 export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {

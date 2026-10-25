@@ -104,7 +104,7 @@ export interface EmailSignal {
 }
 
 /** 'Jane Doe <jane@x.com>' -> 'jane@x.com'; plain addresses pass through. */
-export function bareAddress(raw: string): string {
+function bareAddress(raw: string): string {
   const lt = raw.lastIndexOf("<");
   const gt = raw.lastIndexOf(">");
   return lt >= 0 && gt > lt ? raw.slice(lt + 1, gt).trim() : raw;
@@ -184,12 +184,12 @@ export interface ScanStats {
   pages_with_signals: number;
 }
 
-export interface ScanSelectOptions {
+interface ScanSelectOptions {
   limit?: number | undefined;
   niche?: string | null | undefined;
 }
 
-export type ScanTarget = Document & { companyDomain: string | null };
+type ScanTarget = Document & { companyDomain: string | null };
 
 /** NOT EXISTS, not NOT IN: the planner anti-joins it, and a null document_id can't empty it. */
 const unscanned = (db: Queryable) =>
@@ -256,7 +256,7 @@ export async function scanDocument(
   return signals;
 }
 
-export interface ScanRunOptions extends ScanSelectOptions {
+interface ScanRunOptions extends ScanSelectOptions {
   runId?: string | null;
   /** Where archived pages are; unset = every page must still be inline. */
   pages?: PageStore | null;

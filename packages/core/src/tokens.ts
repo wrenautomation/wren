@@ -15,7 +15,7 @@ import { accessTokens, clientMembers, operators } from "./clients/schema.js";
 import { PortalRefusal } from "./portal.js";
 import { serviceHandler } from "./restate/form.js";
 
-export const TOKEN_PREFIX = "wren_";
+const TOKEN_PREFIX = "wren_";
 const TOKEN = /^wren_[A-Za-z0-9_-]{43}$/;
 /** A person's live tokens at most. */
 export const TOKENS_MAX = 20;
@@ -142,7 +142,7 @@ export async function revokeToken(main: Queryable, email: string, id: string): P
   if (!done.length) throw new PortalRefusal("No such token.", 404);
 }
 
-export interface TokenViewer {
+interface TokenViewer {
   email: string;
   operator: boolean;
   /** The client it's pinned to, if any. */

@@ -20,7 +20,7 @@ const timeOf = (iso: string) =>
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Record now or Stop, with what the Mac says; one press at a time. */
-export function RecorderBar() {
+function RecorderBar() {
   const got = useCall("calendar-recorder", () => call<RecorderState>("calendar/recorder", {}), {
     kept: false,
   });

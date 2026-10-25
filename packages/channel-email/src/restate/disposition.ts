@@ -38,9 +38,9 @@ import type { ReplyCopy, SendReplyOptions } from "../inbox/reply.js";
 
 export const DISPOSITION_KEY = "fleet";
 export const DISPOSITION_COMMAND = "outreach inbox classify";
-export const INVITE_COMMAND = "outreach inbox invite";
+const INVITE_COMMAND = "outreach inbox invite";
 
-export interface DispositionDeps {
+interface DispositionDeps {
   /** The database a key's replies are in. */
   dbOf: (key: string) => Db;
   llm: LlmClient;
@@ -72,7 +72,7 @@ export interface Invites {
   niches?: readonly string[] | null;
 }
 
-export interface ClassifyOutcome {
+interface ClassifyOutcome {
   stats: DispositionStats | null;
   error: string | null;
   invites?: { stats: InviteStats | null; error: string | null } | null;

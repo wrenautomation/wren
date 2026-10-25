@@ -34,14 +34,14 @@ export interface CreatorHit {
   avatar: string | null;
 }
 
-export interface CreatorSearch {
+interface CreatorSearch {
   hits: CreatorHit[];
   /** Sites that failed, and why. */
   failed: { site: CreatorSite; why: string }[];
 }
 
 /** The accounts each finder reads as; a site with none set is skipped with a reason. */
-export interface FinderAccounts {
+interface FinderAccounts {
   linkedin?: string | null;
   x?: string | null;
 }
@@ -356,7 +356,7 @@ const tiktok: Finder = async (sites, q) =>
       avatar: null,
     }));
 
-export const FINDERS: Readonly<Record<CreatorSite, Finder>> = {
+const FINDERS: Readonly<Record<CreatorSite, Finder>> = {
   youtube,
   reddit: redditFinder,
   linkedin,

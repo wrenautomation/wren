@@ -9,9 +9,9 @@
  */
 
 /** Which DNS record supplied deliverability. */
-export type MxPath = "mx" | "a" | "aaaa";
+type MxPath = "mx" | "a" | "aaaa";
 /** Advisory, never a failure: the campaign decides what a role account or freemail means. */
-export type LocalFlag = "role_account" | "freemail" | "mx_fallback" | "mx_unresolved";
+type LocalFlag = "role_account" | "freemail" | "mx_fallback" | "mx_unresolved";
 
 export interface LocalCheck {
   email: string;

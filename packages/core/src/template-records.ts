@@ -53,7 +53,7 @@ const ORIGIN: Record<string, State> = {
 };
 
 /** The version that goes out for template `t`: its own live one, else the newest default it follows. */
-export const LIVE_ID = sql.raw(`coalesce(t.live_version_id, CASE WHEN t.follows_default THEN (
+const LIVE_ID = sql.raw(`coalesce(t.live_version_id, CASE WHEN t.follows_default THEN (
   SELECT d.id FROM template_versions d WHERE d.template_id = t.id AND d.origin = 'default'
   ORDER BY d.number DESC LIMIT 1) END)`);
 
@@ -74,7 +74,7 @@ const TOTALS = sql`
     sum(booked)::int booked, max(last_sent) last_sent
   FROM template_stats GROUP BY 1, 2, 3`;
 
-export const templateRecord = defineRecord({
+const templateRecord = defineRecord({
   id: "templates.template",
   app: "library",
   channel: null,
@@ -135,7 +135,7 @@ export const templateRecord = defineRecord({
   edits: TEMPLATE_EDITS,
 });
 
-export const versionRecord = defineRecord({
+const versionRecord = defineRecord({
   id: "templates.version",
   app: "library",
   channel: null,
@@ -177,7 +177,7 @@ export const versionRecord = defineRecord({
   related: [{ record: "templates.variant", by: "version_id" }],
 });
 
-export const variantRecord = defineRecord({
+const variantRecord = defineRecord({
   id: "templates.variant",
   app: "library",
   channel: null,
@@ -240,7 +240,7 @@ async function templateIds(db: Queryable) {
 }
 
 /** The sequences and their steps, from the workflows the worker runs. */
-export function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
+function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
   const steps = stepsOf(workflows);
   const sequence = defineRecord({
     id: "templates.sequence",

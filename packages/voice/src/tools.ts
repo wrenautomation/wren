@@ -54,7 +54,7 @@ export type Effect =
   | { kind: "lead"; lead: LeadContext }
   | { kind: "end" };
 
-export interface ToolResult {
+interface ToolResult {
   /** What the brain reads back. */
   says: string;
   effect?: Effect;
@@ -108,7 +108,7 @@ export function spoken(at: Date, zone: string): string {
   });
 }
 
-export interface ToolContext {
+interface ToolContext {
   agent: AgentSettings;
   call: CallStart;
   lead: LeadContext | null;

@@ -89,7 +89,7 @@ export async function liveRoute(
 }
 
 /** `NotesConsole/sync` as the person in `as`. */
-export async function syncAs(
+async function syncAs(
   env: Env,
   as: Record<string, unknown>,
   body: { id: string; update: string; sv: string },

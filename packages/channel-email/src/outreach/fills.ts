@@ -20,7 +20,7 @@ import { eachConcurrently } from "../concurrent.js";
 import { type FILL_KINDS, fills } from "../schema.js";
 import type { FactRow, Facts } from "./facts.js";
 
-export type FillKind = (typeof FILL_KINDS)[number];
+type FillKind = (typeof FILL_KINDS)[number];
 type Answer = Record<string, string>;
 
 const CHECK_VERSION = "3";
@@ -173,9 +173,9 @@ export function checkFirstName(input: string, out: string): string | null {
   return null;
 }
 
-export const SLOT_MAX_WORDS = 25;
+const SLOT_MAX_WORDS = 25;
 /** The longest phrase a fill may be (designs/2026-10-07-templates-live-copy.md, render safety). */
-export const SLOT_MAX_CHARS = 200;
+const SLOT_MAX_CHARS = 200;
 
 /** A slot's phrase, or why it refused. */
 export function checkSlot(prompt: string, out: string): string | null {
@@ -219,7 +219,7 @@ function judge(kind: FillKind, input: string, parsed: unknown): Answer | string 
 
 // ---- the filler -------------------------------------------------------------------
 
-export interface FillRequest {
+interface FillRequest {
   readonly kind: FillKind;
   readonly input: string;
 }
@@ -278,7 +278,7 @@ export interface Filler {
 }
 
 /** Calls in flight. Cohere allows 500 a minute; 8 ran near 450. */
-export const FILL_WIDTH = 4;
+const FILL_WIDTH = 4;
 
 /** A filler over `llm`, caching every answer in `fills`. Provider failures throw (LlmError). */
 export function makeFiller(db: Queryable, llm: LlmClient): Filler {

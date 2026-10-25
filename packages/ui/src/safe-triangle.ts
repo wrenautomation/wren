@@ -12,9 +12,9 @@ export interface Point {
 }
 
 /** How long the pointer may take to cross into the flyout. */
-export const GRACE_MS = 350;
+const GRACE_MS = 350;
 /** A row opens its flyout after this long under the pointer, so a pass over it doesn't. */
-export const OPEN_MS = 90;
+const OPEN_MS = 90;
 
 /** Even-odd ray cast: is `p` inside the polygon? */
 export function inPolygon(p: Point, poly: readonly Point[]): boolean {

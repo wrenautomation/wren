@@ -67,7 +67,7 @@ async function askedThread(db: Db, id: number): Promise<string | null> {
   return r?.thread ?? null;
 }
 
-export interface InboxDeskDeps {
+interface InboxDeskDeps {
   /** Wren's database: the team, the clients, Wren's own threads. */
   db: Db;
   /** A client's own database, for a client's threads. */

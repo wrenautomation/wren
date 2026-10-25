@@ -36,7 +36,7 @@ const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 const pct = (r: number | null) => (r === null ? "-" : `${Math.round(r * 1000) / 10}%`);
 const usd = (n: number) => `$${n.toFixed(n < 0.01 ? 4 : 2)}`;
 
-export function statsTable(rows: readonly KindStats[]): string {
+function statsTable(rows: readonly KindStats[]): string {
   const head = [
     "kind",
     "mode",

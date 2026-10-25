@@ -9,7 +9,7 @@ import { sql } from "drizzle-orm";
 import { profileOf } from "./profiles.js";
 
 /** `profile` (when the address has one) and the address under its key's name. */
-export type ReplyWho = Record<string, string | number>;
+type ReplyWho = Record<string, string | number>;
 
 type Channel = "email" | "sms" | "dm";
 

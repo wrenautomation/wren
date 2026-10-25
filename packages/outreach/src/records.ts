@@ -980,7 +980,7 @@ const ACCOUNT_SITES = { ...PLATFORM_LABELS, ...cued({ api: neutral("API key") })
 const KEY_ORIGINS = { vault: neutral("Operator key"), client: neutral("Client key") };
 
 /** An API key as an Accounts row, beside the logins: spend in dollars, last used, who it's for. */
-export const keyRow = (k: KeyAccount) => ({
+const keyRow = (k: KeyAccount) => ({
   id: `key:${k.id}`,
   name: k.address,
   account: k.address,

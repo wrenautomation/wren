@@ -20,12 +20,12 @@ import {
   type FunnelTarget,
 } from "./schema.js";
 
-export const STAGE_LABELS: Record<FunnelStage, string> = {
+const STAGE_LABELS: Record<FunnelStage, string> = {
   reach: "Reach",
   trust: "Trust",
   convert: "Convert",
 };
-export const TARGET_LABELS: Record<FunnelTarget, string> = {
+const TARGET_LABELS: Record<FunnelTarget, string> = {
   video: "The video",
   site: "The site",
   booking: "Booking",
@@ -36,9 +36,9 @@ export const TARGET_LABELS: Record<FunnelTarget, string> = {
 /** Wren's site: the lander the footers already name. */
 export const WREN_SITE = "https://wrenautomation.com";
 /** The one offer with a booking page. */
-export const BOOKING_PATH = "/book/reactivation";
+const BOOKING_PATH = "/book/reactivation";
 /** The public repo a developer post (`repo`) points to: github.com/wrenautomation/<this>. */
-export const DEV_REPO = "autobrowse";
+const DEV_REPO = "autobrowse";
 
 type FunnelRow = Pick<
   ContentDraft,
@@ -268,7 +268,7 @@ export async function pickablePages(db: Queryable): Promise<FunnelPage[]> {
 }
 
 /** Read the context: the video row, the place's rules, whose database this is. */
-export async function funnelContext(db: Queryable, d: FunnelRow): Promise<FunnelContext> {
+async function funnelContext(db: Queryable, d: FunnelRow): Promise<FunnelContext> {
   const [video] = d.videoDraft
     ? await db
         .select({

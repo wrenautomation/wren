@@ -21,8 +21,8 @@ import { type Bucket, bucketRoom, refusedBy, retryAfter } from "../pacing.js";
 import { type PostMapping, socialGroups, socialPosts, socialSearches } from "../social-schema.js";
 
 export const FB_GROUPS_COMMAND = "enrich fb-groups";
-export const FB_GROUPS_NETWORK = "facebook";
-export const FB_GROUPS_VIA = "facebook-group";
+const FB_GROUPS_NETWORK = "facebook";
+const FB_GROUPS_VIA = "facebook-group";
 /**
  * Searches a day; each is a Google page or two on the Mac's IP. The pool sleeps to the next local day once a pass finds nothing, so on an idle pool a
  * bucket only gets its burst a day: the burst is the daily amount, and autobrowse's pace spaces the calls.
@@ -30,15 +30,15 @@ export const FB_GROUPS_VIA = "facebook-group";
 export const GROUP_SEARCH_BUCKET: Bucket = { perDay: 12, burst: 12 };
 /** Page reads a day, About and posts together; with Ad Library's 48 they stay under autobrowse's 200. */
 export const GROUP_READ_BUCKET: Bucket = { perDay: 80, burst: 80 };
-export const GROUP_SEARCH_N = 20;
-export const GROUP_KEYWORD_EVERY_DAYS = 7;
-export const GROUP_ABOUT_EVERY_DAYS = 30;
+const GROUP_SEARCH_N = 20;
+const GROUP_KEYWORD_EVERY_DAYS = 7;
+const GROUP_ABOUT_EVERY_DAYS = 30;
 /** Unmapped posts newer than this are tried again each pass, so new firms pick up old posts. */
-export const POST_MAP_DAYS = 90;
+const POST_MAP_DAYS = 90;
 const DAY = 86_400_000;
 
 /** What `GET /groups` says of one post in a group. */
-export interface PostHit {
+interface PostHit {
   post: string;
   url: string;
   title?: string | null;
@@ -48,7 +48,7 @@ export interface PostHit {
 }
 
 /** What `GET /groups` says of one group, with the public posts Google showed. */
-export interface GroupHit {
+interface GroupHit {
   group: string;
   name: string | null;
   url: string;
@@ -57,7 +57,7 @@ export interface GroupHit {
 }
 
 /** The post page as read. `links` is every out-link, space separated; every other field is kept as read. */
-export interface GroupPost {
+interface GroupPost {
   author?: string | null;
   time?: string | null;
   text?: string | null;
@@ -136,7 +136,7 @@ export async function groupKeywordsDue(
 }
 
 /** One page read the queue holds. */
-export type GroupRead =
+type GroupRead =
   | { kind: "about"; groupId: number; group: string }
   | { kind: "post"; groupId: number; group: string; postId: number; post: string };
 
@@ -182,9 +182,9 @@ export async function groupReadsDue(
   );
 }
 
-export type FbGroupsOutcome = "read" | "capped" | "error";
+type FbGroupsOutcome = "read" | "capped" | "error";
 
-export interface FbGroupsUnit {
+interface FbGroupsUnit {
   kind: "search" | "about" | "post";
   outcome: FbGroupsOutcome;
   /** Groups a search named. */
@@ -408,7 +408,7 @@ export function linkDomains(links: string | null | undefined): string[] {
 }
 
 /** Firms by name: two or more words, and unique, or a name could be any of them. */
-export function nameIndex(firms: readonly { id: number; name: string | null }[]) {
+function nameIndex(firms: readonly { id: number; name: string | null }[]) {
   const seen = new Map<string, number | null>();
   for (const f of firms) {
     const words = f.name ? wordsOf(f.name) : [];
@@ -427,7 +427,7 @@ export function nameIndex(firms: readonly { id: number; name: string | null }[])
 }
 
 /** The one firm whose name is in the text as whole words; null for none, or for two firms. */
-export function firmNamedIn(text: string, index: ReturnType<typeof nameIndex>): number | null {
+function firmNamedIn(text: string, index: ReturnType<typeof nameIndex>): number | null {
   const words = wordsOf(text);
   const found = new Set<number>();
   for (let i = 0; i < words.length; i++)
@@ -440,7 +440,7 @@ export function firmNamedIn(text: string, index: ReturnType<typeof nameIndex>): 
 
 const CONFIDENCE: Record<PostMapping, number> = { link: 0.9, author: 0.8, name: 0.5 };
 
-export interface MapStats {
+interface MapStats {
   seen: number;
   mapped: number;
 }

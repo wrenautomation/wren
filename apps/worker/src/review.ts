@@ -95,7 +95,7 @@ async function auditSize(db: Queryable): Promise<Check> {
   };
 }
 
-export const PARKED: readonly Parked[] = [
+const PARKED: readonly Parked[] = [
   {
     id: "digitalocean",
     idea: "DigitalOcean move",

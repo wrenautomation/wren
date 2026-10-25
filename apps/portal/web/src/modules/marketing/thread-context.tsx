@@ -29,7 +29,7 @@ import { useState } from "react";
 export const THREAD_REPLY = "marketing.threadReply";
 export const THREAD_READ = "marketing.threadRead";
 
-export const contextOf = (detail: unknown): ThreadContext | null =>
+const contextOf = (detail: unknown): ThreadContext | null =>
   (detail as { context?: ThreadContext | null } | null)?.context ?? null;
 const accountsOf = (detail: unknown): AccountPick | null =>
   (detail as { accounts?: AccountPick | null } | null)?.accounts ?? null;

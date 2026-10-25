@@ -15,7 +15,7 @@
 import { type SQL, sql } from "drizzle-orm";
 import { verifications } from "../schema.js";
 
-export const RISKY_WAIT_BY_REASON: Readonly<Record<string, string>> = {
+const RISKY_WAIT_BY_REASON: Readonly<Record<string, string>> = {
   greylisted: "1 hour",
   blocked: "7 days",
   dns_error: "7 days",
@@ -24,16 +24,16 @@ export const RISKY_WAIT_BY_REASON: Readonly<Record<string, string>> = {
 };
 
 /** A greylisted address waits these after its 1st, 2nd and 3rd risky verdict in a row. */
-export const GREYLIST_WAITS = ["1 hour", "1 day", "7 days"] as const;
+const GREYLIST_WAITS = ["1 hour", "1 day", "7 days"] as const;
 /** Any other reason: its first wait, doubled after each further risky verdict, up to this. */
-export const RISKY_WAIT_MAX = "30 days";
+const RISKY_WAIT_MAX = "30 days";
 /** Risky verdicts in a row (no valid or invalid between) after which the address rests. */
-export const RISKY_STREAK_CAP = 4;
+const RISKY_STREAK_CAP = 4;
 /** How long an address rests at the cap. Also how far back a run of risky verdicts counts. */
-export const RISKY_REST = "90 days";
+const RISKY_REST = "90 days";
 
 /** The wait for one verdict, as a Postgres interval: `raw` is its `raw` column. */
-export function riskyWait(raw: SQL, fallback: SQL): SQL {
+function riskyWait(raw: SQL, fallback: SQL): SQL {
   const arms = Object.entries(RISKY_WAIT_BY_REASON).map(
     ([reason, wait]) => sql`WHEN ${reason} THEN ${wait}::interval`,
   );

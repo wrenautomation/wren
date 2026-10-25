@@ -23,17 +23,17 @@ import { eq, sql } from "drizzle-orm";
 import { type Bucket, bucketRoom, refusedBy, retryAfter } from "../pacing.js";
 
 export const AD_LIBRARY_COMMAND = "enrich ad-library";
-export const AD_LIBRARY_SOURCE = "ad_library";
+const AD_LIBRARY_SOURCE = "ad_library";
 /**
  * Keyword reads a day; autobrowse caps `fb-public` at 200 and spaces each 20 to 40s. The burst is
  * the daily amount: an idle pool sleeps to the next local day, so it only ever gets a burst a day.
  */
-export const AD_LIBRARY_BUCKET: Bucket = { perDay: 48, burst: 48 };
+const AD_LIBRARY_BUCKET: Bucket = { perDay: 48, burst: 48 };
 /** Ads come and go; a keyword's advertisers are read again after this. */
-export const AD_KEYWORD_EVERY_DAYS = 7;
-export const AD_COUNTRY = "US";
+const AD_KEYWORD_EVERY_DAYS = 7;
+const AD_COUNTRY = "US";
 /** Where an ad links that is a form, a chat or a funnel builder, never the advertiser's own site. */
-export const AD_HOSTS = [
+const AD_HOSTS = [
   "fb.me",
   "m.me",
   "messenger.com",
@@ -62,11 +62,11 @@ export interface Ad {
 }
 
 /** `fb-public/ads?q=...&country=US`: one keyword's reads share it, so its last read is findable. */
-export const adRef = (q: string, country = AD_COUNTRY): string =>
+const adRef = (q: string, country = AD_COUNTRY): string =>
   `fb-public/ads?${new URLSearchParams({ q, country })}`;
 
 /** The advertiser's own site from an ad's link or shown caption; null for a platform or form. */
-export function adDomain(ad: Ad, platforms: Iterable<string> = []): string | null {
+function adDomain(ad: Ad, platforms: Iterable<string> = []): string | null {
   const extra = [...AD_HOSTS, ...platforms];
   for (const raw of [ad.url, ad.caption]) {
     const host = typeof raw === "string" && raw.trim() ? extractDomain(raw) : null;
@@ -101,7 +101,7 @@ export function adRows(ads: readonly Ad[], q: string, platforms: Iterable<string
 }
 
 /** Each page's home: the first domain any of its ads links. */
-export function adHomes(ads: Iterable<Ad>, platforms: Iterable<string> = []): Map<string, string> {
+function adHomes(ads: Iterable<Ad>, platforms: Iterable<string> = []): Map<string, string> {
   const extra = [...platforms];
   const homes = new Map<string, string>();
   for (const ad of ads) {
@@ -111,7 +111,7 @@ export function adHomes(ads: Iterable<Ad>, platforms: Iterable<string> = []): Ma
   return homes;
 }
 
-export type PageMerge = "none" | "took-domain" | "folded";
+type PageMerge = "none" | "took-domain" | "folded";
 
 /**
  * A page-keyed firm whose page now links `domain` is that domain's firm. With no firm on the
@@ -236,9 +236,9 @@ export async function adKeywordsDue(
     .map((k) => k.q);
 }
 
-export type AdLibraryOutcome = "read" | "capped" | "error";
+type AdLibraryOutcome = "read" | "capped" | "error";
 
-export interface AdLibraryUnit {
+interface AdLibraryUnit {
   q: string;
   outcome: AdLibraryOutcome;
   ads: number;

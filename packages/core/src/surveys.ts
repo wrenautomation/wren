@@ -12,8 +12,8 @@ export type SurveySurface = (typeof SURVEY_SURFACES)[number];
 export const SURVEY_STATES = ["draft", "live", "paused"] as const;
 export type SurveyState = (typeof SURVEY_STATES)[number];
 /** view: on the page, after a delay; exit: leaving the tab; form: after a form's submit; book: a Book a call click; booked: the booking confirmed. */
-export const SURVEY_EVENTS = ["view", "exit", "form", "book", "booked"] as const;
-export type SurveyEvent = (typeof SURVEY_EVENTS)[number];
+const SURVEY_EVENTS = ["view", "exit", "form", "book", "booked"] as const;
+type SurveyEvent = (typeof SURVEY_EVENTS)[number];
 /** A site visitor's first touch (`./clients/touch.ts`), `other` and `direct` as the site rollup has them. */
 export const SITE_CHANNELS = [
   "email",

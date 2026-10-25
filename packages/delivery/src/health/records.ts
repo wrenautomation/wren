@@ -35,7 +35,7 @@ const PART = status(
 );
 const OF_100 = { max: 100 } as const;
 
-export const healthRecord = defineRecord({
+const healthRecord = defineRecord({
   id: "console.health",
   app: "clients",
   channel: null,
@@ -90,7 +90,7 @@ export const healthRecord = defineRecord({
   actions: ["health.rate", "health.override", "health.clearOverride", "health.flagRaise"],
 });
 
-export const healthDayRecord = defineRecord({
+const healthDayRecord = defineRecord({
   id: "console.health_day",
   app: "clients",
   channel: null,
@@ -120,7 +120,7 @@ export const healthDayRecord = defineRecord({
   views: [{ id: "all", label: "Every day", sort: "-day", at: "day" }],
 });
 
-export const healthInputRecord = defineRecord({
+const healthInputRecord = defineRecord({
   id: "console.health_input",
   app: "clients",
   channel: null,

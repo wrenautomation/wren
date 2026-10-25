@@ -54,7 +54,7 @@ import { type PostPlace, postPlace } from "./subreddit.js";
 import { DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
 /** Bump when a promo brief changes. */
-export const PROMO_PROMPT_VERSION = "promo-v1";
+const PROMO_PROMPT_VERSION = "promo-v1";
 /** Where a video gets promoted, in order. */
 export const PROMO_PLATFORMS = [
   "linkedin",
@@ -67,8 +67,8 @@ export type PromoPlatform = (typeof PROMO_PLATFORMS)[number];
 export const PROMO_PIECES = ["posts", "thread", "carousel"] as const;
 export type PromoPiece = (typeof PROMO_PIECES)[number];
 /** A promo draft's piece: a single post, a thread or a carousel. */
-export type PromoKind = "post" | "thread" | "carousel";
-export const promoKindOf = (d: {
+type PromoKind = "post" | "thread" | "carousel";
+const promoKindOf = (d: {
   platform: string;
   extra?: Readonly<Record<string, unknown>> | null;
 }): PromoKind => (isThread(d) ? "thread" : isCarousel(d) ? "carousel" : "post");
@@ -80,13 +80,13 @@ const PROMOTABLE = ["approved", "publishing", "published"] as const;
 export const RECORDED = "I recorded a walkthrough video of this.";
 
 /** The idea's ref: one promo idea per video. */
-export const promoRef = (videoDraft: string) => `promo:${videoDraft}`;
+const promoRef = (videoDraft: string) => `promo:${videoDraft}`;
 
 /** A watched subreddit for the Reddit promo, as research judged it (`./subreddit.ts`). */
-export type PromoPlace = PostPlace;
+type PromoPlace = PostPlace;
 
 /** Where the promo idea stands: its idea, the video, and what each platform can carry. */
-export interface PromoBase {
+interface PromoBase {
   idea: ContentIdea;
   video: Pick<ContentDraft, "id" | "title" | "status" | "url">;
   /** The video_edits row behind it, when the editor made it. */
@@ -97,14 +97,14 @@ export interface PromoBase {
 }
 
 /** The text before the footer: the first line with a `/go/` link ends it. */
-export function withoutFooter(text: string): string {
+function withoutFooter(text: string): string {
   const lines = text.split("\n");
   const at = lines.findIndex((l) => /\/go\//.test(l));
   return (at >= 0 ? lines.slice(0, at) : lines).join("\n").trim();
 }
 
 /** What each platform's promo is told to write. `link` says whether the post carries the video's. */
-export function promoShape(platform: PromoPlatform, o: { place?: PromoPlace | null }): string {
+function promoShape(platform: PromoPlatform, o: { place?: PromoPlace | null }): string {
   const linkLine =
     "The link to the video is added on its own line after the post; never write a link or a URL.";
   switch (platform) {
@@ -243,7 +243,7 @@ export async function liveOf(db: Queryable, ideaId: string): Promise<Map<string,
 }
 
 /** Why the platform's promo can't be drafted, or null. */
-export async function promoSkip(
+async function promoSkip(
   db: Queryable,
   base: PromoBase,
   platform: PromoPlatform,
@@ -368,7 +368,7 @@ export async function promoteVideo(
 }
 
 /** One row of a video's promos: a platform's post, the thread, or a carousel's draft. */
-export interface PromoRow {
+interface PromoRow {
   id: string;
   platform: Platform;
   kind: PromoKind;
@@ -404,7 +404,7 @@ export async function promosOf(db: Queryable, videoDraft: string): Promise<Promo
  * A promo prompt in the drafts' frame (voice, playbook, facts rule, lessons, the idea) with its
  * own brief and answer: `draftPrompt` with the answer line swapped.
  */
-export async function piecePrompt(
+async function piecePrompt(
   db: Queryable,
   base: PromoBase,
   platform: Platform,
@@ -434,7 +434,7 @@ const LINK_LINE =
   "The link to the video is added on its own line after the last post; never write a link or a URL.";
 
 /** The thread's brief. */
-export const THREAD_SHAPE = `a thread on X of ${THREAD_MIN} to ${THREAD_MAX} posts that sends people to a new YouTube video: dense and expert, written for people who already know the field. Post 1 is the sharpest claim from the video and stands alone: no link, no "thread", no "1/". Each next post adds one concrete point from the idea. The last post says the full walkthrough is in the video. Each post under 260 characters, the last under 220. No hashtags, no emoji, no numbering. ${LINK_LINE}`;
+const THREAD_SHAPE = `a thread on X of ${THREAD_MIN} to ${THREAD_MAX} posts that sends people to a new YouTube video: dense and expert, written for people who already know the field. Post 1 is the sharpest claim from the video and stands alone: no link, no "thread", no "1/". Each next post adds one concrete point from the idea. The last post says the full walkthrough is in the video. Each post under 260 characters, the last under 220. No hashtags, no emoji, no numbering. ${LINK_LINE}`;
 
 const threadAnswer = z.object({ posts: z.array(z.string()).min(1).max(12) });
 
@@ -526,7 +526,7 @@ export async function draftThread(
 }
 
 /** The carousel's brief: the slides and both posts in one answer. */
-export const CAROUSEL_SHAPE = `a carousel of ${SLIDES_MIN} to ${SLIDES_MAX} slides that teaches the lesson of a new YouTube video, plus the two posts that carry it. Slide 1 is the hook: a title that states the problem or the result, and no lines. Each next slide makes one point from the idea: a title under ${SLIDE_TITLE_MAX - 15} characters and one to three short lines under ${SLIDE_LINE_MAX - 20} characters each. The last slide says the full walkthrough is on YouTube. "linkedin" is a LinkedIn post under 900 characters that goes with the slides as a PDF: a one-line hook, two or three short lines on what the slides show, a last line saying the full walkthrough is in the video. "instagram" is the Instagram caption: a first line that stands alone, two short lines, a line saying the full video is on YouTube, link in bio, then up to five hashtags on the last line. No emoji. Never write a link or a URL.`;
+const CAROUSEL_SHAPE = `a carousel of ${SLIDES_MIN} to ${SLIDES_MAX} slides that teaches the lesson of a new YouTube video, plus the two posts that carry it. Slide 1 is the hook: a title that states the problem or the result, and no lines. Each next slide makes one point from the idea: a title under ${SLIDE_TITLE_MAX - 15} characters and one to three short lines under ${SLIDE_LINE_MAX - 20} characters each. The last slide says the full walkthrough is on YouTube. "linkedin" is a LinkedIn post under 900 characters that goes with the slides as a PDF: a one-line hook, two or three short lines on what the slides show, a last line saying the full walkthrough is in the video. "instagram" is the Instagram caption: a first line that stands alone, two short lines, a line saying the full video is on YouTube, link in bio, then up to five hashtags on the last line. No emoji. Never write a link or a URL.`;
 
 const carouselAnswer = z.object({
   slides: z

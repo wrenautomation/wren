@@ -25,12 +25,12 @@ export interface Move {
 }
 
 /** Pseudo-moves: `edge` for each drawn edge out of a node, `drop` for leaving the shape. */
-export interface Prior {
+interface Prior {
   edge: number;
   drop: number;
 }
 
-export const PRIOR: Prior = { edge: 1, drop: 1 };
+const PRIOR: Prior = { edge: 1, drop: 1 };
 
 export interface Exit {
   /** A node id, or `dropped`. */

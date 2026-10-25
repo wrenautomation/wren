@@ -39,7 +39,7 @@ export type Limits = { [K in keyof typeof LIMITS]: number };
 export const limitsWith = (over?: Partial<Limits>): Limits => ({ ...LIMITS, ...over });
 
 /** Passes in a row a unit may time out before it is held. */
-export const STRIKES = 3;
+const STRIKES = 3;
 
 /** One call a pass stopped waiting on. */
 export interface TimedOut {
@@ -78,7 +78,7 @@ function tally(ctx: object, t: TimedOut): void {
 type Waitable<T> = restate.RestatePromise<T> &
   Partial<Pick<restate.InvocationHandle, "invocationId">>;
 
-export interface WithinOpts {
+interface WithinOpts {
   ms: number;
   /** What is called, for the stat and the error: `Content/metrics`. */
   call: string;
@@ -106,7 +106,7 @@ export async function within<T>(ctx: restate.Context, p: Waitable<T>, o: WithinO
 
 const RUN_TIMEOUT = "no answer within ";
 
-export interface LimitedRunOpts {
+interface LimitedRunOpts {
   /** Each try's limit. */
   ms: number;
   /** Tries before the step fails terminally (default 3). */
@@ -180,7 +180,7 @@ export interface UnitLimits {
   guard<T>(unit: string, fn: () => Promise<T>, group?: string): Promise<T>;
 }
 
-export interface UnitWithinOpts extends Omit<WithinOpts, "unit"> {
+interface UnitWithinOpts extends Omit<WithinOpts, "unit"> {
   group?: string;
 }
 

@@ -26,7 +26,7 @@ export interface Pusher {
   push(sub: SmsPushSubscription, alert: PushAlert): Promise<"ok" | "gone">;
 }
 
-export interface Vapid {
+interface Vapid {
   publicKey: string;
   privateKey: string;
   /** Who runs this sender, for the push services: a mailto: or https: URL. */
@@ -131,7 +131,7 @@ export async function pushOne(
   return { pushed: true, error: null };
 }
 
-export interface PushStats {
+interface PushStats {
   sent: number;
   dropped: number;
   errors: string[];

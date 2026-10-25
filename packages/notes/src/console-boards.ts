@@ -101,7 +101,7 @@ const idOrNull = (v: unknown): string | null => (isNoteId(v) ? v : null);
 const person = (who: string): string => ownerName(who, true);
 
 /** A card as the board and the list draw it. */
-export const faceOut = (t: TaskRow, home: string) => ({
+const faceOut = (t: TaskRow, home: string) => ({
   id: t.id,
   name: nameOf(t.title, t.text),
   boardId: t.boardId,
@@ -125,7 +125,7 @@ type Face = ReturnType<typeof faceOut>;
  * A card's change mark for change-only board reads: its row version, and what it shows from
  * other rows (open blockers, cards it holds up, comments, client chips).
  */
-export const cardMark = (c: Face): string =>
+const cardMark = (c: Face): string =>
   versionMark(c.id, c.version, { b: c.blocked, k: c.blocks, c: c.comments, l: c.clients });
 
 const boardOut = (b: Board, role: Role, home: string) => ({

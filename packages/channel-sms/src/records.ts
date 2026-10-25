@@ -132,7 +132,7 @@ const callState = (r: Pick<SpeedRun, "call" | "callDoneAt" | "bookedAt">) =>
  * state: the first text and how long it took, the call (or "Call now" for the rep, open until
  * they mark it done or the lead books), the follow-up, a booking.
  */
-export const speedRecord = defineRecord({
+const speedRecord = defineRecord({
   id: "sms.speed",
   app: "texts",
   channel: "sms",
@@ -271,7 +271,7 @@ const TEXT_BACK = {
  * Missed-call text back (designs/2026-10-07-missed-call-and-reviews.md): each call to the
  * client's numbers, how it ended, the text back and why, a reply and a booking.
  */
-export const missedCallRecord = defineRecord({
+const missedCallRecord = defineRecord({
   id: "sms.call",
   app: "texts",
   channel: "sms",

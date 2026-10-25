@@ -43,7 +43,7 @@ export function handoffRecruiter(
   return candidates.find((c) => c && c.toLowerCase() !== self) ?? sender;
 }
 
-export interface ReplyRef {
+interface ReplyRef {
   threadEventId: number;
   enrollmentId: number;
   personId: number | null;

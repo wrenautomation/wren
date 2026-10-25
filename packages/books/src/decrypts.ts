@@ -58,11 +58,11 @@ export function cloudTrailDecrypts(
 }
 
 /** A jump is this many times the day before... */
-export const DECRYPT_FACTOR = 3;
+const DECRYPT_FACTOR = 3;
 /** ...and at least this many calls; a principal new since the day before needs only this. */
-export const DECRYPT_FLOOR = 50;
+const DECRYPT_FLOOR = 50;
 
-export interface DecryptSpike {
+interface DecryptSpike {
   principal: string;
   count: number;
   before: number;

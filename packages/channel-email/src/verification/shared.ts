@@ -11,7 +11,7 @@ import { verifications } from "../schema.js";
 import type { EmailVerifier, Verdict } from "./verifier.js";
 
 /** How long a shared verdict answers for an address. Risky is never reused: it is often about us, not them. */
-export const SHARED_VERDICT_DAYS = 30;
+const SHARED_VERDICT_DAYS = 30;
 
 export function sharedVerdicts(main: Db, inner: EmailVerifier): EmailVerifier {
   return {

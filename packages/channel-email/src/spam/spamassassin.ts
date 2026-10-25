@@ -12,13 +12,13 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-export const SPAM_IMAGE = "wren-spamassassin";
+const SPAM_IMAGE = "wren-spamassassin";
 /** At or above this a message fails. SpamAssassin's own spam line is 5.0; ours leaves room. */
 export const SPAM_LIMIT = 2.0;
 /** An orphaned container removes itself after this long. */
 const LIFETIME_S = 1800;
 
-export interface SpamRule {
+interface SpamRule {
   name: string;
   points: number;
   description: string;
@@ -55,7 +55,7 @@ export function parseReport(out: string): SpamScore {
   return { score, rules };
 }
 
-export interface Spamd {
+interface Spamd {
   score(raw: Buffer): Promise<SpamScore>;
   stop(): Promise<void>;
 }

@@ -26,15 +26,15 @@ import {
 import { activePauses, domainOf } from "./health.js";
 
 /** At or above this inbox share a test passes. */
-export const HEALTHY_RATE = 0.8;
+const HEALTHY_RATE = 0.8;
 /** Fewer landed copies than this, and a test says nothing yet. */
-export const MIN_LANDED = 6;
+const MIN_LANDED = 6;
 /** A domain's verdict reads its last this-many send days with a landing. */
 export const WINDOW_DAYS = 2;
 /** A placement pause stands at least this long, so warmup has time to work. */
 export const MIN_PAUSE_DAYS = 7;
 /** Still failing after this long paused: the warning says to think about a new domain. */
-export const REPLACE_AFTER_DAYS = 14;
+const REPLACE_AFTER_DAYS = 14;
 /** How far back the verdict reads at all. */
 const LOOKBACK_DAYS = 21;
 const DAY_MS = 86_400_000;
@@ -58,7 +58,7 @@ export interface Tally {
   landed: number;
 }
 
-export type PlacementVerdict = "healthy" | "domain problem" | "copy problem" | "not enough";
+type PlacementVerdict = "healthy" | "domain problem" | "copy problem" | "not enough";
 
 export interface DomainPlacement {
   domain: string;
@@ -83,7 +83,7 @@ export function verdictOf(plain: Tally, real: Tally): PlacementVerdict {
 }
 
 const pct = (t: Tally) => `${t.inbox}/${t.landed} = ${Math.round((t.inbox / t.landed) * 100)}%`;
-export const tallyText = (t: Tally) => (t.landed === 0 ? "none yet" : `${t.inbox}/${t.landed}`);
+const tallyText = (t: Tally) => (t.landed === 0 ? "none yet" : `${t.inbox}/${t.landed}`);
 
 /** `wren-automations.com: setup ok · plain 8/9 · real 7/9`, plus the verdict when not healthy. */
 export function placementSummary(d: DomainPlacement): string {
@@ -191,7 +191,7 @@ export async function placementVerdicts(
     });
 }
 
-export interface PlacementChanges {
+interface PlacementChanges {
   paused: SenderPause[];
   lifted: SenderPause[];
   verdicts: DomainPlacement[];

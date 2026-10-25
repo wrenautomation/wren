@@ -151,7 +151,7 @@ export function wireLines(e: GraphEdge): string[] {
 }
 
 /** A node's width by kind: compact, as a node is. */
-export const NODE_WIDTH: Record<GraphKind, number> = {
+const NODE_WIDTH: Record<GraphKind, number> = {
   part: 216,
   workflow: 216,
   step: 216,
@@ -178,7 +178,7 @@ export function nodeSize(n: GraphNode): { width: number; height: number } {
 }
 
 /** Where a wire leaves and lands on two laid boxes: at its ports, or the sides' middles. */
-export function wireEnds(
+function wireEnds(
   e: Pick<GraphEdge, "fromPort" | "toPort">,
   a: { x: number; y: number; width: number; height: number },
   b: { x: number; y: number; width: number; height: number },

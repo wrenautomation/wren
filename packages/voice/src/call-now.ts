@@ -37,7 +37,7 @@ export interface CallNowDeps {
   dialer: Dialer | null;
 }
 
-export interface CallNow {
+interface CallNow {
   run: SpeedRun;
   booked: boolean;
 }

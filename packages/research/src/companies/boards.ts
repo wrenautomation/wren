@@ -106,7 +106,7 @@ const NOT_TOKENS = new Set([
   "oneclick-ui",
 ]);
 
-export const ATS: readonly Ats[] = [
+const ATS: readonly Ats[] = [
   {
     name: "greenhouse",
     finds: [
@@ -373,7 +373,7 @@ export function findBoards(page: string): Board[] {
   return [...found.values()].sort((x, y) => x.at - y.at).map((f) => f.board);
 }
 
-export type BoardRead = { ok: true; jobs: Job[]; total: number } | { ok: false; why: string };
+type BoardRead = { ok: true; jobs: Job[]; total: number } | { ok: false; why: string };
 
 /** One board's postings through its public API. Never throws for a bad board; a dead network does. */
 export async function readBoard(fetcher: Fetcher, board: Board): Promise<BoardRead> {

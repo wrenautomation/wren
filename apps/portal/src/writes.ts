@@ -27,7 +27,7 @@ export async function writeKey(email: string, site: Site, requestId: string): Pr
 }
 
 /** Why Restate is trying a write again, while it does: its tries so far and the last error. */
-export interface WriteRetry {
+interface WriteRetry {
   count: number;
   reason: string;
 }

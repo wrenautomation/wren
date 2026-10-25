@@ -22,7 +22,7 @@ import { BrowserModel } from "./model.js";
 import { ServerModel, serverDictation } from "./server.js";
 import { SpeechEars } from "./speech.js";
 
-export interface DictateSettings {
+interface DictateSettings {
   choice: Choice;
   /** The browser's own speech when nothing else runs: audio goes to Google or Apple. */
   fallback: boolean;
@@ -47,7 +47,7 @@ export function readSettings(): DictateSettings {
 const SERVER_PARTIAL_MS = 1500;
 
 /** One finished dictation, for the latency panel: timings only, never the words. */
-export interface DictationReport extends DictationRun {
+interface DictationReport extends DictationRun {
   adapter: Adapter;
   model: string;
   /** Press to model ready, when this press loaded it. */

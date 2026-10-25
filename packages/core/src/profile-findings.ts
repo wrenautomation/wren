@@ -28,7 +28,7 @@ export interface ProfileResearchObject {
 }
 
 /** A run that has not finished by now is lost (a crashed send): a new one may start. */
-export const STALE_RUN_MS = 30 * 60_000;
+const STALE_RUN_MS = 30 * 60_000;
 
 /** The profile's run in flight, if any. */
 async function runInFlight(db: Queryable, profileId: number) {
@@ -143,7 +143,7 @@ async function holdHandle(
   return { added: got.added > 0, profileId: got.id };
 }
 
-export type FindingDecision = "kept" | "dropped";
+type FindingDecision = "kept" | "dropped";
 
 /**
  * Keep or drop findings, by id. Ones already in that state are done without a change; a kept
@@ -193,7 +193,7 @@ const STEP_WORDS: Record<string, string> = {
 const LINE_MAX = 160;
 
 /** One step tried, in one short line: "Search Jane Doe Acme: 1 people via exa". */
-export function triedLine(t: { step?: unknown; what?: unknown; outcome?: unknown }): string {
+function triedLine(t: { step?: unknown; what?: unknown; outcome?: unknown }): string {
   const step = String(t.step ?? "");
   const what = String(t.what ?? "").trim();
   const line = `${STEP_WORDS[step] ?? step}${what && what !== "-" ? ` ${what}` : ""}: ${String(t.outcome ?? "").trim()}`;
@@ -201,7 +201,7 @@ export function triedLine(t: { step?: unknown; what?: unknown; outcome?: unknown
 }
 
 /** The newest run of a profile, as the person page draws it. */
-export interface ResearchRun {
+interface ResearchRun {
   id: number;
   state: ProfileLookupState;
   /** ISO. */
@@ -240,7 +240,7 @@ export interface ResearchDetail {
 }
 
 /** The findings a page lists at most; the Findings tab has them all. */
-export const FINDINGS_MAX = 60;
+const FINDINGS_MAX = 60;
 
 const iso = (d: Date | string | null | undefined) =>
   d === null || d === undefined ? null : d instanceof Date ? d.toISOString() : String(d);
@@ -300,7 +300,7 @@ export async function findingRows(db: Queryable): Promise<Record<string, unknown
 }
 
 /** The newest run of a profile, for its page and the CLI. */
-export async function newestResearch(db: Queryable, profileId: number) {
+async function newestResearch(db: Queryable, profileId: number) {
   const [row] = await db
     .select()
     .from(profileLookups)

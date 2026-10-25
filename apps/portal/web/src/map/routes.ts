@@ -90,7 +90,7 @@ export function opensOf(
 }
 
 /** What `appsOnShape` reads of a node. A parked source opens nothing, so it names no app. */
-export type NodeRef = Pick<ShapeNode, "id" | "name" | "kind"> & {
+type NodeRef = Pick<ShapeNode, "id" | "name" | "kind"> & {
   via?: string;
   channel?: string;
   parked?: true | undefined;

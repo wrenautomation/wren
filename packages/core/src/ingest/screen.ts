@@ -123,7 +123,7 @@ export function screenCompany(
   return null;
 }
 
-export interface ScreenStats {
+interface ScreenStats {
   companies: number;
   /** Blank countries filled from the stored import row. */
   country_filled: number;

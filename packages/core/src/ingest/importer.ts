@@ -45,7 +45,7 @@ import {
 import type { LeadSource } from "./sources.js";
 
 /** Fallback segment fields for rows that don't carry their own. */
-export interface SegmentDefaults {
+interface SegmentDefaults {
   persona: string | null;
   source: string | null;
   geo: string | null;
@@ -89,7 +89,7 @@ export interface ImportStats {
   declined?: Record<string, number>;
 }
 
-export interface ImportOptions {
+interface ImportOptions {
   defaults?: Partial<SegmentDefaults>;
   columnMap?: Record<string, string>;
   /** The source format's niche, stamped on companies the import creates. */

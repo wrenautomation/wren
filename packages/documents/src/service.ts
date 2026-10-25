@@ -70,7 +70,7 @@ import {
 export type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;
 
 /** The files bucket as Documents uses it: `FileStore` of `@wren/delivery/files` fits. */
-export interface SealedStore {
+interface SealedStore {
   put(key: string, bytes: Uint8Array, type: string): Promise<void>;
   /** A short-lived download link. */
   getUrl(key: string): Promise<string>;
@@ -125,11 +125,11 @@ async function ownerOf(main: Db, client: string) {
 const kindWord = (d: Pick<Doc, "kind">) => KIND_NAME[d.kind as DocKind].toLowerCase();
 
 /** The text: who it's from, what, the link. */
-export const docText = (business: string, d: Doc, url: string, remind = false) =>
+const docText = (business: string, d: Doc, url: string, remind = false) =>
   `${business}: ${remind ? "a reminder, " : ""}your ${kindWord(d)} ${d.number} is ready to read and sign: ${url}`;
 
 /** The email: a subject and a few plain lines. */
-export function docEmail(business: string, d: Doc, url: string, remind = false) {
+function docEmail(business: string, d: Doc, url: string, remind = false) {
   const first = d.name?.trim().split(/\s+/)[0];
   return {
     subject: `${remind ? "Reminder: " : ""}${KIND_NAME[d.kind as DocKind]} ${d.number} from ${business}`,
@@ -153,7 +153,7 @@ export function docEmail(business: string, d: Doc, url: string, remind = false) 
 }
 
 /** A step as the spine hears it: about the recipient's email and their thread. */
-export function docFired(d: Doc, change: "viewed" | "signed" | "declined"): Fired {
+function docFired(d: Doc, change: "viewed" | "signed" | "declined"): Fired {
   return {
     client: d.client,
     facts: { trigger: "trigger.document", change, kind: d.kind },
@@ -316,7 +316,7 @@ async function esignStep<T extends object>(
 }
 
 /** Where a document's sealed files live in the bucket, under the client's own prefix. */
-export const sealedKeys = (d: Pick<Doc, "client" | "id" | "number">) => {
+const sealedKeys = (d: Pick<Doc, "client" | "id" | "number">) => {
   const at = (name: string) => `clients/${d.client}/documents/${d.id}/${d.number}-${name}.pdf`;
   return { pdf: at("signed"), certificate: at("certificate"), audit: at("audit") };
 };

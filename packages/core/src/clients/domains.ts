@@ -20,7 +20,7 @@ import {
 export class DomainRefusal extends PortalRefusal {}
 
 /** One custom host per client, for now. */
-export const DOMAINS_PER_CLIENT = 1;
+const DOMAINS_PER_CLIENT = 1;
 
 /**
  * The host as we store it: lowercase, no dot at the end, punycode. Refused: anything that isn't
@@ -51,7 +51,7 @@ export function normalHost(raw: string, own: string): string {
 }
 
 /** What Cloudflare says about one custom hostname (the parts we keep). */
-export interface CloudflareHostname {
+interface CloudflareHostname {
   id: string;
   hostname: string;
   status: string;

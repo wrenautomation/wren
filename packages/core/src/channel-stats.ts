@@ -23,7 +23,7 @@ import {
 import { PortalRefusal } from "./refusal.js";
 import { compileRule, type Rule, readRule, segmentById } from "./segments.js";
 
-export const STAT_BYS = ["channel", "source"] as const;
+const STAT_BYS = ["channel", "source"] as const;
 export const ATTRIBUTIONS = ["any", "first", "last"] as const;
 export type Attribution = (typeof ATTRIBUTIONS)[number];
 
@@ -198,7 +198,7 @@ type Row = Record<string, unknown>;
 const rows = async (db: Queryable, q: SQL) => (await db.execute(q)) as unknown as Row[];
 
 /** A `/go/` source or a post's platform as a channel; null when it names none. */
-export function channelOfSource(raw: string): string | null {
+function channelOfSource(raw: string): string | null {
   const s = raw.toLowerCase();
   if (s === "twitter") return "x";
   if (s === "meta") return "ads";

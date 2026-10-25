@@ -10,7 +10,7 @@ import { type AlleleCounts, evaluateLocus, stopReason } from "./engine.js";
 import { betaDraw, type Rng, seeded } from "./rng.js";
 import { parseSettings, type SelectionName } from "./settings.js";
 
-export interface SimulateOptions {
+interface SimulateOptions {
   readonly selections: readonly SelectionName[];
   readonly loci: number;
   readonly alleles: number;
@@ -24,7 +24,7 @@ export interface SimulateOptions {
   readonly settings?: unknown;
 }
 
-export interface SimulateResult {
+interface SimulateResult {
   readonly selection: SelectionName;
   /** Mean successes lost per run against always sending each locus's best. */
   readonly regret: number;

@@ -16,7 +16,7 @@ import { promises as dns } from "node:dns";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export const BLOCKLISTS = [
+const BLOCKLISTS = [
   "zen.spamhaus.org",
   "bl.spamcop.net",
   "b.barracudacentral.org",
@@ -25,10 +25,10 @@ export const BLOCKLISTS = [
 ] as const;
 
 /** Refusals that name our IP, not the address. */
-export const IP_REFUSALS = ["blocked", "no_ptr"] as const;
+const IP_REFUSALS = ["blocked", "no_ptr"] as const;
 /** Warn past this share of refused checks, once a day has enough checks to mean it. */
-export const REFUSED_WARN_SHARE = 0.1;
-export const REFUSED_MIN_CHECKS = 100;
+const REFUSED_WARN_SHARE = 0.1;
+const REFUSED_MIN_CHECKS = 100;
 
 export interface Resolver {
   resolve4(host: string): Promise<string[]>;
@@ -78,7 +78,7 @@ export async function ipStanding(
 const HELD = sql`coalesce(raw->'transcript'->-1->>'reply', '') LIKE 'held:%'`;
 
 /** Checks per prober host since `since`: reached a server, refused for our IP, held back. */
-export async function proberCounts(
+async function proberCounts(
   db: Db,
   since: Date,
 ): Promise<Map<string, { checks: number; refused: number; held: number }>> {

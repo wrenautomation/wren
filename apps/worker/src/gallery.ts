@@ -8,9 +8,9 @@ import { type Template, templatesOf } from "@wren/core/templates/install";
 import type { Workflow } from "@wren/core/workflows";
 
 /** Bumped when the shape changes, so the lander can refuse one it doesn't know. */
-export const GALLERY_VERSION = 1;
+const GALLERY_VERSION = 1;
 
-export interface GalleryTemplate {
+interface GalleryTemplate {
   id: string;
   name: string;
   blurb: string;
@@ -21,7 +21,7 @@ export interface GalleryTemplate {
   steps: { name: string; does: string }[];
 }
 
-export interface Gallery {
+interface Gallery {
   version: number;
   note: string;
   templates: GalleryTemplate[];

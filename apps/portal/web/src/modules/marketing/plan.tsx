@@ -105,7 +105,7 @@ export const usePlan = () =>
 export const goalsOf = (rows: unknown[] | undefined) => (rows ?? []) as unknown as Goal[];
 
 /** Make: one row per piece with the platforms it feeds; its goals open under it. */
-export function MakeList({ goals, reload }: { goals: Goal[]; reload: () => void }) {
+function MakeList({ goals, reload }: { goals: Goal[]; reload: () => void }) {
   const pieces = byPiece(goals);
   return (
     <ul className="m-0 grid list-none gap-0 p-0">
@@ -207,7 +207,7 @@ function PieceGoals({
 }
 
 /** "To make this week: 2 clips, 3 posts." or that every goal is on track. */
-export function toMakeLine(goals: Goal[]): string {
+function toMakeLine(goals: Goal[]): string {
   const left = byPiece(goals)
     .map((p) => ({ name: p.name, n: toMake(p.goals) }))
     .filter((p) => p.n > 0);
@@ -250,7 +250,7 @@ export function dueOf(goals: Goal[]): Due[] {
 }
 
 /** "2 drafts and 1 video": a rendered cut to review counts as a video. */
-export function waitCount(branches: { platform: string; state: string }[]): string {
+function waitCount(branches: { platform: string; state: string }[]): string {
   const videos = branches.filter((b) => b.platform === "editor" && b.state === "review").length;
   const drafts = branches.length - videos;
   const n = (k: number, one: string) => `${k} ${one}${k === 1 ? "" : "s"}`;

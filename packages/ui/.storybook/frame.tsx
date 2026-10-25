@@ -55,7 +55,7 @@ const frame: Decorator = (Story, { id, globals, parameters }) => (
 
 /** The phone shell switches under 900px (`PHONE`), so a phone width sits in the list. */
 const size = (width: number, height: number) => ({ width: `${width}px`, height: `${height}px` });
-export const VIEWPORTS = {
+const VIEWPORTS = {
   phone: { name: "Phone 390", styles: size(390, 844), type: "mobile" },
   tablet: { name: "Tablet 820", styles: size(820, 1180), type: "tablet" },
   desktop: { name: "Desktop 1280", styles: size(1280, 900), type: "desktop" },

@@ -16,7 +16,7 @@ import {
   vendors,
 } from "./schema.js";
 
-export type PlannedLine = Pick<
+type PlannedLine = Pick<
   Line,
   "accountId" | "cadCents" | "amountCents" | "currency" | "rate" | "rateSource" | "memo"
 >;

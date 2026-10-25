@@ -12,7 +12,7 @@ import { primaryLink } from "./links.js";
 import { mail, type Reader } from "./schema.js";
 
 /** How far back the first run looks. */
-export const FIRST_LOOK_MS = 2 * 86_400_000;
+const FIRST_LOOK_MS = 2 * 86_400_000;
 /** Gmail's `after:` is to the second and mail lands late: look this far behind the newest kept. */
 const OVERLAP_MS = 3_600_000;
 const SKIP = "-category:promotions -category:social -in:chats";
@@ -93,9 +93,9 @@ async function linkOf(box: Mailbox, id: string, fromAddress: string): Promise<st
 }
 
 /** How many mails without a link one pass reads again. */
-export const RELINK_BATCH = 40;
+const RELINK_BATCH = 40;
 
-export interface RelinkWindow {
+interface RelinkWindow {
   /** Only mail newer than this is read again. */
   since: Date;
   /** Only mail older than this: the pass before stopped here. Null on the first pass. */

@@ -14,7 +14,7 @@ import { lock } from "./store.js";
 /** Wren's own workspace in the repo's file names. */
 export const WREN_WORKSPACE = "wren";
 
-export interface MirrorCommit {
+interface MirrorCommit {
   version: number;
   sha: string;
 }
@@ -24,7 +24,7 @@ export type MirrorResult =
   | { off: true }
   | { off?: undefined; committed: MirrorCommit[]; failed?: string };
 
-export const mirrorPath = (workspace: string) => `shapes/${workspace}.yaml`;
+const mirrorPath = (workspace: string) => `shapes/${workspace}.yaml`;
 
 /** A commit's subject line stays one line, whatever the note holds. */
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();

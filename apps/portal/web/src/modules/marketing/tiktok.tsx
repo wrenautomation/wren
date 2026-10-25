@@ -33,7 +33,7 @@ export type TikTokValues = {
   brandedContent?: boolean;
 };
 
-export interface TikTokPanelProps {
+interface TikTokPanelProps {
   values: TikTokValues;
   /** Saves one choice; answers why not, or null. */
   choose: (key: keyof TikTokValues, value: unknown) => Promise<string | null>;

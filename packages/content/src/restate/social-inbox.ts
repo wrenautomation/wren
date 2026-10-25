@@ -49,7 +49,7 @@ import {
   unknownDm,
 } from "../connect/dms.js";
 
-export interface SocialInboxDeps {
+interface SocialInboxDeps {
   main: Db;
   clientDb: (client: string) => Db;
   access: Pick<SocialAccessApi, "connection">;

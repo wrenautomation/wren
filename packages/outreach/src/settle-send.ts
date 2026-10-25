@@ -30,8 +30,8 @@ export type SettleOutcome = (typeof SETTLE_OUTCOMES)[number];
  * `sdm` a client's DM answer through its connected account (SocialInbox settles that one),
  * `draft` a post of ours on our own channel (`ContentDesk/settlePost` settles that one).
  */
-export const SEND_ITEMS = ["thread", "comment", "onpost", "dm", "private", "sdm", "draft"] as const;
-export type SendItem = (typeof SEND_ITEMS)[number];
+const SEND_ITEMS = ["thread", "comment", "onpost", "dm", "private", "sdm", "draft"] as const;
+type SendItem = (typeof SEND_ITEMS)[number];
 
 export function itemOf(item: string): { kind: SendItem; id: string } {
   const at = item.indexOf(":");

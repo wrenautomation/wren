@@ -25,7 +25,7 @@ import {
 } from "../blog.js";
 import { FROM } from "../own.js";
 
-export const BLOG_KEY = "wren";
+const BLOG_KEY = "wren";
 const TOPIC = "newsletter";
 const JSON_SERDE = restate.serde.json as unknown as restate.Serde<unknown>;
 
@@ -59,7 +59,7 @@ interface Issue {
   draft: boolean;
 }
 
-export interface BlogDeps {
+interface BlogDeps {
   db: Db;
   /** The lander repo through a token for it (`WREN_LANDER_GITHUB_TOKEN`); null: the box is off. */
   repo: GithubFiles | null;

@@ -37,7 +37,7 @@ export const words = (s: string): number => s.trim().split(/\s+/).filter(Boolean
  * The folded quote is on the folded page word for word, or each of its sentences
  * is: the model often joins two sentences from one page into one quote.
  */
-export function quotedFrom(quote: string, page: string): boolean {
+function quotedFrom(quote: string, page: string): boolean {
   if (page.includes(quote)) return true;
   const sentences = quote
     .split(/(?<=[.;·])\s+/)

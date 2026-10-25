@@ -11,7 +11,7 @@ import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { type RunEventKind, runEvents } from "./schema.js";
 
-export interface FeedSource {
+interface FeedSource {
   label: string;
   href?: string | null;
 }

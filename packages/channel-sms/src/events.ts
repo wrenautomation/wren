@@ -58,7 +58,7 @@ const START_WORDS: ReadonlySet<string> = new Set(["start", "unstop", "subscribe"
 const REVOCATION =
   /\b(stop (texting|messaging|contacting)|don'?t (text|message|contact)|do not (text|message|contact)|remove me|take me off|lose (this|my) number|unsubscribe|wrong number)\b/i;
 
-export type InboundClass = "stop" | "start" | "yes" | "reply";
+type InboundClass = "stop" | "start" | "yes" | "reply";
 
 export function classifyInbound(text: string): {
   kind: InboundClass;
@@ -76,7 +76,7 @@ export function classifyInbound(text: string): {
   return { kind: "reply", disposition: null };
 }
 
-export interface ApplyOptions {
+interface ApplyOptions {
   provider: string;
   now: Date;
   notifier?: Notifier | null;
@@ -84,7 +84,7 @@ export interface ApplyOptions {
   pusher?: Pusher | null;
 }
 
-export interface ApplyResult {
+interface ApplyResult {
   duplicate: boolean;
   outcome: string;
   /** A lead's reply (not a STOP or START): its contact, for a Reply trigger. */

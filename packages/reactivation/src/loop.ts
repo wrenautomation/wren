@@ -44,9 +44,9 @@ import { sendingOff, settingsOrNull } from "./sending.js";
 import type { ReactivationSettings } from "./settings.js";
 import type { CrmStage } from "./status.js";
 
-export const REACTIVATION_COMMAND = "reactivation pass";
+const REACTIVATION_COMMAND = "reactivation pass";
 
-export interface ReactivationLoopDeps {
+interface ReactivationLoopDeps {
   /** The client registry. */
   main: Db;
   open(client: Pick<Client, "database">): Db;
@@ -71,12 +71,12 @@ export interface ReactivationLoopDeps {
 }
 
 /** The mailbox loops this client should have running. */
-export interface MailboxLoops {
+interface MailboxLoops {
   send: string[];
   inbox: string[];
 }
 
-export interface ReactivationPassStats {
+interface ReactivationPassStats {
   /** Why no stage ran, or null. */
   off: string | null;
   stages: CrmStageResult[];
@@ -114,7 +114,7 @@ export function mailboxLoops(
 }
 
 /** The stages a pass runs: research and compose as the settings say, verify only when free. */
-export function passStages(settings: ReactivationSettings, freeVerify: boolean): CrmStage[] {
+function passStages(settings: ReactivationSettings, freeVerify: boolean): CrmStage[] {
   return [
     ...(freeVerify ? (["verify"] as const) : []),
     ...(settings.stages.research ? (["score", "brief"] as const) : []),

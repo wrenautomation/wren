@@ -236,7 +236,7 @@ const targetOf = (at: string | Target | undefined): Target =>
   typeof at === "string" ? { client: at } : (at ?? {});
 
 /** Every grant this login holds: its built-in role as one grant, then its rows. */
-export function grantsOf(who: Who): Grant[] {
+function grantsOf(who: Who): Grant[] {
   if (!who || "demo" in who) return [];
   if ("team" in who) {
     const base = (TEAM_GRANTS as Record<string, readonly Permission[] | undefined>)[who.team];
@@ -376,7 +376,7 @@ export function channelsIn(input: unknown): AccessChannel[] {
  * Where a route works: an app, an app on one channel (the email console is all email), or null,
  * "the handler checks" (records and calls, whose app comes from the record type).
  */
-export type RouteAt = string | { app: string; channel: AccessChannel } | null;
+type RouteAt = string | { app: string; channel: AccessChannel } | null;
 /** Each route's place, from its service's routes map: `"*"` for the routes it doesn't name. */
 export type RouteApps<R> = { readonly "*": RouteAt } & { readonly [K in keyof R]?: RouteAt };
 /** A route's place as a check's target: its app and channel, each left out when it has none. */

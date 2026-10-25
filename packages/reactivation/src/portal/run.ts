@@ -34,7 +34,7 @@ export interface RunPage {
   story: Story | null;
 }
 
-export interface RunQuery {
+interface RunQuery {
   run?: string | undefined;
   after?: number | undefined;
   operator: boolean;

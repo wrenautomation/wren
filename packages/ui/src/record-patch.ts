@@ -16,7 +16,7 @@ const isRow = (r: unknown, id: string): r is Row =>
   !!r && typeof r === "object" && String((r as Row).id) === id;
 
 /** What an edit's answer moves besides the row: its version, and its line atop History. */
-export interface EditMoved {
+interface EditMoved {
   version?: string | null | undefined;
   change?: unknown;
 }

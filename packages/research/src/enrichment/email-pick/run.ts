@@ -108,7 +108,7 @@ export async function gatherState(db: Queryable, company: Company): Promise<Pick
   };
 }
 
-export interface PickSelectOptions {
+interface PickSelectOptions {
   limit?: number | undefined;
   niche?: string | null | undefined;
   shard?: Shard | null | undefined;
@@ -170,7 +170,7 @@ export async function selectPickTargets(
   return opts.limit === undefined ? q : q.limit(opts.limit);
 }
 
-export interface PickUnitOptions {
+interface PickUnitOptions {
   runId?: string | null | undefined;
   tracer?: Tracer | null | undefined;
 }
@@ -219,7 +219,7 @@ export interface EmailPickStats {
   aborted: string | null;
 }
 
-export interface EmailPickRunOptions extends PickSelectOptions, PickUnitOptions {
+interface EmailPickRunOptions extends PickSelectOptions, PickUnitOptions {
   checkpoint?: (company: Company) => void | Promise<void>;
 }
 

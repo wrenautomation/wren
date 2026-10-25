@@ -7,7 +7,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { type ChatLine, ChatRefusal, readChat, say } from "../chat/store.js";
 
-export interface ChatDeps {
+interface ChatDeps {
   db: Db;
   clientDb?: (client: string) => Db;
 }

@@ -42,7 +42,7 @@ import { SOCIAL_PLATFORMS, type SocialPlatform } from "./platforms.js";
 import { SOCIAL_SETUP } from "./setups.js";
 import { type TikTokNumbers, tiktokNumbers } from "./tiktok-numbers.js";
 
-export interface SocialConsoleDeps {
+interface SocialConsoleDeps {
   main: Db;
   access: SocialAccessApi;
   /** The worker's copy of the setup; the module's own when absent. */
@@ -282,7 +282,7 @@ export function makeSocialAccess(deps: SocialConsoleDeps) {
  * What a platform sends back, as the portal's Worker passes it on. Its code and state look like
  * keys and are one-time, so this one input skips `noRawKeys`, as MailCallback's does.
  */
-export const SOCIAL_LANDING = z.looseObject({
+const SOCIAL_LANDING = z.looseObject({
   platform: z.enum(SOCIAL_PLATFORMS),
   state: z.string().max(128),
   code: z.string().max(4096).nullish(),

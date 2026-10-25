@@ -33,7 +33,7 @@ export const LOOP = "loop";
 /** The three keys `LOOP` replaced (2026-10-05): read once when `LOOP` is absent, cleared on its first write. */
 const LEGACY = { running: "running", generation: "generation", last: "last" } as const;
 
-export interface LoopState<L = PassOutcome<unknown>> {
+interface LoopState<L = PassOutcome<unknown>> {
   running: boolean;
   generation: number;
   /** The last pass outcome; `status` shows it. */
@@ -110,7 +110,7 @@ export async function setLastPass<L>(ctx: restate.ObjectContext, outcome: L): Pr
 const SETTINGS = "settings";
 export const MIN_DELAY_MS = 1_000;
 /** The first retry after a failed pass; each further failure in a row doubles it. */
-export const FIRST_RETRY_MS = 15_000;
+const FIRST_RETRY_MS = 15_000;
 
 /** Delay after the `failures`-th failed pass in a row: 15s, 30s, 1m, ... up to `capMs`. */
 export function retryDelayMs(failures: number, capMs: number): number {
@@ -196,7 +196,7 @@ export async function loopSettings<T extends object>(
   return (await ctx.get<T>(SETTINGS)) ?? null;
 }
 
-export interface PassSpec<S extends object> {
+interface PassSpec<S extends object> {
   /** The journaled step's name and the ledger row it opens. */
   name: string;
   ledger: RunOptions;
@@ -308,7 +308,7 @@ export async function notifyErrorEdges<S>(
 /** The self-send a loop makes, typed by name: the definition's own type is not yet known inside its factory. */
 type LoopSelf = { loop: (ctx: restate.ObjectContext, generation?: number) => Promise<void> };
 
-export interface LoopHooks<A extends string = never, X extends object = object> {
+interface LoopHooks<A extends string = never, X extends object = object> {
   /** Runs inside `stop`, after the key is marked stopped: for what the loop started elsewhere. */
   onStop?: (ctx: restate.ObjectContext) => Promise<void>;
   /** What one pass does outside wren (`sends` for a send loop): `sync`'s form says so. */
@@ -332,7 +332,7 @@ const START_INPUT = z
   .describe("Settings for this key; {} = back to defaults; empty keeps them");
 
 /** The longest wait after passes that threw (`passOrFailed`). */
-export const THROWN_RETRY_MS = 60 * 60_000;
+const THROWN_RETRY_MS = 60 * 60_000;
 
 /**
  * An error the loop takes as a failed pass. A terminal error, or a plain one thrown from replayed
@@ -350,7 +350,7 @@ export function failsThePass(err: unknown): boolean {
  * One pass for the chain: a pass that throws is kept as a failed one (its error in `last`, the
  * backoff of `retryDelayMs`), and the chain goes on. Never parked behind its own retries.
  */
-export async function passOrFailed<S>(
+async function passOrFailed<S>(
   ctx: restate.ObjectContext,
   pass: (ctx: restate.ObjectContext) => Promise<PassOutcome<S>>,
 ): Promise<PassOutcome<S>> {

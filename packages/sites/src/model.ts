@@ -61,13 +61,13 @@ export const FORM_ARMS = ["A", "B"] as const;
 export type FormArm = (typeof FORM_ARMS)[number];
 
 /** A hosted form's address on its owner's host: `/o/f/<slug>`. */
-export const FORM_PREFIX = "/o/f/";
+const FORM_PREFIX = "/o/f/";
 export const formUrl = (host: string, slug: string) => `https://${host}${FORM_PREFIX}${slug}`;
 
 /** Wren's own domain: its pages live at `https://<it>/o/<slug>`. */
 export const WREN_SITE = "wrenautomation.com";
 /** The path every data page and the tracker live under. */
-export const PAGE_PREFIX = "/o/";
+const PAGE_PREFIX = "/o/";
 
 export const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
 export const SLUG_MAX = 80;

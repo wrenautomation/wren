@@ -26,7 +26,7 @@ import {
 import { saveDraft, statusOf, type TemplateRef } from "./templates.js";
 
 /** The made-up lead every sample render uses; the portal's Play walks the same one. */
-export const SAMPLE_LEAD: Readonly<Record<string, string>> = {
+const SAMPLE_LEAD: Readonly<Record<string, string>> = {
   first_name: "Sam",
   last_name: "Rivera",
   name: "Sam Rivera",
@@ -162,7 +162,7 @@ const viewOf = (h: Head, v: Words | null) =>
   v ? { ...v, ...sampleOf(h.kind, h.name, v.source) } : null;
 
 /** One `[[#name a | b]]` point: its options' words and their numbers on the live version. */
-export interface VariantPoint {
+interface VariantPoint {
   name: string;
   options: { text: string; sends: number; replies: number }[];
 }

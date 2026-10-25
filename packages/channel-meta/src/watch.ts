@@ -31,7 +31,7 @@ export const WATCH_KEY = "default";
 const SUGGESTED = "suggested";
 const DESK_KEY = "default";
 const DEFAULT_EVERY_MS = 24 * 60 * 60 * 1000;
-export const DEFAULT_PAUSE_AFTER_USD = 50;
+const DEFAULT_PAUSE_AFTER_USD = 50;
 
 /** The `Ads` service's handlers this loop calls, as the worker serves them. */
 type AdsService = {
@@ -50,7 +50,7 @@ type ContentDesk = {
   ) => Promise<{ idea: { id: string } }>;
 };
 
-export interface AdsWatchDeps {
+interface AdsWatchDeps {
   db: Db;
   everyMs?: number;
   /** Spend in the 7-day window that, with nothing to show, pauses the launch (default $50). */

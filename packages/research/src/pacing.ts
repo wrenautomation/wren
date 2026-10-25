@@ -9,7 +9,7 @@ import { SiteCallError, type SiteClient } from "@wren/core/content";
  * A 429 asking for this long or less is pacing: wait and ask again. Longer is
  * a daily cap. autobrowse refuses a paced call once its slot is 2+ minutes out.
  */
-export const PACE_MAX_S = 300;
+const PACE_MAX_S = 300;
 const PACE_TRIES = 3;
 
 /** A daily cap said stop: when to try again. */

@@ -70,7 +70,7 @@ export function railOf(run: RunRow, team: boolean, id: string = run.setup): Rail
 export const currentOf = (run: RunRow): StepRow | null =>
   run.step ? (run.steps.find((s) => s.id === run.step) ?? null) : null;
 
-export interface SetupProgress {
+interface SetupProgress {
   done: number;
   total: number;
   /** One segment a setup, in order: done or not. */

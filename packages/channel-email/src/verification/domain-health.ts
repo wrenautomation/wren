@@ -13,17 +13,17 @@ import type { Mailboxes } from "../send/mailboxes.js";
 import { type Sender, senderDomain } from "../send/roster.js";
 import { ipStanding, type Resolver } from "./prober-health.js";
 
-export const DOMAIN_LISTS = {
+const DOMAIN_LISTS = {
   dbl: "dbl.spamhaus.org",
   surbl: "multi.surbl.org",
   uribl: "multi.uribl.com",
 } as const;
-export type DomainList = keyof typeof DOMAIN_LISTS;
+type DomainList = keyof typeof DOMAIN_LISTS;
 const LIST_NAMES = Object.keys(DOMAIN_LISTS) as DomainList[];
-export type ListStanding = "listed" | "clear" | "not checked";
+type ListStanding = "listed" | "clear" | "not checked";
 
 /** One try per lookup, then it reads as failed. */
-export const LOOKUP_TIMEOUT_MS = 3000;
+const LOOKUP_TIMEOUT_MS = 3000;
 const bounded = () => new dns.Resolver({ timeout: LOOKUP_TIMEOUT_MS, tries: 1 });
 
 export interface DomainResolver extends Resolver {
@@ -43,7 +43,7 @@ export interface DomainTarget {
   smtpHost: string | null;
 }
 
-export interface DomainStanding {
+interface DomainStanding {
   domain: string;
   fleet: boolean;
   lists: Record<DomainList, ListStanding>;

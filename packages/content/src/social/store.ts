@@ -17,10 +17,10 @@ import { linkCommentAuthors, touchFromActivity } from "../touches.js";
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 /** Posts this young are read for comments. */
-export const RECENT_DAYS = 14;
+const RECENT_DAYS = 14;
 /** Older than this, a post is read every `SLOW_EVERY_MS`, not every pass. */
 export const FRESH_DAYS = 3;
-export const SLOW_EVERY_MS = 2 * HOUR;
+const SLOW_EVERY_MS = 2 * HOUR;
 
 export interface RecentPost {
   platform: Platform;

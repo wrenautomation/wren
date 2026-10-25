@@ -15,7 +15,7 @@ export function armOf(templateName: string): string | null {
 }
 
 /** One email in the cadence: which template, how many business days after the opener. */
-export interface SequenceStep {
+interface SequenceStep {
   readonly template: string;
   readonly day: number;
 }

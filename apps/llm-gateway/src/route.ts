@@ -17,9 +17,9 @@ export interface Env {
 /** Tries per model before moving down the chain. */
 const TRIES_PER_MODEL = 6;
 /** One upstream try: until the reply is read, or for a stream until its headers. */
-export const ATTEMPT_MS = 20_000;
+const ATTEMPT_MS = 20_000;
 /** The whole request, every try included. */
-export const DEADLINE_MS = 100_000;
+const DEADLINE_MS = 100_000;
 
 /** One key per line; after the first space a line is a note, and `#` lines are comments. */
 export function keysOf(env: Env, p: Provider): string[] {
@@ -48,13 +48,13 @@ export const error = (status: number, message: string, headers?: HeadersInit) =>
   json(status, { error: { message, type: "gateway_error" } }, headers);
 
 /** The ledger as the Worker sees it: the Durable Object's stub, or a test double. */
-export interface LedgerApi {
+interface LedgerApi {
   acquire(t: Target): Promise<number | null> | number | null;
   report(t: Target, idx: number, outcome: Outcome, detail?: string): Promise<void> | void;
 }
 
 /** Which model answered (null: none did) and the reply's total tokens when it said. */
-export type OnDone = (winner: Target | null, totalTokens: number | null) => Promise<void> | void;
+type OnDone = (winner: Target | null, totalTokens: number | null) => Promise<void> | void;
 
 export async function complete(
   body: Record<string, unknown>,
@@ -185,7 +185,7 @@ export const NATIVE_BASE = "https://generativelanguage.googleapis.com/v1beta/mod
 export const NATIVE_METHODS = ["generateContent", "embedContent", "batchEmbedContents"] as const;
 export type NativeMethod = (typeof NATIVE_METHODS)[number];
 /** A video read takes minutes: one try waits this long. */
-export const NATIVE_ATTEMPT_MS = 240_000;
+const NATIVE_ATTEMPT_MS = 240_000;
 
 /**
  * `POST /v1beta/models/<model>:<method>` passed through to Gemini on a key with room: the same

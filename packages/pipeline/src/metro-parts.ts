@@ -6,7 +6,7 @@
 import type { Attach, MetroBody, MetroStation } from "./metro.js";
 
 export const PART_KINDS = ["line", "group", "station", "flow"] as const;
-export type PartKind = (typeof PART_KINDS)[number];
+type PartKind = (typeof PART_KINDS)[number];
 
 export interface Part {
   kind: PartKind;
@@ -14,7 +14,7 @@ export interface Part {
 }
 
 /** What a part holds: its name, its stations in body order, its own attachments (none on a flow). */
-export interface PartRead {
+interface PartRead {
   part: Part;
   label: string;
   stations: MetroStation[];

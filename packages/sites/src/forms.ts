@@ -77,7 +77,7 @@ export interface FormField {
   show?: ShowRule;
 }
 
-export type FormAfter = { kind: "thanks"; text: string } | { kind: "redirect"; url: string };
+type FormAfter = { kind: "thanks"; text: string } | { kind: "redirect"; url: string };
 
 export interface FormSpec {
   title: string;
@@ -91,15 +91,15 @@ export interface FormSpec {
 
 /** The consent box's key: the door reads it (`HOOK_PRESETS.site`) and only a "yes" counts. */
 export const CONSENT_KEY = "sms_consent";
-export const FIELDS_MAX = 30;
+const FIELDS_MAX = 30;
 /** Steps past the first: a form has at most 10. */
 export const STEPS_MAX = 9;
-export const OPTIONS_MAX = 30;
+const OPTIONS_MAX = 30;
 const KEY = /^[a-z][a-z0-9_]{0,39}$/;
 /** Never a field: the kit's own and the trap. */
 const RESERVED = new Set(["page", "form", "view", "website", "cf_turnstile_response"]);
 /** The longest any value is kept. */
-export const VALUE_MAX = 2000;
+const VALUE_MAX = 2000;
 
 /** TCPA wording for a text opt-in, with the business named. Kept with each submit, by version. */
 export const consentWords = (business: string) =>
@@ -431,7 +431,7 @@ export const consentOf = (spec: FormSpec): string | null =>
   spec.fields.find((f) => f.kind === "consent")?.label ?? null;
 
 /** Where a form posts and what it's counted under. */
-export interface FormContext {
+interface FormContext {
   /** The form's id: posts and events carry it. */
   form: string;
   /** The page it sits on, when it's a page's section. */

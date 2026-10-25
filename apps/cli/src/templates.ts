@@ -41,7 +41,7 @@ import { pruneTemplates } from "./template-prune.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-export interface TemplateDbs {
+interface TemplateDbs {
   /** The command's database: `--client`'s, else main. */
   withDb: WithDb;
   withMainDb: WithDb;

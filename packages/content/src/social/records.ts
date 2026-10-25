@@ -114,9 +114,9 @@ export const activityRecord = defineRecord({
 });
 
 /** What waits on William in To approve: unread, unsorted or waiting. */
-export const INBOX_WAITING = { state: ["new", "waiting"] } as const;
+const INBOX_WAITING = { state: ["new", "waiting"] } as const;
 /** What waits on the team in the Inbox: open threads (designs/2026-10-07-inbox-reply.md). */
-export const INBOX_OPEN = { status: ["open"] } as const;
+const INBOX_OPEN = { status: ["open"] } as const;
 
 /** An email reply's state, in the Inbox's words: its call invite's, when it has one. */
 const INVITE: Record<string, string> = {
@@ -879,7 +879,7 @@ const replyItem = (r: InboxReply) => ({
  * Where an outbound item lives in Outreach (designs/2026-10-16-outreach-app.md): a comment to
  * write in Engage, an invite in Invites; null for the rest.
  */
-export function outreachOf(id: string): string | null {
+function outreachOf(id: string): string | null {
   const [type, rest] = typed(id);
   if (type === "thread" || type === "onpost") return `/outreach/engage/${encodeURIComponent(id)}`;
   if (type === "invite" || type === "connect")
@@ -895,7 +895,7 @@ export function outreachOf(id: string): string | null {
  * draft's slot, else when it came.
  */
 /** To approve; a post draft's fields come with it, its stored files signed by `signer`. */
-export const approvalRecordOf = (signer?: VideoSigner) =>
+const approvalRecordOf = (signer?: VideoSigner) =>
   defineRecord({
     id: "marketing.approval",
     app: "marketing",
@@ -1367,7 +1367,7 @@ export const approvalRecord = approvalRecordOf();
  * own page's actions; links he pastes land here too (`ReachDesk.paste`).
  */
 /** Engage; a sent comment's shot signed by `signer`. */
-export const engageRecordOf = (signer?: VideoSigner) =>
+const engageRecordOf = (signer?: VideoSigner) =>
   defineRecord({
     id: "marketing.engage",
     app: "marketing",

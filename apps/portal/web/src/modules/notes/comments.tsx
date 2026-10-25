@@ -34,7 +34,7 @@ interface Marks {
   active: string | null;
   decos: DecorationSet;
 }
-export const COMMENTS = new PluginKey<Marks>("comments");
+const COMMENTS = new PluginKey<Marks>("comments");
 
 type Mapping = Parameters<typeof relativePositionToAbsolutePosition>[3];
 

@@ -27,7 +27,7 @@ import {
 } from "./schema.js";
 
 /** The account our own pages speak as (content comments, LinkedIn post comments). */
-export const OWN_ACCOUNT = "wren";
+const OWN_ACCOUNT = "wren";
 
 /**
  * A touch write never fails the send or read it follows: the source row already holds the
@@ -55,7 +55,7 @@ type CommentLinkRow = Pick<Comment, "platform" | "url" | "ref" | "post" | "paren
   Partial<Pick<Comment, "answerRef">>;
 
 /** The page of their comment (or reply, or mention) on its platform. */
-export const commentLink = (c: CommentLinkRow, kind: TouchKind = "comment") =>
+const commentLink = (c: CommentLinkRow, kind: TouchKind = "comment") =>
   itemLink(c.platform, kind, {
     url: c.url,
     externalId: c.ref,
@@ -64,7 +64,7 @@ export const commentLink = (c: CommentLinkRow, kind: TouchKind = "comment") =>
   });
 
 /** The page of our answer under their comment. */
-export const answerLink = (c: CommentLinkRow) =>
+const answerLink = (c: CommentLinkRow) =>
   itemLink(c.platform, "reply", {
     url: c.url,
     externalId: c.answerRef,
@@ -73,7 +73,7 @@ export const answerLink = (c: CommentLinkRow) =>
   });
 
 /** The page of our comment in a Reddit thread. */
-export const threadLink = (
+const threadLink = (
   t: Pick<typeof redditThreads.$inferSelect, "id" | "url" | "target" | "answerRef">,
 ) =>
   itemLink("reddit", t.target?.startsWith("t1_") ? "reply" : "comment", {

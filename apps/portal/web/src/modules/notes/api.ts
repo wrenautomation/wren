@@ -21,9 +21,9 @@ export type NoteShare = NoteOpen["shares"][number];
 export type NoteBacklink = Out<"backlinks">["notes"][number];
 export type NoteComments = Out<"comments">;
 export type NoteMention = Out<"mentions">["mentions"][number];
-export type BoardList = Out<"boards">;
+type BoardList = Out<"boards">;
 export type BoardInfo = BoardList["boards"][number];
-export type BoardOpen = Out<"board">;
+type BoardOpen = Out<"board">;
 export type Card = BoardOpen["cards"][number];
 export type CardOpen = Out<"task">;
 export type CardMoves = Out<"taskMoves">["moves"];
@@ -56,7 +56,7 @@ export async function readBoard(
 }
 
 /** The board on screen, or beside a card: one key, so the board and its cards' pages share it. */
-export const boardKey = (client: string, id: string) => `notes:board:${client}:${id}`;
+const boardKey = (client: string, id: string) => `notes:board:${client}:${id}`;
 
 /** A board read through the data layer: kept on the device, change-only after the first read. */
 export const useBoard = (client: string, id: string | null | undefined): Load<BoardOpen> =>
@@ -84,7 +84,7 @@ export function mentionHref(id: string): string | null {
 }
 
 /** Which of the eight kind hues is a person's, 1 to 8, the same for them everywhere. */
-export function hueIndex(email: string): number {
+function hueIndex(email: string): number {
   let h = 0;
   for (const c of email.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return (h % 8) + 1;

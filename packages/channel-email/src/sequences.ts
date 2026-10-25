@@ -64,7 +64,7 @@ export function sendPolicyFor(settings: Sending, base: SendPolicy): SendPolicy {
 export const sharedFor = (main: Db, client: string): SharedSuppressions => ({ main, client });
 
 /** A client's sequences this pass, or why there is nothing to do. */
-export type ClientSequences =
+type ClientSequences =
   | { kind: "gone"; why: string }
   | { kind: "work"; client: Pick<Client, "id" | "database">; settings: SequencesSettings };
 
@@ -102,7 +102,7 @@ export function clientCampaign(base: Campaign, settings: SequencesSettings): Cam
   };
 }
 
-export interface ClientScopeDeps {
+interface ClientScopeDeps {
   main: Db;
   open(client: Pick<Client, "database">): Db;
   /** Wren's rules, which a client's caps adjust. */

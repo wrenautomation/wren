@@ -56,9 +56,9 @@ export async function settleAlerts(
 }
 
 /** Days before a yearly renewal (or a trial's end) that it is worth a word. */
-export const RENEWAL_NOTICE_DAYS = 14;
+const RENEWAL_NOTICE_DAYS = 14;
 /** Days past a renewal with no new bill before a subscription counts as lapsed. */
-export const LAPSED_AFTER_DAYS = 7;
+const LAPSED_AFTER_DAYS = 7;
 
 /** Every open condition the books themselves show on `on`. */
 export async function bookConditions(db: Db, on: string): Promise<Condition[]> {

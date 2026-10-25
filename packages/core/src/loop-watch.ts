@@ -19,19 +19,19 @@ import type { TimedOut } from "./restate/limits.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 
 export const LOOP_WATCH_KEY = "all";
-export const LOOP_WATCH_EVERY_MS = 10 * 60_000;
+const LOOP_WATCH_EVERY_MS = 10 * 60_000;
 const MIN = 60_000;
 
 /** What a healthy loop looks like: how long a pass may sit without moving, and the slack on its next pass. */
-export interface LoopExpect {
+interface LoopExpect {
   /** No call on the key moved for this long: stuck. */
   stallMs: number;
   /** A loop between passes, no call queued, is dead only this long after its next pass was due. */
   graceMs: number;
 }
-export const DEFAULT_EXPECT: LoopExpect = { stallMs: 45 * MIN, graceMs: 10 * MIN };
+const DEFAULT_EXPECT: LoopExpect = { stallMs: 45 * MIN, graceMs: 10 * MIN };
 /** The exceptions, by service. Everything else is `DEFAULT_EXPECT`. */
-export const LOOP_EXPECT: Readonly<Record<string, Partial<LoopExpect>>> = {
+const LOOP_EXPECT: Readonly<Record<string, Partial<LoopExpect>>> = {
   // A pass reads every watched person through the desk, one call after another: 70 min seen.
   ReachWatch: { stallMs: 90 * MIN },
 };
@@ -159,13 +159,13 @@ export interface Incident {
   blocker?: OpenCall | null;
 }
 
-export interface Notice {
+interface Notice {
   level: NotifyLevel;
   title: string;
   body: string;
 }
 
-export interface WatchPlan {
+interface WatchPlan {
   /** Loops to wake. */
   restart: { service: string; key: string }[];
   /** Incidents opened this check (one notice each) and ones whose restarts ran out. */
@@ -281,7 +281,7 @@ const callOf = (r: Record<string, unknown>): OpenCall => ({
  * Every loop Restate still serves, with the calls on its key that are not done and what the
  * lock holder waits on. A `running` key left by a retired service is skipped.
  */
-export async function readLoopViews(admin: RestateAdmin): Promise<LoopView[]> {
+async function readLoopViews(admin: RestateAdmin): Promise<LoopView[]> {
   const [stateRows, openRows, serviceRows] = await Promise.all([
     admin(LOOPS_SQL),
     admin(OPEN_SQL),
@@ -337,7 +337,7 @@ export async function loopHealth(admin: RestateAdmin, now: Date): Promise<LoopHe
     .sort((a, b) => rank[a.health] - rank[b.health] || a.id.localeCompare(b.id));
 }
 
-export interface LoopWatchDeps {
+interface LoopWatchDeps {
   main: Db;
   admin: RestateAdmin;
   notifier?: Notifier;
@@ -360,7 +360,7 @@ export interface LoopWatchPass {
 const INCIDENTS = "incidents";
 
 /** Each loop whose last pass gave up on a call, with the count and the units it held. */
-export function timedOutOf(health: readonly LoopHealth[]): LoopWatchPass["timedOut"] {
+function timedOutOf(health: readonly LoopHealth[]): LoopWatchPass["timedOut"] {
   const out: LoopWatchPass["timedOut"] = {};
   for (const h of health)
     if (h.timeouts.length)
@@ -369,7 +369,7 @@ export function timedOutOf(health: readonly LoopHealth[]): LoopWatchPass["timedO
 }
 
 /** One check: read, sort, plan; the letters of new stuck loops looked up. No Restate calls. */
-export async function loopWatchCheck(
+async function loopWatchCheck(
   deps: Pick<LoopWatchDeps, "main" | "admin">,
   before: Readonly<Record<string, Incident>>,
   now: Date,

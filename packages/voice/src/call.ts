@@ -44,7 +44,7 @@ export interface Pipeline {
 }
 
 /** "text · scripted", "telnyx · deepgram · llm:claude · cartesia": what latency is grouped by. */
-export function pipelineName(p: Pipeline): string {
+function pipelineName(p: Pipeline): string {
   return p.transport.carries === "text"
     ? `${p.transport.name} · ${p.brain.name}`
     : [p.transport.name, p.ears?.name ?? "?", p.brain.name, p.mouth?.name ?? "?"].join(" · ");
@@ -88,7 +88,7 @@ export interface CallResult {
   endedAt: Date;
 }
 
-export interface CallOptions {
+interface CallOptions {
   pipeline: Pipeline;
   agent: AgentSettings;
   ports: ToolPorts;

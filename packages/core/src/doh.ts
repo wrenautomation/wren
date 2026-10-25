@@ -1,6 +1,6 @@
 /** Tiny DNS-over-HTTPS lookups (Cloudflare resolver). Used by domain setup audits and verification's MX checks. */
 
-export const DOH_ENDPOINT = "https://cloudflare-dns.com/dns-query";
+const DOH_ENDPOINT = "https://cloudflare-dns.com/dns-query";
 export type DnsType = "TXT" | "MX" | "A" | "AAAA";
 const TYPE_CODES: Record<DnsType, number> = { TXT: 16, MX: 15, A: 1, AAAA: 28 };
 // DNS RCODEs carried in the DNS-JSON `Status` field (RFC 1035 §4.1.1).
@@ -8,7 +8,7 @@ const NOERROR = 0;
 const NXDOMAIN = 3;
 
 /** The resolver could not be reached or answered non-2xx: resolver trouble, not evidence about the name. */
-export class DohError extends Error {
+class DohError extends Error {
   override name = "DohError";
 }
 /**

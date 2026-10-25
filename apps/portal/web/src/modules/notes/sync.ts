@@ -30,7 +30,7 @@ export type SyncState = "saved" | "saving" | "offline" | "failed";
 export const REMOTE = Symbol("server");
 
 /** What the page hears about the note while it's open. */
-export interface SyncHooks {
+interface SyncHooks {
   onState: (s: SyncState) => void;
   onSaved: (out: { version: number; updatedAt: string | null; editedBy: string | null }) => void;
   onRefused: (message: string, status: number) => void;

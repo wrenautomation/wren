@@ -17,10 +17,10 @@ import { overturePlaces, pppLoans, sbaSearch } from "@wren/research/fetch";
 export const RECRUITING_COUNTRIES = ["US", "CA"] as const;
 
 /** Overture `taxonomy.primary` for staffing and recruiting firms. */
-export const STAFFING_PLACE_CATEGORIES = ["employment_agency", "temp_agency"] as const;
+const STAFFING_PLACE_CATEGORIES = ["employment_agency", "temp_agency"] as const;
 
 /** A domain at this many open places or more is a chain (core's default is 3). */
-export const RECRUITING_CHAIN_AT = 11;
+const RECRUITING_CHAIN_AT = 11;
 
 /** NAICS for placement, executive search and temp staffing. 561330 (PEOs) is left out: payroll, not recruiting. */
 export const STAFFING_NAICS = ["561311", "561312", "561320"] as const;

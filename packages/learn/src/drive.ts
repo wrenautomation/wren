@@ -162,7 +162,7 @@ const fresh = sql`${items.archivedAt} is null and ${items.openedAt} is null
   and (${items.savedAt} is not null or ${items.verdict} is null or ${items.verdict} <> 'drop')`;
 
 /** A place as a filter; null for a place that isn't one. */
-export function placeWhere(place: string): SQL | undefined | null {
+function placeWhere(place: string): SQL | undefined | null {
   const live = isNull(items.archivedAt);
   switch (place) {
     case "inbox":

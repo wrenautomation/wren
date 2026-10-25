@@ -73,7 +73,7 @@ const nullableString = z
   .optional()
   .transform((v) => v ?? null);
 
-export const ClassifiedEmail = z.object({
+const ClassifiedEmail = z.object({
   email: z.string(),
   classification: z.string().default("role"),
   person_name: nullableString,
@@ -81,25 +81,20 @@ export const ClassifiedEmail = z.object({
   /** The page the address was printed on: filled from the scan, never by the model. */
   page_url: nullableString,
 });
-export type ClassifiedEmail = z.infer<typeof ClassifiedEmail>;
+type ClassifiedEmail = z.infer<typeof ClassifiedEmail>;
 
-export const PickResult = z.object({
+const PickResult = z.object({
   emails: z.array(ClassifiedEmail).default([]),
   best_send_to: nullableString,
   notes: nullableString,
 });
-export type PickResult = z.infer<typeof PickResult>;
+type PickResult = z.infer<typeof PickResult>;
 
 export function parsePick(text: string): PickResult | string {
   return parseModel(text, PickResult);
 }
 
-export type PickMethod =
-  | "no_signals"
-  | "no_scannable_content"
-  | "auto_accept"
-  | "classify"
-  | "rules";
+type PickMethod = "no_signals" | "no_scannable_content" | "auto_accept" | "classify" | "rules";
 export const FREE_PICK_METHODS: ReadonlySet<string> = new Set([
   "auto_accept",
   "no_signals",
@@ -120,13 +115,13 @@ export interface Pick {
   ungrounded_names?: string[];
 }
 
-export interface PickCompany {
+interface PickCompany {
   name: string | null;
   domain: string | null;
   pages: string[];
   snippet: string;
 }
-export interface PickPerson {
+interface PickPerson {
   full_name: string;
   title: string | null;
   first_name?: string | null;
@@ -165,17 +160,17 @@ export function route(state: PickState): Route {
 
 const classifyLocal = (email: string): string => (isRoleLocalpart(email) ? "role" : "person");
 
-export function emptyVerdict(_state: PickState): Pick {
+function emptyVerdict(_state: PickState): Pick {
   return { method: "no_signals", emails: [], best_send_to: null };
 }
 
 /** "Nothing scannable ever existed" is a different fact from "scanned and found nothing". */
-export function noContent(_state: PickState): Pick {
+function noContent(_state: PickState): Pick {
   return { method: "no_scannable_content", emails: [], best_send_to: null };
 }
 
 /** One on-domain address, nobody to disambiguate: nothing to ask. */
-export function autoAccept(state: PickState): Pick {
+function autoAccept(state: PickState): Pick {
   const first = state.signals[0];
   if (!first) throw new Error("autoAccept requires one signal");
   const email = first.email;

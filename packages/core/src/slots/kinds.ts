@@ -21,7 +21,7 @@ export const TEMPLATE_KINDS = ["email", "sms", "dm", "post", "prompt"] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
 /** Control characters but tab and newline: a fact can't smuggle a carriage return or an escape in. */
-export const stripControls = (s: string): string =>
+const stripControls = (s: string): string =>
   // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point
   s.replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "");
 

@@ -79,13 +79,13 @@ import {
   voidDocs,
 } from "./store.js";
 
-export interface DocumentsConsoleDeps extends Pick<DocumentsDeps, "main" | "open" | "files"> {
+interface DocumentsConsoleDeps extends Pick<DocumentsDeps, "main" | "open" | "files"> {
   /** The e-signature provider is set up: a sealed document may be sent. */
   sealed?: boolean;
 }
 
 /** What a new document or a draft's change may carry. */
-export interface DocFields {
+interface DocFields {
   template?: string | null;
   kind?: string | null;
   title?: string | null;
@@ -106,7 +106,7 @@ export interface DocFields {
   expect?: unknown;
 }
 export interface CreateRequest extends PortalRequest, DocFields {}
-export interface UpdateRequest extends PortalRequest, DocFields {
+interface UpdateRequest extends PortalRequest, DocFields {
   id: string;
 }
 export interface IdRequest extends PortalRequest {

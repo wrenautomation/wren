@@ -6,7 +6,7 @@
 import { type Edit, type EditConflictState, useEdit } from "@wren/ui";
 import { useMemo } from "react";
 
-export interface EditJson<T> {
+interface EditJson<T> {
   value: T;
   set: (value: T) => void;
   dirty: boolean;

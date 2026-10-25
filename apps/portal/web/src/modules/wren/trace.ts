@@ -53,7 +53,7 @@ export const cardOf = (s: Pick<TraceStep, "node" | "port">) => {
   return head === "out" ? `out.${s.port}` : head;
 };
 
-export interface Trace {
+interface Trace {
   /** Cards it reached, and the inputs it entered by: lit, the rest faded. */
   lit: string[];
   /** How each reached card went. */

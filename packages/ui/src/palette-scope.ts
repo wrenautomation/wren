@@ -54,7 +54,7 @@ export const useScoped = (): Scope =>
  * Claude gets the record, not just the address. `ask` is set when the record has edits, so the
  * answer comes back as a patch in its panel.
  */
-export interface OpenRecord {
+interface OpenRecord {
   /** Its type's id and its own: "marketing.text_copy", "recruiting-sms#1". */
   type: string;
   id: string;

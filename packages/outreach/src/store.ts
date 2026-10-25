@@ -12,7 +12,7 @@ import { ReachRefusal } from "./refusal.js";
 import { checkBody, render, sampleFields, type TemplateSlot } from "./sequences.js";
 
 /** Whose messages these are in the template store. */
-export const REACH_SYSTEM = "reach";
+const REACH_SYSTEM = "reach";
 export const dmRef = (key: string): TemplateRef => ({
   kind: "dm",
   system: REACH_SYSTEM,

@@ -26,13 +26,13 @@ import { type CrmRunDeps, type CrmStageResult, runCrm } from "./run.js";
 import { reactivationSettingsOf } from "./settings.js";
 import { CRM_STAGES, type CrmStage } from "./status.js";
 
-export const CRM_RUN_COMMAND = "crm run";
+const CRM_RUN_COMMAND = "crm run";
 /** Units per stage in one call when none is asked. */
-export const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 10;
 /** The most units per stage one call takes: a call is one invocation and must end in time. */
 export const MAX_LIMIT = 25;
 /** Moves one `settle` call asks the model about at most: a short answer each. */
-export const SETTLE_LIMIT = 100;
+const SETTLE_LIMIT = 100;
 
 /** What a client's model and sites are for, on their usage rows. */
 export interface CrmRunScope {
@@ -41,7 +41,7 @@ export interface CrmRunScope {
   runId: string | null;
 }
 
-export interface CrmRunWorkerDeps {
+interface CrmRunWorkerDeps {
   main: Db;
   open(client: Pick<Client, "database">): Db;
   /** Wren's verifier, checker, fetcher and model; `sites` and `llm` are made per client below. */
@@ -57,7 +57,7 @@ export interface CrmRunWorkerDeps {
   timezone?: string;
 }
 
-export interface CrmRunRequest {
+interface CrmRunRequest {
   /** Only these stages; all that are due when left out. */
   only?: CrmStage[] | null;
   /** Units per stage, at most `MAX_LIMIT`. */
@@ -66,13 +66,13 @@ export interface CrmRunRequest {
   linkedin?: boolean | null;
 }
 
-export interface CrmRunResult {
+interface CrmRunResult {
   client: string;
   run: string;
   stages: CrmStageResult[];
 }
 
-export interface CrmLookupRequest {
+interface CrmLookupRequest {
   /** People at most, up to `MAX_LIMIT`. */
   limit?: number | null;
   /** People looked up at once. */
@@ -84,19 +84,19 @@ export interface CrmLookupRequest {
   after?: number | null;
 }
 
-export interface CrmRedraftRequest {
+interface CrmRedraftRequest {
   /** These enrollments, up to `MAX_LIMIT`; else every untouched draft, a slice past `after`. */
   ids?: number[] | null;
   limit?: number | null;
   after?: number | null;
 }
 
-export interface CrmSettleRequest {
+interface CrmSettleRequest {
   limit?: number | null;
   after?: number | null;
 }
 
-export interface CrmSliceResult<S> {
+interface CrmSliceResult<S> {
   client: string;
   run: string;
   stats: S;

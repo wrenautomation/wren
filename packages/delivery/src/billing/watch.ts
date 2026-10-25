@@ -22,14 +22,14 @@ import type { WiseReader } from "./wise.js";
 
 export const BILLING_WATCH = "BillingWatch";
 export const BILLING_KEY = "fleet";
-export const BILLING_COMMAND = "delivery billing watch";
+const BILLING_COMMAND = "delivery billing watch";
 
 const MINUTE = 60_000;
 const EVERY = 15 * MINUTE;
 /** Each pass reads this far back: credits are stored once, so the overlap costs nothing. */
 const LOOKBACK_MS = 7 * 24 * 60 * MINUTE;
 
-export interface BillingDeps {
+interface BillingDeps {
   main: Db;
   /** Our Wise account, read only; null = no credits read (no token here). */
   wise: WiseReader | null;
@@ -49,7 +49,7 @@ export interface BillingDeps {
   fire?: FireTriggers;
 }
 
-export interface BillingStats {
+interface BillingStats {
   /** Invoices made for the month. */
   billed: number;
   mailed: number;
@@ -64,7 +64,7 @@ export interface BillingStats {
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** One line per credit worth a person's eye. */
-export function creditLine(t: Taken): string {
+function creditLine(t: Taken): string {
   const c = t.credit;
   const sent = amount(c.cents + c.feeCents, c.currency);
   const from = c.payer ? ` from ${c.payer}` : "";

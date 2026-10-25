@@ -206,7 +206,7 @@ async function syncAuditTriggers(db: Db): Promise<{ added: number; removed: numb
   return { added, removed };
 }
 
-export type AuditSeal = {
+type AuditSeal = {
   id: number;
   sealedAt: string;
   /** Where the seal starts and ends: (era, tx), see ./install.ts. */
@@ -220,7 +220,7 @@ export type AuditSeal = {
 };
 
 /** How long a seal waits for another seal's lock before giving up; the next pass tries again. */
-export const SEAL_LOCK_WAIT_MS = 10_000;
+const SEAL_LOCK_WAIT_MS = 10_000;
 
 /**
  * Seal every event of the transactions finished since the last seal. Null when

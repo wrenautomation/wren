@@ -7,7 +7,7 @@
 const MIN = 60_000;
 
 /** Within `within` ms of the last touch, check every `every` ms. First match wins. */
-export const WARM_TIERS: readonly { within: number; every: number }[] = [
+const WARM_TIERS: readonly { within: number; every: number }[] = [
   { within: 15 * MIN, every: 2 * MIN },
   { within: 60 * MIN, every: 5 * MIN },
   { within: 6 * 60 * MIN, every: 15 * MIN },

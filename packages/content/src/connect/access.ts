@@ -34,9 +34,9 @@ import {
 import { type SocialConnectionRow, socialConnections, socialGrants } from "./schema.js";
 import type { TikTokNumbers } from "./tiktok-numbers.js";
 
-export type SocialApps = Partial<Record<SocialApp, SocialAppKeys>>;
+type SocialApps = Partial<Record<SocialApp, SocialAppKeys>>;
 
-export interface SocialDeps {
+interface SocialDeps {
   main: Db;
   /** Wren's apps, from the key store; a missing one is "Needs setup". */
   apps: () => Promise<SocialApps>;
@@ -53,11 +53,11 @@ export interface SocialDeps {
 /** The fact a connection's setup makes true. */
 export const SOCIAL_FACT = "social.connected";
 /** Who reads and writes social tokens in the key store's log. */
-export const SOCIAL_KEYS = "wren:social";
+const SOCIAL_KEYS = "wren:social";
 /** A sign-in's link lives half an hour. */
 const CONNECT_MS = 30 * 60_000;
 /** LinkedIn's 60 days: warn this long before. */
-export const EXPIRY_WARN_MS = 7 * 86_400_000;
+const EXPIRY_WARN_MS = 7 * 86_400_000;
 
 export const callbackUrl = (origin: string, platform: SocialPlatform) =>
   `${origin.replace(/\/+$/, "")}/oauth/social/${platform}`;
@@ -70,7 +70,7 @@ export const connectionIdOf = (login: string | null | undefined): number | null 
 };
 
 /** A refusal said to a person: the page shows it as is. */
-export class SocialRefusal extends PortalRefusal {
+class SocialRefusal extends PortalRefusal {
   constructor(message: string, status: RefusalStatus = 409) {
     super(message, status);
   }
@@ -82,9 +82,9 @@ export function tokenName(platform: SocialPlatform, externalId: string) {
   return `SOCIAL_${platform.toUpperCase()}_${h.toUpperCase()}`;
 }
 
-export type SocialStateName = "not_connected" | "waiting_review" | "connected" | "broken";
+type SocialStateName = "not_connected" | "waiting_review" | "connected" | "broken";
 
-export interface ConnectionView {
+interface ConnectionView {
   id: number;
   name: string | null;
   handle: string | null;
@@ -493,7 +493,7 @@ export async function liveConnections(
 }
 
 /** Expired or used grants older than a day. */
-export async function sweepSocialGrants(main: Queryable, at: Date): Promise<void> {
+async function sweepSocialGrants(main: Queryable, at: Date): Promise<void> {
   await main
     .delete(socialGrants)
     .where(

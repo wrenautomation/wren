@@ -9,7 +9,7 @@ import { type Queryable, snapshot } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { CRM_FORMATS } from "./formats.js";
 
-export const DEAD_SHARE_GATE = 0.1;
+const DEAD_SHARE_GATE = 0.1;
 
 export interface CrmHealth {
   rows: number;

@@ -59,7 +59,7 @@ export interface CallBrief {
 }
 
 /** How much of each part a brief keeps: one screen. */
-export const BRIEF_LIMITS = {
+const BRIEF_LIMITS = {
   thread: 3,
   facts: 6,
   posts: 3,

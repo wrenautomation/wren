@@ -49,7 +49,7 @@ export function afterText(ms: number): string {
 }
 
 /** The test's steps as an execution's: each keeps its index as its id and ms as its time. */
-export function dryTrace(w: Drawn, steps: readonly DryStep[]) {
+function dryTrace(w: Drawn, steps: readonly DryStep[]) {
   const ts: TraceStep[] = steps.map((s, i) => ({
     id: String(i),
     node: s.node,

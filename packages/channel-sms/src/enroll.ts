@@ -26,7 +26,7 @@ import { fieldsFor, liveTexts } from "./template-store.js";
 import { render, type SmsSequence, stepTemplate, textSeed } from "./templates.js";
 
 /** Line types that take a text. VoIP business lines usually do; landlines and switchboards never. */
-export const TEXTABLE: ReadonlySet<LineType> = new Set(["mobile", "voip"]);
+const TEXTABLE: ReadonlySet<LineType> = new Set(["mobile", "voip"]);
 
 export interface EnrollOptions {
   sequence: SmsSequence;

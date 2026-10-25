@@ -24,11 +24,11 @@ import { sortAgain } from "./triage.js";
 export interface IdsRequest extends PortalRequest {
   ids: (string | number)[];
 }
-export interface LikeRequest extends IdsRequest {
+interface LikeRequest extends IdsRequest {
   /** Words the subject must hold too; blank is any subject. */
   subject?: string | null;
 }
-export interface RuleRequest extends PortalRequest {
+interface RuleRequest extends PortalRequest {
   words: string;
   sender?: string | null;
   subject?: string | null;

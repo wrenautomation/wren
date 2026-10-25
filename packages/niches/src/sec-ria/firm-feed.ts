@@ -70,7 +70,7 @@ export class SecFirmFeedSource implements LeadSource {
  * runs chunk by chunk; firms completed in a chunk are yielded before the next chunk
  * is read, so memory holds one chunk's worth of firms at most.
  */
-export async function* firmElements(path: string): AsyncGenerator<XmlElement> {
+async function* firmElements(path: string): AsyncGenerator<XmlElement> {
   const parser = new SaxesParser();
   const stack: XmlElement[] = [];
   let done: XmlElement[] = [];

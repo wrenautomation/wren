@@ -112,7 +112,7 @@ const statsQueryOf = (r: StatsQuery): StatsQuery => ({
 /** The record types a client's People serves. Each build adds its own here. */
 export const PEOPLE_RECORDS = [...SENT_RECORDS, ...SEGMENT_RECORDS, ...BROADCAST_RECORDS];
 
-export interface PeopleConsoleDeps {
+interface PeopleConsoleDeps {
   /** Main: the client registry. */
   db: Db;
   /** A client's database. */
@@ -128,45 +128,45 @@ export interface PeopleConsoleDeps {
   now?: () => Date;
 }
 
-export interface BroadcastSaveRequest extends PortalRequest, BroadcastInput {}
+interface BroadcastSaveRequest extends PortalRequest, BroadcastInput {}
 /**
  * Broadcasts picked, by id or To approve's `broadcast:<id>`; `note` is a decline's why. `expect`
  * is the version the person saw, for one broadcast: a change since refuses the yes.
  */
-export interface BroadcastIdsRequest extends PortalRequest {
+interface BroadcastIdsRequest extends PortalRequest {
   ids?: (string | number)[];
   note?: string;
   expect?: string;
 }
 /** One copy to `to`: the broadcast by `id`, or the one picked (`ids`). */
-export interface BroadcastTestRequest extends PortalRequest {
+interface BroadcastTestRequest extends PortalRequest {
   id?: number | string;
   ids?: (string | number)[];
   to?: string;
 }
 /** When each approved or restored broadcast runs: the service tells its `Broadcast` object. */
-export interface BroadcastRun {
+interface BroadcastRun {
   key: string;
   at: string;
 }
 
 /** Profiles (`ids`) for the lead check; `label` is William's call (`fit` or `not`) on `leadCall`. */
-export interface LeadRequest extends PortalRequest {
+interface LeadRequest extends PortalRequest {
   ids?: (string | number)[];
   label?: string;
 }
 
 /** The most profiles one lead press takes. */
-export const LEAD_PRESS_MAX = 25;
+const LEAD_PRESS_MAX = 25;
 
-export interface SegmentIdsRequest extends PortalRequest {
+interface SegmentIdsRequest extends PortalRequest {
   ids?: (string | number)[];
 }
 /** The profile (`ids`, one) to research, or the findings (`ids`) to keep or drop. */
-export type ResearchRequest = SegmentIdsRequest;
-export interface SegmentSaveRequest extends PortalRequest, Partial<SegmentInput> {}
+type ResearchRequest = SegmentIdsRequest;
+interface SegmentSaveRequest extends PortalRequest, Partial<SegmentInput> {}
 /** Profiles (`ids`) put in a manual group, named by its name or id; a new name makes one. */
-export interface MemberAddRequest extends PortalRequest {
+interface MemberAddRequest extends PortalRequest {
   group?: string | number;
   ids?: (string | number)[];
 }

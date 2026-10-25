@@ -15,7 +15,7 @@ import type { DuckDBConnection } from "@duckdb/node-api";
 const ql = (s: string) => `'${s.replaceAll("'", "''")}'`;
 
 /** The union of every event kind's fields that the models read (autotrack's `Event`). */
-export const EVENT_COLUMNS = {
+const EVENT_COLUMNS = {
   kind: "VARCHAR",
   t: "BIGINT",
   ts: "BIGINT",
@@ -44,7 +44,7 @@ export const EVENT_COLUMNS = {
   goal: "VARCHAR",
 } as const;
 
-export const LABEL_COLUMNS = { episodes: "JSON", acts: "JSON" } as const;
+const LABEL_COLUMNS = { episodes: "JSON", acts: "JSON" } as const;
 
 type Columns = Record<string, string>;
 
@@ -70,7 +70,7 @@ async function hasFiles(c: DuckDBConnection, pattern: string): Promise<boolean> 
 }
 
 /** The bucket's path with one trailing slash. */
-export const trackBase = (path: string) => (path.endsWith("/") ? path : `${path}/`);
+const trackBase = (path: string) => (path.endsWith("/") ? path : `${path}/`);
 
 /** The `{{…}}` values for a bucket (or a directory standing in for it). */
 export async function trackSources(

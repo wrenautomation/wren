@@ -16,7 +16,7 @@
  */
 import { PlainDate } from "./dates.js";
 
-export const HOLIDAY_CALENDARS = ["us", "ca", "year_end"] as const;
+const HOLIDAY_CALENDARS = ["us", "ca", "year_end"] as const;
 export type HolidayCalendar = (typeof HOLIDAY_CALENDARS)[number];
 
 const SATURDAY = 5;

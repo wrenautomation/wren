@@ -4,18 +4,18 @@
  */
 import type { SpeechApi } from "@wren/voice";
 
-export interface Alternative {
+interface Alternative {
   transcript: string;
 }
 export interface Result {
   isFinal: boolean;
   0: Alternative;
 }
-export interface ResultEvent {
+interface ResultEvent {
   resultIndex: number;
   results: { length: number; [i: number]: Result };
 }
-export interface Recognition {
+interface Recognition {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
@@ -26,7 +26,7 @@ export interface Recognition {
   stop(): void;
   abort(): void;
 }
-export type RecognitionClass = new () => Recognition;
+type RecognitionClass = new () => Recognition;
 
 /** The browser's speech recognition, or null (Firefox). */
 export const recognitionClass = (): RecognitionClass | null => {

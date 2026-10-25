@@ -40,7 +40,7 @@ export interface CrmLookupStats {
   last: number | null;
 }
 
-export interface CrmLookupOptions {
+interface CrmLookupOptions {
   /** The account for logged-in LinkedIn reads; null = web search only. */
   linkedin: string | null;
   limit?: number;

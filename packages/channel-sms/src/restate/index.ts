@@ -367,7 +367,7 @@ export function makeSmsEvents(
   });
 }
 
-export interface NumbersView {
+interface NumbersView {
   day: string;
   live: boolean;
   provider: string;

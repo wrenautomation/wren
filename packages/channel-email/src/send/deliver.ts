@@ -88,7 +88,7 @@ const SUPPRESSION_STOP: Readonly<Record<string, StopReason>> = Object.freeze({
 });
 
 /** Every key a tick reports, always present: a tick that sent nothing says why. */
-export const STAT_KEYS = [
+const STAT_KEYS = [
   "sent",
   "failed",
   "ambiguous",
@@ -121,15 +121,15 @@ export const STAT_KEYS = [
   "reconcile_errors",
   "reconcile_transport_mismatch",
 ] as const;
-export type StatKey = (typeof STAT_KEYS)[number];
+type StatKey = (typeof STAT_KEYS)[number];
 export type SendStats = Record<StatKey, number>;
 
 export function emptySendStats(): SendStats {
   return Object.fromEntries(STAT_KEYS.map((k) => [k, 0])) as SendStats;
 }
 
-export type NameMap = Readonly<Record<string, string | null>>;
-export type StringMap = Readonly<Record<string, string>>;
+type NameMap = Readonly<Record<string, string | null>>;
+type StringMap = Readonly<Record<string, string>>;
 /** Lowercased address → its own ramp (roster `ramp`); absent = the fleet ramp. */
 export type RampMap = Readonly<Record<string, Ramp>>;
 

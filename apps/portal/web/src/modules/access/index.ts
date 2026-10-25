@@ -61,7 +61,7 @@ const grantForm = (wren: boolean): FormField[] => [
 ];
 
 /** The role actions; giving a role is the team's seat at Wren, a membership at a client. */
-export function roleActions(wren: boolean): Action[] {
+function roleActions(wren: boolean): Action[] {
   return [
     {
       id: "access.roleNew",
@@ -150,7 +150,7 @@ export function roleActions(wren: boolean): Action[] {
   ];
 }
 
-export const grantActions = (wren: boolean): Action[] => [
+const grantActions = (wren: boolean): Action[] => [
   {
     id: "access.grantAdd",
     label: "Add grant",
@@ -182,7 +182,7 @@ export const grantActions = (wren: boolean): Action[] => [
   },
 ];
 
-export const ISSUE_ACTIONS: Action[] = [
+const ISSUE_ACTIONS: Action[] = [
   {
     id: "access.issueResolve",
     label: "Resolve",

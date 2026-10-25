@@ -56,7 +56,7 @@ export interface PlainMail {
 }
 
 /** One attached file. */
-export interface MailFile {
+interface MailFile {
   filename: string;
   contentType: string;
   content: Uint8Array;
@@ -142,7 +142,7 @@ function errorCode(err: unknown): string | null {
 }
 
 /** True when a fetch failure means the request never reached the server. */
-export function neverLeft(err: unknown): boolean {
+function neverLeft(err: unknown): boolean {
   const code = errorCode(err);
   return code !== null && NEVER_LEFT_CODES.has(code);
 }

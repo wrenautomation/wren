@@ -24,7 +24,7 @@ export const profileUrl = (slug: string) =>
   `https://www.shopify.com/partners/directory/partner/${slug}`;
 
 const CARD_START = /<div[^>]*data-component-name="listing-profile-card"/g;
-export const PROFILE_HREF = /\/partners\/directory\/partner\/([a-z0-9][a-z0-9-]*)/g;
+const PROFILE_HREF = /\/partners\/directory\/partner\/([a-z0-9][a-z0-9-]*)/g;
 const RATING = /^[0-5]\.\d$/;
 const REVIEWS = /^\( ?([\d,]+) ?\)$/;
 const LOCATION = /^[^,%\d][^,]{1,39}, [A-Za-z][A-Za-z .]{1,30}$/;

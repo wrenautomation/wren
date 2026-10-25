@@ -112,7 +112,7 @@ const SAID: Record<string, string> = {
 };
 
 /** A speed-to-lead run's steps in order, each with its state, when, and why. */
-export const speedExtras: NonNullable<ListPage["extras"]> = (detail) => {
+const speedExtras: NonNullable<ListPage["extras"]> = (detail) => {
   const steps = (detail as { steps?: Step[] } | null)?.steps ?? [];
   return {
     sections: [
@@ -138,7 +138,7 @@ export const speedExtras: NonNullable<ListPage["extras"]> = (detail) => {
 };
 
 /** The thread's texts, oldest first: theirs plain, ours marked. */
-export const threadExtras: NonNullable<ListPage["extras"]> = (detail) => {
+const threadExtras: NonNullable<ListPage["extras"]> = (detail) => {
   const messages = (detail as { messages?: Message[] } | null)?.messages ?? [];
   const paid = (detail as { paid?: { cents: number; at: string | null } | null } | null)?.paid;
   return {

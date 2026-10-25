@@ -7,9 +7,9 @@ import { NO_INPUT, sharedHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { pieceRows, piecesOf } from "../pieces.js";
 
-export const PIECES_KEY = "wren";
+const PIECES_KEY = "wren";
 
-export interface PiecesDeps {
+interface PiecesDeps {
   db: Db;
   /** The site blog posts go up on. */
   site: string;

@@ -15,7 +15,7 @@ import type { AccountHealth } from "@wren/core/outreach";
 
 export type WarmupStage = "lurk" | "comment" | "post" | "reach";
 
-export interface WarmupCaps {
+interface WarmupCaps {
   comments: number;
   /** Of `comments`, how many may go to reach (business) places; the rest go to karma places. */
   reachComments: number;
@@ -44,7 +44,7 @@ export const STAGES: Record<WarmupStage, { minDays: number; minKarma: number; ca
 };
 /** Below this karma, reach places take at most `YOUNG_REACH_COMMENTS` of the day's comments. */
 export const REACH_FULL_KARMA = 50;
-export const YOUNG_REACH_COMMENTS = 2;
+const YOUNG_REACH_COMMENTS = 2;
 const LADDER: WarmupStage[] = ["lurk", "comment", "post", "reach"];
 /** Messages a day grow by one a week past `reach`, up to the site's 5. */
 const REACH_MESSAGE_CAP = 5;

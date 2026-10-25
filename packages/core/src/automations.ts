@@ -13,9 +13,9 @@ import { date, defineRecord, named, number, type RecordType, status, text } from
 import { codeLabel } from "./template-labels.js";
 import { isMade, type Made, type Workflow, type WorkflowEdits } from "./workflows.js";
 
-export const AUTOMATION = "console.automation";
+const AUTOMATION = "console.automation";
 /** Runs counted over this many days. */
-export const AUTOMATION_DAYS = 30;
+const AUTOMATION_DAYS = 30;
 
 export type AutomationKind = "workflow" | "made" | "loop" | "keyword" | "reply";
 export type AutomationState = "on" | "off" | "draft" | "suggest" | "auto";
@@ -41,7 +41,7 @@ export interface AutomationRow {
 }
 
 /** One workflow's spine numbers, per subject the way `spine_executions` counts them. */
-export interface FlowStats {
+interface FlowStats {
   workflow: string;
   runs: number;
   failed: number;
@@ -52,7 +52,7 @@ export interface FlowStats {
 }
 
 /** A made workflow as its newest save has it, and whether its live save is switched off. */
-export interface MadeFlow {
+interface MadeFlow {
   id: string;
   made: Made;
   live: boolean;
@@ -61,7 +61,7 @@ export interface MadeFlow {
   nodes: Workflow["nodes"];
 }
 
-export interface KeywordRow {
+interface KeywordRow {
   id: string;
   keyword: string;
   platform: string;
@@ -72,7 +72,7 @@ export interface KeywordRow {
   lastAt: string | null;
 }
 
-export interface AutomationInput {
+interface AutomationInput {
   workflows: readonly Workflow[];
   components: readonly Component[];
   stats: readonly FlowStats[];
@@ -229,7 +229,7 @@ const rowsOf = async <T>(db: Queryable, q: ReturnType<typeof sql>): Promise<T[]>
 const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : null);
 
 /** Each workflow's numbers from `events`: one subject is one run. */
-export async function flowStats(db: Queryable): Promise<FlowStats[]> {
+async function flowStats(db: Queryable): Promise<FlowStats[]> {
   const got = await rowsOf<Record<string, unknown>>(
     db,
     sql`select workflow,
@@ -257,7 +257,7 @@ export async function flowStats(db: Queryable): Promise<FlowStats[]> {
 }
 
 /** Wren's made workflows: the newest save's graph, live or not, and the live one's switch. */
-export async function madeFlows(db: Queryable): Promise<MadeFlow[]> {
+async function madeFlows(db: Queryable): Promise<MadeFlow[]> {
   const got = await rowsOf<{ workflow: string; edits: WorkflowEdits | null; live: boolean }>(
     db,
     sql`select workflow, edits, live from workflow_saves

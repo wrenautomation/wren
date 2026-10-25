@@ -96,8 +96,8 @@ import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
 import { RESOLUTION_KEY, type Resolution } from "./resolution.js";
 
-export const POOL_COMMAND = "pool feed";
-export type ModelStages = "none" | "pick" | "all";
+const POOL_COMMAND = "pool feed";
+type ModelStages = "none" | "pick" | "all";
 export const STAGES = [
   "adLibrary",
   "exaSearch",
@@ -138,7 +138,7 @@ type WiredStage = (typeof WIRED)[number];
 export type Wired = Partial<Record<WiredStage, boolean>>;
 
 /** How many units one pass hands each stage; the chain's per-pass ceiling. */
-export interface StageLimits {
+interface StageLimits {
   /** Keywords whose Ad Library advertisers are read this pass; free, paced by its bucket. */
   adLibrary: number;
   /** Searches and page reads of Facebook groups this pass; free, paced by two buckets over the stored rows. */
@@ -172,7 +172,7 @@ export interface StageLimits {
   /** Subjects each signal collector reads this pass; each is paced by its own bucket. */
   signals: number;
 }
-export const DEFAULT_LIMITS: StageLimits = {
+const DEFAULT_LIMITS: StageLimits = {
   adLibrary: 3,
   fbGroups: 10,
   exaSearch: 3,
@@ -210,10 +210,10 @@ export const PROBE_WIDTH = 32;
  * the paid default (5) plus room for a second person's common guesses when the first
  * left. Each is a probe, not a credit; the cap only bounds the misses one server sees.
  */
-export const FREE_DOMAIN_BUDGET = 8;
+const FREE_DOMAIN_BUDGET = 8;
 
 /** What `PoolScheduler/{niche}/start` may be given. */
-export interface PoolSettings {
+interface PoolSettings {
   /** Only these stages run for this niche; absent = every enabled stage. */
   stages?: Stage[];
 }
@@ -238,7 +238,7 @@ export function stagesToRun(
  * first (its mail server answers, so the guesses can be proven), then the
  * firms we hold no one at.
  */
-export async function nextTeamFirms(
+async function nextTeamFirms(
   db: Queryable,
   opts: { niche: string; limit: number },
 ): Promise<number[]> {
@@ -255,14 +255,14 @@ export async function nextTeamFirms(
 }
 
 /** What the `profiles` stage needs; absent = the stage is off. */
-export interface ProfilesStage {
+interface ProfilesStage {
   /** Firms to stay ahead of the queue by: a week of the niche's daily opener capacity. */
   ahead: (niche: string, now: Date) => number | Promise<number>;
   /** Compose's verdict horizon, so the queue read is compose's own. */
   horizonDays: number;
 }
 
-export interface PoolSchedulerDeps {
+interface PoolSchedulerDeps {
   db: Db;
   policy: SendPolicy;
   modelStages: ModelStages;
@@ -308,7 +308,7 @@ export interface PoolSchedulerDeps {
  * call left running (or paused by Restate) would queue every later stage behind it. Its
  * finished units are journaled and kept; the rest go next pass.
  */
-export const STAGE_WAIT_MS = 60 * 60_000;
+const STAGE_WAIT_MS = 60 * 60_000;
 
 /** The object and handler a stage calls, for its timeout's name. */
 function callOf(stage: Stage): { service: string; handler: string } {
@@ -365,7 +365,7 @@ async function checksToday(db: Db, now: Date): Promise<number> {
   return row?.n ?? 0;
 }
 
-export interface StageOutcome {
+interface StageOutcome {
   stage: Stage;
   /** Units the stage moved forward; 0 = nothing left for it. */
   progress: number;

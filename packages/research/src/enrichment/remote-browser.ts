@@ -15,7 +15,7 @@ const API = "https://api.browserbase.com/v1/sessions";
 const SETTLE_MS = 1200;
 const PAGE_TIMEOUT_MS = 20_000;
 
-export interface BrowserbaseOptions {
+interface BrowserbaseOptions {
   apiKey: string;
   projectId: string;
   /** Test seam: the HTTP client that opens the session. */
@@ -36,7 +36,7 @@ export interface CdpContext {
   newPage(): Promise<CdpPage>;
   clearCookies(): Promise<void>;
 }
-export interface CdpRoute {
+interface CdpRoute {
   request(): { resourceType(): string };
   abort(): Promise<void>;
   continue(): Promise<void>;
@@ -90,7 +90,7 @@ async function connectOverCdp(connectUrl: string): Promise<CdpBrowser> {
   return (await playwright.chromium.connectOverCDP(connectUrl)) as unknown as CdpBrowser;
 }
 
-export interface CdpOptions {
+interface CdpOptions {
   /** ws(s):// endpoint of a chromium's DevTools protocol, e.g. browserless with its token. */
   connectUrl: string;
   /** Test seam: what `connectOverCDP` returns. */

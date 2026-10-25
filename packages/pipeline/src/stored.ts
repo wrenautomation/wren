@@ -109,8 +109,7 @@ export type StoredChange = ShapeChange | MetroChange;
 type GraphChange = Exclude<ShapeChange, { on: "name" }>;
 
 /** True for the graph's own kinds of change (node and edge). */
-export const isGraphChange = (c: StoredChange): c is GraphChange =>
-  c.on === "node" || c.on === "edge";
+const isGraphChange = (c: StoredChange): c is GraphChange => c.on === "node" || c.on === "edge";
 
 export const storedChangesOf = (d: StoredDiff): StoredChange[] =>
   d.model === "graph" ? changesOf(d.diff) : metroChangesOf(d.diff);
@@ -133,7 +132,7 @@ export const storedChangeLines = (a: StoredBody, b: StoredBody, d: StoredDiff): 
   storedChangesOf(d).map((c) => storedChangeLine(a, b, c));
 
 /** What the web shows of a diff from `a` to `b`: the diff, its lines, and both sides drawn. */
-export interface DiffParts {
+interface DiffParts {
   /** In the stored bodies' terms: graph keys when both are graphs. Undo takes these keys. */
   diff: StoredDiff;
   changes: ChangeLine[];
@@ -165,7 +164,7 @@ export function diffAnswerOf(a: StoredBody, b: StoredBody, onMetro = false): Dif
 // --- blame ----------------------------------------------------------------------------------
 
 /** What `historyOfStored` reads of each version. */
-export interface StoredBlameVersion {
+interface StoredBlameVersion {
   number: number;
   body: StoredBody;
   note: string;

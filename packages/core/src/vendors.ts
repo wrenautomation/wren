@@ -211,7 +211,7 @@ export const unitsOf = (v: Pick<Vendor, "unit">) =>
 
 // ---- Wren's vendor settings ----
 
-export const VENDOR_SETTINGS = "vendors";
+const VENDOR_SETTINGS = "vendors";
 
 /** Wren's calls on every vendor; `wren_settings` block `vendors`. William sets them. */
 export const vendorSettingsSchema = z.object({
@@ -229,7 +229,7 @@ export const vendorSettingsSchema = z.object({
       VENDORS.filter((v) => v.id !== "linkedin" && !v.managedDev && !v.wrenOnly).map((v) => v.id),
     ),
 });
-export type VendorSettings = z.infer<typeof vendorSettingsSchema>;
+type VendorSettings = z.infer<typeof vendorSettingsSchema>;
 
 export async function vendorSettings(main: Queryable): Promise<VendorSettings> {
   const [row] = await main
@@ -246,7 +246,7 @@ export async function vendorSettings(main: Queryable): Promise<VendorSettings> {
 export const DEFAULT_PURPOSE = "default";
 
 /** A purpose is a word: `default`, `bulk`, `drafts`. */
-export const PURPOSE = /^[a-z][a-z0-9_]{0,31}$/;
+const PURPOSE = /^[a-z][a-z0-9_]{0,31}$/;
 
 /** A client's `default` mode row on each vendor; the other purposes (own keys) sit beside them. */
 export async function modesOf(main: Queryable, client: string): Promise<VendorModeRow[]> {
@@ -420,7 +420,7 @@ export async function clearMode(main: Db, client: string, vendor: string): Promi
 // ---- buckets and the gate ----
 
 export const ownBucket = (vendor: string, client: string) => `${vendor}:own:${client}`;
-export const managedBucket = (vendor: string) => `${vendor}:managed`;
+const managedBucket = (vendor: string) => `${vendor}:managed`;
 
 const DAY = 86_400_000;
 
@@ -679,7 +679,7 @@ export async function meterTokens(
   return { units, micros };
 }
 
-export interface UsageSum {
+interface UsageSum {
   vendor: string;
   mode: VendorMode;
   units: number;

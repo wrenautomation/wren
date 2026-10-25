@@ -6,7 +6,7 @@
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 
-export interface Acting {
+interface Acting {
   /** The real person: the operator signed in. */
   actor: string;
   /** Whom as, in words: `amy@acme.test at acme`. */

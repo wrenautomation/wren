@@ -40,7 +40,7 @@ import { threadOf, threadQuery } from "./thread.js";
 
 export const REDDIT_SITE = "reddit";
 
-export interface RedditContentOptions {
+interface RedditContentOptions {
   now?: () => Date;
 }
 
@@ -95,7 +95,8 @@ export const redditUrl = (permalink: string) => `https://www.reddit.com${permali
 const at = (utc: number | undefined, now: () => Date) =>
   (utc ? new Date(utc * 1000) : now()).toISOString();
 /** `t3_abc` → `abc`. Calls take either form; the writers spell a post `t3_abc` in the database. */
-export const bareId = (id: string) => id.replace(/^t\d_/, "");
+const bareId = (id: string) => id.replace(/^t\d_/, "");
+
 /**
  * A comment's one id in Wren: Reddit's `t1_` fullname, whichever reader saw it. Every reader keys
  * a comment through this, so one comment is one `comments` row. The

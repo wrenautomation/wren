@@ -11,7 +11,7 @@ import { date, defineRecord, link, name, number, status, text } from "@wren/core
 import { eq, sql } from "drizzle-orm";
 import { mirrorUid } from "./book.js";
 
-export const BOOKING_STATUS = {
+const BOOKING_STATUS = {
   upcoming: { label: "Upcoming", tone: "warn" },
   past: { label: "Say how it went", tone: "neutral" },
   ...outcomeStatus(MEETING_OUTCOMES),
@@ -19,7 +19,7 @@ export const BOOKING_STATUS = {
 } as const;
 const DONE = [...MEETING_OUTCOMES];
 
-export const bookingRecord = defineRecord({
+const bookingRecord = defineRecord({
   id: "calendar.booking",
   app: "calendar",
   channel: null,

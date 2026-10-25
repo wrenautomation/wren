@@ -37,7 +37,7 @@ const recordOf = (v: unknown): string => {
 };
 
 /** A client's own database for one call. */
-export type OnClientDb = <T>(client: string, fn: (db: Db) => Promise<T>) => Promise<T>;
+type OnClientDb = <T>(client: string, fn: (db: Db) => Promise<T>) => Promise<T>;
 
 export function customApi(main: Db, onClient: OnClientDb) {
   /** The database an owner's fields sit in; there, they are kept with owner null. */
@@ -120,7 +120,7 @@ export function customApi(main: Db, onClient: OnClientDb) {
       ),
   };
 }
-export type CustomApi = ReturnType<typeof customApi>;
+type CustomApi = ReturnType<typeof customApi>;
 
 export function customHandlers(api: CustomApi) {
   const write = (name: keyof CustomApi, label: string) => (ctx: restate.Context, req: Input) =>

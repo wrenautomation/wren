@@ -13,30 +13,30 @@ import { type ContentDraft, type ContentMetric, contentDrafts, contentMetrics } 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 /** Posts older than this are done moving; stop looking. */
-export const DEFAULT_WATCH_DAYS = 30;
+const DEFAULT_WATCH_DAYS = 30;
 /** One look per post per day, through its first week. */
-export const DEFAULT_LOOK_EVERY_MS = 20 * HOUR_MS;
+const DEFAULT_LOOK_EVERY_MS = 20 * HOUR_MS;
 /** After its first week a post's numbers have mostly settled: one look a week to the end. */
-export const SETTLED_LOOK_EVERY_MS = 6 * DAY_MS;
+const SETTLED_LOOK_EVERY_MS = 6 * DAY_MS;
 /**
  * A young post's numbers move by the hour, so a daily look showed them a day behind the
  * platform. On free reads it is looked at every 6 hours for two days, then daily to a week.
  * A post gets ~15 looks in its 30 days on free reads and ~11 elsewhere (it was ~67 and ~35:
  * hourly for two days, every 6 hours to a week, then daily).
  */
-export const LOOK_TIERS: readonly { youngerThanMs: number; everyMs: number }[] = [
+const LOOK_TIERS: readonly { youngerThanMs: number; everyMs: number }[] = [
   { youngerThanMs: 2 * DAY_MS, everyMs: 6 * HOUR_MS },
   { youngerThanMs: 7 * DAY_MS, everyMs: DEFAULT_LOOK_EVERY_MS },
 ];
 /** Daily through the first week, then weekly: X bills each read, a browser read is a visit. */
-export const SLOW_LOOK_TIERS: readonly { youngerThanMs: number; everyMs: number }[] = [
+const SLOW_LOOK_TIERS: readonly { youngerThanMs: number; everyMs: number }[] = [
   { youngerThanMs: 7 * DAY_MS, everyMs: DEFAULT_LOOK_EVERY_MS },
 ];
 /**
  * Platforms whose reads are free API calls. The rest look less often: X bills each read, and
  * LinkedIn and Reddit read through a signed-in browser, where every look is a visit.
  */
-export const FAST_LOOKS: readonly Platform[] = ["youtube", "instagram", "facebook", "tiktok"];
+const FAST_LOOKS: readonly Platform[] = ["youtube", "instagram", "facebook", "tiktok"];
 
 /**
  * Published drafts (with the platform's id) published within `watchDays`

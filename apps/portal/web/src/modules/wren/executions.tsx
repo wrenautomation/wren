@@ -67,7 +67,7 @@ export const when = (iso: string) =>
 const mayRetry = (can: readonly string[] | undefined) => !can || can.includes("effect");
 
 /** A workflow's drawing, as the console draws it. */
-export function useDrawn(id: string | null, client: string | null) {
+function useDrawn(id: string | null, client: string | null) {
   return useCall(`drawn:${client ?? ""}:${id ?? ""}`, async () =>
     id
       ? call<RecordAnswer>("console/recordsGet", {
@@ -295,7 +295,7 @@ function OneExecution({
 }
 
 /** The path lit on the canvas, and the step a card click opens. */
-export function ExecutionTrace({
+function ExecutionTrace({
   w,
   steps,
   can,

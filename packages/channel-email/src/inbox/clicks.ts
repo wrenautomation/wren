@@ -106,7 +106,7 @@ export interface SiteAnswer {
 }
 
 /** One `/go/` hop to a page of ours (`clicks`): the short name, its utm and the path it went to. */
-export interface SiteClick {
+interface SiteClick {
   id: number;
   ts: string;
   link: string;
@@ -119,7 +119,7 @@ export interface SiteClick {
   country: string | null;
 }
 
-export interface SiteTables {
+interface SiteTables {
   hits: SiteHit;
   applications: SiteApplication;
   replays: SiteReplay;

@@ -49,7 +49,7 @@ const neutral = (label: string): State => ({ label, tone: "neutral" });
 const rowsOf = async <T = Record<string, unknown>>(db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute(q)) as unknown as T[];
 
-export const PLATFORM_ALL_STATES = cued({
+const PLATFORM_ALL_STATES = cued({
   all: neutral("All platforms"),
   ...Object.fromEntries(PLATFORMS.map((p) => [p, neutral(PLATFORM_NAMES[p] ?? p)])),
 });
@@ -99,7 +99,7 @@ const DIGEST_KINDS = {
 };
 
 /** The post a digest line names, as its page's link. */
-export const postHref = (id: string) => `/marketing/content/${encodeURIComponent(id)}`;
+const postHref = (id: string) => `/marketing/content/${encodeURIComponent(id)}`;
 
 /** The latest week's digest lines, every platform's and the whole's, in their order. */
 export const digestRecord = defineRecord({
@@ -155,7 +155,7 @@ export const digestRecord = defineRecord({
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Where a goal posts: every platform, and the blog with its newsletter. */
-export const GOAL_PLACES = cued({
+const GOAL_PLACES = cued({
   ...Object.fromEntries(PLATFORMS.map((p) => [p, neutral(PLATFORM_NAMES[p] ?? p)])),
   newsletter: neutral("Blog"),
 });
@@ -331,7 +331,7 @@ export interface SourceRow {
 }
 
 /** What a built row with no number yet says. */
-export const NO_NUMBER_YET = "built, no number yet";
+const NO_NUMBER_YET = "built, no number yet";
 
 /**
  * An entry's state now: a number that came back makes it live; a refusal of one we thought
@@ -473,7 +473,7 @@ export const ANALYTICS_RECORDS = [conversationRecord, digestRecord, cadenceRecor
 
 // ---- A post's detail ----
 
-export interface MetricCell {
+interface MetricCell {
   label: string;
   metrics: readonly string[];
   group: string;

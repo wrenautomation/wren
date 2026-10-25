@@ -27,9 +27,9 @@ export const BOUNCE_QUERY =
   ' OR subject:"undelivered mail" OR subject:"mail delivery failed"' +
   ' OR subject:"delivery has failed" OR subject:"returned mail")';
 /** A mailbox's first check reaches back this far: mail servers give up within five days. */
-export const BOUNCE_FIRST_MS = 7 * 86_400_000;
+const BOUNCE_FIRST_MS = 7 * 86_400_000;
 /** Each later check re-lists this much, for reports that land late in the listing. */
-export const BOUNCE_OVERLAP_MS = 15 * 60_000;
+const BOUNCE_OVERLAP_MS = 15 * 60_000;
 
 export interface BounceReadStats {
   mailbox: string;

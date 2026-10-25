@@ -27,7 +27,7 @@ import type {
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 const sleep = (ms: number) => new Promise<void>((ok) => setTimeout(ok, ms));
-export const fakeFrame = (text: string): Frame => ({
+const fakeFrame = (text: string): Frame => ({
   encoding: "fake",
   rate: 0,
   data: enc.encode(text),

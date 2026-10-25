@@ -19,7 +19,7 @@ export interface StatusReport {
 }
 
 /** Date.getUTCDay() has Sunday = 0; shift so Monday = 0 and Sunday = 6. */
-export function mondayBasedWeekday(d: Date): number {
+function mondayBasedWeekday(d: Date): number {
   return (d.getUTCDay() + 6) % 7;
 }
 
@@ -53,7 +53,7 @@ const usage = (key: string) =>
   sql<number>`coalesce(sum((${contentDrafts.llm}#>>'{call,usage,${sql.raw(key)}}')::int), 0)::int`;
 
 /** UTC midnight of `now`. */
-export function startOfDayUtc(now: Date): Date {
+function startOfDayUtc(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 

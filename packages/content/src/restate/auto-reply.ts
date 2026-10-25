@@ -25,7 +25,7 @@ import {
 import { askReply } from "../inbox/send.js";
 import { suggestReply } from "../inbox/suggest.js";
 
-export interface AutoReplyDeps {
+interface AutoReplyDeps {
   db: Db;
   clientDb?: (client: string) => Db;
   llm?: LlmClient | null;

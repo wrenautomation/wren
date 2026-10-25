@@ -24,7 +24,7 @@ import { videoSeconds } from "./video-length.js";
 const TIKTOK_FIELDS =
   "id,title,create_time,cover_image_url,share_url,view_count,like_count,comment_count,share_count";
 
-export interface SocialSitesDeps {
+interface SocialSitesDeps {
   connection: (id: number) => Promise<SocialConnectionRow | null>;
   tokenOf: (c: SocialConnectionRow) => Promise<string>;
   broke: (id: number, why: string) => Promise<void>;

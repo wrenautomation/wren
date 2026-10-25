@@ -24,7 +24,7 @@ import { type Facts, factsFor, factsForCompany } from "./facts.js";
 import type { Filler } from "./fills.js";
 import { livePages, pageFacts, pageSlugs } from "./pages.js";
 
-export interface RefreshOptions {
+interface RefreshOptions {
   readonly niche: string;
   readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;

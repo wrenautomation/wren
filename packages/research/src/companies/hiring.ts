@@ -34,7 +34,7 @@ export interface CompanySubject {
   linkedinPage: string | null;
 }
 
-export interface HiringDeps {
+interface HiringDeps {
   /** For the firm's own pages and the boards' APIs; null = skip step 1. */
   fetcher: Fetcher | null;
   sites: SiteClient;
@@ -53,7 +53,7 @@ export interface HiringOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-export interface CheckTried {
+interface CheckTried {
   step: "careers" | "board" | "google" | "linkedin page" | "linkedin jobs" | "capped";
   what: string;
   outcome: string;

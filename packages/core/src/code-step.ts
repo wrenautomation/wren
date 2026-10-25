@@ -20,7 +20,7 @@ const quickjs = () => {
 };
 
 /** What a run gives back: the fields to merge, or null to leave by `skip`. */
-export type CodeResult = { data: Record<string, unknown> } | { data: null };
+type CodeResult = { data: Record<string, unknown> } | { data: null };
 
 /** Run `code` on `e`. Throws with the code's own error line when it throws, loops or overflows. */
 export async function runCode(code: string, e: SpineEvent, now: Date): Promise<CodeResult> {

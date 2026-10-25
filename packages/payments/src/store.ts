@@ -43,8 +43,8 @@ export function linkIdFor(seed: string, part: string | number = ""): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 /** Stripe's least and most for one USD charge. */
-export const MIN_CENTS = 50;
-export const MAX_CENTS = 99_999_999;
+const MIN_CENTS = 50;
+const MAX_CENTS = 99_999_999;
 
 /** "49", "49.5", "$1,200.00" as cents; refused past Stripe's bounds or with a third decimal. */
 export function centsOf(amount: unknown): number {
@@ -441,8 +441,8 @@ export async function claimChanges(
 // ---- reconcile ----
 
 /** How long reconcile keeps checking a link after it was made, and how often. */
-export const CHECK_FOR_DAYS = 120;
-export const CHECK_EVERY_MS = 20 * 3_600_000;
+const CHECK_FOR_DAYS = 120;
+const CHECK_EVERY_MS = 20 * 3_600_000;
 /** Statuses Stripe may still move: out, checked out, paid, refunded. */
 const MOVABLE: PayStatus[] = ["sent", "processing", "unpaid", "paid", "refunded", "failed"];
 

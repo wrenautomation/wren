@@ -14,8 +14,8 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { LATEST_CRM_ROW } from "./score.js";
 
-export const RELATIONS = ["same", "parent", "unit", "renamed", "different"] as const;
-export type Relation = (typeof RELATIONS)[number];
+const RELATIONS = ["same", "parent", "unit", "renamed", "different"] as const;
+type Relation = (typeof RELATIONS)[number];
 
 /** How `to` relates to `from`; "different" when unsure. */
 export type Judge = (from: string, to: string) => Promise<Relation>;

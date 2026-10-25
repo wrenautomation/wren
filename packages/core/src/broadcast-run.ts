@@ -38,7 +38,7 @@ const MIN_MS = 1000;
 /** When the day's email ceiling is reached, the next look. */
 const CEILING_MS = 3_600_000;
 
-export interface BroadcastDeps {
+interface BroadcastDeps {
   main: Db;
   clientDb(id: string): Db;
   /** How a workspace's email broadcasts leave, or why they can't yet. */
@@ -58,7 +58,7 @@ const SCHEDULE = z.looseObject({
 });
 const RUN = z.looseObject({ gen: z.number().int() });
 
-export interface RunStats {
+interface RunStats {
   started?: number;
   sent: number;
   queued: number;

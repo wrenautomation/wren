@@ -47,7 +47,7 @@ import {
 
 export type { Branch, Piece };
 
-export const KIND_NAMES: Record<PieceKind, string> = {
+const KIND_NAMES: Record<PieceKind, string> = {
   long: "Long video",
   vertical: "Clip",
   written: "Post",
@@ -76,7 +76,7 @@ const PLACES: Record<string, { name: string; mark: string }> = {
 };
 
 /** "YouTube Shorts", "Instagram Reel", "LinkedIn". */
-export function branchName(b: Pick<Branch, "platform" | "format">): string {
+function branchName(b: Pick<Branch, "platform" | "format">): string {
   const place =
     PLACES[b.platform]?.name ??
     PLATFORM_SPECS[b.platform as keyof typeof PLATFORM_SPECS]?.name ??
@@ -632,7 +632,7 @@ export function PiecesPage(props: PageProps) {
 }
 
 /** A thing the system did: a branch going live, failing, or getting set for a time. */
-export interface Happening {
+interface Happening {
   at: string;
   branch: Branch;
   piece: Piece;

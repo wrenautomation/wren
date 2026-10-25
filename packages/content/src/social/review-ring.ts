@@ -9,7 +9,7 @@ import { comments } from "@wren/outreach";
 import { and, eq, inArray, isNull, lte } from "drizzle-orm";
 
 /** At or under this many stars, the owners hear of it. */
-export const RING_STARS = 2;
+const RING_STARS = 2;
 
 /** The note on a low review's thread, `@`ing each owner. */
 export const ringNote = (stars: number, author: string, owners: readonly string[]) =>

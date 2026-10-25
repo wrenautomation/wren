@@ -13,7 +13,7 @@ import { ReachRefusal } from "./refusal.js";
 import { type SendAttempt, sendAttempts } from "./schema.js";
 
 /** A `sending` row this old lost its invocation (a crash, a kill): the next claim takes it over. */
-export const SENDING_STALE_MS = 10 * 60_000;
+const SENDING_STALE_MS = 10 * 60_000;
 
 export const UNSURE_WAITS =
   "may have gone out. It waits in To approve, where you can open it on the site, mark it posted, or send it again";
@@ -35,7 +35,7 @@ export interface SendClaim {
   again?: boolean;
 }
 
-export type Claimed =
+type Claimed =
   | { go: "send"; tried: boolean; since: string; sendKey: string }
   | { go: "done"; ref: string | null; at: string | null };
 

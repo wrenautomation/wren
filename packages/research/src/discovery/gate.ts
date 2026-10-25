@@ -22,7 +22,7 @@ export function registryDigits(sourceKey: string | null | undefined): string | n
   return /^\d{4,}$/.test(value) ? value : null;
 }
 
-export interface GateInput {
+interface GateInput {
   url: string;
   pageTitle: string;
   pageText: string;

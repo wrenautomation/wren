@@ -30,9 +30,7 @@ import {
   type SourceNode,
 } from "./model.js";
 
-export type MetroResult =
-  | { ok: true; body: MetroBody; notes: string[] }
-  | { ok: false; errors: string[] };
+type MetroResult = { ok: true; body: MetroBody; notes: string[] } | { ok: false; errors: string[] };
 
 /** Actions that happen where people first meet the business: the marketing column. */
 const MARKETING_ACTIONS: readonly Action[] = [
@@ -63,7 +61,7 @@ const NODE_FIELDS: Record<NodeKind, readonly string[]> = {
 const EDGE_FIELDS: readonly string[] = ["id", "from", "to", "kind", "label"];
 
 /** A field on a node or an edge that is not part of the model. The convert drops it. */
-export interface StrayField {
+interface StrayField {
   of: "node" | "edge";
   id: string;
   field: string;

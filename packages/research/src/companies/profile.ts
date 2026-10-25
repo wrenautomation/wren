@@ -40,7 +40,7 @@ export interface ProfileSubject {
   pageLinks?: string[];
 }
 
-export interface ProfileOptions {
+interface ProfileOptions {
   /** Search Google for the page. The caller keeps its daily budget and hours. */
   google?: boolean;
   /** Sources paused on this stage (`pausedSources`): skipped. */
@@ -49,13 +49,13 @@ export interface ProfileOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-export interface ProfileTried {
+interface ProfileTried {
   step: "page" | "google" | "companies" | "capped";
   what: string;
   outcome: string;
 }
 
-export interface ProfileResult {
+interface ProfileResult {
   state: LookupState;
   /** The firm's page, canonical; null unless matched. */
   url: string | null;
@@ -70,7 +70,7 @@ export interface ProfileResult {
   checks: PageCheck[];
 }
 
-export interface PageCheck {
+interface PageCheck {
   source: PageSource;
   url: string;
   /** Why it isn't the firm's; null when it is. */
@@ -151,7 +151,7 @@ export function firmSite(website: string | null | undefined, domain: string | nu
 }
 
 /** Exa merges look-alike firms: a page is the firm's only when its website is the firm's own. */
-export const FIRM_PAGE: Check<{ domain: string }, CompanyPage> = {
+const FIRM_PAGE: Check<{ domain: string }, CompanyPage> = {
   name: "page is the firm's",
   after: (firm, page) =>
     firmSite(page.website, firm.domain)

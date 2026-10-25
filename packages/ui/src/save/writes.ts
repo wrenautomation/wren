@@ -95,7 +95,7 @@ export interface Accepted {
   requestId: string;
 }
 
-export const isAccepted = (v: unknown): v is Accepted =>
+const isAccepted = (v: unknown): v is Accepted =>
   !!v && typeof v === "object" && (v as { accepted?: unknown }).accepted === true;
 
 /** What the server says of a request id it was sent. */
@@ -137,7 +137,7 @@ const STORE_KEY = "wren.writes";
 /** A settled press stays this long: the box that sent it shows how it went. */
 export const RECENT_MS = 10 * 60_000;
 /** A call out longer than this, on a return, asks the server how it went. */
-export const ASK_AFTER_MS = 15_000;
+const ASK_AFTER_MS = 15_000;
 const KEEP_MAX = 48_000;
 /** How soon a send the server took is asked about, then each time twice as late, to this. */
 const FOLLOW_FIRST_MS = 400;
@@ -943,7 +943,7 @@ function listenPage(fn: (e: WritePageEvent) => void): () => void {
 }
 
 /** The browser's. */
-export function browserWriteEnv(): WriteEnv {
+function browserWriteEnv(): WriteEnv {
   return {
     storage: session(),
     now: () => Date.now(),

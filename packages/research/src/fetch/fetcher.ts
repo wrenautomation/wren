@@ -60,7 +60,7 @@ export interface DownloadResult {
   size: number;
 }
 
-export interface PoliteFetcherOptions {
+interface PoliteFetcherOptions {
   /** Seconds between requests to one host. */
   minInterval?: number;
   /** Extra uniform(lo, hi) seconds per request so crawls don't tick like a metronome. */

@@ -45,7 +45,7 @@ import { fieldsOf } from "@wren/core/content/shapes";
 import { carouselFiles, cleanSlides, isCarousel } from "@wren/core/content/slides";
 
 /** Our audience is Wren's account, never William's (`linkedin`) or the research alt. */
-export const AUDIENCE_ACCOUNT = "linkedin@wren";
+const AUDIENCE_ACCOUNT = "linkedin@wren";
 
 /** The box's read of Wren's dashboard (`GET /analytics/dashboard`): counts, null when not shown. */
 interface Dashboard {
@@ -90,7 +90,7 @@ const ANALYTICS_METRICS = [
   M.follows,
 ];
 
-export const analyticsValues = (a: PostAnalytics): InsightValue[] => [
+const analyticsValues = (a: PostAnalytics): InsightValue[] => [
   ...numberOf(M.impressions, a.impressions),
   ...numberOf(M.reach, a.reached),
   ...numberOf(M.likes, a.reactions),
@@ -108,7 +108,7 @@ export const analyticsValues = (a: PostAnalytics): InsightValue[] => [
   ...numberOf(M.avgViewSecs, a.avgWatchSecs),
 ];
 
-export interface LinkedInContentOptions {
+interface LinkedInContentOptions {
   /** The member's URN (`urn:li:person:…`); resolved from `/v2/userinfo` when absent. */
   author?: string;
   /** A company page (`urn:li:organization:…`) it posts and answers as. Implies `direct`. */
@@ -126,8 +126,8 @@ export interface LinkedInContentOptions {
  * and answers once processed. Answers the URN a post names. Both
  * autobrowse (Wren's login) and a client's connected account (`socialSites`) serve it.
  */
-export const UPLOAD_PATH = "/upload";
-export type UploadInput = {
+const UPLOAD_PATH = "/upload";
+type UploadInput = {
   kind: "image" | "document" | "video";
   /** The member or organization the file belongs to: the post's author. */
   owner: string;
@@ -197,7 +197,7 @@ const POST_URN = /^urn:li:(share|ugcPost|activity):\d+$/;
  * What an answer is posted under: a comment's URN as given, a post's, or a member comment's bare
  * id made into `urn:li:comment:(<post>,<id>)`. Null when none of those can be made.
  */
-export function commentUrnOf(commentId: string, postId: string | null): string | null {
+function commentUrnOf(commentId: string, postId: string | null): string | null {
   if (COMMENT_URN.test(commentId) || POST_URN.test(commentId)) return commentId;
   if (/^\d+$/.test(commentId) && postId && POST_URN.test(postId))
     return `urn:li:comment:(${postId},${commentId})`;

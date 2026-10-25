@@ -24,7 +24,7 @@ export interface Fact {
   seenAt: Date;
 }
 
-export interface PersonDossier {
+interface PersonDossier {
   id: number;
   name: string;
   title: string | null;
@@ -258,7 +258,7 @@ export interface RecentPost {
 }
 
 /** What a dossier shows of each network's posts. */
-export const POSTS_PER_SITE = 5;
+const POSTS_PER_SITE = 5;
 
 const postOf = (f: Fact): RecentPost | null => {
   if (f.what !== "post" || !f.value || typeof f.value !== "object") return null;

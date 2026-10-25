@@ -20,7 +20,7 @@ function hasNonAscii(text: string): boolean {
  * RFC 2047 encoded words when needed, else the text as is: libmime splits them at
  * character boundaries, each word within 75 characters (52 of payload, as nodemailer).
  */
-export function encodeHeaderText(text: string): string {
+function encodeHeaderText(text: string): string {
   if (!hasNonAscii(text)) return text;
   return libmime.encodeWord(text, "B", 52);
 }
@@ -35,7 +35,7 @@ export function formatAddress(rawName: string | null, address: string): string {
 }
 
 /** RFC 5322 date, e.g. `Tue, 08 Sep 2026 13:00:00 +0000`. */
-export function formatRfc5322Date(at: Date): string {
+function formatRfc5322Date(at: Date): string {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const months = [
     "Jan",

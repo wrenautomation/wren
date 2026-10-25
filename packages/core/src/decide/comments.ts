@@ -11,7 +11,7 @@ import type { DraftEvent, DraftRecordKind, DraftVia } from "../schema.js";
 import { recordCall } from "./calls.js";
 
 /** Draft kinds `comment_quality` judges. */
-export const COMMENT_DRAFT_KINDS: ReadonlySet<DraftRecordKind> = new Set([
+const COMMENT_DRAFT_KINDS: ReadonlySet<DraftRecordKind> = new Set([
   "comment",
   "thread",
   "post_comment",

@@ -9,7 +9,7 @@ const CHANNELS = cued({
   sms: { label: "SMS", tone: "neutral" },
 } as const);
 
-export const subscriberRecord = defineRecord({
+const subscriberRecord = defineRecord({
   id: "marketing.subscriber",
   app: "marketing",
   channel: "email",
@@ -71,7 +71,7 @@ export const subscriberRecord = defineRecord({
   activity: { view: "marketing_subscriber_activity", by: "subscriber" },
 });
 
-export const topicRecord = defineRecord({
+const topicRecord = defineRecord({
   id: "marketing.topic",
   app: "marketing",
   channel: "email",

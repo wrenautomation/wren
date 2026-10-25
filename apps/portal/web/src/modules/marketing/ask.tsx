@@ -23,7 +23,7 @@ const POLL_MS = 4000;
 /** The box's actions, ids the records list: save, ask and undo, run from inside the detail only. */
 export const DRAFT_SET = "marketing.draftSet";
 export const DRAFT_ASK = "marketing.draftAsk";
-export const DRAFT_UNDO = "marketing.draftUndo";
+const DRAFT_UNDO = "marketing.draftUndo";
 export const DRAFT_BOX = [DRAFT_SET, DRAFT_ASK, DRAFT_UNDO];
 
 /** Only the fields given, renamed: a post's `text` is To approve's `body`. */

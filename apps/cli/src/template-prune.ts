@@ -14,7 +14,7 @@ import { defaultFolder } from "@wren/core/templates";
 import { atomic, type Queryable, setAuditActor } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export const RETIRED = "retired";
+const RETIRED = "retired";
 
 export interface PruneRow {
   id: number;
@@ -29,7 +29,7 @@ export interface PruneRow {
   messages: number;
 }
 
-export type PruneAction = "delete" | "retire" | "keep";
+type PruneAction = "delete" | "retire" | "keep";
 
 /** What happens to one email row: `files` holds `<system>/<name>` of every email default. */
 export function pruneAction(
@@ -47,7 +47,7 @@ export function pruneAction(
 const folderOf = (r: Pick<PruneRow, "system" | "name">) =>
   `${RETIRED}/${defaultFolder({ kind: "email", system: r.system, name: r.name })}`;
 
-export interface PruneResult {
+interface PruneResult {
   apply: boolean;
   delete: string[];
   retire: string[];

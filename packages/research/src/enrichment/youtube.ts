@@ -35,9 +35,9 @@ export const YOUTUBE_BUCKET: Bucket = { perDay: 1500, burst: 500 };
  * each minute and never go idle.
  */
 export const YOUTUBE_MIN_BATCH = 100;
-export const READ_EVERY_DAYS = 30;
+const READ_EVERY_DAYS = 30;
 /** Newest uploads read a firm: a page is 50 and costs a unit, as does each 50 videos' details. */
-export const UPLOADS = 50;
+const UPLOADS = 50;
 const PAGE = 50;
 const ERROR_STREAK = 5;
 export const CHANNEL_PARTS =
@@ -97,7 +97,7 @@ function dataApi(
   };
 }
 
-export type ChannelRef = { by: "id" | "forHandle" | "forUsername"; value: string };
+type ChannelRef = { by: "id" | "forHandle" | "forUsername"; value: string };
 
 /** The lookup a link allows, or why it has none. */
 export function channelRef(link: string): ChannelRef | { missing: string } {
@@ -358,7 +358,7 @@ export const youtubeDue = (id: SQL) =>
     and f.via = 'youtube' and f.observed_at > now() - make_interval(days => ${READ_EVERY_DAYS})
     and (f.value ? 'raw' or f.value ? 'missing'))`;
 
-export interface YouTubeWork {
+interface YouTubeWork {
   companyId: number;
   link: string;
 }
@@ -430,9 +430,9 @@ export async function youtubeReadRoom(
   return youtubeRoom(db, now, undefined, main);
 }
 
-export type YouTubeOutcome = "read" | "missing" | "quota" | "error";
+type YouTubeOutcome = "read" | "missing" | "quota" | "error";
 
-export interface YouTubeUnit {
+interface YouTubeUnit {
   companyId: number;
   outcome: YouTubeOutcome;
   uploads: number;
@@ -496,7 +496,7 @@ export const emptyYouTubeStats = (): YouTubeStats => ({
 const STOPPED = "YouTube stopped: ";
 
 /** Data API units a read spends: a search is 100, every other list 1. */
-export const youtubeUnits = (resource: string) => (resource === "search" ? 100 : 1);
+const youtubeUnits = (resource: string) => (resource === "search" ? 100 : 1);
 
 /**
  * A client's YouTube reads: on its own API key (`own`), or Wren's (`wren`), each gated and

@@ -6,9 +6,9 @@
  */
 
 /** How long the pointer rests before the first tip shows, in ms. */
-export const HINT_DELAY = 400;
+const HINT_DELAY = 400;
 /** After a tip, the next one shows at once while the pointer moves along inside this many ms. */
-export const HINT_WARM = 300;
+const HINT_WARM = 300;
 
 export type TipSide = "top" | "bottom" | "left" | "right";
 
@@ -158,7 +158,7 @@ export function placeTip(
 }
 
 /** What the page gives the flow: timers, a clock, and the two things it does. */
-export interface HintHost<T> {
+interface HintHost<T> {
   now(): number;
   /** Runs `fn` after `ms`; the return cancels it. */
   after(ms: number, fn: () => void): () => void;

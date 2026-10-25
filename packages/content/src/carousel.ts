@@ -29,7 +29,7 @@ import { type ContentDraft, contentDrafts, contentIdeas, type DraftStatus } from
 import { OWN_WORDS } from "./write.js";
 
 /** A slide set drawn: one JPEG per slide, square, and the same slides as one PDF. */
-export interface SlidePaint {
+interface SlidePaint {
   images: Uint8Array[];
   pdf: Uint8Array;
 }
@@ -37,7 +37,7 @@ export interface SlidePaint {
 export type SlidePainter = (html: string, count: number) => Promise<SlidePaint>;
 
 /** What a render left on the drafts: stored keys and the set they show. */
-export interface SlideFiles {
+interface SlideFiles {
   images: string[];
   pdf: string | null;
   of: string;
@@ -47,7 +47,7 @@ export interface SlideFiles {
 const EDITABLE: readonly DraftStatus[] = ["draft", "approved", "failed"];
 
 /** The drafts that share `d`'s slide set (it among them), oldest first. */
-export async function deckOf(db: Queryable, d: ContentDraft): Promise<ContentDraft[]> {
+async function deckOf(db: Queryable, d: ContentDraft): Promise<ContentDraft[]> {
   const deck = typeof d.extra?.deck === "string" ? d.extra.deck : null;
   if (!deck) return [d];
   return db

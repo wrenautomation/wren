@@ -24,9 +24,7 @@ const missing = (what: string) => new PortalRefusal(`no such ${what}`, 404);
 const clash = (what: string) => new PortalRefusal(what, 409);
 
 /** Every invoice a credit could pay, with its client's name; the demo's aside. */
-export async function invoiceFacts(
-  db: Queryable,
-): Promise<(InvoiceFacts & { clientId: string })[]> {
+async function invoiceFacts(db: Queryable): Promise<(InvoiceFacts & { clientId: string })[]> {
   const rows = await db
     .select({ i: invoices, clientId: clients.id, clientName: clients.name })
     .from(invoices)

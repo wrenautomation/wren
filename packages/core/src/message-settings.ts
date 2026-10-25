@@ -115,7 +115,7 @@ export async function saveMessageSettings(
  * else `<kind>:<address>`. `kind` is `email`, `phone` or `handle:<platform>`, People's own key
  * kinds. Email, SMS and DM keys only add up when something knows the person behind them.
  */
-export type PersonResolver = (db: Queryable, kind: string, value: string) => Promise<string | null>;
+type PersonResolver = (db: Queryable, kind: string, value: string) => Promise<string | null>;
 
 /**
  * People's answer, read only: the profile an address already belongs to. An address People has

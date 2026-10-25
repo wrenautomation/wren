@@ -10,7 +10,7 @@ import { reports } from "../schema.js";
 import type { Transport } from "../send/transport.js";
 import { collectWeekly, renderWeekly, type WeeklyStats } from "./weekly.js";
 
-export interface WeeklyReportDeps {
+interface WeeklyReportDeps {
   db: Db;
   transport: Transport;
   /** null = store only (the CLI print, a dry run). */

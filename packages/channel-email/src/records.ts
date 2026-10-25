@@ -46,7 +46,7 @@ const AGES = {
   earlier: { label: "Earlier", tone: "neutral" },
 } as const;
 
-export const campaignRecord = (env: SendPolicy): RecordType =>
+const campaignRecord = (env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.campaign",
     app: "outbound",
@@ -232,7 +232,7 @@ export const replyRecord = defineRecord({
 });
 
 /** Where a call shows: ahead, over and unmarked, how it went, or cancelled. */
-export const CALL_STATUS = {
+const CALL_STATUS = {
   upcoming: { label: "Upcoming", tone: "warn" },
   past: { label: "Say how it went", tone: "neutral" },
   ...outcomeStatus(MEETING_OUTCOMES),

@@ -12,7 +12,7 @@ import { type Company, companies, type Person, people } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq } from "drizzle-orm";
 
-export interface TestimonialTag {
+interface TestimonialTag {
   org: string;
   method: "title_org_suffix" | "title_proper_noun" | "title_proper_noun_testimonial_page";
   matched: string;
@@ -200,7 +200,7 @@ export function documentUrlFrom(person: Pick<Person, "originRef" | "raw">): stri
   return typeof raw._document_url === "string" && raw._document_url ? raw._document_url : null;
 }
 
-export interface TagTestimonialsOptions {
+interface TagTestimonialsOptions {
   niche: string;
   runId?: string | null;
   dryRun?: boolean;
@@ -208,7 +208,7 @@ export interface TagTestimonialsOptions {
   checkpoint?: () => void | Promise<void>;
 }
 
-export interface TestimonialCandidate {
+interface TestimonialCandidate {
   person_id: number;
   full_name: string;
   title: string | null;

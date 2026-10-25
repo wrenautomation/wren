@@ -223,7 +223,7 @@ export async function sealedPdf(d: Doc, business: string): Promise<Uint8Array> {
  * lines and total, the due day, then how to pay by bank transfer with the reference to quote.
  * Amounts come formatted; the bank details come from the caller at runtime, never from here.
  */
-export interface InvoicePdf {
+interface InvoicePdf {
   number: string;
   issuedOn: string;
   dueOn: string;

@@ -176,7 +176,7 @@ export function markWords(
 export const VIDEO_PRIVACY = YOUTUBE_PRIVACY;
 export type VideoPrivacy = (typeof VIDEO_PRIVACY)[number];
 
-export interface ApproveVideo {
+interface ApproveVideo {
   short?: number;
   /** The whole cut, 9:16 (`files.vertical`); a video whose formats lack `long` takes it anyway. */
   vertical?: boolean;
@@ -405,7 +405,7 @@ export async function approveVideo(
 }
 
 /** The other vertical platforms a Short or the vertical cut goes to, beside YouTube and Instagram. */
-export const ALSO_PLATFORMS = ["tiktok", "x", "facebook", "linkedin"] as const;
+const ALSO_PLATFORMS = ["tiktok", "x", "facebook", "linkedin"] as const;
 type AlsoPlatform = (typeof ALSO_PLATFORMS)[number];
 
 /** TikTok takes a caption up to 2,200 characters; this keeps one in a line or two. */
@@ -577,7 +577,7 @@ async function keepUpload(
 export const reelKey = (short: number | CroppedFormat) => `reel-${short}`;
 
 /** The whole cut's full renders in the media bucket, by format. */
-export const framedStored = (e: Pick<VideoEdit, "keys">) =>
+const framedStored = (e: Pick<VideoEdit, "keys">) =>
   Object.fromEntries(
     CROPPED.flatMap((f) => (e.keys[reelKey(f)] ? [[f, e.keys[reelKey(f)] as string]] : [])),
   ) as Partial<Record<CroppedFormat, string>>;
@@ -702,7 +702,7 @@ export async function pickThumbnail(db: Queryable, id: number, n: number): Promi
 }
 
 const neutral = (label: string): State => ({ label, tone: "neutral" });
-export const VIDEO_STATES: Record<string, State> = {
+const VIDEO_STATES: Record<string, State> = {
   added: neutral("Added"),
   edited: neutral("Editing"),
   rendered: { label: "Waiting on you", tone: "warn" },
@@ -713,14 +713,14 @@ export const VIDEO_STATES: Record<string, State> = {
 };
 
 /** A render asked for from the page, on its way; none once done. */
-export const RENDER_STATES: Record<string, State> = {
+const RENDER_STATES: Record<string, State> = {
   waiting: neutral("Waiting for the Mac"),
   rendering: neutral("Rendering"),
   failed: { label: "Render failed", tone: "bad" },
 };
 
 /** Each cut with the words it strikes and the ones either side, for the page's Keep or Cut. */
-export const cutRows = (e: Pick<VideoEdit, "cuts" | "words">) =>
+const cutRows = (e: Pick<VideoEdit, "cuts" | "words">) =>
   reviewCuts(e.cuts, e.words).map((r) => ({
     from: r.cut.from,
     to: r.cut.to,
@@ -845,7 +845,7 @@ export interface VideoView {
 }
 
 /** One look's proposals as the page shows them: no provider media ids. */
-export interface VideoLookView {
+interface VideoLookView {
   by: string;
   at: string;
   summary: string;

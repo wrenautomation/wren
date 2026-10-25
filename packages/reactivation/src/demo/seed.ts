@@ -26,14 +26,14 @@ import { type CrmImportStats, runCrmImport } from "../crm/import.js";
 import { CrmCsvSource } from "../crm/source.js";
 import { type Rng, seededRng, simulateHistory, usDate } from "./history.js";
 
-export interface SeedDeps {
+interface SeedDeps {
   fetcher: Fetcher;
   sites: SiteClient;
   llm: LlmClient;
   resolves?: Resolves;
 }
 
-export interface SeedOptions {
+interface SeedOptions {
   /** The agency's site: a URL or a bare domain. */
   agency: string;
   /** Its name; read from the home page title when not given. */
@@ -47,7 +47,7 @@ export interface SeedOptions {
   onProgress?: (line: string) => void;
 }
 
-export interface SeedStats {
+interface SeedStats {
   agency: { name: string; domain: string };
   customersNamed: number;
   customersUsed: number;

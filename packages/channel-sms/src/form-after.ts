@@ -50,12 +50,12 @@ export const NOTICE_AFTER_MS = 10 * 60 * 1000;
 const SWEEP_WITHIN_MS = 86_400_000;
 
 /** The email's place in the template store: kind email, system `forms`. */
-export const FORM_EMAILS = "forms";
-export const FORM_EMAIL = "form-booking";
-export const formEmailRef: TemplateRef = { kind: "email", system: FORM_EMAILS, name: FORM_EMAIL };
+const FORM_EMAILS = "forms";
+const FORM_EMAIL = "form-booking";
+const formEmailRef: TemplateRef = { kind: "email", system: FORM_EMAILS, name: FORM_EMAIL };
 /** The same email to an applicant who got no text: it doesn't say "I texted you". */
-export const FORM_EMAIL_NO_TEXT = "form-booking-no-text";
-export const formNoTextEmailRef: TemplateRef = {
+const FORM_EMAIL_NO_TEXT = "form-booking-no-text";
+const formNoTextEmailRef: TemplateRef = {
   kind: "email",
   system: FORM_EMAILS,
   name: FORM_EMAIL_NO_TEXT,
@@ -65,7 +65,7 @@ export const formNoTextEmailRef: TemplateRef = {
 const NO_TEXT: readonly FirstTouch[] = ["no_consent", "no_phone", "refused"];
 
 /** A number in a country form texts skip: email only, by rule, so no notice. */
-export function emailOnlyByCountry(run: Pick<SpeedRun, "firstTouch" | "phone">): boolean {
+function emailOnlyByCountry(run: Pick<SpeedRun, "firstTouch" | "phone">): boolean {
   return run.firstTouch === "no_phone" && !!run.phone && phoneCountry(run.phone) !== null;
 }
 

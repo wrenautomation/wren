@@ -84,7 +84,7 @@ export interface SendPolicySettings {
   readonly healthWindowDays: number;
 }
 
-export interface SendPolicyFields {
+interface SendPolicyFields {
   readonly timezone: string; // canonical IANA name
   readonly days: ReadonlySet<number>; // 0 = Monday … 6 = Sunday
   readonly holidays: ReadonlySet<HolidayCalendar>;
@@ -113,7 +113,7 @@ export interface SendPolicyFields {
 }
 
 /** A console override of one campaign; null = the env default. */
-export interface CampaignControl {
+interface CampaignControl {
   readonly campaign: string;
   readonly killSwitch: boolean | null;
   readonly openersPerDay: number | null;

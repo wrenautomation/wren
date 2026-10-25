@@ -55,7 +55,7 @@ interface Made {
 }
 
 /** The code for a link as an SVG: black on white whatever the theme, so phones read it. */
-export function Qr({ text, size = 168 }: { text: string; size?: number }) {
+function Qr({ text, size = 168 }: { text: string; size?: number }) {
   const m = useMemo(() => qrMatrix(text), [text]);
   if (!m) return <p className={HINT}>Too long for a QR code.</p>;
   const n = m.length + 8;

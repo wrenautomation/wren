@@ -10,7 +10,7 @@ import type { Queryable } from "@wren/db";
 import { and, eq, inArray, isNotNull, lte, type SQL } from "drizzle-orm";
 import { callBookings } from "../schema.js";
 
-export interface MarkedCall {
+interface MarkedCall {
   id: number;
   outcome: MeetingOutcome | null;
   reason: string | null;
@@ -20,7 +20,7 @@ export interface MarkedCall {
   offer: string | null;
 }
 
-export interface OutcomeAsk {
+interface OutcomeAsk {
   ids: readonly number[];
   /** null takes it back. */
   outcome: MeetingOutcome | null;
@@ -65,7 +65,7 @@ export async function setCallOutcome(db: Queryable, o: OutcomeAsk): Promise<Mark
 /** The subject every event about one call carries. */
 export const callSubject = (id: number) => `call:${id}`;
 
-export interface OutcomeEmit {
+interface OutcomeEmit {
   workflow: string;
   from: string;
   events: SpineEvent[];

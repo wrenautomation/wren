@@ -63,7 +63,7 @@ export interface Sender {
   readonly dkim: string | null;
 }
 
-export type SenderTransport = "gmail" | "smtp" | "instantly";
+type SenderTransport = "gmail" | "smtp" | "instantly";
 
 export function senderDomain(sender: Pick<Sender, "address">): string {
   return sender.address.slice(sender.address.lastIndexOf("@") + 1);

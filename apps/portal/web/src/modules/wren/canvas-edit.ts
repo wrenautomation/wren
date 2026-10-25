@@ -35,7 +35,7 @@ export interface Edit {
   tested: { steps: readonly DryStep[]; from: string } | null;
 }
 
-export type EditAction =
+type EditAction =
   | { type: "open"; testing?: boolean }
   | { type: "close" }
   /** The draft changed from `was`: Undo can step back to it. */

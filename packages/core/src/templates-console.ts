@@ -73,7 +73,7 @@ export function templateAt(ref: Pick<TemplateRef, "kind" | "system">): Target {
 export const approvalId = (templateId: number, number: number) =>
   `template:${templateId}:${number}`;
 
-export function parseApprovalId(id: string): { templateId: number; number: number } | null {
+function parseApprovalId(id: string): { templateId: number; number: number } | null {
   const m = /^template:(\d{1,12}):(\d{1,9})$/.exec(id);
   return m ? { templateId: Number(m[1]), number: Number(m[2]) } : null;
 }
@@ -115,7 +115,7 @@ export type TemplateView = ReturnType<typeof stateView>;
 const REF = z.string().max(200).describe("<kind>:<system>/<name>");
 const WHY = z.string().max(500).nullish().describe("One line: why");
 
-export interface RefRequest extends PortalRequest {
+interface RefRequest extends PortalRequest {
   ref: string;
 }
 export interface SaveRequest extends RefRequest {
@@ -123,7 +123,7 @@ export interface SaveRequest extends RefRequest {
   why?: string | null;
   expect: number | null;
 }
-export interface NumberRequest extends RefRequest {
+interface NumberRequest extends RefRequest {
   number?: number | null;
   why?: string | null;
   expect?: number | null;
@@ -317,7 +317,7 @@ export function templatesApi(deps: { db: Db }) {
     },
   };
 }
-export type TemplatesApi = ReturnType<typeof templatesApi>;
+type TemplatesApi = ReturnType<typeof templatesApi>;
 /** A row of the Library's browser. */
 export type TemplateListRow = Awaited<ReturnType<TemplatesApi["list"]>>["templates"][number];
 /** An open template: its state, every version with its words, and whether the viewer may act. */

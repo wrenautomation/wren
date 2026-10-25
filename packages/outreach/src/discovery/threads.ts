@@ -57,25 +57,25 @@ import { gatesFor, holdsThread, ThreadHeld } from "./requirements.js";
 
 const HOUR = 3_600_000;
 /** Late comments sink: older or busier threads are dropped in code. */
-export const MAX_AGE_MS = 24 * HOUR;
-export const MAX_COMMENTS = 40;
+const MAX_AGE_MS = 24 * HOUR;
+const MAX_COMMENTS = 40;
 /** A queued thread not answered by then has gone stale. */
-export const STALE_MS = 36 * HOUR;
+const STALE_MS = 36 * HOUR;
 /** How long after a thread is posted a drafted comment may still take a send slot: the whole drafted queue goes out under the cap. */
 export const SLOT_WITHIN_MS = 14 * 24 * HOUR;
 /** Ranked at or above this fit goes to the queue. */
-export const QUEUE_FIT = 6;
+const QUEUE_FIT = 6;
 /** With no pool account yet, the queue still shows this many a day to read and learn from. */
 const NO_ACCOUNT_CAP = 3;
 /** A comment's score is read back after this long. */
-export const SCORE_AFTER_MS = 48 * HOUR;
+const SCORE_AFTER_MS = 48 * HOUR;
 /**
  * A karma place's thread earns votes only early: past this age it is dropped, never queued, never
  * slotted, and a queued one goes stale.
  */
 export const KARMA_FRESH_MS = 6 * HOUR;
 /** A karma place's thread with more comments than this is already answered. */
-export const KARMA_MAX_COMMENTS = 15;
+const KARMA_MAX_COMMENTS = 15;
 
 /** Karma places, as a condition on a thread's subreddit. */
 // Qualified by hand: Drizzle leaves column names bare in a select list, and a bare "subreddit"
@@ -294,7 +294,7 @@ export async function commentsToday(db: Queryable, accountId: string, now: Date)
 }
 
 /** Thread comments of one account queued, or sent today, by the purpose of their place. */
-export interface PlaceUse {
+interface PlaceUse {
   karma: number;
   reach: number;
 }
@@ -315,11 +315,7 @@ export function roomFor(
 }
 
 /** Reach-place thread comments this account sent today: what the reach share counts at send. */
-export async function reachCommentsToday(
-  db: Queryable,
-  accountId: string,
-  now: Date,
-): Promise<number> {
+async function reachCommentsToday(db: Queryable, accountId: string, now: Date): Promise<number> {
   const [r] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(redditThreads)
@@ -670,7 +666,7 @@ async function commentRefOf(
   }
 }
 
-export interface CommentPlan {
+interface CommentPlan {
   thread: RedditThread;
   account: ReachAccount;
   others: string[];
