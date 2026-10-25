@@ -50,6 +50,8 @@ New, all in the promo script and `remotion/index.tsx`:
 7. Take `mask`: blocks over the page for a time range (an account id, an email).
 8. Take `crop`: the window shows part of the pane, px on the pane. A tall terminal alone fills a wide frame
    with its lines, not with empty rows. Camera points move into the crop's space.
+9. Script `sounds: "soft"`: the bed at -16 LUFS, one low tap per click 18 dB under it, nothing else.
+   The finished film is leveled to -16 LUFS, not -14.
 
 Not used, on purpose:
 - `@remotion/three`: a video on a WebGL plane re-samples the page and softens small text.
