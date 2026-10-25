@@ -1239,6 +1239,8 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
   const total = tall
     ? (sizes[0]?.w ?? 0)
     : sizes.reduce((a, b) => a + b.w, 0) + gap * (panes.length - 1);
+  // A narrow window (a terminal alone) would wrap its caption off the frame: it centers on more room.
+  const capW = Math.max(total, roomW * 0.7);
   return (
     <AbsoluteFill
       style={{ padding: pad, gap: 24 * u, alignItems: "center", justifyContent: "center" }}
@@ -1260,10 +1262,12 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
       {s.caption ? (
         <div
           style={{
-            width: total,
+            width: capW,
             height: capH - 24 * u,
             display: "flex",
             alignItems: "center",
+            justifyContent: capW > total ? "center" : "flex-start",
+            textAlign: capW > total ? "center" : "left",
             fontSize: 44 * u,
             fontWeight: 600,
             letterSpacing: "-0.02em",
