@@ -148,7 +148,6 @@ interface RemindRequest {
 type RemindService = {
   remind: (ctx: restate.Context, req: RemindRequest) => Promise<{ sent: boolean }>;
 };
-export type CalendarService = RemindService;
 
 /** A call as the spine hears it after a change: who booked rides along. */
 interface Changed {

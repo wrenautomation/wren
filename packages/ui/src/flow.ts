@@ -152,8 +152,6 @@ const px = (n: number) => Math.round(n * 10) / 10;
 
 /** How far from a box a line turns when it turns `near` that box. */
 const BEND = 18;
-/** A label's gap from a box: past where any line turns near it, so no label covers a turn. */
-export const LABEL_INSET = BEND + 6;
 
 /**
  * The line from node `a` to node `b`, as SVG path data: square turns with soft

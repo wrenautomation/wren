@@ -152,7 +152,6 @@ export function healthConsoleApi(db: Db) {
       }),
   };
 }
-export type HealthConsoleApi = ReturnType<typeof healthConsoleApi>;
 
 export function makeHealthConsole(db: Db) {
   const api = healthConsoleApi(db);

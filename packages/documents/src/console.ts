@@ -592,4 +592,3 @@ export function makeDocumentsConsole(deps: DocumentsConsoleDeps) {
     },
   });
 }
-export type DocumentsConsoleService = ReturnType<typeof makeDocumentsConsole>;

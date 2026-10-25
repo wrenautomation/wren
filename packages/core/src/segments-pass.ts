@@ -442,6 +442,3 @@ export function makeSegmentsNet(d: Pick<SegmentsDeps, "main" | "clients">) {
     return outcome;
   });
 }
-
-export type SegmentsService = ReturnType<typeof makeSegments>;
-export type SegmentsNetService = ReturnType<typeof makeSegmentsNet>;

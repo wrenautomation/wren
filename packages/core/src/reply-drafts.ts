@@ -10,7 +10,6 @@ import { settingsFor } from "./clients/index.js";
 export const REPLY_DRAFTS_COMPONENT = "drafts.replies";
 
 const replyDraftsSchema = z.object({ by: z.enum(["model", "you"]).default("model") }).strict();
-export type ReplyDrafts = z.infer<typeof replyDraftsSchema>;
 
 /** True when the model drafts replies (the default). */
 export async function modelDrafts(db: Queryable): Promise<boolean> {

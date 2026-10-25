@@ -747,5 +747,3 @@ export function makePeopleConsole(deps: PeopleConsoleDeps) {
     },
   });
 }
-
-export type PeopleConsoleService = ReturnType<typeof makePeopleConsole>;

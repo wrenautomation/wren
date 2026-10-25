@@ -171,7 +171,6 @@ const sendView = (s: ClientReportSend) => ({
   by: s.by,
   at: s.at.toISOString(),
 });
-export type ReportView = ReturnType<typeof view> & { sends: ReturnType<typeof sendView>[] };
 
 /** A new report (no `id`) or a change to one; its next run is worked out from now. */
 export async function saveReport(

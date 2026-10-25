@@ -28,7 +28,7 @@ fi
 WIDE=${CI:+--concurrency=100%}
 lint() {
   echo "==> biome check" && pnpm biome check --error-on-warnings . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE &&
-    cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && size
+    cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && exports && size
 }
 # File size (designs/2026-10-24-code-quality-handoff.md): no source file over 1200 lines, a tripwire for
 # a file an agent can no longer take in at once. scripts/big-files.txt lists the ones still over it,
@@ -43,6 +43,9 @@ size() {
 # Package layers (designs/2026-10-24-code-quality-handoff.md): a package imports its own layer or a
 # lower one, never a cycle. Biome's noRestrictedImports checks single imports; this checks the graph.
 layers() { echo "==> package layers" && node scripts/layers-guard.mjs; }
+# Exports (designs/2026-10-24-code-quality-handoff.md, round 2): an export another file reads, or no
+# `export`; one nothing reads is deleted. The module's export list is its interface.
+exports() { echo "==> exports" && node scripts/exports-guard.mjs; }
 map() { echo "==> map" && map/_meta/build.sh --check && scorecard; }
 # Scorecards (map/_meta/scorecard.mjs): each package and Restate service graded on map card, tests,
 # health and owner card; the worst rows print. Informational: it fails only with WREN_SCORECARD_MIN
@@ -187,7 +190,7 @@ case "${1:-all}" in
   drift) drift ;;
   scorecard) scorecard ;;
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
-  checks) cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && size ;;
+  checks) cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && exports && size ;;
   all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
   *) echo "usage: $0 [lint|changed|ui|checks|unit|stories|visual|look|match|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac
