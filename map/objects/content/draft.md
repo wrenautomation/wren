@@ -39,6 +39,7 @@ Citations: `packages/content/src/schema.ts:115`
 
 ## If you change this
 
+- **SOP check:** `check` (jsonb, `DraftCheck`): the draft beside the post standard and his calls, up to 3 changes, `version` = `draftVersion(text)` at check; the Write card marks it stale when the words change. Wren only.
 - **Hits:** `draft.ts:164`, `review.ts:70`, `queue.ts`, `slots.ts`, `restate/scheduler.ts`, `restate/desk.ts`, `costs.ts`, `lessons.ts` (reads notes and winners), `playbook.ts`, `wren content *`
 - **Does not hit:** the platform adapters (they take a `Post`, not a row: `packages/core/src/content/index.ts:122`)
 

@@ -337,4 +337,24 @@ describe("the standard and his calls, as an SOP reads them", () => {
     // No kinds in the notes: nothing to write.
     expect(await writeSopFiles(pg.db, dir, "reels", "# Notes\n")).toBeNull();
   });
+
+  it("counts a hunt's topic find only once he keeps it, and never once he drops or archives it", async () => {
+    const id = await readReel(9);
+    // A topic find: no followed creator, nobody saved it.
+    await pg.db.update(items).set({ sourceId: null, savedBy: null }).where(eq(items.id, id));
+    await breakdownItem(pg.db, model().judge, id);
+    const counted = async () =>
+      (await pg.db.select({ id: standards.id }).from(standards).where(eq(standards.id, id)))
+        .length === 1;
+    const call = (c: "keep" | "drop") =>
+      recordFactCall(pg.db, { client: "wren", id, path: "/", call: c, by: null, source: "cli" });
+    expect(await counted()).toBe(false);
+    await call("keep");
+    expect(await counted()).toBe(true);
+    await pg.db.update(items).set({ archivedAt: new Date() }).where(eq(items.id, id));
+    expect(await counted()).toBe(false);
+    await pg.db.update(items).set({ archivedAt: null }).where(eq(items.id, id));
+    await call("drop");
+    expect(await counted()).toBe(false);
+  });
 });

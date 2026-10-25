@@ -29,6 +29,7 @@ Citations: `packages/content/src/schema.ts:61`, `packages/content/src/playbook.t
 
 ## If you change this
 
+- **Scope and standard:** `scope` (jsonb) holds the SOP notes' front matter at push; `playbookFor` takes only a playbook whose scope is empty or names `post`; `postStandardFor` + `standardBlock` add the standard's `post` lines after the playbook in every draft prompt. `ContentDesk/check` (`check.ts`) saves a draft's check on [[content/draft]] `check`.
 - **Hits:** `draft.ts` (`draftPrompt`, `draftIdea`, `redraft`; bump `DRAFT_PROMPT_VERSION`), `wren sop push`
 - **Does not hit:** `lessons.ts` (notes and winners stay separate)
 

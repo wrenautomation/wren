@@ -15,6 +15,8 @@ import {
 } from "@wren/core/content";
 import { platformObjects } from "@wren/core/objects-schema";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
+import type { SopScope } from "@wren/learn";
+import type { DraftCheck } from "./check.js";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -112,6 +114,8 @@ export const contentPlaybooks = pgTable(
     /** The SOP's folder name, as in `wren sop ls`. */
     sop: varchar("sop", { length: 64 }).notNull(),
     text: text("text").notNull(),
+    /** What the SOP governs, from its notes' front matter at push (`SopScope`); null when it names none. */
+    scope: jsonb("scope").$type<SopScope | null>(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_content_playbooks" }),
@@ -153,6 +157,8 @@ export const contentDrafts = pgTable(
     playbookId: uuid("playbook_id"),
     /** The LLM stage's audit envelope (raw text, usage, model), or null for a hand-written draft. */
     llm: jsonb("llm").$type<Record<string, unknown>>(),
+    /** The last check against the SOP (`checkDraft`), stamped with the words' version it read. */
+    check: jsonb("check").$type<DraftCheck>(),
     /** The funnel stage it serves: reach (top), trust (middle), convert (bottom). */
     stage: varchar("stage", { length: 16, enum: FUNNEL_STAGES }).notNull().default("reach"),
     /** Where it sends people: a video, the site, booking, a Sites page. Its link is derived (`funnel.ts`). */

@@ -397,10 +397,10 @@ describe("Learn", () => {
       .where(sql`${items.id} in ${later.added}`)
       .orderBy(asc(items.url));
     expect(got.map((g) => [g.kind, g.type])).toEqual([
-      ["article", "instagram"],
-      ["article", "instagram"],
-      ["article", "x"],
-      ["article", "x"],
+      ["post", "instagram"],
+      ["post", "instagram"],
+      ["post", "x"],
+      ["post", "x"],
     ]);
     // A creator's post reads from its text: the page is never fetched.
     const never: FetchFn = async () => {

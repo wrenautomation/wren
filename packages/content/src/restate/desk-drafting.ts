@@ -4,8 +4,9 @@ import { finishRun, openRun } from "@wren/core";
 import { byOf } from "@wren/core/ask";
 import type { Media, Platform } from "@wren/core/content";
 import { PLATFORMS } from "@wren/core/content";
-import { exclusiveHandler, sharedHandler } from "@wren/core/restate";
+import { clientOfKey, exclusiveHandler, sharedHandler } from "@wren/core/restate";
 import { z } from "zod";
+import { checkDraft, type DraftCheck } from "../check.js";
 import { DRAFT_STAGE, type DraftResult, redraft } from "../draft.js";
 import { addIdea, getIdea } from "../ideas.js";
 import { FROM, refFrom, splitPosts, waitingIdeas, writeOwn } from "../own.js";
@@ -81,6 +82,8 @@ const REDRAFT = z.looseObject({
   note: z.string().describe("What to change"),
 });
 
+const CHECK = z.looseObject({ draftId: z.string() });
+
 export function draftingHandlers(desk: ContentDeskContext) {
   const { options, scopeOf, goOn, draft } = desk;
   return {
@@ -142,6 +145,28 @@ export function draftingHandlers(desk: ContentDeskContext) {
           finishRun(s.db, runId, { drafted: result.ok ? 1 : 0, skipped: result.ok ? 0 : 1 }),
         );
         return { ideaId: idea.id, results: [result], runId };
+      },
+    ),
+    /**
+     * Check one draft against its platform's SOP and save the result on it. Wren's desk only:
+     * the standard and his calls live in Wren's Learn. Shared: it writes the draft's check
+     * column only, so drafting on the desk never waits on it.
+     */
+    check: sharedHandler(
+      { input: CHECK },
+      async (
+        ctx: restate.ObjectSharedContext,
+        req: { draftId: string },
+      ): Promise<{ check: DraftCheck | null; why: string | null }> => {
+        if (clientOfKey(ctx.key))
+          throw new restate.TerminalError("The SOP check is Wren's only for now.", {
+            errorCode: 400,
+          });
+        const s = await scopeOf(ctx);
+        const check = await ctx.run("check", () =>
+          checkDraft(s.db, s.llm, req.draftId, desk.deps.tracer ? { tracer: desk.deps.tracer } : {}),
+        );
+        return { check, why: check ? null : "The models are stopped; ask again later." };
       },
     ),
     /** Write's board: the drafts that wait on a yes, grouped by idea. Read only. */

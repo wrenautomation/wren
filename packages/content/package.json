@@ -35,6 +35,7 @@
     "@wren/db": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/documents": "workspace:*",
+    "@wren/learn": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/notes": "workspace:*",
     "@wren/outreach": "workspace:*",

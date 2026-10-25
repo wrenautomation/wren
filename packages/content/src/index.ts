@@ -11,10 +11,12 @@ export {
 export * from "./attach.js";
 export * from "./blog.js";
 export * from "./carousel.js";
+export * from "./check.js";
 export * from "./clients.js";
 export * from "./costs.js";
 export * from "./draft.js";
 export * from "./draft-ask.js";
+export * from "./film-check.js";
 export * from "./funnel.js";
 export * from "./ideas.js";
 export * from "./lessons.js";

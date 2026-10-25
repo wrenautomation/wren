@@ -28,6 +28,7 @@ import { unpunctuated } from "@wren/studio/punctuate";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
 import { type Storyboard, storyboardOf } from "@wren/studio/storyboard";
 import { and, desc, eq, like, sql } from "drizzle-orm";
+import { type FilmCheck, filmCheck } from "./film-check.js";
 import { promosOf, videoDraftOf } from "./promo.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
 import { videoThumbs } from "./thumbs.js";
@@ -840,6 +841,8 @@ export interface VideoView {
   steps: VideoStep[];
   checks: ReturnType<typeof videoChecks>;
   fresh: ReturnType<typeof previewCheck>;
+  /** The cut list beside the film standard; none with no standard (`filmCheck`). */
+  sop: FilmCheck | null;
   /** The edit as frames, one per beat (designs/2026-10-15-storyboard.md). */
   storyboard: Storyboard;
 }
@@ -904,6 +907,7 @@ export async function videoView(db: Queryable, e: VideoEdit): Promise<VideoView>
     checks: videoChecks(e, { chaptersShown, ...renderTimes(steps), stale: staleOf(e), steps }),
     // The line beside the preview: whether it shows the last change.
     fresh: previewCheck(e, { ...renderTimes(steps), stale: staleOf(e) }),
+    sop: await filmCheck(db, e),
   };
 }
 

@@ -12,12 +12,13 @@ import { isThread } from "@wren/core/content/thread";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
+import type { KindStandard } from "@wren/learn";
 import { completeAndParse, type LlmClient, type Outcome, type Tracer } from "@wren/llm";
 import { and, count, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { type Lessons, lessonsBlock, lessonsFor, NO_LESSONS } from "./lessons.js";
 import { PLATFORM_SPECS, type PlatformSpec, unfitReason } from "./platforms.js";
-import { playbookBlock, playbookFor } from "./playbook.js";
+import { playbookBlock, playbookFor, postStandardFor, standardBlock } from "./playbook.js";
 import {
   type ContentDraft,
   type ContentIdea,
@@ -29,8 +30,9 @@ import { withSubreddit } from "./subreddit.js";
 import { type Brand, DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
 // v1 (2026-09-22): first prompt. v3 (2026-10-04): the platform's playbook. v4 (2026-10-07): the
-// facts rule and guard. Bump when the prompt or the platform shapes change.
-const DRAFT_PROMPT_VERSION = "v4";
+// facts rule and guard. v5 (2026-10-25): the platform's post standard. Bump when the prompt or the
+// platform shapes change.
+const DRAFT_PROMPT_VERSION = "v5";
 export const DRAFT_STAGE = "content_draft";
 // The answer is a few hundred tokens; a reasoning model thinks inside the same budget.
 const MAX_TOKENS = 4000;
@@ -67,6 +69,7 @@ export function draftPrompt(
     brand: Brand;
     lessons?: Lessons;
     playbook?: Pick<ContentPlaybook, "text"> | null;
+    standard?: KindStandard | null;
     facts?: readonly string[];
   },
 ): string {
@@ -82,7 +85,7 @@ export function draftPrompt(
   return `You write social posts for ${o.brand.name}, ${o.brand.about}.
 Write in this voice:
 ${o.voice}
-${playbookBlock(o.playbook ?? null)}
+${playbookBlock(o.playbook ?? null)}${standardBlock(o.standard ?? null)}
 Write ${spec.shape}. Stay inside ${spec.maxChars} characters.${spec.title ? ` The title stays inside ${spec.title.maxChars} characters.` : ""}
 Use only what the idea says; invent no numbers, names or events. Claim no experience, client or result the idea${facts ? " or the facts below" : ""} doesn't give. Keep the author's wording where it already reads well.${facts}
 ${media}${lessonsBlock(o.lessons ?? NO_LESSONS)}
@@ -105,6 +108,7 @@ export function redraftPrompt(
     brand: Brand;
     lessons?: Lessons;
     playbook?: Pick<ContentPlaybook, "text"> | null;
+    standard?: KindStandard | null;
     facts?: readonly string[];
   },
 ): string {
@@ -269,6 +273,7 @@ export async function redraft(
     brand: o.brand ?? DEFAULT_BRAND,
     lessons: await lessonsFor(db, platform),
     playbook,
+    standard: await postStandardFor(db, playbook, platform),
     ...(o.facts ? { facts: o.facts } : {}),
   });
   const { outcome, why } = await askGuarded(db, llm, prompt, [idea.text, note], {
@@ -362,6 +367,7 @@ export async function draftIdea(
       brand,
       lessons: await lessonsFor(db, platform),
       playbook,
+      standard: await postStandardFor(db, playbook, platform),
       ...(o.facts ? { facts: o.facts } : {}),
     });
     const { outcome, why } = await askGuarded(db, llm, prompt, [idea.text], {

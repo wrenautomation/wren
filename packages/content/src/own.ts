@@ -6,9 +6,11 @@ import { isCarousel } from "@wren/core/content/slides";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { desc, eq, inArray } from "drizzle-orm";
+import type { DraftCheck } from "./check.js";
 import type { DraftResult } from "./draft.js";
 import { addIdea, type IdeaMark } from "./ideas.js";
 import { PLATFORM_SPECS } from "./platforms.js";
+import { draftVersion } from "./review.js";
 import { type ContentIdea, contentDrafts, contentIdeas, type IdeaSource } from "./schema.js";
 import { withSubreddit } from "./subreddit.js";
 import { OWN_WORDS, ownDraftOf, ownThreadOf } from "./write.js";
@@ -130,6 +132,8 @@ export interface WaitingIdea {
     at: string;
     /** The time it was set to post (ISO), or null for the next free slot. */
     slot: string | null;
+    /** The last check against the SOP; `stale` when the words changed since. */
+    check: (DraftCheck & { stale: boolean }) | null;
   }[];
 }
 
@@ -165,6 +169,7 @@ export async function waitingIdeas(db: Queryable, limit = 120): Promise<WaitingI
       missing: missingFields(d.platform, d.extra, d.title),
       at: d.createdAt.toISOString(),
       slot: d.scheduledFor?.toISOString() ?? null,
+      check: d.check ? { ...d.check, stale: d.check.version !== draftVersion(d.text) } : null,
     });
     out.set(d.ideaId, at);
   }

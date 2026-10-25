@@ -3,12 +3,14 @@
  * drafts that wait, and the small words and times its rows say. One place, so the due cards, the
  * New row, the compose view and the waiting table never keep their own copies.
  */
+
 import { PLATFORM_SPECS } from "@wren/content/write";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import { THREAD_MAX, THREAD_MIN } from "@wren/core/content/thread";
 import type { IconName } from "@wren/ui";
 import { ApiError } from "../../api.js";
 import { contentDesk } from "./desk.js";
+import type { SopCheck } from "./sop-check.js";
 
 /** The platforms that post words alone (YouTube as a community post); videos start from a recording. */
 export const TEXT = PLATFORMS.filter(
@@ -145,6 +147,8 @@ export interface Waiting {
     at?: string | null;
     /** When it is set to post (ISO), or none for the next free slot. */
     slot?: string | null;
+    /** The last check against the SOP. An older answer has none. */
+    check?: SopCheck | null;
   }[];
 }
 

@@ -5,6 +5,13 @@
  */
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
+import {
+  draftScope,
+  type KindStandard,
+  kindStandardOf,
+  type SopScope,
+  standardLines,
+} from "@wren/learn";
 import { and, desc, eq, notInArray, sql } from "drizzle-orm";
 import { type ContentPlaybook, contentPlaybooks } from "./schema.js";
 
@@ -20,7 +27,15 @@ export const COMMENTS_SOP = "comments";
 export const DM_SOP = "outbound-copy";
 const NOT_POSTS = [COMMENTS_SOP, DM_SOP];
 
-/** The platform's post playbook: its newest row that isn't the comments or DM SOP. */
+/**
+ * An SOP whose notes scope names kinds without `post` (a film SOP pushed on YouTube) governs
+ * those kinds only: it never steers a post draft.
+ */
+const governsPosts = sql`(${contentPlaybooks.scope} is null
+  or coalesce(jsonb_array_length(${contentPlaybooks.scope}->'kinds'), 0) = 0
+  or ${contentPlaybooks.scope}->'kinds' ? 'post')`;
+
+/** The platform's post playbook: its newest row that isn't the comments or DM SOP, nor a non-post SOP. */
 export async function playbookFor(
   db: Queryable,
   platform: Platform,
@@ -29,7 +44,11 @@ export async function playbookFor(
     .select()
     .from(contentPlaybooks)
     .where(
-      and(eq(contentPlaybooks.platform, platform), notInArray(contentPlaybooks.sop, NOT_POSTS)),
+      and(
+        eq(contentPlaybooks.platform, platform),
+        notInArray(contentPlaybooks.sop, NOT_POSTS),
+        governsPosts,
+      ),
     )
     .orderBy(desc(contentPlaybooks.createdAt))
     .limit(1);
@@ -87,7 +106,7 @@ export async function commentGuide(db: Queryable, platform: Platform): Promise<s
 
 export async function pushPlaybook(
   db: Queryable,
-  p: { platform: Platform; sop: string; text: string },
+  p: { platform: Platform; sop: string; text: string; scope?: SopScope | null },
 ): Promise<{ playbook: ContentPlaybook; changed: boolean }> {
   const text = p.text.trim();
   if (text.length === 0) throw new Error(`${p.sop}: empty SOP`);
@@ -95,17 +114,29 @@ export async function pushPlaybook(
     throw new Error(
       `${p.sop}: ${text.length} chars, over ${MAX_PLAYBOOK_CHARS}; cut the SOP first`,
     );
-  const live = NOT_POSTS.includes(p.sop)
-    ? await sopFor(db, p.platform, p.sop)
-    : await playbookFor(db, p.platform);
-  if (live && live.sop === p.sop && live.text === text) return { playbook: live, changed: false };
+  const posts = !p.scope?.kinds.length || p.scope.kinds.includes("post");
+  const live =
+    NOT_POSTS.includes(p.sop) || !posts
+      ? await sopFor(db, p.platform, p.sop)
+      : await playbookFor(db, p.platform);
+  const scope = p.scope ?? null;
+  if (live && live.sop === p.sop && live.text === text && sameScope(live.scope ?? null, scope))
+    return { playbook: live, changed: false };
   const [row] = await db
     .insert(contentPlaybooks)
-    .values({ platform: p.platform, sop: p.sop, text })
+    .values({ platform: p.platform, sop: p.sop, text, scope })
     .returning();
   if (!row) throw new Error("insert returned no row");
   return { playbook: row, changed: true };
 }
+
+/** Field by field: jsonb gives the keys back in its own order. */
+const sameScope = (a: SopScope | null, b: SopScope | null) =>
+  a === b ||
+  (!!a &&
+    !!b &&
+    a.topic === b.topic &&
+    (["kinds", "platforms", "set"] as const).every((k) => a[k].join() === b[k].join()));
 
 export function playbookBlock(playbook: Pick<ContentPlaybook, "text"> | null): string {
   if (!playbook) return "";
@@ -114,5 +145,27 @@ The playbook for this platform. Follow what it says about writing a post; its st
 """
 ${playbook.text}
 """
+`;
+}
+
+/**
+ * The numbers a post draft is held to (designs/2026-10-25-competitor-analyzer.md, Use): the
+ * `post` pieces Learn broke down on the draft's platform, by the playbook SOP's set. Read live, so
+ * a piece read since the last push counts. Null under `MIN_STANDARD` pieces.
+ */
+// The view counts Wren's items only (`client = 'wren'`): a client's database gives no standard.
+export function postStandardFor(
+  db: Queryable,
+  playbook: Pick<ContentPlaybook, "scope"> | null,
+  platform: Platform,
+): Promise<KindStandard | null> {
+  return kindStandardOf(db, draftScope(playbook?.scope ?? null, "post", platform));
+}
+
+export function standardBlock(standard: KindStandard | null): string {
+  if (!standard) return "";
+  return `
+How the ${standard.n} best posts on this platform are built (the median, and the middle half). Land inside the middle half unless the idea needs otherwise; never pad or cut words to hit a number:
+${standardLines(standard).join("\n")}
 `;
 }

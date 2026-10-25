@@ -37,6 +37,33 @@ describe("draftPrompt", () => {
     expect(p.indexOf("Open with a number.")).toBeGreaterThan(p.indexOf("Write in this voice"));
     expect(draftPrompt(idea, PLATFORM_SPECS.linkedin, o)).not.toContain("playbook");
   });
+  it("carries the post standard after the playbook, and nothing when there is none", () => {
+    const o = { voice: "v", brand: DEFAULT_BRAND };
+    const standard = {
+      kind: "post",
+      n: 12,
+      trusted: 12,
+      numbers: [{ label: "Characters", n: 12, median: 640, p25: 410, p75: 900 }],
+      shares: [{ label: "Hook style", n: 12, of: [["identity-call", 7] as [string, number]] }],
+    };
+    const p = draftPrompt(idea, PLATFORM_SPECS.linkedin, {
+      ...o,
+      playbook: { text: "Open with a number." },
+      standard,
+    });
+    expect(p).toContain("How the 12 best posts on this platform are built");
+    expect(p).toContain("- Characters: median 640, half between 410 and 900");
+    expect(p).toContain("- Hook style: identity-call 7 (of 12)");
+    expect(p.indexOf("Characters")).toBeGreaterThan(p.indexOf("Open with a number."));
+    expect(draftPrompt(idea, PLATFORM_SPECS.linkedin, { ...o, standard: null })).not.toContain(
+      "best posts",
+    );
+    const again = redraftPrompt(idea, PLATFORM_SPECS.linkedin, { text: "old", title: null }, "shorter", {
+      ...o,
+      standard,
+    });
+    expect(again).toContain("- Characters: median 640");
+  });
 });
 
 describe("redraftPrompt", () => {

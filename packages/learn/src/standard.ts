@@ -48,7 +48,7 @@ export function scopeOf(notes: string): SopScope | null {
   };
 }
 
-type StandardRow = typeof standards.$inferSelect;
+export type StandardRow = typeof standards.$inferSelect;
 
 /** The in-scope rows of `learn.standards`: the SOP's kinds, on its platforms, by its set (each empty = any). */
 export async function standardRows(db: Queryable, scope: SopScope): Promise<StandardRow[]> {
@@ -76,7 +76,7 @@ const quartile = (xs: number[], q: number) => {
 const num = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 /** The number columns each kind reports, in reading order. A film's cut numbers count trusted films only. */
-const NUMBERS: Record<string, { key: keyof StandardRow; label: string; trusted?: boolean }[]> = {
+export const NUMBERS: Record<string, { key: keyof StandardRow; label: string; trusted?: boolean }[]> = {
   post: [
     { key: "chars", label: "Characters" },
     { key: "lines", label: "Lines" },
@@ -94,7 +94,7 @@ const NUMBERS: Record<string, { key: keyof StandardRow; label: string; trusted?:
   ],
 };
 /** The closed-set columns each kind reports as shares. */
-const SHARES: Record<string, { key: keyof StandardRow; label: string }[]> = {
+export const SHARES: Record<string, { key: keyof StandardRow; label: string }[]> = {
   reel: [{ key: "format", label: "Format" }],
   video: [{ key: "format", label: "Format" }],
   post: [
@@ -175,6 +175,38 @@ export async function standardOf(db: Queryable, scope: SopScope): Promise<KindSt
     .filter((k) => k.n > 0);
 }
 
+/** One kind's standard as lines: each number's median and middle half, each closed set's counts. */
+export function standardLines(k: KindStandard): string[] {
+  const numbers = k.numbers.map(
+    (x) =>
+      `- ${x.label}: median ${num(x.median)}, half between ${num(x.p25)} and ${num(x.p75)}${x.n < k.n ? ` (${x.n} of ${k.n})` : ""}`,
+  );
+  const shares = k.shares.map(
+    (s) => `- ${s.label}: ${s.of.map(([v, c]) => `${v} ${c}`).join(", ")} (of ${s.n})`,
+  );
+  return [...numbers, ...shares];
+}
+
+/** Pieces a standard needs before a draft is held to it: fewer, and a median says nothing. */
+export const MIN_STANDARD = 5;
+
+/**
+ * The scope one draft is held to: its own kind on its own platform, by the SOP's set. An SOP with
+ * no scope in its notes still governs its platform's posts, by everyone Learn read.
+ */
+export const draftScope = (scope: SopScope | null, kind: string, platform: string): SopScope => ({
+  kinds: [kind],
+  platforms: [platform],
+  topic: scope?.topic ?? "",
+  set: scope?.set ?? [],
+});
+
+/** The standard for one kind in a scope; null under `MIN_STANDARD` pieces. */
+export async function kindStandardOf(db: Queryable, scope: SopScope): Promise<KindStandard | null> {
+  const [k] = await standardOf(db, scope);
+  return k && k.n >= MIN_STANDARD ? k : null;
+}
+
 const scopeLine = (scope: SopScope) =>
   [
     `kinds ${scope.kinds.join(", ")}`,
@@ -196,14 +228,7 @@ export function standardMarkdown(scope: SopScope, kinds: KindStandard[], at = ne
       k.kind === "film"
         ? `## ${k.kind} (${k.n} piece${k.n === 1 ? "" : "s"}, ${k.trusted} with a trusted cut count)`
         : `## ${k.kind} (${k.n} piece${k.n === 1 ? "" : "s"})`;
-    const numbers = k.numbers.map(
-      (x) =>
-        `- ${x.label}: median ${num(x.median)}, half between ${num(x.p25)} and ${num(x.p75)}${x.n < k.n ? ` (${x.n} of ${k.n})` : ""}`,
-    );
-    const shares = k.shares.map(
-      (s) => `- ${s.label}: ${s.of.map(([v, c]) => `${v} ${c}`).join(", ")} (of ${s.n})`,
-    );
-    return [title, ...numbers, ...shares].join("\n");
+    return [title, ...standardLines(k)].join("\n");
   });
   return `${[...head, "", ...blocks].join("\n\n").replace(/\n\n\n/g, "\n\n")}\n`;
 }
@@ -279,7 +304,7 @@ export async function callsOf(db: Queryable, scope: SopScope, sop: string): Prom
 /** Keeps on one pattern, with no drop, that make it a rule on its own. */
 export const RULE_KEEPS = 3;
 /** The paths whose value is a pattern across pieces (a closed set), not this piece's own words. */
-const PATTERN_PATHS = new Set([
+export const PATTERN_PATHS = new Set([
   "hook_style",
   "cta",
   "facts/format",
@@ -288,8 +313,47 @@ const PATTERN_PATHS = new Set([
   "facts/music",
   "facts/vo",
 ]);
-const patternOf = (c: SopCall) =>
-  c.path === "cta" ? `Call to action: ${c.value.split(":")[0]}` : `${c.label}: ${c.value}`;
+/** A closed-set value as the standard counts it: a call to action by its kind, a boolean as yes / no. */
+export const patternValue = (path: string, value: string): string => {
+  const v = path === "cta" ? (value.split(":")[0] ?? "") : value;
+  return v === "true" ? "yes" : v === "false" ? "no" : v.trim();
+};
+
+/** One closed-set value his calls touched, counted across pieces. */
+export interface PatternRule {
+  path: string;
+  label: string;
+  value: string;
+  keeps: number;
+  tunes: number;
+  drops: number;
+  /** Kept on `RULE_KEEPS` pieces with no drop: a rule. */
+  rule: boolean;
+  calls: SopCall[];
+}
+
+/** His calls as rules: patterns counted across pieces, and each call on a piece's own words. */
+export function rulesOf(calls: SopCall[]): { patterns: PatternRule[]; own: SopCall[] } {
+  const by = new Map<string, PatternRule>();
+  for (const c of calls.filter((c) => PATTERN_PATHS.has(c.path))) {
+    const value = patternValue(c.path, c.value);
+    const label = c.path === "cta" ? "Call to action" : c.label;
+    const k = `${c.path}\u0000${value}`;
+    const r = by.get(k) ?? { path: c.path, label, value, keeps: 0, tunes: 0, drops: 0, rule: false, calls: [] };
+    r.calls.push(c);
+    if (c.call === "keep") r.keeps++;
+    else if (c.call === "tune") r.tunes++;
+    else r.drops++;
+    r.rule = r.keeps >= RULE_KEEPS && !r.drops;
+    by.set(k, r);
+  }
+  return {
+    patterns: [...by.values()].sort((a, b) =>
+      `${a.label}: ${a.value}`.localeCompare(`${b.label}: ${b.value}`),
+    ),
+    own: calls.filter((c) => !PATTERN_PATHS.has(c.path)),
+  };
+}
 
 const cite = (c: SopCall) => `learn:${c.id}`;
 const who = (c: SopCall) => `${c.title}${c.creator ? `, ${c.creator}` : ""}`;
@@ -303,27 +367,24 @@ export function callsMarkdown(scope: SopScope, calls: SopCall[], at = new Date()
     `His keep / tune / drop calls on the pieces this SOP covers (${scopeLine(scope)}), as of ${at.toISOString().slice(0, 10)}. Code writes this file from \`decision_calls\`; a call changes on the item page or with \`wren learn call\`.`,
   ];
   if (!calls.length) return `${head.join("\n")}\n\nNo calls yet.\n`;
-  const patterns = new Map<string, SopCall[]>();
-  for (const c of calls.filter((c) => PATTERN_PATHS.has(c.path))) {
-    const k = patternOf(c);
-    patterns.set(k, [...(patterns.get(k) ?? []), c]);
-  }
-  const patternLines = [...patterns]
-    .map(([k, cs]) => {
-      const n = (call: FactCall) => cs.filter((c) => c.call === call);
-      const rule = n("keep").length >= RULE_KEEPS && !n("drop").length ? " → rule" : "";
-      const counts = (["keep", "tune", "drop"] as const)
-        .filter((call) => n(call).length)
-        .map((call) => `${call} ${n(call).length}`)
-        .join(", ");
-      const words = cs
-        .filter((c) => c.comment)
-        .map((c) => `"${c.comment}" [${cite(c)}]`)
-        .join("; ");
-      return `- ${k}: ${counts}${rule} [${cs.map(cite).join(", ")}]${words ? ` (${words})` : ""}`;
-    })
-    .sort();
-  const own = calls.filter((c) => !PATTERN_PATHS.has(c.path));
+  const { patterns, own } = rulesOf(calls);
+  const patternLines = patterns.map((r) => {
+    const counts = (
+      [
+        ["keep", r.keeps],
+        ["tune", r.tunes],
+        ["drop", r.drops],
+      ] as const
+    )
+      .filter(([, n]) => n)
+      .map(([call, n]) => `${call} ${n}`)
+      .join(", ");
+    const words = r.calls
+      .filter((c) => c.comment)
+      .map((c) => `"${c.comment}" [${cite(c)}]`)
+      .join("; ");
+    return `- ${r.label}: ${r.value}: ${counts}${r.rule ? " → rule" : ""} [${r.calls.map(cite).join(", ")}]${words ? ` (${words})` : ""}`;
+  });
   const section = (call: FactCall, title: string) => {
     const cs = own.filter((c) => c.call === call);
     if (!cs.length) return [];

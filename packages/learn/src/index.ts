@@ -2,6 +2,7 @@ export * from "./alerts.js";
 export * from "./breakdown.js";
 export * from "./calls.js";
 export * from "./catalog.js";
+export * from "./check.js";
 export * from "./creators.js";
 export * from "./drive.js";
 export * from "./embed.js";

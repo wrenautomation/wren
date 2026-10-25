@@ -739,7 +739,9 @@ export const breakdownRecords = learn
  * Each of Wren's breakdowns as one flat row of numbers (designs/2026-10-25-competitor-analyzer.md,
  * Write): the kind's facts as columns, the platform, the creator and the reach, so a standard is
  * a filter and a median. `standardOf` reads it for an SOP's kinds, platforms and set; the lake
- * and `wren lake sql` read it as is.
+ * and `wren lake sql` read it as is. Only pieces a person picked count: a hand breakdown, a saved
+ * link, a followed creator's piece, or one he kept. A hunt's topic find counts once he keeps it;
+ * an archived piece or one he dropped whole never counts.
  */
 export const standards = learn
   .view("standards", {
@@ -783,7 +785,14 @@ export const standards = learn
       (b.facts->>'first_product_s')::numeric first_product_s, (b.facts->>'logo_s')::numeric logo_s,
       (b.facts->>'cta_s')::numeric cta_s, b.facts->>'cuts_trust' cuts_trust,
       (b.facts->>'music')::boolean music, (b.facts->>'vo')::boolean vo, r.calls
-    from learn.breakdown_records r join learn.breakdowns b on b.item_id = r.id`);
+    from learn.breakdown_records r join learn.breakdowns b on b.item_id = r.id
+      join learn.items i on i.id = r.id
+      left join lateral (select c.label from decision_calls c
+        where c.kind = 'learn_fact' and c.subject = 'learn:' || r.id
+        order by c.at desc, c.id desc limit 1) his on true
+    where i.archived_at is null and his.label is distinct from 'drop'
+      and (b."by" = 'hand' or i.saved_by is not null or i.source_id is not null
+        or his.label = 'keep')`);
 
 /** Each hook style across Wren's broken-down reels: how often, by whom, and how far it reached. */
 export const hookRecords = learn

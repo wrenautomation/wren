@@ -50,12 +50,13 @@ import {
 } from "@wren/ui/components/ui/sheet";
 import { useEffect, useRef, useState } from "react";
 import { patchCalls, useCall } from "../../load.js";
-import type { PageProps } from "../../module.js";
+import { type PageProps, WREN } from "../../module.js";
 import { wrenRecords } from "../../records.js";
 import { href } from "../../route.js";
 import { ERROR, QUIET } from "../work/bits.js";
 import { DRAFT_SET } from "./ask.js";
 import { deskCall } from "./desk.js";
+import { type SopCheck, SopCheckList } from "./sop-check.js";
 import {
   chosen,
   desk,
@@ -75,7 +76,7 @@ import {
 import { CARD, EYEBROW } from "./studio-due.js";
 import { LineName, lineColour } from "./studio-lines.js";
 
-type Act = "approve" | "now" | "rewrite" | "reject";
+type Act = "approve" | "now" | "rewrite" | "reject" | "check";
 /** Each card's flush, so a yes on the whole board saves every card's typing first. */
 type Flushers = Set<() => Promise<boolean>>;
 
@@ -100,10 +101,13 @@ function DraftCard({
   d,
   at,
   demo,
+  sop,
   flushers,
   onDone,
 }: {
   d: Waiting["drafts"][number];
+  /** The SOP check is Wren's own only: the standard and his calls live in Wren's Learn. */
+  sop: boolean;
   /** When the board's read left: an older read never lands over his typing. */
   at: number;
   demo: boolean;
@@ -150,6 +154,9 @@ function DraftCard({
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState<Act | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The check just asked for shows at once; the board's next read carries it too.
+  const [checked, setChecked] = useState<SopCheck | null>(null);
+  const check = checked ?? d.check ?? null;
   const max = PLATFORM_SPECS[d.platform].maxChars;
   // The same check the yes runs: a thread's posts, else the platform's length.
   const unfit = d.thread
@@ -171,6 +178,19 @@ function DraftCard({
     try {
       // Every act reads the saved words: his typing lands first, or nothing goes on.
       if (!(await s.flush())) {
+        setBusy(null);
+        return;
+      }
+      if (what === "check") {
+        const out = await ACTIONS.run(`studio:check:${d.id}`, (requestId) =>
+          desk<{ check: SopCheck | null; why: string | null }>(
+            "check",
+            { draftId: d.id },
+            requestId,
+          ),
+        );
+        if (out.check) setChecked({ ...out.check, stale: false });
+        else setError(out.why ?? "The check gave nothing back.");
         setBusy(null);
         return;
       }
@@ -350,6 +370,16 @@ function DraftCard({
               Rewrite with AI
             </Button>
           )}
+          {sop && !d.story && !d.carousel ? (
+            <Button
+              size="dense"
+              tone="quiet"
+              disabled={!!busy || demo}
+              onClick={() => void act("check")}
+            >
+              {busy === "check" ? "Checking…" : check ? "Check again" : "Check against the SOP"}
+            </Button>
+          ) : null}
           <Button
             size="dense"
             tone="quiet"
@@ -360,6 +390,7 @@ function DraftCard({
           </Button>
         </div>
       )}
+      {check && sop ? <SopCheckList check={check} /> : null}
       {error ? <p className={ERROR}>{error}</p> : null}
     </div>
   );
@@ -568,6 +599,7 @@ export function WaitingBoard(
               d={d}
               at={load.at}
               demo={props.demo}
+              sop={props.client === WREN.id}
               flushers={flushers}
               onDone={reload}
             />

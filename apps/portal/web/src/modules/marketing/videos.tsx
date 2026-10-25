@@ -39,6 +39,7 @@ import type { ListPage } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
 import { href } from "../../route.js";
 import { Finish, type FinishData } from "./finish.js";
+import { type SopCheck, SopCheckList } from "./sop-check.js";
 import { EditorTabs, StoryboardView } from "./storyboard.js";
 import { VIEWED } from "./video-patch.js";
 
@@ -115,6 +116,8 @@ type Video = {
   checks?: Check[];
   /** Beside the preview: whether it shows the last change. */
   fresh?: Check | null;
+  /** The cut list beside the film standard (Wren's own); none with no standard yet. */
+  sop?: SopCheck | null;
   /** False while the transcript has no sentence ends. */
   punctuated?: boolean;
   /** What each look proposed, newest first (content `looksOf`). */
@@ -1598,6 +1601,7 @@ function timelineExtras(
       narrow={narrow}
     />,
   ]);
+  if (v.sop) sections.push(["Against the standard", <SopCheckList key="sop" check={v.sop} />]);
   // What edits the cut: in place on a wide page, folded behind Edit on a phone.
   const editing: [string, ReactNode][] = [];
   if (v.vertical)

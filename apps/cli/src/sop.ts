@@ -17,6 +17,7 @@ import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import {
   breakdownItem,
+  breakdowns,
   HUNT_CAP,
   HUNT_PER_QUERY,
   huntedIds,
@@ -44,6 +45,7 @@ import {
   youtubeSource,
 } from "@wren/research/sops";
 import type { Command } from "commander";
+import { inArray } from "drizzle-orm";
 import { learnReaders } from "./learn-readers.js";
 import { watchKeys } from "./video-watch.js";
 
@@ -213,9 +215,17 @@ export function registerSop(
                 `[${n}/${of}] ${r.id} ${r.read ?? "gone"}${r.verdict ? ` ${r.verdict}` : ""}${r.why ? `: ${r.why}` : ""}`,
               ),
           });
-          const broken: number[] = [];
-          for (const r of reads)
-            if (r.read === "read" && (await breakdownItem(db, judge, r.id))) broken.push(r.id);
+          // Scoring breaks a piece down already; this catches one whose score failed.
+          const read = reads.filter((r) => r.read === "read").map((r) => r.id);
+          for (const id of read) await breakdownItem(db, judge, id);
+          const broken = read.length
+            ? (
+                await db
+                  .select({ id: breakdowns.itemId })
+                  .from(breakdowns)
+                  .where(inArray(breakdowns.itemId, read))
+              ).map((b) => b.id)
+            : [];
           say(`${broken.length} broken down${stopped ? `. Stopped: ${stopped}` : ""}`);
           return { ...hunt, read: reads, broken };
         });
@@ -279,8 +289,11 @@ export function registerSop(
         throw new Error(`platform must be one of ${PLATFORMS.join(", ")}`);
       const platform = opts.platform as Platform;
       const text = await readFile(join(sopsDir, name, "SOP.md"), "utf8");
+      // What it governs rides along, so a draft reads the SOP's set live (designs/2026-10-25-competitor-analyzer.md, Use).
+      const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
+      const scope = scopeOf(notes);
       const { playbook, changed } = await withDb((db) =>
-        pushPlaybook(db, { platform, sop: name, text }),
+        pushPlaybook(db, { platform, sop: name, text, scope }),
       );
       console.log(
         `${platform}: ${name} ${changed ? "pushed" : "unchanged"} (${playbook.id}, ${text.length} chars)`,
