@@ -63,7 +63,9 @@ export const SPACE = {
  * A lap (`ViewGroup.lap`): px between its rows, its corner radius, and the dots that run round it,
  * as the hand-drawn retainer loop had them.
  */
-export const LAP = { gap: 160, r: 44, dots: 3, dur: 9 } as const;
+export const LAP = { gap: 160, r: 80, dots: 3, dur: 9 } as const;
+/** How far a lap's ends sit past its outer stations: half the row gap, so each end is a half circle. */
+export const LAP_END = Math.max(60, LAP.gap / 2);
 
 /** A lap the placer laid out: its closed path, and its cycle for the chip in the middle. */
 export interface PlacedLap {
@@ -315,6 +317,7 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
       pts: lap.pts,
       r: LAP.r,
       mv: true,
+      fill: true,
       dots: LAP.dots,
       dur: LAP.dur,
     });

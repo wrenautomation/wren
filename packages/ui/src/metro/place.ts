@@ -8,7 +8,15 @@
 import type { ElkNode } from "elkjs/lib/elk-api.js";
 import { elkOf } from "../graph/layout.js";
 import { RADIUS, textWidth } from "./geometry.js";
-import { finishMetro, LAP, type PlacedLap, type Placement, SPACE, tryMetro } from "./layout.js";
+import {
+  finishMetro,
+  LAP,
+  LAP_END,
+  type PlacedLap,
+  type Placement,
+  SPACE,
+  tryMetro,
+} from "./layout.js";
 import type { MetroScene, Point, Zone } from "./types.js";
 import { DEFAULT_COLUMNS, type MetroView, type ViewStation } from "./view.js";
 
@@ -72,6 +80,9 @@ export function lapsOf(view: MetroView): Lap[] {
   return [...out.values()];
 }
 
+/** Pieces in each half-circle end of a lap. */
+const ARC = 12;
+
 /** Where each station of a lap sits, from the top row's left end: column index and row. */
 const lapSlot = (lap: Lap, i: number): [col: number, row: 0 | 1] =>
   i < lap.cols ? [i, 0] : [lap.cols - 1 - (i - lap.cols), 1];
@@ -103,18 +114,26 @@ function lapRoutes(
   const x1 = (top[top.length - 1] as Point)[0];
   const ty = (top[0] as Point)[1];
   const by = ty + LAP.gap;
-  const half = top.length > 1 ? (x1 - x0) / (top.length - 1) / 2 : STEP / 2;
-  const [left, right] = [x0 - half, x1 + half];
+  const [left, right] = [x0 - LAP_END, x1 + LAP_END];
+  // Each end is a half circle, as short straight pieces: `rounded` cuts a corner to half its legs.
+  const r = (by - ty) / 2;
+  const end = (cx: number, side: 1 | -1): Point[] =>
+    Array.from({ length: ARC - 1 }, (_, j) => {
+      const t = (Math.PI * (j + 1)) / ARC;
+      return [cx + side * r * Math.sin(t), ty + r - side * side * r * Math.cos(t)] as Point;
+    });
   const pts: Point[] = [
     ...top,
-    [right, ty],
-    [right, by],
+    [right - r, ty],
+    ...end(right - r, 1),
+    [right - r, by],
     ...bottom,
-    [left, by],
-    [left, ty],
+    [left + r, by],
+    ...end(left + r, -1).map(([x, y]) => [x, 2 * ty + 2 * r - y] as Point),
+    [left + r, ty],
     top[0] as Point,
   ];
-  const index = (i: number) => (i < lap.cols ? i : i + 2);
+  const index = (i: number) => (i < lap.cols ? i : i + ARC + 1);
   const order = new Map(lap.stations.map((s, i) => [s.id, index(i)]));
   const route = new Map<string, Point[]>();
   for (const t of view.tracks) {
@@ -222,7 +241,7 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
     const first = l.stations[0] as ViewStation;
     return {
       id: `lap:${l.id}`,
-      width: l.cols * STEP,
+      width: (l.cols - 1) * STEP + 2 * LAP_END,
       height: 2 * (LAP.gap + lapFoot(l, view)),
       layoutOptions: { "elk.alignment": "CENTER", ...(top ? partition(first.column) : {}) },
     };

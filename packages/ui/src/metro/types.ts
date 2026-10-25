@@ -157,6 +157,8 @@ export interface MetroTrack {
   pts?: Point[];
   /** Corner radius. */
   r?: number;
+  /** A closed loop (a lap): its inside takes a faint wash of the line colour. */
+  fill?: boolean;
   pa?: Point;
   pc?: Point;
   /** Offsets from the ends' y: both, the start, the end. */

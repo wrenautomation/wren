@@ -273,6 +273,14 @@
   fill: var(--ui-ink-3);
   opacity: 0.85;
 }
+/* A lap's inside: a faint wash of its line colour, under the tracks. */
+.mm .field {
+  stroke: none;
+  fill-opacity: 0.1;
+}
+.mm.focus .field:not(.on) {
+  fill-opacity: 0.02;
+}
 .mm .mv {
   fill: var(--ui-on-accent);
   opacity: 0.92;

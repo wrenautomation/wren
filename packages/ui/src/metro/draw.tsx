@@ -141,6 +141,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     );
   };
 
+  const fields: ReactNode[] = [];
   const cases: ReactNode[] = [];
   const tracks: ReactNode[] = [];
   const dots: ReactNode[] = [];
@@ -275,6 +276,16 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     const w = WEIGHT[r.w ?? "front"];
     // First load: the line draws along its length (a dotted plan line fades in instead).
     const draw = intro && r.k !== "plan" ? { pathLength: 1 } : {};
+    if (r.fill)
+      fields.push(
+        <path
+          key={`f-${k}`}
+          className={cx("field", on(l) && "on")}
+          data-l={l}
+          d={d}
+          style={{ fill: lineColour(colours, l) }}
+        />,
+      );
     cases.push(
       <path
         key={`c-${k}`}
@@ -377,7 +388,10 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   const stations = scene.st.map((s) => {
     const sel = selected === s.id;
     if (isCapsule(s)) return <Capsule key={s.id} c={s} selected={sel} on={on(s.l)} />;
-    if (isRing(s)) return <Ring key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
+    if (isRing(s))
+      return (
+        <Ring key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} still={isStill} />
+      );
     if (isBadge(s)) return <Badge key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
     const l = s.ln ? (scene.lines?.[s.ln]?.l ?? s.ln) : undefined;
     return (
@@ -429,6 +443,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
           <FoldTab {...f} />
         </g>
       ))}
+      {fields}
       {cases}
       {tracks}
       {dots}

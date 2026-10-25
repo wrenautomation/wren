@@ -530,11 +530,14 @@ export function Ring({
   colours,
   selected,
   on,
+  still,
 }: {
   c: RingStation;
   colours: Colours;
   selected?: boolean | undefined;
   on?: boolean | undefined;
+  /** No dot runs round the ring. */
+  still?: boolean | undefined;
 }) {
   const r = c.r ?? 26;
   return (
@@ -552,6 +555,16 @@ export function Ring({
         r={r}
         style={{ stroke: lineColour(colours, c.l), strokeWidth: 7 }}
       />
+      {still ? null : (
+        // One dot runs round the ring, as dots run round the open lap.
+        <circle className="mv" r={2.6}>
+          <animateMotion
+            dur="9s"
+            repeatCount="indefinite"
+            path={`M${c.x},${c.y - r} a${r},${r} 0 1 1 0,${2 * r} a${r},${r} 0 1 1 0,${-2 * r}`}
+          />
+        </circle>
+      )}
       <SvgGlyph name="repeat" x={c.x} y={c.y} size={20} />
       <text className="lab" x={c.x} y={c.y - r - 26} textAnchor="middle">
         {c.n}
