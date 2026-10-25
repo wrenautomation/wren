@@ -273,7 +273,7 @@ export const Offers: Story = {
   render: () => <MetroMap scene={OFFERS_SCENE} intro={false} />,
 };
 
-/** Section 08: the retainer loop ring at each depth: the offer as one circle, its parts, every station. */
+/** Section 08: the Growth Retainer view at each depth: the offer as one circle, its parts with the lap as a ring, every station on the loop. */
 export const LoopRing: Story = { render: () => <Depths make={loopZoom} /> };
 
 /** The loop with its depth buttons: open the offer, then its parts, then fold it back to one circle. */

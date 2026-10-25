@@ -291,6 +291,7 @@ function foldRuns(
   for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
   const byColumn = (m: readonly ViewStation[]) =>
     [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column));
+  const groups = new Map((view.groups ?? []).map((g) => [g.id, g]));
   const into = new Map<string, string>();
   const folds = new Map<string, ViewStation>();
   const meta = new Map<string, FoldMeta>();
@@ -335,7 +336,12 @@ function foldRuns(
       line: on.line,
       column: first.column,
       ...(spans.length ? { spans } : {}),
-      ...(first.group ? { group: first.group } : {}),
+      // It sits in what holds the node: a group's parent; a twin set's group; a line · column, none.
+      ...(() => {
+        const g = groups.has(k) ? groups.get(k)?.parent : k.includes("@") ? undefined : first.group;
+        return g ? { group: g } : {};
+      })(),
+      ...(groups.get(k)?.lap ? { ring: true } : {}),
       ...(first.flow ? { flow: first.flow } : {}),
       label: name,
       ...(each
@@ -508,7 +514,11 @@ export function viewTree(view: MetroView): ViewTree {
   for (const s of view.stations) {
     if (s.kind !== "exit") continue;
     const src = view.tracks.find((t) => t.to === s.id && paths.has(t.from))?.from;
-    if (src) paths.set(s.id, paths.get(src) ?? []);
+    if (!src) continue;
+    // An exit from a lap stays out of it: it hangs under the ring when the lap folds.
+    const path = paths.get(src) ?? [];
+    const lap = path.findIndex((n) => groups.get(n.id)?.lap);
+    paths.set(s.id, lap < 0 ? path : path.slice(0, lap));
   }
   const { nodes, chain } = treeOf([...paths].map(([id, path]) => ({ id, path })));
   const out = { nodes, chain, twins, twinOf };
@@ -593,7 +603,11 @@ export async function viewScene(
       columns.get(k)?.add(s.column);
       members.get(k)?.push(s);
     }
-  const boxed = new Set(shown.filter((n) => columns.get(n.id)?.size === 1).map((n) => n.id));
+  // An open lap draws its own loop: no frame, no pill.
+  const laps = new Map((view.groups ?? []).filter((g) => g.lap).map((g) => [g.id, g]));
+  const boxed = new Set(
+    shown.filter((n) => !laps.has(n.id) && columns.get(n.id)?.size === 1).map((n) => n.id),
+  );
   const boxOf = (k: string | undefined): string | undefined => {
     for (let at = k; at; at = by.get(at)?.parent) if (boxed.has(at)) return at;
     return undefined;
@@ -604,7 +618,7 @@ export async function viewScene(
     stations: folded.view.stations.filter((s) => boxOf(home.get(s.id)) === k).map((s) => s.id),
   }));
   // A pill's tab sits under its first circle: the layout keeps its room, as a repeat chip's.
-  const pills = shown.filter((n) => !boxed.has(n.id));
+  const pills = shown.filter((n) => !boxed.has(n.id) && !laps.has(n.id));
   const leafOn = new Map<string, string>();
   for (const n of pills) {
     const first = members.get(n.id)?.[0];
@@ -635,6 +649,23 @@ export async function viewScene(
     const first = m[0];
     if (!first) return [];
     const t = n.label;
+    // An open lap: its tab sits in the loop, over the chip with its cycle.
+    const loop = scene.tr.find((r) => r.id === `lap:${n.id}`)?.pts;
+    if (loop) {
+      const xs = loop.map((p) => p[0]);
+      const ys = loop.map((p) => p[1]);
+      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+      return [
+        {
+          grp: n.id,
+          t,
+          cap: [x0, x1],
+          y: y0,
+          l: lineKey(first.ln),
+          at: [(x0 + x1) / 2, (y0 + y1) / 2 - 14],
+        },
+      ];
+    }
     const f: Frame | undefined = frames.get(n.id);
     if (f)
       return [
@@ -665,6 +696,19 @@ export async function viewScene(
   const st = scene.st.map((s): SceneStation => {
     const m = folded.meta.get(s.id);
     if (!m || !isMark(s)) return s;
+    // A lap folded: a ring with its cycle and its steps.
+    const lap = laps.get(s.id);
+    if (lap)
+      return {
+        id: s.id,
+        ring: true,
+        grp: s.id,
+        x: s.x,
+        y: s.y,
+        l: lineKey(s.ln),
+        n: s.n ?? s.id,
+        s: `${lap.lap} \u00b7 ${foldSteps({ steps: m.steps })}`,
+      };
     return {
       id: s.id,
       grp: s.id,

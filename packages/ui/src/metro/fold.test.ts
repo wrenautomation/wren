@@ -9,6 +9,7 @@ import {
   overlaps,
   sceneClashes,
 } from "./geometry.js";
+import { GROWTH_RETAINER } from "./money-models.js";
 import { layoutView } from "./place.js";
 import { DIFF_VIEW, loopZoom, protocolZoom, TWINS_VIEW, ZOOM_SCENE, ZOOM_VIEW } from "./samples.js";
 import { allOpen, fullDepth, openSet } from "./tree.js";
@@ -44,6 +45,31 @@ describe("composed zooms", () => {
     const z = protocolZoom();
     const shut = (await z.scene(NONE)).st.length;
     expect((await z.scene(new Set(["wait"]))).st.length).toBeGreaterThan(shut);
+  });
+});
+
+describe("laps", () => {
+  const open = (...k: string[]) => new Set(k);
+
+  it("draws an open lap as one closed loop through its stations", async () => {
+    const sc = await viewScene(GROWTH_RETAINER, open("offer", "on", "loop", "rw"));
+    const loop = sc.tr.find((r) => r.id === "lap:loop");
+    expect(loop?.pts?.[0]).toEqual(loop?.pts?.at(-1));
+    expect(loop?.mv).toBe(true);
+    const st = new Map(sc.st.filter(isMark).map((s) => [s.id, s]));
+    // Plan, make, ship on the top row; bill, report, review back along the bottom one.
+    const [pl, sh, bl, rv] = ["pl", "sh", "bl", "rv"].map((k) => st.get(k));
+    expect(pl?.y).toBe(sh?.y);
+    expect(bl?.y).toBe(rv?.y);
+    expect(bl?.y ?? 0).toBeGreaterThan(pl?.y ?? 0);
+    expect(bl?.x).toBe(sh?.x);
+    expect(sc.chips?.some((c) => c.t === "every 30 days")).toBe(true);
+  });
+
+  it("folds a lap to a ring, with its exits outside it", async () => {
+    const sc = await viewScene(GROWTH_RETAINER, open("offer", "on", "rw"));
+    expect(sc.st.find((s) => s.id === "loop")).toMatchObject({ ring: true, grp: "loop" });
+    expect(sc.st.map((s) => s.id)).toEqual(expect.arrayContaining(["fp", "ch"]));
   });
 });
 

@@ -51,6 +51,8 @@ export interface ViewStation {
   spans?: string[];
   /** Zoom folds a run of stations with the same group into one capsule. */
   group?: string;
+  /** A lap folded (`ViewGroup.lap`): it draws as a ring. */
+  ring?: boolean;
   /** The flow (workflow) it belongs to. */
   flow?: string;
   label?: string;
@@ -115,6 +117,13 @@ export interface ViewGroup {
   label: string;
   /** The group it sits in, for a fold tree of any depth. */
   parent?: string | undefined;
+  /**
+   * A lap: the work repeats ("every 30 days"). Its stations sit in one column. They run right along
+   * the top row and come back along the bottom one; the track from the last to the first closes the
+   * loop (not a `back` track). An exit hangs under its source, so put stations with exits on the
+   * bottom row. Folded, the lap is one ring.
+   */
+  lap?: string | undefined;
 }
 
 export interface MetroView {

@@ -8,7 +8,7 @@
 import type { ElkNode } from "elkjs/lib/elk-api.js";
 import { elkOf } from "../graph/layout.js";
 import { RADIUS, textWidth } from "./geometry.js";
-import { finishMetro, type Placement, SPACE, tryMetro } from "./layout.js";
+import { finishMetro, LAP, type PlacedLap, type Placement, SPACE, tryMetro } from "./layout.js";
 import type { MetroScene, Point, Zone } from "./types.js";
 import { DEFAULT_COLUMNS, type MetroView, type ViewStation } from "./view.js";
 
@@ -30,13 +30,107 @@ const PAD = { side: 14, top: 34 } as const;
 
 /** The room a station takes: its marker, its name and sub above and below, a chip under it. */
 export function sizeOf(s: ViewStation): { width: number; height: number } {
-  const r = s.kind === "hub" ? RADIUS.hub : 10;
+  // A folded lap is a ring (marks.tsx `Ring`): its radius and its halo.
+  const r = s.ring ? 31 : s.kind === "hub" ? RADIUS.hub : 10;
   const text = Math.max(
     s.label ? textWidth(s.label) : 0,
     s.sub ? textWidth(s.was ? `${s.was} ${s.sub}` : s.sub, 12) : 0,
   );
   const words = (s.label ? 22 : 0) + (s.sub ? 15 : 0) + (s.repeat ? 26 : 0);
   return { width: Math.max(2 * r + 8, text + 8), height: 2 * r + 2 * words };
+}
+
+/** A lap's stations in order: the top row, left to right, then the bottom row, right to left. */
+export interface Lap {
+  id: string;
+  every: string;
+  stations: ViewStation[];
+  /** How many sit on the top row. */
+  cols: number;
+}
+
+/** The view's laps: each `lap` group with the stations in it (exits hang under their source). */
+export function lapsOf(view: MetroView): Lap[] {
+  const groups = new Map((view.groups ?? []).map((g) => [g.id, g]));
+  const lapOf = (g: string | undefined) => {
+    const seen = new Set<string>();
+    for (let k = g; k && !seen.has(k); k = groups.get(k)?.parent) {
+      seen.add(k);
+      if (groups.get(k)?.lap) return k;
+    }
+    return undefined;
+  };
+  const out = new Map<string, Lap>();
+  for (const s of view.stations) {
+    const k = s.kind === "exit" || s.kind === "hub" ? undefined : lapOf(s.group);
+    if (!k) continue;
+    const lap = out.get(k) ?? { id: k, every: groups.get(k)?.lap ?? "", stations: [], cols: 0 };
+    lap.stations.push(s);
+    out.set(k, lap);
+  }
+  for (const lap of out.values()) lap.cols = Math.ceil(lap.stations.length / 2);
+  return [...out.values()];
+}
+
+/** Where each station of a lap sits, from the top row's left end: column index and row. */
+const lapSlot = (lap: Lap, i: number): [col: number, row: 0 | 1] =>
+  i < lap.cols ? [i, 0] : [lap.cols - 1 - (i - lap.cols), 1];
+
+/** Room under a lap's bottom row: its names, or the exits that hang under it. */
+const lapFoot = (lap: Lap, view: MetroView) => {
+  const ids = new Set(lap.stations.slice(lap.cols).map((s) => s.id));
+  const exit = view.tracks.some(
+    (t) => ids.has(t.from) && view.stations.some((s) => s.id === t.to && s.kind === "exit"),
+  );
+  return exit ? SPACE.exit + 2 * RADIUS.exit + 24 : 40;
+};
+
+/**
+ * A lap's closed loop from the placed stations: along the top row, down its right end, back along
+ * the bottom row, up its left end. Also each track's route round it, by track id.
+ */
+function lapRoutes(
+  view: MetroView,
+  lap: Lap,
+  pos: ReadonlyMap<string, Point>,
+): { placed: PlacedLap; route: Map<string, Point[]> } | undefined {
+  const at = lap.stations.map((s) => pos.get(s.id));
+  if (at.some((p) => !p)) return undefined;
+  const ps = at as Point[];
+  const top = ps.slice(0, lap.cols);
+  const bottom = ps.slice(lap.cols);
+  const x0 = (top[0] as Point)[0];
+  const x1 = (top[top.length - 1] as Point)[0];
+  const ty = (top[0] as Point)[1];
+  const by = ty + LAP.gap;
+  const half = top.length > 1 ? (x1 - x0) / (top.length - 1) / 2 : STEP / 2;
+  const [left, right] = [x0 - half, x1 + half];
+  const pts: Point[] = [
+    ...top,
+    [right, ty],
+    [right, by],
+    ...bottom,
+    [left, by],
+    [left, ty],
+    top[0] as Point,
+  ];
+  const index = (i: number) => (i < lap.cols ? i : i + 2);
+  const order = new Map(lap.stations.map((s, i) => [s.id, index(i)]));
+  const route = new Map<string, Point[]>();
+  for (const t of view.tracks) {
+    const a = order.get(t.from);
+    const b = order.get(t.to);
+    if (a === undefined || b === undefined || a === b) continue;
+    route.set(
+      t.id ?? `${t.from}-${t.to}`,
+      b > a ? pts.slice(a, b + 1) : [...pts.slice(a), ...pts.slice(1, b + 1)],
+    );
+  }
+  const line = lap.stations[0]?.line ?? "";
+  return {
+    placed: { id: lap.id, line, every: lap.every, pts, mid: [(left + right) / 2, (ty + by) / 2] },
+    route,
+  };
 }
 
 const columnsOf = (view: MetroView) => {
@@ -116,6 +210,29 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
     if (byId.get(t.to)?.kind === "exit" && byId.has(t.from) && !exitOf.has(t.to))
       exitOf.set(t.to, t.from);
   const sources = new Set(exitOf.values());
+  // A lap is one leaf, as wide as its top row. It is as tall above its top row as below its
+  // bottom one, so ELK lines the top row up with the line that runs into it.
+  const laps = lapsOf(view);
+  const lapOf = new Map(laps.flatMap((l) => l.stations.map((s) => [s.id, l] as const)));
+  const node = (id: string) => {
+    const l = lapOf.get(id);
+    return l ? `lap:${l.id}` : id;
+  };
+  const lapLeaf = (l: Lap, top: boolean): ElkNode => {
+    const first = l.stations[0] as ViewStation;
+    return {
+      id: `lap:${l.id}`,
+      width: l.cols * STEP,
+      height: 2 * (LAP.gap + lapFoot(l, view)),
+      layoutOptions: { "elk.alignment": "CENTER", ...(top ? partition(first.column) : {}) },
+    };
+  };
+  /** A station's ELK node: its leaf, the lap's leaf for a lap's first station, else none. */
+  const nodeOf = (s: ViewStation, top: boolean): ElkNode[] => {
+    const l = lapOf.get(s.id);
+    if (l) return l.stations[0]?.id === s.id ? [lapLeaf(l, top)] : [];
+    return [leaf(s, top)];
+  };
   const leaf = (s: ViewStation, top: boolean): ElkNode => {
     const { width, height } = sizeOf(s);
     const room = sources.has(s.id) ? Math.max(0, SPACE.exit + 2 * RADIUS.exit - height / 2) : 0;
@@ -146,7 +263,7 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
       children: [
         ...b.stations.flatMap((id) => {
           const s = byId.get(id);
-          return s && !exitOf.has(id) ? [leaf(s, false)] : [];
+          return s && !exitOf.has(id) ? nodeOf(s, false) : [];
         }),
         ...kids(b.id).map((k) => box(k, false)),
       ],
@@ -159,7 +276,7 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
   const children = view.stations.flatMap((s): ElkNode[] => {
     const b = topOf.get(s.id);
     if (b) return [box(b, true)];
-    return inBox.has(s.id) || exitOf.has(s.id) ? [] : [leaf(s, true)];
+    return inBox.has(s.id) || exitOf.has(s.id) ? [] : nodeOf(s, true);
   });
   const ids = new Set(view.stations.filter((s) => !exitOf.has(s.id)).map((s) => s.id));
   const order = new Map(view.stations.map((s, i) => [s.id, i]));
@@ -184,7 +301,7 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
     // A track back to a station listed earlier runs on a rail under its row (finishMetro), so
     // it leaves the rows to the forward tracks.
     edges: view.tracks
-      .filter((t) => ids.has(t.from) && ids.has(t.to))
+      .filter((t) => ids.has(t.from) && ids.has(t.to) && node(t.from) !== node(t.to))
       .filter(
         (t) => (order.get(t.back ? t.from : t.to) ?? 0) > (order.get(t.back ? t.to : t.from) ?? 0),
       )
@@ -197,8 +314,8 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
             : t.label;
         return {
           id: `e${i}`,
-          sources: [t.back ? t.to : t.from],
-          targets: [t.back ? t.from : t.to],
+          sources: [node(t.back ? t.to : t.from)],
+          targets: [node(t.back ? t.from : t.to)],
           ...(words
             ? {
                 labels: [
@@ -216,7 +333,15 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
       const x = ox + (c.x ?? 0);
       const y = oy + (c.y ?? 0);
       if (c.id.startsWith("box:")) walk(c, x, y);
-      else pos.set(c.id, [x + (c.width ?? 0) / 2, y + (c.height ?? 0) / 2]);
+      else if (c.id.startsWith("lap:")) {
+        // The lap's stations: one step apart, the top row at its middle, the bottom row under it.
+        const l = laps.find((q) => `lap:${q.id}` === c.id);
+        const [cx, cy] = [x + (c.width ?? 0) / 2, y + (c.height ?? 0) / 2];
+        l?.stations.forEach((s, i) => {
+          const [col, row] = lapSlot(l, i);
+          pos.set(s.id, [cx + (col - (l.cols - 1) / 2) * STEP, cy + row * LAP.gap]);
+        });
+      } else pos.set(c.id, [x + (c.width ?? 0) / 2, y + (c.height ?? 0) / 2]);
     }
   };
   walk(out, 0, 0);
@@ -297,7 +422,20 @@ export async function placeMetro(
       ...[...moved.values()].map((p) => p[1] + 40),
       ...[...frames.values()].map((f) => f[3] + 16),
     );
-    const at: Placement = { pos: moved, zones: zonesOf(view, moved), bottom };
+    const route = new Map<string, Point[]>();
+    const laps: PlacedLap[] = [];
+    for (const lap of lapsOf(view)) {
+      const r = lapRoutes(view, lap, moved);
+      if (!r) continue;
+      laps.push(r.placed);
+      for (const [k, pts] of r.route) route.set(k, pts);
+    }
+    const at: Placement = {
+      pos: moved,
+      zones: zonesOf(view, moved),
+      bottom,
+      ...(laps.length ? { route, laps } : {}),
+    };
     if (i === WIDEN) return { scene: finishMetro(view, at), frames };
     const tried = tryMetro(view, at);
     if (!tried.bad.length) return { scene: tried.scene, frames };

@@ -5,7 +5,7 @@
  * gets: a choice of how to pay stays on its line, and only a change in what they get (a lesser offer,
  * a failed goal, an exit) starts a new one.
  */
-import type { MetroView } from "./view.js";
+import type { MetroView, ViewStation, ViewTrack } from "./view.js";
 
 export interface MoneyPlay {
   view: MetroView;
@@ -641,140 +641,277 @@ const FEATURE: MetroView = {
 // ---------------------------------------------------------------------------------------------
 // Stage three: continuity.
 
-const BONUS_CONT: MetroView = {
+/** What a retainer play changes: its sale, its onboarding, and its terms on the lap. */
+interface RetainerTerms {
+  title: string;
+  /** The offer the core line sells. */
+  offer: string;
+  /** From the hub to the kickoff: the sale and its terms. Its tracks start at `go` and end at `ko`. */
+  sale: { stations: ViewStation[]; tracks: ViewTrack[] };
+  /** More onboarding after the kickoff, in order. */
+  onboarding?: ViewStation[];
+  /** The bill on the lap. */
+  bill?: Partial<ViewStation>;
+  /** A missed payment: the exit from the bill. */
+  missed?: Partial<ViewStation>;
+  /** A client who leaves: the exit from the review. Rewarm starts from it. */
+  churn?: Partial<ViewStation>;
+}
+
+/**
+ * A retainer: the sale, the onboarding, then a lap that repeats every 30 days (plan, make, ship,
+ * bill, report, review). A missed payment leaves from the bill; a client who leaves rests, gets a
+ * check-in and a win-back offer, and comes back to the kickoff. Each continuity play is this lap
+ * with its own terms: "make leaving a loss" lives on the bill and the exits.
+ */
+function retainer(t: RetainerTerms): MetroView {
+  const on = (id: string, label: string, more: Partial<ViewStation> = {}): ViewStation => ({
+    id,
+    kind: "time",
+    line: "core",
+    column: "Delivery",
+    label,
+    group: "loop",
+    ...more,
+  });
+  const onboarding: ViewStation[] = [
+    {
+      id: "ko",
+      kind: "time",
+      line: "core",
+      column: "Delivery",
+      label: "Kickoff",
+      sub: "day 0",
+      group: "on",
+    },
+    ...(t.onboarding ?? []).map((s) => ({ ...s, group: "on" })),
+  ];
+  const work: ViewStation[] = [
+    // The top row, left to right, then the bottom row back: the stations with exits sit on it.
+    on("pl", "Plan", { sub: "day 1" }),
+    on("mk", "Make", { sub: "days 2 to 20" }),
+    on("sh", "Ship", { kind: "att", sub: "days 21 to 28" }),
+    on("bl", "Monthly bill", { kind: "cash", ...t.bill }),
+    on("rp", "Report", { kind: "att", sub: "day 28" }),
+    on("rv", "Review call", { sub: "day 30" }),
+  ];
+  const chain = (ids: string[]): ViewTrack[] =>
+    ids.slice(1).map((to, i) => ({ from: ids[i] as string, to, by: "system" }));
+  return {
+    title: t.title,
+    lines: [
+      adLine,
+      { id: "core", offer: t.offer, tier: "core", colour: 0 },
+      { id: "rw", label: "Rewarm", tier: "out" },
+    ],
+    groups: [
+      { id: "offer", label: t.offer },
+      { id: "on", label: "Onboarding", parent: "offer" },
+      { id: "loop", label: "Monthly lap", parent: "offer", lap: "every 30 days" },
+      { id: "rw", label: "Rewarm", parent: "offer" },
+    ],
+    stations: [
+      ad,
+      hub,
+      // The sale sits in the offer, so the whole offer folds to one circle.
+      ...t.sale.stations.map((s) => ({ group: "offer", ...s })),
+      ...onboarding,
+      ...work,
+      {
+        id: "fp",
+        kind: "exit",
+        line: "core",
+        column: "Delivery",
+        label: "Failed payment",
+        bad: true,
+        ...t.missed,
+      },
+      {
+        id: "ch",
+        kind: "exit",
+        line: "core",
+        column: "Delivery",
+        label: "Leaves",
+        bad: true,
+        ...t.churn,
+      },
+      {
+        id: "rs",
+        kind: "time",
+        line: "rw",
+        column: "Marketing",
+        label: "Rest 90 days",
+        group: "rw",
+      },
+      {
+        id: "ci",
+        kind: "att",
+        line: "rw",
+        column: "Marketing",
+        label: "Check-in",
+        sub: "day 180",
+        group: "rw",
+      },
+      {
+        id: "wb",
+        kind: "cash",
+        line: "rw",
+        column: "Sales",
+        label: "Win-back offer",
+        sub: "month 1 at half price",
+        group: "rw",
+      },
+    ],
+    tracks: [
+      ...intro,
+      ...t.sale.tracks,
+      ...chain(onboarding.map((s) => s.id)),
+      { from: onboarding.at(-1)?.id ?? "ko", to: "pl", by: "system" },
+      ...chain(work.map((s) => s.id)),
+      { from: "rv", to: "pl", by: "person", owner: "You", promise: "30d", label: "next month" },
+      { from: "bl", to: "fp", by: "system" },
+      { from: "rv", to: "ch", by: "system" },
+      { from: "ch", to: "rs", by: "system", label: "rewarm" },
+      ...chain(["rs", "ci", "wb"]),
+      { from: "wb", to: "ko", by: "system", label: "yes" },
+    ],
+  };
+}
+
+/** The default: a monthly retainer with a real onboarding. */
+export const GROWTH_RETAINER: MetroView = retainer({
+  title: "Growth Retainer",
+  offer: "Growth Retainer",
+  sale: {
+    stations: [
+      { id: "go", kind: "att", line: "core", column: "Sales", label: "Proposal" },
+      {
+        id: "sg",
+        kind: "cash",
+        line: "core",
+        column: "Sales",
+        label: "Signed",
+        sub: "$4k a month",
+      },
+    ],
+    tracks: [
+      { from: "go", to: "sg", by: "system" },
+      { from: "sg", to: "ko", by: "system" },
+    ],
+  },
+  onboarding: [
+    {
+      id: "ac",
+      kind: "att",
+      line: "core",
+      column: "Delivery",
+      label: "Logins",
+      sub: "days 1 to 3",
+    },
+    {
+      id: "bw",
+      kind: "time",
+      line: "core",
+      column: "Delivery",
+      label: "Build week",
+      sub: "days 4 to 10",
+    },
+  ],
+  bill: { sub: "$4k" },
+});
+
+const BONUS_CONT = retainer({
   title: "Continuity with bonuses",
-  lines: [
-    adLine,
-    { id: "ch", offer: "Challenge", tier: "front", colour: 1 },
-    { id: "mem", offer: "Membership", tier: "core", colour: 0 },
-  ],
-  stations: [
-    ad,
-    hub,
-    { id: "go", kind: "ab", line: "ch", column: "Sales", label: "Challenge, or free as a member?" },
-    { id: "one", kind: "cash", line: "ch", column: "Money", label: "Challenge only", sub: "$600" },
-    {
-      id: "pre",
-      kind: "ab",
-      line: "mem",
-      column: "Delivery",
-      label: "Prepay 6, save 20%?",
-      sub: "bonuses > first month",
-    },
-    {
-      id: "mo",
-      kind: "cash",
-      line: "mem",
-      column: "Money",
-      label: "Member",
-      sub: "$200 a month",
-      repeat: "monthly",
-    },
-    {
-      id: "six",
-      kind: "cash",
-      line: "mem",
-      column: "Money",
-      label: "Prepaid 6 months",
-      sub: "$960 now",
-      was: "$1,200",
-      icon: "discount",
-    },
-  ],
-  tracks: [
-    ...intro,
-    { from: "go", to: "one", by: "system", label: "challenge" },
-    { from: "go", to: "pre", by: "system", label: "member" },
-    { from: "pre", to: "mo", by: "system", label: "no" },
-    { from: "pre", to: "six", by: "system", label: "yes" },
-  ],
-};
+  offer: "Membership",
+  sale: {
+    stations: [
+      {
+        id: "go",
+        kind: "ok",
+        line: "core",
+        column: "Sales",
+        label: "Bonuses",
+        sub: "worth more than month 1",
+        icon: "free",
+      },
+      { id: "pre", kind: "ab", line: "core", column: "Sales", label: "Prepay 6, save 20%?" },
+      {
+        id: "six",
+        kind: "cash",
+        line: "core",
+        column: "Sales",
+        label: "Prepaid 6 months",
+        sub: "$960 now",
+        was: "$1,200",
+        icon: "discount",
+      },
+    ],
+    tracks: [
+      { from: "go", to: "pre", by: "system" },
+      { from: "pre", to: "six", by: "system", label: "yes" },
+      { from: "pre", to: "ko", by: "system", label: "no" },
+      { from: "six", to: "ko", by: "system" },
+    ],
+  },
+  bill: { sub: "$200" },
+});
 
-const DISCOUNT_CONT: MetroView = {
+const DISCOUNT_CONT = retainer({
   title: "Discount continuity",
-  lines: [adLine, { id: "mem", offer: "Membership", tier: "core", colour: 0 }],
-  stations: [
-    ad,
-    hub,
-    { id: "go", kind: "ab", line: "mem", column: "Sales", label: "Which discount?" },
-    {
-      id: "year",
-      kind: "cash",
-      line: "mem",
-      column: "Delivery",
-      label: "12 months",
-      sub: "$200 a month",
-      repeat: "monthly",
-    },
-    {
-      id: "quit",
-      kind: "exit",
-      line: "mem",
-      column: "Delivery",
-      label: "Cancels early",
-      sub: "loses 3 free",
-      bad: true,
-    },
-    { id: "free", kind: "ok", line: "mem", column: "Money", label: "3 months free", icon: "free" },
-    {
-      id: "rate",
-      kind: "cash",
-      line: "mem",
-      column: "Money",
-      label: "Rate kept for life",
-      sub: "$150 a month",
-      was: "$200",
-      icon: "discount",
-      repeat: "on time",
-    },
-  ],
-  tracks: [
-    ...intro,
-    { from: "go", to: "year", by: "system", label: "at the end" },
-    { from: "year", to: "free", by: "system", label: "no missed payment" },
-    { from: "year", to: "quit", by: "system" },
-    { from: "go", to: "rate", by: "system", label: "spread" },
-  ],
-};
+  offer: "Membership",
+  sale: {
+    stations: [
+      {
+        id: "go",
+        kind: "cash",
+        line: "core",
+        column: "Sales",
+        label: "Rate kept while on time",
+        sub: "$150 a month",
+        was: "$200",
+        icon: "discount",
+      },
+    ],
+    tracks: [{ from: "go", to: "ko", by: "system" }],
+  },
+  bill: { sub: "$150", was: "$200", icon: "discount" },
+  missed: { label: "Missed payment", sub: "discount lost, back to $200" },
+});
 
-const WAIVED_FEE: MetroView = {
+const WAIVED_FEE = retainer({
   title: "Waived fee",
-  lines: [adLine, { id: "mem", offer: "Membership", tier: "core", colour: 0 }],
-  stations: [
-    ad,
-    hub,
-    { id: "go", kind: "ab", line: "mem", column: "Sales", label: "Fee or a year?" },
-    {
-      id: "fee",
-      kind: "cash",
-      line: "mem",
-      column: "Money",
-      label: "Setup fee + monthly",
-      sub: "cancel any time",
-      icon: "anchor",
-    },
-    {
-      id: "year",
-      kind: "cash",
-      line: "mem",
-      column: "Delivery",
-      label: "Year, no fee",
-      icon: "free",
-      repeat: "monthly",
-    },
-    { id: "quit", kind: "dec", line: "mem", column: "Delivery", label: "Quits early?" },
-    { id: "owed", kind: "cash", line: "mem", column: "Money", label: "Pays the waived fee" },
-    { id: "stay", kind: "ok", line: "mem", column: "Money", label: "Committed client" },
-  ],
-  tracks: [
-    ...intro,
-    { from: "go", to: "fee", by: "system" },
-    { from: "go", to: "year", by: "system", label: "commit" },
-    { from: "year", to: "quit", by: "system" },
-    { from: "quit", to: "owed", by: "system", label: "yes" },
-    { from: "quit", to: "stay", by: "system", label: "no" },
-  ],
-};
+  offer: "Membership",
+  sale: {
+    stations: [
+      { id: "go", kind: "ab", line: "core", column: "Sales", label: "Setup fee, or a year?" },
+      {
+        id: "fee",
+        kind: "cash",
+        line: "core",
+        column: "Sales",
+        label: "Setup fee",
+        sub: "month to month",
+        icon: "anchor",
+      },
+      {
+        id: "yr",
+        kind: "ok",
+        line: "core",
+        column: "Sales",
+        label: "Year: fee waived",
+        icon: "free",
+      },
+    ],
+    tracks: [
+      { from: "go", to: "fee", by: "system", label: "month to month" },
+      { from: "go", to: "yr", by: "system", label: "a year" },
+      { from: "fee", to: "ko", by: "system" },
+      { from: "yr", to: "ko", by: "system" },
+    ],
+  },
+  bill: { sub: "$200" },
+  churn: { label: "Quits in year 1", sub: "fee owed" },
+});
 
 // ---------------------------------------------------------------------------------------------
 // The whole model: the video's gym, attraction → rollover → continuity, with the no path.
@@ -932,12 +1069,16 @@ export const MONEY_STAGES: MoneyStage[] = [
     goal: "Keep them paying. Make leaving a loss.",
     plays: [
       {
+        view: GROWTH_RETAINER,
+        note: "The default. A lap every 30 days; a client who leaves rests, then gets a win-back offer.",
+      },
+      {
         view: BONUS_CONT,
         note: "Bonuses worth more than the first payment, then a prepay discount.",
       },
       {
         view: DISCOUNT_CONT,
-        note: "Free months at the end, or a lower rate kept while they stay.",
+        note: "A lower rate kept while they pay on time. A missed payment loses it.",
       },
       {
         view: WAIVED_FEE,

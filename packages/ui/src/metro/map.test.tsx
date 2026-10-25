@@ -11,7 +11,6 @@ import {
   COLD_OUTBOUND_VIEW,
   DIFF_VIEW,
   INDUSTRIES,
-  LOOP_SCENE,
   loopZoom,
   OFFERS_SCENE,
   protocolZoom,
@@ -38,7 +37,6 @@ describe("MetroSvg", () => {
     const scenes = [
       ZOOM_SCENE,
       OFFERS_SCENE,
-      LOOP_SCENE,
       ...SCENARIOS.map((s) => s.scene),
       ...INDUSTRIES.map((s) => s.scene),
       ...(await Promise.all(SAMPLE_VIEWS.map((v) => layoutView(v)))),

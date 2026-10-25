@@ -1,25 +1,24 @@
 /**
  * Sample data for stories and tests, beside the scenes in data.ts: the glyph tables of sections 04
- * and 09, and the two maps that fold by hand-built groups (section 08 retainer loop, section 09
- * sales protocol). Synthetic: no real prices or people.
+ * and 09, the retainer loop (section 08, a view), and the sales protocol that folds by hand-built
+ * groups (section 09). Synthetic: no real prices or people.
  */
-import { INDUSTRIES, LOOP_SCENE, OFFERS_SCENE, SCENARIOS, ZOOM_SCENE } from "./data.js";
+import { INDUSTRIES, OFFERS_SCENE, SCENARIOS, ZOOM_SCENE } from "./data.js";
 import { type Flags, flagZoom, type MetroZoom, viewZoom } from "./fold.js";
-import {
-  type ChipSpec,
-  type FoldSpec,
-  isMark,
-  type MarkStation,
-  type MetroScene,
-  type MetroTrack,
-  type Point,
-  type SceneStation,
-  type Weight,
-  type Zone,
+import { GROWTH_RETAINER } from "./money-models.js";
+import type {
+  ChipSpec,
+  FoldSpec,
+  MarkStation,
+  MetroScene,
+  MetroTrack,
+  Point,
+  SceneStation,
+  Weight,
 } from "./types.js";
 import type { MetroView, ViewStation, ViewTrack } from "./view.js";
 
-export { INDUSTRIES, LOOP_SCENE, OFFERS_SCENE, SCENARIOS, ZOOM_SCENE };
+export { INDUSTRIES, OFFERS_SCENE, SCENARIOS, ZOOM_SCENE };
 
 // ---------------------------------------------------------------------------------------------
 // Glyph tables (sections 04 and 09): one 88 x 44 cell per mark.
@@ -526,195 +525,10 @@ export const ZOOM_VIEW: MetroView = {
 export const zoomScenario = (): MetroZoom => viewZoom(ZOOM_VIEW);
 
 // ---------------------------------------------------------------------------------------------
-// Section 08: the retainer loop, folded by groups.
+// Section 08: the retainer loop, a view with a lap (money-models.ts).
 
-const byId = <T extends SceneStation>(list: T[]) => new Map(list.map((s) => [s.id, s]));
-const LOOP_ST = byId(LOOP_SCENE.st);
-const LOOP_TR = new Map(LOOP_SCENE.tr.map((r) => [r.id ?? "", r]));
-
-const mark = (id: string): MarkStation => {
-  const s = LOOP_ST.get(id);
-  if (!s || !isMark(s)) throw new Error(`loop: no station ${id}`);
-  return s;
-};
-const track = (id: string): MetroTrack => {
-  const r = LOOP_TR.get(id);
-  if (!r) throw new Error(`loop: no track ${id}`);
-  return r;
-};
-/** A track with its start station dropped, so it starts at a point. */
-const fromPoint = (r: MetroTrack, pa: Point): MetroTrack => {
-  const { a: _a, ...rest } = r;
-  return { ...rest, pa };
-};
-const shift = (p: Point, dx: number): Point => [p[0] + dx, p[1]];
-
-/** The loop at the folds `g`: offer, on (onboarding), loop (monthly lap), rw (rewarm). */
-export function composeLoop(g: Flags): MetroScene {
-  const st: SceneStation[] = [{ ...mark("hub") }];
-  const tr: MetroTrack[] = [];
-  const folds: FoldSpec[] = [];
-  let ch: Point;
-  let zones: Zone[] = LOOP_SCENE.zones ?? [];
-  // A folded group takes only the room its mark needs; the marks after it shift left.
-  const DX = g.on ? 0 : -190;
-  const move = (s: MarkStation): MarkStation => ({ ...s, x: s.x + DX });
-
-  if (!g.offer) {
-    st.push(
-      {
-        badge: true,
-        id: "offer",
-        grp: "offer",
-        x: 420,
-        y: 120,
-        l: "gp",
-        n: "Growth Retainer",
-        s: "$4k / mo · 7 clients · 30-day loop",
-        w: 330,
-      },
-      { ...mark("fp"), x: 660, y: 120, p: "down" },
-      { ...mark("ch"), x: 420, y: 230 },
-    );
-    tr.push(
-      { id: "t-in", l: "gp", w: "core", pa: [60, 120], pc: [420, 120] },
-      { id: "e-fp", k: "exit", pa: [585, 120], b: "fp" },
-      { id: "e-ch", k: "exit", pa: [420, 148], b: "ch" },
-    );
-    ch = [420, 230];
-    zones = [
-      [0, 120, "Marketing"],
-      [120, 255, "Sales"],
-      [255, 585, "Delivery"],
-      [585, 1150, "Money"],
-    ];
-  } else {
-    st.push(mark("pp"), mark("sg"));
-    tr.push(track("t-pp"), track("t-sg"));
-    folds.push({ x: 200, y: 46, t: "Growth Retainer", grp: "offer" });
-    if (g.on) {
-      st.push(mark("ko"), mark("ac"), mark("bw"));
-      tr.push(track("t-ko"), track("t-ac"), track("t-bw"));
-      folds.push({ x: 450, y: 46, t: "Onboarding", grp: "on" });
-    } else {
-      st.push({
-        cap: [335, 365],
-        id: "on",
-        grp: "on",
-        y: 120,
-        l: "gp",
-        n: "Onboarding · 10 days",
-        steps: 3,
-        io: [4, 2],
-      });
-      tr.push({ id: "t-ko", l: "gp", w: "core", pa: [250, 120], pc: [350, 120] });
-    }
-    const bw = mark("bw");
-    const inA: Point = g.on ? [bw.x, bw.y] : [350, 120];
-    if (g.loop) {
-      st.push(...["pl", "mk", "sh", "bl", "rp", "rv", "fp", "ch"].map((k) => move(mark(k))));
-      const lap = track("loop");
-      const efp = track("e-fp");
-      tr.push(
-        fromPoint(track("t-in"), inA),
-        {
-          ...lap,
-          ...(lap.pts ? { pts: lap.pts.map((p) => shift(p, DX)) } : {}),
-          ...(lap.at ? { at: shift(lap.at, DX) } : {}),
-        },
-        { ...efp, ...(efp.pts ? { pts: efp.pts.map((p) => shift(p, DX)) } : {}) },
-        track("e-ch"),
-      );
-      folds.push({ x: 830 + DX, y: 200, t: "every 30 days · 7 in loop", grp: "loop" });
-      ch = [740 + DX, 350];
-      zones = [
-        [0, 120, "Marketing"],
-        [120, 300, "Sales"],
-        [300, 980 + DX, "Delivery"],
-        [980 + DX, 1150, "Money"],
-      ];
-    } else {
-      const x = g.on ? 680 : 490;
-      st.push(
-        {
-          ring: true,
-          id: "loop",
-          grp: "loop",
-          x,
-          y: 120,
-          l: "gp",
-          n: "Monthly lap",
-          s: "$4k / mo · 7 in",
-        },
-        { ...mark("fp"), x: x + 120, y: 120, p: "down" },
-        { ...mark("ch"), x, y: 230 },
-      );
-      tr.push(
-        { id: "t-in", l: "gp", w: "core", pa: inA, pc: [x, 120] },
-        { id: "e-fp", k: "exit", pa: [x + 26, 120], b: "fp" },
-        { id: "e-ch", k: "exit", pa: [x, 146], b: "ch" },
-      );
-      ch = [x, 230];
-      zones = [
-        [0, 120, "Marketing"],
-        [120, 300, "Sales"],
-        [300, x + 60, "Delivery"],
-        [x + 60, 1150, "Money"],
-      ];
-    }
-  }
-  // Rewarm runs from the churn exit back to the hub; open, its three steps spread along it.
-  const Y = ch[1] + 64;
-  const rwp: Point[] = [ch, [ch[0], Y], [60, Y], [60, 120]];
-  const L = ch[0] - 60;
-  if (g.offer && g.rw) {
-    ["rs", "wb", "ci"].forEach((k, i) => {
-      st.push({ ...mark(k), x: Math.round(ch[0] - (L * (i + 1)) / 4), y: Y });
-    });
-    folds.push({
-      x: Math.round(ch[0] - L / 2),
-      y: Y - 40,
-      t: "rewarm · 4 of 11 came back",
-      grp: "rw",
-    });
-  } else {
-    const m = Math.round(60 + L * 0.55);
-    st.push({
-      cap: [m - 15, m + 15],
-      id: "rwc",
-      grp: "rw",
-      y: Y,
-      l: "out",
-      n: "Rewarm · 3 touches",
-      steps: 3,
-      io: [11, 4],
-    });
-  }
-  tr.push({ ...track("rw"), pts: rwp });
-  return {
-    ...LOOP_SCENE,
-    h: Y + (g.offer && g.rw ? 72 : 44),
-    zones,
-    chips: [],
-    folds,
-    st,
-    tr,
-  };
-}
-
-/** The offer holds onboarding, the monthly lap and the rewarm. */
-export const loopZoom = (): MetroZoom =>
-  flagZoom({
-    nodes: [
-      { id: "offer", label: "Growth Retainer" },
-      { id: "on", parent: "offer", label: "Onboarding" },
-      { id: "loop", parent: "offer", label: "Monthly lap" },
-      { id: "rw", parent: "offer", label: "Rewarm" },
-    ],
-    compose: composeLoop,
-    total: LOOP_SCENE.st.length,
-    foldId: { rw: "rwc" },
-  });
+/** The offer holds onboarding, the monthly lap and the rewarm: the Growth Retainer view. */
+export const loopZoom = (): MetroZoom => viewZoom(GROWTH_RETAINER);
 
 // ---------------------------------------------------------------------------------------------
 // Section 09: one sales protocol that holds every logic mark.

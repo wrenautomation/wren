@@ -31,6 +31,7 @@ import {
   xferGeometry,
 } from "./geometry.js";
 import {
+  type ChipSpec,
   isMark,
   type MarkStation,
   type MetroScene,
@@ -57,6 +58,22 @@ export const SPACE = {
   /** Zone names at the foot. */
   foot: 34,
 } as const;
+
+/**
+ * A lap (`ViewGroup.lap`): px between its rows, its corner radius, and the dots that run round it,
+ * as the hand-drawn retainer loop had them.
+ */
+export const LAP = { gap: 160, r: 44, dots: 3, dur: 9 } as const;
+
+/** A lap the placer laid out: its closed path, and its cycle for the chip in the middle. */
+export interface PlacedLap {
+  id: string;
+  line: string;
+  every: string;
+  pts: Point[];
+  /** The middle of the loop. */
+  mid: Point;
+}
 
 /** Air between two names, or a name and a mark. */
 const CLEAR = 6;
@@ -147,6 +164,9 @@ export interface Placement {
   bottom: number;
   hubR?: number;
   meet?: ReadonlyMap<string, number>;
+  /** A track's route round its lap, by track id (`id`, else from-to). */
+  route?: ReadonlyMap<string, Point[]>;
+  laps?: readonly PlacedLap[];
 }
 
 /** The scene from a placement: marks, exits under their source, and the tracks. */
@@ -280,6 +300,27 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
     }
   });
 
+  // A track round a lap follows the loop. The loop itself is one more track, for its moving dots.
+  for (const r of tr) {
+    const pts = at.route?.get(r.id ?? "");
+    if (pts) Object.assign(r, { pts, r: LAP.r });
+  }
+  const chips: ChipSpec[] = [];
+  for (const lap of at.laps ?? []) {
+    const l = line.get(lap.line);
+    tr.unshift({
+      id: `lap:${lap.id}`,
+      l: l ? keyOf(l) : "out",
+      w: l ? weightOf(l) : "front",
+      pts: lap.pts,
+      r: LAP.r,
+      mv: true,
+      dots: LAP.dots,
+      dur: LAP.dur,
+    });
+    chips.push({ x: lap.mid[0], y: lap.mid[1] + 14, t: lap.every });
+  }
+
   const colours: Record<string, number> = {};
   for (const l of order) if (l.tier !== "out") colours[l.id] = l.colour ?? 0;
   const lineMap = Object.fromEntries(
@@ -301,6 +342,7 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
     zones,
     st,
     tr,
+    ...(chips.length ? { chips } : {}),
     colours,
     // A map from a view is for people: its stations and tracks take focus and clicks.
     click: true,
@@ -559,6 +601,11 @@ export function shift(sc: MetroScene, dx: number, dy: number) {
     if (r.at) r.at = [r.at[0] + dx, r.at[1] + dy];
     if (r.cat) r.cat = [r.cat[0] + dx, r.cat[1] + dy];
     if (r.lat) r.lat = [r.lat[0] + dx, r.lat[1] + dy];
+    if (r.pts) r.pts = r.pts.map(([x, y]) => [x + dx, y + dy]);
+  }
+  for (const c of sc.chips ?? []) {
+    c.x += dx;
+    c.y += dy;
   }
   sc.zones = (sc.zones ?? []).map(([a, b, n], i): Zone => [i ? a + dx : 0, b + dx, n]);
 }
