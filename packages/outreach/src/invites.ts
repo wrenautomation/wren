@@ -71,6 +71,8 @@ export const invitesSettingsSchema = z
     /** People who reacted, mentioned or followed us on LinkedIn go first, past the title and size filters. */
     engaged: z.boolean().default(true),
     withdrawAfterDays: z.number().int().min(7).max(90).default(21),
+    /** Invites queue with no yes and go bare: model notes are only drafted on proposed ones. */
+    autoApprove: z.boolean().default(false),
   })
   .strict();
 export type InviteSettings = z.infer<typeof invitesSettingsSchema>;
@@ -278,7 +280,7 @@ export interface TopUpStats {
   leadBusy: number;
 }
 
-/** Propose invites from `account` until tomorrow's are waiting (approved or proposed). */
+/** Propose (or, on `autoApprove`, queue) invites from `account` until tomorrow's are waiting. */
 export async function topUp(
   db: Queryable,
   o: {
@@ -357,13 +359,13 @@ export async function topUp(
       .set({ fit: whyOf(p) })
       .where(eq(reachContacts.id, id));
   }
-  // Proposed, not queued: each waits in To approve for his yes.
+  // Proposed: each waits in To approve for his yes. On `autoApprove`, queued with no yes.
   const e = await enroll(db, {
     sequence: seq,
     sender: o.sender,
     contactIds: ranked,
     ordered: true,
-    first: "proposed",
+    first: o.settings.autoApprove ? "queued" : "proposed",
     limit: ranked.length,
     take: need,
     account: o.account.account,

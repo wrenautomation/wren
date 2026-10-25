@@ -370,6 +370,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--known-size-only <on|off>", "leave out firms whose size we don't know")
     .option("--engaged <on|off>", "people who engaged with us on LinkedIn first, past the filters")
     .option("--withdraw-after-days <n>")
+    .option("--auto-approve <on|off>", "invites queue with no yes, sent bare (no model note)")
     .action(
       async (o: {
         account?: string;
@@ -381,6 +382,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         knownSizeOnly?: string;
         engaged?: string;
         withdrawAfterDays?: string;
+        autoApprove?: string;
       }) => {
         const flag = (v: string) => {
           if (!["on", "off", "true", "false"].includes(v)) throw new Error(`on or off, not ${v}`);
@@ -403,6 +405,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ...(o.withdrawAfterDays !== undefined && {
             withdrawAfterDays: Number(o.withdrawAfterDays),
           }),
+          ...(o.autoApprove !== undefined && { autoApprove: flag(o.autoApprove) }),
         };
         json(
           await withDb(async (db) => {

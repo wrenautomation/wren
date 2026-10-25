@@ -298,6 +298,15 @@ describe("linkedin invites", () => {
     expect(await proposedIds()).toEqual([]);
   });
 
+  it("autoApprove queues with no yes and sends on the next tick", async () => {
+    await person("alice-a", { title: "Founder", team: "50 - 249" });
+    expect(await top({ ...SETTINGS, autoApprove: true })).toMatchObject({ enrolled: 1 });
+    expect(await statuses()).toEqual({ "alice-a": "queued" });
+    expect(await proposedIds()).toEqual([]);
+    await tickAt(OPEN);
+    expect(fake.sent.map((s) => [s.kind, s.handle])).toEqual([["connect", "alice-a"]]);
+  });
+
   it("tops up, sends invites, finds the accept, withdraws the stale", async () => {
     const alice = await person("alice-a", { title: "Founder" });
     await person("bob-d", { niche: "agencies" });
