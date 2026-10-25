@@ -141,6 +141,20 @@ const TAKE = z
     beside: z.string().min(1).optional(),
     /** A terminal pane's window title. */
     title: z.string().max(40).default("Terminal"),
+    /** Blocks over the page (px on the pane) from `from` to `to`, seconds of the shot: a token, an email. */
+    mask: z
+      .array(
+        z.object({
+          x: z.number().min(0),
+          y: z.number().min(0),
+          w: z.number().positive(),
+          h: z.number().positive(),
+          from: z.number().min(0).default(0),
+          to: z.number().positive().optional(),
+        }),
+      )
+      .max(8)
+      .default([]),
     lens,
     enter,
   })

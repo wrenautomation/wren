@@ -1317,7 +1317,9 @@ const TakeWindow: FC<{
   look: Look;
   /** On a lens: the window stays whole (the lens zooms), and the arrow and ring keep their size. */
   lens?: number;
-}> = ({ pane, w, h, bar, t, shot, look, lens }) => {
+  /** Blocks over the page for part of the shot (a token, an email), px on the pane. */
+  masks?: Scene<"take">["mask"];
+}> = ({ pane, w, h, bar, t, shot, look, lens, masks }) => {
   const { fps } = useVideoConfig();
   const u = useUnit();
   const cam = shot ? cameraAt(shot.moves, t) : { x: 0.5, y: 0.5, zoom: 1 };
@@ -1365,6 +1367,22 @@ const TakeWindow: FC<{
           ) : (
             video
           )}
+          {masks
+            ?.filter((m) => t >= m.from && (m.to === undefined || t < m.to))
+            .map((m) => (
+              <div
+                key={`${m.x},${m.y},${m.from}`}
+                style={{
+                  position: "absolute",
+                  left: m.x * px,
+                  top: m.y * px,
+                  width: m.w * px,
+                  height: m.h * px,
+                  borderRadius: 6 * px,
+                  background: pane.kind === "term" ? look.background : "#dcdde2",
+                }}
+              />
+            ))}
           {cursor?.ring ? (
             <div
               style={{
@@ -1481,7 +1499,7 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
               bar={bar}
               t={t}
               look={look}
-              {...(p === shot.pane ? { shot } : {})}
+              {...(p === shot.pane ? { shot, masks: s.mask } : {})}
               {...(lens ? { lens } : {})}
             />
           ))}

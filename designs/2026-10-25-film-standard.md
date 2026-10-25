@@ -61,18 +61,21 @@ Real recordings with `autobrowse film`. Learn comes from Storybook on synthetic 
 
 | # | s | Shot | Move |
 |---|---|---|---|
-| 1 | 3 | Terminal: the ask to Claude Code, typed | rack |
-| 2 | 5 | Cloudflare sign-up: the agent types the email | roll |
-| 3 | 3 | The code arrives in Messages, the agent fills it (synthetic code) | macro |
-| 4 | 3 | Card: "autobrowse learns the flow" | caps |
-| 5 | 4 | The flow it wrote, as plain steps | track |
+| 1 | 3 | Terminal: `autobrowse cloudflare-token …`, typed | rack |
+| 2 | 5 | Cloudflare: the agent names the token and picks its permission | roll |
+| 3 | 3 | Create Token clicked, then the terminal's `stored as` line (account id masked) | macro |
+| 4 | 3 | Card: William's words (placeholder `THE FLOW`) | caps |
+| 5 | 4 | The flow's source (`cloudflare-token.ts`) in the terminal | track |
 | 6 | 5 | X: the agent writes a post, stops before Post | orbit |
-| 7 | 5 | LinkedIn: the same, stops before Post | roll |
-| 8 | 4 | Learn: the run in Wren's Learn app | push |
-| 9 | 3 | Terminal: done, the list of runs | pull |
+| 7 | 5 | LinkedIn (the Wren page): the same, stops before Post | roll |
+| 8 | 4 | Learn, from Storybook: Today, the alerts, Home | push |
+| 9 | 3 | Terminal: `autobrowse workflows` and `flows` | pull |
 | 10 | 7 | End: pill into the wordmark, `npm i @wrenautomation/autobrowse` | pill |
 
-Nothing posts. A post needs William's yes and his caption.
+Nothing posts. A post needs William's yes and his caption. Every shot is a real run: the token is
+a real one with one read permission, revoked after the take. The flow never shows the token's value.
+The account id and the account's email sit under `mask` blocks (a take scene's `mask`, px on the pane,
+for a time range), or the cut skips them.
 
 ## Decision log
 
