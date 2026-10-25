@@ -1,23 +1,21 @@
 /**
- * The sound kit on disk (designs/2026-10-24-video-film-file.md, Decision 4). Effects come from the
- * uisfx package (CC0), installed in the studio package. Music beds are not CC0: they live in the
+ * The sound kit on disk (designs/2026-10-24-video-film-file.md, Decision 4). Effects are earshot
+ * takes in the studio package, `sfx/fx/` (`sfx/make.mjs` makes them). Music beds are not ours: they live in the
  * media bucket under `sfx/`, are named in `sfx/kit.json` and pulled into the Mac's cache
  * (`wren video sfx pull`). A render copies the sounds its props name into the edit's folder,
  * Remotion's public dir.
  */
 import { copyFile, mkdir, readFile, stat } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { z } from "zod";
-import { type AudioProps, BED_ID, isEffect, soundFile } from "./sounds.js";
+import { FX } from "./fx.js";
+import { type AudioProps, BED_ID, isEffect } from "./sounds.js";
 
 /** Where bucket sounds are kept on this Mac once pulled. */
 export const KIT_CACHE = join(homedir(), "Library/Caches/wren/sfx");
 
-/** The uisfx folder, resolved from the studio package (`pkgDir`): a bundled CLI's own dir has none. */
-export const uisfxDir = (pkgDir: string) =>
-  dirname(createRequire(join(pkgDir, "package.json")).resolve("uisfx/manifest"));
+const TAKES = new Set(Object.values(FX).flatMap((r) => r.takes.map((t) => t.file)));
 
 const bedSchema = z
   .object({
@@ -47,41 +45,41 @@ export async function loadBeds(pkgDir: string): Promise<Bed[]> {
 /** Where one bed's file is on this Mac. */
 export const bedPath = (e: Bed, cache = KIT_CACHE) => join(cache, e.file);
 
-/** The ids that are neither a uisfx effect nor a listed bed: refuse them before saving. */
+/** The ids that are neither a kit role nor a listed bed: refuse them before saving. */
 export function unknownSounds(beds: readonly Bed[], ids: Iterable<string>): string[] {
   const have = new Set(beds.map((e) => e.id));
   return [...new Set(ids)].filter((id) => !isEffect(id) && !have.has(id));
 }
 
-/** The kit ids an output's audio plays. */
-export const audioIds = (audio: AudioProps | undefined): string[] =>
+/** The kit files an output's audio plays, as public paths (`sfx/fx/hit_1.ogg`, `sfx/bed-calm.wav`). */
+export const audioFiles = (audio: AudioProps | undefined): string[] =>
   audio
     ? [...audio.sounds.map((s) => s.file), ...(audio.music ? [audio.music.file] : [])]
         // A file of his own beside the script (a promo's music) is not the kit's.
         .filter((f) => f.startsWith("sfx/"))
-        .map((f) => f.replace(/^sfx\/|\.(wav|ogg)$/g, ""))
     : [];
 
 /**
- * Copy the sounds `ids` into `<dir>/sfx/` (the public dir), each once. Throws on an id the kit
- * lacks or a bucket sound not pulled yet.
+ * Copy the kit files `files` (public paths) into `dir`, the public dir, each once: a take from the
+ * studio package (`pkgDir`, not the bundled CLI's own dir), a bed from the Mac's cache. Throws on a
+ * file the kit lacks or a bed not pulled yet.
  */
 export async function stageSounds(
   dir: string,
-  ids: Iterable<string>,
+  files: Iterable<string>,
   o: { pkgDir: string; cache?: string },
 ): Promise<number> {
-  const want = [...new Set(ids)];
+  const want = [...new Set(files)];
   if (!want.length) return 0;
   const beds = await loadBeds(o.pkgDir);
-  const missing = unknownSounds(beds, want);
-  if (missing.length) throw new Error(`not in the sound kit: ${missing.join(", ")}`);
-  for (const id of want) {
-    const bed = beds.find((k) => k.id === id);
-    const from = bed ? bedPath(bed, o.cache) : join(uisfxDir(o.pkgDir), "sounds", `${id}.ogg`);
+  for (const file of want) {
+    const take = /^sfx\/fx\/(.+)$/.exec(file)?.[1];
+    const bed = beds.find((k) => file === `sfx/${k.file}`);
+    if (!(take && TAKES.has(take)) && !bed) throw new Error(`not in the sound kit: ${file}`);
+    const from = bed ? bedPath(bed, o.cache) : join(o.pkgDir, "sfx/fx", take as string);
     if (!(await stat(from).catch(() => null)))
-      throw new Error(`${id} is not on this Mac yet: run wren video sfx pull`);
-    const to = join(dir, soundFile(id));
+      throw new Error(`${file} is not on this Mac yet: run wren video sfx pull`);
+    const to = join(dir, file);
     await mkdir(dirname(to), { recursive: true });
     await copyFile(from, to);
   }

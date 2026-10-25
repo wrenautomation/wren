@@ -9,7 +9,7 @@ import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CroppedFormat } from "./finish.js";
-import { audioIds, stageSounds } from "./kit.js";
+import { audioFiles, stageSounds } from "./kit.js";
 import { normalizeLoudness } from "./loudness.js";
 import type { PromoProps } from "./promo.js";
 import type { FramedProps, LongProps, ShortProps, ThumbnailProps } from "./props.js";
@@ -58,7 +58,7 @@ async function withBundle<T>(
 const stageAll = (pkgDir: string, dir: string, props: Iterable<{ audio?: LongProps["audio"] }>) =>
   stageSounds(
     dir,
-    [...props].flatMap((p) => audioIds(p.audio)),
+    [...props].flatMap((p) => audioFiles(p.audio)),
     { pkgDir },
   );
 
@@ -213,6 +213,7 @@ export async function renderPromo(
   dir: string,
   props: PromoProps,
   stillS?: number,
+  ffmpeg = "ffmpeg",
 ): Promise<string> {
   const out = join(dir, "out");
   await mkdir(out, { recursive: true });
@@ -233,6 +234,7 @@ export async function renderPromo(
       ...["render", bundle, "Promo", mp4, "--props", file],
       ...["--codec=h264", "--hardware-acceleration=if-possible", "--video-bitrate=10M"],
     ]);
+    await normalizeLoudness(mp4, ffmpeg);
     return mp4;
   });
 }

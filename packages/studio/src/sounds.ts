@@ -7,128 +7,55 @@
  * output's clock, and a sound inside a cut-out pause is dropped, like a word.
  */
 import { z } from "zod";
+import { bedVolume, DUCK, dbToGain, duckAt } from "./duck.js";
+import { FX, type Role, type Take } from "./fx.js";
 import type { LayoutRange, Short, Word } from "./schema.js";
 
 /**
- * The effects are uisfx (npm `uisfx`, CC0 audio): 12 styles, each with the same 78 cues. A sound id
- * is `<style>/<cue>` (`studio/press`), its file `sfx/<style>/<cue>.ogg`. `kit.ts` copies the files
- * in from the package.
+ * The effects are earshot's `launch` kit (MIT, made in code; `sfx/make.mjs` renders it once into
+ * `sfx/fx/`, listed in `fx.ts`). A sound id is a role (`click`, `whoosh.short`); each role has takes,
+ * and the n-th sound of a role in an output plays take n (mod the takes). Music beds are `bed-<name>`
+ * (the media bucket, `sfx/kit.json`).
  */
-export const STYLES = [
-  "minimal",
-  "soft",
-  "glass",
-  "arcade",
-  "mechanical",
-  "organic",
-  "dreamy",
-  "scifi",
-  "rubber",
-  "cinematic",
-  "studio",
-  "zen",
-] as const;
-export type Style = (typeof STYLES)[number];
-/** The style the rules and promos play. One line to change it for every new edit. */
-export const STYLE: Style = "studio";
-
-/**
- * Each cue and its volume (0 to 1), from the uisfx manifest: the same cue has the same volume in
- * every style. `kit.test.ts` holds this equal to the manifest; the edit pass reads it where the
- * package is not.
- */
-export const CUES = {
-  hover: 0.12,
-  press: 0.2,
-  release: 0.18,
-  "double-click": 0.2,
-  focus: 0.12,
-  "long-press": 0.18,
-  select: 0.2,
-  deselect: 0.17,
-  "toggle-on": 0.2,
-  "toggle-off": 0.18,
-  check: 0.17,
-  uncheck: 0.15,
-  delete: 0.22,
-  cancel: 0.17,
-  undo: 0.18,
-  redo: 0.18,
-  copy: 0.15,
-  paste: 0.17,
-  open: 0.18,
-  close: 0.17,
-  back: 0.17,
-  forward: 0.17,
-  expand: 0.16,
-  collapse: 0.15,
-  "drag-start": 0.18,
-  drop: 0.22,
-  snap: 0.2,
-  swipe: 0.14,
-  reorder: 0.18,
-  "invalid-drop": 0.19,
-  send: 0.2,
-  receive: 0.2,
-  notification: 0.2,
-  mention: 0.22,
-  typing: 0.065,
-  reaction: 0.17,
-  success: 0.23,
-  error: 0.22,
-  warning: 0.22,
-  info: 0.16,
-  blocked: 0.2,
-  retry: 0.18,
-  start: 0.19,
-  stop: 0.19,
-  "progress-step": 0.12,
-  complete: 0.24,
-  queued: 0.14,
-  checkpoint: 0.18,
-  loading: 0.1,
-  processing: 0.08,
-  recording: 0.09,
-  connecting: 0.09,
-  scanning: 0.075,
-  streaming: 0.07,
-  play: 0.18,
-  pause: 0.17,
-  seek: 0.13,
-  "volume-change": 0.11,
-  "skip-next": 0.16,
-  "skip-previous": 0.16,
-  connect: 0.2,
-  disconnect: 0.19,
-  lock: 0.2,
-  unlock: 0.2,
-  wake: 0.17,
-  sleep: 0.15,
-  reward: 0.22,
-  "level-up": 0.25,
-  achievement: 0.26,
-  streak: 0.21,
-  badge: 0.22,
-  bonus: 0.24,
-  "add-to-cart": 0.19,
-  "remove-from-cart": 0.17,
-  checkout: 0.2,
-  purchase: 0.22,
-  coupon: 0.18,
-  refund: 0.2,
-} as const;
-export type Cue = keyof typeof CUES;
-
-/** An effect id, `<style>/<cue>`; or a music bed, `bed-<name>` (the media bucket, `sfx/kit.json`). */
-export const EFFECT_ID = /^([a-z]+)\/([a-z0-9-]+)$/;
+export type { Role };
+export { bedVolume, DUCK, dbToGain, duckAt };
+export const ROLES = Object.keys(FX) as Role[];
+/** What each role is, for the edit pass and `wren video sfx list`. */
+export const ROLE_SAYS = {
+  tick: "an airy tick, in quick runs",
+  "tick.crisp": "a brighter tick",
+  tock: "a wooden knock, just before the cut",
+  hit: "a short punchy hit on a cut",
+  land: "a round low thump just after the cut, for a card or a panel landing",
+  "land.light": "a light finger tap",
+  pop: "a soft pop as a thing comes in; the most used",
+  "whoosh.short": "a fast whoosh for a cut, a move or a zoom",
+  "whoosh.long": "a big low whoosh that lands with a thump",
+  riser: "a short dark riser into a cut; one or two a video at most",
+  swell: "a dark reverse swell into a cut; one a video at most",
+  drop: "a short low kick on a cut",
+  key: "a key tap, a new take each",
+  "key.space": "the space bar",
+  "key.return": "the return key, a little louder",
+  click: "a small plastic mouse click",
+  "click.confirm": "a soft ding: done, sent, a number",
+  snap: "a camera shutter for a snap zoom or a whip cut",
+  bell: "a glockenspiel note",
+  text: "a soft pluck as a line of text resolves",
+} as const satisfies Record<Role, string>;
 export const BED_ID = /^bed-[a-z0-9-]+$/;
-const cueOf = (id: string) => EFFECT_ID.exec(id)?.[2] as Cue | undefined;
-export const isEffect = (id: string) => {
-  const m = EFFECT_ID.exec(id);
-  return !!m && (STYLES as readonly string[]).includes(m[1] as string) && (m[2] as string) in CUES;
-};
-/** Where a sound is in the public dir: `sfx/<style>/<cue>.ogg`, or `sfx/<bed>.wav`. */
-export const soundFile = (id: string) => `sfx/${id}.${BED_ID.test(id) ? "wav" : "ogg"}`;
+export const isEffect = (id: string): id is Role => Object.hasOwn(FX, id);
+/** Where a sound is in the public dir: a take `sfx/fx/<take>.ogg`, or a bed `sfx/<bed>.wav`. */
+export const soundFile = (id: string) => (BED_ID.test(id) ? `sfx/${id}.wav` : `sfx/fx/${id}`);
+
+/** The files that sound ids play: every take of a role, a bed's one file. */
+export const kitFiles = (ids: Iterable<string>) => [
+  ...new Set(
+    [...ids].flatMap((id) =>
+      isEffect(id) ? FX[id].takes.map((t) => soundFile(t.file)) : [soundFile(id)],
+    ),
+  ),
+];
 
 /** One sound at a moment. `only`: in the long video or the Shorts alone; unset: both. */
 export interface Sound {
@@ -145,14 +72,20 @@ export interface Music {
 }
 
 /**
- * Mix levels, with the voice at -14 LUFS: an effect plays at its cue's volume (uisfx files peak
- * near -7.5 dBFS), plus its own `gainDb`. The bed sits at `BED_DB` and `DUCK.db` lower under speech.
+ * Mix levels, with the voice at -14 LUFS. Every bed file is at `BED_LUFS` (`wren video sfx add`
+ * levels it). Under a voice the bed plays `BED_DB` down, and `DUCK.db` more under speech; in a
+ * promo, with no voice, the music plays at `FX_BED_LUFS.music`. earshot sets each role `bedDb` over
+ * that bed: the take's loudest 50 ms goes to `bed + overBed(bedDb)`, never past -1 dBFS at its peak.
  */
+export const BED_LUFS = -14;
 export const BED_DB = -16;
-export const effectVolume = (id: string, gainDb = 0) =>
-  (CUES[cueOf(id) as Cue] ?? 0.2) * dbToGain(gainDb);
-/** Speech closer than `joinS` is one stretch; the bed falls over `attackS`, comes back over `releaseS`. */
-export const DUCK = { db: 8, joinS: 0.6, attackS: 0.15, releaseS: 0.5 } as const;
+export const FX_BED_LUFS = { voice: BED_LUFS + BED_DB, music: -24 } as const;
+const overBed = (db: number) => 10 * Math.log10(10 ** (db / 10) - 1);
+/** The volume (0 to 1) of one take of a role over a bed, plus `gainDb`. */
+export const takeVolume = (role: Role, take: Take, bed: number, gainDb = 0) => {
+  const g = Math.min(bed + overBed(FX[role].bedDb) - take.l50, -1 - take.peakDb);
+  return dbToGain(g + gainDb);
+};
 
 const sec = z.number().min(0);
 const gain = z.number().min(-60).max(12);
@@ -161,9 +94,7 @@ export const soundsSchema = z
     z
       .object({
         at: sec,
-        id: z.string().refine(isEffect, {
-          message: `a sound id <style>/<cue>, like ${STYLE}/press; style one of ${STYLES.join(", ")}`,
-        }),
+        id: z.string().refine(isEffect, { message: `a sound role, one of ${ROLES.join(", ")}` }),
         gainDb: gain.optional(),
         only: z.enum(["long", "short"]).optional(),
       })
@@ -179,8 +110,6 @@ export const musicSchema = z
   .strict()
   .nullable();
 
-export const dbToGain = (db: number) => 10 ** (db / 20);
-
 /** What a recording tells about its moments: Cap's clicks and key presses, raw seconds. */
 export interface RecordingEvents {
   clicks: number[];
@@ -193,32 +122,25 @@ export interface RecordingEvents {
  * remove; his `wren video set` of `sounds` locks them.
  */
 export const SOUND_RULES = [
-  { on: "click", id: `${STYLE}/press`, says: "a press on each mouse click (Cap)" },
-  {
-    on: "key",
-    id: `${STYLE}/typing`,
-    says: "a key tap on each key press (Cap), at most one per 70 ms",
-  },
-  { on: "overlay", id: `${STYLE}/open`, says: "an open as each text overlay comes in" },
+  { on: "click", id: "click", says: "a small plastic click on each mouse click (Cap)" },
+  { on: "key", id: "key", says: "a key tap on each key press (Cap), a new take each" },
+  { on: "overlay", id: "pop", says: "a soft pop as each text overlay comes in" },
   {
     on: "layout",
-    id: `${STYLE}/swipe`,
-    says: "a swipe on each layout change (corner, cam, screen)",
+    id: "whoosh.short",
+    says: "a fast whoosh on each layout change (corner, cam, screen)",
   },
   {
     on: "card",
-    id: `${STYLE}/start`,
-    says: "a start under each Short's title card",
+    id: "land",
+    says: "a low pop-in thump under each Short's title card",
     only: "short",
   },
-] as const satisfies readonly { on: string; id: string; says: string; only?: "short" | "long" }[];
-
-/** Key taps closer than this are one: fast typing would be a buzz. */
-const KEY_GAP_S = 0.07;
+] as const satisfies readonly { on: string; id: Role; says: string; only?: "short" | "long" }[];
 
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
 
-/** Times at least `gap` apart, in order. */
+/** Times at least `gap` seconds apart, in order: a run closer than its role allows is one sound. */
 function spaced(ts: readonly number[], gap: number): number[] {
   const out: number[] = [];
   for (const t of [...ts].sort((a, b) => a - b)) {
@@ -227,6 +149,7 @@ function spaced(ts: readonly number[], gap: number): number[] {
   }
   return out;
 }
+const gapOf = (role: Role) => FX[role].gapMs / 1000;
 
 /** Where the layout changes: each range's edges, but not the very start or end. */
 function layoutChanges(layout: readonly LayoutRange[], durationS: number): number[] {
@@ -247,8 +170,8 @@ export function autoSounds(
   events: RecordingEvents = { clicks: [], keys: [] },
 ): Sound[] {
   const at: Record<(typeof SOUND_RULES)[number]["on"], number[]> = {
-    click: spaced(events.clicks, 0.05),
-    key: spaced(events.keys, KEY_GAP_S),
+    click: spaced(events.clicks, gapOf("click")),
+    key: spaced(events.keys, gapOf("key")),
     overlay: (edit.overlays ?? []).map((o) => o.from),
     layout: layoutChanges(edit.layout, edit.tracks.main.durationS),
     card: edit.shorts.filter((s) => s.card !== false).map((s) => s.from),
@@ -260,8 +183,39 @@ export function autoSounds(
   ).sort((a, b) => a.at - b.at);
 }
 
-/** A sound as a composition plays it: its file, its first frame and its volume (0 to 1+). */
-export type PlacedSound = { file: string; from: number; volume: number };
+/**
+ * A sound as a composition plays it: its file, its first frame, its volume (0 to 1+), and `trim`,
+ * frames cut off its start (a take whose sync point is before the output's first frame).
+ */
+export type PlacedSound = { file: string; from: number; volume: number; trim?: number };
+
+/**
+ * Effects on one output's clock: `[t, id, gainDb]` (seconds). Each take's sync point lands on its
+ * cue plus the role's offset (clicks lead, whoosh peaks land after); the n-th sound of a role plays
+ * take n.
+ */
+export function placeEffects(
+  cues: readonly (readonly [t: number, id: string, gainDb?: number | undefined])[],
+  o: { fps: number; bed: number },
+): PlacedSound[] {
+  const n = new Map<Role, number>();
+  return cues.flatMap(([t, id, gainDb]): PlacedSound[] => {
+    if (!isEffect(id)) return [];
+    const role = FX[id];
+    const i = n.get(id) ?? 0;
+    n.set(id, i + 1);
+    const take = role.takes[i % role.takes.length] as Take;
+    const start = Math.round((t + role.offsetMs / 1000 - take.sync) * o.fps);
+    return [
+      {
+        file: soundFile(take.file),
+        from: Math.max(0, start),
+        volume: r3(takeVolume(id, take, o.bed, gainDb)),
+        ...(start < 0 ? { trim: -start } : {}),
+      },
+    ];
+  });
+}
 export type AudioProps = {
   sounds: PlacedSound[];
   /** The bed: its file, its volume, and the speech it ducks under (seconds on the output's clock). */
@@ -283,13 +237,15 @@ export function audioOn(
     durationS: number;
   },
 ): AudioProps {
-  const placed = sounds.flatMap((s): PlacedSound[] => {
+  const cues = sounds.flatMap((s): [number, string, number | undefined][] => {
     if (s.only && s.only !== o.which) return [];
     const t = o.clock(s.at);
-    if (t === null || t >= o.durationS) return [];
-    const volume = r3(effectVolume(s.id, s.gainDb));
-    return [{ file: soundFile(s.id), from: Math.round(t * o.fps), volume }];
+    return t === null || t >= o.durationS ? [] : [[t, s.id, s.gainDb]];
   });
+  const placed = placeEffects(
+    cues.sort((a, b) => a[0] - b[0]),
+    { fps: o.fps, bed: FX_BED_LUFS.voice },
+  );
   return {
     sounds: placed.sort((a, b) => a.from - b.from),
     music: music
@@ -313,21 +269,3 @@ export function speech(words: readonly Pick<Word, "s" | "e">[]): [number, number
   }
   return out.map(([s, e]) => [r3(s), r3(e)]);
 }
-
-/**
- * How far the bed is ducked at `t`, 0 (full) to 1 (all of `duckDb` down): down over `attackS`
- * before speech starts, back up over `releaseS` after it ends.
- */
-export function duckAt(t: number, duck: readonly [number, number][]): number {
-  let k = 0;
-  for (const [s, e] of duck) {
-    if (t >= s && t <= e) return 1;
-    if (t < s && s - t < DUCK.attackS) k = Math.max(k, 1 - (s - t) / DUCK.attackS);
-    if (t > e && t - e < DUCK.releaseS) k = Math.max(k, 1 - (t - e) / DUCK.releaseS);
-  }
-  return k;
-}
-
-/** The bed's volume at `t`: its level, less the duck. */
-export const bedVolume = (m: NonNullable<AudioProps["music"]>, t: number) =>
-  m.volume * dbToGain(-m.duckDb * duckAt(t, m.duck));

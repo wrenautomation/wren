@@ -62,27 +62,35 @@ export async function measureLoudness(file: string, ffmpeg: string): Promise<Lou
 }
 
 /**
- * Normalize `file` in place. Answers what it measured before; null when there was nothing to
- * level (no audio, or silence), and the file is left as it was.
+ * Normalize `file` in place, to `i` (default -14): a video (aac audio, the picture copied), or a
+ * wav (`wav`, kept PCM). Answers what it measured before; null when there was nothing to level (no audio, or silence),
+ * and the file is left as it was.
  */
-export async function normalizeLoudness(file: string, ffmpeg: string): Promise<Loudness | null> {
+export async function normalizeLoudness(
+  file: string,
+  ffmpeg: string,
+  o: { wav?: boolean; i?: number } = {},
+): Promise<Loudness | null> {
   const m = await measureLoudness(file, ffmpeg);
   if (!m) return null;
   const tmp = [1, 2].map((n) => file.replace(/(\.\w+)$/, `.loudnorm${n}$1`)) as [string, string];
   const apply = (out: string, i: number) =>
     run(ffmpeg, [
       ...["-v", "error", "-y", "-i", file, "-map", "0:v:0?", "-map", "0:a:0"],
-      ...["-c:v", "copy", "-af", applyFilter(m, i), "-ar", "48000", "-c:a", "aac", "-b:a", "192k"],
-      ...["-movflags", "+faststart", out],
+      ...["-c:v", "copy", "-af", applyFilter(m, i), "-ar", "48000"],
+      ...(o.wav
+        ? ["-c:a", "pcm_s24le", out]
+        : ["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out]),
     ]);
+  const want = o.i ?? LOUDNESS.i;
   try {
-    await apply(tmp[0], LOUDNESS.i);
+    await apply(tmp[0], want);
     let best = tmp[0];
     const got = await measureLoudness(tmp[0], ffmpeg);
-    if (got && Math.abs(got.i - LOUDNESS.i) > NEAR_DB) {
-      await apply(tmp[1], LOUDNESS.i + (LOUDNESS.i - got.i));
+    if (got && Math.abs(got.i - want) > NEAR_DB) {
+      await apply(tmp[1], want + (want - got.i));
       const again = await measureLoudness(tmp[1], ffmpeg);
-      if (again && Math.abs(again.i - LOUDNESS.i) < Math.abs(got.i - LOUDNESS.i)) best = tmp[1];
+      if (again && Math.abs(again.i - want) < Math.abs(got.i - want)) best = tmp[1];
     }
     await rename(best, file);
   } finally {

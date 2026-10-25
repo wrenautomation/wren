@@ -1,67 +1,85 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { audioIds, loadBeds, stageSounds, uisfxDir, unknownSounds } from "./kit.js";
-import { CUES, musicSchema, SOUND_RULES, STYLES, soundFile, soundsSchema } from "./sounds.js";
+import { FX } from "./fx.js";
+import { audioFiles, loadBeds, stageSounds, unknownSounds } from "./kit.js";
+import { PROMO_SOUNDS } from "./promo.js";
+import { musicSchema, SOUND_RULES, soundFile, soundsSchema } from "./sounds.js";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const manifest = JSON.parse(readFileSync(join(uisfxDir(pkgDir), "manifest.json"), "utf8")) as {
-  license: { audio: string };
-  packs: { name: string }[];
-  assets: { pack: string; cue: string; defaultVolume: number }[];
+const fx = join(pkgDir, "sfx/fx");
+const lock = JSON.parse(readFileSync(join(fx, "kit.lock.json"), "utf8")) as {
+  earshot: string;
+  roles: Record<string, { takes: { file: string }[] } | null>;
 };
 
 describe("the sound kit", () => {
-  it("is uisfx: CC0 audio, the same styles and cues and volumes as its manifest", () => {
-    expect(manifest.license.audio).toBe("CC0-1.0");
-    expect([...STYLES]).toEqual(manifest.packs.map((p) => p.name));
-    for (const a of manifest.assets)
-      expect(CUES[a.cue as keyof typeof CUES], a.cue).toBe(a.defaultVolume);
-    expect(Object.keys(CUES).length * STYLES.length).toBe(manifest.assets.length);
+  it("is earshot's launch kit as sfx/make.mjs made it: each take in the lock, each file its sha1", () => {
+    expect(lock.earshot).toBe("0.4.0");
+    const takes = Object.values(FX).flatMap((r) => r.takes);
+    for (const [role, r] of Object.entries(FX))
+      expect(
+        r.takes.map((t) => t.file.replace(/\.ogg$/, ".wav")),
+        role,
+      ).toEqual(lock.roles[role]?.takes.map((t) => t.file));
+    for (const t of takes)
+      expect(
+        createHash("sha1")
+          .update(readFileSync(join(fx, t.file)))
+          .digest("hex"),
+        t.file,
+      ).toBe(t.sha1);
+    expect(readdirSync(fx).sort()).toEqual([...takes.map((t) => t.file), "kit.lock.json"].sort());
   });
 
-  it("has the file each rule plays", () => {
-    for (const r of SOUND_RULES)
-      expect(existsSync(join(uisfxDir(pkgDir), "sounds", `${r.id}.ogg`)), r.id).toBe(true);
+  it("has the role each rule and each promo moment plays", () => {
+    for (const id of [...SOUND_RULES.map((r) => r.id), ...Object.values(PROMO_SOUNDS)])
+      expect(id in FX, id).toBe(true);
   });
 
-  it("takes <style>/<cue> effects and bed- beds, and stages only kit files", () => {
-    expect(soundsSchema.safeParse([{ at: 1, id: "studio/press" }]).success).toBe(true);
-    expect(soundsSchema.safeParse([{ at: 1, id: "cinematic/toggle-on" }]).success).toBe(true);
-    for (const id of ["click-1", "studio/zap", "loud/press", "studio/press.ogg"])
+  it("takes role effects and bed- beds, and stages only kit files", () => {
+    expect(soundsSchema.safeParse([{ at: 1, id: "click" }]).success).toBe(true);
+    expect(soundsSchema.safeParse([{ at: 1, id: "whoosh.short" }]).success).toBe(true);
+    for (const id of ["studio/press", "suck", "click_1", "click.ogg"])
       expect(soundsSchema.safeParse([{ at: 1, id }]).success, id).toBe(false);
     expect(musicSchema.safeParse({ id: "bed-calm" }).success).toBe(true);
-    expect(musicSchema.safeParse({ id: "studio/press" }).success).toBe(false);
-    expect(soundFile("studio/press")).toBe("sfx/studio/press.ogg");
+    expect(musicSchema.safeParse({ id: "click" }).success).toBe(false);
+    expect(soundFile("hit_1.ogg")).toBe("sfx/fx/hit_1.ogg");
     expect(soundFile("bed-calm")).toBe("sfx/bed-calm.wav");
     expect(
-      audioIds({
-        sounds: [{ file: "sfx/studio/open.ogg", from: 0, volume: 1 }],
+      audioFiles({
+        sounds: [{ file: "sfx/fx/pop_1.ogg", from: 0, volume: 1 }],
         music: { file: "track.mp3", volume: 1, duck: [], duckDb: 0 },
       }),
-    ).toEqual(["studio/open"]);
-    expect(unknownSounds([], ["studio/press", "bed-calm", "click-1"])).toEqual([
-      "bed-calm",
-      "click-1",
-    ]);
+    ).toEqual(["sfx/fx/pop_1.ogg"]);
+    expect(unknownSounds([], ["click", "bed-calm", "click-1"])).toEqual(["bed-calm", "click-1"]);
   });
 
   it("copies the sounds an output plays into the public dir, and refuses one it lacks", async () => {
     const dir = mkdtempSync(join(tmpdir(), "kit-"));
-    const ids = audioIds({
+    const files = audioFiles({
       sounds: [
-        { file: soundFile("studio/press"), from: 0, volume: 1 },
-        { file: soundFile("studio/press"), from: 9, volume: 1 },
+        { file: soundFile("hit_1.ogg"), from: 0, volume: 1 },
+        { file: soundFile("hit_1.ogg"), from: 9, volume: 1 },
       ],
       music: null,
     });
-    expect(await stageSounds(dir, ids, { pkgDir })).toBe(1);
-    expect(existsSync(join(dir, "sfx/studio/press.ogg"))).toBe(true);
-    await expect(stageSounds(dir, ["studio/zap"], { pkgDir })).rejects.toThrow(
-      /not in the sound kit/,
-    );
+    expect(await stageSounds(dir, files, { pkgDir })).toBe(1);
+    expect(existsSync(join(dir, "sfx/fx/hit_1.ogg"))).toBe(true);
+    for (const bad of ["sfx/fx/zap_1.ogg", "sfx/fx/kit.lock.json", "sfx/fx/../make.mjs"])
+      await expect(stageSounds(dir, [bad], { pkgDir }), bad).rejects.toThrow(
+        /not in the sound kit/,
+      );
   });
 
   it("refuses a bed not pulled, and a bed out of the bucket", async () => {
@@ -85,7 +103,7 @@ describe("the sound kit", () => {
     const cache = join(kitDir, "cache");
     mkdirSync(cache);
     const dir = mkdtempSync(join(tmpdir(), "kit-"));
-    await expect(stageSounds(dir, ["bed-calm"], { pkgDir: kitDir, cache })).rejects.toThrow(
+    await expect(stageSounds(dir, ["sfx/bed-calm.wav"], { pkgDir: kitDir, cache })).rejects.toThrow(
       /sfx pull/,
     );
     expect(await loadBeds(pkgDir)).toEqual([]);

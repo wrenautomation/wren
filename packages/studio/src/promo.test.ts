@@ -5,7 +5,6 @@ import {
   entranceAt,
   fitBox,
   framing,
-  PROMO_BED_DB,
   PROMO_FPS,
   promoProps,
   promoScript,
@@ -13,6 +12,7 @@ import {
   secondsOf,
   wordsIn,
 } from "./promo.js";
+import { BED_LUFS, FX_BED_LUFS } from "./sounds.js";
 
 const script = promoScript.parse({
   scenes: [
@@ -69,29 +69,38 @@ describe("promo script", () => {
 });
 
 describe("promo sound", () => {
-  it("puts a swipe on each cut, a notification on each toast, a success on the numbers, a complete on the end", () => {
+  it("puts a whoosh on each cut (its peak just after), a pop on each toast, a ding on the numbers, a riser and a hit on the end", () => {
     const p = promoProps(script);
     expect(p.audio.sounds.map((s) => [s.from, s.file])).toEqual([
-      [114, "sfx/studio/swipe.ogg"],
-      [118, "sfx/studio/notification.ogg"],
-      [134, "sfx/studio/notification.ogg"],
-      [225, "sfx/studio/swipe.ogg"],
-      [345, "sfx/studio/swipe.ogg"],
-      [353, "sfx/studio/success.ogg"],
-      [441, "sfx/studio/complete.ogg"],
+      [111, "sfx/fx/whoosh-short_1.ogg"],
+      [118, "sfx/fx/pop_1.ogg"],
+      [134, "sfx/fx/pop_2.ogg"],
+      [222, "sfx/fx/whoosh-short_2.ogg"],
+      [342, "sfx/fx/whoosh-short_3.ogg"],
+      [353, "sfx/fx/click-confirm_1.ogg"],
+      [419, "sfx/fx/riser_1.ogg"],
+      [441, "sfx/fx/hit_1.ogg"],
     ]);
     expect(p.audio.music).toBeNull();
   });
 
-  it("plays a kit bed from the kit and his own file as it is; sounds false keeps the bed alone", () => {
+  it("plays the music at the effects' bed level; sounds false keeps the bed alone", () => {
     const kit = promoProps(promoScript.parse({ ...script, music: "bed-calm" }));
     expect(kit.audio.music).toMatchObject({ file: "sfx/bed-calm.wav", duck: [] });
-    expect(kit.audio.music?.volume).toBeCloseTo(10 ** (PROMO_BED_DB / 20), 3);
-    const own = promoProps(promoScript.parse({ ...script, music: "track.mp3", sounds: false }));
+    expect(kit.audio.music?.volume).toBeCloseTo(10 ** ((FX_BED_LUFS.music - BED_LUFS) / 20), 3);
+    const own = promoProps(
+      promoScript.parse({ ...script, music: "track.mp3", sounds: false }),
+      {},
+      {
+        musicLufs: -9,
+      },
+    );
     expect(own.audio).toEqual({
       sounds: [],
-      music: { file: "track.mp3", volume: 1, duck: [], duckDb: 0 },
+      music: { file: "track.mp3", volume: 0.178, duck: [], duckDb: 0 },
     });
+    const unmeasured = promoProps(promoScript.parse({ ...script, music: "track.mp3" }));
+    expect(unmeasured.audio.music?.volume).toBe(1);
   });
 });
 

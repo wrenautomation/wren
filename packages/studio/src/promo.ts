@@ -8,7 +8,16 @@
 import { DEFAULT_LOOK, type Look } from "@wren/video";
 import { z } from "zod";
 import { clamp, ENTRANCES, type Entrance, toastAt } from "./promo-clock.js";
-import { type AudioProps, BED_ID, dbToGain, effectVolume, STYLE, soundFile } from "./sounds.js";
+import {
+  type AudioProps,
+  BED_ID,
+  BED_LUFS,
+  dbToGain,
+  FX_BED_LUFS,
+  placeEffects,
+  type Role,
+  soundFile,
+} from "./sounds.js";
 
 export * from "./promo-clock.js";
 
@@ -178,27 +187,27 @@ export type PromoProps = {
 };
 
 /**
- * A promo's kit sounds, by scene: a sound on each cut to the next scene (`swipe` for rise and
- * wipe, `back` for pull-back, `forward` for flow, `complete` on the end card), a `notification` on
- * each toast and a `success` as the numbers start. No voice to duck under.
+ * A promo's kit sounds, by scene: on each cut a whoosh by its entrance (a big low whoosh for a
+ * pull-back, a shutter for a flow's rush), a dark riser into the end card and one hit on it, a pop on
+ * each toast and a ding as the numbers start. No voice to duck under.
  */
 export const PROMO_SOUNDS = {
-  rise: `${STYLE}/swipe`,
-  wipe: `${STYLE}/swipe`,
-  "pull-back": `${STYLE}/back`,
-  flow: `${STYLE}/forward`,
-  end: `${STYLE}/complete`,
-  toast: `${STYLE}/notification`,
-  stat: `${STYLE}/success`,
-} as const;
-/** With no voice the bed sits higher than under speech. */
-export const PROMO_BED_DB = -8;
-
+  rise: "whoosh.short",
+  wipe: "whoosh.short",
+  "pull-back": "whoosh.long",
+  flow: "snap",
+  riser: "riser",
+  end: "hit",
+  toast: "pop",
+  stat: "click.confirm",
+} as const satisfies Record<string, Role>;
 /** The kit sounds on the promo's scenes: `[frame, id]`, in order. */
 export function promoSounds(scenes: readonly TimedScene[]): [number, string][] {
   const out: [number, string][] = [];
   for (const [i, s] of scenes.entries()) {
-    if (i > 0) out.push([s.from, s.kind === "end" ? PROMO_SOUNDS.end : PROMO_SOUNDS[s.enter]]);
+    if (i > 0 && s.kind === "end")
+      out.push([s.from, PROMO_SOUNDS.riser], [s.from, PROMO_SOUNDS.end]);
+    else if (i > 0) out.push([s.from, PROMO_SOUNDS[s.enter]]);
     if (s.kind === "toasts")
       for (const j of s.items.keys()) {
         const at = s.from + toastAt(j, !!s.title);
@@ -209,21 +218,29 @@ export function promoSounds(scenes: readonly TimedScene[]): [number, string][] {
   return out.sort((a, b) => a[0] - b[0]);
 }
 
-/** The promo's sounds and bed as the composition plays them. */
-function promoAudio(music: string | undefined, sounds: [number, string][]): AudioProps {
+/**
+ * The promo's sounds and bed as the composition plays them. The music plays at
+ * `FX_BED_LUFS.music`: a kit bed is at `BED_LUFS`; his own file is at `musicLufs`, measured.
+ */
+function promoAudio(
+  music: string | undefined,
+  sounds: [number, string][],
+  musicLufs: number | undefined,
+): AudioProps {
   const kit = music !== undefined && BED_ID.test(music);
+  const lufs = kit ? BED_LUFS : musicLufs;
   return {
-    sounds: sounds.map(([from, id]) => ({
-      file: soundFile(id),
-      from,
-      volume: Math.round(effectVolume(id) * 1000) / 1000,
-    })),
+    sounds: placeEffects(
+      sounds.map(([from, id]) => [from / PROMO_FPS, id] as const),
+      { fps: PROMO_FPS, bed: FX_BED_LUFS.music },
+    ),
     music:
       music === undefined
         ? null
         : {
             file: kit ? soundFile(music) : music,
-            volume: kit ? Math.round(dbToGain(PROMO_BED_DB) * 1000) / 1000 : 1,
+            volume:
+              lufs === undefined ? 1 : Math.round(dbToGain(FX_BED_LUFS.music - lufs) * 1000) / 1000,
             duck: [],
             duckDb: 0,
           },
@@ -232,11 +249,12 @@ function promoAudio(music: string | undefined, sounds: [number, string][]): Audi
 
 /**
  * The script on the clock. Every screen must have its image by now (`wren video promo` captures
- * urls); `sizes`: each image's pixels, by file name.
+ * urls); `sizes`: each image's pixels, by file name; `musicLufs`: his own music file's loudness.
  */
 export function promoProps(
   script: PromoScript,
   sizes: Record<string, [number, number]> = {},
+  o: { musicLufs?: number } = {},
 ): PromoProps {
   const [width, height] = PROMO_SIZE[script.format];
   let from = 0;
@@ -264,7 +282,7 @@ export function promoProps(
       ...DEFAULT_LOOK,
       ...Object.fromEntries(Object.entries(script.look).filter(([, v]) => v !== undefined)),
     },
-    audio: promoAudio(script.music, script.sounds ? promoSounds(scenes) : []),
+    audio: promoAudio(script.music, script.sounds ? promoSounds(scenes) : [], o.musicLufs),
     finish: script.finish,
     scenes,
   };

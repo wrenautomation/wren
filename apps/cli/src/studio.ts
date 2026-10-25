@@ -27,11 +27,12 @@ import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   addVideo,
   autoSounds,
+  BED_ID,
+  BED_LUFS,
   bedPath,
   CAPTION_STYLES,
   CROPPED,
   type CroppedFormat,
-  CUES,
   CUT_HASH,
   capEvents,
   capProjectOf,
@@ -45,6 +46,7 @@ import {
   editMattes,
   type Format,
   FPS,
+  FX,
   filmAssets,
   filmHistory,
   filmstrip,
@@ -69,6 +71,8 @@ import {
   longProps,
   longSrt,
   type Matte,
+  measureLoudness,
+  normalizeLoudness,
   type OnSkip,
   obsRecordingDir,
   onCut,
@@ -82,6 +86,8 @@ import {
   punctuate,
   RENDER_PARTS,
   type RenderJob,
+  ROLE_SAYS,
+  ROLES,
   redoSilence,
   renderAll,
   renderPromo,
@@ -89,8 +95,6 @@ import {
   renderStills,
   reviewCuts,
   SOUND_RULES,
-  STYLE,
-  STYLES,
   setCutKnobs,
   setEdit,
   setFiles,
@@ -741,7 +745,7 @@ export function registerStudio(
   const sfx = video
     .command("sfx")
     .description(
-      "the sound kit: uisfx effects (CC0, npm), music beds in the media bucket (sfx/kit.json)",
+      "the sound kit: earshot effects (made in code, in the repo), music beds in the media bucket (sfx/kit.json)",
     );
   const bucketOf = () => {
     if (!settings.mediaBucket) throw new Error("no media bucket set (WREN_MEDIA_BUCKET)");
@@ -749,11 +753,9 @@ export function registerStudio(
   };
   sfx
     .command("list")
-    .description("the effect styles and cues (hear them at uisfx.com), and every bed")
+    .description("the effect roles, their takes, and every bed")
     .action(async () => {
-      console.log(`effects: <style>/<cue>, default style ${STYLE}`);
-      console.log(`styles: ${STYLES.join(", ")}`);
-      console.log(`cues: ${Object.keys(CUES).join(", ")}`);
+      for (const r of ROLES) console.log(`${r}\t${FX[r].takes.length} takes\t${ROLE_SAYS[r]}`);
       for (const e of await loadBeds(studioDir)) {
         const here = existsSync(bedPath(e)) ? "" : "  (not pulled)";
         console.log(`${e.id}\t${e.durationS}s\t${e.licence}\t${e.tags.join(",")}${here}`);
@@ -771,14 +773,18 @@ export function registerStudio(
   sfx
     .command("add <file>")
     .description(
-      "put a music bed in the bucket: a 48 kHz wav named bed-<name>.wav; then add its entry to sfx/kit.json beds",
+      `put a music bed in the bucket: a wav named bed-<name>.wav, leveled to ${BED_LUFS} LUFS first (a copy, his file stays); then add its entry to sfx/kit.json beds`,
     )
     .action(async (file: string) => {
       const name = basename(file);
       if (!/^bed-[a-z0-9-]+\.wav$/.test(name)) throw new Error("name it bed-<name>.wav");
-      const at = await putKey(file, `sfx/${name}`, bucketOf());
       await mkdir(KIT_CACHE, { recursive: true });
-      await copyFile(file, join(KIT_CACHE, name));
+      const cached = join(KIT_CACHE, name);
+      await copyFile(file, cached);
+      const was = await normalizeLoudness(cached, settings.ffmpeg, { wav: true, i: BED_LUFS });
+      if (!was) throw new Error(`${name}: no sound to level`);
+      console.log(`${name}: ${was.i} LUFS to ${BED_LUFS}`);
+      const at = await putKey(cached, `sfx/${name}`, bucketOf());
       console.log(
         `${at}: add {"id":"${name.slice(0, -4)}","where":"bucket",...} to sfx/kit.json beds`,
       );
@@ -1213,8 +1219,11 @@ export function registerStudio(
           if (head.toString("latin1", 1, 4) === "PNG")
             sizes[s.image] = [head.readUInt32BE(16), head.readUInt32BE(20)];
         }
-      const props = promoProps(script, sizes);
-      console.log(await renderPromo(studioDir, dir, props, o.still));
+      // His own music file: measured, so it plays at the level the effects sit over.
+      const own = script.music && !BED_ID.test(script.music) ? join(dir, script.music) : null;
+      const musicLufs = own ? (await measureLoudness(own, settings.ffmpeg))?.i : undefined;
+      const props = promoProps(script, sizes, musicLufs === undefined ? {} : { musicLufs });
+      console.log(await renderPromo(studioDir, dir, props, o.still, settings.ffmpeg));
       console.log(
         `${(props.durationInFrames / props.fps).toFixed(1)}s, ${props.scenes.length} scenes`,
       );

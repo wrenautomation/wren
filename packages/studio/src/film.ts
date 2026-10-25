@@ -15,7 +15,7 @@ import { CORNER_CAM, coverRect, OVERLAY } from "./finish-look.js";
 import { cutSize, FPS } from "./media.js";
 import { cardOf } from "./props.js";
 import type { LAYOUTS, VideoEdit, Word } from "./schema.js";
-import { audioOn } from "./sounds.js";
+import { audioOn, kitFiles } from "./sounds.js";
 
 type Show = (typeof LAYOUTS)[number];
 /** A kept stretch of the recording under one layout: raw seconds, and where it starts on the cut. */
@@ -39,8 +39,8 @@ export const filmAssets = (
 ) => ({
   main: `assets/main${extname(e.tracks.main.path) || ".mp4"}`,
   cam: e.tracks.cam ? `assets/cam${extname(e.tracks.cam.path) || ".mp4"}` : null,
-  /** The kit sounds it plays, each at `soundFile(id)` (`stageSounds` copies them in). */
-  sounds: [...new Set([...(e.sounds ?? []).map((x) => x.id), ...(e.music ? [e.music.id] : [])])],
+  /** The kit files it plays, as public paths (`stageSounds` copies them in). */
+  sounds: kitFiles([...(e.sounds ?? []).map((x) => x.id), ...(e.music ? [e.music.id] : [])]),
 });
 
 /** The kept spans, split where the layout changes. */
@@ -172,7 +172,7 @@ function soundClips(
   const a = audioOn(e.sounds ?? [], e.music, { which, clock, words: [], fps: FPS, durationS });
   const clips = a.sounds.map(
     (x, i) =>
-      `  <audio ${attrs({ id: `sound-${i + 1}`, src: x.file, at: t3(x.from / FPS), volume: t3(x.volume) })}></audio>`,
+      `  <audio ${attrs({ id: `sound-${i + 1}`, src: x.trim ? `${x.file}#t=${t3(x.trim / FPS)}` : x.file, at: t3(x.from / FPS), volume: t3(x.volume) })}></audio>`,
   );
   const pass = bedS && bedS > 0.5 ? bedS : durationS;
   for (let at = 0, k = 1; a.music && at < durationS - 0.01; at += pass, k++)

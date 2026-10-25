@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { keepSegments } from "./cuts.js";
+import { FX, type FxRole, type Take } from "./fx.js";
 import type { Short } from "./schema.js";
-import { audioOn, autoSounds, bedVolume, DUCK, dbToGain, duckAt, speech } from "./sounds.js";
+import {
+  audioOn,
+  autoSounds,
+  bedVolume,
+  DUCK,
+  dbToGain,
+  duckAt,
+  FX_BED_LUFS,
+  placeEffects,
+  speech,
+  takeVolume,
+} from "./sounds.js";
 
 const edit = (o: { shorts?: Partial<Short>[] } = {}) => ({
   tracks: { main: { durationS: 60 } },
@@ -16,22 +28,23 @@ const edit = (o: { shorts?: Partial<Short>[] } = {}) => ({
 
 describe("automatic sounds", () => {
   it("puts one sound on each rule's moment, in time order", () => {
-    const s = autoSounds(edit(), { clicks: [3, 3.01, 7], keys: [8, 8.03, 8.1] });
+    // Clicks closer than 85 ms and keys closer than 87 ms are one sound (the kit's run gaps).
+    const s = autoSounds(edit(), { clicks: [3, 3.05, 7], keys: [8, 8.05, 8.1] });
     expect(s).toEqual([
-      { at: 3, id: "studio/press" },
-      { at: 5, id: "studio/open" },
-      { at: 7, id: "studio/press" },
-      { at: 8, id: "studio/typing" },
-      { at: 8.1, id: "studio/typing" },
-      { at: 10, id: "studio/swipe" },
-      { at: 20, id: "studio/swipe" },
-      { at: 30, id: "studio/start", only: "short" },
+      { at: 3, id: "click" },
+      { at: 5, id: "pop" },
+      { at: 7, id: "click" },
+      { at: 8, id: "key" },
+      { at: 8.1, id: "key" },
+      { at: 10, id: "whoosh.short" },
+      { at: 20, id: "whoosh.short" },
+      { at: 30, id: "land", only: "short" },
     ]);
   });
 
   it("gives a Short with no card no boom", () => {
     const s = autoSounds(edit({ shorts: [{ from: 30, to: 50, title: "A", card: false }] }));
-    expect(s.some((x) => x.id === "studio/start")).toBe(false);
+    expect(s.some((x) => x.id === "land")).toBe(false);
   });
 });
 
@@ -51,18 +64,22 @@ describe("sounds on an output's clock", () => {
   it("moves each sound past the cuts and drops one inside a cut", () => {
     const a = audioOn(
       [
-        { at: 3, id: "studio/press" },
-        { at: 5, id: "studio/open" },
-        { at: 10, id: "studio/start", only: "short" },
-        { at: 12, id: "studio/success", gainDb: 0 },
+        { at: 3, id: "click" },
+        { at: 5, id: "pop" },
+        { at: 10, id: "land", only: "short" },
+        { at: 12, id: "click", gainDb: -6 },
       ],
       null,
       o("long"),
     );
-    expect(a.sounds).toEqual([
-      { file: "sfx/studio/press.ogg", from: 90, volume: 0.2 },
-      { file: "sfx/studio/success.ogg", from: 300, volume: 0.23 },
+    expect(a.sounds.map((s) => [s.file, s.from])).toEqual([
+      ["sfx/fx/click_1.ogg", 90],
+      ["sfx/fx/click_2.ogg", 300],
     ]);
+    expect(a.sounds[1]?.volume).toBeCloseTo(
+      takeVolume("click", take(FX.click, 1), FX_BED_LUFS.voice, -6),
+      3,
+    );
     expect(a.music).toBeNull();
   });
 
@@ -80,6 +97,44 @@ describe("sounds on an output's clock", () => {
     expect(a.music?.file).toBe("sfx/bed-calm.wav");
     const flat = audioOn([], { id: "bed-calm", duck: false }, { ...o("long"), words });
     expect(flat.music?.duck).toEqual([]);
+  });
+});
+
+const take = (r: FxRole, i: number) => r.takes[i] as Take;
+
+describe("placing a take", () => {
+  it("lands each take's sync point on its cue plus the role's offset", () => {
+    const fps = 1000;
+    const [w] = placeEffects([[2, "whoosh.short"]], { fps, bed: -24 });
+    const t0 = take(FX["whoosh.short"], 0);
+    // A whoosh is aligned on its peak, 37 ms after the cut.
+    expect(w?.from).toBe(Math.round((2 + 0.037 - t0.sync) * fps));
+    expect(w?.file).toBe(`sfx/fx/${t0.file}`);
+  });
+
+  it("plays a new take for each sound of a role, round", () => {
+    const n = FX.key.takes.length;
+    const keys = placeEffects(
+      Array.from({ length: n + 1 }, (_, i) => [i, "key"] as const),
+      { fps: 30, bed: -30 },
+    );
+    expect(keys.map((k) => k.file)).toEqual(
+      [...FX.key.takes, FX.key.takes[0]].map((t) => `sfx/fx/${t?.file}`),
+    );
+  });
+
+  it("trims a take whose sync point falls before the first frame", () => {
+    // The riser peaks 0.7 s in: on a cue at 0.2 s its first frames are cut.
+    const [r] = placeEffects([[0.2, "riser"]], { fps: 30, bed: -24 });
+    expect(r?.from).toBe(0);
+    expect(r?.trim).toBeGreaterThan(10);
+  });
+
+  it("sets each take over the bed by its role, never past -1 dBFS", () => {
+    const t0 = take(FX.pop, 0);
+    const db = 20 * Math.log10(takeVolume("pop", t0, -24));
+    expect(t0.l50 + db).toBeCloseTo(-24 + 10 * Math.log10(10 ** (FX.pop.bedDb / 10) - 1), 5);
+    expect(t0.peakDb + 20 * Math.log10(takeVolume("pop", t0, 0))).toBeCloseTo(-1, 5);
   });
 });
 

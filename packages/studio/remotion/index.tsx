@@ -34,6 +34,7 @@ import {
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
 import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
 import { lineAt, pageLines, REEL, reelLines } from "../src/captions.ts";
+import { bedVolume } from "../src/duck.ts";
 import {
   captionWordLook,
   cornerCam,
@@ -68,7 +69,7 @@ import type {
   ThumbnailProps,
 } from "../src/props.js";
 import { verticalRect } from "../src/safe-zones.ts";
-import { type AudioProps, bedVolume } from "../src/sounds.ts";
+import type { AudioProps } from "../src/sounds.ts";
 
 type Word = LongProps["words"][number];
 type Look = LongProps["look"];
@@ -307,7 +308,11 @@ const Sounds: FC<{ audio: AudioProps | undefined }> = ({ audio }) => {
       {audio.sounds.map((s, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: two sounds may share a frame and file
         <Sequence key={i} from={s.from} layout="none">
-          <Audio src={staticFile(s.file)} volume={s.volume} />
+          <Audio
+            src={staticFile(s.file)}
+            volume={s.volume}
+            {...(s.trim ? { trimBefore: s.trim } : {})}
+          />
         </Sequence>
       ))}
       {music ? (
