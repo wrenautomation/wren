@@ -1,0 +1,3526 @@
+{
+ "study": "launch films 2026-10-25",
+ "method": "yt-dlp 720p; cuts: PySceneDetect 0.7.2 detect-adaptive, ffmpeg scene>0.25, blackdetect d=0.3 pix_th=0.1; LUFS: ffmpeg ebur128 integrated; hand shots from 2 fps contact sheets; on-screen text: wren video watch (Cohere vision). Media stays out of the repo.",
+ "films": [
+  {
+   "url": "https://youtu.be/mRql2VJ99gM",
+   "slug": "linear-agent",
+   "brand": "Linear",
+   "rival": false,
+   "duration_s": 54.9,
+   "cuts": 8,
+   "shots_hand": 9,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 0,
+    "pyscenedetect_adaptive": 8,
+    "fade_blackdetect": 3
+   },
+   "shot_median_s": 5.5,
+   "shot_p90_s": 8.2,
+   "cuts_per_10s": [
+    1,
+    2,
+    2,
+    1,
+    2,
+    0
+   ],
+   "lufs_i": -28.9,
+   "first_product_s": 0,
+   "logo_s": 45.1,
+   "cta_s": null,
+   "cta": null,
+   "hook": "App window in the dark, spotlit; then a typed question on a tilted plane",
+   "music": true,
+   "vo": false,
+   "labels": "hand",
+   "shots": [
+    {
+     "t": 0,
+     "len": 3.1,
+     "src": "hand",
+     "type": "ui",
+     "move": "push",
+     "in": "fade",
+     "text": "Linear",
+     "sound": "music",
+     "note": "app window, dark, spotlight on sidebar"
+    },
+    {
+     "t": 3.1,
+     "len": 8.2,
+     "src": "hand",
+     "type": "ui",
+     "move": "roll",
+     "in": "fade",
+     "text": "Find issues with loading performance",
+     "sound": "music",
+     "note": "input on a plane tilted ~30 deg, typed; black dip 3.1-4.8"
+    },
+    {
+     "t": 11.3,
+     "len": 5.8,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "dissolve",
+     "text": "I found 13 issues",
+     "sound": "music",
+     "note": "results list rises on the same tilted plane"
+    },
+    {
+     "t": 17.1,
+     "len": 4.9,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "dissolve",
+     "text": "Make a plan to refactor data loading",
+     "sound": "music"
+    },
+    {
+     "t": 22.0,
+     "len": 7.7,
+     "src": "hand",
+     "type": "ui",
+     "move": "roll",
+     "in": "fade",
+     "text": "Optimistic loading refactor",
+     "sound": "music",
+     "note": "doc page; black dip 22.0-24.1"
+    },
+    {
+     "t": 29.7,
+     "len": 5.3,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "dissolve",
+     "text": "Area / Current user-visible problem / Proposed options",
+     "sound": "music"
+    },
+    {
+     "t": 35.1,
+     "len": 5.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "dissolve",
+     "text": null,
+     "sound": "music",
+     "note": "too dark for a text read"
+    },
+    {
+     "t": 40.6,
+     "len": 4.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "pull",
+     "in": "dissolve",
+     "text": null,
+     "sound": "music",
+     "note": "too dark for a text read"
+    },
+    {
+     "t": 45.1,
+     "len": 9.8,
+     "src": "hand",
+     "type": "logo",
+     "move": "static",
+     "in": "fade",
+     "text": "Linear. At your command.",
+     "sound": "music",
+     "note": "tagline then wordmark on black"
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/6dIwFoQ0eVg",
+   "slug": "linear-releases",
+   "brand": "Linear",
+   "rival": false,
+   "duration_s": 30.0,
+   "cuts": 6,
+   "shots_hand": 7,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 0,
+    "pyscenedetect_adaptive": 0,
+    "fade_blackdetect": 2
+   },
+   "shot_median_s": 4.5,
+   "shot_p90_s": 4.5,
+   "cuts_per_10s": [
+    2,
+    2,
+    2,
+    0
+   ],
+   "lufs_i": -24.7,
+   "first_product_s": 0,
+   "logo_s": 26.5,
+   "cta_s": 24,
+   "cta": "AVAILABLE NOW",
+   "hook": "Release graph in macro, shallow focus",
+   "music": true,
+   "vo": false,
+   "labels": "hand",
+   "shots": [
+    {
+     "t": 0,
+     "len": 4.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "fade",
+     "text": null,
+     "sound": "music",
+     "note": "release branch graph, shallow DOF"
+    },
+    {
+     "t": 4.5,
+     "len": 4.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "orbit",
+     "in": "dissolve",
+     "text": null,
+     "sound": "music",
+     "note": "whole plane tilted, vignette"
+    },
+    {
+     "t": 9,
+     "len": 2.5,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "fade",
+     "text": "PLAN AND TRACK RELEASES",
+     "sound": "music",
+     "note": "mono caps, centered, on black"
+    },
+    {
+     "t": 11.5,
+     "len": 4,
+     "src": "hand",
+     "type": "ui",
+     "move": "orbit",
+     "in": "fade",
+     "text": null,
+     "sound": "music",
+     "note": "three planes stacked in depth"
+    },
+    {
+     "t": 15.5,
+     "len": 6,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "dissolve",
+     "text": null,
+     "sound": "music",
+     "note": "graph close, slow track"
+    },
+    {
+     "t": 22,
+     "len": 4.5,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "fade",
+     "text": "RELEASES -> AVAILABLE NOW",
+     "sound": "music",
+     "note": "typed mono caps with block caret, erased, retyped"
+    },
+    {
+     "t": 26.5,
+     "len": 3.6,
+     "src": "hand",
+     "type": "logo",
+     "move": "static",
+     "in": "fade",
+     "text": "Linear",
+     "sound": "music"
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/sbwOQV5zY34",
+   "slug": "linear-for-agents",
+   "brand": "Linear",
+   "rival": false,
+   "duration_s": 32.6,
+   "cuts": 11,
+   "shots_hand": 12,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 0,
+    "pyscenedetect_adaptive": 0,
+    "fade_blackdetect": 6
+   },
+   "shot_median_s": 2.5,
+   "shot_p90_s": 3.7,
+   "cuts_per_10s": [
+    4,
+    3,
+    4,
+    0
+   ],
+   "lufs_i": -17.4,
+   "first_product_s": 1.5,
+   "logo_s": 29,
+   "cta_s": null,
+   "cta": null,
+   "hook": "'Linear for Agents' blur-in, then the backlog",
+   "music": true,
+   "vo": false,
+   "labels": "hand",
+   "shots": [
+    {
+     "t": 0,
+     "len": 1.5,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "fade",
+     "text": "Linear for Agents",
+     "sound": "music",
+     "note": "small centered sans, blur-in"
+    },
+    {
+     "t": 1.5,
+     "len": 1.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "rack-focus",
+     "in": "dissolve",
+     "text": null,
+     "sound": "music",
+     "note": "backlog list, defocus to sharp"
+    },
+    {
+     "t": 3,
+     "len": 2,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "cut",
+     "text": "Assign to...",
+     "sound": "music"
+    },
+    {
+     "t": 5,
+     "len": 3,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "cut",
+     "text": "Engineering backlog",
+     "sound": "music"
+    },
+    {
+     "t": 8,
+     "len": 4,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "comment thread with Codegen"
+    },
+    {
+     "t": 12,
+     "len": 3,
+     "src": "hand",
+     "type": "ui",
+     "move": "push",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "activity, PR opened"
+    },
+    {
+     "t": 15,
+     "len": 2.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "ui-zoom",
+     "in": "cut",
+     "text": "Agents",
+     "sound": "music",
+     "note": "integrations list, Enable buttons"
+    },
+    {
+     "t": 17.5,
+     "len": 2.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "cut",
+     "text": "Disable expand button in PR settings when all rows are visible",
+     "sound": "music"
+    },
+    {
+     "t": 20,
+     "len": 4,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "agent's proposed solution with code"
+    },
+    {
+     "t": 24,
+     "len": 2.5,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "cut",
+     "text": "Agents for Coding / Triage / Planning",
+     "sound": "music",
+     "note": "last word swaps in place, blur"
+    },
+    {
+     "t": 26.5,
+     "len": 2.5,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "cut",
+     "text": "Linear for Agents",
+     "sound": "music"
+    },
+    {
+     "t": 29,
+     "len": 3.7,
+     "src": "hand",
+     "type": "logo",
+     "move": "static",
+     "in": "fade",
+     "text": "Linear",
+     "sound": "music"
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/Mi173xGb0ZA",
+   "slug": "raycast-2026",
+   "brand": "Raycast",
+   "rival": false,
+   "duration_s": 38.5,
+   "cuts": 14,
+   "shots_hand": 15,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 7,
+    "pyscenedetect_adaptive": 4,
+    "fade_blackdetect": 1
+   },
+   "shot_median_s": 2.1,
+   "shot_p90_s": 3,
+   "cuts_per_10s": [
+    4,
+    3,
+    6,
+    1
+   ],
+   "lufs_i": -13.2,
+   "first_product_s": 1,
+   "logo_s": 36.5,
+   "cta_s": 34.5,
+   "cta": "COMING 2026",
+   "hook": "Search bar huge in frame, caret blinks",
+   "music": true,
+   "vo": false,
+   "labels": "hand",
+   "shots": [
+    {
+     "t": 0,
+     "len": 1,
+     "src": "hand",
+     "type": "b-roll",
+     "move": "pan",
+     "in": "fade",
+     "text": null,
+     "sound": "music",
+     "note": "dark satin backdrop"
+    },
+    {
+     "t": 1,
+     "len": 2.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "dissolve",
+     "text": "Search",
+     "sound": "music",
+     "note": "search bar fills the frame, cropped past the edge"
+    },
+    {
+     "t": 3.5,
+     "len": 2,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "cut",
+     "text": "clipboard",
+     "sound": "music",
+     "note": "typed"
+    },
+    {
+     "t": 5.5,
+     "len": 3,
+     "src": "hand",
+     "type": "ui",
+     "move": "ui-zoom",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "hotkey settings menu"
+    },
+    {
+     "t": 8.5,
+     "len": 2.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "cut",
+     "text": "Type to filter entries...",
+     "sound": "music"
+    },
+    {
+     "t": 11,
+     "len": 4,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "cut",
+     "text": "Search Emoji & Symbols",
+     "sound": "music"
+    },
+    {
+     "t": 15,
+     "len": 2,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "focus ring moves across emoji"
+    },
+    {
+     "t": 17,
+     "len": 3,
+     "src": "hand",
+     "type": "ui",
+     "move": "push",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "voice waveform"
+    },
+    {
+     "t": 20,
+     "len": 1,
+     "src": "hand",
+     "type": "ui",
+     "move": "static",
+     "in": "cut",
+     "text": null,
+     "sound": "music"
+    },
+    {
+     "t": 21,
+     "len": 1.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "push",
+     "in": "cut",
+     "text": "Ask Anything",
+     "sound": "music"
+    },
+    {
+     "t": 22.5,
+     "len": 1.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "static",
+     "in": "cut",
+     "text": "Focus Session",
+     "sound": "music"
+    },
+    {
+     "t": 24,
+     "len": 2,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "cut",
+     "text": "Getting active Linear Issues",
+     "sound": "music"
+    },
+    {
+     "t": 26,
+     "len": 2.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "static",
+     "in": "cut",
+     "text": "Checking for updates...",
+     "sound": "music"
+    },
+    {
+     "t": 28.5,
+     "len": 8,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "cut",
+     "text": "NEW LAUNCHER DESIGN ... NEW RAYCAST COMING 2026",
+     "sound": "music",
+     "note": "mono caps on black, second word swaps every 0.5 s, 9 swaps"
+    },
+    {
+     "t": 36.5,
+     "len": 2.1,
+     "src": "hand",
+     "type": "logo",
+     "move": "static",
+     "in": "cut",
+     "text": null,
+     "sound": "music"
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/n5Vwrj1gEWs",
+   "slug": "arc-1",
+   "brand": "The",
+   "rival": false,
+   "duration_s": 34.3,
+   "cuts": 22,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 20,
+    "pyscenedetect_adaptive": 22,
+    "fade_blackdetect": 3
+   },
+   "shot_median_s": 0.9,
+   "shot_p90_s": 2.5,
+   "cuts_per_10s": [
+    6,
+    10,
+    5,
+    1
+   ],
+   "lufs_i": -11.5,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 5.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 5.1,
+     "len": 0.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 5.8,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 6.6,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 7.4,
+     "len": 0.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 8.2,
+     "len": 1.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 9.6,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 10.5,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 11.4,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 12.4,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 13.6,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 14.8,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 15.7,
+     "len": 0.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 16.4,
+     "len": 0.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 17.1,
+     "len": 0.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 17.9,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 18.7,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 21.2,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 22.1,
+     "len": 2.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 24.4,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 25.9,
+     "len": 3.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 29.6,
+     "len": 1.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 31.1,
+     "len": 3.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/ttylMKwIe7c",
+   "slug": "arc-max",
+   "brand": "The",
+   "rival": false,
+   "duration_s": 18.0,
+   "cuts": 11,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 14,
+    "pyscenedetect_adaptive": 11,
+    "fade_blackdetect": 0
+   },
+   "shot_median_s": 1.2,
+   "shot_p90_s": 1.9,
+   "cuts_per_10s": [
+    7,
+    4
+   ],
+   "lufs_i": -21.6,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 3.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 3.3,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 4.2,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 5.4,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 6.6,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 7.9,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 8.8,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 9.6,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 10.7,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 11.9,
+     "len": 1.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 13.9,
+     "len": 3.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 17.4,
+     "len": 0.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/YVOw0TAO9ok",
+   "slug": "dia",
+   "brand": "The",
+   "rival": false,
+   "duration_s": 77.7,
+   "cuts": 43,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 42,
+    "pyscenedetect_adaptive": 43,
+    "fade_blackdetect": 3
+   },
+   "shot_median_s": 1.4,
+   "shot_p90_s": 2.8,
+   "cuts_per_10s": [
+    4,
+    7,
+    9,
+    8,
+    6,
+    3,
+    5,
+    1
+   ],
+   "lufs_i": -17.8,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 2.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 2.8,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 4.0,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 5.7,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 8.1,
+     "len": 4.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 12.6,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 13.7,
+     "len": 0.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 14.3,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 15.6,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 16.8,
+     "len": 0.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 17.4,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 18.6,
+     "len": 1.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 20.2,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 21.8,
+     "len": 0.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 22.4,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 23.2,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 24.2,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 25.2,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 26.8,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 28.1,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 29.2,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 30.1,
+     "len": 1.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 31.8,
+     "len": 0.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 32.4,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 33.2,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 34.0,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 36.1,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 37.0,
+     "len": 2.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 39.7,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 40.5,
+     "len": 1.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 42.2,
+     "len": 1.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 44.1,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 45.8,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 48.0,
+     "len": 1.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 49.3,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 50.9,
+     "len": 5.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 56.4,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 58.5,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 60.6,
+     "len": 3.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 64.0,
+     "len": 2.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 66.8,
+     "len": 1.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 68.2,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 69.4,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 70.2,
+     "len": 7.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/UxbULt_hCdA",
+   "slug": "cursor-3",
+   "brand": "Cursor",
+   "rival": false,
+   "duration_s": 90.3,
+   "cuts": 28,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 24,
+    "pyscenedetect_adaptive": 28,
+    "fade_blackdetect": 1
+   },
+   "shot_median_s": 3.0,
+   "shot_p90_s": 4.8,
+   "cuts_per_10s": [
+    2,
+    4,
+    3,
+    3,
+    4,
+    3,
+    3,
+    2,
+    4,
+    0
+   ],
+   "lufs_i": -27.3,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 5.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 5.7,
+     "len": 3.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 9.5,
+     "len": 4.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 13.6,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 14.8,
+     "len": 3.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 17.9,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 19.1,
+     "len": 2.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 22.0,
+     "len": 4.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 26.6,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 29.1,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 30.8,
+     "len": 4.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 35.3,
+     "len": 1.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 36.9,
+     "len": 3.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 40.4,
+     "len": 4.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 45.0,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 46.2,
+     "len": 2.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 48.2,
+     "len": 2.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 51.0,
+     "len": 3.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 54.3,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 56.8,
+     "len": 5.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 62.3,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 63.4,
+     "len": 4.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 68.2,
+     "len": 2.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 71.1,
+     "len": 4.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 75.3,
+     "len": 5.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 80.3,
+     "len": 3.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 84.0,
+     "len": 2.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 86.3,
+     "len": 3.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 89.3,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/8AHPXm9Y6mI",
+   "slug": "framer-thats",
+   "brand": "Framer",
+   "rival": false,
+   "duration_s": 37.5,
+   "cuts": 6,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 3,
+    "pyscenedetect_adaptive": 6,
+    "fade_blackdetect": 2
+   },
+   "shot_median_s": 1.7,
+   "shot_p90_s": 5.5,
+   "cuts_per_10s": [
+    4,
+    1,
+    0,
+    1
+   ],
+   "lufs_i": -15.7,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 1.7,
+     "len": 1.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 3.3,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 4.4,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 5.4,
+     "len": 5.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 10.9,
+     "len": 22.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 33.7,
+     "len": 3.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/6xJWQRVl9nw",
+   "slug": "framer-real",
+   "brand": "Framer",
+   "rival": false,
+   "duration_s": 36.9,
+   "cuts": 6,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 4,
+    "pyscenedetect_adaptive": 6,
+    "fade_blackdetect": 4
+   },
+   "shot_median_s": 1.6,
+   "shot_p90_s": 9.6,
+   "cuts_per_10s": [
+    5,
+    1,
+    0,
+    0
+   ],
+   "lufs_i": -15.7,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 2.1,
+     "len": 1.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 3.7,
+     "len": 0.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 4.4,
+     "len": 0.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 5.0,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 6.1,
+     "len": 9.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 15.7,
+     "len": 21.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/YeldJ4UezDQ",
+   "slug": "comet",
+   "brand": "Perplexity",
+   "rival": true,
+   "duration_s": 72.3,
+   "cuts": 5,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 8,
+    "pyscenedetect_adaptive": 5,
+    "fade_blackdetect": 4
+   },
+   "shot_median_s": 6.9,
+   "shot_p90_s": 12.7,
+   "cuts_per_10s": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    2,
+    1
+   ],
+   "lufs_i": -17.6,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 8.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 8.2,
+     "len": 42.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 50.4,
+     "len": 12.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 63.1,
+     "len": 2.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 65.8,
+     "len": 5.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 71.6,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/7lTFm8-GoS4",
+   "slug": "browserbase-director2",
+   "brand": "Browserbase",
+   "rival": true,
+   "duration_s": 77.0,
+   "cuts": 15,
+   "shots_hand": 35,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 3,
+    "pyscenedetect_adaptive": 10,
+    "fade_blackdetect": 1
+   },
+   "shot_median_s": 3.5,
+   "shot_p90_s": 6,
+   "cuts_per_10s": [
+    0,
+    3,
+    4,
+    1,
+    1,
+    3,
+    2,
+    1
+   ],
+   "lufs_i": -12.9,
+   "first_product_s": 0,
+   "logo_s": 17,
+   "cta_s": 69.5,
+   "cta": "Try it out today at director.ai",
+   "hook": "Macro of a real form, a person types by hand",
+   "music": true,
+   "vo": false,
+   "labels": "hand",
+   "shots": [
+    {
+     "t": 0,
+     "len": 15,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "about 20 macro shots of a real form and sheet, ~0.7 s each, handheld feel: the manual way (copy, paste, Active/Expired)"
+    },
+    {
+     "t": 15,
+     "len": 2,
+     "src": "hand",
+     "type": "graphic",
+     "move": "static",
+     "in": "whip",
+     "text": null,
+     "sound": "music",
+     "note": "white wipe"
+    },
+    {
+     "t": 17,
+     "len": 2,
+     "src": "hand",
+     "type": "logo",
+     "move": "static",
+     "in": "cut",
+     "text": "Director",
+     "sound": "music"
+    },
+    {
+     "t": 19,
+     "len": 3,
+     "src": "hand",
+     "type": "graphic",
+     "move": "push",
+     "in": "cut",
+     "text": "Turn a manual browser task",
+     "sound": "music",
+     "note": "floating windows"
+    },
+    {
+     "t": 22,
+     "len": 0.5,
+     "src": "hand",
+     "type": "graphic",
+     "move": "static",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "cube"
+    },
+    {
+     "t": 22.5,
+     "len": 3.5,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "cut",
+     "text": "Repeatable agentic workflows",
+     "sound": "music",
+     "note": "dark particle field"
+    },
+    {
+     "t": 26,
+     "len": 3.5,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "dissolve",
+     "text": "Describe what you need done in natural language",
+     "sound": "music"
+    },
+    {
+     "t": 29.5,
+     "len": 6,
+     "src": "hand",
+     "type": "ui",
+     "move": "macro",
+     "in": "whip",
+     "text": "Verify the California real estate license ...",
+     "sound": "music",
+     "note": "prompt typed, huge in frame"
+    },
+    {
+     "t": 35.5,
+     "len": 13.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "fade",
+     "text": null,
+     "sound": "music",
+     "note": "agent log: thoughts, steps, code"
+    },
+    {
+     "t": 49,
+     "len": 1.5,
+     "src": "hand",
+     "type": "ui",
+     "move": "static",
+     "in": "cut",
+     "text": "Deploy workflow",
+     "sound": "music"
+    },
+    {
+     "t": 50.5,
+     "len": 6,
+     "src": "hand",
+     "type": "graphic",
+     "move": "orbit",
+     "in": "cut",
+     "text": "Agents & browsers / Schedule & deploy",
+     "sound": "music",
+     "note": "isometric cubes"
+    },
+    {
+     "t": 56.5,
+     "len": 3,
+     "src": "hand",
+     "type": "graphic",
+     "move": "pull",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "fan of browser windows"
+    },
+    {
+     "t": 59.5,
+     "len": 5,
+     "src": "hand",
+     "type": "graphic",
+     "move": "static",
+     "in": "cut",
+     "text": "What used to take hours / Now takes seconds / Get your time back",
+     "sound": "music"
+    },
+    {
+     "t": 64.5,
+     "len": 5,
+     "src": "hand",
+     "type": "ui",
+     "move": "track",
+     "in": "cut",
+     "text": null,
+     "sound": "music",
+     "note": "result sheet fills Active/Expired"
+    },
+    {
+     "t": 69.5,
+     "len": 3,
+     "src": "hand",
+     "type": "text-card",
+     "move": "static",
+     "in": "cut",
+     "text": "Try it out today at director.ai",
+     "sound": "music"
+    },
+    {
+     "t": 72.5,
+     "len": 4.6,
+     "src": "hand",
+     "type": "logo",
+     "move": "static",
+     "in": "cut",
+     "text": "Director / Powered by Browserbase",
+     "sound": "music"
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/p2Uwg73fnrM",
+   "slug": "browserbase-ph",
+   "brand": "Browserbase",
+   "rival": true,
+   "duration_s": 132.5,
+   "cuts": 15,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 18,
+    "pyscenedetect_adaptive": 15,
+    "fade_blackdetect": 0
+   },
+   "shot_median_s": 7.6,
+   "shot_p90_s": 14.6,
+   "cuts_per_10s": [
+    0,
+    2,
+    1,
+    1,
+    3,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0,
+    1,
+    2
+   ],
+   "lufs_i": -20.8,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 12.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 12.9,
+     "len": 2.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 15.0,
+     "len": 10.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 25.1,
+     "len": 8.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 33.8,
+     "len": 8.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 42.5,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 43.6,
+     "len": 5.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 49.4,
+     "len": 6.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 55.9,
+     "len": 24.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 79.9,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 82.4,
+     "len": 14.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 97.0,
+     "len": 6.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 103.6,
+     "len": 17.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 120.8,
+     "len": 9.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 130.5,
+     "len": 1.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 132.2,
+     "len": 0.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/uXspbC2srEQ",
+   "slug": "openai-dots",
+   "brand": "OpenAI",
+   "rival": true,
+   "duration_s": 147.7,
+   "cuts": 71,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 67,
+    "pyscenedetect_adaptive": 71,
+    "fade_blackdetect": 0
+   },
+   "shot_median_s": 1.8,
+   "shot_p90_s": 3.2,
+   "cuts_per_10s": [
+    3,
+    4,
+    6,
+    6,
+    6,
+    5,
+    6,
+    5,
+    6,
+    6,
+    4,
+    2,
+    5,
+    6,
+    1
+   ],
+   "lufs_i": -16.4,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 6.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 6.7,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 7.7,
+     "len": 1.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 9.4,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 10.6,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 11.5,
+     "len": 1.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 13.3,
+     "len": 6.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 19.4,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 20.4,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 22.5,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 23.8,
+     "len": 2.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 25.8,
+     "len": 2.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 28.1,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 29.2,
+     "len": 1.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 30.9,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 32.2,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 33.1,
+     "len": 2.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 35.5,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 37.1,
+     "len": 2.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 39.0,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 40.4,
+     "len": 1.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 42.0,
+     "len": 0.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 42.8,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 44.5,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 46.3,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 48.4,
+     "len": 2.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 51.1,
+     "len": 1.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 52.9,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 54.4,
+     "len": 3.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 57.9,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 59.6,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 61.2,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 62.7,
+     "len": 1.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 64.6,
+     "len": 2.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 66.6,
+     "len": 0.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 67.5,
+     "len": 1.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 68.9,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 70.0,
+     "len": 2.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 72.2,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 74.3,
+     "len": 1.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 75.9,
+     "len": 3.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 79.2,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 80.4,
+     "len": 1.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 82.3,
+     "len": 3.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 85.5,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 86.7,
+     "len": 1.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 87.9,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 89.3,
+     "len": 1.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 91.1,
+     "len": 1.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 92.1,
+     "len": 2.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 94.6,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 95.8,
+     "len": 2.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 98.4,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 99.9,
+     "len": 3.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 103.4,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 105.9,
+     "len": 1.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 107.9,
+     "len": 1.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 109.8,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 112.2,
+     "len": 5.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 117.7,
+     "len": 4.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 121.6,
+     "len": 2.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 123.7,
+     "len": 2.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 125.7,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 127.3,
+     "len": 2.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 129.3,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 131.8,
+     "len": 2.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 134.3,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 135.8,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 137.3,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 138.4,
+     "len": 1.4,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 139.8,
+     "len": 1.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 141.0,
+     "len": 6.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  },
+  {
+   "url": "https://youtu.be/ODaHJzOyVCQ",
+   "slug": "anthropic-cu-ops",
+   "brand": "Anthropic",
+   "rival": true,
+   "duration_s": 122.9,
+   "cuts": 18,
+   "shots_hand": null,
+   "cuts_by_signal": {
+    "ffmpeg_scene_0.25": 18,
+    "pyscenedetect_adaptive": 18,
+    "fade_blackdetect": 0
+   },
+   "shot_median_s": 3.3,
+   "shot_p90_s": 7.3,
+   "cuts_per_10s": [
+    2,
+    2,
+    3,
+    3,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    2,
+    4,
+    1
+   ],
+   "lufs_i": -14.7,
+   "first_product_s": null,
+   "logo_s": null,
+   "cta_s": null,
+   "cta": null,
+   "hook": null,
+   "music": null,
+   "vo": null,
+   "labels": "none (cuts only; peer decision 6)",
+   "shots": [
+    {
+     "t": 0.0,
+     "len": 3.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 3.3,
+     "len": 4.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 7.3,
+     "len": 4.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 11.4,
+     "len": 3.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 14.4,
+     "len": 6.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 21.1,
+     "len": 3.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 24.7,
+     "len": 1.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 25.8,
+     "len": 6.8,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 32.5,
+     "len": 3.2,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 35.7,
+     "len": 1.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 37.5,
+     "len": 27.6,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 65.1,
+     "len": 35.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 100.1,
+     "len": 3.1,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 103.3,
+     "len": 7.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 110.6,
+     "len": 1.5,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 112.0,
+     "len": 2.0,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 114.0,
+     "len": 3.3,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 117.3,
+     "len": 2.9,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    },
+    {
+     "t": 120.2,
+     "len": 2.7,
+     "src": "scene",
+     "type": null,
+     "move": null,
+     "in": null,
+     "text": null,
+     "sound": null
+    }
+   ]
+  }
+ ]
+}
