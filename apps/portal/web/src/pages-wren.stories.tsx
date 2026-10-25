@@ -6,7 +6,7 @@ import type { Meta } from "@storybook/react-vite";
 import { EDITS } from "@wren/ui";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { type Answers, freshStory, refuse } from "./mocks/api.js";
-import { canvasAnswers } from "./mocks/data/canvas.js";
+import { CANVAS_WORKFLOW, canvasAnswers } from "./mocks/data/canvas.js";
 import { ANSWERS } from "./mocks/data/index.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
@@ -141,6 +141,7 @@ const canvasAt = (
   },
 });
 const LONG = { timeout: 5000 };
+const ID = CANVAS_WORKFLOW.id;
 
 /** The live wiring, read only: the workflow's name, and Edit. */
 export const Canvas = canvasAt("", async (page) => {
@@ -208,16 +209,16 @@ export const CanvasPublishConfirm = canvasAt(
     const view = within(page);
     await userEvent.selectOptions(await view.findByLabelText("Auto-retry"), "2");
     await userEvent.click(view.getByRole("button", { name: "Publish" }));
-    const typed = await view.findByRole("textbox", { name: "Type wren to confirm" });
+    const typed = await view.findByRole("textbox", { name: `Type ${ID} to confirm` });
     const form = within(typed.closest("form") as HTMLElement);
     await expect(form.getByRole("button", { name: "Publish" })).toBeDisabled();
-    await userEvent.type(typed, "wren");
+    await userEvent.type(typed, ID);
     await userEvent.click(form.getByRole("button", { name: "Publish" }));
     await expect(await view.findByText("The built-in wiring.", { exact: false })).toBeVisible();
   },
   {
     "console/workflowPublish": (b: Record<string, unknown>) =>
-      b.confirm === "wren" ? { id: 3 } : refuse(400, "it sends email: type wren to confirm"),
+      b.confirm === ID ? { id: 3 } : refuse(400, `it sends email: type ${ID} to confirm`),
   },
 );
 
