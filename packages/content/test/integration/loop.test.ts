@@ -1407,7 +1407,12 @@ describe("content loop", () => {
     expect((await playbookFor(pg.db, "linkedin"))?.id).toBe(second.playbook.id);
     // An SOP scoped to films never steers a post, and pushing it again stores nothing.
     const film = { kinds: ["film"], platforms: ["linkedin"], topic: "", set: [] };
-    const films = { platform: "linkedin" as const, sop: "films", text: "Cut every 2 s.", scope: film };
+    const films = {
+      platform: "linkedin" as const,
+      sop: "films",
+      text: "Cut every 2 s.",
+      scope: film,
+    };
     expect((await pushPlaybook(pg.db, films)).changed).toBe(true);
     expect((await pushPlaybook(pg.db, films)).changed).toBe(false);
     expect((await playbookFor(pg.db, "linkedin"))?.id).toBe(second.playbook.id);

@@ -31,7 +31,13 @@ export interface PieceCheck {
     where: Where | null;
   }[];
   shares: { label: string; ours: string | null; n: number; of: [string, number][] }[];
-  patterns: { label: string; ours: string | null; kept: string[]; dropped: string[]; verdict: PatternVerdict }[];
+  patterns: {
+    label: string;
+    ours: string | null;
+    kept: string[];
+    dropped: string[];
+    verdict: PatternVerdict;
+  }[];
 }
 
 /** Our facts, keyed like a `learn.standards` row. */
@@ -48,7 +54,7 @@ const PATTERN_KEYS: Record<string, keyof StandardRow> = {
   "facts/vo": "vo",
 };
 
-const valueOf = (v: Ours[keyof Ours]): string | null =>
+const shown = (v: Ours[keyof Ours]): string | null =>
   v === null || v === undefined ? null : typeof v === "boolean" ? (v ? "yes" : "no") : String(v);
 
 export function checkPiece(
@@ -75,7 +81,7 @@ export function checkPiece(
   });
   const shares = (standard?.shares ?? []).map((x) => {
     const key = shareKeys.get(x.label);
-    return { ...x, ours: key ? valueOf(ours[key]) : null };
+    return { ...x, ours: key ? shown(ours[key]) : null };
   });
   const byPath = new Map<string, PatternRule[]>();
   for (const p of patterns) byPath.set(p.path, [...(byPath.get(p.path) ?? []), p]);
@@ -85,10 +91,14 @@ export function checkPiece(
     const kept = rs.filter((r) => r.rule).map((r) => r.value);
     const dropped = rs.filter((r) => r.drops > 0).map((r) => r.value);
     if (!kept.length && !dropped.length) return [];
-    const raw = valueOf(ours[key]);
+    const raw = shown(ours[key]);
     const v = raw === null ? null : patternValue(path, raw);
     const verdict: PatternVerdict =
-      v !== null && dropped.includes(v) ? "breaks" : v !== null && kept.includes(v) ? "meets" : "off";
+      v !== null && dropped.includes(v)
+        ? "breaks"
+        : v !== null && kept.includes(v)
+          ? "meets"
+          : "off";
     return [{ label: rs[0]?.label ?? path, ours: v, kept, dropped, verdict }];
   });
   return { kind, n: standard?.n ?? 0, numbers, shares, patterns: checked };

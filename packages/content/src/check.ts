@@ -142,14 +142,22 @@ export async function checkDraft(
       changes: [],
       why: `No posts on ${d.platform} broken down and no calls yet: nothing to hold it to.`,
     });
-  const stage = { ...(o.tracer ? { tracer: o.tracer } : {}), ...(o.runId ? { runId: o.runId } : {}) };
+  const stage = {
+    ...(o.tracer ? { tracer: o.tracer } : {}),
+    ...(o.runId ? { runId: o.runId } : {}),
+  };
   const stopped = (err: unknown) => {
     if (isVendorStop(err)) return null;
     throw err;
   };
   const read = await completeAndParse(
     llm,
-    breakdownPrompt({ kind: "post", title: d.title ?? "Our draft", url: "(not posted)", text: d.text }),
+    breakdownPrompt({
+      kind: "post",
+      title: d.title ?? "Our draft",
+      url: "(not posted)",
+      text: d.text,
+    }),
     answerSchema("post"),
     {
       maxTokens: 900,

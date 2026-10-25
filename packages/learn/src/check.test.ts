@@ -23,7 +23,16 @@ const standard: KindStandard = {
     { label: "Lines", n: 9, median: 8, p25: 5, p75: 12 },
     { label: "Hashtags", n: 9, median: 0, p25: 0, p75: 1 },
   ],
-  shares: [{ label: "Shape", n: 9, of: [["list", 6], ["story", 3]] }],
+  shares: [
+    {
+      label: "Shape",
+      n: 9,
+      of: [
+        ["list", 6],
+        ["story", 3],
+      ],
+    },
+  ],
 };
 
 describe("a piece against the SOP", () => {
@@ -57,7 +66,17 @@ describe("a piece against the SOP", () => {
       ["Lines", 7, "inside"],
       ["Hashtags", null, null],
     ]);
-    expect(c.shares).toEqual([{ label: "Shape", n: 9, of: [["list", 6], ["story", 3]], ours: "list" }]);
+    expect(c.shares).toEqual([
+      {
+        label: "Shape",
+        n: 9,
+        of: [
+          ["list", 6],
+          ["story", 3],
+        ],
+        ours: "list",
+      },
+    ]);
     expect(c.patterns.map((p) => [p.label, p.verdict])).toEqual([
       ["Call to action", "breaks"],
       ["Hook style", "meets"],

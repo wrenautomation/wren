@@ -16,7 +16,6 @@ import {
 import { platformObjects } from "@wren/core/objects-schema";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
 import type { SopScope } from "@wren/learn";
-import type { DraftCheck } from "./check.js";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -37,6 +36,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { DraftCheck } from "./check.js";
 import { IDEA_ANGLES } from "./write.js";
 
 export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;

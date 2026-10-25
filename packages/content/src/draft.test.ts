@@ -58,10 +58,16 @@ describe("draftPrompt", () => {
     expect(draftPrompt(idea, PLATFORM_SPECS.linkedin, { ...o, standard: null })).not.toContain(
       "best posts",
     );
-    const again = redraftPrompt(idea, PLATFORM_SPECS.linkedin, { text: "old", title: null }, "shorter", {
-      ...o,
-      standard,
-    });
+    const again = redraftPrompt(
+      idea,
+      PLATFORM_SPECS.linkedin,
+      { text: "old", title: null },
+      "shorter",
+      {
+        ...o,
+        standard,
+      },
+    );
     expect(again).toContain("- Characters: median 640");
   });
 });

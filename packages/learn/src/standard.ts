@@ -76,7 +76,10 @@ const quartile = (xs: number[], q: number) => {
 const num = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 /** The number columns each kind reports, in reading order. A film's cut numbers count trusted films only. */
-export const NUMBERS: Record<string, { key: keyof StandardRow; label: string; trusted?: boolean }[]> = {
+export const NUMBERS: Record<
+  string,
+  { key: keyof StandardRow; label: string; trusted?: boolean }[]
+> = {
   post: [
     { key: "chars", label: "Characters" },
     { key: "lines", label: "Lines" },
@@ -339,7 +342,16 @@ export function rulesOf(calls: SopCall[]): { patterns: PatternRule[]; own: SopCa
     const value = patternValue(c.path, c.value);
     const label = c.path === "cta" ? "Call to action" : c.label;
     const k = `${c.path}\u0000${value}`;
-    const r = by.get(k) ?? { path: c.path, label, value, keeps: 0, tunes: 0, drops: 0, rule: false, calls: [] };
+    const r = by.get(k) ?? {
+      path: c.path,
+      label,
+      value,
+      keeps: 0,
+      tunes: 0,
+      drops: 0,
+      rule: false,
+      calls: [],
+    };
     r.calls.push(c);
     if (c.call === "keep") r.keeps++;
     else if (c.call === "tune") r.tunes++;

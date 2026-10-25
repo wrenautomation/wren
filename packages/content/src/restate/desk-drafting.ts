@@ -164,7 +164,12 @@ export function draftingHandlers(desk: ContentDeskContext) {
           });
         const s = await scopeOf(ctx);
         const check = await ctx.run("check", () =>
-          checkDraft(s.db, s.llm, req.draftId, desk.deps.tracer ? { tracer: desk.deps.tracer } : {}),
+          checkDraft(
+            s.db,
+            s.llm,
+            req.draftId,
+            desk.deps.tracer ? { tracer: desk.deps.tracer } : {},
+          ),
         );
         return { check, why: check ? null : "The models are stopped; ask again later." };
       },
