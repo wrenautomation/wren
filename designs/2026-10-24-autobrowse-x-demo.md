@@ -1,22 +1,21 @@
 # autobrowse X demo: shot list (2026-10-24)
 
 Bead wa-qtyo.7. A standard product video for X: about 45 s, no face, no voice, screen only.
-William records it in OBS. He writes every caption. This file says what each shot shows and
+autobrowse films it (designs/2026-10-24-filmed-takes.md). He writes every caption. This file says what each shot shows and
 which fact its caption carries. It gives no wording.
 
 ## Shape
 
 - Wide, 1920x1080. X plays it muted first, so the captions carry the story.
 - One caption line at the bottom of each shot. About 8 cuts in 45 s (the OpenFilm reel's rate).
-- Sound: the earshot launch kit, placed by the rules. OBS gives no click or key events, so clicks and keys get no sound;
-  each caption gets `pop`, each layout change gets `whoosh.short`. Add a bed with
-  `wren video music <id> bed-<name>` after a bed is in the kit (`wren video sfx add`). The kit
-  holds no beds yet.
-- Real runs only. Every number on screen comes from the run he records.
+- Sound: the earshot launch kit, placed by the rules: `click` on each click, `key` on each key,
+  `whoosh.short` on each zoom in. A bed is the script's `music`: a kit bed once one is in the
+  kit (`wren video sfx add`), or his own file.
+- Real runs only. Every number on screen comes from the filmed run.
 
 ## Shots
 
-| # | s | Shows (OBS, layout `screen`) | Caption carries |
+| # | s | Shows (a take scene) | Caption carries |
 |---|---|---|---|
 | 1 | 4 | A browser agent clicks through X compose. The token count goes up. | The problem: an agent pays for model calls on every run. |
 | 2 | 7 | `autobrowse agent x "<goal>"` in the terminal beside the browser. The agent finds compose and drafts. | Explore once, with a model. |
@@ -31,19 +30,18 @@ Cut 7 if the take is over 45 s.
 
 ## Capture
 
-- OBS at 60 fps, display at 1920x1080 or 2x of it. Hide the dock and notifications. One browser window, no other tabs.
+- One tape per shot: `autobrowse film <tape> --out takes/<shot>`. autobrowse types the commands
+  and records the terminal and every browser it opens.
 - The X account on screen is a public one. No DMs, no other people's data, no keys or tokens in the terminal.
 - `autobrowse explore` leaves a bearer token in `$TMPDIR`: never `cat` it on screen.
-- One recording per shot is easier to cut than one long take.
+- Shot 6 posts for real, so that take waits for William's yes. Practice takes stop before Post.
 
 ## Edit
 
-1. `wren video add <obs file>` for each take.
-2. `wren video set`: layout `screen` and the caption overlays. The automatic sounds follow.
-3. Render, then `wren video check` against the edit bar.
-4. A 15 s teaser: `wren video promo` from stills of shots 2, 4 and 6. The promo kit adds whooshes, pops, the riser and the end hit.
+1. A promo script: one `take` scene a shot, `camera: "auto"`, his caption on each, the end card.
+2. `wren video promo <script>`: cursor, zooms and sounds come from the takes.
+3. `wren content add --media out/promo.mp4` drafts the X post.
 
 ## Gaps
 
-- The edit path has no device frame (the reel's look). The `screen` layout fills the frame. A frame is a new
-  overlay part, not built. Ask before building it.
+- The terminal window bar is new (filmed-takes doc). A device frame round the browser is not built.
