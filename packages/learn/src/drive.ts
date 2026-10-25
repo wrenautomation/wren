@@ -10,6 +10,7 @@ import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
 import { factCalls, factRows } from "./calls.js";
 import { type LearnPick, learnMarkCalls, withLearnPicks } from "./decide.js";
+import { filmShots } from "./film.js";
 import {
   breakdowns,
   collections,
@@ -523,6 +524,8 @@ export async function itemPage(db: Queryable, client: string, id: number) {
           kind: broke.kind,
           by: broke.by,
           facts: factRows(broke),
+          // A film's shots in order, for the page's strip; empty for every other kind.
+          shots: filmShots(broke.facts),
           calls: calls.map((c) => ({ ...c, at: c.at.toISOString() })),
         }
       : null,

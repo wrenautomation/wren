@@ -40,6 +40,7 @@ import {
   learn,
   type Moment,
   onChanged,
+  type Shot,
 } from "./api.js";
 import { useRail } from "./frame.js";
 import {
@@ -535,6 +536,67 @@ const CALL_TONE: Record<FactCall, string> = {
   drop: "text-(--ui-bad)",
 };
 
+const SHOT_PATH = "facts/shots/";
+const clockOf = (t: number) =>
+  `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+const CALL_BAR: Record<FactCall, string> = {
+  keep: "bg-(--ui-good)",
+  tune: "bg-(--ui-warn)",
+  drop: "bg-(--ui-bad)",
+};
+
+/**
+ * A film's shots as one strip, each as wide as it runs: the pace at a glance. A press picks a
+ * shot, and its row opens below to call; his call marks the shot's foot.
+ */
+function ShotStrip({
+  shots,
+  picked,
+  called,
+  onPick,
+}: {
+  shots: Shot[];
+  picked: number | null;
+  called: (i: number) => FactCall | null;
+  onPick: (i: number) => void;
+}) {
+  const end = shots.reduce((m, s) => Math.max(m, s.t + s.len), 0);
+  return (
+    <div className="mb-3 flex flex-col gap-1">
+      <fieldset
+        aria-label="Shots"
+        className="m-0 flex h-10 min-w-0 overflow-hidden border border-(--ui-hair) p-0"
+      >
+        {shots.map((s, i) => {
+          const c = called(i);
+          const label = [s.type, s.move].filter(Boolean).join(", ");
+          return (
+            <button
+              key={s.t}
+              type="button"
+              aria-pressed={picked === i}
+              aria-label={`Shot ${i + 1}, ${s.len.toFixed(1)} s at ${clockOf(s.t)}${label ? `, ${label}` : ""}`}
+              title={`Shot ${i + 1} · ${s.len.toFixed(1)} s${label ? ` · ${label}` : ""}`}
+              onClick={() => onPick(i)}
+              style={{ flexGrow: Math.max(s.len, 0.1), flexBasis: 0 }}
+              className={cx(
+                "relative min-w-[3px] border-0 border-(--ui-hair) border-r p-0 transition-colors duration-150 last:border-r-0",
+                picked === i ? "bg-(--ui-accent-wash)" : "bg-(--ui-paper) hover:bg-(--ui-hover)",
+              )}
+            >
+              {c ? <span className={cx("absolute inset-x-0 bottom-0 h-1", CALL_BAR[c])} /> : null}
+            </button>
+          );
+        })}
+      </fieldset>
+      <div className="flex justify-between text-[12px] text-(--ui-ink-3)">
+        <span>{shots.length} shots</span>
+        <span>{clockOf(end)}</span>
+      </div>
+    </div>
+  );
+}
+
 /**
  * How the piece is made and what he says of it (design 2026-10-25-competitor-analyzer, Decide):
  * each fact whole, his standing call pressed, his words under it. A press opens the words box
@@ -550,7 +612,13 @@ function Facts({ id, b }: { id: number; b: Breakdown }) {
     open ? `learn:call:${id}:${open.path}` : null,
     open ? (standing.get(open.path)?.comment ?? "") : "",
   );
-  const rows: FactRow[] = [{ path: ITEM_PATH, label: "Whole piece", value: "" }, ...b.facts];
+  const shots = b.shots ?? [];
+  // A film's shots live in the strip: only the picked one shows as a row to call.
+  const [shot, setShot] = useState<number | null>(null);
+  const rows: FactRow[] = [
+    { path: ITEM_PATH, label: "Whole piece", value: "" },
+    ...b.facts.filter((f) => !f.path.startsWith(SHOT_PATH) || f.path === `${SHOT_PATH}${shot}`),
+  ];
   const start = (path: string, call: FactCall) => setOpen({ path, call });
   const save = async () => {
     if (!open) return;
@@ -575,6 +643,14 @@ function Facts({ id, b }: { id: number; b: Breakdown }) {
           {b.by === "hand" ? "by hand" : "read"}
         </span>
       </h2>
+      {shots.length ? (
+        <ShotStrip
+          shots={shots}
+          picked={shot}
+          called={(i) => standing.get(`${SHOT_PATH}${i}`)?.call ?? null}
+          onPick={(i) => setShot(i === shot ? null : i)}
+        />
+      ) : null}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {rows.map((r) => {
           const c = standing.get(r.path);

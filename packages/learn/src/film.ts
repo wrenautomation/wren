@@ -56,6 +56,16 @@ export const filmFactsSchema = z.object({
 });
 export type FilmFacts = z.infer<typeof filmFactsSchema>;
 
+/** A breakdown's shots, when its facts hold a valid list; else none. */
+export function filmShots(facts: unknown): Shot[] {
+  const list = (facts as { shots?: unknown } | null)?.shots;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((s) => {
+    const ok = shotSchema.safeParse(s);
+    return ok.success ? [ok.data] : [];
+  });
+}
+
 /** Shots from a cut list: the first starts at 0, the last ends at the film's end. */
 export function shotsOf(cuts: readonly number[], durationS: number): Shot[] {
   const starts = [0, ...cuts.filter((c) => c > 0 && c < durationS)];

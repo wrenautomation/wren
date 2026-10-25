@@ -182,7 +182,19 @@ export interface Breakdown {
   /** Who gave the facts: the model and code, or a person's hand labels. */
   by: "model" | "hand";
   facts: FactRow[];
+  /** A film's shots in order (closed-set labels empty until vision reads them); none otherwise. */
+  shots?: Shot[];
   calls: FactCallRow[];
+}
+
+export interface Shot {
+  /** Seconds in. */
+  t: number;
+  len: number;
+  type: string | null;
+  move: string | null;
+  in: string | null;
+  text: string | null;
 }
 
 export interface ItemPage extends Card {

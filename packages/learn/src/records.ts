@@ -271,6 +271,15 @@ const breakdownRecord = defineRecord({
   fields: {
     title: text(),
     creator: name("By"),
+    kind: status(
+      {
+        reel: { label: "Reel", tone: "neutral" },
+        video: { label: "Video", tone: "neutral" },
+        post: { label: "Post", tone: "neutral" },
+        film: { label: "Film", tone: "neutral" },
+      },
+      "Kind",
+    ),
     hookStyle: HOOK,
     hook: text("Hook"),
     hookWhy: text("Why it works"),
@@ -327,6 +336,8 @@ const breakdownRecord = defineRecord({
   views: [
     { id: "all", label: "Best reach", sort: "-reach", at: "at" },
     { id: "to-call", label: "To call", where: { called: "false" }, sort: "-reach", at: "at" },
+    { id: "films", label: "Films", where: { kind: "film" }, sort: "-reach", at: "at" },
+    { id: "posts", label: "Posts", where: { kind: "post" }, sort: "-reach", at: "at" },
     { id: "new", label: "Newest", sort: "-at", at: "at" },
     {
       id: "followed",

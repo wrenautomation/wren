@@ -395,6 +395,13 @@ const FILM_ITEM = {
       { path: "cta", label: "Call to action", value: "link: Try it today" },
       { path: "facts/cuts", label: "Cuts", value: "23" },
       { path: "facts/shots/0", label: "Shot 1", value: "0:00 · 2.1 s · product · push" },
+      { path: "facts/shots/1", label: "Shot 2", value: "0:02 · 0.6 s · ui" },
+      { path: "facts/shots/2", label: "Shot 3", value: "0:02 · 4.3 s · logo" },
+    ],
+    shots: [
+      { t: 0, len: 2.1, type: "product", move: "push", in: null, text: null },
+      { t: 2.1, len: 0.6, type: "ui", move: null, in: null, text: null },
+      { t: 2.7, len: 4.3, type: "logo", move: null, in: null, text: null },
     ],
     calls: [
       {
@@ -407,6 +414,30 @@ const FILM_ITEM = {
     ],
   },
 };
+
+/** A film's shots as one strip: a shot's row opens only once it is picked, and a press calls it. */
+export const ItemShots = pageAt("/learn/items/21", {
+  me: ADMIN,
+  answers: {
+    "learn/item": FILM_ITEM,
+    "learn/open": {},
+    "learn/seen": {},
+    "learn/call": echo("call", { subject: "learn:21/facts/shots/2" }),
+  },
+  check: async (page) => {
+    const ui = within(page);
+    SENT.length = 0;
+    const strip = within(await ui.findByRole("group", { name: "Shots" }));
+    await expect(strip.getAllByRole("button")).toHaveLength(3);
+    expect(ui.queryByRole("group", { name: "Shot 3" })).toBeNull();
+    await userEvent.click(strip.getByRole("button", { name: /Shot 3, 4.3 s at 0:02/ }));
+    const row = within(await ui.findByRole("group", { name: "Shot 3" }));
+    await userEvent.click(row.getByRole("button", { name: "Keep" }));
+    await userEvent.click(ui.getByRole("button", { name: "Save keep" }));
+    await waitFor(() => expect(sent("call")).toHaveLength(1));
+    expect(sent("call")[0]?.body).toMatchObject({ id: "21", path: "facts/shots/2", call: "keep" });
+  },
+});
 
 /** How it's made: each fact whole, his standing call pressed with his words, a new call saved with words. */
 export const ItemFacts = pageAt("/learn/items/21", {

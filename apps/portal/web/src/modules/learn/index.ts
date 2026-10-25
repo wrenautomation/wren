@@ -115,7 +115,7 @@ export const learn: Module = {
     {
       id: "competitors",
       label: "Competitors",
-      about: "How competitors' reels are made, and how far they reach.",
+      about: "How competitors' reels, posts and films are made, and how far they reach.",
       group: "Competitors",
       template: "overview",
       tiles: [
@@ -157,13 +157,13 @@ export const learn: Module = {
     },
     {
       id: "reels",
-      label: "Reels",
-      about: "Each reel broken down into its hook, beats and ask.",
+      label: "Breakdowns",
+      about: "Each reel, post or film broken down into its hook, beats and ask.",
       group: "Competitors",
       template: "list",
       record: "learn.breakdown",
       empty:
-        "Each reel or video a followed creator posts shows here once read: its hook, beats and ask.",
+        "Each reel, post or film from a followed creator or an SOP's hunt shows here once read: its hook, beats and ask.",
     },
     {
       id: "hooks",
