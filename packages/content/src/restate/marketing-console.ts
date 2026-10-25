@@ -14,6 +14,7 @@ import type { TikTokCreator } from "@wren/core/content/tiktok";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import { flagsFor } from "@wren/core/flag-store";
 import { subjectOf } from "@wren/core/flags";
+import { UUID } from "@wren/core/ids";
 import {
   MARKETING_CONSOLE_APPS,
   MARKETING_CONSOLE_ROUTES,
@@ -154,7 +155,6 @@ const CREATOR_TTL_MS = 30_000;
 const NO_TIKTOK = "Connect the client's TikTok under Account → Social to post to it.";
 const TIKTOK_UNREAD = "TikTok didn't answer for this account. Open the post again in a minute.";
 const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function marketingConsoleApi({

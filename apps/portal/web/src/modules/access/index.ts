@@ -5,11 +5,10 @@
  * `ONE` in ../../records.tsx turns a row's id into its call.
  */
 import { ACCESS_CHANNELS, APPS, CHANNEL_NAMES, type Permission } from "@wren/core/access";
-import type { Action, FormField } from "@wren/ui";
+import { type Action, type FormField, said } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 import { queueLate } from "../inbox-queues.js";
 
-const said = (word: string) => () => word;
 /** Each is checked again on the row by the console: who manages, who can act, who can grant. */
 const MANAGE = { needs: "manage", at: {} } as const;
 const ANYONE = { needs: "read", at: {} } as const;

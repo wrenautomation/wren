@@ -73,6 +73,9 @@ export interface FormField {
 }
 
 /** Something to do. A button, the ⌘K palette and a form all read this one definition. */
+/** A `done` that says one line whatever the handler answered. */
+export const said = (line: string) => () => line;
+
 export interface Action {
   id: string;
   label: string;
@@ -105,7 +108,7 @@ export interface Action {
   form?: readonly FormField[];
   /** The form is asked on records instead, and sent with their `{ids}`. */
   each?: true;
-  /** The toast after it worked, from the handler's answer. */
+  /** The toast after it worked, from the handler's answer (`said("Sent")` for a fixed line). */
   done?: (answer: unknown) => string;
   /**
    * Said the moment it's sent ("Sent"). In a list its rows stay, washed, with this word and the

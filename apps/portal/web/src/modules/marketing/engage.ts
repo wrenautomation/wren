@@ -2,12 +2,12 @@
  * Outreach → Engage: its draft boxes and actions, and Feed's Explore.
  */
 
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { createElement } from "react";
 import type { ListPage } from "../../module.js";
 import { ONPOST_DRAFT, THREAD_DRAFT } from "./approval.js";
 import { type DraftOf, draftActions } from "./ask.js";
-import { PASS_ACTION, REJECT_FORM, said } from "./drafts.js";
+import { PASS_ACTION, REJECT_FORM } from "./drafts.js";
 import { FeedTabs } from "./feed.js";
 import { only, own, threadWhen, WAITS } from "./inbox.js";
 import { ONPOST_ACTIONS, THREAD_ACTIONS } from "./threads.js";

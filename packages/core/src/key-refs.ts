@@ -4,6 +4,7 @@
  * all use it.
  */
 import { z } from "zod";
+import { UUID } from "./ids.js";
 
 /** A stored key's reference: what handlers and rows carry instead of the key. */
 export const KEY_REF = /^ks_[0-9a-f]{32}$/;
@@ -83,7 +84,6 @@ export const last4 = (value: string) => value.slice(-4);
 
 const PREFIXED = /^(sk|rk|whsec|xox[abp]|ghp|gho|github_pat|glpat|AKIA|AIza|KEY0)[A-Za-z0-9_-]*/;
 const TOKENISH = /^[A-Za-z0-9_\-.+/=]{24,}$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Does this look like a secret? A known key prefix, or a long unbroken token mixing letters and

@@ -33,6 +33,7 @@ import {
   Button,
   cx,
   Input,
+  messageOf,
   type RecordAct,
   Segmented,
   Tag,
@@ -88,7 +89,6 @@ const FORMAT_NAMES: Record<string, string> = {
   square: "Square",
   portrait: "Portrait",
 };
-const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const beatName = (b: Beat) =>
   `${b.kind === "short" ? "Short" : b.kind === "chapter" ? "Chapter" : "Part"} ${b.n}`;
 
@@ -509,7 +509,7 @@ export function StoryboardView({
       setProposal(answerIn(out) as Proposal);
       return true;
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
       return false;
     } finally {
       setAsking(null);
@@ -527,7 +527,7 @@ export function StoryboardView({
       setProposal(null);
       setApplied(true);
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
     } finally {
       setBusy(null);
     }
@@ -541,7 +541,7 @@ export function StoryboardView({
       );
       setApplied(false);
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
     } finally {
       setBusy(null);
     }
@@ -566,6 +566,20 @@ export function StoryboardView({
 
   const mark = (k: string) => (head.has(k) ? "font-semibold text-(--ui-live)" : undefined);
   const shorts = shown.shorts.length;
+  const frame = (b: Beat) => (
+    <Frame
+      key={b.key}
+      id={id}
+      beat={b}
+      data={data}
+      draw={draw}
+      words={words}
+      changed={changed.has(b.key)}
+      editable={editable && !proposal}
+      asking={asking === b.key}
+      onAsk={(s) => ask(s, b.key)}
+    />
+  );
   return (
     <div className="grid min-w-0 gap-4">
       <header className="grid min-w-0 gap-1">
@@ -590,40 +604,14 @@ export function StoryboardView({
       </header>
 
       <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3">
-        {shown.beats.map((b) => (
-          <Frame
-            key={b.key}
-            id={id}
-            beat={b}
-            data={data}
-            draw={draw}
-            words={words}
-            changed={changed.has(b.key)}
-            editable={editable && !proposal}
-            asking={asking === b.key}
-            onAsk={(s) => ask(s, b.key)}
-          />
-        ))}
+        {shown.beats.map(frame)}
       </div>
 
       {shorts ? (
         <section className="grid min-w-0 gap-3">
           <h4 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Shorts</h4>
           <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-3">
-            {shown.shorts.map((b) => (
-              <Frame
-                key={b.key}
-                id={id}
-                beat={b}
-                data={data}
-                draw={draw}
-                words={words}
-                changed={changed.has(b.key)}
-                editable={editable && !proposal}
-                asking={asking === b.key}
-                onAsk={(s) => ask(s, b.key)}
-              />
-            ))}
+            {shown.shorts.map(frame)}
           </div>
         </section>
       ) : null}

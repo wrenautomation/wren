@@ -19,6 +19,7 @@ import {
   X_POST_MAX,
 } from "@wren/core/content/thread";
 import { recordDraft } from "@wren/core/draft-record";
+import { UUID } from "@wren/core/ids";
 import { staleRefusal } from "@wren/core/refusal";
 import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
@@ -88,7 +89,6 @@ interface DraftKind {
 
 /** A comment's cap where the platform has one under Reddit's and YouTube's 10,000. */
 const COMMENT_MAX: Readonly<Record<string, number>> = POST_COMMENT_MAX;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SITE: Record<string, string> = {
   linkedin: "LinkedIn",
   reddit: "Reddit",

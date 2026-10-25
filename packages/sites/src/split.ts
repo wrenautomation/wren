@@ -8,21 +8,14 @@
  * those are Wren's lander only, have no owner, and move shares by bandit.
  */
 
+import { UUID } from "@wren/core/ids";
 import { staleRefusal } from "@wren/core/refusal";
 import { type Db, type Queryable, serializable, snapshot } from "@wren/db";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { ARM_LABELS, type ArmLabel, SPLIT_GOALS, type SplitGoal } from "./model.js";
 import { type SitePage, type SiteSplit, sitePages, siteSplitArms, siteSplits } from "./schema.js";
 import { type ArmCount, type SplitCall, splitCall } from "./split-call.js";
-import {
-  askPublish,
-  pageById,
-  SitesRefusal,
-  saveVersion,
-  stillAt,
-  UUID,
-  versionOf,
-} from "./store.js";
+import { askPublish, pageById, SitesRefusal, saveVersion, stillAt, versionOf } from "./store.js";
 import type { Content } from "./templates/types.js";
 
 /** Visitors' arm sticks this long: a month, so a returning visitor sees what they saw. */

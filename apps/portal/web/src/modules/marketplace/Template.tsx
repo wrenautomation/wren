@@ -5,7 +5,7 @@
  * spends until a person approves it in To approve. Wren's team installs; a client reads its state.
  */
 import type { Port } from "@wren/core/components";
-import { Alert, Button, FlowMap, type RecordExtras, Settings, Tag } from "@wren/ui";
+import { Alert, Button, FlowMap, messageOf, type RecordExtras, Settings, Tag } from "@wren/ui";
 import { type ReactNode, useId, useState } from "react";
 import { call, ME_CHANGED, type Me } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -117,7 +117,6 @@ const EFFECT: Record<string, string> = {
 };
 
 const changed = () => dispatchEvent(new Event(ME_CHANGED));
-const said = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /**
  * The part a template is named after is its loop, the part that ties the steps together: it
@@ -305,7 +304,7 @@ function InstallBox({ d, name, client }: { d: TemplateDetail; name: string; clie
       await again();
       changed();
     } catch (err) {
-      setError(said(err));
+      setError(messageOf(err));
     }
     setBusy(null);
   };

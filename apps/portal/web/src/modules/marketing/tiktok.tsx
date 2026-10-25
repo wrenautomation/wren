@@ -14,12 +14,10 @@ import {
   tiktokDeclaration,
   tiktokLabel,
 } from "@wren/core/content/tiktok";
-import { GROUP_LABEL, tipProps } from "@wren/ui";
+import { GROUP_LABEL, HINT_CLASS, LABEL_CLASS, tipProps } from "@wren/ui";
 import { useState } from "react";
 import { SELECT } from "../work/bits.js";
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-const HINT = "text-[12px] text-(--ui-ink-3)";
 const WARN = "text-[13px] text-(--ui-bad)";
 
 /** The choices as now: saved, or as just picked. */
@@ -75,8 +73,8 @@ function Check({
         />
         <span className="text-[14px]">{label}</span>
       </label>
-      {hint ? <span className={`${HINT} pl-6.5`}>{hint}</span> : null}
-      {off ? <span className={`${HINT} pl-6.5`}>{off}</span> : null}
+      {hint ? <span className={`${HINT_CLASS} pl-6.5`}>{hint}</span> : null}
+      {off ? <span className={`${HINT_CLASS} pl-6.5`}>{off}</span> : null}
     </div>
   );
 }
@@ -87,7 +85,7 @@ function Account({ tiktok }: { tiktok: TikTokPanelProps["tiktok"] }) {
   if (!c)
     return (
       <div className="grid gap-1">
-        <span className={LABEL}>Posting to</span>
+        <span className={LABEL_CLASS}>Posting to</span>
         <span className="text-[14px]">
           {tiktok ? (tiktok.note ?? "Couldn't read the account.") : "Wren's TikTok"}
         </span>
@@ -95,13 +93,13 @@ function Account({ tiktok }: { tiktok: TikTokPanelProps["tiktok"] }) {
     );
   return (
     <div className="grid gap-1">
-      <span className={LABEL}>Posting to</span>
+      <span className={LABEL_CLASS}>Posting to</span>
       <div className="flex items-center gap-2.5">
         {c.avatarUrl ? (
           <img src={c.avatarUrl} alt="" className="size-8 rounded-full object-cover" />
         ) : null}
         <span className="text-[14px] font-medium">{c.nickname}</span>
-        {c.username ? <span className={HINT}>@{c.username}</span> : null}
+        {c.username ? <span className={HINT_CLASS}>@{c.username}</span> : null}
       </div>
       {!c.canPost ? (
         <span role="alert" className={WARN}>
@@ -115,7 +113,7 @@ function Account({ tiktok }: { tiktok: TikTokPanelProps["tiktok"] }) {
 /** The video as it posts, against the account's longest. */
 function Video({ src, max }: { src: string | null; max: number | null }) {
   const [secs, setSecs] = useState<number | null>(null);
-  if (!src) return <span className={HINT}>No video yet.</span>;
+  if (!src) return <span className={HINT_CLASS}>No video yet.</span>;
   const over = max !== null && secs !== null && secs > max;
   return (
     <div className="grid gap-1.5">
@@ -127,7 +125,7 @@ function Video({ src, max }: { src: string | null; max: number | null }) {
         onLoadedMetadata={(e) => setSecs(e.currentTarget.duration || null)}
         className="max-h-80 w-fit max-w-full rounded-(--ui-radius) bg-black"
       />
-      <span className={over ? WARN : HINT}>
+      <span className={over ? WARN : HINT_CLASS}>
         {secs !== null ? `${Math.ceil(secs)} seconds` : "Length loading"}
         {max !== null ? `; this account posts up to ${max} seconds` : ""}
         {over ? ". Trim it to post here." : ""}
@@ -156,7 +154,7 @@ export function TikTokPanel({ values: v, choose, tiktok, video }: TikTokPanelPro
       <h3 className={GROUP_LABEL}>TikTok</h3>
       <Account tiktok={tiktok} />
       <div className="grid gap-1.5">
-        <label htmlFor="tiktok-privacy" className={LABEL}>
+        <label htmlFor="tiktok-privacy" className={LABEL_CLASS}>
           Who can see this post<span className="text-(--ui-bad)"> *</span>
         </label>
         <select
@@ -183,11 +181,13 @@ export function TikTokPanel({ values: v, choose, tiktok, video }: TikTokPanelPro
         {stale ? (
           <span className={WARN}>This account can't post that way now. Pick again.</span>
         ) : !v.privacy ? (
-          <span className={HINT}>Nothing is picked for you. The post waits until you pick.</span>
+          <span className={HINT_CLASS}>
+            Nothing is picked for you. The post waits until you pick.
+          </span>
         ) : null}
       </div>
       <div className="grid gap-2">
-        <span className={LABEL}>Allow users to</span>
+        <span className={LABEL_CLASS}>Allow users to</span>
         <Check
           id="tiktok-comment"
           label="Comment"
@@ -223,7 +223,7 @@ export function TikTokPanel({ values: v, choose, tiktok, video }: TikTokPanelPro
           />
           <span className="text-[14px]">{TIKTOK_COPY.disclose}</span>
         </label>
-        <span className={`${HINT} pl-6.5`}>{TIKTOK_COPY.discloseHint}</span>
+        <span className={`${HINT_CLASS} pl-6.5`}>{TIKTOK_COPY.discloseHint}</span>
         {v.disclose ? (
           <div className="grid gap-2 pl-6.5">
             <Check
@@ -252,7 +252,7 @@ export function TikTokPanel({ values: v, choose, tiktok, video }: TikTokPanelPro
         ) : null}
       </div>
       <div className="grid gap-1.5">
-        <span className={LABEL}>Video</span>
+        <span className={LABEL_CLASS}>Video</span>
         <Video src={video} max={c?.maxVideoSec ?? null} />
       </div>
       {said ? (
@@ -279,8 +279,8 @@ export function TikTokPanel({ values: v, choose, tiktok, video }: TikTokPanelPro
             );
           })}
         </p>
-        <p className={HINT}>{TIKTOK_COPY.processing}</p>
-        <p className={HINT}>Nothing posts until you press Approve.</p>
+        <p className={HINT_CLASS}>{TIKTOK_COPY.processing}</p>
+        <p className={HINT_CLASS}>Nothing posts until you press Approve.</p>
       </div>
     </section>
   );

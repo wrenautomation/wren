@@ -1,8 +1,7 @@
 /**
  * DM row actions: reply, read and drop one of ours not sent yet.
  */
-import type { Action } from "@wren/ui";
-import { said } from "./drafts.js";
+import { type Action, said } from "@wren/ui";
 
 export const DM_ACTIONS: Action[] = [
   {

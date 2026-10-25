@@ -5,6 +5,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { clients } from "@wren/core/clients";
+import { UUID } from "@wren/core/ids";
 import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
 import { type AnyColumn, and, asc, eq, inArray, sql } from "drizzle-orm";
@@ -55,7 +56,6 @@ function expectedAt(expect: unknown): string | null {
 const stillAt = (column: AnyColumn, at: string) =>
   sql`date_trunc('milliseconds', ${column}) = ${at}::timestamptz`;
 
-export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** A deposit as a share of the total; the percent checked. */

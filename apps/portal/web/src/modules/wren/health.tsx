@@ -5,14 +5,13 @@
  */
 import type { State } from "@wren/core/records";
 import type { RecordsPage, Row } from "@wren/core/records/serve";
-import { type Action, dateOf, FactsTable, relative, Section, StateMark } from "@wren/ui";
+import { type Action, dateOf, FactsTable, relative, Section, StateMark, said } from "@wren/ui";
 import type { ReactNode } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 
-const said = (line: string) => () => line;
 const SIDES = ["risk", "opportunity"] as const;
 const SIDE_LABELS = { risk: "Risk", opportunity: "Opportunity" };
 

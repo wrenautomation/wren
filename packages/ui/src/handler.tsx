@@ -15,11 +15,11 @@ import {
 import { Button } from "./controls.js";
 import { Facts } from "./data.js";
 import { TextField, useEditForm } from "./edit-form.js";
-import { Alert } from "./feedback.js";
+import { Alert, messageOf } from "./feedback.js";
 import { GROUP_LABEL } from "./layout.js";
 import { toast } from "./toast.js";
 
-/** What a press does outside Wren, said before it runs. */
+/** What a press does outside Wren, messageOf before it runs. */
 const EFFECTS: Record<string, string> = {
   spends: "It spends money.",
   sends: "It sends to a person.",
@@ -43,7 +43,6 @@ const KEY_BOX: FormField = { field: "key", label: "Key", hint: "Which object or 
 const BLANK: { key: string; typed: Record<string, string> } = { key: "", typed: {} };
 const NO_CONFIRM = { confirm: "" };
 
-const said = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const CODE = "font-mono text-[12.5px] [overflow-wrap:anywhere]";
 const PRE =
   "max-w-full min-w-0 overflow-x-auto bg-(--ui-wash) p-3 font-mono text-[12.5px] leading-5 whitespace-pre";
@@ -103,7 +102,7 @@ export function HandlerForm({
       });
       answer = { ok: true, value };
     } catch (err) {
-      answer = { ok: false, error: said(err) };
+      answer = { ok: false, error: messageOf(err) };
     }
     LAST.set(id, answer);
     setLast(answer);
@@ -113,7 +112,7 @@ export function HandlerForm({
     try {
       inputOf();
     } catch (err) {
-      toast.error(said(err));
+      toast.error(messageOf(err));
       return false;
     }
     if (!effect) return go();

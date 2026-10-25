@@ -4,7 +4,7 @@
  */
 
 import { KEYWORDS } from "@wren/channel-sms/templates";
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import type { DayPage, ListPage, ModulePage } from "../../module.js";
 import { queueLate } from "../inbox-queues.js";
 import { withAnalytics } from "./analytics.js";
@@ -16,7 +16,7 @@ import { COMMENT_ACTIONS, COMMENT_ASK, THREAD_VIEW_ACTIONS } from "./comments.js
 import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
 import { DM_ACTIONS } from "./dm.js";
 import { dmExtras } from "./dms.js";
-import { AD_ACTIONS, DRAFT_ACTIONS, POST_ACTIONS, said, TEXT_ACTIONS } from "./drafts.js";
+import { AD_ACTIONS, DRAFT_ACTIONS, POST_ACTIONS, TEXT_ACTIONS } from "./drafts.js";
 import { EXPLORE_PAGE } from "./engage.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { FactsPage } from "./facts.js";

@@ -4,10 +4,8 @@
  * clears it without opening.
  */
 import type { Row } from "@wren/core/records/serve";
-import { type Action, ButtonLink } from "@wren/ui";
+import { type Action, ButtonLink, said } from "@wren/ui";
 import { docPath } from "../notes/api.js";
-
-const said = (line: string) => () => line;
 
 export const MENTION_ACTIONS: Action[] = [
   {

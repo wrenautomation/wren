@@ -21,6 +21,7 @@ import { toPhoneE164 } from "@wren/channel-sms";
 import { smsContacts } from "@wren/channel-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
+import { UUID } from "@wren/core/ids";
 import { keyRef, noRawKeys } from "@wren/core/key-refs";
 import {
   accessOf,
@@ -76,7 +77,6 @@ import {
   linkIdOf,
   payAccountOf,
   savePayAccount,
-  UUID,
 } from "./store.js";
 import { keyMode, STRIPE_EVENTS, StripeError, stripeApi } from "./stripe.js";
 

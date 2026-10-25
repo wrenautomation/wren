@@ -4,7 +4,7 @@
  */
 
 import { IN_HOUSE, totalOf } from "@wren/core/in-house";
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { createElement } from "react";
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
@@ -36,7 +36,6 @@ import { Workflows } from "./workflows.js";
 
 const TEAM = { audience: "team" } as const;
 const overview = { id: "overview", label: "Overview", template: "overview" } as const;
-const said = (line: string) => () => line;
 
 const CAMPAIGN_ACTIONS: Action[] = [
   {

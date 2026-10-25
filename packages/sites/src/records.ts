@@ -3,6 +3,8 @@
  * each page's numbers by where its visits came from. Hosted forms and every submission
  * (designs/2026-10-07-forms-and-pay.md). Served by the console on Wren's database.
  */
+
+import { UUID } from "@wren/core/ids";
 import {
   actor,
   date,
@@ -19,7 +21,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { pageDetail } from "./detail.js";
 import { formById, formDetail } from "./form-store.js";
-import { pageById, UUID } from "./store.js";
+import { pageById } from "./store.js";
 
 export const PAGE_RECORD = "sites.page";
 export const FUNNEL_RECORD = "sites.funnel";

@@ -15,6 +15,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import { mayApprove, WREN } from "@wren/core/access";
 import { type Client, clients, findClient } from "@wren/core/clients";
 import { wrenFacts } from "@wren/core/facts";
+import { UUID } from "@wren/core/ids";
 import {
   accessOf,
   answer,
@@ -93,7 +94,6 @@ import {
   registerCodePage,
   retirePages,
   saveVersion,
-  UUID,
   versionOf,
 } from "./store.js";
 import { ContentProblem, TEMPLATE_IDS, templateOf } from "./templates/index.js";

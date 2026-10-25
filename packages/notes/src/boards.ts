@@ -3,6 +3,8 @@
  * note: an owner, general access, `board_shares`. Who may open it may open its cards, with its
  * role (never above edit). Pure checks here; `tasks.ts` has the cards.
  */
+
+import { UUID } from "@wren/core/ids";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, isNull, or, type SQL, sql } from "drizzle-orm";
@@ -27,7 +29,6 @@ export class TaskRefusal extends Error {
   }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isBoardId = (s: unknown): s is string => typeof s === "string" && UUID.test(s);
 
 const slug = (name: string) =>

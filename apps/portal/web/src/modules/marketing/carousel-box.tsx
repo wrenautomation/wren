@@ -7,24 +7,16 @@
 
 import { PLATFORM_SPECS } from "@wren/content/write";
 import { SLIDES_MAX, SLIDES_MIN, slidesFromText, slidesUnfit } from "@wren/core/content/slides";
-import { ACTIONS, Button, cx, PlatformMark, Section, TextAreaField, useEditForm } from "@wren/ui";
+import { ACTIONS, Button, cx, messageOf, Section, TextAreaField, useEditForm } from "@wren/ui";
 import { useEffect, useState } from "react";
-import { ApiError } from "../../api.js";
-import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { QUIET } from "../work/bits.js";
 import { contentDesk } from "./desk.js";
+import { type Go, type Result, SendTools, said, WherePicker } from "./send-box.js";
 import { CarouselPreview } from "./slides.js";
 
-type Go = "draft" | "slot" | "now";
 const WHERE = ["instagram", "linkedin"] as const;
 type Where = (typeof WHERE)[number];
 const NAME: Record<Where, string> = { instagram: "Instagram", linkedin: "LinkedIn" };
-interface Result {
-  platform: Where;
-  draftId: string | null;
-  reason: string | null;
-  at?: string | null;
-  held?: string;
-}
 
 const START = `The hook: what they get from swiping
 
@@ -42,24 +34,6 @@ What to do next
 Comment GUIDE and I'll send it`;
 
 const desk = contentDesk;
-const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
-
-function said(results: Result[], go: Go): string[] {
-  const made = results.filter((r) => r.draftId && !r.held);
-  const lines = [
-    made.length === 0
-      ? "Nothing was made."
-      : go === "draft"
-        ? `${made.length} saved as drafts. They wait in Studio.`
-        : go === "now"
-          ? `${made.length} posting on the next pass, within a few minutes.`
-          : `${made.length} scheduled at the next slots.`,
-  ];
-  for (const r of results)
-    if (r.reason) lines.push(`${NAME[r.platform]}: ${r.reason}.`);
-    else if (r.held) lines.push(`${NAME[r.platform]} waits as a draft: ${r.held}`);
-  return lines;
-}
 
 export function CarouselBox(props: { demo?: boolean; only: string | null; made: () => void }) {
   // What he types stays on the device until it's sent: a reload or a closed tab gives it back.
@@ -97,7 +71,7 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
         ? `the caption is over ${PLATFORM_SPECS[long].maxChars} characters for ${NAME[long]}`
         : null));
   const ready =
-    slides.length > 0 && !unfit && caption.trim() && where.length > 0 && !busy && !props.demo;
+    slides.length > 0 && !unfit && !!caption.trim() && where.length > 0 && !busy && !props.demo;
   const shown = where.includes(look) ? look : (where[0] ?? look);
 
   const send = async (go: Go) => {
@@ -112,24 +86,25 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
     try {
       // One press, one carousel: a second while it's out gets the first's answer.
       const out = (await ACTIONS.run(`studio:carousel:${go}`, (requestId) =>
-        desk<{ posts: { results: Result[] }[] }>("carousel", {
+        desk<{ posts: { results: Result<Where>[] }[] }>("carousel", {
           slides,
           text: caption,
           platforms: where,
           go,
           requestId,
         }),
-      )) as { posts: { results: Result[] }[] };
+      )) as { posts: { results: Result<Where>[] }[] };
       setLines(
         said(
           out.posts.flatMap((p) => p.results),
           go,
+          NAME,
         ),
       );
       form.forget();
       props.made();
     } catch (err) {
-      setError(message(err));
+      setError(messageOf(err));
     } finally {
       setBusy(null);
     }
@@ -180,26 +155,7 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
             placeholder="What goes under it"
             disabled={props.demo}
           />
-          <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
-            <legend className="sr-only">Where it goes</legend>
-            {WHERE.map((p) => {
-              const on = where.includes(p);
-              return (
-                <Button
-                  key={p}
-                  size="dense"
-                  tone={on ? "primary" : "secondary"}
-                  aria-pressed={on}
-                  onClick={() => setWhere((w) => (on ? w.filter((x) => x !== p) : [...w, p]))}
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <PlatformMark mark={p} size={13} />
-                    {NAME[p]}
-                  </span>
-                </Button>
-              );
-            })}
-          </fieldset>
+          <WherePicker all={WHERE} name={NAME} where={where} onChange={setWhere} />
           <p className={cx("m-0 text-[13px]", unfit ? "text-(--ui-bad)" : QUIET)}>
             {unfit
               ? `Not yet: ${unfit}.`
@@ -207,40 +163,16 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
                 ? `${slides.length} slides.${caption.trim() ? "" : " Add a caption."}`
                 : "Type the slides to see them."}
           </p>
-          <div className={TOOLS}>
-            <Button
-              size="dense"
-              tone="secondary"
-              disabled={!ready}
-              onClick={() => void send("draft")}
-            >
-              {busy === "draft" ? "Saving…" : "Save as drafts"}
-            </Button>
-            <Button
-              size="dense"
-              tone="secondary"
-              disabled={!ready}
-              onClick={() => void send("slot")}
-            >
-              {busy === "slot" ? "Scheduling…" : "Schedule"}
-            </Button>
-            <Button tone="primary" size="dense" disabled={!ready} onClick={() => void send("now")}>
-              {busy === "now" ? "Posting…" : sure ? `Post ${where.length} now?` : "Post now"}
-            </Button>
-            {sure ? (
-              <Button size="dense" tone="quiet" onClick={() => setSure(false)}>
-                Cancel
-              </Button>
-            ) : null}
-          </div>
-          {lines.length ? (
-            <ul className="m-0 grid list-none gap-1 p-0 text-[14px]">
-              {lines.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-            </ul>
-          ) : null}
-          {error ? <p className={ERROR}>{error}</p> : null}
+          <SendTools
+            ready={ready}
+            busy={busy}
+            sure={sure}
+            count={where.length}
+            send={(go) => void send(go)}
+            cancel={() => setSure(false)}
+            lines={lines}
+            error={error}
+          />
         </div>
         <div className="grid justify-items-start gap-2">
           {where.length > 1 ? (

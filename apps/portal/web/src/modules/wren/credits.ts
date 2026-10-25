@@ -2,9 +2,7 @@
  * Money → Payments in (designs/2026-10-15-wise-billing.md): every bank transfer into Wren's
  * Wise account, what it paid or why it waits. To approve runs these on the ones that wait.
  */
-import type { Action } from "@wren/ui";
-
-const said = (line: string) => () => line;
+import { type Action, said } from "@wren/ui";
 
 export const CREDIT_ACTIONS: Action[] = [
   {

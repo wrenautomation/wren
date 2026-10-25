@@ -225,6 +225,9 @@ export function useEditForm<V extends FieldValues>(o: EditFormOptions<V>): EditF
 
 /** A field's label above its box; the class every form's fields share. */
 export const FIELD_CLASS = "flex min-w-0 flex-col gap-1.5 text-[13px] text-(--ui-ink-2)";
+/** A label on its own line, and the quieter hint under it. */
+export const LABEL_CLASS = "text-[13px] font-medium text-(--ui-ink-2)";
+export const HINT_CLASS = "text-[12px] text-(--ui-ink-3)";
 export const SELECT_CLASS =
   "min-h-[38px] w-full border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";
 
@@ -269,7 +272,7 @@ function Frame({
     // biome-ignore lint/a11y/noLabelWithoutControl: the box comes in as children.
     <label className={cn(FIELD_CLASS, className)}>
       {label ? <span>{label}</span> : null}
-      {hint ? <span className="text-[12px] text-(--ui-ink-3)">{hint}</span> : null}
+      {hint ? <span className={HINT_CLASS}>{hint}</span> : null}
       {children}
       {said}
     </label>

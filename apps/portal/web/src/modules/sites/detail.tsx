@@ -27,7 +27,10 @@ import {
   FRAME_BODY,
   FRAME_HEAD,
   GROUP_LABEL,
+  HINT_CLASS,
   Input,
+  LABEL_CLASS,
+  messageOf,
   money,
   num,
   type RecordAct,
@@ -57,12 +60,8 @@ import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { Split } from "./split.js";
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-const HINT = "text-[12px] text-(--ui-ink-3)";
-
 const SELECT =
   "min-h-[34px] border border-(--ui-hair) bg-(--ui-paper) px-2.5 py-1.5 text-[14px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";
-const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
 const usd = (n: number) => (n ? money(n, "USD") : "");
 const day = (at: string) => new Date(at).toLocaleDateString("en-CA");
@@ -90,7 +89,7 @@ export function useRun(act: RecordAct) {
       setSaid({ text: ok, bad: false });
       return true;
     } catch (err) {
-      setSaid({ text: errorOf(err), bad: true });
+      setSaid({ text: messageOf(err), bad: true });
       return false;
     } finally {
       flying.current = false;
@@ -196,7 +195,7 @@ function SectionsBox({
                   />
                 ))
               ) : (
-                <p className={HINT}>Not a block this editor knows. Remove it to save.</p>
+                <p className={HINT_CLASS}>Not a block this editor knows. Remove it to save.</p>
               )}
             </div>
           </section>
@@ -204,7 +203,7 @@ function SectionsBox({
       })}
       {list.length < f.max ? (
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor={`${id}-add`} className={LABEL}>
+          <label htmlFor={`${id}-add`} className={LABEL_CLASS}>
             Add a section
           </label>
           <select
@@ -223,10 +222,10 @@ function SectionsBox({
           <Button size="sm" disabled={adding === "form" && hasForm} onClick={add}>
             Add
           </Button>
-          <span className={HINT}>{sectionOf(adding)?.blurb}</span>
+          <span className={HINT_CLASS}>{sectionOf(adding)?.blurb}</span>
         </div>
       ) : (
-        <span className={HINT}>{f.max} sections is the most a page holds.</span>
+        <span className={HINT_CLASS}>{f.max} sections is the most a page holds.</span>
       )}
     </div>
   );
@@ -252,7 +251,7 @@ function FieldBox({
       onChange(items.map((it, j) => (j === i ? { ...it, [k]: v } : it)));
     return (
       <fieldset className="grid min-w-0 gap-3">
-        <legend className={LABEL}>{f.label}</legend>
+        <legend className={LABEL_CLASS}>{f.label}</legend>
         {items.map((it, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: items have no id; order is the key.
           <div key={i} className="grid gap-2 border-l-2 border-(--ui-hair) pl-3">
@@ -283,7 +282,7 @@ function FieldBox({
             </Button>
           </div>
         ) : null}
-        {f.hint ? <span className={HINT}>{f.hint}</span> : null}
+        {f.hint ? <span className={HINT_CLASS}>{f.hint}</span> : null}
       </fieldset>
     );
   }
@@ -292,9 +291,9 @@ function FieldBox({
   const long = f.kind === "long" || many;
   return (
     <div className="grid min-w-0 gap-1.5">
-      <label htmlFor={id} className={LABEL}>
+      <label htmlFor={id} className={LABEL_CLASS}>
         {f.label}
-        {f.optional ? <span className={HINT}> (optional)</span> : null}
+        {f.optional ? <span className={HINT_CLASS}> (optional)</span> : null}
       </label>
       {long ? (
         <Textarea
@@ -314,7 +313,7 @@ function FieldBox({
           onChange={(e) => onChange(e.target.value)}
         />
       )}
-      <span className={HINT}>
+      <span className={HINT_CLASS}>
         {[
           f.hint,
           many && !f.hint?.includes("per line") ? "One per line." : null,
@@ -365,7 +364,7 @@ function problemOf(templateId: string, content: Content): string | null {
     checkContent(templateOf(templateId), content);
     return null;
   } catch (err) {
-    return err instanceof ContentProblem ? err.message : errorOf(err);
+    return err instanceof ContentProblem ? err.message : messageOf(err);
   }
 }
 
@@ -503,8 +502,8 @@ function CopyEditor({
         }
       >
         <div className="grid gap-1.5">
-          <label htmlFor="copy-why" className={LABEL}>
-            What changed <span className={HINT}>(optional)</span>
+          <label htmlFor="copy-why" className={LABEL_CLASS}>
+            What changed <span className={HINT_CLASS}>(optional)</span>
           </label>
           <Input id="copy-why" {...whyEdit.field} maxLength={500} />
         </div>
@@ -589,7 +588,7 @@ function CopyEditor({
             </Button>
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor="copy-part" className={LABEL}>
+            <label htmlFor="copy-part" className={LABEL_CLASS}>
               Or rewrite one part
             </label>
             <div className="flex flex-wrap items-center gap-2">
@@ -617,7 +616,7 @@ function CopyEditor({
                 Rewrite
               </Button>
             </div>
-            <span className={HINT}>
+            <span className={HINT_CLASS}>
               Only that part changes. Links stay. Checked against the facts.
             </span>
           </div>
@@ -655,7 +654,7 @@ function Preview({
       await navigator.clipboard?.writeText(url).catch(() => {});
       setShared({ url, until: day(out.expires) });
     } catch (err) {
-      setShared({ error: errorOf(err) });
+      setShared({ error: messageOf(err) });
     } finally {
       setSharing(false);
     }
@@ -714,7 +713,7 @@ function Preview({
               Share link
             </Button>
           ) : null}
-          {slug ? <span className={HINT}>Live at /o/{slug} once approved.</span> : null}
+          {slug ? <span className={HINT_CLASS}>Live at /o/{slug} once approved.</span> : null}
         </div>
         {shared ? (
           "error" in shared ? (
@@ -727,7 +726,7 @@ function Preview({
                 value={shared.url}
                 onFocus={(e) => e.target.select()}
               />
-              <span className={HINT}>
+              <span className={HINT_CLASS}>
                 Copied. Anyone with it sees this version until {shared.until}. No sign-in, nothing
                 counted.
               </span>
@@ -749,11 +748,11 @@ function InCode({ d, url }: { d: PageDetail; url: string }) {
       </p>
       <dl className="grid gap-2">
         <div className="grid gap-0.5">
-          <dt className={LABEL}>Edit in code</dt>
+          <dt className={LABEL_CLASS}>Edit in code</dt>
           <dd className="font-mono text-[13px] break-all">{d.repoPath ?? "No repo path yet."}</dd>
         </div>
         <div className="grid gap-0.5">
-          <dt className={LABEL}>Live URL</dt>
+          <dt className={LABEL_CLASS}>Live URL</dt>
           <dd>
             <a className="break-all underline" href={url} target="_blank" rel="noopener">
               {url}
@@ -762,7 +761,7 @@ function InCode({ d, url }: { d: PageDetail; url: string }) {
         </div>
         {d.kit ? (
           <div className="grid gap-0.5">
-            <dt className={LABEL}>Kit tag, in its head</dt>
+            <dt className={LABEL_CLASS}>Kit tag, in its head</dt>
             <dd>
               <code className="block bg-(--ui-fill) p-2 text-[12.5px] break-all whitespace-pre-wrap">
                 {d.kit}
@@ -825,7 +824,7 @@ function Ads({ ads }: { ads: AdIn[] }) {
   const row = (name: ReactNode, a: Sums) => [
     <span key="n" className="grid gap-0.5">
       {name}
-      <span className={HINT}>{under(a)}</span>
+      <span className={HINT_CLASS}>{under(a)}</span>
     </span>,
     cash(a.spend || null),
     num(a.forms),
@@ -857,7 +856,7 @@ function Ads({ ads }: { ads: AdIn[] }) {
           ...(ads.length > 1 ? [row(<span className="font-medium">All ads</span>, total)] : []),
         ]}
       />
-      <span className={HINT}>
+      <span className={HINT_CLASS}>
         Spend and clicks are Meta's. Visits, forms and bookings are this page's, matched by the ad's
         id in its link.
       </span>
