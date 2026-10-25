@@ -8,7 +8,7 @@ import { type FetchLike, optionalInit } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
-import type { Db, Queryable } from "@wren/db";
+import type { Db } from "@wren/db";
 import {
   type AppTokens,
   appConnectUrl,
@@ -18,7 +18,7 @@ import {
   OAuthError,
   randomState,
 } from "@wrenautomation/autobrowse/oauth";
-import { and, eq, gt, isNull, lt } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { APPS, appKeyName, CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
 import { whoHubspot } from "./pull/hubspot.js";
 import { whoJobber } from "./pull/jobber.js";
@@ -387,13 +387,6 @@ export function connectorAccess(deps: ConnectorDeps) {
   };
 }
 export type ConnectorAccess = ReturnType<typeof connectorAccess>;
-
-/** Expired or used sign-ins older than a day. */
-export async function sweepConnectorGrants(main: Queryable, at: Date): Promise<void> {
-  await main
-    .delete(connectorGrants)
-    .where(lt(connectorGrants.expiresAt, new Date(at.getTime() - 86_400_000)));
-}
 
 /**
  * Wren's developer apps: the worker's env first (`WREN_CONNECTOR_HUBSPOT_ID`), else the key store

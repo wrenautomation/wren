@@ -217,12 +217,3 @@ export function commentObjects(
       : []),
   ]);
 }
-
-/** The objects a list of our published posts names, by platform and published id. */
-export function postObjects(
-  rows: ReadonlyArray<{ platform: string; publishedId?: string | null | undefined }>,
-): SeedObject[] {
-  return rows.flatMap((d) =>
-    d.publishedId ? [{ platform: d.platform, ref: d.publishedId, kind: "post" as const }] : [],
-  );
-}

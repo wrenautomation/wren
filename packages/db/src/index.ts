@@ -69,13 +69,6 @@ export function cachedDb(databaseUrl: string, opts: Pick<DbOptions, "app"> = {})
   return handle.db;
 }
 
-/** Close every cached pool. Call once at process exit. */
-export async function closeCachedDbs(): Promise<void> {
-  const handles = [...cached.values()];
-  cached.clear();
-  await Promise.all(handles.map((h) => h.close()));
-}
-
 /** Apply every migration in packages/db/drizzle, then the audit layer (triggers follow the tables). Idempotent. */
 export async function migrate(db: Db): Promise<void> {
   await drizzleMigrate(db, { migrationsFolder: MIGRATIONS_FOLDER });

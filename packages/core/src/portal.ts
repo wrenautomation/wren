@@ -463,10 +463,6 @@ export async function canAt(
   return can(who, p, at);
 }
 
-/** Every grant a viewer holds, for the web to hide what a target refuses: none for a built-in. */
-export const extraGrants = (who: Who): readonly Grant[] =>
-  who && !("demo" in who) ? (who.grants ?? []) : [];
-
 /**
  * The clients this viewer may open: the demo's; for an operator every one, or only their
  * `team.clients` (an admin sees all); else their memberships.

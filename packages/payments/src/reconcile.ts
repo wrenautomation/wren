@@ -34,7 +34,6 @@ import {
 } from "./stripe.js";
 
 export const PAY_RECONCILE = "PayReconcile";
-export const PAY_RECONCILE_KEY = "all";
 export const PAY_RECONCILE_COMMAND = "payments reconcile";
 const DAY_MS = 86_400_000;
 /** Links checked per client per pass: three reads each, well under Stripe's rate limit. */

@@ -15,8 +15,6 @@ import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 import { recheck, type Setup, type SetupCheck, type SetupEmit, sweepStuck } from "./setup.js";
 import { type AlertPart, digestAlerts, tellAlerts } from "./setup-alerts.js";
 import { spineEmit } from "./spine.js";
-
-export const SETUP_WATCH_KEY = "all";
 export const SETUP_WATCH_EVERY_MS = 3_600_000;
 
 export interface SetupWatchPass {

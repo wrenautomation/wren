@@ -50,9 +50,6 @@ export const APPS: Record<ConnectorApp, AppSpec> = {
   },
 };
 
-export const isConnectorApp = (v: unknown): v is ConnectorApp =>
-  (CONNECTOR_APPS as readonly unknown[]).includes(v);
-
 /** The key store's names for Wren's developer app: `CONNECTOR_HUBSPOT_ID`, `..._SECRET`. */
 export const appKeyName = (app: ConnectorApp, part: "ID" | "SECRET") =>
   `CONNECTOR_${app.toUpperCase()}_${part}`;

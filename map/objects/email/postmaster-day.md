@@ -13,7 +13,7 @@ Google Postmaster's numbers for one sending domain on one day, upserted daily. T
 
 ## Why this shape
 
-The complaint rate is the one number that can end a domain and the only one we cannot see any other way; above ~0.3% Google turns (`SPAM_RATE_LIMIT`, `inbox/postmaster.ts:72`). It is stored and surfaced, never wired to a pause: the kill switches stay on hard bounces whose meaning we own (`postmaster.ts:1`). Empty days are normal below Google's volume threshold.
+The complaint rate is the one number that can end a domain and the only one we cannot see any other way; above ~0.3% Google turns (its bulk-sender line; `inbox/postmaster.ts` stores the rate and nothing acts on it). It is stored and surfaced, never wired to a pause: the kill switches stay on hard bounces whose meaning we own (`postmaster.ts:1`). Empty days are normal below Google's volume threshold.
 
 ## Shape
 

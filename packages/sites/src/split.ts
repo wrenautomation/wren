@@ -29,8 +29,6 @@ import type { Content } from "./templates/types.js";
 export const SPLIT_COOKIE_DAYS = 30;
 /** The cookie's value: the split's first 8 hex, a dot, the arm. */
 export const SPLIT_COOKIE = /^([0-9a-f]{8})\.([A-E])$/;
-
-export const splitCookieName = "wab";
 export const splitCookieValue = (split: string, label: string) => `${split.slice(0, 8)}.${label}`;
 
 export interface SplitArm {

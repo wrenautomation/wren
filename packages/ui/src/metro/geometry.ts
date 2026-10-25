@@ -203,13 +203,6 @@ export const boxAt = (cx: number, cy: number, w: number, h: number): Box => ({
 export const overlaps = (a: Box, b: Box, gap = 0): boolean =>
   a.x0 < b.x1 + gap && b.x0 < a.x1 + gap && a.y0 < b.y1 + gap && b.y0 < a.y1 + gap;
 
-export const joinBoxes = (boxes: readonly Box[]): Box => ({
-  x0: Math.min(...boxes.map((b) => b.x0)),
-  y0: Math.min(...boxes.map((b) => b.y0)),
-  x1: Math.max(...boxes.map((b) => b.x1)),
-  y1: Math.max(...boxes.map((b) => b.y1)),
-});
-
 /** A free chip (retry, hold, branch label): a pill 21 high, with or without a glyph. */
 /** A fold's chip at rest: how many stations it holds. */
 export const foldSteps = (c: { steps: number; each?: string | undefined }): string =>

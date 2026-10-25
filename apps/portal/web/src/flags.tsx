@@ -23,11 +23,6 @@ export function useShareFlags(flags: Readonly<Record<string, string>>): void {
   }, [text]);
 }
 
-/** A flag's variant here: `off` for a flag that doesn't exist, so on/off reads `!== "off"`. */
-export function useFlag(key: string): string {
-  return useSyncExternalStore(subscribe, () => current[key] ?? "off");
-}
-
 /** Every flag's variant here, for a check that takes them all (`can`'s `requires.flag`). */
 export function useFlags(): Readonly<Record<string, string>> {
   return useSyncExternalStore(subscribe, () => current);

@@ -348,13 +348,6 @@ export async function syncNote(
   };
 }
 
-/** Write `body` and `title` as the server, as one change (CLI, capture). */
-export const replaceNote = (db: Db, id: string, by: string, body: NoteJson, title?: string) =>
-  changeNote(db, id, by, (doc) => {
-    writeBody(doc, body);
-    if (title !== undefined && title !== readTitle(doc)) writeTitle(doc, title);
-  });
-
 /** Add blocks at the end, as one change. */
 export const appendNote = (db: Db, id: string, by: string, body: NoteJson) =>
   changeNote(db, id, by, (doc) => appendBody(doc, body));

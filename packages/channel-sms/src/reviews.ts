@@ -51,9 +51,6 @@ export const LINK_ORIGIN = "https://phone.wrenautomation.com";
 /** Thread states no ask goes to. */
 const ENDED = new Set(["opted_out", "unreachable", "stopped"]);
 
-/** One ask per person in this many days, unless the client's setting says otherwise. */
-export const ONCE_EVERY_DAYS = 90;
-
 /** The counted link a text carries: the click is counted, then Google's form opens. */
 export const reviewLink = (origin: string, client: string, token: string) =>
   `${origin}/r/${encodeURIComponent(client)}/${token}`;

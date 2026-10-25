@@ -267,15 +267,6 @@ async function readFolders(
   return out;
 }
 
-/** The SOPs a workspace's item may go into: every known name, for the "Add to SOP" picker. */
-export async function sopNames(
-  db: Queryable,
-  client: string,
-  sopsDir: string | null,
-): Promise<string[]> {
-  return (await sopLibrary(db, client, sopsDir)).map((r) => r.sop);
-}
-
 /** Who writes a client's SOP notes. */
 const LEARN_AGENT = "agent:learn";
 

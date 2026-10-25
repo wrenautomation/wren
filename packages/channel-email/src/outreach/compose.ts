@@ -308,55 +308,6 @@ export interface ListingOptions {
 }
 
 /**
- * Everyone compose would consider, in compose's own order, with the address and
- * suppression gates pre-applied. A missing fact can still skip a person at compose time.
- */
-export async function eligiblePeople(
-  db: Queryable,
-  opts: ListingOptions & { verificationHorizonDays: number },
-): Promise<EligiblePerson[]> {
-  const match = opts.companyMatch ? `%${opts.companyMatch}%` : null;
-  const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(opts.niche, match, firstContact)));
-  const addressable = await peopleWithAddress(
-    db,
-    rows.map((r) => r.person_id),
-    opts.verificationHorizonDays,
-  );
-  const out: EligiblePerson[] = [];
-  let companyIndex = 0;
-  for (const group of byCompany(rows)) {
-    if (opts.maxCompanies != null && companyIndex >= opts.maxCompanies) break;
-    companyIndex++;
-    let picked = false;
-    for (const row of group) {
-      const { record } = await personAddressIn(
-        db,
-        addressable,
-        row.person_id,
-        opts.verificationHorizonDays,
-      );
-      const email = record?.email ?? null;
-      const suppressed = email !== null && (await activeSuppression(db, email)) !== null;
-      const wouldEnroll: boolean = !picked && email !== null && !suppressed;
-      picked = picked || wouldEnroll;
-      out.push({
-        personId: row.person_id,
-        companyId: row.company_id,
-        fullName: row.full_name,
-        title: row.title,
-        roleRank: row.role_rank,
-        companyName: row.company_name,
-        companyDomain: row.company_domain,
-        email,
-        suppressed,
-        wouldEnroll,
-      });
-    }
-  }
-  return out;
-}
-
-/**
  * The person compose would enroll at each of the next `companies` firms, in
  * compose's own order (best reachable first): research reads ahead of the queue
  * from this. Suppression and missing facts are compose's to find.

@@ -197,22 +197,3 @@ export async function replyChat(
   await db.update(chatThreads).set({ readAt: now }).where(eq(chatThreads.id, threadId));
   return m as ChatMessage;
 }
-
-/** One chat thread and its messages, for the Inbox's conversation. */
-export async function chatOf(
-  db: Queryable,
-  threadId: number,
-): Promise<{ thread: ChatThread; messages: ChatMessage[] } | null> {
-  const [thread] = await db.select().from(chatThreads).where(eq(chatThreads.id, threadId));
-  if (!thread) return null;
-  const messages = await db
-    .select()
-    .from(chatMessages)
-    .where(eq(chatMessages.threadId, threadId))
-    .orderBy(asc(chatMessages.id));
-  return { thread, messages };
-}
-
-/** Who a thread is, as the Inbox names it. */
-export const chatWho = (t: Pick<ChatThread, "name" | "email" | "phone">) =>
-  t.name ?? t.email ?? t.phone ?? "Site visitor";

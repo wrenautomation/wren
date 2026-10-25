@@ -8,8 +8,8 @@
  * and the run goes on without it.
  */
 import type { Queryable } from "@wren/db";
-import { and, asc, desc, eq, gt, inArray } from "drizzle-orm";
-import { type Run, type RunEventKind, runEvents, runs } from "./schema.js";
+import { and, asc, eq, gt } from "drizzle-orm";
+import { type RunEventKind, runEvents } from "./schema.js";
 
 export interface FeedSource {
   label: string;
@@ -114,15 +114,4 @@ export async function readFeed(
     source: (r.source as FeedSource | null) ?? null,
     detail: r.detail,
   }));
-}
-
-/** The newest run of these commands: the one a viewer should watch. */
-export async function latestRun(db: Queryable, commands: readonly string[]): Promise<Run | null> {
-  const [row] = await db
-    .select()
-    .from(runs)
-    .where(inArray(runs.command, [...commands]))
-    .orderBy(desc(runs.startedAt))
-    .limit(1);
-  return row ?? null;
 }

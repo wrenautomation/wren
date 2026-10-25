@@ -195,21 +195,6 @@ export function postOf(
 /** Starts the line of a post that may have gone out: it waits in To approve. */
 export const MAY_HAVE_GONE_OUT = "May have gone out";
 
-/**
- * The words a listing of our own posts may show for this draft, for a look after a lost publish
- * (designs/2026-10-16-maybe-sent.md): the text as sent, the draft's own text (a short one with
- * its link appended matches only bare), its title (YouTube, Reddit). A thread lists its first post.
- */
-export function lookWords(
-  draft: Pick<ContentDraft, "text" | "title" | "extra" | "platform">,
-  sent?: Pick<Post, "text"> | null,
-): string[] {
-  const words = isThread(draft)
-    ? [threadPosts(draft.text)[0], sent ? threadPosts(sent.text)[0] : null]
-    : [sent?.text, draft.text];
-  return [...new Set([...words, draft.title].filter((w): w is string => !!w?.trim()))];
-}
-
 /** A draft as a person knows it, for what a refusal says: its title and platform, never its id. */
 export function named(r: { title?: string | null; text: string; platform: string }): string {
   const words = (r.title || r.text || "").replace(/\s+/g, " ").trim();

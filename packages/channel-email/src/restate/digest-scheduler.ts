@@ -25,8 +25,6 @@ import {
 } from "../verification/domain-health.js";
 import { proberHealth, proberProblems } from "../verification/prober-health.js";
 import { placementLines } from "./placement-scheduler.js";
-
-export const DIGEST_KEY = "fleet";
 export const DIGEST_COMMAND = "notify digest";
 export const DIGEST_HOUR = 7;
 /** Google's guidance keeps spam under 0.1%; a domain at or past it gets its own line. */

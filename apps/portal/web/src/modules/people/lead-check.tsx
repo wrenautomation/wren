@@ -43,11 +43,6 @@ export function markAsked(ids: readonly (string | number)[], now = Date.now()) {
   for (const fn of listeners) fn();
 }
 
-/** Forget every ask (tests). */
-export function clearAsked() {
-  asked.clear();
-}
-
 /**
  * An ask is out: made in this tab, not older than `CHECKING_MS`, with no decision kept since.
  * The server's clock and this one differ a little, so an answer within 2 seconds before the

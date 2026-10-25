@@ -3,7 +3,6 @@
  * closed, snoozed until when. With none kept, the channel's own state says it.
  */
 import type { Queryable } from "@wren/db";
-import { sql } from "drizzle-orm";
 import { type InboxStatus, type InboxThread, inboxThreads } from "../schema.js";
 
 export type ThreadStatus = InboxStatus | "snoozed";
@@ -86,10 +85,4 @@ export async function setThread(
     .returning();
   if (!row) throw new Error(`thread ${thread} was not kept`);
   return row;
-}
-
-/** One thread's kept state, or none. */
-export async function threadState(db: Queryable, thread: string): Promise<InboxThread | null> {
-  const [row] = await db.select().from(inboxThreads).where(sql`${inboxThreads.thread} = ${thread}`);
-  return row ?? null;
 }

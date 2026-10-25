@@ -46,10 +46,6 @@ function matches(s: SourceNode, c: CauseFacts): boolean {
 export const liveSources = (body: ShapeBody): SourceNode[] =>
   body.nodes.filter((n): n is SourceNode => n.kind === "source" && !n.parked);
 
-/** The flow edges a source opens journeys along, in body order. */
-export const sourceEdges = (body: ShapeBody, source: string): ShapeEdge[] =>
-  body.edges.filter((e) => e.kind === "flow" && e.from === source);
-
 /** The flow edge from a source to a node, if there is one. */
 export const sourceEdge = (body: ShapeBody, source: string, to: string): ShapeEdge | undefined =>
   body.edges.find((e) => e.kind === "flow" && e.from === source && e.to === to);

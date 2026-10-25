@@ -16,7 +16,6 @@ export const TEMPLATE_NAME = "wren plain";
 export const TEMPLATE_BODY = '{{ template "content" . }}';
 
 export const issueTag = (topic: string, slug: string) => `issue:${topic}:${slug}`;
-export const campaignTopicTag = (topic: string) => `wren-topic:${topic}`;
 
 export interface IssueRef {
   topic: string;

@@ -16,9 +16,6 @@ import {
 import { PortalRefusal, type PortalRequest, pickForWrite } from "@wren/core/portal";
 import { type Db, serializable, setAuditActor } from "@wren/db";
 
-/** The rows `delivery.messaging` shows, in order. */
-export const MESSAGING_ROWS = ["caps.day", "caps.week", "links", "sender", "postal"] as const;
-
 /** A cap as a person reads it. */
 export const capText = (n: number | null): string => (n === null ? "No cap" : String(n));
 

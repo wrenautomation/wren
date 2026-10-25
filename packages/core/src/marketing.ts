@@ -8,7 +8,7 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { atomic, type Queryable, serializable } from "@wren/db";
-import { and, asc, count, desc, eq, gt, inArray, max, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, max, sql } from "drizzle-orm";
 import { capRoomAt, overCap, personKeyOf, recordMessageSend } from "./message-settings.js";
 import { noteProfileFrom, profileFrom } from "./profiles-backfill.js";
 import {
@@ -700,15 +700,6 @@ export async function issueSends(db: Queryable, issue: string) {
       and(eq(consentEvents.kind, "sent"), sql`${consentEvents.evidence}->>'issue' = ${issue}`),
     );
   return row?.n ?? 0;
-}
-
-/** Consent ids → their events, oldest first, for a subscriber's activity. */
-export function consentHistory(db: Queryable, ids: number[]) {
-  return db
-    .select()
-    .from(consentEvents)
-    .where(inArray(consentEvents.consentId, ids))
-    .orderBy(consentEvents.createdAt, consentEvents.id);
 }
 
 // ---- Links: the preference center needs no login, so its address is signed.
