@@ -176,6 +176,8 @@ export {
   promoProps,
   promoScript,
   secondsOf,
+  takeShot,
+  takeSounds,
 } from "./promo.js";
 export {
   type BehindWord,
@@ -294,6 +296,7 @@ export {
   withFallback,
   wordAt,
 } from "./stress.js";
+export { readTake, type Take, type TakePane } from "./take.js";
 export {
   type CheckIssue,
   type CheckResult,

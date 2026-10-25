@@ -3,6 +3,12 @@
  * No imports, so Remotion's bundler takes it as it is.
  */
 
+/**
+ * The promo's own clock: 30 beats a second. Scenes, entrances, words and toasts count beats; a
+ * render at 60 fps plays two frames a beat, so it moves the same, smoother.
+ */
+export const PROMO_FPS = 30;
+
 /** Each scene eases in over this many frames. */
 export const ENTER_FRAMES = 9;
 

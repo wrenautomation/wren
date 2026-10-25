@@ -34,6 +34,7 @@ import {
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
 import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
 import { lineAt, pageLines, REEL, reelLines } from "../src/captions.ts";
+import { cursorAt } from "../src/cursor.ts";
 import { bedVolume } from "../src/duck.ts";
 import {
   captionWordLook,
@@ -46,7 +47,7 @@ import {
   reelY,
   type TextOverlay,
 } from "../src/finish-look.ts";
-import type { PromoProps, TimedScene } from "../src/promo.js";
+import type { PromoProps, ShotPane, TimedScene } from "../src/promo.js";
 import {
   cameraAt,
   countAt,
@@ -55,6 +56,7 @@ import {
   entranceAt,
   fitBox,
   framing,
+  PROMO_FPS,
   scatterAt,
   toastAt,
   wordsIn,
@@ -697,6 +699,15 @@ const useUnit = () => {
   return Math.min(width, height) / 1080;
 };
 
+/**
+ * The promo's beat: scenes count 30 a second (`PROMO_FPS`) whatever the render's rate, so a
+ * 60 fps take promo moves its words and toasts as a 30 fps one does.
+ */
+const useBeat = () => {
+  const { fps } = useVideoConfig();
+  return (useCurrentFrame() * PROMO_FPS) / fps;
+};
+
 /** The script's `finish.glow`: accent words and the highlight bloom. */
 const Glow = createContext(false);
 /** An accent word's bloom when the promo glows: a tight halo, then a wide one. */
@@ -772,7 +783,7 @@ const Enter: FC<{
   look: Look;
   children: ReactNode;
 }> = ({ kind, next, frames, look, children }) => {
-  const f = useCurrentFrame();
+  const f = useBeat();
   return (
     <AbsoluteFill
       style={{
@@ -787,7 +798,7 @@ const Enter: FC<{
 
 /** A text scene's words spread over a quiet frame, one at a time (`scatterAt`). */
 const Scattered: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
-  const f = useCurrentFrame();
+  const f = useBeat();
   const u = useUnit();
   const words = s.lines.flatMap((l) => l.split(/\s+/));
   const accent = new Set(s.accent.map((a) => a.toLowerCase()));
@@ -827,7 +838,7 @@ const Scattered: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
 };
 
 const PromoText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
-  const f = useCurrentFrame();
+  const f = useBeat();
   const u = useUnit();
   const all = s.lines
     .flatMap((l, li) => l.split(/\s+/).map((w) => ({ w, li })))
@@ -879,7 +890,7 @@ const PromoText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
 };
 
 const PromoToasts: FC<{ s: Scene<"toasts">; look: Look }> = ({ s, look }) => {
-  const f = useCurrentFrame();
+  const f = useBeat();
   const u = useUnit();
   return (
     <AbsoluteFill
@@ -948,7 +959,7 @@ const PromoToasts: FC<{ s: Scene<"toasts">; look: Look }> = ({ s, look }) => {
 };
 
 const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
-  const f = useCurrentFrame();
+  const f = useBeat();
   const { width, height } = useVideoConfig();
   const u = useUnit();
   const p = f / Math.max(1, s.frames - 1);
@@ -1030,8 +1041,244 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
   );
 };
 
+/** A window's bar: the three lights, and its text (a page's address, a terminal's title). */
+const WindowBar: FC<{ pane: ShotPane; t: number; h: number; look: Look }> = ({
+  pane,
+  t,
+  h,
+  look,
+}) => {
+  const u = useUnit();
+  const term = pane.kind === "term";
+  const text = [...pane.bar].reverse().find(([at]) => at <= t)?.[1] ?? pane.bar[0]?.[1] ?? "";
+  return (
+    <div
+      style={{
+        position: "relative",
+        height: h,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: term ? look.foreground : "#f1f1f3",
+        borderBottom: term ? "none" : "1px solid rgba(0,0,0,.08)",
+      }}
+    >
+      <div style={{ position: "absolute", left: 18 * u, display: "flex", gap: 8 * u }}>
+        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+          <div
+            key={c}
+            style={{ width: 13 * u, height: 13 * u, borderRadius: "50%", background: c }}
+          />
+        ))}
+      </div>
+      <div
+        style={{
+          fontSize: 19 * u,
+          color: term ? look.background : look.muted,
+          opacity: term ? 0.7 : 1,
+          padding: term ? 0 : `${5 * u}px ${18 * u}px`,
+          borderRadius: 8 * u,
+          background: term ? "none" : "#fff",
+          minWidth: term ? 0 : "38%",
+          textAlign: "center",
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+};
+
+/** The macOS arrow, its tip at (2, 1) of a 16 by 23 box. */
+const ARROW = "M2 1 L2 18.5 L6.4 14.3 L9.3 21 L12.4 19.7 L9.5 13.1 L15.2 13.1 Z";
+/** The arrow's height, a share of its window's width: over life size, to read on a phone. */
+const ARROW_W = 0.032;
+
+/**
+ * A pane's video in its window. `cam` frames the main pane (`cameraAt`); the drawn cursor sits
+ * on the page under it, so it zooms with the page, as a screen recording's does.
+ */
+const TakeWindow: FC<{
+  pane: ShotPane;
+  w: number;
+  h: number;
+  bar: number;
+  t: number;
+  shot?: Scene<"take">["shot"];
+  look: Look;
+}> = ({ pane, w, h, bar, t, shot, look }) => {
+  const { fps } = useVideoConfig();
+  const u = useUnit();
+  const cam = shot ? cameraAt(shot.moves, t) : { x: 0.5, y: 0.5, zoom: 1 };
+  const { scale, tx, ty } = framing(cam, w, h);
+  const px = w / pane.size[0];
+  // The arrow and the ring by the window, not the page: the same on a full card and a half one.
+  const arrow = ARROW_W * w;
+  const r = w / 1000;
+  const cursor = shot?.cursor ? cursorAt(shot.cursor, t) : null;
+  const video = (
+    <OffthreadVideo
+      src={staticFile(pane.video)}
+      muted
+      trimBefore={Math.max(0, Math.round(pane.at * fps))}
+      style={{ width: "100%", height: "100%", display: "block" }}
+    />
+  );
+  return (
+    <div
+      style={{
+        flex: "none",
+        width: w,
+        height: h + bar,
+        overflow: "hidden",
+        borderRadius: 20 * u,
+        boxShadow: "0 30px 80px rgba(0,0,0,.18)",
+        background: pane.kind === "term" ? look.foreground : "#fff",
+      }}
+    >
+      <WindowBar pane={pane} t={t} h={bar} look={look} />
+      <div style={{ position: "relative", width: w, height: h, overflow: "hidden" }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            transformOrigin: "0 0",
+            transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+          }}
+        >
+          {/* A pane not open yet at the cut opens on the clock it was filmed on. */}
+          {pane.at < 0 ? (
+            <Sequence from={Math.round(-pane.at * fps)} layout="none">
+              {video}
+            </Sequence>
+          ) : (
+            video
+          )}
+          {cursor?.ring ? (
+            <div
+              style={{
+                position: "absolute",
+                left: cursor.ring.x * px,
+                top: cursor.ring.y * px,
+                width: 0,
+                height: 0,
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  width: (16 + 50 * easeOut(cursor.ring.p)) * r,
+                  height: (16 + 50 * easeOut(cursor.ring.p)) * r,
+                  transform: "translate(-50%, -50%)",
+                  borderRadius: "50%",
+                  border: `${3 * r}px solid ${look.accent}`,
+                  opacity: 1 - cursor.ring.p,
+                }}
+              />
+            </div>
+          ) : null}
+          {cursor && cursor.opacity > 0 ? (
+            <svg
+              viewBox="0 0 16 23"
+              aria-hidden
+              style={{
+                position: "absolute",
+                left: cursor.x * px - (2 / 23) * arrow,
+                top: cursor.y * px - (1 / 23) * arrow,
+                height: arrow,
+                opacity: cursor.opacity,
+                transformOrigin: "12.5% 4.3%",
+                transform: `scale(${cursor.scale})`,
+                filter: "drop-shadow(0 2px 3px rgba(0,0,0,.35))",
+                overflow: "visible",
+              }}
+            >
+              <path d={ARROW} fill="#000" stroke="#fff" strokeWidth={1.4} strokeLinejoin="round" />
+            </svg>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * A shot from a filmed take: the pane in its window, the camera and cursor on it from the log, and
+ * the pane beside it (the terminal) on the same clock, first in reading order.
+ */
+const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
+  const { width, height, fps } = useVideoConfig();
+  const t = useCurrentFrame() / fps;
+  const u = useUnit();
+  const shot = s.shot;
+  if (!shot) return null;
+  const panes = shot.beside ? [shot.beside, shot.pane] : [shot.pane];
+  const tall = height > width;
+  const pad = 70 * u;
+  const gap = 36 * u;
+  const bar = 46 * u;
+  const capH = s.caption ? 120 * u : 0;
+  const roomW = width - pad * 2 - (tall ? 0 : gap * (panes.length - 1));
+  const roomH =
+    height -
+    pad * 2 -
+    capH -
+    bar * (tall ? panes.length : 1) -
+    (tall ? gap * (panes.length - 1) : 0);
+  // Side by side the windows share a height; stacked, a width. Each keeps its page's shape.
+  const aspects = panes.map((p) => p.size[0] / p.size[1]);
+  const sizes = tall
+    ? (() => {
+        const w = Math.min(roomW, roomH / aspects.reduce((a, k) => a + 1 / k, 0));
+        return aspects.map((k) => ({ w, h: w / k }));
+      })()
+    : (() => {
+        const h = Math.min(roomH, roomW / aspects.reduce((a, k) => a + k, 0));
+        return aspects.map((k) => ({ w: h * k, h }));
+      })();
+  const total = tall
+    ? (sizes[0]?.w ?? 0)
+    : sizes.reduce((a, b) => a + b.w, 0) + gap * (panes.length - 1);
+  return (
+    <AbsoluteFill
+      style={{ padding: pad, gap: 24 * u, alignItems: "center", justifyContent: "center" }}
+    >
+      <div style={{ display: "flex", flexDirection: tall ? "column" : "row", gap }}>
+        {panes.map((p, i) => (
+          <TakeWindow
+            key={p.video}
+            pane={p}
+            w={sizes[i]?.w ?? 0}
+            h={sizes[i]?.h ?? 0}
+            bar={bar}
+            t={t}
+            look={look}
+            {...(p === shot.pane ? { shot } : {})}
+          />
+        ))}
+      </div>
+      {s.caption ? (
+        <div
+          style={{
+            width: total,
+            height: capH - 24 * u,
+            display: "flex",
+            alignItems: "center",
+            fontSize: 44 * u,
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            color: look.foreground,
+          }}
+        >
+          {s.caption}
+        </div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
 const PromoStat: FC<{ s: Scene<"stat">; look: Look }> = ({ s, look }) => {
-  const f = useCurrentFrame();
+  const f = useBeat();
   const u = useUnit();
   const { width, height } = useVideoConfig();
   const tall = height > width;
@@ -1107,6 +1354,8 @@ const PromoScene: FC<{ s: TimedScene; look: Look }> = ({ s, look }) => {
       return <PromoToasts s={s} look={look} />;
     case "screen":
       return <PromoScreen s={s} look={look} />;
+    case "take":
+      return <PromoTake s={s} look={look} />;
     case "stat":
       return <PromoStat s={s} look={look} />;
     case "end":
@@ -1117,6 +1366,9 @@ const PromoScene: FC<{ s: TimedScene; look: Look }> = ({ s, look }) => {
 /** A product promo from a script (`promoProps`): scenes back to back on Wren's canvas. */
 const Promo: FC<PromoProps> = ({ scenes, look, audio, finish }) => {
   const u = useUnit();
+  const { fps } = useVideoConfig();
+  // Scenes are in beats; the render's frames are `fps` a second.
+  const frame = (beat: number) => Math.round((beat * fps) / PROMO_FPS);
   return (
     <Glow.Provider value={finish.glow}>
       {/* Beside the frame, not in it: the filter the frame uses. */}
@@ -1131,7 +1383,11 @@ const Promo: FC<PromoProps> = ({ scenes, look, audio, finish }) => {
       >
         <Sounds audio={audio} />
         {scenes.map((s) => (
-          <Sequence key={s.from} from={s.from} durationInFrames={s.frames}>
+          <Sequence
+            key={s.from}
+            from={frame(s.from)}
+            durationInFrames={frame(s.from + s.frames) - frame(s.from)}
+          >
             <Enter kind={s.enter} next={s.next} frames={s.frames} look={look}>
               <PromoScene s={s} look={look} />
             </Enter>

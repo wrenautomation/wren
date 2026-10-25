@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { FX } from "./fx.js";
 import { audioFiles, loadBeds, stageSounds, unknownSounds } from "./kit.js";
-import { PROMO_SOUNDS } from "./promo.js";
+import { PROMO_SOUNDS, TAKE_SOUNDS } from "./promo.js";
 import { musicSchema, SOUND_RULES, soundFile, soundsSchema } from "./sounds.js";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -43,7 +43,11 @@ describe("the sound kit", () => {
   });
 
   it("has the role each rule and each promo moment plays", () => {
-    for (const id of [...SOUND_RULES.map((r) => r.id), ...Object.values(PROMO_SOUNDS)])
+    for (const id of [
+      ...SOUND_RULES.map((r) => r.id),
+      ...Object.values(PROMO_SOUNDS),
+      ...Object.values(TAKE_SOUNDS),
+    ])
       expect(id in FX, id).toBe(true);
   });
 

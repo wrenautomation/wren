@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-15 @ HEAD
+verified: 2026-10-24 @ HEAD
 entity: packages/studio/src/schema.ts:85
 ---
 
@@ -97,9 +97,9 @@ Citations: `packages/studio/src/schema.ts:85`, `packages/db/drizzle/0244_video_r
 | `wren video approve <id> [--short n\|--vertical]`, `ContentDesk.approveVideo` (Studio and Inbox Approve) | write a YouTube draft (and a Short's drafts for Instagram, TikTok, X, Facebook, LinkedIn, waiting), state → approved |
 | `ContentDesk.pickThumbnail` (Studio → Pick thumbnail) | write `files.thumbnailPick` |
 | `marketing.video`, `marketing.approval` (`video:<id>`) | read |
-| `wren video promo <script.json> [--still s] [--recapture]` | not an edit: a product promo from a script, no recording (`packages/studio/src/promo.ts`, composition `Promo`; scenes enter by rise, pull-back or wipe, text can scatter); writes `shot-<n>.png` and `out/promo.mp4` beside the script, no DB |
+| `wren video promo <script.json> [--still s] [--recapture]` | not an edit: a product promo from a script, no recording (`packages/studio/src/promo.ts`, composition `Promo`; scenes enter by rise, pull-back or wipe, text can scatter; a `take` scene plays an autobrowse film take beside the script with the auto camera, a drawn cursor and click and key sounds from its log: `take.ts`, `camera.ts`, `cursor.ts`, 60 fps); writes `shot-<n>.png` and `out/promo.mp4` beside the script, no DB |
 
 ## See
 
 - Source: `packages/studio/`, `apps/cli/src/studio.ts`, `packages/content/src/video.ts`, `packages/content/src/video-ask.ts`, `packages/content/src/video-edit.ts`, `packages/content/src/restate/video-desk.ts`
-- Design: `designs/2026-10-06-video-editor.md`, promos `designs/2026-10-11-promo-video.md`, review `designs/2026-10-13-video-review.md`, Studio editor `designs/2026-10-15-studio-editor.md`
+- Design: `designs/2026-10-06-video-editor.md`, promos `designs/2026-10-11-promo-video.md`, filmed takes `designs/2026-10-24-filmed-takes.md`, review `designs/2026-10-13-video-review.md`, Studio editor `designs/2026-10-15-studio-editor.md`

@@ -110,7 +110,7 @@ export const musicSchema = z
   .strict()
   .nullable();
 
-/** What a recording tells about its moments: Cap's clicks and key presses, raw seconds. */
+/** What a recording tells about its moments: its clicks and key presses, raw seconds (a Cap project's; a take's play in the promo, `takeSounds`). */
 export interface RecordingEvents {
   clicks: number[];
   keys: number[];
@@ -122,8 +122,8 @@ export interface RecordingEvents {
  * remove; his `wren video set` of `sounds` locks them.
  */
 export const SOUND_RULES = [
-  { on: "click", id: "click", says: "a small plastic click on each mouse click (Cap)" },
-  { on: "key", id: "key", says: "a key tap on each key press (Cap), a new take each" },
+  { on: "click", id: "click", says: "a small plastic click on each mouse click" },
+  { on: "key", id: "key", says: "a key tap on each key press, a new take each" },
   { on: "overlay", id: "pop", says: "a soft pop as each text overlay comes in" },
   {
     on: "layout",
@@ -141,7 +141,7 @@ export const SOUND_RULES = [
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
 
 /** Times at least `gap` seconds apart, in order: a run closer than its role allows is one sound. */
-function spaced(ts: readonly number[], gap: number): number[] {
+export function spaced(ts: readonly number[], gap: number): number[] {
   const out: number[] = [];
   for (const t of [...ts].sort((a, b) => a - b)) {
     const last = out.at(-1);
@@ -149,7 +149,8 @@ function spaced(ts: readonly number[], gap: number): number[] {
   }
   return out;
 }
-const gapOf = (role: Role) => FX[role].gapMs / 1000;
+/** The least time between two sounds of a role. */
+export const gapOf = (role: Role) => FX[role].gapMs / 1000;
 
 /** Where the layout changes: each range's edges, but not the very start or end. */
 function layoutChanges(layout: readonly LayoutRange[], durationS: number): number[] {

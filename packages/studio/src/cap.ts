@@ -4,6 +4,9 @@
  * new one), with each track's start time. `capTracks` joins them into the screen-with-mic file and
  * the camera file `addVideo` takes, under `<project>/wren/`. Format: CapSoftware/Cap
  * crates/project/src/meta.rs at cap-v0.6.0. Cap's server is never used.
+ *
+ * Archived (2026-10-24): recordings are OBS's, promos film with autobrowse (`./take.ts`). Kept,
+ * with its tests, for a return to Cap.
  */
 import { execFile } from "node:child_process";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";

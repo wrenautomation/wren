@@ -88,6 +88,7 @@ import {
   type RenderJob,
   ROLE_SAYS,
   ROLES,
+  readTake,
   redoSilence,
   renderAll,
   renderPromo,
@@ -1194,7 +1195,7 @@ export function registerStudio(
   video
     .command("promo <script>")
     .description(
-      "a product promo from a JSON script (text, toasts, screen, stat, end; designs/2026-10-11-promo-video.md) to <its folder>/out/promo.mp4; a screen's url is captured first",
+      "a product promo from a JSON script (text, toasts, screen, take, stat, end; designs/2026-10-11-promo-video.md) to <its folder>/out/promo.mp4; a screen's url is captured first, a take is filmed with autobrowse film into the script's folder",
     )
     .option("--still <s>", "render one frame at this second to a png instead", Number)
     .option("--recapture", "capture every screen url again")
@@ -1222,7 +1223,18 @@ export function registerStudio(
       // His own music file: measured, so it plays at the level the effects sit over.
       const own = script.music && !BED_ID.test(script.music) ? join(dir, script.music) : null;
       const musicLufs = own ? (await measureLoudness(own, settings.ffmpeg))?.i : undefined;
-      const props = promoProps(script, sizes, musicLufs === undefined ? {} : { musicLufs });
+      // Each take scene's take, read from beside the script (`autobrowse film --out <here>/<take>`).
+      const takes = Object.fromEntries(
+        await Promise.all(
+          [...new Set(script.scenes.flatMap((s) => (s.kind === "take" ? [s.take] : [])))].map(
+            async (t) => [t, await readTake(dir, t)] as const,
+          ),
+        ),
+      );
+      const props = promoProps(script, sizes, {
+        takes,
+        ...(musicLufs === undefined ? {} : { musicLufs }),
+      });
       console.log(await renderPromo(studioDir, dir, props, o.still, settings.ffmpeg));
       console.log(
         `${(props.durationInFrames / props.fps).toFixed(1)}s, ${props.scenes.length} scenes`,
