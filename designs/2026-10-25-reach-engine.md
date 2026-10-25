@@ -86,6 +86,13 @@ person's posts in the feed the next pass.
   (`capHolds` in the loop's state). The other posts are skipped, not failed.
 - A draft kept as none (guard drop, empty, too long) gets one more try every 3 days.
 
+**Built 10-25: auto likes and follows.** Each posts pass likes fit posts (`minFit`, not dropped,
+7 days at most) and follows their authors, with no yes. At most 5 of each per pass, per platform,
+under autobrowse's day caps (LinkedIn 30 likes / 20 follows, X 50/20, Instagram 40/15). One author
+is followed once. A used cap holds that act in ReachWatch's `actHolds` till the reset. At today's
+supply this is about 3 to 4 acts a day on LinkedIn and none on X or Instagram: volume comes from
+Phase 1.
+
 **Phase 1: Grow.** Supply from `/company/{company}/people` (in channel-linkedin already). Firms
 with a LinkedIn company page go first. Auto follow on LinkedIn, X and Instagram under caps, then
 invite. Fewer than 1% of recruiting firms hold a LinkedIn company page today, so the people
@@ -97,12 +104,14 @@ search by firm name (`/search/results/people`) is the fallback.
 |---|---|---|---|
 | LinkedIn | `GET /feed` | browser | `feed` |
 | Instagram | `GET /web/feed` | browser | `feed` |
-| X | `GET /2/users/{id}/timelines/reverse_chronological` | API | `posts` |
+| X | `GET /2/users/{id}/timelines/reverse_chronological` (flow `x/home`, the Following tab) | browser | `feed` |
 
-The X API bills by item read, so the timeline costs about what the account reads cost now, for
-fewer calls. The LinkedIn and Instagram flows need a recorded walk on the desk's Chrome.
+All three need a walk on the desk's Chrome. X keeps the API's path with `prefer: "browser"`, as
+every X read does. Promoted rows are left. X account reads use the browser leg today
+(`prefer: "browser"`), so they cost $0. The API timeline bills each post read, so it costs more
+than the reads it replaces: not built (decision 3).
 
-**Phase 3: Act.** Likes on fit posts go auto. Search narrows to finding new people (one search a
+**Phase 3: Act.** Search narrows to finding new people (one search a
 pass per platform). Keyword drops stop counting against the day.
 
 ## Out
@@ -115,7 +124,8 @@ pass per platform). Keyword drops stop counting against the day.
 
 1. Follows and likes: auto, no yes.
 2. Invite filter: the 50+ floor stays on. Make the filter settable.
-3. X home timeline: only if it costs no more than the account reads it replaces.
+3. X home timeline: only if it costs no more than the account reads it replaces. Result: the API
+   costs more than the free browser reads, so X gets a browser feed walk like the other two.
 4. Feed walks: the session records them on the desk's Chrome.
 5. LinkedIn invites: send with no note. Accepted invites get no DM draft for now; they wait in
    the backlog for William.

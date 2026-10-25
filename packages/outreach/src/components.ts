@@ -323,7 +323,7 @@ export const OUTREACH_COMPONENTS = [
         { is: "fixed", says: "No comment posts without your yes in To approve." },
         {
           is: "change",
-          says: "With the comment, like the post and follow its author.",
+          says: "Like each fit post and follow its author with no yes, at most 5 of each a pass.",
           built: "settings.like, follow",
         },
       ],
@@ -365,7 +365,7 @@ export const OUTREACH_COMPONENTS = [
           },
           {
             is: "change",
-            says: "With the comment, like the post and follow its author.",
+            says: "Like each fit post and follow its author with no yes, at most 5 of each a pass.",
             built: "settings.like, follow",
           },
           {

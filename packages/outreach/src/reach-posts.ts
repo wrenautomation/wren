@@ -14,7 +14,7 @@
 
 import { editsFor, keepSentEdit } from "@wren/core/ask";
 import { settingsFor } from "@wren/core/clients";
-import { capWaitMs, type SiteClient } from "@wren/core/content";
+import { type CapHolds, capHeld, capWaitMs, holdCap, type SiteClient } from "@wren/core/content";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { factsBlock, humanBlock } from "@wren/core/facts";
 import { droppedWhy, type Guarded, guardDraft, recordGuard } from "@wren/core/grounded";
@@ -154,9 +154,9 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
       people: z.boolean().default(true),
       /** LinkedIn search only: keep authors whose title has these words ("founder"). */
       authorTitle: z.string().trim().max(100).default(""),
-      /** With his Comment, like the post and follow its author. */
+      /** A fit post is liked and its author followed with no yes, and again with his Comment. */
       like: z.boolean().default(true),
-      follow: z.boolean().default(false),
+      follow: z.boolean().default(true),
       /** Posts older than this are left. */
       maxAgeHours: z.number().int().min(6).max(336).default(72),
       /** Code's rank (0 to 100) a post needs before a comment is drafted for it. */
@@ -1378,6 +1378,8 @@ export interface PostsStats {
   queued: number;
   /** Drafts put on spaced slots this pass (`autoSend`). */
   scheduled?: number;
+  /** Likes and follows sent with no yes. */
+  acts?: ActsStats;
   /** autobrowse's day's cap is used (a 429 waiting hours): reads end for the pass, no error. */
   capped: boolean;
   /** The search words this pass planned, and his own that rest for finding nothing on target. */
@@ -1681,6 +1683,111 @@ export function postActs(
         follow: follow && h ? followAct("instagram", { handle: h }) : null,
       };
   }
+}
+
+/** Likes and follows of each kind a pass sends at most, under autobrowse's day caps. */
+export const ACTS_PER_PASS = 5;
+/** Posts older than this get no like or follow. */
+const ACT_DAYS = 7;
+
+export interface ActsStats {
+  liked: number;
+  followed: number;
+  /** Acts whose day's cap is used: they wait for the reset. */
+  held: string[];
+  errors: string[];
+}
+
+/**
+ * Likes on fit posts and follows of their authors, with no yes (William, 2026-10-25): a like or
+ * follow has no words. A post fits at `minFit`; job ads and posts off target are dropped, never
+ * acted on. An author already followed through another post is not asked again. A used cap
+ * (`holds`, key `<platform> <act>`) ends that act till its reset.
+ */
+export async function autoActs(
+  db: Queryable,
+  o: {
+    platform: ReachPostPlatform;
+    settings: Pick<CommentsSettings, "like" | "follow" | "minFit">;
+    call: (act: SiteAct) => Promise<unknown>;
+    step: <T>(name: string, fn: () => Promise<T>) => Promise<T>;
+    holds: CapHolds;
+    now: Date;
+  },
+): Promise<ActsStats> {
+  const stats: ActsStats = { liked: 0, followed: 0, held: [], errors: [] };
+  const t = o.now.getTime();
+  const key = (act: "like" | "follow") => `${o.platform} ${act}`;
+  const on = {
+    like: o.settings.like && !capHeld(o.holds, key("like"), t),
+    follow: o.settings.follow && !capHeld(o.holds, key("follow"), t),
+  };
+  if (!on.like && !on.follow) return stats;
+  // One journaled read: a replay acts on the same posts whatever the table holds by then.
+  const due = await o.step(`acts due ${o.platform}`, async () => {
+    const rows = (await db.execute(sql`
+      SELECT p.id, p.liked_at IS NULL AS "toLike",
+        p.followed_at IS NULL AND NOT EXISTS (SELECT 1 FROM reach_posts f
+          WHERE f.platform = p.platform AND f.followed_at IS NOT NULL
+            AND coalesce(f.handle, f.author_url) = coalesce(p.handle, p.author_url)) AS "toFollow"
+      FROM reach_posts p
+      WHERE p.platform = ${o.platform} AND p.fit >= ${o.settings.minFit}
+        AND p.state IN ('found', 'queued', 'commented')
+        AND p.created_at > ${new Date(t - ACT_DAYS * 86_400_000).toISOString()}::timestamptz
+        AND (p.liked_at IS NULL OR p.followed_at IS NULL)
+      ORDER BY p.fit DESC, p.id`)) as unknown as Array<{
+      id: number;
+      toLike: boolean;
+      toFollow: boolean;
+    }>;
+    if (!rows.length) return [];
+    const byId = new Map(
+      (
+        await db
+          .select()
+          .from(reachPosts)
+          .where(
+            inArray(
+              reachPosts.id,
+              rows.map((r) => r.id),
+            ),
+          )
+      ).map((p) => [p.id, p]),
+    );
+    return rows.flatMap((r) => {
+      const p = byId.get(r.id);
+      return p ? [{ ...r, p }] : [];
+    });
+  });
+  const followed = new Set<string>();
+  for (const { p, toLike, toFollow } of due) {
+    const who = p.handle ?? p.authorUrl ?? "";
+    const want = {
+      like: on.like && toLike && stats.liked < ACTS_PER_PASS,
+      follow: on.follow && toFollow && !followed.has(who) && stats.followed < ACTS_PER_PASS,
+    };
+    const acts = postActs(p, want, "");
+    for (const what of ["like", "follow"] as const) {
+      const act = acts[what];
+      if (!act || !on[what]) continue;
+      try {
+        await o.call(act);
+        await o.step(`${what} ${p.id}`, () => markPostActed(db, p.id, what, o.now));
+        if (what === "like") stats.liked++;
+        else {
+          stats.followed++;
+          followed.add(who);
+        }
+      } catch (err) {
+        if (holdCap(o.holds, key(what), err, t)) {
+          on[what] = false;
+          stats.held.push(key(what));
+        } else
+          stats.errors.push(`${what} ${p.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+  return stats;
 }
 
 const companyOf = (url: string | null) =>

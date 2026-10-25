@@ -9,7 +9,7 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
-import { capWaitMs } from "@wren/core/content";
+import { type CapHolds, capWaitMs, liveHolds } from "@wren/core/content";
 import { isVendorStop } from "@wren/core/metered";
 import type { OutreachChannel } from "@wren/core/outreach";
 import { replyWho } from "@wren/core/reply-who";
@@ -59,6 +59,7 @@ import {
 } from "../invites.js";
 import {
   allCommentsSettings,
+  autoActs,
   type CommentsSettings,
   type PostsStats,
   postReader,
@@ -102,6 +103,8 @@ const POSTS = "posts";
 const postsKey = (p: ReachPostPlatform) => (p === "linkedin" ? POSTS : `${POSTS}:${p}`);
 
 const POSTS_EVERY_MS = 6 * 60 * 60 * 1000;
+/** Likes and follows whose day's cap is used, till it resets (`<platform> <act>`). */
+const ACT_HOLDS = "actHolds";
 
 export interface InvitesPass {
   account: string;
@@ -205,8 +208,9 @@ async function notesPass(
 }
 
 /**
- * Others' posts on one platform: read as the settings' account, ranked, drafted for his yes. With
- * `autoSend`, the drafts then take spaced slots and go out on them.
+ * Others' posts on one platform: read as the settings' account, ranked, drafted for his yes. Fit
+ * posts are liked and their authors followed with no yes. With `autoSend`, the drafts then take
+ * spaced slots and go out on them.
  */
 export async function postsFor(
   deps: ReachDeps,
@@ -214,6 +218,7 @@ export async function postsFor(
   platform: ReachPostPlatform,
   settings: CommentsSettings,
   now: Date,
+  holds: CapHolds = {},
 ): Promise<PostsStats> {
   const guide = deps.drafts?.commentGuide;
   const stats = await postsPass(deps.db, {
@@ -231,6 +236,16 @@ export async function postsFor(
     now,
     step: (name, fn) => ctx.run(name, fn),
     capped: (err) => capWaitMs(err) !== null,
+  });
+  const sites = deps.sitesFor(ctx);
+  const account = settings.account;
+  stats.acts = await autoActs(deps.db, {
+    platform,
+    settings,
+    call: ([site, method, path, input]) => sites.call(site, method, path, input, account),
+    step: (name, fn) => ctx.run(name, fn),
+    holds,
+    now,
   });
   if (!settings.autoSend) return stats;
   const slots = await ctx.run(`schedule ${platform}`, () =>
@@ -599,6 +614,7 @@ async function watchPass(
   const posts: PostsStats[] = [];
   if (scope.posts && !stopped) {
     const all = await ctx.run("comment settings", () => allCommentsSettings(deps.db));
+    const holds = liveHolds((await ctx.get<CapHolds>(ACT_HOLDS)) ?? {}, now.getTime());
     for (const platform of REACH_POST_PLATFORMS) {
       const settings = all[platform];
       const key = postsKey(platform);
@@ -610,7 +626,7 @@ async function watchPass(
         posts.push(
           await limits.guard(
             `posts ${platform}`,
-            () => postsFor(deps, ctx, platform, settings, now),
+            () => postsFor(deps, ctx, platform, settings, now, holds),
             platform,
           ),
         );
@@ -618,6 +634,7 @@ async function watchPass(
         health.errors.push(`posts ${platform}: ${errorText(err)}`);
       }
     }
+    ctx.set(ACT_HOLDS, holds);
   }
   ctx.set(READS, reads);
   ctx.set(HEALTH, checked);

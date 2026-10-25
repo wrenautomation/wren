@@ -25,6 +25,8 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../../src/policy.js";
 import {
+  ACTS_PER_PASS,
+  autoActs,
   COMMENTS_COMPONENTS,
   COMMENTS_SETTINGS,
   type FeedPost,
@@ -345,6 +347,9 @@ describe("the daily pass", () => {
       pages: ["acme-staffing"],
       people: false,
       minFit: 0,
+      // Likes and follows have their own tests ("likes and follows with no yes").
+      like: false,
+      follow: false,
     });
     routes["/search/results/content"] = () =>
       feed([
@@ -465,8 +470,8 @@ describe("search words", () => {
     });
     // Job ads left out by LinkedIn's own NOT.
     expect(searched).toEqual([
-      "recruiting agency NOT hiring NOT jobs NOT vacancy",
-      "our recruiting clients NOT hiring NOT jobs NOT vacancy",
+      '"recruiting agency" NOT hiring NOT jobs NOT vacancy',
+      '"our recruiting clients" NOT hiring NOT jobs NOT vacancy',
     ]);
     expect(topicAsks[0]).toContain("Owners of recruiting firms.");
     expect(topicAsks[0]).toContain('Found none of their posts: "client reactivation"');
@@ -758,7 +763,7 @@ describe("X and Instagram", () => {
     const out = statsOf(await sync())?.posts;
     expect(out?.map((p) => [p.platform, p.reads, p.kept, p.queued])).toEqual([["x", 2, 2, 2]]);
     expect(queries[0]).toMatch(
-      /^recruiting agency -hiring -jobs -vacancy lang:en -filter:replies -filter:retweets since:\d{4}-\d{2}-\d{2}$/,
+      /^"recruiting agency" -hiring -jobs -vacancy lang:en -filter:replies -filter:retweets since:\d{4}-\d{2}-\d{2}$/,
     );
     expect(calls.filter((c) => c.method === "GET").map((c) => c.account)).toEqual([
       "x@wren",
@@ -896,7 +901,7 @@ describe("his Comment, with a like and a follow", () => {
   });
 
   it("Instagram: comments through the page as instagram@wren; a failed like doesn't undo it", async () => {
-    await settings({ account: "instagram@wren" }, "instagram");
+    await settings({ account: "instagram@wren", follow: false }, "instagram");
     routes["/web/p/AAA111/like"] = () => {
       throw new SiteCallError("instagram", "POST", "/web/p/AAA111/like", 429, "like: cap");
     };
@@ -981,6 +986,101 @@ describe("his Comment, with a like and a follow", () => {
       ["follow:linkedin:pat-one", "follow", "linkedin@wren", "pat-one"],
       ["follow:x:founderthree", "follow", "x@wren", "founderthree"],
     ]);
+  });
+});
+
+describe("likes and follows with no yes", () => {
+  const row = async (
+    ref: string,
+    handle: string,
+    fit: number,
+    state: "found" | "queued" | "dropped" = "found",
+  ) => {
+    await resolveObjects(db(), [{ platform: "x", kind: "post", raw: ref }]);
+    const [r] = await db()
+      .insert(reachPosts)
+      .values({
+        platform: "x",
+        ref,
+        author: handle,
+        authorUrl: `https://x.com/${handle}`,
+        handle,
+        text: TWEET_TEXT,
+        url: `https://x.com/${handle}/status/${ref}`,
+        foundBy: "topic: x",
+        account: "x@wren",
+        fit,
+        state,
+        raw: {},
+        createdAt: NOW,
+      })
+      .returning();
+    if (!r) throw new Error("no row");
+    return r;
+  };
+  const sent: string[] = [];
+  const run = (o: { fail?: (path: string) => unknown; follow?: boolean } = {}, holds = {}) =>
+    autoActs(db(), {
+      platform: "x",
+      settings: { like: true, follow: o.follow ?? true, minFit: MIN_FIT },
+      call: async ([, , path, input]) => {
+        const why = o.fail?.(path);
+        if (why) throw why;
+        sent.push(`${path} ${Object.values(input).join()}`);
+      },
+      step: (_name, fn) => fn(),
+      holds,
+      now: NOW,
+    });
+  beforeEach(() => {
+    sent.length = 0;
+  });
+
+  it("likes each fit post and follows its author once; a weak or dropped post is left", async () => {
+    const a = await row("701", "ann", 90);
+    await row("702", "ann", 80, "queued");
+    await row("703", "bob", MIN_FIT - 1);
+    await row("704", "cal", 90, "dropped");
+    expect(await run()).toMatchObject({ liked: 2, followed: 1, held: [], errors: [] });
+    expect(sent).toEqual([
+      "/2/users/me/likes 701",
+      "/2/users/me/following ann",
+      "/2/users/me/likes 702",
+    ]);
+    const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, a.id));
+    expect(after).toMatchObject({ state: "found" });
+    expect(after?.likedAt).not.toBeNull();
+    // Done: the next pass sends nothing.
+    sent.length = 0;
+    expect(await run()).toMatchObject({ liked: 0, followed: 0 });
+    expect(sent).toEqual([]);
+  });
+
+  it("at most ACTS_PER_PASS of each a pass; follow off sends likes only", async () => {
+    for (let i = 0; i < ACTS_PER_PASS + 2; i++) await row(`71${i}`, `user${i}`, 90);
+    expect(await run({ follow: false })).toMatchObject({ liked: ACTS_PER_PASS, followed: 0 });
+    expect(sent.every((s) => s.startsWith("/2/users/me/likes"))).toBe(true);
+  });
+
+  it("a used cap holds that act till its reset; the other act goes on", async () => {
+    await row("721", "dee", 90);
+    await row("722", "eve", 90);
+    const holds: Record<string, number> = {};
+    const capped = new SiteCallError(
+      "x",
+      "POST",
+      "/2/users/me/likes",
+      429,
+      "capped, retry after 36000s",
+    );
+    const r = await run({ fail: (path) => (path.endsWith("/likes") ? capped : null) }, holds);
+    expect(r).toMatchObject({ liked: 0, followed: 2, held: ["x like"], errors: [] });
+    expect(sent).toEqual(["/2/users/me/following dee", "/2/users/me/following eve"]);
+    expect(holds["x like"]).toBeGreaterThan(NOW.getTime());
+    // Held: no like is asked again before the reset.
+    sent.length = 0;
+    await run({}, holds);
+    expect(sent).toEqual([]);
   });
 });
 
