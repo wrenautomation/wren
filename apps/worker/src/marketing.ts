@@ -55,7 +55,6 @@ export const marketingNumbers = (signer?: VideoSigner, policy?: ReachPolicy) => 
   // The facts every draft may claim, edited on Marketing → Facts.
   factsRecord,
 ];
-export const MARKETING_NUMBERS = marketingNumbers();
 
 /**
  * A client's Marketing (`MarketingConsole`): what its posting, ads and search loops write into
@@ -72,4 +71,3 @@ export const clientMarketing = (signer?: VideoSigner) => [
   askedReplyRecord,
   reviewRecord,
 ];
-export const CLIENT_MARKETING = clientMarketing();

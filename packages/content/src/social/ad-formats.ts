@@ -16,9 +16,7 @@ export interface AdFormatSeed {
   use: string;
 }
 
-const REEL = "instagram.com/reel/Db8pB-BIkH6 (42 ad formats)";
-
-/** The 42 from the reel, each said for an offer like ours: a service sold to a business. */
+/** The 42 from the reel (instagram.com/reel/Db8pB-BIkH6), each said for an offer like ours: a service sold to a business. */
 export const AD_FORMAT_SEED: readonly AdFormatSeed[] = (
   [
     [
@@ -323,8 +321,6 @@ export const AD_FORMAT_SEED: readonly AdFormatSeed[] = (
   what,
   use,
 }));
-
-export const AD_FORMAT_SOURCE = REEL;
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 

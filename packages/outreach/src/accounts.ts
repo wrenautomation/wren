@@ -7,7 +7,7 @@
 import type { AccountHealth, OutreachChannel } from "@wren/core/outreach";
 import { accountLabel, type RecordAccount } from "@wren/core/record-accounts";
 import type { Queryable } from "@wren/db";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { fleetDay, type ReachPolicy, type Standing, standingOf } from "./policy.js";
 import { ReachRefusal } from "./refusal.js";
 import {
@@ -193,16 +193,4 @@ export async function refreshHealth(
     }
   }
   return stats;
-}
-
-export async function accountsById(
-  db: Queryable,
-  ids: readonly string[],
-): Promise<Map<string, ReachAccount>> {
-  if (ids.length === 0) return new Map();
-  const rows = await db
-    .select()
-    .from(reachAccounts)
-    .where(inArray(reachAccounts.id, [...ids]));
-  return new Map(rows.map((r) => [r.id, r]));
 }

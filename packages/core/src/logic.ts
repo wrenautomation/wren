@@ -1341,12 +1341,3 @@ export function logicSteps(
   };
   return steps;
 }
-
-/** Steps that change nothing outside the walk: a dry test runs them for real. */
-export const PURE_STEPS: ReadonlySet<string> = new Set([
-  "logic.code",
-  "logic.switch",
-  "logic.wait",
-  "logic.split",
-  "logic.merge",
-]);

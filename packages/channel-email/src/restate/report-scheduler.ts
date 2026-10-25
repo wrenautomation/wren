@@ -19,8 +19,6 @@ export interface ReportSchedulerDeps {
   mail: { to: string; from: string };
   policy: SendPolicy;
 }
-
-export const REPORT_KEY = "weekly";
 export const REPORT_COMMAND = "report weekly";
 
 export function makeReportScheduler(deps: ReportSchedulerDeps) {

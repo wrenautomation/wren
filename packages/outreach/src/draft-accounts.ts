@@ -19,9 +19,6 @@ import { effectiveNeed, shortfall, standingOfAccount } from "./discovery/require
 import { ReachRefusal } from "./refusal.js";
 import { draftAccounts, type ReachAccount, redditRequirements } from "./schema.js";
 
-/** The draft items that can go out as a picked account: their kinds, as `<kind>:<id>`. */
-export const ACCOUNT_ITEMS = ["thread", "comment", "dm", "invite", "onpost", "draft"] as const;
-
 const rowsOf = async <T>(db: Queryable, q: ReturnType<typeof sql>): Promise<T[]> =>
   (await db.execute(q)) as unknown as T[];
 

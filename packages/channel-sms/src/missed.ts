@@ -35,9 +35,6 @@ export const MISSED_NEW = "missed-call-new";
 /** The text a caller gets who is: it can use their name. */
 export const MISSED_KNOWN = "missed-call-known";
 
-/** One text back per caller in this many hours, unless the client's setting says otherwise. */
-export const ONCE_EVERY_HOURS = 24;
-
 /** What a text back runs on: the client's database, its gates and its words' facts. */
 export interface TextBackOptions {
   /** `WREN_SMS_LIVE`, the client's texts and its sends all on. */

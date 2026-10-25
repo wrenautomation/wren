@@ -79,9 +79,6 @@ export function variantOf(flag: FlagDef, s: FlagSubject): string {
 export const evaluateFlags = (flags: readonly FlagDef[], s: FlagSubject): Record<string, string> =>
   Object.fromEntries(flags.map((f) => [f.key, variantOf(f, s)]));
 
-/** A flag that's on/off reads as on when its variant is anything but `off`. */
-export const isOn = (variant: string | undefined) => !!variant && variant !== "off";
-
 /*
  * Rules as words, one per line, for the form, History and Ask Claude:
  *

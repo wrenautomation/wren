@@ -205,24 +205,6 @@ export function edgePath(
   return `M${px(sx)} ${px(sy)}V${px(my - r)}Q${px(sx)} ${px(my)} ${px(sx + dir * r)} ${px(my)}H${px(tx - dir * r)}Q${px(tx)} ${px(my)} ${px(tx)} ${px(my + r)}V${px(ty)}`;
 }
 
-/**
- * Where a line's label sits, across, its last row resting just above the line: at `a`'s side
- * when the line is the only one leaving `a`, else at `b`'s, so labels on lines that fan out or
- * in never share a spot. A line that runs on past columns enters `b` from above or below, so
- * its label stays at `a`'s side. Either way it clears the turns of other lines at that box.
- */
-export function labelAt(
-  a: Box,
-  b: Box,
-  span: number,
-  end: "from" | "to",
-): { x: number; y: number; anchor: "start" | "end" } {
-  const sy = a.y + a.h / 2;
-  if (end === "from" || (span > 1 && (sy < b.y || sy > b.y + b.h)))
-    return { x: a.x + a.w + LABEL_INSET, y: sy - 4, anchor: "start" };
-  return { x: b.x - LABEL_INSET, y: b.y + b.h / 2 - 4, anchor: "end" };
-}
-
 /** Room between nodes: across, between columns then rows; down, side by side then between rows. */
 const GAP = { across: { x: 40, y: 22 }, down: { x: 8, y: 28 } };
 /** Down, the room on the left for a line that skips a step. */

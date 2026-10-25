@@ -13,7 +13,6 @@ import { asks, deliverables, engagements, invoices, pulses, results } from "../s
 import type { FlagFind } from "./flags.js";
 import { healthDays, healthOverrides, healthRatings } from "./schema.js";
 import {
-  ageDays,
   bandOf,
   combine,
   DROP,
@@ -471,6 +470,3 @@ export async function healthPass(
   }
   return { scored: reads.length, flags };
 }
-
-/** The age of an input in days, for the CLI. */
-export const inputAge = (at: string | null, now: Date) => (at ? ageDays(at, now) : null);

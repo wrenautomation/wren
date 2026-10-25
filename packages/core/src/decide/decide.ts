@@ -6,7 +6,7 @@
 import { createHash } from "node:crypto";
 import type { EntryType } from "@typesafe-ai/sdk";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { settingsFor, setWrenSettings } from "../clients/index.js";
 import { type DecisionRow, decisions } from "../decide-schema.js";
@@ -172,27 +172,6 @@ async function keep(db: Queryable, row: typeof decisions.$inferInsert): Promise<
     .where(eq(decisions.ref, row.ref ?? ""));
   if (!k) throw new Error("decision lost");
   return k;
-}
-
-/** The newest decision with an answer on a subject. */
-export async function newestDecision(
-  db: Queryable,
-  kind: DecisionKind,
-  subject: string,
-): Promise<DecisionRow | null> {
-  const [r] = await db
-    .select()
-    .from(decisions)
-    .where(
-      and(
-        eq(decisions.kind, kind),
-        eq(decisions.subject, subject),
-        sql`${decisions.label} is not null`,
-      ),
-    )
-    .orderBy(desc(decisions.at), desc(decisions.id))
-    .limit(1);
-  return r ?? null;
 }
 
 /** A pick as a list shows it: the label and the chance it is kept. */

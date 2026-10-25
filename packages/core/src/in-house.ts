@@ -605,9 +605,6 @@ export const IN_HOUSE: readonly InHouse[] = [
 export const monthlyOf = (t: InHouse): number | null =>
   t.instead.find((i) => i.monthly !== null)?.monthly ?? null;
 
-/** The quiet line: "In place of Calendly". */
-export const insteadLine = (t: InHouse): string => `In place of ${t.instead[0]?.vendor ?? ""}`;
-
 /** The tool a Shop part is, live first. */
 export const inHouseOfPart = (part: string): InHouse | null =>
   pick(IN_HOUSE.filter((t) => t.parts.includes(part)));

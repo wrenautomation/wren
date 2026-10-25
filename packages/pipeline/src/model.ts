@@ -175,9 +175,6 @@ export const flowEdgesFrom = (body: ShapeBody, id: string): ShapeEdge[] =>
 /** A node no flow edge leaves: a journey that reaches it is done. */
 export const isEnd = (body: ShapeBody, id: string): boolean => flowEdgesFrom(body, id).length === 0;
 
-/** The `advance` list of a node that holds journeys; a source has none. */
-export const advanceOf = (n: ShapeNode): Advance[] => (n.kind === "source" ? [] : n.advance);
-
 /**
  * Check a new shape. Returns what is wrong, in plain English. Empty means ok.
  */

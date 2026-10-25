@@ -68,9 +68,6 @@ export const METRICS: ReadonlyArray<readonly [MetricColumn, string, string | nul
 /** Google's cap: 200 DomainStat rows per page. `nextPageToken` is followed however long the window is. */
 const PAGE_SIZE = 200;
 
-/** Google's own line for bulk senders. Not a threshold anything acts on here — a number for a person to read. */
-export const SPAM_RATE_LIMIT = 0.003;
-
 export class PostmasterError extends Error {
   constructor(message: string) {
     super(message);

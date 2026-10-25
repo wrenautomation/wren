@@ -1795,4 +1795,3 @@ export const socialRecords = (signer?: VideoSigner) => [
   activityRecord,
   audienceRecord,
 ];
-export const SOCIAL_RECORDS = socialRecords();

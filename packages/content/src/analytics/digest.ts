@@ -7,8 +7,8 @@
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { desc, sql } from "drizzle-orm";
-import { type ContentDraft, contentDigests, type DigestLine, formatSql } from "../schema.js";
-import { type CadenceGoal, countsFor, type Format, formatOf } from "./catalog.js";
+import { contentDigests, type DigestLine, formatSql } from "../schema.js";
+import { type CadenceGoal, countsFor, type Format } from "./catalog.js";
 import { cadenceGoals } from "./goals.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -292,7 +292,3 @@ export async function latestDigest(
     .limit(1);
   return row?.lines ?? [];
 }
-
-/** A draft's format, for callers holding the row. */
-export const draftFormat = (d: Pick<ContentDraft, "platform" | "extra" | "media">): Format =>
-  formatOf(d.platform, typeof d.extra?.kind === "string" ? d.extra.kind : null, d.media?.kind);

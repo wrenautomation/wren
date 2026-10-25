@@ -22,7 +22,6 @@ export const TOUCH_FEED_MS = 60_000;
 /** The key of Wren's own workspace in the cursors; a client's is its id. */
 export const WREN_CURSOR = "wren";
 export const TOUCH_FEED = "TouchFeed";
-export const TOUCH_FEED_KEY = "all";
 const CURSORS = "cursors";
 
 /** Where each workspace's feed got to: the last touch id told. */

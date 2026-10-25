@@ -69,8 +69,6 @@ const DAY_MS = 86_400_000;
 const ASKS_PER_ENGINE = 20;
 /** An engine that fails this many in a row is off for the week (the Mac asleep, a sign-in gone). */
 const ENGINE_MISSES = 3;
-/** A client's key is `<client>/daily`. */
-export const CLIENT_SEARCH_UNIT = "daily";
 /** Sitemap pages inspected per client pass: under Search Console's per-property daily quota. */
 const CLIENT_INSPECTS = 200;
 

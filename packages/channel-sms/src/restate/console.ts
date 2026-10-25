@@ -7,7 +7,7 @@
  * review requests by hand.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { CALL_OUTCOME_LABELS, outcomeIn } from "@wren/core/calls";
+import { outcomeIn } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
@@ -70,11 +70,6 @@ export interface AskReviewRequest extends PortalRequest {
   phone?: string | null;
   email?: string | null;
 }
-
-/** The outcome as the Done form's select says it. */
-export const OUTCOME_LABELS = Object.fromEntries(
-  CALL_OUTCOMES.map((o) => [o, CALL_OUTCOME_LABELS[o].label]),
-) as Record<CallOutcome, string>;
 
 const outcomeOf = (said: string | null | undefined): CallOutcome | null => {
   const code = outcomeIn(CALL_OUTCOMES, said);

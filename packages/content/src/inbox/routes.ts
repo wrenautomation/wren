@@ -29,10 +29,6 @@ export interface Shut {
   fix: "social" | "mail" | null;
 }
 
-/** Where the fix lives in the portal. */
-export const SOCIAL_PAGE = "/account/social";
-export const MAIL_PAGE = "/account/mail";
-
 const NAME: Record<string, string> = {
   facebook: "Facebook Page",
   google_business: "Business Profile",

@@ -13,8 +13,6 @@ import { readMessageSettings } from "@wren/core/message-settings";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type BounceReadStats, readBounces } from "../inbox/marketing-bounces.js";
-
-export const BOUNCES_KEY = "all";
 export const BOUNCES_COMMAND = "marketing bounces read";
 export const BOUNCES_EVERY_MS = 3_600_000;
 

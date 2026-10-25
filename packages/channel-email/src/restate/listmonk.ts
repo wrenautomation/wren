@@ -127,8 +127,6 @@ export function makeListmonkIntake() {
   });
 }
 export type ListmonkIntake = ReturnType<typeof makeListmonkIntake>;
-
-export const SYNC_KEY = "all";
 export const SYNC_COMMAND = "listmonk sync";
 export const SYNC_EVERY_MS = 3_600_000;
 
