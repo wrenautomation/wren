@@ -12,9 +12,20 @@ import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import { pushPlaybook } from "@wren/content";
+import { WREN } from "@wren/core/access";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
-import { writeSopFiles } from "@wren/learn";
+import {
+  breakdownItem,
+  HUNT_CAP,
+  HUNT_PER_QUERY,
+  huntedIds,
+  huntSop,
+  readQueued,
+  scopeOf,
+  writeSopFiles,
+  youtubeSearch,
+} from "@wren/learn";
 import { ClaudeCodeLlm, fleetKeys, loadLlmEnv } from "@wren/llm";
 import {
   addSource,
@@ -33,6 +44,7 @@ import {
   youtubeSource,
 } from "@wren/research/sops";
 import type { Command } from "commander";
+import { learnReaders } from "./learn-readers.js";
 import { watchKeys } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -152,6 +164,64 @@ export function registerSop(
       if (!(await sync(name)))
         console.log(`${name}: notes.md names no kinds in its front matter; nothing to measure`);
     });
+
+  sop
+    .command("hunt <name>")
+    .description(
+      "seed Learn with candidates for this SOP: the set's followed creators, then the topic searched on YouTube (yt-dlp), most viewed first, up to --cap a day, each tagged with the SOP's name; then read, scored and broken down here, so they reach Competitors → To call",
+    )
+    .option("--cap <n>", "candidates a day for this SOP", (v) => Number.parseInt(v, 10), HUNT_CAP)
+    .option(
+      "--per-query <n>",
+      "finds one search asks for",
+      (v) => Number.parseInt(v, 10),
+      HUNT_PER_QUERY,
+    )
+    .option("--model <name>", "the scoring and breakdown model", "cohere")
+    .option("--no-read", "only queue them: the next `learn read` and `learn breakdown` take them")
+    .action(
+      async (name: string, o: { cap: number; perQuery: number; model: string; read: boolean }) => {
+        const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
+        const scope = scopeOf(notes);
+        if (!scope)
+          throw new Error(
+            `${name}: notes.md names no kinds in its front matter (kinds, platforms, topic, set)`,
+          );
+        const { reader, judgeFor, catalogReader } = learnReaders(settings, rootDir);
+        const say = (line: string) => console.error(line);
+        const out = await withDb(async (db) => {
+          const hunt = await huntSop(db, {
+            client: WREN,
+            name,
+            scope,
+            search: youtubeSearch(settings.ytDlp),
+            catalog: catalogReader(),
+            cap: o.cap,
+            perQuery: o.perQuery,
+          });
+          say(
+            `${name}: ${hunt.before} this day already, ${hunt.revived.length} taken back, ${hunt.saved.length} saved of ${hunt.found} found (${hunt.known} known)${hunt.unfollowed.length ? `; not followed: ${hunt.unfollowed.join(", ")}` : ""}; ${hunt.left} left under the cap`,
+          );
+          const ids = huntedIds(hunt);
+          if (!o.read || !ids.length) return hunt;
+          const judge = judgeFor(db, o.model);
+          const { reads, stopped } = await readQueued(db, ids, {
+            read: reader(),
+            judge,
+            onRead: (r, n, of) =>
+              say(
+                `[${n}/${of}] ${r.id} ${r.read ?? "gone"}${r.verdict ? ` ${r.verdict}` : ""}${r.why ? `: ${r.why}` : ""}`,
+              ),
+          });
+          const broken: number[] = [];
+          for (const r of reads)
+            if (r.read === "read" && (await breakdownItem(db, judge, r.id))) broken.push(r.id);
+          say(`${broken.length} broken down${stopped ? `. Stopped: ${stopped}` : ""}`);
+          return { ...hunt, read: reads, broken };
+        });
+        console.log(JSON.stringify(out, null, 2));
+      },
+    );
 
   sop
     .command("build <name>")

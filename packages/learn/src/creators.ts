@@ -237,7 +237,8 @@ async function xPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]>
     }));
 }
 
-interface YtDlpEntry {
+/** One entry of yt-dlp's playlist view (`--flat-playlist`): a TikTok profile, a YouTube search. */
+export interface YtDlpEntry {
   id?: string;
   url?: string;
   webpage_url?: string;
@@ -246,10 +247,37 @@ interface YtDlpEntry {
   timestamp?: number;
   duration?: number;
   uploader?: string;
+  channel?: string;
   thumbnails?: { url?: string }[];
   view_count?: number;
   like_count?: number;
   comment_count?: number;
+}
+
+/**
+ * yt-dlp's playlist view of `target` (a profile, a channel's videos, `ytsearchN:<words>`), no
+ * downloads: the entries with an id, in yt-dlp's order. `range` is 1-based and inclusive. Mac only
+ * (a home IP).
+ */
+export async function flatPlaylist(
+  ytDlp: string,
+  target: string,
+  range?: { start: number; end: number },
+): Promise<YtDlpEntry[]> {
+  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
+  const { stdout } = await run(
+    cmd,
+    [
+      ...pre,
+      ...["-J", "--flat-playlist", "--no-warnings"],
+      ...(range
+        ? ["--playlist-start", String(range.start), "--playlist-end", String(range.end)]
+        : []),
+      target,
+    ],
+    { maxBuffer: 64 * 1024 * 1024, timeout: 180_000 },
+  );
+  return ((JSON.parse(stdout) as { entries?: YtDlpEntry[] }).entries ?? []).filter((e) => e.id);
 }
 
 /**
@@ -263,20 +291,10 @@ export async function tiktokPage(
 ): Promise<CreatorPage> {
   const skip = Number(page.after ?? 0);
   const limit = page.limit ?? NEWEST;
-  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
-  const { stdout } = await run(
-    cmd,
-    [
-      ...pre,
-      ...["-J", "--flat-playlist", "--no-warnings"],
-      ...["--playlist-start", String(skip + 1), "--playlist-end", String(skip + limit)],
-      `https://www.tiktok.com/@${handle}`,
-    ],
-    { maxBuffer: 64 * 1024 * 1024, timeout: 180_000 },
-  );
-  const entries = ((JSON.parse(stdout) as { entries?: YtDlpEntry[] }).entries ?? []).filter(
-    (e) => e.id,
-  );
+  const entries = await flatPlaylist(ytDlp, `https://www.tiktok.com/@${handle}`, {
+    start: skip + 1,
+    end: skip + limit,
+  });
   const posts = entries.map((e) => {
     const text = (e.description ?? e.title ?? "").trim();
     return {

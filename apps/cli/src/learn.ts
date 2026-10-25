@@ -11,7 +11,6 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import { contentPlaybooks } from "@wren/content/schema";
 import { WREN } from "@wren/core/access";
 import type { Db } from "@wren/db";
 import {
@@ -21,23 +20,18 @@ import {
   breakdownItem,
   breakdowns,
   type CatalogReader,
-  type CreatorPage,
   catalogSummary,
   creatorOf,
   embedMissing,
   FACT_CALLS,
   follow,
-  instagramPage,
   isFactCall,
   itemPage,
   items,
-  judges,
   listItems,
   mark,
   moveItems,
   needsMac,
-  type Practice,
-  practiceOf,
   pullCreators,
   readCatalog,
   readItem,
@@ -52,7 +46,6 @@ import {
   sourcesByKind,
   TELLS,
   type Tell,
-  tiktokPage,
   tiktokReader,
   unfollowSources,
   unscore,
@@ -68,25 +61,11 @@ const itemKindOf = (raw: string): ItemKind => {
   throw new Error(`--kind is one of ${ITEM_KINDS.join(", ")}`);
 };
 
-import {
-  ClaudeCodeLlm,
-  fleetKeys,
-  gatewayEmbed,
-  type LlmClient,
-  loadLlmEnv,
-  makeLlm,
-} from "@wren/llm";
-import {
-  addSource,
-  audioSource,
-  extractPoints,
-  videoSource,
-  youtubeSource,
-} from "@wren/research/sops";
+import { ClaudeCodeLlm, gatewayEmbed } from "@wren/llm";
+import { addSource, extractPoints } from "@wren/research/sops";
 import type { Command } from "commander";
 import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import { ingressSites } from "./sites.js";
-import { watchKeys } from "./video-watch.js";
+import { learnReaders } from "./learn-readers.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -110,25 +89,11 @@ const idsOf = (raw: string[]): number[] => {
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 const BY = "cli";
-/** A page of a creator's posts that gets no answer in this long is given up on: Restate would retry it for ever. */
-const PAGE_MS = 120_000;
 /** Progress goes to stderr, a line each, so stdout stays the JSON answer. */
 const say = (line: string) => console.error(line);
 /** Seconds as `4m12s`. */
 const spent = (s: number) =>
   s >= 60 ? `${Math.floor(s / 60)}m${String(s % 60).padStart(2, "0")}s` : `${s}s`;
-
-/** Each pushed SOP's newest text: what an item is scored against. */
-async function practicesOf(db: Db): Promise<Practice[]> {
-  const rows = await db
-    .selectDistinctOn([contentPlaybooks.sop], {
-      sop: contentPlaybooks.sop,
-      text: contentPlaybooks.text,
-    })
-    .from(contentPlaybooks)
-    .orderBy(contentPlaybooks.sop, desc(contentPlaybooks.createdAt));
-  return rows.map((r) => practiceOf(r.sop, r.text));
-}
 
 const tellOf = (v: string | undefined): Tell | null => {
   if (!v) return null;
@@ -148,34 +113,7 @@ export function registerLearn(
   const inWorkspace = <T>(fn: (db: Db, client: string) => Promise<T>) =>
     withDb(async (db) => fn(db, await dbs.workspace()));
   const sopsDir = resolve(rootDir, settings.sopsDir);
-  /** The `sop add` readers: YouTube by captions plus the screen, other video by Gemini, audio cut by ffmpeg. */
-  const reader = (): VideoReader => {
-    // Gemini keys come from llm.env; never logged.
-    loadLlmEnv(settings.llmEnvPath, rootDir);
-    const geminiKeys = fleetKeys(process.env, "gemini");
-    return async ({ url, kind, title, creator, mediaUrl }) => {
-      const youtube = /^https:\/\/youtube\.com\//.test(url);
-      // A film is watched, never read from its captions: its cuts are the point (`filmFacts`).
-      const s =
-        kind === "episode" && mediaUrl
-          ? await audioSource(mediaUrl, { url, title, creator, geminiKeys })
-          : kind === "film"
-            ? await videoSource(url, settings.ytDlp, undefined, {
-                ...watchKeys(settings, rootDir),
-                sceneDetect: settings.sceneDetect,
-              })
-            : youtube
-              ? await youtubeSource(url, settings.ytDlp, undefined, {
-                  geminiKeys,
-                })
-              : await videoSource(url, settings.ytDlp, undefined, watchKeys(settings, rootDir));
-      return { file: s.name, md: s.md };
-    };
-  };
-  const scorer = (model: string): LlmClient => {
-    loadLlmEnv(settings.llmEnvPath, rootDir);
-    return makeLlm(model, process.env);
-  };
+  const { reader, judgeFor, catalogReader } = learnReaders(settings, rootDir);
   const writer = (model: string) => {
     const llm = new ClaudeCodeLlm(model, { timeoutMs: 1_800_000 });
     return {
@@ -186,9 +124,6 @@ export function registerLearn(
     };
   };
 
-  /** Each workspace's judge: Wren's pushed SOPs; a client's own, on its models allowance. */
-  const judgeFor = (db: Db, model: string) =>
-    judges({ db, llm: scorer(model), wrenPractices: () => practicesOf(db) });
   /** After a read: a client's item's asked SOPs go into its Notes. */
   const notesFor = async (db: Db, client: string, itemId: number) =>
     client === WREN
@@ -242,22 +177,6 @@ export function registerLearn(
     return { read: out, sops };
   };
 
-  /** Instagram profiles page through the desk (Graph discovery), TikTok's by yt-dlp here. */
-  const catalogReader = (): CatalogReader => {
-    const sites = ingressSites(settings, "wren:learn", undefined, PAGE_MS);
-    const paged = (kind: string, handle: string, page: Promise<CreatorPage>) =>
-      page.catch((err: unknown) => {
-        if (err instanceof Error && err.name === "TimeoutError")
-          throw new Error(`${kind} @${handle}: no answer in ${PAGE_MS / 1000}s (is the desk up?)`);
-        throw err;
-      });
-    return (kind, handle, page) =>
-      kind === "instagram"
-        ? paged(kind, handle, instagramPage(sites, handle, page))
-        : kind === "tiktok"
-          ? tiktokPage(settings.ytDlp, handle, page)
-          : null;
-  };
   /**
    * Queue a creator's next `reels` posts Learn has not taken, then read and score them here, one
    * at a time. It says on stderr what it is doing (a page, a reel, the end); the JSON answer

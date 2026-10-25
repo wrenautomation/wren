@@ -10,7 +10,7 @@ import { and, asc, desc, eq, inArray, isNull, type SQL, sql } from "drizzle-orm"
 import { learnWorthCall } from "./decide.js";
 import { nearItems } from "./embed.js";
 import { cleanUrl, kindOf, needsMac, typeOf, youtubeThumb } from "./links.js";
-import { type ItemKind, items, sopSources, sources, type Via } from "./schema.js";
+import { type ItemKind, items, type PostStats, sopSources, sources, type Via } from "./schema.js";
 
 export interface Saved {
   id: number;
@@ -25,7 +25,8 @@ export interface Saved {
 /**
  * Save a link. The same link twice in a workspace is one item: a second save only marks it saved
  * again. One the feed already brought keeps its read and score, and comes back from done. `kind`
- * overrides what the link says: a launch film on YouTube is a `film`, not a `video`.
+ * overrides what the link says: a launch film on YouTube is a `film`, not a `video`. A save by
+ * hand is a worth call on the item; a hunt's (`worth: false`) is not: nobody chose it yet.
  */
 export async function saveLink(
   db: Db,
@@ -36,6 +37,11 @@ export async function saveLink(
     via: Via;
     title?: string | null;
     kind?: ItemKind;
+    /** Who made it, when the saver knows (a hunt's search result). */
+    creator?: string | null;
+    /** Its public numbers now, when the saver has them; a later read keeps them. */
+    stats?: PostStats | null;
+    worth?: boolean;
   },
 ): Promise<Saved> {
   const url = cleanUrl(p.url);
@@ -50,6 +56,9 @@ export async function saveLink(
       type: typeOf(url, kind),
       thumbnailUrl: youtubeThumb(url),
       title: pgSafe(p.title?.trim() || url),
+      creator: p.creator ? pgSafe(p.creator) : null,
+      stats: p.stats ?? null,
+      statsAt: p.stats ? now : null,
       savedAt: now,
       savedBy: p.by,
       savedVia: p.via,
@@ -61,6 +70,7 @@ export async function saveLink(
         savedAt: sql`coalesce(${items.savedAt}, ${now.toISOString()}::timestamptz)`,
         savedBy: sql`coalesce(${items.savedBy}, ${p.by})`,
         savedVia: sql`coalesce(${items.savedVia}, ${p.via})`,
+        creator: sql`coalesce(${items.creator}, ${p.creator ? pgSafe(p.creator) : null})`,
         archivedAt: null,
       },
     })
@@ -71,7 +81,7 @@ export async function saveLink(
       fresh: sql<boolean>`xmax = 0`,
     });
   if (!row) throw new Error("save returned no row");
-  await learnWorthCall(db, p.client, row.id, "save", p.by);
+  if (p.worth !== false) await learnWorthCall(db, p.client, row.id, "save", p.by);
   return { id: row.id, url, kind: row.kind, fresh: !!row.fresh, unread: !row.readAt };
 }
 

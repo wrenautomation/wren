@@ -51,6 +51,7 @@ Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/calls.ts`, `pa
 | `wren learn call <id> <path> keep\|tune\|drop [words]` | writes a call (`show <id>` lists the paths) |
 | Learn → Competitors → To call (`learn.breakdown` view `to-call`) | read: broken-down pieces with no call yet, best reach first |
 | `wren sop sync <name>` (and `sop build`) | read: `learn.standards` and the calls into the SOP folder |
+| `wren sop hunt <name>` ([[sop-build]]) | write: candidates for the SOP saved and tagged with its name (`saveLink` with `creator`, `stats`, no worth call), the feed's `IN_FEED_BEFORE` items revived, then read and broken down |
 | `wren lake sql` | read: `learn.standards` as is |
 
 ## See

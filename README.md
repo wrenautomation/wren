@@ -218,6 +218,12 @@ and `in <group> <id|email>` (exits 1 when not). A rule can be inline, `@file` or
 ingests a source into `../sops/<name>/sources/` (a private folder, its own git). A video is
 its captions plus an `## On screen` section: Gemini (llm.env keys) reads the URL in clips and
 transcribes the documents and slides shown; `--no-screen` skips that.
+`wren sop hunt <name> [--cap 10] [--per-query 30] [--model cohere] [--no-read]` seeds Learn with
+candidates for the SOP: the followed creators its `set` names (a channel's items the feed had archived
+as seen come back; Instagram and TikTok profiles are walked), then its `topic` searched on YouTube
+(yt-dlp, one search per comma phrase, most viewed first), up to `--cap` a day, each tagged with the
+SOP's name; links Learn already has are left alone. Then it reads, scores and breaks them down here
+(`--no-read` only queues them), so they reach Competitors → To call.
 `wren sop sync <name>` writes `standard.md` (the numbers off `learn.standards` for the pieces the
 front matter of `notes.md` names: `kinds`, `platforms`, `topic`, `set`) and `calls.md` (your keep /
 tune / drop calls on those pieces, rolled up and cited `[learn:<id>]`).

@@ -14,6 +14,9 @@ import { CREATOR_KINDS, creatorSource } from "./creators.js";
 import { cleanUrl, creatorSite, kindOf, typeOf, youtubeThumb } from "./links.js";
 import { items, type SourceKind, sources, type Tell } from "./schema.js";
 
+/** What a feed's first read marks what it already held with: archived, never read; a hunt takes one back. */
+export const IN_FEED_BEFORE = "In the feed before you followed it.";
+
 export interface FeedItem {
   url: string;
   title: string;
@@ -367,7 +370,7 @@ export async function follow(
       .values(
         feed.items.map((i) => ({
           ...rowOf(p.client, row.id, kind, i),
-          why: "In the feed before you followed it.",
+          why: IN_FEED_BEFORE,
           archivedAt: new Date(),
         })),
       )

@@ -7,6 +7,7 @@ export * from "./drive.js";
 export * from "./embed.js";
 export * from "./feeds.js";
 export * from "./film.js";
+export * from "./hunt.js";
 export * from "./items.js";
 export * from "./links.js";
 export * from "./pictures.js";

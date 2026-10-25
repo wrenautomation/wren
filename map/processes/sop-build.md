@@ -8,11 +8,11 @@ produces: []
 
 # sop-build
 
-A video, a Drive folder or a file becomes a source file; one model call turns the folder into the next SOP.md.
+A hunt seeds Learn with candidates for an SOP; a video, a Drive folder or a file becomes a source file; one model call turns the folder into the next SOP.md.
 
 ## Input → Movement → Output
 
-`wren sop add <name> <youtube url | other video url | drive:<folderId> | file>` writes `sources/<kind>-<id>.md` (front matter with `priority`) under `<sopsDir>/<name>/`, a private folder outside this repo (`../sops` by default). `wren sop sync <name>` reads the scope in `notes.md`'s front matter (`kinds`, `platforms`, `topic`, `set`) and writes `standard.md` (the numbers off `learn.standards` for those pieces) and `calls.md` (his keep / tune / drop calls on them, rolled up: [[learn/breakdown]]). `wren sop build <name>` syncs first (`--no-sync` skips), then reads `notes.md` (front matter stripped), `calls.md`, `standard.md`, the current `SOP.md` and every source, highest priority first, and asks Claude Code (Opus) for the next SOP.md. `sync` and `push` touch the database: `wren sop push <name> --platform <p>` stores SOP.md as that platform's [[content/playbook]], which every draft prompt then carries.
+`wren sop hunt <name>` reads the same front matter and seeds Learn: the `set`'s followed creators (a YouTube channel's items archived as `IN_FEED_BEFORE` come back as candidates; an Instagram or TikTok profile is walked like `learn catalog`), then the `topic` searched on YouTube by yt-dlp, most viewed first, until `--cap` (10) candidates in a day, each saved with the SOP's kind, its creator and views, and tagged with the SOP's name; then read, scored and broken down on this Mac (`packages/learn/src/hunt.ts`, `apps/cli/src/learn-readers.ts`). `wren sop add <name> <youtube url | other video url | drive:<folderId> | file>` writes `sources/<kind>-<id>.md` (front matter with `priority`) under `<sopsDir>/<name>/`, a private folder outside this repo (`../sops` by default). `wren sop sync <name>` reads the scope in `notes.md`'s front matter (`kinds`, `platforms`, `topic`, `set`) and writes `standard.md` (the numbers off `learn.standards` for those pieces) and `calls.md` (his keep / tune / drop calls on them, rolled up: [[learn/breakdown]]). `wren sop build <name>` syncs first (`--no-sync` skips), then reads `notes.md` (front matter stripped), `calls.md`, `standard.md`, the current `SOP.md` and every source, highest priority first, and asks Claude Code (Opus) for the next SOP.md. `sync` and `push` touch the database: `wren sop push <name> --platform <p>` stores SOP.md as that platform's [[content/playbook]], which every draft prompt then carries.
 
 ## Why this shape
 
@@ -20,6 +20,7 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, call on pieces, 
 
 ## Steps
 
+0. `huntSop` (`packages/learn/src/hunt.ts`): `tagOf(name)` is the tag; `before` counts items with it saved in the last day; set creators by `lower(sources.name)` (unfollowed names are listed, never followed for him); a feed's `IN_FEED_BEFORE` items not read are revived (`archivedAt`, `why` cleared, `needsMac` set, kind set when the scope names one); `readCatalog` for a creator kind; `phrasesOf(topic)` → one `TopicSearch` each (`youtubeSearch`: `flatPlaylist(ytDlp, "ytsearchN:q")`), `rankFinds` merges by url, views desc; known urls skipped (his archive stays), the rest `saveLink` with `worth: false` (no `learn_worth` call: the hunt's picks are not his), `creator`, `stats`; `tagItems`. The CLI then `readQueued` + `breakdownItem` on `huntedIds`.
 1. `youtubeSource` (`packages/research/src/sops/index.ts`): `yt-dlp -J`, the English json3 track, `captionsMarkdown`, then `screenText` (Gemini on the URL per clip).
 2. `videoSource`: the `watch` core (`packages/video-watch/src/watch.ts`, package `@wren/video-watch`; `wren video watch` and `video look --with cohere` call the same one): `yt-dlp -j --no-simulate -S res:540` (`download`), ffmpeg scene cuts and a 360p frame every 2 s, Cohere Transcribe for the speech, `command-a-vision` for the on-screen text in batches of 8 frames. Each line carries its frame time; a frame with no line, or one the model refused after one text-only retry, is `(not read)`, never filled. Gemini (`askShown`, `gemini.ts`) adds an `## On screen (Gemini)` section only when a key still works, else it is skipped with no error. Source body: `## Caption`, `## Speech`, `## On screen`, `## Cuts`.
 3. `driveSources`: walk the folder, export each Doc as text (`apps/cli/src/sop.ts` `autobrowseDrive`).
@@ -29,17 +30,17 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, call on pieces, 
 
 ## If you change this
 
-- **Hits:** `apps/cli/src/sop.ts`, settings `ytDlp`, `ffmpeg`, `sopsDir`, `autobrowseDir`; the COHERE keys (speech and screen of a non-YouTube video: with none, `sop add` of a reel fails); a new fact key in a breakdown needs a column in `learn.standards` and a line in `NUMBERS` or `SHARES` (`standard.ts`) before a standard counts it; `scopeOf` reads only `key: a, b` lines.
+- **Hits:** `apps/cli/src/sop.ts`, `apps/cli/src/learn-readers.ts` (the reader, judge and creator pager `wren learn` shares with `sop hunt`), settings `ytDlp`, `ffmpeg`, `sopsDir`, `autobrowseDir`; the COHERE keys (speech and screen of a non-YouTube video: with none, `sop add` of a reel fails); a new fact key in a breakdown needs a column in `learn.standards` and a line in `NUMBERS` or `SHARES` (`standard.ts`) before a standard counts it; `scopeOf` reads only `key: a, b` lines.
 - **Does not hit:** studies (`packages/research/src/studies`): those are web research into a database; this reads curated sources into a file.
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `wren sop` | add, sync, build, extract, ls, push |
+| `wren sop` | hunt, add, sync, build, extract, ls, push |
 | autobrowse `drive` site | exports Docs for `drive:` sources |
 | `~/.claude/skills/sop-<name>` | symlink from `sop link`; `SKILL.md` points at SOP.md and refs/ |
 
 ## See
 
-- Source: `packages/research/src/sops/index.ts`, `packages/learn/src/standard.ts`; the video reader is its own package `packages/video-watch/src/` (`watch.ts`, `gemini.ts`, `tools.ts`); `apps/cli/src/sop.ts`, `apps/cli/src/video-watch.ts`
+- Source: `packages/research/src/sops/index.ts`, `packages/learn/src/standard.ts`, `packages/learn/src/hunt.ts`; the video reader is its own package `packages/video-watch/src/` (`watch.ts`, `gemini.ts`, `tools.ts`); `apps/cli/src/sop.ts`, `apps/cli/src/video-watch.ts`
