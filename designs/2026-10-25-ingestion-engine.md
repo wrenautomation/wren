@@ -99,9 +99,9 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
 
 ## Phases
 
-0. **Rename spine to executor.** Code, Restate service (both names served for one release while
-   the phone Worker moves to `Executor/hook`), the views `spine_events` and `spine_executions`,
-   map cards. Dated design docs keep their words.
+0. **Rename spine to executor.** Done 2026-10-25. Code, Restate services `Executor` and
+   `ExecutorClock`, the phone Worker's `Executor/hook`, views `executor_events` and `executions`
+   (migration 0341), map cards. Dated design docs keep their words.
 1. **Content riders and the competitor line.** Rider kind on journeys; documents and findings
    as above; his calls remap from jsonb paths to finding ids; the find, read, extract, call
    and standard stations; the launch-films line on Wren's map. Builds 1 to 10 of the analyzer
@@ -121,3 +121,7 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
 - 2026-10-25: William: one general system on the newest stack (metro map → NFA → executor), no
   drift. Aggregate vs per-person outputs; findings with proof; one document store; decide
   modes for his calls. Old hardcoded workflows port last. Rename spine to executor.
+- 2026-10-25: phase 0 built. No clock or pending wait existed on main or any client database, so
+  no alias was served; the phone Worker deploys in the same run. `Spine` and `SpineClock` stay on
+  their last Restate deployment, as `Evolution` and `DealsConsole` do. One kept deployment each; no
+  retired service has been removed from Restate yet.
