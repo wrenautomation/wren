@@ -128,6 +128,15 @@ describe("rankPost", () => {
     expect(rank(post({ headline: "Owner, Northwind Staffing", text })).off).toBeNull();
     expect(rank(post({ headline: "Recruiter", text })).off).toMatch(/^not about recruit/);
     expect(rank(post({ text })).off).toMatch(/^not about recruit/);
+    // Someone we invited is in the world already.
+    const known = rankPost(post({ headline: "Recruiter", text }), {
+      topics: [],
+      key: true,
+      foundBy: "person: x",
+      maxAgeHours: 72,
+      now: NOW,
+    });
+    expect(known.off).toBeNull();
   });
 
   it("job posts are off with their reason", () => {
@@ -217,6 +226,32 @@ describe("proposeTopics", () => {
     expect(asked[0]).toContain("Owners of small firms.");
     expect(asked[0]).toContain('"recruiting agency" 3/20');
     expect(asked[0]).toContain('Found none of their posts: "client reactivation"');
+  });
+
+  it("with the trade's words, keeps only phrases that name the trade", async () => {
+    const asked: string[] = [];
+    const llm = new FakeLlm({
+      respond: (prompt) => {
+        asked.push(prompt);
+        return JSON.stringify({
+          topics: [
+            "our clients",
+            "Recruiting firm growth",
+            "staffing agency fees",
+            "sales pipeline",
+          ],
+        });
+      },
+    });
+    const out = await proposeTopics(llm, {
+      about: "Owners of small firms.",
+      n: 3,
+      yields: [],
+      known: [],
+      audience: ["recruit", "staffing"],
+    });
+    expect(out).toEqual(["Recruiting firm growth", "staffing agency fees"]);
+    expect(asked[0]).toContain("one of these words: recruit, staffing");
   });
 
   it("an unreadable answer is no new words", async () => {

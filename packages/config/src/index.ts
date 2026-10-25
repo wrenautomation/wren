@@ -533,7 +533,7 @@ export const settingsSchema = z.object({
     .default("10:00-17:00"),
   reachDays: z
     .string()
-    .default("1,2,3,4,5")
+    .default("1,2,3,4,5,6,7")
     .transform((s) => s.split(",").map((x) => Number(x.trim())))
     .pipe(z.array(z.number().int().min(1).max(7)).min(1)),
   reachGapSeconds: z.coerce.number().int().positive().default(120),

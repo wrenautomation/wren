@@ -83,8 +83,10 @@ accepted → Replies "Accepted your invite" → Message (manual DM, his click)
 
 ## Limits and cost
 
-- 20 a day on weekdays is 100 a week. That is at LinkedIn's usual weekly ceiling for a free
-  account, so the ramp starts at 1: 1, 4, 7, 10, 13, 16, 19, then 20 from the eighth send day.
+- 20 a day, every day, is 140 a week (2026-10-25). LinkedIn's usual weekly ceiling for a free
+  account is about 100. When LinkedIn shows its weekly limit, the connect flow answers it,
+  autobrowse refuses the call with a 429 and a day's wait, and the tick holds every queued invite
+  of that account for a day. The ramp starts at 1: 1, 4, 7, 10, 13, 16, 19, then 20.
 - Page loads on the Mac: 20 invites, 4 connection reads and up to 20 withdraws, about 45 a day.
   $0. Restate: about 30 actions a day on top of the free 100k a month.
 - A withdrawn invite can't be sent to the same person again for 3 weeks. We never re-invite.
@@ -108,3 +110,7 @@ accepted → Replies "Accepted your invite" → Message (manual DM, his click)
 - 2026-10-06: William said go: "linkedin should start doing 20 invites a day with a rampup. do 1,
   then 4, then 7 all the way until we get to 20." The ramp counts send days (weekdays), so a
   weekend doesn't jump it.
+- 2026-10-25: William: "20 invites a day for 140 a week", on every outreach platform. The reach
+  window opens all 7 days (`DEFAULT_POLICY.days`, `WREN_REACH_DAYS` default 1-7); the ramp counts
+  every day. LinkedIn's weekly limit holds the lane for a day (`limitWaitMs` in `tick.ts`), so
+  the week's extra invites wait instead of each one failing.

@@ -216,7 +216,7 @@ export const OUTREACH_COMPONENTS = [
     channels: ["dm"],
     name: "LinkedIn invites",
     blurb:
-      "Proposes the day's best people on LinkedIn, up to 20 a weekday: decision-makers at big firms, and people who engaged with you first. Each invite waits on your yes.",
+      "Proposes the day's best people on LinkedIn, up to 20 a day: decision-makers at big firms, and people who engaged with you first. Each invite waits on your yes.",
     icon: "people",
     for: "client",
     ready: true,
@@ -308,7 +308,7 @@ export const OUTREACH_COMPONENTS = [
           says: "How many a day, and how fresh.",
           built: "settings.perDay, maxAgeHours",
         },
-        { is: "needs", says: "autobrowse's post reads on linkedin@wren, 12 a day.", built: null },
+        { is: "needs", says: "autobrowse's post reads on linkedin@wren, 40 a day.", built: null },
         { is: "fixed", says: "Never his personal login or the research alt." },
         { is: "fixed", says: "No comment posts without your yes in To approve." },
         {

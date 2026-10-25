@@ -1,14 +1,14 @@
 /**
  * Comments on others' posts on LinkedIn, X and Instagram (designs/2026-10-07-posting-flow.md, item
  * 4; designs/2026-10-07-reach-targeting.md). Each platform has its own settings block
- * (`linkedin.comments`, `x.comments`, `instagram.comments`); an empty account is off. Once a day
- * the watch reads recent posts as that account (never his personal LinkedIn or the research alt):
+ * (`linkedin.comments`, `x.comments`, `instagram.comments`); an empty account is off. Each six
+ * hours, until the day's comments wait, the watch reads recent posts as that account (never his personal LinkedIn or the research alt):
  * topic searches, pages' posts, key people's posts. Code ranks them, the model drafts a comment
  * for the best few, and each waits in To approve (`queued`). Only his Comment posts it, then a
  * like on the post and a follow of its author when the settings ask, each a touch.
  *
- * Code keeps out what no buyer reads: job ads, posts with none of the audience's words, and posts
- * under the settings' minimum fit. A draft may claim only Wren's facts (`@wren/core/facts`); the
+ * Code keeps out what no buyer reads: job ads, posts with none of the audience's words (unless by
+ * an owner in that world or someone we invited), and posts under the settings' minimum fit. A draft may claim only Wren's facts (`@wren/core/facts`); the
  * guard (`@wren/core/grounded`) redrafts a made-up claim or number once, then drops it.
  */
 
@@ -70,14 +70,17 @@ const LENGTH: Readonly<Record<ReachPostPlatform, string>> = {
   instagram: "One or two sentences, under 300 characters.",
 };
 /**
- * Reads a pass, at most, under autobrowse's caps: LinkedIn meters `posts` at 12 a day for
- * linkedin@wren (two spare); X searches 50; an Instagram search is one read plus a page per post.
+ * Reads a pass, at most, under autobrowse's caps; a pass runs every six hours until the day's
+ * comments wait (`watch.ts`). LinkedIn meters `posts` at 40 a day for linkedin@wren; X searches
+ * 50; an Instagram search is one read plus a page per post, 10 searches a day.
  */
 const READS_PER_PASS: Readonly<Record<ReachPostPlatform, number>> = {
   linkedin: 10,
   x: 10,
-  instagram: 3,
+  instagram: 2,
 };
+/** Words a search leaves out (LinkedIn `NOT`, X `-`): job ads drown the owners' own posts. */
+const JOB_WORDS = ["hiring", "jobs", "vacancy"] as const;
 /** Posts read off one Instagram search: each is a page load. */
 const IG_POSTS_PER_SEARCH = 6;
 /** Key people read a pass, at most: each is one read. */
@@ -140,7 +143,7 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
        * handles or `in/<vanity>` for a person, X or Instagram usernames.
        */
       pages: z.array(z.string().trim().min(1)).default([]),
-      /** Also read posts by people we know: accepted invites, people who engaged with us. */
+      /** Also read posts by people we know: people we invited, people who engaged with us. */
       people: z.boolean().default(true),
       /** LinkedIn search only: keep authors whose title has these words ("founder"). */
       authorTitle: z.string().trim().max(100).default(""),
@@ -374,7 +377,12 @@ export function postReader(
             "linkedin",
             "GET",
             "/search/results/content",
-            { keywords, max: 20, since, ...(o.authorTitle ? { authorTitle: o.authorTitle } : {}) },
+            {
+              keywords: `${keywords} ${JOB_WORDS.map((w) => `NOT ${w}`).join(" ")}`,
+              max: 20,
+              since,
+              ...(o.authorTitle ? { authorTitle: o.authorTitle } : {}),
+            },
             account,
           )
         ).posts ?? []
@@ -431,7 +439,7 @@ export function postReader(
         const day = new Date(o.now.getTime() - SINCE_DAYS[since] * 86_400_000)
           .toISOString()
           .slice(0, 10);
-        const query = `${keywords} lang:en -filter:replies -filter:retweets since:${day}`;
+        const query = `${keywords} ${JOB_WORDS.map((w) => `-${w}`).join(" ")} lang:en -filter:replies -filter:retweets since:${day}`;
         return own(
           (
             await sites.call<Out>(
@@ -696,8 +704,8 @@ export function rankPost(
   );
   const off =
     jobPost(p.text, head) ??
-    // An owner in the audience's world may not name it in the post; anyone else must.
-    (audience.length && !said && author.kind !== "buyer"
+    // An owner in the audience's world, or someone we invited, may not name it; anyone else must.
+    (audience.length && !said && !o.key && author.kind !== "buyer"
       ? `not about ${audience.slice(0, 3).join(", ")}`
       : null);
   const why = [
@@ -1216,6 +1224,8 @@ export async function proposeTopics(
     n: number;
     yields: readonly TopicYield[];
     known: readonly string[];
+    /** The trade's words (`recruit`, `staffing`): each new phrase holds one, so a search finds the trade. */
+    audience?: readonly string[];
   },
 ): Promise<string[]> {
   const on = NAME[o.platform ?? "linkedin"];
@@ -1228,7 +1238,7 @@ export async function proposeTopics(
   const out = await completeAndParse(
     llm,
     `Who we want to find on ${on}: ${o.about}
-We search ${on} posts by keywords to find posts these people wrote themselves about running their business. Give ${o.n + 3} new search phrases, 2 to 4 words each, worded the way they write in their own posts: first person, about their clients, sales, pipeline and the firm.
+We search ${on} posts by keywords to find posts these people wrote themselves about running their business. Give ${o.n + 3} new search phrases, 2 to 4 words each, worded the way they write in their own posts: first person, about their clients, sales, pipeline and the firm.${o.audience?.length ? ` Each phrase names their trade with one of these words: ${o.audience.join(", ")} (a word may take an ending: recruit, recruiting).` : ""}
 Leave out words that bring job ads, job seekers or career advice (hiring, job, role, apply, career), and phrases that vendors who sell to them put in their ads.
 ${good.length ? `Found their posts before (on target of read): ${good.map((y) => `"${y.topic}" ${y.onTarget}/${y.read}`).join(", ")}.\n` : ""}${bad.length ? `Found none of their posts: ${bad.map((y) => `"${y.topic}"`).join(", ")}.\n` : ""}Answer JSON only: {"topics": ["..."]}`,
     TOPICS,
@@ -1243,6 +1253,8 @@ ${good.length ? `Found their posts before (on target of read): ${good.map((y) =>
       .trim();
     const n = t.split(" ").length;
     if (!t || n > 5 || t.length > 60 || NOT_A_TOPIC.test(t) || known.has(keyOf(t))) continue;
+    if (o.audience?.length && !o.audience.some((a) => t.toLowerCase().includes(a.toLowerCase())))
+      continue;
     known.add(keyOf(t));
     kept.push(t);
   }
@@ -1259,7 +1271,8 @@ async function keyPeople(
   now: Date,
   limit = PEOPLE_PER_PASS,
 ): Promise<KeyPerson[]> {
-  const day = now.toISOString().slice(0, 10);
+  // A new draw each pass (passes run hours apart), so no one is read twice in a day.
+  const seed = now.toISOString().slice(0, 13);
   if (platform !== "linkedin")
     return (await db.execute(sql`
       SELECT handle, coalesce(name, handle) name FROM (
@@ -1267,11 +1280,11 @@ async function keyPeople(
         JOIN touches t ON t.handle_id = h.id AND t.direction = 'theirs'
         WHERE h.platform = ${platform} AND h.handle ~ '^[a-z0-9._]{1,30}$'
       ) k
-      ORDER BY md5(handle || ${day}) LIMIT ${limit}`)) as unknown as KeyPerson[];
+      ORDER BY md5(handle || ${seed}) LIMIT ${limit}`)) as unknown as KeyPerson[];
   return (await db.execute(sql`
     SELECT vanity handle, name FROM (
       SELECT lower(c.handle) vanity, c.name FROM reach_contacts c
-      WHERE c.platform = 'linkedin' AND c.connected_at IS NOT NULL AND c.name IS NOT NULL
+      WHERE c.platform = 'linkedin' AND c.state IN ('enrolled', 'connected') AND c.name IS NOT NULL
       UNION
       SELECT lower(substring(a.actor_url from 'linkedin\\.com/in/([^/?#]+)')), a.actor
       FROM social_activity a
@@ -1279,7 +1292,7 @@ async function keyPeople(
         AND a.actor_url ~* 'linkedin\\.com/in/[^/?#]+'
         AND a.kind IN ('reaction', 'mention', 'follow')
     ) k WHERE vanity IS NOT NULL
-    ORDER BY md5(vanity || ${day}) LIMIT ${limit}`)) as unknown as KeyPerson[];
+    ORDER BY md5(vanity || ${seed}) LIMIT ${limit}`)) as unknown as KeyPerson[];
 }
 
 export interface PostsStats {
@@ -1368,6 +1381,7 @@ export async function postsPass(
               n: s.newTopics,
               yields,
               known: s.topics,
+              audience: s.audience,
             });
             return { topics, error: null };
           } catch (err) {

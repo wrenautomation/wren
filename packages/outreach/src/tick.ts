@@ -594,6 +594,12 @@ async function recordNotSent(
   now: Date,
   stats: TickStats,
 ): Promise<void> {
+  const limit = limitWaitMs(reason);
+  if (limit !== null) {
+    await holdLane(db, c, new Date(now.getTime() + limit), reason);
+    hold(stats, "cap");
+    return;
+  }
   await db
     .update(reachMessages)
     .set({
@@ -605,6 +611,41 @@ async function recordNotSent(
   hold(stats, "not-sent");
 }
 
+/** How long LinkedIn's weekly invitation limit holds the invites: a day, then one try. */
+export const LIMIT_HOLD_MS = 24 * 3_600_000;
+
+/** The platform's own limit in a refusal's words, as a wait (its `retry after Ns`, else a day). */
+export function limitWaitMs(text: string): number | null {
+  if (!/weekly invitation limit|too many invitations/i.test(text)) return null;
+  const s = /retry after (\d+)s/.exec(text)?.[1];
+  return s ? Number(s) * 1000 : LIMIT_HOLD_MS;
+}
+
+/**
+ * A used cap: this row and the account's other rows on the same cap (invites, or messages) wait
+ * past `until`, so none of them asks before then.
+ */
+async function holdLane(db: Queryable, c: Candidate, until: Date, why: string): Promise<void> {
+  await db
+    .update(reachMessages)
+    .set({ state: "queued", dueAt: until, stateReason: why.slice(0, 5000) })
+    .where(eq(reachMessages.id, c.row.id));
+  await db
+    .update(reachMessages)
+    .set({ dueAt: until })
+    .where(
+      and(
+        eq(reachMessages.accountId, c.account.id),
+        eq(reachMessages.state, "queued"),
+        eq(reachMessages.direction, "out"),
+        c.row.kind === "connect"
+          ? eq(reachMessages.kind, "connect")
+          : sql`${reachMessages.kind} <> 'connect'`,
+        or(isNull(reachMessages.dueAt), lt(reachMessages.dueAt, until)),
+      ),
+    );
+}
+
 /** Step 4b: the platform did not take it, or we do not know. */
 async function recordFailure(
   db: Queryable,
@@ -614,29 +655,10 @@ async function recordFailure(
   stats: TickStats,
 ): Promise<void> {
   const text = (err instanceof Error ? err.message : String(err)).slice(0, 5000);
-  const wait = capWaitMs(err);
+  // A used daily cap, or the platform's own limit: the lane waits past its reset.
+  const wait = capWaitMs(err) ?? limitWaitMs(text);
   if (wait !== null) {
-    // A used daily cap: this row and the account's other rows on the same cap (invites, or
-    // messages) wait past its reset, so none of them asks before then.
-    const until = new Date(now.getTime() + wait);
-    await db
-      .update(reachMessages)
-      .set({ state: "queued", dueAt: until, stateReason: text })
-      .where(eq(reachMessages.id, c.row.id));
-    await db
-      .update(reachMessages)
-      .set({ dueAt: until })
-      .where(
-        and(
-          eq(reachMessages.accountId, c.account.id),
-          eq(reachMessages.state, "queued"),
-          eq(reachMessages.direction, "out"),
-          c.row.kind === "connect"
-            ? eq(reachMessages.kind, "connect")
-            : sql`${reachMessages.kind} <> 'connect'`,
-          or(isNull(reachMessages.dueAt), lt(reachMessages.dueAt, until)),
-        ),
-      );
+    await holdLane(db, c, new Date(now.getTime() + wait), text);
     hold(stats, "cap");
     return;
   }

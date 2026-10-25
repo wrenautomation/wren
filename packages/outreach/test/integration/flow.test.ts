@@ -8,6 +8,7 @@
 import { SiteCallError } from "@wren/core/content";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { serveRecords } from "@wren/core/records/serve";
+import { NotSent } from "@wren/core/send-verdict";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -416,6 +417,33 @@ describe("failures", () => {
     li.connect = ok;
     expect((await tickAt(new Date(reset))).sent).toBe(1);
     expect(li.sent.map((s) => s.kind)).toEqual(["connect"]);
+  });
+
+  it("LinkedIn's weekly invitation limit holds the account's invites a day, not each one", async () => {
+    await account("linkedin", "linkedin@alt", at(-30));
+    const a = await addContact(db(), { platform: "linkedin", handle: "person-a" });
+    const b = await addContact(db(), { platform: "linkedin", handle: "person-b" });
+    await enroll(db(), { sequence: LINKEDIN, sender: "William", limit: 10, now: OPEN });
+    const li = fakeOf("linkedin@alt");
+    let asked = 0;
+    li.connect = async () => {
+      asked++;
+      throw new NotSent(
+        "refused",
+        "linkedin weekly invitation limit: You've reached the weekly invitation limit; retry after 86400s",
+        429,
+      );
+    };
+    const limited = await tickAt(OPEN);
+    expect(limited.held.cap).toBe(1);
+    expect(limited.failed).toBe(0);
+    const reset = OPEN.getTime() + 86_400_000;
+    for (const id of [a.id, b.id]) {
+      const [row] = await messagesOf(id);
+      expect([row?.state, row?.dueAt?.getTime()]).toEqual(["queued", reset]);
+    }
+    for (const h of [1, 6, 12]) await tickAt(new Date(OPEN.getTime() + h * 3_600_000));
+    expect(asked).toBe(1);
   });
 
   it("a stale sending row becomes unknown and is never resent", async () => {

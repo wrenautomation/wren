@@ -91,13 +91,13 @@ const INVITES = "invites";
 
 const INVITES_EVERY_MS = 6 * 60 * 60 * 1000;
 
-/** And for others' LinkedIn posts to comment on, once a day. */
+/** And for others' posts to comment on, every six hours until the day's comments wait. */
 const POSTS = "posts";
 
 /** LinkedIn keeps the first key, so a deploy doesn't read it twice in a day. */
 const postsKey = (p: ReachPostPlatform) => (p === "linkedin" ? POSTS : `${POSTS}:${p}`);
 
-const POSTS_EVERY_MS = 24 * 60 * 60 * 1000;
+const POSTS_EVERY_MS = 6 * 60 * 60 * 1000;
 
 export interface InvitesPass {
   account: string;

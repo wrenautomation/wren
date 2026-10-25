@@ -26,12 +26,15 @@ describe("inWindow", () => {
   it("is open on a weekday afternoon", () => {
     expect(inWindow(THU_2PM, DEFAULT_POLICY)).toBe(true);
   });
-  it("is shut at night and on weekends", () => {
+  it("is shut at night, open on weekends", () => {
     expect(inWindow(new Date("2026-10-02T03:00:00Z"), DEFAULT_POLICY)).toBe(false); // Thu 23:00 NY
-    expect(inWindow(new Date("2026-10-03T18:00:00Z"), DEFAULT_POLICY)).toBe(false); // Saturday
+    expect(inWindow(new Date("2026-10-03T18:00:00Z"), DEFAULT_POLICY)).toBe(true); // Saturday
+    expect(
+      inWindow(new Date("2026-10-03T18:00:00Z"), { ...DEFAULT_POLICY, days: [1, 2, 3, 4, 5] }),
+    ).toBe(false);
   });
-  it("DMs and LinkedIn keep weekdays 10 to 17 (Reddit threads have their own hours)", () => {
-    expect(DEFAULT_POLICY.days).toEqual([1, 2, 3, 4, 5]);
+  it("DMs and LinkedIn send every day 10 to 17 (Reddit threads have their own hours)", () => {
+    expect(DEFAULT_POLICY.days).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect([DEFAULT_POLICY.windowStartMinute, DEFAULT_POLICY.windowEndMinute]).toEqual([600, 1020]);
   });
   it("end is exclusive", () => {
@@ -43,8 +46,9 @@ describe("inWindow", () => {
 describe("fleetDay", () => {
   it("counts in New York, not UTC", () => {
     expect(fleetDay(new Date("2026-10-02T03:00:00Z"))).toBe("2026-10-01");
-    // Thu 10-01 to Mon 10-05: Thu and Fri count, the weekend doesn't.
-    expect(sendDaysBetween("2026-10-01", "2026-10-05", DEFAULT_POLICY.days)).toBe(2);
+    // Thu 10-01 to Mon 10-05: every day counts; on weekdays only, Thu and Fri.
+    expect(sendDaysBetween("2026-10-01", "2026-10-05", DEFAULT_POLICY.days)).toBe(4);
+    expect(sendDaysBetween("2026-10-01", "2026-10-05", [1, 2, 3, 4, 5])).toBe(2);
   });
 });
 
@@ -85,8 +89,8 @@ describe("standingOf", () => {
     expect(capsOn("2026-10-01")).toEqual({ connects: 1, messages: 20 });
     expect(capsOn("2026-09-30").connects).toBe(4);
     expect(capsOn("2026-09-29").connects).toBe(7);
-    // Fri 09-25 → Thu 10-01: Fri, Mon, Tue, Wed are 4 send days.
-    expect(capsOn("2026-09-25").connects).toBe(13);
+    // Fri 09-25 → Thu 10-01: Fri to Wed are 6 send days, weekend included.
+    expect(capsOn("2026-09-25").connects).toBe(19);
     expect(capsOn("2026-09-21").connects).toBe(20);
     expect(capsOn("2025-10-01").connects).toBe(20);
   });

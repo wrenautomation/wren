@@ -7,7 +7,8 @@
  *
  * The window is ours (fleet time), not the lead's: a DM or an invite is read
  * whenever they open the app, and a person's account sending at 3am is the
- * tell, so sends go in working hours on weekdays.
+ * tell, so sends go in working hours, every day (William 10-25: 20 invites a
+ * day is 140 a week).
  */
 
 import { warmupOf } from "@wren/channel-reddit";
@@ -45,7 +46,7 @@ export interface ReachPolicy {
 export const DEFAULT_POLICY: ReachPolicy = {
   windowStartMinute: 10 * 60,
   windowEndMinute: 17 * 60,
-  days: [1, 2, 3, 4, 5],
+  days: [1, 2, 3, 4, 5, 6, 7],
   gapSeconds: 120,
   reddit: { messagesPerDay: 5 },
   linkedin: {

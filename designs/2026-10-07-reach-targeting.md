@@ -45,6 +45,17 @@ Everything targeting lives in each platform's settings block (`linkedin.comments
   engagers.
 - The model's search words and the comment prompt name the platform; each has its own length rule.
 
+## 2026-10-25: supply under the day's ten
+
+Prod made 1 to 4 comments a day against `perDay` 10. Every post at fit 70 or more got a draft, so supply was short. In 7 days, 267 of 372 dropped posts held none of the audience's words. Model topics ("firm growth challenges") kept 0 to 3 of 20. "recruiting agency" kept 23 of 139, but 60 of the 139 were job ads.
+
+- Searches leave out job words: LinkedIn `NOT hiring NOT jobs NOT vacancy`, X `-hiring -jobs -vacancy`. A real read: 0 of 8 results held them.
+- Model topics name the trade with an audience word. A topic without one is not used.
+- LinkedIn post reads go from 12 to 40 a day. A pass runs every 6 hours until the day's comments wait.
+- Key people are the people we invited (`enrolled`) and the people we connected with: 177, not 28. The draw changes each pass, so no one is read twice in a day.
+- A key person's post is not dropped for missing the audience's words. We chose them by firm and title. Rank and the job-ad check still apply.
+- Not used: the `authorTitle` filter. A real read with "founder" did not narrow the results.
+
 ## Not done
 
 - No LinkedIn reads to test the new search words. They are measured on prod passes.

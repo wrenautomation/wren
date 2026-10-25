@@ -463,7 +463,11 @@ describe("search words", () => {
       rested: ["client reactivation"],
       reads: 2,
     });
-    expect(searched).toEqual(["recruiting agency", "our recruiting clients"]);
+    // Job ads left out by LinkedIn's own NOT.
+    expect(searched).toEqual([
+      "recruiting agency NOT hiring NOT jobs NOT vacancy",
+      "our recruiting clients NOT hiring NOT jobs NOT vacancy",
+    ]);
     expect(topicAsks[0]).toContain("Owners of recruiting firms.");
     expect(topicAsks[0]).toContain('Found none of their posts: "client reactivation"');
   });
@@ -754,7 +758,7 @@ describe("X and Instagram", () => {
     const out = statsOf(await sync())?.posts;
     expect(out?.map((p) => [p.platform, p.reads, p.kept, p.queued])).toEqual([["x", 2, 2, 2]]);
     expect(queries[0]).toMatch(
-      /^recruiting agency lang:en -filter:replies -filter:retweets since:\d{4}-\d{2}-\d{2}$/,
+      /^recruiting agency -hiring -jobs -vacancy lang:en -filter:replies -filter:retweets since:\d{4}-\d{2}-\d{2}$/,
     );
     expect(calls.filter((c) => c.method === "GET").map((c) => c.account)).toEqual([
       "x@wren",
