@@ -25,8 +25,10 @@ import {
   catalogSummary,
   creatorOf,
   embedMissing,
+  FACT_CALLS,
   follow,
   instagramPage,
+  isFactCall,
   itemPage,
   items,
   judges,
@@ -41,6 +43,7 @@ import {
   readItem,
   readQueued,
   readVideo,
+  recordFactCall,
   saveLink,
   scoreItem,
   searchItems,
@@ -441,6 +444,30 @@ export function registerLearn(
           const got = n ? await itemPage(db, client, n) : null;
           if (!got) throw new Error(`No item ${id}`);
           return got;
+        }),
+      ),
+    );
+
+  learn
+    .command("call <id> <path> <call> [comment...]")
+    .description(
+      "your keep, tune or drop on an item (`/`) or one of its facts (hook, beats/2, facts/shots/5), with your words; `show <id>` lists the paths",
+    )
+    .action(async (id: string, path: string, call: string, comment: string[]) =>
+      json(
+        await inWorkspace(async (db, client) => {
+          const [n] = idsOf([id]);
+          if (!n) throw new Error(`No item ${id}`);
+          if (!isFactCall(call)) throw new Error(`call is one of ${FACT_CALLS.join(", ")}`);
+          return recordFactCall(db, {
+            client,
+            id: n,
+            path,
+            call,
+            comment: comment.join(" "),
+            by: BY,
+            source: "cli",
+          });
         }),
       ),
     );

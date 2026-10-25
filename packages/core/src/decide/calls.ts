@@ -29,6 +29,8 @@ interface CallInput {
   by?: string | null;
   /** Unique: a replay or a second backfill adds nothing. */
   ref?: string | null;
+  /** His words with the call. */
+  comment?: string | null;
   /** History's own time; left out, now. */
   at?: Date;
 }
@@ -41,12 +43,12 @@ export async function recordCall(db: Queryable, c: CallInput): Promise<void> {
   const keep = keepOf(c.kind, c.label);
   const at = c.at ? sql`${c.at.toISOString()}::timestamptz` : sql`clock_timestamp()`;
   await db.execute(sql`
-    insert into decision_calls (kind, subject, label, keep, source, by, decision_id, agreed, override, ref, at)
+    insert into decision_calls (kind, subject, label, keep, source, by, decision_id, agreed, override, ref, comment, at)
     select ${c.kind}, ${c.subject}, ${c.label}, ${keep}, ${c.source}, ${c.by ?? null},
       d.id,
       case when d.id is null then null else ${keepSql(c.kind, sql`d.label`)} = ${keep} end,
       coalesce(d.mode in ('recommend', 'gate') and ${keepSql(c.kind, sql`d.label`)} <> ${keep}, false),
-      ${c.ref ?? null}, ${at}
+      ${c.ref ?? null}, ${c.comment ?? null}, ${at}
     from (select 1) one
     left join lateral (
       select x.id, x.label, x.mode from decisions x

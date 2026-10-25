@@ -158,6 +158,33 @@ interface SopAsk {
   error: string | null;
 }
 
+export const FACT_CALLS = ["keep", "tune", "drop"] as const;
+export type FactCall = (typeof FACT_CALLS)[number];
+/** The whole item, as a call's path. */
+export const ITEM_PATH = "/";
+
+/** One fact of how an item is made, by its path (`hook`, `beats/2`, `facts/shots/5`). */
+export interface FactRow {
+  path: string;
+  label: string;
+  value: string;
+}
+/** His standing call on a path: the newest. */
+export interface FactCallRow {
+  path: string;
+  call: FactCall;
+  comment: string | null;
+  by: string | null;
+  at: string;
+}
+export interface Breakdown {
+  kind: "reel" | "video" | "post" | "film";
+  /** Who gave the facts: the model and code, or a person's hand labels. */
+  by: "model" | "hand";
+  facts: FactRow[];
+  calls: FactCallRow[];
+}
+
 export interface ItemPage extends Card {
   text: string;
   transcript: string | null;
@@ -168,7 +195,9 @@ export interface ItemPage extends Card {
   changes: string[];
   verdict: "show" | "hold" | "drop" | null;
   failure: string | null;
-  kind: "article" | "video" | "reel" | "episode";
+  kind: "article" | "video" | "reel" | "episode" | "post" | "film";
+  /** How it is made, once read: each fact he can call, and his standing calls. Null before the breakdown. */
+  breakdown: Breakdown | null;
   collection: { id: number; name: string } | null;
   sops: SopAsk[];
 }
@@ -326,6 +355,9 @@ export const learn = {
     ),
   mark: (ids: number[], mark: Mark) =>
     write<{ done: string[] }>("mark", { ids: ids.map(String), mark }),
+  /** His keep, tune or drop on an item (`/`) or one of its facts, with his words. */
+  call: (id: number, path: string, call: FactCall, comment: string | null) =>
+    write<{ subject: string }>("call", { id: String(id), path, call, comment }),
   /** Opened: not new. Quiet: no reload, the page is already showing it. */
   open: (id: number) => call("learn/open", { id: String(id) }),
   progress: (id: number, position: number, duration: number | null) =>

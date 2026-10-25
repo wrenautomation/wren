@@ -49,6 +49,7 @@ const EPISODE: ItemPage = {
   kind: "episode",
   collection: null,
   sops: [],
+  breakdown: null,
 };
 
 /** One second of silence, so the audio element loads without a network. */

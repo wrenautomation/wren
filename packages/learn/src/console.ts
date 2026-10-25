@@ -37,6 +37,7 @@ import {
   setPick,
   todayOf,
 } from "./alerts.js";
+import { FACT_CALLS, FactCallRefusal, ITEM_PATH, isFactCall, recordFactCall } from "./calls.js";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "./console-routes.js";
 import {
   addCollection,
@@ -119,6 +120,11 @@ interface BrowseRequest extends PortalRequest {
 }
 interface MarkRequest extends IdsRequest {
   mark: string;
+}
+interface CallRequest extends ItemRequest {
+  path: string;
+  call: string;
+  comment?: string | null;
 }
 interface ProgressRequest extends PortalRequest {
   id: string;
@@ -378,6 +384,28 @@ export function learnConsoleApi(
         done(await mark(tx, client, ids, req.mark as Mark, by(req))),
       );
     },
+    // His keep/tune/drop on an item or one of its facts, with his words (calls.ts).
+    call: async (req: CallRequest) => {
+      if (!isFactCall(req.call))
+        throw new PortalRefusal(`call is one of ${FACT_CALLS.join(", ")}`, 400);
+      const call = req.call;
+      return write(req, async (tx, client) => {
+        try {
+          return await recordFactCall(tx, {
+            client,
+            id: idOf(req.id),
+            path: req.path || ITEM_PATH,
+            call,
+            comment: req.comment,
+            by: by(req),
+            source: "console",
+          });
+        } catch (err) {
+          if (err instanceof FactCallRefusal) throw new PortalRefusal(err.message, 400);
+          throw err;
+        }
+      });
+    },
     // Where you are in an item: kept on a read, as `seen` is.
     open: async (req: ItemRequest) => {
       await opened(db, await reads(req), idOf(req.id));
@@ -597,6 +625,20 @@ export function makeLearnConsole(
       mark: serviceHandler(
         { input: z.looseObject({ ...IDS, mark: z.string().describe(MARKS.join(", ")) }) },
         (_: restate.Context, req: MarkRequest) => answer(() => api.mark(req)),
+      ),
+      call: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            id: z.string(),
+            path: z
+              .string()
+              .describe("`/` for the item, else a fact's path (hook, beats/2, facts/shots/5)"),
+            call: z.string().describe(FACT_CALLS.join(", ")),
+            comment: z.string().nullish().describe("His words with the call"),
+          }),
+        },
+        (_: restate.Context, req: CallRequest) => answer(() => api.call(req)),
       ),
       open: serviceHandler(
         { input: z.looseObject({ ...PORTAL_FIELDS, id: z.string() }) },

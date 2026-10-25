@@ -21,7 +21,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /** What a decision is about. A new kind is a new entry here and in `KINDS` (`decide/kinds.ts`). */
-export const DECISION_KINDS = ["comment_quality", "learn_worth", "lead_fit"] as const;
+export const DECISION_KINDS = ["comment_quality", "learn_worth", "lead_fit", "learn_fact"] as const;
 export type DecisionKind = (typeof DECISION_KINDS)[number];
 
 /**
@@ -98,6 +98,8 @@ export const decisionCalls = pgTable(
     override: boolean("override").notNull().default(false),
     /** Unique when set: a replayed step or a second backfill adds nothing. */
     ref: varchar("ref", { length: 300 }),
+    /** His words with the call, when he gave any ("no comment-a-word CTAs"). */
+    comment: text("comment"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

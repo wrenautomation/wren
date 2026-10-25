@@ -357,6 +357,8 @@ export interface Beat {
   beat: string;
 }
 
+export type BreakdownRow = typeof breakdowns.$inferSelect;
+
 export const breakdowns = learn.table(
   "breakdowns",
   {

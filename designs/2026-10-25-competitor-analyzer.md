@@ -94,3 +94,4 @@ Our posted pieces get breakdowns. `learn.standards` joins their deep numbers (ho
 - 2026-10-25: detector: hash default, adaptive second, ffmpeg out of the trust vote (seed f0a242e5).
 - 2026-10-25: William: `points/` generated only, calls replace line deletes; film rules move to `sops/launch-films/notes.md`.
 - 2026-10-25: builds 2 and 3: `post` counts in code, `film` facts off a `## Facts` fence in the read page (one write path, offline re-breakdown), `breakdowns.by` (model | hand), `learn import-films` for the seed, `WREN_SCENEDETECT`.
+- 2026-10-25: build 4: his calls are Decide kind `learn_fact` (keep | tune | drop, mode `off`: he is the only judge) with his words in a new `decision_calls.comment`; subjects `learn:<id>` and `learn:<id>/<path>`, the paths enumerated off the breakdown row (`factRows`), so a call never lands on nothing; item page "How it's made" + `wren learn call`. No queue view yet: build 5 rewrites the views.

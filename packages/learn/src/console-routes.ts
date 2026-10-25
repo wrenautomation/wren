@@ -16,6 +16,8 @@ export const LEARN_CONSOLE_ROUTES = {
   home: "read",
   sources: "read",
   mark: "act",
+  // His keep/tune/drop on a breakdown fact (Wren's workspace only).
+  call: "act",
   // Where you are in an item, and when you last looked: about you, as a star is.
   open: "read",
   progress: "read",
@@ -53,6 +55,7 @@ export const LEARN_CONSOLE_WRITES: readonly (keyof typeof LEARN_CONSOLE_ROUTES)[
   "tell",
   "unfollow",
   "mark",
+  "call",
   "open",
   "progress",
   "move",

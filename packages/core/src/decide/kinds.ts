@@ -122,10 +122,41 @@ const leadFit: KindSpec = {
   gate: false,
 };
 
+/**
+ * One fact of a Learn breakdown (designs/2026-10-25-competitor-analyzer.md, Decide): a hook, a
+ * beat, a call to action, a post's shape, a film's shot. His call says whether Wren's own pieces
+ * should do the same: keep it, tune it (keep, with a change he names), or drop it. Only he is asked
+ * today (`off`): the machine learns the rules from his calls, it does not make them.
+ */
+const learnFact: KindSpec = {
+  kind: "learn_fact",
+  name: "Breakdown facts",
+  questions: {
+    [PICK]: {
+      type: "choice",
+      instructions:
+        "`fact` is one part of how a competitor's piece is made (its hook, a beat, its call to action, a shot). Should Wren's own pieces do the same? `focus` is what Wren makes.",
+      criteria: {
+        keep: "Wren's pieces should do this as it is.",
+        tune: "Worth doing, with a change: the owner would say what.",
+        drop: "Wren's pieces should not do this.",
+      },
+    },
+  },
+  labels: {
+    keep: { name: "Keep", keep: true, tone: "good", about: "Do this" },
+    tune: { name: "Tune", keep: true, tone: "warn", about: "Do this, with a change" },
+    drop: { name: "Drop", keep: false, tone: "bad", about: "Never do this" },
+  },
+  defaultMode: "off",
+  gate: false,
+};
+
 export const KINDS: Readonly<Record<DecisionKind, KindSpec>> = {
   comment_quality: commentQuality,
   learn_worth: learnWorth,
   lead_fit: leadFit,
+  learn_fact: learnFact,
 };
 
 export const isDecisionKind = (k: string): k is DecisionKind =>

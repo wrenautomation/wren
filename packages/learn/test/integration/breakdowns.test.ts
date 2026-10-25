@@ -13,10 +13,13 @@ import {
   breakdownItem,
   breakdownRecords,
   breakdowns,
+  FactCallRefusal,
+  factCalls,
   hookRecords,
   items,
   judges,
   pullCreators,
+  recordFactCall,
   scoreItem,
   sitesReader,
   sources,
@@ -29,7 +32,7 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 beforeEach(async () => {
   await pg.db.execute(
-    sql`TRUNCATE learn.breakdowns, learn.items, learn.sources RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE learn.breakdowns, learn.items, learn.sources, decision_calls RESTART IDENTITY CASCADE`,
   );
 });
 
@@ -191,5 +194,55 @@ describe("competitor breakdowns", () => {
       { id: "contrarian", reels: 2, creators: 2, medianReach: 2560, topReach: 5000, top: "Reel 5" },
       { id: "news", reels: 1, medianReach: null },
     ]);
+  });
+});
+
+describe("his calls on the facts", () => {
+  it("keeps the newest call per path with his words, and refuses a path the breakdown has not got", async () => {
+    const id = await readReel(7);
+    await breakdownItem(pg.db, model().judge, id);
+    const call = (path: string, c: "keep" | "tune" | "drop", comment?: string) =>
+      recordFactCall(pg.db, {
+        client: "wren",
+        id,
+        path,
+        call: c,
+        comment,
+        by: "w@example.com",
+        source: "cli",
+      });
+    expect((await call("/", "keep")).subject).toBe(`learn:${id}`);
+    expect((await call("beats/1", "tune", "  shorter proof ")).row?.label).toBe("Beat 2");
+    await call("cta", "drop", "no comment-a-word asks");
+    await call("cta", "tune", "a link instead");
+    const calls = await factCalls(pg.db, id);
+    expect(calls.map((c) => [c.path, c.call, c.comment])).toEqual([
+      ["/", "keep", null],
+      ["beats/1", "tune", "shorter proof"],
+      ["cta", "tune", "a link instead"],
+    ]);
+    await expect(call("beats/9", "keep")).rejects.toThrow(FactCallRefusal);
+    await expect(call("facts/chars", "keep")).rejects.toThrow(/no fact at/);
+    await expect(
+      recordFactCall(pg.db, {
+        client: "acme",
+        id,
+        path: "/",
+        call: "keep",
+        by: null,
+        source: "cli",
+      }),
+    ).rejects.toThrow(/Wren/);
+    // An item with no breakdown takes no call.
+    await expect(
+      recordFactCall(pg.db, {
+        client: "wren",
+        id: await readReel(8),
+        path: "/",
+        call: "keep",
+        by: null,
+        source: "cli",
+      }),
+    ).rejects.toThrow(/no breakdown/);
   });
 });

@@ -8,8 +8,10 @@
 import type { Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
+import { factCalls, factRows } from "./calls.js";
 import { type LearnPick, learnMarkCalls, withLearnPicks } from "./decide.js";
 import {
+  breakdowns,
   collections,
   type ItemType,
   items,
@@ -471,7 +473,7 @@ export async function home(db: Queryable, client: string, now = new Date()) {
 export async function itemPage(db: Queryable, client: string, id: number) {
   const [row] = await cards(db).where(and(eq(items.id, id), eq(items.client, client)));
   if (!row) return null;
-  const [[whole], sops, folder] = await Promise.all([
+  const [[whole], sops, folder, [broke], calls] = await Promise.all([
     db
       .select({
         text: items.text,
@@ -496,6 +498,8 @@ export async function itemPage(db: Queryable, client: string, id: number) {
           .from(collections)
           .where(and(eq(collections.id, row.collectionId), eq(collections.client, client)))
       : Promise.resolve([]),
+    db.select().from(breakdowns).where(eq(breakdowns.itemId, id)),
+    factCalls(db, id),
   ]);
   const moments: Moment[] = whole?.moments?.length
     ? whole.moments
@@ -513,6 +517,15 @@ export async function itemPage(db: Queryable, client: string, id: number) {
     verdict: whole?.verdict ?? null,
     failure: whole?.readFailure ?? null,
     kind: whole?.kind ?? "article",
+    // How it is made and what he said of it (calls.ts). Null until the breakdown ran.
+    breakdown: broke
+      ? {
+          kind: broke.kind,
+          by: broke.by,
+          facts: factRows(broke),
+          calls: calls.map((c) => ({ ...c, at: c.at.toISOString() })),
+        }
+      : null,
     collection: folder[0] ?? null,
     sops,
   };

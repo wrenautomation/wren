@@ -19,13 +19,27 @@ import {
   PAGE_TITLE,
   relative,
   StateMark,
+  say,
+  Textarea,
   usePageKeys,
 } from "@wren/ui";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import { PlayerSlot, usePlayer, usePlayerStore } from "../../player/index.js";
 import { href, navigate } from "../../route.js";
-import { changed, type ItemPage, keyOf, learn, type Moment, onChanged } from "./api.js";
+import {
+  type Breakdown,
+  changed,
+  clientOf,
+  type FactCall,
+  type FactRow,
+  ITEM_PATH,
+  type ItemPage,
+  keyOf,
+  learn,
+  type Moment,
+  onChanged,
+} from "./api.js";
 import { useRail } from "./frame.js";
 import {
   Avatar,
@@ -509,9 +523,119 @@ function Act({
   );
 }
 
+const CALLS: { call: FactCall; label: string; icon: "check" | "edit" | "close" }[] = [
+  { call: "keep", label: "Keep", icon: "check" },
+  { call: "tune", label: "Tune", icon: "edit" },
+  { call: "drop", label: "Drop", icon: "close" },
+];
+const CALL_TONE: Record<FactCall, string> = {
+  keep: "text-(--ui-good)",
+  tune: "text-(--ui-warn)",
+  drop: "text-(--ui-bad)",
+};
+
+/**
+ * How the piece is made and what he says of it (design 2026-10-25-competitor-analyzer, Decide):
+ * each fact whole, his standing call pressed, his words under it. A press opens the words box
+ * for that fact; Save writes call and words as one. Wren's workspace only: a client's items carry
+ * no calls.
+ */
+function Facts({ id, b }: { id: number; b: Breakdown }) {
+  const [open, setOpen] = useState<{ path: string; call: FactCall } | null>(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const standing = useMemo(() => new Map(b.calls.map((c) => [c.path, c])), [b.calls]);
+  const rows: FactRow[] = [{ path: ITEM_PATH, label: "Whole piece", value: "" }, ...b.facts];
+  const start = (path: string, call: FactCall) => {
+    setOpen({ path, call });
+    setNote(standing.get(path)?.comment ?? "");
+  };
+  const save = async () => {
+    if (!open) return;
+    setBusy(true);
+    try {
+      await learn.call(id, open.path, open.call, note.trim() || null);
+      setOpen(null);
+      changed();
+    } catch (err) {
+      say.failed(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section>
+      <h2 className={cx("m-0 mb-1.5 flex items-center gap-2", GROUP_LABEL)}>
+        How it's made
+        <span className="font-normal text-(--ui-ink-3)">
+          {b.by === "hand" ? "by hand" : "read"}
+        </span>
+      </h2>
+      <ul className="m-0 flex list-none flex-col gap-3 p-0">
+        {rows.map((r) => {
+          const c = standing.get(r.path);
+          const editing = open?.path === r.path;
+          return (
+            <li key={r.path} className="flex flex-col gap-1.5 text-[14px]">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[12px] text-(--ui-ink-2)">{r.label}</span>
+                {r.value ? (
+                  <span className="text-(--ui-ink) leading-relaxed">{r.value}</span>
+                ) : null}
+              </div>
+              <fieldset
+                className="m-0 flex min-w-0 flex-wrap items-center gap-1.5 border-0 p-0"
+                aria-label={r.label}
+              >
+                {CALLS.map((k) => (
+                  <Act
+                    key={k.call}
+                    label={k.label}
+                    on={c?.call === k.call}
+                    onClick={() => start(r.path, k.call)}
+                  >
+                    <Icon name={k.icon} size={14} />
+                  </Act>
+                ))}
+              </fieldset>
+              {editing ? (
+                <div className="flex flex-col gap-1.5">
+                  <Textarea
+                    aria-label={`Your words on ${r.label}`}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder={open.call === "tune" ? "What to change" : "Why (optional)"}
+                    rows={2}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button size="dense" tone="secondary" onClick={() => setOpen(null)}>
+                      Cancel
+                    </Button>
+                    <Button size="dense" tone="primary" busy={busy} onClick={() => void save()}>
+                      Save {open.call}
+                    </Button>
+                  </div>
+                </div>
+              ) : c ? (
+                <p className="m-0 text-[13px] leading-relaxed">
+                  <span className={cx("font-medium", CALL_TONE[c.call])}>
+                    {CALLS.find((k) => k.call === c.call)?.label}
+                  </span>
+                  {c.comment ? <span className="text-(--ui-ink-2)"> · {c.comment}</span> : null}
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function Side({ item }: { item: ItemPage }) {
   return (
     <div className="flex flex-col gap-6">
+      {item.breakdown && !clientOf() ? <Facts id={item.id} b={item.breakdown} /> : null}
       {item.summary ? (
         <section>
           <h2 className={cx("m-0 mb-1.5", GROUP_LABEL)}>Summary</h2>
@@ -860,9 +984,9 @@ export function ItemView({ id, back }: { id: string; back: string }) {
               </p>
             )}
           </div>
-          <aside className="xl:sticky xl:top-4 xl:self-start">
+          <div className="xl:sticky xl:top-4 xl:self-start">
             <Side item={item} />
-          </aside>
+          </div>
         </div>
       )}
 

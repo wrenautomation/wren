@@ -350,3 +350,98 @@ export const FindFollowFast = pageAt("/learn/sources", {
     expect(sent("follow")).toHaveLength(2);
   },
 });
+
+const FILM_ITEM = {
+  id: 21,
+  title: "Acme: launch",
+  type: "youtube",
+  url: "https://example.com/learn/21",
+  thumbnail: null,
+  duration: 48,
+  chars: 0,
+  source: null,
+  creator: "acme",
+  score: 8,
+  summary: "A launch film.",
+  status: "read",
+  state: "ready",
+  starred: false,
+  pinned: false,
+  later: false,
+  position: null,
+  collectionId: null,
+  tags: [],
+  saved: true,
+  pick: null,
+  at: ago(1),
+  text: "",
+  transcript: "## Speech\n\n(no speech)",
+  file: null,
+  mediaUrl: null,
+  moments: [],
+  why: null,
+  changes: [],
+  verdict: null,
+  failure: null,
+  kind: "film",
+  collection: null,
+  sops: [],
+  breakdown: {
+    kind: "film",
+    by: "hand",
+    facts: [
+      { path: "hook", label: "Hook", value: "A dark room, one light (it stops the scroll)" },
+      { path: "beats/0", label: "Beat 1", value: "[0:00] The product, no words" },
+      { path: "cta", label: "Call to action", value: "link: Try it today" },
+      { path: "facts/cuts", label: "Cuts", value: "23" },
+      { path: "facts/shots/0", label: "Shot 1", value: "0:00 · 2.1 s · product · push" },
+    ],
+    calls: [
+      {
+        path: "cta",
+        call: "drop",
+        comment: "no asks this early",
+        by: "w@example.com",
+        at: ago(0.1),
+      },
+    ],
+  },
+};
+
+/** How it's made: each fact whole, his standing call pressed with his words, a new call saved with words. */
+export const ItemFacts = pageAt("/learn/items/21", {
+  me: ADMIN,
+  answers: {
+    "learn/item": FILM_ITEM,
+    "learn/open": {},
+    "learn/seen": {},
+    "learn/call": echo("call", { subject: "learn:21/beats/0" }),
+  },
+  check: async (page) => {
+    const ui = within(page);
+    SENT.length = 0;
+    await expect(await ui.findByRole("heading", { name: /How it's made/ })).toBeVisible();
+    // The whole value, never cut; his standing call is pressed and his words show.
+    await expect(ui.getByText("A dark room, one light (it stops the scroll)")).toBeVisible();
+    const cta = within(ui.getByRole("group", { name: "Call to action" }));
+    await expect(cta.getByRole("button", { name: "Drop" })).toHaveAttribute("aria-pressed", "true");
+    await expect(cta.getByRole("button", { name: "Keep" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(ui.getByText(/no asks this early/)).toBeVisible();
+    // Tune on a beat: the words box opens, Save sends call and words as one.
+    const beat = within(ui.getByRole("group", { name: "Beat 1" }));
+    await userEvent.click(beat.getByRole("button", { name: "Tune" }));
+    const box = await ui.findByRole("textbox", { name: "Your words on Beat 1" });
+    await userEvent.type(box, "hold the product longer");
+    await userEvent.click(ui.getByRole("button", { name: "Save tune" }));
+    await waitFor(() => expect(sent("call")).toHaveLength(1));
+    expect(sent("call")[0]?.body).toMatchObject({
+      id: "21",
+      path: "beats/0",
+      call: "tune",
+      comment: "hold the product longer",
+    });
+  },
+});

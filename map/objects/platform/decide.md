@@ -9,7 +9,7 @@ entity: packages/core/src/decide-schema.ts:34
 
 # decide (the machine's call beside William's)
 
-One seam for every yes/no-shaped machine call: `decide()` asks a backend (Jev now, the gateway when Jev is down, Laya later) about one subject and keeps the whole answer; William's own call on the same subject is kept beside it. The pairs are the distill set for Laya. Kinds today: `comment_quality` (Send, Edit, Drop on a drafted comment), `learn_worth` (Worth it, Skip on a Learn item) and `lead_fit` (Lead, Unsure, Not a lead on a profile).
+One seam for every yes/no-shaped machine call: `decide()` asks a backend (Jev now, the gateway when Jev is down, Laya later) about one subject and keeps the whole answer; William's own call on the same subject is kept beside it. The pairs are the distill set for Laya. Kinds today: `comment_quality` (Send, Edit, Drop on a drafted comment), `learn_worth` (Worth it, Skip on a Learn item), `lead_fit` (Lead, Unsure, Not a lead on a profile) and `learn_fact` (Keep, Tune, Drop on one fact of a [[learn/breakdown]]; his only, mode `off`, with his words in `decision_calls.comment`).
 
 ## Why this shape
 
