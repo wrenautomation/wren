@@ -63,6 +63,14 @@ Later the same day (William: every draft waits for his yes, cheap models for key
 - A boolean search (`"recruiting agency" (clients OR fees)`) hits on its first quoted phrase (`topicCore`).
 - Reach calls that are not drafts (topics, ranking, place checks) go to `WREN_REACH_LLM`, default `anthropic:claude-haiku-5-5`. Before, they went to the Monitor's model, which is Sonnet on prod. Drafts keep `drafts.model`.
 
+Then (William: fewest round trips, most data per action; a platform counts searches and page loads, not results):
+
+- One search scrolls to the flow's most: LinkedIn 50 (was 20), X 100 (was 20), Instagram's grid 30 (was 6). Same actions, more posts.
+- A plain multi-word topic searches as one quoted phrase. Unquoted, X matched the two words anywhere: party politics, government job news.
+- X has few owner posts. A real 2-day read of nine owner-voice phrases found 2. A 7-day read of trade words with business words found 30, most from vendors. Rank put the best of a 21-post read at 55. `minFit` stays 70: under it the posts are not owners.
+- Instagram never searched. Its 2 reads went to key people first, and all 25 kept posts came from one account. Now accounts read through Graph (an API call, no page load) take up to 8 a pass apart from searches. Searches take 1 a pass: 1 grid load and 6 post pages. That is 4 searches and 24 page loads a day.
+- The grid's top posts run months old. A shortcode holds its time, so the 6 newest open and no load goes to a post we know is old. Their authors still count: an Instagram account whose kept post or bio names the trade joins key people and is read fresh through Graph.
+
 ## Not done
 
 - No LinkedIn reads to test the new search words. They are measured on prod passes.

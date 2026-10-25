@@ -13,10 +13,12 @@ import {
   isJobAd,
   jobPost,
   MIN_FIT,
+  phrase,
   planTopics,
   proposeTopics,
   REST_AFTER,
   rankPost,
+  shortcodeAt,
   topicCore,
   vanityOf,
 } from "./reach-posts.js";
@@ -279,6 +281,32 @@ describe("proposeTopics", () => {
   it("an unreadable answer is no new words", async () => {
     const llm = new FakeLlm({ default: "not json" });
     expect(await proposeTopics(llm, { about: "x", n: 3, yields: [], known: [] })).toEqual([]);
+  });
+});
+
+describe("search words", () => {
+  it("plain words with a space search as one phrase; operators stay", () => {
+    expect(phrase("recruitment agency")).toBe('"recruitment agency"');
+    expect(phrase(" staffing ")).toBe("staffing");
+    expect(phrase('"recruiting agency" (clients OR fees)')).toBe(
+      '"recruiting agency" (clients OR fees)',
+    );
+    expect(phrase("agency owner -hiring")).toBe("agency owner -hiring");
+    expect(phrase("#recruitmentagency")).toBe("#recruitmentagency");
+  });
+
+  it("an Instagram shortcode tells when the post was made, with no page load", () => {
+    // A synthetic code: media id (2026-10-24T12:00:00Z - epoch) << 23, in Instagram's base64.
+    const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const at = Date.parse("2026-10-24T12:00:00Z");
+    let id = BigInt(at - 1_314_220_021_721) << 23n;
+    let code = "";
+    while (id > 0n) {
+      code = A[Number(id % 64n)] + code;
+      id /= 64n;
+    }
+    expect(shortcodeAt(code)?.toISOString()).toBe("2026-10-24T12:00:00.000Z");
+    expect(shortcodeAt("bad!code")).toBeNull();
   });
 });
 

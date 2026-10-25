@@ -77,11 +77,18 @@ const LENGTH: Readonly<Record<ReachPostPlatform, string>> = {
 const READS_PER_PASS: Readonly<Record<ReachPostPlatform, number>> = {
   linkedin: 10,
   x: 10,
-  instagram: 2,
+  instagram: 1,
 };
+/**
+ * Results one search scrolls to, the flow's most. A platform counts searches and page loads, not
+ * results, so one deep search beats several short ones (William 10-25: most data per action).
+ */
+const SEARCH_MAX = { linkedin: 50, x: 100, instagram: 30 } as const;
+/** Instagram accounts read a pass through Graph's business discovery: an API call, no page load. */
+const IG_GRAPH_PER_PASS = 8;
 /** Words a search leaves out (LinkedIn `NOT`, X `-`): job ads drown the owners' own posts. */
 const JOB_WORDS = ["hiring", "jobs", "vacancy"] as const;
-/** Posts read off one Instagram search: each is a page load. */
+/** Posts opened off one Instagram search, newest first: each is a page load. */
 const IG_POSTS_PER_SEARCH = 6;
 /** Key people read a pass, at most: each is one read. */
 const PEOPLE_PER_PASS = 3;
@@ -343,6 +350,28 @@ const igPostOf = (p: IgPost, bio?: string): FeedPost | null =>
     : null;
 
 /** The shortcode in an Instagram permalink (`/p/<code>/`, `/reel/<code>/`). */
+/** When an Instagram post was made, from its shortcode alone (the media id's high bits). */
+export function shortcodeAt(code: string): Date | null {
+  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  let id = 0n;
+  for (const ch of code) {
+    const i = A.indexOf(ch);
+    if (i < 0) return null;
+    id = id * 64n + BigInt(i);
+  }
+  const at = new Date(Number(id >> 23n) + 1_314_220_021_721);
+  return Number.isNaN(at.getTime()) ? null : at;
+}
+
+/**
+ * A search's words as the platform reads them: plain words with a space become one quoted phrase
+ * ("recruitment agency", not recruitment anywhere and agency anywhere). Quotes or operators stay.
+ */
+export function phrase(keywords: string): string {
+  const t = keywords.trim();
+  return /["()]|\b(?:OR|AND|NOT)\b|(?:^|\s)[-#@]/.test(t) || !t.includes(" ") ? t : `"${t}"`;
+}
+
 const shortcodeOf = (url: string | undefined) =>
   url ? (/instagram\.com\/(?:[\w.]+\/)?(?:p|reel|tv)\/([\w-]+)/.exec(url)?.[1] ?? null) : null;
 
@@ -378,8 +407,8 @@ export function postReader(
             "GET",
             "/search/results/content",
             {
-              keywords: `${keywords} ${JOB_WORDS.map((w) => `NOT ${w}`).join(" ")}`,
-              max: 20,
+              keywords: `${phrase(keywords)} ${JOB_WORDS.map((w) => `NOT ${w}`).join(" ")}`,
+              max: SEARCH_MAX.linkedin,
               since,
               ...(o.authorTitle ? { authorTitle: o.authorTitle } : {}),
             },
@@ -439,14 +468,14 @@ export function postReader(
         const day = new Date(o.now.getTime() - SINCE_DAYS[since] * 86_400_000)
           .toISOString()
           .slice(0, 10);
-        const query = `${keywords} ${JOB_WORDS.map((w) => `-${w}`).join(" ")} lang:en -filter:replies -filter:retweets since:${day}`;
+        const query = `${phrase(keywords)} ${JOB_WORDS.map((w) => `-${w}`).join(" ")} lang:en -filter:replies -filter:retweets since:${day}`;
         return own(
           (
             await sites.call<Out>(
               "x",
               "GET",
               "/2/tweets/search/recent",
-              { query, max_results: 20 },
+              { query, max_results: SEARCH_MAX.x },
               account,
             )
           ).data,
@@ -495,17 +524,23 @@ export function postReader(
     });
   };
   return {
-    // Instagram's search gives codes; each post is a page of its own.
+    // Instagram's search gives a grid of codes (one load); each post is a page of its own, so
+    // the newest open first. Its top posts run months old: those still name accounts in the
+    // trade, which Graph then reads fresh (`keyPeople`).
     search: async (keywords) => {
       const found = await sites.call<{ shortcodes?: string[] }>(
         "instagram",
         "GET",
         "/web/search",
-        { q: keywords, max: IG_POSTS_PER_SEARCH },
+        { q: keywords, max: SEARCH_MAX.instagram },
         account,
       );
+      const at = (c: string) => shortcodeAt(c)?.getTime() ?? 0;
+      const codes = [...(found.shortcodes ?? [])]
+        .sort((a, b) => at(b) - at(a))
+        .slice(0, IG_POSTS_PER_SEARCH);
       const out: FeedPost[] = [];
-      for (const code of found.shortcodes ?? []) {
+      for (const code of codes) {
         const p = await sites.call<IgPost & { found?: false }>(
           "instagram",
           "GET",
@@ -1280,22 +1315,37 @@ ${good.length ? `Found their posts before (on target of read): ${good.map((y) =>
 /**
  * People we know on the platform, a few a day in turn. LinkedIn: accepted invites, then
  * engagers. X and Instagram: handles that touched us (replied, liked, mentioned, followed).
+ * Instagram also: accounts in the trade its searches found (a post or bio with the audience's
+ * words, any age), read fresh through Graph.
  */
 async function keyPeople(
   db: Queryable,
   platform: ReachPostPlatform,
   now: Date,
+  audience: readonly string[],
   limit = PEOPLE_PER_PASS,
 ): Promise<KeyPerson[]> {
   // A new draw each pass (passes run hours apart), so no one is read twice in a day.
   const seed = now.toISOString().slice(0, 13);
+  const like = sql`ARRAY[${sql.join(
+    audience.map((a) => sql`${`%${a.replace(/[%_\\]/g, "\\$&")}%`}`),
+    sql`, `,
+  )}]`;
+  const trade =
+    platform === "instagram" && audience.length
+      ? sql`UNION
+        SELECT DISTINCT lower(p.handle), p.author FROM reach_posts p
+        WHERE p.platform = 'instagram' AND p.handle IS NOT NULL
+          AND (p.text ILIKE ANY (${like}) OR p.headline ILIKE ANY (${like}))`
+      : sql``;
   if (platform !== "linkedin")
     return (await db.execute(sql`
       SELECT handle, coalesce(name, handle) name FROM (
         SELECT DISTINCT h.handle, h.name FROM social_handles h
         JOIN touches t ON t.handle_id = h.id AND t.direction = 'theirs'
-        WHERE h.platform = ${platform} AND h.handle ~ '^[a-z0-9._]{1,30}$'
-      ) k
+        WHERE h.platform = ${platform}
+        ${trade}
+      ) k WHERE handle ~ '^[a-z0-9._]{1,30}$'
       ORDER BY md5(handle || ${seed}) LIMIT ${limit}`)) as unknown as KeyPerson[];
   return (await db.execute(sql`
     SELECT vanity handle, name FROM (
@@ -1417,26 +1467,37 @@ export async function postsPass(
   out.rested = plan.rested;
   type Read = { foundBy: string; key?: boolean; run: () => Promise<FeedPost[]> };
   const people: Read[] = [];
+  // Instagram's accounts are Graph calls, not page loads: they get their own budget.
+  const graph = platform === "instagram";
   if (s.people)
-    for (const k of await o.step("key people", () => keyPeople(db, platform, o.now)))
+    for (const k of await o.step("key people", () =>
+      keyPeople(db, platform, o.now, s.audience, graph ? IG_GRAPH_PER_PASS : PEOPLE_PER_PASS),
+    ))
       people.push({
         foundBy: `person: ${k.handle}`,
         key: true,
         run: () => o.read.person(k, since),
       });
   // Key people always get their reads; the pages he follows come next, ranked like key people,
-  // and searches share the rest.
-  const reads: Read[] = [
-    ...[
-      ...s.pages.map((c) => ({
-        foundBy: `${platform !== "linkedin" ? "account" : c.startsWith("in/") ? "person" : "company"}: ${c}`,
-        key: true,
-        run: () => o.read.page(c),
-      })),
-      ...plan.topics.map((t) => ({ foundBy: `topic: ${t}`, run: () => o.read.search(t, since) })),
-    ].slice(0, Math.max(0, READS_PER_PASS[platform] - people.length)),
-    ...people,
-  ];
+  // and searches share the rest. On Instagram the searches' budget is their own.
+  const pages: Read[] = s.pages.map((c) => ({
+    foundBy: `${platform !== "linkedin" ? "account" : c.startsWith("in/") ? "person" : "company"}: ${c}`,
+    key: true,
+    run: () => o.read.page(c),
+  }));
+  const searches: Read[] = plan.topics.map((t) => ({
+    foundBy: `topic: ${t}`,
+    run: () => o.read.search(t, since),
+  }));
+  const reads: Read[] = graph
+    ? [
+        ...[...pages, ...people].slice(0, IG_GRAPH_PER_PASS),
+        ...searches.slice(0, READS_PER_PASS.instagram),
+      ]
+    : [
+        ...[...pages, ...searches].slice(0, Math.max(0, READS_PER_PASS[platform] - people.length)),
+        ...people,
+      ];
   // With today's comments already waiting, nothing is read.
   for (const r of need > 0 ? reads : []) {
     if (out.capped) break;
