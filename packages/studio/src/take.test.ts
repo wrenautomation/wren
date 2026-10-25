@@ -194,6 +194,25 @@ describe("take scene", () => {
     expect(sounds?.filter(([t]) => (t as number) < 0)).toEqual([]);
   });
 
+  it("crops the window to part of the page, the camera's points in the crop", () => {
+    const crop = { x: 200, y: 100, w: 400, h: 300 };
+    const cut = promoScript.parse({
+      scenes: [
+        { kind: "take", take: "t1", from: 2, camera: [{ at: 0, x: 0.5, y: 0.5, zoom: 1 }], crop },
+      ],
+    });
+    const shot = promoProps(cut, {}, { takes: { t1: take } }).scenes[0]?.shot;
+    expect(shot?.pane.crop).toEqual([200, 100, 400, 300]);
+    expect(s?.shot?.pane.crop).toEqual([0, 0, ...web.size]);
+    const k = shot?.moves[0];
+    expect(k?.x).toBeCloseTo((0.5 * web.size[0] - 200) / 400);
+    expect(k?.y).toBeCloseTo((0.5 * web.size[1] - 100) / 300);
+    const wide = promoScript.parse({
+      scenes: [{ kind: "take", take: "t1", crop: { ...crop, w: web.size[0] } }],
+    });
+    expect(() => promoProps(wide, {}, { takes: { t1: take } })).toThrow(/crop runs past/);
+  });
+
   it("refuses a take not read, a pane it lacks and a cut past the pane's end", () => {
     expect(() => promoProps(script)).toThrow(/take t1 is not read yet/);
     const past = promoScript.parse({ scenes: [{ kind: "take", take: "t1", from: 2, to: 13 }] });

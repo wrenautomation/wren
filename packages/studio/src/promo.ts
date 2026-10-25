@@ -141,6 +141,15 @@ const TAKE = z
     beside: z.string().min(1).optional(),
     /** A terminal pane's window title. */
     title: z.string().max(40).default("Terminal"),
+    /** The part of the main pane the window shows, px on the pane: a terminal's lines, large. */
+    crop: z
+      .object({
+        x: z.number().min(0),
+        y: z.number().min(0),
+        w: z.number().positive(),
+        h: z.number().positive(),
+      })
+      .optional(),
     /** Blocks over the page (px on the pane) from `from` to `to`, seconds of the shot: a token, an email. */
     mask: z
       .array(
@@ -260,11 +269,15 @@ export function secondsOf(s: PromoScene): number {
   }
 }
 
-/** A pane as a shot plays it: its video, its page size, and the second it starts at (below 0: not open yet). */
+/**
+ * A pane as a shot plays it: its video, its page size, the part the window shows (`crop`, px: x, y,
+ * w, h; the whole page when not cropped), and the second it starts at (below 0: not open yet).
+ */
 export interface ShotPane {
   video: string;
   kind: TakePane["kind"];
   size: [number, number];
+  crop: [number, number, number, number];
   at: number;
   /** The window bar's text from each second of the shot on: a page's address, a terminal's title. */
   bar: [number, string][];
@@ -422,10 +435,17 @@ const LEAD_S = 4;
 /** A page's address as the bar shows it: no scheme, no lone slash. */
 const address = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-const shotPane = (take: Take, pane: TakePane, at: number, title: string): ShotPane => ({
+const shotPane = (
+  take: Take,
+  pane: TakePane,
+  at: number,
+  title: string,
+  crop?: TakeScene["crop"],
+): ShotPane => ({
   video: `${take.dir}/${pane.file}`,
   kind: pane.kind,
   size: pane.size,
+  crop: crop ? [crop.x, crop.y, crop.w, crop.h] : [0, 0, pane.size[0], pane.size[1]],
   at,
   bar:
     pane.kind === "term"
@@ -440,7 +460,7 @@ function takeShot(s: TakeScene & { to: number }, take: Take): TakeShot {
   const pane = paneOf(take, s.pane);
   const seconds = s.to - s.from;
   const events = eventsIn(pane, s.from, s.to, LEAD_S);
-  const moves =
+  const camera =
     s.camera === "none"
       ? []
       : s.camera === "auto"
@@ -449,11 +469,20 @@ function takeShot(s: TakeScene & { to: number }, take: Take): TakeShot {
             s.camera.map((m) => ({ ...m, at: m.at * seconds })),
             seconds,
           );
+  // The camera's points are shares of the page; a cropped window takes them as shares of the crop.
+  const c = s.crop;
+  const moves = c
+    ? camera.map((m) => ({
+        ...m,
+        x: clamp((m.x * pane.size[0] - c.x) / c.w, 0, 1),
+        y: clamp((m.y * pane.size[1] - c.y) / c.h, 0, 1),
+      }))
+    : camera;
   const other = s.beside ? paneOf(take, s.beside) : null;
   const at = other ? besideAt(pane, other, s.from) : 0;
   const shown = [{ events }, ...(other ? [{ events: eventsIn(other, at, at + seconds) }] : [])];
   return {
-    pane: shotPane(take, pane, s.from, s.title),
+    pane: shotPane(take, pane, s.from, s.title, s.crop),
     beside: other ? shotPane(take, other, at, s.title) : null,
     moves,
     cursor: pane.kind === "web" ? cursorTrack(events) : null,
@@ -465,8 +494,12 @@ function takeShot(s: TakeScene & { to: number }, take: Take): TakeShot {
 /** A take scene with `to` set and checked against its pane. */
 function takeTo(s: TakeScene, take: Take | undefined, n: number): TakeScene & { to: number } {
   if (!take) throw new Error(`scene ${n}: take ${s.take} is not read yet`);
-  const length = paneSeconds(paneOf(take, s.pane));
+  const pane = paneOf(take, s.pane);
+  const length = paneSeconds(pane);
   const to = s.to ?? length;
+  const c = s.crop;
+  if (c && (c.x + c.w > pane.size[0] || c.y + c.h > pane.size[1]))
+    throw new Error(`scene ${n}: the crop runs past the pane (${pane.size.join("x")})`);
   if (to > length + 0.05)
     throw new Error(`scene ${n}: to ${to}s is past the pane's end (${length.toFixed(2)}s)`);
   if (to <= s.from) throw new Error(`scene ${n}: from ${s.from}s is at or past the pane's end`);

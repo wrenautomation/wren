@@ -47,6 +47,9 @@ New, all in the promo script and `remotion/index.tsx`:
    `mark: "pill"` (07: the accent pill grows into the wordmark).
 5. Script `theme: "dark"` (`DARK_LOOK`): background #0b0c10, foreground #ececee, Figtree. Craft films are dark.
 6. Fonts from `@remotion/google-fonts`: Figtree and Geist Mono, loaded before the first frame.
+7. Take `mask`: blocks over the page for a time range (an account id, an email).
+8. Take `crop`: the window shows part of the pane, px on the pane. A tall terminal alone fills a wide frame
+   with its lines, not with empty rows. Camera points move into the crop's space.
 
 Not used, on purpose:
 - `@remotion/three`: a video on a WebGL plane re-samples the page and softens small text.

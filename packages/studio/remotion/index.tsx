@@ -1324,7 +1324,9 @@ const TakeWindow: FC<{
   const u = useUnit();
   const cam = shot ? cameraAt(shot.moves, t) : { x: 0.5, y: 0.5, zoom: 1 };
   const { scale, tx, ty } = framing(lens ? { ...cam, zoom: 1 } : cam, w, h);
-  const px = w / pane.size[0];
+  // px of the window per px of the page; a crop's corner sits at the window's corner.
+  const [cx, cy, cw] = pane.crop;
+  const px = w / cw;
   // The arrow and the ring by the window, not the page: the same on a full card and a half one.
   const arrow = (ARROW_W * w) / (lens ?? 1);
   const r = w / 1000 / (lens ?? 1);
@@ -1359,72 +1361,88 @@ const TakeWindow: FC<{
             transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
           }}
         >
-          {/* A pane not open yet at the cut opens on the clock it was filmed on. */}
-          {pane.at < 0 ? (
-            <Sequence from={Math.round(-pane.at * fps)} layout="none">
-              {video}
-            </Sequence>
-          ) : (
-            video
-          )}
-          {masks
-            ?.filter((m) => t >= m.from && (m.to === undefined || t < m.to))
-            .map((m) => (
+          <div
+            style={{
+              position: "absolute",
+              left: -cx * px,
+              top: -cy * px,
+              width: pane.size[0] * px,
+              height: pane.size[1] * px,
+            }}
+          >
+            {/* A pane not open yet at the cut opens on the clock it was filmed on. */}
+            {pane.at < 0 ? (
+              <Sequence from={Math.round(-pane.at * fps)} layout="none">
+                {video}
+              </Sequence>
+            ) : (
+              video
+            )}
+            {masks
+              ?.filter((m) => t >= m.from && (m.to === undefined || t < m.to))
+              .map((m) => (
+                <div
+                  key={`${m.x},${m.y},${m.from}`}
+                  style={{
+                    position: "absolute",
+                    left: m.x * px,
+                    top: m.y * px,
+                    width: m.w * px,
+                    height: m.h * px,
+                    borderRadius: 6 * px,
+                    background: pane.kind === "term" ? look.background : "#dcdde2",
+                  }}
+                />
+              ))}
+            {cursor?.ring ? (
               <div
-                key={`${m.x},${m.y},${m.from}`}
                 style={{
                   position: "absolute",
-                  left: m.x * px,
-                  top: m.y * px,
-                  width: m.w * px,
-                  height: m.h * px,
-                  borderRadius: 6 * px,
-                  background: pane.kind === "term" ? look.background : "#dcdde2",
+                  left: cursor.ring.x * px,
+                  top: cursor.ring.y * px,
+                  width: 0,
+                  height: 0,
                 }}
-              />
-            ))}
-          {cursor?.ring ? (
-            <div
-              style={{
-                position: "absolute",
-                left: cursor.ring.x * px,
-                top: cursor.ring.y * px,
-                width: 0,
-                height: 0,
-              }}
-            >
-              <div
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    width: (16 + 50 * easeOut(cursor.ring.p)) * r,
+                    height: (16 + 50 * easeOut(cursor.ring.p)) * r,
+                    transform: "translate(-50%, -50%)",
+                    borderRadius: "50%",
+                    border: `${3 * r}px solid ${look.accent}`,
+                    opacity: 1 - cursor.ring.p,
+                  }}
+                />
+              </div>
+            ) : null}
+            {cursor && cursor.opacity > 0 ? (
+              <svg
+                viewBox="0 0 16 23"
+                aria-hidden
                 style={{
                   position: "absolute",
-                  width: (16 + 50 * easeOut(cursor.ring.p)) * r,
-                  height: (16 + 50 * easeOut(cursor.ring.p)) * r,
-                  transform: "translate(-50%, -50%)",
-                  borderRadius: "50%",
-                  border: `${3 * r}px solid ${look.accent}`,
-                  opacity: 1 - cursor.ring.p,
+                  left: cursor.x * px - (2 / 23) * arrow,
+                  top: cursor.y * px - (1 / 23) * arrow,
+                  height: arrow,
+                  opacity: cursor.opacity,
+                  transformOrigin: "12.5% 4.3%",
+                  transform: `scale(${cursor.scale})`,
+                  filter: "drop-shadow(0 2px 3px rgba(0,0,0,.35))",
+                  overflow: "visible",
                 }}
-              />
-            </div>
-          ) : null}
-          {cursor && cursor.opacity > 0 ? (
-            <svg
-              viewBox="0 0 16 23"
-              aria-hidden
-              style={{
-                position: "absolute",
-                left: cursor.x * px - (2 / 23) * arrow,
-                top: cursor.y * px - (1 / 23) * arrow,
-                height: arrow,
-                opacity: cursor.opacity,
-                transformOrigin: "12.5% 4.3%",
-                transform: `scale(${cursor.scale})`,
-                filter: "drop-shadow(0 2px 3px rgba(0,0,0,.35))",
-                overflow: "visible",
-              }}
-            >
-              <path d={ARROW} fill="#000" stroke="#fff" strokeWidth={1.4} strokeLinejoin="round" />
-            </svg>
-          ) : null}
+              >
+                <path
+                  d={ARROW}
+                  fill="#000"
+                  stroke="#fff"
+                  strokeWidth={1.4}
+                  strokeLinejoin="round"
+                />
+              </svg>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -1455,7 +1473,7 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
     bar * (tall ? panes.length : 1) -
     (tall ? gap * (panes.length - 1) : 0);
   // Side by side the windows share a height; stacked, a width. Each keeps its page's shape.
-  const aspects = panes.map((p) => p.size[0] / p.size[1]);
+  const aspects = panes.map((p) => p.crop[2] / p.crop[3]);
   const sizes = tall
     ? (() => {
         const w = Math.min(roomW, roomH / aspects.reduce((a, k) => a + 1 / k, 0));
