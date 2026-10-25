@@ -216,7 +216,7 @@ export type PromoScript = z.infer<typeof promoScript>;
 const words = (s: string) => s.split(/\s+/).filter(Boolean);
 
 /** The dark base look: near black, soft white, Figtree. */
-export const DARK_LOOK: Look = {
+const DARK_LOOK: Look = {
   background: "#0b0c10",
   foreground: "#ececee",
   muted: "#8a8b93",
