@@ -69,12 +69,12 @@ const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
 const IDS = { ...PORTAL_FIELDS, ids: z.array(z.string()) };
 const MAX_RANGE = 62 * 24 * 3_600_000;
 
-export interface RangeRequest extends PortalRequest {
+interface RangeRequest extends PortalRequest {
   from: string;
   to: string;
 }
 
-export interface CalendarRange {
+interface CalendarRange {
   zone: string;
   length: number;
   open: { start: string; end: string }[];
@@ -114,7 +114,7 @@ export async function rangeOf(
 }
 
 /** A client's week, and what its people need about its page: where it is, whether it sends. */
-export interface ClientRange extends CalendarRange {
+interface ClientRange extends CalendarRange {
   /** Its booking page. */
   page: string;
   /** Bookers get the invite, the mails and texts: its sends flag and Wren's gate both on. */
@@ -123,7 +123,7 @@ export interface ClientRange extends CalendarRange {
   connected: boolean;
 }
 
-export interface CalendarConsoleDeps {
+interface CalendarConsoleDeps {
   /** Wren's own calendar, on main. */
   wren: CalendarDeps;
   /** Clients' calendars; unset = Wren's only. */

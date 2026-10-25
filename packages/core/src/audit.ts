@@ -10,12 +10,12 @@ import type { Notifier } from "./notify.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/index.js";
 
 export const SEALER_KEY = "all";
-export const SEALER_COMMAND = "audit seal";
-export const SEAL_EVERY_MS = 15 * 60_000;
+const SEALER_COMMAND = "audit seal";
+const SEAL_EVERY_MS = 15 * 60_000;
 /** Databases sealed at once: a stuck one holds up only its own slot. */
-export const SEAL_AT_ONCE = 4;
+const SEAL_AT_ONCE = 4;
 
-export interface SealerStats {
+interface SealerStats {
   /** Databases with new events, sealed this pass. */
   sealed: number;
   /** Events those seals cover. */
@@ -24,7 +24,7 @@ export interface SealerStats {
   databases: number;
 }
 
-export interface AuditSealerDeps {
+interface AuditSealerDeps {
   main: Db;
   /** A client's database through its own login. */
   open: (client: { database: string }) => Db;

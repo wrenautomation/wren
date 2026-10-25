@@ -613,7 +613,7 @@ export const conversationReply = {
  * in the thread (`Re:` the last we sent, from the inbox that sent it). A DM or comment has no
  * frame here.
  */
-export const replyLooks = (c: Conversation | null, row: Row): MessageKind | null => {
+const replyLooks = (c: Conversation | null, row: Row): MessageKind | null => {
   if (row.platform === "sms") return { kind: "sms", parts: segments };
   if (row.platform !== "email") return null;
   const last = [...(c?.entries ?? [])]

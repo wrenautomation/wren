@@ -7,7 +7,7 @@
 import type { Goal } from "./modules/marketing/plan.js";
 
 /** Named platforms, in the order they show. YouTube means its long-form goals only. */
-export const WRITE_ORDER = ["youtube", "linkedin", "reddit", "instagram", "facebook"] as const;
+const WRITE_ORDER = ["youtube", "linkedin", "reddit", "instagram", "facebook"] as const;
 const NAMES: Record<string, string> = {
   youtube: "YouTube long-form",
   linkedin: "LinkedIn",
@@ -21,7 +21,7 @@ const NAMES: Record<string, string> = {
   newsletter: "Blog",
 };
 /** Platforms that run on their own: one folded line. Any platform we do not name joins them. */
-export const AUTOPILOT = ["x", "tiktok", "threads"] as const;
+const AUTOPILOT = ["x", "tiktok", "threads"] as const;
 
 export interface WriteLine {
   /** Platform key, or "autopilot". */

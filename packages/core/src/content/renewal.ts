@@ -21,7 +21,7 @@ const DAY_MS = 86_400_000;
  * lapsing token, minutes each. Past it the call runs on alone (it writes tokens) and the pass
  * says so; tomorrow's asks again.
  */
-export const RENEW_WAIT_MS = 30 * 60_000;
+const RENEW_WAIT_MS = 30 * 60_000;
 
 /** What autobrowse's `sites/renew` answers (names, dates and lines; never a value). */
 export interface RenewReport {
@@ -34,14 +34,14 @@ type SitesRenew = {
   renew: (ctx: restate.Context, req: { dry?: boolean }) => Promise<RenewReport>;
 };
 
-export interface RenewalStats {
+interface RenewalStats {
   renewed: number;
   failed: number;
   lines: string[];
   next: string | null;
 }
 
-export interface TokenRenewalDeps {
+interface TokenRenewalDeps {
   db: Db;
   /** Where `sites/renew` runs (`sitesHost`); the box by default. */
   host?: SitesHost;

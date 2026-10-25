@@ -7,7 +7,7 @@
 export const PULSE_PATH = "/api/pulse";
 export const PULSE_MAX = 8;
 
-export type PulseCall = { path: string; body: Record<string, unknown> };
+type PulseCall = { path: string; body: Record<string, unknown> };
 export type PulseAnswer = { status: number; body: unknown };
 
 /** The calls a pulse body names, or null when it is malformed or too long. */

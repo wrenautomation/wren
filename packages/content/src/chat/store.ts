@@ -13,7 +13,7 @@ import { type ChatMessage, type ChatThread, chatMessages, chatThreads } from "..
 /** Messages a thread may send in an hour. */
 export const CHAT_PER_HOUR = 30;
 /** New threads an owner takes in a day. */
-export const CHAT_THREADS_PER_DAY = 200;
+const CHAT_THREADS_PER_DAY = 200;
 /** New threads one visitor (by IP) starts in a day, so one script can't use up the owner's. */
 export const CHAT_THREADS_PER_IP = 5;
 /** The most messages one read returns. */
@@ -197,22 +197,3 @@ export async function replyChat(
   await db.update(chatThreads).set({ readAt: now }).where(eq(chatThreads.id, threadId));
   return m as ChatMessage;
 }
-
-/** One chat thread and its messages, for the Inbox's conversation. */
-export async function chatOf(
-  db: Queryable,
-  threadId: number,
-): Promise<{ thread: ChatThread; messages: ChatMessage[] } | null> {
-  const [thread] = await db.select().from(chatThreads).where(eq(chatThreads.id, threadId));
-  if (!thread) return null;
-  const messages = await db
-    .select()
-    .from(chatMessages)
-    .where(eq(chatMessages.threadId, threadId))
-    .orderBy(asc(chatMessages.id));
-  return { thread, messages };
-}
-
-/** Who a thread is, as the Inbox names it. */
-export const chatWho = (t: Pick<ChatThread, "name" | "email" | "phone">) =>
-  t.name ?? t.email ?? t.phone ?? "Site visitor";

@@ -12,12 +12,12 @@ import type { Db } from "@wren/db";
 import { readMail } from "./read.js";
 import { mailEvent } from "./triage.js";
 
-export const MAIL_READER_EVERY_MS = 15 * 60_000;
+const MAIL_READER_EVERY_MS = 15 * 60_000;
 /** The client workflow, and the node the reader is in it. */
 export const MAIL_FLOW = "mail";
 export const MAIL_FROM = "read.mail";
 
-export interface MailReaderDeps {
+interface MailReaderDeps {
   /** Main: the pass's ledger. */
   db: Db;
   clientDb: (client: string) => Db;
@@ -29,7 +29,7 @@ export interface MailReaderDeps {
   sweep?: (now: Date) => Promise<void>;
 }
 
-export interface ClientReadStats {
+interface ClientReadStats {
   /** Kept ids per client, each onto that client's `mail` workflow. */
   kept: Record<string, number[]>;
   failed: Array<{ client: string; mailbox: string; error: string }>;

@@ -2,14 +2,14 @@
  * To approve: templates, workflows, pages and retires asked to go live, replies waiting on a yes, the
  * combined action list, and each page's draft box.
  */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { DOC_ACTIONS } from "../documents/documents.js";
 import { PAY_ACTIONS } from "../payments/index.js";
 import { BROADCAST_DECIDE_ACTIONS } from "../people/broadcasts.js";
 import { CREDIT_ACTIONS } from "../wren/credits.js";
 import { type DraftOf, draftActions } from "./ask.js";
 import { dmLooks } from "./dms.js";
-import { DRAFT_ACTIONS, fieldActions, SWAP_ACTIONS, said, UNSURE_ACTIONS } from "./drafts.js";
+import { DRAFT_ACTIONS, fieldActions, SWAP_ACTIONS, UNSURE_ACTIONS } from "./drafts.js";
 import { only, own, threadWhen, WAITS } from "./inbox.js";
 import { postLooks } from "./posts.js";
 import { CONNECT_ACTIONS, INVITE_ACTIONS } from "./social.js";

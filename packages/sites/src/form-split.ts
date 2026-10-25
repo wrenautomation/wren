@@ -5,6 +5,7 @@
  * collects, so no To approve. A page's form section always shows A.
  */
 
+import { UUID } from "@wren/core/ids";
 import { staleRefusal } from "@wren/core/refusal";
 import { type Db, type Queryable, serializable, snapshot } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -13,10 +14,10 @@ import type { FormArm } from "./model.js";
 import { type SiteFormDef, type SiteFormSplit, siteFormDefs, siteFormSplits } from "./schema.js";
 import { SPLIT_COOKIE } from "./split.js";
 import { type SplitCall, splitCall } from "./split-call.js";
-import { SitesRefusal, stillAt, UUID } from "./store.js";
+import { SitesRefusal, stillAt } from "./store.js";
 
 /** The split running on a form; null when none. */
-export async function runningFormSplit(db: Queryable, form: string): Promise<SiteFormSplit | null> {
+async function runningFormSplit(db: Queryable, form: string): Promise<SiteFormSplit | null> {
   const [row] = await db
     .select()
     .from(siteFormSplits)
@@ -175,7 +176,7 @@ export async function specForArm(
   return { spec: arm === "B" ? s.b : form.spec, split: s.id, arm };
 }
 
-export interface FormArmNumbers {
+interface FormArmNumbers {
   label: FormArm;
   /** Views of distinct page loads. */
   views: number;

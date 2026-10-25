@@ -12,13 +12,13 @@ export const PRIVACY = `${SITE}/privacy`;
 export const TERMS = `${SITE}/terms`;
 export const DELETION = `${SITE}/data-deletion`;
 /** The test client reviewers sign in to (prod client `wren_test`). */
-export const REVIEWER_PORTAL = "https://portal.wrenautomationreviews.com";
+const REVIEWER_PORTAL = "https://portal.wrenautomationreviews.com";
 /** 1024 square, the size Meta and TikTok ask for; the others scale it down. */
 export const ICON = "deploy/reviews/app-icon-1024.png";
 
 export const callbackOf = (p: SocialPlatform) => `${PORTAL}/oauth/social/${p}`;
 /** The mail apps' callbacks (designs/2026-10-07-mail-access.md). */
-export const mailCallbackOf = (p: "google" | "microsoft") => `${PORTAL}/oauth/mail/${p}`;
+const mailCallbackOf = (p: "google" | "microsoft") => `${PORTAL}/oauth/mail/${p}`;
 
 /** Something a review needs that a machine can check. */
 export type Need =

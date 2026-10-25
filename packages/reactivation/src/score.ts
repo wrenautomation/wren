@@ -32,7 +32,7 @@ const CONTACTED_MONTHS = 12;
 const CHUNK = 500;
 
 /** The kinds that say where someone works now. */
-export const WHERE_KINDS = ["still_there", "job_change", "left"] as const;
+const WHERE_KINDS = ["still_there", "job_change", "left"] as const;
 type WhereKind = (typeof WHERE_KINDS)[number];
 
 /** Holds on where someone works: their sources disagree (designs/2026-10-05-checks.md). */
@@ -205,7 +205,7 @@ function said(r: Reading, firm: string): string {
 }
 
 /** Why a conflict is held: "Sources disagree: a profile search has them at Acme; their mailbox rejects mail". */
-export const disagreement = (readings: readonly Reading[], firm: string) =>
+const disagreement = (readings: readonly Reading[], firm: string) =>
   `Sources disagree: ${readings.map((r) => said(r, firm)).join("; ")}`;
 
 export function scoreContact(s: ScoreInput, today = new Date()): Scored {
@@ -332,9 +332,7 @@ interface Row extends Record<string, unknown> {
   contacted_row: number | null;
 }
 
-export async function loadScoreInputs(
-  db: Queryable,
-): Promise<{ personId: number; input: ScoreInput }[]> {
+async function loadScoreInputs(db: Queryable): Promise<{ personId: number; input: ScoreInput }[]> {
   const rows = await db.execute<Row>(sql`
     with latest as (${LATEST_CRM_ROW}),
     crm as (

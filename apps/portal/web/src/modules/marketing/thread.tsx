@@ -16,6 +16,7 @@ import {
   DeviceFrame,
   type DraftEditor,
   type DraftEditorProps,
+  LABEL_CLASS,
   Textarea,
   tipProps,
 } from "@wren/ui";
@@ -29,7 +30,6 @@ export type ThreadShape = {
   posts: { text: string; count: number; flags: string[] }[];
 };
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const GRAY = "text-[#6b6b70]";
 
 /** The posts of a text as typed: an empty post stays while he fills it. */
@@ -112,7 +112,7 @@ function ThreadEditor({
             // biome-ignore lint/suspicious/noArrayIndexKey: posts are their place in the chain.
             <li key={i} className="grid gap-1.5">
               <div className="flex items-baseline justify-between gap-3">
-                <label htmlFor={`thread-post-${i}`} className={LABEL}>
+                <label htmlFor={`thread-post-${i}`} className={LABEL_CLASS}>
                   Post {i + 1}
                   {i === n - 1 && link ? (
                     <span className="font-normal text-(--ui-ink-3)"> · plus the link</span>

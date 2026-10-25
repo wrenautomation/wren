@@ -133,7 +133,7 @@ export const asButton = (label: string) =>
 /** Seconds a label waits after its station pops (first load): 0.8 against 0.5. */
 const LABEL_LAG = 0.3;
 /** Seconds into the first load when the numbers fade in: last. */
-export const NUM_AT = 2.9;
+const NUM_AT = 2.9;
 
 /** The animation delay of a mark in the first load; none when there is no first load. */
 function delay(at: number | undefined, lag = 0): { style?: CSSProperties } {
@@ -183,7 +183,7 @@ export function Chip({ x, y, t, icon }: ChipSpec) {
  * The fold leaf: the motif leaf, a glyph and words, centred on (x, y). Expand opens a group; shrink
  * folds it back. Both sit in one place, right under the circle.
  */
-export function FoldLeaf({
+function FoldLeaf({
   x,
   y,
   t,

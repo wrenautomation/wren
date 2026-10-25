@@ -15,7 +15,7 @@ import { type Fired, spineFire } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { type SourceCursors, sourcedPass } from "@wren/pipeline/sourced";
 
-export const SOURCED_FEED = { name: "SourcedFeed" } as const;
+const SOURCED_FEED = { name: "SourcedFeed" } as const;
 const CURSORS = "cursors";
 /** Between two passes when a list has more members to read. */
 const MORE_MS = 5_000;
@@ -23,7 +23,7 @@ const MORE_MS = 5_000;
 const IDLE_MS = 5 * 60_000;
 const PER_LIST = 200;
 
-export interface SourcedFeedDeps {
+interface SourcedFeedDeps {
   main: Db;
   clientDb(id: string): Db;
   clients(): Promise<string[]>;

@@ -8,7 +8,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { AD_FORMAT_FAMILIES, AD_FORMAT_STATES, type AdFormatFamily, adFormats } from "../schema.js";
 
-export interface AdFormatSeed {
+interface AdFormatSeed {
   slug: string;
   name: string;
   family: AdFormatFamily;
@@ -16,9 +16,7 @@ export interface AdFormatSeed {
   use: string;
 }
 
-const REEL = "instagram.com/reel/Db8pB-BIkH6 (42 ad formats)";
-
-/** The 42 from the reel, each said for an offer like ours: a service sold to a business. */
+/** The 42 from the reel (instagram.com/reel/Db8pB-BIkH6), each said for an offer like ours: a service sold to a business. */
 export const AD_FORMAT_SEED: readonly AdFormatSeed[] = (
   [
     [
@@ -324,11 +322,9 @@ export const AD_FORMAT_SEED: readonly AdFormatSeed[] = (
   use,
 }));
 
-export const AD_FORMAT_SOURCE = REEL;
-
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
-export const FAMILY_LABELS = cued({
+const FAMILY_LABELS = cued({
   offer: neutral("Offer"),
   proof: neutral("Proof"),
   contrast: neutral("Contrast"),

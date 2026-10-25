@@ -34,7 +34,7 @@ export type AccountSite = (typeof ACCOUNT_SITES)[number];
  * How a client connects one account, as the Shop says it (designs/2026-10-07-per-client-runs.md).
  * Wren's team saves what `holds` names into `clients.accounts`; nothing here signs in anywhere.
  */
-export interface AccountHow {
+interface AccountHow {
   label: string;
   /** What `clients.accounts[site]` holds. */
   holds: string;

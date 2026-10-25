@@ -139,7 +139,7 @@ export function withCounts(m: Metrics, i: Insights | null): Insights {
   };
 }
 
-export interface ContentMetricsDeps {
+interface ContentMetricsDeps {
   db: Db;
   /** Sleep between passes (default 1 h; a post's tier decides which are looked at). */
   everyMs?: number;

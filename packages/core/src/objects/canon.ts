@@ -21,7 +21,7 @@ export class CanonError extends Error {
  */
 const MAX_REF = 200;
 
-export interface ObjectId {
+interface ObjectId {
   platform: Platform;
   kind: ObjectKind;
   ref: string;

@@ -22,7 +22,7 @@ import { notesThisMonth } from "./tick.js";
 export const NOTE_MAX = 200;
 /** What marks a body the model wrote, on `provenance`. */
 const MODEL = { source: "model" } as const;
-export const isDrafted = sql`${reachMessages.provenance}->>'source' = 'model'`;
+const isDrafted = sql`${reachMessages.provenance}->>'source' = 'model'`;
 
 /** How a note reads. */
 const BRIEF =

@@ -15,7 +15,7 @@ import type { FitModel, Researcher } from "@wren/pipeline/research";
 import { firmOf, fitTraitsOf, readProfileFacts } from "@wren/research/people";
 import { sql } from "drizzle-orm";
 
-export interface JourneyResearchDeps {
+interface JourneyResearchDeps {
   /** Wren's database, where the person-research run lives. */
   main: Db;
   ingress: Ingress;

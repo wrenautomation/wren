@@ -27,7 +27,7 @@ import { Refused } from "./store.js";
 
 export const JOURNEYS = { name: "Journeys" } as const;
 
-export interface JourneysDeps {
+interface JourneysDeps {
   /** A workspace's database: Wren's for `null`. */
   db(client: string | null): Db;
 }

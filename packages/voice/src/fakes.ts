@@ -15,7 +15,6 @@ import type {
   Ears,
   Frame,
   Heard,
-  Hosted,
   Incoming,
   LeadContext,
   Line,
@@ -28,7 +27,7 @@ import type {
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 const sleep = (ms: number) => new Promise<void>((ok) => setTimeout(ok, ms));
-export const fakeFrame = (text: string): Frame => ({
+const fakeFrame = (text: string): Frame => ({
   encoding: "fake",
   rate: 0,
   data: enc.encode(text),
@@ -392,16 +391,3 @@ export const fakePorts = () => ({
 /** The transcript as plain lines, for tests and logs. */
 export const transcriptText = (lines: readonly Line[]) =>
   lines.map((l) => `${l.who === "tool" ? `[${l.tool}]` : l.who}: ${l.text}`).join("\n");
-
-/** A vendor platform that answers every call with the first line and hangs up. */
-export class FakeHosted implements Hosted {
-  readonly name = "fake-hosted";
-  async run(o: { agent: unknown; call: CallStart; signal: AbortSignal }) {
-    const first = (o.agent as { firstLine?: string }).firstLine ?? "Hello.";
-    return {
-      transcript: [{ who: "agent" as const, text: first }],
-      outcome: "ended",
-      turnsMs: [{ heard: 0 }],
-    };
-  }
-}

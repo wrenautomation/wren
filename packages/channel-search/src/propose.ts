@@ -28,7 +28,7 @@ export const ProposalBatch = z.union([
 export type ProposalDraft = z.infer<typeof Proposal>;
 
 /** Words added plus words removed, past this an edit is a rewrite. */
-export const MAX_WORDS_CHANGED = 6;
+const MAX_WORDS_CHANGED = 6;
 
 const squash = (s: string) => s.replace(/\s+/g, " ").trim();
 const words = (s: string) => squash(s).split(" ").filter(Boolean);
@@ -69,7 +69,7 @@ export function refusal(p: ProposalDraft, site: string): string | null {
   return null;
 }
 
-export interface ProposeStats {
+interface ProposeStats {
   made: number;
   refused: Array<{ kind: ProposalKind; page: string; current: string; reason: string }>;
   staled: number;

@@ -19,6 +19,7 @@ import {
   X_POST_MAX,
 } from "@wren/core/content/thread";
 import { recordDraft } from "@wren/core/draft-record";
+import { UUID } from "@wren/core/ids";
 import { staleRefusal } from "@wren/core/refusal";
 import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
@@ -88,7 +89,6 @@ interface DraftKind {
 
 /** A comment's cap where the platform has one under Reddit's and YouTube's 10,000. */
 const COMMENT_MAX: Readonly<Record<string, number>> = POST_COMMENT_MAX;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SITE: Record<string, string> = {
   linkedin: "LinkedIn",
   reddit: "Reddit",
@@ -400,7 +400,7 @@ const reach = (type: "dm" | "invite"): DraftKind => ({
 });
 
 /** Each kind by its Inbox prefix. */
-export const DRAFT_KINDS: Record<string, DraftKind> = {
+const DRAFT_KINDS: Record<string, DraftKind> = {
   draft: post,
   comment,
   thread,
@@ -445,7 +445,7 @@ export async function listWaiting(db: Queryable, o: { type?: DraftType; limit?: 
  * are one kind; the rest are their own. Keyed by the Inbox prefix and by `DraftType`.
  */
 const DM_EDITS = ["dm", "invite"] as const;
-export const editRecords = (kind: string): readonly string[] =>
+const editRecords = (kind: string): readonly string[] =>
   kind === "dm" || kind === "invite" ? DM_EDITS : [kind === "post" ? "draft" : kind];
 
 /** His newest edits of one type (or every type), newest first, for `wren drafts edits`. */

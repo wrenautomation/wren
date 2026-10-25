@@ -9,7 +9,7 @@ import { type Action, applies, type Call } from "./action.js";
 import type { RecordsApi } from "./records.js";
 
 /** Whether a row meets a where; only fixed values and lists of them are checked. */
-export function meets(where: Where | unknown, row: Row): boolean {
+function meets(where: Where | unknown, row: Row): boolean {
   if (!where || typeof where !== "object") return true;
   return Object.entries(where).every(([k, w]) => {
     const v = String(row[k] ?? "");

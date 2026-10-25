@@ -7,7 +7,7 @@
  */
 import type { SearchProposal } from "./schema.js";
 
-export interface SourceFile {
+interface SourceFile {
   path: string;
   text: string;
 }

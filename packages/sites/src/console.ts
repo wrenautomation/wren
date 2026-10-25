@@ -15,6 +15,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import { mayApprove, WREN } from "@wren/core/access";
 import { type Client, clients, findClient } from "@wren/core/clients";
 import { wrenFacts } from "@wren/core/facts";
+import { UUID } from "@wren/core/ids";
 import {
   accessOf,
   answer,
@@ -93,7 +94,6 @@ import {
   registerCodePage,
   retirePages,
   saveVersion,
-  UUID,
   versionOf,
 } from "./store.js";
 import { ContentProblem, TEMPLATE_IDS, templateOf } from "./templates/index.js";
@@ -109,7 +109,7 @@ export function parsePageApprovalId(id: string): { id: string; number: number } 
 }
 /** The To approve item for a page asked to come down: `retire:<id>`. */
 export const retireApprovalId = (id: string) => `retire:${id}`;
-export function parseRetireApprovalId(id: string): string | null {
+function parseRetireApprovalId(id: string): string | null {
   return /^retire:([0-9a-f-]{36})$/i.exec(id)?.[1] ?? null;
 }
 
@@ -138,34 +138,34 @@ export interface AskRequest extends IdRequest {
 export interface IdsRequest extends PortalRequest {
   ids: string[];
 }
-export interface DuplicateRequest extends IdsRequest {
+interface DuplicateRequest extends IdsRequest {
   angle?: string | null;
   audience?: string | null;
   title?: string | null;
 }
-export interface FormCreate {
+interface FormCreate {
   name?: string;
   slug?: string | null;
   spec?: unknown;
   owner?: string | null;
 }
-export interface SplitStartRequest extends IdRequest {
+interface SplitStartRequest extends IdRequest {
   /** The other live pages to split with; A is `id`. */
   arms: string[];
   /** One per arm, A first: whole numbers 1..100, as shares. Even when left out. */
   weights?: number[] | null;
   goal?: string | null;
 }
-export interface SplitWeightsRequest extends IdRequest {
+interface SplitWeightsRequest extends IdRequest {
   weights: number[];
   /** The split's `updatedAt` as read: a change since refuses. */
   expect?: unknown;
 }
-export interface SplitShipRequest extends IdRequest {
+interface SplitShipRequest extends IdRequest {
   /** The arm to make the page: "B". */
   label: string;
 }
-export interface LinkRequest extends PortalRequest {
+interface LinkRequest extends PortalRequest {
   page: string;
   link: string;
   campaign?: string | null;
@@ -173,7 +173,7 @@ export interface LinkRequest extends PortalRequest {
   name?: string | null;
   owner?: string | null;
 }
-export interface AddRequest extends PortalRequest {
+interface AddRequest extends PortalRequest {
   url: string;
   repoPath?: string | null;
   title?: string | null;

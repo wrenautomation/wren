@@ -8,7 +8,7 @@ export const ANTHROPIC_PRICES_URL = "https://platform.claude.com/docs/en/about-c
 export const ANTHROPIC_PRICES_AS_OF = "2026-10-19";
 
 /** Micro-dollars per million tokens. */
-export interface TokenPrice {
+interface TokenPrice {
   input: number;
   /** A cache write that lives 5 minutes (the default). */
   cacheWrite5m: number;
@@ -17,7 +17,7 @@ export interface TokenPrice {
   output: number;
 }
 
-export interface ModelPrice {
+interface ModelPrice {
   /** The model id, without a date suffix. */
   model: string;
   /** Said to a person. */
@@ -30,7 +30,7 @@ export interface ModelPrice {
   tiers: readonly { upTo: number | null; price: TokenPrice }[];
 }
 
-export const MODEL_PRICES: readonly ModelPrice[] = [
+const MODEL_PRICES: readonly ModelPrice[] = [
   {
     model: "claude-sonnet-5-5",
     name: "Sonnet 5.5",

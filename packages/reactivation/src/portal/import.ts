@@ -32,7 +32,7 @@ import { SOURCE_LABELS } from "./import-log.js";
 import { IMPORT_MAX_BYTES, IMPORT_MAX_ROWS } from "./routes.js";
 
 /** What a column is called on screen. */
-export const IMPORT_FIELDS: readonly { id: CrmField; label: string }[] = [
+const IMPORT_FIELDS: readonly { id: CrmField; label: string }[] = [
   { id: "fullName", label: "Full name" },
   { id: "firstName", label: "First name" },
   { id: "lastName", label: "Last name" },
@@ -114,7 +114,7 @@ export interface ImportResult {
   seen: number | null;
 }
 
-export interface ImportDeps {
+interface ImportDeps {
   main: Db;
   open(client: Client): Db;
 }

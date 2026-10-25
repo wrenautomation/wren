@@ -18,7 +18,7 @@ interface Box {
 }
 
 /** The key of a mark that can glide: a station, a fold tab, a person pill. Null: it cannot. */
-export function glideKey(n: Element): string | null {
+function glideKey(n: Element): string | null {
   const el = n as SVGElement;
   if (el.dataset.id) return `i:${el.dataset.id}`;
   if (el.dataset.fold) return `f:${el.dataset.fold}`;
@@ -174,4 +174,4 @@ export function glideHeight(host: HTMLElement, from: number, to: number): void {
   });
 }
 
-export const GLIDE_MS = { move: 460, fade: 180, shrink: 380 } as const;
+const GLIDE_MS = { move: 460, fade: 180, shrink: 380 } as const;

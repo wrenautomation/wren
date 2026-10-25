@@ -6,19 +6,20 @@
  * https://developers.telnyx.com/api/messaging/send-message
  */
 
-import type {
-  CallStage,
-  CampaignState,
-  DeliveryStatus,
-  KeywordReplies,
-  LookupResult,
-  NumberAssignment,
-  ProviderNumber,
-  Registration,
-  SendRequest,
-  SendResult,
-  SmsEvent,
-  SmsProvider,
+import {
+  type CallStage,
+  type CampaignState,
+  callJson,
+  type DeliveryStatus,
+  type KeywordReplies,
+  type LookupResult,
+  type NumberAssignment,
+  type ProviderNumber,
+  type Registration,
+  type SendRequest,
+  type SendResult,
+  type SmsEvent,
+  type SmsProvider,
 } from "./provider.js";
 import { type LineType, PHONE_COUNTRIES } from "./schema.js";
 
@@ -26,7 +27,7 @@ const BASE = "https://api.telnyx.com/v2";
 /** "Blocked due to STOP message": the recipient opted out of this number with the carrier. */
 const STOPPED_CODES: ReadonlySet<string> = new Set(["40300"]);
 
-export interface TelnyxOptions {
+interface TelnyxOptions {
   apiKey: string;
   /** Messages go out under this profile (it holds the webhook URL and the 10DLC campaign's numbers). */
   messagingProfileId?: string | null;
@@ -138,29 +139,10 @@ export class TelnyxProvider implements SmsProvider {
     this.fetchImpl = opts.fetch ?? fetch;
   }
 
-  private async call(
-    method: string,
-    path: string,
-    body?: unknown,
-  ): Promise<{ status: number; json: unknown }> {
-    const res = await this.fetchImpl(`${BASE}${path}`, {
-      method,
-      headers: {
-        authorization: `Bearer ${this.opts.apiKey}`,
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      signal: AbortSignal.timeout(this.opts.timeoutMs ?? 20_000),
-    });
-    const text = await res.text();
-    let json: unknown = null;
-    try {
-      json = text ? JSON.parse(text) : null;
-    } catch {
-      json = { errors: [{ detail: text.slice(0, 300) }] };
-    }
-    return { status: res.status, json };
+  private call(method: string, path: string, body?: unknown) {
+    return callJson(this.fetchImpl, BASE, this.opts, method, path, body, (text) => ({
+      errors: [{ detail: text }],
+    }));
   }
 
   private async read(path: string): Promise<unknown> {

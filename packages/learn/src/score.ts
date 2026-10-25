@@ -39,7 +39,7 @@ export function practiceOf(name: string, sop: string): Practice {
   return { name, about: about.slice(0, 300), headings: headings.slice(0, 12) };
 }
 
-export const scoreSchema = z.object({
+const scoreSchema = z.object({
   score: z.number().int().min(0).max(10),
   summary: z.string().min(1),
   changes: z.array(z.string()).default([]),
@@ -94,7 +94,7 @@ export const WREN_FOCUS: readonly string[] = [
 ];
 
 /** What a client's items are scored against: the SOP names its own items fed. */
-export async function clientPractices(db: Queryable, client: string): Promise<Practice[]> {
+async function clientPractices(db: Queryable, client: string): Promise<Practice[]> {
   const rows = await db
     .selectDistinct({ sop: sopSources.sop })
     .from(sopSources)
@@ -167,7 +167,7 @@ export function judges(o: {
   };
 }
 
-export interface ScoredItem {
+interface ScoredItem {
   title: string;
   url: string;
   text: string;
@@ -179,7 +179,7 @@ export interface ScoredItem {
 }
 
 /** The prompt, for `name` (Wren, or a client): what it runs, its SOPs one a line, then the item. */
-export function scorePrompt(
+function scorePrompt(
   item: ScoredItem,
   practices: readonly Practice[],
   name = "Wren",

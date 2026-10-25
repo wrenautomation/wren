@@ -12,7 +12,7 @@ import { type BlogRow, blogRows } from "./blog.js";
 import { waitingForBrowser } from "./queue.js";
 import { formatSql } from "./schema.js";
 
-export const PIECE_KINDS = ["long", "vertical", "written", "story", "blog"] as const;
+const PIECE_KINDS = ["long", "vertical", "written", "story", "blog"] as const;
 export type PieceKind = (typeof PIECE_KINDS)[number];
 
 /**
@@ -21,7 +21,7 @@ export type PieceKind = (typeof PIECE_KINDS)[number];
  * and waiting on his look in Studio; `none` is a branch not made yet (a blog post's email before
  * it's sent).
  */
-export type BranchState =
+type BranchState =
   | "draft"
   | "failed"
   | "queued"
@@ -84,7 +84,7 @@ export interface DraftRow {
   views: number | null;
   engaged: number | null;
 }
-export interface IdeaRow {
+interface IdeaRow {
   id: string;
   text: string;
   ref: string | null;

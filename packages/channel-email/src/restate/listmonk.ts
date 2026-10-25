@@ -44,7 +44,7 @@ const MESSAGE = z.looseObject({
     .array(z.looseObject({ uuid: z.string().min(1), email: z.string().email() }))
     .length(1),
 });
-export type ListmonkMessage = z.infer<typeof MESSAGE>;
+type ListmonkMessage = z.infer<typeof MESSAGE>;
 
 export function makeListmonkMail(deps: IssueMailer) {
   const { db } = deps;
@@ -127,9 +127,7 @@ export function makeListmonkIntake() {
   });
 }
 export type ListmonkIntake = ReturnType<typeof makeListmonkIntake>;
-
-export const SYNC_KEY = "all";
-export const SYNC_COMMAND = "listmonk sync";
+const SYNC_COMMAND = "listmonk sync";
 export const SYNC_EVERY_MS = 3_600_000;
 
 export interface SyncDeps {
@@ -138,7 +136,7 @@ export interface SyncDeps {
 }
 
 /** One email topic: the list is made if missing, subscribers move both ways. Returns the list's id. */
-export async function syncTopicNamed(
+async function syncTopicNamed(
   d: SyncDeps,
   topic: { name: string; publicName?: string | null },
 ): Promise<TopicSync> {

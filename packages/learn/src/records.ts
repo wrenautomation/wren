@@ -91,7 +91,7 @@ const load = (db: Parameters<typeof itemOf>[0], id: string) => itemOf(db, WREN, 
 
 const WAITING = { state: ["reading", "mac", "scoring", "failed"] };
 
-export const itemRecord = defineRecord({
+const itemRecord = defineRecord({
   id: "learn.item",
   app: "learn",
   channel: null,
@@ -113,7 +113,7 @@ export const itemRecord = defineRecord({
   actions: ["learn.archive", "learn.toSop", "learn.readAgain"],
 });
 
-export const savedRecord = defineRecord({
+const savedRecord = defineRecord({
   id: "learn.saved",
   app: "learn",
   channel: null,
@@ -141,7 +141,7 @@ export const savedRecord = defineRecord({
   actions: ["learn.archive", "learn.toSop", "learn.readAgain"],
 });
 
-export const sourceRecord = defineRecord({
+const sourceRecord = defineRecord({
   id: "learn.source",
   app: "learn",
   channel: null,
@@ -258,7 +258,7 @@ const HOOK = status(
 );
 
 /** Each broken-down reel or video, best reach first: who, the hook, the beats, the ask, the numbers. */
-export const breakdownRecord = defineRecord({
+const breakdownRecord = defineRecord({
   id: "learn.breakdown",
   app: "learn",
   channel: null,
@@ -338,7 +338,7 @@ export const breakdownRecord = defineRecord({
 });
 
 /** Each hook style: how many reels, by how many creators, and how far it reaches. */
-export const hookRecord = defineRecord({
+const hookRecord = defineRecord({
   id: "learn.hook",
   app: "learn",
   channel: null,

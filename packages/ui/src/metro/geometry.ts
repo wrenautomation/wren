@@ -203,13 +203,6 @@ export const boxAt = (cx: number, cy: number, w: number, h: number): Box => ({
 export const overlaps = (a: Box, b: Box, gap = 0): boolean =>
   a.x0 < b.x1 + gap && b.x0 < a.x1 + gap && a.y0 < b.y1 + gap && b.y0 < a.y1 + gap;
 
-export const joinBoxes = (boxes: readonly Box[]): Box => ({
-  x0: Math.min(...boxes.map((b) => b.x0)),
-  y0: Math.min(...boxes.map((b) => b.y0)),
-  x1: Math.max(...boxes.map((b) => b.x1)),
-  y1: Math.max(...boxes.map((b) => b.y1)),
-});
-
 /** A free chip (retry, hold, branch label): a pill 21 high, with or without a glyph. */
 /** A fold's chip at rest: how many stations it holds. */
 export const foldSteps = (c: { steps: number; each?: string | undefined }): string =>
@@ -233,7 +226,7 @@ export const foldIo = (c: {
 /** A fold leaf's width: the expand or shrink glyph and its words, a little larger than a chip. */
 export const foldWidth = (t: string): number => textWidth(t, 12, true) + 36;
 /** The glyphs of a fold leaf: open a group (expand) or fold it back (shrink). */
-export const isFoldGlyph = (icon?: IconName | null) => icon === "expand" || icon === "shrink";
+const isFoldGlyph = (icon?: IconName | null) => icon === "expand" || icon === "shrink";
 export const chipWidth = (t: string, icon?: IconName | null): number =>
   isFoldGlyph(icon) ? foldWidth(t) : textWidth(t, 11, true) + (icon === null ? 18 : 30);
 /** A branch chip's height. */
@@ -309,7 +302,7 @@ export function labelOf(s: LabelStation) {
 }
 
 /** The sub line as it reads: the struck price first, when there is one. */
-export const subText = (s: { s?: string | undefined; was?: string | undefined }): string =>
+const subText = (s: { s?: string | undefined; was?: string | undefined }): string =>
   s.was && s.s ? `${s.was} ${s.s}` : (s.s ?? "");
 
 /** The boxes of a station's name, its sub and its diff tag. Empty when it has no name. */
@@ -381,7 +374,7 @@ export const routeOf = (r: MetroTrack, a: Point, c: Point): Point[] =>
     : (r.pts ?? (r.back ? railPts(a, c, r.back) : octPts(a, c, r.bend, r.reach)));
 
 /** A track back: down from its start, along under the lower of its two rows, up into its end. */
-export const railPts = (a: Point, c: Point, d: number): Point[] => {
+const railPts = (a: Point, c: Point, d: number): Point[] => {
   const y = Math.max(a[1], c[1]) + d;
   return [a, [a[0], y], [c[0], y], c];
 };

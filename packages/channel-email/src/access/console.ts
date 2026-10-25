@@ -34,7 +34,7 @@ import {
   MICROSOFT_MAIL_SETUP,
 } from "./setups.js";
 
-export interface MailConsoleDeps {
+interface MailConsoleDeps {
   main: Db;
   access: MailAccessApi;
   /** A client's own database: Done on an email it read. */
@@ -283,7 +283,7 @@ export function makeMailAccess(deps: MailConsoleDeps) {
 }
 
 /** What Google and Microsoft send back, as the portal's Worker passes it on. */
-export const LANDING = z.looseObject({
+const LANDING = z.looseObject({
   provider: z.enum(MAIL_PROVIDERS),
   state: z.string().max(128),
   code: z.string().max(4096).nullish(),

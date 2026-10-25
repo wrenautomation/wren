@@ -34,7 +34,7 @@ export const SIGNALS_HELD = "research.signals";
 /** Google searches the collectors may spend a local day, of the 200 shared with profiles. */
 export const SIGNALS_GOOGLE_PER_DAY = 50;
 /** An unresolved subject is asked again after this long. */
-export const UNRESOLVED_DAYS = 30;
+const UNRESOLVED_DAYS = 30;
 /** A cap with no `retryAt` parks a subject this long. */
 const CAPPED_HOURS = 24;
 /** Subjects per collector a call, when the caller names none: one batch of free units. */
@@ -43,7 +43,7 @@ export const SIGNALS_LIMIT = 20;
 export const ONCE = 36_500;
 
 /** Who a collector reads about. `post`: a post key (`reddit:t3_…`), mapped to a firm or person later. */
-export type SignalSubject = "company" | "person" | "post";
+type SignalSubject = "company" | "person" | "post";
 
 /** One read a collector made. `step: "google"` counts in Google's daily budget. */
 export interface Tried {
@@ -139,7 +139,7 @@ export function defineCollector<S extends z.ZodObject>(c: Collector<S>): Collect
 }
 
 /** A collector's settings as the component holds them. */
-export type CollectorSettings = { on: boolean } & Record<string, unknown>;
+type CollectorSettings = { on: boolean } & Record<string, unknown>;
 export type SignalsSettings = Record<string, CollectorSettings>;
 
 export const firmKey = (id: number) => `c${id}`;
@@ -273,7 +273,7 @@ export const readAccount = (pool: string | null | undefined): string | null => {
  * The due ones of `subjects`, in order: never checked, a found or none answer older than
  * `everyDays`, unresolved older than 30 days, or capped past `retry_at`.
  */
-export async function dueSubjects(
+async function dueSubjects(
   db: Queryable,
   c: Pick<Collector, "name" | "everyDays">,
   subjects: readonly string[],
@@ -317,7 +317,7 @@ export async function collectorRoom(
 }
 
 /** One collector's share of a call: its due subjects with room, or why none. */
-export interface CollectorPlan {
+interface CollectorPlan {
   name: string;
   subjects: string[];
   settings: CollectorSettings;
@@ -394,7 +394,7 @@ export async function signalPlan(
 }
 
 /** One subject read by one collector, as journaled. */
-export interface SignalUnit {
+interface SignalUnit {
   collector: string;
   subject: string;
   /** `error`: a metered read failed and nothing was written. */
@@ -482,7 +482,7 @@ export async function signalUnit(
   return done;
 }
 
-export interface CollectorStats {
+interface CollectorStats {
   selected: number;
   found: number;
   none: number;

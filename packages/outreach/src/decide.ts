@@ -25,7 +25,7 @@ const drop = (o: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== ""));
 
 /** One row as the state Jev reads. */
-export function commentState(r: Row): Record<string, unknown> {
+function commentState(r: Row): Record<string, unknown> {
   const item = String(r.item);
   if (item.startsWith("thread:"))
     return drop({

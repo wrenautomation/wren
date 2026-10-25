@@ -5,6 +5,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { clients } from "@wren/core/clients";
+import { UUID } from "@wren/core/ids";
 import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
 import { type AnyColumn, and, asc, eq, inArray, sql } from "drizzle-orm";
@@ -55,7 +56,6 @@ function expectedAt(expect: unknown): string | null {
 const stillAt = (column: AnyColumn, at: string) =>
   sql`date_trunc('milliseconds', ${column}) = ${at}::timestamptz`;
 
-export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** A deposit as a share of the total; the percent checked. */
@@ -68,7 +68,7 @@ export function depositOf(total: number, pct: number | null | undefined): number
 export const isKind = (v: unknown): v is DocKind => DOC_KINDS.includes(v as DocKind);
 
 /** The consent box's words. A change to them is a new version. */
-export const CONSENT_VERSION = "2026-10-09";
+const CONSENT_VERSION = "2026-10-09";
 export const CONSENT_WORDS = "I agree to sign electronically. Typing my name is my signature.";
 /** The line printed in a sealed document, above the signature. A change to it is a new version. */
 export const SEALED_CONSENT_VERSION = "2026-10-21";
@@ -149,7 +149,7 @@ type Shown = Pick<
 >;
 
 /** The text the signer sees, one canonical string: what the SHA-256 covers. */
-export function shownText(d: Shown): string {
+function shownText(d: Shown): string {
   return JSON.stringify({
     kind: d.kind,
     number: d.number,
@@ -180,7 +180,7 @@ export const docPath = (token: string) => `/o/d/${token}`;
 
 // ---- Templates ----
 
-export interface TemplateInput {
+interface TemplateInput {
   id?: string | null;
   kind?: unknown;
   name?: unknown;
@@ -212,7 +212,7 @@ const bodyOf = (v: unknown) => {
 };
 
 /** The three starters every client gets: plain words it edits. */
-export const STARTERS: ReadonlyArray<{
+const STARTERS: ReadonlyArray<{
   starter: string;
   kind: DocKind;
   name: string;
@@ -297,7 +297,7 @@ export async function ensureStarters(main: Queryable, client: string, by: string
     .onConflictDoNothing({ target: [docTemplates.client, docTemplates.starter] });
 }
 
-export async function templateById(
+async function templateById(
   main: Queryable,
   client: string,
   id: string,
@@ -400,7 +400,7 @@ async function addEvent(
   });
 }
 
-export interface NewDoc {
+interface NewDoc {
   client: string;
   template?: string | null;
   kind?: unknown;
@@ -523,7 +523,7 @@ export async function docOf(main: Queryable, client: string, id: string): Promis
   return d;
 }
 
-export interface DocPatch {
+interface DocPatch {
   title?: unknown;
   body?: unknown;
   lines?: unknown;
@@ -1016,7 +1016,7 @@ export async function declineDoc(main: Db, d: Doc, v: Visit & { why?: unknown })
  */
 const SIGNABLE_SEALED: readonly DocStatus[] = [...OPEN, "expired", "void"];
 
-export interface SealedSigner {
+interface SealedSigner {
   name: string | null;
   email: string | null;
   at: Date;

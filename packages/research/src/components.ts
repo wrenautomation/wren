@@ -52,7 +52,7 @@ export const socialSettingsSchema = z
 export type SocialSettings = z.infer<typeof socialSettingsSchema>;
 export const SOCIAL = "research.social";
 export const DOSSIER = "research.dossier";
-export const TRIGGERS_COMPONENT = "signals.triggers";
+const TRIGGERS_COMPONENT = "signals.triggers";
 
 const LEADS: Port = {
   id: "leads",

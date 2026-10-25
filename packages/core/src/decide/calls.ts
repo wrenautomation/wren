@@ -19,7 +19,7 @@ export const keepSql = (kind: DecisionKind, label: ReturnType<typeof sql>) => {
   )}))`;
 };
 
-export interface CallInput {
+interface CallInput {
   kind: DecisionKind;
   subject: string;
   /** His call in the kind's labels. */

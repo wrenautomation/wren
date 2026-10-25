@@ -36,7 +36,7 @@ export const chosen = (params: URLSearchParams): Platform | null => {
 };
 
 export type Make = "post" | "thread" | "carousel" | "story" | "blog" | "video";
-export interface MakeKind {
+interface MakeKind {
   id: Make;
   name: string;
   /** Where it goes, in a few words. */
@@ -47,7 +47,7 @@ export interface MakeKind {
 }
 
 /** What Studio makes, in the order he reaches for them. */
-export const MAKES: readonly MakeKind[] = [
+const MAKES: readonly MakeKind[] = [
   {
     id: "post",
     name: "Post",

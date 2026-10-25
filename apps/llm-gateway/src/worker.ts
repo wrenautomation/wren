@@ -39,7 +39,7 @@ export interface Env extends RouteEnv {
 }
 
 /** The one ledger: callers' limits and every key's use, kept in its storage. */
-export class KeyLedger extends DurableObject<Env> {
+class KeyLedger extends DurableObject<Env> {
   private ledger = this.freshLedger();
   private readonly guard = new Guard((s) => {
     void this.ctx.storage.put(s.id, s);

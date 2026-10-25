@@ -58,8 +58,8 @@ const DAY = 24 * HOUR;
 const CAPPED = { maxRetryAttempts: 3 } as const;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const CALENDAR_SERVICE = { name: "Calendar" } as const;
-export const CLIENT_CALENDAR_SERVICE = { name: "ClientCalendar" } as const;
+const CALENDAR_SERVICE = { name: "Calendar" } as const;
+const CLIENT_CALENDAR_SERVICE = { name: "ClientCalendar" } as const;
 
 export type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;
 
@@ -90,7 +90,7 @@ export interface CalendarDeps {
 }
 
 /** A booking as the booker's page sees it: JSON, so a journaled step can return it. */
-export interface BookingView {
+interface BookingView {
   id: number;
   state: "booked" | "cancelled";
   start: string;
@@ -106,7 +106,7 @@ export interface BookingView {
 }
 
 /** The open times as the booking page reads them. */
-export interface SlotsView {
+interface SlotsView {
   /** The owner's zone. */
   zone: string;
   length: number;
@@ -148,7 +148,6 @@ interface RemindRequest {
 type RemindService = {
   remind: (ctx: restate.Context, req: RemindRequest) => Promise<{ sent: boolean }>;
 };
-export type CalendarService = RemindService;
 
 /** A call as the spine hears it after a change: who booked rides along. */
 interface Changed {
@@ -161,7 +160,7 @@ interface Changed {
 }
 
 /** What a booker asks for, checked. */
-export interface BookAsk {
+interface BookAsk {
   /** The page it was booked on: Wren's offer, or a client page's tag. */
   offer: string | null;
   start: string;
@@ -656,7 +655,7 @@ export interface ClientCalendarDeps {
 }
 
 /** A client as its booking page needs it, read in one journaled step. */
-export interface CalendarOwner {
+interface CalendarOwner {
   id: string;
   database: string;
   name: string;

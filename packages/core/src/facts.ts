@@ -27,9 +27,9 @@ import { date, defineRecord, number, prose, status, text } from "./records.js";
 
 export { DEFAULT_FACTS, FACT_MAX, FACTS_CAP } from "./facts-list.js";
 
-export const FACTS_COMPONENT = "drafts.facts";
+const FACTS_COMPONENT = "drafts.facts";
 
-export const factsSettingsSchema = z
+const factsSettingsSchema = z
   .object({
     /** One true line each; claims in drafts must match one. Empty: drafts claim nothing first-person. */
     facts: z
@@ -38,7 +38,6 @@ export const factsSettingsSchema = z
       .default([...DEFAULT_FACTS]),
   })
   .strict();
-export type FactsSettings = z.infer<typeof factsSettingsSchema>;
 
 /** Wren's facts: the saved block, or the default when none is saved or it doesn't parse. */
 export async function wrenFacts(db: Queryable): Promise<string[]> {
@@ -77,7 +76,7 @@ export function factsBlock(facts: readonly string[]): string {
     : `Nothing about the writer's own experience, clients or results is known. ${rule}`;
 }
 
-export const FACTS_RECORD = "marketing.facts";
+const FACTS_RECORD = "marketing.facts";
 
 export const FACTS_COMPONENTS = [
   defineComponent({

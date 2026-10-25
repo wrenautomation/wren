@@ -9,7 +9,7 @@ import type { Listmonk, ListmonkSubscriber } from "./client.js";
 import { ListmonkError } from "./client.js";
 
 /** Tags a list the sync made, naming its Wren topic: how a campaign finds its topic. */
-export const TOPIC_TAG = "wren-topic:";
+const TOPIC_TAG = "wren-topic:";
 export const topicTag = (topic: string) => `${TOPIC_TAG}${topic}`;
 
 export interface WrenConsent {
@@ -20,7 +20,7 @@ export interface WrenConsent {
   changedAt: Date;
 }
 
-export interface TopicPlan {
+interface TopicPlan {
   /** Confirmed in Wren, unknown to Listmonk. */
   create: string[];
   /** Confirmed in Wren, known to Listmonk but not on the list: put on it. */

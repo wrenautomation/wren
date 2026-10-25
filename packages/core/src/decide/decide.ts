@@ -6,7 +6,7 @@
 import { createHash } from "node:crypto";
 import type { EntryType } from "@typesafe-ai/sdk";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { settingsFor, setWrenSettings } from "../clients/index.js";
 import { type DecisionRow, decisions } from "../decide-schema.js";
@@ -22,11 +22,11 @@ import {
   machineLabel,
 } from "./kinds.js";
 
-export const DECIDE_COMPONENT = "decide";
+const DECIDE_COMPONENT = "decide";
 /** The daily cap before William sets one, in US dollars. */
 export const DEFAULT_DAILY_USD = 1;
 
-export const decideSettingsSchema = z
+const decideSettingsSchema = z
   .object({
     kinds: z
       .partialRecord(z.enum(DECISION_KINDS), z.object({ mode: z.enum(DECIDE_MODES) }).strict())
@@ -34,7 +34,7 @@ export const decideSettingsSchema = z
     dailyUsd: z.number().min(0).max(100).optional(),
   })
   .strict();
-export type DecideSettings = z.infer<typeof decideSettingsSchema>;
+type DecideSettings = z.infer<typeof decideSettingsSchema>;
 
 /** Wren's saved block; one that doesn't read is the defaults. */
 export async function decideSettings(db: Queryable): Promise<DecideSettings> {
@@ -83,7 +83,7 @@ export class DecideStop extends Error {
 const stateHash = (state: unknown) =>
   createHash("sha256").update(JSON.stringify(state)).digest("hex").slice(0, 16);
 
-export interface DecideInput {
+interface DecideInput {
   kind: DecisionKind;
   subject: string;
   /** What the backend is shown, as JSON. Never a handle or a name. */
@@ -172,27 +172,6 @@ async function keep(db: Queryable, row: typeof decisions.$inferInsert): Promise<
     .where(eq(decisions.ref, row.ref ?? ""));
   if (!k) throw new Error("decision lost");
   return k;
-}
-
-/** The newest decision with an answer on a subject. */
-export async function newestDecision(
-  db: Queryable,
-  kind: DecisionKind,
-  subject: string,
-): Promise<DecisionRow | null> {
-  const [r] = await db
-    .select()
-    .from(decisions)
-    .where(
-      and(
-        eq(decisions.kind, kind),
-        eq(decisions.subject, subject),
-        sql`${decisions.label} is not null`,
-      ),
-    )
-    .orderBy(desc(decisions.at), desc(decisions.id))
-    .limit(1);
-  return r ?? null;
 }
 
 /** A pick as a list shows it: the label and the chance it is kept. */

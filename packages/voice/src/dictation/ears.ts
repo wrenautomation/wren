@@ -8,7 +8,7 @@
 import type { EarStream, Ears, Frame, Heard } from "../types.js";
 import { DICTATION_RATE, levelOf, samplesOf, type Transcriber } from "./transcriber.js";
 
-export interface TranscriberEarsOptions {
+interface TranscriberEarsOptions {
   /** New audio a partial needs since the last run, in ms. Default 250; a server takes 1500. */
   partialEveryMs?: number;
   /** Speech the first partial of a segment waits for, ms. Default 150: the first word shows sooner. */

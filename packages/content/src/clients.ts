@@ -17,7 +17,7 @@ import type { SocialExtra } from "./connect/schema.js";
 import type { Brand } from "./voice.js";
 
 /** The channels a client's own autobrowse login posts on. */
-export const CLIENT_PLATFORMS = ["linkedin", "reddit"] as const satisfies readonly Platform[];
+const CLIENT_PLATFORMS = ["linkedin", "reddit"] as const satisfies readonly Platform[];
 /** Every channel a client posts on: its logins, and its connected accounts. */
 const CHANNEL_ORDER = [
   "linkedin",
@@ -29,10 +29,10 @@ const CHANNEL_ORDER = [
   "tiktok",
   "google_business",
 ] as const;
-export type ClientPlatform = Platform;
+type ClientPlatform = Platform;
 
 /** A connected account behind a channel: what its adapter needs past the token. */
-export interface ConnectedAccount {
+interface ConnectedAccount {
   platform: SocialPlatform;
   extra: SocialExtra;
 }
@@ -42,7 +42,7 @@ export const CLIENT_VOICE = `Plain and concise. Short sentences a person would s
 Concrete over abstract: what was done, for whom, what changed, with numbers where there are any.
 No hype, no jargon, no emoji, no hashtags, no exclamation marks, no calls to follow or like.`;
 
-export type ClientContent =
+type ClientContent =
   | { kind: "gone"; why: string }
   | {
       kind: "work";

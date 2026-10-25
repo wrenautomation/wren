@@ -106,7 +106,7 @@ export const captionPlaceSchema = z
     short: z.number().min(0.12).max(0.8).optional(),
   })
   .strict();
-export type CaptionPlace = z.infer<typeof captionPlaceSchema>;
+type CaptionPlace = z.infer<typeof captionPlaceSchema>;
 /** A caption line's height in a format: the edit's, else the usual. */
 export const captionY = (place: CaptionPlace | undefined, which: "long" | "short") =>
   place?.[which] ?? CAPTION_Y[which];
@@ -315,7 +315,7 @@ export function captionLines(
 }
 
 /** A caption word on the cut timeline, as the render draws it: stressed or not. */
-export interface ShownWord extends Word {
+interface ShownWord extends Word {
   stressed: boolean;
 }
 /** The caption line on screen: its words, when its last word's state ends, the time on the cut. */
@@ -399,7 +399,7 @@ function spread(put: readonly string[], s: number, e: number): Word[] {
  * Which render a platform gets for the whole cut, from those rendered: Reels and TikTok take 9:16;
  * Facebook and LinkedIn feeds 4:5, then 1:1; X 1:1. Null when none fits.
  */
-export const PLATFORM_FORMATS: Record<string, readonly CroppedFormat[]> = {
+const PLATFORM_FORMATS: Record<string, readonly CroppedFormat[]> = {
   instagram: ["vertical"],
   tiktok: ["vertical"],
   youtube: ["vertical"],

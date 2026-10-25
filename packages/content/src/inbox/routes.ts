@@ -29,10 +29,6 @@ export interface Shut {
   fix: "social" | "mail" | null;
 }
 
-/** Where the fix lives in the portal. */
-export const SOCIAL_PAGE = "/account/social";
-export const MAIL_PAGE = "/account/mail";
-
 const NAME: Record<string, string> = {
   facebook: "Facebook Page",
   google_business: "Business Profile",
@@ -145,7 +141,7 @@ export function withRoutes(options: readonly ReplyOption[], r: Routes): ReplyOpt
 }
 
 /** A client's mailbox connections, live or broken (channel-email's `mail_connections`). */
-export async function clientMailboxes(main: Queryable, client: string): Promise<MailboxState[]> {
+async function clientMailboxes(main: Queryable, client: string): Promise<MailboxState[]> {
   const rows = (await main.execute(
     sql`select lower(mc.address) address, mc.state from mail_connections mc
       join client_accounts a on a.id = mc.account_id where a.client = ${client}`,

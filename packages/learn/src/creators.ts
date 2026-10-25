@@ -24,7 +24,7 @@ export const isCreatorKind = (k: string): k is CreatorKind =>
 /** What a creator's first read marks its posts with: kept as seen, never read. */
 export const FOLLOWED_BEFORE = "Posted before you followed.";
 /** A creator is read 4 times a day: the sites' caps are a day's. */
-export const CREATOR_EVERY_MS = 6 * 60 * 60_000;
+const CREATOR_EVERY_MS = 6 * 60 * 60_000;
 /** Posts kept a read; a creator posts a few a day at most. */
 const NEWEST = 12;
 
@@ -199,7 +199,7 @@ export async function instagramPage(
 }
 
 /** An Instagram creator's newest posts. */
-export async function instagramPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]> {
+async function instagramPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]> {
   return (await instagramPage(sites, handle)).posts;
 }
 
@@ -214,7 +214,7 @@ interface XPost {
 }
 
 /** An X creator's newest posts of their own (no reposts, no pin), each read as its text. */
-export async function xPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]> {
+async function xPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]> {
   const a = await sites.call<{ data?: XPost[]; errors?: { detail: string }[] }>(
     "x",
     "GET",
@@ -296,12 +296,12 @@ export async function tiktokPage(
 }
 
 /** A TikTok creator's newest videos. Mac only. */
-export async function tiktokPosts(ytDlp: string, handle: string): Promise<CreatorPost[]> {
+async function tiktokPosts(ytDlp: string, handle: string): Promise<CreatorPost[]> {
   return (await tiktokPage(ytDlp, handle)).posts;
 }
 
 /** One read of a creator's posts, by its kind. */
-export type CreatorReader = (kind: CreatorKind, handle: string) => Promise<CreatorPost[]> | null;
+type CreatorReader = (kind: CreatorKind, handle: string) => Promise<CreatorPost[]> | null;
 
 /** The worker's reader: Instagram and X through autobrowse; TikTok is the Mac's. */
 export const sitesReader =

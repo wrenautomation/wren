@@ -11,10 +11,10 @@ import { items } from "./schema.js";
 /** About the model's 2048 tokens. */
 const EMBED_CHARS = 6000;
 /** Below this an item is not near the query: Gemini puts unrelated text near 0.6, related near 0.8. */
-export const NEAR_FLOOR = 0.7;
+const NEAR_FLOOR = 0.7;
 
 /** What an item is embedded from. */
-export function embedText(i: {
+function embedText(i: {
   title: string;
   summary: string | null;
   transcript: string | null;

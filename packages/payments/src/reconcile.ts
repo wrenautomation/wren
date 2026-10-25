@@ -33,14 +33,13 @@ import {
   stripeApi,
 } from "./stripe.js";
 
-export const PAY_RECONCILE = "PayReconcile";
-export const PAY_RECONCILE_KEY = "all";
-export const PAY_RECONCILE_COMMAND = "payments reconcile";
+const PAY_RECONCILE = "PayReconcile";
+const PAY_RECONCILE_COMMAND = "payments reconcile";
 const DAY_MS = 86_400_000;
 /** Links checked per client per pass: three reads each, well under Stripe's rate limit. */
 const PER_CLIENT = 50;
 
-export interface LinkCheck {
+interface LinkCheck {
   /** Facts applied: each one fixed what a dropped webhook would have. */
   healed: number;
   /** A disagreement kept for a person. */
@@ -70,7 +69,7 @@ const fact = (l: PayLink, key: string, o: Partial<StripeFact> & Pick<StripeFact,
  * One link held against Stripe: its checkouts, its payment, refunds and disputes. Each fact
  * Stripe has that the link lacks is applied; what is already true writes nothing.
  */
-export async function checkLink(
+async function checkLink(
   main: PaymentsDeps["main"],
   api: StripeApi,
   l: PayLink,
@@ -249,7 +248,7 @@ export async function reconcileAll(
   return stats;
 }
 
-export interface PayReconcileDeps extends PaymentsDeps {
+interface PayReconcileDeps extends PaymentsDeps {
   notifier?: Notifier;
 }
 

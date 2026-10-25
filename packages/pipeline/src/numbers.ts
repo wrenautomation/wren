@@ -41,7 +41,7 @@ import { edgeFlow, moveFlow, nodeCounts, sourceNumbers } from "./views.js";
 
 export type NumberWindow = 7 | 30 | 90 | "all";
 
-export interface NumbersFilter {
+interface NumbersFilter {
   /** Only this offer's deals and plans. */
   offer?: string;
   /** Only this source node's journeys: node and edge rows drop out. */
@@ -126,10 +126,7 @@ export async function sourceNumbersOf(db: Queryable, f: NumbersFilter = {}) {
 }
 
 /** Median days a journey stayed at each node it left or was dropped from, by arrival day. */
-export async function medianDaysOf(
-  db: Queryable,
-  f: NumbersFilter = {},
-): Promise<Map<string, number>> {
+async function medianDaysOf(db: Queryable, f: NumbersFilter = {}): Promise<Map<string, number>> {
   const r = rangeOf(f);
   const rows = (await db.execute(sql`
     with steps as (
@@ -237,7 +234,7 @@ export interface OfferNumber {
 }
 
 /** Per offer and currency: deals, what they collected, and what their signed terms schedule. */
-export async function offerNumbersOf(db: Queryable, f: NumbersFilter = {}): Promise<OfferNumber[]> {
+async function offerNumbersOf(db: Queryable, f: NumbersFilter = {}): Promise<OfferNumber[]> {
   const out = new Map<string, OfferNumber>();
   for (const r of await dealRowsOf(db, f)) {
     const key = `${r.offer}|${r.currency}`;
@@ -260,7 +257,7 @@ export async function offerNumbersOf(db: Queryable, f: NumbersFilter = {}): Prom
   return [...out.values()].sort((a, b) => a.offer.localeCompare(b.offer));
 }
 
-export interface PlanNumber {
+interface PlanNumber {
   /** The plan node's id. */
   node: string;
   deals: number;
@@ -319,7 +316,7 @@ export async function planNumbersOf(
  * Node, edge and offer rows for a graph; line, station, track and offer rows for a metro body.
  * Skip rows for both.
  */
-export type NumberKind = "node" | "edge" | "offer" | "station" | "track" | "line" | "skip";
+type NumberKind = "node" | "edge" | "offer" | "station" | "track" | "line" | "skip";
 /** One row of the `pipeline.number` record. */
 export interface NumberRow {
   id: string;

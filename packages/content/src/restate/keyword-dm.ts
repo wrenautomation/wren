@@ -13,7 +13,7 @@ import { sendAtMostOnce, sendError } from "@wren/outreach/restate";
 import { z } from "zod";
 import { addKeyword, catchKeywords, hitOf, removeKeywords, settleHit } from "../social/keywords.js";
 
-export interface KeywordDmDeps {
+interface KeywordDmDeps {
   db: Db;
   clientDb?: (client: string) => Db;
 }

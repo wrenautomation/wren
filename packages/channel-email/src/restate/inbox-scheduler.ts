@@ -38,7 +38,7 @@ import { DAY_MS, type SyncStats, syncInbox } from "../inbox/sync.js";
 import type { Disposition } from "./disposition.js";
 
 /** Where one key's replies land, and which `Disposition` key labels them. */
-export interface InboxScope {
+interface InboxScope {
   db: Db;
   disposition: string;
   /** A client's mailbox: its opt-outs and bounces also land on main's list. */
@@ -47,7 +47,7 @@ export interface InboxScope {
   client?: string | null;
 }
 
-export interface InboxSchedulerDeps {
+interface InboxSchedulerDeps {
   reader: InboxReader;
   /** From the key alone, so it needs no step: `acme/a@x.com` is acme's. */
   scopeOf: (key: string) => InboxScope;
@@ -150,7 +150,7 @@ async function keepWatch(
 }
 
 /** Another loop on the same mailbox's push: its object, key, and when its watch lapses (ms). */
-export interface PushListener {
+interface PushListener {
   service: string;
   key: string;
   until: number;

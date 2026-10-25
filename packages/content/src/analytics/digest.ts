@@ -7,8 +7,8 @@
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { desc, sql } from "drizzle-orm";
-import { type ContentDraft, contentDigests, type DigestLine, formatSql } from "../schema.js";
-import { type CadenceGoal, countsFor, type Format, formatOf } from "./catalog.js";
+import { contentDigests, type DigestLine, formatSql } from "../schema.js";
+import { type CadenceGoal, countsFor, type Format } from "./catalog.js";
 import { cadenceGoals } from "./goals.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -32,7 +32,7 @@ export interface DigestPost {
   clicks: number;
 }
 
-export interface DigestInput {
+interface DigestInput {
   now: Date;
   /** His plan (`cadenceGoals`). */
   goals: readonly CadenceGoal[];
@@ -41,7 +41,7 @@ export interface DigestInput {
   threadComments?: Partial<Record<Platform, number>>;
 }
 
-export const scoreOfPost = (p: Pick<DigestPost, "views" | "engaged">) =>
+const scoreOfPost = (p: Pick<DigestPost, "views" | "engaged">) =>
   p.views > 0 ? (p.engaged / p.views) * 100 : 0;
 
 const median = (xs: readonly number[]): number | null => {
@@ -213,7 +213,7 @@ export function buildDigest(input: DigestInput): Map<Platform | "all", DigestLin
 }
 
 /** The last 30 days of posts with their latest numbers, and the week's thread comments. */
-export async function digestInput(db: Queryable, now: Date): Promise<DigestInput> {
+async function digestInput(db: Queryable, now: Date): Promise<DigestInput> {
   const since = new Date(now.getTime() - NEXT_DAYS * DAY_MS).toISOString();
   const weekAgo = new Date(now.getTime() - 7 * DAY_MS).toISOString();
   const rows = (await db.execute(sql`
@@ -292,7 +292,3 @@ export async function latestDigest(
     .limit(1);
   return row?.lines ?? [];
 }
-
-/** A draft's format, for callers holding the row. */
-export const draftFormat = (d: Pick<ContentDraft, "platform" | "extra" | "media">): Format =>
-  formatOf(d.platform, typeof d.extra?.kind === "string" ? d.extra.kind : null, d.media?.kind);

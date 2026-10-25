@@ -40,7 +40,7 @@ import type { Fetcher } from "../fetch/fetcher.js";
 import { keyScope } from "./enrichment.js";
 import { notHeld, stageHolds, unitBatches } from "./units.js";
 
-export const DEFAULT_DISCOVERY_LIMIT = 10;
+const DEFAULT_DISCOVERY_LIMIT = 10;
 /** Bounded retries per company; when exhausted the unit is skipped, not the pass. */
 const UNIT_RETRY = { maxRetryAttempts: 3 } as const;
 
@@ -61,7 +61,7 @@ export interface DiscoveryDeps {
   fetchHomepage?: HomepageFetcher;
 }
 
-export interface DiscoveryInput {
+interface DiscoveryInput {
   limit?: number;
   /** The industry's words, in place of the niche registry's: what a client's settings name. */
   genericWords?: string[];

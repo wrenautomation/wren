@@ -65,10 +65,10 @@ import {
   videoState,
 } from "../video-edit.js";
 
-export const VIDEO_DESK = { name: "VideoDesk" } as const;
+const VIDEO_DESK = { name: "VideoDesk" } as const;
 /** The Mac's render, as autobrowse's desk serves it; no import from that repo. */
 export const STUDIO = { name: "studio" } as const;
-export type StudioService = {
+type StudioService = {
   render: (
     ctx: restate.Context,
     req: { id: number; only?: string; again?: boolean },
@@ -100,7 +100,7 @@ const told = <T>(p: Promise<T>) =>
   });
 
 /** The model behind Propose stressed words and Add punctuation: the worker's (prod: the gateway). */
-export type VideoModel = StressModel & { name: string };
+type VideoModel = StressModel & { name: string };
 
 export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
   /** The model, or why there's none: the CLI's `--llm` here is the worker's own. */

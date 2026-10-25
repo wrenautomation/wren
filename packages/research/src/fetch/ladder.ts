@@ -14,7 +14,7 @@ export interface FetchStep {
 }
 
 /** What `web GET /fetch` answers (`Fetched`): the fields this side reads. */
-export interface Fetched {
+interface Fetched {
   finalUrl: string;
   status: number | null;
   html: string;
@@ -26,7 +26,7 @@ export interface Fetched {
 }
 
 /** `cap`: the day's `fetch` bucket is spent (429). `offline`: any other failed call. */
-export type LadderFailure = "cap" | "offline";
+type LadderFailure = "cap" | "offline";
 
 /** One `web GET /fetch`. A failed call is a result, never a throw. */
 export async function fetchLadder(

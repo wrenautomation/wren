@@ -9,7 +9,7 @@ export interface TestPostgres extends DbHandle {
   stop(): Promise<void>;
 }
 
-export interface TestPostgresOptions {
+interface TestPostgresOptions {
   /** Ask for a Postgres of your own, not a database on the run's shared one. A file needs this when
    *  it changes anything the whole server shares: roles, other databases, server settings, or a
    *  client database (`addClient`, `createDatabase`), whose names are fixed. */
@@ -169,7 +169,7 @@ export async function truncate(db: DbHandle["db"], tables: string[]): Promise<vo
 }
 
 /** An object a test row names. A row that names a post or comment needs this first (its foreign key). */
-export interface SeedObject {
+interface SeedObject {
   platform: string;
   ref: string;
   kind: "post" | "comment" | "group";
@@ -216,13 +216,4 @@ export function commentObjects(
       ? [{ platform: c.platform, ref: c.answerRef, kind: "comment" as const, post: c.post }]
       : []),
   ]);
-}
-
-/** The objects a list of our published posts names, by platform and published id. */
-export function postObjects(
-  rows: ReadonlyArray<{ platform: string; publishedId?: string | null | undefined }>,
-): SeedObject[] {
-  return rows.flatMap((d) =>
-    d.publishedId ? [{ platform: d.platform, ref: d.publishedId, kind: "post" as const }] : [],
-  );
 }

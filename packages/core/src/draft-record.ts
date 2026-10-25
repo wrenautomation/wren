@@ -61,7 +61,7 @@ const PREFIX_KIND: Readonly<Record<string, DraftRecordKind>> = {
   // A drafted note on a LinkedIn invite: `note:<contact id>`.
   note: "invite_note",
 };
-export const kindOfItem = (item: string): DraftRecordKind => {
+const kindOfItem = (item: string): DraftRecordKind => {
   const k = PREFIX_KIND[item.slice(0, item.indexOf(":"))];
   if (!k) throw new Error(`no draft kind for ${item}`);
   return k;
@@ -174,7 +174,7 @@ export async function recordDraft(db: Queryable, s: DraftStep): Promise<void> {
 }
 
 /** What a model's draft was written from, as a `generated` step's `llm`. */
-export interface AskedModel {
+interface AskedModel {
   request: { prompt: string; system: string | null; maxTokens: number } | null;
   call: { model: string; provider: string; usage: unknown } | null;
   rawText: string | null;

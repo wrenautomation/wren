@@ -7,12 +7,13 @@
  */
 
 import type { BroadcastDetail } from "@wren/core/broadcast-records";
-import type { Action } from "@wren/ui";
 import {
   ACTIONS,
+  type Action,
   Button,
   EditConflict,
   Input,
+  messageOf,
   type RecordAct,
   type RecordExtras,
   Tag,
@@ -21,14 +22,13 @@ import {
   useEdit,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { ListPage } from "../../module.js";
 import { addDays, dayKey, daysOf, rangeOf, step } from "../calendar/grid.js";
 import { ERROR, QUIET, SELECT } from "../work/bits.js";
 import { atOf } from "./segments.js";
 
-const said = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const SMALL = `${SELECT} min-w-0 max-sm:w-full`;
 const FIELD = "flex min-w-0 flex-col gap-1 text-[13px] text-(--ui-ink-2) max-sm:basis-full";
 
@@ -141,7 +141,7 @@ function BroadcastEditor({
   useEffect(() => {
     if (noEmail && channel === "email") setChannel("sms");
   }, [noEmail]);
-  const ctxError = got.error && !got.data ? said(got.error) : null;
+  const ctxError = got.error && !got.data ? messageOf(got.error) : null;
 
   const topics = ctx?.topics.filter((t) => t.channel === channel) ?? [];
   // A topic belongs to one channel: switching drops one from the other.
@@ -186,7 +186,7 @@ function BroadcastEditor({
         (e) => {
           if (mine !== asked.current) return;
           setPreview(null);
-          setUnready(said(e));
+          setUnready(messageOf(e));
         },
       );
     }, 400);
@@ -210,7 +210,7 @@ function BroadcastEditor({
       bodyEdit.saved(sent.body);
       onDone(true);
     } catch (e) {
-      setError(said(e));
+      setError(messageOf(e));
       setBusy(null);
     } finally {
       flying.current = false;
@@ -465,7 +465,7 @@ function Month({ client }: { client: string }) {
     }),
   );
   const items = month_.data?.broadcasts ?? null;
-  const error = month_.error && !month_.data ? said(month_.error) : null;
+  const error = month_.error && !month_.data ? messageOf(month_.error) : null;
   const days = daysOf("month", anchor);
   const byDay = new Map<string, MonthItem[]>();
   for (const b of items ?? []) {
@@ -645,7 +645,7 @@ function TestSend({ row, act }: { row: Record<string, unknown>; act: RecordAct }
       const got = (await act("people.broadcastTest", { to: to.trim() })) as { sent?: string };
       setNote({ ok: true, text: `Sent to ${got.sent ?? to.trim()}.` });
     } catch (e) {
-      setNote({ ok: false, text: said(e) });
+      setNote({ ok: false, text: messageOf(e) });
     } finally {
       setBusy(false);
     }

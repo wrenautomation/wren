@@ -79,7 +79,7 @@ interface Tried {
 }
 
 const STEPS_WITH_WORK = ["lookup", "signals", "movers", "score", "brief", "compose"] as const;
-export type WorkStepId = (typeof STEPS_WITH_WORK)[number];
+type WorkStepId = (typeof STEPS_WITH_WORK)[number];
 export const hasWork = (step: string): step is WorkStepId =>
   (STEPS_WITH_WORK as readonly string[]).includes(step);
 

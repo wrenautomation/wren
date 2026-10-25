@@ -72,9 +72,9 @@ export async function listDrafts(
   });
 }
 
-export type ApproveSelector = { ids: number[] } | { enrollmentId: number } | { all: true };
+type ApproveSelector = { ids: number[] } | { enrollmentId: number } | { all: true };
 
-export interface ApproveResult {
+interface ApproveResult {
   approved: number;
   /** Messages on an enrollment that is no longer active: history, not a queue. */
   refused: number;
@@ -225,7 +225,7 @@ export async function editMessage(
   return review.edits as number;
 }
 
-export interface StopOutcome {
+interface StopOutcome {
   /** What happened, in one line for the operator. */
   summary: string;
 }

@@ -10,7 +10,7 @@ import { callExtras } from "./brief.js";
 const RECORD = "email.call";
 
 /** A `call_bookings` call's page: the brief, and Rebuild from inside it. */
-export const emailCallExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
+const emailCallExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
   callExtras(detail, row, { reason: "reason", rebuild: () => act("email.callBrief") });
 
 /** The Calls list: Wren's Pipelines and a client's Calls app share it. */

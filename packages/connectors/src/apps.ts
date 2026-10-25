@@ -6,7 +6,7 @@
 export const CONNECTOR_APPS = ["hubspot", "quickbooks", "jobber"] as const;
 export type ConnectorApp = (typeof CONNECTOR_APPS)[number];
 
-export interface AppSpec {
+interface AppSpec {
   label: string;
   authorize: string;
   token: string;
@@ -49,9 +49,6 @@ export const APPS: Record<ConnectorApp, AppSpec> = {
     fires: "A client added, a job done.",
   },
 };
-
-export const isConnectorApp = (v: unknown): v is ConnectorApp =>
-  (CONNECTOR_APPS as readonly unknown[]).includes(v);
 
 /** The key store's names for Wren's developer app: `CONNECTOR_HUBSPOT_ID`, `..._SECRET`. */
 export const appKeyName = (app: ConnectorApp, part: "ID" | "SECRET") =>

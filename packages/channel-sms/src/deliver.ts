@@ -123,7 +123,7 @@ const ANSWER_ENDS = new Set(["opted_out", "unreachable", "stopped"]);
  * policy, and answers (a text back, a review ask, a pay link), reminders and an operator's own
  * texts are not marketing.
  */
-export const isMarketingText = (
+const isMarketingText = (
   msg: Pick<SmsMessage, "kind" | "step">,
   contact: Pick<SmsContact, "sourceKind">,
 ) =>

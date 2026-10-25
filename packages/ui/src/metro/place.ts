@@ -58,7 +58,7 @@ export interface Lap {
 }
 
 /** The view's laps: each `lap` group with the stations in it (exits hang under their source). */
-export function lapsOf(view: MetroView): Lap[] {
+function lapsOf(view: MetroView): Lap[] {
   const groups = new Map((view.groups ?? []).map((g) => [g.id, g]));
   const lapOf = (g: string | undefined) => {
     const seen = new Set<string>();

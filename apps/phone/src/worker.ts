@@ -94,14 +94,9 @@ export const DESK_HANDLERS: ReadonlySet<string> = new Set([
   "unsubscribe",
 ]);
 
-export const MARKETING_HANDLERS: ReadonlySet<string> = new Set([
-  "signUp",
-  "confirm",
-  "prefs",
-  "set",
-]);
+const MARKETING_HANDLERS: ReadonlySet<string> = new Set(["signUp", "confirm", "prefs", "set"]);
 
-export const CALENDAR_HANDLERS: ReadonlySet<string> = new Set([
+const CALENDAR_HANDLERS: ReadonlySet<string> = new Set([
   "slots",
   "book",
   "booking",
@@ -469,7 +464,7 @@ async function gbpWebhook(req: Request, env: Env): Promise<Response> {
 }
 
 /** A site push older (or newer) than this is refused: a replayed body goes nowhere. */
-export const SITE_FRESH_MS = 5 * 60 * 1000;
+const SITE_FRESH_MS = 5 * 60 * 1000;
 
 /**
  * The lander's push: one application, signed with the export token it shares with wren. Only

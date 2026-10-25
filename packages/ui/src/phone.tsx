@@ -337,7 +337,7 @@ export function BottomSheet({
 // --- Swipe rows -----------------------------------------------------------------------------
 
 /** One button behind a row: what a swipe shows, and runs when swiped all the way. */
-export interface SwipeAct {
+interface SwipeAct {
   id: string;
   label: string;
   tone: "accent" | "bad" | "ink" | "warn";

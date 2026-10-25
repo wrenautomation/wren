@@ -8,6 +8,8 @@ import { qrMatrix, qrPath } from "@wren/sites/qr";
 import {
   Button,
   CopyButton,
+  HINT_CLASS,
+  LABEL_CLASS,
   num,
   type RecordExtras,
   Section,
@@ -21,9 +23,6 @@ import { useCall } from "../../load.js";
 import { type ListPage, type PageProps, WREN } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-
-const HINT = "text-[12px] text-(--ui-ink-3)";
 /** A field's name in the form's weight. */
 const named = (text: ReactNode) => <span className="font-medium">{text}</span>;
 
@@ -55,9 +54,9 @@ interface Made {
 }
 
 /** The code for a link as an SVG: black on white whatever the theme, so phones read it. */
-export function Qr({ text, size = 168 }: { text: string; size?: number }) {
+function Qr({ text, size = 168 }: { text: string; size?: number }) {
   const m = useMemo(() => qrMatrix(text), [text]);
-  if (!m) return <p className={HINT}>Too long for a QR code.</p>;
+  if (!m) return <p className={HINT_CLASS}>Too long for a QR code.</p>;
   const n = m.length + 8;
   return (
     <svg
@@ -103,7 +102,7 @@ function LinkOut({ url, name }: { url: string; name: string }) {
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
       <div className="grid min-w-0 gap-2">
-        <span className={LABEL}>Your link</span>
+        <span className={LABEL_CLASS}>Your link</span>
         <code className="block bg-(--ui-fill) p-2 text-[13px] break-all">{url}</code>
         <div className="flex flex-wrap items-center gap-2">
           <CopyButton text={url} label="Copy link" tone="primary" />
@@ -111,7 +110,7 @@ function LinkOut({ url, name }: { url: string; name: string }) {
             Save QR as PNG
           </Button>
         </div>
-        <span className={HINT}>
+        <span className={HINT_CLASS}>
           Every visit, form and booking from it counts on this link and on its page.
         </span>
       </div>
@@ -209,7 +208,7 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
                 )}
               />
               {t && !t.pages.length ? (
-                <span className={HINT}>No pages yet. Links go to a page made in Sites.</span>
+                <span className={HINT_CLASS}>No pages yet. Links go to a page made in Sites.</span>
               ) : null}
             </div>
             <SelectField
@@ -225,21 +224,21 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
                 name="campaign"
                 label={named(
                   <>
-                    Campaign <span className={HINT}>(optional)</span>
+                    Campaign <span className={HINT_CLASS}>(optional)</span>
                   </>,
                 )}
                 className="gap-1.5"
                 maxLength={80}
                 placeholder={slug || "spring-promo"}
               />
-              <span className={HINT}>Left empty, the page's name.</span>
+              <span className={HINT_CLASS}>Left empty, the page's name.</span>
             </div>
             <TextField
               form={form}
               name="content"
               label={named(
                 <>
-                  Post or ad id <span className={HINT}>(optional)</span>
+                  Post or ad id <span className={HINT_CLASS}>(optional)</span>
                 </>,
               )}
               className="gap-1.5"
@@ -258,7 +257,7 @@ function NewLink({ at, reload }: { at: PageProps; reload: () => void }) {
             </Button>
             {shownErr ? <span className="text-[13px] text-(--ui-bad)">{shownErr}</span> : null}
             {t && !t.host ? (
-              <span className={HINT}>
+              <span className={HINT_CLASS}>
                 No live address yet. The link shows once the client's host is live.
               </span>
             ) : null}

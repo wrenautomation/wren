@@ -22,7 +22,7 @@ import {
 } from "./pull/types.js";
 import { type ConnectorLink, connectorFired, connectorLinks } from "./schema.js";
 
-export const PULLERS: Record<ConnectorApp, Puller> = {
+const PULLERS: Record<ConnectorApp, Puller> = {
   hubspot: pullHubspot,
   quickbooks: pullQuickbooks,
   jobber: pullJobber,
@@ -55,7 +55,7 @@ export interface SyncDeps {
   now?: () => Date;
 }
 
-export interface SyncResult {
+interface SyncResult {
   /** connected: ran; broken or gone: nothing ran, don't come back. */
   state: "connected" | "broken" | "gone";
   people: number;
@@ -114,7 +114,7 @@ const latest = (people: readonly PulledPerson[]) => [
 ];
 
 /** A change as the App trigger hears it, about the person's email and phone. */
-export function appFired(
+function appFired(
   l: Pick<ConnectorLink, "id" | "client" | "app">,
   c: PulledChange,
   who: { name: string | null; email: string | null; phone: string | null } | null,

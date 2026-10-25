@@ -12,13 +12,12 @@ import { escapeTemplate } from "./client.js";
 /** The postback messenger `wren listmonk setup` registers; a campaign names it to go through Wren. */
 export const MESSENGER = "wren";
 /** The campaign template: the body and nothing else. Listmonk wraps a plain body in its HTML template otherwise. */
-export const TEMPLATE_NAME = "wren plain";
-export const TEMPLATE_BODY = '{{ template "content" . }}';
+const TEMPLATE_NAME = "wren plain";
+const TEMPLATE_BODY = '{{ template "content" . }}';
 
 export const issueTag = (topic: string, slug: string) => `issue:${topic}:${slug}`;
-export const campaignTopicTag = (topic: string) => `wren-topic:${topic}`;
 
-export interface IssueRef {
+interface IssueRef {
   topic: string;
   /** The slug the issue's links and sends are filed under. */
   slug: string;
@@ -56,7 +55,7 @@ export async function ensureTemplate(lm: Listmonk): Promise<number> {
   return have?.id ?? (await lm.createTemplate({ name: TEMPLATE_NAME, body: TEMPLATE_BODY })).id;
 }
 
-export interface CampaignStart {
+interface CampaignStart {
   id: number;
   status: string;
   toSend: number;

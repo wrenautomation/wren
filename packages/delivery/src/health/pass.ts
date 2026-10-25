@@ -13,7 +13,6 @@ import { asks, deliverables, engagements, invoices, pulses, results } from "../s
 import type { FlagFind } from "./flags.js";
 import { healthDays, healthOverrides, healthRatings } from "./schema.js";
 import {
-  ageDays,
   bandOf,
   combine,
   DROP,
@@ -59,7 +58,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 const at = (path: string, client: string) => `${path}?client=${encodeURIComponent(client)}`;
 
 /** One client's health as read now: each part, the rows behind it, and the plan's numbers. */
-export interface HealthRead {
+interface HealthRead {
   clientId: string;
   parts: Record<Part, PartScore>;
   inputs: HealthInput[];
@@ -471,6 +470,3 @@ export async function healthPass(
   }
   return { scored: reads.length, flags };
 }
-
-/** The age of an input in days, for the CLI. */
-export const inputAge = (at: string | null, now: Date) => (at ? ageDays(at, now) : null);

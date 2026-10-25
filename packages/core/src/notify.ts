@@ -24,8 +24,8 @@ export interface Notifier {
   notify(title: string, body?: string, level?: NotifyLevel): Promise<boolean>;
 }
 
-export const NOTIFIER_KINDS = ["none", "console", "discord"] as const;
-export type NotifierKind = (typeof NOTIFIER_KINDS)[number];
+const NOTIFIER_KINDS = ["none", "console", "discord"] as const;
+type NotifierKind = (typeof NOTIFIER_KINDS)[number];
 
 export class NoneNotifier implements Notifier {
   readonly name = "none";

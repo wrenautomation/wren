@@ -83,7 +83,7 @@ export class LlmInputRejected extends Error {
 
 const INPUT_REJECTED_STATUSES: ReadonlySet<number> = new Set([400, 422]);
 
-export type FakeResponder = (prompt: string, system?: string) => string | Promise<string>;
+type FakeResponder = (prompt: string, system?: string) => string | Promise<string>;
 
 /**
  * Fixture-driven stub: answers from a callable or a fixed string. Outputs flow
@@ -115,7 +115,7 @@ function rootCause(err: unknown): unknown {
  * ids, so audit reads it with the same code path as legacy rows.
  */
 /** One completion, the SDK's own retries included: a long draft takes a minute or two. */
-export const LLM_LIMIT_MS = 5 * 60_000;
+const LLM_LIMIT_MS = 5 * 60_000;
 
 export class AiSdkLlm implements LlmClient {
   readonly name: string;
@@ -256,9 +256,9 @@ export const COMPATIBLE_PROVIDERS = {
   cerebras: { baseURL: "https://api.cerebras.ai/v1", defaultModel: "gpt-oss-120b" },
   openai: { baseURL: "https://api.openai.com/v1", defaultModel: "gpt-5-mini" },
 } as const;
-export type CompatibleProvider = keyof typeof COMPATIBLE_PROVIDERS;
+type CompatibleProvider = keyof typeof COMPATIBLE_PROVIDERS;
 
-export const DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5-20251001";
 
 export type EnvMap = Readonly<Record<string, string | undefined>>;
 
@@ -280,13 +280,13 @@ export function fleetKeys(env: EnvMap, provider: string): string[] {
   return keys;
 }
 
-export interface MakeLlmOptions {
+interface MakeLlmOptions {
   /** Anthropic model id; falls back to WREN_LLM_MODEL, then DEFAULT_ANTHROPIC_MODEL. */
   anthropicModel?: string | null;
 }
 
 /** The gateway's default: its best free chain (see apps/llm-gateway). */
-export const DEFAULT_GATEWAY_MODEL = "free";
+const DEFAULT_GATEWAY_MODEL = "free";
 
 /**
  * "fake" | "claude-code[:model]" | "anthropic[:model-id]" | "gateway[:model]" |
@@ -357,7 +357,7 @@ export function makeLlm(
 }
 
 /** Providers a client's own model key may be for: the store keeps one key, `MODEL_API_KEY`. */
-export type KeyProvider = CompatibleProvider | "anthropic";
+type KeyProvider = CompatibleProvider | "anthropic";
 const KEY_PROVIDERS: readonly KeyProvider[] = [
   "anthropic",
   ...(Object.keys(COMPATIBLE_PROVIDERS) as CompatibleProvider[]),

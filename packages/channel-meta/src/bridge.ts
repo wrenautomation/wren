@@ -23,14 +23,14 @@ export function ideaFromVerdict(v: Verdict): string {
   ].join("\n");
 }
 
-export interface PostLike {
+interface PostLike {
   text: string;
   title?: string | null;
   url?: string | null;
   media?: { kind: "image" | "video"; source: string; title?: string } | null;
 }
 
-export interface SpecFromPostOptions {
+interface SpecFromPostOptions {
   /** Where the ad sends people; default the post's own URL. */
   link?: string;
   dailyBudgetUsd?: number;

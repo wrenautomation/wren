@@ -12,11 +12,11 @@ import { z } from "zod";
  */
 const CHANNEL_ACCOUNTS = ["linkedin", "reddit"] as const;
 const CONNECTED_ACCOUNTS = ["youtube", "linkedin_page", "x", "tiktok", "instagram"] as const;
-export const POSTING_ACCOUNTS = [...CHANNEL_ACCOUNTS, ...CONNECTED_ACCOUNTS] as const;
+const POSTING_ACCOUNTS = [...CHANNEL_ACCOUNTS, ...CONNECTED_ACCOUNTS] as const;
 
 /** A client's posts and reads: `ContentScheduler/<c>/posts`, `ContentMetrics/<c>/posts`, `SocialWatch/<c>/social`. */
 export const POSTS_UNIT = "posts";
-export const PLAN_UNIT = "daily";
+const PLAN_UNIT = "daily";
 export const SOCIAL_UNIT = "social";
 
 /** A client's content plan block. `about` is who it posts as: no About, no drafts. */

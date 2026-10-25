@@ -109,7 +109,7 @@ const dayOf = (at: string | Date): string =>
   typeof at === "string" ? at : at.toISOString().slice(0, 10);
 
 /** What a terms body must hold to be read later. Amounts themselves are the caller's. */
-export function termsProblems(t: Terms): string[] {
+function termsProblems(t: Terms): string[] {
   const errors: string[] = [];
   if (!/^[A-Z]{3}$/.test(t.currency)) errors.push("The currency is three capital letters.");
   for (const [k, v] of [
@@ -272,7 +272,7 @@ export async function shapeVersionsOf(db: Queryable): Promise<ShapeVersion[]> {
   return db.select().from(shapeVersions).orderBy(asc(shapeVersions.number));
 }
 
-export interface NewShape {
+interface NewShape {
   /** A graph body or a metro body (`stored.ts`). */
   body: StoredBody;
   /** Why it changed. Not empty. */

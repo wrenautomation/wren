@@ -21,7 +21,7 @@ import type {
   SmsProvider,
 } from "./provider.js";
 
-export interface KeyedOptions {
+interface KeyedOptions {
   client: string;
   /** One invocation's resolver: its key cached for its life. */
   keys: VendorKeys;

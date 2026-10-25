@@ -20,7 +20,7 @@ import {
 import { latestValidCheckedAt } from "../verification/service.js";
 
 /** The evidence a role inbox carries: not a candidate tier, "the site printed it and the pick chose it". */
-export const PICK_EVIDENCE = "pick";
+const PICK_EVIDENCE = "pick";
 
 const ENRICHMENT_PREFIX = "enrichment:";
 
@@ -63,7 +63,7 @@ const EMPTY: Omit<AddressRecord, "email" | "evidence"> = {
   source_url: null,
 };
 
-export function addressRecord(
+function addressRecord(
   fields: Pick<AddressRecord, "email" | "evidence"> & Partial<AddressRecord>,
 ): AddressRecord {
   return { ...EMPTY, ...fields };
@@ -95,7 +95,7 @@ export function describeAddress(
 }
 
 /** Python `datetime.isoformat()` for a UTC instant: microseconds when non-zero, `+00:00`. */
-export function pyIsoUtc(date: Date): string {
+function pyIsoUtc(date: Date): string {
   const [stamp = "", fraction = "000"] = date.toISOString().slice(0, -1).split(".");
   return Number(fraction) === 0 ? `${stamp}+00:00` : `${stamp}.${fraction}000+00:00`;
 }
@@ -166,7 +166,7 @@ async function extractionPage(
   return { extraction_enrichment_id: row.id, document_id: row.documentId, source_url: row.url };
 }
 
-export interface PersonAddress {
+interface PersonAddress {
   readonly record: AddressRecord | null;
   readonly alternates: readonly AddressRecord[];
 }
@@ -178,7 +178,7 @@ export interface PersonAddress {
  * younger than `horizonDays`. Only the first is ever written to; the rest ride along as
  * `address_alternates`.
  */
-export async function personAddress(
+async function personAddress(
   db: Queryable,
   personId: number,
   horizonDays: number,
@@ -257,7 +257,7 @@ export const personAddressIn = (
     ? personAddress(db, personId, horizonDays)
     : Promise.resolve(NO_ADDRESS);
 
-export interface RoleInboxRef {
+interface RoleInboxRef {
   readonly companyId: number;
   readonly leadId: number;
   readonly email: string;

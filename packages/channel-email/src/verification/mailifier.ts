@@ -55,14 +55,10 @@ export class ProbeVerifier implements EmailVerifier {
  * Greylisting is left out on purpose: it lifts for the same IP on a retry, and a new
  * IP starts the wait over.
  */
-export const SECOND_OPINION_REASONS: ReadonlySet<string> = new Set([
-  "no_ptr",
-  "blocked",
-  "unreachable",
-]);
+const SECOND_OPINION_REASONS: ReadonlySet<string> = new Set(["no_ptr", "blocked", "unreachable"]);
 
 /** One prober host: its name (the URL's host, stamped on each verdict) and the probe. */
-export interface FleetMember {
+interface FleetMember {
   host: string;
   probe: MailboxProbe;
 }
@@ -78,7 +74,7 @@ export function fleetOrder<T extends { host: string }>(members: readonly T[], do
 export type Ready = (host: string) => Promise<boolean>;
 
 /** PTR of the host's IP equals the host. Any lookup failure reads as not ready. */
-export const ptrNamesHost: Ready = async (host) => {
+const ptrNamesHost: Ready = async (host) => {
   const [ip] = await dns.resolve4(host).catch(() => [] as string[]);
   if (!ip) return false;
   const names = await dns.reverse(ip).catch(() => [] as string[]);

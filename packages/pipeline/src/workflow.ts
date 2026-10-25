@@ -24,9 +24,9 @@ export const STAGE_STEP = "journey.stage";
 export const JOURNEY_PORT = "journey";
 
 /** The trigger a `group` source listens on: a person entering the group. */
-export const SEGMENT_TRIGGER = "trigger.segment";
+const SEGMENT_TRIGGER = "trigger.segment";
 /** The trigger a `sourced` source listens on: a person added to the list. */
-export const SOURCE_TRIGGER = "trigger.source";
+const SOURCE_TRIGGER = "trigger.source";
 
 export type Scope = "wren" | "client";
 

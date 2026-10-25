@@ -10,7 +10,7 @@ import type { Db } from "@wren/db";
 import type { FetchLike } from "../fetch-like.js";
 import { type OpenSyncStats, syncOpens } from "../inbox/opens.js";
 
-export interface OpensSchedulerDeps {
+interface OpensSchedulerDeps {
   db: Db;
   baseUrl: string;
   exportToken: string;
@@ -22,7 +22,7 @@ export interface OpensSchedulerDeps {
 }
 
 export const OPENS_KEY = "fleet";
-export const OPENS_SYNC_COMMAND = "outreach opens sync";
+const OPENS_SYNC_COMMAND = "outreach opens sync";
 
 export function makeOpensScheduler(deps: OpensSchedulerDeps) {
   const syncMs = deps.syncMs ?? 120_000;

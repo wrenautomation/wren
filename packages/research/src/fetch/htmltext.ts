@@ -53,12 +53,12 @@ const BLOCK: ReadonlySet<string> = new Set([
   "hr",
 ]);
 
-export interface PageLink {
+interface PageLink {
   url: string;
   anchor: string;
 }
 
-export interface PageContent {
+interface PageContent {
   title: string;
   text: string;
   /** Absolute url + anchor text; mailto/tel/javascript/fragment hrefs excluded. */

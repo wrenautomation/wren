@@ -62,7 +62,7 @@ export function sendError(err: unknown): unknown {
   return err;
 }
 
-export interface AtMostOnce extends Omit<SendClaim, "invocation" | "now"> {
+interface AtMostOnce extends Omit<SendClaim, "invocation" | "now"> {
   /** Runs under the ledger row's send key; a desk write inside it carries the key. */
   send: () => Promise<{ ref: string | null }>;
   /** Guards before a first send, not on a take-over (others of ours in the thread). */

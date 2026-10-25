@@ -55,7 +55,7 @@ export interface LogicSetting {
   shows?: Readonly<Record<string, string>>;
 }
 
-export interface LogicPart {
+interface LogicPart {
   /** "logic.if", "trigger.hook". */
   id: string;
   name: string;
@@ -196,12 +196,12 @@ export type TriggerFacts =
   | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
 
 /** What a journey tells the spine: it entered a node, passed over one, or was dropped. */
-export const JOURNEY_CHANGES = {
+const JOURNEY_CHANGES = {
   entered: "Enters a node",
   skipped: "Skips a node",
   dropped: "Is dropped",
 } as const;
-export type JourneyChange = keyof typeof JOURNEY_CHANGES;
+type JourneyChange = keyof typeof JOURNEY_CHANGES;
 /**
  * The node a Journey trigger names: `node`, else the `stage` an older save wrote. The `funnel` it
  * also wrote is ignored: there is one shape per workspace.
@@ -238,20 +238,20 @@ export const TOUCH_ON_PLATFORMS = [
 ] as const;
 
 /** A profile entering or leaving a group (designs/2026-10-14-customerio-audit.md, B5). */
-export const SEGMENT_CHANGES = { entered: "Enters", left: "Leaves" } as const;
-export type SegmentChange = keyof typeof SEGMENT_CHANGES;
+const SEGMENT_CHANGES = { entered: "Enters", left: "Leaves" } as const;
+type SegmentChange = keyof typeof SEGMENT_CHANGES;
 /**
  * A Group trigger's repeat: a person enters the workflow once, or each time they enter (or leave)
  * the group. A journey source in the shape takes each time: a person who comes back to the group
  * starts a new journey.
  */
-export const SEGMENT_REPEAT = { once: "Once per person", each: "Each time" } as const;
-export type SegmentRepeat = keyof typeof SEGMENT_REPEAT;
+const SEGMENT_REPEAT = { once: "Once per person", each: "Each time" } as const;
+type SegmentRepeat = keyof typeof SEGMENT_REPEAT;
 /** A Group trigger's repeat: each time, else once. */
 export const segmentRepeatOf = (v: unknown): SegmentRepeat =>
   String(v ?? "") === "each" ? "each" : "once";
 /** A date trait's trigger: on that date once, or on its day each year (a birthday). */
-export const DATE_EVERY = { once: "On the date", yearly: "Every year" } as const;
+const DATE_EVERY = { once: "On the date", yearly: "Every year" } as const;
 export type DateEvery = keyof typeof DATE_EVERY;
 /** A trait key, as profiles keep them. */
 const TRAIT_KEY = /^[a-z][a-z0-9_]{0,63}$/;
@@ -265,12 +265,12 @@ export const everyOf = (v: unknown): DateEvery =>
   String(v ?? "") === "yearly" ? "yearly" : "once";
 
 /** What a sent document tells the spine (designs/2026-10-09-documents.md). */
-export const DOC_CHANGES = {
+const DOC_CHANGES = {
   viewed: "Opened",
   signed: "Signed",
   declined: "Declined",
 } as const;
-export type DocChange = keyof typeof DOC_CHANGES;
+type DocChange = keyof typeof DOC_CHANGES;
 
 /**
  * What a payment tells the spine, each once (designs/2026-10-07-forms-and-pay.md). A pay link
@@ -286,7 +286,7 @@ export const PAY_CHANGES = {
 export type PayChange = keyof typeof PAY_CHANGES;
 
 /** What a connected app tells the spine (designs/2026-10-09-connectors.md). */
-export const APP_CHANGES = {
+const APP_CHANGES = {
   contact_added: "A contact added",
   invoice_paid: "An invoice paid",
   job_done: "A job done",
@@ -1341,12 +1341,3 @@ export function logicSteps(
   };
   return steps;
 }
-
-/** Steps that change nothing outside the walk: a dry test runs them for real. */
-export const PURE_STEPS: ReadonlySet<string> = new Set([
-  "logic.code",
-  "logic.switch",
-  "logic.wait",
-  "logic.split",
-  "logic.merge",
-]);

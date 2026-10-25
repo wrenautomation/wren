@@ -120,7 +120,7 @@ export function frontField(md: string, key: string): string | null {
   }
 }
 
-export type ReadResult = "read" | "mac" | "failed" | null;
+type ReadResult = "read" | "mac" | "failed" | null;
 
 /**
  * Read one item on the worker. A video or reel is marked for the Mac; an article keeps its feed

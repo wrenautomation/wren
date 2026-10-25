@@ -15,7 +15,7 @@ import { modelLabel } from "./model-labels.js";
 
 export const DRAFT_MODELS_COMPONENT = "drafts.model";
 
-export const draftArmSchema = z
+const draftArmSchema = z
   .object({
     /** A `makeLlm` spec: "gateway:free", "cohere", "gemini:gemini-3.8-flash". */
     model: z.string().trim().min(1).max(100),
@@ -48,7 +48,7 @@ export async function draftArms(db: Queryable): Promise<readonly DraftArm[]> {
 }
 
 /** FNV-1a, 32 bit, then mixed: small, stable across runs and machines, an even split. */
-export function hash32(s: string): number {
+function hash32(s: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -252,7 +252,7 @@ export function scoreArms(
 /** Decided drafts each of two arms needs before a gap counts. */
 export const MIN_DECIDED_PER_ARM = 40;
 /** The unedited-approve rate gap, in percentage points, that counts as clear. */
-export const MIN_GAP_POINTS = 10;
+const MIN_GAP_POINTS = 10;
 
 export interface Verdict {
   /** The arm ahead by a clear margin, else null. */

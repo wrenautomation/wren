@@ -22,7 +22,7 @@ import { journeyResearch, offerVersions } from "./schema.js";
 
 export type { Fit, FitModel, FitTraits } from "./icp.js";
 
-export type ResearchLevel = "light" | "full";
+type ResearchLevel = "light" | "full";
 
 /** What a researcher is asked, once per journey and node. */
 export interface ResearchAsk {
@@ -48,7 +48,7 @@ export interface Started {
 }
 
 /** What `light` returns: the reads, and the `traits` they gathered for the fit score. */
-export type LightRead = Record<string, unknown> & { traits?: FitTraits };
+type LightRead = Record<string, unknown> & { traits?: FitTraits };
 
 export interface Researcher {
   /** Free reads of what the workspace already holds. No network. */

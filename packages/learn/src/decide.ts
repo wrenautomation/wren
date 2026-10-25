@@ -19,10 +19,10 @@ const rowsOf = async (db: Queryable, q: ReturnType<typeof sql>): Promise<Row[]> 
 const WORDS_MAX = 8000;
 const FRESH_DAYS = 3;
 
-export const learnSubject = (id: number) => `learn:${id}`;
+const learnSubject = (id: number) => `learn:${id}`;
 
 /** One item as the state Jev reads. No creator: a name never goes in. */
-export function learnState(r: Row): Record<string, unknown> {
+function learnState(r: Row): Record<string, unknown> {
   const words = String(r.transcript ?? r.text ?? "").trim();
   return {
     focus: WREN_FOCUS,

@@ -153,7 +153,7 @@ export function soundShapes(
 }
 
 /** Where a drop leaves, for `Spine/emit`: the newest version's workflow, whatever the journey's version. */
-export interface DropEmit {
+interface DropEmit {
   workflow: string;
   from: string;
   events: SpineEvent[];
@@ -163,7 +163,7 @@ export interface DropEmit {
  * One writer at a time per person, until the transaction ends. Every path that opens a journey
  * takes it first: one open journey per person is held in code until M3 adds the index.
  */
-export const lockPerson = (tx: Queryable, profile: number) =>
+const lockPerson = (tx: Queryable, profile: number) =>
   tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`journey:${profile}`}))`);
 
 /**

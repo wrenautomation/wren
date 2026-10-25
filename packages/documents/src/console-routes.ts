@@ -34,7 +34,7 @@ export const DOCUMENTS_CONSOLE_APPS = {
   recordsExport: null,
   recordsStats: null,
 } as const satisfies RouteApps<typeof DOCUMENTS_CONSOLE_ROUTES>;
-export type DocumentsConsoleRoute = keyof typeof DOCUMENTS_CONSOLE_ROUTES;
+type DocumentsConsoleRoute = keyof typeof DOCUMENTS_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const DOCUMENTS_CONSOLE_WRITES: readonly DocumentsConsoleRoute[] = [
   "create",

@@ -30,7 +30,7 @@ import { type Brand, DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
 // v1 (2026-09-22): first prompt. v3 (2026-10-04): the platform's playbook. v4 (2026-10-07): the
 // facts rule and guard. Bump when the prompt or the platform shapes change.
-export const DRAFT_PROMPT_VERSION = "v4";
+const DRAFT_PROMPT_VERSION = "v4";
 export const DRAFT_STAGE = "content_draft";
 // The answer is a few hundred tokens; a reasoning model thinks inside the same budget.
 const MAX_TOKENS = 4000;
@@ -213,7 +213,7 @@ async function livePlatforms(db: Queryable, ideaId: string): Promise<Set<Platfor
 }
 
 /** Redrafts one slot takes in a day (O5: Cohere is free, his review time is not). */
-export const MAX_SLOT_REDRAFTS = 2;
+const MAX_SLOT_REDRAFTS = 2;
 
 /** Redrafts made in the last 24 hours for the slot `d` holds on its platform, superseded ones too. */
 async function slotRedrafts(

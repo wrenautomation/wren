@@ -8,7 +8,7 @@ export type PieceWhat = "all" | "long" | "clip" | "post" | "thread" | "carousel"
 export type PieceShow = "all" | "waiting" | "queued" | "live";
 export type PieceSort = "new" | "waiting" | "views" | "soon";
 
-export interface PieceView {
+interface PieceView {
   id: string;
   name: string;
   what: PieceWhat;

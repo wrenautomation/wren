@@ -33,8 +33,8 @@ import {
 /** The one hub station: every out line ends there, every front and core line starts there. */
 export const HUB = "hub";
 
-export const TIERS = ["out", "front", "core"] as const;
-export type Tier = (typeof TIERS)[number];
+const TIERS = ["out", "front", "core"] as const;
+type Tier = (typeof TIERS)[number];
 
 /** Left to right on the map. A track never goes left. */
 export const COLUMNS = ["marketing", "sales", "delivery", "money"] as const;
@@ -65,29 +65,28 @@ export const LOGIC_KINDS = [
   "approval",
   "link",
 ] as const satisfies readonly StationKind[];
-export type LogicKind = (typeof LOGIC_KINDS)[number];
 
 /** A track with none of these is a plain track. */
 export const TRACK_KINDS = ["exit", "xfer", "back"] as const;
-export type TrackKind = (typeof TRACK_KINDS)[number];
+type TrackKind = (typeof TRACK_KINDS)[number];
 
-export const TRACK_BYS = ["system", "person"] as const;
-export type TrackBy = (typeof TRACK_BYS)[number];
+const TRACK_BYS = ["system", "person"] as const;
+type TrackBy = (typeof TRACK_BYS)[number];
 
 /** The most colour tokens a line takes: `--l0` to `--l7`. */
-export const COLOUR_MAX = 7;
+const COLOUR_MAX = 7;
 /** The widest a retry cap goes. */
-export const RETRIES_MAX = 10;
+const RETRIES_MAX = 10;
 /** The longest an owner may be, in characters. */
-export const OWNER_MAX = 40;
+const OWNER_MAX = 40;
 /** The most words a branch label (`cond`) may have. */
-export const COND_WORDS_MAX = 4;
+const COND_WORDS_MAX = 4;
 /** A promise or a wait: a whole number and a unit, minutes, hours or days (`30m`, `4h`, `2d`). */
 export const DURATION = /^\d+[mhd]$/;
 
 /** What a part can hold a ref to. The ref names it by id, or by an `https://` URL. */
 export const ATTACH_KINDS = ["sop", "link", "page", "funnel", "doc", "template", "note"] as const;
-export type AttachKind = (typeof ATTACH_KINDS)[number];
+type AttachKind = (typeof ATTACH_KINDS)[number];
 /** The longest a ref may be, in characters. */
 export const ATTACH_REF_MAX = 500;
 /** The longest an attach label may be, in characters. */
@@ -101,7 +100,7 @@ export interface Attach {
 }
 
 /** How a line finds people: today's source fields, with `group` now called `segment`. */
-export interface LineEntry {
+interface LineEntry {
   via: Via;
   channel?: string;
   campaign?: string;
@@ -202,7 +201,7 @@ export interface MetroGroup {
   attach?: Attach[];
 }
 
-export interface MetroFrame {
+interface MetroFrame {
   id: string;
   label?: string;
   stations: string[];

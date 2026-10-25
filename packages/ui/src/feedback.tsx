@@ -185,12 +185,15 @@ const RawErrors = createContext(false);
 /** Set by the shell for Wren's team, so they can see what a call really said. */
 export const ShowRawErrors = RawErrors.Provider;
 
+/** What an error said, whatever was thrown. */
+export const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err ?? ""));
+
 /** A call's failure as a plain sentence, and whether trying again could help. */
 export function failureOf(
   err: unknown,
   what?: string,
 ): { line: string; again: boolean; raw: string } {
-  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const raw = messageOf(err);
   const status = (err as { status?: unknown } | null)?.status;
   if (status === 404 || /\b(not found|no such|doesn't exist|does not exist)\b/i.test(raw))
     return {

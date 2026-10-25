@@ -23,16 +23,6 @@ export function seededRng(seed: number): Rng {
   };
 }
 
-/** An `Rng` over a unit-interval source, e.g. Restate's journaled `ctx.rand.random`. */
-export function rngFrom(random: () => number): Rng {
-  return {
-    int(low, high) {
-      if (high < low) throw new Error(`empty range [${low}, ${high}]`);
-      return low + Math.floor(random() * (high - low + 1));
-    },
-  };
-}
-
 export const systemRng: Rng = {
   int(low, high) {
     if (high < low) throw new Error(`empty range [${low}, ${high}]`);

@@ -31,7 +31,7 @@ export type ReplyService = {
 };
 
 /** The post that went up. */
-export interface PostedDraft {
+interface PostedDraft {
   draftId: string;
   platform: Platform;
   /** The funnel link, for the row and the first comment. */
@@ -43,7 +43,7 @@ export interface PostedDraft {
 }
 
 /** A client's post, or Wren's at null. */
-export interface PostedOwner {
+interface PostedOwner {
   db: Db;
   client: string | null;
   /** The platform now has a post of ours: its replies read warm. */

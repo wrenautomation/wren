@@ -27,9 +27,8 @@ import { besideAt, eventsIn, paneOf, paneSeconds, type Take, type TakePane } fro
 export * from "./promo-clock.js";
 
 /** The render's frame rates: 30, or 60 for a take (the cursor and the camera move every frame). */
-export const PROMO_RATES = [30, 60] as const;
-export const PROMO_SIZE = { wide: [1920, 1080], tall: [1080, 1920] } as const;
-export type PromoFormat = keyof typeof PROMO_SIZE;
+const PROMO_RATES = [30, 60] as const;
+const PROMO_SIZE = { wide: [1920, 1080], tall: [1080, 1920] } as const;
 
 const unit = z.number().min(0).max(1);
 const seconds = z
@@ -142,7 +141,7 @@ const END = z.object({
   enter,
 });
 
-export const promoScene = z.discriminatedUnion("kind", [TEXT, TOASTS, SCREEN, TAKE, STAT, END]);
+const promoScene = z.discriminatedUnion("kind", [TEXT, TOASTS, SCREEN, TAKE, STAT, END]);
 export type PromoScene = z.infer<typeof promoScene>;
 
 export const promoScript = z
@@ -274,7 +273,7 @@ export const TAKE_SOUNDS = {
 const ZOOM_DB = -6;
 
 /** A shot's sounds, `[seconds of the shot, id, gainDb?]`: clicks and keys of each pane it shows, a whoosh on each push in. */
-export function takeSounds(
+function takeSounds(
   shown: readonly { events: readonly TakePane["events"][number][] }[],
   moves: readonly CameraKey[],
   seconds: number,
@@ -301,7 +300,7 @@ export function takeSounds(
 }
 
 /** The kit sounds on the promo's scenes: `[seconds, id, gainDb?]`, in order. */
-export function promoSounds(scenes: readonly TimedScene[]): [number, string, number?][] {
+function promoSounds(scenes: readonly TimedScene[]): [number, string, number?][] {
   const out: [number, string, number?][] = [];
   const at = (beat: number) => beat / PROMO_FPS;
   for (const [i, s] of scenes.entries()) {
@@ -369,7 +368,7 @@ const shotPane = (take: Take, pane: TakePane, at: number, title: string): ShotPa
 });
 
 /** A take scene's shot from its take; `to` must be set (`promoProps` sets it to the pane's end). */
-export function takeShot(s: TakeScene & { to: number }, take: Take): TakeShot {
+function takeShot(s: TakeScene & { to: number }, take: Take): TakeShot {
   const pane = paneOf(take, s.pane);
   const seconds = s.to - s.from;
   const events = eventsIn(pane, s.from, s.to, LEAD_S);

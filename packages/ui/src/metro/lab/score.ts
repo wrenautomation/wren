@@ -45,7 +45,7 @@ export function likeness(scene: MetroScene, hand: MetroScene): number {
   return all ? same / all : 1;
 }
 
-export function bendsOf(scene: MetroScene): number {
+function bendsOf(scene: MetroScene): number {
   const ends = trackEnds(scene);
   let n = 0;
   for (const r of scene.tr) {

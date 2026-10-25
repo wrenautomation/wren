@@ -16,10 +16,9 @@ import { recheck, type Setup, type SetupCheck, type SetupEmit, sweepStuck } from
 import { type AlertPart, digestAlerts, tellAlerts } from "./setup-alerts.js";
 import { spineEmit } from "./spine.js";
 
-export const SETUP_WATCH_KEY = "all";
-export const SETUP_WATCH_EVERY_MS = 3_600_000;
+const SETUP_WATCH_EVERY_MS = 3_600_000;
 
-export interface SetupWatchPass {
+interface SetupWatchPass {
   checked: number;
   lost: number;
   stuck: number;
@@ -28,7 +27,7 @@ export interface SetupWatchPass {
   emits: SetupEmit[];
 }
 
-export interface SetupWatchDeps {
+interface SetupWatchDeps {
   main: Db;
   setups: readonly Setup[];
   checks: Readonly<Record<string, SetupCheck>>;

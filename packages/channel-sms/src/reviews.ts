@@ -41,9 +41,9 @@ import { reviewUrl } from "./setups.js";
 import { fieldsFor, textRef } from "./template-store.js";
 import { firstName, render, textSeed } from "./templates.js";
 
-export const REVIEW_ASK = "review-ask";
-export const REVIEW_REMINDER = "review-reminder";
-export const REVIEW_FEEDBACK = "review-feedback";
+const REVIEW_ASK = "review-ask";
+const REVIEW_REMINDER = "review-reminder";
+const REVIEW_FEEDBACK = "review-feedback";
 
 /** Where the counted links live: the phone Worker. */
 export const LINK_ORIGIN = "https://phone.wrenautomation.com";
@@ -51,21 +51,18 @@ export const LINK_ORIGIN = "https://phone.wrenautomation.com";
 /** Thread states no ask goes to. */
 const ENDED = new Set(["opted_out", "unreachable", "stopped"]);
 
-/** One ask per person in this many days, unless the client's setting says otherwise. */
-export const ONCE_EVERY_DAYS = 90;
-
 /** The counted link a text carries: the click is counted, then Google's form opens. */
-export const reviewLink = (origin: string, client: string, token: string) =>
+const reviewLink = (origin: string, client: string, token: string) =>
   `${origin}/r/${encodeURIComponent(client)}/${token}`;
-export const feedbackLink = (origin: string, client: string, token: string) =>
+const feedbackLink = (origin: string, client: string, token: string) =>
   `${reviewLink(origin, client, token)}/feedback`;
 /** An email's stop link: a page with one button, and the `List-Unsubscribe` one-click target. */
-export const stopLink = (origin: string, client: string, token: string) =>
+const stopLink = (origin: string, client: string, token: string) =>
   `${reviewLink(origin, client, token)}/stop`;
 
 /** The email copy's place in the template store: kind email, system `reviews`, same keys. */
-export const REVIEW_EMAILS = "reviews";
-export const reviewEmailRef = (key: string): TemplateRef => ({
+const REVIEW_EMAILS = "reviews";
+const reviewEmailRef = (key: string): TemplateRef => ({
   kind: "email",
   system: REVIEW_EMAILS,
   name: key,
@@ -80,7 +77,7 @@ export type SendMail = (m: {
 }) => Promise<void>;
 
 /** How an email ask goes: `send` null means no mailer here; `why` set means it may not go now. */
-export interface MailOptions {
+interface MailOptions {
   send: SendMail | null;
   why: string | null;
 }
@@ -131,7 +128,7 @@ export interface AskOptions {
 }
 
 /** The customer read from a spine event: a door's lead, or a call's name and email. */
-export function customerOf(e: SpineEvent, source: ReviewSource): Customer {
+function customerOf(e: SpineEvent, source: ReviewSource): Customer {
   const lead = (e.data.lead as ReturnType<typeof leadOf> | undefined) ?? leadOf(e.data);
   return {
     subject: e.subject.slice(0, 200),
@@ -493,7 +490,7 @@ export async function stopReview(db: Queryable, token: string, now: Date) {
 }
 
 /** What the step needs for one client's asks. */
-export type ReviewDeps = Omit<AskOptions, "now" | "client"> & {
+type ReviewDeps = Omit<AskOptions, "now" | "client"> & {
   db: Db;
   nudge: (idempotencyKey: string) => Promise<void>;
 };

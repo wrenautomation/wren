@@ -17,7 +17,7 @@ export interface Env {
 }
 
 export const MAX_TRACE = 8 * 1024 * 1024;
-export const MAX_FLOW = 1024 * 1024;
+const MAX_FLOW = 1024 * 1024;
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
 const INSTALL = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /** What the admin may write: the second pass's output and the registry's state. */

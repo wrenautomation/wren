@@ -10,7 +10,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
 /** Wren's own domain, where its pages live (`WREN_SITE` in @wren/sites). */
-export const PAGE_ORIGIN = "https://wrenautomation.com";
+const PAGE_ORIGIN = "https://wrenautomation.com";
 const PAGE_KEY = /^page\.([a-z0-9][a-z0-9-]*)$/;
 const PAGE_LINK = /https:\/\/wrenautomation\.com\/o\/([a-z0-9][a-z0-9-]*)(?![a-z0-9/-])/g;
 

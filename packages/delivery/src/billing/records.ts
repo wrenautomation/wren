@@ -15,7 +15,7 @@ import {
 import { CREDIT_STATUSES } from "../schema.js";
 import { creditsList } from "./credits.js";
 
-export const CREDIT_STATE = status(
+const CREDIT_STATE = status(
   {
     review: { label: "To look at", tone: "warn" },
     matched: { label: "On an invoice", tone: "good" },
@@ -25,7 +25,7 @@ export const CREDIT_STATE = status(
   "State",
 );
 
-export const creditRecord = defineRecord({
+const creditRecord = defineRecord({
   id: "console.credit",
   app: "money",
   channel: null,

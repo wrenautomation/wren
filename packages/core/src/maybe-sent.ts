@@ -12,7 +12,7 @@ import { NotSent, type SendTrace, SendUnknown, SentFound, withSendKey } from "./
 const said = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** What `sendOnce` ended with. A platform's refusal is thrown (`refusalOf`), not returned. */
-export type SendOutcome<S> =
+type SendOutcome<S> =
   | { kind: "sent"; sent: S }
   | {
       kind: "found";
@@ -22,7 +22,7 @@ export type SendOutcome<S> =
   | { kind: "not_sent"; how: "before_submit" | "verified_absent"; reason: string }
   | { kind: "unsure"; why: string };
 
-export interface SendOnce<S> {
+interface SendOnce<S> {
   /** The ledger row's send key: the send runs under it. */
   key: string;
   send: () => Promise<S>;

@@ -8,7 +8,7 @@ import { type FetchLike, optionalInit } from "@wren/core";
 import { WREN } from "@wren/core/access";
 import type { KeyStore } from "@wren/core/keys";
 import { PortalRefusal, type RefusalStatus, setUp } from "@wren/core/refusal";
-import type { Db, Queryable } from "@wren/db";
+import type { Db } from "@wren/db";
 import {
   type AppTokens,
   appConnectUrl,
@@ -18,7 +18,7 @@ import {
   OAuthError,
   randomState,
 } from "@wrenautomation/autobrowse/oauth";
-import { and, eq, gt, isNull, lt } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { APPS, appKeyName, CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
 import { whoHubspot } from "./pull/hubspot.js";
 import { whoJobber } from "./pull/jobber.js";
@@ -26,9 +26,9 @@ import { whoQuickbooks } from "./pull/quickbooks.js";
 import type { WhoAmI } from "./pull/types.js";
 import { type ConnectorLink, connectorGrants, connectorLinks, type LinkExtra } from "./schema.js";
 
-export type ConnectorApps = Partial<Record<ConnectorApp, OAuthApp>>;
+type ConnectorApps = Partial<Record<ConnectorApp, OAuthApp>>;
 
-export interface ConnectorDeps {
+interface ConnectorDeps {
   main: Db;
   /** Wren's developer apps; a missing one is "Needs setup". */
   apps: () => Promise<ConnectorApps>;
@@ -41,7 +41,7 @@ export interface ConnectorDeps {
 }
 
 /** Who reads and writes connector tokens in the key store's log. */
-export const CONNECTOR_KEYS = "wren:connectors";
+const CONNECTOR_KEYS = "wren:connectors";
 /** A sign-in's link lives half an hour. */
 const CONNECT_MS = 30 * 60_000;
 
@@ -51,11 +51,11 @@ export const WHO: Record<ConnectorApp, WhoAmI> = {
   jobber: whoJobber,
 };
 
-export const connectorCallback = (origin: string, app: ConnectorApp) =>
+const connectorCallback = (origin: string, app: ConnectorApp) =>
   `${origin.replace(/\/+$/, "")}/oauth/connector/${app}`;
 
 /** The key store's name for a link's token, under its client: the account's id hashed. */
-export function connectorTokenName(app: ConnectorApp, externalId: string) {
+function connectorTokenName(app: ConnectorApp, externalId: string) {
   const h = createHash("sha256").update(externalId).digest("hex").slice(0, 16);
   return `CONNECTOR_${app.toUpperCase()}_${h.toUpperCase()}`;
 }
@@ -69,15 +69,15 @@ interface StoredToken {
 }
 
 /** A refusal said to a person: the page shows it as is. */
-export class ConnectorRefusal extends PortalRefusal {
+class ConnectorRefusal extends PortalRefusal {
   constructor(message: string, status: RefusalStatus = 409) {
     super(message, status);
   }
 }
 
-export type ConnectorState = "needs_setup" | "not_connected" | "connected" | "broken";
+type ConnectorState = "needs_setup" | "not_connected" | "connected" | "broken";
 
-export interface LinkView {
+interface LinkView {
   id: number;
   name: string | null;
   externalId: string;
@@ -119,7 +119,7 @@ export interface Landing {
   link: number | null;
 }
 
-export interface LandQuery {
+interface LandQuery {
   app: ConnectorApp;
   state: string;
   code?: string | null | undefined;
@@ -387,13 +387,6 @@ export function connectorAccess(deps: ConnectorDeps) {
   };
 }
 export type ConnectorAccess = ReturnType<typeof connectorAccess>;
-
-/** Expired or used sign-ins older than a day. */
-export async function sweepConnectorGrants(main: Queryable, at: Date): Promise<void> {
-  await main
-    .delete(connectorGrants)
-    .where(lt(connectorGrants.expiresAt, new Date(at.getTime() - 86_400_000)));
-}
 
 /**
  * Wren's developer apps: the worker's env first (`WREN_CONNECTOR_HUBSPOT_ID`), else the key store

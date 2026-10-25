@@ -66,7 +66,7 @@ export interface Speakers {
   play(frames: Frame[], signal: AbortSignal): Promise<void>;
 }
 
-export interface ReadOn {
+interface ReadOn {
   /** Sentence `at` (from 0) of `of` begins. */
   sentence?(at: number, of: number): void;
 }

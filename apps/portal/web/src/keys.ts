@@ -4,7 +4,7 @@
  */
 import { call } from "./api.js";
 
-export interface SavedKey {
+interface SavedKey {
   ref: string;
   last4: string;
 }

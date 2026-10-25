@@ -1,11 +1,4 @@
-/**
- * The brain on `@wren/llm`: any model the repo already swaps between (Claude Code at $0 in tests,
- * the gateway, a vendor). The model answers in one JSON object: what to say, and at most one tool.
- * `complete` doesn't stream yet, so the whole reply comes at once and is cut into sentences here;
- * a streaming method on the client is the setup step that makes first-token time real.
- */
-import type { LlmClient } from "@wren/llm";
-import type { Brain, BrainInput, LeadContext, Line, Thought } from "./types.js";
+import type { BrainInput, LeadContext, Line, Thought } from "./types.js";
 
 const FORMAT = [
   "Answer with one JSON object and nothing else:",
@@ -66,21 +59,4 @@ export function thoughtsOf(text: string): Thought[] {
   }
   const said = text.trim();
   return said ? [{ kind: "text", text: said }] : [];
-}
-
-export class LlmBrain implements Brain {
-  readonly name: string;
-  constructor(
-    private readonly llm: LlmClient,
-    private readonly o: { maxTokens?: number } = {},
-  ) {
-    this.name = `llm:${llm.name}`;
-  }
-
-  async *think(input: BrainInput, signal: AbortSignal): AsyncIterable<Thought> {
-    const { system, prompt } = promptOf(input);
-    const res = await this.llm.complete(prompt, { system, maxTokens: this.o.maxTokens ?? 300 });
-    if (signal.aborted) return;
-    yield* thoughtsOf(res.text);
-  }
 }

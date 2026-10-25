@@ -42,7 +42,7 @@ export const NO_NEED: Need = {
   other: null,
 };
 
-export const hasNumbers = (n: Need): boolean =>
+const hasNumbers = (n: Need): boolean =>
   n.minAgeDays !== null || n.minKarma !== null || n.minCommentKarma !== null;
 
 const DAYS: Record<string, number> = { day: 1, week: 7, month: 30, year: 365 };
@@ -130,7 +130,7 @@ export function standingOfAccount(a: ReachAccount, now: Date): AccountStanding {
   };
 }
 
-export interface Shortfall {
+interface Shortfall {
   /** What is missing, as the sub states it: "10 days old", "50 karma". */
   needs: string[];
   /** What the account has for each, in the same order: "3 days", "1". */
@@ -281,11 +281,7 @@ export async function gatesFor(
 }
 
 /** Keep the sub's place on the account that qualifies: its queued threads move with it. */
-export async function moveToQualifying(
-  db: Queryable,
-  sub: string,
-  accountId: string,
-): Promise<void> {
+async function moveToQualifying(db: Queryable, sub: string, accountId: string): Promise<void> {
   await db.update(redditPlaces).set({ accountId }).where(eq(redditPlaces.subreddit, sub));
   await db
     .update(redditThreads)
@@ -497,7 +493,7 @@ export async function keepRulesNeed(
 }
 
 /** `r/SalesTechniques` → `salestechniques`: how places are keyed. */
-export const subKey = (s: string): string =>
+const subKey = (s: string): string =>
   s
     .replace(/^\/?r\//i, "")
     .trim()
@@ -570,7 +566,7 @@ export async function clearGate(db: Queryable, subName: string, now: Date): Prom
   return made.length;
 }
 
-export interface GateRow {
+interface GateRow {
   subreddit: string;
   name: string;
   need: Need;

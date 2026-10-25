@@ -6,7 +6,7 @@
  * words, the auto-reply and the comment keywords. Records stay `marketing.*`; the app was Outreach,
  * and old `/outreach/...`, `/marketing/...` and Inbox addresses redirect here (`../../moved.ts`).
  */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { createElement } from "react";
 import { findRecords } from "../../find.js";
 import type { ListPage, Module } from "../../module.js";
@@ -35,8 +35,6 @@ import { EngageHead } from "./engage.js";
 const P = MARKETING_PAGES;
 /** A page of Marketing's, taken in without the heading it had there. */
 const bare = ({ group: _, ...page }: ListPage): ListPage => page;
-
-const said = (line: string) => () => line;
 
 const PERSON_ACTIONS: Action[] = [
   {

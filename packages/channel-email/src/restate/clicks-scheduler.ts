@@ -11,7 +11,7 @@ import type { Db } from "@wren/db";
 import type { FetchLike } from "../fetch-like.js";
 import { type ClickSyncStats, syncClicks } from "../inbox/click-sync.js";
 
-export interface ClicksSchedulerDeps {
+interface ClicksSchedulerDeps {
   db: Db;
   baseUrl: string;
   exportToken: string;

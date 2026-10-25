@@ -4,11 +4,11 @@
  */
 import type { EnvMap } from "./client.js";
 
-export const EMBED_MODEL = "gemini-embedding-001";
+const EMBED_MODEL = "gemini-embedding-001";
 export const EMBED_DIMS = 256;
 
 /** A document is embedded to be found; a query to find one. */
-export type EmbedTask = "document" | "query";
+type EmbedTask = "document" | "query";
 export type Embed = (texts: string[], task: EmbedTask) => Promise<number[][]>;
 
 const unit = (v: number[]): number[] => {

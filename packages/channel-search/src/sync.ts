@@ -15,7 +15,7 @@ const DAY_MS = 86_400_000;
 /** Days a new page may stay out of the index before it is worth a notice. */
 export const STALE_DAYS = 14;
 
-export interface SyncOptions {
+interface SyncOptions {
   console: SearchConsoleClient;
   /** The property: `sc-domain:example.com` or `https://example.com/`. */
   site: string;
@@ -28,7 +28,7 @@ export interface SyncOptions {
   runId: string | null;
 }
 
-export interface IndexChange {
+interface IndexChange {
   url: string;
   /** The coverage last time; null = first check. */
   was: string | null;

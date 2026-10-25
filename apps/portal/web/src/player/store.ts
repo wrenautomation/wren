@@ -10,7 +10,7 @@
  */
 
 /** What plays: a YouTube video, another site's own embed, or a file through our origin. */
-export type PlayerKind = "youtube" | "embed" | "media";
+type PlayerKind = "youtube" | "embed" | "media";
 
 export interface PlayerItem {
   /** Stable for the thing, not the visit: `learn:12`, `video:34:cut.mp4`. The same id is the same player. */
@@ -35,7 +35,7 @@ export interface PlayerItem {
 }
 
 /** `none`: nothing loaded. `full`: over a page's slot. `mini`: docked bottom-right. `pip`: in a Picture-in-Picture window. */
-export type PlayerMode = "none" | "full" | "mini" | "pip";
+type PlayerMode = "none" | "full" | "mini" | "pip";
 
 export interface PlayerState {
   item: PlayerItem | null;

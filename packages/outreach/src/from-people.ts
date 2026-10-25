@@ -178,7 +178,7 @@ export async function messageAccount(
 }
 
 /** Who Follow on a People row follows: the platform and the handle it keys on. */
-export interface FollowTarget {
+interface FollowTarget {
   platform: ReachPostPlatform;
   handle: string;
   name: string | null;

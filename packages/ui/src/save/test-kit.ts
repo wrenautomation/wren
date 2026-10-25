@@ -40,7 +40,7 @@ export function fakeLocks(): Locks & { most: number } {
   return out;
 }
 
-export function fakePage() {
+function fakePage() {
   const seen = new Set<(e: PageEvent) => void>();
   return {
     listen(fn: (e: PageEvent) => void) {

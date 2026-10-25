@@ -3,6 +3,8 @@
  * note: an owner, general access, `board_shares`. Who may open it may open its cards, with its
  * role (never above edit). Pure checks here; `tasks.ts` has the cards.
  */
+
+import { UUID } from "@wren/core/ids";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, isNull, or, type SQL, sql } from "drizzle-orm";
@@ -27,7 +29,6 @@ export class TaskRefusal extends Error {
   }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isBoardId = (s: unknown): s is string => typeof s === "string" && UUID.test(s);
 
 const slug = (name: string) =>
@@ -42,7 +43,7 @@ const slug = (name: string) =>
  * A board's columns from what was sent: 2 to 12, each named, ids kept or made from the name,
  * with at least one that closes cards and one that doesn't.
  */
-export function parseColumns(raw: unknown): BoardColumn[] {
+function parseColumns(raw: unknown): BoardColumn[] {
   if (!Array.isArray(raw)) throw new TaskRefusal("columns are a list");
   if (raw.length < 2 || raw.length > 12) throw new TaskRefusal("a board has 2 to 12 columns");
   const out: BoardColumn[] = [];
@@ -121,7 +122,7 @@ export async function defaultBoard(db: Db, by: string): Promise<Board> {
   return made;
 }
 
-export interface BoardListOpts {
+interface BoardListOpts {
   /** Only boards shared to these `who`s (a Wren board shared to a client, read from main). */
   sharedTo?: readonly string[];
   /** Every board, whoever's: the CLI without `--as`. */

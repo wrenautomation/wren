@@ -46,7 +46,7 @@ const PAD = 12;
 const REST = { x: PAD, y: PAD, zoom: 1 };
 const IDLE: RunStepView = { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 };
 
-export interface RunGraphProps {
+interface RunGraphProps {
   graph: FlowGraph;
   steps: ReadonlyMap<string, RunStep>;
   views: Record<string, RunStepView>;

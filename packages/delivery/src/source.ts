@@ -7,7 +7,7 @@ import { type Channel, touchChannel } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export interface SourceHint {
+interface SourceHint {
   channel: Channel;
   campaign: string | null;
   /** What says so, in a line. */
@@ -15,7 +15,7 @@ export interface SourceHint {
 }
 
 /** A lander application, as its /api/export gives it. */
-export interface SiteApplicationTouch {
+interface SiteApplicationTouch {
   ts: string;
   email?: string | null;
   /** The visitor's first touch, JSON (lander `visitor.ts`), or "". */

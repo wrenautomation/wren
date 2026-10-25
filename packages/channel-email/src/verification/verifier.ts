@@ -46,7 +46,7 @@ export class FakeVerifier implements EmailVerifier {
   }
 }
 
-export interface VerifierEnv {
+interface VerifierEnv {
   /** The prober's URL and bearer, for `smtp` from a host with no port 25. */
   smtpProbeUrl?: string | null;
   smtpProbeToken?: string | null;

@@ -11,16 +11,19 @@
  */
 
 import type { Storyboard as Board } from "@wren/studio/storyboard";
-import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
 import {
   ACTIONS,
   answerIn,
   Button,
   cx,
   DictateField,
+  type DraftTurnLine,
   DraftTurns,
   Empty,
   Input,
+  messageOf,
+  type RecordAct,
+  type RecordExtras,
   SaveConflict,
   SaveStatus,
   Tag,
@@ -169,7 +172,6 @@ const seconds = (t: string) => {
   const m = /^(?:(\d+):)?(\d+(?:\.\d+)?)$/.exec(t.trim());
   return m ? Number(m[1] ?? 0) * 60 + Number(m[2]) : Number.NaN;
 };
-const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /**
  * One press of an edit action: a second press while it's out gets the first's answer, and the
@@ -560,7 +562,7 @@ function CutLine({ c, act }: { c: CutRow; act: RecordAct }) {
     try {
       await once(act, CUT, { from: c.from, to: c.to, state });
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
     } finally {
       setBusy(null);
     }
@@ -682,7 +684,7 @@ function Transcript({
       document.getSelection()?.removeAllRanges();
       setSpan(null);
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
     } finally {
       setBusy(false);
     }
@@ -701,7 +703,7 @@ function Transcript({
       document.getSelection()?.removeAllRanges();
       setSpan(null);
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
     } finally {
       setBusy(false);
     }
@@ -719,7 +721,7 @@ function Transcript({
       document.getSelection()?.removeAllRanges();
       setSpan(null);
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
     } finally {
       setBusy(false);
     }
@@ -806,7 +808,7 @@ function FixEvery({ video, act }: { video: string; act: RecordAct }) {
         | undefined;
       setSaid(r?.n ? `Fixed in ${r.n} ${r.n === 1 ? "place" : "places"}.` : "Fixed.");
     } catch (err) {
-      setSaid(errorOf(err));
+      setSaid(messageOf(err));
       setBad(true);
       return false;
     }
@@ -1049,7 +1051,7 @@ function Ask({ video, turns, act }: { video: string; turns: Turn[]; act: RecordA
     try {
       await once(act, UNDO, {});
     } catch (err) {
-      setError(errorOf(err));
+      setError(messageOf(err));
     } finally {
       setUndoing(false);
     }
@@ -1255,7 +1257,7 @@ function ModelTools({ act, punctuated }: { act: RecordAct; punctuated: boolean }
       const r = answerIn(await once(act, action)) as { n?: number } | undefined;
       setSaid({ text: done(r?.n ?? 0), bad: false });
     } catch (err) {
-      setSaid({ text: errorOf(err), bad: true });
+      setSaid({ text: messageOf(err), bad: true });
     } finally {
       setBusy(null);
     }
@@ -1316,7 +1318,7 @@ function Suggestions({ looks, edit, act }: { looks: Look[]; edit: Edit; act: Rec
       await once(act, SET, { patch, expect });
       setSaid({ text: done, bad: false });
     } catch (err) {
-      setSaid({ text: errorOf(err), bad: true });
+      setSaid({ text: messageOf(err), bad: true });
     } finally {
       setBusy(null);
     }

@@ -15,7 +15,7 @@ import {
   type WhoAmI,
 } from "./types.js";
 
-export const QUICKBOOKS_API = "https://quickbooks.api.intuit.com";
+const QUICKBOOKS_API = "https://quickbooks.api.intuit.com";
 const MINOR = "75";
 
 const realmOf = (extra: LinkExtra) => {

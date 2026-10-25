@@ -35,7 +35,7 @@ export const CONTENT_CHANNELS = [
   "facebook",
   "tiktok",
 ] as const;
-export type ContentChannelName = (typeof CONTENT_CHANNELS)[number];
+type ContentChannelName = (typeof CONTENT_CHANNELS)[number];
 
 /** All process settings. Read once at startup, passed down explicitly. */
 

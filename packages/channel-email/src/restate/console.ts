@@ -60,7 +60,7 @@ import { sendPolicyFor } from "../sequences.js";
 import { REPLIES, SEQUENCES, sequencesSettingsSchema } from "../sequences-settings.js";
 import { DISPOSITION_KEY, type Disposition } from "./disposition.js";
 
-export interface EmailConsoleDeps {
+interface EmailConsoleDeps {
   db: Db;
   /** The roster's addresses: what a pause or resume may name. */
   senders: readonly string[];
@@ -79,19 +79,19 @@ const recordsFor = (products: Readonly<Record<string, unknown>>) => [
   ...(LEAD_SHEET in products ? SHEET_RECORDS : []),
   ...(CALL_OUTCOME in products ? CALL_RECORDS : []),
 ];
-export interface InviteRequest extends PortalRequest {
+interface InviteRequest extends PortalRequest {
   id: number;
   /** Approve only: the reply as edited; absent, the draft goes as written. */
   body?: string | null;
 }
-export interface SenderRequest extends PortalRequest {
+interface SenderRequest extends PortalRequest {
   /** An inbox address, or a bare domain for every inbox on it. */
   target: string;
   /** Pause only: why, stored on the pause. */
   reason?: string;
 }
 
-export interface CampaignRequest extends PortalRequest {
+interface CampaignRequest extends PortalRequest {
   campaign: string;
   /** null = back to the env default. */
   killSwitch?: boolean | null;
@@ -99,7 +99,7 @@ export interface CampaignRequest extends PortalRequest {
   openersPerDay?: number | null;
 }
 /** A record action on campaigns: their ids, as `email.campaign` keys them. */
-export interface CampaignsRequest extends PortalRequest {
+interface CampaignsRequest extends PortalRequest {
   ids: string[];
 }
 type Done = { done: string[]; skipped: string[] };
@@ -108,7 +108,7 @@ export interface IdsRequest extends PortalRequest {
   ids: (string | number)[];
 }
 /** A call action: the calls, and Not yet's reason. */
-export interface CallsRequest extends IdsRequest {
+interface CallsRequest extends IdsRequest {
   reason?: string | null;
 }
 /** What a campaign action sets, or null when the campaign is already there (skipped). */
@@ -132,7 +132,7 @@ const CAMPAIGN_STEPS = {
       ? null
       : { campaign, openersPerDay: null },
 } satisfies Record<string, Step>;
-export type CampaignAction = keyof typeof CAMPAIGN_STEPS;
+type CampaignAction = keyof typeof CAMPAIGN_STEPS;
 
 const textOf = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 

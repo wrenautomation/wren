@@ -50,7 +50,7 @@ export function factsProblem(facts: readonly string[]): string | null {
 }
 
 /** What a change did, counted: facts added, removed, and whether the rest moved. */
-export interface FactsChange {
+interface FactsChange {
   added: string[];
   removed: string[];
   reordered: boolean;

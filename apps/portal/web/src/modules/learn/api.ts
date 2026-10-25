@@ -70,7 +70,7 @@ export type Mark =
   | "read"
   | "unread";
 
-export interface SourceLine {
+interface SourceLine {
   id: number;
   name: string;
   kind: SourceKind;
@@ -151,7 +151,7 @@ export interface Moment {
   label: string;
 }
 
-export interface SopAsk {
+interface SopAsk {
   sop: string;
   state: "asked" | "added" | "failed";
   file: string | null;
@@ -191,7 +191,7 @@ export interface SourceRow extends SourceLine {
   last: string | null;
 }
 
-export interface BrowseAsk {
+interface BrowseAsk {
   place: string;
   types: string[];
   sources: string[];

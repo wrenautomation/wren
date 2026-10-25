@@ -18,11 +18,11 @@ import { clientKey, clientOfKey } from "./restate/keys.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 
 /** The net's beat. */
-export const PEOPLE_MAP_NET_MS = 15 * 60_000;
+const PEOPLE_MAP_NET_MS = 15 * 60_000;
 /** The least time between two passes of one workspace. */
-export const PEOPLE_MAP_GAP_MS = 60_000;
+const PEOPLE_MAP_GAP_MS = 60_000;
 
-export interface PeopleMapStats {
+interface PeopleMapStats {
   handles: { seen: number; keyed: number };
   siteReads: number;
   written: number;
@@ -43,7 +43,7 @@ export async function peopleMapPass(
   return { handles, siteReads, ...r, ms: Date.now() - t0 };
 }
 
-export interface PeopleMapDeps {
+interface PeopleMapDeps {
   main: Db;
   clientDb(id: string): Db;
   /** Every client with a database, for the net. */
@@ -52,9 +52,9 @@ export interface PeopleMapDeps {
   site?: SiteCountReader | null;
 }
 
-export const PEOPLE_MAP = { name: "PeopleMap" } as const;
+const PEOPLE_MAP = { name: "PeopleMap" } as const;
 /** Wren's own pass's key; a client's is `<client>/fleet`. */
-export const PEOPLE_MAP_KEY = "fleet";
+const PEOPLE_MAP_KEY = "fleet";
 const LAST = "last";
 
 type Self = { wake: (ctx: restate.ObjectContext) => Promise<unknown> };
@@ -113,6 +113,3 @@ export function makePeopleMapNet(d: Pick<PeopleMapDeps, "main" | "clients">) {
     return outcome;
   });
 }
-
-export type PeopleMapService = ReturnType<typeof makePeopleMap>;
-export type PeopleMapNetService = ReturnType<typeof makePeopleMapNet>;

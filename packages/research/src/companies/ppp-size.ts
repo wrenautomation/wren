@@ -66,7 +66,7 @@ export interface CompanyPlace {
   state: string | null;
 }
 
-export type PppMatch = "name_zip" | "name_state";
+type PppMatch = "name_zip" | "name_state";
 
 /** Index loans once; `match` then answers per company. */
 export function pppIndex(loans: readonly PppLoan[]) {
@@ -126,7 +126,7 @@ export function pppFirmographics(how: PppMatch, release: string, loans: readonly
 
 const STATE = /,\s*([A-Z]{2})$/;
 
-export interface PppSizeStats {
+interface PppSizeStats {
   release: string;
   loans: number;
   companies: number;

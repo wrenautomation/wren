@@ -34,7 +34,7 @@ export interface Slot {
 const BACKOFF_MIN = [2, 4, 8, 15];
 const SERVER_COOL_MS = 30_000;
 const AUTH_DEAD_MS = 24 * 60 * 60_000;
-export const MODEL_COOL_MS = 10 * 60_000;
+const MODEL_COOL_MS = 10 * 60_000;
 
 export type Saved =
   | { kind: "slot"; id: string; slot: Slot }

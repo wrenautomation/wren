@@ -105,7 +105,7 @@ export function portY(n: Sized, side: "in" | "out", port?: string | undefined): 
   return rowsTop(n) + i * LOOK.port + LOOK.port / 2;
 }
 
-export interface Pt {
+interface Pt {
   x: number;
   y: number;
 }

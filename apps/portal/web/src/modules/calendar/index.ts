@@ -13,7 +13,7 @@ import { recorderHead, recordingExtras } from "./recorder.js";
 import { Schedule } from "./schedule.js";
 
 /** A calendar call's page: its mirror's brief. Rebuild lives on Pipelines > Calls. */
-export const bookingExtras: NonNullable<ListPage["extras"]> = (detail, { row }) =>
+const bookingExtras: NonNullable<ListPage["extras"]> = (detail, { row }) =>
   callExtras(detail, row, { reason: "outcomeReason" });
 
 export const calendar: Module = {

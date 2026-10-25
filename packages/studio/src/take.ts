@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { z } from "zod";
 
 const point = { t: z.number(), x: z.number(), y: z.number() };
-export const paneEvent = z.discriminatedUnion("kind", [
+const paneEvent = z.discriminatedUnion("kind", [
   z.object({ kind: z.enum(["move", "down", "up"]), ...point }),
   z.object({ kind: z.literal("key"), t: z.number(), key: z.string() }),
   z.object({ kind: z.literal("scroll"), t: z.number(), dy: z.number() }),
@@ -23,7 +23,7 @@ export const paneEvent = z.discriminatedUnion("kind", [
 export type PaneEvent = z.infer<typeof paneEvent>;
 
 /** One pane as autobrowse writes it: `start`, `end` epoch ms; event `t` ms from `start`. */
-export const takePane = z.object({
+const takePane = z.object({
   name: z.string().min(1),
   file: z.string().min(1),
   kind: z.enum(["web", "term"]),
@@ -36,7 +36,7 @@ export const takePane = z.object({
 });
 export type TakePane = z.infer<typeof takePane>;
 
-export const takeFile = z.object({
+const takeFile = z.object({
   version: z.literal(1),
   tape: z.string().optional(),
   size: z.tuple([z.number(), z.number()]).optional(),

@@ -25,7 +25,7 @@ export const TEAM_COMMAND = "enrich team";
  * at an even pace: the rest stays for lead sheets, profiles and answers. One
  * search is 7 mills, so 100 a day is $0.70 of the free $0.99.
  */
-export const TEAM_BUCKET: Bucket = { perDay: 100, burst: 10 };
+const TEAM_BUCKET: Bucket = { perDay: 100, burst: 10 };
 /** Errors in a row that stop the run: something is down, not one odd firm. */
 const ERROR_STREAK = 5;
 /**
@@ -36,13 +36,13 @@ const TEAM_CHECK = { stage: "research.team", source: "exa-people", check: "peopl
 /** `people.source_key` is varchar(64). */
 const MAX_KEY = 64;
 
-export interface TeamWork {
+interface TeamWork {
   companyId: number;
   name: string | null;
   domain: string | null;
 }
 
-export interface TeamUnit {
+interface TeamUnit {
   companyId: number;
   state: LookupState | "skipped" | "error";
   /** People this firm's search gave: new rows. */
@@ -135,7 +135,7 @@ export async function teamWork(
  * gets the LinkedIn and title they lack; a profile held anywhere is a sighting
  * (its `li:` key); anyone else is a new person.
  */
-export async function keepMembers(
+async function keepMembers(
   db: Queryable,
   companyId: number,
   members: readonly TeamMember[],

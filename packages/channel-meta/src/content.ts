@@ -41,7 +41,7 @@ import { fieldsOf } from "@wren/core/content/shapes";
 import { carouselFiles, isCarousel } from "@wren/core/content/slides";
 import { VIDEO_WAITS_MS } from "./poll.js";
 
-export interface MetaContentOptions {
+interface MetaContentOptions {
   now?: () => Date;
   /** Hosts a local file as a public URL; without it media must already be a URL. */
   host?: MediaHost;
@@ -923,7 +923,7 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
 }
 
 /** Graph's answer for a comments read on story media (code 10): a story takes no comments. */
-export function isStoryMedia(err: unknown): boolean {
+function isStoryMedia(err: unknown): boolean {
   const text = err instanceof Error ? err.message : String(err);
   return /graph code 10\b/.test(text) && /story media/i.test(text);
 }

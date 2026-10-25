@@ -49,7 +49,7 @@ const NEVER = new Set(["opted_out", "blocked", "unreachable"]);
  * `follow_up` for the sender, which keeps the window and the account's caps. One per contact
  * and node, however often it runs.
  */
-export async function followDm(
+async function followDm(
   db: Queryable,
   contactId: number,
   at: Pick<StepAt, "workflow" | "node" | "template">,
@@ -108,7 +108,7 @@ export async function followDm(
 }
 
 /** What a follow-up DM needs besides the client's database: why DMs can't go now, null when on. */
-export interface FollowDms {
+interface FollowDms {
   off: (client: string | null) => string | null | Promise<string | null>;
 }
 

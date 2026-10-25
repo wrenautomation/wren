@@ -88,7 +88,7 @@ export function guessMap(headers: readonly string[]): (SheetField | null)[] {
 }
 
 /** One imported row, by field. Empty cells are left out. */
-export type SheetRow = Partial<Record<SheetField, string>>;
+type SheetRow = Partial<Record<SheetField, string>>;
 
 /** Rows by field, from the table and the map; `header` says the first row names the columns. */
 export function mapRows(

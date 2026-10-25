@@ -14,7 +14,7 @@ export const idOf = (name: string) =>
     .replace(/_+$/, "");
 
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-export const AI_SPEND = "account=~AI+models";
+const AI_SPEND = "account=~AI+models";
 
 /** Model calls cost money: this month's AI spend beside them, a link to its lines. */
 export function AiSpend() {

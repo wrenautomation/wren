@@ -38,9 +38,9 @@ export interface DecideBackend {
 
 /** Jev's price (typesafe.ai pricing, 2026-10-16): input only, output free. */
 export const JEV_PRICE = { input: 0.042, output: 0 } as const;
-export const JEV_MODEL = "jev-1.13.0";
+const JEV_MODEL = "jev-1.13.0";
 /** One try's wait; the SDK tries twice at most. */
-export const JEV_TRY_MS = 20_000;
+const JEV_TRY_MS = 20_000;
 
 /** Dollars a call cost: `usage` priced at the backend's rate. */
 export const costOf = (price: DecideBackend["price"], usage: Answered["usage"]): number =>

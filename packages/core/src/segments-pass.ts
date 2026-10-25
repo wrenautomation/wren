@@ -35,16 +35,16 @@ import { wallClock } from "./time.js";
 import type { Workflow } from "./workflows.js";
 
 /** The most entries, exits and trait changes told in one pass; the rest go on the next. */
-export const FIRE_MOST = 2000;
+const FIRE_MOST = 2000;
 /** The net's beat. */
-export const SEGMENTS_NET_MS = 15 * 60_000;
+const SEGMENTS_NET_MS = 15 * 60_000;
 /** The least time between two passes: a burst of changed rows is one pass, this much later. */
-export const SEGMENTS_GAP_MS = 30_000;
+const SEGMENTS_GAP_MS = 30_000;
 /** The hour, in `SCHEDULE_ZONE`, Date triggers fire from. */
-export const DATE_HOUR = 9;
+const DATE_HOUR = 9;
 
 /** Where a pass got to: the last entry or exit told, the last trait change, the last day dated. */
-export interface SegmentCursor {
+interface SegmentCursor {
   members: number;
   traits: number;
   dated: string | null;
@@ -66,7 +66,7 @@ export function workflowUses(flows: readonly Workflow[]): Map<number, SegmentUse
 }
 
 /** Two maps of uses as one. */
-export function joinUses(
+function joinUses(
   a: ReadonlyMap<number, SegmentUse[]>,
   b: ReadonlyMap<number, SegmentUse[]>,
 ): Map<number, SegmentUse[]> {
@@ -206,7 +206,7 @@ export async function dueOn(
   return got.map((r) => ({ profile: Number(r.profile_id), date: String(r.date) }));
 }
 
-export interface SegmentsPassStats {
+interface SegmentsPassStats {
   recomputed: number;
   entered: number;
   left: number;
@@ -344,7 +344,7 @@ export async function segmentsPass(
   };
 }
 
-export interface SegmentsDeps {
+interface SegmentsDeps {
   main: Db;
   clientDb(id: string): Db;
   /** A workspace's workflows with its saved edits (`flowsWith`); null is Wren's. */
@@ -353,9 +353,9 @@ export interface SegmentsDeps {
   clients(): Promise<string[]>;
 }
 
-export const SEGMENTS = { name: "Segments" } as const;
+const SEGMENTS = { name: "Segments" } as const;
 /** Wren's own pass's key; a client's is `<client>/fleet`. */
-export const SEGMENTS_KEY = "fleet";
+const SEGMENTS_KEY = "fleet";
 const CURSOR = "cursor";
 const LAST = "last";
 const LATER = "later";
@@ -420,7 +420,7 @@ export function makeSegments(d: SegmentsDeps) {
   });
 }
 
-export interface SegmentsNetStats {
+interface SegmentsNetStats {
   woken: number;
 }
 
@@ -442,6 +442,3 @@ export function makeSegmentsNet(d: Pick<SegmentsDeps, "main" | "clients">) {
     return outcome;
   });
 }
-
-export type SegmentsService = ReturnType<typeof makeSegments>;
-export type SegmentsNetService = ReturnType<typeof makeSegmentsNet>;

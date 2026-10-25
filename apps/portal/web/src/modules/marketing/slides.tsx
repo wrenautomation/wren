@@ -20,7 +20,10 @@ import {
   Button,
   DeviceFrame,
   GROUP_LABEL,
+  HINT_CLASS,
   Input,
+  LABEL_CLASS,
+  messageOf,
   type RecordAct,
   SaveConflict,
   SaveStatus,
@@ -44,10 +47,7 @@ export type CarouselShape = {
   unfit: string | null;
 };
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-const HINT = "text-[12px] text-(--ui-ink-3)";
 const SITE: Record<string, string> = { linkedin: "LinkedIn", instagram: "Instagram" };
-const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** The slides as typed, by draft: the preview beside the editor reads them. */
 const typedSlides = new Map<string, Slide[]>();
@@ -65,7 +65,7 @@ export const onSlidesTyped = (f: () => void) => {
 };
 
 /** One slide drawn by the renderer's own page, scaled to `size` pixels square. */
-export function SlideFrame({
+function SlideFrame({
   slides,
   i,
   size,
@@ -113,7 +113,7 @@ function Strip({ slides, pick }: { slides: Slide[]; pick?: (i: number) => void }
           <span className="block border border-(--ui-hair)">
             <SlideFrame slides={slides} i={i} size={128} />
           </span>
-          <span className={HINT}>{i + 1}</span>
+          <span className={HINT_CLASS}>{i + 1}</span>
         </button>
       ))}
     </section>
@@ -189,7 +189,7 @@ export function SlidesEditor({
       );
       setSaid({ text: "Drawn", bad: false });
     } catch (err) {
-      setSaid({ text: errorOf(err), bad: true });
+      setSaid({ text: messageOf(err), bad: true });
     } finally {
       setBusy(false);
     }
@@ -199,7 +199,7 @@ export function SlidesEditor({
     <section aria-label="Slides" className="grid gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className={GROUP_LABEL}>Slides</h3>
-        <span className={HINT}>
+        <span className={HINT_CLASS}>
           {slides.length} of {SLIDES_MIN} to {SLIDES_MAX}
           {others.length
             ? `. Shared with the ${others.map((o) => SITE[o.platform] ?? o.platform).join(" and ")} draft`
@@ -219,7 +219,7 @@ export function SlidesEditor({
               className="grid gap-2 border-t border-(--ui-hair) pt-4 first:border-0 first:pt-0"
             >
               <div className="flex items-baseline justify-between gap-3">
-                <label htmlFor={`slide-${i}-title`} className={LABEL}>
+                <label htmlFor={`slide-${i}-title`} className={LABEL_CLASS}>
                   Slide {i + 1}
                   {i === 0 ? <span className="font-normal text-(--ui-ink-3)"> · cover</span> : null}
                 </label>
@@ -244,7 +244,7 @@ export function SlidesEditor({
                 placeholder="A short line each"
                 onChange={(e) => edit(i, { lines: linesOf(e.target.value) })}
               />
-              <span className={`text-[12px] ${many || longLine ? "text-(--ui-bad)" : HINT}`}>
+              <span className={`text-[12px] ${many || longLine ? "text-(--ui-bad)" : HINT_CLASS}`}>
                 Up to {SLIDE_LINES_MAX} lines, {SLIDE_LINE_MAX} characters each.
               </span>
               {editable ? (

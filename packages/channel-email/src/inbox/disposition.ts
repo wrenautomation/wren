@@ -53,20 +53,20 @@ export const MIN_CONFIDENCE = 0.6;
 const MAX_TOKENS = 2000;
 const MAX_OUR_BODY_CHARS = 1500;
 
-export interface DispositionEvent {
+interface DispositionEvent {
   id: number;
   from_address: string | null;
   subject: string | null;
   text: string;
 }
-export interface DispositionOurs {
+interface DispositionOurs {
   step: number | null;
   template: string | null;
   subject: string | null;
   body: string | null;
   to_email: string | null;
 }
-export interface DispositionCompany {
+interface DispositionCompany {
   name: string | null;
   domain: string | null;
 }
@@ -86,14 +86,14 @@ export const proposalSchema = z.object({
 });
 export type Proposal = z.infer<typeof proposalSchema>;
 
-export interface DispositionVerdict {
+interface DispositionVerdict {
   disposition: ReplyDisposition | null;
   grounded: boolean;
   reason: string;
 }
 
 /** What one pass over one event produced — the record `classification` stores. */
-export interface DispositionResult {
+interface DispositionResult {
   proposal: Proposal | null;
   llm: Envelope | null;
   parse_error: string | null;
@@ -106,7 +106,7 @@ export function route(state: DispositionState): "classify" | "no_text" {
 }
 
 /** A reply with no words of its own: nothing to read, so nothing is bought and nothing is labelled. */
-export function noText(): DispositionResult {
+function noText(): DispositionResult {
   return {
     proposal: null,
     llm: null,
@@ -159,7 +159,7 @@ export interface ClassifyOptions {
  * The one paid step. An LlmError propagates so the owning loop can abort with
  * partial progress; a rejection or a parse failure is this event's recorded outcome.
  */
-export async function classifyStep(
+async function classifyStep(
   llm: LlmClient,
   state: DispositionState,
   opts: ClassifyOptions = {},
@@ -320,7 +320,7 @@ export interface DispositionStats {
   aborted: string | null;
 }
 
-export interface RunDispositionOptions {
+interface RunDispositionOptions {
   limit?: number | null;
   niche?: string | null;
   runId?: string | null;

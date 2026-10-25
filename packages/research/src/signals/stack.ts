@@ -18,7 +18,7 @@ export interface StackDns {
   resolveMx(name: string): Promise<{ exchange: string; priority: number }[]>;
 }
 
-export interface StackMatch {
+interface StackMatch {
   how: "script" | "meta" | "board" | "spf" | "txt" | "mx";
   match: string;
 }
@@ -82,7 +82,7 @@ export const bareDomain = (d: string) =>
     .replace(/^www\./, "")
     .split(/[/?#:]/)[0] ?? "";
 
-export const dnsLink = (domain: string, type: "TXT" | "MX") =>
+const dnsLink = (domain: string, type: "TXT" | "MX") =>
   `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=${type}`;
 
 const ATS_LABEL: Record<string, string> = {

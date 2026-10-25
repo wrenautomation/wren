@@ -19,10 +19,10 @@ export interface Check<In, Out> {
   after(input: In, out: Out): string | null;
 }
 
-export const HOLD_DAYS = 7;
+const HOLD_DAYS = 7;
 /** Outcomes a source is judged on, and the pass rate under which it pauses. */
 export const PAUSE_WINDOW = 50;
-export const PAUSE_UNDER = 0.7;
+const PAUSE_UNDER = 0.7;
 /** `released_by` when a later read settled the hold, not a person. */
 export const SETTLED = "checks";
 

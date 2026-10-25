@@ -6,10 +6,10 @@
  * URL and the day it was read; no public number is "custom pricing" and adds nothing.
  */
 
-export type InHouseState = "live" | "building" | "in development";
+type InHouseState = "live" | "building" | "in development";
 
 /** One vendor's plan we'd otherwise buy. */
-export interface Instead {
+interface Instead {
   vendor: string;
   plan: string;
   /** USD at the plan's unit; null when the vendor shows no public number. */
@@ -24,7 +24,7 @@ export interface Instead {
   asOf: string;
 }
 
-export interface InHouse {
+interface InHouse {
   id: string;
   name: string;
   /** The Shop parts (`console.component` ids) it lives in; empty when it's Wren's own tooling. */
@@ -604,9 +604,6 @@ export const IN_HOUSE: readonly InHouse[] = [
 /** What it would cost a month bought: the first vendor with a number, else null. */
 export const monthlyOf = (t: InHouse): number | null =>
   t.instead.find((i) => i.monthly !== null)?.monthly ?? null;
-
-/** The quiet line: "In place of Calendly". */
-export const insteadLine = (t: InHouse): string => `In place of ${t.instead[0]?.vendor ?? ""}`;
 
 /** The tool a Shop part is, live first. */
 export const inHouseOfPart = (part: string): InHouse | null =>

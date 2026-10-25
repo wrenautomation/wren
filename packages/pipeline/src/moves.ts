@@ -9,6 +9,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { clientMembers, operators } from "@wren/core/clients";
+import { UUID } from "@wren/core/ids";
 import { events } from "@wren/core/schema";
 import type { SpineEvent } from "@wren/core/spine";
 import { atomic, type Queryable } from "@wren/db";
@@ -34,7 +35,6 @@ const manual = (by: string, now: Date) => ({
   at: now.toISOString(),
 });
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Can `id` be a row id? Asked before the database is: it would fail the query on a bad one. */
 export const isRowId = (id: string): boolean => UUID.test(id);
 /** Refuse an id that cannot be one, before the database does: its error would retry forever. */

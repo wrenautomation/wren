@@ -26,13 +26,12 @@ import {
 import { proberHealth, proberProblems } from "../verification/prober-health.js";
 import { placementLines } from "./placement-scheduler.js";
 
-export const DIGEST_KEY = "fleet";
-export const DIGEST_COMMAND = "notify digest";
+const DIGEST_COMMAND = "notify digest";
 export const DIGEST_HOUR = 7;
 /** Google's guidance keeps spam under 0.1%; a domain at or past it gets its own line. */
 const SPAM_WATCH = 0.001;
 
-export interface DigestSchedulerDeps {
+interface DigestSchedulerDeps {
   db: Db;
   notifier: Notifier;
   policy: SendPolicy;
@@ -46,7 +45,7 @@ export interface DigestSchedulerDeps {
   placement?: boolean;
 }
 
-export interface DigestStats {
+interface DigestStats {
   day: string;
   domains: number;
   lines: string[];
@@ -79,10 +78,7 @@ const spamOf = (r: DomainDay) => (r.spam_rate === null ? null : Number(r.spam_ra
 const pct = (rate: number) => `${(rate * 100).toFixed(2)}%`;
 
 /** Yesterday (UTC day, the grain of `send_health`) summed over domains, with the newest Postmaster rate at or before it. */
-export async function digestLines(
-  db: Db,
-  day: string,
-): Promise<{ lines: string[]; domains: number }> {
+async function digestLines(db: Db, day: string): Promise<{ lines: string[]; domains: number }> {
   const rows = (await db.execute(sql`
     SELECT h.domain,
            sum(h.sent)::int AS sent, sum(h.hard_bounces)::int AS hard,

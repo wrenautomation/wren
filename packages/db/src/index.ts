@@ -17,7 +17,7 @@ export interface DbHandle {
 
 const MIGRATIONS_FOLDER = new URL("../drizzle", import.meta.url).pathname;
 
-export interface DbOptions {
+interface DbOptions {
   max?: number;
   idleSeconds?: number;
   /** The connection's application_name, kept on every audit event: `wren-worker`, `wren-cli:<command>`. */
@@ -67,13 +67,6 @@ export function cachedDb(databaseUrl: string, opts: Pick<DbOptions, "app"> = {})
     cached.set(id, handle);
   }
   return handle.db;
-}
-
-/** Close every cached pool. Call once at process exit. */
-export async function closeCachedDbs(): Promise<void> {
-  const handles = [...cached.values()];
-  cached.clear();
-  await Promise.all(handles.map((h) => h.close()));
 }
 
 /** Apply every migration in packages/db/drizzle, then the audit layer (triggers follow the tables). Idempotent. */

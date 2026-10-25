@@ -573,7 +573,7 @@ export const EDITABLE: ReadonlySet<Kind> = new Set<Kind>([
   "date",
 ]);
 
-export interface RecordDecl<F extends Record<string, Draft>> {
+interface RecordDecl<F extends Record<string, Draft>> {
   /** "<product>.<thing>": "reactivation.person". */
   id: string;
   name: { one: string; many: string };
@@ -690,7 +690,7 @@ export interface Thumb {
 }
 
 /** A record type's channel: one, a field holding it, or none. */
-export type RecordChannel = string | { field: string } | null;
+type RecordChannel = string | { field: string } | null;
 /**
  * How a type folds its rows (designs/2026-10-15-engage-threads.md). Rows with one `by` key show
  * as one: the latest still-open one stands for the group (else its latest), so acting on the row
@@ -957,7 +957,7 @@ export const CUSTOM_RECORDS = new Map<string, { one: string; many: string }>();
 export const DECLARED = new Map<string, { app: string; channel: RecordChannel }>();
 
 /** Its app is one of `APPS`; its channel one of `ACCESS_CHANNELS`, a field it has, or null. */
-export function checkAttributes(type: Pick<RecordType, "id" | "app" | "channel" | "fields">) {
+function checkAttributes(type: Pick<RecordType, "id" | "app" | "channel" | "fields">) {
   if (!Object.hasOwn(APPS, type.app)) throw new Error(`${type.id}: no such app ${type.app}`);
   const c = type.channel;
   if (c === null) return;

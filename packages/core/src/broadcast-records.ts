@@ -19,12 +19,12 @@ import {
   text,
 } from "./records.js";
 
-export const BROADCAST_CHANNEL_STATES = cued({
+const BROADCAST_CHANNEL_STATES = cued({
   email: { label: "Email", tone: "neutral" },
   sms: { label: "Text", tone: "neutral" },
 } as const);
 
-export const BROADCAST_STATE_STATES = cued({
+const BROADCAST_STATE_STATES = cued({
   draft: { label: "Draft", tone: "neutral" },
   waiting: { label: "To approve", tone: "warn" },
   scheduled: { label: "Scheduled", tone: "neutral" },
@@ -34,7 +34,7 @@ export const BROADCAST_STATE_STATES = cued({
   canceled: { label: "Canceled", tone: "neutral" },
 } as const);
 
-export const RECIPIENT_STATE_STATES = cued({
+const RECIPIENT_STATE_STATES = cued({
   due: { label: "Due", tone: "neutral" },
   held: { label: "Held by cap", tone: "warn" },
   sending: { label: "Sending", tone: "neutral" },
@@ -61,7 +61,7 @@ export async function broadcastDetail(db: Queryable, id: string): Promise<Broadc
 }
 
 /** The handlers a broadcast's buttons call; Save is its editor's. */
-export const BROADCAST_ACTIONS = [
+const BROADCAST_ACTIONS = [
   "people.broadcastSave",
   "people.broadcastTest",
   "people.broadcastAsk",
@@ -71,7 +71,7 @@ export const BROADCAST_ACTIONS = [
   "people.broadcastRestore",
 ] as const;
 
-export const broadcastRecord = defineRecord({
+const broadcastRecord = defineRecord({
   id: "people.broadcast",
   app: "people",
   channel: { field: "channel" },
@@ -122,7 +122,7 @@ export const broadcastRecord = defineRecord({
   load: broadcastDetail,
 });
 
-export const recipientRecord = defineRecord({
+const recipientRecord = defineRecord({
   id: "people.recipient",
   app: "people",
   channel: { field: "channel" },

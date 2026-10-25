@@ -88,16 +88,3 @@ export const settingsSchema = z
 export type Settings = z.infer<typeof settingsSchema>;
 
 export const parseSettings = (raw: unknown): Settings => settingsSchema.parse(raw ?? {});
-
-/** `settings` with one value changed; a dotted key reaches inside (`guards.negativeRatio`). */
-export function withSetting(settings: Settings, key: string, value: unknown): Settings {
-  const next = structuredClone(settings) as Record<string, unknown>;
-  const path = key.split(".");
-  let at = next;
-  for (const part of path.slice(0, -1)) {
-    if (typeof at[part] !== "object" || at[part] === null) throw new Error(`no setting '${key}'`);
-    at = at[part] as Record<string, unknown>;
-  }
-  at[path.at(-1) as string] = value;
-  return settingsSchema.parse(next);
-}

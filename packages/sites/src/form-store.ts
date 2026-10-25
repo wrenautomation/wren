@@ -4,6 +4,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { UUID } from "@wren/core/ids";
 import { staleRefusal } from "@wren/core/refusal";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
@@ -12,7 +13,7 @@ import { defaultSpec, FormProblem, type FormSpec, parseSpec } from "./forms.js";
 import { embedSnippets } from "./kit.js";
 import { formUrl, type PageStatus, SLUG, SLUG_MAX, slugOf, WREN_SITE } from "./model.js";
 import { type SiteFormDef, siteFormDefs, siteForms } from "./schema.js";
-import { SitesRefusal, stillAt, UUID } from "./store.js";
+import { SitesRefusal, stillAt } from "./store.js";
 
 /** The words' version: the first 12 hex of their SHA-256. Same words, same version. */
 export const consentVersion = (text: string) =>
@@ -156,17 +157,17 @@ export async function setFormStatus(
   return rows.map((r) => r.id);
 }
 
-export interface FormDayNumbers {
+interface FormDayNumbers {
   day: string;
   views: number;
   starts: number;
   submits: number;
 }
-export interface FormStepNumbers {
+interface FormStepNumbers {
   step: number;
   views: number;
 }
-export interface FormSourceNumbers {
+interface FormSourceNumbers {
   channel: string;
   source: string;
   campaign: string;
@@ -177,7 +178,7 @@ export interface FormSourceNumbers {
 }
 
 /** A form's numbers by day, last 30 days, and by where its visitors came from. */
-export async function formNumbers(db: Queryable, id: string) {
+async function formNumbers(db: Queryable, id: string) {
   const days = await db.execute(sql`
     select to_char(d::date, 'YYYY-MM-DD') as day,
       count(e.id) filter (where e.name = 'view')::int views,
@@ -230,7 +231,7 @@ export interface FormDetail {
 }
 
 /** Where a form lives: Wren's apex, else the owner's first live custom domain, else none yet. */
-export async function formHost(db: Queryable, client: string | null): Promise<string | null> {
+async function formHost(db: Queryable, client: string | null): Promise<string | null> {
   if (client === null) return WREN_SITE;
   const rows = await db.execute(sql`
     select hostname from client_domains where client_id = ${client} and status = 'active'

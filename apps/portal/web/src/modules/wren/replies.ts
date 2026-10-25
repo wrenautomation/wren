@@ -2,10 +2,8 @@
  * A warm reply's answer (`email.reply`, keyed by its call invite): on the Inbox app's replies page
  * and on the one queue's email rows.
  */
-import type { Action, MessageKind } from "@wren/ui";
+import { type Action, type MessageKind, said } from "@wren/ui";
 import { call } from "../../api.js";
-
-const said = (line: string) => () => line;
 
 export const REPLY_WAITING = { state: ["needs_you", "proposed"] };
 /** Our answer rides their thread: the subject they replied under, as "Re: ...". */

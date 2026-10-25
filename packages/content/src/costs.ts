@@ -8,7 +8,7 @@ import type { Queryable } from "@wren/db";
 import { and, gte, isNotNull, sql } from "drizzle-orm";
 import { contentDrafts } from "./schema.js";
 
-export interface CostRow {
+interface CostRow {
   platform: string;
   model: string;
   calls: number;

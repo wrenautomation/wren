@@ -27,7 +27,7 @@ import {
 } from "./templates.js";
 
 /** Each kind's file extension. Any other file in the tree (a README) is not a template. */
-export const DEFAULT_EXT: Readonly<Record<TemplateKind, string>> = {
+const DEFAULT_EXT: Readonly<Record<TemplateKind, string>> = {
   email: ".email",
   sms: ".sms",
   dm: ".dm",
@@ -115,7 +115,7 @@ export function writeDefaultFile(dir: string, ref: TemplateRef, source: string):
 let cached: { dir: string; byRef: Map<string, DefaultFile> } | null = null;
 
 /** One default's words from the tree (read once per process), or null when it has none. */
-export function defaultFile(ref: TemplateRef): DefaultFile | null {
+function defaultFile(ref: TemplateRef): DefaultFile | null {
   const dir = defaultsDir();
   if (cached?.dir !== dir)
     cached = { dir, byRef: new Map(loadDefaults(dir).map((f) => [refText(f.ref), f])) };

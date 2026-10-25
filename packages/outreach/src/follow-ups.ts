@@ -35,7 +35,7 @@ export const commentsReadSettingsSchema = z
     followUpDays: z.number().int().min(0).max(30).default(7),
   })
   .strict();
-export type CommentsReadSettings = z.infer<typeof commentsReadSettingsSchema>;
+type CommentsReadSettings = z.infer<typeof commentsReadSettingsSchema>;
 
 /** A bad or missing block reads as the defaults. */
 export function commentsReadSettings(block: unknown): CommentsReadSettings {
@@ -54,11 +54,11 @@ export const THREAD_FLOOR_MS = 5 * MIN;
 /** A thread quiet for a day is probed this often until its watch ends. */
 export const THREAD_IDLE_MS = 3 * 60 * MIN;
 /** A probe that says nothing moved still reads the thread this often: counts can lag. */
-export const THREAD_SWEEP_MS = 12 * 60 * MIN;
+const THREAD_SWEEP_MS = 12 * 60 * MIN;
 /** Full thread reads one watch pass makes at most, across accounts. */
 export const THREAD_READS_PER_PASS = 3;
 /** Focused reads per thread at most, when a big thread hid comments behind "load more". */
-export const FOCUS_READS = 2;
+const FOCUS_READS = 2;
 /** Threads one pass looks at at most. */
 const DUE_LIMIT = 25;
 
@@ -72,7 +72,7 @@ export function nextCheckAt(activeAt: Date, now: Date, r: number): Date {
   return new Date(now.getTime() + wait);
 }
 
-export interface FollowUpScope {
+interface FollowUpScope {
   /** Our handles on the platform: their comments are ours, never follow-ups. */
   ours: readonly string[];
   /** People already talking to us in this thread (their comments are rows). */
@@ -322,7 +322,7 @@ export function focusesOf(read: ThreadRead, ours: readonly string[], limit = FOC
 }
 
 /** The post a context view heads with; null fields where the site gave none. */
-export interface ContextPost {
+interface ContextPost {
   title: string | null;
   text: string | null;
   url: string | null;

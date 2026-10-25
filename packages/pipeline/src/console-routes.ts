@@ -48,7 +48,7 @@ export const PIPELINE_CONSOLE_APPS = {
   recordsExport: null,
   recordsStats: null,
 } as const satisfies RouteApps<typeof PIPELINE_CONSOLE_ROUTES>;
-export type PipelineConsoleRoute = keyof typeof PIPELINE_CONSOLE_ROUTES;
+type PipelineConsoleRoute = keyof typeof PIPELINE_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const PIPELINE_CONSOLE_WRITES: readonly PipelineConsoleRoute[] = [
   "offersSync",

@@ -30,7 +30,7 @@ export const READ_ACCESS = "Checkout Sessions, Payment Intents, Charges and Disp
 /** How old a signed event may be: Stripe's own default. */
 export const TOLERANCE_S = 300;
 /** Retries the SDK makes on a dropped connection, a 409 lock or a 5xx; Restate retries after. */
-export const NETWORK_RETRIES = 2;
+const NETWORK_RETRIES = 2;
 
 export type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -53,7 +53,7 @@ export class StripeError extends Error {
 }
 
 /** The SDK's error as ours; anything else as it was. */
-export function stripeErrorOf(err: unknown): unknown {
+function stripeErrorOf(err: unknown): unknown {
   if (!(err instanceof Stripe.errors.StripeError)) return err;
   const status = err.statusCode ?? 0;
   const transient =
@@ -79,7 +79,7 @@ const call = async <T>(f: () => Promise<T>): Promise<T> => {
 };
 
 /** The SDK on one key, over `fetchFn`, at `base` (Stripe, or stripe-mock in the tests). */
-export function stripeClient(
+function stripeClient(
   key: string,
   fetchFn: Fetch,
   base = STRIPE_API,
@@ -98,23 +98,23 @@ export function stripeClient(
   });
 }
 
-export interface StripePrice {
+interface StripePrice {
   id: string;
   livemode: boolean;
 }
-export interface StripeLink {
+interface StripeLink {
   id: string;
   url: string;
   livemode: boolean;
 }
-export interface StripeEndpoint {
+interface StripeEndpoint {
   id: string;
   /** The signing secret: only on create, never read again. */
   secret: string;
   livemode: boolean;
 }
 /** A Checkout Session of a link, trimmed: no card, no address. */
-export interface StripeSession {
+interface StripeSession {
   id: string;
   status: string | null;
   paymentStatus: string;
@@ -126,7 +126,7 @@ export interface StripeSession {
   live: boolean;
 }
 /** A payment as reconcile reads it: its state, what was refunded, any dispute. */
-export interface StripePayment {
+interface StripePayment {
   status: string;
   received: number;
   refunded: number;
@@ -281,7 +281,7 @@ export function signFor(raw: string, secret: string, at: Date): string {
 }
 
 /** Which of our events this is: a checkout, a refund, a dispute; other is kept, changes nothing. */
-export type FactKind = "checkout" | "refund" | "dispute" | "other";
+type FactKind = "checkout" | "refund" | "dispute" | "other";
 
 /**
  * What we keep of a Stripe event: ids, amounts, states, the payer's email. Never a card or an

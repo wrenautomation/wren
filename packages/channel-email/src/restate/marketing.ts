@@ -38,7 +38,7 @@ interface Visit {
   ua?: string;
 }
 
-export interface SignUpRequest extends Visit {
+interface SignUpRequest extends Visit {
   topic: string;
   address: string;
   /** `signupSig(shared, topic, address)`, from the lander after its bot check. */
@@ -80,7 +80,7 @@ const CHANGE = z.union([
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const confirmMail = (o: { to: string; topic: string; link: string }): PlainMail => ({
+const confirmMail = (o: { to: string; topic: string; link: string }): PlainMail => ({
   to: o.to,
   subject: `Confirm: ${o.topic}`,
   text: [

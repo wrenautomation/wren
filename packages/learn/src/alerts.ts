@@ -38,10 +38,10 @@ const BELL_SHOWN = 20;
 /** Today's list; the rest are counted. */
 const TODAY_SHOWN = 40;
 /** The hour a digest mail goes, the fleet's clock. */
-export const DIGEST_MAIL_HOUR = 9;
+const DIGEST_MAIL_HOUR = 9;
 
 /** A source's own `tell` as a person's pick when they haven't made one: digest only is off. */
-export const pickOfTell = (tell: Tell): AlertPick => (tell === "digest" ? "off" : tell);
+const pickOfTell = (tell: Tell): AlertPick => (tell === "digest" ? "off" : tell);
 
 const lower = (email: string) => email.trim().toLowerCase();
 
@@ -97,7 +97,7 @@ interface Candidate {
 }
 
 /** Why this person hears of this item now, or null: their pick against what happened. */
-export function alertWhy(c: Candidate, pick: AlertPick): AlertWhy | null {
+function alertWhy(c: Candidate, pick: AlertPick): AlertWhy | null {
   if (pick === "off") return null;
   const high = c.scored && (c.score ?? 0) >= TOP_SCORE;
   if (c.saved) return high ? "saved" : null;
@@ -105,7 +105,7 @@ export function alertWhy(c: Candidate, pick: AlertPick): AlertWhy | null {
   return high ? "score" : null;
 }
 
-export interface AlertStats {
+interface AlertStats {
   bell: number;
   digest: number;
 }
@@ -461,7 +461,7 @@ export interface DigestMail {
 }
 
 /** The digest as a mail's words: one block per item, best first, and where to change it. */
-export function digestText(
+function digestText(
   t: Awaited<ReturnType<typeof todayOf>>,
   links: { today: string; settings: string },
 ): string {

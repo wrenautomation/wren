@@ -7,13 +7,14 @@
  * Webhooks: subscribe with `?version=2026-02-03` (the flat message payload read here); the
  * Standard Webhooks signature is checked at the edge (`webhook.ts`, `verifyStandardWebhook`).
  */
-import type {
-  LookupResult,
-  ProviderNumber,
-  SendRequest,
-  SendResult,
-  SmsEvent,
-  SmsProvider,
+import {
+  callJson,
+  type LookupResult,
+  type ProviderNumber,
+  type SendRequest,
+  type SendResult,
+  type SmsEvent,
+  type SmsProvider,
 } from "./provider.js";
 import type { Service } from "./schema.js";
 import { parseTelnyxEvent } from "./telnyx.js";
@@ -21,9 +22,9 @@ import { parseTelnyxEvent } from "./telnyx.js";
 const BASE = "https://api.linqapp.com/api/partner/v3";
 
 /** Linq refuses a link in a new chat's first text. */
-export const FIRST_LINK_CODE = "1005";
+const FIRST_LINK_CODE = "1005";
 
-export interface LinqOptions {
+interface LinqOptions {
   apiKey: string;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -57,29 +58,10 @@ export class LinqProvider implements SmsProvider {
     this.fetchImpl = opts.fetch ?? fetch;
   }
 
-  private async call(
-    method: string,
-    path: string,
-    body?: unknown,
-  ): Promise<{ status: number; json: unknown }> {
-    const res = await this.fetchImpl(`${BASE}${path}`, {
-      method,
-      headers: {
-        authorization: `Bearer ${this.opts.apiKey}`,
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      signal: AbortSignal.timeout(this.opts.timeoutMs ?? 20_000),
-    });
-    const text = await res.text();
-    let json: unknown = null;
-    try {
-      json = text ? JSON.parse(text) : null;
-    } catch {
-      json = { error: { message: text.slice(0, 300) } };
-    }
-    return { status: res.status, json };
+  private call(method: string, path: string, body?: unknown) {
+    return callJson(this.fetchImpl, BASE, this.opts, method, path, body, (text) => ({
+      error: { message: text },
+    }));
   }
 
   private async read(method: string, path: string, body?: unknown): Promise<unknown> {

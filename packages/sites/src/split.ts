@@ -8,32 +8,23 @@
  * those are Wren's lander only, have no owner, and move shares by bandit.
  */
 
+import { UUID } from "@wren/core/ids";
 import { staleRefusal } from "@wren/core/refusal";
 import { type Db, type Queryable, serializable, snapshot } from "@wren/db";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { ARM_LABELS, type ArmLabel, SPLIT_GOALS, type SplitGoal } from "./model.js";
 import { type SitePage, type SiteSplit, sitePages, siteSplitArms, siteSplits } from "./schema.js";
 import { type ArmCount, type SplitCall, splitCall } from "./split-call.js";
-import {
-  askPublish,
-  pageById,
-  SitesRefusal,
-  saveVersion,
-  stillAt,
-  UUID,
-  versionOf,
-} from "./store.js";
+import { askPublish, pageById, SitesRefusal, saveVersion, stillAt, versionOf } from "./store.js";
 import type { Content } from "./templates/types.js";
 
 /** Visitors' arm sticks this long: a month, so a returning visitor sees what they saw. */
 export const SPLIT_COOKIE_DAYS = 30;
 /** The cookie's value: the split's first 8 hex, a dot, the arm. */
 export const SPLIT_COOKIE = /^([0-9a-f]{8})\.([A-E])$/;
-
-export const splitCookieName = "wab";
 export const splitCookieValue = (split: string, label: string) => `${split.slice(0, 8)}.${label}`;
 
-export interface SplitArm {
+interface SplitArm {
   label: ArmLabel;
   page: string;
   weight: number;
@@ -77,7 +68,7 @@ export async function liveSplitOf(db: Queryable, page: string): Promise<SplitWit
   return s ? { ...s, arms: await armsOf(db, s.id) } : null;
 }
 
-export async function splitById(db: Queryable, id: string): Promise<SplitWithArms | null> {
+async function splitById(db: Queryable, id: string): Promise<SplitWithArms | null> {
   if (!UUID.test(id)) return null;
   const [s] = await db.select().from(siteSplits).where(eq(siteSplits.id, id));
   return s ? { ...s, arms: await armsOf(db, s.id) } : null;
@@ -302,7 +293,7 @@ export async function armToServe(
  * Pick an arm for a visit: the one its cookie names when the split still has it, else by weight
  * with `roll` in [0, 1).
  */
-export function pickArm<T extends { label: string; weight: number }>(
+function pickArm<T extends { label: string; weight: number }>(
   arms: readonly T[],
   want: string | null,
   roll: number,
@@ -319,7 +310,7 @@ export function pickArm<T extends { label: string; weight: number }>(
   return arms[arms.length - 1] ?? null;
 }
 
-export interface ArmNumbers {
+interface ArmNumbers {
   label: string;
   page: string;
   slug: string;
@@ -335,7 +326,7 @@ export interface ArmNumbers {
  * Each arm's numbers inside the split: unique views (a view id counts once), forms sent, booking
  * clicks, and won deals (a form's email that booked a call after it, marked won; Wren's only).
  */
-export async function splitNumbers(db: Queryable, split: SplitWithArms): Promise<ArmNumbers[]> {
+async function splitNumbers(db: Queryable, split: SplitWithArms): Promise<ArmNumbers[]> {
   return snapshot(db, async (tx) => {
     const rows = [
       ...(await tx.execute(sql`

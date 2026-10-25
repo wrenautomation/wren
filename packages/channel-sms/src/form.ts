@@ -46,7 +46,7 @@ import { type SmsSequence, stepTemplate } from "./templates.js";
 /** Long enough to book from the page they're on; short enough to be the first thing they hear. */
 export const FIRST_TEXT_AFTER_MS = 2 * 60 * 1000;
 // Long enough for a Friday-evening applicant to hear back on Monday.
-export const FIRST_TEXT_WITHIN_MS = 4 * 86_400_000;
+const FIRST_TEXT_WITHIN_MS = 4 * 86_400_000;
 const PAGE = 500;
 const MAX_PAGES = 20;
 
@@ -57,8 +57,8 @@ export const formSubject = (id: number) => `site:applications:${id}`;
 const FIRST_GOES =
   "Two minutes after they apply on the site with the texts box ticked, in texting hours on their clock; none if they booked a call by then";
 
-export const FORM_FIT = "form-fit";
-export const FORM_NOT_FIT = "form-not-fit";
+const FORM_FIT = "form-fit";
+const FORM_NOT_FIT = "form-not-fit";
 
 /** After the first text: the Follow-up's two texts, on day 1 and day 3. */
 const FOLLOW_STEPS = [
@@ -122,10 +122,7 @@ async function readPage(site: SiteSource, since: number, limit: number) {
   return rows as FormApplication[];
 }
 
-export async function readApplications(
-  site: SiteSource,
-  since: number,
-): Promise<FormApplication[]> {
+async function readApplications(site: SiteSource, since: number): Promise<FormApplication[]> {
   const out: FormApplication[] = [];
   let after = since;
   for (let page = 0; page < MAX_PAGES; page++) {

@@ -15,7 +15,7 @@ import type { FetchLike } from "../fetch-like.js";
 import { buildMime } from "../send/mime.js";
 import { oneLine } from "../send/transport.js";
 
-export type TokenOf = () => Promise<string>;
+type TokenOf = () => Promise<string>;
 
 /** A provider call that failed: `status` 401 or 403 means the token or its scopes are gone. */
 export class MailApiError extends Error {

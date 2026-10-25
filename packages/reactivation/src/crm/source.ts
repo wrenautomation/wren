@@ -45,7 +45,7 @@ import {
 } from "./formats.js";
 
 /** What the CRM knows beyond the person: stored whole on crm_contacts. */
-export interface CrmRecord {
+interface CrmRecord {
   crmKey: string;
   email: string | null;
   phone: string | null;
@@ -66,7 +66,7 @@ const text = (v: unknown): string | null => {
  * longer name keeps its start and a hash of the whole, so two long names that
  * share a start stay two companies.
  */
-export function companySlug(name: string): string {
+function companySlug(name: string): string {
   const slug = name
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "-")
@@ -91,7 +91,7 @@ export function emailsIn(cell: string | null): string[] {
  * with no address in it keeps its first word, so the health report counts it as
  * bad syntax rather than missing.
  */
-export function firstEmail(cell: string | null): string | null {
+function firstEmail(cell: string | null): string | null {
   const first = emailsIn(cell)[0] ?? cell?.split(/[\s;,]+/).find(Boolean);
   return first ? normalizeEmail(first) : null;
 }

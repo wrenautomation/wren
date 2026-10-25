@@ -41,7 +41,7 @@ const firmNames = (p: Person): string[] => {
 };
 
 /** The keep rule: the full name and the firm's name or domain, in the same episode's text. */
-export function namesBoth(text: string, p: Person): boolean {
+function namesBoth(text: string, p: Person): boolean {
   return hasWords(text, p.fullName) && firmNames(p).some((f) => hasWords(text, f));
 }
 

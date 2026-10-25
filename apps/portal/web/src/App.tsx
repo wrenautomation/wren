@@ -147,7 +147,7 @@ function usePaletteKey() {
  * G then a letter opens a page of the app you're in: each page takes the first letter of its
  * label no page before it took, so the letters hold while the pages do.
  */
-export function goKeys(m: Module | undefined): Map<string, string> {
+function goKeys(m: Module | undefined): Map<string, string> {
   const keys = new Map<string, string>();
   for (const p of m?.pages.filter((x) => !x.hidden) ?? []) {
     const free = [...p.label.toLowerCase()].find((c) => /[a-z]/.test(c) && !keys.has(c));
@@ -200,7 +200,7 @@ const withWho = (who: Who | undefined) => (who !== undefined ? { who } : {});
  * His pins that still open a page he may see, named by their app; the rest wait unshown. A pin at
  * an old address (`moved.ts`) names the page it moved to; the pin itself stays as he saved it.
  */
-export function pinLines(pins: readonly string[], apps: Module[], atWren = true): PinLine[] {
+function pinLines(pins: readonly string[], apps: Module[], atWren = true): PinLine[] {
   return pins.flatMap((href) => {
     const now = movedTo(href, { atWren }) ?? href;
     const at = place(now.split("/").filter(Boolean), apps, true);

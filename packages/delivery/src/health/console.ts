@@ -23,25 +23,25 @@ import { FLAG_SIDES, type FlagSide } from "./schema.js";
 export interface IdsRequest extends PortalRequest {
   ids?: string[];
 }
-export interface RateRequest extends IdsRequest {
+interface RateRequest extends IdsRequest {
   score?: unknown;
   note?: string | null;
 }
-export interface OverrideRequest extends IdsRequest {
+interface OverrideRequest extends IdsRequest {
   score?: unknown;
   reason?: string | null;
 }
-export interface RaiseRequest extends IdsRequest {
+interface RaiseRequest extends IdsRequest {
   /** The client's id, from the flags list's form; else the health record's `ids`. */
   clientId?: string | null;
   side?: string | null;
   what?: string | null;
   owner?: string | null;
 }
-export interface OwnRequest extends IdsRequest {
+interface OwnRequest extends IdsRequest {
   owner?: string | null;
 }
-export interface AddressRequest extends IdsRequest {
+interface AddressRequest extends IdsRequest {
   note?: string | null;
 }
 
@@ -152,7 +152,6 @@ export function healthConsoleApi(db: Db) {
       }),
   };
 }
-export type HealthConsoleApi = ReturnType<typeof healthConsoleApi>;
 
 export function makeHealthConsole(db: Db) {
   const api = healthConsoleApi(db);

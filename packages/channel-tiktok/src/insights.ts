@@ -47,7 +47,7 @@ export interface TikTokVideoAnalytics {
 }
 
 /** What the Studio page reads. */
-export const STUDIO_METRICS = [
+const STUDIO_METRICS = [
   M.durationSecs,
   M.reach,
   M.watchMinutes,

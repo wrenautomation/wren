@@ -15,7 +15,7 @@ import type { ClientProfile } from "./schema.js";
 import type { Sender } from "./settings.js";
 
 /** The replies a recruiter should see. */
-export const HANDED_OFF = ["interested", "meeting_booked"] as const;
+const HANDED_OFF = ["interested", "meeting_booked"] as const;
 
 export interface ForwardStats {
   /** Handoff rows made this pass. */
@@ -31,7 +31,7 @@ export interface ForwardStats {
   errors: string[];
 }
 
-export interface ForwardOptions {
+interface ForwardOptions {
   profile: Pick<ClientProfile, "recruiters" | "defaultRecruiter"> | null;
   /** The From name per mailbox. */
   settings: { senders: readonly Pick<Sender, "address" | "name">[] };

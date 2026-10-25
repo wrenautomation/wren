@@ -19,7 +19,7 @@ export const plain = (s: string): string =>
 
 const tokens = (s: string) => plain(s).split(" ").filter(Boolean);
 
-export interface NameParts {
+interface NameParts {
   firstName: string | null;
   lastName: string | null;
 }

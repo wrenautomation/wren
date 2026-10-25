@@ -20,7 +20,7 @@ import { type InboxChannel, type InboxReply, inboxReplies } from "../schema.js";
 import { optionsOf, partyOf, type ReplyOption } from "./conversation.js";
 
 /** The client's `sends` part each channel answers under (`sendsOn`). */
-export const SENDS_PART: Record<InboxChannel, string> = {
+const SENDS_PART: Record<InboxChannel, string> = {
   dm: "reach.outreach",
   comment: "content.posting",
   email: "follow_up",
@@ -48,7 +48,7 @@ export interface Gate {
 }
 
 /** The app a thread sits in, for access checks: the Inbox is Marketing's record. */
-export const INBOX_APP = "marketing";
+const INBOX_APP = "marketing";
 
 /**
  * The access channel (`ACCESS_CHANNELS`) a reply goes out on: texts are `sms`, email `email`, a

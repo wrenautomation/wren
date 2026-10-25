@@ -14,7 +14,7 @@ import type { PortalMail } from "../watch.js";
 import { payFields, type ReceiveDetails } from "./receive.js";
 
 /** Who an invoice is billed to: the client's `delivery.invoices` block, `billTo`. */
-export interface BillTo {
+interface BillTo {
   name?: string;
   address?: string[];
   email?: string;
@@ -105,7 +105,7 @@ export function invoiceFile(
 }
 
 /** The mail's words: what's owed, by when, and the bank details to send it to. */
-export function invoiceText(
+function invoiceText(
   i: Pick<Invoice, "number" | "dueOn" | "currency" | "cents" | "description">,
   clientId: string,
   receive: ReceiveDetails,
@@ -126,7 +126,7 @@ export function invoiceText(
   ].join("\n");
 }
 
-export interface MailStats {
+interface MailStats {
   mailed: number;
   failed: number;
   lastError: string | null;

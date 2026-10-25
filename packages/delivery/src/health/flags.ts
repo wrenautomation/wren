@@ -24,7 +24,7 @@ const SLACK = 5 * 60_000;
 /** The digest goes on the first pass at or after this hour, fleet time. */
 export const DIGEST_HOUR = 9;
 /** Who clears a flag when its cause went away. */
-export const WATCH_ACTOR = "pipeline:delivery-watch";
+const WATCH_ACTOR = "pipeline:delivery-watch";
 
 /** A flag as a source finds it. */
 export interface FlagFind {
@@ -341,7 +341,7 @@ export async function tellFlags(
 // --- the spine's outbox ---------------------------------------------------------------
 
 /** What `trigger.flag` hears for one change to a flag. */
-export function flagFired(f: ClientFlag, change: "raised" | "cleared"): Fired {
+function flagFired(f: ClientFlag, change: "raised" | "cleared"): Fired {
   return {
     client: null,
     facts: { trigger: "trigger.flag", change, side: f.side },

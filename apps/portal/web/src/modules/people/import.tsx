@@ -5,9 +5,9 @@
  * the result is a row in the list below. The head asks `importPreview` again on each change; only
  * the button writes (`importRun`). Loading people sends nothing.
  */
-import { ACTIONS, Button, DataTable, type TableColumn, Tag } from "@wren/ui";
+import { ACTIONS, Button, DataTable, messageOf, type TableColumn, Tag } from "@wren/ui";
 import { useRef, useState } from "react";
-import { ApiError, call, type ImportPreview, type ImportResult } from "../../api.js";
+import { call, type ImportPreview, type ImportResult } from "../../api.js";
 import type { ListPage } from "../../module.js";
 import { ERROR, QUIET, SELECT } from "../work/bits.js";
 import {
@@ -28,7 +28,6 @@ interface Picked {
   file: string;
 }
 
-const said = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 /** The field's column, chosen from the file's own. "" is unused. */
 function ColumnPick({
   label,
@@ -133,7 +132,7 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
       setPreview(got);
       setColumns(got.columns as Record<string, string>);
     } catch (err) {
-      if (mine === asked.current) setError(said(err));
+      if (mine === asked.current) setError(messageOf(err));
     } finally {
       if (mine === asked.current) setBusy(null);
     }
@@ -185,7 +184,7 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
       }
       reload();
     } catch (err) {
-      if (mine === asked.current) setError(said(err));
+      if (mine === asked.current) setError(messageOf(err));
     } finally {
       importing.current = false;
       if (mine === asked.current) setBusy(null);

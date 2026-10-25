@@ -103,7 +103,7 @@ export function youtubeId(url: string): string | null {
 }
 
 /** An Instagram, TikTok or X post's own embed address, or null when the link isn't one. */
-export function embedOf(type: string, url: string): { src: string; box: string } | null {
+function embedOf(type: string, url: string): { src: string; box: string } | null {
   let u: URL;
   try {
     u = new URL(url);

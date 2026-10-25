@@ -11,9 +11,9 @@ import { ingressSites } from "./sites.js";
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 
 /** Meta's webhooks land on the phone Worker (designs/2026-10-12-push-everywhere.md). */
-export const META_CALLBACK = "https://phone.wrenautomation.com/webhooks/meta";
+const META_CALLBACK = "https://phone.wrenautomation.com/webhooks/meta";
 /** The fields each Meta object pushes: a Page's comments and DMs; Instagram's DMs, comments, mentions. */
-export const META_FIELDS = {
+const META_FIELDS = {
   page: "feed,messages",
   instagram: "messages,comments,mentions",
 } as const;

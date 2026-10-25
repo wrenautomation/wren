@@ -25,10 +25,10 @@ const STORE = "copies";
 /** Bump when what's kept changes shape: an older copy is dropped on load. */
 const SHAPE = "1";
 /** The most the copy keeps; the oldest answers go first past it. */
-export const LOCAL_MAX_CHARS = 4_000_000;
+const LOCAL_MAX_CHARS = 4_000_000;
 
 /** What the persister writes through. */
-export interface AsyncStore {
+interface AsyncStore {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   removeItem(key: string): Promise<void>;

@@ -9,10 +9,10 @@ import type { CommentRow, SiteClient } from "@wren/core/content";
 /** Read this often per client: Maps is a browser read on the desk. */
 export const MAPS_EVERY_MS = 6 * 60 * 60 * 1000;
 /** Newest first, this many a read. */
-export const MAPS_LIMIT = 20;
+const MAPS_LIMIT = 20;
 
 /** One review as `web GET /place/reviews` answers it. */
-export interface MapsReview {
+interface MapsReview {
   id: string;
   author: string;
   authorUrl: string | null;

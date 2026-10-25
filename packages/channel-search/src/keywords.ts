@@ -11,7 +11,7 @@ import { z } from "zod";
 import { type KeywordSource, type SearchKeyword, searchDays, searchKeywords } from "./schema.js";
 
 /** How a phrase is compared: lower case, single spaces, no end punctuation. */
-export const phraseKey = (p: string) =>
+const phraseKey = (p: string) =>
   p
     .toLowerCase()
     .replace(/\s+/g, " ")
@@ -95,7 +95,7 @@ export async function discoverKeywords(
 
 const FanOut = z.object({ questions: z.array(z.string().min(3)).min(1).max(12) });
 
-export function fanOutPrompt(seed: string, about: string): string {
+function fanOutPrompt(seed: string, about: string): string {
   return [
     "An AI search engine (Google AI Mode, ChatGPT search, Perplexity) answers a question by splitting it into",
     "several narrower searches and citing the pages that answer those. List the searches it would run for the",
@@ -111,7 +111,7 @@ export function fanOutPrompt(seed: string, about: string): string {
   ].join("\n");
 }
 
-export interface FanOutStats {
+interface FanOutStats {
   seeds: number;
   added: number;
   failed: string[];

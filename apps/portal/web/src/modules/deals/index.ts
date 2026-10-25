@@ -15,7 +15,7 @@ import { TEAM_PIPELINE_PAGES } from "./team-pages.js";
  * The Map opens a node's people as `?node=<id>`. A list filter on words reads `~<words>`, so a
  * bare id is sent on as that (`ListPage.legacy` runs before the page draws).
  */
-export const nodeLegacy = (params: URLSearchParams) => {
+const nodeLegacy = (params: URLSearchParams) => {
   const node = params.get("node");
   return node && !/^[~+-]/.test(node) ? { node: `~${node}` } : null;
 };

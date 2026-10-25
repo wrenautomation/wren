@@ -49,7 +49,7 @@ export interface PeopleImportStats {
 }
 
 /** One person row landed: what the caller may hang its own facts on. */
-export interface PersonLanded {
+interface PersonLanded {
   person: Person;
   company: Company;
   row: PersonRow;
@@ -59,7 +59,7 @@ export interface PersonLanded {
   created: boolean;
 }
 
-export interface PeopleImportResult {
+interface PeopleImportResult {
   batch: ImportBatch;
   stats: PeopleImportStats;
 }

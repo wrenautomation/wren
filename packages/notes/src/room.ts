@@ -34,7 +34,7 @@ export const FLUSH_AFTER = 1_500;
 /** What the server wrote without the room, and whether each person may still open it. */
 export const POLL_EVERY = 15_000;
 /** The server unreachable: try again after. */
-export const RETRY_AFTER = 5_000;
+const RETRY_AFTER = 5_000;
 /** A frame's longest: a Yjs update's limit, base64 and the envelope. */
 export const FRAME_MAX = Math.ceil((UPDATE_MAX * 4) / 3) + 1024;
 
@@ -75,7 +75,7 @@ export type SyncAnswer =
     }
   | { ok: false; status: number; message: string };
 
-export interface RoomDeps {
+interface RoomDeps {
   /** `NotesConsole/sync` as the person in `as`. */
   sync(
     as: Record<string, unknown>,
@@ -95,7 +95,7 @@ const SERVER = Symbol("server");
 /** Awareness the room itself removes (a socket left). */
 const ROOM = Symbol("room");
 
-export class Peer {
+class Peer {
   readonly ids = new Set<number>();
   /** Edits not yet on the server, and the last one's number. */
   pending: Uint8Array[] = [];

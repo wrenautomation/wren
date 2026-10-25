@@ -50,11 +50,11 @@ export const VIAS = [
 ] as const;
 export type Via = (typeof VIAS)[number];
 
-export const NODE_KINDS = ["source", "step", "offer", "plan"] as const;
+const NODE_KINDS = ["source", "step", "offer", "plan"] as const;
 export type NodeKind = (typeof NODE_KINDS)[number];
 
-export const EDGE_KINDS = ["flow", "loop"] as const;
-export type EdgeKind = (typeof EDGE_KINDS)[number];
+const EDGE_KINDS = ["flow", "loop"] as const;
+type EdgeKind = (typeof EDGE_KINDS)[number];
 
 interface NodeBase {
   /** The spine node id rule (`STAGE_KEY`). Never goes, moves or gets renamed. */
@@ -100,7 +100,7 @@ export interface OfferNode extends NodeBase {
 }
 
 /** Reaching a plan node signs the deal under the plan's terms. */
-export interface PlanNode extends NodeBase {
+interface PlanNode extends NodeBase {
   kind: "plan";
   /** A terms plan slug of the offer above this node. */
   terms: string;
@@ -137,9 +137,9 @@ export interface Crossing {
 }
 
 /** A group is a segment: its id as text, a positive whole number. */
-export const GROUP_ID = /^[1-9][0-9]{0,9}$/;
+const GROUP_ID = /^[1-9][0-9]{0,9}$/;
 export const STAGE_KEY = /^[a-z][a-z0-9_]*$/;
-export const EDGE_ID = /^[a-z][a-z0-9_]*$/;
+const EDGE_ID = /^[a-z][a-z0-9_]*$/;
 /** The widest a node id goes (`journeys.node` is varchar(40)). */
 export const NODE_ID_MAX = 40;
 /** Two node ids and `_to_`: the widest default edge id. */
@@ -174,9 +174,6 @@ export const flowEdgesFrom = (body: ShapeBody, id: string): ShapeEdge[] =>
 
 /** A node no flow edge leaves: a journey that reaches it is done. */
 export const isEnd = (body: ShapeBody, id: string): boolean => flowEdgesFrom(body, id).length === 0;
-
-/** The `advance` list of a node that holds journeys; a source has none. */
-export const advanceOf = (n: ShapeNode): Advance[] => (n.kind === "source" ? [] : n.advance);
 
 /**
  * Check a new shape. Returns what is wrong, in plain English. Empty means ok.
@@ -280,7 +277,7 @@ export function checkShape(next: ShapeBody, ctx: ShapeCheckContext): string[] {
 }
 
 /** The fields of an entry that `checkEntry` reads: how a source finds people. */
-export interface EntryFields {
+interface EntryFields {
   via: Via;
   source?: string | undefined;
   group?: string | undefined;

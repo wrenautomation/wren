@@ -7,9 +7,9 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import type { DecisionKind } from "./kinds.js";
 
-export const DECISION_SCHEMA = "wren.decision/1";
+const DECISION_SCHEMA = "wren.decision/1";
 
-export interface DecisionRecord {
+interface DecisionRecord {
   schema: typeof DECISION_SCHEMA;
   id: number;
   kind: DecisionKind;

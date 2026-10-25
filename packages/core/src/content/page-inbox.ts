@@ -5,7 +5,7 @@
  */
 
 /** Messages per conversation read each time. */
-export const PAGE_INBOX_TAIL = 10;
+const PAGE_INBOX_TAIL = 10;
 
 /** The request: newest conversations first, each with its last few messages. */
 export const pageInboxQuery = (platform: "facebook" | "instagram", limit = 25) => ({
@@ -15,7 +15,7 @@ export const pageInboxQuery = (platform: "facebook" | "instagram", limit = 25) =
 });
 
 /** One message of a conversation as a read shows it. */
-export interface PageMessage {
+interface PageMessage {
   id: string;
   text: string;
   at: string;
@@ -23,7 +23,7 @@ export interface PageMessage {
   mine: boolean;
 }
 
-export interface PageThread {
+interface PageThread {
   /** The person on the other side: the platform's id for them, and how they show. */
   them: { id: string; handle: string; name: string | null };
   /** When the conversation last moved, ISO; null when Graph sent none. */
@@ -34,7 +34,7 @@ export interface PageThread {
   more: boolean;
 }
 
-export interface PageInbox {
+interface PageInbox {
   /** Newest first. */
   threads: PageThread[];
   /** No conversation older than these exists: the read is the whole inbox. */

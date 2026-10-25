@@ -9,7 +9,7 @@
 import { atomic, type Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export const MERGED_REASON = "merged";
+const MERGED_REASON = "merged";
 
 interface OpenRow {
   id: string;

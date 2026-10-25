@@ -24,7 +24,7 @@ import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js"
 import { nextSlot, type Slots } from "./slots.js";
 import { withSubreddit } from "./subreddit.js";
 
-export interface DraftFilter {
+interface DraftFilter {
   status?: DraftStatus;
   platform?: Platform;
   ideaId?: string;
@@ -303,7 +303,7 @@ export const FAN_GAP_MS = 4 * 3_600_000;
  * idea, each with that one sub and an empty list, so each posts, shows and is checked on its own.
  * The original keeps its own sub. Answers the copies made, per original, in list order.
  */
-export async function splitSubreddits(
+async function splitSubreddits(
   db: Queryable,
   ids: readonly string[],
 ): Promise<{ id: string; copies: string[] }[]> {
@@ -359,7 +359,7 @@ export async function splitSubreddits(
 }
 
 /** Why a Reddit post has nowhere to go: no watched place takes posts. */
-export const NO_SUBREDDIT =
+const NO_SUBREDDIT =
   "no subreddit we watch takes posts. Type one in its Subreddit field, or watch one under Places";
 
 async function refuseIncomplete(db: Queryable, ids: readonly string[]): Promise<void> {

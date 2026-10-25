@@ -5,7 +5,7 @@
  */
 import type { Terms } from "@wren/offers";
 
-export type ScheduleLine =
+type ScheduleLine =
   | { kind: "setup"; on: string; cents: number; currency: string; part?: { n: number; of: number } }
   | { kind: "monthly"; on: string; cents: number; currency: string }
   | {
@@ -27,7 +27,7 @@ export type ScheduleLine =
     };
 
 /** With no `days` and no `until`, recurring lines run this many months. */
-export const OPEN_ENDED_MONTHS = 12;
+const OPEN_ENDED_MONTHS = 12;
 
 const DAY = 86_400_000;
 const day = (d: Date) => d.toISOString().slice(0, 10);

@@ -8,7 +8,7 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { atomic, type Queryable, serializable } from "@wren/db";
-import { and, asc, count, desc, eq, gt, inArray, max, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, max, sql } from "drizzle-orm";
 import { capRoomAt, overCap, personKeyOf, recordMessageSend } from "./message-settings.js";
 import { noteProfileFrom, profileFrom } from "./profiles-backfill.js";
 import {
@@ -32,12 +32,12 @@ import {
 
 const DAY = 86_400_000;
 /** A signup not confirmed in this long can't be: it signs up again. */
-export const PENDING_DAYS = 7;
+const PENDING_DAYS = 7;
 /** The most marketing texts one number gets in `SMS_WINDOW_DAYS`, whatever the person picked. */
-export const SMS_CAP = 4;
-export const SMS_WINDOW_DAYS = 31;
+const SMS_CAP = 4;
+const SMS_WINDOW_DAYS = 31;
 /** How long an "unsubscribe from everything" can be undone from the page that did it. */
-export const UNDO_HOURS = 24;
+const UNDO_HOURS = 24;
 const FREQUENCY_DAYS: Record<Frequency, number> = { as_sent: 0, weekly: 7, monthly: 30 };
 
 const kindOf = (channel: MarketingChannel) => (channel === "email" ? "email" : "phone");
@@ -272,7 +272,7 @@ export async function mayAskConsent(db: Queryable, channel: MarketingChannel, ad
 const noteSignUp = (db: Queryable, input: SignUp, address: string, at: Date) =>
   noteProfileFrom(db, "consent", profileFrom.consent({ channel: input.channel, address, at }));
 
-export interface SignUp {
+interface SignUp {
   channel: MarketingChannel;
   address: string;
   topic: string;
@@ -700,15 +700,6 @@ export async function issueSends(db: Queryable, issue: string) {
       and(eq(consentEvents.kind, "sent"), sql`${consentEvents.evidence}->>'issue' = ${issue}`),
     );
   return row?.n ?? 0;
-}
-
-/** Consent ids → their events, oldest first, for a subscriber's activity. */
-export function consentHistory(db: Queryable, ids: number[]) {
-  return db
-    .select()
-    .from(consentEvents)
-    .where(inArray(consentEvents.consentId, ids))
-    .orderBy(consentEvents.createdAt, consentEvents.id);
 }
 
 // ---- Links: the preference center needs no login, so its address is signed.

@@ -43,7 +43,7 @@ export interface SmsPolicy {
 }
 
 /** When a lead who filled a form may get a text: wider than cold, every day, still clamped. */
-export interface AskedWindow {
+interface AskedWindow {
   windowStartMinute: number;
   windowEndMinute: number;
   days: readonly number[];

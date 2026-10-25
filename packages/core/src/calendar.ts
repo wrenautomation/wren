@@ -5,7 +5,7 @@
  * (`https://cal.com/<username>/<slug>`).
  */
 
-export interface Attendee {
+interface Attendee {
   name: string;
   email: string;
   /** Their IANA zone, so the invite reads in their clock. */

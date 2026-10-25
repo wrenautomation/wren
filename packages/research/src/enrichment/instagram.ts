@@ -27,7 +27,7 @@ export const INSTAGRAM_BUCKET: Bucket = { perDay: 300, burst: 150 };
  * the one firm that refilled each minute and never go idle.
  */
 export const INSTAGRAM_MIN_BATCH = 30;
-export const INSTAGRAM_READ_EVERY_DAYS = 30;
+const INSTAGRAM_READ_EVERY_DAYS = 30;
 const ERROR_STREAK = 5;
 /** Instagram usernames: letters, digits, `.` and `_`, up to 30 (the route checks the same). */
 const USERNAME = /^[A-Za-z0-9._]{1,30}$/;
@@ -51,7 +51,7 @@ export type InstagramAnswer =
   | { found: false; reason: string };
 
 /** Graph's profile fields, whole. */
-export interface InstagramProfile {
+interface InstagramProfile {
   id: string;
   username?: string;
   name?: string;
@@ -64,7 +64,7 @@ export interface InstagramProfile {
 }
 
 /** Graph's media fields, whole. */
-export interface InstagramMedia {
+interface InstagramMedia {
   id: string;
   caption?: string;
   media_type?: string;
@@ -158,7 +158,7 @@ export const instagramDue = (id: SQL) =>
     and f.via = 'instagram' and f.observed_at > now() - make_interval(days => ${INSTAGRAM_READ_EVERY_DAYS})
     and (f.value ? 'raw' or f.value ? 'missing'))`;
 
-export interface InstagramWork {
+interface InstagramWork {
   companyId: number;
   link: string;
 }
@@ -224,9 +224,9 @@ export function instagramWaitMs(
   return Math.ceil(room > 0 ? (want - room) * gap : nextInMs + (want - 1) * gap);
 }
 
-export type InstagramOutcome = "read" | "missing" | "capped" | "error";
+type InstagramOutcome = "read" | "missing" | "capped" | "error";
 
-export interface InstagramUnit {
+interface InstagramUnit {
   companyId: number;
   outcome: InstagramOutcome;
   posts: number;

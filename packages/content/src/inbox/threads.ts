@@ -3,10 +3,9 @@
  * closed, snoozed until when. With none kept, the channel's own state says it.
  */
 import type { Queryable } from "@wren/db";
-import { sql } from "drizzle-orm";
 import { type InboxStatus, type InboxThread, inboxThreads } from "../schema.js";
 
-export type ThreadStatus = InboxStatus | "snoozed";
+type ThreadStatus = InboxStatus | "snoozed";
 
 /** Splits a typed id (`dm:5`) into its type and the row's own id. */
 export const typed = (id: string): readonly [string, string] => {
@@ -15,7 +14,7 @@ export const typed = (id: string): readonly [string, string] => {
 };
 
 /** The status a thread shows with none kept: theirs unanswered is open, ours last is waiting. */
-export function derivedStatus(state: unknown): InboxStatus {
+function derivedStatus(state: unknown): InboxStatus {
   if (state === "new" || state === "waiting") return "open";
   if (state === "answered") return "waiting";
   return "closed";
@@ -55,7 +54,7 @@ export async function threadStates(db: Queryable): Promise<Map<string, InboxThre
   return new Map(rows.map((r) => [r.thread, r]));
 }
 
-export interface ThreadChange {
+interface ThreadChange {
   /** An email, or null to leave it with nobody. */
   assignee?: string | null;
   status?: InboxStatus;
@@ -86,10 +85,4 @@ export async function setThread(
     .returning();
   if (!row) throw new Error(`thread ${thread} was not kept`);
   return row;
-}
-
-/** One thread's kept state, or none. */
-export async function threadState(db: Queryable, thread: string): Promise<InboxThread | null> {
-  const [row] = await db.select().from(inboxThreads).where(sql`${inboxThreads.thread} = ${thread}`);
-  return row ?? null;
 }

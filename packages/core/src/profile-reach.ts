@@ -9,7 +9,7 @@ import { sql } from "drizzle-orm";
 import { handleUrl, PLATFORM_LABELS } from "./touches.js";
 
 /** One handle on one site, with its page when we can say it. */
-export interface ReachHandle {
+interface ReachHandle {
   platform: string;
   /** "LinkedIn". */
   label: string;
@@ -21,7 +21,7 @@ export interface ReachHandle {
 }
 
 /** The research row behind a profile's `person` key. */
-export interface ReachPerson {
+interface ReachPerson {
   name: string;
   title: string | null;
   company: string | null;

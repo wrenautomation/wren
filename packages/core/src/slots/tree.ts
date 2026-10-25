@@ -35,7 +35,7 @@ export interface FieldBlock {
   readonly prompt?: string;
 }
 /** One variant option: a non-empty run of text/field blocks. */
-export type Option = readonly (TextBlock | FieldBlock)[];
+type Option = readonly (TextBlock | FieldBlock)[];
 export interface VariantsBlock {
   readonly kind: "variants";
   readonly name: string;
@@ -44,7 +44,7 @@ export interface VariantsBlock {
   /** Authored as `[[#name ...]]`: the name is part of the version and survives edits. */
   readonly named?: true;
 }
-export interface GroupBlock {
+interface GroupBlock {
   readonly kind: "group";
   readonly blocks: readonly (TextBlock | FieldBlock | VariantsBlock)[];
 }
@@ -81,7 +81,7 @@ export function slot(prompt: string): FieldBlock {
 }
 
 /** A variant option given as a bare string is one text block. */
-export type OptionInput = string | TextBlock | FieldBlock | Option;
+type OptionInput = string | TextBlock | FieldBlock | Option;
 
 function asOption(option: OptionInput): Option {
   if (typeof option === "string") return [text(option)];
@@ -357,7 +357,7 @@ function renderBlock(block: Block, facts: FactValues, pickSeed: Draw, state: Sta
   }
 }
 
-export function isEligible(
+function isEligible(
   option: Option,
   facts: FactValues,
   text: (value: unknown) => string | null = factText,

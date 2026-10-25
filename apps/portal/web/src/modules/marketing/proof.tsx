@@ -16,7 +16,7 @@ const LOOKS: Record<string, { label: string; tone: TagTone; className?: string }
 
 const str = (v: unknown) => (typeof v === "string" && v ? v : null);
 
-export function ProofBadge({ row }: { row: Row }) {
+function ProofBadge({ row }: { row: Row }) {
   const look = LOOKS[String(row.proof)];
   if (!look) return null;
   const url = str(row.proof_url) ?? str(row.url);

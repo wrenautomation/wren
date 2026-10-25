@@ -31,7 +31,7 @@ export interface OverviewQueue {
 /** What one queue's read answered: how many wait and since when, or why it failed. */
 export type QueueRead = { total: number; oldest: string | null } | { error: string };
 
-export interface RankedQueue {
+interface RankedQueue {
   queue: OverviewQueue;
   total: number;
   oldest: string | null;
@@ -45,10 +45,7 @@ export interface RankedQueue {
  * One list read per queue, the oldest row first. A queue that fails is told apart, not dropped;
  * when every one fails, the whole read does, so the page offers Retry.
  */
-export async function readQueues(
-  api: RecordsApi,
-  queues: readonly OverviewQueue[],
-): Promise<QueueRead[]> {
+async function readQueues(api: RecordsApi, queues: readonly OverviewQueue[]): Promise<QueueRead[]> {
   const reads = await Promise.allSettled(
     queues.map(async (q): Promise<QueueRead> => {
       const page = await api.list({ record: q.record, view: q.view, sort: q.wait, limit: 1 });

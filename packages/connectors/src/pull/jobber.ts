@@ -16,8 +16,8 @@ import {
   type WhoAmI,
 } from "./types.js";
 
-export const JOBBER_API = "https://api.getjobber.com/api/graphql";
-export const JOBBER_VERSION = "2025-04-16";
+const JOBBER_API = "https://api.getjobber.com/api/graphql";
+const JOBBER_VERSION = "2025-04-16";
 
 type Row = Record<string, unknown>;
 

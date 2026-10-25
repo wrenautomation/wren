@@ -51,7 +51,7 @@ export function officerPersonRow(row: RawRow, sourceRef: string): PersonItem {
   }
 }
 
-export class OfficersCsvSource implements PersonSource {
+class OfficersCsvSource implements PersonSource {
   readonly sourceType = "officers";
   readonly sourceRef: string;
   readonly contentHash: string;

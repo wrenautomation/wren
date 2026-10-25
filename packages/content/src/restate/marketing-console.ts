@@ -14,6 +14,7 @@ import type { TikTokCreator } from "@wren/core/content/tiktok";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import { flagsFor } from "@wren/core/flag-store";
 import { subjectOf } from "@wren/core/flags";
+import { UUID } from "@wren/core/ids";
 import {
   MARKETING_CONSOLE_APPS,
   MARKETING_CONSOLE_ROUTES,
@@ -78,9 +79,9 @@ import type { InboxDesk } from "./inbox-desk.js";
 import { startReport } from "./reports.js";
 import type { SocialInbox } from "./social-inbox.js";
 
-export const MARKETING_STATS = "marketing.stats";
+const MARKETING_STATS = "marketing.stats";
 
-export interface MarketingConsoleDeps {
+interface MarketingConsoleDeps {
   /** Main: the client registry. */
   db: Db;
   /** A client's database. */
@@ -98,47 +99,47 @@ export interface MarketingConsoleDeps {
   zone?: string;
 }
 
-export interface ReportSaveRequest extends PortalRequest, ReportInput {
+interface ReportSaveRequest extends PortalRequest, ReportInput {
   id?: number | null;
 }
 
-export interface DraftsRequest extends PortalRequest {
+interface DraftsRequest extends PortalRequest {
   /** Draft ids, as the record shows them. */
   ids: string[];
 }
 /** A yes: at the next slot, at a time he picked, or on the next pass. */
-export interface ApproveRequest extends DraftsRequest {
+interface ApproveRequest extends DraftsRequest {
   at?: string | null;
   now?: boolean | null;
   expect?: string | null;
 }
-export interface RejectRequest extends DraftsRequest {
+interface RejectRequest extends DraftsRequest {
   reason?: string | null;
   note?: string | null;
 }
-export interface RedraftRequest extends PortalRequest {
+interface RedraftRequest extends PortalRequest {
   draftId: string;
   note: string;
 }
 
-export interface FieldsRequest extends PortalRequest {
+interface FieldsRequest extends PortalRequest {
   draftId: string;
   patch: Record<string, unknown>;
 }
-export interface FunnelConsoleRequest extends PortalRequest {
+interface FunnelConsoleRequest extends PortalRequest {
   draftId: string;
   stage?: string | null;
   to?: string | null;
   video?: string | null;
   linked?: string | boolean | null;
 }
-export interface PromoteRequest extends PortalRequest {
+interface PromoteRequest extends PortalRequest {
   /** The client's YouTube post. */
   draftId: string;
   /** Posts, an X thread, a carousel; none: posts. */
   pieces?: PromoPiece[] | null;
 }
-export interface SlidesRequest extends PortalRequest {
+interface SlidesRequest extends PortalRequest {
   draftId: string;
   slides?: { title: string; lines: string[] }[] | null;
   draw?: boolean | null;
@@ -154,7 +155,6 @@ const CREATOR_TTL_MS = 30_000;
 const NO_TIKTOK = "Connect the client's TikTok under Account → Social to post to it.";
 const TIKTOK_UNREAD = "TikTok didn't answer for this account. Open the post again in a minute.";
 const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function marketingConsoleApi({
@@ -387,10 +387,10 @@ const ASKED = {
   input: z.looseObject({ ...PORTAL_FIELDS, id: z.number().describe("The asked reply") }),
 };
 
-export interface ThreadRequest extends PortalRequest {
+interface ThreadRequest extends PortalRequest {
   thread: string;
 }
-export interface InboxReplyRequest extends ThreadRequest {
+interface InboxReplyRequest extends ThreadRequest {
   channel: InboxChannel;
   target: string;
   body: string;

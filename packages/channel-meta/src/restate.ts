@@ -25,7 +25,7 @@ import { type AuditSettings, audit, auditSettingsSchema, gatherEvidence } from "
 import { consentFromLeads, type LeadConsent } from "./consent.js";
 import { launchesByCampaign, markStarted, markStopped, recordLaunch } from "./launches.js";
 
-export interface AdsDeps {
+interface AdsDeps {
   /** The site client for one invocation (`restateSites(ctx, { caller })` in the worker). */
   sitesFor: (ctx: restate.Context) => SiteClient;
   adAccountId?: string;

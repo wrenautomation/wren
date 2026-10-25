@@ -53,7 +53,7 @@ export interface SendScope {
   shared?: SharedSuppressions | null;
 }
 
-export interface SendSchedulerDeps {
+interface SendSchedulerDeps {
   transport: Transport;
   /** This key's scope; null = nothing to send as any more, and the loop stops. */
   scopeOf: (key: string) => Promise<SendScope | null>;
@@ -66,7 +66,7 @@ export interface SendSchedulerDeps {
 
 /** One tick's stats: the ledger row's counts, and how many inboxes its kill switch paused. */
 export type TickStats = SendStats & { newPauses: number };
-export type TickOutcome = PassOutcome<TickStats>;
+type TickOutcome = PassOutcome<TickStats>;
 
 /** One scope for every key: a single fleet. */
 export const oneScope =
@@ -76,8 +76,8 @@ export const oneScope =
 
 const MIN_DELAY_MS = 1_000;
 /** Tries of one tick's step before the pass fails (and the loop backs off). */
-export const TICK_TRIES = 3;
-export const SEND_TICK_COMMAND = "send tick";
+const TICK_TRIES = 3;
+const SEND_TICK_COMMAND = "send tick";
 export const NO_SCOPE = "no send scope for this key: sending is off or the mailbox is gone";
 
 export function makeSendScheduler(deps: SendSchedulerDeps) {

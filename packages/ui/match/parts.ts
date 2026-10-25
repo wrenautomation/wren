@@ -12,7 +12,7 @@
  * raised box and its count footer, so those get no pair. Nor do hover, selected, stage squares,
  * late and the group head yet. Add a pair when a part is drawn on both sides.
  */
-export type Prop = string | readonly [artifact: string, story: string];
+type Prop = string | readonly [artifact: string, story: string];
 
 export type Part = {
   name: string;

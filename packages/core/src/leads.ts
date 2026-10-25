@@ -10,7 +10,7 @@ import { sql } from "drizzle-orm";
 import { coldOpenerRefusal } from "./people-map.js";
 import type { ProfileKey } from "./profiles.js";
 
-export type LeadChannel = "email" | "text" | "dm";
+type LeadChannel = "email" | "text" | "dm";
 
 export interface Lead {
   personId: number | null;
@@ -18,7 +18,7 @@ export interface Lead {
 }
 
 /** `person:<id>`, else `firm:<id>`; null when the row names neither. */
-export const leadKey = (l: Lead): string | null =>
+const leadKey = (l: Lead): string | null =>
   l.personId !== null
     ? `person:${l.personId}`
     : l.companyId !== null
@@ -26,7 +26,7 @@ export const leadKey = (l: Lead): string | null =>
       : null;
 
 /** A firm gets at most one first touch in this window, across channels. */
-export const FIRST_TOUCH_GAP_MS = 86_400_000;
+const FIRST_TOUCH_GAP_MS = 86_400_000;
 
 /**
  * Why `lead` can't start a `channel` sequence now, or null. Three rules: the lead is in one
@@ -90,7 +90,7 @@ export async function firstTouchElsewhere(
 }
 
 /** The channel tables whose rows `linkPeople` fills. */
-export type ContactTable = "sms_contacts" | "reach_contacts";
+type ContactTable = "sms_contacts" | "reach_contacts";
 
 /**
  * Fill `person_id` on text or DM contacts that have none, and the firm when the contact has

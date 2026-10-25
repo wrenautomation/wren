@@ -61,7 +61,7 @@ const wireCount = (
   x.count ? counts.get(countKey(x.count)) : counts.get(portKey(landing(w.id, x.to)));
 
 /** A workflow's inside, as numbers: its first counted node or wire and its last. */
-export function insideOf(
+function insideOf(
   w: Drawn,
   counts: ReadonlyMap<string, Count>,
 ): { label: string; count: Count; ref?: CountRef }[] {

@@ -59,9 +59,9 @@ const DEFAULT_HOUR = 17;
 /** Ideas tried per pass: a run of ideas that all fail to draft stops here. */
 const MAX_IDEAS = 6;
 /** The longest a pass waits on one idea's drafts: a model call per platform, a minute or two each. */
-export const DRAFT_WAIT_MS = 15 * 60_000;
+const DRAFT_WAIT_MS = 15 * 60_000;
 
-export interface ContentPlannerDeps {
+interface ContentPlannerDeps {
   db: Db;
   /** The fleet's clock: slots and the daily hour read on it. */
   zone: string;

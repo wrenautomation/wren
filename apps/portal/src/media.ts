@@ -28,7 +28,7 @@ const PRIVATE_HOST =
   /^(localhost|.*\.local|.*\.internal|\[.*\]|0\.0\.0\.0|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|169\.254\.\d+\.\d+)$/i;
 
 /** The HMAC key: named by what makes one, since the Worker's types and the DOM's differ. */
-export type MediaKey = Awaited<ReturnType<typeof crypto.subtle.importKey>>;
+type MediaKey = Awaited<ReturnType<typeof crypto.subtle.importKey>>;
 
 const enc = new TextEncoder();
 const hex = (b: ArrayBuffer) =>
@@ -79,7 +79,7 @@ export async function urlGrantsFor(
 }
 
 /** The grant is ours, not past its end, and good for every address or for `url`. */
-export async function grantOk(
+async function grantOk(
   key: MediaKey,
   grant: string,
   url: string | null = null,
@@ -95,7 +95,7 @@ export async function grantOk(
 }
 
 /** The address a page may load, or null: https, a public host. */
-export function mediaTarget(raw: string | null): URL | null {
+function mediaTarget(raw: string | null): URL | null {
   if (!raw) return null;
   let u: URL;
   try {
@@ -115,7 +115,7 @@ const STORED = /^s3:\/\/[a-z0-9.-]+\/media\/[0-9a-f]{32}\.(jpg|png|webp|gif|avif
 const YEAR_S = 365 * DAY_S;
 
 /** Where a stored picture comes from: its signed address, and the edge's cache. */
-export interface StoredMedia {
+interface StoredMedia {
   sign: (ref: string) => Promise<string | null>;
   cache?: {
     match(req: Request): Promise<Response | undefined>;

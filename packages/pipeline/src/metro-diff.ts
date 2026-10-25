@@ -23,7 +23,7 @@ export const METRO_LISTS = {
 } as const satisfies Record<MetroOn, keyof MetroBody>;
 
 /** The kinds with a name (`label`): only these can be renamed. */
-export const NAMED_ONS = ["line", "station", "group", "flow"] as const satisfies readonly MetroOn[];
+const NAMED_ONS = ["line", "station", "group", "flow"] as const satisfies readonly MetroOn[];
 export const isNamed = (on: MetroOn): on is (typeof NAMED_ONS)[number] =>
   (NAMED_ONS as readonly MetroOn[]).includes(on);
 

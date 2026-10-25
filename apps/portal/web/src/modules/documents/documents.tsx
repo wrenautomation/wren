@@ -18,16 +18,19 @@ import {
   slotsLeft,
   totalsOf,
 } from "@wren/documents/lines";
-import type { Action, RecordAct, RecordExtras } from "@wren/ui";
 import {
   ACTIONS,
+  type Action,
   Button,
   CopyButton,
   cx,
   Input,
+  type RecordAct,
+  type RecordExtras,
   SaveConflict,
   SaveStatus,
   Section,
+  said,
   Tag,
   Textarea,
   tipProps,
@@ -40,7 +43,6 @@ import type { ListPage } from "../../module.js";
 import { PdfButton } from "../../pdf-button.js";
 import { ERROR, FIELD, QUIET, SELECT } from "../work/bits.js";
 
-const said = (line: string) => () => line;
 const OPEN = ["sent", "viewed"];
 
 interface Template {

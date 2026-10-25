@@ -27,9 +27,9 @@ const DAY_MS = 86_400_000;
 /** autobrowse caps withdraws at 20 a day; four sweeps a day take 5 each. */
 const WITHDRAWS_PER_SWEEP = 5;
 /** The connections read: autobrowse's most. Fewer back = the whole list. */
-export const CONNECTIONS_READ = 200;
+const CONNECTIONS_READ = 200;
 /** `found_in` of a contact first seen in the connections list: made on the site, not by wren. */
-export const FOUND_IN_CONNECTIONS = "linkedin connections";
+const FOUND_IN_CONNECTIONS = "linkedin connections";
 /** Lost invites (`unknown`) settled by a relationship read per sweep, well in the 80-a-day cap. */
 const SETTLES_PER_SWEEP = 5;
 /**
@@ -88,7 +88,7 @@ const any = (vals: readonly string[]) =>
 const wordsRe = (words: readonly string[]) =>
   `(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`;
 
-export interface InviteTarget {
+interface InviteTarget {
   /** Null: someone who engaged with us and isn't in People. */
   personId: number | null;
   vanity: string;
@@ -503,7 +503,7 @@ export async function markAccepted(
 }
 
 /** Connections wren never saw: contacts from the site, with no draft and no sequence. */
-export async function backfillConnections(
+async function backfillConnections(
   db: Queryable,
   connections: readonly Connection[],
 ): Promise<number> {
@@ -522,7 +522,7 @@ export async function backfillConnections(
 }
 
 /** Invites whose send was lost (`unknown`): the oldest, with no accept seen. */
-export async function lostInvites(
+async function lostInvites(
   db: Queryable,
   accountId: string,
   limit = SETTLES_PER_SWEEP,
@@ -541,7 +541,7 @@ export async function lostInvites(
 }
 
 /** What the site says of a lost invite: out (`sent`), accepted, or never sent (`failed`). */
-export async function settleLost(
+async function settleLost(
   db: Queryable,
   inv: { contactId: number; messageId: number },
   rel: Relationship,
@@ -599,7 +599,7 @@ export async function connectionsDrift(
 }
 
 /** Invites from `account` still pending after `days`, oldest first. */
-export async function staleInvites(
+async function staleInvites(
   db: Queryable,
   accountId: string,
   days: number,
@@ -614,7 +614,7 @@ export async function staleInvites(
   return rows.map((r) => ({ contactId: r.contact_id, handle: r.handle }));
 }
 
-export type WithdrawOutcome = "withdrawn" | "accepted" | "gone" | "unknown";
+type WithdrawOutcome = "withdrawn" | "accepted" | "gone" | "unknown";
 
 /** What a withdraw read means for the contact. */
 export async function applyWithdraw(

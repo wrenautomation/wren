@@ -42,7 +42,7 @@ export interface CrmMoverStats {
   aborted: string | null;
 }
 
-export interface MoverDeps {
+interface MoverDeps {
   verifier: EmailVerifier;
   checker: LocalCheckerLike;
   fetchHomepage: HomepageFetcher;
@@ -86,7 +86,7 @@ export async function moversDue(db: Queryable): Promise<number> {
 }
 
 /** Why the stage can't run with this verifier, or null when it can. */
-export function moverVerifierProblem(v: EmailVerifier): string | null {
+function moverVerifierProblem(v: EmailVerifier): string | null {
   if (v.costsCredits) return `the ${v.name} verifier costs credits; movers stay on the free path`;
   if (!v.authoritative)
     return `the ${v.name} verifier's word doesn't count; run with --verifier smtp`;

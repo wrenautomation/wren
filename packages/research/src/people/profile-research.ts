@@ -167,7 +167,7 @@ export async function readProfileFacts(db: Queryable, profileId: number): Promis
 // ---- findings --------------------------------------------------------------------------
 
 /** One finding to store; `ref` is its identity on the profile. */
-export interface FindingRow {
+interface FindingRow {
   kind: ProfileFindingKind;
   platform: string | null;
   value: string;
@@ -311,7 +311,7 @@ export async function beginProfileResearch(
 }
 
 /** Write a finished lookup: its findings (state kept), then the run's row. */
-export async function recordProfileResearch(
+async function recordProfileResearch(
   db: Queryable,
   lookupId: number,
   profileId: number,
@@ -382,7 +382,7 @@ export async function researchPlan(
   };
 }
 
-export type ProfileResearchResult =
+type ProfileResearchResult =
   | {
       ok: true;
       /** Null: nothing to run (the row is gone or already finished). */

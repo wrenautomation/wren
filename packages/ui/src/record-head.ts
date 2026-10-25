@@ -7,16 +7,16 @@ import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/r
 /** Longer text wraps in the Details; a key fact is a short line in a quarter of the page. */
 export const KEY_CHARS = 28;
 /** An address (email, URL, domain) is one word: it may run longer, and breaks to stay whole. */
-export const ADDRESS_CHARS = 64;
+const ADDRESS_CHARS = 64;
 /** The subtitle shows two lines at most; longer, the Details keep it whole too. */
-export const SUB_CHARS = 120;
+const SUB_CHARS = 120;
 
 type Row = Record<string, Cell>;
 
 const filled = (row: Row, f: FieldMeta) => row[f.key] != null && row[f.key] !== "";
 const short = (cell: Cell | undefined, n: number) => typeof cell !== "string" || cell.length <= n;
 /** One unbroken word with an @, a dot or a slash: "dana@northwind.example", "https://x.example/a". */
-export const isAddress = (cell: Cell | undefined): boolean =>
+const isAddress = (cell: Cell | undefined): boolean =>
   typeof cell === "string" && /^\S+$/.test(cell) && /[@./]/.test(cell);
 /** Tags read as their labels ("Sends messages, Spends money"), not their ids. */
 const shown = (f: FieldMeta, cell: Cell | undefined): Cell | undefined =>
@@ -27,7 +27,7 @@ const shown = (f: FieldMeta, cell: Cell | undefined): Cell | undefined =>
         .join(", ")
     : cell;
 
-export interface RecordHead {
+interface RecordHead {
   /** The subtitle field, when the header shows it (clamped to two lines). */
   sub: FieldMeta | null;
   /** Fields on the meta line. */

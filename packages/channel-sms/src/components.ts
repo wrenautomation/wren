@@ -12,7 +12,7 @@ export const SPEED = "speed-to-lead";
 /** The text follow-up as a part: speed to lead's cadence, reusable by any template. */
 export const FOLLOW_UP = "sms.follow_up";
 /** The template that installs speed to lead's parts: the part whose inside it is. */
-export const SPEED_TEMPLATE = "speed_to_lead";
+const SPEED_TEMPLATE = "speed_to_lead";
 
 /** Missed-call text back (missed.ts): the template part and its step. */
 export const MISSED_CALL = "missed_call";
@@ -39,7 +39,6 @@ export const missedCallSettingsSchema = z
       .describe("Your time zone, for texting hours (like America/Chicago)"),
   })
   .strict();
-export type MissedCallSettings = z.infer<typeof missedCallSettingsSchema>;
 
 export const reviewsSettingsSchema = z
   .object({
@@ -57,7 +56,6 @@ export const reviewsSettingsSchema = z
       .describe("Ask the same person at most once in this many days"),
   })
   .strict();
-export type ReviewsSettings = z.infer<typeof reviewsSettingsSchema>;
 
 export const SMS_COMPONENTS = [
   defineComponent({

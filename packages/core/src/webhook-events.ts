@@ -306,7 +306,7 @@ export const WEBHOOK_METHODS = ["POST", "PUT", "PATCH", "GET", "DELETE"] as cons
 
 /** Zapier's autoreplay ladder: after 5 min, 30 min, 1 h, 3 h, 6 h. */
 export const RETRY_LADDER_MS = [300_000, 1_800_000, 3_600_000, 10_800_000, 21_600_000] as const;
-export const RETRY_MOST = RETRY_LADDER_MS.length;
+const RETRY_MOST = RETRY_LADDER_MS.length;
 
 /** A workflow's auto-retry tries, 0 (off) to 5. */
 export const retryTriesOf = (v: unknown): number => {

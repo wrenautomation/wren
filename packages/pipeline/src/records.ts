@@ -165,7 +165,7 @@ export async function offerRows(db: Queryable, o: { now?: Date } = {}) {
   }));
 }
 
-export const offerRecord = (): RecordType =>
+const offerRecord = (): RecordType =>
   defineRecord({
     id: OFFER_RECORD,
     app: "deals",
@@ -243,7 +243,7 @@ export function readTerms(t: Terms): string {
 }
 
 /** Every terms version as a row; its state against `now`: live, upcoming or older. */
-export async function termsRows(db: Queryable, o: { now?: Date } = {}) {
+async function termsRows(db: Queryable, o: { now?: Date } = {}) {
   const today = (o.now ?? new Date()).toISOString().slice(0, 10);
   const rows = await db
     .select()
@@ -273,7 +273,7 @@ export async function termsRows(db: Queryable, o: { now?: Date } = {}) {
   });
 }
 
-export const termsRecord = (): RecordType =>
+const termsRecord = (): RecordType =>
   defineRecord({
     id: TERMS_RECORD,
     app: "deals",
@@ -408,7 +408,7 @@ export async function draftRows(db: Queryable) {
  * live shape. An agent proposes, a person applies it as the next version or drops it. A row's
  * fields are `DraftRow` (history.ts); its detail is the body, moves and the drawing (`DraftDetail`).
  */
-export const shapeDraftRecord = (): RecordType =>
+const shapeDraftRecord = (): RecordType =>
   defineRecord({
     id: SHAPE_DRAFT_RECORD,
     app: "deals",
@@ -755,7 +755,7 @@ export async function dealRows(db: Queryable, o: { id?: string } = {}) {
   });
 }
 
-export const dealRecord = (): RecordType =>
+const dealRecord = (): RecordType =>
   defineRecord({
     id: DEAL_RECORD,
     app: "deals",
@@ -904,7 +904,7 @@ const numberOf = (n: NumberRow, window: (typeof NUMBER_WINDOWS)[number] = "all")
   last: n.last,
 });
 
-export const numberRecord = (): RecordType =>
+const numberRecord = (): RecordType =>
   defineRecord({
     id: NUMBER_RECORD,
     app: "deals",

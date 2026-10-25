@@ -193,7 +193,7 @@ const PAGE = 50;
 const MAX_LIMIT = 200;
 const MAX_OFFSET = 100_000;
 /** Like ConsolePortal's cap on a view. */
-export const MAX_EXPORT = 5000;
+const MAX_EXPORT = 5000;
 const MAX_Q = 100;
 const MAX_CURSOR = 1000;
 const ACTIVITY = 50;

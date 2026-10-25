@@ -27,7 +27,7 @@ export const historyOf = (s: string | null): HistoryTab | null =>
   s === "drafts" ? "drafts" : s === "versions" || s === "1" ? "versions" : null;
 
 /** What a person may do to a draft in each state. */
-export interface DraftActions {
+interface DraftActions {
   open: boolean;
   compare: boolean;
   propose: boolean;

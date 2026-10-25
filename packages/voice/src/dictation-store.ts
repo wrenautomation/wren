@@ -10,7 +10,7 @@ import { z } from "zod";
 import { ADAPTERS } from "./dictation/route.js";
 import { DICTATION_STAGES, type DictationStage } from "./dictation/session.js";
 
-export const DICTATE_COMMAND = "dictate";
+const DICTATE_COMMAND = "dictate";
 
 const ms = z.number().int().min(0).max(600_000).nullable();
 

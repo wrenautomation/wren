@@ -40,7 +40,7 @@ export interface Readable {
 }
 
 /** The instruction and the document, for one reading. */
-export function readingPrompt(vendor: string, doc: Readable): string {
+function readingPrompt(vendor: string, doc: Readable): string {
   const parts = [
     `Vendor: ${vendor}`,
     `From: ${doc.fromAddress ?? ""}`,
@@ -95,7 +95,7 @@ Rules:
 - Anything not printed: null. No lines, taxes or payments: [].`;
 }
 
-export interface ReadOptions {
+interface ReadOptions {
   runId?: string | null;
   tracer?: Tracer | null;
   /** Read these documents again (emails or files, not attachments), whatever was read before. */
@@ -415,7 +415,7 @@ async function voidStale(
 }
 
 /** Payments read before their bill find it by vendor and number; the payment's document joins the bill's. */
-export async function linkPayments(db: Db | Tx): Promise<void> {
+async function linkPayments(db: Db | Tx): Promise<void> {
   await db.execute(
     sql`UPDATE ${billPayments} p SET bill_id = b.id FROM ${bills} b WHERE p.bill_id IS NULL AND b.vendor_id = p.vendor_id AND b.number = p.invoice_number`,
   );

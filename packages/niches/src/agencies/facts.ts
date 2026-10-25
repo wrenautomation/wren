@@ -21,5 +21,3 @@ export const HEADER_MAP: Readonly<Record<string, readonly string[]>> = {
   "agency.founded": ["founded", "founded_year", "year_founded", "established"],
   "agency.rating": ["rating", "review_rating"],
 };
-
-export const FACT_KEYS: readonly string[] = Object.keys(HEADER_MAP);

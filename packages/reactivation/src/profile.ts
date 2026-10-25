@@ -9,7 +9,7 @@ import { type ClientProfile, clientProfile } from "./schema.js";
 
 const email = z.string().trim().toLowerCase().email();
 
-export const clientProfileSchema = z
+const clientProfileSchema = z
   .object({
     firm: z.string().trim().min(1),
     sells: z.string().trim().min(1),

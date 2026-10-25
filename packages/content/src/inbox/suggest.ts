@@ -34,10 +34,10 @@ const HOW: Record<Exclude<InboxChannel, "dm">, string> = {
 /** The platforms whose words are Google user data: YouTube comments, Business Profile reviews. */
 const GOOGLE_PLATFORMS = new Set(["youtube", "google_business"]);
 /** Why a suggestion over Google user data waits (designs/2026-10-09-app-reviews.md). */
-export const GOOGLE_HELD =
+const GOOGLE_HELD =
   "This thread holds Google data (YouTube, Business Profile or Gmail), and it goes only to a model that doesn't train on it. None is set (WREN_GOOGLE_LLM).";
 
-export interface SuggestDeps {
+interface SuggestDeps {
   llm: LlmClient;
   /**
    * A client's thread, through Wren's apps: Google user data in it (YouTube comments, Business

@@ -16,7 +16,7 @@ export interface Limits {
   paidTokensPerDay: number;
 }
 
-export interface CallerLimits extends Limits {
+interface CallerLimits extends Limits {
   /** May `POST /reset`. */
   admin?: boolean;
 }

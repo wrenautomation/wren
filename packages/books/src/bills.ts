@@ -6,7 +6,7 @@ import type { Step } from "@wren/core/spine";
 import { VENDORS, type VendorSpec } from "./chart.js";
 import { vendorFor } from "./mailbox.js";
 
-export interface BillsStepDeps {
+interface BillsStepDeps {
   /** A kept mail's sender and subject by its id; null when gone. */
   mailOf: (id: number) => Promise<{ fromAddress: string; subject: string } | null>;
   /** Run the books' pass; `key` is the same for a retried step, so it runs once. */

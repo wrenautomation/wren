@@ -186,5 +186,5 @@ export function linkRecordFor(client: string): RecordType {
 }
 
 /** The type as the portal lists it: the same fields and views, no rows. */
-export const LINK_RECORD_TYPE = linkRecordFor("");
+const LINK_RECORD_TYPE = linkRecordFor("");
 export const PAYMENTS_RECORDS: readonly RecordType[] = [LINK_RECORD_TYPE];

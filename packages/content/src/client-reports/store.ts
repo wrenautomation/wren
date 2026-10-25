@@ -29,7 +29,7 @@ import {
   shown,
 } from "./tiles.js";
 
-export class ReportRefusal extends PortalRefusal {}
+class ReportRefusal extends PortalRefusal {}
 
 /** One plain message from portal@. */
 export interface ReportMail {
@@ -58,7 +58,7 @@ export interface ReportInput {
 }
 
 /** The runs kept per report on its page. */
-export const SENDS_SHOWN = 12;
+const SENDS_SHOWN = 12;
 
 const norm = (e: string) => e.trim().toLowerCase();
 
@@ -171,7 +171,6 @@ const sendView = (s: ClientReportSend) => ({
   by: s.by,
   at: s.at.toISOString(),
 });
-export type ReportView = ReturnType<typeof view> & { sends: ReturnType<typeof sendView>[] };
 
 /** A new report (no `id`) or a change to one; its next run is worked out from now. */
 export async function saveReport(

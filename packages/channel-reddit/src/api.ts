@@ -9,12 +9,12 @@ import type { FetchLike } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { REDDIT_SITE } from "./content.js";
 
-export const REDDIT_API = "https://oauth.reddit.com";
+const REDDIT_API = "https://oauth.reddit.com";
 export const REDDIT_TOKEN_URL = "https://www.reddit.com/api/v1/access_token";
 /** Mint a new token this long before the old one lapses. */
 const EARLY_MS = 60_000;
 
-export interface RedditApiOptions {
+interface RedditApiOptions {
   clientId: string;
   clientSecret: string;
   refreshToken: string;
@@ -24,7 +24,7 @@ export interface RedditApiOptions {
   now?: () => number;
 }
 
-export const redditUserAgent = (username: string) => `server:wren-content:1.0 (by /u/${username})`;
+const redditUserAgent = (username: string) => `server:wren-content:1.0 (by /u/${username})`;
 
 export function redditApi(o: RedditApiOptions): SiteClient {
   const doFetch: FetchLike = o.fetch ?? ((u, i) => fetch(u, i));

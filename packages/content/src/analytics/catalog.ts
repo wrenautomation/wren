@@ -15,7 +15,7 @@ export type CatalogState = "live" | Exclude<GapState, "error">;
 /** Where on a platform: YouTube's long videos and Shorts read differently; the rest are posts. */
 export type Surface = "long" | "short" | "post";
 /** What the number is about, as the doc groups them. */
-export type MetricGroup =
+type MetricGroup =
   | "reach"
   | "retention"
   | "engagement"
@@ -880,7 +880,7 @@ export const CATALOG_TABLES = [
 ] as const;
 
 /** A table's rows: YouTube long-form takes every row not Shorts' own; Shorts only its own. */
-export function tableRows(t: (typeof CATALOG_TABLES)[number]): CatalogEntry[] {
+function tableRows(t: (typeof CATALOG_TABLES)[number]): CatalogEntry[] {
   return ANALYTICS_CATALOG.filter((e) => {
     if (e.platform !== t.platform) return false;
     if (!("surface" in t)) return true;

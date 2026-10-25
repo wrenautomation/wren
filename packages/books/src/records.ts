@@ -16,7 +16,7 @@ import {
 } from "@wren/core/records";
 import { UNKNOWN_CHANNEL } from "./economics.js";
 
-export const spendRecord = defineRecord({
+const spendRecord = defineRecord({
   id: "books.spend",
   app: "money",
   channel: null,
@@ -54,7 +54,7 @@ export const spendRecord = defineRecord({
   ],
 });
 
-export const subscriptionRecord = defineRecord({
+const subscriptionRecord = defineRecord({
   id: "books.subscription",
   app: "money",
   channel: null,
@@ -92,7 +92,7 @@ export const subscriptionRecord = defineRecord({
 });
 
 /** The card's lines (`books.card_records`): whose each is and the bill it paid. */
-export const cardRecord = defineRecord({
+const cardRecord = defineRecord({
   id: "books.card",
   app: "money",
   channel: null,
@@ -150,7 +150,7 @@ const CHANNEL_STATES = cued({
 const cad = (label: string, from?: string) => money(`${label} (CAD)`, from ? { from } : {});
 
 /** Every unit economics figure per month (`books.econ_months`): one row a month, newest first. */
-export const monthRecord = defineRecord({
+const monthRecord = defineRecord({
   id: "books.month",
   app: "money",
   channel: null,
@@ -189,7 +189,7 @@ export const monthRecord = defineRecord({
 });
 
 /** Per channel and month (`books.econ_channels`): spend, each funnel stage and its cost, CAC. */
-export const channelRecord = defineRecord({
+const channelRecord = defineRecord({
   id: "books.channel",
   app: "money",
   channel: null,
@@ -230,7 +230,7 @@ export const channelRecord = defineRecord({
 });
 
 /** Clients by the month they first paid, per month since (`books.econ_cohorts`). */
-export const cohortRecord = defineRecord({
+const cohortRecord = defineRecord({
   id: "books.cohort",
   app: "money",
   channel: null,
@@ -291,7 +291,7 @@ export const accountRecord = defineRecord({
  * would cost us a month bought, in USD at the vendor's public price. Money we didn't spend, not
  * revenue: it never enters the ledger.
  */
-export const inHouseRecord = defineRecord({
+const inHouseRecord = defineRecord({
   id: "books.in_house",
   app: "money",
   channel: null,

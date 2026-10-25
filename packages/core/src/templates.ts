@@ -144,7 +144,7 @@ export async function ensureTemplate(
   return row.id;
 }
 
-export interface VersionOpts {
+interface VersionOpts {
   /** The words as written. */
   source: string;
   by?: string | null;
@@ -162,7 +162,7 @@ export interface VersionOpts {
  * Keep one version's words as the next number, always a new row: a restore or a default may
  * repeat old words. The template row is locked, so two saves never take one number.
  */
-export async function addVersion(
+async function addVersion(
   db: Queryable,
   ref: TemplateRef,
   version: string,
@@ -294,7 +294,7 @@ export async function templateState(
 export const openedOf = (s: Pick<TemplateState, "draft" | "live"> | null): VersionHead | null =>
   s?.draft ?? s?.live ?? null;
 
-export interface SaveOpts {
+interface SaveOpts {
   by: string;
   /** One line: why. The CLI asks for it; the UI may leave it out. */
   why?: string | null;
@@ -791,7 +791,7 @@ export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise
 }
 
 /** An ask waiting on a person's yes: the template and the version that would go live. */
-export interface WaitingAsk extends TemplateRef {
+interface WaitingAsk extends TemplateRef {
   id: number;
   number: number;
   source: string;

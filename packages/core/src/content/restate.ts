@@ -548,7 +548,7 @@ export type ChannelsFor = (
 ) => Channels;
 
 /** What a client's part is doing on its channels: posting, or reading (`content.social`). */
-export type ContentPart = "content.posting" | "content.social";
+type ContentPart = "content.posting" | "content.social";
 
 export interface ContentClients {
   /** A client's channels on its own logins, reads metered as `part`; none: it has no login. */

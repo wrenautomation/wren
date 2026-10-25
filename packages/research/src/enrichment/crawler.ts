@@ -113,7 +113,7 @@ async function get(
   return null;
 }
 
-export interface StoredPage {
+interface StoredPage {
   stored: boolean;
   shell: boolean;
 }
@@ -122,7 +122,7 @@ export interface StoredPage {
  * Store one fetched page as a document. Hash is over the wire text; dedupe by hash
  * within the company (same bytes under two URLs: / and /home).
  */
-export async function storePage(
+async function storePage(
   db: Queryable,
   companyId: number,
   url: string,
@@ -162,7 +162,7 @@ export function pageRow(
   };
 }
 
-export interface CrawlCompanyOptions {
+interface CrawlCompanyOptions {
   pagesPerSite?: number;
   /** A niche's site vocabulary ("advisors", "our-clinicians") on top of PEOPLE_PAGE_HINTS. */
   extraHints?: Iterable<string>;
@@ -275,7 +275,7 @@ export async function crawlCompany(
   return stats;
 }
 
-export interface CrawlSelectOptions {
+interface CrawlSelectOptions {
   limit?: number | undefined;
   niche?: string | null | undefined;
   shard?: Shard | null | undefined;
@@ -309,7 +309,7 @@ export async function countCrawlNicheNullSkipped(db: Queryable): Promise<number>
   return r?.n ?? 0;
 }
 
-export interface CrawlRunOptions extends CrawlSelectOptions, CrawlCompanyOptions {
+interface CrawlRunOptions extends CrawlSelectOptions, CrawlCompanyOptions {
   /** Called after each company's transaction commits. */
   checkpoint?: (company: Company) => void | Promise<void>;
 }

@@ -10,8 +10,6 @@ const FOOT =
 const SOFT = "rounded-[14px]";
 
 /** Where a card sits on the right edge, for a part that brings its own frame. */
-export const AT_RIGHT = cx("right-3 w-[360px]", SOFT, FOOT);
-/** Where a card sits on the left edge (the palette: `PaletteDrawer`'s `className`). */
-export const AT_LEFT = cx("left-3 w-[280px]", SOFT, FOOT);
+const AT_RIGHT = cx("right-3 w-[360px]", SOFT, FOOT);
 /** A framed card on the right edge. */
 export const OVER_RIGHT = cx(FLOAT_PANEL, AT_RIGHT);

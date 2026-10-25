@@ -16,7 +16,7 @@ import { focusHref } from "./focus.js";
 const key = (client: string) => `shape-nodes:${client}`;
 
 /** The shape's graph nodes and its metro stations. Both empty for a workspace with no shape. */
-export interface ShapeParts {
+interface ShapeParts {
   nodes: ShapeNode[];
   stations: MetroStation[];
   /** The metro lines: an offer line has the tier `core`, an offer and a colour. */

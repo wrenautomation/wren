@@ -12,7 +12,7 @@ import {
 } from "@aws-sdk/client-ec2";
 import { DESK, SITES, type SitesHost, type Wake } from "./restate.js";
 
-export const STARTED_BY_TAG = "autobrowse:started-by";
+const STARTED_BY_TAG = "autobrowse:started-by";
 
 /**
  * Where wren's `sites` calls go: the box when its instance id is set, else the Mac's

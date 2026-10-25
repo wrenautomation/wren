@@ -13,7 +13,7 @@ import { TEXTS, textsSettingsSchema } from "./clients.js";
 import type { Registration } from "./provider.js";
 import { smsCalls } from "./schema.js";
 
-export const TEXTING_SETUP = defineSetup({
+const TEXTING_SETUP = defineSetup({
   id: "setup.texting",
   name: "Texting registration",
   blurb: "Your business registered with US carriers, so your texts are allowed to go out.",
@@ -65,7 +65,7 @@ export const TEXTING_SETUP = defineSetup({
   ],
 });
 
-export const NUMBER_SETUP = defineSetup({
+const NUMBER_SETUP = defineSetup({
   id: "setup.number",
   name: "Texting number",
   blurb: "A number of your own, on your approved campaign.",
@@ -101,7 +101,7 @@ export const NUMBER_SETUP = defineSetup({
  * (missed.ts). The number's voice settings point at Wren's Telnyx connection; the check passes
  * once a call to it has come in. Until then missed-call text back shows "Needs setup".
  */
-export const CALL_ROUTING_SETUP = defineSetup({
+const CALL_ROUTING_SETUP = defineSetup({
   id: "setup.call_routing",
   name: "Call routing",
   blurb: "Calls to your number reach Wren, so a missed one gets a text back.",
@@ -122,7 +122,7 @@ export const CALL_ROUTING_SETUP = defineSetup({
 });
 
 /** A Google Place ID, as Google prints it: `ChIJ` and the rest, letters, digits, `-` and `_`. */
-export const PLACE_ID = /^[A-Za-z0-9_-]{16,200}$/;
+const PLACE_ID = /^[A-Za-z0-9_-]{16,200}$/;
 
 /** The Google review link setup's finder, by name (SetupAgent's `finders`). */
 export const PLACE_FINDER = "google_business.place";
@@ -168,7 +168,7 @@ export const reviewUrl = (placeId: string) =>
  * business's name and address instead, and SetupAgent's finder (`findPlace`) looks it up on
  * Google Maps and makes the Place ID its ref.
  */
-export const GOOGLE_BUSINESS_SETUP = defineSetup({
+const GOOGLE_BUSINESS_SETUP = defineSetup({
   id: "setup.google_business",
   name: "Google review link",
   blurb: "Your Google Business Profile, so review requests link to your review form.",

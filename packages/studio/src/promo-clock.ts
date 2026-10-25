@@ -10,24 +10,24 @@
 export const PROMO_FPS = 30;
 
 /** Each scene eases in over this many frames. */
-export const ENTER_FRAMES = 9;
+const ENTER_FRAMES = 9;
 
 export const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 /** Ease out, cubic: fast then settling. */
 export const easeOut = (p: number) => 1 - (1 - clamp(p, 0, 1)) ** 3;
 /** Ease in and out, cubic. */
-export const easeInOut = (p: number) => {
+const easeInOut = (p: number) => {
   const x = clamp(p, 0, 1);
   return x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
 };
 
 /** Ease out, exponential: almost all of it at once, then a long settle. A speed ramp. */
-export const rampOut = (p: number) => {
+const rampOut = (p: number) => {
   const x = clamp(p, 0, 1);
   return x === 1 ? 1 : 1 - 2 ** (-10 * x);
 };
 /** Ease in, exponential: still, then all of it at the end. */
-export const rampIn = (p: number) => {
+const rampIn = (p: number) => {
   const x = clamp(p, 0, 1);
   return x === 0 ? 0 : 2 ** (10 * x - 10);
 };
@@ -104,7 +104,7 @@ export const ENTRANCES = ["rise", "pull-back", "wipe", "flow"] as const;
 export type Entrance = (typeof ENTRANCES)[number];
 
 /** A flow cut's frames on each side, and how far and how blurred it rushes at the cut. */
-export const FLOW_FRAMES = 8;
+const FLOW_FRAMES = 8;
 const FLOW_SCALE = 0.6;
 const FLOW_BLUR = 18;
 

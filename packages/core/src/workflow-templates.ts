@@ -10,10 +10,10 @@ import { and, count, desc, eq, isNull } from "drizzle-orm";
 import type { Component } from "./components.js";
 import { PortalRefusal } from "./portal.js";
 import { workflowInstalls, workflowSaves, workflowTemplates } from "./schema.js";
-import { type Template, templatesOf } from "./template-install.js";
+import { templatesOf } from "./template-install.js";
 import { flowsWith, type Workflow } from "./workflows.js";
 
-export const SAVED_PREFIX = "saved_";
+const SAVED_PREFIX = "saved_";
 const NAME_MAX = 80;
 const BLURB_MAX = 300;
 
@@ -27,7 +27,7 @@ export function savedIdOf(name: string): string {
   return `${SAVED_PREFIX}${slug}`.slice(0, 64).replace(/_+$/, "");
 }
 
-export interface SaveTemplateAsk {
+interface SaveTemplateAsk {
   /** Whose live workflow; null is Wren's. */
   client: string | null;
   workflow: string;
@@ -126,22 +126,4 @@ export async function deleteWorkflowTemplate(
     await tx.delete(workflowTemplates).where(eq(workflowTemplates.id, id));
     return { id, name: had.name };
   });
-}
-
-/** The saved templates made from one workflow, by name: the editor lists them. */
-export async function savedFrom(
-  db: Queryable,
-  workflow: string,
-): Promise<Array<Pick<Template, "id" | "name"> & { by: string; at: string }>> {
-  const rows = await db
-    .select({
-      id: workflowTemplates.id,
-      name: workflowTemplates.name,
-      by: workflowTemplates.by,
-      at: workflowTemplates.at,
-    })
-    .from(workflowTemplates)
-    .where(eq(workflowTemplates.workflow, workflow))
-    .orderBy(workflowTemplates.name);
-  return rows.map((r) => ({ ...r, at: r.at.toISOString() }));
 }

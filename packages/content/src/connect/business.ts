@@ -25,12 +25,12 @@ import {
 } from "@wren/core/content";
 import { fieldsOf, ShapeError } from "@wren/core/content/shapes";
 
-export const BUSINESS_SITE = "google_business";
+const BUSINESS_SITE = "google_business";
 /** Where a Profile is managed: posts and reviews have no public link of their own. */
 const PROFILE_URL = "https://business.google.com/";
 const STARS: Record<string, number> = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };
 
-export interface BusinessProfileOptions {
+interface BusinessProfileOptions {
   /** `accounts/<a>/locations/<l>`: the connected location. */
   location: string;
   host?: MediaHost;

@@ -51,15 +51,15 @@ export interface Move {
   journey?: string;
 }
 
-export interface JourneyHead {
+interface JourneyHead {
   id: string;
   person: string;
   /** The node it stands at, by name. */
   node: string;
 }
-export type JourneyLine = JourneyHead & { emails: string[] };
+type JourneyLine = JourneyHead & { emails: string[] };
 
-export interface MoveGroup {
+interface MoveGroup {
   key: string;
   head: JourneyHead | null;
   moves: Move[];
@@ -93,7 +93,7 @@ export const nameOf = (v: unknown, person = false) => {
 };
 
 /** "Sam, Priya, Ana and 9 more". */
-export const namesLine = (names: string[], n: number) => {
+const namesLine = (names: string[], n: number) => {
   const shown = names.slice(0, 3);
   if (!shown.length) return "";
   const rest = n - shown.length;

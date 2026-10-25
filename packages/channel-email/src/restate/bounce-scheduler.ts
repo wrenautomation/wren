@@ -14,11 +14,10 @@ import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type BounceReadStats, readBounces } from "../inbox/marketing-bounces.js";
 
-export const BOUNCES_KEY = "all";
-export const BOUNCES_COMMAND = "marketing bounces read";
-export const BOUNCES_EVERY_MS = 3_600_000;
+const BOUNCES_COMMAND = "marketing bounces read";
+const BOUNCES_EVERY_MS = 3_600_000;
 
-export interface BounceSchedulerDeps {
+interface BounceSchedulerDeps {
   /** Main: Wren's own records and the pass's ledger. */
   db: Db;
   /** Wren's sending mailbox, read through the service account; null: Wren has none. */
@@ -32,7 +31,7 @@ export interface BounceSchedulerDeps {
   everyMs?: number;
 }
 
-export interface BouncePassStats {
+interface BouncePassStats {
   /** Each workspace's current sender read: `wren`, or the client's id. */
   read: Record<string, BounceReadStats>;
   /** A client's earlier senders, read for their late bounces. */

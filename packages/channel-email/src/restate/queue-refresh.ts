@@ -13,13 +13,13 @@ import type { Db } from "@wren/db";
 import type { RefreshStats } from "../outreach/refresh.js";
 import { type Campaign, refreshCampaign } from "./compose-scheduler.js";
 
-export interface QueueRefreshDeps {
+interface QueueRefreshDeps {
   db: Db;
   campaigns: ReadonlyMap<string, Campaign>;
   trackOpens?: boolean;
 }
 
-export const REFRESH_COMMAND = "outreach refresh";
+const REFRESH_COMMAND = "outreach refresh";
 
 export function makeQueueRefresh(deps: QueueRefreshDeps) {
   const trackOpens = deps.trackOpens ?? false;

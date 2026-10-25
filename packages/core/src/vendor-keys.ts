@@ -24,7 +24,7 @@ export const VENDOR_READER = "wren:vendors";
  * Otherwise the path holds it (autobrowse's Exa ring, the model gateway, Wren's service
  * account), and the managed answer carries no key.
  */
-export const WREN_KEYS: Readonly<Record<string, { env: string | null; source: string }>> = {
+const WREN_KEYS: Readonly<Record<string, { env: string | null; source: string }>> = {
   exa: { env: null, source: "autobrowse: Exa key ring" },
   youtube: { env: null, source: "Wren's service account" },
   x: { env: null, source: "autobrowse: x" },
@@ -63,7 +63,7 @@ export class VendorKeyMissing extends VendorStop {
   }
 }
 
-export interface VendorKeyOptions {
+interface VendorKeyOptions {
   keys: KeyStore | null;
   /** Why the key is read: on its read event ("exa search for signals"). */
   why: string;

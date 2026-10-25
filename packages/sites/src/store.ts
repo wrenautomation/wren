@@ -4,6 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { HOOK_PRESETS } from "@wren/core/door";
+import { UUID } from "@wren/core/ids";
 import {
   noteClientForm,
   noteProfileFrom,
@@ -48,8 +49,7 @@ import type { Content } from "./templates/types.js";
 /** A write the store refused: the words say why, the status what the portal answers. */
 export class SitesRefusal extends PortalRefusal {}
 
-export const newPreviewToken = () => randomBytes(32).toString("base64url");
-export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const newPreviewToken = () => randomBytes(32).toString("base64url");
 
 /**
  * An editor's `expect` (the row's `updatedAt` as it read it) as a WHERE term: the row still holds
@@ -125,7 +125,7 @@ async function freeSlug(db: Queryable, client: string | null, want: string): Pro
   throw new SitesRefusal("that slug is taken", 409);
 }
 
-export interface NewDataPage {
+interface NewDataPage {
   client: string | null;
   title: string;
   slug?: string | null;
@@ -466,7 +466,7 @@ export async function duplicatePage(
   });
 }
 
-export interface CodePage {
+interface CodePage {
   client: string | null;
   url: string;
   repoPath?: string | null;
@@ -661,7 +661,7 @@ export function formFieldsOf(raw: unknown): Record<string, string> {
 }
 
 /** What a submit came with past its fields: the consent it ticked, the visitor, Turnstile. */
-export interface EntryMeta {
+interface EntryMeta {
   consent?: FormConsent | null;
   visitor?: string | null;
   human?: "yes" | "off" | null;
@@ -964,7 +964,7 @@ export async function recordHop(
 }
 
 /** A click the lander's `/go/` logged (its `clicks` table, read through `/api/export`). */
-export interface LanderClick {
+interface LanderClick {
   id: number;
   ts: string;
   link: string;

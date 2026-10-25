@@ -1,8 +1,7 @@
 /**
  * Accounts (operator API keys), invites and connects: the social logins' row actions.
  */
-import type { Action } from "@wren/ui";
-import { said } from "./drafts.js";
+import { type Action, said } from "@wren/ui";
 
 /**
  * The operator's API keys on Accounts (designs/2026-10-19-api-keys-as-accounts.md): rotate starts

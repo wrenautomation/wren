@@ -21,7 +21,7 @@ const ms = z.number().min(0).max(600_000).nullable();
 const short = (n: number) => z.string().max(n);
 
 /** A finished test call, as the portal's session hands it back. */
-export const testCallSchema = z.object({
+const testCallSchema = z.object({
   pipeline: short(200).min(1),
   outcome: z.enum(OUTCOMES),
   transcript: z
@@ -57,11 +57,11 @@ export const testCallSchema = z.object({
 });
 export type TestCall = z.infer<typeof testCallSchema>;
 
-export interface SaveTestRequest extends PortalRequest {
+interface SaveTestRequest extends PortalRequest {
   call: TestCall;
 }
 
-export interface DictatedRequest extends PortalRequest {
+interface DictatedRequest extends PortalRequest {
   run: Dictated;
 }
 

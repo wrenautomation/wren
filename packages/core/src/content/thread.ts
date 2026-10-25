@@ -12,9 +12,9 @@ export const THREAD_MAX = 7;
 /** X's cap on one post from an account without a subscription; a thread's posts keep it. */
 export const X_POST_MAX = 280;
 /** X's cap on one post from a subscribed account (Premium and up). */
-export const X_LONG_POST_MAX = 25_000;
+const X_LONG_POST_MAX = 25_000;
 /** An X account's subscription as `GET /2/users/me` says it (`user.fields=subscription_type`). */
-export type XSubscription = "None" | "Basic" | "Premium" | "PremiumPlus";
+type XSubscription = "None" | "Basic" | "Premium" | "PremiumPlus";
 /**
  * A fact about Wren's X account (@wren_automation): Premium since 2026-10-07. Check it with
  * autobrowse `site call x GET /2/users/me --body '{"user.fields":"subscription_type"}'`;
@@ -25,7 +25,7 @@ export const WREN_X_SUBSCRIPTION: XSubscription = "Premium";
 export const xPostMax = (s: XSubscription): number =>
   s === "Premium" || s === "PremiumPlus" ? X_LONG_POST_MAX : X_POST_MAX;
 /** X counts any link as this many characters, whatever its length. */
-export const X_LINK_CHARS = 23;
+const X_LINK_CHARS = 23;
 
 const BREAK = /\n[ \t]*-{3,}[ \t]*(?:\n|$)/;
 const URL = /https?:\/\/\S+/gi;

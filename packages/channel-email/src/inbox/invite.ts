@@ -53,7 +53,7 @@ import {
 } from "./reply.js";
 
 // v1 (2026-10-01): first prompt. Bump when the prompt or the grounding changes.
-export const INVITE_VERSION = "v1";
+const INVITE_VERSION = "v1";
 /** `llm_calls.kind` for these calls. */
 export const STAGE_NAME = "call_time";
 export const MIN_CONFIDENCE = 0.6;
@@ -63,7 +63,7 @@ const WARM: readonly ReplyDisposition[] = ["interested", "meeting_booked"];
 const MAX_TOKENS = 2000;
 const SNIPPET = 400;
 
-export const readingSchema = z.object({
+const readingSchema = z.object({
   pick: z.string(),
   start: z.string().nullable().optional(),
   time_zone: z.string().nullable().optional(),
@@ -258,7 +258,7 @@ async function whoWrote(db: Db, enrollment: Enrollment, email: string) {
 }
 
 /** The two commands a ping ends on. */
-export const approveLine = (id: number, drafted: boolean, client: string | null = null) => {
+const approveLine = (id: number, drafted: boolean, client: string | null = null) => {
   const cmd = `wren ${client ? `--client ${client} ` : ""}email answers`;
   return (
     `${drafted ? `Send as drafted: ${cmd} approve ${id}\nIn your words: ` : "Answer: "}` +

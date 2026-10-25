@@ -70,7 +70,7 @@ export interface CrmStatus {
   next: string;
 }
 
-export interface CrmStatusOptions {
+interface CrmStatusOptions {
   today?: Date;
   /** The client's settings and profile; without them compose is never due. */
   compose?: {

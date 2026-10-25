@@ -25,7 +25,7 @@ const sorted = (entries: Iterable<[string, string]>) =>
   Object.fromEntries([...entries].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
 /** One request as a `Wire`. */
-export function wireOf(url: string, init?: RequestInit): Wire {
+function wireOf(url: string, init?: RequestInit): Wire {
   const u = new URL(url);
   const headers = sorted(new Headers(init?.headers).entries());
   const wire: Wire = {

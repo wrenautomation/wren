@@ -1,9 +1,8 @@
 /**
  * Comment row actions, a comment's thread view, and activity.
  */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { draftActions } from "./ask.js";
-import { said } from "./drafts.js";
 import { THREAD_READ, THREAD_REPLY } from "./thread-context.js";
 
 /**

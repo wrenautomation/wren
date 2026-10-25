@@ -35,7 +35,7 @@ export type Broadcast = typeof broadcasts.$inferSelect;
 export type Recipient = typeof broadcastRecipients.$inferSelect;
 
 /** The merge fields a broadcast's words may use, each from the person's profile. */
-export const BROADCAST_FIELDS = ["first_name", "name"] as const;
+const BROADCAST_FIELDS = ["first_name", "name"] as const;
 /** A text's longest: three parts. */
 export const TEXT_MOST = 459;
 /** Where a person's own zone comes from when local time is on: a trait by one of these keys. */

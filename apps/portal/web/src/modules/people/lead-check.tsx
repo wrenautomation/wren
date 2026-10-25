@@ -10,7 +10,7 @@ import { type RecordExtras, StateMark } from "@wren/ui";
 import { createElement, type ReactNode, useSyncExternalStore } from "react";
 
 /** The chip's data, as `leadFitView` (core) answers it. */
-export interface LeadFit {
+interface LeadFit {
   pick: {
     label: string;
     name: string;
@@ -25,9 +25,9 @@ export interface LeadFit {
 }
 
 /** How long "Checking" waits for an answer that does not come (the same state is bought once). */
-export const CHECKING_MS = 90_000;
+const CHECKING_MS = 90_000;
 /** How often the page reads again while a check is out. */
-export const CHECKING_POLL_MS = 4_000;
+const CHECKING_POLL_MS = 4_000;
 
 /** Profiles asked about in this tab, by the time of the ask. Gone on a reload: the answer still lands. */
 const asked = new Map<string, number>();
@@ -38,14 +38,9 @@ const subscribe = (fn: () => void) => {
 };
 
 /** Remember that Jev was asked about these profiles just now. */
-export function markAsked(ids: readonly (string | number)[], now = Date.now()) {
+function markAsked(ids: readonly (string | number)[], now = Date.now()) {
   for (const id of ids) asked.set(String(id), now);
   for (const fn of listeners) fn();
-}
-
-/** Forget every ask (tests). */
-export function clearAsked() {
-  asked.clear();
 }
 
 /**
@@ -110,7 +105,7 @@ const worth = (fit: LeadFit | null | undefined, id: string | number): fit is Lea
  * The profile page's Lead check section and, while a check is out, how often to read the page
  * again. Nothing for a client's People (it asks nothing) or a person never asked about.
  */
-export function leadCheckExtras(
+function leadCheckExtras(
   fit: LeadFit | null | undefined,
   id: string | number,
 ): { sections: [string, ReactNode][]; poll?: number } {
@@ -141,7 +136,7 @@ export function withLeadCheck(
 }
 
 /** "Check with Jev": ask now. The answer lands on the profile within a minute. */
-export const checkWithJev: Action = {
+const checkWithJev: Action = {
   id: "people.leadCheck",
   label: "Check with Jev",
   handler: "people/leadCheck",
@@ -154,7 +149,7 @@ export const checkWithJev: Action = {
 };
 
 /** William's own call: a lead. */
-export const callLead: Action = {
+const callLead: Action = {
   id: "people.leadFit",
   label: "Lead",
   handler: "people/leadFit",
@@ -164,7 +159,7 @@ export const callLead: Action = {
 };
 
 /** William's own call: not a lead. */
-export const callNotLead: Action = {
+const callNotLead: Action = {
   id: "people.leadNot",
   label: "Not a lead",
   handler: "people/leadNot",

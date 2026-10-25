@@ -19,7 +19,7 @@ export interface Value {
   steps: number | null;
 }
 
-export interface NodeValuer {
+interface NodeValuer {
   id: string;
   name: string;
   /** A value for each node of the chain. A goal node: reach 1 in 0 steps. */
@@ -93,7 +93,7 @@ function leavers(chain: Chain, rows: Map<string, { to: string; p: number }[]>): 
 }
 
 /** Thresholds of the skip rules: an arc at a 5% share and 3 people, a ring at 30%. */
-export const SKIP_BAR = { arcShare: 0.05, arcPeople: 3, ringShare: 0.3 } as const;
+const SKIP_BAR = { arcShare: 0.05, arcPeople: 3, ringShare: 0.3 } as const;
 
 export interface SkipRule {
   id: string;
@@ -136,7 +136,7 @@ const share: SkipRule = {
     skipped + arrived > 0 && skipped / (skipped + arrived) >= SKIP_BAR.ringShare,
 };
 
-export const VALUERS: Readonly<Record<string, NodeValuer>> = { markov };
+const VALUERS: Readonly<Record<string, NodeValuer>> = { markov };
 export const SKIP_RULES: Readonly<Record<string, SkipRule>> = { wilson, share };
 export const DEFAULT_VALUER = "markov";
 export const DEFAULT_SKIP_RULE = "wilson";

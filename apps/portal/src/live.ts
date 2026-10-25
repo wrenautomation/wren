@@ -8,6 +8,8 @@
  * The token rides in `Sec-WebSocket-Protocol` (`wren-notes, <token>`): a browser can't set an
  * Authorization header on a WebSocket. The origin must be this host.
  */
+
+import { UUID } from "@wren/core/ids";
 import {
   LIVE_PREFIX,
   PROTOCOL,
@@ -23,7 +25,6 @@ import { SERVICES } from "./services.js";
 import type { Viewer } from "./worker.js";
 
 const JOIN = "x-note-join";
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 interface Join {
   id: string;
@@ -89,7 +90,7 @@ export async function liveRoute(
 }
 
 /** `NotesConsole/sync` as the person in `as`. */
-export async function syncAs(
+async function syncAs(
   env: Env,
   as: Record<string, unknown>,
   body: { id: string; update: string; sv: string },

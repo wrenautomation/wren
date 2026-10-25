@@ -30,21 +30,21 @@
 import { getAddresses, type MimePart, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { readPage } from "@wren/research/fetch";
 
-export const SNIPPET_MAX_CHARS = 300;
+const SNIPPET_MAX_CHARS = 300;
 /** The reply text kept on the event for the disposition classifier: long enough for any real answer, short enough that a pasted contract is not a prompt. */
 export const TEXT_MAX_CHARS = 4000;
-export const DIAGNOSTIC_MAX_CHARS = 300;
+const DIAGNOSTIC_MAX_CHARS = 300;
 /** An unsubscribe is a *short* message. Above this, the words are a conversation. */
-export const UNSUBSCRIBE_MAX_WORDS = 25;
+const UNSUBSCRIBE_MAX_WORDS = 25;
 
-export const INBOUND_KINDS = ["reply", "bounce", "auto_reply", "unsubscribe", "receipt"] as const;
+const INBOUND_KINDS = ["reply", "bounce", "auto_reply", "unsubscribe", "receipt"] as const;
 /** What an inbound message is. RECEIPT covers read/delivery receipts, which the sync keeps as notes. */
 export type InboundKind = (typeof INBOUND_KINDS)[number];
 
 /** Permanence of a bounce: HARD suppresses the address, SOFT is recorded and nothing else. */
 export type InboundBounceClass = "hard" | "soft";
 
-export type MatchedBy = "in_reply_to" | "references" | "embedded_original";
+type MatchedBy = "in_reply_to" | "references" | "embedded_original";
 
 /** The verdict on one inbound message, plus the identity evidence the sync needs to attach it. */
 export interface Inbound {
@@ -404,7 +404,7 @@ const AUTO_SUBJECT =
 const AUTO_SUBJECT_ALONE = /^thank you for your (?:email|message)[.!]?$/i;
 
 /** Drop leading Re:/Fwd:/FW:/AW:/WG: so subject rules see the real subject. */
-export function stripSubjectPrefixes(subject: string): string {
+function stripSubjectPrefixes(subject: string): string {
   let text = subject.trim();
   for (;;) {
     const shortened = text.replace(SUBJECT_PREFIX, "");

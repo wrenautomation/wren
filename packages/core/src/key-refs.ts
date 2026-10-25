@@ -4,6 +4,7 @@
  * all use it.
  */
 import { z } from "zod";
+import { UUID } from "./ids.js";
 
 /** A stored key's reference: what handlers and rows carry instead of the key. */
 export const KEY_REF = /^ks_[0-9a-f]{32}$/;
@@ -16,7 +17,7 @@ export const keyRef = z.string().regex(KEY_REF, "A saved key's reference, ks_…
 export const KEY_LABEL = /^[a-z0-9][a-z0-9.-]{0,63}$/;
 
 /** Names a client's key may be kept under, each with the shape its value has. */
-export const KEY_SHAPES: Readonly<Record<string, RegExp>> = {
+const KEY_SHAPES: Readonly<Record<string, RegExp>> = {
   STRIPE_SECRET_KEY: /^(sk|rk)_(live|test)_[A-Za-z0-9]{8,240}$/,
   STRIPE_WEBHOOK_SECRET: /^whsec_[A-Za-z0-9+/=]{8,200}$/,
   EXA_API_KEY: /^\S{8,4096}$/,
@@ -32,11 +33,11 @@ export const KEY_SHAPES: Readonly<Record<string, RegExp>> = {
 export const MAIL_TOKEN_NAME = /^MAIL_(GOOGLE|MICROSOFT)_[0-9A-F]{16}$/;
 
 /** A connected social account's token (designs/2026-10-07-client-social.md): its id hashed. */
-export const SOCIAL_TOKEN_NAME =
+const SOCIAL_TOKEN_NAME =
   /^SOCIAL_(FACEBOOK|INSTAGRAM|LINKEDIN|LINKEDIN_PAGE|YOUTUBE|X|TIKTOK|GOOGLE_BUSINESS)_[0-9A-F]{16}$/;
 
 /** A connected app's token (designs/2026-10-09-connectors.md): its account id hashed. */
-export const CONNECTOR_TOKEN_NAME = /^CONNECTOR_(HUBSPOT|QUICKBOOKS|JOBBER)_[0-9A-F]{16}$/;
+const CONNECTOR_TOKEN_NAME = /^CONNECTOR_(HUBSPOT|QUICKBOOKS|JOBBER)_[0-9A-F]{16}$/;
 
 /**
  * Names only Wren keeps, never pasted on a page: a mailbox's, a social account's or a connected
@@ -83,7 +84,6 @@ export const last4 = (value: string) => value.slice(-4);
 
 const PREFIXED = /^(sk|rk|whsec|xox[abp]|ghp|gho|github_pat|glpat|AKIA|AIza|KEY0)[A-Za-z0-9_-]*/;
 const TOKENISH = /^[A-Za-z0-9_\-.+/=]{24,}$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Does this look like a secret? A known key prefix, or a long unbroken token mixing letters and
@@ -97,7 +97,7 @@ export function looksLikeKey(s: string): boolean {
 }
 
 /** Fields that held a raw key before refs: a body with one is refused. */
-export const RAW_KEY_FIELDS = ["key", "secret", "value", "token", "apiKey"] as const;
+const RAW_KEY_FIELDS = ["key", "secret", "value", "token", "apiKey"] as const;
 
 /** Where in `input` a raw key sits (`client`, `key`, `rows.0.note`), or null. */
 export function rawKeyAt(input: unknown, path = ""): string | null {

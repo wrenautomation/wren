@@ -55,7 +55,7 @@ export const DOMAIN_SETUP = defineSetup({
   ],
 });
 
-export const INBOX_SETUP = defineSetup({
+const INBOX_SETUP = defineSetup({
   id: "setup.inbox",
   name: "Sending inbox",
   blurb: "An inbox on a sending domain, warmed before it sends cold.",
@@ -112,7 +112,7 @@ export interface Warmup {
 const DAY_MS = 86_400_000;
 
 /** How an inbox signed in: Gmail as its address, or its own login over IMAP. */
-export type SignedIn = "gmail" | "imap" | "instantly";
+type SignedIn = "gmail" | "imap" | "instantly";
 
 /** A refused login, said apart from a host that didn't answer. */
 const REFUSED =

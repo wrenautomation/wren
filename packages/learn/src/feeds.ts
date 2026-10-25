@@ -43,7 +43,7 @@ export interface Feed {
 /** Text kept per feed item. */
 const KEEP_TEXT = 20_000;
 /** A source is read at most this often, whatever the Monitor's pace. */
-export const FEED_EVERY_MS = 60 * 60_000;
+const FEED_EVERY_MS = 60 * 60_000;
 
 export const decode = decodeHtml;
 
@@ -245,7 +245,7 @@ export function sourceKindOf(feedUrl: string, feed: Feed): SourceKind {
 }
 
 /** The feed behind an address: the address itself, or the one its page names. */
-export async function findFeed(
+async function findFeed(
   fetchFn: FetchFn,
   url: string,
 ): Promise<{ feedUrl: string; page: string | null; feed: Feed; pageImage: string | null }> {

@@ -32,7 +32,7 @@ import { bareCompanyName, plain } from "../people/names.js";
 export const TRIGGERS_COMMAND = "enrich triggers";
 export const TRIGGERS_SOURCE = "news_trigger";
 /** The kinds that say a firm is changing now: each one is a reason to write. */
-export const TRIGGER_KINDS: readonly EventKind[] = [
+const TRIGGER_KINDS: readonly EventKind[] = [
   "acquisition",
   "merger",
   "funding",
@@ -41,15 +41,15 @@ export const TRIGGER_KINDS: readonly EventKind[] = [
   "leader",
 ];
 /** A headline older than this is no trigger. */
-export const TRIGGER_DAYS = 14;
+const TRIGGER_DAYS = 14;
 /** A word is searched again after this: the window overlaps, so nothing falls between. */
-export const TRIGGERS_EVERY_DAYS = 7;
+const TRIGGERS_EVERY_DAYS = 7;
 /** Searches a day. RSS is free; this only spaces the reads. */
-export const TRIGGERS_BUCKET: Bucket = { perDay: 20, burst: 20 };
+const TRIGGERS_BUCKET: Bucket = { perDay: 20, burst: 20 };
 /** Headlines one model call reads. */
 const PER_CALL = 25;
 /** A named firm's key: `nt:` and its bare name. */
-export const TRIGGER_KEY_PREFIX = "nt:";
+const TRIGGER_KEY_PREFIX = "nt:";
 
 /** One search's text: the word as a phrase, any kind's words, the window. */
 export function triggerQuery(word: string, kinds: readonly EventKind[] = TRIGGER_KINDS): string {
@@ -58,7 +58,7 @@ export function triggerQuery(word: string, kinds: readonly EventKind[] = TRIGGER
 }
 
 /** `news/rss?q=...`: one word's reads share it, so its last read is findable. */
-export const triggerRef = (q: string): string => `news/rss?${new URLSearchParams({ q })}`;
+const triggerRef = (q: string): string => `news/rss?${new URLSearchParams({ q })}`;
 
 /** A firm's key from its name: "The Acme Staffing Group, Inc." is `nt:acme-staffing-group`. */
 export const triggerKey = (name: string): string | null => {
@@ -99,7 +99,7 @@ raised money, opened an office, grew or named a leader. Give the name as the bus
 without "Inc." or "LLC". Answer null when the business is another kind, a public company, a \
 government body, a person alone, or when the headline names no business. JSON only.`;
 
-export function triggerPrompt(word: string, events: readonly CompanyEvent[]): string {
+function triggerPrompt(word: string, events: readonly CompanyEvent[]): string {
   const lines = events.map((e, i) => `${i}. ${e.title}${e.snippet ? ` | ${e.snippet}` : ""}`);
   return `Kind of business: ${word}
 
@@ -208,9 +208,9 @@ export async function triggersDue(
     .map((s) => s.w);
 }
 
-export type TriggerOutcome = "read" | "error";
+type TriggerOutcome = "read" | "error";
 
-export interface TriggerUnit {
+interface TriggerUnit {
   word: string;
   outcome: TriggerOutcome;
   /** Dated headlines of a trigger kind, new to us. */

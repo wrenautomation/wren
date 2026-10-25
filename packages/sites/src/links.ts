@@ -2,12 +2,14 @@
  * Tracked links made in the portal: one `/go/` link per owner, page and utm, to copy into a post,
  * an ad or a text. Hits are read back in `site_link_records` (`./views.ts`).
  */
+
+import { UUID } from "@wren/core/ids";
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { goLinkOf, linkUtm, linkWord } from "./hops.js";
 import { channelOf, WREN_SITE } from "./model.js";
 import { type SiteLink, siteLinks, sitePages } from "./schema.js";
-import { SitesRefusal, UUID } from "./store.js";
+import { SitesRefusal } from "./store.js";
 
 export interface LinkTarget {
   id: string;
@@ -61,7 +63,7 @@ export interface NewLink {
   by: string;
 }
 
-export interface MadeLink extends SiteLink {
+interface MadeLink extends SiteLink {
   url: string | null;
   slug: string;
 }

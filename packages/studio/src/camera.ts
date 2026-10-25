@@ -6,7 +6,7 @@
 import { cameraAt } from "./promo-clock.js";
 import type { PaneEvent } from "./take.js";
 
-export const CAMERA = {
+const CAMERA = {
   /** Acts closer than this are one run. */
   joinS: 2.5,
   zoom: 1.8,

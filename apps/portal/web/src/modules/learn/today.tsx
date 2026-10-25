@@ -50,7 +50,7 @@ export const PICKS: [AlertPick, string][] = [
 ];
 
 /** Every post, high score only, or off: a row of three, one pressed. */
-export function PickGroup({
+function PickGroup({
   value,
   onPick,
   label,

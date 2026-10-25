@@ -14,7 +14,7 @@
  */
 import type { SiteMethod } from "./autobrowse.js";
 
-export type RouteKind = "read" | "staging" | "send";
+type RouteKind = "read" | "staging" | "send";
 
 interface Row {
   site: string;

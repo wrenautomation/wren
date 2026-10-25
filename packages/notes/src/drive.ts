@@ -7,7 +7,7 @@
 import { PortalRefusal } from "@wren/core/refusal";
 
 export const DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
-export const DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const GOOGLE_DOC = "application/vnd.google-apps.document";
 /** Biggest file it takes: the answer goes back as base64 through Restate and Lambda (6 MB). */
 export const DRIVE_MAX = 4 * 1024 * 1024;

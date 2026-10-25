@@ -93,7 +93,7 @@ export interface SendTrace {
   wrote: boolean;
 }
 
-export interface SendScopeOptions {
+interface SendScopeOptions {
   /**
    * An `unknown` answer asks `verdict {sendKey}` once more (autobrowse re-runs its verify reads).
    * A takeover or a person's "check again" sets it.

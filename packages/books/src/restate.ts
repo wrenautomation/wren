@@ -16,17 +16,17 @@ import { type BooksDay, type BooksDayDeps, booksDay } from "./daily.js";
 export * from "./console.js";
 
 export const BOOKS_KEY = "all";
-export const BOOKS_COMMAND = "books day";
-export const BOOKS_EVERY_MS = 24 * 3_600_000;
-export const BOOKS_RETRY_MS = 3_600_000;
+const BOOKS_COMMAND = "books day";
+const BOOKS_EVERY_MS = 24 * 3_600_000;
+const BOOKS_RETRY_MS = 3_600_000;
 /** AWS spend is asked again only this long after the last ask. */
-export const BOOKS_AWS_EVERY_MS = 20 * 3_600_000;
+const BOOKS_AWS_EVERY_MS = 20 * 3_600_000;
 const AWS_AT = "aws at";
 
 /** What `start` may change; none today, kept for the loop contract. */
-export type BooksSettings = Record<string, never>;
+type BooksSettings = Record<string, never>;
 
-export interface BooksDeps extends Omit<BooksDayDeps, "log"> {
+interface BooksDeps extends Omit<BooksDayDeps, "log"> {
   notifier?: Notifier;
 }
 

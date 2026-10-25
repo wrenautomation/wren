@@ -42,7 +42,7 @@ export interface Compare {
 type DiffRead = ReturnType<typeof useDiffOf>;
 
 /** The lines of a read difference, or its failure or wait. */
-export function DiffLines({ diff, what = "difference" }: { diff: DiffRead; what?: string }) {
+function DiffLines({ diff, what = "difference" }: { diff: DiffRead; what?: string }) {
   if (diff.error && !diff.data)
     return <LoadFailed error={diff.error} onRetry={diff.retry} what={what} />;
   if (!diff.data) return <Loading lines={3} />;

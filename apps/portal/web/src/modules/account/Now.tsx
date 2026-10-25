@@ -14,10 +14,7 @@ import { ownerOf } from "./Accounts.js";
 type Item = NowView["items"][number];
 
 /** An item's tag, said to whoever looks. */
-export function nowTag(
-  x: Pick<Item, "kind" | "for">,
-  team: boolean,
-): { label: string; tone: TagTone } {
+function nowTag(x: Pick<Item, "kind" | "for">, team: boolean): { label: string; tone: TagTone } {
   switch (x.kind) {
     case "lost":
       return { label: "Lost", tone: "warn" };

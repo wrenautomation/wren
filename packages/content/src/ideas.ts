@@ -54,15 +54,6 @@ export async function addIdeaOnce(
   return row ?? null;
 }
 
-export async function hasIdeaRef(db: Queryable, ref: string): Promise<boolean> {
-  const [row] = await db
-    .select({ id: contentIdeas.id })
-    .from(contentIdeas)
-    .where(eq(contentIdeas.ref, ref))
-    .limit(1);
-  return row !== undefined;
-}
-
 export function listIdeas(db: Queryable, status: IdeaStatus, limit = 50): Promise<ContentIdea[]> {
   return db
     .select()
@@ -76,13 +67,4 @@ export async function getIdea(db: Queryable, id: string): Promise<ContentIdea> {
   const [row] = await db.select().from(contentIdeas).where(eq(contentIdeas.id, id)).limit(1);
   if (!row) throw new Error(`no idea ${id}`);
   return row;
-}
-
-export async function archiveIdea(db: Queryable, id: string): Promise<void> {
-  const rows = await db
-    .update(contentIdeas)
-    .set({ status: "archived" })
-    .where(eq(contentIdeas.id, id))
-    .returning({ id: contentIdeas.id });
-  if (rows.length === 0) throw new Error(`no idea ${id}`);
 }

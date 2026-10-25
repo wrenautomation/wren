@@ -24,7 +24,7 @@ import {
 } from "../inbox/postmaster.js";
 import type { SendPolicy } from "../send/policy.js";
 
-export interface PostmasterSchedulerDeps {
+interface PostmasterSchedulerDeps {
   db: Db;
   client: PostmasterClient;
   /** The distinct domains the roster sends from, in roster order. */
@@ -38,8 +38,8 @@ export interface PostmasterSchedulerDeps {
 }
 
 export const POSTMASTER_KEY = "fleet";
-export const POSTMASTER_SYNC_COMMAND = "outreach postmaster sync";
-export const POSTMASTER_VERIFIED = "postmaster.verified";
+const POSTMASTER_SYNC_COMMAND = "outreach postmaster sync";
+const POSTMASTER_VERIFIED = "postmaster.verified";
 
 type ClientPostmaster =
   | { kind: "gone"; why: string }

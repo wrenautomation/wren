@@ -1,9 +1,9 @@
 /**
  * Thread row actions: a comment drafted on someone else's post, and a found thread's reply.
  */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { draftActions } from "./ask.js";
-import { REJECT_FORM, said } from "./drafts.js";
+import { REJECT_FORM } from "./drafts.js";
 import { DISCOVERY_READ } from "./places.js";
 
 /** A comment drafted on someone else's post (LinkedIn, X, Instagram): his click posts it, with a like and follow when set. */

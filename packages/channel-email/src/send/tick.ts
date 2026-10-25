@@ -61,9 +61,6 @@ export type KillSwitches = (
   opts: { policy: SendPolicy; now: Date; senders: readonly string[]; runId: string | null },
 ) => Promise<SenderPause[]>;
 
-/** Off, for tests that seed bounce history and want the walk alone. */
-export const noKillSwitches: KillSwitches = async () => [];
-
 export interface TickOptions {
   policy: SendPolicy;
   transport: Transport;

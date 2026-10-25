@@ -17,7 +17,7 @@ import { type DownloadResult, FetchError } from "./fetcher.js";
 export const SBA_SEARCH_URL = "https://search.certifications.sba.gov/_api/v2/search";
 const TIMEOUT_MS = 10 * 60_000;
 
-export interface SbaSearchSpec {
+interface SbaSearchSpec {
   name: string;
   description: string;
   /** 6-digit NAICS codes; a firm matches when any of its codes is one of these. */

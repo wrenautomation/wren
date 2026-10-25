@@ -19,10 +19,10 @@ import type { Notifier } from "./notify.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 
 export const DEAD_LETTERS_KEY = "all";
-export const DEAD_LETTERS_EVERY_MS = 10 * 60_000;
+const DEAD_LETTERS_EVERY_MS = 10 * 60_000;
 
 /** A write to Restate's admin API: `PATCH <admin>/invocations/<id>/resume?deployment=latest`. */
-export type RestateAdminPatch = (path: string) => Promise<void>;
+type RestateAdminPatch = (path: string) => Promise<void>;
 /** A resume or kill is one small admin write. */
 const ADMIN_PATCH_LIMIT_MS = 30_000;
 
@@ -183,7 +183,7 @@ export function letterLine(l: Pick<DeadLetterRow, "id" | "target" | "key" | "err
   return `#${l.id} ${what}${l.error ? `: ${l.error.replace(/\s+/g, " ").slice(0, 1200)}` : ""}`;
 }
 
-export interface DeadLetterDeps {
+interface DeadLetterDeps {
   main: Db;
   admin: RestateAdmin;
   patch?: RestateAdminPatch;
@@ -191,7 +191,7 @@ export interface DeadLetterDeps {
   notifier?: Notifier;
 }
 
-export interface DeadLetterPass {
+interface DeadLetterPass {
   paused: number;
   filed: number;
   cleared: number;

@@ -120,7 +120,7 @@ export function templatesOf(
  * every effect its wiring has, so approving it keeps the sends and spends gate. One whose
  * workflow left the code, or whose wiring no longer runs, isn't sold.
  */
-export function savedTemplatesOf(
+function savedTemplatesOf(
   rows: readonly WorkflowTemplateRow[],
   workflows: readonly Workflow[],
   components: readonly Component[],
@@ -194,11 +194,11 @@ export function templateNamed(all: readonly Template[], id: unknown): Template {
  * had it before, untouched. same: the template's, as it says. update: the template's, its new
  * settings go on. kept: the client changed it, so it stays. development: not built per client.
  */
-export type PartStatus = "add" | "back" | "have" | "same" | "update" | "kept" | "development";
+type PartStatus = "add" | "back" | "have" | "same" | "update" | "kept" | "development";
 /** add: Wren's words go in. have: follows Wren's. own: the client's words, kept. none: no words yet. */
-export type CopyStatus = "add" | "have" | "own" | "none";
+type CopyStatus = "add" | "have" | "own" | "none";
 
-export interface PlanPart {
+interface PlanPart {
   id: string;
   name: string;
   blurb: string;
@@ -248,7 +248,7 @@ export interface Plan {
 }
 
 /** One template row in a client's database, as the plan reads it. */
-export interface CopyRow {
+interface CopyRow {
   ref: string;
   followsDefault: boolean;
   live: boolean;
@@ -470,7 +470,7 @@ export async function installOnWorkflow(
 }
 
 /** The template rows in a client's database. */
-export async function copyRows(db: Queryable): Promise<CopyRow[]> {
+async function copyRows(db: Queryable): Promise<CopyRow[]> {
   const rows = (await db.execute(sql`SELECT kind, system, name, follows_default,
     live_version_id IS NOT NULL AS live FROM templates`)) as unknown as {
     kind: string;
@@ -522,7 +522,7 @@ export async function readPlan(
 
 // ---- Writes ----
 
-export interface InstallAsk {
+interface InstallAsk {
   client: string;
   by: string;
   /** The template's id, typed, when it has effects. */

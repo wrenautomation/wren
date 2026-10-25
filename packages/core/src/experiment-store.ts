@@ -23,7 +23,7 @@ import {
 } from "./records.js";
 import { type FlagExperiment, flagDays, flagExperiments, flags } from "./schema.js";
 
-export const EXPERIMENT = "marketing.experiment";
+const EXPERIMENT = "marketing.experiment";
 
 const ExperimentIn = z.object({
   flag: z.string().trim().min(1, "say which flag"),

@@ -31,12 +31,9 @@ import { fieldsFor, textRef } from "./template-store.js";
 import { render, textSeed } from "./templates.js";
 
 /** The text a caller gets who isn't in the client's texts yet. Must say STOP. */
-export const MISSED_NEW = "missed-call-new";
+const MISSED_NEW = "missed-call-new";
 /** The text a caller gets who is: it can use their name. */
-export const MISSED_KNOWN = "missed-call-known";
-
-/** One text back per caller in this many hours, unless the client's setting says otherwise. */
-export const ONCE_EVERY_HOURS = 24;
+const MISSED_KNOWN = "missed-call-known";
 
 /** What a text back runs on: the client's database, its gates and its words' facts. */
 export interface TextBackOptions {
@@ -53,14 +50,14 @@ export interface TextBackOptions {
   now: Date;
 }
 
-export interface TextBack {
+interface TextBack {
   call: SmsCall;
   /** The caller's contact, once a text was queued; null otherwise. */
   contactId: number | null;
 }
 
 /** The message ref of a call's text back: one per call. */
-export const callRef = (id: number) => `call:${id}`;
+const callRef = (id: number) => `call:${id}`;
 
 async function settle(
   db: Queryable,
@@ -290,7 +287,7 @@ export const missedCallEvent = (id: number) => ({
 });
 
 /** What the step needs for whoever's workflow it is. */
-export type TextBackDeps = Omit<TextBackOptions, "now"> & {
+type TextBackDeps = Omit<TextBackOptions, "now"> & {
   db: Db;
   /** Wake the sender, so the text leaves in seconds. The key makes a retry wake once. */
   nudge: (idempotencyKey: string) => Promise<void>;

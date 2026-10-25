@@ -38,7 +38,7 @@ import {
 } from "@wren/core/content/tiktok";
 import { tiktokInsights } from "./insights.js";
 
-export interface TikTokContentOptions {
+interface TikTokContentOptions {
   now?: () => Date;
   host?: MediaHost;
   /** A client's connected account on TikTok's API: the Direct Post path. */

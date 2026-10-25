@@ -14,10 +14,10 @@ const rows = async <T>(db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute(q)) as unknown as T[];
 
 /** A booked call's length when the booking doesn't say (cal.com's): our calls are 30 minutes. */
-export const DEFAULT_CALL_MIN = 30;
+const DEFAULT_CALL_MIN = 30;
 
 /** A booked call the desk arms for: start to end, and who, for the banner. */
-export interface UpcomingCall {
+interface UpcomingCall {
   id: number;
   start: string;
   end: string;
@@ -138,7 +138,7 @@ export async function writeNotes(
 }
 
 /** A recording as `wren calls add` saves it. */
-export interface NewRecording {
+interface NewRecording {
   callBookingId: number | null;
   fileKey: string;
   bytes: number;

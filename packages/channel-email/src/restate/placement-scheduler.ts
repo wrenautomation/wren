@@ -49,7 +49,7 @@ import {
 } from "../send/transport.js";
 
 export const PLACEMENT_KEY = "fleet";
-export const PLACEMENT_COMMAND = "placement";
+const PLACEMENT_COMMAND = "placement";
 export const NO_DRAFT = "no draft yet";
 /** How long a copy gets to land before its seed is asked. */
 export const CHECK_AFTER_MS = 2 * 3600_000;
@@ -89,7 +89,7 @@ export function plainNote(day: string): { subject: string; body: string } {
   };
 }
 
-export interface PlacementSchedulerDeps {
+interface PlacementSchedulerDeps {
   db: Db;
   policy: SendPolicy;
   transport: Transport;
@@ -104,7 +104,7 @@ export interface PlacementSchedulerDeps {
   notifier?: Notifier;
 }
 
-export interface PlacementStats {
+interface PlacementStats {
   sent: number;
   noDraft: string[];
   failed: number;

@@ -46,7 +46,7 @@ export interface DaySource {
   open: string;
 }
 
-export interface RecordDayProps {
+interface RecordDayProps {
   title: string;
   api: RecordsApi;
   place: Place;
@@ -74,7 +74,7 @@ export interface Read {
   before: Row[];
 }
 
-export interface DayItem {
+interface DayItem {
   source: number;
   row: Row;
   /** Its date, or null when it has none. */

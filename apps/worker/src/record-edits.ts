@@ -62,7 +62,7 @@ const checked = (check: () => string): string | null => {
   }
 };
 
-export function textCopyEdits(
+function textCopyEdits(
   type: RecordType,
   sequences: Iterable<SmsSequence>,
   sender: string,
@@ -108,7 +108,7 @@ export function textCopyEdits(
   });
 }
 
-export function dmCopyEdits(type: RecordType, sender: string): RecordType {
+function dmCopyEdits(type: RecordType, sender: string): RecordType {
   const slots = dmSlotsOf(REACH_SEQUENCES.values());
   const slotOf = (id: string) => slots.find((s) => s.key === id);
   return withEdits(type, {

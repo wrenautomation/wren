@@ -13,7 +13,7 @@ import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 /** The model for `ask`, from its --llm and --fallback. */
-export type MakeModel = (o: { llm: string; fallback: string }) => ChangeModel;
+type MakeModel = (o: { llm: string; fallback: string }) => ChangeModel;
 
 const idOf = (v: string) => {
   const n = Number(v);
@@ -22,7 +22,7 @@ const idOf = (v: string) => {
 };
 
 /** A proposal as lines: what changes, what's refused, the frames it moves, the patch. */
-export function proposalText(p: Proposal): string {
+function proposalText(p: Proposal): string {
   const moved = [...p.changed.header.map((h) => `header ${h}`), ...p.changed.beats];
   return [
     ...p.changes.map((c) => `- ${c}`),

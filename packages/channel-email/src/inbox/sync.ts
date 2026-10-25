@@ -97,7 +97,7 @@ const BOUNCE_CLASS: Readonly<Record<InboundBounceClass, BounceClass>> = {
   soft: "soft",
 };
 
-export const SYNC_COUNTERS = [
+const SYNC_COUNTERS = [
   "listed",
   "already_seen",
   "unrelated",
@@ -122,8 +122,8 @@ export const SYNC_COUNTERS = [
   "read_errors",
   "sender_errors",
 ] as const;
-export type SyncCounter = (typeof SYNC_COUNTERS)[number];
-export type SyncCounts = Record<SyncCounter, number>;
+type SyncCounter = (typeof SYNC_COUNTERS)[number];
+type SyncCounts = Record<SyncCounter, number>;
 
 export interface SyncStats extends SyncCounts {
   senders: number;
@@ -203,7 +203,7 @@ function headerIds(raw: string | undefined): string[] {
 // --------------------------------------------------------------------------
 // Matching an inbound message to one of our sends
 
-export type MatchSource = "in_reply_to" | "references" | "thread" | "embedded_original" | "from";
+type MatchSource = "in_reply_to" | "references" | "thread" | "embedded_original" | "from";
 
 /** Whose thread this message belongs to, and how we know. */
 interface Match {
@@ -652,7 +652,7 @@ async function handleMessage(
   });
 }
 
-export interface SyncInboxOptions {
+interface SyncInboxOptions {
   reader: InboxReader;
   senders: readonly string[];
   now: Date;

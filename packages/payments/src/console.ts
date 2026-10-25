@@ -21,6 +21,7 @@ import { toPhoneE164 } from "@wren/channel-sms";
 import { smsContacts } from "@wren/channel-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
+import { UUID } from "@wren/core/ids";
 import { keyRef, noRawKeys } from "@wren/core/key-refs";
 import {
   accessOf,
@@ -76,11 +77,10 @@ import {
   linkIdOf,
   payAccountOf,
   savePayAccount,
-  UUID,
 } from "./store.js";
 import { keyMode, STRIPE_EVENTS, StripeError, stripeApi } from "./stripe.js";
 
-export type PaymentsConsoleDeps = Pick<
+type PaymentsConsoleDeps = Pick<
   PaymentsDeps,
   "main" | "open" | "keys" | "fetch" | "portal" | "stripeBase"
 >;
@@ -95,7 +95,7 @@ export interface CreateRequest extends PortalRequest {
   description: string;
   quantity?: string | number | null;
 }
-export interface FromThreadRequest extends PortalRequest {
+interface FromThreadRequest extends PortalRequest {
   /** The threads, as the Texts record shows their ids. */
   ids: (string | number)[];
   amount: string | number;
@@ -596,4 +596,3 @@ export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
     },
   });
 }
-export type PaymentsConsoleService = ReturnType<typeof makePaymentsConsole>;

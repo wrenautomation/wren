@@ -56,8 +56,8 @@ import { rollupAnswers } from "../survey-days.js";
 import { formatChanges, type SyncStats, syncSearch } from "../sync.js";
 
 export const SEARCH_KEY = "default";
-export const SEARCH_SYNC_COMMAND = "search sync";
-export const SEARCH_WEEK_COMMAND = "search week";
+const SEARCH_SYNC_COMMAND = "search sync";
+const SEARCH_WEEK_COMMAND = "search week";
 const WEEK = "week";
 /** The lander event id heatmaps read after (`../heat.ts`). */
 const HEAT_FROM = "heat from";
@@ -69,12 +69,10 @@ const DAY_MS = 86_400_000;
 const ASKS_PER_ENGINE = 20;
 /** An engine that fails this many in a row is off for the week (the Mac asleep, a sign-in gone). */
 const ENGINE_MISSES = 3;
-/** A client's key is `<client>/daily`. */
-export const CLIENT_SEARCH_UNIT = "daily";
 /** Sitemap pages inspected per client pass: under Search Console's per-property daily quota. */
 const CLIENT_INSPECTS = 200;
 
-export interface SearchDeps {
+interface SearchDeps {
   db: Db;
   console: SearchConsoleClient;
   /** The Search Console property (`sc-domain:example.com`). */
@@ -91,7 +89,7 @@ export interface SearchDeps {
   clientDb?: ((client: string) => Db) | null;
 }
 
-export interface SearchWeekDeps extends SearchDeps {
+interface SearchWeekDeps extends SearchDeps {
   llm: LlmClient;
   /** autobrowse on the Mac, for this invocation (`restateSites(ctx, { caller, service: DESK })`). */
   desk: (ctx: restate.Context) => SiteClient;
@@ -319,7 +317,7 @@ export function makeSearchWatch(deps: SearchDeps) {
   });
 }
 
-export interface WeekStats {
+interface WeekStats {
   fanout: { seeds: number; added: number; failed: number };
   discovered: number;
   asked: Record<string, { asked: number; cited: number; failed: string | null }>;

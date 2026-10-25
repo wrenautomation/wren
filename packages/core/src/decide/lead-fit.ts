@@ -17,14 +17,14 @@ import { KINDS, PICK, type Tone } from "./kinds.js";
 import type { DecideSource, DecideSubject } from "./loop.js";
 
 /** What Wren sells, in the words Jev reads: a name and who it is for. */
-export interface LeadOffer {
+interface LeadOffer {
   name: string;
   audience: string;
 }
 
 export const LEAD_KIND = "lead_fit" as const;
 /** The newest touches shown; counts cover all of them. */
-export const LEAD_TOUCH_LIMIT = 10;
+const LEAD_TOUCH_LIMIT = 10;
 /** The longest their words run in the state. */
 export const LEAD_TEXT_MAX = 280;
 
@@ -96,7 +96,7 @@ export interface FoundFact {
  * What research kept or found about a profile (`profile_findings`, written by the lookup): the
  * one place this check reads that table. Dropped findings never show. Empty before any lookup.
  */
-export async function foundFor(
+async function foundFor(
   db: Queryable,
   profileId: number,
   list: { names: readonly string[]; handles: readonly string[] },
@@ -119,7 +119,7 @@ export async function foundFor(
   }));
 }
 
-export interface TouchFact {
+interface TouchFact {
   kind: string;
   direction: string;
   platform: string;

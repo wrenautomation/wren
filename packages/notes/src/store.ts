@@ -2,6 +2,8 @@
  * Notes in one database: create, change through Yjs, versions, sharing, lists and search.
  * Who may do what is `access.ts`'s answer; the console asks it before calling these.
  */
+
+import { UUID } from "@wren/core/ids";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, type SQL, sql } from "drizzle-orm";
@@ -47,9 +49,9 @@ import type {
 } from "./types.js";
 
 /** An auto version stays open this long after its last edit. */
-export const SESSION_MS = 10 * 60 * 1000;
+const SESSION_MS = 10 * 60 * 1000;
 
-export class NoteMissing extends Error {
+class NoteMissing extends Error {
   constructor(id: string) {
     super(`no such note: ${id}`);
   }
@@ -62,12 +64,11 @@ export class NotASuggestion extends Error {
   }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isNoteId = (s: unknown): s is string => typeof s === "string" && UUID.test(s);
 
 // ---- Create ----
 
-export interface NewNote {
+interface NewNote {
   owner: string;
   by: string;
   via?: Via;
@@ -161,7 +162,7 @@ export interface Changed {
   version: number;
 }
 
-export interface ChangeOpts {
+interface ChangeOpts {
   /** Start a version of this kind instead of the session's auto one. */
   kind?: Exclude<VersionKind, "auto">;
   name?: string | null;
@@ -347,13 +348,6 @@ export async function syncNote(
     changed,
   };
 }
-
-/** Write `body` and `title` as the server, as one change (CLI, capture). */
-export const replaceNote = (db: Db, id: string, by: string, body: NoteJson, title?: string) =>
-  changeNote(db, id, by, (doc) => {
-    writeBody(doc, body);
-    if (title !== undefined && title !== readTitle(doc)) writeTitle(doc, title);
-  });
 
 /** Add blocks at the end, as one change. */
 export const appendNote = (db: Db, id: string, by: string, body: NoteJson) =>
@@ -807,7 +801,7 @@ export async function commentById(
   return row ?? null;
 }
 
-export interface NewComment {
+interface NewComment {
   noteId: string;
   by: string;
   body: string;

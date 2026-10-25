@@ -12,7 +12,7 @@ import { addDays, DeliveryRefusal, recordResult, startEngagement } from "./index
 import { asks, comments, deliverables, engagements, milestones, updates } from "./schema.js";
 
 /** How many days in the sample sits when seeded. */
-export const SAMPLE_DAY = 23;
+const SAMPLE_DAY = 23;
 /** Reseeded once it's this many days older, before anything on it could go late. */
 export const SAMPLE_REFRESH_DAYS = 7;
 const OFFER = "reactivation";

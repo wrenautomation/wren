@@ -4,10 +4,8 @@
  * clears it without opening.
  */
 import type { Row } from "@wren/core/records/serve";
-import { type Action, ButtonLink } from "@wren/ui";
+import { type Action, ButtonLink, said } from "@wren/ui";
 import { docPath } from "../notes/api.js";
-
-const said = (line: string) => () => line;
 
 export const MENTION_ACTIONS: Action[] = [
   {
@@ -30,7 +28,7 @@ const str = (v: unknown) => (typeof v === "string" ? v : "");
  * The note at the mention: its comment opened when the mention is in one. An Inbox note's
  * mention opens its thread.
  */
-export function mentionLink(row: Row): string {
+function mentionLink(row: Row): string {
   const thread = str(row.thread);
   if (thread) return `/engage/inbox/${encodeURIComponent(thread)}`;
   const note = str(row.noteId);

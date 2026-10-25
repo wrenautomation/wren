@@ -26,7 +26,7 @@ import type { StopReason } from "../schema.js";
 // manual stops are not, by themselves, evidence the address should never be
 // mailed again. Compose and send both gate on the suppressions table, never on
 // enrollments.stop_reason, so only these three actually get a row.
-export const STOP_TO_SUPPRESSION_REASON: Readonly<Partial<Record<StopReason, SuppressionReason>>> =
+const STOP_TO_SUPPRESSION_REASON: Readonly<Partial<Record<StopReason, SuppressionReason>>> =
   Object.freeze({ opt_out: "opt_out", complaint: "complaint", bounce: "bounce" });
 
 const CHECKPOINT_EVERY = 200;

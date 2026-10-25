@@ -33,7 +33,7 @@ export * from "./domains.js";
 export * from "./schema.js";
 export * from "./touch.js";
 
-export interface NewClient {
+interface NewClient {
   id: string;
   name: string;
   accounts?: Record<string, string>;
@@ -115,7 +115,7 @@ export async function getClient(main: Queryable, id: string): Promise<Client> {
   return row;
 }
 
-export interface ClientChange {
+interface ClientChange {
   name?: string;
   /** Merged in; an empty value turns that site off. */
   accounts?: Record<string, string>;

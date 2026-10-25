@@ -34,7 +34,7 @@ export function canonicalZone(zone: string): string | null {
   }
 }
 
-export interface WallClock {
+interface WallClock {
   readonly year: number;
   readonly month: number; // 1..12
   readonly day: number;

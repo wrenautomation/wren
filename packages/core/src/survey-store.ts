@@ -35,7 +35,7 @@ import {
   type SurveyKind,
 } from "./surveys.js";
 
-export const SURVEY = "marketing.survey";
+const SURVEY = "marketing.survey";
 const KEY = /^[a-z][a-z0-9_.-]{0,59}$/;
 const DAY_MS = 86_400_000;
 

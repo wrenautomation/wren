@@ -32,7 +32,7 @@ import {
   type Sent,
 } from "@wren/core/outreach";
 
-export const LINKEDIN_SITE = "linkedin";
+const LINKEDIN_SITE = "linkedin";
 
 /** autobrowse's words when the invite page offers no invite. */
 const NO_DIALOG = /no invite dialog for /;
@@ -47,7 +47,7 @@ export function connectedOn(text: string | undefined): Date | null {
   return Number.isNaN(at) ? null : new Date(at);
 }
 
-export interface LinkedInOutreachOptions {
+interface LinkedInOutreachOptions {
   account: string;
   /** When the account started reaching out under wren (the ramp's day one). */
   startedOn?: string | null;

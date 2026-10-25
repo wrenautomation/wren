@@ -10,8 +10,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Word } from "./schema.js";
 
-export const ALIGN_DIR = join(homedir(), ".cache/wren/whisperx");
-export const ALIGN_PYTHON = join(ALIGN_DIR, ".venv/bin/python");
+const ALIGN_DIR = join(homedir(), ".cache/wren/whisperx");
+const ALIGN_PYTHON = join(ALIGN_DIR, ".venv/bin/python");
 const SETUP = `uv venv --python 3.11 ${ALIGN_DIR}/.venv && uv pip install --python ${ALIGN_PYTHON} whisperx==3.8.6`;
 
 /** A run of words aligned as one piece of audio: words[from, to) inside [s, e]. */
@@ -22,7 +22,7 @@ export interface AlignSegment {
   e: number;
 }
 /** Per segment, per word: [start, end], or null where the aligner found no sound for it. */
-export type Aligned = ([number, number] | null)[];
+type Aligned = ([number, number] | null)[];
 
 /** Longest piece of audio aligned at once. */
 const MAX_SEGMENT_S = 15;

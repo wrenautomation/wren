@@ -21,7 +21,7 @@ export const SLIDE_LINE_MAX = 110;
 export const SLIDE_PX = 1080;
 
 /** The video title cards' look: the portal's canvas, ink and lavender. */
-export const SLIDE_LOOK = {
+const SLIDE_LOOK = {
   background: "#f3f1ec",
   foreground: "#0e0e0e",
   muted: "#56564f",
@@ -162,7 +162,7 @@ export const isCarousel = (d: {
   (d.platform === "linkedin" && d.extra?.kind === "document");
 
 /** The stored files a carousel posts: the slide images and the PDF, as drawn. */
-export interface CarouselFiles {
+interface CarouselFiles {
   images: string[];
   pdf: string | null;
 }

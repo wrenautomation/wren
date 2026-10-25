@@ -4,12 +4,11 @@
  * as Stripe says.
  * The head connects the client's own Stripe account. Nothing here charges anyone.
  */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
 import { StripePanel } from "./stripe.js";
 
-const said = (line: string) => () => line;
 const WAITING = { status: ["waiting"] };
 
 /** A yes or no on a link someone without the yes made. To approve runs these too. */

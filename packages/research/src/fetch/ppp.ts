@@ -21,7 +21,7 @@ export const PPP_DATASET_PAGE = "https://data.sba.gov/dataset/ppp-foia";
 const FILE_LINK = /href="(https:\/\/data\.sba\.gov\/[^"]*\/(public_[a-z0-9_]+?_(\d{6})\.csv))"/g;
 const TIMEOUT_MS = 60 * 60_000;
 
-export interface PppLoansSpec {
+interface PppLoansSpec {
   name: string;
   description: string;
   /** 6-digit NAICS codes a kept loan's `NAICSCode` must be one of. */

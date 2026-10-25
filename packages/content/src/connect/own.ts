@@ -34,7 +34,7 @@ export interface OwnSwitches {
 }
 
 /** The settings `contentFor` reads, by their `Settings` names; only whether each is set leaves. */
-export interface OwnSettings {
+interface OwnSettings {
   contentChannels: readonly Platform[];
   tiktokPostVia: "web" | "api";
   mediaBucket?: string | undefined;
@@ -60,10 +60,10 @@ export function ownSwitchesOf(s: OwnSettings): OwnSwitches {
 }
 
 /** Where a channel's calls go: autobrowse on the box, on the Mac, or wren straight to the API. */
-export type OwnWhere = "box" | "desk" | "wren";
+type OwnWhere = "box" | "desk" | "wren";
 
 /** One channel as config wires it. */
-export interface OwnChannel {
+interface OwnChannel {
   platform: Platform;
   label: string;
   /** The autobrowse site its calls name; null when wren calls the API itself. */
@@ -308,14 +308,14 @@ export async function readOwnRows(db: Queryable, platforms: readonly Platform[])
 
 // ---- The view ----
 
-export interface OwnRenewal {
+interface OwnRenewal {
   at: string;
   ok: boolean;
   /** What it said about this site, scrubbed: "Renewed", or why not. */
   said: string;
 }
 
-export interface OwnChannelView {
+interface OwnChannelView {
   platform: Platform;
   label: string;
   handle: string | null;
@@ -456,7 +456,7 @@ export function ownView(
 // ---- The Check ----
 
 /** The part of autobrowse's `sites/status` answer the Check reads. */
-export interface OwnSiteRow {
+interface OwnSiteRow {
   authed?: boolean;
   routes?: Array<{
     method: string;
@@ -468,7 +468,7 @@ export interface OwnSiteRow {
 }
 
 /** What autobrowse's `sites/renew {dry: true}` answers that the Check reads. */
-export interface OwnRenewDry {
+interface OwnRenewDry {
   due?: Array<{ site: string; expiresAt: string }>;
   next?: string | null;
 }
@@ -591,7 +591,7 @@ export async function checkOwn(sites: OwnSites, c: OwnChannel): Promise<OwnCheck
 }
 
 /** How long a Check waits on autobrowse for each call before it says so. */
-export const CHECK_WAIT_MS = { status: 45_000, read: 45_000, renew: 20_000 } as const;
+const CHECK_WAIT_MS = { status: 45_000, read: 45_000, renew: 20_000 } as const;
 
 type SitesCalls = {
   status: (ctx: restate.Context, req: { site: string }) => Promise<OwnSiteRow>;

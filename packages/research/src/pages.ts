@@ -89,7 +89,7 @@ export interface ArchiveStats {
   more: boolean;
 }
 
-export interface ArchiveOptions {
+interface ArchiveOptions {
   /** Only pages fetched before this; the scans read new ones first. */
   before: Date;
   /** Pages per pass. */

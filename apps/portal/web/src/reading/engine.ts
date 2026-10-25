@@ -8,7 +8,7 @@ import { KokoroMouth } from "./mouth.js";
 import { VOICES, type Voice } from "./protocol.js";
 import { PageSpeakers } from "./speakers.js";
 
-export interface ReadSettings {
+interface ReadSettings {
   on: boolean;
   voice: Voice;
   /** 0.8 to 1.4. */

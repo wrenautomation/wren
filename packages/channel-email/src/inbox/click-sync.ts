@@ -35,7 +35,7 @@ export interface ClickSyncStats {
   pages: number;
 }
 
-export interface SyncClicksOptions {
+interface SyncClicksOptions {
   baseUrl: string;
   exportToken: string;
   fetch?: FetchLike;

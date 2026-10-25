@@ -60,7 +60,7 @@ import { portalWork, unlinkMasked, type WorkView } from "./work.js";
 
 export { PortalRefusal, type PortalRequest, type Viewer } from "@wren/core/portal";
 
-export interface PortalDeps {
+interface PortalDeps {
   /** The main database: the client registry. */
   main: Db;
   /** A client's own database (the worker's per-client pool). */
@@ -404,7 +404,8 @@ export function portalApi(deps: PortalDeps) {
   };
 }
 
-export type PortalApi = ReturnType<typeof portalApi>;
+type PortalApi = ReturnType<typeof portalApi>;
+
 export type {
   Cell,
   FieldMeta,

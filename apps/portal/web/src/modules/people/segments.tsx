@@ -28,12 +28,13 @@ import {
   TRAIT_OPS,
 } from "@wren/core/segments";
 import { parseRule, ruleText } from "@wren/core/segments-text";
-import type { Action } from "@wren/ui";
 import {
   ACTIONS,
+  type Action,
   Button,
   EditConflict,
   Input,
+  messageOf,
   type RecordAct,
   type RecordExtras,
   Tag,
@@ -42,7 +43,7 @@ import {
   useEdit,
 } from "@wren/ui";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { ApiError, call } from "../../api.js";
+import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type ListPage, WREN } from "../../module.js";
 import { ERROR, QUIET, SELECT } from "../work/bits.js";
@@ -54,8 +55,6 @@ const RuleKey = createContext("");
 /** Whose groups a call is about: none named is Wren's own. */
 export const atOf = (client: string): Record<string, string> =>
   client === WREN.id ? {} : { client };
-
-const said = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 
 interface Context {
   traits: string[];
@@ -714,7 +713,7 @@ export function SegmentEditor({
   const saving = useRef(false);
   const ruled = kind !== "manual";
 
-  const ctxError = got.error && !got.data ? said(got.error) : null;
+  const ctxError = got.error && !got.data ? messageOf(got.error) : null;
 
   // The count follows the rule, a beat after the last change.
   // read-ok: a count for a rule not yet saved; never kept.
@@ -737,7 +736,7 @@ export function SegmentEditor({
         (e) => {
           if (mine === asked.current) {
             setPreview(null);
-            setUnready(said(e));
+            setUnready(messageOf(e));
           }
         },
       );
@@ -753,7 +752,7 @@ export function SegmentEditor({
       const got = await call<Described>("people/segmentDescribe", { ...at, words });
       setDescribed(got);
     } catch (e) {
-      setError(said(e));
+      setError(messageOf(e));
     } finally {
       setBusy(null);
     }
@@ -784,7 +783,7 @@ export function SegmentEditor({
       textEdit.discard();
       onDone(true);
     } catch (e) {
-      setError(said(e));
+      setError(messageOf(e));
       setBusy(null);
     } finally {
       saving.current = false;

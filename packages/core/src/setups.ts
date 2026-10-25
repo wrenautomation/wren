@@ -5,7 +5,7 @@
  */
 import { defineSetup } from "./setup.js";
 
-export const SEARCH_CONSOLE_SETUP = defineSetup({
+const SEARCH_CONSOLE_SETUP = defineSetup({
   id: "setup.search_console",
   name: "Search Console access",
   blurb: "Wren's service account reads your Search Console property.",
@@ -27,7 +27,7 @@ export const SEARCH_CONSOLE_SETUP = defineSetup({
   ],
 });
 
-export const GOOGLE_CALENDAR_SETUP = defineSetup({
+const GOOGLE_CALENDAR_SETUP = defineSetup({
   id: "setup.google_calendar",
   name: "Calendar access",
   blurb: "Wren's service account reads and books on your Google Calendar.",
@@ -49,7 +49,7 @@ export const GOOGLE_CALENDAR_SETUP = defineSetup({
   ],
 });
 
-export const META_SETUP = defineSetup({
+const META_SETUP = defineSetup({
   id: "setup.meta",
   name: "Meta partner link",
   blurb: "Wren's business works on your ad account as a partner.",

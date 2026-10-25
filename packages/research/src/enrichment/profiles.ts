@@ -36,15 +36,15 @@ import type { LookupState } from "../schema.js";
 
 export const PROFILES_COMMAND = "enrich profiles";
 /** Google searches this stage may spend a local day; the `web` site's cap (300) is shared. */
-export const GOOGLE_PER_DAY = 200;
+const GOOGLE_PER_DAY = 200;
 /** Local hours Google is asked in: [from, to). */
-export const GOOGLE_HOURS = [8, 20] as const;
+const GOOGLE_HOURS = [8, 20] as const;
 /** Errors in a row that stop the run: something is down, not one odd person. */
 const ERROR_STREAK = 5;
 /** Raw characters at most between a person's name and their profile link. */
 const NAME_WINDOW = 600;
 
-export interface ProfileWork {
+interface ProfileWork {
   /** A research person: always has its id (a "Research this person" subject may not). */
   person: LookupSubject & { personId: number };
   company: ProfileSubject;
@@ -442,7 +442,7 @@ export function countProfileUnit(
   return null;
 }
 
-export interface RunProfilesOptions {
+interface RunProfilesOptions {
   /** People in the order they will be emailed; the due ones are looked up. */
   personIds: readonly number[];
   limit?: number;

@@ -34,7 +34,7 @@ import { handlerForm, serviceHandler } from "./restate/form.js";
 import { flags } from "./schema.js";
 
 /** A team login's row, read fresh: its role and its clients (null = every client). */
-export interface TeamSeat {
+interface TeamSeat {
   role: RoleId;
   clients: readonly string[] | null;
 }
@@ -43,7 +43,7 @@ export interface TeamSeat {
  * Who a View as came to, set by the guard on the viewer it hands a handler
  * (designs/2026-10-14-view-as.md). The viewer's own `email` is then the person looked as.
  */
-export interface Viewing {
+interface Viewing {
   /** The real person signed in: the actor in the audit log. */
   by: string;
   /** The client looked at, or `wren` for a teammate. */
@@ -83,7 +83,7 @@ export interface PortalRequest {
 }
 
 /** The View as a call carries, read leniently: anything there that isn't a sound Act is a Look. */
-export function viewAsIn(req: PortalRequest): ViewAs | null {
+function viewAsIn(req: PortalRequest): ViewAs | null {
   const v = viewAsShape(req.viewAs);
   return v === "bad" ? { client: "", act: false } : v;
 }
@@ -257,7 +257,7 @@ const someoneNew = (role: string) =>
  * admin's, and a role-only Act only in the sandbox, so a real client's rows never carry a made-up
  * author. An admin views as a teammate too.
  */
-export async function viewAsOf(
+async function viewAsOf(
   main: Db,
   real: Viewer,
   raw: unknown,
@@ -462,10 +462,6 @@ export async function canAt(
     !isDemo(v) && !v.access && !v.operator ? await whoIs(main, v, at.client) : accessOf(req);
   return can(who, p, at);
 }
-
-/** Every grant a viewer holds, for the web to hide what a target refuses: none for a built-in. */
-export const extraGrants = (who: Who): readonly Grant[] =>
-  who && !("demo" in who) ? (who.grants ?? []) : [];
 
 /**
  * The clients this viewer may open: the demo's; for an operator every one, or only their

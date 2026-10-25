@@ -8,7 +8,7 @@ import { sql } from "drizzle-orm";
 import { firmOf, type ProfileFacts } from "./profile-research.js";
 
 /** The traits, in the shape `scoreFit` reads (`FitTraits`); a plain copy, so this package imports nothing of the pipeline. */
-export interface PersonTraits {
+interface PersonTraits {
   /** Title and seniority: "Owner at Acme Dental", "owner". */
   roles?: string[];
   industries?: string[];

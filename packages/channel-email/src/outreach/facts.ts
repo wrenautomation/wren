@@ -86,7 +86,7 @@ export async function personFacts(db: Queryable, personId: number): Promise<Fact
 }
 
 /** A company absent from its view contributes nothing — templates decide what that means. */
-export async function companyFacts(
+async function companyFacts(
   db: Queryable,
   factsView: string | null,
   companyId: number,
@@ -104,7 +104,7 @@ export async function companyFacts(
 }
 
 /** A post this many days old or newer may open an email. */
-export const POST_FRESH_DAYS = 90;
+const POST_FRESH_DAYS = 90;
 
 /**
  * The firm's newest public post as `post.*`: title, kind ("video"), site ("YouTube"), url and
@@ -112,7 +112,7 @@ export const POST_FRESH_DAYS = 90;
  * are skipped. Instagram posts are kept as findings too but never open an email yet (their
  * `title` is empty). None fresh = no post keys, so an option that needs one is never picked.
  */
-export async function postFacts(db: Queryable, companyId: number): Promise<FactRow> {
+async function postFacts(db: Queryable, companyId: number): Promise<FactRow> {
   const rows = (await db.execute(sql`
     SELECT value->>'title' AS title, value->>'kind' AS kind, value->>'site' AS site,
       source_url AS url,

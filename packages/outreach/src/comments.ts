@@ -219,7 +219,7 @@ export const promptFor = (c: Comment) => {
 };
 
 /** The platform's playbook and comments SOP, read fresh per comment; "" = none. */
-export type CommentGuide = (platform: string) => Promise<string>;
+type CommentGuide = (platform: string) => Promise<string>;
 
 const ANSWER = z.object({
   sort: z.enum(["asked", "question", "chat", "hostile"]),
@@ -383,7 +383,7 @@ async function othersOf(db: Queryable, a: ReachAccount): Promise<string[]> {
 }
 
 /** `account` null = a content comment: answered through `Content.reply`, no reach caps. */
-export interface AnswerPlan {
+interface AnswerPlan {
   comment: Comment;
   account: ReachAccount | null;
   others: string[];
@@ -594,7 +594,7 @@ export async function dmCommenter(
  * that read it DMs them; `private_reply`: Meta's one DM from the comment, through our Page; null:
  * no door, and `how` says what to do instead.
  */
-export type DmDoor = { door: "reach" | "private_reply" | null; how: string };
+type DmDoor = { door: "reach" | "private_reply" | null; how: string };
 const NO_DOOR: Record<string, string> = {
   x: "X DMs need their DMs open to us: answer in public and ask them to DM us.",
   linkedin:
@@ -604,7 +604,7 @@ const NO_DOOR: Record<string, string> = {
   reddit: "A Reddit DM goes from a reach account; this one was read on our own post.",
 };
 /** Meta takes a DM from a comment only this long after it. */
-export const PRIVATE_REPLY_MS = 7 * 86_400_000;
+const PRIVATE_REPLY_MS = 7 * 86_400_000;
 
 export function dmDoorOf(c: Pick<Comment, "platform" | "accountId">): DmDoor {
   if (c.accountId) return { door: "reach", how: "A DM from the reach account that read it." };

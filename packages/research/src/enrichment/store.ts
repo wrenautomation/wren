@@ -10,7 +10,7 @@ import type { Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { type Enrichment, type EnrichmentKind, enrichments } from "../schema.js";
 
-export interface UpsertEnrichment {
+interface UpsertEnrichment {
   kind: EnrichmentKind;
   model: string;
   promptVersion: string;

@@ -19,7 +19,7 @@ import { TagForm } from "./TagForm.js";
 import { UndoLine } from "./Undo.js";
 
 /** The note a restore carries. */
-export const restoreNote = (n: number) => `Restore v${n}`;
+const restoreNote = (n: number) => `Restore v${n}`;
 
 /** What restoring version `n` would change, and the button that does it. */
 function Restore({

@@ -14,7 +14,7 @@
 import { PlainDate } from "../send/dates.js";
 
 /** A longer leave isn't held: the thread would block the firm's other contacts for months. */
-export const MAX_AWAY_DAYS = 60;
+const MAX_AWAY_DAYS = 60;
 
 /** How far before a date an away word may sit and still own it. */
 const NEAR_CHARS = 60;

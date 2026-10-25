@@ -58,7 +58,7 @@ export interface Crumb {
 }
 
 /** One part's attachments, under its name: a part of a set, or a station inside. */
-export interface PartAttach {
+interface PartAttach {
   part: MetroPart;
   label: string;
   attach: readonly Attach[];

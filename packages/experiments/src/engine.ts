@@ -22,7 +22,7 @@ export interface AlleleCounts {
   readonly negatives: number;
 }
 
-export interface Arm {
+interface Arm {
   readonly successes: number;
   readonly trials: number;
 }
@@ -33,7 +33,7 @@ export interface Beta {
 }
 
 export type Weights = Settings["weights"];
-export type Fitness = (counts: readonly AlleleCounts[], weights: Weights) => Arm[];
+type Fitness = (counts: readonly AlleleCounts[], weights: Weights) => Arm[];
 
 const as =
   (key: "replies" | "interested" | "booked"): Fitness =>
@@ -142,16 +142,16 @@ export function pBest(post: readonly Beta[]): number[] {
   return p.map((v) => v / total);
 }
 
-export interface SelectionInput {
+interface SelectionInput {
   readonly arms: readonly Arm[];
   readonly posteriors: readonly Beta[];
   readonly pBest: readonly number[];
 }
 /** Raw shares, before the floor. */
-export type Selection = (x: SelectionInput) => number[];
+type Selection = (x: SelectionInput) => number[];
 
 /** `epsilon`: this part spread evenly, the rest to the current best. */
-export const EPSILON = 0.1;
+const EPSILON = 0.1;
 
 const argmax = (xs: readonly number[]) =>
   xs.reduce((best, v, i) => (v > (xs[best] ?? -1) ? i : best), 0);
@@ -188,13 +188,13 @@ export function withFloor(shares: readonly number[], floor: number): number[] {
 }
 
 /** A settled locus keeps this share on its winner; challengers split the rest. */
-export const SETTLED_SHARE = 0.9;
-export const SETTLE_AT = 0.95;
-export const RETIRE_BELOW = 0.02;
+const SETTLED_SHARE = 0.9;
+const SETTLE_AT = 0.95;
+const RETIRE_BELOW = 0.02;
 
-export type RetireReason = "p_best" | "guard";
+type RetireReason = "p_best" | "guard";
 
-export interface LocusInput {
+interface LocusInput {
   readonly locus: string;
   /** The live alleles, by key. */
   readonly alleles: readonly string[];
@@ -205,7 +205,7 @@ export interface LocusInput {
   readonly history: readonly (string | null)[];
 }
 
-export interface LocusResult {
+interface LocusResult {
   readonly locus: string;
   readonly fitness: FitnessName;
   /** Over every allele that came in, retired ones included. */

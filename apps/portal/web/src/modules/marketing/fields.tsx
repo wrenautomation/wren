@@ -7,12 +7,16 @@
  */
 import type { FieldView } from "@wren/core/content/shapes";
 import type { TikTokCreator } from "@wren/core/content/tiktok";
-import type { RecordAct, RecordExtras } from "@wren/ui";
 import {
   ACTIONS,
   Button,
   GROUP_LABEL,
+  HINT_CLASS,
   Input,
+  LABEL_CLASS,
+  messageOf,
+  type RecordAct,
+  type RecordExtras,
   SaveConflict,
   type Saved,
   SaveStatus,
@@ -66,10 +70,7 @@ export type Shape = {
 export const FIELDS = "marketing.draftFields";
 export const ATTACH = "marketing.draftAttach";
 
-const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const nameOf = (s: string) => s.slice(s.lastIndexOf("/") + 1);
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-const HINT = "text-[12px] text-(--ui-ink-3)";
 
 /**
  * Each field as typed, saved or not, by draft and key: the preview beside the form reads it, so a
@@ -151,7 +152,7 @@ function useSave(act: RecordAct) {
       setSaid("Saved");
       return true;
     } catch (err) {
-      setSaid(errorOf(err));
+      setSaid(messageOf(err));
       setBad(true);
       return false;
     }
@@ -185,7 +186,7 @@ function Head({
   const needed = !said && !status && f.required && f.default === undefined && !isSet(f);
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-      <label htmlFor={id} className={LABEL}>
+      <label htmlFor={id} className={LABEL_CLASS}>
         {f.label}
         {f.required ? <span className="text-(--ui-bad)"> *</span> : null}
       </label>
@@ -323,13 +324,15 @@ function TextField({ f, act, draftId, picks }: FieldProps & { picks?: Picks | un
             }}
           />
         ) : (
-          <span className={HINT}>{picks.none}</span>
+          <span className={HINT_CLASS}>{picks.none}</span>
         )
       ) : null}
       {f.hint ? (
-        <span className={HINT}>{f.input === "list" ? `Commas between. ${f.hint}` : f.hint}</span>
+        <span className={HINT_CLASS}>
+          {f.input === "list" ? `Commas between. ${f.hint}` : f.hint}
+        </span>
       ) : f.input === "list" ? (
-        <span className={HINT}>Commas between.</span>
+        <span className={HINT_CLASS}>Commas between.</span>
       ) : null}
     </div>
   );
@@ -349,7 +352,7 @@ function PickRow(props: { picks: Picks; on: (v: string) => boolean; choose: (v: 
     : picks.values.filter((v, i) => i < PICKS_SHOWN || on(v));
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className={HINT}>{picks.label}</span>
+      <span className={HINT_CLASS}>{picks.label}</span>
       {many ? (
         <Input
           // edit-ok: search box
@@ -371,7 +374,7 @@ function PickRow(props: { picks: Picks; on: (v: string) => boolean; choose: (v: 
         </Button>
       ))}
       {find && shown.length === 0 ? (
-        <span className={HINT}>None we watch. Type it in the box above.</span>
+        <span className={HINT_CLASS}>None we watch. Type it in the box above.</span>
       ) : null}
     </div>
   );
@@ -429,7 +432,7 @@ function PickField({ f, act, draftId }: FieldProps) {
           </option>
         ))}
       </select>
-      {f.hint ? <span className={HINT}>{f.hint}</span> : null}
+      {f.hint ? <span className={HINT_CLASS}>{f.hint}</span> : null}
     </div>
   );
 }
@@ -457,7 +460,7 @@ function SwitchField({ f, act, draftId }: FieldProps) {
         </label>
         <SaveStatus state={s} onRetry={s.retry} />
       </div>
-      {f.hint ? <span className={`${HINT} pl-6.5`}>{f.hint}</span> : null}
+      {f.hint ? <span className={`${HINT_CLASS} pl-6.5`}>{f.hint}</span> : null}
     </div>
   );
 }
@@ -531,7 +534,7 @@ function FileField({ f, act, link }: FieldProps & { link: string | null }) {
           </Button>
         ) : null}
       </div>
-      {f.hint ? <span className={HINT}>{f.hint}</span> : null}
+      {f.hint ? <span className={HINT_CLASS}>{f.hint}</span> : null}
     </div>
   );
 }
@@ -610,7 +613,7 @@ function FilesField({ f, act, links }: FieldProps & { links: Record<string, stri
           Add
         </Button>
       )}
-      {f.hint ? <span className={HINT}>{f.hint}</span> : null}
+      {f.hint ? <span className={HINT_CLASS}>{f.hint}</span> : null}
     </div>
   );
 }
@@ -626,7 +629,7 @@ function Fixed({ f, link }: { f: FieldView; link?: string | null }) {
   return (
     <div className="grid min-w-0 gap-1">
       <div className="flex flex-wrap items-center gap-2">
-        <span className={LABEL}>
+        <span className={LABEL_CLASS}>
           {f.label}
           {f.required ? <span className="text-(--ui-bad)"> *</span> : null}
         </span>
@@ -640,7 +643,7 @@ function Fixed({ f, link }: { f: FieldView; link?: string | null }) {
         />
       ) : null}
       {f.status === "sent" ? <span className="text-[14px] break-words">{shown(f)}</span> : null}
-      {f.hint && f.status !== "sent" ? <span className={HINT}>{f.hint}</span> : null}
+      {f.hint && f.status !== "sent" ? <span className={HINT_CLASS}>{f.hint}</span> : null}
     </div>
   );
 }
@@ -691,7 +694,7 @@ function Schedule({ shape }: { shape: Shape }) {
   const at = shape.published?.at ?? shape.scheduled ?? null;
   return (
     <div className="grid min-w-0 gap-1">
-      <span className={LABEL}>{shape.published ? "Posted" : "Posts at"}</span>
+      <span className={LABEL_CLASS}>{shape.published ? "Posted" : "Posts at"}</span>
       <span className="text-[14px]">
         {at ? when(at) : shape.editable ? "Its next slot, once approved" : "Not scheduled"}
       </span>
@@ -741,7 +744,7 @@ function TikTokFields({ shape, act }: { shape: Shape; act: RecordAct }) {
 }
 
 /** Every field of the post, grouped: editable while it waits, as it went out once posted. */
-export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
+function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
   // A TikTok post still open: its Direct Post settings in their own panel.
   const tiktok = shape.platform === "tiktok" && shape.editable;
   const cells = (fields: FieldView[]) =>
@@ -832,7 +835,9 @@ export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
           <div className={GRID}>
             {shape.media ? (
               <div className="grid min-w-0 gap-1 @min-[440px]/fields:col-span-2">
-                <span className={LABEL}>{shape.media.kind === "video" ? "Video" : "Image"}</span>
+                <span className={LABEL_CLASS}>
+                  {shape.media.kind === "video" ? "Video" : "Image"}
+                </span>
                 <span className="wrap-anywhere whitespace-normal text-[14px]">
                   {shape.media.name}
                 </span>

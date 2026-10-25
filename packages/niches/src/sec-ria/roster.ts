@@ -67,7 +67,7 @@ export class SecInvestmentAdviserSource implements LeadSource {
 }
 
 /** A cell can hold several URLs delimited inconsistently; the first token is the primary. */
-export function primaryUrl(value: string): string {
+function primaryUrl(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "";
   return (trimmed.split(URL_SPLIT)[0] as string).replace(/[;,.]+$/, "");

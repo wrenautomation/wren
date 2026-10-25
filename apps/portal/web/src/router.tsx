@@ -34,7 +34,7 @@ import { prefetchPage } from "./records.js";
 import { bindRouter, href, navigate, workspace } from "./route.js";
 
 /** A plain left click on a link to another screen of this app, which the router handles. */
-export function inApp(e: MouseEvent, here: Location = location): string | null {
+function inApp(e: MouseEvent, here: Location = location): string | null {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
     return null;
   return linkIn(e.target, here);
@@ -160,7 +160,7 @@ const tree = root.addChildren([home, app.addChildren([page.addChildren([deeper])
  * The portal's router on `history`: the browser's for the app, a memory one for a page story
  * (designs/2026-10-18-portal-page-stories.md). `navigate` moves the one made last.
  */
-export function createPortalRouter(history: RouterHistory = createBrowserHistory()) {
+function createPortalRouter(history: RouterHistory = createBrowserHistory()) {
   const router = createRouter({
     routeTree: tree,
     history,

@@ -19,7 +19,7 @@ export type Kind = "booked" | "moved" | "cancelled" | "day" | "hour";
 export const titleFor = (title: string, name: string) => title.replaceAll("{name}", name.trim());
 
 /** "Tuesday, October 6 at 11:00 AM EDT" on `zone`'s clock; Toronto's when it isn't a zone. */
-export function whenOn(zone: string, at: Date): string {
+function whenOn(zone: string, at: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: canonicalZone(zone) ?? "America/Toronto",
     weekday: "long",

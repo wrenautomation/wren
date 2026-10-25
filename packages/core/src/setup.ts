@@ -62,9 +62,9 @@ export function siteLabel(site: string): string {
 }
 
 /** Who acts on a step: the client, Wren's team (or its agent), or nobody (a check waits). */
-export type StepWho = "client" | "wren" | "auto";
+type StepWho = "client" | "wren" | "auto";
 
-export interface SetupStep {
+interface SetupStep {
   /** A node id: `campaign_approved`. */
   id: string;
   /** The fact it makes true: `telnyx.campaign_approved`. */
@@ -198,7 +198,7 @@ const TXT = (rs: string[]) => rs.map((r) => r.replace(/^"|"$/g, "").replace(/" "
  * Where DKIM keys sit: Google Workspace's selector, Microsoft 365's two, then common defaults.
  * A domain names its selector nowhere, so the check looks in each, its mail host's first.
  */
-export const DKIM_SELECTORS = [
+const DKIM_SELECTORS = [
   "google",
   "selector1",
   "selector2",
@@ -371,7 +371,7 @@ export function setupOf(
 }
 
 /** What a fact was before a write: its state and when it last became true. */
-export interface FactWas {
+interface FactWas {
   from: FactState | null;
   okAt: Date | null;
 }
@@ -734,7 +734,7 @@ export async function sweepStuck(main: Db, setups: readonly Setup[], now: Date):
 
 // ---- the step on the spine ----
 
-export interface SetupDeps {
+interface SetupDeps {
   main: Db;
   setups: readonly Setup[];
   checks: Readonly<Record<string, SetupCheck>>;
@@ -766,7 +766,7 @@ export interface AgentJob {
 }
 
 /** Queue a job; its answer comes back through `agentDone`. One job per account, generation and step. */
-export type AgentQueue = (job: AgentJob, key: string) => Promise<void>;
+type AgentQueue = (job: AgentJob, key: string) => Promise<void>;
 
 /** The agent's answer: the fact is true, or why it isn't. */
 export interface AgentAnswer {

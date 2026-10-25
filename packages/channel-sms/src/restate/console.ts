@@ -7,7 +7,7 @@
  * review requests by hand.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { CALL_OUTCOME_LABELS, outcomeIn } from "@wren/core/calls";
+import { outcomeIn } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
@@ -44,37 +44,32 @@ import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "../schema.js";
 import { REVIEWS_FLOW } from "./answers.js";
 import type { SmsDeskService } from "./index.js";
 
-export interface SmsConsoleDeps {
+interface SmsConsoleDeps {
   /** Main: the client registry. */
   db: Db;
   /** A client's database. */
   open: (client: Pick<Client, "id" | "database">) => Db;
 }
 
-export interface ReplyRequest extends PortalRequest {
+interface ReplyRequest extends PortalRequest {
   /** The thread: its contact id, as the record shows it. */
   id: number;
   body: string;
 }
 
-export interface CallDoneRequest extends PortalRequest {
+interface CallDoneRequest extends PortalRequest {
   /** Speed-to-lead runs, as the record shows their ids. */
   ids: (string | number)[];
   /** How it went: a code or its label ("No answer"); left out, just done. */
   outcome?: string | null;
 }
 
-export interface AskReviewRequest extends PortalRequest {
+interface AskReviewRequest extends PortalRequest {
   name?: string | null;
   /** A mobile, an email, or both: at least one. */
   phone?: string | null;
   email?: string | null;
 }
-
-/** The outcome as the Done form's select says it. */
-export const OUTCOME_LABELS = Object.fromEntries(
-  CALL_OUTCOMES.map((o) => [o, CALL_OUTCOME_LABELS[o].label]),
-) as Record<CallOutcome, string>;
 
 const outcomeOf = (said: string | null | undefined): CallOutcome | null => {
   const code = outcomeIn(CALL_OUTCOMES, said);
