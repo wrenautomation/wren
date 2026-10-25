@@ -99,6 +99,20 @@ describe("reddit outreach inbox", () => {
     ]);
   });
 
+  it("a known handle skips the account read and still skips our own words", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /message/inbox": () =>
+        listing([
+          ["t4", { id: "m1", name: "t4_m1", author: "WrenAutomation", body: "ours" }],
+          ["t4", { id: "m2", name: "t4_m2", author: "dana", body: "the doc?" }],
+        ]),
+    });
+    const ch = redditOutreach(sites, { account: "reddit@wren", handle: "WrenAutomation", now });
+    const replies = await ch.replies(null);
+    expect(replies.map((r) => r.handle)).toEqual(["dana"]);
+    expect(calls.map(([, p]) => p)).toEqual(["/message/inbox"]);
+  });
+
   it("answers under a comment and lists every author in a thread", async () => {
     const { sites } = fakeSites({
       "POST /api/comment": (input) => {

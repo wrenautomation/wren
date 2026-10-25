@@ -19,9 +19,10 @@ from `touches`, `reach_posts` and `reach_messages`.
 
 What the numbers say:
 
-1. **A parked platform takes the most calls.** Reddit reach and Reddit content each poll the inbox
-   and `/api/v1/me` about every 13 minutes: 108 + 51 inbox reads and 107 `me` reads a day. Reddit
-   is 37% of all calls for 1 action a day.
+1. **A parked platform takes the most calls.** The 2 reach accounts (reddit@wren, reddit@alt)
+   each read the inbox and `/api/v1/me` about 45 times a day on the 30-minute cold cadence.
+   Content reads William's own inbox about 64 times a day. Reddit is 37% of all calls for 1
+   action a day.
 2. **Per-item reads.** LinkedIn post metrics read one post per call: 94 calls a day, and 656 of
    them failed in 7 days (capped, paced or refused). X reads one account per call
    (57 a day).
@@ -79,9 +80,11 @@ person's posts in the feed the next pass.
 - Facts guard per clause. Split a sentence at ", ", "; ", " and I ", " but ". Each clause needs
   its own backer. The deed check stays. Synthetic tests in `grounded.test.ts`.
 - Redraft path for accepted invites with `draft_at` set and no draft.
-- Reddit: no reach or content polls while reach is parked. One shared inbox read with backoff
-  for the rest.
-- LinkedIn metrics: skip a post the cap refused until the next day, not the next pass.
+- Reddit: reach inboxes read every 2 hours at most (`READ_FLOOR_MS`), and replies use the known
+  handle, so no `/api/v1/me` read per pass. About 70% fewer reach calls.
+- Post metrics: a capped read holds that platform's one-by-one reads until the cap resets
+  (`capHolds` in the loop's state). The other posts are skipped, not failed.
+- A draft kept as none (guard drop, empty, too long) gets one more try every 3 days.
 
 **Phase 1: Grow.** Supply from `/company/{company}/people` (in channel-linkedin already). Firms
 with a LinkedIn company page go first. Auto follow on LinkedIn, X and Instagram under caps, then
@@ -108,9 +111,11 @@ pass per platform). Keyword drops stop counting against the day.
 - YouTube reach.
 - Paid people data (Exa bulk): spend.
 
-## Decisions for William
+## Decisions (William, 10-25)
 
-1. Auto follows and likes, no yes. They are public actions with no words.
-2. Invite filter: drop the 50+ floor or allow unknown size; add agencies to the niches.
-3. The X home timeline on the API: it bills per post read.
-4. Record the LinkedIn and Instagram feed walks on the desk's Chrome.
+1. Follows and likes: auto, no yes.
+2. Invite filter: the 50+ floor stays on. Make the filter settable.
+3. X home timeline: only if it costs no more than the account reads it replaces.
+4. Feed walks: the session records them on the desk's Chrome.
+5. LinkedIn invites: send with no note. Accepted invites get no DM draft for now; they wait in
+   the backlog for William.

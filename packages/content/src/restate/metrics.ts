@@ -23,13 +23,17 @@
  * row is held (`unit_holds`, stage `loop.content-metrics/<key>`).
  */
 import * as restate from "@restatedev/restate-sdk";
-import type {
-  AccountInsights,
-  Insights,
-  InsightValue,
-  Metrics,
-  Platform,
-  ReportDays,
+import {
+  type AccountInsights,
+  type CapHolds,
+  capHeld,
+  holdCap,
+  type Insights,
+  type InsightValue,
+  liveHolds,
+  type Metrics,
+  type Platform,
+  type ReportDays,
 } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import {
@@ -60,6 +64,8 @@ const REPORTS = "reports.";
 /** Per platform, when a report read last found nothing new: `reports-quiet.<platform>`. */
 const REPORTS_QUIET = "reports-quiet.";
 const REPORTS_EVERY_MS = 6 * 60 * 60 * 1000;
+/** A platform whose counts read used its daily cap, until the cap resets (`metrics <platform>`). */
+const CAP_HOLDS = "capHolds";
 /** The week whose digest was last kept. */
 const DIGESTED = "digested";
 /** Hourly: a pass finds the posts whose tier is due (`LOOK_TIERS`, every 6 hours at the soonest). */
@@ -188,6 +194,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     const limits = await unitLimits(ctx, deps.db, "ContentMetrics");
     const due = await ctx.run("metrics due", () => metricsDue(db, now));
     const stats: MetricsStats = { looked: [], failed: [], reported: false };
+    const holds = liveHolds((await ctx.get<CapHolds>(CAP_HOLDS)) ?? {}, now.getTime());
     /** A read's unit, or false (and counted) when this pass leaves it out. */
     const go = (unit: string, platform: Platform) => {
       if (!limits.skip(unit, platform)) return true;
@@ -226,6 +233,11 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       if (!id) continue;
       const post = `${draft.platform}:${id}`;
       const read = batched.get(post);
+      // A used cap ends the platform's lone reads until it resets: each ask would be refused.
+      if (!read && capHeld(holds, `metrics ${draft.platform}`, now.getTime())) {
+        stats.skipped = (stats.skipped ?? 0) + 1;
+        continue;
+      }
       if (!read && !go(`metrics ${post}`, draft.platform)) continue;
       try {
         let m: Metrics | null = read ?? null;
@@ -289,6 +301,10 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
         });
       } catch (err) {
         if (!(err instanceof restate.TerminalError)) throw err;
+        if (holdCap(holds, `metrics ${draft.platform}`, err, now.getTime())) {
+          stats.skipped = (stats.skipped ?? 0) + 1;
+          continue;
+        }
         stats.failed.push({ id: draft.id, platform: draft.platform, error: errorText(err) });
       }
     }
@@ -375,6 +391,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       delayMs: everyMs,
       now: now.toISOString(),
     };
+    ctx.set(CAP_HOLDS, holds);
     await setLastPass(ctx, outcome);
     return outcome;
   });

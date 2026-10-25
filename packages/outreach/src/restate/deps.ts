@@ -175,7 +175,7 @@ export function channelsFor(deps: ReachDeps, ctx: restate.Context) {
     };
     const ch =
       a.platform === "reddit"
-        ? redditOutreach(asAccount, { account: a.account })
+        ? redditOutreach(asAccount, { account: a.account, handle: a.handle })
         : linkedinOutreach(asAccount, { account: a.account, startedOn: a.startedOn });
     made.set(a.id, ch);
     return ch;

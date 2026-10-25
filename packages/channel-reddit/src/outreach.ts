@@ -37,6 +37,8 @@ import { threadOf, threadQuery } from "./thread.js";
 
 interface RedditOutreachOptions {
   account: string;
+  /** The login's username, when known: replies skip our own words without a `/api/v1/me` read. */
+  handle?: string | null;
   now?: () => Date;
   /**
    * Read people's cards (age, karma) in `enrich`. Off for a signed-out reader: Reddit answers
@@ -344,7 +346,7 @@ export function redditOutreach(
     },
 
     async replies(since): Promise<Reply[]> {
-      const self = (await whoami()).name ?? null;
+      const self = o.handle ?? (await whoami()).name ?? null;
       const floor = since?.toISOString() ?? "";
       return (await readInbox())
         .filter((m) => !m.was_comment && m.author !== self)

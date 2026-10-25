@@ -74,6 +74,8 @@ const batches: { platform: Platform; ids: string[] }[] = [];
 const singles: string[] = [];
 /** Posts whose counts read never answers. */
 const hangMetrics = new Set<string>();
+/** Platforms whose counts read used its daily cap. */
+const cappedMetrics = new Set<Platform>();
 /**
  * Platforms whose counts read has no leg (501) or misses (502, a LinkedIn share's page), and those
  * whose insights read the counts too.
@@ -289,6 +291,8 @@ const fakeContent = restate.service({
     metrics: async (ctx: restate.Context, req: { platform: Platform; id: string }) => {
       singles.push(req.id);
       if (hangMetrics.has(req.id)) await ctx.awakeable<void>().promise;
+      if (cappedMetrics.has(req.platform))
+        throw new restate.TerminalError("capped, retry after 36000s", { errorCode: 429 });
       if (unbuilt.has(req.platform))
         throw new restate.TerminalError("workflow not recorded", { errorCode: 501 });
       if (missed.has(req.platform))
@@ -468,6 +472,7 @@ beforeEach(async () => {
   batchFails = false;
   leftOut.clear();
   hangMetrics.clear();
+  cappedMetrics.clear();
   batches.length = 0;
   singles.length = 0;
   calls = 0;
@@ -1422,6 +1427,27 @@ describe("content loop", () => {
     expect(r.tokensThisMonth.calls).toBe(2);
     const open = await pg.db.select().from(contentIdeas).where(eq(contentIdeas.status, "open"));
     expect(r.openIdeas).toBe(open.length);
+  });
+
+  // Last in the loop's tests: the hold stays in the loop's state till the cap resets.
+  it("a used cap skips the platform's other reads until it resets, never a failure", async () => {
+    const a = await desk().add({ text: "first capped post", platforms: ["x"] });
+    const b = await desk().add({ text: "second capped post", platforms: ["x"] });
+    const drafts = [
+      ...(await listDrafts(pg.db, { ideaId: a.idea.id })),
+      ...(await listDrafts(pg.db, { ideaId: b.idea.id })),
+    ];
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    cappedMetrics.add("x");
+    const pass = await look();
+    expect(singles).toHaveLength(1);
+    expect(pass.stats?.failed).toEqual([]);
+    expect(pass.stats?.skipped).toBe(2);
   });
 });
 

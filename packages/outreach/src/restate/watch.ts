@@ -77,11 +77,15 @@ const WATCH_FLOOR_MS = 60 * 1000;
 const READS = "reads";
 
 /**
- * The least time between two inbox reads on a platform whose login has a daily inbox cap:
+ * The least time between two inbox reads on a platform. A login with a daily inbox cap:
  * LinkedIn's 48 a day (autobrowse `src/sites/linkedin.ts`) is one every 30 minutes; every 36
  * keeps 8 for other readers, and warm reads never spend it by noon.
  */
-const READ_FLOOR_MS: Partial<Record<string, number>> = { linkedin: 36 * 60_000 };
+const READ_FLOOR_MS: Partial<Record<string, number>> = {
+  linkedin: 36 * 60_000,
+  // Reach on Reddit is parked (no new comments of ours to watch): its inboxes read every 2 hours.
+  reddit: 2 * 60 * 60_000,
+};
 
 /** The same for health: it stays on the cold cadence, whatever the inbox does. */
 const HEALTH = "health";
@@ -246,7 +250,7 @@ async function draftsPass(
   const llm = deps.drafts?.llm;
   if (!llm) return out;
   const due = await ctx.run("drafts due", async () =>
-    contactsToDraft(deps.db, DRAFTS_PER_DAY - (await draftsToday(deps.db, now))),
+    contactsToDraft(deps.db, DRAFTS_PER_DAY - (await draftsToday(deps.db, now)), now),
   );
   const factsOf = deps.drafts?.facts;
   const facts =
