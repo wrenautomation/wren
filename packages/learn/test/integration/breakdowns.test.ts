@@ -4,6 +4,9 @@
  * and the Competitors views rank reels and hook styles. The model and Instagram are fakes; every
  * address is made up.
  */
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -22,7 +25,10 @@ import {
   recordFactCall,
   scoreItem,
   sitesReader,
+  sopSources,
   sources,
+  standards,
+  writeSopFiles,
 } from "../../src/index.js";
 
 let pg: TestPostgres;
@@ -32,7 +38,7 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 beforeEach(async () => {
   await pg.db.execute(
-    sql`TRUNCATE learn.breakdowns, learn.items, learn.sources, decision_calls RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE learn.breakdowns, learn.items, learn.sources, learn.sop_sources, decision_calls RESTART IDENTITY CASCADE`,
   );
 });
 
@@ -244,5 +250,91 @@ describe("his calls on the facts", () => {
         source: "cli",
       }),
     ).rejects.toThrow(/no breakdown/);
+  });
+});
+
+describe("the standard and his calls, as an SOP reads them", () => {
+  let dir = "";
+  afterAll(() => (dir ? rm(dir, { recursive: true, force: true }) : undefined));
+  it("flattens each breakdown into learn.standards, counts his calls, and writes standard.md and calls.md for a scope", async () => {
+    const m = model();
+    const ids: number[] = [];
+    for (const n of [1, 2, 3]) {
+      const id = await readReel(n, { stats: { views: 1000 * n } });
+      await breakdownItem(pg.db, m.judge, id);
+      ids.push(id);
+    }
+    const call = (id: number, path: string, c: "keep" | "tune" | "drop", comment?: string) =>
+      recordFactCall(pg.db, {
+        client: "wren",
+        id,
+        path,
+        call: c,
+        comment,
+        by: null,
+        source: "cli",
+      });
+    await call(ids[0] as number, "hook_style", "keep");
+    await call(ids[1] as number, "hook_style", "keep", "says the common advice is wrong");
+    await call(ids[2] as number, "hook_style", "keep");
+    await call(ids[2] as number, "beats/1", "tune", "one account is enough");
+    await call(ids[2] as number, "/", "keep");
+
+    const flat = await pg.db.select().from(standards).orderBy(asc(standards.id));
+    expect(
+      flat.map((r) => [r.kind, r.platform, r.creator, r.reach, r.format, r.hookStyle, r.calls]),
+    ).toEqual([
+      ["reel", "instagram", "synth1", 1000, "talking-head", "contrarian", 1],
+      ["reel", "instagram", "synth2", 2000, "talking-head", "contrarian", 1],
+      ["reel", "instagram", "synth3", 3000, "talking-head", "contrarian", 3],
+    ]);
+    const records = await pg.db.select().from(breakdownRecords).orderBy(asc(breakdownRecords.id));
+    expect(records.map((r) => [r.calls, r.called])).toEqual([
+      [1, true],
+      [1, true],
+      [3, true],
+    ]);
+    // A fourth, uncalled, is "To call"; it is out of the set until "Add to SOP" asks it in.
+    const extra = await readReel(4, { stats: { views: 50 } });
+    await breakdownItem(pg.db, m.judge, extra);
+    expect(
+      (await pg.db.select().from(breakdownRecords).where(eq(breakdownRecords.id, extra)))[0]
+        ?.called,
+    ).toBe(false);
+    await call(extra, "cta", "drop", "no comment-a-word asks");
+
+    dir = await mkdtemp(join(tmpdir(), "sop-"));
+    const notes =
+      "---\nkinds: reel, film\nplatforms: instagram\nset: synth1, synth2, synth3\n---\n# Notes\n";
+    const out = await writeSopFiles(pg.db, dir, "reels", notes);
+    expect(out && [out.pieces, out.calls]).toEqual([3, 5]);
+    const standard = await readFile(join(dir, "standard.md"), "utf8");
+    expect(standard).toContain("## reel (3 pieces)");
+    expect(standard).toContain("- Hook style: contrarian 3 (of 3)");
+    expect(standard).toContain("- Call to action: comment-word 3 (of 3)");
+    expect(standard).toContain("- Format: talking-head 3 (of 3)");
+    expect(standard).not.toContain("## film");
+    const calls = await readFile(join(dir, "calls.md"), "utf8");
+    expect(calls).toContain(
+      `- Hook style: contrarian: keep 3 → rule [learn:${ids[0]}, learn:${ids[1]}, learn:${ids[2]}] ("says the common advice is wrong" [learn:${ids[1]}])`,
+    );
+    expect(calls).toContain(
+      `- Beat 2 "[0:12] Proof from three accounts" (Reel 3, synth3) "one account is enough" [learn:${ids[2]}]`,
+    );
+    expect(calls).toContain(`- Whole piece: Reel 3, synth3 [learn:${ids[2]}]`);
+    expect(calls).not.toContain("no comment-a-word asks");
+
+    await pg.db
+      .insert(sopSources)
+      .values({ itemId: extra, sop: "reels", state: "added", by: null });
+    const again = await writeSopFiles(pg.db, dir, "reels", notes);
+    expect(again?.calls).toBe(6);
+    expect(await readFile(join(dir, "calls.md"), "utf8")).toContain(
+      `- Call to action: comment-word: drop 1 [learn:${extra}] ("no comment-a-word asks" [learn:${extra}])`,
+    );
+    // The standard counts the set only: the asked-in piece lends its call, not its numbers.
+    expect(await readFile(join(dir, "standard.md"), "utf8")).toContain("## reel (3 pieces)");
+    // No kinds in the notes: nothing to write.
+    expect(await writeSopFiles(pg.db, dir, "reels", "# Notes\n")).toBeNull();
   });
 });

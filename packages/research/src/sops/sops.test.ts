@@ -107,6 +107,40 @@ describe("sops", () => {
     expect(sopPrompt({ name: "x", ...again })).toContain("There is a current SOP.md below");
     expect(await readFile(join(dir, "notes.md"), "utf8")).toBe("mine");
   });
+
+  it("reads calls.md and standard.md into the prompt, and keeps the notes' front matter out of it", async () => {
+    dir = await mkdtemp(join(tmpdir(), "sop-"));
+    await writeFile(join(dir, "notes.md"), "---\nkinds: film\nset: linear\n---\n# Notes\n\nmine");
+    await writeFile(
+      join(dir, "calls.md"),
+      "# Calls\n\n- Hook style: demo-first: keep 3 → rule [learn:1, learn:2, learn:3]",
+    );
+    await writeFile(
+      join(dir, "standard.md"),
+      "# Standard\n\n## film (3 pieces)\n- Length (s): median 42",
+    );
+    const read = await readSopDir(dir);
+    expect(read.notes).toBe("# Notes\n\nmine");
+    const prompt = sopPrompt({ name: "x", ...read });
+    expect(prompt).toContain("<notes>\n# Notes\n\nmine\n</notes>");
+    expect(prompt).toContain(
+      "<calls>\n# Calls\n\n- Hook style: demo-first: keep 3 → rule [learn:1, learn:2, learn:3]\n</calls>",
+    );
+    expect(prompt).toContain(
+      "<standard>\n# Standard\n\n## film (3 pieces)\n- Length (s): median 42\n</standard>",
+    );
+    expect(prompt.indexOf("<notes>\n")).toBeLessThan(prompt.indexOf("<calls>\n"));
+    expect(prompt.indexOf("<calls>\n")).toBeLessThan(prompt.indexOf("<standard>\n"));
+    const bare = sopPrompt({
+      name: "x",
+      notes: "",
+      calls: "",
+      standard: "",
+      current: "",
+      sources: [],
+    });
+    expect(bare).toContain("<calls>\n(none yet)\n</calls>");
+  });
 });
 
 describe("numbered citations", () => {

@@ -14,4 +14,5 @@ export * from "./read.js";
 export * from "./schema.js";
 export * from "./score.js";
 export * from "./sops.js";
+export * from "./standard.js";
 export * from "./tell.js";

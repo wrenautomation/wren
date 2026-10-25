@@ -315,9 +315,18 @@ const breakdownRecord = defineRecord({
     at: date("Published"),
     statsAt: date("Numbers from"),
     open: link("Open"),
+    calls: number("Calls"),
+    called: status(
+      {
+        true: { label: "Called", tone: "good" },
+        false: { label: "To call", tone: "neutral" },
+      },
+      "His call",
+    ),
   },
   views: [
     { id: "all", label: "Best reach", sort: "-reach", at: "at" },
+    { id: "to-call", label: "To call", where: { called: "false" }, sort: "-reach", at: "at" },
     { id: "new", label: "Newest", sort: "-at", at: "at" },
     {
       id: "followed",

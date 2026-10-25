@@ -3,7 +3,7 @@ type: object
 cluster: learn
 universe: live
 status: verified
-verified: 2026-10-11 @ HEAD
+verified: 2026-10-25
 entity: packages/learn/src/schema.ts:313
 ---
 
@@ -22,9 +22,10 @@ A closed style set so reels group and rank; free tags would never count. Written
 - A film's facts come off its read page: `renderWatched` (`@wren/video-watch`) writes a `## Facts` JSON fence (duration, audio, each detector's cuts) when the Mac reader ran the scene detectors (`WREN_SCENEDETECT`, default `uvx scenedetect`); `filmFactsOf` reads it at breakdown time, so an old page re-breaks down offline. Trust: hash within 20% of a hand count, else hash and adaptive within 2x (`cutsTrust`); ffmpeg's `scene` is evidence only
 - `items.stats` jsonb `{likes, comments, views}` and `items.stats_at`: set by each creator pass (`pullCreators`, `creators.ts`), refreshed on posts seen before; the back catalog sets them on insert
 - His calls (`calls.ts`): keep, tune or drop with his words, on the item (`learn:<id>`) or one fact (`learn:<id>/beats/2`, `/facts/shots/5`), as Decide kind `learn_fact` in `decision_calls` (`comment` column); `factRows` lists the callable paths off the row, a path outside them is refused; `factCalls` is the newest per path. Wren's workspace only
-- Views `learn.breakdown_records` (Wren's own, `reach`, beats as `[m:ss] beat` lines) and `learn.hook_records` (per style: reels, creators, median and best reach, best reel)
+- Views `learn.breakdown_records` (Wren's own, `reach`, beats as `[m:ss] beat` lines, `calls` and `called` for the "To call" queue), `learn.hook_records` (per style: reels, creators, median and best reach, best reel) and `learn.standards` (one flat row per breakdown: platform, creator, reach, each kind's facts as typed columns; what an SOP's `standard.md` is measured on)
+- An SOP's two generated files (`standard.ts`): `scopeOf` reads `kinds`, `platforms`, `topic`, `set` off `notes.md`'s front matter; `standardOf` gives each number its median and middle half and each closed set its counts; `callsOf` rolls his calls on the pieces in scope (or asked in via `sop_sources`) into patterns, a rule at `RULE_KEEPS` keeps with no drop; `writeSopFiles` writes `standard.md` and `calls.md` for `wren sop sync` ([[sop-build]])
 
-Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/calls.ts`, `packages/learn/src/film.ts`, `packages/learn/src/creators.ts` (`statsOf`), `packages/video-watch/src/watch.ts` (`sceneDetectCuts`, `watchFacts`, `readWatchFacts`)
+Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/calls.ts`, `packages/learn/src/standard.ts`, `packages/learn/src/film.ts`, `packages/learn/src/creators.ts` (`statsOf`), `packages/video-watch/src/watch.ts` (`sceneDetectCuts`, `watchFacts`, `readWatchFacts`)
 
 ## Connected to
 
@@ -48,6 +49,9 @@ Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/calls.ts`, `pa
 | Learn → Competitors, Reels, Hooks (`learn.breakdown`, `learn.hook`) | read |
 | Item page → How it's made (`item.tsx` `Facts`; console `call`) | read the facts and his calls; writes a call |
 | `wren learn call <id> <path> keep\|tune\|drop [words]` | writes a call (`show <id>` lists the paths) |
+| Learn → Competitors → To call (`learn.breakdown` view `to-call`) | read: broken-down pieces with no call yet, best reach first |
+| `wren sop sync <name>` (and `sop build`) | read: `learn.standards` and the calls into the SOP folder |
+| `wren lake sql` | read: `learn.standards` as is |
 
 ## See
 

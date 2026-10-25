@@ -15,6 +15,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgSchema,
   primaryKey,
   real,
@@ -707,6 +708,9 @@ export const breakdownRecords = learn
     at: timestamp("at", { withTimezone: true }),
     statsAt: timestamp("stats_at", { withTimezone: true }),
     open: text("open"),
+    /** His `learn_fact` calls on it, any path; `called` is whether there is one: the "To call" queue is the rest. */
+    calls: integer("calls"),
+    called: boolean("called"),
   })
   .as(sql`
     select i.id, i.title, coalesce(i.creator, s.name) creator, coalesce(s.name, 'Saved') source,
@@ -722,10 +726,64 @@ export const breakdownRecords = learn
       (i.stats->>'views')::int views,
       coalesce((i.stats->>'views')::int,
         nullif(coalesce((i.stats->>'likes')::int, 0) + coalesce((i.stats->>'comments')::int, 0), 0)) reach,
-      i.score::int score, coalesce(i.published_at, i.created_at) at, i.stats_at, i.url open
+      i.score::int score, coalesce(i.published_at, i.created_at) at, i.stats_at, i.url open,
+      c.calls, c.calls > 0 called
     from learn.breakdowns b join learn.items i on i.id = b.item_id
       left join learn.sources s on s.id = i.source_id
+      left join lateral (select count(*)::int calls from decision_calls c
+        where c.kind = 'learn_fact'
+          and (c.subject = 'learn:' || b.item_id or c.subject like 'learn:' || b.item_id || '/%')) c on true
     where i.client = 'wren'`);
+
+/**
+ * Each of Wren's breakdowns as one flat row of numbers (designs/2026-10-25-competitor-analyzer.md,
+ * Write): the kind's facts as columns, the platform, the creator and the reach, so a standard is
+ * a filter and a median. `standardOf` reads it for an SOP's kinds, platforms and set; the lake
+ * and `wren lake sql` read it as is.
+ */
+export const standards = learn
+  .view("standards", {
+    id: integer("id"),
+    kind: text("kind"),
+    platform: text("platform"),
+    creator: text("creator"),
+    title: text("title"),
+    reach: integer("reach"),
+    at: timestamp("at", { withTimezone: true }),
+    by: text("by"),
+    hookStyle: text("hook_style"),
+    ctaKind: text("cta_kind"),
+    format: text("format"),
+    shape: text("shape"),
+    link: text("link"),
+    chars: integer("chars"),
+    lines: integer("lines"),
+    firstLineChars: integer("first_line_chars"),
+    hashtags: integer("hashtags"),
+    durationS: numeric("duration_s"),
+    cuts: integer("cuts"),
+    shotMedianS: numeric("shot_median_s"),
+    shotP90S: numeric("shot_p90_s"),
+    firstProductS: numeric("first_product_s"),
+    logoS: numeric("logo_s"),
+    ctaS: numeric("cta_s"),
+    cutsTrust: text("cuts_trust"),
+    music: boolean("music"),
+    vo: boolean("vo"),
+    calls: integer("calls"),
+  })
+  .as(sql`
+    select r.id, r.kind, r.type platform, r.creator, r.title, r.reach, r.at, b."by"::text "by",
+      r.hook_style, r.cta_kind,
+      b.facts->>'format' format, b.facts->>'shape' shape, b.facts->>'link' link,
+      (b.facts->>'chars')::int chars, (b.facts->>'lines')::int lines,
+      (b.facts->>'first_line_chars')::int first_line_chars, (b.facts->>'hashtags')::int hashtags,
+      (b.facts->>'duration_s')::numeric duration_s, (b.facts->>'cuts')::int cuts,
+      (b.facts->>'shot_median_s')::numeric shot_median_s, (b.facts->>'shot_p90_s')::numeric shot_p90_s,
+      (b.facts->>'first_product_s')::numeric first_product_s, (b.facts->>'logo_s')::numeric logo_s,
+      (b.facts->>'cta_s')::numeric cta_s, b.facts->>'cuts_trust' cuts_trust,
+      (b.facts->>'music')::boolean music, (b.facts->>'vo')::boolean vo, r.calls
+    from learn.breakdown_records r join learn.breakdowns b on b.item_id = r.id`);
 
 /** Each hook style across Wren's broken-down reels: how often, by whom, and how far it reached. */
 export const hookRecords = learn

@@ -1,9 +1,10 @@
 /**
  * `wren sop …`: SOPs built from videos, Drive Docs and files, kept as folders
- * under the SOPs directory (`SOP.md`, `notes.md`, `sources/`). `add` ingests
- * a source, `build` writes the next SOP.md on Claude Code, `ls` shows what is
- * there, `push` hands SOP.md to the content loop as a platform's playbook. Iterate by editing notes.md (your rules, top priority) and building
- * again. Drive reads go through autobrowse's `drive` site on this machine.
+ * under the SOPs directory (`SOP.md`, `notes.md`, `calls.md`, `standard.md`, `sources/`). `add` ingests
+ * a source, `sync` writes the numbers and your calls from Learn, `build` writes the next SOP.md
+ * on Claude Code (sync first), `ls` shows what is there, `push` hands SOP.md to the content loop
+ * as a platform's playbook. Iterate by editing notes.md (your rules, top priority), calling on
+ * pieces, and building again. Drive reads go through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
 import { copyFile, mkdir, readdir, readFile, symlink, unlink, writeFile } from "node:fs/promises";
@@ -13,6 +14,7 @@ import type { Settings } from "@wren/config";
 import { pushPlaybook } from "@wren/content";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
+import { writeSopFiles } from "@wren/learn";
 import { ClaudeCodeLlm, fleetKeys, loadLlmEnv } from "@wren/llm";
 import {
   addSource,
@@ -129,12 +131,44 @@ export function registerSop(
       }
     });
 
+  /** `standard.md` and `calls.md` from the pieces the SOP's front matter names; false when it names none. */
+  const sync = async (name: string) => {
+    const dir = join(sopsDir, name);
+    const notes = await readFile(join(dir, "notes.md"), "utf8").catch(() => "");
+    const r = await withDb((db) => writeSopFiles(db, dir, name, notes));
+    if (!r) return false;
+    console.log(
+      `${name}: ${r.pieces} piece${r.pieces === 1 ? "" : "s"} (${r.scope.kinds.join(", ")}), ${r.calls} call${r.calls === 1 ? "" : "s"} → standard.md, calls.md`,
+    );
+    return true;
+  };
+
+  sop
+    .command("sync <name>")
+    .description(
+      "write standard.md (the numbers) and calls.md (your keep / tune / drop calls) from the pieces notes.md's front matter names (kinds, platforms, set)",
+    )
+    .action(async (name: string) => {
+      if (!(await sync(name)))
+        console.log(`${name}: notes.md names no kinds in its front matter; nothing to measure`);
+    });
+
   sop
     .command("build <name>")
-    .description("write the next SOP.md from notes.md and the sources, on Claude Code")
+    .description(
+      "write the next SOP.md from notes.md, your calls, the standard and the sources, on Claude Code (prod numbers: node scripts/prod-wren.mjs sop sync <name> first)",
+    )
     .option("--model <model>", "Claude Code model", "opus")
-    .action(async (name: string, opts: { model: string }) => {
+    .option("--no-sync", "skip the standard.md and calls.md rewrite first")
+    .action(async (name: string, opts: { model: string; sync: boolean }) => {
       const dir = join(sopsDir, name);
+      // No database here (the Mac with Postgres down): build from the two files as they are on disk.
+      if (opts.sync)
+        await sync(name).catch((err: unknown) =>
+          console.warn(
+            `sync skipped: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}; building from standard.md and calls.md on disk`,
+          ),
+        );
       const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000 });
       const text = await buildSop(dir, llm);
       console.log(`${join(dir, "SOP.md")} (${text.split(/\s+/).length} words)`);
@@ -143,7 +177,7 @@ export function registerSop(
   sop
     .command("extract <name> [source]")
     .description(
-      "list every point a source makes into points/<source>.md for you to curate (delete lines, prefix ! to force in); build then reads points instead of the raw source",
+      "list every point a source makes into points/<source>.md (generated; your calls, not line edits, decide what is in); build then reads points instead of the raw source",
     )
     .option("--model <model>", "Claude Code model", "opus")
     .action(async (name: string, source: string | undefined, opts: { model: string }) => {
@@ -185,16 +219,21 @@ export function registerSop(
 
   sop
     .command("ls")
-    .description("every SOP folder: sources by priority, whether SOP.md exists")
+    .description(
+      "every SOP folder: sources by priority, whether SOP.md, calls.md and standard.md exist",
+    )
     .action(async () => {
       const names = (await readdir(sopsDir, { withFileTypes: true }).catch(() => []))
         .filter((e) => e.isDirectory() && !e.name.startsWith("."))
         .map((e) => e.name);
       for (const name of names) {
         const d = await readSopDir(join(sopsDir, name));
-        console.log(
-          `${name}: ${d.current ? "SOP.md" : "no SOP.md"}, notes ${d.notes.trim().length} chars`,
-        );
+        const files = [
+          d.current ? "SOP.md" : "no SOP.md",
+          d.calls ? "calls.md" : null,
+          d.standard ? "standard.md" : null,
+        ].filter(Boolean);
+        console.log(`${name}: ${files.join(", ")}, notes ${d.notes.trim().length} chars`);
         for (const s of d.sources) console.log(`  ${s.priority}  ${s.name}`);
       }
     });

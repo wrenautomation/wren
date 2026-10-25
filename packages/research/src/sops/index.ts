@@ -1,10 +1,13 @@
 /**
  * SOPs built from sources. One folder per SOP: `SOP.md` is the living doc,
  * `notes.md` holds the owner's own rules (top priority, never written by
- * code), `sources/*.md` is ingested text, one file per YouTube video, other
- * video (Instagram reel, TikTok, X), Drive Doc or local file, with `priority` in its front matter. `buildSop` asks one
- * model for the next SOP.md from all of it; iterating is editing notes.md or
- * SOP.md and building again. Nothing here touches a database.
+ * code; its front matter names what the SOP governs), `calls.md` and `standard.md` are the
+ * owner's keep / tune / drop calls and the measured numbers (both written by `wren sop sync`,
+ * from the learn package), `sources/*.md` is ingested text, one file per YouTube video, other
+ * video (Instagram reel, TikTok, X), Drive Doc or local file, with `priority` in its front matter,
+ * and `points/*.md` is each source's generated list of points. `buildSop` asks one
+ * model for the next SOP.md from all of it; iterating is editing notes.md, calling on
+ * pieces, or editing SOP.md and building again. Nothing here touches a database.
  */
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -489,6 +492,10 @@ export const STYLE = `Style: short plain sentences a person would say out loud. 
 interface SopInput {
   name: string;
   notes: string;
+  /** `calls.md`: the owner's calls on pieces, rolled up; empty when none. */
+  calls: string;
+  /** `standard.md`: the numbers the pieces measure; empty when none. */
+  standard: string;
   current: string;
   /** Highest priority first. */
   sources: { name: string; priority: number; md: string }[];
@@ -501,16 +508,20 @@ export function sopPrompt(input: SopInput): string {
   return [
     `Write the next version of the SOP "${input.name}" as markdown. It is a standard operating procedure the owner and their team follow every day.`,
     STYLE,
-    "Priority. The owner's notes win over everything. Sources are listed highest priority first; when two disagree, the higher one wins, and a lower one only adds what the higher ones leave out. A source may be dated or off topic: take only what serves this SOP. Make nothing up; every step and rule must come from the notes or a source.",
+    "Priority. The owner's notes win over everything. Then the owner's calls, then the standard, then the sources. Sources are listed highest priority first; when two disagree, the higher one wins, and a lower one only adds what the higher ones leave out. A source may be dated or off topic: take only what serves this SOP. Make nothing up; every step and rule must come from the notes, the calls, the standard or a source.",
+    "Calls. The <calls> block is the owner's own judgement on real pieces: keep means do this, tune means do this with the change in their words, drop means never do this. A pattern marked rule (kept on several pieces, dropped on none) is a rule of the SOP; a drop with words is a rule too, in the owner's words. A tune on a point forces that point into the SOP, changed as the words say. Cite a call by its piece, as given: [learn:12].",
+    "Standard. The <standard> block is measured on the pieces the SOP governs: a median and the middle half for each number, counts for each closed set. Where the SOP gives a number (length, lines, cuts, when the product shows), use the standard's, as a range, and say it is measured. Never invent a number the standard does not give.",
     'Examples. End with an "## Examples" section holding the one or two best worked examples the sources give (a full email, script or message). Quote each one in full, in a fenced block, with the wording as the source gives it; do not shorten or improve it, only fix obvious caption transcription errors (misheard words, spelling). Under each, keep the source\'s own analysis of why it works, point by point, cited. Examples are the highest-signal part of the SOP, so pick the ones the source itself treats as best.',
     "Structure. When a source teaches its own framework (numbered parts, a formula, named stages), make that the SOP's skeleton in the source's order, with the source's names, and nest everything else under it. Cover every key point the source makes; a missed point is worse than a longer SOP.",
-    "Points. A source whose text is a list of points (its file name starts with points-) is the owner's curated extract of a raw source: every line is a point with its citation already in brackets. The owner has deleted what they don't want; what remains is in. A line starting with ! is one the owner marked important and must appear in the SOP. Keep each point's citation as given.",
+    "Points. A source whose text is a list of points (its file name starts with points-) is the generated extract of a raw source: every line is a point with its citation already in brackets. Take the points that serve this SOP and that the notes and calls do not contradict. Keep each point's citation as given.",
     "Citations. After a step or rule, cite where it came from in brackets: the source file stem and, for a video, the nearest [m:ss] marker before the words, e.g. [youtube-abc123 1:02:30] or [drive-9f8e]. Notes need no citation.",
     input.current.trim()
       ? "There is a current SOP.md below. Keep what still holds, word for word where you can. Change only what the notes or a higher-priority source contradicts, and add only what they add. Do not reword for its own sake."
       : "There is no SOP.md yet. Start with a one-line purpose, then numbered steps in the order they happen, then the rules that apply throughout. Use the sections the material asks for, no more.",
     "Reply with only the SOP markdown, starting with a level-one heading.",
     `<notes>\n${input.notes.trim() || "(none yet)"}\n</notes>`,
+    `<calls>\n${input.calls.trim() || "(none yet)"}\n</calls>`,
+    `<standard>\n${input.standard.trim() || "(none yet)"}\n</standard>`,
     `<current>\n${input.current.trim() || "(none yet)"}\n</current>`,
     sources,
   ].join("\n\n");
@@ -518,10 +529,15 @@ export function sopPrompt(input: SopInput): string {
 
 interface SopDir {
   dir: string;
+  /** `notes.md` without its front matter (the scope lines are for `wren sop sync`, not the model). */
   notes: string;
+  calls: string;
+  standard: string;
   current: string;
   sources: SopInput["sources"];
 }
+
+const FRONT_MATTER = /^---\n[\s\S]*?\n---\n?/;
 
 const priorityOf = (md: string) =>
   Number(md.match(/^priority:\s*(\d+)\s*$/m)?.[1] ?? DEFAULT_PRIORITY);
@@ -547,15 +563,26 @@ export async function readSopDir(dir: string): Promise<SopDir> {
   sources.sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name));
   return {
     dir,
-    notes: await read("notes.md"),
+    notes: (await read("notes.md")).replace(FRONT_MATTER, ""),
+    calls: await read("calls.md"),
+    standard: await read("standard.md"),
     current: expandCites(await read("SOP.md")),
     sources,
   };
 }
 
-const NOTES_STUB = `# Notes
+const NOTES_STUB = `---
+kinds:
+platforms:
+topic:
+set:
+---
 
-Your own rules for this SOP. They beat every source. Code never writes here.
+# Notes
+
+Your own rules for this SOP. They beat every source. Code never writes here. The front matter
+names what the SOP governs (kinds post, film, reel, video; platforms; topic words; set of creators
+and brands): \`wren sop sync\` measures those pieces into standard.md and rolls your calls into calls.md.
 `;
 
 /** Add a source to an SOP's folder (creating it and a notes.md stub); same name overwrites. */
@@ -568,10 +595,10 @@ export async function addSource(dir: string, source: Source): Promise<string> {
   return file;
 }
 
-/** Prompt that turns one raw source into an exhaustive, cited list of points for the owner to curate. */
+/** Prompt that turns one raw source into an exhaustive, cited list of points. */
 function pointsPrompt(stem: string, md: string): string {
   return [
-    `Extract every point the source below makes, as a markdown list, for the owner to curate before an SOP is built from it. Be exhaustive: every rule, step, claim, number, heuristic, warning, example and the reasoning behind it. Missing a point is the one failure that matters; a long list is fine.`,
+    `Extract every point the source below makes, as a markdown list, before an SOP is built from it. Be exhaustive: every rule, step, claim, number, heuristic, warning, example and the reasoning behind it. Missing a point is the one failure that matters; a long list is fine.`,
     "One point per line, starting with \"- \", in the source's own order, under the source's section headings. Each line ends with its citation in brackets: the source stem and, for a video, the nearest [m:ss] marker before the words, e.g. [" +
       stem +
       " 1:02:30]. Keep the source's wording where it is specific; fix only obvious caption transcription errors.",
